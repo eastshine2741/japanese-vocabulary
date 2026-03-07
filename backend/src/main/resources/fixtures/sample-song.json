@@ -1,0 +1,24 @@
+{
+  "input": {
+    "title": "夜に駆ける",
+    "artist": "YOASOBI",
+    "lyrics": "沈んでいく感覚に 溺れてしまいそうだ\n君の声が聞こえる 夢の中で\nもう一度だけ 触れたいと\n願い続けていた あの頃の\n光を追いかけて 夜に駆けていく\n消えない想いを 胸に抱いたまま\n二人で笑った 日々が眩しくて\n忘れられないよ どこにいても"
+  },
+  "expectedStudyUnits": [
+    { "index": 0, "originalText": "沈んでいく感覚に 溺れてしまいそうだ", "readingHint": null, "translationHint": null },
+    { "index": 1, "originalText": "君の声が聞こえる 夢の中で", "readingHint": null, "translationHint": null },
+    { "index": 2, "originalText": "もう一度だけ 触れたいと", "readingHint": null, "translationHint": null },
+    { "index": 3, "originalText": "願い続けていた あの頃の", "readingHint": null, "translationHint": null },
+    { "index": 4, "originalText": "光を追いかけて 夜に駆けていく", "readingHint": null, "translationHint": null },
+    { "index": 5, "originalText": "消えない想いを 胸に抱いたまま", "readingHint": null, "translationHint": null },
+    { "index": 6, "originalText": "二人で笑った 日々が眩しくて", "readingHint": null, "translationHint": null },
+    { "index": 7, "originalText": "忘れられないよ どこにいても", "readingHint": null, "translationHint": null }
+  ],
+  "expectedVocabularyCandidateSamples": [
+    { "word": "沈んでいく感覚に", "reading": "沈んでいく感覚に", "partOfSpeech": null, "sourceLineIndex": 0 },
+    { "word": "溺れてしまいそうだ", "reading": "溺れてしまいそうだ", "partOfSpeech": null, "sourceLineIndex": 0 },
+    { "word": "君の声が聞こえる", "reading": "君の声が聞こえる", "partOfSpeech": null, "sourceLineIndex": 1 },
+    { "word": "夢の中で", "reading": "夢の中で", "partOfSpeech": null, "sourceLineIndex": 1 },
+    { "word": "光を追いかけて", "reading": "光を追いかけて", "partOfSpeech": null, "sourceLineIndex": 4 }
+  ]
+}

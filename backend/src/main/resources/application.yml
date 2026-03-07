@@ -1,0 +1,17 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: japanese-vocabulary-backend
+
+# MySQL datasource - commented out, not needed for sprint 1
+#  datasource:
+#    url: jdbc:mysql://localhost:3306/japanese_vocabulary
+#    username: ${DB_USERNAME}
+#    password: ${DB_PASSWORD}
+#    driver-class-name: com.mysql.cj.jdbc.Driver
+#  jpa:
+#    hibernate:
+#      ddl-auto: validate
+#    show-sql: false

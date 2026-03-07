@@ -1,0 +1,36 @@
+{
+  "song": {
+    "id": null,
+    "title": "夜に駆ける",
+    "artist": "YOASOBI",
+    "language": "ja"
+  },
+  "studyUnits": [
+    { "index": 0, "originalText": "沈んでいく感覚に 溺れてしまいそうだ", "readingHint": null, "translationHint": null },
+    { "index": 1, "originalText": "君の声が聞こえる 夢の中で", "readingHint": null, "translationHint": null },
+    { "index": 2, "originalText": "もう一度だけ 触れたいと", "readingHint": null, "translationHint": null },
+    { "index": 3, "originalText": "願い続けていた あの頃の", "readingHint": null, "translationHint": null },
+    { "index": 4, "originalText": "光を追いかけて 夜に駆けていく", "readingHint": null, "translationHint": null },
+    { "index": 5, "originalText": "消えない想いを 胸に抱いたまま", "readingHint": null, "translationHint": null },
+    { "index": 6, "originalText": "二人で笑った 日々が眩しくて", "readingHint": null, "translationHint": null },
+    { "index": 7, "originalText": "忘れられないよ どこにいても", "readingHint": null, "translationHint": null }
+  ],
+  "vocabularyCandidates": [
+    { "word": "沈んでいく感覚に", "reading": "沈んでいく感覚に", "partOfSpeech": null, "sourceLineIndex": 0 },
+    { "word": "溺れてしまいそうだ", "reading": "溺れてしまいそうだ", "partOfSpeech": null, "sourceLineIndex": 0 },
+    { "word": "君の声が聞こえる", "reading": "君の声が聞こえる", "partOfSpeech": null, "sourceLineIndex": 1 },
+    { "word": "夢の中で", "reading": "夢の中で", "partOfSpeech": null, "sourceLineIndex": 1 },
+    { "word": "もう一度だけ", "reading": "もう一度だけ", "partOfSpeech": null, "sourceLineIndex": 2 },
+    { "word": "触れたいと", "reading": "触れたいと", "partOfSpeech": null, "sourceLineIndex": 2 },
+    { "word": "願い続けていた", "reading": "願い続けていた", "partOfSpeech": null, "sourceLineIndex": 3 },
+    { "word": "あの頃の", "reading": "あの頃の", "partOfSpeech": null, "sourceLineIndex": 3 },
+    { "word": "光を追いかけて", "reading": "光を追いかけて", "partOfSpeech": null, "sourceLineIndex": 4 },
+    { "word": "夜に駆けていく", "reading": "夜に駆けていく", "partOfSpeech": null, "sourceLineIndex": 4 },
+    { "word": "消えない想いを", "reading": "消えない想いを", "partOfSpeech": null, "sourceLineIndex": 5 },
+    { "word": "胸に抱いたまま", "reading": "胸に抱いたまま", "partOfSpeech": null, "sourceLineIndex": 5 },
+    { "word": "二人で笑った", "reading": "二人で笑った", "partOfSpeech": null, "sourceLineIndex": 6 },
+    { "word": "日々が眩しくて", "reading": "日々が眩しくて", "partOfSpeech": null, "sourceLineIndex": 6 },
+    { "word": "忘れられないよ", "reading": "忘れられないよ", "partOfSpeech": null, "sourceLineIndex": 7 },
+    { "word": "どこにいても", "reading": "どこにいても", "partOfSpeech": null, "sourceLineIndex": 7 }
+  ]
+}
