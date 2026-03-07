@@ -1,0 +1,29 @@
+# Claude Code
+.claude/
+
+# OMC
+.omc/
+
+# IDE
+.idea/
+*.iml
+
+# Gradle
+.gradle/
+build/
+local.properties
+gradlew
+gradlew.bat
+gradle/wrapper/gradle-wrapper.jar
+
+# Kotlin / JVM
+*.class
+*.jar
+*.war
+*.aar
+
+# Android
+app/build/
+
+# macOS
+.DS_Store
