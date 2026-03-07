@@ -5,6 +5,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -12,56 +15,50 @@ import com.japanese.vocabulary.app.model.SongStudyData
 import com.japanese.vocabulary.app.model.StudyUnit
 import com.japanese.vocabulary.app.model.VocabularyCandidate
 import com.japanese.vocabulary.app.navigation.Screen
-
-// TODO: replace with API call to POST /api/songs/analyze
-private val mockStudyData = SongStudyData(
-    song = com.japanese.vocabulary.app.model.Song(
-        id = null,
-        title = "夜に駆ける",
-        artist = "YOASOBI",
-        language = "ja"
-    ),
-    studyUnits = listOf(
-        StudyUnit(0, "沈んでいく感覚に 溺れてしまいそうだ"),
-        StudyUnit(1, "君の声が聞こえる 夢の中で"),
-        StudyUnit(2, "もう一度だけ 触れたいと"),
-        StudyUnit(3, "願い続けていた あの頃の"),
-        StudyUnit(4, "光を追いかけて 夜に駆けていく"),
-        StudyUnit(5, "消えない想いを 胸に抱いたまま"),
-        StudyUnit(6, "二人で笑った 日々が眩しくて"),
-        StudyUnit(7, "忘れられないよ どこにいても")
-    ),
-    vocabularyCandidates = listOf(
-        VocabularyCandidate("沈んでいく感覚に", "沈んでいく感覚に", null, 0),
-        VocabularyCandidate("溺れてしまいそうだ", "溺れてしまいそうだ", null, 0),
-        VocabularyCandidate("君の声が聞こえる", "君の声が聞こえる", null, 1),
-        VocabularyCandidate("夢の中で", "夢の中で", null, 1),
-        VocabularyCandidate("もう一度だけ", "もう一度だけ", null, 2),
-        VocabularyCandidate("触れたいと", "触れたいと", null, 2),
-        VocabularyCandidate("願い続けていた", "願い続けていた", null, 3),
-        VocabularyCandidate("あの頃の", "あの頃の", null, 3),
-        VocabularyCandidate("光を追いかけて", "光を追いかけて", null, 4),
-        VocabularyCandidate("夜に駆けていく", "夜に駆けていく", null, 4),
-        VocabularyCandidate("消えない想いを", "消えない想いを", null, 5),
-        VocabularyCandidate("胸に抱いたまま", "胸に抱いたまま", null, 5),
-        VocabularyCandidate("二人で笑った", "二人で笑った", null, 6),
-        VocabularyCandidate("日々が眩しくて", "日々が眩しくて", null, 6),
-        VocabularyCandidate("忘れられないよ", "忘れられないよ", null, 7),
-        VocabularyCandidate("どこにいても", "どこにいても", null, 7)
-    )
-)
+import com.japanese.vocabulary.app.viewmodel.StudyUiState
+import com.japanese.vocabulary.app.viewmodel.StudyViewModel
 
 @Composable
 fun StudyScreen(
-    studyData: SongStudyData = mockStudyData,
+    viewModel: StudyViewModel,
     onNavigate: (Screen) -> Unit
 ) {
+    val state by viewModel.state.collectAsState()
+
+    when (val s = state) {
+        is StudyUiState.Idle -> {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("No song loaded.")
+            }
+        }
+        is StudyUiState.Loading -> {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        }
+        is StudyUiState.Error -> {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Error: ${s.message}", color = MaterialTheme.colorScheme.error)
+                    Spacer(Modifier.height(16.dp))
+                    TextButton(onClick = { onNavigate(Screen.Search) }) { Text("Back") }
+                }
+            }
+        }
+        is StudyUiState.Success -> {
+            StudyContent(data = s.data, onBack = { onNavigate(Screen.Search) })
+        }
+    }
+}
+
+@Composable
+private fun StudyContent(data: SongStudyData, onBack: () -> Unit) {
     Scaffold(
         topBar = {
             StudyTopBar(
-                title = studyData.song.title,
-                artist = studyData.song.artist,
-                onBack = { onNavigate(Screen.Home) }
+                title = data.song.title,
+                artist = data.song.artist,
+                onBack = onBack
             )
         }
     ) { padding ->
@@ -77,14 +74,14 @@ fun StudyScreen(
             item {
                 SectionHeader("Lyrics")
             }
-            items(studyData.studyUnits) { unit ->
+            items(data.studyUnits) { unit ->
                 StudyUnitCard(unit)
             }
             item {
                 Spacer(Modifier.height(16.dp))
                 SectionHeader("Vocabulary Candidates")
             }
-            items(studyData.vocabularyCandidates) { candidate ->
+            items(data.vocabularyCandidates) { candidate ->
                 VocabCandidateRow(candidate)
             }
         }

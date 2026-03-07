@@ -1,8 +1,15 @@
+import java.util.Properties
+
 plugins {
     kotlin("multiplatform") version "1.9.22"
     id("com.android.application") version "8.2.2"
     id("org.jetbrains.compose") version "1.6.1"
     kotlin("plugin.serialization") version "1.9.22"
+}
+
+val localProps = Properties().apply {
+    val f = file("local.properties")
+    if (f.exists()) load(f.inputStream())
 }
 
 kotlin {
@@ -72,7 +79,13 @@ android {
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
+        buildConfigField(
+            "String", "BACKEND_BASE_URL",
+            "\"${localProps.getProperty("backend.baseUrl", "http://10.0.2.2:8080")}\""
+        )
     }
+
+    buildFeatures { buildConfig = true }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

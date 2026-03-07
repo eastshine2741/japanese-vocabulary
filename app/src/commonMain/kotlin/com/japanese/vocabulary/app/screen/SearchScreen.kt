@@ -7,10 +7,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.japanese.vocabulary.app.navigation.Screen
+import com.japanese.vocabulary.app.viewmodel.StudyViewModel
 
-// Stub: song search and selection (future sprint)
+private const val SAMPLE_TITLE = "夜に駆ける"
+private const val SAMPLE_ARTIST = "YOASOBI"
+private const val SAMPLE_LYRICS = """沈んでいく感覚に 溺れてしまいそうだ
+君の声が聞こえる 夢の中で
+もう一度だけ 触れたいと
+願い続けていた あの頃の
+光を追いかけて 夜に駆けていく
+消えない想いを 胸に抱いたまま
+二人で笑った 日々が眩しくて
+忘れられないよ どこにいても"""
+
 @Composable
-fun SearchScreen(onNavigate: (Screen) -> Unit) {
+fun SearchScreen(onNavigate: (Screen) -> Unit, viewModel: StudyViewModel) {
     Column(
         modifier = Modifier.fillMaxSize().padding(24.dp),
         verticalArrangement = Arrangement.Center,
@@ -20,8 +31,10 @@ fun SearchScreen(onNavigate: (Screen) -> Unit) {
         Spacer(Modifier.height(8.dp))
         Text("Song search coming soon", style = MaterialTheme.typography.bodyMedium)
         Spacer(Modifier.height(32.dp))
-        // Demo shortcut: go directly to study with mock data
-        Button(onClick = { onNavigate(Screen.Study) }) {
+        Button(onClick = {
+            viewModel.load(SAMPLE_TITLE, SAMPLE_ARTIST, SAMPLE_LYRICS)
+            onNavigate(Screen.Study)
+        }) {
             Text("Open Sample Study")
         }
         Spacer(Modifier.height(12.dp))

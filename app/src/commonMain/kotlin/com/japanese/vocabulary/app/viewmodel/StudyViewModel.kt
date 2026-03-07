@@ -1,0 +1,30 @@
+package com.japanese.vocabulary.app.viewmodel
+
+import com.japanese.vocabulary.app.model.SongStudyData
+import com.japanese.vocabulary.app.network.SongRepository
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.*
+
+sealed class StudyUiState {
+    object Idle : StudyUiState()
+    object Loading : StudyUiState()
+    data class Success(val data: SongStudyData) : StudyUiState()
+    data class Error(val message: String) : StudyUiState()
+}
+
+class StudyViewModel(private val repository: SongRepository = SongRepository()) {
+    private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+    private val _state = MutableStateFlow<StudyUiState>(StudyUiState.Idle)
+    val state: StateFlow<StudyUiState> = _state.asStateFlow()
+
+    fun load(title: String, artist: String, lyrics: String) {
+        scope.launch {
+            _state.value = StudyUiState.Loading
+            _state.value = try {
+                StudyUiState.Success(repository.analyze(title, artist, lyrics))
+            } catch (e: Exception) {
+                StudyUiState.Error(e.message ?: "Unknown error")
+            }
+        }
+    }
+}
