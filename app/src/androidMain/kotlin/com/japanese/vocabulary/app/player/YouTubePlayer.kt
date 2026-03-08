@@ -30,28 +30,57 @@ actual fun YouTubePlayer(videoId: String, modifier: Modifier, onSecondChanged: (
                 }, "Android")
 
                 webChromeClient = WebChromeClient()
+                webViewClient = WebViewClient()
 
-                webViewClient = object : WebViewClient() {
-                    override fun onPageFinished(view: WebView?, url: String?) {
-                        view?.evaluateJavascript(
-                            """
-                            (function() {
-                                function poll() {
-                                    var v = document.querySelector('video');
-                                    if (v) Android.onTimeUpdate(v.currentTime);
-                                    setTimeout(poll, 500);
-                                }
-                                poll();
-                            })();
-                            """.trimIndent(),
-                            null
-                        )
-                    }
-                }
+                val html = """
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                      <meta name="viewport" content="width=device-width, initial-scale=1">
+                      <style>
+                        * { margin: 0; padding: 0; box-sizing: border-box; }
+                        body { background: #000; width: 100%; height: 100vh; overflow: hidden; }
+                        #player { width: 100%; height: 100%; }
+                      </style>
+                    </head>
+                    <body>
+                      <div id="player"></div>
+                      <script src="https://www.youtube.com/iframe_api"></script>
+                      <script>
+                        var player;
+                        var timer;
+                        function onYouTubeIframeAPIReady() {
+                          player = new YT.Player('player', {
+                            videoId: '$videoId',
+                            playerVars: {
+                              autoplay: 1,
+                              playsinline: 1,
+                              rel: 0,
+                              modestbranding: 1
+                            },
+                            events: {
+                              onReady: function(e) {
+                                e.target.playVideo();
+                                timer = setInterval(function() {
+                                  if (player && player.getCurrentTime) {
+                                    Android.onTimeUpdate(player.getCurrentTime());
+                                  }
+                                }, 500);
+                              }
+                            }
+                          });
+                        }
+                      </script>
+                    </body>
+                    </html>
+                """.trimIndent()
 
-                loadUrl(
-                    "https://www.youtube-nocookie.com/embed/$videoId" +
-                    "?autoplay=1&playsinline=1&rel=0"
+                loadDataWithBaseURL(
+                    "https://www.youtube.com",
+                    html,
+                    "text/html",
+                    "UTF-8",
+                    null
                 )
             }
         },
