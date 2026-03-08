@@ -1,5 +1,6 @@
 package com.japanese.vocabulary.app.network
 
+import com.japanese.vocabulary.app.model.SongSearchResponse
 import com.japanese.vocabulary.app.model.SongStudyData
 import com.japanese.vocabulary.app.platform.backendBaseUrl
 import io.ktor.client.*
@@ -13,6 +14,14 @@ import kotlinx.serialization.Serializable
 class SongRepository(private val baseUrl: String = backendBaseUrl()) {
     private val client = HttpClient {
         install(ContentNegotiation) { json() }
+    }
+
+    suspend fun search(query: String, pageToken: String? = null, maxResults: Int = 10): SongSearchResponse {
+        return client.get("$baseUrl/api/songs/search") {
+            parameter("q", query)
+            if (pageToken != null) parameter("pageToken", pageToken)
+            parameter("maxResults", maxResults)
+        }.body()
     }
 
     suspend fun analyze(title: String, artist: String, lyrics: String): SongStudyData {

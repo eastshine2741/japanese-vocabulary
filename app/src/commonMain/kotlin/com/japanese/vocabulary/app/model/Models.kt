@@ -32,3 +32,18 @@ data class SongStudyData(
     val studyUnits: List<StudyUnit>,
     val vocabularyCandidates: List<VocabularyCandidate>
 )
+
+@Serializable
+data class SongSearchItem(
+    val id: String,
+    val title: String,
+    val thumbnail: String,
+    val channelTitle: String,
+    val duration: String
+)
+
+@Serializable
+data class SongSearchResponse(
+    val items: List<SongSearchItem>,
+    val nextPageToken: String? = null
+)

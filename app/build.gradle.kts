@@ -46,6 +46,8 @@ kotlin {
 
                 implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0")
+
+                implementation("media.kamel:kamel-image:0.9.4")
             }
         }
 
@@ -81,7 +83,7 @@ android {
         versionName = "1.0"
         buildConfigField(
             "String", "BACKEND_BASE_URL",
-            "\"${localProps.getProperty("backend.baseUrl", "http://10.0.2.2:8080")}\""
+            "\"${localProps.getProperty("backend.baseUrl", "http://192.168.0.7:8080")}\""
         )
     }
 

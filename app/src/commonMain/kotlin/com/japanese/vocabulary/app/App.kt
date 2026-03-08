@@ -16,7 +16,7 @@ fun App() {
 
         when (currentScreen) {
             is Screen.Home -> HomeScreen(onNavigate = navigate)
-            is Screen.Search -> SearchScreen(onNavigate = navigate, viewModel = studyViewModel)
+            is Screen.Search -> SearchScreen(onNavigate = navigate)
             is Screen.Study -> StudyScreen(onNavigate = navigate, viewModel = studyViewModel)
             is Screen.Vocabulary -> VocabularyScreen(onNavigate = navigate)
             is Screen.Review -> ReviewScreen(onNavigate = navigate)
