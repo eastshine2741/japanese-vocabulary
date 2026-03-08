@@ -38,12 +38,12 @@ data class SongSearchItem(
     val id: String,
     val title: String,
     val thumbnail: String,
-    val channelTitle: String,
+    val artistName: String,
     val durationSeconds: Int
 )
 
 @Serializable
 data class SongSearchResponse(
     val items: List<SongSearchItem>,
-    val nextPageToken: String? = null
+    val nextOffset: Int? = null
 )

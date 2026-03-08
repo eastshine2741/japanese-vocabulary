@@ -75,7 +75,7 @@ class YoutubeClient(
             ?: return SongSearchResponse(emptyList(), null)
 
         val videoIds = searchResponse.items.mapNotNull { it.id.videoId }
-        if (videoIds.isEmpty()) return SongSearchResponse(emptyList(), searchResponse.nextPageToken)
+        if (videoIds.isEmpty()) return SongSearchResponse(emptyList(), 0)
 
         val videosResponse = restClient.get()
             .uri { builder ->
@@ -100,12 +100,12 @@ class YoutubeClient(
                 id = videoId,
                 title = item.snippet.title,
                 thumbnail = thumbnail,
-                channelTitle = item.snippet.channelTitle,
+                artistName = item.snippet.channelTitle,
                 durationSeconds = durationMap[videoId] ?: 0
             )
         }
 
-        return SongSearchResponse(items, searchResponse.nextPageToken)
+        return SongSearchResponse(items, 0)
     }
 
     private fun parseDuration(iso8601: String): Int {

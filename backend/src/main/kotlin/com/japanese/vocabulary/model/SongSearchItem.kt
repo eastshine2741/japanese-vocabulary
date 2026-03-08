@@ -4,6 +4,6 @@ data class SongSearchItem(
     val id: String,
     val title: String,
     val thumbnail: String,
-    val channelTitle: String,
+    val artistName: String,
     val durationSeconds: Int
 )

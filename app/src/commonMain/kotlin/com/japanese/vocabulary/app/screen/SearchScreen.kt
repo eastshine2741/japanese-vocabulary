@@ -196,7 +196,7 @@ private fun SongSearchItemRow(item: SongSearchItem, onClick: () -> Unit) {
                 overflow = TextOverflow.Ellipsis
             )
             Text(
-                item.channelTitle,
+                item.artistName,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

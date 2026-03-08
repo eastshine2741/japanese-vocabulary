@@ -28,11 +28,11 @@ class SongRepository(private val baseUrl: String = backendBaseUrl()) {
         }
     }
 
-    suspend fun search(query: String, pageToken: String? = null, maxResults: Int = 10): SongSearchResponse {
+    suspend fun search(query: String, offset: Int = 0, limit: Int = 50): SongSearchResponse {
         return client.get("$baseUrl/api/songs/search") {
             parameter("q", query)
-            if (pageToken != null) parameter("pageToken", pageToken)
-            parameter("maxResults", maxResults)
+            parameter("offset", offset)
+            parameter("limit", limit)
         }.body()
     }
 

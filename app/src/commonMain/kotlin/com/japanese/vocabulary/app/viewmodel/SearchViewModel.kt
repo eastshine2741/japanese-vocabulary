@@ -23,7 +23,7 @@ sealed class SearchUiState {
     object Loading : SearchUiState()
     data class Success(
         val items: List<SongSearchItem>,
-        val nextPageToken: String?,
+        val nextOffset: Int?,
         val isLoadingMore: Boolean = false
     ) : SearchUiState()
     data class Error(val message: String) : SearchUiState()
@@ -45,7 +45,7 @@ class SearchViewModel(private val repository: SongRepository = SongRepository())
                 val response = repository.search(query)
                 _state.value = SearchUiState.Success(
                     items = response.items,
-                    nextPageToken = response.nextPageToken
+                    nextOffset = response.nextOffset
                 )
             } catch (e: Exception) {
                 _state.value = SearchUiState.Error(e.message ?: "Unknown error")
@@ -57,7 +57,7 @@ class SearchViewModel(private val repository: SongRepository = SongRepository())
         _analyzeState.value = AnalyzeUiState.Loading
         scope.launch {
             try {
-                val result = repository.analyze(item.title, item.channelTitle, item.durationSeconds)
+                val result = repository.analyze(item.title, item.artistName, item.durationSeconds)
                 _analyzeState.value = AnalyzeUiState.Success(result)
             } catch (e: Exception) {
                 _analyzeState.value = AnalyzeUiState.Error(e.message ?: "Unknown error")
@@ -71,14 +71,19 @@ class SearchViewModel(private val repository: SongRepository = SongRepository())
 
     fun loadMore() {
         val current = _state.value as? SearchUiState.Success ?: return
-        if (current.isLoadingMore || current.nextPageToken == null) return
+        val nextOffset = current.nextOffset ?: return
+        if (current.isLoadingMore) return
         _state.value = current.copy(isLoadingMore = true)
         scope.launch {
             try {
-                val response = repository.search(currentQuery, pageToken = current.nextPageToken)
-                _state.value = SearchUiState.Success(
-                    items = current.items + response.items,
-                    nextPageToken = response.nextPageToken
+                val response = repository.search(currentQuery, offset = nextOffset)
+                val latest = _state.value as? SearchUiState.Success ?: return@launch
+                val existingIds = latest.items.map { it.id }.toHashSet()
+                val newItems = response.items.filter { it.id !in existingIds }
+                _state.value = latest.copy(
+                    items = latest.items + newItems,
+                    nextOffset = if (newItems.isEmpty()) null else response.nextOffset,
+                    isLoadingMore = false
                 )
             } catch (e: Exception) {
                 _state.value = SearchUiState.Error(e.message ?: "Unknown error")

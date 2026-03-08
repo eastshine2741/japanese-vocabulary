@@ -1,7 +1,7 @@
 package com.japanese.vocabulary.controller
 
+import com.japanese.vocabulary.client.ItunesClient
 import com.japanese.vocabulary.client.LyricsNotFoundException
-import com.japanese.vocabulary.client.YoutubeClient
 import com.japanese.vocabulary.model.AnalyzeSongRequest
 import com.japanese.vocabulary.model.ErrorResponse
 import com.japanese.vocabulary.model.SongSearchResponse
@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*
 @RequestMapping("/api/songs")
 class SongController(
     private val lyricProcessingService: LyricProcessingService,
-    private val youtubeClient: YoutubeClient
+    private val itunesClient: ItunesClient
 ) {
 
     @PostMapping("/analyze")
@@ -31,10 +31,10 @@ class SongController(
     @GetMapping("/search")
     fun searchSongs(
         @RequestParam q: String,
-        @RequestParam(required = false) pageToken: String?,
-        @RequestParam(defaultValue = "10") maxResults: Int
+        @RequestParam(defaultValue = "0") offset: Int,
+        @RequestParam(defaultValue = "50") limit: Int
     ): ResponseEntity<SongSearchResponse> {
-        val result = youtubeClient.search(q, pageToken, maxResults)
+        val result = itunesClient.search(q, offset, limit)
         return ResponseEntity.ok(result)
     }
 
