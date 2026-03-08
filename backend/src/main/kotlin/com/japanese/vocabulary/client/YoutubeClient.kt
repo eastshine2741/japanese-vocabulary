@@ -19,7 +19,7 @@ data class YoutubeSearchItem(
 )
 
 data class YoutubeVideoId(
-    val videoId: String
+    val videoId: String?
 )
 
 data class YoutubeSnippet(
@@ -29,7 +29,8 @@ data class YoutubeSnippet(
 )
 
 data class YoutubeThumbnails(
-    val medium: YoutubeThumbnail
+    val medium: YoutubeThumbnail?,
+    val default: YoutubeThumbnail?
 )
 
 data class YoutubeThumbnail(
@@ -64,6 +65,8 @@ class YoutubeClient(
                     .queryParam("type", "video")
                     .queryParam("part", "snippet")
                     .queryParam("maxResults", maxResults)
+                    .queryParam("videoCategoryId", "10")
+                    .queryParam("eventType", "completed")
                     .queryParam("key", apiKey)
                     .apply { if (pageToken != null) queryParam("pageToken", pageToken) }
                     .build()
@@ -72,7 +75,7 @@ class YoutubeClient(
             .body(YoutubeSearchResponse::class.java)
             ?: return SongSearchResponse(emptyList(), null)
 
-        val videoIds = searchResponse.items.map { it.id.videoId }
+        val videoIds = searchResponse.items.mapNotNull { it.id.videoId }
         if (videoIds.isEmpty()) return SongSearchResponse(emptyList(), searchResponse.nextPageToken)
 
         val videosResponse = restClient.get()
@@ -89,13 +92,17 @@ class YoutubeClient(
         val durationMap = videosResponse?.items?.associate { it.id to parseDuration(it.contentDetails.duration) }
             ?: emptyMap()
 
-        val items = searchResponse.items.map { item ->
+        val items = searchResponse.items.mapNotNull { item ->
+            val videoId = item.id.videoId ?: return@mapNotNull null
+            val thumbnail = item.snippet.thumbnails.medium?.url
+                ?: item.snippet.thumbnails.default?.url
+                ?: return@mapNotNull null
             SongSearchItem(
-                id = item.id.videoId,
+                id = videoId,
                 title = item.snippet.title,
-                thumbnail = item.snippet.thumbnails.medium.url,
+                thumbnail = thumbnail,
                 channelTitle = item.snippet.channelTitle,
-                duration = durationMap[item.id.videoId] ?: ""
+                duration = durationMap[videoId] ?: ""
             )
         }
 
