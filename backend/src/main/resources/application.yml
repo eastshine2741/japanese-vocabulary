@@ -5,13 +5,21 @@ spring:
   application:
     name: japanese-vocabulary-backend
 
-# MySQL datasource - commented out, not needed for sprint 1
-#  datasource:
-#    url: jdbc:mysql://localhost:3306/japanese_vocabulary
-#    username: ${DB_USERNAME}
-#    password: ${DB_PASSWORD}
-#    driver-class-name: com.mysql.cj.jdbc.Driver
-#  jpa:
-#    hibernate:
-#      ddl-auto: validate
-#    show-sql: false
+  datasource:
+    url: jdbc:mysql://localhost:3306/japanese_vocabulary?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
