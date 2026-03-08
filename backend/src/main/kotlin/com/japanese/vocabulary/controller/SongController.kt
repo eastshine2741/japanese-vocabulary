@@ -5,7 +5,7 @@ import com.japanese.vocabulary.client.LyricsNotFoundException
 import com.japanese.vocabulary.model.AnalyzeSongRequest
 import com.japanese.vocabulary.model.ErrorResponse
 import com.japanese.vocabulary.model.SongSearchResponse
-import com.japanese.vocabulary.model.SongStudyData
+import com.japanese.vocabulary.model.SongDTO
 import com.japanese.vocabulary.service.LyricProcessingService
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -19,7 +19,7 @@ class SongController(
 ) {
 
     @PostMapping("/analyze")
-    fun analyzeSong(@RequestBody request: AnalyzeSongRequest): ResponseEntity<SongStudyData> {
+    fun analyzeSong(@RequestBody request: AnalyzeSongRequest): ResponseEntity<SongDTO> {
         val result = lyricProcessingService.analyze(
             title = request.title,
             artist = request.artist,

@@ -32,6 +32,9 @@ class SongEntity(
     @Column(name = "lrclib_id")
     val lrclibId: Long? = null,
 
+    @Column(name = "youtube_url")
+    val youtubeUrl: String? = null,
+
     @Column(name = "created_at")
     val createdAt: Instant = Instant.now()
 )

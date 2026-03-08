@@ -3,6 +3,7 @@ package com.japanese.vocabulary.service
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.japanese.vocabulary.client.LrclibClient
 import com.japanese.vocabulary.client.LyricsNotFoundException
+import com.japanese.vocabulary.client.YoutubeClient
 import com.japanese.vocabulary.entity.LyricType
 import com.japanese.vocabulary.entity.SongEntity
 import com.japanese.vocabulary.model.*
@@ -16,10 +17,11 @@ class LyricProcessingService(
     private val lrcParser: LrcParser,
     private val morphologicalAnalyzer: MorphologicalAnalyzer,
     private val songRepository: SongRepository,
-    private val objectMapper: ObjectMapper
+    private val objectMapper: ObjectMapper,
+    private val youtubeClient: YoutubeClient
 ) {
 
-    fun analyze(title: String, artist: String, durationSeconds: Int?): SongStudyData {
+    fun analyze(title: String, artist: String, durationSeconds: Int?): SongDTO {
         // Check if already exists in DB
         songRepository.findByArtistAndTitle(artist, title)?.let {
             return buildResponseFromEntity(it)
@@ -87,6 +89,14 @@ class LyricProcessingService(
             )
         }
 
+        // Fetch YouTube MV URL
+        val youtubeUrl = try {
+            youtubeClient.searchMvUrl(title, artist)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+
         // Save to database
         val songEntity = SongEntity(
             title = title,
@@ -95,7 +105,8 @@ class LyricProcessingService(
             lyricType = if (lyricsResult.isSynced) LyricType.SYNCED else LyricType.PLAIN,
             lyricContent = objectMapper.writeValueAsString(lyricLineData),
             vocabularyContent = objectMapper.writeValueAsString(allVocabulary),
-            lrclibId = lyricsResult.lrclibId
+            lrclibId = lyricsResult.lrclibId,
+            youtubeUrl = youtubeUrl
         )
 
         val savedSong = songRepository.save(songEntity)
@@ -111,7 +122,7 @@ class LyricProcessingService(
             )
         }
 
-        return SongStudyData(
+        return SongDTO(
             song = SongInfo(
                 id = savedSong.id!!,
                 title = savedSong.title,
@@ -119,11 +130,12 @@ class LyricProcessingService(
                 lyricType = savedSong.lyricType.name
             ),
             studyUnits = studyUnits,
-            vocabularyCandidates = vocabularyCandidates
+            vocabularyCandidates = vocabularyCandidates,
+            youtubeUrl = savedSong.youtubeUrl
         )
     }
 
-    private fun buildResponseFromEntity(entity: SongEntity): SongStudyData {
+    private fun buildResponseFromEntity(entity: SongEntity): SongDTO {
         val lyricLines: List<LyricLineData> = objectMapper.readValue(
             entity.lyricContent,
             objectMapper.typeFactory.constructCollectionType(List::class.java, LyricLineData::class.java)
@@ -164,7 +176,7 @@ class LyricProcessingService(
             )
         }
 
-        return SongStudyData(
+        return SongDTO(
             song = SongInfo(
                 id = entity.id!!,
                 title = entity.title,
@@ -172,7 +184,8 @@ class LyricProcessingService(
                 lyricType = entity.lyricType.name
             ),
             studyUnits = studyUnits,
-            vocabularyCandidates = vocabularyCandidates
+            vocabularyCandidates = vocabularyCandidates,
+            youtubeUrl = entity.youtubeUrl
         )
     }
 }

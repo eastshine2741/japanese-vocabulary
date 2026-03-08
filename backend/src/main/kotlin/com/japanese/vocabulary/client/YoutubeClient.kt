@@ -50,6 +50,15 @@ data class YoutubeContentDetails(
     val duration: String
 )
 
+// searchMvUrl 전용 — part=id 응답 전용 (snippet 없음)
+data class YoutubeMvSearchResponse(
+    val items: List<YoutubeMvSearchItem>?
+)
+
+data class YoutubeMvSearchItem(
+    val id: YoutubeVideoId
+)
+
 @Component
 class YoutubeClient(
     restClientBuilder: RestClient.Builder,
@@ -106,6 +115,24 @@ class YoutubeClient(
         }
 
         return SongSearchResponse(items, 0)
+    }
+
+    fun searchMvUrl(title: String, artist: String): String? {
+        val searchResponse = restClient.get()
+            .uri { builder ->
+                builder.path("/youtube/v3/search")
+                    .queryParam("q", "$title $artist")
+                    .queryParam("type", "video")
+                    .queryParam("part", "id")
+                    .queryParam("maxResults", 1)
+                    .queryParam("videoCategoryId", "10")
+                    .queryParam("key", apiKey)
+                    .build()
+            }
+            .retrieve()
+            .body(YoutubeMvSearchResponse::class.java)
+        val videoId = searchResponse?.items?.firstOrNull()?.id?.videoId ?: return null
+        return "https://www.youtube.com/watch?v=$videoId"
     }
 
     private fun parseDuration(iso8601: String): Int {

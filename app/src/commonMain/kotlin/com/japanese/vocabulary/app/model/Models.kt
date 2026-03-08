@@ -30,7 +30,8 @@ data class VocabularyCandidate(
 data class SongStudyData(
     val song: SongInfo,
     val studyUnits: List<StudyUnit>,
-    val vocabularyCandidates: List<VocabularyCandidate>
+    val vocabularyCandidates: List<VocabularyCandidate>,
+    val youtubeUrl: String? = null
 )
 
 @Serializable
