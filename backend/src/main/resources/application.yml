@@ -5,6 +5,9 @@ spring:
   application:
     name: japanese-vocabulary-backend
 
+youtube:
+  api-key: ${YOUTUBE_API_KEY}
+
 # MySQL datasource - commented out, not needed for sprint 1
 #  datasource:
 #    url: jdbc:mysql://localhost:3306/japanese_vocabulary
