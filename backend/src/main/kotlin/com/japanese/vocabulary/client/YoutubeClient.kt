@@ -66,7 +66,6 @@ class YoutubeClient(
                     .queryParam("part", "snippet")
                     .queryParam("maxResults", maxResults)
                     .queryParam("videoCategoryId", "10")
-                    .queryParam("eventType", "completed")
                     .queryParam("key", apiKey)
                     .apply { if (pageToken != null) queryParam("pageToken", pageToken) }
                     .build()
