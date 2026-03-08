@@ -28,6 +28,7 @@ class SongController(
         return ResponseEntity.ok(result)
     }
 
+    // FIXME: iTunes가 페이지네이션을 지원하지 않아서, 제대로 된 페이지네이션을 제공하지 못하고 있다.
     @GetMapping("/search")
     fun searchSongs(
         @RequestParam q: String,
