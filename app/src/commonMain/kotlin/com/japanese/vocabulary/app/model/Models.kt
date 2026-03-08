@@ -3,11 +3,11 @@ package com.japanese.vocabulary.app.model
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class Song(
-    val id: String?,
+data class SongInfo(
+    val id: Long,
     val title: String,
     val artist: String,
-    val language: String = "ja"
+    val lyricType: String
 )
 
 @Serializable
@@ -21,14 +21,14 @@ data class StudyUnit(
 @Serializable
 data class VocabularyCandidate(
     val word: String,
-    val reading: String,
+    val reading: String?,
     val partOfSpeech: String? = null,
     val sourceLineIndex: Int
 )
 
 @Serializable
 data class SongStudyData(
-    val song: Song,
+    val song: SongInfo,
     val studyUnits: List<StudyUnit>,
     val vocabularyCandidates: List<VocabularyCandidate>
 )
@@ -39,7 +39,7 @@ data class SongSearchItem(
     val title: String,
     val thumbnail: String,
     val channelTitle: String,
-    val duration: String
+    val durationSeconds: Int
 )
 
 @Serializable

@@ -17,11 +17,11 @@ class StudyViewModel(private val repository: SongRepository = SongRepository()) 
     private val _state = MutableStateFlow<StudyUiState>(StudyUiState.Idle)
     val state: StateFlow<StudyUiState> = _state.asStateFlow()
 
-    fun load(title: String, artist: String, lyrics: String) {
+    fun load(title: String, artist: String, durationSeconds: Int? = null) {
         scope.launch {
             _state.value = StudyUiState.Loading
             _state.value = try {
-                StudyUiState.Success(repository.analyze(title, artist, lyrics))
+                StudyUiState.Success(repository.analyze(title, artist, durationSeconds))
             } catch (e: Exception) {
                 StudyUiState.Error(e.message ?: "Unknown error")
             }

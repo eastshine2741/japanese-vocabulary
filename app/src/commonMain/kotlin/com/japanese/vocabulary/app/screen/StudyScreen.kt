@@ -148,7 +148,7 @@ private fun VocabCandidateRow(candidate: VocabularyCandidate) {
             modifier = Modifier.weight(1f)
         )
         Text(
-            text = candidate.reading,
+            text = candidate.reading ?: "—",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.weight(1f)

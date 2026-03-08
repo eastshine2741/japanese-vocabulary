@@ -1,6 +1,7 @@
 package com.japanese.vocabulary.app.viewmodel
 
 import com.japanese.vocabulary.app.model.SongSearchItem
+import com.japanese.vocabulary.app.model.SongStudyData
 import com.japanese.vocabulary.app.network.SongRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -9,6 +10,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+
+sealed class AnalyzeUiState {
+    object Idle : AnalyzeUiState()
+    object Loading : AnalyzeUiState()
+    data class Success(val result: SongStudyData) : AnalyzeUiState()
+    data class Error(val message: String) : AnalyzeUiState()
+}
 
 sealed class SearchUiState {
     object Idle : SearchUiState()
@@ -25,6 +33,8 @@ class SearchViewModel(private val repository: SongRepository = SongRepository())
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private val _state = MutableStateFlow<SearchUiState>(SearchUiState.Idle)
     val state: StateFlow<SearchUiState> = _state.asStateFlow()
+    private val _analyzeState = MutableStateFlow<AnalyzeUiState>(AnalyzeUiState.Idle)
+    val analyzeState: StateFlow<AnalyzeUiState> = _analyzeState.asStateFlow()
     private var currentQuery = ""
 
     fun search(query: String) {
@@ -41,6 +51,22 @@ class SearchViewModel(private val repository: SongRepository = SongRepository())
                 _state.value = SearchUiState.Error(e.message ?: "Unknown error")
             }
         }
+    }
+
+    fun analyze(item: SongSearchItem) {
+        _analyzeState.value = AnalyzeUiState.Loading
+        scope.launch {
+            try {
+                val result = repository.analyze(item.title, item.channelTitle, item.durationSeconds)
+                _analyzeState.value = AnalyzeUiState.Success(result)
+            } catch (e: Exception) {
+                _analyzeState.value = AnalyzeUiState.Error(e.message ?: "Unknown error")
+            }
+        }
+    }
+
+    fun resetAnalyze() {
+        _analyzeState.value = AnalyzeUiState.Idle
     }
 
     fun loadMore() {

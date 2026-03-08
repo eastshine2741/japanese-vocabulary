@@ -101,24 +101,19 @@ class YoutubeClient(
                 title = item.snippet.title,
                 thumbnail = thumbnail,
                 channelTitle = item.snippet.channelTitle,
-                duration = durationMap[videoId] ?: ""
+                durationSeconds = durationMap[videoId] ?: 0
             )
         }
 
         return SongSearchResponse(items, searchResponse.nextPageToken)
     }
 
-    private fun parseDuration(iso8601: String): String {
-        // PT3M45S -> "3:45", PT1H2M3S -> "1:02:03"
+    private fun parseDuration(iso8601: String): Int {
         val pattern = Regex("""PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?""")
-        val match = pattern.matchEntire(iso8601) ?: return ""
-        val hours = match.groupValues[1].toIntOrNull()
+        val match = pattern.matchEntire(iso8601) ?: return 0
+        val hours = match.groupValues[1].toIntOrNull() ?: 0
         val minutes = match.groupValues[2].toIntOrNull() ?: 0
         val seconds = match.groupValues[3].toIntOrNull() ?: 0
-        return if (hours != null) {
-            "%d:%02d:%02d".format(hours, minutes, seconds)
-        } else {
-            "%d:%02d".format(minutes, seconds)
-        }
+        return hours * 3600 + minutes * 60 + seconds
     }
 }

@@ -1,5 +1,6 @@
 package com.japanese.vocabulary.app.screen
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -15,92 +16,102 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.background
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import com.japanese.vocabulary.app.model.SongSearchItem
 import com.japanese.vocabulary.app.navigation.Screen
+import com.japanese.vocabulary.app.viewmodel.AnalyzeUiState
 import com.japanese.vocabulary.app.viewmodel.SearchUiState
 import com.japanese.vocabulary.app.viewmodel.SearchViewModel
 import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
 
 @Composable
-fun SearchScreen(onNavigate: (Screen) -> Unit) {
-    val viewModel = remember { SearchViewModel() }
+fun SearchScreen(onNavigate: (Screen) -> Unit, viewModel: SearchViewModel) {
     val state by viewModel.state.collectAsState()
+    val analyzeState by viewModel.analyzeState.collectAsState()
     var query by remember { mutableStateOf("") }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            OutlinedTextField(
-                value = query,
-                onValueChange = { query = it },
-                modifier = Modifier.weight(1f),
-                placeholder = { Text("검색어를 입력하세요") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions = KeyboardActions(onSearch = { viewModel.search(query) })
-            )
-            Spacer(Modifier.width(8.dp))
-            Button(onClick = { viewModel.search(query) }) {
-                Text("검색")
-            }
+    LaunchedEffect(analyzeState) {
+        if (analyzeState is AnalyzeUiState.Success) {
+            onNavigate(Screen.SongResult)
         }
+    }
 
-        Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
-            when (val s = state) {
-                is SearchUiState.Idle -> {
-                    Text(
-                        "검색어를 입력하세요",
-                        modifier = Modifier.align(Alignment.Center),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    modifier = Modifier.weight(1f),
+                    placeholder = { Text("검색어를 입력하세요") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = { viewModel.search(query) })
+                )
+                Spacer(Modifier.width(8.dp))
+                Button(onClick = { viewModel.search(query) }) {
+                    Text("검색")
                 }
-                is SearchUiState.Loading -> {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                }
-                is SearchUiState.Error -> {
-                    Column(
-                        modifier = Modifier.align(Alignment.Center),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(s.message, style = MaterialTheme.typography.bodyMedium)
-                        Spacer(Modifier.height(8.dp))
-                        TextButton(onClick = { viewModel.search(query) }) {
-                            Text("다시 시도")
-                        }
-                    }
-                }
-                is SearchUiState.Success -> {
-                    val listState = rememberLazyListState()
-                    val reachedEnd by remember {
-                        derivedStateOf {
-                            val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
-                            val total = listState.layoutInfo.totalItemsCount
-                            total > 0 && lastVisible >= total - 3
-                        }
-                    }
-                    LaunchedEffect(reachedEnd) {
-                        if (reachedEnd) viewModel.loadMore()
-                    }
+            }
 
-                    LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
-                        items(s.items) { item ->
-                            SongSearchItemRow(item)
-                            HorizontalDivider()
+            Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                when (val s = state) {
+                    is SearchUiState.Idle -> {
+                        Text(
+                            "검색어를 입력하세요",
+                            modifier = Modifier.align(Alignment.Center),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                    is SearchUiState.Loading -> {
+                        CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                    }
+                    is SearchUiState.Error -> {
+                        Column(
+                            modifier = Modifier.align(Alignment.Center),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(s.message, style = MaterialTheme.typography.bodyMedium)
+                            Spacer(Modifier.height(8.dp))
+                            TextButton(onClick = { viewModel.search(query) }) {
+                                Text("다시 시도")
+                            }
                         }
-                        if (s.isLoadingMore) {
-                            item {
-                                Box(
-                                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    CircularProgressIndicator()
+                    }
+                    is SearchUiState.Success -> {
+                        val listState = rememberLazyListState()
+                        val reachedEnd by remember {
+                            derivedStateOf {
+                                val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+                                val total = listState.layoutInfo.totalItemsCount
+                                total > 0 && lastVisible >= total - 3
+                            }
+                        }
+                        LaunchedEffect(reachedEnd) {
+                            if (reachedEnd) viewModel.loadMore()
+                        }
+
+                        LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
+                            items(s.items) { item ->
+                                SongSearchItemRow(item, onClick = { viewModel.analyze(item) })
+                                HorizontalDivider()
+                            }
+                            if (s.isLoadingMore) {
+                                item {
+                                    Box(
+                                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        CircularProgressIndicator()
+                                    }
                                 }
                             }
                         }
@@ -108,14 +119,48 @@ fun SearchScreen(onNavigate: (Screen) -> Unit) {
                 }
             }
         }
+
+        if (analyzeState is AnalyzeUiState.Loading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.5f)),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(color = Color.White)
+            }
+        }
+
+        if (analyzeState is AnalyzeUiState.Error) {
+            val errorMsg = (analyzeState as AnalyzeUiState.Error).message
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter)
+                    .padding(16.dp)
+            ) {
+                Surface(
+                    color = MaterialTheme.colorScheme.errorContainer,
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(
+                        errorMsg,
+                        modifier = Modifier.padding(12.dp),
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+        }
     }
 }
 
 @Composable
-private fun SongSearchItemRow(item: SongSearchItem) {
+private fun SongSearchItemRow(item: SongSearchItem, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable(onClick = onClick)
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -156,7 +201,7 @@ private fun SongSearchItemRow(item: SongSearchItem) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                formatDuration(item.duration),
+                formatDuration(item.durationSeconds),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -164,10 +209,10 @@ private fun SongSearchItemRow(item: SongSearchItem) {
     }
 }
 
-private fun formatDuration(iso: String): String {
-    val h = Regex("""(\d+)H""").find(iso)?.groupValues?.get(1)?.toIntOrNull() ?: 0
-    val m = Regex("""(\d+)M""").find(iso)?.groupValues?.get(1)?.toIntOrNull() ?: 0
-    val s = Regex("""(\d+)S""").find(iso)?.groupValues?.get(1)?.toIntOrNull() ?: 0
+private fun formatDuration(seconds: Int): String {
+    val h = seconds / 3600
+    val m = (seconds % 3600) / 60
+    val s = seconds % 60
     return if (h > 0) "$h:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}"
     else "$m:${s.toString().padStart(2, '0')}"
 }
