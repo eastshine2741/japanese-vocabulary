@@ -28,6 +28,6 @@ app/build/
 # macOS
 .DS_Store
 
-# Environment
+# Environment variables (secrets)
 .env
-*/.env
+**/.env
