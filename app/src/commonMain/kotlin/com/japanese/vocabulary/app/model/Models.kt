@@ -11,11 +11,21 @@ data class SongInfo(
 )
 
 @Serializable
+data class Token(
+    val surface: String,
+    val baseForm: String,
+    val reading: String?,
+    val partOfSpeech: String,
+    val charStart: Int,
+    val charEnd: Int
+)
+
+@Serializable
 data class StudyUnit(
     val index: Int,
     val originalText: String,
-    val readingHint: String? = null,
-    val translationHint: String? = null
+    val startTimeMs: Long? = null,
+    val tokens: List<Token> = emptyList()
 )
 
 @Serializable

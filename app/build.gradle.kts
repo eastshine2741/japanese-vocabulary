@@ -56,6 +56,7 @@ kotlin {
                 implementation("io.ktor:ktor-client-android:2.3.8")
                 implementation("androidx.activity:activity-compose:1.8.2")
                 implementation("androidx.appcompat:appcompat:1.6.1")
+                implementation("com.pierfrancescosoffritti.androidyoutubeplayer:core:12.1.0")
             }
         }
 

@@ -125,7 +125,7 @@ private fun StudyUnitCard(unit: StudyUnit) {
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                text = unit.readingHint ?: "—",
+                text = unit.tokens.firstOrNull()?.reading ?: "—",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
