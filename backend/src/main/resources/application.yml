@@ -26,3 +26,6 @@ spring:
 
 youtube:
   api-key: ${YOUTUBE_API_KEY}
+
+jwt:
+  secret: ${JWT_SECRET:dev-secret-key-at-least-32-chars-long}

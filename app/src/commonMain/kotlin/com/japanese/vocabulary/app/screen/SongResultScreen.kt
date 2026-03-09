@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -14,10 +15,14 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.japanese.vocabulary.app.model.StudyUnit
 import com.japanese.vocabulary.app.model.Token
+import com.japanese.vocabulary.app.model.WordDefinitionDTO
 import com.japanese.vocabulary.app.navigation.Screen
 import com.japanese.vocabulary.app.player.YouTubePlayer
+import com.japanese.vocabulary.app.viewmodel.AddState
 import com.japanese.vocabulary.app.viewmodel.AnalyzeUiState
+import com.japanese.vocabulary.app.viewmodel.LookupState
 import com.japanese.vocabulary.app.viewmodel.SearchViewModel
+import com.japanese.vocabulary.app.viewmodel.VocabularyViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -25,8 +30,11 @@ fun SongResultScreen(onNavigate: (Screen) -> Unit, viewModel: SearchViewModel) {
     val analyzeState by viewModel.analyzeState.collectAsState()
     val result = (analyzeState as? AnalyzeUiState.Success)?.result
 
+    val vocabViewModel = remember { VocabularyViewModel() }
+
     var currentMs by remember { mutableLongStateOf(0L) }
     var selectedToken by remember { mutableStateOf<Token?>(null) }
+    var selectedLyricLine by remember { mutableStateOf("") }
     var showBottomSheet by remember { mutableStateOf(false) }
 
     if (result == null) {
@@ -82,7 +90,9 @@ fun SongResultScreen(onNavigate: (Screen) -> Unit, viewModel: SearchViewModel) {
                     isSynced = isSynced,
                     onTokenClick = { token ->
                         selectedToken = token
+                        selectedLyricLine = unit.originalText
                         showBottomSheet = true
+                        vocabViewModel.lookupWord(token.surface)
                     }
                 )
             }
@@ -91,8 +101,17 @@ fun SongResultScreen(onNavigate: (Screen) -> Unit, viewModel: SearchViewModel) {
     }
 
     if (showBottomSheet && selectedToken != null) {
-        ModalBottomSheet(onDismissRequest = { showBottomSheet = false }) {
-            TokenDetailSheet(token = selectedToken!!)
+        ModalBottomSheet(onDismissRequest = {
+            showBottomSheet = false
+        }) {
+            WordDetailSheet(
+                token = selectedToken!!,
+                lookupState = vocabViewModel.lookupState.value,
+                addState = vocabViewModel.addState.value,
+                onAddWord = { definition ->
+                    vocabViewModel.addWord(definition, result.song.id, selectedLyricLine)
+                }
+            )
         }
     }
 }
@@ -145,18 +164,101 @@ private fun LyricLineRow(
 }
 
 @Composable
-private fun TokenDetailSheet(token: Token) {
+private fun WordDetailSheet(
+    token: Token,
+    lookupState: LookupState,
+    addState: AddState,
+    onAddWord: (WordDefinitionDTO) -> Unit
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 24.dp, vertical = 16.dp)
     ) {
+        // Always show morphology info from token
         Text("단어", style = MaterialTheme.typography.labelMedium)
         Text(token.surface, style = MaterialTheme.typography.headlineMedium)
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(8.dp))
         DetailRow("읽기", token.reading ?: "-")
         DetailRow("기본형", token.baseForm)
         DetailRow("품사", token.partOfSpeech)
+        Spacer(Modifier.height(16.dp))
+
+        HorizontalDivider()
+        Spacer(Modifier.height(16.dp))
+
+        when (lookupState) {
+            is LookupState.Loading -> {
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            }
+            is LookupState.Error -> {
+                Text(
+                    text = lookupState.message,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+            is LookupState.Success -> {
+                val definition = lookupState.definition
+                Text("일본어 철자", style = MaterialTheme.typography.labelMedium)
+                Text(definition.japanese, style = MaterialTheme.typography.headlineSmall)
+                Spacer(Modifier.height(4.dp))
+                Text(definition.reading, style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.height(12.dp))
+                DetailRow("뜻", definition.meanings.joinToString(", "))
+                DetailRow("품사", definition.partsOfSpeech.joinToString(", "))
+                if (definition.jlptLevel != null) {
+                    DetailRow("JLPT", definition.jlptLevel)
+                }
+                Spacer(Modifier.height(20.dp))
+
+                when (addState) {
+                    is AddState.Idle, is AddState.Error -> {
+                        Button(
+                            onClick = { onAddWord(definition) },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("단어 추가")
+                        }
+                        if (addState is AddState.Error) {
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                text = addState.message,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                    is AddState.Loading -> {
+                        Button(
+                            onClick = {},
+                            enabled = false,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                        }
+                    }
+                    is AddState.Success -> {
+                        Button(
+                            onClick = {},
+                            enabled = false,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("추가됨")
+                        }
+                    }
+                }
+            }
+            is LookupState.Idle -> {}
+        }
+
         Spacer(Modifier.height(24.dp))
     }
 }

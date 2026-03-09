@@ -3,6 +3,12 @@ package com.japanese.vocabulary.app.model
 import kotlinx.serialization.Serializable
 
 @Serializable
+data class AuthRequest(val name: String, val password: String)
+
+@Serializable
+data class AuthResponse(val token: String)
+
+@Serializable
 data class SongInfo(
     val id: Long,
     val title: String,
@@ -57,4 +63,38 @@ data class SongSearchItem(
 data class SongSearchResponse(
     val items: List<SongSearchItem>,
     val nextOffset: Int? = null
+)
+
+@Serializable
+data class WordDefinitionDTO(
+    val japanese: String,
+    val reading: String,
+    val meanings: List<String>,
+    val partsOfSpeech: List<String>,
+    val jlptLevel: String? = null
+)
+
+@Serializable
+data class AddWordRequest(
+    val japanese: String,
+    val reading: String,
+    val koreanText: String,
+    val songId: Long,
+    val lyricLine: String
+)
+
+@Serializable
+data class WordListItem(
+    val id: Long,
+    val japanese: String,
+    val reading: String,
+    val koreanText: String,
+    val songTitle: String? = null,
+    val lyricLine: String? = null
+)
+
+@Serializable
+data class WordListResponse(
+    val words: List<WordListItem>,
+    val nextCursor: Long? = null
 )

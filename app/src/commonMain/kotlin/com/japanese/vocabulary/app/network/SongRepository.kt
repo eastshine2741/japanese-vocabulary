@@ -2,6 +2,7 @@ package com.japanese.vocabulary.app.network
 
 import com.japanese.vocabulary.app.model.SongSearchResponse
 import com.japanese.vocabulary.app.model.SongStudyData
+import com.japanese.vocabulary.app.platform.TokenStorage
 import com.japanese.vocabulary.app.platform.backendBaseUrl
 import io.ktor.client.*
 import io.ktor.client.call.*
@@ -30,6 +31,7 @@ class SongRepository(private val baseUrl: String = backendBaseUrl()) {
 
     suspend fun search(query: String, offset: Int = 0, limit: Int = 50): SongSearchResponse {
         return client.get("$baseUrl/api/songs/search") {
+            headers { append("Authorization", "Bearer ${TokenStorage.getToken() ?: ""}") }
             parameter("q", query)
             parameter("offset", offset)
             parameter("limit", limit)
@@ -38,6 +40,7 @@ class SongRepository(private val baseUrl: String = backendBaseUrl()) {
 
     suspend fun analyze(title: String, artist: String, durationSeconds: Int? = null): SongStudyData {
         return client.post("$baseUrl/api/songs/analyze") {
+            headers { append("Authorization", "Bearer ${TokenStorage.getToken() ?: ""}") }
             contentType(ContentType.Application.Json)
             setBody(AnalyzeSongRequest(title, artist, durationSeconds))
         }.body()
