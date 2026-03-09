@@ -6,6 +6,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,6 +23,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import com.japanese.vocabulary.app.model.SongSearchItem
 import com.japanese.vocabulary.app.navigation.Screen
+import com.japanese.vocabulary.app.platform.BackHandler
 import com.japanese.vocabulary.app.viewmodel.AnalyzeUiState
 import com.japanese.vocabulary.app.viewmodel.SearchUiState
 import com.japanese.vocabulary.app.viewmodel.SearchViewModel
@@ -32,6 +35,8 @@ fun SearchScreen(onNavigate: (Screen) -> Unit, viewModel: SearchViewModel) {
     val state by viewModel.state.collectAsState()
     val analyzeState by viewModel.analyzeState.collectAsState()
     var query by remember { mutableStateOf("") }
+
+    BackHandler { onNavigate(Screen.Home) }
 
     LaunchedEffect(analyzeState) {
         if (analyzeState is AnalyzeUiState.Success) {
@@ -47,6 +52,10 @@ fun SearchScreen(onNavigate: (Screen) -> Unit, viewModel: SearchViewModel) {
                     .padding(horizontal = 12.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                IconButton(onClick = { onNavigate(Screen.Home) }) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "홈으로")
+                }
+                Spacer(Modifier.width(4.dp))
                 OutlinedTextField(
                     value = query,
                     onValueChange = { query = it },
