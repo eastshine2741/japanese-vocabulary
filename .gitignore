@@ -24,6 +24,7 @@ gradle/wrapper/gradle-wrapper.jar
 
 # Android
 app/build/
+app/.kotlin/
 
 # macOS
 .DS_Store
