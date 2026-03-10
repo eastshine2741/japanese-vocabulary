@@ -1,10 +1,11 @@
 import java.util.Properties
 
 plugins {
-    kotlin("multiplatform") version "1.9.22"
-    id("com.android.application") version "8.2.2"
-    id("org.jetbrains.compose") version "1.6.1"
-    kotlin("plugin.serialization") version "1.9.22"
+    kotlin("multiplatform") version "2.1.0"
+    id("com.android.application") version "8.13.2"
+    id("org.jetbrains.compose") version "1.7.3"
+    id("org.jetbrains.kotlin.plugin.compose") version "2.1.0"
+    kotlin("plugin.serialization") version "2.1.0"
 }
 
 val localProps = Properties().apply {
@@ -41,30 +42,30 @@ kotlin {
                 implementation(compose.materialIconsExtended)
                 implementation(compose.ui)
 
-                implementation("io.ktor:ktor-client-core:2.3.8")
-                implementation("io.ktor:ktor-client-content-negotiation:2.3.8")
-                implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.8")
+                implementation("io.ktor:ktor-client-core:3.0.3")
+                implementation("io.ktor:ktor-client-content-negotiation:3.0.3")
+                implementation("io.ktor:ktor-serialization-kotlinx-json:3.0.3")
 
-                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0")
+                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
 
-                implementation("media.kamel:kamel-image:0.9.4")
+                implementation("media.kamel:kamel-image:1.0.1")
             }
         }
 
         val androidMain by getting {
             dependencies {
-                implementation("io.ktor:ktor-client-android:2.3.8")
+                implementation("io.ktor:ktor-client-okhttp:3.0.3")
                 implementation("androidx.activity:activity-compose:1.8.2")
                 implementation("androidx.appcompat:appcompat:1.6.1")
-                implementation("com.pierfrancescosoffritti.androidyoutubeplayer:core:12.1.0")
+                implementation("com.pierfrancescosoffritti.androidyoutubeplayer:core:13.0.0")
             }
         }
 
         val iosMain by creating {
             dependsOn(commonMain)
             dependencies {
-                implementation("io.ktor:ktor-client-darwin:2.3.8")
+                implementation("io.ktor:ktor-client-darwin:3.0.3")
             }
         }
         val iosX64Main by getting { dependsOn(iosMain) }
@@ -75,7 +76,7 @@ kotlin {
 
 android {
     namespace = "com.japanese.vocabulary.app"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.japanese.vocabulary.app"
