@@ -31,3 +31,4 @@ app/build/
 # Environment variables (secrets)
 .env
 **/.env
+**/application-local.yml
