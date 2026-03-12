@@ -3,6 +3,7 @@ package com.japanese.vocabulary.service
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.japanese.vocabulary.client.LrclibClient
 import com.japanese.vocabulary.client.LyricsNotFoundException
+import com.japanese.vocabulary.client.VocadbClient
 import com.japanese.vocabulary.client.YoutubeClient
 import com.japanese.vocabulary.entity.LyricType
 import com.japanese.vocabulary.entity.SongEntity
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Service
 @Service
 class LyricProcessingService(
     private val lrclibClient: LrclibClient,
+    private val vocadbClient: VocadbClient,
     private val lrcParser: LrcParser,
     private val morphologicalAnalyzer: MorphologicalAnalyzer,
     private val songRepository: SongRepository,
@@ -27,8 +29,13 @@ class LyricProcessingService(
             return buildResponseFromEntity(it)
         }
 
-        // Fetch lyrics from LRCLIB
-        val lyricsResult = lrclibClient.getLyrics(title, artist, durationSeconds)
+        // Fetch lyrics from LRCLIB, fallback to VocaDB
+        val lyricsResult = try {
+            lrclibClient.getLyrics(title, artist, durationSeconds)
+        } catch (e: LyricsNotFoundException) {
+            vocadbClient.searchLyrics(title, artist)
+                ?: throw e
+        }
 
         // Parse lyrics
         val parsedLines = lrcParser.parse(lyricsResult.lyrics, lyricsResult.isSynced)
@@ -106,6 +113,7 @@ class LyricProcessingService(
             lyricContent = objectMapper.writeValueAsString(lyricLineData),
             vocabularyContent = objectMapper.writeValueAsString(allVocabulary),
             lrclibId = lyricsResult.lrclibId,
+            vocadbId = lyricsResult.vocadbId,
             youtubeUrl = youtubeUrl
         )
 
