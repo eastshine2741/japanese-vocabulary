@@ -10,8 +10,21 @@ import com.japanese.vocabulary.app.viewmodel.ReviewViewModel
 import com.japanese.vocabulary.app.viewmodel.SearchViewModel
 import com.japanese.vocabulary.app.viewmodel.SettingsViewModel
 import com.japanese.vocabulary.app.viewmodel.StudyViewModel
+import io.kamel.core.config.Core
+import io.kamel.core.config.KamelConfig
+import io.kamel.core.config.takeFrom
+import io.kamel.image.config.LocalKamelConfig
+import io.kamel.image.config.imageBitmapDecoder
+
 @Composable
 fun App() {
+    val kamelConfig = remember {
+        KamelConfig {
+            takeFrom(KamelConfig.Core)
+            imageBitmapDecoder()
+        }
+    }
+    CompositionLocalProvider(LocalKamelConfig provides kamelConfig) {
     MaterialTheme {
         val authViewModel = remember { AuthViewModel() }
         val studyViewModel = remember { StudyViewModel() }
@@ -34,5 +47,6 @@ fun App() {
             is Screen.Settings -> SettingsScreen(viewModel = settingsViewModel, onNavigateBack = { navigate(Screen.Home) })
             is Screen.SongResult -> SongResultScreen(onNavigate = navigate, viewModel = searchViewModel)
         }
+    }
     }
 }

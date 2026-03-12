@@ -32,6 +32,9 @@ class SongEntity(
     @Column(name = "lrclib_id")
     val lrclibId: Long? = null,
 
+    @Column(name = "vocadb_id")
+    val vocadbId: Long? = null,
+
     @Column(name = "youtube_url")
     val youtubeUrl: String? = null,
 

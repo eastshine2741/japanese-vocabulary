@@ -50,6 +50,7 @@ kotlin {
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
 
                 implementation("media.kamel:kamel-image:1.0.3")
+                implementation("media.kamel:kamel-decoder-image-bitmap:1.0.3")
             }
         }
 
