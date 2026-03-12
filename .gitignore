@@ -26,6 +26,13 @@ gradle/wrapper/gradle-wrapper.jar
 app/build/
 app/.kotlin/
 
+# Gradle build artifacts (KMP generated sources)
+app/META-INF/
+app/appleMain/
+app/commonJvmMain/
+app/commonMain/
+app/nonJvmMain/
+
 # macOS
 .DS_Store
 

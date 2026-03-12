@@ -29,6 +29,7 @@ import com.japanese.vocabulary.app.viewmodel.SearchUiState
 import com.japanese.vocabulary.app.viewmodel.SearchViewModel
 import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
+import io.ktor.http.Url
 
 @Composable
 fun SearchScreen(onNavigate: (Screen) -> Unit, viewModel: SearchViewModel) {
@@ -174,26 +175,29 @@ private fun SongSearchItemRow(item: SongSearchItem, onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         KamelImage(
-            resource = asyncPainterResource(item.thumbnail),
+            resource = asyncPainterResource(Url(item.thumbnail)),
             contentDescription = item.title,
             modifier = Modifier
                 .size(72.dp)
                 .clip(RoundedCornerShape(4.dp)),
-            onLoading = {
-                Box(modifier = Modifier.size(72.dp), contentAlignment = Alignment.Center) {
-                    Box(
-                        modifier = Modifier
-                            .size(72.dp)
-                            .clip(RoundedCornerShape(4.dp))
-                    ) { Surface(color = Color.LightGray, modifier = Modifier.fillMaxSize()) {} }
+            onLoading = { progress ->
+                Box(
+                    modifier = Modifier.size(72.dp).clip(RoundedCornerShape(4.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Surface(color = Color.LightGray, modifier = Modifier.fillMaxSize()) {}
+                    CircularProgressIndicator(
+                        progress = { progress },
+                        modifier = Modifier.size(24.dp),
+                        strokeWidth = 2.dp
+                    )
                 }
             },
             onFailure = {
-                Box(
-                    modifier = Modifier
-                        .size(72.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                ) { Surface(color = Color.LightGray, modifier = Modifier.fillMaxSize()) {} }
+                Surface(
+                    color = Color.LightGray,
+                    modifier = Modifier.size(72.dp).clip(RoundedCornerShape(4.dp))
+                ) {}
             }
         )
         Spacer(Modifier.width(12.dp))
