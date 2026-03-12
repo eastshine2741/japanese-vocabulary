@@ -7,5 +7,6 @@ sealed class Screen {
     object Study : Screen()
     object Vocabulary : Screen()
     object Review : Screen()
+    object Settings : Screen()
     object SongResult : Screen()
 }

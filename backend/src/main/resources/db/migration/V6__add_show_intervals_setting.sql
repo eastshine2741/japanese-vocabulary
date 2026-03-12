@@ -1,0 +1,1 @@
+ALTER TABLE user_settings ADD COLUMN show_intervals BOOLEAN NOT NULL DEFAULT TRUE;

@@ -30,5 +30,9 @@ fun HomeScreen(onNavigate: (Screen) -> Unit) {
         OutlinedButton(onClick = { onNavigate(Screen.Vocabulary) }, modifier = Modifier.fillMaxWidth()) {
             Text("Vocabulary")
         }
+        Spacer(Modifier.height(12.dp))
+        OutlinedButton(onClick = { onNavigate(Screen.Settings) }, modifier = Modifier.fillMaxWidth()) {
+            Text("Settings")
+        }
     }
 }

@@ -9,4 +9,5 @@ import org.springframework.stereotype.Repository
 interface WordRepository : JpaRepository<WordEntity, Long> {
     fun findByUserIdOrderByIdDesc(userId: Long, pageable: Pageable): List<WordEntity>
     fun findByUserIdAndIdLessThanOrderByIdDesc(userId: Long, id: Long, pageable: Pageable): List<WordEntity>
+    fun findByUserId(userId: Long): List<WordEntity>
 }
