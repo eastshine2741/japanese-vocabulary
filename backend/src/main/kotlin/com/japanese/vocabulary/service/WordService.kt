@@ -21,7 +21,8 @@ class WordService(
     private val jishoClient: JishoClient,
     private val wordRepository: WordRepository,
     private val songWordRepository: SongWordRepository,
-    private val songRepository: SongRepository
+    private val songRepository: SongRepository,
+    private val flashcardService: FlashcardService
 ) {
     fun lookupWord(word: String): WordDefinitionDTO {
         return jishoClient.lookup(word)
@@ -49,6 +50,8 @@ class WordService(
                 lyricLine = request.lyricLine
             )
         )
+
+        flashcardService.createFlashcard(userId, word.id)
 
         return word.id
     }

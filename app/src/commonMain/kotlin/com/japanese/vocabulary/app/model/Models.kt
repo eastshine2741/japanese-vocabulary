@@ -98,3 +98,50 @@ data class WordListResponse(
     val words: List<WordListItem>,
     val nextCursor: Long? = null
 )
+
+@Serializable
+data class FlashcardDTO(
+    val id: Long,
+    val wordId: Long,
+    val japanese: String,
+    val reading: String? = null,
+    val koreanText: String? = null,
+    val songTitle: String? = null,
+    val lyricLine: String? = null,
+    val state: Int,
+    val due: String
+)
+
+@Serializable
+data class DueFlashcardsResponse(
+    val cards: List<FlashcardDTO>,
+    val totalCount: Int
+)
+
+@Serializable
+data class ReviewRequest(
+    val rating: Int
+)
+
+@Serializable
+data class ReviewResponse(
+    val id: Long,
+    val state: Int,
+    val due: String,
+    val stability: Double,
+    val difficulty: Double
+)
+
+@Serializable
+data class FlashcardStatsResponse(
+    val total: Long,
+    val due: Long,
+    val newCount: Long,
+    val learning: Long,
+    val review: Long
+)
+
+@Serializable
+data class UserSettingsDTO(
+    val requestRetention: Double
+)
