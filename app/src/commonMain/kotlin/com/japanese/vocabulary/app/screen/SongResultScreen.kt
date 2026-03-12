@@ -92,7 +92,7 @@ fun SongResultScreen(onNavigate: (Screen) -> Unit, viewModel: SearchViewModel) {
                         selectedToken = token
                         selectedLyricLine = unit.originalText
                         showBottomSheet = true
-                        vocabViewModel.lookupWord(token.surface)
+                        vocabViewModel.lookupWord(token.baseForm)
                     }
                 )
             }
