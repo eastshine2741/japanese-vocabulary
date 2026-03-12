@@ -13,5 +13,8 @@ class UserSettingsEntity(
     val userId: Long,
 
     @Column(name = "request_retention", nullable = false)
-    var requestRetention: Double = 0.9
+    var requestRetention: Double = 0.9,
+
+    @Column(name = "show_intervals", nullable = false)
+    var showIntervals: Boolean = true
 )

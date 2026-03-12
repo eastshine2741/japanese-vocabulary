@@ -13,8 +13,8 @@ class UserSettingsService(
     @Transactional(readOnly = true)
     fun getSettings(userId: Long): UserSettingsDTO {
         val settings = userSettingsRepository.findByUserId(userId)
-            ?: return UserSettingsDTO(requestRetention = 0.9)
-        return UserSettingsDTO(requestRetention = settings.requestRetention)
+            ?: return UserSettingsDTO(requestRetention = 0.9, showIntervals = true)
+        return UserSettingsDTO(requestRetention = settings.requestRetention, showIntervals = settings.showIntervals)
     }
 
     @Transactional
@@ -23,7 +23,8 @@ class UserSettingsService(
         val settings = userSettingsRepository.findByUserId(userId)
             ?: UserSettingsEntity(userId = userId)
         settings.requestRetention = dto.requestRetention
+        settings.showIntervals = dto.showIntervals
         userSettingsRepository.save(settings)
-        return UserSettingsDTO(requestRetention = settings.requestRetention)
+        return UserSettingsDTO(requestRetention = settings.requestRetention, showIntervals = settings.showIntervals)
     }
 }

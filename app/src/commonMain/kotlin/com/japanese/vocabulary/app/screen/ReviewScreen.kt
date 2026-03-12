@@ -200,33 +200,27 @@ private fun ReviewingContent(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Button(
-                    onClick = { onRate(1) },
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                ) {
-                    Text("Again", fontSize = 12.sp)
-                }
-                Button(
-                    onClick = { onRate(2) },
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
-                ) {
-                    Text("Hard", fontSize = 12.sp)
-                }
-                Button(
-                    onClick = { onRate(3) },
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                ) {
-                    Text("Good", fontSize = 12.sp)
-                }
-                Button(
-                    onClick = { onRate(4) },
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
-                ) {
-                    Text("Easy", fontSize = 12.sp)
+                val labels = listOf(1 to "Again", 2 to "Hard", 3 to "Good", 4 to "Easy")
+                val colors = listOf(
+                    MaterialTheme.colorScheme.error,
+                    MaterialTheme.colorScheme.tertiary,
+                    MaterialTheme.colorScheme.primary,
+                    MaterialTheme.colorScheme.secondary
+                )
+                labels.forEachIndexed { index, (rating, label) ->
+                    Button(
+                        onClick = { onRate(rating) },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(containerColor = colors[index])
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(label, fontSize = 12.sp)
+                            val interval = card.intervals?.get(rating)
+                            if (interval != null) {
+                                Text(interval, fontSize = 10.sp)
+                            }
+                        }
+                    }
                 }
             }
         }

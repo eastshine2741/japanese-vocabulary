@@ -9,7 +9,8 @@ data class FlashcardDTO(
     val songTitle: String? = null,
     val lyricLine: String? = null,
     val state: Int,
-    val due: String
+    val due: String,
+    val intervals: Map<Int, String>? = null
 )
 
 data class DueFlashcardsResponse(
@@ -38,5 +39,6 @@ data class FlashcardStatsResponse(
 )
 
 data class UserSettingsDTO(
-    val requestRetention: Double
+    val requestRetention: Double,
+    val showIntervals: Boolean = true
 )

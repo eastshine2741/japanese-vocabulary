@@ -82,6 +82,25 @@ fun SettingsScreen(viewModel: SettingsViewModel, onNavigateBack: () -> Unit) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
+                    Spacer(Modifier.height(24.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Show next review intervals", style = MaterialTheme.typography.bodyLarge)
+                        Switch(
+                            checked = state.showIntervals,
+                            onCheckedChange = { viewModel.updateShowIntervals(it) }
+                        )
+                    }
+                    Text(
+                        "Display interval previews on rating buttons",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
                     Spacer(Modifier.height(32.dp))
 
                     Button(

@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.server.ResponseStatusException
+import java.time.Duration
 import java.time.Instant
 
 @Service
@@ -55,10 +56,28 @@ class FlashcardService(
         val songIds = songWordMap.values.map { it.songId }.toSet()
         val songMap = songRepository.findAllById(songIds).associateBy { it.id }
 
+        val settings = userSettingsRepository.findByUserId(userId)
+        val showIntervals = settings?.showIntervals ?: true
+        val desiredRetention = settings?.requestRetention ?: 0.9
+
         val cards = dueEntities.mapNotNull { entity ->
             val word = words[entity.wordId] ?: return@mapNotNull null
             val songWord = songWordMap[entity.wordId]
             val song = songWord?.let { songMap[it.songId] }
+
+            val intervals = if (showIntervals) {
+                val scheduler = Scheduler.builder()
+                    .desiredRetention(desiredRetention)
+                    .build()
+                val card = Card.fromJson(entity.fsrsCardJson)
+                mapOf(
+                    1 to formatInterval(now, scheduler.reviewCard(card, Rating.AGAIN).card().due ?: now),
+                    2 to formatInterval(now, scheduler.reviewCard(card, Rating.HARD).card().due ?: now),
+                    3 to formatInterval(now, scheduler.reviewCard(card, Rating.GOOD).card().due ?: now),
+                    4 to formatInterval(now, scheduler.reviewCard(card, Rating.EASY).card().due ?: now)
+                )
+            } else null
+
             FlashcardDTO(
                 id = entity.id!!,
                 wordId = entity.wordId,
@@ -68,7 +87,8 @@ class FlashcardService(
                 songTitle = song?.title,
                 lyricLine = songWord?.lyricLine,
                 state = entity.state,
-                due = entity.due.toString()
+                due = entity.due.toString(),
+                intervals = intervals
             )
         }
 
@@ -137,6 +157,15 @@ class FlashcardService(
             learning = learning - newCount, // subtract never-reviewed cards
             review = review
         )
+    }
+
+    private fun formatInterval(from: Instant, to: Instant): String {
+        val minutes = Duration.between(from, to).toMinutes()
+        return when {
+            minutes < 60 -> "${minutes}m"
+            minutes < 1440 -> "${minutes / 60}h"
+            else -> "${minutes / 1440}d"
+        }
     }
 
     private fun backfillFlashcards(userId: Long) {
