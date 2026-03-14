@@ -1,6 +1,6 @@
 package com.japanese.vocabulary.config
 
-import com.japanese.vocabulary.auth.JwtAuthFilter
+import com.japanese.vocabulary.auth.jwt.JwtAuthFilter
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.security.config.annotation.web.builders.HttpSecurity

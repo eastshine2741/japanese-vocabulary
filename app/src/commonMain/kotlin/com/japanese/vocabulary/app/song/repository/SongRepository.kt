@@ -1,0 +1,69 @@
+package com.japanese.vocabulary.app.song.repository
+
+import com.japanese.vocabulary.app.song.dto.RecentSongItem
+import com.japanese.vocabulary.app.song.dto.SongSearchResponse
+import com.japanese.vocabulary.app.song.dto.SongStudyData
+import com.japanese.vocabulary.app.platform.TokenStorage
+import com.japanese.vocabulary.app.platform.backendBaseUrl
+import io.ktor.client.*
+import io.ktor.client.call.*
+import io.ktor.client.plugins.*
+import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.client.request.*
+import io.ktor.client.statement.*
+import io.ktor.http.*
+import io.ktor.serialization.kotlinx.json.*
+import kotlinx.serialization.Serializable
+
+class SongRepository(private val baseUrl: String = backendBaseUrl()) {
+    private val client = HttpClient {
+        install(ContentNegotiation) {
+            json(kotlinx.serialization.json.Json { ignoreUnknownKeys = true })
+        }
+        HttpResponseValidator {
+            validateResponse { response ->
+                if (!response.status.isSuccess()) {
+                    val errorBody = response.bodyAsText()
+                    throw Exception("HTTP ${response.status.value}: $errorBody")
+                }
+            }
+        }
+    }
+
+    suspend fun search(query: String, offset: Int = 0, limit: Int = 50): SongSearchResponse {
+        return client.get("$baseUrl/api/songs/search") {
+            headers { append("Authorization", "Bearer ${TokenStorage.getToken() ?: ""}") }
+            parameter("q", query)
+            parameter("offset", offset)
+            parameter("limit", limit)
+        }.body()
+    }
+
+    suspend fun analyze(title: String, artist: String, durationSeconds: Int? = null, artworkUrl: String? = null): SongStudyData {
+        return client.post("$baseUrl/api/songs/analyze") {
+            headers { append("Authorization", "Bearer ${TokenStorage.getToken() ?: ""}") }
+            contentType(ContentType.Application.Json)
+            setBody(AnalyzeSongRequest(title, artist, durationSeconds, artworkUrl))
+        }.body()
+    }
+
+    suspend fun getRecentSongs(): List<RecentSongItem> {
+        return client.get("$baseUrl/api/songs/recent") {
+            headers { append("Authorization", "Bearer ${TokenStorage.getToken() ?: ""}") }
+        }.body()
+    }
+
+    suspend fun getSongById(id: Long): SongStudyData {
+        return client.get("$baseUrl/api/songs/$id") {
+            headers { append("Authorization", "Bearer ${TokenStorage.getToken() ?: ""}") }
+        }.body()
+    }
+}
+
+@Serializable
+data class AnalyzeSongRequest(
+    val title: String,
+    val artist: String,
+    val durationSeconds: Int? = null,
+    val artworkUrl: String? = null
+)
