@@ -29,6 +29,7 @@ IGNORED_FILES=(
   "app/local.properties"
   "backend/local.properties"
   "app/google-services.json"
+  "backend/src/main/resources/application-local.yml"
 )
 
 echo ""
