@@ -60,14 +60,3 @@ tasks.withType<KotlinCompile> {
 tasks.withType<Test> {
     useJUnitPlatform()
 }
-
-tasks.named<org.springframework.boot.gradle.tasks.run.BootRun>("bootRun") {
-    val envFile = rootProject.file("../.env")
-    if (envFile.exists()) {
-        envFile.readLines()
-            .filter { it.isNotBlank() && !it.startsWith("#") }
-            .map { it.split("=", limit = 2) }
-            .filter { it.size == 2 }
-            .forEach { (k, v) -> environment(k.trim(), v.trim()) }
-    }
-}
