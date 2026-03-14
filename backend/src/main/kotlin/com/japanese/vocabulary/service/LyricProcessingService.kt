@@ -20,12 +20,16 @@ class LyricProcessingService(
     private val morphologicalAnalyzer: MorphologicalAnalyzer,
     private val songRepository: SongRepository,
     private val objectMapper: ObjectMapper,
-    private val youtubeClient: YoutubeClient
+    private val youtubeClient: YoutubeClient,
+    private val recentSongService: RecentSongService
 ) {
 
-    fun analyze(title: String, artist: String, durationSeconds: Int?): SongDTO {
+    fun analyze(title: String, artist: String, durationSeconds: Int?, artworkUrl: String? = null, userId: Long? = null): SongDTO {
         // Check if already exists in DB
         songRepository.findByArtistAndTitle(artist, title)?.let {
+            if (userId != null) {
+                recentSongService.recordListen(userId, it.id!!)
+            }
             return buildResponseFromEntity(it)
         }
 
@@ -114,10 +118,15 @@ class LyricProcessingService(
             vocabularyContent = objectMapper.writeValueAsString(allVocabulary),
             lrclibId = lyricsResult.lrclibId,
             vocadbId = lyricsResult.vocadbId,
-            youtubeUrl = youtubeUrl
+            youtubeUrl = youtubeUrl,
+            artworkUrl = artworkUrl
         )
 
         val savedSong = songRepository.save(songEntity)
+
+        if (userId != null) {
+            recentSongService.recordListen(userId, savedSong.id!!)
+        }
 
         // Build response
         val vocabularyCandidates = allVocabulary.map { vocab ->
@@ -142,6 +151,8 @@ class LyricProcessingService(
             youtubeUrl = savedSong.youtubeUrl
         )
     }
+
+    fun buildSongDTO(entity: SongEntity): SongDTO = buildResponseFromEntity(entity)
 
     private fun buildResponseFromEntity(entity: SongEntity): SongDTO {
         val lyricLines: List<LyricLineData> = objectMapper.readValue(

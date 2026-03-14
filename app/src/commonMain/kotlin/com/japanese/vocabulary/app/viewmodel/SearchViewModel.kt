@@ -57,7 +57,19 @@ class SearchViewModel(private val repository: SongRepository = SongRepository())
         _analyzeState.value = AnalyzeUiState.Loading
         scope.launch {
             try {
-                val result = repository.analyze(item.title, item.artistName, item.durationSeconds)
+                val result = repository.analyze(item.title, item.artistName, item.durationSeconds, item.thumbnail)
+                _analyzeState.value = AnalyzeUiState.Success(result)
+            } catch (e: Exception) {
+                _analyzeState.value = AnalyzeUiState.Error(e.message ?: "Unknown error")
+            }
+        }
+    }
+
+    fun loadById(id: Long) {
+        _analyzeState.value = AnalyzeUiState.Loading
+        scope.launch {
+            try {
+                val result = repository.getSongById(id)
                 _analyzeState.value = AnalyzeUiState.Success(result)
             } catch (e: Exception) {
                 _analyzeState.value = AnalyzeUiState.Error(e.message ?: "Unknown error")

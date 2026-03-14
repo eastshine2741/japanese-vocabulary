@@ -38,6 +38,9 @@ class SongEntity(
     @Column(name = "youtube_url")
     val youtubeUrl: String? = null,
 
+    @Column(name = "artwork_url")
+    val artworkUrl: String? = null,
+
     @Column(name = "created_at")
     val createdAt: Instant = Instant.now()
 )

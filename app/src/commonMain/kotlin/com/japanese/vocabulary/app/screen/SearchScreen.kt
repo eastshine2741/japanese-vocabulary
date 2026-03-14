@@ -41,7 +41,7 @@ fun SearchScreen(onNavigate: (Screen) -> Unit, viewModel: SearchViewModel) {
 
     LaunchedEffect(analyzeState) {
         if (analyzeState is AnalyzeUiState.Success) {
-            onNavigate(Screen.SongResult)
+            onNavigate(Screen.Player(origin = Screen.Search))
         }
     }
 

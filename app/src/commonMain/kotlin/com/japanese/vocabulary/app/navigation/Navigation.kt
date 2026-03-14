@@ -8,5 +8,5 @@ sealed class Screen {
     object Vocabulary : Screen()
     object Review : Screen()
     object Settings : Screen()
-    object SongResult : Screen()
+    data class Player(val origin: Screen = Search) : Screen()
 }

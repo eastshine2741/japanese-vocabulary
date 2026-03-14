@@ -147,3 +147,11 @@ data class UserSettingsDTO(
     val requestRetention: Double,
     val showIntervals: Boolean = true
 )
+
+@Serializable
+data class RecentSongItem(
+    val id: Long,
+    val title: String,
+    val artist: String,
+    val artworkUrl: String? = null
+)
