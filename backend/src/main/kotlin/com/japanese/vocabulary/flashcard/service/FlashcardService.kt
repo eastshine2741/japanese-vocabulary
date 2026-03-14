@@ -5,6 +5,7 @@ import com.japanese.vocabulary.flashcard.entity.FlashcardEntity
 import com.japanese.vocabulary.flashcard.repository.FlashcardRepository
 import com.japanese.vocabulary.song.repository.SongRepository
 import com.japanese.vocabulary.user.repository.UserSettingsRepository
+import com.japanese.vocabulary.word.dto.ExampleSentence
 import com.japanese.vocabulary.word.repository.SongWordRepository
 import com.japanese.vocabulary.word.repository.WordRepository
 import io.github.openspacedrepetition.Card
@@ -53,11 +54,9 @@ class FlashcardService(
         val wordIds = dueEntities.map { it.wordId }
         val words = wordRepository.findAllById(wordIds).associateBy { it.id }
 
-        val songWordMap = wordIds
-            .flatMap { wordId -> songWordRepository.findByWordId(wordId) }
-            .associateBy { it.wordId }
+        val songWordMap = songWordRepository.findByWordIdIn(wordIds).groupBy { it.wordId }
 
-        val songIds = songWordMap.values.map { it.songId }.toSet()
+        val songIds = songWordMap.values.flatten().map { it.songId }.toSet()
         val songMap = songRepository.findAllById(songIds).associateBy { it.id }
 
         val settings = userSettingsRepository.findByUserId(userId)
@@ -66,8 +65,14 @@ class FlashcardService(
 
         val cards = dueEntities.mapNotNull { entity ->
             val word = words[entity.wordId] ?: return@mapNotNull null
-            val songWord = songWordMap[entity.wordId]
-            val song = songWord?.let { songMap[it.songId] }
+            val songWords = songWordMap[entity.wordId] ?: emptyList()
+            val examples = songWords.map { sw ->
+                ExampleSentence(
+                    songId = sw.songId,
+                    songTitle = songMap[sw.songId]?.title,
+                    lyricLine = sw.lyricLine
+                )
+            }
 
             val intervals = if (showIntervals) {
                 val scheduler = Scheduler.builder()
@@ -88,8 +93,7 @@ class FlashcardService(
                 japanese = word.japaneseText,
                 reading = word.reading,
                 koreanText = word.koreanText,
-                songTitle = song?.title,
-                lyricLine = songWord?.lyricLine,
+                examples = examples,
                 state = entity.state,
                 due = entity.due.toString(),
                 intervals = intervals

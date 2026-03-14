@@ -4,7 +4,10 @@ import jakarta.persistence.*
 import java.time.Instant
 
 @Entity
-@Table(name = "words")
+@Table(
+    name = "words",
+    uniqueConstraints = [UniqueConstraint(columnNames = ["user_id", "japanese_text"])]
+)
 class WordEntity(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

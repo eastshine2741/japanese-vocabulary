@@ -15,11 +15,13 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.japanese.vocabulary.app.song.dto.StudyUnit
 import com.japanese.vocabulary.app.song.dto.Token
+import com.japanese.vocabulary.app.word.dto.ExampleSentence
 import com.japanese.vocabulary.app.word.dto.WordDefinitionDTO
 import com.japanese.vocabulary.app.navigation.Screen
 import com.japanese.vocabulary.app.platform.YouTubePlayer
 import com.japanese.vocabulary.app.word.viewmodel.AddState
 import com.japanese.vocabulary.app.song.viewmodel.AnalyzeUiState
+import com.japanese.vocabulary.app.word.viewmodel.GetWordState
 import com.japanese.vocabulary.app.word.viewmodel.LookupState
 import com.japanese.vocabulary.app.song.viewmodel.SearchViewModel
 import com.japanese.vocabulary.app.word.viewmodel.VocabularyViewModel
@@ -108,6 +110,9 @@ fun PlayerScreen(onNavigate: (Screen) -> Unit, viewModel: SearchViewModel, scree
                 token = selectedToken!!,
                 lookupState = vocabViewModel.lookupState.value,
                 addState = vocabViewModel.addState.value,
+                getWordState = vocabViewModel.getWordState.value,
+                songId = result.song.id,
+                lyricLine = selectedLyricLine,
                 onAddWord = { definition ->
                     vocabViewModel.addWord(definition, result.song.id, selectedLyricLine)
                 }
@@ -168,6 +173,9 @@ private fun WordDetailSheet(
     token: Token,
     lookupState: LookupState,
     addState: AddState,
+    getWordState: GetWordState,
+    songId: Long,
+    lyricLine: String,
     onAddWord: (WordDefinitionDTO) -> Unit
 ) {
     Column(
@@ -183,6 +191,16 @@ private fun WordDetailSheet(
         DetailRow("기본형", token.baseForm)
         DetailRow("품사", token.partOfSpeech)
         Spacer(Modifier.height(16.dp))
+
+        // Show existing examples if word is already saved
+        if (getWordState is GetWordState.Found && getWordState.word.examples.isNotEmpty()) {
+            Text("저장된 예문", style = MaterialTheme.typography.labelMedium)
+            Spacer(Modifier.height(4.dp))
+            getWordState.word.examples.forEach { example ->
+                ExampleRow(example)
+            }
+            Spacer(Modifier.height(16.dp))
+        }
 
         HorizontalDivider()
         Spacer(Modifier.height(16.dp))
@@ -215,24 +233,20 @@ private fun WordDetailSheet(
                 }
                 Spacer(Modifier.height(20.dp))
 
-                when (addState) {
-                    is AddState.Idle, is AddState.Error -> {
+                // Button logic derived from addState + getWordState
+                when {
+                    addState is AddState.Success -> {
                         Button(
-                            onClick = { onAddWord(definition) },
+                            onClick = {},
+                            enabled = false,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("단어 추가")
-                        }
-                        if (addState is AddState.Error) {
-                            Spacer(Modifier.height(8.dp))
-                            Text(
-                                text = addState.message,
-                                color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.bodySmall
-                            )
+                            val wasNewWord = getWordState is GetWordState.Found &&
+                                    getWordState.word.examples.size <= 1
+                            Text(if (wasNewWord) "추가됨" else "예문 추가됨")
                         }
                     }
-                    is AddState.Loading -> {
+                    addState is AddState.Loading -> {
                         Button(
                             onClick = {},
                             enabled = false,
@@ -245,21 +259,80 @@ private fun WordDetailSheet(
                             )
                         }
                     }
-                    is AddState.Success -> {
-                        Button(
-                            onClick = {},
-                            enabled = false,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("추가됨")
+                    getWordState is GetWordState.Found -> {
+                        val alreadyHasExample = getWordState.word.examples.any {
+                            it.songId == songId && it.lyricLine == lyricLine
+                        }
+                        if (alreadyHasExample) {
+                            Button(
+                                onClick = {},
+                                enabled = false,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("이미 추가됨")
+                            }
+                        } else {
+                            Button(
+                                onClick = { onAddWord(definition) },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("예문 추가")
+                            }
                         }
                     }
+                    else -> {
+                        // NotFound, Idle, Loading, Error → show "단어 추가"
+                        Button(
+                            onClick = { onAddWord(definition) },
+                            enabled = getWordState !is GetWordState.Loading,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("단어 추가")
+                        }
+                    }
+                }
+
+                if (addState is AddState.Error) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = addState.message,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
                 }
             }
             is LookupState.Idle -> {}
         }
 
         Spacer(Modifier.height(24.dp))
+    }
+}
+
+@Composable
+private fun ExampleRow(example: ExampleSentence) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+        verticalAlignment = Alignment.Top
+    ) {
+        Text("• ", style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Column {
+            if (example.songTitle != null) {
+                Text(
+                    example.songTitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+            if (example.lyricLine != null) {
+                Text(
+                    example.lyricLine,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
     }
 }
 

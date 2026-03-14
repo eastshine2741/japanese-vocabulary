@@ -3,7 +3,10 @@ package com.japanese.vocabulary.word.entity
 import jakarta.persistence.*
 
 @Entity
-@Table(name = "song_words")
+@Table(
+    name = "song_words",
+    uniqueConstraints = [UniqueConstraint(columnNames = ["word_id", "song_id", "lyric_line"])]
+)
 class SongWordEntity(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

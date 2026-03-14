@@ -171,16 +171,33 @@ private fun ReviewingContent(
                                 textAlign = TextAlign.Center
                             )
                         }
-                        if (card.lyricLine != null) {
+                        if (card.examples.isNotEmpty()) {
                             Spacer(Modifier.height(16.dp))
                             HorizontalDivider()
                             Spacer(Modifier.height(8.dp))
-                            Text(
-                                card.lyricLine,
-                                style = MaterialTheme.typography.bodyMedium.copy(fontStyle = FontStyle.Italic),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                textAlign = TextAlign.Center
-                            )
+                            card.examples.forEach { example ->
+                                Column(
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    if (example.songTitle != null) {
+                                        Text(
+                                            example.songTitle,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            textAlign = TextAlign.Center
+                                        )
+                                    }
+                                    if (example.lyricLine != null) {
+                                        Text(
+                                            example.lyricLine,
+                                            style = MaterialTheme.typography.bodyMedium.copy(fontStyle = FontStyle.Italic),
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            textAlign = TextAlign.Center
+                                        )
+                                    }
+                                }
+                            }
                         }
                     } else {
                         Spacer(Modifier.height(24.dp))

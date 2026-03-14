@@ -142,20 +142,25 @@ private fun WordCard(word: WordListItem) {
             Spacer(Modifier.height(4.dp))
             Text(word.koreanText, style = MaterialTheme.typography.bodyLarge)
 
-            if (word.songTitle != null || word.lyricLine != null) {
+            if (word.examples.isNotEmpty()) {
                 Spacer(Modifier.height(8.dp))
                 HorizontalDivider()
                 Spacer(Modifier.height(8.dp))
-                if (word.songTitle != null) {
+                Text(
+                    "예문:",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(4.dp))
+                word.examples.forEach { example ->
+                    val text = buildString {
+                        append("• ")
+                        if (example.songTitle != null) append(example.songTitle)
+                        if (example.songTitle != null && example.lyricLine != null) append(" — ")
+                        if (example.lyricLine != null) append(example.lyricLine)
+                    }
                     Text(
-                        "노래: ${word.songTitle}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                if (word.lyricLine != null) {
-                    Text(
-                        "예문: ${word.lyricLine}",
+                        text,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

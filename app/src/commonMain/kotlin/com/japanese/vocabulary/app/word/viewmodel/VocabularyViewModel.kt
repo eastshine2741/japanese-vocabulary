@@ -3,7 +3,9 @@ package com.japanese.vocabulary.app.word.viewmodel
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import com.japanese.vocabulary.app.word.dto.AddWordRequest
+import com.japanese.vocabulary.app.word.dto.ExampleSentence
 import com.japanese.vocabulary.app.word.dto.WordDefinitionDTO
+import com.japanese.vocabulary.app.word.dto.WordDetailResponse
 import com.japanese.vocabulary.app.word.dto.WordListItem
 import com.japanese.vocabulary.app.word.repository.VocabularyRepository
 import kotlinx.coroutines.CoroutineScope
@@ -25,6 +27,14 @@ sealed class AddState {
     data class Error(val message: String) : AddState()
 }
 
+sealed class GetWordState {
+    object Idle : GetWordState()
+    object Loading : GetWordState()
+    data class Found(val word: WordDetailResponse) : GetWordState()
+    object NotFound : GetWordState()
+    data class Error(val message: String) : GetWordState()
+}
+
 sealed class WordListState {
     object Idle : WordListState()
     object Loading : WordListState()
@@ -41,17 +51,32 @@ class VocabularyViewModel(private val repository: VocabularyRepository = Vocabul
 
     val lookupState: MutableState<LookupState> = mutableStateOf(LookupState.Idle)
     val addState: MutableState<AddState> = mutableStateOf(AddState.Idle)
+    val getWordState: MutableState<GetWordState> = mutableStateOf(GetWordState.Idle)
     val wordListState: MutableState<WordListState> = mutableStateOf(WordListState.Idle)
 
     fun lookupWord(word: String) {
         lookupState.value = LookupState.Loading
         addState.value = AddState.Idle
+        getWordState.value = GetWordState.Idle
         scope.launch {
             try {
                 val definition = repository.lookupWord(word)
                 lookupState.value = LookupState.Success(definition)
+                getWord(definition.japanese)
             } catch (e: Exception) {
                 lookupState.value = LookupState.Error(e.message ?: "단어 조회 실패")
+            }
+        }
+    }
+
+    fun getWord(japanese: String) {
+        getWordState.value = GetWordState.Loading
+        scope.launch {
+            try {
+                val result = repository.getWord(japanese)
+                getWordState.value = if (result != null) GetWordState.Found(result) else GetWordState.NotFound
+            } catch (e: Exception) {
+                getWordState.value = GetWordState.Error(e.message ?: "단어 조회 실패")
             }
         }
     }
@@ -70,6 +95,24 @@ class VocabularyViewModel(private val repository: VocabularyRepository = Vocabul
                     )
                 )
                 addState.value = AddState.Success(id)
+                // Update getWordState to reflect the newly added example
+                val current = getWordState.value
+                val newExample = ExampleSentence(songId = songId, lyricLine = lyricLine)
+                if (current is GetWordState.Found) {
+                    getWordState.value = GetWordState.Found(
+                        current.word.copy(examples = current.word.examples + newExample)
+                    )
+                } else {
+                    getWordState.value = GetWordState.Found(
+                        WordDetailResponse(
+                            id = id,
+                            japanese = definition.japanese,
+                            reading = definition.reading,
+                            koreanText = definition.meanings.joinToString(", "),
+                            examples = listOf(newExample)
+                        )
+                    )
+                }
             } catch (e: Exception) {
                 addState.value = AddState.Error(e.message ?: "단어 추가 실패")
             }

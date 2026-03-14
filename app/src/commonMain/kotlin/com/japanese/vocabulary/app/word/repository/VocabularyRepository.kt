@@ -2,6 +2,7 @@ package com.japanese.vocabulary.app.word.repository
 
 import com.japanese.vocabulary.app.word.dto.AddWordRequest
 import com.japanese.vocabulary.app.word.dto.WordDefinitionDTO
+import com.japanese.vocabulary.app.word.dto.WordDetailResponse
 import com.japanese.vocabulary.app.word.dto.WordListResponse
 import com.japanese.vocabulary.app.platform.TokenStorage
 import com.japanese.vocabulary.app.platform.backendBaseUrl
@@ -21,7 +22,7 @@ class VocabularyRepository(private val baseUrl: String = backendBaseUrl()) {
         }
         HttpResponseValidator {
             validateResponse { response ->
-                if (!response.status.isSuccess()) {
+                if (response.status != HttpStatusCode.NotFound && !response.status.isSuccess()) {
                     val errorBody = response.bodyAsText()
                     throw Exception("HTTP ${response.status.value}: $errorBody")
                 }
@@ -52,5 +53,14 @@ class VocabularyRepository(private val baseUrl: String = backendBaseUrl()) {
             headers { append("Authorization", authHeader()) }
             if (cursor != null) parameter("cursor", cursor)
         }.body()
+    }
+
+    suspend fun getWord(japanese: String): WordDetailResponse? {
+        val response = client.get("$baseUrl/api/words/by-text") {
+            headers { append("Authorization", authHeader()) }
+            parameter("japanese", japanese)
+        }
+        return if (response.status == HttpStatusCode.NotFound) null
+        else response.body()
     }
 }
