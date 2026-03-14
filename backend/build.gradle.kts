@@ -44,6 +44,9 @@ dependencies {
     // Spring Security
     implementation("org.springframework.boot:spring-boot-starter-security")
 
+    // Redis
+    implementation("org.springframework.boot:spring-boot-starter-data-redis")
+
     // FSRS - Spaced Repetition Scheduler
     implementation("io.github.open-spaced-repetition:fsrs:1.0.0")
 

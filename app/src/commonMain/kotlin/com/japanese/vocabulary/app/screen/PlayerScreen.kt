@@ -26,7 +26,7 @@ import com.japanese.vocabulary.app.viewmodel.VocabularyViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SongResultScreen(onNavigate: (Screen) -> Unit, viewModel: SearchViewModel) {
+fun PlayerScreen(onNavigate: (Screen) -> Unit, viewModel: SearchViewModel, screen: Screen.Player) {
     val analyzeState by viewModel.analyzeState.collectAsState()
     val result = (analyzeState as? AnalyzeUiState.Success)?.result
 
@@ -39,8 +39,8 @@ fun SongResultScreen(onNavigate: (Screen) -> Unit, viewModel: SearchViewModel) {
 
     if (result == null) {
         Column(modifier = Modifier.fillMaxSize().padding(24.dp)) {
-            TextButton(onClick = { viewModel.resetAnalyze(); onNavigate(Screen.Search) }) {
-                Text("← 검색으로 돌아가기")
+            TextButton(onClick = { viewModel.resetAnalyze(); onNavigate(screen.origin) }) {
+                Text("← 돌아가기")
             }
         }
         return
@@ -76,8 +76,8 @@ fun SongResultScreen(onNavigate: (Screen) -> Unit, viewModel: SearchViewModel) {
 
         LazyColumn(modifier = Modifier.weight(1f).padding(horizontal = 16.dp)) {
             item {
-                TextButton(onClick = { viewModel.resetAnalyze(); onNavigate(Screen.Search) }) {
-                    Text("← 검색으로 돌아가기")
+                TextButton(onClick = { viewModel.resetAnalyze(); onNavigate(screen.origin) }) {
+                    Text("← 돌아가기")
                 }
                 Text(result.song.title, style = MaterialTheme.typography.headlineSmall)
                 Text(result.song.artist, style = MaterialTheme.typography.bodyLarge)

@@ -1,5 +1,6 @@
 package com.japanese.vocabulary.app.network
 
+import com.japanese.vocabulary.app.model.RecentSongItem
 import com.japanese.vocabulary.app.model.SongSearchResponse
 import com.japanese.vocabulary.app.model.SongStudyData
 import com.japanese.vocabulary.app.platform.TokenStorage
@@ -38,11 +39,23 @@ class SongRepository(private val baseUrl: String = backendBaseUrl()) {
         }.body()
     }
 
-    suspend fun analyze(title: String, artist: String, durationSeconds: Int? = null): SongStudyData {
+    suspend fun analyze(title: String, artist: String, durationSeconds: Int? = null, artworkUrl: String? = null): SongStudyData {
         return client.post("$baseUrl/api/songs/analyze") {
             headers { append("Authorization", "Bearer ${TokenStorage.getToken() ?: ""}") }
             contentType(ContentType.Application.Json)
-            setBody(AnalyzeSongRequest(title, artist, durationSeconds))
+            setBody(AnalyzeSongRequest(title, artist, durationSeconds, artworkUrl))
+        }.body()
+    }
+
+    suspend fun getRecentSongs(): List<RecentSongItem> {
+        return client.get("$baseUrl/api/songs/recent") {
+            headers { append("Authorization", "Bearer ${TokenStorage.getToken() ?: ""}") }
+        }.body()
+    }
+
+    suspend fun getSongById(id: Long): SongStudyData {
+        return client.get("$baseUrl/api/songs/$id") {
+            headers { append("Authorization", "Bearer ${TokenStorage.getToken() ?: ""}") }
         }.body()
     }
 }
@@ -51,5 +64,6 @@ class SongRepository(private val baseUrl: String = backendBaseUrl()) {
 data class AnalyzeSongRequest(
     val title: String,
     val artist: String,
-    val durationSeconds: Int? = null
+    val durationSeconds: Int? = null,
+    val artworkUrl: String? = null
 )
