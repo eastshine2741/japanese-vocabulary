@@ -9,6 +9,10 @@ import com.japanese.vocabulary.song.dto.*
 import com.japanese.vocabulary.song.entity.LyricType
 import com.japanese.vocabulary.song.entity.SongEntity
 import com.japanese.vocabulary.song.parser.LrcParser
+import com.japanese.vocabulary.song.client.gemini.dto.KoreanLyricLine
+import com.japanese.vocabulary.song.entity.KoreanLyricEntity
+import com.japanese.vocabulary.song.entity.KoreanLyricStatus
+import com.japanese.vocabulary.song.repository.KoreanLyricRepository
 import com.japanese.vocabulary.song.repository.SongRepository
 import org.springframework.stereotype.Service
 
@@ -21,7 +25,8 @@ class LyricProcessingService(
     private val songRepository: SongRepository,
     private val objectMapper: ObjectMapper,
     private val youtubeClient: YoutubeClient,
-    private val recentSongService: RecentSongService
+    private val recentSongService: RecentSongService,
+    private val koreanLyricRepository: KoreanLyricRepository
 ) {
 
     fun analyze(title: String, artist: String, durationSeconds: Int?, artworkUrl: String? = null, userId: Long? = null): SongDTO {
@@ -124,6 +129,9 @@ class LyricProcessingService(
 
         val savedSong = songRepository.save(songEntity)
 
+        // Create PENDING korean lyric entry for async translation
+        koreanLyricRepository.save(KoreanLyricEntity(songId = savedSong.id!!))
+
         if (userId != null) {
             recentSongService.recordListen(userId, savedSong.id!!)
         }
@@ -165,9 +173,21 @@ class LyricProcessingService(
             objectMapper.typeFactory.constructCollectionType(List::class.java, VocabularyData::class.java)
         )
 
+        // Load Korean lyrics if available
+        val koreanLyricMap = koreanLyricRepository.findBySongId(entity.id!!)
+            ?.takeIf { it.status == KoreanLyricStatus.COMPLETED && it.content != null }
+            ?.let { koreanLyric ->
+                val lines: List<KoreanLyricLine> = objectMapper.readValue(
+                    koreanLyric.content,
+                    objectMapper.typeFactory.constructCollectionType(List::class.java, KoreanLyricLine::class.java)
+                )
+                lines.associateBy { it.index }
+            } ?: emptyMap()
+
         // Re-analyze to get tokens for study units
         val studyUnits = lyricLines.map { line ->
             val tokens = morphologicalAnalyzer.analyze(line.text)
+            val korean = koreanLyricMap[line.index]
             StudyUnit(
                 index = line.index,
                 originalText = line.text,
@@ -181,7 +201,9 @@ class LyricProcessingService(
                         charStart = token.charStart,
                         charEnd = token.charEnd
                     )
-                }
+                },
+                koreanLyrics = korean?.koreanLyrics,
+                koreanPronounciation = korean?.koreanPronounciation
             )
         }
 

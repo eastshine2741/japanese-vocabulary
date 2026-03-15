@@ -153,19 +153,37 @@ private fun LyricLineRow(
         }
     }
 
-    ClickableText(
-        text = annotated,
-        style = MaterialTheme.typography.bodyLarge.copy(
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha)
-        ),
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        onClick = { offset ->
-            val token = unit.tokens.firstOrNull { offset >= it.charStart && offset < it.charEnd }
-            if (token != null) onTokenClick(token)
+            .padding(vertical = 4.dp)
+    ) {
+        ClickableText(
+            text = annotated,
+            style = MaterialTheme.typography.bodyLarge.copy(
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha)
+            ),
+            modifier = Modifier.fillMaxWidth(),
+            onClick = { offset ->
+                val token = unit.tokens.firstOrNull { offset >= it.charStart && offset < it.charEnd }
+                if (token != null) onTokenClick(token)
+            }
+        )
+        if (unit.koreanPronounciation != null) {
+            Text(
+                text = unit.koreanPronounciation,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha * 0.7f)
+            )
         }
-    )
+        if (unit.koreanLyrics != null) {
+            Text(
+                text = unit.koreanLyrics,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha * 0.7f)
+            )
+        }
+    }
 }
 
 @Composable
