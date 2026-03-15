@@ -244,3 +244,89 @@ private fun LyricLineRow(
         }
     }
 }
+
+@org.jetbrains.compose.ui.tooling.preview.Preview
+@Composable
+private fun PreviewLyricLineRowCurrentSynced() {
+    com.japanese.vocabulary.app.theme.AppTheme {
+        LyricLineRow(
+            unit = StudyUnit(
+                index = 0,
+                originalText = "夜に駆ける",
+                startTimeMs = 15000L,
+                tokens = listOf(
+                    Token(surface = "夜", baseForm = "夜", reading = "よる", partOfSpeech = "名詞", charStart = 0, charEnd = 1),
+                    Token(surface = "駆ける", baseForm = "駆ける", reading = "かける", partOfSpeech = "動詞", charStart = 2, charEnd = 5)
+                )
+            ),
+            isCurrent = true,
+            isSynced = true,
+            onTokenClick = {}
+        )
+    }
+}
+
+@org.jetbrains.compose.ui.tooling.preview.Preview
+@Composable
+private fun PreviewLyricLineRowNonCurrentSynced() {
+    com.japanese.vocabulary.app.theme.AppTheme {
+        LyricLineRow(
+            unit = StudyUnit(
+                index = 1,
+                originalText = "沈むように溶けてゆくように",
+                startTimeMs = 20000L,
+                tokens = listOf(
+                    Token(surface = "沈む", baseForm = "沈む", reading = "しずむ", partOfSpeech = "動詞", charStart = 0, charEnd = 2),
+                    Token(surface = "溶けて", baseForm = "溶ける", reading = "とけて", partOfSpeech = "動詞", charStart = 5, charEnd = 8)
+                )
+            ),
+            isCurrent = false,
+            isSynced = true,
+            onTokenClick = {}
+        )
+    }
+}
+
+@org.jetbrains.compose.ui.tooling.preview.Preview
+@Composable
+private fun PreviewLyricLineRowUnsynced() {
+    com.japanese.vocabulary.app.theme.AppTheme {
+        LyricLineRow(
+            unit = StudyUnit(
+                index = 2,
+                originalText = "二人だけの空が広がる夜に",
+                startTimeMs = null,
+                tokens = listOf(
+                    Token(surface = "二人", baseForm = "二人", reading = "ふたり", partOfSpeech = "名詞", charStart = 0, charEnd = 2),
+                    Token(surface = "空", baseForm = "空", reading = "そら", partOfSpeech = "名詞", charStart = 5, charEnd = 6),
+                    Token(surface = "夜", baseForm = "夜", reading = "よる", partOfSpeech = "名詞", charStart = 11, charEnd = 12)
+                )
+            ),
+            isCurrent = false,
+            isSynced = false,
+            onTokenClick = {}
+        )
+    }
+}
+
+@org.jetbrains.compose.ui.tooling.preview.Preview
+@Composable
+private fun PreviewLyricLineRowWithKorean() {
+    com.japanese.vocabulary.app.theme.AppTheme {
+        LyricLineRow(
+            unit = StudyUnit(
+                index = 3,
+                originalText = "さよならだけだった",
+                startTimeMs = 30000L,
+                tokens = listOf(
+                    Token(surface = "さよなら", baseForm = "さよなら", reading = "さよなら", partOfSpeech = "名詞", charStart = 0, charEnd = 4)
+                ),
+                koreanPronounciation = "사요나라다케닷타",
+                koreanLyrics = "안녕뿐이었어"
+            ),
+            isCurrent = true,
+            isSynced = true,
+            onTokenClick = {}
+        )
+    }
+}

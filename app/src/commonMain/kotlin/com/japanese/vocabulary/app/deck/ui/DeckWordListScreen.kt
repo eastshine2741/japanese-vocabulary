@@ -121,3 +121,23 @@ private fun WordRow(word: DeckWordItem) {
         }
     }
 }
+
+@org.jetbrains.compose.ui.tooling.preview.Preview
+@Composable
+private fun PreviewWordRowWithReading() {
+    com.japanese.vocabulary.app.theme.AppTheme {
+        WordRow(
+            word = DeckWordItem(id = 1, japanese = "桜", reading = "さくら", koreanText = "벚꽃")
+        )
+    }
+}
+
+@org.jetbrains.compose.ui.tooling.preview.Preview
+@Composable
+private fun PreviewWordRowWithoutReading() {
+    com.japanese.vocabulary.app.theme.AppTheme {
+        WordRow(
+            word = DeckWordItem(id = 2, japanese = "花火", reading = "", koreanText = "불꽃놀이")
+        )
+    }
+}

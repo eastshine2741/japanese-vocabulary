@@ -12,6 +12,13 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import com.japanese.vocabulary.app.theme.AppTheme
+import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
 fun SkeletonBox(modifier: Modifier = Modifier) {
@@ -42,4 +49,18 @@ fun SkeletonBox(modifier: Modifier = Modifier) {
             .clip(RoundedCornerShape(8.dp))
             .background(brush)
     )
+}
+
+@Preview
+@Composable
+private fun PreviewSkeletonBox() {
+    AppTheme {
+        Column(Modifier.padding(16.dp)) {
+            SkeletonBox(Modifier.fillMaxWidth().height(20.dp))
+            Spacer(Modifier.height(8.dp))
+            SkeletonBox(Modifier.fillMaxWidth(0.6f).height(16.dp))
+            Spacer(Modifier.height(8.dp))
+            SkeletonBox(Modifier.fillMaxWidth(0.8f).height(16.dp))
+        }
+    }
 }

@@ -41,6 +41,7 @@ kotlin {
                 implementation(compose.material3)
                 implementation(compose.materialIconsExtended)
                 implementation(compose.ui)
+                implementation(compose.components.uiToolingPreview)
 
                 implementation("io.ktor:ktor-client-core:3.0.3")
                 implementation("io.ktor:ktor-client-content-negotiation:3.0.3")
@@ -59,6 +60,7 @@ kotlin {
                 implementation("io.ktor:ktor-client-okhttp:3.0.3")
                 implementation("androidx.activity:activity-compose:1.8.2")
                 implementation("androidx.appcompat:appcompat:1.6.1")
+                implementation(compose.uiTooling)
                 implementation("com.pierfrancescosoffritti.androidyoutubeplayer:core:13.0.0")
             }
         }

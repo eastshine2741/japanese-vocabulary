@@ -12,6 +12,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.japanese.vocabulary.app.theme.AppColors
+import com.japanese.vocabulary.app.theme.AppTheme
+import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
 fun AppTopBar(
@@ -64,5 +66,29 @@ fun AppTopBar(
                 content = actions
             )
         }
+    }
+}
+
+@Preview
+@Composable
+private fun PreviewAppTopBarTitleOnly() {
+    AppTheme {
+        AppTopBar(title = "My Words")
+    }
+}
+
+@Preview
+@Composable
+private fun PreviewAppTopBarWithBack() {
+    AppTheme {
+        AppTopBar(title = "Song Details", onBack = {})
+    }
+}
+
+@Preview
+@Composable
+private fun PreviewAppTopBarWithClose() {
+    AppTheme {
+        AppTopBar(title = "Search", onClose = {})
     }
 }

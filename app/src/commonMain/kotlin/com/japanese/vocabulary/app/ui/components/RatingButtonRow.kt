@@ -10,6 +10,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.japanese.vocabulary.app.theme.AppColors
+import com.japanese.vocabulary.app.theme.AppTheme
+import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
 fun RatingButtonRow(
@@ -43,5 +45,27 @@ fun RatingButtonRow(
                 }
             }
         }
+    }
+}
+
+@Preview
+@Composable
+private fun PreviewRatingButtonRowWithIntervals() {
+    AppTheme {
+        RatingButtonRow(
+            intervals = mapOf(1 to "1m", 2 to "6m", 3 to "1d", 4 to "4d"),
+            onRate = {}
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun PreviewRatingButtonRowWithoutIntervals() {
+    AppTheme {
+        RatingButtonRow(
+            intervals = null,
+            onRate = {}
+        )
     }
 }

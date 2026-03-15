@@ -270,3 +270,111 @@ private fun SummaryContent(state: ReviewState.Summary, onDone: () -> Unit) {
         }
     }
 }
+
+// --- Previews ---
+
+@org.jetbrains.compose.ui.tooling.preview.Preview
+@Composable
+private fun PreviewNoCardsWithStats() {
+    com.japanese.vocabulary.app.theme.AppTheme {
+        NoCardsContent(
+            stats = FlashcardStatsResponse(total = 50, due = 0, newCount = 5, learning = 10, review = 35),
+            onDone = {}
+        )
+    }
+}
+
+@org.jetbrains.compose.ui.tooling.preview.Preview
+@Composable
+private fun PreviewNoCardsWithoutStats() {
+    com.japanese.vocabulary.app.theme.AppTheme {
+        NoCardsContent(
+            stats = null,
+            onDone = {}
+        )
+    }
+}
+
+@org.jetbrains.compose.ui.tooling.preview.Preview
+@Composable
+private fun PreviewReviewingUnrevealed() {
+    com.japanese.vocabulary.app.theme.AppTheme {
+        ReviewingContent(
+            state = ReviewState.Reviewing(
+                cards = listOf(
+                    com.japanese.vocabulary.app.flashcard.dto.FlashcardDTO(
+                        id = 1,
+                        wordId = 1,
+                        japanese = "食べる",
+                        reading = "たべる",
+                        koreanText = "먹다",
+                        examples = listOf(
+                            com.japanese.vocabulary.app.word.dto.ExampleSentence(
+                                songId = 1,
+                                songTitle = "Lemon",
+                                lyricLine = "夢ならばどれほどよかったでしょう"
+                            )
+                        ),
+                        state = 0,
+                        due = "2026-03-15",
+                        intervals = mapOf(1 to "1m", 2 to "6m", 3 to "1d", 4 to "4d")
+                    )
+                ),
+                currentIndex = 0,
+                isRevealed = false,
+                totalCount = 5
+            ),
+            onReveal = {},
+            onRate = {}
+        )
+    }
+}
+
+@org.jetbrains.compose.ui.tooling.preview.Preview
+@Composable
+private fun PreviewReviewingRevealed() {
+    com.japanese.vocabulary.app.theme.AppTheme {
+        ReviewingContent(
+            state = ReviewState.Reviewing(
+                cards = listOf(
+                    com.japanese.vocabulary.app.flashcard.dto.FlashcardDTO(
+                        id = 1,
+                        wordId = 1,
+                        japanese = "美しい",
+                        reading = "うつくしい",
+                        koreanText = "아름답다",
+                        examples = listOf(
+                            com.japanese.vocabulary.app.word.dto.ExampleSentence(
+                                songId = 2,
+                                songTitle = "花に亡霊",
+                                lyricLine = "もう関わるな 声がこだまする"
+                            )
+                        ),
+                        state = 1,
+                        due = "2026-03-15",
+                        intervals = mapOf(1 to "1m", 2 to "6m", 3 to "1d", 4 to "4d")
+                    )
+                ),
+                currentIndex = 0,
+                isRevealed = true,
+                totalCount = 3
+            ),
+            onReveal = {},
+            onRate = {}
+        )
+    }
+}
+
+@org.jetbrains.compose.ui.tooling.preview.Preview
+@Composable
+private fun PreviewSummaryContent() {
+    com.japanese.vocabulary.app.theme.AppTheme {
+        SummaryContent(
+            state = ReviewState.Summary(
+                totalReviewed = 12,
+                ratingCounts = mapOf(1 to 2, 2 to 3, 3 to 5, 4 to 2)
+            ),
+            onDone = {}
+        )
+    }
+}

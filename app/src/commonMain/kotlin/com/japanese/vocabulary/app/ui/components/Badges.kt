@@ -9,7 +9,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import com.japanese.vocabulary.app.theme.AppColors
+import com.japanese.vocabulary.app.theme.AppTheme
+import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
 fun JlptBadge(level: String?) {
@@ -47,5 +54,23 @@ fun PosBadge(pos: String) {
             color = AppColors.Primary,
             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
         )
+    }
+}
+
+@Preview
+@Composable
+private fun PreviewJlptBadges() {
+    AppTheme {
+        Column {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                JlptBadge("N1")
+                JlptBadge("N2")
+                JlptBadge("N3")
+                JlptBadge("N4")
+                JlptBadge("N5")
+            }
+            Spacer(Modifier.height(8.dp))
+            PosBadge("Noun")
+        }
     }
 }

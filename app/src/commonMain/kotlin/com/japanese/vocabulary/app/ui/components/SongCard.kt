@@ -16,6 +16,8 @@ import com.japanese.vocabulary.app.theme.AppColors
 import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
 import io.ktor.http.Url
+import com.japanese.vocabulary.app.theme.AppTheme
+import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
 fun SongCard(
@@ -73,6 +75,32 @@ fun SongCard(
             color = AppColors.TextSecondary,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun PreviewSongCardWithPlaceholder() {
+    AppTheme {
+        SongCard(
+            artworkUrl = null,
+            title = "夜に駆ける",
+            artist = "YOASOBI",
+            onClick = {}
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun PreviewSongCardLongTitle() {
+    AppTheme {
+        SongCard(
+            artworkUrl = null,
+            title = "青春コンプレックス - TV Size Version",
+            artist = "結束バンド",
+            onClick = {}
         )
     }
 }

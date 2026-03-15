@@ -10,6 +10,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.japanese.vocabulary.app.theme.AppColors
 import com.japanese.vocabulary.app.theme.AppDimens
+import com.japanese.vocabulary.app.theme.AppTheme
+import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
 fun StatsCard(
@@ -66,5 +68,31 @@ fun StatsCard(
                 Text(actionLabel)
             }
         }
+    }
+}
+
+@Preview
+@Composable
+private fun PreviewStatsCardWithDue() {
+    AppTheme {
+        StatsCard(
+            wordCount = 42,
+            dueToday = 7,
+            onAction = {},
+            actionLabel = "Resume Learning"
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun PreviewStatsCardNoDue() {
+    AppTheme {
+        StatsCard(
+            wordCount = 128,
+            dueToday = 0,
+            onAction = {},
+            actionLabel = "Start Review"
+        )
     }
 }

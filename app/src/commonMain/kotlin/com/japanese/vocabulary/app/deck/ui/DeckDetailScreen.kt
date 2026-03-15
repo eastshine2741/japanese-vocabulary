@@ -211,3 +211,101 @@ private fun StateChip(label: String, count: Int) {
         )
     }
 }
+
+// --- Previews ---
+
+@org.jetbrains.compose.ui.tooling.preview.Preview
+@Composable
+private fun PreviewDeckDetailSongDeck() {
+    com.japanese.vocabulary.app.theme.AppTheme {
+        DeckDetailContent(
+            detail = DeckDetailResponse(
+                songId = 1,
+                title = "Lemon",
+                artist = "米津玄師",
+                artworkUrl = "https://example.com/artwork.jpg",
+                wordCount = 42,
+                dueCount = 8,
+                stateCounts = com.japanese.vocabulary.app.deck.dto.StateCounts(
+                    new = 12, learning = 5, review = 20, relearning = 5
+                ),
+                avgRetrievability = 0.85
+            ),
+            songId = 1,
+            onStartReview = {},
+            onViewWords = {}
+        )
+    }
+}
+
+@org.jetbrains.compose.ui.tooling.preview.Preview
+@Composable
+private fun PreviewDeckDetailAllDeck() {
+    com.japanese.vocabulary.app.theme.AppTheme {
+        DeckDetailContent(
+            detail = DeckDetailResponse(
+                songId = null,
+                title = null,
+                artist = null,
+                artworkUrl = null,
+                wordCount = 156,
+                dueCount = 23,
+                stateCounts = com.japanese.vocabulary.app.deck.dto.StateCounts(
+                    new = 30, learning = 18, review = 95, relearning = 13
+                ),
+                avgRetrievability = 0.72
+            ),
+            songId = null,
+            onStartReview = {},
+            onViewWords = {}
+        )
+    }
+}
+
+@org.jetbrains.compose.ui.tooling.preview.Preview
+@Composable
+private fun PreviewDeckDetailWithDueCards() {
+    com.japanese.vocabulary.app.theme.AppTheme {
+        DeckDetailContent(
+            detail = DeckDetailResponse(
+                songId = 2,
+                title = "花に亡霊",
+                artist = "ヨルシカ",
+                artworkUrl = "https://example.com/artwork2.jpg",
+                wordCount = 35,
+                dueCount = 15,
+                stateCounts = com.japanese.vocabulary.app.deck.dto.StateCounts(
+                    new = 8, learning = 7, review = 18, relearning = 2
+                ),
+                avgRetrievability = 0.68
+            ),
+            songId = 2,
+            onStartReview = {},
+            onViewWords = {}
+        )
+    }
+}
+
+@org.jetbrains.compose.ui.tooling.preview.Preview
+@Composable
+private fun PreviewDeckDetailNoDueCards() {
+    com.japanese.vocabulary.app.theme.AppTheme {
+        DeckDetailContent(
+            detail = DeckDetailResponse(
+                songId = 3,
+                title = "夜に駆ける",
+                artist = "YOASOBI",
+                artworkUrl = "https://example.com/artwork3.jpg",
+                wordCount = 28,
+                dueCount = 0,
+                stateCounts = com.japanese.vocabulary.app.deck.dto.StateCounts(
+                    new = 0, learning = 0, review = 28, relearning = 0
+                ),
+                avgRetrievability = 0.95
+            ),
+            songId = 3,
+            onStartReview = {},
+            onViewWords = {}
+        )
+    }
+}

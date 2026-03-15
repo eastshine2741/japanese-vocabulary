@@ -15,6 +15,9 @@ import androidx.compose.ui.unit.sp
 import com.japanese.vocabulary.app.flashcard.dto.FlashcardDTO
 import com.japanese.vocabulary.app.theme.AppColors
 import com.japanese.vocabulary.app.theme.AppDimens
+import com.japanese.vocabulary.app.theme.AppTheme
+import com.japanese.vocabulary.app.word.dto.ExampleSentence
+import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
 fun FlashcardView(
@@ -111,5 +114,54 @@ fun FlashcardView(
                 }
             }
         }
+    }
+}
+
+@Preview
+@Composable
+private fun PreviewFlashcardViewFront() {
+    AppTheme {
+        FlashcardView(
+            card = FlashcardDTO(
+                id = 1, wordId = 1, japanese = "食べる", reading = "たべる",
+                koreanText = "먹다", state = 0, due = "2026-03-15"
+            ),
+            isRevealed = false,
+            onReveal = {}
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun PreviewFlashcardViewRevealed() {
+    AppTheme {
+        FlashcardView(
+            card = FlashcardDTO(
+                id = 1, wordId = 1, japanese = "食べる", reading = "たべる",
+                koreanText = "먹다", state = 0, due = "2026-03-15"
+            ),
+            isRevealed = true,
+            onReveal = {}
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun PreviewFlashcardViewRevealedWithExamples() {
+    AppTheme {
+        FlashcardView(
+            card = FlashcardDTO(
+                id = 2, wordId = 2, japanese = "走る", reading = "はしる",
+                koreanText = "달리다", state = 1, due = "2026-03-15",
+                examples = listOf(
+                    ExampleSentence(songId = 1, songTitle = "夜に駆ける", lyricLine = "君が走り出した夜を追いかけて"),
+                    ExampleSentence(songId = 2, songTitle = "Lemon", lyricLine = "走り抜けた道の先で")
+                )
+            ),
+            isRevealed = true,
+            onReveal = {}
+        )
     }
 }

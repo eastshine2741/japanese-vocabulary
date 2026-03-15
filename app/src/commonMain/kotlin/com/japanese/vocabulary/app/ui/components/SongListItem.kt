@@ -13,6 +13,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.japanese.vocabulary.app.theme.AppColors
+import com.japanese.vocabulary.app.theme.AppTheme
+import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
 fun SongListItem(
@@ -63,5 +65,46 @@ fun SongListItem(
                 )
             }
         }
+    }
+}
+
+@Preview
+@Composable
+private fun PreviewSongListItemDefault() {
+    AppTheme {
+        SongListItem(
+            artworkUrl = null,
+            title = "夜に駆ける",
+            subtitle = "YOASOBI",
+            onClick = {}
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun PreviewSongListItemHighlighted() {
+    AppTheme {
+        SongListItem(
+            artworkUrl = null,
+            title = "廻廻奇譚",
+            subtitle = "Eve",
+            isHighlighted = true,
+            onClick = {}
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun PreviewSongListItemWithTrailing() {
+    AppTheme {
+        SongListItem(
+            artworkUrl = null,
+            title = "群青",
+            subtitle = "YOASOBI",
+            trailing = "3:42",
+            onClick = {}
+        )
     }
 }

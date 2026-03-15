@@ -15,6 +15,8 @@ import androidx.compose.ui.unit.sp
 import com.japanese.vocabulary.app.navigation.Tab
 import com.japanese.vocabulary.app.theme.AppColors
 import com.japanese.vocabulary.app.theme.AppDimens
+import com.japanese.vocabulary.app.theme.AppTheme
+import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
 fun BottomTabBar(selectedTab: Tab, onTabSelected: (Tab) -> Unit) {
@@ -76,5 +78,29 @@ private fun TabItem(
                 fontSize = 11.sp
             )
         }
+    }
+}
+
+@Preview
+@Composable
+private fun PreviewBottomTabBarHomeSelected() {
+    AppTheme {
+        BottomTabBar(selectedTab = Tab.Home, onTabSelected = {})
+    }
+}
+
+@Preview
+@Composable
+private fun PreviewBottomTabBarWordsSelected() {
+    AppTheme {
+        BottomTabBar(selectedTab = Tab.Words, onTabSelected = {})
+    }
+}
+
+@Preview
+@Composable
+private fun PreviewBottomTabBarMyPageSelected() {
+    AppTheme {
+        BottomTabBar(selectedTab = Tab.MyPage, onTabSelected = {})
     }
 }

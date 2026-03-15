@@ -13,8 +13,11 @@ import com.japanese.vocabulary.app.theme.AppColors
 import com.japanese.vocabulary.app.word.dto.ExampleSentence
 import com.japanese.vocabulary.app.word.dto.WordDefinitionDTO
 import com.japanese.vocabulary.app.word.viewmodel.AddState
+import com.japanese.vocabulary.app.word.dto.WordDetailResponse
 import com.japanese.vocabulary.app.word.viewmodel.GetWordState
 import com.japanese.vocabulary.app.word.viewmodel.LookupState
+import com.japanese.vocabulary.app.theme.AppTheme
+import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
 fun WordAnalysisSheet(
@@ -211,5 +214,105 @@ private fun ExampleRow(example: ExampleSentence) {
                 )
             }
         }
+    }
+}
+
+private val sampleToken = Token(
+    surface = "食べる", baseForm = "食べる", reading = "たべる",
+    partOfSpeech = "動詞", charStart = 0, charEnd = 3
+)
+
+private val sampleDefinition = WordDefinitionDTO(
+    japanese = "食べる", reading = "たべる",
+    meanings = listOf("먹다", "식사하다"),
+    partsOfSpeech = listOf("Verb"), jlptLevel = "N5"
+)
+
+@Preview
+@Composable
+private fun PreviewWordAnalysisSheetLoading() {
+    AppTheme {
+        WordAnalysisSheet(
+            token = sampleToken,
+            lookupState = LookupState.Loading,
+            addState = AddState.Idle,
+            getWordState = GetWordState.Idle,
+            songId = 1, lyricLine = "毎日ご飯を食べる",
+            onAddWord = {}
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun PreviewWordAnalysisSheetSuccess() {
+    AppTheme {
+        WordAnalysisSheet(
+            token = sampleToken,
+            lookupState = LookupState.Success(sampleDefinition),
+            addState = AddState.Idle,
+            getWordState = GetWordState.NotFound,
+            songId = 1, lyricLine = "毎日ご飯を食べる",
+            onAddWord = {}
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun PreviewWordAnalysisSheetAlreadySaved() {
+    AppTheme {
+        WordAnalysisSheet(
+            token = sampleToken,
+            lookupState = LookupState.Success(sampleDefinition),
+            addState = AddState.Idle,
+            getWordState = GetWordState.Found(
+                WordDetailResponse(
+                    id = 1, japanese = "食べる", reading = "たべる", koreanText = "먹다",
+                    examples = listOf(
+                        ExampleSentence(songId = 1, songTitle = "夜に駆ける", lyricLine = "毎日ご飯を食べる")
+                    )
+                )
+            ),
+            songId = 1, lyricLine = "毎日ご飯を食べる",
+            onAddWord = {}
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun PreviewWordAnalysisSheetAddExample() {
+    AppTheme {
+        WordAnalysisSheet(
+            token = sampleToken,
+            lookupState = LookupState.Success(sampleDefinition),
+            addState = AddState.Idle,
+            getWordState = GetWordState.Found(
+                WordDetailResponse(
+                    id = 1, japanese = "食べる", reading = "たべる", koreanText = "먹다",
+                    examples = listOf(
+                        ExampleSentence(songId = 2, songTitle = "Lemon", lyricLine = "一緒に食べた日々")
+                    )
+                )
+            ),
+            songId = 1, lyricLine = "毎日ご飯を食べる",
+            onAddWord = {}
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun PreviewWordAnalysisSheetError() {
+    AppTheme {
+        WordAnalysisSheet(
+            token = sampleToken,
+            lookupState = LookupState.Error("Failed to look up word. Please try again."),
+            addState = AddState.Idle,
+            getWordState = GetWordState.Idle,
+            songId = 1, lyricLine = "毎日ご飯を食べる",
+            onAddWord = {}
+        )
     }
 }

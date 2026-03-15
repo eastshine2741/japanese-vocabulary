@@ -91,3 +91,57 @@ fun LoginScreen(onNavigate: (Screen) -> Unit, viewModel: AuthViewModel) {
         }
     }
 }
+
+// --- Previews ---
+
+@org.jetbrains.compose.ui.tooling.preview.Preview
+@Composable
+private fun PreviewLoginScreen() {
+    com.japanese.vocabulary.app.theme.AppTheme {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                "로그인",
+                style = MaterialTheme.typography.headlineMedium
+            )
+            Spacer(Modifier.height(32.dp))
+
+            OutlinedTextField(
+                value = "",
+                onValueChange = {},
+                label = { Text("이름") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(Modifier.height(12.dp))
+
+            OutlinedTextField(
+                value = "",
+                onValueChange = {},
+                label = { Text("비밀번호") },
+                singleLine = true,
+                visualTransformation = PasswordVisualTransformation(),
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(Modifier.height(24.dp))
+
+            Button(
+                onClick = {},
+                enabled = false,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("로그인")
+            }
+            Spacer(Modifier.height(12.dp))
+
+            TextButton(onClick = {}) {
+                Text("계정이 없으신가요? 회원가입")
+            }
+        }
+    }
+}
