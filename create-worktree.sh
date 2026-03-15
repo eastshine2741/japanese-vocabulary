@@ -25,11 +25,11 @@ fi
 
 # ── 2. Copy gitignored config files ──────────────────────────────────────────
 IGNORED_FILES=(
+  "backend/src/main/resources/application-local.yml"
   ".env"
   "app/local.properties"
   "backend/local.properties"
   "app/google-services.json"
-  "backend/src/main/resources/application-local.yml"
 )
 
 echo ""
@@ -42,7 +42,7 @@ for rel in "${IGNORED_FILES[@]}"; do
     mkdir -p "$(dirname "$dst")"
     cp "$src" "$dst"
     echo "  copied : $rel"
-    ((copied++))
+    ((++copied))
   fi
 done
 [[ $copied -eq 0 ]] && echo "  (none found)"
@@ -72,7 +72,7 @@ for rel in "${CACHE_DIRS[@]}"; do
     if [[ ! -e "$dst" ]]; then
       ln -s "$src" "$dst"
       echo "  linked : $rel -> $src"
-      ((linked++))
+      ((++linked))
     else
       echo "  skip   : $rel (already exists)"
     fi
