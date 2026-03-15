@@ -1,51 +1,45 @@
 package com.japanese.vocabulary.app.flashcard.ui
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.japanese.vocabulary.app.flashcard.dto.FlashcardDTO
 import com.japanese.vocabulary.app.flashcard.dto.FlashcardStatsResponse
 import com.japanese.vocabulary.app.flashcard.viewmodel.ReviewState
 import com.japanese.vocabulary.app.flashcard.viewmodel.ReviewViewModel
+import com.japanese.vocabulary.app.theme.AppColors
+import com.japanese.vocabulary.app.theme.AppDimens
+import com.japanese.vocabulary.app.ui.components.AppTopBar
+import com.japanese.vocabulary.app.ui.components.FlashcardView
+import com.japanese.vocabulary.app.ui.components.RatingButtonRow
 
 @Composable
-fun ReviewScreen(viewModel: ReviewViewModel, songId: Long? = null, onNavigateHome: () -> Unit) {
+fun ReviewScreen(viewModel: ReviewViewModel, songId: Long? = null, onNavigateBack: () -> Unit) {
     val reviewState by viewModel.state
 
     LaunchedEffect(songId) {
         viewModel.loadDueCards(songId)
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            TextButton(onClick = onNavigateHome) {
-                Text("\u2190 \ud648\uc73c\ub85c")
-            }
-            Spacer(Modifier.weight(1f))
-            Text("Review", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(end = 16.dp))
-        }
+    Column(
+        modifier = Modifier.fillMaxSize().background(AppColors.Background)
+    ) {
+        AppTopBar(title = "Review", onClose = onNavigateBack)
 
         when (val state = reviewState) {
             is ReviewState.Loading -> {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
+                    CircularProgressIndicator(color = AppColors.Primary)
                 }
             }
             is ReviewState.NoCards -> {
-                NoCardsContent(stats = state.stats, onNavigateHome = onNavigateHome)
+                NoCardsContent(stats = state.stats, onDone = onNavigateBack)
             }
             is ReviewState.Reviewing -> {
                 ReviewingContent(
@@ -55,7 +49,7 @@ fun ReviewScreen(viewModel: ReviewViewModel, songId: Long? = null, onNavigateHom
                 )
             }
             is ReviewState.Summary -> {
-                SummaryContent(state = state, onDone = onNavigateHome)
+                SummaryContent(state = state, onDone = onNavigateBack)
             }
             is ReviewState.Error -> {
                 Box(
@@ -65,11 +59,14 @@ fun ReviewScreen(viewModel: ReviewViewModel, songId: Long? = null, onNavigateHom
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
                             state.message,
-                            color = MaterialTheme.colorScheme.error,
+                            color = AppColors.RatingAgain,
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Spacer(Modifier.height(16.dp))
-                        Button(onClick = { viewModel.loadDueCards(songId) }) {
+                        Button(
+                            onClick = { viewModel.loadDueCards(songId) },
+                            colors = ButtonDefaults.buttonColors(containerColor = AppColors.Primary)
+                        ) {
                             Text("Retry")
                         }
                     }
@@ -80,38 +77,62 @@ fun ReviewScreen(viewModel: ReviewViewModel, songId: Long? = null, onNavigateHom
 }
 
 @Composable
-private fun NoCardsContent(stats: FlashcardStatsResponse?, onNavigateHome: () -> Unit) {
+private fun NoCardsContent(stats: FlashcardStatsResponse?, onDone: () -> Unit) {
     Box(
         modifier = Modifier.fillMaxSize().padding(24.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
+                "All caught up!",
+                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                textAlign = TextAlign.Center,
+                color = AppColors.TextPrimary
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
                 "No cards due for review",
-                style = MaterialTheme.typography.headlineSmall,
+                style = MaterialTheme.typography.bodyMedium,
+                color = AppColors.TextSecondary,
                 textAlign = TextAlign.Center
             )
             if (stats != null) {
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(24.dp))
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    shape = RoundedCornerShape(AppDimens.CardCornerRadius),
+                    colors = CardDefaults.cardColors(containerColor = AppColors.Surface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                    border = CardDefaults.outlinedCardBorder()
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text("Stats", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
-                        Spacer(Modifier.height(8.dp))
-                        Text("Total: ${stats.total}", style = MaterialTheme.typography.bodyMedium)
-                        Text("New: ${stats.newCount}", style = MaterialTheme.typography.bodyMedium)
-                        Text("Learning: ${stats.learning}", style = MaterialTheme.typography.bodyMedium)
-                        Text("Review: ${stats.review}", style = MaterialTheme.typography.bodyMedium)
+                        StatRow("Total", stats.total.toString())
+                        StatRow("New", stats.newCount.toString())
+                        StatRow("Learning", stats.learning.toString())
+                        StatRow("Review", stats.review.toString())
                     }
                 }
             }
             Spacer(Modifier.height(32.dp))
-            Button(onClick = onNavigateHome) {
-                Text("Back to Home")
+            Button(
+                onClick = onDone,
+                shape = RoundedCornerShape(AppDimens.SmallCornerRadius),
+                colors = ButtonDefaults.buttonColors(containerColor = AppColors.Primary)
+            ) {
+                Text("Done")
             }
         }
+    }
+}
+
+@Composable
+private fun StatRow(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = AppColors.TextSecondary)
+        Text(value, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium), color = AppColors.TextPrimary)
     }
 }
 
@@ -122,127 +143,63 @@ private fun ReviewingContent(
     onRate: (Int) -> Unit
 ) {
     val card = state.cards[state.currentIndex]
+    val progress = (state.currentIndex + 1).toFloat() / state.totalCount
+    val pct = ((state.currentIndex + 1) * 100 / state.totalCount)
 
     Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
+        modifier = Modifier.fillMaxSize().padding(AppDimens.ScreenPadding),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        // Progress
         Text(
-            "${state.currentIndex + 1} / ${state.totalCount}",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            "PROGRESS ${state.currentIndex + 1}/${state.totalCount} ($pct%)",
+            style = MaterialTheme.typography.labelSmall,
+            color = AppColors.TextSecondary
+        )
+        Spacer(Modifier.height(8.dp))
+        LinearProgressIndicator(
+            progress = { progress },
+            modifier = Modifier.fillMaxWidth().height(4.dp),
+            color = AppColors.Primary,
+            trackColor = AppColors.CardBorder
         )
 
         Spacer(Modifier.height(16.dp))
 
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .then(if (!state.isRevealed) Modifier.clickable { onReveal() } else Modifier),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-        ) {
-            Box(
-                modifier = Modifier.fillMaxSize().padding(24.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        card.japanese,
-                        fontSize = 32.sp,
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center
-                    )
+        // Flashcard
+        FlashcardView(
+            card = card,
+            isRevealed = state.isRevealed,
+            onReveal = onReveal,
+            modifier = Modifier.weight(1f)
+        )
 
-                    if (state.isRevealed) {
-                        Spacer(Modifier.height(16.dp))
-                        if (card.reading != null) {
-                            Text(
-                                card.reading,
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(Modifier.height(8.dp))
-                        }
-                        if (card.koreanText != null) {
-                            Text(
-                                card.koreanText,
-                                style = MaterialTheme.typography.titleLarge,
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                        if (card.examples.isNotEmpty()) {
-                            Spacer(Modifier.height(16.dp))
-                            HorizontalDivider()
-                            Spacer(Modifier.height(8.dp))
-                            card.examples.forEach { example ->
-                                Column(
-                                    modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    if (example.songTitle != null) {
-                                        Text(
-                                            example.songTitle,
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            textAlign = TextAlign.Center
-                                        )
-                                    }
-                                    if (example.lyricLine != null) {
-                                        Text(
-                                            example.lyricLine,
-                                            style = MaterialTheme.typography.bodyMedium.copy(fontStyle = FontStyle.Italic),
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            textAlign = TextAlign.Center
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    } else {
-                        Spacer(Modifier.height(24.dp))
-                        Text(
-                            "Tap to reveal",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-        }
-
+        // Rating buttons
         if (state.isRevealed) {
             Spacer(Modifier.height(16.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                val labels = listOf(1 to "Again", 2 to "Hard", 3 to "Good", 4 to "Easy")
-                val colors = listOf(
-                    MaterialTheme.colorScheme.error,
-                    MaterialTheme.colorScheme.tertiary,
-                    MaterialTheme.colorScheme.primary,
-                    MaterialTheme.colorScheme.secondary
-                )
-                labels.forEachIndexed { index, (rating, label) ->
-                    Button(
-                        onClick = { onRate(rating) },
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = colors[index])
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(label, fontSize = 12.sp)
-                            val interval = card.intervals?.get(rating)
-                            if (interval != null) {
-                                Text(interval, fontSize = 10.sp)
-                            }
-                        }
-                    }
-                }
-            }
+            RatingButtonRow(
+                intervals = card.intervals,
+                onRate = onRate
+            )
         }
 
         Spacer(Modifier.height(16.dp))
+    }
+}
+
+@Composable
+private fun FlashcardView(
+    card: com.japanese.vocabulary.app.flashcard.dto.FlashcardDTO,
+    isRevealed: Boolean,
+    onReveal: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(modifier = modifier) {
+        com.japanese.vocabulary.app.ui.components.FlashcardView(
+            card = card,
+            isRevealed = isRevealed,
+            onReveal = onReveal
+        )
     }
 }
 
@@ -254,32 +211,60 @@ private fun SummaryContent(state: ReviewState.Summary, onDone: () -> Unit) {
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                "Session Complete",
-                style = MaterialTheme.typography.headlineMedium,
-                textAlign = TextAlign.Center
+                "Session Complete!",
+                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                textAlign = TextAlign.Center,
+                color = AppColors.TextPrimary
             )
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(8.dp))
             Text(
                 "Cards reviewed: ${state.totalReviewed}",
-                style = MaterialTheme.typography.titleMedium
+                style = MaterialTheme.typography.titleMedium,
+                color = AppColors.TextSecondary
             )
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(24.dp))
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                shape = RoundedCornerShape(AppDimens.CardCornerRadius),
+                colors = CardDefaults.cardColors(containerColor = AppColors.Surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                border = CardDefaults.outlinedCardBorder()
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    val labels = mapOf(1 to "Again", 2 to "Hard", 3 to "Good", 4 to "Easy")
-                    labels.forEach { (rating, label) ->
+                    val labels = mapOf(
+                        1 to Pair("Again", AppColors.RatingAgain),
+                        2 to Pair("Hard", AppColors.RatingHard),
+                        3 to Pair("Good", AppColors.RatingGood),
+                        4 to Pair("Easy", AppColors.RatingEasy)
+                    )
+                    labels.forEach { (rating, labelColor) ->
                         val count = state.ratingCounts[rating] ?: 0
                         if (count > 0) {
-                            Text("$label: $count", style = MaterialTheme.typography.bodyMedium)
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    labelColor.first,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = labelColor.second
+                                )
+                                Text(
+                                    "$count",
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                                    color = AppColors.TextPrimary
+                                )
+                            }
                         }
                     }
                 }
             }
             Spacer(Modifier.height(32.dp))
-            Button(onClick = onDone) {
+            Button(
+                onClick = onDone,
+                shape = RoundedCornerShape(AppDimens.SmallCornerRadius),
+                colors = ButtonDefaults.buttonColors(containerColor = AppColors.Primary)
+            ) {
                 Text("Done")
             }
         }

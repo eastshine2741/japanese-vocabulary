@@ -1,9 +1,11 @@
 package com.japanese.vocabulary.app.deck.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -13,6 +15,9 @@ import androidx.compose.ui.unit.dp
 import com.japanese.vocabulary.app.deck.dto.DeckWordItem
 import com.japanese.vocabulary.app.deck.viewmodel.DeckWordListState
 import com.japanese.vocabulary.app.deck.viewmodel.DeckWordListViewModel
+import com.japanese.vocabulary.app.theme.AppColors
+import com.japanese.vocabulary.app.theme.AppDimens
+import com.japanese.vocabulary.app.ui.components.AppTopBar
 
 @Composable
 fun DeckWordListScreen(
@@ -26,28 +31,28 @@ fun DeckWordListScreen(
         viewModel.load(songId)
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            TextButton(onClick = onNavigateBack) { Text("\u2190 Back") }
-            Spacer(Modifier.weight(1f))
-            Text("Words", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(end = 16.dp))
-        }
+    Column(
+        modifier = Modifier.fillMaxSize().background(AppColors.Background)
+    ) {
+        AppTopBar(title = "Words", onBack = onNavigateBack)
 
         when (val state = wordListState) {
             is DeckWordListState.Loading -> {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
+                    CircularProgressIndicator(color = AppColors.Primary)
                 }
             }
             is DeckWordListState.Error -> {
                 Box(modifier = Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(state.message, color = MaterialTheme.colorScheme.error)
+                        Text(state.message, color = AppColors.RatingAgain)
                         Spacer(Modifier.height(16.dp))
-                        Button(onClick = { viewModel.load(songId) }) { Text("Retry") }
+                        Button(
+                            onClick = { viewModel.load(songId) },
+                            colors = ButtonDefaults.buttonColors(containerColor = AppColors.Primary)
+                        ) {
+                            Text("Retry")
+                        }
                     }
                 }
             }
@@ -56,7 +61,7 @@ fun DeckWordListScreen(
 
                 LazyColumn(
                     state = listState,
-                    modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+                    modifier = Modifier.fillMaxSize().padding(horizontal = AppDimens.ScreenPadding),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                     contentPadding = PaddingValues(vertical = 8.dp)
                 ) {
@@ -72,7 +77,7 @@ fun DeckWordListScreen(
                                 modifier = Modifier.fillMaxWidth().padding(16.dp),
                                 contentAlignment = Alignment.Center
                             ) {
-                                CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                                CircularProgressIndicator(modifier = Modifier.size(24.dp), color = AppColors.Primary)
                             }
                         }
                     }
@@ -86,6 +91,8 @@ fun DeckWordListScreen(
 private fun WordRow(word: DeckWordItem) {
     Card(
         modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(AppDimens.SmallCornerRadius),
+        colors = CardDefaults.cardColors(containerColor = AppColors.Surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
@@ -93,12 +100,24 @@ private fun WordRow(word: DeckWordItem) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(word.japanese, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium))
+                Text(
+                    word.japanese,
+                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+                    color = AppColors.TextPrimary
+                )
                 if (word.reading.isNotEmpty()) {
-                    Text(word.reading, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        word.reading,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = AppColors.TextSecondary
+                    )
                 }
             }
-            Text(word.koreanText, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                word.koreanText,
+                style = MaterialTheme.typography.bodyMedium,
+                color = AppColors.TextSecondary
+            )
         }
     }
 }

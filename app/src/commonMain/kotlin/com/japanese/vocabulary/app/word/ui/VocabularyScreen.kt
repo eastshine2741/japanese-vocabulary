@@ -107,7 +107,7 @@ private fun TopAppBarSection(onNavigate: (Screen) -> Unit) {
             .padding(horizontal = 8.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        TextButton(onClick = { onNavigate(Screen.Home) }) {
+        TextButton(onClick = { onNavigate(Screen.Main) }) {
             Text("← 홈으로")
         }
         Spacer(Modifier.weight(1f))

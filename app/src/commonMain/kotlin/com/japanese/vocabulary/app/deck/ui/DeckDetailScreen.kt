@@ -1,5 +1,6 @@
 package com.japanese.vocabulary.app.deck.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -8,17 +9,16 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.japanese.vocabulary.app.deck.dto.DeckDetailResponse
 import com.japanese.vocabulary.app.deck.viewmodel.DeckDetailState
 import com.japanese.vocabulary.app.deck.viewmodel.DeckDetailViewModel
-import io.kamel.image.KamelImage
-import io.kamel.image.asyncPainterResource
-import io.ktor.http.Url
+import com.japanese.vocabulary.app.theme.AppColors
+import com.japanese.vocabulary.app.theme.AppDimens
+import com.japanese.vocabulary.app.ui.components.AppTopBar
+import com.japanese.vocabulary.app.ui.components.ArtworkImage
 
 @Composable
 fun DeckDetailScreen(
@@ -34,32 +34,31 @@ fun DeckDetailScreen(
         viewModel.load(songId)
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            TextButton(onClick = onNavigateBack) { Text("\u2190 Back") }
-            Spacer(Modifier.weight(1f))
-            Text(
-                if (songId != null) "Deck" else "All Words",
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(end = 16.dp)
-            )
-        }
+    Column(
+        modifier = Modifier.fillMaxSize().background(AppColors.Background)
+    ) {
+        AppTopBar(
+            title = if (songId != null) "Deck" else "All Words",
+            onBack = onNavigateBack
+        )
 
         when (val state = detailState) {
             is DeckDetailState.Loading -> {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
+                    CircularProgressIndicator(color = AppColors.Primary)
                 }
             }
             is DeckDetailState.Error -> {
                 Box(modifier = Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(state.message, color = MaterialTheme.colorScheme.error)
+                        Text(state.message, color = AppColors.RatingAgain)
                         Spacer(Modifier.height(16.dp))
-                        Button(onClick = { viewModel.load(songId) }) { Text("Retry") }
+                        Button(
+                            onClick = { viewModel.load(songId) },
+                            colors = ButtonDefaults.buttonColors(containerColor = AppColors.Primary)
+                        ) {
+                            Text("Retry")
+                        }
                     }
                 }
             }
@@ -83,25 +82,39 @@ private fun DeckDetailContent(
     onViewWords: (Long?) -> Unit
 ) {
     Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(AppDimens.ScreenPadding),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Spacer(Modifier.height(16.dp))
+
+        // Large centered artwork
         if (detail.artworkUrl != null) {
-            KamelImage(
-                resource = asyncPainterResource(Url(detail.artworkUrl)),
-                contentDescription = detail.title,
-                modifier = Modifier.size(120.dp).clip(RoundedCornerShape(12.dp)),
-                onLoading = { Surface(color = Color.LightGray, modifier = Modifier.size(120.dp)) {} },
-                onFailure = { Surface(color = Color.LightGray, modifier = Modifier.size(120.dp)) {} }
+            ArtworkImage(
+                url = detail.artworkUrl,
+                size = 160.dp,
+                cornerRadius = 16.dp
             )
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(20.dp))
         }
 
+        // Song info
         if (detail.title != null) {
-            Text(detail.title, style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
+            Text(
+                detail.title,
+                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                textAlign = TextAlign.Center,
+                color = AppColors.TextPrimary
+            )
         }
         if (detail.artist != null) {
-            Text(detail.artist, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                detail.artist,
+                style = MaterialTheme.typography.bodyLarge,
+                color = AppColors.TextSecondary
+            )
         }
 
         Spacer(Modifier.height(24.dp))
@@ -109,34 +122,29 @@ private fun DeckDetailContent(
         // Stats card
         Card(
             modifier = Modifier.fillMaxWidth(),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            shape = RoundedCornerShape(AppDimens.CardCornerRadius),
+            colors = CardDefaults.cardColors(containerColor = AppColors.Surface),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+            border = CardDefaults.outlinedCardBorder()
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("Total Words", style = MaterialTheme.typography.bodyMedium)
-                    Text("${detail.wordCount}", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold))
-                }
-                Spacer(Modifier.height(8.dp))
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("Due Today", style = MaterialTheme.typography.bodyMedium)
-                    Text("${detail.dueCount}", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold))
-                }
+                StatRow("Total Words", "${detail.wordCount}")
+                StatRow("Due Today", "${detail.dueCount}")
                 if (detail.avgRetrievability != null) {
-                    Spacer(Modifier.height(8.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Retrievability", style = MaterialTheme.typography.bodyMedium)
-                        Text("${(detail.avgRetrievability * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold))
-                    }
+                    StatRow("Retrievability", "${(detail.avgRetrievability * 100).toInt()}%")
                 }
             }
         }
 
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(12.dp))
 
         // State breakdown
         Card(
             modifier = Modifier.fillMaxWidth(),
-            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            shape = RoundedCornerShape(AppDimens.CardCornerRadius),
+            colors = CardDefaults.cardColors(containerColor = AppColors.Surface),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+            border = CardDefaults.outlinedCardBorder()
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -151,29 +159,55 @@ private fun DeckDetailContent(
 
         Spacer(Modifier.height(24.dp))
 
+        // Start Review button
         Button(
             onClick = { onStartReview(songId) },
             modifier = Modifier.fillMaxWidth(),
-            enabled = detail.dueCount > 0
+            enabled = detail.dueCount > 0,
+            shape = RoundedCornerShape(AppDimens.SmallCornerRadius),
+            colors = ButtonDefaults.buttonColors(containerColor = AppColors.Primary)
         ) {
-            Text(if (detail.dueCount > 0) "Review ${detail.dueCount} Cards" else "No Cards Due")
+            Text(
+                if (detail.dueCount > 0) "Start Review (${detail.dueCount})" else "No Cards Due",
+                modifier = Modifier.padding(vertical = 4.dp)
+            )
         }
 
         Spacer(Modifier.height(12.dp))
 
         OutlinedButton(
             onClick = { onViewWords(songId) },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(AppDimens.SmallCornerRadius)
         ) {
-            Text("View Words")
+            Text("View Words", modifier = Modifier.padding(vertical = 4.dp))
         }
+    }
+}
+
+@Composable
+private fun StatRow(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = AppColors.TextSecondary)
+        Text(value, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), color = AppColors.TextPrimary)
     }
 }
 
 @Composable
 private fun StateChip(label: String, count: Int) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text("$count", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
-        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(
+            "$count",
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+            color = AppColors.Primary
+        )
+        Text(
+            label,
+            style = MaterialTheme.typography.labelSmall,
+            color = AppColors.TextSecondary
+        )
     }
 }

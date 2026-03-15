@@ -1,35 +1,31 @@
 package com.japanese.vocabulary.app.song.ui
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.background
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import com.japanese.vocabulary.app.song.dto.SongSearchItem
 import com.japanese.vocabulary.app.navigation.Screen
 import com.japanese.vocabulary.app.platform.BackHandler
 import com.japanese.vocabulary.app.song.viewmodel.AnalyzeUiState
 import com.japanese.vocabulary.app.song.viewmodel.SearchUiState
 import com.japanese.vocabulary.app.song.viewmodel.SearchViewModel
-import io.kamel.image.KamelImage
-import io.kamel.image.asyncPainterResource
-import io.ktor.http.Url
+import com.japanese.vocabulary.app.theme.AppColors
+import com.japanese.vocabulary.app.theme.AppDimens
+import com.japanese.vocabulary.app.ui.components.AppTopBar
+import com.japanese.vocabulary.app.ui.components.SongListItem
+import androidx.compose.ui.graphics.Color
 
 @Composable
 fun SearchScreen(onNavigate: (Screen) -> Unit, viewModel: SearchViewModel) {
@@ -37,62 +33,65 @@ fun SearchScreen(onNavigate: (Screen) -> Unit, viewModel: SearchViewModel) {
     val analyzeState by viewModel.analyzeState.collectAsState()
     var query by remember { mutableStateOf("") }
 
-    BackHandler { onNavigate(Screen.Home) }
+    BackHandler { onNavigate(Screen.Main) }
 
     LaunchedEffect(analyzeState) {
         if (analyzeState is AnalyzeUiState.Success) {
-            onNavigate(Screen.Player(origin = Screen.Search))
+            onNavigate(Screen.Player(origin = com.japanese.vocabulary.app.navigation.Tab.Home))
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = Modifier.fillMaxSize().background(AppColors.Background)) {
         Column(modifier = Modifier.fillMaxSize()) {
-            Row(
+            AppTopBar(title = "Search", onBack = { onNavigate(Screen.Main) })
+
+            // Search input
+            OutlinedTextField(
+                value = query,
+                onValueChange = { query = it },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = { onNavigate(Screen.Home) }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "홈으로")
+                    .padding(horizontal = AppDimens.ScreenPadding, vertical = 8.dp),
+                placeholder = { Text("Search for a song...", color = AppColors.TextTertiary) },
+                singleLine = true,
+                shape = RoundedCornerShape(AppDimens.SmallCornerRadius),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(onSearch = { viewModel.search(query) }),
+                trailingIcon = {
+                    if (query.isNotEmpty()) {
+                        IconButton(onClick = { query = "" }) {
+                            Icon(Icons.Default.Clear, contentDescription = "Clear", tint = AppColors.TextTertiary)
+                        }
+                    }
                 }
-                Spacer(Modifier.width(4.dp))
-                OutlinedTextField(
-                    value = query,
-                    onValueChange = { query = it },
-                    modifier = Modifier.weight(1f),
-                    placeholder = { Text("검색어를 입력하세요") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                    keyboardActions = KeyboardActions(onSearch = { viewModel.search(query) })
-                )
-                Spacer(Modifier.width(8.dp))
-                Button(onClick = { viewModel.search(query) }) {
-                    Text("검색")
-                }
-            }
+            )
 
+            // Results
             Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
                 when (val s = state) {
                     is SearchUiState.Idle -> {
                         Text(
-                            "검색어를 입력하세요",
+                            "Search for a song to study",
                             modifier = Modifier.align(Alignment.Center),
-                            style = MaterialTheme.typography.bodyMedium
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = AppColors.TextSecondary
                         )
                     }
                     is SearchUiState.Loading -> {
-                        CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                        CircularProgressIndicator(
+                            modifier = Modifier.align(Alignment.Center),
+                            color = AppColors.Primary
+                        )
                     }
                     is SearchUiState.Error -> {
                         Column(
                             modifier = Modifier.align(Alignment.Center),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Text(s.message, style = MaterialTheme.typography.bodyMedium)
+                            Text(s.message, style = MaterialTheme.typography.bodyMedium, color = AppColors.TextSecondary)
                             Spacer(Modifier.height(8.dp))
                             TextButton(onClick = { viewModel.search(query) }) {
-                                Text("다시 시도")
+                                Text("Retry", color = AppColors.Primary)
                             }
                         }
                     }
@@ -109,10 +108,22 @@ fun SearchScreen(onNavigate: (Screen) -> Unit, viewModel: SearchViewModel) {
                             if (reachedEnd) viewModel.loadMore()
                         }
 
-                        LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
-                            items(s.items) { item ->
-                                SongSearchItemRow(item, onClick = { viewModel.analyze(item) })
-                                HorizontalDivider()
+                        LazyColumn(
+                            state = listState,
+                            modifier = Modifier.fillMaxSize().padding(horizontal = AppDimens.ScreenPadding),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                            contentPadding = PaddingValues(vertical = 8.dp)
+                        ) {
+                            items(s.items.size) { index ->
+                                val item = s.items[index]
+                                SongListItem(
+                                    artworkUrl = item.thumbnail,
+                                    title = item.title,
+                                    subtitle = item.artistName,
+                                    trailing = formatDuration(item.durationSeconds),
+                                    isHighlighted = index == 0,
+                                    onClick = { viewModel.analyze(item) }
+                                )
                             }
                             if (s.isLoadingMore) {
                                 item {
@@ -120,7 +131,7 @@ fun SearchScreen(onNavigate: (Screen) -> Unit, viewModel: SearchViewModel) {
                                         modifier = Modifier.fillMaxWidth().padding(16.dp),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        CircularProgressIndicator()
+                                        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = AppColors.Primary)
                                     }
                                 }
                             }
@@ -130,6 +141,7 @@ fun SearchScreen(onNavigate: (Screen) -> Unit, viewModel: SearchViewModel) {
             }
         }
 
+        // Analyze loading overlay
         if (analyzeState is AnalyzeUiState.Loading) {
             Box(
                 modifier = Modifier
@@ -141,17 +153,18 @@ fun SearchScreen(onNavigate: (Screen) -> Unit, viewModel: SearchViewModel) {
             }
         }
 
+        // Analyze error
         if (analyzeState is AnalyzeUiState.Error) {
             val errorMsg = (analyzeState as AnalyzeUiState.Error).message
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .align(Alignment.BottomCenter)
-                    .padding(16.dp)
+                    .padding(AppDimens.ScreenPadding)
             ) {
                 Surface(
                     color = MaterialTheme.colorScheme.errorContainer,
-                    shape = RoundedCornerShape(8.dp)
+                    shape = RoundedCornerShape(AppDimens.SmallCornerRadius)
                 ) {
                     Text(
                         errorMsg,
@@ -161,63 +174,6 @@ fun SearchScreen(onNavigate: (Screen) -> Unit, viewModel: SearchViewModel) {
                     )
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun SongSearchItemRow(item: SongSearchItem, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        KamelImage(
-            resource = asyncPainterResource(Url(item.thumbnail)),
-            contentDescription = item.title,
-            modifier = Modifier
-                .size(72.dp)
-                .clip(RoundedCornerShape(4.dp)),
-            onLoading = { progress ->
-                Box(
-                    modifier = Modifier.size(72.dp).clip(RoundedCornerShape(4.dp)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Surface(color = Color.LightGray, modifier = Modifier.fillMaxSize()) {}
-                    CircularProgressIndicator(
-                        progress = { progress },
-                        modifier = Modifier.size(24.dp),
-                        strokeWidth = 2.dp
-                    )
-                }
-            },
-            onFailure = {
-                Surface(
-                    color = Color.LightGray,
-                    modifier = Modifier.size(72.dp).clip(RoundedCornerShape(4.dp))
-                ) {}
-            }
-        )
-        Spacer(Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                item.title,
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                item.artistName,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                formatDuration(item.durationSeconds),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
         }
     }
 }

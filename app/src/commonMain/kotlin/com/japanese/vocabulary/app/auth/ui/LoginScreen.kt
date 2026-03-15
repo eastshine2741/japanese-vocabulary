@@ -21,7 +21,7 @@ fun LoginScreen(onNavigate: (Screen) -> Unit, viewModel: AuthViewModel) {
 
     LaunchedEffect(uiState) {
         if (uiState is AuthUiState.Success) {
-            onNavigate(Screen.Home)
+            onNavigate(Screen.Main)
         }
     }
 
