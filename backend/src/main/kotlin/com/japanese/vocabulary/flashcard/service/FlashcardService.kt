@@ -28,8 +28,8 @@ class FlashcardService(
 ) {
 
     @Transactional
-    fun createFlashcard(userId: Long, wordId: Long): Long? {
-        if (flashcardRepository.findByWordId(wordId) != null) return null
+    fun createFlashcard(userId: Long, wordId: Long): Long {
+        flashcardRepository.findByWordId(wordId)?.let { return it.id!! }
 
         val card = Card.builder().build()
         val entity = FlashcardEntity(
@@ -41,7 +41,7 @@ class FlashcardService(
             state = card.state?.ordinal ?: 0,
             fsrsCardJson = card.toJson()
         )
-        return flashcardRepository.save(entity).id
+        return flashcardRepository.save(entity).id!!
     }
 
     @Transactional

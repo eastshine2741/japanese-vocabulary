@@ -14,8 +14,6 @@ class FlashcardEventListener(
     @EventListener
     fun onWordAdded(event: WordAddedEvent) {
         val flashcardId = flashcardService.createFlashcard(event.userId, event.wordId)
-        if (flashcardId != null) {
-            eventPublisher.publishEvent(FlashcardCreatedEvent(event.userId, flashcardId, event.songId))
-        }
+        eventPublisher.publishEvent(FlashcardCreatedEvent(event.userId, flashcardId, event.songId))
     }
 }
