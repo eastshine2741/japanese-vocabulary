@@ -10,13 +10,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.japanese.vocabulary.app.flashcard.dto.FlashcardDTO
 import com.japanese.vocabulary.app.flashcard.dto.FlashcardStatsResponse
+import com.japanese.vocabulary.app.theme.AppTheme
+import com.japanese.vocabulary.app.word.dto.ExampleSentence
+import org.jetbrains.compose.ui.tooling.preview.Preview
 import com.japanese.vocabulary.app.flashcard.viewmodel.ReviewState
 import com.japanese.vocabulary.app.flashcard.viewmodel.ReviewViewModel
 import com.japanese.vocabulary.app.theme.AppColors
 import com.japanese.vocabulary.app.theme.AppDimens
 import com.japanese.vocabulary.app.ui.components.AppTopBar
-import com.japanese.vocabulary.app.ui.components.FlashcardView
+import com.japanese.vocabulary.app.ui.components.FlashcardView as FlashcardViewComponent
 import com.japanese.vocabulary.app.ui.components.RatingButtonRow
 
 @Composable
@@ -189,13 +193,13 @@ private fun ReviewingContent(
 
 @Composable
 private fun FlashcardView(
-    card: com.japanese.vocabulary.app.flashcard.dto.FlashcardDTO,
+    card: FlashcardDTO,
     isRevealed: Boolean,
     onReveal: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Box(modifier = modifier) {
-        com.japanese.vocabulary.app.ui.components.FlashcardView(
+        FlashcardViewComponent(
             card = card,
             isRevealed = isRevealed,
             onReveal = onReveal
@@ -273,10 +277,10 @@ private fun SummaryContent(state: ReviewState.Summary, onDone: () -> Unit) {
 
 // --- Previews ---
 
-@org.jetbrains.compose.ui.tooling.preview.Preview
+@Preview
 @Composable
 private fun PreviewNoCardsWithStats() {
-    com.japanese.vocabulary.app.theme.AppTheme {
+    AppTheme {
         NoCardsContent(
             stats = FlashcardStatsResponse(total = 50, due = 0, newCount = 5, learning = 10, review = 35),
             onDone = {}
@@ -284,10 +288,10 @@ private fun PreviewNoCardsWithStats() {
     }
 }
 
-@org.jetbrains.compose.ui.tooling.preview.Preview
+@Preview
 @Composable
 private fun PreviewNoCardsWithoutStats() {
-    com.japanese.vocabulary.app.theme.AppTheme {
+    AppTheme {
         NoCardsContent(
             stats = null,
             onDone = {}
@@ -295,21 +299,21 @@ private fun PreviewNoCardsWithoutStats() {
     }
 }
 
-@org.jetbrains.compose.ui.tooling.preview.Preview
+@Preview
 @Composable
 private fun PreviewReviewingUnrevealed() {
-    com.japanese.vocabulary.app.theme.AppTheme {
+    AppTheme {
         ReviewingContent(
             state = ReviewState.Reviewing(
                 cards = listOf(
-                    com.japanese.vocabulary.app.flashcard.dto.FlashcardDTO(
+                    FlashcardDTO(
                         id = 1,
                         wordId = 1,
                         japanese = "食べる",
                         reading = "たべる",
                         koreanText = "먹다",
                         examples = listOf(
-                            com.japanese.vocabulary.app.word.dto.ExampleSentence(
+                            ExampleSentence(
                                 songId = 1,
                                 songTitle = "Lemon",
                                 lyricLine = "夢ならばどれほどよかったでしょう"
@@ -330,21 +334,21 @@ private fun PreviewReviewingUnrevealed() {
     }
 }
 
-@org.jetbrains.compose.ui.tooling.preview.Preview
+@Preview
 @Composable
 private fun PreviewReviewingRevealed() {
-    com.japanese.vocabulary.app.theme.AppTheme {
+    AppTheme {
         ReviewingContent(
             state = ReviewState.Reviewing(
                 cards = listOf(
-                    com.japanese.vocabulary.app.flashcard.dto.FlashcardDTO(
+                    FlashcardDTO(
                         id = 1,
                         wordId = 1,
                         japanese = "美しい",
                         reading = "うつくしい",
                         koreanText = "아름답다",
                         examples = listOf(
-                            com.japanese.vocabulary.app.word.dto.ExampleSentence(
+                            ExampleSentence(
                                 songId = 2,
                                 songTitle = "花に亡霊",
                                 lyricLine = "もう関わるな 声がこだまする"
@@ -365,10 +369,10 @@ private fun PreviewReviewingRevealed() {
     }
 }
 
-@org.jetbrains.compose.ui.tooling.preview.Preview
+@Preview
 @Composable
 private fun PreviewSummaryContent() {
-    com.japanese.vocabulary.app.theme.AppTheme {
+    AppTheme {
         SummaryContent(
             state = ReviewState.Summary(
                 totalReviewed = 12,

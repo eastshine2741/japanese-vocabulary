@@ -10,6 +10,8 @@ import androidx.compose.ui.unit.dp
 import com.japanese.vocabulary.app.navigation.Screen
 import com.japanese.vocabulary.app.auth.viewmodel.AuthUiState
 import com.japanese.vocabulary.app.auth.viewmodel.AuthViewModel
+import com.japanese.vocabulary.app.theme.AppTheme
+import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
 fun LoginScreen(onNavigate: (Screen) -> Unit, viewModel: AuthViewModel) {
@@ -94,7 +96,7 @@ fun LoginScreen(onNavigate: (Screen) -> Unit, viewModel: AuthViewModel) {
 
 // --- Previews ---
 
-@org.jetbrains.compose.ui.tooling.preview.Preview
+@Preview
 @Composable
 private fun PreviewLoginScreen() {
     com.japanese.vocabulary.app.theme.AppTheme {

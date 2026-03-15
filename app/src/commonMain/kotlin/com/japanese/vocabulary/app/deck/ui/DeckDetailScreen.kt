@@ -13,6 +13,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.japanese.vocabulary.app.deck.dto.DeckDetailResponse
+import com.japanese.vocabulary.app.deck.dto.StateCounts
+import com.japanese.vocabulary.app.theme.AppTheme
+import org.jetbrains.compose.ui.tooling.preview.Preview
 import com.japanese.vocabulary.app.deck.viewmodel.DeckDetailState
 import com.japanese.vocabulary.app.deck.viewmodel.DeckDetailViewModel
 import com.japanese.vocabulary.app.theme.AppColors
@@ -214,10 +217,10 @@ private fun StateChip(label: String, count: Int) {
 
 // --- Previews ---
 
-@org.jetbrains.compose.ui.tooling.preview.Preview
+@Preview
 @Composable
 private fun PreviewDeckDetailSongDeck() {
-    com.japanese.vocabulary.app.theme.AppTheme {
+    AppTheme {
         DeckDetailContent(
             detail = DeckDetailResponse(
                 songId = 1,
@@ -226,7 +229,7 @@ private fun PreviewDeckDetailSongDeck() {
                 artworkUrl = "https://example.com/artwork.jpg",
                 wordCount = 42,
                 dueCount = 8,
-                stateCounts = com.japanese.vocabulary.app.deck.dto.StateCounts(
+                stateCounts = StateCounts(
                     new = 12, learning = 5, review = 20, relearning = 5
                 ),
                 avgRetrievability = 0.85
@@ -238,10 +241,10 @@ private fun PreviewDeckDetailSongDeck() {
     }
 }
 
-@org.jetbrains.compose.ui.tooling.preview.Preview
+@Preview
 @Composable
 private fun PreviewDeckDetailAllDeck() {
-    com.japanese.vocabulary.app.theme.AppTheme {
+    AppTheme {
         DeckDetailContent(
             detail = DeckDetailResponse(
                 songId = null,
@@ -250,7 +253,7 @@ private fun PreviewDeckDetailAllDeck() {
                 artworkUrl = null,
                 wordCount = 156,
                 dueCount = 23,
-                stateCounts = com.japanese.vocabulary.app.deck.dto.StateCounts(
+                stateCounts = StateCounts(
                     new = 30, learning = 18, review = 95, relearning = 13
                 ),
                 avgRetrievability = 0.72
@@ -262,10 +265,10 @@ private fun PreviewDeckDetailAllDeck() {
     }
 }
 
-@org.jetbrains.compose.ui.tooling.preview.Preview
+@Preview
 @Composable
 private fun PreviewDeckDetailWithDueCards() {
-    com.japanese.vocabulary.app.theme.AppTheme {
+    AppTheme {
         DeckDetailContent(
             detail = DeckDetailResponse(
                 songId = 2,
@@ -274,7 +277,7 @@ private fun PreviewDeckDetailWithDueCards() {
                 artworkUrl = "https://example.com/artwork2.jpg",
                 wordCount = 35,
                 dueCount = 15,
-                stateCounts = com.japanese.vocabulary.app.deck.dto.StateCounts(
+                stateCounts = StateCounts(
                     new = 8, learning = 7, review = 18, relearning = 2
                 ),
                 avgRetrievability = 0.68
@@ -286,10 +289,10 @@ private fun PreviewDeckDetailWithDueCards() {
     }
 }
 
-@org.jetbrains.compose.ui.tooling.preview.Preview
+@Preview
 @Composable
 private fun PreviewDeckDetailNoDueCards() {
-    com.japanese.vocabulary.app.theme.AppTheme {
+    AppTheme {
         DeckDetailContent(
             detail = DeckDetailResponse(
                 songId = 3,
@@ -298,7 +301,7 @@ private fun PreviewDeckDetailNoDueCards() {
                 artworkUrl = "https://example.com/artwork3.jpg",
                 wordCount = 28,
                 dueCount = 0,
-                stateCounts = com.japanese.vocabulary.app.deck.dto.StateCounts(
+                stateCounts = StateCounts(
                     new = 0, learning = 0, review = 28, relearning = 0
                 ),
                 avgRetrievability = 0.95

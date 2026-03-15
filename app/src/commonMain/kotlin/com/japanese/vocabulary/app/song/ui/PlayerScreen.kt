@@ -20,12 +20,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.japanese.vocabulary.app.navigation.Screen
 import com.japanese.vocabulary.app.navigation.Tab
+import org.jetbrains.compose.ui.tooling.preview.Preview
 import com.japanese.vocabulary.app.platform.YouTubePlayer
 import com.japanese.vocabulary.app.song.dto.StudyUnit
 import com.japanese.vocabulary.app.song.dto.Token
 import com.japanese.vocabulary.app.song.viewmodel.AnalyzeUiState
 import com.japanese.vocabulary.app.song.viewmodel.SearchViewModel
 import com.japanese.vocabulary.app.theme.AppColors
+import com.japanese.vocabulary.app.theme.AppTheme
 import com.japanese.vocabulary.app.theme.AppDimens
 import com.japanese.vocabulary.app.ui.components.SkeletonBox
 import com.japanese.vocabulary.app.ui.components.WordAnalysisSheet
@@ -245,10 +247,10 @@ private fun LyricLineRow(
     }
 }
 
-@org.jetbrains.compose.ui.tooling.preview.Preview
+@Preview
 @Composable
 private fun PreviewLyricLineRowCurrentSynced() {
-    com.japanese.vocabulary.app.theme.AppTheme {
+    AppTheme {
         LyricLineRow(
             unit = StudyUnit(
                 index = 0,
@@ -266,10 +268,10 @@ private fun PreviewLyricLineRowCurrentSynced() {
     }
 }
 
-@org.jetbrains.compose.ui.tooling.preview.Preview
+@Preview
 @Composable
 private fun PreviewLyricLineRowNonCurrentSynced() {
-    com.japanese.vocabulary.app.theme.AppTheme {
+    AppTheme {
         LyricLineRow(
             unit = StudyUnit(
                 index = 1,
@@ -287,10 +289,10 @@ private fun PreviewLyricLineRowNonCurrentSynced() {
     }
 }
 
-@org.jetbrains.compose.ui.tooling.preview.Preview
+@Preview
 @Composable
 private fun PreviewLyricLineRowUnsynced() {
-    com.japanese.vocabulary.app.theme.AppTheme {
+    AppTheme {
         LyricLineRow(
             unit = StudyUnit(
                 index = 2,
@@ -309,10 +311,10 @@ private fun PreviewLyricLineRowUnsynced() {
     }
 }
 
-@org.jetbrains.compose.ui.tooling.preview.Preview
+@Preview
 @Composable
 private fun PreviewLyricLineRowWithKorean() {
-    com.japanese.vocabulary.app.theme.AppTheme {
+    AppTheme {
         LyricLineRow(
             unit = StudyUnit(
                 index = 3,

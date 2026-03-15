@@ -16,6 +16,8 @@ import com.japanese.vocabulary.app.deck.dto.DeckWordItem
 import com.japanese.vocabulary.app.deck.viewmodel.DeckWordListState
 import com.japanese.vocabulary.app.deck.viewmodel.DeckWordListViewModel
 import com.japanese.vocabulary.app.theme.AppColors
+import com.japanese.vocabulary.app.theme.AppTheme
+import org.jetbrains.compose.ui.tooling.preview.Preview
 import com.japanese.vocabulary.app.theme.AppDimens
 import com.japanese.vocabulary.app.ui.components.AppTopBar
 
@@ -122,20 +124,20 @@ private fun WordRow(word: DeckWordItem) {
     }
 }
 
-@org.jetbrains.compose.ui.tooling.preview.Preview
+@Preview
 @Composable
 private fun PreviewWordRowWithReading() {
-    com.japanese.vocabulary.app.theme.AppTheme {
+    AppTheme {
         WordRow(
             word = DeckWordItem(id = 1, japanese = "桜", reading = "さくら", koreanText = "벚꽃")
         )
     }
 }
 
-@org.jetbrains.compose.ui.tooling.preview.Preview
+@Preview
 @Composable
 private fun PreviewWordRowWithoutReading() {
-    com.japanese.vocabulary.app.theme.AppTheme {
+    AppTheme {
         WordRow(
             word = DeckWordItem(id = 2, japanese = "花火", reading = "", koreanText = "불꽃놀이")
         )
