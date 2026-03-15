@@ -17,11 +17,11 @@ import com.japanese.vocabulary.app.flashcard.viewmodel.ReviewState
 import com.japanese.vocabulary.app.flashcard.viewmodel.ReviewViewModel
 
 @Composable
-fun ReviewScreen(viewModel: ReviewViewModel, onNavigateHome: () -> Unit) {
+fun ReviewScreen(viewModel: ReviewViewModel, songId: Long? = null, onNavigateHome: () -> Unit) {
     val reviewState by viewModel.state
 
-    LaunchedEffect(Unit) {
-        viewModel.loadDueCards()
+    LaunchedEffect(songId) {
+        viewModel.loadDueCards(songId)
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -69,7 +69,7 @@ fun ReviewScreen(viewModel: ReviewViewModel, onNavigateHome: () -> Unit) {
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Spacer(Modifier.height(16.dp))
-                        Button(onClick = { viewModel.loadDueCards() }) {
+                        Button(onClick = { viewModel.loadDueCards(songId) }) {
                             Text("Retry")
                         }
                     }

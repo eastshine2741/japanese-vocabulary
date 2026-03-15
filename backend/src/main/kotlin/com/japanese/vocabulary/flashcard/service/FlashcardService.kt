@@ -28,8 +28,8 @@ class FlashcardService(
 ) {
 
     @Transactional
-    fun createFlashcard(userId: Long, wordId: Long) {
-        if (flashcardRepository.findByWordId(wordId) != null) return
+    fun createFlashcard(userId: Long, wordId: Long): Long? {
+        if (flashcardRepository.findByWordId(wordId) != null) return null
 
         val card = Card.builder().build()
         val entity = FlashcardEntity(
@@ -41,15 +41,19 @@ class FlashcardService(
             state = card.state?.ordinal ?: 0,
             fsrsCardJson = card.toJson()
         )
-        flashcardRepository.save(entity)
+        return flashcardRepository.save(entity).id
     }
 
     @Transactional
-    fun getDueFlashcards(userId: Long): DueFlashcardsResponse {
+    fun getDueFlashcards(userId: Long, songId: Long? = null): DueFlashcardsResponse {
         backfillFlashcards(userId)
 
         val now = Instant.now()
-        val dueEntities = flashcardRepository.findByUserIdAndDueLessThanEqual(userId, now)
+        val dueEntities = if (songId != null) {
+            flashcardRepository.findDueByUserIdAndSongId(userId, songId, now)
+        } else {
+            flashcardRepository.findByUserIdAndDueLessThanEqual(userId, now)
+        }
 
         val wordIds = dueEntities.map { it.wordId }
         val words = wordRepository.findAllById(wordIds).associateBy { it.id }

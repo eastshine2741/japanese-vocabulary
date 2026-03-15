@@ -1,13 +1,14 @@
 package com.japanese.vocabulary.word.service
 
-import com.japanese.vocabulary.flashcard.service.FlashcardService
 import com.japanese.vocabulary.song.repository.SongRepository
 import com.japanese.vocabulary.word.client.jisho.JishoClient
 import com.japanese.vocabulary.word.dto.*
 import com.japanese.vocabulary.word.entity.SongWordEntity
 import com.japanese.vocabulary.word.entity.WordEntity
+import com.japanese.vocabulary.word.event.WordAddedEvent
 import com.japanese.vocabulary.word.repository.SongWordRepository
 import com.japanese.vocabulary.word.repository.WordRepository
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.domain.PageRequest
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
@@ -20,7 +21,7 @@ class WordService(
     private val wordRepository: WordRepository,
     private val songWordRepository: SongWordRepository,
     private val songRepository: SongRepository,
-    private val flashcardService: FlashcardService
+    private val eventPublisher: ApplicationEventPublisher
 ) {
     fun lookupWord(word: String): WordDefinitionDTO {
         return jishoClient.lookup(word)
@@ -52,7 +53,7 @@ class WordService(
             )
         }
 
-        flashcardService.createFlashcard(userId, word.id)
+        eventPublisher.publishEvent(WordAddedEvent(userId, word.id!!, request.songId))
 
         return word.id
     }

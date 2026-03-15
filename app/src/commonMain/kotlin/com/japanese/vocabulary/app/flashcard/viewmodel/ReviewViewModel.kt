@@ -32,11 +32,11 @@ class ReviewViewModel(private val repository: FlashcardRepository = FlashcardRep
     private val ratingCounts = mutableMapOf<Int, Int>()
     private var totalReviewed = 0
 
-    fun loadDueCards() {
+    fun loadDueCards(songId: Long? = null) {
         state.value = ReviewState.Loading
         scope.launch {
             try {
-                val response = repository.getDueFlashcards()
+                val response = repository.getDueFlashcards(songId)
                 if (response.cards.isEmpty()) {
                     val stats = try { repository.getStats() } catch (_: Exception) { null }
                     state.value = ReviewState.NoCards(stats = stats)

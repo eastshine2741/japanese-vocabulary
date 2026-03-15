@@ -57,8 +57,12 @@ fun HomeScreen(
             Text("Find a Song")
         }
         Spacer(Modifier.height(12.dp))
-        OutlinedButton(onClick = { onNavigate(Screen.Review) }, modifier = Modifier.fillMaxWidth()) {
+        OutlinedButton(onClick = { onNavigate(Screen.Review()) }, modifier = Modifier.fillMaxWidth()) {
             Text("Review")
+        }
+        Spacer(Modifier.height(12.dp))
+        OutlinedButton(onClick = { onNavigate(Screen.DeckList) }, modifier = Modifier.fillMaxWidth()) {
+            Text("Decks")
         }
         Spacer(Modifier.height(12.dp))
         OutlinedButton(onClick = { onNavigate(Screen.Vocabulary) }, modifier = Modifier.fillMaxWidth()) {

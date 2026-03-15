@@ -13,9 +13,9 @@ import org.springframework.web.bind.annotation.*
 class FlashcardController(private val flashcardService: FlashcardService) {
 
     @GetMapping("/due")
-    fun getDueFlashcards(): DueFlashcardsResponse {
+    fun getDueFlashcards(@RequestParam(required = false) songId: Long?): DueFlashcardsResponse {
         val userId = SecurityContextHolder.getContext().authentication.principal as Long
-        return flashcardService.getDueFlashcards(userId)
+        return flashcardService.getDueFlashcards(userId, songId)
     }
 
     @PostMapping("/{id}/review")

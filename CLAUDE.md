@@ -50,7 +50,7 @@ App backend URL: set `backend.baseUrl` in `app/local.properties` (default: `http
 
 ## Project Structure
 
-도메인 기반 패키지 구조. 백엔드와 앱 모두 `auth / song / word / flashcard / user` 도메인으로 구성.
+도메인 기반 패키지 구조. 백엔드와 앱 모두 `auth / song / word / flashcard / deck / user` 도메인으로 구성.
 
 **Backend** `com.japanese.vocabulary.<domain>/`
 - 각 도메인: `controller`, `service`, `repository`, `entity`, `dto`, `client` 서브패키지
@@ -82,6 +82,12 @@ song_words (id, word_id FK→words, song_id FK→songs, lyric_line)
 flashcards (id, word_id FK→words UNIQUE, due DATE, stability DOUBLE, difficulty DOUBLE,
             elapsed_days INT, scheduled_days INT, reps INT, lapses INT,
             state ENUM('NEW','LEARNING','REVIEW','RELEARNING'), last_review DATE)
+
+decks     (id, user_id FK→users, song_id FK→songs, created_at)
+           UNIQUE(user_id, song_id)
+
+deck_flashcards (id, deck_id FK→decks, flashcard_id FK→flashcards)
+                 UNIQUE(deck_id, flashcard_id)
 ```
 
 ## API Contracts
@@ -99,9 +105,14 @@ All endpoints except `/api/auth/*` require `Authorization: Bearer {token}`.
 | GET | `/api/words/lookup?word=` | - | `{japanese, reading, meanings[], pos[], jlptLevel}` |
 | POST | `/api/words` | `{japanese, reading, koreanText, songId, lyricLine}` | `{id}` |
 | GET | `/api/words?cursor=` | - | `{words[], nextCursor}` (page size 20) |
-| GET | `/api/flashcards/due` | - | `{flashcards[], totalDue}` |
+| GET | `/api/flashcards/due?songId=` | - | `{flashcards[], totalDue}` |
 | POST | `/api/flashcards/{id}/review` | `{rating}` | `{nextReview, stability, difficulty}` |
 | GET | `/api/flashcards/stats` | - | `{totalCards, dueToday, ...}` |
+| GET | `/api/decks` | - | `{allDeck, songDecks[]}` |
+| GET | `/api/decks/all` | - | DeckDetailResponse |
+| GET | `/api/decks/{songId}` | - | DeckDetailResponse |
+| GET | `/api/decks/all/words?cursor=` | - | `{words[], nextCursor}` |
+| GET | `/api/decks/{songId}/words?cursor=` | - | `{words[], nextCursor}` |
 | GET | `/api/settings` | - | UserSettingsDTO |
 | PUT | `/api/settings` | UserSettingsDTO | UserSettingsDTO |
 
@@ -114,7 +125,9 @@ All endpoints except `/api/auth/*` require `Authorization: Bearer {token}`.
 - **Song data**: lyrics and vocabulary stored as JSON columns, analyzed once on first request, deduplicated by (artist, title)
 - **Auth**: stateless JWT with 30-day expiry, no refresh token
 - **Recent songs**: Redis SortedSet으로 유저별 최근 청취 곡 최대 16개 관리 (score = timestamp)
-- **Package structure**: domain-based (auth/song/word/flashcard/user), both backend and app
+- **Package structure**: domain-based (auth/song/word/flashcard/deck/user), both backend and app
+- **Domain events**: word → `WordAddedEvent` → flashcard (creates card) → `FlashcardCreatedEvent` → deck (creates deck + mapping). Synchronous `@EventListener` within same transaction.
+- **Decks**: Song-based grouping of flashcards. Per-song decks stored in DB; "all" deck is virtual (no DB row). Retrievability calculated via FSRS formula.
 
 ## Current State
 
@@ -127,6 +140,8 @@ All endpoints except `/api/auth/*` require `Authorization: Bearer {token}`.
 - Flashcard review with FSRS spaced repetition (ReviewScreen, SettingsScreen)
 - Recent songs (Redis listen history, HomeScreen 썸네일 목록)
 - User settings (show_intervals toggle)
+- Decks: song-based flashcard grouping (DeckListScreen, DeckDetailScreen, DeckWordListScreen)
+- Spring Event-driven domain decoupling (word → flashcard → deck)
 
 **Not yet implemented:**
 - Tests (no test files exist)

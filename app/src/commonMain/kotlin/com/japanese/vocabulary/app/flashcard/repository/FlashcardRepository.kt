@@ -33,9 +33,12 @@ class FlashcardRepository(private val baseUrl: String = backendBaseUrl()) {
 
     private fun authHeader() = "Bearer ${TokenStorage.getToken() ?: ""}"
 
-    suspend fun getDueFlashcards(): DueFlashcardsResponse {
+    suspend fun getDueFlashcards(songId: Long? = null): DueFlashcardsResponse {
         return client.get("$baseUrl/api/flashcards/due") {
             headers { append("Authorization", authHeader()) }
+            if (songId != null) {
+                parameter("songId", songId)
+            }
         }.body()
     }
 
