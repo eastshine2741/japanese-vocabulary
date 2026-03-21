@@ -8,25 +8,27 @@ interface Props {
 }
 
 const RATINGS = [
-  { rating: 1, label: 'Again', color: Colors.ratingAgain },
-  { rating: 2, label: 'Hard', color: Colors.ratingHard },
-  { rating: 3, label: 'Good', color: Colors.ratingGood },
-  { rating: 4, label: 'Easy', color: Colors.ratingEasy },
+  { rating: 1, label: '다시', color: Colors.ratingAgain, bg: Colors.ratingAgainBg },
+  { rating: 2, label: '어려움', color: Colors.ratingHard, bg: Colors.ratingHardBg },
+  { rating: 3, label: '보통', color: Colors.ratingGood, bg: Colors.ratingGoodBg },
+  { rating: 4, label: '쉬움', color: Colors.ratingEasy, bg: Colors.ratingEasyBg },
 ];
 
 export default function RatingButtonRow({ intervals, onRate }: Props) {
   return (
     <View style={styles.row}>
-      {RATINGS.map(({ rating, label, color }) => (
+      {RATINGS.map(({ rating, label, color, bg }) => (
         <TouchableOpacity
           key={rating}
-          style={[styles.button, { backgroundColor: color }]}
+          style={[styles.button, { backgroundColor: bg }]}
           onPress={() => onRate(rating)}
           activeOpacity={0.7}
         >
-          <Text style={styles.label}>{label}</Text>
+          <Text style={[styles.label, { color }]}>{label}</Text>
           {intervals?.[rating] && (
-            <Text style={styles.interval}>{intervals[rating]}</Text>
+            <Text style={[styles.interval, { color, opacity: 0.7 }]}>
+              {intervals[rating]}
+            </Text>
           )}
         </TouchableOpacity>
       ))}
@@ -38,10 +40,12 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: 8 },
   button: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
+    height: 48,
+    borderRadius: 16,
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
   },
-  label: { color: '#FFFFFF', fontWeight: '600', fontSize: 14 },
-  interval: { color: '#FFFFFFCC', fontSize: 11, marginTop: 2 },
+  label: { fontWeight: '600', fontSize: 14 },
+  interval: { fontSize: 10 },
 });

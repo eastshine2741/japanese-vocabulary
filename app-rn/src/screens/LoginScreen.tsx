@@ -9,6 +9,7 @@ import {
   Platform,
   StyleSheet,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useAuthStore } from '../stores/authStore';
 import { Colors, Dimens } from '../theme/theme';
@@ -39,8 +40,9 @@ export default function LoginScreen({ navigation }: Props) {
   };
 
   return (
+    <SafeAreaView style={styles.container}>
     <KeyboardAvoidingView
-      style={styles.container}
+      style={styles.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={styles.content}>
@@ -87,11 +89,13 @@ export default function LoginScreen({ navigation }: Props) {
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
+  flex: { flex: 1 },
   content: { flex: 1, justifyContent: 'center', paddingHorizontal: 32 },
   title: { fontSize: 32, fontWeight: '700', color: Colors.primary, textAlign: 'center' },
   subtitle: {

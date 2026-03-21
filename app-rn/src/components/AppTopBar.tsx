@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../theme/theme';
+import { Colors, Dimens } from '../theme/theme';
 
 interface Props {
   title: string;
@@ -16,7 +16,7 @@ export default function AppTopBar({ title, onBack, onClose, rightAction }: Props
       <View style={styles.left}>
         {onBack && (
           <TouchableOpacity onPress={onBack} hitSlop={8}>
-            <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
+            <Ionicons name="chevron-back" size={24} color={Colors.textPrimary} />
           </TouchableOpacity>
         )}
         {onClose && (
@@ -35,17 +35,17 @@ export default function AppTopBar({ title, onBack, onClose, rightAction }: Props
 
 const styles = StyleSheet.create({
   container: {
-    height: 56,
+    height: 48,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    backgroundColor: Colors.surface,
+    paddingHorizontal: Dimens.screenPadding,
+    backgroundColor: Colors.background,
   },
   left: { width: 40 },
   title: {
     flex: 1,
     textAlign: 'center',
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '600',
     color: Colors.textPrimary,
   },

@@ -2,19 +2,24 @@ import React, { useEffect } from 'react';
 import {
   View,
   Text,
+  ScrollView,
+  Pressable,
   ActivityIndicator,
   TouchableOpacity,
   StyleSheet,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Feather } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useReviewStore } from '../stores/reviewStore';
-import AppTopBar from '../components/AppTopBar';
-import FlashcardView from '../components/FlashcardView';
+import FlashcardBackDetails from '../components/FlashcardView';
 import RatingButtonRow from '../components/RatingButtonRow';
-import { Colors, Dimens } from '../theme/theme';
+import { Colors } from '../theme/theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Review'>;
+
+const ACTION_ROW_HEIGHT = 48;
 
 export default function ReviewScreen({ route, navigation }: Props) {
   const songId = route.params?.songId ?? undefined;
@@ -36,114 +41,335 @@ export default function ReviewScreen({ route, navigation }: Props) {
     }
   };
 
+  const getSongTitle = (): string | null => {
+    if (cards.length === 0) return null;
+    const card = cards[currentIndex] ?? cards[0];
+    if (card.examples.length > 0 && card.examples[0].songTitle) {
+      return card.examples[0].songTitle;
+    }
+    return null;
+  };
+
+  const renderTopNav = (progressLabel?: string) => {
+    const songTitle = getSongTitle();
+    return (
+      <View style={styles.topNav}>
+        <TouchableOpacity style={styles.backButton} onPress={handleBack} hitSlop={8}>
+          <Feather name="chevron-left" size={24} color={Colors.textPrimary} />
+          {songTitle && (
+            <Text style={styles.backTitle} numberOfLines={1}>{songTitle}</Text>
+          )}
+        </TouchableOpacity>
+        {progressLabel ? (
+          <Text style={styles.progressCounter}>{progressLabel}</Text>
+        ) : null}
+      </View>
+    );
+  };
+
   const renderContent = () => {
     switch (status) {
       case 'loading':
-        return <ActivityIndicator size="large" color={Colors.primary} style={styles.center} />;
+        return (
+          <>
+            {renderTopNav()}
+            <ActivityIndicator size="large" color={Colors.primary} style={styles.center} />
+          </>
+        );
 
       case 'error':
-        return <Text style={styles.errorText}>{error}</Text>;
+        return (
+          <>
+            {renderTopNav()}
+            <Text style={styles.errorText}>{error}</Text>
+          </>
+        );
 
       case 'noCards':
         return (
-          <View style={styles.center}>
-            <Text style={styles.noCardsText}>No cards due</Text>
-            {stats && (
-              <Text style={styles.statsText}>
-                {stats.total} total cards
-              </Text>
-            )}
-          </View>
+          <>
+            {renderTopNav()}
+            <View style={styles.center}>
+              <Text style={styles.noCardsText}>복습할 카드가 없어요</Text>
+              {stats && (
+                <Text style={styles.statsText}>전체 {stats.total}장</Text>
+              )}
+            </View>
+          </>
         );
 
       case 'reviewing': {
         const card = cards[currentIndex];
         const progress = totalCount > 0 ? (currentIndex + 1) / totalCount : 0;
         return (
-          <View style={styles.reviewContent}>
-            <View style={styles.progressBar}>
-              <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
-            </View>
-            <Text style={styles.progressText}>
-              {currentIndex + 1} / {totalCount}
-            </Text>
-            <FlashcardView card={card} isRevealed={isRevealed} onReveal={reveal} />
-            {isRevealed && (
-              <View style={styles.ratingRow}>
-                <RatingButtonRow intervals={card.intervals} onRate={rate} />
+          <>
+            {renderTopNav()}
+
+            {/*
+              Layout structure (all three sections are siblings):
+              1. cardArea (flex:1) = topSpacer(flex:1) + kanji + bottomSpacer(flex:1)
+                 → kanji is always at exactly 50% of this area
+              2. progressSection (fixed height) = "n / m" + bar
+                 → always at the same position
+              3. actionRow (fixed height) = hint text OR rating buttons
+                 → variable content but fixed height, so nothing above shifts
+            */}
+
+            <Pressable
+              style={styles.cardArea}
+              onPress={!isRevealed ? reveal : undefined}
+              disabled={isRevealed}
+            >
+              {/* Top spacer: pushes kanji to vertical center */}
+              <View style={styles.spacer} />
+
+              {/* Kanji: always rendered here, never moves */}
+              <View style={styles.kanjiContainer}>
+                <Text style={styles.kanjiText}>{card.japanese}</Text>
               </View>
-            )}
-          </View>
+
+              {/* Bottom spacer: mirrors top spacer for centering */}
+              <View style={styles.spacer}>
+                {isRevealed && (
+                  <ScrollView
+                    contentContainerStyle={styles.backDetails}
+                    showsVerticalScrollIndicator={false}
+                  >
+                    <FlashcardBackDetails card={card} />
+                  </ScrollView>
+                )}
+              </View>
+            </Pressable>
+
+            {/* Progress: fixed position, never moves */}
+            <View style={styles.progressSection}>
+              <Text style={styles.progressCount}>
+                {currentIndex + 1} / {totalCount}
+              </Text>
+              <View style={styles.progressBarTrack}>
+                <View style={[styles.progressBarFill, { width: `${progress * 100}%` }]} />
+              </View>
+            </View>
+
+            {/* Action row: fixed height, content swaps but size stays same */}
+            <View style={styles.actionRow}>
+              {!isRevealed ? (
+                <Text style={styles.hintText}>탭하여 뒷면 보기</Text>
+              ) : (
+                <RatingButtonRow intervals={card.intervals} onRate={rate} />
+              )}
+            </View>
+          </>
         );
       }
 
       case 'summary':
         return (
-          <View style={styles.center}>
-            <Text style={styles.summaryTitle}>Review Complete!</Text>
-            <Text style={styles.summaryCount}>{totalReviewed} cards reviewed</Text>
-            <View style={styles.ratingsSummary}>
-              {[
-                { label: 'Again', count: ratingCounts[1], color: Colors.ratingAgain },
-                { label: 'Hard', count: ratingCounts[2], color: Colors.ratingHard },
-                { label: 'Good', count: ratingCounts[3], color: Colors.ratingGood },
-                { label: 'Easy', count: ratingCounts[4], color: Colors.ratingEasy },
-              ].map((r) => (
-                <View key={r.label} style={styles.ratingStat}>
-                  <Text style={[styles.ratingCount, { color: r.color }]}>{r.count}</Text>
-                  <Text style={styles.ratingLabel}>{r.label}</Text>
+          <>
+            {renderTopNav(`${totalReviewed} / ${totalReviewed}`)}
+
+            <View style={styles.center}>
+              <View style={styles.celebrationGroup}>
+                <View style={styles.checkCircle}>
+                  <Feather name="check" size={40} color={Colors.primary} />
                 </View>
-              ))}
+                <Text style={styles.completeTitle}>학습 완료!</Text>
+                <Text style={styles.completeSubtitle}>오늘의 복습을 모두 마쳤어요</Text>
+              </View>
+
+              <View style={styles.resultsCard}>
+                <Text style={styles.resultsHeader}>학습 결과</Text>
+                <View style={styles.divider} />
+                {[
+                  { label: '전체 카드', count: totalReviewed, color: Colors.textPrimary },
+                  { label: '쉬움', count: ratingCounts[4], color: Colors.ratingEasy },
+                  { label: '보통', count: ratingCounts[3], color: Colors.ratingGood },
+                  { label: '어려움', count: ratingCounts[2], color: Colors.ratingHard },
+                  { label: '다시', count: ratingCounts[1], color: Colors.ratingAgain },
+                ].map((row) => (
+                  <View key={row.label} style={styles.resultRow}>
+                    <Text style={styles.resultLabel}>{row.label}</Text>
+                    <Text style={[styles.resultCount, { color: row.color }]}>
+                      {row.count}장
+                    </Text>
+                  </View>
+                ))}
+              </View>
             </View>
-            <TouchableOpacity style={styles.doneButton} onPress={handleBack} activeOpacity={0.7}>
-              <Text style={styles.doneButtonText}>Done</Text>
-            </TouchableOpacity>
-          </View>
+          </>
         );
     }
   };
 
-  return (
-    <View style={styles.container}>
-      <AppTopBar title="Review" onBack={handleBack} />
-      {renderContent()}
-    </View>
-  );
+  return <SafeAreaView style={styles.container}>{renderContent()}</SafeAreaView>;
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: Dimens.screenPadding },
-  errorText: { color: Colors.ratingAgain, textAlign: 'center', padding: 20 },
-  noCardsText: { fontSize: 20, fontWeight: '600', color: Colors.textPrimary },
-  statsText: { fontSize: 14, color: Colors.textSecondary, marginTop: 8 },
-  reviewContent: { flex: 1, padding: Dimens.screenPadding },
-  progressBar: {
-    height: 4,
-    backgroundColor: Colors.cardBorder,
-    borderRadius: 2,
-    marginBottom: 8,
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background,
   },
-  progressFill: { height: 4, backgroundColor: Colors.primary, borderRadius: 2 },
-  progressText: {
-    fontSize: 13,
+
+  // Top nav
+  topNav: {
+    height: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    flex: 1,
+  },
+  backTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+    flexShrink: 1,
+  },
+  progressCounter: {
+    fontSize: 14,
+    fontWeight: '500',
     color: Colors.textSecondary,
+    marginLeft: 12,
+  },
+
+  // Shared
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 32,
+    padding: 20,
+  },
+  errorText: {
+    color: Colors.ratingAgain,
     textAlign: 'center',
-    marginBottom: 16,
+    padding: 20,
   },
-  ratingRow: { marginTop: 20 },
-  summaryTitle: { fontSize: 24, fontWeight: '700', color: Colors.textPrimary },
-  summaryCount: { fontSize: 16, color: Colors.textSecondary, marginTop: 8 },
-  ratingsSummary: { flexDirection: 'row', gap: 20, marginTop: 24 },
-  ratingStat: { alignItems: 'center' },
-  ratingCount: { fontSize: 24, fontWeight: '700' },
-  ratingLabel: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
-  doneButton: {
+  noCardsText: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+  },
+  statsText: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    marginTop: 8,
+  },
+
+  // Card area: kanji centered via equal flex spacers
+  cardArea: {
+    flex: 1,
+  },
+  spacer: {
+    flex: 1,
+    overflow: 'hidden',
+  },
+  kanjiContainer: {
+    alignItems: 'center',
+  },
+  kanjiText: {
+    fontSize: 56,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+    textAlign: 'center',
+  },
+  backDetails: {
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+
+  // Progress section: fixed position
+  progressSection: {
+    alignItems: 'center',
+    gap: 20,
+    paddingHorizontal: 20,
+  },
+  progressCount: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: Colors.textSecondary,
+  },
+  progressBarTrack: {
+    height: 4,
+    backgroundColor: Colors.elevated,
+    borderRadius: 2,
+    width: '100%',
+  },
+  progressBarFill: {
+    height: 4,
     backgroundColor: Colors.primary,
-    borderRadius: 10,
-    paddingVertical: 14,
-    paddingHorizontal: 48,
-    marginTop: 32,
+    borderRadius: 2,
   },
-  doneButtonText: { color: '#FFF', fontWeight: '600', fontSize: 16 },
+
+  // Action row: fixed height
+  actionRow: {
+    height: ACTION_ROW_HEIGHT,
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    marginTop: 20,
+    marginBottom: 24,
+  },
+  hintText: {
+    fontSize: 13,
+    color: Colors.textMuted,
+    textAlign: 'center',
+  },
+
+  // Summary
+  celebrationGroup: {
+    alignItems: 'center',
+    gap: 16,
+  },
+  checkCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: Colors.primary + '20',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  completeTitle: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+  },
+  completeSubtitle: {
+    fontSize: 15,
+    color: Colors.textSecondary,
+  },
+  resultsCard: {
+    width: 280,
+    backgroundColor: Colors.card,
+    borderRadius: 16,
+    padding: 24,
+    gap: 20,
+  },
+  resultsHeader: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#D4D4D8',
+    width: '100%',
+  },
+  resultRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  resultLabel: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+  },
+  resultCount: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
 });

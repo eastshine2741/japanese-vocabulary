@@ -1,71 +1,116 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { FlashcardDTO } from '../types/flashcard';
-import { Colors, Dimens } from '../theme/theme';
+import { Colors } from '../theme/theme';
+import { JlptBadge, PosBadge } from './Badges';
 
 interface Props {
   card: FlashcardDTO;
-  isRevealed: boolean;
-  onReveal: () => void;
 }
 
-export default function FlashcardView({ card, isRevealed, onReveal }: Props) {
+/**
+ * Renders the back-side details (reading, badges, meaning, examples).
+ * Kanji is rendered separately by ReviewScreen to keep its position fixed.
+ */
+export default function FlashcardBackDetails({ card }: Props) {
   return (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={!isRevealed ? onReveal : undefined}
-      activeOpacity={isRevealed ? 1 : 0.7}
-    >
-      {!isRevealed ? (
-        <View style={styles.front}>
-          <Text style={styles.kanji}>{card.japanese}</Text>
-          <Text style={styles.hint}>Tap to reveal</Text>
+    <View style={styles.container}>
+      {card.reading && <Text style={styles.reading}>{card.reading}</Text>}
+
+      {((card as any).partsOfSpeech?.length > 0 || (card as any).jlptLevel) && (
+        <View style={styles.badgesRow}>
+          {(card as any).partsOfSpeech?.map((pos: string, i: number) => (
+            <PosBadge key={i} pos={pos} />
+          ))}
+          {(card as any).jlptLevel && (
+            <JlptBadge level={(card as any).jlptLevel} />
+          )}
         </View>
-      ) : (
-        <View style={styles.back}>
-          {card.reading && <Text style={styles.reading}>{card.reading}</Text>}
-          <Text style={styles.kanjiBack}>{card.japanese}</Text>
-          {card.koreanText && <Text style={styles.korean}>{card.koreanText}</Text>}
-          {card.examples.length > 0 && (
-            <View style={styles.examples}>
-              {card.examples.map((ex, i) => (
-                <View key={i} style={styles.example}>
-                  {ex.lyricLine && (
-                    <Text style={styles.lyricLine}>{ex.lyricLine}</Text>
-                  )}
-                  {ex.songTitle && (
-                    <Text style={styles.songTitle}>{ex.songTitle}</Text>
-                  )}
-                </View>
+      )}
+
+      {card.koreanText && <Text style={styles.korean}>{card.koreanText}</Text>}
+
+      {card.examples.length > 0 && (
+        <View style={styles.exampleCarousel}>
+          {card.examples[0].lyricLine && (
+            <Text style={styles.jpText}>{card.examples[0].lyricLine}</Text>
+          )}
+          {card.examples[0].songTitle && (
+            <View style={styles.songRow}>
+              <Feather name="music" size={14} color={Colors.textMuted} />
+              <Text style={styles.songLabel}>{card.examples[0].songTitle}</Text>
+            </View>
+          )}
+          {card.examples.length > 1 && (
+            <View style={styles.pageDots}>
+              {card.examples.map((_, i) => (
+                <View
+                  key={i}
+                  style={[
+                    styles.pageDot,
+                    i === 0
+                      ? { width: 6, height: 6, backgroundColor: Colors.textSecondary }
+                      : { width: 5, height: 5, backgroundColor: '#D4D4D8' },
+                  ]}
+                />
               ))}
             </View>
           )}
         </View>
       )}
-    </TouchableOpacity>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: Colors.surface,
-    borderRadius: Dimens.cardCornerRadius,
-    padding: 24,
-    minHeight: 300,
+  container: {
+    alignItems: 'center',
+    gap: 4,
+    paddingTop: 4,
+  },
+  reading: {
+    fontSize: 20,
+    color: Colors.textSecondary,
+  },
+  badgesRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  korean: {
+    fontSize: 22,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+    textAlign: 'center',
+  },
+  exampleCarousel: {
+    paddingTop: 20,
+    gap: 4,
+    alignItems: 'center',
+    width: '100%',
+  },
+  jpText: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+  },
+  songRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  songLabel: {
+    fontSize: 11,
+    color: Colors.textMuted,
+  },
+  pageDots: {
+    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: Colors.cardBorder,
+    gap: 5,
+    paddingTop: 4,
   },
-  front: { alignItems: 'center' },
-  kanji: { fontSize: 40, fontWeight: '700', color: Colors.textPrimary },
-  hint: { fontSize: 14, color: Colors.textTertiary, marginTop: 16 },
-  back: { alignItems: 'center', width: '100%' },
-  reading: { fontSize: 16, color: Colors.textSecondary, marginBottom: 4 },
-  kanjiBack: { fontSize: 36, fontWeight: '700', color: Colors.textPrimary },
-  korean: { fontSize: 20, fontWeight: '600', color: Colors.textPrimary, marginTop: 12 },
-  examples: { marginTop: 20, width: '100%' },
-  example: { marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: Colors.cardBorder },
-  lyricLine: { fontSize: 14, color: Colors.textSecondary, textAlign: 'center' },
-  songTitle: { fontSize: 12, color: Colors.textTertiary, textAlign: 'center', marginTop: 2 },
+  pageDot: {
+    borderRadius: 100,
+  },
 });

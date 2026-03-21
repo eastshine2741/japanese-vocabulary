@@ -30,11 +30,13 @@ export default function WordAnalysisSheet({
   lyricLine,
   onAddWord,
 }: Props) {
+  const isExisting = getWordStatus === 'found';
+
   const renderButton = () => {
     if (addStatus === 'success') {
       return (
-        <View style={[styles.button, styles.buttonDisabled]}>
-          <Text style={styles.buttonText}>Added</Text>
+        <View style={[styles.button, styles.buttonSuccess]}>
+          <Text style={styles.buttonText}>추가 완료</Text>
         </View>
       );
     }
@@ -45,84 +47,163 @@ export default function WordAnalysisSheet({
         </View>
       );
     }
-    if (getWordStatus === 'found') {
+    if (isExisting) {
       return (
         <TouchableOpacity style={styles.button} onPress={onAddWord} activeOpacity={0.7}>
-          <Text style={styles.buttonText}>Add example</Text>
+          <Text style={styles.buttonText}>+ 예문 담기</Text>
         </TouchableOpacity>
       );
     }
     return (
       <TouchableOpacity style={styles.button} onPress={onAddWord} activeOpacity={0.7}>
-        <Text style={styles.buttonText}>Add to My Vocabulary</Text>
+        <Text style={styles.buttonText}>+ 단어 담기</Text>
       </TouchableOpacity>
     );
   };
 
   return (
     <View style={styles.container}>
+      {/* Word header */}
       <View style={styles.header}>
         <Text style={styles.surface}>{token.surface}</Text>
         {token.reading && <Text style={styles.reading}>{token.reading}</Text>}
-        <PosBadge pos={token.partOfSpeech} />
       </View>
 
-      {getWordStatus === 'found' && existingWord && (
+      {/* Badges row */}
+      {lookupStatus === 'success' && definition && (
+        <View style={styles.badgeRow}>
+          {definition.partsOfSpeech.map((p, i) => (
+            <PosBadge key={i} pos={p} />
+          ))}
+          <JlptBadge level={definition.jlptLevel} />
+        </View>
+      )}
+
+      {/* Korean meaning */}
+      {lookupStatus === 'success' && definition && (
+        <Text style={styles.meanings}>{definition.meanings.join(', ')}</Text>
+      )}
+
+      {/* Existing examples */}
+      {isExisting && existingWord && existingWord.examples.length > 0 && (
         <View style={styles.existingSection}>
-          <Text style={styles.sectionLabel}>Saved examples</Text>
+          <View style={styles.existingDivider} />
           {existingWord.examples.map((ex, i) => (
-            <Text key={i} style={styles.exampleText}>
-              {ex.lyricLine} — {ex.songTitle}
-            </Text>
+            <View key={i} style={styles.exampleItem}>
+              <View style={styles.exampleContent}>
+                {ex.lyricLine && (
+                  <Text style={styles.exampleLyric}>{ex.lyricLine}</Text>
+                )}
+                {ex.songTitle && (
+                  <Text style={styles.exampleSource}>
+                    曲: {ex.songTitle}
+                  </Text>
+                )}
+              </View>
+            </View>
           ))}
         </View>
       )}
 
-      <View style={styles.divider} />
-
+      {/* Loading / Error states */}
       {lookupStatus === 'loading' && (
         <ActivityIndicator style={styles.loader} color={Colors.primary} />
       )}
       {lookupStatus === 'error' && (
         <Text style={styles.errorText}>{lookupError || 'Lookup failed'}</Text>
       )}
-      {lookupStatus === 'success' && definition && (
-        <View style={styles.resultSection}>
-          <View style={styles.badgeRow}>
-            <JlptBadge level={definition.jlptLevel} />
-            {definition.partsOfSpeech.map((p, i) => (
-              <PosBadge key={i} pos={p} />
-            ))}
-          </View>
-          <Text style={styles.meanings}>{definition.meanings.join(', ')}</Text>
-          {renderButton()}
-        </View>
-      )}
+
+      {/* Action button */}
+      {lookupStatus === 'success' && definition && renderButton()}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 20, paddingBottom: 32 },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
-  surface: { fontSize: 24, fontWeight: '700', color: Colors.textPrimary },
-  reading: { fontSize: 16, color: Colors.textSecondary },
-  existingSection: { marginBottom: 12 },
-  sectionLabel: { fontSize: 13, fontWeight: '600', color: Colors.textSecondary, marginBottom: 4 },
-  exampleText: { fontSize: 13, color: Colors.textTertiary, marginTop: 2 },
-  divider: { height: 1, backgroundColor: Colors.cardBorder, marginVertical: 12 },
-  loader: { marginVertical: 20 },
-  errorText: { color: Colors.ratingAgain, textAlign: 'center', marginVertical: 12 },
-  resultSection: { gap: 12 },
-  badgeRow: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
-  meanings: { fontSize: 16, color: Colors.textPrimary, lineHeight: 22 },
+  container: {
+    padding: 20,
+    paddingBottom: 32,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 8,
+    marginBottom: 12,
+  },
+  surface: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+  },
+  reading: {
+    fontSize: 16,
+    color: Colors.textSecondary,
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    gap: 6,
+    flexWrap: 'wrap',
+    marginBottom: 12,
+  },
+  meanings: {
+    fontSize: 16,
+    color: Colors.textPrimary,
+    lineHeight: 24,
+    marginBottom: 8,
+  },
+  existingSection: {
+    marginTop: 4,
+    marginBottom: 12,
+  },
+  existingDivider: {
+    height: 1,
+    backgroundColor: Colors.border,
+    marginBottom: 12,
+  },
+  exampleItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 10,
+    gap: 10,
+  },
+  exampleContent: {
+    flex: 1,
+  },
+  exampleLyric: {
+    fontSize: 14,
+    color: Colors.textPrimary,
+    lineHeight: 20,
+  },
+  exampleSource: {
+    fontSize: 12,
+    color: Colors.textMuted,
+    marginTop: 2,
+  },
+  loader: {
+    marginVertical: 20,
+  },
+  errorText: {
+    color: Colors.ratingAgain,
+    textAlign: 'center',
+    marginVertical: 12,
+    fontSize: 14,
+  },
   button: {
     backgroundColor: Colors.primary,
-    borderRadius: 10,
-    paddingVertical: 12,
+    borderRadius: 12,
+    paddingVertical: 14,
     alignItems: 'center',
-    marginTop: 4,
+    marginTop: 8,
   },
-  buttonDisabled: { backgroundColor: Colors.textTertiary },
-  buttonText: { color: '#FFFFFF', fontWeight: '600', fontSize: 15 },
+  buttonDisabled: {
+    backgroundColor: Colors.textMuted,
+  },
+  buttonSuccess: {
+    backgroundColor: Colors.ratingGood,
+  },
+  buttonText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 16,
+  },
 });

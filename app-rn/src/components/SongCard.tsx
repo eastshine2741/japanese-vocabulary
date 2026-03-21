@@ -1,7 +1,6 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import ArtworkImage from './ArtworkImage';
-import { Colors, Dimens } from '../theme/theme';
+import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import { Colors } from '../theme/theme';
 
 interface Props {
   artworkUrl: string | null | undefined;
@@ -13,23 +12,49 @@ interface Props {
 export default function SongCard({ artworkUrl, title, artist, onPress }: Props) {
   return (
     <TouchableOpacity style={styles.container} onPress={onPress} activeOpacity={0.7}>
-      <View style={styles.imageWrapper}>
-        <ArtworkImage url={artworkUrl} size={999} style={styles.image} />
-      </View>
-      <Text style={styles.title} numberOfLines={2}>
-        {title}
-      </Text>
-      <Text style={styles.artist} numberOfLines={1}>
-        {artist}
-      </Text>
+      {artworkUrl ? (
+        <Image source={{ uri: artworkUrl }} style={styles.coverImage} />
+      ) : (
+        <View style={[styles.coverImage, { backgroundColor: Colors.elevated }]} />
+      )}
+      <Text style={styles.title} numberOfLines={1}>{title}</Text>
+      <Text style={styles.artist} numberOfLines={1}>{artist}</Text>
     </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 4 },
-  imageWrapper: { aspectRatio: 1, borderRadius: Dimens.artworkCornerRadius, overflow: 'hidden' },
-  image: { width: '100%', height: '100%', borderRadius: Dimens.artworkCornerRadius },
-  title: { fontSize: 13, fontWeight: '600', color: Colors.textPrimary, marginTop: 6 },
-  artist: { fontSize: 11, color: Colors.textSecondary, marginTop: 2 },
+  container: {
+    flex: 1,
+    aspectRatio: 1,
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+  coverImage: {
+    ...StyleSheet.absoluteFillObject,
+    width: '100%',
+    height: '100%',
+  },
+  title: {
+    position: 'absolute',
+    left: 8,
+    bottom: 21,
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    textShadowColor: '#000000CC',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  artist: {
+    position: 'absolute',
+    left: 8,
+    bottom: 8,
+    fontSize: 9,
+    fontWeight: '400',
+    color: '#FFFFFFCC',
+    textShadowColor: '#000000CC',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
 });

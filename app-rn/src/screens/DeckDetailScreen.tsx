@@ -4,12 +4,12 @@ import {
   Text,
   TouchableOpacity,
   ActivityIndicator,
-  ScrollView,
   StyleSheet,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useDeckDetailStore } from '../stores/deckDetailStore';
-import AppTopBar from '../components/AppTopBar';
 import ArtworkImage from '../components/ArtworkImage';
 import { Colors, Dimens } from '../theme/theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -25,127 +25,173 @@ export default function DeckDetailScreen({ route, navigation }: Props) {
   }, [songId]);
 
   return (
-    <View style={styles.container}>
-      <AppTopBar title={data?.title || 'All Words'} onBack={() => navigation.goBack()} />
-      {status === 'loading' && (
-        <ActivityIndicator size="large" color={Colors.primary} style={styles.center} />
-      )}
-      {status === 'error' && <Text style={styles.errorText}>{error}</Text>}
-      {status === 'success' && data && (
-        <ScrollView contentContainerStyle={styles.content}>
-          {data.artworkUrl && (
-            <View style={styles.artworkRow}>
-              <ArtworkImage url={data.artworkUrl} size={160} cornerRadius={12} />
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        {/* Top bar: back arrow only */}
+        <View style={styles.topBar}>
+          <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={8}>
+            <Ionicons name="chevron-back" size={24} color={Colors.textPrimary} />
+          </TouchableOpacity>
+        </View>
+
+        {status === 'loading' && (
+          <ActivityIndicator size="large" color={Colors.primary} style={styles.center} />
+        )}
+        {status === 'error' && <Text style={styles.errorText}>{error}</Text>}
+        {status === 'success' && data && (
+          <View style={styles.content}>
+            {/* Artwork */}
+            <ArtworkImage url={data.artworkUrl} size={200} cornerRadius={16} />
+
+            {/* Song title */}
+            {data.title && <Text style={styles.title}>{data.title}</Text>}
+
+            {/* Artist */}
+            {data.artist && <Text style={styles.artist}>{data.artist}</Text>}
+
+            {/* Stats row */}
+            <View style={styles.statsRow}>
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>{data.wordCount}</Text>
+                <Text style={styles.statLabel}>단어</Text>
+              </View>
+              <View style={styles.statItem}>
+                <Text style={[styles.statValue, { color: Colors.stateRetrievability }]}>
+                  {data.avgRetrievability != null
+                    ? `${Math.round(data.avgRetrievability * 100)}%`
+                    : '-'}
+                </Text>
+                <Text style={styles.statLabel}>Retrievability</Text>
+              </View>
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>{data.dueCount}</Text>
+                <Text style={styles.statLabel}>복습 대기</Text>
+              </View>
             </View>
-          )}
-          {data.title && <Text style={styles.title}>{data.title}</Text>}
-          {data.artist && <Text style={styles.artist}>{data.artist}</Text>}
 
-          <View style={styles.statsGrid}>
-            <StatBox label="Total Words" value={String(data.wordCount)} />
-            <StatBox label="Due Today" value={String(data.dueCount)} />
-            <StatBox
-              label="Retrievability"
-              value={data.avgRetrievability != null ? `${Math.round(data.avgRetrievability * 100)}%` : '-'}
-            />
+            {/* Study button */}
+            <TouchableOpacity
+              style={[styles.primaryButton, data.dueCount === 0 && styles.buttonDisabled]}
+              onPress={() => navigation.navigate('Review', { songId })}
+              disabled={data.dueCount === 0}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="bulb-outline" size={20} color="#FFFFFF" style={styles.buttonIcon} />
+              <Text style={styles.primaryButtonText}>학습하기</Text>
+            </TouchableOpacity>
+
+            {/* View words button */}
+            <TouchableOpacity
+              style={styles.outlineButton}
+              onPress={() => navigation.navigate('DeckWordList', { songId })}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="list-outline" size={20} color={Colors.primary} style={styles.buttonIcon} />
+              <Text style={styles.outlineButtonText}>단어 보기</Text>
+            </TouchableOpacity>
           </View>
-
-          <View style={styles.chipRow}>
-            <Chip label="New" count={data.stateCounts.new} color="#3B82F6" />
-            <Chip label="Learning" count={data.stateCounts.learning} color="#F59E0B" />
-            <Chip label="Review" count={data.stateCounts.review} color="#10B981" />
-            <Chip label="Relearn" count={data.stateCounts.relearning} color="#EF4444" />
-          </View>
-
-          <TouchableOpacity
-            style={[styles.primaryButton, data.dueCount === 0 && styles.buttonDisabled]}
-            onPress={() => navigation.navigate('Review', { songId })}
-            disabled={data.dueCount === 0}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.primaryButtonText}>Start Review</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.outlineButton}
-            onPress={() => navigation.navigate('DeckWordList', { songId })}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.outlineButtonText}>View Words</Text>
-          </TouchableOpacity>
-        </ScrollView>
-      )}
-    </View>
-  );
-}
-
-function StatBox({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={statStyles.box}>
-      <Text style={statStyles.value}>{value}</Text>
-      <Text style={statStyles.label}>{label}</Text>
-    </View>
-  );
-}
-
-function Chip({ label, count, color }: { label: string; count: number; color: string }) {
-  return (
-    <View style={[chipStyles.chip, { backgroundColor: color + '15' }]}>
-      <Text style={[chipStyles.text, { color }]}>
-        {label} {count}
-      </Text>
-    </View>
+        )}
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  center: { flex: 1, justifyContent: 'center' },
-  content: { padding: Dimens.screenPadding, alignItems: 'center' },
-  errorText: { color: Colors.ratingAgain, textAlign: 'center', padding: 20 },
-  artworkRow: { marginBottom: 16 },
-  title: { fontSize: 20, fontWeight: '700', color: Colors.textPrimary, textAlign: 'center' },
-  artist: { fontSize: 15, color: Colors.textSecondary, marginTop: 4, textAlign: 'center' },
-  statsGrid: {
+  safeArea: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  topBar: {
+    height: 48,
     flexDirection: 'row',
-    marginTop: 24,
-    backgroundColor: Colors.surface,
-    borderRadius: Dimens.cardCornerRadius,
-    borderWidth: 1,
-    borderColor: Colors.cardBorder,
-    padding: 16,
+    alignItems: 'center',
+    paddingHorizontal: Dimens.screenPadding,
+  },
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  errorText: {
+    color: Colors.ratingAgain,
+    textAlign: 'center',
+    padding: 20,
+  },
+  content: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: Dimens.screenPadding,
+    gap: 32,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+    textAlign: 'center',
+    marginTop: -16,
+  },
+  artist: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    marginTop: -24,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
     width: '100%',
   },
-  chipRow: { flexDirection: 'row', gap: 8, marginTop: 16, flexWrap: 'wrap', justifyContent: 'center' },
+  statItem: {
+    alignItems: 'center',
+  },
+  statValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginTop: 4,
+  },
   primaryButton: {
+    flexDirection: 'row',
     backgroundColor: Colors.primary,
-    borderRadius: 10,
-    paddingVertical: 14,
+    borderRadius: 12,
+    height: 52,
     alignItems: 'center',
+    justifyContent: 'center',
     width: '100%',
-    marginTop: 24,
   },
-  buttonDisabled: { opacity: 0.4 },
-  primaryButtonText: { color: '#FFF', fontWeight: '600', fontSize: 16 },
+  buttonDisabled: {
+    opacity: 0.4,
+  },
+  buttonIcon: {
+    marginRight: 8,
+  },
+  primaryButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 16,
+  },
   outlineButton: {
+    flexDirection: 'row',
     borderWidth: 1,
-    borderColor: Colors.primary,
-    borderRadius: 10,
-    paddingVertical: 14,
+    borderColor: Colors.border,
+    borderRadius: 12,
+    height: 48,
     alignItems: 'center',
+    justifyContent: 'center',
     width: '100%',
-    marginTop: 12,
+    marginTop: -16,
   },
-  outlineButtonText: { color: Colors.primary, fontWeight: '600', fontSize: 16 },
-});
-
-const statStyles = StyleSheet.create({
-  box: { flex: 1, alignItems: 'center' },
-  value: { fontSize: 22, fontWeight: '700', color: Colors.textPrimary },
-  label: { fontSize: 11, color: Colors.textSecondary, marginTop: 2 },
-});
-
-const chipStyles = StyleSheet.create({
-  chip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16 },
-  text: { fontSize: 13, fontWeight: '600' },
+  outlineButtonText: {
+    color: Colors.primary,
+    fontWeight: '600',
+    fontSize: 16,
+  },
 });

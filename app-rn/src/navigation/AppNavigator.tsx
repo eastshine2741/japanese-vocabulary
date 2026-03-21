@@ -1,8 +1,7 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../theme/theme';
+import PillTabBar from '../components/PillTabBar';
 
 import LoginScreen from '../screens/LoginScreen';
 import SearchScreen from '../screens/SearchScreen';
@@ -37,41 +36,12 @@ const Tab = createBottomTabNavigator<TabParamList>();
 function MainTabs() {
   return (
     <Tab.Navigator
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: Colors.tabActive,
-        tabBarInactiveTintColor: Colors.tabInactive,
-        tabBarStyle: { height: 64, paddingBottom: 8, paddingTop: 4 },
-      }}
+      tabBar={(props) => <PillTabBar {...props} />}
+      screenOptions={{ headerShown: false }}
     >
-      <Tab.Screen
-        name="Home"
-        component={HomeTab}
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Words"
-        component={WordTab}
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="book-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="MyPage"
-        component={MyPageTab}
-        options={{
-          tabBarLabel: 'My Page',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person-outline" size={size} color={color} />
-          ),
-        }}
-      />
+      <Tab.Screen name="Home" component={HomeTab} />
+      <Tab.Screen name="Words" component={WordTab} />
+      <Tab.Screen name="MyPage" component={MyPageTab} />
     </Tab.Navigator>
   );
 }
