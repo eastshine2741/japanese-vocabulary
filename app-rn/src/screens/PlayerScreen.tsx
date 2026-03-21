@@ -1,18 +1,22 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useMemo } from 'react';
 import {
   View,
   Text,
   FlatList,
   TouchableOpacity,
   StyleSheet,
+  Platform,
+  LayoutChangeEvent,
+  GestureResponderEvent,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
+import { Feather } from '@expo/vector-icons';
+import BottomSheet, { BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
+import type { BottomSheetBackdropProps } from '@gorhom/bottom-sheet';
 import { useSearchStore } from '../stores/searchStore';
 import { useVocabularyStore } from '../stores/vocabularyStore';
-import ArtworkImage from '../components/ArtworkImage';
-import YouTubePlayer from '../components/YouTubePlayer';
+import YouTubePlayer, { YouTubePlayerRef } from '../components/YouTubePlayer';
 import WordAnalysisSheet from '../components/WordAnalysisSheet';
 import { Token, StudyUnit } from '../types/song';
 import { Colors } from '../theme/theme';
@@ -50,8 +54,12 @@ export default function PlayerScreen({ navigation }: Props) {
   const [durationMs, setDurationMs] = useState(0);
   const [selectedToken, setSelectedToken] = useState<Token | null>(null);
   const [selectedLine, setSelectedLine] = useState('');
-  const bottomSheetRef = useRef<BottomSheet>(null);
-  const flatListRef = useRef<FlatList>(null);
+  const [mvCollapsed, setMvCollapsed] = useState(false);
+  const [isSeeking, setIsSeeking] = useState(false);
+  const [seekFraction, setSeekFraction] = useState(0);
+  const youtubeRef = useRef<YouTubePlayerRef>(null);
+  const wordSheetRef = useRef<BottomSheet>(null);
+  const progressWidth = useRef(0);
 
   if (!studyData) return null;
 
@@ -78,8 +86,15 @@ export default function PlayerScreen({ navigation }: Props) {
     vocabStore.resetLookup();
     vocabStore.lookupWord(token.baseForm);
     vocabStore.getWord(token.baseForm);
-    bottomSheetRef.current?.expand();
+    wordSheetRef.current?.expand();
   };
+
+  const renderBackdrop = useCallback(
+    (props: BottomSheetBackdropProps) => (
+      <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} opacity={0.25} />
+    ),
+    [],
+  );
 
   const handleAddWord = () => {
     if (vocabStore.definition) {
@@ -94,20 +109,31 @@ export default function PlayerScreen({ navigation }: Props) {
       }, 0)
     : -1;
 
-  // Auto-scroll to the current active lyric line
-  const prevLineRef = useRef(-1);
-  useEffect(() => {
-    if (currentLineIndex >= 0 && currentLineIndex !== prevLineRef.current) {
-      prevLineRef.current = currentLineIndex;
-      flatListRef.current?.scrollToIndex({
-        index: currentLineIndex,
-        animated: true,
-        viewOffset: 80,
-      });
-    }
-  }, [currentLineIndex]);
-
   const progress = durationMs > 0 ? currentMs / durationMs : 0;
+  const displayProgress = isSeeking ? seekFraction : progress;
+
+  // Seeking handlers
+  const handleProgressLayout = useCallback((e: LayoutChangeEvent) => {
+    progressWidth.current = e.nativeEvent.layout.width;
+  }, []);
+
+  const handleSeekGrant = useCallback((e: GestureResponderEvent) => {
+    const fraction = Math.max(0, Math.min(1, e.nativeEvent.locationX / progressWidth.current));
+    setSeekFraction(fraction);
+    setIsSeeking(true);
+  }, []);
+
+  const handleSeekMove = useCallback((e: GestureResponderEvent) => {
+    const fraction = Math.max(0, Math.min(1, e.nativeEvent.locationX / progressWidth.current));
+    setSeekFraction(fraction);
+  }, []);
+
+  const handleSeekRelease = useCallback(() => {
+    setIsSeeking(false);
+    const seekSec = (seekFraction * durationMs) / 1000;
+    setCurrentMs(seekFraction * durationMs);
+    youtubeRef.current?.seekTo(seekSec);
+  }, [seekFraction, durationMs]);
 
   const renderToken = (token: Token, ti: number, isActive: boolean, lineText: string) => {
     const underlineColor = getUnderlineColor(token.partOfSpeech);
@@ -128,7 +154,7 @@ export default function PlayerScreen({ navigation }: Props) {
       >
         <View style={styles.tokenWithUnderline}>
           <Text style={textStyle}>{token.surface}</Text>
-          <View style={[styles.underline, { backgroundColor: underlineColor }]} />
+          <View style={[styles.underline, { backgroundColor: underlineColor, opacity: isActive ? 1 : 0.35 }]} />
         </View>
       </TouchableOpacity>
     );
@@ -137,10 +163,31 @@ export default function PlayerScreen({ navigation }: Props) {
   const renderLyricLine = ({ item, index }: { item: StudyUnit; index: number }) => {
     const isActive = isSynced && index === currentLineIndex;
     return (
-      <View style={[styles.lineContainer, isActive ? styles.lineGapActive : styles.lineGapInactive]}>
+      <View style={styles.lineContainer}>
         <View style={styles.tokensRow}>
           {item.tokens.length > 0
-            ? item.tokens.map((token, ti) => renderToken(token, ti, isActive, item.originalText))
+            ? (() => {
+                const elements: React.ReactNode[] = [];
+                let cursor = 0;
+                item.tokens.forEach((token, ti) => {
+                  if (token.charStart > cursor) {
+                    const gap = item.originalText.slice(cursor, token.charStart);
+                    elements.push(
+                      <Text key={`gap-${ti}`} style={isActive ? styles.tokenTextActive : styles.tokenTextInactive}>{gap}</Text>
+                    );
+                  }
+                  elements.push(renderToken(token, ti, isActive, item.originalText));
+                  cursor = token.charEnd;
+                });
+                if (cursor < item.originalText.length) {
+                  elements.push(
+                    <Text key="tail" style={isActive ? styles.tokenTextActive : styles.tokenTextInactive}>
+                      {item.originalText.slice(cursor)}
+                    </Text>
+                  );
+                }
+                return elements;
+              })()
             : (
               <Text style={isActive ? styles.tokenTextActive : styles.tokenTextInactive}>
                 {item.originalText}
@@ -161,75 +208,136 @@ export default function PlayerScreen({ navigation }: Props) {
     );
   };
 
-  return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      {/* MV Area */}
-      <View style={styles.mvArea}>
-        {videoId ? (
-          <YouTubePlayer
-            videoId={videoId}
-            height={220}
-            onTimeChange={handleTimeChange}
-            onDurationChange={handleDurationChange}
-          />
-        ) : (
-          <View style={styles.mvPlaceholder} />
-        )}
-        {/* Song info overlay at bottom-left */}
-        <View style={styles.songInfoOverlay} pointerEvents="none">
-          <ArtworkImage url={null} size={40} cornerRadius={14} />
-          <View style={styles.songTexts}>
-            <Text style={styles.songTitle} numberOfLines={1}>{song.title}</Text>
-            <Text style={styles.songArtist} numberOfLines={1}>{song.artist}</Text>
-          </View>
-        </View>
-      </View>
+  const seekThumbLeft = displayProgress * progressWidth.current - 8;
 
-      {/* Lyrics section */}
-      <View style={styles.lyricsWrapper}>
-        <FlatList
-          ref={flatListRef}
-          data={studyUnits}
-          keyExtractor={(item) => String(item.index)}
-          renderItem={renderLyricLine}
-          contentContainerStyle={styles.lyricsList}
-          onScrollToIndexFailed={(info) => {
-            flatListRef.current?.scrollToOffset({ offset: info.averageItemLength * info.index, animated: true });
-          }}
-        />
-        {/* Fade gradient at bottom of lyrics */}
-        <View style={styles.fadeGradient} pointerEvents="none">
-          {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
-            <View
-              key={i}
-              style={{
-                flex: 1,
-                backgroundColor: `rgba(255,255,255,${(i / 7) * (i / 7)})`,
-              }}
+  return (
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      {/* MV Area */}
+      {mvCollapsed ? (
+        <TouchableOpacity
+          style={styles.mvCollapsedBar}
+          onPress={() => setMvCollapsed(false)}
+          activeOpacity={0.8}
+        >
+          <View style={styles.mvThumb} />
+          <View style={styles.mvCollapsedTexts}>
+            <Text style={styles.mvCollapsedTitle} numberOfLines={1}>{song.title}</Text>
+            <Text style={styles.mvCollapsedArtist} numberOfLines={1}>{song.artist}</Text>
+          </View>
+          <View style={styles.mvCollapsedPlayBtn}>
+            <Feather name="play" size={16} color="#FFFFFF" />
+          </View>
+        </TouchableOpacity>
+      ) : (
+        <View style={styles.mvArea}>
+          {videoId ? (
+            <YouTubePlayer
+              ref={youtubeRef}
+              videoId={videoId}
+              height={220}
+              onTimeChange={handleTimeChange}
+              onDurationChange={handleDurationChange}
             />
-          ))}
+          ) : (
+            <TouchableOpacity
+              style={styles.mvPlaceholder}
+              onPress={() => setMvCollapsed(true)}
+              activeOpacity={0.9}
+            >
+              <View style={styles.mvPlayBtn}>
+                <Feather name="play" size={24} color="#FFFFFF" />
+              </View>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
+
+      {/* Lyrics area (static view, scrollable FlatList inside) */}
+      <View style={styles.bottomSheetOuter}>
+        <View style={styles.bottomSheetInner}>
+          {/* Drag handle — tap to toggle MV collapse/expand */}
+          <TouchableOpacity
+            style={styles.dragHandle}
+            onPress={() => setMvCollapsed(prev => !prev)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.dragBar} />
+          </TouchableOpacity>
+
+          {/* Scrollable lyrics */}
+          <View style={styles.scrollContent}>
+            <FlatList
+              data={studyUnits}
+              keyExtractor={(item) => String(item.index)}
+              renderItem={renderLyricLine}
+              ListHeaderComponent={
+                <View style={styles.songInfo}>
+                  <Text style={styles.songTitle}>{song.title}</Text>
+                  <Text style={styles.songArtist}>{song.artist}</Text>
+                </View>
+              }
+              contentContainerStyle={styles.lyricsList}
+            />
+            {/* Fade gradient at bottom of lyrics */}
+            <View style={styles.fadeGradient} pointerEvents="none">
+              {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
+                <View
+                  key={i}
+                  style={{
+                    flex: 1,
+                    backgroundColor: `rgba(255,255,255,${(i / 7) * (i / 7)})`,
+                  }}
+                />
+              ))}
+            </View>
+          </View>
         </View>
       </View>
 
       {/* Mini player */}
       <View style={styles.miniPlayer}>
-        <View style={styles.progressTrack}>
-          <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
+        <View
+          style={styles.progressTouchArea}
+          onStartShouldSetResponder={() => true}
+          onMoveShouldSetResponder={() => true}
+          onResponderGrant={handleSeekGrant}
+          onResponderMove={handleSeekMove}
+          onResponderRelease={handleSeekRelease}
+          onResponderTerminate={handleSeekRelease}
+          onLayout={handleProgressLayout}
+        >
+          {/* Seek tooltip (above progress bar) */}
+          {isSeeking && progressWidth.current > 0 && (
+            <View style={[styles.seekTooltipWrap, { left: Math.max(0, Math.min(seekThumbLeft - 12, progressWidth.current - 50)) }]}>
+              <View style={styles.seekTooltip}>
+                <Text style={styles.seekTooltipText}>{formatTime(seekFraction * durationMs)}</Text>
+              </View>
+              <View style={styles.seekArrow} />
+            </View>
+          )}
+          <View style={[styles.progressTrack, isSeeking && styles.progressTrackSeeking]}>
+            <View style={[styles.progressFill, { width: `${displayProgress * 100}%` }, isSeeking && styles.progressFillSeeking]} />
+          </View>
+          {/* Seek thumb */}
+          {isSeeking && progressWidth.current > 0 && (
+            <View style={[styles.seekThumb, { left: seekThumbLeft }]} />
+          )}
         </View>
         <View style={styles.timeRow}>
-          <Text style={styles.timeText}>{formatTime(currentMs)}</Text>
+          <Text style={styles.timeText}>{formatTime(isSeeking ? seekFraction * durationMs : currentMs)}</Text>
           <Text style={styles.timeText}>{formatTime(durationMs)}</Text>
         </View>
       </View>
 
-      {/* Bottom sheet */}
+      {/* Word lookup bottom sheet (design screens 2/2a/2b) */}
       <BottomSheet
-        ref={bottomSheetRef}
+        ref={wordSheetRef}
         index={-1}
-        snapPoints={['50%']}
+        enableDynamicSizing
         enablePanDownToClose
-        backgroundStyle={styles.sheetBg}
-        handleIndicatorStyle={{ backgroundColor: Colors.textMuted, width: 36 }}
+        backdropComponent={renderBackdrop}
+        backgroundStyle={styles.wordSheetBg}
+        handleIndicatorStyle={styles.wordSheetIndicator}
       >
         <BottomSheetView>
           {selectedToken && (
@@ -255,10 +363,10 @@ export default function PlayerScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.background,
   },
 
-  // MV Area
+  // MV Area - Expanded
   mvArea: {
     height: 220,
     backgroundColor: '#1A1A1A',
@@ -266,41 +374,114 @@ const styles = StyleSheet.create({
   mvPlaceholder: {
     flex: 1,
     backgroundColor: '#1A1A1A',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  songInfoOverlay: {
-    position: 'absolute',
-    left: 16,
-    bottom: 16,
+  mvPlayBtn: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#FFFFFF40',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  // MV Area - Collapsed (screen 1a)
+  mvCollapsedBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    height: 56,
+    backgroundColor: '#1A1A1A',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 10,
   },
-  songTexts: {
+  mvThumb: {
+    width: 64,
+    height: 36,
+    borderRadius: 6,
+    backgroundColor: '#333333',
+  },
+  mvCollapsedTexts: {
+    flex: 1,
     gap: 2,
   },
-  songTitle: {
-    fontSize: 14,
+  mvCollapsedTitle: {
+    fontSize: 13,
     fontWeight: '800',
     color: '#FFFFFF',
-    textShadowColor: '#000000AA',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 6,
+  },
+  mvCollapsedArtist: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: '#FFFFFFBB',
+  },
+  mvCollapsedPlayBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FFFFFF15',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  // Bottom Sheet Container (lyrics area)
+  bottomSheetOuter: {
+    flex: 1,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  bottomSheetInner: {
+    flex: 1,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    backgroundColor: Colors.background,
+    overflow: 'hidden',
+  },
+
+  // Drag Handle
+  dragHandle: {
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dragBar: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: Colors.border,
+  },
+
+  // Scroll Content
+  scrollContent: {
+    flex: 1,
+  },
+
+  // Song Info (inside bottom sheet, above lyrics)
+  songInfo: {
+    paddingTop: 32,
+    paddingBottom: 24,
+    gap: 6,
+  },
+  songTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: Colors.textPrimary,
   },
   songArtist: {
-    fontSize: 12,
+    fontSize: 15,
     fontWeight: '500',
-    color: '#FFFFFF',
-    textShadowColor: '#000000AA',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 6,
+    color: Colors.textSecondary,
   },
 
   // Lyrics
-  lyricsWrapper: {
-    flex: 1,
-  },
   lyricsList: {
-    padding: 24,
+    paddingHorizontal: 24,
     paddingBottom: 100,
   },
   fadeGradient: {
@@ -314,11 +495,6 @@ const styles = StyleSheet.create({
   // Line
   lineContainer: {
     marginBottom: 20,
-  },
-  lineGapActive: {
-    gap: 6,
-  },
-  lineGapInactive: {
     gap: 4,
   },
 
@@ -330,55 +506,68 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   tokenTextActive: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: '800',
-    color: '#18181B',
+    color: Colors.textPrimary,
   },
   tokenTextInactive: {
     fontSize: 18,
-    fontWeight: '800',
-    color: '#A1A1AA',
+    fontWeight: '500',
+    color: Colors.textMuted,
   },
   tokenWithUnderline: {
-    gap: 2,
+    position: 'relative',
   },
   underline: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     height: 2,
     borderRadius: 1,
-    width: '100%',
   },
 
   // Pronunciation
   pronActive: {
     fontSize: 12,
-    color: '#71717A',
+    color: Colors.textSecondary,
   },
   pronInactive: {
     fontSize: 12,
-    color: '#A1A1AA',
+    color: Colors.textMuted,
   },
 
   // Translation
   translationActive: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '500',
-    color: '#18181B',
+    color: Colors.textPrimary,
   },
   translationInactive: {
     fontSize: 13,
-    color: '#71717A',
+    color: Colors.textSecondary,
   },
 
   // Mini player
-  miniPlayer: {
+  miniPlayer: {},
+  progressTouchArea: {
+    paddingTop: 30,
+    marginTop: -30,
+    justifyContent: 'flex-end',
   },
   progressTrack: {
     height: 2,
-    backgroundColor: '#D4D4D8',
+    backgroundColor: Colors.border,
+  },
+  progressTrackSeeking: {
+    height: 4,
   },
   progressFill: {
     height: 2,
-    backgroundColor: '#4F46E5',
+    backgroundColor: Colors.primary,
+  },
+  progressFillSeeking: {
+    height: 4,
   },
   timeRow: {
     flexDirection: 'row',
@@ -390,13 +579,66 @@ const styles = StyleSheet.create({
   timeText: {
     fontSize: 11,
     fontWeight: '500',
-    color: '#71717A',
+    color: Colors.textSecondary,
   },
 
-  // Sheet
-  sheetBg: {
-    backgroundColor: '#FFFFFF',
+  // Seek UI (screen 1b)
+  seekThumb: {
+    position: 'absolute',
+    bottom: -7,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: Colors.primary,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
+  seekTooltipWrap: {
+    position: 'absolute',
+    bottom: 10,
+    alignItems: 'center',
+  },
+  seekTooltip: {
+    backgroundColor: '#1A1A1AEE',
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  seekTooltipText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  seekArrow: {
+    width: 0,
+    height: 0,
+    borderLeftWidth: 5,
+    borderRightWidth: 5,
+    borderTopWidth: 6,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderTopColor: '#1A1A1AEE',
+  },
+
+  // Word lookup bottom sheet (design screens 2/2a/2b)
+  wordSheetBg: {
+    backgroundColor: Colors.card,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
+  },
+  wordSheetIndicator: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#A1A1AA',
   },
 });

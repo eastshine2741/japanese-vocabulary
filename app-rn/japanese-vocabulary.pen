@@ -4,8 +4,8 @@
     {
       "type": "frame",
       "id": "mrn7o",
-      "x": 900,
-      "y": -1254,
+      "x": 906,
+      "y": -1255,
       "name": "1. Song Playback - Base",
       "clip": true,
       "width": 402,
@@ -100,9 +100,9 @@
           "children": [
             {
               "type": "frame",
-              "id": "sODaa",
+              "id": "UEB97",
               "x": 175,
-              "y": 75,
+              "y": 84,
               "name": "playBtn",
               "width": 52,
               "height": 52,
@@ -113,368 +113,357 @@
               "children": [
                 {
                   "type": "icon_font",
-                  "id": "o1OlW",
+                  "id": "UkLR2",
                   "name": "playIcon",
                   "width": 24,
                   "height": 24,
                   "iconFontName": "play",
                   "iconFontFamily": "lucide",
-                  "fill": "$text-primary"
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "cwm5n",
-              "x": 16,
-              "y": 158,
-              "name": "songInfo",
-              "fill": "\\$pos-particle",
-              "effect": {
-                "type": "background_blur",
-                "radius": 0,
-                "enabled": false
-              },
-              "gap": 12,
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "frame",
-                  "id": "ELbxV",
-                  "name": "albumArt",
-                  "metadata": {
-                    "type": "unsplash",
-                    "username": "susan_wilkinson",
-                    "link": "https://unsplash.com/@susan_wilkinson",
-                    "author": "Susan Wilkinson"
-                  },
-                  "width": 40,
-                  "height": 40,
-                  "fill": {
-                    "type": "image",
-                    "enabled": true,
-                    "url": "https://images.unsplash.com/photo-1637452840342-ec25c3592f78?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzM4NDg4MzB8&ixlib=rb-4.1.0&q=80&w=1080",
-                    "mode": "fill"
-                  },
-                  "cornerRadius": 14,
-                  "effect": {
-                    "type": "shadow",
-                    "shadowType": "outer",
-                    "color": "#00000066",
-                    "offset": {
-                      "x": 0,
-                      "y": 1
-                    },
-                    "blur": 8
-                  }
-                },
-                {
-                  "type": "frame",
-                  "id": "MsJth",
-                  "name": "songTexts",
-                  "layout": "vertical",
-                  "gap": 2,
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "gA7a0",
-                      "name": "titleTxt",
-                      "fill": "#FFFFFF",
-                      "effect": [
-                        {
-                          "type": "shadow",
-                          "shadowType": "outer",
-                          "color": "#000000AA",
-                          "offset": {
-                            "x": 0,
-                            "y": 1
-                          },
-                          "blur": 6
-                        },
-                        {
-                          "type": "shadow",
-                          "shadowType": "outer",
-                          "color": "#00000066",
-                          "blur": 16
-                        }
-                      ],
-                      "content": "夜空の彼方",
-                      "fontFamily": "Plus Jakarta Sans",
-                      "fontSize": 14,
-                      "fontWeight": "800"
-                    },
-                    {
-                      "type": "text",
-                      "id": "0YNu0",
-                      "name": "artistTxt",
-                      "fill": "#FFFFFF",
-                      "effect": [
-                        {
-                          "type": "shadow",
-                          "shadowType": "outer",
-                          "color": "#000000AA",
-                          "offset": {
-                            "x": 0,
-                            "y": 1
-                          },
-                          "blur": 6
-                        },
-                        {
-                          "type": "shadow",
-                          "shadowType": "outer",
-                          "color": "#00000066",
-                          "blur": 16
-                        }
-                      ],
-                      "content": "YOASOBI",
-                      "fontFamily": "Inter",
-                      "fontSize": 12,
-                      "fontWeight": "500"
-                    }
-                  ]
+                  "fill": "#FFFFFF"
                 }
               ]
             }
           ]
         },
         {
-          "id": "X5SPb",
-          "type": "ref",
-          "ref": "EYCDM",
-          "name": "lyrSec",
+          "type": "frame",
+          "id": "mfWGM",
+          "name": "bottomSheet",
           "clip": true,
-          "height": "fill_container",
           "width": "fill_container",
-          "x": 0,
-          "y": 282,
-          "descendants": {
-            "LwygQ": {
+          "height": 553,
+          "fill": "$bg-primary",
+          "cornerRadius": [
+            20,
+            20,
+            0,
+            0
+          ],
+          "effect": {
+            "type": "shadow",
+            "shadowType": "outer",
+            "color": "#00000015",
+            "offset": {
+              "x": 0,
+              "y": -4
+            },
+            "blur": 16
+          },
+          "layout": "vertical",
+          "children": [
+            {
+              "type": "frame",
+              "id": "yPbEC",
+              "name": "dragHandle",
               "width": "fill_container",
-              "height": "fit_content",
-              "x": 24,
-              "y": 20
+              "height": 24,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 2,
+                  "id": "G21Kj",
+                  "name": "handleBar",
+                  "fill": "$border-default",
+                  "width": 36,
+                  "height": 4
+                }
+              ]
             },
-            "ADSeb": {
-              "width": "fit_content",
-              "height": "fit_content"
-            },
-            "M5tT5": {
-              "width": "fit_content",
-              "height": "fit_content"
-            },
-            "pEOMS": {
+            {
+              "type": "frame",
+              "id": "apEzJ",
+              "name": "scrollContent",
+              "clip": true,
               "width": "fill_container",
-              "y": 28
-            },
-            "nMqE4": {
-              "x": 21
-            },
-            "Bz3Js": {
-              "width": "fit_content",
-              "height": "fit_content",
-              "x": 42
-            },
-            "gCWp1": {
-              "width": "fill_container",
-              "y": 28
-            },
-            "IZT2I": {
-              "width": "fit_content",
-              "height": "fit_content",
-              "x": 81
-            },
-            "J0VUo": {
-              "width": "fill_container",
-              "y": 28
-            },
-            "6ijES": {
-              "x": 102
-            },
-            "RQ1iZ": {
-              "width": "fit_content",
-              "height": "fit_content",
-              "x": 123
-            },
-            "RXYYp": {
-              "width": "fill_container",
-              "y": 28
-            },
-            "VBq3F": {
-              "x": 144
-            },
-            "3mIFo": {
-              "y": 34
-            },
-            "UEz6b": {
-              "y": 55
-            },
-            "IUrLL": {
-              "width": "fill_container",
-              "height": "fit_content",
-              "x": 24,
-              "y": 114
-            },
-            "Oo5bJ": {
-              "width": "fit_content",
-              "height": "fit_content"
-            },
-            "mz1Qh": {
-              "width": "fit_content",
-              "height": "fit_content"
-            },
-            "iPeR7": {
-              "width": "fill_container",
-              "y": 34
-            },
-            "1bBao": {
-              "x": 48
-            },
-            "pVRnr": {
-              "width": "fit_content",
-              "height": "fit_content",
-              "x": 74
-            },
-            "CtCAQ": {
-              "width": "fill_container",
-              "y": 34
-            },
-            "kSx73": {
-              "x": 144
-            },
-            "Gii4z": {
-              "y": 42
-            },
-            "Fyqcm": {
-              "y": 65
-            },
-            "po1Sm": {
-              "width": "fill_container",
-              "height": "fit_content",
-              "x": 24,
-              "y": 219
-            },
-            "dYrSY": {
-              "width": "fit_content",
-              "height": "fit_content"
-            },
-            "q24Py": {
-              "width": "fit_content",
-              "height": "fit_content"
-            },
-            "W8M2F": {
-              "width": "fill_container",
-              "y": 28
-            },
-            "leSOo": {
-              "width": "fit_content",
-              "height": "fit_content",
-              "x": 75
-            },
-            "5e7nH": {
-              "width": "fill_container",
-              "y": 28
-            },
-            "x3SEu": {
-              "x": 114
-            },
-            "FwJ8K": {
-              "width": "fit_content",
-              "height": "fit_content",
-              "x": 135
-            },
-            "77tJM": {
-              "width": "fill_container",
-              "y": 28
-            },
-            "jssCO": {
-              "y": 34
-            },
-            "AQN6s": {
-              "y": 55
-            },
-            "ZRCJN": {
-              "width": "fill_container",
-              "height": "fit_content",
-              "x": 24,
-              "y": 313
-            },
-            "AyeYF": {
-              "width": "fit_content",
-              "height": "fit_content"
-            },
-            "yQx8h": {
-              "width": "fit_content",
-              "height": "fit_content"
-            },
-            "RazJI": {
-              "width": "fill_container",
-              "y": 28
-            },
-            "Q4SFb": {
-              "x": 21
-            },
-            "zJHAF": {
-              "width": "fit_content",
-              "height": "fit_content",
-              "x": 42
-            },
-            "kxRx7": {
-              "width": "fill_container",
-              "y": 28
-            },
-            "4aRmb": {
-              "width": "fit_content",
-              "height": "fit_content",
-              "x": 99
-            },
-            "H3TI2": {
-              "width": "fill_container",
-              "y": 28
-            },
-            "ucaaU": {
-              "y": 34
-            },
-            "GKZpk": {
-              "y": 55
-            },
-            "g8bZE": {
-              "width": "fill_container",
-              "height": "fit_content",
-              "x": 24,
-              "y": 407
-            },
-            "MTbqt": {
-              "width": "fit_content",
-              "height": "fit_content"
-            },
-            "bhtri": {
-              "width": "fit_content",
-              "height": "fit_content",
-              "x": 39
-            },
-            "Xs8zo": {
-              "width": "fill_container",
-              "y": 28
-            },
-            "M3HRj": {
-              "x": 78
-            },
-            "eKxgE": {
-              "width": "fit_content",
-              "height": "fit_content",
-              "x": 99
-            },
-            "nFyVd": {
-              "width": "fill_container",
-              "y": 28
-            },
-            "oHxsa": {
-              "y": 34
-            },
-            "SCKRG": {
-              "y": 55
+              "height": "fill_container",
+              "layout": "vertical",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "fyTWV",
+                  "name": "songInfo",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "padding": [
+                    32,
+                    24,
+                    24,
+                    24
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "sedDH",
+                      "name": "title1",
+                      "fill": "$text-primary",
+                      "content": "夜空の彼方",
+                      "fontFamily": "Plus Jakarta Sans",
+                      "fontSize": 24,
+                      "fontWeight": "800"
+                    },
+                    {
+                      "type": "text",
+                      "id": "8IBFX",
+                      "name": "artist1",
+                      "fill": "$text-secondary",
+                      "content": "YOASOBI",
+                      "fontFamily": "Inter",
+                      "fontSize": 15,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "id": "X5SPb",
+                  "type": "ref",
+                  "ref": "EYCDM",
+                  "name": "lyrSec",
+                  "clip": false,
+                  "height": "fit_content",
+                  "width": "fill_container",
+                  "x": 0,
+                  "y": 115,
+                  "padding": [
+                    8,
+                    24,
+                    20,
+                    24
+                  ],
+                  "descendants": {
+                    "LwygQ": {
+                      "width": "fill_container",
+                      "height": "fit_content",
+                      "x": 24,
+                      "y": 8
+                    },
+                    "ADSeb": {
+                      "width": "fit_content",
+                      "height": "fit_content"
+                    },
+                    "M5tT5": {
+                      "width": "fit_content",
+                      "height": "fit_content"
+                    },
+                    "pEOMS": {
+                      "width": "fill_container",
+                      "y": 28
+                    },
+                    "nMqE4": {
+                      "x": 21
+                    },
+                    "Bz3Js": {
+                      "width": "fit_content",
+                      "height": "fit_content",
+                      "x": 42
+                    },
+                    "gCWp1": {
+                      "width": "fill_container",
+                      "y": 28
+                    },
+                    "IZT2I": {
+                      "width": "fit_content",
+                      "height": "fit_content",
+                      "x": 81
+                    },
+                    "J0VUo": {
+                      "width": "fill_container",
+                      "y": 28
+                    },
+                    "6ijES": {
+                      "x": 102
+                    },
+                    "RQ1iZ": {
+                      "width": "fit_content",
+                      "height": "fit_content",
+                      "x": 123
+                    },
+                    "RXYYp": {
+                      "width": "fill_container",
+                      "y": 28
+                    },
+                    "VBq3F": {
+                      "x": 144
+                    },
+                    "3mIFo": {
+                      "y": 34
+                    },
+                    "UEz6b": {
+                      "y": 55
+                    },
+                    "IUrLL": {
+                      "width": "fill_container",
+                      "height": "fit_content",
+                      "x": 24,
+                      "y": 102
+                    },
+                    "Oo5bJ": {
+                      "width": "fit_content",
+                      "height": "fit_content"
+                    },
+                    "mz1Qh": {
+                      "width": "fit_content",
+                      "height": "fit_content"
+                    },
+                    "iPeR7": {
+                      "width": "fill_container",
+                      "y": 28
+                    },
+                    "1bBao": {
+                      "x": 39
+                    },
+                    "pVRnr": {
+                      "width": "fit_content",
+                      "height": "fit_content",
+                      "x": 60
+                    },
+                    "CtCAQ": {
+                      "width": "fill_container",
+                      "y": 28
+                    },
+                    "kSx73": {
+                      "x": 117
+                    },
+                    "Gii4z": {
+                      "y": 34
+                    },
+                    "Fyqcm": {
+                      "y": 55
+                    },
+                    "po1Sm": {
+                      "width": "fill_container",
+                      "height": "fit_content",
+                      "x": 24,
+                      "y": 196
+                    },
+                    "dYrSY": {
+                      "width": "fit_content",
+                      "height": "fit_content"
+                    },
+                    "q24Py": {
+                      "width": "fit_content",
+                      "height": "fit_content"
+                    },
+                    "W8M2F": {
+                      "width": "fill_container",
+                      "y": 28
+                    },
+                    "leSOo": {
+                      "width": "fit_content",
+                      "height": "fit_content",
+                      "x": 75
+                    },
+                    "5e7nH": {
+                      "width": "fill_container",
+                      "y": 28
+                    },
+                    "x3SEu": {
+                      "x": 114
+                    },
+                    "FwJ8K": {
+                      "width": "fit_content",
+                      "height": "fit_content",
+                      "x": 135
+                    },
+                    "77tJM": {
+                      "width": "fill_container",
+                      "y": 28
+                    },
+                    "jssCO": {
+                      "y": 34
+                    },
+                    "AQN6s": {
+                      "y": 55
+                    },
+                    "ZRCJN": {
+                      "width": "fill_container",
+                      "height": "fit_content",
+                      "x": 24,
+                      "y": 290
+                    },
+                    "AyeYF": {
+                      "width": "fit_content",
+                      "height": "fit_content"
+                    },
+                    "yQx8h": {
+                      "width": "fit_content",
+                      "height": "fit_content"
+                    },
+                    "RazJI": {
+                      "width": "fill_container",
+                      "y": 28
+                    },
+                    "Q4SFb": {
+                      "x": 21
+                    },
+                    "zJHAF": {
+                      "width": "fit_content",
+                      "height": "fit_content",
+                      "x": 42
+                    },
+                    "kxRx7": {
+                      "width": "fill_container",
+                      "y": 28
+                    },
+                    "4aRmb": {
+                      "width": "fit_content",
+                      "height": "fit_content",
+                      "x": 99
+                    },
+                    "H3TI2": {
+                      "width": "fill_container",
+                      "y": 28
+                    },
+                    "ucaaU": {
+                      "y": 34
+                    },
+                    "GKZpk": {
+                      "y": 55
+                    },
+                    "g8bZE": {
+                      "width": "fill_container",
+                      "height": "fit_content",
+                      "x": 24,
+                      "y": 384
+                    },
+                    "MTbqt": {
+                      "width": "fit_content",
+                      "height": "fit_content"
+                    },
+                    "bhtri": {
+                      "width": "fit_content",
+                      "height": "fit_content",
+                      "x": 39
+                    },
+                    "Xs8zo": {
+                      "width": "fill_container",
+                      "y": 28
+                    },
+                    "M3HRj": {
+                      "x": 78
+                    },
+                    "eKxgE": {
+                      "width": "fit_content",
+                      "height": "fit_content",
+                      "x": 99
+                    },
+                    "nFyVd": {
+                      "width": "fill_container",
+                      "y": 28
+                    },
+                    "oHxsa": {
+                      "y": 34
+                    },
+                    "SCKRG": {
+                      "y": 55
+                    }
+                  }
+                }
+              ]
             }
-          }
+          ]
         },
         {
           "type": "frame",
@@ -10033,9 +10022,9 @@
     {
       "type": "frame",
       "id": "SzSp8",
-      "x": 1369,
-      "y": -1254,
-      "name": "1b. Song Playback - Collapsed",
+      "x": 1375,
+      "y": -1255,
+      "name": "1a. Song Playback - Collapsed MV",
       "clip": true,
       "width": 402,
       "height": 874,
@@ -10108,25 +10097,67 @@
         },
         {
           "type": "frame",
-          "id": "rkqlz",
+          "id": "lHunI",
           "name": "mvArea",
-          "metadata": {
-            "type": "unsplash",
-            "username": "jl_darren25",
-            "link": "https://unsplash.com/@jl_darren25",
-            "author": "Darren Lin"
-          },
           "clip": true,
           "width": "fill_container",
           "height": 56,
           "fill": "#1A1A1A",
-          "layout": "none",
+          "gap": 10,
+          "padding": [
+            8,
+            12
+          ],
+          "alignItems": "center",
           "children": [
             {
               "type": "frame",
-              "id": "MkM98",
-              "x": 350,
-              "y": 10,
+              "id": "UMvOP",
+              "name": "mvThumb",
+              "clip": true,
+              "width": 64,
+              "height": 36,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "https://images.unsplash.com/photo-1660201653614-4b85424679ed?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzM4NDg4MjV8&ixlib=rb-4.1.0&q=80&w=1080",
+                "mode": "fill"
+              },
+              "cornerRadius": 6
+            },
+            {
+              "type": "frame",
+              "id": "jQMXm",
+              "name": "songTexts",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 2,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "bY8p6",
+                  "name": "titleTxt",
+                  "fill": "#FFFFFF",
+                  "content": "夜空の彼方",
+                  "fontFamily": "Plus Jakarta Sans",
+                  "fontSize": 13,
+                  "fontWeight": "800"
+                },
+                {
+                  "type": "text",
+                  "id": "MIrMk",
+                  "name": "artistTxt",
+                  "fill": "#FFFFFFBB",
+                  "content": "YOASOBI",
+                  "fontFamily": "Inter",
+                  "fontSize": 11,
+                  "fontWeight": "500"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "DEbNe",
               "name": "playBtn",
               "width": 36,
               "height": 36,
@@ -10137,8 +10168,8 @@
               "children": [
                 {
                   "type": "icon_font",
-                  "id": "wGjZo",
-                  "name": "playIcon",
+                  "id": "FoO6J",
+                  "name": "playIcon2",
                   "width": 16,
                   "height": 16,
                   "iconFontName": "play",
@@ -10146,331 +10177,348 @@
                   "fill": "#FFFFFF"
                 }
               ]
-            },
-            {
-              "type": "frame",
-              "id": "xgQMd",
-              "x": 12,
-              "y": 8,
-              "name": "songInfo",
-              "fill": "#00000000",
-              "effect": {
-                "type": "background_blur",
-                "radius": 0,
-                "enabled": false
-              },
-              "gap": 12,
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "frame",
-                  "id": "pw8WV",
-                  "name": "albumArt",
-                  "metadata": {
-                    "type": "unsplash",
-                    "username": "susan_wilkinson",
-                    "link": "https://unsplash.com/@susan_wilkinson",
-                    "author": "Susan Wilkinson"
-                  },
-                  "width": 36,
-                  "height": 36,
-                  "fill": {
-                    "type": "image",
-                    "enabled": true,
-                    "url": "https://images.unsplash.com/photo-1637452840342-ec25c3592f78?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzM4NDg4MzB8&ixlib=rb-4.1.0&q=80&w=1080",
-                    "mode": "fill"
-                  },
-                  "cornerRadius": 10,
-                  "effect": {
-                    "type": "shadow",
-                    "shadowType": "outer",
-                    "enabled": false,
-                    "color": "#000000"
-                  }
-                },
-                {
-                  "type": "frame",
-                  "id": "R7WVn",
-                  "name": "songTexts",
-                  "layout": "vertical",
-                  "gap": 2,
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "8Cvg8",
-                      "name": "titleTxt",
-                      "fill": "#FFFFFF",
-                      "effect": {
-                        "type": "shadow",
-                        "shadowType": "outer",
-                        "enabled": false,
-                        "color": "#000000"
-                      },
-                      "content": "夜空の彼方",
-                      "fontFamily": "Plus Jakarta Sans",
-                      "fontSize": 13,
-                      "fontWeight": "800"
-                    },
-                    {
-                      "type": "text",
-                      "id": "6hPvE",
-                      "name": "artistTxt",
-                      "fill": "#FFFFFFBB",
-                      "effect": {
-                        "type": "shadow",
-                        "shadowType": "outer",
-                        "enabled": false,
-                        "color": "#000000"
-                      },
-                      "content": "YOASOBI",
-                      "fontFamily": "Inter",
-                      "fontSize": 11,
-                      "fontWeight": "500"
-                    }
-                  ]
-                }
-              ]
             }
           ]
         },
         {
-          "id": "FkMjz",
-          "type": "ref",
-          "ref": "EYCDM",
-          "name": "lyrSec",
+          "type": "frame",
+          "id": "C1d9q",
+          "name": "bottomSheet",
           "clip": true,
-          "height": "fill_container",
           "width": "fill_container",
-          "x": 0,
-          "y": 118,
-          "descendants": {
-            "LwygQ": {
+          "height": 717,
+          "fill": "$bg-primary",
+          "cornerRadius": [
+            20,
+            20,
+            0,
+            0
+          ],
+          "effect": {
+            "type": "shadow",
+            "shadowType": "outer",
+            "color": "#00000030",
+            "offset": {
+              "x": 0,
+              "y": -4
+            },
+            "blur": 16
+          },
+          "layout": "vertical",
+          "children": [
+            {
+              "type": "frame",
+              "id": "l916H",
+              "name": "dragHandle",
               "width": "fill_container",
-              "height": "fit_content",
-              "x": 24,
-              "y": 20
+              "height": 24,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 2,
+                  "id": "tvAAI",
+                  "name": "handleBar",
+                  "fill": "$border-default",
+                  "width": 36,
+                  "height": 4
+                }
+              ]
             },
-            "ADSeb": {
-              "width": "fit_content",
-              "height": "fit_content"
-            },
-            "M5tT5": {
-              "width": "fit_content",
-              "height": "fit_content"
-            },
-            "pEOMS": {
+            {
+              "type": "frame",
+              "id": "eEoAu",
+              "name": "scrollContent",
+              "clip": true,
               "width": "fill_container",
-              "y": 28
-            },
-            "nMqE4": {
-              "x": 21
-            },
-            "Bz3Js": {
-              "width": "fit_content",
-              "height": "fit_content",
-              "x": 42
-            },
-            "gCWp1": {
-              "width": "fill_container",
-              "y": 28
-            },
-            "IZT2I": {
-              "width": "fit_content",
-              "height": "fit_content",
-              "x": 81
-            },
-            "J0VUo": {
-              "width": "fill_container",
-              "y": 28
-            },
-            "6ijES": {
-              "x": 102
-            },
-            "RQ1iZ": {
-              "width": "fit_content",
-              "height": "fit_content",
-              "x": 123
-            },
-            "RXYYp": {
-              "width": "fill_container",
-              "y": 28
-            },
-            "VBq3F": {
-              "x": 144
-            },
-            "3mIFo": {
-              "y": 34
-            },
-            "UEz6b": {
-              "y": 55
-            },
-            "IUrLL": {
-              "width": "fill_container",
-              "height": "fit_content",
-              "x": 24,
-              "y": 114
-            },
-            "Oo5bJ": {
-              "width": "fit_content",
-              "height": "fit_content"
-            },
-            "mz1Qh": {
-              "width": "fit_content",
-              "height": "fit_content"
-            },
-            "iPeR7": {
-              "width": "fill_container",
-              "y": 34
-            },
-            "1bBao": {
-              "x": 48
-            },
-            "pVRnr": {
-              "width": "fit_content",
-              "height": "fit_content",
-              "x": 74
-            },
-            "CtCAQ": {
-              "width": "fill_container",
-              "y": 34
-            },
-            "kSx73": {
-              "x": 144
-            },
-            "Gii4z": {
-              "y": 42
-            },
-            "Fyqcm": {
-              "y": 65
-            },
-            "po1Sm": {
-              "width": "fill_container",
-              "height": "fit_content",
-              "x": 24,
-              "y": 219
-            },
-            "dYrSY": {
-              "width": "fit_content",
-              "height": "fit_content"
-            },
-            "q24Py": {
-              "width": "fit_content",
-              "height": "fit_content"
-            },
-            "W8M2F": {
-              "width": "fill_container",
-              "y": 28
-            },
-            "leSOo": {
-              "width": "fit_content",
-              "height": "fit_content",
-              "x": 75
-            },
-            "5e7nH": {
-              "width": "fill_container",
-              "y": 28
-            },
-            "x3SEu": {
-              "x": 114
-            },
-            "FwJ8K": {
-              "width": "fit_content",
-              "height": "fit_content",
-              "x": 135
-            },
-            "77tJM": {
-              "width": "fill_container",
-              "y": 28
-            },
-            "jssCO": {
-              "y": 34
-            },
-            "AQN6s": {
-              "y": 55
-            },
-            "ZRCJN": {
-              "width": "fill_container",
-              "height": "fit_content",
-              "x": 24,
-              "y": 313
-            },
-            "AyeYF": {
-              "width": "fit_content",
-              "height": "fit_content"
-            },
-            "yQx8h": {
-              "width": "fit_content",
-              "height": "fit_content"
-            },
-            "RazJI": {
-              "width": "fill_container",
-              "y": 28
-            },
-            "Q4SFb": {
-              "x": 21
-            },
-            "zJHAF": {
-              "width": "fit_content",
-              "height": "fit_content",
-              "x": 42
-            },
-            "kxRx7": {
-              "width": "fill_container",
-              "y": 28
-            },
-            "4aRmb": {
-              "width": "fit_content",
-              "height": "fit_content",
-              "x": 99
-            },
-            "H3TI2": {
-              "width": "fill_container",
-              "y": 28
-            },
-            "ucaaU": {
-              "y": 34
-            },
-            "GKZpk": {
-              "y": 55
-            },
-            "g8bZE": {
-              "width": "fill_container",
-              "height": "fit_content",
-              "x": 24,
-              "y": 407
-            },
-            "MTbqt": {
-              "width": "fit_content",
-              "height": "fit_content"
-            },
-            "bhtri": {
-              "width": "fit_content",
-              "height": "fit_content",
-              "x": 39
-            },
-            "Xs8zo": {
-              "width": "fill_container",
-              "y": 28
-            },
-            "M3HRj": {
-              "x": 78
-            },
-            "eKxgE": {
-              "width": "fit_content",
-              "height": "fit_content",
-              "x": 99
-            },
-            "nFyVd": {
-              "width": "fill_container",
-              "y": 28
-            },
-            "oHxsa": {
-              "y": 34
-            },
-            "SCKRG": {
-              "y": 55
+              "height": "fill_container",
+              "layout": "vertical",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "e2pzj",
+                  "name": "songInfo",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "padding": [
+                    32,
+                    24,
+                    24,
+                    24
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "f2BOc",
+                      "name": "title2",
+                      "fill": "$text-primary",
+                      "content": "夜空の彼方",
+                      "fontFamily": "Plus Jakarta Sans",
+                      "fontSize": 24,
+                      "fontWeight": "800"
+                    },
+                    {
+                      "type": "text",
+                      "id": "RiA4o",
+                      "name": "artist2",
+                      "fill": "$text-secondary",
+                      "content": "YOASOBI",
+                      "fontFamily": "Inter",
+                      "fontSize": 15,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "id": "FkMjz",
+                  "type": "ref",
+                  "ref": "EYCDM",
+                  "name": "lyrSec",
+                  "clip": false,
+                  "height": "fit_content",
+                  "width": "fill_container",
+                  "x": 0,
+                  "y": 115,
+                  "padding": [
+                    8,
+                    24,
+                    20,
+                    24
+                  ],
+                  "descendants": {
+                    "LwygQ": {
+                      "width": "fill_container",
+                      "height": "fit_content",
+                      "x": 24,
+                      "y": 8
+                    },
+                    "ADSeb": {
+                      "width": "fit_content",
+                      "height": "fit_content"
+                    },
+                    "M5tT5": {
+                      "width": "fit_content",
+                      "height": "fit_content"
+                    },
+                    "pEOMS": {
+                      "width": "fill_container",
+                      "y": 28
+                    },
+                    "nMqE4": {
+                      "x": 21
+                    },
+                    "Bz3Js": {
+                      "width": "fit_content",
+                      "height": "fit_content",
+                      "x": 42
+                    },
+                    "gCWp1": {
+                      "width": "fill_container",
+                      "y": 28
+                    },
+                    "IZT2I": {
+                      "width": "fit_content",
+                      "height": "fit_content",
+                      "x": 81
+                    },
+                    "J0VUo": {
+                      "width": "fill_container",
+                      "y": 28
+                    },
+                    "6ijES": {
+                      "x": 102
+                    },
+                    "RQ1iZ": {
+                      "width": "fit_content",
+                      "height": "fit_content",
+                      "x": 123
+                    },
+                    "RXYYp": {
+                      "width": "fill_container",
+                      "y": 28
+                    },
+                    "VBq3F": {
+                      "x": 144
+                    },
+                    "3mIFo": {
+                      "y": 34
+                    },
+                    "UEz6b": {
+                      "y": 55
+                    },
+                    "IUrLL": {
+                      "width": "fill_container",
+                      "height": "fit_content",
+                      "x": 24,
+                      "y": 102
+                    },
+                    "Oo5bJ": {
+                      "width": "fit_content",
+                      "height": "fit_content"
+                    },
+                    "mz1Qh": {
+                      "width": "fit_content",
+                      "height": "fit_content"
+                    },
+                    "iPeR7": {
+                      "width": "fill_container",
+                      "y": 28
+                    },
+                    "1bBao": {
+                      "x": 39
+                    },
+                    "pVRnr": {
+                      "width": "fit_content",
+                      "height": "fit_content",
+                      "x": 60
+                    },
+                    "CtCAQ": {
+                      "width": "fill_container",
+                      "y": 28
+                    },
+                    "kSx73": {
+                      "x": 117
+                    },
+                    "Gii4z": {
+                      "y": 34
+                    },
+                    "Fyqcm": {
+                      "y": 55
+                    },
+                    "po1Sm": {
+                      "width": "fill_container",
+                      "height": "fit_content",
+                      "x": 24,
+                      "y": 196
+                    },
+                    "dYrSY": {
+                      "width": "fit_content",
+                      "height": "fit_content"
+                    },
+                    "q24Py": {
+                      "width": "fit_content",
+                      "height": "fit_content"
+                    },
+                    "W8M2F": {
+                      "width": "fill_container",
+                      "y": 28
+                    },
+                    "leSOo": {
+                      "width": "fit_content",
+                      "height": "fit_content",
+                      "x": 75
+                    },
+                    "5e7nH": {
+                      "width": "fill_container",
+                      "y": 28
+                    },
+                    "x3SEu": {
+                      "x": 114
+                    },
+                    "FwJ8K": {
+                      "width": "fit_content",
+                      "height": "fit_content",
+                      "x": 135
+                    },
+                    "77tJM": {
+                      "width": "fill_container",
+                      "y": 28
+                    },
+                    "jssCO": {
+                      "y": 34
+                    },
+                    "AQN6s": {
+                      "y": 55
+                    },
+                    "ZRCJN": {
+                      "width": "fill_container",
+                      "height": "fit_content",
+                      "x": 24,
+                      "y": 290
+                    },
+                    "AyeYF": {
+                      "width": "fit_content",
+                      "height": "fit_content"
+                    },
+                    "yQx8h": {
+                      "width": "fit_content",
+                      "height": "fit_content"
+                    },
+                    "RazJI": {
+                      "width": "fill_container",
+                      "y": 28
+                    },
+                    "Q4SFb": {
+                      "x": 21
+                    },
+                    "zJHAF": {
+                      "width": "fit_content",
+                      "height": "fit_content",
+                      "x": 42
+                    },
+                    "kxRx7": {
+                      "width": "fill_container",
+                      "y": 28
+                    },
+                    "4aRmb": {
+                      "width": "fit_content",
+                      "height": "fit_content",
+                      "x": 99
+                    },
+                    "H3TI2": {
+                      "width": "fill_container",
+                      "y": 28
+                    },
+                    "ucaaU": {
+                      "y": 34
+                    },
+                    "GKZpk": {
+                      "y": 55
+                    },
+                    "g8bZE": {
+                      "width": "fill_container",
+                      "height": "fit_content",
+                      "x": 24,
+                      "y": 384
+                    },
+                    "MTbqt": {
+                      "width": "fit_content",
+                      "height": "fit_content"
+                    },
+                    "bhtri": {
+                      "width": "fit_content",
+                      "height": "fit_content",
+                      "x": 39
+                    },
+                    "Xs8zo": {
+                      "width": "fill_container",
+                      "y": 28
+                    },
+                    "M3HRj": {
+                      "x": 78
+                    },
+                    "eKxgE": {
+                      "width": "fit_content",
+                      "height": "fit_content",
+                      "x": 99
+                    },
+                    "nFyVd": {
+                      "width": "fill_container",
+                      "y": 28
+                    },
+                    "oHxsa": {
+                      "y": 34
+                    },
+                    "SCKRG": {
+                      "y": 55
+                    }
+                  }
+                }
+              ]
             }
-          }
+          ]
         },
         {
           "type": "frame",
@@ -10582,7 +10630,7 @@
       "id": "8dBXM",
       "x": 1362,
       "y": -179,
-      "name": "2b. Word Lookup — 다른 line에서 담은 단어",
+      "name": "2a. Word Lookup — 다른 line에서 담은 단어",
       "clip": true,
       "width": 402,
       "height": 874,
@@ -10591,10 +10639,10 @@
       "children": [
         {
           "type": "frame",
-          "id": "bfBYv",
+          "id": "iuyAQ",
           "x": 0,
           "y": 0,
-          "name": "Content",
+          "name": "bg2",
           "clip": true,
           "width": 402,
           "height": 874,
@@ -10603,7 +10651,7 @@
           "children": [
             {
               "type": "frame",
-              "id": "ucpGz",
+              "id": "uWPeP",
               "name": "statusBar",
               "width": "fill_container",
               "height": 62,
@@ -10616,7 +10664,7 @@
               "children": [
                 {
                   "type": "text",
-                  "id": "LrHYH",
+                  "id": "3aTRh",
                   "name": "timeText",
                   "fill": "$text-primary",
                   "content": "9:41",
@@ -10626,14 +10674,14 @@
                 },
                 {
                   "type": "frame",
-                  "id": "WI9s2",
+                  "id": "7g83P",
                   "name": "statusRight",
                   "gap": 6,
                   "alignItems": "center",
                   "children": [
                     {
                       "type": "icon_font",
-                      "id": "yn3f5",
+                      "id": "qrRKH",
                       "name": "sigIcon",
                       "width": 16,
                       "height": 16,
@@ -10643,7 +10691,7 @@
                     },
                     {
                       "type": "icon_font",
-                      "id": "JrEgB",
+                      "id": "sQNzd",
                       "name": "wifiIcon",
                       "width": 16,
                       "height": 16,
@@ -10653,7 +10701,7 @@
                     },
                     {
                       "type": "icon_font",
-                      "id": "ZWF25",
+                      "id": "TV5KE",
                       "name": "batIcon",
                       "width": 16,
                       "height": 16,
@@ -10667,7 +10715,7 @@
             },
             {
               "type": "frame",
-              "id": "JuWh9",
+              "id": "vfJSt",
               "name": "mvArea",
               "metadata": {
                 "type": "unsplash",
@@ -10688,9 +10736,9 @@
               "children": [
                 {
                   "type": "frame",
-                  "id": "OWhJU",
+                  "id": "cqcK2",
                   "x": 175,
-                  "y": 75,
+                  "y": 84,
                   "name": "playBtn",
                   "width": 52,
                   "height": 52,
@@ -10701,379 +10749,368 @@
                   "children": [
                     {
                       "type": "icon_font",
-                      "id": "33pxR",
+                      "id": "8Eu4T",
                       "name": "playIcon",
                       "width": 24,
                       "height": 24,
                       "iconFontName": "play",
                       "iconFontFamily": "lucide",
-                      "fill": "$text-primary"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "4KUm2",
-                  "x": 16,
-                  "y": 158,
-                  "name": "songInfo",
-                  "fill": "#00000000",
-                  "effect": {
-                    "type": "background_blur",
-                    "radius": 0,
-                    "enabled": false
-                  },
-                  "gap": 12,
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "ykgI0",
-                      "name": "albumArt",
-                      "metadata": {
-                        "type": "unsplash",
-                        "username": "susan_wilkinson",
-                        "link": "https://unsplash.com/@susan_wilkinson",
-                        "author": "Susan Wilkinson"
-                      },
-                      "width": 40,
-                      "height": 40,
-                      "fill": {
-                        "type": "image",
-                        "enabled": true,
-                        "url": "https://images.unsplash.com/photo-1637452840342-ec25c3592f78?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzM4NDg4MzB8&ixlib=rb-4.1.0&q=80&w=1080",
-                        "mode": "fill"
-                      },
-                      "cornerRadius": 14,
-                      "effect": {
-                        "type": "shadow",
-                        "shadowType": "outer",
-                        "color": "#00000066",
-                        "offset": {
-                          "x": 0,
-                          "y": 1
-                        },
-                        "blur": 8
-                      }
-                    },
-                    {
-                      "type": "frame",
-                      "id": "q7E6i",
-                      "name": "songTexts",
-                      "layout": "vertical",
-                      "gap": 2,
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "K4exa",
-                          "name": "titleTxt",
-                          "fill": "#FFFFFF",
-                          "effect": [
-                            {
-                              "type": "shadow",
-                              "shadowType": "outer",
-                              "color": "#000000AA",
-                              "offset": {
-                                "x": 0,
-                                "y": 1
-                              },
-                              "blur": 6
-                            },
-                            {
-                              "type": "shadow",
-                              "shadowType": "outer",
-                              "color": "#00000066",
-                              "blur": 16
-                            }
-                          ],
-                          "content": "夜空の彼方",
-                          "fontFamily": "Plus Jakarta Sans",
-                          "fontSize": 14,
-                          "fontWeight": "800"
-                        },
-                        {
-                          "type": "text",
-                          "id": "uLoF9",
-                          "name": "artistTxt",
-                          "fill": "#FFFFFF",
-                          "effect": [
-                            {
-                              "type": "shadow",
-                              "shadowType": "outer",
-                              "color": "#000000AA",
-                              "offset": {
-                                "x": 0,
-                                "y": 1
-                              },
-                              "blur": 6
-                            },
-                            {
-                              "type": "shadow",
-                              "shadowType": "outer",
-                              "color": "#00000066",
-                              "blur": 16
-                            }
-                          ],
-                          "content": "YOASOBI",
-                          "fontFamily": "Inter",
-                          "fontSize": 12,
-                          "fontWeight": "500"
-                        }
-                      ]
+                      "fill": "#FFFFFF"
                     }
                   ]
                 }
               ]
             },
             {
-              "id": "7AOMM",
-              "type": "ref",
-              "ref": "EYCDM",
-              "name": "newLyr",
+              "type": "frame",
+              "id": "RfUar",
+              "name": "bottomSheet",
               "clip": true,
-              "height": "fill_container",
               "width": "fill_container",
-              "x": 0,
-              "y": 282,
-              "descendants": {
-                "LwygQ": {
+              "height": 553,
+              "fill": "$bg-primary",
+              "cornerRadius": [
+                20,
+                20,
+                0,
+                0
+              ],
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "#00000015",
+                "offset": {
+                  "x": 0,
+                  "y": -4
+                },
+                "blur": 16
+              },
+              "layout": "vertical",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "MSJ9G",
+                  "name": "dragHandle",
                   "width": "fill_container",
-                  "height": "fit_content",
-                  "x": 24,
-                  "y": 20
+                  "height": 24,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "rectangle",
+                      "cornerRadius": 2,
+                      "id": "M1f8x",
+                      "name": "handleBar",
+                      "fill": "$border-default",
+                      "width": 36,
+                      "height": 4
+                    }
+                  ]
                 },
-                "ADSeb": {
-                  "width": "fit_content",
-                  "height": "fit_content"
-                },
-                "M5tT5": {
-                  "width": "fit_content",
-                  "height": "fit_content"
-                },
-                "pEOMS": {
+                {
+                  "type": "frame",
+                  "id": "VjteT",
+                  "name": "scrollContent",
+                  "clip": true,
                   "width": "fill_container",
-                  "y": 28
-                },
-                "nMqE4": {
-                  "x": 21
-                },
-                "Bz3Js": {
-                  "width": "fit_content",
-                  "height": "fit_content",
-                  "x": 42
-                },
-                "gCWp1": {
-                  "width": "fill_container",
-                  "y": 28
-                },
-                "IZT2I": {
-                  "width": "fit_content",
-                  "height": "fit_content",
-                  "x": 81
-                },
-                "J0VUo": {
-                  "width": "fill_container",
-                  "y": 28
-                },
-                "6ijES": {
-                  "x": 102
-                },
-                "RQ1iZ": {
-                  "width": "fit_content",
-                  "height": "fit_content",
-                  "x": 123
-                },
-                "RXYYp": {
-                  "width": "fill_container",
-                  "y": 28
-                },
-                "VBq3F": {
-                  "x": 144
-                },
-                "3mIFo": {
-                  "y": 34
-                },
-                "UEz6b": {
-                  "y": 55
-                },
-                "IUrLL": {
-                  "width": "fill_container",
-                  "height": "fit_content",
-                  "x": 24,
-                  "y": 114
-                },
-                "Oo5bJ": {
-                  "width": "fit_content",
-                  "height": "fit_content"
-                },
-                "mz1Qh": {
-                  "width": "fit_content",
-                  "height": "fit_content"
-                },
-                "iPeR7": {
-                  "width": "fill_container",
-                  "y": 34
-                },
-                "1bBao": {
-                  "x": 48
-                },
-                "pVRnr": {
-                  "width": "fit_content",
-                  "height": "fit_content",
-                  "x": 74
-                },
-                "CtCAQ": {
-                  "width": "fill_container",
-                  "y": 34
-                },
-                "kSx73": {
-                  "x": 144
-                },
-                "Gii4z": {
-                  "y": 42
-                },
-                "Fyqcm": {
-                  "y": 65
-                },
-                "po1Sm": {
-                  "width": "fill_container",
-                  "height": "fit_content",
-                  "x": 24,
-                  "y": 219
-                },
-                "dYrSY": {
-                  "width": "fit_content",
-                  "height": "fit_content"
-                },
-                "q24Py": {
-                  "width": "fit_content",
-                  "height": "fit_content"
-                },
-                "W8M2F": {
-                  "width": "fill_container",
-                  "y": 28
-                },
-                "leSOo": {
-                  "width": "fit_content",
-                  "height": "fit_content",
-                  "x": 75
-                },
-                "5e7nH": {
-                  "width": "fill_container",
-                  "y": 28
-                },
-                "x3SEu": {
-                  "x": 114
-                },
-                "FwJ8K": {
-                  "width": "fit_content",
-                  "height": "fit_content",
-                  "x": 135
-                },
-                "77tJM": {
-                  "width": "fill_container",
-                  "y": 28
-                },
-                "jssCO": {
-                  "y": 34
-                },
-                "AQN6s": {
-                  "y": 55
-                },
-                "ZRCJN": {
-                  "width": "fill_container",
-                  "height": "fit_content",
-                  "x": 24,
-                  "y": 313
-                },
-                "AyeYF": {
-                  "width": "fit_content",
-                  "height": "fit_content"
-                },
-                "yQx8h": {
-                  "width": "fit_content",
-                  "height": "fit_content"
-                },
-                "RazJI": {
-                  "width": "fill_container",
-                  "y": 28
-                },
-                "Q4SFb": {
-                  "x": 21
-                },
-                "zJHAF": {
-                  "width": "fit_content",
-                  "height": "fit_content",
-                  "x": 42
-                },
-                "kxRx7": {
-                  "width": "fill_container",
-                  "y": 28
-                },
-                "4aRmb": {
-                  "width": "fit_content",
-                  "height": "fit_content",
-                  "x": 99
-                },
-                "H3TI2": {
-                  "width": "fill_container",
-                  "y": 28
-                },
-                "ucaaU": {
-                  "y": 34
-                },
-                "GKZpk": {
-                  "y": 55
-                },
-                "g8bZE": {
-                  "width": "fill_container",
-                  "height": "fit_content",
-                  "x": 24,
-                  "y": 407
-                },
-                "MTbqt": {
-                  "width": "fit_content",
-                  "height": "fit_content"
-                },
-                "bhtri": {
-                  "width": "fit_content",
-                  "height": "fit_content",
-                  "x": 39
-                },
-                "Xs8zo": {
-                  "width": "fill_container",
-                  "y": 28
-                },
-                "M3HRj": {
-                  "x": 78
-                },
-                "eKxgE": {
-                  "width": "fit_content",
-                  "height": "fit_content",
-                  "x": 99
-                },
-                "nFyVd": {
-                  "width": "fill_container",
-                  "y": 28
-                },
-                "oHxsa": {
-                  "y": 34
-                },
-                "SCKRG": {
-                  "y": 55
+                  "height": "fill_container",
+                  "layout": "vertical",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "c8Xsb",
+                      "name": "songInfo",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 6,
+                      "padding": [
+                        32,
+                        24,
+                        24,
+                        24
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "ZZfXc",
+                          "name": "title1",
+                          "fill": "$text-primary",
+                          "content": "夜空の彼方",
+                          "fontFamily": "Plus Jakarta Sans",
+                          "fontSize": 24,
+                          "fontWeight": "800"
+                        },
+                        {
+                          "type": "text",
+                          "id": "zUXgL",
+                          "name": "artist1",
+                          "fill": "$text-secondary",
+                          "content": "YOASOBI",
+                          "fontFamily": "Inter",
+                          "fontSize": 15,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "pFOya",
+                      "type": "ref",
+                      "ref": "EYCDM",
+                      "name": "lyrSec",
+                      "clip": false,
+                      "height": "fit_content",
+                      "width": "fill_container",
+                      "x": 0,
+                      "y": 115,
+                      "padding": [
+                        8,
+                        24,
+                        20,
+                        24
+                      ],
+                      "descendants": {
+                        "LwygQ": {
+                          "width": "fill_container",
+                          "height": "fit_content",
+                          "x": 24,
+                          "y": 8
+                        },
+                        "ADSeb": {
+                          "width": "fit_content",
+                          "height": "fit_content"
+                        },
+                        "M5tT5": {
+                          "width": "fit_content",
+                          "height": "fit_content"
+                        },
+                        "pEOMS": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "nMqE4": {
+                          "x": 21
+                        },
+                        "Bz3Js": {
+                          "width": "fit_content",
+                          "height": "fit_content",
+                          "x": 42
+                        },
+                        "gCWp1": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "IZT2I": {
+                          "width": "fit_content",
+                          "height": "fit_content",
+                          "x": 81
+                        },
+                        "J0VUo": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "6ijES": {
+                          "x": 102
+                        },
+                        "RQ1iZ": {
+                          "width": "fit_content",
+                          "height": "fit_content",
+                          "x": 123
+                        },
+                        "RXYYp": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "VBq3F": {
+                          "x": 144
+                        },
+                        "3mIFo": {
+                          "y": 34
+                        },
+                        "UEz6b": {
+                          "y": 55
+                        },
+                        "IUrLL": {
+                          "width": "fill_container",
+                          "height": "fit_content",
+                          "x": 24,
+                          "y": 102
+                        },
+                        "Oo5bJ": {
+                          "width": "fit_content",
+                          "height": "fit_content"
+                        },
+                        "mz1Qh": {
+                          "width": "fit_content",
+                          "height": "fit_content"
+                        },
+                        "iPeR7": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "1bBao": {
+                          "x": 39
+                        },
+                        "pVRnr": {
+                          "width": "fit_content",
+                          "height": "fit_content",
+                          "x": 60
+                        },
+                        "CtCAQ": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "kSx73": {
+                          "x": 117
+                        },
+                        "Gii4z": {
+                          "y": 34
+                        },
+                        "Fyqcm": {
+                          "y": 55
+                        },
+                        "po1Sm": {
+                          "width": "fill_container",
+                          "height": "fit_content",
+                          "x": 24,
+                          "y": 196
+                        },
+                        "dYrSY": {
+                          "width": "fit_content",
+                          "height": "fit_content"
+                        },
+                        "q24Py": {
+                          "width": "fit_content",
+                          "height": "fit_content"
+                        },
+                        "W8M2F": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "leSOo": {
+                          "width": "fit_content",
+                          "height": "fit_content",
+                          "x": 75
+                        },
+                        "5e7nH": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "x3SEu": {
+                          "x": 114
+                        },
+                        "FwJ8K": {
+                          "width": "fit_content",
+                          "height": "fit_content",
+                          "x": 135
+                        },
+                        "77tJM": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "jssCO": {
+                          "y": 34
+                        },
+                        "AQN6s": {
+                          "y": 55
+                        },
+                        "ZRCJN": {
+                          "width": "fill_container",
+                          "height": "fit_content",
+                          "x": 24,
+                          "y": 290
+                        },
+                        "AyeYF": {
+                          "width": "fit_content",
+                          "height": "fit_content"
+                        },
+                        "yQx8h": {
+                          "width": "fit_content",
+                          "height": "fit_content"
+                        },
+                        "RazJI": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "Q4SFb": {
+                          "x": 21
+                        },
+                        "zJHAF": {
+                          "width": "fit_content",
+                          "height": "fit_content",
+                          "x": 42
+                        },
+                        "kxRx7": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "4aRmb": {
+                          "width": "fit_content",
+                          "height": "fit_content",
+                          "x": 99
+                        },
+                        "H3TI2": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "ucaaU": {
+                          "y": 34
+                        },
+                        "GKZpk": {
+                          "y": 55
+                        },
+                        "g8bZE": {
+                          "width": "fill_container",
+                          "height": "fit_content",
+                          "x": 24,
+                          "y": 384
+                        },
+                        "MTbqt": {
+                          "width": "fit_content",
+                          "height": "fit_content"
+                        },
+                        "bhtri": {
+                          "width": "fit_content",
+                          "height": "fit_content",
+                          "x": 39
+                        },
+                        "Xs8zo": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "M3HRj": {
+                          "x": 78
+                        },
+                        "eKxgE": {
+                          "width": "fit_content",
+                          "height": "fit_content",
+                          "x": 99
+                        },
+                        "nFyVd": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "oHxsa": {
+                          "y": 34
+                        },
+                        "SCKRG": {
+                          "y": 55
+                        }
+                      }
+                    }
+                  ]
                 }
-              }
+              ]
             },
             {
               "type": "frame",
-              "id": "tsaY2",
+              "id": "8D7ta",
               "name": "miniPlayer",
               "width": "fill_container",
               "layout": "vertical",
               "children": [
                 {
                   "type": "frame",
-                  "id": "pFJuq",
+                  "id": "PuPYH",
                   "name": "progBg",
                   "width": "fill_container",
                   "height": 2,
@@ -11081,7 +11118,7 @@
                   "children": [
                     {
                       "type": "rectangle",
-                      "id": "GYxEY",
+                      "id": "ZYPJz",
                       "x": 0,
                       "y": 0,
                       "name": "progTrack",
@@ -11091,11 +11128,11 @@
                     },
                     {
                       "type": "rectangle",
-                      "id": "1WsgU",
+                      "id": "RYHjd",
                       "x": 0,
                       "y": 0,
                       "name": "progFill",
-                      "fill": "$accent-red",
+                      "fill": "$accent-primary",
                       "width": 140,
                       "height": 2
                     }
@@ -11103,7 +11140,7 @@
                 },
                 {
                   "type": "frame",
-                  "id": "sJy1y",
+                  "id": "3Kx4t",
                   "name": "timeRow",
                   "width": "fill_container",
                   "padding": [
@@ -11116,7 +11153,7 @@
                   "children": [
                     {
                       "type": "text",
-                      "id": "3CHd7",
+                      "id": "r7TBh",
                       "name": "timeCur",
                       "fill": "$text-secondary",
                       "content": "1:24",
@@ -11126,7 +11163,7 @@
                     },
                     {
                       "type": "text",
-                      "id": "xCWvR",
+                      "id": "fSVES",
                       "name": "timeTotal",
                       "fill": "$text-secondary",
                       "content": "4:02",
@@ -11137,6 +11174,35 @@
                   ]
                 }
               ]
+            },
+            {
+              "type": "rectangle",
+              "id": "nF7xf",
+              "layoutPosition": "absolute",
+              "x": 0,
+              "y": 755,
+              "name": "fadeBase",
+              "fill": {
+                "type": "gradient",
+                "gradientType": "linear",
+                "enabled": true,
+                "rotation": 180,
+                "size": {
+                  "height": 1
+                },
+                "colors": [
+                  {
+                    "color": "#FFFFFF00",
+                    "position": 0
+                  },
+                  {
+                    "color": "#FFFFFFFF",
+                    "position": 1
+                  }
+                ]
+              },
+              "width": 402,
+              "height": 80
             }
           ]
         },
@@ -11153,19 +11219,14 @@
         {
           "type": "frame",
           "id": "oeXV0",
-          "x": 0,
-          "y": 545,
+          "x": 12,
+          "y": 533,
           "name": "sheet",
           "clip": true,
-          "width": 402,
+          "width": 378,
           "height": 329,
           "fill": "$bg-card",
-          "cornerRadius": [
-            24,
-            24,
-            0,
-            0
-          ],
+          "cornerRadius": 24,
           "layout": "vertical",
           "children": [
             {
@@ -11491,10 +11552,10 @@
       "children": [
         {
           "type": "frame",
-          "id": "6CBud",
+          "id": "R63QY",
           "x": 0,
           "y": 0,
-          "name": "Content",
+          "name": "bg1",
           "clip": true,
           "width": 402,
           "height": 874,
@@ -11503,7 +11564,7 @@
           "children": [
             {
               "type": "frame",
-              "id": "lBTfw",
+              "id": "FQ5tA",
               "name": "statusBar",
               "width": "fill_container",
               "height": 62,
@@ -11516,7 +11577,7 @@
               "children": [
                 {
                   "type": "text",
-                  "id": "HHDW4",
+                  "id": "MIcKP",
                   "name": "timeText",
                   "fill": "$text-primary",
                   "content": "9:41",
@@ -11526,14 +11587,14 @@
                 },
                 {
                   "type": "frame",
-                  "id": "X5gMH",
+                  "id": "Xk5oB",
                   "name": "statusRight",
                   "gap": 6,
                   "alignItems": "center",
                   "children": [
                     {
                       "type": "icon_font",
-                      "id": "ROk70",
+                      "id": "RxjNJ",
                       "name": "sigIcon",
                       "width": 16,
                       "height": 16,
@@ -11543,7 +11604,7 @@
                     },
                     {
                       "type": "icon_font",
-                      "id": "QzyJW",
+                      "id": "Ubq2P",
                       "name": "wifiIcon",
                       "width": 16,
                       "height": 16,
@@ -11553,7 +11614,7 @@
                     },
                     {
                       "type": "icon_font",
-                      "id": "I5uEp",
+                      "id": "F4kUo",
                       "name": "batIcon",
                       "width": 16,
                       "height": 16,
@@ -11567,7 +11628,7 @@
             },
             {
               "type": "frame",
-              "id": "Pyhw4",
+              "id": "GWVsq",
               "name": "mvArea",
               "metadata": {
                 "type": "unsplash",
@@ -11588,9 +11649,9 @@
               "children": [
                 {
                   "type": "frame",
-                  "id": "UWofx",
+                  "id": "gLckt",
                   "x": 175,
-                  "y": 75,
+                  "y": 84,
                   "name": "playBtn",
                   "width": 52,
                   "height": 52,
@@ -11601,379 +11662,368 @@
                   "children": [
                     {
                       "type": "icon_font",
-                      "id": "Lausc",
+                      "id": "DC5ap",
                       "name": "playIcon",
                       "width": 24,
                       "height": 24,
                       "iconFontName": "play",
                       "iconFontFamily": "lucide",
-                      "fill": "$text-primary"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "lfbbF",
-                  "x": 16,
-                  "y": 158,
-                  "name": "songInfo",
-                  "fill": "#00000000",
-                  "effect": {
-                    "type": "background_blur",
-                    "radius": 0,
-                    "enabled": false
-                  },
-                  "gap": 12,
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "cpk5Q",
-                      "name": "albumArt",
-                      "metadata": {
-                        "type": "unsplash",
-                        "username": "susan_wilkinson",
-                        "link": "https://unsplash.com/@susan_wilkinson",
-                        "author": "Susan Wilkinson"
-                      },
-                      "width": 40,
-                      "height": 40,
-                      "fill": {
-                        "type": "image",
-                        "enabled": true,
-                        "url": "https://images.unsplash.com/photo-1637452840342-ec25c3592f78?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzM4NDg4MzB8&ixlib=rb-4.1.0&q=80&w=1080",
-                        "mode": "fill"
-                      },
-                      "cornerRadius": 14,
-                      "effect": {
-                        "type": "shadow",
-                        "shadowType": "outer",
-                        "color": "#00000066",
-                        "offset": {
-                          "x": 0,
-                          "y": 1
-                        },
-                        "blur": 8
-                      }
-                    },
-                    {
-                      "type": "frame",
-                      "id": "3mFvQ",
-                      "name": "songTexts",
-                      "layout": "vertical",
-                      "gap": 2,
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "510BZ",
-                          "name": "titleTxt",
-                          "fill": "#FFFFFF",
-                          "effect": [
-                            {
-                              "type": "shadow",
-                              "shadowType": "outer",
-                              "color": "#000000AA",
-                              "offset": {
-                                "x": 0,
-                                "y": 1
-                              },
-                              "blur": 6
-                            },
-                            {
-                              "type": "shadow",
-                              "shadowType": "outer",
-                              "color": "#00000066",
-                              "blur": 16
-                            }
-                          ],
-                          "content": "夜空の彼方",
-                          "fontFamily": "Plus Jakarta Sans",
-                          "fontSize": 14,
-                          "fontWeight": "800"
-                        },
-                        {
-                          "type": "text",
-                          "id": "rBQEx",
-                          "name": "artistTxt",
-                          "fill": "#FFFFFF",
-                          "effect": [
-                            {
-                              "type": "shadow",
-                              "shadowType": "outer",
-                              "color": "#000000AA",
-                              "offset": {
-                                "x": 0,
-                                "y": 1
-                              },
-                              "blur": 6
-                            },
-                            {
-                              "type": "shadow",
-                              "shadowType": "outer",
-                              "color": "#00000066",
-                              "blur": 16
-                            }
-                          ],
-                          "content": "YOASOBI",
-                          "fontFamily": "Inter",
-                          "fontSize": 12,
-                          "fontWeight": "500"
-                        }
-                      ]
+                      "fill": "#FFFFFF"
                     }
                   ]
                 }
               ]
             },
             {
-              "id": "6brUB",
-              "type": "ref",
-              "ref": "EYCDM",
-              "name": "newLyr",
+              "type": "frame",
+              "id": "4P2wR",
+              "name": "bottomSheet",
               "clip": true,
-              "height": "fill_container",
               "width": "fill_container",
-              "x": 0,
-              "y": 282,
-              "descendants": {
-                "LwygQ": {
+              "height": 553,
+              "fill": "$bg-primary",
+              "cornerRadius": [
+                20,
+                20,
+                0,
+                0
+              ],
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "#00000015",
+                "offset": {
+                  "x": 0,
+                  "y": -4
+                },
+                "blur": 16
+              },
+              "layout": "vertical",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "gYSMS",
+                  "name": "dragHandle",
                   "width": "fill_container",
-                  "height": "fit_content",
-                  "x": 24,
-                  "y": 20
+                  "height": 24,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "rectangle",
+                      "cornerRadius": 2,
+                      "id": "0qGli",
+                      "name": "handleBar",
+                      "fill": "$border-default",
+                      "width": 36,
+                      "height": 4
+                    }
+                  ]
                 },
-                "ADSeb": {
-                  "width": "fit_content",
-                  "height": "fit_content"
-                },
-                "M5tT5": {
-                  "width": "fit_content",
-                  "height": "fit_content"
-                },
-                "pEOMS": {
+                {
+                  "type": "frame",
+                  "id": "TaaZ0",
+                  "name": "scrollContent",
+                  "clip": true,
                   "width": "fill_container",
-                  "y": 28
-                },
-                "nMqE4": {
-                  "x": 21
-                },
-                "Bz3Js": {
-                  "width": "fit_content",
-                  "height": "fit_content",
-                  "x": 42
-                },
-                "gCWp1": {
-                  "width": "fill_container",
-                  "y": 28
-                },
-                "IZT2I": {
-                  "width": "fit_content",
-                  "height": "fit_content",
-                  "x": 81
-                },
-                "J0VUo": {
-                  "width": "fill_container",
-                  "y": 28
-                },
-                "6ijES": {
-                  "x": 102
-                },
-                "RQ1iZ": {
-                  "width": "fit_content",
-                  "height": "fit_content",
-                  "x": 123
-                },
-                "RXYYp": {
-                  "width": "fill_container",
-                  "y": 28
-                },
-                "VBq3F": {
-                  "x": 144
-                },
-                "3mIFo": {
-                  "y": 34
-                },
-                "UEz6b": {
-                  "y": 55
-                },
-                "IUrLL": {
-                  "width": "fill_container",
-                  "height": "fit_content",
-                  "x": 24,
-                  "y": 114
-                },
-                "Oo5bJ": {
-                  "width": "fit_content",
-                  "height": "fit_content"
-                },
-                "mz1Qh": {
-                  "width": "fit_content",
-                  "height": "fit_content"
-                },
-                "iPeR7": {
-                  "width": "fill_container",
-                  "y": 34
-                },
-                "1bBao": {
-                  "x": 48
-                },
-                "pVRnr": {
-                  "width": "fit_content",
-                  "height": "fit_content",
-                  "x": 74
-                },
-                "CtCAQ": {
-                  "width": "fill_container",
-                  "y": 34
-                },
-                "kSx73": {
-                  "x": 144
-                },
-                "Gii4z": {
-                  "y": 42
-                },
-                "Fyqcm": {
-                  "y": 65
-                },
-                "po1Sm": {
-                  "width": "fill_container",
-                  "height": "fit_content",
-                  "x": 24,
-                  "y": 219
-                },
-                "dYrSY": {
-                  "width": "fit_content",
-                  "height": "fit_content"
-                },
-                "q24Py": {
-                  "width": "fit_content",
-                  "height": "fit_content"
-                },
-                "W8M2F": {
-                  "width": "fill_container",
-                  "y": 28
-                },
-                "leSOo": {
-                  "width": "fit_content",
-                  "height": "fit_content",
-                  "x": 75
-                },
-                "5e7nH": {
-                  "width": "fill_container",
-                  "y": 28
-                },
-                "x3SEu": {
-                  "x": 114
-                },
-                "FwJ8K": {
-                  "width": "fit_content",
-                  "height": "fit_content",
-                  "x": 135
-                },
-                "77tJM": {
-                  "width": "fill_container",
-                  "y": 28
-                },
-                "jssCO": {
-                  "y": 34
-                },
-                "AQN6s": {
-                  "y": 55
-                },
-                "ZRCJN": {
-                  "width": "fill_container",
-                  "height": "fit_content",
-                  "x": 24,
-                  "y": 313
-                },
-                "AyeYF": {
-                  "width": "fit_content",
-                  "height": "fit_content"
-                },
-                "yQx8h": {
-                  "width": "fit_content",
-                  "height": "fit_content"
-                },
-                "RazJI": {
-                  "width": "fill_container",
-                  "y": 28
-                },
-                "Q4SFb": {
-                  "x": 21
-                },
-                "zJHAF": {
-                  "width": "fit_content",
-                  "height": "fit_content",
-                  "x": 42
-                },
-                "kxRx7": {
-                  "width": "fill_container",
-                  "y": 28
-                },
-                "4aRmb": {
-                  "width": "fit_content",
-                  "height": "fit_content",
-                  "x": 99
-                },
-                "H3TI2": {
-                  "width": "fill_container",
-                  "y": 28
-                },
-                "ucaaU": {
-                  "y": 34
-                },
-                "GKZpk": {
-                  "y": 55
-                },
-                "g8bZE": {
-                  "width": "fill_container",
-                  "height": "fit_content",
-                  "x": 24,
-                  "y": 407
-                },
-                "MTbqt": {
-                  "width": "fit_content",
-                  "height": "fit_content"
-                },
-                "bhtri": {
-                  "width": "fit_content",
-                  "height": "fit_content",
-                  "x": 39
-                },
-                "Xs8zo": {
-                  "width": "fill_container",
-                  "y": 28
-                },
-                "M3HRj": {
-                  "x": 78
-                },
-                "eKxgE": {
-                  "width": "fit_content",
-                  "height": "fit_content",
-                  "x": 99
-                },
-                "nFyVd": {
-                  "width": "fill_container",
-                  "y": 28
-                },
-                "oHxsa": {
-                  "y": 34
-                },
-                "SCKRG": {
-                  "y": 55
+                  "height": "fill_container",
+                  "layout": "vertical",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "XzG0I",
+                      "name": "songInfo",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 6,
+                      "padding": [
+                        32,
+                        24,
+                        24,
+                        24
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "TKLtW",
+                          "name": "title1",
+                          "fill": "$text-primary",
+                          "content": "夜空の彼方",
+                          "fontFamily": "Plus Jakarta Sans",
+                          "fontSize": 24,
+                          "fontWeight": "800"
+                        },
+                        {
+                          "type": "text",
+                          "id": "0FC5p",
+                          "name": "artist1",
+                          "fill": "$text-secondary",
+                          "content": "YOASOBI",
+                          "fontFamily": "Inter",
+                          "fontSize": 15,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "RHldP",
+                      "type": "ref",
+                      "ref": "EYCDM",
+                      "name": "lyrSec",
+                      "clip": false,
+                      "height": "fit_content",
+                      "width": "fill_container",
+                      "x": 0,
+                      "y": 115,
+                      "padding": [
+                        8,
+                        24,
+                        20,
+                        24
+                      ],
+                      "descendants": {
+                        "LwygQ": {
+                          "width": "fill_container",
+                          "height": "fit_content",
+                          "x": 24,
+                          "y": 8
+                        },
+                        "ADSeb": {
+                          "width": "fit_content",
+                          "height": "fit_content"
+                        },
+                        "M5tT5": {
+                          "width": "fit_content",
+                          "height": "fit_content"
+                        },
+                        "pEOMS": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "nMqE4": {
+                          "x": 21
+                        },
+                        "Bz3Js": {
+                          "width": "fit_content",
+                          "height": "fit_content",
+                          "x": 42
+                        },
+                        "gCWp1": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "IZT2I": {
+                          "width": "fit_content",
+                          "height": "fit_content",
+                          "x": 81
+                        },
+                        "J0VUo": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "6ijES": {
+                          "x": 102
+                        },
+                        "RQ1iZ": {
+                          "width": "fit_content",
+                          "height": "fit_content",
+                          "x": 123
+                        },
+                        "RXYYp": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "VBq3F": {
+                          "x": 144
+                        },
+                        "3mIFo": {
+                          "y": 34
+                        },
+                        "UEz6b": {
+                          "y": 55
+                        },
+                        "IUrLL": {
+                          "width": "fill_container",
+                          "height": "fit_content",
+                          "x": 24,
+                          "y": 102
+                        },
+                        "Oo5bJ": {
+                          "width": "fit_content",
+                          "height": "fit_content"
+                        },
+                        "mz1Qh": {
+                          "width": "fit_content",
+                          "height": "fit_content"
+                        },
+                        "iPeR7": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "1bBao": {
+                          "x": 39
+                        },
+                        "pVRnr": {
+                          "width": "fit_content",
+                          "height": "fit_content",
+                          "x": 60
+                        },
+                        "CtCAQ": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "kSx73": {
+                          "x": 117
+                        },
+                        "Gii4z": {
+                          "y": 34
+                        },
+                        "Fyqcm": {
+                          "y": 55
+                        },
+                        "po1Sm": {
+                          "width": "fill_container",
+                          "height": "fit_content",
+                          "x": 24,
+                          "y": 196
+                        },
+                        "dYrSY": {
+                          "width": "fit_content",
+                          "height": "fit_content"
+                        },
+                        "q24Py": {
+                          "width": "fit_content",
+                          "height": "fit_content"
+                        },
+                        "W8M2F": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "leSOo": {
+                          "width": "fit_content",
+                          "height": "fit_content",
+                          "x": 75
+                        },
+                        "5e7nH": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "x3SEu": {
+                          "x": 114
+                        },
+                        "FwJ8K": {
+                          "width": "fit_content",
+                          "height": "fit_content",
+                          "x": 135
+                        },
+                        "77tJM": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "jssCO": {
+                          "y": 34
+                        },
+                        "AQN6s": {
+                          "y": 55
+                        },
+                        "ZRCJN": {
+                          "width": "fill_container",
+                          "height": "fit_content",
+                          "x": 24,
+                          "y": 290
+                        },
+                        "AyeYF": {
+                          "width": "fit_content",
+                          "height": "fit_content"
+                        },
+                        "yQx8h": {
+                          "width": "fit_content",
+                          "height": "fit_content"
+                        },
+                        "RazJI": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "Q4SFb": {
+                          "x": 21
+                        },
+                        "zJHAF": {
+                          "width": "fit_content",
+                          "height": "fit_content",
+                          "x": 42
+                        },
+                        "kxRx7": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "4aRmb": {
+                          "width": "fit_content",
+                          "height": "fit_content",
+                          "x": 99
+                        },
+                        "H3TI2": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "ucaaU": {
+                          "y": 34
+                        },
+                        "GKZpk": {
+                          "y": 55
+                        },
+                        "g8bZE": {
+                          "width": "fill_container",
+                          "height": "fit_content",
+                          "x": 24,
+                          "y": 384
+                        },
+                        "MTbqt": {
+                          "width": "fit_content",
+                          "height": "fit_content"
+                        },
+                        "bhtri": {
+                          "width": "fit_content",
+                          "height": "fit_content",
+                          "x": 39
+                        },
+                        "Xs8zo": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "M3HRj": {
+                          "x": 78
+                        },
+                        "eKxgE": {
+                          "width": "fit_content",
+                          "height": "fit_content",
+                          "x": 99
+                        },
+                        "nFyVd": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "oHxsa": {
+                          "y": 34
+                        },
+                        "SCKRG": {
+                          "y": 55
+                        }
+                      }
+                    }
+                  ]
                 }
-              }
+              ]
             },
             {
               "type": "frame",
-              "id": "nzOeI",
+              "id": "8UpyA",
               "name": "miniPlayer",
               "width": "fill_container",
               "layout": "vertical",
               "children": [
                 {
                   "type": "frame",
-                  "id": "a7ToW",
+                  "id": "fKvyM",
                   "name": "progBg",
                   "width": "fill_container",
                   "height": 2,
@@ -11981,7 +12031,7 @@
                   "children": [
                     {
                       "type": "rectangle",
-                      "id": "d7oSt",
+                      "id": "IAJfC",
                       "x": 0,
                       "y": 0,
                       "name": "progTrack",
@@ -11991,11 +12041,11 @@
                     },
                     {
                       "type": "rectangle",
-                      "id": "VSASj",
+                      "id": "RZa2W",
                       "x": 0,
                       "y": 0,
                       "name": "progFill",
-                      "fill": "$accent-red",
+                      "fill": "$accent-primary",
                       "width": 140,
                       "height": 2
                     }
@@ -12003,7 +12053,7 @@
                 },
                 {
                   "type": "frame",
-                  "id": "P5wpI",
+                  "id": "zz3Xq",
                   "name": "timeRow",
                   "width": "fill_container",
                   "padding": [
@@ -12016,7 +12066,7 @@
                   "children": [
                     {
                       "type": "text",
-                      "id": "zx5ae",
+                      "id": "iddw1",
                       "name": "timeCur",
                       "fill": "$text-secondary",
                       "content": "1:24",
@@ -12026,7 +12076,7 @@
                     },
                     {
                       "type": "text",
-                      "id": "hbOIE",
+                      "id": "TYhRH",
                       "name": "timeTotal",
                       "fill": "$text-secondary",
                       "content": "4:02",
@@ -12037,6 +12087,35 @@
                   ]
                 }
               ]
+            },
+            {
+              "type": "rectangle",
+              "id": "5syC0",
+              "layoutPosition": "absolute",
+              "x": 0,
+              "y": 755,
+              "name": "fadeBase",
+              "fill": {
+                "type": "gradient",
+                "gradientType": "linear",
+                "enabled": true,
+                "rotation": 180,
+                "size": {
+                  "height": 1
+                },
+                "colors": [
+                  {
+                    "color": "#FFFFFF00",
+                    "position": 0
+                  },
+                  {
+                    "color": "#FFFFFFFF",
+                    "position": 1
+                  }
+                ]
+              },
+              "width": 402,
+              "height": 80
             }
           ]
         },
@@ -12053,19 +12132,14 @@
         {
           "type": "frame",
           "id": "9JMEe",
-          "x": 0,
-          "y": 637,
+          "x": 12,
+          "y": 625,
           "name": "sheet",
           "clip": true,
-          "width": 402,
+          "width": 378,
           "height": 237,
           "fill": "$bg-card",
-          "cornerRadius": [
-            24,
-            24,
-            0,
-            0
-          ],
+          "cornerRadius": 24,
           "layout": "vertical",
           "children": [
             {
@@ -12261,7 +12335,7 @@
       "id": "xKG7G",
       "x": 1818,
       "y": -179,
-      "name": "2c. Word Lookup — 해당 line에서 담은 단어",
+      "name": "2b. Word Lookup — 해당 line에서 담은 단어",
       "clip": true,
       "width": 402,
       "height": 874,
@@ -12270,10 +12344,10 @@
       "children": [
         {
           "type": "frame",
-          "id": "bR6vc",
+          "id": "TmLvo",
           "x": 0,
           "y": 0,
-          "name": "Content",
+          "name": "bg3",
           "clip": true,
           "width": 402,
           "height": 874,
@@ -12282,7 +12356,7 @@
           "children": [
             {
               "type": "frame",
-              "id": "TBDlI",
+              "id": "SgxXE",
               "name": "statusBar",
               "width": "fill_container",
               "height": 62,
@@ -12295,7 +12369,7 @@
               "children": [
                 {
                   "type": "text",
-                  "id": "tHAZm",
+                  "id": "lnlg3",
                   "name": "timeText",
                   "fill": "$text-primary",
                   "content": "9:41",
@@ -12305,14 +12379,14 @@
                 },
                 {
                   "type": "frame",
-                  "id": "zELR5",
+                  "id": "4dKuk",
                   "name": "statusRight",
                   "gap": 6,
                   "alignItems": "center",
                   "children": [
                     {
                       "type": "icon_font",
-                      "id": "ZI5Zt",
+                      "id": "pUlUw",
                       "name": "sigIcon",
                       "width": 16,
                       "height": 16,
@@ -12322,7 +12396,7 @@
                     },
                     {
                       "type": "icon_font",
-                      "id": "lhs6U",
+                      "id": "ACfpD",
                       "name": "wifiIcon",
                       "width": 16,
                       "height": 16,
@@ -12332,7 +12406,7 @@
                     },
                     {
                       "type": "icon_font",
-                      "id": "cV9gH",
+                      "id": "DtL7i",
                       "name": "batIcon",
                       "width": 16,
                       "height": 16,
@@ -12346,7 +12420,7 @@
             },
             {
               "type": "frame",
-              "id": "ScmuJ",
+              "id": "oFDrK",
               "name": "mvArea",
               "metadata": {
                 "type": "unsplash",
@@ -12367,9 +12441,9 @@
               "children": [
                 {
                   "type": "frame",
-                  "id": "52Gv6",
+                  "id": "7furW",
                   "x": 175,
-                  "y": 75,
+                  "y": 84,
                   "name": "playBtn",
                   "width": 52,
                   "height": 52,
@@ -12380,379 +12454,368 @@
                   "children": [
                     {
                       "type": "icon_font",
-                      "id": "TocmI",
+                      "id": "LX2dG",
                       "name": "playIcon",
                       "width": 24,
                       "height": 24,
                       "iconFontName": "play",
                       "iconFontFamily": "lucide",
-                      "fill": "$text-primary"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "fSEeX",
-                  "x": 16,
-                  "y": 158,
-                  "name": "songInfo",
-                  "fill": "#00000000",
-                  "effect": {
-                    "type": "background_blur",
-                    "radius": 0,
-                    "enabled": false
-                  },
-                  "gap": 12,
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "3to4O",
-                      "name": "albumArt",
-                      "metadata": {
-                        "type": "unsplash",
-                        "username": "susan_wilkinson",
-                        "link": "https://unsplash.com/@susan_wilkinson",
-                        "author": "Susan Wilkinson"
-                      },
-                      "width": 40,
-                      "height": 40,
-                      "fill": {
-                        "type": "image",
-                        "enabled": true,
-                        "url": "https://images.unsplash.com/photo-1637452840342-ec25c3592f78?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzM4NDg4MzB8&ixlib=rb-4.1.0&q=80&w=1080",
-                        "mode": "fill"
-                      },
-                      "cornerRadius": 14,
-                      "effect": {
-                        "type": "shadow",
-                        "shadowType": "outer",
-                        "color": "#00000066",
-                        "offset": {
-                          "x": 0,
-                          "y": 1
-                        },
-                        "blur": 8
-                      }
-                    },
-                    {
-                      "type": "frame",
-                      "id": "Sz5cJ",
-                      "name": "songTexts",
-                      "layout": "vertical",
-                      "gap": 2,
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "4nd2A",
-                          "name": "titleTxt",
-                          "fill": "#FFFFFF",
-                          "effect": [
-                            {
-                              "type": "shadow",
-                              "shadowType": "outer",
-                              "color": "#000000AA",
-                              "offset": {
-                                "x": 0,
-                                "y": 1
-                              },
-                              "blur": 6
-                            },
-                            {
-                              "type": "shadow",
-                              "shadowType": "outer",
-                              "color": "#00000066",
-                              "blur": 16
-                            }
-                          ],
-                          "content": "夜空の彼方",
-                          "fontFamily": "Plus Jakarta Sans",
-                          "fontSize": 14,
-                          "fontWeight": "800"
-                        },
-                        {
-                          "type": "text",
-                          "id": "XKUpo",
-                          "name": "artistTxt",
-                          "fill": "#FFFFFF",
-                          "effect": [
-                            {
-                              "type": "shadow",
-                              "shadowType": "outer",
-                              "color": "#000000AA",
-                              "offset": {
-                                "x": 0,
-                                "y": 1
-                              },
-                              "blur": 6
-                            },
-                            {
-                              "type": "shadow",
-                              "shadowType": "outer",
-                              "color": "#00000066",
-                              "blur": 16
-                            }
-                          ],
-                          "content": "YOASOBI",
-                          "fontFamily": "Inter",
-                          "fontSize": 12,
-                          "fontWeight": "500"
-                        }
-                      ]
+                      "fill": "#FFFFFF"
                     }
                   ]
                 }
               ]
             },
             {
-              "id": "2OlXZ",
-              "type": "ref",
-              "ref": "EYCDM",
-              "name": "newLyr",
+              "type": "frame",
+              "id": "TPpqs",
+              "name": "bottomSheet",
               "clip": true,
-              "height": "fill_container",
               "width": "fill_container",
-              "x": 0,
-              "y": 282,
-              "descendants": {
-                "LwygQ": {
+              "height": 553,
+              "fill": "$bg-primary",
+              "cornerRadius": [
+                20,
+                20,
+                0,
+                0
+              ],
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "#00000015",
+                "offset": {
+                  "x": 0,
+                  "y": -4
+                },
+                "blur": 16
+              },
+              "layout": "vertical",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "UBUCL",
+                  "name": "dragHandle",
                   "width": "fill_container",
-                  "height": "fit_content",
-                  "x": 24,
-                  "y": 20
+                  "height": 24,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "rectangle",
+                      "cornerRadius": 2,
+                      "id": "ysv91",
+                      "name": "handleBar",
+                      "fill": "$border-default",
+                      "width": 36,
+                      "height": 4
+                    }
+                  ]
                 },
-                "ADSeb": {
-                  "width": "fit_content",
-                  "height": "fit_content"
-                },
-                "M5tT5": {
-                  "width": "fit_content",
-                  "height": "fit_content"
-                },
-                "pEOMS": {
+                {
+                  "type": "frame",
+                  "id": "03SWp",
+                  "name": "scrollContent",
+                  "clip": true,
                   "width": "fill_container",
-                  "y": 28
-                },
-                "nMqE4": {
-                  "x": 21
-                },
-                "Bz3Js": {
-                  "width": "fit_content",
-                  "height": "fit_content",
-                  "x": 42
-                },
-                "gCWp1": {
-                  "width": "fill_container",
-                  "y": 28
-                },
-                "IZT2I": {
-                  "width": "fit_content",
-                  "height": "fit_content",
-                  "x": 81
-                },
-                "J0VUo": {
-                  "width": "fill_container",
-                  "y": 28
-                },
-                "6ijES": {
-                  "x": 102
-                },
-                "RQ1iZ": {
-                  "width": "fit_content",
-                  "height": "fit_content",
-                  "x": 123
-                },
-                "RXYYp": {
-                  "width": "fill_container",
-                  "y": 28
-                },
-                "VBq3F": {
-                  "x": 144
-                },
-                "3mIFo": {
-                  "y": 34
-                },
-                "UEz6b": {
-                  "y": 55
-                },
-                "IUrLL": {
-                  "width": "fill_container",
-                  "height": "fit_content",
-                  "x": 24,
-                  "y": 114
-                },
-                "Oo5bJ": {
-                  "width": "fit_content",
-                  "height": "fit_content"
-                },
-                "mz1Qh": {
-                  "width": "fit_content",
-                  "height": "fit_content"
-                },
-                "iPeR7": {
-                  "width": "fill_container",
-                  "y": 34
-                },
-                "1bBao": {
-                  "x": 48
-                },
-                "pVRnr": {
-                  "width": "fit_content",
-                  "height": "fit_content",
-                  "x": 74
-                },
-                "CtCAQ": {
-                  "width": "fill_container",
-                  "y": 34
-                },
-                "kSx73": {
-                  "x": 144
-                },
-                "Gii4z": {
-                  "y": 42
-                },
-                "Fyqcm": {
-                  "y": 65
-                },
-                "po1Sm": {
-                  "width": "fill_container",
-                  "height": "fit_content",
-                  "x": 24,
-                  "y": 219
-                },
-                "dYrSY": {
-                  "width": "fit_content",
-                  "height": "fit_content"
-                },
-                "q24Py": {
-                  "width": "fit_content",
-                  "height": "fit_content"
-                },
-                "W8M2F": {
-                  "width": "fill_container",
-                  "y": 28
-                },
-                "leSOo": {
-                  "width": "fit_content",
-                  "height": "fit_content",
-                  "x": 75
-                },
-                "5e7nH": {
-                  "width": "fill_container",
-                  "y": 28
-                },
-                "x3SEu": {
-                  "x": 114
-                },
-                "FwJ8K": {
-                  "width": "fit_content",
-                  "height": "fit_content",
-                  "x": 135
-                },
-                "77tJM": {
-                  "width": "fill_container",
-                  "y": 28
-                },
-                "jssCO": {
-                  "y": 34
-                },
-                "AQN6s": {
-                  "y": 55
-                },
-                "ZRCJN": {
-                  "width": "fill_container",
-                  "height": "fit_content",
-                  "x": 24,
-                  "y": 313
-                },
-                "AyeYF": {
-                  "width": "fit_content",
-                  "height": "fit_content"
-                },
-                "yQx8h": {
-                  "width": "fit_content",
-                  "height": "fit_content"
-                },
-                "RazJI": {
-                  "width": "fill_container",
-                  "y": 28
-                },
-                "Q4SFb": {
-                  "x": 21
-                },
-                "zJHAF": {
-                  "width": "fit_content",
-                  "height": "fit_content",
-                  "x": 42
-                },
-                "kxRx7": {
-                  "width": "fill_container",
-                  "y": 28
-                },
-                "4aRmb": {
-                  "width": "fit_content",
-                  "height": "fit_content",
-                  "x": 99
-                },
-                "H3TI2": {
-                  "width": "fill_container",
-                  "y": 28
-                },
-                "ucaaU": {
-                  "y": 34
-                },
-                "GKZpk": {
-                  "y": 55
-                },
-                "g8bZE": {
-                  "width": "fill_container",
-                  "height": "fit_content",
-                  "x": 24,
-                  "y": 407
-                },
-                "MTbqt": {
-                  "width": "fit_content",
-                  "height": "fit_content"
-                },
-                "bhtri": {
-                  "width": "fit_content",
-                  "height": "fit_content",
-                  "x": 39
-                },
-                "Xs8zo": {
-                  "width": "fill_container",
-                  "y": 28
-                },
-                "M3HRj": {
-                  "x": 78
-                },
-                "eKxgE": {
-                  "width": "fit_content",
-                  "height": "fit_content",
-                  "x": 99
-                },
-                "nFyVd": {
-                  "width": "fill_container",
-                  "y": 28
-                },
-                "oHxsa": {
-                  "y": 34
-                },
-                "SCKRG": {
-                  "y": 55
+                  "height": "fill_container",
+                  "layout": "vertical",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "iJJ5I",
+                      "name": "songInfo",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 6,
+                      "padding": [
+                        32,
+                        24,
+                        24,
+                        24
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "jBRFt",
+                          "name": "title1",
+                          "fill": "$text-primary",
+                          "content": "夜空の彼方",
+                          "fontFamily": "Plus Jakarta Sans",
+                          "fontSize": 24,
+                          "fontWeight": "800"
+                        },
+                        {
+                          "type": "text",
+                          "id": "5taRB",
+                          "name": "artist1",
+                          "fill": "$text-secondary",
+                          "content": "YOASOBI",
+                          "fontFamily": "Inter",
+                          "fontSize": 15,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "qyLnO",
+                      "type": "ref",
+                      "ref": "EYCDM",
+                      "name": "lyrSec",
+                      "clip": false,
+                      "height": "fit_content",
+                      "width": "fill_container",
+                      "x": 0,
+                      "y": 115,
+                      "padding": [
+                        8,
+                        24,
+                        20,
+                        24
+                      ],
+                      "descendants": {
+                        "LwygQ": {
+                          "width": "fill_container",
+                          "height": "fit_content",
+                          "x": 24,
+                          "y": 8
+                        },
+                        "ADSeb": {
+                          "width": "fit_content",
+                          "height": "fit_content"
+                        },
+                        "M5tT5": {
+                          "width": "fit_content",
+                          "height": "fit_content"
+                        },
+                        "pEOMS": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "nMqE4": {
+                          "x": 21
+                        },
+                        "Bz3Js": {
+                          "width": "fit_content",
+                          "height": "fit_content",
+                          "x": 42
+                        },
+                        "gCWp1": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "IZT2I": {
+                          "width": "fit_content",
+                          "height": "fit_content",
+                          "x": 81
+                        },
+                        "J0VUo": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "6ijES": {
+                          "x": 102
+                        },
+                        "RQ1iZ": {
+                          "width": "fit_content",
+                          "height": "fit_content",
+                          "x": 123
+                        },
+                        "RXYYp": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "VBq3F": {
+                          "x": 144
+                        },
+                        "3mIFo": {
+                          "y": 34
+                        },
+                        "UEz6b": {
+                          "y": 55
+                        },
+                        "IUrLL": {
+                          "width": "fill_container",
+                          "height": "fit_content",
+                          "x": 24,
+                          "y": 102
+                        },
+                        "Oo5bJ": {
+                          "width": "fit_content",
+                          "height": "fit_content"
+                        },
+                        "mz1Qh": {
+                          "width": "fit_content",
+                          "height": "fit_content"
+                        },
+                        "iPeR7": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "1bBao": {
+                          "x": 39
+                        },
+                        "pVRnr": {
+                          "width": "fit_content",
+                          "height": "fit_content",
+                          "x": 60
+                        },
+                        "CtCAQ": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "kSx73": {
+                          "x": 117
+                        },
+                        "Gii4z": {
+                          "y": 34
+                        },
+                        "Fyqcm": {
+                          "y": 55
+                        },
+                        "po1Sm": {
+                          "width": "fill_container",
+                          "height": "fit_content",
+                          "x": 24,
+                          "y": 196
+                        },
+                        "dYrSY": {
+                          "width": "fit_content",
+                          "height": "fit_content"
+                        },
+                        "q24Py": {
+                          "width": "fit_content",
+                          "height": "fit_content"
+                        },
+                        "W8M2F": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "leSOo": {
+                          "width": "fit_content",
+                          "height": "fit_content",
+                          "x": 75
+                        },
+                        "5e7nH": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "x3SEu": {
+                          "x": 114
+                        },
+                        "FwJ8K": {
+                          "width": "fit_content",
+                          "height": "fit_content",
+                          "x": 135
+                        },
+                        "77tJM": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "jssCO": {
+                          "y": 34
+                        },
+                        "AQN6s": {
+                          "y": 55
+                        },
+                        "ZRCJN": {
+                          "width": "fill_container",
+                          "height": "fit_content",
+                          "x": 24,
+                          "y": 290
+                        },
+                        "AyeYF": {
+                          "width": "fit_content",
+                          "height": "fit_content"
+                        },
+                        "yQx8h": {
+                          "width": "fit_content",
+                          "height": "fit_content"
+                        },
+                        "RazJI": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "Q4SFb": {
+                          "x": 21
+                        },
+                        "zJHAF": {
+                          "width": "fit_content",
+                          "height": "fit_content",
+                          "x": 42
+                        },
+                        "kxRx7": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "4aRmb": {
+                          "width": "fit_content",
+                          "height": "fit_content",
+                          "x": 99
+                        },
+                        "H3TI2": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "ucaaU": {
+                          "y": 34
+                        },
+                        "GKZpk": {
+                          "y": 55
+                        },
+                        "g8bZE": {
+                          "width": "fill_container",
+                          "height": "fit_content",
+                          "x": 24,
+                          "y": 384
+                        },
+                        "MTbqt": {
+                          "width": "fit_content",
+                          "height": "fit_content"
+                        },
+                        "bhtri": {
+                          "width": "fit_content",
+                          "height": "fit_content",
+                          "x": 39
+                        },
+                        "Xs8zo": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "M3HRj": {
+                          "x": 78
+                        },
+                        "eKxgE": {
+                          "width": "fit_content",
+                          "height": "fit_content",
+                          "x": 99
+                        },
+                        "nFyVd": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "oHxsa": {
+                          "y": 34
+                        },
+                        "SCKRG": {
+                          "y": 55
+                        }
+                      }
+                    }
+                  ]
                 }
-              }
+              ]
             },
             {
               "type": "frame",
-              "id": "BVltu",
+              "id": "opHBU",
               "name": "miniPlayer",
               "width": "fill_container",
               "layout": "vertical",
               "children": [
                 {
                   "type": "frame",
-                  "id": "qU0wh",
+                  "id": "Fy0Xv",
                   "name": "progBg",
                   "width": "fill_container",
                   "height": 2,
@@ -12760,7 +12823,7 @@
                   "children": [
                     {
                       "type": "rectangle",
-                      "id": "QUrt4",
+                      "id": "9ncuc",
                       "x": 0,
                       "y": 0,
                       "name": "progTrack",
@@ -12770,11 +12833,11 @@
                     },
                     {
                       "type": "rectangle",
-                      "id": "5WJnQ",
+                      "id": "N3fe9",
                       "x": 0,
                       "y": 0,
                       "name": "progFill",
-                      "fill": "$accent-red",
+                      "fill": "$accent-primary",
                       "width": 140,
                       "height": 2
                     }
@@ -12782,7 +12845,7 @@
                 },
                 {
                   "type": "frame",
-                  "id": "lOcwq",
+                  "id": "rdJRg",
                   "name": "timeRow",
                   "width": "fill_container",
                   "padding": [
@@ -12795,7 +12858,7 @@
                   "children": [
                     {
                       "type": "text",
-                      "id": "5CPG0",
+                      "id": "9dqPw",
                       "name": "timeCur",
                       "fill": "$text-secondary",
                       "content": "1:24",
@@ -12805,7 +12868,7 @@
                     },
                     {
                       "type": "text",
-                      "id": "bDzG5",
+                      "id": "rRKQD",
                       "name": "timeTotal",
                       "fill": "$text-secondary",
                       "content": "4:02",
@@ -12816,6 +12879,35 @@
                   ]
                 }
               ]
+            },
+            {
+              "type": "rectangle",
+              "id": "CRQAr",
+              "layoutPosition": "absolute",
+              "x": 0,
+              "y": 755,
+              "name": "fadeBase",
+              "fill": {
+                "type": "gradient",
+                "gradientType": "linear",
+                "enabled": true,
+                "rotation": 180,
+                "size": {
+                  "height": 1
+                },
+                "colors": [
+                  {
+                    "color": "#FFFFFF00",
+                    "position": 0
+                  },
+                  {
+                    "color": "#FFFFFFFF",
+                    "position": 1
+                  }
+                ]
+              },
+              "width": 402,
+              "height": 80
             }
           ]
         },
@@ -12832,19 +12924,14 @@
         {
           "type": "frame",
           "id": "NHuv0",
-          "x": 0,
-          "y": 545,
+          "x": 12,
+          "y": 533,
           "name": "sheet",
           "clip": true,
-          "width": 402,
+          "width": 378,
           "height": 329,
           "fill": "$bg-card",
-          "cornerRadius": [
-            24,
-            24,
-            0,
-            0
-          ],
+          "cornerRadius": 24,
           "layout": "vertical",
           "children": [
             {
@@ -14002,13 +14089,14 @@
                       "content": "風",
                       "fontFamily": "Plus Jakarta Sans",
                       "fontSize": 18,
-                      "fontWeight": "800"
+                      "fontWeight": "500"
                     },
                     {
                       "type": "rectangle",
                       "cornerRadius": 1,
                       "id": "pEOMS",
                       "name": "u1",
+                      "opacity": 0.35,
                       "fill": "$pos-noun",
                       "width": "fill_container",
                       "height": 2
@@ -14023,7 +14111,7 @@
                   "content": "が",
                   "fontFamily": "Plus Jakarta Sans",
                   "fontSize": 18,
-                  "fontWeight": "800"
+                  "fontWeight": "500"
                 },
                 {
                   "type": "frame",
@@ -14040,13 +14128,14 @@
                       "content": "吹く",
                       "fontFamily": "Plus Jakarta Sans",
                       "fontSize": 18,
-                      "fontWeight": "800"
+                      "fontWeight": "500"
                     },
                     {
                       "type": "rectangle",
                       "cornerRadius": 1,
                       "id": "gCWp1",
                       "name": "u2",
+                      "opacity": 0.35,
                       "fill": "$pos-verb",
                       "width": "fill_container",
                       "height": 2
@@ -14068,13 +14157,14 @@
                       "content": "街",
                       "fontFamily": "Plus Jakarta Sans",
                       "fontSize": 18,
-                      "fontWeight": "800"
+                      "fontWeight": "500"
                     },
                     {
                       "type": "rectangle",
                       "cornerRadius": 1,
                       "id": "J0VUo",
                       "name": "u3",
+                      "opacity": 0.35,
                       "fill": "$pos-noun",
                       "width": "fill_container",
                       "height": 2
@@ -14089,7 +14179,7 @@
                   "content": "の",
                   "fontFamily": "Plus Jakarta Sans",
                   "fontSize": 18,
-                  "fontWeight": "800"
+                  "fontWeight": "500"
                 },
                 {
                   "type": "frame",
@@ -14106,13 +14196,14 @@
                       "content": "中",
                       "fontFamily": "Plus Jakarta Sans",
                       "fontSize": 18,
-                      "fontWeight": "800"
+                      "fontWeight": "500"
                     },
                     {
                       "type": "rectangle",
                       "cornerRadius": 1,
                       "id": "RXYYp",
                       "name": "u4",
+                      "opacity": 0.35,
                       "fill": "$pos-noun",
                       "width": "fill_container",
                       "height": 2
@@ -14127,7 +14218,7 @@
                   "content": "で",
                   "fontFamily": "Plus Jakarta Sans",
                   "fontSize": 18,
-                  "fontWeight": "800"
+                  "fontWeight": "500"
                 }
               ]
             },
@@ -14159,7 +14250,7 @@
           "name": "line2",
           "width": "fill_container",
           "layout": "vertical",
-          "gap": 6,
+          "gap": 4,
           "children": [
             {
               "type": "frame",
@@ -14181,7 +14272,7 @@
                       "fill": "$text-primary",
                       "content": "夜空",
                       "fontFamily": "Plus Jakarta Sans",
-                      "fontSize": 22,
+                      "fontSize": 18,
                       "fontWeight": "800"
                     },
                     {
@@ -14202,7 +14293,7 @@
                   "fill": "$text-primary",
                   "content": "の",
                   "fontFamily": "Plus Jakarta Sans",
-                  "fontSize": 22,
+                  "fontSize": 18,
                   "fontWeight": "800"
                 },
                 {
@@ -14219,7 +14310,7 @@
                       "fill": "$text-primary",
                       "content": "向こう",
                       "fontFamily": "Plus Jakarta Sans",
-                      "fontSize": 22,
+                      "fontSize": 18,
                       "fontWeight": "800"
                     },
                     {
@@ -14240,7 +14331,7 @@
                   "fill": "$text-primary",
                   "content": "に",
                   "fontFamily": "Plus Jakarta Sans",
-                  "fontSize": 22,
+                  "fontSize": 18,
                   "fontWeight": "800"
                 }
               ]
@@ -14262,7 +14353,7 @@
               "fill": "$text-primary",
               "content": "밤하늘 너머로",
               "fontFamily": "Inter",
-              "fontSize": 14,
+              "fontSize": 13,
               "fontWeight": "500"
             }
           ]
@@ -14296,13 +14387,14 @@
                       "content": "届けたい",
                       "fontFamily": "Plus Jakarta Sans",
                       "fontSize": 18,
-                      "fontWeight": "800"
+                      "fontWeight": "500"
                     },
                     {
                       "type": "rectangle",
                       "cornerRadius": 1,
                       "id": "W8M2F",
                       "name": "u5",
+                      "opacity": 0.35,
                       "fill": "$pos-verb",
                       "width": "fill_container",
                       "height": 2
@@ -14324,13 +14416,14 @@
                       "content": "言葉",
                       "fontFamily": "Plus Jakarta Sans",
                       "fontSize": 18,
-                      "fontWeight": "800"
+                      "fontWeight": "500"
                     },
                     {
                       "type": "rectangle",
                       "cornerRadius": 1,
                       "id": "5e7nH",
                       "name": "u6",
+                      "opacity": 0.35,
                       "fill": "$pos-noun",
                       "width": "fill_container",
                       "height": 2
@@ -14345,7 +14438,7 @@
                   "content": "が",
                   "fontFamily": "Plus Jakarta Sans",
                   "fontSize": 18,
-                  "fontWeight": "800"
+                  "fontWeight": "500"
                 },
                 {
                   "type": "frame",
@@ -14362,13 +14455,14 @@
                       "content": "ある",
                       "fontFamily": "Plus Jakarta Sans",
                       "fontSize": 18,
-                      "fontWeight": "800"
+                      "fontWeight": "500"
                     },
                     {
                       "type": "rectangle",
                       "cornerRadius": 1,
                       "id": "77tJM",
                       "name": "u7",
+                      "opacity": 0.35,
                       "fill": "$pos-verb",
                       "width": "fill_container",
                       "height": 2
@@ -14428,13 +14522,14 @@
                       "content": "涙",
                       "fontFamily": "Plus Jakarta Sans",
                       "fontSize": 18,
-                      "fontWeight": "800"
+                      "fontWeight": "500"
                     },
                     {
                       "type": "rectangle",
                       "cornerRadius": 1,
                       "id": "RazJI",
                       "name": "u8",
+                      "opacity": 0.35,
                       "fill": "$pos-noun",
                       "width": "fill_container",
                       "height": 2
@@ -14449,7 +14544,7 @@
                   "content": "を",
                   "fontFamily": "Plus Jakarta Sans",
                   "fontSize": 18,
-                  "fontWeight": "800"
+                  "fontWeight": "500"
                 },
                 {
                   "type": "frame",
@@ -14466,13 +14561,14 @@
                       "content": "隠して",
                       "fontFamily": "Plus Jakarta Sans",
                       "fontSize": 18,
-                      "fontWeight": "800"
+                      "fontWeight": "500"
                     },
                     {
                       "type": "rectangle",
                       "cornerRadius": 1,
                       "id": "kxRx7",
                       "name": "u9",
+                      "opacity": 0.35,
                       "fill": "$pos-verb",
                       "width": "fill_container",
                       "height": 2
@@ -14494,13 +14590,14 @@
                       "content": "笑う",
                       "fontFamily": "Plus Jakarta Sans",
                       "fontSize": 18,
-                      "fontWeight": "800"
+                      "fontWeight": "500"
                     },
                     {
                       "type": "rectangle",
                       "cornerRadius": 1,
                       "id": "H3TI2",
                       "name": "u10",
+                      "opacity": 0.35,
                       "fill": "$pos-verb",
                       "width": "fill_container",
                       "height": 2
@@ -14553,7 +14650,7 @@
                   "content": "この",
                   "fontFamily": "Plus Jakarta Sans",
                   "fontSize": 18,
-                  "fontWeight": "800"
+                  "fontWeight": "500"
                 },
                 {
                   "type": "frame",
@@ -14570,13 +14667,14 @@
                       "content": "想い",
                       "fontFamily": "Plus Jakarta Sans",
                       "fontSize": 18,
-                      "fontWeight": "800"
+                      "fontWeight": "500"
                     },
                     {
                       "type": "rectangle",
                       "cornerRadius": 1,
                       "id": "Xs8zo",
                       "name": "u11",
+                      "opacity": 0.35,
                       "fill": "$pos-noun",
                       "width": "fill_container",
                       "height": 2
@@ -14591,7 +14689,7 @@
                   "content": "は",
                   "fontFamily": "Plus Jakarta Sans",
                   "fontSize": 18,
-                  "fontWeight": "800"
+                  "fontWeight": "500"
                 },
                 {
                   "type": "frame",
@@ -14608,13 +14706,14 @@
                       "content": "消えない",
                       "fontFamily": "Plus Jakarta Sans",
                       "fontSize": 18,
-                      "fontWeight": "800"
+                      "fontWeight": "500"
                     },
                     {
                       "type": "rectangle",
                       "cornerRadius": 1,
                       "id": "nFyVd",
                       "name": "u12",
+                      "opacity": 0.35,
                       "fill": "$pos-verb",
                       "width": "fill_container",
                       "height": 2
@@ -15883,6 +15982,656 @@
               ]
             }
           ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "KcBx5",
+      "x": 1857,
+      "y": -1255,
+      "name": "1b. Song Playback - Seeking",
+      "clip": true,
+      "width": 402,
+      "height": 874,
+      "fill": "$bg-primary",
+      "layout": "none",
+      "children": [
+        {
+          "type": "frame",
+          "id": "6IZSJ",
+          "x": 0,
+          "y": 0,
+          "name": "bg",
+          "clip": true,
+          "width": 402,
+          "height": 874,
+          "fill": "$bg-primary",
+          "layout": "vertical",
+          "children": [
+            {
+              "type": "frame",
+              "id": "OHdRv",
+              "name": "statusBar",
+              "width": "fill_container",
+              "height": 62,
+              "padding": [
+                0,
+                24
+              ],
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "CnvHC",
+                  "name": "timeText",
+                  "fill": "$text-primary",
+                  "content": "9:41",
+                  "fontFamily": "Inter",
+                  "fontSize": 16,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "frame",
+                  "id": "VwkjB",
+                  "name": "statusRight",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "svIlL",
+                      "name": "sigIcon",
+                      "width": 16,
+                      "height": 16,
+                      "iconFontName": "signal",
+                      "iconFontFamily": "lucide",
+                      "fill": "$text-primary"
+                    },
+                    {
+                      "type": "icon_font",
+                      "id": "VGCya",
+                      "name": "wifiIcon",
+                      "width": 16,
+                      "height": 16,
+                      "iconFontName": "wifi",
+                      "iconFontFamily": "lucide",
+                      "fill": "$text-primary"
+                    },
+                    {
+                      "type": "icon_font",
+                      "id": "xBVXo",
+                      "name": "batIcon",
+                      "width": 16,
+                      "height": 16,
+                      "iconFontName": "battery-full",
+                      "iconFontFamily": "lucide",
+                      "fill": "$text-primary"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "mkKkX",
+              "name": "mvArea",
+              "metadata": {
+                "type": "unsplash",
+                "username": "jl_darren25",
+                "link": "https://unsplash.com/@jl_darren25",
+                "author": "Darren Lin"
+              },
+              "clip": true,
+              "width": "fill_container",
+              "height": 220,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "https://images.unsplash.com/photo-1660201653614-4b85424679ed?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzM4NDg4MjV8&ixlib=rb-4.1.0&q=80&w=1080",
+                "mode": "fill"
+              },
+              "layout": "none",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "zFEXo",
+                  "x": 175,
+                  "y": 84,
+                  "name": "playBtn",
+                  "width": 52,
+                  "height": 52,
+                  "fill": "#FFFFFF40",
+                  "cornerRadius": 26,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "3sIs5",
+                      "name": "playIcon",
+                      "width": 24,
+                      "height": 24,
+                      "iconFontName": "play",
+                      "iconFontFamily": "lucide",
+                      "fill": "#FFFFFF"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "hRvYz",
+              "name": "bottomSheet",
+              "clip": true,
+              "width": "fill_container",
+              "height": 553,
+              "fill": "$bg-primary",
+              "cornerRadius": [
+                20,
+                20,
+                0,
+                0
+              ],
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "#00000015",
+                "offset": {
+                  "x": 0,
+                  "y": -4
+                },
+                "blur": 16
+              },
+              "layout": "vertical",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "giQAo",
+                  "name": "dragHandle",
+                  "width": "fill_container",
+                  "height": 24,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "rectangle",
+                      "cornerRadius": 2,
+                      "id": "VKKoT",
+                      "name": "handleBar",
+                      "fill": "$border-default",
+                      "width": 36,
+                      "height": 4
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "csUOM",
+                  "name": "scrollContent",
+                  "clip": true,
+                  "width": "fill_container",
+                  "height": "fill_container",
+                  "layout": "vertical",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "eqJ9K",
+                      "name": "songInfo",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 6,
+                      "padding": [
+                        32,
+                        24,
+                        24,
+                        24
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "rrg8I",
+                          "name": "title1",
+                          "fill": "$text-primary",
+                          "content": "夜空の彼方",
+                          "fontFamily": "Plus Jakarta Sans",
+                          "fontSize": 24,
+                          "fontWeight": "800"
+                        },
+                        {
+                          "type": "text",
+                          "id": "fQjK8",
+                          "name": "artist1",
+                          "fill": "$text-secondary",
+                          "content": "YOASOBI",
+                          "fontFamily": "Inter",
+                          "fontSize": 15,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "wIwl2",
+                      "type": "ref",
+                      "ref": "EYCDM",
+                      "name": "lyrSec",
+                      "clip": false,
+                      "height": "fit_content",
+                      "width": "fill_container",
+                      "x": 0,
+                      "y": 115,
+                      "padding": [
+                        8,
+                        24,
+                        20,
+                        24
+                      ],
+                      "descendants": {
+                        "LwygQ": {
+                          "width": "fill_container",
+                          "height": "fit_content",
+                          "x": 24,
+                          "y": 8
+                        },
+                        "ADSeb": {
+                          "width": "fit_content",
+                          "height": "fit_content"
+                        },
+                        "M5tT5": {
+                          "width": "fit_content",
+                          "height": "fit_content"
+                        },
+                        "pEOMS": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "nMqE4": {
+                          "x": 21
+                        },
+                        "Bz3Js": {
+                          "width": "fit_content",
+                          "height": "fit_content",
+                          "x": 42
+                        },
+                        "gCWp1": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "IZT2I": {
+                          "width": "fit_content",
+                          "height": "fit_content",
+                          "x": 81
+                        },
+                        "J0VUo": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "6ijES": {
+                          "x": 102
+                        },
+                        "RQ1iZ": {
+                          "width": "fit_content",
+                          "height": "fit_content",
+                          "x": 123
+                        },
+                        "RXYYp": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "VBq3F": {
+                          "x": 144
+                        },
+                        "3mIFo": {
+                          "y": 34
+                        },
+                        "UEz6b": {
+                          "y": 55
+                        },
+                        "IUrLL": {
+                          "width": "fill_container",
+                          "height": "fit_content",
+                          "x": 24,
+                          "y": 102
+                        },
+                        "Oo5bJ": {
+                          "width": "fit_content",
+                          "height": "fit_content"
+                        },
+                        "mz1Qh": {
+                          "width": "fit_content",
+                          "height": "fit_content"
+                        },
+                        "iPeR7": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "1bBao": {
+                          "x": 39
+                        },
+                        "pVRnr": {
+                          "width": "fit_content",
+                          "height": "fit_content",
+                          "x": 60
+                        },
+                        "CtCAQ": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "kSx73": {
+                          "x": 117
+                        },
+                        "Gii4z": {
+                          "y": 34
+                        },
+                        "Fyqcm": {
+                          "y": 55
+                        },
+                        "po1Sm": {
+                          "width": "fill_container",
+                          "height": "fit_content",
+                          "x": 24,
+                          "y": 196
+                        },
+                        "dYrSY": {
+                          "width": "fit_content",
+                          "height": "fit_content"
+                        },
+                        "q24Py": {
+                          "width": "fit_content",
+                          "height": "fit_content"
+                        },
+                        "W8M2F": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "leSOo": {
+                          "width": "fit_content",
+                          "height": "fit_content",
+                          "x": 75
+                        },
+                        "5e7nH": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "x3SEu": {
+                          "x": 114
+                        },
+                        "FwJ8K": {
+                          "width": "fit_content",
+                          "height": "fit_content",
+                          "x": 135
+                        },
+                        "77tJM": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "jssCO": {
+                          "y": 34
+                        },
+                        "AQN6s": {
+                          "y": 55
+                        },
+                        "ZRCJN": {
+                          "width": "fill_container",
+                          "height": "fit_content",
+                          "x": 24,
+                          "y": 290
+                        },
+                        "AyeYF": {
+                          "width": "fit_content",
+                          "height": "fit_content"
+                        },
+                        "yQx8h": {
+                          "width": "fit_content",
+                          "height": "fit_content"
+                        },
+                        "RazJI": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "Q4SFb": {
+                          "x": 21
+                        },
+                        "zJHAF": {
+                          "width": "fit_content",
+                          "height": "fit_content",
+                          "x": 42
+                        },
+                        "kxRx7": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "4aRmb": {
+                          "width": "fit_content",
+                          "height": "fit_content",
+                          "x": 99
+                        },
+                        "H3TI2": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "ucaaU": {
+                          "y": 34
+                        },
+                        "GKZpk": {
+                          "y": 55
+                        },
+                        "g8bZE": {
+                          "width": "fill_container",
+                          "height": "fit_content",
+                          "x": 24,
+                          "y": 384
+                        },
+                        "MTbqt": {
+                          "width": "fit_content",
+                          "height": "fit_content"
+                        },
+                        "bhtri": {
+                          "width": "fit_content",
+                          "height": "fit_content",
+                          "x": 39
+                        },
+                        "Xs8zo": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "M3HRj": {
+                          "x": 78
+                        },
+                        "eKxgE": {
+                          "width": "fit_content",
+                          "height": "fit_content",
+                          "x": 99
+                        },
+                        "nFyVd": {
+                          "width": "fill_container",
+                          "y": 28
+                        },
+                        "oHxsa": {
+                          "y": 34
+                        },
+                        "SCKRG": {
+                          "y": 55
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "FQMe7",
+              "name": "miniPlayer",
+              "width": "fill_container",
+              "layout": "vertical",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "Ht5xU",
+                  "name": "progBg",
+                  "width": "fill_container",
+                  "height": 4,
+                  "layout": "none",
+                  "children": [
+                    {
+                      "type": "rectangle",
+                      "id": "RSi0S",
+                      "x": 0,
+                      "y": 0,
+                      "name": "progTrack",
+                      "fill": "$border-default",
+                      "width": 402,
+                      "height": 4
+                    },
+                    {
+                      "type": "rectangle",
+                      "id": "OOKLF",
+                      "x": 0,
+                      "y": 0,
+                      "name": "progFill",
+                      "fill": "$accent-primary",
+                      "width": 257,
+                      "height": 4
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "NhJzK",
+                  "name": "timeRow",
+                  "width": "fill_container",
+                  "padding": [
+                    8,
+                    24,
+                    16,
+                    24
+                  ],
+                  "justifyContent": "space_between",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "KzNZ1",
+                      "name": "timeCur",
+                      "fill": "$text-secondary",
+                      "content": "2:35",
+                      "fontFamily": "Inter",
+                      "fontSize": 11,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "text",
+                      "id": "lWf5v",
+                      "name": "timeTotal",
+                      "fill": "$text-secondary",
+                      "content": "4:02",
+                      "fontFamily": "Inter",
+                      "fontSize": 11,
+                      "fontWeight": "500"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "rectangle",
+              "id": "TPW9P",
+              "layoutPosition": "absolute",
+              "x": 0,
+              "y": 755,
+              "name": "fadeBase",
+              "fill": {
+                "type": "gradient",
+                "gradientType": "linear",
+                "enabled": true,
+                "rotation": 180,
+                "size": {
+                  "height": 1
+                },
+                "colors": [
+                  {
+                    "color": "#FFFFFF00",
+                    "position": 0
+                  },
+                  {
+                    "color": "#FFFFFFFF",
+                    "position": 1
+                  }
+                ]
+              },
+              "width": 402,
+              "height": 80
+            }
+          ]
+        },
+        {
+          "type": "ellipse",
+          "id": "bAoR2",
+          "x": 249,
+          "y": 829,
+          "name": "seekThumb",
+          "fill": "$accent-primary",
+          "width": 16,
+          "height": 16,
+          "effect": {
+            "type": "shadow",
+            "shadowType": "outer",
+            "color": "#00000040",
+            "offset": {
+              "x": 0,
+              "y": 1
+            },
+            "blur": 4
+          }
+        },
+        {
+          "type": "frame",
+          "id": "LeJ5j",
+          "x": 232,
+          "y": 794,
+          "name": "seekTooltip",
+          "fill": "#1A1A1AEE",
+          "cornerRadius": 8,
+          "effect": {
+            "type": "shadow",
+            "shadowType": "outer",
+            "color": "#00000030",
+            "offset": {
+              "x": 0,
+              "y": 2
+            },
+            "blur": 8
+          },
+          "padding": [
+            6,
+            12
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "Mxp3X",
+              "name": "ttText",
+              "fill": "#FFFFFF",
+              "content": "2:35",
+              "fontFamily": "Inter",
+              "fontSize": 12,
+              "fontWeight": "600"
+            }
+          ]
+        },
+        {
+          "type": "polygon",
+          "polygonCount": 3,
+          "id": "Fo5Mt",
+          "x": 252,
+          "y": 821,
+          "name": "seekArrow",
+          "rotation": 180,
+          "fill": "#1A1A1AEE",
+          "width": 10,
+          "height": 6
         }
       ]
     }

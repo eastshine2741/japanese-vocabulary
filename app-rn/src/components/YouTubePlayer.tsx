@@ -1,9 +1,13 @@
-import React, { useRef, useCallback } from 'react';
+import React, { useRef, useCallback, useImperativeHandle, forwardRef } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { WebView, WebViewMessageEvent } from 'react-native-webview';
 
 // Match KMP library: origin = "https://${packageName}"
 const APP_ORIGIN = 'https://com.anonymous.apprn';
+
+export interface YouTubePlayerRef {
+  seekTo: (seconds: number) => void;
+}
 
 interface Props {
   videoId: string;
@@ -112,15 +116,21 @@ function buildPlayerHTML(videoId: string): string {
 </html>`;
 }
 
-export default function YouTubePlayer({
+const YouTubePlayer = forwardRef<YouTubePlayerRef, Props>(({
   videoId,
   height,
   onTimeChange,
   onDurationChange,
   onStateChange,
-}: Props) {
+}, ref) => {
   const webViewRef = useRef<WebView>(null);
   const html = buildPlayerHTML(videoId);
+
+  useImperativeHandle(ref, () => ({
+    seekTo: (seconds: number) => {
+      webViewRef.current?.injectJavaScript(`player.seekTo(${seconds}, true); true;`);
+    },
+  }));
 
   const handleMessage = useCallback((event: WebViewMessageEvent) => {
     try {
@@ -155,7 +165,9 @@ export default function YouTubePlayer({
       />
     </View>
   );
-}
+});
+
+export default YouTubePlayer;
 
 const styles = StyleSheet.create({
   container: {
