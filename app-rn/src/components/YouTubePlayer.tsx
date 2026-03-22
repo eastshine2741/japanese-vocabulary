@@ -7,6 +7,8 @@ const APP_ORIGIN = 'https://com.anonymous.apprn';
 
 export interface YouTubePlayerRef {
   seekTo: (seconds: number) => void;
+  play: () => void;
+  pause: () => void;
 }
 
 interface Props {
@@ -129,6 +131,12 @@ const YouTubePlayer = forwardRef<YouTubePlayerRef, Props>(({
   useImperativeHandle(ref, () => ({
     seekTo: (seconds: number) => {
       webViewRef.current?.injectJavaScript(`player.seekTo(${seconds}, true); true;`);
+    },
+    play: () => {
+      webViewRef.current?.injectJavaScript(`player.playVideo(); true;`);
+    },
+    pause: () => {
+      webViewRef.current?.injectJavaScript(`player.pauseVideo(); true;`);
     },
   }));
 
