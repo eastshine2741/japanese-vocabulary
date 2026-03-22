@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -29,7 +29,7 @@ export default function SearchScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const {
     searchStatus, items, isLoadingMore,
-    analyzeStatus, studyData,
+    analyzeStatus,
     search, loadMore, analyze, resetAnalyze,
   } = useSearchStore();
 
@@ -37,11 +37,12 @@ export default function SearchScreen({ navigation }: Props) {
     resetAnalyze();
   }, []);
 
-  useEffect(() => {
-    if (analyzeStatus === 'success' && studyData) {
+  const handleAnalyze = useCallback(async (item: Parameters<typeof analyze>[0]) => {
+    await analyze(item);
+    if (useSearchStore.getState().analyzeStatus === 'success') {
       navigation.navigate('Player', { origin: 'Home' });
     }
-  }, [analyzeStatus, studyData]);
+  }, [analyze, navigation]);
 
   const handleSearch = () => {
     if (query.trim()) search(query.trim());
@@ -96,7 +97,7 @@ export default function SearchScreen({ navigation }: Props) {
             title={item.title}
             subtitle={`${item.artistName} · ${formatDuration(item.durationSeconds)}`}
             showChevron
-            onPress={() => analyze(item)}
+            onPress={() => handleAnalyze(item)}
           />
         )}
         onEndReached={loadMore}
