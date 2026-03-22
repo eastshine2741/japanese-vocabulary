@@ -84,9 +84,9 @@
           "name": "mvArea",
           "metadata": {
             "type": "unsplash",
-            "username": "jl_darren25",
-            "link": "https://unsplash.com/@jl_darren25",
-            "author": "Darren Lin"
+            "username": "meinayin",
+            "link": "https://unsplash.com/@meinayin",
+            "author": "Meina Yin"
           },
           "clip": true,
           "width": "fill_container",
@@ -94,7 +94,7 @@
           "fill": {
             "type": "image",
             "enabled": true,
-            "url": "https://images.unsplash.com/photo-1660201653614-4b85424679ed?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzM4NDg4MjV8&ixlib=rb-4.1.0&q=80&w=1080",
+            "url": "https://images.unsplash.com/photo-1619629986956-596a211a5e6b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzQxODc2ODF8&ixlib=rb-4.1.0&q=80&w=1080",
             "mode": "fill"
           },
           "layout": "none",
@@ -10701,7 +10701,309 @@
           "type": "ref",
           "ref": "mrn7o",
           "x": 0,
-          "y": 0
+          "y": 0,
+          "descendants": {
+            "d6b35": {
+              "width": "fill_container"
+            },
+            "PODU2": {
+              "x": 24,
+              "y": 21.5
+            },
+            "hdDGR": {
+              "width": "fit_content",
+              "height": "fit_content",
+              "x": 318,
+              "y": 23
+            },
+            "Ghwcg": {
+              "x": 22
+            },
+            "1fpTV": {
+              "x": 44
+            },
+            "hGY8J": {
+              "width": "fill_container",
+              "y": 62
+            },
+            "UkLR2": {
+              "x": 14,
+              "y": 14
+            },
+            "mfWGM": {
+              "width": "fill_container",
+              "y": 282
+            },
+            "yPbEC": {
+              "width": "fill_container"
+            },
+            "G21Kj": {
+              "x": 183,
+              "y": 18
+            },
+            "apEzJ": {
+              "width": "fill_container",
+              "height": "fill_container",
+              "y": 40
+            },
+            "fyTWV": {
+              "width": "fill_container",
+              "height": "fit_content"
+            },
+            "sedDH": {
+              "x": 24,
+              "y": 32
+            },
+            "8IBFX": {
+              "x": 24,
+              "y": 73
+            },
+            "X5SPb": {
+              "width": "fill_container",
+              "height": "fit_content"
+            },
+            "X5SPb/LwygQ": {
+              "width": "fill_container",
+              "height": "fit_content"
+            },
+            "X5SPb/ADSeb": {
+              "width": "fit_content",
+              "height": "fit_content"
+            },
+            "X5SPb/M5tT5": {
+              "width": "fit_content",
+              "height": "fit_content"
+            },
+            "X5SPb/pEOMS": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/nMqE4": {
+              "x": 21
+            },
+            "X5SPb/Bz3Js": {
+              "width": "fit_content",
+              "height": "fit_content",
+              "x": 42
+            },
+            "X5SPb/gCWp1": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/IZT2I": {
+              "width": "fit_content",
+              "height": "fit_content",
+              "x": 81
+            },
+            "X5SPb/J0VUo": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/6ijES": {
+              "x": 102
+            },
+            "X5SPb/RQ1iZ": {
+              "width": "fit_content",
+              "height": "fit_content",
+              "x": 123
+            },
+            "X5SPb/RXYYp": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/VBq3F": {
+              "x": 144
+            },
+            "X5SPb/3mIFo": {
+              "y": 34
+            },
+            "X5SPb/UEz6b": {
+              "y": 55
+            },
+            "X5SPb/IUrLL": {
+              "width": "fill_container",
+              "height": "fit_content",
+              "y": 102
+            },
+            "X5SPb/Oo5bJ": {
+              "width": "fit_content",
+              "height": "fit_content"
+            },
+            "X5SPb/mz1Qh": {
+              "width": "fit_content",
+              "height": "fit_content"
+            },
+            "X5SPb/iPeR7": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/1bBao": {
+              "x": 39
+            },
+            "X5SPb/pVRnr": {
+              "width": "fit_content",
+              "height": "fit_content",
+              "x": 60
+            },
+            "X5SPb/CtCAQ": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/kSx73": {
+              "x": 117
+            },
+            "X5SPb/Gii4z": {
+              "y": 34
+            },
+            "X5SPb/Fyqcm": {
+              "y": 55
+            },
+            "X5SPb/po1Sm": {
+              "width": "fill_container",
+              "height": "fit_content",
+              "y": 196
+            },
+            "X5SPb/dYrSY": {
+              "width": "fit_content",
+              "height": "fit_content"
+            },
+            "X5SPb/q24Py": {
+              "width": "fit_content",
+              "height": "fit_content"
+            },
+            "X5SPb/W8M2F": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/leSOo": {
+              "width": "fit_content",
+              "height": "fit_content",
+              "x": 75
+            },
+            "X5SPb/5e7nH": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/x3SEu": {
+              "x": 114
+            },
+            "X5SPb/FwJ8K": {
+              "width": "fit_content",
+              "height": "fit_content",
+              "x": 135
+            },
+            "X5SPb/77tJM": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/jssCO": {
+              "y": 34
+            },
+            "X5SPb/AQN6s": {
+              "y": 55
+            },
+            "X5SPb/ZRCJN": {
+              "width": "fill_container",
+              "height": "fit_content",
+              "y": 290
+            },
+            "X5SPb/AyeYF": {
+              "width": "fit_content",
+              "height": "fit_content"
+            },
+            "X5SPb/yQx8h": {
+              "width": "fit_content",
+              "height": "fit_content"
+            },
+            "X5SPb/RazJI": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/Q4SFb": {
+              "x": 21
+            },
+            "X5SPb/zJHAF": {
+              "width": "fit_content",
+              "height": "fit_content",
+              "x": 42
+            },
+            "X5SPb/kxRx7": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/4aRmb": {
+              "width": "fit_content",
+              "height": "fit_content",
+              "x": 99
+            },
+            "X5SPb/H3TI2": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/ucaaU": {
+              "y": 34
+            },
+            "X5SPb/GKZpk": {
+              "y": 55
+            },
+            "X5SPb/g8bZE": {
+              "width": "fill_container",
+              "height": "fit_content",
+              "y": 384
+            },
+            "X5SPb/MTbqt": {
+              "width": "fit_content",
+              "height": "fit_content"
+            },
+            "X5SPb/bhtri": {
+              "width": "fit_content",
+              "height": "fit_content",
+              "x": 39
+            },
+            "X5SPb/Xs8zo": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/M3HRj": {
+              "x": 78
+            },
+            "X5SPb/eKxgE": {
+              "width": "fit_content",
+              "height": "fit_content",
+              "x": 99
+            },
+            "X5SPb/nFyVd": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/oHxsa": {
+              "y": 34
+            },
+            "X5SPb/SCKRG": {
+              "y": 55
+            },
+            "Q5X1J": {
+              "width": "fill_container",
+              "height": "fit_content",
+              "y": 835
+            },
+            "pgzS7": {
+              "width": "fill_container"
+            },
+            "KINLs": {
+              "width": "fill_container",
+              "height": "fit_content",
+              "y": 2
+            },
+            "qyUZb": {
+              "x": 24,
+              "y": 8
+            },
+            "6w6f9": {
+              "x": 353,
+              "y": 8
+            }
+          }
         },
         {
           "type": "rectangle",
@@ -10874,7 +11176,8 @@
                       "fill": "$text-secondary",
                       "content": "사전에서 찾아보기",
                       "fontFamily": "Inter",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 }
@@ -11071,7 +11374,309 @@
           "type": "ref",
           "ref": "mrn7o",
           "x": 0,
-          "y": 0
+          "y": 0,
+          "descendants": {
+            "d6b35": {
+              "width": "fill_container"
+            },
+            "PODU2": {
+              "x": 24,
+              "y": 21.5
+            },
+            "hdDGR": {
+              "width": "fit_content",
+              "height": "fit_content",
+              "x": 318,
+              "y": 23
+            },
+            "Ghwcg": {
+              "x": 22
+            },
+            "1fpTV": {
+              "x": 44
+            },
+            "hGY8J": {
+              "width": "fill_container",
+              "y": 62
+            },
+            "UkLR2": {
+              "x": 14,
+              "y": 14
+            },
+            "mfWGM": {
+              "width": "fill_container",
+              "y": 282
+            },
+            "yPbEC": {
+              "width": "fill_container"
+            },
+            "G21Kj": {
+              "x": 183,
+              "y": 18
+            },
+            "apEzJ": {
+              "width": "fill_container",
+              "height": "fill_container",
+              "y": 40
+            },
+            "fyTWV": {
+              "width": "fill_container",
+              "height": "fit_content"
+            },
+            "sedDH": {
+              "x": 24,
+              "y": 32
+            },
+            "8IBFX": {
+              "x": 24,
+              "y": 73
+            },
+            "X5SPb": {
+              "width": "fill_container",
+              "height": "fit_content"
+            },
+            "X5SPb/LwygQ": {
+              "width": "fill_container",
+              "height": "fit_content"
+            },
+            "X5SPb/ADSeb": {
+              "width": "fit_content",
+              "height": "fit_content"
+            },
+            "X5SPb/M5tT5": {
+              "width": "fit_content",
+              "height": "fit_content"
+            },
+            "X5SPb/pEOMS": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/nMqE4": {
+              "x": 21
+            },
+            "X5SPb/Bz3Js": {
+              "width": "fit_content",
+              "height": "fit_content",
+              "x": 42
+            },
+            "X5SPb/gCWp1": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/IZT2I": {
+              "width": "fit_content",
+              "height": "fit_content",
+              "x": 81
+            },
+            "X5SPb/J0VUo": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/6ijES": {
+              "x": 102
+            },
+            "X5SPb/RQ1iZ": {
+              "width": "fit_content",
+              "height": "fit_content",
+              "x": 123
+            },
+            "X5SPb/RXYYp": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/VBq3F": {
+              "x": 144
+            },
+            "X5SPb/3mIFo": {
+              "y": 34
+            },
+            "X5SPb/UEz6b": {
+              "y": 55
+            },
+            "X5SPb/IUrLL": {
+              "width": "fill_container",
+              "height": "fit_content",
+              "y": 102
+            },
+            "X5SPb/Oo5bJ": {
+              "width": "fit_content",
+              "height": "fit_content"
+            },
+            "X5SPb/mz1Qh": {
+              "width": "fit_content",
+              "height": "fit_content"
+            },
+            "X5SPb/iPeR7": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/1bBao": {
+              "x": 39
+            },
+            "X5SPb/pVRnr": {
+              "width": "fit_content",
+              "height": "fit_content",
+              "x": 60
+            },
+            "X5SPb/CtCAQ": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/kSx73": {
+              "x": 117
+            },
+            "X5SPb/Gii4z": {
+              "y": 34
+            },
+            "X5SPb/Fyqcm": {
+              "y": 55
+            },
+            "X5SPb/po1Sm": {
+              "width": "fill_container",
+              "height": "fit_content",
+              "y": 196
+            },
+            "X5SPb/dYrSY": {
+              "width": "fit_content",
+              "height": "fit_content"
+            },
+            "X5SPb/q24Py": {
+              "width": "fit_content",
+              "height": "fit_content"
+            },
+            "X5SPb/W8M2F": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/leSOo": {
+              "width": "fit_content",
+              "height": "fit_content",
+              "x": 75
+            },
+            "X5SPb/5e7nH": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/x3SEu": {
+              "x": 114
+            },
+            "X5SPb/FwJ8K": {
+              "width": "fit_content",
+              "height": "fit_content",
+              "x": 135
+            },
+            "X5SPb/77tJM": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/jssCO": {
+              "y": 34
+            },
+            "X5SPb/AQN6s": {
+              "y": 55
+            },
+            "X5SPb/ZRCJN": {
+              "width": "fill_container",
+              "height": "fit_content",
+              "y": 290
+            },
+            "X5SPb/AyeYF": {
+              "width": "fit_content",
+              "height": "fit_content"
+            },
+            "X5SPb/yQx8h": {
+              "width": "fit_content",
+              "height": "fit_content"
+            },
+            "X5SPb/RazJI": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/Q4SFb": {
+              "x": 21
+            },
+            "X5SPb/zJHAF": {
+              "width": "fit_content",
+              "height": "fit_content",
+              "x": 42
+            },
+            "X5SPb/kxRx7": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/4aRmb": {
+              "width": "fit_content",
+              "height": "fit_content",
+              "x": 99
+            },
+            "X5SPb/H3TI2": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/ucaaU": {
+              "y": 34
+            },
+            "X5SPb/GKZpk": {
+              "y": 55
+            },
+            "X5SPb/g8bZE": {
+              "width": "fill_container",
+              "height": "fit_content",
+              "y": 384
+            },
+            "X5SPb/MTbqt": {
+              "width": "fit_content",
+              "height": "fit_content"
+            },
+            "X5SPb/bhtri": {
+              "width": "fit_content",
+              "height": "fit_content",
+              "x": 39
+            },
+            "X5SPb/Xs8zo": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/M3HRj": {
+              "x": 78
+            },
+            "X5SPb/eKxgE": {
+              "width": "fit_content",
+              "height": "fit_content",
+              "x": 99
+            },
+            "X5SPb/nFyVd": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/oHxsa": {
+              "y": 34
+            },
+            "X5SPb/SCKRG": {
+              "y": 55
+            },
+            "Q5X1J": {
+              "width": "fill_container",
+              "height": "fit_content",
+              "y": 835
+            },
+            "pgzS7": {
+              "width": "fill_container"
+            },
+            "KINLs": {
+              "width": "fill_container",
+              "height": "fit_content",
+              "y": 2
+            },
+            "qyUZb": {
+              "x": 24,
+              "y": 8
+            },
+            "6w6f9": {
+              "x": 353,
+              "y": 8
+            }
+          }
         },
         {
           "type": "rectangle",
@@ -11244,7 +11849,8 @@
                       "fill": "$text-secondary",
                       "content": "사전에서 찾아보기",
                       "fontFamily": "Inter",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 }
@@ -11320,7 +11926,309 @@
           "type": "ref",
           "ref": "mrn7o",
           "x": 0,
-          "y": 0
+          "y": 0,
+          "descendants": {
+            "d6b35": {
+              "width": "fill_container"
+            },
+            "PODU2": {
+              "x": 24,
+              "y": 21.5
+            },
+            "hdDGR": {
+              "width": "fit_content",
+              "height": "fit_content",
+              "x": 318,
+              "y": 23
+            },
+            "Ghwcg": {
+              "x": 22
+            },
+            "1fpTV": {
+              "x": 44
+            },
+            "hGY8J": {
+              "width": "fill_container",
+              "y": 62
+            },
+            "UkLR2": {
+              "x": 14,
+              "y": 14
+            },
+            "mfWGM": {
+              "width": "fill_container",
+              "y": 282
+            },
+            "yPbEC": {
+              "width": "fill_container"
+            },
+            "G21Kj": {
+              "x": 183,
+              "y": 18
+            },
+            "apEzJ": {
+              "width": "fill_container",
+              "height": "fill_container",
+              "y": 40
+            },
+            "fyTWV": {
+              "width": "fill_container",
+              "height": "fit_content"
+            },
+            "sedDH": {
+              "x": 24,
+              "y": 32
+            },
+            "8IBFX": {
+              "x": 24,
+              "y": 73
+            },
+            "X5SPb": {
+              "width": "fill_container",
+              "height": "fit_content"
+            },
+            "X5SPb/LwygQ": {
+              "width": "fill_container",
+              "height": "fit_content"
+            },
+            "X5SPb/ADSeb": {
+              "width": "fit_content",
+              "height": "fit_content"
+            },
+            "X5SPb/M5tT5": {
+              "width": "fit_content",
+              "height": "fit_content"
+            },
+            "X5SPb/pEOMS": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/nMqE4": {
+              "x": 21
+            },
+            "X5SPb/Bz3Js": {
+              "width": "fit_content",
+              "height": "fit_content",
+              "x": 42
+            },
+            "X5SPb/gCWp1": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/IZT2I": {
+              "width": "fit_content",
+              "height": "fit_content",
+              "x": 81
+            },
+            "X5SPb/J0VUo": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/6ijES": {
+              "x": 102
+            },
+            "X5SPb/RQ1iZ": {
+              "width": "fit_content",
+              "height": "fit_content",
+              "x": 123
+            },
+            "X5SPb/RXYYp": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/VBq3F": {
+              "x": 144
+            },
+            "X5SPb/3mIFo": {
+              "y": 34
+            },
+            "X5SPb/UEz6b": {
+              "y": 55
+            },
+            "X5SPb/IUrLL": {
+              "width": "fill_container",
+              "height": "fit_content",
+              "y": 102
+            },
+            "X5SPb/Oo5bJ": {
+              "width": "fit_content",
+              "height": "fit_content"
+            },
+            "X5SPb/mz1Qh": {
+              "width": "fit_content",
+              "height": "fit_content"
+            },
+            "X5SPb/iPeR7": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/1bBao": {
+              "x": 39
+            },
+            "X5SPb/pVRnr": {
+              "width": "fit_content",
+              "height": "fit_content",
+              "x": 60
+            },
+            "X5SPb/CtCAQ": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/kSx73": {
+              "x": 117
+            },
+            "X5SPb/Gii4z": {
+              "y": 34
+            },
+            "X5SPb/Fyqcm": {
+              "y": 55
+            },
+            "X5SPb/po1Sm": {
+              "width": "fill_container",
+              "height": "fit_content",
+              "y": 196
+            },
+            "X5SPb/dYrSY": {
+              "width": "fit_content",
+              "height": "fit_content"
+            },
+            "X5SPb/q24Py": {
+              "width": "fit_content",
+              "height": "fit_content"
+            },
+            "X5SPb/W8M2F": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/leSOo": {
+              "width": "fit_content",
+              "height": "fit_content",
+              "x": 75
+            },
+            "X5SPb/5e7nH": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/x3SEu": {
+              "x": 114
+            },
+            "X5SPb/FwJ8K": {
+              "width": "fit_content",
+              "height": "fit_content",
+              "x": 135
+            },
+            "X5SPb/77tJM": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/jssCO": {
+              "y": 34
+            },
+            "X5SPb/AQN6s": {
+              "y": 55
+            },
+            "X5SPb/ZRCJN": {
+              "width": "fill_container",
+              "height": "fit_content",
+              "y": 290
+            },
+            "X5SPb/AyeYF": {
+              "width": "fit_content",
+              "height": "fit_content"
+            },
+            "X5SPb/yQx8h": {
+              "width": "fit_content",
+              "height": "fit_content"
+            },
+            "X5SPb/RazJI": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/Q4SFb": {
+              "x": 21
+            },
+            "X5SPb/zJHAF": {
+              "width": "fit_content",
+              "height": "fit_content",
+              "x": 42
+            },
+            "X5SPb/kxRx7": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/4aRmb": {
+              "width": "fit_content",
+              "height": "fit_content",
+              "x": 99
+            },
+            "X5SPb/H3TI2": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/ucaaU": {
+              "y": 34
+            },
+            "X5SPb/GKZpk": {
+              "y": 55
+            },
+            "X5SPb/g8bZE": {
+              "width": "fill_container",
+              "height": "fit_content",
+              "y": 384
+            },
+            "X5SPb/MTbqt": {
+              "width": "fit_content",
+              "height": "fit_content"
+            },
+            "X5SPb/bhtri": {
+              "width": "fit_content",
+              "height": "fit_content",
+              "x": 39
+            },
+            "X5SPb/Xs8zo": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/M3HRj": {
+              "x": 78
+            },
+            "X5SPb/eKxgE": {
+              "width": "fit_content",
+              "height": "fit_content",
+              "x": 99
+            },
+            "X5SPb/nFyVd": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/oHxsa": {
+              "y": 34
+            },
+            "X5SPb/SCKRG": {
+              "y": 55
+            },
+            "Q5X1J": {
+              "width": "fill_container",
+              "height": "fit_content",
+              "y": 835
+            },
+            "pgzS7": {
+              "width": "fill_container"
+            },
+            "KINLs": {
+              "width": "fill_container",
+              "height": "fit_content",
+              "y": 2
+            },
+            "qyUZb": {
+              "x": 24,
+              "y": 8
+            },
+            "6w6f9": {
+              "x": 353,
+              "y": 8
+            }
+          }
         },
         {
           "type": "rectangle",
@@ -11493,7 +12401,8 @@
                       "fill": "$text-secondary",
                       "content": "사전에서 찾아보기",
                       "fontFamily": "Inter",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 }
@@ -15082,7 +15991,309 @@
           "type": "ref",
           "ref": "mrn7o",
           "x": 0,
-          "y": 0
+          "y": 0,
+          "descendants": {
+            "d6b35": {
+              "width": "fill_container"
+            },
+            "PODU2": {
+              "x": 24,
+              "y": 21.5
+            },
+            "hdDGR": {
+              "width": "fit_content",
+              "height": "fit_content",
+              "x": 318,
+              "y": 23
+            },
+            "Ghwcg": {
+              "x": 22
+            },
+            "1fpTV": {
+              "x": 44
+            },
+            "hGY8J": {
+              "width": "fill_container",
+              "y": 62
+            },
+            "UkLR2": {
+              "x": 14,
+              "y": 14
+            },
+            "mfWGM": {
+              "width": "fill_container",
+              "y": 282
+            },
+            "yPbEC": {
+              "width": "fill_container"
+            },
+            "G21Kj": {
+              "x": 183,
+              "y": 18
+            },
+            "apEzJ": {
+              "width": "fill_container",
+              "height": "fill_container",
+              "y": 40
+            },
+            "fyTWV": {
+              "width": "fill_container",
+              "height": "fit_content"
+            },
+            "sedDH": {
+              "x": 24,
+              "y": 32
+            },
+            "8IBFX": {
+              "x": 24,
+              "y": 73
+            },
+            "X5SPb": {
+              "width": "fill_container",
+              "height": "fit_content"
+            },
+            "X5SPb/LwygQ": {
+              "width": "fill_container",
+              "height": "fit_content"
+            },
+            "X5SPb/ADSeb": {
+              "width": "fit_content",
+              "height": "fit_content"
+            },
+            "X5SPb/M5tT5": {
+              "width": "fit_content",
+              "height": "fit_content"
+            },
+            "X5SPb/pEOMS": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/nMqE4": {
+              "x": 21
+            },
+            "X5SPb/Bz3Js": {
+              "width": "fit_content",
+              "height": "fit_content",
+              "x": 42
+            },
+            "X5SPb/gCWp1": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/IZT2I": {
+              "width": "fit_content",
+              "height": "fit_content",
+              "x": 81
+            },
+            "X5SPb/J0VUo": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/6ijES": {
+              "x": 102
+            },
+            "X5SPb/RQ1iZ": {
+              "width": "fit_content",
+              "height": "fit_content",
+              "x": 123
+            },
+            "X5SPb/RXYYp": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/VBq3F": {
+              "x": 144
+            },
+            "X5SPb/3mIFo": {
+              "y": 34
+            },
+            "X5SPb/UEz6b": {
+              "y": 55
+            },
+            "X5SPb/IUrLL": {
+              "width": "fill_container",
+              "height": "fit_content",
+              "y": 102
+            },
+            "X5SPb/Oo5bJ": {
+              "width": "fit_content",
+              "height": "fit_content"
+            },
+            "X5SPb/mz1Qh": {
+              "width": "fit_content",
+              "height": "fit_content"
+            },
+            "X5SPb/iPeR7": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/1bBao": {
+              "x": 39
+            },
+            "X5SPb/pVRnr": {
+              "width": "fit_content",
+              "height": "fit_content",
+              "x": 60
+            },
+            "X5SPb/CtCAQ": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/kSx73": {
+              "x": 117
+            },
+            "X5SPb/Gii4z": {
+              "y": 34
+            },
+            "X5SPb/Fyqcm": {
+              "y": 55
+            },
+            "X5SPb/po1Sm": {
+              "width": "fill_container",
+              "height": "fit_content",
+              "y": 196
+            },
+            "X5SPb/dYrSY": {
+              "width": "fit_content",
+              "height": "fit_content"
+            },
+            "X5SPb/q24Py": {
+              "width": "fit_content",
+              "height": "fit_content"
+            },
+            "X5SPb/W8M2F": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/leSOo": {
+              "width": "fit_content",
+              "height": "fit_content",
+              "x": 75
+            },
+            "X5SPb/5e7nH": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/x3SEu": {
+              "x": 114
+            },
+            "X5SPb/FwJ8K": {
+              "width": "fit_content",
+              "height": "fit_content",
+              "x": 135
+            },
+            "X5SPb/77tJM": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/jssCO": {
+              "y": 34
+            },
+            "X5SPb/AQN6s": {
+              "y": 55
+            },
+            "X5SPb/ZRCJN": {
+              "width": "fill_container",
+              "height": "fit_content",
+              "y": 290
+            },
+            "X5SPb/AyeYF": {
+              "width": "fit_content",
+              "height": "fit_content"
+            },
+            "X5SPb/yQx8h": {
+              "width": "fit_content",
+              "height": "fit_content"
+            },
+            "X5SPb/RazJI": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/Q4SFb": {
+              "x": 21
+            },
+            "X5SPb/zJHAF": {
+              "width": "fit_content",
+              "height": "fit_content",
+              "x": 42
+            },
+            "X5SPb/kxRx7": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/4aRmb": {
+              "width": "fit_content",
+              "height": "fit_content",
+              "x": 99
+            },
+            "X5SPb/H3TI2": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/ucaaU": {
+              "y": 34
+            },
+            "X5SPb/GKZpk": {
+              "y": 55
+            },
+            "X5SPb/g8bZE": {
+              "width": "fill_container",
+              "height": "fit_content",
+              "y": 384
+            },
+            "X5SPb/MTbqt": {
+              "width": "fit_content",
+              "height": "fit_content"
+            },
+            "X5SPb/bhtri": {
+              "width": "fit_content",
+              "height": "fit_content",
+              "x": 39
+            },
+            "X5SPb/Xs8zo": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/M3HRj": {
+              "x": 78
+            },
+            "X5SPb/eKxgE": {
+              "width": "fit_content",
+              "height": "fit_content",
+              "x": 99
+            },
+            "X5SPb/nFyVd": {
+              "width": "fill_container",
+              "y": 28
+            },
+            "X5SPb/oHxsa": {
+              "y": 34
+            },
+            "X5SPb/SCKRG": {
+              "y": 55
+            },
+            "Q5X1J": {
+              "width": "fill_container",
+              "height": "fit_content",
+              "y": 835
+            },
+            "pgzS7": {
+              "width": "fill_container"
+            },
+            "KINLs": {
+              "width": "fill_container",
+              "height": "fit_content",
+              "y": 2
+            },
+            "qyUZb": {
+              "x": 24,
+              "y": 8
+            },
+            "6w6f9": {
+              "x": 353,
+              "y": 8
+            }
+          }
         },
         {
           "type": "rectangle",
@@ -15255,7 +16466,8 @@
                       "fill": "$text-secondary",
                       "content": "사전에서 찾아보기",
                       "fontFamily": "Inter",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 }
@@ -15412,6 +16624,61 @@
       "x": 2359,
       "y": -1255,
       "descendants": {
+        "d6b35": {
+          "width": "fill_container"
+        },
+        "PODU2": {
+          "x": 24,
+          "y": 21.5
+        },
+        "hdDGR": {
+          "width": "fit_content",
+          "height": "fit_content",
+          "x": 318,
+          "y": 23
+        },
+        "Ghwcg": {
+          "x": 22
+        },
+        "1fpTV": {
+          "x": 44
+        },
+        "hGY8J": {
+          "width": "fill_container",
+          "y": 62
+        },
+        "UkLR2": {
+          "x": 14,
+          "y": 14
+        },
+        "mfWGM": {
+          "width": "fill_container",
+          "y": 282
+        },
+        "yPbEC": {
+          "width": "fill_container"
+        },
+        "G21Kj": {
+          "x": 183,
+          "y": 18
+        },
+        "apEzJ": {
+          "width": "fill_container",
+          "height": "fill_container",
+          "y": 40
+        },
+        "fyTWV": {
+          "width": "fill_container",
+          "height": "fit_content"
+        },
+        "sedDH": {
+          "x": 24,
+          "y": 32
+        },
+        "8IBFX": {
+          "x": 24,
+          "y": 73
+        },
         "X5SPb": {
           "type": "frame",
           "id": "gO4aU",
@@ -15492,7 +16759,8 @@
                       "fill": "$text-secondary",
                       "content": "금방 끝나요, 조금만 기다려 주세요",
                       "fontFamily": "Inter",
-                      "fontSize": 12
+                      "fontSize": 12,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -15672,6 +16940,27 @@
               ]
             }
           ]
+        },
+        "Q5X1J": {
+          "width": "fill_container",
+          "height": "fit_content",
+          "y": 835
+        },
+        "pgzS7": {
+          "width": "fill_container"
+        },
+        "KINLs": {
+          "width": "fill_container",
+          "height": "fit_content",
+          "y": 2
+        },
+        "qyUZb": {
+          "x": 24,
+          "y": 8
+        },
+        "6w6f9": {
+          "x": 353,
+          "y": 8
         }
       }
     },
@@ -15683,6 +16972,61 @@
       "x": 2861,
       "y": -1255,
       "descendants": {
+        "d6b35": {
+          "width": "fill_container"
+        },
+        "PODU2": {
+          "x": 24,
+          "y": 21.5
+        },
+        "hdDGR": {
+          "width": "fit_content",
+          "height": "fit_content",
+          "x": 318,
+          "y": 23
+        },
+        "Ghwcg": {
+          "x": 22
+        },
+        "1fpTV": {
+          "x": 44
+        },
+        "hGY8J": {
+          "width": "fill_container",
+          "y": 62
+        },
+        "UkLR2": {
+          "x": 14,
+          "y": 14
+        },
+        "mfWGM": {
+          "width": "fill_container",
+          "y": 282
+        },
+        "yPbEC": {
+          "width": "fill_container"
+        },
+        "G21Kj": {
+          "x": 183,
+          "y": 18
+        },
+        "apEzJ": {
+          "width": "fill_container",
+          "height": "fill_container",
+          "y": 40
+        },
+        "fyTWV": {
+          "width": "fill_container",
+          "height": "fit_content"
+        },
+        "sedDH": {
+          "x": 24,
+          "y": 32
+        },
+        "8IBFX": {
+          "x": 24,
+          "y": 73
+        },
         "X5SPb": {
           "type": "frame",
           "id": "4hAdH",
@@ -15765,7 +17109,8 @@
                       "width": "fill_container",
                       "content": "재생 위치에 맞춰 가사가 자동으로 따라가지 않아요",
                       "fontFamily": "Inter",
-                      "fontSize": 12
+                      "fontSize": 12,
+                      "fontWeight": "normal"
                     }
                   ]
                 }
@@ -15796,7 +17141,8 @@
                   "fill": "$text-muted",
                   "content": "카제가 후쿠 마치노 나카데",
                   "fontFamily": "Inter",
-                  "fontSize": 12
+                  "fontSize": 12,
+                  "fontWeight": "normal"
                 },
                 {
                   "type": "text",
@@ -15805,7 +17151,8 @@
                   "fill": "$text-secondary",
                   "content": "바람이 부는 거리 속에서",
                   "fontFamily": "Inter",
-                  "fontSize": 13
+                  "fontSize": 13,
+                  "fontWeight": "normal"
                 }
               ]
             },
@@ -15834,7 +17181,8 @@
                   "fill": "$text-muted",
                   "content": "요조라노 무코우니",
                   "fontFamily": "Inter",
-                  "fontSize": 12
+                  "fontSize": 12,
+                  "fontWeight": "normal"
                 },
                 {
                   "type": "text",
@@ -15843,7 +17191,8 @@
                   "fill": "$text-secondary",
                   "content": "밤하늘 너머로",
                   "fontFamily": "Inter",
-                  "fontSize": 13
+                  "fontSize": 13,
+                  "fontWeight": "normal"
                 }
               ]
             },
@@ -15872,7 +17221,8 @@
                   "fill": "$text-muted",
                   "content": "토도케타이 코토바가 아루",
                   "fontFamily": "Inter",
-                  "fontSize": 12
+                  "fontSize": 12,
+                  "fontWeight": "normal"
                 },
                 {
                   "type": "text",
@@ -15881,7 +17231,8 @@
                   "fill": "$text-secondary",
                   "content": "전하고 싶은 말이 있어",
                   "fontFamily": "Inter",
-                  "fontSize": 13
+                  "fontSize": 13,
+                  "fontWeight": "normal"
                 }
               ]
             },
@@ -15910,7 +17261,8 @@
                   "fill": "$text-muted",
                   "content": "나미다오 카쿠시테 와라우",
                   "fontFamily": "Inter",
-                  "fontSize": 12
+                  "fontSize": 12,
+                  "fontWeight": "normal"
                 },
                 {
                   "type": "text",
@@ -15919,11 +17271,33 @@
                   "fill": "$text-secondary",
                   "content": "눈물을 숨기고 웃어",
                   "fontFamily": "Inter",
-                  "fontSize": 13
+                  "fontSize": 13,
+                  "fontWeight": "normal"
                 }
               ]
             }
           ]
+        },
+        "Q5X1J": {
+          "width": "fill_container",
+          "height": "fit_content",
+          "y": 835
+        },
+        "pgzS7": {
+          "width": "fill_container"
+        },
+        "KINLs": {
+          "width": "fill_container",
+          "height": "fit_content",
+          "y": 2
+        },
+        "qyUZb": {
+          "x": 24,
+          "y": 8
+        },
+        "6w6f9": {
+          "x": 353,
+          "y": 8
         }
       }
     },
@@ -15935,6 +17309,61 @@
       "x": 3354,
       "y": -1255,
       "descendants": {
+        "d6b35": {
+          "width": "fill_container"
+        },
+        "PODU2": {
+          "x": 24,
+          "y": 21.5
+        },
+        "hdDGR": {
+          "width": "fit_content",
+          "height": "fit_content",
+          "x": 318,
+          "y": 23
+        },
+        "Ghwcg": {
+          "x": 22
+        },
+        "1fpTV": {
+          "x": 44
+        },
+        "hGY8J": {
+          "width": "fill_container",
+          "y": 62
+        },
+        "UkLR2": {
+          "x": 14,
+          "y": 14
+        },
+        "mfWGM": {
+          "width": "fill_container",
+          "y": 282
+        },
+        "yPbEC": {
+          "width": "fill_container"
+        },
+        "G21Kj": {
+          "x": 183,
+          "y": 18
+        },
+        "apEzJ": {
+          "width": "fill_container",
+          "height": "fill_container",
+          "y": 40
+        },
+        "fyTWV": {
+          "width": "fill_container",
+          "height": "fit_content"
+        },
+        "sedDH": {
+          "x": 24,
+          "y": 32
+        },
+        "8IBFX": {
+          "x": 24,
+          "y": 73
+        },
         "X5SPb": {
           "type": "frame",
           "id": "CXEyX",
@@ -16015,7 +17444,8 @@
                       "fill": "$text-secondary",
                       "content": "금방 끝나요, 조금만 기다려 주세요",
                       "fontFamily": "Inter",
-                      "fontSize": 12
+                      "fontSize": 12,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -16112,7 +17542,8 @@
                       "width": "fill_container",
                       "content": "재생 위치에 맞춰 가사가 자동으로 따라가지 않아요",
                       "fontFamily": "Inter",
-                      "fontSize": 12
+                      "fontSize": 12,
+                      "fontWeight": "normal"
                     }
                   ]
                 }
@@ -16239,8 +17670,382 @@
               ]
             }
           ]
+        },
+        "Q5X1J": {
+          "width": "fill_container",
+          "height": "fit_content",
+          "y": 835
+        },
+        "pgzS7": {
+          "width": "fill_container"
+        },
+        "KINLs": {
+          "width": "fill_container",
+          "height": "fit_content",
+          "y": 2
+        },
+        "qyUZb": {
+          "x": 24,
+          "y": 8
+        },
+        "6w6f9": {
+          "x": 353,
+          "y": 8
         }
       }
+    },
+    {
+      "type": "frame",
+      "id": "bOgxU",
+      "x": 906,
+      "y": 6064,
+      "name": "Dismiss Interaction Flow",
+      "fill": "#F5F5F5",
+      "cornerRadius": 20,
+      "gap": 60,
+      "padding": 40,
+      "children": [
+        {
+          "type": "frame",
+          "id": "pwpe8",
+          "name": "col1",
+          "layout": "vertical",
+          "gap": 16,
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "yJDcL",
+              "name": "label1",
+              "fill": "#71717A",
+              "content": "1. Expanded (Base)",
+              "fontFamily": "Inter",
+              "fontSize": 14,
+              "fontWeight": "600"
+            },
+            {
+              "id": "WsxnN",
+              "type": "ref",
+              "ref": "mrn7o",
+              "width": 402,
+              "height": 874,
+              "name": "State 1 - Expanded"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "KTlIq",
+          "name": "col2",
+          "layout": "vertical",
+          "gap": 16,
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "vTo0O",
+              "name": "label2",
+              "fill": "#71717A",
+              "content": "2. Dragging Down",
+              "fontFamily": "Inter",
+              "fontSize": 14,
+              "fontWeight": "600"
+            },
+            {
+              "type": "frame",
+              "id": "qMggF",
+              "name": "phone-mid-dismiss",
+              "clip": true,
+              "width": 402,
+              "height": 874,
+              "fill": "#1A1A1A",
+              "cornerRadius": 24,
+              "layout": "none",
+              "children": [
+                {
+                  "id": "dqhLY",
+                  "type": "ref",
+                  "ref": "mrn7o",
+                  "x": 0,
+                  "y": 180,
+                  "width": 402,
+                  "height": 874,
+                  "name": "Player - dragging",
+                  "cornerRadius": 24,
+                  "descendants": {
+                    "d6b35": {
+                      "enabled": false
+                    }
+                  }
+                },
+                {
+                  "type": "icon_font",
+                  "id": "W4avv",
+                  "x": 185,
+                  "y": 70,
+                  "name": "arrow1",
+                  "width": 32,
+                  "height": 32,
+                  "iconFontName": "arrow-down",
+                  "iconFontFamily": "lucide",
+                  "fill": "#FFFFFF"
+                },
+                {
+                  "type": "frame",
+                  "id": "NGrro",
+                  "x": 120,
+                  "y": 110,
+                  "name": "hint1",
+                  "fill": "#FFFFFF20",
+                  "cornerRadius": 12,
+                  "gap": 6,
+                  "padding": [
+                    6,
+                    12
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "JiMOE",
+                      "name": "hintIcon",
+                      "width": 14,
+                      "height": 14,
+                      "iconFontName": "hand",
+                      "iconFontFamily": "lucide",
+                      "fill": "#FFFFFFCC"
+                    },
+                    {
+                      "type": "text",
+                      "id": "7uLPg",
+                      "name": "hintText",
+                      "fill": "#FFFFFFCC",
+                      "content": "Pull down",
+                      "fontFamily": "Inter",
+                      "fontSize": 12,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "oP3Lj",
+                  "x": 0,
+                  "y": 0,
+                  "name": "sb2",
+                  "width": 402,
+                  "height": 62,
+                  "padding": [
+                    0,
+                    24
+                  ],
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "I56je",
+                      "name": "timeText",
+                      "fill": "#FFFFFF",
+                      "content": "9:41",
+                      "fontFamily": "Inter",
+                      "fontSize": 16,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "gPtmD",
+                      "name": "statusRight",
+                      "gap": 6,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "xikQ3",
+                          "name": "sigIcon",
+                          "width": 16,
+                          "height": 16,
+                          "iconFontName": "signal",
+                          "iconFontFamily": "lucide",
+                          "fill": "#FFFFFF"
+                        },
+                        {
+                          "type": "icon_font",
+                          "id": "CkIXw",
+                          "name": "wifiIcon",
+                          "width": 16,
+                          "height": 16,
+                          "iconFontName": "wifi",
+                          "iconFontFamily": "lucide",
+                          "fill": "#FFFFFF"
+                        },
+                        {
+                          "type": "icon_font",
+                          "id": "RPDKW",
+                          "name": "batIcon",
+                          "width": 16,
+                          "height": 16,
+                          "iconFontName": "battery-full",
+                          "iconFontFamily": "lucide",
+                          "fill": "#FFFFFF"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "pyYbA",
+          "name": "col3",
+          "layout": "vertical",
+          "gap": 16,
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "ApvYG",
+              "name": "label3",
+              "fill": "#71717A",
+              "content": "3. Released → Dismiss",
+              "fontFamily": "Inter",
+              "fontSize": 14,
+              "fontWeight": "600"
+            },
+            {
+              "type": "frame",
+              "id": "uKRfq",
+              "name": "phone-dismissed",
+              "clip": true,
+              "width": 402,
+              "height": 874,
+              "fill": "#1A1A1A",
+              "cornerRadius": 24,
+              "layout": "none",
+              "children": [
+                {
+                  "id": "vu4Xo",
+                  "type": "ref",
+                  "ref": "mrn7o",
+                  "x": 0,
+                  "y": 580,
+                  "width": 402,
+                  "height": 874,
+                  "name": "Player - dismissing",
+                  "cornerRadius": 24,
+                  "opacity": 0.4,
+                  "descendants": {
+                    "d6b35": {
+                      "enabled": false
+                    }
+                  }
+                },
+                {
+                  "type": "frame",
+                  "id": "ldfsy",
+                  "x": 131,
+                  "y": 240,
+                  "name": "dismissLabel",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "HCiKd",
+                      "name": "dIcon",
+                      "width": 24,
+                      "height": 24,
+                      "iconFontName": "chevron-down",
+                      "iconFontFamily": "lucide",
+                      "fill": "#FFFFFF90"
+                    },
+                    {
+                      "type": "text",
+                      "id": "hyzDo",
+                      "name": "dText",
+                      "fill": "#FFFFFF90",
+                      "content": "Screen dismisses",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "bUBIF",
+                  "x": 0,
+                  "y": 0,
+                  "name": "sb3",
+                  "width": 402,
+                  "height": 62,
+                  "padding": [
+                    0,
+                    24
+                  ],
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "xJL9K",
+                      "name": "timeText",
+                      "fill": "#FFFFFF",
+                      "content": "9:41",
+                      "fontFamily": "Inter",
+                      "fontSize": 16,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Z9fQp",
+                      "name": "statusRight",
+                      "gap": 6,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "VxVzV",
+                          "name": "sigIcon",
+                          "width": 16,
+                          "height": 16,
+                          "iconFontName": "signal",
+                          "iconFontFamily": "lucide",
+                          "fill": "#FFFFFF"
+                        },
+                        {
+                          "type": "icon_font",
+                          "id": "Zk0Fv",
+                          "name": "wifiIcon",
+                          "width": 16,
+                          "height": 16,
+                          "iconFontName": "wifi",
+                          "iconFontFamily": "lucide",
+                          "fill": "#FFFFFF"
+                        },
+                        {
+                          "type": "icon_font",
+                          "id": "nvuSp",
+                          "name": "batIcon",
+                          "width": 16,
+                          "height": 16,
+                          "iconFontName": "battery-full",
+                          "iconFontFamily": "lucide",
+                          "fill": "#FFFFFF"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     }
   ],
   "variables": {

@@ -59,7 +59,7 @@ export default function AppNavigator({ initialRoute }: Props) {
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Main" component={MainTabs} />
       <Stack.Screen name="Search" component={SearchScreen} />
-      <Stack.Screen name="Player" component={PlayerScreen} />
+      <Stack.Screen name="Player" component={PlayerScreen} options={{ presentation: 'transparentModal', animation: 'slide_from_bottom' }} />
       <Stack.Screen name="Review" component={ReviewScreen} />
       <Stack.Screen name="DeckDetail" component={DeckDetailScreen} />
       <Stack.Screen name="DeckWordList" component={DeckWordListScreen} />

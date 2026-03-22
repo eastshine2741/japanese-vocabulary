@@ -20,6 +20,7 @@ import Animated, {
   interpolate,
   clamp,
   Easing,
+  runOnJS,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { usePlayerStore } from '../stores/playerStore';
@@ -42,6 +43,7 @@ function extractVideoId(url: string): string | null {
 
 const MV_EXPANDED = 220;
 const MV_COLLAPSED = 56;
+const DISMISS_THRESHOLD = 250;
 
 export default function PlayerScreen({ navigation }: Props) {
   const { studyData, reset: resetPlayer } = usePlayerStore();
@@ -54,12 +56,18 @@ export default function PlayerScreen({ navigation }: Props) {
   const [selectedLine, setSelectedLine] = useState('');
   const youtubeRef = useRef<YouTubePlayerRef>(null);
   const wordSheetRef = useRef<BottomSheet>(null);
-  const { width: screenWidth } = useWindowDimensions();
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const { bottom: safeBottom } = useSafeAreaInsets();
+
+  const handleBack = useCallback(() => {
+    resetPlayer();
+    navigation.goBack();
+  }, [resetPlayer, navigation]);
 
   // Reanimated: MV height shared value (runs on UI thread)
   const mvHeight = useSharedValue(MV_EXPANDED);
   const dragStartH = useSharedValue(MV_EXPANDED);
+  const dismissY = useSharedValue(0);
 
   const snapConfig = { duration: 250, easing: Easing.out(Easing.cubic) };
 
@@ -68,16 +76,36 @@ export default function PlayerScreen({ navigation }: Props) {
       dragStartH.value = mvHeight.value;
     })
     .onUpdate((e) => {
-      mvHeight.value = clamp(dragStartH.value + e.translationY, MV_COLLAPSED, MV_EXPANDED);
+      const rawH = dragStartH.value + e.translationY;
+      if (rawH > MV_EXPANDED) {
+        // Dismiss phase: MV stays expanded, excess goes to dismissY
+        mvHeight.value = MV_EXPANDED;
+        dismissY.value = rawH - MV_EXPANDED;
+      } else {
+        // Normal MV resize phase
+        mvHeight.value = clamp(rawH, MV_COLLAPSED, MV_EXPANDED);
+        dismissY.value = 0;
+      }
     })
     .onEnd((e) => {
-      if (Math.abs(e.translationY) < 10 && Math.abs(e.translationX) < 10) {
-        const target = mvHeight.value < (MV_EXPANDED + MV_COLLAPSED) / 2 ? MV_EXPANDED : MV_COLLAPSED;
-        mvHeight.value = withTiming(target, snapConfig);
+      if (dismissY.value > 0) {
+        // Dismiss phase
+        if (dismissY.value > DISMISS_THRESHOLD || e.velocityY > 500) {
+          dismissY.value = withTiming(screenHeight, { duration: 300, easing: Easing.in(Easing.cubic) });
+          runOnJS(handleBack)();
+        } else {
+          dismissY.value = withTiming(0, snapConfig);
+        }
       } else {
-        const target = e.velocityY < -300 || mvHeight.value < (MV_EXPANDED + MV_COLLAPSED) / 2
-          ? MV_COLLAPSED : MV_EXPANDED;
-        mvHeight.value = withTiming(target, snapConfig);
+        // Normal collapse/expand logic
+        if (Math.abs(e.translationY) < 10 && Math.abs(e.translationX) < 10) {
+          const target = mvHeight.value < (MV_EXPANDED + MV_COLLAPSED) / 2 ? MV_EXPANDED : MV_COLLAPSED;
+          mvHeight.value = withTiming(target, snapConfig);
+        } else {
+          const target = e.velocityY < -300 || mvHeight.value < (MV_EXPANDED + MV_COLLAPSED) / 2
+            ? MV_COLLAPSED : MV_EXPANDED;
+          mvHeight.value = withTiming(target, snapConfig);
+        }
       }
     }), []);
 
@@ -99,8 +127,12 @@ export default function PlayerScreen({ navigation }: Props) {
     opacity: interpolate(mvHeight.value, [MV_COLLAPSED, MV_COLLAPSED + 50, MV_EXPANDED], [1, 0, 0], 'clamp'),
   }));
 
-  const backBtnStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(mvHeight.value, [MV_COLLAPSED, MV_COLLAPSED + 50, MV_EXPANDED], [0, 0, 1], 'clamp'),
+  const dismissStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: dismissY.value }],
+  }));
+
+  const backdropStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(dismissY.value, [0, screenHeight * 0.5], [1, 0], 'clamp'),
   }));
 
   if (!studyData) return null;
@@ -128,11 +160,6 @@ export default function PlayerScreen({ navigation }: Props) {
       youtubeRef.current?.play();
     }
   }, [isPlaying]);
-
-  const handleBack = () => {
-    resetPlayer();
-    navigation.goBack();
-  };
 
   const handleTokenPress = (token: Token, lineText: string) => {
     setSelectedToken(token);
@@ -187,7 +214,10 @@ export default function PlayerScreen({ navigation }: Props) {
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <View style={styles.container}>
+      <Animated.View style={[StyleSheet.absoluteFill, styles.backdrop, backdropStyle]} pointerEvents="none" />
+      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+      <Animated.View style={[styles.dismissWrapper, dismissStyle]}>
       {/* MV Area — video shrinks with aspect ratio, info fades in */}
       <Animated.View style={[styles.mvArea, mvAreaStyle]}>
         <Animated.View style={videoStyle}>
@@ -206,11 +236,6 @@ export default function PlayerScreen({ navigation }: Props) {
               </View>
             </View>
           )}
-        </Animated.View>
-        <Animated.View style={[styles.backBtn, backBtnStyle]} pointerEvents="box-none">
-          <TouchableOpacity onPress={handleBack} activeOpacity={0.6} style={styles.backBtnTouchable}>
-            <Feather name="chevron-left" size={20} color="#FFFFFF" style={styles.backBtnIcon} />
-          </TouchableOpacity>
         </Animated.View>
         <Animated.View style={[styles.mvInfoOverlay, infoStyle]} pointerEvents="box-none">
           <View style={styles.mvInfoTexts}>
@@ -298,6 +323,7 @@ export default function PlayerScreen({ navigation }: Props) {
 
       {/* Mini player */}
       <SeekBar currentMs={currentMs} durationMs={durationMs} onSeek={handleSeek} />
+      </Animated.View>
 
       {/* Word lookup bottom sheet */}
       <BottomSheet
@@ -328,11 +354,21 @@ export default function PlayerScreen({ navigation }: Props) {
         </BottomSheetView>
       </BottomSheet>
     </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+  },
+  backdrop: {
+    backgroundColor: '#000000',
+  },
+  safeArea: {
+    flex: 1,
+  },
+  dismissWrapper: {
     flex: 1,
     backgroundColor: Colors.background,
   },
@@ -355,25 +391,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF40',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-
-  // Back button
-  backBtn: {
-    position: 'absolute',
-    left: 16,
-    top: 12,
-  },
-  backBtnTouchable: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backBtnIcon: {
-    textShadowColor: '#00000060',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 8,
   },
 
   // MV collapsed info

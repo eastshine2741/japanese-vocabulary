@@ -115,7 +115,7 @@ export default function WordTab() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <FlatList
         data={data?.songDecks ?? []}
         keyExtractor={(item) => String(item.songId)}
