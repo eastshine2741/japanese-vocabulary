@@ -65,7 +65,7 @@ function buildPlayerHTML(videoId: string): string {
         playerVars: {
           autoplay: 0,
           mute: 0,
-          controls: 1,
+          controls: 0,
           enablejsapi: 1,
           fs: 0,
           origin: '${APP_ORIGIN}',
