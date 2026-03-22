@@ -22,7 +22,7 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { useSearchStore } from '../stores/searchStore';
+import { usePlayerStore } from '../stores/playerStore';
 import { useVocabularyStore } from '../stores/vocabularyStore';
 import YouTubePlayer, { YouTubePlayerRef } from '../components/YouTubePlayer';
 import WordAnalysisSheet from '../components/WordAnalysisSheet';
@@ -43,7 +43,7 @@ const MV_EXPANDED = 220;
 const MV_COLLAPSED = 56;
 
 export default function PlayerScreen({ navigation }: Props) {
-  const { studyData, resetAnalyze } = useSearchStore();
+  const { studyData, reset: resetPlayer } = usePlayerStore();
   const vocabStore = useVocabularyStore();
 
   const [currentMs, setCurrentMs] = useState(0);
@@ -125,7 +125,7 @@ export default function PlayerScreen({ navigation }: Props) {
   }, [isPlaying]);
 
   const handleBack = () => {
-    resetAnalyze();
+    resetPlayer();
     navigation.goBack();
   };
 

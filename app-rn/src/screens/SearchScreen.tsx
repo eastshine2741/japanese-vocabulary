@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSearchStore } from '../stores/searchStore';
+import { usePlayerStore } from '../stores/playerStore';
 import SongListItem from '../components/SongListItem';
 import { Colors, Dimens } from '../theme/theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -27,19 +28,12 @@ function formatDuration(seconds: number): string {
 export default function SearchScreen({ navigation }: Props) {
   const [query, setQuery] = useState('');
   const insets = useSafeAreaInsets();
-  const {
-    searchStatus, items, isLoadingMore,
-    analyzeStatus,
-    search, loadMore, analyze, resetAnalyze,
-  } = useSearchStore();
-
-  useEffect(() => {
-    resetAnalyze();
-  }, []);
+  const { searchStatus, items, isLoadingMore, search, loadMore } = useSearchStore();
+  const { status: playerStatus, analyze } = usePlayerStore();
 
   const handleAnalyze = useCallback(async (item: Parameters<typeof analyze>[0]) => {
     await analyze(item);
-    if (useSearchStore.getState().analyzeStatus === 'success') {
+    if (usePlayerStore.getState().status === 'success') {
       navigation.navigate('Player', { origin: 'Home' });
     }
   }, [analyze, navigation]);
@@ -112,7 +106,7 @@ export default function SearchScreen({ navigation }: Props) {
       />
 
       {/* Loading overlay for analyze */}
-      {analyzeStatus === 'loading' && (
+      {playerStatus === 'loading' && (
         <View style={styles.overlay}>
           <ActivityIndicator size="large" color={Colors.primary} />
         </View>

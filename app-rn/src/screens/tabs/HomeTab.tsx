@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -12,7 +12,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
 import { useHomeStore } from '../../stores/homeStore';
-import { useSearchStore } from '../../stores/searchStore';
+import { usePlayerStore } from '../../stores/playerStore';
 import { flashcardApi } from '../../api/flashcardApi';
 import SongCard from '../../components/SongCard';
 import StatsCard from '../../components/StatsCard';
@@ -28,7 +28,7 @@ const PAGE_SIZE = 9;
 export default function HomeTab() {
   const navigation = useNavigation<Nav>();
   const { status, songs, load } = useHomeStore();
-  const { analyzeStatus, studyData, loadById } = useSearchStore();
+  const { status: playerStatus, loadById } = usePlayerStore();
   const [stats, setStats] = useState<FlashcardStatsResponse | null>(null);
 
   useEffect(() => {
@@ -36,11 +36,12 @@ export default function HomeTab() {
     flashcardApi.getStats().then(setStats).catch(() => {});
   }, []);
 
-  useEffect(() => {
-    if (analyzeStatus === 'success' && studyData) {
+  const handleSongPress = useCallback(async (id: number) => {
+    await loadById(id);
+    if (usePlayerStore.getState().status === 'success') {
       navigation.navigate('Player', { origin: 'Home' });
     }
-  }, [analyzeStatus, studyData]);
+  }, [loadById, navigation]);
 
   const totalPages = Math.ceil(songs.length / PAGE_SIZE);
 
@@ -68,7 +69,7 @@ export default function HomeTab() {
               artworkUrl={item.artworkUrl}
               title={item.title}
               artist={item.artist}
-              onPress={() => loadById(item.id)}
+              onPress={() => handleSongPress(item.id)}
             />
           ))}
           {row.length < 3 &&
@@ -154,7 +155,7 @@ export default function HomeTab() {
             </View>
           </View>
         </ScrollView>
-        {analyzeStatus === 'loading' && (
+        {playerStatus === 'loading' && (
           <View style={styles.overlay}>
             <ActivityIndicator size="large" color={Colors.primary} />
           </View>
