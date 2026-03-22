@@ -13,7 +13,16 @@ client.interceptors.request.use(async (config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  console.log(`[API] ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
   return config;
 });
+
+client.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    console.error(`[API] ${error.config?.method?.toUpperCase()} ${error.config?.url} → ${error.message}`, error.response?.status, error.response?.data);
+    return Promise.reject(error);
+  },
+);
 
 export default client;
