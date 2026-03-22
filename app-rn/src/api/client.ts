@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { tokenStorage } from '../utils/tokenStorage';
 
-const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://192.168.0.7:8080';
+const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
 const client = axios.create({
   baseURL: BACKEND_URL,
