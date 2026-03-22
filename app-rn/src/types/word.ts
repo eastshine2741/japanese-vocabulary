@@ -1,9 +1,6 @@
-export interface WordDefinitionDTO {
-  japanese: string;
-  reading: string;
-  meanings: string[];
-  partsOfSpeech: string[];
-  jlptLevel: string | null;
+export interface WordMeaning {
+  text: string;
+  partOfSpeech: string;
 }
 
 export interface ExampleSentence {
@@ -16,7 +13,7 @@ export interface WordDetailResponse {
   id: number;
   japanese: string;
   reading: string | null;
-  koreanText: string | null;
+  meanings: WordMeaning[];
   examples: ExampleSentence[];
 }
 
@@ -24,7 +21,7 @@ export interface WordListItem {
   id: number;
   japanese: string;
   reading: string;
-  koreanText: string;
+  meanings: WordMeaning[];
   examples: ExampleSentence[];
 }
 
@@ -37,6 +34,7 @@ export interface AddWordRequest {
   japanese: string;
   reading: string;
   koreanText: string;
+  partOfSpeech: string;
   songId: number;
   lyricLine: string;
 }

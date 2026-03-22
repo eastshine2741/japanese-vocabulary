@@ -23,10 +23,6 @@ class WordService(
     private val songRepository: SongRepository,
     private val eventPublisher: ApplicationEventPublisher
 ) {
-    fun lookupWord(word: String): WordDefinitionDTO {
-        return jishoClient.lookup(word)
-    }
-
     @Transactional
     fun addWord(userId: Long, request: AddWordRequest): Long {
         if (!songRepository.existsById(request.songId)) {

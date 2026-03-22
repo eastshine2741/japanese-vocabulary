@@ -1,18 +1,13 @@
 import { create } from 'zustand';
 import { wordApi } from '../api/wordApi';
-import { WordDefinitionDTO, WordDetailResponse, WordListItem } from '../types/word';
+import { WordDetailResponse, WordListItem } from '../types/word';
+import { Token } from '../types/song';
 
-type LookupStatus = 'idle' | 'loading' | 'success' | 'error';
 type AddStatus = 'idle' | 'loading' | 'success' | 'error';
 type GetWordStatus = 'idle' | 'loading' | 'found' | 'notFound' | 'error';
 type WordListStatus = 'idle' | 'loading' | 'success' | 'error';
 
 interface VocabularyState {
-  // Lookup
-  lookupStatus: LookupStatus;
-  definition: WordDefinitionDTO | null;
-  lookupError: string | null;
-
   // Add
   addStatus: AddStatus;
   addedId: number | null;
@@ -27,18 +22,14 @@ interface VocabularyState {
   nextCursor: number | null;
   isLoadingMore: boolean;
 
-  lookupWord: (word: string) => Promise<void>;
   getWord: (japanese: string) => Promise<void>;
-  addWord: (definition: WordDefinitionDTO, songId: number, lyricLine: string) => Promise<void>;
+  addWord: (token: Token, songId: number, lyricLine: string) => Promise<void>;
   loadWords: () => Promise<void>;
   loadMoreWords: () => Promise<void>;
   resetLookup: () => void;
 }
 
 export const useVocabularyStore = create<VocabularyState>((set, get) => ({
-  lookupStatus: 'idle',
-  definition: null,
-  lookupError: null,
   addStatus: 'idle',
   addedId: null,
   getWordStatus: 'idle',
@@ -47,16 +38,6 @@ export const useVocabularyStore = create<VocabularyState>((set, get) => ({
   words: [],
   nextCursor: null,
   isLoadingMore: false,
-
-  lookupWord: async (word: string) => {
-    set({ lookupStatus: 'loading', lookupError: null, definition: null });
-    try {
-      const def = await wordApi.lookup(word);
-      set({ lookupStatus: 'success', definition: def });
-    } catch (e: any) {
-      set({ lookupStatus: 'error', lookupError: e.message });
-    }
-  },
 
   getWord: async (japanese: string) => {
     set({ getWordStatus: 'loading', existingWord: null });
@@ -72,13 +53,14 @@ export const useVocabularyStore = create<VocabularyState>((set, get) => ({
     }
   },
 
-  addWord: async (definition, songId, lyricLine) => {
+  addWord: async (token: Token, songId: number, lyricLine: string) => {
     set({ addStatus: 'loading' });
     try {
       const res = await wordApi.addWord({
-        japanese: definition.japanese,
-        reading: definition.reading,
-        koreanText: definition.meanings.join(', '),
+        japanese: token.baseForm,
+        reading: token.reading ?? '',
+        koreanText: token.koreanText ?? '',
+        partOfSpeech: token.partOfSpeech,
         songId,
         lyricLine,
       });
@@ -116,9 +98,6 @@ export const useVocabularyStore = create<VocabularyState>((set, get) => ({
 
   resetLookup: () =>
     set({
-      lookupStatus: 'idle',
-      definition: null,
-      lookupError: null,
       addStatus: 'idle',
       addedId: null,
       getWordStatus: 'idle',

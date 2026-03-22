@@ -1,3 +1,5 @@
+import { WordMeaning } from './word';
+
 export interface AllDeckSummary {
   wordCount: number;
   avgRetrievability: number | null;
@@ -39,7 +41,7 @@ export interface DeckWordItem {
   id: number;
   japanese: string;
   reading: string;
-  koreanText: string;
+  meanings: WordMeaning[];
 }
 
 export interface DeckWordListResponse {

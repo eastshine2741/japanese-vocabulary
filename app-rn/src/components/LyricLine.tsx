@@ -1,16 +1,14 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Token, StudyUnit } from '../types/song';
+import { POS_INFO } from '../types/pos';
 import { Colors } from '../theme/theme';
 
-const PARTICLE_POS = ['助詞', '助動詞', '記号'];
+const NO_UNDERLINE_POS = new Set(['PARTICLE', 'AUXILIARY_VERB', 'SYMBOL', 'SUPPLEMENTARY_SYMBOL', 'WHITESPACE']);
 
 function getUnderlineColor(pos: string): string | null {
-  if (PARTICLE_POS.includes(pos)) return null;
-  if (pos === '動詞') return Colors.posVerb;
-  if (pos === '形容詞') return Colors.posAdjective;
-  if (pos === '副詞') return Colors.posAdverb;
-  return Colors.posNoun;
+  if (NO_UNDERLINE_POS.has(pos)) return null;
+  return POS_INFO[pos]?.color ?? Colors.posNoun;
 }
 
 interface Props {

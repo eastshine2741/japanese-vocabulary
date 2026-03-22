@@ -18,18 +18,17 @@ export default function FlashcardBackDetails({ card }: Props) {
     <View style={styles.container}>
       {card.reading && <Text style={styles.reading}>{card.reading}</Text>}
 
-      {((card as any).partsOfSpeech?.length > 0 || (card as any).jlptLevel) && (
+      {card.meanings.length > 0 && (
         <View style={styles.badgesRow}>
-          {(card as any).partsOfSpeech?.map((pos: string, i: number) => (
+          {[...new Set(card.meanings.map(m => m.partOfSpeech))].map((pos, i) => (
             <PosBadge key={i} pos={pos} />
           ))}
-          {(card as any).jlptLevel && (
-            <JlptBadge level={(card as any).jlptLevel} />
-          )}
         </View>
       )}
 
-      {card.koreanText && <Text style={styles.korean}>{card.koreanText}</Text>}
+      {card.meanings.length > 0 && (
+        <Text style={styles.korean}>{card.meanings.map(m => m.text).join(', ')}</Text>
+      )}
 
       {card.examples.length > 0 && (
         <View style={styles.exampleCarousel}>

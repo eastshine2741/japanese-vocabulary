@@ -2,15 +2,13 @@ import React, { useState, useCallback } from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet, ScrollView, NativeSyntheticEvent, NativeScrollEvent, useWindowDimensions } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Token } from '../types/song';
-import { WordDefinitionDTO, WordDetailResponse } from '../types/word';
+import { WordDetailResponse } from '../types/word';
+import { POS_INFO } from '../types/pos';
 import { Colors } from '../theme/theme';
 import ArtworkImage from './ArtworkImage';
 
 interface Props {
   token: Token;
-  lookupStatus: string;
-  definition: WordDefinitionDTO | null;
-  lookupError: string | null;
   addStatus: string;
   getWordStatus: string;
   existingWord: WordDetailResponse | null;
@@ -19,30 +17,8 @@ interface Props {
   onAddWord: () => void;
 }
 
-function getPosColor(pos: string): string {
-  const p = pos.toLowerCase();
-  if (p.includes('verb')) return Colors.posVerb;
-  if (p.includes('noun') || p === '名詞') return Colors.posNoun;
-  if (p.includes('adjective') || p === '形容詞') return Colors.posAdjective;
-  if (p.includes('adverb') || p === '副詞') return Colors.posAdverb;
-  if (p === '動詞') return Colors.posVerb;
-  if (p === '助詞') return Colors.posParticle;
-  return Colors.primary;
-}
-
-const JLPT_COLORS: Record<string, string> = {
-  N1: Colors.jlptN1,
-  N2: Colors.jlptN2,
-  N3: Colors.jlptN3,
-  N4: Colors.jlptN4,
-  N5: Colors.jlptN5,
-};
-
 export default function WordAnalysisSheet({
   token,
-  lookupStatus,
-  definition,
-  lookupError,
   addStatus,
   getWordStatus,
   existingWord,
@@ -58,6 +34,11 @@ export default function WordAnalysisSheet({
   const isFromThisLine = existingWord?.examples.some(
     ex => ex.songId === songId && ex.lyricLine === lyricLine,
   ) ?? false;
+
+  const isMeaningNew = token.koreanText != null &&
+    !(existingWord?.meanings.some(m => m.text === token.koreanText) ?? false);
+
+  const posInfo = POS_INFO[token.partOfSpeech];
 
   const handleExScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const idx = Math.round(e.nativeEvent.contentOffset.x / examplePageWidth);
@@ -80,7 +61,14 @@ export default function WordAnalysisSheet({
         </View>
       );
     }
-    if (isExisting) {
+    if (token.koreanText == null) {
+      return (
+        <View style={[styles.saveBtn, styles.saveBtnDisabled]}>
+          <Text style={styles.saveBtnTextDisabled}>단어 담기</Text>
+        </View>
+      );
+    }
+    if (isExisting && !isMeaningNew) {
       return (
         <TouchableOpacity
           style={[styles.saveBtn, styles.saveBtnPrimary]}
@@ -89,6 +77,18 @@ export default function WordAnalysisSheet({
         >
           <Feather name="plus" size={18} color="#FFFFFF" />
           <Text style={styles.saveBtnText}>예문 담기</Text>
+        </TouchableOpacity>
+      );
+    }
+    if (isExisting && isMeaningNew) {
+      return (
+        <TouchableOpacity
+          style={[styles.saveBtn, styles.saveBtnPrimary]}
+          onPress={onAddWord}
+          activeOpacity={0.7}
+        >
+          <Feather name="plus" size={18} color="#FFFFFF" />
+          <Text style={styles.saveBtnText}>다른 뜻 담기</Text>
         </TouchableOpacity>
       );
     }
@@ -115,28 +115,24 @@ export default function WordAnalysisSheet({
           )}
         </View>
 
-        {lookupStatus === 'success' && definition && (
-          <>
-            <View style={styles.badgeRow}>
-              {definition.partsOfSpeech.map((p, i) => {
-                const color = getPosColor(p);
-                return (
-                  <View key={`pos-${i}`} style={[styles.badge, { backgroundColor: color + '20' }]}>
-                    <Text style={[styles.posText, { color }]}>{p}</Text>
-                  </View>
-                );
-              })}
-              {definition.jlptLevel && (() => {
-                const color = JLPT_COLORS[definition.jlptLevel] || '#999999';
-                return (
-                  <View style={[styles.badge, { backgroundColor: color + '20' }]}>
-                    <Text style={[styles.jlptText, { color }]}>{definition.jlptLevel}</Text>
-                  </View>
-                );
-              })()}
+        <View style={styles.badgeRow}>
+          {posInfo && (
+            <View style={[styles.badge, { backgroundColor: posInfo.color + '20' }]}>
+              <Text style={[styles.posText, { color: posInfo.color }]}>{posInfo.korean}</Text>
             </View>
-            <Text style={styles.meaning}>{definition.meanings.join(', ')}</Text>
-          </>
+          )}
+        </View>
+
+        {token.koreanText ? (
+          <Text style={styles.meaning}>{token.koreanText}</Text>
+        ) : (
+          <Text style={styles.meaningEmpty}>뜻 정보가 없습니다</Text>
+        )}
+
+        {isExisting && existingWord && existingWord.meanings.length > 0 && (
+          <Text style={styles.existingMeanings}>
+            저장된 뜻: {existingWord.meanings.map(m => m.text).join(', ')}
+          </Text>
         )}
       </View>
 
@@ -180,20 +176,10 @@ export default function WordAnalysisSheet({
         </View>
       )}
 
-      {/* Loading / Error */}
-      {lookupStatus === 'loading' && (
-        <ActivityIndicator style={styles.loader} color={Colors.primary} />
-      )}
-      {lookupStatus === 'error' && (
-        <Text style={styles.errorText}>{lookupError || 'Lookup failed'}</Text>
-      )}
-
       {/* Action button */}
-      {lookupStatus === 'success' && definition && (
-        <View style={styles.actionArea}>
-          {renderButton()}
-        </View>
-      )}
+      <View style={styles.actionArea}>
+        {renderButton()}
+      </View>
     </View>
   );
 }
@@ -239,14 +225,18 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
   },
-  jlptText: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
   meaning: {
     fontSize: 18,
     fontWeight: '600',
     color: Colors.textPrimary,
+  },
+  meaningEmpty: {
+    fontSize: 15,
+    color: Colors.textMuted,
+  },
+  existingMeanings: {
+    fontSize: 13,
+    color: Colors.textSecondary,
   },
 
   // Example section
@@ -315,16 +305,5 @@ const styles = StyleSheet.create({
     color: '#A1A1AA',
     fontSize: 15,
     fontWeight: '600',
-  },
-
-  // States
-  loader: {
-    marginVertical: 20,
-  },
-  errorText: {
-    color: '#EF4444',
-    textAlign: 'center',
-    marginVertical: 12,
-    fontSize: 14,
   },
 });

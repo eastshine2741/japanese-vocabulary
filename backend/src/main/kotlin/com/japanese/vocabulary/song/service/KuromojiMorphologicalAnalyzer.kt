@@ -1,5 +1,6 @@
 package com.japanese.vocabulary.song.service
 
+import com.japanese.vocabulary.song.dto.PartOfSpeech
 import com.japanese.vocabulary.song.dto.TokenInfo
 import org.apache.lucene.analysis.ja.JapaneseTokenizer
 import org.apache.lucene.analysis.ja.tokenattributes.BaseFormAttribute
@@ -12,8 +13,6 @@ import java.io.StringReader
 
 @Component("kuromoji")
 class KuromojiMorphologicalAnalyzer : MorphologicalAnalyzer {
-
-    private val includedPosTypes = setOf("名詞", "動詞", "形容詞", "形容動詞")
 
     override fun analyze(text: String): List<TokenInfo> {
         val tokens = mutableListOf<TokenInfo>()
@@ -31,7 +30,7 @@ class KuromojiMorphologicalAnalyzer : MorphologicalAnalyzer {
 
             while (tokenizer.incrementToken()) {
                 val primaryPos = posAttr.partOfSpeech?.split("-")?.firstOrNull() ?: ""
-                if (primaryPos !in includedPosTypes) continue
+                val partOfSpeech = PartOfSpeech.fromSudachiOrNull(primaryPos) ?: continue
 
                 val surface = termAttr.toString()
                 tokens.add(
@@ -39,7 +38,7 @@ class KuromojiMorphologicalAnalyzer : MorphologicalAnalyzer {
                         surface = surface,
                         baseForm = baseFormAttr.baseForm ?: surface,
                         reading = readingAttr.reading,
-                        partOfSpeech = primaryPos,
+                        partOfSpeech = partOfSpeech,
                         charStart = offsetAttr.startOffset(),
                         charEnd = offsetAttr.endOffset()
                     )

@@ -1,7 +1,6 @@
 package com.japanese.vocabulary.word.controller
 
 import com.japanese.vocabulary.word.dto.AddWordRequest
-import com.japanese.vocabulary.word.dto.WordDefinitionDTO
 import com.japanese.vocabulary.word.dto.WordDetailResponse
 import com.japanese.vocabulary.word.dto.WordListResponse
 import com.japanese.vocabulary.word.service.WordService
@@ -16,11 +15,6 @@ class WordController(
 ) {
     private fun currentUserId(): Long =
         SecurityContextHolder.getContext().authentication.principal as Long
-
-    @GetMapping("/lookup")
-    fun lookupWord(@RequestParam word: String): WordDefinitionDTO {
-        return wordService.lookupWord(word)
-    }
 
     @PostMapping
     fun addWord(@RequestBody request: AddWordRequest): Map<String, Long> {

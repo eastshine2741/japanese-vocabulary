@@ -1,14 +1,7 @@
 import client from './client';
-import { WordDefinitionDTO, WordDetailResponse, WordListResponse, AddWordRequest } from '../types/word';
+import { WordDetailResponse, WordListResponse, AddWordRequest } from '../types/word';
 
 export const wordApi = {
-  async lookup(word: string): Promise<WordDefinitionDTO> {
-    const { data } = await client.get<WordDefinitionDTO>('/api/words/lookup', {
-      params: { word },
-    });
-    return data;
-  },
-
   async addWord(req: AddWordRequest): Promise<{ id: number }> {
     const { data } = await client.post<{ id: number }>('/api/words', req);
     return data;

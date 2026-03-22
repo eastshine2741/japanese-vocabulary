@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { POS_INFO } from '../types/pos';
 import { Colors } from '../theme/theme';
 
 const JLPT_COLORS: Record<string, string> = {
@@ -8,14 +9,6 @@ const JLPT_COLORS: Record<string, string> = {
   N3: Colors.jlptN3,
   N4: Colors.jlptN4,
   N5: Colors.jlptN5,
-};
-
-const POS_COLORS: Record<string, string> = {
-  '名詞': Colors.posNoun,
-  '動詞': Colors.posVerb,
-  '形容詞': Colors.posAdjective,
-  '副詞': Colors.posAdverb,
-  '助詞': Colors.posParticle,
 };
 
 export function JlptBadge({ level }: { level: string | null }) {
@@ -29,10 +22,12 @@ export function JlptBadge({ level }: { level: string | null }) {
 }
 
 export function PosBadge({ pos }: { pos: string }) {
-  const color = POS_COLORS[pos] || Colors.primary;
+  const info = POS_INFO[pos];
+  const color = info?.color ?? Colors.primary;
+  const label = info?.korean ?? pos;
   return (
     <View style={[styles.badge, { backgroundColor: color + '20' }]}>
-      <Text style={[styles.badgeText, { color }]}>{pos}</Text>
+      <Text style={[styles.badgeText, { color }]}>{label}</Text>
     </View>
   );
 }

@@ -1,5 +1,6 @@
 package com.japanese.vocabulary.song.service
 
+import com.japanese.vocabulary.song.dto.PartOfSpeech
 import com.japanese.vocabulary.song.dto.TokenInfo
 import com.worksap.nlp.sudachi.Dictionary
 import com.worksap.nlp.sudachi.Tokenizer.SplitMode
@@ -12,23 +13,20 @@ class SudachiMorphologicalAnalyzer(
     private val sudachiDictionary: Dictionary
 ) : MorphologicalAnalyzer {
 
-    private val includedPosTypes = setOf("名詞", "動詞", "形容詞", "形状詞", "代名詞", "副詞", "連体詞", "接続詞", "助動詞")
-
     override fun analyze(text: String): List<TokenInfo> {
         val tokenizer = sudachiDictionary.create()
         val morphemes = tokenizer.tokenize(SplitMode.B, text)
 
         return morphemes
-            .filter { morpheme ->
+            .mapNotNull { morpheme ->
                 val pos = morpheme.partOfSpeech()
-                pos.isNotEmpty() && pos[0] in includedPosTypes
-            }
-            .map { morpheme ->
+                if (pos.isEmpty()) return@mapNotNull null
+                val partOfSpeech = PartOfSpeech.fromSudachiOrNull(pos[0]) ?: return@mapNotNull null
                 TokenInfo(
                     surface = morpheme.surface(),
                     baseForm = morpheme.dictionaryForm(),
                     reading = morpheme.readingForm().ifEmpty { null },
-                    partOfSpeech = morpheme.partOfSpeech()[0],
+                    partOfSpeech = partOfSpeech,
                     charStart = morpheme.begin(),
                     charEnd = morpheme.end()
                 )

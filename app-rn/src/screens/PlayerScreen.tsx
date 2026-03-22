@@ -133,7 +133,6 @@ export default function PlayerScreen({ navigation }: Props) {
     setSelectedToken(token);
     setSelectedLine(lineText);
     vocabStore.resetLookup();
-    vocabStore.lookupWord(token.baseForm);
     vocabStore.getWord(token.baseForm);
     wordSheetRef.current?.expand();
   };
@@ -151,8 +150,8 @@ export default function PlayerScreen({ navigation }: Props) {
   );
 
   const handleAddWord = () => {
-    if (vocabStore.definition) {
-      vocabStore.addWord(vocabStore.definition, song.id, selectedLine);
+    if (selectedToken) {
+      vocabStore.addWord(selectedToken, song.id, selectedLine);
     }
   };
 
@@ -272,9 +271,6 @@ export default function PlayerScreen({ navigation }: Props) {
           {selectedToken && (
             <WordAnalysisSheet
               token={selectedToken}
-              lookupStatus={vocabStore.lookupStatus}
-              definition={vocabStore.definition}
-              lookupError={vocabStore.lookupError}
               addStatus={vocabStore.addStatus}
               getWordStatus={vocabStore.getWordStatus}
               existingWord={vocabStore.existingWord}

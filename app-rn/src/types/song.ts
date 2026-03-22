@@ -25,6 +25,7 @@ export interface Token {
   partOfSpeech: string;
   charStart: number;
   charEnd: number;
+  koreanText: string | null;
 }
 
 export interface StudyUnit {

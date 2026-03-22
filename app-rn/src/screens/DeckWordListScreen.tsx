@@ -35,7 +35,7 @@ export default function DeckWordListScreen({ route, navigation }: Props) {
           <Text style={styles.japanese}>{item.japanese}</Text>
           <Text style={styles.reading}>({item.reading})</Text>
         </View>
-        <Text style={styles.korean}>{item.koreanText}</Text>
+        <Text style={styles.korean}>{item.meanings.map(m => m.text).join(', ')}</Text>
       </View>
       {index < words.length - 1 && <View style={styles.separator} />}
     </View>
