@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
 import { useHomeStore } from '../../stores/homeStore';
@@ -31,10 +31,12 @@ export default function HomeTab() {
   const { status: playerStatus, loadById } = usePlayerStore();
   const [stats, setStats] = useState<FlashcardStatsResponse | null>(null);
 
-  useEffect(() => {
-    load();
-    flashcardApi.getStats().then(setStats).catch(() => {});
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      load();
+      flashcardApi.getStats().then(setStats).catch(() => {});
+    }, [])
+  );
 
   const handleSongPress = useCallback(async (id: number) => {
     await loadById(id);
