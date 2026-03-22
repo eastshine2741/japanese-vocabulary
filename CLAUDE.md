@@ -18,10 +18,13 @@ docker-compose up -d
 cd backend && ./gradlew bootRun
 
 # App - Android
-cd app && ./gradlew :app:installDebug
+cd app-rn && npx expo run:android
 
 # App - iOS
-cd app && ./gradlew :app:iosSimulatorArm64Binaries
+cd app-rn && npx expo run:ios
+
+# App - Web (dev)
+cd app-rn && npx expo start --web
 ```
 
 ### Environment Variables
@@ -36,32 +39,43 @@ Set in `.env` (loaded by docker-compose) and as shell env vars for backend:
 | `JWT_SECRET` | JWT signing key (defaults to dev key) |
 | `SUDACHI_DICT_PATH` | Path to Sudachi `system_core.dic` (defaults to classpath `sudachi/`) |
 
-App backend URL: set `backend.baseUrl` in `app/local.properties` (default: `http://192.168.0.7:8080`).
+App backend URL: configured in `app-rn/src/api/client.ts`.
 
 ## Tech Stack
 
 | Layer | Tech |
 |---|---|
 | Backend | Kotlin 1.9.22, Spring Boot 3.4.3, JVM 17 |
-| App | Kotlin 2.1.0, KMP, Compose Multiplatform 1.7.3 |
+| App | React Native 0.83, Expo 55, TypeScript 5.9 |
+| State (app) | Zustand 5 |
+| Animation (app) | react-native-reanimated 4, react-native-gesture-handler 2 |
+| HTTP (app) | Axios |
 | Database | MySQL 8.4, Flyway migrations |
-| HTTP client (app) | Ktor 3.0.3 (OkHttp on Android, Darwin on iOS) |
 | Auth | JWT (JJWT 0.12.3), Spring Security, BCrypt |
 | NLP | Sudachi 0.7.5 (primary), Kuromoji/Lucene 9.12.0 (fallback) for Japanese morphological analysis |
 
 ## Project Structure
 
-도메인 기반 패키지 구조. 백엔드와 앱 모두 `auth / song / word / flashcard / deck / user` 도메인으로 구성.
+### Backend — `com.japanese.vocabulary.<domain>/`
 
-**Backend** `com.japanese.vocabulary.<domain>/`
+도메인 기반 패키지: `auth / song / word / flashcard / deck / user`
 - 각 도메인: `controller`, `service`, `repository`, `entity`, `dto`, `client` 서브패키지
-- `song/client/` 하위에 외부 API 클라이언트 벤더별 분리 (lrclib, vocadb, itunes, youtube)
+- `song/client/` — 외부 API 클라이언트 (lrclib, vocadb, itunes, youtube)
 - `word/client/jisho/` — Jisho API 클라이언트
 
-**App** `com.japanese.vocabulary.app.<domain>/`
-- 각 도메인: `ui`, `viewmodel`, `repository`, `dto` 서브패키지
-- `platform/` — `expect`/`actual` 구현체 (TokenStorage, BackendUrl, YouTubePlayer, BackHandler)
-- `App.kt` — 네비게이션 (sealed class `Screen`, 수동 back stack)
+### App — `app-rn/src/`
+
+```
+screens/          화면 컴포넌트 (PlayerScreen, SearchScreen, ReviewScreen, ...)
+screens/tabs/     탭 화면 (HomeTab, WordTab, MyPageTab)
+components/       재사용 컴포넌트 (LyricLine, SeekBar, YouTubePlayer, WordAnalysisSheet, ...)
+stores/           Zustand 상태 관리 (도메인별 분리: searchStore, vocabularyStore, ...)
+api/              Axios HTTP 클라이언트 (도메인별: songApi, wordApi, flashcardApi, ...)
+types/            TypeScript 인터페이스 (도메인별: song.ts, word.ts, flashcard.ts, ...)
+navigation/       React Navigation 설정 (Stack + Bottom Tabs)
+theme/            Colors, Dimens 상수
+utils/            유틸리티
+```
 
 ## Database Schema
 
@@ -100,12 +114,12 @@ All endpoints except `/api/auth/*` require `Authorization: Bearer {token}`.
 | POST | `/api/auth/signup` | `{name, password}` | `{token}` |
 | POST | `/api/auth/login` | `{name, password}` | `{token}` |
 | GET | `/api/songs/search?q=&offset=&limit=` | - | `{items[], nextOffset}` |
-| POST | `/api/songs/analyze` | `{title, artist, durationSeconds?}` | SongDTO (studyUnits + vocabularyCandidates) |
-| GET | `/api/songs/recent` | - | `[RecentSongItem]` (최근 16개, Redis SortedSet) |
+| POST | `/api/songs/analyze` | `{title, artist, durationSeconds?}` | SongDTO |
+| GET | `/api/songs/recent` | - | `[RecentSongItem]` |
 | GET | `/api/songs/{id}` | - | SongDTO |
 | GET | `/api/words/lookup?word=` | - | `{japanese, reading, meanings[], pos[], jlptLevel}` |
 | POST | `/api/words` | `{japanese, reading, koreanText, songId, lyricLine}` | `{id}` |
-| GET | `/api/words?cursor=` | - | `{words[], nextCursor}` (page size 20) |
+| GET | `/api/words?cursor=` | - | `{words[], nextCursor}` |
 | GET | `/api/flashcards/due?songId=` | - | `{flashcards[], totalDue}` |
 | POST | `/api/flashcards/{id}/review` | `{rating}` | `{nextReview, stability, difficulty}` |
 | GET | `/api/flashcards/stats` | - | `{totalCards, dueToday, ...}` |
@@ -119,57 +133,43 @@ All endpoints except `/api/auth/*` require `Authorization: Bearer {token}`.
 
 ## Key Architecture Decisions
 
-- **Lyrics pipeline**: LRCLIB (primary, has synced timestamps) → VocaDB (fallback, plain text only)
+- **Lyrics pipeline**: LRCLIB (primary, synced timestamps) → VocaDB (fallback, plain text)
 - **Song search**: iTunes API (Japan region) for metadata, YouTube API for MV URLs
 - **Morphological analysis**: `MorphologicalAnalyzer` interface with Sudachi (`@Primary`, SplitMode.B, UniDic POS) and Kuromoji (fallback, IPADIC POS). Filters to 名詞/動詞/形容詞/形状詞. Sudachi dictionary (`system_core.dic`) configured via `SUDACHI_DICT_PATH` env var or classpath `sudachi/`
 - **Pagination**: cursor-based for words, offset-based for song search
-- **Song data**: lyrics and vocabulary stored as JSON columns, analyzed once on first request, deduplicated by (artist, title)
+- **Song data**: lyrics and vocabulary stored as JSON columns, analyzed once, deduplicated by (artist, title)
 - **Auth**: stateless JWT with 30-day expiry, no refresh token
-- **Recent songs**: Redis SortedSet으로 유저별 최근 청취 곡 최대 16개 관리 (score = timestamp)
-- **Package structure**: domain-based (auth/song/word/flashcard/deck/user), both backend and app
-- **Domain events**: word → `WordAddedEvent` → flashcard (creates card) → `FlashcardCreatedEvent` → deck (creates deck + mapping). Synchronous `@EventListener` within same transaction.
-- **Decks**: Song-based grouping of flashcards. Per-song decks stored in DB; "all" deck is virtual (no DB row). Retrievability calculated via FSRS formula.
+- **Recent songs**: Redis SortedSet per user (max 16, score = timestamp)
+- **Domain events**: word → `WordAddedEvent` → flashcard → `FlashcardCreatedEvent` → deck. Synchronous `@EventListener` within same transaction
+- **Decks**: song-based flashcard grouping. Per-song decks in DB; "all" deck is virtual. Retrievability via FSRS formula
+- **MV collapse animation**: `react-native-reanimated` + `react-native-gesture-handler` for UI-thread performance on Android
 
 ## Current State
 
 **Implemented:**
 - Song search (iTunes) → lyric analysis (LRCLIB/VocaDB + Sudachi) → study view
-- YouTube MV playback with synced lyric highlighting
-- Word tap → Jisho lookup → save to vocabulary
+- YouTube MV playback with synced lyric highlighting, collapsible MV area
+- Word tap → Jisho lookup → save to vocabulary (floating bottom sheet)
 - User auth (signup/login with JWT)
 - Vocabulary list with cursor pagination
-- Flashcard review with FSRS spaced repetition (ReviewScreen, SettingsScreen)
-- Recent songs (Redis listen history, HomeScreen 썸네일 목록)
-- User settings (show_intervals toggle)
-- Decks: song-based flashcard grouping (DeckListScreen, DeckDetailScreen, DeckWordListScreen)
+- Flashcard review with FSRS spaced repetition
+- Recent songs (Redis listen history, home grid)
+- User settings (show_intervals toggle, retention slider)
+- Decks: song-based flashcard grouping
 - Spring Event-driven domain decoupling (word → flashcard → deck)
 
 **Not yet implemented:**
 - Tests (no test files exist)
-- iOS YouTube player (stub)
 
 ## Conventions
 
 - Backend package: `com.japanese.vocabulary`
-- App namespace: `com.japanese.vocabulary.app`
 - Backend uses WebClient (Spring WebFlux) for external API calls
-- App uses Ktor with Kotlinx Serialization for networking
-- Navigation: sealed class `Screen` with manual back stack in `App.kt`
-- Platform abstractions: `expect`/`actual` in `platform/` for TokenStorage, BackendUrl, YouTubePlayer, BackHandler
-- DTOs: 도메인별 개별 파일 (구 `model/Models.kt` 제거)
-
-## Working Model
-
-This project uses Claude Code agent teams.
-
-| Role | Responsibility |
-|---|---|
-| Lead Agent | Coordination and synthesis |
-| Backend Agent | Server-side logic and interfaces |
-| App Client Agent | User-facing flow and interaction |
-| QA Agent | Validation and failure detection |
-
-Agent prompts define roles only. Current work is defined by the sprint request. This file provides shared project context.
+- App navigation: React Navigation (NativeStack + BottomTabs) in `AppNavigator.tsx`
+- App state: Zustand stores, one per domain (searchStore, vocabularyStore, reviewStore, ...)
+- App HTTP: Axios with auth interceptor in `api/client.ts`
+- App styling: `StyleSheet.create()` co-located with components, theme tokens in `theme/theme.ts`
+- DTOs: domain-specific files in `types/`
 
 ## Execution Rules
 
