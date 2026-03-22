@@ -96,7 +96,7 @@ class FlashcardService(
                 wordId = entity.wordId,
                 japanese = word.japaneseText,
                 reading = word.reading,
-                koreanText = word.koreanText,
+                meanings = word.meanings,
                 examples = examples,
                 state = entity.state,
                 due = entity.due.toString(),

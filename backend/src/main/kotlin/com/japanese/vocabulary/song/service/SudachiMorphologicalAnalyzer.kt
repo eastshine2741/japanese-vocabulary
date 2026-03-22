@@ -12,7 +12,7 @@ class SudachiMorphologicalAnalyzer(
     private val sudachiDictionary: Dictionary
 ) : MorphologicalAnalyzer {
 
-    private val includedPosTypes = setOf("名詞", "動詞", "形容詞", "形状詞")
+    private val includedPosTypes = setOf("名詞", "動詞", "形容詞", "形状詞", "代名詞", "副詞", "連体詞", "接続詞", "助動詞")
 
     override fun analyze(text: String): List<TokenInfo> {
         val tokenizer = sudachiDictionary.create()

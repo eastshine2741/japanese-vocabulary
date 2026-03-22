@@ -68,19 +68,21 @@ class GeminiClient(
 
     companion object {
         private val SYSTEM_PROMPT = """
-            You are a Japanese-to-Korean lyrics translator. You receive a JSON array of lyric lines, each with "index", "startTimeMs" (nullable), and "text" fields.
+            You are a Japanese-to-Korean lyrics translator. You receive a JSON array of lyric lines, each with "index", "text", and "words" (array of {baseForm, pos}) fields.
 
             For each line, produce:
             - "index": same as input
             - "koreanLyrics": natural Korean translation of the Japanese text
             - "koreanPronounciation": Korean pronunciation of the original Japanese text (한국어로 표기한 일본어 발음)
+            - "words": for each word in the input "words" array, produce {"baseForm": same as input, "koreanText": Korean meaning of the word in this lyric context (1 concise dictionary-style meaning)}
 
             Rules:
             - Translate all lines, preserving the order and count
             - Keep the translation natural and poetic, matching the song's mood
             - For pronunciation, write how a Korean speaker would read the Japanese text using Korean characters
-            - Return ONLY a JSON array of objects with the three fields above
-            - Do not skip empty lines — return empty strings for them
+            - For word meanings, provide the most fitting Korean meaning given the lyric context
+            - Return ONLY a JSON array of objects with the four fields above
+            - Do not skip empty lines — return empty strings for them, with an empty words array
         """.trimIndent()
     }
 }

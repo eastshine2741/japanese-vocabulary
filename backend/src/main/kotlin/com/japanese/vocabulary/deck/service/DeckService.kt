@@ -101,7 +101,7 @@ class DeckService(
                 id = word.id!!,
                 japanese = word.japaneseText,
                 reading = word.reading ?: "",
-                koreanText = word.koreanText ?: ""
+                meanings = word.meanings
             )
         }
 

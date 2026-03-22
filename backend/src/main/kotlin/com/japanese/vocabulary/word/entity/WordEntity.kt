@@ -1,5 +1,7 @@
 package com.japanese.vocabulary.word.entity
 
+import com.japanese.vocabulary.config.converter.WordMeaningListConverter
+import com.japanese.vocabulary.word.dto.WordMeaning
 import jakarta.persistence.*
 import java.time.Instant
 
@@ -22,8 +24,9 @@ class WordEntity(
     @Column(length = 255)
     val reading: String? = null,
 
-    @Column(name = "korean_text", length = 500)
-    val koreanText: String? = null,
+    @Convert(converter = WordMeaningListConverter::class)
+    @Column(name = "meanings", columnDefinition = "JSON", nullable = false)
+    var meanings: List<WordMeaning> = emptyList(),
 
     @Column(name = "created_at")
     val createdAt: Instant = Instant.now()

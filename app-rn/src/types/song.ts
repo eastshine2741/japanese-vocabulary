@@ -36,17 +36,9 @@ export interface StudyUnit {
   koreanPronounciation: string | null;
 }
 
-export interface VocabularyCandidate {
-  word: string;
-  reading: string | null;
-  partOfSpeech: string | null;
-  sourceLineIndex: number;
-}
-
 export interface SongStudyData {
   song: SongInfo;
   studyUnits: StudyUnit[];
-  vocabularyCandidates: VocabularyCandidate[];
   youtubeUrl: string | null;
 }
 

@@ -1,22 +1,22 @@
 package com.japanese.vocabulary.song.service
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import com.japanese.vocabulary.song.client.gemini.GeminiClient
+import com.japanese.vocabulary.song.dto.AnalyzedLine
+import com.japanese.vocabulary.song.dto.Token
 import com.japanese.vocabulary.song.entity.KoreanLyricStatus
-import com.japanese.vocabulary.song.repository.KoreanLyricRepository
-import com.japanese.vocabulary.song.repository.SongRepository
+import com.japanese.vocabulary.song.repository.LyricRepository
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Pageable
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
+import java.time.Instant
 import java.util.concurrent.CompletableFuture
 
 @Service
 class KoreanLyricTranslationService(
-    private val koreanLyricRepository: KoreanLyricRepository,
-    private val songRepository: SongRepository,
-    private val geminiClient: GeminiClient,
-    private val objectMapper: ObjectMapper
+    private val lyricRepository: LyricRepository,
+    private val morphologicalAnalyzer: MorphologicalAnalyzer,
+    private val geminiClient: GeminiClient
 ) {
     private val logger = LoggerFactory.getLogger("KoreanLyricTranslation")
 
@@ -29,7 +29,7 @@ class KoreanLyricTranslationService(
     fun processTranslations() {
         logger.info("Polling for next translation batch...")
 
-        val batch = koreanLyricRepository.findNextForTranslation(
+        val batch = lyricRepository.findNextForTranslation(
             listOf(KoreanLyricStatus.PENDING, KoreanLyricStatus.PROCESSING),
             Pageable.ofSize(BATCH_SIZE)
         )
@@ -44,75 +44,106 @@ class KoreanLyricTranslationService(
         var succeeded = 0
         var failed = 0
 
-        val futures = batch.map { koreanLyric ->
+        val futures = batch.map { lyricEntity ->
             CompletableFuture.supplyAsync {
-                val song = songRepository.findById(koreanLyric.songId).orElse(null)
-                if (song == null) {
-                    logger.error("[songId={}] Song not found, marking as FAILED", koreanLyric.songId)
-                    koreanLyric.status = KoreanLyricStatus.FAILED
-                    koreanLyricRepository.save(koreanLyric)
-                    return@supplyAsync false
-                }
-
                 logger.info(
-                    "[songId={}] Starting translation for '{}' by '{}' (status={}, retryCount={})",
-                    koreanLyric.songId, song.title, song.artist, koreanLyric.status, koreanLyric.retryCount
+                    "[songId={}] Starting translation (status={}, retryCount={})",
+                    lyricEntity.songId, lyricEntity.status, lyricEntity.retryCount
                 )
 
                 // Transition to PROCESSING
-                logger.info("[songId={}] Status: {} → PROCESSING", koreanLyric.songId, koreanLyric.status)
-                koreanLyric.status = KoreanLyricStatus.PROCESSING
-                koreanLyricRepository.save(koreanLyric)
+                logger.info("[songId={}] Status: {} → PROCESSING", lyricEntity.songId, lyricEntity.status)
+                lyricEntity.status = KoreanLyricStatus.PROCESSING
+                lyricEntity.updatedAt = Instant.now()
+                lyricRepository.save(lyricEntity)
 
                 try {
-                    // Parse lyric content
-                    val lyricLines: List<Map<String, Any?>> = objectMapper.readValue(
-                        song.lyricContent,
-                        objectMapper.typeFactory.constructCollectionType(
-                            List::class.java,
-                            objectMapper.typeFactory.constructMapType(
-                                Map::class.java, String::class.java, Any::class.java
-                            )
-                        )
-                    )
-                    logger.info("[songId={}] Fetching lyric content ({} lines)", koreanLyric.songId, lyricLines.size)
+                    // 1. Read rawContent (already deserialized by converter)
+                    val lyricLines = lyricEntity.rawContent
+                    logger.info("[songId={}] Parsed {} lyric lines", lyricEntity.songId, lyricLines.size)
 
-                    // Call Gemini API
-                    logger.info("[songId={}] Calling Gemini API...", koreanLyric.songId)
-                    val translated = geminiClient.translateLyrics(lyricLines)
-                    logger.info("[songId={}] Gemini API responded ({} translated lines)", koreanLyric.songId, translated.size)
+                    // 2. Tokenize each line with Sudachi
+                    val lineTokensMap = lyricLines.associate { line ->
+                        line.index to morphologicalAnalyzer.analyze(line.text)
+                    }
+
+                    // 3. Build Gemini input: lines with words
+                    val geminiInput = lyricLines.map { line ->
+                        val tokens = lineTokensMap[line.index] ?: emptyList()
+                        val words = tokens.map { token ->
+                            mapOf("baseForm" to token.baseForm, "pos" to token.partOfSpeech)
+                        }
+                        mapOf(
+                            "index" to line.index,
+                            "text" to line.text,
+                            "words" to words
+                        )
+                    }
+
+                    // 4. Call Gemini API
+                    logger.info("[songId={}] Calling Gemini API...", lyricEntity.songId)
+                    val translated = geminiClient.translateLyrics(geminiInput)
+                    logger.info("[songId={}] Gemini API responded ({} translated lines)", lyricEntity.songId, translated.size)
 
                     if (translated.size != lyricLines.size) {
                         logger.warn(
                             "[songId={}] Line count mismatch: expected={}, got={} — saving partial result",
-                            koreanLyric.songId, lyricLines.size, translated.size
+                            lyricEntity.songId, lyricLines.size, translated.size
                         )
                     }
 
-                    // Save result
-                    koreanLyric.content = objectMapper.writeValueAsString(translated)
-                    koreanLyric.status = KoreanLyricStatus.COMPLETED
-                    koreanLyricRepository.save(koreanLyric)
-                    logger.info("[songId={}] Status: PROCESSING → COMPLETED", koreanLyric.songId)
+                    // 5. Merge Sudachi tokens + Gemini koreanText → AnalyzedLine
+                    val translatedMap = translated.associateBy { it.index }
+                    val analyzedLines = lyricLines.map { line ->
+                        val tokens = lineTokensMap[line.index] ?: emptyList()
+                        val geminiLine = translatedMap[line.index]
+                        val wordMeanings = geminiLine?.words?.associateBy { it.baseForm } ?: emptyMap()
+
+                        val mergedTokens = tokens.map { tokenInfo ->
+                            Token(
+                                surface = tokenInfo.surface,
+                                baseForm = tokenInfo.baseForm,
+                                reading = tokenInfo.reading,
+                                partOfSpeech = tokenInfo.partOfSpeech,
+                                charStart = tokenInfo.charStart,
+                                charEnd = tokenInfo.charEnd,
+                                koreanText = wordMeanings[tokenInfo.baseForm]?.koreanText
+                            )
+                        }
+
+                        AnalyzedLine(
+                            index = line.index,
+                            koreanLyrics = geminiLine?.koreanLyrics,
+                            koreanPronounciation = geminiLine?.koreanPronounciation,
+                            tokens = mergedTokens
+                        )
+                    }
+
+                    // 6. Save result (converter handles serialization)
+                    lyricEntity.analyzedContent = analyzedLines
+                    lyricEntity.status = KoreanLyricStatus.COMPLETED
+                    lyricEntity.updatedAt = Instant.now()
+                    lyricRepository.save(lyricEntity)
+                    logger.info("[songId={}] Status: PROCESSING → COMPLETED", lyricEntity.songId)
                     true
                 } catch (e: Exception) {
-                    koreanLyric.retryCount++
-                    if (koreanLyric.retryCount >= MAX_RETRIES) {
-                        koreanLyric.status = KoreanLyricStatus.FAILED
-                        koreanLyricRepository.save(koreanLyric)
+                    lyricEntity.retryCount++
+                    if (lyricEntity.retryCount >= MAX_RETRIES) {
+                        lyricEntity.status = KoreanLyricStatus.FAILED
+                        lyricRepository.save(lyricEntity)
                         logger.error(
                             "[songId={}] Translation failed (attempt {}/{}): {}",
-                            koreanLyric.songId, koreanLyric.retryCount, MAX_RETRIES, e.message
+                            lyricEntity.songId, lyricEntity.retryCount, MAX_RETRIES, e.message
                         )
-                        logger.error("[songId={}] Status: PROCESSING → FAILED (max retries reached)", koreanLyric.songId)
+                        logger.error("[songId={}] Status: PROCESSING → FAILED (max retries reached)", lyricEntity.songId)
                     } else {
-                        koreanLyric.status = KoreanLyricStatus.PENDING
-                        koreanLyricRepository.save(koreanLyric)
+                        lyricEntity.status = KoreanLyricStatus.PENDING
+                        lyricRepository.save(lyricEntity)
                         logger.error(
                             "[songId={}] Translation failed (attempt {}/{}): {}",
-                            koreanLyric.songId, koreanLyric.retryCount, MAX_RETRIES, e.message
+                            lyricEntity.songId, lyricEntity.retryCount, MAX_RETRIES, e.message
                         )
-                        logger.info("[songId={}] Status: PROCESSING → PENDING (will retry)", koreanLyric.songId)
+                        logger.info("[songId={}] Status: PROCESSING → PENDING (will retry)", lyricEntity.songId)
                     }
                     false
                 }

@@ -34,28 +34,39 @@ class WordService(
         }
 
         val word = wordRepository.findByUserIdAndJapaneseText(userId, request.japanese)
-            ?: wordRepository.save(
+
+        val savedWord = if (word != null) {
+            // Append meaning if not duplicate
+            val newMeaning = WordMeaning(text = request.koreanText, partOfSpeech = request.partOfSpeech)
+            if (word.meanings.none { it.text == newMeaning.text }) {
+                word.meanings = word.meanings + newMeaning
+                wordRepository.save(word)
+            }
+            word
+        } else {
+            wordRepository.save(
                 WordEntity(
                     userId = userId,
                     japaneseText = request.japanese,
                     reading = request.reading,
-                    koreanText = request.koreanText
+                    meanings = listOf(WordMeaning(text = request.koreanText, partOfSpeech = request.partOfSpeech))
                 )
             )
+        }
 
-        if (!songWordRepository.existsByWordIdAndSongIdAndLyricLine(word.id!!, request.songId, request.lyricLine)) {
+        if (!songWordRepository.existsByWordIdAndSongIdAndLyricLine(savedWord.id!!, request.songId, request.lyricLine)) {
             songWordRepository.save(
                 SongWordEntity(
-                    wordId = word.id,
+                    wordId = savedWord.id,
                     songId = request.songId,
                     lyricLine = request.lyricLine
                 )
             )
         }
 
-        eventPublisher.publishEvent(WordAddedEvent(userId, word.id!!, request.songId))
+        eventPublisher.publishEvent(WordAddedEvent(userId, savedWord.id!!, request.songId))
 
-        return word.id
+        return savedWord.id
     }
 
     @Transactional(readOnly = true)
@@ -77,7 +88,7 @@ class WordService(
             id = word.id,
             japanese = word.japaneseText,
             reading = word.reading,
-            koreanText = word.koreanText,
+            meanings = word.meanings,
             examples = examples
         )
     }
@@ -110,7 +121,7 @@ class WordService(
                 id = word.id!!,
                 japanese = word.japaneseText,
                 reading = word.reading ?: "",
-                koreanText = word.koreanText ?: "",
+                meanings = word.meanings,
                 examples = examples
             )
         }
