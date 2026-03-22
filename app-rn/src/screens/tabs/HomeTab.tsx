@@ -170,7 +170,7 @@ export default function HomeTab() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: Colors.background },
   container: { flex: 1, backgroundColor: Colors.background },
-  list: { paddingHorizontal: 20, paddingBottom: 24 },
+  list: { paddingHorizontal: 20, paddingBottom: Dimens.bottomBarHeight + 40 },
   headerContainer: { gap: 24 },
   header: { gap: 4 },
   title: {

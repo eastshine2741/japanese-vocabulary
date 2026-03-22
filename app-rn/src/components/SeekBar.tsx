@@ -1,12 +1,17 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   Platform,
   LayoutChangeEvent,
-  GestureResponderEvent,
 } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  runOnJS,
+} from 'react-native-reanimated';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { Colors } from '../theme/theme';
 
 interface Props {
@@ -24,61 +29,105 @@ function formatTime(ms: number): string {
 
 export default function SeekBar({ currentMs, durationMs, onSeek }: Props) {
   const [isSeeking, setIsSeeking] = useState(false);
-  const [seekFraction, setSeekFraction] = useState(0);
-  const trackWidth = useRef(0);
+  const [seekDisplayMs, setSeekDisplayMs] = useState(0);
+
+  const trackWidthSV = useSharedValue(0);
+  const displayProgress = useSharedValue(0);
+  const isSeekingSV = useSharedValue(0);
 
   const progress = durationMs > 0 ? currentMs / durationMs : 0;
-  const displayProgress = isSeeking ? seekFraction : progress;
-  const displayMs = isSeeking ? seekFraction * durationMs : currentMs;
-  const thumbLeft = displayProgress * trackWidth.current - 8;
+
+  // Sync playback progress to shared value when not seeking
+  if (!isSeeking) {
+    displayProgress.value = progress;
+  }
 
   const handleLayout = useCallback((e: LayoutChangeEvent) => {
-    trackWidth.current = e.nativeEvent.layout.width;
+    trackWidthSV.value = e.nativeEvent.layout.width;
   }, []);
 
-  const handleGrant = useCallback((e: GestureResponderEvent) => {
-    const fraction = Math.max(0, Math.min(1, e.nativeEvent.locationX / trackWidth.current));
-    setSeekFraction(fraction);
-    setIsSeeking(true);
-  }, []);
-
-  const handleMove = useCallback((e: GestureResponderEvent) => {
-    const fraction = Math.max(0, Math.min(1, e.nativeEvent.locationX / trackWidth.current));
-    setSeekFraction(fraction);
-  }, []);
-
-  const handleRelease = useCallback(() => {
+  const onSeekStart = useCallback(() => setIsSeeking(true), []);
+  const onSeekEnd = useCallback((fraction: number) => {
     setIsSeeking(false);
-    onSeek(seekFraction * durationMs);
-  }, [seekFraction, durationMs, onSeek]);
+    onSeek(fraction * durationMs);
+  }, [durationMs, onSeek]);
+  const onSeekUpdate = useCallback((ms: number) => setSeekDisplayMs(ms), []);
+
+  const gesture = useMemo(() =>
+    Gesture.Pan()
+      .onBegin((e) => {
+        'worklet';
+        if (trackWidthSV.value <= 0) return;
+        const fraction = Math.max(0, Math.min(1, e.x / trackWidthSV.value));
+        displayProgress.value = fraction;
+        isSeekingSV.value = 1;
+        runOnJS(onSeekStart)();
+        runOnJS(onSeekUpdate)(fraction * durationMs);
+      })
+      .onUpdate((e) => {
+        'worklet';
+        if (trackWidthSV.value <= 0) return;
+        const fraction = Math.max(0, Math.min(1, e.x / trackWidthSV.value));
+        displayProgress.value = fraction;
+        runOnJS(onSeekUpdate)(fraction * durationMs);
+      })
+      .onEnd(() => {
+        'worklet';
+        isSeekingSV.value = 0;
+        runOnJS(onSeekEnd)(displayProgress.value);
+      })
+      .onFinalize(() => {
+        'worklet';
+        isSeekingSV.value = 0;
+      })
+      .minDistance(0)
+      .minPointers(1)
+      .maxPointers(1),
+  [durationMs, onSeekStart, onSeekEnd, onSeekUpdate]);
+
+  const trackAnimStyle = useAnimatedStyle(() => ({
+    height: isSeekingSV.value ? 4 : 2,
+  }));
+
+  const fillAnimStyle = useAnimatedStyle(() => ({
+    height: isSeekingSV.value ? 4 : 2,
+    width: displayProgress.value * trackWidthSV.value,
+  }));
+
+  const thumbAnimStyle = useAnimatedStyle(() => ({
+    opacity: isSeekingSV.value,
+    left: displayProgress.value * trackWidthSV.value - 8,
+  }));
+
+  const tooltipAnimStyle = useAnimatedStyle(() => ({
+    opacity: isSeekingSV.value,
+    left: Math.max(0, Math.min(
+      displayProgress.value * trackWidthSV.value - 20,
+      trackWidthSV.value - 50,
+    )),
+  }));
+
+  const displayMs = isSeeking ? seekDisplayMs : currentMs;
 
   return (
     <View>
-      <View
-        style={styles.touchArea}
-        onStartShouldSetResponder={() => true}
-        onMoveShouldSetResponder={() => true}
-        onResponderGrant={handleGrant}
-        onResponderMove={handleMove}
-        onResponderRelease={handleRelease}
-        onResponderTerminate={handleRelease}
-        onLayout={handleLayout}
-      >
-        {isSeeking && trackWidth.current > 0 && (
-          <View style={[styles.tooltipWrap, { left: Math.max(0, Math.min(thumbLeft - 12, trackWidth.current - 50)) }]}>
+      <GestureDetector gesture={gesture}>
+        <Animated.View
+          style={styles.touchArea}
+          onLayout={handleLayout}
+        >
+          <Animated.View style={[styles.tooltipWrap, tooltipAnimStyle]}>
             <View style={styles.tooltip}>
-              <Text style={styles.tooltipText}>{formatTime(seekFraction * durationMs)}</Text>
+              <Text style={styles.tooltipText}>{formatTime(seekDisplayMs)}</Text>
             </View>
             <View style={styles.tooltipArrow} />
-          </View>
-        )}
-        <View style={[styles.track, isSeeking && styles.trackSeeking]}>
-          <View style={[styles.fill, { width: `${displayProgress * 100}%` }, isSeeking && styles.fillSeeking]} />
-        </View>
-        {isSeeking && trackWidth.current > 0 && (
-          <View style={[styles.thumb, { left: thumbLeft }]} />
-        )}
-      </View>
+          </Animated.View>
+          <Animated.View style={[styles.track, trackAnimStyle]}>
+            <Animated.View style={[styles.fill, fillAnimStyle]} />
+          </Animated.View>
+          <Animated.View style={[styles.thumb, thumbAnimStyle]} />
+        </Animated.View>
+      </GestureDetector>
       <View style={styles.timeRow}>
         <Text style={styles.timeText}>{formatTime(displayMs)}</Text>
         <Text style={styles.timeText}>{formatTime(durationMs)}</Text>
@@ -89,23 +138,15 @@ export default function SeekBar({ currentMs, durationMs, onSeek }: Props) {
 
 const styles = StyleSheet.create({
   touchArea: {
-    paddingTop: 30,
-    marginTop: -30,
+    paddingTop: 36,
+    marginTop: -36,
     justifyContent: 'flex-end',
   },
   track: {
-    height: 2,
     backgroundColor: Colors.border,
   },
-  trackSeeking: {
-    height: 4,
-  },
   fill: {
-    height: 2,
     backgroundColor: Colors.primary,
-  },
-  fillSeeking: {
-    height: 4,
   },
   timeRow: {
     flexDirection: 'row',

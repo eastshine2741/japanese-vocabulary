@@ -27,7 +27,7 @@ export default function App() {
   return (
     <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider>
-        <StatusBar barStyle="dark-content" backgroundColor={Colors.background} translucent={false} />
+        <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
         <NavigationContainer>
           <AppNavigator initialRoute={initialRoute} />
         </NavigationContainer>

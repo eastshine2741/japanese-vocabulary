@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, ScrollView, StyleSheet, NativeSyntheticEvent, NativeScrollEvent, useWindowDimensions } from 'react-native';
 import { FlashcardDTO } from '../types/flashcard';
 import { Colors } from '../theme/theme';
 import { JlptBadge, PosBadge } from './Badges';
@@ -14,6 +14,15 @@ interface Props {
  * Kanji is rendered separately by ReviewScreen to keep its position fixed.
  */
 export default function FlashcardBackDetails({ card }: Props) {
+  const { width: screenWidth } = useWindowDimensions();
+  const pageWidth = screenWidth - 48;
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  const handleScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const idx = Math.round(e.nativeEvent.contentOffset.x / pageWidth);
+    setActiveIndex(idx);
+  }, [pageWidth]);
+
   return (
     <View style={styles.container}>
       {card.reading && <Text style={styles.reading}>{card.reading}</Text>}
@@ -32,15 +41,30 @@ export default function FlashcardBackDetails({ card }: Props) {
 
       {card.examples.length > 0 && (
         <View style={styles.exampleCarousel}>
-          {card.examples[0].lyricLine && (
-            <Text style={styles.jpText}>{card.examples[0].lyricLine}</Text>
-          )}
-          {card.examples[0].songTitle && (
-            <View style={styles.songRow}>
-              <ArtworkImage url={card.examples[0].artworkUrl} size={18} cornerRadius={4} />
-              <Text style={styles.songLabel}>{card.examples[0].songTitle}</Text>
-            </View>
-          )}
+          <ScrollView
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onMomentumScrollEnd={handleScroll}
+            snapToInterval={pageWidth}
+            decelerationRate="fast"
+            contentContainerStyle={{ paddingHorizontal: 24 }}
+            style={{ marginHorizontal: -24 }}
+          >
+            {card.examples.map((ex, i) => (
+              <View key={i} style={[styles.exPage, { width: pageWidth }]}>
+                {ex.lyricLine && (
+                  <Text style={styles.jpText}>{ex.lyricLine}</Text>
+                )}
+                {ex.songTitle && (
+                  <View style={styles.songRow}>
+                    <ArtworkImage url={ex.artworkUrl} size={18} cornerRadius={4} />
+                    <Text style={styles.songLabel}>{ex.songTitle}</Text>
+                  </View>
+                )}
+              </View>
+            ))}
+          </ScrollView>
           {card.examples.length > 1 && (
             <View style={styles.pageDots}>
               {card.examples.map((_, i) => (
@@ -48,7 +72,7 @@ export default function FlashcardBackDetails({ card }: Props) {
                   key={i}
                   style={[
                     styles.pageDot,
-                    i === 0
+                    i === activeIndex
                       ? { width: 6, height: 6, backgroundColor: Colors.textSecondary }
                       : { width: 5, height: 5, backgroundColor: '#D4D4D8' },
                   ]}
@@ -87,6 +111,10 @@ const styles = StyleSheet.create({
     gap: 4,
     alignItems: 'center',
     width: '100%',
+  },
+  exPage: {
+    gap: 4,
+    alignItems: 'center',
   },
   jpText: {
     fontSize: 14,

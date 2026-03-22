@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet, NativeSyntheticEvent, NativeScrollEvent, useWindowDimensions } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet, NativeSyntheticEvent, NativeScrollEvent, useWindowDimensions, Linking } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import { Feather } from '@expo/vector-icons';
 import { Token } from '../types/song';
@@ -126,11 +126,19 @@ export default function WordAnalysisSheet({
           )}
         </View>
 
-        {token.koreanText ? (
-          <Text style={styles.meaning}>{token.koreanText}</Text>
-        ) : (
-          <Text style={styles.meaningEmpty}>뜻 정보가 없습니다</Text>
-        )}
+        <View style={styles.meaningRow}>
+          {token.koreanText ? (
+            <Text style={styles.meaning}>{token.koreanText}</Text>
+          ) : (
+            <Text style={styles.meaningEmpty}>뜻 정보가 없습니다</Text>
+          )}
+          <TouchableOpacity
+            onPress={() => Linking.openURL(`https://ja.dict.naver.com/#/search?query=${encodeURIComponent(token.baseForm)}`)}
+            activeOpacity={0.6}
+          >
+            <Text style={styles.dictLink}>사전에서 찾아보기</Text>
+          </TouchableOpacity>
+        </View>
 
         {isExisting && existingWord && existingWord.meanings.length > 0 && (
           <Text style={styles.existingMeanings}>
@@ -228,6 +236,11 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
   },
+  meaningRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+  },
   meaning: {
     fontSize: 18,
     fontWeight: '600',
@@ -236,6 +249,10 @@ const styles = StyleSheet.create({
   meaningEmpty: {
     fontSize: 15,
     color: Colors.textMuted,
+  },
+  dictLink: {
+    fontSize: 13,
+    color: Colors.textSecondary,
   },
   existingMeanings: {
     fontSize: 13,

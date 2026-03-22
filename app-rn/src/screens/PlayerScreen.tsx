@@ -24,6 +24,7 @@ import Animated, {
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { usePlayerStore } from '../stores/playerStore';
 import { useVocabularyStore } from '../stores/vocabularyStore';
+import { songApi } from '../api/songApi';
 import YouTubePlayer, { YouTubePlayerRef } from '../components/YouTubePlayer';
 import WordAnalysisSheet from '../components/WordAnalysisSheet';
 import LyricLine from '../components/LyricLine';
@@ -98,6 +99,10 @@ export default function PlayerScreen({ navigation }: Props) {
     opacity: interpolate(mvHeight.value, [MV_COLLAPSED, MV_COLLAPSED + 50, MV_EXPANDED], [1, 0, 0], 'clamp'),
   }));
 
+  const backBtnStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(mvHeight.value, [MV_COLLAPSED, MV_COLLAPSED + 50, MV_EXPANDED], [0, 0, 1], 'clamp'),
+  }));
+
   if (!studyData) return null;
 
   const { song, studyUnits, youtubeUrl } = studyData;
@@ -155,12 +160,23 @@ export default function PlayerScreen({ navigation }: Props) {
     }
   };
 
+  const isTranslationPending = studyUnits.length > 0
+    && studyUnits.some(u => u.originalText.trim() !== '')
+    && studyUnits.every(u => u.koreanLyrics === null);
+
   const currentLineIndex = isSynced
     ? studyUnits.reduce((acc, unit, idx) => {
         if (unit.startTimeMs != null && unit.startTimeMs <= currentMs) return idx;
         return acc;
       }, 0)
     : -1;
+
+  const handleRefreshLyrics = async () => {
+    try {
+      const data = await songApi.getById(song.id);
+      usePlayerStore.setState({ studyData: data });
+    } catch {}
+  };
 
   const renderLyricLine = ({ item, index }: { item: StudyUnit; index: number }) => (
     <LyricLine
@@ -191,6 +207,11 @@ export default function PlayerScreen({ navigation }: Props) {
             </View>
           )}
         </Animated.View>
+        <Animated.View style={[styles.backBtn, backBtnStyle]} pointerEvents="box-none">
+          <TouchableOpacity onPress={handleBack} activeOpacity={0.6} style={styles.backBtnTouchable}>
+            <Feather name="chevron-left" size={20} color="#FFFFFF" style={styles.backBtnIcon} />
+          </TouchableOpacity>
+        </Animated.View>
         <Animated.View style={[styles.mvInfoOverlay, infoStyle]} pointerEvents="box-none">
           <View style={styles.mvInfoTexts}>
             <Text style={styles.mvInfoTitle} numberOfLines={1}>{song.title}</Text>
@@ -220,6 +241,31 @@ export default function PlayerScreen({ navigation }: Props) {
                 <View style={styles.songInfo}>
                   <Text style={styles.songTitle}>{song.title}</Text>
                   <Text style={styles.songArtist}>{song.artist}</Text>
+                  {isTranslationPending && (
+                    <View style={styles.notice}>
+                      <View style={[styles.noticeIconWrap, { backgroundColor: Colors.elevated }]}>
+                        <Feather name="globe" size={18} color={Colors.primary} />
+                      </View>
+                      <View style={styles.noticeTextWrap}>
+                        <Text style={styles.noticeMain}>번역을 준비하고 있어요!</Text>
+                        <Text style={styles.noticeSub}>금방 끝나요, 조금만 기다려 주세요</Text>
+                      </View>
+                      <TouchableOpacity style={styles.noticeRefreshBtn} onPress={handleRefreshLyrics} activeOpacity={0.6}>
+                        <Feather name="refresh-cw" size={15} color={Colors.textSecondary} />
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                  {!isSynced && (
+                    <View style={styles.notice}>
+                      <View style={[styles.noticeIconWrap, { backgroundColor: Colors.elevated }]}>
+                        <Feather name="music" size={18} color={Colors.textMuted} />
+                      </View>
+                      <View style={styles.noticeTextWrap}>
+                        <Text style={styles.noticeMain}>이 노래는 싱크 가사가 없어요</Text>
+                        <Text style={styles.noticeSub}>재생 위치에 맞춰 가사가 자동으로 따라가지 않아요</Text>
+                      </View>
+                    </View>
+                  )}
                 </View>
               }
               contentContainerStyle={styles.lyricsList}
@@ -309,6 +355,25 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF40',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+
+  // Back button
+  backBtn: {
+    position: 'absolute',
+    left: 16,
+    top: 12,
+  },
+  backBtnTouchable: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backBtnIcon: {
+    textShadowColor: '#00000060',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 8,
   },
 
   // MV collapsed info
@@ -401,6 +466,47 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '500',
     color: Colors.textSecondary,
+  },
+
+  // Notices
+  notice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginTop: 16,
+  },
+  noticeIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  noticeTextWrap: {
+    flex: 1,
+    gap: 2,
+  },
+  noticeMain: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+  },
+  noticeSub: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+  },
+  noticeRefreshBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Colors.elevated,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   // Lyrics

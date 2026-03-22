@@ -130,7 +130,7 @@ export default function WordTab() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  list: { padding: Dimens.screenPadding },
+  list: { padding: Dimens.screenPadding, paddingBottom: Dimens.screenPadding + Dimens.bottomBarHeight + 40 },
   header: { marginBottom: 8 },
   title: {
     fontSize: 38,
