@@ -6,8 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   Platform,
-  Animated,
-  PanResponder,
   useWindowDimensions,
   LayoutChangeEvent,
   GestureResponderEvent,
@@ -17,6 +15,16 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
 import BottomSheet, { BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import type { BottomSheetBackdropProps } from '@gorhom/bottom-sheet';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  interpolate,
+  clamp,
+  runOnJS,
+  Easing,
+} from 'react-native-reanimated';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useSearchStore } from '../stores/searchStore';
 import { useVocabularyStore } from '../stores/vocabularyStore';
 import YouTubePlayer, { YouTubePlayerRef } from '../components/YouTubePlayer';
@@ -65,76 +73,52 @@ export default function PlayerScreen({ navigation }: Props) {
   const youtubeRef = useRef<YouTubePlayerRef>(null);
   const wordSheetRef = useRef<BottomSheet>(null);
   const progressWidth = useRef(0);
-
-  // Animated MV height for smooth drag transition
-  const mvHeight = useRef(new Animated.Value(MV_EXPANDED)).current;
-  const mvCollapsedRef = useRef(false);
-  const dragStartH = useRef(MV_EXPANDED);
-
-  const handlePan = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (_, gs) => Math.abs(gs.dy) > 5,
-      onPanResponderGrant: () => {
-        dragStartH.current = mvCollapsedRef.current ? MV_COLLAPSED : MV_EXPANDED;
-      },
-      onPanResponderMove: (_, gs) => {
-        mvHeight.setValue(
-          Math.max(MV_COLLAPSED, Math.min(MV_EXPANDED, dragStartH.current + gs.dy))
-        );
-      },
-      onPanResponderRelease: (_, gs) => {
-        let target: number;
-        if (Math.abs(gs.dy) < 10 && Math.abs(gs.dx) < 10) {
-          target = mvCollapsedRef.current ? MV_EXPANDED : MV_COLLAPSED;
-        } else {
-          const h = Math.max(MV_COLLAPSED, Math.min(MV_EXPANDED, dragStartH.current + gs.dy));
-          target = gs.vy < -0.3 || h < (MV_EXPANDED + MV_COLLAPSED) / 2 ? MV_COLLAPSED : MV_EXPANDED;
-        }
-        mvCollapsedRef.current = target === MV_COLLAPSED;
-        Animated.spring(mvHeight, {
-          toValue: target,
-          useNativeDriver: false,
-          bounciness: 4,
-          speed: 14,
-        }).start();
-      },
-    })
-  ).current;
-
   const { width: screenWidth } = useWindowDimensions();
 
-  // Video position/size interpolations (full-width → 64x36 thumbnail)
-  const videoLeft = mvHeight.interpolate({
-    inputRange: [MV_COLLAPSED, MV_EXPANDED],
-    outputRange: [12, 0],
-    extrapolate: 'clamp',
-  });
-  const videoTop = mvHeight.interpolate({
-    inputRange: [MV_COLLAPSED, MV_EXPANDED],
-    outputRange: [10, 0], // (56 - 36) / 2 = 10
-    extrapolate: 'clamp',
-  });
-  const videoWidth = mvHeight.interpolate({
-    inputRange: [MV_COLLAPSED, MV_EXPANDED],
-    outputRange: [64, screenWidth],
-    extrapolate: 'clamp',
-  });
-  const videoH = mvHeight.interpolate({
-    inputRange: [MV_COLLAPSED, MV_EXPANDED],
-    outputRange: [36, MV_EXPANDED],
-    extrapolate: 'clamp',
-  });
-  const videoRadius = mvHeight.interpolate({
-    inputRange: [MV_COLLAPSED, MV_EXPANDED],
-    outputRange: [6, 0],
-    extrapolate: 'clamp',
-  });
-  const infoOpacity = mvHeight.interpolate({
-    inputRange: [MV_COLLAPSED, MV_COLLAPSED + 50, MV_EXPANDED],
-    outputRange: [1, 0, 0],
-    extrapolate: 'clamp',
-  });
+  // Reanimated: MV height shared value (runs on UI thread)
+  const mvHeight = useSharedValue(MV_EXPANDED);
+  const dragStartH = useSharedValue(MV_EXPANDED);
+
+  const snapConfig = { duration: 250, easing: Easing.out(Easing.cubic) };
+
+  const handleGesture = useMemo(() => Gesture.Pan()
+    .onStart(() => {
+      dragStartH.value = mvHeight.value;
+    })
+    .onUpdate((e) => {
+      mvHeight.value = clamp(dragStartH.value + e.translationY, MV_COLLAPSED, MV_EXPANDED);
+    })
+    .onEnd((e) => {
+      if (Math.abs(e.translationY) < 10 && Math.abs(e.translationX) < 10) {
+        // Tap: toggle
+        const target = mvHeight.value < (MV_EXPANDED + MV_COLLAPSED) / 2 ? MV_EXPANDED : MV_COLLAPSED;
+        mvHeight.value = withTiming(target, snapConfig);
+      } else {
+        // Drag: snap based on velocity or position
+        const target = e.velocityY < -300 || mvHeight.value < (MV_EXPANDED + MV_COLLAPSED) / 2
+          ? MV_COLLAPSED : MV_EXPANDED;
+        mvHeight.value = withTiming(target, snapConfig);
+      }
+    }), []);
+
+  // Animated styles (all computed on UI thread)
+  const mvAreaStyle = useAnimatedStyle(() => ({
+    height: mvHeight.value,
+  }));
+
+  const videoStyle = useAnimatedStyle(() => ({
+    position: 'absolute' as const,
+    left: interpolate(mvHeight.value, [MV_COLLAPSED, MV_EXPANDED], [12, 0], 'clamp'),
+    top: interpolate(mvHeight.value, [MV_COLLAPSED, MV_EXPANDED], [10, 0], 'clamp'),
+    width: interpolate(mvHeight.value, [MV_COLLAPSED, MV_EXPANDED], [64, screenWidth], 'clamp'),
+    height: interpolate(mvHeight.value, [MV_COLLAPSED, MV_EXPANDED], [36, MV_EXPANDED], 'clamp'),
+    borderRadius: interpolate(mvHeight.value, [MV_COLLAPSED, MV_EXPANDED], [6, 0], 'clamp'),
+    overflow: 'hidden' as const,
+  }));
+
+  const infoStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(mvHeight.value, [MV_COLLAPSED, MV_COLLAPSED + 50, MV_EXPANDED], [1, 0, 0], 'clamp'),
+  }));
 
   if (!studyData) return null;
 
@@ -288,17 +272,9 @@ export default function PlayerScreen({ navigation }: Props) {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       {/* MV Area — video shrinks with aspect ratio, info fades in */}
-      <Animated.View style={[styles.mvArea, { height: mvHeight }]}>
+      <Animated.View style={[styles.mvArea, mvAreaStyle]}>
         {/* Video — animates from full-width to 64x36 thumbnail */}
-        <Animated.View style={{
-          position: 'absolute',
-          left: videoLeft,
-          top: videoTop,
-          width: videoWidth,
-          height: videoH,
-          borderRadius: videoRadius,
-          overflow: 'hidden',
-        }}>
+        <Animated.View style={videoStyle}>
           {videoId ? (
             <YouTubePlayer
               ref={youtubeRef}
@@ -315,7 +291,7 @@ export default function PlayerScreen({ navigation }: Props) {
           )}
         </Animated.View>
         {/* Song info + play button — fade in when collapsed */}
-        <Animated.View style={[styles.mvInfoOverlay, { opacity: infoOpacity }]} pointerEvents="box-none">
+        <Animated.View style={[styles.mvInfoOverlay, infoStyle]} pointerEvents="box-none">
           <View style={styles.mvInfoTexts}>
             <Text style={styles.mvInfoTitle} numberOfLines={1}>{song.title}</Text>
             <Text style={styles.mvInfoArtist} numberOfLines={1}>{song.artist}</Text>
@@ -330,9 +306,11 @@ export default function PlayerScreen({ navigation }: Props) {
       <View style={styles.bottomSheetOuter}>
         <View style={styles.bottomSheetInner}>
           {/* Drag handle — drag or tap to collapse/expand MV */}
-          <View style={styles.dragHandle} {...handlePan.panHandlers}>
-            <View style={styles.dragBar} />
-          </View>
+          <GestureDetector gesture={handleGesture}>
+            <Animated.View style={styles.dragHandle}>
+              <View style={styles.dragBar} />
+            </Animated.View>
+          </GestureDetector>
 
           {/* Scrollable lyrics */}
           <View style={styles.scrollContent}>
@@ -348,6 +326,18 @@ export default function PlayerScreen({ navigation }: Props) {
               }
               contentContainerStyle={styles.lyricsList}
             />
+            {/* Fade gradient at top of lyrics */}
+            <View style={styles.fadeGradientTop} pointerEvents="none">
+              {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
+                <View
+                  key={i}
+                  style={{
+                    flex: 1,
+                    backgroundColor: `rgba(255,255,255,${((7 - i) / 7) * ((7 - i) / 7)})`,
+                  }}
+                />
+              ))}
+            </View>
             {/* Fade gradient at bottom of lyrics */}
             <View style={styles.fadeGradient} pointerEvents="none">
               {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
@@ -499,11 +489,15 @@ const styles = StyleSheet.create({
     flex: 1,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 8,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 16,
+      },
+      android: {},
+    }),
   },
   bottomSheetInner: {
     flex: 1,
@@ -515,7 +509,7 @@ const styles = StyleSheet.create({
 
   // Drag Handle
   dragHandle: {
-    height: 24,
+    height: 40,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -552,6 +546,13 @@ const styles = StyleSheet.create({
   lyricsList: {
     paddingHorizontal: 24,
     paddingBottom: 100,
+  },
+  fadeGradientTop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 32,
   },
   fadeGradient: {
     position: 'absolute',
