@@ -30,8 +30,12 @@ export default function SearchScreen({ navigation }: Props) {
   const {
     searchStatus, items, isLoadingMore,
     analyzeStatus, studyData,
-    search, loadMore, analyze,
+    search, loadMore, analyze, resetAnalyze,
   } = useSearchStore();
+
+  useEffect(() => {
+    resetAnalyze();
+  }, []);
 
   useEffect(() => {
     if (analyzeStatus === 'success' && studyData) {
