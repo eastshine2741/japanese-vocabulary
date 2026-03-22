@@ -6,6 +6,9 @@ import {
   TouchableOpacity,
   StyleSheet,
   Platform,
+  Animated,
+  PanResponder,
+  useWindowDimensions,
   LayoutChangeEvent,
   GestureResponderEvent,
 } from 'react-native';
@@ -31,6 +34,9 @@ function extractVideoId(url: string): string | null {
 
 const PARTICLE_POS = ['助詞', '助動詞', '記号'];
 
+const MV_EXPANDED = 220;
+const MV_COLLAPSED = 56;
+
 function getUnderlineColor(pos: string): string | null {
   if (PARTICLE_POS.includes(pos)) return null;
   if (pos === '動詞') return Colors.posVerb;
@@ -54,12 +60,81 @@ export default function PlayerScreen({ navigation }: Props) {
   const [durationMs, setDurationMs] = useState(0);
   const [selectedToken, setSelectedToken] = useState<Token | null>(null);
   const [selectedLine, setSelectedLine] = useState('');
-  const [mvCollapsed, setMvCollapsed] = useState(false);
   const [isSeeking, setIsSeeking] = useState(false);
   const [seekFraction, setSeekFraction] = useState(0);
   const youtubeRef = useRef<YouTubePlayerRef>(null);
   const wordSheetRef = useRef<BottomSheet>(null);
   const progressWidth = useRef(0);
+
+  // Animated MV height for smooth drag transition
+  const mvHeight = useRef(new Animated.Value(MV_EXPANDED)).current;
+  const mvCollapsedRef = useRef(false);
+  const dragStartH = useRef(MV_EXPANDED);
+
+  const handlePan = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gs) => Math.abs(gs.dy) > 5,
+      onPanResponderGrant: () => {
+        dragStartH.current = mvCollapsedRef.current ? MV_COLLAPSED : MV_EXPANDED;
+      },
+      onPanResponderMove: (_, gs) => {
+        mvHeight.setValue(
+          Math.max(MV_COLLAPSED, Math.min(MV_EXPANDED, dragStartH.current + gs.dy))
+        );
+      },
+      onPanResponderRelease: (_, gs) => {
+        let target: number;
+        if (Math.abs(gs.dy) < 10 && Math.abs(gs.dx) < 10) {
+          target = mvCollapsedRef.current ? MV_EXPANDED : MV_COLLAPSED;
+        } else {
+          const h = Math.max(MV_COLLAPSED, Math.min(MV_EXPANDED, dragStartH.current + gs.dy));
+          target = gs.vy < -0.3 || h < (MV_EXPANDED + MV_COLLAPSED) / 2 ? MV_COLLAPSED : MV_EXPANDED;
+        }
+        mvCollapsedRef.current = target === MV_COLLAPSED;
+        Animated.spring(mvHeight, {
+          toValue: target,
+          useNativeDriver: false,
+          bounciness: 4,
+          speed: 14,
+        }).start();
+      },
+    })
+  ).current;
+
+  const { width: screenWidth } = useWindowDimensions();
+
+  // Video position/size interpolations (full-width → 64x36 thumbnail)
+  const videoLeft = mvHeight.interpolate({
+    inputRange: [MV_COLLAPSED, MV_EXPANDED],
+    outputRange: [12, 0],
+    extrapolate: 'clamp',
+  });
+  const videoTop = mvHeight.interpolate({
+    inputRange: [MV_COLLAPSED, MV_EXPANDED],
+    outputRange: [10, 0], // (56 - 36) / 2 = 10
+    extrapolate: 'clamp',
+  });
+  const videoWidth = mvHeight.interpolate({
+    inputRange: [MV_COLLAPSED, MV_EXPANDED],
+    outputRange: [64, screenWidth],
+    extrapolate: 'clamp',
+  });
+  const videoH = mvHeight.interpolate({
+    inputRange: [MV_COLLAPSED, MV_EXPANDED],
+    outputRange: [36, MV_EXPANDED],
+    extrapolate: 'clamp',
+  });
+  const videoRadius = mvHeight.interpolate({
+    inputRange: [MV_COLLAPSED, MV_EXPANDED],
+    outputRange: [6, 0],
+    extrapolate: 'clamp',
+  });
+  const infoOpacity = mvHeight.interpolate({
+    inputRange: [MV_COLLAPSED, MV_COLLAPSED + 50, MV_EXPANDED],
+    outputRange: [1, 0, 0],
+    extrapolate: 'clamp',
+  });
 
   if (!studyData) return null;
 
@@ -212,57 +287,52 @@ export default function PlayerScreen({ navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      {/* MV Area */}
-      {mvCollapsed ? (
-        <TouchableOpacity
-          style={styles.mvCollapsedBar}
-          onPress={() => setMvCollapsed(false)}
-          activeOpacity={0.8}
-        >
-          <View style={styles.mvThumb} />
-          <View style={styles.mvCollapsedTexts}>
-            <Text style={styles.mvCollapsedTitle} numberOfLines={1}>{song.title}</Text>
-            <Text style={styles.mvCollapsedArtist} numberOfLines={1}>{song.artist}</Text>
-          </View>
-          <View style={styles.mvCollapsedPlayBtn}>
-            <Feather name="play" size={16} color="#FFFFFF" />
-          </View>
-        </TouchableOpacity>
-      ) : (
-        <View style={styles.mvArea}>
+      {/* MV Area — video shrinks with aspect ratio, info fades in */}
+      <Animated.View style={[styles.mvArea, { height: mvHeight }]}>
+        {/* Video — animates from full-width to 64x36 thumbnail */}
+        <Animated.View style={{
+          position: 'absolute',
+          left: videoLeft,
+          top: videoTop,
+          width: videoWidth,
+          height: videoH,
+          borderRadius: videoRadius,
+          overflow: 'hidden',
+        }}>
           {videoId ? (
             <YouTubePlayer
               ref={youtubeRef}
               videoId={videoId}
-              height={220}
               onTimeChange={handleTimeChange}
               onDurationChange={handleDurationChange}
             />
           ) : (
-            <TouchableOpacity
-              style={styles.mvPlaceholder}
-              onPress={() => setMvCollapsed(true)}
-              activeOpacity={0.9}
-            >
+            <View style={styles.mvPlaceholder}>
               <View style={styles.mvPlayBtn}>
                 <Feather name="play" size={24} color="#FFFFFF" />
               </View>
-            </TouchableOpacity>
+            </View>
           )}
-        </View>
-      )}
+        </Animated.View>
+        {/* Song info + play button — fade in when collapsed */}
+        <Animated.View style={[styles.mvInfoOverlay, { opacity: infoOpacity }]} pointerEvents="box-none">
+          <View style={styles.mvInfoTexts}>
+            <Text style={styles.mvInfoTitle} numberOfLines={1}>{song.title}</Text>
+            <Text style={styles.mvInfoArtist} numberOfLines={1}>{song.artist}</Text>
+          </View>
+          <View style={styles.mvInfoPlayBtn}>
+            <Feather name="play" size={16} color="#FFFFFF" />
+          </View>
+        </Animated.View>
+      </Animated.View>
 
       {/* Lyrics area (static view, scrollable FlatList inside) */}
       <View style={styles.bottomSheetOuter}>
         <View style={styles.bottomSheetInner}>
-          {/* Drag handle — tap to toggle MV collapse/expand */}
-          <TouchableOpacity
-            style={styles.dragHandle}
-            onPress={() => setMvCollapsed(prev => !prev)}
-            activeOpacity={0.7}
-          >
+          {/* Drag handle — drag or tap to collapse/expand MV */}
+          <View style={styles.dragHandle} {...handlePan.panHandlers}>
             <View style={styles.dragBar} />
-          </TouchableOpacity>
+          </View>
 
           {/* Scrollable lyrics */}
           <View style={styles.scrollContent}>
@@ -335,9 +405,13 @@ export default function PlayerScreen({ navigation }: Props) {
         index={-1}
         enableDynamicSizing
         enablePanDownToClose
+        detached
+        bottomInset={12}
         backdropComponent={renderBackdrop}
+        style={styles.wordSheetFloat}
         backgroundStyle={styles.wordSheetBg}
         handleIndicatorStyle={styles.wordSheetIndicator}
+        handleStyle={styles.wordSheetHandle}
       >
         <BottomSheetView>
           {selectedToken && (
@@ -368,8 +442,8 @@ const styles = StyleSheet.create({
 
   // MV Area - Expanded
   mvArea: {
-    height: 220,
     backgroundColor: '#1A1A1A',
+    overflow: 'hidden',
   },
   mvPlaceholder: {
     flex: 1,
@@ -386,37 +460,32 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  // MV Area - Collapsed (screen 1a)
-  mvCollapsedBar: {
+  // MV collapsed info (song title, artist, play button)
+  mvInfoOverlay: {
+    position: 'absolute',
+    left: 86, // 12 + 64 + 10
+    right: 12,
+    top: 0,
+    bottom: 0,
     flexDirection: 'row',
     alignItems: 'center',
-    height: 56,
-    backgroundColor: '#1A1A1A',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
     gap: 10,
   },
-  mvThumb: {
-    width: 64,
-    height: 36,
-    borderRadius: 6,
-    backgroundColor: '#333333',
-  },
-  mvCollapsedTexts: {
+  mvInfoTexts: {
     flex: 1,
     gap: 2,
   },
-  mvCollapsedTitle: {
+  mvInfoTitle: {
     fontSize: 13,
     fontWeight: '800',
     color: '#FFFFFF',
   },
-  mvCollapsedArtist: {
+  mvInfoArtist: {
     fontSize: 11,
     fontWeight: '500',
     color: '#FFFFFFBB',
   },
-  mvCollapsedPlayBtn: {
+  mvInfoPlayBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
@@ -630,10 +699,16 @@ const styles = StyleSheet.create({
   },
 
   // Word lookup bottom sheet (design screens 2/2a/2b)
+  wordSheetFloat: {
+    marginHorizontal: 12,
+  },
   wordSheetBg: {
     backgroundColor: Colors.card,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderRadius: 24,
+  },
+  wordSheetHandle: {
+    paddingTop: 12,
+    paddingBottom: 8,
   },
   wordSheetIndicator: {
     width: 40,

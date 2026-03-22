@@ -1,13 +1,13 @@
 export const Colors = {
-  primary: '#5856D6',
+  primary: '#4F46E5',
   background: '#FFFFFF',
   surface: '#FFFFFF',
-  card: '#F5F5F7',
+  card: '#F4F4F5',
   elevated: '#EAEAEC',
-  textPrimary: '#111111',
-  textSecondary: '#666666',
-  textMuted: '#999999',
-  border: '#E5E5E7',
+  textPrimary: '#18181B',
+  textSecondary: '#71717A',
+  textMuted: '#A1A1AA',
+  border: '#D4D4D8',
   overlay: '#00000044',
 
   ratingAgain: '#EF4444',
@@ -40,12 +40,12 @@ export const Colors = {
   posAdverb: '#A855F7',
   posParticle: '#EC4899',
 
-  tabActive: '#5856D6',
-  tabInactive: '#999999',
+  tabActive: '#4F46E5',
+  tabInactive: '#A1A1AA',
 
   // Legacy aliases
-  textTertiary: '#999999',
-  cardBorder: '#E5E5E7',
+  textTertiary: '#A1A1AA',
+  cardBorder: '#D4D4D8',
 };
 
 export const Dimens = {

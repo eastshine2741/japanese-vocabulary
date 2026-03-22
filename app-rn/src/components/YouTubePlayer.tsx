@@ -11,7 +11,7 @@ export interface YouTubePlayerRef {
 
 interface Props {
   videoId: string;
-  height: number;
+  height?: number;
   onTimeChange?: (seconds: number) => void;
   onDurationChange?: (seconds: number) => void;
   onStateChange?: (state: string) => void;
@@ -146,7 +146,7 @@ const YouTubePlayer = forwardRef<YouTubePlayerRef, Props>(({
   }, [onTimeChange, onDurationChange, onStateChange]);
 
   return (
-    <View style={[styles.container, { height }]}>
+    <View style={[styles.container, height != null ? { height } : { flex: 1 }]}>
       <WebView
         ref={webViewRef}
         source={{ html, baseUrl: APP_ORIGIN }}

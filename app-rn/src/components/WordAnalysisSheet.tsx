@@ -19,13 +19,16 @@ interface Props {
   onAddWord: () => void;
 }
 
-const POS_COLORS: Record<string, string> = {
-  '名詞': Colors.posNoun,
-  '動詞': Colors.posVerb,
-  '形容詞': Colors.posAdjective,
-  '副詞': Colors.posAdverb,
-  '助詞': Colors.posParticle,
-};
+function getPosColor(pos: string): string {
+  const p = pos.toLowerCase();
+  if (p.includes('verb')) return Colors.posVerb;
+  if (p.includes('noun') || p === '名詞') return Colors.posNoun;
+  if (p.includes('adjective') || p === '形容詞') return Colors.posAdjective;
+  if (p.includes('adverb') || p === '副詞') return Colors.posAdverb;
+  if (p === '動詞') return Colors.posVerb;
+  if (p === '助詞') return Colors.posParticle;
+  return Colors.primary;
+}
 
 const JLPT_COLORS: Record<string, string> = {
   N1: Colors.jlptN1,
@@ -116,7 +119,7 @@ export default function WordAnalysisSheet({
           <>
             <View style={styles.badgeRow}>
               {definition.partsOfSpeech.map((p, i) => {
-                const color = POS_COLORS[p] || '#6366F1';
+                const color = getPosColor(p);
                 return (
                   <View key={`pos-${i}`} style={[styles.badge, { backgroundColor: color + '20' }]}>
                     <Text style={[styles.posText, { color }]}>{p}</Text>
@@ -224,6 +227,7 @@ const styles = StyleSheet.create({
   badgeRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
     gap: 8,
   },
   badge: {
