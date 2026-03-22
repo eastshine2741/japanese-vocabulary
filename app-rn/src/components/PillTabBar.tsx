@@ -16,7 +16,7 @@ export default function PillTabBar({ state, descriptors, navigation }: any) {
   const insets = useSafeAreaInsets();
 
   return (
-    <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 21) }]}>
+    <View style={[styles.container, { paddingBottom: insets.bottom + 10 }]}>
       <View style={styles.pill}>
         {state.routes.map((route: any, index: number) => {
           const focused = state.index === index;
@@ -55,9 +55,12 @@ export default function PillTabBar({ state, descriptors, navigation }: any) {
 
 const styles = StyleSheet.create({
   container: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     paddingTop: 12,
     paddingHorizontal: 21,
-    backgroundColor: Colors.background,
   },
   pill: {
     flexDirection: 'row',

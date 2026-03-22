@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: Dimens.screenPadding,
-    paddingBottom: 40,
+    paddingBottom: Dimens.screenPadding + Dimens.bottomBarHeight + 40,
   },
 
   // Header
