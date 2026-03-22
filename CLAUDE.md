@@ -34,6 +34,7 @@ Set in `.env` (loaded by docker-compose) and as shell env vars for backend:
 | `DB_PASSWORD` | MySQL password |
 | `YOUTUBE_API_KEY` | YouTube Data API v3 |
 | `JWT_SECRET` | JWT signing key (defaults to dev key) |
+| `SUDACHI_DICT_PATH` | Path to Sudachi `system_core.dic` (defaults to classpath `sudachi/`) |
 
 App backend URL: set `backend.baseUrl` in `app/local.properties` (default: `http://192.168.0.7:8080`).
 
@@ -46,7 +47,7 @@ App backend URL: set `backend.baseUrl` in `app/local.properties` (default: `http
 | Database | MySQL 8.4, Flyway migrations |
 | HTTP client (app) | Ktor 3.0.3 (OkHttp on Android, Darwin on iOS) |
 | Auth | JWT (JJWT 0.12.3), Spring Security, BCrypt |
-| NLP | Kuromoji (Lucene 9.12.0) for Japanese morphological analysis |
+| NLP | Sudachi 0.7.5 (primary), Kuromoji/Lucene 9.12.0 (fallback) for Japanese morphological analysis |
 
 ## Project Structure
 
@@ -120,7 +121,7 @@ All endpoints except `/api/auth/*` require `Authorization: Bearer {token}`.
 
 - **Lyrics pipeline**: LRCLIB (primary, has synced timestamps) → VocaDB (fallback, plain text only)
 - **Song search**: iTunes API (Japan region) for metadata, YouTube API for MV URLs
-- **Morphological analysis**: Kuromoji tokenizes Japanese text, filters to nouns/verbs/adjectives only
+- **Morphological analysis**: `MorphologicalAnalyzer` interface with Sudachi (`@Primary`, SplitMode.B, UniDic POS) and Kuromoji (fallback, IPADIC POS). Filters to 名詞/動詞/形容詞/形状詞. Sudachi dictionary (`system_core.dic`) configured via `SUDACHI_DICT_PATH` env var or classpath `sudachi/`
 - **Pagination**: cursor-based for words, offset-based for song search
 - **Song data**: lyrics and vocabulary stored as JSON columns, analyzed once on first request, deduplicated by (artist, title)
 - **Auth**: stateless JWT with 30-day expiry, no refresh token
@@ -132,7 +133,7 @@ All endpoints except `/api/auth/*` require `Authorization: Bearer {token}`.
 ## Current State
 
 **Implemented:**
-- Song search (iTunes) → lyric analysis (LRCLIB/VocaDB + Kuromoji) → study view
+- Song search (iTunes) → lyric analysis (LRCLIB/VocaDB + Sudachi) → study view
 - YouTube MV playback with synced lyric highlighting
 - Word tap → Jisho lookup → save to vocabulary
 - User auth (signup/login with JWT)

@@ -26,8 +26,11 @@ dependencies {
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
 
-    // Kuromoji - Japanese morphological analyzer
+    // Kuromoji - Japanese morphological analyzer (kept for fallback)
     implementation("org.apache.lucene:lucene-analysis-kuromoji:9.12.0")
+
+    // Sudachi - Japanese morphological analyzer (primary)
+    implementation("com.worksap.nlp:sudachi:0.7.5")
 
     // Flyway - DB migration
     implementation("org.flywaydb:flyway-core")

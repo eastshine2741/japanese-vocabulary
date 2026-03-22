@@ -33,6 +33,9 @@ app/nonJvmMain/
 # macOS
 .DS_Store
 
+# Sudachi dictionary (large binary)
+**/sudachi/*.dic
+
 # Environment variables (secrets)
 .env
 **/.env

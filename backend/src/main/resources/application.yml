@@ -35,6 +35,9 @@ youtube:
 jwt:
   secret: ${JWT_SECRET:dev-secret-key-at-least-32-chars-long}
 
+sudachi:
+  dictionary-path: ${SUDACHI_DICT_PATH:}
+
 gemini:
   api-key: ${GEMINI_API_KEY}
   model: gemini-3.1-pro-preview
