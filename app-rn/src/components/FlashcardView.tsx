@@ -1,9 +1,9 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Feather } from '@expo/vector-icons';
 import { FlashcardDTO } from '../types/flashcard';
 import { Colors } from '../theme/theme';
 import { JlptBadge, PosBadge } from './Badges';
+import ArtworkImage from './ArtworkImage';
 
 interface Props {
   card: FlashcardDTO;
@@ -37,7 +37,7 @@ export default function FlashcardBackDetails({ card }: Props) {
           )}
           {card.examples[0].songTitle && (
             <View style={styles.songRow}>
-              <Feather name="music" size={14} color={Colors.textMuted} />
+              <ArtworkImage url={card.examples[0].artworkUrl} size={18} cornerRadius={4} />
               <Text style={styles.songLabel}>{card.examples[0].songTitle}</Text>
             </View>
           )}
