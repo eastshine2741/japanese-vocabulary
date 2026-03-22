@@ -76,7 +76,8 @@ class WordService(
             ExampleSentence(
                 songId = sw.songId,
                 songTitle = songMap[sw.songId]?.title,
-                lyricLine = sw.lyricLine
+                lyricLine = sw.lyricLine,
+                artworkUrl = songMap[sw.songId]?.artworkUrl
             )
         }
 

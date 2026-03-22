@@ -7,6 +7,7 @@ export interface ExampleSentence {
   songId: number;
   songTitle: string | null;
   lyricLine: string | null;
+  artworkUrl: string | null;
 }
 
 export interface WordDetailResponse {
