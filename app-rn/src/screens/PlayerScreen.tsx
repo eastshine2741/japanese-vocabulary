@@ -3,11 +3,12 @@ import {
   View,
   Text,
   FlatList,
+  TouchableOpacity,
   StyleSheet,
   Platform,
   useWindowDimensions,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
 import BottomSheet, { BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
@@ -47,11 +48,13 @@ export default function PlayerScreen({ navigation }: Props) {
 
   const [currentMs, setCurrentMs] = useState(0);
   const [durationMs, setDurationMs] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [selectedToken, setSelectedToken] = useState<Token | null>(null);
   const [selectedLine, setSelectedLine] = useState('');
   const youtubeRef = useRef<YouTubePlayerRef>(null);
   const wordSheetRef = useRef<BottomSheet>(null);
   const { width: screenWidth } = useWindowDimensions();
+  const { bottom: safeBottom } = useSafeAreaInsets();
 
   // Reanimated: MV height shared value (runs on UI thread)
   const mvHeight = useSharedValue(MV_EXPANDED);
@@ -108,6 +111,18 @@ export default function PlayerScreen({ navigation }: Props) {
   const handleDurationChange = useCallback((seconds: number) => {
     if (seconds > 0) setDurationMs(seconds * 1000);
   }, []);
+
+  const handleStateChange = useCallback((state: string) => {
+    setIsPlaying(state === 'playing');
+  }, []);
+
+  const togglePlayPause = useCallback(() => {
+    if (isPlaying) {
+      youtubeRef.current?.pause();
+    } else {
+      youtubeRef.current?.play();
+    }
+  }, [isPlaying]);
 
   const handleBack = () => {
     resetAnalyze();
@@ -167,6 +182,7 @@ export default function PlayerScreen({ navigation }: Props) {
               videoId={videoId}
               onTimeChange={handleTimeChange}
               onDurationChange={handleDurationChange}
+              onStateChange={handleStateChange}
             />
           ) : (
             <View style={styles.mvPlaceholder}>
@@ -181,9 +197,9 @@ export default function PlayerScreen({ navigation }: Props) {
             <Text style={styles.mvInfoTitle} numberOfLines={1}>{song.title}</Text>
             <Text style={styles.mvInfoArtist} numberOfLines={1}>{song.artist}</Text>
           </View>
-          <View style={styles.mvInfoPlayBtn}>
-            <Feather name="play" size={16} color="#FFFFFF" />
-          </View>
+          <TouchableOpacity style={styles.mvInfoPlayBtn} onPress={togglePlayPause} activeOpacity={0.6}>
+            <Feather name={isPlaying ? 'pause' : 'play'} size={16} color="#FFFFFF" />
+          </TouchableOpacity>
         </Animated.View>
       </Animated.View>
 
@@ -245,7 +261,7 @@ export default function PlayerScreen({ navigation }: Props) {
         enableDynamicSizing
         enablePanDownToClose
         detached
-        bottomInset={12}
+        bottomInset={safeBottom + 12}
         backdropComponent={renderBackdrop}
         style={styles.wordSheetFloat}
         backgroundStyle={styles.wordSheetBg}
