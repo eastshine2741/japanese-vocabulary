@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet, ScrollView, NativeSyntheticEvent, NativeScrollEvent, useWindowDimensions } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet, NativeSyntheticEvent, NativeScrollEvent, useWindowDimensions } from 'react-native';
+import { ScrollView } from 'react-native-gesture-handler';
 import { Feather } from '@expo/vector-icons';
 import { Token } from '../types/song';
 import { WordDetailResponse } from '../types/word';
@@ -45,8 +46,10 @@ export default function WordAnalysisSheet({
     setActiveExIndex(idx);
   }, [examplePageWidth]);
 
+  const isGetWordLoading = getWordStatus === 'loading' || getWordStatus === 'idle';
+
   const renderButton = () => {
-    if (addStatus === 'loading') {
+    if (isGetWordLoading || addStatus === 'loading') {
       return (
         <View style={[styles.saveBtn, styles.saveBtnPrimary]}>
           <ActivityIndicator color="#FFF" size="small" />
