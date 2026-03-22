@@ -58,7 +58,7 @@ export const useVocabularyStore = create<VocabularyState>((set, get) => ({
     try {
       const res = await wordApi.addWord({
         japanese: token.baseForm,
-        reading: token.reading ?? '',
+        reading: token.baseFormReading ?? token.reading ?? '',
         koreanText: token.koreanText ?? '',
         partOfSpeech: token.partOfSpeech,
         songId,

@@ -25,11 +25,9 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-webflux")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
 
-    // Kuromoji - Japanese morphological analyzer (kept for fallback)
-    implementation("org.apache.lucene:lucene-analysis-kuromoji:9.12.0")
-
-    // Sudachi - Japanese morphological analyzer (primary)
+    // Sudachi - Japanese morphological analyzer
     implementation("com.worksap.nlp:sudachi:0.7.5")
 
     // Flyway - DB migration

@@ -22,6 +22,7 @@ export interface Token {
   surface: string;
   baseForm: string;
   reading: string | null;
+  baseFormReading: string | null;
   partOfSpeech: string;
   charStart: number;
   charEnd: number;

@@ -125,6 +125,7 @@ class KoreanLyricTranslationService(
                         surface = tokenInfo.surface,
                         baseForm = tokenInfo.baseForm,
                         reading = tokenInfo.reading,
+                        baseFormReading = tokenInfo.baseFormReading,
                         partOfSpeech = tokenInfo.partOfSpeech,
                         charStart = tokenInfo.charStart,
                         charEnd = tokenInfo.charEnd,

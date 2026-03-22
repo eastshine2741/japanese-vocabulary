@@ -112,9 +112,9 @@ export default function WordAnalysisSheet({
       {/* Header */}
       <View style={styles.hdr}>
         <View style={styles.wordRow}>
-          <Text style={styles.wordMain}>{token.surface}</Text>
-          {token.reading && (
-            <Text style={styles.wordRead}>{token.reading}</Text>
+          <Text style={styles.wordMain}>{token.baseForm}</Text>
+          {token.baseFormReading && (
+            <Text style={styles.wordRead}>{token.baseFormReading}</Text>
           )}
         </View>
 
@@ -154,7 +154,7 @@ export default function WordAnalysisSheet({
           >
             {existingWord.examples.map((ex, i) => (
               <View key={i} style={[styles.exCard, { width: examplePageWidth }]}>
-                <ArtworkImage url={null} size={28} cornerRadius={6} />
+                <ArtworkImage url={ex.artworkUrl} size={28} cornerRadius={6} />
                 <View style={styles.ex1Txt}>
                   {ex.lyricLine && (
                     <Text style={styles.e1jp}>{ex.lyricLine}</Text>

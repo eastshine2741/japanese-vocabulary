@@ -35,7 +35,7 @@ Set in `.env` (loaded by docker-compose) and as shell env vars for backend:
 | Backend | Kotlin 1.9.22, Spring Boot 3.4.3, JVM 17 |
 | App | React Native 0.83, Expo 55, TypeScript 5.9, Zustand 5 |
 | Database | MySQL 8.4, Flyway migrations, Redis (recent songs) |
-| NLP | Sudachi 0.7.5 (primary), Kuromoji 9.12.0 (fallback) |
+| NLP | Sudachi 0.7.5 |
 | Auth | JWT (JJWT 0.12.3), Spring Security |
 
 ## Database Schema
