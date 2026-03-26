@@ -23,7 +23,7 @@ interface VocabularyState {
   isLoadingMore: boolean;
 
   getWord: (japanese: string) => Promise<void>;
-  addWord: (token: Token, songId: number, lyricLine: string) => Promise<void>;
+  addWord: (token: Token, songId: number, lyricLine: string, koreanLyricLine?: string | null) => Promise<void>;
   loadWords: () => Promise<void>;
   loadMoreWords: () => Promise<void>;
   resetLookup: () => void;
@@ -53,7 +53,7 @@ export const useVocabularyStore = create<VocabularyState>((set, get) => ({
     }
   },
 
-  addWord: async (token: Token, songId: number, lyricLine: string) => {
+  addWord: async (token: Token, songId: number, lyricLine: string, koreanLyricLine?: string | null) => {
     set({ addStatus: 'loading' });
     try {
       const res = await wordApi.addWord({
@@ -63,6 +63,7 @@ export const useVocabularyStore = create<VocabularyState>((set, get) => ({
         partOfSpeech: token.partOfSpeech,
         songId,
         lyricLine,
+        koreanLyricLine: koreanLyricLine ?? undefined,
       });
       set({ addStatus: 'success', addedId: res.id });
     } catch {

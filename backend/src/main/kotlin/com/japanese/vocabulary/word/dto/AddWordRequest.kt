@@ -6,5 +6,6 @@ data class AddWordRequest(
     val koreanText: String,
     val partOfSpeech: String = "",
     val songId: Long,
-    val lyricLine: String
+    val lyricLine: String,
+    val koreanLyricLine: String? = null
 )

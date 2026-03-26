@@ -19,5 +19,8 @@ class SongWordEntity(
     val songId: Long,
 
     @Column(name = "lyric_line", length = 500)
-    val lyricLine: String? = null
+    val lyricLine: String? = null,
+
+    @Column(name = "korean_lyric_line", length = 500)
+    val koreanLyricLine: String? = null
 )

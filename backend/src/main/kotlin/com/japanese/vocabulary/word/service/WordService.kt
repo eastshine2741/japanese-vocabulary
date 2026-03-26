@@ -55,7 +55,8 @@ class WordService(
                 SongWordEntity(
                     wordId = savedWord.id,
                     songId = request.songId,
-                    lyricLine = request.lyricLine
+                    lyricLine = request.lyricLine,
+                    koreanLyricLine = request.koreanLyricLine
                 )
             )
         }
@@ -77,6 +78,7 @@ class WordService(
                 songId = sw.songId,
                 songTitle = songMap[sw.songId]?.title,
                 lyricLine = sw.lyricLine,
+                koreanLyricLine = sw.koreanLyricLine,
                 artworkUrl = songMap[sw.songId]?.artworkUrl
             )
         }
@@ -111,7 +113,8 @@ class WordService(
                 ExampleSentence(
                     songId = sw.songId,
                     songTitle = songMap[sw.songId]?.title,
-                    lyricLine = sw.lyricLine
+                    lyricLine = sw.lyricLine,
+                    koreanLyricLine = sw.koreanLyricLine
                 )
             }
             WordListItem(

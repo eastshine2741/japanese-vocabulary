@@ -14,7 +14,7 @@ function getUnderlineColor(pos: string): string | null {
 interface Props {
   studyUnit: StudyUnit;
   isActive: boolean;
-  onTokenPress: (token: Token, lineText: string) => void;
+  onTokenPress: (token: Token, lineText: string, koreanLyrics: string | null) => void;
 }
 
 export default function LyricLine({ studyUnit, isActive, onTokenPress }: Props) {
@@ -30,7 +30,7 @@ export default function LyricLine({ studyUnit, isActive, onTokenPress }: Props) 
     return (
       <TouchableOpacity
         key={ti}
-        onPress={() => onTokenPress(token, studyUnit.originalText)}
+        onPress={() => onTokenPress(token, studyUnit.originalText, studyUnit.koreanLyrics ?? null)}
         activeOpacity={0.6}
       >
         <View style={styles.tokenWithUnderline}>

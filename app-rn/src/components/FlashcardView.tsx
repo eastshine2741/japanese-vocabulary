@@ -56,6 +56,9 @@ export default function FlashcardBackDetails({ card }: Props) {
                 {ex.lyricLine && (
                   <Text style={styles.jpText}>{ex.lyricLine}</Text>
                 )}
+                {ex.koreanLyricLine && (
+                  <Text style={styles.krText}>{ex.koreanLyricLine}</Text>
+                )}
                 {ex.songTitle && (
                   <View style={styles.songRow}>
                     <ArtworkImage url={ex.artworkUrl} size={18} cornerRadius={4} />
@@ -119,6 +122,11 @@ const styles = StyleSheet.create({
   jpText: {
     fontSize: 14,
     color: Colors.textSecondary,
+    textAlign: 'center',
+  },
+  krText: {
+    fontSize: 13,
+    color: Colors.textMuted,
     textAlign: 'center',
   },
   songRow: {

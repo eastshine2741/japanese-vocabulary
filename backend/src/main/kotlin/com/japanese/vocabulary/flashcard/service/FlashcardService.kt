@@ -75,6 +75,7 @@ class FlashcardService(
                     songId = sw.songId,
                     songTitle = songMap[sw.songId]?.title,
                     lyricLine = sw.lyricLine,
+                    koreanLyricLine = sw.koreanLyricLine,
                     artworkUrl = songMap[sw.songId]?.artworkUrl
                 )
             }

@@ -54,6 +54,7 @@ export default function PlayerScreen({ navigation }: Props) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [selectedToken, setSelectedToken] = useState<Token | null>(null);
   const [selectedLine, setSelectedLine] = useState('');
+  const [selectedKoreanLine, setSelectedKoreanLine] = useState<string | null>(null);
   const youtubeRef = useRef<YouTubePlayerRef>(null);
   const wordSheetRef = useRef<BottomSheet>(null);
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
@@ -161,9 +162,10 @@ export default function PlayerScreen({ navigation }: Props) {
     }
   }, [isPlaying]);
 
-  const handleTokenPress = (token: Token, lineText: string) => {
+  const handleTokenPress = (token: Token, lineText: string, koreanLyrics: string | null) => {
     setSelectedToken(token);
     setSelectedLine(lineText);
+    setSelectedKoreanLine(koreanLyrics);
     vocabStore.resetLookup();
     vocabStore.getWord(token.baseForm);
     wordSheetRef.current?.expand();
@@ -183,7 +185,7 @@ export default function PlayerScreen({ navigation }: Props) {
 
   const handleAddWord = () => {
     if (selectedToken) {
-      vocabStore.addWord(selectedToken, song.id, selectedLine);
+      vocabStore.addWord(selectedToken, song.id, selectedLine, selectedKoreanLine);
     }
   };
 

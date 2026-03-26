@@ -7,6 +7,7 @@ export interface ExampleSentence {
   songId: number;
   songTitle: string | null;
   lyricLine: string | null;
+  koreanLyricLine: string | null;
   artworkUrl: string | null;
 }
 
@@ -38,4 +39,5 @@ export interface AddWordRequest {
   partOfSpeech: string;
   songId: number;
   lyricLine: string;
+  koreanLyricLine?: string;
 }
