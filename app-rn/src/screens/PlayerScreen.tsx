@@ -17,6 +17,8 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
+  withDelay,
+  cancelAnimation,
   interpolate,
   clamp,
   Easing,
@@ -44,6 +46,8 @@ function extractVideoId(url: string): string | null {
 const MV_EXPANDED = 220;
 const MV_COLLAPSED = 56;
 const DISMISS_THRESHOLD = 250;
+const CONTROLS_FADE = 200;
+const CONTROLS_HIDE_DELAY = 3000;
 
 export default function PlayerScreen({ navigation }: Props) {
   const { studyData, reset: resetPlayer } = usePlayerStore();
@@ -69,6 +73,34 @@ export default function PlayerScreen({ navigation }: Props) {
   const mvHeight = useSharedValue(MV_EXPANDED);
   const dragStartH = useSharedValue(MV_EXPANDED);
   const dismissY = useSharedValue(0);
+
+  // Controls visibility (tap-to-show / auto-hide)
+  const controlsVisible = useSharedValue(0);
+  const [controlsShown, setControlsShown] = useState(false);
+
+  const showControls = useCallback(() => {
+    'worklet';
+    cancelAnimation(controlsVisible);
+    controlsVisible.value = withTiming(1, { duration: CONTROLS_FADE }, (finished) => {
+      if (finished) {
+        controlsVisible.value = withDelay(
+          CONTROLS_HIDE_DELAY,
+          withTiming(0, { duration: CONTROLS_FADE }, (f2) => {
+            if (f2) runOnJS(setControlsShown)(false);
+          }),
+        );
+      }
+    });
+    runOnJS(setControlsShown)(true);
+  }, []);
+
+  const hideControls = useCallback(() => {
+    'worklet';
+    cancelAnimation(controlsVisible);
+    controlsVisible.value = withTiming(0, { duration: CONTROLS_FADE }, (finished) => {
+      if (finished) runOnJS(setControlsShown)(false);
+    });
+  }, []);
 
   const snapConfig = { duration: 250, easing: Easing.out(Easing.cubic) };
 
@@ -107,7 +139,55 @@ export default function PlayerScreen({ navigation }: Props) {
     });
 
   const handleGesture = useMemo(() => makePanGesture(), []);
-  const mvGesture = useMemo(() => makePanGesture(), []);
+
+  const mvGesture = useMemo(() => {
+    const tap = Gesture.Tap().onEnd(() => {
+      const isExpanded = mvHeight.value > (MV_EXPANDED + MV_COLLAPSED) / 2;
+      if (isExpanded) {
+        if (controlsVisible.value > 0.5) {
+          hideControls();
+        } else {
+          showControls();
+        }
+      } else {
+        mvHeight.value = withTiming(MV_EXPANDED, snapConfig);
+      }
+    });
+
+    const pan = Gesture.Pan()
+      .onStart(() => {
+        dragStartH.value = mvHeight.value;
+      })
+      .onUpdate((e) => {
+        const rawH = dragStartH.value + e.translationY;
+        if (rawH > MV_EXPANDED) {
+          mvHeight.value = MV_EXPANDED;
+          dismissY.value = rawH - MV_EXPANDED;
+        } else {
+          mvHeight.value = clamp(rawH, MV_COLLAPSED, MV_EXPANDED);
+          dismissY.value = 0;
+        }
+      })
+      .onEnd((e) => {
+        if (dismissY.value > 0) {
+          if (dismissY.value > DISMISS_THRESHOLD || e.velocityY > 500) {
+            dismissY.value = withTiming(screenHeight, { duration: 300, easing: Easing.in(Easing.cubic) });
+            runOnJS(handleBack)();
+          } else {
+            dismissY.value = withTiming(0, snapConfig);
+          }
+        } else {
+          const target = e.velocityY < -300 || mvHeight.value < (MV_EXPANDED + MV_COLLAPSED) / 2
+            ? MV_COLLAPSED : MV_EXPANDED;
+          mvHeight.value = withTiming(target, snapConfig);
+          if (target === MV_COLLAPSED) {
+            hideControls();
+          }
+        }
+      });
+
+    return Gesture.Exclusive(tap, pan);
+  }, []);
 
   const mvAreaStyle = useAnimatedStyle(() => ({
     height: mvHeight.value,
@@ -126,6 +206,11 @@ export default function PlayerScreen({ navigation }: Props) {
   const infoStyle = useAnimatedStyle(() => ({
     opacity: interpolate(mvHeight.value, [MV_COLLAPSED, MV_COLLAPSED + 50, MV_EXPANDED], [1, 0, 0], 'clamp'),
   }));
+
+  const expandedPlayStyle = useAnimatedStyle(() => {
+    const expandFactor = interpolate(mvHeight.value, [MV_COLLAPSED, MV_COLLAPSED + 50, MV_EXPANDED], [0, 0, 1], 'clamp');
+    return { opacity: expandFactor * controlsVisible.value };
+  });
 
   const dismissStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: dismissY.value }],
@@ -160,6 +245,32 @@ export default function PlayerScreen({ navigation }: Props) {
       youtubeRef.current?.play();
     }
   }, [isPlaying]);
+
+  // Stable ref so the play-button gesture worklet always calls the latest togglePlayPause
+  const togglePlayPauseRef = useRef(togglePlayPause);
+  togglePlayPauseRef.current = togglePlayPause;
+  const stableTogglePlayPause = useCallback(() => {
+    togglePlayPauseRef.current();
+  }, []);
+
+  const playButtonTap = useMemo(() =>
+    Gesture.Tap().onEnd(() => {
+      'worklet';
+      cancelAnimation(controlsVisible);
+      controlsVisible.value = withTiming(1, { duration: CONTROLS_FADE }, (finished) => {
+        if (finished) {
+          controlsVisible.value = withDelay(
+            CONTROLS_HIDE_DELAY,
+            withTiming(0, { duration: CONTROLS_FADE }, (f2) => {
+              if (f2) runOnJS(setControlsShown)(false);
+            }),
+          );
+        }
+      });
+      runOnJS(stableTogglePlayPause)();
+    }),
+    [],
+  );
 
   const handleTokenPress = (token: Token, lineText: string, koreanLyrics: string | null) => {
     setSelectedToken(token);
@@ -238,6 +349,13 @@ export default function PlayerScreen({ navigation }: Props) {
               </View>
             </View>
           )}
+        </Animated.View>
+        <Animated.View style={[styles.mvExpandedPlayOverlay, expandedPlayStyle]} pointerEvents={controlsShown ? "box-none" : "none"}>
+          <GestureDetector gesture={playButtonTap}>
+            <Animated.View style={styles.mvPlayBtn}>
+              <Feather name={isPlaying ? 'pause' : 'play'} size={24} color="#FFFFFF" />
+            </Animated.View>
+          </GestureDetector>
         </Animated.View>
         <Animated.View style={[styles.mvInfoOverlay, infoStyle]} pointerEvents="box-none">
           <View style={styles.mvInfoTexts}>
@@ -387,11 +505,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  mvExpandedPlayOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   mvPlayBtn: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: '#FFFFFF40',
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#00000080',
     alignItems: 'center',
     justifyContent: 'center',
   },
