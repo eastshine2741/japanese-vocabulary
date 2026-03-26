@@ -40,11 +40,7 @@ export default function ReviewScreen({ route, navigation }: Props) {
       navigateToMain();
       return;
     }
-    if (songId != null) {
-      navigation.navigate('DeckDetail', { songId });
-    } else {
-      navigation.goBack();
-    }
+    navigation.goBack();
   };
 
   const navigateToMain = () => {
