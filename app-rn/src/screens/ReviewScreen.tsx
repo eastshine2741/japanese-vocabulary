@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,9 +6,11 @@ import {
   Pressable,
   ActivityIndicator,
   TouchableOpacity,
+  BackHandler,
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useReviewStore } from '../stores/reviewStore';
@@ -34,12 +36,33 @@ export default function ReviewScreen({ route, navigation }: Props) {
   }, [songId]);
 
   const handleBack = () => {
+    if (status === 'summary') {
+      navigateToMain();
+      return;
+    }
     if (songId != null) {
       navigation.navigate('DeckDetail', { songId });
     } else {
       navigation.goBack();
     }
   };
+
+  const navigateToMain = () => {
+    navigation.navigate('Main');
+  };
+
+  // Android hardware back button: navigate to Main on summary screen
+  useFocusEffect(
+    useCallback(() => {
+      if (status !== 'summary') return;
+      const onBackPress = () => {
+        navigateToMain();
+        return true;
+      };
+      const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      return () => sub.remove();
+    }, [status])
+  );
 
   const getSongTitle = (): string | null => {
     if (cards.length === 0) return null;
@@ -195,6 +218,12 @@ export default function ReviewScreen({ route, navigation }: Props) {
                   </View>
                 ))}
               </View>
+            </View>
+
+            <View style={styles.bottomBtnArea}>
+              <TouchableOpacity style={styles.homeBtn} onPress={navigateToMain} activeOpacity={0.8}>
+                <Text style={styles.homeBtnText}>홈으로 돌아가기</Text>
+              </TouchableOpacity>
             </View>
           </>
         );
@@ -371,5 +400,23 @@ const styles = StyleSheet.create({
   resultCount: {
     fontSize: 14,
     fontWeight: '600',
+  },
+
+  // Bottom button
+  bottomBtnArea: {
+    paddingHorizontal: 20,
+    paddingBottom: 24,
+  },
+  homeBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: Colors.primary,
+  },
+  homeBtnText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });
