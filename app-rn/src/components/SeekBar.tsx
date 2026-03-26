@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import Animated, {
   useSharedValue,
+  useDerivedValue,
   useAnimatedStyle,
   runOnJS,
 } from 'react-native-reanimated';
@@ -32,15 +33,21 @@ export default function SeekBar({ currentMs, durationMs, onSeek }: Props) {
   const [seekDisplayMs, setSeekDisplayMs] = useState(0);
 
   const trackWidthSV = useSharedValue(0);
-  const displayProgress = useSharedValue(0);
-  const isSeekingSV = useSharedValue(0);
+  const playbackProgress = useSharedValue(0); // JS thread writes here (playback)
+  const seekProgress = useSharedValue(0);     // UI thread writes here (gesture)
+  const isSeekingSV = useSharedValue(0);       // UI thread flag
 
   const progress = durationMs > 0 ? currentMs / durationMs : 0;
 
-  // Sync playback progress to shared value when not seeking
-  if (!isSeeking) {
-    displayProgress.value = progress;
-  }
+  // Sync playback position (JS thread only writes to playbackProgress)
+  useEffect(() => {
+    playbackProgress.value = progress;
+  }, [progress]);
+
+  // UI thread picks which value to use — no race condition
+  const effectiveProgress = useDerivedValue(() => {
+    return isSeekingSV.value ? seekProgress.value : playbackProgress.value;
+  });
 
   const handleLayout = useCallback((e: LayoutChangeEvent) => {
     trackWidthSV.value = e.nativeEvent.layout.width;
@@ -55,12 +62,16 @@ export default function SeekBar({ currentMs, durationMs, onSeek }: Props) {
 
   const gesture = useMemo(() =>
     Gesture.Pan()
+      .manualActivation(true)
+      .onTouchesDown((e, mgr) => {
+        mgr.activate();
+      })
       .onBegin((e) => {
         'worklet';
         if (trackWidthSV.value <= 0) return;
         const fraction = Math.max(0, Math.min(1, e.x / trackWidthSV.value));
-        displayProgress.value = fraction;
         isSeekingSV.value = 1;
+        seekProgress.value = fraction;
         runOnJS(onSeekStart)();
         runOnJS(onSeekUpdate)(fraction * durationMs);
       })
@@ -68,19 +79,18 @@ export default function SeekBar({ currentMs, durationMs, onSeek }: Props) {
         'worklet';
         if (trackWidthSV.value <= 0) return;
         const fraction = Math.max(0, Math.min(1, e.x / trackWidthSV.value));
-        displayProgress.value = fraction;
+        seekProgress.value = fraction;
         runOnJS(onSeekUpdate)(fraction * durationMs);
       })
       .onEnd(() => {
         'worklet';
+        runOnJS(onSeekEnd)(seekProgress.value);
         isSeekingSV.value = 0;
-        runOnJS(onSeekEnd)(displayProgress.value);
       })
       .onFinalize(() => {
         'worklet';
         isSeekingSV.value = 0;
       })
-      .minDistance(0)
       .minPointers(1)
       .maxPointers(1),
   [durationMs, onSeekStart, onSeekEnd, onSeekUpdate]);
@@ -91,18 +101,18 @@ export default function SeekBar({ currentMs, durationMs, onSeek }: Props) {
 
   const fillAnimStyle = useAnimatedStyle(() => ({
     height: isSeekingSV.value ? 4 : 2,
-    width: displayProgress.value * trackWidthSV.value,
+    width: effectiveProgress.value * trackWidthSV.value,
   }));
 
   const thumbAnimStyle = useAnimatedStyle(() => ({
     opacity: isSeekingSV.value,
-    left: displayProgress.value * trackWidthSV.value - 8,
+    left: effectiveProgress.value * trackWidthSV.value - 8,
   }));
 
   const tooltipAnimStyle = useAnimatedStyle(() => ({
     opacity: isSeekingSV.value,
     left: Math.max(0, Math.min(
-      displayProgress.value * trackWidthSV.value - 20,
+      effectiveProgress.value * trackWidthSV.value - 20,
       trackWidthSV.value - 50,
     )),
   }));
