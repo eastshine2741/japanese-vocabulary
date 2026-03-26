@@ -10,6 +10,8 @@ Japanese learning app based on songs. Users pick a song they like, study its lyr
 
 ### Build & Run
 
+`gradlew`는 `backend/` 디렉토리에 위치. 반드시 `backend/`에서 실행할 것.
+
 ```bash
 docker-compose up -d                          # Database (required first)
 cd backend && ./gradlew bootRun               # Backend (port 8080)
