@@ -8962,28 +8962,8 @@
                   "iconFontName": "chevron-left",
                   "iconFontFamily": "lucide",
                   "fill": "$text-primary"
-                },
-                {
-                  "type": "text",
-                  "id": "gZ9dz",
-                  "name": "deckName",
-                  "fill": "$text-primary",
-                  "content": "夜に駆ける",
-                  "fontFamily": "Inter",
-                  "fontSize": 16,
-                  "fontWeight": "600"
                 }
               ]
-            },
-            {
-              "type": "text",
-              "id": "e4bYO",
-              "name": "progress",
-              "fill": "$text-secondary",
-              "content": "15 / 15",
-              "fontFamily": "Inter",
-              "fontSize": 14,
-              "fontWeight": "500"
             }
           ]
         },
@@ -11927,16 +11907,6 @@
                   "iconFontName": "chevron-left",
                   "iconFontFamily": "lucide",
                   "fill": "$text-primary"
-                },
-                {
-                  "type": "text",
-                  "id": "y2vpe",
-                  "name": "deckName",
-                  "fill": "$text-primary",
-                  "content": "夜に駆ける",
-                  "fontFamily": "Inter",
-                  "fontSize": 16,
-                  "fontWeight": "600"
                 }
               ]
             }
@@ -12132,16 +12102,6 @@
                   "iconFontName": "chevron-left",
                   "iconFontFamily": "lucide",
                   "fill": "$text-primary"
-                },
-                {
-                  "type": "text",
-                  "id": "Llb0H",
-                  "name": "dn2",
-                  "fill": "$text-primary",
-                  "content": "夜に駆ける",
-                  "fontFamily": "Inter",
-                  "fontSize": 16,
-                  "fontWeight": "600"
                 }
               ]
             }

@@ -64,28 +64,12 @@ export default function ReviewScreen({ route, navigation }: Props) {
     }, [status])
   );
 
-  const getSongTitle = (): string | null => {
-    if (cards.length === 0) return null;
-    const card = cards[currentIndex] ?? cards[0];
-    if (card.examples.length > 0 && card.examples[0].songTitle) {
-      return card.examples[0].songTitle;
-    }
-    return null;
-  };
-
-  const renderTopNav = (progressLabel?: string) => {
-    const songTitle = getSongTitle();
+  const renderTopNav = () => {
     return (
       <View style={styles.topNav}>
         <TouchableOpacity style={styles.backButton} onPress={handleBack} hitSlop={8}>
           <Feather name="chevron-left" size={24} color={Colors.textPrimary} />
-          {songTitle && (
-            <Text style={styles.backTitle} numberOfLines={1}>{songTitle}</Text>
-          )}
         </TouchableOpacity>
-        {progressLabel ? (
-          <Text style={styles.progressCounter}>{progressLabel}</Text>
-        ) : null}
       </View>
     );
   };
@@ -189,7 +173,7 @@ export default function ReviewScreen({ route, navigation }: Props) {
       case 'summary':
         return (
           <>
-            {renderTopNav(`${totalReviewed} / ${totalReviewed}`)}
+            {renderTopNav()}
 
             <View style={styles.center}>
               <View style={styles.celebrationGroup}>
@@ -248,22 +232,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   backButton: {
-    flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    flex: 1,
-  },
-  backTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.textPrimary,
-    flexShrink: 1,
-  },
-  progressCounter: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: Colors.textSecondary,
-    marginLeft: 12,
+    justifyContent: 'center',
+    width: 40,
+    height: 40,
   },
 
   // Shared
