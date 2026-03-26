@@ -106,7 +106,7 @@ class FlashcardService(
             )
         }
 
-        return DueFlashcardsResponse(cards = cards, totalCount = cards.size)
+        return DueFlashcardsResponse(cards = cards.shuffled(), totalCount = cards.size)
     }
 
     @Transactional
