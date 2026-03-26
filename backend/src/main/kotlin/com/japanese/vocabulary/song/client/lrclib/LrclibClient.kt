@@ -17,8 +17,18 @@ class LrclibClient {
 
     // TODO: filter only japanese lyrics
     fun getLyrics(title: String, artist: String, durationSeconds: Int?): LyricsResult {
-        try {
-            val response = webClient.get()
+        // 1차: 제목 + 가수명으로 exact match
+        fetchFromGet(title, artist, durationSeconds)?.let { return it }
+
+        // 2차: 제목만으로 search fallback
+        fetchFromSearch(title)?.let { return it }
+
+        throw LyricsNotFoundException("Could not find lyrics for: $artist - $title")
+    }
+
+    private fun fetchFromGet(title: String, artist: String, durationSeconds: Int?): LyricsResult? {
+        val response = try {
+            webClient.get()
                 .uri { uriBuilder ->
                     uriBuilder.path("/api/get")
                         .queryParam("track_name", title)
@@ -31,30 +41,41 @@ class LrclibClient {
                 .retrieve()
                 .bodyToMono(LrclibResponse::class.java)
                 .block()
-                ?: throw LyricsNotFoundException("Could not find lyrics for: $artist - $title")
-
-            // Prefer synced lyrics over plain lyrics
-            val syncedLyrics = response.syncedLyrics
-            if (!syncedLyrics.isNullOrBlank()) {
-                return LyricsResult(
-                    lrclibId = response.id,
-                    lyrics = syncedLyrics,
-                    isSynced = true
-                )
-            }
-
-            val plainLyrics = response.plainLyrics
-            if (!plainLyrics.isNullOrBlank()) {
-                return LyricsResult(
-                    lrclibId = response.id,
-                    lyrics = plainLyrics,
-                    isSynced = false
-                )
-            }
-
-            throw LyricsNotFoundException("Lyrics are empty for: $artist - $title")
+                ?: return null
         } catch (e: WebClientResponseException.NotFound) {
-            throw LyricsNotFoundException("Could not find lyrics for: $artist - $title")
+            return null
         }
+
+        return toResult(response)
+    }
+
+    private fun fetchFromSearch(title: String): LyricsResult? {
+        val results = try {
+            webClient.get()
+                .uri { it.path("/api/search").queryParam("q", title).build() }
+                .retrieve()
+                .bodyToFlux(LrclibResponse::class.java)
+                .collectList()
+                .block()
+                ?: return null
+        } catch (e: WebClientResponseException) {
+            return null
+        }
+
+        return results.firstNotNullOfOrNull { toResult(it) }
+    }
+
+    private fun toResult(response: LrclibResponse): LyricsResult? {
+        val syncedLyrics = response.syncedLyrics
+        if (!syncedLyrics.isNullOrBlank()) {
+            return LyricsResult(lrclibId = response.id, lyrics = syncedLyrics, isSynced = true)
+        }
+
+        val plainLyrics = response.plainLyrics
+        if (!plainLyrics.isNullOrBlank()) {
+            return LyricsResult(lrclibId = response.id, lyrics = plainLyrics, isSynced = false)
+        }
+
+        return null
     }
 }
