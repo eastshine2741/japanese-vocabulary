@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   BackHandler,
+  Linking,
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -60,12 +61,21 @@ export default function ReviewScreen({ route, navigation }: Props) {
     }, [status])
   );
 
-  const renderTopNav = () => {
+  const openDictionary = (word: string) => {
+    Linking.openURL(`https://ja.dict.naver.com/#/search?query=${encodeURIComponent(word)}`);
+  };
+
+  const renderTopNav = (dictWord?: string) => {
     return (
       <View style={styles.topNav}>
         <TouchableOpacity style={styles.backButton} onPress={handleBack} hitSlop={8}>
           <Feather name="chevron-left" size={24} color={Colors.textPrimary} />
         </TouchableOpacity>
+        {dictWord && (
+          <TouchableOpacity style={styles.dictButton} onPress={() => openDictionary(dictWord)} hitSlop={8}>
+            <Feather name="external-link" size={22} color={Colors.textSecondary} />
+          </TouchableOpacity>
+        )}
       </View>
     );
   };
@@ -106,7 +116,7 @@ export default function ReviewScreen({ route, navigation }: Props) {
         const progress = totalCount > 0 ? (currentIndex + 1) / totalCount : 0;
         return (
           <>
-            {renderTopNav()}
+            {renderTopNav(isRevealed ? card.japanese : undefined)}
 
             {/*
               Layout structure (all three sections are siblings):
@@ -228,6 +238,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   backButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 40,
+    height: 40,
+  },
+  dictButton: {
     alignItems: 'center',
     justifyContent: 'center',
     width: 40,
