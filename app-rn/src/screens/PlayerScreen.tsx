@@ -72,25 +72,22 @@ export default function PlayerScreen({ navigation }: Props) {
 
   const snapConfig = { duration: 250, easing: Easing.out(Easing.cubic) };
 
-  const handleGesture = useMemo(() => Gesture.Pan()
+  const makePanGesture = () => Gesture.Pan()
     .onStart(() => {
       dragStartH.value = mvHeight.value;
     })
     .onUpdate((e) => {
       const rawH = dragStartH.value + e.translationY;
       if (rawH > MV_EXPANDED) {
-        // Dismiss phase: MV stays expanded, excess goes to dismissY
         mvHeight.value = MV_EXPANDED;
         dismissY.value = rawH - MV_EXPANDED;
       } else {
-        // Normal MV resize phase
         mvHeight.value = clamp(rawH, MV_COLLAPSED, MV_EXPANDED);
         dismissY.value = 0;
       }
     })
     .onEnd((e) => {
       if (dismissY.value > 0) {
-        // Dismiss phase
         if (dismissY.value > DISMISS_THRESHOLD || e.velocityY > 500) {
           dismissY.value = withTiming(screenHeight, { duration: 300, easing: Easing.in(Easing.cubic) });
           runOnJS(handleBack)();
@@ -98,7 +95,6 @@ export default function PlayerScreen({ navigation }: Props) {
           dismissY.value = withTiming(0, snapConfig);
         }
       } else {
-        // Normal collapse/expand logic
         if (Math.abs(e.translationY) < 10 && Math.abs(e.translationX) < 10) {
           const target = mvHeight.value < (MV_EXPANDED + MV_COLLAPSED) / 2 ? MV_EXPANDED : MV_COLLAPSED;
           mvHeight.value = withTiming(target, snapConfig);
@@ -108,7 +104,10 @@ export default function PlayerScreen({ navigation }: Props) {
           mvHeight.value = withTiming(target, snapConfig);
         }
       }
-    }), []);
+    });
+
+  const handleGesture = useMemo(() => makePanGesture(), []);
+  const mvGesture = useMemo(() => makePanGesture(), []);
 
   const mvAreaStyle = useAnimatedStyle(() => ({
     height: mvHeight.value,
@@ -221,8 +220,9 @@ export default function PlayerScreen({ navigation }: Props) {
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <Animated.View style={[styles.dismissWrapper, dismissStyle]}>
       {/* MV Area — video shrinks with aspect ratio, info fades in */}
+      <GestureDetector gesture={mvGesture}>
       <Animated.View style={[styles.mvArea, mvAreaStyle]}>
-        <Animated.View style={videoStyle}>
+        <Animated.View style={videoStyle} pointerEvents="none">
           {videoId ? (
             <YouTubePlayer
               ref={youtubeRef}
@@ -249,6 +249,7 @@ export default function PlayerScreen({ navigation }: Props) {
           </TouchableOpacity>
         </Animated.View>
       </Animated.View>
+      </GestureDetector>
 
       {/* Lyrics area */}
       <View style={styles.bottomSheetOuter}>
