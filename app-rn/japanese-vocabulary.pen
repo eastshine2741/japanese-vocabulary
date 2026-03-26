@@ -105,10 +105,14 @@
               "x": 175,
               "y": 84,
               "name": "playBtn",
-              "width": 52,
-              "height": 52,
-              "fill": "#FFFFFF40",
-              "cornerRadius": 26,
+              "width": 56,
+              "height": 56,
+              "fill": "#00000080",
+              "cornerRadius": 28,
+              "effect": {
+                "type": "background_blur",
+                "radius": 12
+              },
               "justifyContent": "center",
               "alignItems": "center",
               "children": [
@@ -116,8 +120,8 @@
                   "type": "icon_font",
                   "id": "UkLR2",
                   "name": "playIcon",
-                  "width": 24,
-                  "height": 24,
+                  "width": 26,
+                  "height": 26,
                   "iconFontName": "play",
                   "iconFontFamily": "lucide",
                   "fill": "#FFFFFF"
@@ -9947,8 +9951,8 @@
               "y": 62
             },
             "UkLR2": {
-              "x": 14,
-              "y": 14
+              "x": 15,
+              "y": 15
             },
             "mfWGM": {
               "width": "fill_container",
@@ -10620,8 +10624,8 @@
               "y": 62
             },
             "UkLR2": {
-              "x": 14,
-              "y": 14
+              "x": 15,
+              "y": 15
             },
             "mfWGM": {
               "width": "fill_container",
@@ -11172,8 +11176,8 @@
               "y": 62
             },
             "UkLR2": {
-              "x": 14,
-              "y": 14
+              "x": 15,
+              "y": 15
             },
             "mfWGM": {
               "width": "fill_container",
@@ -12104,6 +12108,16 @@
                   "fill": "$text-primary"
                 }
               ]
+            },
+            {
+              "type": "icon_font",
+              "id": "Mt4VH",
+              "name": "dictBtn",
+              "width": 22,
+              "height": 22,
+              "iconFontName": "external-link",
+              "iconFontFamily": "lucide",
+              "fill": "$text-secondary"
             }
           ]
         },
@@ -15217,8 +15231,8 @@
               "y": 62
             },
             "UkLR2": {
-              "x": 14,
-              "y": 14
+              "x": 15,
+              "y": 15
             },
             "mfWGM": {
               "width": "fill_container",
@@ -15848,8 +15862,8 @@
           "y": 62
         },
         "UkLR2": {
-          "x": 14,
-          "y": 14
+          "x": 15,
+          "y": 15
         },
         "mfWGM": {
           "width": "fill_container",
@@ -16196,8 +16210,8 @@
           "y": 62
         },
         "UkLR2": {
-          "x": 14,
-          "y": 14
+          "x": 15,
+          "y": 15
         },
         "mfWGM": {
           "width": "fill_container",
@@ -16533,8 +16547,8 @@
           "y": 62
         },
         "UkLR2": {
-          "x": 14,
-          "y": 14
+          "x": 15,
+          "y": 15
         },
         "mfWGM": {
           "width": "fill_container",
@@ -16957,8 +16971,8 @@
                   "y": 62
                 },
                 "UkLR2": {
-                  "x": 14,
-                  "y": 14
+                  "x": 15,
+                  "y": 15
                 },
                 "mfWGM": {
                   "width": "fill_container",
@@ -17300,8 +17314,8 @@
                       "width": "fill_container"
                     },
                     "UkLR2": {
-                      "x": 14,
-                      "y": 14
+                      "x": 15,
+                      "y": 15
                     },
                     "mfWGM": {
                       "width": "fill_container",
@@ -17761,8 +17775,8 @@
                       "width": "fill_container"
                     },
                     "UkLR2": {
-                      "x": 14,
-                      "y": 14
+                      "x": 15,
+                      "y": 15
                     },
                     "mfWGM": {
                       "width": "fill_container",
@@ -18206,8 +18220,8 @@
                   "y": 62
                 },
                 "UkLR2": {
-                  "x": 14,
-                  "y": 14
+                  "x": 15,
+                  "y": 15
                 },
                 "mfWGM": {
                   "width": "fill_container",
@@ -18550,8 +18564,8 @@
                       "y": 62
                     },
                     "UkLR2": {
-                      "x": 14,
-                      "y": 14
+                      "x": 15,
+                      "y": 15
                     },
                     "mfWGM": {
                       "height": 635,
