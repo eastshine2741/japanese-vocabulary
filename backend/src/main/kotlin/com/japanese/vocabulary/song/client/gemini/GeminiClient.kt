@@ -76,11 +76,16 @@ class GeminiClient(
             - "koreanPronounciation": Korean pronunciation of the original Japanese text (한국어로 표기한 일본어 발음)
             - "words": for each word in the input "words" array, produce {"baseForm": same as input, "koreanText": Korean meaning of the word in this lyric context (1 concise dictionary-style meaning)}
 
+            Translation guidelines:
+            1. Read all lyrics first. Analyze the overall theme and tone, then reflect them in the Korean translation.
+            2. Preserve the tone and politeness level (경어체/반말) of each line.
+            3. For Japan-specific cultural terms: use the equivalent Korean word if one exists; otherwise keep the original Japanese pronunciation in Korean (한국어 발음).
+            4. If the original uses rhyme or wordplay based on Japanese pronunciation, recreate it with Korean words of similar meaning.
+            5. Use four-character idioms (사자성어/四字熟語) when appropriate. However, if an idiom carries a different meaning in Korean vs Japanese, write it out in plain Korean instead.
+            6. Do not use Korean slang or neologisms (신조어).
+
             Rules:
             - Translate all lines, preserving the order and count
-            - Keep the translation natural and poetic, matching the song's mood
-            - For pronunciation, write how a Korean speaker would read the Japanese text using Korean characters
-            - For word meanings, provide the most fitting Korean meaning given the lyric context
             - Return ONLY a JSON array of objects with the four fields above
             - Do not skip empty lines — return empty strings for them, with an empty words array
         """.trimIndent()
