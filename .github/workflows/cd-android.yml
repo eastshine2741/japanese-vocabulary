@@ -1,0 +1,114 @@
+name: CD - Android
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: app-rn/package-lock.json
+
+      - name: Install dependencies
+        working-directory: app-rn
+        run: npm ci
+
+      - name: Update app version
+        working-directory: app-rn
+        run: |
+          VERSION=${{ steps.version.outputs.VERSION }}
+          node -e "
+            const fs = require('fs');
+            const app = JSON.parse(fs.readFileSync('app.json', 'utf8'));
+            app.expo.version = '${VERSION}';
+            fs.writeFileSync('app.json', JSON.stringify(app, null, 2) + '\n');
+          "
+
+      - name: Decode keystore
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > ${{ runner.temp }}/release.keystore
+
+      - name: Expo prebuild
+        working-directory: app-rn
+        run: npx expo prebuild --platform android --clean
+
+      - name: Configure signing
+        working-directory: app-rn/android
+        run: |
+          cat >> gradle.properties <<EOF
+          RELEASE_STORE_FILE=${{ runner.temp }}/release.keystore
+          RELEASE_STORE_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          RELEASE_KEY_ALIAS=${{ secrets.ANDROID_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD=${{ secrets.ANDROID_KEY_PASSWORD }}
+          EOF
+
+      - name: Build APK
+        working-directory: app-rn/android
+        run: ./gradlew assembleRelease
+
+      - name: Rename APK
+        run: |
+          mv app-rn/android/app/build/outputs/apk/release/app-release.apk \
+             app-rn/android/app/build/outputs/apk/release/app-rn-${{ steps.version.outputs.VERSION }}.apk
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: app-rn/android/app/build/outputs/apk/release/app-rn-${{ steps.version.outputs.VERSION }}.apk
+
+      - name: Notify Discord (success)
+        if: success()
+        run: |
+          curl -H "Content-Type: application/json" \
+            -d "{
+              \"embeds\": [{
+                \"title\": \"Android Build Success\",
+                \"description\": \"**${{ github.repository }}** v${{ steps.version.outputs.VERSION }}\",
+                \"color\": 5763719,
+                \"fields\": [
+                  {\"name\": \"Release\", \"value\": \"[Download APK](${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ github.ref_name }})\", \"inline\": true},
+                  {\"name\": \"Commit\", \"value\": \"\`${{ github.sha }}\`\", \"inline\": true}
+                ]
+              }]
+            }" \
+            ${{ secrets.DISCORD_WEBHOOK_URL }}
+
+      - name: Notify Discord (failure)
+        if: failure()
+        run: |
+          curl -H "Content-Type: application/json" \
+            -d "{
+              \"embeds\": [{
+                \"title\": \"Android Build Failed\",
+                \"description\": \"**${{ github.repository }}** v${{ steps.version.outputs.VERSION }}\",
+                \"color\": 15548997,
+                \"fields\": [
+                  {\"name\": \"Actions\", \"value\": \"[View logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})\", \"inline\": true}
+                ]
+              }]
+            }" \
+            ${{ secrets.DISCORD_WEBHOOK_URL }}

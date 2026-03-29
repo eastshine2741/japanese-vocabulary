@@ -27,6 +27,7 @@ IGNORED_FILES=(
   ".env"
   "backend/local.properties"
   "app-rn/.env"
+  "app-rn/release.keystore"
 )
 
 echo ""
