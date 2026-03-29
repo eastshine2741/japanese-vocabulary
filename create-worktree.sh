@@ -25,9 +25,7 @@ fi
 IGNORED_FILES=(
   "backend/src/main/resources/application-local.yml"
   ".env"
-  "app/local.properties"
   "backend/local.properties"
-  "app/google-services.json"
   "app-rn/.env"
 )
 
