@@ -32,6 +32,10 @@ jobs:
           cache: npm
           cache-dependency-path: app-rn/package-lock.json
 
+      - name: Create .env
+        working-directory: app-rn
+        run: echo "EXPO_PUBLIC_BACKEND_URL=${{ secrets.BACKEND_URL }}" > .env
+
       - name: Install dependencies
         working-directory: app-rn
         run: npm ci
