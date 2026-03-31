@@ -1,13 +1,19 @@
 package com.japanese.vocabulary.song.client.vocadb
 
+import com.japanese.vocabulary.song.client.LyricProvider
 import com.japanese.vocabulary.song.client.LyricsResult
+import com.japanese.vocabulary.song.client.NormalizedSongQuery
 import com.japanese.vocabulary.song.client.vocadb.dto.VocadbSearchResponse
 import org.slf4j.LoggerFactory
+import org.springframework.core.annotation.Order
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClient
 
 @Component
-class VocadbClient {
+@Order(2)
+class VocadbClient : LyricProvider {
+
+    override val providerName = "VocaDB"
 
     private val logger = LoggerFactory.getLogger(VocadbClient::class.java)
 
@@ -16,12 +22,12 @@ class VocadbClient {
         .defaultHeader("User-Agent", "JapaneseVocabularyApp/1.0")
         .build()
 
-    fun searchLyrics(title: String, artist: String): LyricsResult? {
+    override fun search(query: NormalizedSongQuery): LyricsResult? {
         return try {
             val response = webClient.get()
                 .uri { uriBuilder ->
                     uriBuilder.path("/api/songs")
-                        .queryParam("query", title)
+                        .queryParam("query", query.normalizedTitle)
                         .queryParam("fields", "Lyrics")
                         .queryParam("maxResults", 10)
                         .queryParam("sort", "FavoritedTimes")
@@ -34,9 +40,12 @@ class VocadbClient {
                 .block()
                 ?: return null
 
-            val normalizedArtist = artist.lowercase()
+            val normalizedParts = query.artistParts.map { it.lowercase() }
+
             for (song in response.items) {
-                if (!song.artistString.lowercase().contains(normalizedArtist)) continue
+                val songArtist = song.artistString.lowercase()
+                val artistMatches = normalizedParts.any { part -> songArtist.contains(part) }
+                if (!artistMatches) continue
 
                 val lyrics = song.lyrics?.firstOrNull { lyric ->
                     lyric.translationType == "Original" &&
@@ -53,7 +62,7 @@ class VocadbClient {
 
             null
         } catch (e: Exception) {
-            logger.warn("VocaDB lyrics search failed for: $artist - $title", e)
+            logger.warn("VocaDB lyrics search failed for: ${query.originalArtist} - ${query.originalTitle}", e)
             null
         }
     }

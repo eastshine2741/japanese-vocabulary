@@ -1,8 +1,9 @@
 package com.japanese.vocabulary.song.service
 
+import com.japanese.vocabulary.song.client.LyricProvider
 import com.japanese.vocabulary.song.client.LyricsNotFoundException
-import com.japanese.vocabulary.song.client.lrclib.LrclibClient
-import com.japanese.vocabulary.song.client.vocadb.VocadbClient
+import com.japanese.vocabulary.song.client.SongQueryNormalizer
+import com.japanese.vocabulary.song.client.LyricsResult
 import com.japanese.vocabulary.song.client.youtube.YoutubeClient
 import com.japanese.vocabulary.song.dto.*
 import com.japanese.vocabulary.song.entity.LyricType
@@ -12,18 +13,20 @@ import com.japanese.vocabulary.song.entity.KoreanLyricStatus
 import com.japanese.vocabulary.song.entity.LyricEntity
 import com.japanese.vocabulary.song.repository.LyricRepository
 import com.japanese.vocabulary.song.repository.SongRepository
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
 @Service
 class LyricProcessingService(
-    private val lrclibClient: LrclibClient,
-    private val vocadbClient: VocadbClient,
+    private val lyricProviders: List<LyricProvider>,
     private val lrcParser: LrcParser,
     private val songRepository: SongRepository,
     private val youtubeClient: YoutubeClient,
     private val recentSongService: RecentSongService,
     private val lyricRepository: LyricRepository
 ) {
+
+    private val logger = LoggerFactory.getLogger(LyricProcessingService::class.java)
 
     fun analyze(title: String, artist: String, durationSeconds: Int?, artworkUrl: String? = null, userId: Long? = null): SongDTO {
         // Check if already exists in DB
@@ -34,13 +37,8 @@ class LyricProcessingService(
             return buildResponseFromEntity(it)
         }
 
-        // Fetch lyrics from LRCLIB, fallback to VocaDB
-        val lyricsResult = try {
-            lrclibClient.getLyrics(title, artist, durationSeconds)
-        } catch (e: LyricsNotFoundException) {
-            vocadbClient.searchLyrics(title, artist)
-                ?: throw e
-        }
+        // Fetch lyrics from providers
+        val lyricsResult = searchLyrics(title, artist, durationSeconds)
 
         // Parse lyrics
         val parsedLines = lrcParser.parse(lyricsResult.lyrics, lyricsResult.isSynced)
@@ -100,6 +98,30 @@ class LyricProcessingService(
             studyUnits = lyricLineData.map { it.toStudyUnit() },
             youtubeUrl = savedSong.youtubeUrl
         )
+    }
+
+    private fun searchLyrics(title: String, artist: String, durationSeconds: Int?): LyricsResult {
+        val query = SongQueryNormalizer.normalize(title, artist, durationSeconds)
+        logger.info(
+            "Lyric search started: '{}' by '{}' (normalized title: '{}', artist parts: {})",
+            title, artist, query.normalizedTitle, query.artistParts
+        )
+
+        for (provider in lyricProviders) {
+            logger.info("Trying provider: {}", provider.providerName)
+            val result = provider.search(query)
+            if (result != null) {
+                logger.info(
+                    "Lyrics found via {} (synced={}, lrclibId={}, vocadbId={})",
+                    provider.providerName, result.isSynced, result.lrclibId, result.vocadbId
+                )
+                return result
+            }
+            logger.info("Provider {}: no results", provider.providerName)
+        }
+
+        logger.warn("All lyric providers exhausted for: '{}' by '{}'", title, artist)
+        throw LyricsNotFoundException("Could not find lyrics for: $artist - $title")
     }
 
     fun buildSongDTO(entity: SongEntity): SongDTO = buildResponseFromEntity(entity)

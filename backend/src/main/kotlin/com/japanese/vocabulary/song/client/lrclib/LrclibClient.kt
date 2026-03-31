@@ -1,29 +1,56 @@
 package com.japanese.vocabulary.song.client.lrclib
 
-import com.japanese.vocabulary.song.client.LyricsNotFoundException
+import com.japanese.vocabulary.song.client.LyricProvider
 import com.japanese.vocabulary.song.client.LyricsResult
+import com.japanese.vocabulary.song.client.NormalizedSongQuery
 import com.japanese.vocabulary.song.client.lrclib.dto.LrclibResponse
+import org.slf4j.LoggerFactory
+import org.springframework.core.annotation.Order
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.WebClientResponseException
 
 @Component
-class LrclibClient {
+@Order(1)
+class LrclibClient : LyricProvider {
+
+    override val providerName = "LrcLib"
+
+    private val logger = LoggerFactory.getLogger(LrclibClient::class.java)
 
     private val webClient = WebClient.builder()
         .baseUrl("https://lrclib.net")
         .defaultHeader("User-Agent", "JapaneseVocabularyApp/1.0")
         .build()
 
-    // TODO: filter only japanese lyrics
-    fun getLyrics(title: String, artist: String, durationSeconds: Int?): LyricsResult {
-        // 1차: 제목 + 가수명으로 exact match
-        fetchFromGet(title, artist, durationSeconds)?.let { return it }
+    override fun search(query: NormalizedSongQuery): LyricsResult? {
+        return try {
+            // 1차: 원본 제목 + 원본 아티스트로 exact match
+            fetchFromGet(query.originalTitle, query.originalArtist, query.durationSeconds)
+                ?.let { return it }
 
-        // 2차: 제목만으로 search fallback
-        fetchFromSearch(title)?.let { return it }
+            // 2차: 원본 제목으로 search
+            fetchFromSearch(query.originalTitle)
+                ?.let { return it }
 
-        throw LyricsNotFoundException("Could not find lyrics for: $artist - $title")
+            // 3차: 정규화된 값이 다를 때만 추가 시도
+            if (query.normalizedTitle != query.originalTitle || query.artistParts.size > 1) {
+                for (artistPart in query.artistParts) {
+                    fetchFromGet(query.normalizedTitle, artistPart, query.durationSeconds)
+                        ?.let { return it }
+                }
+
+                if (query.normalizedTitle != query.originalTitle) {
+                    fetchFromSearch(query.normalizedTitle)
+                        ?.let { return it }
+                }
+            }
+
+            null
+        } catch (e: Exception) {
+            logger.warn("LrcLib lyrics search failed for: ${query.originalArtist} - ${query.originalTitle}", e)
+            null
+        }
     }
 
     private fun fetchFromGet(title: String, artist: String, durationSeconds: Int?): LyricsResult? {
