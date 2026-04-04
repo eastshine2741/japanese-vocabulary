@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import {
   View,
   Text,
@@ -13,11 +13,8 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
 import { useHomeStore } from '../../stores/homeStore';
 import { usePlayerStore } from '../../stores/playerStore';
-import { flashcardApi } from '../../api/flashcardApi';
 import SongCard from '../../components/SongCard';
-import StatsCard from '../../components/StatsCard';
 import SkeletonBox from '../../components/SkeletonLoading';
-import { FlashcardStatsResponse } from '../../types/flashcard';
 import { Colors, Dimens } from '../../theme/theme';
 import { RootStackParamList } from '../../navigation/AppNavigator';
 
@@ -29,12 +26,10 @@ export default function HomeTab() {
   const navigation = useNavigation<Nav>();
   const { status, songs, load } = useHomeStore();
   const { status: playerStatus, loadById } = usePlayerStore();
-  const [stats, setStats] = useState<FlashcardStatsResponse | null>(null);
 
   useFocusEffect(
     useCallback(() => {
       load();
-      flashcardApi.getStats().then(setStats).catch(() => {});
     }, [])
   );
 
@@ -100,10 +95,6 @@ export default function HomeTab() {
         <View style={styles.container}>
           <View style={{ paddingHorizontal: Dimens.screenPadding }}>
             <View style={styles.headerContainer}>
-              <View style={styles.header}>
-                <Text style={styles.title}>오늘의 학습</Text>
-                <Text style={styles.subtitle}>노래로 배우는 일본어 단어</Text>
-              </View>
               <View style={styles.searchBar}>
                 <Feather name="search" size={18} color={Colors.textMuted} />
                 <Text style={styles.searchPlaceholder}>노래 검색...</Text>
@@ -127,24 +118,10 @@ export default function HomeTab() {
       <View style={styles.container}>
         <ScrollView contentContainerStyle={styles.list}>
           <View style={styles.headerContainer}>
-            <View style={styles.header}>
-              <Text style={styles.title}>오늘의 학습</Text>
-              <Text style={styles.subtitle}>노래로 배우는 일본어 단어</Text>
-            </View>
-
             <TouchableOpacity style={styles.searchBar} onPress={() => navigation.navigate('Search')}>
               <Feather name="search" size={18} color={Colors.textMuted} />
               <Text style={styles.searchPlaceholder}>노래 검색...</Text>
             </TouchableOpacity>
-
-            {stats && (
-              <StatsCard
-                wordCount={stats.total}
-                dueToday={stats.due}
-                actionLabel="복습 시작하기"
-                onAction={() => navigation.navigate('Review', {})}
-              />
-            )}
 
             <View style={styles.recentSection}>
               <Text style={styles.sectionTitle}>최근 들은 노래</Text>
@@ -172,18 +149,6 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   list: { paddingTop: 20, paddingHorizontal: 20, paddingBottom: Dimens.bottomBarHeight + 80 },
   headerContainer: { gap: 24 },
-  header: { gap: 4 },
-  title: {
-    fontSize: 38,
-    fontWeight: '800',
-    color: Colors.textPrimary,
-    letterSpacing: -1.5,
-    lineHeight: 38,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: Colors.textSecondary,
-  },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',

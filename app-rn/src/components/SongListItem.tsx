@@ -4,20 +4,13 @@ import { Ionicons } from '@expo/vector-icons';
 import ArtworkImage from './ArtworkImage';
 import { Colors } from '../theme/theme';
 
-export interface MiniStats {
-  learning: number;
-  review: number;
-  relearning: number;
-  retrievability: number | null;
-}
-
 interface Props {
   artworkUrl: string | null | undefined;
   title: string;
   subtitle: string;
   trailing?: string;
   isHighlighted?: boolean;
-  miniStats?: MiniStats;
+  dueCount?: number;
   showChevron?: boolean;
   onPress: () => void;
 }
@@ -28,7 +21,7 @@ export default function SongListItem({
   subtitle,
   trailing,
   isHighlighted = false,
-  miniStats,
+  dueCount,
   showChevron = false,
   onPress,
 }: Props) {
@@ -49,25 +42,10 @@ export default function SongListItem({
         <Text style={styles.subtitle} numberOfLines={1}>
           {subtitle}
         </Text>
-        {miniStats && (
-          <View style={styles.miniStatsRow}>
-            <Text style={[styles.miniStatText, { color: Colors.stateLearning }]}>
-              학습 {miniStats.learning}
-            </Text>
-            <Text style={[styles.miniStatText, { color: Colors.stateReview }]}>
-              {'  '}복습 {miniStats.review}
-            </Text>
-            <Text style={[styles.miniStatText, { color: Colors.stateRelearning }]}>
-              {'  '}재학습 {miniStats.relearning}
-            </Text>
-            {miniStats.retrievability != null && (
-              <Text style={[styles.miniStatText, { color: Colors.stateRetrievability }]}>
-                {'  '}R {Math.round(miniStats.retrievability * 100)}%
-              </Text>
-            )}
-          </View>
-        )}
       </View>
+      {dueCount != null && dueCount > 0 && (
+        <Text style={styles.dueBadge}>{dueCount}</Text>
+      )}
       {trailing && !showChevron && <Text style={styles.trailing}>{trailing}</Text>}
       {showChevron && (
         <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
@@ -92,13 +70,9 @@ const styles = StyleSheet.create({
   highlightedTitle: { fontWeight: '700', color: Colors.primary },
   subtitle: { fontSize: 13, color: Colors.textSecondary, marginTop: 2 },
   trailing: { fontSize: 13, color: Colors.textSecondary },
-  miniStatsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  miniStatText: {
-    fontSize: 11,
-    fontWeight: '500',
+  dueBadge: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.primary,
   },
 });

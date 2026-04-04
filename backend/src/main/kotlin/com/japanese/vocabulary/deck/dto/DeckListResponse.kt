@@ -1,13 +1,7 @@
 package com.japanese.vocabulary.deck.dto
 
 data class DeckListResponse(
-    val allDeck: AllDeckSummary,
     val songDecks: List<SongDeckSummary>
-)
-
-data class AllDeckSummary(
-    val wordCount: Int,
-    val avgRetrievability: Double?
 )
 
 data class SongDeckSummary(
@@ -16,5 +10,6 @@ data class SongDeckSummary(
     val artist: String,
     val artworkUrl: String?,
     val wordCount: Int,
-    val avgRetrievability: Double?
+    val dueCount: Int,
+    val masteredCount: Int
 )

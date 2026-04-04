@@ -7,13 +7,7 @@ data class DeckDetailResponse(
     val artworkUrl: String?,
     val wordCount: Int,
     val dueCount: Int,
-    val stateCounts: StateCounts,
-    val avgRetrievability: Double?
-)
-
-data class StateCounts(
-    val new: Int,
-    val learning: Int,
-    val review: Int,
-    val relearning: Int
+    val masteredCount: Int,
+    val studyingCount: Int,
+    val newWordCount: Int,
 )

@@ -49,25 +49,43 @@ export default function DeckDetailScreen({ route, navigation }: Props) {
             {/* Artist */}
             {data.artist && <Text style={styles.artist}>{data.artist}</Text>}
 
-            {/* Stats row */}
-            <View style={styles.statsRow}>
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>{data.wordCount}</Text>
-                <Text style={styles.statLabel}>단어</Text>
-              </View>
-              <View style={styles.statItem}>
-                <Text style={[styles.statValue, { color: Colors.stateRetrievability }]}>
-                  {data.avgRetrievability != null
-                    ? `${Math.round(data.avgRetrievability * 100)}%`
-                    : '-'}
-                </Text>
-                <Text style={styles.statLabel}>Retrievability</Text>
-              </View>
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>{data.dueCount}</Text>
-                <Text style={styles.statLabel}>복습 대기</Text>
-              </View>
+            {/* Hero: due count */}
+            <View style={styles.heroSection}>
+              <Text style={styles.heroLabel}>복습할 단어</Text>
+              <Text style={styles.heroValue}>{data.dueCount}</Text>
             </View>
+
+            {/* Pipeline bar */}
+            {data.wordCount > 0 && (() => {
+              const total = data.wordCount;
+              const masteredPct = (data.masteredCount / total) * 100;
+              const studyingPct = (data.studyingCount / total) * 100;
+              const newPct = (data.newWordCount / total) * 100;
+
+              return (
+                <View style={styles.pipelineSection}>
+                  <View style={styles.segBar}>
+                    {masteredPct > 0 && <View style={[styles.segment, { width: `${masteredPct}%`, backgroundColor: Colors.stateReview }]} />}
+                    {studyingPct > 0 && <View style={[styles.segment, { width: `${studyingPct}%`, backgroundColor: Colors.stateRetrievability }]} />}
+                    {newPct > 0 && <View style={[styles.segment, { width: `${newPct}%`, backgroundColor: Colors.stateRelearning }]} />}
+                  </View>
+                  <View style={styles.legend}>
+                    <View style={styles.legendItem}>
+                      <View style={[styles.legendDot, { backgroundColor: Colors.stateReview }]} />
+                      <Text style={styles.legendText}>외운 단어 {data.masteredCount}</Text>
+                    </View>
+                    <View style={styles.legendItem}>
+                      <View style={[styles.legendDot, { backgroundColor: Colors.stateRetrievability }]} />
+                      <Text style={styles.legendText}>외우는 중 {data.studyingCount}</Text>
+                    </View>
+                    <View style={styles.legendItem}>
+                      <View style={[styles.legendDot, { backgroundColor: Colors.stateRelearning }]} />
+                      <Text style={styles.legendText}>새 단어 {data.newWordCount}</Text>
+                    </View>
+                  </View>
+                </View>
+              );
+            })()}
 
             {/* Study button */}
             <TouchableOpacity
@@ -140,23 +158,53 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: -24,
   },
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    width: '100%',
-  },
-  statItem: {
+  heroSection: {
     alignItems: 'center',
+    gap: 4,
   },
-  statValue: {
-    fontSize: 20,
-    fontWeight: '700',
+  heroLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+  },
+  heroValue: {
+    fontSize: 36,
+    fontWeight: '800',
     color: Colors.textPrimary,
   },
-  statLabel: {
-    fontSize: 12,
+  pipelineSection: {
+    width: '100%',
+    gap: 6,
+  },
+  segBar: {
+    flexDirection: 'row',
+    height: 8,
+    borderRadius: 4,
+    overflow: 'hidden',
+    gap: 2,
+  },
+  segment: {
+    height: 8,
+  },
+  legend: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  legendDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  legendText: {
+    fontSize: 11,
+    fontWeight: '500',
     color: Colors.textSecondary,
-    marginTop: 4,
   },
   primaryButton: {
     flexDirection: 'row',

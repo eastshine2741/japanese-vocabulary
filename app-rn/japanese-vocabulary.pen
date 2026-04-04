@@ -687,38 +687,6 @@
           "children": [
             {
               "type": "frame",
-              "id": "DVOzR",
-              "name": "header",
-              "width": "fill_container",
-              "layout": "vertical",
-              "gap": 4,
-              "children": [
-                {
-                  "type": "text",
-                  "id": "AL3Tk",
-                  "name": "htitle",
-                  "fill": "$text-primary",
-                  "content": "오늘의 학습",
-                  "lineHeight": 1,
-                  "fontFamily": "Plus Jakarta Sans",
-                  "fontSize": 38,
-                  "fontWeight": "800",
-                  "letterSpacing": -1.5
-                },
-                {
-                  "type": "text",
-                  "id": "SAERJ",
-                  "name": "hsub",
-                  "fill": "$text-secondary",
-                  "content": "노래로 배우는 일본어 단어",
-                  "fontFamily": "Inter",
-                  "fontSize": 14,
-                  "fontWeight": "normal"
-                }
-              ]
-            },
-            {
-              "type": "frame",
               "id": "TThr6",
               "name": "searchBar",
               "width": "fill_container",
@@ -751,73 +719,6 @@
                   "fontFamily": "Inter",
                   "fontSize": 14,
                   "fontWeight": "normal"
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "Avpmv",
-              "name": "card",
-              "width": "fill_container",
-              "fill": "$bg-card",
-              "cornerRadius": 24,
-              "layout": "vertical",
-              "gap": 12,
-              "padding": 16,
-              "children": [
-                {
-                  "type": "text",
-                  "id": "GktWv",
-                  "name": "cardLbl",
-                  "fill": "$text-secondary",
-                  "content": "오늘의 복습",
-                  "fontFamily": "Inter",
-                  "fontSize": 13,
-                  "fontWeight": "600"
-                },
-                {
-                  "type": "text",
-                  "id": "15JAH",
-                  "name": "cardNum",
-                  "fill": "$text-primary",
-                  "content": "12개",
-                  "fontFamily": "Plus Jakarta Sans",
-                  "fontSize": 36,
-                  "fontWeight": "800",
-                  "letterSpacing": -2
-                },
-                {
-                  "type": "text",
-                  "id": "KOV5c",
-                  "name": "cardSub",
-                  "fill": "$text-secondary",
-                  "content": "오늘 복습할 단어",
-                  "fontFamily": "Inter",
-                  "fontSize": 14,
-                  "fontWeight": "normal"
-                },
-                {
-                  "type": "frame",
-                  "id": "Ur8Ua",
-                  "name": "cardBtn",
-                  "width": "fill_container",
-                  "height": 48,
-                  "fill": "$accent-primary",
-                  "cornerRadius": 24,
-                  "justifyContent": "center",
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "Vx61d",
-                      "name": "cardBtnTxt",
-                      "fill": "#FFFFFF",
-                      "content": "복습 시작하기",
-                      "fontFamily": "Inter",
-                      "fontSize": 14,
-                      "fontWeight": "600"
-                    }
-                  ]
                 }
               ]
             },
@@ -1705,6 +1606,32 @@
                       "fontSize": 10,
                       "fontWeight": "500",
                       "letterSpacing": 0.5
+                    },
+                    {
+                      "type": "frame",
+                      "id": "O4GgW",
+                      "layoutPosition": "absolute",
+                      "x": 62,
+                      "y": 6,
+                      "name": "badge",
+                      "width": 18,
+                      "height": 18,
+                      "fill": "#EF4444",
+                      "cornerRadius": 9,
+                      "layout": "none",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "3ArCM",
+                          "x": 3,
+                          "y": 2,
+                          "fill": "#FFFFFF",
+                          "content": "12",
+                          "fontFamily": "Inter",
+                          "fontSize": 9,
+                          "fontWeight": "700"
+                        }
+                      ]
                     }
                   ]
                 },
@@ -1832,28 +1759,6 @@
           "children": [
             {
               "type": "frame",
-              "id": "OZ8wJ",
-              "name": "hd2",
-              "width": "fill_container",
-              "layout": "vertical",
-              "gap": 4,
-              "children": [
-                {
-                  "type": "text",
-                  "id": "Nb8xh",
-                  "name": "hdT2",
-                  "fill": "$text-primary",
-                  "content": "단어장",
-                  "lineHeight": 1,
-                  "fontFamily": "Plus Jakarta Sans",
-                  "fontSize": 38,
-                  "fontWeight": "800",
-                  "letterSpacing": -1.5
-                }
-              ]
-            },
-            {
-              "type": "frame",
               "id": "DGDJh",
               "name": "statsCard",
               "width": "fill_container",
@@ -1864,168 +1769,162 @@
               "padding": 20,
               "children": [
                 {
-                  "type": "text",
-                  "id": "eBVK9",
-                  "name": "sLbl",
-                  "fill": "$text-secondary",
-                  "content": "전체 단어",
-                  "fontFamily": "Inter",
-                  "fontSize": 13,
-                  "fontWeight": "600"
+                  "type": "frame",
+                  "id": "OQsbO",
+                  "name": "hero",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 4,
+                  "padding": [
+                    8,
+                    0
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "0VR9u",
+                      "fill": "$text-secondary",
+                      "content": "복습할 단어",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "EKIUz",
+                      "fill": "$text-primary",
+                      "content": "12",
+                      "fontFamily": "Plus Jakarta Sans",
+                      "fontSize": 40,
+                      "fontWeight": "800"
+                    }
+                  ]
                 },
                 {
                   "type": "frame",
-                  "id": "L2jaK",
-                  "name": "grid",
+                  "id": "9B84f",
+                  "name": "pipeline",
                   "width": "fill_container",
                   "layout": "vertical",
-                  "gap": 8,
+                  "gap": 6,
                   "children": [
                     {
                       "type": "frame",
-                      "id": "SmUAf",
-                      "name": "row1",
+                      "id": "jCGpL",
+                      "name": "segBar",
+                      "clip": true,
                       "width": "fill_container",
-                      "gap": 8,
+                      "height": 8,
+                      "cornerRadius": 4,
+                      "gap": 2,
                       "children": [
                         {
                           "type": "frame",
-                          "id": "kaNFK",
-                          "name": "s1",
-                          "width": "fill_container",
-                          "fill": "$state-learning-bg",
-                          "cornerRadius": 20,
-                          "layout": "vertical",
-                          "gap": 4,
-                          "padding": 16,
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "1O1wu",
-                              "name": "s1l",
-                              "fill": "$text-secondary",
-                              "content": "학습",
-                              "fontFamily": "Inter",
-                              "fontSize": 11,
-                              "fontWeight": "500"
-                            },
-                            {
-                              "type": "text",
-                              "id": "jgMzX",
-                              "name": "s1v",
-                              "fill": "$state-learning",
-                              "content": "24",
-                              "fontFamily": "Plus Jakarta Sans",
-                              "fontSize": 32,
-                              "fontWeight": "800"
-                            }
-                          ]
+                          "id": "EccQa",
+                          "name": "segGreen",
+                          "width": 119,
+                          "height": 8,
+                          "fill": "$state-review"
                         },
                         {
                           "type": "frame",
-                          "id": "6BewG",
-                          "name": "s2",
-                          "width": "fill_container",
-                          "fill": "$state-review-bg",
-                          "cornerRadius": 20,
-                          "layout": "vertical",
-                          "gap": 4,
-                          "padding": 16,
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "CMrxZ",
-                              "name": "s2l",
-                              "fill": "$text-secondary",
-                              "content": "복습",
-                              "fontFamily": "Inter",
-                              "fontSize": 11,
-                              "fontWeight": "500"
-                            },
-                            {
-                              "type": "text",
-                              "id": "YfpNM",
-                              "name": "s2v",
-                              "fill": "$state-review",
-                              "content": "18",
-                              "fontFamily": "Plus Jakarta Sans",
-                              "fontSize": 32,
-                              "fontWeight": "800"
-                            }
-                          ]
+                          "id": "04PE1",
+                          "name": "segPurple",
+                          "width": 159,
+                          "height": 8,
+                          "fill": "$state-retrievability"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "SuwmH",
+                          "name": "segAmber",
+                          "width": 40,
+                          "height": 8,
+                          "fill": "$state-relearning"
                         }
                       ]
                     },
                     {
                       "type": "frame",
-                      "id": "oGoFM",
-                      "name": "row2",
+                      "id": "BntGn",
+                      "name": "barLabels",
                       "width": "fill_container",
-                      "gap": 8,
+                      "gap": 12,
+                      "justifyContent": "center",
                       "children": [
                         {
                           "type": "frame",
-                          "id": "muGYo",
-                          "name": "s3",
-                          "width": "fill_container",
-                          "fill": "$state-relearning-bg",
-                          "cornerRadius": 20,
-                          "layout": "vertical",
+                          "id": "SxWtT",
+                          "name": "g1",
                           "gap": 4,
-                          "padding": 16,
+                          "alignItems": "center",
                           "children": [
                             {
-                              "type": "text",
-                              "id": "UTH0S",
-                              "name": "s3l",
-                              "fill": "$text-secondary",
-                              "content": "재학습",
-                              "fontFamily": "Inter",
-                              "fontSize": 11,
-                              "fontWeight": "500"
+                              "type": "ellipse",
+                              "id": "WNn3m",
+                              "fill": "$state-review",
+                              "width": 6,
+                              "height": 6
                             },
                             {
                               "type": "text",
-                              "id": "JZEEL",
-                              "name": "s3v",
-                              "fill": "$state-relearning",
-                              "content": "6",
-                              "fontFamily": "Plus Jakarta Sans",
-                              "fontSize": 32,
-                              "fontWeight": "800"
+                              "id": "MINBr",
+                              "fill": "$text-secondary",
+                              "content": "외운 단어 18",
+                              "fontFamily": "Inter",
+                              "fontSize": 11,
+                              "fontWeight": "500"
                             }
                           ]
                         },
                         {
                           "type": "frame",
-                          "id": "oHLTq",
-                          "name": "s4",
-                          "width": "fill_container",
-                          "fill": "$state-retrievability-bg",
-                          "cornerRadius": 20,
-                          "layout": "vertical",
+                          "id": "4nPEV",
+                          "name": "g2",
                           "gap": 4,
-                          "padding": 16,
+                          "alignItems": "center",
                           "children": [
                             {
-                              "type": "text",
-                              "id": "sJLC5",
-                              "name": "s4l",
-                              "fill": "$text-secondary",
-                              "content": "평균 Retrievability",
-                              "fontFamily": "Inter",
-                              "fontSize": 11,
-                              "fontWeight": "500"
+                              "type": "ellipse",
+                              "id": "Mxxdb",
+                              "fill": "$state-retrievability",
+                              "width": 6,
+                              "height": 6
                             },
                             {
                               "type": "text",
-                              "id": "3cFjb",
-                              "name": "s4v",
-                              "fill": "$state-retrievability",
-                              "content": "87%",
-                              "fontFamily": "Plus Jakarta Sans",
-                              "fontSize": 32,
-                              "fontWeight": "800"
+                              "id": "d0KNA",
+                              "fill": "$text-secondary",
+                              "content": "외우는 중 24",
+                              "fontFamily": "Inter",
+                              "fontSize": 11,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "geVNg",
+                          "name": "g3",
+                          "gap": 4,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "ellipse",
+                              "id": "H23K7",
+                              "fill": "$state-relearning",
+                              "width": 6,
+                              "height": 6
+                            },
+                            {
+                              "type": "text",
+                              "id": "SU5Ym",
+                              "fill": "$text-secondary",
+                              "content": "새 단어 6",
+                              "fontFamily": "Inter",
+                              "fontSize": 11,
+                              "fontWeight": "500"
                             }
                           ]
                         }
@@ -2046,24 +1945,24 @@
                   "alignItems": "center",
                   "children": [
                     {
+                      "type": "icon_font",
+                      "id": "BgZDi",
+                      "name": "c0",
+                      "width": 20,
+                      "height": 20,
+                      "iconFontName": "layers",
+                      "iconFontFamily": "lucide",
+                      "fill": "#FFFFFF"
+                    },
+                    {
                       "type": "text",
                       "id": "kS8Xd",
                       "name": "fBtnT",
                       "fill": "#FFFFFF",
-                      "content": "전체 단어장 보기",
+                      "content": "학습하기",
                       "fontFamily": "Inter",
                       "fontSize": 14,
                       "fontWeight": "600"
-                    },
-                    {
-                      "type": "icon_font",
-                      "id": "BgZDi",
-                      "name": "c0",
-                      "width": 16,
-                      "height": 16,
-                      "iconFontName": "chevron-right",
-                      "iconFontFamily": "lucide",
-                      "fill": "#FFFFFF"
                     }
                   ]
                 }
@@ -2175,6 +2074,16 @@
                           ]
                         },
                         {
+                          "type": "text",
+                          "id": "amTgQ",
+                          "name": "b1",
+                          "fill": "$accent-primary",
+                          "content": "5",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "700"
+                        },
+                        {
                           "type": "icon_font",
                           "id": "7vTl8",
                           "name": "c1",
@@ -2183,55 +2092,6 @@
                           "iconFontName": "chevron-right",
                           "iconFontFamily": "lucide",
                           "fill": "$text-muted"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "BwseR",
-                      "name": "d1stats",
-                      "width": "fill_container",
-                      "gap": 12,
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "jH4Bh",
-                          "name": "d1s1",
-                          "fill": "$state-learning",
-                          "content": "학습 8",
-                          "fontFamily": "Inter",
-                          "fontSize": 11,
-                          "fontWeight": "500"
-                        },
-                        {
-                          "type": "text",
-                          "id": "ND52C",
-                          "name": "d1s2",
-                          "fill": "$state-review",
-                          "content": "복습 12",
-                          "fontFamily": "Inter",
-                          "fontSize": 11,
-                          "fontWeight": "500"
-                        },
-                        {
-                          "type": "text",
-                          "id": "FZoXv",
-                          "name": "d1s3",
-                          "fill": "$state-relearning",
-                          "content": "재학습 2",
-                          "fontFamily": "Inter",
-                          "fontSize": 11,
-                          "fontWeight": "500"
-                        },
-                        {
-                          "type": "text",
-                          "id": "Too8T",
-                          "name": "d1s4",
-                          "fill": "$text-secondary",
-                          "content": "R 87%",
-                          "fontFamily": "Inter",
-                          "fontSize": 11,
-                          "fontWeight": "500"
                         }
                       ]
                     }
@@ -2316,6 +2176,16 @@
                           ]
                         },
                         {
+                          "type": "text",
+                          "id": "ulAi4",
+                          "name": "b2",
+                          "fill": "$accent-primary",
+                          "content": "3",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "700"
+                        },
+                        {
                           "type": "icon_font",
                           "id": "yZGUn",
                           "name": "c2",
@@ -2324,55 +2194,6 @@
                           "iconFontName": "chevron-right",
                           "iconFontFamily": "lucide",
                           "fill": "$text-muted"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "3Jnbh",
-                      "name": "d2stats",
-                      "width": "fill_container",
-                      "gap": 12,
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "oy1sn",
-                          "name": "d2s1",
-                          "fill": "$state-learning",
-                          "content": "학습 5",
-                          "fontFamily": "Inter",
-                          "fontSize": 11,
-                          "fontWeight": "500"
-                        },
-                        {
-                          "type": "text",
-                          "id": "cwBLa",
-                          "name": "d2s2",
-                          "fill": "$state-review",
-                          "content": "복습 15",
-                          "fontFamily": "Inter",
-                          "fontSize": 11,
-                          "fontWeight": "500"
-                        },
-                        {
-                          "type": "text",
-                          "id": "fHVEY",
-                          "name": "d2s3",
-                          "fill": "$state-relearning",
-                          "content": "재학습 1",
-                          "fontFamily": "Inter",
-                          "fontSize": 11,
-                          "fontWeight": "500"
-                        },
-                        {
-                          "type": "text",
-                          "id": "yPj5x",
-                          "name": "d2s4",
-                          "fill": "$text-secondary",
-                          "content": "R 91%",
-                          "fontFamily": "Inter",
-                          "fontSize": 11,
-                          "fontWeight": "500"
                         }
                       ]
                     }
@@ -2453,6 +2274,16 @@
                           ]
                         },
                         {
+                          "type": "text",
+                          "id": "ttuvI",
+                          "name": "b3",
+                          "fill": "$accent-primary",
+                          "content": "4",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "700"
+                        },
+                        {
                           "type": "icon_font",
                           "id": "9kmYb",
                           "name": "c3",
@@ -2461,55 +2292,6 @@
                           "iconFontName": "chevron-right",
                           "iconFontFamily": "lucide",
                           "fill": "$text-muted"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "FMzTf",
-                      "name": "d3stats",
-                      "width": "fill_container",
-                      "gap": 12,
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "LZ4UA",
-                          "name": "d3s1",
-                          "fill": "$state-learning",
-                          "content": "학습 4",
-                          "fontFamily": "Inter",
-                          "fontSize": 11,
-                          "fontWeight": "500"
-                        },
-                        {
-                          "type": "text",
-                          "id": "lSm5Z",
-                          "name": "d3s2",
-                          "fill": "$state-review",
-                          "content": "복습 10",
-                          "fontFamily": "Inter",
-                          "fontSize": 11,
-                          "fontWeight": "500"
-                        },
-                        {
-                          "type": "text",
-                          "id": "9osCq",
-                          "name": "d3s3",
-                          "fill": "$state-relearning",
-                          "content": "재학습 3",
-                          "fontFamily": "Inter",
-                          "fontSize": 11,
-                          "fontWeight": "500"
-                        },
-                        {
-                          "type": "text",
-                          "id": "MWfOO",
-                          "name": "d3s4",
-                          "fill": "$text-secondary",
-                          "content": "R 82%",
-                          "fontFamily": "Inter",
-                          "fontSize": 11,
-                          "fontWeight": "500"
                         }
                       ]
                     }
@@ -2625,6 +2407,32 @@
                       "fontSize": 10,
                       "fontWeight": "600",
                       "letterSpacing": 0.5
+                    },
+                    {
+                      "type": "frame",
+                      "id": "DYQvW",
+                      "layoutPosition": "absolute",
+                      "x": 62,
+                      "y": 6,
+                      "name": "badge",
+                      "width": 18,
+                      "height": 18,
+                      "fill": "#EF4444",
+                      "cornerRadius": 9,
+                      "layout": "none",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "Q3GgS",
+                          "x": 3,
+                          "y": 2,
+                          "fill": "#FFFFFF",
+                          "content": "12",
+                          "fontFamily": "Inter",
+                          "fontSize": 9,
+                          "fontWeight": "700"
+                        }
+                      ]
                     }
                   ]
                 },
@@ -2762,37 +2570,6 @@
             20
           ],
           "children": [
-            {
-              "type": "frame",
-              "id": "OUbyc",
-              "name": "Header",
-              "width": "fill_container",
-              "layout": "vertical",
-              "gap": 4,
-              "children": [
-                {
-                  "type": "text",
-                  "id": "g0mtC",
-                  "name": "headerTitle",
-                  "fill": "$text-primary",
-                  "content": "마이페이지",
-                  "fontFamily": "Plus Jakarta Sans",
-                  "fontSize": 28,
-                  "fontWeight": "800",
-                  "letterSpacing": -1
-                },
-                {
-                  "type": "text",
-                  "id": "neeP1",
-                  "name": "headerSub",
-                  "fill": "$text-secondary",
-                  "content": "계정 및 학습 설정을 관리하세요",
-                  "fontFamily": "Inter",
-                  "fontSize": 14,
-                  "fontWeight": "normal"
-                }
-              ]
-            },
             {
               "type": "frame",
               "id": "NngGn",
@@ -3630,6 +3407,16 @@
                           ]
                         },
                         {
+                          "type": "text",
+                          "id": "TsEu4",
+                          "name": "a1",
+                          "fill": "$accent-primary",
+                          "content": "5",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "700"
+                        },
+                        {
                           "type": "icon_font",
                           "id": "MOQcF",
                           "name": "c4",
@@ -3638,55 +3425,6 @@
                           "iconFontName": "chevron-right",
                           "iconFontFamily": "lucide",
                           "fill": "$text-muted"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "hj2nz",
-                      "name": "d1stats",
-                      "width": "fill_container",
-                      "gap": 12,
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "jlhA7",
-                          "name": "d1s1",
-                          "fill": "$state-learning",
-                          "content": "학습 8",
-                          "fontFamily": "Inter",
-                          "fontSize": 11,
-                          "fontWeight": "500"
-                        },
-                        {
-                          "type": "text",
-                          "id": "hdZ9W",
-                          "name": "d1s2",
-                          "fill": "$state-review",
-                          "content": "복습 12",
-                          "fontFamily": "Inter",
-                          "fontSize": 11,
-                          "fontWeight": "500"
-                        },
-                        {
-                          "type": "text",
-                          "id": "nsG8T",
-                          "name": "d1s3",
-                          "fill": "$state-relearning",
-                          "content": "재학습 2",
-                          "fontFamily": "Inter",
-                          "fontSize": 11,
-                          "fontWeight": "500"
-                        },
-                        {
-                          "type": "text",
-                          "id": "7ZPQL",
-                          "name": "d1s4",
-                          "fill": "$text-secondary",
-                          "content": "R 87%",
-                          "fontFamily": "Inter",
-                          "fontSize": 11,
-                          "fontWeight": "500"
                         }
                       ]
                     }
@@ -3771,6 +3509,16 @@
                           ]
                         },
                         {
+                          "type": "text",
+                          "id": "oCb50",
+                          "name": "a2",
+                          "fill": "$accent-primary",
+                          "content": "3",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "700"
+                        },
+                        {
                           "type": "icon_font",
                           "id": "VMuJG",
                           "name": "c5",
@@ -3779,55 +3527,6 @@
                           "iconFontName": "chevron-right",
                           "iconFontFamily": "lucide",
                           "fill": "$text-muted"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "GvDPX",
-                      "name": "d2stats",
-                      "width": "fill_container",
-                      "gap": 12,
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "eXlFs",
-                          "name": "d2s1",
-                          "fill": "$state-learning",
-                          "content": "학습 5",
-                          "fontFamily": "Inter",
-                          "fontSize": 11,
-                          "fontWeight": "500"
-                        },
-                        {
-                          "type": "text",
-                          "id": "4pP3v",
-                          "name": "d2s2",
-                          "fill": "$state-review",
-                          "content": "복습 15",
-                          "fontFamily": "Inter",
-                          "fontSize": 11,
-                          "fontWeight": "500"
-                        },
-                        {
-                          "type": "text",
-                          "id": "dRs8G",
-                          "name": "d2s3",
-                          "fill": "$state-relearning",
-                          "content": "재학습 1",
-                          "fontFamily": "Inter",
-                          "fontSize": 11,
-                          "fontWeight": "500"
-                        },
-                        {
-                          "type": "text",
-                          "id": "dHdzx",
-                          "name": "d2s4",
-                          "fill": "$text-secondary",
-                          "content": "R 91%",
-                          "fontFamily": "Inter",
-                          "fontSize": 11,
-                          "fontWeight": "500"
                         }
                       ]
                     }
@@ -3912,6 +3611,16 @@
                           ]
                         },
                         {
+                          "type": "text",
+                          "id": "8zMCB",
+                          "name": "a3",
+                          "fill": "$accent-primary",
+                          "content": "4",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "700"
+                        },
+                        {
                           "type": "icon_font",
                           "id": "GMmq6",
                           "name": "c6",
@@ -3920,55 +3629,6 @@
                           "iconFontName": "chevron-right",
                           "iconFontFamily": "lucide",
                           "fill": "$text-muted"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "jhvaV",
-                      "name": "d3stats",
-                      "width": "fill_container",
-                      "gap": 12,
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "sDNIv",
-                          "name": "d3s1",
-                          "fill": "$state-learning",
-                          "content": "학습 4",
-                          "fontFamily": "Inter",
-                          "fontSize": 11,
-                          "fontWeight": "500"
-                        },
-                        {
-                          "type": "text",
-                          "id": "fuAKw",
-                          "name": "d3s2",
-                          "fill": "$state-review",
-                          "content": "복습 10",
-                          "fontFamily": "Inter",
-                          "fontSize": 11,
-                          "fontWeight": "500"
-                        },
-                        {
-                          "type": "text",
-                          "id": "CCQIq",
-                          "name": "d3s3",
-                          "fill": "$state-relearning",
-                          "content": "재학습 3",
-                          "fontFamily": "Inter",
-                          "fontSize": 11,
-                          "fontWeight": "500"
-                        },
-                        {
-                          "type": "text",
-                          "id": "TAIdh",
-                          "name": "d3s4",
-                          "fill": "$text-secondary",
-                          "content": "R 82%",
-                          "fontFamily": "Inter",
-                          "fontSize": 11,
-                          "fontWeight": "500"
                         }
                       ]
                     }
@@ -4053,6 +3713,16 @@
                           ]
                         },
                         {
+                          "type": "text",
+                          "id": "AYhGM",
+                          "name": "a4",
+                          "fill": "$accent-primary",
+                          "content": "6",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "700"
+                        },
+                        {
                           "type": "icon_font",
                           "id": "gIIj1",
                           "name": "c7",
@@ -4061,55 +3731,6 @@
                           "iconFontName": "chevron-right",
                           "iconFontFamily": "lucide",
                           "fill": "$text-muted"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "9ccCW",
-                      "name": "d1stats",
-                      "width": "fill_container",
-                      "gap": 12,
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "CliIi",
-                          "name": "d1s1",
-                          "fill": "$state-learning",
-                          "content": "학습 6",
-                          "fontFamily": "Inter",
-                          "fontSize": 11,
-                          "fontWeight": "500"
-                        },
-                        {
-                          "type": "text",
-                          "id": "B798e",
-                          "name": "d1s2",
-                          "fill": "$state-review",
-                          "content": "복습 9",
-                          "fontFamily": "Inter",
-                          "fontSize": 11,
-                          "fontWeight": "500"
-                        },
-                        {
-                          "type": "text",
-                          "id": "yo9ni",
-                          "name": "d1s3",
-                          "fill": "$state-relearning",
-                          "content": "재학습 1",
-                          "fontFamily": "Inter",
-                          "fontSize": 11,
-                          "fontWeight": "500"
-                        },
-                        {
-                          "type": "text",
-                          "id": "HbDLT",
-                          "name": "d1s4",
-                          "fill": "$text-secondary",
-                          "content": "R 91%",
-                          "fontFamily": "Inter",
-                          "fontSize": 11,
-                          "fontWeight": "500"
                         }
                       ]
                     }
@@ -4194,6 +3815,16 @@
                           ]
                         },
                         {
+                          "type": "text",
+                          "id": "7L3iw",
+                          "name": "a5",
+                          "fill": "$accent-primary",
+                          "content": "2",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "700"
+                        },
+                        {
                           "type": "icon_font",
                           "id": "54tcJ",
                           "name": "c8",
@@ -4202,55 +3833,6 @@
                           "iconFontName": "chevron-right",
                           "iconFontFamily": "lucide",
                           "fill": "$text-muted"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "ONcq7",
-                      "name": "d1stats",
-                      "width": "fill_container",
-                      "gap": 12,
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "8aFmn",
-                          "name": "d1s1",
-                          "fill": "$state-learning",
-                          "content": "학습 3",
-                          "fontFamily": "Inter",
-                          "fontSize": 11,
-                          "fontWeight": "500"
-                        },
-                        {
-                          "type": "text",
-                          "id": "suSIz",
-                          "name": "d1s2",
-                          "fill": "$state-review",
-                          "content": "복습 8",
-                          "fontFamily": "Inter",
-                          "fontSize": 11,
-                          "fontWeight": "500"
-                        },
-                        {
-                          "type": "text",
-                          "id": "3wIYp",
-                          "name": "d1s3",
-                          "fill": "$state-relearning",
-                          "content": "재학습 0",
-                          "fontFamily": "Inter",
-                          "fontSize": 11,
-                          "fontWeight": "500"
-                        },
-                        {
-                          "type": "text",
-                          "id": "Sj2gD",
-                          "name": "d1s4",
-                          "fill": "$text-secondary",
-                          "content": "R 94%",
-                          "fontFamily": "Inter",
-                          "fontSize": 11,
-                          "fontWeight": "500"
                         }
                       ]
                     }
@@ -4335,6 +3917,16 @@
                           ]
                         },
                         {
+                          "type": "text",
+                          "id": "fl0nv",
+                          "name": "c1",
+                          "fill": "$accent-primary",
+                          "content": "4",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "700"
+                        },
+                        {
                           "type": "icon_font",
                           "id": "OgjmE",
                           "name": "c9",
@@ -4343,55 +3935,6 @@
                           "iconFontName": "chevron-right",
                           "iconFontFamily": "lucide",
                           "fill": "$text-muted"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "abQKs",
-                      "name": "d1stats",
-                      "width": "fill_container",
-                      "gap": 12,
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "DjsBJ",
-                          "name": "d1s1",
-                          "fill": "$state-learning",
-                          "content": "학습 5",
-                          "fontFamily": "Inter",
-                          "fontSize": 11,
-                          "fontWeight": "500"
-                        },
-                        {
-                          "type": "text",
-                          "id": "nC80b",
-                          "name": "d1s2",
-                          "fill": "$state-review",
-                          "content": "복습 11",
-                          "fontFamily": "Inter",
-                          "fontSize": 11,
-                          "fontWeight": "500"
-                        },
-                        {
-                          "type": "text",
-                          "id": "ZfPTO",
-                          "name": "d1s3",
-                          "fill": "$state-relearning",
-                          "content": "재학습 2",
-                          "fontFamily": "Inter",
-                          "fontSize": 11,
-                          "fontWeight": "500"
-                        },
-                        {
-                          "type": "text",
-                          "id": "tdNmQ",
-                          "name": "d1s4",
-                          "fill": "$text-secondary",
-                          "content": "R 85%",
-                          "fontFamily": "Inter",
-                          "fontSize": 11,
-                          "fontWeight": "500"
                         }
                       ]
                     }
@@ -4476,6 +4019,16 @@
                           ]
                         },
                         {
+                          "type": "text",
+                          "id": "Iuqim",
+                          "name": "c2",
+                          "fill": "$accent-primary",
+                          "content": "3",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "700"
+                        },
+                        {
                           "type": "icon_font",
                           "id": "c5DWm",
                           "name": "c10",
@@ -4484,55 +4037,6 @@
                           "iconFontName": "chevron-right",
                           "iconFontFamily": "lucide",
                           "fill": "$text-muted"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "1WgSU",
-                      "name": "d1stats",
-                      "width": "fill_container",
-                      "gap": 12,
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "jC1pX",
-                          "name": "d1s1",
-                          "fill": "$state-learning",
-                          "content": "학습 4",
-                          "fontFamily": "Inter",
-                          "fontSize": 11,
-                          "fontWeight": "500"
-                        },
-                        {
-                          "type": "text",
-                          "id": "EHtA9",
-                          "name": "d1s2",
-                          "fill": "$state-review",
-                          "content": "복습 7",
-                          "fontFamily": "Inter",
-                          "fontSize": 11,
-                          "fontWeight": "500"
-                        },
-                        {
-                          "type": "text",
-                          "id": "wRWtH",
-                          "name": "d1s3",
-                          "fill": "$state-relearning",
-                          "content": "재학습 1",
-                          "fontFamily": "Inter",
-                          "fontSize": 11,
-                          "fontWeight": "500"
-                        },
-                        {
-                          "type": "text",
-                          "id": "RlS7N",
-                          "name": "d1s4",
-                          "fill": "$text-secondary",
-                          "content": "R 89%",
-                          "fontFamily": "Inter",
-                          "fontSize": 11,
-                          "fontWeight": "500"
                         }
                       ]
                     }
@@ -4617,6 +4121,16 @@
                           ]
                         },
                         {
+                          "type": "text",
+                          "id": "WA8Lo",
+                          "name": "c3",
+                          "fill": "$accent-primary",
+                          "content": "5",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "700"
+                        },
+                        {
                           "type": "icon_font",
                           "id": "6STDn",
                           "name": "c11",
@@ -4625,55 +4139,6 @@
                           "iconFontName": "chevron-right",
                           "iconFontFamily": "lucide",
                           "fill": "$text-muted"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "Hwpas",
-                      "name": "d1stats",
-                      "width": "fill_container",
-                      "gap": 12,
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "ZDesG",
-                          "name": "d1s1",
-                          "fill": "$state-learning",
-                          "content": "학습 7",
-                          "fontFamily": "Inter",
-                          "fontSize": 11,
-                          "fontWeight": "500"
-                        },
-                        {
-                          "type": "text",
-                          "id": "y5kTx",
-                          "name": "d1s2",
-                          "fill": "$state-review",
-                          "content": "복습 14",
-                          "fontFamily": "Inter",
-                          "fontSize": 11,
-                          "fontWeight": "500"
-                        },
-                        {
-                          "type": "text",
-                          "id": "3rqGK",
-                          "name": "d1s3",
-                          "fill": "$state-relearning",
-                          "content": "재학습 3",
-                          "fontFamily": "Inter",
-                          "fontSize": 11,
-                          "fontWeight": "500"
-                        },
-                        {
-                          "type": "text",
-                          "id": "VKfuF",
-                          "name": "d1s4",
-                          "fill": "$text-secondary",
-                          "content": "R 82%",
-                          "fontFamily": "Inter",
-                          "fontSize": 11,
-                          "fontWeight": "500"
                         }
                       ]
                     }
@@ -4758,6 +4223,16 @@
                           ]
                         },
                         {
+                          "type": "text",
+                          "id": "4iQab",
+                          "name": "c4",
+                          "fill": "$accent-primary",
+                          "content": "2",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "700"
+                        },
+                        {
                           "type": "icon_font",
                           "id": "5sTko",
                           "name": "c12",
@@ -4766,55 +4241,6 @@
                           "iconFontName": "chevron-right",
                           "iconFontFamily": "lucide",
                           "fill": "$text-muted"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "SPV2h",
-                      "name": "d1stats",
-                      "width": "fill_container",
-                      "gap": 12,
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "Ll7d6",
-                          "name": "d1s1",
-                          "fill": "$state-learning",
-                          "content": "학습 2",
-                          "fontFamily": "Inter",
-                          "fontSize": 11,
-                          "fontWeight": "500"
-                        },
-                        {
-                          "type": "text",
-                          "id": "gx2qY",
-                          "name": "d1s2",
-                          "fill": "$state-review",
-                          "content": "복습 6",
-                          "fontFamily": "Inter",
-                          "fontSize": 11,
-                          "fontWeight": "500"
-                        },
-                        {
-                          "type": "text",
-                          "id": "yHehk",
-                          "name": "d1s3",
-                          "fill": "$state-relearning",
-                          "content": "재학습 0",
-                          "fontFamily": "Inter",
-                          "fontSize": 11,
-                          "fontWeight": "500"
-                        },
-                        {
-                          "type": "text",
-                          "id": "UFe1k",
-                          "name": "d1s4",
-                          "fill": "$text-secondary",
-                          "content": "R 96%",
-                          "fontFamily": "Inter",
-                          "fontSize": 11,
-                          "fontWeight": "500"
                         }
                       ]
                     }
@@ -4895,6 +4321,16 @@
                           ]
                         },
                         {
+                          "type": "text",
+                          "id": "INi9o",
+                          "name": "c5",
+                          "fill": "$accent-primary",
+                          "content": "4",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "700"
+                        },
+                        {
                           "type": "icon_font",
                           "id": "qfCmx",
                           "name": "c13",
@@ -4903,55 +4339,6 @@
                           "iconFontName": "chevron-right",
                           "iconFontFamily": "lucide",
                           "fill": "$text-muted"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "nJ4MH",
-                      "name": "d1stats",
-                      "width": "fill_container",
-                      "gap": 12,
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "nmwAq",
-                          "name": "d1s1",
-                          "fill": "$state-learning",
-                          "content": "학습 5",
-                          "fontFamily": "Inter",
-                          "fontSize": 11,
-                          "fontWeight": "500"
-                        },
-                        {
-                          "type": "text",
-                          "id": "AE20k",
-                          "name": "d1s2",
-                          "fill": "$state-review",
-                          "content": "복습 10",
-                          "fontFamily": "Inter",
-                          "fontSize": 11,
-                          "fontWeight": "500"
-                        },
-                        {
-                          "type": "text",
-                          "id": "o8jbe",
-                          "name": "d1s3",
-                          "fill": "$state-relearning",
-                          "content": "재학습 2",
-                          "fontFamily": "Inter",
-                          "fontSize": 11,
-                          "fontWeight": "500"
-                        },
-                        {
-                          "type": "text",
-                          "id": "vSrhX",
-                          "name": "d1s4",
-                          "fill": "$text-secondary",
-                          "content": "R 88%",
-                          "fontFamily": "Inter",
-                          "fontSize": 11,
-                          "fontWeight": "500"
                         }
                       ]
                     }
@@ -5067,6 +4454,32 @@
                       "fontSize": 10,
                       "fontWeight": "600",
                       "letterSpacing": 0.5
+                    },
+                    {
+                      "type": "frame",
+                      "id": "6Bokw",
+                      "layoutPosition": "absolute",
+                      "x": 62,
+                      "y": 6,
+                      "name": "badge",
+                      "width": 18,
+                      "height": 18,
+                      "fill": "#EF4444",
+                      "cornerRadius": 9,
+                      "layout": "none",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "gsUDq",
+                          "x": 3,
+                          "y": 2,
+                          "fill": "#FFFFFF",
+                          "content": "12",
+                          "fontFamily": "Inter",
+                          "fontSize": 9,
+                          "fontWeight": "700"
+                        }
+                      ]
                     }
                   ]
                 },
@@ -8678,100 +8091,156 @@
                 },
                 {
                   "type": "frame",
-                  "id": "g4W9p",
-                  "name": "stats",
+                  "id": "IwqoN",
+                  "name": "dueHero",
                   "width": "fill_container",
-                  "gap": 24,
-                  "justifyContent": "center",
+                  "layout": "vertical",
+                  "gap": 4,
                   "alignItems": "center",
                   "children": [
                     {
+                      "type": "text",
+                      "id": "Vh93F",
+                      "fill": "$text-secondary",
+                      "content": "복습할 단어",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "1q7bj",
+                      "fill": "$text-primary",
+                      "content": "5",
+                      "fontFamily": "Plus Jakarta Sans",
+                      "fontSize": 36,
+                      "fontWeight": "800"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "jBIR1",
+                  "name": "pipeline",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "children": [
+                    {
                       "type": "frame",
-                      "id": "1D31g",
-                      "name": "st1",
-                      "layout": "vertical",
+                      "id": "BtWh5",
+                      "name": "segBar",
+                      "clip": true,
+                      "width": "fill_container",
+                      "height": 8,
+                      "cornerRadius": 4,
                       "gap": 2,
-                      "alignItems": "center",
                       "children": [
                         {
-                          "type": "text",
-                          "id": "PAnDc",
-                          "name": "st1v",
-                          "fill": "$text-primary",
-                          "content": "32",
-                          "fontFamily": "Inter",
-                          "fontSize": 22,
-                          "fontWeight": "800"
+                          "type": "frame",
+                          "id": "iTNlI",
+                          "width": 200,
+                          "height": 8,
+                          "fill": "$state-review"
                         },
                         {
-                          "type": "text",
-                          "id": "tvYDG",
-                          "name": "st1l",
-                          "fill": "$text-secondary",
-                          "content": "단어",
-                          "fontFamily": "Inter",
-                          "fontSize": 12,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "HlbRU",
+                          "width": 90,
+                          "height": 8,
+                          "fill": "$state-retrievability"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "qPRMR",
+                          "width": 68,
+                          "height": 8,
+                          "fill": "$state-relearning"
                         }
                       ]
                     },
                     {
                       "type": "frame",
-                      "id": "HQmWg",
-                      "name": "st2",
-                      "layout": "vertical",
-                      "gap": 2,
-                      "alignItems": "center",
+                      "id": "DziC5",
+                      "name": "barLabels",
+                      "width": "fill_container",
+                      "gap": 12,
+                      "justifyContent": "center",
                       "children": [
                         {
-                          "type": "text",
-                          "id": "pv3TY",
-                          "name": "st2v",
-                          "fill": "$state-retrievability",
-                          "content": "87%",
-                          "fontFamily": "Inter",
-                          "fontSize": 22,
-                          "fontWeight": "800"
+                          "type": "frame",
+                          "id": "uMu0L",
+                          "name": "h1",
+                          "gap": 4,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "ellipse",
+                              "id": "HwyT8",
+                              "fill": "$state-review",
+                              "width": 6,
+                              "height": 6
+                            },
+                            {
+                              "type": "text",
+                              "id": "mQfvF",
+                              "fill": "$text-secondary",
+                              "content": "외운 단어 18",
+                              "fontFamily": "Inter",
+                              "fontSize": 11,
+                              "fontWeight": "500"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "ciV5v",
-                          "name": "st2l",
-                          "fill": "$text-secondary",
-                          "content": "Retrievability",
-                          "fontFamily": "Inter",
-                          "fontSize": 12,
-                          "fontWeight": "normal"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "9KS0V",
-                      "name": "st3",
-                      "layout": "vertical",
-                      "gap": 2,
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "NZdya",
-                          "name": "st3v",
-                          "fill": "$accent-primary",
-                          "content": "12",
-                          "fontFamily": "Inter",
-                          "fontSize": 22,
-                          "fontWeight": "800"
+                          "type": "frame",
+                          "id": "Kq8jN",
+                          "name": "h2",
+                          "gap": 4,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "ellipse",
+                              "id": "M2o3u",
+                              "fill": "$state-retrievability",
+                              "width": 6,
+                              "height": 6
+                            },
+                            {
+                              "type": "text",
+                              "id": "EDZzY",
+                              "fill": "$text-secondary",
+                              "content": "외우는 중 8",
+                              "fontFamily": "Inter",
+                              "fontSize": 11,
+                              "fontWeight": "500"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "AGtT4",
-                          "name": "st3l",
-                          "fill": "$text-secondary",
-                          "content": "복습 대기",
-                          "fontFamily": "Inter",
-                          "fontSize": 12,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "W8NrI",
+                          "name": "h3",
+                          "gap": 4,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "ellipse",
+                              "id": "k2Jny",
+                              "fill": "$state-relearning",
+                              "width": 6,
+                              "height": 6
+                            },
+                            {
+                              "type": "text",
+                              "id": "WRhCX",
+                              "fill": "$text-secondary",
+                              "content": "새 단어 6",
+                              "fontFamily": "Inter",
+                              "fontSize": 11,
+                              "fontWeight": "500"
+                            }
+                          ]
                         }
                       ]
                     }
@@ -13382,38 +12851,6 @@
           "children": [
             {
               "type": "frame",
-              "id": "IyJia",
-              "name": "header",
-              "width": "fill_container",
-              "layout": "vertical",
-              "gap": 4,
-              "children": [
-                {
-                  "type": "text",
-                  "id": "jKpJm",
-                  "name": "htitle",
-                  "fill": "$text-primary",
-                  "content": "오늘의 학습",
-                  "lineHeight": 1,
-                  "fontFamily": "Plus Jakarta Sans",
-                  "fontSize": 38,
-                  "fontWeight": "800",
-                  "letterSpacing": -1.5
-                },
-                {
-                  "type": "text",
-                  "id": "fHB4q",
-                  "name": "hsub",
-                  "fill": "$text-secondary",
-                  "content": "노래로 배우는 일본어 단어",
-                  "fontFamily": "Inter",
-                  "fontSize": 14,
-                  "fontWeight": "normal"
-                }
-              ]
-            },
-            {
-              "type": "frame",
               "id": "XyDJ5",
               "name": "searchBar",
               "width": "fill_container",
@@ -13817,38 +13254,6 @@
             20
           ],
           "children": [
-            {
-              "type": "frame",
-              "id": "M7u8a",
-              "name": "header",
-              "width": "fill_container",
-              "layout": "vertical",
-              "gap": 4,
-              "children": [
-                {
-                  "type": "text",
-                  "id": "8i8AF",
-                  "name": "htitle",
-                  "fill": "$text-primary",
-                  "content": "오늘의 학습",
-                  "lineHeight": 1,
-                  "fontFamily": "Plus Jakarta Sans",
-                  "fontSize": 38,
-                  "fontWeight": "800",
-                  "letterSpacing": -1.5
-                },
-                {
-                  "type": "text",
-                  "id": "1WC9L",
-                  "name": "hsub",
-                  "fill": "$text-secondary",
-                  "content": "노래로 배우는 일본어 단어",
-                  "fontFamily": "Inter",
-                  "fontSize": 14,
-                  "fontWeight": "normal"
-                }
-              ]
-            },
             {
               "type": "frame",
               "id": "LMWyk",

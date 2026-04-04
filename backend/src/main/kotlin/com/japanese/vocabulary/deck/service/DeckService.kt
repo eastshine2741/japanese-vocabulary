@@ -26,17 +26,12 @@ class DeckService(
                 artist = it.getArtist(),
                 artworkUrl = it.getArtworkUrl(),
                 wordCount = it.getWordCount(),
-                avgRetrievability = it.getAvgRetrievability()
+                dueCount = it.getDueCount(),
+                masteredCount = it.getMasteredCount()
             )
         }
 
-        val allStats = deckRepository.findAllDeckStats(userId)
-        val allDeck = AllDeckSummary(
-            wordCount = allStats.getWordCount(),
-            avgRetrievability = allStats.getAvgRetrievability()
-        )
-
-        return DeckListResponse(allDeck = allDeck, songDecks = songDecks)
+        return DeckListResponse(songDecks = songDecks)
     }
 
     @Transactional(readOnly = true)
@@ -65,13 +60,9 @@ class DeckService(
             artworkUrl = artworkUrl,
             wordCount = stats.getWordCount(),
             dueCount = stats.getDueCount(),
-            stateCounts = StateCounts(
-                new = stats.getNewCount(),
-                learning = stats.getLearningCount(),
-                review = stats.getReviewCount(),
-                relearning = stats.getRelearningCount()
-            ),
-            avgRetrievability = stats.getAvgRetrievability()
+            masteredCount = stats.getMasteredCount(),
+            studyingCount = stats.getStudyingCount(),
+            newWordCount = stats.getNewWordCount()
         )
     }
 

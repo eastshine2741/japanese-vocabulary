@@ -14,9 +14,8 @@ interface DeckRepository : JpaRepository<DeckEntity, Long> {
     @Query(nativeQuery = true, value = """
         SELECT d.song_id AS songId, s.title AS title, s.artist AS artist, s.artwork_url AS artworkUrl,
                COUNT(DISTINCT df.flashcard_id) AS wordCount,
-               ROUND(AVG(CASE WHEN f.state != 0 AND f.last_review IS NOT NULL THEN
-                   POW(1 + (19.0/81.0) * (TIMESTAMPDIFF(SECOND, f.last_review, NOW()) / 86400.0 / f.stability), -0.5)
-               END), 2) AS avgRetrievability
+               SUM(CASE WHEN f.due <= NOW() THEN 1 ELSE 0 END) AS dueCount,
+               SUM(CASE WHEN f.state = 1 THEN 1 ELSE 0 END) AS masteredCount
         FROM decks d
         JOIN songs s ON s.id = d.song_id
         LEFT JOIN deck_flashcards df ON df.deck_id = d.id
@@ -28,25 +27,11 @@ interface DeckRepository : JpaRepository<DeckEntity, Long> {
     fun findSongDeckSummaries(@Param("userId") userId: Long): List<SongDeckSummaryProjection>
 
     @Query(nativeQuery = true, value = """
-        SELECT COUNT(DISTINCT f.id) AS wordCount,
-               ROUND(AVG(CASE WHEN f.state != 0 AND f.last_review IS NOT NULL THEN
-                   POW(1 + (19.0/81.0) * (TIMESTAMPDIFF(SECOND, f.last_review, NOW()) / 86400.0 / f.stability), -0.5)
-               END), 2) AS avgRetrievability
-        FROM flashcards f
-        WHERE f.user_id = :userId
-    """)
-    fun findAllDeckStats(@Param("userId") userId: Long): DeckStatsProjection
-
-    @Query(nativeQuery = true, value = """
         SELECT COUNT(*) AS wordCount,
                SUM(CASE WHEN f.due <= NOW() THEN 1 ELSE 0 END) AS dueCount,
-               SUM(CASE WHEN f.state = 0 THEN 1 ELSE 0 END) AS newCount,
-               SUM(CASE WHEN f.state = 1 THEN 1 ELSE 0 END) AS learningCount,
-               SUM(CASE WHEN f.state = 2 THEN 1 ELSE 0 END) AS reviewCount,
-               SUM(CASE WHEN f.state = 3 THEN 1 ELSE 0 END) AS relearningCount,
-               ROUND(AVG(CASE WHEN f.state != 0 AND f.last_review IS NOT NULL THEN
-                   POW(1 + (19.0/81.0) * (TIMESTAMPDIFF(SECOND, f.last_review, NOW()) / 86400.0 / f.stability), -0.5)
-               END), 2) AS avgRetrievability
+               SUM(CASE WHEN f.state = 1 THEN 1 ELSE 0 END) AS masteredCount,
+               SUM(CASE WHEN (f.state = 0 AND f.last_review IS NOT NULL) OR f.state = 2 THEN 1 ELSE 0 END) AS studyingCount,
+               SUM(CASE WHEN f.state = 0 AND f.last_review IS NULL THEN 1 ELSE 0 END) AS newWordCount
         FROM flashcards f
         WHERE f.user_id = :userId
     """)
@@ -55,13 +40,9 @@ interface DeckRepository : JpaRepository<DeckEntity, Long> {
     @Query(nativeQuery = true, value = """
         SELECT COUNT(*) AS wordCount,
                SUM(CASE WHEN f.due <= NOW() THEN 1 ELSE 0 END) AS dueCount,
-               SUM(CASE WHEN f.state = 0 THEN 1 ELSE 0 END) AS newCount,
-               SUM(CASE WHEN f.state = 1 THEN 1 ELSE 0 END) AS learningCount,
-               SUM(CASE WHEN f.state = 2 THEN 1 ELSE 0 END) AS reviewCount,
-               SUM(CASE WHEN f.state = 3 THEN 1 ELSE 0 END) AS relearningCount,
-               ROUND(AVG(CASE WHEN f.state != 0 AND f.last_review IS NOT NULL THEN
-                   POW(1 + (19.0/81.0) * (TIMESTAMPDIFF(SECOND, f.last_review, NOW()) / 86400.0 / f.stability), -0.5)
-               END), 2) AS avgRetrievability
+               SUM(CASE WHEN f.state = 1 THEN 1 ELSE 0 END) AS masteredCount,
+               SUM(CASE WHEN (f.state = 0 AND f.last_review IS NOT NULL) OR f.state = 2 THEN 1 ELSE 0 END) AS studyingCount,
+               SUM(CASE WHEN f.state = 0 AND f.last_review IS NULL THEN 1 ELSE 0 END) AS newWordCount
         FROM flashcards f
         WHERE f.user_id = :userId
         AND f.id IN (
@@ -79,20 +60,14 @@ interface SongDeckSummaryProjection {
     fun getArtist(): String
     fun getArtworkUrl(): String?
     fun getWordCount(): Int
-    fun getAvgRetrievability(): Double?
-}
-
-interface DeckStatsProjection {
-    fun getWordCount(): Int
-    fun getAvgRetrievability(): Double?
+    fun getDueCount(): Int
+    fun getMasteredCount(): Int
 }
 
 interface DeckDetailStatsProjection {
     fun getWordCount(): Int
     fun getDueCount(): Int
-    fun getNewCount(): Int
-    fun getLearningCount(): Int
-    fun getReviewCount(): Int
-    fun getRelearningCount(): Int
-    fun getAvgRetrievability(): Double?
+    fun getMasteredCount(): Int
+    fun getStudyingCount(): Int
+    fun getNewWordCount(): Int
 }

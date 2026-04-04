@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, TouchableOpacity, StyleSheet, Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
+import { flashcardApi } from '../api/flashcardApi';
 import { Colors } from '../theme/theme';
 
 type TabKey = 'Home' | 'Words' | 'MyPage';
@@ -14,6 +16,13 @@ const TAB_CONFIG: Record<TabKey, { icon: keyof typeof Feather.glyphMap; label: s
 
 export default function PillTabBar({ state, descriptors, navigation }: any) {
   const insets = useSafeAreaInsets();
+  const [dueCount, setDueCount] = useState(0);
+
+  useFocusEffect(
+    useCallback(() => {
+      flashcardApi.getStats().then((s) => setDueCount(s.due)).catch(() => {});
+    }, [])
+  );
 
   return (
     <View style={[styles.container, { paddingBottom: insets.bottom + 10 }]}>
@@ -30,6 +39,8 @@ export default function PillTabBar({ state, descriptors, navigation }: any) {
             }
           };
 
+          const showBadge = route.name === 'Words' && dueCount > 0;
+
           return (
             <TouchableOpacity
               key={route.key}
@@ -37,11 +48,18 @@ export default function PillTabBar({ state, descriptors, navigation }: any) {
               activeOpacity={0.7}
               style={[styles.tab, focused && styles.tabActive]}
             >
-              <Feather
-                name={config.icon}
-                size={18}
-                color={focused ? '#FFFFFF' : Colors.textMuted}
-              />
+              <View>
+                <Feather
+                  name={config.icon}
+                  size={18}
+                  color={focused ? '#FFFFFF' : Colors.textMuted}
+                />
+                {showBadge && (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>{dueCount > 99 ? '99+' : dueCount}</Text>
+                  </View>
+                )}
+              </View>
               <Text style={[styles.label, focused ? styles.labelActive : styles.labelInactive]}>
                 {config.label}
               </Text>
@@ -92,5 +110,22 @@ const styles = StyleSheet.create({
   labelInactive: {
     color: Colors.textMuted,
     fontWeight: '500',
+  },
+  badge: {
+    position: 'absolute',
+    top: -6,
+    right: -10,
+    backgroundColor: '#EF4444',
+    borderRadius: 8,
+    minWidth: 16,
+    height: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  badgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '700',
   },
 });

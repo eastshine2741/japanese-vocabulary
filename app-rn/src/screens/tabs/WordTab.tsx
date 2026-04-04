@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -32,56 +33,79 @@ export default function WordTab() {
     }, [])
   );
 
-  const avgRetrievability = data?.allDeck.avgRetrievability;
-
   const renderHeader = () => (
     <View style={styles.header}>
-      <Text style={styles.title}>단어장</Text>
+      {/* Stats card */}
+      {stats && stats.total > 0 && (() => {
+        const total = stats.total;
+        const mastered = stats.review;
+        const studying = stats.learning;
+        const newCount = stats.newCount;
+        const due = stats.due;
+        const masteredPct = (mastered / total) * 100;
+        const studyingPct = (studying / total) * 100;
+        const newPct = (newCount / total) * 100;
 
-      {/* 4-quadrant stats grid */}
-      <View style={styles.statsGrid}>
-        <View style={styles.statsRow}>
-          <View style={[styles.statsQuadrant, { backgroundColor: Colors.stateLearningBg }]}>
-            <Text style={[styles.statsLabel, { color: Colors.stateLearning }]}>학습</Text>
-            <Text style={[styles.statsValue, { color: Colors.stateLearning }]}>
-              {stats?.learning ?? 0}
-            </Text>
-          </View>
-          <View style={[styles.statsQuadrant, { backgroundColor: Colors.stateReviewBg }]}>
-            <Text style={[styles.statsLabel, { color: Colors.stateReview }]}>복습</Text>
-            <Text style={[styles.statsValue, { color: Colors.stateReview }]}>
-              {stats?.review ?? 0}
-            </Text>
-          </View>
-        </View>
-        <View style={styles.statsRow}>
-          <View style={[styles.statsQuadrant, { backgroundColor: Colors.stateRelearningBg }]}>
-            <Text style={[styles.statsLabel, { color: Colors.stateRelearning }]}>재학습</Text>
-            <Text style={[styles.statsValue, { color: Colors.stateRelearning }]}>
-              {stats?.newCount ?? 0}
-            </Text>
-          </View>
-          <View style={[styles.statsQuadrant, { backgroundColor: Colors.stateRetrievabilityBg }]}>
-            <Text style={[styles.statsLabel, { color: Colors.stateRetrievability }]}>
-              평균 Retrievability
-            </Text>
-            <Text style={[styles.statsValue, { color: Colors.stateRetrievability }]}>
-              {avgRetrievability != null
-                ? `${Math.round(avgRetrievability * 100)}%`
-                : '--'}
-            </Text>
-          </View>
-        </View>
-      </View>
+        return (
+          <View style={styles.statsCard}>
+            {/* Hero: due count */}
+            <View style={styles.hero}>
+              <Text style={styles.heroLabel}>복습할 단어</Text>
+              <Text style={styles.heroValue}>{due}</Text>
+            </View>
 
-      {/* Full-width primary button */}
-      <TouchableOpacity
-        style={styles.allButton}
-        onPress={() => navigation.navigate('DeckDetail', { songId: null })}
-        activeOpacity={0.7}
-      >
-        <Text style={styles.allButtonText}>전체 단어장 보기 {'>'}</Text>
-      </TouchableOpacity>
+            {/* Segmented pipeline bar */}
+            <View style={styles.segBar}>
+              {masteredPct > 0 && (
+                <View style={[styles.segment, { width: `${masteredPct}%`, backgroundColor: Colors.stateReview }]} />
+              )}
+              {studyingPct > 0 && (
+                <View style={[styles.segment, { width: `${studyingPct}%`, backgroundColor: Colors.stateRetrievability }]} />
+              )}
+              {newPct > 0 && (
+                <View style={[styles.segment, { width: `${newPct}%`, backgroundColor: Colors.stateRelearning }]} />
+              )}
+            </View>
+
+            {/* Pipeline legend */}
+            <View style={styles.legend}>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendDot, { backgroundColor: Colors.stateReview }]} />
+                <Text style={styles.legendText}>외운 단어 {mastered}</Text>
+              </View>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendDot, { backgroundColor: Colors.stateRetrievability }]} />
+                <Text style={styles.legendText}>외우는 중 {studying}</Text>
+              </View>
+              <View style={styles.legendItem}>
+                <View style={[styles.legendDot, { backgroundColor: Colors.stateRelearning }]} />
+                <Text style={styles.legendText}>새 단어 {newCount}</Text>
+              </View>
+            </View>
+
+            {/* Study button */}
+            <TouchableOpacity
+              style={[styles.studyButton, due === 0 && styles.buttonDisabled]}
+              onPress={() => navigation.navigate('Review', {})}
+              disabled={due === 0}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="layers-outline" size={20} color="#FFFFFF" />
+              <Text style={styles.studyButtonText}>학습하기</Text>
+            </TouchableOpacity>
+
+            {/* View all words button */}
+            <TouchableOpacity
+              style={styles.wordListButton}
+              onPress={() => navigation.navigate('DeckWordList', { songId: null })}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="list-outline" size={18} color={Colors.textSecondary} />
+              <Text style={styles.wordListButtonText}>전체 단어 보기</Text>
+            </TouchableOpacity>
+          </View>
+        );
+      })()}
 
       {/* Section label */}
       <Text style={styles.sectionLabel}>노래별 단어장</Text>
@@ -93,12 +117,7 @@ export default function WordTab() {
       artworkUrl={item.artworkUrl}
       title={item.title}
       subtitle={`${item.artist} · ${item.wordCount}단어`}
-      miniStats={{
-        learning: 0,
-        review: 0,
-        relearning: 0,
-        retrievability: item.avgRetrievability,
-      }}
+      dueCount={item.dueCount}
       showChevron
       onPress={() => navigation.navigate('DeckDetail', { songId: item.songId })}
     />
@@ -132,49 +151,93 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   list: { padding: Dimens.screenPadding, paddingBottom: Dimens.screenPadding + Dimens.bottomBarHeight + 40 },
   header: { marginBottom: 8 },
-  title: {
-    fontSize: 38,
-    fontWeight: '800',
-    color: Colors.textPrimary,
-    letterSpacing: -1.5,
-    marginBottom: 20,
+  /* Stats card */
+  statsCard: {
+    backgroundColor: Colors.card,
+    borderRadius: 24,
+    padding: 20,
+    gap: 16,
   },
-
-  /* 4-quadrant stats grid */
-  statsGrid: {
-    gap: 8,
+  hero: {
+    alignItems: 'center',
+    paddingVertical: 8,
+    gap: 4,
   },
-  statsRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  statsQuadrant: {
-    flex: 1,
-    borderRadius: 16,
-    padding: 16,
-  },
-  statsLabel: {
+  heroLabel: {
     fontSize: 13,
     fontWeight: '600',
+    color: Colors.textSecondary,
   },
-  statsValue: {
-    fontSize: 28,
-    fontWeight: '700',
-    marginTop: 4,
+  heroValue: {
+    fontSize: 40,
+    fontWeight: '800',
+    color: Colors.textPrimary,
+  },
+  segBar: {
+    flexDirection: 'row',
+    height: 8,
+    borderRadius: 4,
+    overflow: 'hidden',
+    gap: 2,
+  },
+  segment: {
+    height: 8,
+  },
+  legend: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  legendDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  legendText: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: Colors.textSecondary,
   },
 
-  /* Primary action button */
-  allButton: {
+  /* Study button */
+  studyButton: {
+    flexDirection: 'row',
     backgroundColor: Colors.primary,
-    borderRadius: 12,
-    paddingVertical: 14,
+    borderRadius: 24,
+    height: 48,
     alignItems: 'center',
-    marginTop: 16,
+    justifyContent: 'center',
+    gap: 8,
   },
-  allButtonText: {
+  buttonDisabled: {
+    opacity: 0.4,
+  },
+  studyButtonText: {
     color: '#FFFFFF',
     fontWeight: '600',
     fontSize: 15,
+  },
+
+  /* Word list button */
+  wordListButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 44,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    gap: 8,
+  },
+  wordListButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.textSecondary,
   },
 
   /* Section label */

@@ -80,10 +80,6 @@ export default function MyPageTab() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
     <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
-      {/* Header */}
-      <Text style={styles.title}>마이페이지</Text>
-      <Text style={styles.subtitle}>계정 및 학습 설정을 관리하세요</Text>
-
       {/* Profile Card */}
       <TouchableOpacity style={styles.profileCard} activeOpacity={0.7}>
         <View style={styles.profileAvatar}>
