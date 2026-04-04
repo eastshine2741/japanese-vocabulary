@@ -14,13 +14,17 @@ enum class PartOfSpeech(val sudachiName: String, val koreanName: String) {
     INTERJECTION("感動詞", "감동사"),
     PREFIX("接頭辞", "접두사"),
     SUFFIX("接尾辞", "접미사"),
+    FILLER("フィラー", "필러"),
+    OTHER("その他", "기타"),
     SYMBOL("記号", "기호"),
     SUPPLEMENTARY_SYMBOL("補助記号", "보조기호"),
     WHITESPACE("空白", "공백");
 
     companion object {
-        private val JAPANESE_POS_MAP = values().associateBy { it.sudachiName } +
-            mapOf("形容動詞" to NA_ADJECTIVE) // IPADic (Kuromoji) variant
+        private val JAPANESE_POS_MAP = values().associateBy { it.sudachiName } + mapOf(
+            "形容動詞" to NA_ADJECTIVE, // IPADic variant
+            "接頭詞" to PREFIX,          // IPADic uses 詞, UniDic uses 辞
+        )
         fun fromSudachiOrNull(jaPos: String): PartOfSpeech? = JAPANESE_POS_MAP[jaPos]
     }
 }

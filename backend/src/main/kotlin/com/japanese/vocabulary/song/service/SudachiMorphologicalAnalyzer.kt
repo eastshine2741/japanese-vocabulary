@@ -4,9 +4,6 @@ import com.japanese.vocabulary.song.dto.PartOfSpeech
 import com.japanese.vocabulary.song.dto.TokenInfo
 import com.worksap.nlp.sudachi.Dictionary
 import com.worksap.nlp.sudachi.Tokenizer.SplitMode
-import org.springframework.stereotype.Component
-
-@Component
 class SudachiMorphologicalAnalyzer(
     private val sudachiDictionary: Dictionary
 ) : MorphologicalAnalyzer {

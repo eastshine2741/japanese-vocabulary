@@ -1,0 +1,203 @@
+.morph-experiment {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Analyzer selector */
+.analyzer-selector {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.analyzer-selector > label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.analyzer-checkboxes {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.analyzer-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.analyzer-checkbox input[type="checkbox"] {
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* Input section */
+.morph-input-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.morph-input-section > label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.morph-input-section textarea {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-family: var(--mono);
+  font-size: 14px;
+  color: var(--text);
+  min-height: 120px;
+}
+
+.morph-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.morph-analyze-btn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 28px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.morph-analyze-btn:hover {
+  background: var(--accent-hover);
+}
+
+.morph-analyze-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.morph-error-msg {
+  color: var(--error);
+  font-size: 12px;
+  font-family: var(--mono);
+}
+
+/* Results */
+.morph-results {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.morph-line-block {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.morph-line-header {
+  padding: 10px 16px;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--mono);
+}
+
+/* Analyzer row */
+.morph-analyzer-row {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.morph-analyzer-row:last-child {
+  border-bottom: none;
+}
+
+.morph-analyzer-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.morph-analyzer-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.morph-latency {
+  font-size: 11px;
+  color: var(--success);
+  font-family: var(--mono);
+}
+
+.morph-analyzer-error {
+  font-size: 12px;
+  color: var(--error);
+  font-family: var(--mono);
+  padding: 4px 0;
+}
+
+/* Token chips */
+.morph-tokens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.morph-token {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 8px;
+  border: 1px solid;
+  border-radius: 4px;
+  background: var(--surface2);
+  cursor: default;
+  min-width: 32px;
+}
+
+.morph-token:hover {
+  background: #2a2e42;
+}
+
+.morph-token-surface {
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.morph-token-pos {
+  font-size: 10px;
+  font-family: var(--mono);
+  letter-spacing: 0.3px;
+}

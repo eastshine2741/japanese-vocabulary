@@ -27,8 +27,10 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
 
-    // Sudachi - Japanese morphological analyzer
+    // Japanese morphological analyzers
     implementation("com.worksap.nlp:sudachi:0.7.5")
+    implementation("com.atilika.kuromoji:kuromoji-ipadic:0.9.0")
+    implementation("com.atilika.kuromoji:kuromoji-unidic:0.9.0")
 
     // Flyway - DB migration
     implementation("org.flywaydb:flyway-core")

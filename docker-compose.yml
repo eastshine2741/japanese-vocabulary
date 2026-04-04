@@ -19,5 +19,18 @@ services:
     ports:
       - "6379:6379"
 
+  kagome:
+    image: ikawaha/kagome:latest
+    container_name: japanese-vocabulary-kagome
+    ports:
+      - "6060:6060"
+    command: server
+
+  mecab-neologd:
+    image: asalato/mecab-webapi-neologd:latest
+    container_name: japanese-vocabulary-mecab
+    ports:
+      - "8089:80"
+
 volumes:
   mysql_data:
