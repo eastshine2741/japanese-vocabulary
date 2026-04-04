@@ -35,12 +35,9 @@ class DevController(
     // --- Morphological comparison API ---
 
     private val ANALYZER_DISPLAY_NAMES = mapOf(
-        "sudachi" to "Sudachi (UniDic core)",
-        "sudachi-full" to "Sudachi (UniDic full)",
+        "kuromoji-ensemble" to "Kuromoji Ensemble (IPADic + UniDic)",
         "kuromoji" to "Kuromoji (IPADic)",
-        "kuromoji-unidic" to "Kuromoji (UniDic)",
-        "kagome" to "Kagome (IPADic)",
-        "mecab-neologd" to "MeCab (NEologd)"
+        "kuromoji-unidic" to "Kuromoji (UniDic)"
     )
 
     data class CompareRequest(

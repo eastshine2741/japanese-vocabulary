@@ -3,6 +3,7 @@ package com.japanese.vocabulary.song.service
 import com.japanese.vocabulary.song.client.gemini.GeminiClient
 import com.japanese.vocabulary.song.dto.AnalyzedLine
 import com.japanese.vocabulary.song.dto.Token
+import com.japanese.vocabulary.song.dto.TokenInfo
 import com.japanese.vocabulary.song.entity.KoreanLyricStatus
 import com.japanese.vocabulary.song.repository.LyricRepository
 import kotlinx.coroutines.CoroutineScope
@@ -10,6 +11,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Pageable
@@ -31,6 +33,24 @@ class KoreanLyricTranslationService(
     companion object {
         private const val MAX_RETRIES = 3
         private const val BATCH_SIZE = 5
+
+        /**
+         * Tokens with these characteristics are pure symbols (spaces, brackets, etc.)
+         * and should not be sent to the LLM for meaning lookup.
+         *
+         * WHY NOT JUST CHECK POS:
+         * kuromoji-unidic misclassifies some hiragana/katakana as SYMBOL (OOV handling issue).
+         * Checking the actual surface characters prevents meaningful words from being filtered out.
+         */
+        private val KANA_KANJI_REGEX = Regex("[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF\u3400-\u4DBF]")
+
+        private fun isSkippableToken(token: TokenInfo): Boolean {
+            if (token.partOfSpeech.name == "WHITESPACE") return true
+            if (token.partOfSpeech.name == "SYMBOL" || token.partOfSpeech.name == "SUPPLEMENTARY_SYMBOL") {
+                return !KANA_KANJI_REGEX.containsMatchIn(token.surface)
+            }
+            return false
+        }
     }
 
     @Scheduled(fixedRate = 30_000)
@@ -72,76 +92,104 @@ class KoreanLyricTranslationService(
         }
     }
 
-    private fun translateOne(lyricEntity: com.japanese.vocabulary.song.entity.LyricEntity): Boolean {
+    private suspend fun translateOne(lyricEntity: com.japanese.vocabulary.song.entity.LyricEntity): Boolean {
         logger.info(
             "[songId={}] Starting translation (retryCount={})",
             lyricEntity.songId, lyricEntity.retryCount
         )
 
         return try {
-            // 1. Read rawContent (already deserialized by converter)
             val lyricLines = lyricEntity.rawContent
             logger.info("[songId={}] Parsed {} lyric lines", lyricEntity.songId, lyricLines.size)
 
-            // 2. Tokenize each line with Sudachi
+            // 1. Morphological analysis (Kuromoji IPADic + UniDic ensemble)
             val lineTokensMap = lyricLines.associate { line ->
                 line.index to morphologicalAnalyzer.analyze(line.text)
             }
 
-            // 3. Build Gemini input: lines with words
-            val geminiInput = lyricLines.map { line ->
+            // 2. Build inputs for two parallel Gemini calls
+            val translationInput = lyricLines.map { line ->
+                mapOf("index" to line.index, "text" to line.text)
+            }
+
+            val wordMeaningInput = lyricLines.map { line ->
                 val tokens = lineTokensMap[line.index] ?: emptyList()
-                val words = tokens.map { token ->
-                    mapOf("baseForm" to token.baseForm, "pos" to token.partOfSpeech)
+                val words = tokens.filter { !isSkippableToken(it) }.map { token ->
+                    mapOf("surface" to token.surface, "baseForm" to token.baseForm, "pos" to token.partOfSpeech.name)
                 }
-                mapOf(
-                    "index" to line.index,
-                    "text" to line.text,
-                    "words" to words
-                )
+                mapOf("index" to line.index, "text" to line.text, "words" to words)
             }
 
-            // 4. Call Gemini API
-            logger.info("[songId={}] Calling Gemini API...", lyricEntity.songId)
-            val translated = geminiClient.translateLyrics(geminiInput)
-            logger.info("[songId={}] Gemini API responded ({} translated lines)", lyricEntity.songId, translated.size)
-
-            if (translated.size != lyricLines.size) {
-                logger.warn(
-                    "[songId={}] Line count mismatch: expected={}, got={} — saving partial result",
-                    lyricEntity.songId, lyricLines.size, translated.size
-                )
+            // 3. Call Gemini APIs in parallel: translation (pro) + word meanings (flash-lite)
+            logger.info("[songId={}] Calling Gemini APIs in parallel...", lyricEntity.songId)
+            val (translated, wordMeanings) = coroutineScope {
+                val translationDeferred = async { geminiClient.translateLyrics(translationInput) }
+                val wordMeaningDeferred = async { geminiClient.lookupWordMeanings(wordMeaningInput) }
+                translationDeferred.await() to wordMeaningDeferred.await()
             }
+            logger.info(
+                "[songId={}] Gemini responded: {} translated, {} word-meaning lines",
+                lyricEntity.songId, translated.size, wordMeanings.size
+            )
 
-            // 5. Merge Sudachi tokens + Gemini koreanText → AnalyzedLine
-            val translatedMap = translated.associateBy { it.index }
+            // 4. Merge: ensemble tokens + translation + word meanings → AnalyzedLine
+            val translationMap = translated.associateBy { it.index }
+            val wordMeaningMap = wordMeanings.associateBy { it.index }
+
             val analyzedLines = lyricLines.map { line ->
                 val tokens = lineTokensMap[line.index] ?: emptyList()
-                val geminiLine = translatedMap[line.index]
-                val wordMeanings = geminiLine?.words?.associateBy { it.baseForm } ?: emptyMap()
+                val translation = translationMap[line.index]
+                val meanings = wordMeaningMap[line.index]
+
+                /*
+                 * Merge logic: 1:1 sequential matching between ensemble tokens and LLM word meanings.
+                 *
+                 * The LLM prompt enforces strict 1:1 correspondence with input words (no merge/split).
+                 * SYMBOL tokens were filtered before sending to LLM, so we track a separate index
+                 * for LLM words and only advance it for non-skippable tokens.
+                 *
+                 * charStart/charEnd come directly from the ensemble analyzer — no recalculation needed.
+                 */
+                val meaningWords = meanings?.words ?: emptyList()
+                var meaningIdx = 0
 
                 val mergedTokens = tokens.map { tokenInfo ->
+                    val koreanText = if (!isSkippableToken(tokenInfo) && meaningIdx < meaningWords.size) {
+                        val meaning = meaningWords[meaningIdx]
+                        meaningIdx++
+                        meaning.koreanText
+                    } else {
+                        null
+                    }
+
+                    // Use LLM-corrected baseForm if available
+                    val correctedBaseForm = if (!isSkippableToken(tokenInfo) && meaningIdx - 1 >= 0 && meaningIdx - 1 < meaningWords.size) {
+                        meaningWords[meaningIdx - 1].baseForm
+                    } else {
+                        tokenInfo.baseForm
+                    }
+
                     Token(
                         surface = tokenInfo.surface,
-                        baseForm = tokenInfo.baseForm,
+                        baseForm = correctedBaseForm,
                         reading = tokenInfo.reading,
                         baseFormReading = tokenInfo.baseFormReading,
                         partOfSpeech = tokenInfo.partOfSpeech,
                         charStart = tokenInfo.charStart,
                         charEnd = tokenInfo.charEnd,
-                        koreanText = wordMeanings[tokenInfo.baseForm]?.koreanText
+                        koreanText = koreanText
                     )
                 }
 
                 AnalyzedLine(
                     index = line.index,
-                    koreanLyrics = geminiLine?.koreanLyrics,
-                    koreanPronounciation = geminiLine?.koreanPronounciation,
+                    koreanLyrics = translation?.koreanLyrics,
+                    koreanPronounciation = translation?.koreanPronounciation,
                     tokens = mergedTokens
                 )
             }
 
-            // 6. Save result (converter handles serialization)
+            // 5. Save result
             lyricEntity.analyzedContent = analyzedLines
             lyricEntity.status = KoreanLyricStatus.COMPLETED
             lyricEntity.updatedAt = Instant.now()

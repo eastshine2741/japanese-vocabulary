@@ -1,7 +1,8 @@
 package com.japanese.vocabulary.song.client.gemini
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.japanese.vocabulary.song.client.gemini.dto.KoreanLyricLine
+import com.japanese.vocabulary.song.client.gemini.dto.TranslationResult
+import com.japanese.vocabulary.song.client.gemini.dto.WordMeaningResult
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
@@ -10,32 +11,69 @@ import org.springframework.web.client.RestClient
 class GeminiClient(
     restClientBuilder: RestClient.Builder,
     @Value("\${gemini.api-key}") private val apiKey: String,
-    @Value("\${gemini.model}") private val model: String,
+    @Value("\${gemini.translation-model}") private val translationModel: String,
+    @Value("\${gemini.word-meaning-model}") private val wordMeaningModel: String,
     private val objectMapper: ObjectMapper
 ) {
     private val restClient = restClientBuilder
         .baseUrl("https://generativelanguage.googleapis.com")
         .build()
 
-    fun translateLyrics(lyricLines: List<Map<String, Any?>>): List<KoreanLyricLine> {
-        val inputJson = objectMapper.writeValueAsString(lyricLines)
+    /**
+     * Translate lyrics to Korean with pronunciation.
+     * Input: [{index, text}] — no morphological data needed.
+     * Uses the higher-quality model for natural translation.
+     */
+    fun translateLyrics(lyricLines: List<Map<String, Any?>>): List<TranslationResult> {
+        return callGemini(
+            model = translationModel,
+            systemPrompt = TRANSLATION_PROMPT,
+            input = lyricLines,
+            responseType = TranslationResult::class.java,
+            temperature = 0.3
+        )
+    }
+
+    /**
+     * Look up Korean meanings for morphologically analyzed words.
+     * Input: [{index, text, words: [{surface, baseForm, pos}]}]
+     * Uses a lightweight model — word meaning lookup is a simpler task than translation.
+     *
+     * WHY SEPARATE FROM TRANSLATION:
+     * - Combining translation + word meanings in one call increased latency from 30s to 5min.
+     * - Output token cost is 4-8x input token cost, so including morphological hints in input
+     *   is cheaper than asking the LLM to identify words from scratch (which increases output).
+     * - Different models are optimal: translation needs quality (pro), meanings need speed (flash-lite).
+     */
+    fun lookupWordMeanings(lyricLines: List<Map<String, Any?>>): List<WordMeaningResult> {
+        return callGemini(
+            model = wordMeaningModel,
+            systemPrompt = WORD_MEANING_PROMPT,
+            input = lyricLines,
+            responseType = WordMeaningResult::class.java,
+            temperature = 0.0
+        )
+    }
+
+    private fun <T> callGemini(
+        model: String,
+        systemPrompt: String,
+        input: Any,
+        responseType: Class<T>,
+        temperature: Double
+    ): List<T> {
+        val inputJson = objectMapper.writeValueAsString(input)
 
         val requestBody = mapOf(
             "system_instruction" to mapOf(
-                "parts" to listOf(
-                    mapOf("text" to SYSTEM_PROMPT)
-                )
+                "parts" to listOf(mapOf("text" to systemPrompt))
             ),
             "contents" to listOf(
-                mapOf(
-                    "parts" to listOf(
-                        mapOf("text" to inputJson)
-                    )
-                )
+                mapOf("parts" to listOf(mapOf("text" to inputJson)))
             ),
             "generationConfig" to mapOf(
                 "responseMimeType" to "application/json",
-                "temperature" to 0.3
+                "temperature" to temperature
             )
         )
 
@@ -47,6 +85,15 @@ class GeminiClient(
             .body(Map::class.java)
             ?: throw RuntimeException("Empty response from Gemini API")
 
+        val text = extractText(response)
+
+        return objectMapper.readValue(
+            text,
+            objectMapper.typeFactory.constructCollectionType(List::class.java, responseType)
+        )
+    }
+
+    private fun extractText(response: Map<*, *>): String {
         val candidates = response["candidates"] as? List<*>
             ?: throw RuntimeException("No candidates in Gemini response")
         val firstCandidate = candidates.firstOrNull() as? Map<*, *>
@@ -57,24 +104,18 @@ class GeminiClient(
             ?: throw RuntimeException("No parts in Gemini content")
         val firstPart = parts.firstOrNull() as? Map<*, *>
             ?: throw RuntimeException("Empty parts in Gemini content")
-        val text = firstPart["text"] as? String
+        return firstPart["text"] as? String
             ?: throw RuntimeException("No text in Gemini part")
-
-        return objectMapper.readValue(
-            text,
-            objectMapper.typeFactory.constructCollectionType(List::class.java, KoreanLyricLine::class.java)
-        )
     }
 
     companion object {
-        private val SYSTEM_PROMPT = """
-            You are a Japanese-to-Korean lyrics translator. You receive a JSON array of lyric lines, each with "index", "text", and "words" (array of {baseForm, pos}) fields.
+        private val TRANSLATION_PROMPT = """
+            You are a Japanese-to-Korean lyrics translator. You receive a JSON array of lyric lines, each with "index" and "text" fields.
 
             For each line, produce:
             - "index": same as input
             - "koreanLyrics": natural Korean translation of the Japanese text
             - "koreanPronounciation": Korean pronunciation of the original Japanese text (한국어로 표기한 일본어 발음)
-            - "words": for each word in the input "words" array, produce {"baseForm": same as input, "koreanText": Korean meaning of the word in this lyric context (1 concise dictionary-style meaning)}
 
             Translation guidelines:
             1. Read all lyrics first. Analyze the overall theme and tone, then reflect them in the Korean translation.
@@ -86,8 +127,53 @@ class GeminiClient(
 
             Rules:
             - Translate all lines, preserving the order and count
-            - Return ONLY a JSON array of objects with the four fields above
-            - Do not skip empty lines — return empty strings for them, with an empty words array
+            - Return ONLY a JSON array of objects with the three fields above
+            - Do not skip empty lines — return empty strings for them
+        """.trimIndent()
+
+        /**
+         * Word meaning prompt — strict 1:1 mapping with input words.
+         *
+         * WHY "DO NOT MERGE OR SPLIT":
+         * LLM segmentation is non-deterministic and unreliable. When allowed to merge/split,
+         * the LLM inconsistently combines words (e.g., 晴れ+舞台→晴れ舞台) or fails to split
+         * (e.g., 何も stays merged). Keeping input segmentation intact and only correcting
+         * baseForm produces the most stable results.
+         */
+        private val WORD_MEANING_PROMPT = """
+            You receive a JSON array of lyric lines.
+            Each line has "index", "text", and "words" (morphological analysis results with surface, baseForm, and pos).
+
+            The goal is to help a Korean-speaking learner study Japanese vocabulary from lyrics.
+
+            STRICT RULES:
+            1. Output one entry for EACH word in the input "words" array, in the same order.
+            2. You may correct a wrong baseForm (e.g. いう → いい when context means "good").
+            3. Do NOT merge or split words. Keep the input segmentation exactly as given.
+            4. Skip entries where baseForm is a symbol (*, （, ）, ！, 　).
+            5. When a conjugated form has its own dictionary entry with a meaning distinct from the base word, use that form as baseForm so the learner can look it up directly (e.g. なら → なら "~라면", not だ "~이다").
+
+            For each word, return:
+            - "surface": the exact characters as they appear in the original text
+            - "baseForm": the form most useful for a learner to look up in a dictionary
+            - "koreanText": Korean meaning suitable for flashcard study. If the word has multiple relevant meanings, return all with comma-joined.
+
+            Korean meaning rules by part of speech:
+            - NOUN → Korean noun (夜→밤, 人生→인생)
+            - VERB → Korean verb ending in -다 (走る→달리다)
+            - ADJECTIVE → Korean adjective ending in -다 (美しい→아름답다)
+            - NA_ADJECTIVE → Korean adjective ending in -하다 (静か→조용하다)
+            - ADVERB → Korean adverb (そろそろ→슬슬)
+            - PRONOUN → Korean pronoun (私→나)
+            - PARTICLE → Korean grammatical equivalent (は→~은/는)
+            - AUXILIARY_VERB → Korean grammatical equivalent (です→~입니다)
+            - PREFIX → meaning of the prefix
+            - SUFFIX → meaning of the suffix
+            - CONJUNCTION → Korean conjunction (しかし→하지만)
+            - INTERJECTION → Korean equivalent
+
+            Return ONLY a JSON array:
+            [{"index": N, "words": [{"surface": "...", "baseForm": "...", "koreanText": "..."}]}]
         """.trimIndent()
     }
 }

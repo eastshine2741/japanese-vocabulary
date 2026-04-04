@@ -8,7 +8,7 @@ class AnalyzerRegistry(analyzers: Map<String, MorphologicalAnalyzer>) {
 
     private val logger = LoggerFactory.getLogger(AnalyzerRegistry::class.java)
 
-    private val displayOrder = listOf("sudachi", "sudachi-full", "kuromoji", "kuromoji-unidic", "kagome", "mecab-neologd")
+    private val displayOrder = listOf("kuromoji-ensemble", "kuromoji", "kuromoji-unidic")
 
     private val registry: LinkedHashMap<String, MorphologicalAnalyzer> = linkedMapOf<String, MorphologicalAnalyzer>().apply {
         for (name in displayOrder) {
