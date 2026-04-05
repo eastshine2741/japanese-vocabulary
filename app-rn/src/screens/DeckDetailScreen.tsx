@@ -94,7 +94,7 @@ export default function DeckDetailScreen({ route, navigation }: Props) {
               disabled={data.dueCount === 0}
               activeOpacity={0.7}
             >
-              <Ionicons name="bulb-outline" size={20} color="#FFFFFF" style={styles.buttonIcon} />
+              <Ionicons name="layers-outline" size={20} color="#FFFFFF" style={styles.buttonIcon} />
               <Text style={styles.primaryButtonText}>학습하기</Text>
             </TouchableOpacity>
 
@@ -104,7 +104,7 @@ export default function DeckDetailScreen({ route, navigation }: Props) {
               onPress={() => navigation.navigate('DeckWordList', { songId })}
               activeOpacity={0.7}
             >
-              <Ionicons name="list-outline" size={20} color={Colors.primary} style={styles.buttonIcon} />
+              <Ionicons name="list-outline" size={18} color={Colors.textSecondary} />
               <Text style={styles.outlineButtonText}>단어 보기</Text>
             </TouchableOpacity>
           </View>
@@ -209,8 +209,8 @@ const styles = StyleSheet.create({
   primaryButton: {
     flexDirection: 'row',
     backgroundColor: Colors.primary,
-    borderRadius: 12,
-    height: 52,
+    borderRadius: 24,
+    height: 48,
     alignItems: 'center',
     justifyContent: 'center',
     width: '100%',
@@ -230,16 +230,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     borderWidth: 1,
     borderColor: Colors.border,
-    borderRadius: 12,
-    height: 48,
+    borderRadius: 24,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
     width: '100%',
+    gap: 8,
     marginTop: -16,
   },
   outlineButtonText: {
-    color: Colors.primary,
+    color: Colors.textSecondary,
     fontWeight: '600',
-    fontSize: 16,
+    fontSize: 14,
   },
 });

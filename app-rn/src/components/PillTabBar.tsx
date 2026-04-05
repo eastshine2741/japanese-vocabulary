@@ -82,11 +82,16 @@ const styles = StyleSheet.create({
   },
   pill: {
     flexDirection: 'row',
-    backgroundColor: Colors.card,
+    backgroundColor: Colors.background,
     borderRadius: 100,
     height: 62,
     padding: 4,
     gap: 4,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07,
+    shadowRadius: 8,
+    elevation: 4,
   },
   tab: {
     flex: 1,

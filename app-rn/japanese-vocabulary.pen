@@ -1529,10 +1529,20 @@
               "name": "pill1",
               "width": "fill_container",
               "height": 62,
-              "fill": "$bg-card",
+              "fill": "$bg-primary",
               "cornerRadius": 100,
               "stroke": {
                 "thickness": 0
+              },
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "#00000012",
+                "offset": {
+                  "x": 0,
+                  "y": 2
+                },
+                "blur": 8
               },
               "gap": 4,
               "padding": 4,
@@ -1685,7 +1695,7 @@
       "clip": true,
       "width": 402,
       "height": 874,
-      "fill": "$bg-primary",
+      "fill": "$bg-card",
       "layout": "vertical",
       "children": [
         {
@@ -1749,24 +1759,24 @@
           "width": "fill_container",
           "height": "fill_container",
           "layout": "vertical",
-          "gap": 24,
+          "gap": 12,
           "padding": [
             0,
-            20,
+            12,
             24,
-            20
+            12
           ],
           "children": [
             {
               "type": "frame",
               "id": "DGDJh",
-              "name": "statsCard",
+              "name": "component/statsCard",
               "width": "fill_container",
-              "fill": "$bg-card",
+              "fill": "$bg-primary",
               "cornerRadius": 24,
               "layout": "vertical",
               "gap": 16,
-              "padding": 20,
+              "padding": 16,
               "children": [
                 {
                   "type": "frame",
@@ -1965,6 +1975,43 @@
                       "fontWeight": "600"
                     }
                   ]
+                },
+                {
+                  "type": "frame",
+                  "id": "sb4Pz",
+                  "name": "wordBtn",
+                  "width": "fill_container",
+                  "height": 44,
+                  "fill": "#FFFFFF00",
+                  "cornerRadius": 24,
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": 1,
+                    "fill": "$border-default"
+                  },
+                  "gap": 8,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "AAL5Q",
+                      "width": 18,
+                      "height": 18,
+                      "iconFontName": "list",
+                      "iconFontFamily": "lucide",
+                      "fill": "$text-secondary"
+                    },
+                    {
+                      "type": "text",
+                      "id": "Hplsh",
+                      "fill": "$text-secondary",
+                      "content": "전체 단어 보기",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "600"
+                    }
+                  ]
                 }
               ]
             },
@@ -1973,7 +2020,10 @@
               "id": "xho7f",
               "name": "songDecks",
               "width": "fill_container",
+              "fill": "$bg-primary",
+              "cornerRadius": 24,
               "layout": "vertical",
+              "padding": 16,
               "children": [
                 {
                   "type": "frame",
@@ -2002,11 +2052,7 @@
                   "width": "fill_container",
                   "fill": "#FFFFFF00",
                   "stroke": {
-                    "align": "inside",
-                    "thickness": {
-                      "bottom": 1
-                    },
-                    "fill": "$border-default"
+                    "thickness": 0
                   },
                   "layout": "vertical",
                   "gap": 10,
@@ -2104,11 +2150,7 @@
                   "width": "fill_container",
                   "fill": "#FFFFFF00",
                   "stroke": {
-                    "align": "inside",
-                    "thickness": {
-                      "bottom": 1
-                    },
-                    "fill": "$border-default"
+                    "thickness": 0
                   },
                   "layout": "vertical",
                   "gap": 10,
@@ -2330,10 +2372,20 @@
               "name": "pill2",
               "width": "fill_container",
               "height": 62,
-              "fill": "$bg-card",
+              "fill": "$bg-primary",
               "cornerRadius": 100,
               "stroke": {
                 "thickness": 0
+              },
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "#00000012",
+                "offset": {
+                  "x": 0,
+                  "y": 2
+                },
+                "blur": 8
               },
               "gap": 4,
               "padding": 4,
@@ -2486,7 +2538,7 @@
       "clip": true,
       "width": 402,
       "height": 874,
-      "fill": "$bg-primary",
+      "fill": "$bg-card",
       "layout": "vertical",
       "children": [
         {
@@ -2562,12 +2614,12 @@
           "width": "fill_container",
           "height": "fill_container",
           "layout": "vertical",
-          "gap": 24,
+          "gap": 12,
           "padding": [
             8,
-            20,
+            12,
             24,
-            20
+            12
           ],
           "children": [
             {
@@ -2575,7 +2627,7 @@
               "id": "NngGn",
               "name": "Profile Card",
               "width": "fill_container",
-              "fill": "$bg-card",
+              "fill": "$bg-primary",
               "cornerRadius": 24,
               "gap": 16,
               "padding": 20,
@@ -2651,6 +2703,7 @@
               "id": "QsFSX",
               "name": "Account Section",
               "width": "fill_container",
+              "fill": "#FFFFFF00",
               "layout": "vertical",
               "gap": 12,
               "children": [
@@ -2670,7 +2723,7 @@
                   "name": "Account List",
                   "clip": true,
                   "width": "fill_container",
-                  "fill": "$bg-card",
+                  "fill": "$bg-primary",
                   "cornerRadius": 24,
                   "layout": "vertical",
                   "children": [
@@ -2728,9 +2781,12 @@
                     {
                       "type": "rectangle",
                       "id": "7mc2O",
+                      "x": 0,
+                      "y": 54,
                       "name": "accDiv1",
+                      "enabled": false,
                       "fill": "$border-default",
-                      "width": "fill_container",
+                      "width": "fill_container(362)",
                       "height": 1
                     },
                     {
@@ -2793,6 +2849,7 @@
               "id": "dT9Wf",
               "name": "Settings Section",
               "width": "fill_container",
+              "fill": "#FFFFFF00",
               "layout": "vertical",
               "gap": 12,
               "children": [
@@ -2812,7 +2869,7 @@
                   "name": "Settings List",
                   "clip": true,
                   "width": "fill_container",
-                  "fill": "$bg-card",
+                  "fill": "$bg-primary",
                   "cornerRadius": 24,
                   "layout": "vertical",
                   "children": [
@@ -2973,9 +3030,12 @@
                     {
                       "type": "rectangle",
                       "id": "KajDT",
+                      "x": 0,
+                      "y": 152,
                       "name": "setDiv",
+                      "enabled": false,
                       "fill": "$border-default",
-                      "width": "fill_container",
+                      "width": "fill_container(362)",
                       "height": 1
                     },
                     {
@@ -3091,10 +3151,20 @@
               "name": "Pill",
               "width": "fill_container",
               "height": 62,
-              "fill": "$bg-card",
+              "fill": "$bg-primary",
               "cornerRadius": 100,
               "stroke": {
                 "thickness": 0
+              },
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "#00000012",
+                "offset": {
+                  "x": 0,
+                  "y": 2
+                },
+                "blur": 8
               },
               "padding": 4,
               "alignItems": "center",
@@ -3229,7 +3299,7 @@
       "clip": true,
       "width": 402,
       "height": 874,
-      "fill": "$bg-primary",
+      "fill": "$bg-card",
       "layout": "vertical",
       "children": [
         {
@@ -3293,10 +3363,8 @@
           "width": "fill_container",
           "height": "fill_container",
           "layout": "vertical",
-          "gap": 24,
+          "gap": 12,
           "padding": [
-            20,
-            20,
             0,
             20
           ],
@@ -3306,7 +3374,10 @@
               "id": "MTNlX",
               "name": "songDecks",
               "width": "fill_container",
+              "fill": "$bg-primary",
+              "cornerRadius": 24,
               "layout": "vertical",
+              "padding": 16,
               "children": [
                 {
                   "type": "frame",
@@ -3335,11 +3406,7 @@
                   "width": "fill_container",
                   "fill": "#FFFFFF00",
                   "stroke": {
-                    "align": "inside",
-                    "thickness": {
-                      "bottom": 1
-                    },
-                    "fill": "$border-default"
+                    "thickness": 0
                   },
                   "layout": "vertical",
                   "gap": 10,
@@ -3437,11 +3504,7 @@
                   "width": "fill_container",
                   "fill": "#FFFFFF00",
                   "stroke": {
-                    "align": "inside",
-                    "thickness": {
-                      "bottom": 1
-                    },
-                    "fill": "$border-default"
+                    "thickness": 0
                   },
                   "layout": "vertical",
                   "gap": 10,
@@ -3539,11 +3602,7 @@
                   "width": "fill_container",
                   "fill": "#FFFFFF00",
                   "stroke": {
-                    "align": "inside",
-                    "thickness": {
-                      "bottom": 1
-                    },
-                    "fill": "$border-default"
+                    "thickness": 0
                   },
                   "layout": "vertical",
                   "gap": 10,
@@ -3641,11 +3700,7 @@
                   "width": "fill_container",
                   "fill": "#FFFFFF00",
                   "stroke": {
-                    "align": "inside",
-                    "thickness": {
-                      "bottom": 1
-                    },
-                    "fill": "$border-default"
+                    "thickness": 0
                   },
                   "layout": "vertical",
                   "gap": 10,
@@ -3743,11 +3798,7 @@
                   "width": "fill_container",
                   "fill": "#FFFFFF00",
                   "stroke": {
-                    "align": "inside",
-                    "thickness": {
-                      "bottom": 1
-                    },
-                    "fill": "$border-default"
+                    "thickness": 0
                   },
                   "layout": "vertical",
                   "gap": 10,
@@ -3845,11 +3896,7 @@
                   "width": "fill_container",
                   "fill": "#FFFFFF00",
                   "stroke": {
-                    "align": "inside",
-                    "thickness": {
-                      "bottom": 1
-                    },
-                    "fill": "$border-default"
+                    "thickness": 0
                   },
                   "layout": "vertical",
                   "gap": 10,
@@ -3947,11 +3994,7 @@
                   "width": "fill_container",
                   "fill": "#FFFFFF00",
                   "stroke": {
-                    "align": "inside",
-                    "thickness": {
-                      "bottom": 1
-                    },
-                    "fill": "$border-default"
+                    "thickness": 0
                   },
                   "layout": "vertical",
                   "gap": 10,
@@ -4049,11 +4092,7 @@
                   "width": "fill_container",
                   "fill": "#FFFFFF00",
                   "stroke": {
-                    "align": "inside",
-                    "thickness": {
-                      "bottom": 1
-                    },
-                    "fill": "$border-default"
+                    "thickness": 0
                   },
                   "layout": "vertical",
                   "gap": 10,
@@ -4151,11 +4190,7 @@
                   "width": "fill_container",
                   "fill": "#FFFFFF00",
                   "stroke": {
-                    "align": "inside",
-                    "thickness": {
-                      "bottom": 1
-                    },
-                    "fill": "$border-default"
+                    "thickness": 0
                   },
                   "layout": "vertical",
                   "gap": 10,
@@ -4377,10 +4412,20 @@
               "name": "pill2",
               "width": "fill_container",
               "height": 62,
-              "fill": "$bg-card",
+              "fill": "$bg-primary",
               "cornerRadius": 100,
               "stroke": {
                 "thickness": 0
+              },
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "#00000012",
+                "offset": {
+                  "x": 0,
+                  "y": 2
+                },
+                "blur": 8
               },
               "gap": 4,
               "padding": 4,
@@ -8295,10 +8340,15 @@
                   "id": "imnLx",
                   "name": "listBtn",
                   "width": "fill_container",
-                  "height": 52,
-                  "fill": "$bg-card",
-                  "cornerRadius": 26,
-                  "gap": 10,
+                  "height": 44,
+                  "fill": "#FFFFFF00",
+                  "cornerRadius": 24,
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": 1,
+                    "fill": "$border-default"
+                  },
+                  "gap": 8,
                   "justifyContent": "center",
                   "alignItems": "center",
                   "children": [
@@ -8306,20 +8356,20 @@
                       "type": "icon_font",
                       "id": "ryFiU",
                       "name": "btn2icon",
-                      "width": 20,
-                      "height": 20,
+                      "width": 18,
+                      "height": 18,
                       "iconFontName": "list",
                       "iconFontFamily": "lucide",
-                      "fill": "$text-primary"
+                      "fill": "$text-secondary"
                     },
                     {
                       "type": "text",
                       "id": "jYTDF",
                       "name": "btn2txt",
-                      "fill": "$text-primary",
+                      "fill": "$text-secondary",
                       "content": "단어 보기",
                       "fontFamily": "Inter",
-                      "fontSize": 16,
+                      "fontSize": 14,
                       "fontWeight": "600"
                     }
                   ]
@@ -12888,73 +12938,6 @@
             },
             {
               "type": "frame",
-              "id": "Ekzcc",
-              "name": "card",
-              "width": "fill_container",
-              "fill": "$bg-card",
-              "cornerRadius": 24,
-              "layout": "vertical",
-              "gap": 12,
-              "padding": 16,
-              "children": [
-                {
-                  "type": "text",
-                  "id": "Ri4J7",
-                  "name": "cardLbl",
-                  "fill": "$text-secondary",
-                  "content": "오늘의 복습",
-                  "fontFamily": "Inter",
-                  "fontSize": 13,
-                  "fontWeight": "600"
-                },
-                {
-                  "type": "text",
-                  "id": "qarcy",
-                  "name": "cardNum",
-                  "fill": "$text-primary",
-                  "content": "12개",
-                  "fontFamily": "Plus Jakarta Sans",
-                  "fontSize": 36,
-                  "fontWeight": "800",
-                  "letterSpacing": -2
-                },
-                {
-                  "type": "text",
-                  "id": "7VKz4",
-                  "name": "cardSub",
-                  "fill": "$text-secondary",
-                  "content": "오늘 복습할 단어",
-                  "fontFamily": "Inter",
-                  "fontSize": 14,
-                  "fontWeight": "normal"
-                },
-                {
-                  "type": "frame",
-                  "id": "16YHn",
-                  "name": "cardBtn",
-                  "width": "fill_container",
-                  "height": 48,
-                  "fill": "$accent-primary",
-                  "cornerRadius": 24,
-                  "justifyContent": "center",
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "1pNFf",
-                      "name": "cardBtnTxt",
-                      "fill": "#FFFFFF",
-                      "content": "복습 시작하기",
-                      "fontFamily": "Inter",
-                      "fontSize": 14,
-                      "fontWeight": "600"
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              "type": "frame",
               "id": "xKgpz",
               "name": "recentSec",
               "width": "fill_container",
@@ -13052,10 +13035,20 @@
               "name": "pill1",
               "width": "fill_container",
               "height": 62,
-              "fill": "$bg-card",
+              "fill": "$bg-primary",
               "cornerRadius": 100,
               "stroke": {
                 "thickness": 0
+              },
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "#00000012",
+                "offset": {
+                  "x": 0,
+                  "y": 2
+                },
+                "blur": 8
               },
               "gap": 4,
               "padding": 4,
@@ -13288,73 +13281,6 @@
                   "fontFamily": "Inter",
                   "fontSize": 14,
                   "fontWeight": "normal"
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "Ng3tu",
-              "name": "card",
-              "width": "fill_container",
-              "fill": "$bg-card",
-              "cornerRadius": 24,
-              "layout": "vertical",
-              "gap": 12,
-              "padding": 16,
-              "children": [
-                {
-                  "type": "text",
-                  "id": "sXd2H",
-                  "name": "cardLbl",
-                  "fill": "$text-secondary",
-                  "content": "오늘의 복습",
-                  "fontFamily": "Inter",
-                  "fontSize": 13,
-                  "fontWeight": "600"
-                },
-                {
-                  "type": "text",
-                  "id": "gM99b",
-                  "name": "cardNum",
-                  "fill": "$text-primary",
-                  "content": "12개",
-                  "fontFamily": "Plus Jakarta Sans",
-                  "fontSize": 36,
-                  "fontWeight": "800",
-                  "letterSpacing": -2
-                },
-                {
-                  "type": "text",
-                  "id": "Ev9v6",
-                  "name": "cardSub",
-                  "fill": "$text-secondary",
-                  "content": "오늘 복습할 단어",
-                  "fontFamily": "Inter",
-                  "fontSize": 14,
-                  "fontWeight": "normal"
-                },
-                {
-                  "type": "frame",
-                  "id": "Qk5Fs",
-                  "name": "cardBtn",
-                  "width": "fill_container",
-                  "height": 48,
-                  "fill": "$accent-primary",
-                  "cornerRadius": 24,
-                  "justifyContent": "center",
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "DONVk",
-                      "name": "cardBtnTxt",
-                      "fill": "#FFFFFF",
-                      "content": "복습 시작하기",
-                      "fontFamily": "Inter",
-                      "fontSize": 14,
-                      "fontWeight": "600"
-                    }
-                  ]
                 }
               ]
             },
@@ -13822,10 +13748,20 @@
               "name": "pill1",
               "width": "fill_container",
               "height": 62,
-              "fill": "$bg-card",
+              "fill": "$bg-primary",
               "cornerRadius": 100,
               "stroke": {
                 "thickness": 0
+              },
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "#00000012",
+                "offset": {
+                  "x": 0,
+                  "y": 2
+                },
+                "blur": 8
               },
               "gap": 4,
               "padding": 4,

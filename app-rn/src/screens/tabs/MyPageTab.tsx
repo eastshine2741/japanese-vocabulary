@@ -100,7 +100,6 @@ export default function MyPageTab() {
           <Text style={styles.menuItemLabel}>프로필 수정</Text>
           <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
         </TouchableOpacity>
-        <View style={styles.menuSeparator} />
         <TouchableOpacity style={styles.menuItem} activeOpacity={0.7}>
           <Ionicons name="lock-closed-outline" size={20} color={Colors.textPrimary} />
           <Text style={styles.menuItemLabel}>비밀번호 변경</Text>
@@ -134,8 +133,6 @@ export default function MyPageTab() {
             thumbTintColor={Colors.stateRetrievability}
           />
         </View>
-
-        <View style={styles.menuSeparator} />
 
         {/* Show Intervals Toggle */}
         <View style={styles.settingBlock}>
@@ -180,7 +177,7 @@ export default function MyPageTab() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.card,
   },
   scrollView: {
     flex: 1,
@@ -189,11 +186,12 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.card,
   },
   content: {
-    padding: Dimens.screenPadding,
-    paddingBottom: Dimens.screenPadding + Dimens.bottomBarHeight + 40,
+    padding: 12,
+    paddingBottom: 12 + Dimens.bottomBarHeight + 40,
+    gap: 12,
   },
 
   // Header
@@ -213,10 +211,8 @@ const styles = StyleSheet.create({
 
   // Profile Card
   profileCard: {
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: Dimens.cardCornerRadius,
+    backgroundColor: Colors.background,
+    borderRadius: 24,
     padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
@@ -248,17 +244,15 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 13,
     color: Colors.textMuted,
-    marginTop: 24,
-    marginBottom: 8,
+    marginTop: 4,
+    marginBottom: -4,
     marginLeft: 4,
   },
 
   // Menu Card
   menuCard: {
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: Dimens.cardCornerRadius,
+    backgroundColor: Colors.background,
+    borderRadius: 24,
     overflow: 'hidden',
   },
   menuItem: {
@@ -280,10 +274,8 @@ const styles = StyleSheet.create({
 
   // Settings Card
   settingsCard: {
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: Dimens.cardCornerRadius,
+    backgroundColor: Colors.background,
+    borderRadius: 24,
     overflow: 'hidden',
   },
   settingBlock: {

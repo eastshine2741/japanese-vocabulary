@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
-  FlatList,
+  ScrollView,
   ActivityIndicator,
   TouchableOpacity,
   StyleSheet,
@@ -14,7 +14,6 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useDeckListStore } from '../../stores/deckListStore';
 import { flashcardApi } from '../../api/flashcardApi';
 import SongListItem from '../../components/SongListItem';
-import { SongDeckSummary } from '../../types/deck';
 import { FlashcardStatsResponse } from '../../types/flashcard';
 import { Colors, Dimens } from '../../theme/theme';
 import { RootStackParamList } from '../../navigation/AppNavigator';
@@ -107,21 +106,29 @@ export default function WordTab() {
         );
       })()}
 
-      {/* Section label */}
-      <Text style={styles.sectionLabel}>노래별 단어장</Text>
     </View>
   );
 
-  const renderDeck = ({ item }: { item: SongDeckSummary }) => (
-    <SongListItem
-      artworkUrl={item.artworkUrl}
-      title={item.title}
-      subtitle={`${item.artist} · ${item.wordCount}단어`}
-      dueCount={item.dueCount}
-      showChevron
-      onPress={() => navigation.navigate('DeckDetail', { songId: item.songId })}
-    />
-  );
+  const renderSongDecks = () => {
+    const songDecks = data?.songDecks ?? [];
+    if (songDecks.length === 0) return null;
+    return (
+      <View style={styles.songDecksCard}>
+        <Text style={styles.sectionLabel}>노래별 단어장</Text>
+        {songDecks.map((item) => (
+          <SongListItem
+            key={item.songId}
+            artworkUrl={item.artworkUrl}
+            title={item.title}
+            subtitle={`${item.artist} · ${item.wordCount}단어`}
+            dueCount={item.dueCount}
+            showChevron
+            onPress={() => navigation.navigate('DeckDetail', { songId: item.songId })}
+          />
+        ))}
+      </View>
+    );
+  };
 
   if (status === 'loading') {
     return (
@@ -135,27 +142,24 @@ export default function WordTab() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <FlatList
-        data={data?.songDecks ?? []}
-        keyExtractor={(item) => String(item.songId)}
-        ListHeaderComponent={renderHeader}
-        renderItem={renderDeck}
-        contentContainerStyle={styles.list}
-      />
+      <ScrollView contentContainerStyle={styles.list}>
+        {renderHeader()}
+        {renderSongDecks()}
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+  container: { flex: 1, backgroundColor: Colors.card },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  list: { padding: Dimens.screenPadding, paddingBottom: Dimens.screenPadding + Dimens.bottomBarHeight + 40 },
-  header: { marginBottom: 8 },
+  list: { padding: 12, paddingBottom: 12 + Dimens.bottomBarHeight + 40, gap: 12 },
+  header: { marginBottom: 0 },
   /* Stats card */
   statsCard: {
-    backgroundColor: Colors.card,
+    backgroundColor: Colors.background,
     borderRadius: 24,
-    padding: 20,
+    padding: 16,
     gap: 16,
   },
   hero: {
@@ -240,11 +244,16 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
 
-  /* Section label */
+  /* Song decks card */
+  songDecksCard: {
+    backgroundColor: Colors.background,
+    borderRadius: 24,
+    padding: 16,
+  },
   sectionLabel: {
-    fontSize: 14,
+    fontSize: 13,
+    fontWeight: '600',
     color: Colors.textSecondary,
-    marginTop: 24,
-    marginBottom: 8,
+    marginBottom: 4,
   },
 });
