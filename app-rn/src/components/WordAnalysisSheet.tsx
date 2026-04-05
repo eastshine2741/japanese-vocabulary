@@ -94,7 +94,7 @@ export default function WordAnalysisSheet({
             activeOpacity={0.7}
           >
             <Feather name="edit-2" size={16} color={Colors.primary} />
-            <Text style={styles.saveBtnOutlineText}>수정 후 담기</Text>
+            <Text style={styles.saveBtnOutlineText}>수정하고 담기</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.saveBtn, styles.saveBtnPrimary, { flex: 1 }]}
@@ -115,7 +115,7 @@ export default function WordAnalysisSheet({
           activeOpacity={0.7}
         >
           <Feather name="edit-2" size={16} color={Colors.primary} />
-          <Text style={styles.saveBtnOutlineText}>수정 후 담기</Text>
+          <Text style={styles.saveBtnOutlineText}>수정하고 담기</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.saveBtn, styles.saveBtnPrimary, { flex: 1 }]}
