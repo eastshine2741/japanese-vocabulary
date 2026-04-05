@@ -4,6 +4,7 @@ import {
   Text,
   FlatList,
   TouchableOpacity,
+  Modal,
   StyleSheet,
   Platform,
   useWindowDimensions,
@@ -28,6 +29,7 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { usePlayerStore } from '../stores/playerStore';
 import { useVocabularyStore } from '../stores/vocabularyStore';
 import { songApi } from '../api/songApi';
+import { wordApi } from '../api/wordApi';
 import YouTubePlayer, { YouTubePlayerRef } from '../components/YouTubePlayer';
 import WordAnalysisSheet from '../components/WordAnalysisSheet';
 import LyricLine from '../components/LyricLine';
@@ -312,6 +314,40 @@ export default function PlayerScreen({ navigation }: Props) {
     }
   };
 
+  const handleEditWord = () => {
+    if (vocabStore.existingWord) {
+      wordSheetRef.current?.close();
+      navigation.navigate('EditWord', {
+        mode: 'edit',
+        wordId: vocabStore.existingWord.id,
+        japanese: vocabStore.existingWord.japanese,
+        reading: vocabStore.existingWord.reading ?? undefined,
+        meanings: vocabStore.existingWord.meanings,
+      });
+    }
+  };
+
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  const handleDeleteWord = () => {
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDeleteWord = async () => {
+    if (vocabStore.existingWord) {
+      try {
+        await wordApi.deleteWord(vocabStore.existingWord.id);
+        vocabStore.resetLookup();
+        if (selectedToken) {
+          vocabStore.getWord(selectedToken.baseForm);
+        }
+        setShowDeleteDialog(false);
+      } catch {
+        setShowDeleteDialog(false);
+      }
+    }
+  };
+
   const isTranslationPending = studyUnits.length > 0
     && studyUnits.some(u => u.originalText.trim() !== '')
     && studyUnits.every(u => u.koreanLyrics === null);
@@ -484,10 +520,40 @@ export default function PlayerScreen({ navigation }: Props) {
               lyricLine={selectedLine}
               onAddWord={handleAddWord}
               onEditAndSave={handleEditAndSave}
+              onEditWord={handleEditWord}
+              onDeleteWord={handleDeleteWord}
             />
           )}
         </BottomSheetView>
       </BottomSheet>
+
+      {/* Delete word confirmation dialog */}
+      <Modal visible={showDeleteDialog} transparent animationType="fade" onRequestClose={() => setShowDeleteDialog(false)}>
+        <View style={styles.dialogOverlay}>
+          <View style={styles.dialog}>
+            <Text style={styles.dialogTitle}>단어장에서 뺄까요?</Text>
+            <Text style={styles.dialogBody}>
+              이 단어의 뜻, 예문, 플래시카드가{'\n'}모두 삭제돼요.
+            </Text>
+            <View style={styles.dialogBtns}>
+              <TouchableOpacity
+                style={[styles.dialogBtn, styles.dialogBtnSecondary]}
+                onPress={() => setShowDeleteDialog(false)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.dialogBtnSecondaryText}>취소</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.dialogBtn, styles.dialogBtnDanger]}
+                onPress={confirmDeleteWord}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.dialogBtnDangerText}>빼기</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
     </View>
   );
@@ -704,4 +770,44 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     backgroundColor: '#A1A1AA',
   },
+
+  // Delete dialog
+  dialogOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  dialog: {
+    width: 320,
+    backgroundColor: Colors.card,
+    borderRadius: 20,
+    padding: 28,
+    paddingBottom: 20,
+    gap: 16,
+  },
+  dialogTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+    textAlign: 'center',
+  },
+  dialogBody: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 21,
+  },
+  dialogBtns: { flexDirection: 'row', gap: 10, marginTop: 8 },
+  dialogBtn: {
+    flex: 1,
+    height: 46,
+    borderRadius: 23,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dialogBtnSecondary: { backgroundColor: Colors.elevated },
+  dialogBtnSecondaryText: { fontSize: 15, fontWeight: '600', color: Colors.textPrimary },
+  dialogBtnDanger: { backgroundColor: '#EF4444' },
+  dialogBtnDangerText: { fontSize: 15, fontWeight: '600', color: '#FFFFFF' },
 });

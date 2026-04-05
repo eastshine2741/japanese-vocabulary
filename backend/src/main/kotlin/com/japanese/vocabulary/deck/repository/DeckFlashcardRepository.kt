@@ -9,4 +9,5 @@ interface DeckFlashcardRepository : JpaRepository<DeckFlashcardEntity, Long> {
     fun findByDeckId(deckId: Long): List<DeckFlashcardEntity>
     fun findByDeckIdIn(deckIds: List<Long>): List<DeckFlashcardEntity>
     fun existsByDeckIdAndFlashcardId(deckId: Long, flashcardId: Long): Boolean
+    fun deleteByFlashcardId(flashcardId: Long)
 }

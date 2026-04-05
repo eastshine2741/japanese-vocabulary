@@ -36,6 +36,11 @@ class WordController(
         return wordService.updateWord(userId, id, request)
     }
 
+    @DeleteMapping("/{id}")
+    fun deleteWord(@PathVariable id: Long) {
+        wordService.deleteWord(currentUserId(), id)
+    }
+
     @GetMapping("/by-text")
     fun getWord(@RequestParam japanese: String): ResponseEntity<WordDetailResponse> {
         val userId = currentUserId()

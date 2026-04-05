@@ -19,6 +19,10 @@ export const wordApi = {
     return data;
   },
 
+  async deleteWord(id: number): Promise<void> {
+    await client.delete(`/api/words/${id}`);
+  },
+
   async getByText(japanese: string): Promise<WordDetailResponse | null> {
     try {
       const { data } = await client.get<WordDetailResponse>('/api/words/by-text', {

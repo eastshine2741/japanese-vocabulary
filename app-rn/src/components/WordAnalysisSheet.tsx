@@ -17,6 +17,8 @@ interface Props {
   lyricLine: string;
   onAddWord: () => void;
   onEditAndSave?: () => void;
+  onEditWord?: () => void;
+  onDeleteWord?: () => void;
 }
 
 export default function WordAnalysisSheet({
@@ -28,6 +30,8 @@ export default function WordAnalysisSheet({
   lyricLine,
   onAddWord,
   onEditAndSave,
+  onEditWord,
+  onDeleteWord,
 }: Props) {
   const { width: screenWidth } = useWindowDimensions();
   const examplePageWidth = screenWidth - 48; // 24px padding each side
@@ -162,15 +166,18 @@ export default function WordAnalysisSheet({
           </TouchableOpacity>
         </View>
 
-        {isExisting && existingWord && existingWord.meanings.length > 0 && (
-          <Text style={styles.existingMeanings}>
-            저장된 뜻: {existingWord.meanings.map(m => m.text).join(', ')}
-          </Text>
+        {isExisting && existingWord && isMeaningNew && existingWord.meanings.length > 0 && (
+          <View style={styles.savedMeaningsSection}>
+            <Text style={styles.savedMeaningsLabel}>이미 담은 뜻</Text>
+            {existingWord.meanings.map((m, i) => (
+              <Text key={i} style={styles.savedMeaningItem}>• {m.text}</Text>
+            ))}
+          </View>
         )}
       </View>
 
-      {/* Example section — only when word already exists */}
-      {isExisting && existingWord && existingWord.examples.length > 0 && (
+      {/* Example section — only when word already exists AND not showing saved meanings (2c) */}
+      {isExisting && existingWord && !isMeaningNew && existingWord.examples.length > 0 && (
         <View style={styles.exSec}>
           <ScrollView
             horizontal
@@ -212,6 +219,17 @@ export default function WordAnalysisSheet({
       {/* Action button */}
       <View style={styles.actionArea}>
         {renderButton()}
+        {isExisting && (
+          <View style={styles.secondaryLinks}>
+            <TouchableOpacity onPress={onEditWord} activeOpacity={0.6}>
+              <Text style={styles.secondaryLinkText}>담은 단어 수정</Text>
+            </TouchableOpacity>
+            <Text style={styles.secondaryDot}>·</Text>
+            <TouchableOpacity onPress={onDeleteWord} activeOpacity={0.6}>
+              <Text style={styles.secondaryLinkText}>담기 취소</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -281,6 +299,22 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
 
+  // Saved meanings (2c state)
+  savedMeaningsSection: {
+    gap: 4,
+    marginTop: 4,
+  },
+  savedMeaningsLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: Colors.textSecondary,
+    marginBottom: 2,
+  },
+  savedMeaningItem: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+  },
+
   // Example section
   exSec: {
     gap: 12,
@@ -347,6 +381,22 @@ const styles = StyleSheet.create({
     color: '#A1A1AA',
     fontSize: 15,
     fontWeight: '600',
+  },
+  secondaryLinks: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 12,
+  },
+  secondaryLinkText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: Colors.textMuted,
+  },
+  secondaryDot: {
+    fontSize: 13,
+    color: Colors.textMuted,
   },
   dualBtnRow: {
     flexDirection: 'row',
