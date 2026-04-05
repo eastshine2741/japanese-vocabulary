@@ -9,10 +9,14 @@ import PlayerScreen from '../screens/PlayerScreen';
 import ReviewScreen from '../screens/ReviewScreen';
 import DeckDetailScreen from '../screens/DeckDetailScreen';
 import DeckWordListScreen from '../screens/DeckWordListScreen';
+import EditWordScreen from '../screens/EditWordScreen';
 
 import HomeTab from '../screens/tabs/HomeTab';
 import WordTab from '../screens/tabs/WordTab';
 import MyPageTab from '../screens/tabs/MyPageTab';
+
+import { WordMeaning } from '../types/word';
+import { Token } from '../types/song';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -22,6 +26,17 @@ export type RootStackParamList = {
   Review: { songId?: number | null };
   DeckDetail: { songId: number | null };
   DeckWordList: { songId: number | null };
+  EditWord: {
+    mode: 'edit' | 'createAndEdit';
+    wordId?: number;
+    japanese?: string;
+    reading?: string;
+    meanings?: WordMeaning[];
+    token?: Token;
+    songId?: number;
+    lyricLine?: string;
+    koreanLyricLine?: string;
+  };
 };
 
 export type TabParamList = {
@@ -63,6 +78,7 @@ export default function AppNavigator({ initialRoute }: Props) {
       <Stack.Screen name="Review" component={ReviewScreen} />
       <Stack.Screen name="DeckDetail" component={DeckDetailScreen} />
       <Stack.Screen name="DeckWordList" component={DeckWordListScreen} />
+      <Stack.Screen name="EditWord" component={EditWordScreen} />
     </Stack.Navigator>
   );
 }

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useFocusEffect } from '@react-navigation/native';
 import { useDeckWordListStore } from '../stores/deckWordListStore';
 import { useDeckDetailStore } from '../stores/deckDetailStore';
 import { Colors, Dimens } from '../theme/theme';
@@ -24,19 +25,31 @@ export default function DeckWordListScreen({ route, navigation }: Props) {
   const deckDetail = useDeckDetailStore((s) => s.data);
   const headerTitle = deckDetail?.title || 'Words';
 
-  useEffect(() => {
-    load(songId);
-  }, [songId]);
+  useFocusEffect(
+    useCallback(() => {
+      load(songId);
+    }, [songId]),
+  );
 
   const renderWord = ({ item, index }: { item: DeckWordItem; index: number }) => (
     <View>
-      <View style={styles.wordEntry}>
+      <TouchableOpacity
+        style={styles.wordEntry}
+        onPress={() => navigation.navigate('EditWord', {
+          mode: 'edit',
+          wordId: item.id,
+          japanese: item.japanese,
+          reading: item.reading,
+          meanings: item.meanings,
+        })}
+        activeOpacity={0.6}
+      >
         <View style={styles.headingRow}>
           <Text style={styles.japanese}>{item.japanese}</Text>
           <Text style={styles.reading}>({item.reading})</Text>
         </View>
         <Text style={styles.korean}>{item.meanings.map(m => m.text).join(', ')}</Text>
-      </View>
+      </TouchableOpacity>
       {index < words.length - 1 && <View style={styles.separator} />}
     </View>
   );

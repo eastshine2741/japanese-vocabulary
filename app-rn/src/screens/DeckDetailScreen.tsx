@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useFocusEffect } from '@react-navigation/native';
 import { useDeckDetailStore } from '../stores/deckDetailStore';
 import ArtworkImage from '../components/ArtworkImage';
 import { Colors, Dimens } from '../theme/theme';
@@ -20,9 +21,11 @@ export default function DeckDetailScreen({ route, navigation }: Props) {
   const { songId } = route.params;
   const { status, data, error, load } = useDeckDetailStore();
 
-  useEffect(() => {
-    load(songId);
-  }, [songId]);
+  useFocusEffect(
+    useCallback(() => {
+      load(songId);
+    }, [songId]),
+  );
 
   return (
     <SafeAreaView style={styles.safeArea}>

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { flashcardApi } from '../api/flashcardApi';
+import { wordApi } from '../api/wordApi';
 import { FlashcardDTO, FlashcardStatsResponse } from '../types/flashcard';
 
 type ReviewStatus = 'loading' | 'noCards' | 'reviewing' | 'summary' | 'error';
@@ -18,6 +19,7 @@ interface ReviewState {
   loadDueCards: (songId?: number) => Promise<void>;
   reveal: () => void;
   rate: (rating: number) => Promise<void>;
+  refreshCurrentCard: () => Promise<void>;
 }
 
 export const useReviewStore = create<ReviewState>((set, get) => ({
@@ -91,5 +93,19 @@ export const useReviewStore = create<ReviewState>((set, get) => ({
     } catch (e: any) {
       set({ status: 'error', error: e.message });
     }
+  },
+
+  refreshCurrentCard: async () => {
+    const { cards, currentIndex } = get();
+    const card = cards[currentIndex];
+    if (!card) return;
+    try {
+      const word = await wordApi.getByText(card.japanese);
+      if (!word) return;
+      const updatedCards = cards.map((c, i) =>
+        i === currentIndex ? { ...c, reading: word.reading, meanings: word.meanings, examples: word.examples } : c,
+      );
+      set({ cards: updatedCards });
+    } catch {}
   },
 }));

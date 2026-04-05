@@ -36,4 +36,13 @@ class FlashcardEntity(
 
     @Column(name = "created_at")
     val createdAt: Instant = Instant.now()
-)
+) {
+    fun reset() {
+        state = 0
+        stability = 0.0
+        difficulty = 0.0
+        due = Instant.now()
+        lastReview = null
+        fsrsCardJson = "{}"
+    }
+}

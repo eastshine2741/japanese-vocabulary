@@ -1,6 +1,7 @@
 package com.japanese.vocabulary.word.controller
 
 import com.japanese.vocabulary.word.dto.AddWordRequest
+import com.japanese.vocabulary.word.dto.UpdateWordRequest
 import com.japanese.vocabulary.word.dto.WordDetailResponse
 import com.japanese.vocabulary.word.dto.WordListResponse
 import com.japanese.vocabulary.word.service.WordService
@@ -27,6 +28,12 @@ class WordController(
     fun getUserWords(@RequestParam(required = false) cursor: Long?): WordListResponse {
         val userId = currentUserId()
         return wordService.getUserWords(userId, cursor)
+    }
+
+    @PutMapping("/{id}")
+    fun updateWord(@PathVariable id: Long, @RequestBody request: UpdateWordRequest): WordDetailResponse {
+        val userId = currentUserId()
+        return wordService.updateWord(userId, id, request)
     }
 
     @GetMapping("/by-text")

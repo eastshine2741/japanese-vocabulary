@@ -1,5 +1,5 @@
 import client from './client';
-import { WordDetailResponse, WordListResponse, AddWordRequest } from '../types/word';
+import { WordDetailResponse, WordListResponse, AddWordRequest, UpdateWordRequest } from '../types/word';
 
 export const wordApi = {
   async addWord(req: AddWordRequest): Promise<{ id: number }> {
@@ -11,6 +11,11 @@ export const wordApi = {
     const { data } = await client.get<WordListResponse>('/api/words', {
       params: cursor ? { cursor } : {},
     });
+    return data;
+  },
+
+  async updateWord(id: number, req: UpdateWordRequest): Promise<WordDetailResponse> {
+    const { data } = await client.put<WordDetailResponse>(`/api/words/${id}`, req);
     return data;
   },
 

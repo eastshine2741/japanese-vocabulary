@@ -16,6 +16,7 @@ interface Props {
   songId: number;
   lyricLine: string;
   onAddWord: () => void;
+  onEditAndSave?: () => void;
 }
 
 export default function WordAnalysisSheet({
@@ -26,6 +27,7 @@ export default function WordAnalysisSheet({
   songId,
   lyricLine,
   onAddWord,
+  onEditAndSave,
 }: Props) {
   const { width: screenWidth } = useWindowDimensions();
   const examplePageWidth = screenWidth - 48; // 24px padding each side
@@ -85,25 +87,45 @@ export default function WordAnalysisSheet({
     }
     if (isExisting && isMeaningNew) {
       return (
-        <TouchableOpacity
-          style={[styles.saveBtn, styles.saveBtnPrimary]}
-          onPress={onAddWord}
-          activeOpacity={0.7}
-        >
-          <Feather name="plus" size={18} color="#FFFFFF" />
-          <Text style={styles.saveBtnText}>다른 뜻 담기</Text>
-        </TouchableOpacity>
+        <View style={styles.dualBtnRow}>
+          <TouchableOpacity
+            style={[styles.saveBtn, styles.saveBtnOutline, { flex: 1 }]}
+            onPress={onEditAndSave}
+            activeOpacity={0.7}
+          >
+            <Feather name="edit-2" size={16} color={Colors.primary} />
+            <Text style={styles.saveBtnOutlineText}>수정 후 담기</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.saveBtn, styles.saveBtnPrimary, { flex: 1 }]}
+            onPress={onAddWord}
+            activeOpacity={0.7}
+          >
+            <Feather name="plus" size={16} color="#FFFFFF" />
+            <Text style={styles.saveBtnText}>바로 담기</Text>
+          </TouchableOpacity>
+        </View>
       );
     }
     return (
-      <TouchableOpacity
-        style={[styles.saveBtn, styles.saveBtnPrimary]}
-        onPress={onAddWord}
-        activeOpacity={0.7}
-      >
-        <Feather name="plus" size={18} color="#FFFFFF" />
-        <Text style={styles.saveBtnText}>단어 담기</Text>
-      </TouchableOpacity>
+      <View style={styles.dualBtnRow}>
+        <TouchableOpacity
+          style={[styles.saveBtn, styles.saveBtnOutline, { flex: 1 }]}
+          onPress={onEditAndSave}
+          activeOpacity={0.7}
+        >
+          <Feather name="edit-2" size={16} color={Colors.primary} />
+          <Text style={styles.saveBtnOutlineText}>수정 후 담기</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.saveBtn, styles.saveBtnPrimary, { flex: 1 }]}
+          onPress={onAddWord}
+          activeOpacity={0.7}
+        >
+          <Feather name="plus" size={16} color="#FFFFFF" />
+          <Text style={styles.saveBtnText}>바로 담기</Text>
+        </TouchableOpacity>
+      </View>
     );
   };
 
@@ -324,6 +346,19 @@ const styles = StyleSheet.create({
   saveBtnTextDisabled: {
     color: '#A1A1AA',
     fontSize: 15,
+    fontWeight: '600',
+  },
+  dualBtnRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  saveBtnOutline: {
+    borderWidth: 1.5,
+    borderColor: Colors.primary,
+  },
+  saveBtnOutlineText: {
+    color: Colors.primary,
+    fontSize: 14,
     fontWeight: '600',
   },
 });

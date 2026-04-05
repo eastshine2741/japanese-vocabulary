@@ -1,5 +1,6 @@
 package com.japanese.vocabulary.word.service
 
+import com.japanese.vocabulary.flashcard.repository.FlashcardRepository
 import com.japanese.vocabulary.song.repository.SongRepository
 import com.japanese.vocabulary.word.client.jisho.JishoClient
 import com.japanese.vocabulary.word.dto.*
@@ -21,6 +22,7 @@ class WordService(
     private val wordRepository: WordRepository,
     private val songWordRepository: SongWordRepository,
     private val songRepository: SongRepository,
+    private val flashcardRepository: FlashcardRepository,
     private val eventPublisher: ApplicationEventPublisher
 ) {
     @Transactional
@@ -64,6 +66,27 @@ class WordService(
         eventPublisher.publishEvent(WordAddedEvent(userId, savedWord.id!!, request.songId))
 
         return savedWord.id
+    }
+
+    @Transactional
+    fun updateWord(userId: Long, wordId: Long, request: UpdateWordRequest): WordDetailResponse {
+        val word = wordRepository.findById(wordId)
+            .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Word not found") }
+        if (word.userId != userId) throw ResponseStatusException(HttpStatus.FORBIDDEN)
+        if (request.meanings.isEmpty()) throw ResponseStatusException(HttpStatus.BAD_REQUEST, "At least one meaning required")
+
+        word.reading = request.reading
+        word.meanings = request.meanings
+        wordRepository.save(word)
+
+        if (request.resetFlashcard) {
+            flashcardRepository.findByWordId(wordId)?.let { flashcard ->
+                flashcard.reset()
+                flashcardRepository.save(flashcard)
+            }
+        }
+
+        return getWord(userId, word.japaneseText)!!
     }
 
     @Transactional(readOnly = true)

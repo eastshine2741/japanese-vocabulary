@@ -299,6 +299,19 @@ export default function PlayerScreen({ navigation }: Props) {
     }
   };
 
+  const handleEditAndSave = () => {
+    if (selectedToken) {
+      wordSheetRef.current?.close();
+      navigation.navigate('EditWord', {
+        mode: 'createAndEdit',
+        token: selectedToken,
+        songId: song.id,
+        lyricLine: selectedLine,
+        koreanLyricLine: selectedKoreanLine ?? undefined,
+      });
+    }
+  };
+
   const isTranslationPending = studyUnits.length > 0
     && studyUnits.some(u => u.originalText.trim() !== '')
     && studyUnits.every(u => u.koreanLyrics === null);
@@ -470,6 +483,7 @@ export default function PlayerScreen({ navigation }: Props) {
               songId={song.id}
               lyricLine={selectedLine}
               onAddWord={handleAddWord}
+              onEditAndSave={handleEditAndSave}
             />
           )}
         </BottomSheetView>

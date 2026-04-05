@@ -22,7 +22,7 @@ class WordEntity(
     val japaneseText: String,
 
     @Column(length = 255)
-    val reading: String? = null,
+    var reading: String? = null,
 
     @Convert(converter = WordMeaningListConverter::class)
     @Column(name = "meanings", columnDefinition = "JSON", nullable = false)

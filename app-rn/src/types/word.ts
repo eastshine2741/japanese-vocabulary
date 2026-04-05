@@ -41,3 +41,9 @@ export interface AddWordRequest {
   lyricLine: string;
   koreanLyricLine?: string;
 }
+
+export interface UpdateWordRequest {
+  reading: string | null;
+  meanings: WordMeaning[];
+  resetFlashcard?: boolean;
+}

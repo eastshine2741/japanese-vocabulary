@@ -29,12 +29,20 @@ export default function ReviewScreen({ route, navigation }: Props) {
   const {
     status, cards, currentIndex, isRevealed, totalCount,
     stats, totalReviewed, ratingCounts, error,
-    loadDueCards, reveal, rate,
+    loadDueCards, reveal, rate, refreshCurrentCard,
   } = useReviewStore();
 
   useEffect(() => {
     loadDueCards(songId);
   }, [songId]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (status === 'reviewing') {
+        refreshCurrentCard();
+      }
+    }, [status, refreshCurrentCard]),
+  );
 
   const handleBack = () => {
     if (status === 'summary') {
@@ -65,17 +73,36 @@ export default function ReviewScreen({ route, navigation }: Props) {
     Linking.openURL(`https://ja.dict.naver.com/#/search?query=${encodeURIComponent(word)}`);
   };
 
-  const renderTopNav = (dictWord?: string) => {
+  const handleEditWord = () => {
+    const card = cards[currentIndex];
+    if (!card) return;
+    navigation.navigate('EditWord', {
+      mode: 'edit',
+      wordId: card.wordId,
+      japanese: card.japanese,
+      reading: card.reading ?? undefined,
+      meanings: card.meanings,
+    });
+  };
+
+  const renderTopNav = (dictWord?: string, showEdit?: boolean) => {
     return (
       <View style={styles.topNav}>
         <TouchableOpacity style={styles.backButton} onPress={handleBack} hitSlop={8}>
           <Feather name="chevron-left" size={24} color={Colors.textPrimary} />
         </TouchableOpacity>
-        {dictWord && (
-          <TouchableOpacity style={styles.dictButton} onPress={() => openDictionary(dictWord)} hitSlop={8}>
-            <Feather name="external-link" size={22} color={Colors.textSecondary} />
-          </TouchableOpacity>
-        )}
+        <View style={styles.topNavRight}>
+          {showEdit && (
+            <TouchableOpacity onPress={handleEditWord} hitSlop={8}>
+              <Feather name="edit-2" size={20} color={Colors.textSecondary} />
+            </TouchableOpacity>
+          )}
+          {dictWord && (
+            <TouchableOpacity onPress={() => openDictionary(dictWord)} hitSlop={8}>
+              <Feather name="external-link" size={22} color={Colors.textSecondary} />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
     );
   };
@@ -116,7 +143,7 @@ export default function ReviewScreen({ route, navigation }: Props) {
         const progress = totalCount > 0 ? (currentIndex + 1) / totalCount : 0;
         return (
           <>
-            {renderTopNav(isRevealed ? card.japanese : undefined)}
+            {renderTopNav(isRevealed ? card.japanese : undefined, isRevealed)}
 
             {/*
               Layout structure (all three sections are siblings):
@@ -242,6 +269,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: 40,
     height: 40,
+  },
+  topNavRight: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 16,
   },
   dictButton: {
     alignItems: 'center',
