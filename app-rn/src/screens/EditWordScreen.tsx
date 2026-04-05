@@ -101,11 +101,19 @@ export default function EditWordScreen({ route, navigation }: Props) {
 
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (showResetDialog) {
+        setShowResetDialog(false);
+        return true;
+      }
+      if (showUnsavedDialog) {
+        setShowUnsavedDialog(false);
+        return true;
+      }
       confirmGoBack();
       return true;
     });
     return () => sub.remove();
-  }, [confirmGoBack]);
+  }, [confirmGoBack, showResetDialog, showUnsavedDialog]);
 
   const updateMeaningText = (index: number, text: string) => {
     setMeanings((prev) => prev.map((m, i) => (i === index ? { ...m, text } : m)));
@@ -325,7 +333,7 @@ export default function EditWordScreen({ route, navigation }: Props) {
       </BottomSheet>
 
       {/* Reset Flashcard Dialog */}
-      <Modal visible={showResetDialog} transparent animationType="fade">
+      <Modal visible={showResetDialog} transparent animationType="fade" onRequestClose={() => setShowResetDialog(false)}>
         <View style={styles.dialogOverlay}>
           <View style={styles.dialog}>
             <Text style={styles.dialogTitle}>복습 진도를 초기화할까요?</Text>
@@ -361,7 +369,7 @@ export default function EditWordScreen({ route, navigation }: Props) {
       </Modal>
 
       {/* Unsaved Changes Dialog */}
-      <Modal visible={showUnsavedDialog} transparent animationType="fade">
+      <Modal visible={showUnsavedDialog} transparent animationType="fade" onRequestClose={() => setShowUnsavedDialog(false)}>
         <View style={styles.dialogOverlay}>
           <View style={styles.dialog}>
             <Text style={styles.dialogTitle}>저장되지 않은 변경사항이 있어요</Text>
