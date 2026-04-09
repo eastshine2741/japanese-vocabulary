@@ -200,7 +200,7 @@ export default function EditWordScreen({ route, navigation }: Props) {
         <View style={styles.topNav}>
           <TouchableOpacity onPress={confirmGoBack} hitSlop={8} style={styles.navLeft}>
             <Feather name="chevron-left" size={24} color={Colors.textPrimary} />
-            <Text style={styles.navTitle}>단어 수정</Text>
+            <Text style={styles.navTitle}>{mode === 'createAndEdit' ? '수정하고 담기' : '단어 수정'}</Text>
           </TouchableOpacity>
         </View>
 

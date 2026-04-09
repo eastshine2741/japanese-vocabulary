@@ -54,6 +54,18 @@ export default function WordAnalysisSheet({
 
   const isGetWordLoading = getWordStatus === 'loading' || getWordStatus === 'idle';
 
+  const renderSplitButton = (label: string) => (
+    <View style={styles.splitBtn}>
+      <TouchableOpacity style={styles.splitEditZone} onPress={onEditAndSave} activeOpacity={0.7}>
+        <Feather name="edit-2" size={18} color="#FFFFFF" />
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.splitMainZone} onPress={onAddWord} activeOpacity={0.7}>
+        <Feather name="plus" size={16} color="#FFFFFF" />
+        <Text style={styles.saveBtnText}>{label}</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
   const renderButton = () => {
     if (isGetWordLoading || addStatus === 'loading') {
       return (
@@ -90,47 +102,9 @@ export default function WordAnalysisSheet({
       );
     }
     if (isExisting && isMeaningNew) {
-      return (
-        <View style={styles.dualBtnRow}>
-          <TouchableOpacity
-            style={[styles.saveBtn, styles.saveBtnOutline, { flex: 1 }]}
-            onPress={onEditAndSave}
-            activeOpacity={0.7}
-          >
-            <Feather name="edit-2" size={16} color={Colors.primary} />
-            <Text style={styles.saveBtnOutlineText}>수정하고 담기</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.saveBtn, styles.saveBtnPrimary, { flex: 1 }]}
-            onPress={onAddWord}
-            activeOpacity={0.7}
-          >
-            <Feather name="plus" size={16} color="#FFFFFF" />
-            <Text style={styles.saveBtnText}>바로 담기</Text>
-          </TouchableOpacity>
-        </View>
-      );
+      return renderSplitButton('다른 뜻 담기');
     }
-    return (
-      <View style={styles.dualBtnRow}>
-        <TouchableOpacity
-          style={[styles.saveBtn, styles.saveBtnOutline, { flex: 1 }]}
-          onPress={onEditAndSave}
-          activeOpacity={0.7}
-        >
-          <Feather name="edit-2" size={16} color={Colors.primary} />
-          <Text style={styles.saveBtnOutlineText}>수정하고 담기</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.saveBtn, styles.saveBtnPrimary, { flex: 1 }]}
-          onPress={onAddWord}
-          activeOpacity={0.7}
-        >
-          <Feather name="plus" size={16} color="#FFFFFF" />
-          <Text style={styles.saveBtnText}>바로 담기</Text>
-        </TouchableOpacity>
-      </View>
-    );
+    return renderSplitButton('담기');
   };
 
   return (
@@ -398,17 +372,29 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.textMuted,
   },
-  dualBtnRow: {
+  splitBtn: {
     flexDirection: 'row',
-    gap: 10,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+    overflow: 'hidden',
   },
-  saveBtnOutline: {
-    borderWidth: 1.5,
-    borderColor: Colors.primary,
+  splitEditZone: {
+    width: 52,
+    height: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRightWidth: 1,
+    borderRightColor: 'rgba(255,255,255,0.2)',
   },
-  saveBtnOutlineText: {
-    color: Colors.primary,
-    fontSize: 14,
-    fontWeight: '600',
+  splitMainZone: {
+    flex: 1,
+    height: 48,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+    paddingRight: 52,
   },
 });
