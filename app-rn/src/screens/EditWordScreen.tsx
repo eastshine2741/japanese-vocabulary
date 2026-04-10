@@ -16,8 +16,9 @@ import { Feather } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import BottomSheet, { BottomSheetBackdrop, BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import { WordMeaning } from '../types/word';
+import { WordMeaning, ExampleSentence } from '../types/word';
 import { POS_INFO } from '../types/pos';
+import ArtworkImage from '../components/ArtworkImage';
 import { wordApi } from '../api/wordApi';
 import { useVocabularyStore } from '../stores/vocabularyStore';
 import { Colors, Dimens } from '../theme/theme';
@@ -57,6 +58,8 @@ export default function EditWordScreen({ route, navigation }: Props) {
       : [{ text: token!.koreanText ?? '', partOfSpeech: token!.partOfSpeech ?? '명사' }],
   );
 
+  const [examples, setExamples] = useState<ExampleSentence[]>([]);
+  const [deletedExampleIds, setDeletedExampleIds] = useState<Set<number>>(new Set());
   const [saving, setSaving] = useState(false);
   const [posPickerIndex, setPosPickerIndex] = useState<number | null>(null);
   const [showResetDialog, setShowResetDialog] = useState(false);
@@ -75,9 +78,18 @@ export default function EditWordScreen({ route, navigation }: Props) {
     }),
   ).current;
 
-  const hasChanges = useMemo(() => {
+  const hasWordChanges = useMemo(() => {
     return JSON.stringify({ reading, meanings }) !== initialSnapshot;
   }, [reading, meanings, initialSnapshot]);
+
+  const hasChanges = useMemo(() => {
+    return hasWordChanges || deletedExampleIds.size > 0;
+  }, [hasWordChanges, deletedExampleIds]);
+
+  const visibleExamples = useMemo(
+    () => examples.filter((ex) => !deletedExampleIds.has(ex.id)),
+    [examples, deletedExampleIds],
+  );
 
   const hasEmptyMeaning = useMemo(() => meanings.some((m) => m.text.trim() === ''), [meanings]);
   const canSave = !hasEmptyMeaning && meanings.length > 0 && !saving;
@@ -88,6 +100,19 @@ export default function EditWordScreen({ route, navigation }: Props) {
 
   const markTouched = (index: number) => {
     setTouchedIndices((prev) => new Set(prev).add(index));
+  };
+
+  // Fetch examples on mount (edit mode)
+  useEffect(() => {
+    if (mode === 'edit' && japaneseText) {
+      wordApi.getByText(japaneseText).then((word) => {
+        if (word) setExamples(word.examples);
+      });
+    }
+  }, [mode, japaneseText]);
+
+  const deleteExample = (exampleId: number) => {
+    setDeletedExampleIds((prev) => new Set(prev).add(exampleId));
   };
 
   // Back guard
@@ -160,6 +185,9 @@ export default function EditWordScreen({ route, navigation }: Props) {
           reading: reading || null,
           meanings,
           resetFlashcard,
+          deleteExampleIds: deletedExampleIds.size > 0
+            ? Array.from(deletedExampleIds)
+            : undefined,
         });
       } else {
         const firstMeaning = meanings[0];
@@ -185,7 +213,11 @@ export default function EditWordScreen({ route, navigation }: Props) {
     setSubmitAttempted(true);
     if (!canSave) return;
     if (mode === 'edit' && hasChanges) {
-      setShowResetDialog(true);
+      if (hasWordChanges) {
+        setShowResetDialog(true);
+      } else {
+        handleSave(false);
+      }
     } else if (mode === 'edit' && !hasChanges) {
       navigation.goBack();
     } else {
@@ -274,6 +306,37 @@ export default function EditWordScreen({ route, navigation }: Props) {
               <Text style={styles.addText}>뜻 추가</Text>
             </TouchableOpacity>
           </View>
+
+          {/* Examples */}
+          {mode === 'edit' && visibleExamples.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>예문</Text>
+              {visibleExamples.map((ex, i) => (
+                <View
+                  key={ex.id}
+                  style={[
+                    styles.exampleRow,
+                    i < visibleExamples.length - 1 && styles.exampleRowBorder,
+                  ]}
+                >
+                  <View style={styles.exampleContent}>
+                    <Text style={styles.exampleJp}>{ex.lyricLine}</Text>
+                    <Text style={styles.exampleKr}>{ex.koreanLyricLine}</Text>
+                    <View style={styles.exampleSongRow}>
+                      <ArtworkImage url={ex.artworkUrl ?? null} size={14} cornerRadius={3} />
+                      <Text style={styles.exampleSong}>{ex.songTitle}</Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => deleteExample(ex.id)}
+                    hitSlop={8}
+                  >
+                    <Feather name="x" size={16} color={Colors.textMuted} />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
 
           {/* Save button */}
           <View style={styles.saveArea}>
@@ -472,6 +535,41 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   errorText: { fontSize: 12, color: '#EF4444' },
+
+  // Examples
+  exampleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 12,
+  },
+  exampleRowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  exampleContent: {
+    flex: 1,
+    gap: 3,
+  },
+  exampleJp: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: Colors.textPrimary,
+  },
+  exampleKr: {
+    fontSize: 12,
+    color: Colors.textMuted,
+  },
+  exampleSongRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 2,
+  },
+  exampleSong: {
+    fontSize: 11,
+    color: Colors.textMuted,
+  },
 
   // Add row
   addRow: {

@@ -4,6 +4,7 @@ export interface WordMeaning {
 }
 
 export interface ExampleSentence {
+  id: number;
   songId: number;
   songTitle: string | null;
   lyricLine: string | null;
@@ -46,4 +47,5 @@ export interface UpdateWordRequest {
   reading: string | null;
   meanings: WordMeaning[];
   resetFlashcard?: boolean;
+  deleteExampleIds?: number[];
 }

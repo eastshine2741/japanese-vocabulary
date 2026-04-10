@@ -72,6 +72,7 @@ class FlashcardService(
             val songWords = songWordMap[entity.wordId] ?: emptyList()
             val examples = songWords.map { sw ->
                 ExampleSentence(
+                    id = sw.id!!,
                     songId = sw.songId,
                     songTitle = songMap[sw.songId]?.title,
                     lyricLine = sw.lyricLine,

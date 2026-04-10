@@ -81,6 +81,15 @@ class WordService(
         word.meanings = request.meanings
         wordRepository.save(word)
 
+        if (request.deleteExampleIds.isNotEmpty()) {
+            val songWords = songWordRepository.findAllById(request.deleteExampleIds)
+            val invalid = songWords.filter { it.wordId != wordId }
+            if (invalid.isNotEmpty()) {
+                throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Some examples do not belong to this word")
+            }
+            songWordRepository.deleteAll(songWords)
+        }
+
         if (request.resetFlashcard) {
             flashcardRepository.findByWordId(wordId)?.let { flashcard ->
                 flashcard.reset()
@@ -119,6 +128,7 @@ class WordService(
 
         val examples = songWords.map { sw ->
             ExampleSentence(
+                id = sw.id!!,
                 songId = sw.songId,
                 songTitle = songMap[sw.songId]?.title,
                 lyricLine = sw.lyricLine,
@@ -155,6 +165,7 @@ class WordService(
             val songWords = songWordMap[word.id] ?: emptyList()
             val examples = songWords.map { sw ->
                 ExampleSentence(
+                    id = sw.id!!,
                     songId = sw.songId,
                     songTitle = songMap[sw.songId]?.title,
                     lyricLine = sw.lyricLine,
