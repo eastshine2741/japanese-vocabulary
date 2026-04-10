@@ -9,6 +9,7 @@ import org.springframework.core.annotation.Order
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.WebClientResponseException
+import kotlin.math.abs
 
 @Component
 @Order(1)
@@ -25,26 +26,19 @@ class LrclibClient : LyricProvider {
 
     override fun search(query: NormalizedSongQuery): LyricsResult? {
         return try {
-            // 1차: 원본 제목 + 원본 아티스트로 exact match
+            // 1차: exact match (원본 → 정규화된 아티스트 파트별)
             fetchFromGet(query.originalTitle, query.originalArtist, query.durationSeconds)
                 ?.let { return it }
 
-            // 2차: 원본 제목으로 search
-            fetchFromSearch(query.originalTitle)
-                ?.let { return it }
-
-            // 3차: 정규화된 값이 다를 때만 추가 시도
             if (query.normalizedTitle != query.originalTitle || query.artistParts.size > 1) {
                 for (artistPart in query.artistParts) {
                     fetchFromGet(query.normalizedTitle, artistPart, query.durationSeconds)
                         ?.let { return it }
                 }
-
-                if (query.normalizedTitle != query.originalTitle) {
-                    fetchFromSearch(query.normalizedTitle)
-                        ?.let { return it }
-                }
             }
+
+            // 2차: search (아티스트 매칭 → duration 매칭 순으로 필터)
+            fetchFromSearch(query)?.let { return it }
 
             null
         } catch (e: Exception) {
@@ -76,20 +70,45 @@ class LrclibClient : LyricProvider {
         return toResult(response)
     }
 
-    private fun fetchFromSearch(title: String): LyricsResult? {
-        val results = try {
-            webClient.get()
-                .uri { it.path("/api/search").queryParam("q", title).build() }
-                .retrieve()
-                .bodyToFlux(LrclibResponse::class.java)
-                .collectList()
-                .block()
-                ?: return null
-        } catch (e: WebClientResponseException) {
-            return null
+    private fun fetchFromSearch(query: NormalizedSongQuery): LyricsResult? {
+        val titles = listOfNotNull(
+            query.originalTitle,
+            query.normalizedTitle.takeIf { it != query.originalTitle }
+        )
+        val normalizedParts = query.artistParts.map { it.lowercase() }
+
+        for (title in titles) {
+            val results = try {
+                webClient.get()
+                    .uri { it.path("/api/search").queryParam("q", title).build() }
+                    .retrieve()
+                    .bodyToFlux(LrclibResponse::class.java)
+                    .collectList()
+                    .block() ?: continue
+            } catch (e: WebClientResponseException) {
+                continue
+            }
+
+            // Tier 1: artist name match
+            for (response in results) {
+                val responseArtist = response.artistName.lowercase()
+                if (normalizedParts.any { responseArtist.contains(it) }) {
+                    toResult(response)?.let { return it }
+                }
+            }
+
+            // Tier 2: duration match (handles cross-script artist names like あいみょん vs Aimyon)
+            if (query.durationSeconds != null) {
+                for (response in results) {
+                    val responseDuration = response.duration
+                    if (responseDuration != null && abs(query.durationSeconds - responseDuration) <= 3) {
+                        toResult(response)?.let { return it }
+                    }
+                }
+            }
         }
 
-        return results.firstNotNullOfOrNull { toResult(it) }
+        return null
     }
 
     private fun toResult(response: LrclibResponse): LyricsResult? {
