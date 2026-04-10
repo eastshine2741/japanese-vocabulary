@@ -369,7 +369,7 @@ export default function PlayerScreen({ navigation }: Props) {
   const renderLyricLine = ({ item, index }: { item: StudyUnit; index: number }) => (
     <LyricLine
       studyUnit={item}
-      isActive={isSynced && index === currentLineIndex}
+      isActive={!isSynced || index === currentLineIndex}
       onTokenPress={handleTokenPress}
     />
   );
