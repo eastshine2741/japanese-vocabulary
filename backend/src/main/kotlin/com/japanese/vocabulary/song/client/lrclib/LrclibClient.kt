@@ -4,6 +4,7 @@ import com.japanese.vocabulary.song.client.LyricProvider
 import com.japanese.vocabulary.song.client.LyricsResult
 import com.japanese.vocabulary.song.client.NormalizedSongQuery
 import com.japanese.vocabulary.song.client.lrclib.dto.LrclibResponse
+import kotlin.math.abs
 import org.slf4j.LoggerFactory
 import org.springframework.core.annotation.Order
 import org.springframework.stereotype.Component
@@ -30,7 +31,7 @@ class LrclibClient : LyricProvider {
                 ?.let { return it }
 
             // 2차: 원본 제목으로 search
-            fetchFromSearch(query.originalTitle)
+            fetchFromSearch(query.originalTitle, query)
                 ?.let { return it }
 
             // 3차: 정규화된 값이 다를 때만 추가 시도
@@ -41,7 +42,7 @@ class LrclibClient : LyricProvider {
                 }
 
                 if (query.normalizedTitle != query.originalTitle) {
-                    fetchFromSearch(query.normalizedTitle)
+                    fetchFromSearch(query.normalizedTitle, query)
                         ?.let { return it }
                 }
             }
@@ -76,7 +77,7 @@ class LrclibClient : LyricProvider {
         return toResult(response)
     }
 
-    private fun fetchFromSearch(title: String): LyricsResult? {
+    private fun fetchFromSearch(title: String, query: NormalizedSongQuery): LyricsResult? {
         val results = try {
             webClient.get()
                 .uri { it.path("/api/search").queryParam("q", title).build() }
@@ -89,7 +90,28 @@ class LrclibClient : LyricProvider {
             return null
         }
 
-        return results.firstNotNullOfOrNull { toResult(it) }
+        val normalizedParts = query.artistParts.map { it.lowercase() }
+
+        // Tier 1: artist name match
+        for (result in results) {
+            val resultArtist = result.artistName.lowercase()
+            if (normalizedParts.any { part -> resultArtist.contains(part) }) {
+                toResult(result)?.let { return it }
+            }
+        }
+
+        // Tier 2: duration match (handles cross-script artist names)
+        val queryDuration = query.durationSeconds
+        if (queryDuration != null) {
+            for (result in results) {
+                val resultDuration = result.duration
+                if (resultDuration != null && abs(queryDuration - resultDuration) <= 3) {
+                    toResult(result)?.let { return it }
+                }
+            }
+        }
+
+        return null
     }
 
     private fun toResult(response: LrclibResponse): LyricsResult? {
