@@ -5,12 +5,12 @@ First, read CLAUDE.md in the repo root for full project context and conventions.
 ## Your Job
 
 Poll GitHub Issues by status label and take the appropriate action.
-Process at most 1 issue per status per run. If no issues found in any status, exit quietly.
+Process all issues in each status. If no issues found in any status, exit quietly.
 
 ## Phase A: status:new -> Analyze and plan
 
 ```
-gh issue list --label "status:new" --json number,title,body,labels -L 1
+gh issue list --label "status:new" --json number,title,body,labels
 ```
 
 For each issue found:
@@ -124,5 +124,13 @@ gh issue edit NUMBER --remove-label "status:implementing" --add-label "status:pr
 - Keep plans concise but specific (include file paths and line numbers)
 - Do NOT expand scope beyond what the issue asks for
 - Write commit messages in English
-- One issue per status per run
 - If the working tree is dirty, skip Phase C and exit with a warning comment on the issue
+
+## Code Analysis Rules (CRITICAL)
+
+- Before writing any code, thoroughly read ALL existing files in the affected area. Understand the existing patterns, abstractions, and conventions already in use.
+- When modifying a service/component, read the entire file first, not just the function you plan to change. Understand how it fits into the surrounding code.
+- Look for existing utilities, helpers, and patterns in the codebase before creating new ones. Reuse what already exists.
+- Match the coding style of the surrounding code: naming conventions, error handling patterns, logging patterns, and architectural patterns.
+- If a similar feature or fix already exists elsewhere in the codebase, follow the same approach rather than inventing a new one.
+- Read CLAUDE.md carefully for architecture decisions and conventions before implementing.

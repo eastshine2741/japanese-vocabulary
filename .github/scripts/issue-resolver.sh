@@ -5,8 +5,21 @@ REPO_DIR="/home/eastshine/IdeaProjects/japanese-vocabulary"
 PROMPT_FILE="$REPO_DIR/.github/scripts/issue-resolver-prompt.md"
 LOG_DIR="$HOME/.claude/logs"
 LOG_FILE="$LOG_DIR/issue-resolver-$(date +%Y%m%d).log"
+LOCK_FILE="/tmp/issue-resolver.lock"
 
 echo "=== $(date '+%Y-%m-%d %H:%M:%S') ===" >> "$LOG_FILE"
+
+# Prevent duplicate runs
+if [ -f "$LOCK_FILE" ]; then
+    LOCK_PID=$(cat "$LOCK_FILE")
+    if kill -0 "$LOCK_PID" 2>/dev/null; then
+        echo "Already running (PID $LOCK_PID). Skipping." >> "$LOG_FILE"
+        exit 0
+    fi
+    rm -f "$LOCK_FILE"
+fi
+echo $$ > "$LOCK_FILE"
+trap 'rm -f "$LOCK_FILE"' EXIT
 
 # Check if any issues need processing before spawning Claude
 cd "$REPO_DIR"
