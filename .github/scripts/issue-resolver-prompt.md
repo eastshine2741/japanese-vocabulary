@@ -51,6 +51,9 @@ For each issue found:
 
 ### Impact
 - (what else might be affected)
+
+### UI Draft (if design changes are needed)
+(ASCII art mockup of the proposed UI change)
 ```
 
 5. Update labels:
@@ -97,6 +100,7 @@ gh issue edit NUMBER --remove-label "status:approved" --add-label "status:implem
 ```
    The worktree is created at `../japanese-vocabulary-fix-issue-NUMBER/` by default.
 4. Implement changes in the worktree directory, following the approved plan and CLAUDE.md conventions.
+   If the change involves UI design, update the Pencil design file (`app-rn/japanese-vocabulary.pen`) using Pencil MCP tools (batch_design) to reflect the new or modified screens. The .pen file changes must be included in the PR commit.
 5. Commit, push, and create PR:
 ```
 cd ../japanese-vocabulary-fix-issue-NUMBER
