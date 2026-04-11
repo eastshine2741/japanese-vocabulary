@@ -1,6 +1,6 @@
 export type ReadingDisplay = 'KATAKANA' | 'HIRAGANA' | 'KOREAN';
 
-function katakanaToHiragana(text: string): string {
+export function katakanaToHiragana(text: string): string {
   let result = '';
   for (let i = 0; i < text.length; i++) {
     const code = text.charCodeAt(i);

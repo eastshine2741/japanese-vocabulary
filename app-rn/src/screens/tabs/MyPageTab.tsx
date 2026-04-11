@@ -23,8 +23,8 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 export default function MyPageTab() {
   const navigation = useNavigation<Nav>();
   const {
-    status, requestRetention, showIntervals, readingDisplay, isSaving,
-    loadSettings, setRetention, setShowIntervals, setReadingDisplay, save,
+    status, requestRetention, showIntervals, readingDisplay, showKoreanPronunciation, showFurigana, isSaving,
+    loadSettings, setRetention, setShowIntervals, setReadingDisplay, setShowKoreanPronunciation, setShowFurigana, save,
   } = useSettingsStore();
 
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -61,6 +61,16 @@ export default function MyPageTab() {
     // Toggle saves immediately (no need to debounce)
     setTimeout(() => save(), 0);
   }, [setShowIntervals, save]);
+
+  const handleShowKoreanPronunciationChange = useCallback((value: boolean) => {
+    setShowKoreanPronunciation(value);
+    setTimeout(() => save(), 0);
+  }, [setShowKoreanPronunciation, save]);
+
+  const handleShowFuriganaChange = useCallback((value: boolean) => {
+    setShowFurigana(value);
+    setTimeout(() => save(), 0);
+  }, [setShowFurigana, save]);
 
   const handleReadingDisplayChange = useCallback((value: 'KATAKANA' | 'HIRAGANA' | 'KOREAN') => {
     setReadingDisplay(value);
@@ -182,6 +192,42 @@ export default function MyPageTab() {
                 </Text>
               </TouchableOpacity>
             ))}
+          </View>
+        </View>
+
+        {/* Furigana Toggle */}
+        <View style={styles.settingBlock}>
+          <View style={styles.settingRow}>
+            <View style={styles.settingTextBlock}>
+              <Text style={styles.settingLabel}>후리가나 표시</Text>
+              <Text style={styles.settingDescription}>
+                재생 화면에서 한자 위에 히라가나 읽기를 표시합니다
+              </Text>
+            </View>
+            <Switch
+              value={showFurigana}
+              onValueChange={handleShowFuriganaChange}
+              trackColor={{ true: Colors.stateRetrievability, false: Colors.border }}
+              thumbColor={Colors.surface}
+            />
+          </View>
+        </View>
+
+        {/* Korean Pronunciation Toggle */}
+        <View style={styles.settingBlock}>
+          <View style={styles.settingRow}>
+            <View style={styles.settingTextBlock}>
+              <Text style={styles.settingLabel}>한국어 발음 표시</Text>
+              <Text style={styles.settingDescription}>
+                재생 화면에서 가사의 한국어 발음을 표시합니다
+              </Text>
+            </View>
+            <Switch
+              value={showKoreanPronunciation}
+              onValueChange={handleShowKoreanPronunciationChange}
+              trackColor={{ true: Colors.stateRetrievability, false: Colors.border }}
+              thumbColor={Colors.surface}
+            />
           </View>
         </View>
       </View>

@@ -17,7 +17,9 @@ class UserSettingsService(
         return UserSettingsDTO(
             requestRetention = data.requestRetention,
             showIntervals = data.showIntervals,
-            readingDisplay = data.readingDisplay
+            readingDisplay = data.readingDisplay,
+            showKoreanPronunciation = data.showKoreanPronunciation,
+            showFurigana = data.showFurigana
         )
     }
 
@@ -32,13 +34,17 @@ class UserSettingsService(
         entity.settings = UserSettingsData(
             requestRetention = dto.requestRetention,
             showIntervals = dto.showIntervals,
-            readingDisplay = dto.readingDisplay
+            readingDisplay = dto.readingDisplay,
+            showKoreanPronunciation = dto.showKoreanPronunciation,
+            showFurigana = dto.showFurigana
         )
         userSettingsRepository.save(entity)
         return UserSettingsDTO(
             requestRetention = entity.settings.requestRetention,
             showIntervals = entity.settings.showIntervals,
-            readingDisplay = entity.settings.readingDisplay
+            readingDisplay = entity.settings.readingDisplay,
+            showKoreanPronunciation = entity.settings.showKoreanPronunciation,
+            showFurigana = entity.settings.showFurigana
         )
     }
 }

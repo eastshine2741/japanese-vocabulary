@@ -3,8 +3,12 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Token, StudyUnit } from '../types/song';
 import { POS_INFO } from '../types/pos';
 import { Colors } from '../theme/theme';
+import { useSettingsStore } from '../stores/settingsStore';
+import { katakanaToHiragana } from '../utils/readingConverter';
 
 const NO_UNDERLINE_POS = new Set(['SYMBOL', 'SUPPLEMENTARY_SYMBOL', 'WHITESPACE']);
+
+const KANJI_RE = /[\u4e00-\u9fff]/;
 
 function getUnderlineColor(pos: string): string | null {
   if (NO_UNDERLINE_POS.has(pos)) return null;
@@ -18,12 +22,27 @@ interface Props {
 }
 
 export default function LyricLine({ studyUnit, isActive, onTokenPress }: Props) {
+  const showKoreanPronunciation = useSettingsStore(s => s.showKoreanPronunciation);
+  const showFurigana = useSettingsStore(s => s.showFurigana);
   const textStyle = isActive ? styles.tokenTextActive : styles.tokenTextInactive;
+  const furiganaStyle = isActive ? styles.furiganaActive : styles.furiganaInactive;
+
+  const needsFurigana = (token: Token) =>
+    showFurigana && token.reading && KANJI_RE.test(token.surface);
 
   const renderToken = (token: Token, ti: number) => {
     const underlineColor = getUnderlineColor(token.partOfSpeech);
+    const furigana = needsFurigana(token) ? katakanaToHiragana(token.reading!) : null;
 
     if (!underlineColor) {
+      if (furigana) {
+        return (
+          <View key={ti} style={styles.furiganaWrapper}>
+            <Text style={furiganaStyle}>{furigana}</Text>
+            <Text style={textStyle}>{token.surface}</Text>
+          </View>
+        );
+      }
       return <Text key={ti} style={textStyle}>{token.surface}</Text>;
     }
 
@@ -34,6 +53,7 @@ export default function LyricLine({ studyUnit, isActive, onTokenPress }: Props) 
         activeOpacity={0.6}
       >
         <View style={styles.tokenWithUnderline}>
+          {furigana && <Text style={furiganaStyle}>{furigana}</Text>}
           <Text style={textStyle}>{token.surface}</Text>
           <View style={[styles.underline, { backgroundColor: underlineColor, opacity: isActive ? 1 : 0.35 }]} />
         </View>
@@ -75,7 +95,7 @@ export default function LyricLine({ studyUnit, isActive, onTokenPress }: Props) 
   return (
     <View style={styles.container}>
       <View style={styles.tokensRow}>{renderTokens()}</View>
-      {studyUnit.koreanPronounciation && (
+      {showKoreanPronunciation && studyUnit.koreanPronounciation && (
         <Text style={isActive ? styles.pronActive : styles.pronInactive}>
           {studyUnit.koreanPronounciation}
         </Text>
@@ -112,6 +132,7 @@ const styles = StyleSheet.create({
   },
   tokenWithUnderline: {
     position: 'relative',
+    alignItems: 'center',
   },
   underline: {
     position: 'absolute',
@@ -120,6 +141,19 @@ const styles = StyleSheet.create({
     right: 0,
     height: 2,
     borderRadius: 1,
+  },
+  furiganaWrapper: {
+    alignItems: 'center',
+  },
+  furiganaActive: {
+    fontSize: 10,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+  },
+  furiganaInactive: {
+    fontSize: 10,
+    color: Colors.textMuted,
+    textAlign: 'center',
   },
   pronActive: {
     fontSize: 12,
