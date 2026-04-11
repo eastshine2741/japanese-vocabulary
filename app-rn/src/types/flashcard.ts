@@ -40,4 +40,5 @@ export interface ReviewResponse {
 export interface UserSettingsDTO {
   requestRetention: number;
   showIntervals: boolean;
+  readingDisplay: 'KATAKANA' | 'HIRAGANA' | 'KOREAN';
 }

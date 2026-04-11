@@ -2,6 +2,8 @@ import React, { useState, useCallback } from 'react';
 import { View, Text, ScrollView, StyleSheet, NativeSyntheticEvent, NativeScrollEvent, useWindowDimensions } from 'react-native';
 import { FlashcardDTO } from '../types/flashcard';
 import { Colors } from '../theme/theme';
+import { convertReading } from '../utils/readingConverter';
+import { useSettingsStore } from '../stores/settingsStore';
 import { JlptBadge, PosBadge } from './Badges';
 import ArtworkImage from './ArtworkImage';
 
@@ -14,6 +16,7 @@ interface Props {
  * Kanji is rendered separately by ReviewScreen to keep its position fixed.
  */
 export default function FlashcardBackDetails({ card }: Props) {
+  const readingDisplay = useSettingsStore(s => s.readingDisplay);
   const { width: screenWidth } = useWindowDimensions();
   const pageWidth = screenWidth - 48;
   const [activeIndex, setActiveIndex] = useState(0);
@@ -25,7 +28,7 @@ export default function FlashcardBackDetails({ card }: Props) {
 
   return (
     <View style={styles.container}>
-      {card.reading && <Text style={styles.reading}>{card.reading}</Text>}
+      {card.reading && <Text style={styles.reading}>{convertReading(card.reading, readingDisplay)}</Text>}
 
       {card.meanings.length > 0 && (
         <View style={styles.badgesRow}>

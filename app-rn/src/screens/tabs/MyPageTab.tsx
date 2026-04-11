@@ -23,8 +23,8 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 export default function MyPageTab() {
   const navigation = useNavigation<Nav>();
   const {
-    status, requestRetention, showIntervals, isSaving,
-    loadSettings, setRetention, setShowIntervals, save,
+    status, requestRetention, showIntervals, readingDisplay, isSaving,
+    loadSettings, setRetention, setShowIntervals, setReadingDisplay, save,
   } = useSettingsStore();
 
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -61,6 +61,11 @@ export default function MyPageTab() {
     // Toggle saves immediately (no need to debounce)
     setTimeout(() => save(), 0);
   }, [setShowIntervals, save]);
+
+  const handleReadingDisplayChange = useCallback((value: 'KATAKANA' | 'HIRAGANA' | 'KOREAN') => {
+    setReadingDisplay(value);
+    setTimeout(() => save(), 0);
+  }, [setReadingDisplay, save]);
 
   const handleLogout = async () => {
     await tokenStorage.clearToken();
@@ -149,6 +154,34 @@ export default function MyPageTab() {
               trackColor={{ true: Colors.stateRetrievability, false: Colors.border }}
               thumbColor={Colors.surface}
             />
+          </View>
+        </View>
+
+        {/* Reading Display */}
+        <View style={styles.settingBlock}>
+          <Text style={styles.settingLabel}>읽기 표기 방식</Text>
+          <Text style={styles.settingDescription}>
+            단어의 읽기(발음)를 어떤 문자로 표시할지 선택합니다
+          </Text>
+          <View style={styles.readingOptions}>
+            {(['KATAKANA', 'HIRAGANA', 'KOREAN'] as const).map((opt) => (
+              <TouchableOpacity
+                key={opt}
+                style={[
+                  styles.readingOption,
+                  readingDisplay === opt && styles.readingOptionActive,
+                ]}
+                onPress={() => handleReadingDisplayChange(opt)}
+                activeOpacity={0.7}
+              >
+                <Text style={[
+                  styles.readingOptionText,
+                  readingDisplay === opt && styles.readingOptionTextActive,
+                ]}>
+                  {opt === 'KATAKANA' ? 'カタカナ' : opt === 'HIRAGANA' ? 'ひらがな' : '한국어'}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
         </View>
       </View>
@@ -322,6 +355,31 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.textMuted,
     marginLeft: 6,
+  },
+
+  // Reading display options
+  readingOptions: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+  },
+  readingOption: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: Colors.card,
+    alignItems: 'center',
+  },
+  readingOptionActive: {
+    backgroundColor: Colors.primary,
+  },
+  readingOptionText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: Colors.textSecondary,
+  },
+  readingOptionTextActive: {
+    color: '#FFFFFF',
   },
 
   // Logout
