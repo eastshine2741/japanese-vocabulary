@@ -17385,6 +17385,218 @@
                   ]
                 }
               ]
+            },
+            {
+              "type": "frame",
+              "id": "EwHWV",
+              "name": "exSection",
+              "width": "fill_container",
+              "layout": "vertical",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "WgRh5",
+                  "name": "exLabel",
+                  "fill": "$text-muted",
+                  "content": "예문",
+                  "fontFamily": "Inter",
+                  "fontSize": 12,
+                  "fontWeight": "500"
+                },
+                {
+                  "type": "frame",
+                  "id": "uADOS",
+                  "name": "exRow1",
+                  "width": "fill_container",
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": {
+                      "bottom": 1
+                    },
+                    "fill": "$border-default"
+                  },
+                  "gap": 10,
+                  "padding": [
+                    12,
+                    0
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "N73lS",
+                      "name": "txt1",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 3,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "0XSQB",
+                          "name": "jp1",
+                          "fill": "$text-primary",
+                          "content": "届けたいのに、言葉にならない",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "500"
+                        },
+                        {
+                          "type": "text",
+                          "id": "btfwc",
+                          "name": "kr1",
+                          "fill": "$text-muted",
+                          "content": "전하고 싶은데, 말이 안 나와",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "96SqL",
+                          "name": "songRow1",
+                          "gap": 5,
+                          "padding": [
+                            2,
+                            0,
+                            0,
+                            0
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "jgdIk",
+                              "name": "art1",
+                              "width": 14,
+                              "height": 14,
+                              "fill": {
+                                "type": "image",
+                                "enabled": true,
+                                "url": "./images/generated-1774069357299.png",
+                                "mode": "fill"
+                              },
+                              "cornerRadius": 3
+                            },
+                            {
+                              "type": "text",
+                              "id": "AENt7",
+                              "name": "sl1",
+                              "fill": "$text-muted",
+                              "content": "夜に駆ける — YOASOBI",
+                              "fontFamily": "Inter",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "icon_font",
+                      "id": "Jpzm3",
+                      "name": "x1",
+                      "width": 16,
+                      "height": 16,
+                      "iconFontName": "x",
+                      "iconFontFamily": "lucide",
+                      "fill": "$text-muted"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "kMiau",
+                  "name": "exRow2",
+                  "width": "fill_container",
+                  "gap": 10,
+                  "padding": [
+                    12,
+                    0
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "6sdRj",
+                      "name": "txt2",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 3,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "f3J9R",
+                          "name": "jp2",
+                          "fill": "$text-primary",
+                          "content": "届かない声を抱きしめて",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "500"
+                        },
+                        {
+                          "type": "text",
+                          "id": "Qy7zQ",
+                          "name": "kr2",
+                          "fill": "$text-muted",
+                          "content": "닿지 않는 목소리를 안고",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "Szpv6",
+                          "name": "songRow2",
+                          "gap": 5,
+                          "padding": [
+                            2,
+                            0,
+                            0,
+                            0
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "Qp4Kc",
+                              "name": "art2",
+                              "width": 14,
+                              "height": 14,
+                              "fill": {
+                                "type": "image",
+                                "enabled": true,
+                                "url": "./images/generated-1774069357299.png",
+                                "mode": "fill"
+                              },
+                              "cornerRadius": 3
+                            },
+                            {
+                              "type": "text",
+                              "id": "AeWXv",
+                              "name": "sl2",
+                              "fill": "$text-muted",
+                              "content": "群青 — YOASOBI",
+                              "fontFamily": "Inter",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "icon_font",
+                      "id": "hUj4c",
+                      "name": "x2",
+                      "width": 16,
+                      "height": 16,
+                      "iconFontName": "x",
+                      "iconFontFamily": "lucide",
+                      "fill": "$text-muted"
+                    }
+                  ]
+                }
+              ]
             }
           ]
         },

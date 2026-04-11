@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useRef, useCallback } from 'react';
+import { View, Text, TouchableOpacity, Pressable, Animated, StyleSheet } from 'react-native';
 import { Token, StudyUnit } from '../types/song';
 import { POS_INFO } from '../types/pos';
 import { Colors } from '../theme/theme';
@@ -15,10 +15,22 @@ interface Props {
   studyUnit: StudyUnit;
   isActive: boolean;
   onTokenPress: (token: Token, lineText: string, koreanLyrics: string | null) => void;
+  onLinePress?: () => void;
 }
 
-export default function LyricLine({ studyUnit, isActive, onTokenPress }: Props) {
+export default function LyricLine({ studyUnit, isActive, onTokenPress, onLinePress }: Props) {
   const textStyle = isActive ? styles.tokenTextActive : styles.tokenTextInactive;
+  const flashOpacity = useRef(new Animated.Value(0)).current;
+
+  const handleLinePress = useCallback(() => {
+    flashOpacity.setValue(0.10);
+    Animated.timing(flashOpacity, {
+      toValue: 0,
+      duration: 400,
+      useNativeDriver: true,
+    }).start();
+    onLinePress?.();
+  }, [onLinePress, flashOpacity]);
 
   const renderToken = (token: Token, ti: number) => {
     const underlineColor = getUnderlineColor(token.partOfSpeech);
@@ -73,7 +85,13 @@ export default function LyricLine({ studyUnit, isActive, onTokenPress }: Props) 
   };
 
   return (
-    <View style={styles.container}>
+    <Pressable style={styles.container} onPress={onLinePress ? handleLinePress : undefined} disabled={!onLinePress}>
+      {onLinePress && (
+        <Animated.View
+          style={[styles.flashOverlay, { backgroundColor: Colors.primary, opacity: flashOpacity }]}
+          pointerEvents="none"
+        />
+      )}
       <View style={styles.tokensRow}>{renderTokens()}</View>
       {studyUnit.koreanPronounciation && (
         <Text style={isActive ? styles.pronActive : styles.pronInactive}>
@@ -85,7 +103,7 @@ export default function LyricLine({ studyUnit, isActive, onTokenPress }: Props) 
           {studyUnit.koreanLyrics}
         </Text>
       )}
-    </View>
+    </Pressable>
   );
 }
 
@@ -93,6 +111,14 @@ const styles = StyleSheet.create({
   container: {
     marginBottom: 20,
     gap: 4,
+  },
+  flashOverlay: {
+    position: 'absolute',
+    top: -4,
+    bottom: -4,
+    left: -8,
+    right: -8,
+    borderRadius: 8,
   },
   tokensRow: {
     flexDirection: 'row',
