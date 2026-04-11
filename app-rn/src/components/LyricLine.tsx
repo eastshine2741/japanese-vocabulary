@@ -108,7 +108,7 @@ export default function LyricLine({ studyUnit, isActive, onTokenPress, onLinePre
     <Pressable style={styles.container} onPress={onLinePress ? handleLinePress : undefined} disabled={!onLinePress}>
       {onLinePress && (
         <Animated.View
-          style={[styles.flashOverlay, { backgroundColor: Colors.primary, opacity: flashOpacity }]}
+          style={[styles.flashOverlay, { backgroundColor: Colors.textMuted, opacity: flashOpacity }]}
           pointerEvents="none"
         />
       )}
