@@ -63,9 +63,9 @@ class FlashcardService(
         val songIds = songWordMap.values.flatten().map { it.songId }.toSet()
         val songMap = songRepository.findAllById(songIds).associateBy { it.id }
 
-        val settings = userSettingsRepository.findByUserId(userId)
-        val showIntervals = settings?.showIntervals ?: true
-        val desiredRetention = settings?.requestRetention ?: 0.9
+        val settingsData = userSettingsRepository.findByUserId(userId)?.settings
+        val showIntervals = settingsData?.showIntervals ?: true
+        val desiredRetention = settingsData?.requestRetention ?: 0.9
 
         val cards = dueEntities.mapNotNull { entity ->
             val word = words[entity.wordId] ?: return@mapNotNull null
@@ -127,8 +127,7 @@ class FlashcardService(
             else -> throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Rating must be 1-4")
         }
 
-        val settings = userSettingsRepository.findByUserId(userId)
-        val desiredRetention = settings?.requestRetention ?: 0.9
+        val desiredRetention = userSettingsRepository.findByUserId(userId)?.settings?.requestRetention ?: 0.9
 
         val scheduler = Scheduler.builder()
             .desiredRetention(desiredRetention)
