@@ -371,6 +371,7 @@ export default function PlayerScreen({ navigation }: Props) {
       studyUnit={item}
       isActive={!isSynced || index === currentLineIndex}
       onTokenPress={handleTokenPress}
+      onLinePress={isSynced && item.startTimeMs != null ? () => handleSeek(item.startTimeMs!) : undefined}
     />
   );
 
