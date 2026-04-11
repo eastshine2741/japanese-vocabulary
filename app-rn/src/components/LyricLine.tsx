@@ -1,5 +1,5 @@
-import React, { useRef, useCallback } from 'react';
-import { View, Text, TouchableOpacity, Pressable, Animated, StyleSheet } from 'react-native';
+import React from 'react';
+import { View, Text, TouchableOpacity, Pressable, StyleSheet } from 'react-native';
 import { Token, StudyUnit } from '../types/song';
 import { POS_INFO } from '../types/pos';
 import { Colors } from '../theme/theme';
@@ -20,17 +20,6 @@ interface Props {
 
 export default function LyricLine({ studyUnit, isActive, onTokenPress, onLinePress }: Props) {
   const textStyle = isActive ? styles.tokenTextActive : styles.tokenTextInactive;
-  const flashOpacity = useRef(new Animated.Value(0)).current;
-
-  const handleLinePress = useCallback(() => {
-    flashOpacity.setValue(0.10);
-    Animated.timing(flashOpacity, {
-      toValue: 0,
-      duration: 400,
-      useNativeDriver: true,
-    }).start();
-    onLinePress?.();
-  }, [onLinePress, flashOpacity]);
 
   const renderToken = (token: Token, ti: number) => {
     const underlineColor = getUnderlineColor(token.partOfSpeech);
@@ -88,7 +77,7 @@ export default function LyricLine({ studyUnit, isActive, onTokenPress, onLinePre
     <Pressable style={styles.container} onPress={onLinePress ? handleLinePress : undefined} disabled={!onLinePress}>
       {onLinePress && (
         <Animated.View
-          style={[styles.flashOverlay, { backgroundColor: Colors.primary, opacity: flashOpacity }]}
+          style={[styles.flashOverlay, { backgroundColor: Colors.textMuted, opacity: flashOpacity }]}
           pointerEvents="none"
         />
       )}
