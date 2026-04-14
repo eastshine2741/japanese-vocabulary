@@ -1,5 +1,7 @@
 package com.japanese.vocabulary.user.entity
 
+import com.japanese.vocabulary.config.converter.UserSettingsJsonConverter
+import com.japanese.vocabulary.user.dto.UserSettingsData
 import jakarta.persistence.*
 
 @Entity
@@ -12,9 +14,7 @@ class UserSettingsEntity(
     @Column(name = "user_id", nullable = false, unique = true)
     val userId: Long,
 
-    @Column(name = "request_retention", nullable = false)
-    var requestRetention: Double = 0.9,
-
-    @Column(name = "show_intervals", nullable = false)
-    var showIntervals: Boolean = true
+    @Column(name = "settings", columnDefinition = "JSON")
+    @Convert(converter = UserSettingsJsonConverter::class)
+    var settings: UserSettingsData = UserSettingsData()
 )
