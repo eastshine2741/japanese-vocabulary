@@ -1,6 +1,8 @@
 package com.japanese.vocabulary.word.controller
 
 import com.japanese.vocabulary.word.dto.AddWordRequest
+import com.japanese.vocabulary.word.dto.BatchAddWordRequest
+import com.japanese.vocabulary.word.dto.BatchAddWordResponse
 import com.japanese.vocabulary.word.dto.UpdateWordRequest
 import com.japanese.vocabulary.word.dto.WordDetailResponse
 import com.japanese.vocabulary.word.dto.WordListResponse
@@ -22,6 +24,12 @@ class WordController(
         val userId = currentUserId()
         val wordId = wordService.addWord(userId, request)
         return mapOf("id" to wordId)
+    }
+
+    @PostMapping("/batch")
+    fun batchAddWords(@RequestBody request: BatchAddWordRequest): BatchAddWordResponse {
+        val userId = currentUserId()
+        return wordService.batchAddWords(userId, request)
     }
 
     @GetMapping

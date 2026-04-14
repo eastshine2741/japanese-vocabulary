@@ -43,6 +43,15 @@ export interface AddWordRequest {
   koreanLyricLine?: string;
 }
 
+export interface BatchAddWordRequest {
+  words: AddWordRequest[];
+}
+
+export interface BatchAddWordResponse {
+  savedCount: number;
+  skippedCount: number;
+}
+
 export interface UpdateWordRequest {
   reading: string | null;
   meanings: WordMeaning[];

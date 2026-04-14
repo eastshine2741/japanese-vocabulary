@@ -32,9 +32,11 @@ import { songApi } from '../api/songApi';
 import { wordApi } from '../api/wordApi';
 import YouTubePlayer, { YouTubePlayerRef } from '../components/YouTubePlayer';
 import WordAnalysisSheet from '../components/WordAnalysisSheet';
+import SongWordListSheet from '../components/SongWordListSheet';
 import LyricLine from '../components/LyricLine';
 import SeekBar from '../components/SeekBar';
 import { Token, StudyUnit } from '../types/song';
+import { AddWordRequest } from '../types/word';
 import { Colors } from '../theme/theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
@@ -61,6 +63,7 @@ export default function PlayerScreen({ navigation }: Props) {
   const [selectedToken, setSelectedToken] = useState<Token | null>(null);
   const [selectedLine, setSelectedLine] = useState('');
   const [selectedKoreanLine, setSelectedKoreanLine] = useState<string | null>(null);
+  const [wordListVisible, setWordListVisible] = useState(false);
   const youtubeRef = useRef<YouTubePlayerRef>(null);
   const wordSheetRef = useRef<BottomSheet>(null);
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
@@ -348,6 +351,21 @@ export default function PlayerScreen({ navigation }: Props) {
     }
   };
 
+  const hasAnalyzedTokens = studyUnits.some(u => u.tokens.some(t => t.koreanText != null));
+
+  const handleOpenWordList = useCallback(() => {
+    vocabStore.resetBatchAdd();
+    setWordListVisible(true);
+  }, []);
+
+  const handleBatchSave = useCallback((words: AddWordRequest[]) => {
+    vocabStore.batchAddWords(words);
+  }, []);
+
+  const handleCloseWordList = useCallback(() => {
+    setWordListVisible(false);
+  }, []);
+
   const isTranslationPending = studyUnits.length > 0
     && studyUnits.some(u => u.originalText.trim() !== '')
     && studyUnits.every(u => u.koreanLyrics === null);
@@ -437,6 +455,16 @@ export default function PlayerScreen({ navigation }: Props) {
                 <View style={styles.songInfo}>
                   <Text style={styles.songTitle}>{song.title}</Text>
                   <Text style={styles.songArtist}>{song.artist}</Text>
+                  {hasAnalyzedTokens && (
+                    <TouchableOpacity
+                      style={styles.wordListBtn}
+                      onPress={handleOpenWordList}
+                      activeOpacity={0.7}
+                    >
+                      <Feather name="list" size={16} color={Colors.primary} />
+                      <Text style={styles.wordListBtnText}>전체 단어 담기</Text>
+                    </TouchableOpacity>
+                  )}
                   {isTranslationPending && (
                     <View style={styles.notice}>
                       <View style={[styles.noticeIconWrap, { backgroundColor: Colors.elevated }]}>
@@ -556,6 +584,18 @@ export default function PlayerScreen({ navigation }: Props) {
         </View>
       </Modal>
     </SafeAreaView>
+
+      {/* Song word list sheet */}
+      <SongWordListSheet
+        visible={wordListVisible}
+        studyUnits={studyUnits}
+        songId={song.id}
+        batchAddStatus={vocabStore.batchAddStatus}
+        batchSavedCount={vocabStore.batchSavedCount}
+        batchSkippedCount={vocabStore.batchSkippedCount}
+        onSave={handleBatchSave}
+        onClose={handleCloseWordList}
+      />
     </View>
   );
 }
@@ -690,6 +730,22 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '500',
     color: Colors.textSecondary,
+  },
+  wordListBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    backgroundColor: Colors.primary + '12',
+    marginTop: 8,
+  },
+  wordListBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.primary,
   },
 
   // Notices

@@ -28,6 +28,27 @@ class WordService(
     private val eventPublisher: ApplicationEventPublisher
 ) {
     @Transactional
+    fun batchAddWords(userId: Long, request: BatchAddWordRequest): BatchAddWordResponse {
+        var savedCount = 0
+        var skippedCount = 0
+        for (wordRequest in request.words) {
+            val existing = wordRepository.findByUserIdAndJapaneseText(userId, wordRequest.japanese)
+            val newMeaning = WordMeaning(text = wordRequest.koreanText, partOfSpeech = wordRequest.partOfSpeech)
+            val meaningAlreadyExists = existing != null && existing.meanings.any { it.text == newMeaning.text }
+            val songWordExists = existing != null && songWordRepository.existsByWordIdAndSongIdAndLyricLine(
+                existing.id!!, wordRequest.songId, wordRequest.lyricLine
+            )
+            if (meaningAlreadyExists && songWordExists) {
+                skippedCount++
+            } else {
+                addWord(userId, wordRequest)
+                savedCount++
+            }
+        }
+        return BatchAddWordResponse(savedCount = savedCount, skippedCount = skippedCount)
+    }
+
+    @Transactional
     fun addWord(userId: Long, request: AddWordRequest): Long {
         if (!songRepository.existsById(request.songId)) {
             throw ResponseStatusException(HttpStatus.NOT_FOUND, "Song not found: ${request.songId}")
