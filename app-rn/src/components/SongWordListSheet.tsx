@@ -14,6 +14,7 @@ import { Feather } from '@expo/vector-icons';
 import { StudyUnit } from '../types/song';
 import { AddWordRequest } from '../types/word';
 import { POS_INFO } from '../types/pos';
+import ReadingText from './ReadingText';
 import { Colors } from '../theme/theme';
 
 interface UniqueWord {
@@ -160,7 +161,7 @@ export default function SongWordListSheet({
           <View style={styles.wordTexts}>
             <Text style={styles.wordJapanese}>{item.baseForm}</Text>
             {item.reading !== '' && (
-              <Text style={styles.wordReading}>{item.reading}</Text>
+              <ReadingText style={styles.wordReading} reading={item.reading} />
             )}
           </View>
           <Text style={styles.wordMeaning} numberOfLines={1}>{item.koreanText}</Text>
