@@ -11,6 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
+import { useShallow } from 'zustand/react/shallow';
 import { useHomeStore } from '../../stores/homeStore';
 import { usePlayerStore } from '../../stores/playerStore';
 import SongCard from '../../components/SongCard';
@@ -24,8 +25,11 @@ const PAGE_SIZE = 9;
 
 export default function HomeTab() {
   const navigation = useNavigation<Nav>();
-  const { status, songs, load } = useHomeStore();
-  const { status: playerStatus, loadById } = usePlayerStore();
+  const { status, songs, load } = useHomeStore(
+    useShallow(s => ({ status: s.status, songs: s.songs, load: s.load })),
+  );
+  const playerStatus = usePlayerStore(s => s.status);
+  const loadById = usePlayerStore(s => s.loadById);
 
   useFocusEffect(
     useCallback(() => {

@@ -117,6 +117,14 @@ PENDING/PROCESSING 엔트리 조회 (최대 5개) → 병렬 처리:
 - Backend: 도메인 기반 패키지 (`auth / song / word / flashcard / deck / user`), WebClient for external APIs
 - App: Zustand stores (도메인별), Axios with auth interceptor, `StyleSheet.create()` co-located with components
 
+### Frontend Performance Rules
+
+- **Zustand 셀렉터 필수**: `useStore()` 금지. 반드시 `useShallow` 또는 개별 셀렉터 사용 (`useStore(s => s.field)` / `useStore(useShallow(s => ({ a: s.a, b: s.b })))`)
+- **React.memo**: 리스트 아이템, 반복 렌더링되는 컴포넌트에 적용 (예: `LyricLine`, `RatingButtonRow`)
+- **useCallback**: 자식 컴포넌트에 전달하는 이벤트 핸들러는 `useCallback`으로 감싸서 memo가 동작하도록
+- **인라인 함수 금지**: `renderItem` 안에서 `() => handler(item.id)` 같은 인라인 콜백 대신, 자식 컴포넌트가 필요한 값을 prop으로 받아 내부에서 호출
+- **useMemo**: 배열 순회(`some`, `every`, `reduce`) 등 비용이 있는 렌더 경로 계산에 적용
+
 ## Execution Rules
 
 - Treat the sprint request as the source of truth for current priorities

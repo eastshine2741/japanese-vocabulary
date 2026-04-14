@@ -11,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useShallow } from 'zustand/react/shallow';
 import { useDeckListStore } from '../../stores/deckListStore';
 import { flashcardApi } from '../../api/flashcardApi';
 import SongListItem from '../../components/SongListItem';
@@ -22,7 +23,9 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export default function WordTab() {
   const navigation = useNavigation<Nav>();
-  const { status, data, load } = useDeckListStore();
+  const { status, data, load } = useDeckListStore(
+    useShallow(s => ({ status: s.status, data: s.data, load: s.load })),
+  );
   const [stats, setStats] = useState<FlashcardStatsResponse | null>(null);
 
   useFocusEffect(

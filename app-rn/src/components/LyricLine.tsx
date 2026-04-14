@@ -19,25 +19,28 @@ interface Props {
   studyUnit: StudyUnit;
   isActive: boolean;
   onTokenPress: (token: Token, lineText: string, koreanLyrics: string | null) => void;
-  onLinePress?: () => void;
+  onLineSeek?: (ms: number) => void;
 }
 
-export default function LyricLine({ studyUnit, isActive, onTokenPress, onLinePress }: Props) {
+function LyricLine({ studyUnit, isActive, onTokenPress, onLineSeek }: Props) {
   const showKoreanPronunciation = useSettingsStore(s => s.showKoreanPronunciation);
   const showFurigana = useSettingsStore(s => s.showFurigana);
   const textStyle = isActive ? styles.tokenTextActive : styles.tokenTextInactive;
   const furiganaStyle = isActive ? styles.furiganaActive : styles.furiganaInactive;
   const flashOpacity = useRef(new Animated.Value(0)).current;
 
+  const canSeek = onLineSeek != null && studyUnit.startTimeMs != null;
+
   const handleLinePress = useCallback(() => {
+    if (!onLineSeek || studyUnit.startTimeMs == null) return;
     flashOpacity.setValue(0.10);
     Animated.timing(flashOpacity, {
       toValue: 0,
       duration: 400,
       useNativeDriver: true,
     }).start();
-    onLinePress?.();
-  }, [onLinePress, flashOpacity]);
+    onLineSeek(studyUnit.startTimeMs);
+  }, [onLineSeek, studyUnit.startTimeMs, flashOpacity]);
 
   const needsFurigana = (token: Token) =>
     showFurigana && token.reading && KANJI_RE.test(token.surface);
@@ -105,8 +108,8 @@ export default function LyricLine({ studyUnit, isActive, onTokenPress, onLinePre
   };
 
   return (
-    <Pressable style={styles.container} onPress={onLinePress ? handleLinePress : undefined} disabled={!onLinePress}>
-      {onLinePress && (
+    <Pressable style={styles.container} onPress={canSeek ? handleLinePress : undefined} disabled={!canSeek}>
+      {canSeek && (
         <Animated.View
           style={[styles.flashOverlay, { backgroundColor: Colors.textMuted, opacity: flashOpacity }]}
           pointerEvents="none"
@@ -126,6 +129,8 @@ export default function LyricLine({ studyUnit, isActive, onTokenPress, onLinePre
     </Pressable>
   );
 }
+
+export default React.memo(LyricLine);
 
 const styles = StyleSheet.create({
   container: {

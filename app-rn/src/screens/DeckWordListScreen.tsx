@@ -11,6 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
+import { useShallow } from 'zustand/react/shallow';
 import { useDeckWordListStore } from '../stores/deckWordListStore';
 import { useDeckDetailStore } from '../stores/deckDetailStore';
 import { convertReading } from '../utils/readingConverter';
@@ -24,7 +25,15 @@ type Props = NativeStackScreenProps<RootStackParamList, 'DeckWordList'>;
 export default function DeckWordListScreen({ route, navigation }: Props) {
   const { songId } = route.params;
   const readingDisplay = useSettingsStore(s => s.readingDisplay);
-  const { status, words, isLoadingMore, load, loadMore } = useDeckWordListStore();
+  const { status, words, isLoadingMore, load, loadMore } = useDeckWordListStore(
+    useShallow(s => ({
+      status: s.status,
+      words: s.words,
+      isLoadingMore: s.isLoadingMore,
+      load: s.load,
+      loadMore: s.loadMore,
+    })),
+  );
   const deckDetail = useDeckDetailStore((s) => s.data);
   const headerTitle = deckDetail?.title || 'Words';
 

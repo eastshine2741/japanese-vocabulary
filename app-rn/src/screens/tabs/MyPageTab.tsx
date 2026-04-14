@@ -13,6 +13,7 @@ import Slider from '@react-native-community/slider';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, CommonActions } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useShallow } from 'zustand/react/shallow';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { tokenStorage } from '../../utils/tokenStorage';
 import { Colors, Dimens } from '../../theme/theme';
@@ -25,7 +26,16 @@ export default function MyPageTab() {
   const {
     status, requestRetention, showIntervals, readingDisplay, showKoreanPronunciation, showFurigana, isSaving,
     loadSettings, setRetention, setShowIntervals, setReadingDisplay, setShowKoreanPronunciation, setShowFurigana, save,
-  } = useSettingsStore();
+  } = useSettingsStore(
+    useShallow(s => ({
+      status: s.status, requestRetention: s.requestRetention,
+      showIntervals: s.showIntervals, readingDisplay: s.readingDisplay,
+      showKoreanPronunciation: s.showKoreanPronunciation, showFurigana: s.showFurigana,
+      isSaving: s.isSaving, loadSettings: s.loadSettings, setRetention: s.setRetention,
+      setShowIntervals: s.setShowIntervals, setReadingDisplay: s.setReadingDisplay,
+      setShowKoreanPronunciation: s.setShowKoreanPronunciation, setShowFurigana: s.setShowFurigana, save: s.save,
+    })),
+  );
 
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 

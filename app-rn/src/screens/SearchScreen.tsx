@@ -11,6 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useShallow } from 'zustand/react/shallow';
 import { useSearchStore } from '../stores/searchStore';
 import { usePlayerStore } from '../stores/playerStore';
 import SongListItem from '../components/SongListItem';
@@ -28,8 +29,17 @@ function formatDuration(seconds: number): string {
 export default function SearchScreen({ navigation }: Props) {
   const [query, setQuery] = useState('');
   const insets = useSafeAreaInsets();
-  const { searchStatus, items, isLoadingMore, search, loadMore } = useSearchStore();
-  const { status: playerStatus, analyze } = usePlayerStore();
+  const { searchStatus, items, isLoadingMore, search, loadMore } = useSearchStore(
+    useShallow(s => ({
+      searchStatus: s.searchStatus,
+      items: s.items,
+      isLoadingMore: s.isLoadingMore,
+      search: s.search,
+      loadMore: s.loadMore,
+    })),
+  );
+  const playerStatus = usePlayerStore(s => s.status);
+  const analyze = usePlayerStore(s => s.analyze);
 
   const handleAnalyze = useCallback(async (item: Parameters<typeof analyze>[0]) => {
     await analyze(item);

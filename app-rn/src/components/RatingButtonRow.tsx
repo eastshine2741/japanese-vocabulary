@@ -14,7 +14,7 @@ const RATINGS = [
   { rating: 4, label: '쉬움', color: Colors.ratingEasy, bg: Colors.ratingEasyBg },
 ];
 
-export default function RatingButtonRow({ intervals, onRate }: Props) {
+function RatingButtonRow({ intervals, onRate }: Props) {
   return (
     <View style={styles.row}>
       {RATINGS.map(({ rating, label, color, bg }) => (
@@ -35,6 +35,8 @@ export default function RatingButtonRow({ intervals, onRate }: Props) {
     </View>
   );
 }
+
+export default React.memo(RatingButtonRow);
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: 8 },
