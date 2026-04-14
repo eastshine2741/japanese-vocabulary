@@ -46,6 +46,6 @@ class WordController(
         val userId = currentUserId()
         val result = wordService.getWord(userId, japanese)
         return if (result != null) ResponseEntity.ok(result)
-        else ResponseEntity.notFound().build()
+        else ResponseEntity.noContent().build()
     }
 }

@@ -24,14 +24,9 @@ export const wordApi = {
   },
 
   async getByText(japanese: string): Promise<WordDetailResponse | null> {
-    try {
-      const { data } = await client.get<WordDetailResponse>('/api/words/by-text', {
-        params: { japanese },
-      });
-      return data;
-    } catch (e: any) {
-      if (e.response?.status === 404) return null;
-      throw e;
-    }
+    const resp = await client.get<WordDetailResponse>('/api/words/by-text', {
+      params: { japanese },
+    });
+    return resp.status === 204 ? null : resp.data;
   },
 };
