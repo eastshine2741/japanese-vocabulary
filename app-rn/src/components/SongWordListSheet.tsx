@@ -202,11 +202,17 @@ export default function SongWordListSheet({
             return (
               <TouchableOpacity
                 key={pos}
-                style={[styles.filterChip, isOn && styles.filterChipActive]}
+                style={[
+                  styles.filterChip,
+                  isOn && { backgroundColor: info.color + '20' },
+                ]}
                 onPress={() => togglePOS(pos)}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.filterChipText, isOn && styles.filterChipTextActive]}>
+                <Text style={[
+                  styles.filterChipText,
+                  isOn && { color: info.color },
+                ]}>
                   {info.korean}
                 </Text>
               </TouchableOpacity>
@@ -214,18 +220,18 @@ export default function SongWordListSheet({
           })}
         </ScrollView>
 
-        {/* Select all / Deselect all */}
+        {/* Select all checkbox + count */}
         <View style={styles.selectionBar}>
+          <TouchableOpacity
+            style={[styles.checkbox, checkedCount === filteredWords.length && filteredWords.length > 0 && styles.checkboxChecked]}
+            onPress={checkedCount === filteredWords.length ? deselectAll : selectAll}
+            activeOpacity={0.6}
+          >
+            {checkedCount === filteredWords.length && filteredWords.length > 0 && (
+              <Feather name="check" size={14} color="#FFFFFF" />
+            )}
+          </TouchableOpacity>
           <Text style={styles.selectionCount}>{filteredWords.length}개 단어</Text>
-          <View style={styles.selectionActions}>
-            <TouchableOpacity onPress={selectAll} activeOpacity={0.6}>
-              <Text style={styles.selectionLink}>전체 선택</Text>
-            </TouchableOpacity>
-            <Text style={styles.selectionDot}>·</Text>
-            <TouchableOpacity onPress={deselectAll} activeOpacity={0.6}>
-              <Text style={styles.selectionLink}>전체 해제</Text>
-            </TouchableOpacity>
-          </View>
         </View>
 
         {/* Word list */}
@@ -309,16 +315,10 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: Colors.card,
   },
-  filterChipActive: {
-    backgroundColor: Colors.primary,
-  },
   filterChipText: {
     fontSize: 13,
     fontWeight: '600',
     color: Colors.textSecondary,
-  },
-  filterChipTextActive: {
-    color: '#FFFFFF',
   },
 
   // Selection bar
@@ -333,20 +333,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '500',
     color: Colors.textSecondary,
-  },
-  selectionActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  selectionLink: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: Colors.primary,
-  },
-  selectionDot: {
-    fontSize: 13,
-    color: Colors.textMuted,
   },
 
   // Word list
