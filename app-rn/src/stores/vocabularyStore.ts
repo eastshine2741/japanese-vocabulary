@@ -1,16 +1,22 @@
 import { create } from 'zustand';
 import { wordApi } from '../api/wordApi';
-import { WordDetailResponse, WordListItem } from '../types/word';
+import { AddWordRequest, WordDetailResponse, WordListItem } from '../types/word';
 import { Token } from '../types/song';
 
 type AddStatus = 'idle' | 'loading' | 'success' | 'error';
 type GetWordStatus = 'idle' | 'loading' | 'found' | 'notFound' | 'error';
 type WordListStatus = 'idle' | 'loading' | 'success' | 'error';
+type BatchAddStatus = 'idle' | 'loading' | 'success' | 'error';
 
 interface VocabularyState {
   // Add
   addStatus: AddStatus;
   addedId: number | null;
+
+  // Batch add
+  batchAddStatus: BatchAddStatus;
+  batchSavedCount: number;
+  batchSkippedCount: number;
 
   // Get existing word
   getWordStatus: GetWordStatus;
@@ -24,6 +30,8 @@ interface VocabularyState {
 
   getWord: (japanese: string) => Promise<void>;
   addWord: (token: Token, songId: number, lyricLine: string, koreanLyricLine?: string | null) => Promise<void>;
+  batchAddWords: (wordRequests: AddWordRequest[]) => Promise<void>;
+  resetBatchAdd: () => void;
   loadWords: () => Promise<void>;
   loadMoreWords: () => Promise<void>;
   resetLookup: () => void;
@@ -32,6 +40,9 @@ interface VocabularyState {
 export const useVocabularyStore = create<VocabularyState>((set, get) => ({
   addStatus: 'idle',
   addedId: null,
+  batchAddStatus: 'idle',
+  batchSavedCount: 0,
+  batchSkippedCount: 0,
   getWordStatus: 'idle',
   existingWord: null,
   wordListStatus: 'idle',
@@ -70,6 +81,19 @@ export const useVocabularyStore = create<VocabularyState>((set, get) => ({
       set({ addStatus: 'error' });
     }
   },
+
+  batchAddWords: async (wordRequests: AddWordRequest[]) => {
+    set({ batchAddStatus: 'loading' });
+    try {
+      const res = await wordApi.batchAddWords({ words: wordRequests });
+      set({ batchAddStatus: 'success', batchSavedCount: res.savedCount, batchSkippedCount: res.skippedCount });
+    } catch {
+      set({ batchAddStatus: 'error' });
+    }
+  },
+
+  resetBatchAdd: () =>
+    set({ batchAddStatus: 'idle', batchSavedCount: 0, batchSkippedCount: 0 }),
 
   loadWords: async () => {
     set({ wordListStatus: 'loading', words: [], nextCursor: null });

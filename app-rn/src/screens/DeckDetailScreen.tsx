@@ -10,6 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
+import { useShallow } from 'zustand/react/shallow';
 import { useDeckDetailStore } from '../stores/deckDetailStore';
 import ArtworkImage from '../components/ArtworkImage';
 import { Colors, Dimens } from '../theme/theme';
@@ -19,7 +20,9 @@ type Props = NativeStackScreenProps<RootStackParamList, 'DeckDetail'>;
 
 export default function DeckDetailScreen({ route, navigation }: Props) {
   const { songId } = route.params;
-  const { status, data, error, load } = useDeckDetailStore();
+  const { status, data, error, load } = useDeckDetailStore(
+    useShallow(s => ({ status: s.status, data: s.data, error: s.error, load: s.load })),
+  );
 
   useFocusEffect(
     useCallback(() => {

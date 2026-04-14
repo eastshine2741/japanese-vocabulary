@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useShallow } from 'zustand/react/shallow';
 import { useReviewStore } from '../stores/reviewStore';
 import FlashcardBackDetails from '../components/FlashcardView';
 import RatingButtonRow from '../components/RatingButtonRow';
@@ -30,7 +31,16 @@ export default function ReviewScreen({ route, navigation }: Props) {
     status, cards, currentIndex, isRevealed, totalCount,
     stats, totalReviewed, ratingCounts, error,
     loadDueCards, reveal, rate, refreshCurrentCard,
-  } = useReviewStore();
+  } = useReviewStore(
+    useShallow(s => ({
+      status: s.status, cards: s.cards, currentIndex: s.currentIndex,
+      isRevealed: s.isRevealed, totalCount: s.totalCount,
+      stats: s.stats, totalReviewed: s.totalReviewed,
+      ratingCounts: s.ratingCounts, error: s.error,
+      loadDueCards: s.loadDueCards, reveal: s.reveal,
+      rate: s.rate, refreshCurrentCard: s.refreshCurrentCard,
+    })),
+  );
 
   useEffect(() => {
     loadDueCards(songId);

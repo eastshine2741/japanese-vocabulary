@@ -6,6 +6,8 @@ import { Token } from '../types/song';
 import { WordDetailResponse } from '../types/word';
 import { POS_INFO } from '../types/pos';
 import { Colors } from '../theme/theme';
+import { convertReading } from '../utils/readingConverter';
+import { useSettingsStore } from '../stores/settingsStore';
 import ArtworkImage from './ArtworkImage';
 
 interface Props {
@@ -33,6 +35,7 @@ export default function WordAnalysisSheet({
   onEditWord,
   onDeleteWord,
 }: Props) {
+  const readingDisplay = useSettingsStore(s => s.readingDisplay);
   const { width: screenWidth } = useWindowDimensions();
   const examplePageWidth = screenWidth - 48; // 24px padding each side
   const [activeExIndex, setActiveExIndex] = useState(0);
@@ -114,7 +117,7 @@ export default function WordAnalysisSheet({
         <View style={styles.wordRow}>
           <Text style={styles.wordMain}>{token.baseForm}</Text>
           {token.baseFormReading && (
-            <Text style={styles.wordRead}>{token.baseFormReading}</Text>
+            <Text style={styles.wordRead}>{convertReading(token.baseFormReading, readingDisplay)}</Text>
           )}
         </View>
 

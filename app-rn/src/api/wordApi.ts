@@ -1,9 +1,14 @@
 import client from './client';
-import { WordDetailResponse, WordListResponse, AddWordRequest, UpdateWordRequest } from '../types/word';
+import { WordDetailResponse, WordListResponse, AddWordRequest, BatchAddWordRequest, BatchAddWordResponse, UpdateWordRequest } from '../types/word';
 
 export const wordApi = {
   async addWord(req: AddWordRequest): Promise<{ id: number }> {
     const { data } = await client.post<{ id: number }>('/api/words', req);
+    return data;
+  },
+
+  async batchAddWords(req: BatchAddWordRequest): Promise<BatchAddWordResponse> {
+    const { data } = await client.post<BatchAddWordResponse>('/api/words/batch', req);
     return data;
   },
 

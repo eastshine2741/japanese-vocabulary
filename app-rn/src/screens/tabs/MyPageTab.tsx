@@ -13,6 +13,7 @@ import Slider from '@react-native-community/slider';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, CommonActions } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useShallow } from 'zustand/react/shallow';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { tokenStorage } from '../../utils/tokenStorage';
 import { Colors, Dimens } from '../../theme/theme';
@@ -23,9 +24,18 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 export default function MyPageTab() {
   const navigation = useNavigation<Nav>();
   const {
-    status, requestRetention, showIntervals, isSaving,
-    loadSettings, setRetention, setShowIntervals, save,
-  } = useSettingsStore();
+    status, requestRetention, showIntervals, readingDisplay, showKoreanPronunciation, showFurigana, isSaving,
+    loadSettings, setRetention, setShowIntervals, setReadingDisplay, setShowKoreanPronunciation, setShowFurigana, save,
+  } = useSettingsStore(
+    useShallow(s => ({
+      status: s.status, requestRetention: s.requestRetention,
+      showIntervals: s.showIntervals, readingDisplay: s.readingDisplay,
+      showKoreanPronunciation: s.showKoreanPronunciation, showFurigana: s.showFurigana,
+      isSaving: s.isSaving, loadSettings: s.loadSettings, setRetention: s.setRetention,
+      setShowIntervals: s.setShowIntervals, setReadingDisplay: s.setReadingDisplay,
+      setShowKoreanPronunciation: s.setShowKoreanPronunciation, setShowFurigana: s.setShowFurigana, save: s.save,
+    })),
+  );
 
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -61,6 +71,21 @@ export default function MyPageTab() {
     // Toggle saves immediately (no need to debounce)
     setTimeout(() => save(), 0);
   }, [setShowIntervals, save]);
+
+  const handleShowKoreanPronunciationChange = useCallback((value: boolean) => {
+    setShowKoreanPronunciation(value);
+    setTimeout(() => save(), 0);
+  }, [setShowKoreanPronunciation, save]);
+
+  const handleShowFuriganaChange = useCallback((value: boolean) => {
+    setShowFurigana(value);
+    setTimeout(() => save(), 0);
+  }, [setShowFurigana, save]);
+
+  const handleReadingDisplayChange = useCallback((value: 'KATAKANA' | 'HIRAGANA' | 'KOREAN') => {
+    setReadingDisplay(value);
+    setTimeout(() => save(), 0);
+  }, [setReadingDisplay, save]);
 
   const handleLogout = async () => {
     await tokenStorage.clearToken();
@@ -146,6 +171,70 @@ export default function MyPageTab() {
             <Switch
               value={showIntervals}
               onValueChange={handleShowIntervalsChange}
+              trackColor={{ true: Colors.stateRetrievability, false: Colors.border }}
+              thumbColor={Colors.surface}
+            />
+          </View>
+        </View>
+
+        {/* Reading Display */}
+        <View style={styles.settingBlock}>
+          <Text style={styles.settingLabel}>읽기 표기 방식</Text>
+          <Text style={styles.settingDescription}>
+            단어의 읽기(발음)를 어떤 문자로 표시할지 선택합니다
+          </Text>
+          <View style={styles.readingOptions}>
+            {(['KATAKANA', 'HIRAGANA', 'KOREAN'] as const).map((opt) => (
+              <TouchableOpacity
+                key={opt}
+                style={[
+                  styles.readingOption,
+                  readingDisplay === opt && styles.readingOptionActive,
+                ]}
+                onPress={() => handleReadingDisplayChange(opt)}
+                activeOpacity={0.7}
+              >
+                <Text style={[
+                  styles.readingOptionText,
+                  readingDisplay === opt && styles.readingOptionTextActive,
+                ]}>
+                  {opt === 'KATAKANA' ? 'カタカナ' : opt === 'HIRAGANA' ? 'ひらがな' : '한국어'}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Furigana Toggle */}
+        <View style={styles.settingBlock}>
+          <View style={styles.settingRow}>
+            <View style={styles.settingTextBlock}>
+              <Text style={styles.settingLabel}>후리가나 표시</Text>
+              <Text style={styles.settingDescription}>
+                재생 화면에서 한자 위에 히라가나 읽기를 표시합니다
+              </Text>
+            </View>
+            <Switch
+              value={showFurigana}
+              onValueChange={handleShowFuriganaChange}
+              trackColor={{ true: Colors.stateRetrievability, false: Colors.border }}
+              thumbColor={Colors.surface}
+            />
+          </View>
+        </View>
+
+        {/* Korean Pronunciation Toggle */}
+        <View style={styles.settingBlock}>
+          <View style={styles.settingRow}>
+            <View style={styles.settingTextBlock}>
+              <Text style={styles.settingLabel}>한국어 발음 표시</Text>
+              <Text style={styles.settingDescription}>
+                재생 화면에서 가사의 한국어 발음을 표시합니다
+              </Text>
+            </View>
+            <Switch
+              value={showKoreanPronunciation}
+              onValueChange={handleShowKoreanPronunciationChange}
               trackColor={{ true: Colors.stateRetrievability, false: Colors.border }}
               thumbColor={Colors.surface}
             />
@@ -322,6 +411,31 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.textMuted,
     marginLeft: 6,
+  },
+
+  // Reading display options
+  readingOptions: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+  },
+  readingOption: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: Colors.card,
+    alignItems: 'center',
+  },
+  readingOptionActive: {
+    backgroundColor: Colors.primary,
+  },
+  readingOptionText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: Colors.textSecondary,
+  },
+  readingOptionTextActive: {
+    color: '#FFFFFF',
   },
 
   // Logout

@@ -26,15 +26,18 @@ import Animated, {
   runOnJS,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { useShallow } from 'zustand/react/shallow';
 import { usePlayerStore } from '../stores/playerStore';
 import { useVocabularyStore } from '../stores/vocabularyStore';
 import { songApi } from '../api/songApi';
 import { wordApi } from '../api/wordApi';
 import YouTubePlayer, { YouTubePlayerRef } from '../components/YouTubePlayer';
 import WordAnalysisSheet from '../components/WordAnalysisSheet';
+import SongWordListSheet from '../components/SongWordListSheet';
 import LyricLine from '../components/LyricLine';
 import SeekBar from '../components/SeekBar';
 import { Token, StudyUnit } from '../types/song';
+import { AddWordRequest } from '../types/word';
 import { Colors } from '../theme/theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
@@ -52,8 +55,26 @@ const CONTROLS_FADE = 200;
 const CONTROLS_HIDE_DELAY = 3000;
 
 export default function PlayerScreen({ navigation }: Props) {
-  const { studyData, reset: resetPlayer } = usePlayerStore();
-  const vocabStore = useVocabularyStore();
+  const studyData = usePlayerStore(s => s.studyData);
+  const resetPlayer = usePlayerStore(s => s.reset);
+  const {
+    addStatus, getWordStatus, existingWord,
+    batchAddStatus, batchSavedCount, batchSkippedCount,
+  } = useVocabularyStore(
+    useShallow(s => ({
+      addStatus: s.addStatus,
+      getWordStatus: s.getWordStatus,
+      existingWord: s.existingWord,
+      batchAddStatus: s.batchAddStatus,
+      batchSavedCount: s.batchSavedCount,
+      batchSkippedCount: s.batchSkippedCount,
+    })),
+  );
+  const resetLookup = useVocabularyStore(s => s.resetLookup);
+  const getWord = useVocabularyStore(s => s.getWord);
+  const vocabAddWord = useVocabularyStore(s => s.addWord);
+  const resetBatchAdd = useVocabularyStore(s => s.resetBatchAdd);
+  const batchAddWords = useVocabularyStore(s => s.batchAddWords);
 
   const [currentMs, setCurrentMs] = useState(0);
   const [durationMs, setDurationMs] = useState(0);
@@ -61,6 +82,7 @@ export default function PlayerScreen({ navigation }: Props) {
   const [selectedToken, setSelectedToken] = useState<Token | null>(null);
   const [selectedLine, setSelectedLine] = useState('');
   const [selectedKoreanLine, setSelectedKoreanLine] = useState<string | null>(null);
+  const [wordListVisible, setWordListVisible] = useState(false);
   const youtubeRef = useRef<YouTubePlayerRef>(null);
   const wordSheetRef = useRef<BottomSheet>(null);
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
@@ -315,14 +337,14 @@ export default function PlayerScreen({ navigation }: Props) {
     [],
   );
 
-  const handleTokenPress = (token: Token, lineText: string, koreanLyrics: string | null) => {
+  const handleTokenPress = useCallback((token: Token, lineText: string, koreanLyrics: string | null) => {
     setSelectedToken(token);
     setSelectedLine(lineText);
     setSelectedKoreanLine(koreanLyrics);
-    vocabStore.resetLookup();
-    vocabStore.getWord(token.baseForm);
+    resetLookup();
+    getWord(token.baseForm);
     wordSheetRef.current?.expand();
-  };
+  }, [resetLookup, getWord]);
 
   const handleSeek = useCallback((ms: number) => {
     setCurrentMs(ms);
@@ -338,7 +360,7 @@ export default function PlayerScreen({ navigation }: Props) {
 
   const handleAddWord = () => {
     if (selectedToken) {
-      vocabStore.addWord(selectedToken, song.id, selectedLine, selectedKoreanLine);
+      vocabAddWord(selectedToken, song.id, selectedLine, selectedKoreanLine);
     }
   };
 
@@ -356,14 +378,14 @@ export default function PlayerScreen({ navigation }: Props) {
   };
 
   const handleEditWord = () => {
-    if (vocabStore.existingWord) {
+    if (existingWord) {
       wordSheetRef.current?.close();
       navigation.navigate('EditWord', {
         mode: 'edit',
-        wordId: vocabStore.existingWord.id,
-        japanese: vocabStore.existingWord.japanese,
-        reading: vocabStore.existingWord.reading ?? undefined,
-        meanings: vocabStore.existingWord.meanings,
+        wordId: existingWord.id,
+        japanese: existingWord.japanese,
+        reading: existingWord.reading ?? undefined,
+        meanings: existingWord.meanings,
       });
     }
   };
@@ -375,12 +397,12 @@ export default function PlayerScreen({ navigation }: Props) {
   };
 
   const confirmDeleteWord = async () => {
-    if (vocabStore.existingWord) {
+    if (existingWord) {
       try {
-        await wordApi.deleteWord(vocabStore.existingWord.id);
-        vocabStore.resetLookup();
+        await wordApi.deleteWord(existingWord.id);
+        resetLookup();
         if (selectedToken) {
-          vocabStore.getWord(selectedToken.baseForm);
+          getWord(selectedToken.baseForm);
         }
         setShowDeleteDialog(false);
       } catch {
@@ -389,16 +411,40 @@ export default function PlayerScreen({ navigation }: Props) {
     }
   };
 
-  const isTranslationPending = studyUnits.length > 0
-    && studyUnits.some(u => u.originalText.trim() !== '')
-    && studyUnits.every(u => u.koreanLyrics === null);
+  const hasAnalyzedTokens = useMemo(
+    () => studyUnits.some(u => u.tokens.some(t => t.koreanText != null)),
+    [studyUnits],
+  );
 
-  const currentLineIndex = isSynced
-    ? studyUnits.reduce((acc, unit, idx) => {
-        if (unit.startTimeMs != null && unit.startTimeMs <= currentMs) return idx;
-        return acc;
-      }, 0)
-    : -1;
+  const handleOpenWordList = useCallback(() => {
+    resetBatchAdd();
+    setWordListVisible(true);
+  }, []);
+
+  const handleBatchSave = useCallback((words: AddWordRequest[]) => {
+    batchAddWords(words);
+  }, []);
+
+  const handleCloseWordList = useCallback(() => {
+    setWordListVisible(false);
+  }, []);
+
+  const isTranslationPending = useMemo(
+    () => studyUnits.length > 0
+      && studyUnits.some(u => u.originalText.trim() !== '')
+      && studyUnits.every(u => u.koreanLyrics === null),
+    [studyUnits],
+  );
+
+  const currentLineIndex = useMemo(
+    () => isSynced
+      ? studyUnits.reduce((acc, unit, idx) => {
+          if (unit.startTimeMs != null && unit.startTimeMs <= currentMs) return idx;
+          return acc;
+        }, 0)
+      : -1,
+    [isSynced, studyUnits, currentMs],
+  );
 
   currentLineIndexRef.current = currentLineIndex;
   isPlayingRef.current = isPlaying;
@@ -424,7 +470,7 @@ export default function PlayerScreen({ navigation }: Props) {
         studyUnit={item}
         isActive={!isSynced || index === currentLineIndex}
         onTokenPress={handleTokenPress}
-        onLinePress={isSynced && item.startTimeMs != null ? () => handleSeek(item.startTimeMs!) : undefined}
+        onLineSeek={isSynced ? handleSeek : undefined}
       />
     </View>
   );
@@ -495,6 +541,16 @@ export default function PlayerScreen({ navigation }: Props) {
                 <View style={styles.songInfo} onLayout={(e) => { headerHeightRef.current = e.nativeEvent.layout.height; }}>
                   <Text style={styles.songTitle}>{song.title}</Text>
                   <Text style={styles.songArtist}>{song.artist}</Text>
+                  {hasAnalyzedTokens && (
+                    <TouchableOpacity
+                      style={styles.wordListBtn}
+                      onPress={handleOpenWordList}
+                      activeOpacity={0.7}
+                    >
+                      <Feather name="list" size={16} color={Colors.primary} />
+                      <Text style={styles.wordListBtnText}>전체 단어 담기</Text>
+                    </TouchableOpacity>
+                  )}
                   {isTranslationPending && (
                     <View style={styles.notice}>
                       <View style={[styles.noticeIconWrap, { backgroundColor: Colors.elevated }]}>
@@ -580,9 +636,9 @@ export default function PlayerScreen({ navigation }: Props) {
           {selectedToken && (
             <WordAnalysisSheet
               token={selectedToken}
-              addStatus={vocabStore.addStatus}
-              getWordStatus={vocabStore.getWordStatus}
-              existingWord={vocabStore.existingWord}
+              addStatus={addStatus}
+              getWordStatus={getWordStatus}
+              existingWord={existingWord}
               songId={song.id}
               lyricLine={selectedLine}
               onAddWord={handleAddWord}
@@ -622,6 +678,18 @@ export default function PlayerScreen({ navigation }: Props) {
         </View>
       </Modal>
     </SafeAreaView>
+
+      {/* Song word list sheet */}
+      <SongWordListSheet
+        visible={wordListVisible}
+        studyUnits={studyUnits}
+        songId={song.id}
+        batchAddStatus={batchAddStatus}
+        batchSavedCount={batchSavedCount}
+        batchSkippedCount={batchSkippedCount}
+        onSave={handleBatchSave}
+        onClose={handleCloseWordList}
+      />
     </View>
   );
 }
@@ -756,6 +824,22 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '500',
     color: Colors.textSecondary,
+  },
+  wordListBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    backgroundColor: Colors.primary + '12',
+    marginTop: 8,
+  },
+  wordListBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.primary,
   },
 
   // Notices

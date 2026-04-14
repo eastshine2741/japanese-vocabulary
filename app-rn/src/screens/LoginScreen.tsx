@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useShallow } from 'zustand/react/shallow';
 import { useAuthStore } from '../stores/authStore';
 import { Colors, Dimens } from '../theme/theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -21,7 +22,9 @@ export default function LoginScreen({ navigation }: Props) {
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [isSignup, setIsSignup] = useState(false);
-  const { status, error, login, signup, reset } = useAuthStore();
+  const { status, error, login, signup, reset } = useAuthStore(
+    useShallow(s => ({ status: s.status, error: s.error, login: s.login, signup: s.signup, reset: s.reset })),
+  );
 
   useEffect(() => {
     if (status === 'success') {
