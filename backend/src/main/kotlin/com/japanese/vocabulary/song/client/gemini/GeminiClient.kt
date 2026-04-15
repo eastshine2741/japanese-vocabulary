@@ -30,7 +30,8 @@ class GeminiClient(
             systemPrompt = TRANSLATION_PROMPT,
             input = lyricLines,
             responseType = TranslationResult::class.java,
-            temperature = 0.3
+            temperature = 0.3,
+            responseSchema = TRANSLATION_SCHEMA
         )
     }
 
@@ -51,7 +52,8 @@ class GeminiClient(
             systemPrompt = WORD_MEANING_PROMPT,
             input = lyricLines,
             responseType = WordMeaningResult::class.java,
-            temperature = 0.0
+            temperature = 0.0,
+            responseSchema = WORD_MEANING_SCHEMA
         )
     }
 
@@ -60,9 +62,18 @@ class GeminiClient(
         systemPrompt: String,
         input: Any,
         responseType: Class<T>,
-        temperature: Double
+        temperature: Double,
+        responseSchema: Map<String, Any>? = null
     ): List<T> {
         val inputJson = objectMapper.writeValueAsString(input)
+
+        val generationConfig = mutableMapOf<String, Any>(
+            "responseMimeType" to "application/json",
+            "temperature" to temperature
+        )
+        if (responseSchema != null) {
+            generationConfig["responseSchema"] = responseSchema
+        }
 
         val requestBody = mapOf(
             "system_instruction" to mapOf(
@@ -71,10 +82,7 @@ class GeminiClient(
             "contents" to listOf(
                 mapOf("parts" to listOf(mapOf("text" to inputJson)))
             ),
-            "generationConfig" to mapOf(
-                "responseMimeType" to "application/json",
-                "temperature" to temperature
-            )
+            "generationConfig" to generationConfig
         )
 
         val response = restClient.post()
@@ -175,5 +183,41 @@ class GeminiClient(
             Return ONLY a JSON array:
             [{"index": N, "words": [{"surface": "...", "baseForm": "...", "koreanText": "..."}]}]
         """.trimIndent()
+
+        private val TRANSLATION_SCHEMA = mapOf(
+            "type" to "ARRAY",
+            "items" to mapOf(
+                "type" to "OBJECT",
+                "properties" to mapOf(
+                    "index" to mapOf("type" to "INTEGER"),
+                    "koreanLyrics" to mapOf("type" to "STRING"),
+                    "koreanPronounciation" to mapOf("type" to "STRING")
+                ),
+                "required" to listOf("index", "koreanLyrics", "koreanPronounciation")
+            )
+        )
+
+        private val WORD_MEANING_SCHEMA = mapOf(
+            "type" to "ARRAY",
+            "items" to mapOf(
+                "type" to "OBJECT",
+                "properties" to mapOf(
+                    "index" to mapOf("type" to "INTEGER"),
+                    "words" to mapOf(
+                        "type" to "ARRAY",
+                        "items" to mapOf(
+                            "type" to "OBJECT",
+                            "properties" to mapOf(
+                                "surface" to mapOf("type" to "STRING"),
+                                "baseForm" to mapOf("type" to "STRING"),
+                                "koreanText" to mapOf("type" to "STRING")
+                            ),
+                            "required" to listOf("surface", "baseForm", "koreanText")
+                        )
+                    )
+                ),
+                "required" to listOf("index", "words")
+            )
+        )
     }
 }
