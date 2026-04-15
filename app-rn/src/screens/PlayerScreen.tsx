@@ -33,6 +33,7 @@ import { songApi } from '../api/songApi';
 import { wordApi } from '../api/wordApi';
 import YouTubePlayer, { YouTubePlayerRef } from '../components/YouTubePlayer';
 import WordAnalysisSheet from '../components/WordAnalysisSheet';
+import WordEditSheet from '../components/WordEditSheet';
 import SongWordListSheet from '../components/SongWordListSheet';
 import LyricLine from '../components/LyricLine';
 import SeekBar from '../components/SeekBar';
@@ -83,6 +84,7 @@ export default function PlayerScreen({ navigation }: Props) {
   const [selectedLine, setSelectedLine] = useState('');
   const [selectedKoreanLine, setSelectedKoreanLine] = useState<string | null>(null);
   const [wordListVisible, setWordListVisible] = useState(false);
+  const [wordEditVisible, setWordEditVisible] = useState(false);
   const youtubeRef = useRef<YouTubePlayerRef>(null);
   const wordSheetRef = useRef<BottomSheet>(null);
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
@@ -366,16 +368,21 @@ export default function PlayerScreen({ navigation }: Props) {
 
   const handleEditAndSave = () => {
     if (selectedToken) {
-      wordSheetRef.current?.close();
-      navigation.navigate('EditWord', {
-        mode: 'createAndEdit',
-        token: selectedToken,
-        songId: song.id,
-        lyricLine: selectedLine,
-        koreanLyricLine: selectedKoreanLine ?? undefined,
-      });
+      setWordEditVisible(true);
     }
   };
+
+  const handleEditSaved = useCallback(() => {
+    setWordEditVisible(false);
+    if (selectedToken) {
+      resetLookup();
+      getWord(selectedToken.baseForm);
+    }
+  }, [selectedToken, resetLookup, getWord]);
+
+  const handleCloseWordEdit = useCallback(() => {
+    setWordEditVisible(false);
+  }, []);
 
   const handleEditWord = () => {
     if (existingWord) {
@@ -695,6 +702,17 @@ export default function PlayerScreen({ navigation }: Props) {
         batchSkippedCount={batchSkippedCount}
         onSave={handleBatchSave}
         onClose={handleCloseWordList}
+      />
+
+      {/* Word edit sheet */}
+      <WordEditSheet
+        visible={wordEditVisible}
+        token={selectedToken}
+        songId={song.id}
+        lyricLine={selectedLine}
+        koreanLyricLine={selectedKoreanLine ?? undefined}
+        onSaved={handleEditSaved}
+        onClose={handleCloseWordEdit}
       />
     </View>
   );

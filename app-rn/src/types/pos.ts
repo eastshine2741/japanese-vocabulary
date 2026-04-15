@@ -18,3 +18,23 @@ export const POS_INFO: Record<string, { korean: string; color: string }> = {
   SUPPLEMENTARY_SYMBOL: { korean: '보조기호', color: Colors.textMuted },
   WHITESPACE: { korean: '공백', color: Colors.textMuted },
 };
+
+export const POS_PICKER_KEYS = [
+  'NOUN', 'VERB', 'ADJECTIVE', 'NA_ADJECTIVE', 'ADVERB',
+  'PRONOUN', 'ADNOMINAL', 'CONJUNCTION', 'AUXILIARY_VERB',
+  'PARTICLE', 'INTERJECTION', 'PREFIX', 'SUFFIX',
+] as const;
+
+export const POS_OPTIONS = POS_PICKER_KEYS.map((key) => ({
+  key,
+  label: POS_INFO[key].korean,
+  color: POS_INFO[key].color,
+}));
+
+export function getPosLabel(pos: string): string {
+  return POS_INFO[pos]?.korean ?? pos;
+}
+
+export function getPosColor(pos: string): string {
+  return POS_INFO[pos]?.color ?? Colors.textMuted;
+}
