@@ -48,6 +48,10 @@ class LrclibClient : LyricProvider {
     }
 
     private fun fetchFromGet(title: String, artist: String, durationSeconds: Int?): LyricsResult? {
+        logger.info(
+            "Lyric search attempt | provider=LrcLib | strategy=exact-match | title='{}' | artist='{}' | duration={}",
+            title, artist, durationSeconds ?: "none"
+        )
         val response = try {
             webClient.get()
                 .uri { uriBuilder ->
@@ -67,7 +71,12 @@ class LrclibClient : LyricProvider {
             return null
         }
 
-        return toResult(response)
+        return toResult(response)?.also {
+            logger.info(
+                "Lyric search hit | provider=LrcLib | strategy=exact-match | lrclibId={} | synced={}",
+                it.lrclibId, it.isSynced
+            )
+        }
     }
 
     private fun fetchFromSearch(query: NormalizedSongQuery): LyricsResult? {
@@ -78,6 +87,10 @@ class LrclibClient : LyricProvider {
         val normalizedParts = query.artistParts.map { it.lowercase() }
 
         for (title in titles) {
+            logger.info(
+                "Lyric search attempt | provider=LrcLib | strategy=keyword-search | query='{}' | artistFilter={} | durationFilter={}",
+                title, normalizedParts, query.durationSeconds ?: "none"
+            )
             val results = try {
                 webClient.get()
                     .uri { it.path("/api/search").queryParam("q", title).build() }
@@ -93,7 +106,13 @@ class LrclibClient : LyricProvider {
             for (response in results) {
                 val responseArtist = response.artistName.lowercase()
                 if (normalizedParts.any { responseArtist.contains(it) }) {
-                    toResult(response)?.let { return it }
+                    toResult(response)?.let {
+                        logger.info(
+                            "Lyric search hit | provider=LrcLib | strategy=keyword-search | matchedBy=artist | responseArtist='{}' | lrclibId={} | synced={}",
+                            response.artistName, it.lrclibId, it.isSynced
+                        )
+                        return it
+                    }
                 }
             }
 
@@ -102,7 +121,13 @@ class LrclibClient : LyricProvider {
                 for (response in results) {
                     val responseDuration = response.duration
                     if (responseDuration != null && abs(query.durationSeconds - responseDuration) <= 3) {
-                        toResult(response)?.let { return it }
+                        toResult(response)?.let {
+                            logger.info(
+                                "Lyric search hit | provider=LrcLib | strategy=keyword-search | matchedBy=duration | responseDuration={} | lrclibId={} | synced={}",
+                                responseDuration, it.lrclibId, it.isSynced
+                            )
+                            return it
+                        }
                     }
                 }
             }

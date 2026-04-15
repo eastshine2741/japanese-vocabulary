@@ -24,6 +24,11 @@ class VocadbClient : LyricProvider {
 
     override fun search(query: NormalizedSongQuery): LyricsResult? {
         return try {
+            val normalizedParts = query.artistParts.map { it.lowercase() }
+            logger.info(
+                "Lyric search attempt | provider=VocaDB | strategy=keyword-search | query='{}' | artistFilter={}",
+                query.normalizedTitle, normalizedParts
+            )
             val response = webClient.get()
                 .uri { uriBuilder ->
                     uriBuilder.path("/api/songs")
@@ -40,8 +45,6 @@ class VocadbClient : LyricProvider {
                 .block()
                 ?: return null
 
-            val normalizedParts = query.artistParts.map { it.lowercase() }
-
             for (song in response.items) {
                 val songArtist = song.artistString.lowercase()
                 val artistMatches = normalizedParts.any { part -> songArtist.contains(part) }
@@ -53,6 +56,10 @@ class VocadbClient : LyricProvider {
                         !lyric.value.isNullOrBlank()
                 } ?: continue
 
+                logger.info(
+                    "Lyric search hit | provider=VocaDB | matchedSong='{}' | matchedArtist='{}' | vocadbId={}",
+                    song.name, song.artistString, song.id
+                )
                 return LyricsResult(
                     vocadbId = song.id,
                     lyrics = lyrics.value!!,
