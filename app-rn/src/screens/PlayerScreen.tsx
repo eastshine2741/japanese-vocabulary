@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -459,10 +459,13 @@ export default function PlayerScreen({ navigation }: Props) {
 
   const shouldShowScrollBtn = isSynced && isPlaying && currentLineIndex >= 0
     && !visibleIndicesRef.current.has(currentLineIndex);
-  if (shouldShowScrollBtn !== prevScrollBtnShown.current) {
-    prevScrollBtnShown.current = shouldShowScrollBtn;
-    scrollBtnVisible.value = withTiming(shouldShowScrollBtn ? 1 : 0, { duration: 200 });
-  }
+
+  useEffect(() => {
+    if (shouldShowScrollBtn !== prevScrollBtnShown.current) {
+      prevScrollBtnShown.current = shouldShowScrollBtn;
+      scrollBtnVisible.value = withTiming(shouldShowScrollBtn ? 1 : 0, { duration: 200 });
+    }
+  }, [shouldShowScrollBtn]);
 
   const scrollBtnDirection = useMemo(() => {
     if (!shouldShowScrollBtn || visibleIndicesRef.current.size === 0) return 'down';
