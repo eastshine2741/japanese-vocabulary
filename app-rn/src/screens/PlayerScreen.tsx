@@ -457,6 +457,12 @@ export default function PlayerScreen({ navigation }: Props) {
     scrollBtnVisible.value = withTiming(shouldShowScrollBtn ? 1 : 0, { duration: 200 });
   }
 
+  const scrollBtnDirection = useMemo(() => {
+    if (!shouldShowScrollBtn || visibleIndicesRef.current.size === 0) return 'down';
+    const minVisible = Math.min(...visibleIndicesRef.current);
+    return currentLineIndex < minVisible ? 'up' : 'down';
+  }, [shouldShowScrollBtn, currentLineIndex]);
+
   const handleRefreshLyrics = async () => {
     try {
       const data = await songApi.getById(song.id);
@@ -607,7 +613,7 @@ export default function PlayerScreen({ navigation }: Props) {
               pointerEvents={shouldShowScrollBtn ? 'auto' : 'none'}
             >
               <TouchableOpacity onPress={scrollToCurrentLine} activeOpacity={0.6} style={styles.scrollToLineBtnInner}>
-                <Feather name="crosshair" size={20} color="#FFFFFF" />
+                <Feather name={scrollBtnDirection === 'up' ? 'chevron-up' : 'chevron-down'} size={20} color="#FFFFFF" />
               </TouchableOpacity>
             </Animated.View>
           </View>
@@ -904,7 +910,7 @@ const styles = StyleSheet.create({
   },
   scrollToLineBtn: {
     position: 'absolute',
-    bottom: 96,
+    bottom: 48,
     right: 16,
     borderRadius: 22,
     ...Platform.select({
