@@ -7,9 +7,9 @@ import {
 } from '../types/song';
 
 export const songApi = {
-  async search(query: string, offset = 0, limit = 50): Promise<SongSearchResponse> {
+  async search(query: string): Promise<SongSearchResponse> {
     const { data } = await client.get<SongSearchResponse>('/api/songs/search', {
-      params: { q: query, offset, limit },
+      params: { q: query },
     });
     return data;
   },

@@ -8,7 +8,6 @@ export interface SongSearchItem {
 
 export interface SongSearchResponse {
   items: SongSearchItem[];
-  nextOffset: number | null;
 }
 
 export interface SongInfo {
