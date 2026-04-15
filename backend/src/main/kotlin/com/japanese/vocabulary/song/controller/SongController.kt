@@ -74,14 +74,9 @@ class SongController(
         return ResponseEntity.ok(songDTO)
     }
 
-    // FIXME: iTunes가 페이지네이션을 지원하지 않아서, 제대로 된 페이지네이션을 제공하지 못하고 있다.
     @GetMapping("/search")
-    fun searchSongs(
-        @RequestParam q: String,
-        @RequestParam(defaultValue = "0") offset: Int,
-        @RequestParam(defaultValue = "50") limit: Int
-    ): ResponseEntity<SongSearchResponse> {
-        val result = itunesClient.search(q, offset, limit)
+    fun searchSongs(@RequestParam q: String): ResponseEntity<SongSearchResponse> {
+        val result = itunesClient.search(q)
         return ResponseEntity.ok(result)
     }
 

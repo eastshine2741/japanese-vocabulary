@@ -31,10 +31,10 @@ class YoutubeClient(
             }
             .retrieve()
             .body(YoutubeSearchResponse::class.java)
-            ?: return SongSearchResponse(emptyList(), null)
+            ?: return SongSearchResponse(emptyList())
 
         val videoIds = searchResponse.items.mapNotNull { it.id.videoId }
-        if (videoIds.isEmpty()) return SongSearchResponse(emptyList(), 0)
+        if (videoIds.isEmpty()) return SongSearchResponse(emptyList())
 
         val videosResponse = restClient.get()
             .uri { builder ->
@@ -64,7 +64,7 @@ class YoutubeClient(
             )
         }
 
-        return SongSearchResponse(items, 0)
+        return SongSearchResponse(items)
     }
 
     fun searchMvUrl(title: String, artist: String): String? {

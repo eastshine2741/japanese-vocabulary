@@ -29,13 +29,11 @@ function formatDuration(seconds: number): string {
 export default function SearchScreen({ navigation }: Props) {
   const [query, setQuery] = useState('');
   const insets = useSafeAreaInsets();
-  const { searchStatus, items, isLoadingMore, search, loadMore } = useSearchStore(
+  const { searchStatus, items, search } = useSearchStore(
     useShallow(s => ({
       searchStatus: s.searchStatus,
       items: s.items,
-      isLoadingMore: s.isLoadingMore,
       search: s.search,
-      loadMore: s.loadMore,
     })),
   );
   const playerStatus = usePlayerStore(s => s.status);
@@ -104,10 +102,8 @@ export default function SearchScreen({ navigation }: Props) {
             onPress={() => handleAnalyze(item)}
           />
         )}
-        onEndReached={loadMore}
-        onEndReachedThreshold={0.5}
         ListFooterComponent={
-          (searchStatus === 'loading' || isLoadingMore) ? (
+          searchStatus === 'loading' ? (
             <ActivityIndicator style={styles.loader} color={Colors.primary} />
           ) : null
         }

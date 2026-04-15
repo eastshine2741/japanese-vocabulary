@@ -21,21 +21,20 @@ class ItunesClient(restClientBuilder: RestClient.Builder, objectMapper: ObjectMa
         }
         .build()
 
-    fun search(query: String, offset: Int = 0, limit: Int = 10): SongSearchResponse {
+    fun search(query: String): SongSearchResponse {
         val response = restClient.get()
             .uri { builder ->
                 builder.path("/search")
                     .queryParam("term", query)
                     .queryParam("media", "music")
                     .queryParam("entity", "musicTrack")
-                    .queryParam("limit", limit)
-                    .queryParam("offset", offset)
+                    .queryParam("limit", 50)
                     .queryParam("country", "jp")
                     .build()
             }
             .retrieve()
             .body(ItunesSearchResponse::class.java)
-            ?: return SongSearchResponse(emptyList(), null)
+            ?: return SongSearchResponse(emptyList())
 
         val items = response.results.mapNotNull { track ->
             val id = track.trackId?.toString() ?: return@mapNotNull null
@@ -48,7 +47,6 @@ class ItunesClient(restClientBuilder: RestClient.Builder, objectMapper: ObjectMa
             )
         }
 
-        val nextOffset = if (response.results.size >= limit) offset + response.results.size else null
-        return SongSearchResponse(items, nextOffset)
+        return SongSearchResponse(items)
     }
 }
