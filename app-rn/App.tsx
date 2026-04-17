@@ -5,6 +5,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AppNavigator, { RootStackParamList } from './src/navigation/AppNavigator';
 import { tokenStorage } from './src/utils/tokenStorage';
+import { useSettingsStore } from './src/stores/settingsStore';
 import { Colors } from './src/theme/theme';
 
 export default function App() {
@@ -12,6 +13,9 @@ export default function App() {
 
   useEffect(() => {
     tokenStorage.getToken().then((token) => {
+      if (token) {
+        useSettingsStore.getState().loadSettings();
+      }
       setInitialRoute(token ? 'Main' : 'Login');
     });
   }, []);
