@@ -2,7 +2,6 @@ import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   Alert,
   ActivityIndicator,
@@ -16,47 +15,26 @@ import { Feather } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import BottomSheet, { BottomSheetBackdrop, BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import { WordMeaning, ExampleSentence } from '../types/word';
-import { POS_INFO } from '../types/pos';
+import { ExampleSentence } from '../types/word';
 import ArtworkImage from '../components/ArtworkImage';
+import WordFormFields from '../components/WordFormFields';
+import PosPickerList from '../components/PosPickerList';
 import { wordApi } from '../api/wordApi';
-import { useVocabularyStore } from '../stores/vocabularyStore';
+import { useWordForm } from '../hooks/useWordForm';
 import { Colors, Dimens } from '../theme/theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'EditWord'>;
-
-const POS_PICKER_KEYS = [
-  'NOUN', 'VERB', 'ADJECTIVE', 'NA_ADJECTIVE', 'ADVERB',
-  'PRONOUN', 'ADNOMINAL', 'CONJUNCTION', 'AUXILIARY_VERB',
-  'PARTICLE', 'INTERJECTION', 'PREFIX', 'SUFFIX',
-] as const;
-
-const POS_OPTIONS = POS_PICKER_KEYS.map((key) => ({
-  key,
-  label: POS_INFO[key].korean,
-  color: POS_INFO[key].color,
-}));
-
-function getPosLabel(pos: string): string {
-  return POS_INFO[pos]?.korean ?? pos;
-}
-
-function getPosColor(pos: string): string {
-  return POS_INFO[pos]?.color ?? Colors.textMuted;
-}
 
 export default function EditWordScreen({ route, navigation }: Props) {
   const { mode, wordId, japanese, reading: initReading, meanings: initMeanings, token, songId, lyricLine, koreanLyricLine } = route.params;
 
   const japaneseText = mode === 'edit' ? japanese! : token!.baseForm;
-  const [reading, setReading] = useState(
-    mode === 'edit' ? (initReading ?? '') : (token!.baseFormReading ?? token!.reading ?? ''),
-  );
-  const [meanings, setMeanings] = useState<WordMeaning[]>(
-    mode === 'edit'
-      ? [...initMeanings!]
-      : [{ text: token!.koreanText ?? '', partOfSpeech: token!.partOfSpeech ?? '명사' }],
-  );
+  const initialReadingValue = mode === 'edit' ? (initReading ?? '') : (token!.baseFormReading ?? token!.reading ?? '');
+  const initialMeaningsValue = mode === 'edit'
+    ? [...initMeanings!]
+    : [{ text: token!.koreanText ?? '', partOfSpeech: token!.partOfSpeech ?? '명사' }];
+
+  const form = useWordForm(initialReadingValue, initialMeaningsValue);
 
   const [examples, setExamples] = useState<ExampleSentence[]>([]);
   const [deletedExampleIds, setDeletedExampleIds] = useState<Set<number>>(new Set());
@@ -64,8 +42,6 @@ export default function EditWordScreen({ route, navigation }: Props) {
   const [posPickerIndex, setPosPickerIndex] = useState<number | null>(null);
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
-  const [touchedIndices, setTouchedIndices] = useState<Set<number>>(new Set());
-  const [submitAttempted, setSubmitAttempted] = useState(false);
 
   const posSheetRef = useRef<BottomSheet>(null);
   const insets = useSafeAreaInsets();
@@ -73,14 +49,14 @@ export default function EditWordScreen({ route, navigation }: Props) {
   // Initial snapshot for change detection
   const initialSnapshot = useRef(
     JSON.stringify({
-      reading: mode === 'edit' ? (initReading ?? '') : (token!.baseFormReading ?? token!.reading ?? ''),
-      meanings: mode === 'edit' ? initMeanings! : [{ text: token!.koreanText ?? '', partOfSpeech: token!.partOfSpeech ?? 'NOUN' }],
+      reading: initialReadingValue,
+      meanings: initialMeaningsValue,
     }),
   ).current;
 
   const hasWordChanges = useMemo(() => {
-    return JSON.stringify({ reading, meanings }) !== initialSnapshot;
-  }, [reading, meanings, initialSnapshot]);
+    return JSON.stringify({ reading: form.reading, meanings: form.meanings }) !== initialSnapshot;
+  }, [form.reading, form.meanings, initialSnapshot]);
 
   const hasChanges = useMemo(() => {
     return hasWordChanges || deletedExampleIds.size > 0;
@@ -91,16 +67,7 @@ export default function EditWordScreen({ route, navigation }: Props) {
     [examples, deletedExampleIds],
   );
 
-  const hasEmptyMeaning = useMemo(() => meanings.some((m) => m.text.trim() === ''), [meanings]);
-  const canSave = !hasEmptyMeaning && meanings.length > 0 && !saving;
-
-  const shouldShowError = (index: number) => {
-    return (submitAttempted || touchedIndices.has(index)) && meanings[index]?.text.trim() === '';
-  };
-
-  const markTouched = (index: number) => {
-    setTouchedIndices((prev) => new Set(prev).add(index));
-  };
+  const canSave = !form.hasEmptyMeaning && form.meanings.length > 0 && !saving;
 
   // Fetch examples on mount (edit mode)
   useEffect(() => {
@@ -140,32 +107,6 @@ export default function EditWordScreen({ route, navigation }: Props) {
     return () => sub.remove();
   }, [confirmGoBack, showResetDialog, showUnsavedDialog]);
 
-  const updateMeaningText = (index: number, text: string) => {
-    setMeanings((prev) => prev.map((m, i) => (i === index ? { ...m, text } : m)));
-  };
-
-  const updateMeaningPos = (index: number, pos: string) => {
-    setMeanings((prev) => prev.map((m, i) => (i === index ? { ...m, partOfSpeech: pos } : m)));
-  };
-
-  const addMeaning = () => {
-    const lastPos = meanings.length > 0 ? meanings[meanings.length - 1].partOfSpeech : 'NOUN';
-    setMeanings((prev) => [...prev, { text: '', partOfSpeech: lastPos }]);
-  };
-
-  const removeMeaning = (index: number) => {
-    if (meanings.length <= 1) return;
-    setMeanings((prev) => prev.filter((_, i) => i !== index));
-    setTouchedIndices((prev) => {
-      const next = new Set<number>();
-      for (const idx of prev) {
-        if (idx < index) next.add(idx);
-        else if (idx > index) next.add(idx - 1);
-      }
-      return next;
-    });
-  };
-
   const openPosPicker = (index: number) => {
     setPosPickerIndex(index);
     posSheetRef.current?.expand();
@@ -182,18 +123,18 @@ export default function EditWordScreen({ route, navigation }: Props) {
     try {
       if (mode === 'edit') {
         await wordApi.updateWord(wordId!, {
-          reading: reading || null,
-          meanings,
+          reading: form.reading || null,
+          meanings: form.meanings,
           resetFlashcard,
           deleteExampleIds: deletedExampleIds.size > 0
             ? Array.from(deletedExampleIds)
             : undefined,
         });
       } else {
-        const firstMeaning = meanings[0];
+        const firstMeaning = form.meanings[0];
         await wordApi.addWord({
           japanese: japaneseText,
-          reading,
+          reading: form.reading,
           koreanText: firstMeaning.text,
           partOfSpeech: firstMeaning.partOfSpeech,
           songId: songId!,
@@ -210,7 +151,7 @@ export default function EditWordScreen({ route, navigation }: Props) {
   };
 
   const handleSavePress = () => {
-    setSubmitAttempted(true);
+    form.setSubmitAttempted(true);
     if (!canSave) return;
     if (mode === 'edit' && hasChanges) {
       if (hasWordChanges) {
@@ -238,74 +179,18 @@ export default function EditWordScreen({ route, navigation }: Props) {
 
         {/* Content */}
         <KeyboardAwareScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" extraScrollHeight={80} enableOnAndroid>
-          {/* Japanese */}
-          <View style={styles.jpArea}>
-            <Text style={styles.jpText}>{japaneseText}</Text>
-          </View>
-
-          {/* Reading */}
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>읽기</Text>
-            <TextInput
-              style={styles.readingInput}
-              value={reading}
-              onChangeText={setReading}
-            />
-          </View>
-
-          {/* Meanings */}
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>뜻</Text>
-            {meanings.map((m, i) => {
-              const posColor = getPosColor(m.partOfSpeech);
-              const showError = shouldShowError(i);
-              return (
-                <View key={i}>
-                  <View style={styles.meaningRow}>
-                    <TouchableOpacity
-                      style={[styles.posChip, { backgroundColor: posColor + '20' }]}
-                      onPress={() => openPosPicker(i)}
-                      activeOpacity={0.6}
-                    >
-                      <Text style={[styles.posChipText, { color: posColor }]}>{getPosLabel(m.partOfSpeech)}</Text>
-                      <Feather name="chevron-down" size={12} color={posColor} />
-                    </TouchableOpacity>
-
-                    <View style={[styles.meaningInputWrap, showError && styles.meaningInputError]}>
-                      <TextInput
-                        style={styles.meaningInput}
-                        value={m.text}
-                        onChangeText={(t) => updateMeaningText(i, t)}
-                        onBlur={() => markTouched(i)}
-                      />
-                    </View>
-
-                    <TouchableOpacity
-                      onPress={() => removeMeaning(i)}
-                      hitSlop={8}
-                      disabled={meanings.length <= 1}
-                    >
-                      <Feather name="x" size={16} color={meanings.length <= 1 ? Colors.border : Colors.textMuted} />
-                    </TouchableOpacity>
-                  </View>
-                  {showError && (
-                    <View style={styles.errorRow}>
-                      <View style={[styles.posChip, { opacity: 0 }]}>
-                        <Text style={styles.posChipText}>{getPosLabel(m.partOfSpeech)}</Text>
-                        <Feather name="chevron-down" size={12} />
-                      </View>
-                      <Text style={styles.errorText}>뜻을 입력해주세요</Text>
-                    </View>
-                  )}
-                </View>
-              );
-            })}
-
-            <TouchableOpacity style={styles.addRow} onPress={addMeaning} activeOpacity={0.6}>
-              <Feather name="plus" size={16} color={Colors.primary} />
-              <Text style={styles.addText}>뜻 추가</Text>
-            </TouchableOpacity>
-          </View>
+          <WordFormFields
+            japaneseText={japaneseText}
+            reading={form.reading}
+            onReadingChange={form.setReading}
+            meanings={form.meanings}
+            onMeaningTextChange={form.updateMeaningText}
+            onMeaningBlur={form.markTouched}
+            onRemoveMeaning={form.removeMeaning}
+            onOpenPosPicker={openPosPicker}
+            onAddMeaning={form.addMeaning}
+            shouldShowError={form.shouldShowError}
+          />
 
           {/* Examples */}
           {mode === 'edit' && visibleExamples.length > 0 && (
@@ -367,31 +252,14 @@ export default function EditWordScreen({ route, navigation }: Props) {
         handleIndicatorStyle={styles.dragBar}
         onClose={() => setPosPickerIndex(null)}
       >
-        <View style={styles.pickerHeader}>
-          <Text style={styles.pickerTitle}>품사 선택</Text>
-        </View>
         <BottomSheetScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 8 }}>
-          {POS_OPTIONS.map(({ key, label }) => {
-            const isSelected = posPickerIndex !== null && meanings[posPickerIndex]?.partOfSpeech === key;
-            return (
-              <TouchableOpacity
-                key={key}
-                style={styles.pickerItem}
-                onPress={() => {
-                  if (posPickerIndex !== null) {
-                    updateMeaningPos(posPickerIndex, key);
-                  }
-                  posSheetRef.current?.close();
-                }}
-                activeOpacity={0.6}
-              >
-                <Text style={[styles.pickerItemText, isSelected && { color: Colors.primary, fontWeight: '600' }]}>
-                  {label}
-                </Text>
-                {isSelected && <Feather name="check" size={18} color={Colors.primary} />}
-              </TouchableOpacity>
-            );
-          })}
+          <PosPickerList
+            selectedPos={posPickerIndex !== null ? form.meanings[posPickerIndex]?.partOfSpeech : null}
+            onSelect={(pos) => {
+              if (posPickerIndex !== null) form.updateMeaningPos(posPickerIndex, pos);
+              posSheetRef.current?.close();
+            }}
+          />
         </BottomSheetScrollView>
       </BottomSheet>
 
@@ -481,60 +349,9 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 24, paddingBottom: 20, gap: 32 },
 
-  // Japanese
-  jpArea: { alignItems: 'flex-start', paddingTop: 24, paddingBottom: 8 },
-  jpText: { fontSize: 40, fontWeight: '800', color: Colors.textPrimary, letterSpacing: -1 },
-
-  // Sections
+  // Sections (for examples)
   section: { gap: 6 },
   sectionLabel: { fontSize: 12, fontWeight: '500', color: Colors.textMuted },
-
-  // Reading
-  readingInput: {
-    fontSize: 18,
-    color: Colors.textPrimary,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-    paddingBottom: 10,
-    paddingTop: 0,
-  },
-
-  // Meaning rows
-  meaningRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingVertical: 8,
-  },
-  posChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 10,
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    gap: 4,
-  },
-  posChipText: { fontSize: 12, fontWeight: '600' },
-
-  meaningInputWrap: {
-    flex: 1,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-    paddingBottom: 6,
-    paddingTop: 6,
-  },
-  meaningInputError: { borderBottomColor: '#EF4444' },
-  meaningInput: {
-    fontSize: 17,
-    color: Colors.textPrimary,
-    padding: 0,
-  },
-  errorRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  errorText: { fontSize: 12, color: '#EF4444' },
 
   // Examples
   exampleRow: {
@@ -571,16 +388,6 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
   },
 
-  // Add row
-  addRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    paddingVertical: 14,
-  },
-  addText: { fontSize: 15, fontWeight: '500', color: Colors.primary },
-
   // Save
   saveArea: { paddingTop: 16, paddingBottom: 34 },
   saveBtn: {
@@ -601,20 +408,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
   },
   dragBar: { width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.textMuted },
-  pickerHeader: { paddingHorizontal: 24, paddingTop: 4, paddingBottom: 12 },
-  pickerTitle: { fontSize: 17, fontWeight: '700', color: Colors.textPrimary },
-  pickerItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    marginHorizontal: 8,
-    borderRadius: 12,
-  },
-  pickerItemText: { fontSize: 15, color: Colors.textPrimary },
-
-  // Reset dialog
+  // Dialogs
   dialogOverlay: {
     flex: 1,
     justifyContent: 'center',
