@@ -38,7 +38,7 @@ Set in `.env` (loaded by docker-compose) and as shell env vars for backend:
 
 | Variable | Purpose |
 |---|---|
-| `DB_USERNAME` / `DB_PASSWORD` | MySQL credentials |
+| `MYSQL_USER` / `MYSQL_PASSWORD` | MySQL credentials |
 | `YOUTUBE_API_KEY` | YouTube Data API v3 |
 | `JWT_SECRET` | JWT signing key (defaults to dev key) |
 | `SUDACHI_DICT_PATH` | Path to Sudachi `system_core.dic` (defaults to classpath `sudachi/`) |

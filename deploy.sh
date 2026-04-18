@@ -32,43 +32,47 @@ if [[ ! "$NS" =~ ^[a-z][a-z0-9-]*$ ]]; then
 fi
 
 GIT_SHA="$(git rev-parse --short HEAD)"
-IMAGE="japanese-vocabulary:${GIT_SHA}"
+API_IMAGE="japanese-vocabulary-api:${GIT_SHA}"
+BATCH_IMAGE="japanese-vocabulary-batch:${GIT_SHA}"
+MIGRATION_IMAGE="japanese-vocabulary-migration:${GIT_SHA}"
 
-echo "=== namespace: $NS | image: $IMAGE ==="
+echo "=== namespace: $NS | sha: $GIT_SHA ==="
 
 # --- 1. Gradle 빌드 ---
 STEP_START=$SECONDS
-echo "[1/6] Building bootJar..."
-cd "$PROJECT_ROOT/backend" && ./gradlew bootJar --no-daemon
+echo "[1/8] Building bootJar..."
+cd "$PROJECT_ROOT/backend" && ./gradlew :api:bootJar :batch:bootJar --no-daemon
 cd "$PROJECT_ROOT"
 echo "  → $((SECONDS - STEP_START))s"
 
 # --- 2. Docker 이미지 빌드 ---
 STEP_START=$SECONDS
-echo "[2/6] Building image..."
-docker build -t "$IMAGE" -f "$PROJECT_ROOT/backend/Dockerfile" "$PROJECT_ROOT/backend/"
+echo "[2/8] Building images..."
+docker build -t "$API_IMAGE" -f "$PROJECT_ROOT/backend/api/Dockerfile" "$PROJECT_ROOT/backend/api/"
+docker build -t "$BATCH_IMAGE" -f "$PROJECT_ROOT/backend/batch/Dockerfile" "$PROJECT_ROOT/backend/batch/"
+docker build -t "$MIGRATION_IMAGE" -f "$PROJECT_ROOT/backend/migration/Dockerfile" "$PROJECT_ROOT/backend/migration/"
 echo "  → $((SECONDS - STEP_START))s"
 
-# --- 2. k3s 이미지 주입 ---
+# --- 3. k3s 이미지 주입 ---
 STEP_START=$SECONDS
-echo "[3/6] Importing image to k3s..."
-docker save "$IMAGE" | sudo k3s ctr images import -
+echo "[3/8] Importing images to k3s..."
+docker save "$API_IMAGE" "$BATCH_IMAGE" "$MIGRATION_IMAGE" | sudo k3s ctr images import -
 echo "  → $((SECONDS - STEP_START))s"
 
-# --- 3. Namespace 생성 ---
+# --- 4. Namespace 생성 ---
 STEP_START=$SECONDS
-echo "[4/6] Creating namespace..."
+echo "[4/8] Creating namespace..."
 kubectl create namespace "$NS" --dry-run=client -o yaml | kubectl apply -f -
 echo "  → $((SECONDS - STEP_START))s"
 
-# --- 4. 매니페스트 적용 ---
+# --- 5. 매니페스트 적용 (인프라 + 시크릿) ---
 STEP_START=$SECONDS
-echo "[5/6] Applying manifests..."
+echo "[5/8] Applying infra manifests..."
 
-# .env 로드 + IMAGE를 환경변수로 export (템플릿에서 사용)
+# .env 로드 + 이미지를 환경변수로 export (템플릿에서 사용)
 set -a
 source "$PROJECT_ROOT/.env"
-export IMAGE NS
+export API_IMAGE BATCH_IMAGE MIGRATION_IMAGE NS
 set +a
 
 # mysql
@@ -79,23 +83,47 @@ kubectl apply -n "$NS" -f "$PROJECT_ROOT/k8s/mysql/service.yaml"
 # redis
 kubectl apply -n "$NS" -f "$PROJECT_ROOT/k8s/redis/"
 
-# backend
-envsubst < "$PROJECT_ROOT/k8s/backend/secret.template.yaml" | kubectl apply -n "$NS" -f -
-envsubst < "$PROJECT_ROOT/k8s/backend/deployment.yaml" | kubectl apply -n "$NS" -f -
-kubectl apply -n "$NS" -f "$PROJECT_ROOT/k8s/backend/service.yaml"
-kubectl apply -n "$NS" -f "$PROJECT_ROOT/k8s/backend/configmap.yaml"
-
-# ingress
-envsubst < "$PROJECT_ROOT/k8s/backend/ingress.yaml" | kubectl apply -n "$NS" -f -
 echo "  → $((SECONDS - STEP_START))s"
 
-# --- 5. 롤아웃 대기 ---
+# --- 6. DB 마이그레이션 ---
 STEP_START=$SECONDS
-echo "[6/6] Waiting for backend rollout..."
-kubectl rollout status -n "$NS" deployment/backend --timeout=120s
+echo "[6/8] Running migration..."
+
+# MySQL이 준비될 때까지 대기
+kubectl rollout status -n "$NS" statefulset/mysql --timeout=120s
+
+# 이전 migration job 정리 후 실행
+kubectl delete job migration -n "$NS" --ignore-not-found
+envsubst < "$PROJECT_ROOT/k8s/migration/job.yaml" | kubectl apply -n "$NS" -f -
+kubectl wait --for=condition=complete -n "$NS" job/migration --timeout=120s
+echo "  → $((SECONDS - STEP_START))s"
+
+# --- 7. API + Batch 배포 ---
+STEP_START=$SECONDS
+echo "[7/8] Deploying api + batch..."
+
+# api
+envsubst < "$PROJECT_ROOT/k8s/api/secret.template.yaml" | kubectl apply -n "$NS" -f -
+kubectl apply -n "$NS" -f "$PROJECT_ROOT/k8s/api/configmap.yaml"
+envsubst < "$PROJECT_ROOT/k8s/api/deployment.yaml" | kubectl apply -n "$NS" -f -
+kubectl apply -n "$NS" -f "$PROJECT_ROOT/k8s/api/service.yaml"
+envsubst < "$PROJECT_ROOT/k8s/api/ingress.yaml" | kubectl apply -n "$NS" -f -
+
+# batch
+envsubst < "$PROJECT_ROOT/k8s/batch/secret.template.yaml" | kubectl apply -n "$NS" -f -
+kubectl apply -n "$NS" -f "$PROJECT_ROOT/k8s/batch/configmap.yaml"
+envsubst < "$PROJECT_ROOT/k8s/batch/deployment.yaml" | kubectl apply -n "$NS" -f -
+
+echo "  → $((SECONDS - STEP_START))s"
+
+# --- 8. 롤아웃 대기 ---
+STEP_START=$SECONDS
+echo "[8/8] Waiting for rollouts..."
+kubectl rollout status -n "$NS" deployment/api --timeout=120s
+kubectl rollout status -n "$NS" deployment/batch --timeout=120s
 echo "  → $((SECONDS - STEP_START))s"
 
 echo ""
 echo "=== Done in $((SECONDS - TOTAL_START))s ==="
 echo "  kubectl get pods -n $NS"
-echo "  kubectl port-forward -n $NS svc/backend 8080:8080"
+echo "  kubectl port-forward -n $NS svc/api 8080:8080"

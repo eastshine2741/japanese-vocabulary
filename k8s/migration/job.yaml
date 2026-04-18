@@ -1,0 +1,28 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: migration
+spec:
+  template:
+    spec:
+      containers:
+        - name: migration
+          image: ${MIGRATION_IMAGE}
+          args: ["migrate"]
+          env:
+            - name: FLYWAY_URL
+              value: "jdbc:mysql://mysql:3306/japanese_vocabulary?allowPublicKeyRetrieval=true&useSSL=false"
+            - name: FLYWAY_USER
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: MYSQL_USER
+            - name: FLYWAY_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: MYSQL_PASSWORD
+            - name: FLYWAY_BASELINE_ON_MIGRATE
+              value: "true"
+      restartPolicy: Never
+  backoffLimit: 3
