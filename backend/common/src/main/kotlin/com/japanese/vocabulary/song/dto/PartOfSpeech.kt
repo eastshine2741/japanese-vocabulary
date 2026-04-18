@@ -1,6 +1,6 @@
 package com.japanese.vocabulary.song.dto
 
-enum class PartOfSpeech(val sudachiName: String, val koreanName: String) {
+enum class PartOfSpeech(val japaneseName: String, val koreanName: String) {
     NOUN("名詞", "명사"),
     VERB("動詞", "동사"),
     ADJECTIVE("形容詞", "형용사"),
@@ -21,10 +21,10 @@ enum class PartOfSpeech(val sudachiName: String, val koreanName: String) {
     WHITESPACE("空白", "공백");
 
     companion object {
-        private val JAPANESE_POS_MAP = values().associateBy { it.sudachiName } + mapOf(
+        private val JAPANESE_POS_MAP = values().associateBy { it.japaneseName } + mapOf(
             "形容動詞" to NA_ADJECTIVE, // IPADic variant
             "接頭詞" to PREFIX,          // IPADic uses 詞, UniDic uses 辞
         )
-        fun fromSudachiOrNull(jaPos: String): PartOfSpeech? = JAPANESE_POS_MAP[jaPos]
+        fun fromJapaneseOrNull(jaPos: String): PartOfSpeech? = JAPANESE_POS_MAP[jaPos]
     }
 }

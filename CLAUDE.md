@@ -41,7 +41,6 @@ Set in `.env` (loaded by docker-compose) and as shell env vars for backend:
 | `MYSQL_USER` / `MYSQL_PASSWORD` | MySQL credentials |
 | `YOUTUBE_API_KEY` | YouTube Data API v3 |
 | `JWT_SECRET` | JWT signing key (defaults to dev key) |
-| `SUDACHI_DICT_PATH` | Path to Sudachi `system_core.dic` (defaults to classpath `sudachi/`) |
 
 ## Backend Domain Layer Boundaries
 
@@ -61,7 +60,7 @@ Outer:  Deck, DeckFlashcard      — 조직화 레이어
 동기 저장 + 비동기 배치 2단계.
 
 1. **동기** (`LyricProcessingService`): LRCLIB/VocaDB에서 가사 fetch → songs + lyrics 저장 (status=PENDING) → 원본 가사 응답
-2. **비동기 배치** (`KoreanLyricTranslationService`, 30초 폴링): PENDING 엔트리를 Sudachi 형태소 분석 + Gemini 번역 → analyzed_content 저장, status=COMPLETED
+2. **비동기 배치** (`KoreanLyricTranslationService`, 30초 폴링): PENDING 엔트리를 Kuromoji 형태소 분석 + Gemini 번역 → analyzed_content 저장, status=COMPLETED
 
 실패 시 retry (최대 3회), 초과 시 `FAILED`.
 
@@ -73,7 +72,7 @@ Outer:  Deck, DeckFlashcard      — 조직화 레이어
 
 ## Current State
 
-**Implemented:** Song search → lyric fetch → async batch (Sudachi+Gemini) → study view, YouTube MV playback with synced lyrics, word save with meanings, flashcard review (FSRS), decks, recent songs, user settings
+**Implemented:** Song search → lyric fetch → async batch (Kuromoji+Gemini) → study view, YouTube MV playback with synced lyrics, word save with meanings, flashcard review (FSRS), decks, recent songs, user settings
 
 **Not yet implemented:** Tests
 

@@ -13,7 +13,7 @@ class KuromojiUnidicMorphologicalAnalyzer : MorphologicalAnalyzer {
 
         return tokens.mapNotNull { token ->
             val posName = token.partOfSpeechLevel1
-            val partOfSpeech = PartOfSpeech.fromSudachiOrNull(posName) ?: return@mapNotNull null
+            val partOfSpeech = PartOfSpeech.fromJapaneseOrNull(posName) ?: return@mapNotNull null
             val surface = token.surface
             val baseForm = token.writtenBaseForm.takeIf { it != "*" } ?: token.lemma.takeIf { it != "*" } ?: surface
             val reading = token.lemmaReadingForm.takeIf { it != "*" }
