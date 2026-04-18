@@ -30,3 +30,4 @@ local.properties
 .env
 **/.env
 **/application-local.yml
+k8s/mysql/secret.yaml
