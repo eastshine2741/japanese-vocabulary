@@ -5,6 +5,7 @@ import com.japanese.vocabulary.deck.entity.DeckFlashcardEntity
 import com.japanese.vocabulary.deck.repository.DeckFlashcardRepository
 import com.japanese.vocabulary.deck.repository.DeckRepository
 import com.japanese.vocabulary.flashcard.event.FlashcardCreatedEvent
+import com.japanese.vocabulary.flashcard.event.FlashcardDeletedEvent
 import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Component
 
@@ -21,5 +22,10 @@ class DeckEventListener(
         if (!deckFlashcardRepository.existsByDeckIdAndFlashcardId(deck.id!!, event.flashcardId)) {
             deckFlashcardRepository.save(DeckFlashcardEntity(deckId = deck.id, flashcardId = event.flashcardId))
         }
+    }
+
+    @EventListener
+    fun onFlashcardDeleted(event: FlashcardDeletedEvent) {
+        deckFlashcardRepository.deleteByFlashcardId(event.flashcardId)
     }
 }

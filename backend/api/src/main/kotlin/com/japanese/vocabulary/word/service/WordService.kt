@@ -1,16 +1,13 @@
 package com.japanese.vocabulary.word.service
 
-import com.japanese.vocabulary.deck.repository.DeckFlashcardRepository
-import com.japanese.vocabulary.flashcard.repository.FlashcardRepository
+import com.japanese.vocabulary.flashcard.service.FlashcardService
 import com.japanese.vocabulary.song.repository.SongRepository
 import com.japanese.vocabulary.word.client.jisho.JishoClient
 import com.japanese.vocabulary.word.dto.*
 import com.japanese.vocabulary.word.entity.SongWordEntity
 import com.japanese.vocabulary.word.entity.WordEntity
-import com.japanese.vocabulary.word.event.WordAddedEvent
 import com.japanese.vocabulary.word.repository.SongWordRepository
 import com.japanese.vocabulary.word.repository.WordRepository
-import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.domain.PageRequest
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
@@ -23,9 +20,7 @@ class WordService(
     private val wordRepository: WordRepository,
     private val songWordRepository: SongWordRepository,
     private val songRepository: SongRepository,
-    private val flashcardRepository: FlashcardRepository,
-    private val deckFlashcardRepository: DeckFlashcardRepository,
-    private val eventPublisher: ApplicationEventPublisher
+    private val flashcardService: FlashcardService
 ) {
     @Transactional
     fun batchAddWords(userId: Long, request: BatchAddWordRequest): BatchAddWordResponse {
@@ -86,7 +81,7 @@ class WordService(
             )
         }
 
-        eventPublisher.publishEvent(WordAddedEvent(userId, savedWord.id!!, request.songId))
+        flashcardService.createFlashcard(userId, savedWord.id, request.songId)
 
         return savedWord.id
     }
@@ -112,10 +107,7 @@ class WordService(
         }
 
         if (request.resetFlashcard) {
-            flashcardRepository.findByWordId(wordId)?.let { flashcard ->
-                flashcard.reset()
-                flashcardRepository.save(flashcard)
-            }
+            flashcardService.resetByWordId(wordId)
         }
 
         return getWord(userId, word.japaneseText)!!
@@ -127,14 +119,7 @@ class WordService(
             .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Word not found") }
         if (word.userId != userId) throw ResponseStatusException(HttpStatus.FORBIDDEN)
 
-        // TODO: Word 도메인에서 Flashcard/Deck 도메인을 직접 참조하고 있음.
-        //  도메인 이벤트(WordDeletedEvent)를 발행하고 Flashcard/Deck 쪽에서 리스닝하는 구조로 개선 필요.
-        //  현재 updateWord의 flashcardRepository 주입도 동일한 문제.
-        val flashcard = flashcardRepository.findByWordId(wordId)
-        if (flashcard != null) {
-            deckFlashcardRepository.deleteByFlashcardId(flashcard.id!!)
-            flashcardRepository.delete(flashcard)
-        }
+        flashcardService.deleteByWordId(wordId)
 
         songWordRepository.deleteByWordId(wordId)
         wordRepository.delete(word)

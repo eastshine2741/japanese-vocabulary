@@ -16,8 +16,6 @@ interface FlashcardRepository : JpaRepository<FlashcardEntity, Long> {
     fun countByUserIdAndState(userId: Long, state: Int): Long
     fun countByUserIdAndDueLessThanEqual(userId: Long, due: Instant): Long
     fun countByUserIdAndLastReviewIsNull(userId: Long): Long
-    fun findByUserIdAndWordIdIn(userId: Long, wordIds: List<Long>): List<FlashcardEntity>
-
     @Query("""
         SELECT f FROM FlashcardEntity f
         WHERE f.userId = :userId AND f.due <= :now

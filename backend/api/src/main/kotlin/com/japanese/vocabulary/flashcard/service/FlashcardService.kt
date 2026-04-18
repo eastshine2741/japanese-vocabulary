@@ -2,6 +2,8 @@ package com.japanese.vocabulary.flashcard.service
 
 import com.japanese.vocabulary.flashcard.dto.*
 import com.japanese.vocabulary.flashcard.entity.FlashcardEntity
+import com.japanese.vocabulary.flashcard.event.FlashcardCreatedEvent
+import com.japanese.vocabulary.flashcard.event.FlashcardDeletedEvent
 import com.japanese.vocabulary.flashcard.repository.FlashcardRepository
 import com.japanese.vocabulary.song.repository.SongRepository
 import com.japanese.vocabulary.user.repository.UserSettingsRepository
@@ -11,6 +13,7 @@ import com.japanese.vocabulary.word.repository.WordRepository
 import io.github.openspacedrepetition.Card
 import io.github.openspacedrepetition.Rating
 import io.github.openspacedrepetition.Scheduler
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -24,11 +27,12 @@ class FlashcardService(
     private val wordRepository: WordRepository,
     private val songWordRepository: SongWordRepository,
     private val songRepository: SongRepository,
-    private val userSettingsRepository: UserSettingsRepository
+    private val userSettingsRepository: UserSettingsRepository,
+    private val eventPublisher: ApplicationEventPublisher
 ) {
 
     @Transactional
-    fun createFlashcard(userId: Long, wordId: Long): Long {
+    fun createFlashcard(userId: Long, wordId: Long, songId: Long): Long {
         flashcardRepository.findByWordId(wordId)?.let { return it.id!! }
 
         val card = Card.builder().build()
@@ -41,13 +45,30 @@ class FlashcardService(
             state = card.state?.ordinal ?: 0,
             fsrsCardJson = card.toJson()
         )
-        return flashcardRepository.save(entity).id!!
+        val flashcardId = flashcardRepository.save(entity).id!!
+
+        eventPublisher.publishEvent(FlashcardCreatedEvent(userId, flashcardId, songId))
+
+        return flashcardId
+    }
+
+    @Transactional
+    fun deleteByWordId(wordId: Long) {
+        val flashcard = flashcardRepository.findByWordId(wordId) ?: return
+        eventPublisher.publishEvent(FlashcardDeletedEvent(flashcard.id!!))
+        flashcardRepository.delete(flashcard)
+    }
+
+    @Transactional
+    fun resetByWordId(wordId: Long) {
+        flashcardRepository.findByWordId(wordId)?.let { flashcard ->
+            flashcard.reset()
+            flashcardRepository.save(flashcard)
+        }
     }
 
     @Transactional
     fun getDueFlashcards(userId: Long, songId: Long? = null): DueFlashcardsResponse {
-        backfillFlashcards(userId)
-
         val now = Instant.now()
         val dueEntities = if (songId != null) {
             flashcardRepository.findDueByUserIdAndSongId(userId, songId, now)
@@ -182,17 +203,4 @@ class FlashcardService(
         }
     }
 
-    private fun backfillFlashcards(userId: Long) {
-        val allWords = wordRepository.findByUserId(userId)
-        val wordIds = allWords.mapNotNull { it.id }
-        if (wordIds.isEmpty()) return
-
-        val existingFlashcards = flashcardRepository.findByUserIdAndWordIdIn(userId, wordIds)
-        val existingWordIds = existingFlashcards.map { it.wordId }.toSet()
-
-        val missingWordIds = wordIds.filter { it !in existingWordIds }
-        for (wordId in missingWordIds) {
-            createFlashcard(userId, wordId)
-        }
-    }
 }
