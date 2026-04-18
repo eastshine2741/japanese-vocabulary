@@ -28,6 +28,6 @@ spec:
                 name: batch-secret
           resources:
             limits:
-              memory: 768Mi
+              memory: 640Mi
             requests:
-              memory: 768Mi
+              memory: 640Mi
