@@ -19,6 +19,19 @@ cd app-rn && npx expo run:android             # App - Android
 cd app-rn && npx expo start --web             # App - Web (dev)
 ```
 
+### K8s Deploy (k3s)
+
+```bash
+./deploy.sh              # 현재 브랜치명으로 namespace 결정, 빌드+배포
+./deploy.sh foo           # namespace 직접 지정
+./teardown.sh             # 현재 브랜치 namespace 삭제 (main은 거부)
+./teardown.sh foo         # namespace 직접 지정하여 삭제
+```
+
+- 이미지 태그는 git commit SHA 사용 — 커밋 안 한 변경사항은 배포 불가
+- secret은 `.env`에서 관리 (gitignored), `envsubst`로 템플릿에 주입
+- kubectl context가 `default`가 아니면 실행 거부
+
 ### Environment Variables
 
 Set in `.env` (loaded by docker-compose) and as shell env vars for backend:
