@@ -61,7 +61,7 @@ echo "[4/5] Applying manifests..."
 # .env 로드 + IMAGE를 환경변수로 export (템플릿에서 사용)
 set -a
 source "$PROJECT_ROOT/.env"
-export IMAGE
+export IMAGE NS
 set +a
 
 # mysql
@@ -77,6 +77,9 @@ envsubst < "$PROJECT_ROOT/k8s/backend/secret.template.yaml" | kubectl apply -n "
 envsubst < "$PROJECT_ROOT/k8s/backend/deployment.yaml" | kubectl apply -n "$NS" -f -
 kubectl apply -n "$NS" -f "$PROJECT_ROOT/k8s/backend/service.yaml"
 kubectl apply -n "$NS" -f "$PROJECT_ROOT/k8s/backend/configmap.yaml"
+
+# ingress
+envsubst < "$PROJECT_ROOT/k8s/backend/ingress.yaml" | kubectl apply -n "$NS" -f -
 echo "  → $((SECONDS - STEP_START))s"
 
 # --- 5. 롤아웃 대기 ---
