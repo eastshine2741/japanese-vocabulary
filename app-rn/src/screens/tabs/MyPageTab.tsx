@@ -18,6 +18,7 @@ import { useSettingsStore } from '../../stores/settingsStore';
 import { tokenStorage } from '../../utils/tokenStorage';
 import { Colors, Dimens } from '../../theme/theme';
 import { RootStackParamList } from '../../navigation/AppNavigator';
+import ServerURLEditor from '../../components/ServerURLEditor';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -249,6 +250,12 @@ export default function MyPageTab() {
           <Text style={styles.savingText}>저장 중...</Text>
         </View>
       )}
+
+      {/* 서버 설정 (Debug) */}
+      <Text style={styles.sectionLabel}>서버 설정</Text>
+      <View style={styles.settingsCard}>
+        <ServerURLEditor />
+      </View>
 
       {/* Logout */}
       <TouchableOpacity

@@ -7,6 +7,8 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Modal,
+  Pressable,
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -15,6 +17,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { useAuthStore } from '../stores/authStore';
 import { Colors, Dimens } from '../theme/theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import ServerURLEditor from '../components/ServerURLEditor';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
@@ -22,6 +25,7 @@ export default function LoginScreen({ navigation }: Props) {
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [isSignup, setIsSignup] = useState(false);
+  const [showServerModal, setShowServerModal] = useState(false);
   const { status, error, login, signup, reset } = useAuthStore(
     useShallow(s => ({ status: s.status, error: s.error, login: s.login, signup: s.signup, reset: s.reset })),
   );
@@ -50,7 +54,17 @@ export default function LoginScreen({ navigation }: Props) {
     >
       <View style={styles.content}>
         <Text style={styles.title}>うたことば</Text>
-        <Text style={styles.subtitle}>Learn Japanese through songs</Text>
+        <Pressable onLongPress={() => setShowServerModal(true)}>
+          <Text style={styles.subtitle}>Learn Japanese through songs</Text>
+        </Pressable>
+
+        <Modal visible={showServerModal} transparent animationType="fade">
+          <Pressable style={styles.modalOverlay} onPress={() => setShowServerModal(false)}>
+            <Pressable style={styles.modalContent}>
+              <ServerURLEditor onApply={() => setShowServerModal(false)} />
+            </Pressable>
+          </Pressable>
+        </Modal>
 
         <TextInput
           style={styles.input}
@@ -130,4 +144,14 @@ const styles = StyleSheet.create({
   buttonDisabled: { opacity: 0.6 },
   buttonText: { color: '#FFF', fontWeight: '600', fontSize: 16 },
   toggle: { color: Colors.primary, textAlign: 'center', marginTop: 20, fontSize: 14 },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: Colors.overlay,
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+  },
+  modalContent: {
+    backgroundColor: Colors.background,
+    borderRadius: 24,
+  },
 });

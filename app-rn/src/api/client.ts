@@ -1,12 +1,20 @@
 import axios from 'axios';
 import { tokenStorage } from '../utils/tokenStorage';
 
-const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+const DEFAULT_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
 const client = axios.create({
-  baseURL: BACKEND_URL,
+  baseURL: DEFAULT_BACKEND_URL,
   headers: { 'Content-Type': 'application/json' },
 });
+
+export function getBaseURL(): string {
+  return client.defaults.baseURL ?? DEFAULT_BACKEND_URL ?? '';
+}
+
+export function setBaseURL(url: string) {
+  client.defaults.baseURL = url;
+}
 
 client.interceptors.request.use(async (config) => {
   const token = await tokenStorage.getToken();
