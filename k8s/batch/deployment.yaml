@@ -26,8 +26,3 @@ spec:
                 name: batch-config
             - secretRef:
                 name: batch-secret
-          resources:
-            limits:
-              memory: 640Mi
-            requests:
-              memory: 640Mi

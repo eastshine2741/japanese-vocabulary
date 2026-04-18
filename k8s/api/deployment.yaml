@@ -26,8 +26,3 @@ spec:
                 name: api-config
             - secretRef:
                 name: api-secret
-          resources:
-            limits:
-              memory: 512Mi
-            requests:
-              memory: 512Mi
