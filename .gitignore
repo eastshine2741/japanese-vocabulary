@@ -16,6 +16,7 @@ local.properties
 # Kotlin / JVM
 *.class
 *.jar
+!backend/gradle/wrapper/gradle-wrapper.jar
 *.war
 *.aar
 
