@@ -18,8 +18,16 @@ spec:
           imagePullPolicy: Never
           ports:
             - containerPort: 8080
+          env:
+            - name: JAVA_OPTS
+              value: "-Xmx256m"
           envFrom:
             - configMapRef:
                 name: api-config
             - secretRef:
                 name: api-secret
+          resources:
+            limits:
+              memory: 384Mi
+            requests:
+              memory: 384Mi
