@@ -22,6 +22,4 @@ spec:
             - configMapRef:
                 name: api-config
             - secretRef:
-                name: mysql-secret
-            - secretRef:
                 name: api-secret

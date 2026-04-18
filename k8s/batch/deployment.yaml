@@ -22,6 +22,4 @@ spec:
             - configMapRef:
                 name: batch-config
             - secretRef:
-                name: mysql-secret
-            - secretRef:
                 name: batch-secret
