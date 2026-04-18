@@ -36,27 +36,34 @@ IMAGE="japanese-vocabulary:${GIT_SHA}"
 
 echo "=== namespace: $NS | image: $IMAGE ==="
 
-# --- 1. Docker 이미지 빌드 ---
+# --- 1. Gradle 빌드 ---
 STEP_START=$SECONDS
-echo "[1/5] Building image..."
+echo "[1/6] Building bootJar..."
+cd "$PROJECT_ROOT/backend" && ./gradlew bootJar --no-daemon
+cd "$PROJECT_ROOT"
+echo "  → $((SECONDS - STEP_START))s"
+
+# --- 2. Docker 이미지 빌드 ---
+STEP_START=$SECONDS
+echo "[2/6] Building image..."
 docker build -t "$IMAGE" -f "$PROJECT_ROOT/backend/Dockerfile" "$PROJECT_ROOT/backend/"
 echo "  → $((SECONDS - STEP_START))s"
 
 # --- 2. k3s 이미지 주입 ---
 STEP_START=$SECONDS
-echo "[2/5] Importing image to k3s..."
+echo "[3/6] Importing image to k3s..."
 docker save "$IMAGE" | sudo k3s ctr images import -
 echo "  → $((SECONDS - STEP_START))s"
 
 # --- 3. Namespace 생성 ---
 STEP_START=$SECONDS
-echo "[3/5] Creating namespace..."
+echo "[4/6] Creating namespace..."
 kubectl create namespace "$NS" --dry-run=client -o yaml | kubectl apply -f -
 echo "  → $((SECONDS - STEP_START))s"
 
 # --- 4. 매니페스트 적용 ---
 STEP_START=$SECONDS
-echo "[4/5] Applying manifests..."
+echo "[5/6] Applying manifests..."
 
 # .env 로드 + IMAGE를 환경변수로 export (템플릿에서 사용)
 set -a
@@ -84,7 +91,7 @@ echo "  → $((SECONDS - STEP_START))s"
 
 # --- 5. 롤아웃 대기 ---
 STEP_START=$SECONDS
-echo "[5/5] Waiting for backend rollout..."
+echo "[6/6] Waiting for backend rollout..."
 kubectl rollout status -n "$NS" deployment/backend --timeout=120s
 echo "  → $((SECONDS - STEP_START))s"
 
