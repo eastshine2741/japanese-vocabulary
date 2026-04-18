@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: japanese-vocabulary:latest
+          image: ${IMAGE}
           imagePullPolicy: Never
           ports:
             - containerPort: 8080

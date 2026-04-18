@@ -6,6 +6,7 @@
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
+TOTAL_START=$SECONDS
 
 # --- context 확인 ---
 EXPECTED_CONTEXT="default"
@@ -30,35 +31,61 @@ if [[ ! "$NS" =~ ^[a-z][a-z0-9-]*$ ]]; then
   exit 1
 fi
 
-IMAGE="japanese-vocabulary:${NS}"
+GIT_SHA="$(git rev-parse --short HEAD)"
+IMAGE="japanese-vocabulary:${GIT_SHA}"
 
 echo "=== namespace: $NS | image: $IMAGE ==="
 
-# --- 1. Docker 이미지 빌드 & k3s 주입 ---
-echo "[1/4] Building image..."
+# --- 1. Docker 이미지 빌드 ---
+STEP_START=$SECONDS
+echo "[1/5] Building image..."
 docker build -t "$IMAGE" -f "$PROJECT_ROOT/backend/Dockerfile" "$PROJECT_ROOT/backend/"
+echo "  → $((SECONDS - STEP_START))s"
 
-echo "[2/4] Importing image to k3s..."
+# --- 2. k3s 이미지 주입 ---
+STEP_START=$SECONDS
+echo "[2/5] Importing image to k3s..."
 docker save "$IMAGE" | sudo k3s ctr images import -
+echo "  → $((SECONDS - STEP_START))s"
 
-# --- 2. Namespace 생성 ---
-echo "[3/4] Creating namespace..."
+# --- 3. Namespace 생성 ---
+STEP_START=$SECONDS
+echo "[3/5] Creating namespace..."
 kubectl create namespace "$NS" --dry-run=client -o yaml | kubectl apply -f -
+echo "  → $((SECONDS - STEP_START))s"
 
-# --- 3. 매니페스트 적용 ---
-echo "[4/4] Applying manifests..."
-kubectl apply -n "$NS" -f "$PROJECT_ROOT/k8s/mysql/"
+# --- 4. 매니페스트 적용 ---
+STEP_START=$SECONDS
+echo "[4/5] Applying manifests..."
+
+# .env 로드 + IMAGE를 환경변수로 export (템플릿에서 사용)
+set -a
+source "$PROJECT_ROOT/.env"
+export IMAGE
+set +a
+
+# mysql
+envsubst < "$PROJECT_ROOT/k8s/mysql/secret.template.yaml" | kubectl apply -n "$NS" -f -
+kubectl apply -n "$NS" -f "$PROJECT_ROOT/k8s/mysql/statefulset.yaml"
+kubectl apply -n "$NS" -f "$PROJECT_ROOT/k8s/mysql/service.yaml"
+
+# redis
 kubectl apply -n "$NS" -f "$PROJECT_ROOT/k8s/redis/"
-kubectl apply -n "$NS" -f "$PROJECT_ROOT/k8s/backend/"
 
-# backend 이미지 태그를 namespace별 태그로 갱신
-kubectl set image -n "$NS" deployment/backend backend="$IMAGE"
+# backend
+envsubst < "$PROJECT_ROOT/k8s/backend/secret.template.yaml" | kubectl apply -n "$NS" -f -
+envsubst < "$PROJECT_ROOT/k8s/backend/deployment.yaml" | kubectl apply -n "$NS" -f -
+kubectl apply -n "$NS" -f "$PROJECT_ROOT/k8s/backend/service.yaml"
+kubectl apply -n "$NS" -f "$PROJECT_ROOT/k8s/backend/configmap.yaml"
+echo "  → $((SECONDS - STEP_START))s"
 
-# --- 4. 롤아웃 대기 ---
-echo "Waiting for backend rollout..."
+# --- 5. 롤아웃 대기 ---
+STEP_START=$SECONDS
+echo "[5/5] Waiting for backend rollout..."
 kubectl rollout status -n "$NS" deployment/backend --timeout=120s
+echo "  → $((SECONDS - STEP_START))s"
 
 echo ""
-echo "=== Done ==="
+echo "=== Done in $((SECONDS - TOTAL_START))s ==="
 echo "  kubectl get pods -n $NS"
 echo "  kubectl port-forward -n $NS svc/backend 8080:8080"
