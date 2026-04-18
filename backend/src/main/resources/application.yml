@@ -6,7 +6,7 @@ spring:
     name: japanese-vocabulary-backend
 
   datasource:
-    url: jdbc:mysql://localhost:3306/japanese_vocabulary?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    url: jdbc:mysql://${DB_HOST:localhost}:3306/${DB_DATABASE:japanese_vocabulary}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -26,7 +26,7 @@ spring:
 
   data:
     redis:
-      host: localhost
+      host: ${REDIS_HOST:localhost}
       port: 6379
 
 youtube:

@@ -29,6 +29,7 @@ IGNORED_FILES=(
   "app-rn/.env"
   "app-rn/release.keystore"
   "k8s/mysql/secret.yaml"
+  "k8s/backend/secret.yaml"
 )
 
 echo ""
