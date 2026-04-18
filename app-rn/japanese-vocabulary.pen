@@ -527,6 +527,43 @@
                   },
                   "width": 402,
                   "height": 32
+                },
+                {
+                  "type": "frame",
+                  "id": "jLjVH",
+                  "layoutPosition": "absolute",
+                  "x": 342,
+                  "y": 421,
+                  "name": "scrollToLineBtn",
+                  "width": 44,
+                  "height": 44,
+                  "fill": "$accent-primary",
+                  "cornerRadius": 22,
+                  "effect": {
+                    "type": "shadow",
+                    "shadowType": "outer",
+                    "color": "#00000026",
+                    "offset": {
+                      "x": 0,
+                      "y": 2
+                    },
+                    "blur": 8
+                  },
+                  "layout": "none",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "efdNW",
+                      "x": 12,
+                      "y": 12,
+                      "name": "icon",
+                      "width": 20,
+                      "height": 20,
+                      "iconFontName": "chevron-down",
+                      "iconFontFamily": "feather",
+                      "fill": "#FFFFFF"
+                    }
+                  ]
                 }
               ]
             }
