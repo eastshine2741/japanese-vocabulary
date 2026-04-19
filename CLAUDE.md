@@ -104,6 +104,11 @@ Outer:  Deck, DeckFlashcard      — 조직화 레이어
 - **인라인 함수 금지**: `renderItem` 안에서 인라인 콜백 대신, 자식 컴포넌트가 prop으로 받아 내부에서 호출
 - **useMemo**: 비용이 있는 렌더 경로 계산에 적용
 
+## Pencil (.pen) 파일 편집 규칙
+
+- **워크트리 경로 확인 필수**: `get_editor_state` 반환 경로가 현재 작업 디렉토리와 다를 수 있음. 작업 전 `open_document`로 현재 워크트리의 .pen 파일을 명시적으로 열 것.
+- **디스크 저장은 수동**: Pencil MCP에 save 기능 없음. `batch_design` 변경은 에디터 메모리에만 반영됨. 작업 완료 후 유저에게 에디터에서 저장(Ctrl+S)하라고 안내할 것.
+
 ## Execution Rules
 
 - Treat the sprint request as the source of truth for current priorities
