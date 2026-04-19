@@ -1,5 +1,7 @@
 package com.japanese.vocabulary.word.service
 
+import com.japanese.vocabulary.common.exception.BusinessException
+import com.japanese.vocabulary.common.exception.ErrorCode
 import com.japanese.vocabulary.flashcard.service.FlashcardService
 import com.japanese.vocabulary.song.repository.SongRepository
 import com.japanese.vocabulary.word.client.jisho.JishoClient
@@ -9,10 +11,8 @@ import com.japanese.vocabulary.word.entity.WordEntity
 import com.japanese.vocabulary.word.repository.SongWordRepository
 import com.japanese.vocabulary.word.repository.WordRepository
 import org.springframework.data.domain.PageRequest
-import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import org.springframework.web.server.ResponseStatusException
 
 @Service
 class WordService(
@@ -46,7 +46,7 @@ class WordService(
     @Transactional
     fun addWord(userId: Long, request: AddWordRequest): Long {
         if (!songRepository.existsById(request.songId)) {
-            throw ResponseStatusException(HttpStatus.NOT_FOUND, "Song not found: ${request.songId}")
+            throw BusinessException(ErrorCode.SONG_NOT_FOUND)
         }
 
         val word = wordRepository.findByUserIdAndJapaneseText(userId, request.japanese)
@@ -89,9 +89,9 @@ class WordService(
     @Transactional
     fun updateWord(userId: Long, wordId: Long, request: UpdateWordRequest): WordDetailResponse {
         val word = wordRepository.findById(wordId)
-            .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Word not found") }
-        if (word.userId != userId) throw ResponseStatusException(HttpStatus.FORBIDDEN)
-        if (request.meanings.isEmpty()) throw ResponseStatusException(HttpStatus.BAD_REQUEST, "At least one meaning required")
+            .orElseThrow { BusinessException(ErrorCode.WORD_NOT_FOUND) }
+        if (word.userId != userId) throw BusinessException(ErrorCode.FORBIDDEN)
+        if (request.meanings.isEmpty()) throw BusinessException(ErrorCode.MEANING_REQUIRED)
 
         word.reading = request.reading
         word.meanings = request.meanings
@@ -101,7 +101,7 @@ class WordService(
             val songWords = songWordRepository.findAllById(request.deleteExampleIds)
             val invalid = songWords.filter { it.wordId != wordId }
             if (invalid.isNotEmpty()) {
-                throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Some examples do not belong to this word")
+                throw BusinessException(ErrorCode.INVALID_EXAMPLES)
             }
             songWordRepository.deleteAll(songWords)
         }
@@ -116,8 +116,8 @@ class WordService(
     @Transactional
     fun deleteWord(userId: Long, wordId: Long) {
         val word = wordRepository.findById(wordId)
-            .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Word not found") }
-        if (word.userId != userId) throw ResponseStatusException(HttpStatus.FORBIDDEN)
+            .orElseThrow { BusinessException(ErrorCode.WORD_NOT_FOUND) }
+        if (word.userId != userId) throw BusinessException(ErrorCode.FORBIDDEN)
 
         flashcardService.deleteByWordId(wordId)
 

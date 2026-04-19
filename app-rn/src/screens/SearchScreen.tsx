@@ -6,7 +6,7 @@ import {
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
+  Modal,
   StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,6 +18,7 @@ import { usePlayerStore } from '../stores/playerStore';
 import SongListItem from '../components/SongListItem';
 import { Colors, Dimens } from '../theme/theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import { getErrorMessage } from '../utils/errorMessages';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Search'>;
 
@@ -29,6 +30,7 @@ function formatDuration(seconds: number): string {
 
 export default function SearchScreen({ navigation }: Props) {
   const [query, setQuery] = useState('');
+  const [errorDialogMessage, setErrorDialogMessage] = useState<string | null>(null);
   const insets = useSafeAreaInsets();
   const { searchStatus, items, search } = useSearchStore(
     useShallow(s => ({
@@ -46,7 +48,7 @@ export default function SearchScreen({ navigation }: Props) {
     if (state.status === 'success') {
       navigation.navigate('Player', { origin: 'Home' });
     } else if (state.status === 'error') {
-      Alert.alert('오류', state.error ?? '가사를 불러오지 못했어요.');
+      setErrorDialogMessage(getErrorMessage(state.errorCode));
     }
   }, [analyze, navigation]);
 
@@ -121,6 +123,25 @@ export default function SearchScreen({ navigation }: Props) {
           <ActivityIndicator size="large" color={Colors.primary} />
         </View>
       )}
+
+      {/* Error dialog */}
+      <Modal visible={errorDialogMessage !== null} transparent animationType="fade" onRequestClose={() => setErrorDialogMessage(null)}>
+        <View style={styles.dialogOverlay}>
+          <View style={styles.dialog}>
+            <Text style={styles.dialogTitle}>문제가 발생했어요</Text>
+            <Text style={styles.dialogBody}>{errorDialogMessage}</Text>
+            <View style={styles.dialogBtns}>
+              <TouchableOpacity
+                style={[styles.dialogBtn, styles.dialogBtnPrimary]}
+                onPress={() => setErrorDialogMessage(null)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.dialogBtnPrimaryText}>확인</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -189,4 +210,40 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  dialogOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  dialog: {
+    width: 320,
+    backgroundColor: Colors.card,
+    borderRadius: 20,
+    padding: 28,
+    paddingBottom: 20,
+    gap: 16,
+  },
+  dialogTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+    textAlign: 'center',
+  },
+  dialogBody: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 21,
+  },
+  dialogBtns: { flexDirection: 'row', gap: 10, marginTop: 8 },
+  dialogBtn: {
+    flex: 1,
+    height: 46,
+    borderRadius: 23,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dialogBtnPrimary: { backgroundColor: Colors.primary },
+  dialogBtnPrimaryText: { fontSize: 15, fontWeight: '600', color: '#FFFFFF' },
 });
