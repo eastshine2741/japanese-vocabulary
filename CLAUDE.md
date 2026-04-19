@@ -19,6 +19,20 @@ cd app-rn && npx expo run:android             # App - Android
 cd app-rn && npx expo start --web             # App - Web (dev)
 ```
 
+### Multi-worktree Frontend
+
+`DEPLOY_NS` 환경변수로 Android 패키지명을 분리하여 같은 디바이스에 여러 브랜치 앱 공존 가능.
+
+```bash
+cd app-rn
+DEPLOY_NS=issue-21 npx expo run:android      # com.anonymous.apprn.issue21 로 설치
+```
+
+- `DEPLOY_NS` 미설정 시 기본값 `main` → `com.anonymous.apprn.main`
+- `app-rn/.env`의 `EXPO_PUBLIC_BACKEND_URL`도 해당 namespace 서버에 맞출 것
+- `android/`는 gitignored — 각 워크트리에서 첫 빌드 시 자동 생성 (`expo prebuild`)
+- 이미 `android/`가 있는 상태에서 `DEPLOY_NS`를 바꿨으면 `npx expo prebuild --clean`으로 재생성 필요
+
 ### K8s Deploy (k3s)
 
 ```bash
@@ -89,6 +103,11 @@ Outer:  Deck, DeckFlashcard      — 조직화 레이어
 - **useCallback**: 자식 컴포넌트에 전달하는 이벤트 핸들러에 적용
 - **인라인 함수 금지**: `renderItem` 안에서 인라인 콜백 대신, 자식 컴포넌트가 prop으로 받아 내부에서 호출
 - **useMemo**: 비용이 있는 렌더 경로 계산에 적용
+
+## Pencil (.pen) 파일 편집 규칙
+
+- **워크트리 경로 확인 필수**: `get_editor_state` 반환 경로가 현재 작업 디렉토리와 다를 수 있음. 작업 전 `open_document`로 현재 워크트리의 .pen 파일을 명시적으로 열 것.
+- **디스크 저장은 수동**: Pencil MCP에 save 기능 없음. `batch_design` 변경은 에디터 메모리에만 반영됨. 작업 완료 후 유저에게 에디터에서 저장(Ctrl+S)하라고 안내할 것.
 
 ## Execution Rules
 

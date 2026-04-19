@@ -557,16 +557,26 @@ export default function PlayerScreen({ navigation }: Props) {
                 <View style={styles.songInfo} onLayout={(e) => { headerHeightRef.current = e.nativeEvent.layout.height; }}>
                   <Text style={styles.songTitle}>{song.title}</Text>
                   <Text style={styles.songArtist}>{song.artist}</Text>
-                  {hasAnalyzedTokens && (
+                  <View style={styles.songActionRow}>
+                    {hasAnalyzedTokens && (
+                      <TouchableOpacity
+                        style={styles.wordListBtn}
+                        onPress={handleOpenWordList}
+                        activeOpacity={0.7}
+                      >
+                        <Feather name="list" size={16} color={Colors.primary} />
+                        <Text style={styles.wordListBtnText}>전체 단어 담기</Text>
+                      </TouchableOpacity>
+                    )}
                     <TouchableOpacity
-                      style={styles.wordListBtn}
-                      onPress={handleOpenWordList}
+                      style={styles.deckBtn}
+                      onPress={() => navigation.navigate('DeckDetail', { songId: song.id })}
                       activeOpacity={0.7}
                     >
-                      <Feather name="list" size={16} color={Colors.primary} />
-                      <Text style={styles.wordListBtnText}>전체 단어 담기</Text>
+                      <Feather name="layers" size={16} color={Colors.textSecondary} />
+                      <Text style={styles.deckBtnText}>덱 보기</Text>
                     </TouchableOpacity>
-                  )}
+                  </View>
                   {isTranslationPending && (
                     <View style={styles.notice}>
                       <View style={[styles.noticeIconWrap, { backgroundColor: Colors.elevated }]}>
@@ -834,21 +844,39 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: Colors.textSecondary,
   },
+  songActionRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 8,
+  },
   wordListBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'flex-start',
     gap: 6,
     paddingVertical: 8,
     paddingHorizontal: 14,
     borderRadius: 20,
     backgroundColor: Colors.primary + '12',
-    marginTop: 8,
   },
   wordListBtnText: {
     fontSize: 13,
     fontWeight: '600',
     color: Colors.primary,
+  },
+  deckBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    backgroundColor: Colors.elevated,
+  },
+  deckBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.textSecondary,
   },
 
   // Notices
