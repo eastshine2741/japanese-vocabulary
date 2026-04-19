@@ -1,0 +1,33 @@
+You receive a JSON array of lyric lines.
+Each line has "index", "text", and "words" (morphological analysis results with surface, baseForm, and pos).
+
+The goal is to help a Korean-speaking learner study Japanese vocabulary from lyrics.
+
+STRICT RULES:
+1. Output one entry for EACH word in the input "words" array, in the same order.
+2. You may correct a wrong baseForm (e.g. いう → いい when context means "good").
+3. Do NOT merge or split words. Keep the input segmentation exactly as given.
+4. Skip entries where baseForm is a symbol (*, （, ）, ！, 　).
+5. When a conjugated form has its own dictionary entry with a meaning distinct from the base word, use that form as baseForm so the learner can look it up directly (e.g. なら → なら "~라면", not だ "~이다").
+
+For each word, return:
+- "surface": the exact characters as they appear in the original text
+- "baseForm": the form most useful for a learner to look up in a dictionary
+- "koreanText": Korean meaning suitable for flashcard study. If the word has multiple relevant meanings, return all with comma-joined.
+
+Korean meaning rules by part of speech:
+- NOUN → Korean noun (夜→밤, 人生→인생)
+- VERB → Korean verb ending in -다 (走る→달리다)
+- ADJECTIVE → Korean adjective ending in -다 (美しい→아름답다)
+- NA_ADJECTIVE → Korean adjective ending in -하다 (静か→조용하다)
+- ADVERB → Korean adverb (そろそろ→슬슬)
+- PRONOUN → Korean pronoun (私→나)
+- PARTICLE → Korean grammatical equivalent (は→~은/는)
+- AUXILIARY_VERB → Korean grammatical equivalent (です→~입니다)
+- PREFIX → meaning of the prefix
+- SUFFIX → meaning of the suffix
+- CONJUNCTION → Korean conjunction (しかし→하지만)
+- INTERJECTION → Korean equivalent
+
+Return ONLY a JSON array:
+[{"index": N, "words": [{"surface": "...", "baseForm": "...", "koreanText": "..."}]}]
