@@ -6,6 +6,7 @@ import {
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
+  Alert,
   StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -41,8 +42,11 @@ export default function SearchScreen({ navigation }: Props) {
 
   const handleAnalyze = useCallback(async (item: Parameters<typeof analyze>[0]) => {
     await analyze(item);
-    if (usePlayerStore.getState().status === 'success') {
+    const state = usePlayerStore.getState();
+    if (state.status === 'success') {
       navigation.navigate('Player', { origin: 'Home' });
+    } else if (state.status === 'error') {
+      Alert.alert('오류', state.error ?? '가사를 불러오지 못했어요.');
     }
   }, [analyze, navigation]);
 

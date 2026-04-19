@@ -30,7 +30,7 @@ export const usePlayerStore = create<PlayerState>((set) => ({
       });
       set({ status: 'success', studyData: data });
     } catch (e: any) {
-      set({ status: 'error', error: e.message });
+      set({ status: 'error', error: e.response?.data?.message ?? e.message });
     }
   },
 
@@ -40,7 +40,7 @@ export const usePlayerStore = create<PlayerState>((set) => ({
       const data = await songApi.getById(id);
       set({ status: 'success', studyData: data });
     } catch (e: any) {
-      set({ status: 'error', error: e.message });
+      set({ status: 'error', error: e.response?.data?.message ?? e.message });
     }
   },
 

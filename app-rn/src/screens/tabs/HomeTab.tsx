@@ -5,6 +5,7 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  Alert,
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -39,8 +40,11 @@ export default function HomeTab() {
 
   const handleSongPress = useCallback(async (id: number) => {
     await loadById(id);
-    if (usePlayerStore.getState().status === 'success') {
+    const state = usePlayerStore.getState();
+    if (state.status === 'success') {
       navigation.navigate('Player', { origin: 'Home' });
+    } else if (state.status === 'error') {
+      Alert.alert('오류', state.error ?? '노래를 불러오지 못했어요.');
     }
   }, [loadById, navigation]);
 
