@@ -3,9 +3,7 @@ import {
   View,
   Text,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
-  Modal,
   BackHandler,
   StyleSheet,
 } from 'react-native';
@@ -21,6 +19,8 @@ import WordFormFields from '../components/WordFormFields';
 import PosPickerList from '../components/PosPickerList';
 import { wordApi } from '../api/wordApi';
 import { useWordForm } from '../hooks/useWordForm';
+import AppDialog from '../components/AppDialog';
+import ErrorDialog from '../components/ErrorDialog';
 import { Colors, Dimens } from '../theme/theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'EditWord'>;
@@ -42,6 +42,7 @@ export default function EditWordScreen({ route, navigation }: Props) {
   const [posPickerIndex, setPosPickerIndex] = useState<number | null>(null);
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
+  const [saveErrorMessage, setSaveErrorMessage] = useState<string | null>(null);
 
   const posSheetRef = useRef<BottomSheet>(null);
   const insets = useSafeAreaInsets();
@@ -144,7 +145,7 @@ export default function EditWordScreen({ route, navigation }: Props) {
       }
       navigation.goBack();
     } catch (e: any) {
-      Alert.alert('오류', '저장에 실패했어요.');
+      setSaveErrorMessage('저장에 실패했어요.');
     } finally {
       setSaving(false);
     }
@@ -263,70 +264,27 @@ export default function EditWordScreen({ route, navigation }: Props) {
         </BottomSheetScrollView>
       </BottomSheet>
 
-      {/* Reset Flashcard Dialog */}
-      <Modal visible={showResetDialog} transparent animationType="fade" onRequestClose={() => setShowResetDialog(false)}>
-        <View style={styles.dialogOverlay}>
-          <View style={styles.dialog}>
-            <Text style={styles.dialogTitle}>복습 진도를 초기화할까요?</Text>
-            <Text style={styles.dialogBody}>
-              단어 정보가 변경되었어요.{'\n'}
-              복습 진도를 초기화하면 이 단어가{'\n'}
-              새 카드로 다시 시작돼요.
-            </Text>
-            <View style={styles.dialogBtns}>
-              <TouchableOpacity
-                style={[styles.dialogBtn, styles.dialogBtnSecondary]}
-                onPress={() => {
-                  setShowResetDialog(false);
-                  handleSave(false);
-                }}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.dialogBtnSecondaryText}>유지하고 저장</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.dialogBtn, styles.dialogBtnDanger]}
-                onPress={() => {
-                  setShowResetDialog(false);
-                  handleSave(true);
-                }}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.dialogBtnDangerText}>초기화하고 저장</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      <AppDialog
+        visible={showResetDialog}
+        title="복습 진도를 초기화할까요?"
+        body={'단어 정보가 변경되었어요.\n복습 진도를 초기화하면 이 단어가\n새 카드로 다시 시작돼요.'}
+        buttons={[
+          { label: '유지하고 저장', variant: 'secondary', onPress: () => { setShowResetDialog(false); handleSave(false); } },
+          { label: '초기화하고 저장', variant: 'danger', onPress: () => { setShowResetDialog(false); handleSave(true); } },
+        ]}
+      />
 
-      {/* Unsaved Changes Dialog */}
-      <Modal visible={showUnsavedDialog} transparent animationType="fade" onRequestClose={() => setShowUnsavedDialog(false)}>
-        <View style={styles.dialogOverlay}>
-          <View style={styles.dialog}>
-            <Text style={styles.dialogTitle}>저장되지 않은 변경사항이 있어요</Text>
-            <Text style={styles.dialogBody}>저장하지 않고 나갈까요?</Text>
-            <View style={styles.dialogBtns}>
-              <TouchableOpacity
-                style={[styles.dialogBtn, styles.dialogBtnSecondary]}
-                onPress={() => setShowUnsavedDialog(false)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.dialogBtnSecondaryText}>계속 수정</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.dialogBtn, styles.dialogBtnDanger]}
-                onPress={() => {
-                  setShowUnsavedDialog(false);
-                  navigation.goBack();
-                }}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.dialogBtnDangerText}>나가기</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      <AppDialog
+        visible={showUnsavedDialog}
+        title="저장되지 않은 변경사항이 있어요"
+        body="저장하지 않고 나갈까요?"
+        buttons={[
+          { label: '계속 수정', variant: 'secondary', onPress: () => setShowUnsavedDialog(false) },
+          { label: '나가기', variant: 'danger', onPress: () => { setShowUnsavedDialog(false); navigation.goBack(); } },
+        ]}
+      />
+
+      <ErrorDialog message={saveErrorMessage} onDismiss={() => setSaveErrorMessage(null)} />
     </SafeAreaView>
   );
 }
@@ -408,43 +366,4 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
   },
   dragBar: { width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.textMuted },
-  // Dialogs
-  dialogOverlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.4)',
-  },
-  dialog: {
-    width: 320,
-    backgroundColor: Colors.card,
-    borderRadius: 20,
-    padding: 28,
-    paddingBottom: 20,
-    gap: 16,
-  },
-  dialogTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-    textAlign: 'center',
-  },
-  dialogBody: {
-    fontSize: 14,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 21,
-  },
-  dialogBtns: { flexDirection: 'row', gap: 10, marginTop: 8 },
-  dialogBtn: {
-    flex: 1,
-    height: 46,
-    borderRadius: 23,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  dialogBtnSecondary: { backgroundColor: Colors.elevated },
-  dialogBtnSecondaryText: { fontSize: 15, fontWeight: '600', color: Colors.textPrimary },
-  dialogBtnDanger: { backgroundColor: '#EF4444' },
-  dialogBtnDangerText: { fontSize: 15, fontWeight: '600', color: '#FFFFFF' },
 });

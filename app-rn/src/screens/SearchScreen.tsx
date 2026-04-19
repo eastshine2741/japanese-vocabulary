@@ -6,7 +6,6 @@ import {
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
-  Modal,
   StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,6 +15,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { useSearchStore } from '../stores/searchStore';
 import { usePlayerStore } from '../stores/playerStore';
 import SongListItem from '../components/SongListItem';
+import ErrorDialog from '../components/ErrorDialog';
 import { Colors, Dimens } from '../theme/theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { getErrorMessage } from '../utils/errorMessages';
@@ -124,24 +124,7 @@ export default function SearchScreen({ navigation }: Props) {
         </View>
       )}
 
-      {/* Error dialog */}
-      <Modal visible={errorDialogMessage !== null} transparent animationType="fade" onRequestClose={() => setErrorDialogMessage(null)}>
-        <View style={styles.dialogOverlay}>
-          <View style={styles.dialog}>
-            <Text style={styles.dialogTitle}>문제가 발생했어요</Text>
-            <Text style={styles.dialogBody}>{errorDialogMessage}</Text>
-            <View style={styles.dialogBtns}>
-              <TouchableOpacity
-                style={[styles.dialogBtn, styles.dialogBtnPrimary]}
-                onPress={() => setErrorDialogMessage(null)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.dialogBtnPrimaryText}>확인</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      <ErrorDialog message={errorDialogMessage} onDismiss={() => setErrorDialogMessage(null)} />
     </View>
   );
 }
@@ -210,40 +193,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  dialogOverlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.4)',
-  },
-  dialog: {
-    width: 320,
-    backgroundColor: Colors.card,
-    borderRadius: 20,
-    padding: 28,
-    paddingBottom: 20,
-    gap: 16,
-  },
-  dialogTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-    textAlign: 'center',
-  },
-  dialogBody: {
-    fontSize: 14,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 21,
-  },
-  dialogBtns: { flexDirection: 'row', gap: 10, marginTop: 8 },
-  dialogBtn: {
-    flex: 1,
-    height: 46,
-    borderRadius: 23,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  dialogBtnPrimary: { backgroundColor: Colors.primary },
-  dialogBtnPrimaryText: { fontSize: 15, fontWeight: '600', color: '#FFFFFF' },
 });
