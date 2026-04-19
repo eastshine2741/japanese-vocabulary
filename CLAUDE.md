@@ -19,6 +19,19 @@ cd app-rn && npx expo run:android             # App - Android
 cd app-rn && npx expo start --web             # App - Web (dev)
 ```
 
+### Multi-worktree Frontend
+
+`DEPLOY_NS` 환경변수로 Android 패키지명을 분리하여 같은 디바이스에 여러 브랜치 앱 공존 가능.
+
+```bash
+cd app-rn
+DEPLOY_NS=issue-21 npx expo run:android      # com.anonymous.apprn.issue21 로 설치
+```
+
+- `DEPLOY_NS` 미설정 시 기본값 `main` → `com.anonymous.apprn.main`
+- `app-rn/.env`의 `EXPO_PUBLIC_BACKEND_URL`도 해당 namespace 서버에 맞출 것
+- `android/`는 gitignored — 각 워크트리에서 첫 빌드 시 자동 생성
+
 ### K8s Deploy (k3s)
 
 ```bash
