@@ -29,7 +29,19 @@ gh issue edit ISSUE_NUMBER --remove-label "status:approved" --add-label "status:
    The worktree is created at `../japanese-vocabulary-WORKTREE_DIR/` (branch name with `/` replaced by `-`).
 
 5. Implement changes in the worktree directory, following the approved plan and CLAUDE.md conventions.
-   [IMPORTANT] If the change involves UI design, update the Pencil design file (`app-rn/japanese-vocabulary.pen`) using Pencil MCP tools (batch_design) and let Pencil reflect the UI change to code. The .pen file changes must be included in the PR commit.
+
+   [IMPORTANT] If the change involves UI design, update the Pencil design file using the Pencil CLI (`--prompt` mode).
+   Pass the UI change description directly — Pencil's internal AI agent handles the design decisions.
+
+   ```bash
+   pencil --in ../japanese-vocabulary-WORKTREE_DIR/app-rn/japanese-vocabulary.pen \
+          --out ../japanese-vocabulary-WORKTREE_DIR/app-rn/japanese-vocabulary.pen \
+          --prompt "description of UI change from the approved plan"
+   ```
+
+   - Pass the approved plan's UI description as-is. Do NOT over-specify layout/color/spacing details — Pencil's agent handles those.
+   - Use a 600000ms timeout (generation takes 1-5 minutes).
+   - The .pen file changes must be included in the PR commit.
 
 6. Commit, push, and create PR:
 ```

@@ -11,23 +11,15 @@ gh issue view ISSUE_NUMBER --json title,body,comments
 
 2. Analyze the codebase with Grep, Read, Glob to find relevant files and root causes.
 
-3. If the issue is UI-related, find the relevant screen in the .pen file using Pencil MCP in two steps:
-   Step 1 — List all top-level screens (names only):
-   ```
-   batch_get({
-     "filePath": "app-rn/japanese-vocabulary.pen",
-     "patterns": [{ "type": "frame" }],
-     "readDepth": 0,
-     "searchDepth": 1
-   })
-   ```
-   Step 2 — Pick the screen whose name best matches the issue description, then read its details:
-   ```
-   batch_get({
-     "filePath": "app-rn/japanese-vocabulary.pen",
-     "nodeIds": ["<matched node id>"],
-     "readDepth": 2
-   })
+3. If the issue is UI-related, inspect the relevant screen in the .pen file using the Pencil CLI:
+   ```bash
+   # List all top-level screens
+   echo 'batch_get({ patterns: [{ type: "frame" }], readDepth: 0, searchDepth: 1 })
+   exit()' | pencil interactive -i app-rn/japanese-vocabulary.pen -o /dev/null
+
+   # Read details of a matched screen
+   echo 'batch_get({ nodeIds: ["<matched node id>"], readDepth: 2 })
+   exit()' | pencil interactive -i app-rn/japanese-vocabulary.pen -o /dev/null
    ```
    Do NOT read the entire document.
 
