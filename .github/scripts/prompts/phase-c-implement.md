@@ -16,22 +16,28 @@ gh issue view ISSUE_NUMBER --json title,body,comments
 gh issue edit ISSUE_NUMBER --remove-label "status:approved" --add-label "status:implementing"
 ```
 
-3. Create a worktree using the existing script (it also copies gitignored config files like .env):
-```
-./create-worktree.sh fix/issue-ISSUE_NUMBER
-```
-   The worktree is created at `../japanese-vocabulary-fix-issue-ISSUE_NUMBER/` by default.
+3. Decide a branch name that describes what the work does (NOT the issue number).
+   - Format: `<type>/<short-description>` where type is `feat`, `fix`, `refactor`, `chore`, etc.
+   - Use lowercase kebab-case for the description, max 4-5 words.
+   - Examples: `feat/song-search-pagination`, `fix/flashcard-review-crash`, `refactor/lyric-sync-logic`
+   - Do NOT use `fix/issue-NN` or `fix-issue-NN` format.
 
-4. Implement changes in the worktree directory, following the approved plan and CLAUDE.md conventions.
+4. Create a worktree using the existing script (it also copies gitignored config files like .env):
+```
+./create-worktree.sh BRANCH_NAME
+```
+   The worktree is created at `../japanese-vocabulary-WORKTREE_DIR/` (branch name with `/` replaced by `-`).
+
+5. Implement changes in the worktree directory, following the approved plan and CLAUDE.md conventions.
    [IMPORTANT] If the change involves UI design, update the Pencil design file (`app-rn/japanese-vocabulary.pen`) using Pencil MCP tools (batch_design) and let Pencil reflect the UI change to code. The .pen file changes must be included in the PR commit.
 
-5. Commit, push, and create PR:
+6. Commit, push, and create PR:
 ```
-cd ../japanese-vocabulary-fix-issue-ISSUE_NUMBER
+cd ../japanese-vocabulary-WORKTREE_DIR
 git add -A
 git commit -m "description of changes"
-git push -u origin fix/issue-ISSUE_NUMBER
-gh pr create --title "Fix #ISSUE_NUMBER: title" --body "Fixes #ISSUE_NUMBER
+git push -u origin BRANCH_NAME
+gh pr create --title "Short descriptive title" --body "Fixes #ISSUE_NUMBER
 
 ## Summary
 - ...
@@ -40,9 +46,9 @@ gh pr create --title "Fix #ISSUE_NUMBER: title" --body "Fixes #ISSUE_NUMBER
 - ..."
 ```
 
-6. Comment the PR URL on the issue.
+7. Comment the PR URL on the issue.
 
-7. Return to repo and update label:
+8. Return to repo and update label:
 ```
 cd /home/eastshine/IdeaProjects/japanese-vocabulary
 gh issue edit ISSUE_NUMBER --remove-label "status:implementing" --add-label "status:pr-created"
