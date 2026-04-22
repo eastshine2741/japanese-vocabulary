@@ -12,8 +12,16 @@ export function getBaseURL(): string {
   return client.defaults.baseURL ?? DEFAULT_BACKEND_URL ?? '';
 }
 
-export function setBaseURL(url: string) {
+export async function initBaseURL(): Promise<void> {
+  const stored = await tokenStorage.getBaseURL();
+  if (stored) {
+    client.defaults.baseURL = stored;
+  }
+}
+
+export async function setBaseURL(url: string) {
   client.defaults.baseURL = url;
+  await tokenStorage.saveBaseURL(url);
 }
 
 client.interceptors.request.use(async (config) => {
