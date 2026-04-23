@@ -22,7 +22,7 @@ export type RootStackParamList = {
   Login: undefined;
   Main: undefined;
   Search: undefined;
-  Player: { origin: string };
+  Player: { origin: string; initialSeekMs?: number };
   Review: { songId?: number | null };
   DeckDetail: { songId: number | null };
   DeckWordList: { songId: number | null };

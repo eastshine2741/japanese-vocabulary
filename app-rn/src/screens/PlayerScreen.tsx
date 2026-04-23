@@ -55,7 +55,8 @@ const DISMISS_THRESHOLD = 250;
 const CONTROLS_FADE = 200;
 const CONTROLS_HIDE_DELAY = 3000;
 
-export default function PlayerScreen({ navigation }: Props) {
+export default function PlayerScreen({ navigation, route }: Props) {
+  const initialSeekMs = route.params?.initialSeekMs;
   const studyData = usePlayerStore(s => s.studyData);
   const resetPlayer = usePlayerStore(s => s.reset);
   const {
@@ -101,6 +102,7 @@ export default function PlayerScreen({ navigation }: Props) {
   const currentLineIndexRef = useRef(-1);
   const isPlayingRef = useRef(false);
   const isSyncedRef = useRef(false);
+  const initialSeekDone = useRef(false);
 
   const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 50 });
   const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: Array<{ index: number | null }> }) => {
@@ -466,6 +468,14 @@ export default function PlayerScreen({ navigation }: Props) {
       scrollBtnVisible.value = withTiming(shouldShowScrollBtn ? 1 : 0, { duration: 200 });
     }
   }, [shouldShowScrollBtn]);
+
+  useEffect(() => {
+    if (initialSeekMs != null && durationMs > 0 && !initialSeekDone.current) {
+      initialSeekDone.current = true;
+      youtubeRef.current?.seekTo(initialSeekMs / 1000);
+      setCurrentMs(initialSeekMs);
+    }
+  }, [durationMs, initialSeekMs]);
 
   const scrollBtnDirection = useMemo(() => {
     if (!shouldShowScrollBtn || visibleIndicesRef.current.size === 0) return 'down';
