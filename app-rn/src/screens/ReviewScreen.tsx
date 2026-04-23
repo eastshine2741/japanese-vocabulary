@@ -86,10 +86,20 @@ export default function ReviewScreen({ route, navigation }: Props) {
 
   const loadById = usePlayerStore(s => s.loadById);
 
-  const handleSongPress = useCallback(async (songId: number) => {
+  const handleSongPress = useCallback(async (songId: number, lyricLine: string | null) => {
     await loadById(songId);
-    if (usePlayerStore.getState().status === 'success') {
-      navigation.navigate('Player', { origin: 'Review' });
+    const playerState = usePlayerStore.getState();
+    if (playerState.status === 'success') {
+      let initialSeekMs: number | undefined;
+      if (lyricLine && playerState.studyData) {
+        const match = playerState.studyData.studyUnits.find(
+          u => u.originalText === lyricLine,
+        );
+        if (match?.startTimeMs != null) {
+          initialSeekMs = match.startTimeMs;
+        }
+      }
+      navigation.navigate('Player', { origin: 'Review', initialSeekMs });
     }
   }, [loadById, navigation]);
 

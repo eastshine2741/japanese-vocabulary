@@ -10,7 +10,7 @@ import ArtworkImage from './ArtworkImage';
 
 interface Props {
   card: FlashcardDTO;
-  onSongPress?: (songId: number) => void;
+  onSongPress?: (songId: number, lyricLine: string | null) => void;
 }
 
 /**
@@ -67,7 +67,7 @@ export default function FlashcardBackDetails({ card, onSongPress }: Props) {
                 {ex.songTitle && (
                   <TouchableOpacity
                     style={styles.songRow}
-                    onPress={onSongPress ? () => onSongPress(ex.songId) : undefined}
+                    onPress={onSongPress ? () => onSongPress(ex.songId, ex.lyricLine) : undefined}
                     disabled={!onSongPress}
                     activeOpacity={0.6}
                   >
