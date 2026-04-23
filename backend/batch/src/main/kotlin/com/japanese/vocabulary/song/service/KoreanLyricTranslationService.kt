@@ -3,6 +3,7 @@ package com.japanese.vocabulary.song.service
 import com.japanese.vocabulary.song.client.gemini.GeminiClient
 import com.japanese.vocabulary.song.dto.AnalyzedLine
 import com.japanese.vocabulary.song.dto.Token
+import com.japanese.vocabulary.song.dto.PartOfSpeech
 import com.japanese.vocabulary.song.dto.TokenInfo
 import com.japanese.vocabulary.song.entity.KoreanLyricStatus
 import com.japanese.vocabulary.song.repository.LyricRepository
@@ -170,7 +171,7 @@ class KoreanLyricTranslationService(
                         baseForm = correctedBaseForm,
                         reading = tokenInfo.reading,
                         baseFormReading = tokenInfo.baseFormReading,
-                        partOfSpeech = tokenInfo.partOfSpeech,
+                        partOfSpeech = if (isSkippableToken(tokenInfo)) PartOfSpeech.SYMBOL else tokenInfo.partOfSpeech,
                         charStart = tokenInfo.charStart,
                         charEnd = tokenInfo.charEnd,
                         koreanText = koreanText
