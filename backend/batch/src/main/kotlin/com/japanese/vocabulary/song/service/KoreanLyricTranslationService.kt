@@ -35,21 +35,17 @@ class KoreanLyricTranslationService(
         private const val BATCH_SIZE = 5
 
         /**
-         * Tokens with these characteristics are pure symbols (spaces, brackets, etc.)
-         * and should not be sent to the LLM for meaning lookup.
+         * Tokens whose surface contains no Japanese characters should not be sent to the LLM.
          *
-         * WHY NOT JUST CHECK POS:
-         * kuromoji-unidic misclassifies some hiragana/katakana as SYMBOL (OOV handling issue).
-         * Checking the actual surface characters prevents meaningful words from being filtered out.
+         * WHY SURFACE-BASED (not POS-based):
+         * - kuromoji-unidic misclassifies some hiragana/katakana as SYMBOL (OOV handling).
+         * - kuromoji classifies ASCII symbols like " and [ as NOUN (OOV handling).
+         * Checking the actual surface characters handles both directions of misclassification.
          */
-        private val KANA_KANJI_REGEX = Regex("[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF\u3400-\u4DBF]")
+        private val JAPANESE_REGEX = Regex("[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF\u3400-\u4DBF\uFF66-\uFF9F]")
 
         private fun isSkippableToken(token: TokenInfo): Boolean {
-            if (token.partOfSpeech.name == "WHITESPACE") return true
-            if (token.partOfSpeech.name == "SYMBOL" || token.partOfSpeech.name == "SUPPLEMENTARY_SYMBOL") {
-                return !KANA_KANJI_REGEX.containsMatchIn(token.surface)
-            }
-            return false
+            return !JAPANESE_REGEX.containsMatchIn(token.surface)
         }
     }
 
