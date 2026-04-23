@@ -124,9 +124,14 @@ export default function PlayerScreen({ navigation, route }: Props) {
   const scrollToCurrentLine = useCallback(() => {
     const idx = currentLineIndexRef.current;
     if (idx < 0) return;
+    const heights = itemHeights.current;
+    let knownSum = 0;
+    let knownCount = 0;
+    heights.forEach((h) => { knownSum += h; knownCount++; });
+    const avgHeight = knownCount > 0 ? knownSum / knownCount : 0;
     let y = headerHeightRef.current;
     for (let i = 0; i < idx; i++) {
-      y += itemHeights.current.get(i) ?? 0;
+      y += heights.get(i) ?? avgHeight;
     }
     const offset = y - flatListHeight.current * 0.3;
     flatListRef.current?.scrollToOffset({ offset: Math.max(0, offset), animated: true });
