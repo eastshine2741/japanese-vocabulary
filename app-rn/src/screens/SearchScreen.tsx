@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   StyleSheet,
 } from 'react-native';
+import AnalyzingOverlay from '../components/AnalyzingOverlay';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -117,12 +118,7 @@ export default function SearchScreen({ navigation }: Props) {
         ItemSeparatorComponent={() => <View style={styles.separator} />}
       />
 
-      {/* Loading overlay for analyze */}
-      {playerStatus === 'loading' && (
-        <View style={styles.overlay}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-        </View>
-      )}
+      <AnalyzingOverlay visible={playerStatus === 'loading'} />
 
       <ErrorDialog message={errorDialogMessage} onDismiss={() => setErrorDialogMessage(null)} />
     </View>
@@ -186,11 +182,5 @@ const styles = StyleSheet.create({
   },
   loader: {
     paddingVertical: 16,
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: Colors.overlay,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
 });

@@ -4,9 +4,9 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
   StyleSheet,
 } from 'react-native';
+import AnalyzingOverlay from '../../components/AnalyzingOverlay';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -144,11 +144,7 @@ export default function HomeTab() {
             </View>
           </View>
         </ScrollView>
-        {playerStatus === 'loading' && (
-          <View style={styles.overlay}>
-            <ActivityIndicator size="large" color={Colors.primary} />
-          </View>
-        )}
+        <AnalyzingOverlay visible={playerStatus === 'loading'} />
 
         <ErrorDialog message={errorDialogMessage} onDismiss={() => setErrorDialogMessage(null)} />
       </View>
@@ -208,10 +204,4 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   skeletonCard: { width: '31%', aspectRatio: 1 },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
 });
