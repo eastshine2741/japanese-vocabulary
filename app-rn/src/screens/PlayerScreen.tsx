@@ -103,6 +103,8 @@ export default function PlayerScreen({ navigation, route }: Props) {
   const isPlayingRef = useRef(false);
   const isSyncedRef = useRef(false);
   const initialSeekDone = useRef(false);
+  const followModeRef = useRef(true);
+  const prevAutoScrollLineRef = useRef(-1);
 
   const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 50 });
   const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: Array<{ index: number | null }> }) => {
@@ -110,6 +112,7 @@ export default function PlayerScreen({ navigation, route }: Props) {
       viewableItems.filter(v => v.index != null).map(v => v.index!),
     );
     const shouldShow = isSyncedRef.current && isPlayingRef.current
+      && !followModeRef.current
       && currentLineIndexRef.current >= 0
       && !visibleIndicesRef.current.has(currentLineIndexRef.current);
     if (shouldShow !== prevScrollBtnShown.current) {
@@ -128,6 +131,16 @@ export default function PlayerScreen({ navigation, route }: Props) {
     const offset = y - flatListHeight.current * 0.3;
     flatListRef.current?.scrollToOffset({ offset: Math.max(0, offset), animated: true });
   }, []);
+
+  const handleScrollBeginDrag = useCallback(() => {
+    followModeRef.current = false;
+  }, []);
+
+  const handleScrollBtnPress = useCallback(() => {
+    followModeRef.current = true;
+    prevAutoScrollLineRef.current = currentLineIndexRef.current;
+    scrollToCurrentLine();
+  }, [scrollToCurrentLine]);
 
   const scrollBtnAnimStyle = useAnimatedStyle(() => ({
     opacity: scrollBtnVisible.value,
@@ -460,6 +473,7 @@ export default function PlayerScreen({ navigation, route }: Props) {
   isSyncedRef.current = isSynced;
 
   const shouldShowScrollBtn = isSynced && isPlaying && currentLineIndex >= 0
+    && !followModeRef.current
     && !visibleIndicesRef.current.has(currentLineIndex);
 
   useEffect(() => {
@@ -476,6 +490,21 @@ export default function PlayerScreen({ navigation, route }: Props) {
       setCurrentMs(initialSeekMs);
     }
   }, [durationMs, initialSeekMs]);
+
+  // Auto-scroll: follow mode
+  useEffect(() => {
+    if (followModeRef.current && isSynced && isPlaying && currentLineIndex >= 0
+        && currentLineIndex !== prevAutoScrollLineRef.current) {
+      prevAutoScrollLineRef.current = currentLineIndex;
+      scrollToCurrentLine();
+    }
+  }, [currentLineIndex, isSynced, isPlaying, scrollToCurrentLine]);
+
+  // Reset follow mode when song changes
+  useEffect(() => {
+    followModeRef.current = true;
+    prevAutoScrollLineRef.current = -1;
+  }, [studyData]);
 
   const scrollBtnDirection = useMemo(() => {
     if (!shouldShowScrollBtn || visibleIndicesRef.current.size === 0) return 'down';
@@ -561,6 +590,7 @@ export default function PlayerScreen({ navigation, route }: Props) {
               keyExtractor={(item) => String(item.index)}
               renderItem={renderLyricLine}
               onLayout={(e) => { flatListHeight.current = e.nativeEvent.layout.height; }}
+              onScrollBeginDrag={handleScrollBeginDrag}
               onViewableItemsChanged={onViewableItemsChanged}
               viewabilityConfig={viewabilityConfig.current}
               ListHeaderComponent={
@@ -642,7 +672,7 @@ export default function PlayerScreen({ navigation, route }: Props) {
               style={[styles.scrollToLineBtn, scrollBtnAnimStyle]}
               pointerEvents={shouldShowScrollBtn ? 'auto' : 'none'}
             >
-              <TouchableOpacity onPress={scrollToCurrentLine} activeOpacity={0.6} style={styles.scrollToLineBtnInner}>
+              <TouchableOpacity onPress={handleScrollBtnPress} activeOpacity={0.6} style={styles.scrollToLineBtnInner}>
                 <Feather name={scrollBtnDirection === 'up' ? 'chevron-up' : 'chevron-down'} size={20} color="#FFFFFF" />
               </TouchableOpacity>
             </Animated.View>
