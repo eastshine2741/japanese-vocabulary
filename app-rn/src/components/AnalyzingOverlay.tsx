@@ -1,54 +1,120 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, StyleSheet, View, Text, Easing } from 'react-native';
+import { Animated, StyleSheet, Easing } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Colors } from '../theme/theme';
 
-const STEPS = [
-  '불러오는 중...',
-  '가사를 찾는 중...',
-  '거의 다 됐어요!',
+const FIXED_STEPS = [
+  { message: '불러오는 중...', delay: 0 },
+  { message: '가사를 찾는 중...', delay: 2000 },
+  { message: '뮤직비디오를 칮는 중...', delay: 5000 },
+  { message: '가사를 다시 찾는 중...', delay: 10000 },
 ];
 
-const STEP_DELAYS = [0, 2000, 5000];
+const CYCLING_MESSAGES = [
+  '열심히 분석 중...',
+  '조금만 기다려주세요',
+  '꼼꼼하게 확인 중...',
+  '잠시만요...',
+];
+
+const CYCLING_START_DELAY = 16000;
+const CYCLING_INTERVAL = 5000;
 
 interface Props {
   visible: boolean;
 }
 
 export default function AnalyzingOverlay({ visible }: Props) {
-  const [stepIndex, setStepIndex] = useState(0);
+  const [shouldRender, setShouldRender] = useState(false);
+  const [message, setMessage] = useState(FIXED_STEPS[0].message);
+  const overlayOpacity = useRef(new Animated.Value(0)).current;
+  const cardScale = useRef(new Animated.Value(0.9)).current;
   const rotation = useRef(new Animated.Value(0)).current;
   const textOpacity = useRef(new Animated.Value(1)).current;
 
+  // Fade in / fade out with card scale
   useEffect(() => {
-    if (!visible) {
-      setStepIndex(0);
-      return;
-    }
-
-    const timers = STEP_DELAYS.slice(1).map((delay, i) =>
-      setTimeout(() => {
-        Animated.timing(textOpacity, {
-          toValue: 0,
-          duration: 150,
+    if (visible) {
+      setShouldRender(true);
+      Animated.parallel([
+        Animated.timing(overlayOpacity, {
+          toValue: 1,
+          duration: 250,
           useNativeDriver: true,
-        }).start(() => {
-          setStepIndex(i + 1);
-          Animated.timing(textOpacity, {
-            toValue: 1,
-            duration: 150,
-            useNativeDriver: true,
-          }).start();
-        });
-      }, delay),
-    );
+        }),
+        Animated.spring(cardScale, {
+          toValue: 1,
+          tension: 65,
+          friction: 8,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      Animated.timing(overlayOpacity, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }).start(({ finished }) => {
+        if (finished) {
+          setShouldRender(false);
+          cardScale.setValue(0.9);
+        }
+      });
+    }
+  }, [visible, overlayOpacity, cardScale]);
 
-    return () => timers.forEach(clearTimeout);
-  }, [visible, textOpacity]);
-
+  // Step messages: fixed progression + cycling phase
   useEffect(() => {
     if (!visible) return;
 
+    setMessage(FIXED_STEPS[0].message);
+    textOpacity.setValue(1);
+
+    const animateTransition = (newMsg: string) => {
+      Animated.timing(textOpacity, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: true,
+      }).start(() => {
+        setMessage(newMsg);
+        Animated.timing(textOpacity, {
+          toValue: 1,
+          duration: 150,
+          useNativeDriver: true,
+        }).start();
+      });
+    };
+
+    const timeouts: ReturnType<typeof setTimeout>[] = [];
+    let interval: ReturnType<typeof setInterval> | null = null;
+
+    for (let i = 1; i < FIXED_STEPS.length; i++) {
+      timeouts.push(
+        setTimeout(() => animateTransition(FIXED_STEPS[i].message), FIXED_STEPS[i].delay),
+      );
+    }
+
+    let cycleIndex = 0;
+    timeouts.push(
+      setTimeout(() => {
+        animateTransition(CYCLING_MESSAGES[0]);
+        cycleIndex = 1;
+        interval = setInterval(() => {
+          animateTransition(CYCLING_MESSAGES[cycleIndex % CYCLING_MESSAGES.length]);
+          cycleIndex++;
+        }, CYCLING_INTERVAL);
+      }, CYCLING_START_DELAY),
+    );
+
+    return () => {
+      timeouts.forEach(clearTimeout);
+      if (interval) clearInterval(interval);
+    };
+  }, [visible, textOpacity]);
+
+  // Spinner rotation
+  useEffect(() => {
+    if (!visible) return;
     const spin = Animated.loop(
       Animated.timing(rotation, {
         toValue: 1,
@@ -61,7 +127,7 @@ export default function AnalyzingOverlay({ visible }: Props) {
     return () => spin.stop();
   }, [visible, rotation]);
 
-  if (!visible) return null;
+  if (!shouldRender) return null;
 
   const rotate = rotation.interpolate({
     inputRange: [0, 1],
@@ -69,16 +135,16 @@ export default function AnalyzingOverlay({ visible }: Props) {
   });
 
   return (
-    <View style={styles.overlay}>
-      <View style={styles.card}>
+    <Animated.View style={[styles.overlay, { opacity: overlayOpacity }]}>
+      <Animated.View style={[styles.card, { transform: [{ scale: cardScale }] }]}>
         <Animated.View style={{ transform: [{ rotate }] }}>
           <Feather name="loader" size={32} color={Colors.primary} />
         </Animated.View>
         <Animated.Text style={[styles.label, { opacity: textOpacity }]}>
-          {STEPS[stepIndex]}
+          {message}
         </Animated.Text>
-      </View>
-    </View>
+      </Animated.View>
+    </Animated.View>
   );
 }
 
