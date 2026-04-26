@@ -54,6 +54,16 @@ export interface TestCaseResult {
   gradingCost: number;
 }
 
+export interface PromptChange {
+  problem: string;
+  solution: string;
+}
+
+export interface ImproverResult {
+  improvedPrompt: string;
+  changes: PromptChange[];
+}
+
 export interface EvalRun {
   timestamp: string;
   mode: EvalMode;

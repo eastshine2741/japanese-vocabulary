@@ -1,2 +1,4 @@
-TODO: 단어 뜻 채점 기준을 작성하세요.
-모든 테스트 케이스에 공통 적용됩니다.
+1. Output one entry for EVERY word in the input "words" array, in the same order. NEVER skip any entry.
+2. You may correct a wrong baseForm (e.g. いう → いい when context means "good").
+3. Do NOT merge or split words. Keep the input segmentation exactly as given.
+4. When a conjugated form has its own dictionary entry with a meaning distinct from the base word, use that form as baseForm so the learner can look it up directly (e.g. なら → なら "~라면", not だ "~이다").

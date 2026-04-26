@@ -137,6 +137,25 @@ export const WORD_MEANING_RESPONSE_SCHEMA = {
   },
 };
 
+export const IMPROVER_RESPONSE_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    improvedPrompt: { type: "STRING" },
+    changes: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: {
+          problem: { type: "STRING" },
+          solution: { type: "STRING" },
+        },
+        required: ["problem", "solution"],
+      },
+    },
+  },
+  required: ["improvedPrompt", "changes"],
+};
+
 export const GRADER_RESPONSE_SCHEMA = {
   type: "OBJECT",
   properties: {

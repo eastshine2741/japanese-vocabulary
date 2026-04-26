@@ -32,3 +32,41 @@ Return a JSON object with:
 - "deductions": array of {"reason": "<감점 사유>", "points": <감점 점수>}
 - "comment": "<종합 평가 코멘트>"`;
 }
+
+export function buildImproverPrompt(
+  currentPrompt: string,
+  gradingResults: { testCaseName: string; score: number; deductions: { reason: string; points: number }[]; comment: string }[]
+): string {
+  const resultsSummary = gradingResults
+    .map(
+      (r) =>
+        `### ${r.testCaseName} (${r.score}/10)\n` +
+        (r.deductions.length > 0
+          ? r.deductions.map((d) => `- -${d.points}: ${d.reason}`).join("\n") + "\n"
+          : "") +
+        `종합: ${r.comment}`
+    )
+    .join("\n\n");
+
+  return `You are an expert prompt engineer for Japanese-to-Korean language learning LLM prompts.
+
+## Current System Prompt
+${currentPrompt}
+
+## Grading Results from Evaluation
+${resultsSummary}
+
+## Instructions
+Based on the grading results above, improve the system prompt to address the issues found.
+
+- Analyze the deduction patterns across all test cases.
+- Modify the prompt to prevent these issues from recurring.
+- Keep the overall structure and intent of the original prompt.
+- Do NOT add unnecessary verbosity — only add rules that address real problems.
+- Write the improved prompt in English (Korean examples inline are fine).
+- Write all commentary (problem/solution) in English.
+
+Return a JSON object with:
+- "improvedPrompt": the full improved system prompt text in English
+- "changes": array of {"problem": "<problem found>", "solution": "<solution applied to prompt>"}`;
+}
