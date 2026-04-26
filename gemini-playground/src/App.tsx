@@ -6,12 +6,8 @@ import EnsembleExperiment from "./experiments/ensemble/EnsembleExperiment";
 import PromptEvalExperiment from "./experiments/prompt-eval/PromptEvalExperiment";
 import "./App.css";
 
-const TranslationEval = () => <PromptEvalExperiment mode="translation" />;
-const WordMeaningEval = () => <PromptEvalExperiment mode="wordMeaning" />;
-
 const EXPERIMENTS = [
-  { id: "translation-eval", label: "Translation Eval", component: TranslationEval },
-  { id: "word-meaning-eval", label: "Word Meaning Eval", component: WordMeaningEval },
+  { id: "prompt-eval", label: "Prompt Eval", component: PromptEvalExperiment },
   { id: "gemini", label: "Gemini Translation", component: GeminiExperiment },
   { id: "morphological", label: "Morphological Analysis", component: MorphologicalExperiment },
   { id: "word-meaning", label: "Word Meaning", component: WordMeaningExperiment },

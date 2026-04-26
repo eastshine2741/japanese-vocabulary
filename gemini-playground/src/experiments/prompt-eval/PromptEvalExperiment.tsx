@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo } from "react";
 import type {
   EvalMode,
+  TestCase,
   TestData,
   TestCaseResult,
   EvalRun,
@@ -16,7 +17,7 @@ import {
 import { buildGraderPrompt } from "./graderPrompt";
 import "./PromptEvalExperiment.css";
 
-// --- Load all files from filesystem via import.meta.glob ---
+// --- Load files from filesystem via import.meta.glob ---
 
 const translationPromptFiles = import.meta.glob<string>(
   "./translation/prompt/*.txt",
@@ -34,31 +35,20 @@ const wordMeaningGuidelinesFiles = import.meta.glob<string>(
   "./word-meaning/guidelines/*.txt",
   { eager: true, query: "?raw", import: "default" }
 );
-const translationInputFiles = import.meta.glob<TestData>(
-  "./translation/input/*.json",
-  { eager: true, import: "default" }
-);
-const wordMeaningInputFiles = import.meta.glob<TestData>(
-  "./word-meaning/input/*.json",
-  { eager: true, import: "default" }
-);
+const inputFiles = import.meta.glob<TestData>("./input/*.json", {
+  eager: true,
+  import: "default",
+});
 
-interface FileEntry {
-  name: string;
-  content: string;
+// --- Helpers ---
+
+function getFirstFileContent(files: Record<string, string>): string {
+  const values = Object.values(files);
+  return values[0] ?? "";
 }
 
-function resolveEntries(
-  files: Record<string, string>
-): FileEntry[] {
-  return Object.entries(files).map(([path, content]) => ({
-    name: path.split("/").pop()?.replace(/\.\w+$/, "") ?? path,
-    content,
-  }));
-}
-
-function storageKey(mode: EvalMode, field: string): string {
-  return `pe-${mode}-${field}`;
+function storageKey(field: string): string {
+  return `pe-${field}`;
 }
 
 function useLocalState(
@@ -92,6 +82,15 @@ function formatJson(text: string): string {
   }
 }
 
+async function saveFile(filePath: string, content: string): Promise<void> {
+  const res = await fetch("/api/prompt-eval/save-file", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ filePath, content }),
+  });
+  if (!res.ok) throw new Error("Failed to save file");
+}
+
 async function saveResultToServer(
   mode: string,
   filename: string,
@@ -111,129 +110,258 @@ async function saveResultToServer(
   return json.path;
 }
 
-function FileSelector({
-  label,
-  entries,
-  selected,
-  onSelect,
-}: {
-  label: string;
-  entries: FileEntry[];
-  selected: string;
-  onSelect: (name: string) => void;
-}) {
-  if (entries.length === 0) return null;
-  return (
-    <div className="pe-config-field">
-      <label>{label}</label>
-      {entries.length === 1 ? (
-        <span className="pe-file-badge">{entries[0].name}</span>
-      ) : (
-        <select value={selected} onChange={(e) => onSelect(e.target.value)}>
-          {entries.map((e) => (
-            <option key={e.name} value={e.name}>
-              {e.name}
-            </option>
-          ))}
-        </select>
-      )}
-    </div>
-  );
-}
+// --- Sub-components ---
 
-function ReadonlyPanel({
-  label,
-  content,
-  defaultOpen,
+function TestCaseDialog({
+  initial,
+  onSubmit,
+  onClose,
 }: {
-  label: string;
-  content: string;
-  defaultOpen?: boolean;
+  initial?: TestCase;
+  onSubmit: (tc: TestCase) => void;
+  onClose: () => void;
 }) {
-  const [open, setOpen] = useState(defaultOpen ?? false);
+  const isEdit = !!initial;
+  const [name, setName] = useState(initial?.name ?? "");
+  const [inputJson, setInputJson] = useState(
+    initial ? JSON.stringify(initial.input, null, 2) : ""
+  );
+  const [translationCriteria, setTranslationCriteria] = useState(
+    initial?.translationCriteria ?? ""
+  );
+  const [wordMeaningCriteria, setWordMeaningCriteria] = useState(
+    initial?.wordMeaningCriteria ?? ""
+  );
+  const [error, setError] = useState("");
+
+  const handleSubmit = () => {
+    if (!name.trim()) {
+      setError("Name is required");
+      return;
+    }
+    try {
+      const parsed = JSON.parse(inputJson);
+      if (!Array.isArray(parsed)) {
+        setError("Input must be a JSON array");
+        return;
+      }
+      onSubmit({
+        name: name.trim(),
+        input: parsed,
+        translationCriteria: translationCriteria.trim() || null,
+        wordMeaningCriteria: wordMeaningCriteria.trim() || null,
+      });
+    } catch {
+      setError("Invalid JSON");
+    }
+  };
+
   return (
-    <div className="pe-readonly-panel">
-      <div className="pe-readonly-header" onClick={() => setOpen(!open)}>
-        <span>
-          {open ? "\u25BC" : "\u25B6"} {label}
-        </span>
+    <div className="pe-dialog-overlay" onClick={onClose}>
+      <div className="pe-dialog" onClick={(e) => e.stopPropagation()}>
+        <h3>{isEdit ? "Edit Test Case" : "Add Test Case"}</h3>
+        <div className="pe-dialog-field">
+          <label>Name</label>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="e.g. 다맛테쨩"
+          />
+        </div>
+        <div className="pe-dialog-field">
+          <label>Input (JSON array of lyric lines)</label>
+          <textarea
+            value={inputJson}
+            onChange={(e) => setInputJson(e.target.value)}
+            rows={10}
+            placeholder='[{"text": "...", "index": 0, "startTimeMs": null}]'
+          />
+        </div>
+        <div className="pe-dialog-field">
+          <label>Translation Criteria (optional)</label>
+          <textarea
+            value={translationCriteria}
+            onChange={(e) => setTranslationCriteria(e.target.value)}
+            rows={3}
+            placeholder="e.g. 자연스러운 한국어 번역..."
+          />
+        </div>
+        <div className="pe-dialog-field">
+          <label>Word Meaning Criteria (optional)</label>
+          <textarea
+            value={wordMeaningCriteria}
+            onChange={(e) => setWordMeaningCriteria(e.target.value)}
+            rows={3}
+            placeholder="e.g. surface가 한국어여서는 안 된다..."
+          />
+        </div>
+        {error && <div className="pe-dialog-error">{error}</div>}
+        <div className="pe-dialog-actions">
+          <button className="pe-btn-secondary" onClick={onClose}>
+            Cancel
+          </button>
+          <button className="pe-btn-primary" onClick={handleSubmit}>
+            {isEdit ? "Save" : "Add"}
+          </button>
+        </div>
       </div>
-      {open && <pre className="pe-readonly-content">{content}</pre>}
     </div>
   );
 }
 
-export default function PromptEvalExperiment({ mode }: { mode: EvalMode }) {
-  // --- Resolve file entries for current mode ---
-  const promptEntries = useMemo(
-    () =>
-      resolveEntries(
-        mode === "translation"
-          ? translationPromptFiles
-          : wordMeaningPromptFiles
-      ),
-    [mode]
+function EditablePanel({
+  label,
+  value,
+  onChange,
+  onSave,
+  saving,
+  saved,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  onSave: () => void;
+  saving: boolean;
+  saved: boolean;
+}) {
+  return (
+    <div className="pe-editable-panel">
+      <div className="pe-editable-header">
+        <span>{label}</span>
+        <div className="pe-editable-actions">
+          {saved && <span className="pe-saved-badge">Saved</span>}
+          <button
+            className="pe-btn-save"
+            onClick={onSave}
+            disabled={saving}
+          >
+            {saving ? "Saving..." : "Save"}
+          </button>
+        </div>
+      </div>
+      <textarea
+        className="pe-editable-textarea"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        rows={12}
+      />
+    </div>
   );
-  const guidelinesEntries = useMemo(
-    () =>
-      resolveEntries(
-        mode === "translation"
-          ? translationGuidelinesFiles
-          : wordMeaningGuidelinesFiles
-      ),
-    [mode]
-  );
-  const testCaseGroups = useMemo(() => {
-    const files =
-      mode === "translation" ? translationInputFiles : wordMeaningInputFiles;
-    return Object.entries(files).map(([path, data]) => ({
-      name: path.split("/").pop()?.replace(/\.\w+$/, "") ?? path,
-      testCases: data.testCases,
-    }));
-  }, [mode]);
+}
 
-  const allTestCases = useMemo(
-    () => testCaseGroups.flatMap((g) => g.testCases),
-    [testCaseGroups]
+// --- Main Component ---
+
+export default function PromptEvalExperiment() {
+  // Sub-tab state
+  const [activeSubTab, setActiveSubTab] = useState<EvalMode>("translation");
+
+  // --- Load initial data from files ---
+  const initialTestCases = useMemo(() => {
+    const allData = Object.values(inputFiles);
+    return allData.flatMap((d) => d.testCases);
+  }, []);
+
+  const initialTranslationPrompt = useMemo(
+    () => getFirstFileContent(translationPromptFiles),
+    []
+  );
+  const initialWordMeaningPrompt = useMemo(
+    () => getFirstFileContent(wordMeaningPromptFiles),
+    []
+  );
+  const initialTranslationGuidelines = useMemo(
+    () => getFirstFileContent(translationGuidelinesFiles),
+    []
+  );
+  const initialWordMeaningGuidelines = useMemo(
+    () => getFirstFileContent(wordMeaningGuidelinesFiles),
+    []
   );
 
-  // --- File selections ---
-  const [selectedPrompt, setSelectedPrompt] = useState(
-    promptEntries[0]?.name ?? ""
+  // --- Editable state ---
+  const [testCases, setTestCases] = useState<TestCase[]>(initialTestCases);
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+
+  const [translationPrompt, setTranslationPrompt] = useState(
+    initialTranslationPrompt
   );
-  const [selectedGuidelines, setSelectedGuidelines] = useState(
-    guidelinesEntries[0]?.name ?? ""
+  const [wordMeaningPrompt, setWordMeaningPrompt] = useState(
+    initialWordMeaningPrompt
+  );
+  const [translationGuidelines, setTranslationGuidelines] = useState(
+    initialTranslationGuidelines
+  );
+  const [wordMeaningGuidelines, setWordMeaningGuidelines] = useState(
+    initialWordMeaningGuidelines
   );
 
-  const promptText =
-    promptEntries.find((p) => p.name === selectedPrompt)?.content ??
-    promptEntries[0]?.content ??
-    "";
-  const guidelinesText =
-    guidelinesEntries.find((g) => g.name === selectedGuidelines)?.content ??
-    guidelinesEntries[0]?.content ??
-    "";
+  // Save status
+  const [savingPrompt, setSavingPrompt] = useState(false);
+  const [savedPrompt, setSavedPrompt] = useState(false);
+  const [savingGuidelines, setSavingGuidelines] = useState(false);
+  const [savedGuidelines, setSavedGuidelines] = useState(false);
 
   // --- Config state (localStorage) ---
-  const defaultModel =
-    mode === "translation"
-      ? "gemini-3.1-pro-preview"
-      : "gemini-3.1-flash-lite-preview";
-  const defaultTemp = mode === "translation" ? "0.3" : "0";
-
   const [apiKey, setApiKey] = useLocalState("pe-api-key", "");
-  const [executionModel, setExecutionModel] = useLocalState(
-    storageKey(mode, "exec-model"),
-    defaultModel
+  const [tExecModel, setTExecModel] = useLocalState(
+    storageKey("translation-exec-model"),
+    "gemini-3.1-pro-preview"
   );
-  const [graderModel, setGraderModel] = useLocalState(
-    storageKey(mode, "grader-model"),
+  const [tGraderModel, setTGraderModel] = useLocalState(
+    storageKey("translation-grader-model"),
     "gemini-2.5-flash"
   );
-  const [temperature, setTemperature] = useLocalState(
-    storageKey(mode, "temperature"),
-    defaultTemp
+  const [tTemperature, setTTemperature] = useLocalState(
+    storageKey("translation-temperature"),
+    "0.3"
   );
+  const [wmExecModel, setWmExecModel] = useLocalState(
+    storageKey("wordMeaning-exec-model"),
+    "gemini-3.1-flash-lite-preview"
+  );
+  const [wmGraderModel, setWmGraderModel] = useLocalState(
+    storageKey("wordMeaning-grader-model"),
+    "gemini-2.5-flash"
+  );
+  const [wmTemperature, setWmTemperature] = useLocalState(
+    storageKey("wordMeaning-temperature"),
+    "0"
+  );
+
+  // Derived config for active sub-tab
+  const execModel = activeSubTab === "translation" ? tExecModel : wmExecModel;
+  const setExecModel =
+    activeSubTab === "translation" ? setTExecModel : setWmExecModel;
+  const graderModel =
+    activeSubTab === "translation" ? tGraderModel : wmGraderModel;
+  const setGraderModel =
+    activeSubTab === "translation" ? setTGraderModel : setWmGraderModel;
+  const temperature =
+    activeSubTab === "translation" ? tTemperature : wmTemperature;
+  const setTemperature =
+    activeSubTab === "translation" ? setTTemperature : setWmTemperature;
+
+  const promptText =
+    activeSubTab === "translation" ? translationPrompt : wordMeaningPrompt;
+  const setPromptText =
+    activeSubTab === "translation"
+      ? setTranslationPrompt
+      : setWordMeaningPrompt;
+  const guidelinesText =
+    activeSubTab === "translation"
+      ? translationGuidelines
+      : wordMeaningGuidelines;
+  const setGuidelinesText =
+    activeSubTab === "translation"
+      ? setTranslationGuidelines
+      : setWordMeaningGuidelines;
+
+  const responseSchema =
+    activeSubTab === "translation"
+      ? TRANSLATION_RESPONSE_SCHEMA
+      : WORD_MEANING_RESPONSE_SCHEMA;
 
   // --- Run state ---
   const [results, setResults] = useState<TestCaseResult[]>([]);
@@ -245,11 +373,77 @@ export default function PromptEvalExperiment({ mode }: { mode: EvalMode }) {
   );
   const [savedPath, setSavedPath] = useState<string | null>(null);
 
-  const responseSchema =
-    mode === "translation"
-      ? TRANSLATION_RESPONSE_SCHEMA
-      : WORD_MEANING_RESPONSE_SCHEMA;
+  // --- Input management ---
+  const saveTestCases = useCallback(
+    async (cases: TestCase[]) => {
+      const data: TestData = { testCases: cases };
+      await saveFile("input/input.json", JSON.stringify(data, null, 2) + "\n");
+    },
+    []
+  );
 
+  const handleAddTestCase = useCallback(
+    async (tc: TestCase) => {
+      const updated = [...testCases, tc];
+      setTestCases(updated);
+      setShowAddDialog(false);
+      await saveTestCases(updated);
+    },
+    [testCases, saveTestCases]
+  );
+
+  const handleEditTestCase = useCallback(
+    async (tc: TestCase) => {
+      if (editingIndex === null) return;
+      const updated = testCases.map((existing, i) =>
+        i === editingIndex ? tc : existing
+      );
+      setTestCases(updated);
+      setEditingIndex(null);
+      await saveTestCases(updated);
+    },
+    [testCases, editingIndex, saveTestCases]
+  );
+
+  const handleDeleteTestCase = useCallback(
+    async (idx: number) => {
+      const updated = testCases.filter((_, i) => i !== idx);
+      setTestCases(updated);
+      await saveTestCases(updated);
+    },
+    [testCases, saveTestCases]
+  );
+
+  // --- Prompt/Guidelines save ---
+  const handleSavePrompt = useCallback(async () => {
+    setSavingPrompt(true);
+    setSavedPrompt(false);
+    try {
+      const dir =
+        activeSubTab === "translation" ? "translation" : "word-meaning";
+      await saveFile(`${dir}/prompt/default.txt`, promptText);
+      setSavedPrompt(true);
+      setTimeout(() => setSavedPrompt(false), 2000);
+    } finally {
+      setSavingPrompt(false);
+    }
+  }, [activeSubTab, promptText]);
+
+  const handleSaveGuidelines = useCallback(async () => {
+    setSavingGuidelines(true);
+    setSavedGuidelines(false);
+    try {
+      const dir =
+        activeSubTab === "translation" ? "translation" : "word-meaning";
+      await saveFile(`${dir}/guidelines/default.txt`, guidelinesText);
+      setSavedGuidelines(true);
+      setTimeout(() => setSavedGuidelines(false), 2000);
+    } finally {
+      setSavingGuidelines(false);
+    }
+  }, [activeSubTab, guidelinesText]);
+
+  // --- Toggle helpers ---
   const toggleCard = useCallback((idx: number) => {
     setExpandedCards((prev) => {
       const next = new Set(prev);
@@ -268,8 +462,9 @@ export default function PromptEvalExperiment({ mode }: { mode: EvalMode }) {
     });
   }, []);
 
+  // --- Run evaluation ---
   const runEvaluation = useCallback(async () => {
-    if (!apiKey.trim() || allTestCases.length === 0 || running) return;
+    if (!apiKey.trim() || testCases.length === 0 || running) return;
     setRunning(true);
     setResults([]);
     setExpandedCards(new Set());
@@ -277,18 +472,19 @@ export default function PromptEvalExperiment({ mode }: { mode: EvalMode }) {
     setSavedPath(null);
 
     const temp = parseFloat(temperature) || 0;
-    const totalTests = allTestCases.length;
+    const totalTests = testCases.length;
+    const mode = activeSubTab;
 
     // Step 1: Execute prompts in parallel
     setProgress(`Executing... 0/${totalTests}`);
     let executionDone = 0;
 
     const executionResults = await Promise.all(
-      allTestCases.map(async (tc) => {
+      testCases.map(async (tc) => {
         const inputJson = JSON.stringify(tc.input);
         const result = await callGemini(
           apiKey,
-          executionModel,
+          execModel,
           promptText,
           inputJson,
           temp,
@@ -305,7 +501,7 @@ export default function PromptEvalExperiment({ mode }: { mode: EvalMode }) {
     let gradingDone = 0;
 
     const gradingResults = await Promise.all(
-      allTestCases.map(async (tc, i) => {
+      testCases.map(async (tc, i) => {
         const execResult = executionResults[i];
         if (execResult.error || !execResult.text) {
           gradingDone++;
@@ -318,9 +514,15 @@ export default function PromptEvalExperiment({ mode }: { mode: EvalMode }) {
           };
         }
 
+        const criteria =
+          mode === "translation"
+            ? tc.translationCriteria
+            : tc.wordMeaningCriteria;
+        const criteriaText = criteria || "채점기준 없음 (guidelines만 적용)";
+
         const graderInput = buildGraderPrompt(
           guidelinesText,
-          tc.criteria,
+          criteriaText,
           JSON.stringify(tc.input, null, 2),
           execResult.text
         );
@@ -343,6 +545,11 @@ export default function PromptEvalExperiment({ mode }: { mode: EvalMode }) {
     for (let i = 0; i < totalTests; i++) {
       const exec = executionResults[i];
       const grade = gradingResults[i];
+      const tc = testCases[i];
+      const criteria =
+        mode === "translation"
+          ? tc.translationCriteria
+          : tc.wordMeaningCriteria;
 
       let graderResult: GraderResult | null = null;
       let graderError: string | null = null;
@@ -358,9 +565,9 @@ export default function PromptEvalExperiment({ mode }: { mode: EvalMode }) {
       }
 
       newResults.push({
-        testCaseName: allTestCases[i].name,
-        criteria: allTestCases[i].criteria,
-        input: allTestCases[i].input,
+        testCaseName: tc.name,
+        criteria: criteria ?? null,
+        input: tc.input,
         geminiOutput: exec.text,
         geminiError: exec.error,
         graderResult,
@@ -394,7 +601,7 @@ export default function PromptEvalExperiment({ mode }: { mode: EvalMode }) {
     const run: EvalRun = {
       timestamp: now.toISOString(),
       mode,
-      executionModel,
+      executionModel: execModel,
       graderModel,
       temperature: temp,
       systemPrompt: promptText,
@@ -412,15 +619,15 @@ export default function PromptEvalExperiment({ mode }: { mode: EvalMode }) {
     }
   }, [
     apiKey,
-    allTestCases,
+    testCases,
     running,
     temperature,
-    executionModel,
+    execModel,
     graderModel,
     promptText,
     guidelinesText,
     responseSchema,
-    mode,
+    activeSubTab,
   ]);
 
   const averageScore =
@@ -444,58 +651,8 @@ export default function PromptEvalExperiment({ mode }: { mode: EvalMode }) {
 
   return (
     <div className="prompt-eval">
-      {/* Config bar */}
+      {/* API Key */}
       <div className="pe-config-bar">
-        <div className="pe-config-field">
-          <label>Execution Model</label>
-          <select
-            value={executionModel}
-            onChange={(e) => setExecutionModel(e.target.value)}
-          >
-            {GEMINI_MODELS.map((m) => (
-              <option key={m} value={m}>
-                {m}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="pe-config-field">
-          <label>Temperature</label>
-          <input
-            type="number"
-            min={0}
-            max={2}
-            step={0.1}
-            value={temperature}
-            onChange={(e) => setTemperature(e.target.value)}
-            style={{ width: 70 }}
-          />
-        </div>
-        <div className="pe-config-field">
-          <label>Grader Model</label>
-          <select
-            value={graderModel}
-            onChange={(e) => setGraderModel(e.target.value)}
-          >
-            {GEMINI_MODELS.map((m) => (
-              <option key={m} value={m}>
-                {m}
-              </option>
-            ))}
-          </select>
-        </div>
-        <FileSelector
-          label="Prompt"
-          entries={promptEntries}
-          selected={selectedPrompt}
-          onSelect={setSelectedPrompt}
-        />
-        <FileSelector
-          label="Guidelines"
-          entries={guidelinesEntries}
-          selected={selectedGuidelines}
-          onSelect={setSelectedGuidelines}
-        />
         <div className="pe-config-field">
           <label>API Key</label>
           <input
@@ -508,188 +665,305 @@ export default function PromptEvalExperiment({ mode }: { mode: EvalMode }) {
         </div>
       </div>
 
-      {/* Read-only preview panels */}
-      <ReadonlyPanel label="System Prompt" content={promptText} />
-      <ReadonlyPanel label="Grading Guidelines" content={guidelinesText} />
-
-      {/* Test data (loaded from files) */}
+      {/* Shared: Input Test Cases */}
       <div className="pe-test-data">
-        <label>
-          Test Data{" "}
-          <span className="pe-file-info">
-            {allTestCases.length} case
-            {allTestCases.length !== 1 ? "s" : ""} from{" "}
-            {testCaseGroups.length} file
-            {testCaseGroups.length !== 1 ? "s" : ""}
-          </span>
-        </label>
-        {testCaseGroups.length === 0 ? (
+        <div className="pe-test-data-header">
+          <label>
+            Input Test Cases{" "}
+            <span className="pe-file-info">
+              {testCases.length} case{testCases.length !== 1 ? "s" : ""}
+            </span>
+          </label>
+          <button
+            className="pe-btn-add"
+            onClick={() => setShowAddDialog(true)}
+          >
+            + Add Test Case
+          </button>
+        </div>
+        {testCases.length === 0 ? (
           <div className="pe-file-info">
-            No test data found. Add JSON files to{" "}
-            <code>
-              prompt-eval/
-              {mode === "translation" ? "translation" : "word-meaning"}
-              /input/
-            </code>
+            No test cases. Click "+ Add Test Case" to create one.
           </div>
         ) : (
           <div className="pe-test-list">
-            {testCaseGroups.map((group) =>
-              group.testCases.map((tc, j) => (
-                <div key={`${group.name}-${j}`} className="pe-test-item">
-                  <span className="pe-test-file">{group.name}</span>
-                  {tc.name}
-                </div>
-              ))
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Run bar */}
-      <div className="pe-run-bar">
-        <button
-          className="pe-run-btn"
-          onClick={runEvaluation}
-          disabled={running || !apiKey.trim() || allTestCases.length === 0}
-        >
-          {running ? "Running..." : "Run Evaluation"}
-        </button>
-        {progress && <span className="pe-progress">{progress}</span>}
-        {savedPath && !running && (
-          <span className="pe-saved-info">Saved: {savedPath}</span>
-        )}
-      </div>
-
-      {/* Results */}
-      {results.length > 0 && (
-        <div className="pe-results">
-          <div className="pe-summary">
-            <div>
-              {averageScore != null ? (
-                <span
-                  className={`pe-avg-score ${scoreClass(averageScore)}`}
-                >
-                  {averageScore.toFixed(1)} / 10
-                </span>
-              ) : (
-                <span className="pe-avg-score bad">N/A</span>
-              )}
-            </div>
-            <div className="pe-summary-stats">
-              <span>
-                {results.filter((r) => r.graderResult).length}/
-                {results.length} graded
-              </span>
-              <span>
-                Cost:{" "}
-                <span className="pe-stat-value cost">
-                  ${totalCost.toFixed(4)}
-                </span>
-              </span>
-            </div>
-          </div>
-
-          {results.map((r, i) => (
-            <div key={i} className="pe-result-card">
-              <div
-                className="pe-result-header"
-                onClick={() => toggleCard(i)}
-              >
-                <span className="pe-result-name">
-                  {expandedCards.has(i) ? "\u25BC" : "\u25B6"}{" "}
-                  {r.testCaseName}
-                </span>
-                {r.graderResult ? (
-                  <span
-                    className={`pe-result-score ${scoreClass(r.graderResult.score)}`}
-                  >
-                    {r.graderResult.score}/10
+            {testCases.map((tc, i) => (
+              <div key={i} className="pe-test-item">
+                <div className="pe-test-item-info">
+                  <span className="pe-test-name">{tc.name}</span>
+                  <span className="pe-test-meta">
+                    {tc.input.length} lines
+                    {tc.translationCriteria && " | T: " + tc.translationCriteria.slice(0, 40) + (tc.translationCriteria.length > 40 ? "..." : "")}
+                    {tc.wordMeaningCriteria && " | W: " + tc.wordMeaningCriteria.slice(0, 40) + (tc.wordMeaningCriteria.length > 40 ? "..." : "")}
                   </span>
-                ) : r.geminiError ? (
-                  <span className="pe-result-error">Exec Error</span>
-                ) : r.graderError ? (
-                  <span className="pe-result-error">Grade Error</span>
-                ) : null}
-              </div>
-
-              {expandedCards.has(i) && (
-                <div className="pe-result-body">
-                  {r.geminiError && (
-                    <div className="pe-deduction">
-                      Execution error: {r.geminiError}
-                    </div>
-                  )}
-
-                  {r.graderError && !r.geminiError && (
-                    <div className="pe-deduction">
-                      Grading error: {r.graderError}
-                    </div>
-                  )}
-
-                  {r.graderResult && (
-                    <>
-                      {r.graderResult.deductions.length > 0 && (
-                        <div className="pe-deductions">
-                          {r.graderResult.deductions.map((d, j) => (
-                            <div key={j} className="pe-deduction">
-                              <span className="pe-deduction-points">
-                                -{d.points}
-                              </span>{" "}
-                              {d.reason}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      <div className="pe-comment">
-                        {r.graderResult.comment}
-                      </div>
-                    </>
-                  )}
-
-                  <div className="pe-result-stats">
-                    <span>
-                      Exec:{" "}
-                      <span className="pe-stat-value latency">
-                        {r.executionLatencyMs}ms
-                      </span>
-                    </span>
-                    <span>
-                      Grade:{" "}
-                      <span className="pe-stat-value latency">
-                        {r.gradingLatencyMs}ms
-                      </span>
-                    </span>
-                    <span>
-                      Cost:{" "}
-                      <span className="pe-stat-value cost">
-                        ${(r.executionCost + r.gradingCost).toFixed(4)}
-                      </span>
-                    </span>
-                  </div>
-
-                  {r.geminiOutput && (
-                    <>
-                      <button
-                        className="pe-output-toggle"
-                        onClick={() => toggleOutput(i)}
-                      >
-                        {expandedOutputs.has(i)
-                          ? "\u25B2 Hide output"
-                          : "\u25BC Show output"}
-                      </button>
-                      {expandedOutputs.has(i) && (
-                        <div className="pe-output-raw">
-                          {formatJson(r.geminiOutput)}
-                        </div>
-                      )}
-                    </>
-                  )}
                 </div>
-              )}
-            </div>
-          ))}
+                <div className="pe-test-item-actions">
+                  <button
+                    className="pe-btn-edit"
+                    onClick={() => setEditingIndex(i)}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    className="pe-btn-delete"
+                    onClick={() => handleDeleteTestCase(i)}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Sub-tabs */}
+      <div className="pe-subtab-bar">
+        <button
+          className={`pe-subtab${activeSubTab === "translation" ? " active" : ""}`}
+          onClick={() => setActiveSubTab("translation")}
+        >
+          Translation
+        </button>
+        <button
+          className={`pe-subtab${activeSubTab === "wordMeaning" ? " active" : ""}`}
+          onClick={() => setActiveSubTab("wordMeaning")}
+        >
+          Word Meaning
+        </button>
+      </div>
+
+      {/* Sub-tab content */}
+      <div className="pe-subtab-content">
+        {/* Prompt */}
+        <EditablePanel
+          label="System Prompt"
+          value={promptText}
+          onChange={setPromptText}
+          onSave={handleSavePrompt}
+          saving={savingPrompt}
+          saved={savedPrompt}
+        />
+
+        {/* Guidelines */}
+        <EditablePanel
+          label="Grading Guidelines"
+          value={guidelinesText}
+          onChange={setGuidelinesText}
+          onSave={handleSaveGuidelines}
+          saving={savingGuidelines}
+          saved={savedGuidelines}
+        />
+
+        {/* Model config */}
+        <div className="pe-config-bar">
+          <div className="pe-config-field">
+            <label>Execution Model</label>
+            <select
+              value={execModel}
+              onChange={(e) => setExecModel(e.target.value)}
+            >
+              {GEMINI_MODELS.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="pe-config-field">
+            <label>Temperature</label>
+            <input
+              type="number"
+              min={0}
+              max={2}
+              step={0.1}
+              value={temperature}
+              onChange={(e) => setTemperature(e.target.value)}
+              style={{ width: 70 }}
+            />
+          </div>
+          <div className="pe-config-field">
+            <label>Grader Model</label>
+            <select
+              value={graderModel}
+              onChange={(e) => setGraderModel(e.target.value)}
+            >
+              {GEMINI_MODELS.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
+
+        {/* Run bar */}
+        <div className="pe-run-bar">
+          <button
+            className="pe-run-btn"
+            onClick={runEvaluation}
+            disabled={running || !apiKey.trim() || testCases.length === 0}
+          >
+            {running ? "Running..." : "Run Evaluation"}
+          </button>
+          {progress && <span className="pe-progress">{progress}</span>}
+          {savedPath && !running && (
+            <span className="pe-saved-info">Saved: {savedPath}</span>
+          )}
+        </div>
+
+        {/* Results */}
+        {results.length > 0 && (
+          <div className="pe-results">
+            <div className="pe-summary">
+              <div>
+                {averageScore != null ? (
+                  <span
+                    className={`pe-avg-score ${scoreClass(averageScore)}`}
+                  >
+                    {averageScore.toFixed(1)} / 10
+                  </span>
+                ) : (
+                  <span className="pe-avg-score bad">N/A</span>
+                )}
+              </div>
+              <div className="pe-summary-stats">
+                <span>
+                  {results.filter((r) => r.graderResult).length}/
+                  {results.length} graded
+                </span>
+                <span>
+                  Cost:{" "}
+                  <span className="pe-stat-value cost">
+                    ${totalCost.toFixed(4)}
+                  </span>
+                </span>
+              </div>
+            </div>
+
+            {results.map((r, i) => (
+              <div key={i} className="pe-result-card">
+                <div
+                  className="pe-result-header"
+                  onClick={() => toggleCard(i)}
+                >
+                  <span className="pe-result-name">
+                    {expandedCards.has(i) ? "\u25BC" : "\u25B6"}{" "}
+                    {r.testCaseName}
+                  </span>
+                  {r.graderResult ? (
+                    <span
+                      className={`pe-result-score ${scoreClass(r.graderResult.score)}`}
+                    >
+                      {r.graderResult.score}/10
+                    </span>
+                  ) : r.geminiError ? (
+                    <span className="pe-result-error">Exec Error</span>
+                  ) : r.graderError ? (
+                    <span className="pe-result-error">Grade Error</span>
+                  ) : null}
+                </div>
+
+                {expandedCards.has(i) && (
+                  <div className="pe-result-body">
+                    {r.criteria && (
+                      <div className="pe-criteria">
+                        <span className="pe-criteria-label">Criteria:</span>{" "}
+                        {r.criteria}
+                      </div>
+                    )}
+
+                    {r.geminiError && (
+                      <div className="pe-deduction">
+                        Execution error: {r.geminiError}
+                      </div>
+                    )}
+
+                    {r.graderError && !r.geminiError && (
+                      <div className="pe-deduction">
+                        Grading error: {r.graderError}
+                      </div>
+                    )}
+
+                    {r.graderResult && (
+                      <>
+                        {r.graderResult.deductions.length > 0 && (
+                          <div className="pe-deductions">
+                            {r.graderResult.deductions.map((d, j) => (
+                              <div key={j} className="pe-deduction">
+                                <span className="pe-deduction-points">
+                                  -{d.points}
+                                </span>{" "}
+                                {d.reason}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        <div className="pe-comment">
+                          {r.graderResult.comment}
+                        </div>
+                      </>
+                    )}
+
+                    <div className="pe-result-stats">
+                      <span>
+                        Exec:{" "}
+                        <span className="pe-stat-value latency">
+                          {r.executionLatencyMs}ms
+                        </span>
+                      </span>
+                      <span>
+                        Grade:{" "}
+                        <span className="pe-stat-value latency">
+                          {r.gradingLatencyMs}ms
+                        </span>
+                      </span>
+                      <span>
+                        Cost:{" "}
+                        <span className="pe-stat-value cost">
+                          ${(r.executionCost + r.gradingCost).toFixed(4)}
+                        </span>
+                      </span>
+                    </div>
+
+                    {r.geminiOutput && (
+                      <>
+                        <button
+                          className="pe-output-toggle"
+                          onClick={() => toggleOutput(i)}
+                        >
+                          {expandedOutputs.has(i)
+                            ? "\u25B2 Hide output"
+                            : "\u25BC Show output"}
+                        </button>
+                        {expandedOutputs.has(i) && (
+                          <div className="pe-output-raw">
+                            {formatJson(r.geminiOutput)}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Add / Edit Test Case Dialog */}
+      {showAddDialog && (
+        <TestCaseDialog
+          onSubmit={handleAddTestCase}
+          onClose={() => setShowAddDialog(false)}
+        />
+      )}
+      {editingIndex !== null && (
+        <TestCaseDialog
+          initial={testCases[editingIndex]}
+          onSubmit={handleEditTestCase}
+          onClose={() => setEditingIndex(null)}
+        />
       )}
     </div>
   );

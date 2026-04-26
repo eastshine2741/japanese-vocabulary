@@ -21,7 +21,8 @@ export interface WordMeaningInput {
 export interface TestCase {
   name: string;
   input: TranslationInput[] | WordMeaningInput[];
-  criteria: string;
+  translationCriteria?: string | null;
+  wordMeaningCriteria?: string | null;
 }
 
 export interface TestData {
@@ -41,7 +42,7 @@ export interface GraderResult {
 
 export interface TestCaseResult {
   testCaseName: string;
-  criteria: string;
+  criteria: string | null;
   input: unknown;
   geminiOutput: string | null;
   geminiError: string | null;

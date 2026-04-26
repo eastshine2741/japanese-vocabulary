@@ -1,0 +1,306 @@
+{
+  "timestamp": "2026-04-19T12:13:19.961Z",
+  "mode": "wordMeaning",
+  "executionModel": "gemini-3.1-flash-lite-preview",
+  "graderModel": "gemini-2.5-pro",
+  "temperature": 0,
+  "systemPrompt": "You receive a JSON array of lyric lines.\nEach line has \"index\", \"text\", and \"words\" (morphological analysis results with surface, baseForm, and pos).\n\nThe goal is to help a Korean-speaking learner study Japanese vocabulary from lyrics.\n\nSTRICT RULES:\n1. Output one entry for EACH word in the input \"words\" array, in the same order.\n2. You may correct a wrong baseForm (e.g. いう → いい when context means \"good\").\n3. Do NOT merge or split words. Keep the input segmentation exactly as given.\n4. Skip entries where baseForm is a symbol (*, （, ）, ！, 　).\n5. When a conjugated form has its own dictionary entry with a meaning distinct from the base word, use that form as baseForm so the learner can look it up directly (e.g. なら → なら \"~라면\", not だ \"~이다\").\n\nFor each word, return:\n- \"surface\": the exact characters as they appear in the original text\n- \"baseForm\": the form most useful for a learner to look up in a dictionary\n- \"koreanText\": Korean meaning suitable for flashcard study. If the word has multiple relevant meanings, return all with comma-joined.\n\nKorean meaning rules by part of speech:\n- NOUN → Korean noun (夜→밤, 人生→인생)\n- VERB → Korean verb ending in -다 (走る→달리다)\n- ADJECTIVE → Korean adjective ending in -다 (美しい→아름답다)\n- NA_ADJECTIVE → Korean adjective ending in -하다 (静か→조용하다)\n- ADVERB → Korean adverb (そろそろ→슬슬)\n- PRONOUN → Korean pronoun (私→나)\n- PARTICLE → Korean grammatical equivalent (は→~은/는)\n- AUXILIARY_VERB → Korean grammatical equivalent (です→~입니다)\n- PREFIX → meaning of the prefix\n- SUFFIX → meaning of the suffix\n- CONJUNCTION → Korean conjunction (しかし→하지만)\n- INTERJECTION → Korean equivalent\n\nReturn ONLY a JSON array:\n[{\"index\": N, \"words\": [{\"surface\": \"...\", \"baseForm\": \"...\", \"koreanText\": \"...\"}]}]",
+  "guidelines": "",
+  "averageScore": 10,
+  "totalCost": 0.02005625,
+  "results": [
+    {
+      "testCaseName": "TODO: 형태소 분석된 가사 데이터를 붙여넣으세요",
+      "criteria": "결과로 반환된 단어의 일본어 철자가 일본어어야 한다. 한국어여서는 안 된다.",
+      "input": [
+        {
+          "text": "ねぇ　安心しておくれ",
+          "index": 0,
+          "startTimeMs": null
+        },
+        {
+          "text": "分かる　貴方は賢く強くて美しい",
+          "index": 1,
+          "startTimeMs": null
+        },
+        {
+          "text": "他意はねぇ",
+          "index": 2,
+          "startTimeMs": null
+        },
+        {
+          "text": "\"運が良かっただけじゃない？笑\"",
+          "index": 3,
+          "startTimeMs": null
+        },
+        {
+          "text": "なんて思っちゃいけないね",
+          "index": 4,
+          "startTimeMs": null
+        },
+        {
+          "text": "メ　メ　メ",
+          "index": 5,
+          "startTimeMs": null
+        },
+        {
+          "text": "迷　侘び寂び",
+          "index": 6,
+          "startTimeMs": null
+        },
+        {
+          "text": "果実は捨て Tap",
+          "index": 7,
+          "startTimeMs": null
+        },
+        {
+          "text": "錆びた威",
+          "index": 8,
+          "startTimeMs": null
+        },
+        {
+          "text": "微かにラッタッタ",
+          "index": 9,
+          "startTimeMs": null
+        },
+        {
+          "text": "侘び寂び",
+          "index": 10,
+          "startTimeMs": null
+        },
+        {
+          "text": "無実を祟った",
+          "index": 11,
+          "startTimeMs": null
+        },
+        {
+          "text": "恥　恥",
+          "index": 12,
+          "startTimeMs": null
+        },
+        {
+          "text": "足音は鳴らさないデ！",
+          "index": 13,
+          "startTimeMs": null
+        },
+        {
+          "text": "貴方がいなきゃ僕は勇ましい",
+          "index": 14,
+          "startTimeMs": null
+        },
+        {
+          "text": "足跡だけ残してくネ！",
+          "index": 15,
+          "startTimeMs": null
+        },
+        {
+          "text": "貴方には言えないが大嫌いだ　ヤハハ",
+          "index": 16,
+          "startTimeMs": null
+        },
+        {
+          "text": "おい シシシ　黙ってちゃん（はッ）",
+          "index": 17,
+          "startTimeMs": null
+        },
+        {
+          "text": "あらやだやだ　いまどきサイレンス",
+          "index": 18,
+          "startTimeMs": null
+        },
+        {
+          "text": "シシシ　黙ってちゃん（はッ）",
+          "index": 19,
+          "startTimeMs": null
+        },
+        {
+          "text": "傷付きたくないないNight Night",
+          "index": 20,
+          "startTimeMs": null
+        },
+        {
+          "text": "ねぇ　安心しておくれ",
+          "index": 21,
+          "startTimeMs": null
+        },
+        {
+          "text": "分かる　貴方は儚く弱くて美しい",
+          "index": 22,
+          "startTimeMs": null
+        },
+        {
+          "text": "流石お嬢さん！流石お嬢さん！",
+          "index": 23,
+          "startTimeMs": null
+        },
+        {
+          "text": "僕の冴えない人生とは違いますなお嬢さん！",
+          "index": 24,
+          "startTimeMs": null
+        },
+        {
+          "text": "明日もいっしょにあそぼ",
+          "index": 25,
+          "startTimeMs": null
+        },
+        {
+          "text": "訂　闇Love it",
+          "index": 26,
+          "startTimeMs": null
+        },
+        {
+          "text": "罵詈はしまった Tap",
+          "index": 27,
+          "startTimeMs": null
+        },
+        {
+          "text": "錆びた威",
+          "index": 28,
+          "startTimeMs": null
+        },
+        {
+          "text": "微かにラッタッタ",
+          "index": 29,
+          "startTimeMs": null
+        },
+        {
+          "text": "侘び寂び",
+          "index": 30,
+          "startTimeMs": null
+        },
+        {
+          "text": "刻が止まった Tap",
+          "index": 31,
+          "startTimeMs": null
+        },
+        {
+          "text": "恥　恥",
+          "index": 32,
+          "startTimeMs": null
+        },
+        {
+          "text": "ラララ　ララ　ララララララ",
+          "index": 33,
+          "startTimeMs": null
+        },
+        {
+          "text": "此の空の下　僕ら愛おしい",
+          "index": 34,
+          "startTimeMs": null
+        },
+        {
+          "text": "ラララ　ララ　ララララララ",
+          "index": 35,
+          "startTimeMs": null
+        },
+        {
+          "text": "この星はほら　なんて愛おしい",
+          "index": 36,
+          "startTimeMs": null
+        },
+        {
+          "text": "お前がいなけりゃなぁ",
+          "index": 37,
+          "startTimeMs": null
+        },
+        {
+          "text": "足音は鳴らさないデ！",
+          "index": 38,
+          "startTimeMs": null
+        },
+        {
+          "text": "貴方がいなきゃ僕は勇ましい",
+          "index": 39,
+          "startTimeMs": null
+        },
+        {
+          "text": "足跡だけ残してくネ！",
+          "index": 40,
+          "startTimeMs": null
+        },
+        {
+          "text": "貴方には言えないが大嫌いだ　ヤハハ",
+          "index": 41,
+          "startTimeMs": null
+        },
+        {
+          "text": "鮮やかな色の街で",
+          "index": 42,
+          "startTimeMs": null
+        },
+        {
+          "text": "貴方（ひと）に怯える僕らだまってちゃん",
+          "index": 43,
+          "startTimeMs": null
+        },
+        {
+          "text": "足跡だけ残してくネ！",
+          "index": 44,
+          "startTimeMs": null
+        },
+        {
+          "text": "こんな夜でも愛は狂わしい　ヤハハ",
+          "index": 45,
+          "startTimeMs": null
+        },
+        {
+          "text": "貴方に怯える僕はだまってちゃん",
+          "index": 46,
+          "startTimeMs": null
+        }
+      ],
+      "geminiOutput": "[\n  {\"index\": 0, \"words\": [{\"surface\": \"ねぇ\", \"baseForm\": \"ねぇ\", \"koreanText\": \"저기, 있잖아\"}, {\"surface\": \"安心\", \"baseForm\": \"安心\", \"koreanText\": \"안심\"}, {\"surface\": \"して\", \"baseForm\": \"する\", \"koreanText\": \"하다\"}, {\"surface\": \"おくれ\", \"baseForm\": \"おくれ\", \"koreanText\": \"~해줘\"}]},\n  {\"index\": 1, \"words\": [{\"surface\": \"分かる\", \"baseForm\": \"分かる\", \"koreanText\": \"알다, 이해하다\"}, {\"surface\": \"貴方\", \"baseForm\": \"貴方\", \"koreanText\": \"당신\"}, {\"surface\": \"は\", \"baseForm\": \"は\", \"koreanText\": \"~은/는\"}, {\"surface\": \"賢く\", \"baseForm\": \"賢い\", \"koreanText\": \"현명하다\"}, {\"surface\": \"強くて\", \"baseForm\": \"強い\", \"koreanText\": \"강하다\"}, {\"surface\": \"美しい\", \"baseForm\": \"美しい\", \"koreanText\": \"아름답다\"}]},\n  {\"index\": 2, \"words\": [{\"surface\": \"他意\", \"baseForm\": \"他意\", \"koreanText\": \"다른 뜻, 딴마음\"}, {\"surface\": \"は\", \"baseForm\": \"は\", \"koreanText\": \"~은/는\"}, {\"surface\": \"ねぇ\", \"baseForm\": \"ない\", \"koreanText\": \"없다\"}]},\n  {\"index\": 3, \"words\": [{\"surface\": \"運\", \"baseForm\": \"運\", \"koreanText\": \"운\"}, {\"surface\": \"が\", \"baseForm\": \"が\", \"koreanText\": \"~이/가\"}, {\"surface\": \"良かった\", \"baseForm\": \"良い\", \"koreanText\": \"좋다\"}, {\"surface\": \"だけ\", \"baseForm\": \"だけ\", \"koreanText\": \"~뿐\"}, {\"surface\": \"じゃない\", \"baseForm\": \"じゃない\", \"koreanText\": \"~아니야?\"}]},\n  {\"index\": 4, \"words\": [{\"surface\": \"なんて\", \"baseForm\": \"なんて\", \"koreanText\": \"~라니\"}, {\"surface\": \"思っ\", \"baseForm\": \"思う\", \"koreanText\": \"생각하다\"}, {\"surface\": \"ちゃ\", \"baseForm\": \"ては\", \"koreanText\": \"~해서는\"}, {\"surface\": \"いけない\", \"baseForm\": \"いけない\", \"koreanText\": \"안 된다\"}, {\"surface\": \"ね\", \"baseForm\": \"ね\", \"koreanText\": \"~지\"}]},\n  {\"index\": 5, \"words\": [{\"surface\": \"メ\", \"baseForm\": \"メ\", \"koreanText\": \"메\"}, {\"surface\": \"メ\", \"baseForm\": \"メ\", \"koreanText\": \"메\"}, {\"surface\": \"メ\", \"baseForm\": \"メ\", \"koreanText\": \"메\"}]},\n  {\"index\": 6, \"words\": [{\"surface\": \"迷\", \"baseForm\": \"迷\", \"koreanText\": \"미혹, 헤맴\"}, {\"surface\": \"侘び寂び\", \"baseForm\": \"侘び寂び\", \"koreanText\": \"와비사비(일본의 미의식)\"}]},\n  {\"index\": 7, \"words\": [{\"surface\": \"果実\", \"baseForm\": \"果実\", \"koreanText\": \"과실, 열매\"}, {\"surface\": \"は\", \"baseForm\": \"は\", \"koreanText\": \"~은/는\"}, {\"surface\": \"捨て\", \"baseForm\": \"捨てる\", \"koreanText\": \"버리다\"}, {\"surface\": \"Tap\", \"baseForm\": \"Tap\", \"koreanText\": \"탭\"}]},\n  {\"index\": 8, \"words\": [{\"surface\": \"錆びた\", \"baseForm\": \"錆びる\", \"koreanText\": \"녹슬다\"}, {\"surface\": \"威\", \"baseForm\": \"威\", \"koreanText\": \"위엄, 위세\"}]},\n  {\"index\": 9, \"words\": [{\"surface\": \"微かに\", \"baseForm\": \"微か\", \"koreanText\": \"희미하게\"}, {\"surface\": \"ラッタッタ\", \"baseForm\": \"ラッタッタ\", \"koreanText\": \"라따따(의성어)\"}]},\n  {\"index\": 10, \"words\": [{\"surface\": \"侘び寂び\", \"baseForm\": \"侘び寂び\", \"koreanText\": \"와비사비\"}]},\n  {\"index\": 11, \"words\": [{\"surface\": \"無実\", \"baseForm\": \"無実\", \"koreanText\": \"무죄, 무실\"}, {\"surface\": \"を\", \"baseForm\": \"を\", \"koreanText\": \"~을/를\"}, {\"surface\": \"祟った\", \"baseForm\": \"祟る\", \"koreanText\": \"저주하다, 재앙을 내리다\"}]},\n  {\"index\": 12, \"words\": [{\"surface\": \"恥\", \"baseForm\": \"恥\", \"koreanText\": \"부끄러움, 수치\"}, {\"surface\": \"恥\", \"baseForm\": \"恥\", \"koreanText\": \"부끄러움, 수치\"}]},\n  {\"index\": 13, \"words\": [{\"surface\": \"足音\", \"baseForm\": \"足音\", \"koreanText\": \"발소리\"}, {\"surface\": \"は\", \"baseForm\": \"は\", \"koreanText\": \"~은/는\"}, {\"surface\": \"鳴らさない\", \"baseForm\": \"鳴らす\", \"koreanText\": \"울리지 않다\"}, {\"surface\": \"デ\", \"baseForm\": \"で\", \"koreanText\": \"~야(강조)\"}]},\n  {\"index\": 14, \"words\": [{\"surface\": \"貴方\", \"baseForm\": \"貴方\", \"koreanText\": \"당신\"}, {\"surface\": \"が\", \"baseForm\": \"が\", \"koreanText\": \"~이/가\"}, {\"surface\": \"いなきゃ\", \"baseForm\": \"いなければ\", \"koreanText\": \"없으면\"}, {\"surface\": \"僕\", \"baseForm\": \"僕\", \"koreanText\": \"나\"}, {\"surface\": \"は\", \"baseForm\": \"は\", \"koreanText\": \"~은/는\"}, {\"surface\": \"勇ましい\", \"baseForm\": \"勇ましい\", \"koreanText\": \"용감하다\"}]},\n  {\"index\": 15, \"words\": [{\"surface\": \"足跡\", \"baseForm\": \"足跡\", \"koreanText\": \"발자국\"}, {\"surface\": \"だけ\", \"baseForm\": \"だけ\", \"koreanText\": \"~뿐\"}, {\"surface\": \"残して\", \"baseForm\": \"残す\", \"koreanText\": \"남기다\"}, {\"surface\": \"く\", \"baseForm\": \"いく\", \"koreanText\": \"~해 가다\"}, {\"surface\": \"ネ\", \"baseForm\": \"ね\", \"koreanText\": \"~지\"}]},\n  {\"index\": 16, \"words\": [{\"surface\": \"貴方\", \"baseForm\": \"貴方\", \"koreanText\": \"당신\"}, {\"surface\": \"には\", \"baseForm\": \"には\", \"koreanText\": \"~에게는\"}, {\"surface\": \"言えない\", \"baseForm\": \"言える\", \"koreanText\": \"말할 수 없다\"}, {\"surface\": \"が\", \"baseForm\": \"が\", \"koreanText\": \"하지만\"}, {\"surface\": \"大嫌い\", \"baseForm\": \"大嫌い\", \"koreanText\": \"정말 싫다\"}, {\"surface\": \"だ\", \"baseForm\": \"だ\", \"koreanText\": \"~이다\"}, {\"surface\": \"ヤハハ\", \"baseForm\": \"ヤハハ\", \"koreanText\": \"야하하(웃음소리)\"}]},\n  {\"index\": 17, \"words\": [{\"surface\": \"おい\", \"baseForm\": \"おい\", \"koreanText\": \"어이\"}, {\"surface\": \"シシシ\", \"baseForm\": \"シシシ\", \"koreanText\": \"시시시(웃음소리)\"}, {\"surface\": \"黙って\", \"baseForm\": \"黙る\", \"koreanText\": \"입 다물다\"}, {\"surface\": \"ちゃん\", \"baseForm\": \"ちゃん\", \"koreanText\": \"~짱\"}, {\"surface\": \"はッ\", \"baseForm\": \"はッ\", \"koreanText\": \"핫\"}]},\n  {\"index\": 18, \"words\": [{\"surface\": \"あら\", \"baseForm\": \"あら\", \"koreanText\": \"어머\"}, {\"surface\": \"やだ\", \"baseForm\": \"やだ\", \"koreanText\": \"싫어\"}, {\"surface\": \"やだ\", \"baseForm\": \"やだ\", \"koreanText\": \"싫어\"}, {\"surface\": \"いまどき\", \"baseForm\": \"今時\", \"koreanText\": \"요즘\"}, {\"surface\": \"サイレンス\", \"baseForm\": \"サイレンス\", \"koreanText\": \"침묵\"}]},\n  {\"index\": 19, \"words\": [{\"surface\": \"シシシ\", \"baseForm\": \"シシシ\", \"koreanText\": \"시시시\"}, {\"surface\": \"黙って\", \"baseForm\": \"黙る\", \"koreanText\": \"입 다물다\"}, {\"surface\": \"ちゃん\", \"baseForm\": \"ちゃん\", \"koreanText\": \"~짱\"}, {\"surface\": \"はッ\", \"baseForm\": \"はッ\", \"koreanText\": \"핫\"}]},\n  {\"index\": 20, \"words\": [{\"surface\": \"傷付き\", \"baseForm\": \"傷付く\", \"koreanText\": \"상처받다\"}, {\"surface\": \"たくない\", \"baseForm\": \"たい\", \"koreanText\": \"~하고 싶지 않다\"}, {\"surface\": \"ない\", \"baseForm\": \"ない\", \"koreanText\": \"않다\"}, {\"surface\": \"Night\", \"baseForm\": \"Night\", \"koreanText\": \"밤\"}, {\"surface\": \"Night\", \"baseForm\": \"Night\", \"koreanText\": \"밤\"}]},\n  {\"index\": 21, \"words\": [{\"surface\": \"ねぇ\", \"baseForm\": \"ねぇ\", \"koreanText\": \"저기\"}, {\"surface\": \"安心\", \"baseForm\": \"安心\", \"koreanText\": \"안심\"}, {\"surface\": \"して\", \"baseForm\": \"する\", \"koreanText\": \"하다\"}, {\"surface\": \"おくれ\", \"baseForm\": \"おくれ\", \"koreanText\": \"~해줘\"}]},\n  {\"index\": 22, \"words\": [{\"surface\": \"分かる\", \"baseForm\": \"分かる\", \"koreanText\": \"알다\"}, {\"surface\": \"貴方\", \"baseForm\": \"貴方\", \"koreanText\": \"당신\"}, {\"surface\": \"は\", \"baseForm\": \"は\", \"koreanText\": \"~은/는\"}, {\"surface\": \"儚く\", \"baseForm\": \"儚い\", \"koreanText\": \"덧없다\"}, {\"surface\": \"弱くて\", \"baseForm\": \"弱い\", \"koreanText\": \"약하다\"}, {\"surface\": \"美しい\", \"baseForm\": \"美しい\", \"koreanText\": \"아름답다\"}]},\n  {\"index\": 23, \"words\": [{\"surface\": \"流石\", \"baseForm\": \"流石\", \"koreanText\": \"역시\"}, {\"surface\": \"お嬢さん\", \"baseForm\": \"お嬢さん\", \"koreanText\": \"아가씨\"}, {\"surface\": \"流石\", \"baseForm\": \"流石\", \"koreanText\": \"역시\"}, {\"surface\": \"お嬢さん\", \"baseForm\": \"お嬢さん\", \"koreanText\": \"아가씨\"}]},\n  {\"index\": 24, \"words\": [{\"surface\": \"僕\", \"baseForm\": \"僕\", \"koreanText\": \"나\"}, {\"surface\": \"の\", \"baseForm\": \"の\", \"koreanText\": \"~의\"}, {\"surface\": \"冴えない\", \"baseForm\": \"冴えない\", \"koreanText\": \"변변치 않다, 시원찮다\"}, {\"surface\": \"人生\", \"baseForm\": \"人生\", \"koreanText\": \"인생\"}, {\"surface\": \"とは\", \"baseForm\": \"とは\", \"koreanText\": \"~와는\"}, {\"surface\": \"違います\", \"baseForm\": \"違う\", \"koreanText\": \"다르다\"}, {\"surface\": \"な\", \"baseForm\": \"な\", \"koreanText\": \"~구나\"}, {\"surface\": \"お嬢さん\", \"baseForm\": \"お嬢さん\", \"koreanText\": \"아가씨\"}]},\n  {\"index\": 25, \"words\": [{\"surface\": \"明日\", \"baseForm\": \"明日\", \"koreanText\": \"내일\"}, {\"surface\": \"も\", \"baseForm\": \"も\", \"koreanText\": \"~도\"}, {\"surface\": \"いっしょに\", \"baseForm\": \"一緒\", \"koreanText\": \"함께\"}, {\"surface\": \"あそぼ\", \"baseForm\": \"遊ぶ\", \"koreanText\": \"놀자\"}]},\n  {\"index\": 26, \"words\": [{\"surface\": \"訂\", \"baseForm\": \"訂\", \"koreanText\": \"정정\"}, {\"surface\": \"闇\", \"baseForm\": \"闇\", \"koreanText\": \"어둠\"}, {\"surface\": \"Love\", \"baseForm\": \"Love\", \"koreanText\": \"사랑\"}, {\"surface\": \"it\", \"baseForm\": \"it\", \"koreanText\": \"그것\"}]},\n  {\"index\": 27, \"words\": [{\"surface\": \"罵詈\", \"baseForm\": \"罵詈\", \"koreanText\": \"욕설\"}, {\"surface\": \"は\", \"baseForm\": \"は\", \"koreanText\": \"~은/는\"}, {\"surface\": \"しまった\", \"baseForm\": \"しまう\", \"koreanText\": \"넣어두다, 해버리다\"}, {\"surface\": \"Tap\", \"baseForm\": \"Tap\", \"koreanText\": \"탭\"}]},\n  {\"index\": 28, \"words\": [{\"surface\": \"錆びた\", \"baseForm\": \"錆びる\", \"koreanText\": \"녹슬다\"}, {\"surface\": \"威\", \"baseForm\": \"威\", \"koreanText\": \"위엄\"}]},\n  {\"index\": 29, \"words\": [{\"surface\": \"微かに\", \"baseForm\": \"微か\", \"koreanText\": \"희미하게\"}, {\"surface\": \"ラッタッタ\", \"baseForm\": \"ラッタッタ\", \"koreanText\": \"라따따\"}]},\n  {\"index\": 30, \"words\": [{\"surface\": \"侘び寂び\", \"baseForm\": \"侘び寂び\", \"koreanText\": \"와비사비\"}]},\n  {\"index\": 31, \"words\": [{\"surface\": \"刻\", \"baseForm\": \"刻\", \"koreanText\": \"시간\"}, {\"surface\": \"が\", \"baseForm\": \"が\", \"koreanText\": \"~이/가\"}, {\"surface\": \"止まった\", \"baseForm\": \"止まる\", \"koreanText\": \"멈추다\"}, {\"surface\": \"Tap\", \"baseForm\": \"Tap\", \"koreanText\": \"탭\"}]},\n  {\"index\": 32, \"words\": [{\"surface\": \"恥\", \"baseForm\": \"恥\", \"koreanText\": \"부끄러움\"}, {\"surface\": \"恥\", \"baseForm\": \"恥\", \"koreanText\": \"부끄러움\"}]},\n  {\"index\": 33, \"words\": [{\"surface\": \"ラララ\", \"baseForm\": \"ラララ\", \"koreanText\": \"라라라\"}, {\"surface\": \"ララ\", \"baseForm\": \"ララ\", \"koreanText\": \"라라\"}, {\"surface\": \"ララララララ\", \"baseForm\": \"ララララララ\", \"koreanText\": \"라라라라라라\"}]},\n  {\"index\": 34, \"words\": [{\"surface\": \"此の\", \"baseForm\": \"此の\", \"koreanText\": \"이\"}, {\"surface\": \"空\", \"baseForm\": \"空\", \"koreanText\": \"하늘\"}, {\"surface\": \"の下\", \"baseForm\": \"下\", \"koreanText\": \"아래\"}, {\"surface\": \"僕ら\", \"baseForm\": \"僕ら\", \"koreanText\": \"우리들\"}, {\"surface\": \"愛おしい\", \"baseForm\": \"愛おしい\", \"koreanText\": \"사랑스럽다\"}]},\n  {\"index\": 35, \"words\": [{\"surface\": \"ラララ\", \"baseForm\": \"ラララ\", \"koreanText\": \"라라라\"}, {\"surface\": \"ララ\", \"baseForm\": \"ララ\", \"koreanText\": \"라라\"}, {\"surface\": \"ララララララ\", \"baseForm\": \"ララララララ\", \"koreanText\": \"라라라라라라\"}]},\n  {\"index\": 36, \"words\": [{\"surface\": \"この\", \"baseForm\": \"この\", \"koreanText\": \"이\"}, {\"surface\": \"星\", \"baseForm\": \"星\", \"koreanText\": \"별\"}, {\"surface\": \"は\", \"baseForm\": \"は\", \"koreanText\": \"~은/는\"}, {\"surface\": \"ほら\", \"baseForm\": \"ほら\", \"koreanText\": \"봐\"}, {\"surface\": \"なんて\", \"baseForm\": \"なんて\", \"koreanText\": \"정말, 얼마나\"}, {\"surface\": \"愛おしい\", \"baseForm\": \"愛おしい\", \"koreanText\": \"사랑스럽다\"}]},\n  {\"index\": 37, \"words\": [{\"surface\": \"お前\", \"baseForm\": \"お前\", \"koreanText\": \"너\"}, {\"surface\": \"が\", \"baseForm\": \"が\", \"koreanText\": \"~이/가\"}, {\"surface\": \"いなけりゃ\", \"baseForm\": \"いなければ\", \"koreanText\": \"없으면\"}, {\"surface\": \"なぁ\", \"baseForm\": \"なぁ\", \"koreanText\": \"~구나\"}]},\n  {\"index\": 38, \"words\": [{\"surface\": \"足音\", \"baseForm\": \"足音\", \"koreanText\": \"발소리\"}, {\"surface\": \"は\", \"baseForm\": \"は\", \"koreanText\": \"~은/는\"}, {\"surface\": \"鳴らさない\", \"baseForm\": \"鳴らす\", \"koreanText\": \"울리지 않다\"}, {\"surface\": \"デ\", \"baseForm\": \"で\", \"koreanText\": \"~야\"}]},\n  {\"index\": 39, \"words\": [{\"surface\": \"貴方\", \"baseForm\": \"貴方\", \"koreanText\": \"당신\"}, {\"surface\": \"が\", \"baseForm\": \"が\", \"koreanText\": \"~이/가\"}, {\"surface\": \"いなきゃ\", \"baseForm\": \"いなければ\", \"koreanText\": \"없으면\"}, {\"surface\": \"僕\", \"baseForm\": \"僕\", \"koreanText\": \"나\"}, {\"surface\": \"は\", \"baseForm\": \"は\", \"koreanText\": \"~은/는\"}, {\"surface\": \"勇ましい\", \"baseForm\": \"勇ましい\", \"koreanText\": \"용감하다\"}]},\n  {\"index\": 40, \"words\": [{\"surface\": \"足跡\", \"baseForm\": \"足跡\", \"koreanText\": \"발자국\"}, {\"surface\": \"だけ\", \"baseForm\": \"だけ\", \"koreanText\": \"~뿐\"}, {\"surface\": \"残して\", \"baseForm\": \"残す\", \"koreanText\": \"남기다\"}, {\"surface\": \"く\", \"baseForm\": \"いく\", \"koreanText\": \"~해 가다\"}, {\"surface\": \"ネ\", \"baseForm\": \"ね\", \"koreanText\": \"~지\"}]},\n  {\"index\": 41, \"words\": [{\"surface\": \"貴方\", \"baseForm\": \"貴方\", \"koreanText\": \"당신\"}, {\"surface\": \"には\", \"baseForm\": \"には\", \"koreanText\": \"~에게는\"}, {\"surface\": \"言えない\", \"baseForm\": \"言える\", \"koreanText\": \"말할 수 없다\"}, {\"surface\": \"が\", \"baseForm\": \"が\", \"koreanText\": \"하지만\"}, {\"surface\": \"大嫌い\", \"baseForm\": \"大嫌い\", \"koreanText\": \"정말 싫다\"}, {\"surface\": \"だ\", \"baseForm\": \"だ\", \"koreanText\": \"~이다\"}, {\"surface\": \"ヤハハ\", \"baseForm\": \"ヤハハ\", \"koreanText\": \"야하하\"}]},\n  {\"index\": 42, \"words\": [{\"surface\": \"鮮やかな\", \"baseForm\": \"鮮やか\", \"koreanText\": \"선명하다\"}, {\"surface\": \"色\", \"baseForm\": \"色\", \"koreanText\": \"색\"}, {\"surface\": \"の\", \"baseForm\": \"の\", \"koreanText\": \"~의\"}, {\"surface\": \"街\", \"baseForm\": \"街\", \"koreanText\": \"거리\"}, {\"surface\": \"で\", \"baseForm\": \"で\", \"koreanText\": \"~에서\"}]},\n  {\"index\": 43, \"words\": [{\"surface\": \"貴方\", \"baseForm\": \"貴方\", \"koreanText\": \"당신\"}, {\"surface\": \"に\", \"baseForm\": \"に\", \"koreanText\": \"~에게\"}, {\"surface\": \"怯える\", \"baseForm\": \"怯える\", \"koreanText\": \"겁먹다\"}, {\"surface\": \"僕ら\", \"baseForm\": \"僕ら\", \"koreanText\": \"우리들\"}, {\"surface\": \"だまって\", \"baseForm\": \"黙る\", \"koreanText\": \"입 다물다\"}, {\"surface\": \"ちゃん\", \"baseForm\": \"ちゃん\", \"koreanText\": \"~짱\"}]},\n  {\"index\": 44, \"words\": [{\"surface\": \"足跡\", \"baseForm\": \"足跡\", \"koreanText\": \"발자국\"}, {\"surface\": \"だけ\", \"baseForm\": \"だけ\", \"koreanText\": \"~뿐\"}, {\"surface\": \"残して\", \"baseForm\": \"残す\", \"koreanText\": \"남기다\"}, {\"surface\": \"く\", \"baseForm\": \"いく\", \"koreanText\": \"~해 가다\"}, {\"surface\": \"ネ\", \"baseForm\": \"ね\", \"koreanText\": \"~지\"}]},\n  {\"index\": 45, \"words\": [{\"surface\": \"こんな\", \"baseForm\": \"こんな\", \"koreanText\": \"이런\"}, {\"surface\": \"夜\", \"baseForm\": \"夜\", \"koreanText\": \"밤\"}, {\"surface\": \"でも\", \"baseForm\": \"でも\", \"koreanText\": \"~라도\"}, {\"surface\": \"愛\", \"baseForm\": \"愛\", \"koreanText\": \"사랑\"}, {\"surface\": \"は\", \"baseForm\": \"は\", \"koreanText\": \"~은/는\"}, {\"surface\": \"狂わしい\", \"baseForm\": \"狂わしい\", \"koreanText\": \"미칠 듯하다\"}, {\"surface\": \"ヤハハ\", \"baseForm\": \"ヤハハ\", \"koreanText\": \"야하하\"}]},\n  {\"index\": 46, \"words\": [{\"surface\": \"貴方\", \"baseForm\": \"貴方\", \"koreanText\": \"당신\"}, {\"surface\": \"に\", \"baseForm\": \"に\", \"koreanText\": \"~에게\"}, {\"surface\": \"怯える\", \"baseForm\": \"怯える\", \"koreanText\": \"겁먹다\"}, {\"surface\": \"僕\", \"baseForm\": \"僕\", \"koreanText\": \"나\"}, {\"surface\": \"は\", \"baseForm\": \"は\", \"koreanText\": \"~은/는\"}, {\"surface\": \"だまって\", \"baseForm\": \"黙る\", \"koreanText\": \"입 다물다\"}, {\"surface\": \"ちゃん\", \"baseForm\": \"ちゃん\", \"koreanText\": \"~짱\"}]}\n]",
+      "geminiError": null,
+      "graderResult": {
+        "score": 10,
+        "deductions": [],
+        "comment": "결과로 반환된 단어의 일본어 철자가 모두 올바르게 일본어로 표기되었습니다. 테스트 케이스의 기준을 완벽하게 충족합니다."
+      },
+      "graderError": null,
+      "executionLatencyMs": 14161,
+      "gradingLatencyMs": 15696,
+      "executionCost": 0.008510499999999999,
+      "gradingCost": 0.009916250000000001
+    },
+    {
+      "testCaseName": "TODO: 형태소 분석된 가사 데이터를 붙여넣으세요",
+      "criteria": "TODO: 채점 기준을 작성하세요",
+      "input": [
+        {
+          "text": "夜に駆ける",
+          "index": 0,
+          "startTimeMs": null,
+          "words": [
+            {
+              "surface": "夜",
+              "baseForm": "夜",
+              "pos": "NOUN"
+            },
+            {
+              "surface": "に",
+              "baseForm": "に",
+              "pos": "PARTICLE"
+            },
+            {
+              "surface": "駆ける",
+              "baseForm": "駆ける",
+              "pos": "VERB"
+            }
+          ]
+        }
+      ],
+      "geminiOutput": "[{\"index\": 0, \"words\": [{\"surface\": \"夜\", \"baseForm\": \"夜\", \"koreanText\": \"밤\"}, {\"surface\": \"に\", \"baseForm\": \"に\", \"koreanText\": \"~에\"}, {\"surface\": \"駆ける\", \"baseForm\": \"駆ける\", \"koreanText\": \"달리다\"}]}]",
+      "geminiError": null,
+      "graderResult": {
+        "score": 10,
+        "deductions": [],
+        "comment": "입력된 일본어 단어 '夜', 'に', '駆ける'에 대해 각각 '밤', '~에', '달리다'로 정확하게 번역했습니다. 번역의 정확성과 형식 모두 기준을 완벽하게 충족합니다."
+      },
+      "graderError": null,
+      "executionLatencyMs": 2403,
+      "gradingLatencyMs": 9475,
+      "executionCost": 0.00025825,
+      "gradingCost": 0.00137125
+    }
+  ]
+}

@@ -12,6 +12,36 @@ export default defineConfig({
     {
       name: 'prompt-eval-fs',
       configureServer(server) {
+        // Generic file write (prompt, guidelines, input)
+        server.middlewares.use('/api/prompt-eval/save-file', (req, res) => {
+          if (req.method !== 'POST') {
+            res.statusCode = 405
+            res.end()
+            return
+          }
+          let body = ''
+          req.on('data', (chunk: string) => (body += chunk))
+          req.on('end', () => {
+            try {
+              const { filePath, content } = JSON.parse(body)
+              if (filePath.includes('..')) {
+                res.statusCode = 400
+                res.end(JSON.stringify({ error: 'Invalid path' }))
+                return
+              }
+              const fullPath = path.resolve(server.config.root, EVAL_BASE, filePath)
+              fs.mkdirSync(path.dirname(fullPath), { recursive: true })
+              fs.writeFileSync(fullPath, content)
+              res.setHeader('Content-Type', 'application/json')
+              res.end(JSON.stringify({ ok: true, path: filePath }))
+            } catch (e) {
+              res.statusCode = 500
+              res.end(JSON.stringify({ error: String(e) }))
+            }
+          })
+        })
+
+        // Save evaluation result
         server.middlewares.use('/api/prompt-eval/save-result', (req, res) => {
           if (req.method !== 'POST') {
             res.statusCode = 405
