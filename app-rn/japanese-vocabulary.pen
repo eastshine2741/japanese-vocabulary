@@ -22233,7 +22233,7 @@
                   "type": "frame",
                   "id": "16ns4",
                   "name": "days",
-                  "width": "fill_container",
+                  "width": 330,
                   "gap": 6,
                   "children": [
                     {
@@ -22342,7 +22342,7 @@
                           "type": "text",
                           "id": "VzyJz",
                           "name": "pdl4c",
-                          "fill": "$accent-primary",
+                          "fill": "$foreground.muted",
                           "content": "프리즈",
                           "fontFamily": "Inter",
                           "fontSize": 10,

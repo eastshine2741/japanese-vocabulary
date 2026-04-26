@@ -245,7 +245,7 @@ const DayLabel = React.memo(function DayLabel({
   const valueColor = reachedGoal
     ? Colors.accentSecondary
     : day.freezeUsed && day.reviewCount === 0
-    ? Colors.primary
+    ? Colors.textMuted
     : day.isToday
     ? Colors.primary
     : day.reviewCount > 0
