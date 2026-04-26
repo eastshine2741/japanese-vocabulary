@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
   },
   cellSelected: {
     borderWidth: 1.5,
-    borderColor: Colors.textPrimary,
+    borderColor: '#16456A',
   },
 
   footer: {

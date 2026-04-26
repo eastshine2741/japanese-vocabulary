@@ -160,7 +160,6 @@ const Achievement = React.memo(function Achievement({
 const CHART_HEIGHT = 110;
 const GOAL_LINE_OFFSET_RATIO = 0.6; // goal line ~y=44 of 110-height area (matches Pencil)
 const FUTURE_BAR_HEIGHT = 6;
-const FREEZE_BAR_HEIGHT = 22;
 const MIN_BAR_HEIGHT = 4;
 
 function WeeklyChart({ days, dailyGoal }: { days: WeeklyChartDay[]; dailyGoal: number }) {
@@ -207,9 +206,8 @@ const Bar = React.memo(function Bar({
   if (day.freezeUsed && day.reviewCount === 0) {
     return (
       <View style={styles.barCol}>
-        <View style={styles.barFreeze}>
-          <Ionicons name="snow" size={12} color={Colors.primary} />
-        </View>
+        <Ionicons name="snow" size={14} color={Colors.primary} />
+        <View style={styles.barFreezeStub} />
       </View>
     );
   }
@@ -351,20 +349,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'flex-end',
     height: CHART_HEIGHT,
+    gap: 2,
   },
   bar: {
     width: '70%',
     borderRadius: 4,
   },
-  barFreeze: {
+  barFreezeStub: {
     width: '70%',
-    height: FREEZE_BAR_HEIGHT,
-    backgroundColor: '#E8F0F9',
-    borderColor: Colors.primary,
-    borderWidth: 1,
-    borderRadius: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
+    height: FUTURE_BAR_HEIGHT,
+    backgroundColor: Colors.border,
+    borderTopLeftRadius: 4,
+    borderTopRightRadius: 4,
   },
   barFuture: {
     width: '70%',
