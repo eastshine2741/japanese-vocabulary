@@ -91,15 +91,20 @@ export default function ReviewScreen({ route, navigation }: Props) {
     const playerState = usePlayerStore.getState();
     if (playerState.status === 'success') {
       let initialSeekMs: number | undefined;
+      let initialLyricIndex: number | undefined;
       if (lyricLine && playerState.studyData) {
-        const match = playerState.studyData.studyUnits.find(
+        const idx = playerState.studyData.studyUnits.findIndex(
           u => u.originalText === lyricLine,
         );
-        if (match?.startTimeMs != null) {
-          initialSeekMs = match.startTimeMs;
+        if (idx >= 0) {
+          initialLyricIndex = idx;
+          const match = playerState.studyData.studyUnits[idx];
+          if (match.startTimeMs != null) {
+            initialSeekMs = match.startTimeMs;
+          }
         }
       }
-      navigation.navigate('Player', { origin: 'Review', initialSeekMs });
+      navigation.navigate('Player', { origin: 'Review', initialSeekMs, initialLyricIndex });
     }
   }, [loadById, navigation]);
 

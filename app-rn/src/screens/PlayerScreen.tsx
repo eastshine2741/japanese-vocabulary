@@ -57,6 +57,7 @@ const CONTROLS_HIDE_DELAY = 3000;
 
 export default function PlayerScreen({ navigation, route }: Props) {
   const initialSeekMs = route.params?.initialSeekMs;
+  const initialLyricIndex = route.params?.initialLyricIndex;
   const studyData = usePlayerStore(s => s.studyData);
   const resetPlayer = usePlayerStore(s => s.reset);
   const {
@@ -100,6 +101,7 @@ export default function PlayerScreen({ navigation, route }: Props) {
   const isPlayingRef = useRef(false);
   const isSyncedRef = useRef(false);
   const initialSeekDone = useRef(false);
+  const initialScrollDone = useRef(false);
   const followModeRef = useRef(true);
   const prevAutoScrollLineRef = useRef(-1);
 
@@ -482,6 +484,21 @@ export default function PlayerScreen({ navigation, route }: Props) {
       setCurrentMs(initialSeekMs);
     }
   }, [durationMs, initialSeekMs]);
+
+  useEffect(() => {
+    if (initialLyricIndex == null || initialScrollDone.current) return;
+    if (studyUnits.length <= initialLyricIndex) return;
+    initialScrollDone.current = true;
+    const timer = setTimeout(() => {
+      flatListRef.current?.scrollToIndex({
+        index: initialLyricIndex,
+        animated: false,
+        viewPosition: 0.3,
+      });
+      prevAutoScrollLineRef.current = initialLyricIndex;
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [initialLyricIndex, studyUnits]);
 
   // Auto-scroll: follow mode
   useEffect(() => {
