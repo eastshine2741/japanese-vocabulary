@@ -4,7 +4,6 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -31,7 +30,6 @@ export default function HomeTab() {
   const { status, songs, load } = useHomeStore(
     useShallow(s => ({ status: s.status, songs: s.songs, load: s.load })),
   );
-  const playerStatus = usePlayerStore(s => s.status);
   const loadById = usePlayerStore(s => s.loadById);
 
   useFocusEffect(
@@ -144,11 +142,6 @@ export default function HomeTab() {
             </View>
           </View>
         </ScrollView>
-        {playerStatus === 'loading' && (
-          <View style={styles.overlay}>
-            <ActivityIndicator size="large" color={Colors.primary} />
-          </View>
-        )}
 
         <ErrorDialog message={errorDialogMessage} onDismiss={() => setErrorDialogMessage(null)} />
       </View>
@@ -208,10 +201,4 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   skeletonCard: { width: '31%', aspectRatio: 1 },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
 });

@@ -55,7 +55,8 @@ const DISMISS_THRESHOLD = 250;
 const CONTROLS_FADE = 200;
 const CONTROLS_HIDE_DELAY = 3000;
 
-export default function PlayerScreen({ navigation }: Props) {
+export default function PlayerScreen({ navigation, route }: Props) {
+  const initialSeekMs = route.params?.initialSeekMs;
   const studyData = usePlayerStore(s => s.studyData);
   const resetPlayer = usePlayerStore(s => s.reset);
   const {
@@ -92,15 +93,15 @@ export default function PlayerScreen({ navigation }: Props) {
 
   // Auto-scroll to current line
   const flatListRef = useRef<FlatList>(null);
-  const itemHeights = useRef(new Map<number, number>());
-  const headerHeightRef = useRef(0);
-  const flatListHeight = useRef(0);
   const visibleIndicesRef = useRef(new Set<number>());
   const scrollBtnVisible = useSharedValue(0);
   const prevScrollBtnShown = useRef(false);
   const currentLineIndexRef = useRef(-1);
   const isPlayingRef = useRef(false);
   const isSyncedRef = useRef(false);
+  const initialSeekDone = useRef(false);
+  const followModeRef = useRef(true);
+  const prevAutoScrollLineRef = useRef(-1);
 
   const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 50 });
   const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: Array<{ index: number | null }> }) => {
@@ -108,6 +109,7 @@ export default function PlayerScreen({ navigation }: Props) {
       viewableItems.filter(v => v.index != null).map(v => v.index!),
     );
     const shouldShow = isSyncedRef.current && isPlayingRef.current
+      && !followModeRef.current
       && currentLineIndexRef.current >= 0
       && !visibleIndicesRef.current.has(currentLineIndexRef.current);
     if (shouldShow !== prevScrollBtnShown.current) {
@@ -119,13 +121,18 @@ export default function PlayerScreen({ navigation }: Props) {
   const scrollToCurrentLine = useCallback(() => {
     const idx = currentLineIndexRef.current;
     if (idx < 0) return;
-    let y = headerHeightRef.current;
-    for (let i = 0; i < idx; i++) {
-      y += itemHeights.current.get(i) ?? 0;
-    }
-    const offset = y - flatListHeight.current * 0.3;
-    flatListRef.current?.scrollToOffset({ offset: Math.max(0, offset), animated: true });
+    flatListRef.current?.scrollToIndex({ index: idx, animated: true, viewPosition: 0.3 });
   }, []);
+
+  const handleScrollBeginDrag = useCallback(() => {
+    followModeRef.current = false;
+  }, []);
+
+  const handleScrollBtnPress = useCallback(() => {
+    followModeRef.current = true;
+    prevAutoScrollLineRef.current = currentLineIndexRef.current;
+    scrollToCurrentLine();
+  }, [scrollToCurrentLine]);
 
   const scrollBtnAnimStyle = useAnimatedStyle(() => ({
     opacity: scrollBtnVisible.value,
@@ -458,6 +465,7 @@ export default function PlayerScreen({ navigation }: Props) {
   isSyncedRef.current = isSynced;
 
   const shouldShowScrollBtn = isSynced && isPlaying && currentLineIndex >= 0
+    && !followModeRef.current
     && !visibleIndicesRef.current.has(currentLineIndex);
 
   useEffect(() => {
@@ -466,6 +474,29 @@ export default function PlayerScreen({ navigation }: Props) {
       scrollBtnVisible.value = withTiming(shouldShowScrollBtn ? 1 : 0, { duration: 200 });
     }
   }, [shouldShowScrollBtn]);
+
+  useEffect(() => {
+    if (initialSeekMs != null && durationMs > 0 && !initialSeekDone.current) {
+      initialSeekDone.current = true;
+      youtubeRef.current?.seekTo(initialSeekMs / 1000);
+      setCurrentMs(initialSeekMs);
+    }
+  }, [durationMs, initialSeekMs]);
+
+  // Auto-scroll: follow mode
+  useEffect(() => {
+    if (followModeRef.current && isSynced && isPlaying && currentLineIndex >= 0
+        && currentLineIndex !== prevAutoScrollLineRef.current) {
+      prevAutoScrollLineRef.current = currentLineIndex;
+      scrollToCurrentLine();
+    }
+  }, [currentLineIndex, isSynced, isPlaying, scrollToCurrentLine]);
+
+  // Reset follow mode when song changes
+  useEffect(() => {
+    followModeRef.current = true;
+    prevAutoScrollLineRef.current = -1;
+  }, [studyData]);
 
   const scrollBtnDirection = useMemo(() => {
     if (!shouldShowScrollBtn || visibleIndicesRef.current.size === 0) return 'down';
@@ -481,14 +512,12 @@ export default function PlayerScreen({ navigation }: Props) {
   };
 
   const renderLyricLine = ({ item, index }: { item: StudyUnit; index: number }) => (
-    <View onLayout={(e) => { itemHeights.current.set(index, e.nativeEvent.layout.height); }}>
-      <LyricLine
-        studyUnit={item}
-        isActive={!isSynced || index === currentLineIndex}
-        onTokenPress={handleTokenPress}
-        onLineSeek={isSynced ? handleSeek : undefined}
-      />
-    </View>
+    <LyricLine
+      studyUnit={item}
+      isActive={!isSynced || index === currentLineIndex}
+      onTokenPress={handleTokenPress}
+      onLineSeek={isSynced ? handleSeek : undefined}
+    />
   );
 
   return (
@@ -550,11 +579,12 @@ export default function PlayerScreen({ navigation }: Props) {
               data={studyUnits}
               keyExtractor={(item) => String(item.index)}
               renderItem={renderLyricLine}
-              onLayout={(e) => { flatListHeight.current = e.nativeEvent.layout.height; }}
+              initialNumToRender={studyUnits.length}
+              onScrollBeginDrag={handleScrollBeginDrag}
               onViewableItemsChanged={onViewableItemsChanged}
               viewabilityConfig={viewabilityConfig.current}
               ListHeaderComponent={
-                <View style={styles.songInfo} onLayout={(e) => { headerHeightRef.current = e.nativeEvent.layout.height; }}>
+                <View style={styles.songInfo}>
                   <Text style={styles.songTitle}>{song.title}</Text>
                   <Text style={styles.songArtist}>{song.artist}</Text>
                   <View style={styles.songActionRow}>
@@ -632,7 +662,7 @@ export default function PlayerScreen({ navigation }: Props) {
               style={[styles.scrollToLineBtn, scrollBtnAnimStyle]}
               pointerEvents={shouldShowScrollBtn ? 'auto' : 'none'}
             >
-              <TouchableOpacity onPress={scrollToCurrentLine} activeOpacity={0.6} style={styles.scrollToLineBtnInner}>
+              <TouchableOpacity onPress={handleScrollBtnPress} activeOpacity={0.6} style={styles.scrollToLineBtnInner}>
                 <Feather name={scrollBtnDirection === 'up' ? 'chevron-up' : 'chevron-down'} size={20} color="#FFFFFF" />
               </TouchableOpacity>
             </Animated.View>

@@ -155,11 +155,10 @@ class GeminiClient(
             The goal is to help a Korean-speaking learner study Japanese vocabulary from lyrics.
 
             STRICT RULES:
-            1. Output one entry for EACH word in the input "words" array, in the same order.
+            1. Output one entry for EVERY word in the input "words" array, in the same order. NEVER skip any entry.
             2. You may correct a wrong baseForm (e.g. いう → いい when context means "good").
             3. Do NOT merge or split words. Keep the input segmentation exactly as given.
-            4. Skip entries where baseForm is a symbol (*, （, ）, ！, 　).
-            5. When a conjugated form has its own dictionary entry with a meaning distinct from the base word, use that form as baseForm so the learner can look it up directly (e.g. なら → なら "~라면", not だ "~이다").
+            4. When a conjugated form has its own dictionary entry with a meaning distinct from the base word, use that form as baseForm so the learner can look it up directly (e.g. なら → なら "~라면", not だ "~이다").
 
             For each word, return:
             - "surface": the exact characters as they appear in the original text

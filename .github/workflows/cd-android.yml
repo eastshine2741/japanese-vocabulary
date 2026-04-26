@@ -44,12 +44,7 @@ jobs:
         working-directory: app-rn
         run: |
           VERSION=${{ steps.version.outputs.VERSION }}
-          node -e "
-            const fs = require('fs');
-            const app = JSON.parse(fs.readFileSync('app.json', 'utf8'));
-            app.expo.version = '${VERSION}';
-            fs.writeFileSync('app.json', JSON.stringify(app, null, 2) + '\n');
-          "
+          sed -i "s/version: '.*'/version: '${VERSION}'/" app.config.js
 
       - name: Decode keystore
         run: |
