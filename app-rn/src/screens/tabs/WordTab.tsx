@@ -154,15 +154,13 @@ export default function WordTab() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.card },
+  container: { flex: 1, backgroundColor: Colors.background },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  list: { padding: 12, paddingBottom: 12 + Dimens.bottomBarHeight + 40, gap: 12 },
+  list: { paddingHorizontal: 24, paddingBottom: Dimens.bottomBarHeight + 40, gap: 28 },
   header: { marginBottom: 0 },
   /* Stats card */
   statsCard: {
-    backgroundColor: Colors.background,
-    borderRadius: 24,
-    padding: 16,
+    paddingVertical: 4,
     gap: 16,
   },
   hero: {
@@ -171,9 +169,9 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   heroLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: Colors.textSecondary,
+    fontSize: 17,
+    fontWeight: '700',
+    color: Colors.textPrimary,
   },
   heroValue: {
     fontSize: 40,
@@ -249,14 +247,12 @@ const styles = StyleSheet.create({
 
   /* Song decks card */
   songDecksCard: {
-    backgroundColor: Colors.background,
-    borderRadius: 24,
-    padding: 16,
+    gap: 8,
   },
   sectionLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: Colors.textSecondary,
+    fontSize: 17,
+    fontWeight: '700',
+    color: Colors.textPrimary,
     marginBottom: 4,
   },
 });
