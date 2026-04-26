@@ -3,6 +3,7 @@ export type EvalMode = "translation" | "wordMeaning";
 export interface TranslationInput {
   index: number;
   text: string;
+  startTimeMs?: number | null;
 }
 
 export interface WordMeaningWord {

@@ -47,58 +47,52 @@
   width: 240px;
 }
 
-/* Two-column layout */
-.pe-columns {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-
-.pe-section {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+/* Read-only panels */
+.pe-readonly-panel {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 16px;
+  overflow: hidden;
 }
 
-.pe-section label {
+.pe-readonly-header {
+  padding: 10px 16px;
   font-size: 12px;
   font-weight: 600;
   color: var(--text-dim);
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  cursor: pointer;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
 }
 
-.pe-section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+.pe-readonly-header:hover {
+  color: var(--text);
 }
 
-.pe-prompt-select {
+.pe-readonly-content {
+  padding: 12px 16px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 300px;
+  overflow-y: auto;
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* File badge (single file, no dropdown needed) */
+.pe-file-badge {
+  font-size: 12px;
+  font-family: var(--mono);
+  color: var(--text);
   background: var(--surface2);
   border: 1px solid var(--border);
   border-radius: 4px;
   padding: 4px 8px;
-  font-size: 12px;
-  font-family: var(--mono);
-  cursor: pointer;
-}
-
-.pe-section textarea {
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 10px 12px;
-  font-family: var(--mono);
-  font-size: 12px;
-  color: var(--text);
-  min-height: 200px;
-  resize: vertical;
 }
 
 /* Test data section */
@@ -118,29 +112,6 @@
   color: var(--text-dim);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-}
-
-.pe-file-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.pe-file-input {
-  display: none;
-}
-
-.pe-file-btn {
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 8px 16px;
-  font-size: 13px;
-  cursor: pointer;
-}
-
-.pe-file-btn:hover {
-  border-color: var(--accent);
 }
 
 .pe-file-info {
@@ -261,25 +232,6 @@
   font-size: 13px;
   color: var(--text-dim);
   font-family: var(--mono);
-}
-
-.pe-summary-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.pe-download-btn {
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 8px 16px;
-  font-size: 13px;
-  cursor: pointer;
-}
-
-.pe-download-btn:hover {
-  border-color: var(--accent);
-  color: var(--accent);
 }
 
 /* Test case result card */

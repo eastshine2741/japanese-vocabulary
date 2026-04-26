@@ -16,7 +16,7 @@ import {
 import { buildGraderPrompt } from "./graderPrompt";
 import "./PromptEvalExperiment.css";
 
-// --- Load prompts and test data from filesystem via import.meta.glob ---
+// --- Load all files from filesystem via import.meta.glob ---
 
 const translationPromptFiles = import.meta.glob<string>(
   "./translation/prompt/*.txt",
@@ -24,6 +24,14 @@ const translationPromptFiles = import.meta.glob<string>(
 );
 const wordMeaningPromptFiles = import.meta.glob<string>(
   "./word-meaning/prompt/*.txt",
+  { eager: true, query: "?raw", import: "default" }
+);
+const translationGuidelinesFiles = import.meta.glob<string>(
+  "./translation/guidelines/*.txt",
+  { eager: true, query: "?raw", import: "default" }
+);
+const wordMeaningGuidelinesFiles = import.meta.glob<string>(
+  "./word-meaning/guidelines/*.txt",
   { eager: true, query: "?raw", import: "default" }
 );
 const translationInputFiles = import.meta.glob<TestData>(
@@ -35,8 +43,18 @@ const wordMeaningInputFiles = import.meta.glob<TestData>(
   { eager: true, import: "default" }
 );
 
-function extractFilename(path: string): string {
-  return path.split("/").pop()?.replace(/\.\w+$/, "") ?? path;
+interface FileEntry {
+  name: string;
+  content: string;
+}
+
+function resolveEntries(
+  files: Record<string, string>
+): FileEntry[] {
+  return Object.entries(files).map(([path, content]) => ({
+    name: path.split("/").pop()?.replace(/\.\w+$/, "") ?? path,
+    content,
+  }));
 }
 
 function storageKey(mode: EvalMode, field: string): string {
@@ -93,37 +111,110 @@ async function saveResultToServer(
   return json.path;
 }
 
-export default function PromptEvalExperiment({ mode }: { mode: EvalMode }) {
-  // --- Resolve prompts and test data for current mode ---
-  const promptFiles =
-    mode === "translation" ? translationPromptFiles : wordMeaningPromptFiles;
-  const inputFiles =
-    mode === "translation" ? translationInputFiles : wordMeaningInputFiles;
+function FileSelector({
+  label,
+  entries,
+  selected,
+  onSelect,
+}: {
+  label: string;
+  entries: FileEntry[];
+  selected: string;
+  onSelect: (name: string) => void;
+}) {
+  if (entries.length === 0) return null;
+  return (
+    <div className="pe-config-field">
+      <label>{label}</label>
+      {entries.length === 1 ? (
+        <span className="pe-file-badge">{entries[0].name}</span>
+      ) : (
+        <select value={selected} onChange={(e) => onSelect(e.target.value)}>
+          {entries.map((e) => (
+            <option key={e.name} value={e.name}>
+              {e.name}
+            </option>
+          ))}
+        </select>
+      )}
+    </div>
+  );
+}
 
+function ReadonlyPanel({
+  label,
+  content,
+  defaultOpen,
+}: {
+  label: string;
+  content: string;
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen ?? false);
+  return (
+    <div className="pe-readonly-panel">
+      <div className="pe-readonly-header" onClick={() => setOpen(!open)}>
+        <span>
+          {open ? "\u25BC" : "\u25B6"} {label}
+        </span>
+      </div>
+      {open && <pre className="pe-readonly-content">{content}</pre>}
+    </div>
+  );
+}
+
+export default function PromptEvalExperiment({ mode }: { mode: EvalMode }) {
+  // --- Resolve file entries for current mode ---
   const promptEntries = useMemo(
     () =>
-      Object.entries(promptFiles).map(([path, content]) => ({
-        name: extractFilename(path),
-        content,
-      })),
-    [promptFiles]
+      resolveEntries(
+        mode === "translation"
+          ? translationPromptFiles
+          : wordMeaningPromptFiles
+      ),
+    [mode]
   );
-
-  const testCaseGroups = useMemo(
+  const guidelinesEntries = useMemo(
     () =>
-      Object.entries(inputFiles).map(([path, data]) => ({
-        name: extractFilename(path),
-        testCases: data.testCases,
-      })),
-    [inputFiles]
+      resolveEntries(
+        mode === "translation"
+          ? translationGuidelinesFiles
+          : wordMeaningGuidelinesFiles
+      ),
+    [mode]
   );
+  const testCaseGroups = useMemo(() => {
+    const files =
+      mode === "translation" ? translationInputFiles : wordMeaningInputFiles;
+    return Object.entries(files).map(([path, data]) => ({
+      name: path.split("/").pop()?.replace(/\.\w+$/, "") ?? path,
+      testCases: data.testCases,
+    }));
+  }, [mode]);
 
   const allTestCases = useMemo(
     () => testCaseGroups.flatMap((g) => g.testCases),
     [testCaseGroups]
   );
 
-  // --- State ---
+  // --- File selections ---
+  const [selectedPrompt, setSelectedPrompt] = useState(
+    promptEntries[0]?.name ?? ""
+  );
+  const [selectedGuidelines, setSelectedGuidelines] = useState(
+    guidelinesEntries[0]?.name ?? ""
+  );
+
+  const promptText =
+    promptEntries.find((p) => p.name === selectedPrompt)?.content ??
+    promptEntries[0]?.content ??
+    "";
+  const guidelinesText =
+    guidelinesEntries.find((g) => g.name === selectedGuidelines)?.content ??
+    guidelinesEntries[0]?.content ??
+    "";
+
+  // --- Config state (localStorage) ---
   const defaultModel =
     mode === "translation"
       ? "gemini-3.1-pro-preview"
@@ -143,27 +234,8 @@ export default function PromptEvalExperiment({ mode }: { mode: EvalMode }) {
     storageKey(mode, "temperature"),
     defaultTemp
   );
-  const [guidelines, setGuidelines] = useLocalState(
-    storageKey(mode, "guidelines"),
-    ""
-  );
 
-  const [selectedPrompt, setSelectedPrompt] = useState(
-    promptEntries[0]?.name ?? ""
-  );
-  const [promptText, setPromptText] = useState(
-    promptEntries[0]?.content ?? ""
-  );
-
-  const handlePromptSelect = useCallback(
-    (name: string) => {
-      setSelectedPrompt(name);
-      const entry = promptEntries.find((p) => p.name === name);
-      if (entry) setPromptText(entry.content);
-    },
-    [promptEntries]
-  );
-
+  // --- Run state ---
   const [results, setResults] = useState<TestCaseResult[]>([]);
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState("");
@@ -247,7 +319,7 @@ export default function PromptEvalExperiment({ mode }: { mode: EvalMode }) {
         }
 
         const graderInput = buildGraderPrompt(
-          guidelines,
+          guidelinesText,
           tc.criteria,
           JSON.stringify(tc.input, null, 2),
           execResult.text
@@ -326,7 +398,7 @@ export default function PromptEvalExperiment({ mode }: { mode: EvalMode }) {
       graderModel,
       temperature: temp,
       systemPrompt: promptText,
-      guidelines,
+      guidelines: guidelinesText,
       averageScore: avgScore,
       totalCost,
       results: newResults,
@@ -346,7 +418,7 @@ export default function PromptEvalExperiment({ mode }: { mode: EvalMode }) {
     executionModel,
     graderModel,
     promptText,
-    guidelines,
+    guidelinesText,
     responseSchema,
     mode,
   ]);
@@ -412,6 +484,18 @@ export default function PromptEvalExperiment({ mode }: { mode: EvalMode }) {
             ))}
           </select>
         </div>
+        <FileSelector
+          label="Prompt"
+          entries={promptEntries}
+          selected={selectedPrompt}
+          onSelect={setSelectedPrompt}
+        />
+        <FileSelector
+          label="Guidelines"
+          entries={guidelinesEntries}
+          selected={selectedGuidelines}
+          onSelect={setSelectedGuidelines}
+        />
         <div className="pe-config-field">
           <label>API Key</label>
           <input
@@ -424,41 +508,9 @@ export default function PromptEvalExperiment({ mode }: { mode: EvalMode }) {
         </div>
       </div>
 
-      {/* Two-column: Prompt + Guidelines */}
-      <div className="pe-columns">
-        <div className="pe-section">
-          <div className="pe-section-header">
-            <label>System Prompt</label>
-            {promptEntries.length > 1 && (
-              <select
-                className="pe-prompt-select"
-                value={selectedPrompt}
-                onChange={(e) => handlePromptSelect(e.target.value)}
-              >
-                {promptEntries.map((p) => (
-                  <option key={p.name} value={p.name}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-            )}
-          </div>
-          <textarea
-            value={promptText}
-            onChange={(e) => setPromptText(e.target.value)}
-            rows={14}
-          />
-        </div>
-        <div className="pe-section">
-          <label>Grading Guidelines</label>
-          <textarea
-            value={guidelines}
-            onChange={(e) => setGuidelines(e.target.value)}
-            placeholder="채점 기준을 입력하세요. 모든 테스트 케이스에 공통 적용됩니다."
-            rows={14}
-          />
-        </div>
-      </div>
+      {/* Read-only preview panels */}
+      <ReadonlyPanel label="System Prompt" content={promptText} />
+      <ReadonlyPanel label="Grading Guidelines" content={guidelinesText} />
 
       {/* Test data (loaded from files) */}
       <div className="pe-test-data">
