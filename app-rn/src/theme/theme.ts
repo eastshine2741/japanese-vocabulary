@@ -1,14 +1,15 @@
 export const Colors = {
-  primary: '#4F46E5',
+  primary: '#4A9FD8',
   background: '#FFFFFF',
   surface: '#FFFFFF',
-  card: '#F4F4F5',
-  elevated: '#EAEAEC',
-  textPrimary: '#18181B',
-  textSecondary: '#71717A',
-  textMuted: '#A1A1AA',
+  card: '#ECEEF2',
+  elevated: '#ECEEF2',
+  textPrimary: '#1A1A1A',
+  textSecondary: '#666666',
+  textMuted: '#888888',
   border: '#D4D4D8',
   overlay: '#00000044',
+  accentRed: '#EF4444',
 
   ratingAgain: '#EF4444',
   ratingAgainBg: '#FEF2F2',
@@ -40,8 +41,8 @@ export const Colors = {
   posAdverb: '#A855F7',
   posParticle: '#EC4899',
 
-  tabActive: '#4F46E5',
-  tabInactive: '#A1A1AA',
+  tabActive: '#4A9FD8',
+  tabInactive: '#888888',
 
   // Legacy aliases
   textTertiary: '#A1A1AA',

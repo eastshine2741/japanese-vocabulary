@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
   },
   dialog: {
     width: 320,
-    backgroundColor: Colors.card,
+    backgroundColor: Colors.background,
     borderRadius: 20,
     padding: 28,
     paddingBottom: 20,
@@ -167,7 +167,7 @@ const styles = StyleSheet.create({
   btn: {
     flex: 1,
     height: 46,
-    borderRadius: 23,
+    borderRadius: 9999,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -175,6 +175,6 @@ const styles = StyleSheet.create({
   btnPrimaryText: { fontSize: 15, fontWeight: '600', color: '#FFFFFF' },
   btnSecondary: { backgroundColor: Colors.elevated },
   btnSecondaryText: { fontSize: 15, fontWeight: '600', color: Colors.textPrimary },
-  btnDanger: { backgroundColor: '#EF4444' },
+  btnDanger: { backgroundColor: Colors.accentRed },
   btnDangerText: { fontSize: 15, fontWeight: '600', color: '#FFFFFF' },
 });

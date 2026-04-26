@@ -63,7 +63,7 @@ const styles = StyleSheet.create({
   },
   highlighted: {
     backgroundColor: Colors.primary + '10',
-    borderRadius: 12,
+    borderRadius: 16,
   },
   content: { flex: 1 },
   title: { fontSize: 15, fontWeight: '600', color: Colors.textPrimary },

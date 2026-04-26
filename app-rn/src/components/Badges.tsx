@@ -36,7 +36,7 @@ const styles = StyleSheet.create({
   badge: {
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 9999,
   },
   badgeText: {
     fontSize: 12,

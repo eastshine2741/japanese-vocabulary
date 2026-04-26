@@ -52,7 +52,7 @@ export default function PillTabBar({ state, descriptors, navigation }: any) {
                 <Feather
                   name={config.icon}
                   size={18}
-                  color={focused ? '#FFFFFF' : Colors.textMuted}
+                  color={focused ? Colors.background : Colors.textMuted}
                 />
                 {showBadge && (
                   <View style={styles.badge}>
@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
     fontFamily: 'System',
   },
   labelActive: {
-    color: '#FFFFFF',
+    color: Colors.background,
     fontWeight: '600',
   },
   labelInactive: {
@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -6,
     right: -10,
-    backgroundColor: '#EF4444',
+    backgroundColor: Colors.accentRed,
     borderRadius: 8,
     minWidth: 16,
     height: 16,
@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   badgeText: {
-    color: '#FFFFFF',
+    color: Colors.background,
     fontSize: 9,
     fontWeight: '700',
   },
