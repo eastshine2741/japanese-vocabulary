@@ -7,7 +7,6 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  Modal,
   Pressable,
   StyleSheet,
 } from 'react-native';
@@ -17,7 +16,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { useAuthStore } from '../stores/authStore';
 import { Colors, Dimens } from '../theme/theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import ServerURLEditor from '../components/ServerURLEditor';
+import ServerURLDialog from '../components/ServerURLDialog';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
@@ -58,13 +57,7 @@ export default function LoginScreen({ navigation }: Props) {
           <Text style={styles.subtitle}>Learn Japanese through songs</Text>
         </Pressable>
 
-        <Modal visible={showServerModal} transparent animationType="fade">
-          <Pressable style={styles.modalOverlay} onPress={() => setShowServerModal(false)}>
-            <Pressable style={styles.modalContent}>
-              <ServerURLEditor onApply={() => setShowServerModal(false)} />
-            </Pressable>
-          </Pressable>
-        </Modal>
+        <ServerURLDialog visible={showServerModal} onClose={() => setShowServerModal(false)} />
 
         <TextInput
           style={styles.input}
@@ -144,14 +137,4 @@ const styles = StyleSheet.create({
   buttonDisabled: { opacity: 0.6 },
   buttonText: { color: '#FFF', fontWeight: '600', fontSize: 16 },
   toggle: { color: Colors.primary, textAlign: 'center', marginTop: 20, fontSize: 14 },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: Colors.overlay,
-    justifyContent: 'center',
-    paddingHorizontal: 32,
-  },
-  modalContent: {
-    backgroundColor: Colors.background,
-    borderRadius: 24,
-  },
 });

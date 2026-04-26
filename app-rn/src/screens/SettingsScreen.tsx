@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -18,7 +18,7 @@ import { useSettingsStore } from '../stores/settingsStore';
 import { tokenStorage } from '../utils/tokenStorage';
 import { Colors, Dimens } from '../theme/theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import ServerURLEditor from '../components/ServerURLEditor';
+import ServerURLDialog from '../components/ServerURLDialog';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -41,6 +41,7 @@ export default function SettingsScreen() {
   );
 
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [showServerDialog, setShowServerDialog] = useState(false);
 
   useEffect(() => { loadSettings(); }, []);
   useEffect(() => () => {
@@ -241,14 +242,19 @@ export default function SettingsScreen() {
         )}
 
         <Text style={styles.sectionLabel}>서버 설정</Text>
-        <View style={styles.settingsCard}>
-          <ServerURLEditor />
+        <View style={styles.menuCard}>
+          <TouchableOpacity style={styles.menuItem} activeOpacity={0.7} onPress={() => setShowServerDialog(true)}>
+            <Ionicons name="server-outline" size={20} color={Colors.textPrimary} />
+            <Text style={styles.menuItemLabel}>Backend URL</Text>
+            <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
+          </TouchableOpacity>
         </View>
 
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.7}>
           <Text style={styles.logoutText}>로그아웃</Text>
         </TouchableOpacity>
       </ScrollView>
+      <ServerURLDialog visible={showServerDialog} onClose={() => setShowServerDialog(false)} />
     </SafeAreaView>
   );
 }

@@ -18,11 +18,12 @@ export interface DialogButton {
 interface Props {
   visible: boolean;
   title: string;
-  body: string;
+  body?: string;
+  children?: React.ReactNode;
   buttons: DialogButton[];
 }
 
-export default function AppDialog({ visible, title, body, buttons }: Props) {
+export default function AppDialog({ visible, title, body, children, buttons }: Props) {
   const overlayOpacity = useRef(new Animated.Value(0)).current;
   const dialogScale = useRef(new Animated.Value(0.85)).current;
   const dialogOpacity = useRef(new Animated.Value(0)).current;
@@ -117,7 +118,8 @@ export default function AppDialog({ visible, title, body, buttons }: Props) {
           ]}
         >
           <Text style={styles.title}>{title}</Text>
-          <Text style={styles.body}>{body}</Text>
+          {body !== undefined && <Text style={styles.body}>{body}</Text>}
+          {children}
           <View style={styles.btns}>
             {buttons.map((btn, i) => (
               <TouchableOpacity
