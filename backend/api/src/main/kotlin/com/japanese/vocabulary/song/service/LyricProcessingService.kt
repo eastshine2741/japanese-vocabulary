@@ -1,7 +1,8 @@
 package com.japanese.vocabulary.song.service
 
+import com.japanese.vocabulary.common.exception.BusinessException
+import com.japanese.vocabulary.common.exception.ErrorCode
 import com.japanese.vocabulary.song.client.LyricProvider
-import com.japanese.vocabulary.song.client.LyricsNotFoundException
 import com.japanese.vocabulary.song.client.SongQueryNormalizer
 import com.japanese.vocabulary.song.client.LyricsResult
 import com.japanese.vocabulary.song.client.youtube.YoutubeClient
@@ -121,7 +122,7 @@ class LyricProcessingService(
         }
 
         logger.warn("All lyric providers exhausted for: '{}' by '{}'", title, artist)
-        throw LyricsNotFoundException("Could not find lyrics for: $artist - $title")
+        throw BusinessException(ErrorCode.LYRICS_NOT_FOUND)
     }
 
     fun buildSongDTO(entity: SongEntity): SongDTO = buildResponseFromEntity(entity)

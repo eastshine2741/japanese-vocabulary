@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { useShallow } from 'zustand/react/shallow';
 import { useDeckDetailStore } from '../stores/deckDetailStore';
+import { usePlayerStore } from '../stores/playerStore';
 import ArtworkImage from '../components/ArtworkImage';
 import { Colors, Dimens } from '../theme/theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -23,12 +24,22 @@ export default function DeckDetailScreen({ route, navigation }: Props) {
   const { status, data, error, load } = useDeckDetailStore(
     useShallow(s => ({ status: s.status, data: s.data, error: s.error, load: s.load })),
   );
+  const loadById = usePlayerStore(s => s.loadById);
+  const playerStatus = usePlayerStore(s => s.status);
 
   useFocusEffect(
     useCallback(() => {
       load(songId);
     }, [songId]),
   );
+
+  const handleListenSong = useCallback(async () => {
+    if (songId == null) return;
+    await loadById(songId);
+    if (usePlayerStore.getState().status === 'success') {
+      navigation.navigate('Player', { origin: 'DeckDetail' });
+    }
+  }, [songId, loadById, navigation]);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -113,6 +124,23 @@ export default function DeckDetailScreen({ route, navigation }: Props) {
               <Ionicons name="list-outline" size={18} color={Colors.textSecondary} />
               <Text style={styles.outlineButtonText}>단어 보기</Text>
             </TouchableOpacity>
+
+            {/* Listen song button — only for per-song decks */}
+            {songId !== null && (
+              <TouchableOpacity
+                style={styles.outlineButton}
+                onPress={handleListenSong}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="play-circle-outline" size={18} color={Colors.textSecondary} />
+                <Text style={styles.outlineButtonText}>노래 듣기</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+        {playerStatus === 'loading' && (
+          <View style={styles.overlay}>
+            <ActivityIndicator size="large" color={Colors.primary} />
           </View>
         )}
       </View>
@@ -248,5 +276,11 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     fontWeight: '600',
     fontSize: 14,
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

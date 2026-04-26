@@ -16,6 +16,7 @@ import { Feather } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useShallow } from 'zustand/react/shallow';
 import { useReviewStore } from '../stores/reviewStore';
+import { usePlayerStore } from '../stores/playerStore';
 import FlashcardBackDetails from '../components/FlashcardView';
 import RatingButtonRow from '../components/RatingButtonRow';
 import { Colors } from '../theme/theme';
@@ -82,6 +83,25 @@ export default function ReviewScreen({ route, navigation }: Props) {
   const openDictionary = (word: string) => {
     Linking.openURL(`https://ja.dict.naver.com/#/search?query=${encodeURIComponent(word)}`);
   };
+
+  const loadById = usePlayerStore(s => s.loadById);
+
+  const handleSongPress = useCallback(async (songId: number, lyricLine: string | null) => {
+    await loadById(songId);
+    const playerState = usePlayerStore.getState();
+    if (playerState.status === 'success') {
+      let initialSeekMs: number | undefined;
+      if (lyricLine && playerState.studyData) {
+        const match = playerState.studyData.studyUnits.find(
+          u => u.originalText === lyricLine,
+        );
+        if (match?.startTimeMs != null) {
+          initialSeekMs = match.startTimeMs;
+        }
+      }
+      navigation.navigate('Player', { origin: 'Review', initialSeekMs });
+    }
+  }, [loadById, navigation]);
 
   const handleEditWord = () => {
     const card = cards[currentIndex];
@@ -185,7 +205,7 @@ export default function ReviewScreen({ route, navigation }: Props) {
                     contentContainerStyle={styles.backDetails}
                     showsVerticalScrollIndicator={false}
                   >
-                    <FlashcardBackDetails card={card} />
+                    <FlashcardBackDetails card={card} onSongPress={handleSongPress} />
                   </ScrollView>
                 )}
               </View>

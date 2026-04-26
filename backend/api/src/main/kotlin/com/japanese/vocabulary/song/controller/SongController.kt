@@ -1,13 +1,10 @@
 package com.japanese.vocabulary.song.controller
 
-import com.japanese.vocabulary.common.dto.ErrorResponse
-import com.japanese.vocabulary.song.client.LyricsNotFoundException
 import com.japanese.vocabulary.song.client.itunes.ItunesClient
 import com.japanese.vocabulary.song.dto.*
 import com.japanese.vocabulary.song.repository.SongRepository
 import com.japanese.vocabulary.song.service.LyricProcessingService
 import com.japanese.vocabulary.song.service.RecentSongService
-import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.bind.annotation.*
@@ -80,16 +77,4 @@ class SongController(
         return ResponseEntity.ok(result)
     }
 
-
-    @ExceptionHandler(LyricsNotFoundException::class)
-    fun handleLyricsNotFound(e: LyricsNotFoundException): ResponseEntity<ErrorResponse> {
-        return ResponseEntity
-            .status(HttpStatus.NOT_FOUND)
-            .body(
-                ErrorResponse(
-                    error = "LYRICS_NOT_FOUND",
-                    message = e.message ?: "Could not find lyrics for this song"
-                )
-            )
-    }
 }

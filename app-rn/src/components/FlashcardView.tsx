@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, ScrollView, StyleSheet, NativeSyntheticEvent, NativeScrollEvent, useWindowDimensions } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, NativeSyntheticEvent, NativeScrollEvent, useWindowDimensions } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { FlashcardDTO } from '../types/flashcard';
 import { Colors } from '../theme/theme';
 import { convertReading } from '../utils/readingConverter';
@@ -9,13 +10,14 @@ import ArtworkImage from './ArtworkImage';
 
 interface Props {
   card: FlashcardDTO;
+  onSongPress?: (songId: number, lyricLine: string | null) => void;
 }
 
 /**
  * Renders the back-side details (reading, badges, meaning, examples).
  * Kanji is rendered separately by ReviewScreen to keep its position fixed.
  */
-export default function FlashcardBackDetails({ card }: Props) {
+export default function FlashcardBackDetails({ card, onSongPress }: Props) {
   const readingDisplay = useSettingsStore(s => s.readingDisplay);
   const { width: screenWidth } = useWindowDimensions();
   const pageWidth = screenWidth - 48;
@@ -63,10 +65,16 @@ export default function FlashcardBackDetails({ card }: Props) {
                   <Text style={styles.krText}>{ex.koreanLyricLine}</Text>
                 )}
                 {ex.songTitle && (
-                  <View style={styles.songRow}>
+                  <TouchableOpacity
+                    style={styles.songRow}
+                    onPress={onSongPress ? () => onSongPress(ex.songId, ex.lyricLine) : undefined}
+                    disabled={!onSongPress}
+                    activeOpacity={0.6}
+                  >
                     <ArtworkImage url={ex.artworkUrl} size={18} cornerRadius={4} />
                     <Text style={styles.songLabel}>{ex.songTitle}</Text>
-                  </View>
+                    {onSongPress && <Feather name="play-circle" size={14} color={Colors.textMuted} />}
+                  </TouchableOpacity>
                 )}
               </View>
             ))}

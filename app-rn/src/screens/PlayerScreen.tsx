@@ -4,7 +4,6 @@ import {
   Text,
   FlatList,
   TouchableOpacity,
-  Modal,
   StyleSheet,
   Platform,
   useWindowDimensions,
@@ -37,6 +36,7 @@ import WordEditSheet from '../components/WordEditSheet';
 import SongWordListSheet from '../components/SongWordListSheet';
 import LyricLine from '../components/LyricLine';
 import SeekBar from '../components/SeekBar';
+import AppDialog from '../components/AppDialog';
 import { Token, StudyUnit } from '../types/song';
 import { AddWordRequest } from '../types/word';
 import { Colors } from '../theme/theme';
@@ -55,7 +55,8 @@ const DISMISS_THRESHOLD = 250;
 const CONTROLS_FADE = 200;
 const CONTROLS_HIDE_DELAY = 3000;
 
-export default function PlayerScreen({ navigation }: Props) {
+export default function PlayerScreen({ navigation, route }: Props) {
+  const initialSeekMs = route.params?.initialSeekMs;
   const studyData = usePlayerStore(s => s.studyData);
   const resetPlayer = usePlayerStore(s => s.reset);
   const {
@@ -92,15 +93,15 @@ export default function PlayerScreen({ navigation }: Props) {
 
   // Auto-scroll to current line
   const flatListRef = useRef<FlatList>(null);
-  const itemHeights = useRef(new Map<number, number>());
-  const headerHeightRef = useRef(0);
-  const flatListHeight = useRef(0);
   const visibleIndicesRef = useRef(new Set<number>());
   const scrollBtnVisible = useSharedValue(0);
   const prevScrollBtnShown = useRef(false);
   const currentLineIndexRef = useRef(-1);
   const isPlayingRef = useRef(false);
   const isSyncedRef = useRef(false);
+  const initialSeekDone = useRef(false);
+  const followModeRef = useRef(true);
+  const prevAutoScrollLineRef = useRef(-1);
 
   const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 50 });
   const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: Array<{ index: number | null }> }) => {
@@ -108,6 +109,7 @@ export default function PlayerScreen({ navigation }: Props) {
       viewableItems.filter(v => v.index != null).map(v => v.index!),
     );
     const shouldShow = isSyncedRef.current && isPlayingRef.current
+      && !followModeRef.current
       && currentLineIndexRef.current >= 0
       && !visibleIndicesRef.current.has(currentLineIndexRef.current);
     if (shouldShow !== prevScrollBtnShown.current) {
@@ -119,13 +121,18 @@ export default function PlayerScreen({ navigation }: Props) {
   const scrollToCurrentLine = useCallback(() => {
     const idx = currentLineIndexRef.current;
     if (idx < 0) return;
-    let y = headerHeightRef.current;
-    for (let i = 0; i < idx; i++) {
-      y += itemHeights.current.get(i) ?? 0;
-    }
-    const offset = y - flatListHeight.current * 0.3;
-    flatListRef.current?.scrollToOffset({ offset: Math.max(0, offset), animated: true });
+    flatListRef.current?.scrollToIndex({ index: idx, animated: true, viewPosition: 0.3 });
   }, []);
+
+  const handleScrollBeginDrag = useCallback(() => {
+    followModeRef.current = false;
+  }, []);
+
+  const handleScrollBtnPress = useCallback(() => {
+    followModeRef.current = true;
+    prevAutoScrollLineRef.current = currentLineIndexRef.current;
+    scrollToCurrentLine();
+  }, [scrollToCurrentLine]);
 
   const scrollBtnAnimStyle = useAnimatedStyle(() => ({
     opacity: scrollBtnVisible.value,
@@ -458,6 +465,7 @@ export default function PlayerScreen({ navigation }: Props) {
   isSyncedRef.current = isSynced;
 
   const shouldShowScrollBtn = isSynced && isPlaying && currentLineIndex >= 0
+    && !followModeRef.current
     && !visibleIndicesRef.current.has(currentLineIndex);
 
   useEffect(() => {
@@ -466,6 +474,29 @@ export default function PlayerScreen({ navigation }: Props) {
       scrollBtnVisible.value = withTiming(shouldShowScrollBtn ? 1 : 0, { duration: 200 });
     }
   }, [shouldShowScrollBtn]);
+
+  useEffect(() => {
+    if (initialSeekMs != null && durationMs > 0 && !initialSeekDone.current) {
+      initialSeekDone.current = true;
+      youtubeRef.current?.seekTo(initialSeekMs / 1000);
+      setCurrentMs(initialSeekMs);
+    }
+  }, [durationMs, initialSeekMs]);
+
+  // Auto-scroll: follow mode
+  useEffect(() => {
+    if (followModeRef.current && isSynced && isPlaying && currentLineIndex >= 0
+        && currentLineIndex !== prevAutoScrollLineRef.current) {
+      prevAutoScrollLineRef.current = currentLineIndex;
+      scrollToCurrentLine();
+    }
+  }, [currentLineIndex, isSynced, isPlaying, scrollToCurrentLine]);
+
+  // Reset follow mode when song changes
+  useEffect(() => {
+    followModeRef.current = true;
+    prevAutoScrollLineRef.current = -1;
+  }, [studyData]);
 
   const scrollBtnDirection = useMemo(() => {
     if (!shouldShowScrollBtn || visibleIndicesRef.current.size === 0) return 'down';
@@ -481,14 +512,12 @@ export default function PlayerScreen({ navigation }: Props) {
   };
 
   const renderLyricLine = ({ item, index }: { item: StudyUnit; index: number }) => (
-    <View onLayout={(e) => { itemHeights.current.set(index, e.nativeEvent.layout.height); }}>
-      <LyricLine
-        studyUnit={item}
-        isActive={!isSynced || index === currentLineIndex}
-        onTokenPress={handleTokenPress}
-        onLineSeek={isSynced ? handleSeek : undefined}
-      />
-    </View>
+    <LyricLine
+      studyUnit={item}
+      isActive={!isSynced || index === currentLineIndex}
+      onTokenPress={handleTokenPress}
+      onLineSeek={isSynced ? handleSeek : undefined}
+    />
   );
 
   return (
@@ -550,23 +579,34 @@ export default function PlayerScreen({ navigation }: Props) {
               data={studyUnits}
               keyExtractor={(item) => String(item.index)}
               renderItem={renderLyricLine}
-              onLayout={(e) => { flatListHeight.current = e.nativeEvent.layout.height; }}
+              initialNumToRender={studyUnits.length}
+              onScrollBeginDrag={handleScrollBeginDrag}
               onViewableItemsChanged={onViewableItemsChanged}
               viewabilityConfig={viewabilityConfig.current}
               ListHeaderComponent={
-                <View style={styles.songInfo} onLayout={(e) => { headerHeightRef.current = e.nativeEvent.layout.height; }}>
+                <View style={styles.songInfo}>
                   <Text style={styles.songTitle}>{song.title}</Text>
                   <Text style={styles.songArtist}>{song.artist}</Text>
-                  {hasAnalyzedTokens && (
+                  <View style={styles.songActionRow}>
+                    {hasAnalyzedTokens && (
+                      <TouchableOpacity
+                        style={styles.wordListBtn}
+                        onPress={handleOpenWordList}
+                        activeOpacity={0.7}
+                      >
+                        <Feather name="list" size={16} color={Colors.primary} />
+                        <Text style={styles.wordListBtnText}>전체 단어 담기</Text>
+                      </TouchableOpacity>
+                    )}
                     <TouchableOpacity
-                      style={styles.wordListBtn}
-                      onPress={handleOpenWordList}
+                      style={styles.deckBtn}
+                      onPress={() => navigation.navigate('DeckDetail', { songId: song.id })}
                       activeOpacity={0.7}
                     >
-                      <Feather name="list" size={16} color={Colors.primary} />
-                      <Text style={styles.wordListBtnText}>전체 단어 담기</Text>
+                      <Feather name="layers" size={16} color={Colors.textSecondary} />
+                      <Text style={styles.deckBtnText}>덱 보기</Text>
                     </TouchableOpacity>
-                  )}
+                  </View>
                   {isTranslationPending && (
                     <View style={styles.notice}>
                       <View style={[styles.noticeIconWrap, { backgroundColor: Colors.elevated }]}>
@@ -622,7 +662,7 @@ export default function PlayerScreen({ navigation }: Props) {
               style={[styles.scrollToLineBtn, scrollBtnAnimStyle]}
               pointerEvents={shouldShowScrollBtn ? 'auto' : 'none'}
             >
-              <TouchableOpacity onPress={scrollToCurrentLine} activeOpacity={0.6} style={styles.scrollToLineBtnInner}>
+              <TouchableOpacity onPress={handleScrollBtnPress} activeOpacity={0.6} style={styles.scrollToLineBtnInner}>
                 <Feather name={scrollBtnDirection === 'up' ? 'chevron-up' : 'chevron-down'} size={20} color="#FFFFFF" />
               </TouchableOpacity>
             </Animated.View>
@@ -666,33 +706,15 @@ export default function PlayerScreen({ navigation }: Props) {
         </BottomSheetView>
       </BottomSheet>
 
-      {/* Delete word confirmation dialog */}
-      <Modal visible={showDeleteDialog} transparent animationType="fade" onRequestClose={() => setShowDeleteDialog(false)}>
-        <View style={styles.dialogOverlay}>
-          <View style={styles.dialog}>
-            <Text style={styles.dialogTitle}>단어장에서 뺄까요?</Text>
-            <Text style={styles.dialogBody}>
-              이 단어의 뜻, 예문, 플래시카드가{'\n'}모두 삭제돼요.
-            </Text>
-            <View style={styles.dialogBtns}>
-              <TouchableOpacity
-                style={[styles.dialogBtn, styles.dialogBtnSecondary]}
-                onPress={() => setShowDeleteDialog(false)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.dialogBtnSecondaryText}>취소</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.dialogBtn, styles.dialogBtnDanger]}
-                onPress={confirmDeleteWord}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.dialogBtnDangerText}>빼기</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      <AppDialog
+        visible={showDeleteDialog}
+        title="단어장에서 뺄까요?"
+        body={'이 단어의 뜻, 예문, 플래시카드가\n모두 삭제돼요.'}
+        buttons={[
+          { label: '취소', variant: 'secondary', onPress: () => setShowDeleteDialog(false) },
+          { label: '빼기', variant: 'danger', onPress: confirmDeleteWord },
+        ]}
+      />
     </SafeAreaView>
 
       {/* Song word list sheet */}
@@ -852,21 +874,39 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: Colors.textSecondary,
   },
+  songActionRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 8,
+  },
   wordListBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'flex-start',
     gap: 6,
     paddingVertical: 8,
     paddingHorizontal: 14,
     borderRadius: 20,
     backgroundColor: Colors.primary + '12',
-    marginTop: 8,
   },
   wordListBtnText: {
     fontSize: 13,
     fontWeight: '600',
     color: Colors.primary,
+  },
+  deckBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    backgroundColor: Colors.elevated,
+  },
+  deckBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.textSecondary,
   },
 
   // Notices
@@ -974,43 +1014,4 @@ const styles = StyleSheet.create({
     backgroundColor: '#A1A1AA',
   },
 
-  // Delete dialog
-  dialogOverlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.4)',
-  },
-  dialog: {
-    width: 320,
-    backgroundColor: Colors.card,
-    borderRadius: 20,
-    padding: 28,
-    paddingBottom: 20,
-    gap: 16,
-  },
-  dialogTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-    textAlign: 'center',
-  },
-  dialogBody: {
-    fontSize: 14,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 21,
-  },
-  dialogBtns: { flexDirection: 'row', gap: 10, marginTop: 8 },
-  dialogBtn: {
-    flex: 1,
-    height: 46,
-    borderRadius: 23,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  dialogBtnSecondary: { backgroundColor: Colors.elevated },
-  dialogBtnSecondaryText: { fontSize: 15, fontWeight: '600', color: Colors.textPrimary },
-  dialogBtnDanger: { backgroundColor: '#EF4444' },
-  dialogBtnDangerText: { fontSize: 15, fontWeight: '600', color: '#FFFFFF' },
 });

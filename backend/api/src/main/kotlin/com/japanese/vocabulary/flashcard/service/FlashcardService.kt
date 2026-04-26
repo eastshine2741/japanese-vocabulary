@@ -1,5 +1,7 @@
 package com.japanese.vocabulary.flashcard.service
 
+import com.japanese.vocabulary.common.exception.BusinessException
+import com.japanese.vocabulary.common.exception.ErrorCode
 import com.japanese.vocabulary.flashcard.dto.*
 import com.japanese.vocabulary.flashcard.entity.FlashcardEntity
 import com.japanese.vocabulary.flashcard.event.FlashcardCreatedEvent
@@ -14,10 +16,8 @@ import io.github.openspacedrepetition.Card
 import io.github.openspacedrepetition.Rating
 import io.github.openspacedrepetition.Scheduler
 import org.springframework.context.ApplicationEventPublisher
-import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import org.springframework.web.server.ResponseStatusException
 import java.time.Duration
 import java.time.Instant
 
@@ -134,10 +134,10 @@ class FlashcardService(
     @Transactional
     fun reviewCard(userId: Long, flashcardId: Long, rating: Int): ReviewResponse {
         val entity = flashcardRepository.findById(flashcardId)
-            .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Flashcard not found") }
+            .orElseThrow { BusinessException(ErrorCode.FLASHCARD_NOT_FOUND) }
 
         if (entity.userId != userId) {
-            throw ResponseStatusException(HttpStatus.FORBIDDEN, "Not your flashcard")
+            throw BusinessException(ErrorCode.FORBIDDEN)
         }
 
         val fsrsRating = when (rating) {
@@ -145,7 +145,7 @@ class FlashcardService(
             2 -> Rating.HARD
             3 -> Rating.GOOD
             4 -> Rating.EASY
-            else -> throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Rating must be 1-4")
+            else -> throw BusinessException(ErrorCode.INVALID_RATING)
         }
 
         val desiredRetention = userSettingsRepository.findByUserId(userId)?.settings?.requestRetention ?: 0.9

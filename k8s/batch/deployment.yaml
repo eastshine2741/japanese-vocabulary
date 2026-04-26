@@ -18,9 +18,6 @@ spec:
           imagePullPolicy: Never
           ports:
             - containerPort: 8081
-          env:
-            - name: JAVA_OPTS
-              value: "-Xmx256m"
           envFrom:
             - configMapRef:
                 name: batch-config

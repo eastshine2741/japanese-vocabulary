@@ -222,33 +222,76 @@
                     {
                       "type": "frame",
                       "id": "UwaPh",
-                      "name": "entryBtn",
-                      "fill": "#4F46E512",
-                      "cornerRadius": 20,
-                      "gap": 6,
-                      "padding": [
-                        8,
-                        14
-                      ],
+                      "name": "songActionRow",
+                      "fill": "#FFFFFF00",
+                      "gap": 8,
                       "alignItems": "center",
                       "children": [
                         {
-                          "type": "icon_font",
-                          "id": "Z9wDM",
-                          "width": 16,
-                          "height": 16,
-                          "iconFontName": "list",
-                          "iconFontFamily": "feather",
-                          "fill": "$accent-primary"
+                          "type": "frame",
+                          "id": "zKLwO",
+                          "name": "wordListBtn",
+                          "fill": "#4F46E512",
+                          "cornerRadius": 20,
+                          "gap": 6,
+                          "padding": [
+                            8,
+                            14
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon_font",
+                              "id": "3pnU0",
+                              "width": 16,
+                              "height": 16,
+                              "iconFontName": "list",
+                              "iconFontFamily": "feather",
+                              "fill": "$accent-primary"
+                            },
+                            {
+                              "type": "text",
+                              "id": "TVqgi",
+                              "fill": "$accent-primary",
+                              "content": "전체 단어 담기",
+                              "fontFamily": "Inter",
+                              "fontSize": 13,
+                              "fontWeight": "600"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "tAjWK",
-                          "fill": "$accent-primary",
-                          "content": "전체 단어 담기",
-                          "fontFamily": "Inter",
-                          "fontSize": 13,
-                          "fontWeight": "600"
+                          "type": "frame",
+                          "id": "D8263",
+                          "name": "deckBtn",
+                          "fill": "$bg-elevated",
+                          "cornerRadius": 20,
+                          "gap": 6,
+                          "padding": [
+                            8,
+                            14
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon_font",
+                              "id": "fle2p",
+                              "width": 16,
+                              "height": 16,
+                              "iconFontName": "layers",
+                              "iconFontFamily": "feather",
+                              "fill": "$text-secondary"
+                            },
+                            {
+                              "type": "text",
+                              "id": "BYMoM",
+                              "fill": "$text-secondary",
+                              "content": "덱 보기",
+                              "fontFamily": "Inter",
+                              "fontSize": 13,
+                              "fontWeight": "600"
+                            }
+                          ]
                         }
                       ]
                     }
@@ -8443,6 +8486,43 @@
                       "fontWeight": "600"
                     }
                   ]
+                },
+                {
+                  "type": "frame",
+                  "id": "jpry3",
+                  "name": "listenBtn",
+                  "width": "fill_container",
+                  "height": 44,
+                  "fill": "#FFFFFF00",
+                  "cornerRadius": 24,
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": 1,
+                    "fill": "$border-default"
+                  },
+                  "gap": 8,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "ku9j0",
+                      "width": 18,
+                      "height": 18,
+                      "iconFontName": "circle-play",
+                      "iconFontFamily": "lucide",
+                      "fill": "$text-secondary"
+                    },
+                    {
+                      "type": "text",
+                      "id": "6N0Qn",
+                      "fill": "$text-secondary",
+                      "content": "노래 듣기",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "600"
+                    }
+                  ]
                 }
               ]
             }
@@ -12174,11 +12254,29 @@
           "width": "fit_content",
           "height": "fit_content"
         },
-        "Z9wDM": {
+        "zKLwO": {
+          "width": "fit_content",
+          "height": "fit_content"
+        },
+        "3pnU0": {
           "x": 14,
           "y": 9.5
         },
-        "tAjWK": {
+        "TVqgi": {
+          "x": 36,
+          "y": 8
+        },
+        "D8263": {
+          "x": 137,
+          "y": 0,
+          "width": "fit_content",
+          "height": "fit_content"
+        },
+        "fle2p": {
+          "x": 14,
+          "y": 9.5
+        },
+        "BYMoM": {
           "x": 36,
           "y": 8
         },
@@ -12536,11 +12634,29 @@
           "width": "fit_content",
           "height": "fit_content"
         },
-        "Z9wDM": {
+        "zKLwO": {
+          "width": "fit_content",
+          "height": "fit_content"
+        },
+        "3pnU0": {
           "x": 14,
           "y": 9.5
         },
-        "tAjWK": {
+        "TVqgi": {
+          "x": 36,
+          "y": 8
+        },
+        "D8263": {
+          "x": 137,
+          "y": 0,
+          "width": "fit_content",
+          "height": "fit_content"
+        },
+        "fle2p": {
+          "x": 14,
+          "y": 9.5
+        },
+        "BYMoM": {
           "x": 36,
           "y": 8
         },
@@ -12887,11 +13003,29 @@
           "width": "fit_content",
           "height": "fit_content"
         },
-        "Z9wDM": {
+        "zKLwO": {
+          "width": "fit_content",
+          "height": "fit_content"
+        },
+        "3pnU0": {
           "x": 14,
           "y": 9.5
         },
-        "tAjWK": {
+        "TVqgi": {
+          "x": 36,
+          "y": 8
+        },
+        "D8263": {
+          "x": 137,
+          "y": 0,
+          "width": "fit_content",
+          "height": "fit_content"
+        },
+        "fle2p": {
+          "x": 14,
+          "y": 9.5
+        },
+        "BYMoM": {
           "x": 36,
           "y": 8
         },
@@ -13325,11 +13459,29 @@
                   "width": "fit_content",
                   "height": "fit_content"
                 },
-                "Z9wDM": {
+                "zKLwO": {
+                  "width": "fit_content",
+                  "height": "fit_content"
+                },
+                "3pnU0": {
                   "x": 14,
                   "y": 9.5
                 },
-                "tAjWK": {
+                "TVqgi": {
+                  "x": 36,
+                  "y": 8
+                },
+                "D8263": {
+                  "x": 137,
+                  "y": 0,
+                  "width": "fit_content",
+                  "height": "fit_content"
+                },
+                "fle2p": {
+                  "x": 14,
+                  "y": 9.5
+                },
+                "BYMoM": {
                   "x": 36,
                   "y": 8
                 },
@@ -13684,11 +13836,29 @@
                       "width": "fit_content",
                       "height": "fit_content"
                     },
-                    "Z9wDM": {
+                    "zKLwO": {
+                      "width": "fit_content",
+                      "height": "fit_content"
+                    },
+                    "3pnU0": {
                       "x": 14,
                       "y": 9.5
                     },
-                    "tAjWK": {
+                    "TVqgi": {
+                      "x": 36,
+                      "y": 8
+                    },
+                    "D8263": {
+                      "x": 137,
+                      "y": 0,
+                      "width": "fit_content",
+                      "height": "fit_content"
+                    },
+                    "fle2p": {
+                      "x": 14,
+                      "y": 9.5
+                    },
+                    "BYMoM": {
                       "x": 36,
                       "y": 8
                     },
@@ -14161,11 +14331,29 @@
                       "width": "fit_content",
                       "height": "fit_content"
                     },
-                    "Z9wDM": {
+                    "zKLwO": {
+                      "width": "fit_content",
+                      "height": "fit_content"
+                    },
+                    "3pnU0": {
                       "x": 14,
                       "y": 9.5
                     },
-                    "tAjWK": {
+                    "TVqgi": {
+                      "x": 36,
+                      "y": 8
+                    },
+                    "D8263": {
+                      "x": 137,
+                      "y": 0,
+                      "width": "fit_content",
+                      "height": "fit_content"
+                    },
+                    "fle2p": {
+                      "x": 14,
+                      "y": 9.5
+                    },
+                    "BYMoM": {
                       "x": 36,
                       "y": 8
                     },
@@ -14621,11 +14809,29 @@
                   "width": "fit_content",
                   "height": "fit_content"
                 },
-                "Z9wDM": {
+                "zKLwO": {
+                  "width": "fit_content",
+                  "height": "fit_content"
+                },
+                "3pnU0": {
                   "x": 14,
                   "y": 9.5
                 },
-                "tAjWK": {
+                "TVqgi": {
+                  "x": 36,
+                  "y": 8
+                },
+                "D8263": {
+                  "x": 137,
+                  "y": 0,
+                  "width": "fit_content",
+                  "height": "fit_content"
+                },
+                "fle2p": {
+                  "x": 14,
+                  "y": 9.5
+                },
+                "BYMoM": {
                   "x": 36,
                   "y": 8
                 },
@@ -14981,11 +15187,29 @@
                       "width": "fit_content",
                       "height": "fit_content"
                     },
-                    "Z9wDM": {
+                    "zKLwO": {
+                      "width": "fit_content",
+                      "height": "fit_content"
+                    },
+                    "3pnU0": {
                       "x": 14,
                       "y": 9.5
                     },
-                    "tAjWK": {
+                    "TVqgi": {
+                      "x": 36,
+                      "y": 8
+                    },
+                    "D8263": {
+                      "x": 137,
+                      "y": 0,
+                      "width": "fit_content",
+                      "height": "fit_content"
+                    },
+                    "fle2p": {
+                      "x": 14,
+                      "y": 9.5
+                    },
+                    "BYMoM": {
                       "x": 36,
                       "y": 8
                     },
@@ -16025,11 +16249,29 @@
               "width": "fit_content",
               "height": "fit_content"
             },
-            "Z9wDM": {
+            "zKLwO": {
+              "width": "fit_content",
+              "height": "fit_content"
+            },
+            "3pnU0": {
               "x": 14,
               "y": 9.5
             },
-            "tAjWK": {
+            "TVqgi": {
+              "x": 36,
+              "y": 8
+            },
+            "D8263": {
+              "x": 137,
+              "y": 0,
+              "width": "fit_content",
+              "height": "fit_content"
+            },
+            "fle2p": {
+              "x": 14,
+              "y": 9.5
+            },
+            "BYMoM": {
               "x": 36,
               "y": 8
             },
@@ -19893,11 +20135,29 @@
               "width": "fit_content",
               "height": "fit_content"
             },
-            "Z9wDM": {
+            "zKLwO": {
+              "width": "fit_content",
+              "height": "fit_content"
+            },
+            "3pnU0": {
               "x": 14,
               "y": 9.5
             },
-            "tAjWK": {
+            "TVqgi": {
+              "x": 36,
+              "y": 8
+            },
+            "D8263": {
+              "x": 137,
+              "y": 0,
+              "width": "fit_content",
+              "height": "fit_content"
+            },
+            "fle2p": {
+              "x": 14,
+              "y": 9.5
+            },
+            "BYMoM": {
               "x": 36,
               "y": 8
             },
@@ -20616,11 +20876,29 @@
               "width": "fit_content",
               "height": "fit_content"
             },
-            "Z9wDM": {
+            "zKLwO": {
+              "width": "fit_content",
+              "height": "fit_content"
+            },
+            "3pnU0": {
               "x": 14,
               "y": 9.5
             },
-            "tAjWK": {
+            "TVqgi": {
+              "x": 36,
+              "y": 8
+            },
+            "D8263": {
+              "x": 137,
+              "y": 0,
+              "width": "fit_content",
+              "height": "fit_content"
+            },
+            "fle2p": {
+              "x": 14,
+              "y": 9.5
+            },
+            "BYMoM": {
               "x": 36,
               "y": 8
             },
@@ -21341,11 +21619,29 @@
               "width": "fit_content",
               "height": "fit_content"
             },
-            "Z9wDM": {
+            "zKLwO": {
+              "width": "fit_content",
+              "height": "fit_content"
+            },
+            "3pnU0": {
               "x": 14,
               "y": 9.5
             },
-            "tAjWK": {
+            "TVqgi": {
+              "x": 36,
+              "y": 8
+            },
+            "D8263": {
+              "x": 137,
+              "y": 0,
+              "width": "fit_content",
+              "height": "fit_content"
+            },
+            "fle2p": {
+              "x": 14,
+              "y": 9.5
+            },
+            "BYMoM": {
               "x": 36,
               "y": 8
             },
@@ -22088,11 +22384,29 @@
                   "width": "fit_content",
                   "height": "fit_content"
                 },
-                "Z9wDM": {
+                "zKLwO": {
+                  "width": "fit_content",
+                  "height": "fit_content"
+                },
+                "3pnU0": {
                   "x": 14,
                   "y": 9.5
                 },
-                "tAjWK": {
+                "TVqgi": {
+                  "x": 36,
+                  "y": 8
+                },
+                "D8263": {
+                  "x": 137,
+                  "y": 0,
+                  "width": "fit_content",
+                  "height": "fit_content"
+                },
+                "fle2p": {
+                  "x": 14,
+                  "y": 9.5
+                },
+                "BYMoM": {
                   "x": 36,
                   "y": 8
                 },

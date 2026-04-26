@@ -10,8 +10,8 @@ interface Props {
 export default function ServerURLEditor({ onApply }: Props) {
   const [url, setUrl] = useState(getBaseURL);
 
-  const handleApply = () => {
-    setBaseURL(url);
+  const handleApply = async () => {
+    await setBaseURL(url);
     onApply?.();
   };
 

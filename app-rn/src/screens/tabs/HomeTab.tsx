@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -16,8 +16,10 @@ import { useHomeStore } from '../../stores/homeStore';
 import { usePlayerStore } from '../../stores/playerStore';
 import SongCard from '../../components/SongCard';
 import SkeletonBox from '../../components/SkeletonLoading';
+import ErrorDialog from '../../components/ErrorDialog';
 import { Colors, Dimens } from '../../theme/theme';
 import { RootStackParamList } from '../../navigation/AppNavigator';
+import { getErrorMessage } from '../../utils/errorMessages';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -25,6 +27,7 @@ const PAGE_SIZE = 9;
 
 export default function HomeTab() {
   const navigation = useNavigation<Nav>();
+  const [errorDialogMessage, setErrorDialogMessage] = useState<string | null>(null);
   const { status, songs, load } = useHomeStore(
     useShallow(s => ({ status: s.status, songs: s.songs, load: s.load })),
   );
@@ -39,8 +42,11 @@ export default function HomeTab() {
 
   const handleSongPress = useCallback(async (id: number) => {
     await loadById(id);
-    if (usePlayerStore.getState().status === 'success') {
+    const state = usePlayerStore.getState();
+    if (state.status === 'success') {
       navigation.navigate('Player', { origin: 'Home' });
+    } else if (state.status === 'error') {
+      setErrorDialogMessage(getErrorMessage(state.errorCode));
     }
   }, [loadById, navigation]);
 
@@ -143,6 +149,8 @@ export default function HomeTab() {
             <ActivityIndicator size="large" color={Colors.primary} />
           </View>
         )}
+
+        <ErrorDialog message={errorDialogMessage} onDismiss={() => setErrorDialogMessage(null)} />
       </View>
     </SafeAreaView>
   );

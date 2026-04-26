@@ -15,8 +15,10 @@ import { useShallow } from 'zustand/react/shallow';
 import { useSearchStore } from '../stores/searchStore';
 import { usePlayerStore } from '../stores/playerStore';
 import SongListItem from '../components/SongListItem';
+import ErrorDialog from '../components/ErrorDialog';
 import { Colors, Dimens } from '../theme/theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import { getErrorMessage } from '../utils/errorMessages';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Search'>;
 
@@ -28,6 +30,7 @@ function formatDuration(seconds: number): string {
 
 export default function SearchScreen({ navigation }: Props) {
   const [query, setQuery] = useState('');
+  const [errorDialogMessage, setErrorDialogMessage] = useState<string | null>(null);
   const insets = useSafeAreaInsets();
   const { searchStatus, items, search } = useSearchStore(
     useShallow(s => ({
@@ -41,8 +44,11 @@ export default function SearchScreen({ navigation }: Props) {
 
   const handleAnalyze = useCallback(async (item: Parameters<typeof analyze>[0]) => {
     await analyze(item);
-    if (usePlayerStore.getState().status === 'success') {
+    const state = usePlayerStore.getState();
+    if (state.status === 'success') {
       navigation.navigate('Player', { origin: 'Home' });
+    } else if (state.status === 'error') {
+      setErrorDialogMessage(getErrorMessage(state.errorCode));
     }
   }, [analyze, navigation]);
 
@@ -117,6 +123,8 @@ export default function SearchScreen({ navigation }: Props) {
           <ActivityIndicator size="large" color={Colors.primary} />
         </View>
       )}
+
+      <ErrorDialog message={errorDialogMessage} onDismiss={() => setErrorDialogMessage(null)} />
     </View>
   );
 }

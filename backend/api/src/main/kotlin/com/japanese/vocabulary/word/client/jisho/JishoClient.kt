@@ -1,11 +1,11 @@
 package com.japanese.vocabulary.word.client.jisho
 
+import com.japanese.vocabulary.common.exception.BusinessException
+import com.japanese.vocabulary.common.exception.ErrorCode
 import com.japanese.vocabulary.word.client.jisho.dto.JishoResponse
 import com.japanese.vocabulary.word.dto.WordDefinitionDTO
-import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClient
-import org.springframework.web.server.ResponseStatusException
 
 @Component
 class JishoClient {
@@ -27,7 +27,7 @@ class JishoClient {
             .block()
 
         val entry = response?.data?.firstOrNull()
-            ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "No definition found for: $word")
+            ?: throw BusinessException(ErrorCode.DEFINITION_NOT_FOUND)
 
         val japanese = entry.japanese.firstOrNull()
         val japaneseText = japanese?.word ?: japanese?.reading ?: word
