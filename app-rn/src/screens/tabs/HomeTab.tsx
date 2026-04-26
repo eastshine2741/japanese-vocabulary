@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from 'react-native';
-import AnalyzingOverlay from '../../components/AnalyzingOverlay';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -31,7 +30,6 @@ export default function HomeTab() {
   const { status, songs, load } = useHomeStore(
     useShallow(s => ({ status: s.status, songs: s.songs, load: s.load })),
   );
-  const playerStatus = usePlayerStore(s => s.status);
   const loadById = usePlayerStore(s => s.loadById);
 
   useFocusEffect(
@@ -144,7 +142,6 @@ export default function HomeTab() {
             </View>
           </View>
         </ScrollView>
-        <AnalyzingOverlay visible={playerStatus === 'loading'} />
 
         <ErrorDialog message={errorDialogMessage} onDismiss={() => setErrorDialogMessage(null)} />
       </View>
