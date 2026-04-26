@@ -21553,7 +21553,7 @@
       "name": "7. Profile Tab",
       "clip": true,
       "width": 402,
-      "height": 874,
+      "height": 899,
       "fill": "$surface.secondary",
       "layout": "vertical",
       "children": [
@@ -22023,7 +22023,7 @@
                               ],
                               "id": "c4VYr",
                               "name": "pb1bar",
-                              "fill": "$state-review",
+                              "fill": "$accent-secondary",
                               "width": 24,
                               "height": 80
                             }
@@ -22049,7 +22049,7 @@
                               ],
                               "id": "VRaKb",
                               "name": "pb2bar",
-                              "fill": "$state-review",
+                              "fill": "$accent-secondary",
                               "width": 24,
                               "height": 100
                             }
@@ -22211,17 +22211,17 @@
                       "y": 43,
                       "name": "wkGoalLine",
                       "opacity": 0.5,
-                      "fill": "$accent-primary",
+                      "fill": "$accent-secondary",
                       "width": 330,
                       "height": 1
                     },
                     {
                       "type": "text",
                       "id": "NO1G5",
-                      "x": 6,
+                      "x": 334,
                       "y": 32,
                       "name": "wkGoalLbl",
-                      "fill": "$accent-primary",
+                      "fill": "$accent-secondary",
                       "content": "10",
                       "fontFamily": "Geist Mono",
                       "fontSize": 9,
@@ -22249,7 +22249,7 @@
                           "type": "text",
                           "id": "PHTMk",
                           "name": "pdl1c",
-                          "fill": "$state-review",
+                          "fill": "$accent-secondary",
                           "content": "12",
                           "fontFamily": "Geist Mono",
                           "fontSize": 11,
@@ -22280,7 +22280,7 @@
                           "type": "text",
                           "id": "nzUt4",
                           "name": "pdl2c",
-                          "fill": "$state-review",
+                          "fill": "$accent-secondary",
                           "content": "15",
                           "fontFamily": "Geist Mono",
                           "fontSize": 11,
@@ -22343,7 +22343,7 @@
                           "id": "VzyJz",
                           "name": "pdl4c",
                           "fill": "$accent-primary",
-                          "content": "보호",
+                          "content": "프리즈",
                           "fontFamily": "Inter",
                           "fontSize": 10,
                           "fontWeight": "700"
@@ -22459,7 +22459,7 @@
             },
             {
               "type": "frame",
-              "id": "UOzG1",
+              "id": "XDlY8",
               "name": "heatmapSection",
               "width": "fill_container",
               "layout": "vertical",
@@ -22467,7 +22467,7 @@
               "children": [
                 {
                   "type": "frame",
-                  "id": "Z9Oua",
+                  "id": "YIFXb",
                   "name": "hmHdr",
                   "width": "fill_container",
                   "justifyContent": "space_between",
@@ -22475,7 +22475,7 @@
                   "children": [
                     {
                       "type": "text",
-                      "id": "BscQv",
+                      "id": "JBJDc",
                       "name": "hmTitle",
                       "fill": "$foreground.primary",
                       "content": "학습 기록",
@@ -22485,14 +22485,14 @@
                     },
                     {
                       "type": "frame",
-                      "id": "3w265",
+                      "id": "E23FN",
                       "name": "hmRight",
                       "gap": 6,
                       "alignItems": "center",
                       "children": [
                         {
                           "type": "icon_font",
-                          "id": "asXMq",
+                          "id": "TCutO",
                           "name": "hmFzIco",
                           "width": 11,
                           "height": 11,
@@ -22502,7 +22502,7 @@
                         },
                         {
                           "type": "text",
-                          "id": "gfj4M",
+                          "id": "sebZD",
                           "name": "hmFzTxt",
                           "fill": "#5B9BF5",
                           "content": "1/2",
@@ -22512,7 +22512,7 @@
                         },
                         {
                           "type": "text",
-                          "id": "SAWua",
+                          "id": "9dzk0",
                           "name": "hmDot",
                           "fill": "$foreground.muted",
                           "content": "·",
@@ -22522,7 +22522,7 @@
                         },
                         {
                           "type": "text",
-                          "id": "N6miC",
+                          "id": "zTdcv",
                           "name": "hmStat",
                           "fill": "$foreground.muted",
                           "content": "총 43일",
@@ -22536,85 +22536,136 @@
                 },
                 {
                   "type": "script",
-                  "id": "UQ86C",
+                  "id": "eiIoZ",
                   "name": "hmGrid",
                   "width": "fill_container",
                   "height": 116,
-                  "scriptUri": "heatmap.js"
+                  "scriptUri": "heatmap.js",
+                  "inputs": {
+                    "selectedCol": 12,
+                    "selectedRow": 2
+                  }
                 },
                 {
                   "type": "frame",
-                  "id": "bHhO9",
-                  "name": "hmLegend",
+                  "id": "J8JRP",
+                  "name": "hmFooter",
                   "width": "fill_container",
-                  "gap": 4,
-                  "justifyContent": "end",
+                  "fill": "#FFFFFF00",
+                  "padding": [
+                    0,
+                    0,
+                    0,
+                    24
+                  ],
+                  "justifyContent": "space_between",
                   "alignItems": "center",
                   "children": [
                     {
-                      "type": "text",
-                      "id": "s1LPw",
-                      "name": "hmLessTxt",
-                      "fill": "$foreground.muted",
-                      "content": "적음",
-                      "fontFamily": "$font.body",
-                      "fontSize": 10,
-                      "fontWeight": "normal"
+                      "type": "frame",
+                      "id": "c7xkX",
+                      "name": "hmSelInfo",
+                      "gap": 4,
+                      "padding": [
+                        2,
+                        0
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "BXM9a",
+                          "fill": "$foreground.primary",
+                          "content": "23회",
+                          "fontFamily": "Geist Mono",
+                          "fontSize": 12,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "text",
+                          "id": "Vwlcf",
+                          "fill": "$foreground.muted",
+                          "content": "4월 22일 (수)",
+                          "fontFamily": "$font.body",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
                     },
                     {
-                      "type": "rectangle",
-                      "cornerRadius": 2,
-                      "id": "vOMy3",
-                      "name": "hmL0",
-                      "fill": "#ECEEF2",
-                      "width": 10,
-                      "height": 10
-                    },
-                    {
-                      "type": "rectangle",
-                      "cornerRadius": 2,
-                      "id": "SKjJp",
-                      "name": "hmL1",
-                      "fill": "#C8E1F5",
-                      "width": 10,
-                      "height": 10
-                    },
-                    {
-                      "type": "rectangle",
-                      "cornerRadius": 2,
-                      "id": "3Rh5V",
-                      "name": "hmL2",
-                      "fill": "#92C4E8",
-                      "width": 10,
-                      "height": 10
-                    },
-                    {
-                      "type": "rectangle",
-                      "cornerRadius": 2,
-                      "id": "IGRmc",
-                      "name": "hmL3",
-                      "fill": "#5BA0D5",
-                      "width": 10,
-                      "height": 10
-                    },
-                    {
-                      "type": "rectangle",
-                      "cornerRadius": 2,
-                      "id": "R1mkM",
-                      "name": "hmL4",
-                      "fill": "#2E7CB8",
-                      "width": 10,
-                      "height": 10
-                    },
-                    {
-                      "type": "text",
-                      "id": "cfUgK",
-                      "name": "hmMoreTxt",
-                      "fill": "$foreground.muted",
-                      "content": "많음",
-                      "fontFamily": "$font.body",
-                      "fontSize": 10,
-                      "fontWeight": "normal"
+                      "type": "frame",
+                      "id": "PQr67",
+                      "name": "legend",
+                      "gap": 4,
+                      "justifyContent": "end",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "ne0Z7",
+                          "name": "hmLessTxt",
+                          "fill": "$foreground.muted",
+                          "content": "적음",
+                          "fontFamily": "$font.body",
+                          "fontSize": 10,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "rectangle",
+                          "cornerRadius": 2,
+                          "id": "jTc6k",
+                          "name": "hmL0",
+                          "fill": "#ECEEF2",
+                          "width": 10,
+                          "height": 10
+                        },
+                        {
+                          "type": "rectangle",
+                          "cornerRadius": 2,
+                          "id": "rkBQy",
+                          "name": "hmL1",
+                          "fill": "#C8E1F5",
+                          "width": 10,
+                          "height": 10
+                        },
+                        {
+                          "type": "rectangle",
+                          "cornerRadius": 2,
+                          "id": "yYMCy",
+                          "name": "hmL2",
+                          "fill": "#92C4E8",
+                          "width": 10,
+                          "height": 10
+                        },
+                        {
+                          "type": "rectangle",
+                          "cornerRadius": 2,
+                          "id": "EdrnQ",
+                          "name": "hmL3",
+                          "fill": "#5BA0D5",
+                          "width": 10,
+                          "height": 10
+                        },
+                        {
+                          "type": "rectangle",
+                          "cornerRadius": 2,
+                          "id": "cE3yY",
+                          "name": "hmL4",
+                          "fill": "#2E7CB8",
+                          "width": 10,
+                          "height": 10
+                        },
+                        {
+                          "type": "text",
+                          "id": "kwqRI",
+                          "name": "hmMoreTxt",
+                          "fill": "$foreground.muted",
+                          "content": "많음",
+                          "fontFamily": "$font.body",
+                          "fontSize": 10,
+                          "fontWeight": "normal"
+                        }
+                      ]
                     }
                   ]
                 }
@@ -23934,7 +23985,7 @@
     {
       "type": "frame",
       "id": "2Zqh0",
-      "x": 1362,
+      "x": 1804,
       "y": 3011,
       "name": "8. Settings",
       "clip": true,
@@ -24664,7 +24715,7 @@
     {
       "type": "frame",
       "id": "18UoB",
-      "x": 1824,
+      "x": 1352,
       "y": 3011,
       "name": "7-1. Profile Tab (Empty)",
       "clip": true,
@@ -26149,6 +26200,10 @@
           }
         }
       ]
+    },
+    "accent-secondary": {
+      "type": "color",
+      "value": "#FFB300"
     }
   }
 }

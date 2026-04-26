@@ -76,7 +76,7 @@ export default React.memo(function StudyStatsProfileSection() {
             <WeeklyChart days={weeklyChart} dailyGoal={dailyGoal} />
             <View style={styles.daysRow}>
               {weeklyChart.map((day, i) => (
-                <DayLabel key={day.date} index={i} day={day} />
+                <DayLabel key={day.date} index={i} day={day} dailyGoal={dailyGoal} />
               ))}
             </View>
           </>
@@ -174,16 +174,24 @@ function WeeklyChart({ days, dailyGoal }: { days: WeeklyChartDay[]; dailyGoal: n
     <View style={styles.chartBox}>
       <View style={styles.bars}>
         {days.map((day) => (
-          <Bar key={day.date} day={day} visualMax={visualMax} />
+          <Bar key={day.date} day={day} visualMax={visualMax} dailyGoal={goal} />
         ))}
       </View>
       <View style={[styles.goalLine, { bottom: goalLineBottom }]} />
-      <Text style={[styles.goalLabel, { bottom: goalLineBottom + 2 }]}>{goal}</Text>
+      <Text style={[styles.goalLabel, { bottom: goalLineBottom - 5 }]}>{goal}</Text>
     </View>
   );
 }
 
-const Bar = React.memo(function Bar({ day, visualMax }: { day: WeeklyChartDay; visualMax: number }) {
+const Bar = React.memo(function Bar({
+  day,
+  visualMax,
+  dailyGoal,
+}: {
+  day: WeeklyChartDay;
+  visualMax: number;
+  dailyGoal: number;
+}) {
   // Future day: no review, no freeze, not today, and reviewCount=0 — show small gray stub
   // (Today is "in progress" so still rendered as a bar.)
   const isFuture = !day.isToday && day.reviewCount === 0 && !day.freezeUsed;
@@ -208,32 +216,53 @@ const Bar = React.memo(function Bar({ day, visualMax }: { day: WeeklyChartDay; v
 
   const ratio = visualMax === 0 ? 0 : day.reviewCount / visualMax;
   const height = Math.max(MIN_BAR_HEIGHT, Math.round(CHART_HEIGHT * ratio));
-  const color = day.isToday ? Colors.primary : Colors.stateReview;
+  const reachedGoal = day.reviewCount >= dailyGoal;
+  const color = reachedGoal
+    ? Colors.accentSecondary
+    : Colors.primary;
+  const opacity = day.isToday || reachedGoal ? 1 : 0.55;
   return (
     <View style={styles.barCol}>
-      <View style={[styles.bar, { height, backgroundColor: color }]} />
+      <View style={[styles.bar, { height, backgroundColor: color, opacity }]} />
     </View>
   );
 });
 
-const DayLabel = React.memo(function DayLabel({ index, day }: { index: number; day: WeeklyChartDay }) {
+const DayLabel = React.memo(function DayLabel({
+  index,
+  day,
+  dailyGoal,
+}: {
+  index: number;
+  day: WeeklyChartDay;
+  dailyGoal: number;
+}) {
   const label = WEEKDAY_LABELS[index] ?? '';
   const valueText = day.freezeUsed && day.reviewCount === 0
-    ? '보호'
+    ? '프리즈'
     : day.reviewCount > 0
     ? String(day.reviewCount)
     : '-';
-  const valueColor = day.isToday
-    ? Colors.primary
+  const reachedGoal = day.reviewCount >= dailyGoal;
+  const valueColor = reachedGoal
+    ? Colors.accentSecondary
     : day.freezeUsed && day.reviewCount === 0
     ? Colors.primary
+    : day.isToday
+    ? Colors.primary
     : day.reviewCount > 0
-    ? Colors.stateReview
+    ? Colors.textSecondary
     : Colors.textMuted;
   return (
     <View style={styles.dayCol}>
       <Text style={[styles.dayValue, { color: valueColor }]}>{valueText}</Text>
-      <Text style={[styles.dayWeek, day.isToday && styles.dayWeekToday]}>
+      <Text
+        style={[
+          styles.dayWeek,
+          day.isToday && styles.dayWeekToday,
+          reachedGoal && styles.dayWeekGoal,
+        ]}
+      >
         {day.isToday ? '오늘' : label}
       </Text>
     </View>
@@ -306,9 +335,10 @@ const styles = StyleSheet.create({
   },
 
   chartBox: {
-    height: CHART_HEIGHT + 18,
+    height: CHART_HEIGHT + 8,
     position: 'relative',
     paddingTop: 8,
+    paddingRight: 18,
   },
   bars: {
     flexDirection: 'row',
@@ -345,23 +375,24 @@ const styles = StyleSheet.create({
   goalLine: {
     position: 'absolute',
     left: 0,
-    right: 0,
+    right: 18,
     height: 1,
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.accentSecondary,
     opacity: 0.5,
   },
   goalLabel: {
     position: 'absolute',
-    left: 6,
+    right: 0,
     fontSize: 9,
     fontWeight: '700',
-    color: Colors.primary,
+    color: Colors.accentSecondary,
     fontVariant: ['tabular-nums'],
   },
 
   daysRow: {
     flexDirection: 'row',
     gap: 6,
+    paddingRight: 18,
   },
   dayCol: {
     flex: 1,
@@ -379,6 +410,10 @@ const styles = StyleSheet.create({
   },
   dayWeekToday: {
     color: Colors.primary,
+    fontWeight: '700',
+  },
+  dayWeekGoal: {
+    color: Colors.accentSecondary,
     fontWeight: '700',
   },
 });

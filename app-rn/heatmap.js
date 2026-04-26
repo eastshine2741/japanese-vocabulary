@@ -1,8 +1,12 @@
 /**
  * @schema 2.10
  * @input populated: boolean = true
+ * @input selectedCol: number = -1
+ * @input selectedRow: number = -1
  */
 const populated = pencil.input.populated;
+const selectedCol = pencil.input.selectedCol;
+const selectedRow = pencil.input.selectedRow;
 const cols = 16;
 const rows = 7;
 const cellSize = 14;
@@ -96,6 +100,21 @@ for (let c = 0; c < cols; c++) {
       fill: colors[intensity],
     });
   }
+}
+
+if (selectedCol >= 0 && selectedRow >= 0) {
+  const cellX = gridStart + selectedCol * (cellSize + gap);
+  const cellY = selectedRow * (cellSize + gap);
+  nodes.push({
+    type: "rectangle",
+    x: cellX - 2,
+    y: cellY - 2,
+    width: cellSize + 4,
+    height: cellSize + 4,
+    cornerRadius: 5,
+    fill: "#FFFFFF00",
+    stroke: { thickness: 1.5, fill: "#1A1A1A", align: "inside" },
+  });
 }
 
 return nodes;

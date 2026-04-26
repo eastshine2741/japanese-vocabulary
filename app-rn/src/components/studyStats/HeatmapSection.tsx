@@ -1,10 +1,12 @@
-import React, { useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useShallow } from 'zustand/react/shallow';
 import { useStudyStatsStore } from '../../stores/studyStatsStore';
 import { Colors } from '../../theme/theme';
 import { HeatmapDay } from '../../types/studyStats';
+
+const WEEKDAY_KO = ['일', '월', '화', '수', '목', '금', '토'];
 
 const CELL = 14;
 const GAP = 3;
@@ -42,6 +44,16 @@ export default React.memo(function HeatmapSection() {
     return heatmap.data.days.reduce((acc, d) => (d.reviewCount > acc ? d.reviewCount : acc), 0);
   }, [heatmap.data]);
 
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const handleSelect = useCallback((date: string) => {
+    setSelectedDate((prev) => (prev === date ? null : date));
+  }, []);
+
+  const selectedDay = useMemo(() => {
+    if (!selectedDate || !heatmap.data) return null;
+    return heatmap.data.days.find((d) => d.date === selectedDate) ?? null;
+  }, [selectedDate, heatmap.data]);
+
   const totalDays = profile.data?.totalStudyDays ?? 0;
   const freezeCount = profile.data?.freezeCount ?? 0;
   const freezeMax = profile.data?.freezeMax ?? 2;
@@ -71,42 +83,86 @@ export default React.memo(function HeatmapSection() {
             <View key={r} style={styles.gridRow}>
               {Array.from({ length: COLS }).map((_, c) => {
                 const cell = cells[c * ROWS + r];
-                return <Cell key={c} cell={cell} max={visibleMax} />;
+                const date = cell.kind === 'day' ? cell.day.date : null;
+                return (
+                  <Cell
+                    key={c}
+                    cell={cell}
+                    max={visibleMax}
+                    selected={!!date && date === selectedDate}
+                    onSelect={handleSelect}
+                  />
+                );
               })}
             </View>
           ))}
         </View>
       </View>
 
-      <View style={styles.legend}>
-        <Text style={styles.legendText}>적음</Text>
-        {Colors.heatmapIntensities.map((color, i) => (
-          <View key={i} style={[styles.legendCell, { backgroundColor: color }]} />
-        ))}
-        <Text style={styles.legendText}>많음</Text>
+      <View style={styles.footer}>
+        <View style={styles.selection}>
+          {selectedDay ? (
+            <>
+              <Text style={styles.selCount}>
+                {selectedDay.freezeUsed && selectedDay.reviewCount === 0
+                  ? '프리즈'
+                  : `${selectedDay.reviewCount}회`}
+              </Text>
+              <Text style={styles.selDate}>{formatKoreanDate(selectedDay.date)}</Text>
+            </>
+          ) : null}
+        </View>
+        <View style={styles.legend}>
+          <Text style={styles.legendText}>적음</Text>
+          {Colors.heatmapIntensities.map((color, i) => (
+            <View key={i} style={[styles.legendCell, { backgroundColor: color }]} />
+          ))}
+          <Text style={styles.legendText}>많음</Text>
+        </View>
       </View>
     </View>
   );
 });
 
+function formatKoreanDate(iso: string): string {
+  const d = parseISODate(iso);
+  return `${d.getMonth() + 1}월 ${d.getDate()}일 (${WEEKDAY_KO[d.getDay()]})`;
+}
+
 type CellState =
   | { kind: 'empty' }
   | { kind: 'day'; day: HeatmapDay };
 
-function Cell({ cell, max }: { cell: CellState; max: number }) {
+function Cell({
+  cell,
+  max,
+  selected,
+  onSelect,
+}: {
+  cell: CellState;
+  max: number;
+  selected: boolean;
+  onSelect: (date: string) => void;
+}) {
   if (cell.kind === 'empty') {
     return <View style={[styles.cell, { backgroundColor: Colors.heatmapIntensities[0] }]} />;
   }
+  const date = cell.day.date;
+  const handlePress = () => onSelect(date);
+  const ringStyle = selected ? styles.cellSelected : null;
   if (cell.day.freezeUsed && cell.day.reviewCount === 0) {
     return (
-      <View style={[styles.cell, styles.cellFreeze]}>
+      <Pressable onPress={handlePress} style={[styles.cell, styles.cellFreeze, ringStyle]}>
         <Ionicons name="snow" size={10} color={Colors.primary} />
-      </View>
+      </Pressable>
     );
   }
   const level = computeLevel(cell.day.reviewCount, max);
   return (
-    <View style={[styles.cell, { backgroundColor: Colors.heatmapIntensities[level] }]} />
+    <Pressable
+      onPress={handlePress}
+      style={[styles.cell, { backgroundColor: Colors.heatmapIntensities[level] }, ringStyle]}
+    />
   );
 }
 
@@ -214,7 +270,33 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  cellSelected: {
+    borderWidth: 1.5,
+    borderColor: Colors.textPrimary,
+  },
 
+  footer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingLeft: ROW_LABEL_WIDTH + ROW_LABEL_GAP,
+  },
+  selection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  selCount: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+    fontVariant: ['tabular-nums'],
+  },
+  selDate: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: Colors.textMuted,
+  },
   legend: {
     flexDirection: 'row',
     alignItems: 'center',
