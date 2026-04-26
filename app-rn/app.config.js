@@ -1,4 +1,16 @@
-const namespace = process.env.DEPLOY_NS || 'main';
+const { execSync } = require('child_process');
+
+function resolveNamespace() {
+  if (process.env.DEPLOY_NS) return process.env.DEPLOY_NS;
+  try {
+    const branch = execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf-8' }).trim();
+    return branch.replace(/.*\//, '').toLowerCase().replace(/[^a-z0-9-]/g, '-');
+  } catch {
+    return 'main';
+  }
+}
+
+const namespace = resolveNamespace();
 const suffix = `.${namespace.replace(/[^a-z0-9]/g, '')}`;
 const label = namespace !== 'main' ? ` (${namespace})` : '';
 

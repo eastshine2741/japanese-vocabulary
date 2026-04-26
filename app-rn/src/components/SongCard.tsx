@@ -27,7 +27,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     aspectRatio: 1,
-    borderRadius: 10,
+    borderRadius: 16,
     overflow: 'hidden',
   },
   coverImage: {
