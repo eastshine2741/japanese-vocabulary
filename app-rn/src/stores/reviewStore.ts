@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { flashcardApi } from '../api/flashcardApi';
 import { wordApi } from '../api/wordApi';
 import { FlashcardDTO, FlashcardStatsResponse } from '../types/flashcard';
+import { useStudyStatsStore } from './studyStatsStore';
 
 type ReviewStatus = 'loading' | 'noCards' | 'reviewing' | 'summary' | 'error';
 
@@ -72,6 +73,7 @@ export const useReviewStore = create<ReviewState>((set, get) => ({
 
     try {
       await flashcardApi.review(card.id, { rating });
+      useStudyStatsStore.getState().invalidate();
       const newRatingCounts = { ...ratingCounts, [rating]: ratingCounts[rating] + 1 };
       const newReviewed = totalReviewed + 1;
       const nextIndex = currentIndex + 1;

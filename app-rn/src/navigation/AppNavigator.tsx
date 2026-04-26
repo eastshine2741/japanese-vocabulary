@@ -10,6 +10,7 @@ import ReviewScreen from '../screens/ReviewScreen';
 import DeckDetailScreen from '../screens/DeckDetailScreen';
 import DeckWordListScreen from '../screens/DeckWordListScreen';
 import EditWordScreen from '../screens/EditWordScreen';
+import SettingsScreen from '../screens/SettingsScreen';
 
 import HomeTab from '../screens/tabs/HomeTab';
 import WordTab from '../screens/tabs/WordTab';
@@ -22,6 +23,7 @@ export type RootStackParamList = {
   Login: undefined;
   Main: undefined;
   Search: undefined;
+  Settings: undefined;
   Player: { origin: string; initialSeekMs?: number };
   Review: { songId?: number | null };
   DeckDetail: { songId: number | null };
@@ -74,6 +76,7 @@ export default function AppNavigator({ initialRoute }: Props) {
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Main" component={MainTabs} />
       <Stack.Screen name="Search" component={SearchScreen} />
+      <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="Player" component={PlayerScreen} options={{ presentation: 'transparentModal', animation: 'slide_from_bottom' }} />
       <Stack.Screen name="Review" component={ReviewScreen} />
       <Stack.Screen name="DeckDetail" component={DeckDetailScreen} />

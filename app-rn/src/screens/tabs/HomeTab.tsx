@@ -22,6 +22,7 @@ import { FlashcardStatsResponse } from '../../types/flashcard';
 import SongCard from '../../components/SongCard';
 import SkeletonBox from '../../components/SkeletonLoading';
 import ErrorDialog from '../../components/ErrorDialog';
+import StudyStatsHomeCard from '../../components/studyStats/StudyStatsHomeCard';
 import { Colors, Dimens } from '../../theme/theme';
 import { RootStackParamList } from '../../navigation/AppNavigator';
 import { getErrorMessage } from '../../utils/errorMessages';
@@ -234,6 +235,8 @@ export default function HomeTab() {
             </TouchableOpacity>
 
             {renderActionCard()}
+
+            <StudyStatsHomeCard />
 
             <View style={styles.recentSection}>
               <Text style={styles.sectionTitle}>최근 들은 노래</Text>

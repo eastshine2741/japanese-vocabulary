@@ -19,7 +19,8 @@ class UserSettingsService(
             showIntervals = data.showIntervals,
             readingDisplay = data.readingDisplay,
             showKoreanPronunciation = data.showKoreanPronunciation,
-            showFurigana = data.showFurigana
+            showFurigana = data.showFurigana,
+            dailyGoal = data.dailyGoal
         )
     }
 
@@ -29,6 +30,7 @@ class UserSettingsService(
         require(dto.readingDisplay in listOf("KATAKANA", "HIRAGANA", "KOREAN")) {
             "readingDisplay must be KATAKANA, HIRAGANA, or KOREAN"
         }
+        require(dto.dailyGoal in 1..50000) { "dailyGoal must be between 1 and 50000" }
         val entity = userSettingsRepository.findByUserId(userId)
             ?: UserSettingsEntity(userId = userId)
         entity.settings = UserSettingsData(
@@ -36,7 +38,8 @@ class UserSettingsService(
             showIntervals = dto.showIntervals,
             readingDisplay = dto.readingDisplay,
             showKoreanPronunciation = dto.showKoreanPronunciation,
-            showFurigana = dto.showFurigana
+            showFurigana = dto.showFurigana,
+            dailyGoal = dto.dailyGoal
         )
         userSettingsRepository.save(entity)
         return UserSettingsDTO(
@@ -44,7 +47,8 @@ class UserSettingsService(
             showIntervals = entity.settings.showIntervals,
             readingDisplay = entity.settings.readingDisplay,
             showKoreanPronunciation = entity.settings.showKoreanPronunciation,
-            showFurigana = entity.settings.showFurigana
+            showFurigana = entity.settings.showFurigana,
+            dailyGoal = entity.settings.dailyGoal
         )
     }
 }

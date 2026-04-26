@@ -43,4 +43,5 @@ export interface UserSettingsDTO {
   readingDisplay: 'KATAKANA' | 'HIRAGANA' | 'KOREAN';
   showKoreanPronunciation: boolean;
   showFurigana: boolean;
+  dailyGoal: number;
 }

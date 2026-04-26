@@ -11,7 +11,7 @@ type TabKey = 'Home' | 'Words' | 'MyPage';
 const TAB_CONFIG: Record<TabKey, { icon: keyof typeof Feather.glyphMap; label: string }> = {
   Home: { icon: 'home', label: '홈' },
   Words: { icon: 'book-open', label: '단어' },
-  MyPage: { icon: 'user', label: '마이' },
+  MyPage: { icon: 'user', label: '프로필' },
 };
 
 export default function PillTabBar({ state, descriptors, navigation }: any) {

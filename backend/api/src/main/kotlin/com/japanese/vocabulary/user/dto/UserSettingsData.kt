@@ -5,5 +5,6 @@ data class UserSettingsData(
     val showIntervals: Boolean = true,
     val readingDisplay: String = "KATAKANA",
     val showKoreanPronunciation: Boolean = true,
-    val showFurigana: Boolean = true
+    val showFurigana: Boolean = true,
+    val dailyGoal: Int = 10
 )

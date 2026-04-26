@@ -44,6 +44,10 @@ export const Colors = {
   tabActive: '#4A9FD8',
   tabInactive: '#888888',
 
+  // Streak / study stats
+  streakFlame: '#FF9500',
+  heatmapIntensities: ['#ECEEF2', '#C8E1F5', '#92C4E8', '#5BA0D5', '#2E7CB8'] as const,
+
   // Legacy aliases
   textTertiary: '#A1A1AA',
   cardBorder: '#D4D4D8',

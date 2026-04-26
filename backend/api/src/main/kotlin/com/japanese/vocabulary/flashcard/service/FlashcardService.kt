@@ -6,6 +6,7 @@ import com.japanese.vocabulary.flashcard.dto.*
 import com.japanese.vocabulary.flashcard.entity.FlashcardEntity
 import com.japanese.vocabulary.flashcard.event.FlashcardCreatedEvent
 import com.japanese.vocabulary.flashcard.event.FlashcardDeletedEvent
+import com.japanese.vocabulary.flashcard.event.FlashcardReviewedEvent
 import com.japanese.vocabulary.flashcard.repository.FlashcardRepository
 import com.japanese.vocabulary.song.repository.SongRepository
 import com.japanese.vocabulary.user.repository.UserSettingsRepository
@@ -165,6 +166,15 @@ class FlashcardService(
         entity.lastReview = Instant.now()
         entity.fsrsCardJson = updatedCard.toJson()
         flashcardRepository.save(entity)
+
+        eventPublisher.publishEvent(
+            FlashcardReviewedEvent(
+                userId = userId,
+                flashcardId = entity.id!!,
+                rating = rating,
+                reviewedAt = entity.lastReview!!
+            )
+        )
 
         return ReviewResponse(
             id = entity.id!!,
