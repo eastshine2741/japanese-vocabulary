@@ -3,6 +3,7 @@ import {
   View,
   Text,
   Switch,
+  TextInput,
   TouchableOpacity,
   ActivityIndicator,
   ScrollView,
@@ -42,6 +43,9 @@ export default function SettingsScreen() {
 
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showServerDialog, setShowServerDialog] = useState(false);
+  const [dailyGoalText, setDailyGoalText] = useState(String(dailyGoal));
+
+  useEffect(() => { setDailyGoalText(String(dailyGoal)); }, [dailyGoal]);
 
   useEffect(() => { loadSettings(); }, []);
   useEffect(() => () => {
@@ -73,9 +77,17 @@ export default function SettingsScreen() {
     setReadingDisplay(value); setTimeout(() => save(), 0);
   }, [setReadingDisplay, save]);
 
-  const handleDailyGoalChange = useCallback((delta: number) => {
-    setDailyGoal(dailyGoal + delta); debouncedSave();
-  }, [dailyGoal, setDailyGoal, debouncedSave]);
+  const handleDailyGoalTextChange = useCallback((text: string) => {
+    setDailyGoalText(text.replace(/[^0-9]/g, ''));
+  }, []);
+
+  const handleDailyGoalCommit = useCallback(() => {
+    const parsed = parseInt(dailyGoalText, 10);
+    const next = Number.isFinite(parsed) ? parsed : dailyGoal;
+    setDailyGoal(next);
+    setDailyGoalText(String(Math.max(1, Math.min(50000, Math.round(next)))));
+    debouncedSave();
+  }, [dailyGoalText, dailyGoal, setDailyGoal, debouncedSave]);
 
   const handleLogout = async () => {
     await tokenStorage.clearToken();
@@ -126,25 +138,17 @@ export default function SettingsScreen() {
                   매일 리뷰할 카드 수 목표입니다. 주간 차트와 히트맵에 반영됩니다.
                 </Text>
               </View>
-              <View style={styles.stepperRow}>
-                <TouchableOpacity
-                  style={styles.stepperBtn}
-                  onPress={() => handleDailyGoalChange(-1)}
-                  disabled={dailyGoal <= 1}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="remove" size={18} color={dailyGoal <= 1 ? Colors.textMuted : Colors.textPrimary} />
-                </TouchableOpacity>
-                <Text style={styles.stepperValue}>{dailyGoal}</Text>
-                <TouchableOpacity
-                  style={styles.stepperBtn}
-                  onPress={() => handleDailyGoalChange(1)}
-                  disabled={dailyGoal >= 50000}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="add" size={18} color={dailyGoal >= 50000 ? Colors.textMuted : Colors.textPrimary} />
-                </TouchableOpacity>
-              </View>
+              <TextInput
+                style={styles.dailyGoalInput}
+                value={dailyGoalText}
+                onChangeText={handleDailyGoalTextChange}
+                onBlur={handleDailyGoalCommit}
+                onSubmitEditing={handleDailyGoalCommit}
+                keyboardType="number-pad"
+                returnKeyType="done"
+                maxLength={5}
+                selectTextOnFocus
+              />
             </View>
           </View>
 
@@ -296,14 +300,11 @@ const styles = StyleSheet.create({
   retrievabilityValue: { fontSize: 15, fontWeight: '600', color: Colors.stateRetrievability },
   slider: { marginTop: 12, marginHorizontal: -4 },
 
-  stepperRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  stepperBtn: {
-    width: 32, height: 32, borderRadius: 16, backgroundColor: Colors.card,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  stepperValue: {
+  dailyGoalInput: {
+    minWidth: 64, paddingHorizontal: 12, paddingVertical: 8,
+    borderRadius: 12, backgroundColor: Colors.card,
     fontSize: 16, fontWeight: '700', color: Colors.textPrimary,
-    minWidth: 32, textAlign: 'center', fontVariant: ['tabular-nums'],
+    textAlign: 'center', fontVariant: ['tabular-nums'],
   },
 
   savingIndicator: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 12 },
