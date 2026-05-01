@@ -8,8 +8,7 @@ interface AuthState {
   status: AuthStatus;
   error: string | null;
   userName: string | null;
-  login: (name: string, password: string) => Promise<void>;
-  signup: (name: string, password: string) => Promise<void>;
+  googleLogin: (idToken: string) => Promise<void>;
   loadUserName: () => Promise<void>;
   reset: () => void;
 }
@@ -19,27 +18,15 @@ export const useAuthStore = create<AuthState>((set) => ({
   error: null,
   userName: null,
 
-  login: async (name, password) => {
+  googleLogin: async (idToken) => {
     set({ status: 'loading', error: null });
     try {
-      const res = await authApi.login({ name, password });
+      const res = await authApi.googleLogin(idToken);
       await tokenStorage.saveToken(res.token);
-      await tokenStorage.saveUserName(name);
-      set({ status: 'success', userName: name });
+      await tokenStorage.saveUserName(res.name);
+      set({ status: 'success', userName: res.name });
     } catch (e: any) {
-      set({ status: 'error', error: e.response?.data?.message || 'Login failed' });
-    }
-  },
-
-  signup: async (name, password) => {
-    set({ status: 'loading', error: null });
-    try {
-      const res = await authApi.signup({ name, password });
-      await tokenStorage.saveToken(res.token);
-      await tokenStorage.saveUserName(name);
-      set({ status: 'success', userName: name });
-    } catch (e: any) {
-      set({ status: 'error', error: e.response?.data?.message || 'Signup failed' });
+      set({ status: 'error', error: e.response?.data?.message || 'Google sign-in failed' });
     }
   },
 

@@ -44,6 +44,9 @@ export default {
     web: {
       favicon: './assets/favicon.png',
     },
-    plugins: ['./plugins/withReleaseSigning'],
+    plugins: [
+      './plugins/withReleaseSigning',
+      '@react-native-google-signin/google-signin',
+    ],
   },
 };

@@ -1,14 +1,13 @@
 import client from './client';
-import { AuthRequest, AuthResponse } from '../types/auth';
+
+export interface GoogleAuthResponse {
+  token: string;
+  name: string;
+}
 
 export const authApi = {
-  async signup(req: AuthRequest): Promise<AuthResponse> {
-    const { data } = await client.post<AuthResponse>('/api/auth/signup', req);
-    return data;
-  },
-
-  async login(req: AuthRequest): Promise<AuthResponse> {
-    const { data } = await client.post<AuthResponse>('/api/auth/login', req);
+  async googleLogin(idToken: string): Promise<GoogleAuthResponse> {
+    const { data } = await client.post<GoogleAuthResponse>('/api/auth/google', { idToken });
     return data;
   },
 };
