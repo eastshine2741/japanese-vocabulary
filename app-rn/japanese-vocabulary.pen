@@ -25397,68 +25397,185 @@
     },
     {
       "type": "frame",
-      "id": "IXtP5",
-      "x": 7164,
-      "y": -2372,
-      "name": "Onboarding Splash",
-      "width": 393,
-      "height": 852,
-      "fill": "#FAF8F2",
+      "id": "UsOnE",
+      "x": -555,
+      "y": -3372,
+      "name": "O1. Splash",
+      "clip": true,
+      "width": 402,
+      "height": 874,
+      "fill": "$bg-primary",
       "layout": "vertical",
-      "justifyContent": "center",
-      "alignItems": "center",
       "children": [
         {
           "type": "frame",
-          "id": "zS44X",
-          "name": "heroGroup",
-          "layout": "vertical",
-          "gap": 80,
+          "id": "qvFAJ",
+          "name": "statusBar",
+          "width": "fill_container",
+          "height": 62,
+          "padding": [
+            0,
+            24
+          ],
+          "justifyContent": "space_between",
           "alignItems": "center",
           "children": [
             {
-              "type": "path",
-              "id": "7YTaw",
-              "name": "leaf",
-              "geometry": "M24 0c16 16 20 28 20 38 0 12-9 18-20 18-11 0-20-6-20-18 0-10 4-22 20-38z",
-              "viewBox": [
-                0,
-                0,
-                48,
-                56
-              ],
-              "fill": "#2E5734",
-              "width": 52,
-              "height": 64
+              "type": "text",
+              "id": "F1Pza9",
+              "name": "time",
+              "fill": "$text-primary",
+              "content": "9:41",
+              "fontFamily": "Inter",
+              "fontSize": 14,
+              "fontWeight": "600"
             },
             {
               "type": "frame",
-              "id": "EZtuz",
-              "name": "textGroup",
+              "id": "e384z",
+              "name": "icons",
+              "gap": 6,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "oQs7x",
+                  "name": "sig",
+                  "width": 16,
+                  "height": 16,
+                  "iconFontName": "signal",
+                  "iconFontFamily": "lucide",
+                  "fill": "$text-primary"
+                },
+                {
+                  "type": "icon_font",
+                  "id": "Y35SJ1",
+                  "name": "bat",
+                  "width": 16,
+                  "height": 16,
+                  "iconFontName": "battery-full",
+                  "iconFontFamily": "lucide",
+                  "fill": "$text-primary"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "N3r2Bp",
+          "name": "centerWrap",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "gap": 24,
+          "padding": [
+            0,
+            40
+          ],
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "dTS0T",
+              "name": "logoMark",
+              "width": 128,
+              "height": 128,
+              "fill": "$accent.primary",
+              "cornerRadius": 36,
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "#4A9FD840",
+                "offset": {
+                  "x": 0,
+                  "y": 12
+                },
+                "blur": 32
+              },
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "sfOZJ",
+                  "width": 68,
+                  "height": 68,
+                  "iconFontName": "leaf",
+                  "iconFontFamily": "lucide",
+                  "fill": "$foreground.inverse"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "FQJlH",
+              "name": "nameStack",
               "layout": "vertical",
-              "gap": 12,
+              "gap": 8,
+              "padding": [
+                12,
+                0,
+                0,
+                0
+              ],
               "alignItems": "center",
               "children": [
                 {
                   "type": "text",
-                  "id": "pfHZV",
-                  "name": "titleText",
-                  "fill": "#2E5734",
+                  "id": "ScNu9",
+                  "name": "appName",
+                  "fill": "$foreground.primary",
                   "content": "Kotonoha",
-                  "fontFamily": "Funnel Sans",
-                  "fontSize": 36,
-                  "fontWeight": "700"
+                  "fontFamily": "$font.headings",
+                  "fontSize": 38,
+                  "fontWeight": "700",
+                  "letterSpacing": -0.5
                 },
                 {
                   "type": "text",
-                  "id": "q3VZn",
-                  "name": "subtitleText",
-                  "fill": "#7A7A6E",
+                  "id": "z9eR1F",
+                  "name": "appNameJa",
+                  "fill": "$foreground.secondary",
                   "content": "言の葉",
-                  "fontFamily": "Funnel Sans",
-                  "fontSize": 24
+                  "fontFamily": "$font.headings",
+                  "fontSize": 18,
+                  "fontWeight": "500",
+                  "letterSpacing": 2
                 }
               ]
+            },
+            {
+              "type": "text",
+              "id": "d5ZY7",
+              "name": "tagline",
+              "fill": "$foreground.muted",
+              "content": "노래로 배우는 일본어",
+              "fontFamily": "$font.body",
+              "fontSize": 14,
+              "fontWeight": "500"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "l8Xof",
+          "name": "bottomPad",
+          "width": "fill_container",
+          "height": 80,
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "icon_font",
+              "id": "QWupH",
+              "opacity": 0.6,
+              "width": 24,
+              "height": 24,
+              "iconFontName": "loader",
+              "iconFontFamily": "lucide",
+              "fill": "$accent.primary"
             }
           ]
         }
@@ -25466,88 +25583,402 @@
     },
     {
       "type": "frame",
-      "id": "Itnzi",
-      "x": 7637,
-      "y": -2372,
-      "name": "Onboarding Login",
-      "width": 393,
-      "height": 852,
-      "fill": "#FAF8F2",
+      "id": "Z77xcH",
+      "x": -103,
+      "y": -3372,
+      "name": "O2. Login",
+      "clip": true,
+      "width": 402,
+      "height": 874,
+      "fill": "$bg-primary",
       "layout": "vertical",
-      "padding": [
-        220,
-        0,
-        280,
-        0
-      ],
-      "justifyContent": "space_between",
-      "alignItems": "center",
       "children": [
         {
           "type": "frame",
-          "id": "3KYvM",
-          "name": "brandGroup",
-          "layout": "vertical",
-          "gap": 10,
+          "id": "nqUeo",
+          "name": "statusBar",
+          "width": "fill_container",
+          "height": 62,
+          "padding": [
+            0,
+            24
+          ],
+          "justifyContent": "space_between",
           "alignItems": "center",
           "children": [
             {
               "type": "text",
-              "id": "Mm5Ms",
-              "name": "brandTitle",
-              "fill": "#2E5734",
-              "content": "Kotonoha",
-              "fontFamily": "Funnel Sans",
-              "fontSize": 29,
-              "fontWeight": "700"
+              "id": "g4ZdA",
+              "name": "time",
+              "fill": "$text-primary",
+              "content": "9:41",
+              "fontFamily": "Inter",
+              "fontSize": 14,
+              "fontWeight": "600"
             },
             {
-              "type": "text",
-              "id": "OLQJp",
-              "name": "brandSub",
-              "fill": "#7A7A6E",
-              "content": "言の葉",
-              "fontFamily": "Funnel Sans",
-              "fontSize": 19
+              "type": "frame",
+              "id": "aFuKJ",
+              "name": "icons",
+              "gap": 6,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "OuP9x",
+                  "name": "sig",
+                  "width": 16,
+                  "height": 16,
+                  "iconFontName": "signal",
+                  "iconFontFamily": "lucide",
+                  "fill": "$text-primary"
+                },
+                {
+                  "type": "icon_font",
+                  "id": "brCFx",
+                  "name": "bat",
+                  "width": 16,
+                  "height": 16,
+                  "iconFontName": "battery-full",
+                  "iconFontFamily": "lucide",
+                  "fill": "$text-primary"
+                }
+              ]
             }
           ]
         },
         {
           "type": "frame",
-          "id": "JJP5c",
-          "name": "googleBtn",
-          "width": 240,
-          "height": 48,
-          "fill": "#FFFFFF",
-          "cornerRadius": 24,
-          "stroke": {
-            "align": "inside",
-            "thickness": 1,
-            "fill": "#DADCE0"
-          },
-          "gap": 10,
-          "justifyContent": "center",
+          "id": "xLWBs",
+          "name": "topPad",
+          "width": "fill_container",
+          "height": 60
+        },
+        {
+          "type": "frame",
+          "id": "r7feiv",
+          "name": "heroSection",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 20,
+          "padding": [
+            0,
+            32
+          ],
           "alignItems": "center",
           "children": [
             {
-              "type": "text",
-              "id": "P90Tb",
-              "name": "gIcon",
-              "fill": "#4285F4",
-              "content": "G",
-              "fontFamily": "Inter",
-              "fontSize": 18,
-              "fontWeight": "700"
+              "type": "frame",
+              "id": "De5EQ",
+              "name": "logoMark",
+              "width": 96,
+              "height": 96,
+              "fill": "$accent.primary",
+              "cornerRadius": 24,
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "#4A9FD840",
+                "offset": {
+                  "x": 0,
+                  "y": 8
+                },
+                "blur": 24
+              },
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "OTS6I",
+                  "width": 52,
+                  "height": 52,
+                  "iconFontName": "leaf",
+                  "iconFontFamily": "lucide",
+                  "fill": "$foreground.inverse"
+                }
+              ]
             },
             {
-              "type": "text",
-              "id": "hkmgZ",
-              "name": "gLabel",
-              "fill": "#1F1F1F",
-              "content": "Sign in with Google",
-              "fontFamily": "Inter",
-              "fontSize": 14,
-              "fontWeight": "500"
+              "type": "frame",
+              "id": "WMqhh",
+              "name": "nameStack",
+              "layout": "vertical",
+              "gap": 6,
+              "padding": [
+                8,
+                0,
+                0,
+                0
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "GMOYY",
+                  "name": "appName",
+                  "fill": "$foreground.primary",
+                  "content": "Kotonoha",
+                  "fontFamily": "$font.headings",
+                  "fontSize": 32,
+                  "fontWeight": "700",
+                  "letterSpacing": -0.5
+                },
+                {
+                  "type": "text",
+                  "id": "p143h",
+                  "name": "appNameJa",
+                  "fill": "$foreground.secondary",
+                  "content": "言の葉",
+                  "fontFamily": "$font.headings",
+                  "fontSize": 16,
+                  "fontWeight": "500",
+                  "letterSpacing": 2
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "A70URq",
+              "name": "copyStack",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 6,
+              "padding": [
+                20,
+                0,
+                0,
+                0
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "UFAnB",
+                  "name": "headline",
+                  "fill": "$foreground.primary",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "좋아하는 노래로",
+                  "textAlign": "center",
+                  "fontFamily": "$font.headings",
+                  "fontSize": 22,
+                  "fontWeight": "600",
+                  "letterSpacing": -0.3
+                },
+                {
+                  "type": "text",
+                  "id": "dZyNZ",
+                  "name": "headline2",
+                  "fill": "$foreground.primary",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "일본어 단어를 모아보세요",
+                  "textAlign": "center",
+                  "fontFamily": "$font.headings",
+                  "fontSize": 22,
+                  "fontWeight": "600",
+                  "letterSpacing": -0.3
+                },
+                {
+                  "type": "text",
+                  "id": "GHKUl",
+                  "name": "sub",
+                  "fill": "$foreground.muted",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "가사 속 단어를 잎사귀처럼 한 장씩",
+                  "lineHeight": 1.5,
+                  "textAlign": "center",
+                  "fontFamily": "$font.body",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "l69eXk",
+          "name": "spacer",
+          "width": "fill_container",
+          "height": "fill_container"
+        },
+        {
+          "type": "frame",
+          "id": "rg4Og",
+          "name": "footer",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 14,
+          "padding": [
+            0,
+            24,
+            40,
+            24
+          ],
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "GTw9H",
+              "name": "googleSignInBtn",
+              "width": "fill_container",
+              "height": 52,
+              "fill": "#FFFFFF",
+              "cornerRadius": 9999,
+              "stroke": {
+                "align": "inside",
+                "thickness": 1,
+                "fill": "$border-default"
+              },
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "#0000000F",
+                "offset": {
+                  "x": 0,
+                  "y": 2
+                },
+                "blur": 8
+              },
+              "gap": 12,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "jmF24",
+                  "name": "googleMark",
+                  "width": 20,
+                  "height": 20,
+                  "layout": "none",
+                  "children": [
+                    {
+                      "type": "path",
+                      "id": "FyDME",
+                      "x": 0,
+                      "y": 0,
+                      "name": "gBlue",
+                      "geometry": "M43.611 20.083h-1.611v-0.083h-18v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657c-3.572-3.329-8.35-5.382-13.618-5.382-11.046 0-20 8.954-20 20s8.954 20 20 20 20-8.954 20-20c0-1.341-0.138-2.65-0.389-3.917z",
+                      "viewBox": [
+                        0,
+                        0,
+                        48,
+                        48
+                      ],
+                      "fill": "#4285F4",
+                      "width": 20,
+                      "height": 20
+                    },
+                    {
+                      "type": "path",
+                      "id": "lqf84",
+                      "x": 0,
+                      "y": 0,
+                      "name": "gGreen",
+                      "geometry": "M6.306 14.691l6.571 4.819c1.778-4.402 6.084-7.51 11.123-7.51 3.059 0 5.842 1.154 7.961 3.039l5.657-5.657c-3.572-3.329-8.35-5.382-13.618-5.382-7.682 0-14.344 4.337-17.694 10.691z",
+                      "viewBox": [
+                        0,
+                        0,
+                        48,
+                        48
+                      ],
+                      "fill": "#34A853",
+                      "width": 20,
+                      "height": 20
+                    },
+                    {
+                      "type": "path",
+                      "id": "j2ZkA",
+                      "x": 0,
+                      "y": 0,
+                      "name": "gYellow",
+                      "geometry": "M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238c-2.008 1.521-4.504 2.43-7.219 2.43-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025c3.31 6.477 10.032 10.921 17.805 10.921z",
+                      "viewBox": [
+                        0,
+                        0,
+                        48,
+                        48
+                      ],
+                      "fill": "#FBBC05",
+                      "width": 20,
+                      "height": 20
+                    },
+                    {
+                      "type": "path",
+                      "id": "L8OtF",
+                      "x": 0,
+                      "y": 0,
+                      "name": "gRed",
+                      "geometry": "M43.611 20.083h-1.611v-0.083h-18v8h11.303c-0.792 2.237-2.231 4.166-4.087 5.571l0.003-0.002 6.19 5.238c-0.438 0.398 6.591-4.807 6.591-14.807 0-1.341-0.138-2.65-0.389-3.917z",
+                      "viewBox": [
+                        0,
+                        0,
+                        48,
+                        48
+                      ],
+                      "fill": "#EA4335",
+                      "width": 20,
+                      "height": 20
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "xF9ir",
+                  "name": "gLabel",
+                  "fill": "$foreground.primary",
+                  "content": "Google 계정으로 계속하기",
+                  "fontFamily": "$font.body",
+                  "fontSize": 15,
+                  "fontWeight": "600"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "l2PvW",
+              "name": "terms",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 2,
+              "padding": [
+                6,
+                0,
+                0,
+                0
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "jL6qm",
+                  "name": "termsLine1",
+                  "fill": "$foreground.muted",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "계속 진행하면 다음 사항에 동의하는 것입니다",
+                  "textAlign": "center",
+                  "fontFamily": "$font.body",
+                  "fontSize": 12,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "pU5zR",
+                  "name": "termsLine2",
+                  "fill": "$foreground.secondary",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "서비스 이용약관 · 개인정보 처리방침",
+                  "textAlign": "center",
+                  "fontFamily": "$font.body",
+                  "fontSize": 12,
+                  "fontWeight": "500"
+                }
+              ]
             }
           ]
         }

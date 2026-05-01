@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, View, StyleSheet, StatusBar } from 'react-native';
+import { StyleSheet, StatusBar } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -9,7 +9,7 @@ import { tokenStorage } from './src/utils/tokenStorage';
 import { isJwtExpired } from './src/utils/jwt';
 import { initBaseURL } from './src/api/client';
 import { useSettingsStore } from './src/stores/settingsStore';
-import { Colors } from './src/theme/theme';
+import SplashScreen from './src/screens/SplashScreen';
 
 GoogleSignin.configure({
   webClientId: process.env.EXPO_PUBLIC_GOOGLE_OAUTH_WEB_CLIENT_ID ?? '',
@@ -30,21 +30,17 @@ export default function App() {
     );
   }, []);
 
-  if (!initialRoute) {
-    return (
-      <View style={styles.loading}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-      </View>
-    );
-  }
-
   return (
     <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider>
         <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
-        <NavigationContainer>
-          <AppNavigator initialRoute={initialRoute} />
-        </NavigationContainer>
+        {!initialRoute ? (
+          <SplashScreen />
+        ) : (
+          <NavigationContainer>
+            <AppNavigator initialRoute={initialRoute} />
+          </NavigationContainer>
+        )}
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
@@ -52,5 +48,4 @@ export default function App() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  loading: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background },
 });
