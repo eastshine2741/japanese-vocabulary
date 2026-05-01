@@ -19,14 +19,12 @@ import org.springframework.data.domain.Pageable
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 import org.springframework.transaction.support.TransactionTemplate
-import java.time.Instant
-
 @Service
 class KoreanLyricTranslationService(
     private val lyricRepository: LyricRepository,
     private val morphologicalAnalyzer: MorphologicalAnalyzer,
     private val geminiClient: GeminiClient,
-    private val transactionTemplate: TransactionTemplate
+    private val transactionTemplate: TransactionTemplate,
 ) {
     private val logger = LoggerFactory.getLogger("KoreanLyricTranslation")
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -60,11 +58,9 @@ class KoreanLyricTranslationService(
                 Pageable.ofSize(BATCH_SIZE)
             )
             if (entities.isNotEmpty()) {
-                val now = Instant.now()
                 entities.forEach { entity ->
                     logger.info("[songId={}] Status: {} → PROCESSING", entity.songId, entity.status)
                     entity.status = KoreanLyricStatus.PROCESSING
-                    entity.updatedAt = now
                 }
                 lyricRepository.saveAllAndFlush(entities)
             }
@@ -189,7 +185,6 @@ class KoreanLyricTranslationService(
             // 5. Save result
             lyricEntity.analyzedContent = analyzedLines
             lyricEntity.status = KoreanLyricStatus.COMPLETED
-            lyricEntity.updatedAt = Instant.now()
             lyricRepository.save(lyricEntity)
             logger.info("[songId={}] Status: PROCESSING → COMPLETED", lyricEntity.songId)
             true

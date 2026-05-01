@@ -1,10 +1,13 @@
 package com.japanese.vocabulary.deck.entity
 
 import jakarta.persistence.*
+import org.springframework.data.annotation.CreatedDate
+import org.springframework.data.jpa.domain.support.AuditingEntityListener
 import java.time.Instant
 
 @Entity
 @Table(name = "decks")
+@EntityListeners(AuditingEntityListener::class)
 class DeckEntity(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -16,6 +19,7 @@ class DeckEntity(
     @Column(name = "song_id", nullable = false)
     val songId: Long,
 
-    @Column(name = "created_at")
-    val createdAt: Instant = Instant.now()
+    @CreatedDate
+    @Column(name = "created_at", updatable = false)
+    var createdAt: Instant? = null
 )

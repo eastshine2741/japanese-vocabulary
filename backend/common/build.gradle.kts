@@ -3,6 +3,7 @@ plugins {
     kotlin("plugin.spring")
     kotlin("plugin.jpa")
     id("io.spring.dependency-management")
+    `java-test-fixtures`
 }
 
 java {
@@ -14,6 +15,8 @@ dependencies {
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     runtimeOnly("com.mysql:mysql-connector-j")
+
+    testFixturesImplementation("org.springframework.boot:spring-boot-starter-test")
 }
 
 dependencyManagement {

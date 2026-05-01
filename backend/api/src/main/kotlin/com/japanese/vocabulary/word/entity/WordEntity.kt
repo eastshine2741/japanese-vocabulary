@@ -3,6 +3,8 @@ package com.japanese.vocabulary.word.entity
 import com.japanese.vocabulary.config.converter.WordMeaningListConverter
 import com.japanese.vocabulary.word.dto.WordMeaning
 import jakarta.persistence.*
+import org.springframework.data.annotation.CreatedDate
+import org.springframework.data.jpa.domain.support.AuditingEntityListener
 import java.time.Instant
 
 @Entity
@@ -10,6 +12,7 @@ import java.time.Instant
     name = "words",
     uniqueConstraints = [UniqueConstraint(columnNames = ["user_id", "japanese_text"])]
 )
+@EntityListeners(AuditingEntityListener::class)
 class WordEntity(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -28,6 +31,7 @@ class WordEntity(
     @Column(name = "meanings", columnDefinition = "JSON", nullable = false)
     var meanings: List<WordMeaning> = emptyList(),
 
-    @Column(name = "created_at")
-    val createdAt: Instant = Instant.now()
+    @CreatedDate
+    @Column(name = "created_at", updatable = false)
+    var createdAt: Instant? = null
 )
