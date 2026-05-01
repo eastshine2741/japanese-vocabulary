@@ -29,6 +29,7 @@ dependencies {
     runtimeOnly("com.mysql:mysql-connector-j")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation(testFixtures(project(":common")))
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
@@ -40,4 +41,7 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+    // Testcontainers' shaded docker-java client defaults to API 1.32, which Docker 25+ rejects.
+    systemProperty("api.version", "1.43")
+    environment("DOCKER_API_VERSION", "1.43")
 }

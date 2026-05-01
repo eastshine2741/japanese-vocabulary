@@ -1,0 +1,30 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: true
+
+  flyway:
+    enabled: true
+    locations: filesystem:../migration/src/main/resources/db/migration
+    baseline-on-migrate: true
+
+  task:
+    scheduling:
+      enabled: false
+
+# Stub external secrets so context loads cleanly under @ActiveProfiles("test")
+youtube:
+  api-key: test-youtube-key
+
+jwt:
+  secret: test-jwt-secret-at-least-32-chars-long-xxx
+
+gemini:
+  api-key: test-gemini-key
+  translation-model: gemini-test
+  word-meaning-model: gemini-test
