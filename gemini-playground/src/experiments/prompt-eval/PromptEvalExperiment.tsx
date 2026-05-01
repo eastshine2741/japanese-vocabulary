@@ -322,6 +322,9 @@ function ModePanel({
   const [savedPath, setSavedPath] = useState<string | null>(null);
   const [improverResult, setImproverResult] = useState<ImproverResult | null>(null);
   const [improverError, setImproverError] = useState<string | null>(null);
+  const [improvingRunning, setImprovingRunning] = useState(false);
+  // Checked deductions: key = "resultIdx-deductionIdx"
+  const [checkedDeductions, setCheckedDeductions] = useState<Set<string>>(new Set());
 
   // --- Save handlers ---
   const handleSavePrompt = useCallback(async () => {
@@ -473,7 +476,6 @@ function ModePanel({
       newResults.push({
         testCaseName: tc.name,
         criteria: criteria ?? null,
-        input: tc.input,
         geminiOutput: exec.text,
         geminiError: exec.error,
         graderResult,
@@ -488,38 +490,14 @@ function ModePanel({
     setResults(newResults);
     setExpandedCards(new Set(newResults.map((_, i) => i)));
 
-    // Step 3: Generate prompt improvement suggestion
-    const gradedResults = newResults
-      .filter((r) => r.graderResult != null)
-      .map((r) => ({
-        testCaseName: r.testCaseName,
-        score: r.graderResult!.score,
-        deductions: r.graderResult!.deductions,
-        comment: r.graderResult!.comment,
-      }));
-
-    if (gradedResults.length > 0) {
-      setProgress("Generating improvement suggestion...");
-      const improverInput = buildImproverPrompt(promptText, gradedResults);
-      const improverRes = await callGemini(
-        apiKey,
-        graderModel,
-        "",
-        improverInput,
-        0,
-        IMPROVER_RESPONSE_SCHEMA
-      );
-
-      if (improverRes.text && !improverRes.error) {
-        try {
-          setImproverResult(JSON.parse(improverRes.text));
-        } catch {
-          setImproverError("Failed to parse improver response");
-        }
-      } else {
-        setImproverError(improverRes.error);
-      }
-    }
+    // Initialize all deductions as checked
+    const allDeductionKeys = new Set<string>();
+    newResults.forEach((r, ri) => {
+      r.graderResult?.deductions.forEach((_, di) => {
+        allDeductionKeys.add(`${ri}-${di}`);
+      });
+    });
+    setCheckedDeductions(allDeductionKeys);
 
     setProgress("");
     setRunning(false);
@@ -569,6 +547,67 @@ function ModePanel({
     responseSchema,
     mode,
   ]);
+
+  // --- Toggle deduction checkbox ---
+  const toggleDeduction = useCallback((key: string) => {
+    setCheckedDeductions((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
+
+  // --- Generate improvement from checked deductions ---
+  const runImprovement = useCallback(async () => {
+    if (improvingRunning) return;
+    setImprovingRunning(true);
+    setImproverResult(null);
+    setImproverError(null);
+
+    // Build grading results with only checked deductions
+    const gradedResults: { testCaseName: string; score: number; deductions: { reason: string; points: number }[]; comment: string }[] = [];
+    results.forEach((r, ri) => {
+      if (!r.graderResult) return;
+      const filteredDeductions = r.graderResult.deductions.filter((_, di) =>
+        checkedDeductions.has(`${ri}-${di}`)
+      );
+      if (filteredDeductions.length === 0) return;
+      gradedResults.push({
+        testCaseName: r.testCaseName,
+        score: r.graderResult.score,
+        deductions: filteredDeductions,
+        comment: r.graderResult.comment,
+      });
+    });
+
+    if (gradedResults.length === 0) {
+      setImproverError("No deductions selected");
+      setImprovingRunning(false);
+      return;
+    }
+
+    const improverInput = buildImproverPrompt(promptText, gradedResults);
+    const improverRes = await callGemini(
+      apiKey,
+      graderModel,
+      "",
+      improverInput,
+      0,
+      IMPROVER_RESPONSE_SCHEMA
+    );
+
+    if (improverRes.text && !improverRes.error) {
+      try {
+        setImproverResult(JSON.parse(improverRes.text));
+      } catch {
+        setImproverError("Failed to parse improver response");
+      }
+    } else {
+      setImproverError(improverRes.error ?? "Unknown error");
+    }
+    setImprovingRunning(false);
+  }, [improvingRunning, results, checkedDeductions, promptText, apiKey, graderModel]);
 
   const averageScore =
     results.length > 0
@@ -806,11 +845,79 @@ function ModePanel({
         </div>
       )}
 
-      {/* Prompt Improvement Suggestion */}
+      {/* Deduction Review + Prompt Improvement */}
+      {results.some((r) => r.graderResult && r.graderResult.deductions.length > 0) && (
+        <div className="pe-improver-panel">
+          <div className="pe-improver-header">
+            <span>Deduction Review</span>
+            <div className="pe-editable-actions">
+              <button
+                className="pe-btn-secondary"
+                style={{ padding: "4px 10px", fontSize: 12 }}
+                onClick={() => {
+                  const allKeys = new Set<string>();
+                  results.forEach((r, ri) => {
+                    r.graderResult?.deductions.forEach((_, di) => {
+                      allKeys.add(`${ri}-${di}`);
+                    });
+                  });
+                  setCheckedDeductions(
+                    checkedDeductions.size === allKeys.size ? new Set() : allKeys
+                  );
+                }}
+              >
+                {(() => {
+                  let total = 0;
+                  results.forEach((r) => { total += r.graderResult?.deductions.length ?? 0; });
+                  return checkedDeductions.size === total ? "Uncheck All" : "Check All";
+                })()}
+              </button>
+              <button
+                className="pe-btn-primary"
+                onClick={runImprovement}
+                disabled={improvingRunning || checkedDeductions.size === 0}
+              >
+                {improvingRunning ? "Generating..." : "Generate Improvement"}
+              </button>
+            </div>
+          </div>
+          <div className="pe-deduction-review-list">
+            {results.map((r, ri) => {
+              if (!r.graderResult || r.graderResult.deductions.length === 0) return null;
+              return (
+                <div key={ri} className="pe-deduction-review-group">
+                  <div className="pe-deduction-review-group-header">
+                    {r.testCaseName}
+                    <span className={`pe-result-score ${scoreClass(r.graderResult.score)}`} style={{ fontSize: 13 }}>
+                      {r.graderResult.score}/10
+                    </span>
+                  </div>
+                  {r.graderResult.deductions.map((d, di) => {
+                    const key = `${ri}-${di}`;
+                    return (
+                      <label key={di} className="pe-deduction-review-item">
+                        <input
+                          type="checkbox"
+                          checked={checkedDeductions.has(key)}
+                          onChange={() => toggleDeduction(key)}
+                        />
+                        <span className="pe-deduction-points">-{d.points}</span>
+                        <span>{d.reason}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Prompt Improvement Result */}
       {improverError && (
         <div className="pe-improver-panel">
           <div className="pe-improver-header">Prompt Improvement</div>
-          <div className="pe-deduction">Improvement error: {improverError}</div>
+          <div className="pe-deduction" style={{ margin: 16 }}>Improvement error: {improverError}</div>
         </div>
       )}
       {improverResult && (

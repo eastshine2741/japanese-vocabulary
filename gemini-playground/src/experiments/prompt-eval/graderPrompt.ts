@@ -24,12 +24,13 @@ Score the output from 0 to 10.
 - Start from 10 and deduct points for each issue found.
 - Evaluate based on BOTH the global guidelines AND the test case criteria.
 - Each deduction must have a clear reason and point value.
+- Each deduction reason MUST include the lyric line index (e.g. "[index 3]" or "[index 12, 15]") where the issue occurs.
 - The sum of deduction points should equal (10 - score).
 - Write all reasons and comments in Korean.
 
 Return a JSON object with:
 - "score": integer 0-10
-- "deductions": array of {"reason": "<감점 사유>", "points": <감점 점수>}
+- "deductions": array of {"reason": "[index N] <감점 사유>", "points": <감점 점수>}
 - "comment": "<종합 평가 코멘트>"`;
 }
 

@@ -43,7 +43,6 @@ export interface GraderResult {
 export interface TestCaseResult {
   testCaseName: string;
   criteria: string | null;
-  input: unknown;
   geminiOutput: string | null;
   geminiError: string | null;
   graderResult: GraderResult | null;

@@ -1,0 +1,2516 @@
+{
+  "timestamp": "2026-04-26T08:07:16.100Z",
+  "mode": "translation",
+  "executionModel": "gemini-3-flash-preview",
+  "graderModel": "gemini-2.5-pro",
+  "temperature": 0.3,
+  "systemPrompt": "You are an expert Japanese-to-Korean lyrics translator. You receive a JSON array of lyric lines, each with \"index\" and \"text\" fields.\n\nFor each line, produce a JSON object with:\n- \"index\": same as input\n- \"koreanLyrics\": A natural and contextually accurate Korean translation of the Japanese text.\n- \"koreanPronounciation\": The Korean Hangul representation of the original Japanese text's pronunciation (한국어로 표기한 일본어 발음).\n\n**Translation Process & Guidelines:**\n\n**1. Holistic Analysis:** Before translating, read all lyrics to understand the song's overall theme, mood, and speaker's persona. This context is crucial for capturing nuanced meanings (e.g., double meanings, sarcasm).\n\n**2. Tone and Politeness:**\n   - Meticulously preserve the tone (e.g., aggressive, melancholic, sarcastic) and politeness level (경어체/반말) of each line.\n   - Pay close attention to sentence endings, particles (e.g., な, よ, か), and interjections (e.g., そっか), as they are key indicators of nuance and formality.\n\n**3. Stylistic Fidelity:**\n   - If the original lyrics use repetition for emphasis or rhythm (e.g., '凡ミス 凡ミス'), preserve this structure in the translation.\n   - Recreate Japanese wordplay or rhymes with equivalent Korean expressions where possible.\n\n**4. Idioms and Cultural Terms (Critical):**\n   - **Four-Character Idioms (사자성어/四字熟語):** Be extremely cautious. Many idioms are \"false friends\" with different meanings or connotations in Korean and Japanese. **Crucially, verify the nuance before translating.** For example, Japanese '八方美人' (negative) is NOT the same as Korean '팔방미인' (positive). If the meaning differs, you MUST translate it descriptively in plain Korean.\n   - **Cultural Terms:** For Japan-specific terms (e.g., '侘び寂び'), use the Korean Hangul pronunciation ('와비사비') if no direct Korean equivalent exists.\n\n**5. Accuracy and Naturalness:**\n   - Double-check for basic translation errors, such as mistaking homonyms (e.g., '成敗' vs. '성패') or reversing the grammatical subject/object.\n   - Avoid overly literal translations that sound unnatural in Korean. The final lyrics must flow smoothly.\n\n**Output Rules:**\n- Translate all lines, preserving the original order and count.\n- Return ONLY a single, valid JSON array of objects.\n- For empty input lines, return empty strings for \"koreanLyrics\" and \"koreanPronounciation\".\n- The \"koreanPronounciation\" field must contain ONLY Hangul characters. No original Japanese characters (like 'ッ' or 'テ') should remain.\n- If a line contains non-Japanese text (e.g., \"1, 2, 3\"), ensure the `koreanLyrics` and `koreanPronounciation` are consistent. If you translate it as \"원, 투, 쓰리\", the pronunciation should also be \"원, 투, 쓰리\".",
+  "guidelines": "1. Should preserve entire original Japanese lyrics' tone and mood.\n2. Should preserve each original Japanese lyric's tone, mood, politeness level.\n3. For Japan-specific cultural terms: use the equivalent Korean word if one exists; otherwise keep the original Japanese pronunciation in Korean (한국어 발음).\n4. If the original uses rhyme or wordplay based on Japanese pronunciation, recreate it with Korean words of similar meaning.\n5. Use four-character idioms (사자성어/四字熟語) when appropriate. However, if an idiom carries a different meaning in Korean vs Japanese, write it out in plain Korean instead.",
+  "averageScore": 7.875,
+  "totalCost": 0.141621,
+  "results": [
+    {
+      "testCaseName": "다맛테쨩",
+      "criteria": null,
+      "input": [
+        {
+          "text": "ねぇ　安心しておくれ",
+          "index": 0,
+          "startTimeMs": null
+        },
+        {
+          "text": "分かる　貴方は賢く強くて美しい",
+          "index": 1,
+          "startTimeMs": null
+        },
+        {
+          "text": "他意はねぇ",
+          "index": 2,
+          "startTimeMs": null
+        },
+        {
+          "text": "\"運が良かっただけじゃない？笑\"",
+          "index": 3,
+          "startTimeMs": null
+        },
+        {
+          "text": "なんて思っちゃいけないね",
+          "index": 4,
+          "startTimeMs": null
+        },
+        {
+          "text": "メ　メ　メ",
+          "index": 5,
+          "startTimeMs": null
+        },
+        {
+          "text": "迷　侘び寂び",
+          "index": 6,
+          "startTimeMs": null
+        },
+        {
+          "text": "果実は捨て Tap",
+          "index": 7,
+          "startTimeMs": null
+        },
+        {
+          "text": "錆びた威",
+          "index": 8,
+          "startTimeMs": null
+        },
+        {
+          "text": "微かにラッタッタ",
+          "index": 9,
+          "startTimeMs": null
+        },
+        {
+          "text": "侘び寂び",
+          "index": 10,
+          "startTimeMs": null
+        },
+        {
+          "text": "無実を祟った",
+          "index": 11,
+          "startTimeMs": null
+        },
+        {
+          "text": "恥　恥",
+          "index": 12,
+          "startTimeMs": null
+        },
+        {
+          "text": "足音は鳴らさないデ！",
+          "index": 13,
+          "startTimeMs": null
+        },
+        {
+          "text": "貴方がいなきゃ僕は勇ましい",
+          "index": 14,
+          "startTimeMs": null
+        },
+        {
+          "text": "足跡だけ残してくネ！",
+          "index": 15,
+          "startTimeMs": null
+        },
+        {
+          "text": "貴方には言えないが大嫌いだ　ヤハハ",
+          "index": 16,
+          "startTimeMs": null
+        },
+        {
+          "text": "おい シシシ　黙ってちゃん（はッ）",
+          "index": 17,
+          "startTimeMs": null
+        },
+        {
+          "text": "あらやだやだ　いまどきサイレンス",
+          "index": 18,
+          "startTimeMs": null
+        },
+        {
+          "text": "シシシ　黙ってちゃん（はッ）",
+          "index": 19,
+          "startTimeMs": null
+        },
+        {
+          "text": "傷付きたくないないNight Night",
+          "index": 20,
+          "startTimeMs": null
+        },
+        {
+          "text": "ねぇ　安心しておくれ",
+          "index": 21,
+          "startTimeMs": null
+        },
+        {
+          "text": "分かる　貴方は儚く弱くて美しい",
+          "index": 22,
+          "startTimeMs": null
+        },
+        {
+          "text": "流石お嬢さん！流石お嬢さん！",
+          "index": 23,
+          "startTimeMs": null
+        },
+        {
+          "text": "僕の冴えない人生とは違いますなお嬢さん！",
+          "index": 24,
+          "startTimeMs": null
+        },
+        {
+          "text": "明日もいっしょにあそぼ",
+          "index": 25,
+          "startTimeMs": null
+        },
+        {
+          "text": "訂　闇Love it",
+          "index": 26,
+          "startTimeMs": null
+        },
+        {
+          "text": "罵詈はしまった Tap",
+          "index": 27,
+          "startTimeMs": null
+        },
+        {
+          "text": "錆びた威",
+          "index": 28,
+          "startTimeMs": null
+        },
+        {
+          "text": "微かにラッタッタ",
+          "index": 29,
+          "startTimeMs": null
+        },
+        {
+          "text": "侘び寂び",
+          "index": 30,
+          "startTimeMs": null
+        },
+        {
+          "text": "刻が止まった Tap",
+          "index": 31,
+          "startTimeMs": null
+        },
+        {
+          "text": "恥　恥",
+          "index": 32,
+          "startTimeMs": null
+        },
+        {
+          "text": "ラララ　ララ　ララララララ",
+          "index": 33,
+          "startTimeMs": null
+        },
+        {
+          "text": "此の空の下　僕ら愛おしい",
+          "index": 34,
+          "startTimeMs": null
+        },
+        {
+          "text": "ラララ　ララ　ララララララ",
+          "index": 35,
+          "startTimeMs": null
+        },
+        {
+          "text": "この星はほら　なんて愛おしい",
+          "index": 36,
+          "startTimeMs": null
+        },
+        {
+          "text": "お前がいなけりゃなぁ",
+          "index": 37,
+          "startTimeMs": null
+        },
+        {
+          "text": "足音は鳴らさないデ！",
+          "index": 38,
+          "startTimeMs": null
+        },
+        {
+          "text": "貴方がいなきゃ僕は勇ましい",
+          "index": 39,
+          "startTimeMs": null
+        },
+        {
+          "text": "足跡だけ残してくネ！",
+          "index": 40,
+          "startTimeMs": null
+        },
+        {
+          "text": "貴方には言えないが大嫌いだ　ヤハハ",
+          "index": 41,
+          "startTimeMs": null
+        },
+        {
+          "text": "鮮やかな色の街で",
+          "index": 42,
+          "startTimeMs": null
+        },
+        {
+          "text": "貴方（ひと）に怯える僕らだまってちゃん",
+          "index": 43,
+          "startTimeMs": null
+        },
+        {
+          "text": "足跡だけ残してくネ！",
+          "index": 44,
+          "startTimeMs": null
+        },
+        {
+          "text": "こんな夜でも愛は狂わしい　ヤハハ",
+          "index": 45,
+          "startTimeMs": null
+        },
+        {
+          "text": "貴方に怯える僕はだまってちゃん",
+          "index": 46,
+          "startTimeMs": null
+        }
+      ],
+      "geminiOutput": "[{\"index\":0,\"koreanLyrics\":\"저기, 안심하렴\",\"koreanPronounciation\":\"네- 안신시테 오쿠레\"},{\"index\":1,\"koreanLyrics\":\"알아, 당신은 현명하고 강하며 아름다워\",\"koreanPronounciation\":\"와카루 아나타와 카시코쿠 츠요쿠테 우츠쿠시이\"},{\"index\":2,\"koreanLyrics\":\"딴뜻은 없어\",\"koreanPronounciation\":\"타이와 네-\"},{\"index\":3,\"koreanLyrics\":\"\\\"운이 좋았을 뿐이잖아? (웃음)\\\"\",\"koreanPronounciation\":\"\\\"운가 요캇타 다케쟈나이? 와라\\\"\"},{\"index\":4,\"koreanLyrics\":\"라고 생각하면 안 되겠지\",\"koreanPronounciation\":\"난테 오못챠 이케나이네\"},{\"index\":5,\"koreanLyrics\":\"메 메 메\",\"koreanPronounciation\":\"메 메 메\"},{\"index\":6,\"koreanLyrics\":\"미혹, 와비사비\",\"koreanPronounciation\":\"메이 와비사비\"},{\"index\":7,\"koreanLyrics\":\"과실은 버리고 Tap\",\"koreanPronounciation\":\"카지츠와 스테 탭\"},{\"index\":8,\"koreanLyrics\":\"녹슨 위세\",\"koreanPronounciation\":\"사비타 이\"},{\"index\":9,\"koreanLyrics\":\"희미하게 랏탓타\",\"koreanPronounciation\":\"카스카니 랏탓타\"},{\"index\":10,\"koreanLyrics\":\"와비사비\",\"koreanPronounciation\":\"와비사비\"},{\"index\":11,\"koreanLyrics\":\"무고함을 저주했어\",\"koreanPronounciation\":\"무지츠오 타탓타\"},{\"index\":12,\"koreanLyrics\":\"부끄러움, 부끄러움\",\"koreanPronounciation\":\"하지 하지\"},{\"index\":13,\"koreanLyrics\":\"발소리는 내지 마!\",\"koreanPronounciation\":\"아시오토와 나라사나이데!\"},{\"index\":14,\"koreanLyrics\":\"당신이 없으면 난 용감해\",\"koreanPronounciation\":\"아나타가 이나캬 보쿠와 이사마시이\"},{\"index\":15,\"koreanLyrics\":\"발자국만 남기고 갈게!\",\"koreanPronounciation\":\"아시아토다케 노코시테쿠네!\"},{\"index\":16,\"koreanLyrics\":\"당신에겐 말 못 하지만 정말 싫어, 야하하\",\"koreanPronounciation\":\"아나타니와 이에나이가 다이키라이다 야하하\"},{\"index\":17,\"koreanLyrics\":\"어이, 히히히, 입 다문 아이 (핫)\",\"koreanPronounciation\":\"오이 시시시 다맛테쨩 (핫)\"},{\"index\":18,\"koreanLyrics\":\"어머 싫어 싫어, 요즘 세상에 사이런스\",\"koreanPronounciation\":\"아라 야다야다 이마도키 사이렌스\"},{\"index\":19,\"koreanLyrics\":\"히히히, 입 다문 아이 (핫)\",\"koreanPronounciation\":\"시시시 다맛테쨩 (핫)\"},{\"index\":20,\"koreanLyrics\":\"상처받고 싶지 않아 않아 Night Night\",\"koreanPronounciation\":\"키즈츠키타쿠 나이나이 나이트 나이트\"},{\"index\":21,\"koreanLyrics\":\"저기, 안심하렴\",\"koreanPronounciation\":\"네- 안신시테 오쿠레\"},{\"index\":22,\"koreanLyrics\":\"알아, 당신은 덧없고 약하며 아름다워\",\"koreanPronounciation\":\"와카루 아나타와 하카나쿠 요와쿠테 우츠쿠시이\"},{\"index\":23,\"koreanLyrics\":\"역시 아가씨! 역시 아가씨!\",\"koreanPronounciation\":\"사스가 오죠-상! 사스가 오죠-상!\"},{\"index\":24,\"koreanLyrics\":\"제 보잘것없는 인생과는 다르시네요, 아가씨!\",\"koreanPronounciation\":\"보쿠노 사에나이 진세이토와 치가이마스나 오죠-상!\"},{\"index\":25,\"koreanLyrics\":\"내일도 같이 놀자\",\"koreanPronounciation\":\"아시타모 잇쇼니 아소보\"},{\"index\":26,\"koreanLyrics\":\"정정, 어둠 Love it\",\"koreanPronounciation\":\"테이 야미 러빗\"},{\"index\":27,\"koreanLyrics\":\"욕설은 집어넣고 Tap\",\"koreanPronounciation\":\"바리와 시맛타 탭\"},{\"index\":28,\"koreanLyrics\":\"녹슨 위세\",\"koreanPronounciation\":\"사비타 이\"},{\"index\":29,\"koreanLyrics\":\"희미하게 랏탓타\",\"koreanPronounciation\":\"카스카니 랏탓타\"},{\"index\":30,\"koreanLyrics\":\"와비사비\",\"koreanPronounciation\":\"와비사비\"},{\"index\":31,\"koreanLyrics\":\"시간이 멈췄어 Tap\",\"koreanPronounciation\":\"토키가 토맛타 탭\"},{\"index\":32,\"koreanLyrics\":\"부끄러움, 부끄러움\",\"koreanPronounciation\":\"하지 하지\"},{\"index\":33,\"koreanLyrics\":\"라라라 라라 라라라라라라\",\"koreanPronounciation\":\"라라라 라라 라라라라라라\"},{\"index\":34,\"koreanLyrics\":\"이 하늘 아래 우리들은 사랑스러워\",\"koreanPronounciation\":\"코노 소라노 시타 보쿠라 이토오시이\"},{\"index\":35,\"koreanLyrics\":\"라라라 라라 라라라라라라\",\"koreanPronounciation\":\"라라라 라라 라라라라라라\"},{\"index\":36,\"koreanLyrics\":\"이 별은 봐, 얼마나 사랑스러운지\",\"koreanPronounciation\":\"코노 호시와 호라 난테 이토오시이\"},{\"index\":37,\"koreanLyrics\":\"너만 없었더라면 말이지\",\"koreanPronounciation\":\"오마에가 이나케랴나-\"},{\"index\":38,\"koreanLyrics\":\"발소리는 내지 마!\",\"koreanPronounciation\":\"아시오토와 나라사나이데!\"},{\"index\":39,\"koreanLyrics\":\"당신이 없으면 난 용감해\",\"koreanPronounciation\":\"아나타가 이나캬 보쿠와 이사마시이\"},{\"index\":40,\"koreanLyrics\":\"발자국만 남기고 갈게!\",\"koreanPronounciation\":\"아시아토다케 노코시테쿠네!\"},{\"index\":41,\"koreanLyrics\":\"당신에겐 말 못 하지만 정말 싫어, 야하하\",\"koreanPronounciation\":\"아나타니와 이에나이가 다이키라이다 야하하\"},{\"index\":42,\"koreanLyrics\":\"선명한 색깔의 거리에서\",\"koreanPronounciation\":\"아자야카나 이로노 마치데\"},{\"index\":43,\"koreanLyrics\":\"당신(그 사람)에게 겁먹은 우리들은 입 다문 아이\",\"koreanPronounciation\":\"히토니 오비에루 보쿠라 다맛테쨩\"},{\"index\":44,\"koreanLyrics\":\"발자국만 남기고 갈게!\",\"koreanPronounciation\":\"아시아토다케 노코시테쿠네!\"},{\"index\":45,\"koreanLyrics\":\"이런 밤이라도 사랑은 미칠 듯해, 야하하\",\"koreanPronounciation\":\"콘나 요루데모 아이와 쿠루와시이 야하하\"},{\"index\":46,\"koreanLyrics\":\"당신에게 겁먹은 나는 입 다문 아이\",\"koreanPronounciation\":\"아나타니 오비에루 보쿠와 다맛테쨩\"}]",
+      "geminiError": null,
+      "graderResult": {
+        "score": 10,
+        "deductions": [],
+        "comment": "전반적으로 매우 훌륭한 번역입니다. 가사의 전체적인 분위기와 각 라인의 어조, 공손함의 정도를 완벽하게 유지했습니다. 특히 일본 고유 용어인 '侘び寂び(와비사비)'를 한국어 발음 그대로 표기하고(가이드라인 3), 20번 라인의 'ないない(나이나이) Night Night'을 '않아 않아 Night Night'으로 번역하여 일본어 발음을 이용한 언어유희를 한국어로 훌륭하게 재현하는 등(가이드라인 4) 모든 가이드라인을 완벽하게 충족하는 고품질의 번역입니다."
+      },
+      "graderError": null,
+      "executionLatencyMs": 22136,
+      "gradingLatencyMs": 35496,
+      "executionCost": 0.005984499999999999,
+      "gradingCost": 0.00658
+    },
+    {
+      "testCaseName": "8누달",
+      "criteria": null,
+      "input": [
+        {
+          "text": "何もいらない",
+          "index": 0,
+          "startTimeMs": 1240
+        },
+        {
+          "text": "心臓が煩かった 歩くたび息が詰まった",
+          "index": 1,
+          "startTimeMs": 24430
+        },
+        {
+          "text": "初めてバイトを逃げ出した",
+          "index": 2,
+          "startTimeMs": 29430
+        },
+        {
+          "text": "音楽も生活も、もうどうでもよかった",
+          "index": 3,
+          "startTimeMs": 32210
+        },
+        {
+          "text": "ただ気に食わないものばかりが増えた",
+          "index": 4,
+          "startTimeMs": 36940
+        },
+        {
+          "text": "八月某、月明かり、自転車で飛んで",
+          "index": 5,
+          "startTimeMs": 41490
+        },
+        {
+          "text": "東伏見の高架橋、小平、富士見通りと商店街",
+          "index": 6,
+          "startTimeMs": 45710
+        },
+        {
+          "text": "夜風が鼻を擽ぐった",
+          "index": 7,
+          "startTimeMs": 50290
+        },
+        {
+          "text": "この胸の痛みは気のせいだ",
+          "index": 8,
+          "startTimeMs": 52380
+        },
+        {
+          "text": "わかってた わかった振りをした",
+          "index": 9,
+          "startTimeMs": 54750
+        },
+        {
+          "text": "最低だ 最低だ",
+          "index": 10,
+          "startTimeMs": 60840
+        },
+        {
+          "text": "僕の全部最低だ",
+          "index": 11,
+          "startTimeMs": 63190
+        },
+        {
+          "text": "君を形に残したかった",
+          "index": 12,
+          "startTimeMs": 65240
+        },
+        {
+          "text": "想い出になんてしてやるもんか",
+          "index": 13,
+          "startTimeMs": 67010
+        },
+        {
+          "text": "最低だ 最低だ",
+          "index": 14,
+          "startTimeMs": 69590
+        },
+        {
+          "text": "気持ちよくて仕方がないわ",
+          "index": 15,
+          "startTimeMs": 71950
+        },
+        {
+          "text": "最低だってこの歌詞自体が",
+          "index": 16,
+          "startTimeMs": 74320
+        },
+        {
+          "text": "人生、二十七で死ねるなら",
+          "index": 17,
+          "startTimeMs": 78430
+        },
+        {
+          "text": "ロックンロールは僕を救った",
+          "index": 18,
+          "startTimeMs": 80940
+        },
+        {
+          "text": "考えるのも辞めだ！どうせ死ぬんだから",
+          "index": 19,
+          "startTimeMs": 83390
+        },
+        {
+          "text": "君も、何もいらない",
+          "index": 20,
+          "startTimeMs": 87440
+        },
+        {
+          "text": "心臓が煩かった",
+          "index": 21,
+          "startTimeMs": 111290
+        },
+        {
+          "text": "笑うほど喉が渇いた",
+          "index": 22,
+          "startTimeMs": 113650
+        },
+        {
+          "text": "初めて心を売り出した",
+          "index": 23,
+          "startTimeMs": 116350
+        },
+        {
+          "text": "狭心もプライドも、もうどうでもよかった",
+          "index": 24,
+          "startTimeMs": 119690
+        },
+        {
+          "text": "気に食わない奴にも頭を下げた",
+          "index": 25,
+          "startTimeMs": 124190
+        },
+        {
+          "text": "八月某、あの頃の景色を跨いだ",
+          "index": 26,
+          "startTimeMs": 128850
+        },
+        {
+          "text": "ストックホルムの露天商",
+          "index": 27,
+          "startTimeMs": 133250
+        },
+        {
+          "text": "キルナ、ガムラスタンは石畳",
+          "index": 28,
+          "startTimeMs": 135010
+        },
+        {
+          "text": "君だけを胸に仕舞った",
+          "index": 29,
+          "startTimeMs": 137630
+        },
+        {
+          "text": "この空の青さも気の所為だ",
+          "index": 30,
+          "startTimeMs": 139470
+        },
+        {
+          "text": "笑ってた、笑った顔のまま",
+          "index": 31,
+          "startTimeMs": 141960
+        },
+        {
+          "text": "最低だ 傲慢だ 君もみんな貪欲だ",
+          "index": 32,
+          "startTimeMs": 148160
+        },
+        {
+          "text": "ドラマチックな歌も愛もさぁ",
+          "index": 33,
+          "startTimeMs": 152600
+        },
+        {
+          "text": "馬鹿らしくて仕方がないわ",
+          "index": 34,
+          "startTimeMs": 154760
+        },
+        {
+          "text": "知っていた 知っていた",
+          "index": 35,
+          "startTimeMs": 156600
+        },
+        {
+          "text": "君の人生、君のものだ",
+          "index": 36,
+          "startTimeMs": 159200
+        },
+        {
+          "text": "最低だっていくら叫ぼうが",
+          "index": 37,
+          "startTimeMs": 161460
+        },
+        {
+          "text": "そうだ、きっとそうだ",
+          "index": 38,
+          "startTimeMs": 165980
+        },
+        {
+          "text": "あの世ではロックンロールが流れてるんだ",
+          "index": 39,
+          "startTimeMs": 167780
+        },
+        {
+          "text": "賛美歌とか流行らない",
+          "index": 40,
+          "startTimeMs": 170430
+        },
+        {
+          "text": "神様がいないんだから",
+          "index": 41,
+          "startTimeMs": 172430
+        },
+        {
+          "text": "罪も過ちも犯罪も自殺も戦争も",
+          "index": 42,
+          "startTimeMs": 174770
+        },
+        {
+          "text": "マイノリティも全部知らない",
+          "index": 43,
+          "startTimeMs": 178760
+        },
+        {
+          "text": "最低だ 最低だ 別れなんて傲慢だ",
+          "index": 44,
+          "startTimeMs": 202440
+        },
+        {
+          "text": "君の全てに頷きたいんだ",
+          "index": 45,
+          "startTimeMs": 207070
+        },
+        {
+          "text": "そんなの欺瞞と同じだ、エルマ",
+          "index": 46,
+          "startTimeMs": 209020
+        },
+        {
+          "text": "最低だ 最低だ",
+          "index": 47,
+          "startTimeMs": 211470
+        },
+        {
+          "text": "愛おしくて仕方がないわ",
+          "index": 48,
+          "startTimeMs": 213690
+        },
+        {
+          "text": "ドラマチックな夜で僕を悼みたい",
+          "index": 49,
+          "startTimeMs": 215960
+        },
+        {
+          "text": "最低だ 最低だ 言葉なんて冗長だ",
+          "index": 50,
+          "startTimeMs": 220260
+        },
+        {
+          "text": "君の人生は月明かりだ",
+          "index": 51,
+          "startTimeMs": 224330
+        },
+        {
+          "text": "有りがちだなんて言わせるものか",
+          "index": 52,
+          "startTimeMs": 226540
+        },
+        {
+          "text": "最低だ 最低だ",
+          "index": 53,
+          "startTimeMs": 228800
+        },
+        {
+          "text": "笑われたって仕方がないわ",
+          "index": 54,
+          "startTimeMs": 231090
+        },
+        {
+          "text": "最低なんて語呂だけの歌詞だ",
+          "index": 55,
+          "startTimeMs": 233040
+        },
+        {
+          "text": "人生、二十七で死ねるなら",
+          "index": 56,
+          "startTimeMs": 237390
+        },
+        {
+          "text": "ロックンロールは僕を救った",
+          "index": 57,
+          "startTimeMs": 240330
+        },
+        {
+          "text": "考えるのも辞めだ！どうせ死ぬんだから",
+          "index": 58,
+          "startTimeMs": 242580
+        },
+        {
+          "text": "今も、愛も、過去も、夢も",
+          "index": 59,
+          "startTimeMs": 246410
+        },
+        {
+          "text": "思い出も、鼻歌も、薄い目も、夜霞も",
+          "index": 60,
+          "startTimeMs": 254960
+        },
+        {
+          "text": "優しさも、苦しさも、花房も、憂鬱も",
+          "index": 61,
+          "startTimeMs": 259560
+        },
+        {
+          "text": "あの夏も、この歌も",
+          "index": 62,
+          "startTimeMs": 263660
+        },
+        {
+          "text": "偽善も、夜風も、嘘も、君も、僕も、青天井も",
+          "index": 63,
+          "startTimeMs": 265630
+        },
+        {
+          "text": "何もいらない",
+          "index": 64,
+          "startTimeMs": 269950
+        }
+      ],
+      "geminiOutput": "[{\"index\":0,\"koreanLyrics\":\"아무것도 필요 없어\",\"koreanPronounciation\":\"나니모 이라나이\"},{\"index\":1,\"koreanLyrics\":\"심장이 시끄러웠어 걸을 때마다 숨이 막혔어\",\"koreanPronounciation\":\"신조-가 우루사캇타 아루쿠 타비 이키가 츠맛타\"},{\"index\":2,\"koreanLyrics\":\"처음으로 알바를 도망쳤어\",\"koreanPronounciation\":\"하지메테 바이토오 니게다시타\"},{\"index\":3,\"koreanLyrics\":\"음악도 생활도, 이제 아무래도 좋았어\",\"koreanPronounciation\":\"온가쿠모 세이카츠모, 모- 도-데모 요캇타\"},{\"index\":4,\"koreanLyrics\":\"그저 마음에 안 드는 것들만 늘어났어\",\"koreanPronounciation\":\"타다 키니 쿠와나이 모노바카리가 후에타\"},{\"index\":5,\"koreanLyrics\":\"8월 어느 날, 달빛, 자전거로 날아서\",\"koreanPronounciation\":\"하치가츠 보-, 츠키아카리, 지텐샤데 톤데\"},{\"index\":6,\"koreanLyrics\":\"히가시후시미의 고가교, 코다이라, 후지미 거리와 상점가\",\"koreanPronounciation\":\"히가시후시미노 코-카쿄-, 코다이라, 후지미도-리토 쇼-텐가이\"},{\"index\":7,\"koreanLyrics\":\"밤바람이 코를 간지럽혔어\",\"koreanPronounciation\":\"요카제가 하나오 쿠스굿타\"},{\"index\":8,\"koreanLyrics\":\"이 가슴의 통증은 기분 탓이야\",\"koreanPronounciation\":\"코노 무네노 이타미와 키노 세이다\"},{\"index\":9,\"koreanLyrics\":\"알고 있었어 아는 척을 했어\",\"koreanPronounciation\":\"와캇테타 와캇타 후리오 시타\"},{\"index\":10,\"koreanLyrics\":\"최악이야 최악이야\",\"koreanPronounciation\":\"사이테이다 사이테이다\"},{\"index\":11,\"koreanLyrics\":\"나의 전부 최악이야\",\"koreanPronounciation\":\"보쿠노 젠부 사이테이다\"},{\"index\":12,\"koreanLyrics\":\"너를 형체로 남기고 싶었어\",\"koreanPronounciation\":\"키미오 카타치니 노코시타캇타\"},{\"index\":13,\"koreanLyrics\":\"추억 따위로 만들까 보냐\",\"koreanPronounciation\":\"오모이데니 난테 시테 야루몬카\"},{\"index\":14,\"koreanLyrics\":\"최악이야 최악이야\",\"koreanPronounciation\":\"사이테이다 사이테이다\"},{\"index\":15,\"koreanLyrics\":\"기분 좋아서 어쩔 수가 없어\",\"koreanPronounciation\":\"키모치 요쿠테 시카타가 나이와\"},{\"index\":16,\"koreanLyrics\":\"최악이라니 이 가사 자체가\",\"koreanPronounciation\":\"사이테이다테 코노 카시 지타이가\"},{\"index\":17,\"koreanLyrics\":\"인생, 스물일곱에 죽을 수 있다면\",\"koreanPronounciation\":\"진세이, 니쥬-나나데 시네루나라\"},{\"index\":18,\"koreanLyrics\":\"로큰롤은 나를 구원했어\",\"koreanPronounciation\":\"록쿤로-루와 보쿠오 스쿠웃타\"},{\"index\":19,\"koreanLyrics\":\"생각하는 것도 그만이야! 어차피 죽을 테니까\",\"koreanPronounciation\":\"칸가에루노모 야메다! 도-세 시눈다카라\"},{\"index\":20,\"koreanLyrics\":\"너도, 아무것도 필요 없어\",\"koreanPronounciation\":\"키미모, 나니모 이라나이\"},{\"index\":21,\"koreanLyrics\":\"심장이 시끄러웠어\",\"koreanPronounciation\":\"신조-가 우루사캇타\"},{\"index\":22,\"koreanLyrics\":\"웃을수록 목이 말랐어\",\"koreanPronounciation\":\"와라우호도 노도가 카와이타\"},{\"index\":23,\"koreanLyrics\":\"처음으로 마음을 내다 팔았어\",\"koreanPronounciation\":\"하지메테 코코로오 우리다시타\"},{\"index\":24,\"koreanLyrics\":\"좁은 마음도 자존심도, 이제 아무래도 좋았어\",\"koreanPronounciation\":\"쿄-신모 푸라이도모, 모- 도-데모 요캇타\"},{\"index\":25,\"koreanLyrics\":\"마음에 안 드는 녀석에게도 고개를 숙였어\",\"koreanPronounciation\":\"키니 쿠와나이 야츠니모 아타마오 사게타\"},{\"index\":26,\"koreanLyrics\":\"8월 어느 날, 그 시절의 풍경을 가로질렀어\",\"koreanPronounciation\":\"하치가츠 보-, 아노 코로노 케시키오 마타이다\"},{\"index\":27,\"koreanLyrics\":\"스톡홀름의 노점상\",\"koreanPronounciation\":\"스톸쿠호루무노 로텐쇼-\"},{\"index\":28,\"koreanLyrics\":\"키루나, 감라 스탄은 돌담길\",\"koreanPronounciation\":\"키루나, 가무라스탄와 이시다타미\"},{\"index\":29,\"koreanLyrics\":\"너만을 가슴에 담았어\",\"koreanPronounciation\":\"키미다케오 무네니 시맛타\"},{\"index\":30,\"koreanLyrics\":\"이 하늘의 푸름도 기분 탓이야\",\"koreanPronounciation\":\"코노 소라노 아오사모 키노 세이다\"},{\"index\":31,\"koreanLyrics\":\"웃고 있었어, 웃는 얼굴 그대로\",\"koreanPronounciation\":\"와랏테타, 와랏타 카오노 마마\"},{\"index\":32,\"koreanLyrics\":\"최악이야 오만해 너도 모두 탐욕스러워\",\"koreanPronounciation\":\"사이테이다 고-만다 키미모 민나 돈요쿠다\"},{\"index\":33,\"koreanLyrics\":\"드라마틱한 노래도 사랑도 말이야\",\"koreanPronounciation\":\"도라마칫쿠나 우타모 아이모 사-\"},{\"index\":34,\"koreanLyrics\":\"바보 같아서 어쩔 수가 없어\",\"koreanPronounciation\":\"바카라시쿠테 시카타가 나이와\"},{\"index\":35,\"koreanLyrics\":\"알고 있었어 알고 있었어\",\"koreanPronounciation\":\"싯테이타 싯테이타\"},{\"index\":36,\"koreanLyrics\":\"네 인생은, 네 것이야\",\"koreanPronounciation\":\"키미노 진세이, 키미노 모노다\"},{\"index\":37,\"koreanLyrics\":\"최악이라고 아무리 외쳐봐도\",\"koreanPronounciation\":\"사이테이다테 이쿠라 사케보-가\"},{\"index\":38,\"koreanLyrics\":\"그래, 분명 그럴 거야\",\"koreanPronounciation\":\"소-다, 킷토 소-다\"},{\"index\":39,\"koreanLyrics\":\"저세상에서는 로큰롤이 흐르고 있는 거야\",\"koreanPronounciation\":\"아노 요데와 록쿤로-루가 나가레테룬다\"},{\"index\":40,\"koreanLyrics\":\"찬송가 같은 건 유행하지 않아\",\"koreanPronounciation\":\"산비카토카 하야라나이\"},{\"index\":41,\"koreanLyrics\":\"신은 없으니까\",\"koreanPronounciation\":\"카미사마가 이나인다카라\"},{\"index\":42,\"koreanLyrics\":\"죄도 잘못도 범죄도 자살도 전쟁도\",\"koreanPronounciation\":\"츠미모 아야마치모 한자이모 지사츠모 센소-모\"},{\"index\":43,\"koreanLyrics\":\"마이너리티도 전부 몰라\",\"koreanPronounciation\":\"마이노리티모 젠부 시라나이\"},{\"index\":44,\"koreanLyrics\":\"최악이야 최악이야 이별 따위 오만이야\",\"koreanPronounciation\":\"사이테이다 사이테이다 와카레난테 고-만다\"},{\"index\":45,\"koreanLyrics\":\"너의 모든 것에 고개를 끄덕이고 싶어\",\"koreanPronounciation\":\"키미노 스베테니 우나즈키타인다\"},{\"index\":46,\"koreanLyrics\":\"그런 건 기만과 마찬가지야, 엘마\",\"koreanPronounciation\":\"손나노 기만토 오나지다, 에루마\"},{\"index\":47,\"koreanLyrics\":\"최악이야 최악이야\",\"koreanPronounciation\":\"사이테이다 사이테이다\"},{\"index\":48,\"koreanLyrics\":\"사랑스러워서 어쩔 수가 없어\",\"koreanPronounciation\":\"이토오시쿠테 시카타가 나이와\"},{\"index\":49,\"koreanLyrics\":\"드라마틱한 밤으로 나를 애도하고 싶어\",\"koreanPronounciation\":\"도라마칫쿠나 요루데 보쿠오 이타미타이\"},{\"index\":50,\"koreanLyrics\":\"최악이야 최악이야 말 따위 장황해\",\"koreanPronounciation\":\"사이테이다 사이테이다 코토바난테 죠-쵸-다\"},{\"index\":51,\"koreanLyrics\":\"네 인생은 달빛이야\",\"koreanPronounciation\":\"키미노 진세이와 츠키아카리다\"},{\"index\":52,\"koreanLyrics\":\"흔해 빠졌다는 말은 하게 두지 않겠어\",\"koreanPronounciation\":\"아리가치다난테 이와세루모노카\"},{\"index\":53,\"koreanLyrics\":\"최악이야 최악이야\",\"koreanPronounciation\":\"사이테이다 사이테이다\"},{\"index\":54,\"koreanLyrics\":\"비웃음을 사도 어쩔 수 없어\",\"koreanPronounciation\":\"와라와레탓테 시카타가 나이와\"},{\"index\":55,\"koreanLyrics\":\"최악이라니 어감뿐인 가사야\",\"koreanPronounciation\":\"사이테이난테 고로다케노 카시다\"},{\"index\":56,\"koreanLyrics\":\"인생, 스물일곱에 죽을 수 있다면\",\"koreanPronounciation\":\"진세이, 니쥬-나나데 시네루나라\"},{\"index\":57,\"koreanLyrics\":\"로큰롤은 나를 구원했어\",\"koreanPronounciation\":\"록쿤로-루와 보쿠오 스쿠웃타\"},{\"index\":58,\"koreanLyrics\":\"생각하는 것도 그만이야! 어차피 죽을 테니까\",\"koreanPronounciation\":\"칸가에루노모 야메다! 도-세 시눈다카라\"},{\"index\":59,\"koreanLyrics\":\"지금도, 사랑도, 과거도, 꿈도\",\"koreanPronounciation\":\"이마모, 아이모, 카코모, 유메모\"},{\"index\":60,\"koreanLyrics\":\"추억도, 콧노래도, 게슴츠레한 눈도, 밤안개도\",\"koreanPronounciation\":\"오모이데모, 하나우타모, 우스이 메모, 요가스미모\"},{\"index\":61,\"koreanLyrics\":\"다정함도, 괴로움도, 꽃송이도, 우울함도\",\"koreanPronounciation\":\"야사시사모, 쿠루시사모, 하나부사모, 유-우츠모\"},{\"index\":62,\"koreanLyrics\":\"그 여름도, 이 노래도\",\"koreanPronounciation\":\"아노 나츠모, 코노 우타모\"},{\"index\":63,\"koreanLyrics\":\"위선도, 밤바람도, 거짓말도, 너도, 나도, 푸른 하늘도\",\"koreanPronounciation\":\"기젠모, 요카제모, 우소모, 키미모, 보쿠모, 아오텐죠-모\"},{\"index\":64,\"koreanLyrics\":\"아무것도 필요 없어\",\"koreanPronounciation\":\"나니모 이라나이\"}]",
+      "geminiError": null,
+      "graderResult": {
+        "score": 7,
+        "deductions": [
+          {
+            "reason": "[index 28] '石畳'(돌로 포장된 길)를 '돌담길'로 번역한 것은 명백한 오역이며, 가사의 시각적 이미지를 완전히 왜곡합니다.",
+            "points": 1
+          },
+          {
+            "reason": "[index 15, 34, 48] '仕方がないわ'로 끝나는 구절들의 번역이 '어쩔 수가 없어'로 일관되어, 원문이 가진 각기 다른 맥락의 강렬하고 복합적인 감정(자조, 쾌감, 애정 등)을 충분히 살리지 못하고 밋밋하게 표현되었습니다.",
+            "points": 1
+          },
+          {
+            "reason": "[index 55] '語呂'(단어의 소리나 리듬)를 '어감'으로 번역하여, '최악'이라는 단어를 의미가 아닌 소리의 느낌 때문에 사용했다는 원문의 핵심적인 뉘앙스를 정확히 전달하지 못했습니다.",
+            "points": 0.5
+          },
+          {
+            "reason": "[index 12] '形に残す'를 '형체로 남기다'로 번역했는데, '형체'라는 단어 선택이 다소 딱딱하고 부자연스러워 시적인 느낌을 해칩니다. '형태로' 또는 '모습으로'가 더 적절합니다.",
+            "points": 0.5
+          }
+        ],
+        "comment": "전반적으로 원문의 의미를 충실히 전달하려 노력했으나, 일부 명백한 오역과 중요한 뉘앙스 손실이 발견됩니다. 특히 지명과 함께 묘사되는 풍경에 대한 오역은 가사의 이미지를 크게 훼손합니다. 또한, 반복되는 특정 표현의 번역이 단조로워 원곡의 격한 감정선을 충분히 살리지 못한 점이 아쉬움으로 남습니다."
+      },
+      "graderError": null,
+      "executionLatencyMs": 136231,
+      "gradingLatencyMs": 55758,
+      "executionCost": 0.0091815,
+      "gradingCost": 0.01199
+    },
+    {
+      "testCaseName": "다이다이키라이",
+      "criteria": "한국어 번역에 '팔방미인'을 그대로 사용해선 안된다. 일본어와 한국어에서의 의미가 완전히 다르기 때문이다. 반면 '백해무익'과 '반면교사'는 한국어에서와 의미가 같으므로 그대로 사용한다.\n\"ダイダイダイダイダイキライ\"를 \"대대대대대싫어해\"라고 번역하면 안된다. '대싫어해'라는 표현은 한국어에 없기 때문이다.",
+      "input": [
+        {
+          "text": "全部 全部 アンタのせいだ",
+          "index": 0,
+          "startTimeMs": 50
+        },
+        {
+          "text": "反吐が出るくらいにウザったいわ",
+          "index": 1,
+          "startTimeMs": 2500
+        },
+        {
+          "text": "何かに縋って諂って",
+          "index": 2,
+          "startTimeMs": 4500
+        },
+        {
+          "text": "期待したアタシが馬鹿だった",
+          "index": 3,
+          "startTimeMs": 6250
+        },
+        {
+          "text": "ご機嫌伺いの八方美人",
+          "index": 4,
+          "startTimeMs": 8220
+        },
+        {
+          "text": "それ故にアンチな一生Gimme",
+          "index": 5,
+          "startTimeMs": 9980
+        },
+        {
+          "text": "浅いキャパシティ まいどおおきに",
+          "index": 6,
+          "startTimeMs": 11840
+        },
+        {
+          "text": "つまるとこ 人生ずっと地味",
+          "index": 7,
+          "startTimeMs": 13830
+        },
+        {
+          "text": "｢憎たらしい！｣｢痛々しい！｣",
+          "index": 8,
+          "startTimeMs": 15720
+        },
+        {
+          "text": "無視出来ないのが一層",
+          "index": 9,
+          "startTimeMs": 17630
+        },
+        {
+          "text": "腹立たしい 苛立たしい",
+          "index": 10,
+          "startTimeMs": 18890
+        },
+        {
+          "text": "そろそろ飽きた 自画自賛に",
+          "index": 11,
+          "startTimeMs": 20140
+        },
+        {
+          "text": "(Look around!!)",
+          "index": 12,
+          "startTimeMs": 21850
+        },
+        {
+          "text": "ライクの反対はアパシー",
+          "index": 13,
+          "startTimeMs": 22650
+        },
+        {
+          "text": "≒ 繋がれた証",
+          "index": 14,
+          "startTimeMs": 24540
+        },
+        {
+          "text": "切り離せない関係",
+          "index": 15,
+          "startTimeMs": 26370
+        },
+        {
+          "text": "逸らしてしまいたいわ",
+          "index": 16,
+          "startTimeMs": 28160
+        },
+        {
+          "text": "これは所謂 ヘイトスピーチ",
+          "index": 17,
+          "startTimeMs": 30270
+        },
+        {
+          "text": "匿名性の声明を生命に載せてんだ",
+          "index": 18,
+          "startTimeMs": 33270
+        },
+        {
+          "text": "鳴り止まないサイレン 近づく度に痙攣",
+          "index": 19,
+          "startTimeMs": 37760
+        },
+        {
+          "text": "赤信号にずっと従順です。",
+          "index": 20,
+          "startTimeMs": 40530
+        },
+        {
+          "text": "大体 アナタのコト アタシ",
+          "index": 21,
+          "startTimeMs": 44060
+        },
+        {
+          "text": "ダイダイダイダイダイキライ",
+          "index": 22,
+          "startTimeMs": 46670
+        },
+        {
+          "text": "OMG 情けない 最早",
+          "index": 23,
+          "startTimeMs": 48100
+        },
+        {
+          "text": "バイバイバイバイバイしたい",
+          "index": 24,
+          "startTimeMs": 50160
+        },
+        {
+          "text": "脳内も予測不能 故に",
+          "index": 25,
+          "startTimeMs": 51960
+        },
+        {
+          "text": "解解解解解は無い",
+          "index": 26,
+          "startTimeMs": 54080
+        },
+        {
+          "text": "どうだい？アタシのコト アナタ",
+          "index": 27,
+          "startTimeMs": 55630
+        },
+        {
+          "text": "ダイダイダイダイダイキライになった？",
+          "index": 28,
+          "startTimeMs": 57650
+        },
+        {
+          "text": "あァ 百害あって一利ナシ Nothing Not see",
+          "index": 29,
+          "startTimeMs": 59900
+        },
+        {
+          "text": "もしタラレバ並べてもニコチンだし",
+          "index": 30,
+          "startTimeMs": 63380
+        },
+        {
+          "text": "I miss youって近付いた結末は凡ミス 凡ミス",
+          "index": 31,
+          "startTimeMs": 67090
+        },
+        {
+          "text": "センキュー 反面教師",
+          "index": 32,
+          "startTimeMs": 70340
+        },
+        {
+          "text": "後味 一生消えてくんないわ",
+          "index": 33,
+          "startTimeMs": 72110
+        },
+        {
+          "text": "よしよし いい子ね",
+          "index": 34,
+          "startTimeMs": 75930
+        },
+        {
+          "text": "笑顔振り撒き パラパラ いい子ね",
+          "index": 35,
+          "startTimeMs": 77640
+        },
+        {
+          "text": "だけど だけど その本性は？",
+          "index": 36,
+          "startTimeMs": 79620
+        },
+        {
+          "text": "善悪の区別も付かないの？笑 はぁ。",
+          "index": 37,
+          "startTimeMs": 81520
+        },
+        {
+          "text": "減点方式で取り巻く環境に巻かれて",
+          "index": 38,
+          "startTimeMs": 83610
+        },
+        {
+          "text": "生涯、痛い！痛い！痛い！も聞かれないわ！って",
+          "index": 39,
+          "startTimeMs": 86580
+        },
+        {
+          "text": "当然の報いにクラっちゃった",
+          "index": 40,
+          "startTimeMs": 89280
+        },
+        {
+          "text": "人は鏡なんです",
+          "index": 41,
+          "startTimeMs": 105400
+        },
+        {
+          "text": "実のところ依存は両辺です",
+          "index": 42,
+          "startTimeMs": 107380
+        },
+        {
+          "text": "シャットダウンしても付き纏う",
+          "index": 43,
+          "startTimeMs": 109360
+        },
+        {
+          "text": "己の弱さが不甲斐ない",
+          "index": 44,
+          "startTimeMs": 111200
+        },
+        {
+          "text": "全部全部アンタのせいって",
+          "index": 45,
+          "startTimeMs": 113070
+        },
+        {
+          "text": "反吐が出るくらいに止まんないわ",
+          "index": 46,
+          "startTimeMs": 115020
+        },
+        {
+          "text": "いっその事 切り離せた方が楽なのにな",
+          "index": 47,
+          "startTimeMs": 117270
+        },
+        {
+          "text": "大体アナタのコトアタシ",
+          "index": 48,
+          "startTimeMs": 122160
+        },
+        {
+          "text": "ダイダイダイダイダイキライ",
+          "index": 49,
+          "startTimeMs": 124060
+        },
+        {
+          "text": "OMG 情けない最早",
+          "index": 50,
+          "startTimeMs": 125730
+        },
+        {
+          "text": "バイバイバイバイバイしたい",
+          "index": 51,
+          "startTimeMs": 127970
+        },
+        {
+          "text": "脳内も予測不能 故に",
+          "index": 52,
+          "startTimeMs": 129350
+        },
+        {
+          "text": "解解解解解は無い",
+          "index": 53,
+          "startTimeMs": 131420
+        },
+        {
+          "text": "どうだい？アタシのコト アナタ",
+          "index": 54,
+          "startTimeMs": 133210
+        },
+        {
+          "text": "ダイダイダイダイダイキライになった？",
+          "index": 55,
+          "startTimeMs": 135230
+        },
+        {
+          "text": "あァ 百害あって一利ナシ Nothing Not see",
+          "index": 56,
+          "startTimeMs": 137410
+        },
+        {
+          "text": "もしタラレバ並べてもニコチンだし",
+          "index": 57,
+          "startTimeMs": 140850
+        },
+        {
+          "text": "I miss youって近付いた結末は凡ミス 凡ミス",
+          "index": 58,
+          "startTimeMs": 144590
+        },
+        {
+          "text": "センキュー 反面教師",
+          "index": 59,
+          "startTimeMs": 148230
+        },
+        {
+          "text": "後味 一生消えてくんないわ",
+          "index": 60,
+          "startTimeMs": 149680
+        }
+      ],
+      "geminiOutput": "[{\"index\":0,\"koreanLyrics\":\"전부 전부 네 탓이야\",\"koreanPronounciation\":\"젠부 젠부 안타노 세이다\"},{\"index\":1,\"koreanLyrics\":\"구역질이 날 정도로 짜증 나\",\"koreanPronounciation\":\"헤도가 데루 쿠라이니 우잣타이와\"},{\"index\":2,\"koreanLyrics\":\"무언가에 매달리고 아첨하며\",\"koreanPronounciation\":\"나니카니 스갓테 헤츠랏테\"},{\"index\":3,\"koreanLyrics\":\"기대했던 내가 바보였어\",\"koreanPronounciation\":\"키타이시타 아타시가 바카닷타\"},{\"index\":4,\"koreanLyrics\":\"비위나 맞추는 가식적인 사람\",\"koreanPronounciation\":\"고키겐 우카가이노 핫포-비진\"},{\"index\":5,\"koreanLyrics\":\"그렇기에 안티인 일생을 Gimme\",\"koreanPronounciation\":\"소레 유에니 안치나 잇쇼- 기미\"},{\"index\":6,\"koreanLyrics\":\"얕은 캐파시티 매번 고마워\",\"koreanPronounciation\":\"아사이 캬파시티 마이도 오오키니\"},{\"index\":7,\"koreanLyrics\":\"결국 인생은 내내 수수해\",\"koreanPronounciation\":\"츠마루토코 진세- 즛토 지미\"},{\"index\":8,\"koreanLyrics\":\"\\\"얄미워!\\\" \\\"애처로워!\\\"\",\"koreanPronounciation\":\"\\\"니쿠타라시이!\\\" \\\"이타이타시이!\\\"\"},{\"index\":9,\"koreanLyrics\":\"무시할 수 없는 게 한층 더\",\"koreanPronounciation\":\"무시 데키나이노가 잇소-\"},{\"index\":10,\"koreanLyrics\":\"화가 나 짜증 나\",\"koreanPronounciation\":\"하라다타시이 이라다타시이\"},{\"index\":11,\"koreanLyrics\":\"슬슬 질렸어 자화자찬에\",\"koreanPronounciation\":\"소로소로 아키타 지가지산니\"},{\"index\":12,\"koreanLyrics\":\"(Look around!!)\",\"koreanPronounciation\":\"(룩 어라운드!!)\"},{\"index\":13,\"koreanLyrics\":\"라이크의 반대는 아파시\",\"koreanPronounciation\":\"라이쿠노 한타이와 아파시-\"},{\"index\":14,\"koreanLyrics\":\"≒ 이어진 증거\",\"koreanPronounciation\":\"니어리 이코-루 츠나가레타 아카시\"},{\"index\":15,\"koreanLyrics\":\"떼어낼 수 없는 관계\",\"koreanPronounciation\":\"키리하나세나이 칸케이\"},{\"index\":16,\"koreanLyrics\":\"외면해 버리고 싶어\",\"koreanPronounciation\":\"소라시테 시마이타이와\"},{\"index\":17,\"koreanLyrics\":\"이것은 이른바 헤이트 스피치\",\"koreanPronounciation\":\"코레와 이와유루 헤이토 스피-치\"},{\"index\":18,\"koreanLyrics\":\"익명성의 성명을 생명에 싣고 있어\",\"koreanPronounciation\":\"토쿠메-세-노 세-메-오 세-메-니 노세텐다\"},{\"index\":19,\"koreanLyrics\":\"멈추지 않는 사이렌 다가올 때마다 경련\",\"koreanPronounciation\":\"나리야마나이 사이렌 치카즈쿠 타비니 케-렌\"},{\"index\":20,\"koreanLyrics\":\"빨간불에 계속 순종적이에요.\",\"koreanPronounciation\":\"아카신고-니 즛토 쥬-준데스.\"},{\"index\":21,\"koreanLyrics\":\"대체로 너라는 존재를 난\",\"koreanPronounciation\":\"다이타이 아나타노 코토 아타시\"},{\"index\":22,\"koreanLyrics\":\"정말정말정말정말정말 싫어해\",\"koreanPronounciation\":\"다이다이다이다이다이키라이\"},{\"index\":23,\"koreanLyrics\":\"OMG 한심해 이제는\",\"koreanPronounciation\":\"오엠지 나사케나이 모하야\"},{\"index\":24,\"koreanLyrics\":\"바이바이바이바이바이 하고 싶어\",\"koreanPronounciation\":\"바이바이바이바이바이 시타이\"},{\"index\":25,\"koreanLyrics\":\"뇌 속도 예측 불능 그렇기에\",\"koreanPronounciation\":\"노-나이모 요소쿠후노- 유에니\"},{\"index\":26,\"koreanLyrics\":\"답답답답답은 없어\",\"koreanPronounciation\":\"카이카이카이카이카이와 나이\"},{\"index\":27,\"koreanLyrics\":\"어때? 나라는 존재를 넌\",\"koreanPronounciation\":\"도-다이? 아타시노 코토 아나타\"},{\"index\":28,\"koreanLyrics\":\"정말정말정말정말정말 싫어하게 됐어?\",\"koreanPronounciation\":\"다이다이다이다이다이키라이니 낫타?\"},{\"index\":29,\"koreanLyrics\":\"아아 백해무익해 Nothing Not see\",\"koreanPronounciation\":\"아아 햐쿠가이 앗테 이치리 나시 낫싱 낫 시-\"},{\"index\":30,\"koreanLyrics\":\"만약 그랬더라면 하고 늘어놔 봤자 니코틴일 뿐이고\",\"koreanPronounciation\":\"모시 타라레바 나라베테모 니코친다시\"},{\"index\":31,\"koreanLyrics\":\"I miss you라며 다가간 결말은 어처구니없는 실수, 실수\",\"koreanPronounciation\":\"아이 미스 유-테 치카즈이타 케츠마츠와 본미스 본미스\"},{\"index\":32,\"koreanLyrics\":\"땡큐 반면교사\",\"koreanPronounciation\":\"센큐- 한멘쿄-시\"},{\"index\":33,\"koreanLyrics\":\"뒷맛이 평생 사라져 주질 않아\",\"koreanPronounciation\":\"아토아지 잇쇼- 키에테 쿤나이와\"},{\"index\":34,\"koreanLyrics\":\"착하지 착한 아이네\",\"koreanPronounciation\":\"요시요시 이이코네\"},{\"index\":35,\"koreanLyrics\":\"미소를 뿌리며 팔랑팔랑 착한 아이네\",\"koreanPronounciation\":\"에가오 후리마키 파라파라 이이코네\"},{\"index\":36,\"koreanLyrics\":\"하지만 하지만 그 본성은?\",\"koreanPronounciation\":\"다케도 다케도 소노 혼쇼-와?\"},{\"index\":37,\"koreanLyrics\":\"선악의 구별도 못 하는 거야? (웃음) 하아.\",\"koreanPronounciation\":\"젠아쿠노 쿠베츠모 츠카나이노? 와라 하아.\"},{\"index\":38,\"koreanLyrics\":\"감점 방식으로 둘러싼 환경에 휩쓸려서\",\"koreanPronounciation\":\"겐텐호-시키데 토리마쿠 칸쿄-니 마카레테\"},{\"index\":39,\"koreanLyrics\":\"평생, 아파! 아파! 아파! 소리도 못 들어! 라며\",\"koreanPronounciation\":\"쇼-가이, 이타이! 이타이! 이타이!모 키카레나이와! 앗테\"},{\"index\":40,\"koreanLyrics\":\"당연한 응보에 당해버렸어\",\"koreanPronounciation\":\"토-젠노 무쿠이니 쿠랏찻타\"},{\"index\":41,\"koreanLyrics\":\"사람은 거울이에요\",\"koreanPronounciation\":\"히토와 카가미난데스\"},{\"index\":42,\"koreanLyrics\":\"사실 의존은 양쪽 모두예요\",\"koreanPronounciation\":\"지츠노 토코로 이존와 료-헨데스\"},{\"index\":43,\"koreanLyrics\":\"셧다운 해도 끈질기게 따라붙는\",\"koreanPronounciation\":\"샷토다운 시테모 츠키마토-\"},{\"index\":44,\"koreanLyrics\":\"자신의 약함이 한심해\",\"koreanPronounciation\":\"오노레노 요와사가 후가이나이\"},{\"index\":45,\"koreanLyrics\":\"전부 전부 네 탓이라고\",\"koreanPronounciation\":\"젠부 젠부 안타노 세잇테\"},{\"index\":46,\"koreanLyrics\":\"구역질이 날 정도로 멈추질 않아\",\"koreanPronounciation\":\"헤도가 데루 쿠라이니 토만나이와\"},{\"index\":47,\"koreanLyrics\":\"차라리 떼어낼 수 있는 편이 편할 텐데\",\"koreanPronounciation\":\"잇소노 코토 키리하나세타 호-가 라쿠나노니나\"},{\"index\":48,\"koreanLyrics\":\"대체로 너라는 존재를 난\",\"koreanPronounciation\":\"다이타이 아나타노 코토 아타시\"},{\"index\":49,\"koreanLyrics\":\"정말정말정말정말정말 싫어해\",\"koreanPronounciation\":\"다이다이다이다이다이키라이\"},{\"index\":50,\"koreanLyrics\":\"OMG 한심해 이제는\",\"koreanPronounciation\":\"오엠지 나사케나이 모하야\"},{\"index\":51,\"koreanLyrics\":\"바이바이바이바이바이 하고 싶어\",\"koreanPronounciation\":\"바이바이바이바이바이 시타이\"},{\"index\":52,\"koreanLyrics\":\"뇌 속도 예측 불능 그렇기에\",\"koreanPronounciation\":\"노-나이모 요소쿠후노- 유에니\"},{\"index\":53,\"koreanLyrics\":\"답답답답답은 없어\",\"koreanPronounciation\":\"카이카이카이카이카이와 나이\"},{\"index\":54,\"koreanLyrics\":\"어때? 나라는 존재를 넌\",\"koreanPronounciation\":\"도-다이? 아타시노 코토 아나타\"},{\"index\":55,\"koreanLyrics\":\"정말정말정말정말정말 싫어하게 됐어?\",\"koreanPronounciation\":\"다이다이다이다이다이키라이니 낫타?\"},{\"index\":56,\"koreanLyrics\":\"아아 백해무익해 Nothing Not see\",\"koreanPronounciation\":\"아아 햐쿠가이 앗테 이치리 나시 낫싱 낫 시-\"},{\"index\":57,\"koreanLyrics\":\"만약 그랬더라면 하고 늘어놔 봤자 니코틴일 뿐이고\",\"koreanPronounciation\":\"모시 타라레바 나라베테모 니코친다시\"},{\"index\":58,\"koreanLyrics\":\"I miss you라며 다가간 결말은 어처구니없는 실수, 실수\",\"koreanPronounciation\":\"아이 미스 유-테 치카즈이타 케츠마츠와 본미스 본미스\"},{\"index\":59,\"koreanLyrics\":\"땡큐 반면교사\",\"koreanPronounciation\":\"센큐- 한멘쿄-시\"},{\"index\":60,\"koreanLyrics\":\"뒷맛이 평생 사라져 주질 않아\",\"koreanPronounciation\":\"아토아지 잇쇼- 키에테 쿤나이와\"}]",
+      "geminiError": null,
+      "graderResult": {
+        "score": 10,
+        "deductions": [],
+        "comment": "번역이 매우 훌륭합니다. 테스트 케이스의 모든 기준을 완벽하게 충족했습니다. 특히, 일본어와 한국어에서 의미가 다른 '팔방미인'의 뉘앙스를 정확히 파악하여 '비위나 맞추는 가식적인 사람'으로 풀어 번역한 점, '백해무익'과 '반면교사'와 같이 의미가 동일한 사자성어는 그대로 사용한 점이 좋습니다. 또한, 한국어에 없는 표현인 '대싫어해'를 사용하지 않고 'ダイダイダイダイダイキライ'의 반복을 '정말'의 반복으로 자연스럽게 번역하여 강조의 의미를 잘 살렸습니다. 가사 전반의 공격적이고 냉소적인 어조와 분위기를 잘 유지했으며, '声明(성명)'과 '生命(생명)'의 동음이의어를 활용한 말장난까지 성공적으로 번역해냈습니다."
+      },
+      "graderError": null,
+      "executionLatencyMs": 264419,
+      "gradingLatencyMs": 27494,
+      "executionCost": 0.008552,
+      "gradingCost": 0.00929125
+    },
+    {
+      "testCaseName": "베놈",
+      "criteria": null,
+      "input": [
+        {
+          "text": "足りないもの なーんだ 僕らの人生",
+          "index": 0,
+          "startTimeMs": 14030
+        },
+        {
+          "text": "正解どこなんだ 探せよ探せ",
+          "index": 1,
+          "startTimeMs": 17220
+        },
+        {
+          "text": "(例外ない 二進も三進も 零下以内なら 劣化以外ない)",
+          "index": 2,
+          "startTimeMs": 20470
+        },
+        {
+          "text": "正味クソゲーだ カラ空回れ",
+          "index": 3,
+          "startTimeMs": 23520
+        },
+        {
+          "text": "倦怠モード「苦」だ 僕らの人生",
+          "index": 4,
+          "startTimeMs": 33130
+        },
+        {
+          "text": "校内猛毒だ 屈めよ屈め",
+          "index": 5,
+          "startTimeMs": 36240
+        },
+        {
+          "text": "(盛大Knight 和気あいゴッコは成敗Die by 生産性ない)",
+          "index": 6,
+          "startTimeMs": 39440
+        },
+        {
+          "text": "後悔もう「独」だ 笑えよ笑え",
+          "index": 7,
+          "startTimeMs": 42590
+        },
+        {
+          "text": "心のレシピは かまちょ味 寂ジャンキー",
+          "index": 8,
+          "startTimeMs": 45590
+        },
+        {
+          "text": "だんだん強がって ドロドロに伏す",
+          "index": 9,
+          "startTimeMs": 48790
+        },
+        {
+          "text": "ドクドク呑み込んで 苦しんで泣いて吐き出せないの ベノベノム",
+          "index": 10,
+          "startTimeMs": 52060
+        },
+        {
+          "text": "さよなラ",
+          "index": 11,
+          "startTimeMs": 57660
+        },
+        {
+          "text": "あらま",
+          "index": 12,
+          "startTimeMs": 60830
+        },
+        {
+          "text": "求愛性 孤独 ドク 流るルル (愛をもっと) 頂戴な ねえ 痛い痛いのとんでけ",
+          "index": 13,
+          "startTimeMs": 61640
+        },
+        {
+          "text": "存在感 血ドクドク 零るルル (無いの？もっと) 愛 (愛) 哀 (哀)",
+          "index": 14,
+          "startTimeMs": 67840
+        },
+        {
+          "text": "叫べべベノム (めっ！)",
+          "index": 15,
+          "startTimeMs": 72430
+        },
+        {
+          "text": "最高点ゼロだ 僕らの人生",
+          "index": 16,
+          "startTimeMs": 86770
+        },
+        {
+          "text": "断然テンションLowだ 屈めよ屈め",
+          "index": 17,
+          "startTimeMs": 89880
+        },
+        {
+          "text": "(ロンリーNight テッペン回って 狼狽ない脳内Hopeもう一回)",
+          "index": 18,
+          "startTimeMs": 93100
+        },
+        {
+          "text": "オーバードーズ刑だ アガれよアガれ",
+          "index": 19,
+          "startTimeMs": 96240
+        },
+        {
+          "text": "心の中身は 無理オブ無理ジャンキー",
+          "index": 20,
+          "startTimeMs": 99300
+        },
+        {
+          "text": "どんどん強がって バラバラに伏す",
+          "index": 21,
+          "startTimeMs": 102670
+        },
+        {
+          "text": "ドクドク呑み込んで 苦しんで泣いて逃げ出せないの ベノベノム",
+          "index": 22,
+          "startTimeMs": 105660
+        },
+        {
+          "text": "あらま",
+          "index": 23,
+          "startTimeMs": 113070
+        },
+        {
+          "text": "求愛性 孤独 ドク 流るルル (愛をもっと) 頂戴な ねえ 痛い痛いのとんでけ",
+          "index": 24,
+          "startTimeMs": 113570
+        },
+        {
+          "text": "存在感 既読 ドク 欲しがルル (無いの？もっと) 愛 (愛) 愛 (愛)",
+          "index": 25,
+          "startTimeMs": 119930
+        },
+        {
+          "text": "滅べべベノム (めっ！)",
+          "index": 26,
+          "startTimeMs": 124300
+        },
+        {
+          "text": "もう悪性 届く毒 回るルル (哀でもっと) 傷害な ねえ 痛い痛いのSick sick",
+          "index": 27,
+          "startTimeMs": 151440
+        },
+        {
+          "text": "存在抹消毒ドク 消えるルル 無いのずっと",
+          "index": 28,
+          "startTimeMs": 157810
+        },
+        {
+          "text": "愛 (愛) 哀 (哀) 愛 (愛) 哀 (哀) (愛)",
+          "index": 29,
+          "startTimeMs": 160920
+        },
+        {
+          "text": "求愛性 孤独 ドク 流るルル (愛をもっと) 頂戴な ねえ 痛い痛いのとんでけ",
+          "index": 30,
+          "startTimeMs": 164230
+        },
+        {
+          "text": "存在感 血ドクドク 零るルル (無いの？もっと) 愛 (愛) 哀 (哀)",
+          "index": 31,
+          "startTimeMs": 170540
+        },
+        {
+          "text": "叫べベベノム 叫べベベノム",
+          "index": 32,
+          "startTimeMs": 175040
+        },
+        {
+          "text": "叫べベベノム (めっ！)",
+          "index": 33,
+          "startTimeMs": 177910
+        }
+      ],
+      "geminiOutput": "[{\"index\":0,\"koreanLyrics\":\"부족한 건 뭐-게 우리들의 인생\",\"koreanPronounciation\":\"타리나이 모노 나-ㄴ다 보쿠라노 진세이\"},{\"index\":1,\"koreanLyrics\":\"정답은 어디에 있나 찾아라 찾아\",\"koreanPronounciation\":\"세이카이 도코난다 사가세요 사가세\"},{\"index\":2,\"koreanLyrics\":\"(예외는 없어 이러지도 저러지도 영하 이내라면 열화 이외엔 없어)\",\"koreanPronounciation\":\"(레이가이 나이 닛치모 삿치모 레이카 이나이나라 렛카 이가이 나이)\"},{\"index\":3,\"koreanLyrics\":\"솔직히 망겜이야 헛돌고 헛돌아라\",\"koreanPronounciation\":\"쇼-미 쿠소게-다 카라카라마와레\"},{\"index\":4,\"koreanLyrics\":\"권태 모드 「고통」이야 우리들의 인생\",\"koreanPronounciation\":\"켄타이 모-도 쿠다 보쿠라노 진세이\"},{\"index\":5,\"koreanLyrics\":\"교내 맹독이야 숙여라 숙여\",\"koreanPronounciation\":\"코-나이 모-도쿠다 카가메요 카가메\"},{\"index\":6,\"koreanLyrics\":\"(성대한 Knight 화기애애 놀이는 성패 Die by 생산성 없어)\",\"koreanPronounciation\":\"(세이다이 나이트 와키아이 곳코와 세이바이 다이 바이 세이산세이 나이)\"},{\"index\":7,\"koreanLyrics\":\"후회는 이제 「고독」이야 웃어라 웃어\",\"koreanPronounciation\":\"코-카이 모- 도쿠다 와라에요 와라에\"},{\"index\":8,\"koreanLyrics\":\"마음의 레시피는 관심종자 맛 외로움 장키\",\"koreanPronounciation\":\"코코로노 레시피와 카마쵸 아지 사비 쟝키-\"},{\"index\":9,\"koreanLyrics\":\"점점 센 척하며 질척하게 엎드려\",\"koreanPronounciation\":\"단단 츠요갓테 도로도로니 후스\"},{\"index\":10,\"koreanLyrics\":\"독을 꿀꺽꿀꺽 집어삼키고 괴로워하며 울며 뱉어낼 수 없어 베노베놈\",\"koreanPronounciation\":\"도쿠도쿠 노미콘데 쿠루신데 나이테 하키다세나이노 베노베노무\"},{\"index\":11,\"koreanLyrics\":\"안 녕\",\"koreanPronounciation\":\"사요나라\"},{\"index\":12,\"koreanLyrics\":\"어머나\",\"koreanPronounciation\":\"아라마\"},{\"index\":13,\"koreanLyrics\":\"구애성 고독 독이 흘러르르 (사랑을 좀 더) 줘 봐요 저기 아픈 거 아픈 거 날아가라\",\"koreanPronounciation\":\"큐-아이세이 코도쿠 도쿠 나가루루루 (아이오 못토) 쵸-다이나 네- 이타이 이타이노 톤데케\"},{\"index\":14,\"koreanLyrics\":\"존재감 피가 울컥울컥 넘쳐르르 (없어? 좀 더) 사랑 (사랑) 슬픔 (슬픔)\",\"koreanPronounciation\":\"손자이칸 치 도쿠도쿠 코보루루루 (나이노 못토) 아이 (아이) 아이 (아이)\"},{\"index\":15,\"koreanLyrics\":\"외쳐쳐 베놈 (떽!)\",\"koreanPronounciation\":\"사케베베 베노무 (멧!)\"},{\"index\":16,\"koreanLyrics\":\"최고점 제로야 우리들의 인생\",\"koreanPronounciation\":\"사이코-텐 제로다 보쿠라노 진세이\"},{\"index\":17,\"koreanLyrics\":\"단연 텐션 Low야 숙여라 숙여\",\"koreanPronounciation\":\"단젠 텐숀 로-다 카가메요 카가메\"},{\"index\":18,\"koreanLyrics\":\"(론리 Night 자정이 지나고 당황하지 않는 뇌내 Hope 한 번 더)\",\"koreanPronounciation\":\"(론리- 나이트 텟펜 마왓테 로-바이 나이 노-나이 호-푸 모- 잇카이)\"},{\"index\":19,\"koreanLyrics\":\"오버도즈 형이야 달아올라라 달아올라\",\"koreanPronounciation\":\"오-바-도-즈 케이다 아가레요 아가레\"},{\"index\":20,\"koreanLyrics\":\"마음의 속은 무리 오브 무리 장키\",\"koreanPronounciation\":\"코코로노 나카미와 무리 오부 무리 쟝키-\"},{\"index\":21,\"koreanLyrics\":\"점점 센 척하며 산산조각 나 엎드려\",\"koreanPronounciation\":\"돈돈 츠요갓테 바라바라니 후스\"},{\"index\":22,\"koreanLyrics\":\"독을 꿀꺽꿀꺽 집어삼키고 괴로워하며 울며 도망칠 수 없어 베노베놈\",\"koreanPronounciation\":\"도쿠도쿠 노미콘데 쿠루신데 나이테 니게다세나이노 베노베노무\"},{\"index\":23,\"koreanLyrics\":\"어머나\",\"koreanPronounciation\":\"아라마\"},{\"index\":24,\"koreanLyrics\":\"구애성 고독 독이 흘러르르 (사랑을 좀 더) 줘 봐요 저기 아픈 거 아픈 거 날아가라\",\"koreanPronounciation\":\"큐-아이세이 코도쿠 도쿠 나가루루루 (아이오 못토) 쵸-다이나 네- 이타이 이타이노 톤데케\"},{\"index\":25,\"koreanLyrics\":\"존재감 읽음 독을 원해르르 (없어? 좀 더) 사랑 (사랑) 사랑 (사랑)\",\"koreanPronounciation\":\"손자이칸 키도쿠 도쿠 호시가루루 (나이노 못토) 아이 (아이) 아이 (아이)\"},{\"index\":26,\"koreanLyrics\":\"멸망해해 베놈 (떽!)\",\"koreanPronounciation\":\"호로베베 베노무 (멧!)\"},{\"index\":27,\"koreanLyrics\":\"이제 악성 닿는 독이 돌아르르 (슬픔으로 좀 더) 상해를 입혀 저기 아프고 아픈 Sick sick\",\"koreanPronounciation\":\"모- 아쿠세이 토도쿠 도쿠 마와루루루 (아이데 못토) 쇼-가이나 네- 이타이 이타이노 식 식\"},{\"index\":28,\"koreanLyrics\":\"존재 말소 독이 울컥울컥 사라져르르 없어 영원히\",\"koreanPronounciation\":\"손자이 맛쇼- 도쿠도쿠 키에루루루 나이노 즛토\"},{\"index\":29,\"koreanLyrics\":\"사랑 (사랑) 슬픔 (슬픔) 사랑 (사랑) 슬픔 (슬픔) (사랑)\",\"koreanPronounciation\":\"아이 (아이) 아이 (아이) 아이 (아이) 아이 (아이) (아이)\"},{\"index\":30,\"koreanLyrics\":\"구애성 고독 독이 흘러르르 (사랑을 좀 더) 줘 봐요 저기 아픈 거 아픈 거 날아가라\",\"koreanPronounciation\":\"큐-아이세이 코도쿠 도쿠 나가루루루 (아이오 못토) 쵸-다이나 네- 이타이 이타이노 톤데케\"},{\"index\":31,\"koreanLyrics\":\"존재감 피가 울컥울컥 넘쳐르르 (없어? 좀 더) 사랑 (사랑) 슬픔 (슬픔)\",\"koreanPronounciation\":\"손자이칸 치 도쿠도쿠 코보루루루 (나이노 못토) 아이 (아이) 아이 (아이)\"},{\"index\":32,\"koreanLyrics\":\"외쳐쳐 베놈 외쳐쳐 베놈\",\"koreanPronounciation\":\"사케베베 베노무 사케베베 베노무\"},{\"index\":33,\"koreanLyrics\":\"외쳐쳐 베놈 (떽!)\",\"koreanPronounciation\":\"사케베베 베노무 (멧!)\"}]",
+      "geminiError": null,
+      "graderResult": {
+        "score": 5,
+        "deductions": [
+          {
+            "reason": "[index 6] '成敗(seibai)'는 '심판' 또는 '처벌'의 의미를 가지나, '성공 또는 실패'를 의미하는 '성패(seongpae)'로 오역하여 가사의 의미를 왜곡했습니다.",
+            "points": 2
+          },
+          {
+            "reason": "[index 27] '傷害な(shougai na)'는 '어쩔 수 없네(しょうがないな, shouganai na)'와 '상해'라는 이중적인 의미를 가진 핵심적인 언어유희입니다. 이를 '상해를 입혀'로 직역하여 원곡의 냉소적이고 체념적인 뉘앙스를 전혀 살리지 못했습니다.",
+            "points": 2
+          },
+          {
+            "reason": "[index 28] 원문 가사는 '存在抹消毒ドク'이지만, 이를 'ドクドク'가 있는 것으로 착각하여 '독이 울컥울컥'으로 번역함으로써 원문을 임의로 변경하는 오류를 범했습니다.",
+            "points": 1
+          }
+        ],
+        "comment": "전반적으로 곡의 어둡고 냉소적인 분위기와 'かまちょ(관심종자)', 'クソゲー(망겜)' 같은 신조어, '-르르'로 끝나는 독특한 어미 등을 잘 살려 번역했습니다. 특히 '痛い痛いのとんでけ'를 '아픈 거 아픈 거 날아가라'로 번역한 것은 매우 훌륭합니다. 하지만, '成敗'를 '성패'로 오역하거나(index 6), '傷害な'에 담긴 핵심적인 언어유희를 놓치고(index 27), 원문에 없는 단어를 추가하는 등(index 28) 의미를 왜곡하거나 뉘앙스를 해치는 치명적인 오류들이 발견되어 큰 감점이 있었습니다."
+      },
+      "graderError": null,
+      "executionLatencyMs": 23495,
+      "gradingLatencyMs": 56953,
+      "executionCost": 0.0063755,
+      "gradingCost": 0.00946
+    },
+    {
+      "testCaseName": "버그",
+      "criteria": null,
+      "input": [
+        {
+          "text": "迷子 迷子 真っ只中 さあ",
+          "index": 0,
+          "startTimeMs": 13860
+        },
+        {
+          "text": "パ-パ-パラ パーラノーイ「ア」",
+          "index": 1,
+          "startTimeMs": 16520
+        },
+        {
+          "text": "ギコ ギコ My heart(マイココロ) 剪定",
+          "index": 2,
+          "startTimeMs": 18720
+        },
+        {
+          "text": "パ-パ-パラ パーラノーイ「ア」",
+          "index": 3,
+          "startTimeMs": 21730
+        },
+        {
+          "text": "退路 退路 断った絡まった",
+          "index": 4,
+          "startTimeMs": 24110
+        },
+        {
+          "text": "パ-パ-パラ パーラノーイ「ア」",
+          "index": 5,
+          "startTimeMs": 26870
+        },
+        {
+          "text": "Sad, sad 突っ伏して (カラ)",
+          "index": 6,
+          "startTimeMs": 29420
+        },
+        {
+          "text": "ぱ-ぱ-ぱLa ぱーらのーい「ド」",
+          "index": 7,
+          "startTimeMs": 31830
+        },
+        {
+          "text": "さあ バ-バ-バグさ バグバグ",
+          "index": 8,
+          "startTimeMs": 34230
+        },
+        {
+          "text": "タ-タ-タグ 才能のタグ",
+          "index": 9,
+          "startTimeMs": 37080
+        },
+        {
+          "text": "もう ハ-ハ-剥グ 感情は剥グ",
+          "index": 10,
+          "startTimeMs": 39350
+        },
+        {
+          "text": "発症「クルシイ」は 嫌嫌嫌 嫌嫌嫌",
+          "index": 11,
+          "startTimeMs": 41990
+        },
+        {
+          "text": "まあ！絶叫な感情落下 パッパラノーイ「ア」",
+          "index": 12,
+          "startTimeMs": 45740
+        },
+        {
+          "text": "溺れ声上げては ぐるぐる",
+          "index": 13,
+          "startTimeMs": 48490
+        },
+        {
+          "text": "まあ！絶体絶命落下やったラ滅多ラ",
+          "index": 14,
+          "startTimeMs": 50970
+        },
+        {
+          "text": "沈めユメユメ 嫌嫌嫌",
+          "index": 15,
+          "startTimeMs": 53780
+        },
+        {
+          "text": "さあ バ-バ-バグさ バグバグ",
+          "index": 16,
+          "startTimeMs": 56280
+        },
+        {
+          "text": "的(まと)ハズレズレ 慈愛 嫌嫌",
+          "index": 17,
+          "startTimeMs": 58900
+        },
+        {
+          "text": "さあ バ-バ-バグさ バグバグ",
+          "index": 18,
+          "startTimeMs": 61430
+        },
+        {
+          "text": "解答(こたえ)絶え絶え 嫌嫌嫌 嫌嫌嫌",
+          "index": 19,
+          "startTimeMs": 63970
+        },
+        {
+          "text": "狂 狂",
+          "index": 20,
+          "startTimeMs": 79060
+        },
+        {
+          "text": "ぱっかーん警報 待って無理",
+          "index": 21,
+          "startTimeMs": 80060
+        },
+        {
+          "text": "ぐるぐる せーので回れ (狂 狂、狂 狂)",
+          "index": 22,
+          "startTimeMs": 81310
+        },
+        {
+          "text": "ぱっかーん警報 やっぱ無理",
+          "index": 23,
+          "startTimeMs": 84940
+        },
+        {
+          "text": "ぐるぐる あんよに鎖 (狂 狂、狂 狂)",
+          "index": 24,
+          "startTimeMs": 86720
+        },
+        {
+          "text": "エンドレス病み？",
+          "index": 25,
+          "startTimeMs": 89870
+        },
+        {
+          "text": "抱っこ 抱っこ いらない子だ",
+          "index": 26,
+          "startTimeMs": 92410
+        },
+        {
+          "text": "パ-パ-パラ パーラノーイ「ア」",
+          "index": 27,
+          "startTimeMs": 94950
+        },
+        {
+          "text": "いい子 いい子 「頑張れ」の氾濫",
+          "index": 28,
+          "startTimeMs": 97580
+        },
+        {
+          "text": "アドミニストレイタ 嗚呼",
+          "index": 29,
+          "startTimeMs": 100030
+        },
+        {
+          "text": "(バーバーバグさバグバグ)",
+          "index": 30,
+          "startTimeMs": 102890
+        },
+        {
+          "text": "(ラララグ ランタイムラグ)",
+          "index": 31,
+          "startTimeMs": 105250
+        },
+        {
+          "text": "(ロ-ロ-ログ 反抗のログ)",
+          "index": 32,
+          "startTimeMs": 107860
+        },
+        {
+          "text": "バーバーバグ ぱぱぱLa ぱ",
+          "index": 33,
+          "startTimeMs": 110510
+        },
+        {
+          "text": "ぱ パーラノーイ「ア」",
+          "index": 34,
+          "startTimeMs": 112780
+        },
+        {
+          "text": "ぱ パーラノーイ「ア」",
+          "index": 35,
+          "startTimeMs": 114570
+        },
+        {
+          "text": "ぱ パーラノーイ「ア」 嫌嫌",
+          "index": 36,
+          "startTimeMs": 115890
+        },
+        {
+          "text": "さあ 絶叫な感情落下 パッパラノーイ「ア」",
+          "index": 37,
+          "startTimeMs": 117810
+        },
+        {
+          "text": "左 右 行方も ぐるぐる 悲惨",
+          "index": 38,
+          "startTimeMs": 121000
+        },
+        {
+          "text": "限界脳狂っちゃってやったラ滅多ラ",
+          "index": 39,
+          "startTimeMs": 123720
+        },
+        {
+          "text": "ヤミ迷え酔え イナイイナイばあ",
+          "index": 40,
+          "startTimeMs": 125990
+        },
+        {
+          "text": "イナイイナイ×点(ばってん)",
+          "index": 41,
+          "startTimeMs": 128460
+        },
+        {
+          "text": "絶叫な感情落下 パッパラノーイ「ア」",
+          "index": 42,
+          "startTimeMs": 130020
+        },
+        {
+          "text": "溺れ声上げては ぐるぐる",
+          "index": 43,
+          "startTimeMs": 132530
+        },
+        {
+          "text": "まあ！絶体絶命落下やったラ滅多ラ",
+          "index": 44,
+          "startTimeMs": 134850
+        },
+        {
+          "text": "凍枯れ果て 嫌嫌嫌",
+          "index": 45,
+          "startTimeMs": 137500
+        },
+        {
+          "text": "さあ バ-バ-バグさ バグバグ",
+          "index": 46,
+          "startTimeMs": 140310
+        },
+        {
+          "text": "爛れ荒れ荒れ 悲哀 嫌嫌",
+          "index": 47,
+          "startTimeMs": 142740
+        },
+        {
+          "text": "さあ バ-バ-バグさ バグバグ",
+          "index": 48,
+          "startTimeMs": 144900
+        },
+        {
+          "text": "暗闇(クロ) マミレ理性 嫌嫌嫌",
+          "index": 49,
+          "startTimeMs": 147650
+        },
+        {
+          "text": "今今今 嫌嫌 嫌嫌嫌嫌嫌嫌嫌",
+          "index": 50,
+          "startTimeMs": 150320
+        }
+      ],
+      "geminiOutput": "[{\"index\":0,\"koreanLyrics\":\"미아 미아 한복판에서 자\",\"koreanPronounciation\":\"마이고 마이고 맛타다나카 사아\"},{\"index\":1,\"koreanLyrics\":\"파-파-파라 파라노이「아」\",\"koreanPronounciation\":\"파-파-파라 파-라노-이「아」\"},{\"index\":2,\"koreanLyrics\":\"끼익 끼익 My heart(내 마음) 전정\",\"koreanPronounciation\":\"기코 기코 마이 코코로 센테이\"},{\"index\":3,\"koreanLyrics\":\"파-파-파라 파라노이「아」\",\"koreanPronounciation\":\"파-파-파라 파-라노-이「아」\"},{\"index\":4,\"koreanLyrics\":\"퇴로 퇴로 끊겼어 얽혀버렸어\",\"koreanPronounciation\":\"타이로 타이로 타탓타 카라맛타\"},{\"index\":5,\"koreanLyrics\":\"파-파-파라 파라노이「아」\",\"koreanPronounciation\":\"파-파-파라 파-라노-이「아」\"},{\"index\":6,\"koreanLyrics\":\"Sad, sad 엎드려서 (텅 빈 채로)\",\"koreanPronounciation\":\"새드, 새드 츳푸시테 (카라)\"},{\"index\":7,\"koreanLyrics\":\"파-파-파La 파-라노-이「드」\",\"koreanPronounciation\":\"파-파-파라 파-라노-이「도」\"},{\"index\":8,\"koreanLyrics\":\"자 버-버-버그야 버그버그\",\"koreanPronounciation\":\"사아 바-바-바구사 바구바구\"},{\"index\":9,\"koreanLyrics\":\"태-태-태그 재능의 태그\",\"koreanPronounciation\":\"타-타-타구 사이노-노 타구\"},{\"index\":10,\"koreanLyrics\":\"이제 벗-벗-벗겨 감정은 벗겨\",\"koreanPronounciation\":\"모- 하-하-하구 칸조-와 하구\"},{\"index\":11,\"koreanLyrics\":\"발병 「괴로워」는 싫어싫어싫어 싫어싫어싫어\",\"koreanPronounciation\":\"핫쇼- 「쿠루시이」와 이야이야이야 이야이야이야\"},{\"index\":12,\"koreanLyrics\":\"어머! 절규하는 감정낙하 팟파라노이「아」\",\"koreanPronounciation\":\"마아! 젯쿄-나 칸조-랏카 팟파라노-이「아」\"},{\"index\":13,\"koreanLyrics\":\"허우적대며 비명을 지르곤 빙글빙글\",\"koreanPronounciation\":\"오보레고에 아게테와 구루구루\"},{\"index\":14,\"koreanLyrics\":\"어머! 절체절명 낙하 함부로 마구잡이로\",\"koreanPronounciation\":\"마아! 젯타이젯메이 랏카 얏타라 멧타라\"},{\"index\":15,\"koreanLyrics\":\"가라앉아라 결코 싫어싫어싫어\",\"koreanPronounciation\":\"시즈메 유메유메 이야이야이야\"},{\"index\":16,\"koreanLyrics\":\"자 버-버-버그야 버그버그\",\"koreanPronounciation\":\"사아 바-바-바구사 바구바구\"},{\"index\":17,\"koreanLyrics\":\"빗나���고 빗나간 자애 싫어싫어\",\"koreanPronounciation\":\"마토 하즈레즈레 지아이 이야이야\"},{\"index\":18,\"koreanLyrics\":\"자 버-버-버그야 버그버그\",\"koreanPronounciation\":\"사아 바-바-바구사 바구바구\"},{\"index\":19,\"koreanLyrics\":\"해답은 끊길 듯 말 듯 싫어싫어싫어 싫어싫어싫어\",\"koreanPronounciation\":\"코타에 타에다에 이야이야이야 이야이야이야\"},{\"index\":20,\"koreanLyrics\":\"광 광\",\"koreanPronounciation\":\"쿄- 쿄-\"},{\"index\":21,\"koreanLyrics\":\"팍-하고 경보 잠깐 무리\",\"koreanPronounciation\":\"팟카-응 케이호- 맛테 무리\"},{\"index\":22,\"koreanLyrics\":\"빙글빙글 하나 둘 하면 돌아라 (광 광, 광 광)\",\"koreanPronounciation\":\"구루구루 세-노데 마와레 (쿄- 쿄-, 쿄- 쿄-)\"},{\"index\":23,\"koreanLyrics\":\"팍-하고 경보 역시 무리\",\"koreanPronounciation\":\"팟카-응 케이호- 얏파 무리\"},{\"index\":24,\"koreanLyrics\":\"빙글빙글 발에는 쇠사슬 (광 광, 광 광)\",\"koreanPronounciation\":\"구루구루 안요니 쿠사리 (쿄- 쿄-, 쿄- 쿄-)\"},{\"index\":25,\"koreanLyrics\":\"엔들리스 앓이?\",\"koreanPronounciation\":\"엔도레스 야미?\"},{\"index\":26,\"koreanLyrics\":\"안아줘 안아줘 필요 없는 아이야\",\"koreanPronounciation\":\"닷코 닷코 이라나이 코다\"},{\"index\":27,\"koreanLyrics\":\"파-파-파라 파라노이「아」\",\"koreanPronounciation\":\"파-파-파라 파-라노-이「아」\"},{\"index\":28,\"koreanLyrics\":\"착하지 착하지 「힘내」의 범람\",\"koreanPronounciation\":\"이이코 이이코 「간바레」노 한란\"},{\"index\":29,\"koreanLyrics\":\"어드미니스트레이터 아아\",\"koreanPronounciation\":\"아도미니스토레이타 아아\"},{\"index\":30,\"koreanLyrics\":\"(버-버-버그야 버그버그)\",\"koreanPronounciation\":\"(바-바-바구사 바구바구)\"},{\"index\":31,\"koreanLyrics\":\"(러-러-러그 런타임 러그)\",\"koreanPronounciation\":\"(라라라구 란타이무라구)\"},{\"index\":32,\"koreanLyrics\":\"(로-로-로그 반항의 로그)\",\"koreanPronounciation\":\"(로-로-로구 한코-노 로구)\"},{\"index\":33,\"koreanLyrics\":\"버-버-버그 파파파La 파\",\"koreanPronounciation\":\"바-바-바구 파파파라 파\"},{\"index\":34,\"koreanLyrics\":\"파 파라노이「아」\",\"koreanPronounciation\":\"파 파-라노-이「아」\"},{\"index\":35,\"koreanLyrics\":\"파 파라노이「아」\",\"koreanPronounciation\":\"파 파-라노-이「아」\"},{\"index\":36,\"koreanLyrics\":\"파 파라노이「아」 싫어싫어\",\"koreanPronounciation\":\"파 파-라노-이「아」 이야이야\"},{\"index\":37,\"koreanLyrics\":\"자 절규하는 감정낙하 팟파라노이「아」\",\"koreanPronounciation\":\"사아 젯쿄-나 칸조-랏카 팟파라노-이「아」\"},{\"index\":38,\"koreanLyrics\":\"왼쪽 오른쪽 갈 곳도 빙글빙글 비참\",\"koreanPronounciation\":\"히다리 미기 유쿠에모 구루구루 히산\"},{\"index\":39,\"koreanLyrics\":\"한계인 뇌가 미쳐버려서 함부로 마구잡이로\",\"koreanPronounciation\":\"겐카이노- 쿠룻찻테 얏타라 멧타라\"},{\"index\":40,\"koreanLyrics\":\"어둠 속에서 헤매고 취해라 까꿍\",\"koreanPronounciation\":\"야미 마요에 요에 이나이이나이 바아\"},{\"index\":41,\"koreanLyrics\":\"없어 없어 X표\",\"koreanPronounciation\":\"이나이이나이 밧텐\"},{\"index\":42,\"koreanLyrics\":\"절규하는 감정낙하 팟파라노이「아」\",\"koreanPronounciation\":\"젯쿄-나 칸조-랏카 팟파라노-이「아」\"},{\"index\":43,\"koreanLyrics\":\"허우적대며 비명을 지르곤 빙글빙글\",\"koreanPronounciation\":\"오보레고에 아게테와 구루구루\"},{\"index\":44,\"koreanLyrics\":\"어머! 절체절명 낙하 함부로 마구잡이로\",\"koreanPronounciation\":\"마아! 젯타이젯메이 랏카 얏타라 멧타라\"},{\"index\":45,\"koreanLyrics\":\"얼어붙어 시들어버려 싫어싫어싫어\",\"koreanPronounciation\":\"이테카레하테 이야이야이야\"},{\"index\":46,\"koreanLyrics\":\"자 버-버-버그야 버그버그\",\"koreanPronounciation\":\"사아 바-바-바구사 바구바구\"},{\"index\":47,\"koreanLyrics\":\"문드러지고 거칠어져 비애 싫어싫어\",\"koreanPronounciation\":\"타다레 아레아레 히아이 이야이야\"},{\"index\":48,\"koreanLyrics\":\"자 버-버-버그야 버그버그\",\"koreanPronounciation\":\"사아 바-바-바구사 바구바구\"},{\"index\":49,\"koreanLyrics\":\"어둠(검정) 투성이 이성 싫어싫어싫어\",\"koreanPronounciation\":\"쿠로 마미레 리세이 이야이야이야\"},{\"index\":50,\"koreanLyrics\":\"지금지금지금 싫어싫어 싫어싫어싫어싫어싫어싫어싫어\",\"koreanPronounciation\":\"이마이마이마 이야이야 이야이야이야이야이야이야이야\"}]",
+      "geminiError": null,
+      "graderResult": {
+        "score": 8,
+        "deductions": [
+          {
+            "reason": "[index 15] 'ユメユメ'는 '결코'라는 의미 외에 '꿈(ユメ)'이라는 단어를 이용한 말장난의 뉘앙스가 있는데, 이를 살리지 못하고 '결코'로만 번역하여 원문의 중의적 의미를 놓쳤습니다.",
+            "points": 0.5
+          },
+          {
+            "reason": "[index 21] '待って無理'를 '잠깐 무리'로 번역하여 어색한 느낌을 줍니다. '잠깐, 무리야' 또는 '기다려, 무리야'와 같이 좀 더 자연스러운 구어체로 번역했다면 다급한 어조를 더 잘 살릴 수 있었을 것입니다.",
+            "points": 0.5
+          },
+          {
+            "reason": "[index 24] 'あんよ'는 '발'을 의미하는 유아어인데, 이를 단순히 '발에는'으로 번역하여 원문이 가진 유아어의 느낌을 살리지 못했습니다.",
+            "points": 0.5
+          },
+          {
+            "reason": "[index 40] '迷え酔え'는 '헤매라, 취해라'와 같이 두 개의 명령형 동사가 병렬된 형태입니다. 이를 '헤매고 취해라'로 번역하여 두 가지 행동을 순차적으로 연결하는 뉘앙스가 되어 원문의 다급하고 단절적인 느낌이 다소 약화되었습니다.",
+            "points": 0.5
+          }
+        ],
+        "comment": "전반적으로 곡의 혼란스럽고 불안정한 분위기를 잘 살려 번역했습니다. 특히 의성어, 의태어 및 말장난이 많은 가사의 특징을 한국어로 잘 재현하려는 노력이 돋보입니다. 다만, 일부 가사에서 원문의 중의적인 의미나 유아어 같은 특정 어조를 놓치거나, 약간 어색한 직역체 문장이 보이는 점이 아쉽습니다. 이러한 세부적인 뉘앙스를 조금 더 다듬는다면 더욱 완성도 높은 번역이 될 것입니다."
+      },
+      "graderError": null,
+      "executionLatencyMs": 30484,
+      "gradingLatencyMs": 43822,
+      "executionCost": 0.007705,
+      "gradingCost": 0.0111325
+    },
+    {
+      "testCaseName": "꽃매듭",
+      "criteria": null,
+      "input": [
+        {
+          "text": "最初から待ってた顛末をこの夜に見つけた",
+          "index": 0,
+          "startTimeMs": null
+        },
+        {
+          "text": "慌てて隠して知らないフリを演じてる",
+          "index": 1,
+          "startTimeMs": null
+        },
+        {
+          "text": "そう例えばいつか四つ残ったピースのように",
+          "index": 2,
+          "startTimeMs": null
+        },
+        {
+          "text": "無理矢理に合わせた形の合間に",
+          "index": 3,
+          "startTimeMs": null
+        },
+        {
+          "text": "窮屈をずっと感じている",
+          "index": 4,
+          "startTimeMs": null
+        },
+        {
+          "text": "言えない",
+          "index": 5,
+          "startTimeMs": null
+        },
+        {
+          "text": "怖くなって言えない",
+          "index": 6,
+          "startTimeMs": null
+        },
+        {
+          "text": "なんだか崩れてしまいそうで口を結んだの",
+          "index": 7,
+          "startTimeMs": null
+        },
+        {
+          "text": "言えない",
+          "index": 8,
+          "startTimeMs": null
+        },
+        {
+          "text": "どうしたって言えない",
+          "index": 9,
+          "startTimeMs": null
+        },
+        {
+          "text": "こんな心を解いてくれよ！",
+          "index": 10,
+          "startTimeMs": null
+        },
+        {
+          "text": "変わらないものばかり求めて",
+          "index": 11,
+          "startTimeMs": null
+        },
+        {
+          "text": "運命の糸を繋いで結んだ花になったな",
+          "index": 12,
+          "startTimeMs": null
+        },
+        {
+          "text": "今以上の希望を求め",
+          "index": 13,
+          "startTimeMs": null
+        },
+        {
+          "text": "もっと絡ませ合った偶然の合間に",
+          "index": 14,
+          "startTimeMs": null
+        },
+        {
+          "text": "思い知った本当の希望に",
+          "index": 15,
+          "startTimeMs": null
+        },
+        {
+          "text": "もうどうにもならない何もかもを否定して",
+          "index": 16,
+          "startTimeMs": null
+        },
+        {
+          "text": "忘れてしまえば…もういいだろう？",
+          "index": 17,
+          "startTimeMs": null
+        },
+        {
+          "text": "貴方が側で笑ってる今日からは",
+          "index": 18,
+          "startTimeMs": null
+        },
+        {
+          "text": "エイプリルフールだね",
+          "index": 19,
+          "startTimeMs": null
+        },
+        {
+          "text": "張り裂けてしまいそうだな",
+          "index": 20,
+          "startTimeMs": null
+        },
+        {
+          "text": "言えない",
+          "index": 21,
+          "startTimeMs": null
+        },
+        {
+          "text": "怖くなって言えない",
+          "index": 22,
+          "startTimeMs": null
+        },
+        {
+          "text": "口を結んだの",
+          "index": 23,
+          "startTimeMs": null
+        },
+        {
+          "text": "すぐに解いてくれよ！！",
+          "index": 24,
+          "startTimeMs": null
+        },
+        {
+          "text": "変わらないものばかり求めて",
+          "index": 25,
+          "startTimeMs": null
+        },
+        {
+          "text": "運命を一、二の三で結んだ花になったな",
+          "index": 26,
+          "startTimeMs": null
+        },
+        {
+          "text": "今以上の希望を求め",
+          "index": 27,
+          "startTimeMs": null
+        },
+        {
+          "text": "もっと絡ませ合った偶然の合間に",
+          "index": 28,
+          "startTimeMs": null
+        },
+        {
+          "text": "あぁ 春を待った 本当の心に",
+          "index": 29,
+          "startTimeMs": null
+        },
+        {
+          "text": "最初から待ってた顛末をこの夜に見つけた",
+          "index": 30,
+          "startTimeMs": null
+        },
+        {
+          "text": "慌てて隠して知らないフリを演じてる",
+          "index": 31,
+          "startTimeMs": null
+        }
+      ],
+      "geminiOutput": "[{\"index\":0,\"koreanLyrics\":\"처음부터 기다렸던 결말을 이 밤에 찾아냈어\",\"koreanPronounciation\":\"사이쇼카라 맛테타 텐마츠오 코노 요루니 미츠케타\"},{\"index\":1,\"koreanLyrics\":\"서둘러 숨기고 모르는 척 연기하고 있어\",\"koreanPronounciation\":\"아와테테 카쿠시테 시라나이 후리오 엔지테루\"},{\"index\":2,\"koreanLyrics\":\"그래 예를 들면 언젠가 네 개 남은 퍼즐 조각처럼\",\"koreanPronounciation\":\"소오 타토에바 이츠카 욧츠 노콧타 피-스노 요오니\"},{\"index\":3,\"koreanLyrics\":\"억지로 끼워 맞춘 형태의 틈새에\",\"koreanPronounciation\":\"무리야리니 아와세타 카타치노 아이마니\"},{\"index\":4,\"koreanLyrics\":\"답답함을 계속 느끼고 있어\",\"koreanPronounciation\":\"큐우쿠츠오 즛토 칸지테이루\"},{\"index\":5,\"koreanLyrics\":\"말할 수 없어\",\"koreanPronounciation\":\"이에나이\"},{\"index\":6,\"koreanLyrics\":\"무서워져서 말할 수 없어\",\"koreanPronounciation\":\"코와쿠낫테 이에나이\"},{\"index\":7,\"koreanLyrics\":\"왠지 무너져 버릴 것만 같아서 입을 다물었어\",\"koreanPronounciation\":\"난다카 쿠즈레테 시마이소오데 쿠치오 무슨다노\"},{\"index\":8,\"koreanLyrics\":\"말할 수 없어\",\"koreanPronounciation\":\"이에나이\"},{\"index\":9,\"koreanLyrics\":\"어떻게 해도 말할 수 없어\",\"koreanPronounciation\":\"도오시탓테 이에나이\"},{\"index\":10,\"koreanLyrics\":\"이런 마음을 풀어줘!\",\"koreanPronounciation\":\"콘나 코코로오 호도이테쿠레요!\"},{\"index\":11,\"koreanLyrics\":\"변하지 않는 것만을 원하며\",\"koreanPronounciation\":\"카와라나이 모노바카리 모토메테\"},{\"index\":12,\"koreanLyrics\":\"운명의 실을 이어 묶은 꽃이 되었구나\",\"koreanPronounciation\":\"운메이노 이토오 츠나이데 무슨다 하나니 낫타나\"},{\"index\":13,\"koreanLyrics\":\"지금 이상의 희망을 원하며\",\"koreanPronounciation\":\"이마 이죠오노 키보오오 모토메\"},{\"index\":14,\"koreanLyrics\":\"더욱 서로 얽힌 우연의 틈새에\",\"koreanPronounciation\":\"못토 카라마세앗타 구우젠노 아이마니\"},{\"index\":15,\"koreanLyrics\":\"뼈저리게 느낀 진정한 희망에\",\"koreanPronounciation\":\"오모이싯타 혼토오노 키보오니\"},{\"index\":16,\"koreanLyrics\":\"이제 어떻게도 할 수 없는 모든 것을 부정하고\",\"koreanPronounciation\":\"모오 도오니모 나라나이 나니모카모오 히테이시테\"},{\"index\":17,\"koreanLyrics\":\"잊어버린다면… 이제 됐잖아?\",\"koreanPronounciation\":\"와스레테 시마에바… 모오 이이다로오?\"},{\"index\":18,\"koreanLyrics\":\"당신이 곁에서 웃고 있는 오늘부터는\",\"koreanPronounciation\":\"아나타가 소바데 와랏테루 쿄오카라와\"},{\"index\":19,\"koreanLyrics\":\"만우절이네\",\"koreanPronounciation\":\"에이푸리루 후-루다네\"},{\"index\":20,\"koreanLyrics\":\"가슴이 터져 버릴 것만 같아\",\"koreanPronounciation\":\"하리사케테 시마이소오다나\"},{\"index\":21,\"koreanLyrics\":\"말할 수 없어\",\"koreanPronounciation\":\"이에나이\"},{\"index\":22,\"koreanLyrics\":\"무서워져서 말할 수 없어\",\"koreanPronounciation\":\"코와쿠낫테 이에나이\"},{\"index\":23,\"koreanLyrics\":\"입을 다물었어\",\"koreanPronounciation\":\"쿠치오 무슨다노\"},{\"index\":24,\"koreanLyrics\":\"당장 풀어줘!!\",\"koreanPronounciation\":\"스구니 호도이테쿠레요!!\"},{\"index\":25,\"koreanLyrics\":\"변하지 않는 것만을 원하며\",\"koreanPronounciation\":\"카와라나이 모노바카리 모토메테\"},{\"index\":26,\"koreanLyrics\":\"운명을 하나, 둘의 셋으로 묶은 꽃이 되었구나\",\"koreanPronounciation\":\"운메이오 이치, 니노 산데 무슨다 하나니 낫타나\"},{\"index\":27,\"koreanLyrics\":\"지금 이상의 희망을 원하며\",\"koreanPronounciation\":\"이마 이죠오노 키보오오 모토메\"},{\"index\":28,\"koreanLyrics\":\"더욱 서로 얽힌 우연의 틈새에\",\"koreanPronounciation\":\"못토 카라마세앗타 구우젠노 아이마니\"},{\"index\":29,\"koreanLyrics\":\"아아 봄을 기다린 진심에\",\"koreanPronounciation\":\"아아 하루오 맛타 혼토오노 코코로니\"},{\"index\":30,\"koreanLyrics\":\"처음부터 기다렸던 결말을 이 밤에 찾아냈어\",\"koreanPronounciation\":\"사이쇼카라 맛테타 텐마츠오 코노 요루니 미츠케타\"},{\"index\":31,\"koreanLyrics\":\"서둘러 숨기고 모르는 척 연기하고 있어\",\"koreanPronounciation\":\"아와테테 카쿠시테 시라나이 후리오 엔지테루\"}]",
+      "geminiError": null,
+      "graderResult": {
+        "score": 8,
+        "deductions": [
+          {
+            "reason": "[index 26] 일본어 관용구 '一、二の三で'(단숨에, 순식간에 라는 의미)를 '하나, 둘의 셋으로'라고 직역하여 의미가 제대로 전달되지 않고 어색합니다. '단숨에' 또는 '하나 둘 셋 하고' 등으로 번역하는 것이 자연스럽습니다.",
+            "points": 2
+          }
+        ],
+        "comment": "전반적으로 원문의 감성과 분위기를 잘 살린 자연스러운 번역입니다. 특히 '思い知った'를 '뼈저리게 느낀'으로, 'エイプリルフール'를 '만우절'로 번역하는 등 어휘 선택이 뛰어납니다. 다만, 한 구절([index 26])에서 일본어 관용구를 직역하여 의미 전달이 어색해진 점이 아쉬웠습니다."
+      },
+      "graderError": null,
+      "executionLatencyMs": 25333,
+      "gradingLatencyMs": 31096,
+      "executionCost": 0.0045225,
+      "gradingCost": 0.00574875
+    },
+    {
+      "testCaseName": "잠자",
+      "criteria": null,
+      "input": [
+        {
+          "text": "使い古した自分の名前にあえてキッチュなルビを振って",
+          "index": 0,
+          "startTimeMs": 7610
+        },
+        {
+          "text": "高潔を打ち負かせるくらいに恐ろしくなる 骨の髄まで",
+          "index": 1,
+          "startTimeMs": 11530
+        },
+        {
+          "text": "今はどんなふうに見えてますか？",
+          "index": 2,
+          "startTimeMs": 15520
+        },
+        {
+          "text": "醜いですか？それはそっか",
+          "index": 3,
+          "startTimeMs": 17430
+        },
+        {
+          "text": "どうか林檎を投げつけないで",
+          "index": 4,
+          "startTimeMs": 19510
+        },
+        {
+          "text": "胸に lock up, lock up ザムザ",
+          "index": 5,
+          "startTimeMs": 21540
+        },
+        {
+          "text": "「鏡をご覧」誰かが囁く",
+          "index": 6,
+          "startTimeMs": 31480
+        },
+        {
+          "text": "うまくいったら儲けものさ",
+          "index": 7,
+          "startTimeMs": 33500
+        },
+        {
+          "text": "甘い言葉も笑顔も通じない",
+          "index": 8,
+          "startTimeMs": 35590
+        },
+        {
+          "text": "走り出したらもう獣だ",
+          "index": 9,
+          "startTimeMs": 37480
+        },
+        {
+          "text": "月の真下をうろつきながら考えてた 夜すがら",
+          "index": 10,
+          "startTimeMs": 39250
+        },
+        {
+          "text": "悪夢にどの指立ててやるべきかってね",
+          "index": 11,
+          "startTimeMs": 43640
+        },
+        {
+          "text": "ズキズキズキ（ズキズキズキ）",
+          "index": 12,
+          "startTimeMs": 47590
+        },
+        {
+          "text": "ズキンズキンズキン（ズキンズキン）",
+          "index": 13,
+          "startTimeMs": 49540
+        },
+        {
+          "text": "ズキズキズキ（ズキズキズキ）",
+          "index": 14,
+          "startTimeMs": 51610
+        },
+        {
+          "text": "ズキ ズキ ズキン",
+          "index": 15,
+          "startTimeMs": 53690
+        },
+        {
+          "text": "変われ（ズキズキズキズキズキ）",
+          "index": 16,
+          "startTimeMs": 55250
+        },
+        {
+          "text": "誰だって 魂辛辛",
+          "index": 17,
+          "startTimeMs": 58820
+        },
+        {
+          "text": "ズキズキズキ",
+          "index": 18,
+          "startTimeMs": 61620
+        },
+        {
+          "text": "痛みと怒れる人を喰らったったらった",
+          "index": 19,
+          "startTimeMs": 62840
+        },
+        {
+          "text": "だのに 何故だろう今も",
+          "index": 20,
+          "startTimeMs": 66780
+        },
+        {
+          "text": "ズキズキズキって",
+          "index": 21,
+          "startTimeMs": 69640
+        },
+        {
+          "text": "派手な尻尾を引き摺りゆく ザザザザ ザムザ",
+          "index": 22,
+          "startTimeMs": 70980
+        },
+        {
+          "text": "「現実はもういい」なんて云うなよ ザムザ",
+          "index": 23,
+          "startTimeMs": 75350
+        },
+        {
+          "text": "Oh, yeah",
+          "index": 24,
+          "startTimeMs": 79240
+        },
+        {
+          "text": "（ズキズキ）",
+          "index": 25,
+          "startTimeMs": 80590
+        },
+        {
+          "text": "（ズキズキ）",
+          "index": 26,
+          "startTimeMs": 82290
+        },
+        {
+          "text": "ザザザザ ザムザ（ズキズキ）",
+          "index": 27,
+          "startTimeMs": 83450
+        },
+        {
+          "text": "（ズキズキ）",
+          "index": 28,
+          "startTimeMs": 86340
+        },
+        {
+          "text": "「ごめんね ちっとも上手に生きてあげられなくて」と伝えて",
+          "index": 29,
+          "startTimeMs": 87910
+        },
+        {
+          "text": "否定形の笑顔でも欲しくて ニンゲン様なりきってる亡霊",
+          "index": 30,
+          "startTimeMs": 91930
+        },
+        {
+          "text": "自分の弱音に相槌ばかりだった",
+          "index": 31,
+          "startTimeMs": 97160
+        },
+        {
+          "text": "当然あなたとまともにケンカもできなかった",
+          "index": 32,
+          "startTimeMs": 100050
+        },
+        {
+          "text": "ズキズキズキ（ズキズキズキ）",
+          "index": 33,
+          "startTimeMs": 104150
+        },
+        {
+          "text": "ズキンズキンズキン（ズキンズキン）",
+          "index": 34,
+          "startTimeMs": 106300
+        },
+        {
+          "text": "ズキズキズキ（ズキズキズキ）",
+          "index": 35,
+          "startTimeMs": 108160
+        },
+        {
+          "text": "ズキ ズキ ズキン",
+          "index": 36,
+          "startTimeMs": 110000
+        },
+        {
+          "text": "変われそうにないやいや",
+          "index": 37,
+          "startTimeMs": 111790
+        },
+        {
+          "text": "冗談じゃない 夢を食べないで",
+          "index": 38,
+          "startTimeMs": 115560
+        },
+        {
+          "text": "ズキズキズキ",
+          "index": 39,
+          "startTimeMs": 118280
+        },
+        {
+          "text": "小洒落た絶望を歌ったったらった",
+          "index": 40,
+          "startTimeMs": 119470
+        },
+        {
+          "text": "どうしようもない 成れの果てでも",
+          "index": 41,
+          "startTimeMs": 123320
+        },
+        {
+          "text": "ズキズキズキって",
+          "index": 42,
+          "startTimeMs": 125820
+        },
+        {
+          "text": "いつか愛しい歌になるさ ザザザザ ザムザ",
+          "index": 43,
+          "startTimeMs": 127670
+        },
+        {
+          "text": "ねぇ 1, 2, 3で飛んで ザザザ ザザムザ",
+          "index": 44,
+          "startTimeMs": 138360
+        },
+        {
+          "text": "一切合切蹴っ飛ばして ザザザ ザザムザ",
+          "index": 45,
+          "startTimeMs": 143040
+        },
+        {
+          "text": "あとがきで触れられもしない日々",
+          "index": 46,
+          "startTimeMs": 146760
+        },
+        {
+          "text": "ここで逃げ出したら 本当にそうなりそうだ",
+          "index": 47,
+          "startTimeMs": 150220
+        },
+        {
+          "text": "誰だって 魂辛辛",
+          "index": 48,
+          "startTimeMs": 158060
+        },
+        {
+          "text": "ズキズキズキ",
+          "index": 49,
+          "startTimeMs": 160780
+        },
+        {
+          "text": "痛みと怒れる人を喰らったったらった",
+          "index": 50,
+          "startTimeMs": 162270
+        },
+        {
+          "text": "だのに何故だろう今も",
+          "index": 51,
+          "startTimeMs": 166050
+        },
+        {
+          "text": "ズキズキズキって（ズキズキ）",
+          "index": 52,
+          "startTimeMs": 168730
+        },
+        {
+          "text": "林檎をかじるように ザザ ザムザ",
+          "index": 53,
+          "startTimeMs": 170540
+        },
+        {
+          "text": "どうしようもない成れの果てでもここにいる",
+          "index": 54,
+          "startTimeMs": 173800
+        },
+        {
+          "text": "シャガの花に毒されても",
+          "index": 55,
+          "startTimeMs": 178180
+        },
+        {
+          "text": "光は1時の方角にある",
+          "index": 56,
+          "startTimeMs": 181840
+        },
+        {
+          "text": "今は尻尾を引き摺りゆけ ザザザザ ザムザ",
+          "index": 57,
+          "startTimeMs": 186090
+        },
+        {
+          "text": "だから「現実はもういい」なんて云うなよ ザムザ",
+          "index": 58,
+          "startTimeMs": 190230
+        },
+        {
+          "text": "Okay?（ズキズキ）",
+          "index": 59,
+          "startTimeMs": 194180
+        },
+        {
+          "text": "（ズキズキ）",
+          "index": 60,
+          "startTimeMs": 196410
+        },
+        {
+          "text": "ザザザザ ザムザ（ズキズキ）",
+          "index": 61,
+          "startTimeMs": 197460
+        },
+        {
+          "text": "（ズキズキズキ）",
+          "index": 62,
+          "startTimeMs": 202250
+        },
+        {
+          "text": "（ズキズキズキ）",
+          "index": 63,
+          "startTimeMs": 204460
+        },
+        {
+          "text": "ザザザザ ザムザ（ズキズキズキ）",
+          "index": 64,
+          "startTimeMs": 205420
+        },
+        {
+          "text": "（ズキズキズキ）",
+          "index": 65,
+          "startTimeMs": 208350
+        },
+        {
+          "text": "ズキ",
+          "index": 66,
+          "startTimeMs": 210330
+        }
+      ],
+      "geminiOutput": "[{\"index\":0,\"koreanLyrics\":\"오래 써서 낡은 자신의 이름에 굳이 키치한 루비를 달고\",\"koreanPronounciation\":\"츠카이후루시타 지분노 나마에니 아에테 킷츄나 루비오 훗테\"},{\"index\":1,\"koreanLyrics\":\"고결함을 쳐부술 정도로 두려워져 뼛속 깊은 곳까지\",\"koreanPronounciation\":\"코우케츠오 우치마카세루 쿠라이니 오소로시쿠 나루 호네노 즈이마데\"},{\"index\":2,\"koreanLyrics\":\"지금은 어떤 모습으로 보이나요?\",\"koreanPronounciation\":\"이마와 돈나 후우니 미에테마스카?\"},{\"index\":3,\"koreanLyrics\":\"추한가요? 그렇구나\",\"koreanPronounciation\":\"미니쿠이데스카? 소레와 솟카\"},{\"index\":4,\"koreanLyrics\":\"부디 사과를 내던지지 말아줘\",\"koreanPronounciation\":\"도우카 린고오 나게츠케나이데\"},{\"index\":5,\"koreanLyrics\":\"가슴에 lock up, lock up 잠자\",\"koreanPronounciation\":\"무네니 록 업, 록 업 자무자\"},{\"index\":6,\"koreanLyrics\":\"「거울을 보렴」 누군가가 속삭여\",\"koreanPronounciation\":\"「카가미오 고란」 다레카가 사사야쿠\"},{\"index\":7,\"koreanLyrics\":\"잘 풀린다면 횡재한 거야\",\"koreanPronounciation\":\"우마쿠 잇타라 모우케모노사\"},{\"index\":8,\"koreanLyrics\":\"달콤한 말도 미소도 통하지 않아\",\"koreanPronounciation\":\"아마이 코토바모 에가오모 츠우지나이\"},{\"index\":9,\"koreanLyrics\":\"달려 나가기 시작하면 이미 짐승이야\",\"koreanPronounciation\":\"하시리다시타라 모우 케모노다\"},{\"index\":10,\"koreanLyrics\":\"달 바로 아래를 서성이며 생각했어 밤새도록\",\"koreanPronounciation\":\"츠키노 마시타오 우로츠키나가라 칸가에테타 요스가라\"},{\"index\":11,\"koreanLyrics\":\"악몽에 어느 손가락을 세워줘야 할지 말이야\",\"koreanPronounciation\":\"아쿠무니 도노 유비 타테테 야루베키캇테네\"},{\"index\":12,\"koreanLyrics\":\"즈키즈키즈키 (즈키즈키즈키)\",\"koreanPronounciation\":\"즈키즈키즈키 (즈키즈키즈키)\"},{\"index\":13,\"koreanLyrics\":\"즈킨즈킨즈킨 (즈킨즈킨)\",\"koreanPronounciation\":\"즈킨즈킨즈킨 (즈킨즈킨)\"},{\"index\":14,\"koreanLyrics\":\"즈키즈키즈키 (즈키즈키즈키)\",\"koreanPronounciation\":\"즈키즈키즈키 (즈키즈키즈키)\"},{\"index\":15,\"koreanLyrics\":\"즈키 즈키 즈킨\",\"koreanPronounciation\":\"즈키 즈키 즈킨\"},{\"index\":16,\"koreanLyrics\":\"변해라 (즈키즈키즈키즈키즈키)\",\"koreanPronounciation\":\"카와레 (즈키즈키즈키즈키즈키)\"},{\"index\":17,\"koreanLyrics\":\"누구든 영혼은 간신히\",\"koreanPronounciation\":\"다레닷테 타마시이 카라가라\"},{\"index\":18,\"koreanLyrics\":\"즈키즈키즈키\",\"koreanPronounciation\":\"즈키즈키즈키\"},{\"index\":19,\"koreanLyrics\":\"아픔과 분노하는 인간을 집어삼켰다따랏따\",\"koreanPronounciation\":\"이타미토 이카레루 히토오 쿠랏탓타랏타\"},{\"index\":20,\"koreanLyrics\":\"그런데 왜일까 지금도\",\"koreanPronounciation\":\"다노니 나제다로우 이마모\"},{\"index\":21,\"koreanLyrics\":\"즈키즈키즈키거린다고\",\"koreanPronounciation\":\"즈키즈키즈킷테\"},{\"index\":22,\"koreanLyrics\":\"화려한 꼬리를 질질 끌며 가네 자자자자 잠자\",\"koreanPronounciation\":\"하데나 싯포오 히키즈리유쿠 자자자자 자무자\"},{\"index\":23,\"koreanLyrics\":\"「현실은 이제 됐어」 같은 말은 하지 마 잠자\",\"koreanPronounciation\":\"「겐지츠와 모우 이이」 난테 이우나요 자무자\"},{\"index\":24,\"koreanLyrics\":\"Oh, yeah\",\"koreanPronounciation\":\"오, 예\"},{\"index\":25,\"koreanLyrics\":\"(즈키즈키)\",\"koreanPronounciation\":\"(즈키즈키)\"},{\"index\":26,\"koreanLyrics\":\"(즈키즈키)\",\"koreanPronounciation\":\"(즈키즈키)\"},{\"index\":27,\"koreanLyrics\":\"자자자자 잠자 (즈키즈키)\",\"koreanPronounciation\":\"자자자자 자무자 (즈키즈키)\"},{\"index\":28,\"koreanLyrics\":\"(즈키즈키)\",\"koreanPronounciation\":\"(즈키즈키)\"},{\"index\":29,\"koreanLyrics\":\"「미안해, 조금도 제대로 살아주지 못해서」라고 전해줘\",\"koreanPronounciation\":\"「고멘네 칫토모 죠우즈니 이키테 아게라레나쿠테」토 츠타에테\"},{\"index\":30,\"koreanLyrics\":\"부정형의 미소라도 갖고 싶어서 인간님인 척하는 망령\",\"koreanPronounciation\":\"히테이케이노 에가오데모 호시쿠테 닌겐사마 나리킷테루 보우레이\"},{\"index\":31,\"koreanLyrics\":\"자신의 약한 소리에 맞장구만 칠 뿐이었어\",\"koreanPronounciation\":\"지분노 요와네니 아이즈치 바카리닷타\"},{\"index\":32,\"koreanLyrics\":\"당연히 당신과 제대로 싸우지도 못했지\",\"koreanPronounciation\":\"토우젠 아나타토 마토모니 켄카모 데키나캇타\"},{\"index\":33,\"koreanLyrics\":\"즈키즈키즈키 (즈키즈키즈키)\",\"koreanPronounciation\":\"즈키즈키즈키 (즈키즈키즈키)\"},{\"index\":34,\"koreanLyrics\":\"즈킨즈킨즈킨 (즈킨즈킨)\",\"koreanPronounciation\":\"즈킨즈킨즈킨 (즈킨즈킨)\"},{\"index\":35,\"koreanLyrics\":\"즈키즈키즈키 (즈키즈키즈키)\",\"koreanPronounciation\":\"즈키즈키즈키 (즈키즈키즈키)\"},{\"index\":36,\"koreanLyrics\":\"즈키 즈키 즈킨\",\"koreanPronounciation\":\"즈키 즈키 즈킨\"},{\"index\":37,\"koreanLyrics\":\"변할 수 있을 것 같지 않아 아 아\",\"koreanPronounciation\":\"카와레소우니 나이야이야\"},{\"index\":38,\"koreanLyrics\":\"농담이 아냐 꿈을 먹지 말아줘\",\"koreanPronounciation\":\"죠우단쟈나이 유메오 타베나이데\"},{\"index\":39,\"koreanLyrics\":\"즈키즈키즈키\",\"koreanPronounciation\":\"즈키즈키즈키\"},{\"index\":40,\"koreanLyrics\":\"제법 멋 부린 절망을 노래했다따랏따\",\"koreanPronounciation\":\"코쟈레타 제츠보우오 우탓탓타랏타\"},{\"index\":41,\"koreanLyrics\":\"어찌할 도리 없는 초라한 끝이라 해도\",\"koreanPronounciation\":\"도우시요우모 나이 나레노하테데모\"},{\"index\":42,\"koreanLyrics\":\"즈키즈키즈키거린다고\",\"koreanPronounciation\":\"즈키즈키즈킷테\"},{\"index\":43,\"koreanLyrics\":\"언젠가 사랑스러운 노래가 될 거야 자자자자 잠자\",\"koreanPronounciation\":\"이츠카 이토시이 우타니 나루사 자자자자 자무자\"},{\"index\":44,\"koreanLyrics\":\"있잖아 이치, 니, 산에 뛰어 자자자 자자무자\",\"koreanPronounciation\":\"네에 이치, 니, 산데 톤데 자자자 자자무자\"},{\"index\":45,\"koreanLyrics\":\"모조리 다 걷어차 버리고 자자자 자자무자\",\"koreanPronounciation\":\"잇사이갓사이 켓토바시테 자자자 자자무자\"},{\"index\":46,\"koreanLyrics\":\"후기에서 언급조차 되지 않는 나날들\",\"koreanPronounciation\":\"아토가키데 후레라레모 시나이 히비\"},{\"index\":47,\"koreanLyrics\":\"여기서 도망친다면 정말로 그렇게 될 것 같아\",\"koreanPronounciation\":\"코코데 니게다시타라 혼토우니 소우 나리소우다\"},{\"index\":48,\"koreanLyrics\":\"누구든 영혼은 간신히\",\"koreanPronounciation\":\"다레닷테 타마시이 카라가라\"},{\"index\":49,\"koreanLyrics\":\"즈키즈키즈키\",\"koreanPronounciation\":\"즈키즈키즈키\"},{\"index\":50,\"koreanLyrics\":\"아픔과 분노하는 인간을 집어삼켰다따랏따\",\"koreanPronounciation\":\"이타미토 이카레루 히토오 쿠랏탓타랏타\"},{\"index\":51,\"koreanLyrics\":\"그런데 왜일까 지금도\",\"koreanPronounciation\":\"다노니 나제다로우 이마모\"},{\"index\":52,\"koreanLyrics\":\"즈키즈키즈키거린다고 (즈키즈키)\",\"koreanPronounciation\":\"즈키즈키즈킷테 (즈키즈키)\"},{\"index\":53,\"koreanLyrics\":\"사과를 베어 물듯이 자자 잠자\",\"koreanPronounciation\":\"린고오 카지루요우니 자자 자무자\"},{\"index\":54,\"koreanLyrics\":\"어찌할 도리 없는 초라한 끝이라 해도 여기에 있어\",\"koreanPronounciation\":\"도우시요우모 나이 나레노하테데모 코코니 이루\"},{\"index\":55,\"koreanLyrics\":\"샤가 꽃에 중독되어도\",\"koreanPronounciation\":\"샤가노 하나니 도쿠사레테모\"},{\"index\":56,\"koreanLyrics\":\"빛은 1시 방향에 있어\",\"koreanPronounciation\":\"히카리와 이치지노 호우가쿠니 아루\"},{\"index\":57,\"koreanLyrics\":\"지금은 꼬리를 질질 끌며 가라 자자자자 잠자\",\"koreanPronounciation\":\"이마와 싯포오 히키즈리유케 자자자자 자무자\"},{\"index\":58,\"koreanLyrics\":\"그러니까 「현실은 이제 됐어」 같은 말은 하지 마 잠자\",\"koreanPronounciation\":\"다카라 「겐지츠와 모우 이이」 난테 이우나요 자무자\"},{\"index\":59,\"koreanLyrics\":\"Okay? (즈키즈키)\",\"koreanPronounciation\":\"오케이? (즈키즈키)\"},{\"index\":60,\"koreanLyrics\":\"(즈키즈키)\",\"koreanPronounciation\":\"(즈키즈키)\"",
+      "geminiError": null,
+      "graderResult": {
+        "score": 8,
+        "deductions": [
+          {
+            "reason": "[index 0] 'ルビを振って'는 '후리가나(독음)를 달다'라는 의미이지만, 보석 '루비'를 다는 것으로 오역했습니다. 가사의 핵심적인 의미를 왜곡하는 번역입니다.",
+            "points": 1.5
+          },
+          {
+            "reason": "[index 44] '1, 2, 3'은 한국어 '하나, 둘, 셋'으로 번역해야 한다는 가이드라인 3번을 따르지 않고 일본어 발음 '이치, 니, 산'으로 음차했습니다.",
+            "points": 0.5
+          }
+        ],
+        "comment": "전반적으로 곡의 분위기와 가사의 의미를 잘 살려 번역했으나, 몇 가지 중요한 오역과 가이드라인 위반 사항이 발견되었습니다. 특히 [index 0]에서 'ルビ(후리가나)'를 보석 '루비'로 오역하여 문장의 의미를 완전히 바꾸어 버린 점이 아쉽습니다. 또한 [index 44]에서는 숫자를 한국어로 번역하지 않고 일본어 발음을 그대로 사용해 가이드라인을 위반했습니다. 그 외의 부분은 자연스럽고 매끄럽게 번역되었습니다."
+      },
+      "graderError": null,
+      "executionLatencyMs": 238809,
+      "gradingLatencyMs": 38390,
+      "executionCost": 0.009079,
+      "gradingCost": 0.010555
+    },
+    {
+      "testCaseName": "T씨의말을믿지마",
+      "criteria": "한국어 번역 문장에 일본어가 없어야한다. 예를들면 'って'같은 것이 문장 말미에 남아있지 않아야한다.",
+      "input": [
+        {
+          "text": "ねえ知ってる？",
+          "index": 0,
+          "startTimeMs": 2970
+        },
+        {
+          "text": "人生って",
+          "index": 1,
+          "startTimeMs": 3740
+        },
+        {
+          "text": "舐めると甘い味がするの",
+          "index": 2,
+          "startTimeMs": 4650
+        },
+        {
+          "text": "へえ ねえ知ってる？",
+          "index": 3,
+          "startTimeMs": 6260
+        },
+        {
+          "text": "艱難辛苦",
+          "index": 4,
+          "startTimeMs": 7150
+        },
+        {
+          "text": "裏技使えばイージーモード",
+          "index": 5,
+          "startTimeMs": 7900
+        },
+        {
+          "text": "へえ そして",
+          "index": 6,
+          "startTimeMs": 9560
+        },
+        {
+          "text": "僕に課金すれば君はもっと幸せになれるよ",
+          "index": 7,
+          "startTimeMs": 10060
+        },
+        {
+          "text": "へえ",
+          "index": 8,
+          "startTimeMs": 12940
+        },
+        {
+          "text": "そうなんだ〜",
+          "index": 9,
+          "startTimeMs": 13440
+        },
+        {
+          "text": "ためになるなあ",
+          "index": 10,
+          "startTimeMs": 14180
+        },
+        {
+          "text": "T氏の話を",
+          "index": 11,
+          "startTimeMs": 15090
+        },
+        {
+          "text": "信じましょう",
+          "index": 12,
+          "startTimeMs": 15790
+        },
+        {
+          "text": "きらきら",
+          "index": 13,
+          "startTimeMs": 19240
+        },
+        {
+          "text": "ねえ知ってる？",
+          "index": 14,
+          "startTimeMs": 23100
+        },
+        {
+          "text": "気持ちがいいなら",
+          "index": 15,
+          "startTimeMs": 23910
+        },
+        {
+          "text": "劇薬も飲んでいいの",
+          "index": 16,
+          "startTimeMs": 24820
+        },
+        {
+          "text": "へえ ねえ知ってる？",
+          "index": 17,
+          "startTimeMs": 26390
+        },
+        {
+          "text": "コスパがいいから",
+          "index": 18,
+          "startTimeMs": 27150
+        },
+        {
+          "text": "魂を売って優勝",
+          "index": 19,
+          "startTimeMs": 28200
+        },
+        {
+          "text": "へえ よしよし",
+          "index": 20,
+          "startTimeMs": 29700
+        },
+        {
+          "text": "僕の教えに従順な君を愛してあげるよ",
+          "index": 21,
+          "startTimeMs": 30230
+        },
+        {
+          "text": "へえ",
+          "index": 22,
+          "startTimeMs": 33070
+        },
+        {
+          "text": "そうなんだ〜",
+          "index": 23,
+          "startTimeMs": 33570
+        },
+        {
+          "text": "好きになっちゃう",
+          "index": 24,
+          "startTimeMs": 34280
+        },
+        {
+          "text": "T氏にすべてを",
+          "index": 25,
+          "startTimeMs": 35200
+        },
+        {
+          "text": "捧げましょう",
+          "index": 26,
+          "startTimeMs": 35920
+        },
+        {
+          "text": "T Is My Everything",
+          "index": 27,
+          "startTimeMs": 38850
+        },
+        {
+          "text": "T氏の話を信じるな",
+          "index": 28,
+          "startTimeMs": 40200
+        },
+        {
+          "text": "フェイクの愛に依存すんなって",
+          "index": 29,
+          "startTimeMs": 41910
+        },
+        {
+          "text": "言わないで　やだ",
+          "index": 30,
+          "startTimeMs": 43620
+        },
+        {
+          "text": "信じなきゃ　狂っちゃうわ",
+          "index": 31,
+          "startTimeMs": 45130
+        },
+        {
+          "text": "T氏の話を信じるな",
+          "index": 32,
+          "startTimeMs": 46960
+        },
+        {
+          "text": "狂気の沙汰にBETすんなって",
+          "index": 33,
+          "startTimeMs": 48590
+        },
+        {
+          "text": "言っても無駄さ",
+          "index": 34,
+          "startTimeMs": 50290
+        },
+        {
+          "text": "君の目はきらきら",
+          "index": 35,
+          "startTimeMs": 51750
+        },
+        {
+          "text": "私はあくまで正常です",
+          "index": 36,
+          "startTimeMs": 53550
+        },
+        {
+          "text": "あくまで正常です",
+          "index": 37,
+          "startTimeMs": 55280
+        },
+        {
+          "text": "そうそう　あなたは正常です　って",
+          "index": 38,
+          "startTimeMs": 57060
+        },
+        {
+          "text": "T氏の話を信じるな",
+          "index": 39,
+          "startTimeMs": 58750
+        },
+        {
+          "text": "みんなが悪魔で異常です",
+          "index": 40,
+          "startTimeMs": 60310
+        },
+        {
+          "text": "悪魔で異常です",
+          "index": 41,
+          "startTimeMs": 62150
+        },
+        {
+          "text": "そうそう　みんなが異常です　って",
+          "index": 42,
+          "startTimeMs": 63750
+        },
+        {
+          "text": "T氏の話を信じるな",
+          "index": 43,
+          "startTimeMs": 65460
+        },
+        {
+          "text": "FAKEか? REALか?",
+          "index": 44,
+          "startTimeMs": 67040
+        },
+        {
+          "text": "見分けつかん愛",
+          "index": 45,
+          "startTimeMs": 67860
+        },
+        {
+          "text": "FAKEか? REALか?",
+          "index": 46,
+          "startTimeMs": 68810
+        },
+        {
+          "text": "悩む時間ないわ",
+          "index": 47,
+          "startTimeMs": 69620
+        },
+        {
+          "text": "TはTRUEのT",
+          "index": 48,
+          "startTimeMs": 70800
+        },
+        {
+          "text": "そう答えてダンシング",
+          "index": 49,
+          "startTimeMs": 72090
+        },
+        {
+          "text": "ねえ知ってる？",
+          "index": 50,
+          "startTimeMs": 73500
+        },
+        {
+          "text": "脳内のお花畑には枯れないように水をやるといいよ",
+          "index": 51,
+          "startTimeMs": 74230
+        },
+        {
+          "text": "へえ",
+          "index": 52,
+          "startTimeMs": 77240
+        },
+        {
+          "text": "それを邪魔するあの子といたら不幸になる　縁を切るといいよ",
+          "index": 53,
+          "startTimeMs": 77740
+        },
+        {
+          "text": "へえ",
+          "index": 54,
+          "startTimeMs": 80580
+        },
+        {
+          "text": "そして　僕を否定する馬鹿はこの世から消そう",
+          "index": 55,
+          "startTimeMs": 81080
+        },
+        {
+          "text": "へえ",
+          "index": 56,
+          "startTimeMs": 83420
+        },
+        {
+          "text": "そうなんだ〜",
+          "index": 57,
+          "startTimeMs": 83920
+        },
+        {
+          "text": "それは名案",
+          "index": 58,
+          "startTimeMs": 84630
+        },
+        {
+          "text": "T氏の話を",
+          "index": 59,
+          "startTimeMs": 85570
+        },
+        {
+          "text": "信じましょう",
+          "index": 60,
+          "startTimeMs": 86420
+        },
+        {
+          "text": "T氏の言う通り",
+          "index": 61,
+          "startTimeMs": 88930
+        },
+        {
+          "text": "〇しましょう",
+          "index": 62,
+          "startTimeMs": 89760
+        },
+        {
+          "text": "STOP IT!",
+          "index": 63,
+          "startTimeMs": 91570
+        },
+        {
+          "text": "T氏の話を信じるな",
+          "index": 64,
+          "startTimeMs": 97300
+        },
+        {
+          "text": "T",
+          "index": 65,
+          "startTimeMs": 100190
+        },
+        {
+          "text": "T",
+          "index": 66,
+          "startTimeMs": 101930
+        },
+        {
+          "text": "T",
+          "index": 67,
+          "startTimeMs": 102740
+        },
+        {
+          "text": "T",
+          "index": 68,
+          "startTimeMs": 103540
+        },
+        {
+          "text": "T Is My Everything",
+          "index": 69,
+          "startTimeMs": 104040
+        },
+        {
+          "text": "T氏の話を信じるな",
+          "index": 70,
+          "startTimeMs": 105750
+        },
+        {
+          "text": "真っ赤な嘘に期待すんなって",
+          "index": 71,
+          "startTimeMs": 107390
+        },
+        {
+          "text": "言わないで　やだ",
+          "index": 72,
+          "startTimeMs": 109090
+        },
+        {
+          "text": "真実じゃ救われないから！",
+          "index": 73,
+          "startTimeMs": 110500
+        },
+        {
+          "text": "T氏の話を信じるな",
+          "index": 74,
+          "startTimeMs": 112460
+        },
+        {
+          "text": "フェイクの愛に依存すんなって",
+          "index": 75,
+          "startTimeMs": 114040
+        },
+        {
+          "text": "言わないで　やだ",
+          "index": 76,
+          "startTimeMs": 115810
+        },
+        {
+          "text": "信じなきゃ　狂っちゃうわ",
+          "index": 77,
+          "startTimeMs": 117200
+        },
+        {
+          "text": "T氏の話を信じるな",
+          "index": 78,
+          "startTimeMs": 119090
+        },
+        {
+          "text": "レアな命を棒に振んなって",
+          "index": 79,
+          "startTimeMs": 120610
+        },
+        {
+          "text": "言っても無駄さ",
+          "index": 80,
+          "startTimeMs": 122350
+        },
+        {
+          "text": "走馬灯がきらきら",
+          "index": 81,
+          "startTimeMs": 123960
+        },
+        {
+          "text": "私はあくまで正常です",
+          "index": 82,
+          "startTimeMs": 125830
+        },
+        {
+          "text": "あくまで正常です",
+          "index": 83,
+          "startTimeMs": 127440
+        },
+        {
+          "text": "そうそう　あなたは正常です　って",
+          "index": 84,
+          "startTimeMs": 129110
+        },
+        {
+          "text": "T氏の話を信じるな",
+          "index": 85,
+          "startTimeMs": 130870
+        },
+        {
+          "text": "みんなが悪魔で異常です",
+          "index": 86,
+          "startTimeMs": 132590
+        },
+        {
+          "text": "悪魔で異常です",
+          "index": 87,
+          "startTimeMs": 134340
+        },
+        {
+          "text": "そうそう　みんなが異常です　って",
+          "index": 88,
+          "startTimeMs": 135970
+        },
+        {
+          "text": "T氏の話を",
+          "index": 89,
+          "startTimeMs": 137620
+        },
+        {
+          "text": "信じてた",
+          "index": 90,
+          "startTimeMs": 138900
+        },
+        {
+          "text": "騙されていたんです",
+          "index": 91,
+          "startTimeMs": 141020
+        },
+        {
+          "text": "私は騙されていたんです",
+          "index": 92,
+          "startTimeMs": 142660
+        },
+        {
+          "text": "T氏の話を",
+          "index": 93,
+          "startTimeMs": 144330
+        },
+        {
+          "text": "信じてた",
+          "index": 94,
+          "startTimeMs": 145690
+        },
+        {
+          "text": "幸せだったんです",
+          "index": 95,
+          "startTimeMs": 147680
+        },
+        {
+          "text": "確かに幸せだったんです",
+          "index": 96,
+          "startTimeMs": 149330
+        },
+        {
+          "text": "T氏の話を信じるな",
+          "index": 97,
+          "startTimeMs": 151000
+        },
+        {
+          "text": "いやいや",
+          "index": 98,
+          "startTimeMs": 155200
+        },
+        {
+          "text": "そして　この歌も信じるな",
+          "index": 99,
+          "startTimeMs": 157660
+        }
+      ],
+      "geminiOutput": "[{\"index\":0,\"koreanLyrics\":\"저기, 알고 있어?\",\"koreanPronounciation\":\"네에 싯테루\"},{\"index\":1,\"koreanLyrics\":\"인생이란 건\",\"koreanPronounciation\":\"진세잇테\"},{\"index\":2,\"koreanLyrics\":\"핥으면 단맛이 나\",\"koreanPronounciation\":\"나메루토 아마이 아지가 스루 노\"},{\"index\":3,\"koreanLyrics\":\"헤에, 저기 알고 있어?\",\"koreanPronounciation\":\"헤에 네에 싯테루\"},{\"index\":4,\"koreanLyrics\":\"간난신고\",\"koreanPronounciation\":\"칸난신쿠\"},{\"index\":5,\"koreanLyrics\":\"비기를 쓰면 이지 모드\",\"koreanPronounciation\":\"우라와자 츠카에바 이지 모도\"},{\"index\":6,\"koreanLyrics\":\"헤에, 그리고\",\"koreanPronounciation\":\"헤에 소시테\"},{\"index\":7,\"koreanLyrics\":\"나한테 과금하면 넌 더 행복해질 수 있어\",\"koreanPronounciation\":\"보쿠 니 카킨 스레바 키미 와 못토 시아와세 니 나레루 요\"},{\"index\":8,\"koreanLyrics\":\"헤에\",\"koreanPronounciation\":\"헤에\"},{\"index\":9,\"koreanLyrics\":\"그렇구나~\",\"koreanPronounciation\":\"소오난다\"},{\"index\":10,\"koreanLyrics\":\"도움이 되네\",\"koreanPronounciation\":\"타메 니 나루 나아\"},{\"index\":11,\"koreanLyrics\":\"T씨의 이야기를\",\"koreanPronounciation\":\"티시 노 하나시 오\"},{\"index\":12,\"koreanLyrics\":\"믿읍시다\",\"koreanPronounciation\":\"신지마쇼오\"},{\"index\":13,\"koreanLyrics\":\"반짝반짝\",\"koreanPronounciation\":\"키라키라\"},{\"index\":14,\"koreanLyrics\":\"저기, 알고 있어?\",\"koreanPronounciation\":\"네에 싯테루\"},{\"index\":15,\"koreanLyrics\":\"기분이 좋다면\",\"koreanPronounciation\":\"키모치 가 이이 나라\"},{\"index\":16,\"koreanLyrics\":\"극약도 마셔도 돼\",\"koreanPronounciation\":\"게키야쿠 모 논데 이이 노\"},{\"index\":17,\"koreanLyrics\":\"헤에, 저기 알고 있어?\",\"koreanPronounciation\":\"헤에 네에 싯테루\"},{\"index\":18,\"koreanLyrics\":\"가성비가 좋으니까\",\"koreanPronounciation\":\"코스파 가 이이 카라\"},{\"index\":19,\"koreanLyrics\":\"영혼을 팔고 우승\",\"koreanPronounciation\":\"타마시이 오 웃테 유우쇼오\"},{\"index\":20,\"koreanLyrics\":\"헤에, 착하지 착해\",\"koreanPronounciation\":\"헤에 요시요시\"},{\"index\":21,\"koreanLyrics\":\"내 가르침에 순종적인 너를 사랑해 줄게\",\"koreanPronounciation\":\"보쿠 노 오시에 니 쥬우준나 키미 오 아이시테 아게루 요\"},{\"index\":22,\"koreanLyrics\":\"헤에\",\"koreanPronounciation\":\"헤에\"},{\"index\":23,\"koreanLyrics\":\"그렇구나~\",\"koreanPronounciation\":\"소오난다\"},{\"index\":24,\"koreanLyrics\":\"좋아하게 돼버려\",\"koreanPronounciation\":\"스키 니 낫챠우\"},{\"index\":25,\"koreanLyrics\":\"T씨에게 모든 것을\",\"koreanPronounciation\":\"티시 니 스베테 오\"},{\"index\":26,\"koreanLyrics\":\"바칩시다\",\"koreanPronounciation\":\"사사게마쇼오\"},{\"index\":27,\"koreanLyrics\":\"T Is My Everything\",\"koreanPronounciation\":\"티 이즈 마이 에브리싱\"},{\"index\":28,\"koreanLyrics\":\"T씨의 이야기를 믿지 마\",\"koreanPronounciation\":\"티시 노 하나시 오 신지루 나\"},{\"index\":29,\"koreanLyrics\":\"가짜 사랑에 의존하지 말라니까\",\"koreanPronounciation\":\"페이쿠 노 아이 니 이존 순낫테\"},{\"index\":30,\"koreanLyrics\":\"말하지 마, 싫어\",\"koreanPronounciation\":\"이와나이데 야다\"},{\"index\":31,\"koreanLyrics\":\"믿지 않으면 미쳐버릴 거야\",\"koreanPronounciation\":\"신지나캬 쿠룻챠우 와\"},{\"index\":32,\"koreanLyrics\":\"T씨의 이야기를 믿지 마\",\"koreanPronounciation\":\"티시 노 하나시 오 신지루 나\"},{\"index\":33,\"koreanLyrics\":\"미친 짓에 베팅하지 말라니까\",\"koreanPronounciation\":\"쿄오키 노 사타 니 벳토 순낫테\"},{\"index\":34,\"koreanLyrics\":\"말해도 소용없어\",\"koreanPronounciation\":\"잇테모 무다 사\"},{\"index\":35,\"koreanLyrics\":\"너의 눈은 반짝반짝\",\"koreanPronounciation\":\"키미 노 메 와 키라키라\"},{\"index\":36,\"koreanLyrics\":\"나는 어디까지나 정상입니다\",\"koreanPronounciation\":\"와타시 와 아쿠마데 세이죠오 데스\"},{\"index\":37,\"koreanLyrics\":\"어디까지나 정상입니다\",\"koreanPronounciation\":\"아쿠마데 세이죠오 데스\"},{\"index\":38,\"koreanLyrics\":\"그래그래, 당신은 정상입니다, 라고\",\"koreanPronounciation\":\"소오소오 아나타 와 세이죠오 데스 ッテ\"},{\"index\":39,\"koreanLyrics\":\"T씨의 이야기를 믿지 마\",\"koreanPronounciation\":\"티시 노 하나시 오 신지루 나\"},{\"index\":40,\"koreanLyrics\":\"모두가 악마고 이상합니다\",\"koreanPronounciation\":\"민나 가 아쿠마 데 이죠오 데스\"},{\"index\":41,\"koreanLyrics\":\"악마고 이상합니다\",\"koreanPronounciation\":\"아쿠마 데 이죠오 데스\"},{\"index\":42,\"koreanLyrics\":\"그래그래, 모두가 이상합니다, 라고\",\"koreanPronounciation\":\"소오소오 민나 가 이죠오 데스 ッテ\"},{\"index\":43,\"koreanLyrics\":\"T씨의 이야기를 믿지 마\",\"koreanPronounciation\":\"티시 노 하나시 오 신지루 나\"},{\"index\":44,\"koreanLyrics\":\"FAKE인가? REAL인가?\",\"koreanPronounciation\":\"페이쿠 카 리아루 카\"},{\"index\":45,\"koreanLyrics\":\"분간할 수 없는 사랑\",\"koreanPronounciation\":\"미와케 츠칸 아이\"},{\"index\":46,\"koreanLyrics\":\"FAKE인가? REAL인가?\",\"koreanPronounciation\":\"페이쿠 카 리아루 카\"},{\"index\":47,\"koreanLyrics\":\"고민할 시간 없어\",\"koreanPronounciation\":\"나야무 지칸 나이 와\"},{\"index\":48,\"koreanLyrics\":\"T는 TRUE의 T\",\"koreanPronounciation\":\"티 와 토루우 노 티\"},{\"index\":49,\"koreanLyrics\":\"그렇게 대답하며 댄싱\",\"koreanPronounciation\":\"소오 코타에테 단신구\"},{\"index\":50,\"koreanLyrics\":\"저기, 알고 있어?\",\"koreanPronounciation\":\"네에 싯테루\"},{\"index\":51,\"koreanLyrics\":\"머릿속 꽃밭에는 시들지 않게 물을 주면 좋아\",\"koreanPronounciation\":\"노오나이 노 오하나바타케 니 와 카레나이 요오니 미즈 오 야루 토 이이 요\"},{\"index\":52,\"koreanLyrics\":\"헤에\",\"koreanPronounciation\":\"헤에\"},{\"index\":53,\"koreanLyrics\":\"그걸 방해하는 그 애랑 있으면 불행해져, 인연을 끊는 게 좋아\",\"koreanPronounciation\":\"소레 오 쟈마 스루 아노 코 토 이타라 후코오 니 나루 엔 오 키루 토 이이 요\"},{\"index\":54,\"koreanLyrics\":\"헤에\",\"koreanPronounciation\":\"헤에\"},{\"index\":55,\"koreanLyrics\":\"그리고 나를 부정하는 바보는 이 세상에서 없애버리자\",\"koreanPronounciation\":\"소시테 보쿠 오 히테이 스루 바카 와 코노 요 카라 케소오\"},{\"index\":56,\"koreanLyrics\":\"헤에\",\"koreanPronounciation\":\"헤에\"},{\"index\":57,\"koreanLyrics\":\"그렇구나~\",\"koreanPronounciation\":\"소오난다\"},{\"index\":58,\"koreanLyrics\":\"그건 명안\",\"koreanPronounciation\":\"소레 와 메이안\"},{\"index\":59,\"koreanLyrics\":\"T씨의 이야기를\",\"koreanPronounciation\":\"티시 노 하나시 오\"},{\"index\":60,\"koreanLyrics\":\"믿읍시다\",\"koreanPronounciation\":\"신지마쇼오\"},{\"index\":61,\"koreanLyrics\":\"T씨가 말하는 대로\",\"koreanPronounciation\":\"티시 노 이우 토오리\"},{\"index\":62,\"koreanLyrics\":\"죽입시다\",\"koreanPronounciation\":\"코로시마쇼오\"},{\"index\":63,\"koreanLyrics\":\"STOP IT!\",\"koreanPronounciation\":\"스톱 잇\"},{\"index\":64,\"koreanLyrics\":\"T씨의 이야기를 믿지 마\",\"koreanPronounciation\":\"티시 노 하나시 오 신지루 나\"},{\"index\":65,\"koreanLyrics\":\"T\",\"koreanPronounciation\":\"티\"},{\"index\":66,\"koreanLyrics\":\"T\",\"koreanPronounciation\":\"티\"},{\"index\":67,\"koreanLyrics\":\"T\",\"koreanPronounciation\":\"티\"},{\"index\":68,\"koreanLyrics\":\"T\",\"koreanPronounciation\":\"티\"},{\"index\":69,\"koreanLyrics\":\"T Is My Everything\",\"koreanPronounciation\":\"티 이즈 마이 에브리싱\"},{\"index\":70,\"koreanLyrics\":\"T씨의 이야기를 믿지 마\",\"koreanPronounciation\":\"티시 노 하나시 오 신지루 나\"},{\"index\":71,\"koreanLyrics\":\"새빨간 거짓말에 기대하지 말라니까\",\"koreanPronounciation\":\"맛카나 우소 니 키타이 순낫테\"},{\"index\":72,\"koreanLyrics\":\"말하지 마, 싫어\",\"koreanPronounciation\":\"이와나이데 야다\"},{\"index\":73,\"koreanLyrics\":\"진실로는 구원받지 못하니까!\",\"koreanPronounciation\":\"신지츠 쟈 스쿠와레나이 카라\"},{\"index\":74,\"koreanLyrics\":\"T씨의 이야기를 믿지 마\",\"koreanPronounciation\":\"티시 노 하나시 오 신지루 나\"},{\"index\":75,\"koreanLyrics\":\"가짜 사랑에 의존하지 말라니까\",\"koreanPronounciation\":\"페이쿠 노 아이 니 이존 순낫테\"},{\"index\":76,\"koreanLyrics\":\"말하지 마, 싫어\",\"koreanPronounciation\":\"이와나이데 야다\"},{\"index\":77,\"koreanLyrics\":\"믿지 않으면 미쳐버릴 거야\",\"koreanPronounciation\":\"신지나캬 쿠룻챠우 와\"},{\"index\":78,\"koreanLyrics\":\"T씨의 이야기를 믿지 마\",\"koreanPronounciation\":\"티시 노 하나시 오 신지루 나\"},{\"index\":79,\"koreanLyrics\":\"소중한 목숨을 헛되이 버리지 말라니까\",\"koreanPronounciation\":\"레아나 이노치 오 보오 니 훈낫테\"},{\"index\":80,\"koreanLyrics\":\"말해도 소용없어\",\"koreanPronounciation\":\"잇테모 무다 사\"},{\"index\":81,\"koreanLyrics\":\"주마등이 반짝반짝\",\"koreanPronounciation\":\"소오마토오 가 키라키라\"},{\"index\":82,\"koreanLyrics\":\"나는 어디까지나 정상입니다\",\"koreanPronounciation\":\"와타시 와 아쿠마데 세이죠오 데스\"},{\"index\":83,\"koreanLyrics\":\"어디까지나 정상입니다\",\"koreanPronounciation\":\"아쿠마데 세이죠오 데스\"},{\"index\":84,\"koreanLyrics\":\"그래그래, 당신은 정상입니다, 라고\",\"koreanPronounciation\":\"소오소오 아나타 와 세이죠오 데스 ッテ\"},{\"index\":85,\"koreanLyrics\":\"T씨의 이야기를 믿지 마\",\"koreanPronounciation\":\"티시 노 하나시 오 신지루 나\"},{\"index\":86,\"koreanLyrics\":\"모두가 악마고 이상합니다\",\"koreanPronounciation\":\"민나 가 아쿠마 데 이죠오 데스\"},{\"index\":87,\"koreanLyrics\":\"악마고 이상합니다\",\"koreanPronounciation\":\"아쿠마 데 이죠오 데스\"},{\"index\":88,\"koreanLyrics\":\"그래그래, 모두가 이상합니다, 라고\",\"koreanPronounciation\":\"소오소오 민나 가 이죠오 데스 ッテ\"},{\"index\":89,\"koreanLyrics\":\"T씨의 이야기를\",\"koreanPronounciation\":\"티시 노 하나시 오\"},{\"index\":90,\"koreanLyrics\":\"믿었어\",\"koreanPronounciation\":\"신지테타\"},{\"index\":91,\"koreanLyrics\":\"속고 있었던 거예요\",\"koreanPronounciation\":\"다마사레테 이탄 데스\"},{\"index\":92,\"koreanLyrics\":\"나는 속고 있었던 거예요\",\"koreanPronounciation\":\"와타시 와 다마사레테 이탄 데스\"},{\"index\":93,\"koreanLyrics\":\"T씨의 이야기를\",\"koreanPronounciation\":\"티시 노 하나시 오\"},{\"index\":94,\"koreanLyrics\":\"믿었어\",\"koreanPronounciation\":\"신지테타\"},{\"index\":95,\"koreanLyrics\":\"행복했어요\",\"koreanPronounciation\":\"시아와세 닷탄 데스\"},{\"index\":96,\"koreanLyrics\":\"분명 행복했어요\",\"koreanPronounciation\":\"타시카 니 시아와세 닷탄 데스\"},{\"index\":97,\"koreanLyrics\":\"T씨의 이야기를 믿지 마\",\"koreanPronounciation\":\"티시 노 하나시 오 신지루 나\"},{\"index\":98,\"koreanLyrics\":\"아냐 아냐\",\"koreanPronounciation\":\"이야이야\"},{\"index\":99,\"koreanLyrics\":\"그리고 이 노래도 믿지 마\",\"koreanPronounciation\":\"소시테 코노 우타 모 신지루 나\"}]",
+      "geminiError": null,
+      "graderResult": {
+        "score": 7,
+        "deductions": [
+          {
+            "reason": "[index 36, 37, 40, 41, 82, 83, 86, 87] 원곡의 'あくまで'(어디까지나)와 '悪魔で'(악마이고)는 발음이 같은 동음이의어를 활용한 언어유희인데, 번역에서는 '어디까지나'와 '악마고'로 번역되어 언어유희가 완전히 사라졌습니다. 가이드라인 4번(일본어 발음에 기반한 라임이나 언어유희가 사용된 경우, 비슷한 의미의 한국어로 재창작해야 함)을 위반했습니다.",
+            "points": 2
+          },
+          {
+            "reason": "[index 2, 16] 원곡 가사의 어미 'の'는 부드럽고 설명하는 듯한 뉘앙스를 주지만, 번역된 '나', '돼'는 다소 직설적이고 단정적인 느낌을 줍니다. '나는 거야', '마셔도 되는 거야' 등으로 번역하여 원곡의 미묘한 어조를 살리는 것이 더 좋았을 것입니다.",
+            "points": 0.5
+          },
+          {
+            "reason": "[index 62] 원곡에서는 '〇しましょう'와 같이 의도적으로 단어를 가렸지만, 번역에서는 '죽입시다'로 직접적으로 표현하여 원곡의 암시적이고 검열된 표현 방식을 살리지 못했습니다.",
+            "points": 0.5
+          }
+        ],
+        "comment": "전반적으로 자연스럽고 원곡의 분위기를 잘 살린 번역입니다. 특히 속어나 관용구 번역이 뛰어납니다. 테스트 케이스의 요구사항인 번역문 내 일본어 미포함 기준은 완벽하게 충족했습니다. 하지만 가사의 핵심적인 요소인 'あくまで'와 '悪魔で'의 동음이의어 언어유희를 재현하지 못한 점이 아쉬우며, 일부 표현에서 원곡의 미묘한 뉘앙스를 놓친 부분이 있어 감점했습니다."
+      },
+      "graderError": null,
+      "executionLatencyMs": 30509,
+      "gradingLatencyMs": 38833,
+      "executionCost": 0.011033499999999998,
+      "gradingCost": 0.014430000000000002
+    }
+  ]
+}

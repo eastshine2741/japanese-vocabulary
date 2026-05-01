@@ -83,12 +83,16 @@ export async function callGemini(
       return { text: null, error: msg, latencyMs, cost: 0 };
     }
 
-    const text =
-      data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "(empty response)";
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
     const usage = data?.usageMetadata;
     const promptTokens = usage?.promptTokenCount ?? 0;
     const candidateTokens = usage?.candidatesTokenCount ?? 0;
     const cost = calcCost(model, promptTokens, candidateTokens);
+
+    if (!text) {
+      const reason = data?.candidates?.[0]?.finishReason;
+      return { text: null, error: `Empty response (finishReason: ${reason ?? "unknown"})`, latencyMs, cost };
+    }
 
     return { text, error: null, latencyMs, cost };
   } catch (e) {

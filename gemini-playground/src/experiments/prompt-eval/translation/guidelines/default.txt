@@ -1,6 +1,4 @@
 1. Should preserve entire original Japanese lyrics' tone and mood.
 2. Should preserve each original Japanese lyric's tone, mood, politeness level.
 3. For Japan-specific cultural terms: use the equivalent Korean word if one exists; otherwise keep the original Japanese pronunciation in Korean (한국어 발음).
-4. If the original uses rhyme or wordplay based on Japanese pronunciation, recreate it with Korean words of similar meaning.
-5. Use four-character idioms (사자성어/四字熟語) when appropriate. However, if an idiom carries a different meaning in Korean vs Japanese, write it out in plain Korean instead.
-6. Do not use Korean slang or neologisms (신조어).
+4. Use four-character idioms (사자성어/四字熟語) when appropriate. However, if an idiom carries a different meaning in Korean vs Japanese, write it out in plain Korean instead.

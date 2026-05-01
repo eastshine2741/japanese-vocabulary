@@ -239,7 +239,7 @@
           "startTimeMs": null
         }
       ],
-      "translationCriteria": null,
+      "translationCriteria": "黙ってちゃん은 이 노래 고유의 표현이므로, 해석 없이 음차하여 '다맛테쨩'으로 번역해야 한다.",
       "wordMeaningCriteria": "결과의 surface, baseFrom이 일본어어야 한다. 한국어여서는 안 된다."
     },
     {
@@ -883,7 +883,7 @@
           "startTimeMs": 149680
         }
       ],
-      "translationCriteria": null,
+      "translationCriteria": "한국어 번역에 '팔방미인'을 그대로 사용해선 안된다. 일본어와 한국어에서의 의미가 완전히 다르기 때문이다. 반면 '백해무익'과 '반면교사'는 한국어에서와 의미가 같으므로 그대로 사용한다.\n\"ダイダイダイダイダイキライ\"를 \"대대대대대싫어해\"라고 번역하면 안된다. '대싫어해'라는 표현은 한국어에 없기 때문이다.",
       "wordMeaningCriteria": "鳴り止ま의 koreanText가 '울리기를 멈추다' 등이어야 하지, '울리다 멈추다'여서는 안된다."
     },
     {
@@ -1067,177 +1067,262 @@
       "name": "버그",
       "input": [
         {
-          "text": "足りないもの なーんだ 僕らの人生",
+          "text": "迷子 迷子 真っ只中 さあ",
           "index": 0,
-          "startTimeMs": 14030
+          "startTimeMs": 13860
         },
         {
-          "text": "正解どこなんだ 探せよ探せ",
+          "text": "パ-パ-パラ パーラノーイ「ア」",
           "index": 1,
-          "startTimeMs": 17220
+          "startTimeMs": 16520
         },
         {
-          "text": "(例外ない 二進も三進も 零下以内なら 劣化以外ない)",
+          "text": "ギコ ギコ My heart(マイココロ) 剪定",
           "index": 2,
-          "startTimeMs": 20470
+          "startTimeMs": 18720
         },
         {
-          "text": "正味クソゲーだ カラ空回れ",
+          "text": "パ-パ-パラ パーラノーイ「ア」",
           "index": 3,
-          "startTimeMs": 23520
+          "startTimeMs": 21730
         },
         {
-          "text": "倦怠モード「苦」だ 僕らの人生",
+          "text": "退路 退路 断った絡まった",
           "index": 4,
-          "startTimeMs": 33130
+          "startTimeMs": 24110
         },
         {
-          "text": "校内猛毒だ 屈めよ屈め",
+          "text": "パ-パ-パラ パーラノーイ「ア」",
           "index": 5,
-          "startTimeMs": 36240
+          "startTimeMs": 26870
         },
         {
-          "text": "(盛大Knight 和気あいゴッコは成敗Die by 生産性ない)",
+          "text": "Sad, sad 突っ伏して (カラ)",
           "index": 6,
-          "startTimeMs": 39440
+          "startTimeMs": 29420
         },
         {
-          "text": "後悔もう「独」だ 笑えよ笑え",
+          "text": "ぱ-ぱ-ぱLa ぱーらのーい「ド」",
           "index": 7,
-          "startTimeMs": 42590
+          "startTimeMs": 31830
         },
         {
-          "text": "心のレシピは かまちょ味 寂ジャンキー",
+          "text": "さあ バ-バ-バグさ バグバグ",
           "index": 8,
-          "startTimeMs": 45590
+          "startTimeMs": 34230
         },
         {
-          "text": "だんだん強がって ドロドロに伏す",
+          "text": "タ-タ-タグ 才能のタグ",
           "index": 9,
-          "startTimeMs": 48790
+          "startTimeMs": 37080
         },
         {
-          "text": "ドクドク呑み込んで 苦しんで泣いて吐き出せないの ベノベノム",
+          "text": "もう ハ-ハ-剥グ 感情は剥グ",
           "index": 10,
-          "startTimeMs": 52060
+          "startTimeMs": 39350
         },
         {
-          "text": "さよなラ",
+          "text": "発症「クルシイ」は 嫌嫌嫌 嫌嫌嫌",
           "index": 11,
-          "startTimeMs": 57660
+          "startTimeMs": 41990
         },
         {
-          "text": "あらま",
+          "text": "まあ！絶叫な感情落下 パッパラノーイ「ア」",
           "index": 12,
-          "startTimeMs": 60830
+          "startTimeMs": 45740
         },
         {
-          "text": "求愛性 孤独 ドク 流るルル (愛をもっと) 頂戴な ねえ 痛い痛いのとんでけ",
+          "text": "溺れ声上げては ぐるぐる",
           "index": 13,
-          "startTimeMs": 61640
+          "startTimeMs": 48490
         },
         {
-          "text": "存在感 血ドクドク 零るルル (無いの？もっと) 愛 (愛) 哀 (哀)",
+          "text": "まあ！絶体絶命落下やったラ滅多ラ",
           "index": 14,
-          "startTimeMs": 67840
+          "startTimeMs": 50970
         },
         {
-          "text": "叫べべベノム (めっ！)",
+          "text": "沈めユメユメ 嫌嫌嫌",
           "index": 15,
-          "startTimeMs": 72430
+          "startTimeMs": 53780
         },
         {
-          "text": "最高点ゼロだ 僕らの人生",
+          "text": "さあ バ-バ-バグさ バグバグ",
           "index": 16,
-          "startTimeMs": 86770
+          "startTimeMs": 56280
         },
         {
-          "text": "断然テンションLowだ 屈めよ屈め",
+          "text": "的(まと)ハズレズレ 慈愛 嫌嫌",
           "index": 17,
-          "startTimeMs": 89880
+          "startTimeMs": 58900
         },
         {
-          "text": "(ロンリーNight テッペン回って 狼狽ない脳内Hopeもう一回)",
+          "text": "さあ バ-バ-バグさ バグバグ",
           "index": 18,
-          "startTimeMs": 93100
+          "startTimeMs": 61430
         },
         {
-          "text": "オーバードーズ刑だ アガれよアガれ",
+          "text": "解答(こたえ)絶え絶え 嫌嫌嫌 嫌嫌嫌",
           "index": 19,
-          "startTimeMs": 96240
+          "startTimeMs": 63970
         },
         {
-          "text": "心の中身は 無理オブ無理ジャンキー",
+          "text": "狂 狂",
           "index": 20,
-          "startTimeMs": 99300
+          "startTimeMs": 79060
         },
         {
-          "text": "どんどん強がって バラバラに伏す",
+          "text": "ぱっかーん警報 待って無理",
           "index": 21,
-          "startTimeMs": 102670
+          "startTimeMs": 80060
         },
         {
-          "text": "ドクドク呑み込んで 苦しんで泣いて逃げ出せないの ベノベノム",
+          "text": "ぐるぐる せーので回れ (狂 狂、狂 狂)",
           "index": 22,
-          "startTimeMs": 105660
+          "startTimeMs": 81310
         },
         {
-          "text": "あらま",
+          "text": "ぱっかーん警報 やっぱ無理",
           "index": 23,
-          "startTimeMs": 113070
+          "startTimeMs": 84940
         },
         {
-          "text": "求愛性 孤独 ドク 流るルル (愛をもっと) 頂戴な ねえ 痛い痛いのとんでけ",
+          "text": "ぐるぐる あんよに鎖 (狂 狂、狂 狂)",
           "index": 24,
-          "startTimeMs": 113570
+          "startTimeMs": 86720
         },
         {
-          "text": "存在感 既読 ドク 欲しがルル (無いの？もっと) 愛 (愛) 愛 (愛)",
+          "text": "エンドレス病み？",
           "index": 25,
-          "startTimeMs": 119930
+          "startTimeMs": 89870
         },
         {
-          "text": "滅べべベノム (めっ！)",
+          "text": "抱っこ 抱っこ いらない子だ",
           "index": 26,
-          "startTimeMs": 124300
+          "startTimeMs": 92410
         },
         {
-          "text": "もう悪性 届く毒 回るルル (哀でもっと) 傷害な ねえ 痛い痛いのSick sick",
+          "text": "パ-パ-パラ パーラノーイ「ア」",
           "index": 27,
-          "startTimeMs": 151440
+          "startTimeMs": 94950
         },
         {
-          "text": "存在抹消毒ドク 消えるルル 無いのずっと",
+          "text": "いい子 いい子 「頑張れ」の氾濫",
           "index": 28,
-          "startTimeMs": 157810
+          "startTimeMs": 97580
         },
         {
-          "text": "愛 (愛) 哀 (哀) 愛 (愛) 哀 (哀) (愛)",
+          "text": "アドミニストレイタ 嗚呼",
           "index": 29,
-          "startTimeMs": 160920
+          "startTimeMs": 100030
         },
         {
-          "text": "求愛性 孤独 ドク 流るルル (愛をもっと) 頂戴な ねえ 痛い痛いのとんでけ",
+          "text": "(バーバーバグさバグバグ)",
           "index": 30,
-          "startTimeMs": 164230
+          "startTimeMs": 102890
         },
         {
-          "text": "存在感 血ドクドク 零るルル (無いの？もっと) 愛 (愛) 哀 (哀)",
+          "text": "(ラララグ ランタイムラグ)",
           "index": 31,
-          "startTimeMs": 170540
+          "startTimeMs": 105250
         },
         {
-          "text": "叫べベベノム 叫べベベノム",
+          "text": "(ロ-ロ-ログ 反抗のログ)",
           "index": 32,
-          "startTimeMs": 175040
+          "startTimeMs": 107860
         },
         {
-          "text": "叫べベベノム (めっ！)",
+          "text": "バーバーバグ ぱぱぱLa ぱ",
           "index": 33,
-          "startTimeMs": 177910
+          "startTimeMs": 110510
+        },
+        {
+          "text": "ぱ パーラノーイ「ア」",
+          "index": 34,
+          "startTimeMs": 112780
+        },
+        {
+          "text": "ぱ パーラノーイ「ア」",
+          "index": 35,
+          "startTimeMs": 114570
+        },
+        {
+          "text": "ぱ パーラノーイ「ア」 嫌嫌",
+          "index": 36,
+          "startTimeMs": 115890
+        },
+        {
+          "text": "さあ 絶叫な感情落下 パッパラノーイ「ア」",
+          "index": 37,
+          "startTimeMs": 117810
+        },
+        {
+          "text": "左 右 行方も ぐるぐる 悲惨",
+          "index": 38,
+          "startTimeMs": 121000
+        },
+        {
+          "text": "限界脳狂っちゃってやったラ滅多ラ",
+          "index": 39,
+          "startTimeMs": 123720
+        },
+        {
+          "text": "ヤミ迷え酔え イナイイナイばあ",
+          "index": 40,
+          "startTimeMs": 125990
+        },
+        {
+          "text": "イナイイナイ×点(ばってん)",
+          "index": 41,
+          "startTimeMs": 128460
+        },
+        {
+          "text": "絶叫な感情落下 パッパラノーイ「ア」",
+          "index": 42,
+          "startTimeMs": 130020
+        },
+        {
+          "text": "溺れ声上げては ぐるぐる",
+          "index": 43,
+          "startTimeMs": 132530
+        },
+        {
+          "text": "まあ！絶体絶命落下やったラ滅多ラ",
+          "index": 44,
+          "startTimeMs": 134850
+        },
+        {
+          "text": "凍枯れ果て 嫌嫌嫌",
+          "index": 45,
+          "startTimeMs": 137500
+        },
+        {
+          "text": "さあ バ-バ-バグさ バグバグ",
+          "index": 46,
+          "startTimeMs": 140310
+        },
+        {
+          "text": "爛れ荒れ荒れ 悲哀 嫌嫌",
+          "index": 47,
+          "startTimeMs": 142740
+        },
+        {
+          "text": "さあ バ-バ-バグさ バグバグ",
+          "index": 48,
+          "startTimeMs": 144900
+        },
+        {
+          "text": "暗闇(クロ) マミレ理性 嫌嫌嫌",
+          "index": 49,
+          "startTimeMs": 147650
+        },
+        {
+          "text": "今今今 嫌嫌 嫌嫌嫌嫌嫌嫌嫌",
+          "index": 50,
+          "startTimeMs": 150320
         }
       ],
-      "translationCriteria": null,
+      "translationCriteria": "狂 의 일본어 발음이 '쿠루'여야 한다. 일본어 발음이 '쿄우'거나, 한국어 번역이 '광'이어서는 안된다.",
       "wordMeaningCriteria": null
     },
     {
@@ -1406,6 +1491,982 @@
       ],
       "translationCriteria": null,
       "wordMeaningCriteria": "가타가나로 이루어진 일본어 단어의 surface가 '*'이어서는 안된다."
+    },
+    {
+      "name": "잠자",
+      "input": [
+        {
+          "text": "使い古した自分の名前にあえてキッチュなルビを振って",
+          "index": 0,
+          "startTimeMs": 7610
+        },
+        {
+          "text": "高潔を打ち負かせるくらいに恐ろしくなる 骨の髄まで",
+          "index": 1,
+          "startTimeMs": 11530
+        },
+        {
+          "text": "今はどんなふうに見えてますか？",
+          "index": 2,
+          "startTimeMs": 15520
+        },
+        {
+          "text": "醜いですか？それはそっか",
+          "index": 3,
+          "startTimeMs": 17430
+        },
+        {
+          "text": "どうか林檎を投げつけないで",
+          "index": 4,
+          "startTimeMs": 19510
+        },
+        {
+          "text": "胸に lock up, lock up ザムザ",
+          "index": 5,
+          "startTimeMs": 21540
+        },
+        {
+          "text": "「鏡をご覧」誰かが囁く",
+          "index": 6,
+          "startTimeMs": 31480
+        },
+        {
+          "text": "うまくいったら儲けものさ",
+          "index": 7,
+          "startTimeMs": 33500
+        },
+        {
+          "text": "甘い言葉も笑顔も通じない",
+          "index": 8,
+          "startTimeMs": 35590
+        },
+        {
+          "text": "走り出したらもう獣だ",
+          "index": 9,
+          "startTimeMs": 37480
+        },
+        {
+          "text": "月の真下をうろつきながら考えてた 夜すがら",
+          "index": 10,
+          "startTimeMs": 39250
+        },
+        {
+          "text": "悪夢にどの指立ててやるべきかってね",
+          "index": 11,
+          "startTimeMs": 43640
+        },
+        {
+          "text": "ズキズキズキ（ズキズキズキ）",
+          "index": 12,
+          "startTimeMs": 47590
+        },
+        {
+          "text": "ズキンズキンズキン（ズキンズキン）",
+          "index": 13,
+          "startTimeMs": 49540
+        },
+        {
+          "text": "ズキズキズキ（ズキズキズキ）",
+          "index": 14,
+          "startTimeMs": 51610
+        },
+        {
+          "text": "ズキ ズキ ズキン",
+          "index": 15,
+          "startTimeMs": 53690
+        },
+        {
+          "text": "変われ（ズキズキズキズキズキ）",
+          "index": 16,
+          "startTimeMs": 55250
+        },
+        {
+          "text": "誰だって 魂辛辛",
+          "index": 17,
+          "startTimeMs": 58820
+        },
+        {
+          "text": "ズキズキズキ",
+          "index": 18,
+          "startTimeMs": 61620
+        },
+        {
+          "text": "痛みと怒れる人を喰らったったらった",
+          "index": 19,
+          "startTimeMs": 62840
+        },
+        {
+          "text": "だのに 何故だろう今も",
+          "index": 20,
+          "startTimeMs": 66780
+        },
+        {
+          "text": "ズキズキズキって",
+          "index": 21,
+          "startTimeMs": 69640
+        },
+        {
+          "text": "派手な尻尾を引き摺りゆく ザザザザ ザムザ",
+          "index": 22,
+          "startTimeMs": 70980
+        },
+        {
+          "text": "「現実はもういい」なんて云うなよ ザムザ",
+          "index": 23,
+          "startTimeMs": 75350
+        },
+        {
+          "text": "Oh, yeah",
+          "index": 24,
+          "startTimeMs": 79240
+        },
+        {
+          "text": "（ズキズキ）",
+          "index": 25,
+          "startTimeMs": 80590
+        },
+        {
+          "text": "（ズキズキ）",
+          "index": 26,
+          "startTimeMs": 82290
+        },
+        {
+          "text": "ザザザザ ザムザ（ズキズキ）",
+          "index": 27,
+          "startTimeMs": 83450
+        },
+        {
+          "text": "（ズキズキ）",
+          "index": 28,
+          "startTimeMs": 86340
+        },
+        {
+          "text": "「ごめんね ちっとも上手に生きてあげられなくて」と伝えて",
+          "index": 29,
+          "startTimeMs": 87910
+        },
+        {
+          "text": "否定形の笑顔でも欲しくて ニンゲン様なりきってる亡霊",
+          "index": 30,
+          "startTimeMs": 91930
+        },
+        {
+          "text": "自分の弱音に相槌ばかりだった",
+          "index": 31,
+          "startTimeMs": 97160
+        },
+        {
+          "text": "当然あなたとまともにケンカもできなかった",
+          "index": 32,
+          "startTimeMs": 100050
+        },
+        {
+          "text": "ズキズキズキ（ズキズキズキ）",
+          "index": 33,
+          "startTimeMs": 104150
+        },
+        {
+          "text": "ズキンズキンズキン（ズキンズキン）",
+          "index": 34,
+          "startTimeMs": 106300
+        },
+        {
+          "text": "ズキズキズキ（ズキズキズキ）",
+          "index": 35,
+          "startTimeMs": 108160
+        },
+        {
+          "text": "ズキ ズキ ズキン",
+          "index": 36,
+          "startTimeMs": 110000
+        },
+        {
+          "text": "変われそうにないやいや",
+          "index": 37,
+          "startTimeMs": 111790
+        },
+        {
+          "text": "冗談じゃない 夢を食べないで",
+          "index": 38,
+          "startTimeMs": 115560
+        },
+        {
+          "text": "ズキズキズキ",
+          "index": 39,
+          "startTimeMs": 118280
+        },
+        {
+          "text": "小洒落た絶望を歌ったったらった",
+          "index": 40,
+          "startTimeMs": 119470
+        },
+        {
+          "text": "どうしようもない 成れの果てでも",
+          "index": 41,
+          "startTimeMs": 123320
+        },
+        {
+          "text": "ズキズキズキって",
+          "index": 42,
+          "startTimeMs": 125820
+        },
+        {
+          "text": "いつか愛しい歌になるさ ザザザザ ザムザ",
+          "index": 43,
+          "startTimeMs": 127670
+        },
+        {
+          "text": "ねぇ 1, 2, 3で飛んで ザザザ ザザムザ",
+          "index": 44,
+          "startTimeMs": 138360
+        },
+        {
+          "text": "一切合切蹴っ飛ばして ザザザ ザザムザ",
+          "index": 45,
+          "startTimeMs": 143040
+        },
+        {
+          "text": "あとがきで触れられもしない日々",
+          "index": 46,
+          "startTimeMs": 146760
+        },
+        {
+          "text": "ここで逃げ出したら 本当にそうなりそうだ",
+          "index": 47,
+          "startTimeMs": 150220
+        },
+        {
+          "text": "誰だって 魂辛辛",
+          "index": 48,
+          "startTimeMs": 158060
+        },
+        {
+          "text": "ズキズキズキ",
+          "index": 49,
+          "startTimeMs": 160780
+        },
+        {
+          "text": "痛みと怒れる人を喰らったったらった",
+          "index": 50,
+          "startTimeMs": 162270
+        },
+        {
+          "text": "だのに何故だろう今も",
+          "index": 51,
+          "startTimeMs": 166050
+        },
+        {
+          "text": "ズキズキズキって（ズキズキ）",
+          "index": 52,
+          "startTimeMs": 168730
+        },
+        {
+          "text": "林檎をかじるように ザザ ザムザ",
+          "index": 53,
+          "startTimeMs": 170540
+        },
+        {
+          "text": "どうしようもない成れの果てでもここにいる",
+          "index": 54,
+          "startTimeMs": 173800
+        },
+        {
+          "text": "シャガの花に毒されても",
+          "index": 55,
+          "startTimeMs": 178180
+        },
+        {
+          "text": "光は1時の方角にある",
+          "index": 56,
+          "startTimeMs": 181840
+        },
+        {
+          "text": "今は尻尾を引き摺りゆけ ザザザザ ザムザ",
+          "index": 57,
+          "startTimeMs": 186090
+        },
+        {
+          "text": "だから「現実はもういい」なんて云うなよ ザムザ",
+          "index": 58,
+          "startTimeMs": 190230
+        },
+        {
+          "text": "Okay?（ズキズキ）",
+          "index": 59,
+          "startTimeMs": 194180
+        },
+        {
+          "text": "（ズキズキ）",
+          "index": 60,
+          "startTimeMs": 196410
+        },
+        {
+          "text": "ザザザザ ザムザ（ズキズキ）",
+          "index": 61,
+          "startTimeMs": 197460
+        },
+        {
+          "text": "（ズキズキズキ）",
+          "index": 62,
+          "startTimeMs": 202250
+        },
+        {
+          "text": "（ズキズキズキ）",
+          "index": 63,
+          "startTimeMs": 204460
+        },
+        {
+          "text": "ザザザザ ザムザ（ズキズキズキ）",
+          "index": 64,
+          "startTimeMs": 205420
+        },
+        {
+          "text": "（ズキズキズキ）",
+          "index": 65,
+          "startTimeMs": 208350
+        },
+        {
+          "text": "ズキ",
+          "index": 66,
+          "startTimeMs": 210330
+        }
+      ],
+      "translationCriteria": null,
+      "wordMeaningCriteria": "\"痛みと怒れる人を喰らったったらった\"와 같은 형태로 끝나는 문장을 '다따랐다'와 같이 번역하지 말고 담백하게 번역해야한다. '다따랐다'는 곡의 분위기에 어울리지 않기 때문이다."
+    },
+    {
+      "name": "T씨의말을믿지마",
+      "input": [
+        {
+          "text": "ねえ知ってる？",
+          "index": 0,
+          "startTimeMs": 2970
+        },
+        {
+          "text": "人生って",
+          "index": 1,
+          "startTimeMs": 3740
+        },
+        {
+          "text": "舐めると甘い味がするの",
+          "index": 2,
+          "startTimeMs": 4650
+        },
+        {
+          "text": "へえ ねえ知ってる？",
+          "index": 3,
+          "startTimeMs": 6260
+        },
+        {
+          "text": "艱難辛苦",
+          "index": 4,
+          "startTimeMs": 7150
+        },
+        {
+          "text": "裏技使えばイージーモード",
+          "index": 5,
+          "startTimeMs": 7900
+        },
+        {
+          "text": "へえ そして",
+          "index": 6,
+          "startTimeMs": 9560
+        },
+        {
+          "text": "僕に課金すれば君はもっと幸せになれるよ",
+          "index": 7,
+          "startTimeMs": 10060
+        },
+        {
+          "text": "へえ",
+          "index": 8,
+          "startTimeMs": 12940
+        },
+        {
+          "text": "そうなんだ〜",
+          "index": 9,
+          "startTimeMs": 13440
+        },
+        {
+          "text": "ためになるなあ",
+          "index": 10,
+          "startTimeMs": 14180
+        },
+        {
+          "text": "T氏の話を",
+          "index": 11,
+          "startTimeMs": 15090
+        },
+        {
+          "text": "信じましょう",
+          "index": 12,
+          "startTimeMs": 15790
+        },
+        {
+          "text": "きらきら",
+          "index": 13,
+          "startTimeMs": 19240
+        },
+        {
+          "text": "ねえ知ってる？",
+          "index": 14,
+          "startTimeMs": 23100
+        },
+        {
+          "text": "気持ちがいいなら",
+          "index": 15,
+          "startTimeMs": 23910
+        },
+        {
+          "text": "劇薬も飲んでいいの",
+          "index": 16,
+          "startTimeMs": 24820
+        },
+        {
+          "text": "へえ ねえ知ってる？",
+          "index": 17,
+          "startTimeMs": 26390
+        },
+        {
+          "text": "コスパがいいから",
+          "index": 18,
+          "startTimeMs": 27150
+        },
+        {
+          "text": "魂を売って優勝",
+          "index": 19,
+          "startTimeMs": 28200
+        },
+        {
+          "text": "へえ よしよし",
+          "index": 20,
+          "startTimeMs": 29700
+        },
+        {
+          "text": "僕の教えに従順な君を愛してあげるよ",
+          "index": 21,
+          "startTimeMs": 30230
+        },
+        {
+          "text": "へえ",
+          "index": 22,
+          "startTimeMs": 33070
+        },
+        {
+          "text": "そうなんだ〜",
+          "index": 23,
+          "startTimeMs": 33570
+        },
+        {
+          "text": "好きになっちゃう",
+          "index": 24,
+          "startTimeMs": 34280
+        },
+        {
+          "text": "T氏にすべてを",
+          "index": 25,
+          "startTimeMs": 35200
+        },
+        {
+          "text": "捧げましょう",
+          "index": 26,
+          "startTimeMs": 35920
+        },
+        {
+          "text": "T Is My Everything",
+          "index": 27,
+          "startTimeMs": 38850
+        },
+        {
+          "text": "T氏の話を信じるな",
+          "index": 28,
+          "startTimeMs": 40200
+        },
+        {
+          "text": "フェイクの愛に依存すんなって",
+          "index": 29,
+          "startTimeMs": 41910
+        },
+        {
+          "text": "言わないで　やだ",
+          "index": 30,
+          "startTimeMs": 43620
+        },
+        {
+          "text": "信じなきゃ　狂っちゃうわ",
+          "index": 31,
+          "startTimeMs": 45130
+        },
+        {
+          "text": "T氏の話を信じるな",
+          "index": 32,
+          "startTimeMs": 46960
+        },
+        {
+          "text": "狂気の沙汰にBETすんなって",
+          "index": 33,
+          "startTimeMs": 48590
+        },
+        {
+          "text": "言っても無駄さ",
+          "index": 34,
+          "startTimeMs": 50290
+        },
+        {
+          "text": "君の目はきらきら",
+          "index": 35,
+          "startTimeMs": 51750
+        },
+        {
+          "text": "私はあくまで正常です",
+          "index": 36,
+          "startTimeMs": 53550
+        },
+        {
+          "text": "あくまで正常です",
+          "index": 37,
+          "startTimeMs": 55280
+        },
+        {
+          "text": "そうそう　あなたは正常です　って",
+          "index": 38,
+          "startTimeMs": 57060
+        },
+        {
+          "text": "T氏の話を信じるな",
+          "index": 39,
+          "startTimeMs": 58750
+        },
+        {
+          "text": "みんなが悪魔で異常です",
+          "index": 40,
+          "startTimeMs": 60310
+        },
+        {
+          "text": "悪魔で異常です",
+          "index": 41,
+          "startTimeMs": 62150
+        },
+        {
+          "text": "そうそう　みんなが異常です　って",
+          "index": 42,
+          "startTimeMs": 63750
+        },
+        {
+          "text": "T氏の話を信じるな",
+          "index": 43,
+          "startTimeMs": 65460
+        },
+        {
+          "text": "FAKEか? REALか?",
+          "index": 44,
+          "startTimeMs": 67040
+        },
+        {
+          "text": "見分けつかん愛",
+          "index": 45,
+          "startTimeMs": 67860
+        },
+        {
+          "text": "FAKEか? REALか?",
+          "index": 46,
+          "startTimeMs": 68810
+        },
+        {
+          "text": "悩む時間ないわ",
+          "index": 47,
+          "startTimeMs": 69620
+        },
+        {
+          "text": "TはTRUEのT",
+          "index": 48,
+          "startTimeMs": 70800
+        },
+        {
+          "text": "そう答えてダンシング",
+          "index": 49,
+          "startTimeMs": 72090
+        },
+        {
+          "text": "ねえ知ってる？",
+          "index": 50,
+          "startTimeMs": 73500
+        },
+        {
+          "text": "脳内のお花畑には枯れないように水をやるといいよ",
+          "index": 51,
+          "startTimeMs": 74230
+        },
+        {
+          "text": "へえ",
+          "index": 52,
+          "startTimeMs": 77240
+        },
+        {
+          "text": "それを邪魔するあの子といたら不幸になる　縁を切るといいよ",
+          "index": 53,
+          "startTimeMs": 77740
+        },
+        {
+          "text": "へえ",
+          "index": 54,
+          "startTimeMs": 80580
+        },
+        {
+          "text": "そして　僕を否定する馬鹿はこの世から消そう",
+          "index": 55,
+          "startTimeMs": 81080
+        },
+        {
+          "text": "へえ",
+          "index": 56,
+          "startTimeMs": 83420
+        },
+        {
+          "text": "そうなんだ〜",
+          "index": 57,
+          "startTimeMs": 83920
+        },
+        {
+          "text": "それは名案",
+          "index": 58,
+          "startTimeMs": 84630
+        },
+        {
+          "text": "T氏の話を",
+          "index": 59,
+          "startTimeMs": 85570
+        },
+        {
+          "text": "信じましょう",
+          "index": 60,
+          "startTimeMs": 86420
+        },
+        {
+          "text": "T氏の言う通り",
+          "index": 61,
+          "startTimeMs": 88930
+        },
+        {
+          "text": "〇しましょう",
+          "index": 62,
+          "startTimeMs": 89760
+        },
+        {
+          "text": "STOP IT!",
+          "index": 63,
+          "startTimeMs": 91570
+        },
+        {
+          "text": "T氏の話を信じるな",
+          "index": 64,
+          "startTimeMs": 97300
+        },
+        {
+          "text": "T",
+          "index": 65,
+          "startTimeMs": 100190
+        },
+        {
+          "text": "T",
+          "index": 66,
+          "startTimeMs": 101930
+        },
+        {
+          "text": "T",
+          "index": 67,
+          "startTimeMs": 102740
+        },
+        {
+          "text": "T",
+          "index": 68,
+          "startTimeMs": 103540
+        },
+        {
+          "text": "T Is My Everything",
+          "index": 69,
+          "startTimeMs": 104040
+        },
+        {
+          "text": "T氏の話を信じるな",
+          "index": 70,
+          "startTimeMs": 105750
+        },
+        {
+          "text": "真っ赤な嘘に期待すんなって",
+          "index": 71,
+          "startTimeMs": 107390
+        },
+        {
+          "text": "言わないで　やだ",
+          "index": 72,
+          "startTimeMs": 109090
+        },
+        {
+          "text": "真実じゃ救われないから！",
+          "index": 73,
+          "startTimeMs": 110500
+        },
+        {
+          "text": "T氏の話を信じるな",
+          "index": 74,
+          "startTimeMs": 112460
+        },
+        {
+          "text": "フェイクの愛に依存すんなって",
+          "index": 75,
+          "startTimeMs": 114040
+        },
+        {
+          "text": "言わないで　やだ",
+          "index": 76,
+          "startTimeMs": 115810
+        },
+        {
+          "text": "信じなきゃ　狂っちゃうわ",
+          "index": 77,
+          "startTimeMs": 117200
+        },
+        {
+          "text": "T氏の話を信じるな",
+          "index": 78,
+          "startTimeMs": 119090
+        },
+        {
+          "text": "レアな命を棒に振んなって",
+          "index": 79,
+          "startTimeMs": 120610
+        },
+        {
+          "text": "言っても無駄さ",
+          "index": 80,
+          "startTimeMs": 122350
+        },
+        {
+          "text": "走馬灯がきらきら",
+          "index": 81,
+          "startTimeMs": 123960
+        },
+        {
+          "text": "私はあくまで正常です",
+          "index": 82,
+          "startTimeMs": 125830
+        },
+        {
+          "text": "あくまで正常です",
+          "index": 83,
+          "startTimeMs": 127440
+        },
+        {
+          "text": "そうそう　あなたは正常です　って",
+          "index": 84,
+          "startTimeMs": 129110
+        },
+        {
+          "text": "T氏の話を信じるな",
+          "index": 85,
+          "startTimeMs": 130870
+        },
+        {
+          "text": "みんなが悪魔で異常です",
+          "index": 86,
+          "startTimeMs": 132590
+        },
+        {
+          "text": "悪魔で異常です",
+          "index": 87,
+          "startTimeMs": 134340
+        },
+        {
+          "text": "そうそう　みんなが異常です　って",
+          "index": 88,
+          "startTimeMs": 135970
+        },
+        {
+          "text": "T氏の話を",
+          "index": 89,
+          "startTimeMs": 137620
+        },
+        {
+          "text": "信じてた",
+          "index": 90,
+          "startTimeMs": 138900
+        },
+        {
+          "text": "騙されていたんです",
+          "index": 91,
+          "startTimeMs": 141020
+        },
+        {
+          "text": "私は騙されていたんです",
+          "index": 92,
+          "startTimeMs": 142660
+        },
+        {
+          "text": "T氏の話を",
+          "index": 93,
+          "startTimeMs": 144330
+        },
+        {
+          "text": "信じてた",
+          "index": 94,
+          "startTimeMs": 145690
+        },
+        {
+          "text": "幸せだったんです",
+          "index": 95,
+          "startTimeMs": 147680
+        },
+        {
+          "text": "確かに幸せだったんです",
+          "index": 96,
+          "startTimeMs": 149330
+        },
+        {
+          "text": "T氏の話を信じるな",
+          "index": 97,
+          "startTimeMs": 151000
+        },
+        {
+          "text": "いやいや",
+          "index": 98,
+          "startTimeMs": 155200
+        },
+        {
+          "text": "そして　この歌も信じるな",
+          "index": 99,
+          "startTimeMs": 157660
+        }
+      ],
+      "translationCriteria": "한국어 번역 문장에 일본어가 없어야한다. 예를들면 'って'같은 것이 문장 말미에 남아있지 않아야한다.",
+      "wordMeaningCriteria": null
+    },
+    {
+      "name": "매직메이드",
+      "input": [
+        {
+          "text": "何も無いけど寂しくなった　僕の心はアンティークの色",
+          "index": 0,
+          "startTimeMs": null
+        },
+        {
+          "text": "だから旅に出る遠く旅に出る　オマジナイの衣装ひとつ抱いて",
+          "index": 1,
+          "startTimeMs": null
+        },
+        {
+          "text": "ぽっかり空いた空白だけが　どうも平凡な僕に重くて",
+          "index": 2,
+          "startTimeMs": null
+        },
+        {
+          "text": "だから許して もうさいいでしょ　どうか特別な魔法かけてよ",
+          "index": 3,
+          "startTimeMs": null
+        },
+        {
+          "text": "息をする意味はここには無い　ならありのまま居るだけ！",
+          "index": 4,
+          "startTimeMs": null
+        },
+        {
+          "text": "今日は魔法にかかったメイド　夜に煌めいた星の帳",
+          "index": 5,
+          "startTimeMs": null
+        },
+        {
+          "text": "特別な言葉とお茶菓子を　ささやかな晴れ舞台",
+          "index": 6,
+          "startTimeMs": null
+        },
+        {
+          "text": "過去にバイバイバイ今を愛愛愛してる　言えたら痛みにバイバイバイ",
+          "index": 7,
+          "startTimeMs": null
+        },
+        {
+          "text": "今日は魔法にかかったメイド　ささやかな晴れ舞台（イェイ）",
+          "index": 8,
+          "startTimeMs": null
+        },
+        {
+          "text": "独りの夜の暗さが　いつか孤独に沁みた涙ひとつ",
+          "index": 9,
+          "startTimeMs": null
+        },
+        {
+          "text": "この気持ちだけ解ってくれる　魔法みたいな衣装を抱きしめて",
+          "index": 10,
+          "startTimeMs": null
+        },
+        {
+          "text": "息をする意味も見つからない　なら今は歌うだけだ",
+          "index": 11,
+          "startTimeMs": null
+        },
+        {
+          "text": "夜の隋に踊るメイド　ほんのりまた痛みもあるけれど",
+          "index": 12,
+          "startTimeMs": null
+        },
+        {
+          "text": "今は笑っていい気がするの　あなたも紅茶をどうぞ",
+          "index": 13,
+          "startTimeMs": null
+        },
+        {
+          "text": "過去にバイバイバイ今を愛愛愛してる　言えたら痛みにバイバイバイ",
+          "index": 14,
+          "startTimeMs": null
+        },
+        {
+          "text": "夜の随に踊るメイド　ささやかな晴れ舞台",
+          "index": 15,
+          "startTimeMs": null
+        },
+        {
+          "text": "今日は魔法にかかったメイド　夜に煌めいた星の帳",
+          "index": 16,
+          "startTimeMs": null
+        },
+        {
+          "text": "特別な言葉とお茶菓子を　ささやかな晴れ舞台",
+          "index": 17,
+          "startTimeMs": null
+        },
+        {
+          "text": "過去にバイバイバイ今を愛愛愛してる　言えたら痛みにバイバイバイ",
+          "index": 18,
+          "startTimeMs": null
+        },
+        {
+          "text": "今日は魔法にかかったメイド　ささやかな晴れ舞台",
+          "index": 19,
+          "startTimeMs": null
+        },
+        {
+          "text": "そっと咲いて征く言葉だけ　どうか綺麗で居て欲しいだけ",
+          "index": 20,
+          "startTimeMs": null
+        },
+        {
+          "text": "明日笑えるから今だけ　歌い続けるメイド",
+          "index": 21,
+          "startTimeMs": null
+        },
+        {
+          "text": "過去にバイバイバイ今を愛愛愛してる　言えたら痛みにバイバイバイ",
+          "index": 22,
+          "startTimeMs": null
+        },
+        {
+          "text": "今日は魔法にかかったメイド　ささやかな晴れ舞台",
+          "index": 23,
+          "startTimeMs": null
+        }
+      ],
+      "translationCriteria": null,
+      "wordMeaningCriteria": null
     }
   ]
 }
