@@ -26,10 +26,12 @@ cd app-rn && npx expo start --web             # App - Web (dev)
 
 ```bash
 cd app-rn
-DEPLOY_NS=issue-21 npx expo run:android      # com.anonymous.apprn.issue21 로 설치
+DEPLOY_NS=issue-21 npx expo run:android      # com.eastshine.kotonoha.issue21 로 설치
 ```
 
-- `DEPLOY_NS` 미설정 시 기본값 `main` → `com.anonymous.apprn.main`
+- `DEPLOY_NS` 미설정 시 기본값 `main` → `com.eastshine.kotonoha.main`
+- 패키지 이름이 바뀌면(예: 구 `com.anonymous.apprn.*`) `npx expo prebuild --clean` 으로 `android/` 재생성 필요. 기존 설치된 구 패키지 앱은 수동 삭제.
+- Google OAuth 흐름은 namespace마다 별개 client_id 필요 (Google Cloud Console에서 1~2분 등록)
 - `app-rn/.env`의 `EXPO_PUBLIC_BACKEND_URL`도 해당 namespace 서버에 맞출 것
 - `android/`는 gitignored — 각 워크트리에서 첫 빌드 시 자동 생성 (`expo prebuild`)
 - 이미 `android/`가 있는 상태에서 `DEPLOY_NS`를 바꿨으면 `npx expo prebuild --clean`으로 재생성 필요

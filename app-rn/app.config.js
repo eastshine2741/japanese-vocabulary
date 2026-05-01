@@ -16,7 +16,7 @@ const label = namespace !== 'main' ? ` (${namespace})` : '';
 
 export default {
   expo: {
-    name: `app-rn${label}`,
+    name: `Kotonoha${label}`,
     slug: 'app-rn',
     version: '1.0.0',
     orientation: 'portrait',
@@ -38,7 +38,7 @@ export default {
         monochromeImage: './assets/android-icon-monochrome.png',
       },
       predictiveBackGestureEnabled: false,
-      package: `com.anonymous.apprn${suffix}`,
+      package: `com.eastshine.kotonoha${suffix}`,
       usesCleartextTraffic: true,
     },
     web: {
