@@ -25394,6 +25394,164 @@
           ]
         }
       ]
+    },
+    {
+      "type": "frame",
+      "id": "IXtP5",
+      "x": 7164,
+      "y": -2372,
+      "name": "Onboarding Splash",
+      "width": 393,
+      "height": 852,
+      "fill": "#FAF8F2",
+      "layout": "vertical",
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "frame",
+          "id": "zS44X",
+          "name": "heroGroup",
+          "layout": "vertical",
+          "gap": 80,
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "path",
+              "id": "7YTaw",
+              "name": "leaf",
+              "geometry": "M24 0c16 16 20 28 20 38 0 12-9 18-20 18-11 0-20-6-20-18 0-10 4-22 20-38z",
+              "viewBox": [
+                0,
+                0,
+                48,
+                56
+              ],
+              "fill": "#2E5734",
+              "width": 52,
+              "height": 64
+            },
+            {
+              "type": "frame",
+              "id": "EZtuz",
+              "name": "textGroup",
+              "layout": "vertical",
+              "gap": 12,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "pfHZV",
+                  "name": "titleText",
+                  "fill": "#2E5734",
+                  "content": "Kotonoha",
+                  "fontFamily": "Funnel Sans",
+                  "fontSize": 36,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "q3VZn",
+                  "name": "subtitleText",
+                  "fill": "#7A7A6E",
+                  "content": "言の葉",
+                  "fontFamily": "Funnel Sans",
+                  "fontSize": 24
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "Itnzi",
+      "x": 7637,
+      "y": -2372,
+      "name": "Onboarding Login",
+      "width": 393,
+      "height": 852,
+      "fill": "#FAF8F2",
+      "layout": "vertical",
+      "padding": [
+        220,
+        0,
+        280,
+        0
+      ],
+      "justifyContent": "space_between",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "frame",
+          "id": "3KYvM",
+          "name": "brandGroup",
+          "layout": "vertical",
+          "gap": 10,
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "Mm5Ms",
+              "name": "brandTitle",
+              "fill": "#2E5734",
+              "content": "Kotonoha",
+              "fontFamily": "Funnel Sans",
+              "fontSize": 29,
+              "fontWeight": "700"
+            },
+            {
+              "type": "text",
+              "id": "OLQJp",
+              "name": "brandSub",
+              "fill": "#7A7A6E",
+              "content": "言の葉",
+              "fontFamily": "Funnel Sans",
+              "fontSize": 19
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "JJP5c",
+          "name": "googleBtn",
+          "width": 240,
+          "height": 48,
+          "fill": "#FFFFFF",
+          "cornerRadius": 24,
+          "stroke": {
+            "align": "inside",
+            "thickness": 1,
+            "fill": "#DADCE0"
+          },
+          "gap": 10,
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "P90Tb",
+              "name": "gIcon",
+              "fill": "#4285F4",
+              "content": "G",
+              "fontFamily": "Inter",
+              "fontSize": 18,
+              "fontWeight": "700"
+            },
+            {
+              "type": "text",
+              "id": "hkmgZ",
+              "name": "gLabel",
+              "fill": "#1F1F1F",
+              "content": "Sign in with Google",
+              "fontFamily": "Inter",
+              "fontSize": 14,
+              "fontWeight": "500"
+            }
+          ]
+        }
+      ]
     }
   ],
   "themes": {

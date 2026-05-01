@@ -68,16 +68,22 @@ export default function LoginScreen({ navigation }: Props) {
   );
 }
 
+// Onboarding-specific brand palette derived from Pencil design (japanese-vocabulary.pen).
+// Local-only on purpose — onboarding screens own their look.
+const BRAND_BG = '#FAF8F2';
+const BRAND_PRIMARY = '#2E5734';
+const BRAND_MUTED = '#7A7A6E';
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+  container: { flex: 1, backgroundColor: BRAND_BG },
   content: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 },
-  title: { fontSize: 36, fontWeight: '700', color: Colors.primary, textAlign: 'center' },
+  title: { fontSize: 28, fontWeight: '700', color: BRAND_PRIMARY, textAlign: 'center' },
   kanji: {
-    fontSize: 24,
-    color: Colors.textSecondary,
+    fontSize: 19,
+    color: BRAND_MUTED,
     textAlign: 'center',
     marginTop: 4,
-    marginBottom: 56,
+    marginBottom: 120,
   },
   error: { color: Colors.ratingAgain, textAlign: 'center', marginBottom: 12, fontSize: 13 },
   googleBtn: { width: 240, height: 48 },
