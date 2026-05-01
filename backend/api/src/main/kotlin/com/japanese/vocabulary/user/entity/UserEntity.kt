@@ -22,10 +22,10 @@ class UserEntity(
     val providerSub: String,
 
     @Column(nullable = true, length = 255)
-    val email: String? = null,
+    var email: String? = null,
 
     @Column(nullable = false, length = 100)
-    val name: String,
+    var name: String,
 
     @Column(name = "created_at")
     val createdAt: Instant = Instant.now()
