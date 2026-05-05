@@ -2,14 +2,12 @@ import React, { useState, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
-  FlatList,
   TouchableOpacity,
-  Modal,
   ActivityIndicator,
   StyleSheet,
   ScrollView,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BottomSheetFlatList, BottomSheetView } from '@gorhom/bottom-sheet';
 import { Feather } from '@expo/vector-icons';
 import { StudyUnit } from '../types/song';
 import { AddWordRequest } from '../types/word';
@@ -27,41 +25,36 @@ interface UniqueWord {
 }
 
 interface Props {
-  visible: boolean;
   studyUnits: StudyUnit[];
   songId: number;
   batchAddStatus: string;
   batchSavedCount: number;
   batchSkippedCount: number;
   onSave: (words: AddWordRequest[]) => void;
-  onClose: () => void;
+  collapsed?: boolean;
 }
 
 const DEFAULT_ON_POS = new Set(['NOUN', 'VERB', 'ADJECTIVE', 'NA_ADJECTIVE', 'ADVERB']);
 const HIDDEN_POS = new Set(['SYMBOL', 'SUPPLEMENTARY_SYMBOL', 'WHITESPACE']);
 
-// POS categories visible in filter chips (ordered)
 const FILTER_POS_ORDER = [
   'NOUN', 'VERB', 'ADJECTIVE', 'NA_ADJECTIVE', 'ADVERB',
   'PRONOUN', 'AUXILIARY_VERB', 'CONJUNCTION', 'ADNOMINAL',
   'INTERJECTION', 'PARTICLE', 'PREFIX', 'SUFFIX',
 ];
 
-export default function SongWordListSheet({
-  visible,
+function WordStudySheet({
   studyUnits,
   songId,
   batchAddStatus,
   batchSavedCount,
   batchSkippedCount,
   onSave,
-  onClose,
+  collapsed = false,
 }: Props) {
-  const { top: safeTop, bottom: safeBottom } = useSafeAreaInsets();
   const [enabledPOS, setEnabledPOS] = useState<Set<string>>(() => new Set(DEFAULT_ON_POS));
   const [uncheckedWords, setUncheckedWords] = useState<Set<string>>(new Set());
 
-  // Flatten and dedup tokens by baseForm
   const allUniqueWords = useMemo(() => {
     const map = new Map<string, UniqueWord>();
     for (const unit of studyUnits) {
@@ -82,29 +75,22 @@ export default function SongWordListSheet({
     return Array.from(map.values());
   }, [studyUnits]);
 
-  // POS types that actually exist in the words
   const availablePOS = useMemo(() => {
     const posSet = new Set(allUniqueWords.map(w => w.partOfSpeech));
     return FILTER_POS_ORDER.filter(pos => posSet.has(pos));
   }, [allUniqueWords]);
 
-  // Filtered words by POS
   const filteredWords = useMemo(
     () => allUniqueWords.filter(w => enabledPOS.has(w.partOfSpeech)),
     [allUniqueWords, enabledPOS],
   );
 
-  // Checked words (visible minus unchecked)
   const checkedCount = filteredWords.filter(w => !uncheckedWords.has(w.baseForm)).length;
 
   const togglePOS = useCallback((pos: string) => {
     setEnabledPOS(prev => {
       const next = new Set(prev);
-      if (next.has(pos)) {
-        next.delete(pos);
-      } else {
-        next.add(pos);
-      }
+      if (next.has(pos)) next.delete(pos); else next.add(pos);
       return next;
     });
   }, []);
@@ -112,22 +98,10 @@ export default function SongWordListSheet({
   const toggleWord = useCallback((baseForm: string) => {
     setUncheckedWords(prev => {
       const next = new Set(prev);
-      if (next.has(baseForm)) {
-        next.delete(baseForm);
-      } else {
-        next.add(baseForm);
-      }
+      if (next.has(baseForm)) next.delete(baseForm); else next.add(baseForm);
       return next;
     });
   }, []);
-
-  const selectAll = useCallback(() => {
-    setUncheckedWords(new Set());
-  }, []);
-
-  const deselectAll = useCallback(() => {
-    setUncheckedWords(new Set(filteredWords.map(w => w.baseForm)));
-  }, [filteredWords]);
 
   const handleSave = useCallback(() => {
     const words: AddWordRequest[] = filteredWords
@@ -144,10 +118,12 @@ export default function SongWordListSheet({
     onSave(words);
   }, [filteredWords, uncheckedWords, songId, onSave]);
 
-  const renderWordItem = useCallback(({ item }: { item: UniqueWord }) => {
+  const isLoading = batchAddStatus === 'loading';
+  const isSuccess = batchAddStatus === 'success';
+
+  const renderItem = useCallback(({ item }: { item: UniqueWord }) => {
     const isChecked = !uncheckedWords.has(item.baseForm);
     const posInfo = POS_INFO[item.partOfSpeech];
-
     return (
       <TouchableOpacity
         style={styles.wordItem}
@@ -175,139 +151,196 @@ export default function SongWordListSheet({
     );
   }, [uncheckedWords, toggleWord]);
 
-  const isLoading = batchAddStatus === 'loading';
-  const isSuccess = batchAddStatus === 'success';
+  const ListHeader = useMemo(() => (
+    <View>
+      {/* Drag handle (rendered inside content because BottomSheet uses handleComponent={null}) */}
+      <View style={styles.handleArea}>
+        <View style={styles.handleIndicator} />
+      </View>
 
-  return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <View style={[styles.container, { paddingTop: safeTop }]}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>전체 단어</Text>
-          <TouchableOpacity onPress={onClose} activeOpacity={0.6} style={styles.closeBtn}>
-            <Feather name="x" size={22} color={Colors.textPrimary} />
-          </TouchableOpacity>
+      {/* Title + total + CTA pill */}
+      <View style={styles.header}>
+        <View style={styles.headerLeft}>
+          <Text style={styles.headerTitle}>단어</Text>
+          <Text style={styles.headerTotal}>{allUniqueWords.length}개</Text>
         </View>
-
-        {/* POS filter chips */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterRow}
-          style={styles.filterScroll}
-        >
-          {availablePOS.map(pos => {
-            const info = POS_INFO[pos];
-            if (!info) return null;
-            const isOn = enabledPOS.has(pos);
-            return (
-              <TouchableOpacity
-                key={pos}
-                style={[
-                  styles.filterChip,
-                  isOn && { backgroundColor: info.color + '20' },
-                ]}
-                onPress={() => togglePOS(pos)}
-                activeOpacity={0.7}
-              >
-                <Text style={[
-                  styles.filterChipText,
-                  isOn && { color: info.color },
-                ]}>
-                  {info.korean}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-
-        {/* Select all checkbox + count */}
-        <View style={styles.selectionBar}>
+        {isSuccess ? (
+          <View style={[styles.ctaPill, styles.ctaPillSuccess]}>
+            <Feather name="check" size={14} color="#FFFFFF" />
+            <Text style={styles.ctaPillText}>
+              {batchSavedCount}개 저장
+              {batchSkippedCount > 0 ? ` (${batchSkippedCount}개 중복)` : ''}
+            </Text>
+          </View>
+        ) : (
           <TouchableOpacity
-            style={[styles.checkbox, checkedCount === filteredWords.length && filteredWords.length > 0 && styles.checkboxChecked]}
-            onPress={checkedCount === filteredWords.length ? deselectAll : selectAll}
-            activeOpacity={0.6}
+            style={[
+              styles.ctaPill,
+              checkedCount === 0 && styles.ctaPillDisabled,
+            ]}
+            onPress={handleSave}
+            disabled={isLoading || checkedCount === 0}
+            activeOpacity={0.7}
           >
-            {checkedCount === filteredWords.length && filteredWords.length > 0 && (
-              <Feather name="check" size={14} color="#FFFFFF" />
+            {isLoading ? (
+              <ActivityIndicator color="#FFF" size="small" />
+            ) : (
+              <>
+                <Feather name="plus" size={14} color="#FFFFFF" />
+                <Text style={styles.ctaPillText}>{checkedCount}개 담기</Text>
+              </>
             )}
           </TouchableOpacity>
-          <Text style={styles.selectionCount}>{filteredWords.length}개 단어</Text>
-        </View>
-
-        {/* Word list */}
-        <FlatList
-          data={filteredWords}
-          keyExtractor={item => item.baseForm}
-          renderItem={renderWordItem}
-          contentContainerStyle={styles.listContent}
-          style={styles.list}
-        />
-
-        {/* CTA */}
-        <View style={[styles.ctaArea, { paddingBottom: safeBottom + 16 }]}>
-          {isSuccess ? (
-            <View style={[styles.ctaBtn, styles.ctaBtnSuccess]}>
-              <Feather name="check" size={18} color="#FFFFFF" />
-              <Text style={styles.ctaBtnText}>
-                {batchSavedCount}개 저장 완료{batchSkippedCount > 0 ? ` (${batchSkippedCount}개 이미 존재)` : ''}
-              </Text>
-            </View>
-          ) : (
-            <TouchableOpacity
-              style={[styles.ctaBtn, styles.ctaBtnPrimary, checkedCount === 0 && styles.ctaBtnDisabled]}
-              onPress={handleSave}
-              activeOpacity={0.7}
-              disabled={isLoading || checkedCount === 0}
-            >
-              {isLoading ? (
-                <ActivityIndicator color="#FFF" size="small" />
-              ) : (
-                <>
-                  <Feather name="plus" size={18} color="#FFFFFF" />
-                  <Text style={styles.ctaBtnText}>{checkedCount}개 단어 담기</Text>
-                </>
-              )}
-            </TouchableOpacity>
-          )}
-        </View>
+        )}
       </View>
-    </Modal>
+
+      {/* POS filter chips */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.filterRow}
+        style={styles.filterScroll}
+      >
+        {availablePOS.map(pos => {
+          const info = POS_INFO[pos];
+          if (!info) return null;
+          const isOn = enabledPOS.has(pos);
+          return (
+            <TouchableOpacity
+              key={pos}
+              style={[
+                styles.filterChip,
+                isOn && { backgroundColor: info.color + '20' },
+              ]}
+              onPress={() => togglePOS(pos)}
+              activeOpacity={0.7}
+            >
+              <Text style={[
+                styles.filterChipText,
+                isOn && { color: info.color },
+              ]}>
+                {info.korean}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+
+    </View>
+  ), [
+    allUniqueWords.length, availablePOS, enabledPOS, togglePOS,
+    isSuccess, isLoading,
+    checkedCount, batchSavedCount, batchSkippedCount, handleSave,
+  ]);
+
+  if (collapsed) {
+    // Must be a gorhom-aware container (BottomSheetView), NOT a plain View.
+    // Using a plain View here breaks the parent BottomSheet's internal layout
+    // measurement and the sheet renders off-screen at index=-1.
+    return (
+      <BottomSheetView style={styles.collapsedPeek}>
+        <View style={styles.handleIndicator} />
+        <Text style={styles.collapsedLabel}>단어</Text>
+      </BottomSheetView>
+    );
+  }
+
+  return (
+    <BottomSheetFlatList
+      data={filteredWords}
+      keyExtractor={(item: UniqueWord) => item.baseForm}
+      renderItem={renderItem}
+      ListHeaderComponent={ListHeader}
+      stickyHeaderIndices={[]}
+      contentContainerStyle={styles.listContent}
+    />
   );
 }
 
+export default React.memo(WordStudySheet);
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
+  listContent: {
+    paddingBottom: 32,
   },
+
+  // Drag handle (rendered inside content; matches V2JqQC sheetPeek / N07HWp.rp8Od)
+  handleArea: {
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  handleIndicator: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: Colors.textTertiary,
+  },
+
+  // Collapsed peek (V2JqQC: padding [12,0,28,0], gap 10)
+  collapsedPeek: {
+    alignItems: 'center',
+    paddingTop: 12,
+    paddingBottom: 28,
+    gap: 10,
+  },
+  collapsedLabel: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+  },
+
+  // Header (title + CTA pill)
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingTop: 4,
+    paddingBottom: 16,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 8,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
     color: Colors.textPrimary,
   },
-  closeBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.card,
+  headerTotal: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: Colors.textMuted,
+  },
+  ctaPill: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 9999,
+    backgroundColor: Colors.primary,
+  },
+  ctaPillSuccess: {
+    backgroundColor: Colors.ratingGood,
+  },
+  ctaPillDisabled: {
+    opacity: 0.4,
+  },
+  ctaPillText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 
-  // POS filter
+  // Filter chips
   filterScroll: {
     flexGrow: 0,
   },
   filterRow: {
     paddingHorizontal: 20,
+    paddingBottom: 12,
     gap: 8,
   },
   filterChip: {
@@ -322,32 +355,13 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
 
-  // Selection bar
-  selectionBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-  },
-  selectionCount: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: Colors.textSecondary,
-  },
-
   // Word list
-  list: {
-    flex: 1,
-  },
-  listContent: {
-    paddingHorizontal: 20,
-  },
   wordItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
     paddingVertical: 12,
+    paddingHorizontal: 20,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.border,
   },
@@ -394,35 +408,5 @@ const styles = StyleSheet.create({
   posBadgeText: {
     fontSize: 11,
     fontWeight: '600',
-  },
-
-  // CTA
-  ctaArea: {
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: Colors.border,
-  },
-  ctaBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: 52,
-    borderRadius: 26,
-    gap: 8,
-  },
-  ctaBtnPrimary: {
-    backgroundColor: Colors.primary,
-  },
-  ctaBtnSuccess: {
-    backgroundColor: '#10B981',
-  },
-  ctaBtnDisabled: {
-    opacity: 0.4,
-  },
-  ctaBtnText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
   },
 });

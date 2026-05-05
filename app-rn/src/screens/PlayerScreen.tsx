@@ -2,14 +2,10 @@ import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react'
 import {
   View,
   Text,
-  FlatList,
   TouchableOpacity,
   StyleSheet,
-  Platform,
-  useWindowDimensions,
-  Linking,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
 import BottomSheet, { BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
@@ -17,15 +13,9 @@ import type { BottomSheetBackdropProps } from '@gorhom/bottom-sheet';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
-  withTiming,
-  withDelay,
-  cancelAnimation,
   interpolate,
-  clamp,
-  Easing,
-  runOnJS,
+  Extrapolation,
 } from 'react-native-reanimated';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useShallow } from 'zustand/react/shallow';
 import { usePlayerStore } from '../stores/playerStore';
 import { useVocabularyStore } from '../stores/vocabularyStore';
@@ -34,15 +24,15 @@ import { wordApi } from '../api/wordApi';
 import YouTubePlayer, { YouTubePlayerRef } from '../components/YouTubePlayer';
 import WordAnalysisSheet from '../components/WordAnalysisSheet';
 import WordEditSheet from '../components/WordEditSheet';
-import SongWordListSheet from '../components/SongWordListSheet';
-import LyricLine from '../components/LyricLine';
-import SeekBar from '../components/SeekBar';
+import WordStudySheet from '../components/WordStudySheet';
+import LyricsDial from '../components/LyricsDial';
+import ActionChips from '../components/ActionChips';
+import MiniBanner from '../components/MiniBanner';
 import AppDialog from '../components/AppDialog';
-import { Token, StudyUnit } from '../types/song';
+import { Token } from '../types/song';
 import { AddWordRequest } from '../types/word';
 import { Colors } from '../theme/theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import { buildReportMailto } from '../config/legal';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Player'>;
 
@@ -51,19 +41,23 @@ function extractVideoId(url: string): string | null {
   return match?.[1] ?? null;
 }
 
-const MV_EXPANDED = 220;
-const MV_COLLAPSED = 56;
-const DISMISS_THRESHOLD = 250;
-const CONTROLS_FADE = 200;
-const CONTROLS_HIDE_DELAY = 3000;
-const SCROLL_SEEK_DEBOUNCE_MS = 250;
-const LYRIC_VIEWPORT_HEIGHT = 240;
+const MV_HEIGHT = 200;
+const APP_BAR_HEIGHT = 56;
+const SHEET_PEEK = 76;
+const SHEET_MID = 316;
+
+// MV translates upward as the sheet rises so it tucks behind the app bar
+// (matches the 6 → 6a transition where MV slides under the gradient app bar).
+const MV_TRANSLATE_MID = -APP_BAR_HEIGHT;
+const MV_TRANSLATE_FULL = -(APP_BAR_HEIGHT + MV_HEIGHT);
 
 export default function PlayerScreen({ navigation, route }: Props) {
   const initialSeekMs = route.params?.initialSeekMs;
   const initialLyricIndex = route.params?.initialLyricIndex;
+
   const studyData = usePlayerStore(s => s.studyData);
   const resetPlayer = usePlayerStore(s => s.reset);
+
   const {
     addStatus, getWordStatus, existingWord,
     batchAddStatus, batchSavedCount, batchSkippedCount,
@@ -83,201 +77,77 @@ export default function PlayerScreen({ navigation, route }: Props) {
   const resetBatchAdd = useVocabularyStore(s => s.resetBatchAdd);
   const batchAddWords = useVocabularyStore(s => s.batchAddWords);
 
+  // Playback state
   const [currentMs, setCurrentMs] = useState(0);
   const [durationMs, setDurationMs] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+
+  // Word lookup state
   const [selectedToken, setSelectedToken] = useState<Token | null>(null);
   const [selectedLine, setSelectedLine] = useState('');
   const [selectedKoreanLine, setSelectedKoreanLine] = useState<string | null>(null);
-  const [wordListVisible, setWordListVisible] = useState(false);
   const [wordEditVisible, setWordEditVisible] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+
+  // Sheet snap index — drives wordSheet collapsed/expanded variants and overlay layers
+  const [snapIndex, setSnapIndex] = useState(0);
+
+  // For non-synced songs we step through lines manually (no MV time to lean on)
+  const [manualLineIndex, setManualLineIndex] = useState(0);
+
+  // Refs
   const youtubeRef = useRef<YouTubePlayerRef>(null);
-  const wordSheetRef = useRef<BottomSheet>(null);
-  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
-  const { bottom: safeBottom } = useSafeAreaInsets();
-
-  // Lyric viewport — windowed scroll, scroll-end → seek (SYNCED)
-  const flatListRef = useRef<FlatList>(null);
-  const visibleIndicesRef = useRef<number[]>([]);
-  const isAutoScrollRef = useRef(false);
-  const seekDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wordLookupRef = useRef<BottomSheet>(null);
+  const wordStudyRef = useRef<BottomSheet>(null);
   const initialSeekDone = useRef(false);
-  const initialScrollDone = useRef(false);
+  const initialIndexApplied = useRef(false);
 
-  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 30 });
-  const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: Array<{ index: number | null }> }) => {
-    visibleIndicesRef.current = viewableItems
-      .filter(v => v.index != null)
-      .map(v => v.index!)
-      .sort((a, b) => a - b);
-  }).current;
-
-  useEffect(() => () => {
-    if (seekDebounceRef.current) clearTimeout(seekDebounceRef.current);
-  }, []);
+  const animatedIndex = useSharedValue(0);
+  const insets = useSafeAreaInsets();
+  const safeBottom = insets.bottom;
 
   const handleBack = useCallback(() => {
     resetPlayer();
     navigation.goBack();
   }, [resetPlayer, navigation]);
 
-  // Reanimated: MV height shared value (runs on UI thread)
-  const mvHeight = useSharedValue(MV_EXPANDED);
-  const dragStartH = useSharedValue(MV_EXPANDED);
-  const dismissY = useSharedValue(0);
-
-  // Controls visibility (tap-to-show / auto-hide)
-  const controlsVisible = useSharedValue(0);
-  const [controlsShown, setControlsShown] = useState(false);
-
-  const showControls = useCallback(() => {
-    'worklet';
-    cancelAnimation(controlsVisible);
-    controlsVisible.value = withTiming(1, { duration: CONTROLS_FADE }, (finished) => {
-      if (finished) {
-        controlsVisible.value = withDelay(
-          CONTROLS_HIDE_DELAY,
-          withTiming(0, { duration: CONTROLS_FADE }, (f2) => {
-            if (f2) runOnJS(setControlsShown)(false);
-          }),
-        );
-      }
-    });
-    runOnJS(setControlsShown)(true);
-  }, []);
-
-  const hideControls = useCallback(() => {
-    'worklet';
-    cancelAnimation(controlsVisible);
-    controlsVisible.value = withTiming(0, { duration: CONTROLS_FADE }, (finished) => {
-      if (finished) runOnJS(setControlsShown)(false);
-    });
-  }, []);
-
-  const snapConfig = { duration: 250, easing: Easing.out(Easing.cubic) };
-
-  const makePanGesture = () => Gesture.Pan()
-    .onStart(() => {
-      dragStartH.value = mvHeight.value;
-    })
-    .onUpdate((e) => {
-      const rawH = dragStartH.value + e.translationY;
-      if (rawH > MV_EXPANDED) {
-        mvHeight.value = MV_EXPANDED;
-        dismissY.value = rawH - MV_EXPANDED;
-      } else {
-        mvHeight.value = clamp(rawH, MV_COLLAPSED, MV_EXPANDED);
-        dismissY.value = 0;
-      }
-    })
-    .onEnd((e) => {
-      if (dismissY.value > 0) {
-        if (dismissY.value > DISMISS_THRESHOLD || e.velocityY > 500) {
-          dismissY.value = withTiming(screenHeight, { duration: 300, easing: Easing.in(Easing.cubic) });
-          runOnJS(handleBack)();
-        } else {
-          dismissY.value = withTiming(0, snapConfig);
-        }
-      } else {
-        if (Math.abs(e.translationY) < 10 && Math.abs(e.translationX) < 10) {
-          const target = mvHeight.value < (MV_EXPANDED + MV_COLLAPSED) / 2 ? MV_EXPANDED : MV_COLLAPSED;
-          mvHeight.value = withTiming(target, snapConfig);
-        } else {
-          const target = e.velocityY < -300 || mvHeight.value < (MV_EXPANDED + MV_COLLAPSED) / 2
-            ? MV_COLLAPSED : MV_EXPANDED;
-          mvHeight.value = withTiming(target, snapConfig);
-        }
-      }
-    });
-
-  const handleGesture = useMemo(() => makePanGesture(), []);
-
-  const mvGesture = useMemo(() => {
-    const tap = Gesture.Tap().onEnd(() => {
-      const isExpanded = mvHeight.value > (MV_EXPANDED + MV_COLLAPSED) / 2;
-      if (isExpanded) {
-        if (controlsVisible.value > 0.5) {
-          hideControls();
-        } else {
-          showControls();
-        }
-      } else {
-        mvHeight.value = withTiming(MV_EXPANDED, snapConfig);
-      }
-    });
-
-    const pan = Gesture.Pan()
-      .onStart(() => {
-        dragStartH.value = mvHeight.value;
-      })
-      .onUpdate((e) => {
-        const rawH = dragStartH.value + e.translationY;
-        if (rawH > MV_EXPANDED) {
-          mvHeight.value = MV_EXPANDED;
-          dismissY.value = rawH - MV_EXPANDED;
-        } else {
-          mvHeight.value = clamp(rawH, MV_COLLAPSED, MV_EXPANDED);
-          dismissY.value = 0;
-        }
-      })
-      .onEnd((e) => {
-        if (dismissY.value > 0) {
-          if (dismissY.value > DISMISS_THRESHOLD || e.velocityY > 500) {
-            dismissY.value = withTiming(screenHeight, { duration: 300, easing: Easing.in(Easing.cubic) });
-            runOnJS(handleBack)();
-          } else {
-            dismissY.value = withTiming(0, snapConfig);
-          }
-        } else {
-          const target = e.velocityY < -300 || mvHeight.value < (MV_EXPANDED + MV_COLLAPSED) / 2
-            ? MV_COLLAPSED : MV_EXPANDED;
-          mvHeight.value = withTiming(target, snapConfig);
-          if (target === MV_COLLAPSED) {
-            hideControls();
-          }
-        }
-      });
-
-    return Gesture.Exclusive(tap, pan);
-  }, []);
-
-  const mvAreaStyle = useAnimatedStyle(() => ({
-    height: mvHeight.value,
+  // ----- Animated styles tied to sheet position -----
+  // The full mid-layer (MV + song info + chips + lyrics) translates uniformly:
+  // peek (0) → 0, mid (1) → MV slides up under app bar, full (2) → off-screen.
+  const midLayerStyle = useAnimatedStyle(() => ({
+    transform: [{
+      translateY: interpolate(
+        animatedIndex.value,
+        [0, 1, 2],
+        [0, MV_TRANSLATE_MID, MV_TRANSLATE_FULL],
+        Extrapolation.CLAMP,
+      ),
+    }],
+    opacity: interpolate(animatedIndex.value, [1.4, 2], [1, 0], Extrapolation.CLAMP),
   }));
 
-  const videoStyle = useAnimatedStyle(() => ({
-    position: 'absolute' as const,
-    left: interpolate(mvHeight.value, [MV_COLLAPSED, MV_EXPANDED], [12, 0], 'clamp'),
-    top: interpolate(mvHeight.value, [MV_COLLAPSED, MV_EXPANDED], [10, 0], 'clamp'),
-    width: interpolate(mvHeight.value, [MV_COLLAPSED, MV_EXPANDED], [64, screenWidth], 'clamp'),
-    height: interpolate(mvHeight.value, [MV_COLLAPSED, MV_EXPANDED], [36, MV_EXPANDED], 'clamp'),
-    borderRadius: interpolate(mvHeight.value, [MV_COLLAPSED, MV_EXPANDED], [6, 0], 'clamp'),
-    overflow: 'hidden' as const,
+  // Mini banner cross-fades in at full expansion (6 → 6b)
+  const miniBannerStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(animatedIndex.value, [1.4, 2], [0, 1], Extrapolation.CLAMP),
+    transform: [{
+      translateY: interpolate(animatedIndex.value, [1.4, 2], [-12, 0], Extrapolation.CLAMP),
+    }],
   }));
 
-  const infoStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(mvHeight.value, [MV_COLLAPSED, MV_COLLAPSED + 50, MV_EXPANDED], [1, 0, 0], 'clamp'),
+  // App bar fades out at full so the mini banner replaces it cleanly
+  const appBarStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(animatedIndex.value, [1.4, 2], [1, 0], Extrapolation.CLAMP),
   }));
 
-  const expandedPlayStyle = useAnimatedStyle(() => {
-    const expandFactor = interpolate(mvHeight.value, [MV_COLLAPSED, MV_COLLAPSED + 50, MV_EXPANDED], [0, 0, 1], 'clamp');
-    return { opacity: expandFactor * controlsVisible.value };
-  });
-
-  const dismissStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: dismissY.value }],
-  }));
-
-  const backdropStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(dismissY.value, [0, screenHeight * 0.5], [1, 0], 'clamp'),
-  }));
-
+  // Bail until study data is loaded (rest of file uses studyData fields)
   if (!studyData) return null;
 
   const { song, studyUnits, youtubeUrl } = studyData;
   const isSynced = song.lyricType === 'SYNCED';
   const videoId = youtubeUrl ? extractVideoId(youtubeUrl) : null;
 
+  // ----- YouTube callbacks -----
   const handleTimeChange = useCallback((seconds: number) => {
     setCurrentMs(seconds * 1000);
   }, []);
@@ -298,64 +168,31 @@ export default function PlayerScreen({ navigation, route }: Props) {
     }
   }, [isPlaying]);
 
-  // Stable ref so the play-button gesture worklet always calls the latest togglePlayPause
-  const togglePlayPauseRef = useRef(togglePlayPause);
-  togglePlayPauseRef.current = togglePlayPause;
-  const stableTogglePlayPause = useCallback(() => {
-    togglePlayPauseRef.current();
-  }, []);
-
-  const playButtonTap = useMemo(() =>
-    Gesture.Tap().onEnd(() => {
-      'worklet';
-      cancelAnimation(controlsVisible);
-      controlsVisible.value = withTiming(1, { duration: CONTROLS_FADE }, (finished) => {
-        if (finished) {
-          controlsVisible.value = withDelay(
-            CONTROLS_HIDE_DELAY,
-            withTiming(0, { duration: CONTROLS_FADE }, (f2) => {
-              if (f2) runOnJS(setControlsShown)(false);
-            }),
-          );
-        }
-      });
-      runOnJS(stableTogglePlayPause)();
-    }),
-    [],
-  );
-
+  // ----- Lyric word tap -----
   const handleTokenPress = useCallback((token: Token, lineText: string, koreanLyrics: string | null) => {
     setSelectedToken(token);
     setSelectedLine(lineText);
     setSelectedKoreanLine(koreanLyrics);
     resetLookup();
     getWord(token.baseForm);
-    wordSheetRef.current?.expand();
+    wordLookupRef.current?.expand();
   }, [resetLookup, getWord]);
 
-  const handleSeek = useCallback((ms: number) => {
-    setCurrentMs(ms);
-    youtubeRef.current?.seekTo(ms / 1000);
-  }, []);
+  // ----- Action chip handlers -----
+  const onOpenVocab = useCallback(() => {
+    navigation.navigate('DeckDetail', { songId: song.id });
+  }, [navigation, song.id]);
 
-  const renderBackdrop = useCallback(
-    (props: BottomSheetBackdropProps) => (
-      <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} opacity={0.25} />
-    ),
-    [],
-  );
-
-  const handleAddWord = () => {
+  // ----- Word lookup actions -----
+  const handleAddWord = useCallback(() => {
     if (selectedToken) {
       vocabAddWord(selectedToken, song.id, selectedLine, selectedKoreanLine);
     }
-  };
+  }, [selectedToken, song.id, selectedLine, selectedKoreanLine, vocabAddWord]);
 
-  const handleEditAndSave = () => {
-    if (selectedToken) {
-      setWordEditVisible(true);
-    }
-  };
+  const handleEditAndSave = useCallback(() => {
+    if (selectedToken) setWordEditVisible(true);
+  }, [selectedToken]);
 
   const handleEditSaved = useCallback(() => {
     setWordEditVisible(false);
@@ -369,9 +206,9 @@ export default function PlayerScreen({ navigation, route }: Props) {
     setWordEditVisible(false);
   }, []);
 
-  const handleEditWord = () => {
+  const handleEditWord = useCallback(() => {
     if (existingWord) {
-      wordSheetRef.current?.close();
+      wordLookupRef.current?.close();
       navigation.navigate('EditWord', {
         mode: 'edit',
         wordId: existingWord.id,
@@ -380,15 +217,13 @@ export default function PlayerScreen({ navigation, route }: Props) {
         meanings: existingWord.meanings,
       });
     }
-  };
+  }, [existingWord, navigation]);
 
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-
-  const handleDeleteWord = () => {
+  const handleDeleteWord = useCallback(() => {
     setShowDeleteDialog(true);
-  };
+  }, []);
 
-  const confirmDeleteWord = async () => {
+  const confirmDeleteWord = useCallback(async () => {
     if (existingWord) {
       try {
         await wordApi.deleteWord(existingWord.id);
@@ -401,26 +236,20 @@ export default function PlayerScreen({ navigation, route }: Props) {
         setShowDeleteDialog(false);
       }
     }
-  };
+  }, [existingWord, resetLookup, selectedToken, getWord]);
 
-  const hasAnalyzedTokens = useMemo(
-    () => studyUnits.some(u => u.tokens.some(t => t.koreanText != null)),
-    [studyUnits],
-  );
-
-  const handleOpenWordList = useCallback(() => {
-    resetBatchAdd();
-    setWordListVisible(true);
-  }, []);
-
+  // ----- Bulk save (called by WordStudySheet) -----
   const handleBatchSave = useCallback((words: AddWordRequest[]) => {
     batchAddWords(words);
-  }, []);
+  }, [batchAddWords]);
 
-  const handleCloseWordList = useCallback(() => {
-    setWordListVisible(false);
-  }, []);
+  // Track sheet snap index: drives collapsed peek view + bulk-add reset
+  const handleSheetChange = useCallback((index: number) => {
+    setSnapIndex(index);
+    if (index === 2) resetBatchAdd();
+  }, [resetBatchAdd]);
 
+  // ----- Lyric sync -----
   const isTranslationPending = useMemo(
     () => studyUnits.length > 0
       && studyUnits.some(u => u.originalText.trim() !== '')
@@ -428,16 +257,20 @@ export default function PlayerScreen({ navigation, route }: Props) {
     [studyUnits],
   );
 
-  const currentLineIndex = useMemo(
+  const syncedLineIndex = useMemo(
     () => isSynced
       ? studyUnits.reduce((acc, unit, idx) => {
           if (unit.startTimeMs != null && unit.startTimeMs <= currentMs) return idx;
           return acc;
         }, 0)
-      : -1,
+      : 0,
     [isSynced, studyUnits, currentMs],
   );
 
+  const displayLineIndex = isSynced ? syncedLineIndex : manualLineIndex;
+
+  // Initial seek + initial line (from route params).
+  // Waits for durationMs > 0 so the YouTube iframe is loaded before seekTo runs.
   useEffect(() => {
     if (initialSeekMs != null && durationMs > 0 && !initialSeekDone.current) {
       initialSeekDone.current = true;
@@ -447,256 +280,197 @@ export default function PlayerScreen({ navigation, route }: Props) {
   }, [durationMs, initialSeekMs]);
 
   useEffect(() => {
-    if (initialLyricIndex == null || initialScrollDone.current) return;
+    if (initialLyricIndex == null || initialIndexApplied.current) return;
     if (studyUnits.length <= initialLyricIndex) return;
-    initialScrollDone.current = true;
-    const timer = setTimeout(() => {
-      isAutoScrollRef.current = true;
-      flatListRef.current?.scrollToIndex({
-        index: initialLyricIndex,
-        animated: false,
-        viewPosition: 0.5,
-      });
-    }, 100);
-    return () => clearTimeout(timer);
-  }, [initialLyricIndex, studyUnits]);
-
-  // Auto-follow during playback: keep current line near viewport center
-  useEffect(() => {
-    if (!isSynced || !isPlaying || currentLineIndex < 0) return;
-    if (visibleIndicesRef.current.includes(currentLineIndex)) return;
-    isAutoScrollRef.current = true;
-    flatListRef.current?.scrollToIndex({
-      index: currentLineIndex,
-      animated: true,
-      viewPosition: 0.5,
-    });
-  }, [currentLineIndex, isPlaying, isSynced]);
-
-  const handleMomentumScrollEnd = useCallback(() => {
-    if (isAutoScrollRef.current) {
-      isAutoScrollRef.current = false;
-      return;
-    }
-    const visible = visibleIndicesRef.current;
-    if (visible.length === 0) return;
-    const centerIdx = visible[Math.floor(visible.length / 2)];
-
-    if (seekDebounceRef.current) clearTimeout(seekDebounceRef.current);
-    seekDebounceRef.current = setTimeout(() => {
-      if (!isSynced) return;
-      const unit = studyUnits[centerIdx];
+    if (isSynced && durationMs <= 0) return; // wait for player ready before seek
+    initialIndexApplied.current = true;
+    if (!isSynced) {
+      setManualLineIndex(initialLyricIndex);
+    } else {
+      const unit = studyUnits[initialLyricIndex];
       if (unit?.startTimeMs != null) {
         youtubeRef.current?.seekTo(unit.startTimeMs / 1000);
         setCurrentMs(unit.startTimeMs);
       }
-    }, SCROLL_SEEK_DEBOUNCE_MS);
+    }
+  }, [initialLyricIndex, isSynced, studyUnits, durationMs]);
+
+  // Step-by-step lyric navigation (driven by LyricsDial swipe)
+  const handleStepLine = useCallback((newIndex: number) => {
+    if (isSynced) {
+      const unit = studyUnits[newIndex];
+      if (unit?.startTimeMs != null) {
+        youtubeRef.current?.seekTo(unit.startTimeMs / 1000);
+        setCurrentMs(unit.startTimeMs);
+      }
+    } else {
+      setManualLineIndex(newIndex);
+    }
   }, [isSynced, studyUnits]);
 
-  const handleRefreshLyrics = async () => {
+  const handleRefreshLyrics = useCallback(async () => {
     try {
       const data = await songApi.getById(song.id);
       usePlayerStore.setState({ studyData: data });
     } catch {}
-  };
+  }, [song.id]);
 
-  const renderLyricLine = ({ item, index }: { item: StudyUnit; index: number }) => (
-    <LyricLine
-      studyUnit={item}
-      isActive={!isSynced || index === currentLineIndex}
-      onTokenPress={handleTokenPress}
-      onLineSeek={isSynced ? handleSeek : undefined}
-    />
+  const renderBackdrop = useCallback(
+    (props: BottomSheetBackdropProps) => (
+      <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} opacity={0.25} />
+    ),
+    [],
   );
+
+  const wordStudySnapPoints = useMemo<(string | number)[]>(
+    () => [SHEET_PEEK, SHEET_MID, '88%'],
+    [],
+  );
+
+  const isCollapsedPeek = snapIndex <= 0;
+
 
   return (
     <View style={styles.container}>
-      <Animated.View style={[StyleSheet.absoluteFill, styles.backdrop, backdropStyle]} pointerEvents="none" />
-      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-      <Animated.View style={[styles.dismissWrapper, dismissStyle]}>
-      {/* MV Area — video shrinks with aspect ratio, info fades in */}
-      <GestureDetector gesture={mvGesture}>
-      <Animated.View style={[styles.mvArea, mvAreaStyle]}>
-        <Animated.View style={videoStyle} pointerEvents="none">
-          {videoId ? (
-            <YouTubePlayer
-              ref={youtubeRef}
-              videoId={videoId}
-              onTimeChange={handleTimeChange}
-              onDurationChange={handleDurationChange}
-              onStateChange={handleStateChange}
-            />
-          ) : (
-            <View style={styles.mvPlaceholder}>
-              <View style={styles.mvPlayBtn}>
-                <Feather name="play" size={24} color="#FFFFFF" />
+      <View style={[styles.safeArea, { paddingTop: insets.top }]}>
+        {/* Mid layer: MV + song info + action chips + lyrics dial */}
+        <Animated.View
+          style={[styles.midLayer, midLayerStyle]}
+          pointerEvents={snapIndex === 2 ? 'none' : 'box-none'}
+        >
+          {/* MV banner */}
+          <View style={styles.mvWrap}>
+            {videoId ? (
+              <YouTubePlayer
+                ref={youtubeRef}
+                videoId={videoId}
+                height={MV_HEIGHT}
+                onTimeChange={handleTimeChange}
+                onDurationChange={handleDurationChange}
+                onStateChange={handleStateChange}
+              />
+            ) : (
+              <View style={styles.mvPlaceholder}>
+                <Feather name="play" size={32} color="#FFFFFF80" />
+              </View>
+            )}
+          </View>
+
+          {/* Song info */}
+          <View style={styles.songInfo}>
+            <View style={styles.titleRow}>
+              <Text style={styles.songTitle} numberOfLines={1}>{song.title}</Text>
+              <Feather name="chevron-right" size={18} color={Colors.textPrimary} />
+            </View>
+            <Text style={styles.songArtist} numberOfLines={1}>{song.artist}</Text>
+          </View>
+
+          {/* Notices */}
+          {isTranslationPending && (
+            <View style={styles.notice}>
+              <View style={styles.noticeIconWrap}>
+                <Feather name="globe" size={18} color={Colors.primary} />
+              </View>
+              <View style={styles.noticeTextWrap}>
+                <Text style={styles.noticeMain}>번역을 준비하고 있어요!</Text>
+                <Text style={styles.noticeSub}>금방 끝나요, 조금만 기다려 주세요</Text>
+              </View>
+              <TouchableOpacity style={styles.noticeRefreshBtn} onPress={handleRefreshLyrics} activeOpacity={0.6}>
+                <Feather name="refresh-cw" size={15} color={Colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+          )}
+          {!isSynced && (
+            <View style={styles.notice}>
+              <View style={styles.noticeIconWrap}>
+                <Feather name="music" size={18} color={Colors.textMuted} />
+              </View>
+              <View style={styles.noticeTextWrap}>
+                <Text style={styles.noticeMain}>이 노래는 싱크 가사가 없어요</Text>
+                <Text style={styles.noticeSub}>스와이프로 라인을 옮기며 학습하세요</Text>
               </View>
             </View>
           )}
+
+          {/* Action chips */}
+          <ActionChips onOpenVocab={onOpenVocab} />
+
+          {/* Step-by-step lyrics dial — active line stays centered, swipe to step */}
+          <LyricsDial
+            studyUnits={studyUnits}
+            currentLineIndex={displayLineIndex}
+            showTranslation={true}
+            onTokenPress={handleTokenPress}
+            onStepLine={handleStepLine}
+          />
+
         </Animated.View>
-        <Animated.View style={[styles.mvExpandedPlayOverlay, expandedPlayStyle]} pointerEvents={controlsShown ? "box-none" : "none"}>
-          <GestureDetector gesture={playButtonTap}>
-            <Animated.View style={styles.mvPlayBtn}>
-              <Feather name={isPlaying ? 'pause' : 'play'} size={24} color="#FFFFFF" />
-            </Animated.View>
-          </GestureDetector>
-        </Animated.View>
-        <Animated.View style={[styles.mvInfoOverlay, infoStyle]} pointerEvents="box-none">
-          <View style={styles.mvInfoTexts}>
-            <Text style={styles.mvInfoTitle} numberOfLines={1}>{song.title}</Text>
-            <Text style={styles.mvInfoArtist} numberOfLines={1}>{song.artist}</Text>
-          </View>
-          <TouchableOpacity style={styles.mvInfoPlayBtn} onPress={togglePlayPause} activeOpacity={0.6}>
-            <Feather name={isPlaying ? 'pause' : 'play'} size={16} color="#FFFFFF" />
+
+        {/* App bar (always at top below status bar) */}
+        <Animated.View
+          style={[styles.appBar, { top: insets.top }, appBarStyle]}
+          pointerEvents={snapIndex === 2 ? 'none' : 'box-none'}
+        >
+          <TouchableOpacity onPress={handleBack} hitSlop={8} activeOpacity={0.6}>
+            <Feather name="chevron-down" size={26} color={Colors.textPrimary} />
+          </TouchableOpacity>
+          <TouchableOpacity hitSlop={8} activeOpacity={0.6}>
+            <Feather name="more-vertical" size={22} color={Colors.textPrimary} />
           </TouchableOpacity>
         </Animated.View>
-      </Animated.View>
-      </GestureDetector>
 
-      {/* Lyrics area */}
-      <View style={styles.bottomSheetOuter}>
-        <View style={styles.bottomSheetInner}>
-          <GestureDetector gesture={handleGesture}>
-            <Animated.View style={styles.dragHandle}>
-              <View style={styles.dragBar} />
-            </Animated.View>
-          </GestureDetector>
-
-          <View style={styles.scrollContent}>
-            <View style={styles.songInfo}>
-              <Text style={styles.songTitle}>{song.title}</Text>
-              <Text style={styles.songArtist}>{song.artist}</Text>
-              <View style={styles.songActionRow}>
-                {hasAnalyzedTokens && (
-                  <TouchableOpacity
-                    style={styles.wordListBtn}
-                    onPress={handleOpenWordList}
-                    activeOpacity={0.7}
-                  >
-                    <Feather name="list" size={16} color={Colors.primary} />
-                    <Text style={styles.wordListBtnText}>전체 단어 담기</Text>
-                  </TouchableOpacity>
-                )}
-                <TouchableOpacity
-                  style={styles.deckBtn}
-                  onPress={() => navigation.navigate('DeckDetail', { songId: song.id })}
-                  activeOpacity={0.7}
-                >
-                  <Feather name="layers" size={16} color={Colors.textSecondary} />
-                  <Text style={styles.deckBtnText}>덱 보기</Text>
-                </TouchableOpacity>
-              </View>
-              {studyData.lyricsSourceUrl && (
-                <TouchableOpacity
-                  style={styles.sourceRow}
-                  activeOpacity={0.6}
-                  onPress={() => Linking.openURL(studyData.lyricsSourceUrl!)}
-                >
-                  <Feather name="external-link" size={11} color={Colors.textMuted} />
-                  <Text style={styles.sourceText}>가사 출처: VocaDB</Text>
-                </TouchableOpacity>
-              )}
-              {isTranslationPending && (
-                <View style={styles.notice}>
-                  <View style={[styles.noticeIconWrap, { backgroundColor: Colors.elevated }]}>
-                    <Feather name="globe" size={18} color={Colors.primary} />
-                  </View>
-                  <View style={styles.noticeTextWrap}>
-                    <Text style={styles.noticeMain}>번역을 준비하고 있어요!</Text>
-                    <Text style={styles.noticeSub}>금방 끝나요, 조금만 기다려 주세요</Text>
-                  </View>
-                  <TouchableOpacity style={styles.noticeRefreshBtn} onPress={handleRefreshLyrics} activeOpacity={0.6}>
-                    <Feather name="refresh-cw" size={15} color={Colors.textSecondary} />
-                  </TouchableOpacity>
-                </View>
-              )}
-              {!isSynced && (
-                <View style={styles.notice}>
-                  <View style={[styles.noticeIconWrap, { backgroundColor: Colors.elevated }]}>
-                    <Feather name="music" size={18} color={Colors.textMuted} />
-                  </View>
-                  <View style={styles.noticeTextWrap}>
-                    <Text style={styles.noticeMain}>이 노래는 싱크 가사가 없어요</Text>
-                    <Text style={styles.noticeSub}>스크롤로 라인을 옮기며 학습하세요</Text>
-                  </View>
-                </View>
-              )}
-            </View>
-
-            <View style={styles.lyricViewport}>
-              <FlatList
-                ref={flatListRef}
-                data={studyUnits}
-                keyExtractor={(item) => String(item.index)}
-                renderItem={renderLyricLine}
-                initialNumToRender={3}
-                windowSize={5}
-                onMomentumScrollEnd={handleMomentumScrollEnd}
-                onViewableItemsChanged={onViewableItemsChanged}
-                viewabilityConfig={viewabilityConfig.current}
-                contentContainerStyle={styles.lyricsList}
-                showsVerticalScrollIndicator={false}
-              />
-              <View style={styles.fadeGradientTop} pointerEvents="none">
-                {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
-                  <View
-                    key={i}
-                    style={{
-                      flex: 1,
-                      backgroundColor: `rgba(255,255,255,${((7 - i) / 7) * ((7 - i) / 7)})`,
-                    }}
-                  />
-                ))}
-              </View>
-              <View style={styles.fadeGradient} pointerEvents="none">
-                {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
-                  <View
-                    key={i}
-                    style={{
-                      flex: 1,
-                      backgroundColor: `rgba(255,255,255,${(i / 7) * (i / 7)})`,
-                    }}
-                  />
-                ))}
-              </View>
-            </View>
-
-            <View style={styles.copyrightFooter}>
-              <Text style={styles.copyrightText}>
-                가사·번역은 학습 목적이며 저작권은 원권리자에게 있습니다.
-              </Text>
-              <View style={styles.copyrightRow}>
-                <Text style={styles.copyrightText}>권리자 신고 시 즉시 삭제됩니다.</Text>
-                <TouchableOpacity
-                  onPress={() => Linking.openURL(buildReportMailto({ songId: song.id, songTitle: song.title, artist: song.artist }))}
-                  activeOpacity={0.6}
-                  hitSlop={8}
-                >
-                  <Text style={styles.copyrightLink}>신고하기</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </View>
+        {/* Mini banner — fades in at full expansion (replaces app bar + MV) */}
+        <Animated.View
+          style={[styles.miniBannerWrap, { top: insets.top }, miniBannerStyle]}
+          pointerEvents={snapIndex === 2 ? 'box-none' : 'none'}
+        >
+          <MiniBanner
+            title={song.title}
+            artist={song.artist}
+            isPlaying={isPlaying}
+            onTogglePlay={togglePlayPause}
+          />
+        </Animated.View>
       </View>
 
-      {/* Mini player */}
-      <SeekBar currentMs={currentMs} durationMs={durationMs} onSeek={handleSeek} />
-      </Animated.View>
-
-      {/* Word lookup bottom sheet */}
+      {/* Word study bottom sheet — peek/mid/full. Sibling of safeArea so it covers the full container without inheriting safe-area padding.
+         handleComponent={null}: the design renders the handle indicator inside the content (V2JqQC sheetPeek / N07HWp.rp8Od). It also bypasses the
+         isLayoutCalculated gate that depends on handle onLayout firing — that gate fails on web/Android for non-modal sheets and pins the sheet at INITIAL_POSITION off-screen. */}
       <BottomSheet
-        ref={wordSheetRef}
+        ref={wordStudyRef}
+        snapPoints={wordStudySnapPoints}
+        index={0}
+        enablePanDownToClose={false}
+        bottomInset={insets.bottom}
+        handleComponent={null}
+        animatedIndex={animatedIndex}
+        onChange={handleSheetChange}
+        backgroundStyle={styles.studySheetBg}
+      >
+        <WordStudySheet
+          studyUnits={studyUnits}
+          songId={song.id}
+          batchAddStatus={batchAddStatus}
+          batchSavedCount={batchSavedCount}
+          batchSkippedCount={batchSkippedCount}
+          onSave={handleBatchSave}
+          collapsed={isCollapsedPeek}
+        />
+      </BottomSheet>
+
+      {/* Word lookup bottom sheet — opens on word tap */}
+      <BottomSheet
+        ref={wordLookupRef}
         index={-1}
         enableDynamicSizing
         enablePanDownToClose
         detached
         bottomInset={safeBottom + 12}
         backdropComponent={renderBackdrop}
-        style={styles.wordSheetFloat}
-        backgroundStyle={styles.wordSheetBg}
-        handleIndicatorStyle={styles.wordSheetIndicator}
-        handleStyle={styles.wordSheetHandle}
+        style={styles.lookupSheetFloat}
+        backgroundStyle={styles.lookupSheetBg}
+        handleStyle={styles.lookupSheetHandle}
+        handleIndicatorStyle={styles.lookupSheetIndicator}
       >
         <BottomSheetView>
           {selectedToken && (
@@ -725,21 +499,7 @@ export default function PlayerScreen({ navigation, route }: Props) {
           { label: '빼기', variant: 'danger', onPress: confirmDeleteWord },
         ]}
       />
-    </SafeAreaView>
 
-      {/* Song word list sheet */}
-      <SongWordListSheet
-        visible={wordListVisible}
-        studyUnits={studyUnits}
-        songId={song.id}
-        batchAddStatus={batchAddStatus}
-        batchSavedCount={batchSavedCount}
-        batchSkippedCount={batchSkippedCount}
-        onSave={handleBatchSave}
-        onClose={handleCloseWordList}
-      />
-
-      {/* Word edit sheet */}
       <WordEditSheet
         visible={wordEditVisible}
         token={selectedToken}
@@ -756,22 +516,46 @@ export default function PlayerScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  backdrop: {
-    backgroundColor: '#000000',
+    backgroundColor: Colors.background,
   },
   safeArea: {
     flex: 1,
   },
-  dismissWrapper: {
+
+  // Mid layer: MV + content (translates and fades with sheet)
+  midLayer: {
     flex: 1,
-    backgroundColor: Colors.background,
+    paddingTop: APP_BAR_HEIGHT,
+    paddingBottom: SHEET_PEEK,
   },
 
-  // MV Area
-  mvArea: {
-    backgroundColor: '#1A1A1A',
-    overflow: 'hidden',
+  // App bar — pinned at top of safe area (top inset applied inline)
+  appBar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: APP_BAR_HEIGHT,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    backgroundColor: Colors.background,
+    zIndex: 1,
+  },
+
+  // Mini banner — pinned at top, replaces app bar at full expansion (top inset inline)
+  miniBannerWrap: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    zIndex: 2,
+  },
+
+  // MV
+  mvWrap: {
+    width: '100%',
+    height: MV_HEIGHT,
+    backgroundColor: '#000',
   },
   mvPlaceholder: {
     flex: 1,
@@ -779,143 +563,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  mvExpandedPlayOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  mvPlayBtn: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#00000080',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
 
-  // MV collapsed info
-  mvInfoOverlay: {
-    position: 'absolute',
-    left: 86,
-    right: 12,
-    top: 0,
-    bottom: 0,
+  // Song info
+  songInfo: {
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 8,
+    gap: 4,
+  },
+  titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-  },
-  mvInfoTexts: {
-    flex: 1,
-    gap: 2,
-  },
-  mvInfoTitle: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  mvInfoArtist: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: '#FFFFFFBB',
-  },
-  mvInfoPlayBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#FFFFFF15',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  // Lyrics bottom sheet
-  bottomSheetOuter: {
-    flex: 1,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: -4 },
-        shadowOpacity: 0.08,
-        shadowRadius: 16,
-      },
-      android: {},
-    }),
-  },
-  bottomSheetInner: {
-    flex: 1,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    backgroundColor: Colors.background,
-    overflow: 'hidden',
-  },
-
-  // Drag Handle
-  dragHandle: {
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dragBar: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: Colors.border,
-  },
-
-  // Scroll Content
-  scrollContent: {
-    flex: 1,
-  },
-
-  // Song Info
-  songInfo: {
-    paddingTop: 32,
-    paddingBottom: 24,
-    gap: 6,
+    gap: 8,
   },
   songTitle: {
-    fontSize: 24,
-    fontWeight: '800',
+    fontSize: 22,
+    fontWeight: '700',
     color: Colors.textPrimary,
+    flexShrink: 1,
   },
   songArtist: {
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: '500',
-    color: Colors.textSecondary,
-  },
-  songActionRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 8,
-  },
-  wordListBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 20,
-    backgroundColor: Colors.primary + '12',
-  },
-  wordListBtnText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: Colors.primary,
-  },
-  deckBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 20,
-    backgroundColor: Colors.elevated,
-  },
-  deckBtnText: {
-    fontSize: 13,
-    fontWeight: '600',
     color: Colors.textSecondary,
   },
 
@@ -927,14 +596,16 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: Colors.border,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    marginTop: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginHorizontal: 24,
+    marginVertical: 6,
   },
   noticeIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Colors.elevated,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -943,101 +614,53 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   noticeMain: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: Colors.textPrimary,
   },
   noticeSub: {
-    fontSize: 12,
+    fontSize: 11,
     color: Colors.textSecondary,
   },
   noticeRefreshBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: Colors.elevated,
     alignItems: 'center',
     justifyContent: 'center',
   },
 
-  // Lyrics
-  lyricViewport: {
-    height: LYRIC_VIEWPORT_HEIGHT,
-    overflow: 'hidden',
+  // Word study sheet (always visible). Border-top + iOS shadow gives a visible
+  // edge against the white background; Android falls back to the border (elevation
+  // creates a downward shadow which won't appear above a bottom-attached sheet).
+  studySheetBg: {
+    backgroundColor: Colors.background,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.border,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
   },
-  lyricsList: {
-    paddingHorizontal: 24,
-    paddingVertical: LYRIC_VIEWPORT_HEIGHT / 2 - 24,
-  },
-  fadeGradientTop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 32,
-  },
-  fadeGradient: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 60,
-  },
-
-  // Copyright footer
-  sourceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 6,
-    alignSelf: 'flex-start',
-  },
-  sourceText: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: Colors.textMuted,
-  },
-  copyrightFooter: {
-    paddingHorizontal: 24,
-    paddingVertical: 8,
-    alignItems: 'center',
-    gap: 4,
-  },
-  copyrightRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  copyrightText: {
-    fontSize: 10,
-    color: Colors.textMuted,
-    textAlign: 'center',
-    lineHeight: 14,
-  },
-  copyrightLink: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: Colors.primary,
-    textDecorationLine: 'underline',
-  },
-
-  // Word lookup bottom sheet
-  wordSheetFloat: {
+  // Word lookup sheet (modal-style, opens on word tap)
+  lookupSheetFloat: {
     marginHorizontal: 12,
   },
-  wordSheetBg: {
+  lookupSheetBg: {
     backgroundColor: Colors.card,
     borderRadius: 24,
   },
-  wordSheetHandle: {
+  lookupSheetHandle: {
     paddingTop: 12,
     paddingBottom: 8,
   },
-  wordSheetIndicator: {
+  lookupSheetIndicator: {
     width: 40,
     height: 4,
     borderRadius: 2,
     backgroundColor: '#A1A1AA',
   },
-
 });
