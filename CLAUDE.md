@@ -58,6 +58,7 @@ DEPLOY_NS=issue-21 npx expo run:android      # com.eastshine.kotonoha.issue21 ë¡
 | `MYSQL_USER` / `MYSQL_PASSWORD` | MySQL credentials |
 | `YOUTUBE_API_KEY` | YouTube Data API v3 |
 | `JWT_SECRET` | JWT signing key (defaults to dev key) |
+| `GOOGLE_OAUTH_CLIENT_ID` | Google Web OAuth Client ID â€” audience for ID token verification (same value as `EXPO_PUBLIC_GOOGLE_OAUTH_WEB_CLIENT_ID` in `app-rn/.env`) |
 | `PENCIL_CLI_KEY` | Pencil CLI auth for headless .pen file editing |
 
 ## Backend Domain Layer Boundaries
