@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   ScrollView,
   StyleSheet,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Slider from '@react-native-community/slider';
@@ -19,6 +20,7 @@ import { tokenStorage } from '../utils/tokenStorage';
 import { Colors, Dimens } from '../theme/theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import ServerURLDialog from '../components/ServerURLDialog';
+import { TOS_URL, PRIVACY_URL, buildReportMailto } from '../config/legal';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -247,6 +249,30 @@ export default function SettingsScreen() {
             <Ionicons name="server-outline" size={20} color={Colors.textPrimary} />
             <Text style={styles.menuItemLabel}>Backend URL</Text>
             <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
+          </TouchableOpacity>
+        </View>
+
+        <Text style={styles.sectionLabel}>법적 고지</Text>
+        <View style={styles.menuCard}>
+          <TouchableOpacity style={styles.menuItem} activeOpacity={0.7} onPress={() => Linking.openURL(TOS_URL)}>
+            <Ionicons name="document-text-outline" size={20} color={Colors.textPrimary} />
+            <Text style={styles.menuItemLabel}>이용약관</Text>
+            <Ionicons name="open-outline" size={16} color={Colors.textMuted} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.menuItem} activeOpacity={0.7} onPress={() => Linking.openURL(PRIVACY_URL)}>
+            <Ionicons name="shield-checkmark-outline" size={20} color={Colors.textPrimary} />
+            <Text style={styles.menuItemLabel}>개인정보처리방침</Text>
+            <Ionicons name="open-outline" size={16} color={Colors.textMuted} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.menuItem} activeOpacity={0.7} onPress={() => navigation.navigate('OssLicense')}>
+            <Ionicons name="cube-outline" size={20} color={Colors.textPrimary} />
+            <Text style={styles.menuItemLabel}>오픈소스 라이선스</Text>
+            <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.menuItem} activeOpacity={0.7} onPress={() => Linking.openURL(buildReportMailto())}>
+            <Ionicons name="flag-outline" size={20} color={Colors.textPrimary} />
+            <Text style={styles.menuItemLabel}>권리자 신고</Text>
+            <Ionicons name="mail-outline" size={16} color={Colors.textMuted} />
           </TouchableOpacity>
         </View>
 

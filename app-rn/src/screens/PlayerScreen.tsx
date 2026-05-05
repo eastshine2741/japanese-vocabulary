@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Platform,
   useWindowDimensions,
+  Linking,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -41,6 +42,7 @@ import { Token, StudyUnit } from '../types/song';
 import { AddWordRequest } from '../types/word';
 import { Colors } from '../theme/theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import { buildReportMailto } from '../config/legal';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Player'>;
 
@@ -54,6 +56,8 @@ const MV_COLLAPSED = 56;
 const DISMISS_THRESHOLD = 250;
 const CONTROLS_FADE = 200;
 const CONTROLS_HIDE_DELAY = 3000;
+const SCROLL_SEEK_DEBOUNCE_MS = 250;
+const LYRIC_VIEWPORT_HEIGHT = 240;
 
 export default function PlayerScreen({ navigation, route }: Props) {
   const initialSeekMs = route.params?.initialSeekMs;
@@ -92,53 +96,25 @@ export default function PlayerScreen({ navigation, route }: Props) {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const { bottom: safeBottom } = useSafeAreaInsets();
 
-  // Auto-scroll to current line
+  // Lyric viewport — windowed scroll, scroll-end → seek (SYNCED)
   const flatListRef = useRef<FlatList>(null);
-  const visibleIndicesRef = useRef(new Set<number>());
-  const scrollBtnVisible = useSharedValue(0);
-  const prevScrollBtnShown = useRef(false);
-  const currentLineIndexRef = useRef(-1);
-  const isPlayingRef = useRef(false);
-  const isSyncedRef = useRef(false);
+  const visibleIndicesRef = useRef<number[]>([]);
+  const isAutoScrollRef = useRef(false);
+  const seekDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const initialSeekDone = useRef(false);
   const initialScrollDone = useRef(false);
-  const followModeRef = useRef(true);
-  const prevAutoScrollLineRef = useRef(-1);
 
-  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 50 });
+  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 30 });
   const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: Array<{ index: number | null }> }) => {
-    visibleIndicesRef.current = new Set(
-      viewableItems.filter(v => v.index != null).map(v => v.index!),
-    );
-    const shouldShow = isSyncedRef.current && isPlayingRef.current
-      && !followModeRef.current
-      && currentLineIndexRef.current >= 0
-      && !visibleIndicesRef.current.has(currentLineIndexRef.current);
-    if (shouldShow !== prevScrollBtnShown.current) {
-      prevScrollBtnShown.current = shouldShow;
-      scrollBtnVisible.value = withTiming(shouldShow ? 1 : 0, { duration: 200 });
-    }
+    visibleIndicesRef.current = viewableItems
+      .filter(v => v.index != null)
+      .map(v => v.index!)
+      .sort((a, b) => a - b);
   }).current;
 
-  const scrollToCurrentLine = useCallback(() => {
-    const idx = currentLineIndexRef.current;
-    if (idx < 0) return;
-    flatListRef.current?.scrollToIndex({ index: idx, animated: true, viewPosition: 0.3 });
+  useEffect(() => () => {
+    if (seekDebounceRef.current) clearTimeout(seekDebounceRef.current);
   }, []);
-
-  const handleScrollBeginDrag = useCallback(() => {
-    followModeRef.current = false;
-  }, []);
-
-  const handleScrollBtnPress = useCallback(() => {
-    followModeRef.current = true;
-    prevAutoScrollLineRef.current = currentLineIndexRef.current;
-    scrollToCurrentLine();
-  }, [scrollToCurrentLine]);
-
-  const scrollBtnAnimStyle = useAnimatedStyle(() => ({
-    opacity: scrollBtnVisible.value,
-  }));
 
   const handleBack = useCallback(() => {
     resetPlayer();
@@ -462,21 +438,6 @@ export default function PlayerScreen({ navigation, route }: Props) {
     [isSynced, studyUnits, currentMs],
   );
 
-  currentLineIndexRef.current = currentLineIndex;
-  isPlayingRef.current = isPlaying;
-  isSyncedRef.current = isSynced;
-
-  const shouldShowScrollBtn = isSynced && isPlaying && currentLineIndex >= 0
-    && !followModeRef.current
-    && !visibleIndicesRef.current.has(currentLineIndex);
-
-  useEffect(() => {
-    if (shouldShowScrollBtn !== prevScrollBtnShown.current) {
-      prevScrollBtnShown.current = shouldShowScrollBtn;
-      scrollBtnVisible.value = withTiming(shouldShowScrollBtn ? 1 : 0, { duration: 200 });
-    }
-  }, [shouldShowScrollBtn]);
-
   useEffect(() => {
     if (initialSeekMs != null && durationMs > 0 && !initialSeekDone.current) {
       initialSeekDone.current = true;
@@ -490,36 +451,47 @@ export default function PlayerScreen({ navigation, route }: Props) {
     if (studyUnits.length <= initialLyricIndex) return;
     initialScrollDone.current = true;
     const timer = setTimeout(() => {
+      isAutoScrollRef.current = true;
       flatListRef.current?.scrollToIndex({
         index: initialLyricIndex,
         animated: false,
-        viewPosition: 0.3,
+        viewPosition: 0.5,
       });
-      prevAutoScrollLineRef.current = initialLyricIndex;
     }, 100);
     return () => clearTimeout(timer);
   }, [initialLyricIndex, studyUnits]);
 
-  // Auto-scroll: follow mode
+  // Auto-follow during playback: keep current line near viewport center
   useEffect(() => {
-    if (followModeRef.current && isSynced && isPlaying && currentLineIndex >= 0
-        && currentLineIndex !== prevAutoScrollLineRef.current) {
-      prevAutoScrollLineRef.current = currentLineIndex;
-      scrollToCurrentLine();
+    if (!isSynced || !isPlaying || currentLineIndex < 0) return;
+    if (visibleIndicesRef.current.includes(currentLineIndex)) return;
+    isAutoScrollRef.current = true;
+    flatListRef.current?.scrollToIndex({
+      index: currentLineIndex,
+      animated: true,
+      viewPosition: 0.5,
+    });
+  }, [currentLineIndex, isPlaying, isSynced]);
+
+  const handleMomentumScrollEnd = useCallback(() => {
+    if (isAutoScrollRef.current) {
+      isAutoScrollRef.current = false;
+      return;
     }
-  }, [currentLineIndex, isSynced, isPlaying, scrollToCurrentLine]);
+    const visible = visibleIndicesRef.current;
+    if (visible.length === 0) return;
+    const centerIdx = visible[Math.floor(visible.length / 2)];
 
-  // Reset follow mode when song changes
-  useEffect(() => {
-    followModeRef.current = true;
-    prevAutoScrollLineRef.current = -1;
-  }, [studyData]);
-
-  const scrollBtnDirection = useMemo(() => {
-    if (!shouldShowScrollBtn || visibleIndicesRef.current.size === 0) return 'down';
-    const minVisible = Math.min(...visibleIndicesRef.current);
-    return currentLineIndex < minVisible ? 'up' : 'down';
-  }, [shouldShowScrollBtn, currentLineIndex]);
+    if (seekDebounceRef.current) clearTimeout(seekDebounceRef.current);
+    seekDebounceRef.current = setTimeout(() => {
+      if (!isSynced) return;
+      const unit = studyUnits[centerIdx];
+      if (unit?.startTimeMs != null) {
+        youtubeRef.current?.seekTo(unit.startTimeMs / 1000);
+        setCurrentMs(unit.startTimeMs);
+      }
+    }, SCROLL_SEEK_DEBOUNCE_MS);
+  }, [isSynced, studyUnits]);
 
   const handleRefreshLyrics = async () => {
     try {
@@ -591,98 +563,119 @@ export default function PlayerScreen({ navigation, route }: Props) {
           </GestureDetector>
 
           <View style={styles.scrollContent}>
-            <FlatList
-              ref={flatListRef}
-              data={studyUnits}
-              keyExtractor={(item) => String(item.index)}
-              renderItem={renderLyricLine}
-              initialNumToRender={studyUnits.length}
-              onScrollBeginDrag={handleScrollBeginDrag}
-              onViewableItemsChanged={onViewableItemsChanged}
-              viewabilityConfig={viewabilityConfig.current}
-              ListHeaderComponent={
-                <View style={styles.songInfo}>
-                  <Text style={styles.songTitle}>{song.title}</Text>
-                  <Text style={styles.songArtist}>{song.artist}</Text>
-                  <View style={styles.songActionRow}>
-                    {hasAnalyzedTokens && (
-                      <TouchableOpacity
-                        style={styles.wordListBtn}
-                        onPress={handleOpenWordList}
-                        activeOpacity={0.7}
-                      >
-                        <Feather name="list" size={16} color={Colors.primary} />
-                        <Text style={styles.wordListBtnText}>전체 단어 담기</Text>
-                      </TouchableOpacity>
-                    )}
-                    <TouchableOpacity
-                      style={styles.deckBtn}
-                      onPress={() => navigation.navigate('DeckDetail', { songId: song.id })}
-                      activeOpacity={0.7}
-                    >
-                      <Feather name="layers" size={16} color={Colors.textSecondary} />
-                      <Text style={styles.deckBtnText}>덱 보기</Text>
-                    </TouchableOpacity>
+            <View style={styles.songInfo}>
+              <Text style={styles.songTitle}>{song.title}</Text>
+              <Text style={styles.songArtist}>{song.artist}</Text>
+              <View style={styles.songActionRow}>
+                {hasAnalyzedTokens && (
+                  <TouchableOpacity
+                    style={styles.wordListBtn}
+                    onPress={handleOpenWordList}
+                    activeOpacity={0.7}
+                  >
+                    <Feather name="list" size={16} color={Colors.primary} />
+                    <Text style={styles.wordListBtnText}>전체 단어 담기</Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity
+                  style={styles.deckBtn}
+                  onPress={() => navigation.navigate('DeckDetail', { songId: song.id })}
+                  activeOpacity={0.7}
+                >
+                  <Feather name="layers" size={16} color={Colors.textSecondary} />
+                  <Text style={styles.deckBtnText}>덱 보기</Text>
+                </TouchableOpacity>
+              </View>
+              {studyData.lyricsSourceUrl && (
+                <TouchableOpacity
+                  style={styles.sourceRow}
+                  activeOpacity={0.6}
+                  onPress={() => Linking.openURL(studyData.lyricsSourceUrl!)}
+                >
+                  <Feather name="external-link" size={11} color={Colors.textMuted} />
+                  <Text style={styles.sourceText}>가사 출처: VocaDB</Text>
+                </TouchableOpacity>
+              )}
+              {isTranslationPending && (
+                <View style={styles.notice}>
+                  <View style={[styles.noticeIconWrap, { backgroundColor: Colors.elevated }]}>
+                    <Feather name="globe" size={18} color={Colors.primary} />
                   </View>
-                  {isTranslationPending && (
-                    <View style={styles.notice}>
-                      <View style={[styles.noticeIconWrap, { backgroundColor: Colors.elevated }]}>
-                        <Feather name="globe" size={18} color={Colors.primary} />
-                      </View>
-                      <View style={styles.noticeTextWrap}>
-                        <Text style={styles.noticeMain}>번역을 준비하고 있어요!</Text>
-                        <Text style={styles.noticeSub}>금방 끝나요, 조금만 기다려 주세요</Text>
-                      </View>
-                      <TouchableOpacity style={styles.noticeRefreshBtn} onPress={handleRefreshLyrics} activeOpacity={0.6}>
-                        <Feather name="refresh-cw" size={15} color={Colors.textSecondary} />
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                  {!isSynced && (
-                    <View style={styles.notice}>
-                      <View style={[styles.noticeIconWrap, { backgroundColor: Colors.elevated }]}>
-                        <Feather name="music" size={18} color={Colors.textMuted} />
-                      </View>
-                      <View style={styles.noticeTextWrap}>
-                        <Text style={styles.noticeMain}>이 노래는 싱크 가사가 없어요</Text>
-                        <Text style={styles.noticeSub}>재생 위치에 맞춰 가사가 자동으로 따라가지 않아요</Text>
-                      </View>
-                    </View>
-                  )}
+                  <View style={styles.noticeTextWrap}>
+                    <Text style={styles.noticeMain}>번역을 준비하고 있어요!</Text>
+                    <Text style={styles.noticeSub}>금방 끝나요, 조금만 기다려 주세요</Text>
+                  </View>
+                  <TouchableOpacity style={styles.noticeRefreshBtn} onPress={handleRefreshLyrics} activeOpacity={0.6}>
+                    <Feather name="refresh-cw" size={15} color={Colors.textSecondary} />
+                  </TouchableOpacity>
                 </View>
-              }
-              contentContainerStyle={styles.lyricsList}
-            />
-            <View style={styles.fadeGradientTop} pointerEvents="none">
-              {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
-                <View
-                  key={i}
-                  style={{
-                    flex: 1,
-                    backgroundColor: `rgba(255,255,255,${((7 - i) / 7) * ((7 - i) / 7)})`,
-                  }}
-                />
-              ))}
+              )}
+              {!isSynced && (
+                <View style={styles.notice}>
+                  <View style={[styles.noticeIconWrap, { backgroundColor: Colors.elevated }]}>
+                    <Feather name="music" size={18} color={Colors.textMuted} />
+                  </View>
+                  <View style={styles.noticeTextWrap}>
+                    <Text style={styles.noticeMain}>이 노래는 싱크 가사가 없어요</Text>
+                    <Text style={styles.noticeSub}>스크롤로 라인을 옮기며 학습하세요</Text>
+                  </View>
+                </View>
+              )}
             </View>
-            <View style={styles.fadeGradient} pointerEvents="none">
-              {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
-                <View
-                  key={i}
-                  style={{
-                    flex: 1,
-                    backgroundColor: `rgba(255,255,255,${(i / 7) * (i / 7)})`,
-                  }}
-                />
-              ))}
+
+            <View style={styles.lyricViewport}>
+              <FlatList
+                ref={flatListRef}
+                data={studyUnits}
+                keyExtractor={(item) => String(item.index)}
+                renderItem={renderLyricLine}
+                initialNumToRender={3}
+                windowSize={5}
+                onMomentumScrollEnd={handleMomentumScrollEnd}
+                onViewableItemsChanged={onViewableItemsChanged}
+                viewabilityConfig={viewabilityConfig.current}
+                contentContainerStyle={styles.lyricsList}
+                showsVerticalScrollIndicator={false}
+              />
+              <View style={styles.fadeGradientTop} pointerEvents="none">
+                {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
+                  <View
+                    key={i}
+                    style={{
+                      flex: 1,
+                      backgroundColor: `rgba(255,255,255,${((7 - i) / 7) * ((7 - i) / 7)})`,
+                    }}
+                  />
+                ))}
+              </View>
+              <View style={styles.fadeGradient} pointerEvents="none">
+                {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
+                  <View
+                    key={i}
+                    style={{
+                      flex: 1,
+                      backgroundColor: `rgba(255,255,255,${(i / 7) * (i / 7)})`,
+                    }}
+                  />
+                ))}
+              </View>
             </View>
-            <Animated.View
-              style={[styles.scrollToLineBtn, scrollBtnAnimStyle]}
-              pointerEvents={shouldShowScrollBtn ? 'auto' : 'none'}
-            >
-              <TouchableOpacity onPress={handleScrollBtnPress} activeOpacity={0.6} style={styles.scrollToLineBtnInner}>
-                <Feather name={scrollBtnDirection === 'up' ? 'chevron-up' : 'chevron-down'} size={20} color="#FFFFFF" />
-              </TouchableOpacity>
-            </Animated.View>
+
+            <View style={styles.copyrightFooter}>
+              <Text style={styles.copyrightText}>
+                가사·번역은 학습 목적이며 저작권은 원권리자에게 있습니다.
+              </Text>
+              <View style={styles.copyrightRow}>
+                <Text style={styles.copyrightText}>권리자 신고 시 즉시 삭제됩니다.</Text>
+                <TouchableOpacity
+                  onPress={() => Linking.openURL(buildReportMailto({ songId: song.id, songTitle: song.title, artist: song.artist }))}
+                  activeOpacity={0.6}
+                  hitSlop={8}
+                >
+                  <Text style={styles.copyrightLink}>신고하기</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
         </View>
       </View>
@@ -968,9 +961,13 @@ const styles = StyleSheet.create({
   },
 
   // Lyrics
+  lyricViewport: {
+    height: LYRIC_VIEWPORT_HEIGHT,
+    overflow: 'hidden',
+  },
   lyricsList: {
     paddingHorizontal: 24,
-    paddingBottom: 100,
+    paddingVertical: LYRIC_VIEWPORT_HEIGHT / 2 - 24,
   },
   fadeGradientTop: {
     position: 'absolute',
@@ -984,32 +981,44 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: 80,
+    height: 60,
   },
-  scrollToLineBtn: {
-    position: 'absolute',
-    bottom: 48,
-    right: 16,
-    borderRadius: 22,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.15,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
-  },
-  scrollToLineBtnInner: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: Colors.primary,
+
+  // Copyright footer
+  sourceRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 6,
+    marginTop: 6,
+    alignSelf: 'flex-start',
+  },
+  sourceText: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: Colors.textMuted,
+  },
+  copyrightFooter: {
+    paddingHorizontal: 24,
+    paddingVertical: 8,
+    alignItems: 'center',
+    gap: 4,
+  },
+  copyrightRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  copyrightText: {
+    fontSize: 10,
+    color: Colors.textMuted,
+    textAlign: 'center',
+    lineHeight: 14,
+  },
+  copyrightLink: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: Colors.primary,
+    textDecorationLine: 'underline',
   },
 
   // Word lookup bottom sheet

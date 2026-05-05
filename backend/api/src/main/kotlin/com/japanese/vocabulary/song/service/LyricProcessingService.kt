@@ -97,7 +97,8 @@ class LyricProcessingService(
                 lyricType = lyricType.name
             ),
             studyUnits = lyricLineData.map { it.toStudyUnit() },
-            youtubeUrl = savedSong.youtubeUrl
+            youtubeUrl = savedSong.youtubeUrl,
+            lyricsSourceUrl = lyricsResult.vocadbId?.let { "https://vocadb.net/S/$it" }
         )
     }
 
@@ -134,7 +135,8 @@ class LyricProcessingService(
             return SongDTO(
                 song = SongInfo(id = entity.id!!, title = entity.title, artist = entity.artist, lyricType = "PLAIN"),
                 studyUnits = emptyList(),
-                youtubeUrl = entity.youtubeUrl
+                youtubeUrl = entity.youtubeUrl,
+                lyricsSourceUrl = null
             )
         }
 
@@ -160,7 +162,8 @@ class LyricProcessingService(
         return SongDTO(
             song = SongInfo(id = entity.id!!, title = entity.title, artist = entity.artist, lyricType = lyricEntity.lyricType.name),
             studyUnits = studyUnits,
-            youtubeUrl = entity.youtubeUrl
+            youtubeUrl = entity.youtubeUrl,
+            lyricsSourceUrl = lyricEntity.vocadbId?.let { "https://vocadb.net/S/$it" }
         )
     }
 
