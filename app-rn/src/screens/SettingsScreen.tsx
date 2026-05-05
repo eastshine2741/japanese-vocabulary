@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, CommonActions } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useShallow } from 'zustand/react/shallow';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { useSettingsStore } from '../stores/settingsStore';
 import { tokenStorage } from '../utils/tokenStorage';
 import { Colors, Dimens } from '../theme/theme';
@@ -90,6 +91,11 @@ export default function SettingsScreen() {
   }, [dailyGoalText, dailyGoal, setDailyGoal, debouncedSave]);
 
   const handleLogout = async () => {
+    try {
+      await GoogleSignin.signOut();
+    } catch {
+      // ignore — proceed with local logout even if Google session clear fails
+    }
     await tokenStorage.clearToken();
     navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'Login' }] }));
   };
