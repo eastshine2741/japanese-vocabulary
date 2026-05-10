@@ -33,7 +33,7 @@ export default function OssLicenseScreen() {
   const navigation = useNavigation();
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.7}>
           <Ionicons name="chevron-back" size={24} color={Colors.textPrimary} />
