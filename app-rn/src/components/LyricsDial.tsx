@@ -21,6 +21,8 @@ const SLOT_HEIGHT = 96;
 const FOCUS_CENTER_Y = SLOT_HEIGHT * 1.5;
 const TRANSITION_DURATION = 280;
 const MODE_DURATION = 200;
+// Highlight slides between candidate slot positions/sizes during drag.
+const HIGHLIGHT_SLIDE_MS = 150;
 const RENDER_RADIUS = 6;
 // Recede effect applied to the lyric stack while the user is dragging.
 const DYNAMIC_SCALE = 0.92;
@@ -120,6 +122,14 @@ function LyricsDial({
   const focusedSlotH = Math.max(SLOT_HEIGHT, lineHeights[safeIndex] ?? SLOT_HEIGHT);
   const focusedExtraH = focusedSlotH - SLOT_HEIGHT;
 
+  // Candidate is the line the highlight pins itself to: safeIndex while
+  // settled, previewIndex during a drag that has crossed a line boundary.
+  const candidateIdx = previewIndex ?? safeIndex;
+  const candidateSlotTop = candidateIdx <= safeIndex
+    ? candidateIdx * SLOT_HEIGHT
+    : candidateIdx * SLOT_HEIGHT + focusedExtraH;
+  const candidateSlotH = candidateIdx === safeIndex ? focusedSlotH : SLOT_HEIGHT;
+
   const initialTarget = FOCUS_CENTER_Y - safeIndex * SLOT_HEIGHT - SLOT_HEIGHT / 2;
   const stackY = useSharedValue(initialTarget);
   const dragOffset = useSharedValue(0);
@@ -127,6 +137,9 @@ function LyricsDial({
   // runOnJS preview updates.
   const lastDelta = useSharedValue(0);
   const dynamicProgress = useSharedValue(0);
+  // Highlight position/size — animated to match candidate slot when it changes.
+  const highlightTopSV = useSharedValue(candidateSlotTop);
+  const highlightHeightSV = useSharedValue(candidateSlotH);
 
   const updatePreview = useCallback((idx: number | null) => {
     setPreviewIndex(prev => (prev === idx ? prev : idx));
@@ -153,6 +166,15 @@ function LyricsDial({
       easing: Easing.out(Easing.cubic),
     });
   }, [safeIndex, focusedSlotH, stackY]);
+
+  // Slide the highlight to the candidate slot whenever it changes (drag
+  // crosses a line boundary, or commit/safeIndex change). On mount the SV
+  // initial value already equals candidate so the first run is a no-op.
+  useEffect(() => {
+    const opts = { duration: HIGHLIGHT_SLIDE_MS, easing: Easing.out(Easing.cubic) };
+    highlightTopSV.value = withTiming(candidateSlotTop, opts);
+    highlightHeightSV.value = withTiming(candidateSlotH, opts);
+  }, [candidateSlotTop, candidateSlotH, highlightTopSV, highlightHeightSV]);
 
   const panGesture = useMemo(
     () =>
@@ -217,10 +239,17 @@ function LyricsDial({
   }));
 
   // Highlight scales the same way slots do (transformOrigin: 'top') so it
-  // visually matches the candidate line's recede shrink. Opacity fades as
-  // we enter dynamic mode (anchor releases).
+  // visually matches the candidate line's recede shrink. Position and size
+  // are animated via CSS `top` / `height` directly — using `translateY`
+  // inside the transform array gets mangled by `transformOrigin` (the
+  // translation ends up scaled too, leaving the highlight visibly offset
+  // from the slot it's tracking).
   const highlightStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: interpolate(dynamicProgress.value, [0, 1], [1, DYNAMIC_SCALE], Extrapolation.CLAMP) }],
+    top: highlightTopSV.value,
+    height: highlightHeightSV.value,
+    transform: [
+      { scale: interpolate(dynamicProgress.value, [0, 1], [1, DYNAMIC_SCALE], Extrapolation.CLAMP) },
+    ],
     opacity: interpolate(dynamicProgress.value, [0, 1], [1, DYNAMIC_HIGHLIGHT_OPACITY], Extrapolation.CLAMP),
   }));
 
@@ -235,10 +264,6 @@ function LyricsDial({
     return onMeasuredCallbacks.current[idx];
   }, []);
 
-  // Candidate is the line the highlight pins itself to: safeIndex while
-  // settled, previewIndex during a drag that has crossed a line boundary.
-  const candidateIdx = previewIndex ?? safeIndex;
-
   // Render window centers on candidateIdx so far drags keep showing the
   // lines around the current scroll position (rather than only ±RADIUS
   // around the still-anchored safeIndex).
@@ -246,27 +271,19 @@ function LyricsDial({
   const endIdx = Math.min(studyUnits.length - 1, candidateIdx + RENDER_RADIUS);
   const visibleIndices: number[] = [];
   for (let i = startIdx; i <= endIdx; i++) visibleIndices.push(i);
-  const candidateSlotTop = candidateIdx <= safeIndex
-    ? candidateIdx * SLOT_HEIGHT
-    : candidateIdx * SLOT_HEIGHT + focusedExtraH;
-  const candidateSlotH = candidateIdx === safeIndex ? focusedSlotH : SLOT_HEIGHT;
 
   return (
     <GestureDetector gesture={panGesture}>
       <View style={styles.container}>
         <Animated.View style={[styles.stack, stackStyle]} pointerEvents="box-none">
           {/* Focus highlight — placed inside the stack so it inherits the
-              stack's translateY, then sized/positioned to match the current
-              candidate slot. Crosses lines via discrete top/height updates
-              when previewIndex switches at the half-slot threshold. */}
+              stack's translateY. Position (translateY) and size (height)
+              come from animated shared values, so candidate transitions
+              slide smoothly between slots instead of snapping. */}
           <Animated.View
             style={[
               styles.focusHighlight,
-              {
-                top: candidateSlotTop,
-                height: candidateSlotH,
-                transformOrigin: 'top',
-              },
+              { transformOrigin: 'top' },
               highlightStyle,
             ]}
             pointerEvents="none"
