@@ -21,8 +21,7 @@ export interface WordMeaningInput {
 export interface TestCase {
   name: string;
   input: TranslationInput[] | WordMeaningInput[];
-  translationCriteria?: string | null;
-  wordMeaningCriteria?: string | null;
+  criteria?: string | null;
 }
 
 export interface TestData {

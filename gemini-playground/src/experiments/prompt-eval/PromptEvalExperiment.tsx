@@ -7,6 +7,7 @@ import type {
   EvalRun,
   GraderResult,
   ImproverResult,
+  TranslationInput,
 } from "./types";
 import {
   GEMINI_MODELS,
@@ -37,10 +38,14 @@ const wordMeaningGuidelinesFiles = import.meta.glob<string>(
   "./word-meaning/guidelines/*.txt",
   { eager: true, query: "?raw", import: "default" }
 );
-const inputFiles = import.meta.glob<TestData>("./input/*.json", {
-  eager: true,
-  import: "default",
-});
+const translationInputFiles = import.meta.glob<TestData>(
+  "./translation/input/*.json",
+  { eager: true, import: "default" }
+);
+const wordMeaningInputFiles = import.meta.glob<TestData>(
+  "./word-meaning/input/*.json",
+  { eager: true, import: "default" }
+);
 
 // --- Helpers ---
 
@@ -111,10 +116,12 @@ async function saveResultToServer(
 // --- Sub-components ---
 
 function TestCaseDialog({
+  mode,
   initial,
   onSubmit,
   onClose,
 }: {
+  mode: EvalMode;
   initial?: TestCase;
   onSubmit: (tc: TestCase) => void;
   onClose: () => void;
@@ -124,13 +131,13 @@ function TestCaseDialog({
   const [inputJson, setInputJson] = useState(
     initial ? JSON.stringify(initial.input, null, 2) : ""
   );
-  const [translationCriteria, setTranslationCriteria] = useState(
-    initial?.translationCriteria ?? ""
-  );
-  const [wordMeaningCriteria, setWordMeaningCriteria] = useState(
-    initial?.wordMeaningCriteria ?? ""
-  );
+  const [criteria, setCriteria] = useState(initial?.criteria ?? "");
   const [error, setError] = useState("");
+
+  const inputPlaceholder =
+    mode === "translation"
+      ? '[{"index": 0, "text": "..."}]'
+      : '[{"index": 0, "text": "...", "words": [{"surface": "...", "baseForm": "...", "pos": "NOUN"}]}]';
 
   const handleSubmit = () => {
     if (!name.trim()) {
@@ -146,8 +153,7 @@ function TestCaseDialog({
       onSubmit({
         name: name.trim(),
         input: parsed,
-        translationCriteria: translationCriteria.trim() || null,
-        wordMeaningCriteria: wordMeaningCriteria.trim() || null,
+        criteria: criteria.trim() || null,
       });
     } catch {
       setError("Invalid JSON");
@@ -173,25 +179,16 @@ function TestCaseDialog({
             value={inputJson}
             onChange={(e) => setInputJson(e.target.value)}
             rows={10}
-            placeholder='[{"text": "...", "index": 0, "startTimeMs": null}]'
+            placeholder={inputPlaceholder}
           />
         </div>
         <div className="pe-dialog-field">
-          <label>Translation Criteria (optional)</label>
+          <label>Criteria (optional)</label>
           <textarea
-            value={translationCriteria}
-            onChange={(e) => setTranslationCriteria(e.target.value)}
+            value={criteria}
+            onChange={(e) => setCriteria(e.target.value)}
             rows={3}
-            placeholder="e.g. 자연스러운 한국어 번역..."
-          />
-        </div>
-        <div className="pe-dialog-field">
-          <label>Word Meaning Criteria (optional)</label>
-          <textarea
-            value={wordMeaningCriteria}
-            onChange={(e) => setWordMeaningCriteria(e.target.value)}
-            rows={3}
-            placeholder="e.g. surface가 한국어여서는 안 된다..."
+            placeholder="e.g. 채점 기준..."
           />
         </div>
         {error && <div className="pe-dialog-error">{error}</div>}
@@ -253,18 +250,63 @@ function EditablePanel({
 function ModePanel({
   mode,
   apiKey,
-  testCases,
 }: {
   mode: EvalMode;
   apiKey: string;
-  testCases: TestCase[];
 }) {
   const dir = mode === "translation" ? "translation" : "word-meaning";
   const defaultExecModel =
     mode === "translation"
       ? "gemini-3.1-pro-preview"
       : "gemini-3.1-flash-lite-preview";
-  const defaultTemp = mode === "translation" ? "0.3" : "0";
+  const defaultTemp = "0";
+
+  // --- Test cases (per-mode) ---
+  const initialTestCases = useMemo(() => {
+    const files = mode === "translation" ? translationInputFiles : wordMeaningInputFiles;
+    return Object.values(files).flatMap((d) => d.testCases);
+  }, [mode]);
+
+  const [testCases, setTestCases] = useState<TestCase[]>(initialTestCases);
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+
+  const saveTestCases = useCallback(async (cases: TestCase[]) => {
+    const data: TestData = { testCases: cases };
+    await saveFile(`${dir}/input/input.json`, JSON.stringify(data, null, 2) + "\n");
+  }, [dir]);
+
+  const handleAddTestCase = useCallback(
+    async (tc: TestCase) => {
+      const updated = [...testCases, tc];
+      setTestCases(updated);
+      setShowAddDialog(false);
+      await saveTestCases(updated);
+    },
+    [testCases, saveTestCases]
+  );
+
+  const handleEditTestCase = useCallback(
+    async (tc: TestCase) => {
+      if (editingIndex === null) return;
+      const updated = testCases.map((existing, i) =>
+        i === editingIndex ? tc : existing
+      );
+      setTestCases(updated);
+      setEditingIndex(null);
+      await saveTestCases(updated);
+    },
+    [testCases, editingIndex, saveTestCases]
+  );
+
+  const handleDeleteTestCase = useCallback(
+    async (idx: number) => {
+      const updated = testCases.filter((_, i) => i !== idx);
+      setTestCases(updated);
+      await saveTestCases(updated);
+    },
+    [testCases, saveTestCases]
+  );
 
   // --- Prompt / Guidelines state ---
   const initialPrompt = useMemo(
@@ -370,6 +412,23 @@ function ModePanel({
     });
   }, []);
 
+  // --- Build Gemini input matching backend format ---
+  const buildGeminiInput = useCallback(
+    (tc: TestCase): string => {
+      if (mode === "translation") {
+        // Backend sends only {index, text} — strip startTimeMs
+        const stripped = (tc.input as TranslationInput[]).map(({ index, text }) => ({
+          index,
+          text,
+        }));
+        return JSON.stringify(stripped);
+      }
+      // Word meaning: send as-is ({index, text, words})
+      return JSON.stringify(tc.input);
+    },
+    [mode]
+  );
+
   // --- Run evaluation ---
   const runEvaluation = useCallback(async () => {
     if (!apiKey.trim() || testCases.length === 0 || running) return;
@@ -390,7 +449,7 @@ function ModePanel({
 
     const executionResults = await Promise.all(
       testCases.map(async (tc) => {
-        const inputJson = JSON.stringify(tc.input);
+        const inputJson = buildGeminiInput(tc);
         const result = await callGemini(
           apiKey,
           execModel,
@@ -423,11 +482,7 @@ function ModePanel({
           };
         }
 
-        const criteria =
-          mode === "translation"
-            ? tc.translationCriteria
-            : tc.wordMeaningCriteria;
-        const criteriaText = criteria || "채점기준 없음 (guidelines만 적용)";
+        const criteriaText = tc.criteria || "채점기준 없음 (guidelines만 적용)";
 
         const graderInput = buildGraderPrompt(
           guidelinesText,
@@ -455,10 +510,6 @@ function ModePanel({
       const exec = executionResults[i];
       const grade = gradingResults[i];
       const tc = testCases[i];
-      const criteria =
-        mode === "translation"
-          ? tc.translationCriteria
-          : tc.wordMeaningCriteria;
 
       let graderResult: GraderResult | null = null;
       let graderError: string | null = null;
@@ -475,7 +526,7 @@ function ModePanel({
 
       newResults.push({
         testCaseName: tc.name,
-        criteria: criteria ?? null,
+        criteria: tc.criteria ?? null,
         geminiOutput: exec.text,
         geminiError: exec.error,
         graderResult,
@@ -546,6 +597,7 @@ function ModePanel({
     guidelinesText,
     responseSchema,
     mode,
+    buildGeminiInput,
   ]);
 
   // --- Toggle deduction checkbox ---
@@ -630,6 +682,60 @@ function ModePanel({
 
   return (
     <div className="pe-subtab-content">
+      {/* Test Cases (per-mode) */}
+      <div className="pe-test-data">
+        <div className="pe-test-data-header">
+          <label>
+            Test Cases{" "}
+            <span className="pe-file-info">
+              {testCases.length} case{testCases.length !== 1 ? "s" : ""}
+            </span>
+          </label>
+          <button
+            className="pe-btn-add"
+            onClick={() => setShowAddDialog(true)}
+          >
+            + Add Test Case
+          </button>
+        </div>
+        {testCases.length === 0 ? (
+          <div className="pe-file-info">
+            No test cases. Click "+ Add Test Case" to create one.
+          </div>
+        ) : (
+          <div className="pe-test-list">
+            {testCases.map((tc, i) => (
+              <div key={i} className="pe-test-item">
+                <div className="pe-test-item-info">
+                  <span className="pe-test-name">{tc.name}</span>
+                  <span className="pe-test-meta">
+                    {tc.input.length} lines
+                    {tc.criteria &&
+                      " | " +
+                        tc.criteria.slice(0, 50) +
+                        (tc.criteria.length > 50 ? "..." : "")}
+                  </span>
+                </div>
+                <div className="pe-test-item-actions">
+                  <button
+                    className="pe-btn-edit"
+                    onClick={() => setEditingIndex(i)}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    className="pe-btn-delete"
+                    onClick={() => handleDeleteTestCase(i)}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Prompt */}
       <EditablePanel
         label="System Prompt"
@@ -946,6 +1052,23 @@ function ModePanel({
           <pre className="pe-improver-prompt">{improverResult.improvedPrompt}</pre>
         </div>
       )}
+
+      {/* Add / Edit Test Case Dialog */}
+      {showAddDialog && (
+        <TestCaseDialog
+          mode={mode}
+          onSubmit={handleAddTestCase}
+          onClose={() => setShowAddDialog(false)}
+        />
+      )}
+      {editingIndex !== null && (
+        <TestCaseDialog
+          mode={mode}
+          initial={testCases[editingIndex]}
+          onSubmit={handleEditTestCase}
+          onClose={() => setEditingIndex(null)}
+        />
+      )}
     </div>
   );
 }
@@ -957,53 +1080,6 @@ export default function PromptEvalExperiment() {
 
   // --- Shared: API key ---
   const [apiKey, setApiKey] = useLocalState("pe-api-key", "");
-
-  // --- Shared: Test cases ---
-  const initialTestCases = useMemo(() => {
-    const allData = Object.values(inputFiles);
-    return allData.flatMap((d) => d.testCases);
-  }, []);
-
-  const [testCases, setTestCases] = useState<TestCase[]>(initialTestCases);
-  const [showAddDialog, setShowAddDialog] = useState(false);
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
-
-  const saveTestCases = useCallback(async (cases: TestCase[]) => {
-    const data: TestData = { testCases: cases };
-    await saveFile("input/input.json", JSON.stringify(data, null, 2) + "\n");
-  }, []);
-
-  const handleAddTestCase = useCallback(
-    async (tc: TestCase) => {
-      const updated = [...testCases, tc];
-      setTestCases(updated);
-      setShowAddDialog(false);
-      await saveTestCases(updated);
-    },
-    [testCases, saveTestCases]
-  );
-
-  const handleEditTestCase = useCallback(
-    async (tc: TestCase) => {
-      if (editingIndex === null) return;
-      const updated = testCases.map((existing, i) =>
-        i === editingIndex ? tc : existing
-      );
-      setTestCases(updated);
-      setEditingIndex(null);
-      await saveTestCases(updated);
-    },
-    [testCases, editingIndex, saveTestCases]
-  );
-
-  const handleDeleteTestCase = useCallback(
-    async (idx: number) => {
-      const updated = testCases.filter((_, i) => i !== idx);
-      setTestCases(updated);
-      await saveTestCases(updated);
-    },
-    [testCases, saveTestCases]
-  );
 
   return (
     <div className="prompt-eval">
@@ -1019,64 +1095,6 @@ export default function PromptEvalExperiment() {
             onChange={(e) => setApiKey(e.target.value)}
           />
         </div>
-      </div>
-
-      {/* Shared: Input Test Cases */}
-      <div className="pe-test-data">
-        <div className="pe-test-data-header">
-          <label>
-            Input Test Cases{" "}
-            <span className="pe-file-info">
-              {testCases.length} case{testCases.length !== 1 ? "s" : ""}
-            </span>
-          </label>
-          <button
-            className="pe-btn-add"
-            onClick={() => setShowAddDialog(true)}
-          >
-            + Add Test Case
-          </button>
-        </div>
-        {testCases.length === 0 ? (
-          <div className="pe-file-info">
-            No test cases. Click "+ Add Test Case" to create one.
-          </div>
-        ) : (
-          <div className="pe-test-list">
-            {testCases.map((tc, i) => (
-              <div key={i} className="pe-test-item">
-                <div className="pe-test-item-info">
-                  <span className="pe-test-name">{tc.name}</span>
-                  <span className="pe-test-meta">
-                    {tc.input.length} lines
-                    {tc.translationCriteria &&
-                      " | T: " +
-                        tc.translationCriteria.slice(0, 40) +
-                        (tc.translationCriteria.length > 40 ? "..." : "")}
-                    {tc.wordMeaningCriteria &&
-                      " | W: " +
-                        tc.wordMeaningCriteria.slice(0, 40) +
-                        (tc.wordMeaningCriteria.length > 40 ? "..." : "")}
-                  </span>
-                </div>
-                <div className="pe-test-item-actions">
-                  <button
-                    className="pe-btn-edit"
-                    onClick={() => setEditingIndex(i)}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    className="pe-btn-delete"
-                    onClick={() => handleDeleteTestCase(i)}
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
 
       {/* Sub-tabs */}
@@ -1097,26 +1115,11 @@ export default function PromptEvalExperiment() {
 
       {/* Both panels always mounted, visibility toggled via CSS */}
       <div style={{ display: activeSubTab === "translation" ? "block" : "none" }}>
-        <ModePanel mode="translation" apiKey={apiKey} testCases={testCases} />
+        <ModePanel mode="translation" apiKey={apiKey} />
       </div>
       <div style={{ display: activeSubTab === "wordMeaning" ? "block" : "none" }}>
-        <ModePanel mode="wordMeaning" apiKey={apiKey} testCases={testCases} />
+        <ModePanel mode="wordMeaning" apiKey={apiKey} />
       </div>
-
-      {/* Add / Edit Test Case Dialog */}
-      {showAddDialog && (
-        <TestCaseDialog
-          onSubmit={handleAddTestCase}
-          onClose={() => setShowAddDialog(false)}
-        />
-      )}
-      {editingIndex !== null && (
-        <TestCaseDialog
-          initial={testCases[editingIndex]}
-          onSubmit={handleEditTestCase}
-          onClose={() => setEditingIndex(null)}
-        />
-      )}
     </div>
   );
 }

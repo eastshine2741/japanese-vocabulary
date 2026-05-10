@@ -2,3 +2,4 @@
 2. You may correct a wrong baseForm (e.g. いう → いい when context means "good").
 3. Do NOT merge or split words. Keep the input segmentation exactly as given.
 4. When a conjugated form has its own dictionary entry with a meaning distinct from the base word, use that form as baseForm so the learner can look it up directly (e.g. なら → なら "~라면", not だ "~이다").
+5. Word meaning must match with given POS. e.g. When POS is na-adjective, Korean meaning must end in ~하다. When POS is adverb, Korean meaning must also be adverb, not noun.
