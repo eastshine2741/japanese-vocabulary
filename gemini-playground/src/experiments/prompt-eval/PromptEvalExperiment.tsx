@@ -133,31 +133,73 @@ function TestCaseDialog({
   );
   const [criteria, setCriteria] = useState(initial?.criteria ?? "");
   const [error, setError] = useState("");
+  const [analyzing, setAnalyzing] = useState(false);
 
-  const inputPlaceholder =
-    mode === "translation"
-      ? '[{"index": 0, "text": "..."}]'
-      : '[{"index": 0, "text": "...", "words": [{"surface": "...", "baseForm": "...", "pos": "NOUN"}]}]';
+  const inputPlaceholder = '[{"index": 0, "text": "..."}]';
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!name.trim()) {
       setError("Name is required");
       return;
     }
+    let parsed: { index: number; text: string }[];
     try {
-      const parsed = JSON.parse(inputJson);
-      if (!Array.isArray(parsed)) {
+      const json = JSON.parse(inputJson);
+      if (!Array.isArray(json)) {
         setError("Input must be a JSON array");
         return;
       }
-      onSubmit({
-        name: name.trim(),
-        input: parsed,
-        criteria: criteria.trim() || null,
-      });
+      parsed = json;
     } catch {
       setError("Invalid JSON");
+      return;
     }
+
+    setError("");
+
+    let finalInput: TestCase["input"];
+    if (mode === "wordMeaning") {
+      // If every line already has a words array, trust the input as-is
+      // (allows manual editing). Otherwise call the dev API to analyze.
+      const allHaveWords = parsed.every(
+        (line) => Array.isArray((line as { words?: unknown }).words)
+      );
+      if (allHaveWords) {
+        finalInput = parsed as TestCase["input"];
+      } else {
+        setAnalyzing(true);
+        try {
+          const res = await fetch("/api/dev/word-meaning-input", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(
+              parsed.map(({ index, text }) => ({ index, text }))
+            ),
+          });
+          if (!res.ok) {
+            setError(`Morphological analysis failed: HTTP ${res.status}`);
+            setAnalyzing(false);
+            return;
+          }
+          finalInput = await res.json();
+        } catch (e) {
+          setError(
+            `Morphological analysis failed: ${e instanceof Error ? e.message : String(e)}`
+          );
+          setAnalyzing(false);
+          return;
+        }
+        setAnalyzing(false);
+      }
+    } else {
+      finalInput = parsed;
+    }
+
+    onSubmit({
+      name: name.trim(),
+      input: finalInput,
+      criteria: criteria.trim() || null,
+    });
   };
 
   return (
@@ -174,7 +216,14 @@ function TestCaseDialog({
           />
         </div>
         <div className="pe-dialog-field">
-          <label>Input (JSON array of lyric lines)</label>
+          <label>
+            Input (JSON array of lyric lines)
+            {mode === "wordMeaning" && (
+              <span className="pe-file-info" style={{ marginLeft: 8 }}>
+                — words 없으면 저장 시 자동 분석, 있으면 입력 그대로 저장
+              </span>
+            )}
+          </label>
           <textarea
             value={inputJson}
             onChange={(e) => setInputJson(e.target.value)}
@@ -193,11 +242,11 @@ function TestCaseDialog({
         </div>
         {error && <div className="pe-dialog-error">{error}</div>}
         <div className="pe-dialog-actions">
-          <button className="pe-btn-secondary" onClick={onClose}>
+          <button className="pe-btn-secondary" onClick={onClose} disabled={analyzing}>
             Cancel
           </button>
-          <button className="pe-btn-primary" onClick={handleSubmit}>
-            {isEdit ? "Save" : "Add"}
+          <button className="pe-btn-primary" onClick={handleSubmit} disabled={analyzing}>
+            {analyzing ? "Analyzing..." : isEdit ? "Save" : "Add"}
           </button>
         </div>
       </div>
