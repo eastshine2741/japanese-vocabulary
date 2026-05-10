@@ -117,20 +117,30 @@ function LyricsDial({
   // null = drag hasn't crossed any line boundary (highlight still over safeIndex).
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
 
-  // Static-mode focused slot expands to fit the wrapped focused line. Same
-  // value applies in dynamic mode since text styling doesn't change.
-  const focusedSlotH = Math.max(SLOT_HEIGHT, lineHeights[safeIndex] ?? SLOT_HEIGHT);
-  const focusedExtraH = focusedSlotH - SLOT_HEIGHT;
+  // Per-slot layout: each slot's height is its measured content (or
+  // SLOT_HEIGHT default), and tops accumulate so wrapped lines never
+  // overflow into neighboring slots/highlights.
+  const slotLayouts = useMemo(() => {
+    const out: { top: number; height: number }[] = [];
+    let y = 0;
+    for (let i = 0; i < lineCount; i++) {
+      const h = Math.max(SLOT_HEIGHT, lineHeights[i] ?? SLOT_HEIGHT);
+      out.push({ top: y, height: h });
+      y += h;
+    }
+    return out;
+  }, [lineHeights, lineCount]);
+
+  const safeSlotTop = slotLayouts[safeIndex]?.top ?? safeIndex * SLOT_HEIGHT;
+  const safeSlotH = slotLayouts[safeIndex]?.height ?? SLOT_HEIGHT;
 
   // Candidate is the line the highlight pins itself to: safeIndex while
   // settled, previewIndex during a drag that has crossed a line boundary.
   const candidateIdx = previewIndex ?? safeIndex;
-  const candidateSlotTop = candidateIdx <= safeIndex
-    ? candidateIdx * SLOT_HEIGHT
-    : candidateIdx * SLOT_HEIGHT + focusedExtraH;
-  const candidateSlotH = candidateIdx === safeIndex ? focusedSlotH : SLOT_HEIGHT;
+  const candidateSlotTop = slotLayouts[candidateIdx]?.top ?? candidateIdx * SLOT_HEIGHT;
+  const candidateSlotH = slotLayouts[candidateIdx]?.height ?? SLOT_HEIGHT;
 
-  const initialTarget = FOCUS_CENTER_Y - safeIndex * SLOT_HEIGHT - SLOT_HEIGHT / 2;
+  const initialTarget = FOCUS_CENTER_Y - safeSlotTop - safeSlotH / 2;
   const stackY = useSharedValue(initialTarget);
   const dragOffset = useSharedValue(0);
   // Rounded line-delta of the current drag — used in the worklet to dedupe
@@ -160,12 +170,12 @@ function LyricsDial({
 
   // Slide the stack so that the focused slot's center lands on FOCUS_CENTER_Y.
   useEffect(() => {
-    const target = FOCUS_CENTER_Y - safeIndex * SLOT_HEIGHT - focusedSlotH / 2;
+    const target = FOCUS_CENTER_Y - safeSlotTop - safeSlotH / 2;
     stackY.value = withTiming(target, {
       duration: TRANSITION_DURATION,
       easing: Easing.out(Easing.cubic),
     });
-  }, [safeIndex, focusedSlotH, stackY]);
+  }, [safeSlotTop, safeSlotH, stackY]);
 
   // Slide the highlight to the candidate slot whenever it changes (drag
   // crosses a line boundary, or commit/safeIndex change). On mount the SV
@@ -299,12 +309,12 @@ function LyricsDial({
             const isLineFocused = idx === safeIndex;
             const distance = Math.abs(idx - candidateIdx);
             const baseOpacity = isLineFocused ? 1 : distance === 1 ? 0.55 : 0.3;
-            // Slots after the focused one are pushed down by its overflow so
-            // a wrapped focused line doesn't overlap them.
-            const slotTop = idx <= safeIndex
-              ? idx * SLOT_HEIGHT
-              : idx * SLOT_HEIGHT + focusedExtraH;
-            const slotHeight = idx === safeIndex ? focusedSlotH : SLOT_HEIGHT;
+            // Each slot occupies its own measured height (≥SLOT_HEIGHT) and
+            // tops accumulate, so wrapped lines anywhere in the dial don't
+            // bleed into neighbors.
+            const layout = slotLayouts[idx];
+            const slotTop = layout?.top ?? idx * SLOT_HEIGHT;
+            const slotHeight = layout?.height ?? SLOT_HEIGHT;
             return (
               <Slot
                 key={idx}

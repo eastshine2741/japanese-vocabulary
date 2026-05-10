@@ -154,6 +154,7 @@ const styles = StyleSheet.create({
   container: {
     width: '100%',
     paddingVertical: 10,
+    paddingHorizontal: 24,
     gap: 4,
     alignItems: 'center',
     justifyContent: 'center',
