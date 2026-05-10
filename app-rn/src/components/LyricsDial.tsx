@@ -51,7 +51,7 @@ interface SlotProps {
   dynamicProgress: SharedValue<number>;
 }
 
-function Slot({
+const Slot = React.memo(function Slot({
   unit,
   isLineFocused,
   showTranslation,
@@ -91,7 +91,7 @@ function Slot({
       />
     </Animated.View>
   );
-}
+});
 
 function LyricsDial({
   studyUnits,
@@ -277,10 +277,13 @@ function LyricsDial({
   // Render window centers on candidateIdx so far drags keep showing the
   // lines around the current scroll position (rather than only ±RADIUS
   // around the still-anchored safeIndex).
-  const startIdx = Math.max(0, candidateIdx - RENDER_RADIUS);
-  const endIdx = Math.min(studyUnits.length - 1, candidateIdx + RENDER_RADIUS);
-  const visibleIndices: number[] = [];
-  for (let i = startIdx; i <= endIdx; i++) visibleIndices.push(i);
+  const visibleIndices = useMemo(() => {
+    const out: number[] = [];
+    const start = Math.max(0, candidateIdx - RENDER_RADIUS);
+    const end = Math.min(lineCount - 1, candidateIdx + RENDER_RADIUS);
+    for (let i = start; i <= end; i++) out.push(i);
+    return out;
+  }, [candidateIdx, lineCount]);
 
   return (
     <GestureDetector gesture={panGesture}>
