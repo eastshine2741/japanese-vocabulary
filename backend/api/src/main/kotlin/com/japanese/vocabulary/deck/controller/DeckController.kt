@@ -31,7 +31,7 @@ class DeckController(private val deckService: DeckService) {
     @GetMapping("/by-song/{songId}")
     fun getDeckBySongId(@PathVariable songId: Long): ResponseEntity<DeckDetailResponse> {
         val userId = currentUserId()
-        val deck = deckService.findBySongId(userId, songId) ?: return ResponseEntity.notFound().build()
+        val deck = deckService.findBySongId(userId, songId) ?: return ResponseEntity.noContent().build()
         return ResponseEntity.ok(deckService.getDeckDetail(userId, deck.id!!))
     }
 

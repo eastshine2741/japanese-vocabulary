@@ -20,13 +20,8 @@ export const deckApi = {
   },
 
   async getDeckBySongId(songId: number): Promise<DeckDetailResponse | null> {
-    try {
-      const { data } = await client.get<DeckDetailResponse>(`/api/decks/by-song/${songId}`);
-      return data;
-    } catch (e: any) {
-      if (e?.response?.status === 404) return null;
-      throw e;
-    }
+    const res = await client.get<DeckDetailResponse>(`/api/decks/by-song/${songId}`);
+    return res.status === 204 ? null : res.data;
   },
 
   async getAllDeckWords(cursor?: number): Promise<DeckWordListResponse> {
