@@ -7,9 +7,12 @@ import Animated, {
   withTiming,
   Easing,
   runOnJS,
+  interpolate,
+  Extrapolation,
+  SharedValue,
 } from 'react-native-reanimated';
 import { StudyUnit, Token } from '../types/song';
-import LyricLine, { LineState } from './LyricLine';
+import LyricLine from './LyricLine';
 import { Colors } from '../theme/theme';
 
 const SLOT_HEIGHT = 96;
@@ -18,7 +21,14 @@ const FOCUS_HEIGHT_BASE = SLOT_HEIGHT;
 // line above and lets the rest of the dial below show upcoming lines.
 const FOCUS_CENTER_Y = SLOT_HEIGHT * 1.5;
 const TRANSITION_DURATION = 280;
+const MODE_DURATION = 200;
 const RENDER_RADIUS = 6;
+// Recede effect applied to the lyric stack while the user is dragging.
+const DYNAMIC_SCALE = 0.92;
+const DYNAMIC_OPACITY = 0.85;
+// Highlight bg fades when in dynamic mode (anchor released, candidate
+// emphasized only weakly).
+const DYNAMIC_HIGHLIGHT_OPACITY = 0.5;
 
 interface Props {
   studyUnits: StudyUnit[];
@@ -26,6 +36,60 @@ interface Props {
   showTranslation: boolean;
   onTokenPress: (token: Token, lineText: string, koreanLyrics: string | null) => void;
   onStepLine: (newIndex: number) => void;
+}
+
+interface SlotProps {
+  unit: StudyUnit;
+  isLineFocused: boolean;
+  showTranslation: boolean;
+  onTokenPress: (token: Token, lineText: string, koreanLyrics: string | null) => void;
+  onMeasured: (height: number) => void;
+  slotTop: number;
+  slotHeight: number;
+  baseOpacity: number;
+  dynamicProgress: SharedValue<number>;
+}
+
+function Slot({
+  unit,
+  isLineFocused,
+  showTranslation,
+  onTokenPress,
+  onMeasured,
+  slotTop,
+  slotHeight,
+  baseOpacity,
+  dynamicProgress,
+}: SlotProps) {
+  // Per-slot animation: scale around the slot's top so the line shrinks
+  // downward in place (top edge stays put). Opacity compounds the static
+  // distance fade with the dynamic-mode recede fade.
+  const animStyle = useAnimatedStyle(() => {
+    const s = interpolate(dynamicProgress.value, [0, 1], [1, DYNAMIC_SCALE], Extrapolation.CLAMP);
+    const dyn = interpolate(dynamicProgress.value, [0, 1], [1, DYNAMIC_OPACITY], Extrapolation.CLAMP);
+    return {
+      transform: [{ scale: s }],
+      opacity: baseOpacity * dyn,
+    };
+  });
+  return (
+    <Animated.View
+      style={[
+        styles.slot,
+        { top: slotTop, height: slotHeight, transformOrigin: 'top' },
+        animStyle,
+      ]}
+      pointerEvents={isLineFocused ? 'auto' : 'none'}
+    >
+      <LyricLine
+        studyUnit={unit}
+        isActive={isLineFocused}
+        showTranslation={showTranslation}
+        onTokenPress={onTokenPress}
+        onMeasured={onMeasured}
+      />
+    </Animated.View>
+  );
 }
 
 function LyricsDial({
@@ -38,27 +102,32 @@ function LyricsDial({
   const safeIndex = Math.max(0, Math.min(studyUnits.length - 1, currentLineIndex));
   const lineCount = studyUnits.length;
 
-  // Each line's natural rendered height (post-wrap) — used to grow the focus
-  // highlight when the active line wraps to multiple visual rows.
+  // Each line's natural rendered height — used to size the focus highlight
+  // and to expand the focused slot so wrapped lines don't bleed into neighbors.
+  // Lines render with their static-mode style regardless of mode (the safeIndex
+  // line keeps its focused style even while dragging) so these measurements
+  // stay stable across the static↔dynamic transition.
   const [lineHeights, setLineHeights] = useState<Record<number, number>>({});
 
-  // While dragging, the line currently inside the highlight zone (one step
-  // ahead/behind safeIndex, or further). null = drag hasn't crossed any line
-  // boundary yet (or no drag in progress) — safeIndex stays focused.
+  // Drag state. isDragging gates the static↔dynamic mode transition; the
+  // animation itself is driven by `dynamicProgress` (0=static, 1=dynamic).
+  const [isDragging, setIsDragging] = useState(false);
+  // Candidate line currently sitting in the highlight zone during drag.
+  // null = drag hasn't crossed any line boundary (highlight still over safeIndex).
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
 
-  // Focused line's slot expands to its measured height when wrapping makes
-  // the content taller than SLOT_HEIGHT. This pushes lines below it down so
-  // the focused content can't bleed into adjacent slots.
+  // Static-mode focused slot expands to fit the wrapped focused line. Same
+  // value applies in dynamic mode since text styling doesn't change.
   const focusedSlotH = Math.max(SLOT_HEIGHT, lineHeights[safeIndex] ?? SLOT_HEIGHT);
   const focusedExtraH = focusedSlotH - SLOT_HEIGHT;
 
   const initialTarget = FOCUS_CENTER_Y - safeIndex * SLOT_HEIGHT - SLOT_HEIGHT / 2;
   const stackY = useSharedValue(initialTarget);
   const dragOffset = useSharedValue(0);
-  // Tracks the rounded line-delta of the current drag — used to dedupe
-  // runOnJS preview updates so we only fire when the highlighted line changes.
+  // Rounded line-delta of the current drag — used in the worklet to dedupe
+  // runOnJS preview updates.
   const lastDelta = useSharedValue(0);
+  const dynamicProgress = useSharedValue(0);
 
   const updatePreview = useCallback((idx: number | null) => {
     setPreviewIndex(prev => (prev === idx ? prev : idx));
@@ -68,9 +137,16 @@ function LyricsDial({
     if (newIdx !== safeIndex) onStepLine(newIdx);
   }, [safeIndex, onStepLine]);
 
-  // Slide the stack so that the focused line's slot center lands on
-  // FOCUS_CENTER_Y. The focused slot may have grown beyond SLOT_HEIGHT, so we
-  // factor in its actual height (focusedSlotH) when computing the target.
+  // Animate dynamicProgress on drag start/end. Drives stack scale/opacity and
+  // highlight opacity simultaneously.
+  useEffect(() => {
+    dynamicProgress.value = withTiming(isDragging ? 1 : 0, {
+      duration: MODE_DURATION,
+      easing: Easing.out(Easing.cubic),
+    });
+  }, [isDragging, dynamicProgress]);
+
+  // Slide the stack so that the focused slot's center lands on FOCUS_CENTER_Y.
   useEffect(() => {
     const target = FOCUS_CENTER_Y - safeIndex * SLOT_HEIGHT - focusedSlotH / 2;
     stackY.value = withTiming(target, {
@@ -84,6 +160,10 @@ function LyricsDial({
       Gesture.Pan()
         .activeOffsetY([-12, 12])
         .failOffsetX([-20, 20])
+        .onStart(() => {
+          'worklet';
+          runOnJS(setIsDragging)(true);
+        })
         .onChange((e) => {
           'worklet';
           dragOffset.value = e.translationY;
@@ -107,17 +187,25 @@ function LyricsDial({
         })
         .onFinalize(() => {
           'worklet';
-          // Cleanup if the gesture is cancelled before onEnd (e.g. another
-          // gesture wins). Avoids leaving a stale previewIndex.
+          // Always reset drag/preview state and exit dynamic mode, even if
+          // the gesture was cancelled before onEnd.
           dragOffset.value = withTiming(0, { duration: 180, easing: Easing.out(Easing.cubic) });
           lastDelta.value = 0;
           runOnJS(updatePreview)(null);
+          runOnJS(setIsDragging)(false);
         }),
     [safeIndex, lineCount, dragOffset, lastDelta, updatePreview, commitLine],
   );
 
+  // Stack only translates — the recede scale is applied per-slot so each
+  // line shrinks in place rather than converging toward a single pivot
+  // (which made distant lines drift visibly when entering dynamic mode).
   const stackStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: stackY.value + dragOffset.value }],
+  }));
+
+  const highlightStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(dynamicProgress.value, [0, 1], [1, DYNAMIC_HIGHLIGHT_OPACITY], Extrapolation.CLAMP),
   }));
 
   // Stable per-line callbacks so LyricLine.memo doesn't break each render.
@@ -138,25 +226,21 @@ function LyricsDial({
   for (let i = startIdx; i <= endIdx; i++) visibleIndices.push(i);
 
   // Highlight tracks the line currently centered (preview during drag, or
-  // safeIndex while settled). Height grows with that line so wrapped lines
-  // are fully covered. Opacity drops while previewing for a softer cue.
+  // safeIndex while settled). Position is fixed at FOCUS_CENTER_Y on screen;
+  // height adapts to the candidate's measured size.
   const focusLineIdx = previewIndex ?? safeIndex;
   const focusHeight = Math.max(FOCUS_HEIGHT_BASE, lineHeights[focusLineIdx] ?? FOCUS_HEIGHT_BASE);
   const focusTop = FOCUS_CENTER_Y - focusHeight / 2;
-  const isPreviewing = previewIndex !== null;
 
   return (
     <GestureDetector gesture={panGesture}>
       <View style={styles.container}>
-        {/* Focus highlight — pinned on screen; height grows with active line. */}
-        <View
+        {/* Focus highlight — pinned on screen; fades in dynamic mode. */}
+        <Animated.View
           style={[
             styles.focusHighlight,
-            {
-              top: focusTop,
-              height: focusHeight,
-              opacity: isPreviewing ? 0.5 : 1,
-            },
+            { top: focusTop, height: focusHeight },
+            highlightStyle,
           ]}
           pointerEvents="none"
         />
@@ -164,39 +248,33 @@ function LyricsDial({
           {visibleIndices.map((idx) => {
             const unit = studyUnits[idx];
             if (!unit) return null;
-            const lineState: LineState =
-              idx === previewIndex ? 'previewing' :
-              idx === safeIndex && previewIndex === null ? 'focused' :
-              'inactive';
+            // safeIndex line keeps its focused style in both modes — the
+            // anchor-released feel is conveyed via the recede transform and
+            // the highlight bg fading, not by re-styling the text. This way
+            // the line's measured height (and thus its on-screen position)
+            // stays stable across the mode transition.
+            const isLineFocused = idx === safeIndex;
             const distance = Math.abs(idx - focusLineIdx);
-            const opacity = lineState !== 'inactive' ? 1 : distance === 1 ? 0.55 : 0.3;
-            // Slots after the focused one are pushed down by the focused
-            // slot's overflow so a wrapped focused line doesn't overlap them.
+            const baseOpacity = isLineFocused ? 1 : distance === 1 ? 0.55 : 0.3;
+            // Slots after the focused one are pushed down by its overflow so
+            // a wrapped focused line doesn't overlap them.
             const slotTop = idx <= safeIndex
               ? idx * SLOT_HEIGHT
               : idx * SLOT_HEIGHT + focusedExtraH;
             const slotHeight = idx === safeIndex ? focusedSlotH : SLOT_HEIGHT;
             return (
-              <View
+              <Slot
                 key={idx}
-                style={[
-                  styles.slot,
-                  {
-                    top: slotTop,
-                    height: slotHeight,
-                    opacity,
-                  },
-                ]}
-                pointerEvents={lineState === 'focused' ? 'auto' : 'none'}
-              >
-                <LyricLine
-                  studyUnit={unit}
-                  state={lineState}
-                  showTranslation={showTranslation}
-                  onTokenPress={onTokenPress}
-                  onMeasured={getOnMeasured(idx)}
-                />
-              </View>
+                unit={unit}
+                isLineFocused={isLineFocused}
+                showTranslation={showTranslation}
+                onTokenPress={onTokenPress}
+                onMeasured={getOnMeasured(idx)}
+                slotTop={slotTop}
+                slotHeight={slotHeight}
+                baseOpacity={baseOpacity}
+                dynamicProgress={dynamicProgress}
+              />
             );
           })}
         </Animated.View>
