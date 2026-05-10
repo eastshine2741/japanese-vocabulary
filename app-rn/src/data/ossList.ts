@@ -28,31 +28,26 @@ export const EXTERNAL_SERVICES: OssEntry[] = [
     name: 'LRCLIB',
     license: '가사 데이터 출처',
     url: 'https://lrclib.net',
-    note: '동기 가사(LRC) 데이터 제공 서비스.',
   },
   {
     name: 'VocaDB',
     license: '가사 데이터 출처',
     url: 'https://vocadb.net',
-    note: 'VOCALOID/일본어 곡 메타데이터 및 가사 데이터.',
   },
   {
     name: 'Apple iTunes Search API',
     license: 'Apple 약관',
     url: 'https://performance-partners.apple.com/search-api',
-    note: '곡명·아티스트·앨범아트 검색.',
   },
   {
     name: 'Google Gemini API',
     license: 'Google ToS',
     url: 'https://ai.google.dev/gemini-api/terms',
-    note: '한국어 번역·해설 생성.',
   },
   {
     name: 'YouTube IFrame Player API',
     license: 'YouTube ToS',
     url: 'https://developers.google.com/youtube/iframe_api_reference',
-    note: 'MV 영상 재생.',
   },
 ];
 
