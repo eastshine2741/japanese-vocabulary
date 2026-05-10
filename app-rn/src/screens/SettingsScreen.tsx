@@ -17,6 +17,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useShallow } from 'zustand/react/shallow';
 import { useSettingsStore } from '../stores/settingsStore';
 import { tokenStorage } from '../utils/tokenStorage';
+import { resetAllStores } from '../utils/resetAllStores';
 import { Colors, Dimens } from '../theme/theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import ServerURLDialog from '../components/ServerURLDialog';
@@ -91,6 +92,7 @@ export default function SettingsScreen() {
 
   const handleLogout = async () => {
     await tokenStorage.clearToken();
+    resetAllStores();
     navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'Login' }] }));
   };
 
