@@ -70,7 +70,10 @@ export default defineConfig({
   ],
   server: {
     proxy: {
-      '/api': 'http://localhost/prompt-engineering',
+      '/api/dev': {
+        target: 'http://49.142.62.106',
+        rewrite: (path) => `/prompt-engineering${path}`,
+      },
     },
   },
 })
