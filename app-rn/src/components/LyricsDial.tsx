@@ -16,9 +16,8 @@ import LyricLine from './LyricLine';
 import { Colors } from '../theme/theme';
 
 const SLOT_HEIGHT = 96;
-const FOCUS_HEIGHT_BASE = SLOT_HEIGHT;
-// Anchor the focus highlight 1.5 slots from the dial top — leaves ~1 prev
-// line above and lets the rest of the dial below show upcoming lines.
+// Anchor the focused slot's center 1.5 slots from the dial top — leaves
+// ~1 prev line above and lets the rest of the dial below show upcoming lines.
 const FOCUS_CENTER_Y = SLOT_HEIGHT * 1.5;
 const TRANSITION_DURATION = 280;
 const MODE_DURATION = 200;
@@ -178,18 +177,31 @@ function LyricsDial({
         })
         .onEnd((e) => {
           'worklet';
-          dragOffset.value = withTiming(0, { duration: 180, easing: Easing.out(Easing.cubic) });
           const delta = -Math.round(e.translationY / SLOT_HEIGHT);
           const target = Math.max(0, Math.min(lineCount - 1, safeIndex + delta));
           lastDelta.value = 0;
           runOnJS(updatePreview)(null);
-          if (target !== safeIndex) runOnJS(commitLine)(target);
+          if (target !== safeIndex) {
+            // Absorb the current drag offset into stackY so the post-commit
+            // animation starts from the user's release position, not from
+            // the pre-drag baseline. Without this the dial wobbles: drag
+            // springs back to 0 while stackY independently slides to the new
+            // line, giving a non-monotonic path.
+            stackY.value = stackY.value + dragOffset.value;
+            dragOffset.value = 0;
+            runOnJS(commitLine)(target);
+          } else {
+            // No commit — bounce the drag back to baseline.
+            dragOffset.value = withTiming(0, { duration: 180, easing: Easing.out(Easing.cubic) });
+          }
         })
         .onFinalize(() => {
           'worklet';
-          // Always reset drag/preview state and exit dynamic mode, even if
-          // the gesture was cancelled before onEnd.
-          dragOffset.value = withTiming(0, { duration: 180, easing: Easing.out(Easing.cubic) });
+          // Cleanup if the gesture was cancelled before onEnd. If onEnd ran,
+          // dragOffset is already 0 (committed) or animating back (no-op).
+          if (dragOffset.value !== 0) {
+            dragOffset.value = withTiming(0, { duration: 180, easing: Easing.out(Easing.cubic) });
+          }
           lastDelta.value = 0;
           runOnJS(updatePreview)(null);
           runOnJS(setIsDragging)(false);
@@ -204,7 +216,11 @@ function LyricsDial({
     transform: [{ translateY: stackY.value + dragOffset.value }],
   }));
 
+  // Highlight scales the same way slots do (transformOrigin: 'top') so it
+  // visually matches the candidate line's recede shrink. Opacity fades as
+  // we enter dynamic mode (anchor releases).
   const highlightStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: interpolate(dynamicProgress.value, [0, 1], [1, DYNAMIC_SCALE], Extrapolation.CLAMP) }],
     opacity: interpolate(dynamicProgress.value, [0, 1], [1, DYNAMIC_HIGHLIGHT_OPACITY], Extrapolation.CLAMP),
   }));
 
@@ -219,32 +235,42 @@ function LyricsDial({
     return onMeasuredCallbacks.current[idx];
   }, []);
 
-  // Render only a window around the active index for performance.
-  const startIdx = Math.max(0, safeIndex - RENDER_RADIUS);
-  const endIdx = Math.min(studyUnits.length - 1, safeIndex + RENDER_RADIUS);
+  // Candidate is the line the highlight pins itself to: safeIndex while
+  // settled, previewIndex during a drag that has crossed a line boundary.
+  const candidateIdx = previewIndex ?? safeIndex;
+
+  // Render window centers on candidateIdx so far drags keep showing the
+  // lines around the current scroll position (rather than only ±RADIUS
+  // around the still-anchored safeIndex).
+  const startIdx = Math.max(0, candidateIdx - RENDER_RADIUS);
+  const endIdx = Math.min(studyUnits.length - 1, candidateIdx + RENDER_RADIUS);
   const visibleIndices: number[] = [];
   for (let i = startIdx; i <= endIdx; i++) visibleIndices.push(i);
-
-  // Highlight tracks the line currently centered (preview during drag, or
-  // safeIndex while settled). Position is fixed at FOCUS_CENTER_Y on screen;
-  // height adapts to the candidate's measured size.
-  const focusLineIdx = previewIndex ?? safeIndex;
-  const focusHeight = Math.max(FOCUS_HEIGHT_BASE, lineHeights[focusLineIdx] ?? FOCUS_HEIGHT_BASE);
-  const focusTop = FOCUS_CENTER_Y - focusHeight / 2;
+  const candidateSlotTop = candidateIdx <= safeIndex
+    ? candidateIdx * SLOT_HEIGHT
+    : candidateIdx * SLOT_HEIGHT + focusedExtraH;
+  const candidateSlotH = candidateIdx === safeIndex ? focusedSlotH : SLOT_HEIGHT;
 
   return (
     <GestureDetector gesture={panGesture}>
       <View style={styles.container}>
-        {/* Focus highlight — pinned on screen; fades in dynamic mode. */}
-        <Animated.View
-          style={[
-            styles.focusHighlight,
-            { top: focusTop, height: focusHeight },
-            highlightStyle,
-          ]}
-          pointerEvents="none"
-        />
         <Animated.View style={[styles.stack, stackStyle]} pointerEvents="box-none">
+          {/* Focus highlight — placed inside the stack so it inherits the
+              stack's translateY, then sized/positioned to match the current
+              candidate slot. Crosses lines via discrete top/height updates
+              when previewIndex switches at the half-slot threshold. */}
+          <Animated.View
+            style={[
+              styles.focusHighlight,
+              {
+                top: candidateSlotTop,
+                height: candidateSlotH,
+                transformOrigin: 'top',
+              },
+              highlightStyle,
+            ]}
+            pointerEvents="none"
+          />
           {visibleIndices.map((idx) => {
             const unit = studyUnits[idx];
             if (!unit) return null;
@@ -254,7 +280,7 @@ function LyricsDial({
             // the line's measured height (and thus its on-screen position)
             // stays stable across the mode transition.
             const isLineFocused = idx === safeIndex;
-            const distance = Math.abs(idx - focusLineIdx);
+            const distance = Math.abs(idx - candidateIdx);
             const baseOpacity = isLineFocused ? 1 : distance === 1 ? 0.55 : 0.3;
             // Slots after the focused one are pushed down by its overflow so
             // a wrapped focused line doesn't overlap them.
