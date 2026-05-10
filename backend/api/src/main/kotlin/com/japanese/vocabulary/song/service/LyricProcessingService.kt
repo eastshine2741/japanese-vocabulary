@@ -29,6 +29,14 @@ class LyricProcessingService(
 
     private val logger = LoggerFactory.getLogger(LyricProcessingService::class.java)
 
+    private data class LyricsSource(val name: String?, val url: String?)
+
+    private fun resolveLyricsSource(vocadbId: Long?, lrclibId: Long?): LyricsSource = when {
+        vocadbId != null -> LyricsSource("VocaDB", "https://vocadb.net/S/$vocadbId")
+        lrclibId != null -> LyricsSource("LRCLIB", "https://lrclib.net")
+        else -> LyricsSource(null, null)
+    }
+
     fun analyze(title: String, artist: String, durationSeconds: Int?, artworkUrl: String? = null, userId: Long? = null): SongDTO {
         // Check if already exists in DB
         songRepository.findByArtistAndTitle(artist, title)?.let {
@@ -89,6 +97,7 @@ class LyricProcessingService(
         }
 
         // Build response — batch not yet done, so tokens empty, no korean
+        val source = resolveLyricsSource(lyricsResult.vocadbId, lyricsResult.lrclibId)
         return SongDTO(
             song = SongInfo(
                 id = savedSong.id!!,
@@ -98,7 +107,8 @@ class LyricProcessingService(
             ),
             studyUnits = lyricLineData.map { it.toStudyUnit() },
             youtubeUrl = savedSong.youtubeUrl,
-            lyricsSourceUrl = lyricsResult.vocadbId?.let { "https://vocadb.net/S/$it" }
+            lyricsSourceName = source.name,
+            lyricsSourceUrl = source.url
         )
     }
 
@@ -136,6 +146,7 @@ class LyricProcessingService(
                 song = SongInfo(id = entity.id!!, title = entity.title, artist = entity.artist, lyricType = "PLAIN"),
                 studyUnits = emptyList(),
                 youtubeUrl = entity.youtubeUrl,
+                lyricsSourceName = null,
                 lyricsSourceUrl = null
             )
         }
@@ -159,11 +170,13 @@ class LyricProcessingService(
             lyricLines.map { it.toStudyUnit() }
         }
 
+        val source = resolveLyricsSource(lyricEntity.vocadbId, lyricEntity.lrclibId)
         return SongDTO(
             song = SongInfo(id = entity.id!!, title = entity.title, artist = entity.artist, lyricType = lyricEntity.lyricType.name),
             studyUnits = studyUnits,
             youtubeUrl = entity.youtubeUrl,
-            lyricsSourceUrl = lyricEntity.vocadbId?.let { "https://vocadb.net/S/$it" }
+            lyricsSourceName = source.name,
+            lyricsSourceUrl = source.url
         )
     }
 

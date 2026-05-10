@@ -21,6 +21,7 @@ import WordStudySheet from '../components/WordStudySheet';
 import LyricsDial from '../components/LyricsDial';
 import PlayerHeader from '../components/PlayerHeader';
 import AppDialog from '../components/AppDialog';
+import SongInfoSheet from '../components/SongInfoSheet';
 import { Token } from '../types/song';
 import { AddWordRequest } from '../types/word';
 import { Colors } from '../theme/theme';
@@ -82,6 +83,7 @@ export default function PlayerScreen({ navigation, route }: Props) {
   const youtubeRef = useRef<YouTubePlayerRef>(null);
   const wordLookupRef = useRef<BottomSheet>(null);
   const wordStudyRef = useRef<BottomSheet>(null);
+  const songInfoRef = useRef<BottomSheet>(null);
   const initialSeekDone = useRef(false);
   const initialIndexApplied = useRef(false);
 
@@ -91,7 +93,7 @@ export default function PlayerScreen({ navigation, route }: Props) {
 
   if (!studyData) return null;
 
-  const { song, studyUnits, youtubeUrl } = studyData;
+  const { song, studyUnits, youtubeUrl, lyricsSourceName, lyricsSourceUrl } = studyData;
   const isSynced = song.lyricType === 'SYNCED';
   const videoId = youtubeUrl ? extractVideoId(youtubeUrl) : null;
 
@@ -118,6 +120,10 @@ export default function PlayerScreen({ navigation, route }: Props) {
   const onOpenVocab = useCallback(() => {
     navigation.navigate('DeckDetail', { songId: song.id });
   }, [navigation, song.id]);
+
+  const onOpenInfo = useCallback(() => {
+    songInfoRef.current?.expand();
+  }, []);
 
   // ----- Word lookup actions -----
   const handleAddWord = useCallback(() => {
@@ -275,7 +281,12 @@ export default function PlayerScreen({ navigation, route }: Props) {
         </View>
 
         {/* Header (song title + artist + 단어장 chip) */}
-        <PlayerHeader title={song.title} artist={song.artist} onOpenVocab={onOpenVocab} />
+        <PlayerHeader
+          title={song.title}
+          artist={song.artist}
+          onOpenVocab={onOpenVocab}
+          onOpenInfo={onOpenInfo}
+        />
 
         {/* Lyrics dial fills the remaining space */}
         <LyricsDial
@@ -340,6 +351,31 @@ export default function PlayerScreen({ navigation, route }: Props) {
               onDeleteWord={handleDeleteWord}
             />
           )}
+        </BottomSheetView>
+      </BottomSheet>
+
+      {/* Song info / rights-holder report sheet */}
+      <BottomSheet
+        ref={songInfoRef}
+        index={-1}
+        enableDynamicSizing
+        enablePanDownToClose
+        detached
+        bottomInset={insets.bottom + 12}
+        backdropComponent={renderBackdrop}
+        style={styles.lookupSheetFloat}
+        backgroundStyle={styles.lookupSheetBg}
+        handleStyle={styles.lookupSheetHandle}
+        handleIndicatorStyle={styles.lookupSheetIndicator}
+      >
+        <BottomSheetView>
+          <SongInfoSheet
+            songId={song.id}
+            title={song.title}
+            artist={song.artist}
+            lyricsSourceName={lyricsSourceName}
+            lyricsSourceUrl={lyricsSourceUrl}
+          />
         </BottomSheetView>
       </BottomSheet>
 
