@@ -116,7 +116,7 @@ const FILTER_POS_ORDER = [
   'INTERJECTION', 'PARTICLE', 'PREFIX', 'SUFFIX',
 ];
 
-function WordStudySheet({
+function WordListSheet({
   studyUnits,
   songId,
   batchAddStatus,
@@ -314,7 +314,7 @@ function WordStudySheet({
   );
 }
 
-export default React.memo(WordStudySheet);
+export default React.memo(WordListSheet);
 
 const styles = StyleSheet.create({
   root: {

@@ -17,7 +17,7 @@ import { wordApi } from '../api/wordApi';
 import YouTubePlayer, { YouTubePlayerRef } from '../components/YouTubePlayer';
 import WordAnalysisSheet from '../components/WordAnalysisSheet';
 import WordEditSheet from '../components/WordEditSheet';
-import WordStudySheet from '../components/WordStudySheet';
+import WordListSheet from '../components/WordListSheet';
 import LyricsDial from '../components/LyricsDial';
 import PlayerHeader from '../components/PlayerHeader';
 import AppDialog from '../components/AppDialog';
@@ -73,7 +73,7 @@ export default function PlayerScreen({ navigation, route }: Props) {
   const [wordEditVisible, setWordEditVisible] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
-  // Sheet snap index — drives WordStudySheet pointerEvents + batch reset
+  // Sheet snap index — drives WordListSheet pointerEvents + batch reset
   const [snapIndex, setSnapIndex] = useState(0);
 
   // For non-synced songs we step through lines manually (no MV time to lean on)
@@ -314,7 +314,7 @@ export default function PlayerScreen({ navigation, route }: Props) {
         onChange={handleSheetChange}
         backgroundStyle={styles.studySheetBg}
       >
-        <WordStudySheet
+        <WordListSheet
           studyUnits={studyUnits}
           songId={song.id}
           batchAddStatus={batchAddStatus}
