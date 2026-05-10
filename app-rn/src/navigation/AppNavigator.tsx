@@ -28,8 +28,8 @@ export type RootStackParamList = {
   OssLicense: undefined;
   Player: { origin: string; initialSeekMs?: number; initialLyricIndex?: number };
   Review: { songId?: number | null };
-  DeckDetail: { songId: number | null };
-  DeckWordList: { songId: number | null };
+  DeckDetail: { deckId: number | null };
+  DeckWordList: { deckId: number | null };
   EditWord: {
     mode: 'edit' | 'createAndEdit';
     wordId?: number;

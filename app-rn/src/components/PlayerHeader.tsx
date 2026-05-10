@@ -8,9 +8,10 @@ interface Props {
   artist: string;
   onOpenVocab: () => void;
   onOpenInfo: () => void;
+  vocabEnabled: boolean;
 }
 
-function PlayerHeader({ title, artist, onOpenVocab, onOpenInfo }: Props) {
+function PlayerHeader({ title, artist, onOpenVocab, onOpenInfo, vocabEnabled }: Props) {
   return (
     <View style={styles.row}>
       <View style={styles.songInfo}>
@@ -26,9 +27,19 @@ function PlayerHeader({ title, artist, onOpenVocab, onOpenInfo }: Props) {
       >
         <Feather name="info" size={18} color={Colors.textSecondary} />
       </TouchableOpacity>
-      <TouchableOpacity style={styles.chip} onPress={onOpenVocab} activeOpacity={0.7}>
-        <Feather name="book-open" size={14} color={Colors.textPrimary} />
-        <Text style={styles.chipText}>단어장</Text>
+      <TouchableOpacity
+        style={[styles.chip, !vocabEnabled && styles.chipDisabled]}
+        onPress={onOpenVocab}
+        activeOpacity={0.7}
+        disabled={!vocabEnabled}
+        accessibilityState={{ disabled: !vocabEnabled }}
+      >
+        <Feather
+          name="book-open"
+          size={14}
+          color={vocabEnabled ? Colors.textPrimary : Colors.textMuted}
+        />
+        <Text style={[styles.chipText, !vocabEnabled && styles.chipTextDisabled]}>단어장</Text>
       </TouchableOpacity>
     </View>
   );
@@ -76,9 +87,15 @@ const styles = StyleSheet.create({
     borderRadius: 9999,
     backgroundColor: Colors.card,
   },
+  chipDisabled: {
+    opacity: 0.5,
+  },
   chipText: {
     fontSize: 13,
     fontWeight: '600',
     color: Colors.textPrimary,
+  },
+  chipTextDisabled: {
+    color: Colors.textMuted,
   },
 });

@@ -21,6 +21,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { usePlayerStore } from '../stores/playerStore';
 import { useVocabularyStore } from '../stores/vocabularyStore';
 import { wordApi } from '../api/wordApi';
+import { deckApi } from '../api/deckApi';
 import YouTubePlayer, { YouTubePlayerRef } from '../components/YouTubePlayer';
 import WordAnalysisSheet from '../components/WordAnalysisSheet';
 import WordEditSheet from '../components/WordEditSheet';
@@ -93,6 +94,8 @@ export default function PlayerScreen({ navigation, route }: Props) {
   // wordListSheet snap index — drives WordListSheet pointerEvents + batch reset
   const [snapIndex, setSnapIndex] = useState(0);
 
+  const [vocabDeckId, setVocabDeckId] = useState<number | null>(null);
+
   // For non-synced songs we step through lines manually (no MV time to lean on)
   const [manualLineIndex, setManualLineIndex] = useState(0);
 
@@ -138,8 +141,9 @@ export default function PlayerScreen({ navigation, route }: Props) {
 
   // ----- Action chip -----
   const onOpenVocab = useCallback(() => {
-    navigation.navigate('DeckDetail', { songId: song.id });
-  }, [navigation, song.id]);
+    if (vocabDeckId == null) return;
+    navigation.navigate('DeckDetail', { deckId: vocabDeckId });
+  }, [navigation, vocabDeckId]);
 
   const onOpenInfo = useCallback(() => {
     songInfoRef.current?.expand();
@@ -223,6 +227,14 @@ export default function PlayerScreen({ navigation, route }: Props) {
   );
 
   const displayLineIndex = isSynced ? syncedLineIndex : manualLineIndex;
+
+  useEffect(() => {
+    let cancelled = false;
+    deckApi.getDeckBySongId(song.id)
+      .then((d) => { if (!cancelled) setVocabDeckId(d?.deckId ?? null); })
+      .catch(() => { if (!cancelled) setVocabDeckId(null); });
+    return () => { cancelled = true; };
+  }, [song.id, addStatus, batchAddStatus]);
 
   // Initial seek + initial line (from route params).
   useEffect(() => {
@@ -363,6 +375,7 @@ export default function PlayerScreen({ navigation, route }: Props) {
               artist={song.artist}
               onOpenVocab={onOpenVocab}
               onOpenInfo={onOpenInfo}
+              vocabEnabled={vocabDeckId != null}
             />
           </View>
         </GestureDetector>

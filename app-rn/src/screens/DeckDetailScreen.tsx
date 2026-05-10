@@ -20,7 +20,7 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 type Props = NativeStackScreenProps<RootStackParamList, 'DeckDetail'>;
 
 export default function DeckDetailScreen({ route, navigation }: Props) {
-  const { songId } = route.params;
+  const { deckId } = route.params;
   const { status, data, error, load } = useDeckDetailStore(
     useShallow(s => ({ status: s.status, data: s.data, error: s.error, load: s.load })),
   );
@@ -29,9 +29,11 @@ export default function DeckDetailScreen({ route, navigation }: Props) {
 
   useFocusEffect(
     useCallback(() => {
-      load(songId);
-    }, [songId]),
+      load(deckId);
+    }, [deckId]),
   );
+
+  const songId = data?.songId ?? null;
 
   const handleListenSong = useCallback(async () => {
     if (songId == null) return;
@@ -118,7 +120,7 @@ export default function DeckDetailScreen({ route, navigation }: Props) {
             {/* View words button */}
             <TouchableOpacity
               style={styles.outlineButton}
-              onPress={() => navigation.navigate('DeckWordList', { songId })}
+              onPress={() => navigation.navigate('DeckWordList', { deckId })}
               activeOpacity={0.7}
             >
               <Ionicons name="list-outline" size={18} color={Colors.textSecondary} />

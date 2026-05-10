@@ -8,7 +8,7 @@ interface DeckDetailState {
   status: DeckDetailStatus;
   data: DeckDetailResponse | null;
   error: string | null;
-  load: (songId: number | null) => Promise<void>;
+  load: (deckId: number | null) => Promise<void>;
 }
 
 export const useDeckDetailStore = create<DeckDetailState>((set) => ({
@@ -16,10 +16,12 @@ export const useDeckDetailStore = create<DeckDetailState>((set) => ({
   data: null,
   error: null,
 
-  load: async (songId) => {
+  load: async (deckId) => {
     set({ status: 'loading', error: null });
     try {
-      const data = await deckApi.getDeckDetail(songId);
+      const data = deckId != null
+        ? await deckApi.getDeckDetail(deckId)
+        : await deckApi.getAllDeckDetail();
       set({ status: 'success', data });
     } catch (e: any) {
       set({ status: 'error', error: e.message });

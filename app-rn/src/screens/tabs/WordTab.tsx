@@ -23,8 +23,8 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export default function WordTab() {
   const navigation = useNavigation<Nav>();
-  const { status, data, load } = useDeckListStore(
-    useShallow(s => ({ status: s.status, data: s.data, load: s.load })),
+  const { status, songDecks, load } = useDeckListStore(
+    useShallow(s => ({ status: s.status, songDecks: s.songDecks, load: s.load })),
   );
   const [stats, setStats] = useState<FlashcardStatsResponse | null>(null);
 
@@ -99,7 +99,7 @@ export default function WordTab() {
             {/* View all words button */}
             <TouchableOpacity
               style={styles.wordListButton}
-              onPress={() => navigation.navigate('DeckWordList', { songId: null })}
+              onPress={() => navigation.navigate('DeckWordList', { deckId: null })}
               activeOpacity={0.7}
             >
               <Ionicons name="list-outline" size={18} color={Colors.textSecondary} />
@@ -113,20 +113,19 @@ export default function WordTab() {
   );
 
   const renderSongDecks = () => {
-    const songDecks = data?.songDecks ?? [];
     if (songDecks.length === 0) return null;
     return (
       <View style={styles.songDecksCard}>
         <Text style={styles.sectionLabel}>노래별 단어장</Text>
         {songDecks.map((item) => (
           <SongListItem
-            key={item.songId}
+            key={item.deckId}
             artworkUrl={item.artworkUrl}
             title={item.title}
             subtitle={`${item.artist} · ${item.wordCount}단어`}
             dueCount={item.dueCount}
             showChevron
-            onPress={() => navigation.navigate('DeckDetail', { songId: item.songId })}
+            onPress={() => navigation.navigate('DeckDetail', { deckId: item.deckId })}
           />
         ))}
       </View>
