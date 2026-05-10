@@ -249,15 +249,17 @@ export default function PlayerScreen({ navigation, route }: Props) {
     [],
   );
 
-  // Sheet expanded snap = available area below the MV. With bottomInset applied,
-  // snap heights are measured from (screenH - bottomInset) upward.
+  // Clamp sheet's max height to the area below the MV via `topInset`. With
+  // topInset set, the sheet physically cannot rise above (statusBar + MV) —
+  // so '100%' snap = exactly below-MV, and over-drag can't push it higher.
+  const sheetTopInset = insets.top + MV_HEIGHT;
   const expandedSnap = Math.max(
     SHEET_PEEK + 1,
-    screenH - insets.top - insets.bottom - MV_HEIGHT,
+    screenH - sheetTopInset - insets.bottom,
   );
   const wordStudySnapPoints = useMemo<(string | number)[]>(
-    () => [SHEET_PEEK, expandedSnap],
-    [expandedSnap],
+    () => [SHEET_PEEK, '100%'],
+    [],
   );
 
   return (
@@ -304,6 +306,8 @@ export default function PlayerScreen({ navigation, route }: Props) {
         snapPoints={wordStudySnapPoints}
         index={0}
         enablePanDownToClose={false}
+        enableOverDrag={false}
+        topInset={sheetTopInset}
         bottomInset={insets.bottom}
         handleComponent={null}
         animatedIndex={animatedIndex}
@@ -319,6 +323,7 @@ export default function PlayerScreen({ navigation, route }: Props) {
           onSave={handleBatchSave}
           animatedIndex={animatedIndex}
           snapIndex={snapIndex}
+          contentHeight={expandedSnap}
         />
       </BottomSheet>
 

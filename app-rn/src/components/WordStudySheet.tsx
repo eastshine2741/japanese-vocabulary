@@ -5,15 +5,18 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
-  ScrollView,
 } from 'react-native';
+// Use RNGH ScrollView so the horizontal chip strip composes correctly
+// with the BottomSheet's gesture handler (RN's ScrollView gets its
+// horizontal pan stolen by the sheet's vertical drag handler).
+import { ScrollView } from 'react-native-gesture-handler';
 import Animated, {
   SharedValue,
   useAnimatedStyle,
   interpolate,
   Extrapolation,
 } from 'react-native-reanimated';
-import { BottomSheetFlatList, BottomSheetView } from '@gorhom/bottom-sheet';
+import { BottomSheetFlatList } from '@gorhom/bottom-sheet';
 import { Feather } from '@expo/vector-icons';
 import { StudyUnit } from '../types/song';
 import { AddWordRequest } from '../types/word';
@@ -30,6 +33,63 @@ interface UniqueWord {
   koreanLyrics: string | null;
 }
 
+// Row component — memoized so toggling one checkbox doesn't re-render
+// every visible row. Receives a stable `onToggle` and a single `isChecked`
+// boolean (instead of the whole `uncheckedWords` Set) so React.memo can
+// skip rows whose checked state didn't change.
+interface WordRowProps {
+  item: UniqueWord;
+  isChecked: boolean;
+  onToggle: (baseForm: string) => void;
+}
+
+interface FilterChipProps {
+  pos: string;
+  isOn: boolean;
+  color: string;
+  label: string;
+  onToggle: (pos: string) => void;
+}
+
+const FilterChip = React.memo(function FilterChip({ pos, isOn, color, label, onToggle }: FilterChipProps) {
+  const handlePress = useCallback(() => onToggle(pos), [onToggle, pos]);
+  return (
+    <TouchableOpacity
+      style={[styles.filterChip, isOn && { backgroundColor: color + '20' }]}
+      onPress={handlePress}
+      activeOpacity={0.7}
+    >
+      <Text style={[styles.filterChipText, isOn && { color }]}>{label}</Text>
+    </TouchableOpacity>
+  );
+});
+
+const WordRow = React.memo(function WordRow({ item, isChecked, onToggle }: WordRowProps) {
+  const handlePress = useCallback(() => onToggle(item.baseForm), [onToggle, item.baseForm]);
+  const posInfo = POS_INFO[item.partOfSpeech];
+  return (
+    <TouchableOpacity style={styles.wordItem} onPress={handlePress} activeOpacity={0.6}>
+      <View style={[styles.checkbox, isChecked && styles.checkboxChecked]}>
+        {isChecked && <Feather name="check" size={14} color="#FFFFFF" />}
+      </View>
+      <View style={styles.wordInfo}>
+        <View style={styles.wordTexts}>
+          <Text style={styles.wordJapanese}>{item.baseForm}</Text>
+          {item.reading !== '' && (
+            <ReadingText style={styles.wordReading} reading={item.reading} />
+          )}
+        </View>
+        <Text style={styles.wordMeaning} numberOfLines={1}>{item.koreanText}</Text>
+      </View>
+      {posInfo && (
+        <View style={[styles.posBadge, { backgroundColor: posInfo.color + '20' }]}>
+          <Text style={[styles.posBadgeText, { color: posInfo.color }]}>{posInfo.korean}</Text>
+        </View>
+      )}
+    </TouchableOpacity>
+  );
+});
+
 interface Props {
   studyUnits: StudyUnit[];
   songId: number;
@@ -41,6 +101,10 @@ interface Props {
   animatedIndex: SharedValue<number>;
   // Discrete snap (for pointerEvents). 0 = peek, 1 = expanded.
   snapIndex: number;
+  // Expanded snap height in px. Needed because BottomSheetView is
+  // `position:absolute` without a bottom anchor — without an explicit height
+  // its absolute children (the list wrapper) collapse to 0.
+  contentHeight: number;
 }
 
 const DEFAULT_ON_POS = new Set(['NOUN', 'VERB', 'ADJECTIVE', 'NA_ADJECTIVE', 'ADVERB']);
@@ -61,6 +125,7 @@ function WordStudySheet({
   onSave,
   animatedIndex,
   snapIndex,
+  contentHeight,
 }: Props) {
   const [enabledPOS, setEnabledPOS] = useState<Set<string>>(() => new Set(DEFAULT_ON_POS));
   const [uncheckedWords, setUncheckedWords] = useState<Set<string>>(new Set());
@@ -131,44 +196,24 @@ function WordStudySheet({
   const isLoading = batchAddStatus === 'loading';
   const isSuccess = batchAddStatus === 'success';
 
-  const renderItem = useCallback(({ item }: { item: UniqueWord }) => {
-    const isChecked = !uncheckedWords.has(item.baseForm);
-    const posInfo = POS_INFO[item.partOfSpeech];
-    return (
-      <TouchableOpacity
-        style={styles.wordItem}
-        onPress={() => toggleWord(item.baseForm)}
-        activeOpacity={0.6}
-      >
-        <View style={[styles.checkbox, isChecked && styles.checkboxChecked]}>
-          {isChecked && <Feather name="check" size={14} color="#FFFFFF" />}
-        </View>
-        <View style={styles.wordInfo}>
-          <View style={styles.wordTexts}>
-            <Text style={styles.wordJapanese}>{item.baseForm}</Text>
-            {item.reading !== '' && (
-              <ReadingText style={styles.wordReading} reading={item.reading} />
-            )}
-          </View>
-          <Text style={styles.wordMeaning} numberOfLines={1}>{item.koreanText}</Text>
-        </View>
-        {posInfo && (
-          <View style={[styles.posBadge, { backgroundColor: posInfo.color + '20' }]}>
-            <Text style={[styles.posBadgeText, { color: posInfo.color }]}>{posInfo.korean}</Text>
-          </View>
-        )}
-      </TouchableOpacity>
-    );
-  }, [uncheckedWords, toggleWord]);
+  const renderItem = useCallback(({ item }: { item: UniqueWord }) => (
+    <WordRow
+      item={item}
+      isChecked={!uncheckedWords.has(item.baseForm)}
+      onToggle={toggleWord}
+    />
+  ), [uncheckedWords, toggleWord]);
 
-  const ListHeader = useMemo(() => (
-    <View>
-      {/* Drag handle (rendered inside content because BottomSheet uses handleComponent={null}) */}
+  const keyExtractor = useCallback((item: UniqueWord) => item.baseForm, []);
+
+  // Sticky sheet header (drag handle + title + CTA + filter chips). Rendered
+  // OUTSIDE the FlatList so it doesn't scroll with the word rows.
+  const stickyHeader = (
+    <View style={styles.stickyHeader}>
       <View style={styles.handleArea}>
         <View style={styles.handleIndicator} />
       </View>
 
-      {/* Title + total + CTA pill */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Text style={styles.headerTitle}>단어</Text>
@@ -184,10 +229,7 @@ function WordStudySheet({
           </View>
         ) : (
           <TouchableOpacity
-            style={[
-              styles.ctaPill,
-              checkedCount === 0 && styles.ctaPillDisabled,
-            ]}
+            style={[styles.ctaPill, checkedCount === 0 && styles.ctaPillDisabled]}
             onPress={handleSave}
             disabled={isLoading || checkedCount === 0}
             activeOpacity={0.7}
@@ -204,7 +246,6 @@ function WordStudySheet({
         )}
       </View>
 
-      {/* POS filter chips */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -214,57 +255,51 @@ function WordStudySheet({
         {availablePOS.map(pos => {
           const info = POS_INFO[pos];
           if (!info) return null;
-          const isOn = enabledPOS.has(pos);
           return (
-            <TouchableOpacity
+            <FilterChip
               key={pos}
-              style={[
-                styles.filterChip,
-                isOn && { backgroundColor: info.color + '20' },
-              ]}
-              onPress={() => togglePOS(pos)}
-              activeOpacity={0.7}
-            >
-              <Text style={[
-                styles.filterChipText,
-                isOn && { color: info.color },
-              ]}>
-                {info.korean}
-              </Text>
-            </TouchableOpacity>
+              pos={pos}
+              isOn={enabledPOS.has(pos)}
+              color={info.color}
+              label={info.korean}
+              onToggle={togglePOS}
+            />
           );
         })}
       </ScrollView>
-
     </View>
-  ), [
-    allUniqueWords.length, availablePOS, enabledPOS, togglePOS,
-    isSuccess, isLoading,
-    checkedCount, batchSavedCount, batchSkippedCount, handleSave,
-  ]);
+  );
 
-  // Cross-fade between peek (handle + "단어") and full word list at the
-  // sheet's mid-progress (animatedIndex 0.5). The peek view sits absolutely
-  // over the list — only one is interactive at a time (snapIndex gates pointerEvents).
+  // Cross-fade peek → word list near the start of the drag so a tiny
+  // pull from peek immediately reveals the list. Peek fully gone by 0.1,
+  // list fully visible by 0.2 (small overlap to avoid a blank frame).
   const peekStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(animatedIndex.value, [0, 0.5], [1, 0], Extrapolation.CLAMP),
+    opacity: interpolate(animatedIndex.value, [0, 0.1], [1, 0], Extrapolation.CLAMP),
   }));
   const listStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(animatedIndex.value, [0.5, 1], [0, 1], Extrapolation.CLAMP),
+    opacity: interpolate(animatedIndex.value, [0.05, 0.2], [0, 1], Extrapolation.CLAMP),
   }));
 
+  // NOTE: do NOT wrap in `BottomSheetView` — it registers itself as
+  // `SCROLLABLE_TYPE.VIEW` on focus, which overrides the FlatList's
+  // FLATLIST registration (parent effects run after children) and disables
+  // scrolling for the sheet's content. A plain View is fine.
   return (
-    <BottomSheetView style={styles.root}>
+    <View style={[styles.root, { height: contentHeight }]}>
       <Animated.View
-        style={[StyleSheet.absoluteFill, listStyle]}
+        style={[StyleSheet.absoluteFill, styles.listColumn, listStyle]}
         pointerEvents={snapIndex >= 1 ? 'auto' : 'none'}
       >
+        {stickyHeader}
         <BottomSheetFlatList
           data={filteredWords}
-          keyExtractor={(item: UniqueWord) => item.baseForm}
+          keyExtractor={keyExtractor}
           renderItem={renderItem}
-          ListHeaderComponent={ListHeader}
           contentContainerStyle={styles.listContent}
+          removeClippedSubviews
+          initialNumToRender={12}
+          maxToRenderPerBatch={8}
+          windowSize={5}
         />
       </Animated.View>
 
@@ -275,7 +310,7 @@ function WordStudySheet({
         <View style={styles.handleIndicator} />
         <Text style={styles.peekLabel}>단어</Text>
       </Animated.View>
-    </BottomSheetView>
+    </View>
   );
 }
 
@@ -284,6 +319,15 @@ export default React.memo(WordStudySheet);
 const styles = StyleSheet.create({
   root: {
     flex: 1,
+  },
+
+  // Animated.View wrapper holding sticky header + scrollable list. Needs
+  // flex column so BottomSheetFlatList (flex:1) takes the remaining height.
+  listColumn: {
+    flexDirection: 'column',
+  },
+  stickyHeader: {
+    flexShrink: 0,
   },
 
   listContent: {
