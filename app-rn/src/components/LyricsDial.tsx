@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, StyleSheet, LayoutChangeEvent } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
@@ -9,12 +9,14 @@ import Animated, {
   runOnJS,
 } from 'react-native-reanimated';
 import { StudyUnit, Token } from '../types/song';
-import LyricLine from './LyricLine';
+import LyricLine, { LineState } from './LyricLine';
 import { Colors } from '../theme/theme';
 
 const SLOT_HEIGHT = 96;
-const SWIPE_THRESHOLD_PX = 40;
-const SWIPE_VELOCITY = 350;
+const FOCUS_HEIGHT_BASE = SLOT_HEIGHT;
+// Anchor the focus highlight 1.5 slots from the dial top — leaves ~1 prev
+// line above and lets the rest of the dial below show upcoming lines.
+const FOCUS_CENTER_Y = SLOT_HEIGHT * 1.5;
 const TRANSITION_DURATION = 280;
 const RENDER_RADIUS = 6;
 
@@ -34,40 +36,48 @@ function LyricsDial({
   onStepLine,
 }: Props) {
   const safeIndex = Math.max(0, Math.min(studyUnits.length - 1, currentLineIndex));
-  const [containerH, setContainerH] = useState(0);
+  const lineCount = studyUnits.length;
 
-  const stackY = useSharedValue(0);
+  // Each line's natural rendered height (post-wrap) — used to grow the focus
+  // highlight when the active line wraps to multiple visual rows.
+  const [lineHeights, setLineHeights] = useState<Record<number, number>>({});
+
+  // While dragging, the line currently inside the highlight zone (one step
+  // ahead/behind safeIndex, or further). null = drag hasn't crossed any line
+  // boundary yet (or no drag in progress) — safeIndex stays focused.
+  const [previewIndex, setPreviewIndex] = useState<number | null>(null);
+
+  // Focused line's slot expands to its measured height when wrapping makes
+  // the content taller than SLOT_HEIGHT. This pushes lines below it down so
+  // the focused content can't bleed into adjacent slots.
+  const focusedSlotH = Math.max(SLOT_HEIGHT, lineHeights[safeIndex] ?? SLOT_HEIGHT);
+  const focusedExtraH = focusedSlotH - SLOT_HEIGHT;
+
+  const initialTarget = FOCUS_CENTER_Y - safeIndex * SLOT_HEIGHT - SLOT_HEIGHT / 2;
+  const stackY = useSharedValue(initialTarget);
   const dragOffset = useSharedValue(0);
-  const isInitialized = useRef(false);
+  // Tracks the rounded line-delta of the current drag — used to dedupe
+  // runOnJS preview updates so we only fire when the highlighted line changes.
+  const lastDelta = useSharedValue(0);
 
-  const stepBy = useCallback(
-    (delta: number) => {
-      const next = Math.max(0, Math.min(studyUnits.length - 1, safeIndex + delta));
-      if (next !== safeIndex) onStepLine(next);
-    },
-    [safeIndex, studyUnits.length, onStepLine],
-  );
+  const updatePreview = useCallback((idx: number | null) => {
+    setPreviewIndex(prev => (prev === idx ? prev : idx));
+  }, []);
 
-  const stepNext = useCallback(() => stepBy(1), [stepBy]);
-  const stepPrev = useCallback(() => stepBy(-1), [stepBy]);
+  const commitLine = useCallback((newIdx: number) => {
+    if (newIdx !== safeIndex) onStepLine(newIdx);
+  }, [safeIndex, onStepLine]);
 
-  // Animate the stack so that the active line slot is centered in the container.
-  // Each slot lives at absolute top = idx * SLOT_HEIGHT inside the stack.
-  // We want slot[safeIndex] center (idx*SLOT_HEIGHT + SLOT_HEIGHT/2) at containerH/2.
-  // So stackY = containerH/2 - (safeIndex + 0.5) * SLOT_HEIGHT.
+  // Slide the stack so that the focused line's slot center lands on
+  // FOCUS_CENTER_Y. The focused slot may have grown beyond SLOT_HEIGHT, so we
+  // factor in its actual height (focusedSlotH) when computing the target.
   useEffect(() => {
-    if (containerH === 0) return;
-    const target = containerH / 2 - (safeIndex + 0.5) * SLOT_HEIGHT;
-    if (!isInitialized.current) {
-      stackY.value = target;
-      isInitialized.current = true;
-    } else {
-      stackY.value = withTiming(target, {
-        duration: TRANSITION_DURATION,
-        easing: Easing.out(Easing.cubic),
-      });
-    }
-  }, [safeIndex, containerH, stackY]);
+    const target = FOCUS_CENTER_Y - safeIndex * SLOT_HEIGHT - focusedSlotH / 2;
+    stackY.value = withTiming(target, {
+      duration: TRANSITION_DURATION,
+      easing: Easing.out(Easing.cubic),
+    });
+  }, [safeIndex, focusedSlotH, stackY]);
 
   const panGesture = useMemo(
     () =>
@@ -77,29 +87,49 @@ function LyricsDial({
         .onChange((e) => {
           'worklet';
           dragOffset.value = e.translationY;
+          // Drag distance in slot-units → line delta. Drag up (negative)
+          // moves to the next line (positive delta).
+          const delta = -Math.round(e.translationY / SLOT_HEIGHT);
+          if (delta !== lastDelta.value) {
+            lastDelta.value = delta;
+            const target = Math.max(0, Math.min(lineCount - 1, safeIndex + delta));
+            runOnJS(updatePreview)(target === safeIndex ? null : target);
+          }
         })
         .onEnd((e) => {
           'worklet';
-          const dy = e.translationY;
-          const vy = e.velocityY;
           dragOffset.value = withTiming(0, { duration: 180, easing: Easing.out(Easing.cubic) });
-          if (dy < -SWIPE_THRESHOLD_PX || vy < -SWIPE_VELOCITY) {
-            runOnJS(stepNext)();
-          } else if (dy > SWIPE_THRESHOLD_PX || vy > SWIPE_VELOCITY) {
-            runOnJS(stepPrev)();
-          }
+          const delta = -Math.round(e.translationY / SLOT_HEIGHT);
+          const target = Math.max(0, Math.min(lineCount - 1, safeIndex + delta));
+          lastDelta.value = 0;
+          runOnJS(updatePreview)(null);
+          if (target !== safeIndex) runOnJS(commitLine)(target);
+        })
+        .onFinalize(() => {
+          'worklet';
+          // Cleanup if the gesture is cancelled before onEnd (e.g. another
+          // gesture wins). Avoids leaving a stale previewIndex.
+          dragOffset.value = withTiming(0, { duration: 180, easing: Easing.out(Easing.cubic) });
+          lastDelta.value = 0;
+          runOnJS(updatePreview)(null);
         }),
-    [stepNext, stepPrev, dragOffset],
+    [safeIndex, lineCount, dragOffset, lastDelta, updatePreview, commitLine],
   );
 
   const stackStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: stackY.value + dragOffset.value }],
   }));
 
-  const handleLayout = useCallback((e: LayoutChangeEvent) => {
-    const h = e.nativeEvent.layout.height;
-    if (h !== containerH) setContainerH(h);
-  }, [containerH]);
+  // Stable per-line callbacks so LyricLine.memo doesn't break each render.
+  const onMeasuredCallbacks = useRef<Record<number, (h: number) => void>>({});
+  const getOnMeasured = useCallback((idx: number) => {
+    if (!onMeasuredCallbacks.current[idx]) {
+      onMeasuredCallbacks.current[idx] = (h: number) => {
+        setLineHeights(prev => (prev[idx] === h ? prev : { ...prev, [idx]: h }));
+      };
+    }
+    return onMeasuredCallbacks.current[idx];
+  }, []);
 
   // Render only a window around the active index for performance.
   const startIdx = Math.max(0, safeIndex - RENDER_RADIUS);
@@ -107,33 +137,64 @@ function LyricsDial({
   const visibleIndices: number[] = [];
   for (let i = startIdx; i <= endIdx; i++) visibleIndices.push(i);
 
+  // Highlight tracks the line currently centered (preview during drag, or
+  // safeIndex while settled). Height grows with that line so wrapped lines
+  // are fully covered. Opacity drops while previewing for a softer cue.
+  const focusLineIdx = previewIndex ?? safeIndex;
+  const focusHeight = Math.max(FOCUS_HEIGHT_BASE, lineHeights[focusLineIdx] ?? FOCUS_HEIGHT_BASE);
+  const focusTop = FOCUS_CENTER_Y - focusHeight / 2;
+  const isPreviewing = previewIndex !== null;
+
   return (
     <GestureDetector gesture={panGesture}>
-      <View style={styles.container} onLayout={handleLayout}>
+      <View style={styles.container}>
+        {/* Focus highlight — pinned on screen; height grows with active line. */}
+        <View
+          style={[
+            styles.focusHighlight,
+            {
+              top: focusTop,
+              height: focusHeight,
+              opacity: isPreviewing ? 0.5 : 1,
+            },
+          ]}
+          pointerEvents="none"
+        />
         <Animated.View style={[styles.stack, stackStyle]} pointerEvents="box-none">
           {visibleIndices.map((idx) => {
             const unit = studyUnits[idx];
             if (!unit) return null;
-            const isActive = idx === safeIndex;
-            const distance = Math.abs(idx - safeIndex);
-            const opacity = isActive ? 1 : distance === 1 ? 0.55 : 0.3;
+            const lineState: LineState =
+              idx === previewIndex ? 'previewing' :
+              idx === safeIndex && previewIndex === null ? 'focused' :
+              'inactive';
+            const distance = Math.abs(idx - focusLineIdx);
+            const opacity = lineState !== 'inactive' ? 1 : distance === 1 ? 0.55 : 0.3;
+            // Slots after the focused one are pushed down by the focused
+            // slot's overflow so a wrapped focused line doesn't overlap them.
+            const slotTop = idx <= safeIndex
+              ? idx * SLOT_HEIGHT
+              : idx * SLOT_HEIGHT + focusedExtraH;
+            const slotHeight = idx === safeIndex ? focusedSlotH : SLOT_HEIGHT;
             return (
               <View
                 key={idx}
                 style={[
                   styles.slot,
                   {
-                    top: idx * SLOT_HEIGHT,
+                    top: slotTop,
+                    height: slotHeight,
                     opacity,
                   },
                 ]}
-                pointerEvents={isActive ? 'auto' : 'none'}
+                pointerEvents={lineState === 'focused' ? 'auto' : 'none'}
               >
                 <LyricLine
                   studyUnit={unit}
-                  isActive={isActive}
+                  state={lineState}
                   showTranslation={showTranslation}
                   onTokenPress={onTokenPress}
+                  onMeasured={getOnMeasured(idx)}
                 />
               </View>
             );
@@ -162,9 +223,13 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    height: SLOT_HEIGHT,
-    alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 24,
+  },
+  focusHighlight: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    backgroundColor: Colors.card,
+    borderRadius: 12,
   },
 });

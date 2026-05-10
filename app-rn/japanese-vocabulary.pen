@@ -21530,12 +21530,14 @@
                               "ref": "WpjTH",
                               "descendants": {
                                 "nW89V": {
-                                  "content": "きみ"
+                                  "content": "きみ",
+                                  "fontSize": 11,
+                                  "fill": "$foreground.secondary"
                                 },
                                 "XAVod": {
                                   "content": "君",
-                                  "fontSize": 17,
-                                  "fontWeight": "600"
+                                  "fontSize": 22,
+                                  "fontWeight": "800"
                                 }
                               }
                             },
@@ -21547,12 +21549,14 @@
                               "descendants": {
                                 "nW89V": {
                                   "content": " ",
-                                  "opacity": 0
+                                  "opacity": 0,
+                                  "fontSize": 11,
+                                  "fill": "$foreground.secondary"
                                 },
                                 "XAVod": {
                                   "content": "の",
-                                  "fontSize": 17,
-                                  "fontWeight": "500"
+                                  "fontSize": 22,
+                                  "fontWeight": "800"
                                 },
                                 "L4P01o": {
                                   "opacity": 0
@@ -21565,12 +21569,14 @@
                               "ref": "WpjTH",
                               "descendants": {
                                 "nW89V": {
-                                  "content": "こえ"
+                                  "content": "こえ",
+                                  "fontSize": 11,
+                                  "fill": "$foreground.secondary"
                                 },
                                 "XAVod": {
                                   "content": "声",
-                                  "fontSize": 17,
-                                  "fontWeight": "600"
+                                  "fontSize": 22,
+                                  "fontWeight": "800"
                                 }
                               }
                             },
@@ -21582,12 +21588,14 @@
                               "descendants": {
                                 "nW89V": {
                                   "content": " ",
-                                  "opacity": 0
+                                  "opacity": 0,
+                                  "fontSize": 11,
+                                  "fill": "$foreground.secondary"
                                 },
                                 "XAVod": {
                                   "content": "が",
-                                  "fontSize": 17,
-                                  "fontWeight": "500"
+                                  "fontSize": 22,
+                                  "fontWeight": "800"
                                 },
                                 "L4P01o": {
                                   "opacity": 0
@@ -21600,12 +21608,14 @@
                               "ref": "WpjTH",
                               "descendants": {
                                 "nW89V": {
-                                  "content": "いま"
+                                  "content": "いま",
+                                  "fontSize": 11,
+                                  "fill": "$foreground.secondary"
                                 },
                                 "XAVod": {
                                   "content": "今",
-                                  "fontSize": 17,
-                                  "fontWeight": "600"
+                                  "fontSize": 22,
+                                  "fontWeight": "800"
                                 },
                                 "L4P01o": {
                                   "fill": "$pos-adverb"
@@ -21620,12 +21630,14 @@
                               "descendants": {
                                 "nW89V": {
                                   "content": " ",
-                                  "opacity": 0
+                                  "opacity": 0,
+                                  "fontSize": 11,
+                                  "fill": "$foreground.secondary"
                                 },
                                 "XAVod": {
                                   "content": "も",
-                                  "fontSize": 17,
-                                  "fontWeight": "500"
+                                  "fontSize": 22,
+                                  "fontWeight": "800"
                                 },
                                 "L4P01o": {
                                   "opacity": 0
@@ -21638,12 +21650,14 @@
                               "ref": "WpjTH",
                               "descendants": {
                                 "nW89V": {
-                                  "content": "き"
+                                  "content": "き",
+                                  "fontSize": 11,
+                                  "fill": "$foreground.secondary"
                                 },
                                 "XAVod": {
                                   "content": "聞こえる",
-                                  "fontSize": 17,
-                                  "fontWeight": "600"
+                                  "fontSize": 22,
+                                  "fontWeight": "800"
                                 },
                                 "L4P01o": {
                                   "fill": "$pos-verb"
@@ -21658,8 +21672,8 @@
                           "fill": "$foreground.secondary",
                           "content": "키미노 코에가 이마모 키코에루",
                           "fontFamily": "$font.body",
-                          "fontSize": 11,
-                          "fontWeight": "normal"
+                          "fontSize": 13,
+                          "fontWeight": "500"
                         },
                         {
                           "type": "text",
@@ -21667,7 +21681,7 @@
                           "fill": "$foreground.primary",
                           "content": "너의 목소리가 지금도 들려",
                           "fontFamily": "$font.body",
-                          "fontSize": 11,
+                          "fontSize": 14,
                           "fontWeight": "700"
                         }
                       ]

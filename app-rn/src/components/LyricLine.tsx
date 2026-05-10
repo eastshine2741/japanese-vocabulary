@@ -1,5 +1,5 @@
 import React, { useRef, useCallback } from 'react';
-import { View, Text, TouchableOpacity, Pressable, Animated, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, Pressable, Animated, StyleSheet, LayoutChangeEvent } from 'react-native';
 import { Token, StudyUnit } from '../types/song';
 import { POS_INFO } from '../types/pos';
 import { Colors } from '../theme/theme';
@@ -15,25 +15,35 @@ function getUnderlineColor(pos: string): string | null {
   return POS_INFO[pos]?.color ?? Colors.posNoun;
 }
 
+export type LineState = 'inactive' | 'previewing' | 'focused';
+
 interface Props {
   studyUnit: StudyUnit;
-  isActive: boolean;
+  state: LineState;
   showTranslation?: boolean;
   onTokenPress: (token: Token, lineText: string, koreanLyrics: string | null) => void;
   onLineSeek?: (ms: number) => void;
+  onMeasured?: (height: number) => void;
 }
 
 function LyricLine({
   studyUnit,
-  isActive,
+  state,
   showTranslation = true,
   onTokenPress,
   onLineSeek,
+  onMeasured,
 }: Props) {
   const showKoreanPronunciation = useSettingsStore(s => s.showKoreanPronunciation);
   const showFurigana = useSettingsStore(s => s.showFurigana);
-  const textStyle = isActive ? styles.tokenTextActive : styles.tokenTextInactive;
-  const furiganaStyle = isActive ? styles.furiganaActive : styles.furiganaInactive;
+  const isFocused = state === 'focused';
+  const isElevated = state !== 'inactive';
+  const textStyle = state === 'focused' ? styles.tokenTextActive
+                  : state === 'previewing' ? styles.tokenTextPreview
+                  : styles.tokenTextInactive;
+  const furiganaStyle = state === 'focused' ? styles.furiganaActive
+                      : state === 'previewing' ? styles.furiganaPreview
+                      : styles.furiganaInactive;
   const flashOpacity = useRef(new Animated.Value(0)).current;
 
   const canSeek = onLineSeek != null && studyUnit.startTimeMs != null;
@@ -77,7 +87,7 @@ function LyricLine({
         <View style={styles.tokenWithUnderline}>
           {furigana && <Text style={furiganaStyle}>{furigana}</Text>}
           <Text style={textStyle}>{token.surface}</Text>
-          <View style={[styles.underline, { backgroundColor: underlineColor, opacity: isActive ? 1 : 0.35 }]} />
+          <View style={[styles.underline, { backgroundColor: underlineColor, opacity: isElevated ? (isFocused ? 1 : 0.7) : 0.35 }]} />
         </View>
       </TouchableOpacity>
     );
@@ -114,10 +124,15 @@ function LyricLine({
     return elements;
   };
 
+  const handleLayout = useCallback((e: LayoutChangeEvent) => {
+    onMeasured?.(e.nativeEvent.layout.height);
+  }, [onMeasured]);
+
   return (
     <Pressable
-      style={[styles.container, isActive && styles.containerActive]}
+      style={styles.container}
       onPress={canSeek ? handleLinePress : undefined}
+      onLayout={onMeasured ? handleLayout : undefined}
       disabled={!canSeek}
     >
       {canSeek && (
@@ -128,12 +143,20 @@ function LyricLine({
       )}
       <View style={styles.tokensRow}>{renderTokens()}</View>
       {showKoreanPronunciation && studyUnit.koreanPronounciation && (
-        <Text style={isActive ? styles.pronActive : styles.pronInactive}>
+        <Text style={
+          state === 'focused' ? styles.pronActive
+          : state === 'previewing' ? styles.pronPreview
+          : styles.pronInactive
+        }>
           {studyUnit.koreanPronounciation}
         </Text>
       )}
       {showTranslation && studyUnit.koreanLyrics && (
-        <Text style={isActive ? styles.translationActive : styles.translationInactive}>
+        <Text style={
+          state === 'focused' ? styles.translationActive
+          : state === 'previewing' ? styles.translationPreview
+          : styles.translationInactive
+        }>
           {studyUnit.koreanLyrics}
         </Text>
       )}
@@ -145,14 +168,11 @@ export default React.memo(LyricLine);
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 14,
+    width: '100%',
+    paddingVertical: 10,
     gap: 4,
     alignItems: 'center',
-  },
-  containerActive: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    marginBottom: 14,
+    justifyContent: 'center',
   },
   flashOverlay: {
     position: 'absolute',
@@ -172,6 +192,11 @@ const styles = StyleSheet.create({
   tokenTextActive: {
     fontSize: 22,
     fontWeight: '800',
+    color: Colors.textPrimary,
+  },
+  tokenTextPreview: {
+    fontSize: 20,
+    fontWeight: '700',
     color: Colors.textPrimary,
   },
   tokenTextInactive: {
@@ -199,6 +224,11 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     textAlign: 'center',
   },
+  furiganaPreview: {
+    fontSize: 11,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+  },
   furiganaInactive: {
     fontSize: 10,
     color: Colors.textMuted,
@@ -209,12 +239,22 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: Colors.textSecondary,
   },
+  pronPreview: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: Colors.textSecondary,
+  },
   pronInactive: {
     fontSize: 11,
     color: Colors.textMuted,
   },
   translationActive: {
     fontSize: 14,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+  },
+  translationPreview: {
+    fontSize: 13,
     fontWeight: '700',
     color: Colors.textPrimary,
   },
