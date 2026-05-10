@@ -26775,19 +26775,15 @@
       "alignItems": "center",
       "children": [
         {
-          "type": "frame",
-          "id": "Vyh6g",
-          "name": "mv",
-          "clip": true,
+          "id": "V4gVQ",
+          "type": "ref",
+          "ref": "aI6vs",
+          "x": 16,
+          "y": 12,
           "width": 70,
           "height": 35,
-          "fill": {
-            "type": "image",
-            "enabled": true,
-            "url": "images/generated-1777967286740.png",
-            "mode": "fill"
-          },
-          "layout": "none"
+          "flipX": false,
+          "flipY": false
         },
         {
           "type": "frame",

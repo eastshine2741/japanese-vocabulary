@@ -9,7 +9,14 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
 import BottomSheet, { BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import type { BottomSheetBackdropProps } from '@gorhom/bottom-sheet';
-import { useSharedValue } from 'react-native-reanimated';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withTiming,
+  runOnJS,
+} from 'react-native-reanimated';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useShallow } from 'zustand/react/shallow';
 import { usePlayerStore } from '../stores/playerStore';
 import { useVocabularyStore } from '../stores/vocabularyStore';
@@ -36,6 +43,16 @@ function extractVideoId(url: string): string | null {
 
 const MV_HEIGHT = 226;
 const SHEET_PEEK = 67;
+
+// Drag-to-dismiss tuning. The pan only activates after 20px downward (so
+// short taps and small upward swipes don't move the screen). Release commits
+// to dismiss when either the drag passed DISMISS_THRESHOLD_PX or the user
+// flicks down faster than DISMISS_VELOCITY.
+const DISMISS_ACTIVATE_PX = 20;
+const DISMISS_THRESHOLD_PX = 150;
+const DISMISS_VELOCITY = 1500;
+const DISMISS_ANIM_MS = 220;
+const SNAP_BACK_SPRING = { damping: 22, stiffness: 220, mass: 0.8 } as const;
 
 export default function PlayerScreen({ navigation, route }: Props) {
   const initialSeekMs = route.params?.initialSeekMs;
@@ -73,7 +90,7 @@ export default function PlayerScreen({ navigation, route }: Props) {
   const [wordEditVisible, setWordEditVisible] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
-  // Sheet snap index — drives WordListSheet pointerEvents + batch reset
+  // wordListSheet snap index — drives WordListSheet pointerEvents + batch reset
   const [snapIndex, setSnapIndex] = useState(0);
 
   // For non-synced songs we step through lines manually (no MV time to lean on)
@@ -87,7 +104,10 @@ export default function PlayerScreen({ navigation, route }: Props) {
   const initialSeekDone = useRef(false);
   const initialIndexApplied = useRef(false);
 
-  const animatedIndex = useSharedValue(0);
+  const wordListAnimIndex = useSharedValue(0);
+  // Drag-to-dismiss: how many pixels the body is currently translated down.
+  const dragY = useSharedValue(0);
+
   const insets = useSafeAreaInsets();
   const { height: screenH } = useWindowDimensions();
 
@@ -185,8 +205,8 @@ export default function PlayerScreen({ navigation, route }: Props) {
     batchAddWords(words);
   }, [batchAddWords]);
 
-  // Sheet snap: reset batch state when expanded so re-opens start fresh
-  const handleSheetChange = useCallback((index: number) => {
+  // wordListSheet snap: reset batch state when expanded so re-opens start fresh
+  const handleWordListSnapChange = useCallback((index: number) => {
     setSnapIndex(index);
     if (index === 1) resetBatchAdd();
   }, [resetBatchAdd]);
@@ -249,48 +269,104 @@ export default function PlayerScreen({ navigation, route }: Props) {
     [],
   );
 
-  // Clamp sheet's max height to the area below the MV via `topInset`. With
-  // topInset set, the sheet physically cannot rise above (statusBar + MV) —
-  // so '100%' snap = exactly below-MV, and over-drag can't push it higher.
+  // ----- Drag-to-dismiss -----
+  // Pan starts on the MV + header area; LyricsDial owns the gesture inside
+  // its own region (it has its own GestureDetector for line stepping), so
+  // small swipes there continue to step lines.
+  const handleGoBack = useCallback(() => {
+    navigation.goBack();
+  }, [navigation]);
+
+  const dismissPan = useMemo(
+    () =>
+      Gesture.Pan()
+        // Scalar: only activate after a clearly-downward drag of 20px+.
+        // Taps and upward drags never activate, so children's native gestures
+        // (YouTube iframe controls, TouchableOpacity onPress) keep working.
+        .activeOffsetY(DISMISS_ACTIVATE_PX)
+        // Bail out on horizontal swipes (back-swipe, chip horizontal scroll).
+        .failOffsetX([-20, 20])
+        .onChange((e) => {
+          'worklet';
+          dragY.value = Math.max(0, e.translationY);
+        })
+        .onEnd((e) => {
+          'worklet';
+          const shouldDismiss =
+            e.translationY > DISMISS_THRESHOLD_PX || e.velocityY > DISMISS_VELOCITY;
+          if (shouldDismiss) {
+            dragY.value = withTiming(
+              screenH,
+              { duration: DISMISS_ANIM_MS },
+              (finished) => {
+                if (finished) runOnJS(handleGoBack)();
+              },
+            );
+          } else {
+            dragY.value = withSpring(0, SNAP_BACK_SPRING);
+          }
+        }),
+    [dragY, screenH, handleGoBack],
+  );
+
+  // Race against children's native gestures: a tap (no movement) lets the
+  // child win (iframe play button, header chips' onPress); a downward drag
+  // past activeOffsetY lets the pan win and dismisses the screen.
+  const nativeGesture = useMemo(() => Gesture.Native(), []);
+  const composedGesture = useMemo(
+    () => Gesture.Race(dismissPan, nativeGesture),
+    [dismissPan, nativeGesture],
+  );
+
+  // Translate the entire screen (not just the body) so the wordListSheet
+  // and other floating sheets travel down with the drag.
+  const screenStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: dragY.value }],
+  }));
+
+  // wordListSheet's max extent = below the MV.
   const sheetTopInset = insets.top + MV_HEIGHT;
   const expandedSnap = Math.max(
     SHEET_PEEK + 1,
     screenH - sheetTopInset - insets.bottom,
   );
-  const wordStudySnapPoints = useMemo<(string | number)[]>(
+  const wordListSnapPoints = useMemo<(string | number)[]>(
     () => [SHEET_PEEK, '100%'],
     [],
   );
 
   return (
-    <View style={styles.container}>
+    <Animated.View style={[styles.container, screenStyle]}>
       <View style={[styles.body, { paddingTop: insets.top }]}>
-        {/* MV — always at top */}
-        <View style={styles.mvWrap}>
-          {videoId ? (
-            <YouTubePlayer
-              ref={youtubeRef}
-              videoId={videoId}
-              height={MV_HEIGHT}
-              onTimeChange={handleTimeChange}
-              onDurationChange={handleDurationChange}
-            />
-          ) : (
-            <View style={styles.mvPlaceholder}>
-              <Feather name="play" size={32} color="#FFFFFF80" />
+        {/* MV + PlayerHeader: drag-down anywhere here dismisses the screen.
+            LyricsDial below has its own gesture and is intentionally outside
+            this detector so its line-step swipes aren't intercepted. */}
+        <GestureDetector gesture={composedGesture}>
+          <View>
+            <View style={styles.mvWrap}>
+              {videoId ? (
+                <YouTubePlayer
+                  ref={youtubeRef}
+                  videoId={videoId}
+                  height={MV_HEIGHT}
+                  onTimeChange={handleTimeChange}
+                  onDurationChange={handleDurationChange}
+                />
+              ) : (
+                <View style={styles.mvPlaceholder}>
+                  <Feather name="play" size={32} color="#FFFFFF80" />
+                </View>
+              )}
             </View>
-          )}
-        </View>
+            <PlayerHeader
+              title={song.title}
+              artist={song.artist}
+              onOpenVocab={onOpenVocab}
+              onOpenInfo={onOpenInfo}
+            />
+          </View>
+        </GestureDetector>
 
-        {/* Header (song title + artist + 단어장 chip) */}
-        <PlayerHeader
-          title={song.title}
-          artist={song.artist}
-          onOpenVocab={onOpenVocab}
-          onOpenInfo={onOpenInfo}
-        />
-
-        {/* Lyrics dial fills the remaining space */}
         <LyricsDial
           studyUnits={studyUnits}
           currentLineIndex={displayLineIndex}
@@ -300,18 +376,18 @@ export default function PlayerScreen({ navigation, route }: Props) {
         />
       </View>
 
-      {/* Word study bottom sheet — 2 snaps: peek / expanded */}
+      {/* Word list bottom sheet — 2 snaps: peek / expanded (below MV). */}
       <BottomSheet
         ref={wordStudyRef}
-        snapPoints={wordStudySnapPoints}
+        snapPoints={wordListSnapPoints}
         index={0}
         enablePanDownToClose={false}
         enableOverDrag={false}
         topInset={sheetTopInset}
         bottomInset={insets.bottom}
         handleComponent={null}
-        animatedIndex={animatedIndex}
-        onChange={handleSheetChange}
+        animatedIndex={wordListAnimIndex}
+        onChange={handleWordListSnapChange}
         backgroundStyle={styles.studySheetBg}
       >
         <WordListSheet
@@ -321,7 +397,7 @@ export default function PlayerScreen({ navigation, route }: Props) {
           batchSavedCount={batchSavedCount}
           batchSkippedCount={batchSkippedCount}
           onSave={handleBatchSave}
-          animatedIndex={animatedIndex}
+          animatedIndex={wordListAnimIndex}
           snapIndex={snapIndex}
           contentHeight={expandedSnap}
         />
@@ -403,7 +479,7 @@ export default function PlayerScreen({ navigation, route }: Props) {
         onSaved={handleEditSaved}
         onClose={handleCloseWordEdit}
       />
-    </View>
+    </Animated.View>
   );
 }
 
@@ -427,8 +503,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  // Word study sheet (always visible). Border + iOS shadow gives a visible
-  // edge against the white background; Android falls back to the border.
+  // Word list sheet (always visible).
   studySheetBg: {
     backgroundColor: Colors.background,
     borderTopLeftRadius: 20,
