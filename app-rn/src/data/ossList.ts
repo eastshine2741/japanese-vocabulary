@@ -2,53 +2,17 @@ export interface OssEntry {
   name: string;
   license: string;
   url: string;
-  note?: string;
 }
 
 export const EXTERNAL_SERVICES: OssEntry[] = [
-  {
-    name: 'Kuromoji',
-    license: 'Apache-2.0',
-    url: 'https://github.com/atilika/kuromoji',
-    note: '일본어 형태소 분석 라이브러리. NOTICE: Copyright © 2010-2018 Atilika Inc. and contributors.',
-  },
-  {
-    name: 'IPADic',
-    license: '자체 라이선스',
-    url: 'https://wiki.debian.org/IpadicLicense',
-    note: 'Kuromoji가 사용하는 일본어 사전. 사용·복제·배포 허용 (illegal use 금지).',
-  },
-  {
-    name: 'UniDic',
-    license: 'BSD-3-Clause',
-    url: 'https://clrd.ninjal.ac.jp/unidic/en/',
-    note: 'NINJAL이 배포하는 일본어 형태소 사전. Triple license 중 BSD 선택.',
-  },
-  {
-    name: 'LRCLIB',
-    license: '가사 데이터 출처',
-    url: 'https://lrclib.net',
-  },
-  {
-    name: 'VocaDB',
-    license: '가사 데이터 출처',
-    url: 'https://vocadb.net',
-  },
-  {
-    name: 'Apple iTunes Search API',
-    license: 'Apple 약관',
-    url: 'https://performance-partners.apple.com/search-api',
-  },
-  {
-    name: 'Google Gemini API',
-    license: 'Google ToS',
-    url: 'https://ai.google.dev/gemini-api/terms',
-  },
-  {
-    name: 'YouTube IFrame Player API',
-    license: 'YouTube ToS',
-    url: 'https://developers.google.com/youtube/iframe_api_reference',
-  },
+  { name: 'Kuromoji', license: 'Apache-2.0', url: 'https://github.com/atilika/kuromoji' },
+  { name: 'IPADic', license: '자체 라이선스', url: 'https://wiki.debian.org/IpadicLicense' },
+  { name: 'UniDic', license: 'BSD-3-Clause', url: 'https://clrd.ninjal.ac.jp/unidic/en/' },
+  { name: 'LRCLIB', license: '가사 데이터 출처', url: 'https://lrclib.net' },
+  { name: 'VocaDB', license: '가사 데이터 출처', url: 'https://vocadb.net' },
+  { name: 'Apple iTunes Search API', license: 'Apple 약관', url: 'https://performance-partners.apple.com/search-api' },
+  { name: 'Google Gemini API', license: 'Google ToS', url: 'https://ai.google.dev/gemini-api/terms' },
+  { name: 'YouTube IFrame Player API', license: 'YouTube ToS', url: 'https://developers.google.com/youtube/iframe_api_reference' },
 ];
 
 export const FRONTEND_OSS: OssEntry[] = [
