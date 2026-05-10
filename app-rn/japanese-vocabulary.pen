@@ -25394,6 +25394,210 @@
           ]
         }
       ]
+    },
+    {
+      "type": "frame",
+      "id": "pU2j1",
+      "x": 2753,
+      "y": 1980,
+      "name": "6f. Words Tab - Empty",
+      "clip": true,
+      "width": 402,
+      "height": 874,
+      "fill": "$surface.secondary",
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "L8vE7Y",
+          "name": "sb2",
+          "width": "fill_container",
+          "height": 62,
+          "padding": [
+            0,
+            24
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "gy92S",
+              "name": "tm2",
+              "fill": "$foreground.primary",
+              "content": "9:41",
+              "fontFamily": "$font.body",
+              "fontSize": 14,
+              "fontWeight": "600"
+            },
+            {
+              "type": "frame",
+              "id": "xFOz4",
+              "name": "ic2",
+              "gap": 6,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "u0BoO",
+                  "name": "sg2",
+                  "width": 16,
+                  "height": 16,
+                  "iconFontName": "signal",
+                  "iconFontFamily": "lucide",
+                  "fill": "$foreground.primary"
+                },
+                {
+                  "type": "icon_font",
+                  "id": "A9vuS",
+                  "name": "bt2",
+                  "width": 16,
+                  "height": 16,
+                  "iconFontName": "battery-full",
+                  "iconFontFamily": "lucide",
+                  "fill": "$foreground.primary"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "mjj0Y",
+          "name": "cnt2",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "padding": [
+            0,
+            32,
+            24,
+            32
+          ],
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "k2yKj",
+              "name": "emptyBlock",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 24,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "zyTWN",
+                  "name": "iconWrap",
+                  "width": 104,
+                  "height": 104,
+                  "fill": "$surface.primary",
+                  "cornerRadius": 9999,
+                  "padding": 28,
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "Djeyn",
+                      "width": 48,
+                      "height": 48,
+                      "iconFontName": "book-open",
+                      "iconFontFamily": "lucide",
+                      "fill": "$foreground.muted"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "t93zMR",
+                  "name": "title",
+                  "fill": "$foreground.primary",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "아직 저장한 단어가 없어요",
+                  "textAlign": "center",
+                  "fontFamily": "$font.headings",
+                  "fontSize": 20,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "rHHo3",
+                  "name": "sub",
+                  "fill": "$foreground.secondary",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "노래 가사에서 모르는 단어를 탭하면\n이곳에 모여서 복습할 수 있어요",
+                  "lineHeight": 1.5,
+                  "textAlign": "center",
+                  "fontFamily": "$font.body",
+                  "fontSize": 14
+                },
+                {
+                  "type": "frame",
+                  "id": "y520Q3",
+                  "name": "ctaWrap",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "children": [
+                    {
+                      "id": "HE8iQ",
+                      "type": "ref",
+                      "ref": "Qilli",
+                      "width": "fill_container",
+                      "name": "cta",
+                      "descendants": {
+                        "6WP1o": {
+                          "enabled": true,
+                          "iconFontName": "music"
+                        },
+                        "tRfPc": {
+                          "content": "노래 찾으러 가기"
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "h9qxy",
+          "name": "tabBar2",
+          "width": "fill_container",
+          "fill": "#FFFFFF00",
+          "stroke": {
+            "thickness": 0
+          },
+          "effect": {
+            "type": "shadow",
+            "shadowType": "outer",
+            "enabled": false,
+            "color": "#000000"
+          },
+          "padding": [
+            12,
+            21,
+            21,
+            21
+          ],
+          "justifyContent": "center",
+          "children": [
+            {
+              "id": "C3w3o",
+              "type": "ref",
+              "ref": "anPPw",
+              "x": 21,
+              "y": 12,
+              "theme": {
+                "selected-tab": "words"
+              }
+            }
+          ]
+        }
+      ]
     }
   ],
   "themes": {

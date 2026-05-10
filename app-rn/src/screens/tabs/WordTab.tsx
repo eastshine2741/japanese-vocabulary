@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -143,6 +143,33 @@ export default function WordTab() {
     );
   }
 
+  const songDecks = data?.songDecks ?? [];
+  const isEmpty = songDecks.length === 0 && (!stats || stats.total === 0);
+
+  if (isEmpty) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.emptyState}>
+          <View style={styles.emptyIconCircle}>
+            <Feather name="book-open" size={48} color={Colors.textMuted} />
+          </View>
+          <Text style={styles.emptyTitle}>아직 저장한 단어가 없어요</Text>
+          <Text style={styles.emptySub}>
+            노래 가사에서 모르는 단어를 탭하면{'\n'}이곳에 모여서 복습할 수 있어요
+          </Text>
+          <TouchableOpacity
+            style={styles.emptyCta}
+            onPress={() => navigation.navigate('Search')}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="musical-notes-outline" size={20} color="#FFFFFF" />
+            <Text style={styles.emptyCtaText}>노래 찾으러 가기</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView contentContainerStyle={styles.list}>
@@ -254,5 +281,51 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.textPrimary,
     marginBottom: 4,
+  },
+
+  /* Empty state */
+  emptyState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+    paddingBottom: Dimens.bottomBarHeight,
+    gap: 24,
+  },
+  emptyIconCircle: {
+    width: 104,
+    height: 104,
+    borderRadius: 52,
+    backgroundColor: Colors.elevated,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+    textAlign: 'center',
+  },
+  emptySub: {
+    fontSize: 14,
+    lineHeight: 21,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+  },
+  emptyCta: {
+    flexDirection: 'row',
+    alignSelf: 'stretch',
+    height: 48,
+    backgroundColor: Colors.primary,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 8,
+  },
+  emptyCtaText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 15,
   },
 });
