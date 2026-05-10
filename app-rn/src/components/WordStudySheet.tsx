@@ -7,6 +7,12 @@ import {
   StyleSheet,
   ScrollView,
 } from 'react-native';
+import Animated, {
+  SharedValue,
+  useAnimatedStyle,
+  interpolate,
+  Extrapolation,
+} from 'react-native-reanimated';
 import { BottomSheetFlatList, BottomSheetView } from '@gorhom/bottom-sheet';
 import { Feather } from '@expo/vector-icons';
 import { StudyUnit } from '../types/song';
@@ -31,7 +37,10 @@ interface Props {
   batchSavedCount: number;
   batchSkippedCount: number;
   onSave: (words: AddWordRequest[]) => void;
-  collapsed?: boolean;
+  // Animated sheet position: 0 = peek, 1 = expanded.
+  animatedIndex: SharedValue<number>;
+  // Discrete snap (for pointerEvents). 0 = peek, 1 = expanded.
+  snapIndex: number;
 }
 
 const DEFAULT_ON_POS = new Set(['NOUN', 'VERB', 'ADJECTIVE', 'NA_ADJECTIVE', 'ADVERB']);
@@ -50,7 +59,8 @@ function WordStudySheet({
   batchSavedCount,
   batchSkippedCount,
   onSave,
-  collapsed = false,
+  animatedIndex,
+  snapIndex,
 }: Props) {
   const [enabledPOS, setEnabledPOS] = useState<Set<string>>(() => new Set(DEFAULT_ON_POS));
   const [uncheckedWords, setUncheckedWords] = useState<Set<string>>(new Set());
@@ -233,33 +243,49 @@ function WordStudySheet({
     checkedCount, batchSavedCount, batchSkippedCount, handleSave,
   ]);
 
-  if (collapsed) {
-    // Must be a gorhom-aware container (BottomSheetView), NOT a plain View.
-    // Using a plain View here breaks the parent BottomSheet's internal layout
-    // measurement and the sheet renders off-screen at index=-1.
-    return (
-      <BottomSheetView style={styles.collapsedPeek}>
-        <View style={styles.handleIndicator} />
-        <Text style={styles.collapsedLabel}>단어</Text>
-      </BottomSheetView>
-    );
-  }
+  // Cross-fade between peek (handle + "단어") and full word list at the
+  // sheet's mid-progress (animatedIndex 0.5). The peek view sits absolutely
+  // over the list — only one is interactive at a time (snapIndex gates pointerEvents).
+  const peekStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(animatedIndex.value, [0, 0.5], [1, 0], Extrapolation.CLAMP),
+  }));
+  const listStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(animatedIndex.value, [0.5, 1], [0, 1], Extrapolation.CLAMP),
+  }));
 
   return (
-    <BottomSheetFlatList
-      data={filteredWords}
-      keyExtractor={(item: UniqueWord) => item.baseForm}
-      renderItem={renderItem}
-      ListHeaderComponent={ListHeader}
-      stickyHeaderIndices={[]}
-      contentContainerStyle={styles.listContent}
-    />
+    <BottomSheetView style={styles.root}>
+      <Animated.View
+        style={[StyleSheet.absoluteFill, listStyle]}
+        pointerEvents={snapIndex >= 1 ? 'auto' : 'none'}
+      >
+        <BottomSheetFlatList
+          data={filteredWords}
+          keyExtractor={(item: UniqueWord) => item.baseForm}
+          renderItem={renderItem}
+          ListHeaderComponent={ListHeader}
+          contentContainerStyle={styles.listContent}
+        />
+      </Animated.View>
+
+      <Animated.View
+        style={[styles.peekOverlay, peekStyle]}
+        pointerEvents={snapIndex === 0 ? 'auto' : 'none'}
+      >
+        <View style={styles.handleIndicator} />
+        <Text style={styles.peekLabel}>단어</Text>
+      </Animated.View>
+    </BottomSheetView>
   );
 }
 
 export default React.memo(WordStudySheet);
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
+
   listContent: {
     paddingBottom: 32,
   },
@@ -276,14 +302,20 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.textTertiary,
   },
 
-  // Collapsed peek (V2JqQC: padding [12,0,28,0], gap 10)
-  collapsedPeek: {
+  // Peek overlay — same handle position as the list's handleArea so the
+  // indicator stays put during the cross-fade.
+  peekOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
     alignItems: 'center',
     paddingTop: 12,
     paddingBottom: 28,
     gap: 10,
+    backgroundColor: Colors.background,
   },
-  collapsedLabel: {
+  peekLabel: {
     fontSize: 15,
     fontWeight: '700',
     color: Colors.textPrimary,

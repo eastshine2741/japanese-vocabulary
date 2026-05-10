@@ -150,12 +150,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   containerActive: {
-    backgroundColor: Colors.primary + '1F',
-    borderRadius: 14,
-    paddingVertical: 12,
-    paddingHorizontal: 18,
-    marginHorizontal: -8,
-    marginBottom: 18,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginBottom: 14,
   },
   flashOverlay: {
     position: 'absolute',
@@ -219,7 +216,7 @@ const styles = StyleSheet.create({
   translationActive: {
     fontSize: 14,
     fontWeight: '700',
-    color: Colors.primary,
+    color: Colors.textPrimary,
   },
   translationInactive: {
     fontSize: 11,
