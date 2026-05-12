@@ -1,10 +1,8 @@
 # 음악 검색 API 선정
 
-> **2026-05-12 업데이트**: 아래 검토를 거쳐 **MusicBrainz `/ws/2/recording` + Cover Art Archive** 채택 완료. iTunes Search API는 제거됨. 채택 결정과 J-music 커버리지 spike 결과는 `.omc/research/mb-coverage-results.md` 참조. 18% cover availability라는 큰 이슈가 발견되어 vendor 재검토 필요할 수 있음 — `.omc/autopilot/COMPLETION.md`의 Open issues 절 참조.
-
 ## 배경
 
-곡 검색 → 메타데이터(제목/아티스트/아트워크/ISRC) 확보 → YouTube로 MV URL 매핑이 현재 흐름. 검색은 과거 **iTunes Search API (Japan region)** 를 사용했으나, 한도(20 calls/min)와 저화질 앨범 아트(100x100) 문제로 MusicBrainz로 교체.
+곡 검색 → 메타데이터(제목/아티스트/아트워크/ISRC) 확보 → YouTube로 MV URL 매핑이 현재 흐름. 검색은 **iTunes Search API (Japan region)** 를 사용 중인데, 한도가 매우 낮아 사용자 증가 시 즉시 병목이 된다.
 
 ## 문제 — iTunes Search API의 한도
 

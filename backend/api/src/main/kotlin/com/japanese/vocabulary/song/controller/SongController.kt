@@ -1,10 +1,10 @@
 package com.japanese.vocabulary.song.controller
 
-import com.japanese.vocabulary.song.client.musicbrainz.MusicbrainzClient
 import com.japanese.vocabulary.song.dto.*
 import com.japanese.vocabulary.song.repository.SongRepository
 import com.japanese.vocabulary.song.service.LyricProcessingService
 import com.japanese.vocabulary.song.service.RecentSongService
+import com.japanese.vocabulary.song.service.SongSearchService
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.bind.annotation.*
@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*
 @RequestMapping("/api/songs")
 class SongController(
     private val lyricProcessingService: LyricProcessingService,
-    private val musicbrainzClient: MusicbrainzClient,
+    private val songSearchService: SongSearchService,
     private val recentSongService: RecentSongService,
     private val songRepository: SongRepository
 ) {
@@ -73,7 +73,7 @@ class SongController(
 
     @GetMapping("/search")
     fun searchSongs(@RequestParam q: String): ResponseEntity<SongSearchResponse> {
-        val result = musicbrainzClient.search(q)
+        val result = songSearchService.search(q)
         return ResponseEntity.ok(result)
     }
 
