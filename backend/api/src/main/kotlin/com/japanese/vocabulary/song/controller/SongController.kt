@@ -1,6 +1,6 @@
 package com.japanese.vocabulary.song.controller
 
-import com.japanese.vocabulary.song.client.itunes.ItunesClient
+import com.japanese.vocabulary.song.client.musicbrainz.MusicbrainzClient
 import com.japanese.vocabulary.song.dto.*
 import com.japanese.vocabulary.song.repository.SongRepository
 import com.japanese.vocabulary.song.service.LyricProcessingService
@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*
 @RequestMapping("/api/songs")
 class SongController(
     private val lyricProcessingService: LyricProcessingService,
-    private val itunesClient: ItunesClient,
+    private val musicbrainzClient: MusicbrainzClient,
     private val recentSongService: RecentSongService,
     private val songRepository: SongRepository
 ) {
@@ -73,7 +73,7 @@ class SongController(
 
     @GetMapping("/search")
     fun searchSongs(@RequestParam q: String): ResponseEntity<SongSearchResponse> {
-        val result = itunesClient.search(q)
+        val result = musicbrainzClient.search(q)
         return ResponseEntity.ok(result)
     }
 

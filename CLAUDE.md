@@ -82,7 +82,7 @@ Outer:  Deck, DeckFlashcard      — 조직화 레이어
 
 ## Key Architecture Decisions
 
-- **Song search**: iTunes API (Japan region) → YouTube API for MV URL
+- **Song search**: MusicBrainz `/ws/2/recording` (CC0 metadata) + Cover Art Archive for high-res artwork → YouTube API for MV URL. Rate limit 1 req/sec/IP, requires identifying User-Agent. No DB-side song-search caching yet — add Redis cache layer when search QPS approaches the limit.
 - **Decks**: per-song decks in DB; "all" deck is virtual
 - **Auth**: stateless JWT, 30-day expiry, no refresh token
 

@@ -1,7 +1,7 @@
 export interface SongSearchItem {
   id: string;
   title: string;
-  thumbnail: string;
+  thumbnail: string | null;
   artistName: string;
   durationSeconds: number;
 }
@@ -56,5 +56,5 @@ export interface AnalyzeSongRequest {
   title: string;
   artist: string;
   durationSeconds?: number;
-  artworkUrl?: string;
+  artworkUrl?: string | null;
 }

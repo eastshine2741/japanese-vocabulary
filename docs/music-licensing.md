@@ -21,7 +21,8 @@
 | UniDic | GPL v2 / LGPL v2.1 / **BSD New** triple license | ✅ | ✅ | BSD-3-Clause 선택 |
 | LRCLIB | MIT (코드만), 가사 자체는 라이선스 보장 X | ⚠️ | ⚠️ | 가사 저작권은 별도 — §3 참조 |
 | VocaDB | API 무료 (상업용 포함, 출처 표기 + 캐싱 필수) | ✅ | ✅ | 백링크 의무 |
-| iTunes Search API | Apple 자체 약관 | ⚠️ | ⚠️ | "Promo Content는 iTunes 콘텐츠 홍보 목적에만 사용" — 학습 콘텐츠로의 사용은 회색지대. 메타데이터(곡명/아티스트) 검색·표시는 OK, 앨범아트·미리듣기는 보수적으로 제한 |
+| MusicBrainz | CC0 (데이터) + 코드 GPL | ✅ | ✅ | 데이터는 퍼블릭 도메인. User-Agent에 앱 식별자+컨택 필수. 1 req/sec/IP rate limit |
+| Cover Art Archive | 업로더별 라이선스 (대부분 CC) | ✅ | ✅ | 직접 hot-link OK. CDN 캐싱 권장. 일부 release는 art 미보유 → placeholder fallback 필요 |
 | Gemini API | Google ToS | ✅ (Paid tier) | ✅ | Free tier는 학습에 사용·EEA/UK/스위스 제공 시 paid 필수. 의료·법률·금융 조언 용도 금지 |
 | YouTube IFrame Player API | YouTube ToS | ✅ | ✅ | 임베드 위 오버레이 금지, 최소 사이즈 등 "필수 최소 기능" 준수. 임베드 광고와 자체 광고는 별도 영역에서 양립 가능 |
 
@@ -172,8 +173,9 @@ UX 정의:
 - [Kuromoji — GitHub (Apache-2.0)](https://github.com/atilika/kuromoji)
 - [IPADic License — Debian Wiki](https://wiki.debian.org/IpadicLicense)
 - [UniDic 공식 (NINJAL)](https://clrd.ninjal.ac.jp/unidic/en/)
-- [iTunes Search API — Apple Performance Partners](https://performance-partners.apple.com/search-api)
-- [Apple Media Services Terms](https://www.apple.com/legal/internet-services/itunes/)
+- [MusicBrainz License](https://musicbrainz.org/doc/About) — 데이터 CC0
+- [MusicBrainz API Rate Limiting](https://musicbrainz.org/doc/MusicBrainz_API/Rate_Limiting)
+- [Cover Art Archive](https://coverartarchive.org/) — 업로더별 라이선스
 - [Gemini API Additional Terms of Service](https://ai.google.dev/gemini-api/terms)
 - [YouTube IFrame Player API — 필수 최소 기능](https://developers.google.com/youtube/terms/required-minimum-functionality)
 - [YouTube — 임베드 영상 광고 정책](https://support.google.com/youtube/answer/132596)
