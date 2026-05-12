@@ -224,6 +224,8 @@ export default function SearchScreen({ navigation }: Props) {
           ListFooterComponent={
             searchStatus === 'loading' ? (
               <ActivityIndicator style={styles.loader} color={Colors.primary} />
+            ) : items.length > 0 ? (
+              <Text style={styles.attribution}>Music search powered by iTunes</Text>
             ) : null
           }
           contentContainerStyle={styles.list}
@@ -292,6 +294,12 @@ const styles = StyleSheet.create({
     marginLeft: 48 + 12, // artwork size + gap
   },
   loader: {
+    paddingVertical: 16,
+  },
+  attribution: {
+    fontSize: 11,
+    color: Colors.textMuted,
+    textAlign: 'center',
     paddingVertical: 16,
   },
   analyzingRow: {
