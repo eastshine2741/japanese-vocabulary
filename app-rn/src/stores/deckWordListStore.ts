@@ -10,9 +10,8 @@ interface DeckWordListState {
   nextCursor: number | null;
   isLoadingMore: boolean;
   error: string | null;
-
-  load: (songId: number | null) => Promise<void>;
-  loadMore: (songId: number | null) => Promise<void>;
+  load: (deckId: number | null) => Promise<void>;
+  loadMore: (deckId: number | null) => Promise<void>;
 }
 
 export const useDeckWordListStore = create<DeckWordListState>((set, get) => ({
@@ -22,22 +21,26 @@ export const useDeckWordListStore = create<DeckWordListState>((set, get) => ({
   isLoadingMore: false,
   error: null,
 
-  load: async (songId) => {
+  load: async (deckId) => {
     set({ status: 'loading', words: [], nextCursor: null, error: null });
     try {
-      const res = await deckApi.getDeckWords(songId);
+      const res = deckId != null
+        ? await deckApi.getDeckWords(deckId)
+        : await deckApi.getAllDeckWords();
       set({ status: 'success', words: res.words, nextCursor: res.nextCursor });
     } catch (e: any) {
       set({ status: 'error', error: e.message });
     }
   },
 
-  loadMore: async (songId) => {
+  loadMore: async (deckId) => {
     const { nextCursor, isLoadingMore, words } = get();
     if (nextCursor == null || isLoadingMore) return;
     set({ isLoadingMore: true });
     try {
-      const res = await deckApi.getDeckWords(songId, nextCursor);
+      const res = deckId != null
+        ? await deckApi.getDeckWords(deckId, nextCursor)
+        : await deckApi.getAllDeckWords(nextCursor);
       set({
         words: [...words, ...res.words],
         nextCursor: res.nextCursor,

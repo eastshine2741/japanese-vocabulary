@@ -23,7 +23,7 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 type Props = NativeStackScreenProps<RootStackParamList, 'DeckWordList'>;
 
 export default function DeckWordListScreen({ route, navigation }: Props) {
-  const { songId } = route.params;
+  const { deckId } = route.params;
   const readingDisplay = useSettingsStore(s => s.readingDisplay);
   const { status, words, isLoadingMore, load, loadMore } = useDeckWordListStore(
     useShallow(s => ({
@@ -39,8 +39,8 @@ export default function DeckWordListScreen({ route, navigation }: Props) {
 
   useFocusEffect(
     useCallback(() => {
-      load(songId);
-    }, [songId]),
+      load(deckId);
+    }, [deckId]),
   );
 
   const renderWord = ({ item, index }: { item: DeckWordItem; index: number }) => (
@@ -88,7 +88,7 @@ export default function DeckWordListScreen({ route, navigation }: Props) {
             data={words}
             keyExtractor={(item) => String(item.id)}
             renderItem={renderWord}
-            onEndReached={() => loadMore(songId)}
+            onEndReached={() => loadMore(deckId)}
             onEndReachedThreshold={0.5}
             ListFooterComponent={
               isLoadingMore ? <ActivityIndicator color={Colors.primary} style={{ padding: 16 }} /> : null

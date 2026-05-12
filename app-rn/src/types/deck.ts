@@ -1,6 +1,7 @@
 import { WordMeaning } from './word';
 
 export interface SongDeckSummary {
+  deckId: number;
   songId: number;
   title: string;
   artist: string;
@@ -12,9 +13,11 @@ export interface SongDeckSummary {
 
 export interface DeckListResponse {
   songDecks: SongDeckSummary[];
+  nextCursor: number | null;
 }
 
 export interface DeckDetailResponse {
+  deckId: number | null;
   songId: number | null;
   title: string | null;
   artist: string | null;

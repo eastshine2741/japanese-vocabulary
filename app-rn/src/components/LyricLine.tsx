@@ -1,5 +1,5 @@
 import React, { useRef, useCallback } from 'react';
-import { View, Text, TouchableOpacity, Pressable, Animated, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, Pressable, Animated, StyleSheet, LayoutChangeEvent } from 'react-native';
 import { Token, StudyUnit } from '../types/song';
 import { POS_INFO } from '../types/pos';
 import { Colors } from '../theme/theme';
@@ -8,7 +8,7 @@ import { katakanaToHiragana } from '../utils/readingConverter';
 
 const NO_UNDERLINE_POS = new Set(['SYMBOL', 'SUPPLEMENTARY_SYMBOL', 'WHITESPACE']);
 
-const KANJI_RE = /[\u4e00-\u9fff]/;
+const KANJI_RE = /[一-鿿]/;
 
 function getUnderlineColor(pos: string): string | null {
   if (NO_UNDERLINE_POS.has(pos)) return null;
@@ -18,11 +18,20 @@ function getUnderlineColor(pos: string): string | null {
 interface Props {
   studyUnit: StudyUnit;
   isActive: boolean;
+  showTranslation?: boolean;
   onTokenPress: (token: Token, lineText: string, koreanLyrics: string | null) => void;
   onLineSeek?: (ms: number) => void;
+  onMeasured?: (height: number) => void;
 }
 
-function LyricLine({ studyUnit, isActive, onTokenPress, onLineSeek }: Props) {
+function LyricLine({
+  studyUnit,
+  isActive,
+  showTranslation = true,
+  onTokenPress,
+  onLineSeek,
+  onMeasured,
+}: Props) {
   const showKoreanPronunciation = useSettingsStore(s => s.showKoreanPronunciation);
   const showFurigana = useSettingsStore(s => s.showFurigana);
   const textStyle = isActive ? styles.tokenTextActive : styles.tokenTextInactive;
@@ -107,8 +116,17 @@ function LyricLine({ studyUnit, isActive, onTokenPress, onLineSeek }: Props) {
     return elements;
   };
 
+  const handleLayout = useCallback((e: LayoutChangeEvent) => {
+    onMeasured?.(e.nativeEvent.layout.height);
+  }, [onMeasured]);
+
   return (
-    <Pressable style={styles.container} onPress={canSeek ? handleLinePress : undefined} disabled={!canSeek}>
+    <Pressable
+      style={styles.container}
+      onPress={canSeek ? handleLinePress : undefined}
+      onLayout={onMeasured ? handleLayout : undefined}
+      disabled={!canSeek}
+    >
       {canSeek && (
         <Animated.View
           style={[styles.flashOverlay, { backgroundColor: Colors.textMuted, opacity: flashOpacity }]}
@@ -121,7 +139,7 @@ function LyricLine({ studyUnit, isActive, onTokenPress, onLineSeek }: Props) {
           {studyUnit.koreanPronounciation}
         </Text>
       )}
-      {studyUnit.koreanLyrics && (
+      {showTranslation && studyUnit.koreanLyrics && (
         <Text style={isActive ? styles.translationActive : styles.translationInactive}>
           {studyUnit.koreanLyrics}
         </Text>
@@ -134,8 +152,12 @@ export default React.memo(LyricLine);
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 20,
+    width: '100%',
+    paddingVertical: 10,
+    paddingHorizontal: 24,
     gap: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   flashOverlay: {
     position: 'absolute',
@@ -149,15 +171,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'flex-end',
+    justifyContent: 'center',
     gap: 3,
   },
   tokenTextActive: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: '800',
     color: Colors.textPrimary,
   },
   tokenTextInactive: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '500',
     color: Colors.textMuted,
   },
@@ -177,7 +200,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   furiganaActive: {
-    fontSize: 10,
+    fontSize: 11,
     color: Colors.textSecondary,
     textAlign: 'center',
   },
@@ -187,20 +210,21 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   pronActive: {
-    fontSize: 12,
+    fontSize: 13,
+    fontWeight: '500',
     color: Colors.textSecondary,
   },
   pronInactive: {
-    fontSize: 12,
+    fontSize: 11,
     color: Colors.textMuted,
   },
   translationActive: {
-    fontSize: 13,
-    fontWeight: '500',
+    fontSize: 14,
+    fontWeight: '700',
     color: Colors.textPrimary,
   },
   translationInactive: {
-    fontSize: 13,
+    fontSize: 11,
     color: Colors.textSecondary,
   },
 });

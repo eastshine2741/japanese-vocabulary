@@ -1,28 +1,49 @@
 import { create } from 'zustand';
 import { deckApi } from '../api/deckApi';
-import { DeckListResponse } from '../types/deck';
+import { SongDeckSummary } from '../types/deck';
 
 type DeckListStatus = 'loading' | 'success' | 'error';
 
 interface DeckListState {
   status: DeckListStatus;
-  data: DeckListResponse | null;
+  songDecks: SongDeckSummary[];
+  nextCursor: number | null;
+  isLoadingMore: boolean;
   error: string | null;
   load: () => Promise<void>;
+  loadMore: () => Promise<void>;
 }
 
-export const useDeckListStore = create<DeckListState>((set) => ({
+export const useDeckListStore = create<DeckListState>((set, get) => ({
   status: 'loading',
-  data: null,
+  songDecks: [],
+  nextCursor: null,
+  isLoadingMore: false,
   error: null,
 
   load: async () => {
-    set({ status: 'loading', error: null });
+    set({ status: 'loading', songDecks: [], nextCursor: null, error: null });
     try {
-      const data = await deckApi.getDecks();
-      set({ status: 'success', data });
+      const res = await deckApi.getDecks();
+      set({ status: 'success', songDecks: res.songDecks, nextCursor: res.nextCursor });
     } catch (e: any) {
       set({ status: 'error', error: e.message });
+    }
+  },
+
+  loadMore: async () => {
+    const { nextCursor, isLoadingMore, songDecks } = get();
+    if (nextCursor == null || isLoadingMore) return;
+    set({ isLoadingMore: true });
+    try {
+      const res = await deckApi.getDecks(nextCursor);
+      set({
+        songDecks: [...songDecks, ...res.songDecks],
+        nextCursor: res.nextCursor,
+        isLoadingMore: false,
+      });
+    } catch {
+      set({ isLoadingMore: false });
     }
   },
 }));
