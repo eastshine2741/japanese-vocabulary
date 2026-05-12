@@ -37,7 +37,13 @@ export function resetAllStores() {
     isLoadingMore: false,
   });
 
-  useDeckListStore.setState({ status: 'loading', data: null, error: null });
+  useDeckListStore.setState({
+    status: 'loading',
+    songDecks: [],
+    nextCursor: null,
+    isLoadingMore: false,
+    error: null,
+  });
   useDeckDetailStore.setState({ status: 'loading', data: null, error: null });
   useDeckWordListStore.setState({
     status: 'loading',

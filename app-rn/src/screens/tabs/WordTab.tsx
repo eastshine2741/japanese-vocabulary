@@ -142,7 +142,6 @@ export default function WordTab() {
     );
   }
 
-  const songDecks = data?.songDecks ?? [];
   const isEmpty = songDecks.length === 0 && (!stats || stats.total === 0);
 
   if (isEmpty) {
