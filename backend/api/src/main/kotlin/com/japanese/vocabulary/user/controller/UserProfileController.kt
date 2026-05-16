@@ -17,6 +17,6 @@ class UserProfileController(
     @PatchMapping
     fun updateProfile(@RequestBody request: UpdateProfileRequest): UserProfileResponse {
         val userId = SecurityContextHolder.getContext().authentication.principal as Long
-        return userProfileService.updateName(userId, request.name)
+        return userProfileService.updateProfile(userId, rawName = request.name, rawUsername = request.username)
     }
 }

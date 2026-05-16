@@ -7,6 +7,7 @@ import com.japanese.vocabulary.common.exception.BusinessException
 import com.japanese.vocabulary.common.exception.ErrorCode
 import com.japanese.vocabulary.user.entity.UserEntity
 import com.japanese.vocabulary.user.repository.UserRepository
+import com.japanese.vocabulary.user.service.UsernamePolicy
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Service
 
@@ -32,8 +33,8 @@ class AuthService(
 
     fun signup(idToken: String, username: String, displayName: String?): AuthResponse {
         val identity = googleOidcService.verify(idToken)
-        val normalizedUsername = normalizeUsername(username)
-        validateUsername(normalizedUsername)
+        val normalizedUsername = UsernamePolicy.normalize(username)
+        UsernamePolicy.validate(normalizedUsername)
 
         // Idempotency: if a row already exists for this Google identity (e.g. retry / double-tap),
         // reuse it instead of failing on the (provider, sub) unique constraint.
@@ -65,29 +66,19 @@ class AuthService(
         }
     }
 
-    fun checkUsername(username: String): UsernameAvailabilityResponse {
-        val normalized = normalizeUsername(username)
-        if (!USERNAME_REGEX.matches(normalized)) {
+    fun checkUsername(username: String, currentUserId: Long? = null): UsernameAvailabilityResponse {
+        val normalized = UsernamePolicy.normalize(username)
+        if (!UsernamePolicy.REGEX.matches(normalized)) {
             return UsernameAvailabilityResponse(false, UsernameAvailabilityResponse.REASON_INVALID_FORMAT)
         }
-        if (normalized in RESERVED_USERNAMES) {
+        if (normalized in UsernamePolicy.RESERVED) {
             return UsernameAvailabilityResponse(false, UsernameAvailabilityResponse.REASON_RESERVED)
         }
-        if (userRepository.findByUsername(normalized) != null) {
+        val owner = userRepository.findByUsername(normalized)
+        if (owner != null && owner.id != currentUserId) {
             return UsernameAvailabilityResponse(false, UsernameAvailabilityResponse.REASON_TAKEN)
         }
         return UsernameAvailabilityResponse(true)
-    }
-
-    private fun normalizeUsername(raw: String): String = raw.trim().lowercase()
-
-    private fun validateUsername(username: String) {
-        if (!USERNAME_REGEX.matches(username)) {
-            throw BusinessException(ErrorCode.INVALID_USERNAME)
-        }
-        if (username in RESERVED_USERNAMES) {
-            throw BusinessException(ErrorCode.RESERVED_USERNAME)
-        }
     }
 
     private fun UserEntity.toAuthResponse(): AuthResponse {
@@ -101,7 +92,5 @@ class AuthService(
 
     private companion object {
         const val GOOGLE = "google"
-        val USERNAME_REGEX = Regex("^[a-z0-9_]{3,20}$")
-        val RESERVED_USERNAMES = setOf("admin", "root", "api", "system", "null", "undefined")
     }
 }

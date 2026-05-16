@@ -5,9 +5,14 @@ export interface UserProfile {
   name: string | null;
 }
 
+export interface UpdateProfilePayload {
+  name?: string | null;
+  username?: string;
+}
+
 export const userApi = {
-  async updateName(name: string | null): Promise<UserProfile> {
-    const { data } = await client.patch<UserProfile>('/api/users/me', { name });
+  async updateProfile(payload: UpdateProfilePayload): Promise<UserProfile> {
+    const { data } = await client.patch<UserProfile>('/api/users/me', payload);
     return data;
   },
 };

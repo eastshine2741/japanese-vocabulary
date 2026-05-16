@@ -43,7 +43,7 @@ const REASON_HINT: Record<UsernameAvailabilityReason, string> = {
   TAKEN: '이미 사용 중인 username 이에요',
 };
 
-const DEFAULT_HINT = '영문/숫자/_ 3~20자 · 변경할 수 없어요';
+const DEFAULT_HINT = '영문/숫자/_ 3~20자';
 
 export default function SignupScreen({ navigation, route }: Props) {
   const { idToken, email } = route.params;
@@ -237,7 +237,7 @@ export default function SignupScreen({ navigation, route }: Props) {
               </View>
             </Field>
 
-            <Field label="이름" hint="카드와 프로필에 표시 · 언제든 바꿀 수 있어요">
+            <Field label="이름" hint="카드와 프로필에 표시">
               <View
                 style={[
                   styles.inputBox,

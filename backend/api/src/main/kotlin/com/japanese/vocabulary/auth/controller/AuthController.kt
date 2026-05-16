@@ -8,6 +8,7 @@ import com.japanese.vocabulary.auth.dto.UsernameAvailabilityResponse
 import com.japanese.vocabulary.auth.dto.VerifiedIdentityResponse
 import com.japanese.vocabulary.auth.service.AuthService
 import com.japanese.vocabulary.auth.service.GoogleLoginResult
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -38,6 +39,8 @@ class AuthController(
         authService.signup(request.idToken, request.username, request.displayName)
 
     @GetMapping("/username/available")
-    fun checkUsername(@RequestParam("username") username: String): UsernameAvailabilityResponse =
-        authService.checkUsername(username)
+    fun checkUsername(@RequestParam("username") username: String): UsernameAvailabilityResponse {
+        val principal = SecurityContextHolder.getContext().authentication?.principal as? Long
+        return authService.checkUsername(username, currentUserId = principal)
+    }
 }

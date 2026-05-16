@@ -100,8 +100,11 @@ export default function SettingsScreen() {
       // ignore — proceed with local logout even if Google session clear fails
     }
     await tokenStorage.clearToken();
-    resetAllStores();
+    // Navigate first so MainTabs/Settings unmount cleanly. Resetting stores
+    // before unmount triggers re-renders on still-mounted screens with
+    // half-cleared state, which has caused "screen not found" crashes here.
     navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'Login' }] }));
+    requestAnimationFrame(() => resetAllStores());
   };
 
   if (status === 'loading') {
