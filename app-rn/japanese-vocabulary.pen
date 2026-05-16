@@ -19376,7 +19376,8 @@
                   "lineHeight": 1.5,
                   "textAlign": "center",
                   "fontFamily": "$font.body",
-                  "fontSize": 14
+                  "fontSize": 14,
+                  "fontWeight": "normal"
                 },
                 {
                   "type": "frame",
@@ -20664,6 +20665,414 @@
               ]
             }
           ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "a8D3RP",
+      "x": 2748,
+      "y": 3011,
+      "name": "7-2. Profile Edit",
+      "clip": true,
+      "width": 402,
+      "height": 874,
+      "fill": "$surface.secondary",
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "QRLhH",
+          "name": "status",
+          "width": "fill_container",
+          "height": 62,
+          "padding": [
+            20,
+            24,
+            0,
+            24
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "SV9F5",
+              "name": "timeLabel",
+              "fill": "$foreground.primary",
+              "content": "9:41",
+              "fontFamily": "$font.body",
+              "fontSize": 15,
+              "fontWeight": "600"
+            },
+            {
+              "type": "frame",
+              "id": "tL64B",
+              "name": "iconsR",
+              "gap": 6,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "ja2rV",
+                  "name": "sigIco",
+                  "width": 16,
+                  "height": 16,
+                  "iconFontName": "signal",
+                  "iconFontFamily": "lucide",
+                  "fill": "$foreground.primary"
+                },
+                {
+                  "type": "icon_font",
+                  "id": "aW60U",
+                  "name": "wifiIco",
+                  "width": 16,
+                  "height": 16,
+                  "iconFontName": "wifi",
+                  "iconFontFamily": "lucide",
+                  "fill": "$foreground.primary"
+                },
+                {
+                  "type": "icon_font",
+                  "id": "L1mBv0",
+                  "name": "batIco",
+                  "width": 16,
+                  "height": 16,
+                  "iconFontName": "battery-full",
+                  "iconFontFamily": "lucide",
+                  "fill": "$foreground.primary"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "u1xNv",
+          "name": "editHeader",
+          "width": "fill_container",
+          "height": 56,
+          "padding": [
+            0,
+            16
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "X7QAS",
+              "name": "backBtn",
+              "width": 40,
+              "height": 40,
+              "cornerRadius": 9999,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "uvGmY",
+                  "name": "backIcon",
+                  "width": 24,
+                  "height": 24,
+                  "iconFontName": "chevron-left",
+                  "iconFontFamily": "lucide",
+                  "fill": "$foreground.primary"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "lcklf",
+              "name": "title",
+              "fill": "$foreground.primary",
+              "content": "프로필 수정",
+              "fontFamily": "$font.headings",
+              "fontSize": 17,
+              "fontWeight": "700"
+            },
+            {
+              "type": "frame",
+              "id": "WobDs",
+              "name": "saveBtn",
+              "width": 40,
+              "height": 40,
+              "justifyContent": "end",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "kDTkk",
+                  "name": "saveLabel",
+                  "fill": "$foreground.primary",
+                  "content": "저장",
+                  "fontFamily": "$font.body",
+                  "fontSize": 15,
+                  "fontWeight": "700"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "mhBZJ",
+          "name": "form",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "gap": 28,
+          "padding": [
+            16,
+            24,
+            24,
+            24
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "ejEbb",
+              "name": "displayNameField",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "YxMLL",
+                  "name": "nameLabel",
+                  "fill": "$foreground.secondary",
+                  "content": "표시 이름",
+                  "fontFamily": "$font.body",
+                  "fontSize": 13,
+                  "fontWeight": "600"
+                },
+                {
+                  "id": "GcOtw",
+                  "type": "ref",
+                  "ref": "rz74R",
+                  "name": "nameInputRef",
+                  "width": "fill_container",
+                  "descendants": {
+                    "P2Ketf": {
+                      "iconFontName": "user-round"
+                    },
+                    "dPeG3": {
+                      "content": "이스트샤인",
+                      "fill": "$foreground.primary"
+                    }
+                  }
+                },
+                {
+                  "type": "frame",
+                  "id": "mnIdi",
+                  "name": "meta",
+                  "width": "fill_container",
+                  "justifyContent": "end",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "HLo2I",
+                      "name": "nameCounter",
+                      "fill": "$text-muted",
+                      "content": "6/20",
+                      "fontFamily": "$font.captions",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "V3CbHI",
+              "name": "usernameField",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "iJRKE",
+                  "name": "userLabel",
+                  "fill": "$foreground.secondary",
+                  "content": "유저네임",
+                  "fontFamily": "$font.body",
+                  "fontSize": 13,
+                  "fontWeight": "600"
+                },
+                {
+                  "id": "hxZdd",
+                  "type": "ref",
+                  "ref": "rz74R",
+                  "name": "userInputRef",
+                  "width": "fill_container",
+                  "descendants": {
+                    "P2Ketf": {
+                      "iconFontName": "at-sign",
+                      "fill": "$accent.primary"
+                    },
+                    "dPeG3": {
+                      "content": "eastshine",
+                      "fill": "$foreground.primary"
+                    },
+                    "k3onz4": {
+                      "enabled": true
+                    }
+                  }
+                },
+                {
+                  "type": "frame",
+                  "id": "w3G3rE",
+                  "name": "meta",
+                  "width": "fill_container",
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "uYaL2",
+                      "name": "userHelper",
+                      "fill": "$accent-green",
+                      "content": "사용 가능한 유저네임입니다",
+                      "fontFamily": "$font.captions",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "iUULt",
+                      "name": "userCounter",
+                      "fill": "$text-muted",
+                      "content": "9/20",
+                      "fontFamily": "$font.captions",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "t5JZJ7",
+              "name": "divider",
+              "width": "fill_container",
+              "height": 1,
+              "fill": "$border-default"
+            },
+            {
+              "type": "frame",
+              "id": "GChVv",
+              "name": "loginInfo",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "GQ97K",
+                  "name": "loginLabel",
+                  "fill": "$foreground.secondary",
+                  "content": "로그인 정보",
+                  "fontFamily": "$font.body",
+                  "fontSize": 13,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "frame",
+                  "id": "F6dbEF",
+                  "name": "row",
+                  "width": "fill_container",
+                  "gap": 8,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "Pl8Lt",
+                      "name": "googleIcon",
+                      "width": 16,
+                      "height": 16,
+                      "iconFontName": "mail",
+                      "iconFontFamily": "lucide",
+                      "fill": "$text-muted"
+                    },
+                    {
+                      "type": "text",
+                      "id": "OfXUZ",
+                      "name": "loginVal",
+                      "fill": "$foreground.secondary",
+                      "content": "Google · eastshine@vcnc.co.kr",
+                      "fontFamily": "$font.body",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "rz74R",
+      "x": 3230,
+      "y": 3011,
+      "name": "component/TextInput",
+      "reusable": true,
+      "width": 340,
+      "height": 52,
+      "fill": "$bg-primary",
+      "cornerRadius": 12,
+      "stroke": {
+        "align": "inside",
+        "thickness": 1,
+        "fill": "$border-default"
+      },
+      "gap": 10,
+      "padding": [
+        0,
+        16
+      ],
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "icon_font",
+          "id": "P2Ketf",
+          "name": "leadingIcon",
+          "width": 18,
+          "height": 18,
+          "iconFontName": "user",
+          "iconFontFamily": "lucide",
+          "fill": "$foreground.muted"
+        },
+        {
+          "type": "text",
+          "id": "dPeG3",
+          "name": "value",
+          "fill": "$foreground.muted",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
+          "content": "이름을 입력하세요",
+          "fontFamily": "$font.body",
+          "fontSize": 15,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "icon_font",
+          "id": "k3onz4",
+          "x": 304,
+          "y": 17,
+          "name": "trailingIcon",
+          "enabled": false,
+          "width": 18,
+          "height": 18,
+          "iconFontName": "check",
+          "iconFontFamily": "lucide",
+          "fill": "$accent-green"
         }
       ]
     }

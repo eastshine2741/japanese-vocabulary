@@ -14,6 +14,7 @@ interface AuthState {
   googleLogin: (idToken: string) => Promise<void>;
   googleSignup: (idToken: string, username: string, displayName?: string) => Promise<void>;
   loadProfile: () => Promise<void>;
+  setUserName: (name: string | null) => Promise<void>;
   reset: () => void;
 }
 
@@ -70,6 +71,11 @@ export const useAuthStore = create<AuthState>((set) => ({
       tokenStorage.getUserName(),
     ]);
     set({ username, userName: name });
+  },
+
+  setUserName: async (name) => {
+    await tokenStorage.saveUserName(name);
+    set({ userName: name });
   },
 
   reset: () => set({ status: 'idle', error: null, pendingIdentity: null, pendingIdToken: null }),

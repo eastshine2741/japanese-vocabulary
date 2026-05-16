@@ -11,6 +11,7 @@ import { Colors } from '../theme/theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import ServerURLDialog from '../components/ServerURLDialog';
 import BrandMark from '../components/BrandMark';
+import GoogleLogo from '../components/GoogleLogo';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
@@ -82,7 +83,7 @@ export default function LoginScreen({ navigation }: Props) {
             <ActivityIndicator color={Colors.primary} />
           ) : (
             <>
-              <Ionicons name="logo-google" size={18} color="#4285F4" />
+              <GoogleLogo size={20} />
               <Text style={styles.googleLabel}>Google 계정으로 계속하기</Text>
             </>
           )}

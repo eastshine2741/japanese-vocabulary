@@ -13,8 +13,6 @@ import HeatmapSection from '../../components/studyStats/HeatmapSection';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
-const PROFILE_BIO_PLACEHOLDER = '매일 노래로 일본어 한 줄씩';
-
 export default function MyPageTab() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
@@ -57,11 +55,10 @@ export default function MyPageTab() {
           </View>
           <View style={styles.nameRow}>
             <Text style={styles.profName}>{userName ?? '사용자'}</Text>
-            <Text style={styles.profBio}>{PROFILE_BIO_PLACEHOLDER}</Text>
           </View>
           <TouchableOpacity
             style={styles.editBtn}
-            onPress={() => navigation.navigate('Settings')}
+            onPress={() => navigation.navigate('ProfileEdit')}
             activeOpacity={0.7}
           >
             <Feather name="edit-2" size={16} color={Colors.textSecondary} />
@@ -126,10 +123,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '800',
     color: Colors.textPrimary,
-  },
-  profBio: {
-    fontSize: 13,
-    color: Colors.textSecondary,
   },
   editBtn: {
     width: 36,
