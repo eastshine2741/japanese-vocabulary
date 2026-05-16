@@ -13,7 +13,7 @@ import { useVocabularyStore } from '../stores/vocabularyStore';
 const emptyStatsSlice = () => ({ status: 'idle' as const, data: null, error: null, staleAt: 0 });
 
 export function resetAllStores() {
-  useAuthStore.setState({ status: 'idle', error: null, userName: null });
+  useAuthStore.setState({ status: 'idle', error: null, username: null, userName: null });
 
   useHomeStore.setState({ status: 'loading', songs: [], error: null });
 

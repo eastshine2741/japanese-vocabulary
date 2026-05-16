@@ -8,6 +8,7 @@ package com.japanese.vocabulary.auth.dto
 data class GoogleLoginResponse(
     val kind: Kind,
     val token: String? = null,
+    val username: String? = null,
     val name: String? = null,
     val identity: VerifiedIdentityResponse? = null,
 ) {
@@ -15,7 +16,12 @@ data class GoogleLoginResponse(
 
     companion object {
         fun authenticated(auth: AuthResponse) =
-            GoogleLoginResponse(Kind.authenticated, token = auth.token, name = auth.name)
+            GoogleLoginResponse(
+                Kind.authenticated,
+                token = auth.token,
+                username = auth.username,
+                name = auth.name,
+            )
 
         fun needsSignup(identity: VerifiedIdentityResponse) =
             GoogleLoginResponse(Kind.needsSignup, identity = identity)

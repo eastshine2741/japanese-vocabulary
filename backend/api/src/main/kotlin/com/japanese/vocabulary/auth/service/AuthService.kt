@@ -91,10 +91,11 @@ class AuthService(
     }
 
     private fun UserEntity.toAuthResponse(): AuthResponse {
-        val displayLabel = name ?: username
+        val jwtLabel = name ?: username
         return AuthResponse(
-            token = jwtUtil.generateToken(id!!, displayLabel),
-            name = displayLabel
+            token = jwtUtil.generateToken(id!!, jwtLabel),
+            username = username,
+            name = name,
         )
     }
 

@@ -2,7 +2,8 @@ import client from './client';
 
 export interface GoogleAuthResponse {
   token: string;
-  name: string;
+  username: string;
+  name: string | null;
 }
 
 export interface VerifiedIdentity {
@@ -12,7 +13,7 @@ export interface VerifiedIdentity {
 }
 
 export type GoogleLoginResult =
-  | { kind: 'authenticated'; token: string; name: string }
+  | { kind: 'authenticated'; token: string; username: string; name: string | null }
   | { kind: 'needsSignup'; identity: VerifiedIdentity };
 
 export type UsernameAvailabilityReason = 'INVALID_FORMAT' | 'RESERVED' | 'TAKEN';
@@ -25,7 +26,8 @@ export interface UsernameAvailability {
 interface GoogleLoginResponseBody {
   kind: 'authenticated' | 'needsSignup';
   token?: string;
-  name?: string;
+  username?: string;
+  name?: string | null;
   identity?: VerifiedIdentity;
 }
 
@@ -35,7 +37,12 @@ export const authApi = {
     if (data.kind === 'needsSignup') {
       return { kind: 'needsSignup', identity: data.identity! };
     }
-    return { kind: 'authenticated', token: data.token!, name: data.name! };
+    return {
+      kind: 'authenticated',
+      token: data.token!,
+      username: data.username!,
+      name: data.name ?? null,
+    };
   },
 
   async googleSignup(

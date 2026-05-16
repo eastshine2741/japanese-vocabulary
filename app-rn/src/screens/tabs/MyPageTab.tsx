@@ -18,15 +18,19 @@ const PROFILE_BIO_PLACEHOLDER = '매일 노래로 일본어 한 줄씩';
 export default function MyPageTab() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
-  const { userName, loadUserName } = useAuthStore(
-    useShallow((s) => ({ userName: s.userName, loadUserName: s.loadUserName })),
+  const { username, userName, loadProfile } = useAuthStore(
+    useShallow((s) => ({
+      username: s.username,
+      userName: s.userName,
+      loadProfile: s.loadProfile,
+    })),
   );
 
   useEffect(() => {
-    if (!userName) loadUserName();
+    if (!username) loadProfile();
   }, []);
 
-  const handle = userName ? `@${userName}` : '@user';
+  const handle = username ? `@${username}` : '@user';
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>

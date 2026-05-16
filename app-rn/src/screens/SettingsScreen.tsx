@@ -124,20 +124,6 @@ export default function SettingsScreen() {
         <View style={styles.backBtn} />
       </View>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
-        <Text style={styles.sectionLabel}>계정 관리</Text>
-        <View style={styles.menuCard}>
-          <TouchableOpacity style={styles.menuItem} activeOpacity={0.7}>
-            <Ionicons name="person-outline" size={20} color={Colors.textPrimary} />
-            <Text style={styles.menuItemLabel}>프로필 수정</Text>
-            <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.menuItem} activeOpacity={0.7}>
-            <Ionicons name="lock-closed-outline" size={20} color={Colors.textPrimary} />
-            <Text style={styles.menuItemLabel}>비밀번호 변경</Text>
-            <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
-          </TouchableOpacity>
-        </View>
-
         <Text style={styles.sectionLabel}>학습 설정</Text>
         <View style={styles.settingsCard}>
           <View style={styles.settingBlock}>
