@@ -1,10 +1,9 @@
-import React, { useEffect } from 'react';
+import React, { useCallback } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useShallow } from 'zustand/react/shallow';
 import { useAuthStore } from '../../stores/authStore';
 import { Colors, Dimens } from '../../theme/theme';
 import { RootStackParamList } from '../../navigation/AppNavigator';
@@ -16,17 +15,15 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 export default function MyPageTab() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
-  const { username, userName, loadProfile } = useAuthStore(
-    useShallow((s) => ({
-      username: s.username,
-      userName: s.userName,
-      loadProfile: s.loadProfile,
-    })),
-  );
+  const username = useAuthStore((s) => s.username);
+  const userName = useAuthStore((s) => s.userName);
+  const loadProfile = useAuthStore((s) => s.loadProfile);
 
-  useEffect(() => {
-    if (!username) loadProfile();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadProfile();
+    }, [loadProfile]),
+  );
 
   const handle = username ? `@${username}` : '@user';
 
@@ -54,7 +51,7 @@ export default function MyPageTab() {
             <Ionicons name="person" size={28} color={Colors.textMuted} />
           </View>
           <View style={styles.nameRow}>
-            <Text style={styles.profName}>{userName ?? '사용자'}</Text>
+            {userName && <Text style={styles.profName}>{userName}</Text>}
           </View>
           <TouchableOpacity
             style={styles.editBtn}

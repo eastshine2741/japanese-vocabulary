@@ -12123,16 +12123,6 @@
                       "fontFamily": "$font.headings",
                       "fontSize": 18,
                       "fontWeight": "800"
-                    },
-                    {
-                      "type": "text",
-                      "id": "kJxUb",
-                      "name": "profBio",
-                      "fill": "$foreground.secondary",
-                      "content": "매일 노래로 일본어 한 줄씩",
-                      "fontFamily": "$font.body",
-                      "fontSize": 13,
-                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -17421,17 +17411,6 @@
                       "fontFamily": "$font.headings",
                       "fontSize": 18,
                       "fontWeight": "800"
-                    },
-                    {
-                      "type": "text",
-                      "id": "nFVOq",
-                      "name": "profBio",
-                      "fill": "$foreground.muted",
-                      "content": "자기소개를 추가해보세요",
-                      "fontFamily": "$font.body",
-                      "fontSize": 13,
-                      "fontWeight": "normal",
-                      "fontStyle": "italic"
                     }
                   ]
                 },
@@ -19448,8 +19427,8 @@
     {
       "type": "frame",
       "id": "UsOnE",
-      "x": -555,
-      "y": -3372,
+      "x": 908,
+      "y": -2353,
       "name": "O1. Splash",
       "clip": true,
       "width": 402,
@@ -19586,8 +19565,8 @@
     {
       "type": "frame",
       "id": "Z77xcH",
-      "x": -103,
-      "y": -3372,
+      "x": 1360,
+      "y": -2353,
       "name": "O2. Login",
       "clip": true,
       "width": 402,
@@ -19940,8 +19919,8 @@
     {
       "type": "frame",
       "id": "nVsjd",
-      "x": 379,
-      "y": -3372,
+      "x": 1842,
+      "y": -2353,
       "name": "O3. Sign Up",
       "clip": true,
       "width": 402,
@@ -20190,7 +20169,7 @@
                       "fill": "$foreground.muted",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "content": "영문/숫자/_ 3~20자 · 변경할 수 없어요",
+                      "content": "영문/숫자/_ 3~20자",
                       "fontFamily": "$font.body",
                       "fontSize": 11,
                       "fontWeight": "normal"
@@ -20322,7 +20301,7 @@
                       "fill": "$foreground.muted",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "content": "영문/숫자/_ 3~20자 · 변경할 수 없어요",
+                      "content": "영문/숫자/_ 3~20자",
                       "fontFamily": "$font.body",
                       "fontSize": 11,
                       "fontWeight": "normal"
@@ -20460,7 +20439,7 @@
                       "fill": "$foreground.muted",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "content": "카드와 프로필에 표시 · 언제든 바꿀 수 있어요",
+                      "content": "카드와 프로필에 표시",
                       "fontFamily": "$font.body",
                       "fontSize": 11,
                       "fontWeight": "normal"
@@ -20831,61 +20810,6 @@
           "children": [
             {
               "type": "frame",
-              "id": "ejEbb",
-              "name": "displayNameField",
-              "width": "fill_container",
-              "layout": "vertical",
-              "gap": 8,
-              "children": [
-                {
-                  "type": "text",
-                  "id": "YxMLL",
-                  "name": "nameLabel",
-                  "fill": "$foreground.secondary",
-                  "content": "표시 이름",
-                  "fontFamily": "$font.body",
-                  "fontSize": 13,
-                  "fontWeight": "600"
-                },
-                {
-                  "id": "GcOtw",
-                  "type": "ref",
-                  "ref": "rz74R",
-                  "name": "nameInputRef",
-                  "width": "fill_container",
-                  "descendants": {
-                    "P2Ketf": {
-                      "iconFontName": "user-round"
-                    },
-                    "dPeG3": {
-                      "content": "이스트샤인",
-                      "fill": "$foreground.primary"
-                    }
-                  }
-                },
-                {
-                  "type": "frame",
-                  "id": "mnIdi",
-                  "name": "meta",
-                  "width": "fill_container",
-                  "justifyContent": "end",
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "HLo2I",
-                      "name": "nameCounter",
-                      "fill": "$text-muted",
-                      "content": "6/20",
-                      "fontFamily": "$font.captions",
-                      "fontSize": 12,
-                      "fontWeight": "normal"
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              "type": "frame",
               "id": "V3CbHI",
               "name": "usernameField",
               "width": "fill_container",
@@ -20935,7 +20859,7 @@
                       "id": "uYaL2",
                       "name": "userHelper",
                       "fill": "$accent-green",
-                      "content": "사용 가능한 유저네임입니다",
+                      "content": "사용 가능한 유저네임이에요",
                       "fontFamily": "$font.captions",
                       "fontSize": 12,
                       "fontWeight": "normal"
@@ -20956,56 +20880,53 @@
             },
             {
               "type": "frame",
-              "id": "t5JZJ7",
-              "name": "divider",
-              "width": "fill_container",
-              "height": 1,
-              "fill": "$border-default"
-            },
-            {
-              "type": "frame",
-              "id": "GChVv",
-              "name": "loginInfo",
+              "id": "ejEbb",
+              "name": "displayNameField",
               "width": "fill_container",
               "layout": "vertical",
               "gap": 8,
               "children": [
                 {
                   "type": "text",
-                  "id": "GQ97K",
-                  "name": "loginLabel",
+                  "id": "YxMLL",
+                  "name": "nameLabel",
                   "fill": "$foreground.secondary",
-                  "content": "로그인 정보",
+                  "content": "표시 이름",
                   "fontFamily": "$font.body",
                   "fontSize": 13,
                   "fontWeight": "600"
                 },
                 {
-                  "type": "frame",
-                  "id": "F6dbEF",
-                  "name": "row",
+                  "id": "GcOtw",
+                  "type": "ref",
+                  "ref": "rz74R",
+                  "name": "nameInputRef",
                   "width": "fill_container",
-                  "gap": 8,
-                  "alignItems": "center",
+                  "descendants": {
+                    "P2Ketf": {
+                      "iconFontName": "user-round"
+                    },
+                    "dPeG3": {
+                      "content": "이스트샤인",
+                      "fill": "$foreground.primary"
+                    }
+                  }
+                },
+                {
+                  "type": "frame",
+                  "id": "mnIdi",
+                  "name": "meta",
+                  "width": "fill_container",
+                  "justifyContent": "end",
                   "children": [
                     {
-                      "type": "icon_font",
-                      "id": "Pl8Lt",
-                      "name": "googleIcon",
-                      "width": 16,
-                      "height": 16,
-                      "iconFontName": "mail",
-                      "iconFontFamily": "lucide",
-                      "fill": "$text-muted"
-                    },
-                    {
                       "type": "text",
-                      "id": "OfXUZ",
-                      "name": "loginVal",
-                      "fill": "$foreground.secondary",
-                      "content": "Google · eastshine@vcnc.co.kr",
-                      "fontFamily": "$font.body",
-                      "fontSize": 14,
+                      "id": "HLo2I",
+                      "name": "nameCounter",
+                      "fill": "$text-muted",
+                      "content": "6/20",
+                      "fontFamily": "$font.captions",
+                      "fontSize": 12,
                       "fontWeight": "normal"
                     }
                   ]
