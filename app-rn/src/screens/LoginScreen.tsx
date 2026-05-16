@@ -15,10 +15,12 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
 export default function LoginScreen({ navigation }: Props) {
   const [showServerModal, setShowServerModal] = useState(false);
-  const { status, error, googleLogin, reset } = useAuthStore(
+  const { status, error, pendingIdentity, pendingIdToken, googleLogin, reset } = useAuthStore(
     useShallow((s) => ({
       status: s.status,
       error: s.error,
+      pendingIdentity: s.pendingIdentity,
+      pendingIdToken: s.pendingIdToken,
       googleLogin: s.googleLogin,
       reset: s.reset,
     })),
@@ -28,6 +30,12 @@ export default function LoginScreen({ navigation }: Props) {
     if (status === 'success') {
       reset();
       navigation.replace('Main');
+    } else if (status === 'needs_signup' && pendingIdToken) {
+      navigation.replace('Signup', {
+        idToken: pendingIdToken,
+        email: pendingIdentity?.email ?? null,
+        googleName: pendingIdentity?.name ?? null,
+      });
     }
   }, [status]);
 
@@ -47,6 +55,7 @@ export default function LoginScreen({ navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.container}>
+      <View style={styles.topPad} />
       <View style={styles.hero}>
         <Pressable onLongPress={() => setShowServerModal(true)} style={styles.brandStack}>
           <BrandMark size={96} />
@@ -55,15 +64,11 @@ export default function LoginScreen({ navigation }: Props) {
             <Text style={styles.kanji}>言の葉</Text>
           </View>
         </Pressable>
-
-        <View style={styles.copy}>
-          <Text style={styles.headline}>좋아하는 노래로</Text>
-          <Text style={styles.headline}>일본어 단어를 모아보세요</Text>
-          <Text style={styles.sub}>가사 속 단어를 잎사귀처럼 한 장씩</Text>
-        </View>
+        <Text style={styles.tagline}>노래로 배우는 일본어</Text>
 
         <ServerURLDialog visible={showServerModal} onClose={() => setShowServerModal(false)} />
       </View>
+      <View style={styles.spacer} />
 
       <View style={styles.footer}>
         {error && <Text style={styles.error}>{error}</Text>}
@@ -93,38 +98,26 @@ export default function LoginScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
+  topPad: { height: 168 },
   hero: {
-    flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
     paddingHorizontal: 32,
-    paddingTop: 60,
+    gap: 20,
   },
+  spacer: { flex: 1 },
   brandStack: { alignItems: 'center' },
-  nameStack: { alignItems: 'center', marginTop: 24 },
-  title: { fontSize: 32, fontWeight: '700', color: Colors.textPrimary, letterSpacing: -0.5 },
+  nameStack: { alignItems: 'center', marginTop: 12, gap: 8 },
+  title: { fontSize: 38, fontWeight: '700', color: Colors.textPrimary, letterSpacing: -0.5 },
   kanji: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '500',
     color: Colors.textSecondary,
     letterSpacing: 2,
-    marginTop: 6,
   },
-  copy: { alignItems: 'center', marginTop: 32 },
-  headline: {
-    fontSize: 22,
-    fontWeight: '600',
-    color: Colors.textPrimary,
-    letterSpacing: -0.3,
-    textAlign: 'center',
-    lineHeight: 30,
-  },
-  sub: {
+  tagline: {
     fontSize: 14,
+    fontWeight: '500',
     color: Colors.textMuted,
-    textAlign: 'center',
-    lineHeight: 21,
-    marginTop: 12,
   },
   footer: { paddingHorizontal: 24, paddingBottom: 40, gap: 14 },
   error: { color: Colors.ratingAgain, textAlign: 'center', fontSize: 13 },

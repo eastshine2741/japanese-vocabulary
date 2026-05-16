@@ -7,7 +7,8 @@ import java.time.Instant
 @Table(
     name = "users",
     uniqueConstraints = [
-        UniqueConstraint(name = "uk_user_provider", columnNames = ["provider", "provider_sub"])
+        UniqueConstraint(name = "uk_user_provider", columnNames = ["provider", "provider_sub"]),
+        UniqueConstraint(name = "uk_user_username", columnNames = ["username"])
     ]
 )
 class UserEntity(
@@ -21,11 +22,14 @@ class UserEntity(
     @Column(name = "provider_sub", nullable = false, length = 255)
     val providerSub: String,
 
+    @Column(nullable = false, length = 20)
+    var username: String,
+
     @Column(nullable = true, length = 255)
     var email: String? = null,
 
-    @Column(nullable = false, length = 100)
-    var name: String,
+    @Column(nullable = true, length = 100)
+    var name: String? = null,
 
     @Column(name = "created_at")
     val createdAt: Instant = Instant.now()
