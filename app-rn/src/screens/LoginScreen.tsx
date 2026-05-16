@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ActivityIndicator, Pressable, StyleSheet } from 'react-native';
+import { View, Text, ActivityIndicator, Linking, Pressable, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useShallow } from 'zustand/react/shallow';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../stores/authStore';
+import { TOS_URL, PRIVACY_URL } from '../config/legal';
 import { Colors } from '../theme/theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import ServerURLDialog from '../components/ServerURLDialog';
@@ -89,7 +90,15 @@ export default function LoginScreen({ navigation }: Props) {
 
         <View style={styles.terms}>
           <Text style={styles.termsLine}>계속 진행하면 다음 사항에 동의하는 것입니다</Text>
-          <Text style={styles.termsLink}>서비스 이용약관 · 개인정보 처리방침</Text>
+          <Text style={styles.termsLink}>
+            <Text style={styles.termsAnchor} onPress={() => Linking.openURL(TOS_URL)}>
+              서비스 이용약관
+            </Text>
+            {' · '}
+            <Text style={styles.termsAnchor} onPress={() => Linking.openURL(PRIVACY_URL)}>
+              개인정보 처리방침
+            </Text>
+          </Text>
         </View>
       </View>
     </SafeAreaView>
@@ -148,4 +157,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 2,
   },
+  termsAnchor: { textDecorationLine: 'underline' },
 });

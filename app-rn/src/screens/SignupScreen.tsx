@@ -9,6 +9,7 @@ import {
   BackHandler,
   Keyboard,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   ScrollView,
 } from 'react-native';
@@ -20,6 +21,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { useAuthStore } from '../stores/authStore';
 import { authApi, UsernameAvailabilityReason } from '../api/authApi';
+import { TOS_URL, PRIVACY_URL } from '../config/legal';
 import { Colors } from '../theme/theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
@@ -58,6 +60,7 @@ export default function SignupScreen({ navigation, route }: Props) {
   const [username, setUsername] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [usernameState, setUsernameState] = useState<UsernameState>({ kind: 'idle' });
+  const [focusedField, setFocusedField] = useState<'username' | 'name' | null>(null);
 
   const checkSeqRef = useRef(0);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -76,7 +79,9 @@ export default function SignupScreen({ navigation, route }: Props) {
       // ignore
     }
     reset();
-    navigation.goBack();
+    // Login navigated here with `replace`, so there's nothing to pop back to —
+    // route to Login explicitly instead of `goBack()`.
+    navigation.replace('Login');
   }, [navigation, reset]);
 
   useFocusEffect(
@@ -141,13 +146,23 @@ export default function SignupScreen({ navigation, route }: Props) {
     await googleSignup(idToken, username, displayName.trim() || undefined);
   };
 
-  const usernameBorder =
-    usernameState.kind === 'available'
-      ? Colors.primary
-      : usernameState.kind === 'invalid' || usernameState.kind === 'unavailable'
-      ? Colors.ratingAgain
-      : Colors.border;
-  const usernameBorderWidth = usernameState.kind === 'available' ? 1.5 : 1;
+  const usernameHasError =
+    usernameState.kind === 'invalid' || usernameState.kind === 'unavailable';
+  const usernameFocused = focusedField === 'username';
+  // 'available' is signalled by the checkmark — don't paint the border when unfocused,
+  // otherwise both fields look selected once focus moves to 이름.
+  const usernameBorder = usernameHasError
+    ? Colors.ratingAgain
+    : usernameFocused
+    ? Colors.primary
+    : Colors.border;
+  const usernameBorderWidth = usernameHasError || usernameFocused ? 1.5 : 1;
+  const usernameIconColor = usernameFocused ? Colors.primary : Colors.textMuted;
+
+  const nameFocused = focusedField === 'name';
+  const nameBorder = nameFocused ? Colors.primary : Colors.border;
+  const nameBorderWidth = nameFocused ? 1.5 : 1;
+  const nameIconColor = nameFocused ? Colors.primary : Colors.textMuted;
 
   const usernameHint =
     usernameState.kind === 'invalid'
@@ -161,7 +176,7 @@ export default function SignupScreen({ navigation, route }: Props) {
       : Colors.textMuted;
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -195,16 +210,12 @@ export default function SignupScreen({ navigation, route }: Props) {
                   { borderColor: usernameBorder, borderWidth: usernameBorderWidth },
                 ]}
               >
-                <Ionicons
-                  name="at-outline"
-                  size={18}
-                  color={
-                    usernameState.kind === 'available' ? Colors.primary : Colors.textMuted
-                  }
-                />
+                <Ionicons name="at-outline" size={18} color={usernameIconColor} />
                 <TextInput
                   value={username}
                   onChangeText={handleUsernameChange}
+                  onFocus={() => setFocusedField('username')}
+                  onBlur={() => setFocusedField((f) => (f === 'username' ? null : f))}
                   placeholder="username"
                   placeholderTextColor={Colors.textMuted}
                   style={styles.inputText}
@@ -227,11 +238,18 @@ export default function SignupScreen({ navigation, route }: Props) {
             </Field>
 
             <Field label="이름" hint="카드와 프로필에 표시 · 언제든 바꿀 수 있어요">
-              <View style={styles.inputBox}>
-                <Ionicons name="person-outline" size={18} color={Colors.textMuted} />
+              <View
+                style={[
+                  styles.inputBox,
+                  { borderColor: nameBorder, borderWidth: nameBorderWidth },
+                ]}
+              >
+                <Ionicons name="person-outline" size={18} color={nameIconColor} />
                 <TextInput
                   value={displayName}
                   onChangeText={setDisplayName}
+                  onFocus={() => setFocusedField('name')}
+                  onBlur={() => setFocusedField((f) => (f === 'name' ? null : f))}
                   placeholder="이름을 입력하세요"
                   placeholderTextColor={Colors.textMuted}
                   style={styles.inputText}
@@ -265,7 +283,15 @@ export default function SignupScreen({ navigation, route }: Props) {
 
           <View style={styles.terms}>
             <Text style={styles.termsLine}>계속 진행하면 다음 사항에 동의하는 것입니다</Text>
-            <Text style={styles.termsLink}>서비스 이용약관 · 개인정보 처리방침</Text>
+            <Text style={styles.termsLink}>
+              <Text style={styles.termsAnchor} onPress={() => Linking.openURL(TOS_URL)}>
+                서비스 이용약관
+              </Text>
+              {' · '}
+              <Text style={styles.termsAnchor} onPress={() => Linking.openURL(PRIVACY_URL)}>
+                개인정보 처리방침
+              </Text>
+            </Text>
           </View>
         </View>
       </KeyboardAvoidingView>
@@ -370,4 +396,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 2,
   },
+  termsAnchor: { textDecorationLine: 'underline' },
 });
