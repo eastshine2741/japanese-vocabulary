@@ -12,6 +12,7 @@ import DeckDetailScreen from '../screens/DeckDetailScreen';
 import DeckWordListScreen from '../screens/DeckWordListScreen';
 import EditWordScreen from '../screens/EditWordScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import OssLicenseScreen from '../screens/OssLicenseScreen';
 
 import HomeTab from '../screens/tabs/HomeTab';
 import WordTab from '../screens/tabs/WordTab';
@@ -26,10 +27,11 @@ export type RootStackParamList = {
   Main: undefined;
   Search: undefined;
   Settings: undefined;
+  OssLicense: undefined;
   Player: { origin: string; initialSeekMs?: number; initialLyricIndex?: number };
   Review: { songId?: number | null };
-  DeckDetail: { songId: number | null };
-  DeckWordList: { songId: number | null };
+  DeckDetail: { deckId: number | null };
+  DeckWordList: { deckId: number | null };
   EditWord: {
     mode: 'edit' | 'createAndEdit';
     wordId?: number;
@@ -80,6 +82,7 @@ export default function AppNavigator({ initialRoute }: Props) {
       <Stack.Screen name="Main" component={MainTabs} />
       <Stack.Screen name="Search" component={SearchScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
+      <Stack.Screen name="OssLicense" component={OssLicenseScreen} />
       <Stack.Screen name="Player" component={PlayerScreen} options={{ presentation: 'transparentModal', animation: 'slide_from_bottom' }} />
       <Stack.Screen name="Review" component={ReviewScreen} />
       <Stack.Screen name="DeckDetail" component={DeckDetailScreen} />

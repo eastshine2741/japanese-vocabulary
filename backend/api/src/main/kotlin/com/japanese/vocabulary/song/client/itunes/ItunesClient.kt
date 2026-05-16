@@ -41,12 +41,22 @@ class ItunesClient(restClientBuilder: RestClient.Builder, objectMapper: ObjectMa
             SongSearchItem(
                 id = id,
                 title = track.trackName ?: return@mapNotNull null,
-                thumbnail = track.artworkUrl100 ?: return@mapNotNull null,
+                thumbnail = upsizeArtwork(track.artworkUrl100) ?: return@mapNotNull null,
                 artistName = track.artistName ?: return@mapNotNull null,
                 durationSeconds = (track.trackTimeMillis ?: 0) / 1000
             )
         }
 
         return SongSearchResponse(items)
+    }
+
+    // The mzstatic URL templates the size in the path, so swap 100x100 → 600x600.
+    // 100x100 from artworkUrl100 looks blurry on deck cover screens at 3x density.
+    private fun upsizeArtwork(url: String?): String? = url?.let {
+        when {
+            it.endsWith("/100x100bb.jpg") -> it.replace("/100x100bb.jpg", "/600x600bb.jpg")
+            it.endsWith("/100x100bb.png") -> it.replace("/100x100bb.png", "/600x600bb.png")
+            else -> it
+        }
     }
 }

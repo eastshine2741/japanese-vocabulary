@@ -41,6 +41,8 @@ export interface SongStudyData {
   song: SongInfo;
   studyUnits: StudyUnit[];
   youtubeUrl: string | null;
+  lyricsSourceName: string | null;
+  lyricsSourceUrl: string | null;
 }
 
 export interface RecentSongItem {

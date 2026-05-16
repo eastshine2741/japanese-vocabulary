@@ -16,6 +16,12 @@ class DeckEntity(
     @Column(name = "song_id", nullable = false)
     val songId: Long,
 
+    @Column(name = "title", nullable = false)
+    var title: String,
+
+    @Column(name = "description", nullable = false)
+    var description: String,
+
     @Column(name = "created_at")
     val createdAt: Instant = Instant.now()
 )

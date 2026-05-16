@@ -9,6 +9,7 @@ export interface YouTubePlayerRef {
   seekTo: (seconds: number) => void;
   play: () => void;
   pause: () => void;
+  setPlaybackRate: (rate: number) => void;
 }
 
 interface Props {
@@ -137,6 +138,9 @@ const YouTubePlayer = forwardRef<YouTubePlayerRef, Props>(({
     },
     pause: () => {
       webViewRef.current?.injectJavaScript(`player.pauseVideo(); true;`);
+    },
+    setPlaybackRate: (rate: number) => {
+      webViewRef.current?.injectJavaScript(`player.setPlaybackRate(${rate}); true;`);
     },
   }));
 

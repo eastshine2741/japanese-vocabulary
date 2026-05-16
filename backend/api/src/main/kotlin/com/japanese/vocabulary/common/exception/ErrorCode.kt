@@ -22,6 +22,10 @@ enum class ErrorCode(val status: HttpStatus, val message: String) {
 
     // Flashcard
     FLASHCARD_NOT_FOUND(HttpStatus.NOT_FOUND, "Flashcard not found"),
+
+    // Deck
+    DECK_NOT_FOUND(HttpStatus.NOT_FOUND, "Deck not found"),
+
     INVALID_RATING(HttpStatus.BAD_REQUEST, "Rating must be 1-4"),
 
     // Dictionary
