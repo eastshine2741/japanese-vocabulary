@@ -1,0 +1,12 @@
+# Hetzner Cloud Controller Manager (chart 1.31.0)
+#
+# networking.enabled=true → HCLOUD_NETWORK env가 hcloud Secret.network 키로부터 주입됨.
+# clusterCIDR은 k3s 기본값(10.42.0.0/16) — route controller 비활성 상태라 실제로 사용되진 않음.
+# HCLOUD_NETWORK_ROUTES_ENABLED=false → flannel VXLAN이 라우팅 담당, CCM은 라우트 미터치.
+networking:
+  enabled: true
+  clusterCIDR: 10.42.0.0/16
+
+env:
+  HCLOUD_NETWORK_ROUTES_ENABLED:
+    value: "false"

@@ -1,0 +1,6 @@
+# Hetzner CSI Driver (chart 2.21.0)
+#
+# 기본값이 우리 셋업과 맞음:
+#   - install namespace의 `hcloud` Secret.token 사용
+#   - StorageClass `hcloud-volumes`를 default로 자동 생성
+# 추가로 override할 거 없음. 파일은 자리표시 + 향후 변경 추적용으로 둠.

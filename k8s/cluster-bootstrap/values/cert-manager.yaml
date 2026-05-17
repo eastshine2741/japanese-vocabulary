@@ -1,0 +1,7 @@
+# cert-manager (chart v1.20.2)
+#
+# crds.enabled=true → 차트가 CRD를 함께 설치/관리.
+# crds.keep=true   → helm uninstall 시에도 CRD 보존 (실수로 Certificate들 같이 사라지는 사고 방지).
+crds:
+  enabled: true
+  keep: true
