@@ -1,5 +1,6 @@
 package com.japanese.vocabulary.song.service
 
+import com.japanese.vocabulary.song.dto.PartOfSpeech
 import com.japanese.vocabulary.song.dto.TokenInfo
 
 /**
@@ -16,6 +17,11 @@ import com.japanese.vocabulary.song.dto.TokenInfo
  * At each character position, picks the longer token from either analyzer.
  * This prevents UniDic's over-segmentation (どうか stays as one token from IPADic)
  * while allowing UniDic's better handling of colloquial forms (うるせえ as one token).
+ *
+ * AUXILIARY VERB EXCEPTION:
+ * When the shorter segmentation contains AUXILIARY_VERB within the longer token's span,
+ * prefer the split version. This separates verb+auxiliary combinations (e.g., 言える→言え+る)
+ * to avoid creating unnecessary verb variants as flashcards.
  *
  * KNOWN LIMITATION:
  * Least-split can incorrectly merge tokens. Example: 好きになるほど
@@ -56,6 +62,8 @@ class KuromojiEnsembleAnalyzer(
 
     /**
      * Least-split ensemble: at each character position, pick the longer token.
+     * Exception: prefer the shorter split when the other analyzer's tokens within
+     * the longer span contain AUXILIARY_VERB (to separate verb+auxiliary combinations).
      * Tie-break: prefer UniDic (better OOV/colloquial handling).
      */
     private fun leastSplit(
@@ -81,8 +89,13 @@ class KuromojiEnsembleAnalyzer(
                 else -> {
                     val iSpan = iToken.charEnd - iToken.charStart
                     val uSpan = uToken.charEnd - uToken.charStart
-                    // Prefer longer span; on tie, prefer UniDic (fallback)
-                    if (iSpan > uSpan) iToken else uToken
+                    when {
+                        iSpan > uSpan && hasAuxiliaryVerbInSpan(unidicMap, uToken.charEnd, iToken.charEnd) -> uToken
+                        uSpan > iSpan && hasAuxiliaryVerbInSpan(ipadicMap, iToken.charEnd, uToken.charEnd) -> iToken
+                        // Default: prefer longer span; on tie, prefer UniDic
+                        iSpan > uSpan -> iToken
+                        else -> uToken
+                    }
                 }
             }
 
@@ -91,5 +104,15 @@ class KuromojiEnsembleAnalyzer(
         }
 
         return result
+    }
+
+    private fun hasAuxiliaryVerbInSpan(tokenMap: Map<Int, TokenInfo>, from: Int, to: Int): Boolean {
+        var pos = from
+        while (pos < to) {
+            val token = tokenMap[pos] ?: return false
+            if (token.partOfSpeech == PartOfSpeech.AUXILIARY_VERB) return true
+            pos = token.charEnd
+        }
+        return false
     }
 }
