@@ -32,3 +32,9 @@ youtube:
 
 jwt:
   secret: ${JWT_SECRET:dev-secret-key-at-least-32-chars-long}
+
+google:
+  oauth:
+    # Web OAuth Client ID — used as audience when verifying Google ID tokens.
+    # Same value passed as @react-native-google-signin's webClientId on the app side.
+    client-id: ${GOOGLE_OAUTH_CLIENT_ID:}

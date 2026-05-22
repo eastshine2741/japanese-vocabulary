@@ -7,6 +7,9 @@ enum class ErrorCode(val status: HttpStatus, val message: String) {
     // Auth
     DUPLICATE_NAME(HttpStatus.CONFLICT, "Name already taken"),
     INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "Invalid credentials"),
+    INVALID_USERNAME(HttpStatus.BAD_REQUEST, "Username must match ^[a-z0-9_]{3,20}$"),
+    RESERVED_USERNAME(HttpStatus.BAD_REQUEST, "Username is reserved"),
+    USERNAME_TAKEN(HttpStatus.CONFLICT, "Username already taken"),
 
     // Song / Lyrics
     LYRICS_NOT_FOUND(HttpStatus.NOT_FOUND, "Could not find lyrics for this song"),

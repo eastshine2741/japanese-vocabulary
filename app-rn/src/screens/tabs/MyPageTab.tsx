@@ -1,10 +1,9 @@
-import React, { useEffect } from 'react';
+import React, { useCallback } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useShallow } from 'zustand/react/shallow';
 import { useAuthStore } from '../../stores/authStore';
 import { Colors, Dimens } from '../../theme/theme';
 import { RootStackParamList } from '../../navigation/AppNavigator';
@@ -13,20 +12,20 @@ import HeatmapSection from '../../components/studyStats/HeatmapSection';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
-const PROFILE_BIO_PLACEHOLDER = '매일 노래로 일본어 한 줄씩';
-
 export default function MyPageTab() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
-  const { userName, loadUserName } = useAuthStore(
-    useShallow((s) => ({ userName: s.userName, loadUserName: s.loadUserName })),
+  const username = useAuthStore((s) => s.username);
+  const userName = useAuthStore((s) => s.userName);
+  const loadProfile = useAuthStore((s) => s.loadProfile);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadProfile();
+    }, [loadProfile]),
   );
 
-  useEffect(() => {
-    if (!userName) loadUserName();
-  }, []);
-
-  const handle = userName ? `@${userName}` : '@user';
+  const handle = username ? `@${username}` : '@user';
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -52,12 +51,11 @@ export default function MyPageTab() {
             <Ionicons name="person" size={28} color={Colors.textMuted} />
           </View>
           <View style={styles.nameRow}>
-            <Text style={styles.profName}>{userName ?? '사용자'}</Text>
-            <Text style={styles.profBio}>{PROFILE_BIO_PLACEHOLDER}</Text>
+            {userName && <Text style={styles.profName}>{userName}</Text>}
           </View>
           <TouchableOpacity
             style={styles.editBtn}
-            onPress={() => navigation.navigate('Settings')}
+            onPress={() => navigation.navigate('ProfileEdit')}
             activeOpacity={0.7}
           >
             <Feather name="edit-2" size={16} color={Colors.textSecondary} />
@@ -122,10 +120,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '800',
     color: Colors.textPrimary,
-  },
-  profBio: {
-    fontSize: 13,
-    color: Colors.textSecondary,
   },
   editBtn: {
     width: 36,

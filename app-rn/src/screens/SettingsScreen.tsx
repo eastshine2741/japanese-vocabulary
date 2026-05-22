@@ -12,14 +12,15 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Slider from '@react-native-community/slider';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, Feather } from '@expo/vector-icons';
 import { useNavigation, CommonActions } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useShallow } from 'zustand/react/shallow';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { useSettingsStore } from '../stores/settingsStore';
 import { tokenStorage } from '../utils/tokenStorage';
 import { resetAllStores } from '../utils/resetAllStores';
-import { Colors, Dimens } from '../theme/theme';
+import { Colors } from '../theme/theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import ServerURLDialog from '../components/ServerURLDialog';
 import { TOS_URL, PRIVACY_URL, buildReportMailto } from '../config/legal';
@@ -93,9 +94,14 @@ export default function SettingsScreen() {
   }, [dailyGoalText, dailyGoal, setDailyGoal, debouncedSave]);
 
   const handleLogout = async () => {
+    try {
+      await GoogleSignin.signOut();
+    } catch {
+      // ignore — proceed with local logout even if Google session clear fails
+    }
     await tokenStorage.clearToken();
-    resetAllStores();
     navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'Login' }] }));
+    requestAnimationFrame(() => resetAllStores());
   };
 
   if (status === 'loading') {
@@ -118,52 +124,31 @@ export default function SettingsScreen() {
         <View style={styles.backBtn} />
       </View>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
-        <Text style={styles.sectionLabel}>계정 관리</Text>
-        <View style={styles.menuCard}>
-          <TouchableOpacity style={styles.menuItem} activeOpacity={0.7}>
-            <Ionicons name="person-outline" size={20} color={Colors.textPrimary} />
-            <Text style={styles.menuItemLabel}>프로필 수정</Text>
-            <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.menuItem} activeOpacity={0.7}>
-            <Ionicons name="lock-closed-outline" size={20} color={Colors.textPrimary} />
-            <Text style={styles.menuItemLabel}>비밀번호 변경</Text>
-            <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
-          </TouchableOpacity>
-        </View>
-
-        <Text style={styles.sectionLabel}>학습 설정</Text>
-        <View style={styles.settingsCard}>
-          <View style={styles.settingBlock}>
-            <View style={styles.settingRow}>
-              <View style={styles.settingTextBlock}>
-                <Text style={styles.settingLabel}>일일 목표</Text>
-                <Text style={styles.settingDescription}>
-                  매일 리뷰할 카드 수 목표입니다. 주간 차트와 히트맵에 반영됩니다.
-                </Text>
-              </View>
-              <TextInput
-                style={styles.dailyGoalInput}
-                value={dailyGoalText}
-                onChangeText={handleDailyGoalTextChange}
-                onBlur={handleDailyGoalCommit}
-                onSubmitEditing={handleDailyGoalCommit}
-                keyboardType="number-pad"
-                returnKeyType="done"
-                maxLength={5}
-                selectTextOnFocus
-              />
+        <Section title="학습 설정">
+          <View style={styles.row}>
+            <View style={styles.rowText}>
+              <Text style={styles.label}>일일 목표</Text>
+              <Text style={styles.description}>매일 리뷰할 카드 수 목표예요. 주간 차트와 히트맵에 반영돼요.</Text>
             </View>
+            <TextInput
+              style={styles.numberInput}
+              value={dailyGoalText}
+              onChangeText={handleDailyGoalTextChange}
+              onBlur={handleDailyGoalCommit}
+              onSubmitEditing={handleDailyGoalCommit}
+              keyboardType="number-pad"
+              returnKeyType="done"
+              maxLength={5}
+              selectTextOnFocus
+            />
           </View>
 
-          <View style={styles.settingBlock}>
-            <View style={styles.settingRow}>
-              <Text style={styles.settingLabel}>목표 Retrievability</Text>
+          <View style={styles.block}>
+            <View style={styles.rowInline}>
+              <Text style={styles.label}>목표 Retrievability</Text>
               <Text style={styles.retrievabilityValue}>{requestRetention.toFixed(2)}</Text>
             </View>
-            <Text style={styles.settingDescription}>
-              FSRS 알고리즘의 목표 기억 유지율입니다. 높을수록 복습 주기가 짧아집니다.
-            </Text>
+            <Text style={styles.description}>FSRS 알고리즘의 목표 기억 유지율이에요. 높을수록 복습 주기가 짧아져요.</Text>
             <Slider
               style={styles.slider}
               minimumValue={0.70}
@@ -177,24 +162,22 @@ export default function SettingsScreen() {
             />
           </View>
 
-          <View style={styles.settingBlock}>
-            <View style={styles.settingRow}>
-              <View style={styles.settingTextBlock}>
-                <Text style={styles.settingLabel}>다음 복습 시점 노출</Text>
-                <Text style={styles.settingDescription}>카드 선택지에 다음 복습 예정일을 표시합니다</Text>
-              </View>
-              <Switch
-                value={showIntervals}
-                onValueChange={handleShowIntervalsChange}
-                trackColor={{ true: Colors.stateRetrievability, false: Colors.border }}
-                thumbColor={Colors.surface}
-              />
+          <View style={styles.row}>
+            <View style={styles.rowText}>
+              <Text style={styles.label}>다음 복습 시점 노출</Text>
+              <Text style={styles.description}>카드 선택지에 다음 복습 예정일을 표시해요.</Text>
             </View>
+            <Switch
+              value={showIntervals}
+              onValueChange={handleShowIntervalsChange}
+              trackColor={{ true: Colors.stateRetrievability, false: Colors.border }}
+              thumbColor={Colors.surface}
+            />
           </View>
 
-          <View style={styles.settingBlock}>
-            <Text style={styles.settingLabel}>읽기 표기 방식</Text>
-            <Text style={styles.settingDescription}>단어의 읽기(발음)를 어떤 문자로 표시할지 선택합니다</Text>
+          <View style={styles.block}>
+            <Text style={styles.label}>읽기 표기 방식</Text>
+            <Text style={styles.description}>단어의 읽기(발음)를 어떤 문자로 표시할지 선택해요.</Text>
             <View style={styles.readingOptions}>
               {(['KATAKANA', 'HIRAGANA', 'KOREAN'] as const).map((opt) => (
                 <TouchableOpacity
@@ -211,36 +194,32 @@ export default function SettingsScreen() {
             </View>
           </View>
 
-          <View style={styles.settingBlock}>
-            <View style={styles.settingRow}>
-              <View style={styles.settingTextBlock}>
-                <Text style={styles.settingLabel}>후리가나 표시</Text>
-                <Text style={styles.settingDescription}>재생 화면에서 한자 위에 히라가나 읽기를 표시합니다</Text>
-              </View>
-              <Switch
-                value={showFurigana}
-                onValueChange={handleShowFuriganaChange}
-                trackColor={{ true: Colors.stateRetrievability, false: Colors.border }}
-                thumbColor={Colors.surface}
-              />
+          <View style={styles.row}>
+            <View style={styles.rowText}>
+              <Text style={styles.label}>후리가나 표시</Text>
+              <Text style={styles.description}>재생 화면에서 한자 위에 히라가나 읽기를 표시해요.</Text>
             </View>
+            <Switch
+              value={showFurigana}
+              onValueChange={handleShowFuriganaChange}
+              trackColor={{ true: Colors.stateRetrievability, false: Colors.border }}
+              thumbColor={Colors.surface}
+            />
           </View>
 
-          <View style={styles.settingBlock}>
-            <View style={styles.settingRow}>
-              <View style={styles.settingTextBlock}>
-                <Text style={styles.settingLabel}>한국어 발음 표시</Text>
-                <Text style={styles.settingDescription}>재생 화면에서 가사의 한국어 발음을 표시합니다</Text>
-              </View>
-              <Switch
-                value={showKoreanPronunciation}
-                onValueChange={handleShowKoreanPronunciationChange}
-                trackColor={{ true: Colors.stateRetrievability, false: Colors.border }}
-                thumbColor={Colors.surface}
-              />
+          <View style={styles.row}>
+            <View style={styles.rowText}>
+              <Text style={styles.label}>한국어 발음 표시</Text>
+              <Text style={styles.description}>재생 화면에서 가사의 한국어 발음을 표시해요.</Text>
             </View>
+            <Switch
+              value={showKoreanPronunciation}
+              onValueChange={handleShowKoreanPronunciationChange}
+              trackColor={{ true: Colors.stateRetrievability, false: Colors.border }}
+              thumbColor={Colors.surface}
+            />
           </View>
-        </View>
+        </Section>
 
         {isSaving && (
           <View style={styles.savingIndicator}>
@@ -249,38 +228,41 @@ export default function SettingsScreen() {
           </View>
         )}
 
-        <Text style={styles.sectionLabel}>서버 설정</Text>
-        <View style={styles.menuCard}>
-          <TouchableOpacity style={styles.menuItem} activeOpacity={0.7} onPress={() => setShowServerDialog(true)}>
-            <Ionicons name="server-outline" size={20} color={Colors.textPrimary} />
-            <Text style={styles.menuItemLabel}>Backend URL</Text>
-            <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
-          </TouchableOpacity>
-        </View>
+        <Section title="서버 설정">
+          <MenuRow
+            icon={<Ionicons name="server-outline" size={20} color={Colors.textPrimary} />}
+            label="Backend URL"
+            onPress={() => setShowServerDialog(true)}
+            trailing={<Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />}
+          />
+        </Section>
 
-        <Text style={styles.sectionLabel}>법적 고지</Text>
-        <View style={styles.menuCard}>
-          <TouchableOpacity style={styles.menuItem} activeOpacity={0.7} onPress={() => Linking.openURL(TOS_URL)}>
-            <Ionicons name="document-text-outline" size={20} color={Colors.textPrimary} />
-            <Text style={styles.menuItemLabel}>이용약관</Text>
-            <Ionicons name="open-outline" size={16} color={Colors.textMuted} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.menuItem} activeOpacity={0.7} onPress={() => Linking.openURL(PRIVACY_URL)}>
-            <Ionicons name="shield-checkmark-outline" size={20} color={Colors.textPrimary} />
-            <Text style={styles.menuItemLabel}>개인정보처리방침</Text>
-            <Ionicons name="open-outline" size={16} color={Colors.textMuted} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.menuItem} activeOpacity={0.7} onPress={() => navigation.navigate('OssLicense')}>
-            <Ionicons name="cube-outline" size={20} color={Colors.textPrimary} />
-            <Text style={styles.menuItemLabel}>오픈소스 라이선스</Text>
-            <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.menuItem} activeOpacity={0.7} onPress={() => Linking.openURL(buildReportMailto())}>
-            <Ionicons name="flag-outline" size={20} color={Colors.textPrimary} />
-            <Text style={styles.menuItemLabel}>권리자 신고</Text>
-            <Ionicons name="mail-outline" size={16} color={Colors.textMuted} />
-          </TouchableOpacity>
-        </View>
+        <Section title="법적 고지">
+          <MenuRow
+            icon={<Ionicons name="document-text-outline" size={20} color={Colors.textPrimary} />}
+            label="이용약관"
+            onPress={() => Linking.openURL(TOS_URL)}
+            trailing={<Feather name="external-link" size={16} color={Colors.textMuted} />}
+          />
+          <MenuRow
+            icon={<Ionicons name="shield-checkmark-outline" size={20} color={Colors.textPrimary} />}
+            label="개인정보처리방침"
+            onPress={() => Linking.openURL(PRIVACY_URL)}
+            trailing={<Feather name="external-link" size={16} color={Colors.textMuted} />}
+          />
+          <MenuRow
+            icon={<Ionicons name="cube-outline" size={20} color={Colors.textPrimary} />}
+            label="오픈소스 라이선스"
+            onPress={() => navigation.navigate('OssLicense')}
+            trailing={<Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />}
+          />
+          <MenuRow
+            icon={<Ionicons name="flag-outline" size={20} color={Colors.textPrimary} />}
+            label="권리자 신고"
+            onPress={() => Linking.openURL(buildReportMailto())}
+            trailing={<Ionicons name="mail-outline" size={16} color={Colors.textMuted} />}
+          />
+        </Section>
 
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.7}>
           <Text style={styles.logoutText}>로그아웃</Text>
@@ -291,59 +273,90 @@ export default function SettingsScreen() {
   );
 }
 
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <View style={styles.section}>
+      <Text style={styles.sectionLabel}>{title}</Text>
+      <View>{children}</View>
+    </View>
+  );
+}
+
+interface MenuRowProps {
+  icon: React.ReactNode;
+  label: string;
+  onPress: () => void;
+  trailing?: React.ReactNode;
+}
+
+function MenuRow({ icon, label, onPress, trailing }: MenuRowProps) {
+  return (
+    <TouchableOpacity style={styles.menuRow} onPress={onPress} activeOpacity={0.6}>
+      {icon}
+      <Text style={styles.menuLabel}>{label}</Text>
+      {trailing}
+    </TouchableOpacity>
+  );
+}
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.card },
+  container: { flex: 1, backgroundColor: Colors.background },
   scrollView: { flex: 1 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  content: { padding: 12, paddingBottom: 40, gap: 12 },
+  content: { paddingHorizontal: 24, paddingBottom: 40, gap: 28 },
 
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: Colors.card,
+    paddingTop: 8,
+    paddingBottom: 12,
+    backgroundColor: Colors.background,
   },
   backBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { fontSize: 17, fontWeight: '700', color: Colors.textPrimary },
+  headerTitle: { fontSize: 20, fontWeight: '700', color: Colors.textPrimary },
 
-  sectionLabel: {
-    fontSize: 13,
-    color: Colors.textMuted,
-    marginTop: 4,
-    marginBottom: -4,
-    marginLeft: 4,
+  section: { gap: 8 },
+  sectionLabel: { fontSize: 17, fontWeight: '700', color: Colors.textPrimary, marginBottom: 4 },
+
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    gap: 12,
   },
-  menuCard: { backgroundColor: Colors.background, borderRadius: 24, overflow: 'hidden' },
-  menuItem: { flexDirection: 'row', alignItems: 'center', padding: 16 },
-  menuItemLabel: { flex: 1, fontSize: 15, color: Colors.textPrimary, marginLeft: 12 },
-
-  settingsCard: { backgroundColor: Colors.background, borderRadius: 24, overflow: 'hidden' },
-  settingBlock: { padding: 16 },
-  settingRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  settingTextBlock: { flex: 1, marginRight: 12 },
-  settingLabel: { fontSize: 15, fontWeight: '500', color: Colors.textPrimary },
-  settingDescription: { fontSize: 12, color: Colors.textMuted, marginTop: 4, lineHeight: 17 },
+  rowInline: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  rowText: { flex: 1 },
+  block: { paddingVertical: 14, gap: 6 },
+  label: { fontSize: 15, fontWeight: '500', color: Colors.textPrimary },
+  description: { fontSize: 12, color: Colors.textMuted, lineHeight: 17 },
   retrievabilityValue: { fontSize: 15, fontWeight: '600', color: Colors.stateRetrievability },
-  slider: { marginTop: 12, marginHorizontal: -4 },
+  slider: { marginTop: 8, marginHorizontal: -4 },
 
-  dailyGoalInput: {
+  numberInput: {
     minWidth: 64, paddingHorizontal: 12, paddingVertical: 8,
     borderRadius: 12, backgroundColor: Colors.card,
     fontSize: 16, fontWeight: '700', color: Colors.textPrimary,
     textAlign: 'center', fontVariant: ['tabular-nums'],
   },
 
-  savingIndicator: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 12 },
+  savingIndicator: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
   savingText: { fontSize: 12, color: Colors.textMuted, marginLeft: 6 },
 
-  readingOptions: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  readingOptions: { flexDirection: 'row', gap: 8, marginTop: 8 },
   readingOption: { flex: 1, paddingVertical: 10, borderRadius: 12, backgroundColor: Colors.card, alignItems: 'center' },
   readingOptionActive: { backgroundColor: Colors.primary },
   readingOptionText: { fontSize: 14, fontWeight: '500', color: Colors.textSecondary },
   readingOptionTextActive: { color: '#FFFFFF' },
 
-  logoutButton: { alignItems: 'center', marginTop: 40, paddingVertical: 12 },
+  menuRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingVertical: 14,
+  },
+  menuLabel: { flex: 1, fontSize: 15, color: Colors.textPrimary },
+
+  logoutButton: { alignItems: 'center', marginTop: 20, paddingVertical: 12 },
   logoutText: { fontSize: 14, color: Colors.textMuted },
 });

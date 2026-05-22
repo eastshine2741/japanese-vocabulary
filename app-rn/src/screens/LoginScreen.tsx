@@ -1,140 +1,162 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  StyleSheet,
-} from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, ActivityIndicator, Linking, Pressable, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useShallow } from 'zustand/react/shallow';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../stores/authStore';
-import { Colors, Dimens } from '../theme/theme';
+import { TOS_URL, PRIVACY_URL } from '../config/legal';
+import { Colors } from '../theme/theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import ServerURLDialog from '../components/ServerURLDialog';
+import BrandMark from '../components/BrandMark';
+import GoogleLogo from '../components/GoogleLogo';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
 export default function LoginScreen({ navigation }: Props) {
-  const [name, setName] = useState('');
-  const [password, setPassword] = useState('');
-  const [isSignup, setIsSignup] = useState(false);
   const [showServerModal, setShowServerModal] = useState(false);
-  const { status, error, login, signup, reset } = useAuthStore(
-    useShallow(s => ({ status: s.status, error: s.error, login: s.login, signup: s.signup, reset: s.reset })),
+  const { status, error, pendingIdentity, pendingIdToken, googleLogin, reset } = useAuthStore(
+    useShallow((s) => ({
+      status: s.status,
+      error: s.error,
+      pendingIdentity: s.pendingIdentity,
+      pendingIdToken: s.pendingIdToken,
+      googleLogin: s.googleLogin,
+      reset: s.reset,
+    })),
   );
 
   useEffect(() => {
     if (status === 'success') {
       reset();
       navigation.replace('Main');
+    } else if (status === 'needs_signup' && pendingIdToken) {
+      navigation.replace('Signup', {
+        idToken: pendingIdToken,
+        email: pendingIdentity?.email ?? null,
+        googleName: pendingIdentity?.name ?? null,
+      });
     }
   }, [status]);
 
-  const handleSubmit = () => {
-    if (!name.trim() || !password.trim()) return;
-    if (isSignup) {
-      signup(name.trim(), password);
-    } else {
-      login(name.trim(), password);
+  const handleGoogleLogin = async () => {
+    try {
+      await GoogleSignin.hasPlayServices();
+      const result = await GoogleSignin.signIn();
+      const idToken = (result as any)?.data?.idToken ?? (result as any)?.idToken;
+      if (!idToken) return;
+      await googleLogin(idToken);
+    } catch {
+      // user cancel or platform error — surface via store, retry available
     }
   };
 
+  const loading = status === 'loading';
+
   return (
     <SafeAreaView style={styles.container}>
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <View style={styles.content}>
-        <Text style={styles.title}>うたことば</Text>
-        <Pressable onLongPress={() => setShowServerModal(true)}>
-          <Text style={styles.subtitle}>Learn Japanese through songs</Text>
+      <View style={styles.topPad} />
+      <View style={styles.hero}>
+        <Pressable onLongPress={() => setShowServerModal(true)} style={styles.brandStack}>
+          <BrandMark size={96} />
+          <View style={styles.nameStack}>
+            <Text style={styles.title}>Kotonoha</Text>
+            <Text style={styles.kanji}>言の葉</Text>
+          </View>
         </Pressable>
+        <Text style={styles.tagline}>노래로 배우는 일본어</Text>
 
         <ServerURLDialog visible={showServerModal} onClose={() => setShowServerModal(false)} />
-
-        <TextInput
-          style={styles.input}
-          placeholder="Username"
-          placeholderTextColor={Colors.textTertiary}
-          value={name}
-          onChangeText={setName}
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Password"
-          placeholderTextColor={Colors.textTertiary}
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-        />
-
-        {error && <Text style={styles.error}>{error}</Text>}
-
-        <TouchableOpacity
-          style={[styles.button, status === 'loading' && styles.buttonDisabled]}
-          onPress={handleSubmit}
-          disabled={status === 'loading'}
-          activeOpacity={0.7}
-        >
-          {status === 'loading' ? (
-            <ActivityIndicator color="#FFF" />
-          ) : (
-            <Text style={styles.buttonText}>{isSignup ? 'Sign Up' : 'Log In'}</Text>
-          )}
-        </TouchableOpacity>
-
-        <TouchableOpacity onPress={() => { setIsSignup(!isSignup); reset(); }}>
-          <Text style={styles.toggle}>
-            {isSignup ? 'Already have an account? Log in' : "Don't have an account? Sign up"}
-          </Text>
-        </TouchableOpacity>
       </View>
-    </KeyboardAvoidingView>
+      <View style={styles.spacer} />
+
+      <View style={styles.footer}>
+        {error && <Text style={styles.error}>{error}</Text>}
+        <Pressable
+          onPress={loading ? undefined : handleGoogleLogin}
+          disabled={loading}
+          style={({ pressed }) => [styles.googleBtn, pressed && styles.googleBtnPressed]}
+        >
+          {loading ? (
+            <ActivityIndicator color={Colors.primary} />
+          ) : (
+            <>
+              <GoogleLogo size={20} />
+              <Text style={styles.googleLabel}>Google 계정으로 계속하기</Text>
+            </>
+          )}
+        </Pressable>
+
+        <View style={styles.terms}>
+          <Text style={styles.termsLine}>계속 진행하면 다음 사항에 동의하는 것입니다</Text>
+          <Text style={styles.termsLink}>
+            <Text style={styles.termsAnchor} onPress={() => Linking.openURL(TOS_URL)}>
+              서비스 이용약관
+            </Text>
+            {' · '}
+            <Text style={styles.termsAnchor} onPress={() => Linking.openURL(PRIVACY_URL)}>
+              개인정보 처리방침
+            </Text>
+          </Text>
+        </View>
+      </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  flex: { flex: 1 },
-  content: { flex: 1, justifyContent: 'center', paddingHorizontal: 32 },
-  title: { fontSize: 32, fontWeight: '700', color: Colors.primary, textAlign: 'center' },
-  subtitle: {
-    fontSize: 15,
+  topPad: { height: 168 },
+  hero: {
+    alignItems: 'center',
+    paddingHorizontal: 32,
+    gap: 20,
+  },
+  spacer: { flex: 1 },
+  brandStack: { alignItems: 'center' },
+  nameStack: { alignItems: 'center', marginTop: 12, gap: 8 },
+  title: { fontSize: 38, fontWeight: '700', color: Colors.textPrimary, letterSpacing: -0.5 },
+  kanji: {
+    fontSize: 18,
+    fontWeight: '500',
+    color: Colors.textSecondary,
+    letterSpacing: 2,
+  },
+  tagline: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: Colors.textMuted,
+  },
+  footer: { paddingHorizontal: 24, paddingBottom: 40, gap: 14 },
+  error: { color: Colors.ratingAgain, textAlign: 'center', fontSize: 13 },
+  googleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    height: 52,
+    borderRadius: 9999,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: Colors.border,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  googleBtnPressed: { opacity: 0.85 },
+  googleLabel: { fontSize: 15, fontWeight: '600', color: Colors.textPrimary },
+  terms: { alignItems: 'center', marginTop: 6 },
+  termsLine: { fontSize: 12, color: Colors.textMuted, textAlign: 'center' },
+  termsLink: {
+    fontSize: 12,
+    fontWeight: '500',
     color: Colors.textSecondary,
     textAlign: 'center',
-    marginTop: 8,
-    marginBottom: 40,
+    marginTop: 2,
   },
-  input: {
-    backgroundColor: Colors.surface,
-    borderRadius: Dimens.smallCornerRadius,
-    borderWidth: 1,
-    borderColor: Colors.cardBorder,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    color: Colors.textPrimary,
-    marginBottom: 12,
-  },
-  error: { color: Colors.ratingAgain, textAlign: 'center', marginBottom: 12, fontSize: 13 },
-  button: {
-    backgroundColor: Colors.primary,
-    borderRadius: 10,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: '#FFF', fontWeight: '600', fontSize: 16 },
-  toggle: { color: Colors.primary, textAlign: 'center', marginTop: 20, fontSize: 14 },
+  termsAnchor: { textDecorationLine: 'underline' },
 });

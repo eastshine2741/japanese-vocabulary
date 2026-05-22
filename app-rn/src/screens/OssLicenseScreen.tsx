@@ -20,11 +20,9 @@ function Row({ entry }: { entry: OssEntry }) {
       activeOpacity={0.6}
       onPress={() => Linking.openURL(entry.url)}
     >
-      <View style={styles.rowMain}>
-        <Text style={styles.rowName} numberOfLines={1}>{entry.name}</Text>
-        <Text style={styles.rowLicense}>{entry.license}</Text>
-      </View>
-      <Feather name="external-link" size={14} color={Colors.textMuted} style={styles.rowIcon} />
+      <Text style={styles.rowName} numberOfLines={1}>{entry.name}</Text>
+      <Text style={styles.rowLicense}>{entry.license}</Text>
+      <Feather name="external-link" size={14} color={Colors.textMuted} />
     </TouchableOpacity>
   );
 }
@@ -43,24 +41,22 @@ export default function OssLicenseScreen() {
       </View>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
-        <Text style={styles.sectionLabel}>외부 서비스 / 데이터 출처</Text>
-        <View style={styles.card}>
-          {EXTERNAL_SERVICES.map((entry, i) => (
-            <View key={entry.name}>
-              {i > 0 && <View style={styles.divider} />}
-              <Row entry={entry} />
-            </View>
-          ))}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>외부 서비스 / 데이터 출처</Text>
+          <View>
+            {EXTERNAL_SERVICES.map((entry) => (
+              <Row key={entry.name} entry={entry} />
+            ))}
+          </View>
         </View>
 
-        <Text style={[styles.sectionLabel, { marginTop: 24 }]}>프론트엔드 오픈소스</Text>
-        <View style={styles.card}>
-          {FRONTEND_OSS.map((entry, i) => (
-            <View key={entry.name}>
-              {i > 0 && <View style={styles.divider} />}
-              <Row entry={entry} />
-            </View>
-          ))}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>프론트엔드 라이브러리</Text>
+          <View>
+            {FRONTEND_OSS.map((entry) => (
+              <Row key={entry.name} entry={entry} />
+            ))}
+          </View>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -68,36 +64,31 @@ export default function OssLicenseScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.card },
+  container: { flex: 1, backgroundColor: Colors.background },
   scrollView: { flex: 1 },
-  content: { padding: 12, paddingBottom: 40, gap: 4 },
+  content: { paddingHorizontal: 24, paddingBottom: 40, gap: 28 },
 
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: Colors.card,
+    paddingTop: 8,
+    paddingBottom: 12,
+    backgroundColor: Colors.background,
   },
   backBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { fontSize: 17, fontWeight: '700', color: Colors.textPrimary },
+  headerTitle: { fontSize: 20, fontWeight: '700', color: Colors.textPrimary },
 
-  sectionLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-    marginTop: 4,
-    marginLeft: 4,
-    marginBottom: 8,
+  section: { gap: 8 },
+  sectionLabel: { fontSize: 17, fontWeight: '700', color: Colors.textPrimary, marginBottom: 4 },
+
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 12,
   },
-
-  card: { backgroundColor: Colors.background, borderRadius: 16, overflow: 'hidden' },
-  divider: { height: 1, backgroundColor: Colors.border, marginLeft: 16 },
-
-  row: { paddingVertical: 14, paddingHorizontal: 16 },
-  rowMain: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingRight: 22 },
   rowName: { flex: 1, fontSize: 14, fontWeight: '600', color: Colors.textPrimary },
   rowLicense: { fontSize: 12, fontWeight: '500', color: Colors.textSecondary },
-  rowIcon: { position: 'absolute', right: 14, top: 16 },
 });
