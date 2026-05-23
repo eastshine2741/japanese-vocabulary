@@ -16,10 +16,12 @@ if [[ "$DEPLOY_ENV" == "prod" ]]; then
   EXPECTED_CONTEXT="kotonoha-prod"
   NS="kotonoha"
   ENV_FILE="$PROJECT_ROOT/.env.prod"
+  K8S_DIR="$PROJECT_ROOT/k8s/prod"
 elif [[ "$DEPLOY_ENV" == "dev" ]]; then
   EXPECTED_CONTEXT="default"
   ENV_FILE="$PROJECT_ROOT/.env"
   IMAGE_PREFIX="japanese-vocabulary"
+  K8S_DIR="$PROJECT_ROOT/k8s/dev"
 else
   echo "Error: invalid DEPLOY_ENV '$DEPLOY_ENV' (expected: dev | prod)" >&2
   exit 1
@@ -156,10 +158,10 @@ fi
 # --- 5. (dev) 매니페스트 적용 ---
 STEP_START=$SECONDS
 echo "[apply] infra (mysql + redis)..."
-envsubst < "$PROJECT_ROOT/k8s/mysql/secret.template.yaml" | kubectl apply -n "$NS" -f -
-kubectl apply -n "$NS" -f "$PROJECT_ROOT/k8s/mysql/statefulset.yaml"
-kubectl apply -n "$NS" -f "$PROJECT_ROOT/k8s/mysql/service.yaml"
-kubectl apply -n "$NS" -f "$PROJECT_ROOT/k8s/redis/"
+envsubst < "$K8S_DIR/mysql/secret.template.yaml" | kubectl apply -n "$NS" -f -
+kubectl apply -n "$NS" -f "$K8S_DIR/mysql/statefulset.yaml"
+kubectl apply -n "$NS" -f "$K8S_DIR/mysql/service.yaml"
+kubectl apply -n "$NS" -f "$K8S_DIR/redis/"
 echo "  → $((SECONDS - STEP_START))s"
 
 # --- 6. DB 마이그레이션 ---
@@ -167,22 +169,22 @@ STEP_START=$SECONDS
 echo "[migration] running..."
 kubectl rollout status -n "$NS" statefulset/mysql --timeout=120s
 kubectl delete job migration -n "$NS" --ignore-not-found
-envsubst < "$PROJECT_ROOT/k8s/migration/job.yaml" | kubectl apply -n "$NS" -f -
+envsubst < "$K8S_DIR/migration/job.yaml" | kubectl apply -n "$NS" -f -
 kubectl wait --for=condition=complete -n "$NS" job/migration --timeout=120s
 echo "  → $((SECONDS - STEP_START))s"
 
 # --- 7. API + Batch ---
 STEP_START=$SECONDS
 echo "[apply] api + batch..."
-envsubst < "$PROJECT_ROOT/k8s/api/secret.template.yaml" | kubectl apply -n "$NS" -f -
-envsubst < "$PROJECT_ROOT/k8s/api/configmap.yaml" | kubectl apply -n "$NS" -f -
-envsubst < "$PROJECT_ROOT/k8s/api/deployment.yaml" | kubectl apply -n "$NS" -f -
-kubectl apply -n "$NS" -f "$PROJECT_ROOT/k8s/api/service.yaml"
-envsubst < "$PROJECT_ROOT/k8s/api/ingress.yaml" | kubectl apply -n "$NS" -f -
+envsubst < "$K8S_DIR/api/secret.template.yaml" | kubectl apply -n "$NS" -f -
+envsubst < "$K8S_DIR/api/configmap.yaml" | kubectl apply -n "$NS" -f -
+envsubst < "$K8S_DIR/api/deployment.yaml" | kubectl apply -n "$NS" -f -
+kubectl apply -n "$NS" -f "$K8S_DIR/api/service.yaml"
+envsubst < "$K8S_DIR/api/ingress.yaml" | kubectl apply -n "$NS" -f -
 
-envsubst < "$PROJECT_ROOT/k8s/batch/secret.template.yaml" | kubectl apply -n "$NS" -f -
-envsubst < "$PROJECT_ROOT/k8s/batch/configmap.yaml" | kubectl apply -n "$NS" -f -
-envsubst < "$PROJECT_ROOT/k8s/batch/deployment.yaml" | kubectl apply -n "$NS" -f -
+envsubst < "$K8S_DIR/batch/secret.template.yaml" | kubectl apply -n "$NS" -f -
+envsubst < "$K8S_DIR/batch/configmap.yaml" | kubectl apply -n "$NS" -f -
+envsubst < "$K8S_DIR/batch/deployment.yaml" | kubectl apply -n "$NS" -f -
 echo "  → $((SECONDS - STEP_START))s"
 
 # --- 8. 롤아웃 대기 ---
