@@ -22,11 +22,6 @@ export default {
     orientation: 'portrait',
     icon: './assets/icon.png',
     userInterfaceStyle: 'light',
-    splash: {
-      image: './assets/splash-icon.png',
-      resizeMode: 'contain',
-      backgroundColor: '#ffffff',
-    },
     ios: {
       supportsTablet: true,
     },
@@ -47,6 +42,14 @@ export default {
     plugins: [
       './plugins/withReleaseSigning',
       '@react-native-google-signin/google-signin',
+      [
+        'expo-splash-screen',
+        {
+          image: './assets/splash-icon.png',
+          resizeMode: 'contain',
+          backgroundColor: '#ffffff',
+        },
+      ],
     ],
   },
 };
