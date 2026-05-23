@@ -34,4 +34,11 @@ export const wordApi = {
     });
     return resp.status === 204 ? null : resp.data;
   },
+
+  async getById(id: number): Promise<WordDetailResponse | null> {
+    const resp = await client.get<WordDetailResponse>(`/api/words/${id}`, {
+      validateStatus: (s) => s === 200 || s === 404,
+    });
+    return resp.status === 404 ? null : resp.data;
+  },
 };
