@@ -1334,10 +1334,11 @@
           "id": "PAnhZ",
           "name": "header",
           "width": "fill_container",
-          "height": 48,
           "padding": [
-            0,
-            20
+            8,
+            16,
+            12,
+            16
           ],
           "alignItems": "center",
           "children": [
@@ -1346,7 +1347,7 @@
               "id": "QLKqk",
               "name": "navRow",
               "width": "fill_container",
-              "gap": 4,
+              "gap": 8,
               "alignItems": "center",
               "children": [
                 {
@@ -1365,9 +1366,9 @@
                   "name": "navTitle",
                   "fill": "$text-primary",
                   "content": "夜に駆ける",
-                  "fontFamily": "Inter",
-                  "fontSize": 16,
-                  "fontWeight": "600"
+                  "fontFamily": "$font.headings",
+                  "fontSize": 20,
+                  "fontWeight": "700"
                 }
               ]
             }
@@ -1480,17 +1481,6 @@
                       ]
                     },
                     {
-                      "id": "QBnZX",
-                      "type": "ref",
-                      "ref": "ABLIv",
-                      "name": "j1",
-                      "descendants": {
-                        "YtXmd": {
-                          "content": "N3"
-                        }
-                      }
-                    },
-                    {
                       "type": "icon_font",
                       "id": "itOw7",
                       "name": "chev1",
@@ -1499,6 +1489,47 @@
                       "iconFontName": "chevron-up",
                       "iconFontFamily": "lucide",
                       "fill": "$text-muted"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "b83Jj",
+                      "name": "pos",
+                      "fill": {
+                        "type": "gradient",
+                        "gradientType": "linear",
+                        "enabled": true,
+                        "opacity": 0.2,
+                        "rotation": 0,
+                        "size": {
+                          "height": 1
+                        },
+                        "colors": [
+                          {
+                            "color": "$pos-verb",
+                            "position": 0
+                          },
+                          {
+                            "color": "$pos-verb",
+                            "position": 1
+                          }
+                        ]
+                      },
+                      "cornerRadius": 9999,
+                      "padding": [
+                        4,
+                        8
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "H0tnoW",
+                          "fill": "$pos-verb",
+                          "content": "동사",
+                          "fontFamily": "$font.captions",
+                          "fontSize": 11,
+                          "fontWeight": "600"
+                        }
+                      ]
                     }
                   ]
                 },
@@ -1817,31 +1848,6 @@
                   ]
                 },
                 {
-                  "type": "frame",
-                  "id": "wWdJV",
-                  "name": "w2b",
-                  "fill": "$jlpt-n2",
-                  "cornerRadius": 6,
-                  "padding": [
-                    3,
-                    8
-                  ],
-                  "justifyContent": "center",
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "rhSLJ",
-                      "name": "w2l",
-                      "fill": "#FFFFFF",
-                      "content": "N2",
-                      "fontFamily": "Inter",
-                      "fontSize": 10,
-                      "fontWeight": "700"
-                    }
-                  ]
-                },
-                {
                   "type": "icon_font",
                   "id": "v4OFr",
                   "name": "chev2",
@@ -1850,6 +1856,47 @@
                   "iconFontName": "chevron-down",
                   "iconFontFamily": "lucide",
                   "fill": "$text-muted"
+                },
+                {
+                  "type": "frame",
+                  "id": "veUov",
+                  "name": "pos",
+                  "fill": {
+                    "type": "gradient",
+                    "gradientType": "linear",
+                    "enabled": true,
+                    "opacity": 0.2,
+                    "rotation": 0,
+                    "size": {
+                      "height": 1
+                    },
+                    "colors": [
+                      {
+                        "color": "$pos-verb",
+                        "position": 0
+                      },
+                      {
+                        "color": "$pos-verb",
+                        "position": 1
+                      }
+                    ]
+                  },
+                  "cornerRadius": 9999,
+                  "padding": [
+                    4,
+                    8
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "PJyLz",
+                      "fill": "$pos-verb",
+                      "content": "동사",
+                      "fontFamily": "$font.captions",
+                      "fontSize": 11,
+                      "fontWeight": "600"
+                    }
+                  ]
                 }
               ]
             },
@@ -1932,31 +1979,6 @@
                   ]
                 },
                 {
-                  "type": "frame",
-                  "id": "MgbKz",
-                  "name": "w3b",
-                  "fill": "$jlpt-n4",
-                  "cornerRadius": 6,
-                  "padding": [
-                    3,
-                    8
-                  ],
-                  "justifyContent": "center",
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "KKteU",
-                      "name": "w3l",
-                      "fill": "#FFFFFF",
-                      "content": "N4",
-                      "fontFamily": "Inter",
-                      "fontSize": 10,
-                      "fontWeight": "700"
-                    }
-                  ]
-                },
-                {
                   "type": "icon_font",
                   "id": "G49lG",
                   "name": "chev3",
@@ -1965,6 +1987,47 @@
                   "iconFontName": "chevron-down",
                   "iconFontFamily": "lucide",
                   "fill": "$text-muted"
+                },
+                {
+                  "type": "frame",
+                  "id": "jodeJ",
+                  "name": "pos",
+                  "fill": {
+                    "type": "gradient",
+                    "gradientType": "linear",
+                    "enabled": true,
+                    "opacity": 0.2,
+                    "rotation": 0,
+                    "size": {
+                      "height": 1
+                    },
+                    "colors": [
+                      {
+                        "color": "$pos-noun",
+                        "position": 0
+                      },
+                      {
+                        "color": "$pos-noun",
+                        "position": 1
+                      }
+                    ]
+                  },
+                  "cornerRadius": 9999,
+                  "padding": [
+                    4,
+                    8
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "hpmT3",
+                      "fill": "$pos-noun",
+                      "content": "명사",
+                      "fontFamily": "$font.captions",
+                      "fontSize": 11,
+                      "fontWeight": "600"
+                    }
+                  ]
                 }
               ]
             },
@@ -2047,31 +2110,6 @@
                   ]
                 },
                 {
-                  "type": "frame",
-                  "id": "EOQ5U",
-                  "name": "w4b",
-                  "fill": "$jlpt-n2",
-                  "cornerRadius": 6,
-                  "padding": [
-                    3,
-                    8
-                  ],
-                  "justifyContent": "center",
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "IMduo",
-                      "name": "w4l",
-                      "fill": "#FFFFFF",
-                      "content": "N2",
-                      "fontFamily": "Inter",
-                      "fontSize": 10,
-                      "fontWeight": "700"
-                    }
-                  ]
-                },
-                {
                   "type": "icon_font",
                   "id": "tCk82",
                   "name": "chev4",
@@ -2080,6 +2118,47 @@
                   "iconFontName": "chevron-down",
                   "iconFontFamily": "lucide",
                   "fill": "$text-muted"
+                },
+                {
+                  "type": "frame",
+                  "id": "yn5yQ",
+                  "name": "pos",
+                  "fill": {
+                    "type": "gradient",
+                    "gradientType": "linear",
+                    "enabled": true,
+                    "opacity": 0.2,
+                    "rotation": 0,
+                    "size": {
+                      "height": 1
+                    },
+                    "colors": [
+                      {
+                        "color": "$pos-verb",
+                        "position": 0
+                      },
+                      {
+                        "color": "$pos-verb",
+                        "position": 1
+                      }
+                    ]
+                  },
+                  "cornerRadius": 9999,
+                  "padding": [
+                    4,
+                    8
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "DbUET",
+                      "fill": "$pos-verb",
+                      "content": "동사",
+                      "fontFamily": "$font.captions",
+                      "fontSize": 11,
+                      "fontWeight": "600"
+                    }
+                  ]
                 }
               ]
             },
@@ -2162,31 +2241,6 @@
                   ]
                 },
                 {
-                  "type": "frame",
-                  "id": "h7wB2",
-                  "name": "w5b",
-                  "fill": "$jlpt-n3",
-                  "cornerRadius": 6,
-                  "padding": [
-                    3,
-                    8
-                  ],
-                  "justifyContent": "center",
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "UZmty",
-                      "name": "w5l",
-                      "fill": "#FFFFFF",
-                      "content": "N3",
-                      "fontFamily": "Inter",
-                      "fontSize": 10,
-                      "fontWeight": "700"
-                    }
-                  ]
-                },
-                {
                   "type": "icon_font",
                   "id": "dUjEz",
                   "name": "chev5",
@@ -2195,6 +2249,47 @@
                   "iconFontName": "chevron-down",
                   "iconFontFamily": "lucide",
                   "fill": "$text-muted"
+                },
+                {
+                  "type": "frame",
+                  "id": "R3YuKs",
+                  "name": "pos",
+                  "fill": {
+                    "type": "gradient",
+                    "gradientType": "linear",
+                    "enabled": true,
+                    "opacity": 0.2,
+                    "rotation": 0,
+                    "size": {
+                      "height": 1
+                    },
+                    "colors": [
+                      {
+                        "color": "$pos-verb",
+                        "position": 0
+                      },
+                      {
+                        "color": "$pos-verb",
+                        "position": 1
+                      }
+                    ]
+                  },
+                  "cornerRadius": 9999,
+                  "padding": [
+                    4,
+                    8
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "Z6vVjp",
+                      "fill": "$pos-verb",
+                      "content": "동사",
+                      "fontFamily": "$font.captions",
+                      "fontSize": 11,
+                      "fontWeight": "600"
+                    }
+                  ]
                 }
               ]
             },
@@ -2277,31 +2372,6 @@
                   ]
                 },
                 {
-                  "type": "frame",
-                  "id": "ZMa7u",
-                  "name": "w6b",
-                  "fill": "$jlpt-n4",
-                  "cornerRadius": 6,
-                  "padding": [
-                    3,
-                    8
-                  ],
-                  "justifyContent": "center",
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "68TDR",
-                      "name": "w6l",
-                      "fill": "#FFFFFF",
-                      "content": "N4",
-                      "fontFamily": "Inter",
-                      "fontSize": 10,
-                      "fontWeight": "700"
-                    }
-                  ]
-                },
-                {
                   "type": "icon_font",
                   "id": "whve3",
                   "name": "chev6",
@@ -2310,6 +2380,47 @@
                   "iconFontName": "chevron-down",
                   "iconFontFamily": "lucide",
                   "fill": "$text-muted"
+                },
+                {
+                  "type": "frame",
+                  "id": "RLnxU",
+                  "name": "pos",
+                  "fill": {
+                    "type": "gradient",
+                    "gradientType": "linear",
+                    "enabled": true,
+                    "opacity": 0.2,
+                    "rotation": 0,
+                    "size": {
+                      "height": 1
+                    },
+                    "colors": [
+                      {
+                        "color": "$pos-noun",
+                        "position": 0
+                      },
+                      {
+                        "color": "$pos-noun",
+                        "position": 1
+                      }
+                    ]
+                  },
+                  "cornerRadius": 9999,
+                  "padding": [
+                    4,
+                    8
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "CpjWU",
+                      "fill": "$pos-noun",
+                      "content": "명사",
+                      "fontFamily": "$font.captions",
+                      "fontSize": 11,
+                      "fontWeight": "600"
+                    }
+                  ]
                 }
               ]
             },
@@ -2392,31 +2503,6 @@
                   ]
                 },
                 {
-                  "type": "frame",
-                  "id": "5YyvX",
-                  "name": "w7b",
-                  "fill": "$jlpt-n3",
-                  "cornerRadius": 6,
-                  "padding": [
-                    3,
-                    8
-                  ],
-                  "justifyContent": "center",
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "g67KU",
-                      "name": "w7l",
-                      "fill": "#FFFFFF",
-                      "content": "N3",
-                      "fontFamily": "Inter",
-                      "fontSize": 10,
-                      "fontWeight": "700"
-                    }
-                  ]
-                },
-                {
                   "type": "icon_font",
                   "id": "JcWwz",
                   "name": "chev7",
@@ -2425,6 +2511,47 @@
                   "iconFontName": "chevron-down",
                   "iconFontFamily": "lucide",
                   "fill": "$text-muted"
+                },
+                {
+                  "type": "frame",
+                  "id": "TL2GH",
+                  "name": "pos",
+                  "fill": {
+                    "type": "gradient",
+                    "gradientType": "linear",
+                    "enabled": true,
+                    "opacity": 0.2,
+                    "rotation": 0,
+                    "size": {
+                      "height": 1
+                    },
+                    "colors": [
+                      {
+                        "color": "$pos-noun",
+                        "position": 0
+                      },
+                      {
+                        "color": "$pos-noun",
+                        "position": 1
+                      }
+                    ]
+                  },
+                  "cornerRadius": 9999,
+                  "padding": [
+                    4,
+                    8
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "fvO6A",
+                      "fill": "$pos-noun",
+                      "content": "명사",
+                      "fontFamily": "$font.captions",
+                      "fontSize": 11,
+                      "fontWeight": "600"
+                    }
+                  ]
                 }
               ]
             },
@@ -2507,31 +2634,6 @@
                   ]
                 },
                 {
-                  "type": "frame",
-                  "id": "VeEml",
-                  "name": "w8b",
-                  "fill": "$jlpt-n5",
-                  "cornerRadius": 6,
-                  "padding": [
-                    3,
-                    8
-                  ],
-                  "justifyContent": "center",
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "ecSct",
-                      "name": "w8l",
-                      "fill": "#FFFFFF",
-                      "content": "N5",
-                      "fontFamily": "Inter",
-                      "fontSize": 10,
-                      "fontWeight": "700"
-                    }
-                  ]
-                },
-                {
                   "type": "icon_font",
                   "id": "xHcRe",
                   "name": "chev8",
@@ -2540,6 +2642,47 @@
                   "iconFontName": "chevron-down",
                   "iconFontFamily": "lucide",
                   "fill": "$text-muted"
+                },
+                {
+                  "type": "frame",
+                  "id": "rkwu7",
+                  "name": "pos",
+                  "fill": {
+                    "type": "gradient",
+                    "gradientType": "linear",
+                    "enabled": true,
+                    "opacity": 0.2,
+                    "rotation": 0,
+                    "size": {
+                      "height": 1
+                    },
+                    "colors": [
+                      {
+                        "color": "$pos-noun",
+                        "position": 0
+                      },
+                      {
+                        "color": "$pos-noun",
+                        "position": 1
+                      }
+                    ]
+                  },
+                  "cornerRadius": 9999,
+                  "padding": [
+                    4,
+                    8
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "CkCp1",
+                      "fill": "$pos-noun",
+                      "content": "명사",
+                      "fontFamily": "$font.captions",
+                      "fontSize": 11,
+                      "fontWeight": "600"
+                    }
+                  ]
                 }
               ]
             },
@@ -2622,31 +2765,6 @@
                   ]
                 },
                 {
-                  "type": "frame",
-                  "id": "o1bYJ",
-                  "name": "w9b",
-                  "fill": "$jlpt-n5",
-                  "cornerRadius": 6,
-                  "padding": [
-                    3,
-                    8
-                  ],
-                  "justifyContent": "center",
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "CN3Rn",
-                      "name": "w9l",
-                      "fill": "#FFFFFF",
-                      "content": "N5",
-                      "fontFamily": "Inter",
-                      "fontSize": 10,
-                      "fontWeight": "700"
-                    }
-                  ]
-                },
-                {
                   "type": "icon_font",
                   "id": "xiDxe",
                   "name": "chev9",
@@ -2655,6 +2773,47 @@
                   "iconFontName": "chevron-down",
                   "iconFontFamily": "lucide",
                   "fill": "$text-muted"
+                },
+                {
+                  "type": "frame",
+                  "id": "aZYHM",
+                  "name": "pos",
+                  "fill": {
+                    "type": "gradient",
+                    "gradientType": "linear",
+                    "enabled": true,
+                    "opacity": 0.2,
+                    "rotation": 0,
+                    "size": {
+                      "height": 1
+                    },
+                    "colors": [
+                      {
+                        "color": "$pos-noun",
+                        "position": 0
+                      },
+                      {
+                        "color": "$pos-noun",
+                        "position": 1
+                      }
+                    ]
+                  },
+                  "cornerRadius": 9999,
+                  "padding": [
+                    4,
+                    8
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "ACNKH",
+                      "fill": "$pos-noun",
+                      "content": "명사",
+                      "fontFamily": "$font.captions",
+                      "fontSize": 11,
+                      "fontWeight": "600"
+                    }
+                  ]
                 }
               ]
             },
@@ -2730,31 +2889,6 @@
                   ]
                 },
                 {
-                  "type": "frame",
-                  "id": "0WZND",
-                  "name": "w10b",
-                  "fill": "$jlpt-n4",
-                  "cornerRadius": 6,
-                  "padding": [
-                    3,
-                    8
-                  ],
-                  "justifyContent": "center",
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "2j7HH",
-                      "name": "w10l",
-                      "fill": "#FFFFFF",
-                      "content": "N4",
-                      "fontFamily": "Inter",
-                      "fontSize": 10,
-                      "fontWeight": "700"
-                    }
-                  ]
-                },
-                {
                   "type": "icon_font",
                   "id": "gPvw4",
                   "name": "chev10",
@@ -2763,6 +2897,47 @@
                   "iconFontName": "chevron-down",
                   "iconFontFamily": "lucide",
                   "fill": "$text-muted"
+                },
+                {
+                  "type": "frame",
+                  "id": "QFwwA",
+                  "name": "pos",
+                  "fill": {
+                    "type": "gradient",
+                    "gradientType": "linear",
+                    "enabled": true,
+                    "opacity": 0.2,
+                    "rotation": 0,
+                    "size": {
+                      "height": 1
+                    },
+                    "colors": [
+                      {
+                        "color": "$pos-noun",
+                        "position": 0
+                      },
+                      {
+                        "color": "$pos-noun",
+                        "position": 1
+                      }
+                    ]
+                  },
+                  "cornerRadius": 9999,
+                  "padding": [
+                    4,
+                    8
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "yaHYs",
+                      "fill": "$pos-noun",
+                      "content": "명사",
+                      "fontFamily": "$font.captions",
+                      "fontSize": 11,
+                      "fontWeight": "600"
+                    }
+                  ]
                 }
               ]
             }
@@ -10831,7 +11006,7 @@
                               "height": 14,
                               "iconFontName": "snowflake",
                               "iconFontFamily": "lucide",
-                              "fill": "$accent-primary"
+                              "fill": "$heatmap-freeze-stroke"
                             },
                             {
                               "type": "rectangle",
@@ -11072,7 +11247,7 @@
                           "type": "text",
                           "id": "VzyJz",
                           "name": "pdl4c",
-                          "fill": "$foreground.muted",
+                          "fill": "$heatmap-freeze-stroke",
                           "content": "프리즈",
                           "fontFamily": "Inter",
                           "fontSize": 10,
@@ -16168,7 +16343,7 @@
                       "cornerRadius": 2,
                       "id": "NeB1D",
                       "name": "hmL0",
-                      "fill": "#ECEEF2",
+                      "fill": "$heatmap-l0",
                       "width": 10,
                       "height": 10
                     },
@@ -16177,7 +16352,7 @@
                       "cornerRadius": 2,
                       "id": "8oJg7",
                       "name": "hmL1",
-                      "fill": "#C8E1F5",
+                      "fill": "$heatmap-l1",
                       "width": 10,
                       "height": 10
                     },
@@ -16186,7 +16361,7 @@
                       "cornerRadius": 2,
                       "id": "DP6m3",
                       "name": "hmL2",
-                      "fill": "#92C4E8",
+                      "fill": "$heatmap-l2",
                       "width": 10,
                       "height": 10
                     },
@@ -16195,7 +16370,7 @@
                       "cornerRadius": 2,
                       "id": "lVe5x",
                       "name": "hmL3",
-                      "fill": "#5BA0D5",
+                      "fill": "$heatmap-l3",
                       "width": 10,
                       "height": 10
                     },
@@ -16204,7 +16379,7 @@
                       "cornerRadius": 2,
                       "id": "pElz8",
                       "name": "hmL4",
-                      "fill": "#2E7CB8",
+                      "fill": "$heatmap-l4",
                       "width": 10,
                       "height": 10
                     },
@@ -19634,11 +19809,11 @@
     },
     "bg-card": {
       "type": "color",
-      "value": "#EEF0EB"
+      "value": "#EEEEEE"
     },
     "bg-elevated": {
       "type": "color",
-      "value": "#EEF0EB"
+      "value": "#EEEEEE"
     },
     "bg-overlay": {
       "type": "color",
@@ -19660,11 +19835,11 @@
     },
     "border-default": {
       "type": "color",
-      "value": "#E5E6E2"
+      "value": "#E5E5E5"
     },
     "border-strong": {
       "type": "color",
-      "value": "#D2D3CE"
+      "value": "#D2D2D2"
     },
     "jlpt-n1": {
       "type": "color",
@@ -19764,99 +19939,23 @@
     },
     "pos-adjective": {
       "type": "color",
-      "value": [
-        {
-          "value": "#FF9F0A"
-        },
-        {
-          "value": "#FF9500"
-        },
-        {
-          "value": "#F472B6"
-        },
-        {
-          "value": "#FF9F0A"
-        },
-        {
-          "value": "#FF9500"
-        },
-        {
-          "value": "#F59E0B"
-        }
-      ]
+      "value": "#E89B3E"
     },
     "pos-adverb": {
       "type": "color",
-      "value": [
-        {
-          "value": "#BF5AF2"
-        },
-        {
-          "value": "#AF52DE"
-        },
-        {
-          "value": "#F59E0B"
-        },
-        {
-          "value": "#BF5AF2"
-        },
-        {
-          "value": "#AF52DE"
-        },
-        {
-          "value": "#A855F7"
-        }
-      ]
+      "value": "#9D7AC4"
     },
     "pos-noun": {
       "type": "color",
-      "value": [
-        {
-          "value": "#5B9BF5"
-        },
-        {
-          "value": "#3478F6"
-        },
-        {
-          "value": "#6366F1"
-        },
-        {
-          "value": "#5B9BF5"
-        },
-        {
-          "value": "#3478F6"
-        },
-        {
-          "value": "#3B82F6"
-        }
-      ]
+      "value": "#5B8FCC"
     },
     "pos-particle": {
       "type": "color",
-      "value": [
-        {
-          "value": "#FF6B8A"
-        },
-        {
-          "value": "#FF2D55"
-        },
-        {
-          "value": "#A1A1AA"
-        },
-        {
-          "value": "#FF6B8A"
-        },
-        {
-          "value": "#FF2D55"
-        },
-        {
-          "value": "#EC4899"
-        }
-      ]
+      "value": "#E07595"
     },
     "pos-verb": {
       "type": "color",
-      "value": "#10B981"
+      "value": "#4A9D7A"
     },
     "text-muted": {
       "type": "color",
@@ -20112,7 +20211,7 @@
     },
     "surface.primary": {
       "type": "color",
-      "value": "#EEF0EB"
+      "value": "#EEEEEE"
     },
     "surface.secondary": {
       "type": "color",
@@ -20278,7 +20377,7 @@
     },
     "heatmap-l0": {
       "type": "color",
-      "value": "#EEF0EB"
+      "value": "#EEEEEE"
     },
     "heatmap-l1": {
       "type": "color",

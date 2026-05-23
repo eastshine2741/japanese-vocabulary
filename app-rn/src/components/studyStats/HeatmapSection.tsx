@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
   freezeText: {
     fontSize: 11,
     fontWeight: '700',
-    color: Colors.primary,
+    color: Colors.freezeStroke,
     fontVariant: ['tabular-nums'],
   },
   dotSep: {

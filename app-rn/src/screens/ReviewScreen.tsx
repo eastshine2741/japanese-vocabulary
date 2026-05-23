@@ -19,6 +19,7 @@ import { useReviewStore } from '../stores/reviewStore';
 import { usePlayerStore } from '../stores/playerStore';
 import FlashcardBackDetails from '../components/FlashcardView';
 import RatingButtonRow from '../components/RatingButtonRow';
+import { AppBar } from '../components/AppBar';
 import { Colors } from '../theme/theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
@@ -122,23 +123,23 @@ export default function ReviewScreen({ route, navigation }: Props) {
 
   const renderTopNav = (dictWord?: string, showEdit?: boolean) => {
     return (
-      <View style={styles.topNav}>
-        <TouchableOpacity style={styles.backButton} onPress={handleBack} hitSlop={8}>
-          <Feather name="chevron-left" size={24} color={Colors.textPrimary} />
-        </TouchableOpacity>
-        <View style={styles.topNavRight}>
-          {showEdit && (
-            <TouchableOpacity onPress={handleEditWord} hitSlop={8}>
-              <Feather name="edit-2" size={20} color={Colors.textSecondary} />
-            </TouchableOpacity>
-          )}
-          {dictWord && (
-            <TouchableOpacity onPress={() => openDictionary(dictWord)} hitSlop={8}>
-              <Feather name="external-link" size={22} color={Colors.textSecondary} />
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
+      <AppBar
+        onBack={handleBack}
+        trailing={
+          <View style={styles.topNavRight}>
+            {showEdit && (
+              <TouchableOpacity onPress={handleEditWord} hitSlop={8}>
+                <Feather name="edit-2" size={20} color={Colors.textSecondary} />
+              </TouchableOpacity>
+            )}
+            {dictWord && (
+              <TouchableOpacity onPress={() => openDictionary(dictWord)} hitSlop={8}>
+                <Feather name="external-link" size={22} color={Colors.textSecondary} />
+              </TouchableOpacity>
+            )}
+          </View>
+        }
+      />
     );
   };
 
@@ -291,24 +292,11 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
 
-  // Top nav
-  topNav: {
-    height: 48,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-  },
-  backButton: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 40,
-    height: 40,
-  },
   topNavRight: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
     gap: 16,
+    paddingRight: 8,
   },
   dictButton: {
     alignItems: 'center',

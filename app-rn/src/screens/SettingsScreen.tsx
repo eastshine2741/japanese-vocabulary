@@ -23,6 +23,7 @@ import { resetAllStores } from '../utils/resetAllStores';
 import { Colors } from '../theme/theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import ServerURLDialog from '../components/ServerURLDialog';
+import { AppBar } from '../components/AppBar';
 import { TOS_URL, PRIVACY_URL, buildReportMailto } from '../config/legal';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -116,12 +117,7 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.7}>
-          <Ionicons name="chevron-back" size={24} color={Colors.textPrimary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>설정</Text>
-      </View>
+      <AppBar title="설정" onBack={() => navigation.goBack()} />
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
         <Section title="학습 설정">
           <View style={styles.row}>
@@ -303,18 +299,6 @@ const styles = StyleSheet.create({
   scrollView: { flex: 1 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   content: { paddingHorizontal: 24, paddingBottom: 40, gap: 28 },
-
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 12,
-    backgroundColor: Colors.background,
-  },
-  backBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { fontSize: 20, fontWeight: '700', color: Colors.textPrimary },
 
   section: { gap: 8 },
   sectionLabel: { fontSize: 17, fontWeight: '700', color: Colors.textPrimary, marginBottom: 4 },

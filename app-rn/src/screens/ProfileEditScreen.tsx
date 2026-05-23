@@ -19,6 +19,7 @@ import { useAuthStore } from '../stores/authStore';
 import { userApi } from '../api/userApi';
 import { authApi, UsernameAvailabilityReason } from '../api/authApi';
 import { Colors } from '../theme/theme';
+import { AppBar } from '../components/AppBar';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ProfileEdit'>;
@@ -168,25 +169,24 @@ export default function ProfileEditScreen({ navigation }: Props) {
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <View style={styles.header}>
-          <Pressable onPress={() => navigation.goBack()} style={styles.headerBackBtn} hitSlop={8}>
-            <Ionicons name="chevron-back" size={24} color={Colors.textPrimary} />
-          </Pressable>
-          <Text style={styles.headerTitle}>프로필 수정</Text>
-          <View style={styles.headerSpacer} />
-          <Pressable
-            onPress={handleSave}
-            disabled={!canSave}
-            style={styles.headerBtn}
-            hitSlop={8}
-          >
-            {saving ? (
-              <ActivityIndicator size="small" color={Colors.primary} />
-            ) : (
-              <Text style={[styles.saveLabel, !canSave && styles.saveLabelDisabled]}>저장</Text>
-            )}
-          </Pressable>
-        </View>
+        <AppBar
+          title="프로필 수정"
+          onBack={() => navigation.goBack()}
+          trailing={
+            <Pressable
+              onPress={handleSave}
+              disabled={!canSave}
+              style={styles.headerBtn}
+              hitSlop={8}
+            >
+              {saving ? (
+                <ActivityIndicator size="small" color={Colors.primary} />
+              ) : (
+                <Text style={[styles.saveLabel, !canSave && styles.saveLabelDisabled]}>저장</Text>
+              )}
+            </Pressable>
+          }
+        />
 
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <View style={styles.form}>
@@ -269,20 +269,6 @@ export default function ProfileEditScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   flex: { flex: 1 },
-  header: {
-    height: 56,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-  },
-  headerBackBtn: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerSpacer: { flex: 1 },
   headerBtn: {
     minWidth: 56,
     height: 40,
@@ -290,7 +276,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerTitle: { fontSize: 17, fontWeight: '700', color: Colors.textPrimary },
   saveLabel: { fontSize: 15, fontWeight: '700', color: Colors.primary },
   saveLabelDisabled: { color: Colors.textMuted },
 

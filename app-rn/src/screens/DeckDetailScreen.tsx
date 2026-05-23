@@ -14,6 +14,8 @@ import { useShallow } from 'zustand/react/shallow';
 import { useDeckDetailStore } from '../stores/deckDetailStore';
 import { usePlayerStore } from '../stores/playerStore';
 import ArtworkImage from '../components/ArtworkImage';
+import { SecondaryButton } from '../components/SecondaryButton';
+import { AppBar } from '../components/AppBar';
 import { Colors, Dimens } from '../theme/theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
@@ -46,12 +48,7 @@ export default function DeckDetailScreen({ route, navigation }: Props) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        {/* Top bar: back arrow only */}
-        <View style={styles.topBar}>
-          <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={8}>
-            <Ionicons name="chevron-back" size={24} color={Colors.textPrimary} />
-          </TouchableOpacity>
-        </View>
+        <AppBar onBack={() => navigation.goBack()} />
 
         {status === 'loading' && (
           <ActivityIndicator size="large" color={Colors.primary} style={styles.center} />
@@ -118,25 +115,21 @@ export default function DeckDetailScreen({ route, navigation }: Props) {
             </TouchableOpacity>
 
             {/* View words button */}
-            <TouchableOpacity
-              style={styles.outlineButton}
+            <SecondaryButton
+              icon="list-outline"
+              label="단어 보기"
               onPress={() => navigation.navigate('DeckWordList', { deckId })}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="list-outline" size={18} color={Colors.textSecondary} />
-              <Text style={styles.outlineButtonText}>단어 보기</Text>
-            </TouchableOpacity>
+              style={styles.secondaryBtn}
+            />
 
             {/* Listen song button — only for per-song decks */}
             {songId !== null && (
-              <TouchableOpacity
-                style={styles.outlineButton}
+              <SecondaryButton
+                icon="play-circle-outline"
+                label="노래 듣기"
                 onPress={handleListenSong}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="play-circle-outline" size={18} color={Colors.textSecondary} />
-                <Text style={styles.outlineButtonText}>노래 듣기</Text>
-              </TouchableOpacity>
+                style={styles.secondaryBtn}
+              />
             )}
           </View>
         )}
@@ -158,12 +151,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
-  },
-  topBar: {
-    height: 48,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Dimens.screenPadding,
   },
   center: {
     flex: 1,
@@ -262,22 +249,9 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 16,
   },
-  outlineButton: {
-    flexDirection: 'row',
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: 24,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
+  secondaryBtn: {
     width: '100%',
-    gap: 8,
     marginTop: -16,
-  },
-  outlineButtonText: {
-    color: Colors.textSecondary,
-    fontWeight: '600',
-    fontSize: 14,
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,

@@ -15,6 +15,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { useDeckListStore } from '../../stores/deckListStore';
 import { flashcardApi } from '../../api/flashcardApi';
 import SongListItem from '../../components/SongListItem';
+import { SecondaryButton } from '../../components/SecondaryButton';
 import { FlashcardStatsResponse } from '../../types/flashcard';
 import { Colors, Dimens } from '../../theme/theme';
 import { RootStackParamList } from '../../navigation/AppNavigator';
@@ -97,14 +98,11 @@ export default function WordTab() {
             </TouchableOpacity>
 
             {/* View all words button */}
-            <TouchableOpacity
-              style={styles.wordListButton}
+            <SecondaryButton
+              icon="list-outline"
+              label="전체 단어 보기"
               onPress={() => navigation.navigate('DeckWordList', { deckId: null })}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="list-outline" size={18} color={Colors.textSecondary} />
-              <Text style={styles.wordListButtonText}>전체 단어 보기</Text>
-            </TouchableOpacity>
+            />
           </View>
         );
       })()}
@@ -251,23 +249,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '600',
     fontSize: 15,
-  },
-
-  /* Word list button */
-  wordListButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: 44,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    gap: 8,
-  },
-  wordListButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.textSecondary,
   },
 
   /* Song decks card */

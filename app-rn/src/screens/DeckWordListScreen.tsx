@@ -8,7 +8,6 @@ import {
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { useShallow } from 'zustand/react/shallow';
@@ -18,6 +17,8 @@ import { convertReading } from '../utils/readingConverter';
 import { useSettingsStore } from '../stores/settingsStore';
 import { Colors, Dimens } from '../theme/theme';
 import { DeckWordItem } from '../types/deck';
+import { PosBadge } from '../components/Badges';
+import { AppBar } from '../components/AppBar';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'DeckWordList'>;
@@ -43,43 +44,42 @@ export default function DeckWordListScreen({ route, navigation }: Props) {
     }, [deckId]),
   );
 
-  const renderWord = ({ item, index }: { item: DeckWordItem; index: number }) => (
-    <View>
-      <TouchableOpacity
-        style={styles.wordEntry}
-        onPress={() => navigation.navigate('EditWord', {
-          mode: 'edit',
-          wordId: item.id,
-          japanese: item.japanese,
-          reading: item.reading,
-          meanings: item.meanings,
-        })}
-        activeOpacity={0.6}
-      >
-        <Text style={styles.japanese}>{item.japanese}</Text>
-        <View style={styles.subRow}>
-          <Text style={styles.reading}>{convertReading(item.reading, readingDisplay)}</Text>
-          <Text style={styles.dot}>·</Text>
-          <Text style={styles.korean} numberOfLines={1}>
-            {item.meanings.map(m => m.text).join(', ')}
-          </Text>
-        </View>
-      </TouchableOpacity>
-      {index < words.length - 1 && <View style={styles.separator} />}
-    </View>
-  );
+  const renderWord = ({ item, index }: { item: DeckWordItem; index: number }) => {
+    const pos = item.meanings[0]?.partOfSpeech;
+    return (
+      <View>
+        <TouchableOpacity
+          style={styles.wordEntry}
+          onPress={() => navigation.navigate('EditWord', {
+            mode: 'edit',
+            wordId: item.id,
+            japanese: item.japanese,
+            reading: item.reading,
+            meanings: item.meanings,
+          })}
+          activeOpacity={0.6}
+        >
+          <View style={styles.wordLeft}>
+            <Text style={styles.japanese}>{item.japanese}</Text>
+            <View style={styles.subRow}>
+              <Text style={styles.reading}>{convertReading(item.reading, readingDisplay)}</Text>
+              <Text style={styles.dot}>·</Text>
+              <Text style={styles.korean} numberOfLines={1}>
+                {item.meanings.map(m => m.text).join(', ')}
+              </Text>
+            </View>
+          </View>
+          {pos && <PosBadge pos={pos} />}
+        </TouchableOpacity>
+        {index < words.length - 1 && <View style={styles.separator} />}
+      </View>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        <View style={styles.topBar}>
-          <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={8} style={styles.backButton}>
-            <Ionicons name="chevron-back" size={24} color={Colors.textPrimary} />
-          </TouchableOpacity>
-          <Text style={styles.topBarTitle} numberOfLines={1}>
-            {headerTitle}
-          </Text>
-        </View>
+        <AppBar title={headerTitle} onBack={() => navigation.goBack()} />
         <View style={styles.headerSeparator} />
 
         {status === 'loading' ? (
@@ -111,23 +111,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
-  topBar: {
-    height: 48,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: Dimens.screenPadding,
-  },
-  backButton: {
-    width: 28,
-    alignItems: 'flex-start',
-  },
-  topBarTitle: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.textPrimary,
-  },
   headerSeparator: {
     height: 1,
     backgroundColor: Colors.border,
@@ -142,7 +125,13 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   wordEntry: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     paddingVertical: 14,
+  },
+  wordLeft: {
+    flex: 1,
     gap: 2,
   },
   japanese: {
