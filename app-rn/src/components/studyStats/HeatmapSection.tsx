@@ -63,7 +63,7 @@ export default React.memo(function HeatmapSection() {
       <View style={styles.header}>
         <Text style={styles.title}>학습 기록</Text>
         <View style={styles.right}>
-          <Ionicons name="snow" size={11} color={Colors.primary} />
+          <Ionicons name="snow" size={11} color={Colors.freezeStroke} />
           <Text style={styles.freezeText}>{freezeCount}/{freezeMax}</Text>
           <Text style={styles.dotSep}>·</Text>
           <Text style={styles.totalText}>총 {totalDays}일</Text>
@@ -153,7 +153,7 @@ function Cell({
   if (cell.day.freezeUsed && cell.day.reviewCount === 0) {
     return (
       <Pressable onPress={handlePress} style={[styles.cell, styles.cellFreeze, ringStyle]}>
-        <Ionicons name="snow" size={10} color={Colors.primary} />
+        <Ionicons name="snow" size={10} color={Colors.freezeStroke} />
       </Pressable>
     );
   }
@@ -264,15 +264,15 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   cellFreeze: {
-    backgroundColor: '#E8F0F9',
+    backgroundColor: Colors.freezeFill,
     borderWidth: 1,
-    borderColor: Colors.primary,
+    borderColor: Colors.freezeStroke,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cellSelected: {
     borderWidth: 1.5,
-    borderColor: '#16456A',
+    borderColor: Colors.textPrimary,
   },
 
   footer: {

@@ -37,7 +37,6 @@ export default function OssLicenseScreen() {
           <Ionicons name="chevron-back" size={24} color={Colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>오픈소스 라이선스</Text>
-        <View style={styles.backBtn} />
       </View>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
@@ -71,8 +70,8 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 12,
+    gap: 8,
+    paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 12,
     backgroundColor: Colors.background,

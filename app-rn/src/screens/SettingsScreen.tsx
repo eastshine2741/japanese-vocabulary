@@ -121,14 +121,13 @@ export default function SettingsScreen() {
           <Ionicons name="chevron-back" size={24} color={Colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>설정</Text>
-        <View style={styles.backBtn} />
       </View>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
         <Section title="학습 설정">
           <View style={styles.row}>
             <View style={styles.rowText}>
               <Text style={styles.label}>일일 목표</Text>
-              <Text style={styles.description}>매일 리뷰할 카드 수 목표예요. 주간 차트와 히트맵에 반영돼요.</Text>
+              <Text style={styles.description}>매일 리뷰할 카드 수 목표예요.</Text>
             </View>
             <TextInput
               style={styles.numberInput}
@@ -308,8 +307,8 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 12,
+    gap: 8,
+    paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 12,
     backgroundColor: Colors.background,

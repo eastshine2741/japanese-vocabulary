@@ -56,11 +56,14 @@ export default function DeckWordListScreen({ route, navigation }: Props) {
         })}
         activeOpacity={0.6}
       >
-        <View style={styles.headingRow}>
-          <Text style={styles.japanese}>{item.japanese}</Text>
-          <Text style={styles.reading}>({convertReading(item.reading, readingDisplay)})</Text>
+        <Text style={styles.japanese}>{item.japanese}</Text>
+        <View style={styles.subRow}>
+          <Text style={styles.reading}>{convertReading(item.reading, readingDisplay)}</Text>
+          <Text style={styles.dot}>·</Text>
+          <Text style={styles.korean} numberOfLines={1}>
+            {item.meanings.map(m => m.text).join(', ')}
+          </Text>
         </View>
-        <Text style={styles.korean}>{item.meanings.map(m => m.text).join(', ')}</Text>
       </TouchableOpacity>
       {index < words.length - 1 && <View style={styles.separator} />}
     </View>
@@ -69,7 +72,6 @@ export default function DeckWordListScreen({ route, navigation }: Props) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        {/* Top bar: back chevron + centered title */}
         <View style={styles.topBar}>
           <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={8} style={styles.backButton}>
             <Ionicons name="chevron-back" size={24} color={Colors.textPrimary} />
@@ -77,7 +79,6 @@ export default function DeckWordListScreen({ route, navigation }: Props) {
           <Text style={styles.topBarTitle} numberOfLines={1}>
             {headerTitle}
           </Text>
-          <View style={styles.topBarRight} />
         </View>
         <View style={styles.headerSeparator} />
 
@@ -114,20 +115,18 @@ const styles = StyleSheet.create({
     height: 48,
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 4,
     paddingHorizontal: Dimens.screenPadding,
   },
   backButton: {
-    width: 40,
+    width: 28,
+    alignItems: 'flex-start',
   },
   topBarTitle: {
     flex: 1,
-    textAlign: 'center',
     fontSize: 16,
     fontWeight: '600',
     color: Colors.textPrimary,
-  },
-  topBarRight: {
-    width: 40,
   },
   headerSeparator: {
     height: 1,
@@ -143,26 +142,31 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   wordEntry: {
-    paddingVertical: 16,
-  },
-  headingRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 6,
+    paddingVertical: 14,
+    gap: 2,
   },
   japanese: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: 18,
+    fontWeight: '600',
     color: Colors.textPrimary,
   },
+  subRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   reading: {
-    fontSize: 14,
+    fontSize: 13,
     color: Colors.textSecondary,
   },
+  dot: {
+    fontSize: 13,
+    color: Colors.textMuted,
+  },
   korean: {
-    fontSize: 14,
+    flex: 1,
+    fontSize: 13,
     color: Colors.textSecondary,
-    marginTop: 4,
   },
   separator: {
     height: 1,

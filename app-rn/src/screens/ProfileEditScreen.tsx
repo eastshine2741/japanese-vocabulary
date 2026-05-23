@@ -169,10 +169,11 @@ export default function ProfileEditScreen({ navigation }: Props) {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={styles.header}>
-          <Pressable onPress={() => navigation.goBack()} style={styles.headerBtn} hitSlop={8}>
+          <Pressable onPress={() => navigation.goBack()} style={styles.headerBackBtn} hitSlop={8}>
             <Ionicons name="chevron-back" size={24} color={Colors.textPrimary} />
           </Pressable>
           <Text style={styles.headerTitle}>프로필 수정</Text>
+          <View style={styles.headerSpacer} />
           <Pressable
             onPress={handleSave}
             disabled={!canSave}
@@ -272,9 +273,16 @@ const styles = StyleSheet.create({
     height: 56,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 4,
     paddingHorizontal: 8,
   },
+  headerBackBtn: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerSpacer: { flex: 1 },
   headerBtn: {
     minWidth: 56,
     height: 40,

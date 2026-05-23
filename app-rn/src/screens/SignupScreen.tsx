@@ -186,7 +186,6 @@ export default function SignupScreen({ navigation, route }: Props) {
             <Ionicons name="chevron-back" size={24} color={Colors.textPrimary} />
           </Pressable>
           <Text style={styles.headerTitle}>계정 만들기</Text>
-          <View style={styles.headerBtn} />
         </View>
 
         <ScrollView
@@ -333,7 +332,7 @@ const styles = StyleSheet.create({
     height: 56,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 4,
     paddingHorizontal: 8,
   },
   headerBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },

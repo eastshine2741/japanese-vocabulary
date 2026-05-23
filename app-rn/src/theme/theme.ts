@@ -1,14 +1,16 @@
 export const Colors = {
-  primary: '#4A9FD8',
+  primary: '#52B788',
+  primaryBg: '#52B78820',
+  primaryShadow: '#52B78840',
   accentSecondary: '#FFB300',
   background: '#FFFFFF',
   surface: '#FFFFFF',
-  card: '#ECEEF2',
-  elevated: '#ECEEF2',
+  card: '#EEF0EB',
+  elevated: '#EEF0EB',
   textPrimary: '#1A1A1A',
   textSecondary: '#666666',
   textMuted: '#888888',
-  border: '#D4D4D8',
+  border: '#E5E6E2',
   overlay: '#00000044',
   accentRed: '#EF4444',
 
@@ -23,17 +25,17 @@ export const Colors = {
 
   stateLearning: '#6366F1',
   stateLearningBg: '#EEF2FF',
-  stateReview: '#10B981',
-  stateReviewBg: '#ECFDF5',
-  stateRelearning: '#F59E0B',
+  stateReview: '#52B788',
+  stateReviewBg: '#EAF6EF',
+  stateRelearning: '#FBBF24',
   stateRelearningBg: '#FFFBEB',
-  stateRetrievability: '#0D9488',
-  stateRetrievabilityBg: '#F0FDFA',
+  stateRetrievability: '#7DCBA0',
+  stateRetrievabilityBg: '#F0F8F3',
 
   jlptN1: '#EF4444',
   jlptN2: '#F97316',
   jlptN3: '#EAB308',
-  jlptN4: '#10B981',
+  jlptN4: '#14B8A6',
   jlptN5: '#3B82F6',
 
   posNoun: '#3B82F6',
@@ -42,16 +44,18 @@ export const Colors = {
   posAdverb: '#A855F7',
   posParticle: '#EC4899',
 
-  tabActive: '#4A9FD8',
+  tabActive: '#52B788',
   tabInactive: '#888888',
 
   // Streak / study stats
   streakFlame: '#FF9500',
-  heatmapIntensities: ['#ECEEF2', '#C8E1F5', '#92C4E8', '#5BA0D5', '#2E7CB8'] as const,
+  heatmapIntensities: ['#EEF0EB', '#C8E4D2', '#92CFAA', '#5BB985', '#2E8B5C'] as const,
+  freezeFill: '#E8F0F9',
+  freezeStroke: '#5B9BF5',
 
   // Legacy aliases
   textTertiary: '#A1A1AA',
-  cardBorder: '#D4D4D8',
+  cardBorder: '#E5E6E2',
 };
 
 export const Dimens = {
