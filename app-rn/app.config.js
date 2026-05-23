@@ -17,7 +17,7 @@ const versionCode = versionCodeEnv ? parseInt(versionCodeEnv, 10) : undefined;
 
 const namespace = resolveNamespace();
 const suffix = `.${namespace.replace(/[^a-z0-9]/g, '')}`;
-const label = !isProd && namespace !== 'main' ? ` (${namespace})` : '';
+const label = isProd ? '' : namespace !== 'main' ? ` (${namespace})` : '-dev';
 
 const packageName = isProd
   ? 'dev.eastshine.kotonoha'
