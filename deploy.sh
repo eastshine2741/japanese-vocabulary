@@ -11,12 +11,11 @@ TOTAL_START=$SECONDS
 
 DEPLOY_ENV="${DEPLOY_ENV:-dev}"
 
-# --- 환경별 설정 ---
+# --- 환경별 설정 (IMAGE_PREFIX는 prod에서 env 로드 후 GHCR_USERNAME으로 조립) ---
 if [[ "$DEPLOY_ENV" == "prod" ]]; then
   EXPECTED_CONTEXT="kotonoha-prod"
   NS="kotonoha"
   ENV_FILE="$PROJECT_ROOT/.env.prod"
-  IMAGE_PREFIX="ghcr.io/eastshine/kotonoha"
 elif [[ "$DEPLOY_ENV" == "dev" ]]; then
   EXPECTED_CONTEXT="default"
   ENV_FILE="$PROJECT_ROOT/.env"
@@ -55,8 +54,19 @@ if [[ ! -f "$ENV_FILE" ]]; then
   exit 1
 fi
 
-# --- prod 가드 prompt ---
+# --- env 로드 ---
+set -a
+source "$ENV_FILE"
+set +a
+
+# --- prod-only: GHCR 검증 + IMAGE_PREFIX 조립 + 가드 prompt ---
 if [[ "$DEPLOY_ENV" == "prod" ]]; then
+  if [[ -z "${GHCR_USERNAME:-}" || -z "${GHCR_TOKEN:-}" ]]; then
+    echo "Error: GHCR_USERNAME / GHCR_TOKEN not set in $ENV_FILE" >&2
+    exit 1
+  fi
+  IMAGE_PREFIX="ghcr.io/${GHCR_USERNAME}/kotonoha"
+
   echo ""
   echo "⚠️  PROD DEPLOY"
   echo "  context:   $EXPECTED_CONTEXT"
@@ -75,13 +85,9 @@ API_IMAGE="${IMAGE_PREFIX}-api:${GIT_SHA}"
 BATCH_IMAGE="${IMAGE_PREFIX}-batch:${GIT_SHA}"
 MIGRATION_IMAGE="${IMAGE_PREFIX}-migration:${GIT_SHA}"
 
-echo "=== env: $DEPLOY_ENV | namespace: $NS | sha: $GIT_SHA ==="
-
-# --- env 로드 ---
-set -a
-source "$ENV_FILE"
 export API_IMAGE BATCH_IMAGE MIGRATION_IMAGE NS
-set +a
+
+echo "=== env: $DEPLOY_ENV | namespace: $NS | sha: $GIT_SHA ==="
 
 # --- 1. Gradle 빌드 ---
 STEP_START=$SECONDS
@@ -94,10 +100,6 @@ echo "  → $((SECONDS - STEP_START))s"
 STEP_START=$SECONDS
 if [[ "$DEPLOY_ENV" == "prod" ]]; then
   echo "[ghcr] login..."
-  if [[ -z "${GHCR_USERNAME:-}" || -z "${GHCR_TOKEN:-}" ]]; then
-    echo "Error: GHCR_USERNAME / GHCR_TOKEN not set in $ENV_FILE" >&2
-    exit 1
-  fi
   echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
 
   echo "[build] images..."
