@@ -20,6 +20,9 @@ spec:
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8081
+          env:
+            - name: JAVA_OPTS
+              value: "-XX:MaxRAMPercentage=75 -XX:InitialRAMPercentage=50"
           envFrom:
             - configMapRef:
                 name: batch-config
@@ -28,6 +31,6 @@ spec:
           resources:
             requests:
               cpu: 200m
-              memory: 384Mi
-            limits:
               memory: 768Mi
+            limits:
+              memory: 1536Mi
