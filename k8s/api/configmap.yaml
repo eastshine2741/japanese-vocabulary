@@ -4,5 +4,5 @@ metadata:
   name: api-config
 data:
   MYSQL_HOST: mysql
-  MYSQL_DATABASE: japanese_vocabulary
+  MYSQL_DATABASE: "${MYSQL_DATABASE}"
   REDIS_HOST: redis

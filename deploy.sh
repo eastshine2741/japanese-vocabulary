@@ -175,13 +175,13 @@ echo "  → $((SECONDS - STEP_START))s"
 STEP_START=$SECONDS
 echo "[apply] api + batch..."
 envsubst < "$PROJECT_ROOT/k8s/api/secret.template.yaml" | kubectl apply -n "$NS" -f -
-kubectl apply -n "$NS" -f "$PROJECT_ROOT/k8s/api/configmap.yaml"
+envsubst < "$PROJECT_ROOT/k8s/api/configmap.yaml" | kubectl apply -n "$NS" -f -
 envsubst < "$PROJECT_ROOT/k8s/api/deployment.yaml" | kubectl apply -n "$NS" -f -
 kubectl apply -n "$NS" -f "$PROJECT_ROOT/k8s/api/service.yaml"
 envsubst < "$PROJECT_ROOT/k8s/api/ingress.yaml" | kubectl apply -n "$NS" -f -
 
 envsubst < "$PROJECT_ROOT/k8s/batch/secret.template.yaml" | kubectl apply -n "$NS" -f -
-kubectl apply -n "$NS" -f "$PROJECT_ROOT/k8s/batch/configmap.yaml"
+envsubst < "$PROJECT_ROOT/k8s/batch/configmap.yaml" | kubectl apply -n "$NS" -f -
 envsubst < "$PROJECT_ROOT/k8s/batch/deployment.yaml" | kubectl apply -n "$NS" -f -
 echo "  → $((SECONDS - STEP_START))s"
 

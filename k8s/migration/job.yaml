@@ -10,8 +10,15 @@ spec:
           image: ${MIGRATION_IMAGE}
           args: ["migrate"]
           env:
+            - name: MYSQL_HOST
+              value: mysql
+            - name: MYSQL_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: MYSQL_DATABASE
             - name: FLYWAY_URL
-              value: "jdbc:mysql://mysql:3306/japanese_vocabulary?allowPublicKeyRetrieval=true&useSSL=false"
+              value: "jdbc:mysql://$(MYSQL_HOST):3306/$(MYSQL_DATABASE)?allowPublicKeyRetrieval=true&useSSL=false"
             - name: FLYWAY_USER
               valueFrom:
                 secretKeyRef:
