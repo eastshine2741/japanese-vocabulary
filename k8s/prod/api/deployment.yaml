@@ -12,10 +12,12 @@ spec:
       labels:
         app: api
     spec:
+      imagePullSecrets:
+        - name: ghcr-pull
       containers:
         - name: api
           image: ${API_IMAGE}
-          imagePullPolicy: Never
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
           envFrom:
@@ -23,3 +25,9 @@ spec:
                 name: api-config
             - secretRef:
                 name: api-secret
+          resources:
+            requests:
+              cpu: 200m
+              memory: 384Mi
+            limits:
+              memory: 768Mi

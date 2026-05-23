@@ -5,9 +5,12 @@ metadata:
 spec:
   template:
     spec:
+      imagePullSecrets:
+        - name: ghcr-pull
       containers:
         - name: migration
           image: ${MIGRATION_IMAGE}
+          imagePullPolicy: IfNotPresent
           args: ["migrate"]
           env:
             - name: MYSQL_HOST

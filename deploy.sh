@@ -141,21 +141,9 @@ if [[ "$DEPLOY_ENV" == "prod" ]]; then
     --namespace="$NS" \
     --dry-run=client -o yaml | kubectl apply -f -
   echo "  → $((SECONDS - STEP_START))s"
-
-  echo ""
-  echo "=== Step A done in $((SECONDS - TOTAL_START))s ==="
-  echo "  ✔ Images pushed: $API_IMAGE / $BATCH_IMAGE / $MIGRATION_IMAGE"
-  echo "  ✔ Namespace '$NS' + ghcr-pull secret ready"
-  echo ""
-  echo "  TODO (Step B): prod manifest apply"
-  echo "    - imagePullSecrets, imagePullPolicy"
-  echo "    - hcloud-volumes PVC, 10Gi"
-  echo "    - Ingress for api.kotonoha.eastshine.dev + TLS"
-  echo "    - mysqldump CronJob"
-  exit 0
 fi
 
-# --- 5. (dev) 매니페스트 적용 ---
+# --- 5. 매니페스트 적용 ---
 STEP_START=$SECONDS
 echo "[apply] infra (mysql + redis)..."
 envsubst < "$K8S_DIR/mysql/secret.template.yaml" | kubectl apply -n "$NS" -f -
@@ -197,4 +185,9 @@ echo "  → $((SECONDS - STEP_START))s"
 echo ""
 echo "=== Done in $((SECONDS - TOTAL_START))s ==="
 echo "  kubectl get pods -n $NS"
-echo "  kubectl port-forward -n $NS svc/api 8080:8080"
+if [[ "$DEPLOY_ENV" == "prod" ]]; then
+  echo "  kubectl get certificate -n $NS"
+  echo "  curl https://api.kotonoha.eastshine.dev/health"
+else
+  echo "  kubectl port-forward -n $NS svc/api 8080:8080"
+fi
