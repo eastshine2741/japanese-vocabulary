@@ -12,6 +12,7 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import ServerURLDialog from '../components/ServerURLDialog';
 import BrandMark from '../components/BrandMark';
 import GoogleLogo from '../components/GoogleLogo';
+import { isDevBuild } from '../utils/buildEnv';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
@@ -59,7 +60,10 @@ export default function LoginScreen({ navigation }: Props) {
     <SafeAreaView style={styles.container}>
       <View style={styles.topPad} />
       <View style={styles.hero}>
-        <Pressable onLongPress={() => setShowServerModal(true)} style={styles.brandStack}>
+        <Pressable
+          onLongPress={isDevBuild ? () => setShowServerModal(true) : undefined}
+          style={styles.brandStack}
+        >
           <BrandMark size={96} />
           <View style={styles.nameStack}>
             <Text style={styles.title}>Kotonoha</Text>
@@ -68,7 +72,9 @@ export default function LoginScreen({ navigation }: Props) {
         </Pressable>
         <Text style={styles.tagline}>노래로 배우는 일본어</Text>
 
-        <ServerURLDialog visible={showServerModal} onClose={() => setShowServerModal(false)} />
+        {isDevBuild && (
+          <ServerURLDialog visible={showServerModal} onClose={() => setShowServerModal(false)} />
+        )}
       </View>
       <View style={styles.spacer} />
 

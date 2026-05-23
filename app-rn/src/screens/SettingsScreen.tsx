@@ -24,6 +24,7 @@ import { Colors } from '../theme/theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import ServerURLDialog from '../components/ServerURLDialog';
 import { TOS_URL, PRIVACY_URL, buildReportMailto } from '../config/legal';
+import { isDevBuild } from '../utils/buildEnv';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -228,14 +229,16 @@ export default function SettingsScreen() {
           </View>
         )}
 
-        <Section title="서버 설정">
-          <MenuRow
-            icon={<Ionicons name="server-outline" size={20} color={Colors.textPrimary} />}
-            label="Backend URL"
-            onPress={() => setShowServerDialog(true)}
-            trailing={<Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />}
-          />
-        </Section>
+        {isDevBuild && (
+          <Section title="서버 설정">
+            <MenuRow
+              icon={<Ionicons name="server-outline" size={20} color={Colors.textPrimary} />}
+              label="Backend URL"
+              onPress={() => setShowServerDialog(true)}
+              trailing={<Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />}
+            />
+          </Section>
+        )}
 
         <Section title="법적 고지">
           <MenuRow
@@ -268,7 +271,9 @@ export default function SettingsScreen() {
           <Text style={styles.logoutText}>로그아웃</Text>
         </TouchableOpacity>
       </ScrollView>
-      <ServerURLDialog visible={showServerDialog} onClose={() => setShowServerDialog(false)} />
+      {isDevBuild && (
+        <ServerURLDialog visible={showServerDialog} onClose={() => setShowServerDialog(false)} />
+      )}
     </SafeAreaView>
   );
 }
