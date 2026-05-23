@@ -21,7 +21,7 @@ const label = isProd ? '' : namespace !== 'main' ? ` (${namespace})` : '-dev';
 
 const packageName = isProd
   ? 'dev.eastshine.kotonoha'
-  : `com.eastshine.kotonoha${suffix}`;
+  : `dev.eastshine.kotonoha${suffix}`;
 
 export default {
   expo: {
