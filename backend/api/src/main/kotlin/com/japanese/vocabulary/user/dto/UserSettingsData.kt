@@ -6,5 +6,5 @@ data class UserSettingsData(
     val readingDisplay: String = "KOREAN",
     val showKoreanPronunciation: Boolean = true,
     val showFurigana: Boolean = true,
-    val dailyGoal: Int = 10
+    val dailyGoal: Int = 100
 )

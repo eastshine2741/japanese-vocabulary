@@ -212,18 +212,22 @@ const styles = StyleSheet.create({
   pronActive: {
     fontSize: 12,
     color: Colors.textSecondary,
+    textAlign: 'center',
   },
   pronInactive: {
     fontSize: 11,
     color: Colors.textMuted,
+    textAlign: 'center',
   },
   translationActive: {
     fontSize: 13,
     fontWeight: '500',
     color: Colors.textPrimary,
+    textAlign: 'center',
   },
   translationInactive: {
     fontSize: 11,
     color: Colors.textSecondary,
+    textAlign: 'center',
   },
 });

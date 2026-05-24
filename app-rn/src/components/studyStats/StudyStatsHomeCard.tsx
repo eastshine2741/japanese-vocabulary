@@ -26,7 +26,7 @@ export default React.memo(function StudyStatsHomeCard() {
   }, [home.status, home.staleAt, loadHome]);
 
   const handlePress = useCallback(() => {
-    navigation.navigate('Words');
+    navigation.navigate('MyPage');
   }, [navigation]);
 
   if (home.status !== 'loaded' || !home.data) return null;

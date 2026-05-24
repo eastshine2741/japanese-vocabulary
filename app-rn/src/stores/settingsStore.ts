@@ -33,7 +33,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   readingDisplay: 'KOREAN',
   showKoreanPronunciation: true,
   showFurigana: true,
-  dailyGoal: 10,
+  dailyGoal: 100,
   isSaving: false,
   saveSuccess: false,
   error: null,

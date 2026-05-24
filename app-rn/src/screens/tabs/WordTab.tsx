@@ -3,11 +3,9 @@ import {
   View,
   Text,
   ScrollView,
-  ActivityIndicator,
-  TouchableOpacity,
   StyleSheet,
 } from 'react-native';
-import { Feather, Ionicons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -15,7 +13,9 @@ import { useShallow } from 'zustand/react/shallow';
 import { useDeckListStore } from '../../stores/deckListStore';
 import { flashcardApi } from '../../api/flashcardApi';
 import SongListItem from '../../components/SongListItem';
+import { PrimaryButton } from '../../components/PrimaryButton';
 import { SecondaryButton } from '../../components/SecondaryButton';
+import SkeletonBox from '../../components/SkeletonLoading';
 import { FlashcardStatsResponse } from '../../types/flashcard';
 import { Colors, Dimens } from '../../theme/theme';
 import { RootStackParamList } from '../../navigation/AppNavigator';
@@ -87,15 +87,12 @@ export default function WordTab() {
             </View>
 
             {/* Study button */}
-            <TouchableOpacity
-              style={[styles.studyButton, due === 0 && styles.buttonDisabled]}
+            <PrimaryButton
+              icon="layers-outline"
+              label="학습하기"
               onPress={() => navigation.navigate('Review', {})}
               disabled={due === 0}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="layers-outline" size={20} color="#FFFFFF" />
-              <Text style={styles.studyButtonText}>학습하기</Text>
-            </TouchableOpacity>
+            />
 
             {/* View all words button */}
             <SecondaryButton
@@ -133,8 +130,37 @@ export default function WordTab() {
   if (status === 'loading') {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={Colors.primary} />
+        <View style={styles.list}>
+          <View style={styles.statsCard}>
+            <View style={styles.hero}>
+              <SkeletonBox width={100} height={20} borderRadius={6} />
+              <SkeletonBox width={80} height={44} borderRadius={8} />
+            </View>
+            <SkeletonBox height={8} borderRadius={4} />
+            <View style={styles.legend}>
+              {[0, 1, 2].map((i) => (
+                <View key={i} style={styles.legendItem}>
+                  <SkeletonBox width={6} height={6} borderRadius={3} />
+                  <SkeletonBox width={64} height={11} borderRadius={4} />
+                </View>
+              ))}
+            </View>
+            <SkeletonBox height={48} borderRadius={24} />
+            <SkeletonBox height={44} borderRadius={9999} />
+          </View>
+
+          <View style={styles.songDecksCard}>
+            <SkeletonBox width={80} height={20} borderRadius={6} style={styles.sectionLabelSkeleton} />
+            {[0, 1, 2, 3].map((i) => (
+              <View key={i} style={styles.deckRowSkeleton}>
+                <SkeletonBox width={48} height={48} borderRadius={8} />
+                <View style={styles.deckRowContent}>
+                  <SkeletonBox width="70%" height={15} borderRadius={5} />
+                  <SkeletonBox width="50%" height={13} borderRadius={5} />
+                </View>
+              </View>
+            ))}
+          </View>
         </View>
       </SafeAreaView>
     );
@@ -153,14 +179,12 @@ export default function WordTab() {
           <Text style={styles.emptySub}>
             노래 가사에서 모르는 단어를 탭하면{'\n'}이곳에 모여서 복습할 수 있어요
           </Text>
-          <TouchableOpacity
-            style={styles.emptyCta}
+          <PrimaryButton
+            icon="musical-notes-outline"
+            label="노래 찾으러 가기"
             onPress={() => navigation.navigate('Search')}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="musical-notes-outline" size={20} color="#FFFFFF" />
-            <Text style={styles.emptyCtaText}>노래 찾으러 가기</Text>
-          </TouchableOpacity>
+            style={styles.emptyCta}
+          />
         </View>
       </SafeAreaView>
     );
@@ -232,28 +256,22 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
 
-  /* Study button */
-  studyButton: {
-    flexDirection: 'row',
-    backgroundColor: Colors.primary,
-    borderRadius: 24,
-    height: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  buttonDisabled: {
-    opacity: 0.4,
-  },
-  studyButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-    fontSize: 15,
-  },
-
   /* Song decks card */
   songDecksCard: {
     gap: 8,
+  },
+  sectionLabelSkeleton: {
+    marginBottom: 4,
+  },
+  deckRowSkeleton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    gap: 12,
+  },
+  deckRowContent: {
+    flex: 1,
+    gap: 6,
   },
   sectionLabel: {
     fontSize: 17,
@@ -292,19 +310,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   emptyCta: {
-    flexDirection: 'row',
     alignSelf: 'stretch',
-    height: 48,
-    backgroundColor: Colors.primary,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
     marginTop: 8,
-  },
-  emptyCtaText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-    fontSize: 15,
   },
 });

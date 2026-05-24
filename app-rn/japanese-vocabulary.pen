@@ -3536,191 +3536,10 @@
                   "id": "7cE2V",
                   "name": "subText",
                   "fill": "$text-secondary",
-                  "content": "오늘의 복습을 모두 마쳤어요",
+                  "content": "복습을 모두 마쳤어요.",
                   "fontFamily": "Inter",
                   "fontSize": 15,
                   "fontWeight": "normal"
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "xgdUf",
-              "name": "statsCard",
-              "width": 280,
-              "fill": "$bg-card",
-              "cornerRadius": 16,
-              "layout": "vertical",
-              "gap": 20,
-              "padding": 24,
-              "children": [
-                {
-                  "type": "text",
-                  "id": "cWNmF",
-                  "name": "statsTitle",
-                  "fill": "$text-primary",
-                  "content": "학습 결과",
-                  "fontFamily": "Inter",
-                  "fontSize": 16,
-                  "fontWeight": "600"
-                },
-                {
-                  "type": "rectangle",
-                  "id": "3BMCz",
-                  "name": "divider",
-                  "fill": "$border-default",
-                  "width": "fill_container",
-                  "height": 1
-                },
-                {
-                  "type": "frame",
-                  "id": "66EP1",
-                  "name": "statsRow1",
-                  "width": "fill_container",
-                  "justifyContent": "space_between",
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "m1wvl",
-                      "name": "sr1Label",
-                      "fill": "$text-secondary",
-                      "content": "전체 카드",
-                      "fontFamily": "Inter",
-                      "fontSize": 14,
-                      "fontWeight": "normal"
-                    },
-                    {
-                      "type": "text",
-                      "id": "dJTFv",
-                      "name": "sr1Value",
-                      "fill": "$text-primary",
-                      "content": "15장",
-                      "fontFamily": "Inter",
-                      "fontSize": 14,
-                      "fontWeight": "600"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "7Wk5k",
-                  "name": "statsRow2",
-                  "width": "fill_container",
-                  "justifyContent": "space_between",
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "mrAxo",
-                      "name": "sr2Label",
-                      "fill": "$text-secondary",
-                      "content": "쉬움",
-                      "fontFamily": "Inter",
-                      "fontSize": 14,
-                      "fontWeight": "normal"
-                    },
-                    {
-                      "type": "text",
-                      "id": "b0eQ5",
-                      "name": "sr2Value",
-                      "fill": "$difficulty-easy",
-                      "content": "4장",
-                      "fontFamily": "Inter",
-                      "fontSize": 14,
-                      "fontWeight": "600"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "wkmtX",
-                  "name": "statsRow3",
-                  "width": "fill_container",
-                  "justifyContent": "space_between",
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "EPMj1",
-                      "name": "sr3Label",
-                      "fill": "$text-secondary",
-                      "content": "보통",
-                      "fontFamily": "Inter",
-                      "fontSize": 14,
-                      "fontWeight": "normal"
-                    },
-                    {
-                      "type": "text",
-                      "id": "f6btK",
-                      "name": "sr3Value",
-                      "fill": "$difficulty-good",
-                      "content": "6장",
-                      "fontFamily": "Inter",
-                      "fontSize": 14,
-                      "fontWeight": "600"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "tn7BC",
-                  "name": "statsRow4",
-                  "width": "fill_container",
-                  "justifyContent": "space_between",
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "gvFbG",
-                      "name": "hardLabel",
-                      "fill": "$text-secondary",
-                      "content": "어려움",
-                      "fontFamily": "Inter",
-                      "fontSize": 14,
-                      "fontWeight": "normal"
-                    },
-                    {
-                      "type": "text",
-                      "id": "ZVfwM",
-                      "name": "hardValue",
-                      "fill": "$difficulty-hard",
-                      "content": "3장",
-                      "fontFamily": "Inter",
-                      "fontSize": 14,
-                      "fontWeight": "600"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "vXS4l",
-                  "name": "statsRow5",
-                  "width": "fill_container",
-                  "justifyContent": "space_between",
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "PMtfG",
-                      "name": "againLabel",
-                      "fill": "$text-secondary",
-                      "content": "다시",
-                      "fontFamily": "Inter",
-                      "fontSize": 14,
-                      "fontWeight": "normal"
-                    },
-                    {
-                      "type": "text",
-                      "id": "Zq2RQ",
-                      "name": "againValue",
-                      "fill": "$difficulty-again",
-                      "content": "2장",
-                      "fontFamily": "Inter",
-                      "fontSize": 14,
-                      "fontWeight": "600"
-                    }
-                  ]
                 }
               ]
             }
@@ -3748,7 +3567,7 @@
               "name": "b2",
               "descendants": {
                 "tRfPc": {
-                  "content": "홈으로 돌아가기"
+                  "content": "확인"
                 }
               }
             }
@@ -4086,7 +3905,7 @@
                   "id": "iBETx",
                   "name": "actionLabel",
                   "fill": "$text-primary",
-                  "content": "좋아하는 일본 노래로 시작하기",
+                  "content": "좋아하는 노래로 시작해보세요",
                   "fontFamily": "Inter",
                   "fontSize": 15,
                   "fontWeight": "600"
@@ -9319,6 +9138,64 @@
             },
             {
               "type": "frame",
+              "id": "A0t0F",
+              "name": "actionCard",
+              "width": "fill_container",
+              "fill": "$bg-elevated",
+              "cornerRadius": 16,
+              "layout": "vertical",
+              "gap": 12,
+              "padding": 16,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "fuRRt",
+                  "name": "actionLbl",
+                  "fill": "$text-primary",
+                  "content": "복습할 단어가 12개 있어요",
+                  "fontFamily": "Inter",
+                  "fontSize": 15,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "frame",
+                  "id": "hDS2g",
+                  "name": "actionBtn",
+                  "width": "fill_container",
+                  "height": 44,
+                  "fill": "$accent-primary",
+                  "cornerRadius": 24,
+                  "gap": 8,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "z4UJQ",
+                      "name": "actionBtnIco",
+                      "width": 18,
+                      "height": 18,
+                      "iconFontName": "layers",
+                      "iconFontFamily": "lucide",
+                      "fill": "#FFFFFF"
+                    },
+                    {
+                      "type": "text",
+                      "id": "3k9Tq",
+                      "name": "actionBtnLbl",
+                      "fill": "#FFFFFF",
+                      "content": "지금 복습하기",
+                      "fontFamily": "Inter",
+                      "fontSize": 15,
+                      "fontWeight": "600"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
               "id": "O3FJM",
               "name": "streakCard",
               "width": "fill_container",
@@ -9607,64 +9484,6 @@
                           }
                         }
                       ]
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "A0t0F",
-              "name": "actionCard",
-              "width": "fill_container",
-              "fill": "$bg-elevated",
-              "cornerRadius": 16,
-              "layout": "vertical",
-              "gap": 12,
-              "padding": 16,
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "text",
-                  "id": "fuRRt",
-                  "name": "actionLbl",
-                  "fill": "$text-primary",
-                  "content": "복습할 단어 12개",
-                  "fontFamily": "Inter",
-                  "fontSize": 15,
-                  "fontWeight": "600"
-                },
-                {
-                  "type": "frame",
-                  "id": "hDS2g",
-                  "name": "actionBtn",
-                  "width": "fill_container",
-                  "height": 44,
-                  "fill": "$accent-primary",
-                  "cornerRadius": 24,
-                  "gap": 8,
-                  "justifyContent": "center",
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "icon_font",
-                      "id": "z4UJQ",
-                      "name": "actionBtnIco",
-                      "width": 18,
-                      "height": 18,
-                      "iconFontName": "layers",
-                      "iconFontFamily": "lucide",
-                      "fill": "#FFFFFF"
-                    },
-                    {
-                      "type": "text",
-                      "id": "3k9Tq",
-                      "name": "actionBtnLbl",
-                      "fill": "#FFFFFF",
-                      "content": "지금 복습하기",
-                      "fontFamily": "Inter",
-                      "fontSize": 15,
-                      "fontWeight": "600"
                     }
                   ]
                 }
