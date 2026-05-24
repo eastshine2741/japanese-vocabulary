@@ -11,7 +11,6 @@ import {
   Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Slider from '@react-native-community/slider';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { useNavigation, CommonActions } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -31,15 +30,15 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 export default function SettingsScreen() {
   const navigation = useNavigation<Nav>();
   const {
-    status, requestRetention, showIntervals, readingDisplay, showKoreanPronunciation, showFurigana, dailyGoal, isSaving,
-    loadSettings, setRetention, setShowIntervals, setReadingDisplay, setShowKoreanPronunciation, setShowFurigana, setDailyGoal, save,
+    status, showIntervals, readingDisplay, showKoreanPronunciation, showFurigana, dailyGoal, isSaving,
+    loadSettings, setShowIntervals, setReadingDisplay, setShowKoreanPronunciation, setShowFurigana, setDailyGoal, save,
   } = useSettingsStore(
     useShallow(s => ({
-      status: s.status, requestRetention: s.requestRetention,
+      status: s.status,
       showIntervals: s.showIntervals, readingDisplay: s.readingDisplay,
       showKoreanPronunciation: s.showKoreanPronunciation, showFurigana: s.showFurigana,
       dailyGoal: s.dailyGoal,
-      isSaving: s.isSaving, loadSettings: s.loadSettings, setRetention: s.setRetention,
+      isSaving: s.isSaving, loadSettings: s.loadSettings,
       setShowIntervals: s.setShowIntervals, setReadingDisplay: s.setReadingDisplay,
       setShowKoreanPronunciation: s.setShowKoreanPronunciation, setShowFurigana: s.setShowFurigana,
       setDailyGoal: s.setDailyGoal, save: s.save,
@@ -61,10 +60,6 @@ export default function SettingsScreen() {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => { save(); }, 500);
   }, [save]);
-
-  const handleRetentionChange = useCallback((value: number) => {
-    setRetention(value); debouncedSave();
-  }, [setRetention, debouncedSave]);
 
   const handleShowIntervalsChange = useCallback((value: boolean) => {
     setShowIntervals(value); setTimeout(() => save(), 0);
@@ -135,25 +130,6 @@ export default function SettingsScreen() {
               returnKeyType="done"
               maxLength={5}
               selectTextOnFocus
-            />
-          </View>
-
-          <View style={styles.block}>
-            <View style={styles.rowInline}>
-              <Text style={styles.label}>목표 Retrievability</Text>
-              <Text style={styles.retrievabilityValue}>{requestRetention.toFixed(2)}</Text>
-            </View>
-            <Text style={styles.description}>FSRS 알고리즘의 목표 기억 유지율이에요. 높을수록 복습 주기가 짧아져요.</Text>
-            <Slider
-              style={styles.slider}
-              minimumValue={0.70}
-              maximumValue={0.99}
-              step={0.01}
-              value={requestRetention}
-              onValueChange={handleRetentionChange}
-              minimumTrackTintColor={Colors.stateRetrievability}
-              maximumTrackTintColor={Colors.border}
-              thumbTintColor={Colors.stateRetrievability}
             />
           </View>
 
@@ -310,13 +286,10 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     gap: 12,
   },
-  rowInline: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   rowText: { flex: 1 },
   block: { paddingVertical: 14, gap: 6 },
   label: { fontSize: 15, fontWeight: '500', color: Colors.textPrimary },
   description: { fontSize: 12, color: Colors.textMuted, lineHeight: 17 },
-  retrievabilityValue: { fontSize: 15, fontWeight: '600', color: Colors.stateRetrievability },
-  slider: { marginTop: 8, marginHorizontal: -4 },
 
   numberInput: {
     minWidth: 64, paddingHorizontal: 12, paddingVertical: 8,

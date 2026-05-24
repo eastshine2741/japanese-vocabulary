@@ -82,7 +82,7 @@ class FlashcardService(
 
         val settingsData = userSettingsRepository.findByUserId(userId)?.settings
         val showIntervals = settingsData?.showIntervals ?: true
-        val desiredRetention = settingsData?.requestRetention ?: 0.9
+        val desiredRetention = 0.9
 
         val cards = dueEntities.mapNotNull { entity ->
             val word = words[entity.wordId] ?: return@mapNotNull null
@@ -144,10 +144,8 @@ class FlashcardService(
             else -> throw BusinessException(ErrorCode.INVALID_RATING)
         }
 
-        val desiredRetention = userSettingsRepository.findByUserId(userId)?.settings?.requestRetention ?: 0.9
-
         val scheduler = Scheduler.builder()
-            .desiredRetention(desiredRetention)
+            .desiredRetention(0.9)
             .build()
 
         val card = Card.fromJson(entity.fsrsCardJson)

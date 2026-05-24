@@ -67,7 +67,6 @@ export function resetAllStores() {
 
   useSettingsStore.setState({
     status: 'loading',
-    requestRetention: 0.9,
     showIntervals: true,
     readingDisplay: 'KATAKANA',
     showKoreanPronunciation: true,

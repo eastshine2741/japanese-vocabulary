@@ -6,7 +6,6 @@ type SettingsStatus = 'loading' | 'loaded' | 'error';
 
 interface SettingsState {
   status: SettingsStatus;
-  requestRetention: number;
   showIntervals: boolean;
   readingDisplay: ReadingDisplay;
   showKoreanPronunciation: boolean;
@@ -17,7 +16,6 @@ interface SettingsState {
   error: string | null;
 
   loadSettings: () => Promise<void>;
-  setRetention: (value: number) => void;
   setShowIntervals: (value: boolean) => void;
   setReadingDisplay: (value: ReadingDisplay) => void;
   setShowKoreanPronunciation: (value: boolean) => void;
@@ -28,7 +26,6 @@ interface SettingsState {
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
   status: 'loading',
-  requestRetention: 0.9,
   showIntervals: true,
   readingDisplay: 'KOREAN',
   showKoreanPronunciation: true,
@@ -44,7 +41,6 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       const settings = await flashcardApi.getSettings();
       set({
         status: 'loaded',
-        requestRetention: settings.requestRetention,
         showIntervals: settings.showIntervals,
         readingDisplay: settings.readingDisplay,
         showKoreanPronunciation: settings.showKoreanPronunciation,
@@ -56,7 +52,6 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     }
   },
 
-  setRetention: (value) => set({ requestRetention: value, saveSuccess: false }),
   setShowIntervals: (value) => set({ showIntervals: value, saveSuccess: false }),
   setReadingDisplay: (value) => set({ readingDisplay: value, saveSuccess: false }),
   setShowKoreanPronunciation: (value) => set({ showKoreanPronunciation: value, saveSuccess: false }),
@@ -64,10 +59,10 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   setDailyGoal: (value) => set({ dailyGoal: Math.max(1, Math.min(50000, Math.round(value))), saveSuccess: false }),
 
   save: async () => {
-    const { requestRetention, showIntervals, readingDisplay, showKoreanPronunciation, showFurigana, dailyGoal } = get();
+    const { showIntervals, readingDisplay, showKoreanPronunciation, showFurigana, dailyGoal } = get();
     set({ isSaving: true, saveSuccess: false });
     try {
-      await flashcardApi.updateSettings({ requestRetention, showIntervals, readingDisplay, showKoreanPronunciation, showFurigana, dailyGoal });
+      await flashcardApi.updateSettings({ showIntervals, readingDisplay, showKoreanPronunciation, showFurigana, dailyGoal });
       set({ isSaving: false, saveSuccess: true });
     } catch {
       set({ isSaving: false });
