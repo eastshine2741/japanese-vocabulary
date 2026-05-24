@@ -6,18 +6,54 @@ on:
       - 'v*'
 
 jobs:
-  build-android:
+  parse:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    outputs:
+      is_rc: ${{ steps.parse.outputs.is_rc }}
+      version_name: ${{ steps.parse.outputs.version_name }}
+      version_code: ${{ steps.parse.outputs.version_code }}
+      matrix: ${{ steps.parse.outputs.matrix }}
+    steps:
+      - name: Parse tag
+        id: parse
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          if [[ "$TAG" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)(-rc\.([0-9]+))?$ ]]; then
+            MAJOR="${BASH_REMATCH[1]}"
+            MINOR="${BASH_REMATCH[2]}"
+            PATCH="${BASH_REMATCH[3]}"
+            RC="${BASH_REMATCH[5]}"
+            if [[ -n "$RC" ]]; then
+              IS_RC=true
+              RC_N=$RC
+              VN="${MAJOR}.${MINOR}.${PATCH}-rc.${RC}"
+              MATRIX='[{"env":"dev","fmt":"apk"},{"env":"prod","fmt":"apk"}]'
+            else
+              IS_RC=false
+              RC_N=999
+              VN="${MAJOR}.${MINOR}.${PATCH}"
+              MATRIX='[{"env":"prod","fmt":"aab"}]'
+            fi
+            VC=$((MAJOR * 1000000000 + MINOR * 1000000 + PATCH * 1000 + RC_N))
+            echo "is_rc=$IS_RC" >> "$GITHUB_OUTPUT"
+            echo "version_name=$VN" >> "$GITHUB_OUTPUT"
+            echo "version_code=$VC" >> "$GITHUB_OUTPUT"
+            echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::Invalid tag format: $TAG (expected vM.m.p or vM.m.p-rc.N)"
+            exit 1
+          fi
 
+  build:
+    needs: parse
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ${{ fromJSON(needs.parse.outputs.matrix) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Extract version from tag
-        id: version
-        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
 
       - name: Setup JDK 17
         uses: actions/setup-java@v4
@@ -34,77 +70,126 @@ jobs:
 
       - name: Create .env
         working-directory: app-rn
-        run: echo "EXPO_PUBLIC_BACKEND_URL=${{ secrets.BACKEND_URL }}" > .env
+        env:
+          BACKEND_URL: ${{ matrix.target.env == 'prod' && secrets.PROD_BACKEND_URL || secrets.BACKEND_URL }}
+          GOOGLE_WEB_CLIENT_ID: ${{ matrix.target.env == 'prod' && secrets.PROD_GOOGLE_OAUTH_WEB_CLIENT_ID || secrets.GOOGLE_OAUTH_WEB_CLIENT_ID }}
+        run: |
+          cat > .env <<EOF
+          EXPO_PUBLIC_BACKEND_URL=${BACKEND_URL}
+          EXPO_PUBLIC_GOOGLE_OAUTH_WEB_CLIENT_ID=${GOOGLE_WEB_CLIENT_ID}
+          EXPO_PUBLIC_BUILD_ENV=${{ matrix.target.env }}
+          EOF
 
       - name: Install dependencies
         working-directory: app-rn
         run: npm ci
 
-      - name: Update app version
-        working-directory: app-rn
-        run: |
-          VERSION=${{ steps.version.outputs.VERSION }}
-          sed -i "s/version: '.*'/version: '${VERSION}'/" app.config.js
-
-      - name: Decode keystore
-        run: |
-          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > ${{ runner.temp }}/release.keystore
-
       - name: Expo prebuild
         working-directory: app-rn
+        env:
+          BUILD_ENV: ${{ matrix.target.env }}
+          BUILD_VERSION_NAME: ${{ needs.parse.outputs.version_name }}
+          BUILD_VERSION_CODE: ${{ needs.parse.outputs.version_code }}
+          DEPLOY_NS: main
         run: npx expo prebuild --platform android --clean
+
+      - name: Decode keystore
+        env:
+          KS_BASE64: ${{ matrix.target.env == 'prod' && secrets.PROD_ANDROID_KEYSTORE_BASE64 || secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: echo "$KS_BASE64" | base64 -d > ${{ runner.temp }}/release.keystore
 
       - name: Configure signing
         working-directory: app-rn/android
+        env:
+          STORE_PW: ${{ matrix.target.env == 'prod' && secrets.PROD_ANDROID_KEYSTORE_PASSWORD || secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ matrix.target.env == 'prod' && secrets.PROD_ANDROID_KEY_ALIAS || secrets.ANDROID_KEY_ALIAS }}
+          KEY_PW: ${{ matrix.target.env == 'prod' && secrets.PROD_ANDROID_KEY_PASSWORD || secrets.ANDROID_KEY_PASSWORD }}
         run: |
           cat >> gradle.properties <<EOF
           org.gradle.jvmargs=-Xmx2g -XX:MaxMetaspaceSize=1g
           RELEASE_STORE_FILE=${{ runner.temp }}/release.keystore
-          RELEASE_STORE_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          RELEASE_KEY_ALIAS=${{ secrets.ANDROID_KEY_ALIAS }}
-          RELEASE_KEY_PASSWORD=${{ secrets.ANDROID_KEY_PASSWORD }}
+          RELEASE_STORE_PASSWORD=${STORE_PW}
+          RELEASE_KEY_ALIAS=${KEY_ALIAS}
+          RELEASE_KEY_PASSWORD=${KEY_PW}
           EOF
 
-      - name: Build APK
+      - name: Build
         working-directory: app-rn/android
-        run: ./gradlew assembleRelease
-
-      - name: Rename APK
         run: |
-          mv app-rn/android/app/build/outputs/apk/release/app-release.apk \
-             app-rn/android/app/build/outputs/apk/release/app-rn-${{ steps.version.outputs.VERSION }}.apk
+          if [[ "${{ matrix.target.fmt }}" == "aab" ]]; then
+            ./gradlew bundleRelease
+          else
+            ./gradlew assembleRelease
+          fi
+
+      - name: Rename artifact
+        id: artifact
+        run: |
+          VN="${{ needs.parse.outputs.version_name }}"
+          ENV="${{ matrix.target.env }}"
+          FMT="${{ matrix.target.fmt }}"
+          if [[ "$FMT" == "aab" ]]; then
+            SRC=app-rn/android/app/build/outputs/bundle/release/app-release.aab
+          else
+            SRC=app-rn/android/app/build/outputs/apk/release/app-release.apk
+          fi
+          DST="kotonoha-${ENV}-${VN}.${FMT}"
+          mv "$SRC" "$DST"
+          echo "path=$DST" >> "$GITHUB_OUTPUT"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.target.env }}-${{ matrix.target.fmt }}
+          path: ${{ steps.artifact.outputs.path }}
+
+  release:
+    needs: [parse, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
-          files: app-rn/android/app/build/outputs/apk/release/app-rn-${{ steps.version.outputs.VERSION }}.apk
+          prerelease: ${{ needs.parse.outputs.is_rc == 'true' }}
+          files: artifacts/*
 
       - name: Notify Discord (success)
-        if: success()
         run: |
           curl -H "Content-Type: application/json" \
             -d "{
               \"embeds\": [{
                 \"title\": \"Android Build Success\",
-                \"description\": \"**${{ github.repository }}** v${{ steps.version.outputs.VERSION }}\",
+                \"description\": \"**${{ github.repository }}** ${{ needs.parse.outputs.version_name }}\",
                 \"color\": 5763719,
                 \"fields\": [
-                  {\"name\": \"Release\", \"value\": \"[Download APK](${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ github.ref_name }})\", \"inline\": true},
+                  {\"name\": \"Release\", \"value\": \"[Download](${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ github.ref_name }})\", \"inline\": true},
                   {\"name\": \"Commit\", \"value\": \"\`${{ github.sha }}\`\", \"inline\": true}
                 ]
               }]
             }" \
             ${{ secrets.DISCORD_WEBHOOK_URL }}
 
+  notify-failure:
+    needs: [parse, build, release]
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
       - name: Notify Discord (failure)
-        if: failure()
         run: |
           curl -H "Content-Type: application/json" \
             -d "{
               \"embeds\": [{
                 \"title\": \"Android Build Failed\",
-                \"description\": \"**${{ github.repository }}** v${{ steps.version.outputs.VERSION }}\",
+                \"description\": \"**${{ github.repository }}** ${{ github.ref_name }}\",
                 \"color\": 15548997,
                 \"fields\": [
                   {\"name\": \"Actions\", \"value\": \"[View logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})\", \"inline\": true}
