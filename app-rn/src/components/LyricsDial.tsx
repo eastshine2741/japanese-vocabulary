@@ -13,6 +13,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { StudyUnit, Token } from '../types/song';
 import LyricLine from './LyricLine';
+import { usePlayerStore } from '../stores/playerStore';
 import { Colors } from '../theme/theme';
 
 const SLOT_HEIGHT = 96;
@@ -33,7 +34,11 @@ const DYNAMIC_HIGHLIGHT_OPACITY = 0.5;
 
 interface Props {
   studyUnits: StudyUnit[];
-  currentLineIndex: number;
+  // Mode + current-line inputs. LyricsDial owns the synced→line resolution
+  // internally (subscribes to playerStore.currentMs) so the surrounding
+  // PlayerScreen doesn't re-render on every 100ms playback tick.
+  isSynced: boolean;
+  manualLineIndex: number;
   showTranslation: boolean;
   onTokenPress: (token: Token, lineText: string, koreanLyrics: string | null) => void;
   onStepLine: (newIndex: number) => void;
@@ -95,11 +100,25 @@ const Slot = React.memo(function Slot({
 
 function LyricsDial({
   studyUnits,
-  currentLineIndex,
+  isSynced,
+  manualLineIndex,
   showTranslation,
   onTokenPress,
   onStepLine,
 }: Props) {
+  // Subscribe to currentMs only inside LyricsDial — keeps the 100ms tick
+  // scoped to this subtree.
+  const currentMs = usePlayerStore(s => s.currentMs);
+  const syncedLineIndex = useMemo(
+    () => isSynced
+      ? studyUnits.reduce((acc, unit, idx) => {
+          if (unit.startTimeMs != null && unit.startTimeMs <= currentMs) return idx;
+          return acc;
+        }, 0)
+      : 0,
+    [isSynced, studyUnits, currentMs],
+  );
+  const currentLineIndex = isSynced ? syncedLineIndex : manualLineIndex;
   const safeIndex = Math.max(0, Math.min(studyUnits.length - 1, currentLineIndex));
   const lineCount = studyUnits.length;
 
@@ -363,7 +382,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    backgroundColor: Colors.card,
+    backgroundColor: '#F5F5F5',
     borderRadius: 12,
   },
 });

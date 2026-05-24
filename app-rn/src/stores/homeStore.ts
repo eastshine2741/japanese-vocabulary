@@ -11,18 +11,21 @@ interface HomeState {
   load: () => Promise<void>;
 }
 
-export const useHomeStore = create<HomeState>((set) => ({
+export const useHomeStore = create<HomeState>((set, get) => ({
   status: 'loading',
   songs: [],
   error: null,
 
   load: async () => {
-    set({ status: 'loading', error: null });
+    const hasData = get().songs.length > 0;
+    if (!hasData) set({ status: 'loading', error: null });
     try {
       const songs = await songApi.getRecent();
-      set({ status: 'success', songs });
+      set({ status: 'success', songs, error: null });
     } catch (e: any) {
-      set({ status: 'error', error: e.message || 'Failed to load recent songs' });
+      const msg = e.message || 'Failed to load recent songs';
+      if (hasData) set({ error: msg });
+      else set({ status: 'error', error: msg });
     }
   },
 }));

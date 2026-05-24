@@ -21,6 +21,7 @@ import { wordApi } from '../api/wordApi';
 import { useWordForm } from '../hooks/useWordForm';
 import AppDialog from '../components/AppDialog';
 import ErrorDialog from '../components/ErrorDialog';
+import { AppBar } from '../components/AppBar';
 import { Colors, Dimens } from '../theme/theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'EditWord'>;
@@ -170,13 +171,10 @@ export default function EditWordScreen({ route, navigation }: Props) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        {/* Top nav */}
-        <View style={styles.topNav}>
-          <TouchableOpacity onPress={confirmGoBack} hitSlop={8} style={styles.navLeft}>
-            <Feather name="chevron-left" size={24} color={Colors.textPrimary} />
-            <Text style={styles.navTitle}>{mode === 'createAndEdit' ? '수정하고 담기' : '단어 수정'}</Text>
-          </TouchableOpacity>
-        </View>
+        <AppBar
+          title={mode === 'createAndEdit' ? '수정하고 담기' : '단어 수정'}
+          onBack={confirmGoBack}
+        />
 
         {/* Content */}
         <KeyboardAwareScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" extraScrollHeight={80} enableOnAndroid>
@@ -292,16 +290,6 @@ export default function EditWordScreen({ route, navigation }: Props) {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: Colors.background },
   container: { flex: 1 },
-
-  // Top nav
-  topNav: {
-    height: 48,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Dimens.screenPadding,
-  },
-  navLeft: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  navTitle: { fontSize: 16, fontWeight: '600', color: Colors.textPrimary },
 
   // Scroll content
   scroll: { flex: 1 },

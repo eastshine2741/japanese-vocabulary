@@ -23,6 +23,7 @@ import { useAuthStore } from '../stores/authStore';
 import { authApi, UsernameAvailabilityReason } from '../api/authApi';
 import { TOS_URL, PRIVACY_URL } from '../config/legal';
 import { Colors } from '../theme/theme';
+import { AppBar } from '../components/AppBar';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Signup'>;
@@ -181,13 +182,7 @@ export default function SignupScreen({ navigation, route }: Props) {
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <View style={styles.header}>
-          <Pressable onPress={handleBack} style={styles.headerBtn} hitSlop={8}>
-            <Ionicons name="chevron-back" size={24} color={Colors.textPrimary} />
-          </Pressable>
-          <Text style={styles.headerTitle}>계정 만들기</Text>
-          <View style={styles.headerBtn} />
-        </View>
+        <AppBar title="계정 만들기" onBack={handleBack} />
 
         <ScrollView
           contentContainerStyle={styles.scroll}
@@ -329,16 +324,6 @@ function Field({ label, required, mutedLabel, hint, hintColor, children }: Field
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   flex: { flex: 1 },
-  header: {
-    height: 56,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 8,
-  },
-  headerBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { fontSize: 16, fontWeight: '600', color: Colors.textPrimary },
-
   scroll: { flexGrow: 1, paddingHorizontal: 32, paddingTop: 8, paddingBottom: 16 },
   form: { gap: 18 },
 

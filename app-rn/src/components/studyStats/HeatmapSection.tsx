@@ -16,7 +16,11 @@ const ROW_LABEL_WIDTH = 18;
 const ROW_LABEL_GAP = 6;
 const ROW_LABELS: Record<number, string> = { 1: '월', 3: '수', 5: '금' };
 
-export default React.memo(function HeatmapSection() {
+interface HeatmapSectionProps {
+  onPressFreeze: () => void;
+}
+
+export default React.memo(function HeatmapSection({ onPressFreeze }: HeatmapSectionProps) {
   const { heatmap, profile, loadHeatmap, loadProfile } = useStudyStatsStore(
     useShallow((s) => ({
       heatmap: s.heatmap,
@@ -62,12 +66,16 @@ export default React.memo(function HeatmapSection() {
     <View style={styles.section}>
       <View style={styles.header}>
         <Text style={styles.title}>학습 기록</Text>
-        <View style={styles.right}>
-          <Ionicons name="snow" size={11} color={Colors.primary} />
+        <Pressable
+          style={({ pressed }) => [styles.right, pressed && styles.rightPressed]}
+          onPress={onPressFreeze}
+          hitSlop={8}
+        >
+          <Ionicons name="snow" size={11} color={Colors.freezeStroke} />
           <Text style={styles.freezeText}>{freezeCount}/{freezeMax}</Text>
           <Text style={styles.dotSep}>·</Text>
           <Text style={styles.totalText}>총 {totalDays}일</Text>
-        </View>
+        </Pressable>
       </View>
 
       <View style={styles.grid}>
@@ -120,6 +128,7 @@ export default React.memo(function HeatmapSection() {
           <Text style={styles.legendText}>많음</Text>
         </View>
       </View>
+
     </View>
   );
 });
@@ -153,7 +162,7 @@ function Cell({
   if (cell.day.freezeUsed && cell.day.reviewCount === 0) {
     return (
       <Pressable onPress={handlePress} style={[styles.cell, styles.cellFreeze, ringStyle]}>
-        <Ionicons name="snow" size={10} color={Colors.primary} />
+        <Ionicons name="snow" size={10} color={Colors.freezeStroke} />
       </Pressable>
     );
   }
@@ -220,10 +229,11 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
   },
   right: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  rightPressed: { opacity: 0.5 },
   freezeText: {
     fontSize: 11,
     fontWeight: '700',
-    color: Colors.primary,
+    color: Colors.freezeStroke,
     fontVariant: ['tabular-nums'],
   },
   dotSep: {
@@ -264,15 +274,15 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   cellFreeze: {
-    backgroundColor: '#E8F0F9',
+    backgroundColor: Colors.freezeFill,
     borderWidth: 1,
-    borderColor: Colors.primary,
+    borderColor: Colors.freezeStroke,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cellSelected: {
     borderWidth: 1.5,
-    borderColor: '#16456A',
+    borderColor: Colors.textPrimary,
   },
 
   footer: {

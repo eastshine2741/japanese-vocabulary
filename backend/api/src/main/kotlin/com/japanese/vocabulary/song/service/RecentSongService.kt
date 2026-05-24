@@ -8,7 +8,7 @@ class RecentSongService(
     private val redisTemplate: StringRedisTemplate
 ) {
     companion object {
-        private const val MAX_RECENT = 16
+        private const val MAX_RECENT = 27
     }
 
     private fun key(userId: Long) = "user:$userId:recent_songs"

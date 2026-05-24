@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { StyleSheet, StatusBar } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import AppNavigator, { RootStackParamList } from './src/navigation/AppNavigator';
@@ -33,14 +34,16 @@ export default function App() {
   return (
     <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider>
-        <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
-        {!initialRoute ? (
-          <SplashScreen />
-        ) : (
-          <NavigationContainer>
-            <AppNavigator initialRoute={initialRoute} />
-          </NavigationContainer>
-        )}
+        <BottomSheetModalProvider>
+          <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
+          {!initialRoute ? (
+            <SplashScreen />
+          ) : (
+            <NavigationContainer>
+              <AppNavigator initialRoute={initialRoute} />
+            </NavigationContainer>
+          )}
+        </BottomSheetModalProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

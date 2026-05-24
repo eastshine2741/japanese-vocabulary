@@ -3,9 +3,11 @@ import {
   View,
   StyleSheet,
   useWindowDimensions,
+  BackHandler,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useFocusEffect } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
 import BottomSheet, { BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import type { BottomSheetBackdropProps } from '@gorhom/bottom-sheet';
@@ -25,8 +27,13 @@ import { deckApi } from '../api/deckApi';
 import YouTubePlayer, { YouTubePlayerRef } from '../components/YouTubePlayer';
 import WordAnalysisSheet from '../components/WordAnalysisSheet';
 import WordEditSheet from '../components/WordEditSheet';
-import WordListSheet from '../components/WordListSheet';
+import {
+  useWordListSheet,
+  WordListSheetHandle,
+  WordListSheetContent,
+} from '../components/WordListSheet';
 import LyricsDial from '../components/LyricsDial';
+import LyricsAnalyzingCard from '../components/LyricsAnalyzingCard';
 import PlayerHeader from '../components/PlayerHeader';
 import AppDialog from '../components/AppDialog';
 import SongInfoSheet from '../components/SongInfoSheet';
@@ -60,6 +67,13 @@ export default function PlayerScreen({ navigation, route }: Props) {
   const initialLyricIndex = route.params?.initialLyricIndex;
 
   const studyData = usePlayerStore(s => s.studyData);
+  // PlayerScreen only subscribes to durationMs (rare update). currentMs is
+  // intentionally NOT subscribed here — LyricsDial reads it directly from
+  // the store so the ~100ms playback tick doesn't re-render this screen.
+  const durationMs = usePlayerStore(s => s.durationMs);
+  const setCurrentMs = usePlayerStore(s => s.setCurrentMs);
+  const setDurationMs = usePlayerStore(s => s.setDurationMs);
+  const refreshStudyData = usePlayerStore(s => s.refreshStudyData);
 
   const {
     addStatus, getWordStatus, existingWord,
@@ -80,10 +94,6 @@ export default function PlayerScreen({ navigation, route }: Props) {
   const resetBatchAdd = useVocabularyStore(s => s.resetBatchAdd);
   const batchAddWords = useVocabularyStore(s => s.batchAddWords);
 
-  // Playback state
-  const [currentMs, setCurrentMs] = useState(0);
-  const [durationMs, setDurationMs] = useState(0);
-
   // Word lookup state
   const [selectedToken, setSelectedToken] = useState<Token | null>(null);
   const [selectedLine, setSelectedLine] = useState('');
@@ -93,6 +103,15 @@ export default function PlayerScreen({ navigation, route }: Props) {
 
   // wordListSheet snap index — drives WordListSheet pointerEvents + batch reset
   const [snapIndex, setSnapIndex] = useState(0);
+  // Imperative open-state tracking for the back handler. We use refs (not
+  // state) so the value can be set *synchronously* the instant we call
+  // `expand()` / `close()`. With state, there is a race window between the
+  // call and gorhom's `onChange` firing on settle — if the user mashes
+  // back during that window the handler still sees lookupOpen=false and
+  // falls through to the default (pop screen). The ref closes that gap.
+  const lookupOpenRef = useRef(false);
+  const songInfoOpenRef = useRef(false);
+  const snapIndexRef = useRef(0);
 
   const [vocabDeckId, setVocabDeckId] = useState<number | null>(null);
 
@@ -119,15 +138,16 @@ export default function PlayerScreen({ navigation, route }: Props) {
   const { song, studyUnits, youtubeUrl, lyricsSourceName, lyricsSourceUrl } = studyData;
   const isSynced = song.lyricType === 'SYNCED';
   const videoId = youtubeUrl ? extractVideoId(youtubeUrl) : null;
+  const isAnalyzing = studyUnits.length > 0 && studyUnits.every(u => u.koreanLyrics == null);
 
   // ----- YouTube callbacks -----
   const handleTimeChange = useCallback((seconds: number) => {
     setCurrentMs(seconds * 1000);
-  }, []);
+  }, [setCurrentMs]);
 
   const handleDurationChange = useCallback((seconds: number) => {
     if (seconds > 0) setDurationMs(seconds * 1000);
-  }, []);
+  }, [setDurationMs]);
 
   // ----- Lyric word tap -----
   const handleTokenPress = useCallback((token: Token, lineText: string, koreanLyrics: string | null) => {
@@ -136,6 +156,7 @@ export default function PlayerScreen({ navigation, route }: Props) {
     setSelectedKoreanLine(koreanLyrics);
     resetLookup();
     getWord(token.baseForm);
+    lookupOpenRef.current = true;
     wordLookupRef.current?.expand();
   }, [resetLookup, getWord]);
 
@@ -146,6 +167,7 @@ export default function PlayerScreen({ navigation, route }: Props) {
   }, [navigation, vocabDeckId]);
 
   const onOpenInfo = useCallback(() => {
+    songInfoOpenRef.current = true;
     songInfoRef.current?.expand();
   }, []);
 
@@ -174,6 +196,7 @@ export default function PlayerScreen({ navigation, route }: Props) {
 
   const handleEditWord = useCallback(() => {
     if (existingWord) {
+      lookupOpenRef.current = false;
       wordLookupRef.current?.close();
       navigation.navigate('EditWord', {
         mode: 'edit',
@@ -212,21 +235,56 @@ export default function PlayerScreen({ navigation, route }: Props) {
   // wordListSheet snap: reset batch state when expanded so re-opens start fresh
   const handleWordListSnapChange = useCallback((index: number) => {
     setSnapIndex(index);
+    snapIndexRef.current = index;
     if (index === 1) resetBatchAdd();
   }, [resetBatchAdd]);
 
-  // ----- Lyric sync -----
-  const syncedLineIndex = useMemo(
-    () => isSynced
-      ? studyUnits.reduce((acc, unit, idx) => {
-          if (unit.startTimeMs != null && unit.startTimeMs <= currentMs) return idx;
-          return acc;
-        }, 0)
-      : 0,
-    [isSynced, studyUnits, currentMs],
-  );
+  // Reconcile open-state refs from gorhom's onChange (fires on settle). The
+  // refs are also set imperatively at the call sites that open/close the
+  // sheets — this is just the safety net for taps on the backdrop / pan-
+  // down-to-close where we don't go through our own handler.
+  const handleLookupChange = useCallback((index: number) => {
+    lookupOpenRef.current = index >= 0;
+  }, []);
+  const handleSongInfoChange = useCallback((index: number) => {
+    songInfoOpenRef.current = index >= 0;
+  }, []);
 
-  const displayLineIndex = isSynced ? syncedLineIndex : manualLineIndex;
+  // Android hardware back: dismiss the top-most overlay first, only fall
+  // through to default (pop screen) when nothing is open.
+  // Priority: delete dialog → edit sheet → lookup sheet → song-info sheet →
+  // expanded word list (collapse to peek) → default.
+  useFocusEffect(
+    useCallback(() => {
+      const onBack = () => {
+        if (showDeleteDialog) {
+          setShowDeleteDialog(false);
+          return true;
+        }
+        if (wordEditVisible) {
+          setWordEditVisible(false);
+          return true;
+        }
+        if (lookupOpenRef.current) {
+          lookupOpenRef.current = false;
+          wordLookupRef.current?.close();
+          return true;
+        }
+        if (songInfoOpenRef.current) {
+          songInfoOpenRef.current = false;
+          songInfoRef.current?.close();
+          return true;
+        }
+        if (snapIndexRef.current === 1) {
+          wordStudyRef.current?.snapToIndex(0);
+          return true;
+        }
+        return false;
+      };
+      const sub = BackHandler.addEventListener('hardwareBackPress', onBack);
+      return () => sub.remove();
+    }, [showDeleteDialog, wordEditVisible]),
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -243,7 +301,7 @@ export default function PlayerScreen({ navigation, route }: Props) {
       youtubeRef.current?.seekTo(initialSeekMs / 1000);
       setCurrentMs(initialSeekMs);
     }
-  }, [durationMs, initialSeekMs]);
+  }, [durationMs, initialSeekMs, setCurrentMs]);
 
   useEffect(() => {
     if (initialLyricIndex == null || initialIndexApplied.current) return;
@@ -259,7 +317,7 @@ export default function PlayerScreen({ navigation, route }: Props) {
         setCurrentMs(unit.startTimeMs);
       }
     }
-  }, [initialLyricIndex, isSynced, studyUnits, durationMs]);
+  }, [initialLyricIndex, isSynced, studyUnits, durationMs, setCurrentMs]);
 
   // Step-by-step lyric navigation (driven by LyricsDial swipe)
   const handleStepLine = useCallback((newIndex: number) => {
@@ -272,7 +330,7 @@ export default function PlayerScreen({ navigation, route }: Props) {
     } else {
       setManualLineIndex(newIndex);
     }
-  }, [isSynced, studyUnits]);
+  }, [isSynced, studyUnits, setCurrentMs]);
 
   const renderBackdrop = useCallback(
     (props: BottomSheetBackdropProps) => (
@@ -338,13 +396,27 @@ export default function PlayerScreen({ navigation, route }: Props) {
 
   // wordListSheet's max extent = below the MV.
   const sheetTopInset = insets.top + MV_HEIGHT;
-  const expandedSnap = Math.max(
-    SHEET_PEEK + 1,
-    screenH - sheetTopInset - insets.bottom,
-  );
   const wordListSnapPoints = useMemo<(string | number)[]>(
     () => [SHEET_PEEK, '100%'],
     [],
+  );
+
+  const wordListController = useWordListSheet({
+    studyUnits,
+    songId: song.id,
+    batchAddStatus,
+    batchSavedCount,
+    batchSkippedCount,
+    onSave: handleBatchSave,
+    animatedIndex: wordListAnimIndex,
+    snapIndex,
+  });
+
+  // gorhom calls handleComponent as a React component on every snap-state
+  // change, so define it once via useCallback.
+  const renderWordListHandle = useCallback(
+    () => <WordListSheetHandle controller={wordListController} />,
+    [wordListController],
   );
 
   return (
@@ -380,40 +452,43 @@ export default function PlayerScreen({ navigation, route }: Props) {
           </View>
         </GestureDetector>
 
+        {isAnalyzing && <LyricsAnalyzingCard onReload={refreshStudyData} />}
+
         <LyricsDial
           studyUnits={studyUnits}
-          currentLineIndex={displayLineIndex}
+          isSynced={isSynced}
+          manualLineIndex={manualLineIndex}
           showTranslation={true}
           onTokenPress={handleTokenPress}
           onStepLine={handleStepLine}
         />
       </View>
 
-      {/* Word list bottom sheet — 2 snaps: peek / expanded (below MV). */}
+      {/* Word list bottom sheet — 2 snaps: peek / expanded (below MV).
+          The sticky header (drag indicator + title + CTA + filter chips) lives
+          in gorhom's `handleComponent` slot so its pan gesture is the sheet's
+          handle-pan and always moves the sheet, never delegated to the inner
+          FlatList — fixes the "sheet locks once list is scrolled" bug. */}
       <BottomSheet
         ref={wordStudyRef}
         snapPoints={wordListSnapPoints}
         index={0}
         enablePanDownToClose={false}
         enableOverDrag={false}
+        // gorhom v5 defaults `enableDynamicSizing` to true: it measures
+        // content height and silently inserts an extra snap point at that
+        // height. When the word list is empty, that produces an unwanted
+        // intermediate snap between peek and full. Force-disable so the
+        // sheet honours only the configured [peek, '100%'] points.
+        enableDynamicSizing={false}
         topInset={sheetTopInset}
         bottomInset={insets.bottom}
-        handleComponent={null}
+        handleComponent={renderWordListHandle}
         animatedIndex={wordListAnimIndex}
         onChange={handleWordListSnapChange}
         backgroundStyle={styles.studySheetBg}
       >
-        <WordListSheet
-          studyUnits={studyUnits}
-          songId={song.id}
-          batchAddStatus={batchAddStatus}
-          batchSavedCount={batchSavedCount}
-          batchSkippedCount={batchSkippedCount}
-          onSave={handleBatchSave}
-          animatedIndex={wordListAnimIndex}
-          snapIndex={snapIndex}
-          contentHeight={expandedSnap}
-        />
+        <WordListSheetContent controller={wordListController} />
       </BottomSheet>
 
       {/* Word lookup bottom sheet — opens on word tap */}
@@ -423,6 +498,7 @@ export default function PlayerScreen({ navigation, route }: Props) {
         enableDynamicSizing
         enablePanDownToClose
         detached
+        onChange={handleLookupChange}
         bottomInset={insets.bottom + 12}
         backdropComponent={renderBackdrop}
         style={styles.lookupSheetFloat}
@@ -455,6 +531,7 @@ export default function PlayerScreen({ navigation, route }: Props) {
         enableDynamicSizing
         enablePanDownToClose
         detached
+        onChange={handleSongInfoChange}
         bottomInset={insets.bottom + 12}
         backdropComponent={renderBackdrop}
         style={styles.lookupSheetFloat}

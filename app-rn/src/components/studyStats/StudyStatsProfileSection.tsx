@@ -206,7 +206,7 @@ const Bar = React.memo(function Bar({
   if (day.freezeUsed && day.reviewCount === 0) {
     return (
       <View style={styles.barCol}>
-        <Ionicons name="snow" size={14} color={Colors.primary} />
+        <Ionicons name="snow" size={14} color={Colors.freezeStroke} />
         <View style={styles.barFreezeStub} />
       </View>
     );
@@ -245,7 +245,7 @@ const DayLabel = React.memo(function DayLabel({
   const valueColor = reachedGoal
     ? Colors.accentSecondary
     : day.freezeUsed && day.reviewCount === 0
-    ? Colors.textMuted
+    ? Colors.freezeStroke
     : day.isToday
     ? Colors.primary
     : day.reviewCount > 0

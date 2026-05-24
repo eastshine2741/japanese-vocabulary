@@ -56,4 +56,12 @@ class WordController(
         return if (result != null) ResponseEntity.ok(result)
         else ResponseEntity.noContent().build()
     }
+
+    @GetMapping("/{id}")
+    fun getWordById(@PathVariable id: Long): ResponseEntity<WordDetailResponse> {
+        val userId = currentUserId()
+        val result = wordService.getWordById(userId, id)
+        return if (result != null) ResponseEntity.ok(result)
+        else ResponseEntity.notFound().build()
+    }
 }
