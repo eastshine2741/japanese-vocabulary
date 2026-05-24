@@ -2,6 +2,7 @@ package com.japanese.vocabulary.song.client
 
 object JapaneseLyricValidator {
 
+    private const val MIN_JAPANESE_LINE_RATIO = 0.5
     private val KANA_REGEX = Regex("[぀-ゟ゠-ヿｦ-ﾟ]")
 
     fun isJapaneseLyrics(lyrics: String): Boolean {
@@ -9,6 +10,6 @@ object JapaneseLyricValidator {
         if (nonEmptyLines.isEmpty()) return false
 
         val kanaLineCount = nonEmptyLines.count { KANA_REGEX.containsMatchIn(it) }
-        return kanaLineCount.toDouble() / nonEmptyLines.size >= 0.5
+        return kanaLineCount.toDouble() / nonEmptyLines.size >= MIN_JAPANESE_LINE_RATIO
     }
 }

@@ -143,7 +143,7 @@ class LrclibClient : LyricProvider {
             ?: return null
 
         if (!JapaneseLyricValidator.isJapaneseLyrics(lyrics)) {
-            logger.warn("Rejected non-Japanese lyrics | provider=LrcLib | lrclibId={}", response.id)
+            logger.info("Rejected non-Japanese lyrics | provider=LrcLib | lrclibId={}", response.id)
             return null
         }
 
