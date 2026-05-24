@@ -363,7 +363,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    backgroundColor: Colors.card,
+    backgroundColor: '#F5F5F5',
     borderRadius: 12,
   },
 });

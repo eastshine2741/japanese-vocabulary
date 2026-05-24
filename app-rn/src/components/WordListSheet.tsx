@@ -13,8 +13,10 @@ import { ScrollView } from 'react-native-gesture-handler';
 import Animated, {
   SharedValue,
   useAnimatedStyle,
+  useAnimatedReaction,
   interpolate,
   Extrapolation,
+  runOnJS,
 } from 'react-native-reanimated';
 import { BottomSheetFlatList } from '@gorhom/bottom-sheet';
 import { Feather } from '@expo/vector-icons';
@@ -33,10 +35,6 @@ interface UniqueWord {
   koreanLyrics: string | null;
 }
 
-// Row component — memoized so toggling one checkbox doesn't re-render
-// every visible row. Receives a stable `onToggle` and a single `isChecked`
-// boolean (instead of the whole `uncheckedWords` Set) so React.memo can
-// skip rows whose checked state didn't change.
 interface WordRowProps {
   item: UniqueWord;
   isChecked: boolean;
@@ -90,23 +88,6 @@ const WordRow = React.memo(function WordRow({ item, isChecked, onToggle }: WordR
   );
 });
 
-interface Props {
-  studyUnits: StudyUnit[];
-  songId: number;
-  batchAddStatus: string;
-  batchSavedCount: number;
-  batchSkippedCount: number;
-  onSave: (words: AddWordRequest[]) => void;
-  // Animated sheet position: 0 = peek, 1 = expanded.
-  animatedIndex: SharedValue<number>;
-  // Discrete snap (for pointerEvents). 0 = peek, 1 = expanded.
-  snapIndex: number;
-  // Expanded snap height in px. Needed because BottomSheetView is
-  // `position:absolute` without a bottom anchor — without an explicit height
-  // its absolute children (the list wrapper) collapse to 0.
-  contentHeight: number;
-}
-
 const DEFAULT_ON_POS = new Set(['NOUN', 'VERB', 'ADJECTIVE', 'NA_ADJECTIVE', 'ADVERB']);
 const HIDDEN_POS = new Set(['SYMBOL', 'SUPPLEMENTARY_SYMBOL', 'WHITESPACE']);
 
@@ -116,17 +97,41 @@ const FILTER_POS_ORDER = [
   'INTERJECTION', 'PARTICLE', 'PREFIX', 'SUFFIX',
 ];
 
-function WordListSheet({
-  studyUnits,
-  songId,
-  batchAddStatus,
-  batchSavedCount,
-  batchSkippedCount,
-  onSave,
-  animatedIndex,
-  snapIndex,
-  contentHeight,
-}: Props) {
+interface ControllerInput {
+  studyUnits: StudyUnit[];
+  songId: number;
+  batchAddStatus: string;
+  batchSavedCount: number;
+  batchSkippedCount: number;
+  onSave: (words: AddWordRequest[]) => void;
+  animatedIndex: SharedValue<number>;
+  snapIndex: number;
+}
+
+export interface WordListSheetController {
+  allUniqueWordsCount: number;
+  availablePOS: string[];
+  enabledPOS: Set<string>;
+  filteredWords: UniqueWord[];
+  uncheckedWords: Set<string>;
+  checkedCount: number;
+  togglePOS: (pos: string) => void;
+  toggleWord: (baseForm: string) => void;
+  handleSave: () => void;
+  isLoading: boolean;
+  isSuccess: boolean;
+  batchSavedCount: number;
+  batchSkippedCount: number;
+  animatedIndex: SharedValue<number>;
+  snapIndex: number;
+}
+
+export function useWordListSheet(props: ControllerInput): WordListSheetController {
+  const {
+    studyUnits, songId, batchAddStatus, batchSavedCount, batchSkippedCount, onSave,
+    animatedIndex, snapIndex,
+  } = props;
+
   const [enabledPOS, setEnabledPOS] = useState<Set<string>>(() => new Set(DEFAULT_ON_POS));
   const [uncheckedWords, setUncheckedWords] = useState<Set<string>>(new Set());
 
@@ -195,6 +200,167 @@ function WordListSheet({
 
   const isLoading = batchAddStatus === 'loading';
   const isSuccess = batchAddStatus === 'success';
+  const allUniqueWordsCount = allUniqueWords.length;
+
+  // The controller object MUST be reference-stable across renders that don't
+  // change any of its fields. PlayerScreen re-renders every ~100ms during
+  // playback (currentMs ticks); without this memo, the handle/content
+  // components see a new `controller` prop each tick and their React.memo
+  // bails out — which is what made the sheet stutter.
+  return useMemo(
+    () => ({
+      allUniqueWordsCount,
+      availablePOS,
+      enabledPOS,
+      filteredWords,
+      uncheckedWords,
+      checkedCount,
+      togglePOS,
+      toggleWord,
+      handleSave,
+      isLoading,
+      isSuccess,
+      batchSavedCount,
+      batchSkippedCount,
+      animatedIndex,
+      snapIndex,
+    }),
+    [
+      allUniqueWordsCount, availablePOS, enabledPOS, filteredWords, uncheckedWords,
+      checkedCount, togglePOS, toggleWord, handleSave, isLoading, isSuccess,
+      batchSavedCount, batchSkippedCount, animatedIndex, snapIndex,
+    ],
+  );
+}
+
+// Handle: lives inside gorhom's `handleComponent` slot so its drag gesture
+// is the sheet's handle-pan (always moves the sheet, never delegated to
+// the inner scrollable). This is the fix for the previous lockup where
+// any non-zero FlatList scrollY made the content-pan handoff refuse to
+// engage the sheet until the list was first scrolled back to 0.
+export const WordListSheetHandle = React.memo(function WordListSheetHandle({
+  controller,
+}: { controller: WordListSheetController }) {
+  const {
+    allUniqueWordsCount, availablePOS, enabledPOS, checkedCount,
+    togglePOS, handleSave, isLoading, isSuccess,
+    batchSavedCount, batchSkippedCount, animatedIndex, snapIndex,
+  } = controller;
+
+  // Cross-fade peek → expanded header near the start of the drag so a tiny
+  // pull from peek immediately reveals the header. Peek gone by 0.1,
+  // header in by 0.2.
+  const peekStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(animatedIndex.value, [0, 0.1], [1, 0], Extrapolation.CLAMP),
+  }));
+  const expandedHeaderStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(animatedIndex.value, [0.05, 0.2], [0, 1], Extrapolation.CLAMP),
+  }));
+
+  // [DEBUG] sheet animatedIndex transitions — should now move every time
+  // user drags on the handle area, regardless of FlatList scroll position.
+  // NOTE: must wrap console.log in a plain JS arrow before passing to
+  // runOnJS. Passing `console.log` directly aborts the worklets runtime
+  // with `assertion "isHostFunction(runtime)" failed` on Android.
+  const logAnimatedIndex = useCallback((v: string) => {
+    console.log('[WL-sheet] animatedIndex', v);
+  }, []);
+  useAnimatedReaction(
+    () => animatedIndex.value,
+    (cur, prev) => {
+      'worklet';
+      if (prev == null) return;
+      if (Math.floor(cur * 10) !== Math.floor((prev ?? cur) * 10)) {
+        runOnJS(logAnimatedIndex)(cur.toFixed(3));
+      }
+    },
+    [logAnimatedIndex],
+  );
+
+  return (
+    <View>
+      {/* Expanded header — structural, defines the handle component's height */}
+      <Animated.View
+        style={expandedHeaderStyle}
+        pointerEvents={snapIndex >= 1 ? 'auto' : 'none'}
+      >
+        <View style={styles.handleArea}>
+          <View style={styles.handleIndicator} />
+        </View>
+
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            <Text style={styles.headerTitle}>단어</Text>
+            <Text style={styles.headerTotal}>{allUniqueWordsCount}개</Text>
+          </View>
+          {isSuccess ? (
+            <View style={[styles.ctaPill, styles.ctaPillSuccess]}>
+              <Feather name="check" size={14} color="#FFFFFF" />
+              <Text style={styles.ctaPillText}>
+                {batchSavedCount}개 저장
+                {batchSkippedCount > 0 ? ` (${batchSkippedCount}개 중복)` : ''}
+              </Text>
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={[styles.ctaPill, checkedCount === 0 && styles.ctaPillDisabled]}
+              onPress={handleSave}
+              disabled={isLoading || checkedCount === 0}
+              activeOpacity={0.7}
+            >
+              {isLoading ? (
+                <ActivityIndicator color="#FFF" size="small" />
+              ) : (
+                <>
+                  <Feather name="plus" size={14} color="#FFFFFF" />
+                  <Text style={styles.ctaPillText}>{checkedCount}개 담기</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          )}
+        </View>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterRow}
+          style={styles.filterScroll}
+        >
+          {availablePOS.map(pos => {
+            const info = POS_INFO[pos];
+            if (!info) return null;
+            return (
+              <FilterChip
+                key={pos}
+                pos={pos}
+                isOn={enabledPOS.has(pos)}
+                color={info.color}
+                label={info.korean}
+                onToggle={togglePOS}
+              />
+            );
+          })}
+        </ScrollView>
+      </Animated.View>
+
+      {/* Peek overlay — absolute, fades in at peek snap.
+          Sits over the top of the expanded header; at peek the sheet's
+          visible area only exposes this overlay. */}
+      <Animated.View
+        style={[styles.peekOverlay, peekStyle]}
+        pointerEvents={snapIndex === 0 ? 'auto' : 'none'}
+      >
+        <View style={styles.handleIndicator} />
+        <Text style={styles.peekLabel}>단어</Text>
+      </Animated.View>
+    </View>
+  );
+});
+
+export const WordListSheetContent = React.memo(function WordListSheetContent({
+  controller,
+}: { controller: WordListSheetController }) {
+  const { filteredWords, uncheckedWords, toggleWord } = controller;
 
   const renderItem = useCallback(({ item }: { item: UniqueWord }) => (
     <WordRow
@@ -206,130 +372,36 @@ function WordListSheet({
 
   const keyExtractor = useCallback((item: UniqueWord) => item.baseForm, []);
 
-  // Sticky sheet header (drag handle + title + CTA + filter chips). Rendered
-  // OUTSIDE the FlatList so it doesn't scroll with the word rows.
-  const stickyHeader = (
-    <View style={styles.stickyHeader}>
-      <View style={styles.handleArea}>
-        <View style={styles.handleIndicator} />
-      </View>
+  // [DEBUG] FlatList scroll position — kept temporarily to verify the
+  // sheet-handoff behaviour after moving the handle out of the content.
+  const onListScroll = useCallback((e: { nativeEvent: { contentOffset: { y: number } } }) => {
+    console.log('[WL-list] scrollY', e.nativeEvent.contentOffset.y.toFixed(1));
+  }, []);
+  const onScrollBeginDrag = useCallback(() => {
+    console.log('[WL-list] scrollBeginDrag');
+  }, []);
+  const onScrollEndDrag = useCallback((e: { nativeEvent: { contentOffset: { y: number } } }) => {
+    console.log('[WL-list] scrollEndDrag y=', e.nativeEvent.contentOffset.y.toFixed(1));
+  }, []);
 
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Text style={styles.headerTitle}>단어</Text>
-          <Text style={styles.headerTotal}>{allUniqueWords.length}개</Text>
-        </View>
-        {isSuccess ? (
-          <View style={[styles.ctaPill, styles.ctaPillSuccess]}>
-            <Feather name="check" size={14} color="#FFFFFF" />
-            <Text style={styles.ctaPillText}>
-              {batchSavedCount}개 저장
-              {batchSkippedCount > 0 ? ` (${batchSkippedCount}개 중복)` : ''}
-            </Text>
-          </View>
-        ) : (
-          <TouchableOpacity
-            style={[styles.ctaPill, checkedCount === 0 && styles.ctaPillDisabled]}
-            onPress={handleSave}
-            disabled={isLoading || checkedCount === 0}
-            activeOpacity={0.7}
-          >
-            {isLoading ? (
-              <ActivityIndicator color="#FFF" size="small" />
-            ) : (
-              <>
-                <Feather name="plus" size={14} color="#FFFFFF" />
-                <Text style={styles.ctaPillText}>{checkedCount}개 담기</Text>
-              </>
-            )}
-          </TouchableOpacity>
-        )}
-      </View>
-
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filterRow}
-        style={styles.filterScroll}
-      >
-        {availablePOS.map(pos => {
-          const info = POS_INFO[pos];
-          if (!info) return null;
-          return (
-            <FilterChip
-              key={pos}
-              pos={pos}
-              isOn={enabledPOS.has(pos)}
-              color={info.color}
-              label={info.korean}
-              onToggle={togglePOS}
-            />
-          );
-        })}
-      </ScrollView>
-    </View>
-  );
-
-  // Cross-fade peek → word list near the start of the drag so a tiny
-  // pull from peek immediately reveals the list. Peek fully gone by 0.1,
-  // list fully visible by 0.2 (small overlap to avoid a blank frame).
-  const peekStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(animatedIndex.value, [0, 0.1], [1, 0], Extrapolation.CLAMP),
-  }));
-  const listStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(animatedIndex.value, [0.05, 0.2], [0, 1], Extrapolation.CLAMP),
-  }));
-
-  // NOTE: do NOT wrap in `BottomSheetView` — it registers itself as
-  // `SCROLLABLE_TYPE.VIEW` on focus, which overrides the FlatList's
-  // FLATLIST registration (parent effects run after children) and disables
-  // scrolling for the sheet's content. A plain View is fine.
   return (
-    <View style={[styles.root, { height: contentHeight }]}>
-      <Animated.View
-        style={[StyleSheet.absoluteFill, styles.listColumn, listStyle]}
-        pointerEvents={snapIndex >= 1 ? 'auto' : 'none'}
-      >
-        {stickyHeader}
-        <BottomSheetFlatList
-          data={filteredWords}
-          keyExtractor={keyExtractor}
-          renderItem={renderItem}
-          contentContainerStyle={styles.listContent}
-          removeClippedSubviews
-          initialNumToRender={12}
-          maxToRenderPerBatch={8}
-          windowSize={5}
-        />
-      </Animated.View>
-
-      <Animated.View
-        style={[styles.peekOverlay, peekStyle]}
-        pointerEvents={snapIndex === 0 ? 'auto' : 'none'}
-      >
-        <View style={styles.handleIndicator} />
-        <Text style={styles.peekLabel}>단어</Text>
-      </Animated.View>
-    </View>
+    <BottomSheetFlatList
+      data={filteredWords}
+      keyExtractor={keyExtractor}
+      renderItem={renderItem}
+      contentContainerStyle={styles.listContent}
+      initialNumToRender={12}
+      maxToRenderPerBatch={8}
+      windowSize={5}
+      onScroll={onListScroll}
+      onScrollBeginDrag={onScrollBeginDrag}
+      onScrollEndDrag={onScrollEndDrag}
+      scrollEventThrottle={64}
+    />
   );
-}
-
-export default React.memo(WordListSheet);
+});
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-  },
-
-  // Animated.View wrapper holding sticky header + scrollable list. Needs
-  // flex column so BottomSheetFlatList (flex:1) takes the remaining height.
-  listColumn: {
-    flexDirection: 'column',
-  },
-  stickyHeader: {
-    flexShrink: 0,
-  },
-
   listContent: {
     paddingBottom: 32,
   },

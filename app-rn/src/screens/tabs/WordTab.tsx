@@ -114,7 +114,7 @@ export default function WordTab() {
     if (songDecks.length === 0) return null;
     return (
       <View style={styles.songDecksCard}>
-        <Text style={styles.sectionLabel}>노래별 단어장</Text>
+        <Text style={styles.sectionLabel}>단어장</Text>
         {songDecks.map((item) => (
           <SongListItem
             key={item.deckId}
@@ -179,7 +179,7 @@ export default function WordTab() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  list: { paddingHorizontal: 24, paddingBottom: Dimens.bottomBarHeight + 40, gap: 28 },
+  list: { paddingTop: 20, paddingHorizontal: 24, paddingBottom: Dimens.bottomBarHeight + 40, gap: 28 },
   header: { marginBottom: 0 },
   /* Stats card */
   statsCard: {

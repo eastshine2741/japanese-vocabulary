@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '../theme/theme';
 
 interface Props {
@@ -9,7 +10,7 @@ interface Props {
   onPress: () => void;
 }
 
-export default function SongCard({ artworkUrl, title, artist, onPress }: Props) {
+export default function SongCard({ artworkUrl, title, onPress }: Props) {
   return (
     <TouchableOpacity style={styles.container} onPress={onPress} activeOpacity={0.7}>
       {artworkUrl ? (
@@ -17,8 +18,12 @@ export default function SongCard({ artworkUrl, title, artist, onPress }: Props) 
       ) : (
         <View style={[styles.coverImage, { backgroundColor: Colors.elevated }]} />
       )}
+      <LinearGradient
+        colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.94)']}
+        style={styles.gradient}
+        pointerEvents="none"
+      />
       <Text style={styles.title} numberOfLines={1}>{title}</Text>
-      <Text style={styles.artist} numberOfLines={1}>{artist}</Text>
     </TouchableOpacity>
   );
 }
@@ -35,26 +40,21 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
+  gradient: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: '60%',
+  },
   title: {
     position: 'absolute',
-    left: 8,
-    bottom: 21,
-    fontSize: 10,
-    fontWeight: '600',
+    left: 10,
+    right: 10,
+    bottom: 6,
+    fontSize: 12,
+    lineHeight: 14,
+    fontWeight: '700',
     color: '#FFFFFF',
-    textShadowColor: '#000000CC',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
-  },
-  artist: {
-    position: 'absolute',
-    left: 8,
-    bottom: 8,
-    fontSize: 9,
-    fontWeight: '400',
-    color: '#FFFFFFCC',
-    textShadowColor: '#000000CC',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
   },
 });

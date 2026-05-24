@@ -1,21 +1,20 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import ReanimatedSwipeable, {
-  SwipeableMethods,
-} from 'react-native-gesture-handler/ReanimatedSwipeable';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Reanimated, {
-  SharedValue,
+  runOnJS,
   useAnimatedStyle,
+  useSharedValue,
+  withTiming,
 } from 'react-native-reanimated';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
@@ -30,6 +29,8 @@ import { ExampleSentence } from '../types/word';
 import { wordApi } from '../api/wordApi';
 import { PosBadge } from '../components/Badges';
 import { AppBar } from '../components/AppBar';
+import AppDialog from '../components/AppDialog';
+import ErrorDialog from '../components/ErrorDialog';
 import ArtworkImage from '../components/ArtworkImage';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
@@ -39,30 +40,64 @@ type ExamplesState = ExampleSentence[] | 'loading' | 'error';
 
 const SWIPE_BTN_WIDTH = 72;
 const SWIPE_ACTIONS_WIDTH = SWIPE_BTN_WIDTH * 2;
+const SNAP_DURATION = 200;
+const VELOCITY_THRESHOLD = 500;
 
-function RightActions({
-  progress,
-  onEdit,
-  onDelete,
+function SwipeableRow({
+  isOpen,
+  onWillOpen,
+  onClose,
+  children,
+  actions,
 }: {
-  progress: SharedValue<number>;
-  onEdit: () => void;
-  onDelete: () => void;
+  isOpen: boolean;
+  onWillOpen: () => void;
+  onClose: () => void;
+  children: React.ReactNode;
+  actions: React.ReactNode;
 }) {
+  const translateX = useSharedValue(0);
+  const startX = useSharedValue(0);
+
+  useEffect(() => {
+    translateX.value = withTiming(isOpen ? -SWIPE_ACTIONS_WIDTH : 0, { duration: SNAP_DURATION });
+  }, [isOpen, translateX]);
+
+  const pan = Gesture.Pan()
+    .activeOffsetX([-10, 10])
+    .failOffsetY([-10, 10])
+    .onStart(() => {
+      startX.value = translateX.value;
+    })
+    .onUpdate((e) => {
+      const x = startX.value + e.translationX;
+      translateX.value = Math.max(-SWIPE_ACTIONS_WIDTH, Math.min(0, x));
+    })
+    .onEnd((e) => {
+      const shouldOpen =
+        translateX.value < -SWIPE_ACTIONS_WIDTH / 2 || e.velocityX < -VELOCITY_THRESHOLD;
+      if (shouldOpen) {
+        translateX.value = withTiming(-SWIPE_ACTIONS_WIDTH, { duration: SNAP_DURATION });
+        runOnJS(onWillOpen)();
+      } else {
+        translateX.value = withTiming(0, { duration: SNAP_DURATION });
+        runOnJS(onClose)();
+      }
+    });
+
   const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: SWIPE_ACTIONS_WIDTH * (1 - Math.min(progress.value, 1)) }],
+    transform: [{ translateX: translateX.value }],
   }));
+
   return (
-    <Reanimated.View style={[styles.swipeActions, animatedStyle]}>
-      <TouchableOpacity style={[styles.swipeBtn, styles.swipeEdit]} onPress={onEdit}>
-        <Ionicons name="create-outline" size={20} color="#FFFFFF" />
-        <Text style={styles.swipeLabel}>수정</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={[styles.swipeBtn, styles.swipeDelete]} onPress={onDelete}>
-        <Ionicons name="trash-outline" size={20} color="#FFFFFF" />
-        <Text style={styles.swipeLabel}>삭제</Text>
-      </TouchableOpacity>
-    </Reanimated.View>
+    <View style={styles.swipeClip}>
+      <GestureDetector gesture={pan}>
+        <Reanimated.View style={animatedStyle}>
+          {children}
+          <View style={styles.swipeActions}>{actions}</View>
+        </Reanimated.View>
+      </GestureDetector>
+    </View>
   );
 }
 
@@ -83,24 +118,9 @@ export default function DeckWordListScreen({ route, navigation }: Props) {
 
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [examplesById, setExamplesById] = useState<Record<number, ExamplesState>>({});
-  const swipeRefs = useRef<Map<number, React.RefObject<SwipeableMethods | null>>>(new Map());
-  const openIdRef = useRef<number | null>(null);
-
-  const getSwipeRef = (id: number) => {
-    let ref = swipeRefs.current.get(id);
-    if (!ref) {
-      ref = React.createRef<SwipeableMethods | null>();
-      swipeRefs.current.set(id, ref);
-    }
-    return ref;
-  };
-
-  const closeOpenSwipe = useCallback(() => {
-    if (openIdRef.current !== null) {
-      swipeRefs.current.get(openIdRef.current)?.current?.close();
-      openIdRef.current = null;
-    }
-  }, []);
+  const [openSwipeId, setOpenSwipeId] = useState<number | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<DeckWordItem | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -126,7 +146,7 @@ export default function DeckWordListScreen({ route, navigation }: Props) {
   }, [expandedId, examplesById]);
 
   const goEdit = useCallback((item: DeckWordItem) => {
-    closeOpenSwipe();
+    setOpenSwipeId(null);
     navigation.navigate('EditWord', {
       mode: 'edit',
       wordId: item.id,
@@ -134,42 +154,24 @@ export default function DeckWordListScreen({ route, navigation }: Props) {
       reading: item.reading,
       meanings: item.meanings,
     });
-  }, [navigation, closeOpenSwipe]);
+  }, [navigation]);
 
   const confirmDelete = useCallback((item: DeckWordItem) => {
-    Alert.alert(
-      '단어를 삭제할까요?',
-      `${item.japanese} 단어와 학습 진행도가 함께 삭제돼요.`,
-      [
-        { text: '취소', style: 'cancel', onPress: closeOpenSwipe },
-        {
-          text: '삭제',
-          style: 'destructive',
-          onPress: async () => {
-            closeOpenSwipe();
-            try {
-              await wordApi.deleteWord(item.id);
-              load(deckId);
-            } catch {
-              Alert.alert('삭제하지 못했어요', '잠시 후 다시 시도해주세요.');
-            }
-          },
-        },
-      ],
-    );
-  }, [deckId, load, closeOpenSwipe]);
+    setPendingDelete(item);
+  }, []);
 
-  const renderRightActions = useCallback(
-    (item: DeckWordItem) =>
-      (progress: SharedValue<number>, _translation: SharedValue<number>) => (
-        <RightActions
-          progress={progress}
-          onEdit={() => goEdit(item)}
-          onDelete={() => confirmDelete(item)}
-        />
-      ),
-    [goEdit, confirmDelete],
-  );
+  const runDelete = useCallback(async () => {
+    const item = pendingDelete;
+    setPendingDelete(null);
+    setOpenSwipeId(null);
+    if (!item) return;
+    try {
+      await wordApi.deleteWord(item.id);
+      load(deckId);
+    } catch {
+      setDeleteError('잠시 후 다시 시도해주세요.');
+    }
+  }, [pendingDelete, deckId, load]);
 
   const renderWord = ({ item, index }: { item: DeckWordItem; index: number }) => {
     const pos = item.meanings[0]?.partOfSpeech;
@@ -177,22 +179,24 @@ export default function DeckWordListScreen({ route, navigation }: Props) {
     const examples = examplesById[item.id];
     return (
       <View>
-        <ReanimatedSwipeable
-          friction={2}
-          rightThreshold={40}
-          overshootLeft={false}
-          overshootRight={false}
-          ref={getSwipeRef(item.id)}
-          renderRightActions={renderRightActions(item)}
-          onSwipeableWillOpen={() => {
-            if (openIdRef.current !== null && openIdRef.current !== item.id) {
-              swipeRefs.current.get(openIdRef.current)?.current?.close();
-            }
-            openIdRef.current = item.id;
+        <SwipeableRow
+          isOpen={openSwipeId === item.id}
+          onWillOpen={() => setOpenSwipeId(item.id)}
+          onClose={() => {
+            if (openSwipeId === item.id) setOpenSwipeId(null);
           }}
-          onSwipeableClose={() => {
-            if (openIdRef.current === item.id) openIdRef.current = null;
-          }}
+          actions={
+            <>
+              <TouchableOpacity style={[styles.swipeBtn, styles.swipeEdit]} onPress={() => goEdit(item)}>
+                <Ionicons name="create-outline" size={20} color="#FFFFFF" />
+                <Text style={styles.swipeLabel}>수정</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.swipeBtn, styles.swipeDelete]} onPress={() => confirmDelete(item)}>
+                <Ionicons name="trash-outline" size={20} color="#FFFFFF" />
+                <Text style={styles.swipeLabel}>삭제</Text>
+              </TouchableOpacity>
+            </>
+          }
         >
           <TouchableOpacity
             style={styles.wordEntry}
@@ -216,7 +220,7 @@ export default function DeckWordListScreen({ route, navigation }: Props) {
               color={Colors.textMuted}
             />
           </TouchableOpacity>
-        </ReanimatedSwipeable>
+        </SwipeableRow>
         {isExpanded && <ExampleSection state={examples} />}
         {index < words.length - 1 && <View style={styles.separator} />}
       </View>
@@ -245,6 +249,18 @@ export default function DeckWordListScreen({ route, navigation }: Props) {
           />
         )}
       </View>
+
+      <AppDialog
+        visible={pendingDelete !== null}
+        title="단어를 삭제할까요?"
+        body={'단어와 학습 진행도가\n함께 삭제돼요.'}
+        buttons={[
+          { label: '취소', variant: 'secondary', onPress: () => setPendingDelete(null) },
+          { label: '삭제', variant: 'danger', onPress: runDelete },
+        ]}
+      />
+
+      <ErrorDialog message={deleteError} onDismiss={() => setDeleteError(null)} />
     </SafeAreaView>
   );
 }
@@ -305,8 +321,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   list: {
-    paddingTop: 8,
     paddingBottom: 20,
+  },
+  swipeClip: {
+    overflow: 'hidden',
   },
   wordEntry: {
     flexDirection: 'row',
@@ -348,8 +366,12 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.border,
   },
   swipeActions: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: '100%',
+    width: SWIPE_ACTIONS_WIDTH,
     flexDirection: 'row',
-    alignItems: 'stretch',
   },
   swipeBtn: {
     width: SWIPE_BTN_WIDTH,

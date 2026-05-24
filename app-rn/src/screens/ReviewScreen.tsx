@@ -228,13 +228,15 @@ export default function ReviewScreen({ route, navigation }: Props) {
             </View>
 
             {/* Action row: fixed height, content swaps but size stays same */}
-            <View style={styles.actionRow}>
-              {!isRevealed ? (
+            {!isRevealed ? (
+              <Pressable style={styles.actionRow} onPress={reveal}>
                 <Text style={styles.hintText}>탭하여 뒷면 보기</Text>
-              ) : (
+              </Pressable>
+            ) : (
+              <View style={styles.actionRow}>
                 <RatingButtonRow intervals={card.intervals} onRate={rate} />
-              )}
-            </View>
+              </View>
+            )}
           </>
         );
       }

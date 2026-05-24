@@ -174,7 +174,7 @@ export default function SettingsScreen() {
             <Text style={styles.label}>읽기 표기 방식</Text>
             <Text style={styles.description}>단어의 읽기(발음)를 어떤 문자로 표시할지 선택해요.</Text>
             <View style={styles.readingOptions}>
-              {(['KATAKANA', 'HIRAGANA', 'KOREAN'] as const).map((opt) => (
+              {(['KOREAN', 'HIRAGANA', 'KATAKANA'] as const).map((opt) => (
                 <TouchableOpacity
                   key={opt}
                   style={[styles.readingOption, readingDisplay === opt && styles.readingOptionActive]}

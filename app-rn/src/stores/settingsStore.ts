@@ -30,7 +30,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   status: 'loading',
   requestRetention: 0.9,
   showIntervals: true,
-  readingDisplay: 'KATAKANA',
+  readingDisplay: 'KOREAN',
   showKoreanPronunciation: true,
   showFurigana: true,
   dailyGoal: 10,

@@ -179,7 +179,9 @@ const YouTubePlayer = forwardRef<YouTubePlayerRef, Props>(({
   );
 });
 
-export default YouTubePlayer;
+// Memoize: PlayerScreen re-renders ~10×/s on currentMs ticks; without this
+// the WebView wrapper reconciles every tick even though its props are stable.
+export default React.memo(YouTubePlayer);
 
 const styles = StyleSheet.create({
   container: {

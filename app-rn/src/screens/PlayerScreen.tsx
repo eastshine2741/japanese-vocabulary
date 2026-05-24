@@ -25,7 +25,11 @@ import { deckApi } from '../api/deckApi';
 import YouTubePlayer, { YouTubePlayerRef } from '../components/YouTubePlayer';
 import WordAnalysisSheet from '../components/WordAnalysisSheet';
 import WordEditSheet from '../components/WordEditSheet';
-import WordListSheet from '../components/WordListSheet';
+import {
+  useWordListSheet,
+  WordListSheetHandle,
+  WordListSheetContent,
+} from '../components/WordListSheet';
 import LyricsDial from '../components/LyricsDial';
 import PlayerHeader from '../components/PlayerHeader';
 import AppDialog from '../components/AppDialog';
@@ -211,9 +215,14 @@ export default function PlayerScreen({ navigation, route }: Props) {
 
   // wordListSheet snap: reset batch state when expanded so re-opens start fresh
   const handleWordListSnapChange = useCallback((index: number) => {
+    console.log('[WL-sheet] onChange snapIndex', index);
     setSnapIndex(index);
     if (index === 1) resetBatchAdd();
   }, [resetBatchAdd]);
+
+  const handleWordListAnimate = useCallback((from: number, to: number) => {
+    console.log('[WL-sheet] onAnimate', from, '->', to);
+  }, []);
 
   // ----- Lyric sync -----
   const syncedLineIndex = useMemo(
@@ -338,13 +347,27 @@ export default function PlayerScreen({ navigation, route }: Props) {
 
   // wordListSheet's max extent = below the MV.
   const sheetTopInset = insets.top + MV_HEIGHT;
-  const expandedSnap = Math.max(
-    SHEET_PEEK + 1,
-    screenH - sheetTopInset - insets.bottom,
-  );
   const wordListSnapPoints = useMemo<(string | number)[]>(
     () => [SHEET_PEEK, '100%'],
     [],
+  );
+
+  const wordListController = useWordListSheet({
+    studyUnits,
+    songId: song.id,
+    batchAddStatus,
+    batchSavedCount,
+    batchSkippedCount,
+    onSave: handleBatchSave,
+    animatedIndex: wordListAnimIndex,
+    snapIndex,
+  });
+
+  // gorhom calls handleComponent as a React component on every snap-state
+  // change, so define it once via useCallback.
+  const renderWordListHandle = useCallback(
+    () => <WordListSheetHandle controller={wordListController} />,
+    [wordListController],
   );
 
   return (
@@ -389,7 +412,11 @@ export default function PlayerScreen({ navigation, route }: Props) {
         />
       </View>
 
-      {/* Word list bottom sheet — 2 snaps: peek / expanded (below MV). */}
+      {/* Word list bottom sheet — 2 snaps: peek / expanded (below MV).
+          The sticky header (drag indicator + title + CTA + filter chips) lives
+          in gorhom's `handleComponent` slot so its pan gesture is the sheet's
+          handle-pan and always moves the sheet, never delegated to the inner
+          FlatList — fixes the "sheet locks once list is scrolled" bug. */}
       <BottomSheet
         ref={wordStudyRef}
         snapPoints={wordListSnapPoints}
@@ -398,22 +425,13 @@ export default function PlayerScreen({ navigation, route }: Props) {
         enableOverDrag={false}
         topInset={sheetTopInset}
         bottomInset={insets.bottom}
-        handleComponent={null}
+        handleComponent={renderWordListHandle}
         animatedIndex={wordListAnimIndex}
         onChange={handleWordListSnapChange}
+        onAnimate={handleWordListAnimate}
         backgroundStyle={styles.studySheetBg}
       >
-        <WordListSheet
-          studyUnits={studyUnits}
-          songId={song.id}
-          batchAddStatus={batchAddStatus}
-          batchSavedCount={batchSavedCount}
-          batchSkippedCount={batchSkippedCount}
-          onSave={handleBatchSave}
-          animatedIndex={wordListAnimIndex}
-          snapIndex={snapIndex}
-          contentHeight={expandedSnap}
-        />
+        <WordListSheetContent controller={wordListController} />
       </BottomSheet>
 
       {/* Word lookup bottom sheet — opens on word tap */}
