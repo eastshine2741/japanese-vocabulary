@@ -22,12 +22,16 @@ export const useDeckListStore = create<DeckListState>((set, get) => ({
   error: null,
 
   load: async () => {
-    set({ status: 'loading', songDecks: [], nextCursor: null, error: null });
+    const hasData = get().songDecks.length > 0;
+    if (!hasData) {
+      set({ status: 'loading', songDecks: [], nextCursor: null, error: null });
+    }
     try {
       const res = await deckApi.getDecks();
-      set({ status: 'success', songDecks: res.songDecks, nextCursor: res.nextCursor });
+      set({ status: 'success', songDecks: res.songDecks, nextCursor: res.nextCursor, error: null });
     } catch (e: any) {
-      set({ status: 'error', error: e.message });
+      if (hasData) set({ error: e.message });
+      else set({ status: 'error', error: e.message });
     }
   },
 

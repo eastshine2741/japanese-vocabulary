@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
   },
   tokenTextActive: {
     fontSize: 22,
-    fontWeight: '800',
+    fontWeight: '700',
     color: Colors.textPrimary,
   },
   tokenTextInactive: {
@@ -210,21 +210,24 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   pronActive: {
-    fontSize: 13,
-    fontWeight: '500',
+    fontSize: 12,
     color: Colors.textSecondary,
+    textAlign: 'center',
   },
   pronInactive: {
     fontSize: 11,
     color: Colors.textMuted,
+    textAlign: 'center',
   },
   translationActive: {
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 13,
+    fontWeight: '500',
     color: Colors.textPrimary,
+    textAlign: 'center',
   },
   translationInactive: {
     fontSize: 11,
     color: Colors.textSecondary,
+    textAlign: 'center',
   },
 });

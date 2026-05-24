@@ -145,6 +145,17 @@ class WordService(
     @Transactional(readOnly = true)
     fun getWord(userId: Long, japaneseText: String): WordDetailResponse? {
         val word = wordRepository.findByUserIdAndJapaneseText(userId, japaneseText) ?: return null
+        return buildDetailResponse(word)
+    }
+
+    @Transactional(readOnly = true)
+    fun getWordById(userId: Long, wordId: Long): WordDetailResponse? {
+        val word = wordRepository.findById(wordId).orElse(null) ?: return null
+        if (word.userId != userId) return null
+        return buildDetailResponse(word)
+    }
+
+    private fun buildDetailResponse(word: WordEntity): WordDetailResponse {
         val songWords = songWordRepository.findByWordId(word.id!!)
         val songIds = songWords.map { it.songId }.toSet()
         val songMap = songRepository.findAllById(songIds).associateBy { it.id }

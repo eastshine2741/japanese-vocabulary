@@ -10,23 +10,27 @@ function resolveNamespace() {
   }
 }
 
+const isProd = process.env.BUILD_ENV === 'prod';
+const versionName = process.env.BUILD_VERSION_NAME ?? '1.0.0';
+const versionCodeEnv = process.env.BUILD_VERSION_CODE;
+const versionCode = versionCodeEnv ? parseInt(versionCodeEnv, 10) : undefined;
+
 const namespace = resolveNamespace();
 const suffix = `.${namespace.replace(/[^a-z0-9]/g, '')}`;
-const label = namespace !== 'main' ? ` (${namespace})` : '';
+const label = isProd ? '' : namespace !== 'main' ? ` (${namespace})` : '-dev';
+
+const packageName = isProd
+  ? 'dev.eastshine.kotonoha'
+  : `dev.eastshine.kotonoha${suffix}`;
 
 export default {
   expo: {
     name: `Kotonoha${label}`,
     slug: 'app-rn',
-    version: '1.0.0',
+    version: versionName,
     orientation: 'portrait',
     icon: './assets/icon.png',
     userInterfaceStyle: 'light',
-    splash: {
-      image: './assets/splash-icon.png',
-      resizeMode: 'contain',
-      backgroundColor: '#ffffff',
-    },
     ios: {
       supportsTablet: true,
     },
@@ -38,7 +42,8 @@ export default {
         monochromeImage: './assets/android-icon-monochrome.png',
       },
       predictiveBackGestureEnabled: false,
-      package: `com.eastshine.kotonoha${suffix}`,
+      package: packageName,
+      ...(versionCode !== undefined ? { versionCode } : {}),
       usesCleartextTraffic: true,
     },
     web: {
@@ -47,6 +52,14 @@ export default {
     plugins: [
       './plugins/withReleaseSigning',
       '@react-native-google-signin/google-signin',
+      [
+        'expo-splash-screen',
+        {
+          image: './assets/splash-icon.png',
+          resizeMode: 'contain',
+          backgroundColor: '#ffffff',
+        },
+      ],
     ],
   },
 };

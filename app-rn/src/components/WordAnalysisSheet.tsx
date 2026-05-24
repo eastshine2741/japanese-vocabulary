@@ -23,7 +23,7 @@ interface Props {
   onDeleteWord?: () => void;
 }
 
-export default function WordAnalysisSheet({
+function WordAnalysisSheet({
   token,
   addStatus,
   getWordStatus,
@@ -211,6 +211,8 @@ export default function WordAnalysisSheet({
     </View>
   );
 }
+
+export default React.memo(WordAnalysisSheet);
 
 const styles = StyleSheet.create({
   container: {},

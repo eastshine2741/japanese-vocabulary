@@ -26,7 +26,7 @@ export default React.memo(function StudyStatsHomeCard() {
   }, [home.status, home.staleAt, loadHome]);
 
   const handlePress = useCallback(() => {
-    navigation.navigate('Words');
+    navigation.navigate('MyPage');
   }, [navigation]);
 
   if (home.status !== 'loaded' || !home.data) return null;
@@ -65,7 +65,7 @@ const DotCell = React.memo(function DotCell({ label, dot }: { label: string; dot
 
 function DotMark({ dot }: { dot: WeekDot }) {
   if (dot.status === 'freeze') {
-    return <Ionicons name="snow" size={10} color={Colors.primary} />;
+    return <Ionicons name="snow" size={10} color={Colors.freezeStroke} />;
   }
   if (dot.status === 'studied') {
     return <View style={[styles.dot, { backgroundColor: Colors.stateReview }]} />;

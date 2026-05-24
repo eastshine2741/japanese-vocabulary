@@ -11,7 +11,6 @@ import {
   Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Slider from '@react-native-community/slider';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { useNavigation, CommonActions } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -23,22 +22,24 @@ import { resetAllStores } from '../utils/resetAllStores';
 import { Colors } from '../theme/theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import ServerURLDialog from '../components/ServerURLDialog';
+import { AppBar } from '../components/AppBar';
 import { TOS_URL, PRIVACY_URL, buildReportMailto } from '../config/legal';
+import { isDevBuild } from '../utils/buildEnv';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export default function SettingsScreen() {
   const navigation = useNavigation<Nav>();
   const {
-    status, requestRetention, showIntervals, readingDisplay, showKoreanPronunciation, showFurigana, dailyGoal, isSaving,
-    loadSettings, setRetention, setShowIntervals, setReadingDisplay, setShowKoreanPronunciation, setShowFurigana, setDailyGoal, save,
+    status, showIntervals, readingDisplay, showKoreanPronunciation, showFurigana, dailyGoal, isSaving,
+    loadSettings, setShowIntervals, setReadingDisplay, setShowKoreanPronunciation, setShowFurigana, setDailyGoal, save,
   } = useSettingsStore(
     useShallow(s => ({
-      status: s.status, requestRetention: s.requestRetention,
+      status: s.status,
       showIntervals: s.showIntervals, readingDisplay: s.readingDisplay,
       showKoreanPronunciation: s.showKoreanPronunciation, showFurigana: s.showFurigana,
       dailyGoal: s.dailyGoal,
-      isSaving: s.isSaving, loadSettings: s.loadSettings, setRetention: s.setRetention,
+      isSaving: s.isSaving, loadSettings: s.loadSettings,
       setShowIntervals: s.setShowIntervals, setReadingDisplay: s.setReadingDisplay,
       setShowKoreanPronunciation: s.setShowKoreanPronunciation, setShowFurigana: s.setShowFurigana,
       setDailyGoal: s.setDailyGoal, save: s.save,
@@ -60,10 +61,6 @@ export default function SettingsScreen() {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => { save(); }, 500);
   }, [save]);
-
-  const handleRetentionChange = useCallback((value: number) => {
-    setRetention(value); debouncedSave();
-  }, [setRetention, debouncedSave]);
 
   const handleShowIntervalsChange = useCallback((value: boolean) => {
     setShowIntervals(value); setTimeout(() => save(), 0);
@@ -116,19 +113,13 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.7}>
-          <Ionicons name="chevron-back" size={24} color={Colors.textPrimary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>설정</Text>
-        <View style={styles.backBtn} />
-      </View>
+      <AppBar title="설정" onBack={() => navigation.goBack()} />
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
         <Section title="학습 설정">
           <View style={styles.row}>
             <View style={styles.rowText}>
               <Text style={styles.label}>일일 목표</Text>
-              <Text style={styles.description}>매일 리뷰할 카드 수 목표예요. 주간 차트와 히트맵에 반영돼요.</Text>
+              <Text style={styles.description}>매일 리뷰할 카드 수 목표예요.</Text>
             </View>
             <TextInput
               style={styles.numberInput}
@@ -140,25 +131,6 @@ export default function SettingsScreen() {
               returnKeyType="done"
               maxLength={5}
               selectTextOnFocus
-            />
-          </View>
-
-          <View style={styles.block}>
-            <View style={styles.rowInline}>
-              <Text style={styles.label}>목표 Retrievability</Text>
-              <Text style={styles.retrievabilityValue}>{requestRetention.toFixed(2)}</Text>
-            </View>
-            <Text style={styles.description}>FSRS 알고리즘의 목표 기억 유지율이에요. 높을수록 복습 주기가 짧아져요.</Text>
-            <Slider
-              style={styles.slider}
-              minimumValue={0.70}
-              maximumValue={0.99}
-              step={0.01}
-              value={requestRetention}
-              onValueChange={handleRetentionChange}
-              minimumTrackTintColor={Colors.stateRetrievability}
-              maximumTrackTintColor={Colors.border}
-              thumbTintColor={Colors.stateRetrievability}
             />
           </View>
 
@@ -179,7 +151,7 @@ export default function SettingsScreen() {
             <Text style={styles.label}>읽기 표기 방식</Text>
             <Text style={styles.description}>단어의 읽기(발음)를 어떤 문자로 표시할지 선택해요.</Text>
             <View style={styles.readingOptions}>
-              {(['KATAKANA', 'HIRAGANA', 'KOREAN'] as const).map((opt) => (
+              {(['KOREAN', 'HIRAGANA', 'KATAKANA'] as const).map((opt) => (
                 <TouchableOpacity
                   key={opt}
                   style={[styles.readingOption, readingDisplay === opt && styles.readingOptionActive]}
@@ -228,14 +200,16 @@ export default function SettingsScreen() {
           </View>
         )}
 
-        <Section title="서버 설정">
-          <MenuRow
-            icon={<Ionicons name="server-outline" size={20} color={Colors.textPrimary} />}
-            label="Backend URL"
-            onPress={() => setShowServerDialog(true)}
-            trailing={<Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />}
-          />
-        </Section>
+        {isDevBuild && (
+          <Section title="서버 설정">
+            <MenuRow
+              icon={<Ionicons name="server-outline" size={20} color={Colors.textPrimary} />}
+              label="Backend URL"
+              onPress={() => setShowServerDialog(true)}
+              trailing={<Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />}
+            />
+          </Section>
+        )}
 
         <Section title="법적 고지">
           <MenuRow
@@ -268,7 +242,9 @@ export default function SettingsScreen() {
           <Text style={styles.logoutText}>로그아웃</Text>
         </TouchableOpacity>
       </ScrollView>
-      <ServerURLDialog visible={showServerDialog} onClose={() => setShowServerDialog(false)} />
+      {isDevBuild && (
+        <ServerURLDialog visible={showServerDialog} onClose={() => setShowServerDialog(false)} />
+      )}
     </SafeAreaView>
   );
 }
@@ -305,18 +281,6 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   content: { paddingHorizontal: 24, paddingBottom: 40, gap: 28 },
 
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingTop: 8,
-    paddingBottom: 12,
-    backgroundColor: Colors.background,
-  },
-  backBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { fontSize: 20, fontWeight: '700', color: Colors.textPrimary },
-
   section: { gap: 8 },
   sectionLabel: { fontSize: 17, fontWeight: '700', color: Colors.textPrimary, marginBottom: 4 },
 
@@ -327,13 +291,10 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     gap: 12,
   },
-  rowInline: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   rowText: { flex: 1 },
   block: { paddingVertical: 14, gap: 6 },
   label: { fontSize: 15, fontWeight: '500', color: Colors.textPrimary },
   description: { fontSize: 12, color: Colors.textMuted, lineHeight: 17 },
-  retrievabilityValue: { fontSize: 15, fontWeight: '600', color: Colors.stateRetrievability },
-  slider: { marginTop: 8, marginHorizontal: -4 },
 
   numberInput: {
     minWidth: 64, paddingHorizontal: 12, paddingVertical: 8,

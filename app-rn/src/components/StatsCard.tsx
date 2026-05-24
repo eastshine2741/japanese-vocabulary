@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Colors } from '../theme/theme';
+import { PrimaryButton } from './PrimaryButton';
 
 interface Props {
   wordCount: number;
@@ -15,9 +16,7 @@ export default function StatsCard({ wordCount, dueToday, actionLabel, onAction }
       <Text style={styles.label}>오늘의 복습</Text>
       <Text style={styles.dueCount}>{dueToday}개</Text>
       <Text style={styles.subLabel}>오늘 복습할 단어</Text>
-      <TouchableOpacity style={styles.button} onPress={onAction} activeOpacity={0.7}>
-        <Text style={styles.buttonText}>{actionLabel}</Text>
-      </TouchableOpacity>
+      <PrimaryButton label={actionLabel} onPress={onAction} />
     </View>
   );
 }
@@ -44,12 +43,4 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.textSecondary,
   },
-  button: {
-    backgroundColor: Colors.primary,
-    borderRadius: 24,
-    height: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  buttonText: { color: '#FFFFFF', fontWeight: '600', fontSize: 14 },
 });

@@ -15,9 +15,9 @@ const labelWidth = 18;
 const labelGap = 6;
 const gridStart = labelWidth + labelGap;
 
-const colors = ["#ECEEF2", "#C8E1F5", "#92C4E8", "#5BA0D5", "#2E7CB8"];
-const freezeFill = "#E8F0F9";
-const freezeStroke = "#5B9BF5";
+const colors = ["$heatmap-l0", "$heatmap-l1", "$heatmap-l2", "$heatmap-l3", "$heatmap-l4"];
+const freezeFill = "$heatmap-freeze-fill";
+const freezeStroke = "$heatmap-freeze-stroke";
 const dayLabels = ["", "월", "", "수", "", "금", ""];
 const freezeDays = [
   { c: 14, r: 4 },
