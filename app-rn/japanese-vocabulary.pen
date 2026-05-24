@@ -11156,6 +11156,7 @@
               "id": "XDlY8",
               "name": "heatmapSection",
               "width": "fill_container",
+              "height": 191,
               "layout": "vertical",
               "gap": 14,
               "children": [

@@ -229,15 +229,10 @@ export default function PlayerScreen({ navigation, route }: Props) {
 
   // wordListSheet snap: reset batch state when expanded so re-opens start fresh
   const handleWordListSnapChange = useCallback((index: number) => {
-    console.log('[WL-sheet] onChange snapIndex', index);
     setSnapIndex(index);
     snapIndexRef.current = index;
     if (index === 1) resetBatchAdd();
   }, [resetBatchAdd]);
-
-  const handleWordListAnimate = useCallback((from: number, to: number) => {
-    console.log('[WL-sheet] onAnimate', from, '->', to);
-  }, []);
 
   // Reconcile open-state refs from gorhom's onChange (fires on settle). The
   // refs are also set imperatively at the call sites that open/close the
@@ -496,7 +491,6 @@ export default function PlayerScreen({ navigation, route }: Props) {
         handleComponent={renderWordListHandle}
         animatedIndex={wordListAnimIndex}
         onChange={handleWordListSnapChange}
-        onAnimate={handleWordListAnimate}
         backgroundStyle={styles.studySheetBg}
       >
         <WordListSheetContent controller={wordListController} />

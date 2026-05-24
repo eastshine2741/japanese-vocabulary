@@ -21,7 +21,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useShallow } from 'zustand/react/shallow';
 import { useDeckWordListStore } from '../stores/deckWordListStore';
 import { useDeckDetailStore } from '../stores/deckDetailStore';
-import { convertReading } from '../utils/readingConverter';
+import { convertReading, ReadingDisplay } from '../utils/readingConverter';
 import { useSettingsStore } from '../stores/settingsStore';
 import { Colors, Dimens } from '../theme/theme';
 import { DeckWordItem } from '../types/deck';
@@ -101,6 +101,88 @@ function SwipeableRow({
   );
 }
 
+interface WordRowProps {
+  item: DeckWordItem;
+  isExpanded: boolean;
+  examples: ExamplesState | undefined;
+  isSwipeOpen: boolean;
+  readingDisplay: ReadingDisplay;
+  isLast: boolean;
+  onToggleExpand: (item: DeckWordItem) => void;
+  onSwipeOpen: (id: number) => void;
+  onSwipeClose: (id: number) => void;
+  onEdit: (item: DeckWordItem) => void;
+  onDelete: (item: DeckWordItem) => void;
+}
+
+const WordRow = React.memo(function WordRow({
+  item,
+  isExpanded,
+  examples,
+  isSwipeOpen,
+  readingDisplay,
+  isLast,
+  onToggleExpand,
+  onSwipeOpen,
+  onSwipeClose,
+  onEdit,
+  onDelete,
+}: WordRowProps) {
+  const pos = item.meanings[0]?.partOfSpeech;
+  const handleToggle = useCallback(() => onToggleExpand(item), [onToggleExpand, item]);
+  const handleSwipeOpen = useCallback(() => onSwipeOpen(item.id), [onSwipeOpen, item.id]);
+  const handleSwipeClose = useCallback(() => onSwipeClose(item.id), [onSwipeClose, item.id]);
+  const handleEdit = useCallback(() => onEdit(item), [onEdit, item]);
+  const handleDelete = useCallback(() => onDelete(item), [onDelete, item]);
+
+  return (
+    <View>
+      <SwipeableRow
+        isOpen={isSwipeOpen}
+        onWillOpen={handleSwipeOpen}
+        onClose={handleSwipeClose}
+        actions={
+          <>
+            <TouchableOpacity style={[styles.swipeBtn, styles.swipeEdit]} onPress={handleEdit}>
+              <Ionicons name="create-outline" size={20} color="#FFFFFF" />
+              <Text style={styles.swipeLabel}>수정</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.swipeBtn, styles.swipeDelete]} onPress={handleDelete}>
+              <Ionicons name="trash-outline" size={20} color="#FFFFFF" />
+              <Text style={styles.swipeLabel}>삭제</Text>
+            </TouchableOpacity>
+          </>
+        }
+      >
+        <TouchableOpacity
+          style={styles.wordEntry}
+          onPress={handleToggle}
+          activeOpacity={0.6}
+        >
+          <View style={styles.wordLeft}>
+            <Text style={styles.japanese}>{item.japanese}</Text>
+            <View style={styles.subRow}>
+              <Text style={styles.reading}>{convertReading(item.reading, readingDisplay)}</Text>
+              <Text style={styles.dot}>·</Text>
+              <Text style={styles.korean} numberOfLines={1}>
+                {item.meanings.map(m => m.text).join(', ')}
+              </Text>
+            </View>
+          </View>
+          {pos && <PosBadge pos={pos} />}
+          <Ionicons
+            name={isExpanded ? 'chevron-up' : 'chevron-down'}
+            size={16}
+            color={Colors.textMuted}
+          />
+        </TouchableOpacity>
+      </SwipeableRow>
+      {isExpanded && <ExampleSection state={examples} />}
+      {!isLast && <View style={styles.separator} />}
+    </View>
+  );
+});
+
 export default function DeckWordListScreen({ route, navigation }: Props) {
   const { deckId } = route.params;
   const readingDisplay = useSettingsStore(s => s.readingDisplay);
@@ -128,22 +210,30 @@ export default function DeckWordListScreen({ route, navigation }: Props) {
     }, [deckId]),
   );
 
-  const toggleExpand = useCallback(async (item: DeckWordItem) => {
-    if (expandedId === item.id) {
-      setExpandedId(null);
-      return;
-    }
-    setExpandedId(item.id);
-    if (examplesById[item.id] === undefined) {
-      setExamplesById(prev => ({ ...prev, [item.id]: 'loading' }));
-      try {
-        const detail = await wordApi.getById(item.id);
-        setExamplesById(prev => ({ ...prev, [item.id]: detail?.examples ?? [] }));
-      } catch {
-        setExamplesById(prev => ({ ...prev, [item.id]: 'error' }));
-      }
-    }
-  }, [expandedId, examplesById]);
+  const toggleExpand = useCallback((item: DeckWordItem) => {
+    setExpandedId(prev => (prev === item.id ? null : item.id));
+  }, []);
+
+  // Fetch examples when a new id is expanded. Decoupled from toggleExpand so
+  // the handler stays reference-stable and doesn't invalidate row memo.
+  useEffect(() => {
+    if (expandedId == null) return;
+    const id = expandedId;
+    if (examplesById[id] !== undefined) return;
+    let cancelled = false;
+    setExamplesById(prev => ({ ...prev, [id]: 'loading' }));
+    wordApi
+      .getById(id)
+      .then(detail => {
+        if (!cancelled) setExamplesById(prev => ({ ...prev, [id]: detail?.examples ?? [] }));
+      })
+      .catch(() => {
+        if (!cancelled) setExamplesById(prev => ({ ...prev, [id]: 'error' }));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [expandedId]);
 
   const goEdit = useCallback((item: DeckWordItem) => {
     setOpenSwipeId(null);
@@ -160,6 +250,14 @@ export default function DeckWordListScreen({ route, navigation }: Props) {
     setPendingDelete(item);
   }, []);
 
+  const handleSwipeOpen = useCallback((id: number) => {
+    setOpenSwipeId(id);
+  }, []);
+
+  const handleSwipeClose = useCallback((id: number) => {
+    setOpenSwipeId(prev => (prev === id ? null : prev));
+  }, []);
+
   const runDelete = useCallback(async () => {
     const item = pendingDelete;
     setPendingDelete(null);
@@ -173,59 +271,37 @@ export default function DeckWordListScreen({ route, navigation }: Props) {
     }
   }, [pendingDelete, deckId, load]);
 
-  const renderWord = ({ item, index }: { item: DeckWordItem; index: number }) => {
-    const pos = item.meanings[0]?.partOfSpeech;
-    const isExpanded = expandedId === item.id;
-    const examples = examplesById[item.id];
-    return (
-      <View>
-        <SwipeableRow
-          isOpen={openSwipeId === item.id}
-          onWillOpen={() => setOpenSwipeId(item.id)}
-          onClose={() => {
-            if (openSwipeId === item.id) setOpenSwipeId(null);
-          }}
-          actions={
-            <>
-              <TouchableOpacity style={[styles.swipeBtn, styles.swipeEdit]} onPress={() => goEdit(item)}>
-                <Ionicons name="create-outline" size={20} color="#FFFFFF" />
-                <Text style={styles.swipeLabel}>수정</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.swipeBtn, styles.swipeDelete]} onPress={() => confirmDelete(item)}>
-                <Ionicons name="trash-outline" size={20} color="#FFFFFF" />
-                <Text style={styles.swipeLabel}>삭제</Text>
-              </TouchableOpacity>
-            </>
-          }
-        >
-          <TouchableOpacity
-            style={styles.wordEntry}
-            onPress={() => toggleExpand(item)}
-            activeOpacity={0.6}
-          >
-            <View style={styles.wordLeft}>
-              <Text style={styles.japanese}>{item.japanese}</Text>
-              <View style={styles.subRow}>
-                <Text style={styles.reading}>{convertReading(item.reading, readingDisplay)}</Text>
-                <Text style={styles.dot}>·</Text>
-                <Text style={styles.korean} numberOfLines={1}>
-                  {item.meanings.map(m => m.text).join(', ')}
-                </Text>
-              </View>
-            </View>
-            {pos && <PosBadge pos={pos} />}
-            <Ionicons
-              name={isExpanded ? 'chevron-up' : 'chevron-down'}
-              size={16}
-              color={Colors.textMuted}
-            />
-          </TouchableOpacity>
-        </SwipeableRow>
-        {isExpanded && <ExampleSection state={examples} />}
-        {index < words.length - 1 && <View style={styles.separator} />}
-      </View>
-    );
-  };
+  const renderItem = useCallback(
+    ({ item, index }: { item: DeckWordItem; index: number }) => (
+      <WordRow
+        item={item}
+        isExpanded={expandedId === item.id}
+        examples={examplesById[item.id]}
+        isSwipeOpen={openSwipeId === item.id}
+        readingDisplay={readingDisplay}
+        isLast={index === words.length - 1}
+        onToggleExpand={toggleExpand}
+        onSwipeOpen={handleSwipeOpen}
+        onSwipeClose={handleSwipeClose}
+        onEdit={goEdit}
+        onDelete={confirmDelete}
+      />
+    ),
+    [
+      expandedId,
+      examplesById,
+      openSwipeId,
+      readingDisplay,
+      words.length,
+      toggleExpand,
+      handleSwipeOpen,
+      handleSwipeClose,
+      goEdit,
+      confirmDelete,
+    ],
+  );
+
+  const keyExtractor = useCallback((item: DeckWordItem) => String(item.id), []);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -238,14 +314,17 @@ export default function DeckWordListScreen({ route, navigation }: Props) {
         ) : (
           <FlatList
             data={words}
-            keyExtractor={(item) => String(item.id)}
-            renderItem={renderWord}
+            keyExtractor={keyExtractor}
+            renderItem={renderItem}
             onEndReached={() => loadMore(deckId)}
             onEndReachedThreshold={0.5}
             ListFooterComponent={
               isLoadingMore ? <ActivityIndicator color={Colors.primary} style={{ padding: 16 }} /> : null
             }
             contentContainerStyle={styles.list}
+            initialNumToRender={12}
+            maxToRenderPerBatch={6}
+            windowSize={7}
           />
         )}
       </View>

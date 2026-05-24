@@ -13,10 +13,8 @@ import { ScrollView } from 'react-native-gesture-handler';
 import Animated, {
   SharedValue,
   useAnimatedStyle,
-  useAnimatedReaction,
   interpolate,
   Extrapolation,
-  runOnJS,
 } from 'react-native-reanimated';
 import { BottomSheetFlatList } from '@gorhom/bottom-sheet';
 import { Feather } from '@expo/vector-icons';
@@ -257,26 +255,6 @@ export const WordListSheetHandle = React.memo(function WordListSheetHandle({
     opacity: interpolate(animatedIndex.value, [0.05, 0.2], [0, 1], Extrapolation.CLAMP),
   }));
 
-  // [DEBUG] sheet animatedIndex transitions — should now move every time
-  // user drags on the handle area, regardless of FlatList scroll position.
-  // NOTE: must wrap console.log in a plain JS arrow before passing to
-  // runOnJS. Passing `console.log` directly aborts the worklets runtime
-  // with `assertion "isHostFunction(runtime)" failed` on Android.
-  const logAnimatedIndex = useCallback((v: string) => {
-    console.log('[WL-sheet] animatedIndex', v);
-  }, []);
-  useAnimatedReaction(
-    () => animatedIndex.value,
-    (cur, prev) => {
-      'worklet';
-      if (prev == null) return;
-      if (Math.floor(cur * 10) !== Math.floor((prev ?? cur) * 10)) {
-        runOnJS(logAnimatedIndex)(cur.toFixed(3));
-      }
-    },
-    [logAnimatedIndex],
-  );
-
   return (
     <View>
       {/* Expanded header — structural, defines the handle component's height */}
@@ -372,18 +350,6 @@ export const WordListSheetContent = React.memo(function WordListSheetContent({
 
   const keyExtractor = useCallback((item: UniqueWord) => item.baseForm, []);
 
-  // [DEBUG] FlatList scroll position — kept temporarily to verify the
-  // sheet-handoff behaviour after moving the handle out of the content.
-  const onListScroll = useCallback((e: { nativeEvent: { contentOffset: { y: number } } }) => {
-    console.log('[WL-list] scrollY', e.nativeEvent.contentOffset.y.toFixed(1));
-  }, []);
-  const onScrollBeginDrag = useCallback(() => {
-    console.log('[WL-list] scrollBeginDrag');
-  }, []);
-  const onScrollEndDrag = useCallback((e: { nativeEvent: { contentOffset: { y: number } } }) => {
-    console.log('[WL-list] scrollEndDrag y=', e.nativeEvent.contentOffset.y.toFixed(1));
-  }, []);
-
   return (
     <BottomSheetFlatList
       data={filteredWords}
@@ -391,12 +357,8 @@ export const WordListSheetContent = React.memo(function WordListSheetContent({
       renderItem={renderItem}
       contentContainerStyle={styles.listContent}
       initialNumToRender={12}
-      maxToRenderPerBatch={8}
+      maxToRenderPerBatch={6}
       windowSize={5}
-      onScroll={onListScroll}
-      onScrollBeginDrag={onScrollBeginDrag}
-      onScrollEndDrag={onScrollEndDrag}
-      scrollEventThrottle={64}
     />
   );
 });
