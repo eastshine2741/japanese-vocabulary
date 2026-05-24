@@ -33,6 +33,7 @@ import {
   WordListSheetContent,
 } from '../components/WordListSheet';
 import LyricsDial from '../components/LyricsDial';
+import LyricsAnalyzingCard from '../components/LyricsAnalyzingCard';
 import PlayerHeader from '../components/PlayerHeader';
 import AppDialog from '../components/AppDialog';
 import SongInfoSheet from '../components/SongInfoSheet';
@@ -66,6 +67,13 @@ export default function PlayerScreen({ navigation, route }: Props) {
   const initialLyricIndex = route.params?.initialLyricIndex;
 
   const studyData = usePlayerStore(s => s.studyData);
+  // PlayerScreen only subscribes to durationMs (rare update). currentMs is
+  // intentionally NOT subscribed here — LyricsDial reads it directly from
+  // the store so the ~100ms playback tick doesn't re-render this screen.
+  const durationMs = usePlayerStore(s => s.durationMs);
+  const setCurrentMs = usePlayerStore(s => s.setCurrentMs);
+  const setDurationMs = usePlayerStore(s => s.setDurationMs);
+  const refreshStudyData = usePlayerStore(s => s.refreshStudyData);
 
   const {
     addStatus, getWordStatus, existingWord,
@@ -85,10 +93,6 @@ export default function PlayerScreen({ navigation, route }: Props) {
   const vocabAddWord = useVocabularyStore(s => s.addWord);
   const resetBatchAdd = useVocabularyStore(s => s.resetBatchAdd);
   const batchAddWords = useVocabularyStore(s => s.batchAddWords);
-
-  // Playback state
-  const [currentMs, setCurrentMs] = useState(0);
-  const [durationMs, setDurationMs] = useState(0);
 
   // Word lookup state
   const [selectedToken, setSelectedToken] = useState<Token | null>(null);
@@ -134,15 +138,16 @@ export default function PlayerScreen({ navigation, route }: Props) {
   const { song, studyUnits, youtubeUrl, lyricsSourceName, lyricsSourceUrl } = studyData;
   const isSynced = song.lyricType === 'SYNCED';
   const videoId = youtubeUrl ? extractVideoId(youtubeUrl) : null;
+  const isAnalyzing = studyUnits.length > 0 && studyUnits.every(u => u.koreanLyrics == null);
 
   // ----- YouTube callbacks -----
   const handleTimeChange = useCallback((seconds: number) => {
     setCurrentMs(seconds * 1000);
-  }, []);
+  }, [setCurrentMs]);
 
   const handleDurationChange = useCallback((seconds: number) => {
     if (seconds > 0) setDurationMs(seconds * 1000);
-  }, []);
+  }, [setDurationMs]);
 
   // ----- Lyric word tap -----
   const handleTokenPress = useCallback((token: Token, lineText: string, koreanLyrics: string | null) => {
@@ -281,19 +286,6 @@ export default function PlayerScreen({ navigation, route }: Props) {
     }, [showDeleteDialog, wordEditVisible]),
   );
 
-  // ----- Lyric sync -----
-  const syncedLineIndex = useMemo(
-    () => isSynced
-      ? studyUnits.reduce((acc, unit, idx) => {
-          if (unit.startTimeMs != null && unit.startTimeMs <= currentMs) return idx;
-          return acc;
-        }, 0)
-      : 0,
-    [isSynced, studyUnits, currentMs],
-  );
-
-  const displayLineIndex = isSynced ? syncedLineIndex : manualLineIndex;
-
   useEffect(() => {
     let cancelled = false;
     deckApi.getDeckBySongId(song.id)
@@ -309,7 +301,7 @@ export default function PlayerScreen({ navigation, route }: Props) {
       youtubeRef.current?.seekTo(initialSeekMs / 1000);
       setCurrentMs(initialSeekMs);
     }
-  }, [durationMs, initialSeekMs]);
+  }, [durationMs, initialSeekMs, setCurrentMs]);
 
   useEffect(() => {
     if (initialLyricIndex == null || initialIndexApplied.current) return;
@@ -325,7 +317,7 @@ export default function PlayerScreen({ navigation, route }: Props) {
         setCurrentMs(unit.startTimeMs);
       }
     }
-  }, [initialLyricIndex, isSynced, studyUnits, durationMs]);
+  }, [initialLyricIndex, isSynced, studyUnits, durationMs, setCurrentMs]);
 
   // Step-by-step lyric navigation (driven by LyricsDial swipe)
   const handleStepLine = useCallback((newIndex: number) => {
@@ -338,7 +330,7 @@ export default function PlayerScreen({ navigation, route }: Props) {
     } else {
       setManualLineIndex(newIndex);
     }
-  }, [isSynced, studyUnits]);
+  }, [isSynced, studyUnits, setCurrentMs]);
 
   const renderBackdrop = useCallback(
     (props: BottomSheetBackdropProps) => (
@@ -460,9 +452,12 @@ export default function PlayerScreen({ navigation, route }: Props) {
           </View>
         </GestureDetector>
 
+        {isAnalyzing && <LyricsAnalyzingCard onReload={refreshStudyData} />}
+
         <LyricsDial
           studyUnits={studyUnits}
-          currentLineIndex={displayLineIndex}
+          isSynced={isSynced}
+          manualLineIndex={manualLineIndex}
           showTranslation={true}
           onTokenPress={handleTokenPress}
           onStepLine={handleStepLine}

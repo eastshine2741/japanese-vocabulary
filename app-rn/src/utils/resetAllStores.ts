@@ -9,6 +9,7 @@ import { useSearchStore } from '../stores/searchStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useStudyStatsStore } from '../stores/studyStatsStore';
 import { useVocabularyStore } from '../stores/vocabularyStore';
+import { useWordExamplesStore } from '../stores/wordExamplesStore';
 
 const emptyStatsSlice = () => ({ status: 'idle' as const, data: null, error: null, staleAt: 0 });
 
@@ -77,6 +78,7 @@ export function resetAllStores() {
     error: null,
   });
 
-  usePlayerStore.setState({ status: 'idle', studyData: null, errorCode: null });
+  usePlayerStore.setState({ status: 'idle', studyData: null, errorCode: null, currentMs: 0, durationMs: 0 });
   useSearchStore.setState({ searchStatus: 'idle', items: [], searchError: null });
+  useWordExamplesStore.setState({ byId: {} });
 }

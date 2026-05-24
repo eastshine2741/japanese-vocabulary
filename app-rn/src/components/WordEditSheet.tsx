@@ -131,7 +131,7 @@ export default function WordEditSheet({
             {saving ? (
               <ActivityIndicator color="#FFF" size="small" />
             ) : (
-              <Text style={[styles.ctaBtnText, !canSave && styles.ctaBtnTextDisabled]}>저장</Text>
+              <Text style={[styles.ctaBtnText, !canSave && styles.ctaBtnTextDisabled]}>담기</Text>
             )}
           </TouchableOpacity>
         </View>

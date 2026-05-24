@@ -273,9 +273,9 @@ export const WordListSheetHandle = React.memo(function WordListSheetHandle({
           </View>
           {isSuccess ? (
             <View style={[styles.ctaPill, styles.ctaPillSuccess]}>
-              <Feather name="check" size={14} color="#FFFFFF" />
-              <Text style={styles.ctaPillText}>
-                {batchSavedCount}개 저장
+              <Feather name="check" size={14} color={Colors.textTertiary} />
+              <Text style={[styles.ctaPillText, styles.ctaPillSuccessText]}>
+                {batchSavedCount}개 담음
                 {batchSkippedCount > 0 ? ` (${batchSkippedCount}개 중복)` : ''}
               </Text>
             </View>
@@ -433,7 +433,10 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
   },
   ctaPillSuccess: {
-    backgroundColor: Colors.ratingGood,
+    backgroundColor: '#E4E4E7',
+  },
+  ctaPillSuccessText: {
+    color: Colors.textTertiary,
   },
   ctaPillDisabled: {
     opacity: 0.4,

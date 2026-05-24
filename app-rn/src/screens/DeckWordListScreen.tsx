@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -6,177 +6,82 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
+  BackHandler,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Reanimated, {
-  runOnJS,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated';
+import BottomSheet, { BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
+import type { BottomSheetBackdropProps } from '@gorhom/bottom-sheet';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { useShallow } from 'zustand/react/shallow';
 import { useDeckWordListStore } from '../stores/deckWordListStore';
-import { useDeckDetailStore } from '../stores/deckDetailStore';
+import { useWordExamplesStore, ExamplesState } from '../stores/wordExamplesStore';
 import { convertReading, ReadingDisplay } from '../utils/readingConverter';
 import { useSettingsStore } from '../stores/settingsStore';
 import { Colors, Dimens } from '../theme/theme';
 import { DeckWordItem } from '../types/deck';
-import { ExampleSentence } from '../types/word';
 import { wordApi } from '../api/wordApi';
 import { PosBadge } from '../components/Badges';
 import { AppBar } from '../components/AppBar';
 import AppDialog from '../components/AppDialog';
 import ErrorDialog from '../components/ErrorDialog';
 import ArtworkImage from '../components/ArtworkImage';
+import DeckWordActionSheet from '../components/DeckWordActionSheet';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'DeckWordList'>;
 
-type ExamplesState = ExampleSentence[] | 'loading' | 'error';
-
-const SWIPE_BTN_WIDTH = 72;
-const SWIPE_ACTIONS_WIDTH = SWIPE_BTN_WIDTH * 2;
-const SNAP_DURATION = 200;
-const VELOCITY_THRESHOLD = 500;
-
-function SwipeableRow({
-  isOpen,
-  onWillOpen,
-  onClose,
-  children,
-  actions,
-}: {
-  isOpen: boolean;
-  onWillOpen: () => void;
-  onClose: () => void;
-  children: React.ReactNode;
-  actions: React.ReactNode;
-}) {
-  const translateX = useSharedValue(0);
-  const startX = useSharedValue(0);
-
-  useEffect(() => {
-    translateX.value = withTiming(isOpen ? -SWIPE_ACTIONS_WIDTH : 0, { duration: SNAP_DURATION });
-  }, [isOpen, translateX]);
-
-  const pan = Gesture.Pan()
-    .activeOffsetX([-10, 10])
-    .failOffsetY([-10, 10])
-    .onStart(() => {
-      startX.value = translateX.value;
-    })
-    .onUpdate((e) => {
-      const x = startX.value + e.translationX;
-      translateX.value = Math.max(-SWIPE_ACTIONS_WIDTH, Math.min(0, x));
-    })
-    .onEnd((e) => {
-      const shouldOpen =
-        translateX.value < -SWIPE_ACTIONS_WIDTH / 2 || e.velocityX < -VELOCITY_THRESHOLD;
-      if (shouldOpen) {
-        translateX.value = withTiming(-SWIPE_ACTIONS_WIDTH, { duration: SNAP_DURATION });
-        runOnJS(onWillOpen)();
-      } else {
-        translateX.value = withTiming(0, { duration: SNAP_DURATION });
-        runOnJS(onClose)();
-      }
-    });
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: translateX.value }],
-  }));
-
-  return (
-    <View style={styles.swipeClip}>
-      <GestureDetector gesture={pan}>
-        <Reanimated.View style={animatedStyle}>
-          {children}
-          <View style={styles.swipeActions}>{actions}</View>
-        </Reanimated.View>
-      </GestureDetector>
-    </View>
-  );
-}
-
 interface WordRowProps {
   item: DeckWordItem;
   isExpanded: boolean;
-  examples: ExamplesState | undefined;
-  isSwipeOpen: boolean;
   readingDisplay: ReadingDisplay;
   isLast: boolean;
   onToggleExpand: (item: DeckWordItem) => void;
-  onSwipeOpen: (id: number) => void;
-  onSwipeClose: (id: number) => void;
-  onEdit: (item: DeckWordItem) => void;
-  onDelete: (item: DeckWordItem) => void;
+  onLongPress: (item: DeckWordItem) => void;
 }
 
 const WordRow = React.memo(function WordRow({
   item,
   isExpanded,
-  examples,
-  isSwipeOpen,
   readingDisplay,
   isLast,
   onToggleExpand,
-  onSwipeOpen,
-  onSwipeClose,
-  onEdit,
-  onDelete,
+  onLongPress,
 }: WordRowProps) {
+  // Subscribe only to this row's examples — when one row's fetch resolves,
+  // other rows' selectors return the same reference and skip re-render.
+  const examples = useWordExamplesStore(s => s.byId[item.id]);
   const pos = item.meanings[0]?.partOfSpeech;
   const handleToggle = useCallback(() => onToggleExpand(item), [onToggleExpand, item]);
-  const handleSwipeOpen = useCallback(() => onSwipeOpen(item.id), [onSwipeOpen, item.id]);
-  const handleSwipeClose = useCallback(() => onSwipeClose(item.id), [onSwipeClose, item.id]);
-  const handleEdit = useCallback(() => onEdit(item), [onEdit, item]);
-  const handleDelete = useCallback(() => onDelete(item), [onDelete, item]);
+  const handleLongPress = useCallback(() => onLongPress(item), [onLongPress, item]);
 
   return (
     <View>
-      <SwipeableRow
-        isOpen={isSwipeOpen}
-        onWillOpen={handleSwipeOpen}
-        onClose={handleSwipeClose}
-        actions={
-          <>
-            <TouchableOpacity style={[styles.swipeBtn, styles.swipeEdit]} onPress={handleEdit}>
-              <Ionicons name="create-outline" size={20} color="#FFFFFF" />
-              <Text style={styles.swipeLabel}>수정</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.swipeBtn, styles.swipeDelete]} onPress={handleDelete}>
-              <Ionicons name="trash-outline" size={20} color="#FFFFFF" />
-              <Text style={styles.swipeLabel}>삭제</Text>
-            </TouchableOpacity>
-          </>
-        }
+      <TouchableOpacity
+        style={styles.wordEntry}
+        onPress={handleToggle}
+        onLongPress={handleLongPress}
+        delayLongPress={350}
+        activeOpacity={0.6}
       >
-        <TouchableOpacity
-          style={styles.wordEntry}
-          onPress={handleToggle}
-          activeOpacity={0.6}
-        >
-          <View style={styles.wordLeft}>
-            <Text style={styles.japanese}>{item.japanese}</Text>
-            <View style={styles.subRow}>
-              <Text style={styles.reading}>{convertReading(item.reading, readingDisplay)}</Text>
-              <Text style={styles.dot}>·</Text>
-              <Text style={styles.korean} numberOfLines={1}>
-                {item.meanings.map(m => m.text).join(', ')}
-              </Text>
-            </View>
+        <View style={styles.wordLeft}>
+          <Text style={styles.japanese}>{item.japanese}</Text>
+          <View style={styles.subRow}>
+            <Text style={styles.reading}>{convertReading(item.reading, readingDisplay)}</Text>
+            <Text style={styles.dot}>·</Text>
+            <Text style={styles.korean} numberOfLines={1}>
+              {item.meanings.map(m => m.text).join(', ')}
+            </Text>
           </View>
-          {pos && <PosBadge pos={pos} />}
-          <Ionicons
-            name={isExpanded ? 'chevron-up' : 'chevron-down'}
-            size={16}
-            color={Colors.textMuted}
-          />
-        </TouchableOpacity>
-      </SwipeableRow>
+        </View>
+        {pos && <PosBadge pos={pos} />}
+        <Ionicons
+          name={isExpanded ? 'chevron-up' : 'chevron-down'}
+          size={16}
+          color={Colors.textMuted}
+        />
+      </TouchableOpacity>
       {isExpanded && <ExampleSection state={examples} />}
       {!isLast && <View style={styles.separator} />}
     </View>
@@ -185,6 +90,7 @@ const WordRow = React.memo(function WordRow({
 
 export default function DeckWordListScreen({ route, navigation }: Props) {
   const { deckId } = route.params;
+  const insets = useSafeAreaInsets();
   const readingDisplay = useSettingsStore(s => s.readingDisplay);
   const { status, words, isLoadingMore, load, loadMore } = useDeckWordListStore(
     useShallow(s => ({
@@ -195,14 +101,19 @@ export default function DeckWordListScreen({ route, navigation }: Props) {
       loadMore: s.loadMore,
     })),
   );
-  const deckDetail = useDeckDetailStore((s) => s.data);
-  const headerTitle = deckDetail?.title || 'Words';
+  const fetchExamples = useWordExamplesStore(s => s.fetch);
 
   const [expandedId, setExpandedId] = useState<number | null>(null);
-  const [examplesById, setExamplesById] = useState<Record<number, ExamplesState>>({});
-  const [openSwipeId, setOpenSwipeId] = useState<number | null>(null);
+  const [actionItem, setActionItem] = useState<DeckWordItem | null>(null);
   const [pendingDelete, setPendingDelete] = useState<DeckWordItem | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const actionSheetRef = useRef<BottomSheet>(null);
+  // Imperative open-state tracking for the hardware back handler. Mirrors
+  // PlayerScreen's pattern — a ref (not state) so it can be set
+  // synchronously at expand()/close() call sites, closing the race window
+  // before gorhom's onChange settles.
+  const actionOpenRef = useRef(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -210,33 +121,49 @@ export default function DeckWordListScreen({ route, navigation }: Props) {
     }, [deckId]),
   );
 
+  // Android hardware back: close the action sheet first if it's open,
+  // otherwise fall through to default (pop screen).
+  useFocusEffect(
+    useCallback(() => {
+      const onBack = () => {
+        if (actionOpenRef.current) {
+          actionOpenRef.current = false;
+          actionSheetRef.current?.close();
+          return true;
+        }
+        return false;
+      };
+      const sub = BackHandler.addEventListener('hardwareBackPress', onBack);
+      return () => sub.remove();
+    }, []),
+  );
+
   const toggleExpand = useCallback((item: DeckWordItem) => {
     setExpandedId(prev => (prev === item.id ? null : item.id));
   }, []);
 
-  // Fetch examples when a new id is expanded. Decoupled from toggleExpand so
-  // the handler stays reference-stable and doesn't invalidate row memo.
+  // Fetch examples when a new id is expanded. Store handles dedup so this
+  // is safe to call without checking the cache first.
   useEffect(() => {
-    if (expandedId == null) return;
-    const id = expandedId;
-    if (examplesById[id] !== undefined) return;
-    let cancelled = false;
-    setExamplesById(prev => ({ ...prev, [id]: 'loading' }));
-    wordApi
-      .getById(id)
-      .then(detail => {
-        if (!cancelled) setExamplesById(prev => ({ ...prev, [id]: detail?.examples ?? [] }));
-      })
-      .catch(() => {
-        if (!cancelled) setExamplesById(prev => ({ ...prev, [id]: 'error' }));
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [expandedId]);
+    if (expandedId != null) fetchExamples(expandedId);
+  }, [expandedId, fetchExamples]);
 
-  const goEdit = useCallback((item: DeckWordItem) => {
-    setOpenSwipeId(null);
+  const handleLongPress = useCallback((item: DeckWordItem) => {
+    setActionItem(item);
+    actionOpenRef.current = true;
+    actionSheetRef.current?.expand();
+  }, []);
+
+  const handleActionSheetChange = useCallback((index: number) => {
+    actionOpenRef.current = index >= 0;
+    if (index < 0) setActionItem(null);
+  }, []);
+
+  const handleEditFromSheet = useCallback(() => {
+    if (!actionItem) return;
+    const item = actionItem;
+    actionOpenRef.current = false;
+    actionSheetRef.current?.close();
     navigation.navigate('EditWord', {
       mode: 'edit',
       wordId: item.id,
@@ -244,24 +171,19 @@ export default function DeckWordListScreen({ route, navigation }: Props) {
       reading: item.reading,
       meanings: item.meanings,
     });
-  }, [navigation]);
+  }, [actionItem, navigation]);
 
-  const confirmDelete = useCallback((item: DeckWordItem) => {
+  const handleDeleteFromSheet = useCallback(() => {
+    if (!actionItem) return;
+    const item = actionItem;
+    actionOpenRef.current = false;
+    actionSheetRef.current?.close();
     setPendingDelete(item);
-  }, []);
-
-  const handleSwipeOpen = useCallback((id: number) => {
-    setOpenSwipeId(id);
-  }, []);
-
-  const handleSwipeClose = useCallback((id: number) => {
-    setOpenSwipeId(prev => (prev === id ? null : prev));
-  }, []);
+  }, [actionItem]);
 
   const runDelete = useCallback(async () => {
     const item = pendingDelete;
     setPendingDelete(null);
-    setOpenSwipeId(null);
     if (!item) return;
     try {
       await wordApi.deleteWord(item.id);
@@ -276,37 +198,28 @@ export default function DeckWordListScreen({ route, navigation }: Props) {
       <WordRow
         item={item}
         isExpanded={expandedId === item.id}
-        examples={examplesById[item.id]}
-        isSwipeOpen={openSwipeId === item.id}
         readingDisplay={readingDisplay}
         isLast={index === words.length - 1}
         onToggleExpand={toggleExpand}
-        onSwipeOpen={handleSwipeOpen}
-        onSwipeClose={handleSwipeClose}
-        onEdit={goEdit}
-        onDelete={confirmDelete}
+        onLongPress={handleLongPress}
       />
     ),
-    [
-      expandedId,
-      examplesById,
-      openSwipeId,
-      readingDisplay,
-      words.length,
-      toggleExpand,
-      handleSwipeOpen,
-      handleSwipeClose,
-      goEdit,
-      confirmDelete,
-    ],
+    [expandedId, readingDisplay, words.length, toggleExpand, handleLongPress],
   );
 
   const keyExtractor = useCallback((item: DeckWordItem) => String(item.id), []);
 
+  const renderBackdrop = useCallback(
+    (props: BottomSheetBackdropProps) => (
+      <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} opacity={0.25} />
+    ),
+    [],
+  );
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        <AppBar title={headerTitle} onBack={() => navigation.goBack()} />
+        <AppBar title="단어" onBack={() => navigation.goBack()} />
         <View style={styles.headerSeparator} />
 
         {status === 'loading' ? (
@@ -328,6 +241,31 @@ export default function DeckWordListScreen({ route, navigation }: Props) {
           />
         )}
       </View>
+
+      <BottomSheet
+        ref={actionSheetRef}
+        index={-1}
+        enableDynamicSizing
+        enablePanDownToClose
+        detached
+        onChange={handleActionSheetChange}
+        bottomInset={insets.bottom + 12}
+        backdropComponent={renderBackdrop}
+        style={styles.actionSheetFloat}
+        backgroundStyle={styles.actionSheetBg}
+        handleStyle={styles.actionSheetHandle}
+        handleIndicatorStyle={styles.actionSheetIndicator}
+      >
+        <BottomSheetView>
+          {actionItem && (
+            <DeckWordActionSheet
+              item={actionItem}
+              onEdit={handleEditFromSheet}
+              onDelete={handleDeleteFromSheet}
+            />
+          )}
+        </BottomSheetView>
+      </BottomSheet>
 
       <AppDialog
         visible={pendingDelete !== null}
@@ -402,9 +340,6 @@ const styles = StyleSheet.create({
   list: {
     paddingBottom: 20,
   },
-  swipeClip: {
-    overflow: 'hidden',
-  },
   wordEntry: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -444,31 +379,6 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: Colors.border,
   },
-  swipeActions: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    left: '100%',
-    width: SWIPE_ACTIONS_WIDTH,
-    flexDirection: 'row',
-  },
-  swipeBtn: {
-    width: SWIPE_BTN_WIDTH,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-  },
-  swipeEdit: {
-    backgroundColor: Colors.textSecondary,
-  },
-  swipeDelete: {
-    backgroundColor: Colors.ratingAgain,
-  },
-  swipeLabel: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
-  },
   exSection: {
     paddingHorizontal: Dimens.screenPadding,
     paddingVertical: 10,
@@ -501,5 +411,23 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
     textAlign: 'center',
     paddingVertical: 4,
+  },
+  // Action sheet — matches PlayerScreen's detached lookup-sheet style.
+  actionSheetFloat: {
+    marginHorizontal: 12,
+  },
+  actionSheetBg: {
+    backgroundColor: Colors.card,
+    borderRadius: 24,
+  },
+  actionSheetHandle: {
+    paddingTop: 12,
+    paddingBottom: 8,
+  },
+  actionSheetIndicator: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#A1A1AA',
   },
 });
