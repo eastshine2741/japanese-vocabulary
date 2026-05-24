@@ -1,5 +1,6 @@
 package com.japanese.vocabulary.song.client.lrclib
 
+import com.japanese.vocabulary.song.client.JapaneseLyricValidator
 import com.japanese.vocabulary.song.client.LyricProvider
 import com.japanese.vocabulary.song.client.LyricsResult
 import com.japanese.vocabulary.song.client.NormalizedSongQuery
@@ -137,16 +138,16 @@ class LrclibClient : LyricProvider {
     }
 
     private fun toResult(response: LrclibResponse): LyricsResult? {
-        val syncedLyrics = response.syncedLyrics
-        if (!syncedLyrics.isNullOrBlank()) {
-            return LyricsResult(lrclibId = response.id, lyrics = syncedLyrics, isSynced = true)
+        val lyrics = response.syncedLyrics?.takeIf { it.isNotBlank() }
+            ?: response.plainLyrics?.takeIf { it.isNotBlank() }
+            ?: return null
+
+        if (!JapaneseLyricValidator.isJapaneseLyrics(lyrics)) {
+            logger.warn("Rejected non-Japanese lyrics | provider=LrcLib | lrclibId={}", response.id)
+            return null
         }
 
-        val plainLyrics = response.plainLyrics
-        if (!plainLyrics.isNullOrBlank()) {
-            return LyricsResult(lrclibId = response.id, lyrics = plainLyrics, isSynced = false)
-        }
-
-        return null
+        val isSynced = response.syncedLyrics?.isNotBlank() == true
+        return LyricsResult(lrclibId = response.id, lyrics = if (isSynced) response.syncedLyrics!! else lyrics, isSynced = isSynced)
     }
 }
