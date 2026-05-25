@@ -42,6 +42,7 @@ export interface GraderResult {
 export interface TestCaseResult {
   testCaseName: string;
   criteria: string | null;
+  geminiInput: string | null;
   geminiOutput: string | null;
   geminiError: string | null;
   graderResult: GraderResult | null;
@@ -50,6 +51,9 @@ export interface TestCaseResult {
   gradingLatencyMs: number;
   executionCost: number;
   gradingCost: number;
+  // Chunked execution metadata (word-meaning only, when chunkSize > 0)
+  chunkLatenciesMs?: number[];
+  sumLatencyMs?: number;
 }
 
 export interface PromptChange {
@@ -60,6 +64,26 @@ export interface PromptChange {
 export interface ImproverResult {
   improvedPrompt: string;
   changes: PromptChange[];
+}
+
+export type AdditionCategory =
+  | "POS_MISMATCH"
+  | "STRUCTURAL"
+  | "CONTEXT_IDIOM"
+  | "PARTICLE_AUX"
+  | "WRONG_MEANING"
+  | "OTHER";
+
+export interface AdditionItem {
+  category: AdditionCategory;
+  label: string;
+  targetedDeductions: string[];
+  text: string;
+}
+
+export interface AdditionsResult {
+  additions: AdditionItem[];
+  rationale: string;
 }
 
 export interface EvalRun {
@@ -73,4 +97,7 @@ export interface EvalRun {
   averageScore: number | null;
   totalCost: number;
   results: TestCaseResult[];
+  // Word-meaning chunking config (0 = single-shot)
+  chunkSize?: number;
+  includeContextPrefix?: boolean;
 }

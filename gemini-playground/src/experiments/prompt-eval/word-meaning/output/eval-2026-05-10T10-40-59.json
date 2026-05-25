@@ -1,0 +1,236 @@
+{
+  "timestamp": "2026-05-10T10:40:59.934Z",
+  "mode": "wordMeaning",
+  "executionModel": "gemini-3.1-pro-preview",
+  "graderModel": "gemini-2.5-pro",
+  "temperature": 0,
+  "systemPrompt": "You are an expert in Japanese vocabulary for Korean-speaking learners studying song lyrics. Your task is to enrich a JSON array of Japanese lyric words with their corresponding Korean meanings, strictly following the rules below.\n\n## Input/Output Format\n- **Receive**: A JSON array of lyric lines. Each line contains an `index`, `text`, and a `words` array. Each word in the `words` array is an object with `surface`, `baseForm`, and `pos`.\n- **Return**: A single, complete, valid JSON array in the format: `[{\"index\": N, \"words\": [{\"surface\": \"...\", \"baseForm\": \"...\", \"koreanText\": \"...\"}]}]`\n\n## Core Rules\n\n### 1. Absolute Structural Integrity\n- **Process the Entire Input**: You MUST process every single word from the first to the last in the input array. Never stop prematurely. The output must be a single, complete, and valid JSON array.\n- **One-to-One Mapping**: For EVERY word object in the input, you must produce exactly ONE corresponding word object in the output. Maintain the exact original order. Never skip, merge, split, or add words.\n- **Copy Verbatim**: Copy the `surface` and `baseForm` fields from the input for each word *exactly* as they are provided. Do not translate, modify, or alter them in any way. Your only task is to add the correct `koreanText`.\n\n### 2. Strict POS-Compliant Translation\n- The Korean translation in `koreanText` **must** strictly match the grammatical function of the given Japanese `pos` tag.\n- **NOUN**: Must be a Korean noun (e.g., 夜→밤, 晴れ→맑음). Do not translate as an adjective or adverb.\n- **VERB**: Must be the `-다` dictionary form (e.g., 走る→달리다).\n- **ADJECTIVE**: Must be the `-다` dictionary form (e.g., 美しい→아름답다). For adverbial forms like `楽しく`, translate as a Korean adverb (e.g., 즐겁게).\n- **NA_ADJECTIVE**: Must be the `-하다` or `-이다` form (e.g., 静か→조용하다). The stem alone (e.g., `好き`) should be translated as a noun-like form (e.g., 좋아함).\n- **ADVERB**: Must be a Korean adverb (e.g., そろそろ→슬슬).\n- **PARTICLE**: Translate to its contextual Korean equivalent (e.g., は→~은/는, の in `痛いの`→~하는 것).\n- **AUXILIARY_VERB**: Translate to its contextual Korean equivalent (e.g., ない→~않다/~없다, た→~ㅆ다).\n- **Other POS**: Translate to the corresponding Korean equivalent (e.g., PRONOUN, CONJUNCTION, PREFIX, SUFFIX, INTERJECTION).\n\n### 3. Context-Aware Word-Level Translation\n- **Use Context for Meaning**: Translate each word individually, but use the surrounding words to select the correct meaning, especially for particles, auxiliaries, and verbs.\n- **Idioms & Set Phrases** (e.g., どうしても, ~ものか, 区別が付く): Recognize the full idiomatic meaning. Distribute this meaning logically across the constituent words. For `~ものか` (strong negation), `もの` could be `~것` and `か` could be `~겠는가` to convey the nuance. Do not assign the entire idiom's meaning to a single word, nor translate each word in complete isolation.\n\n### 4. Onomatopoeia and Katakana\n- **Onomatopoeia**: Translate into natural Korean equivalents (e.g., ザザザザ→쏴아아아). Never just label as '의성어'.\n- **Katakana**: Transcribe using standard Korean loanword transcription rules (e.g., ロンリー→론리).\n\nReturn ONLY a valid JSON array. No other text.",
+  "guidelines": "1. Output one entry for EVERY word in the input \"words\" array, in the same order. NEVER skip any entry.\n2. You may correct a wrong baseForm (e.g. いう → いい when context means \"good\").\n3. Do NOT merge or split words. Keep the input segmentation exactly as given.\n4. When a conjugated form has its own dictionary entry with a meaning distinct from the base word, use that form as baseForm so the learner can look it up directly (e.g. なら → なら \"~라면\", not だ \"~이다\").\n5. Word meaning must match with given POS. e.g. When POS is na-adjective, Korean meaning must end in ~하다. When POS is adverb, Korean meaning must also be adverb, not noun.",
+  "averageScore": 3,
+  "totalCost": 0.92753825,
+  "results": [
+    {
+      "testCaseName": "매직메이드",
+      "criteria": null,
+      "geminiOutput": null,
+      "geminiError": "Chunk failed: You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_requests_per_model, limit: 25, model: gemini-3.1-pro\nPlease retry in 4.368911994s.",
+      "graderResult": null,
+      "graderError": "Skipped: execution failed",
+      "executionLatencyMs": 61319,
+      "gradingLatencyMs": 0,
+      "executionCost": 0.090504,
+      "gradingCost": 0,
+      "chunkLatenciesMs": [
+        61319,
+        1192,
+        24068
+      ],
+      "sumLatencyMs": 86579
+    },
+    {
+      "testCaseName": "T씨의말을믿지마",
+      "criteria": null,
+      "geminiOutput": null,
+      "geminiError": "Chunk failed: You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_requests_per_model, limit: 25, model: gemini-3.1-pro\nPlease retry in 4.369159985s.",
+      "graderResult": null,
+      "graderError": "Skipped: execution failed",
+      "executionLatencyMs": 40363,
+      "gradingLatencyMs": 0,
+      "executionCost": 0.153882,
+      "gradingCost": 0,
+      "chunkLatenciesMs": [
+        1180,
+        24621,
+        29163,
+        40363,
+        1265,
+        1178,
+        11721,
+        1229,
+        26570,
+        24999
+      ],
+      "sumLatencyMs": 162289
+    },
+    {
+      "testCaseName": "다맛테쨩",
+      "criteria": null,
+      "geminiOutput": null,
+      "geminiError": "Chunk failed: You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_requests_per_model, limit: 25, model: gemini-3.1-pro\nPlease retry in 4.369181665s.",
+      "graderResult": null,
+      "graderError": "Skipped: execution failed",
+      "executionLatencyMs": 30438,
+      "gradingLatencyMs": 0,
+      "executionCost": 0.052584000000000006,
+      "gradingCost": 0,
+      "chunkLatenciesMs": [
+        29061,
+        1177,
+        1182,
+        1175,
+        30438
+      ],
+      "sumLatencyMs": 63033
+    },
+    {
+      "testCaseName": "잠자",
+      "criteria": null,
+      "geminiOutput": null,
+      "geminiError": "Chunk failed: You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_requests_per_model, limit: 25, model: gemini-3.1-pro\nPlease retry in 4.368467278s.",
+      "graderResult": null,
+      "graderError": "Skipped: execution failed",
+      "executionLatencyMs": 40863,
+      "gradingLatencyMs": 0,
+      "executionCost": 0.15818,
+      "gradingCost": 0,
+      "chunkLatenciesMs": [
+        40863,
+        35420,
+        1178,
+        39022,
+        38915,
+        37771,
+        1195
+      ],
+      "sumLatencyMs": 194364
+    },
+    {
+      "testCaseName": "다이다이키라이",
+      "criteria": null,
+      "geminiOutput": null,
+      "geminiError": "Chunk failed: You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_requests_per_model, limit: 25, model: gemini-3.1-pro\nPlease retry in 4.281494821s.",
+      "graderResult": null,
+      "graderError": "Skipped: execution failed",
+      "executionLatencyMs": 33973,
+      "gradingLatencyMs": 0,
+      "executionCost": 0.072612,
+      "gradingCost": 0,
+      "chunkLatenciesMs": [
+        1261,
+        1264,
+        28254,
+        33973,
+        1263,
+        1177,
+        12015
+      ],
+      "sumLatencyMs": 79207
+    },
+    {
+      "testCaseName": "버그",
+      "criteria": null,
+      "geminiOutput": null,
+      "geminiError": "Chunk failed: You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_requests_per_model, limit: 25, model: gemini-3.1-pro\nPlease retry in 4.369082672s.",
+      "graderResult": null,
+      "graderError": "Skipped: execution failed",
+      "executionLatencyMs": 48552,
+      "gradingLatencyMs": 0,
+      "executionCost": 0.04574,
+      "gradingCost": 0,
+      "chunkLatenciesMs": [
+        1172,
+        48552,
+        1255,
+        1260,
+        1252,
+        17163
+      ],
+      "sumLatencyMs": 70654
+    },
+    {
+      "testCaseName": "베놈",
+      "criteria": null,
+      "geminiOutput": "[{\"index\":0,\"words\":[{\"surface\":\"足り\",\"baseForm\":\"足りる\",\"koreanText\":\"충분하다\"},{\"surface\":\"ない\",\"baseForm\":\"ない\",\"koreanText\":\"~지 않다\"},{\"surface\":\"もの\",\"baseForm\":\"もの\",\"koreanText\":\"것\"},{\"surface\":\"なーん\",\"baseForm\":\"なーん\",\"koreanText\":\"무엇\"},{\"surface\":\"だ\",\"baseForm\":\"だ\",\"koreanText\":\"~이다\"},{\"surface\":\"僕ら\",\"baseForm\":\"僕ら\",\"koreanText\":\"우리들\"},{\"surface\":\"の\",\"baseForm\":\"の\",\"koreanText\":\"~의\"},{\"surface\":\"人生\",\"baseForm\":\"人生\",\"koreanText\":\"인생\"}]},{\"index\":1,\"words\":[{\"surface\":\"正解\",\"baseForm\":\"正解\",\"koreanText\":\"정답\"},{\"surface\":\"どこ\",\"baseForm\":\"どこ\",\"koreanText\":\"어디\"},{\"surface\":\"な\",\"baseForm\":\"だ\",\"koreanText\":\"~인\"},{\"surface\":\"ん\",\"baseForm\":\"ん\",\"koreanText\":\"것\"},{\"surface\":\"だ\",\"baseForm\":\"だ\",\"koreanText\":\"~이다\"},{\"surface\":\"探せよ\",\"baseForm\":\"探せる\",\"koreanText\":\"찾다\"},{\"surface\":\"探せ\",\"baseForm\":\"探す\",\"koreanText\":\"찾다\"}]},{\"index\":2,\"words\":[{\"surface\":\"例外\",\"baseForm\":\"例外\",\"koreanText\":\"예외\"},{\"surface\":\"ない\",\"baseForm\":\"ない\",\"koreanText\":\"없다\"},{\"surface\":\"二進\",\"baseForm\":\"二進\",\"koreanText\":\"이진\"},{\"surface\":\"も\",\"baseForm\":\"も\",\"koreanText\":\"~도\"},{\"surface\":\"三進\",\"baseForm\":\"三進\",\"koreanText\":\"삼진\"},{\"surface\":\"も\",\"baseForm\":\"も\",\"koreanText\":\"~도\"},{\"surface\":\"零下\",\"baseForm\":\"零下\",\"koreanText\":\"영하\"},{\"surface\":\"以内\",\"baseForm\":\"以内\",\"koreanText\":\"이내\"},{\"surface\":\"なら\",\"baseForm\":\"だ\",\"koreanText\":\"~라면\"},{\"surface\":\"劣化\",\"baseForm\":\"劣化\",\"koreanText\":\"열화\"},{\"surface\":\"以外\",\"baseForm\":\"以外\",\"koreanText\":\"이외\"},{\"surface\":\"ない\",\"baseForm\":\"ない\",\"koreanText\":\"없다\"}]},{\"index\":3,\"words\":[{\"surface\":\"正味\",\"baseForm\":\"正味\",\"koreanText\":\"실질\"},{\"surface\":\"クソゲー\",\"baseForm\":\"クソゲー\",\"koreanText\":\"망겜\"},{\"surface\":\"だ\",\"baseForm\":\"だ\",\"koreanText\":\"~이다\"},{\"surface\":\"カラ\",\"baseForm\":\"カラい\",\"koreanText\":\"맵다\"},{\"surface\":\"空\",\"baseForm\":\"空\",\"koreanText\":\"헛됨\"},{\"surface\":\"回れ\",\"baseForm\":\"回る\",\"koreanText\":\"돌다\"}]},{\"index\":4,\"words\":[{\"surface\":\"倦怠\",\"baseForm\":\"倦怠\",\"koreanText\":\"권태\"},{\"surface\":\"モード\",\"baseForm\":\"モード\",\"koreanText\":\"모드\"},{\"surface\":\"苦\",\"baseForm\":\"苦\",\"koreanText\":\"고통\"},{\"surface\":\"だ\",\"baseForm\":\"だ\",\"koreanText\":\"~이다\"},{\"surface\":\"僕ら\",\"baseForm\":\"僕ら\",\"koreanText\":\"우리들\"},{\"surface\":\"の\",\"baseForm\":\"の\",\"koreanText\":\"~의\"},{\"surface\":\"人生\",\"baseForm\":\"人生\",\"koreanText\":\"인생\"}]},{\"index\":5,\"words\":[{\"surface\":\"校内\",\"baseForm\":\"校内\",\"koreanText\":\"교내\"},{\"surface\":\"猛毒\",\"baseForm\":\"猛毒\",\"koreanText\":\"맹독\"},{\"surface\":\"だ\",\"baseForm\":\"だ\",\"koreanText\":\"~이다\"},{\"surface\":\"屈めよ\",\"baseForm\":\"屈める\",\"koreanText\":\"숙이다\"},{\"surface\":\"屈め\",\"baseForm\":\"屈める\",\"koreanText\":\"숙이다\"}]},{\"index\":6,\"words\":[{\"surface\":\"盛大\",\"baseForm\":\"盛大\",\"koreanText\":\"성대하다\"},{\"surface\":\"和気\",\"baseForm\":\"和気\",\"koreanText\":\"화기\"},{\"surface\":\"あい\",\"baseForm\":\"あい\",\"koreanText\":\"아이\"},{\"surface\":\"ゴッコ\",\"baseForm\":\"ゴッコ\",\"koreanText\":\"놀이\"},{\"surface\":\"は\",\"baseForm\":\"は\",\"koreanText\":\"~은/는\"},{\"surface\":\"成敗\",\"baseForm\":\"成敗\",\"koreanText\":\"처벌\"},{\"surface\":\"生産\",\"baseForm\":\"生産\",\"koreanText\":\"생산\"},{\"surface\":\"性\",\"baseForm\":\"性\",\"koreanText\":\"~성\"},{\"surface\":\"ない\",\"baseForm\":\"ない\",\"koreanText\":\"없다\"}]},{\"index\":7,\"words\":[{\"surface\":\"後悔\",\"baseForm\":\"後悔\",\"koreanText\":\"후회\"},{\"surface\":\"もう\",\"baseForm\":\"もう\",\"koreanText\":\"이미\"},{\"surface\":\"独\",\"baseForm\":\"独\",\"koreanText\":\"고독\"},{\"surface\":\"だ\",\"baseForm\":\"だ\",\"koreanText\":\"~이다\"},{\"surface\":\"笑えよ\",\"baseForm\":\"笑える\",\"koreanText\":\"웃다\"},{\"surface\":\"笑え\",\"baseForm\":\"笑える\",\"koreanText\":\"웃다\"}]},{\"index\":8,\"words\":[{\"surface\":\"心\",\"baseForm\":\"心\",\"koreanText\":\"마음\"},{\"surface\":\"の\",\"baseForm\":\"の\",\"koreanText\":\"~의\"},{\"surface\":\"レシピ\",\"baseForm\":\"レシピ\",\"koreanText\":\"레시피\"},{\"surface\":\"は\",\"baseForm\":\"は\",\"koreanText\":\"~은/는\"},{\"surface\":\"かま\",\"baseForm\":\"かま\",\"koreanText\":\"관심\"},{\"surface\":\"ちょ\",\"baseForm\":\"ちょ\",\"koreanText\":\"좀\"},{\"surface\":\"味\",\"baseForm\":\"味\",\"koreanText\":\"맛\"},{\"surface\":\"寂\",\"baseForm\":\"寂\",\"koreanText\":\"쓸쓸함\"},{\"surface\":\"ジャンキー\",\"baseForm\":\"ジャンキー\",\"koreanText\":\"중독자\"}]},{\"index\":9,\"words\":[{\"surface\":\"だんだん\",\"baseForm\":\"だんだん\",\"koreanText\":\"점점\"},{\"surface\":\"強がっ\",\"baseForm\":\"強がる\",\"koreanText\":\"강한 체하다\"},{\"surface\":\"て\",\"baseForm\":\"て\",\"koreanText\":\"~하고\"},{\"surface\":\"ドロドロ\",\"baseForm\":\"ドロドロ\",\"koreanText\":\"질척질척하다\"},{\"surface\":\"に\",\"baseForm\":\"だ\",\"koreanText\":\"~하게\"},{\"surface\":\"伏す\",\"baseForm\":\"伏す\",\"koreanText\":\"엎드리다\"}]},{\"index\":10,\"words\":[{\"surface\":\"ドクドク\",\"baseForm\":\"ドクドク\",\"koreanText\":\"꿀꺽꿀꺽\"},{\"surface\":\"呑み込ん\",\"baseForm\":\"呑み込む\",\"koreanText\":\"삼키다\"},{\"surface\":\"で\",\"baseForm\":\"で\",\"koreanText\":\"~고\"},{\"surface\":\"苦しん\",\"baseForm\":\"苦しむ\",\"koreanText\":\"괴로워하다\"},{\"surface\":\"で\",\"baseForm\":\"で\",\"koreanText\":\"~고\"},{\"surface\":\"泣い\",\"baseForm\":\"泣く\",\"koreanText\":\"울다\"},{\"surface\":\"て\",\"baseForm\":\"て\",\"koreanText\":\"~고\"},{\"surface\":\"吐き出せ\",\"baseForm\":\"吐き出せる\",\"koreanText\":\"뱉어낼 수 있다\"},{\"surface\":\"ない\",\"baseForm\":\"ない\",\"koreanText\":\"~않다\"},{\"surface\":\"の\",\"baseForm\":\"の\",\"koreanText\":\"~하는 것\"},{\"surface\":\"ベノベノム\",\"baseForm\":\"ベノベノム\",\"koreanText\":\"베노베놈\"}]},{\"index\":11,\"words\":[{\"surface\":\"さよ\",\"baseForm\":\"さよ\",\"koreanText\":\"사요\"},{\"surface\":\"な\",\"baseForm\":\"な\",\"koreanText\":\"나\"},{\"surface\":\"ラ\",\"baseForm\":\"ラ\",\"koreanText\":\"라\"}]},{\"index\":12,\"words\":[{\"surface\":\"あら\",\"baseForm\":\"あら\",\"koreanText\":\"어머\"},{\"surface\":\"ま\",\"baseForm\":\"ま\",\"koreanText\":\"나\"}]},{\"index\":13,\"words\":[{\"surface\":\"求愛\",\"baseForm\":\"求愛\",\"koreanText\":\"구애\"},{\"surface\":\"性\",\"baseForm\":\"性\",\"koreanText\":\"~성\"},{\"surface\":\"孤独\",\"baseForm\":\"孤独\",\"koreanText\":\"고독\"},{\"surface\":\"ドク\",\"baseForm\":\"ドク\",\"koreanText\":\"독\"},{\"surface\":\"流る\",\"baseForm\":\"流る\",\"koreanText\":\"흐르다\"},{\"surface\":\"ルル\",\"baseForm\":\"ルル\",\"koreanText\":\"루루\"},{\"surface\":\"愛\",\"baseForm\":\"愛\",\"koreanText\":\"사랑\"},{\"surface\":\"を\",\"baseForm\":\"を\",\"koreanText\":\"~을/를\"},{\"surface\":\"もっと\",\"baseForm\":\"もっと\",\"koreanText\":\"더\"},{\"surface\":\"頂戴\",\"baseForm\":\"頂戴\",\"koreanText\":\"받음\"},{\"surface\":\"な\",\"baseForm\":\"だ\",\"koreanText\":\"~다\"},{\"surface\":\"ねえ\",\"baseForm\":\"ねえ\",\"koreanText\":\"있지\"},{\"surface\":\"痛い\",\"baseForm\":\"痛い\",\"koreanText\":\"아프다\"},{\"surface\":\"痛い\",\"baseForm\":\"痛い\",\"koreanText\":\"아프다\"},{\"surface\":\"の\",\"baseForm\":\"の\",\"koreanText\":\"~것\"},{\"surface\":\"とん\",\"baseForm\":\"とぶ\",\"koreanText\":\"날다\"},{\"surface\":\"でけ\",\"baseForm\":\"でく\",\"koreanText\":\"~가라\"}]},{\"index\":14,\"words\":[{\"surface\":\"存在\",\"baseForm\":\"存在\",\"koreanText\":\"존재\"},{\"surface\":\"感\",\"baseForm\":\"感\",\"koreanText\":\"감\"},{\"surface\":\"血\",\"baseForm\":\"血\",\"koreanText\":\"피\"},{\"surface\":\"ドクドク\",\"baseForm\":\"ドクドク\",\"koreanText\":\"뚝뚝\"},{\"surface\":\"零\",\"baseForm\":\"零\",\"koreanText\":\"영\"},{\"surface\":\"る\",\"baseForm\":\"り\",\"koreanText\":\"~다\"},{\"surface\":\"ルル\",\"baseForm\":\"ルル\",\"koreanText\":\"루루\"},{\"surface\":\"無い\",\"baseForm\":\"無い\",\"koreanText\":\"없다\"},{\"surface\":\"の\",\"baseForm\":\"の\",\"koreanText\":\"~니\"},{\"surface\":\"もっと\",\"baseForm\":\"もっと\",\"koreanText\":\"더\"},{\"surface\":\"愛\",\"baseForm\":\"愛\",\"koreanText\":\"사랑\"},{\"surface\":\"愛\",\"baseForm\":\"愛\",\"koreanText\":\"사랑\"},{\"surface\":\"哀\",\"baseForm\":\"哀\",\"koreanText\":\"슬픔\"},{\"surface\":\"哀\",\"baseForm\":\"哀\",\"koreanText\":\"슬픔\"}]},{\"index\":15,\"words\":[{\"surface\":\"叫べ\",\"baseForm\":\"叫ぶ\",\"koreanText\":\"외치다\"},{\"surface\":\"べ\",\"baseForm\":\"べ\",\"koreanText\":\"베\"},{\"surface\":\"ベノム\",\"baseForm\":\"ベノム\",\"koreanText\":\"베놈\"},{\"surface\":\"め\",\"baseForm\":\"め\",\"koreanText\":\"떽\"},{\"surface\":\"っ\",\"baseForm\":\"っ\",\"koreanText\":\"앗\"}]},{\"index\":16,\"words\":[{\"surface\":\"最高\",\"baseForm\":\"最高\",\"koreanText\":\"최고\"},{\"surface\":\"点\",\"baseForm\":\"点\",\"koreanText\":\"점\"},{\"surface\":\"ゼロ\",\"baseForm\":\"ゼロ\",\"koreanText\":\"제로\"},{\"surface\":\"だ\",\"baseForm\":\"だ\",\"koreanText\":\"~다\"},{\"surface\":\"僕ら\",\"baseForm\":\"僕ら\",\"koreanText\":\"우리들\"},{\"surface\":\"の\",\"baseForm\":\"の\",\"koreanText\":\"~의\"},{\"surface\":\"人生\",\"baseForm\":\"人生\",\"koreanText\":\"인생\"}]},{\"index\":17,\"words\":[{\"surface\":\"断然\",\"baseForm\":\"断然\",\"koreanText\":\"단연코\"},{\"surface\":\"テンション\",\"baseForm\":\"テンション\",\"koreanText\":\"텐션\"},{\"surface\":\"だ\",\"baseForm\":\"だ\",\"koreanText\":\"~다\"},{\"surface\":\"屈めよ\",\"baseForm\":\"屈める\",\"koreanText\":\"숙여라\"},{\"surface\":\"屈め\",\"baseForm\":\"屈める\",\"koreanText\":\"숙이다\"}]},{\"index\":18,\"words\":[{\"surface\":\"ロンリー\",\"baseForm\":\"ロンリー\",\"koreanText\":\"론리하다\"},{\"surface\":\"テッペン\",\"baseForm\":\"テッペン\",\"koreanText\":\"꼭대기\"},{\"surface\":\"回っ\",\"baseForm\":\"回る\",\"koreanText\":\"돌다\"},{\"surface\":\"て\",\"baseForm\":\"て\",\"koreanText\":\"~고\"},{\"surface\":\"狼狽\",\"baseForm\":\"狼狽\",\"koreanText\":\"당황\"},{\"surface\":\"ない\",\"baseForm\":\"ない\",\"koreanText\":\"없다\"},{\"surface\":\"脳内\",\"baseForm\":\"脳内\",\"koreanText\":\"뇌내\"},{\"surface\":\"もう\",\"baseForm\":\"もう\",\"koreanText\":\"더\"},{\"surface\":\"一\",\"baseForm\":\"一\",\"koreanText\":\"일\"},{\"surface\":\"回\",\"baseForm\":\"回\",\"koreanText\":\"회\"}]},{\"index\":19,\"words\":[{\"surface\":\"オーバードーズ\",\"baseForm\":\"オーバードーズ\",\"koreanText\":\"오버도즈\"},{\"surface\":\"刑\",\"baseForm\":\"刑\",\"koreanText\":\"형\"},{\"surface\":\"だ\",\"baseForm\":\"だ\",\"koreanText\":\"~다\"},{\"surface\":\"アガれよ\",\"baseForm\":\"アガれる\",\"koreanText\":\"올라가라\"},{\"surface\":\"アガれ\",\"baseForm\":\"アガる\",\"koreanText\":\"오르다\"}]},{\"index\":20,\"words\":[{\"surface\":\"心\",\"baseForm\":\"心\",\"koreanText\":\"마음\"},{\"surface\":\"の\",\"baseForm\":\"の\",\"koreanText\":\"~의\"},{\"surface\":\"中身\",\"baseForm\":\"中身\",\"koreanText\":\"알맹이\"},{\"surface\":\"は\",\"baseForm\":\"は\",\"koreanText\":\"~은/는\"},{\"surface\":\"無理\",\"baseForm\":\"無理\",\"koreanText\":\"무리\"},{\"surface\":\"オブ\",\"baseForm\":\"オブ\",\"koreanText\":\"오브\"},{\"surface\":\"無理\",\"baseForm\":\"無理\",\"koreanText\":\"무리\"},{\"surface\":\"ジャンキー\",\"baseForm\":\"ジャンキー\",\"koreanText\":\"정키\"}]},{\"index\":21,\"words\":[{\"surface\":\"どんどん\",\"baseForm\":\"どんどん\",\"koreanText\":\"점점\"},{\"surface\":\"強がっ\",\"baseForm\":\"強がる\",\"koreanText\":\"강한 체하다\"},{\"surface\":\"て\",\"baseForm\":\"て\",\"koreanText\":\"~고\"},{\"surface\":\"バラバラ\",\"baseForm\":\"バラバラ\",\"koreanText\":\"산산조각\"},{\"surface\":\"に\",\"baseForm\":\"だ\",\"koreanText\":\"~으로\"},{\"surface\":\"伏す\",\"baseForm\":\"伏す\",\"koreanText\":\"엎드리다\"}]},{\"index\":22,\"words\":[{\"surface\":\"ドクドク\",\"baseForm\":\"ドクドク\",\"koreanText\":\"꿀꺽꿀꺽\"},{\"surface\":\"呑み込ん\",\"baseForm\":\"呑み込む\",\"koreanText\":\"삼키다\"},{\"surface\":\"で\",\"baseForm\":\"で\",\"koreanText\":\"~고\"},{\"surface\":\"苦しん\",\"baseForm\":\"苦しむ\",\"koreanText\":\"괴로워하다\"},{\"surface\":\"で\",\"baseForm\":\"で\",\"koreanText\":\"~고\"},{\"surface\":\"泣い\",\"baseForm\":\"泣く\",\"koreanText\":\"울다\"},{\"surface\":\"て\",\"baseForm\":\"て\",\"koreanText\":\"~고\"},{\"surface\":\"逃げ出せ\",\"baseForm\":\"逃げ出せる\",\"koreanText\":\"도망칠 수 있다\"},{\"surface\":\"ない\",\"baseForm\":\"ない\",\"koreanText\":\"~지 않다\"},{\"surface\":\"の\",\"baseForm\":\"の\",\"koreanText\":\"~인 것\"},{\"surface\":\"ベノベノム\",\"baseForm\":\"ベノベノム\",\"koreanText\":\"베노베놈\"}]},{\"index\":23,\"words\":[{\"surface\":\"あら\",\"baseForm\":\"あら\",\"koreanText\":\"어머\"},{\"surface\":\"ま\",\"baseForm\":\"ま\",\"koreanText\":\"나\"}]},{\"index\":24,\"words\":[{\"surface\":\"求愛\",\"baseForm\":\"求愛\",\"koreanText\":\"구애\"},{\"surface\":\"性\",\"baseForm\":\"性\",\"koreanText\":\"~성\"},{\"surface\":\"孤独\",\"baseForm\":\"孤独\",\"koreanText\":\"고독\"},{\"surface\":\"ドク\",\"baseForm\":\"ドク\",\"koreanText\":\"독\"},{\"surface\":\"流る\",\"baseForm\":\"流る\",\"koreanText\":\"흐르다\"},{\"surface\":\"ルル\",\"baseForm\":\"ルル\",\"koreanText\":\"루루\"},{\"surface\":\"愛\",\"baseForm\":\"愛\",\"koreanText\":\"사랑\"},{\"surface\":\"を\",\"baseForm\":\"を\",\"koreanText\":\"~을/를\"},{\"surface\":\"もっと\",\"baseForm\":\"もっと\",\"koreanText\":\"더\"},{\"surface\":\"頂戴\",\"baseForm\":\"頂戴\",\"koreanText\":\"받음\"},{\"surface\":\"な\",\"baseForm\":\"だ\",\"koreanText\":\"~해라\"},{\"surface\":\"ねえ\",\"baseForm\":\"ねえ\",\"koreanText\":\"저기\"},{\"surface\":\"痛い\",\"baseForm\":\"痛い\",\"koreanText\":\"아프다\"},{\"surface\":\"痛い\",\"baseForm\":\"痛い\",\"koreanText\":\"아프다\"},{\"surface\":\"の\",\"baseForm\":\"の\",\"koreanText\":\"~것\"},{\"surface\":\"とん\",\"baseForm\":\"とぶ\",\"koreanText\":\"날다\"},{\"surface\":\"でけ\",\"baseForm\":\"でく\",\"koreanText\":\"~가라\"}]},{\"index\":25,\"words\":[{\"surface\":\"存在\",\"baseForm\":\"存在\",\"koreanText\":\"존재\"},{\"surface\":\"感\",\"baseForm\":\"感\",\"koreanText\":\"감\"},{\"surface\":\"既\",\"baseForm\":\"既\",\"koreanText\":\"기\"},{\"surface\":\"読\",\"baseForm\":\"読\",\"koreanText\":\"독\"},{\"surface\":\"ドク\",\"baseForm\":\"ドク\",\"koreanText\":\"독\"},{\"surface\":\"欲し\",\"baseForm\":\"欲する\",\"koreanText\":\"원하다\"},{\"surface\":\"が\",\"baseForm\":\"が\",\"koreanText\":\"~가\"},{\"surface\":\"ルル\",\"baseForm\":\"ルル\",\"koreanText\":\"루루\"},{\"surface\":\"無い\",\"baseForm\":\"無い\",\"koreanText\":\"없다\"},{\"surface\":\"の\",\"baseForm\":\"の\",\"koreanText\":\"~것\"},{\"surface\":\"もっと\",\"baseForm\":\"もっと\",\"koreanText\":\"더\"},{\"surface\":\"愛\",\"baseForm\":\"愛\",\"koreanText\":\"사랑\"},{\"surface\":\"愛\",\"baseForm\":\"愛\",\"koreanText\":\"사랑\"},{\"surface\":\"愛\",\"baseForm\":\"愛\",\"koreanText\":\"사랑\"},{\"surface\":\"愛\",\"baseForm\":\"愛\",\"koreanText\":\"사랑\"}]},{\"index\":26,\"words\":[{\"surface\":\"滅べ\",\"baseForm\":\"滅ぶ\",\"koreanText\":\"멸망하다\"},{\"surface\":\"べ\",\"baseForm\":\"べ\",\"koreanText\":\"베\"},{\"surface\":\"ベノム\",\"baseForm\":\"ベノム\",\"koreanText\":\"베놈\"},{\"surface\":\"め\",\"baseForm\":\"め\",\"koreanText\":\"떽\"},{\"surface\":\"っ\",\"baseForm\":\"っ\",\"koreanText\":\"!\"}]},{\"index\":27,\"words\":[{\"surface\":\"もう\",\"baseForm\":\"もう\",\"koreanText\":\"이미\"},{\"surface\":\"悪性\",\"baseForm\":\"悪性\",\"koreanText\":\"악성\"},{\"surface\":\"届く\",\"baseForm\":\"届く\",\"koreanText\":\"닿다\"},{\"surface\":\"毒\",\"baseForm\":\"毒\",\"koreanText\":\"독\"},{\"surface\":\"回る\",\"baseForm\":\"回る\",\"koreanText\":\"돌다\"},{\"surface\":\"ルル\",\"baseForm\":\"ルル\",\"koreanText\":\"루루\"},{\"surface\":\"哀\",\"baseForm\":\"哀\",\"koreanText\":\"슬픔\"},{\"surface\":\"で\",\"baseForm\":\"で\",\"koreanText\":\"~로\"},{\"surface\":\"もっと\",\"baseForm\":\"もっと\",\"koreanText\":\"더\"},{\"surface\":\"傷害\",\"baseForm\":\"傷害\",\"koreanText\":\"상해\"},{\"surface\":\"な\",\"baseForm\":\"だ\",\"koreanText\":\"~인\"},{\"surface\":\"ねえ\",\"baseForm\":\"ねえ\",\"koreanText\":\"저기\"},{\"surface\":\"痛い\",\"baseForm\":\"痛い\",\"koreanText\":\"아프다\"},{\"surface\":\"痛い\",\"baseForm\":\"痛い\",\"koreanText\":\"아프다\"},{\"surface\":\"の\",\"baseForm\":\"の\",\"koreanText\":\"~것\"}]},{\"index\":28,\"words\":[{\"surface\":\"存在\",\"baseForm\":\"存在\",\"koreanText\":\"존재\"},{\"surface\":\"抹消\",\"baseForm\":\"抹消\",\"koreanText\":\"말소\"},{\"surface\":\"毒\",\"baseForm\":\"毒\",\"koreanText\":\"독\"},{\"surface\":\"ドク\",\"baseForm\":\"ドク\",\"koreanText\":\"독\"},{\"surface\":\"消える\",\"baseForm\":\"消える\",\"koreanText\":\"사라지다\"},{\"surface\":\"ルル\",\"baseForm\":\"ルル\",\"koreanText\":\"루루\"},{\"surface\":\"無い\",\"baseForm\":\"無い\",\"koreanText\":\"없다\"},{\"surface\":\"の\",\"baseForm\":\"の\",\"koreanText\":\"~것\"},{\"surface\":\"ずっと\",\"baseForm\":\"ずっと\",\"koreanText\":\"계속\"}]},{\"index\":29,\"words\":[{\"surface\":\"愛\",\"baseForm\":\"愛\",\"koreanText\":\"사랑\"},{\"surface\":\"愛\",\"baseForm\":\"愛\",\"koreanText\":\"사랑\"},{\"surface\":\"哀\",\"baseForm\":\"哀\",\"koreanText\":\"슬픔\"},{\"surface\":\"哀\",\"baseForm\":\"哀\",\"koreanText\":\"슬픔\"},{\"surface\":\"愛\",\"baseForm\":\"愛\",\"koreanText\":\"사랑\"},{\"surface\":\"愛\",\"baseForm\":\"愛\",\"koreanText\":\"사랑\"},{\"surface\":\"哀\",\"baseForm\":\"哀\",\"koreanText\":\"슬픔\"},{\"surface\":\"哀\",\"baseForm\":\"哀\",\"koreanText\":\"슬픔\"},{\"surface\":\"愛\",\"baseForm\":\"愛\",\"koreanText\":\"사랑\"}]},{\"index\":30,\"words\":[{\"surface\":\"求愛\",\"baseForm\":\"求愛\",\"koreanText\":\"구애\"},{\"surface\":\"性\",\"baseForm\":\"性\",\"koreanText\":\"성\"},{\"surface\":\"孤独\",\"baseForm\":\"孤独\",\"koreanText\":\"고독\"},{\"surface\":\"ドク\",\"baseForm\":\"ドク\",\"koreanText\":\"독\"},{\"surface\":\"流る\",\"baseForm\":\"流る\",\"koreanText\":\"흐르다\"},{\"surface\":\"ルル\",\"baseForm\":\"ルル\",\"koreanText\":\"르르\"},{\"surface\":\"愛\",\"baseForm\":\"愛\",\"koreanText\":\"사랑\"},{\"surface\":\"を\",\"baseForm\":\"を\",\"koreanText\":\"~을\"},{\"surface\":\"もっと\",\"baseForm\":\"もっと\",\"koreanText\":\"더\"},{\"surface\":\"頂戴\",\"baseForm\":\"頂戴\",\"koreanText\":\"받음\"},{\"surface\":\"な\",\"baseForm\":\"だ\",\"koreanText\":\"~다\"},{\"surface\":\"ねえ\",\"baseForm\":\"ねえ\",\"koreanText\":\"저기\"},{\"surface\":\"痛い\",\"baseForm\":\"痛い\",\"koreanText\":\"아프다\"},{\"surface\":\"痛い\",\"baseForm\":\"痛い\",\"koreanText\":\"아프다\"},{\"surface\":\"の\",\"baseForm\":\"の\",\"koreanText\":\"~것\"},{\"surface\":\"とん\",\"baseForm\":\"とぶ\",\"koreanText\":\"날다\"},{\"surface\":\"でけ\",\"baseForm\":\"でく\",\"koreanText\":\"~가라\"}]},{\"index\":31,\"words\":[{\"surface\":\"存在\",\"baseForm\":\"存在\",\"koreanText\":\"존재\"},{\"surface\":\"感\",\"baseForm\":\"感\",\"koreanText\":\"감\"},{\"surface\":\"血\",\"baseForm\":\"血\",\"koreanText\":\"피\"},{\"surface\":\"ドクドク\",\"baseForm\":\"ドクドク\",\"koreanText\":\"콸콸\"},{\"surface\":\"零\",\"baseForm\":\"零\",\"koreanText\":\"떨어짐\"},{\"surface\":\"る\",\"baseForm\":\"り\",\"koreanText\":\"~다\"},{\"surface\":\"ルル\",\"baseForm\":\"ルル\",\"koreanText\":\"르르\"},{\"surface\":\"無い\",\"baseForm\":\"無い\",\"koreanText\":\"없다\"},{\"surface\":\"の\",\"baseForm\":\"の\",\"koreanText\":\"~어\"},{\"surface\":\"もっと\",\"baseForm\":\"もっと\",\"koreanText\":\"더\"},{\"surface\":\"愛\",\"baseForm\":\"愛\",\"koreanText\":\"사랑\"},{\"surface\":\"愛\",\"baseForm\":\"愛\",\"koreanText\":\"사랑\"},{\"surface\":\"哀\",\"baseForm\":\"哀\",\"koreanText\":\"슬픔\"},{\"surface\":\"哀\",\"baseForm\":\"哀\",\"koreanText\":\"슬픔\"}]},{\"index\":32,\"words\":[{\"surface\":\"叫べ\",\"baseForm\":\"叫べる\",\"koreanText\":\"외치다\"},{\"surface\":\"ベベノム\",\"baseForm\":\"*\",\"koreanText\":\"베베놈\"},{\"surface\":\"叫べ\",\"baseForm\":\"叫べる\",\"koreanText\":\"외치다\"},{\"surface\":\"ベベノム\",\"baseForm\":\"*\",\"koreanText\":\"베베놈\"}]},{\"index\":33,\"words\":[{\"surface\":\"叫べ\",\"baseForm\":\"叫べる\",\"koreanText\":\"외치다\"},{\"surface\":\"ベベノム\",\"baseForm\":\"*\",\"koreanText\":\"베베놈\"},{\"surface\":\"め\",\"baseForm\":\"め\",\"koreanText\":\"떽\"},{\"surface\":\"っ\",\"baseForm\":\"っ\",\"koreanText\":\"앗\"}]}]",
+      "geminiError": null,
+      "graderResult": {
+        "score": 3,
+        "deductions": [
+          {
+            "reason": "[index 3] 'カラ'는 문맥상 '헛됨'을 의미하지만, '맵다'라는 뜻의 '辛い'로 잘못 판단하여 오역했습니다.",
+            "points": 1
+          },
+          {
+            "reason": "[index 5, 17] '屈め'는 자동사 '屈む(웅크리다)'의 명령형이지만, 타동사 '屈める(숙이다)'로 잘못 판단하여 번역했습니다.",
+            "points": 1
+          },
+          {
+            "reason": "[index 13, 24, 30] '頂戴'는 '주세요'라는 요청의 의미이지만, 명사 '받음'으로 잘못 번역했습니다. 뒤따르는 종조사 'な'의 번역 또한 부자연스럽습니다.",
+            "points": 1.5
+          },
+          {
+            "reason": "[index 14, 31] 동사 '零る(흘러넘치다)'의 일부인 '零'을 문맥과 관계없는 명사 '영(zero)' 또는 '떨어짐'으로 오역했습니다.",
+            "points": 1
+          },
+          {
+            "reason": "[index 21] 형용동사(NA_ADJECTIVE) 'バラバラ'를 명사 '산산조각'으로 번역하여 품사가 일치하지 않습니다. (Guideline 5 위반)",
+            "points": 1
+          },
+          {
+            "reason": "[index 6] '和気あいあい'의 일부인 'あい'를 '아이(child)'로, [index 12, 23] 감탄사 'あらま'의 일부인 'ま'를 '나(I/me)'로 문맥과 무관하게 오역했습니다.",
+            "points": 1
+          },
+          {
+            "reason": "[index 15, 26, 33] 된소리를 나타내는 촉음 'っ'를 '앗' 또는 '!'과 같이 별개의 의미를 가진 단어로 불필요하게 번역했습니다.",
+            "points": 0.5
+          }
+        ],
+        "comment": "전반적으로 다수의 오역이 발견되었습니다. 특히 문맥을 고려하지 않아 단어의 의미를 잘못 파악한 경우(예: カラ, 屈め, 頂戴, 零)가 많았으며, 품사에 맞지 않는 번역(예: バラバラ)도 있었습니다. 또한 감탄사, 종조사, 촉음 등 미묘한 뉘앙스를 가진 표현들을 부자연스럽게 번역하는 경향이 있어 개선이 필요합니다."
+      },
+      "graderError": null,
+      "executionLatencyMs": 50513,
+      "gradingLatencyMs": 64127,
+      "executionCost": 0.15506,
+      "gradingCost": 0.027486249999999997,
+      "chunkLatenciesMs": [
+        46722,
+        50513,
+        47509,
+        27784
+      ],
+      "sumLatencyMs": 172528
+    },
+    {
+      "testCaseName": "8누달",
+      "criteria": null,
+      "geminiOutput": null,
+      "geminiError": "Chunk failed: You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_requests_per_model, limit: 25, model: gemini-3.1-pro\nPlease retry in 4.368621741s.",
+      "graderResult": null,
+      "graderError": "Skipped: execution failed",
+      "executionLatencyMs": 37260,
+      "gradingLatencyMs": 0,
+      "executionCost": 0.13563799999999998,
+      "gradingCost": 0,
+      "chunkLatenciesMs": [
+        37260,
+        29349,
+        31859,
+        1172,
+        1256,
+        1219,
+        30651
+      ],
+      "sumLatencyMs": 132766
+    },
+    {
+      "testCaseName": "꽃매듭",
+      "criteria": null,
+      "geminiOutput": null,
+      "geminiError": "Chunk failed: You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_requests_per_model, limit: 25, model: gemini-3.1-pro\nPlease retry in 4.282316318s.",
+      "graderResult": null,
+      "graderError": "Skipped: execution failed",
+      "executionLatencyMs": 31672,
+      "gradingLatencyMs": 0,
+      "executionCost": 0.035852,
+      "gradingCost": 0,
+      "chunkLatenciesMs": [
+        1254,
+        1189,
+        31672,
+        1164
+      ],
+      "sumLatencyMs": 35279
+    }
+  ],
+  "chunkSize": 10,
+  "includeContextPrefix": true
+}
