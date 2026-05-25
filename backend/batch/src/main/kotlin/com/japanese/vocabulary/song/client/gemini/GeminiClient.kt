@@ -37,7 +37,7 @@ class GeminiClient(
 
     /**
      * Look up Korean meanings for morphologically analyzed words.
-     * Input: [{index, text, words: [{surface, baseForm, pos}]}]
+     * Input: [{index, words: [{baseForm}]}] — minimum fields only (mirrors playground).
      * Uses a lightweight model — word meaning lookup is a simpler task than translation.
      *
      * WHY SEPARATE FROM TRANSLATION:
@@ -45,6 +45,10 @@ class GeminiClient(
      * - Output token cost is 4-8x input token cost, so including morphological hints in input
      *   is cheaper than asking the LLM to identify words from scratch (which increases output).
      * - Different models are optimal: translation needs quality (pro), meanings need speed (flash-lite).
+     *
+     * WHY ONLY baseForm:
+     * `text`, `surface`, and `pos` were observed to mislead the LLM (English-token hallucinations,
+     * POS-driven mood leaks). The slim input matches the playground configuration that scored 8.6+.
      */
     fun lookupWordMeanings(lyricLines: List<Map<String, Any?>>): List<WordMeaningResult> {
         return callGemini(
@@ -172,46 +176,44 @@ class GeminiClient(
         """.trimIndent()
 
         /**
-         * Word meaning prompt — strict 1:1 mapping with input words.
-         *
-         * WHY "DO NOT MERGE OR SPLIT":
-         * LLM segmentation is non-deterministic and unreliable. When allowed to merge/split,
-         * the LLM inconsistently combines words (e.g., 晴れ+舞台→晴れ舞台) or fails to split
-         * (e.g., 何も stays merged). Keeping input segmentation intact and only correcting
-         * baseForm produces the most stable results.
+         * Word meaning prompt — kept in sync with playground
+         * `prompt-eval/word-meaning/prompt/default.txt` + `additions/default.txt`.
+         * Update both together when the playground prompt changes.
          */
         private val WORD_MEANING_PROMPT = """
-            You receive a JSON array of lyric lines.
-            Each line has "index", "text", and "words" (morphological analysis results with surface, baseForm, and pos).
+            You are a Japanese-to-Korean vocabulary translator for flashcards.
 
-            The goal is to help a Korean-speaking learner study Japanese vocabulary from lyrics.
+            ## Input/Output
+            Input: a JSON array of lyric lines. Each is `{"index": N, "words": [{"baseForm": "..."}]}`.
+            Output: the same array, with each word as `{"baseForm": "...", "koreanText": "..."}`. JSON only.
 
-            STRICT RULES:
-            1. Output one entry for EVERY word in the input "words" array, in the same order. NEVER skip any entry.
-            2. You may correct a wrong baseForm (e.g. いう → いい when context means "good").
-            3. Do NOT merge or split words. Keep the input segmentation exactly as given.
+            ## Rules
+            1. Output every word in the input, in the same order. Output `words` count per line MUST equal input `words` count per line. NEVER skip, merge, split, or add entries.
+            2. Copy `baseForm` verbatim from the input. Add `koreanText` only.
+            3. `koreanText` = canonical Korean dictionary meaning of `baseForm`.
+               - This output is for vocabulary flashcards. Translate the WORD in isolation, not its role in the sentence.
+               - For polysemy: pick the most common dictionary sense.
+               - For onomatopoeia (e.g. ザザザ, ズキズキ): use the natural Korean equivalent (e.g. 쏴아아아, 찌릿찌릿).
+               - For katakana loanwords: use standard Korean transcription (e.g. ロンリー → 론리).
 
-            For each word, return:
-            - "surface": the exact characters as they appear in the original text
-            - "baseForm": the form most useful for a learner to look up in a dictionary
-            - "koreanText": Korean meaning suitable for flashcard study. If the word has multiple relevant meanings, return all with comma-joined.
+            Return ONLY the JSON array. No other text.
 
-            Korean meaning rules by part of speech:
-            - NOUN → Korean noun (夜→밤, 人生→인생)
-            - VERB → Korean verb ending in -다 (走る→달리다)
-            - ADJECTIVE → Korean adjective ending in -다 (美しい→아름답다)
-            - NA_ADJECTIVE → Korean adjective ending in -하다 (静か→조용하다)
-            - ADVERB → Korean adverb (そろそろ→슬슬)
-            - PRONOUN → Korean pronoun (私→나)
-            - PARTICLE → Korean grammatical equivalent (は→~은/는)
-            - AUXILIARY_VERB → Korean grammatical equivalent (です→~입니다)
-            - PREFIX → meaning of the prefix
-            - SUFFIX → meaning of the suffix
-            - CONJUNCTION → Korean conjunction (しかし→하지만)
-            - INTERJECTION → Korean equivalent
+            ## Additional Examples and Rules (accumulated from past evaluations)
 
-            Return ONLY a JSON array:
-            [{"index": N, "words": [{"surface": "...", "baseForm": "...", "koreanText": "..."}]}]
+            ### [WRONG_MEANING] kanji baseForm: translate by MEANING, not by Korean音
+            Many Japanese kanji words mean something different from the Korean音 (sound transliteration) of those kanji. When `baseForm` is in kanji, translate the actual meaning. NEVER fall back to Korean音.
+            WRONG: 成敗 → 성패  (Korean音; actually means "punishment")
+            RIGHT: 成敗 → 처벌
+            WRONG: 無実 → 무실  (Korean音; not a meaningful Korean word in this sense)
+            RIGHT: 無実 → 무죄
+            WRONG: 狼狽 → 낭패  (낭패 ≠ 狼狽; actually means "panic/confusion")
+            RIGHT: 狼狽 → 당황
+
+            ### [STRUCTURAL] Do not merge adjacent words into one
+            Each input `words` entry must produce one output entry. If two adjacent words form a compound (e.g. 誰+か = 누군가), distribute the meaning across both — do NOT collapse one's meaning into the other and leave the other empty.
+            INPUT: [{"baseForm": "誰"}, {"baseForm": "か"}]
+            WRONG: [{"koreanText": "누군가"}, {"koreanText": ""}]
+            RIGHT: [{"koreanText": "누구"}, {"koreanText": "~인가"}]
         """.trimIndent()
 
         private val TRANSLATION_SCHEMA = mapOf(
@@ -238,11 +240,10 @@ class GeminiClient(
                         "items" to mapOf(
                             "type" to "OBJECT",
                             "properties" to mapOf(
-                                "surface" to mapOf("type" to "STRING"),
                                 "baseForm" to mapOf("type" to "STRING"),
                                 "koreanText" to mapOf("type" to "STRING")
                             ),
-                            "required" to listOf("surface", "baseForm", "koreanText")
+                            "required" to listOf("baseForm", "koreanText")
                         )
                     )
                 ),

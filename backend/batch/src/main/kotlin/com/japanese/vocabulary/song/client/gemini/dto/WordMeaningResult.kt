@@ -6,7 +6,6 @@ data class WordMeaningResult(
 )
 
 data class WordMeaning(
-    val surface: String,
     val baseForm: String,
     val koreanText: String
 )
