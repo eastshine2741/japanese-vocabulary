@@ -38,10 +38,13 @@ resource "hcloud_network_subnet" "main" {
   ip_range     = "10.0.0.0/24"
 }
 
-resource "hcloud_server" "node_1" {
-  name               = "ubuntu-4gb-hel1-1"
-  server_type        = "cx23"
-  image              = "ubuntu-24.04"
-  location           = "hel1"
-  placement_group_id = "1628345"
+module "k3s_node_pool" {
+  source = "../../modules/k3s-node-pool"
+
+  name_prefix = "ubuntu-4gb-hel1"
+  node_count = 3
+  server_type = "cx23"
+  image = "ubuntu-24.04"
+  location = "hel1"
+  placement_group_name = "kotonoha-spread"
 }
