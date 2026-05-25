@@ -1,0 +1,14 @@
+### [WRONG_MEANING] kanji baseForm: translate by MEANING, not by Korean音
+Many Japanese kanji words mean something different from the Korean音 (sound transliteration) of those kanji. When `baseForm` is in kanji, translate the actual meaning. NEVER fall back to Korean音.
+WRONG: 成敗 → 성패  (Korean音; actually means "punishment")
+RIGHT: 成敗 → 처벌
+WRONG: 無実 → 무실  (Korean音; not a meaningful Korean word in this sense)
+RIGHT: 無実 → 무죄
+WRONG: 狼狽 → 낭패  (낭패 ≠ 狼狽; actually means "panic/confusion")
+RIGHT: 狼狽 → 당황
+
+### [STRUCTURAL] Do not merge adjacent words into one
+Each input `words` entry must produce one output entry. If two adjacent words form a compound (e.g. 誰+か = 누군가), distribute the meaning across both — do NOT collapse one's meaning into the other and leave the other empty.
+INPUT: [{"baseForm": "誰"}, {"baseForm": "か"}]
+WRONG: [{"koreanText": "누군가"}, {"koreanText": ""}]
+RIGHT: [{"koreanText": "누구"}, {"koreanText": "~인가"}]

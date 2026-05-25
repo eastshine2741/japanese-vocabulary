@@ -32,6 +32,29 @@ class DevController(
         }
     }
 
+    /**
+     * Produces exactly the JSON that KoreanLyricTranslationService sends to Gemini
+     * for word-meaning lookup: {index, text, words: [{surface, baseForm, pos}]}.
+     * Non-Japanese tokens are filtered out (same logic as the batch service).
+     */
+    data class WordMeaningWord(val surface: String, val baseForm: String, val pos: String)
+    data class WordMeaningLine(val index: Int, val text: String, val words: List<WordMeaningWord>)
+
+    @PostMapping("/word-meaning-input")
+    fun wordMeaningInput(@RequestBody lines: List<LineInput>): List<WordMeaningLine> {
+        return lines.map { line ->
+            val tokens = morphologicalAnalyzer.analyze(line.text)
+            val words = tokens
+                .filter { JAPANESE_REGEX.containsMatchIn(it.surface) }
+                .map { WordMeaningWord(surface = it.surface, baseForm = it.baseForm, pos = it.partOfSpeech.name) }
+            WordMeaningLine(index = line.index, text = line.text, words = words)
+        }
+    }
+
+    companion object {
+        private val JAPANESE_REGEX = Regex("[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF\u3400-\u4DBF\uFF66-\uFF9F]")
+    }
+
     // --- Morphological comparison API ---
 
     private val ANALYZER_DISPLAY_NAMES = mapOf(

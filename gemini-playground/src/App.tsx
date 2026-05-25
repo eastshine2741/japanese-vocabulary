@@ -3,9 +3,11 @@ import GeminiExperiment from "./experiments/gemini/GeminiExperiment";
 import MorphologicalExperiment from "./experiments/morphological/MorphologicalExperiment";
 import WordMeaningExperiment from "./experiments/word-meaning/WordMeaningExperiment";
 import EnsembleExperiment from "./experiments/ensemble/EnsembleExperiment";
+import PromptEvalExperiment from "./experiments/prompt-eval/PromptEvalExperiment";
 import "./App.css";
 
 const EXPERIMENTS = [
+  { id: "prompt-eval", label: "Prompt Eval", component: PromptEvalExperiment },
   { id: "gemini", label: "Gemini Translation", component: GeminiExperiment },
   { id: "morphological", label: "Morphological Analysis", component: MorphologicalExperiment },
   { id: "word-meaning", label: "Word Meaning", component: WordMeaningExperiment },

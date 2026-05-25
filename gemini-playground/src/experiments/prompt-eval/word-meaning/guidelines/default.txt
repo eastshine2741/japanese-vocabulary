@@ -1,0 +1,22 @@
+## Scope
+
+The LLM was given input as `[{index, words: [{baseForm}]}]` and produces `[{index, words: [{baseForm, koreanText}]}]`. The original lyric `text`, `surface`, and `pos` were NOT shown to the LLM. They are upstream metadata, not the LLM's responsibility. Do NOT base deductions on them.
+
+This output is for **vocabulary flashcards**. Each word is translated in isolation as a canonical dictionary meaning. Sentence-level context, idiom nuance, and conjugation mood are OUT OF SCOPE — handled by a separate sentence-translation feature.
+
+## In scope — deduct for these
+
+1. **Output completeness**: For each input line, output `words` count MUST equal input `words` count. Deduct for skipped, merged, split, duplicated, or fabricated entries. NOTE: English/symbol/non-Japanese tokens that appear in the original lyric `text` but are NOT in the input `words` array are NOT the LLM's responsibility — judge completeness ONLY against the input `words` array.
+2. **Verbatim baseForm**: The LLM must not modify `baseForm`. Deduct if any output `baseForm` differs from the input.
+3. **koreanText correctness**: The translation must be a plausible canonical Korean dictionary meaning of the `baseForm`. Deduct for outright wrong meaning, e.g.:
+   - 成敗 → 성패 (wrong — 成敗 actually means "punishment", not "success/failure")
+   - 無実 → 무실 (wrong — actually means "innocence/no guilt")
+   - 負かせる → 이기다 (wrong — causative of 負ける = "make lose / defeat", not "win")
+
+## Out of scope — do NOT deduct
+
+- **POS form mismatches of any kind.** POS is no longer evaluated. A Korean adverb for a Japanese NOUN, a `-하다` adjective for a NOUN, a Korean noun for a PARTICLE — all acceptable. Judge only by whether the `koreanText` is a plausible canonical dictionary meaning of the `baseForm`.
+- **Conjugation mood loss.** The LLM was not shown surface; command/volitional/past forms etc. cannot be reflected.
+- **Idiom or set-phrase nuance not preserved.** By design.
+- **Context-specific vs generic dictionary meaning.** The LLM is instructed to pick the most common dictionary sense; do not penalize this.
+- **English / symbol / non-Japanese tokens in `text`** that are not in the input `words` array.

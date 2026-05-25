@@ -35,4 +35,4 @@ spring:
 gemini:
   api-key: ${GEMINI_API_KEY}
   translation-model: gemini-3.1-pro-preview
-  word-meaning-model: gemini-3.1-flash-lite-preview
+  word-meaning-model: gemini-3.1-flash-lite
