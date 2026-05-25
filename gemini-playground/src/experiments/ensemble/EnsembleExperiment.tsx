@@ -61,14 +61,14 @@ const STRATEGIES: { value: Strategy; label: string; description: string }[] = [
 ];
 
 const GEMINI_MODELS = [
-  "gemini-3.1-flash-lite-preview",
+  "gemini-3.1-flash-lite",
   "gemini-2.5-flash-lite",
   "gemini-2.5-flash",
   "gemini-2.0-flash",
 ];
 
 const MODEL_PRICING: Record<string, { input: number; output: number }> = {
-  "gemini-3.1-flash-lite-preview": { input: 0.25, output: 1.5 },
+  "gemini-3.1-flash-lite": { input: 0.25, output: 1.5 },
   "gemini-2.5-flash-lite": { input: 0.1, output: 0.4 },
   "gemini-2.5-flash": { input: 0.3, output: 2.5 },
   "gemini-2.0-flash": { input: 0.1, output: 0.4 },
@@ -584,7 +584,7 @@ export default function EnsembleExperiment() {
   const [strategy, setStrategy] = useState<Strategy>(() => (localStorage.getItem(SK_STRATEGY) as Strategy) ?? "no-fragment");
   const [fallback, setFallback] = useState(() => localStorage.getItem(SK_FALLBACK) ?? "kuromoji");
   const [apiKey, setApiKey] = useState(() => localStorage.getItem(SK_API) ?? "");
-  const [model, setModel] = useState(() => localStorage.getItem(SK_MODEL) ?? "gemini-3.1-flash-lite-preview");
+  const [model, setModel] = useState(() => localStorage.getItem(SK_MODEL) ?? "gemini-3.1-flash-lite");
   const [prompt, setPrompt] = useState(() => localStorage.getItem(SK_PROMPT) ?? DEFAULT_PROMPT);
 
   const [morphResults, setMorphResults] = useState<CompareResponse | null>(null);
