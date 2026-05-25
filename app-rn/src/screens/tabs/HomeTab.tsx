@@ -30,7 +30,7 @@ import { getErrorMessage } from '../../utils/errorMessages';
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 const PAGE_SIZE = 9; // 3x3 per page
-const MAX_PAGES = 2;
+const MAX_PAGES = 3;
 
 export default function HomeTab() {
   const navigation = useNavigation<Nav>();
