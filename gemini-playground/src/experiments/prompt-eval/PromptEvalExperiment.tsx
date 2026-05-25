@@ -10,6 +10,7 @@ import type {
   AdditionItem,
   TranslationInput,
   WordMeaningInput,
+  WordMeaningWithTranslationInput,
 } from "./types";
 import {
   GEMINI_MODELS,
@@ -56,6 +57,33 @@ const wordMeaningInputFiles = import.meta.glob<TestData>(
   "./word-meaning/input/*.json",
   { eager: true, import: "default" }
 );
+const wmwtPromptFiles = import.meta.glob<string>(
+  "./word-meaning-with-translation/prompt/*.txt",
+  { eager: true, query: "?raw", import: "default" }
+);
+const wmwtGuidelinesFiles = import.meta.glob<string>(
+  "./word-meaning-with-translation/guidelines/*.txt",
+  { eager: true, query: "?raw", import: "default" }
+);
+const wmwtAdditionsFiles = import.meta.glob<string>(
+  "./word-meaning-with-translation/additions/*.txt",
+  { eager: true, query: "?raw", import: "default" }
+);
+const wmwtInputFiles = import.meta.glob<TestData>(
+  "./word-meaning-with-translation/input/*.json",
+  { eager: true, import: "default" }
+);
+
+function modeToDir(mode: EvalMode): string {
+  switch (mode) {
+    case "translation":
+      return "translation";
+    case "wordMeaning":
+      return "word-meaning";
+    case "wordMeaningWithTranslation":
+      return "word-meaning-with-translation";
+  }
+}
 
 // --- Helpers ---
 
@@ -105,7 +133,7 @@ async function saveFile(filePath: string, content: string): Promise<void> {
 }
 
 async function saveResultToServer(
-  mode: string,
+  mode: EvalMode,
   filename: string,
   data: EvalRun
 ): Promise<string> {
@@ -113,7 +141,7 @@ async function saveResultToServer(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      mode: mode === "translation" ? "translation" : "word-meaning",
+      mode: modeToDir(mode),
       filename,
       data,
     }),
@@ -298,6 +326,21 @@ function TestCaseDialog({
         }
         setAnalyzing(false);
       }
+    } else if (mode === "wordMeaningWithTranslation") {
+      // Strict: each line must already have `words` AND `sentenceKo`. We do
+      // not auto-fetch either — sentenceKo requires running the translation
+      // LLM, which is out of scope for this dialog.
+      const bad = parsed.find((line) => {
+        const l = line as { words?: unknown; sentenceKo?: unknown };
+        return !Array.isArray(l.words) || typeof l.sentenceKo !== "string";
+      });
+      if (bad) {
+        setError(
+          "각 라인은 미리 빌드된 { index, text, sentenceKo, words[] } 형식이어야 합니다."
+        );
+        return;
+      }
+      finalInput = parsed as TestCase["input"];
     } else {
       finalInput = parsed;
     }
@@ -328,6 +371,11 @@ function TestCaseDialog({
             {mode === "wordMeaning" && (
               <span className="pe-file-info" style={{ marginLeft: 8 }}>
                 — words 없으면 저장 시 자동 분석, 있으면 입력 그대로 저장
+              </span>
+            )}
+            {mode === "wordMeaningWithTranslation" && (
+              <span className="pe-file-info" style={{ marginLeft: 8 }}>
+                — 미리 빌드된 {`{ index, text, sentenceKo, words[] }`} 형식 필요
               </span>
             )}
           </label>
@@ -410,7 +458,7 @@ function ModePanel({
   mode: EvalMode;
   apiKey: string;
 }) {
-  const dir = mode === "translation" ? "translation" : "word-meaning";
+  const dir = modeToDir(mode);
   const defaultExecModel =
     mode === "translation"
       ? "gemini-3.1-pro-preview"
@@ -419,7 +467,12 @@ function ModePanel({
 
   // --- Test cases (per-mode) ---
   const initialTestCases = useMemo(() => {
-    const files = mode === "translation" ? translationInputFiles : wordMeaningInputFiles;
+    const files =
+      mode === "translation"
+        ? translationInputFiles
+        : mode === "wordMeaning"
+          ? wordMeaningInputFiles
+          : wmwtInputFiles;
     return Object.values(files).flatMap((d) => d.testCases);
   }, [mode]);
 
@@ -468,7 +521,11 @@ function ModePanel({
   const initialPrompt = useMemo(
     () =>
       getFirstFileContent(
-        mode === "translation" ? translationPromptFiles : wordMeaningPromptFiles
+        mode === "translation"
+          ? translationPromptFiles
+          : mode === "wordMeaning"
+            ? wordMeaningPromptFiles
+            : wmwtPromptFiles
       ),
     [mode]
   );
@@ -477,7 +534,9 @@ function ModePanel({
       getFirstFileContent(
         mode === "translation"
           ? translationGuidelinesFiles
-          : wordMeaningGuidelinesFiles
+          : mode === "wordMeaning"
+            ? wordMeaningGuidelinesFiles
+            : wmwtGuidelinesFiles
       ),
     [mode]
   );
@@ -487,7 +546,9 @@ function ModePanel({
       getFirstFileContent(
         mode === "translation"
           ? translationAdditionsFiles
-          : wordMeaningAdditionsFiles
+          : mode === "wordMeaning"
+            ? wordMeaningAdditionsFiles
+            : wmwtAdditionsFiles
       ),
     [mode]
   );
@@ -532,6 +593,10 @@ function ModePanel({
     mode === "translation"
       ? TRANSLATION_RESPONSE_SCHEMA
       : WORD_MEANING_RESPONSE_SCHEMA;
+  // Chunked execution path is only meaningful for plain word-meaning. The
+  // with-translation mode keeps text + sentenceKo per line and is small
+  // enough at 5 TCs to ignore chunking.
+  const supportsChunking = mode === "wordMeaning";
 
   // --- Run state (independent per panel) ---
   const [results, setResults] = useState<TestCaseResult[]>([]);
@@ -638,6 +703,19 @@ function ModePanel({
         }));
         return JSON.stringify(stripped);
       }
+      if (mode === "wordMeaningWithTranslation") {
+        // Keep sentenceJa (= text) + sentenceKo as context hints; words
+        // narrowed to baseForm-only.
+        const stripped = (tc.input as WordMeaningWithTranslationInput[]).map(
+          (line) => ({
+            index: line.index,
+            sentenceJa: line.text,
+            sentenceKo: line.sentenceKo,
+            words: line.words.map(({ baseForm }) => ({ baseForm })),
+          })
+        );
+        return JSON.stringify(stripped);
+      }
       // Word meaning: send only the minimum fields the LLM needs (index +
       // baseForm). `text`, `surface`, and `pos` are upstream metadata that
       // were observed to mislead the LLM (English token hallucinations,
@@ -671,7 +749,7 @@ function ModePanel({
     setProgress(`Executing... 0/${totalTests}`);
     let executionDone = 0;
 
-    const useChunking = mode === "wordMeaning" && chunkSize > 0;
+    const useChunking = supportsChunking && chunkSize > 0;
 
     const executionResults = await Promise.all(
       testCases.map(async (tc) => {
@@ -753,6 +831,16 @@ function ModePanel({
             index: line.index,
             words: line.words.map(({ baseForm }) => ({ baseForm })),
           }));
+          originalInputForGrader = JSON.stringify(view, null, 2);
+        } else if (mode === "wordMeaningWithTranslation") {
+          const view = (tc.input as WordMeaningWithTranslationInput[]).map(
+            (line) => ({
+              index: line.index,
+              sentenceJa: line.text,
+              sentenceKo: line.sentenceKo,
+              words: line.words.map(({ baseForm }) => ({ baseForm })),
+            })
+          );
           originalInputForGrader = JSON.stringify(view, null, 2);
         } else {
           originalInputForGrader = JSON.stringify(tc.input, null, 2);
@@ -1135,7 +1223,7 @@ function ModePanel({
             ))}
           </select>
         </div>
-        {mode === "wordMeaning" && (
+        {supportsChunking && (
           <>
             <div className="pe-config-field">
               <label>Chunk Size (0=off)</label>
@@ -1534,14 +1622,28 @@ export default function PromptEvalExperiment() {
         >
           Word Meaning
         </button>
+        <button
+          className={`pe-subtab${activeSubTab === "wordMeaningWithTranslation" ? " active" : ""}`}
+          onClick={() => setActiveSubTab("wordMeaningWithTranslation")}
+        >
+          Word Meaning + Translation
+        </button>
       </div>
 
-      {/* Both panels always mounted, visibility toggled via CSS */}
+      {/* Panels always mounted, visibility toggled via CSS */}
       <div style={{ display: activeSubTab === "translation" ? "block" : "none" }}>
         <ModePanel mode="translation" apiKey={apiKey} />
       </div>
       <div style={{ display: activeSubTab === "wordMeaning" ? "block" : "none" }}>
         <ModePanel mode="wordMeaning" apiKey={apiKey} />
+      </div>
+      <div
+        style={{
+          display:
+            activeSubTab === "wordMeaningWithTranslation" ? "block" : "none",
+        }}
+      >
+        <ModePanel mode="wordMeaningWithTranslation" apiKey={apiKey} />
       </div>
     </div>
   );

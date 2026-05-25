@@ -1,0 +1,2233 @@
+{
+  "experiment": "word-meaning + Korean sentence translation context",
+  "model": "gemini-3.1-flash-lite",
+  "latencyMs": 13563,
+  "systemPrompt": "You are a Japanese-to-Korean vocabulary translator for flashcards.\n\n## Input/Output\nInput: a JSON array of lyric lines. Each is `{\"index\": N, \"sentenceJa\": \"...\", \"sentenceKo\": \"...\", \"words\": [{\"baseForm\": \"...\"}]}`.\n- `sentenceJa` is the original Japanese lyric line, and `sentenceKo` is its Korean translation. These are CONTEXT HINTS to help disambiguate which dictionary sense of each `baseForm` is intended in this line. They are NOT for word-by-word alignment.\nOutput: the same array, with each word as `{\"baseForm\": \"...\", \"koreanText\": \"...\"}`. JSON only — do NOT include sentenceJa/sentenceKo in the output.\n\n## Rules\n1. Output every word in the input, in the same order. Output `words` count per line MUST equal input `words` count per line. NEVER skip, merge, split, or add entries.\n2. Copy `baseForm` verbatim from the input. Add `koreanText` only.\n3. `koreanText` = canonical Korean dictionary meaning of `baseForm`.\n   - This output is for vocabulary flashcards. Translate the WORD in isolation as a dictionary entry — NOT its sentence-specific surface form.\n   - When `baseForm` is polysemous, use `sentenceJa`/`sentenceKo` to pick the sense that fits this line. Then write the canonical dictionary form of THAT sense.\n   - For onomatopoeia (e.g. ザザザ, ズキズキ): use the natural Korean equivalent (e.g. 쏴아아아, 찌릿찌릿).\n   - For katakana loanwords: use standard Korean transcription (e.g. ロンリー → 론리).\n\nReturn ONLY the JSON array. No other text.",
+  "input": [
+    {
+      "index": 0,
+      "sentenceJa": "ねぇ　安心しておくれ",
+      "sentenceKo": "저기, 안심해 줘",
+      "words": [
+        {
+          "baseForm": "ねぇ"
+        },
+        {
+          "baseForm": "安心"
+        },
+        {
+          "baseForm": "する"
+        },
+        {
+          "baseForm": "て"
+        },
+        {
+          "baseForm": "おくれる"
+        }
+      ]
+    },
+    {
+      "index": 1,
+      "sentenceJa": "分かる　貴方は賢く強くて美しい",
+      "sentenceKo": "알아, 당신은 현명하고 강하고 아름다워",
+      "words": [
+        {
+          "baseForm": "分かる"
+        },
+        {
+          "baseForm": "貴方"
+        },
+        {
+          "baseForm": "は"
+        },
+        {
+          "baseForm": "賢い"
+        },
+        {
+          "baseForm": "強い"
+        },
+        {
+          "baseForm": "て"
+        },
+        {
+          "baseForm": "美しい"
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "sentenceJa": "他意はねぇ",
+      "sentenceKo": "딴 뜻은 없어",
+      "words": [
+        {
+          "baseForm": "他意"
+        },
+        {
+          "baseForm": "は"
+        },
+        {
+          "baseForm": "ねぇ"
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "sentenceJa": "\"運が良かっただけじゃない？笑\"",
+      "sentenceKo": "\"운이 좋았을 뿐 아냐? (웃음)\"",
+      "words": [
+        {
+          "baseForm": "運"
+        },
+        {
+          "baseForm": "が"
+        },
+        {
+          "baseForm": "良い"
+        },
+        {
+          "baseForm": "た"
+        },
+        {
+          "baseForm": "だけ"
+        },
+        {
+          "baseForm": "だ"
+        },
+        {
+          "baseForm": "ない"
+        },
+        {
+          "baseForm": "笑"
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "sentenceJa": "なんて思っちゃいけないね",
+      "sentenceKo": "같은 생각은 하면 안 되겠지",
+      "words": [
+        {
+          "baseForm": "なんて"
+        },
+        {
+          "baseForm": "思う"
+        },
+        {
+          "baseForm": "ちゃ"
+        },
+        {
+          "baseForm": "いける"
+        },
+        {
+          "baseForm": "ない"
+        },
+        {
+          "baseForm": "ね"
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "sentenceJa": "メ　メ　メ",
+      "sentenceKo": "떽 떽 떽",
+      "words": [
+        {
+          "baseForm": "メ"
+        },
+        {
+          "baseForm": "メ"
+        },
+        {
+          "baseForm": "メ"
+        }
+      ]
+    },
+    {
+      "index": 6,
+      "sentenceJa": "迷　侘び寂び",
+      "sentenceKo": "미(迷), 와비사비",
+      "words": [
+        {
+          "baseForm": "迷"
+        },
+        {
+          "baseForm": "侘び寂び"
+        }
+      ]
+    },
+    {
+      "index": 7,
+      "sentenceJa": "果実は捨て Tap",
+      "sentenceKo": "과실은 버려 Tap",
+      "words": [
+        {
+          "baseForm": "果実"
+        },
+        {
+          "baseForm": "は"
+        },
+        {
+          "baseForm": "捨てる"
+        }
+      ]
+    },
+    {
+      "index": 8,
+      "sentenceJa": "錆びた威",
+      "sentenceKo": "녹슨 위엄",
+      "words": [
+        {
+          "baseForm": "錆びる"
+        },
+        {
+          "baseForm": "た"
+        },
+        {
+          "baseForm": "威"
+        }
+      ]
+    },
+    {
+      "index": 9,
+      "sentenceJa": "微かにラッタッタ",
+      "sentenceKo": "희미하게 랏탓타",
+      "words": [
+        {
+          "baseForm": "微か"
+        },
+        {
+          "baseForm": "だ"
+        },
+        {
+          "baseForm": "ラッタッタ"
+        }
+      ]
+    },
+    {
+      "index": 10,
+      "sentenceJa": "侘び寂び",
+      "sentenceKo": "와비사비",
+      "words": [
+        {
+          "baseForm": "侘び寂び"
+        }
+      ]
+    },
+    {
+      "index": 11,
+      "sentenceJa": "無実を祟った",
+      "sentenceKo": "결백을 저주했어",
+      "words": [
+        {
+          "baseForm": "無実"
+        },
+        {
+          "baseForm": "を"
+        },
+        {
+          "baseForm": "祟る"
+        },
+        {
+          "baseForm": "た"
+        }
+      ]
+    },
+    {
+      "index": 12,
+      "sentenceJa": "恥　恥",
+      "sentenceKo": "수치, 수치",
+      "words": [
+        {
+          "baseForm": "恥"
+        },
+        {
+          "baseForm": "恥"
+        }
+      ]
+    },
+    {
+      "index": 13,
+      "sentenceJa": "足音は鳴らさないデ！",
+      "sentenceKo": "발소리는 내지 말아 줘!",
+      "words": [
+        {
+          "baseForm": "足音"
+        },
+        {
+          "baseForm": "は"
+        },
+        {
+          "baseForm": "鳴らす"
+        },
+        {
+          "baseForm": "ない"
+        },
+        {
+          "baseForm": "デ"
+        }
+      ]
+    },
+    {
+      "index": 14,
+      "sentenceJa": "貴方がいなきゃ僕は勇ましい",
+      "sentenceKo": "당신이 없어야 나는 용감해져",
+      "words": [
+        {
+          "baseForm": "貴方"
+        },
+        {
+          "baseForm": "が"
+        },
+        {
+          "baseForm": "いる"
+        },
+        {
+          "baseForm": "ない"
+        },
+        {
+          "baseForm": "僕"
+        },
+        {
+          "baseForm": "は"
+        },
+        {
+          "baseForm": "勇ましい"
+        }
+      ]
+    },
+    {
+      "index": 15,
+      "sentenceJa": "足跡だけ残してくネ！",
+      "sentenceKo": "발자국만 남기고 갈게!",
+      "words": [
+        {
+          "baseForm": "足跡"
+        },
+        {
+          "baseForm": "だけ"
+        },
+        {
+          "baseForm": "残す"
+        },
+        {
+          "baseForm": "てく"
+        },
+        {
+          "baseForm": "ネ"
+        }
+      ]
+    },
+    {
+      "index": 16,
+      "sentenceJa": "貴方には言えないが大嫌いだ　ヤハハ",
+      "sentenceKo": "당신에겐 말 못 하지만 정말 싫어 야하하",
+      "words": [
+        {
+          "baseForm": "貴方"
+        },
+        {
+          "baseForm": "に"
+        },
+        {
+          "baseForm": "は"
+        },
+        {
+          "baseForm": "言える"
+        },
+        {
+          "baseForm": "ない"
+        },
+        {
+          "baseForm": "が"
+        },
+        {
+          "baseForm": "大嫌い"
+        },
+        {
+          "baseForm": "だ"
+        },
+        {
+          "baseForm": "*"
+        }
+      ]
+    },
+    {
+      "index": 17,
+      "sentenceJa": "おい シシシ　黙ってちゃん（はッ）",
+      "sentenceKo": "어이 시시시 다맛테쨩 (핫)",
+      "words": [
+        {
+          "baseForm": "おい"
+        },
+        {
+          "baseForm": "シシ"
+        },
+        {
+          "baseForm": "シ"
+        },
+        {
+          "baseForm": "黙る"
+        },
+        {
+          "baseForm": "て"
+        },
+        {
+          "baseForm": "ちゃん"
+        },
+        {
+          "baseForm": "は"
+        },
+        {
+          "baseForm": "ッ"
+        }
+      ]
+    },
+    {
+      "index": 18,
+      "sentenceJa": "あらやだやだ　いまどきサイレンス",
+      "sentenceKo": "어머 싫다 싫어, 요새는 사일런스",
+      "words": [
+        {
+          "baseForm": "あら"
+        },
+        {
+          "baseForm": "や"
+        },
+        {
+          "baseForm": "だ"
+        },
+        {
+          "baseForm": "や"
+        },
+        {
+          "baseForm": "だ"
+        },
+        {
+          "baseForm": "いまどき"
+        },
+        {
+          "baseForm": "サイレンス"
+        }
+      ]
+    },
+    {
+      "index": 19,
+      "sentenceJa": "シシシ　黙ってちゃん（はッ）",
+      "sentenceKo": "시시시 다맛테쨩 (핫)",
+      "words": [
+        {
+          "baseForm": "シシ"
+        },
+        {
+          "baseForm": "シ"
+        },
+        {
+          "baseForm": "黙る"
+        },
+        {
+          "baseForm": "て"
+        },
+        {
+          "baseForm": "ちゃん"
+        },
+        {
+          "baseForm": "は"
+        },
+        {
+          "baseForm": "ッ"
+        }
+      ]
+    },
+    {
+      "index": 20,
+      "sentenceJa": "傷付きたくないないNight Night",
+      "sentenceKo": "상처받고 싶지 않아 않아 Night Night",
+      "words": [
+        {
+          "baseForm": "傷付く"
+        },
+        {
+          "baseForm": "たい"
+        },
+        {
+          "baseForm": "ない"
+        },
+        {
+          "baseForm": "ない"
+        }
+      ]
+    },
+    {
+      "index": 21,
+      "sentenceJa": "ねぇ　安心しておくれ",
+      "sentenceKo": "저기, 안심해 줘",
+      "words": [
+        {
+          "baseForm": "ねぇ"
+        },
+        {
+          "baseForm": "安心"
+        },
+        {
+          "baseForm": "する"
+        },
+        {
+          "baseForm": "て"
+        },
+        {
+          "baseForm": "おくれる"
+        }
+      ]
+    },
+    {
+      "index": 22,
+      "sentenceJa": "分かる　貴方は儚く弱くて美しい",
+      "sentenceKo": "알아, 당신은 덧없고 약해서 아름다워",
+      "words": [
+        {
+          "baseForm": "分かる"
+        },
+        {
+          "baseForm": "貴方"
+        },
+        {
+          "baseForm": "は"
+        },
+        {
+          "baseForm": "儚い"
+        },
+        {
+          "baseForm": "弱い"
+        },
+        {
+          "baseForm": "て"
+        },
+        {
+          "baseForm": "美しい"
+        }
+      ]
+    },
+    {
+      "index": 23,
+      "sentenceJa": "流石お嬢さん！流石お嬢さん！",
+      "sentenceKo": "역시 아가씨! 역시 아가씨!",
+      "words": [
+        {
+          "baseForm": "流石"
+        },
+        {
+          "baseForm": "お嬢さん"
+        },
+        {
+          "baseForm": "流石"
+        },
+        {
+          "baseForm": "お嬢さん"
+        }
+      ]
+    },
+    {
+      "index": 24,
+      "sentenceJa": "僕の冴えない人生とは違いますなお嬢さん！",
+      "sentenceKo": "제 볼품없는 인생과는 다르시군요 아가씨!",
+      "words": [
+        {
+          "baseForm": "僕"
+        },
+        {
+          "baseForm": "の"
+        },
+        {
+          "baseForm": "冴える"
+        },
+        {
+          "baseForm": "ない"
+        },
+        {
+          "baseForm": "人生"
+        },
+        {
+          "baseForm": "と"
+        },
+        {
+          "baseForm": "は"
+        },
+        {
+          "baseForm": "違う"
+        },
+        {
+          "baseForm": "ます"
+        },
+        {
+          "baseForm": "なお"
+        },
+        {
+          "baseForm": "嬢"
+        },
+        {
+          "baseForm": "さん"
+        }
+      ]
+    },
+    {
+      "index": 25,
+      "sentenceJa": "明日もいっしょにあそぼ",
+      "sentenceKo": "내일도 같이 놀자",
+      "words": [
+        {
+          "baseForm": "明日"
+        },
+        {
+          "baseForm": "も"
+        },
+        {
+          "baseForm": "いっしょ"
+        },
+        {
+          "baseForm": "に"
+        },
+        {
+          "baseForm": "あそぶ"
+        }
+      ]
+    },
+    {
+      "index": 26,
+      "sentenceJa": "訂　闇Love it",
+      "sentenceKo": "정(訂), 어둠 Love it",
+      "words": [
+        {
+          "baseForm": "訂"
+        },
+        {
+          "baseForm": "闇"
+        }
+      ]
+    },
+    {
+      "index": 27,
+      "sentenceJa": "罵詈はしまった Tap",
+      "sentenceKo": "욕설은 넣어뒀어 Tap",
+      "words": [
+        {
+          "baseForm": "罵詈"
+        },
+        {
+          "baseForm": "は"
+        },
+        {
+          "baseForm": "しまう"
+        },
+        {
+          "baseForm": "た"
+        }
+      ]
+    },
+    {
+      "index": 28,
+      "sentenceJa": "錆びた威",
+      "sentenceKo": "녹슨 위엄",
+      "words": [
+        {
+          "baseForm": "錆びる"
+        },
+        {
+          "baseForm": "た"
+        },
+        {
+          "baseForm": "威"
+        }
+      ]
+    },
+    {
+      "index": 29,
+      "sentenceJa": "微かにラッタッタ",
+      "sentenceKo": "희미하게 랏탓타",
+      "words": [
+        {
+          "baseForm": "微か"
+        },
+        {
+          "baseForm": "だ"
+        },
+        {
+          "baseForm": "ラッタッタ"
+        }
+      ]
+    },
+    {
+      "index": 30,
+      "sentenceJa": "侘び寂び",
+      "sentenceKo": "와비사비",
+      "words": [
+        {
+          "baseForm": "侘び寂び"
+        }
+      ]
+    },
+    {
+      "index": 31,
+      "sentenceJa": "刻が止まった Tap",
+      "sentenceKo": "시간이 멈췄어 Tap",
+      "words": [
+        {
+          "baseForm": "刻"
+        },
+        {
+          "baseForm": "が"
+        },
+        {
+          "baseForm": "止まる"
+        },
+        {
+          "baseForm": "た"
+        }
+      ]
+    },
+    {
+      "index": 32,
+      "sentenceJa": "恥　恥",
+      "sentenceKo": "수치, 수치",
+      "words": [
+        {
+          "baseForm": "恥"
+        },
+        {
+          "baseForm": "恥"
+        }
+      ]
+    },
+    {
+      "index": 33,
+      "sentenceJa": "ラララ　ララ　ララララララ",
+      "sentenceKo": "라라라 라라 라라라라라라",
+      "words": [
+        {
+          "baseForm": "ラララ"
+        },
+        {
+          "baseForm": "ララ"
+        },
+        {
+          "baseForm": "ララララララ"
+        }
+      ]
+    },
+    {
+      "index": 34,
+      "sentenceJa": "此の空の下　僕ら愛おしい",
+      "sentenceKo": "이 하늘 아래 우리들은 사랑스러워",
+      "words": [
+        {
+          "baseForm": "此の"
+        },
+        {
+          "baseForm": "空"
+        },
+        {
+          "baseForm": "の"
+        },
+        {
+          "baseForm": "下"
+        },
+        {
+          "baseForm": "僕ら"
+        },
+        {
+          "baseForm": "愛おしい"
+        }
+      ]
+    },
+    {
+      "index": 35,
+      "sentenceJa": "ラララ　ララ　ララララララ",
+      "sentenceKo": "라라라 라라 라라라라라라",
+      "words": [
+        {
+          "baseForm": "ラララ"
+        },
+        {
+          "baseForm": "ララ"
+        },
+        {
+          "baseForm": "ララララララ"
+        }
+      ]
+    },
+    {
+      "index": 36,
+      "sentenceJa": "この星はほら　なんて愛おしい",
+      "sentenceKo": "이 별은 봐, 얼마나 사랑스러운지",
+      "words": [
+        {
+          "baseForm": "この"
+        },
+        {
+          "baseForm": "星"
+        },
+        {
+          "baseForm": "は"
+        },
+        {
+          "baseForm": "ほら"
+        },
+        {
+          "baseForm": "なんて"
+        },
+        {
+          "baseForm": "愛おしい"
+        }
+      ]
+    },
+    {
+      "index": 37,
+      "sentenceJa": "お前がいなけりゃなぁ",
+      "sentenceKo": "너만 없었다면 말이야",
+      "words": [
+        {
+          "baseForm": "お前"
+        },
+        {
+          "baseForm": "が"
+        },
+        {
+          "baseForm": "いる"
+        },
+        {
+          "baseForm": "ない"
+        },
+        {
+          "baseForm": "なぁ"
+        }
+      ]
+    },
+    {
+      "index": 38,
+      "sentenceJa": "足音は鳴らさないデ！",
+      "sentenceKo": "발소리는 내지 말아 줘!",
+      "words": [
+        {
+          "baseForm": "足音"
+        },
+        {
+          "baseForm": "は"
+        },
+        {
+          "baseForm": "鳴らす"
+        },
+        {
+          "baseForm": "ない"
+        },
+        {
+          "baseForm": "デ"
+        }
+      ]
+    },
+    {
+      "index": 39,
+      "sentenceJa": "貴方がいなきゃ僕は勇ましい",
+      "sentenceKo": "당신이 없어야 나는 용감해져",
+      "words": [
+        {
+          "baseForm": "貴方"
+        },
+        {
+          "baseForm": "が"
+        },
+        {
+          "baseForm": "いる"
+        },
+        {
+          "baseForm": "ない"
+        },
+        {
+          "baseForm": "僕"
+        },
+        {
+          "baseForm": "は"
+        },
+        {
+          "baseForm": "勇ましい"
+        }
+      ]
+    },
+    {
+      "index": 40,
+      "sentenceJa": "足跡だけ残してくネ！",
+      "sentenceKo": "발자국만 남기고 갈게!",
+      "words": [
+        {
+          "baseForm": "足跡"
+        },
+        {
+          "baseForm": "だけ"
+        },
+        {
+          "baseForm": "残す"
+        },
+        {
+          "baseForm": "てく"
+        },
+        {
+          "baseForm": "ネ"
+        }
+      ]
+    },
+    {
+      "index": 41,
+      "sentenceJa": "貴方には言えないが大嫌いだ　ヤハハ",
+      "sentenceKo": "당신에겐 말 못 하지만 정말 싫어 야하하",
+      "words": [
+        {
+          "baseForm": "貴方"
+        },
+        {
+          "baseForm": "に"
+        },
+        {
+          "baseForm": "は"
+        },
+        {
+          "baseForm": "言える"
+        },
+        {
+          "baseForm": "ない"
+        },
+        {
+          "baseForm": "が"
+        },
+        {
+          "baseForm": "大嫌い"
+        },
+        {
+          "baseForm": "だ"
+        },
+        {
+          "baseForm": "*"
+        }
+      ]
+    },
+    {
+      "index": 42,
+      "sentenceJa": "鮮やかな色の街で",
+      "sentenceKo": "선명한 빛깔의 거리에서",
+      "words": [
+        {
+          "baseForm": "鮮やか"
+        },
+        {
+          "baseForm": "だ"
+        },
+        {
+          "baseForm": "色"
+        },
+        {
+          "baseForm": "の"
+        },
+        {
+          "baseForm": "街"
+        },
+        {
+          "baseForm": "だ"
+        }
+      ]
+    },
+    {
+      "index": 43,
+      "sentenceJa": "貴方（ひと）に怯える僕らだまってちゃん",
+      "sentenceKo": "당신(사람)에게 겁먹은 우리들은 다맛테쨩",
+      "words": [
+        {
+          "baseForm": "貴方"
+        },
+        {
+          "baseForm": "ひと"
+        },
+        {
+          "baseForm": "に"
+        },
+        {
+          "baseForm": "怯える"
+        },
+        {
+          "baseForm": "僕ら"
+        },
+        {
+          "baseForm": "だまる"
+        },
+        {
+          "baseForm": "て"
+        },
+        {
+          "baseForm": "ちゃん"
+        }
+      ]
+    },
+    {
+      "index": 44,
+      "sentenceJa": "足跡だけ残してくネ！",
+      "sentenceKo": "발자국만 남기고 갈게!",
+      "words": [
+        {
+          "baseForm": "足跡"
+        },
+        {
+          "baseForm": "だけ"
+        },
+        {
+          "baseForm": "残す"
+        },
+        {
+          "baseForm": "てく"
+        },
+        {
+          "baseForm": "ネ"
+        }
+      ]
+    },
+    {
+      "index": 45,
+      "sentenceJa": "こんな夜でも愛は狂わしい　ヤハハ",
+      "sentenceKo": "이런 밤에도 사랑은 미칠 듯해 야하하",
+      "words": [
+        {
+          "baseForm": "こんな"
+        },
+        {
+          "baseForm": "夜"
+        },
+        {
+          "baseForm": "でも"
+        },
+        {
+          "baseForm": "愛"
+        },
+        {
+          "baseForm": "は"
+        },
+        {
+          "baseForm": "狂わしい"
+        },
+        {
+          "baseForm": "*"
+        }
+      ]
+    },
+    {
+      "index": 46,
+      "sentenceJa": "貴方に怯える僕はだまってちゃん",
+      "sentenceKo": "당신에게 겁먹은 나는 다맛테쨩",
+      "words": [
+        {
+          "baseForm": "貴方"
+        },
+        {
+          "baseForm": "に"
+        },
+        {
+          "baseForm": "怯える"
+        },
+        {
+          "baseForm": "僕"
+        },
+        {
+          "baseForm": "は"
+        },
+        {
+          "baseForm": "だまる"
+        },
+        {
+          "baseForm": "て"
+        },
+        {
+          "baseForm": "ちゃん"
+        }
+      ]
+    }
+  ],
+  "output": [
+    {
+      "index": 0,
+      "words": [
+        {
+          "baseForm": "ねぇ",
+          "koreanText": "저기"
+        },
+        {
+          "baseForm": "安心",
+          "koreanText": "안심"
+        },
+        {
+          "baseForm": "する",
+          "koreanText": "하다"
+        },
+        {
+          "baseForm": "て",
+          "koreanText": "해"
+        },
+        {
+          "baseForm": "おくれる",
+          "koreanText": "주다"
+        }
+      ]
+    },
+    {
+      "index": 1,
+      "words": [
+        {
+          "baseForm": "分かる",
+          "koreanText": "알다"
+        },
+        {
+          "baseForm": "貴方",
+          "koreanText": "당신"
+        },
+        {
+          "baseForm": "は",
+          "koreanText": "은"
+        },
+        {
+          "baseForm": "賢い",
+          "koreanText": "현명하다"
+        },
+        {
+          "baseForm": "強い",
+          "koreanText": "강하다"
+        },
+        {
+          "baseForm": "て",
+          "koreanText": "고"
+        },
+        {
+          "baseForm": "美しい",
+          "koreanText": "아름답다"
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "words": [
+        {
+          "baseForm": "他意",
+          "koreanText": "다른 뜻"
+        },
+        {
+          "baseForm": "は",
+          "koreanText": "은"
+        },
+        {
+          "baseForm": "ねぇ",
+          "koreanText": "없다"
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "words": [
+        {
+          "baseForm": "運",
+          "koreanText": "운"
+        },
+        {
+          "baseForm": "が",
+          "koreanText": "이"
+        },
+        {
+          "baseForm": "良い",
+          "koreanText": "좋다"
+        },
+        {
+          "baseForm": "た",
+          "koreanText": "었"
+        },
+        {
+          "baseForm": "だけ",
+          "koreanText": "뿐"
+        },
+        {
+          "baseForm": "だ",
+          "koreanText": "이다"
+        },
+        {
+          "baseForm": "ない",
+          "koreanText": "아니다"
+        },
+        {
+          "baseForm": "笑",
+          "koreanText": "웃음"
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "words": [
+        {
+          "baseForm": "なんて",
+          "koreanText": "같은"
+        },
+        {
+          "baseForm": "思う",
+          "koreanText": "생각하다"
+        },
+        {
+          "baseForm": "ちゃ",
+          "koreanText": "해서는"
+        },
+        {
+          "baseForm": "いける",
+          "koreanText": "되다"
+        },
+        {
+          "baseForm": "ない",
+          "koreanText": "않다"
+        },
+        {
+          "baseForm": "ね",
+          "koreanText": "지"
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "words": [
+        {
+          "baseForm": "メ",
+          "koreanText": "떽"
+        },
+        {
+          "baseForm": "メ",
+          "koreanText": "떽"
+        },
+        {
+          "baseForm": "メ",
+          "koreanText": "떽"
+        }
+      ]
+    },
+    {
+      "index": 6,
+      "words": [
+        {
+          "baseForm": "迷",
+          "koreanText": "미혹"
+        },
+        {
+          "baseForm": "侘び寂び",
+          "koreanText": "와비사비"
+        }
+      ]
+    },
+    {
+      "index": 7,
+      "words": [
+        {
+          "baseForm": "果実",
+          "koreanText": "과실"
+        },
+        {
+          "baseForm": "は",
+          "koreanText": "은"
+        },
+        {
+          "baseForm": "捨てる",
+          "koreanText": "버리다"
+        }
+      ]
+    },
+    {
+      "index": 8,
+      "words": [
+        {
+          "baseForm": "錆びる",
+          "koreanText": "녹슬다"
+        },
+        {
+          "baseForm": "た",
+          "koreanText": "은"
+        },
+        {
+          "baseForm": "威",
+          "koreanText": "위엄"
+        }
+      ]
+    },
+    {
+      "index": 9,
+      "words": [
+        {
+          "baseForm": "微か",
+          "koreanText": "희미함"
+        },
+        {
+          "baseForm": "だ",
+          "koreanText": "이다"
+        },
+        {
+          "baseForm": "ラッタッタ",
+          "koreanText": "랏탓타"
+        }
+      ]
+    },
+    {
+      "index": 10,
+      "words": [
+        {
+          "baseForm": "侘び寂び",
+          "koreanText": "와비사비"
+        }
+      ]
+    },
+    {
+      "index": 11,
+      "words": [
+        {
+          "baseForm": "無実",
+          "koreanText": "결백"
+        },
+        {
+          "baseForm": "を",
+          "koreanText": "을"
+        },
+        {
+          "baseForm": "祟る",
+          "koreanText": "저주하다"
+        },
+        {
+          "baseForm": "た",
+          "koreanText": "했"
+        }
+      ]
+    },
+    {
+      "index": 12,
+      "words": [
+        {
+          "baseForm": "恥",
+          "koreanText": "수치"
+        },
+        {
+          "baseForm": "恥",
+          "koreanText": "수치"
+        }
+      ]
+    },
+    {
+      "index": 13,
+      "words": [
+        {
+          "baseForm": "足音",
+          "koreanText": "발소리"
+        },
+        {
+          "baseForm": "は",
+          "koreanText": "은"
+        },
+        {
+          "baseForm": "鳴らす",
+          "koreanText": "내다"
+        },
+        {
+          "baseForm": "ない",
+          "koreanText": "말다"
+        },
+        {
+          "baseForm": "デ",
+          "koreanText": "해"
+        }
+      ]
+    },
+    {
+      "index": 14,
+      "words": [
+        {
+          "baseForm": "貴方",
+          "koreanText": "당신"
+        },
+        {
+          "baseForm": "が",
+          "koreanText": "이"
+        },
+        {
+          "baseForm": "いる",
+          "koreanText": "있다"
+        },
+        {
+          "baseForm": "ない",
+          "koreanText": "없다"
+        },
+        {
+          "baseForm": "僕",
+          "koreanText": "나"
+        },
+        {
+          "baseForm": "は",
+          "koreanText": "은"
+        },
+        {
+          "baseForm": "勇ましい",
+          "koreanText": "용감하다"
+        }
+      ]
+    },
+    {
+      "index": 15,
+      "words": [
+        {
+          "baseForm": "足跡",
+          "koreanText": "발자국"
+        },
+        {
+          "baseForm": "だけ",
+          "koreanText": "만"
+        },
+        {
+          "baseForm": "残す",
+          "koreanText": "남기다"
+        },
+        {
+          "baseForm": "てく",
+          "koreanText": "가다"
+        },
+        {
+          "baseForm": "ネ",
+          "koreanText": "게"
+        }
+      ]
+    },
+    {
+      "index": 16,
+      "words": [
+        {
+          "baseForm": "貴方",
+          "koreanText": "당신"
+        },
+        {
+          "baseForm": "に",
+          "koreanText": "에게"
+        },
+        {
+          "baseForm": "は",
+          "koreanText": "는"
+        },
+        {
+          "baseForm": "言える",
+          "koreanText": "말할 수 있다"
+        },
+        {
+          "baseForm": "ない",
+          "koreanText": "없다"
+        },
+        {
+          "baseForm": "が",
+          "koreanText": "지만"
+        },
+        {
+          "baseForm": "大嫌い",
+          "koreanText": "정말 싫음"
+        },
+        {
+          "baseForm": "だ",
+          "koreanText": "이다"
+        },
+        {
+          "baseForm": "*",
+          "koreanText": "야하하"
+        }
+      ]
+    },
+    {
+      "index": 17,
+      "words": [
+        {
+          "baseForm": "おい",
+          "koreanText": "어이"
+        },
+        {
+          "baseForm": "シシ",
+          "koreanText": "시시"
+        },
+        {
+          "baseForm": "シ",
+          "koreanText": "시"
+        },
+        {
+          "baseForm": "黙る",
+          "koreanText": "입 다물다"
+        },
+        {
+          "baseForm": "て",
+          "koreanText": "어"
+        },
+        {
+          "baseForm": "ちゃん",
+          "koreanText": "쨩"
+        },
+        {
+          "baseForm": "は",
+          "koreanText": "하"
+        },
+        {
+          "baseForm": "ッ",
+          "koreanText": "핫"
+        }
+      ]
+    },
+    {
+      "index": 18,
+      "words": [
+        {
+          "baseForm": "あら",
+          "koreanText": "어머"
+        },
+        {
+          "baseForm": "や",
+          "koreanText": "아"
+        },
+        {
+          "baseForm": "だ",
+          "koreanText": "이다"
+        },
+        {
+          "baseForm": "や",
+          "koreanText": "아"
+        },
+        {
+          "baseForm": "だ",
+          "koreanText": "이다"
+        },
+        {
+          "baseForm": "いまどき",
+          "koreanText": "요즘"
+        },
+        {
+          "baseForm": "サイレンス",
+          "koreanText": "사일런스"
+        }
+      ]
+    },
+    {
+      "index": 19,
+      "words": [
+        {
+          "baseForm": "シシ",
+          "koreanText": "시시"
+        },
+        {
+          "baseForm": "シ",
+          "koreanText": "시"
+        },
+        {
+          "baseForm": "黙る",
+          "koreanText": "입 다물다"
+        },
+        {
+          "baseForm": "て",
+          "koreanText": "어"
+        },
+        {
+          "baseForm": "ちゃん",
+          "koreanText": "쨩"
+        },
+        {
+          "baseForm": "は",
+          "koreanText": "하"
+        },
+        {
+          "baseForm": "ッ",
+          "koreanText": "핫"
+        }
+      ]
+    },
+    {
+      "index": 20,
+      "words": [
+        {
+          "baseForm": "傷付く",
+          "koreanText": "상처받다"
+        },
+        {
+          "baseForm": "たい",
+          "koreanText": "싶다"
+        },
+        {
+          "baseForm": "ない",
+          "koreanText": "않다"
+        },
+        {
+          "baseForm": "ない",
+          "koreanText": "않다"
+        }
+      ]
+    },
+    {
+      "index": 21,
+      "words": [
+        {
+          "baseForm": "ねぇ",
+          "koreanText": "저기"
+        },
+        {
+          "baseForm": "安心",
+          "koreanText": "안심"
+        },
+        {
+          "baseForm": "する",
+          "koreanText": "하다"
+        },
+        {
+          "baseForm": "て",
+          "koreanText": "해"
+        },
+        {
+          "baseForm": "おくれる",
+          "koreanText": "주다"
+        }
+      ]
+    },
+    {
+      "index": 22,
+      "words": [
+        {
+          "baseForm": "分かる",
+          "koreanText": "알다"
+        },
+        {
+          "baseForm": "貴方",
+          "koreanText": "당신"
+        },
+        {
+          "baseForm": "は",
+          "koreanText": "은"
+        },
+        {
+          "baseForm": "儚い",
+          "koreanText": "덧없다"
+        },
+        {
+          "baseForm": "弱い",
+          "koreanText": "약하다"
+        },
+        {
+          "baseForm": "て",
+          "koreanText": "서"
+        },
+        {
+          "baseForm": "美しい",
+          "koreanText": "아름답다"
+        }
+      ]
+    },
+    {
+      "index": 23,
+      "words": [
+        {
+          "baseForm": "流石",
+          "koreanText": "역시"
+        },
+        {
+          "baseForm": "お嬢さん",
+          "koreanText": "아가씨"
+        },
+        {
+          "baseForm": "流石",
+          "koreanText": "역시"
+        },
+        {
+          "baseForm": "お嬢さん",
+          "koreanText": "아가씨"
+        }
+      ]
+    },
+    {
+      "index": 24,
+      "words": [
+        {
+          "baseForm": "僕",
+          "koreanText": "나"
+        },
+        {
+          "baseForm": "の",
+          "koreanText": "의"
+        },
+        {
+          "baseForm": "冴える",
+          "koreanText": "맑다"
+        },
+        {
+          "baseForm": "ない",
+          "koreanText": "않다"
+        },
+        {
+          "baseForm": "人生",
+          "koreanText": "인생"
+        },
+        {
+          "baseForm": "と",
+          "koreanText": "와"
+        },
+        {
+          "baseForm": "は",
+          "koreanText": "는"
+        },
+        {
+          "baseForm": "違う",
+          "koreanText": "다르다"
+        },
+        {
+          "baseForm": "ます",
+          "koreanText": "입니다"
+        },
+        {
+          "baseForm": "なお",
+          "koreanText": "더욱"
+        },
+        {
+          "baseForm": "嬢",
+          "koreanText": "아가씨"
+        },
+        {
+          "baseForm": "さん",
+          "koreanText": "님"
+        }
+      ]
+    },
+    {
+      "index": 25,
+      "words": [
+        {
+          "baseForm": "明日",
+          "koreanText": "내일"
+        },
+        {
+          "baseForm": "も",
+          "koreanText": "도"
+        },
+        {
+          "baseForm": "いっしょ",
+          "koreanText": "함께"
+        },
+        {
+          "baseForm": "に",
+          "koreanText": "에"
+        },
+        {
+          "baseForm": "あそぶ",
+          "koreanText": "놀다"
+        }
+      ]
+    },
+    {
+      "index": 26,
+      "words": [
+        {
+          "baseForm": "訂",
+          "koreanText": "정정"
+        },
+        {
+          "baseForm": "闇",
+          "koreanText": "어둠"
+        }
+      ]
+    },
+    {
+      "index": 27,
+      "words": [
+        {
+          "baseForm": "罵詈",
+          "koreanText": "욕설"
+        },
+        {
+          "baseForm": "は",
+          "koreanText": "은"
+        },
+        {
+          "baseForm": "しまう",
+          "koreanText": "넣어두다"
+        },
+        {
+          "baseForm": "た",
+          "koreanText": "었"
+        }
+      ]
+    },
+    {
+      "index": 28,
+      "words": [
+        {
+          "baseForm": "錆びる",
+          "koreanText": "녹슬다"
+        },
+        {
+          "baseForm": "た",
+          "koreanText": "은"
+        },
+        {
+          "baseForm": "威",
+          "koreanText": "위엄"
+        }
+      ]
+    },
+    {
+      "index": 29,
+      "words": [
+        {
+          "baseForm": "微か",
+          "koreanText": "희미함"
+        },
+        {
+          "baseForm": "だ",
+          "koreanText": "이다"
+        },
+        {
+          "baseForm": "ラッタッタ",
+          "koreanText": "랏탓타"
+        }
+      ]
+    },
+    {
+      "index": 30,
+      "words": [
+        {
+          "baseForm": "侘び寂び",
+          "koreanText": "와비사비"
+        }
+      ]
+    },
+    {
+      "index": 31,
+      "words": [
+        {
+          "baseForm": "刻",
+          "koreanText": "시간"
+        },
+        {
+          "baseForm": "が",
+          "koreanText": "이"
+        },
+        {
+          "baseForm": "止まる",
+          "koreanText": "멈추다"
+        },
+        {
+          "baseForm": "た",
+          "koreanText": "었"
+        }
+      ]
+    },
+    {
+      "index": 32,
+      "words": [
+        {
+          "baseForm": "恥",
+          "koreanText": "수치"
+        },
+        {
+          "baseForm": "恥",
+          "koreanText": "수치"
+        }
+      ]
+    },
+    {
+      "index": 33,
+      "words": [
+        {
+          "baseForm": "ラララ",
+          "koreanText": "라라라"
+        },
+        {
+          "baseForm": "ララ",
+          "koreanText": "라라"
+        },
+        {
+          "baseForm": "ララララララ",
+          "koreanText": "라라라라라라"
+        }
+      ]
+    },
+    {
+      "index": 34,
+      "words": [
+        {
+          "baseForm": "此の",
+          "koreanText": "이"
+        },
+        {
+          "baseForm": "空",
+          "koreanText": "하늘"
+        },
+        {
+          "baseForm": "の",
+          "koreanText": "의"
+        },
+        {
+          "baseForm": "下",
+          "koreanText": "아래"
+        },
+        {
+          "baseForm": "僕ら",
+          "koreanText": "우리들"
+        },
+        {
+          "baseForm": "愛おしい",
+          "koreanText": "사랑스럽다"
+        }
+      ]
+    },
+    {
+      "index": 35,
+      "words": [
+        {
+          "baseForm": "ラララ",
+          "koreanText": "라라라"
+        },
+        {
+          "baseForm": "ララ",
+          "koreanText": "라라"
+        },
+        {
+          "baseForm": "ララララララ",
+          "koreanText": "라라라라라라"
+        }
+      ]
+    },
+    {
+      "index": 36,
+      "words": [
+        {
+          "baseForm": "この",
+          "koreanText": "이"
+        },
+        {
+          "baseForm": "星",
+          "koreanText": "별"
+        },
+        {
+          "baseForm": "は",
+          "koreanText": "은"
+        },
+        {
+          "baseForm": "ほら",
+          "koreanText": "봐"
+        },
+        {
+          "baseForm": "なんて",
+          "koreanText": "얼마나"
+        },
+        {
+          "baseForm": "愛おしい",
+          "koreanText": "사랑스러운지"
+        }
+      ]
+    },
+    {
+      "index": 37,
+      "words": [
+        {
+          "baseForm": "お前",
+          "koreanText": "너"
+        },
+        {
+          "baseForm": "が",
+          "koreanText": "가"
+        },
+        {
+          "baseForm": "いる",
+          "koreanText": "있다"
+        },
+        {
+          "baseForm": "ない",
+          "koreanText": "없다"
+        },
+        {
+          "baseForm": "なぁ",
+          "koreanText": "말이야"
+        }
+      ]
+    },
+    {
+      "index": 38,
+      "words": [
+        {
+          "baseForm": "足音",
+          "koreanText": "발소리"
+        },
+        {
+          "baseForm": "は",
+          "koreanText": "은"
+        },
+        {
+          "baseForm": "鳴らす",
+          "koreanText": "내다"
+        },
+        {
+          "baseForm": "ない",
+          "koreanText": "말다"
+        },
+        {
+          "baseForm": "デ",
+          "koreanText": "해"
+        }
+      ]
+    },
+    {
+      "index": 39,
+      "words": [
+        {
+          "baseForm": "貴方",
+          "koreanText": "당신"
+        },
+        {
+          "baseForm": "が",
+          "koreanText": "이"
+        },
+        {
+          "baseForm": "いる",
+          "koreanText": "있다"
+        },
+        {
+          "baseForm": "ない",
+          "koreanText": "없다"
+        },
+        {
+          "baseForm": "僕",
+          "koreanText": "나"
+        },
+        {
+          "baseForm": "は",
+          "koreanText": "은"
+        },
+        {
+          "baseForm": "勇ましい",
+          "koreanText": "용감하다"
+        }
+      ]
+    },
+    {
+      "index": 40,
+      "words": [
+        {
+          "baseForm": "足跡",
+          "koreanText": "발자국"
+        },
+        {
+          "baseForm": "だけ",
+          "koreanText": "만"
+        },
+        {
+          "baseForm": "残す",
+          "koreanText": "남기다"
+        },
+        {
+          "baseForm": "てく",
+          "koreanText": "가다"
+        },
+        {
+          "baseForm": "ネ",
+          "koreanText": "게"
+        }
+      ]
+    },
+    {
+      "index": 41,
+      "words": [
+        {
+          "baseForm": "貴方",
+          "koreanText": "당신"
+        },
+        {
+          "baseForm": "に",
+          "koreanText": "에게"
+        },
+        {
+          "baseForm": "は",
+          "koreanText": "는"
+        },
+        {
+          "baseForm": "言える",
+          "koreanText": "말할 수 있다"
+        },
+        {
+          "baseForm": "ない",
+          "koreanText": "없다"
+        },
+        {
+          "baseForm": "が",
+          "koreanText": "지만"
+        },
+        {
+          "baseForm": "大嫌い",
+          "koreanText": "정말 싫음"
+        },
+        {
+          "baseForm": "だ",
+          "koreanText": "이다"
+        },
+        {
+          "baseForm": "*",
+          "koreanText": "야하하"
+        }
+      ]
+    },
+    {
+      "index": 42,
+      "words": [
+        {
+          "baseForm": "鮮やか",
+          "koreanText": "선명함"
+        },
+        {
+          "baseForm": "だ",
+          "koreanText": "이다"
+        },
+        {
+          "baseForm": "色",
+          "koreanText": "색"
+        },
+        {
+          "baseForm": "の",
+          "koreanText": "의"
+        },
+        {
+          "baseForm": "街",
+          "koreanText": "거리"
+        },
+        {
+          "baseForm": "だ",
+          "koreanText": "이다"
+        }
+      ]
+    },
+    {
+      "index": 43,
+      "words": [
+        {
+          "baseForm": "貴方",
+          "koreanText": "당신"
+        },
+        {
+          "baseForm": "ひと",
+          "koreanText": "사람"
+        },
+        {
+          "baseForm": "に",
+          "koreanText": "에게"
+        },
+        {
+          "baseForm": "怯える",
+          "koreanText": "겁먹다"
+        },
+        {
+          "baseForm": "僕ら",
+          "koreanText": "우리들"
+        },
+        {
+          "baseForm": "だまる",
+          "koreanText": "입 다물다"
+        },
+        {
+          "baseForm": "て",
+          "koreanText": "어"
+        },
+        {
+          "baseForm": "ちゃん",
+          "koreanText": "쨩"
+        }
+      ]
+    },
+    {
+      "index": 44,
+      "words": [
+        {
+          "baseForm": "足跡",
+          "koreanText": "발자국"
+        },
+        {
+          "baseForm": "だけ",
+          "koreanText": "만"
+        },
+        {
+          "baseForm": "残す",
+          "koreanText": "남기다"
+        },
+        {
+          "baseForm": "てく",
+          "koreanText": "가다"
+        },
+        {
+          "baseForm": "ネ",
+          "koreanText": "게"
+        }
+      ]
+    },
+    {
+      "index": 45,
+      "words": [
+        {
+          "baseForm": "こんな",
+          "koreanText": "이런"
+        },
+        {
+          "baseForm": "夜",
+          "koreanText": "밤"
+        },
+        {
+          "baseForm": "でも",
+          "koreanText": "라도"
+        },
+        {
+          "baseForm": "愛",
+          "koreanText": "사랑"
+        },
+        {
+          "baseForm": "は",
+          "koreanText": "은"
+        },
+        {
+          "baseForm": "狂わしい",
+          "koreanText": "미칠 듯하다"
+        },
+        {
+          "baseForm": "*",
+          "koreanText": "야하하"
+        }
+      ]
+    },
+    {
+      "index": 46,
+      "words": [
+        {
+          "baseForm": "貴方",
+          "koreanText": "당신"
+        },
+        {
+          "baseForm": "に",
+          "koreanText": "에게"
+        },
+        {
+          "baseForm": "怯える",
+          "koreanText": "겁먹다"
+        },
+        {
+          "baseForm": "僕",
+          "koreanText": "나"
+        },
+        {
+          "baseForm": "は",
+          "koreanText": "는"
+        },
+        {
+          "baseForm": "だまる",
+          "koreanText": "입 다물다"
+        },
+        {
+          "baseForm": "て",
+          "koreanText": "어"
+        },
+        {
+          "baseForm": "ちゃん",
+          "koreanText": "쨩"
+        }
+      ]
+    }
+  ]
+}

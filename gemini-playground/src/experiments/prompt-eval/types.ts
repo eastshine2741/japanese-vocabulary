@@ -1,4 +1,7 @@
-export type EvalMode = "translation" | "wordMeaning";
+export type EvalMode =
+  | "translation"
+  | "wordMeaning"
+  | "wordMeaningWithTranslation";
 
 export interface TranslationInput {
   index: number;
@@ -18,9 +21,19 @@ export interface WordMeaningInput {
   words: WordMeaningWord[];
 }
 
+export interface WordMeaningWithTranslationInput {
+  index: number;
+  text: string;
+  sentenceKo: string;
+  words: WordMeaningWord[];
+}
+
 export interface TestCase {
   name: string;
-  input: TranslationInput[] | WordMeaningInput[];
+  input:
+    | TranslationInput[]
+    | WordMeaningInput[]
+    | WordMeaningWithTranslationInput[];
   criteria?: string | null;
 }
 

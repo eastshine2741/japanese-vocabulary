@@ -1,0 +1,22 @@
+## Scope
+
+The LLM was given input as `[{index, sentenceJa, sentenceKo, words: [{baseForm}]}]` and produces `[{index, words: [{baseForm, koreanText}]}]`. `sentenceJa`/`sentenceKo` are context hints for polysemy disambiguation, not word-by-word alignment targets. The original `surface` and `pos` were NOT shown to the LLM. Do NOT base deductions on them.
+
+This output is for **vocabulary flashcards**. Each word is translated as a canonical dictionary meaning. Because the LLM has access to the Korean sentence translation, polysemous baseForms SHOULD be resolved to the sense matching this line. Conjugation mood and idiom nuance remain OUT OF SCOPE (sentence-level translation handles those).
+
+## In scope — deduct for these
+
+1. **Output completeness**: For each input line, output `words` count MUST equal input `words` count. Deduct for skipped, merged, split, duplicated, or fabricated entries. NOTE: English/symbol/non-Japanese tokens that appear in `sentenceJa` but are NOT in the input `words` array are NOT the LLM's responsibility — judge completeness ONLY against the input `words` array.
+2. **Verbatim baseForm**: The LLM must not modify `baseForm`. Deduct if any output `baseForm` differs from the input.
+3. **koreanText correctness**: The translation must be a plausible canonical Korean dictionary meaning of the `baseForm`, in the sense that fits `sentenceKo`. Deduct for outright wrong meaning, e.g.:
+   - 成敗 → 성패 (wrong — 成敗 actually means "punishment", not "success/failure")
+   - 無実 → 무실 (wrong — actually means "innocence/no guilt")
+   - 負かせる → 이기다 (wrong — causative of 負ける = "make lose / defeat", not "win")
+4. **Polysemy: wrong sense given the Korean context**: When `sentenceKo` clearly indicates which sense applies, deduct if the LLM picks an unrelated sense. E.g. `おくれる` in `安心しておくれ`/"안심해 줘" should be "주다" (auxiliary "do for me"), NOT "늦다/지각하다".
+
+## Out of scope — do NOT deduct
+
+- **POS form mismatches of any kind.** A Korean adverb for a Japanese NOUN, a `-하다` adjective for a NOUN, a Korean noun for a PARTICLE — all acceptable. Judge only by whether the `koreanText` is a plausible canonical dictionary meaning of the `baseForm`.
+- **Conjugation mood loss.** The LLM was not shown surface; command/volitional/past forms etc. cannot be reflected.
+- **Idiom or set-phrase nuance not preserved.** By design.
+- **English / symbol / non-Japanese tokens in `sentenceJa`** that are not in the input `words` array.
