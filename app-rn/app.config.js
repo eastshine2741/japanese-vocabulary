@@ -25,7 +25,7 @@ const packageName = isProd
 
 export default {
   expo: {
-    name: `Kotonoha${label}`,
+    name: `코토노하${label}`,
     slug: 'app-rn',
     version: versionName,
     orientation: 'portrait',
