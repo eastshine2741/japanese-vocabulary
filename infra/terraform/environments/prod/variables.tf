@@ -7,7 +7,7 @@ variable "cloudflare_api_token" {
 variable "cloudflare_zone_name" {
   type        = string
   description = "Cloudflare zone (root domain) to manage"
-  default = "eastshine.dev"
+  default     = "eastshine.dev"
 }
 
 variable "hcloud_token" {
