@@ -96,7 +96,50 @@ Let's Encrypt를 유지하고 싶으면:
 
 ---
 
-## 7. 네트워크 격리 (W-private-net 작업)
+## 7. YouTube MV 검색 정확도 개선
+
+`LyricProcessingService.analyze` 안에서 `YoutubeClient.searchMvUrl(title, artist)`가 곡에 따라 공식 MV가 아닌 음원(`"<artist> - Topic"` 채널) 또는 무관 영상을 반환. 현재는 `q="$title $artist"&type=video&part=id&maxResults=1&videoCategoryId=10` 한 번이 전부 — 필터링/스코어링 없음.
+
+### 검증 끝난 알고리즘
+
+1. **캐시 우선 (`artist_channel_cache` 신규 테이블)**: `artist → (youtube_channel_id, uploads_playlist_id)` 매핑
+   - 캐시 hit 시 `playlistItems.list?playlistId=…&part=snippet&maxResults=50` (1 unit/페이지, 최대 4페이지) 페이지네이션 → `normalize(item.title) contains normalize(targetTitle)` 매칭 → 스코어 최고 선택
+2. **Fallback (캐시 miss 또는 playlist 매칭 실패)**: `search.list?q="$title $artist"&type=video&part=snippet&videoCategoryId=10&maxResults=15` (100 units)
+   - 필터: `channelTitle endsWith "- Topic"` 제외, `normalize(item.title) contains normalize(targetTitle)` 필수
+   - 스코어:
+     - +5: title에 `Music Video|Official Video|Official MV|MV`
+     - −10: title에 `弾いてみた|歌ってみた|cover|covered by|ピアノ|ギター|drum|アレンジ|off vocal|ニコカラ|字幕|한글자막|lyrics`
+3. **기회주의적 캐싱**: fallback에서 선택된 결과의 `channelTitle`이 artist 이름을 포함하면 `channels.list?id=…&part=contentDetails` (1 unit)로 uploads playlist 조회 후 캐시 write. 다음번 같은 아티스트 곡은 ~4 units로 처리
+
+### 검증 케이스 (정답률 ≈ 11/13, Data API 실제 호출 결과)
+
+- ✅ ヨルシカ/言って。, YOASOBI/夜に駆ける·群青·アイドル, 米津玄師/Lemon, Ado/うっせぇわ, 髭男dism/Pretender, 優里/ドライフラワー, DECO\*27/シンデレラ
+- ⚠️ Aimer/残響散歌, DISH//猫 — `THE FIRST TAKE`(라이브)에 밀림. 스코어링으로 보정 가능
+- ❌ 구조적 한계: Leo/need(プロセカ)/その音が鳴るなら 같은 **퍼블리셔 채널 업로드 곡**. iTunes `artistName`이 in-track credit인데 실제 MV는 퍼블리셔 채널(プロジェクトセカイ 등)에 있어 artist 이름 기반 매칭 불가. cover라도 음원/무관곡은 아닌 선에서 수용
+
+### 작업 분해
+
+- V20 마이그레이션: `artist_channel_cache(artist_name_lower PK, artist_name, channel_id, uploads_playlist_id, channel_title, created_at, updated_at)`
+- `ArtistChannelEntity` + `ArtistChannelRepository` (common 모듈)
+- 신규 DTO: `YoutubeChannelsResponse(contentDetails.relatedPlaylists.uploads)`, `YoutubePlaylistItemsResponse(items[].snippet.title, items[].snippet.resourceId.videoId, nextPageToken)`
+- `YoutubeClient.searchMvUrl` 재작성: 위 2단계 흐름 + 스코어링 + 캐싱
+- 호출부(`LyricProcessingService.analyze`)는 시그니처 동일 → 변경 없음
+
+### Quota 영향
+
+- 첫 곡: 기존과 동일 (100u)
+- 캐시된 아티스트 두 번째 곡부터: ~4u (25배 절감)
+- 퍼블리셔 채널 곡: 매번 100u + cover-priority (구조적 한계)
+
+### 관련 파일
+
+- `backend/api/src/main/kotlin/com/japanese/vocabulary/song/client/youtube/YoutubeClient.kt:70`
+- `backend/api/src/main/kotlin/com/japanese/vocabulary/song/service/LyricProcessingService.kt:64`
+- `backend/migration/src/main/resources/db/migration/` (V20 추가)
+
+---
+
+## 8. 네트워크 격리 (W-private-net 작업)
 
 별도 worktree(`feature/private-subnet`), **출시 후 24h 안정화 본 다음**:
 - worker 노드를 private subnet 이동
@@ -115,4 +158,5 @@ Let's Encrypt를 유지하고 싶으면:
 | GitOps (ArgoCD) | 출시 + 2~4주 |
 | W-observability | 출시 검토 기간 (월요일~) |
 | W-terraform | 출시 검토 기간 |
+| YouTube MV 검색 정확도 | 출시 + 2~4주 (UX 영향, quota 압박 시 앞당김) |
 | W-private-net | 출시 + 1주 (안정화 후) |
