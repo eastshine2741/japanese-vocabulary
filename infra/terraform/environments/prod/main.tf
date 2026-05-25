@@ -41,10 +41,10 @@ resource "hcloud_network_subnet" "main" {
 module "k3s_node_pool" {
   source = "../../modules/k3s-node-pool"
 
-  name_prefix = "ubuntu-4gb-hel1"
-  node_count = 3
-  server_type = "cx23"
-  image = "ubuntu-24.04"
-  location = "hel1"
+  name_prefix          = "ubuntu-4gb-hel1"
+  node_count           = 3
+  server_type          = "cx23"
+  image                = "ubuntu-24.04"
+  location             = "hel1"
   placement_group_name = "kotonoha-spread"
 }
