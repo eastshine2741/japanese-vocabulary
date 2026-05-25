@@ -37,3 +37,11 @@ resource "hcloud_network_subnet" "main" {
   network_zone = "eu-central"
   ip_range     = "10.0.0.0/24"
 }
+
+resource "hcloud_server" "node_1" {
+  name               = "ubuntu-4gb-hel1-1"
+  server_type        = "cx23"
+  image              = "ubuntu-24.04"
+  location           = "hel1"
+  placement_group_id = "1628345"
+}
