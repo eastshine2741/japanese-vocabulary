@@ -29,6 +29,7 @@ IGNORED_FILES=(
   "backend/local.properties"
   "app-rn/.env"
   "app-rn/release.keystore"
+  "infra/terraform/environments/prod/terraform.tfvars"
 )
 
 echo ""

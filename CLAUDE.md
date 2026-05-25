@@ -49,6 +49,13 @@ DEPLOY_NS=issue-21 npx expo run:android      # com.eastshine.kotonoha.issue21 �
 - secret은 `.env`에서 관리 (gitignored), `envsubst`로 템플릿에 주입
 - kubectl context가 `default`가 아니면 실행 거부
 
+### Infrastructure (Terraform)
+
+Prod 인프라(Hetzner + Cloudflare)는 `infra/terraform/` 에서 코드로 관리. 자세한 내용은 해당 디렉토리의 README 참고.
+
+- 관리 대상: hcloud network/subnet/server/placement_group, cloudflare DNS records
+- **예외**: CSI driver (PV volume), CCM (load balancer), Helm/cert-manager 등 cluster controller 가 동적으로 만드는 리소스는 Terraform 으로 import 하지 않음 — ownership 충돌 회피
+
 ### Environment Variables
 
 `.env` (gitignored, repo 루트). `deploy.sh` 가 `envsubst`로 secret 템플릿에 주입:
