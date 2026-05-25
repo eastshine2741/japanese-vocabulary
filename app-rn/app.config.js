@@ -36,10 +36,8 @@ export default {
     },
     android: {
       adaptiveIcon: {
-        backgroundColor: '#E6F4FE',
-        foregroundImage: './assets/android-icon-foreground.png',
-        backgroundImage: './assets/android-icon-background.png',
-        monochromeImage: './assets/android-icon-monochrome.png',
+        backgroundColor: '#52B788',
+        foregroundImage: './assets/adaptive-icon.png',
       },
       predictiveBackGestureEnabled: false,
       package: packageName,
