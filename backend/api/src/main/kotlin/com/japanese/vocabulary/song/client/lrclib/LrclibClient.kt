@@ -88,47 +88,80 @@ class LrclibClient : LyricProvider {
         val normalizedParts = query.artistParts.map { it.lowercase() }
 
         for (title in titles) {
+            // 1차: track_name + artist_name 으로 server-side 필터
+            //   영어권 동명이곡이 많은 제목(예: Lemon)에서 일본 아티스트가 top-N 응답에 안 잡히는 케이스 대응
+            for (artistPart in query.artistParts) {
+                logger.info(
+                    "Lyric search attempt | provider=LrcLib | strategy=keyword-search | mode=artist-scoped | track='{}' | artist='{}'",
+                    title, artistPart
+                )
+                val scoped = searchRequest { uri ->
+                    uri.path("/api/search")
+                        .queryParam("track_name", title)
+                        .queryParam("artist_name", artistPart)
+                } ?: continue
+                pickMatch(scoped, normalizedParts, query.durationSeconds, "artist-scoped")?.let { return it }
+            }
+
+            // 2차: q= 로 client-side 매칭
+            //   cross-script 아티스트명(예: あいみょん vs Aimyon) 처럼 server-side artist_name 매칭이 못 잡는 케이스 대응
             logger.info(
-                "Lyric search attempt | provider=LrcLib | strategy=keyword-search | query='{}' | artistFilter={} | durationFilter={}",
+                "Lyric search attempt | provider=LrcLib | strategy=keyword-search | mode=title-only | query='{}' | artistFilter={} | durationFilter={}",
                 title, normalizedParts, query.durationSeconds ?: "none"
             )
-            val results = try {
-                webClient.get()
-                    .uri { it.path("/api/search").queryParam("q", title).build() }
-                    .retrieve()
-                    .bodyToFlux(LrclibResponse::class.java)
-                    .collectList()
-                    .block() ?: continue
-            } catch (e: WebClientResponseException) {
-                continue
-            }
+            val results = searchRequest { it.path("/api/search").queryParam("q", title) } ?: continue
+            pickMatch(results, normalizedParts, query.durationSeconds, "title-only")?.let { return it }
+        }
 
-            // Tier 1: artist name match
-            for (response in results) {
-                val responseArtist = response.artistName.lowercase()
-                if (normalizedParts.any { responseArtist.contains(it) }) {
-                    toResult(response)?.let {
-                        logger.info(
-                            "Lyric search hit | provider=LrcLib | strategy=keyword-search | matchedBy=artist | responseArtist='{}' | lrclibId={} | synced={}",
-                            response.artistName, it.lrclibId, it.isSynced
-                        )
-                        return it
-                    }
+        return null
+    }
+
+    private fun searchRequest(
+        configure: (org.springframework.web.util.UriBuilder) -> org.springframework.web.util.UriBuilder,
+    ): List<LrclibResponse>? {
+        return try {
+            webClient.get()
+                .uri { configure(it).build() }
+                .retrieve()
+                .bodyToFlux(LrclibResponse::class.java)
+                .collectList()
+                .block()
+        } catch (e: WebClientResponseException) {
+            null
+        }
+    }
+
+    private fun pickMatch(
+        results: List<LrclibResponse>,
+        normalizedParts: List<String>,
+        durationSeconds: Int?,
+        mode: String,
+    ): LyricsResult? {
+        // Tier 1: artist name match
+        for (response in results) {
+            val responseArtist = response.artistName.lowercase()
+            if (normalizedParts.any { responseArtist.contains(it) }) {
+                toResult(response)?.let {
+                    logger.info(
+                        "Lyric search hit | provider=LrcLib | strategy=keyword-search | mode={} | matchedBy=artist | responseArtist='{}' | lrclibId={} | synced={}",
+                        mode, response.artistName, it.lrclibId, it.isSynced
+                    )
+                    return it
                 }
             }
+        }
 
-            // Tier 2: duration match (handles cross-script artist names like あいみょん vs Aimyon)
-            if (query.durationSeconds != null) {
-                for (response in results) {
-                    val responseDuration = response.duration
-                    if (responseDuration != null && abs(query.durationSeconds - responseDuration) <= 3) {
-                        toResult(response)?.let {
-                            logger.info(
-                                "Lyric search hit | provider=LrcLib | strategy=keyword-search | matchedBy=duration | responseDuration={} | lrclibId={} | synced={}",
-                                responseDuration, it.lrclibId, it.isSynced
-                            )
-                            return it
-                        }
+        // Tier 2: duration match (handles cross-script artist names like あいみょん vs Aimyon)
+        if (durationSeconds != null) {
+            for (response in results) {
+                val responseDuration = response.duration
+                if (responseDuration != null && abs(durationSeconds - responseDuration) <= 3) {
+                    toResult(response)?.let {
+                        logger.info(
+                            "Lyric search hit | provider=LrcLib | strategy=keyword-search | mode={} | matchedBy=duration | responseDuration={} | lrclibId={} | synced={}",
+                            mode, responseDuration, it.lrclibId, it.isSynced
+                        )
+                        return it
                     }
                 }
             }
