@@ -5,7 +5,7 @@ output "server_ids" {
 
 output "public_ipv4s" {
   value       = hcloud_server.node[*].ipv4_address
-  description = "Public IPV4 addresses of Hetzner servers"
+  description = "Public IPv4 addresses of Hetzner servers"
 }
 
 output "placement_group_id" {
