@@ -15,4 +15,8 @@ export const userApi = {
     const { data } = await client.patch<UserProfile>('/api/users/me', payload);
     return data;
   },
+
+  async deleteSelf(): Promise<void> {
+    await client.delete('/api/users/me');
+  },
 };

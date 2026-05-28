@@ -17,11 +17,13 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useShallow } from 'zustand/react/shallow';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { useSettingsStore } from '../stores/settingsStore';
+import { userApi } from '../api/userApi';
 import { tokenStorage } from '../utils/tokenStorage';
 import { resetAllStores } from '../utils/resetAllStores';
 import { Colors } from '../theme/theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import ServerURLDialog from '../components/ServerURLDialog';
+import DeleteAccountDialog from '../components/DeleteAccountDialog';
 import { AppBar } from '../components/AppBar';
 import { TOS_URL, PRIVACY_URL, buildReportMailto } from '../config/legal';
 import { isDevBuild } from '../utils/buildEnv';
@@ -48,6 +50,7 @@ export default function SettingsScreen() {
 
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showServerDialog, setShowServerDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [dailyGoalText, setDailyGoalText] = useState(String(dailyGoal));
 
   useEffect(() => { setDailyGoalText(String(dailyGoal)); }, [dailyGoal]);
@@ -100,6 +103,19 @@ export default function SettingsScreen() {
     navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'Login' }] }));
     requestAnimationFrame(() => resetAllStores());
   };
+
+  const handleDeleteAccount = useCallback(async () => {
+    await userApi.deleteSelf();
+    try {
+      await GoogleSignin.signOut();
+    } catch {
+      // ignore — local cleanup still proceeds even if Google session clear fails
+    }
+    await tokenStorage.clearToken();
+    setShowDeleteDialog(false);
+    navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'Login' }] }));
+    requestAnimationFrame(() => resetAllStores());
+  }, [navigation]);
 
   if (status === 'loading') {
     return (
@@ -241,10 +257,26 @@ export default function SettingsScreen() {
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.7}>
           <Text style={styles.logoutText}>로그아웃</Text>
         </TouchableOpacity>
+
+        <View style={styles.dangerSection}>
+          <TouchableOpacity
+            style={styles.dangerRow}
+            onPress={() => setShowDeleteDialog(true)}
+            activeOpacity={0.6}
+          >
+            <Ionicons name="trash-outline" size={20} color={Colors.accentRed} />
+            <Text style={styles.dangerLabel}>계정 삭제</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
       {isDevBuild && (
         <ServerURLDialog visible={showServerDialog} onClose={() => setShowServerDialog(false)} />
       )}
+      <DeleteAccountDialog
+        visible={showDeleteDialog}
+        onCancel={() => setShowDeleteDialog(false)}
+        onConfirm={handleDeleteAccount}
+      />
     </SafeAreaView>
   );
 }
@@ -320,4 +352,18 @@ const styles = StyleSheet.create({
 
   logoutButton: { alignItems: 'center', marginTop: 20, paddingVertical: 12 },
   logoutText: { fontSize: 14, color: Colors.textMuted },
+
+  dangerSection: {
+    marginTop: 12,
+    paddingTop: 16,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.border,
+  },
+  dangerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 14,
+  },
+  dangerLabel: { flex: 1, fontSize: 15, color: Colors.accentRed, fontWeight: '500' },
 });
