@@ -22,7 +22,7 @@ class UserEntity(
     @Column(name = "provider_sub", nullable = false, length = 255)
     var providerSub: String,
 
-    @Column(nullable = false, length = 100)
+    @Column(nullable = false, length = 63)
     var username: String,
 
     @Column(nullable = true, length = 255)
