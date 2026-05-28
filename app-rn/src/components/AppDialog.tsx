@@ -13,6 +13,7 @@ export interface DialogButton {
   label: string;
   onPress: () => void;
   variant?: 'primary' | 'secondary' | 'danger';
+  disabled?: boolean;
 }
 
 interface Props {
@@ -124,9 +125,10 @@ export default function AppDialog({ visible, title, body, children, buttons }: P
             {buttons.map((btn, i) => (
               <TouchableOpacity
                 key={i}
-                style={[styles.btn, btnStyle(btn.variant)]}
+                style={[styles.btn, btnStyle(btn.variant), btn.disabled && styles.btnDisabled]}
                 onPress={() => handlePress(btn.onPress)}
                 activeOpacity={0.7}
+                disabled={btn.disabled}
               >
                 <Text style={btnTextStyle(btn.variant)}>{btn.label}</Text>
               </TouchableOpacity>
@@ -179,4 +181,5 @@ const styles = StyleSheet.create({
   btnSecondaryText: { fontSize: 15, fontWeight: '600', color: Colors.textPrimary },
   btnDanger: { backgroundColor: Colors.accentRed },
   btnDangerText: { fontSize: 15, fontWeight: '600', color: '#FFFFFF' },
+  btnDisabled: { opacity: 0.4 },
 });

@@ -258,16 +258,13 @@ export default function SettingsScreen() {
           <Text style={styles.logoutText}>로그아웃</Text>
         </TouchableOpacity>
 
-        <View style={styles.dangerSection}>
-          <TouchableOpacity
-            style={styles.dangerRow}
-            onPress={() => setShowDeleteDialog(true)}
-            activeOpacity={0.6}
-          >
-            <Ionicons name="trash-outline" size={20} color={Colors.accentRed} />
-            <Text style={styles.dangerLabel}>계정 삭제</Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity
+          style={styles.deleteAccountButton}
+          onPress={() => setShowDeleteDialog(true)}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.deleteAccountText}>계정 삭제</Text>
+        </TouchableOpacity>
       </ScrollView>
       {isDevBuild && (
         <ServerURLDialog visible={showServerDialog} onClose={() => setShowServerDialog(false)} />
@@ -353,17 +350,6 @@ const styles = StyleSheet.create({
   logoutButton: { alignItems: 'center', marginTop: 20, paddingVertical: 12 },
   logoutText: { fontSize: 14, color: Colors.textMuted },
 
-  dangerSection: {
-    marginTop: 12,
-    paddingTop: 16,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: Colors.border,
-  },
-  dangerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 14,
-  },
-  dangerLabel: { flex: 1, fontSize: 15, color: Colors.accentRed, fontWeight: '500' },
+  deleteAccountButton: { alignItems: 'center', paddingVertical: 12 },
+  deleteAccountText: { fontSize: 14, color: Colors.accentRed },
 });

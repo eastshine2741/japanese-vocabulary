@@ -66,13 +66,15 @@ export default function DeleteAccountDialog({ visible, onCancel, onConfirm }: Pr
       buttons={[
         {
           label: '취소',
-          onPress: submitting ? () => {} : onCancel,
+          onPress: onCancel,
           variant: 'secondary',
+          disabled: submitting,
         },
         {
           label: submitting ? '삭제 중...' : '계정 삭제',
-          onPress: !submitting && phraseMatches ? handleConfirm : () => {},
+          onPress: handleConfirm,
           variant: 'danger',
+          disabled: submitting || !phraseMatches,
         },
       ]}
     >
