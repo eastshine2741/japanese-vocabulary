@@ -75,6 +75,7 @@ export default function DeleteAccountDialog({ visible, onCancel, onConfirm }: Pr
           onPress: handleConfirm,
           variant: 'danger',
           disabled: submitting || !phraseMatches,
+          noDismiss: true,
         },
       ]}
     >

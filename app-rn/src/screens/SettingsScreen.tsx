@@ -254,17 +254,19 @@ export default function SettingsScreen() {
           />
         </Section>
 
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.7}>
-          <Text style={styles.logoutText}>로그아웃</Text>
-        </TouchableOpacity>
+        <View style={styles.accountActions}>
+          <TouchableOpacity style={styles.accountActionButton} onPress={handleLogout} activeOpacity={0.7}>
+            <Text style={styles.logoutText}>로그아웃</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.deleteAccountButton}
-          onPress={() => setShowDeleteDialog(true)}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.deleteAccountText}>계정 삭제</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.accountActionButton}
+            onPress={() => setShowDeleteDialog(true)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.deleteAccountText}>계정 삭제</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
       {isDevBuild && (
         <ServerURLDialog visible={showServerDialog} onClose={() => setShowServerDialog(false)} />
@@ -347,9 +349,8 @@ const styles = StyleSheet.create({
   },
   menuLabel: { flex: 1, fontSize: 15, color: Colors.textPrimary },
 
-  logoutButton: { alignItems: 'center', marginTop: 20, paddingVertical: 12 },
+  accountActions: { marginTop: 8, marginBottom: 32 },
+  accountActionButton: { alignItems: 'center', paddingVertical: 10 },
   logoutText: { fontSize: 14, color: Colors.textMuted },
-
-  deleteAccountButton: { alignItems: 'center', paddingVertical: 12 },
   deleteAccountText: { fontSize: 14, color: Colors.accentRed },
 });

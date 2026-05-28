@@ -14,6 +14,12 @@ export interface DialogButton {
   onPress: () => void;
   variant?: 'primary' | 'secondary' | 'danger';
   disabled?: boolean;
+  /**
+   * If true, tapping this button fires onPress immediately without
+   * playing the dismiss animation. Use for submit/loading triggers
+   * that keep the dialog open while work runs.
+   */
+  noDismiss?: boolean;
 }
 
 interface Props {
@@ -126,7 +132,7 @@ export default function AppDialog({ visible, title, body, children, buttons }: P
               <TouchableOpacity
                 key={i}
                 style={[styles.btn, btnStyle(btn.variant), btn.disabled && styles.btnDisabled]}
-                onPress={() => handlePress(btn.onPress)}
+                onPress={btn.noDismiss ? btn.onPress : () => handlePress(btn.onPress)}
                 activeOpacity={0.7}
                 disabled={btn.disabled}
               >
