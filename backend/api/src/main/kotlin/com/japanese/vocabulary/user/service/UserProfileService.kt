@@ -7,6 +7,7 @@ import com.japanese.vocabulary.user.repository.UserRepository
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 
 @Service
 class UserProfileService(
@@ -14,17 +15,15 @@ class UserProfileService(
 ) {
     @Transactional(readOnly = true)
     fun getProfile(userId: Long): UserProfileResponse {
-        val user = userRepository.findById(userId).orElseThrow {
-            BusinessException(ErrorCode.INVALID_CREDENTIALS)
-        }
+        val user = userRepository.findByIdAndDeletedAtIsNull(userId)
+            ?: throw BusinessException(ErrorCode.INVALID_CREDENTIALS)
         return UserProfileResponse(username = user.username, name = user.name)
     }
 
     @Transactional
     fun updateProfile(userId: Long, rawName: String?, rawUsername: String?): UserProfileResponse {
-        val user = userRepository.findById(userId).orElseThrow {
-            BusinessException(ErrorCode.INVALID_CREDENTIALS)
-        }
+        val user = userRepository.findByIdAndDeletedAtIsNull(userId)
+            ?: throw BusinessException(ErrorCode.INVALID_CREDENTIALS)
 
         if (rawUsername != null) {
             val normalized = UsernamePolicy.normalize(rawUsername)
@@ -48,5 +47,25 @@ class UserProfileService(
             // username uniqueness race
             throw BusinessException(ErrorCode.USERNAME_TAKEN)
         }
+    }
+
+    /**
+     * Soft delete the user. Mutates provider_sub and username so the same Google
+     * identity can sign up again as a fresh account. Email and display name are
+     * cleared to minimize stored PII after deletion. Child rows (decks, words,
+     * flashcards, etc.) are intentionally left intact; they become unreachable
+     * because every read path resolves users via findByIdAndDeletedAtIsNull.
+     */
+    @Transactional
+    fun deleteSelf(userId: Long) {
+        val user = userRepository.findByIdAndDeletedAtIsNull(userId)
+            ?: throw BusinessException(ErrorCode.INVALID_CREDENTIALS)
+        val id = user.id ?: throw IllegalStateException("Persisted user is missing an id")
+        user.deletedAt = Instant.now()
+        user.providerSub = "deleted:$id:${user.providerSub}"
+        user.username = "deleted:$id:${user.username}"
+        user.email = null
+        user.name = null
+        userRepository.save(user)
     }
 }

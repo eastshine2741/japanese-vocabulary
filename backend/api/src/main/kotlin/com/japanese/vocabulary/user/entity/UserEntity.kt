@@ -20,9 +20,9 @@ class UserEntity(
     val provider: String,
 
     @Column(name = "provider_sub", nullable = false, length = 255)
-    val providerSub: String,
+    var providerSub: String,
 
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false, length = 100)
     var username: String,
 
     @Column(nullable = true, length = 255)
@@ -32,5 +32,8 @@ class UserEntity(
     var name: String? = null,
 
     @Column(name = "created_at")
-    val createdAt: Instant = Instant.now()
+    val createdAt: Instant = Instant.now(),
+
+    @Column(name = "deleted_at")
+    var deletedAt: Instant? = null,
 )
