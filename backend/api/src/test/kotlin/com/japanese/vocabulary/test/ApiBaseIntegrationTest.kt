@@ -1,5 +1,6 @@
 package com.japanese.vocabulary.test
 
+import com.japanese.vocabulary.auth.service.GoogleOidcService
 import com.japanese.vocabulary.song.client.itunes.ItunesClient
 import com.japanese.vocabulary.song.client.lrclib.LrclibClient
 import com.japanese.vocabulary.song.client.vocadb.VocadbClient
@@ -32,10 +33,13 @@ abstract class ApiBaseIntegrationTest : BaseIntegrationTest() {
     @MockkBean
     protected lateinit var itunesClient: ItunesClient
 
+    @MockkBean
+    protected lateinit var googleOidcService: GoogleOidcService
+
     @BeforeEach
     fun resetClientMocks() {
         clearMocks(
-            jishoClient, lrclibClient, vocadbClient, youtubeClient, itunesClient,
+            jishoClient, lrclibClient, vocadbClient, youtubeClient, itunesClient, googleOidcService,
             answers = true,
             recordedCalls = true,
         )

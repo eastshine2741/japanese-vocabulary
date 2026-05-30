@@ -1,5 +1,6 @@
 package com.japanese.vocabulary.test
 
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection
 import org.springframework.context.annotation.Bean
@@ -25,9 +26,11 @@ class TestcontainersConfig {
             .withReuse(true)
 
     @Bean
-    fun redisProperties(redis: GenericContainer<*>): DynamicPropertyRegistrar = DynamicPropertyRegistrar { registry ->
-        registry.add("spring.data.redis.host") { redis.host }
-        registry.add("spring.data.redis.port") { redis.getMappedPort(REDIS_PORT) }
+    fun redisProperties(
+        @Qualifier("redisContainer") redisContainer: GenericContainer<*>,
+    ): DynamicPropertyRegistrar = DynamicPropertyRegistrar { registry ->
+        registry.add("spring.data.redis.host") { redisContainer.host }
+        registry.add("spring.data.redis.port") { redisContainer.getMappedPort(REDIS_PORT) }
     }
 
     private companion object {
