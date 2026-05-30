@@ -7,8 +7,9 @@ import com.japanese.vocabulary.deck.repository.DeckRepository
 import com.japanese.vocabulary.flashcard.event.FlashcardDeletedEvent
 import com.japanese.vocabulary.song.repository.SongRepository
 import com.japanese.vocabulary.word.event.SongWordCreatedEvent
-import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Component
+import org.springframework.transaction.event.TransactionPhase
+import org.springframework.transaction.event.TransactionalEventListener
 
 @Component
 class DeckEventListener(
@@ -16,7 +17,7 @@ class DeckEventListener(
     private val deckFlashcardRepository: DeckFlashcardRepository,
     private val songRepository: SongRepository,
 ) {
-    @EventListener
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     fun onSongWordCreated(event: SongWordCreatedEvent) {
         val deck = deckRepository.findByUserIdAndSongId(event.userId, event.songId)
             ?: run {
@@ -40,7 +41,7 @@ class DeckEventListener(
         }
     }
 
-    @EventListener
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     fun onFlashcardDeleted(event: FlashcardDeletedEvent) {
         deckFlashcardRepository.deleteByFlashcardId(event.flashcardId)
     }

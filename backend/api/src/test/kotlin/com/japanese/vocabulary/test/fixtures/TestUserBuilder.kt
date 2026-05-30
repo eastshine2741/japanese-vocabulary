@@ -2,15 +2,13 @@ package com.japanese.vocabulary.test.fixtures
 
 import com.japanese.vocabulary.user.entity.UserEntity
 import jakarta.persistence.EntityManager
-import org.springframework.transaction.support.TransactionTemplate
+import java.util.concurrent.atomic.AtomicLong
 
-class TestUserBuilder(
-    private val em: EntityManager,
-    private val tx: TransactionTemplate,
-) {
+class TestUserBuilder(private val em: EntityManager) {
+    private val seq = SEQ.incrementAndGet()
     private var provider: String = "google"
-    private var providerSub: String = "sub-${System.nanoTime()}"
-    private var username: String = "user${System.nanoTime()}"
+    private var providerSub: String = "sub-$seq"
+    private var username: String = "user$seq"
     private var email: String? = null
     private var name: String? = null
 
@@ -20,16 +18,18 @@ class TestUserBuilder(
     fun withEmail(value: String?) = apply { email = value }
     fun withName(value: String?) = apply { name = value }
 
-    fun build(): UserEntity = tx.execute {
-        UserEntity(
-            provider = provider,
-            providerSub = providerSub,
-            username = username,
-            email = email,
-            name = name,
-        ).also {
-            em.persist(it)
-            em.flush()
-        }
-    }!!
+    fun build(): UserEntity = UserEntity(
+        provider = provider,
+        providerSub = providerSub,
+        username = username,
+        email = email,
+        name = name,
+    ).also {
+        em.persist(it)
+        em.flush()
+    }
+
+    companion object {
+        private val SEQ = AtomicLong(0)
+    }
 }

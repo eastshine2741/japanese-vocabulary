@@ -4,12 +4,8 @@ import com.japanese.vocabulary.user.entity.UserEntity
 import com.japanese.vocabulary.word.dto.WordMeaning
 import com.japanese.vocabulary.word.entity.WordEntity
 import jakarta.persistence.EntityManager
-import org.springframework.transaction.support.TransactionTemplate
 
-class TestWordBuilder(
-    private val em: EntityManager,
-    private val tx: TransactionTemplate,
-) {
+class TestWordBuilder(private val em: EntityManager) {
     private var user: UserEntity? = null
     private var japaneseText: String = "言葉"
     private var reading: String? = "ことば"
@@ -23,17 +19,15 @@ class TestWordBuilder(
     fun withMeanings(value: List<WordMeaning>) = apply { meanings = value }
 
     fun build(): WordEntity {
-        val owner = user ?: TestUserBuilder(em, tx).build()
-        return tx.execute {
-            WordEntity(
-                userId = owner.id!!,
-                japaneseText = japaneseText,
-                reading = reading,
-                meanings = meanings,
-            ).also {
-                em.persist(it)
-                em.flush()
-            }
-        }!!
+        val owner = user ?: TestUserBuilder(em).build()
+        return WordEntity(
+            userId = owner.id!!,
+            japaneseText = japaneseText,
+            reading = reading,
+            meanings = meanings,
+        ).also {
+            em.persist(it)
+            em.flush()
+        }
     }
 }
