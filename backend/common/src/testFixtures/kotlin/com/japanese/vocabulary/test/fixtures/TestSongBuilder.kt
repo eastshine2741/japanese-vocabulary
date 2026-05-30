@@ -2,10 +2,12 @@ package com.japanese.vocabulary.test.fixtures
 
 import com.japanese.vocabulary.song.entity.SongEntity
 import jakarta.persistence.EntityManager
+import java.util.concurrent.atomic.AtomicLong
 
 class TestSongBuilder(private val em: EntityManager) {
-    private var title: String = "テスト曲"
-    private var artist: String = "テストアーティスト"
+    private val seq = SEQ.incrementAndGet()
+    private var title: String = "テスト曲$seq"
+    private var artist: String = "テストアーティスト$seq"
     private var durationSeconds: Int? = 200
     private var youtubeUrl: String? = null
     private var artworkUrl: String? = null
@@ -25,5 +27,9 @@ class TestSongBuilder(private val em: EntityManager) {
     ).also {
         em.persist(it)
         em.flush()
+    }
+
+    companion object {
+        private val SEQ = AtomicLong(0)
     }
 }

@@ -4,10 +4,12 @@ import com.japanese.vocabulary.user.entity.UserEntity
 import com.japanese.vocabulary.word.dto.WordMeaning
 import com.japanese.vocabulary.word.entity.WordEntity
 import jakarta.persistence.EntityManager
+import java.util.concurrent.atomic.AtomicLong
 
 class TestWordBuilder(private val em: EntityManager) {
+    private val seq = SEQ.incrementAndGet()
     private var user: UserEntity? = null
-    private var japaneseText: String = "言葉"
+    private var japaneseText: String = "言葉$seq"
     private var reading: String? = "ことば"
     private var meanings: List<WordMeaning> = listOf(
         WordMeaning(text = "word", partOfSpeech = "noun"),
@@ -29,5 +31,9 @@ class TestWordBuilder(private val em: EntityManager) {
             em.persist(it)
             em.flush()
         }
+    }
+
+    companion object {
+        private val SEQ = AtomicLong(0)
     }
 }

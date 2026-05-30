@@ -13,9 +13,15 @@ class TestFlashcardBuilder(
 ) {
     private var user: UserEntity? = null
     private var word: WordEntity? = null
+    private var due: Instant? = null
+    private var state: Int = 0
+    private var lastReview: Instant? = null
 
     fun forUser(value: UserEntity) = apply { user = value }
     fun ofWord(value: WordEntity) = apply { word = value }
+    fun dueAt(value: Instant) = apply { due = value }
+    fun withState(value: Int) = apply { state = value }
+    fun lastReviewedAt(value: Instant?) = apply { lastReview = value }
 
     fun build(): FlashcardEntity {
         val owner = user ?: TestUserBuilder(em).build()
@@ -23,7 +29,9 @@ class TestFlashcardBuilder(
         return FlashcardEntity(
             wordId = targetWord.id!!,
             userId = owner.id!!,
-            due = Instant.now(clock),
+            due = due ?: Instant.now(clock),
+            state = state,
+            lastReview = lastReview,
         ).also {
             em.persist(it)
             em.flush()
