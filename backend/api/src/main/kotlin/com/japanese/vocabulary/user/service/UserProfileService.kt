@@ -4,7 +4,6 @@ import com.japanese.vocabulary.common.exception.BusinessException
 import com.japanese.vocabulary.common.exception.ErrorCode
 import com.japanese.vocabulary.user.dto.UserProfileResponse
 import com.japanese.vocabulary.user.repository.UserRepository
-import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
@@ -40,13 +39,8 @@ class UserProfileService(
             user.name = rawName.trim().takeIf { it.isNotEmpty() }
         }
 
-        return try {
-            val saved = userRepository.save(user)
-            UserProfileResponse(username = saved.username, name = saved.name)
-        } catch (e: DataIntegrityViolationException) {
-            // username uniqueness race
-            throw BusinessException(ErrorCode.USERNAME_TAKEN)
-        }
+        val saved = userRepository.save(user)
+        return UserProfileResponse(username = saved.username, name = saved.name)
     }
 
     /**
