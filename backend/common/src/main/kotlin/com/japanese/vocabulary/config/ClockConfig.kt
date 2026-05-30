@@ -13,7 +13,7 @@ import java.util.Optional
 class ClockConfig {
 
     @Bean
-    fun clock(): Clock = Clock.systemDefaultZone()
+    fun clock(): Clock = Clock.systemUTC()
 
     @Bean
     fun auditingDateTimeProvider(clock: Clock): DateTimeProvider =

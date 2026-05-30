@@ -7,6 +7,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.annotation.Import
+import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.event.RecordApplicationEvents
 import org.springframework.transaction.annotation.Transactional
@@ -24,8 +25,12 @@ abstract class BaseIntegrationTest {
     @Autowired
     protected lateinit var clock: MutableClock
 
+    @Autowired
+    protected lateinit var redisTemplate: StringRedisTemplate
+
     @BeforeEach
-    fun resetClock() {
+    fun resetSharedState() {
         clock.setTo(TestClockConfig.DEFAULT_FIXED_INSTANT)
+        redisTemplate.connectionFactory?.connection?.use { it.serverCommands().flushDb() }
     }
 }

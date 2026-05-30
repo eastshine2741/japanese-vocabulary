@@ -28,7 +28,8 @@ dependencies {
     testFixturesApi("com.github.docker-java:docker-java-transport-zerodep:3.7.1")
     testFixturesApi("io.mockk:mockk:1.13.10")
     testFixturesApi("com.ninja-squad:springmockk:4.0.2")
-    testFixturesRuntimeOnly("com.mysql:mysql-connector-j:8.3.0")
+    testFixturesApi("org.springframework.boot:spring-boot-starter-data-redis:3.4.3")
+    testFixturesRuntimeOnly("com.mysql:mysql-connector-j")
 }
 
 dependencyManagement {

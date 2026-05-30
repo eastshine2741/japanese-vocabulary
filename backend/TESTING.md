@@ -21,8 +21,16 @@
 
 ### DB는 Testcontainers MySQL을 공유한다
 - Native MySQL 쿼리(window 함수, JSON 컬럼)가 도메인에 있어 H2/in-memory 호환성 위험.
-- 모든 통합테스트가 **싱글턴 컨테이너 1개**를 공유. 각 테스트는 `@BeforeEach`에서 truncate.
+- 모든 통합테스트가 **싱글턴 컨테이너 1개**를 공유. 각 테스트는 `@Transactional` 롤백으로 격리.
 - `withReuse(true)`로 로컬 개발 시 첫 부팅(~10초) 이후 즉시 재사용.
+
+### Redis 도 Testcontainers 공유 컨테이너
+- `RecentSongService`, `SongSearchService` 등이 Redis 의존. CI 의 무 Redis 환경에서 컨텍스트 부팅 실패 방지.
+- `redis:7-alpine` 컨테이너 1개를 모든 테스트가 공유. 각 테스트 `@BeforeEach` 에서 `flushDb()` 로 키 초기화.
+
+### Spring Event 는 AFTER_COMMIT, 테스트는 발행만 검증한다
+- 프로덕션 리스너 (`DeckEventListener`, `StudyStatsEventListener`) 는 `@TransactionalEventListener(phase = AFTER_COMMIT)` 사용 — 메인 트랜잭션이 실패해도 리스너 실패가 원래 트랜잭션을 롤백시키지 않는다.
+- 통합 테스트는 `@Transactional` 롤백 안에서 돌므로 AFTER_COMMIT 리스너는 발화되지 않는다. **리스너 본문 동작은 단위 테스트로 검증**하고, 통합 테스트는 `@RecordApplicationEvents` 의 `ApplicationEvents` 로 **이벤트 발행 자체만 검증** 한다.
 
 ---
 
@@ -45,60 +53,71 @@
 
 ### TestcontainersConfig + BaseIntegrationTest
 
-`@ServiceConnection`(Spring Boot 3.1+)으로 컨테이너 wiring을 자동화하고, 모든 외부 클라이언트는 **부모에서 일괄 `@MockkBean` 선언**해 ApplicationContext cache key를 안정화한다.
+`@ServiceConnection`(Spring Boot 3.1+)으로 MySQL wiring 을 자동화, Redis 는 `DynamicPropertyRegistrar` 빈으로 host/port 주입. `BaseIntegrationTest` 는 `@Transactional` + `@RecordApplicationEvents` 가 적용된 추상 클래스.
 
 ```kotlin
-// common 모듈
+// common/testFixtures
 @TestConfiguration(proxyBeanMethods = false)
 class TestcontainersConfig {
-    @Bean
-    @ServiceConnection
+    @Bean @ServiceConnection
     fun mysqlContainer(): MySQLContainer<*> =
         MySQLContainer("mysql:8.0").withReuse(true)
+
+    @Bean
+    fun redisContainer(): GenericContainer<*> =
+        GenericContainer("redis:7-alpine").withExposedPorts(6379).withReuse(true)
+
+    @Bean
+    fun redisProperties(redis: GenericContainer<*>): DynamicPropertyRegistrar =
+        DynamicPropertyRegistrar { registry ->
+            registry.add("spring.data.redis.host") { redis.host }
+            registry.add("spring.data.redis.port") { redis.getMappedPort(6379) }
+        }
 }
 
 @SpringBootTest
 @ActiveProfiles("test")
-@AutoConfigureMockMvc
-@Import(TestcontainersConfig::class)
+@Transactional
+@RecordApplicationEvents
+@Import(TestcontainersConfig::class, TestClockConfig::class)
 abstract class BaseIntegrationTest {
-
-    // 모든 외부 클라이언트를 부모에서 mock — 자식이 추가 선언하지 않으면
-    // ApplicationContext가 1번만 빌드되어 모든 통합테스트가 재사용
-    @MockkBean(relaxed = true) protected lateinit var jishoClient: JishoClient
-    @MockkBean(relaxed = true) protected lateinit var lrclibClient: LrclibClient
-    @MockkBean(relaxed = true) protected lateinit var vocadbClient: VocadbClient
-    @MockkBean(relaxed = true) protected lateinit var youtubeClient: YoutubeClient
-    @MockkBean(relaxed = true) protected lateinit var itunesClient: ItunesClient
-    @MockkBean(relaxed = true) protected lateinit var geminiClient: GeminiClient
-
-    @Autowired protected lateinit var mockMvc: MockMvc
     @Autowired protected lateinit var entityManager: EntityManager
+    @Autowired protected lateinit var clock: MutableClock
+    @Autowired protected lateinit var redisTemplate: StringRedisTemplate
 
     @BeforeEach
-    fun resetState() {
-        clearMocks(jishoClient, lrclibClient, vocadbClient, youtubeClient, itunesClient, geminiClient)
-        // SET FOREIGN_KEY_CHECKS=0 → TRUNCATE 모든 도메인 테이블 → SET FOREIGN_KEY_CHECKS=1
+    fun resetSharedState() {
+        clock.setTo(TestClockConfig.DEFAULT_FIXED_INSTANT)
+        redisTemplate.connectionFactory?.connection?.use { it.serverCommands().flushDb() }
     }
 }
 ```
 
+api 모듈은 `ApiBaseIntegrationTest` 가 `BaseIntegrationTest` 를 상속하며 외부 WebClient 클라이언트 5개(`JishoClient`, `LrclibClient`, `VocadbClient`, `YoutubeClient`, `ItunesClient`)를 `@MockkBean` (relaxed 미지정 = `false`) 로 선언한다.
+
 **왜 이렇게:**
-- `@ServiceConnection`이 컨테이너 jdbcUrl/username/password 자동 wiring → `@DynamicPropertySource` 보일러 제거.
-- 부모에 mock을 모아두면 자식 테스트는 mock 추가/변경 없이 `every { jishoClient.lookup(any()) } returns ...`만 호출 → cache key 동일하게 유지 → ApplicationContext 1개만 빌드.
-- `@BeforeEach`의 `clearMocks`는 이전 테스트의 stub 잔재 제거 (silent flaky 방지).
+- `@Transactional` 롤백으로 각 테스트 격리. 빌더는 단순 `em.persist()` 만 — 별도 commit 안 함.
+- AFTER_COMMIT 리스너 본문은 발화되지 않으므로 통합 테스트가 빠르고, 이벤트 발행 자체는 `ApplicationEvents` 로 검증.
+- `@MockkBean(relaxed=false)` 정책 — 자식 테스트가 사용하는 메서드를 명시적으로 `every {}` 로 stub. 까먹으면 즉시 빨간불.
+- `clearMocks(..., answers = true, recordedCalls = true)` 으로 stub/호출 기록 둘 다 매 테스트 초기화.
 - `withReuse(true)` 사용을 위해 로컬 머신에 1회 설정 필요:
   ```bash
   echo "testcontainers.reuse.enable=true" >> ~/.testcontainers.properties
   ```
 
+### 캐시 키 안정화 규약
+**subclass 에서 `@MockkBean` 선언 금지.** 추가 mock 이 필요하면 테스트 메서드 안에서 `every {}` 또는 `mockkObject` 를 사용한다. subclass 에 `@MockkBean` 을 더하면 Spring TestContext 가 별도 ApplicationContext 를 빌드해 CI 메모리/시간이 비례 증가한다.
+
+### 빌더 위치 규약
+**테스트 빌더는 그 빌더가 영속화하는 엔티티가 속한 모듈에 둔다.** `SongEntity` 는 `common` → `TestSongBuilder` 는 `common/testFixtures`. `UserEntity`/`WordEntity`/`FlashcardEntity` 는 `api` → 해당 빌더는 `api/src/test/.../fixtures`.
+
 ### 외부 클라이언트 stub 패턴
 
-자식 테스트는 mock을 **추가 선언하지 않고 부모 mock만 사용**.
+자식 테스트는 mock 을 **추가 선언하지 않고 부모 mock 만 사용**. `relaxed = false` 이므로 사용하는 메서드를 명시적으로 stub 해야 한다.
 
 ```kotlin
-class WordServiceTest : BaseIntegrationTest() {
-    // @MockkBean 추가 선언 X — 부모의 jishoClient를 그대로 사용
+class WordServiceTest : ApiBaseIntegrationTest() {
+    // @MockkBean 추가 선언 X — 부모의 jishoClient 를 그대로 사용
 
     @Test fun `lookupMeaning falls back when Jisho returns null`() {
         every { jishoClient.lookup(any()) } returns null
@@ -107,7 +126,7 @@ class WordServiceTest : BaseIntegrationTest() {
 }
 ```
 
-자식이 mock을 새로 선언하면 cache key가 깨져 컨텍스트가 다시 빌드된다. 정말 필요한 경우만(예: 부모에 없는 빈) 자식 선언 허용.
+자식이 mock 을 새로 선언하면 cache key 가 깨져 컨텍스트가 다시 빌드된다.
 
 ### Spring Event 검증 (`@RecordApplicationEvents`)
 
@@ -141,7 +160,7 @@ class FlashcardService(private val clock: Clock, ...) {
 }
 ```
 
-테스트 코드 (`common/src/test/.../test/clock/MutableClock.kt`):
+운영 코드 `clock()` 빈은 `Clock.systemUTC()` 로 설정 (환경 별 default zone 으로 인한 `@CreatedDate` 일관성 깨짐 방지). 테스트 코드 (`common/src/testFixtures/.../clock/MutableClock.kt`):
 ```kotlin
 class MutableClock(private var instant: Instant) : Clock() {
     fun advance(duration: Duration) { instant = instant.plus(duration) }
@@ -170,20 +189,24 @@ flashcardService.review(...)
 테스트 셋업 도구는 **두 가지로 분리**한다.
 
 #### 도구 1. `TestXxxBuilder` — 얕은 Given 전용
-`backend/common/src/test/kotlin/com/japanese/vocabulary/test/fixtures/`. 단일 엔티티, 단순 FK 체인을 직접 영속화로 빠르게 만든다. `build()` 가 `entityManager.persist` 까지 책임.
+빌더는 영속화 대상 엔티티가 속한 모듈에 둔다. `TestSongBuilder` → `common/src/testFixtures/...fixtures/`, `TestUserBuilder`/`TestWordBuilder`/`TestFlashcardBuilder` → `api/src/test/...fixtures/`. 단일 엔티티, 단순 FK 체인을 직접 영속화로 빠르게 만든다. `build()` 가 `entityManager.persist` 까지 책임.
 
 ```kotlin
-class TestFlashcardBuilder(private val em: EntityManager) {
-    private var user: User? = null
-    private var word: Word? = null
+class TestFlashcardBuilder(
+    private val em: EntityManager,
+    private val clock: Clock,
+) {
+    private var user: UserEntity? = null
+    private var word: WordEntity? = null
 
-    fun forUser(u: User) = apply { user = u }
-    fun ofWord(w: Word) = apply { word = w }
+    fun forUser(u: UserEntity) = apply { user = u }
+    fun ofWord(w: WordEntity) = apply { word = w }
 
-    fun build(): Flashcard {
+    fun build(): FlashcardEntity {
         val u = user ?: TestUserBuilder(em).build()
         val w = word ?: TestWordBuilder(em).forUser(u).build()
-        return Flashcard(user = u, word = w, ...).also { em.persist(it); em.flush() }
+        return FlashcardEntity(userId = u.id!!, wordId = w.id!!, due = Instant.now(clock))
+            .also { em.persist(it); em.flush() }
     }
 }
 ```
@@ -284,14 +307,12 @@ fun `flashcard 복습 시 FSRS 갱신 + StudyStatsEvent`() {
 
 **`LrcParser`** (단위): synced 가사 (`[mm:ss.xx]text`) vs plain text, malformed timestamp 처리.
 
-**`RecentSongService`** (통합): Redis 의존 — Testcontainers Redis 추가 또는 `@MockkBean(RedisTemplate::class)`. 후자 권장 (가벼움).
+**`RecentSongService`** (통합): Redis 는 `TestcontainersConfig` 의 공유 컨테이너에 자동 연결됨. `BaseIntegrationTest.@BeforeEach` 가 `flushDb()` 로 키 초기화.
 
 **예제 패턴:**
 ```kotlin
-class LyricProcessingServiceTest : BaseIntegrationTest() {
-    @MockkBean lateinit var lrclibClient: LrclibClient
-    @MockkBean lateinit var vocadbClient: VocadbClient
-    @MockkBean lateinit var youtubeClient: YoutubeClient
+class LyricProcessingServiceTest : ApiBaseIntegrationTest() {
+    // @MockkBean 추가 선언 X — 부모 ApiBaseIntegrationTest 의 mock 빈 사용
 
     @Test fun `falls back to VocaDB when LRCLIB returns null`() {
         every { lrclibClient.search(any(), any(), any()) } returns null
