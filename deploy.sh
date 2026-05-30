@@ -173,6 +173,7 @@ envsubst < "$K8S_DIR/api/ingress.yaml" | kubectl apply -n "$NS" -f -
 envsubst < "$K8S_DIR/batch/secret.template.yaml" | kubectl apply -n "$NS" -f -
 envsubst < "$K8S_DIR/batch/configmap.yaml" | kubectl apply -n "$NS" -f -
 envsubst < "$K8S_DIR/batch/deployment.yaml" | kubectl apply -n "$NS" -f -
+[[ -f "$K8S_DIR/batch/service.yaml" ]] && kubectl apply -n "$NS" -f "$K8S_DIR/batch/service.yaml"
 echo "  → $((SECONDS - STEP_START))s"
 
 # --- 8. 롤아웃 대기 ---
