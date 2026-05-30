@@ -15,7 +15,6 @@ PROJECT_ROOT="$(cd "$OBS_DIR/../.." && pwd)"
 EXPECTED_CONTEXT="kotonoha-prod"
 NS="monitoring"
 RELEASE="kube-prometheus-stack"
-APP_NS="kotonoha"
 ENV_FILE="$PROJECT_ROOT/.env.prod"
 
 # --- context guard ---
@@ -56,12 +55,9 @@ helm upgrade --install "$RELEASE" prometheus-community/kube-prometheus-stack \
   --set-string grafana.adminPassword="$GRAFANA_ADMIN_PASSWORD" \
   --wait --timeout 10m
 
-# --- ServiceMonitors (app namespace) ---
-echo "[apply] ServiceMonitors in '$APP_NS'..."
-kubectl apply -n "$APP_NS" -f "$OBS_DIR/servicemonitors/"
-
 echo ""
 echo "=== Done ==="
+echo "  Next: run ./deploy.sh (DEPLOY_ENV=prod) to apply ServiceMonitors alongside api/batch."
 echo "  kubectl -n $NS get pods"
 echo "  kubectl -n $NS port-forward svc/${RELEASE}-grafana 3000:80   # admin / \$GRAFANA_ADMIN_PASSWORD"
 echo "  kubectl -n $NS port-forward svc/${RELEASE}-prometheus 9090:9090"
