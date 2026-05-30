@@ -11,13 +11,16 @@ import com.japanese.vocabulary.word.repository.WordRepository
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.Clock
+import java.time.Instant
 
 @Service
 class DeckService(
     private val deckRepository: DeckRepository,
     private val songRepository: SongRepository,
     private val songWordRepository: SongWordRepository,
-    private val wordRepository: WordRepository
+    private val wordRepository: WordRepository,
+    private val clock: Clock,
 ) {
 
     @Transactional(readOnly = true)
@@ -34,7 +37,7 @@ class DeckService(
         }
 
         val deckIds = decks.mapNotNull { it.id }
-        val statsMap = deckRepository.findDeckStats(deckIds).associateBy { it.getDeckId() }
+        val statsMap = deckRepository.findDeckStats(deckIds, Instant.now(clock)).associateBy { it.getDeckId() }
 
         val songIds = decks.map { it.songId }.toSet()
         val artworkMap = songRepository.findAllById(songIds).associate { it.id!! to it.artworkUrl }
@@ -60,7 +63,7 @@ class DeckService(
     @Transactional(readOnly = true)
     fun getDeckDetail(userId: Long, deckId: Long): DeckDetailResponse {
         val deck = loadOwnedDeck(userId, deckId)
-        val stats = deckRepository.findDeckDetailStats(deckId, userId)
+        val stats = deckRepository.findDeckDetailStats(deckId, userId, Instant.now(clock))
         val artworkUrl = songRepository.findById(deck.songId).map { it.artworkUrl }.orElse(null)
 
         return DeckDetailResponse(
@@ -79,7 +82,7 @@ class DeckService(
 
     @Transactional(readOnly = true)
     fun getAllDeckDetail(userId: Long): DeckDetailResponse {
-        val stats = deckRepository.findAllDeckDetailStats(userId)
+        val stats = deckRepository.findAllDeckDetailStats(userId, Instant.now(clock))
         return DeckDetailResponse(
             deckId = null,
             songId = null,
