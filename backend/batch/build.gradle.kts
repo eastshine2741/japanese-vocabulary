@@ -25,6 +25,10 @@ dependencies {
     implementation("com.atilika.kuromoji:kuromoji-ipadic:0.9.0")
     implementation("com.atilika.kuromoji:kuromoji-unidic:0.9.0")
 
+    // Sentry
+    implementation("io.sentry:sentry-spring-boot-starter-jakarta:7.18.0")
+    implementation("io.sentry:sentry-logback:7.18.0")
+
     // MySQL
     runtimeOnly("com.mysql:mysql-connector-j")
 

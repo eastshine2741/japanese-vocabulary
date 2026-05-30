@@ -27,6 +27,10 @@ dependencies {
     // Google OIDC (ID token JWKS verify)
     implementation("com.google.api-client:google-api-client:2.7.0")
 
+    // Sentry
+    implementation("io.sentry:sentry-spring-boot-starter-jakarta:7.18.0")
+    implementation("io.sentry:sentry-logback:7.18.0")
+
     // Spring Security
     implementation("org.springframework.boot:spring-boot-starter-security")
 

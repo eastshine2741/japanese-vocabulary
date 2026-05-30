@@ -38,3 +38,14 @@ google:
     # Web OAuth Client ID — used as audience when verifying Google ID tokens.
     # Same value passed as @react-native-google-signin's webClientId on the app side.
     client-id: ${GOOGLE_OAUTH_CLIENT_ID:}
+
+sentry:
+  dsn: ${SENTRY_DSN_API:}
+  environment: ${SENTRY_ENVIRONMENT:local}
+  release: ${SENTRY_RELEASE:}
+  send-default-pii: false
+  traces-sample-rate: 0.1
+  exception-resolver-order: -2147483647
+  logging:
+    minimum-event-level: warn
+    minimum-breadcrumb-level: info

@@ -72,7 +72,9 @@ echo "[5/8] Applying infra manifests..."
 # .env 로드 + 이미지를 환경변수로 export (템플릿에서 사용)
 set -a
 source "$PROJECT_ROOT/.env"
-export API_IMAGE BATCH_IMAGE MIGRATION_IMAGE NS
+SENTRY_ENVIRONMENT="${NS}"
+SENTRY_RELEASE="${GIT_SHA}"
+export API_IMAGE BATCH_IMAGE MIGRATION_IMAGE NS SENTRY_ENVIRONMENT SENTRY_RELEASE
 set +a
 
 # mysql

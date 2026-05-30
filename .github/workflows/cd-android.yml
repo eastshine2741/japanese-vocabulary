@@ -34,7 +34,13 @@ jobs:
 
       - name: Create .env
         working-directory: app-rn
-        run: echo "EXPO_PUBLIC_BACKEND_URL=${{ secrets.BACKEND_URL }}" > .env
+        run: |
+          cat > .env <<EOF
+          EXPO_PUBLIC_BACKEND_URL=${{ secrets.BACKEND_URL }}
+          EXPO_PUBLIC_GOOGLE_OAUTH_WEB_CLIENT_ID=${{ secrets.GOOGLE_OAUTH_WEB_CLIENT_ID }}
+          EXPO_PUBLIC_SENTRY_DSN=${{ secrets.SENTRY_DSN_APP }}
+          EXPO_PUBLIC_SENTRY_ENVIRONMENT=production
+          EOF
 
       - name: Install dependencies
         working-directory: app-rn
@@ -67,6 +73,10 @@ jobs:
 
       - name: Build APK
         working-directory: app-rn/android
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT_APP }}
         run: ./gradlew assembleRelease
 
       - name: Rename APK
