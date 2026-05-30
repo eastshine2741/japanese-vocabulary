@@ -12,13 +12,6 @@ import java.time.Instant
 class UserProfileService(
     private val userRepository: UserRepository,
 ) {
-    @Transactional(readOnly = true)
-    fun getProfile(userId: Long): UserProfileResponse {
-        val user = userRepository.findByIdAndDeletedAtIsNull(userId)
-            ?: throw BusinessException(ErrorCode.INVALID_CREDENTIALS)
-        return UserProfileResponse(username = user.username, name = user.name)
-    }
-
     @Transactional
     fun updateProfile(userId: Long, rawName: String?, rawUsername: String?): UserProfileResponse {
         val user = userRepository.findByIdAndDeletedAtIsNull(userId)
