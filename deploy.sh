@@ -175,12 +175,9 @@ envsubst < "$K8S_DIR/batch/configmap.yaml" | kubectl apply -n "$NS" -f -
 envsubst < "$K8S_DIR/batch/deployment.yaml" | kubectl apply -n "$NS" -f -
 [[ -f "$K8S_DIR/batch/service.yaml" ]] && kubectl apply -n "$NS" -f "$K8S_DIR/batch/service.yaml"
 
-# --- ServiceMonitors (only if Prometheus Operator CRD installed) ---
-if kubectl get crd servicemonitors.monitoring.coreos.com >/dev/null 2>&1; then
-  for sm in "$K8S_DIR/api/servicemonitor.yaml" "$K8S_DIR/batch/servicemonitor.yaml"; do
-    [[ -f "$sm" ]] && kubectl apply -n "$NS" -f "$sm"
-  done
-fi
+for sm in "$K8S_DIR/api/servicemonitor.yaml" "$K8S_DIR/batch/servicemonitor.yaml"; do
+  [[ -f "$sm" ]] && kubectl apply -n "$NS" -f "$sm"
+done
 echo "  → $((SECONDS - STEP_START))s"
 
 # --- 8. 롤아웃 대기 ---
