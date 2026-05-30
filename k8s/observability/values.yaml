@@ -52,6 +52,9 @@ alertmanager:
 grafana:
   # adminPassword는 install.sh의 --set-string으로 주입
   defaultDashboardsTimezone: Asia/Seoul
+  # 단일 replica + RWO PVC → Multi-Attach 회피
+  deploymentStrategy:
+    type: Recreate
   service:
     type: ClusterIP
   resources:
@@ -87,10 +90,8 @@ grafana:
         gnetId: 4701
         revision: 10
         datasource: Prometheus
-      spring-boot-3:
-        gnetId: 19004
-        revision: 1
-        datasource: Prometheus
+  # spring-boot-3 (#19004): grafana.com 다운로드는 ${DS_PROMETHEUS} 치환 안 됨 →
+  # 직접 치환한 JSON을 dashboards/ 에 두고 ConfigMap으로 sidecar에 먹임 (install.sh 참조).
 
 # ─────────────────────────────────────────────────────────────
 # 끄거나 가벼운 컴포넌트

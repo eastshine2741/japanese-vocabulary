@@ -55,6 +55,15 @@ helm upgrade --install "$RELEASE" prometheus-community/kube-prometheus-stack \
   --set-string grafana.adminPassword="$GRAFANA_ADMIN_PASSWORD" \
   --wait --timeout 10m
 
+# --- Pre-substituted dashboards (sidecar pickup via grafana_dashboard=1 label) ---
+echo "[apply] dashboards ConfigMap..."
+kubectl create configmap kotonoha-dashboards \
+  --namespace "$NS" \
+  --from-file="$OBS_DIR/dashboards/" \
+  --dry-run=client -o yaml \
+  | kubectl apply -f -
+kubectl -n "$NS" label configmap kotonoha-dashboards grafana_dashboard=1 --overwrite >/dev/null
+
 echo ""
 echo "=== Done ==="
 echo "  Next: run ./deploy.sh (DEPLOY_ENV=prod) to apply ServiceMonitors alongside api/batch."
