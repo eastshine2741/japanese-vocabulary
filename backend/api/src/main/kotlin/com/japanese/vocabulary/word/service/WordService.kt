@@ -4,7 +4,6 @@ import com.japanese.vocabulary.common.exception.BusinessException
 import com.japanese.vocabulary.common.exception.ErrorCode
 import com.japanese.vocabulary.flashcard.service.FlashcardService
 import com.japanese.vocabulary.song.repository.SongRepository
-import com.japanese.vocabulary.word.client.jisho.JishoClient
 import com.japanese.vocabulary.word.dto.*
 import com.japanese.vocabulary.word.entity.SongWordEntity
 import com.japanese.vocabulary.word.entity.WordEntity
@@ -18,7 +17,6 @@ import org.springframework.transaction.annotation.Transactional
 
 @Service
 class WordService(
-    private val jishoClient: JishoClient,
     private val wordRepository: WordRepository,
     private val songWordRepository: SongWordRepository,
     private val songRepository: SongRepository,

@@ -5,7 +5,6 @@ import com.japanese.vocabulary.song.client.itunes.ItunesClient
 import com.japanese.vocabulary.song.client.lrclib.LrclibClient
 import com.japanese.vocabulary.song.client.vocadb.VocadbClient
 import com.japanese.vocabulary.song.client.youtube.YoutubeClient
-import com.japanese.vocabulary.word.client.jisho.JishoClient
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.clearMocks
 import org.junit.jupiter.api.BeforeEach
@@ -17,9 +16,6 @@ import org.junit.jupiter.api.BeforeEach
  * 빨간불이 뜨도록 의도된 정책.
  */
 abstract class ApiBaseIntegrationTest : BaseIntegrationTest() {
-
-    @MockkBean
-    protected lateinit var jishoClient: JishoClient
 
     @MockkBean
     protected lateinit var lrclibClient: LrclibClient
@@ -39,7 +35,7 @@ abstract class ApiBaseIntegrationTest : BaseIntegrationTest() {
     @BeforeEach
     fun resetClientMocks() {
         clearMocks(
-            jishoClient, lrclibClient, vocadbClient, youtubeClient, itunesClient, googleOidcService,
+            lrclibClient, vocadbClient, youtubeClient, itunesClient, googleOidcService,
             answers = true,
             recordedCalls = true,
         )
