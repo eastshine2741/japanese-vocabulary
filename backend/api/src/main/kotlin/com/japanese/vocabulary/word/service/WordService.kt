@@ -8,8 +8,10 @@ import com.japanese.vocabulary.word.client.jisho.JishoClient
 import com.japanese.vocabulary.word.dto.*
 import com.japanese.vocabulary.word.entity.SongWordEntity
 import com.japanese.vocabulary.word.entity.WordEntity
+import com.japanese.vocabulary.word.event.SongWordCreatedEvent
 import com.japanese.vocabulary.word.repository.SongWordRepository
 import com.japanese.vocabulary.word.repository.WordRepository
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -20,7 +22,8 @@ class WordService(
     private val wordRepository: WordRepository,
     private val songWordRepository: SongWordRepository,
     private val songRepository: SongRepository,
-    private val flashcardService: FlashcardService
+    private val flashcardService: FlashcardService,
+    private val eventPublisher: ApplicationEventPublisher,
 ) {
     @Transactional
     fun batchAddWords(userId: Long, request: BatchAddWordRequest): BatchAddWordResponse {
@@ -70,7 +73,10 @@ class WordService(
             )
         }
 
-        if (!songWordRepository.existsByWordIdAndSongIdAndLyricLine(savedWord.id!!, request.songId, request.lyricLine)) {
+        val songWordCreated = !songWordRepository.existsByWordIdAndSongIdAndLyricLine(
+            savedWord.id!!, request.songId, request.lyricLine
+        )
+        if (songWordCreated) {
             songWordRepository.save(
                 SongWordEntity(
                     wordId = savedWord.id,
@@ -81,7 +87,18 @@ class WordService(
             )
         }
 
-        flashcardService.createFlashcard(userId, savedWord.id, request.songId)
+        val flashcardId = flashcardService.createFlashcard(userId, savedWord.id)
+
+        if (songWordCreated) {
+            eventPublisher.publishEvent(
+                SongWordCreatedEvent(
+                    userId = userId,
+                    songId = request.songId,
+                    wordId = savedWord.id,
+                    flashcardId = flashcardId,
+                )
+            )
+        }
 
         return savedWord.id
     }
@@ -128,6 +145,17 @@ class WordService(
     @Transactional(readOnly = true)
     fun getWord(userId: Long, japaneseText: String): WordDetailResponse? {
         val word = wordRepository.findByUserIdAndJapaneseText(userId, japaneseText) ?: return null
+        return buildDetailResponse(word)
+    }
+
+    @Transactional(readOnly = true)
+    fun getWordById(userId: Long, wordId: Long): WordDetailResponse? {
+        val word = wordRepository.findById(wordId).orElse(null) ?: return null
+        if (word.userId != userId) return null
+        return buildDetailResponse(word)
+    }
+
+    private fun buildDetailResponse(word: WordEntity): WordDetailResponse {
         val songWords = songWordRepository.findByWordId(word.id!!)
         val songIds = songWords.map { it.songId }.toSet()
         val songMap = songRepository.findAllById(songIds).associateBy { it.id }

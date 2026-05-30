@@ -1,14 +1,67 @@
 import client from './client';
-import { AuthRequest, AuthResponse } from '../types/auth';
+
+export interface GoogleAuthResponse {
+  token: string;
+  username: string;
+  name: string | null;
+}
+
+export interface VerifiedIdentity {
+  sub: string;
+  email: string | null;
+  name: string | null;
+}
+
+export type GoogleLoginResult =
+  | { kind: 'authenticated'; token: string; username: string; name: string | null }
+  | { kind: 'needsSignup'; identity: VerifiedIdentity };
+
+export type UsernameAvailabilityReason = 'INVALID_FORMAT' | 'RESERVED' | 'TAKEN';
+
+export interface UsernameAvailability {
+  available: boolean;
+  reason?: UsernameAvailabilityReason;
+}
+
+interface GoogleLoginResponseBody {
+  kind: 'authenticated' | 'needsSignup';
+  token?: string;
+  username?: string;
+  name?: string | null;
+  identity?: VerifiedIdentity;
+}
 
 export const authApi = {
-  async signup(req: AuthRequest): Promise<AuthResponse> {
-    const { data } = await client.post<AuthResponse>('/api/auth/signup', req);
+  async googleLogin(idToken: string): Promise<GoogleLoginResult> {
+    const { data } = await client.post<GoogleLoginResponseBody>('/api/auth/google', { idToken });
+    if (data.kind === 'needsSignup') {
+      return { kind: 'needsSignup', identity: data.identity! };
+    }
+    return {
+      kind: 'authenticated',
+      token: data.token!,
+      username: data.username!,
+      name: data.name ?? null,
+    };
+  },
+
+  async googleSignup(
+    idToken: string,
+    username: string,
+    displayName?: string,
+  ): Promise<GoogleAuthResponse> {
+    const { data } = await client.post<GoogleAuthResponse>('/api/auth/google/signup', {
+      idToken,
+      username,
+      displayName,
+    });
     return data;
   },
 
-  async login(req: AuthRequest): Promise<AuthResponse> {
-    const { data } = await client.post<AuthResponse>('/api/auth/login', req);
+  async checkUsername(username: string): Promise<UsernameAvailability> {
+    const { data } = await client.get<UsernameAvailability>('/api/auth/username/available', {
+      params: { username },
+    });
     return data;
   },
 };

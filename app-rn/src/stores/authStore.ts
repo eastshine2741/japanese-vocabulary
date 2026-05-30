@@ -1,52 +1,88 @@
 import { create } from 'zustand';
-import { authApi } from '../api/authApi';
+import { authApi, VerifiedIdentity } from '../api/authApi';
 import { tokenStorage } from '../utils/tokenStorage';
 
-type AuthStatus = 'idle' | 'loading' | 'success' | 'error';
+type AuthStatus = 'idle' | 'loading' | 'success' | 'needs_signup' | 'error';
 
 interface AuthState {
   status: AuthStatus;
   error: string | null;
+  username: string | null;
   userName: string | null;
-  login: (name: string, password: string) => Promise<void>;
-  signup: (name: string, password: string) => Promise<void>;
-  loadUserName: () => Promise<void>;
+  pendingIdentity: VerifiedIdentity | null;
+  pendingIdToken: string | null;
+  googleLogin: (idToken: string) => Promise<void>;
+  googleSignup: (idToken: string, username: string, displayName?: string) => Promise<void>;
+  loadProfile: () => Promise<void>;
+  setUserName: (name: string | null) => Promise<void>;
+  setUsername: (username: string) => Promise<void>;
   reset: () => void;
+}
+
+async function persistProfile(username: string, name: string | null) {
+  await tokenStorage.saveUsername(username);
+  await tokenStorage.saveUserName(name);
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
   status: 'idle',
   error: null,
+  username: null,
   userName: null,
+  pendingIdentity: null,
+  pendingIdToken: null,
 
-  login: async (name, password) => {
+  googleLogin: async (idToken) => {
     set({ status: 'loading', error: null });
     try {
-      const res = await authApi.login({ name, password });
+      const res = await authApi.googleLogin(idToken);
+      if (res.kind === 'needsSignup') {
+        set({ status: 'needs_signup', pendingIdentity: res.identity, pendingIdToken: idToken });
+        return;
+      }
       await tokenStorage.saveToken(res.token);
-      await tokenStorage.saveUserName(name);
-      set({ status: 'success', userName: name });
+      await persistProfile(res.username, res.name);
+      set({ status: 'success', username: res.username, userName: res.name });
     } catch (e: any) {
-      set({ status: 'error', error: e.response?.data?.message || 'Login failed' });
+      set({ status: 'error', error: e.response?.data?.message || 'Google sign-in failed' });
     }
   },
 
-  signup: async (name, password) => {
+  googleSignup: async (idToken, username, displayName) => {
     set({ status: 'loading', error: null });
     try {
-      const res = await authApi.signup({ name, password });
+      const res = await authApi.googleSignup(idToken, username, displayName);
       await tokenStorage.saveToken(res.token);
-      await tokenStorage.saveUserName(name);
-      set({ status: 'success', userName: name });
+      await persistProfile(res.username, res.name);
+      set({
+        status: 'success',
+        username: res.username,
+        userName: res.name,
+        pendingIdentity: null,
+        pendingIdToken: null,
+      });
     } catch (e: any) {
-      set({ status: 'error', error: e.response?.data?.message || 'Signup failed' });
+      set({ status: 'error', error: e.response?.data?.message || 'Sign-up failed' });
     }
   },
 
-  loadUserName: async () => {
-    const name = await tokenStorage.getUserName();
+  loadProfile: async () => {
+    const [username, name] = await Promise.all([
+      tokenStorage.getUsername(),
+      tokenStorage.getUserName(),
+    ]);
+    set({ username, userName: name });
+  },
+
+  setUserName: async (name) => {
+    await tokenStorage.saveUserName(name);
     set({ userName: name });
   },
 
-  reset: () => set({ status: 'idle', error: null }),
+  setUsername: async (username) => {
+    await tokenStorage.saveUsername(username);
+    set({ username });
+  },
+
+  reset: () => set({ status: 'idle', error: null, pendingIdentity: null, pendingIdToken: null }),
 }));

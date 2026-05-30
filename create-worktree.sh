@@ -25,9 +25,11 @@ fi
 IGNORED_FILES=(
   "backend/src/main/resources/application-local.yml"
   ".env"
+  ".env.prod"
   "backend/local.properties"
   "app-rn/.env"
   "app-rn/release.keystore"
+  "app-rn/kotonoha-prod.jks"
 )
 
 echo ""

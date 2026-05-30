@@ -105,12 +105,14 @@ class KoreanLyricTranslationService(
                 mapOf("index" to line.index, "text" to line.text)
             }
 
+            // Slim input matches playground: only {index, words: [{baseForm}]}.
+            // text/surface/pos were observed to mislead the LLM in offline eval.
             val wordMeaningInput = lyricLines.map { line ->
                 val tokens = lineTokensMap[line.index] ?: emptyList()
                 val words = tokens.filter { !isSkippableToken(it) }.map { token ->
-                    mapOf("surface" to token.surface, "baseForm" to token.baseForm, "pos" to token.partOfSpeech.name)
+                    mapOf("baseForm" to token.baseForm)
                 }
-                mapOf("index" to line.index, "text" to line.text, "words" to words)
+                mapOf("index" to line.index, "words" to words)
             }
 
             // 3. Call Gemini APIs in parallel: translation (pro) + word meanings (flash-lite)
@@ -155,12 +157,9 @@ class KoreanLyricTranslationService(
                         null
                     }
 
-                    // Use LLM-corrected baseForm if available
-                    val correctedBaseForm = if (!isSkippableToken(tokenInfo) && meaningIdx - 1 >= 0 && meaningIdx - 1 < meaningWords.size) {
-                        meaningWords[meaningIdx - 1].baseForm
-                    } else {
-                        tokenInfo.baseForm
-                    }
+                    // Prompt enforces verbatim baseForm; use analyzer's value as the
+                    // source of truth and do not trust LLM-side mutations.
+                    val correctedBaseForm = tokenInfo.baseForm
 
                     Token(
                         surface = tokenInfo.surface,

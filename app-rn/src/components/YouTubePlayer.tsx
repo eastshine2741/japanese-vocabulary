@@ -9,6 +9,7 @@ export interface YouTubePlayerRef {
   seekTo: (seconds: number) => void;
   play: () => void;
   pause: () => void;
+  setPlaybackRate: (rate: number) => void;
 }
 
 interface Props {
@@ -138,6 +139,9 @@ const YouTubePlayer = forwardRef<YouTubePlayerRef, Props>(({
     pause: () => {
       webViewRef.current?.injectJavaScript(`player.pauseVideo(); true;`);
     },
+    setPlaybackRate: (rate: number) => {
+      webViewRef.current?.injectJavaScript(`player.setPlaybackRate(${rate}); true;`);
+    },
   }));
 
   const handleMessage = useCallback((event: WebViewMessageEvent) => {
@@ -175,7 +179,9 @@ const YouTubePlayer = forwardRef<YouTubePlayerRef, Props>(({
   );
 });
 
-export default YouTubePlayer;
+// Memoize: PlayerScreen re-renders ~10×/s on currentMs ticks; without this
+// the WebView wrapper reconciles every tick even though its props are stable.
+export default React.memo(YouTubePlayer);
 
 const styles = StyleSheet.create({
   container: {

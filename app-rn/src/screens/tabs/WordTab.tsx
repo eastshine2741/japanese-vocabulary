@@ -3,11 +3,9 @@ import {
   View,
   Text,
   ScrollView,
-  ActivityIndicator,
-  TouchableOpacity,
   StyleSheet,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -15,6 +13,9 @@ import { useShallow } from 'zustand/react/shallow';
 import { useDeckListStore } from '../../stores/deckListStore';
 import { flashcardApi } from '../../api/flashcardApi';
 import SongListItem from '../../components/SongListItem';
+import { PrimaryButton } from '../../components/PrimaryButton';
+import { SecondaryButton } from '../../components/SecondaryButton';
+import SkeletonBox from '../../components/SkeletonLoading';
 import { FlashcardStatsResponse } from '../../types/flashcard';
 import { Colors, Dimens } from '../../theme/theme';
 import { RootStackParamList } from '../../navigation/AppNavigator';
@@ -23,8 +24,8 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export default function WordTab() {
   const navigation = useNavigation<Nav>();
-  const { status, data, load } = useDeckListStore(
-    useShallow(s => ({ status: s.status, data: s.data, load: s.load })),
+  const { status, songDecks, load } = useDeckListStore(
+    useShallow(s => ({ status: s.status, songDecks: s.songDecks, load: s.load })),
   );
   const [stats, setStats] = useState<FlashcardStatsResponse | null>(null);
 
@@ -86,25 +87,19 @@ export default function WordTab() {
             </View>
 
             {/* Study button */}
-            <TouchableOpacity
-              style={[styles.studyButton, due === 0 && styles.buttonDisabled]}
+            <PrimaryButton
+              icon="layers-outline"
+              label="학습하기"
               onPress={() => navigation.navigate('Review', {})}
               disabled={due === 0}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="layers-outline" size={20} color="#FFFFFF" />
-              <Text style={styles.studyButtonText}>학습하기</Text>
-            </TouchableOpacity>
+            />
 
             {/* View all words button */}
-            <TouchableOpacity
-              style={styles.wordListButton}
-              onPress={() => navigation.navigate('DeckWordList', { songId: null })}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="list-outline" size={18} color={Colors.textSecondary} />
-              <Text style={styles.wordListButtonText}>전체 단어 보기</Text>
-            </TouchableOpacity>
+            <SecondaryButton
+              icon="list-outline"
+              label="전체 단어 보기"
+              onPress={() => navigation.navigate('DeckWordList', { deckId: null })}
+            />
           </View>
         );
       })()}
@@ -113,20 +108,19 @@ export default function WordTab() {
   );
 
   const renderSongDecks = () => {
-    const songDecks = data?.songDecks ?? [];
     if (songDecks.length === 0) return null;
     return (
       <View style={styles.songDecksCard}>
-        <Text style={styles.sectionLabel}>노래별 단어장</Text>
+        <Text style={styles.sectionLabel}>단어장</Text>
         {songDecks.map((item) => (
           <SongListItem
-            key={item.songId}
+            key={item.deckId}
             artworkUrl={item.artworkUrl}
             title={item.title}
             subtitle={`${item.artist} · ${item.wordCount}단어`}
             dueCount={item.dueCount}
             showChevron
-            onPress={() => navigation.navigate('DeckDetail', { songId: item.songId })}
+            onPress={() => navigation.navigate('DeckDetail', { deckId: item.deckId })}
           />
         ))}
       </View>
@@ -136,8 +130,61 @@ export default function WordTab() {
   if (status === 'loading') {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={Colors.primary} />
+        <View style={styles.list}>
+          <View style={styles.statsCard}>
+            <View style={styles.hero}>
+              <SkeletonBox width={100} height={20} borderRadius={6} />
+              <SkeletonBox width={80} height={44} borderRadius={8} />
+            </View>
+            <SkeletonBox height={8} borderRadius={4} />
+            <View style={styles.legend}>
+              {[0, 1, 2].map((i) => (
+                <View key={i} style={styles.legendItem}>
+                  <SkeletonBox width={6} height={6} borderRadius={3} />
+                  <SkeletonBox width={64} height={11} borderRadius={4} />
+                </View>
+              ))}
+            </View>
+            <SkeletonBox height={48} borderRadius={24} />
+            <SkeletonBox height={44} borderRadius={9999} />
+          </View>
+
+          <View style={styles.songDecksCard}>
+            <SkeletonBox width={80} height={20} borderRadius={6} style={styles.sectionLabelSkeleton} />
+            {[0, 1, 2, 3].map((i) => (
+              <View key={i} style={styles.deckRowSkeleton}>
+                <SkeletonBox width={48} height={48} borderRadius={8} />
+                <View style={styles.deckRowContent}>
+                  <SkeletonBox width="70%" height={15} borderRadius={5} />
+                  <SkeletonBox width="50%" height={13} borderRadius={5} />
+                </View>
+              </View>
+            ))}
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const isEmpty = songDecks.length === 0 && (!stats || stats.total === 0);
+
+  if (isEmpty) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.emptyState}>
+          <View style={styles.emptyIconCircle}>
+            <Feather name="book-open" size={48} color={Colors.textMuted} />
+          </View>
+          <Text style={styles.emptyTitle}>아직 저장한 단어가 없어요</Text>
+          <Text style={styles.emptySub}>
+            노래 가사에서 모르는 단어를 탭하면{'\n'}이곳에 모여서 복습할 수 있어요
+          </Text>
+          <PrimaryButton
+            icon="musical-notes-outline"
+            label="노래 찾으러 가기"
+            onPress={() => navigation.navigate('Search')}
+            style={styles.emptyCta}
+          />
         </View>
       </SafeAreaView>
     );
@@ -156,7 +203,7 @@ export default function WordTab() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  list: { paddingHorizontal: 24, paddingBottom: Dimens.bottomBarHeight + 40, gap: 28 },
+  list: { paddingTop: 20, paddingHorizontal: 24, paddingBottom: Dimens.bottomBarHeight + 40, gap: 28 },
   header: { marginBottom: 0 },
   /* Stats card */
   statsCard: {
@@ -209,50 +256,61 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
 
-  /* Study button */
-  studyButton: {
-    flexDirection: 'row',
-    backgroundColor: Colors.primary,
-    borderRadius: 24,
-    height: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  buttonDisabled: {
-    opacity: 0.4,
-  },
-  studyButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-    fontSize: 15,
-  },
-
-  /* Word list button */
-  wordListButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: 44,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    gap: 8,
-  },
-  wordListButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.textSecondary,
-  },
-
   /* Song decks card */
   songDecksCard: {
     gap: 8,
+  },
+  sectionLabelSkeleton: {
+    marginBottom: 4,
+  },
+  deckRowSkeleton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    gap: 12,
+  },
+  deckRowContent: {
+    flex: 1,
+    gap: 6,
   },
   sectionLabel: {
     fontSize: 17,
     fontWeight: '700',
     color: Colors.textPrimary,
     marginBottom: 4,
+  },
+
+  /* Empty state */
+  emptyState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+    paddingBottom: Dimens.bottomBarHeight,
+    gap: 24,
+  },
+  emptyIconCircle: {
+    width: 104,
+    height: 104,
+    borderRadius: 52,
+    backgroundColor: Colors.elevated,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+    textAlign: 'center',
+  },
+  emptySub: {
+    fontSize: 14,
+    lineHeight: 21,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+  },
+  emptyCta: {
+    alignSelf: 'stretch',
+    marginTop: 8,
   },
 });

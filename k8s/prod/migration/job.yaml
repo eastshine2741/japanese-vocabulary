@@ -1,0 +1,38 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: migration
+spec:
+  template:
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull
+      containers:
+        - name: migration
+          image: ${MIGRATION_IMAGE}
+          imagePullPolicy: IfNotPresent
+          args: ["migrate"]
+          env:
+            - name: MYSQL_HOST
+              value: mysql
+            - name: MYSQL_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: MYSQL_DATABASE
+            - name: FLYWAY_URL
+              value: "jdbc:mysql://$(MYSQL_HOST):3306/$(MYSQL_DATABASE)?allowPublicKeyRetrieval=true&useSSL=false"
+            - name: FLYWAY_USER
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: MYSQL_USER
+            - name: FLYWAY_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: MYSQL_PASSWORD
+            - name: FLYWAY_BASELINE_ON_MIGRATE
+              value: "true"
+      restartPolicy: Never
+  backoffLimit: 3

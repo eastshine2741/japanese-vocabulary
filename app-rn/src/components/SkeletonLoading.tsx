@@ -4,7 +4,7 @@ import { Colors } from '../theme/theme';
 
 interface Props {
   width?: number | string;
-  height?: number;
+  height?: number | string;
   borderRadius?: number;
   style?: ViewStyle;
 }
@@ -32,7 +32,7 @@ export default function SkeletonBox({
     <Animated.View
       style={[
         styles.skeleton,
-        { width: width as any, height, borderRadius, opacity },
+        { width: width as any, height: height as any, borderRadius, opacity },
         style,
       ]}
     />

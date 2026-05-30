@@ -19,7 +19,13 @@ class DeckEntity(
     @Column(name = "song_id", nullable = false)
     val songId: Long,
 
+    @Column(name = "title", nullable = false)
+    var title: String,
+
+    @Column(name = "description", nullable = false)
+    var description: String,
+
     @CreatedDate
     @Column(name = "created_at", updatable = false)
-    var createdAt: Instant? = null
+    var createdAt: Instant? = null,
 )

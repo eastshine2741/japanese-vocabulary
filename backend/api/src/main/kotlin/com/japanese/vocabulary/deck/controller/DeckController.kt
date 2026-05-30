@@ -4,6 +4,7 @@ import com.japanese.vocabulary.deck.dto.DeckDetailResponse
 import com.japanese.vocabulary.deck.dto.DeckListResponse
 import com.japanese.vocabulary.deck.dto.DeckWordListResponse
 import com.japanese.vocabulary.deck.service.DeckService
+import org.springframework.http.ResponseEntity
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.bind.annotation.*
 
@@ -12,32 +13,41 @@ import org.springframework.web.bind.annotation.*
 class DeckController(private val deckService: DeckService) {
 
     @GetMapping
-    fun getDeckList(): DeckListResponse {
-        val userId = SecurityContextHolder.getContext().authentication.principal as Long
-        return deckService.getDeckList(userId)
+    fun getDeckList(@RequestParam(required = false) cursor: Long?): DeckListResponse {
+        val userId = currentUserId()
+        return deckService.getDeckList(userId, cursor)
     }
 
     @GetMapping("/all")
     fun getAllDeckDetail(): DeckDetailResponse {
-        val userId = SecurityContextHolder.getContext().authentication.principal as Long
-        return deckService.getDeckDetail(userId, null)
-    }
-
-    @GetMapping("/{songId}")
-    fun getSongDeckDetail(@PathVariable songId: Long): DeckDetailResponse {
-        val userId = SecurityContextHolder.getContext().authentication.principal as Long
-        return deckService.getDeckDetail(userId, songId)
+        return deckService.getAllDeckDetail(currentUserId())
     }
 
     @GetMapping("/all/words")
     fun getAllDeckWords(@RequestParam(required = false) cursor: Long?): DeckWordListResponse {
-        val userId = SecurityContextHolder.getContext().authentication.principal as Long
-        return deckService.getDeckWords(userId, null, cursor)
+        return deckService.getAllDeckWords(currentUserId(), cursor)
     }
 
-    @GetMapping("/{songId}/words")
-    fun getSongDeckWords(@PathVariable songId: Long, @RequestParam(required = false) cursor: Long?): DeckWordListResponse {
-        val userId = SecurityContextHolder.getContext().authentication.principal as Long
-        return deckService.getDeckWords(userId, songId, cursor)
+    @GetMapping("/by-song/{songId}")
+    fun getDeckBySongId(@PathVariable songId: Long): ResponseEntity<DeckDetailResponse> {
+        val userId = currentUserId()
+        val deck = deckService.findBySongId(userId, songId) ?: return ResponseEntity.noContent().build()
+        return ResponseEntity.ok(deckService.getDeckDetail(userId, deck.id!!))
     }
+
+    @GetMapping("/{deckId}")
+    fun getDeckDetail(@PathVariable deckId: Long): DeckDetailResponse {
+        return deckService.getDeckDetail(currentUserId(), deckId)
+    }
+
+    @GetMapping("/{deckId}/words")
+    fun getDeckWords(
+        @PathVariable deckId: Long,
+        @RequestParam(required = false) cursor: Long?,
+    ): DeckWordListResponse {
+        return deckService.getDeckWords(currentUserId(), deckId, cursor)
+    }
+
+    private fun currentUserId(): Long =
+        SecurityContextHolder.getContext().authentication.principal as Long
 }

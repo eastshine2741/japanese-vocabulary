@@ -15,7 +15,6 @@ class UserSettingsService(
     fun getSettings(userId: Long): UserSettingsDTO {
         val data = userSettingsRepository.findByUserId(userId)?.settings ?: UserSettingsData()
         return UserSettingsDTO(
-            requestRetention = data.requestRetention,
             showIntervals = data.showIntervals,
             readingDisplay = data.readingDisplay,
             showKoreanPronunciation = data.showKoreanPronunciation,
@@ -26,7 +25,6 @@ class UserSettingsService(
 
     @Transactional
     fun updateSettings(userId: Long, dto: UserSettingsDTO): UserSettingsDTO {
-        require(dto.requestRetention in 0.7..0.99) { "requestRetention must be between 0.7 and 0.99" }
         require(dto.readingDisplay in listOf("KATAKANA", "HIRAGANA", "KOREAN")) {
             "readingDisplay must be KATAKANA, HIRAGANA, or KOREAN"
         }
@@ -34,7 +32,6 @@ class UserSettingsService(
         val entity = userSettingsRepository.findByUserId(userId)
             ?: UserSettingsEntity(userId = userId)
         entity.settings = UserSettingsData(
-            requestRetention = dto.requestRetention,
             showIntervals = dto.showIntervals,
             readingDisplay = dto.readingDisplay,
             showKoreanPronunciation = dto.showKoreanPronunciation,
@@ -43,7 +40,6 @@ class UserSettingsService(
         )
         userSettingsRepository.save(entity)
         return UserSettingsDTO(
-            requestRetention = entity.settings.requestRetention,
             showIntervals = entity.settings.showIntervals,
             readingDisplay = entity.settings.readingDisplay,
             showKoreanPronunciation = entity.settings.showKoreanPronunciation,

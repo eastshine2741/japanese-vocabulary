@@ -15,7 +15,10 @@ class KuromojiMorphologicalAnalyzer : MorphologicalAnalyzer {
             val posName = token.partOfSpeechLevel1
             val partOfSpeech = PartOfSpeech.fromJapaneseOrNull(posName) ?: return@mapNotNull null
             val surface = token.surface
-            val baseForm = token.baseForm
+            // Kuromoji returns "*" for OOV tokens (proper nouns, onomatopoeia,
+            // slang). Fall back to surface so downstream consumers don't see
+            // a meaningless "*" sentinel. Mirrors the UniDic analyzer.
+            val baseForm = token.baseForm.takeIf { it != "*" } ?: surface
             val reading = token.reading.takeIf { it != "*" }
             val baseFormReading = if (surface == baseForm) {
                 reading

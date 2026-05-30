@@ -30,7 +30,7 @@ import { getErrorMessage } from '../../utils/errorMessages';
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 const PAGE_SIZE = 9; // 3x3 per page
-const MAX_PAGES = 2;
+const MAX_PAGES = 3;
 
 export default function HomeTab() {
   const navigation = useNavigation<Nav>();
@@ -86,7 +86,7 @@ export default function HomeTab() {
     if (due > 0) {
       return (
         <View style={styles.actionCard}>
-          <Text style={styles.actionLabel}>복습할 단어 {due}개</Text>
+          <Text style={styles.actionLabel}>복습할 단어가 {due}개 있어요</Text>
           <TouchableOpacity
             style={styles.actionButton}
             onPress={() => navigation.navigate('Review', {})}
@@ -128,7 +128,7 @@ export default function HomeTab() {
 
     return (
       <View style={styles.actionCard}>
-        <Text style={styles.actionLabel}>좋아하는 일본 노래로 시작하기</Text>
+        <Text style={styles.actionLabel}>좋아하는 노래로 시작해보세요</Text>
         <TouchableOpacity
           style={styles.actionButton}
           onPress={() => navigation.navigate('Search')}
@@ -206,18 +206,45 @@ export default function HomeTab() {
     return (
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.container}>
-          <View style={{ paddingHorizontal: Dimens.screenPadding }}>
-            <View style={styles.searchBar}>
-              <Feather name="search" size={18} color={Colors.textMuted} />
-              <Text style={styles.searchPlaceholder}>노래 검색...</Text>
-            </View>
-          </View>
-          <View style={styles.skeletonGrid}>
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <View key={i} style={styles.skeletonCard}>
-                <SkeletonBox height={100} borderRadius={16} />
+          <View style={styles.list}>
+            <View style={styles.headerContainer}>
+              <View style={styles.searchBar}>
+                <Feather name="search" size={18} color={Colors.textMuted} />
+                <Text style={styles.searchPlaceholder}>노래 검색...</Text>
               </View>
-            ))}
+
+              <View style={styles.actionCardSkeleton}>
+                <SkeletonBox width={160} height={16} borderRadius={6} />
+                <SkeletonBox height={44} borderRadius={24} />
+              </View>
+
+              <View style={styles.statsRowSkeleton}>
+                <View style={styles.statsLeftSkeleton}>
+                  <SkeletonBox width={26} height={26} borderRadius={13} />
+                  <SkeletonBox width={90} height={20} borderRadius={6} />
+                </View>
+                <View style={styles.statsRightSkeleton}>
+                  {Array.from({ length: 7 }).map((_, i) => (
+                    <SkeletonBox key={i} width={9} height={9} borderRadius={4.5} />
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.recentSection}>
+                <SkeletonBox width={120} height={20} borderRadius={6} />
+                <View style={styles.skeletonGrid}>
+                  {[0, 1, 2].map((row) => (
+                    <View key={row} style={styles.gridRow}>
+                      {[0, 1, 2].map((col) => (
+                        <View key={col} style={styles.skeletonCard}>
+                          <SkeletonBox height="100%" borderRadius={16} />
+                        </View>
+                      ))}
+                    </View>
+                  ))}
+                </View>
+              </View>
+            </View>
           </View>
         </View>
       </SafeAreaView>
@@ -339,11 +366,22 @@ const styles = StyleSheet.create({
   },
   dot: { width: 7, height: 7, borderRadius: 3.5 },
   skeletonGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: Dimens.screenPadding,
     gap: 6,
-    marginTop: 24,
   },
-  skeletonCard: { width: '31%', aspectRatio: 1 },
+  skeletonCard: { flex: 1, aspectRatio: 1 },
+  actionCardSkeleton: {
+    backgroundColor: Colors.elevated,
+    borderRadius: 16,
+    padding: 16,
+    alignItems: 'center',
+    gap: 12,
+  },
+  statsRowSkeleton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+  },
+  statsLeftSkeleton: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  statsRightSkeleton: { flexDirection: 'row', alignItems: 'center', gap: 6 },
 });

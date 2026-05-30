@@ -1,35 +1,96 @@
 package com.japanese.vocabulary.auth.service
 
+import com.japanese.vocabulary.auth.dto.AuthResponse
+import com.japanese.vocabulary.auth.dto.UsernameAvailabilityResponse
 import com.japanese.vocabulary.auth.jwt.JwtUtil
 import com.japanese.vocabulary.common.exception.BusinessException
 import com.japanese.vocabulary.common.exception.ErrorCode
 import com.japanese.vocabulary.user.entity.UserEntity
 import com.japanese.vocabulary.user.repository.UserRepository
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
+import com.japanese.vocabulary.user.service.UsernamePolicy
+import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Service
+
+sealed class GoogleLoginResult {
+    data class Authenticated(val auth: AuthResponse) : GoogleLoginResult()
+    data class NeedsSignup(val identity: VerifiedGoogleIdentity) : GoogleLoginResult()
+}
 
 @Service
 class AuthService(
     private val userRepository: UserRepository,
+    private val googleOidcService: GoogleOidcService,
     private val jwtUtil: JwtUtil
 ) {
-    private val passwordEncoder = BCryptPasswordEncoder()
-
-    fun signup(name: String, password: String): String {
-        if (userRepository.findByName(name) != null) {
-            throw BusinessException(ErrorCode.DUPLICATE_NAME)
-        }
-        val hashed = passwordEncoder.encode(password)
-        val user = userRepository.save(UserEntity(name = name, password = hashed))
-        return jwtUtil.generateToken(user.id!!, user.name)
+    fun googleLogin(idToken: String): GoogleLoginResult {
+        val identity = googleOidcService.verify(idToken)
+        val existing = userRepository.findByProviderAndProviderSub(GOOGLE, identity.sub)
+            ?: return GoogleLoginResult.NeedsSignup(identity)
+        existing.email = identity.email ?: existing.email
+        val saved = userRepository.save(existing)
+        return GoogleLoginResult.Authenticated(saved.toAuthResponse())
     }
 
-    fun login(name: String, password: String): String {
-        val user = userRepository.findByName(name)
-            ?: throw BusinessException(ErrorCode.INVALID_CREDENTIALS)
-        if (!passwordEncoder.matches(password, user.password)) {
-            throw BusinessException(ErrorCode.INVALID_CREDENTIALS)
+    fun signup(idToken: String, username: String, displayName: String?): AuthResponse {
+        val identity = googleOidcService.verify(idToken)
+        val normalizedUsername = UsernamePolicy.normalize(username)
+        UsernamePolicy.validate(normalizedUsername)
+
+        // Idempotency: if a row already exists for this Google identity (e.g. retry / double-tap),
+        // reuse it instead of failing on the (provider, sub) unique constraint.
+        userRepository.findByProviderAndProviderSub(GOOGLE, identity.sub)?.let {
+            return it.toAuthResponse()
         }
-        return jwtUtil.generateToken(user.id!!, user.name)
+
+        val cleanedDisplayName = displayName?.trim()?.takeIf { it.isNotEmpty() }
+        return try {
+            userRepository.save(
+                UserEntity(
+                    provider = GOOGLE,
+                    providerSub = identity.sub,
+                    username = normalizedUsername,
+                    email = identity.email,
+                    name = cleanedDisplayName
+                )
+            ).toAuthResponse()
+        } catch (e: DataIntegrityViolationException) {
+            // Either username collided, or another concurrent first sign-in won the (provider, sub)
+            // race for this Google account. Distinguish by querying.
+            userRepository.findByProviderAndProviderSub(GOOGLE, identity.sub)?.let {
+                return it.toAuthResponse()
+            }
+            if (userRepository.findByUsername(normalizedUsername) != null) {
+                throw BusinessException(ErrorCode.USERNAME_TAKEN)
+            }
+            throw e
+        }
+    }
+
+    fun checkUsername(username: String, currentUserId: Long? = null): UsernameAvailabilityResponse {
+        val normalized = UsernamePolicy.normalize(username)
+        if (!UsernamePolicy.REGEX.matches(normalized)) {
+            return UsernameAvailabilityResponse(false, UsernameAvailabilityResponse.REASON_INVALID_FORMAT)
+        }
+        if (normalized in UsernamePolicy.RESERVED) {
+            return UsernameAvailabilityResponse(false, UsernameAvailabilityResponse.REASON_RESERVED)
+        }
+        val owner = userRepository.findByUsername(normalized)
+        if (owner != null && owner.id != currentUserId) {
+            return UsernameAvailabilityResponse(false, UsernameAvailabilityResponse.REASON_TAKEN)
+        }
+        return UsernameAvailabilityResponse(true)
+    }
+
+    private fun UserEntity.toAuthResponse(): AuthResponse {
+        val jwtLabel = name ?: username
+        return AuthResponse(
+            token = jwtUtil.generateToken(id!!, jwtLabel),
+            username = username,
+            name = name,
+        )
+    }
+
+    private companion object {
+        const val GOOGLE = "google"
     }
 }

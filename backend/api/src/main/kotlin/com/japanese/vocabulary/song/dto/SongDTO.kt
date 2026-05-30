@@ -3,5 +3,7 @@ package com.japanese.vocabulary.song.dto
 data class SongDTO(
     val song: SongInfo,
     val studyUnits: List<StudyUnit>,
-    val youtubeUrl: String?
+    val youtubeUrl: String?,
+    val lyricsSourceName: String?,
+    val lyricsSourceUrl: String?,
 )

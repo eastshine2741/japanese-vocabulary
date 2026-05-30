@@ -4,6 +4,8 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import PillTabBar from '../components/PillTabBar';
 
 import LoginScreen from '../screens/LoginScreen';
+import SignupScreen from '../screens/SignupScreen';
+import ProfileEditScreen from '../screens/ProfileEditScreen';
 import SearchScreen from '../screens/SearchScreen';
 import PlayerScreen from '../screens/PlayerScreen';
 import ReviewScreen from '../screens/ReviewScreen';
@@ -11,6 +13,7 @@ import DeckDetailScreen from '../screens/DeckDetailScreen';
 import DeckWordListScreen from '../screens/DeckWordListScreen';
 import EditWordScreen from '../screens/EditWordScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import OssLicenseScreen from '../screens/OssLicenseScreen';
 
 import HomeTab from '../screens/tabs/HomeTab';
 import WordTab from '../screens/tabs/WordTab';
@@ -21,13 +24,16 @@ import { Token } from '../types/song';
 
 export type RootStackParamList = {
   Login: undefined;
+  Signup: { idToken: string; email: string | null; googleName: string | null };
+  ProfileEdit: undefined;
   Main: undefined;
   Search: undefined;
   Settings: undefined;
+  OssLicense: undefined;
   Player: { origin: string; initialSeekMs?: number; initialLyricIndex?: number };
   Review: { songId?: number | null };
-  DeckDetail: { songId: number | null };
-  DeckWordList: { songId: number | null };
+  DeckDetail: { deckId: number | null };
+  DeckWordList: { deckId: number | null };
   EditWord: {
     mode: 'edit' | 'createAndEdit';
     wordId?: number;
@@ -74,9 +80,12 @@ export default function AppNavigator({ initialRoute }: Props) {
       screenOptions={{ headerShown: false }}
     >
       <Stack.Screen name="Login" component={LoginScreen} />
+      <Stack.Screen name="Signup" component={SignupScreen} />
+      <Stack.Screen name="ProfileEdit" component={ProfileEditScreen} />
       <Stack.Screen name="Main" component={MainTabs} />
       <Stack.Screen name="Search" component={SearchScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
+      <Stack.Screen name="OssLicense" component={OssLicenseScreen} />
       <Stack.Screen name="Player" component={PlayerScreen} options={{ presentation: 'transparentModal', animation: 'slide_from_bottom' }} />
       <Stack.Screen name="Review" component={ReviewScreen} />
       <Stack.Screen name="DeckDetail" component={DeckDetailScreen} />

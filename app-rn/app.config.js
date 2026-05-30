@@ -10,40 +10,54 @@ function resolveNamespace() {
   }
 }
 
+const isProd = process.env.BUILD_ENV === 'prod';
+const versionName = process.env.BUILD_VERSION_NAME ?? '1.0.0';
+const versionCodeEnv = process.env.BUILD_VERSION_CODE;
+const versionCode = versionCodeEnv ? parseInt(versionCodeEnv, 10) : undefined;
+
 const namespace = resolveNamespace();
 const suffix = `.${namespace.replace(/[^a-z0-9]/g, '')}`;
-const label = namespace !== 'main' ? ` (${namespace})` : '';
+const label = isProd ? '' : namespace !== 'main' ? ` (${namespace})` : '-dev';
+
+const packageName = isProd
+  ? 'dev.eastshine.kotonoha'
+  : `dev.eastshine.kotonoha${suffix}`;
 
 export default {
   expo: {
-    name: `app-rn${label}`,
+    name: `코토노하${label}`,
     slug: 'app-rn',
-    version: '1.0.0',
+    version: versionName,
     orientation: 'portrait',
     icon: './assets/icon.png',
     userInterfaceStyle: 'light',
-    splash: {
-      image: './assets/splash-icon.png',
-      resizeMode: 'contain',
-      backgroundColor: '#ffffff',
-    },
     ios: {
       supportsTablet: true,
     },
     android: {
       adaptiveIcon: {
-        backgroundColor: '#E6F4FE',
-        foregroundImage: './assets/android-icon-foreground.png',
-        backgroundImage: './assets/android-icon-background.png',
-        monochromeImage: './assets/android-icon-monochrome.png',
+        backgroundColor: '#52B788',
+        foregroundImage: './assets/adaptive-icon.png',
       },
       predictiveBackGestureEnabled: false,
-      package: `com.anonymous.apprn${suffix}`,
+      package: packageName,
+      ...(versionCode !== undefined ? { versionCode } : {}),
       usesCleartextTraffic: true,
     },
     web: {
       favicon: './assets/favicon.png',
     },
-    plugins: ['./plugins/withReleaseSigning'],
+    plugins: [
+      './plugins/withReleaseSigning',
+      '@react-native-google-signin/google-signin',
+      [
+        'expo-splash-screen',
+        {
+          image: './assets/icon.png',
+          resizeMode: 'contain',
+          backgroundColor: '#ffffff',
+        },
+      ],
+    ],
   },
 };
