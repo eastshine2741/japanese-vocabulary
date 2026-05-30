@@ -25,7 +25,7 @@ import org.springframework.test.web.servlet.get
 import org.springframework.test.web.servlet.post
 
 @AutoConfigureMockMvc
-class AuthIntegrationTest : ApiBaseIntegrationTest() {
+class AuthControllerTest : ApiBaseIntegrationTest() {
 
     @Autowired private lateinit var mockMvc: MockMvc
     @Autowired private lateinit var objectMapper: ObjectMapper
