@@ -19645,690 +19645,6 @@
     },
     {
       "type": "frame",
-      "id": "MidyV",
-      "x": 908,
-      "y": -3073,
-      "name": "Logo Concepts",
-      "width": 1880,
-      "height": 830,
-      "fill": "#FAFAFA",
-      "cornerRadius": 24,
-      "layout": "vertical",
-      "gap": 40,
-      "padding": 60,
-      "children": [
-        {
-          "type": "frame",
-          "id": "QUR5q",
-          "width": "fill_container",
-          "layout": "vertical",
-          "gap": 4,
-          "children": [
-            {
-              "type": "text",
-              "id": "bVLEL",
-              "fill": "#1A1A1A",
-              "content": "Logo Concepts — Kotonoha (言の葉)",
-              "fontFamily": "Funnel Sans",
-              "fontSize": 24,
-              "fontWeight": "700"
-            },
-            {
-              "type": "text",
-              "id": "zpfdV",
-              "fill": "#666666",
-              "content": "Music + Japanese + leaves of words",
-              "fontFamily": "Inter",
-              "fontSize": 14,
-              "fontWeight": "normal"
-            }
-          ]
-        },
-        {
-          "type": "frame",
-          "id": "gV7je",
-          "width": "fill_container",
-          "gap": 28,
-          "children": [
-            {
-              "type": "frame",
-              "id": "YwEft",
-              "width": "fill_container",
-              "fill": "#FFFFFF",
-              "cornerRadius": 16,
-              "stroke": {
-                "thickness": 1,
-                "fill": "#E5E5E5"
-              },
-              "layout": "vertical",
-              "gap": 16,
-              "padding": 16,
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "frame",
-                  "id": "QOtiN",
-                  "width": 200,
-                  "height": 200,
-                  "fill": "$accent.primary",
-                  "cornerRadius": 44,
-                  "effect": {
-                    "type": "shadow",
-                    "shadowType": "outer",
-                    "color": "$accent-primary-shadow",
-                    "offset": {
-                      "x": 0,
-                      "y": 12
-                    },
-                    "blur": 32
-                  },
-                  "justifyContent": "center",
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "AZl9h",
-                      "width": 140,
-                      "height": 140,
-                      "layout": "none",
-                      "children": [
-                        {
-                          "type": "icon_font",
-                          "id": "VnHxw",
-                          "x": 5,
-                          "y": 5,
-                          "enabled": false,
-                          "width": 130,
-                          "height": 130,
-                          "iconFontName": "music-3",
-                          "iconFontFamily": "lucide",
-                          "fill": "#FFFFFF"
-                        },
-                        {
-                          "type": "path",
-                          "id": "b7URv",
-                          "x": 0,
-                          "y": 0,
-                          "geometry": "M95 8c17-3 37 4 45 22 5 20-8 40-30 40-5 0-8-3-10-5l0 23c10 17 20 42 15 70-15 27-55 34-85 17-25-17-35-53-22-83 14-27 52-37 84-27 3 0 3-1 3-5-3-10-3-30 0-52z m-5 102c-25-10-52-2-58 22-4 23 18 40 43 36 20-3 25-28 17-46-1-4-2-9-2-12z m0 0c-10 3-17 12-15 22 3 10 17 10 17-2 0-8-1-14-2-20z",
-                          "fillRule": "evenodd",
-                          "viewBox": [
-                            0,
-                            0,
-                            140,
-                            200
-                          ],
-                          "fill": "#FFFFFF",
-                          "width": 140,
-                          "height": 200
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "TZP2E",
-                  "width": "fill_container",
-                  "layout": "vertical",
-                  "gap": 4,
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "dIjn5",
-                      "fill": "#1A1A1A",
-                      "textGrowth": "fixed-width",
-                      "width": "fill_container",
-                      "content": "01 · のote",
-                      "textAlign": "center",
-                      "fontFamily": "Funnel Sans",
-                      "fontSize": 14,
-                      "fontWeight": "700"
-                    },
-                    {
-                      "type": "text",
-                      "id": "EgO0F",
-                      "fill": "#666666",
-                      "textGrowth": "fixed-width",
-                      "width": "fill_container",
-                      "content": "Hiragana の serving as the eighth note's head",
-                      "textAlign": "center",
-                      "fontFamily": "Inter",
-                      "fontSize": 11,
-                      "fontWeight": "normal"
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "Z1nQMI",
-              "width": "fill_container",
-              "fill": "#FFFFFF",
-              "cornerRadius": 16,
-              "stroke": {
-                "thickness": 1,
-                "fill": "#E5E5E5"
-              },
-              "layout": "vertical",
-              "gap": 16,
-              "padding": 16,
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "frame",
-                  "id": "i66VF",
-                  "width": 200,
-                  "height": 200,
-                  "fill": "$accent.primary",
-                  "cornerRadius": 44,
-                  "effect": {
-                    "type": "shadow",
-                    "shadowType": "outer",
-                    "color": "$accent-primary-shadow",
-                    "offset": {
-                      "x": 0,
-                      "y": 12
-                    },
-                    "blur": 32
-                  },
-                  "justifyContent": "center",
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "We5AV",
-                      "width": 140,
-                      "height": 140,
-                      "layout": "none",
-                      "children": [
-                        {
-                          "type": "icon_font",
-                          "id": "RAJZw",
-                          "x": 0,
-                          "y": 0,
-                          "width": 140,
-                          "height": 140,
-                          "iconFontName": "leaf",
-                          "iconFontFamily": "lucide",
-                          "fill": "#FFFFFF40"
-                        },
-                        {
-                          "type": "icon_font",
-                          "id": "hSkSg",
-                          "x": 22,
-                          "y": 22,
-                          "width": 96,
-                          "height": 96,
-                          "iconFontName": "audio-lines",
-                          "iconFontFamily": "lucide",
-                          "fill": "$foreground.inverse"
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "KNGC0",
-                  "width": "fill_container",
-                  "layout": "vertical",
-                  "gap": 4,
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "YreQh",
-                      "fill": "#1A1A1A",
-                      "textGrowth": "fixed-width",
-                      "width": "fill_container",
-                      "content": "02 · Equalizer Leaf",
-                      "textAlign": "center",
-                      "fontFamily": "Funnel Sans",
-                      "fontSize": 14,
-                      "fontWeight": "700"
-                    },
-                    {
-                      "type": "text",
-                      "id": "B7uTD",
-                      "fill": "#666666",
-                      "textGrowth": "fixed-width",
-                      "width": "fill_container",
-                      "content": "Audio bars forming a leaf silhouette",
-                      "textAlign": "center",
-                      "fontFamily": "Inter",
-                      "fontSize": 11,
-                      "fontWeight": "normal"
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "YPFND",
-              "width": "fill_container",
-              "fill": "#FFFFFF",
-              "cornerRadius": 16,
-              "stroke": {
-                "thickness": 1,
-                "fill": "#E5E5E5"
-              },
-              "layout": "vertical",
-              "gap": 16,
-              "padding": 16,
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "frame",
-                  "id": "hzAmT",
-                  "width": 200,
-                  "height": 200,
-                  "fill": "$accent.primary",
-                  "cornerRadius": 44,
-                  "effect": {
-                    "type": "shadow",
-                    "shadowType": "outer",
-                    "color": "$accent-primary-shadow",
-                    "offset": {
-                      "x": 0,
-                      "y": 12
-                    },
-                    "blur": 32
-                  },
-                  "justifyContent": "center",
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "k95SQ",
-                      "width": 140,
-                      "height": 140,
-                      "layout": "none",
-                      "children": [
-                        {
-                          "type": "icon_font",
-                          "id": "evSMD",
-                          "x": -5,
-                          "y": -5,
-                          "width": 150,
-                          "height": 150,
-                          "iconFontName": "disc",
-                          "iconFontFamily": "lucide",
-                          "fill": "#FFFFFF"
-                        },
-                        {
-                          "type": "icon_font",
-                          "id": "fsvbO",
-                          "x": 45,
-                          "y": 45,
-                          "width": 50,
-                          "height": 50,
-                          "iconFontName": "leaf",
-                          "iconFontFamily": "lucide",
-                          "fill": "$accent.primary"
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "XhVGc",
-                  "width": "fill_container",
-                  "layout": "vertical",
-                  "gap": 4,
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "W3BCPH",
-                      "fill": "#1A1A1A",
-                      "textGrowth": "fixed-width",
-                      "width": "fill_container",
-                      "content": "03 · Vinyl Leaf",
-                      "textAlign": "center",
-                      "fontFamily": "Funnel Sans",
-                      "fontSize": 14,
-                      "fontWeight": "700"
-                    },
-                    {
-                      "type": "text",
-                      "id": "A5J3Kv",
-                      "fill": "#666666",
-                      "textGrowth": "fixed-width",
-                      "width": "fill_container",
-                      "content": "Vinyl record with a leaf at the center",
-                      "textAlign": "center",
-                      "fontFamily": "Inter",
-                      "fontSize": 11,
-                      "fontWeight": "normal"
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "type": "frame",
-          "id": "aEqSM",
-          "name": "rowB",
-          "width": "fill_container",
-          "gap": 28,
-          "children": [
-            {
-              "type": "frame",
-              "id": "lY9oU",
-              "width": "fill_container",
-              "fill": "#FFFFFF",
-              "cornerRadius": 16,
-              "stroke": {
-                "thickness": 1,
-                "fill": "#E5E5E5"
-              },
-              "layout": "vertical",
-              "gap": 16,
-              "padding": 16,
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "frame",
-                  "id": "qaS75",
-                  "width": 200,
-                  "height": 200,
-                  "fill": "$accent.primary",
-                  "cornerRadius": 44,
-                  "effect": {
-                    "type": "shadow",
-                    "shadowType": "outer",
-                    "color": "$accent-primary-shadow",
-                    "offset": {
-                      "x": 0,
-                      "y": 12
-                    },
-                    "blur": 32
-                  },
-                  "justifyContent": "center",
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "Mgwcl",
-                      "layout": "vertical",
-                      "gap": 2,
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "K1ued",
-                          "fill": "$foreground.inverse",
-                          "content": "言の葉",
-                          "fontFamily": "Funnel Sans",
-                          "fontSize": 48,
-                          "fontWeight": "700",
-                          "letterSpacing": -1
-                        },
-                        {
-                          "type": "frame",
-                          "id": "SD6kA",
-                          "gap": 6,
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "icon_font",
-                              "id": "qFNHG",
-                              "width": 14,
-                              "height": 14,
-                              "iconFontName": "music-2",
-                              "iconFontFamily": "lucide",
-                              "fill": "$foreground.inverse"
-                            },
-                            {
-                              "type": "text",
-                              "id": "FpIvB",
-                              "fill": "#FFFFFFCC",
-                              "content": "kotonoha",
-                              "fontFamily": "Inter",
-                              "fontSize": 11,
-                              "fontWeight": "500",
-                              "letterSpacing": 1.5
-                            }
-                          ]
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "h9ghkq",
-                  "width": "fill_container",
-                  "layout": "vertical",
-                  "gap": 4,
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "k1xZqZ",
-                      "fill": "#1A1A1A",
-                      "textGrowth": "fixed-width",
-                      "width": "fill_container",
-                      "content": "04 · 言の葉 Wordmark",
-                      "textAlign": "center",
-                      "fontFamily": "Funnel Sans",
-                      "fontSize": 14,
-                      "fontWeight": "700"
-                    },
-                    {
-                      "type": "text",
-                      "id": "tE9cu",
-                      "fill": "#666666",
-                      "textGrowth": "fixed-width",
-                      "width": "fill_container",
-                      "content": "Japanese title with a singing note",
-                      "textAlign": "center",
-                      "fontFamily": "Inter",
-                      "fontSize": 11,
-                      "fontWeight": "normal"
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "t4aqI",
-              "width": "fill_container",
-              "fill": "#FFFFFF",
-              "cornerRadius": 16,
-              "stroke": {
-                "thickness": 1,
-                "fill": "#E5E5E5"
-              },
-              "layout": "vertical",
-              "gap": 16,
-              "padding": 16,
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "frame",
-                  "id": "q2PZir",
-                  "width": 200,
-                  "height": 200,
-                  "fill": "$accent.primary",
-                  "cornerRadius": 44,
-                  "effect": {
-                    "type": "shadow",
-                    "shadowType": "outer",
-                    "color": "$accent-primary-shadow",
-                    "offset": {
-                      "x": 0,
-                      "y": 12
-                    },
-                    "blur": 32
-                  },
-                  "justifyContent": "center",
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "ccrh5",
-                      "width": 140,
-                      "height": 140,
-                      "layout": "none",
-                      "children": [
-                        {
-                          "type": "icon_font",
-                          "id": "ZfSQr",
-                          "x": 5,
-                          "y": 18,
-                          "width": 130,
-                          "height": 130,
-                          "iconFontName": "cassette-tape",
-                          "iconFontFamily": "lucide",
-                          "fill": "#FFFFFF"
-                        },
-                        {
-                          "type": "icon_font",
-                          "id": "O7hFMs",
-                          "x": 51,
-                          "y": 51,
-                          "width": 38,
-                          "height": 38,
-                          "iconFontName": "leaf",
-                          "iconFontFamily": "lucide",
-                          "fill": "$accent.primary"
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "PH5CW",
-                  "width": "fill_container",
-                  "layout": "vertical",
-                  "gap": 4,
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "dx1GE",
-                      "fill": "#1A1A1A",
-                      "textGrowth": "fixed-width",
-                      "width": "fill_container",
-                      "content": "05 · Cassette + Leaf",
-                      "textAlign": "center",
-                      "fontFamily": "Funnel Sans",
-                      "fontSize": 14,
-                      "fontWeight": "700"
-                    },
-                    {
-                      "type": "text",
-                      "id": "gsMGP",
-                      "fill": "#666666",
-                      "textGrowth": "fixed-width",
-                      "width": "fill_container",
-                      "content": "Retro cassette with a leaf accent",
-                      "textAlign": "center",
-                      "fontFamily": "Inter",
-                      "fontSize": 11,
-                      "fontWeight": "normal"
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "P4Zde",
-              "width": "fill_container",
-              "fill": "#FFFFFF",
-              "cornerRadius": 16,
-              "stroke": {
-                "thickness": 1,
-                "fill": "#E5E5E5"
-              },
-              "layout": "vertical",
-              "gap": 16,
-              "padding": 16,
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "frame",
-                  "id": "rcCGB",
-                  "width": 200,
-                  "height": 200,
-                  "fill": "$accent.primary",
-                  "cornerRadius": 44,
-                  "effect": {
-                    "type": "shadow",
-                    "shadowType": "outer",
-                    "color": "$accent-primary-shadow",
-                    "offset": {
-                      "x": 0,
-                      "y": 12
-                    },
-                    "blur": 32
-                  },
-                  "justifyContent": "center",
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "j8TQT",
-                      "fill": "$foreground.inverse",
-                      "content": "の",
-                      "fontFamily": "Funnel Sans",
-                      "fontSize": 180,
-                      "fontWeight": "700"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "tKHJa",
-                  "width": "fill_container",
-                  "layout": "vertical",
-                  "gap": 4,
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "HHxFz",
-                      "fill": "#1A1A1A",
-                      "textGrowth": "fixed-width",
-                      "width": "fill_container",
-                      "content": "06 · の Hiragana",
-                      "textAlign": "center",
-                      "fontFamily": "Funnel Sans",
-                      "fontSize": 14,
-                      "fontWeight": "700"
-                    },
-                    {
-                      "type": "text",
-                      "id": "Y8zaF",
-                      "fill": "#666666",
-                      "textGrowth": "fixed-width",
-                      "width": "fill_container",
-                      "content": "Minimal mark from 言の葉",
-                      "textAlign": "center",
-                      "fontFamily": "Inter",
-                      "fontSize": 11,
-                      "fontWeight": "normal"
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "type": "frame",
       "id": "W2Q5rA",
       "x": 3620,
       "y": 3011,
@@ -21640,6 +20956,840 @@
                       "content": "확인"
                     }
                   }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "uMjgI",
+      "x": 7184,
+      "y": -2353,
+      "name": "Play Store Feature Graphic",
+      "clip": true,
+      "width": 1024,
+      "height": 500,
+      "fill": "#52B788",
+      "justifyContent": "center",
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "frame",
+          "id": "I8jm2",
+          "layout": "vertical",
+          "gap": 20,
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "icon_font",
+              "id": "bjGQ1",
+              "width": 80,
+              "height": 80,
+              "iconFontName": "leaf",
+              "iconFontFamily": "lucide",
+              "fill": "#FFFFFF"
+            },
+            {
+              "type": "text",
+              "id": "I548Y",
+              "name": "appName",
+              "fill": "#FFFFFF",
+              "content": "Kotonoha",
+              "fontFamily": "Inter",
+              "fontSize": 42,
+              "fontWeight": "700"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "DxjMU",
+      "x": 18235,
+      "y": -2353,
+      "name": "PlayStore Promo - Player Screen",
+      "clip": true,
+      "width": 1080,
+      "height": 1920,
+      "fill": {
+        "type": "gradient",
+        "gradientType": "linear",
+        "enabled": true,
+        "rotation": 180,
+        "size": {
+          "height": 1
+        },
+        "colors": [
+          {
+            "color": "#FFFFFF",
+            "position": 0
+          },
+          {
+            "color": "#F7FAF8",
+            "position": 0.5
+          },
+          {
+            "color": "#EEF5F1",
+            "position": 1
+          }
+        ]
+      },
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "ooNcU",
+          "name": "top-title-section",
+          "width": "fill_container",
+          "height": 516,
+          "layout": "vertical",
+          "gap": 17,
+          "padding": [
+            80,
+            60,
+            0,
+            60
+          ],
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "rectangle",
+              "cornerRadius": 2,
+              "id": "n9PAJM",
+              "name": "accent-line",
+              "fill": "#52B788",
+              "width": 48,
+              "height": 4
+            },
+            {
+              "type": "text",
+              "id": "FsTKN",
+              "name": "promo-title",
+              "fill": "#1A1A1A",
+              "content": "공부는 꾸준함이 생명",
+              "textAlign": "center",
+              "fontFamily": "Noto Sans KR",
+              "fontSize": 84,
+              "fontWeight": "700",
+              "letterSpacing": -0.5
+            },
+            {
+              "type": "text",
+              "id": "Sion7",
+              "name": "promo-subtitle",
+              "fill": "#666666",
+              "textGrowth": "fixed-width",
+              "width": 710,
+              "content": "매일 공부하는 뿌듯함을 느끼며 습관을 만들어가요",
+              "lineHeight": 1.5,
+              "textAlign": "center",
+              "fontFamily": "Noto Sans KR",
+              "fontSize": 34,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "uUXh9",
+          "name": "bottom-graphic-section",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "ellipse",
+              "id": "T9eBg",
+              "name": "accent-glow-left",
+              "fill": {
+                "type": "gradient",
+                "gradientType": "radial",
+                "enabled": true,
+                "rotation": 0,
+                "size": {
+                  "width": 1,
+                  "height": 1
+                },
+                "colors": [
+                  {
+                    "color": "#52B78815",
+                    "position": 0
+                  },
+                  {
+                    "color": "#52B78800",
+                    "position": 1
+                  }
+                ]
+              },
+              "width": 200,
+              "height": 200
+            },
+            {
+              "type": "frame",
+              "id": "nHA82",
+              "name": "phone-mockup-container",
+              "fill": {
+                "type": "color",
+                "color": "#FFFFFF00",
+                "enabled": false
+              },
+              "stroke": {
+                "thickness": 0,
+                "fill": "#00000000"
+              },
+              "layout": "vertical",
+              "children": [
+                {
+                  "type": "rectangle",
+                  "id": "nu2YE",
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "Screenshot_20260525_233437_Kotonoha-portrait.png",
+                    "mode": "fill"
+                  },
+                  "width": 739,
+                  "height": 1478
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "q8XmY",
+      "x": 12749,
+      "y": -2353,
+      "name": "PlayStore Promo - Player Screen",
+      "clip": true,
+      "width": 1080,
+      "height": 1920,
+      "fill": {
+        "type": "gradient",
+        "gradientType": "linear",
+        "enabled": true,
+        "rotation": 180,
+        "size": {
+          "height": 1
+        },
+        "colors": [
+          {
+            "color": "#FFFFFF",
+            "position": 0
+          },
+          {
+            "color": "#F7FAF8",
+            "position": 0.5
+          },
+          {
+            "color": "#EEF5F1",
+            "position": 1
+          }
+        ]
+      },
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "c0H8QP",
+          "name": "top-title-section",
+          "width": "fill_container",
+          "height": 516,
+          "layout": "vertical",
+          "gap": 17,
+          "padding": [
+            80,
+            60,
+            0,
+            60
+          ],
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "rectangle",
+              "cornerRadius": 2,
+              "id": "vtTI7",
+              "name": "accent-line",
+              "fill": "#52B788",
+              "width": 48,
+              "height": 4
+            },
+            {
+              "type": "text",
+              "id": "d90yc",
+              "name": "promo-title",
+              "fill": "#1A1A1A",
+              "content": "노래로 배우는 일본어",
+              "textAlign": "center",
+              "fontFamily": "Noto Sans KR",
+              "fontSize": 84,
+              "fontWeight": "700",
+              "letterSpacing": -0.5
+            },
+            {
+              "type": "text",
+              "id": "f5gRu",
+              "name": "promo-subtitle",
+              "fill": "#666666",
+              "textGrowth": "fixed-width",
+              "width": 544,
+              "content": "가사에 숨겨진 의미에 빠져들며 재미있게 공부해요",
+              "lineHeight": 1.5,
+              "textAlign": "center",
+              "fontFamily": "Noto Sans KR",
+              "fontSize": 40,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "QKX8P",
+          "name": "bottom-graphic-section",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "ellipse",
+              "id": "Tirai",
+              "name": "accent-glow-left",
+              "fill": {
+                "type": "gradient",
+                "gradientType": "radial",
+                "enabled": true,
+                "rotation": 0,
+                "size": {
+                  "width": 1,
+                  "height": 1
+                },
+                "colors": [
+                  {
+                    "color": "#52B78815",
+                    "position": 0
+                  },
+                  {
+                    "color": "#52B78800",
+                    "position": 1
+                  }
+                ]
+              },
+              "width": 200,
+              "height": 200
+            },
+            {
+              "type": "frame",
+              "id": "um0uE",
+              "name": "phone-mockup-container",
+              "fill": {
+                "type": "color",
+                "color": "#FFFFFF00",
+                "enabled": false
+              },
+              "stroke": {
+                "thickness": 0,
+                "fill": "#00000000"
+              },
+              "layout": "vertical",
+              "children": [
+                {
+                  "type": "rectangle",
+                  "id": "C4w4n",
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "Screenshot_20260525_232907_Kotonoha-portrait.png",
+                    "mode": "fill"
+                  },
+                  "width": 739,
+                  "height": 1478
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "spRDA",
+      "x": 14128,
+      "y": -2353,
+      "name": "PlayStore Promo - Player Screen",
+      "clip": true,
+      "width": 1080,
+      "height": 1920,
+      "fill": {
+        "type": "gradient",
+        "gradientType": "linear",
+        "enabled": true,
+        "rotation": 180,
+        "size": {
+          "height": 1
+        },
+        "colors": [
+          {
+            "color": "#FFFFFF",
+            "position": 0
+          },
+          {
+            "color": "#F7FAF8",
+            "position": 0.5
+          },
+          {
+            "color": "#EEF5F1",
+            "position": 1
+          }
+        ]
+      },
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "sbGWH",
+          "name": "top-title-section",
+          "width": "fill_container",
+          "height": 516,
+          "layout": "vertical",
+          "gap": 17,
+          "padding": [
+            80,
+            60,
+            0,
+            60
+          ],
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "rectangle",
+              "cornerRadius": 2,
+              "id": "weBHc",
+              "name": "accent-line",
+              "fill": "#52B788",
+              "width": 48,
+              "height": 4
+            },
+            {
+              "type": "text",
+              "id": "hALEP",
+              "name": "promo-title",
+              "fill": "#1A1A1A",
+              "content": "모르는 단어는 바로 단어장에",
+              "textAlign": "center",
+              "fontFamily": "Noto Sans KR",
+              "fontSize": 84,
+              "fontWeight": "700",
+              "letterSpacing": -0.5
+            },
+            {
+              "type": "text",
+              "id": "HUevZ",
+              "name": "promo-subtitle",
+              "fill": "#666666",
+              "textGrowth": "fixed-width",
+              "width": 734,
+              "content": "가사 속 모르는 단어, 탭 한 번으로\n뜻과 읽는 법까지",
+              "lineHeight": 1.5,
+              "textAlign": "center",
+              "fontFamily": "Noto Sans KR",
+              "fontSize": 40,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "VjtXA",
+          "name": "bottom-graphic-section",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "ellipse",
+              "id": "lV4bu",
+              "name": "accent-glow-left",
+              "fill": {
+                "type": "gradient",
+                "gradientType": "radial",
+                "enabled": true,
+                "rotation": 0,
+                "size": {
+                  "width": 1,
+                  "height": 1
+                },
+                "colors": [
+                  {
+                    "color": "#52B78815",
+                    "position": 0
+                  },
+                  {
+                    "color": "#52B78800",
+                    "position": 1
+                  }
+                ]
+              },
+              "width": 200,
+              "height": 200
+            },
+            {
+              "type": "frame",
+              "id": "XExrE",
+              "name": "phone-mockup-container",
+              "fill": {
+                "type": "color",
+                "color": "#FFFFFF00",
+                "enabled": false
+              },
+              "stroke": {
+                "thickness": 0,
+                "fill": "#00000000"
+              },
+              "layout": "vertical",
+              "children": [
+                {
+                  "type": "rectangle",
+                  "id": "WiAED",
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "Screenshot_20260525_233623_Kotonoha-portrait.png",
+                    "mode": "fill"
+                  },
+                  "width": 739,
+                  "height": 1478
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "GrYnU",
+      "x": 15507,
+      "y": -2353,
+      "name": "PlayStore Promo - Player Screen",
+      "clip": true,
+      "width": 1080,
+      "height": 1920,
+      "fill": {
+        "type": "gradient",
+        "gradientType": "linear",
+        "enabled": true,
+        "rotation": 180,
+        "size": {
+          "height": 1
+        },
+        "colors": [
+          {
+            "color": "#FFFFFF",
+            "position": 0
+          },
+          {
+            "color": "#F7FAF8",
+            "position": 0.5
+          },
+          {
+            "color": "#EEF5F1",
+            "position": 1
+          }
+        ]
+      },
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "f0OatC",
+          "name": "top-title-section",
+          "width": "fill_container",
+          "height": 516,
+          "layout": "vertical",
+          "gap": 17,
+          "padding": [
+            80,
+            60,
+            0,
+            60
+          ],
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "rectangle",
+              "cornerRadius": 2,
+              "id": "tcWAx",
+              "name": "accent-line",
+              "fill": "#52B788",
+              "width": 48,
+              "height": 4
+            },
+            {
+              "type": "text",
+              "id": "Vp3xN",
+              "name": "promo-title",
+              "fill": "#1A1A1A",
+              "content": "과학적인 복습 주기 관리",
+              "textAlign": "center",
+              "fontFamily": "Noto Sans KR",
+              "fontSize": 84,
+              "fontWeight": "700",
+              "letterSpacing": -0.5
+            },
+            {
+              "type": "text",
+              "id": "RlodL",
+              "name": "promo-subtitle",
+              "fill": "#666666",
+              "textGrowth": "fixed-width-height",
+              "width": 660,
+              "height": 95,
+              "content": "망각 곡선에 따라 자동으로 복습 일자가 정해지는 똑똑한 플래시카드",
+              "lineHeight": 1.5,
+              "textAlign": "center",
+              "fontFamily": "Noto Sans KR",
+              "fontSize": 40,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "Zr01j",
+          "name": "bottom-graphic-section",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "ellipse",
+              "id": "ng7fJ",
+              "name": "accent-glow-left",
+              "fill": {
+                "type": "gradient",
+                "gradientType": "radial",
+                "enabled": true,
+                "rotation": 0,
+                "size": {
+                  "width": 1,
+                  "height": 1
+                },
+                "colors": [
+                  {
+                    "color": "#52B78815",
+                    "position": 0
+                  },
+                  {
+                    "color": "#52B78800",
+                    "position": 1
+                  }
+                ]
+              },
+              "width": 200,
+              "height": 200
+            },
+            {
+              "type": "frame",
+              "id": "t8KseX",
+              "name": "phone-mockup-container",
+              "fill": {
+                "type": "color",
+                "color": "#FFFFFF00",
+                "enabled": false
+              },
+              "stroke": {
+                "thickness": 0,
+                "fill": "#00000000"
+              },
+              "layout": "vertical",
+              "children": [
+                {
+                  "type": "rectangle",
+                  "id": "rn2mF",
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "Screenshot_20260525_225139_Kotonoha-portrait.png",
+                    "mode": "fill"
+                  },
+                  "width": 739,
+                  "height": 1478
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "A6BUBk",
+      "x": 16852,
+      "y": -2353,
+      "name": "PlayStore Promo - Player Screen",
+      "clip": true,
+      "width": 1080,
+      "height": 1920,
+      "fill": {
+        "type": "gradient",
+        "gradientType": "linear",
+        "enabled": true,
+        "rotation": 180,
+        "size": {
+          "height": 1
+        },
+        "colors": [
+          {
+            "color": "#FFFFFF",
+            "position": 0
+          },
+          {
+            "color": "#F7FAF8",
+            "position": 0.5
+          },
+          {
+            "color": "#EEF5F1",
+            "position": 1
+          }
+        ]
+      },
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "fmAWt",
+          "name": "top-title-section",
+          "width": "fill_container",
+          "height": 516,
+          "layout": "vertical",
+          "gap": 17,
+          "padding": [
+            80,
+            60,
+            0,
+            60
+          ],
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "rectangle",
+              "cornerRadius": 2,
+              "id": "VyVYZ",
+              "name": "accent-line",
+              "fill": "#52B788",
+              "width": 48,
+              "height": 4
+            },
+            {
+              "type": "text",
+              "id": "OF5Kr",
+              "name": "promo-title",
+              "fill": "#1A1A1A",
+              "content": "AI가 즉시 가사 분석",
+              "textAlign": "center",
+              "fontFamily": "Noto Sans KR",
+              "fontSize": 84,
+              "fontWeight": "700",
+              "letterSpacing": -0.5
+            },
+            {
+              "type": "text",
+              "id": "VFnkQ",
+              "name": "promo-subtitle",
+              "fill": "#666666",
+              "textGrowth": "fixed-width",
+              "width": 500,
+              "content": "별도 신청 없이도 누구나 좋아하는 노래를 바로 공부할 수 있어요.",
+              "lineHeight": 1.5,
+              "textAlign": "center",
+              "fontFamily": "Noto Sans KR",
+              "fontSize": 34,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "IJ50V",
+          "name": "bottom-graphic-section",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "ellipse",
+              "id": "mKWqY",
+              "name": "accent-glow-left",
+              "fill": {
+                "type": "gradient",
+                "gradientType": "radial",
+                "enabled": true,
+                "rotation": 0,
+                "size": {
+                  "width": 1,
+                  "height": 1
+                },
+                "colors": [
+                  {
+                    "color": "#52B78815",
+                    "position": 0
+                  },
+                  {
+                    "color": "#52B78800",
+                    "position": 1
+                  }
+                ]
+              },
+              "width": 200,
+              "height": 200
+            },
+            {
+              "type": "frame",
+              "id": "oQ6t1",
+              "name": "phone-mockup-container",
+              "fill": {
+                "type": "color",
+                "color": "#FFFFFF00",
+                "enabled": false
+              },
+              "stroke": {
+                "thickness": 0,
+                "fill": "#00000000"
+              },
+              "layout": "vertical",
+              "children": [
+                {
+                  "type": "rectangle",
+                  "id": "G6PtJF",
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "Screenshot_20260525_235809_Kotonoha-portrait.png",
+                    "mode": "fill"
+                  },
+                  "width": 739,
+                  "height": 1478
                 }
               ]
             }
