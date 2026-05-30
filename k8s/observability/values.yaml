@@ -1,0 +1,104 @@
+fullnameOverride: kps
+
+crds:
+  enabled: true
+
+# ─────────────────────────────────────────────────────────────
+# Prometheus
+# ─────────────────────────────────────────────────────────────
+prometheus:
+  prometheusSpec:
+    retention: 15d
+    # 전체 ns의 ServiceMonitor/PodMonitor 픽업. selector는 release 라벨로만 필터.
+    serviceMonitorSelectorNilUsesHelmValues: false
+    serviceMonitorNamespaceSelector: {}
+    podMonitorSelectorNilUsesHelmValues: false
+    podMonitorNamespaceSelector: {}
+    ruleSelectorNilUsesHelmValues: false
+    ruleNamespaceSelector: {}
+    probeSelectorNilUsesHelmValues: false
+    probeNamespaceSelector: {}
+    resources:
+      requests:
+        cpu: 100m
+        memory: 512Mi
+      limits:
+        memory: 1Gi
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: hcloud-volumes
+          accessModes: [ReadWriteOnce]
+          resources:
+            requests:
+              storage: 10Gi
+
+# ─────────────────────────────────────────────────────────────
+# Alertmanager — enabled, no routing yet (룰 모음용)
+# ─────────────────────────────────────────────────────────────
+alertmanager:
+  enabled: true
+  alertmanagerSpec:
+    resources:
+      requests:
+        cpu: 20m
+        memory: 64Mi
+      limits:
+        memory: 128Mi
+
+# ─────────────────────────────────────────────────────────────
+# Grafana — internal only (port-forward 접근)
+# ─────────────────────────────────────────────────────────────
+grafana:
+  # adminPassword는 install.sh의 --set-string으로 주입
+  defaultDashboardsTimezone: Asia/Seoul
+  service:
+    type: ClusterIP
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 256Mi
+  persistence:
+    enabled: true
+    type: pvc
+    storageClassName: hcloud-volumes
+    accessModes: [ReadWriteOnce]
+    size: 10Gi
+
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+        - name: default
+          orgId: 1
+          folder: ''
+          type: file
+          disableDeletion: false
+          editable: true
+          options:
+            path: /var/lib/grafana/dashboards/default
+
+  dashboards:
+    default:
+      jvm-micrometer:
+        gnetId: 4701
+        revision: 10
+        datasource: Prometheus
+      spring-boot-3:
+        gnetId: 19004
+        revision: 1
+        datasource: Prometheus
+
+# ─────────────────────────────────────────────────────────────
+# 끄거나 가벼운 컴포넌트
+# ─────────────────────────────────────────────────────────────
+kubeEtcd:
+  enabled: false           # k3s는 sqlite/embedded etcd 기본 — 스크랩 불가
+kubeControllerManager:
+  enabled: false           # k3s는 control plane 컴포넌트 노출 안 함
+kubeScheduler:
+  enabled: false
+kubeProxy:
+  enabled: false
