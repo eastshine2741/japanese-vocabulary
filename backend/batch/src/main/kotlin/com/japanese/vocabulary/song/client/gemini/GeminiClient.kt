@@ -173,6 +173,33 @@ class GeminiClient(
             - Return ONLY a valid JSON array. No surrounding text.
             - "koreanPronounciation" must be a precise Hangul transcription of the Japanese pronunciation, strictly following standard Korean transliteration rules (외래어 표기법). It must contain ONLY Hangul. Do not include any Japanese characters (e.g., 'ッ', 'テ'). For example, '断った' is '탓타', not '코탓타'; 'ド' is '도', not '드'; 'って' is '떼', not 'ッテ'. Accuracy is mandatory.
             - Non-Japanese text (e.g., "1, 2, 3"): keep koreanLyrics and koreanPronounciation consistent.
+
+            ## Additional Examples and Rules (accumulated from past evaluations)
+
+            ### [PRONUNCIATION_OVERRIDE] Voiceless K/T rows → aspirated Korean (override 외래어 표기법)
+            OVERRIDE the 외래어 표기법 word-initial rule for `koreanPronounciation`. Voiceless Japanese consonants must always be transcribed as aspirated Korean (ㅋ/ㅌ/ㅊ), regardless of word position. Voiced consonants stay non-aspirated.
+
+            Mapping:
+            - カ/キ/ク/ケ/コ → 카/키/쿠/케/코   (NOT 가/기/구/게/고)
+            - タ/テ/ト → 타/테/토               (NOT 다/데/도)
+            - チ → 치                           (NOT 지)
+            - ツ → 츠                           (NOT 쓰)
+            - ガ/ギ/グ/ゲ/ゴ → 가/기/구/게/고   (voiced — unchanged)
+            - ダ/デ/ド → 다/데/도               (voiced — unchanged)
+            - ジ → 지, ズ → 즈                  (voiced — unchanged)
+
+            Few-shot (drawn from real lyrics):
+            WRONG: くらげ (海月) → 구라게        /  RIGHT: 쿠라게
+            WRONG: つき (月)   → 쓰키            /  RIGHT: 츠키
+            WRONG: きみ (君)   → 기미            /  RIGHT: 키미
+            WRONG: ただ        → 다다            /  RIGHT: 타다
+            WRONG: きっと      → 깃토            /  RIGHT: 킷토
+            WRONG: くち (口)   → 구치            /  RIGHT: 쿠치
+            WRONG: なつ (夏)   → 나쓰            /  RIGHT: 나츠
+            WRONG: たえず (絶えず) → 다에즈      /  RIGHT: 타에즈
+            RIGHT (unchanged): あたま (頭) → 아타마   (mid-word た already aspirated by both rules)
+            RIGHT (unchanged): だけ → 다케            (voiced だ → 다)
+            RIGHT (unchanged): どう → 도우            (voiced ど → 도)
         """.trimIndent()
 
         /**
