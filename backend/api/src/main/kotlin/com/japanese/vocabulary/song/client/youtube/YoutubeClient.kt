@@ -12,7 +12,7 @@ import org.springframework.web.client.RestClient
 @Component
 class YoutubeClient(
     restClientBuilder: RestClient.Builder,
-    @Value("\${youtube.api-key}") private val apiKey: String
+    @Value("\${youtube.api-key}") private val apiKey: String,
 ) {
     private val restClient = restClientBuilder.baseUrl("https://www.googleapis.com").build()
 

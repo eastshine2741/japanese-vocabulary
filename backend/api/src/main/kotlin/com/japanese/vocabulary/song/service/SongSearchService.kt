@@ -1,49 +1,33 @@
 package com.japanese.vocabulary.song.service
 
-import com.fasterxml.jackson.databind.ObjectMapper
+import com.japanese.vocabulary.song.cache.SongSearchCache
 import com.japanese.vocabulary.song.client.itunes.ItunesClient
 import com.japanese.vocabulary.song.dto.SongSearchResponse
-import org.slf4j.LoggerFactory
-import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.stereotype.Service
 import java.text.Normalizer
-import java.time.Duration
 
 /**
- * Wraps [ItunesClient] with a Redis-backed search-result cache.
+ * Wraps [ItunesClient] with a search-result cache (see [SongSearchCache]).
  *
- * iTunes Search API enforces ~20 calls/min/IP. This cache absorbs the burst of
+ * iTunes Search API enforces ~20 calls/min/IP. The cache absorbs the burst of
  * duplicate queries that arrive within an hour — typically the same popular
- * songs queried by many users in a short window. On Redis failure we fall
- * through to a direct iTunes call so the search endpoint never goes dark.
+ * songs queried by many users in a short window. On cache failure the cache
+ * returns null and we fall through to a direct iTunes call so the search
+ * endpoint never goes dark.
  */
 @Service
 class SongSearchService(
     private val itunesClient: ItunesClient,
-    private val redisTemplate: StringRedisTemplate,
-    private val objectMapper: ObjectMapper
+    private val cache: SongSearchCache,
 ) {
-    private val logger = LoggerFactory.getLogger(SongSearchService::class.java)
-
     fun search(rawQuery: String): SongSearchResponse {
         val normalized = normalize(rawQuery)
         if (normalized.isBlank()) return SongSearchResponse(emptyList())
 
-        val key = CACHE_KEY_PREFIX + normalized
-        try {
-            redisTemplate.opsForValue().get(key)?.let { cached ->
-                return objectMapper.readValue(cached, SongSearchResponse::class.java)
-            }
-        } catch (e: Exception) {
-            logger.warn("Search cache read failed (key='{}'): {}", key, e.javaClass.simpleName)
-        }
+        cache.get(normalized)?.let { return it }
 
         val result = itunesClient.search(rawQuery)
-        try {
-            redisTemplate.opsForValue().set(key, objectMapper.writeValueAsString(result), CACHE_TTL)
-        } catch (e: Exception) {
-            logger.warn("Search cache write failed (key='{}'): {}", key, e.javaClass.simpleName)
-        }
+        cache.put(normalized, result)
         return result
     }
 
@@ -59,8 +43,6 @@ class SongSearchService(
             .lowercase()
 
     companion object {
-        private const val CACHE_KEY_PREFIX = "song-search:"
-        private val CACHE_TTL: Duration = Duration.ofHours(1)
         private val WHITESPACE_RE = Regex("\\s+")
     }
 }

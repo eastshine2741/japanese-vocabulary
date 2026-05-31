@@ -11,13 +11,13 @@ import org.springframework.web.reactive.function.client.WebClient
 
 @Component
 @Order(2)
-class VocadbClient : LyricProvider {
+class VocadbClient(webClientBuilder: WebClient.Builder) : LyricProvider {
 
     override val providerName = "VocaDB"
 
     private val logger = LoggerFactory.getLogger(VocadbClient::class.java)
 
-    private val webClient = WebClient.builder()
+    private val webClient = webClientBuilder.clone()
         .baseUrl("https://vocadb.net")
         .defaultHeader("User-Agent", "JapaneseVocabularyApp/1.0")
         .build()
