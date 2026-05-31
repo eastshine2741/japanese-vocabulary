@@ -18,7 +18,7 @@ import java.util.concurrent.atomic.AtomicLong
  * Step 자체는 service 호출 + JobParameters 추출만 담당하는 thin wrapper 이므로 별도 검증
  * 대상으로 두지 않는다.
  */
-class FreezeConsumeJobConfigTest : BatchBaseIntegrationTest() {
+class FreezeConsumeServiceTest : BatchBaseIntegrationTest() {
 
     @Autowired private lateinit var service: FreezeConsumeService
 
