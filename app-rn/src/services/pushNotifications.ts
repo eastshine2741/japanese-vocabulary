@@ -4,8 +4,22 @@ import * as Notifications from 'expo-notifications';
 import { flashcardApi } from '../api/flashcardApi';
 import { navigate } from '../navigation/navigationRef';
 
+const REVIEW_CHANNEL_ID = 'review-reminders';
+
 let currentToken: string | null = null;
 let handlersRegistered = false;
+
+async function ensureAndroidChannel(): Promise<void> {
+  if (Platform.OS !== 'android') return;
+  // HIGH importance is required for heads-up (slide-down) notifications. Default channel is LOW,
+  // which silently posts to the status bar.
+  await Notifications.setNotificationChannelAsync(REVIEW_CHANNEL_ID, {
+    name: '복습 알림',
+    importance: Notifications.AndroidImportance.HIGH,
+    vibrationPattern: [0, 250, 250, 250],
+    lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+  });
+}
 
 function getPlatform(): 'IOS' | 'ANDROID' {
   return Platform.OS === 'ios' ? 'IOS' : 'ANDROID';
@@ -64,9 +78,34 @@ function handleData(data: FirebaseMessagingTypes.RemoteMessage['data']): void {
   }
 }
 
+async function displayLocalNotification(
+  remoteMessage: FirebaseMessagingTypes.RemoteMessage,
+): Promise<void> {
+  const data = remoteMessage.data ?? {};
+  const title = typeof data.title === 'string' ? data.title : '';
+  const body = typeof data.body === 'string' ? data.body : '';
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title,
+      body,
+      data,
+      ...(Platform.OS === 'android' ? { channelId: REVIEW_CHANNEL_ID } : {}),
+    },
+    trigger: null,
+  });
+}
+
+// Module-scope: must be registered BEFORE the runtime delivers a data-only push to a killed or
+// backgrounded app. Importing this module from App.tsx ensures the handler is set during JS init.
+messaging().setBackgroundMessageHandler(async (remoteMessage) => {
+  await displayLocalNotification(remoteMessage);
+});
+
 export function registerNotificationHandlers(): void {
   if (handlersRegistered) return;
   handlersRegistered = true;
+
+  ensureAndroidChannel();
 
   // Foreground display behaviour for expo-notifications local alerts
   Notifications.setNotificationHandler({
@@ -91,26 +130,14 @@ export function registerNotificationHandlers(): void {
     }
   });
 
+  // Foreground data-only arrival → render locally via expo-notifications
   messaging().onMessage(async (remoteMessage) => {
-    const title = remoteMessage.notification?.title ?? '';
-    const body = remoteMessage.notification?.body ?? '';
-    await Notifications.scheduleNotificationAsync({
-      content: { title, body, data: remoteMessage.data ?? {} },
-      trigger: null,
-    });
+    await displayLocalNotification(remoteMessage);
   });
 
-  messaging().onNotificationOpenedApp((remoteMessage) => {
-    handleData(remoteMessage.data);
-  });
-
-  messaging()
-    .getInitialNotification()
-    .then((remoteMessage) => {
-      if (remoteMessage) handleData(remoteMessage.data);
-    });
-
-  // expo-notifications: handle taps on locally-displayed (foreground) notifications
+  // Tap handler. Covers both foreground onMessage path and background
+  // setBackgroundMessageHandler path; expo-notifications also fires this for cold-start taps on a
+  // locally-displayed notification.
   Notifications.addNotificationResponseReceivedListener((response) => {
     const data = response.notification.request.content.data as
       | FirebaseMessagingTypes.RemoteMessage['data']

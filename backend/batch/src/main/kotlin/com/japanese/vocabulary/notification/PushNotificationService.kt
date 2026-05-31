@@ -1,5 +1,6 @@
 package com.japanese.vocabulary.notification
 
+import com.google.firebase.messaging.AndroidConfig
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.FirebaseMessagingException
 import com.google.firebase.messaging.Message
@@ -49,16 +50,20 @@ class PushNotificationService(
     private fun sendOne(candidate: NotificationCandidate): Boolean {
         val title = "${candidate.wordSurface}, 이 단어 기억나시나요?"
         val body = "잊어버리기 전에 잠깐 들러보세요."
+        // Data-only payload: the RN client renders the notification locally via expo-notifications
+        // (uniform foreground / background / cold-start path, with our HIGH-importance channel).
+        // `priority=high` makes Android wake the app for data messages instead of batching them.
         val message = Message.builder()
             .setToken(candidate.token)
-            .setNotification(
-                com.google.firebase.messaging.Notification.builder()
-                    .setTitle(title)
-                    .setBody(body)
+            .setAndroidConfig(
+                AndroidConfig.builder()
+                    .setPriority(AndroidConfig.Priority.HIGH)
                     .build()
             )
             .putData("type", "review_reminder")
             .putData("flashcardId", candidate.flashcardId.toString())
+            .putData("title", title)
+            .putData("body", body)
             .build()
 
         return try {

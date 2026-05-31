@@ -226,6 +226,7 @@ export default function SettingsScreen() {
           <View style={styles.row}>
             <View style={styles.rowText}>
               <Text style={styles.label}>복습 알림</Text>
+              <Text style={styles.description}>복습할 카드가 있을 때 알려드려요.</Text>
             </View>
             <Switch
               value={notificationsEnabled}
