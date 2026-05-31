@@ -34,4 +34,12 @@ export const flashcardApi = {
     const { data } = await client.put<UserSettingsDTO>('/api/settings', settings);
     return data;
   },
+
+  async registerDeviceToken(req: { token: string; platform: 'IOS' | 'ANDROID' }): Promise<void> {
+    await client.post('/api/users/me/device-tokens', req);
+  },
+
+  async unregisterDeviceToken(req: { token: string }): Promise<void> {
+    await client.delete('/api/users/me/device-tokens', { data: req });
+  },
 };

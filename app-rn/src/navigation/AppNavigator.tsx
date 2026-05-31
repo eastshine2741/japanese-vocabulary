@@ -31,7 +31,7 @@ export type RootStackParamList = {
   Settings: undefined;
   OssLicense: undefined;
   Player: { origin: string; initialSeekMs?: number; initialLyricIndex?: number };
-  Review: { songId?: number | null };
+  Review: { songId?: number | null; startFlashcardId?: number } | undefined;
   DeckDetail: { deckId: number | null };
   DeckWordList: { deckId: number | null };
   EditWord: {

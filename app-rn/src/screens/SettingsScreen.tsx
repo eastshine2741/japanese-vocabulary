@@ -20,6 +20,7 @@ import { useSettingsStore } from '../stores/settingsStore';
 import { userApi } from '../api/userApi';
 import { tokenStorage } from '../utils/tokenStorage';
 import { resetAllStores } from '../utils/resetAllStores';
+import { unregisterCurrentToken } from '../services/pushNotifications';
 import { Colors } from '../theme/theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import ServerURLDialog from '../components/ServerURLDialog';
@@ -33,18 +34,18 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 export default function SettingsScreen() {
   const navigation = useNavigation<Nav>();
   const {
-    status, showIntervals, readingDisplay, showKoreanPronunciation, showFurigana, dailyGoal, isSaving,
-    loadSettings, setShowIntervals, setReadingDisplay, setShowKoreanPronunciation, setShowFurigana, setDailyGoal, save,
+    status, showIntervals, readingDisplay, showKoreanPronunciation, showFurigana, dailyGoal, notificationsEnabled, isSaving,
+    loadSettings, setShowIntervals, setReadingDisplay, setShowKoreanPronunciation, setShowFurigana, setDailyGoal, setNotificationsEnabled, save,
   } = useSettingsStore(
     useShallow(s => ({
       status: s.status,
       showIntervals: s.showIntervals, readingDisplay: s.readingDisplay,
       showKoreanPronunciation: s.showKoreanPronunciation, showFurigana: s.showFurigana,
-      dailyGoal: s.dailyGoal,
+      dailyGoal: s.dailyGoal, notificationsEnabled: s.notificationsEnabled,
       isSaving: s.isSaving, loadSettings: s.loadSettings,
       setShowIntervals: s.setShowIntervals, setReadingDisplay: s.setReadingDisplay,
       setShowKoreanPronunciation: s.setShowKoreanPronunciation, setShowFurigana: s.setShowFurigana,
-      setDailyGoal: s.setDailyGoal, save: s.save,
+      setDailyGoal: s.setDailyGoal, setNotificationsEnabled: s.setNotificationsEnabled, save: s.save,
     })),
   );
 
@@ -77,6 +78,10 @@ export default function SettingsScreen() {
     setShowFurigana(value); setTimeout(() => save(), 0);
   }, [setShowFurigana, save]);
 
+  const handleNotificationsEnabledChange = useCallback((value: boolean) => {
+    setNotificationsEnabled(value); setTimeout(() => save(), 0);
+  }, [setNotificationsEnabled, save]);
+
   const handleReadingDisplayChange = useCallback((value: 'KATAKANA' | 'HIRAGANA' | 'KOREAN') => {
     setReadingDisplay(value); setTimeout(() => save(), 0);
   }, [setReadingDisplay, save]);
@@ -95,6 +100,11 @@ export default function SettingsScreen() {
 
   const handleLogout = async () => {
     try {
+      await unregisterCurrentToken();
+    } catch {
+      // ignore — logout proceeds even if device token unregister fails
+    }
+    try {
       await GoogleSignin.signOut();
     } catch {
       // ignore — proceed with local logout even if Google session clear fails
@@ -106,6 +116,11 @@ export default function SettingsScreen() {
 
   const handleDeleteAccount = useCallback(async () => {
     await userApi.deleteSelf();
+    try {
+      await unregisterCurrentToken();
+    } catch {
+      // ignore — account already deleted on server
+    }
     try {
       await GoogleSignin.signOut();
     } catch {
@@ -203,6 +218,18 @@ export default function SettingsScreen() {
             <Switch
               value={showKoreanPronunciation}
               onValueChange={handleShowKoreanPronunciationChange}
+              trackColor={{ true: Colors.stateRetrievability, false: Colors.border }}
+              thumbColor={Colors.surface}
+            />
+          </View>
+
+          <View style={styles.row}>
+            <View style={styles.rowText}>
+              <Text style={styles.label}>복습 알림</Text>
+            </View>
+            <Switch
+              value={notificationsEnabled}
+              onValueChange={handleNotificationsEnabledChange}
               trackColor={{ true: Colors.stateRetrievability, false: Colors.border }}
               thumbColor={Colors.surface}
             />

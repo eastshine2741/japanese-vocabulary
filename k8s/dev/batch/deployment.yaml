@@ -18,11 +18,18 @@ spec:
           imagePullPolicy: Never
           ports:
             - containerPort: 8081
+          env:
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: /var/secrets/firebase/service-account.json
           envFrom:
             - configMapRef:
                 name: batch-config
             - secretRef:
                 name: batch-secret
+          volumeMounts:
+            - name: firebase-credentials
+              mountPath: /var/secrets/firebase
+              readOnly: true
           startupProbe:
             httpGet:
               path: /actuator/health/liveness
@@ -40,3 +47,7 @@ spec:
               port: 8081
             periodSeconds: 30
             failureThreshold: 3
+      volumes:
+        - name: firebase-credentials
+          secret:
+            secretName: firebase-credentials

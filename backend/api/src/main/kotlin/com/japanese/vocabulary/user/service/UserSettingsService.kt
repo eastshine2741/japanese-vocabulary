@@ -1,5 +1,6 @@
 package com.japanese.vocabulary.user.service
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.japanese.vocabulary.user.dto.UserSettingsDTO
 import com.japanese.vocabulary.user.dto.UserSettingsData
 import com.japanese.vocabulary.user.entity.UserSettingsEntity
@@ -9,18 +10,13 @@ import org.springframework.transaction.annotation.Transactional
 
 @Service
 class UserSettingsService(
-    private val userSettingsRepository: UserSettingsRepository
+    private val userSettingsRepository: UserSettingsRepository,
+    private val objectMapper: ObjectMapper,
 ) {
     @Transactional(readOnly = true)
     fun getSettings(userId: Long): UserSettingsDTO {
         val data = userSettingsRepository.findByUserId(userId)?.settings ?: UserSettingsData()
-        return UserSettingsDTO(
-            showIntervals = data.showIntervals,
-            readingDisplay = data.readingDisplay,
-            showKoreanPronunciation = data.showKoreanPronunciation,
-            showFurigana = data.showFurigana,
-            dailyGoal = data.dailyGoal
-        )
+        return data.toDto()
     }
 
     @Transactional
@@ -36,15 +32,35 @@ class UserSettingsService(
             readingDisplay = dto.readingDisplay,
             showKoreanPronunciation = dto.showKoreanPronunciation,
             showFurigana = dto.showFurigana,
-            dailyGoal = dto.dailyGoal
+            dailyGoal = dto.dailyGoal,
+            notificationsEnabled = dto.notificationsEnabled,
         )
         userSettingsRepository.save(entity)
-        return UserSettingsDTO(
-            showIntervals = entity.settings.showIntervals,
-            readingDisplay = entity.settings.readingDisplay,
-            showKoreanPronunciation = entity.settings.showKoreanPronunciation,
-            showFurigana = entity.settings.showFurigana,
-            dailyGoal = entity.settings.dailyGoal
-        )
+        return entity.settings.toDto()
+    }
+
+    /**
+     * Returns the notifications-enabled flag for [userId]. Missing key (legacy rows that pre-date
+     * the field) is treated as TRUE so existing users opt-in by default. Reads via raw JsonNode so
+     * NOTIFICATIONS_ENABLED_KEY is the single source of truth shared with batch raw-SQL queries.
+     */
+    @Transactional(readOnly = true)
+    fun getNotificationsEnabled(userId: Long): Boolean {
+        val entity = userSettingsRepository.findByUserId(userId) ?: return true
+        val jsonNode = objectMapper.valueToTree<com.fasterxml.jackson.databind.JsonNode>(entity.settings)
+        return jsonNode.get(NOTIFICATIONS_ENABLED_KEY)?.asBoolean() ?: true
+    }
+
+    companion object {
+        const val NOTIFICATIONS_ENABLED_KEY = "notificationsEnabled"
     }
 }
+
+private fun UserSettingsData.toDto(): UserSettingsDTO = UserSettingsDTO(
+    showIntervals = showIntervals,
+    readingDisplay = readingDisplay,
+    showKoreanPronunciation = showKoreanPronunciation,
+    showFurigana = showFurigana,
+    dailyGoal = dailyGoal,
+    notificationsEnabled = notificationsEnabled,
+)

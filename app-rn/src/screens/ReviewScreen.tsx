@@ -38,6 +38,7 @@ const ACTION_ROW_HEIGHT = 48;
 
 export default function ReviewScreen({ route, navigation }: Props) {
   const songId = route.params?.songId ?? undefined;
+  const startFlashcardId = route.params?.startFlashcardId;
   const {
     status, cards, currentIndex, isRevealed, totalCount,
     stats, error,
@@ -53,8 +54,8 @@ export default function ReviewScreen({ route, navigation }: Props) {
   );
 
   useEffect(() => {
-    loadDueCards(songId);
-  }, [songId]);
+    loadDueCards(songId, startFlashcardId);
+  }, [songId, startFlashcardId]);
 
   useFocusEffect(
     useCallback(() => {

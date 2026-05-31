@@ -30,6 +30,7 @@ IGNORED_FILES=(
   "app-rn/.env"
   "app-rn/release.keystore"
   "app-rn/kotonoha-prod.jks"
+  "app-rn/google-services.json"
 )
 
 echo ""

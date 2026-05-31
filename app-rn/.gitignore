@@ -40,3 +40,7 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Firebase (push notifications) — injected at build time from secrets
+google-services.json
+GoogleService-Info.plist

@@ -23,11 +23,17 @@ spec:
           env:
             - name: JAVA_OPTS
               value: "-XX:MaxRAMPercentage=75 -XX:InitialRAMPercentage=50"
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: /var/secrets/firebase/service-account.json
           envFrom:
             - configMapRef:
                 name: batch-config
             - secretRef:
                 name: batch-secret
+          volumeMounts:
+            - name: firebase-credentials
+              mountPath: /var/secrets/firebase
+              readOnly: true
           startupProbe:
             httpGet:
               path: /actuator/health/liveness
@@ -51,3 +57,7 @@ spec:
               memory: 768Mi
             limits:
               memory: 1536Mi
+      volumes:
+        - name: firebase-credentials
+          secret:
+            secretName: firebase-credentials
