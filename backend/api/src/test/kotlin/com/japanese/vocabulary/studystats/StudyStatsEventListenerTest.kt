@@ -5,7 +5,7 @@ import com.japanese.vocabulary.studystats.entity.DailyStudySummaryEntity
 import com.japanese.vocabulary.studystats.event.StudyStatsEventListener
 import com.japanese.vocabulary.studystats.repository.DailyStudySummaryRepository
 import com.japanese.vocabulary.studystats.util.KstClock
-import com.japanese.vocabulary.test.ApiBaseIntegrationTest
+import com.japanese.vocabulary.test.AfterCommitListenerTest
 import com.japanese.vocabulary.test.fixtures.TestUserBuilder
 import com.japanese.vocabulary.user.entity.UserEntity
 import com.japanese.vocabulary.userinventory.entity.InventoryItemType
@@ -15,25 +15,25 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 
 /**
- * Direct-call listener test — AFTER_COMMIT events never fire under the test's
- * outer @Transactional rollback, so we invoke the listener method ourselves
- * and let its repo writes ride the same transaction (which is then rolled
- * back at test end).
+ * Direct-call listener test. Listener carries @Transactional(REQUIRES_NEW), so setup must
+ * be committed beforehand via inTx { ... } — otherwise the listener's separate connection
+ * cannot see the uncommitted entities. See AfterCommitListenerTest for the full rationale.
  */
-class StudyStatsEventListenerTest : ApiBaseIntegrationTest() {
+class StudyStatsEventListenerTest : AfterCommitListenerTest() {
 
     @Autowired private lateinit var listener: StudyStatsEventListener
     @Autowired private lateinit var summaryRepository: DailyStudySummaryRepository
     @Autowired private lateinit var userInventoryService: UserInventoryService
     @Autowired private lateinit var kstClock: KstClock
 
-    private fun newUser(): UserEntity = TestUserBuilder(entityManager).build()
+    private fun newUser(): UserEntity = inTx { TestUserBuilder(entityManager).build() }
 
     private fun seedDay(user: UserEntity, date: java.time.LocalDate) {
-        entityManager.persist(
-            DailyStudySummaryEntity(userId = user.id!!, dateKst = date, reviewCount = 1),
-        )
-        entityManager.flush()
+        inTx {
+            entityManager.persist(
+                DailyStudySummaryEntity(userId = user.id!!, dateKst = date, reviewCount = 1),
+            )
+        }
     }
 
     private fun reviewed(user: UserEntity): FlashcardReviewedEvent = FlashcardReviewedEvent(
@@ -50,7 +50,6 @@ class StudyStatsEventListenerTest : ApiBaseIntegrationTest() {
 
         listener.onFlashcardReviewed(reviewed(me))
 
-        entityManager.flush(); entityManager.clear()
         val row = summaryRepository.findByUserIdAndDateKst(me.id!!, today)!!
         assertThat(row.reviewCount).isEqualTo(1)
         assertThat(row.freezeUsed).isFalse
@@ -65,7 +64,6 @@ class StudyStatsEventListenerTest : ApiBaseIntegrationTest() {
         listener.onFlashcardReviewed(reviewed(me))
         listener.onFlashcardReviewed(reviewed(me))
 
-        entityManager.flush(); entityManager.clear()
         val row = summaryRepository.findByUserIdAndDateKst(me.id!!, today)!!
         assertThat(row.reviewCount).isEqualTo(3)
     }
@@ -74,13 +72,11 @@ class StudyStatsEventListenerTest : ApiBaseIntegrationTest() {
     fun `streak of 7 on first review of the day grants a STREAK_FREEZE`() {
         val me = newUser()
         val today = kstClock.todayStudyDate()
-        // Seed the previous 6 days so today's first review yields streak=7.
         (1..6).forEach { seedDay(me, today.minusDays(it.toLong())) }
         assertThat(userInventoryService.quantityOf(me.id!!, InventoryItemType.STREAK_FREEZE)).isZero
 
         listener.onFlashcardReviewed(reviewed(me))
 
-        entityManager.flush(); entityManager.clear()
         assertThat(userInventoryService.quantityOf(me.id!!, InventoryItemType.STREAK_FREEZE)).isEqualTo(1)
     }
 
@@ -90,7 +86,6 @@ class StudyStatsEventListenerTest : ApiBaseIntegrationTest() {
 
         listener.onFlashcardReviewed(reviewed(me))
 
-        entityManager.flush(); entityManager.clear()
         assertThat(userInventoryService.quantityOf(me.id!!, InventoryItemType.STREAK_FREEZE)).isZero
     }
 }
