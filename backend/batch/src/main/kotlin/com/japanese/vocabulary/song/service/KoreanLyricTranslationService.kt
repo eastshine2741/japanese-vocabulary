@@ -85,7 +85,7 @@ class KoreanLyricTranslationService(
         }
     }
 
-    private suspend fun translateOne(lyricEntity: com.japanese.vocabulary.song.entity.LyricEntity): Boolean {
+    internal suspend fun translateOne(lyricEntity: com.japanese.vocabulary.song.entity.LyricEntity): Boolean {
         logger.info(
             "[songId={}] Starting translation (retryCount={})",
             lyricEntity.songId, lyricEntity.retryCount

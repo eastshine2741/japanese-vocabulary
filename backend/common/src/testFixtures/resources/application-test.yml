@@ -17,6 +17,13 @@ spring:
     scheduling:
       enabled: false
 
+  # Disable Spring Batch's JobLauncherApplicationRunner so context startup doesn't try to
+  # run freezeConsumeJob (and trip the BATCH_JOB_SEQ seeded-but-not-incremented edge case in
+  # a fresh testcontainer). Tests invoke the underlying service directly.
+  batch:
+    job:
+      enabled: false
+
 # Stub external secrets so context loads cleanly under @ActiveProfiles("test")
 youtube:
   api-key: test-youtube-key
