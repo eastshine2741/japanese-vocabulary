@@ -175,12 +175,12 @@ class PushNotificationDataAccessIntegrationTest : BatchBaseIntegrationTest() {
     }
 
     private fun insertSettings(userId: Long, notificationsEnabled: Boolean) {
-        // JSON_OBJECT keyed on NOTIFICATIONS_ENABLED_KEY so the test exercises the same key the
-        // batch SQL filter does. If the mirror const drifts from the api source-of-truth, the
-        // findCandidates assertions above flip and surface the drift.
+        // CAST(? AS JSON) parses the JSON literal so the value is stored as a real JSON boolean
+        // (matching the api's Jackson-serialized writes). MySQL 8.4 coerces JDBC boolean params
+        // bound through `JSON_OBJECT(?, ?)` to integer 1, which would diverge from prod shape.
         jdbcTemplate.update(
-            "INSERT INTO user_settings (user_id, settings) VALUES (?, JSON_OBJECT(?, ?))",
-            userId, NOTIFICATIONS_ENABLED_KEY, notificationsEnabled,
+            "INSERT INTO user_settings (user_id, settings) VALUES (?, CAST(? AS JSON))",
+            userId, """{"$NOTIFICATIONS_ENABLED_KEY":$notificationsEnabled}""",
         )
     }
 

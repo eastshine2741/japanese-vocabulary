@@ -15,7 +15,7 @@ class TestcontainersConfig {
     @Bean
     @ServiceConnection
     fun mysqlContainer(): MySQLContainer<*> =
-        MySQLContainer(DockerImageName.parse("mysql:8.0"))
+        MySQLContainer(DockerImageName.parse("mysql:8.4"))
             .withDatabaseName("japanese_vocabulary_test")
             .withReuse(true)
 

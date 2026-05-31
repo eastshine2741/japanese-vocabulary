@@ -77,7 +77,7 @@ class PushNotificationDataAccess(private val jdbcTemplate: JdbcTemplate) {
             JOIN due d  ON d.user_id = t.user_id AND d.rn = 1
             JOIN words w ON w.id = d.word_id
             LEFT JOIN user_settings us ON us.user_id = t.user_id
-            WHERE COALESCE(JSON_EXTRACT(us.settings, '$.${NOTIFICATIONS_ENABLED_KEY}'), TRUE) = TRUE
+            WHERE COALESCE(JSON_UNQUOTE(JSON_EXTRACT(us.settings, '$.${NOTIFICATIONS_ENABLED_KEY}')), 'true') = 'true'
         """.trimIndent()
         return jdbcTemplate.query(sql, candidateRowMapper, Timestamp.from(since), Timestamp.from(now))
     }
