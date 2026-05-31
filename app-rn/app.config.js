@@ -43,6 +43,7 @@ export default {
       package: packageName,
       ...(versionCode !== undefined ? { versionCode } : {}),
       usesCleartextTraffic: true,
+      googleServicesFile: './google-services.json',
     },
     web: {
       favicon: './assets/favicon.png',
@@ -50,6 +51,8 @@ export default {
     plugins: [
       './plugins/withReleaseSigning',
       '@react-native-google-signin/google-signin',
+      '@react-native-firebase/app',
+      'expo-notifications',
       [
         'expo-splash-screen',
         {

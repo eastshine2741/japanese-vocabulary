@@ -6,3 +6,4 @@ data:
   MYSQL_HOST: mysql
   MYSQL_DATABASE: "${MYSQL_DATABASE}"
   REDIS_HOST: redis
+  SPRING_PROFILES_ACTIVE: "dev"

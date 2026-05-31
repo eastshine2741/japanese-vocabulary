@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { authApi, VerifiedIdentity } from '../api/authApi';
 import { tokenStorage } from '../utils/tokenStorage';
+import { requestPermissionAndRegisterToken } from '../services/pushNotifications';
 
 type AuthStatus = 'idle' | 'loading' | 'success' | 'needs_signup' | 'error';
 
@@ -43,6 +44,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       await tokenStorage.saveToken(res.token);
       await persistProfile(res.username, res.name);
       set({ status: 'success', username: res.username, userName: res.name });
+      requestPermissionAndRegisterToken();
     } catch (e: any) {
       set({ status: 'error', error: e.response?.data?.message || 'Google sign-in failed' });
     }
@@ -61,6 +63,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         pendingIdentity: null,
         pendingIdToken: null,
       });
+      requestPermissionAndRegisterToken();
     } catch (e: any) {
       set({ status: 'error', error: e.response?.data?.message || 'Sign-up failed' });
     }

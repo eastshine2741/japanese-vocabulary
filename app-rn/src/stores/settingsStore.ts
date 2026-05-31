@@ -11,6 +11,7 @@ interface SettingsState {
   showKoreanPronunciation: boolean;
   showFurigana: boolean;
   dailyGoal: number;
+  notificationsEnabled: boolean;
   isSaving: boolean;
   saveSuccess: boolean;
   error: string | null;
@@ -21,6 +22,7 @@ interface SettingsState {
   setShowKoreanPronunciation: (value: boolean) => void;
   setShowFurigana: (value: boolean) => void;
   setDailyGoal: (value: number) => void;
+  setNotificationsEnabled: (value: boolean) => void;
   save: () => Promise<void>;
 }
 
@@ -31,6 +33,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   showKoreanPronunciation: true,
   showFurigana: true,
   dailyGoal: 100,
+  notificationsEnabled: true,
   isSaving: false,
   saveSuccess: false,
   error: null,
@@ -46,6 +49,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         showKoreanPronunciation: settings.showKoreanPronunciation,
         showFurigana: settings.showFurigana,
         dailyGoal: settings.dailyGoal,
+        notificationsEnabled: settings.notificationsEnabled,
       });
     } catch (e: any) {
       set({ status: 'error', error: e.message });
@@ -57,12 +61,13 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   setShowKoreanPronunciation: (value) => set({ showKoreanPronunciation: value, saveSuccess: false }),
   setShowFurigana: (value) => set({ showFurigana: value, saveSuccess: false }),
   setDailyGoal: (value) => set({ dailyGoal: Math.max(1, Math.min(50000, Math.round(value))), saveSuccess: false }),
+  setNotificationsEnabled: (value) => set({ notificationsEnabled: value, saveSuccess: false }),
 
   save: async () => {
-    const { showIntervals, readingDisplay, showKoreanPronunciation, showFurigana, dailyGoal } = get();
+    const { showIntervals, readingDisplay, showKoreanPronunciation, showFurigana, dailyGoal, notificationsEnabled } = get();
     set({ isSaving: true, saveSuccess: false });
     try {
-      await flashcardApi.updateSettings({ showIntervals, readingDisplay, showKoreanPronunciation, showFurigana, dailyGoal });
+      await flashcardApi.updateSettings({ showIntervals, readingDisplay, showKoreanPronunciation, showFurigana, dailyGoal, notificationsEnabled });
       set({ isSaving: false, saveSuccess: true });
     } catch {
       set({ isSaving: false });

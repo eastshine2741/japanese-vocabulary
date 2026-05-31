@@ -87,6 +87,17 @@ jobs:
         working-directory: app-rn
         run: npm ci
 
+      - name: Decode google-services.json
+        working-directory: app-rn
+        env:
+          GS_JSON_B64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
+        run: |
+          if [[ -z "$GS_JSON_B64" ]]; then
+            echo "::error::GOOGLE_SERVICES_JSON_BASE64 secret is not set" >&2
+            exit 1
+          fi
+          echo "$GS_JSON_B64" | base64 -d > google-services.json
+
       - name: Expo prebuild
         working-directory: app-rn
         env:

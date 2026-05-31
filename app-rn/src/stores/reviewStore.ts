@@ -17,7 +17,7 @@ interface ReviewState {
   ratingCounts: Record<number, number>;
   error: string | null;
 
-  loadDueCards: (songId?: number) => Promise<void>;
+  loadDueCards: (songId?: number, startFlashcardId?: number) => Promise<void>;
   reveal: () => void;
   rate: (rating: number) => Promise<void>;
   refreshCurrentCard: () => Promise<void>;
@@ -34,7 +34,7 @@ export const useReviewStore = create<ReviewState>((set, get) => ({
   ratingCounts: { 1: 0, 2: 0, 3: 0, 4: 0 },
   error: null,
 
-  loadDueCards: async (songId?: number) => {
+  loadDueCards: async (songId?: number, startFlashcardId?: number) => {
     set({
       status: 'loading',
       cards: [],
@@ -52,9 +52,17 @@ export const useReviewStore = create<ReviewState>((set, get) => ({
       if (dueRes.cards.length === 0) {
         set({ status: 'noCards', stats, totalCount: dueRes.totalCount });
       } else {
+        let cards = dueRes.cards;
+        if (startFlashcardId != null) {
+          const idx = cards.findIndex((c) => c.id === startFlashcardId);
+          if (idx > 0) {
+            const [target] = cards.splice(idx, 1);
+            cards = [target, ...cards];
+          }
+        }
         set({
           status: 'reviewing',
-          cards: dueRes.cards,
+          cards,
           totalCount: dueRes.totalCount,
           stats,
         });

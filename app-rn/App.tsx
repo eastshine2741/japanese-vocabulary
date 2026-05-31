@@ -15,11 +15,13 @@ import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import AppNavigator, { RootStackParamList } from './src/navigation/AppNavigator';
+import { navigationRef, flushPending } from './src/navigation/navigationRef';
 import { tokenStorage } from './src/utils/tokenStorage';
 import { isJwtExpired } from './src/utils/jwt';
 import { initBaseURL } from './src/api/client';
 import { useSettingsStore } from './src/stores/settingsStore';
 import SplashScreen from './src/screens/SplashScreen';
+import { registerNotificationHandlers, requestPermissionAndRegisterToken } from './src/services/pushNotifications';
 
 GoogleSignin.configure({
   webClientId: process.env.EXPO_PUBLIC_GOOGLE_OAUTH_WEB_CLIENT_ID ?? '',
@@ -29,11 +31,13 @@ function App() {
   const [initialRoute, setInitialRoute] = useState<keyof RootStackParamList | null>(null);
 
   useEffect(() => {
+    registerNotificationHandlers();
     initBaseURL().then(() =>
       tokenStorage.getToken().then((token) => {
         const valid = !!token && !isJwtExpired(token);
         if (valid) {
           useSettingsStore.getState().loadSettings();
+          requestPermissionAndRegisterToken();
         }
         setInitialRoute(valid ? 'Main' : 'Login');
       }),
@@ -48,7 +52,7 @@ function App() {
           {!initialRoute ? (
             <SplashScreen />
           ) : (
-            <NavigationContainer>
+            <NavigationContainer ref={navigationRef} onReady={flushPending}>
               <AppNavigator initialRoute={initialRoute} />
             </NavigationContainer>
           )}
