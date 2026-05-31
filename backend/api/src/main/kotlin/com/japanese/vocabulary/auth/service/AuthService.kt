@@ -8,8 +8,8 @@ import com.japanese.vocabulary.common.exception.ErrorCode
 import com.japanese.vocabulary.user.entity.UserEntity
 import com.japanese.vocabulary.user.repository.UserRepository
 import com.japanese.vocabulary.user.service.UsernamePolicy
-import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 
 sealed class GoogleLoginResult {
     data class Authenticated(val auth: AuthResponse) : GoogleLoginResult()
@@ -31,39 +31,32 @@ class AuthService(
         return GoogleLoginResult.Authenticated(saved.toAuthResponse())
     }
 
+    @Transactional
     fun signup(idToken: String, username: String, displayName: String?): AuthResponse {
         val identity = googleOidcService.verify(idToken)
         val normalizedUsername = UsernamePolicy.normalize(username)
         UsernamePolicy.validate(normalizedUsername)
 
-        // Idempotency: if a row already exists for this Google identity (e.g. retry / double-tap),
-        // reuse it instead of failing on the (provider, sub) unique constraint.
+        // Idempotency: 같은 Google 계정으로 이미 가입돼 있으면 그 row 재사용 (retry / double-tap).
         userRepository.findByProviderAndProviderSub(GOOGLE, identity.sub)?.let {
             return it.toAuthResponse()
         }
 
-        val cleanedDisplayName = displayName?.trim()?.takeIf { it.isNotEmpty() }
-        return try {
-            userRepository.save(
-                UserEntity(
-                    provider = GOOGLE,
-                    providerSub = identity.sub,
-                    username = normalizedUsername,
-                    email = identity.email,
-                    name = cleanedDisplayName
-                )
-            ).toAuthResponse()
-        } catch (e: DataIntegrityViolationException) {
-            // Either username collided, or another concurrent first sign-in won the (provider, sub)
-            // race for this Google account. Distinguish by querying.
-            userRepository.findByProviderAndProviderSub(GOOGLE, identity.sub)?.let {
-                return it.toAuthResponse()
-            }
-            if (userRepository.findByUsername(normalizedUsername) != null) {
-                throw BusinessException(ErrorCode.USERNAME_TAKEN)
-            }
-            throw e
+        // Username 중복은 write 전에 read 로 확인.
+        if (userRepository.findByUsername(normalizedUsername) != null) {
+            throw BusinessException(ErrorCode.USERNAME_TAKEN)
         }
+
+        val cleanedDisplayName = displayName?.trim()?.takeIf { it.isNotEmpty() }
+        return userRepository.save(
+            UserEntity(
+                provider = GOOGLE,
+                providerSub = identity.sub,
+                username = normalizedUsername,
+                email = identity.email,
+                name = cleanedDisplayName,
+            ),
+        ).toAuthResponse()
     }
 
     fun checkUsername(username: String, currentUserId: Long? = null): UsernameAvailabilityResponse {

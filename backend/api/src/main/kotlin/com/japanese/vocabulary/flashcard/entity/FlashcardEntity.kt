@@ -1,10 +1,13 @@
 package com.japanese.vocabulary.flashcard.entity
 
 import jakarta.persistence.*
+import org.springframework.data.annotation.CreatedDate
+import org.springframework.data.jpa.domain.support.AuditingEntityListener
 import java.time.Instant
 
 @Entity
 @Table(name = "flashcards")
+@EntityListeners(AuditingEntityListener::class)
 class FlashcardEntity(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -17,7 +20,7 @@ class FlashcardEntity(
     val userId: Long,
 
     @Column(nullable = false)
-    var due: Instant = Instant.now(),
+    var due: Instant,
 
     @Column(nullable = false)
     var stability: Double = 0.0,
@@ -34,14 +37,15 @@ class FlashcardEntity(
     @Column(name = "fsrs_card_json", nullable = false, columnDefinition = "JSON")
     var fsrsCardJson: String = "{}",
 
-    @Column(name = "created_at")
-    val createdAt: Instant = Instant.now()
+    @CreatedDate
+    @Column(name = "created_at", updatable = false)
+    var createdAt: Instant? = null
 ) {
-    fun reset() {
+    fun reset(now: Instant) {
         state = 0
         stability = 0.0
         difficulty = 0.0
-        due = Instant.now()
+        due = now
         lastReview = null
         fsrsCardJson = "{}"
     }

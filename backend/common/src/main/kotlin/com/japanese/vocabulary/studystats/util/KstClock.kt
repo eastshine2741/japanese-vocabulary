@@ -1,6 +1,7 @@
 package com.japanese.vocabulary.studystats.util
 
 import org.springframework.stereotype.Component
+import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -12,13 +13,13 @@ import java.time.ZonedDateTime
  * giving night-owl learners until 04:00 to extend their streak.
  */
 @Component
-class KstClock {
+class KstClock(private val clock: Clock) {
     fun toStudyDate(instant: Instant): LocalDate =
         instant.atZone(ZONE).minusHours(DAY_START_HOUR.toLong()).toLocalDate()
 
-    fun todayStudyDate(): LocalDate = toStudyDate(Instant.now())
+    fun todayStudyDate(): LocalDate = toStudyDate(Instant.now(clock))
 
-    fun nowKst(): ZonedDateTime = ZonedDateTime.now(ZONE)
+    fun nowKst(): ZonedDateTime = ZonedDateTime.now(clock.withZone(ZONE))
 
     companion object {
         private val ZONE: ZoneId = ZoneId.of("Asia/Seoul")

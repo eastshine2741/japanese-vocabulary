@@ -1,10 +1,13 @@
 package com.japanese.vocabulary.song.entity
 
 import jakarta.persistence.*
+import org.springframework.data.annotation.CreatedDate
+import org.springframework.data.jpa.domain.support.AuditingEntityListener
 import java.time.Instant
 
 @Entity
 @Table(name = "songs")
+@EntityListeners(AuditingEntityListener::class)
 class SongEntity(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -25,6 +28,7 @@ class SongEntity(
     @Column(name = "artwork_url")
     val artworkUrl: String? = null,
 
-    @Column(name = "created_at")
-    val createdAt: Instant = Instant.now()
+    @CreatedDate
+    @Column(name = "created_at", updatable = false)
+    var createdAt: Instant? = null
 )

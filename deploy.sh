@@ -97,10 +97,10 @@ export API_IMAGE BATCH_IMAGE MIGRATION_IMAGE NS SENTRY_ENVIRONMENT SENTRY_RELEAS
 
 echo "=== env: $DEPLOY_ENV | namespace: $NS | sha: $GIT_SHA ==="
 
-# --- 1. Gradle 빌드 ---
+# --- 1. Gradle 테스트 + 빌드 (test 실패 시 배포 중단) ---
 STEP_START=$SECONDS
-echo "[build] bootJar..."
-cd "$PROJECT_ROOT/backend" && ./gradlew :api:bootJar :batch:bootJar --no-daemon
+echo "[gradle] test + bootJar..."
+cd "$PROJECT_ROOT/backend" && ./gradlew :api:test :batch:test :api:bootJar :batch:bootJar --no-daemon
 cd "$PROJECT_ROOT"
 echo "  → $((SECONDS - STEP_START))s"
 

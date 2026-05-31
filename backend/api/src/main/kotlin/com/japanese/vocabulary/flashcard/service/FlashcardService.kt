@@ -18,6 +18,7 @@ import io.github.openspacedrepetition.Scheduler
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.Clock
 import java.time.Duration
 import java.time.Instant
 
@@ -28,7 +29,8 @@ class FlashcardService(
     private val songWordRepository: SongWordRepository,
     private val songRepository: SongRepository,
     private val userSettingsRepository: UserSettingsRepository,
-    private val eventPublisher: ApplicationEventPublisher
+    private val eventPublisher: ApplicationEventPublisher,
+    private val clock: Clock,
 ) {
 
     @Transactional
@@ -39,7 +41,7 @@ class FlashcardService(
         val entity = FlashcardEntity(
             wordId = wordId,
             userId = userId,
-            due = card.due ?: Instant.now(),
+            due = card.due ?: Instant.now(clock),
             stability = card.stability ?: 0.0,
             difficulty = card.difficulty ?: 0.0,
             state = card.state?.ordinal ?: 0,
@@ -58,14 +60,14 @@ class FlashcardService(
     @Transactional
     fun resetByWordId(wordId: Long) {
         flashcardRepository.findByWordId(wordId)?.let { flashcard ->
-            flashcard.reset()
+            flashcard.reset(Instant.now(clock))
             flashcardRepository.save(flashcard)
         }
     }
 
     @Transactional
     fun getDueFlashcards(userId: Long, songId: Long? = null): DueFlashcardsResponse {
-        val now = Instant.now()
+        val now = Instant.now(clock)
         val dueEntities = if (songId != null) {
             flashcardRepository.findDueByUserIdAndSongId(userId, songId, now)
         } else {
@@ -152,11 +154,11 @@ class FlashcardService(
         val result = scheduler.reviewCard(card, fsrsRating)
         val updatedCard = result.card()
 
-        entity.due = updatedCard.due ?: Instant.now()
+        entity.due = updatedCard.due ?: Instant.now(clock)
         entity.stability = updatedCard.stability ?: 0.0
         entity.difficulty = updatedCard.difficulty ?: 0.0
         entity.state = updatedCard.state?.ordinal ?: 0
-        entity.lastReview = Instant.now()
+        entity.lastReview = Instant.now(clock)
         entity.fsrsCardJson = updatedCard.toJson()
         flashcardRepository.save(entity)
 
@@ -180,7 +182,7 @@ class FlashcardService(
 
     @Transactional(readOnly = true)
     fun getStats(userId: Long): FlashcardStatsResponse {
-        val now = Instant.now()
+        val now = Instant.now(clock)
         val total = flashcardRepository.countByUserId(userId)
         val due = flashcardRepository.countByUserIdAndDueLessThanEqual(userId, now)
         val newCount = flashcardRepository.countByUserIdAndLastReviewIsNull(userId)

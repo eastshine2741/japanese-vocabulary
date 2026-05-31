@@ -7,8 +7,9 @@ import com.japanese.vocabulary.studystats.service.StudyStatsService
 import com.japanese.vocabulary.studystats.util.KstClock
 import com.japanese.vocabulary.userinventory.entity.InventoryItemType
 import com.japanese.vocabulary.userinventory.service.UserInventoryService
-import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Component
+import org.springframework.transaction.event.TransactionPhase
+import org.springframework.transaction.event.TransactionalEventListener
 
 @Component
 class StudyStatsEventListener(
@@ -17,7 +18,7 @@ class StudyStatsEventListener(
     private val userInventoryService: UserInventoryService,
     private val kstClock: KstClock,
 ) {
-    @EventListener
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     fun onFlashcardReviewed(event: FlashcardReviewedEvent) {
         val dateKst = kstClock.toStudyDate(event.reviewedAt)
         val existing = repo.findByUserIdAndDateKst(event.userId, dateKst)

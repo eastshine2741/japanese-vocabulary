@@ -5,10 +5,14 @@ import com.japanese.vocabulary.config.converter.LyricLineDataListConverter
 import com.japanese.vocabulary.song.dto.AnalyzedLine
 import com.japanese.vocabulary.song.dto.LyricLineData
 import jakarta.persistence.*
+import org.springframework.data.annotation.CreatedDate
+import org.springframework.data.annotation.LastModifiedDate
+import org.springframework.data.jpa.domain.support.AuditingEntityListener
 import java.time.Instant
 
 @Entity
 @Table(name = "lyrics")
+@EntityListeners(AuditingEntityListener::class)
 class LyricEntity(
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long? = null,
@@ -32,8 +36,10 @@ class LyricEntity(
     val lrclibId: Long? = null,
     @Column(name = "vocadb_id")
     val vocadbId: Long? = null,
-    @Column(name = "created_at")
-    val createdAt: Instant = Instant.now(),
+    @CreatedDate
+    @Column(name = "created_at", updatable = false)
+    var createdAt: Instant? = null,
+    @LastModifiedDate
     @Column(name = "updated_at")
-    var updatedAt: Instant = Instant.now()
+    var updatedAt: Instant? = null
 )

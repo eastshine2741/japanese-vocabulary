@@ -1,6 +1,8 @@
 package com.japanese.vocabulary.user.entity
 
 import jakarta.persistence.*
+import org.springframework.data.annotation.CreatedDate
+import org.springframework.data.jpa.domain.support.AuditingEntityListener
 import java.time.Instant
 
 @Entity
@@ -11,6 +13,7 @@ import java.time.Instant
         UniqueConstraint(name = "uk_user_username", columnNames = ["username"])
     ]
 )
+@EntityListeners(AuditingEntityListener::class)
 class UserEntity(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -31,8 +34,9 @@ class UserEntity(
     @Column(nullable = true, length = 100)
     var name: String? = null,
 
-    @Column(name = "created_at")
-    val createdAt: Instant = Instant.now(),
+    @CreatedDate
+    @Column(name = "created_at", updatable = false)
+    var createdAt: Instant? = null,
 
     @Column(name = "deleted_at")
     var deletedAt: Instant? = null,
