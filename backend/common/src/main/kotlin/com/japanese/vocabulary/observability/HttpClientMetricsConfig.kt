@@ -41,9 +41,9 @@ class HttpClientMetricsConfig {
         return when {
             host == "itunes.apple.com" -> "itunes"
             host == "www.googleapis.com" && path.startsWith("/youtube/") -> "youtube"
+            host == "generativelanguage.googleapis.com" -> "gemini"
             host == "lrclib.net" -> "lrclib"
             host == "vocadb.net" -> "vocadb"
-            host == "jisho.org" -> "jisho"
             else -> "other"
         }
     }
