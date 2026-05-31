@@ -8,6 +8,8 @@ import com.japanese.vocabulary.flashcard.event.FlashcardDeletedEvent
 import com.japanese.vocabulary.song.repository.SongRepository
 import com.japanese.vocabulary.word.event.SongWordCreatedEvent
 import org.springframework.stereotype.Component
+import org.springframework.transaction.annotation.Propagation
+import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.event.TransactionPhase
 import org.springframework.transaction.event.TransactionalEventListener
 
@@ -17,7 +19,9 @@ class DeckEventListener(
     private val deckFlashcardRepository: DeckFlashcardRepository,
     private val songRepository: SongRepository,
 ) {
+    // REQUIRES_NEW is mandatory on AFTER_COMMIT listeners that perform DML — see CLAUDE.md.
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     fun onSongWordCreated(event: SongWordCreatedEvent) {
         val deck = deckRepository.findByUserIdAndSongId(event.userId, event.songId)
             ?: run {
@@ -42,6 +46,7 @@ class DeckEventListener(
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     fun onFlashcardDeleted(event: FlashcardDeletedEvent) {
         deckFlashcardRepository.deleteByFlashcardId(event.flashcardId)
     }

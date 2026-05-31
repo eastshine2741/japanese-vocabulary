@@ -8,6 +8,8 @@ import com.japanese.vocabulary.studystats.util.KstClock
 import com.japanese.vocabulary.userinventory.entity.InventoryItemType
 import com.japanese.vocabulary.userinventory.service.UserInventoryService
 import org.springframework.stereotype.Component
+import org.springframework.transaction.annotation.Propagation
+import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.event.TransactionPhase
 import org.springframework.transaction.event.TransactionalEventListener
 
@@ -18,7 +20,11 @@ class StudyStatsEventListener(
     private val userInventoryService: UserInventoryService,
     private val kstClock: KstClock,
 ) {
+    // REQUIRES_NEW is mandatory: AFTER_COMMIT runs after the publisher's tx ends, leaving a
+    // closed-but-still-thread-bound EntityManager. REQUIRED would reuse it and DML throws
+    // TransactionRequiredException. See CLAUDE.md "Spring Event Listeners" section.
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     fun onFlashcardReviewed(event: FlashcardReviewedEvent) {
         val dateKst = kstClock.toStudyDate(event.reviewedAt)
         val existing = repo.findByUserIdAndDateKst(event.userId, dateKst)
