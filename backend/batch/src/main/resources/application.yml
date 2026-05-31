@@ -36,3 +36,14 @@ gemini:
   api-key: ${GEMINI_API_KEY}
   translation-model: gemini-3.1-pro-preview
   word-meaning-model: gemini-3.1-flash-lite
+
+sentry:
+  dsn: ${SENTRY_DSN_BATCH:}
+  environment: ${SENTRY_ENVIRONMENT:local}
+  release: ${SENTRY_RELEASE:}
+  send-default-pii: false
+  traces-sample-rate: 0.1
+  exception-resolver-order: -2147483647
+  logging:
+    minimum-event-level: warn
+    minimum-breadcrumb-level: info

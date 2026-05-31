@@ -1,3 +1,12 @@
+import * as Sentry from '@sentry/react-native';
+
+Sentry.init({
+  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
+  enabled: !!process.env.EXPO_PUBLIC_SENTRY_DSN,
+  environment: process.env.EXPO_PUBLIC_SENTRY_ENVIRONMENT ?? 'development',
+  tracesSampleRate: 0.1,
+});
+
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, StatusBar } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
@@ -16,7 +25,7 @@ GoogleSignin.configure({
   webClientId: process.env.EXPO_PUBLIC_GOOGLE_OAUTH_WEB_CLIENT_ID ?? '',
 });
 
-export default function App() {
+function App() {
   const [initialRoute, setInitialRoute] = useState<keyof RootStackParamList | null>(null);
 
   useEffect(() => {
@@ -52,3 +61,5 @@ export default function App() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
 });
+
+export default Sentry.wrap(App);

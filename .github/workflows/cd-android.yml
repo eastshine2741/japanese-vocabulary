@@ -73,11 +73,14 @@ jobs:
         env:
           BACKEND_URL: ${{ matrix.target.env == 'prod' && secrets.PROD_BACKEND_URL || secrets.BACKEND_URL }}
           GOOGLE_WEB_CLIENT_ID: ${{ matrix.target.env == 'prod' && secrets.PROD_GOOGLE_OAUTH_WEB_CLIENT_ID || secrets.GOOGLE_OAUTH_WEB_CLIENT_ID }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN_APP }}
         run: |
           cat > .env <<EOF
           EXPO_PUBLIC_BACKEND_URL=${BACKEND_URL}
           EXPO_PUBLIC_GOOGLE_OAUTH_WEB_CLIENT_ID=${GOOGLE_WEB_CLIENT_ID}
           EXPO_PUBLIC_BUILD_ENV=${{ matrix.target.env }}
+          EXPO_PUBLIC_SENTRY_DSN=${SENTRY_DSN}
+          EXPO_PUBLIC_SENTRY_ENVIRONMENT=${{ matrix.target.env }}
           EOF
 
       - name: Install dependencies
@@ -115,6 +118,10 @@ jobs:
 
       - name: Build
         working-directory: app-rn/android
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT_APP }}
         run: |
           if [[ "${{ matrix.target.fmt }}" == "aab" ]]; then
             ./gradlew bundleRelease
