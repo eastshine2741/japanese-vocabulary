@@ -2,42 +2,27 @@ package com.japanese.vocabulary.studystats.batch
 
 import com.japanese.vocabulary.test.BatchBaseIntegrationTest
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.jdbc.support.GeneratedKeyHolder
 import java.sql.Statement
 import java.time.LocalDate
 import java.util.concurrent.atomic.AtomicLong
 
 /**
- * Spring Batch 의 잡 인프라(JobLauncher / 메타데이터 테이블 / 시퀀스)를 한꺼번에 검증하려고
- * 하면 in-container 의 BATCH_*_SEQ seed 상태에 묶여 깨지기 쉽다. 그래서 잡의 핵심 비즈니스
- * 로직을 [FreezeConsumeService.consumeFor] 로 분리했고, 이 테스트는 그 서비스에 대한 통합테스트다.
- *
- * Step 자체는 service 호출 + JobParameters 추출만 담당하는 thin wrapper 이므로 별도 검증
- * 대상으로 두지 않는다.
+ * [FreezeConsumeService.consumeFor] 는 step tasklet 안의 SQL 로직을 분리해낸 서비스이다.
+ * Step 자체는 JobParameters 추출 + service 호출만 담당하는 thin wrapper 이므로 별도
+ * 검증 대상으로 두지 않는다.
  */
 class FreezeConsumeServiceTest : BatchBaseIntegrationTest() {
 
     @Autowired private lateinit var service: FreezeConsumeService
+    @Autowired private lateinit var jdbcTemplate: JdbcTemplate
 
     private val runDate: LocalDate = LocalDate.of(2026, 5, 1)
     private val yesterday: LocalDate = runDate.minusDays(1)
     private val dayBeforeYesterday: LocalDate = runDate.minusDays(2)
-
-    private val seededUserIds = mutableListOf<Long>()
-
-    @AfterEach
-    fun cleanup() {
-        if (seededUserIds.isEmpty()) return
-        val placeholders = seededUserIds.joinToString(",") { "?" }
-        val params = seededUserIds.toTypedArray()
-        jdbcTemplate.update("DELETE FROM user_inventory WHERE user_id IN ($placeholders)", *params)
-        jdbcTemplate.update("DELETE FROM daily_study_summary WHERE user_id IN ($placeholders)", *params)
-        jdbcTemplate.update("DELETE FROM users WHERE id IN ($placeholders)", *params)
-        seededUserIds.clear()
-    }
 
     private fun insertUser(): Long {
         val seq = SEQ.incrementAndGet()
@@ -51,9 +36,7 @@ class FreezeConsumeServiceTest : BatchBaseIntegrationTest() {
                 setString(2, "user-$seq")
             }
         }, keyHolder)
-        val id = keyHolder.key!!.toLong()
-        seededUserIds += id
-        return id
+        return keyHolder.key!!.toLong()
     }
 
     private fun insertFreeze(userId: Long, quantity: Int) {

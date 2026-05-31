@@ -16,7 +16,6 @@ import io.mockk.every
 import io.mockk.verify
 import kotlinx.coroutines.runBlocking
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 
@@ -25,12 +24,6 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
     @Autowired private lateinit var service: KoreanLyricTranslationService
     @Autowired private lateinit var lyricRepository: LyricRepository
     @Autowired private lateinit var songRepository: SongRepository
-
-    @AfterEach
-    fun cleanup() {
-        jdbcTemplate.execute("DELETE FROM lyrics")
-        jdbcTemplate.execute("DELETE FROM songs")
-    }
 
     private fun seedLyric(
         lines: List<String>,
