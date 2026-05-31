@@ -75,6 +75,12 @@ Outer:  Deck, DeckFlashcard      — 조직화 레이어
 - 계층 경계를 넘을 때만 Spring Event 사용 (e.g. FlashcardCreatedEvent/FlashcardDeletedEvent → DeckEventListener)
 - 안쪽 계층이 바깥쪽 계층을 참조하면 안 됨
 
+### Spring Event Listeners — AFTER_COMMIT 규칙
+
+- **`@TransactionalEventListener(phase = AFTER_COMMIT)` 안에서 DB 쓰기를 하려면 `@Transactional(propagation = REQUIRES_NEW)`를 같이 붙일 것.** 안 붙이면 좀비 EntityManager 재사용으로 `TransactionRequiredException` 발생
+- **listener 직접 호출 테스트는 `AfterCommitListenerTest` 상속, setup은 `inTx { ... }`로 감쌀 것.** 기본 rollback base는 AFTER_COMMIT을 발화시키지 않고 REQUIRES_NEW와 row lock 충돌함
+- 이벤트 발행 검증은 기존 base + `@RecordApplicationEvents` (변경 없음)
+
 ## Lyric Analysis Flow
 
 동기 저장 + 비동기 배치 2단계.

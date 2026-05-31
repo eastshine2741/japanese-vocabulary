@@ -14,13 +14,13 @@ import kotlin.math.abs
 
 @Component
 @Order(1)
-class LrclibClient : LyricProvider {
+class LrclibClient(webClientBuilder: WebClient.Builder) : LyricProvider {
 
     override val providerName = "LrcLib"
 
     private val logger = LoggerFactory.getLogger(LrclibClient::class.java)
 
-    private val webClient = WebClient.builder()
+    private val webClient = webClientBuilder.clone()
         .baseUrl("https://lrclib.net")
         .defaultHeader("User-Agent", "JapaneseVocabularyApp/1.0")
         .build()
