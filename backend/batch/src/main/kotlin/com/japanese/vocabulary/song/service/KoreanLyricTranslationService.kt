@@ -1,5 +1,6 @@
 package com.japanese.vocabulary.song.service
 
+import com.japanese.vocabulary.observability.MetricNames
 import com.japanese.vocabulary.song.client.gemini.GeminiClient
 import com.japanese.vocabulary.song.dto.AnalyzedLine
 import com.japanese.vocabulary.song.dto.Token
@@ -7,6 +8,9 @@ import com.japanese.vocabulary.song.dto.PartOfSpeech
 import com.japanese.vocabulary.song.dto.TokenInfo
 import com.japanese.vocabulary.song.entity.KoreanLyricStatus
 import com.japanese.vocabulary.song.repository.LyricRepository
+import io.micrometer.core.instrument.Gauge
+import io.micrometer.core.instrument.MeterRegistry
+import io.micrometer.core.instrument.Timer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -25,9 +29,21 @@ class KoreanLyricTranslationService(
     private val morphologicalAnalyzer: MorphologicalAnalyzer,
     private val geminiClient: GeminiClient,
     private val transactionTemplate: TransactionTemplate,
+    private val meterRegistry: MeterRegistry,
 ) {
     private val logger = LoggerFactory.getLogger("KoreanLyricTranslation")
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+
+    init {
+        registerStatusGauge(KoreanLyricStatus.PENDING, MetricNames.LYRIC_TRANSLATION_PENDING)
+        registerStatusGauge(KoreanLyricStatus.PROCESSING, MetricNames.LYRIC_TRANSLATION_PROCESSING)
+        registerStatusGauge(KoreanLyricStatus.FAILED, MetricNames.LYRIC_TRANSLATION_FAILED)
+    }
+
+    private fun registerStatusGauge(status: KoreanLyricStatus, name: String) {
+        Gauge.builder(name) { lyricRepository.countByStatus(status).toDouble() }
+            .register(meterRegistry)
+    }
 
     companion object {
         private const val MAX_RETRIES = 3
@@ -91,6 +107,8 @@ class KoreanLyricTranslationService(
             lyricEntity.songId, lyricEntity.retryCount
         )
 
+        val sample = Timer.start(meterRegistry)
+        var outcome = "success"
         return try {
             val lyricLines = lyricEntity.rawContent
             logger.info("[songId={}] Parsed {} lyric lines", lyricEntity.songId, lyricLines.size)
@@ -190,6 +208,7 @@ class KoreanLyricTranslationService(
         } catch (e: Exception) {
             lyricEntity.retryCount++
             if (lyricEntity.retryCount >= MAX_RETRIES) {
+                outcome = "failed"
                 lyricEntity.status = KoreanLyricStatus.FAILED
                 lyricRepository.save(lyricEntity)
                 logger.error(
@@ -198,6 +217,7 @@ class KoreanLyricTranslationService(
                 )
                 logger.error("[songId={}] Status: PROCESSING → FAILED (max retries reached)", lyricEntity.songId)
             } else {
+                outcome = "retry"
                 lyricEntity.status = KoreanLyricStatus.PENDING
                 lyricRepository.save(lyricEntity)
                 logger.error(
@@ -207,6 +227,13 @@ class KoreanLyricTranslationService(
                 logger.info("[songId={}] Status: PROCESSING → PENDING (will retry)", lyricEntity.songId)
             }
             false
+        }.also {
+            sample.stop(
+                Timer.builder(MetricNames.LYRIC_TRANSLATION_DURATION)
+                    .tag("outcome", outcome)
+                    .publishPercentileHistogram()
+                    .register(meterRegistry)
+            )
         }
     }
 }

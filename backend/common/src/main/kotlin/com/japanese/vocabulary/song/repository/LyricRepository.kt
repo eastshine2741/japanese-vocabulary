@@ -11,4 +11,6 @@ interface LyricRepository : JpaRepository<LyricEntity, Long> {
 
     @Query("SELECT l FROM LyricEntity l WHERE l.status IN :statuses ORDER BY l.createdAt ASC")
     fun findNextForTranslation(statuses: List<KoreanLyricStatus>, pageable: Pageable): List<LyricEntity>
+
+    fun countByStatus(status: KoreanLyricStatus): Long
 }

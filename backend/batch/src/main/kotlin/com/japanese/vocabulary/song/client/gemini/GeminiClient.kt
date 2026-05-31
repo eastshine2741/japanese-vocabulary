@@ -1,8 +1,12 @@
 package com.japanese.vocabulary.song.client.gemini
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.japanese.vocabulary.observability.MetricNames
 import com.japanese.vocabulary.song.client.gemini.dto.TranslationResult
 import com.japanese.vocabulary.song.client.gemini.dto.WordMeaningResult
+import io.micrometer.core.instrument.Counter
+import io.micrometer.core.instrument.MeterRegistry
+import io.micrometer.core.instrument.Timer
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
@@ -13,7 +17,8 @@ class GeminiClient(
     @Value("\${gemini.api-key}") private val apiKey: String,
     @Value("\${gemini.translation-model}") private val translationModel: String,
     @Value("\${gemini.word-meaning-model}") private val wordMeaningModel: String,
-    private val objectMapper: ObjectMapper
+    private val objectMapper: ObjectMapper,
+    private val meterRegistry: MeterRegistry,
 ) {
     private val restClient = restClientBuilder
         .baseUrl("https://generativelanguage.googleapis.com")
@@ -26,6 +31,7 @@ class GeminiClient(
      */
     fun translateLyrics(lyricLines: List<Map<String, Any?>>): List<TranslationResult> {
         return callGemini(
+            call = "translation",
             model = translationModel,
             systemPrompt = TRANSLATION_PROMPT,
             input = lyricLines,
@@ -52,6 +58,7 @@ class GeminiClient(
      */
     fun lookupWordMeanings(lyricLines: List<Map<String, Any?>>): List<WordMeaningResult> {
         return callGemini(
+            call = "word_meaning",
             model = wordMeaningModel,
             systemPrompt = WORD_MEANING_PROMPT,
             input = lyricLines,
@@ -62,6 +69,7 @@ class GeminiClient(
     }
 
     private fun <T> callGemini(
+        call: String,
         model: String,
         systemPrompt: String,
         input: Any,
@@ -89,20 +97,55 @@ class GeminiClient(
             "generationConfig" to generationConfig
         )
 
-        val response = restClient.post()
-            .uri("/v1beta/models/{model}:generateContent?key={apiKey}", model, apiKey)
-            .header("Content-Type", "application/json")
-            .body(requestBody)
-            .retrieve()
-            .body(Map::class.java)
-            ?: throw RuntimeException("Empty response from Gemini API")
+        val sample = Timer.start(meterRegistry)
+        var outcome = "success"
+        try {
+            val response = restClient.post()
+                .uri("/v1beta/models/{model}:generateContent?key={apiKey}", model, apiKey)
+                .header("Content-Type", "application/json")
+                .body(requestBody)
+                .retrieve()
+                .body(Map::class.java)
+                ?: throw RuntimeException("Empty response from Gemini API")
 
-        val text = extractText(response)
+            recordTokenUsage(call, model, response)
 
-        return objectMapper.readValue(
-            text,
-            objectMapper.typeFactory.constructCollectionType(List::class.java, responseType)
-        )
+            val text = extractText(response)
+
+            return objectMapper.readValue(
+                text,
+                objectMapper.typeFactory.constructCollectionType(List::class.java, responseType)
+            )
+        } catch (e: Throwable) {
+            outcome = "failure"
+            throw e
+        } finally {
+            sample.stop(
+                Timer.builder(MetricNames.GEMINI_CALL_DURATION)
+                    .tag("call", call)
+                    .tag("model", model)
+                    .tag("outcome", outcome)
+                    .publishPercentileHistogram()
+                    .register(meterRegistry)
+            )
+        }
+    }
+
+    private fun recordTokenUsage(call: String, model: String, response: Map<*, *>) {
+        val usage = response["usageMetadata"] as? Map<*, *> ?: return
+        recordTokens(call, model, "prompt", (usage["promptTokenCount"] as? Number)?.toLong() ?: 0L)
+        recordTokens(call, model, "candidates", (usage["candidatesTokenCount"] as? Number)?.toLong() ?: 0L)
+        recordTokens(call, model, "total", (usage["totalTokenCount"] as? Number)?.toLong() ?: 0L)
+    }
+
+    private fun recordTokens(call: String, model: String, kind: String, count: Long) {
+        if (count <= 0) return
+        Counter.builder(MetricNames.GEMINI_TOKENS)
+            .tag("call", call)
+            .tag("model", model)
+            .tag("kind", kind)
+            .register(meterRegistry)
+            .increment(count.toDouble())
     }
 
     private fun extractText(response: Map<*, *>): String {
