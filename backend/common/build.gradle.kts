@@ -15,6 +15,9 @@ dependencies {
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     api("io.micrometer:micrometer-core")
+    // For HttpClientMetricsConfig: consumers (api/batch) supply these at runtime via their starters.
+    compileOnly("org.springframework:spring-web")
+    compileOnly("org.springframework:spring-webflux")
     runtimeOnly("com.mysql:mysql-connector-j")
 
     testFixturesApi("org.springframework.boot:spring-boot-starter-test:3.4.3")
