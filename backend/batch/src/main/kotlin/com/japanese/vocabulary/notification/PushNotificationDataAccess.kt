@@ -53,6 +53,11 @@ class PushNotificationDataAccess(private val jdbcTemplate: JdbcTemplate) {
      * weeks don't keep generating notifications (and so the SQL hits `idx_flashcards_due` as a
      * proper range scan rather than scanning the whole table).
      *
+     * `last_review IS NOT NULL` excludes never-reviewed cards: the "이 단어 기억나세요?" copy is
+     * misleading for a word the user has never actually seen on a flashcard. The extra predicate
+     * runs as an in-memory filter on top of the already 7-day-bounded range scan, so no new index
+     * is justified (and MySQL doesn't support partial indexes anyway).
+     *
      * Note on schema: the `words` table column is `japanese_text` (not `surface`); we alias it to
      * `word_surface` so the DTO contract reads as in the plan.
      */
@@ -67,6 +72,7 @@ class PushNotificationDataAccess(private val jdbcTemplate: JdbcTemplate) {
                        ROW_NUMBER() OVER (PARTITION BY f.user_id ORDER BY f.due ASC) AS rn
                 FROM flashcards f
                 WHERE f.due >= ? AND f.due <= ?
+                  AND f.last_review IS NOT NULL
             )
             SELECT t.user_id,
                    t.token,
