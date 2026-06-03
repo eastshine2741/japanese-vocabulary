@@ -102,6 +102,36 @@ class PushNotificationDataAccessIntegrationTest : BatchBaseIntegrationTest() {
     }
 
     @Test
+    fun `never-reviewed cards are excluded so the prompt does not ask about words the user has not seen`() {
+        val user = insertUser()
+        insertDeviceToken(user, "tok-new", "ANDROID")
+        insertSettings(user, notificationsEnabled = true)
+        val word = insertWord(user, "未復習")
+        insertFlashcard(user, word, due = now.minusSeconds(60), lastReview = null)
+
+        assertThat(dataAccess.findCandidates(now)).isEmpty()
+    }
+
+    @Test
+    fun `never-reviewed cards are skipped even when they are the oldest-due of a user`() {
+        val user = insertUser()
+        insertDeviceToken(user, "tok-mix", "ANDROID")
+        insertSettings(user, notificationsEnabled = true)
+        val wNew = insertWord(user, "新規")
+        val wSeen = insertWord(user, "既習")
+        // Never-reviewed card is older (would win ROW_NUMBER if not filtered) — must be ignored.
+        insertFlashcard(user, wNew, due = now.minusSeconds(3600), lastReview = null)
+        val seenCard = insertFlashcard(user, wSeen, due = now.minusSeconds(600), lastReview = now.minusSeconds(86400))
+
+        val candidates = dataAccess.findCandidates(now)
+
+        assertThat(candidates).hasSize(1)
+        val c = candidates.first()
+        assertThat(c.flashcardId).isEqualTo(seenCard)
+        assertThat(c.wordSurface).startsWith("既習")
+    }
+
+    @Test
     fun `user with no user_settings row is included by COALESCE default true`() {
         val user = insertUser()
         insertDeviceToken(user, "tok-default", "IOS")
@@ -200,16 +230,22 @@ class PushNotificationDataAccessIntegrationTest : BatchBaseIntegrationTest() {
         return keyHolder.key!!.toLong()
     }
 
-    private fun insertFlashcard(userId: Long, wordId: Long, due: Instant): Long {
+    /**
+     * `lastReview` defaults to [now] (a non-null timestamp) so that the bulk of existing fixtures
+     * — which only care about `due` semantics — keep producing "card has been reviewed at least
+     * once" rows. Pass `lastReview = null` explicitly to exercise the never-reviewed exclusion.
+     */
+    private fun insertFlashcard(userId: Long, wordId: Long, due: Instant, lastReview: Instant? = now): Long {
         val keyHolder = GeneratedKeyHolder()
         jdbcTemplate.update({ conn ->
             conn.prepareStatement(
-                "INSERT INTO flashcards (word_id, user_id, due, fsrs_card_json) VALUES (?, ?, ?, '{}')",
+                "INSERT INTO flashcards (word_id, user_id, due, last_review, fsrs_card_json) VALUES (?, ?, ?, ?, '{}')",
                 Statement.RETURN_GENERATED_KEYS,
             ).apply {
                 setLong(1, wordId)
                 setLong(2, userId)
                 setTimestamp(3, Timestamp.from(due))
+                if (lastReview == null) setNull(4, java.sql.Types.TIMESTAMP) else setTimestamp(4, Timestamp.from(lastReview))
             }
         }, keyHolder)
         return keyHolder.key!!.toLong()
