@@ -1,7 +1,7 @@
-package com.japanese.vocabulary.user.service
+package com.japanese.vocabulary.notification.service
 
-import com.japanese.vocabulary.user.entity.Platform
-import com.japanese.vocabulary.user.repository.DeviceTokenRepository
+import com.japanese.vocabulary.notification.entity.Platform
+import com.japanese.vocabulary.notification.repository.DeviceTokenRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 

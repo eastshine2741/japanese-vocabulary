@@ -1,6 +1,6 @@
-package com.japanese.vocabulary.user.repository
+package com.japanese.vocabulary.notification.repository
 
-import com.japanese.vocabulary.user.entity.DeviceTokenEntity
+import com.japanese.vocabulary.notification.entity.DeviceTokenEntity
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query

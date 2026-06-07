@@ -1,4 +1,4 @@
-package com.japanese.vocabulary.notification
+package com.japanese.vocabulary.notification.config
 
 import com.google.auth.oauth2.GoogleCredentials
 import com.google.firebase.FirebaseApp

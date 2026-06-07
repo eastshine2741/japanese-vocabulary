@@ -10,6 +10,7 @@ import java.time.Instant
 @Repository
 interface FlashcardRepository : JpaRepository<FlashcardEntity, Long> {
     fun findByUserIdAndDueLessThanEqual(userId: Long, due: Instant): List<FlashcardEntity>
+    fun findByUserIdAndDueBetweenAndLastReviewIsNotNull(userId: Long, since: Instant, now: Instant): List<FlashcardEntity>
     fun findByUserId(userId: Long): List<FlashcardEntity>
     fun findByWordId(wordId: Long): FlashcardEntity?
     fun countByUserId(userId: Long): Long

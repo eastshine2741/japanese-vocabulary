@@ -1,4 +1,4 @@
-package com.japanese.vocabulary.user.entity
+package com.japanese.vocabulary.notification.entity
 
 import jakarta.persistence.*
 import org.springframework.data.annotation.CreatedDate
@@ -11,8 +11,7 @@ enum class Platform { IOS, ANDROID }
 @Entity
 @Table(
     name = "device_tokens",
-    uniqueConstraints = [UniqueConstraint(name = "uk_device_tokens_token", columnNames = ["token"])],
-    indexes = [Index(name = "idx_device_tokens_user", columnList = "user_id")]
+    uniqueConstraints = [UniqueConstraint(name = "uk_device_tokens_token", columnNames = ["token"])]
 )
 @EntityListeners(AuditingEntityListener::class)
 class DeviceTokenEntity(

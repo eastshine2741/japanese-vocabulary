@@ -4,10 +4,10 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.japanese.vocabulary.auth.jwt.JwtUtil
 import com.japanese.vocabulary.test.ApiBaseIntegrationTest
 import com.japanese.vocabulary.test.fixtures.TestUserBuilder
-import com.japanese.vocabulary.user.dto.RegisterDeviceTokenRequest
-import com.japanese.vocabulary.user.dto.UnregisterDeviceTokenRequest
+import com.japanese.vocabulary.notification.dto.RegisterDeviceTokenRequest
+import com.japanese.vocabulary.notification.dto.UnregisterDeviceTokenRequest
 import com.japanese.vocabulary.user.entity.UserEntity
-import com.japanese.vocabulary.user.repository.DeviceTokenRepository
+import com.japanese.vocabulary.notification.repository.DeviceTokenRepository
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired

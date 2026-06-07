@@ -1,8 +1,8 @@
-package com.japanese.vocabulary.user.controller
+package com.japanese.vocabulary.notification.controller
 
-import com.japanese.vocabulary.user.dto.RegisterDeviceTokenRequest
-import com.japanese.vocabulary.user.dto.UnregisterDeviceTokenRequest
-import com.japanese.vocabulary.user.service.DeviceTokenService
+import com.japanese.vocabulary.notification.dto.RegisterDeviceTokenRequest
+import com.japanese.vocabulary.notification.dto.UnregisterDeviceTokenRequest
+import com.japanese.vocabulary.notification.service.DeviceTokenService
 import org.springframework.http.HttpStatus
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.bind.annotation.DeleteMapping

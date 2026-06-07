@@ -17,6 +17,8 @@ dependencies {
     implementation(project(":domains:song"))
     implementation(project(":domains:studystats"))
     implementation(project(":domains:notification"))
+    implementation(project(":domains:user"))
+    implementation(project(":domains:flashcard"))
 
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
