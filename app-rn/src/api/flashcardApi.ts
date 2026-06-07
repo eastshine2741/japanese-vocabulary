@@ -8,9 +8,9 @@ import {
 } from '../types/flashcard';
 
 export const flashcardApi = {
-  async getDueCards(songId?: number): Promise<DueFlashcardsResponse> {
+  async getDueCards(deckId?: number): Promise<DueFlashcardsResponse> {
     const { data } = await client.get<DueFlashcardsResponse>('/api/flashcards/due', {
-      params: songId != null ? { songId } : {},
+      params: deckId != null ? { deckId } : {},
     });
     return data;
   },

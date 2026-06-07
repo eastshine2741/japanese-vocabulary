@@ -66,7 +66,7 @@ class FlashcardControllerTest : ApiBaseIntegrationTest() {
 
     private fun newSong(): SongEntity = TestSongBuilder(entityManager).build()
 
-    private fun linkCardToSongDeck(user: UserEntity, song: SongEntity, card: FlashcardEntity) {
+    private fun linkCardToSongDeck(user: UserEntity, song: SongEntity, card: FlashcardEntity): DeckEntity {
         val deck = DeckEntity(
             userId = user.id!!,
             songId = song.id!!,
@@ -77,6 +77,7 @@ class FlashcardControllerTest : ApiBaseIntegrationTest() {
         entityManager.flush()
         entityManager.persist(DeckFlashcardEntity(deckId = deck.id!!, flashcardId = card.id!!))
         entityManager.flush()
+        return deck
     }
 
     private fun saveSettings(user: UserEntity, showIntervals: Boolean) {
@@ -136,20 +137,20 @@ class FlashcardControllerTest : ApiBaseIntegrationTest() {
         }
 
         @Test
-        fun `songId filter returns only cards linked via that song's deck`() {
+        fun `deckId filter returns only cards in that deck`() {
             val me = newUser()
             val song = newSong()
             val otherSong = newSong()
 
             val linkedCard = newCard(me, dueAt = clock.instant().minus(Duration.ofHours(1)))
-            linkCardToSongDeck(me, song, linkedCard)
+            val deck = linkCardToSongDeck(me, song, linkedCard)
 
             val unlinkedCard = newCard(me, dueAt = clock.instant().minus(Duration.ofHours(1)))
             linkCardToSongDeck(me, otherSong, unlinkedCard)
 
             val body = mockMvc.get("/api/flashcards/due") {
                 header("Authorization", bearer(me))
-                param("songId", song.id!!.toString())
+                param("deckId", deck.id!!.toString())
             }.andReturn().response.contentAsString
 
             val resp = readBody<DueFlashcardsResponse>(body)

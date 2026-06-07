@@ -106,7 +106,7 @@ export default function DeckDetailScreen({ route, navigation }: Props) {
             <PrimaryButton
               icon="layers-outline"
               label="학습하기"
-              onPress={() => navigation.navigate('Review', { songId })}
+              onPress={() => navigation.navigate('Review', { deckId })}
               disabled={data.dueCount === 0}
               style={styles.primaryBtn}
             />

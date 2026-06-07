@@ -9,6 +9,8 @@ import com.japanese.vocabulary.deck.dto.DeckListDto
 import com.japanese.vocabulary.deck.dto.DeckSummaryDto
 import com.japanese.vocabulary.deck.dto.toDto
 import com.japanese.vocabulary.deck.repository.DeckRepository
+import com.japanese.vocabulary.flashcard.dto.DueFlashcardsDto
+import com.japanese.vocabulary.flashcard.service.FlashcardService
 import com.japanese.vocabulary.word.dto.WordListDto
 import com.japanese.vocabulary.word.dto.WordListItemDto
 import com.japanese.vocabulary.song.repository.SongRepository
@@ -26,8 +28,19 @@ class DeckService(
     private val songRepository: SongRepository,
     private val songWordRepository: SongWordRepository,
     private val wordRepository: WordRepository,
+    private val flashcardService: FlashcardService,
     private val clock: Clock,
 ) {
+
+    /**
+     * Due cards scoped to one deck. The deck-membership query lives here (outer layer owns the
+     * join); response assembly is delegated to the flashcard module.
+     */
+    @Transactional
+    fun getDueFlashcards(userId: Long, deckId: Long): DueFlashcardsDto {
+        val ids = deckRepository.findDueFlashcardIds(userId, deckId, Instant.now(clock))
+        return flashcardService.getDueFlashcardsByIds(userId, ids)
+    }
 
     @Transactional(readOnly = true)
     fun getDeckList(userId: Long, cursor: Long?, limit: Int = DECK_LIST_PAGE_SIZE): DeckListDto {

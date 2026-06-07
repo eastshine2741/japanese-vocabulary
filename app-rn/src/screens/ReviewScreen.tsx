@@ -37,7 +37,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Review'>;
 const ACTION_ROW_HEIGHT = 48;
 
 export default function ReviewScreen({ route, navigation }: Props) {
-  const songId = route.params?.songId ?? undefined;
+  const deckId = route.params?.deckId ?? undefined;
   const startFlashcardId = route.params?.startFlashcardId;
   const {
     status, cards, currentIndex, isRevealed, totalCount,
@@ -54,8 +54,8 @@ export default function ReviewScreen({ route, navigation }: Props) {
   );
 
   useEffect(() => {
-    loadDueCards(songId, startFlashcardId);
-  }, [songId, startFlashcardId]);
+    loadDueCards(deckId, startFlashcardId);
+  }, [deckId, startFlashcardId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -74,7 +74,7 @@ export default function ReviewScreen({ route, navigation }: Props) {
   };
 
   const finishReview = () => {
-    if (songId != null) {
+    if (deckId != null) {
       navigation.goBack();
     } else {
       navigation.navigate('Main');
@@ -91,7 +91,7 @@ export default function ReviewScreen({ route, navigation }: Props) {
       };
       const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
       return () => sub.remove();
-    }, [status, songId])
+    }, [status, deckId])
   );
 
   const openDictionary = (word: string) => {

@@ -20,6 +20,19 @@ interface DeckRepository : JpaRepository<DeckEntity, Long> {
         pageable: Pageable,
     ): List<DeckEntity>
 
+    // Returns ids (not FlashcardEntity) — entities stay inside their own module (see CLAUDE.md);
+    // the flashcard module re-loads them when assembling the response.
+    @Query("""
+        SELECT df.flashcardId FROM DeckFlashcardEntity df, FlashcardEntity f
+        WHERE df.flashcardId = f.id AND df.deckId = :deckId
+        AND f.userId = :userId AND f.due <= :now
+    """)
+    fun findDueFlashcardIds(
+        @Param("userId") userId: Long,
+        @Param("deckId") deckId: Long,
+        @Param("now") now: Instant,
+    ): List<Long>
+
     // COALESCE: SUM over zero rows returns NULL, which fails projection mapping to non-null Int.
     @Query(nativeQuery = true, value = """
         SELECT df.deck_id AS deckId,

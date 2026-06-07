@@ -6,6 +6,7 @@ import com.japanese.vocabulary.flashcard.dto.FlashcardStatsDto
 import com.japanese.vocabulary.flashcard.dto.FlashcardStatsResponse
 import com.japanese.vocabulary.flashcard.dto.ReviewRequest
 import com.japanese.vocabulary.flashcard.dto.ReviewResponse
+import com.japanese.vocabulary.deck.service.DeckService
 import com.japanese.vocabulary.flashcard.dto.ReviewResultDto
 import com.japanese.vocabulary.flashcard.service.FlashcardService
 import org.springframework.security.core.context.SecurityContextHolder
@@ -19,11 +20,18 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/api/flashcards")
-class FlashcardController(private val flashcardService: FlashcardService) {
+class FlashcardController(
+    private val flashcardService: FlashcardService,
+    private val deckService: DeckService,
+) {
 
+    // deckId == null means the virtual "all" deck: every due card the user owns.
     @GetMapping("/due")
-    fun getDueFlashcards(@RequestParam(required = false) songId: Long?): DueFlashcardsResponse =
-        flashcardService.getDueFlashcards(currentUserId(), songId).toResponse()
+    fun getDueFlashcards(@RequestParam(required = false) deckId: Long?): DueFlashcardsResponse =
+        when (deckId) {
+            null -> flashcardService.getDueFlashcards(currentUserId())
+            else -> deckService.getDueFlashcards(currentUserId(), deckId)
+        }.toResponse()
 
     @PostMapping("/{id}/review")
     fun reviewCard(@PathVariable id: Long, @RequestBody request: ReviewRequest): ReviewResponse =

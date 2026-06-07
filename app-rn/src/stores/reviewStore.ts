@@ -17,7 +17,7 @@ interface ReviewState {
   ratingCounts: Record<number, number>;
   error: string | null;
 
-  loadDueCards: (songId?: number, startFlashcardId?: number) => Promise<void>;
+  loadDueCards: (deckId?: number, startFlashcardId?: number) => Promise<void>;
   reveal: () => void;
   rate: (rating: number) => Promise<void>;
   refreshCurrentCard: () => Promise<void>;
@@ -34,7 +34,7 @@ export const useReviewStore = create<ReviewState>((set, get) => ({
   ratingCounts: { 1: 0, 2: 0, 3: 0, 4: 0 },
   error: null,
 
-  loadDueCards: async (songId?: number, startFlashcardId?: number) => {
+  loadDueCards: async (deckId?: number, startFlashcardId?: number) => {
     set({
       status: 'loading',
       cards: [],
@@ -46,7 +46,7 @@ export const useReviewStore = create<ReviewState>((set, get) => ({
     });
     try {
       const [dueRes, stats] = await Promise.all([
-        flashcardApi.getDueCards(songId),
+        flashcardApi.getDueCards(deckId),
         flashcardApi.getStats(),
       ]);
       if (dueRes.cards.length === 0) {

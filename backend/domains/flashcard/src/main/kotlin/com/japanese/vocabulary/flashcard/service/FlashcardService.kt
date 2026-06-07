@@ -69,14 +69,23 @@ class FlashcardService(
     }
 
     @Transactional
-    fun getDueFlashcards(userId: Long, songId: Long? = null): DueFlashcardsDto {
+    fun getDueFlashcards(userId: Long): DueFlashcardsDto {
         val now = Instant.now(clock)
-        val dueEntities = if (songId != null) {
-            flashcardRepository.findDueByUserIdAndSongId(userId, songId, now)
-        } else {
-            flashcardRepository.findByUserIdAndDueLessThanEqual(userId, now)
-        }
+        return assembleDueFlashcards(userId, flashcardRepository.findByUserIdAndDueLessThanEqual(userId, now), now)
+    }
 
+    /**
+     * Builds the due-flashcards view for a pre-selected id set — used by the deck module, which
+     * owns the deck-scoped due query but must not assemble flashcard internals itself.
+     */
+    @Transactional
+    fun getDueFlashcardsByIds(userId: Long, flashcardIds: List<Long>): DueFlashcardsDto {
+        val now = Instant.now(clock)
+        val entities = flashcardRepository.findAllById(flashcardIds).filter { it.userId == userId }
+        return assembleDueFlashcards(userId, entities, now)
+    }
+
+    private fun assembleDueFlashcards(userId: Long, dueEntities: List<FlashcardEntity>, now: Instant): DueFlashcardsDto {
         val wordIds = dueEntities.map { it.wordId }
         val words = wordRepository.findAllById(wordIds).associateBy { it.id }
 
