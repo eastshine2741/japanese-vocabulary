@@ -13,6 +13,16 @@ java {
 dependencies {
     implementation(project(":common"))
 
+    // Domain modules (api bootstrap wires all of them)
+    implementation(project(":domains:song"))
+    implementation(project(":domains:auth"))
+    implementation(project(":domains:user"))
+    implementation(project(":domains:userinventory"))
+    implementation(project(":domains:flashcard"))
+    implementation(project(":domains:deck"))
+    implementation(project(":domains:studystats"))
+    implementation(project(":domains:notification"))
+
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-webflux")
@@ -21,32 +31,24 @@ dependencies {
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
 
-    // JWT
-    implementation("io.jsonwebtoken:jjwt-api:0.12.3")
-    runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.3")
-    runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.3")
-
-    // Google OIDC (ID token JWKS verify)
-    implementation("com.google.api-client:google-api-client:2.7.0")
-
     // Sentry
     implementation("io.sentry:sentry-spring-boot-starter-jakarta:7.18.0")
     implementation("io.sentry:sentry-logback:7.18.0")
 
-    // Spring Security
+    // Spring Security (api wires the SecurityFilterChain across all domains)
     implementation("org.springframework.boot:spring-boot-starter-security")
 
     // Redis
     implementation("org.springframework.boot:spring-boot-starter-data-redis")
-
-    // FSRS - Spaced Repetition Scheduler
-    implementation("io.github.open-spaced-repetition:fsrs:1.0.0")
 
     // MySQL
     runtimeOnly("com.mysql:mysql-connector-j")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation(testFixtures(project(":common")))
+    testImplementation(testFixtures(project(":domains:user")))
+    testImplementation(testFixtures(project(":domains:song")))
+    testImplementation(testFixtures(project(":domains:flashcard")))
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {

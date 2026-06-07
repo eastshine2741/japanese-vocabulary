@@ -5,5 +5,5 @@ data class ReviewResponse(
     val state: Int,
     val due: String,
     val stability: Double,
-    val difficulty: Double
+    val difficulty: Double,
 )

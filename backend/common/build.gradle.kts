@@ -15,9 +15,11 @@ dependencies {
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     api("io.micrometer:micrometer-core")
-    // For HttpClientMetricsConfig: consumers (api/batch) supply these at runtime via their starters.
+    // RedisCache and HttpClientMetricsConfig declare these API types; consumers (api/batch/domains:song)
+    // supply the actual runtime implementations via their own starters.
     compileOnly("org.springframework:spring-web")
     compileOnly("org.springframework:spring-webflux")
+    compileOnly("org.springframework.boot:spring-boot-starter-data-redis")
     runtimeOnly("com.mysql:mysql-connector-j")
 
     testFixturesApi("org.springframework.boot:spring-boot-starter-test:3.4.3")

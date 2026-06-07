@@ -16,7 +16,7 @@ import com.japanese.vocabulary.word.dto.BatchAddWordResponse
 import com.japanese.vocabulary.word.dto.UpdateWordRequest
 import com.japanese.vocabulary.word.dto.WordDetailResponse
 import com.japanese.vocabulary.word.dto.WordListResponse
-import com.japanese.vocabulary.word.dto.WordMeaning
+import com.japanese.vocabulary.word.model.WordMeaning
 import com.japanese.vocabulary.word.entity.SongWordEntity
 import com.japanese.vocabulary.word.entity.WordEntity
 import com.japanese.vocabulary.word.event.SongWordCreatedEvent
@@ -70,10 +70,10 @@ class WordControllerTest : ApiBaseIntegrationTest() {
     private inline fun <reified T> readBody(json: String): T = objectMapper.readValue(json, T::class.java)
 
     @Nested
-    inner class AddWord {
+    inner class AddWordDto {
 
         @Test
-        fun `creates Word, SongWord, Flashcard and publishes SongWordCreatedEvent`() {
+        fun `creates Word, SongWord, FlashcardDto and publishes SongWordCreatedEvent`() {
             val me = newUser()
             val song = newSong()
 
@@ -243,7 +243,7 @@ class WordControllerTest : ApiBaseIntegrationTest() {
     }
 
     @Nested
-    inner class UpdateWord {
+    inner class UpdateWordDto {
 
         @Test
         fun `updates reading and meanings`() {
@@ -377,7 +377,7 @@ class WordControllerTest : ApiBaseIntegrationTest() {
     inner class DeleteWord {
 
         @Test
-        fun `removes Word, SongWord, Flashcard and publishes FlashcardDeletedEvent`() {
+        fun `removes Word, SongWord, FlashcardDto and publishes FlashcardDeletedEvent`() {
             val me = newUser()
             val song = newSong()
             mockMvc.post("/api/words") {

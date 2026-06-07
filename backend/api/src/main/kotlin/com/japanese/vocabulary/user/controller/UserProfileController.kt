@@ -2,6 +2,7 @@ package com.japanese.vocabulary.user.controller
 
 import com.japanese.vocabulary.user.dto.UpdateProfileRequest
 import com.japanese.vocabulary.user.dto.UserProfileResponse
+import com.japanese.vocabulary.user.dto.UserDto
 import com.japanese.vocabulary.user.service.UserProfileService
 import org.springframework.http.HttpStatus
 import org.springframework.security.core.context.SecurityContextHolder
@@ -21,6 +22,7 @@ class UserProfileController(
     fun updateProfile(@RequestBody request: UpdateProfileRequest): UserProfileResponse {
         val userId = SecurityContextHolder.getContext().authentication.principal as Long
         return userProfileService.updateProfile(userId, rawName = request.name, rawUsername = request.username)
+            .toResponse()
     }
 
     @DeleteMapping
@@ -29,4 +31,6 @@ class UserProfileController(
         val userId = SecurityContextHolder.getContext().authentication.principal as Long
         userProfileService.deleteSelf(userId)
     }
+
+    private fun UserDto.toResponse() = UserProfileResponse(username = username, name = name)
 }

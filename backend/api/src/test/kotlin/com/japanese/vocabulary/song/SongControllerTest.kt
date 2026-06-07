@@ -5,14 +5,14 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import com.japanese.vocabulary.auth.jwt.JwtUtil
 import com.japanese.vocabulary.song.client.LyricsResult
 import com.japanese.vocabulary.song.dto.AnalyzeSongRequest
-import com.japanese.vocabulary.song.dto.AnalyzedLine
-import com.japanese.vocabulary.song.dto.LyricLineData
-import com.japanese.vocabulary.song.dto.PartOfSpeech
-import com.japanese.vocabulary.song.dto.RecentSongItem
-import com.japanese.vocabulary.song.dto.SongDTO
-import com.japanese.vocabulary.song.dto.SongSearchItem
+import com.japanese.vocabulary.song.model.AnalyzedLine
+import com.japanese.vocabulary.song.model.LyricLineData
+import com.japanese.vocabulary.song.model.PartOfSpeech
+import com.japanese.vocabulary.song.dto.RecentSongItemDto
+import com.japanese.vocabulary.song.dto.SongDto
+import com.japanese.vocabulary.song.dto.SongSearchItemDto
 import com.japanese.vocabulary.song.dto.SongSearchResponse
-import com.japanese.vocabulary.song.dto.Token
+import com.japanese.vocabulary.song.model.Token
 import com.japanese.vocabulary.song.entity.KoreanLyricStatus
 import com.japanese.vocabulary.song.entity.LyricEntity
 import com.japanese.vocabulary.song.entity.LyricType
@@ -92,7 +92,7 @@ class SongControllerTest : ApiBaseIntegrationTest() {
                 )
             }.andExpect { status { isOk() } }.andReturn().response.contentAsString
 
-            assertThat(readBody<SongDTO>(body).song.id).isEqualTo(existing.id)
+            assertThat(readBody<SongDto>(body).song.id).isEqualTo(existing.id)
             // recent recorded for this user
             val recents = redis.opsForZSet().reverseRange(recentKey(me.id!!), 0, -1)
             assertThat(recents).contains(existing.id.toString())
@@ -121,7 +121,7 @@ class SongControllerTest : ApiBaseIntegrationTest() {
                 )
             }.andExpect { status { isOk() } }.andReturn().response.contentAsString
 
-            val dto = readBody<SongDTO>(body)
+            val dto = readBody<SongDto>(body)
             assertThat(dto.youtubeUrl).isEqualTo("https://youtu.be/abc")
             assertThat(dto.lyricsSourceName).isEqualTo("LRCLIB")
             assertThat(dto.studyUnits.map { it.originalText }).containsExactly("ライン1", "ライン2")
@@ -174,7 +174,7 @@ class SongControllerTest : ApiBaseIntegrationTest() {
                 )
             }.andExpect { status { isOk() } }.andReturn().response.contentAsString
 
-            val dto = readBody<SongDTO>(body)
+            val dto = readBody<SongDto>(body)
             assertThat(dto.youtubeUrl).isNull()
 
             entityManager.flush(); entityManager.clear()
@@ -218,7 +218,7 @@ class SongControllerTest : ApiBaseIntegrationTest() {
                 header("Authorization", bearer(me))
             }.andExpect { status { isOk() } }.andReturn().response.contentAsString
 
-            val dto = readBody<SongDTO>(body)
+            val dto = readBody<SongDto>(body)
             assertThat(dto.studyUnits).hasSize(1)
             assertThat(dto.studyUnits.single().koreanLyrics).isEqualTo("밤")
             assertThat(dto.studyUnits.single().tokens).hasSize(1)
@@ -241,7 +241,7 @@ class SongControllerTest : ApiBaseIntegrationTest() {
                 header("Authorization", bearer(me))
             }.andReturn().response.contentAsString
 
-            val dto = readBody<SongDTO>(body)
+            val dto = readBody<SongDto>(body)
             assertThat(dto.studyUnits.single().originalText).isEqualTo("待機中")
             assertThat(dto.studyUnits.single().tokens).isEmpty()
             assertThat(dto.studyUnits.single().koreanLyrics).isNull()
@@ -270,7 +270,7 @@ class SongControllerTest : ApiBaseIntegrationTest() {
                 header("Authorization", bearer(me))
             }.andReturn().response.contentAsString
 
-            assertThat(readBody<List<RecentSongItem>>(body)).isEmpty()
+            assertThat(readBody<List<RecentSongItemDto>>(body)).isEmpty()
         }
 
         @Test
@@ -291,13 +291,13 @@ class SongControllerTest : ApiBaseIntegrationTest() {
             val myBody = mockMvc.get("/api/songs/recent") {
                 header("Authorization", bearer(me))
             }.andReturn().response.contentAsString
-            val ids = readBody<List<RecentSongItem>>(myBody).map { it.id }
+            val ids = readBody<List<RecentSongItemDto>>(myBody).map { it.id }
             assertThat(ids).containsExactly(s3.id, s2.id, s1.id)
 
             val otherBody = mockMvc.get("/api/songs/recent") {
                 header("Authorization", bearer(other))
             }.andReturn().response.contentAsString
-            assertThat(readBody<List<RecentSongItem>>(otherBody).map { it.id })
+            assertThat(readBody<List<RecentSongItemDto>>(otherBody).map { it.id })
                 .containsExactly(s1.id)
         }
     }
@@ -323,7 +323,7 @@ class SongControllerTest : ApiBaseIntegrationTest() {
             val me = newUser()
             every { itunesClient.search("query") } returns SongSearchResponse(
                 items = listOf(
-                    SongSearchItem(id = "1", title = "曲", thumbnail = "thumb", artistName = "歌手", durationSeconds = 200),
+                    SongSearchItemDto(id = "1", title = "曲", thumbnail = "thumb", artistName = "歌手", durationSeconds = 200),
                 ),
             )
 

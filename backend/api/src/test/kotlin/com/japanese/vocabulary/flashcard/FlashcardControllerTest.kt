@@ -19,7 +19,7 @@ import com.japanese.vocabulary.test.fixtures.TestUserBuilder
 import com.japanese.vocabulary.test.fixtures.TestWordBuilder
 import com.japanese.vocabulary.user.entity.UserEntity
 import com.japanese.vocabulary.user.entity.UserSettingsEntity
-import com.japanese.vocabulary.user.dto.UserSettingsData
+import com.japanese.vocabulary.user.model.UserSettingsData
 import com.japanese.vocabulary.word.entity.WordEntity
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Nested

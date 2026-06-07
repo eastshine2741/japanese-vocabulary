@@ -1,10 +1,7 @@
 package com.japanese.vocabulary.config.converter
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.japanese.vocabulary.song.dto.AnalyzedLine
-import com.japanese.vocabulary.song.dto.LyricLineData
 import jakarta.persistence.AttributeConverter
-import jakarta.persistence.Converter
 
 abstract class JsonListConverter<T>(private val elementType: Class<T>) : AttributeConverter<List<T>, String> {
     companion object {
@@ -23,9 +20,3 @@ abstract class JsonListConverter<T>(private val elementType: Class<T>) : Attribu
         )
     }
 }
-
-@Converter
-class LyricLineDataListConverter : JsonListConverter<LyricLineData>(LyricLineData::class.java)
-
-@Converter
-class AnalyzedLineListConverter : JsonListConverter<AnalyzedLine>(AnalyzedLine::class.java)

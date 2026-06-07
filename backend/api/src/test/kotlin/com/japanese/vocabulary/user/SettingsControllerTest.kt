@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.japanese.vocabulary.auth.jwt.JwtUtil
 import com.japanese.vocabulary.test.ApiBaseIntegrationTest
 import com.japanese.vocabulary.test.fixtures.TestUserBuilder
-import com.japanese.vocabulary.user.dto.UserSettingsDTO
+import com.japanese.vocabulary.user.model.UserSettingsData
 import com.japanese.vocabulary.user.entity.UserEntity
 import com.japanese.vocabulary.user.repository.UserSettingsRepository
 import org.assertj.core.api.Assertions.assertThat
@@ -39,7 +39,7 @@ class SettingsControllerTest : ApiBaseIntegrationTest() {
             header("Authorization", bearer(me))
         }.andExpect { status { isOk() } }.andReturn().response.contentAsString
 
-        val resp = readBody<UserSettingsDTO>(body)
+        val resp = readBody<UserSettingsData>(body)
         assertThat(resp.showIntervals).isTrue
         assertThat(resp.readingDisplay).isEqualTo("KOREAN")
         assertThat(resp.showKoreanPronunciation).isTrue
@@ -50,7 +50,7 @@ class SettingsControllerTest : ApiBaseIntegrationTest() {
     @Test
     fun `PUT creates row and subsequent GET reflects saved values`() {
         val me = newUser()
-        val dto = UserSettingsDTO(
+        val dto = UserSettingsData(
             showIntervals = false,
             readingDisplay = "HIRAGANA",
             showKoreanPronunciation = false,
@@ -68,14 +68,14 @@ class SettingsControllerTest : ApiBaseIntegrationTest() {
         val getBody = mockMvc.get("/api/settings") {
             header("Authorization", bearer(me))
         }.andReturn().response.contentAsString
-        assertThat(readBody<UserSettingsDTO>(getBody)).isEqualTo(dto)
+        assertThat(readBody<UserSettingsData>(getBody)).isEqualTo(dto)
     }
 
     @Test
     fun `second PUT updates the same row (one row per user)`() {
         val me = newUser()
-        val first = UserSettingsDTO(readingDisplay = "HIRAGANA", dailyGoal = 30)
-        val second = UserSettingsDTO(readingDisplay = "KATAKANA", dailyGoal = 60)
+        val first = UserSettingsData(readingDisplay = "HIRAGANA", dailyGoal = 30)
+        val second = UserSettingsData(readingDisplay = "KATAKANA", dailyGoal = 60)
 
         mockMvc.put("/api/settings") {
             header("Authorization", bearer(me))

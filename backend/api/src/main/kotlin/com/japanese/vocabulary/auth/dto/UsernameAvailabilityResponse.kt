@@ -2,7 +2,7 @@ package com.japanese.vocabulary.auth.dto
 
 data class UsernameAvailabilityResponse(
     val available: Boolean,
-    val reason: String? = null
+    val reason: String? = null,
 ) {
     companion object {
         const val REASON_INVALID_FORMAT = "INVALID_FORMAT"

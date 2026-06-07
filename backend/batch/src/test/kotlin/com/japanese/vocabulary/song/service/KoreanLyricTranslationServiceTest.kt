@@ -1,10 +1,10 @@
 package com.japanese.vocabulary.song.service
 
-import com.japanese.vocabulary.song.client.gemini.dto.TranslationResult
+import com.japanese.vocabulary.song.client.gemini.dto.TranslationResultDto
 import com.japanese.vocabulary.song.client.gemini.dto.WordMeaning
-import com.japanese.vocabulary.song.client.gemini.dto.WordMeaningResult
-import com.japanese.vocabulary.song.dto.LyricLineData
-import com.japanese.vocabulary.song.dto.PartOfSpeech
+import com.japanese.vocabulary.song.client.gemini.dto.WordMeaningResultDto
+import com.japanese.vocabulary.song.model.LyricLineData
+import com.japanese.vocabulary.song.model.PartOfSpeech
 import com.japanese.vocabulary.song.entity.KoreanLyricStatus
 import com.japanese.vocabulary.song.entity.LyricEntity
 import com.japanese.vocabulary.song.entity.LyricType
@@ -53,7 +53,7 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
         val lyric = seedLyric(listOf("猫が寝る"))
 
         every { geminiClient.translateLyrics(any()) } returns listOf(
-            TranslationResult(index = 0, koreanLyrics = "고양이가 잔다", koreanPronounciation = "네코가 네루"),
+            TranslationResultDto(index = 0, koreanLyrics = "고양이가 잔다", koreanPronounciation = "네코가 네루"),
         )
         every { geminiClient.lookupWordMeanings(any()) } answers {
             // Echo back baseForms supplied in the request so the 1:1 merge can succeed regardless
@@ -65,7 +65,7 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
                 val words = (line["words"] as List<Map<String, Any?>>).map {
                     WordMeaning(baseForm = it["baseForm"] as String, koreanText = "뜻:${it["baseForm"]}")
                 }
-                WordMeaningResult(index = idx, words = words)
+                WordMeaningResultDto(index = idx, words = words)
             }
         }
 
@@ -95,7 +95,7 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
         val lyric = seedLyric(listOf("猫[寝"))
 
         every { geminiClient.translateLyrics(any()) } returns listOf(
-            TranslationResult(0, "고양이[잠", "네코[네"),
+            TranslationResultDto(0, "고양이[잠", "네코[네"),
         )
         every { geminiClient.lookupWordMeanings(any()) } answers {
             @Suppress("UNCHECKED_CAST")
@@ -107,7 +107,7 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
                 val words = (line["words"] as List<Map<String, Any?>>).map {
                     WordMeaning(baseForm = it["baseForm"] as String, koreanText = "뜻:${it["baseForm"]}")
                 }
-                WordMeaningResult(index = line["index"] as Int, words = words)
+                WordMeaningResultDto(index = line["index"] as Int, words = words)
             }
         }
 
@@ -161,7 +161,7 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
         // Both calls are issued — we just verify the dispatch (not strict ordering).
         val lyric = seedLyric(listOf("猫"))
 
-        every { geminiClient.translateLyrics(any()) } returns listOf(TranslationResult(0, "고양이", "네코"))
+        every { geminiClient.translateLyrics(any()) } returns listOf(TranslationResultDto(0, "고양이", "네코"))
         every { geminiClient.lookupWordMeanings(any()) } answers {
             @Suppress("UNCHECKED_CAST")
             val input = firstArg<List<Map<String, Any?>>>()
@@ -169,7 +169,7 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
                 val words = (line["words"] as List<Map<String, Any?>>).map {
                     WordMeaning(baseForm = it["baseForm"] as String, koreanText = "뜻")
                 }
-                WordMeaningResult(index = line["index"] as Int, words = words)
+                WordMeaningResultDto(index = line["index"] as Int, words = words)
             }
         }
 
@@ -184,7 +184,7 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
         // Slow-stub Gemini so the async portion does not race ahead and flip our PROCESSING
         // assertions to COMPLETED before we can read them.
         every { geminiClient.translateLyrics(any()) } answers {
-            Thread.sleep(2_000); listOf(TranslationResult(0, "x", "y"))
+            Thread.sleep(2_000); listOf(TranslationResultDto(0, "x", "y"))
         }
         every { geminiClient.lookupWordMeanings(any()) } answers {
             Thread.sleep(2_000); emptyList()
