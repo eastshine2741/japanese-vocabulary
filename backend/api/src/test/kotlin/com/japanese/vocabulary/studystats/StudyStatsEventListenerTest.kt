@@ -5,7 +5,7 @@ import com.japanese.vocabulary.studystats.entity.DailyStudySummaryEntity
 import com.japanese.vocabulary.studystats.event.StudyStatsEventListener
 import com.japanese.vocabulary.studystats.repository.DailyStudySummaryRepository
 import com.japanese.vocabulary.studystats.util.KstClock
-import com.japanese.vocabulary.test.AfterCommitListenerTest
+import com.japanese.vocabulary.test.ApiAfterCommitListenerTest
 import com.japanese.vocabulary.test.fixtures.TestUserBuilder
 import com.japanese.vocabulary.user.entity.UserEntity
 import com.japanese.vocabulary.userinventory.entity.InventoryItemType
@@ -19,7 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired
  * be committed beforehand via inTx { ... } — otherwise the listener's separate connection
  * cannot see the uncommitted entities. See AfterCommitListenerTest for the full rationale.
  */
-class StudyStatsEventListenerTest : AfterCommitListenerTest() {
+class StudyStatsEventListenerTest : ApiAfterCommitListenerTest() {
 
     @Autowired private lateinit var listener: StudyStatsEventListener
     @Autowired private lateinit var summaryRepository: DailyStudySummaryRepository

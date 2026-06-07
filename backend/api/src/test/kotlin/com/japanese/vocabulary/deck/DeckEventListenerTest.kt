@@ -4,7 +4,7 @@ import com.japanese.vocabulary.deck.event.DeckEventListener
 import com.japanese.vocabulary.deck.repository.DeckFlashcardRepository
 import com.japanese.vocabulary.deck.repository.DeckRepository
 import com.japanese.vocabulary.flashcard.event.FlashcardDeletedEvent
-import com.japanese.vocabulary.test.AfterCommitListenerTest
+import com.japanese.vocabulary.test.ApiAfterCommitListenerTest
 import com.japanese.vocabulary.test.fixtures.TestFlashcardBuilder
 import com.japanese.vocabulary.test.fixtures.TestSongBuilder
 import com.japanese.vocabulary.test.fixtures.TestUserBuilder
@@ -18,7 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired
  * be committed beforehand via inTx { ... } — otherwise the listener's separate connection
  * cannot see the uncommitted entities. See AfterCommitListenerTest for the full rationale.
  */
-class DeckEventListenerTest : AfterCommitListenerTest() {
+class DeckEventListenerTest : ApiAfterCommitListenerTest() {
 
     @Autowired private lateinit var listener: DeckEventListener
     @Autowired private lateinit var deckRepository: DeckRepository

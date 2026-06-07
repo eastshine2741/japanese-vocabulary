@@ -5,6 +5,4 @@ dependencies {
 
     // Spring Batch job (FreezeConsume) lives here; bootstrap modules pull the runtime starter.
     implementation("org.springframework.boot:spring-boot-starter-batch")
-
-    testImplementation(testFixtures(project(":domains:user")))
 }
