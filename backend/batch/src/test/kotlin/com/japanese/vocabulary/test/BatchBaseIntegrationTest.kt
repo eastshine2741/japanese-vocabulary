@@ -1,7 +1,7 @@
 package com.japanese.vocabulary.test
 
 import com.google.firebase.messaging.FirebaseMessaging
-import com.japanese.vocabulary.song.client.gemini.GeminiClient
+import com.japanese.vocabulary.translation.client.gemini.GeminiClient
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.clearMocks
 import org.junit.jupiter.api.BeforeEach

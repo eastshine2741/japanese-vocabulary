@@ -1,4 +1,4 @@
-package com.japanese.vocabulary.song.client.gemini.dto
+package com.japanese.vocabulary.translation.client.gemini.dto
 
 data class TranslationResultDto(
     val index: Int,

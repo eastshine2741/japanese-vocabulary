@@ -1,9 +1,9 @@
-package com.japanese.vocabulary.song.client.gemini
+package com.japanese.vocabulary.translation.client.gemini
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.japanese.vocabulary.observability.MetricNames
-import com.japanese.vocabulary.song.client.gemini.dto.TranslationResultDto
-import com.japanese.vocabulary.song.client.gemini.dto.WordMeaningResultDto
+import com.japanese.vocabulary.translation.client.gemini.dto.TranslationResultDto
+import com.japanese.vocabulary.translation.client.gemini.dto.WordMeaningResultDto
 import io.micrometer.core.instrument.Counter
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Timer

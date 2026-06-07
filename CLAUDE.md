@@ -74,19 +74,20 @@ backend/
 │   ├── auth/                — Google OIDC + JWT, AuthService
 │   ├── user/                — UserEntity + Settings + DeviceToken
 │   ├── userinventory/       — freeze inventory etc.
-│   ├── song/                — Song/Lyric entity + iTunes/YouTube/VocaDB/LRCLIB/Gemini clients + Kuromoji analysis + LyricProcessingService + KoreanLyricTranslationService (plain method, no @Scheduled)
+│   ├── song/                — Song/Lyric entity + iTunes/YouTube/VocaDB/LRCLIB clients + LyricProcessingService (동기 단계). 저장 모델(AnalyzedLine/Token/PartOfSpeech)도 여기 (LyricEntity JSON + api study view가 사용)
+│   ├── translation/         — 가사 분석+번역 파이프라인: KoreanLyricTranslationService + Kuromoji analyzer 3종(+config) + GeminiClient. **batch만 의존** — Kuromoji 사전(IPADic/UniDic)이 빈 생성 시 힙에 통째로 로드되므로 api classpath에서 제외
 │   ├── flashcard/           — word + flashcard packages merged (word ↔ flashcard cycle): WordEntity, FlashcardEntity, repositories, services, events
 │   ├── deck/                — DeckEntity, DeckService, DeckEventListener
 │   ├── studystats/          — DailyStudySummary, StreakCalculator, FreezeConsumeJob (Spring Batch)
 │   └── notification/        — FCM 전송 + FirebaseConfig + NotificationLogEntity 만. Scheduler/조회 로직은 없음. 외부 데이터 접근은 `PushNotificationDataPort` 인터페이스로 추상화 (구현체는 `batch`)
-├── api/                     — REST bootstrap (@SpringBootApplication). 모든 도메인 모듈 의존. controller/ + per-domain dto/ (HTTP 입출력). @Scheduled 없음.
-└── batch/                   — 스케줄 잡 bootstrap (@SpringBootApplication, @EnableScheduling). 필요한 도메인만 의존 (현재 song, studystats, notification, user, flashcard). 모든 @Scheduled는 여기. PushNotificationScheduler, KoreanLyricTranslationScheduler, FreezeConsumeScheduler, PushNotificationQueryService (PushNotificationDataPort 구현).
+├── api/                     — REST bootstrap (@SpringBootApplication). translation을 제외한 모든 도메인 모듈 의존. controller/ + per-domain dto/ (HTTP 입출력). @Scheduled 없음.
+└── batch/                   — 스케줄 잡 bootstrap (@SpringBootApplication, @EnableScheduling). 필요한 도메인만 의존 (현재 song, translation, studystats, notification, user, flashcard). 모든 @Scheduled는 여기. KoreanLyricTranslationScheduler, FreezeConsumeScheduler 등.
 ```
 
 ### 모듈 의존성 원칙
 
 - **batch가 의존하는 도메인은 최소화**. 필요한 도메인만 추가. JPA 엔티티 로드 비용 절감.
-- **api는 모든 도메인 의존**. REST 표면이 전체 도메인을 노출하므로.
+- **api는 모든 도메인 의존**. REST 표면이 전체 도메인을 노출하므로. **예외: translation** — Kuromoji 사전 힙 비용 때문에 batch 전용.
 - 도메인 모듈끼리는 필요할 때 의존 (e.g. `flashcard` → `song` repository 사용). 단 한쪽이 너무 많은 cross-domain repo를 import하면 service 메서드 도입 고려.
 
 ### dto / model / entity 명명 규칙

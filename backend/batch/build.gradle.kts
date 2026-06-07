@@ -15,6 +15,7 @@ dependencies {
 
     // Domains the batch process actually loads
     implementation(project(":domains:song"))
+    implementation(project(":domains:translation"))
     implementation(project(":domains:studystats"))
     implementation(project(":domains:notification"))
     implementation(project(":domains:user"))
@@ -29,11 +30,6 @@ dependencies {
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
-
-    // Japanese morphological analyzers used by domains:song (Kuromoji ensemble).
-    // Kept here for now because the analyzer config lives in batch's wiring.
-    implementation("com.atilika.kuromoji:kuromoji-ipadic:0.9.0")
-    implementation("com.atilika.kuromoji:kuromoji-unidic:0.9.0")
 
     // Sentry
     implementation("io.sentry:sentry-spring-boot-starter-jakarta:7.18.0")

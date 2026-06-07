@@ -1,9 +1,9 @@
-package com.japanese.vocabulary.song.service
+package com.japanese.vocabulary.translation.service
 
-import com.japanese.vocabulary.song.batch.KoreanLyricTranslationScheduler
-import com.japanese.vocabulary.song.client.gemini.dto.TranslationResultDto
-import com.japanese.vocabulary.song.client.gemini.dto.WordMeaningDto
-import com.japanese.vocabulary.song.client.gemini.dto.WordMeaningResultDto
+import com.japanese.vocabulary.translation.batch.KoreanLyricTranslationScheduler
+import com.japanese.vocabulary.translation.client.gemini.dto.TranslationResultDto
+import com.japanese.vocabulary.translation.client.gemini.dto.WordMeaningDto
+import com.japanese.vocabulary.translation.client.gemini.dto.WordMeaningResultDto
 import com.japanese.vocabulary.song.entity.KoreanLyricStatus
 import com.japanese.vocabulary.song.entity.LyricEntity
 import com.japanese.vocabulary.song.entity.LyricType

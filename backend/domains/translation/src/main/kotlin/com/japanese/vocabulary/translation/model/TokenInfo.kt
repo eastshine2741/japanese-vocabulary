@@ -1,4 +1,6 @@
-package com.japanese.vocabulary.song.model
+package com.japanese.vocabulary.translation.model
+
+import com.japanese.vocabulary.song.model.PartOfSpeech
 
 data class TokenInfo(
     val surface: String,

@@ -1,5 +1,6 @@
 package com.japanese.vocabulary.test
 
+import com.google.firebase.messaging.FirebaseMessaging
 import com.japanese.vocabulary.auth.service.GoogleOidcService
 import com.japanese.vocabulary.song.client.itunes.ItunesClient
 import com.japanese.vocabulary.song.client.lrclib.LrclibClient
@@ -32,10 +33,19 @@ abstract class ApiBaseIntegrationTest : BaseIntegrationTest() {
     @MockkBean
     protected lateinit var googleOidcService: GoogleOidcService
 
+    /**
+     * notification 도메인의 `PushNotificationService` 가 `FirebaseMessaging` 빈을 요구하지만
+     * `FirebaseConfig` 는 `push.firebase.enabled=true` 게이트 뒤에 있어 테스트에선 안 뜬다.
+     * DI 만족용 mock — strict 이므로 실수로 호출되면 즉시 실패한다. (BatchBaseIntegrationTest 와 동일)
+     */
+    @MockkBean
+    protected lateinit var firebaseMessaging: FirebaseMessaging
+
     @BeforeEach
     fun resetClientMocks() {
         clearMocks(
             lrclibClient, vocadbClient, youtubeClient, itunesClient, googleOidcService,
+            firebaseMessaging,
             answers = true,
             recordedCalls = true,
         )

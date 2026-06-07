@@ -1,8 +1,8 @@
-package com.japanese.vocabulary.song.batch
+package com.japanese.vocabulary.translation.batch
 
 import com.japanese.vocabulary.observability.MetricNames
 import com.japanese.vocabulary.song.entity.LyricEntity
-import com.japanese.vocabulary.song.service.KoreanLyricTranslationService
+import com.japanese.vocabulary.translation.service.KoreanLyricTranslationService
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Timer
 import kotlinx.coroutines.CoroutineScope

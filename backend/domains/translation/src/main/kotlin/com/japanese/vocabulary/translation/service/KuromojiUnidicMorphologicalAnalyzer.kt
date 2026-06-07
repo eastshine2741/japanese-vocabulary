@@ -1,8 +1,8 @@
-package com.japanese.vocabulary.song.service
+package com.japanese.vocabulary.translation.service
 
 import com.atilika.kuromoji.unidic.Tokenizer
 import com.japanese.vocabulary.song.model.PartOfSpeech
-import com.japanese.vocabulary.song.model.TokenInfo
+import com.japanese.vocabulary.translation.model.TokenInfo
 
 class KuromojiUnidicMorphologicalAnalyzer : MorphologicalAnalyzer {
 

@@ -1,6 +1,6 @@
-package com.japanese.vocabulary.config
+package com.japanese.vocabulary.translation.config
 
-import com.japanese.vocabulary.song.service.*
+import com.japanese.vocabulary.translation.service.*
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Primary

@@ -1,13 +1,13 @@
-package com.japanese.vocabulary.song.service
+package com.japanese.vocabulary.translation.service
 
 import com.japanese.vocabulary.observability.MetricNames
-import com.japanese.vocabulary.song.client.gemini.GeminiClient
+import com.japanese.vocabulary.translation.client.gemini.GeminiClient
 import com.japanese.vocabulary.song.entity.KoreanLyricStatus
 import com.japanese.vocabulary.song.entity.LyricEntity
 import com.japanese.vocabulary.song.model.AnalyzedLine
 import com.japanese.vocabulary.song.model.PartOfSpeech
 import com.japanese.vocabulary.song.model.Token
-import com.japanese.vocabulary.song.model.TokenInfo
+import com.japanese.vocabulary.translation.model.TokenInfo
 import com.japanese.vocabulary.song.repository.LyricRepository
 import io.micrometer.core.instrument.Gauge
 import io.micrometer.core.instrument.MeterRegistry

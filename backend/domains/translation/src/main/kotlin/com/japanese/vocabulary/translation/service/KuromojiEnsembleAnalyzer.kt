@@ -1,6 +1,6 @@
-package com.japanese.vocabulary.song.service
+package com.japanese.vocabulary.translation.service
 
-import com.japanese.vocabulary.song.model.TokenInfo
+import com.japanese.vocabulary.translation.model.TokenInfo
 
 /**
  * Ensemble morphological analyzer combining Kuromoji with IPADic and UniDic dictionaries.
