@@ -41,6 +41,11 @@ gemini:
   translation-model: gemini-3.1-pro-preview
   word-meaning-model: gemini-3.1-flash-lite
 
+# Pulled in transitively via the song module's YoutubeClient. The batch process never
+# calls YouTube (search lives in api), so a blank key just satisfies the bean's placeholder.
+youtube:
+  api-key: ${YOUTUBE_API_KEY:}
+
 sentry:
   dsn: ${SENTRY_DSN_BATCH:}
   environment: ${SENTRY_ENVIRONMENT:local}
