@@ -5,6 +5,7 @@ import com.japanese.vocabulary.song.dto.RecentSongItemDto
 import com.japanese.vocabulary.song.dto.SongDto
 import com.japanese.vocabulary.song.dto.AnalyzedSongDto
 import com.japanese.vocabulary.song.dto.SongSearchResponse
+import com.japanese.vocabulary.deck.service.DeckService
 import com.japanese.vocabulary.song.repository.SongRepository
 import com.japanese.vocabulary.song.service.LyricProcessingService
 import com.japanese.vocabulary.song.service.RecentSongService
@@ -26,6 +27,7 @@ class SongController(
     private val songSearchService: SongSearchService,
     private val recentSongService: RecentSongService,
     private val songRepository: SongRepository,
+    private val deckService: DeckService,
 ) {
 
     private fun currentUserId(): Long =
@@ -65,6 +67,26 @@ class SongController(
         }
 
         return ResponseEntity.ok(recentSongs)
+    }
+
+    /**
+     * The home "Spotlight" song: the most recently played song the user has NOT yet saved words
+     * from (no deck). Returns full study data so the hero can play its MV + synced lyrics.
+     * 204 when there is no eligible song. Does NOT record a listen (read-only surfacing).
+     */
+    @GetMapping("/spotlight")
+    fun getSpotlight(): ResponseEntity<SongDto> {
+        val userId = currentUserId()
+        val deckSongIds = deckService.getDeckSongIds(userId)
+        val spotlightId = recentSongService.getRecentSongIds(userId)
+            .firstOrNull { it !in deckSongIds }
+            ?: return ResponseEntity.noContent().build()
+
+        val entity = songRepository.findById(spotlightId).orElse(null)
+            ?: return ResponseEntity.noContent().build()
+
+        val analyzed = lyricProcessingService.buildAnalyzedSong(entity)
+        return ResponseEntity.ok(analyzed.toResponse())
     }
 
     @GetMapping("/{id}")

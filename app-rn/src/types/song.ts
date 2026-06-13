@@ -15,6 +15,7 @@ export interface SongInfo {
   title: string;
   artist: string;
   lyricType: 'SYNCED' | 'PLAIN';
+  artworkUrl: string | null;
 }
 
 export interface Token {

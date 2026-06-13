@@ -4,5 +4,6 @@ data class SongInfoDto(
     val id: Long,
     val title: String,
     val artist: String,
-    val lyricType: String
+    val lyricType: String,
+    val artworkUrl: String? = null,
 )

@@ -44,6 +44,14 @@ export const Colors = {
   posAdverb: '#9D7AC4',
   posParticle: '#E07595',
 
+  // Vivid POS variants for the Spotlight hero (legible over the blurred MV).
+  // Only 5 content POS are colored; everything else stays white.
+  posNounSpotlight: '#5BA9FF',
+  posVerbSpotlight: '#3FE0A1',
+  posAdjectiveSpotlight: '#FFB347',
+  posAdverbSpotlight: '#C49BFF',
+  posNaAdjectiveSpotlight: '#FF8FB3',
+
   tabActive: '#52B788',
   tabInactive: '#888888',
 

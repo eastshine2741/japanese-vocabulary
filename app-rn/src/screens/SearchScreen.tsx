@@ -14,7 +14,8 @@ import {
 import AnalyzingView from '../components/AnalyzingView';
 import ArtworkImage from '../components/ArtworkImage';
 import { Ionicons, Feather } from '@expo/vector-icons';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useShallow } from 'zustand/react/shallow';
 import { useSearchStore } from '../stores/searchStore';
@@ -26,7 +27,7 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import { getErrorMessage } from '../utils/errorMessages';
 import { SongSearchItem } from '../types/song';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Search'>;
+type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 function formatDuration(seconds: number): string {
   const m = Math.floor(seconds / 60);
@@ -34,7 +35,8 @@ function formatDuration(seconds: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
-export default function SearchScreen({ navigation }: Props) {
+export default function SearchScreen() {
+  const navigation = useNavigation<Nav>();
   const [query, setQuery] = useState('');
   const [errorDialogMessage, setErrorDialogMessage] = useState<string | null>(null);
   const [analyzingItem, setAnalyzingItem] = useState<SongSearchItem | null>(null);
@@ -136,9 +138,6 @@ export default function SearchScreen({ navigation }: Props) {
   return (
     <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <View style={[styles.searchRow, analyzing && styles.hidden]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={8}>
-          <Ionicons name="chevron-back" size={24} color={Colors.textPrimary} />
-        </TouchableOpacity>
         <View style={styles.inputWrapper}>
           <TextInput
             style={styles.input}
@@ -148,7 +147,6 @@ export default function SearchScreen({ navigation }: Props) {
             onChangeText={setQuery}
             onSubmitEditing={handleSearch}
             returnKeyType="search"
-            autoFocus
           />
           {query.length > 0 && (
             <TouchableOpacity

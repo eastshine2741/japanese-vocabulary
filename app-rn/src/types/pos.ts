@@ -38,3 +38,18 @@ export function getPosLabel(pos: string): string {
 export function getPosColor(pos: string): string {
   return POS_INFO[pos]?.color ?? Colors.textMuted;
 }
+
+// Vivid POS colors for the Spotlight hero, where lyrics sit over a blurred MV.
+// Only the 5 content parts of speech are colored; all other tokens (particles,
+// auxiliaries, symbols, …) render white for legibility.
+const POS_SPOTLIGHT_COLOR: Record<string, string> = {
+  NOUN: Colors.posNounSpotlight,
+  VERB: Colors.posVerbSpotlight,
+  ADJECTIVE: Colors.posAdjectiveSpotlight,
+  NA_ADJECTIVE: Colors.posNaAdjectiveSpotlight,
+  ADVERB: Colors.posAdverbSpotlight,
+};
+
+export function getPosSpotlightColor(pos: string): string {
+  return POS_SPOTLIGHT_COLOR[pos] ?? '#FFFFFF';
+}

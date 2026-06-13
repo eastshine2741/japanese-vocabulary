@@ -17,6 +17,7 @@ import com.japanese.vocabulary.song.repository.SongRepository
 import com.japanese.vocabulary.word.repository.SongWordRepository
 import com.japanese.vocabulary.word.repository.WordRepository
 import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Clock
@@ -78,6 +79,13 @@ class DeckService(
         val nextCursor = if (decks.size == limit) decks.last().id else null
         return DeckListDto(items = items, nextCursor = nextCursor)
     }
+
+    /** Song ids the user has a deck for (i.e. has saved words from). */
+    @Transactional(readOnly = true)
+    fun getDeckSongIds(userId: Long): Set<Long> =
+        deckRepository.findByUserIdOrderByCreatedAtDesc(userId, Pageable.unpaged())
+            .map { it.songId }
+            .toSet()
 
     @Transactional(readOnly = true)
     fun getDeckDetail(userId: Long, deckId: Long): DeckDetailDto {

@@ -1,7 +1,7 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import PillTabBar from '../components/PillTabBar';
+import BottomTabBar from '../components/BottomTabBar';
 
 import LoginScreen from '../screens/LoginScreen';
 import SignupScreen from '../screens/SignupScreen';
@@ -16,7 +16,6 @@ import SettingsScreen from '../screens/SettingsScreen';
 import OssLicenseScreen from '../screens/OssLicenseScreen';
 
 import HomeTab from '../screens/tabs/HomeTab';
-import WordTab from '../screens/tabs/WordTab';
 import MyPageTab from '../screens/tabs/MyPageTab';
 
 import { WordMeaning } from '../types/word';
@@ -27,7 +26,6 @@ export type RootStackParamList = {
   Signup: { idToken: string; email: string | null; googleName: string | null };
   ProfileEdit: undefined;
   Main: undefined;
-  Search: undefined;
   Settings: undefined;
   OssLicense: undefined;
   Player: { origin: string; initialSeekMs?: number; initialLyricIndex?: number };
@@ -49,7 +47,7 @@ export type RootStackParamList = {
 
 export type TabParamList = {
   Home: undefined;
-  Words: undefined;
+  Search: undefined;
   MyPage: undefined;
 };
 
@@ -59,11 +57,11 @@ const Tab = createBottomTabNavigator<TabParamList>();
 function MainTabs() {
   return (
     <Tab.Navigator
-      tabBar={(props) => <PillTabBar {...props} />}
+      tabBar={(props) => <BottomTabBar {...props} />}
       screenOptions={{ headerShown: false }}
     >
       <Tab.Screen name="Home" component={HomeTab} />
-      <Tab.Screen name="Words" component={WordTab} />
+      <Tab.Screen name="Search" component={SearchScreen} />
       <Tab.Screen name="MyPage" component={MyPageTab} />
     </Tab.Navigator>
   );
@@ -83,7 +81,6 @@ export default function AppNavigator({ initialRoute }: Props) {
       <Stack.Screen name="Signup" component={SignupScreen} />
       <Stack.Screen name="ProfileEdit" component={ProfileEditScreen} />
       <Stack.Screen name="Main" component={MainTabs} />
-      <Stack.Screen name="Search" component={SearchScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="OssLicense" component={OssLicenseScreen} />
       <Stack.Screen name="Player" component={PlayerScreen} options={{ presentation: 'transparentModal', animation: 'slide_from_bottom' }} />

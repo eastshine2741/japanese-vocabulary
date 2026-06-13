@@ -28,4 +28,13 @@ export const songApi = {
     const { data } = await client.get<SongStudyData>(`/api/songs/${id}`);
     return data;
   },
+
+  async getSpotlight(): Promise<SongStudyData | null> {
+    const res = await client.get<SongStudyData>('/api/songs/spotlight');
+    // 204 No Content (or an empty body) means there is no song to spotlight.
+    if (res.status === 204 || res.data == null || !(res.data as any).song) {
+      return null;
+    }
+    return res.data;
+  },
 };

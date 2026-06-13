@@ -104,7 +104,8 @@ class LyricProcessingService(
                 id = savedSong.id!!,
                 title = savedSong.title,
                 artist = savedSong.artist,
-                lyricType = lyricType.name
+                lyricType = lyricType.name,
+                artworkUrl = savedSong.artworkUrl,
             ),
             studyUnits = lyricLineData.map { it.toStudyUnit() },
             youtubeUrl = savedSong.youtubeUrl,
@@ -144,7 +145,7 @@ class LyricProcessingService(
 
         if (lyricEntity == null) {
             return AnalyzedSongDto(
-                song = SongInfoDto(id = entity.id!!, title = entity.title, artist = entity.artist, lyricType = "PLAIN"),
+                song = SongInfoDto(id = entity.id!!, title = entity.title, artist = entity.artist, lyricType = "PLAIN", artworkUrl = entity.artworkUrl),
                 studyUnits = emptyList(),
                 youtubeUrl = entity.youtubeUrl,
                 lyricsSourceName = null,
@@ -173,7 +174,7 @@ class LyricProcessingService(
 
         val source = resolveLyricsSource(lyricEntity.vocadbId, lyricEntity.lrclibId)
         return AnalyzedSongDto(
-            song = SongInfoDto(id = entity.id!!, title = entity.title, artist = entity.artist, lyricType = lyricEntity.lyricType.name),
+            song = SongInfoDto(id = entity.id!!, title = entity.title, artist = entity.artist, lyricType = lyricEntity.lyricType.name, artworkUrl = entity.artworkUrl),
             studyUnits = studyUnits,
             youtubeUrl = entity.youtubeUrl,
             lyricsSourceName = source.name,

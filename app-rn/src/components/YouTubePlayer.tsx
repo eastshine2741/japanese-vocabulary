@@ -10,11 +10,19 @@ export interface YouTubePlayerRef {
   play: () => void;
   pause: () => void;
   setPlaybackRate: (rate: number) => void;
+  mute: () => void;
+  unMute: () => void;
 }
 
 interface Props {
   videoId: string;
   height?: number;
+  // Start playback automatically once the player is ready. Defaults to true,
+  // matching the prior behavior (onReady → loadVideoById, which auto-plays).
+  autoplay?: boolean;
+  // Start muted. Defaults to false. Muted autoplay is always permitted by the
+  // platform, so the Spotlight hero passes muted + autoplay.
+  muted?: boolean;
   onTimeChange?: (seconds: number) => void;
   onDurationChange?: (seconds: number) => void;
   onStateChange?: (state: string) => void;
@@ -28,7 +36,7 @@ interface Props {
  * - origin set to app package name (not youtube.com)
  * - loadVideoById called from a JS function invoked after ready
  */
-function buildPlayerHTML(videoId: string): string {
+function buildPlayerHTML(videoId: string, autoplay: boolean, muted: boolean): string {
   return `<!DOCTYPE html>
 <html>
   <style type="text/css">
@@ -60,14 +68,15 @@ function buildPlayerHTML(videoId: string): string {
         events: {
           onReady: function(event) {
             sendMessage('ready', {});
-            loadVideo('${videoId}', 0);
+            ${muted ? 'event.target.mute();' : ''}
+            ${autoplay ? `loadVideo('${videoId}', 0);` : `player.cueVideoById('${videoId}', 0);`}
           },
           onStateChange: function(event) { sendPlayerStateChange(event.data); },
           onError: function(error) { sendMessage('error', { code: error.data }); }
         },
         playerVars: {
           autoplay: 0,
-          mute: 0,
+          mute: ${muted ? 1 : 0},
           controls: 0,
           enablejsapi: 1,
           fs: 0,
@@ -122,12 +131,14 @@ function buildPlayerHTML(videoId: string): string {
 const YouTubePlayer = forwardRef<YouTubePlayerRef, Props>(({
   videoId,
   height,
+  autoplay = true,
+  muted = false,
   onTimeChange,
   onDurationChange,
   onStateChange,
 }, ref) => {
   const webViewRef = useRef<WebView>(null);
-  const html = buildPlayerHTML(videoId);
+  const html = buildPlayerHTML(videoId, autoplay, muted);
 
   useImperativeHandle(ref, () => ({
     seekTo: (seconds: number) => {
@@ -141,6 +152,12 @@ const YouTubePlayer = forwardRef<YouTubePlayerRef, Props>(({
     },
     setPlaybackRate: (rate: number) => {
       webViewRef.current?.injectJavaScript(`player.setPlaybackRate(${rate}); true;`);
+    },
+    mute: () => {
+      webViewRef.current?.injectJavaScript(`player.mute(); true;`);
+    },
+    unMute: () => {
+      webViewRef.current?.injectJavaScript(`player.unMute(); true;`);
     },
   }));
 
