@@ -1,6 +1,7 @@
 package com.japanese.vocabulary.notification
 
 import org.slf4j.LoggerFactory
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController
  */
 @RestController
 @RequestMapping("/dev/push")
+@ConditionalOnProperty(name = ["push.firebase.enabled"], havingValue = "true")
 class ReviewReminderDevController(
     private val pushNotificationScheduler: ReviewReminderScheduler,
 ) {

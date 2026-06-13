@@ -6,6 +6,7 @@ import com.japanese.vocabulary.notification.service.PushNotificationService
 import com.japanese.vocabulary.user.repository.UserSettingsRepository
 import com.japanese.vocabulary.word.repository.WordRepository
 import org.slf4j.LoggerFactory
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
@@ -24,6 +25,7 @@ import java.time.Instant
  *  - The oldest such due card determines the deep-link target
  */
 @Component
+@ConditionalOnProperty(name = ["push.firebase.enabled"], havingValue = "true")
 class ReviewReminderScheduler(
     private val pushNotificationService: PushNotificationService,
     private val flashcardRepository: FlashcardRepository,

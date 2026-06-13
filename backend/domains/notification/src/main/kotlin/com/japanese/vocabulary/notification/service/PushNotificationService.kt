@@ -9,6 +9,7 @@ import com.japanese.vocabulary.notification.entity.NotificationLogEntity
 import com.japanese.vocabulary.notification.repository.DeviceTokenRepository
 import com.japanese.vocabulary.notification.repository.NotificationLogRepository
 import org.slf4j.LoggerFactory
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
@@ -26,6 +27,7 @@ import java.time.Instant
  *   - other errors    → log, keep token
  */
 @Service
+@ConditionalOnProperty(name = ["push.firebase.enabled"], havingValue = "true")
 class PushNotificationService(
     private val firebaseMessaging: FirebaseMessaging,
     private val notificationLogRepository: NotificationLogRepository,
