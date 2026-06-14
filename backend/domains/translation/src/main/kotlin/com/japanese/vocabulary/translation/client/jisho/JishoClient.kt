@@ -1,50 +1,33 @@
 package com.japanese.vocabulary.translation.client.jisho
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.japanese.vocabulary.cache.Cache
-import com.japanese.vocabulary.cache.RedisCache
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoEntryDto
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoEntryRawDto
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoOptionDto
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoSearchResponse
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.sync.Semaphore
-import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
-import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
 import org.springframework.web.client.RestClientResponseException
-import java.time.Duration
 
 /**
- * jisho.org dictionary client used to ground word-meaning generation (EN senses + POS + JLPT).
+ * jisho.org API client — network only. Caching, cache-aside orchestration, and bounded-concurrency
+ * fan-out live in [com.japanese.vocabulary.translation.service.JishoService].
  *
- * Faithful port of the playground `common.py` jisho_full stage:
+ * A single [fetch] does one HTTP GET (with 429 backoff) and distills the response into a
+ * [JishoEntryDto], faithful to the playground `_jisho_full_fetch`:
  * - **Flatten all senses**: every sense of every exact-match entry (`japanese.word`/`reading` == query)
- *   becomes one [JishoOptionDto] carrying its own reading/POS/EN gloss/JLPT. The sense-select LLM
- *   chooses one option per word downstream.
+ *   becomes one [JishoOptionDto] carrying its own reading/POS/EN gloss/JLPT.
  * - **Fuzzy fallback**: if NO entry exactly matches (the query is an inflected/script variant, e.g.
  *   巡り会い→巡り会う, くり返す→繰り返す, ズルい→狡い), fall back to jisho's TOP entry — jisho deinflects
  *   the query and ranks the lemma first. The sense-select LLM still filters bad candidates to senseId=-1.
- * - **Shared cache**: results are cached in Redis (key `jisho:{word}`) so repeated forms across songs
- *   cost no network calls. Cache read/write errors are swallowed (degrade to a live fetch).
- * - **Bounded concurrency**: a process-global [Semaphore] caps concurrent outbound requests at
- *   [MAX_CONCURRENCY]; 3 stays under jisho's rate limit (6 was observed to trigger HTTP 429).
- * - **429 backoff**: retries with increasing delay.
- * - **Never cache failures**: an unrecovered network/HTTP error yields a not-found result that is
- *   NOT cached, so it retries on the next run.
+ * - Returns null on an unrecovered network/HTTP error so the caller skips caching (retries next run).
  */
 @Component
 class JishoClient(
     restClientBuilder: RestClient.Builder,
-    redisTemplate: StringRedisTemplate,
-    objectMapper: ObjectMapper,
 ) {
     private val logger = LoggerFactory.getLogger(JishoClient::class.java)
 
@@ -53,37 +36,11 @@ class JishoClient(
         .defaultHeader("User-Agent", "JapaneseVocabularyApp/1.0")
         .build()
 
-    private val cache: Cache<JishoEntryDto> =
-        RedisCache(redisTemplate, objectMapper, JishoEntryDto::class.java)
-
-    private val semaphore = Semaphore(MAX_CONCURRENCY)
-
     /**
-     * Look up many dictionary forms. Cache-first; uncached forms are fetched under the global
-     * concurrency limit. Successful fetches (including genuine not-found) are cached; errors are not.
+     * One network fetch. Returns the distilled entry on HTTP 200 (found or genuine not-found),
+     * or null on an unrecovered error. Retries HTTP 429 with increasing delay.
      */
-    suspend fun lookupAll(words: List<String>): Map<String, JishoEntryDto> = coroutineScope {
-        val uniq = words.distinct()
-        uniq.map { word -> async { word to lookup(word) } }
-            .awaitAll()
-            .toMap()
-    }
-
-    suspend fun lookup(word: String): JishoEntryDto {
-        cacheGet(word)?.let { return it }
-        val fetched = semaphore.withPermit { fetchOrNull(word) }
-        if (fetched != null) {
-            cachePut(word, fetched) // cache 200 results (found or genuine not-found) only
-            return fetched
-        }
-        return NOT_FOUND // error path: do not cache, retries next run
-    }
-
-    /**
-     * Pure network fetch. Returns the distilled entry on HTTP 200 (found or genuine not-found),
-     * or null on an unrecovered error (so the caller skips caching). Mirrors `_jisho_fetch`.
-     */
-    private suspend fun fetchOrNull(word: String): JishoEntryDto? {
+    suspend fun fetch(word: String): JishoEntryDto? {
         repeat(MAX_ATTEMPTS) { attempt ->
             try {
                 val response = withContext(Dispatchers.IO) {
@@ -143,26 +100,7 @@ class JishoClient(
         return options
     }
 
-    private fun cacheGet(word: String): JishoEntryDto? = try {
-        cache.get(KEY_PREFIX + word)
-    } catch (e: Exception) {
-        logger.warn("jisho cache read failed (word='{}'): {}", word, e.javaClass.simpleName)
-        null
-    }
-
-    private fun cachePut(word: String, value: JishoEntryDto) {
-        try {
-            cache.put(KEY_PREFIX + word, value, TTL)
-        } catch (e: Exception) {
-            logger.warn("jisho cache write failed (word='{}'): {}", word, e.javaClass.simpleName)
-        }
-    }
-
     private companion object {
-        const val MAX_CONCURRENCY = 3
         const val MAX_ATTEMPTS = 4
-        const val KEY_PREFIX = "jisho:"
-        val TTL: Duration = Duration.ofDays(30)
-        val NOT_FOUND = JishoEntryDto(found = false)
     }
 }

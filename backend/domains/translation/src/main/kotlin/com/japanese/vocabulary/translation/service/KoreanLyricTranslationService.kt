@@ -5,7 +5,6 @@ import com.japanese.vocabulary.translation.client.gemini.GeminiClient
 import com.japanese.vocabulary.translation.client.gemini.dto.SegLineDto
 import com.japanese.vocabulary.translation.client.gemini.dto.SelectWordDto
 import com.japanese.vocabulary.translation.client.gemini.dto.TranslationResultDto
-import com.japanese.vocabulary.translation.client.jisho.JishoClient
 import com.japanese.vocabulary.translation.client.jisho.JishoPartOfSpeechMapper
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoEntryDto
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoOptionDto
@@ -36,7 +35,7 @@ import org.springframework.transaction.annotation.Transactional
 class KoreanLyricTranslationService(
     private val lyricRepository: LyricRepository,
     private val geminiClient: GeminiClient,
-    private val jishoClient: JishoClient,
+    private val jishoService: JishoService,
     private val meterRegistry: MeterRegistry,
 ) {
     private val logger = LoggerFactory.getLogger("KoreanLyricTranslation")
@@ -104,7 +103,7 @@ class KoreanLyricTranslationService(
             val segJishoDeferred = async {
                 val seg = geminiClient.segmentAndLemmatize(lineInput)
                 val dictForms = seg.flatMap { it.words }.map { it.dictionaryForm }.distinct()
-                val jishoData = jishoClient.lookupAll(dictForms)
+                val jishoData = jishoService.lookupAll(dictForms)
                 seg to jishoData
             }
             val translated = translationDeferred.await()
@@ -210,6 +209,22 @@ class KoreanLyricTranslationService(
                 start = i; end = i + w.surface.length; cursor = end
             }
 
+            // Non-Japanese tokens (punctuation, Latin, digits, 「」、…) are not vocabulary: mark SYMBOL
+            // with no meaning so the frontend can exclude them. Mirrors the dropped Kuromoji-era filter.
+            if (!JAPANESE_REGEX.containsMatchIn(w.surface)) {
+                return@map Token(
+                    surface = w.surface,
+                    baseForm = w.dictionaryForm,
+                    reading = null,
+                    baseFormReading = null,
+                    partOfSpeech = PartOfSpeech.SYMBOL,
+                    charStart = start,
+                    charEnd = end,
+                    koreanText = null,
+                    jlpt = null,
+                )
+            }
+
             val option = if (w.senseId >= 0) optionsById[w.senseId] else null
             Token(
                 surface = w.surface,
@@ -271,4 +286,11 @@ class KoreanLyricTranslationService(
         val segLines: List<SegLineDto>,
         val jisho: Map<String, JishoEntryDto>,
     )
+
+    private companion object {
+        /** Hiragana, katakana, kanji (+ ext-A), halfwidth katakana. A surface with none of these is
+         *  punctuation / Latin / digits → not vocabulary. */
+        val JAPANESE_REGEX =
+            Regex("[぀-ゟ゠-ヿ一-鿿㐀-䶿ｦ-ﾟ]")
+    }
 }

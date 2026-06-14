@@ -14,6 +14,7 @@ import com.japanese.vocabulary.song.entity.LyricEntity
 import com.japanese.vocabulary.song.entity.LyricType
 import com.japanese.vocabulary.song.entity.SongEntity
 import com.japanese.vocabulary.song.model.LyricLineData
+import com.japanese.vocabulary.song.model.PartOfSpeech
 import com.japanese.vocabulary.song.repository.LyricRepository
 import com.japanese.vocabulary.song.repository.SongRepository
 import com.japanese.vocabulary.test.BatchBaseIntegrationTest
@@ -71,7 +72,7 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
                 SegLineDto(idx, listOf(SegWordDto(surface = text, dictionaryForm = text)))
             }
         }
-        coEvery { jishoClient.lookupAll(any()) } answers {
+        coEvery { jishoService.lookupAll(any()) } answers {
             firstArg<List<String>>().associateWith { df ->
                 JishoEntryDto(
                     found = true,
@@ -141,13 +142,44 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
     }
 
     @Test
+    fun `non-Japanese tokens are marked SYMBOL with no meaning`(): Unit = runBlocking {
+        val lyric = seedLyric(listOf("猫、"))
+
+        every { geminiClient.translateLyrics(any()) } returns listOf(
+            TranslationResultDto(0, "고양이", "네코"),
+        )
+        // jisho + select would happily attach a sense even to the comma; the SYMBOL guard must override.
+        coEvery { jishoService.lookupAll(any()) } answers {
+            firstArg<List<String>>().associateWith { df ->
+                JishoEntryDto(true, df, listOf(JishoOptionDto("ヨミ", listOf("Noun"), "x", listOf("jlpt-n5"))))
+            }
+        }
+        every { geminiClient.segmentAndLemmatize(any()) } returns listOf(
+            SegLineDto(0, listOf(SegWordDto("猫", "猫"), SegWordDto("、", "、"))),
+        )
+        stubSenseSelectAndTranslate()
+
+        scheduler.processOne(lyric)
+
+        val tokens = lyricRepository.findById(lyric.id!!).orElseThrow().analyzedContent!![0].tokens
+        val cat = tokens.first { it.surface == "猫" }
+        val comma = tokens.first { it.surface == "、" }
+        assertThat(cat.partOfSpeech).isNotEqualTo(PartOfSpeech.SYMBOL)
+        assertThat(cat.koreanText).isNotNull
+        assertThat(comma.partOfSpeech).isEqualTo(PartOfSpeech.SYMBOL)
+        assertThat(comma.koreanText).isNull()
+        assertThat(comma.reading).isNull()
+        assertThat(comma.jlpt).isNull()
+    }
+
+    @Test
     fun `charStart and charEnd are recomputed by sequential indexOf of surfaces`(): Unit = runBlocking {
         val lyric = seedLyric(listOf("猫が寝る"))
 
         every { geminiClient.translateLyrics(any()) } returns listOf(
             TranslationResultDto(0, "고양이가 잔다", "네코가 네루"),
         )
-        coEvery { jishoClient.lookupAll(any()) } returns emptyMap()
+        coEvery { jishoService.lookupAll(any()) } returns emptyMap()
         every { geminiClient.segmentAndLemmatize(any()) } returns listOf(
             SegLineDto(
                 0,

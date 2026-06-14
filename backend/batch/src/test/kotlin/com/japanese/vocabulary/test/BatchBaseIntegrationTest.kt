@@ -2,7 +2,7 @@ package com.japanese.vocabulary.test
 
 import com.google.firebase.messaging.FirebaseMessaging
 import com.japanese.vocabulary.translation.client.gemini.GeminiClient
-import com.japanese.vocabulary.translation.client.jisho.JishoClient
+import com.japanese.vocabulary.translation.service.JishoService
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.clearMocks
 import org.junit.jupiter.api.BeforeEach
@@ -13,7 +13,7 @@ abstract class BatchBaseIntegrationTest : BaseIntegrationTest() {
     protected lateinit var geminiClient: GeminiClient
 
     @MockkBean
-    protected lateinit var jishoClient: JishoClient
+    protected lateinit var jishoService: JishoService
 
     /**
      * `PushNotificationService` requires a `FirebaseMessaging` bean, but tests don't load
@@ -27,6 +27,6 @@ abstract class BatchBaseIntegrationTest : BaseIntegrationTest() {
     @BeforeEach
     fun resetGeminiMock() {
         clearMocks(geminiClient, answers = true, recordedCalls = true)
-        clearMocks(jishoClient, answers = true, recordedCalls = true)
+        clearMocks(jishoService, answers = true, recordedCalls = true)
     }
 }
