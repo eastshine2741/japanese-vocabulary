@@ -22,6 +22,10 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 const ROWS_PER_PAGE = 4;
+// Gap between pages, and how many px of the next page's row are visible from the
+// screen's right edge (the peek that signals the pager scrolls horizontally).
+const PAGE_GAP = 24;
+const PAGE_PEEK = 12;
 
 type RowItem =
   | { kind: 'all'; total: number; due: number }
@@ -107,6 +111,21 @@ function WordReviewSection() {
     return chunks;
   }, [songDecks, stats]);
 
+  // Each page is narrower than the viewport so the next page peeks on the right
+  // (gap + peek), telling the user the pager scrolls. A lone page fills the full
+  // content width (no peek to reveal).
+  const fullWidth = pagerWidth - Dimens.screenPadding * 2;
+  const hasMultiplePages = pages.length > 1;
+  const pageWidth = hasMultiplePages
+    ? pagerWidth - Dimens.screenPadding - PAGE_GAP - PAGE_PEEK
+    : fullWidth;
+  // The last page must scroll fully to the left edge so the previous page (its
+  // due-count number) is hidden — that needs gap+peek of trailing room beyond
+  // the normal screen margin.
+  const trailingPad = hasMultiplePages
+    ? PAGE_GAP + PAGE_PEEK
+    : Dimens.screenPadding;
+
   const segments = useMemo(() => {
     if (!stats) return [];
     return [
@@ -156,13 +175,25 @@ function WordReviewSection() {
 
       <ScrollView
         horizontal
-        pagingEnabled
         showsHorizontalScrollIndicator={false}
+        decelerationRate="fast"
+        snapToInterval={pageWidth + PAGE_GAP}
+        snapToAlignment="start"
+        contentContainerStyle={[styles.pagerContent, { paddingRight: trailingPad }]}
         onLayout={handlePagerLayout}
       >
-        {pagerWidth > 0 &&
+        {pageWidth > 0 &&
           pages.map((page, pageIndex) => (
-            <View key={pageIndex} style={[styles.page, { width: pagerWidth }]}>
+            <View
+              key={pageIndex}
+              style={[
+                styles.page,
+                {
+                  width: pageWidth,
+                  marginRight: pageIndex < pages.length - 1 ? PAGE_GAP : 0,
+                },
+              ]}
+            >
               {page.map(item => (
                 <DeckRow
                   key={item.kind === 'all' ? 'all' : item.deck.deckId}
@@ -224,9 +255,11 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: Colors.textSecondary,
   },
+  pagerContent: {
+    paddingLeft: Dimens.screenPadding,
+  },
   page: {
     flexDirection: 'column',
-    paddingHorizontal: Dimens.screenPadding,
   },
   row: {
     flexDirection: 'row',
