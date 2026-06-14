@@ -10,7 +10,7 @@ import java.time.Duration
  * underlying [StringRedisTemplate] propagate so the caller can decide on
  * fallback behavior and metric tagging.
  */
-class RedisCache<V>(
+open class RedisCache<V>(
     private val template: StringRedisTemplate,
     private val objectMapper: ObjectMapper,
     private val valueType: Class<V>,
