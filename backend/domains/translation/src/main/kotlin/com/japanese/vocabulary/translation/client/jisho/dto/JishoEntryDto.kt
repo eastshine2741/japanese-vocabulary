@@ -2,15 +2,14 @@ package com.japanese.vocabulary.translation.client.jisho.dto
 
 /**
  * Distilled jisho.org lookup result for a single dictionary form.
- * Mirrors the playground `_jisho_fetch` return shape (exact-match only, first matching entry):
- *   { found, word, pos, jlpt, senses }
- * - [pos]/[senses] come from the first sense block; [senses] are EN definition strings.
+ * Mirrors the playground `_jisho_full_fetch` return shape:
+ *   { found, word, options:[{reading, pos[], english, jlpt[]}] }
+ * - [options] flattens EVERY sense of EVERY exact-match entry (homographs included); the sense-select
+ *   LLM later chooses one. If no entry exactly matches, [options] holds jisho's top fuzzy entry's senses.
  * This is the value cached in Redis, so it must be a plain Jackson-serializable data class.
  */
 data class JishoEntryDto(
     val found: Boolean = false,
     val word: String = "",
-    val pos: List<String> = emptyList(),
-    val jlpt: List<String> = emptyList(),
-    val senses: List<String> = emptyList(),
+    val options: List<JishoOptionDto> = emptyList(),
 )

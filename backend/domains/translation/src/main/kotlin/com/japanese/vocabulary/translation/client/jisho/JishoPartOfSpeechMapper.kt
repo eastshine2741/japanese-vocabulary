@@ -20,8 +20,8 @@ object JishoPartOfSpeechMapper {
                 "na-adjective" in s || "adjectival noun" in s || "keiyodoshi" in s -> PartOfSpeech.NA_ADJECTIVE
                 "i-adjective" in s || "keiyoushi" in s -> PartOfSpeech.ADJECTIVE
                 "auxiliary verb" in s || s == "auxiliary" -> PartOfSpeech.AUXILIARY_VERB
+                "adverb" in s -> PartOfSpeech.ADVERB // BEFORE verb: "adverb" contains the substring "verb"
                 "verb" in s -> PartOfSpeech.VERB
-                "adverb" in s -> PartOfSpeech.ADVERB
                 "particle" in s -> PartOfSpeech.PARTICLE
                 "conjunction" in s -> PartOfSpeech.CONJUNCTION
                 "pronoun" in s -> PartOfSpeech.PRONOUN
