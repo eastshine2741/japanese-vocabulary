@@ -8,5 +8,6 @@ data class Token(
     val partOfSpeech: PartOfSpeech,
     val charStart: Int,
     val charEnd: Int,
-    val koreanText: String? = null
+    val koreanText: String? = null,
+    val jlpt: List<String> = emptyList()
 )

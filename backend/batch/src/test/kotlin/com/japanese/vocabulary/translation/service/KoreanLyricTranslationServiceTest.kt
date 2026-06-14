@@ -1,18 +1,21 @@
 package com.japanese.vocabulary.translation.service
 
 import com.japanese.vocabulary.translation.batch.KoreanLyricTranslationScheduler
+import com.japanese.vocabulary.translation.client.gemini.dto.CorrLineDto
+import com.japanese.vocabulary.translation.client.gemini.dto.CorrWordDto
+import com.japanese.vocabulary.translation.client.gemini.dto.MeaningDto
+import com.japanese.vocabulary.translation.client.gemini.dto.SegLineDto
+import com.japanese.vocabulary.translation.client.gemini.dto.SegWordDto
 import com.japanese.vocabulary.translation.client.gemini.dto.TranslationResultDto
-import com.japanese.vocabulary.translation.client.gemini.dto.WordMeaningDto
-import com.japanese.vocabulary.translation.client.gemini.dto.WordMeaningResultDto
 import com.japanese.vocabulary.song.entity.KoreanLyricStatus
 import com.japanese.vocabulary.song.entity.LyricEntity
 import com.japanese.vocabulary.song.entity.LyricType
 import com.japanese.vocabulary.song.entity.SongEntity
 import com.japanese.vocabulary.song.model.LyricLineData
-import com.japanese.vocabulary.song.model.PartOfSpeech
 import com.japanese.vocabulary.song.repository.LyricRepository
 import com.japanese.vocabulary.song.repository.SongRepository
 import com.japanese.vocabulary.test.BatchBaseIntegrationTest
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.verify
 import kotlinx.coroutines.runBlocking
@@ -49,26 +52,57 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
         )
     }
 
+    /**
+     * Stub the L3 pipeline so it round-trips deterministically:
+     * - segment: one word per line whose surface/dictionaryForm = the whole line text.
+     * - jisho: empty (the meaning stub doesn't need grounding here).
+     * - meaning: koreanText = "뜻:{dictionaryForm}".
+     * - correction: echoes its input verbatim (no corrections).
+     */
+    private fun stubHappyPath() {
+        every { geminiClient.segmentAndLemmatize(any()) } answers {
+            @Suppress("UNCHECKED_CAST")
+            val input = firstArg<List<Map<String, Any?>>>()
+            input.map { line ->
+                val idx = line["index"] as Int
+                val text = line["text"] as String
+                SegLineDto(idx, listOf(SegWordDto(surface = text, dictionaryForm = text, reading = "ヨミ")))
+            }
+        }
+        coEvery { jishoClient.lookupAll(any()) } returns emptyMap()
+        every { geminiClient.translateMeanings(any()) } answers {
+            @Suppress("UNCHECKED_CAST")
+            val input = firstArg<List<Map<String, Any?>>>()
+            input.map {
+                val df = it["dictionaryForm"] as String
+                MeaningDto(dictionaryForm = df, koreanText = "뜻:$df")
+            }
+        }
+        every { geminiClient.correctMeanings(any()) } answers {
+            @Suppress("UNCHECKED_CAST")
+            val input = firstArg<List<Map<String, Any?>>>()
+            input.map { line ->
+                @Suppress("UNCHECKED_CAST")
+                val words = (line["words"] as List<Map<String, Any?>>).map {
+                    CorrWordDto(
+                        surface = it["surface"] as String,
+                        dictionaryForm = it["dictionaryForm"] as String,
+                        koreanText = it["koreanText"] as String,
+                    )
+                }
+                CorrLineDto(index = line["index"] as Int, words = words)
+            }
+        }
+    }
+
     @Test
-    fun `golden path - PENDING lyric becomes COMPLETED with merged tokens and translation`(): Unit = runBlocking {
+    fun `golden path - PENDING lyric becomes COMPLETED with tokens and translation`(): Unit = runBlocking {
         val lyric = seedLyric(listOf("猫が寝る"))
 
         every { geminiClient.translateLyrics(any()) } returns listOf(
             TranslationResultDto(index = 0, koreanLyrics = "고양이가 잔다", koreanPronounciation = "네코가 네루"),
         )
-        every { geminiClient.lookupWordMeanings(any()) } answers {
-            // Echo back baseForms supplied in the request so the 1:1 merge can succeed regardless
-            // of which morphemes the real ensemble analyzer emits.
-            @Suppress("UNCHECKED_CAST")
-            val input = firstArg<List<Map<String, Any?>>>()
-            input.map { line ->
-                val idx = line["index"] as Int
-                val words = (line["words"] as List<Map<String, Any?>>).map {
-                    WordMeaningDto(baseForm = it["baseForm"] as String, koreanText = "뜻:${it["baseForm"]}")
-                }
-                WordMeaningResultDto(index = idx, words = words)
-            }
-        }
+        stubHappyPath()
 
         val ok = scheduler.processOne(lyric)
 
@@ -82,42 +116,56 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
         assertThat(line.koreanLyrics).isEqualTo("고양이가 잔다")
         assertThat(line.koreanPronounciation).isEqualTo("네코가 네루")
         assertThat(line.tokens).isNotEmpty
-        val japaneseTokens = line.tokens.filter { it.partOfSpeech != PartOfSpeech.SYMBOL }
-        assertThat(japaneseTokens).allSatisfy { token ->
+        assertThat(line.tokens).allSatisfy { token ->
             assertThat(token.koreanText).isNotNull
             assertThat(token.koreanText).startsWith("뜻:")
         }
     }
 
     @Test
-    fun `non-japanese tokens are skipped from lookupWordMeanings input and get null koreanText`(): Unit = runBlocking {
-        val lyric = seedLyric(listOf("猫[寝"))
+    fun `charStart and charEnd are recomputed by sequential indexOf of surfaces`(): Unit = runBlocking {
+        val lyric = seedLyric(listOf("猫が寝る"))
 
         every { geminiClient.translateLyrics(any()) } returns listOf(
-            TranslationResultDto(0, "고양이[잠", "네코[네"),
+            TranslationResultDto(0, "고양이가 잔다", "네코가 네루"),
         )
-        every { geminiClient.lookupWordMeanings(any()) } answers {
+        coEvery { jishoClient.lookupAll(any()) } returns emptyMap()
+        every { geminiClient.segmentAndLemmatize(any()) } returns listOf(
+            SegLineDto(
+                0,
+                listOf(
+                    SegWordDto("猫", "猫", "ネコ"),
+                    SegWordDto("が", "が", "ガ"),
+                    SegWordDto("寝る", "寝る", "ネル"),
+                ),
+            ),
+        )
+        every { geminiClient.translateMeanings(any()) } answers {
+            @Suppress("UNCHECKED_CAST")
+            firstArg<List<Map<String, Any?>>>().map {
+                MeaningDto(it["dictionaryForm"] as String, "뜻")
+            }
+        }
+        every { geminiClient.correctMeanings(any()) } answers {
             @Suppress("UNCHECKED_CAST")
             val input = firstArg<List<Map<String, Any?>>>()
-            val allForwarded = input.flatMap { (it["words"] as List<Map<String, Any?>>).map { w -> w["baseForm"] as String } }
-            assertThat(allForwarded).noneMatch { it.contains("[") }
             input.map { line ->
+                @Suppress("UNCHECKED_CAST")
                 val words = (line["words"] as List<Map<String, Any?>>).map {
-                    WordMeaningDto(baseForm = it["baseForm"] as String, koreanText = "뜻:${it["baseForm"]}")
+                    CorrWordDto(it["surface"] as String, it["dictionaryForm"] as String, it["koreanText"] as String)
                 }
-                WordMeaningResultDto(index = line["index"] as Int, words = words)
+                CorrLineDto(line["index"] as Int, words)
             }
         }
 
         scheduler.processOne(lyric)
 
-        val analyzed = lyricRepository.findById(lyric.id!!).orElseThrow().analyzedContent!!
-        val bracketTokens = analyzed[0].tokens.filter { it.surface == "[" }
-        assertThat(bracketTokens).isNotEmpty
-        assertThat(bracketTokens).allSatisfy { t ->
-            assertThat(t.partOfSpeech).isEqualTo(PartOfSpeech.SYMBOL)
-            assertThat(t.koreanText).isNull()
-        }
+        val tokens = lyricRepository.findById(lyric.id!!).orElseThrow().analyzedContent!![0].tokens
+        assertThat(tokens.map { Triple(it.surface, it.charStart, it.charEnd) }).containsExactly(
+            Triple("猫", 0, 1),
+            Triple("が", 1, 2),
+            Triple("寝る", 2, 4),
+        )
     }
 
     @Test
@@ -125,7 +173,7 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
         val lyric = seedLyric(listOf("猫"))
 
         every { geminiClient.translateLyrics(any()) } throws RuntimeException("boom")
-        every { geminiClient.lookupWordMeanings(any()) } throws RuntimeException("boom")
+        every { geminiClient.segmentAndLemmatize(any()) } throws RuntimeException("boom")
 
         val ok = scheduler.processOne(lyric)
 
@@ -142,7 +190,7 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
         val lyric = seedLyric(listOf("猫"), retryCount = 2)
 
         every { geminiClient.translateLyrics(any()) } throws RuntimeException("permanent failure")
-        every { geminiClient.lookupWordMeanings(any()) } throws RuntimeException("permanent failure")
+        every { geminiClient.segmentAndLemmatize(any()) } throws RuntimeException("permanent failure")
 
         val ok = scheduler.processOne(lyric)
 
@@ -153,25 +201,18 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
     }
 
     @Test
-    fun `translation and word meaning calls are made in parallel via coroutineScope`(): Unit = runBlocking {
+    fun `translation and segmentation calls run in parallel via coroutineScope`(): Unit = runBlocking {
         val lyric = seedLyric(listOf("猫"))
 
         every { geminiClient.translateLyrics(any()) } returns listOf(TranslationResultDto(0, "고양이", "네코"))
-        every { geminiClient.lookupWordMeanings(any()) } answers {
-            @Suppress("UNCHECKED_CAST")
-            val input = firstArg<List<Map<String, Any?>>>()
-            input.map { line ->
-                val words = (line["words"] as List<Map<String, Any?>>).map {
-                    WordMeaningDto(baseForm = it["baseForm"] as String, koreanText = "뜻")
-                }
-                WordMeaningResultDto(index = line["index"] as Int, words = words)
-            }
-        }
+        stubHappyPath()
 
         scheduler.processOne(lyric)
 
         verify(exactly = 1) { geminiClient.translateLyrics(any()) }
-        verify(exactly = 1) { geminiClient.lookupWordMeanings(any()) }
+        verify(exactly = 1) { geminiClient.segmentAndLemmatize(any()) }
+        verify(exactly = 1) { geminiClient.translateMeanings(any()) }
+        verify(exactly = 1) { geminiClient.correctMeanings(any()) }
     }
 
     @Test
@@ -181,9 +222,7 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
         every { geminiClient.translateLyrics(any()) } answers {
             Thread.sleep(2_000); listOf(TranslationResultDto(0, "x", "y"))
         }
-        every { geminiClient.lookupWordMeanings(any()) } answers {
-            Thread.sleep(2_000); emptyList()
-        }
+        stubHappyPath()
 
         val all = (1..7).map { seedLyric(listOf("猫$it")) }
 
@@ -211,6 +250,6 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
         scheduler.run()
 
         verify(exactly = 0) { geminiClient.translateLyrics(any()) }
-        verify(exactly = 0) { geminiClient.lookupWordMeanings(any()) }
+        verify(exactly = 0) { geminiClient.segmentAndLemmatize(any()) }
     }
 }

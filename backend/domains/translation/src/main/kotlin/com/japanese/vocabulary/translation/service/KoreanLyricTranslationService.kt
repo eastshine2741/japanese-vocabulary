@@ -2,12 +2,16 @@ package com.japanese.vocabulary.translation.service
 
 import com.japanese.vocabulary.observability.MetricNames
 import com.japanese.vocabulary.translation.client.gemini.GeminiClient
+import com.japanese.vocabulary.translation.client.gemini.dto.CorrWordDto
+import com.japanese.vocabulary.translation.client.gemini.dto.SegLineDto
+import com.japanese.vocabulary.translation.client.gemini.dto.TranslationResultDto
+import com.japanese.vocabulary.translation.client.jisho.JishoClient
+import com.japanese.vocabulary.translation.client.jisho.JishoPartOfSpeechMapper
+import com.japanese.vocabulary.translation.client.jisho.dto.JishoEntryDto
 import com.japanese.vocabulary.song.entity.KoreanLyricStatus
 import com.japanese.vocabulary.song.entity.LyricEntity
 import com.japanese.vocabulary.song.model.AnalyzedLine
-import com.japanese.vocabulary.song.model.PartOfSpeech
 import com.japanese.vocabulary.song.model.Token
-import com.japanese.vocabulary.translation.model.TokenInfo
 import com.japanese.vocabulary.song.repository.LyricRepository
 import io.micrometer.core.instrument.Gauge
 import io.micrometer.core.instrument.MeterRegistry
@@ -22,12 +26,15 @@ import org.springframework.transaction.annotation.Transactional
  * Domain-level lyric translation operations. Exposes granular methods over a single [LyricEntity];
  * the polling / batching / coroutine / retry-policy flow lives in
  * `batch.KoreanLyricTranslationScheduler`, which composes these primitives.
+ *
+ * The word-meaning pipeline is the confirmed L3 + translation-grounded-correction harness
+ * (Kuromoji dropped). See [runPipeline].
  */
 @Service
 class KoreanLyricTranslationService(
     private val lyricRepository: LyricRepository,
-    private val morphologicalAnalyzer: MorphologicalAnalyzer,
     private val geminiClient: GeminiClient,
+    private val jishoClient: JishoClient,
     private val meterRegistry: MeterRegistry,
 ) {
     private val logger = LoggerFactory.getLogger("KoreanLyricTranslation")
@@ -61,8 +68,18 @@ class KoreanLyricTranslationService(
     }
 
     /**
-     * Pure compute: morphological analysis + Gemini calls + token merge. No DB writes.
+     * Pure compute: the confirmed word-meaning pipeline. No DB writes.
      * Throws on failure so the caller can decide retry vs terminal-fail policy.
+     *
+     * Stages (all word-meaning calls use the lightweight model):
+     *  1. **segment+lemmatize** (LLM): raw line → [{surface, dictionaryForm, reading}].
+     *  2. in parallel with (1)'s downstream:
+     *     - **translation** (pro): line → koreanLyrics + koreanPronounciation.
+     *     - **jisho grounding + meaning** (LLM): unique dictionaryForms → EN senses/POS/JLPT → koreanText.
+     *  3. **correction** (LLM): uses the finished Korean translation as source-of-truth to fix
+     *     context-wrong meanings + segmentation errors.
+     *  4. **assemble**: corrected words → [Token] with charStart/charEnd recomputed via sequential
+     *     indexOf, POS from jisho, jlpt from jisho.
      */
     suspend fun runPipeline(entity: LyricEntity): List<AnalyzedLine> {
         logger.info(
@@ -73,85 +90,113 @@ class KoreanLyricTranslationService(
         val lyricLines = entity.rawContent
         logger.info("[songId={}] Parsed {} lyric lines", entity.songId, lyricLines.size)
 
-        // 1. Morphological analysis (Kuromoji IPADic + UniDic ensemble)
-        val lineTokensMap = lyricLines.associate { line ->
-            line.index to morphologicalAnalyzer.analyze(line.text)
-        }
+        val lineInput = lyricLines.map { mapOf("index" to it.index, "text" to it.text) }
 
-        // 2. Build inputs for the two parallel Gemini calls
-        val translationInput = lyricLines.map { line ->
-            mapOf("index" to line.index, "text" to line.text)
-        }
-
-        // Slim input matches playground: only {index, words: [{baseForm}]}.
-        // text/surface/pos were observed to mislead the LLM in offline eval.
-        val wordMeaningInput = lyricLines.map { line ->
-            val tokens = lineTokensMap[line.index] ?: emptyList()
-            val words = tokens.filter { !isSkippableToken(it) }.map { token ->
-                mapOf("baseForm" to token.baseForm)
+        // Translation (pro) runs in parallel with the [segment → jisho → meaning] chain.
+        logger.info("[songId={}] Calling Gemini APIs (translation ∥ segment→meaning)...", entity.songId)
+        val parts = coroutineScope {
+            val translationDeferred = async { geminiClient.translateLyrics(lineInput) }
+            val meaningDeferred = async {
+                val seg = geminiClient.segmentAndLemmatize(lineInput)
+                val dictForms = seg.flatMap { it.words }.map { it.dictionaryForm }.distinct()
+                val jishoData = jishoClient.lookupAll(dictForms)
+                val meaningInput = dictForms.map { df ->
+                    val j = jishoData[df]
+                    mapOf(
+                        "dictionaryForm" to df,
+                        "jishoPos" to (j?.pos ?: emptyList<String>()),
+                        "jishoSenses" to (j?.senses ?: emptyList<String>()),
+                        "jlpt" to (j?.jlpt ?: emptyList<String>()),
+                    )
+                }
+                val meanings = geminiClient.translateMeanings(meaningInput)
+                Triple(seg, jishoData, meanings.associate { it.dictionaryForm to it.koreanText })
             }
-            mapOf("index" to line.index, "words" to words)
+            val translated = translationDeferred.await()
+            val (seg, jishoData, d2k) = meaningDeferred.await()
+            PipelineParts(translated, seg, jishoData, d2k)
         }
-
-        // 3. Call Gemini APIs in parallel: translation (pro) + word meanings (flash-lite)
-        logger.info("[songId={}] Calling Gemini APIs in parallel...", entity.songId)
-        val (translated, wordMeanings) = coroutineScope {
-            val translationDeferred = async { geminiClient.translateLyrics(translationInput) }
-            val wordMeaningDeferred = async { geminiClient.lookupWordMeanings(wordMeaningInput) }
-            translationDeferred.await() to wordMeaningDeferred.await()
-        }
+        val translated = parts.translated
+        val segLines = parts.segLines
+        val jisho = parts.jisho
+        val dict2ko = parts.dict2ko
         logger.info(
-            "[songId={}] Gemini responded: {} translated, {} word-meaning lines",
-            entity.songId, translated.size, wordMeanings.size,
+            "[songId={}] Gemini responded: {} translated lines, {} segmented lines, {} dict forms",
+            entity.songId, translated.size, segLines.size, dict2ko.size,
         )
 
-        // 4. Merge ensemble tokens + translation + word meanings → AnalyzedLine
         val translationMap = translated.associateBy { it.index }
-        val wordMeaningMap = wordMeanings.associateBy { it.index }
+        val rawByIndex = lyricLines.associate { it.index to it.text }
 
+        // Correction pass — translation as source of truth.
+        val correctionInput = segLines.map { line ->
+            mapOf(
+                "index" to line.index,
+                "japanese" to (rawByIndex[line.index] ?: ""),
+                "korean" to (translationMap[line.index]?.koreanLyrics ?: ""),
+                "words" to line.words.map { w ->
+                    mapOf(
+                        "surface" to w.surface,
+                        "dictionaryForm" to w.dictionaryForm,
+                        "koreanText" to (dict2ko[w.dictionaryForm] ?: ""),
+                    )
+                },
+            )
+        }
+        val corrected = geminiClient.correctMeanings(correctionInput).associateBy { it.index }
+
+        // dictionaryForm → reading (katakana yomigana of the dictionary form), from the seg stage.
+        val readingByDictForm = segLines.flatMap { it.words }
+            .associate { it.dictionaryForm to it.reading }
+
+        // Assemble per line. Fall back to the (uncorrected) seg words if a line is missing in the
+        // correction output, so no line silently loses its tokens.
         return lyricLines.map { line ->
-            val tokens = lineTokensMap[line.index] ?: emptyList()
-            val translation = translationMap[line.index]
-            val meanings = wordMeaningMap[line.index]
-
-            /*
-             * 1:1 sequential matching between ensemble tokens and LLM word meanings.
-             * The LLM prompt enforces strict 1:1 correspondence with input words (no merge/split).
-             * SYMBOL tokens were filtered before sending to LLM, so a separate index advances
-             * only for non-skippable tokens.
-             * charStart/charEnd come directly from the ensemble analyzer.
-             */
-            val meaningWords = meanings?.words ?: emptyList()
-            var meaningIdx = 0
-
-            val mergedTokens = tokens.map { tokenInfo ->
-                val koreanText = if (!isSkippableToken(tokenInfo) && meaningIdx < meaningWords.size) {
-                    val meaning = meaningWords[meaningIdx]
-                    meaningIdx++
-                    meaning.koreanText
-                } else {
-                    null
+            val words = corrected[line.index]?.words
+                ?: segLines.firstOrNull { it.index == line.index }?.words?.map { w ->
+                    CorrWordDto(w.surface, w.dictionaryForm, dict2ko[w.dictionaryForm] ?: "")
                 }
-
-                // Prompt enforces verbatim baseForm; use analyzer's value as the
-                // source of truth and do not trust LLM-side mutations.
-                Token(
-                    surface = tokenInfo.surface,
-                    baseForm = tokenInfo.baseForm,
-                    reading = tokenInfo.reading,
-                    baseFormReading = tokenInfo.baseFormReading,
-                    partOfSpeech = if (isSkippableToken(tokenInfo)) PartOfSpeech.SYMBOL else tokenInfo.partOfSpeech,
-                    charStart = tokenInfo.charStart,
-                    charEnd = tokenInfo.charEnd,
-                    koreanText = koreanText,
-                )
-            }
+                ?: emptyList()
 
             AnalyzedLine(
                 index = line.index,
-                koreanLyrics = translation?.koreanLyrics,
-                koreanPronounciation = translation?.koreanPronounciation,
-                tokens = mergedTokens,
+                koreanLyrics = translationMap[line.index]?.koreanLyrics,
+                koreanPronounciation = translationMap[line.index]?.koreanPronounciation,
+                tokens = buildTokens(line.text, words, jisho, readingByDictForm),
+            )
+        }
+    }
+
+    /**
+     * Build [Token]s for one line. charStart/charEnd are recomputed by sequentially locating each
+     * surface in the raw line text (the production normalizePositions pattern); POS and JLPT come
+     * from jisho keyed by dictionaryForm (forms the correction pass newly created fall back to OTHER).
+     */
+    private fun buildTokens(
+        rawText: String,
+        words: List<CorrWordDto>,
+        jisho: Map<String, JishoEntryDto>,
+        readingByDictForm: Map<String, String>,
+    ): List<Token> {
+        var cursor = 0
+        return words.map { w ->
+            val found = rawText.indexOf(w.surface, cursor)
+            val start = if (found >= 0) found else cursor
+            val end = start + w.surface.length
+            cursor = end
+
+            val j = jisho[w.dictionaryForm]
+            val reading = readingByDictForm[w.dictionaryForm]
+            Token(
+                surface = w.surface,
+                baseForm = w.dictionaryForm,
+                reading = reading,
+                baseFormReading = reading,
+                partOfSpeech = JishoPartOfSpeechMapper.map(j?.pos ?: emptyList()),
+                charStart = start,
+                charEnd = end,
+                koreanText = w.koreanText.ifBlank { null },
+                jlpt = j?.jlpt ?: emptyList(),
             )
         }
     }
@@ -187,18 +232,11 @@ class KoreanLyricTranslationService(
         logger.info("[songId={}] Status: PROCESSING → FAILED (terminal)", entity.songId)
     }
 
-    private companion object {
-        /**
-         * Tokens whose surface contains no Japanese characters should not be sent to the LLM.
-         *
-         * WHY SURFACE-BASED (not POS-based):
-         * - kuromoji-unidic misclassifies some hiragana/katakana as SYMBOL (OOV handling).
-         * - kuromoji classifies ASCII symbols like " and [ as NOUN (OOV handling).
-         * Checking the actual surface characters handles both directions of misclassification.
-         */
-        private val JAPANESE_REGEX = Regex("[぀-ゟ゠-ヿ一-鿿㐀-䶿ｦ-ﾟ]")
-
-        private fun isSkippableToken(token: TokenInfo): Boolean =
-            !JAPANESE_REGEX.containsMatchIn(token.surface)
-    }
+    /** Carries the results of the parallel (translation ∥ segment→meaning) stage out of coroutineScope. */
+    private data class PipelineParts(
+        val translated: List<TranslationResultDto>,
+        val segLines: List<SegLineDto>,
+        val jisho: Map<String, JishoEntryDto>,
+        val dict2ko: Map<String, String>,
+    )
 }

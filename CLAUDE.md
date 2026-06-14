@@ -77,7 +77,7 @@ backend/
 │   ├── user/                — UserEntity + Settings + DeviceToken
 │   ├── userinventory/       — freeze inventory etc.
 │   ├── song/                — Song/Lyric entity + iTunes/YouTube/VocaDB/LRCLIB clients + LyricProcessingService (동기 단계). 저장 모델(AnalyzedLine/Token/PartOfSpeech)도 여기 (LyricEntity JSON + api study view가 사용)
-│   ├── translation/         — 가사 분석+번역 파이프라인: KoreanLyricTranslationService + Kuromoji analyzer 3종(+config) + GeminiClient. **batch만 의존** — Kuromoji 사전(IPADic/UniDic)이 빈 생성 시 힙에 통째로 로드되므로 api classpath에서 제외
+│   ├── translation/         — 가사 분석+번역 파이프라인: KoreanLyricTranslationService + GeminiClient + JishoClient. **batch만 의존** (가사 번역 스케줄러만 사용). 형태소 분석은 LLM이 직접 수행(Kuromoji 폐기 2026-06) — analyzer/사전 의존성 없음. jisho 조회는 Redis 캐시(`JishoClient`)
 │   ├── flashcard/           — word + flashcard packages merged (word ↔ flashcard cycle): WordEntity, FlashcardEntity, repositories, services, events
 │   ├── deck/                — DeckEntity, DeckService, DeckEventListener
 │   ├── studystats/          — DailyStudySummary, StreakCalculator (Spring Batch 잡 본체는 batch 모듈로 분리됨 — 도메인 모듈은 Job/Scheduler를 갖지 않음. 그래야 api가 studystats를 의존해도 spring-batch가 classpath에 안 올라와 startup 잡 자동실행이 안 생김)
@@ -89,7 +89,7 @@ backend/
 ### 모듈 의존성 원칙
 
 - **batch가 의존하는 도메인은 최소화**. 필요한 도메인만 추가. JPA 엔티티 로드 비용 절감.
-- **api는 모든 도메인 의존**. REST 표면이 전체 도메인을 노출하므로. **예외: translation** — Kuromoji 사전 힙 비용 때문에 batch 전용.
+- **api는 모든 도메인 의존**. REST 표면이 전체 도메인을 노출하므로. **예외: translation** — 가사 번역 스케줄러(batch)만 사용하므로 batch 전용 유지. (Kuromoji 폐기 후 힙 비용 사유는 사라졌지만 api가 의존할 이유도 없음.)
 - **Spring Batch Job/Step config·Scheduler·잡 워커 서비스는 batch bootstrap 모듈에만 둔다. 도메인 모듈에 두지 말 것** — 도메인 모듈에 `spring-boot-starter-batch`가 들어가면 그 모듈을 의존하는 api에도 spring-batch가 classpath에 올라와 `JobLauncherApplicationRunner`가 startup에 잡을 자동 실행한다 (`runDate parameter required` 류 에러). 잡은 batch가 스케줄러로만 트리거.
 - **외부 API 클라이언트(`@Value`로 필수 키 주입)가 도메인 모듈에 있고 그 도메인을 batch가 의존하면, batch yml에도 해당 키를 (안 쓰면 빈 기본값 `${KEY:}`으로) 넣어야** placeholder 미해석 크래시를 피한다 (e.g. song의 `YoutubeClient` → batch에 `youtube.api-key`).
 - **통합테스트는 bootstrap 모듈(api/batch)에만 둔다. 도메인 모듈에 테스트용 @SpringBootApplication(TestBoot)을 만들지 말 것** — 부트클래스가 도메인 패키지에 있으면 repo/entity 스캔 범위가 그 패키지로 좁아져 cross-domain 빈이 unresolved 된다 (`scanBasePackages`는 컴포넌트 스캔만 넓힐 뿐). 리스너 직접 호출 테스트는 api의 `ApiAfterCommitListenerTest` 상속.
@@ -128,9 +128,18 @@ Outer:  Deck, DeckFlashcard      — 조직화 레이어
 동기 저장 + 비동기 배치 2단계.
 
 1. **동기** (`LyricProcessingService`, song 도메인): LRCLIB/VocaDB에서 가사 fetch → songs + lyrics 저장 (status=PENDING) → 원본 가사 응답
-2. **비동기 배치**: `KoreanLyricTranslationService.processTranslations()` (song 도메인, plain method) — Kuromoji 형태소 분석 + Gemini 번역 → analyzed_content 저장, status=COMPLETED. `KoreanLyricTranslationScheduler` (batch 모듈, `@Scheduled fixedRate=30s`)가 호출 트리거.
+2. **비동기 배치**: `KoreanLyricTranslationService.runPipeline()` (translation 도메인, suspend) — 확정 word-meaning 하네스(L3 + translation-grounded correction, Kuromoji 폐기) → analyzed_content 저장, status=COMPLETED. `KoreanLyricTranslationScheduler` (batch 모듈, `@Scheduled fixedRate=30s`)가 호출 트리거.
 
-실패 시 retry (최대 3회), 초과 시 `FAILED`. retry 로직은 service 안에 있음.
+### word-meaning 파이프라인 (2026-06 확정, 전 단계 gemini-3.1-flash-lite)
+
+번역(pro)과 병렬로 `seg→ground+meaning` 체인을 돌린 뒤, 번역 완료 후 correction을 1회 실행한다 (`(translation ∥ [seg→ground+meaning]) → correction`):
+
+1. **segment+lemmatize** (`GeminiClient.segmentAndLemmatize`): 원문 한 줄 → `[{surface, dictionaryForm, reading}]`. LLM이 분절 + 사전형 환원(가능/사역/수동 파생 제거 → criterion #1 내재 해결). Kuromoji 대체.
+2. **jisho grounding + meaning** (`JishoClient.lookupAll` + `GeminiClient.translateMeanings`): 고유 dictionaryForm을 jisho 조회(EN senses/POS/JLPT, exact-match, Redis 캐시 + 전역 Semaphore(3) + 429 백오프 + 실패 미캐시) → LLM이 품사 일관 한국어 뜻 생성.
+3. **correction** (`GeminiClient.correctMeanings`): 완성된 번역(pro `koreanLyrics`)을 source-of-truth로 문맥 틀린 뜻 + 분절 오류 교정.
+4. **assemble**: 교정 결과 → `Token`. charStart/charEnd는 surface 순차 indexOf로 재계산, POS는 jisho POS → `PartOfSpeech` enum 매핑(미스 시 OTHER), `Token.jlpt`는 jisho jlpt.
+
+실패 시 retry (최대 3회), 초과 시 `FAILED`. retry/배치 정책은 `KoreanLyricTranslationScheduler`. 실험 코드: `gemini-playground/word-meaning-harness/`. 비용 ≈ $0.031/곡.
 
 ## Push Notification
 
@@ -146,7 +155,7 @@ Outer:  Deck, DeckFlashcard      — 조직화 레이어
 
 ## Current State
 
-**Implemented:** Song search → lyric fetch → async batch (Kuromoji+Gemini) → study view, YouTube MV playback with synced lyrics, word save with meanings, flashcard review (FSRS), decks, recent songs, user settings, push notifications (FCM admin SDK, batch cron 09:00·18:00 KST, deep-link to flashcard review from notification tap)
+**Implemented:** Song search → lyric fetch → async batch (LLM segment+lemmatize + jisho grounding + Gemini translation + correction) → study view, YouTube MV playback with synced lyrics, word save with meanings, flashcard review (FSRS), decks, recent songs, user settings, push notifications (FCM admin SDK, batch cron 09:00·18:00 KST, deep-link to flashcard review from notification tap)
 
 **Backend modularization:** Multi-module Gradle split (`common` + `domains/*` + `api` + `batch`) 완료. dto/ 규칙 (Request/Response/Dto, 1-class-per-file) 적용. @Scheduled는 batch에만. notification 모듈은 FCM 전송 책임만, DB 조회는 batch가 담당하고 `PushNotificationDataPort`로 추상화.
 
