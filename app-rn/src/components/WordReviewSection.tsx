@@ -81,7 +81,7 @@ function WordReviewSection() {
   );
 
   const handleHeaderPress = useCallback(() => {
-    navigation.navigate('DeckWordList', { deckId: null });
+    navigation.navigate('DeckList');
   }, [navigation]);
 
   const handleRowPress = useCallback(

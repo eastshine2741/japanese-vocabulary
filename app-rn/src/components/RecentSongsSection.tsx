@@ -48,7 +48,7 @@ const SongCarouselItem = React.memo(function SongCarouselItem({
       ) : (
         <View style={[styles.cover, styles.coverPlaceholder]} />
       )}
-      <Text style={styles.title} numberOfLines={2}>
+      <Text style={styles.title} numberOfLines={1}>
         {item.title}
       </Text>
       <Text style={styles.artist} numberOfLines={1}>
