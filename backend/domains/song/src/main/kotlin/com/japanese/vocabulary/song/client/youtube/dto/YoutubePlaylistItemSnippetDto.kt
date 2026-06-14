@@ -1,8 +1,7 @@
 package com.japanese.vocabulary.song.client.youtube.dto
 
-data class YoutubeSnippetDto(
+data class YoutubePlaylistItemSnippetDto(
     val title: String,
-    val thumbnails: YoutubeThumbnailsDto,
     val channelTitle: String,
-    val channelId: String? = null
+    val resourceId: YoutubeResourceIdDto
 )

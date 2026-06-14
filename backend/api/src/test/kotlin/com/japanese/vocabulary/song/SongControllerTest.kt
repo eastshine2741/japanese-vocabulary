@@ -111,7 +111,7 @@ class SongControllerTest : ApiBaseIntegrationTest() {
             )
             every { vocadbClient.providerName } returns "VocaDB"
             every { vocadbClient.search(any()) } returns null
-            every { youtubeClient.searchMvUrl(any(), any()) } returns "https://youtu.be/abc"
+            every { youtubeMvSearchService.searchMvUrl(any(), any()) } returns "https://youtu.be/abc"
 
             val body = mockMvc.post("/api/songs/analyze") {
                 header("Authorization", bearer(me))
@@ -164,7 +164,7 @@ class SongControllerTest : ApiBaseIntegrationTest() {
             every { lrclibClient.search(any()) } returns LyricsResult(lyrics = "テスト", isSynced = false)
             every { vocadbClient.providerName } returns "VocaDB"
             every { vocadbClient.search(any()) } returns null
-            every { youtubeClient.searchMvUrl(any(), any()) } throws RuntimeException("network down")
+            every { youtubeMvSearchService.searchMvUrl(any(), any()) } throws RuntimeException("network down")
 
             val body = mockMvc.post("/api/songs/analyze") {
                 header("Authorization", bearer(me))

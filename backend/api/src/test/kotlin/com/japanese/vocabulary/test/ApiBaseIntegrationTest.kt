@@ -6,6 +6,7 @@ import com.japanese.vocabulary.song.client.itunes.ItunesClient
 import com.japanese.vocabulary.song.client.lrclib.LrclibClient
 import com.japanese.vocabulary.song.client.vocadb.VocadbClient
 import com.japanese.vocabulary.song.client.youtube.YoutubeClient
+import com.japanese.vocabulary.song.service.YoutubeMvSearchService
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.clearMocks
 import org.junit.jupiter.api.BeforeEach
@@ -28,6 +29,9 @@ abstract class ApiBaseIntegrationTest : BaseIntegrationTest() {
     protected lateinit var youtubeClient: YoutubeClient
 
     @MockkBean
+    protected lateinit var youtubeMvSearchService: YoutubeMvSearchService
+
+    @MockkBean
     protected lateinit var itunesClient: ItunesClient
 
     @MockkBean
@@ -44,8 +48,8 @@ abstract class ApiBaseIntegrationTest : BaseIntegrationTest() {
     @BeforeEach
     fun resetClientMocks() {
         clearMocks(
-            lrclibClient, vocadbClient, youtubeClient, itunesClient, googleOidcService,
-            firebaseMessaging,
+            lrclibClient, vocadbClient, youtubeClient, youtubeMvSearchService, itunesClient,
+            googleOidcService, firebaseMessaging,
             answers = true,
             recordedCalls = true,
         )

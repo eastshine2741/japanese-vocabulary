@@ -5,7 +5,6 @@ import com.japanese.vocabulary.common.exception.ErrorCode
 import com.japanese.vocabulary.song.client.LyricProvider
 import com.japanese.vocabulary.song.client.SongQueryNormalizer
 import com.japanese.vocabulary.song.client.LyricsResult
-import com.japanese.vocabulary.song.client.youtube.YoutubeClient
 import com.japanese.vocabulary.song.model.*
 import com.japanese.vocabulary.song.dto.*
 import com.japanese.vocabulary.song.entity.LyricType
@@ -23,7 +22,7 @@ class LyricProcessingService(
     private val lyricProviders: List<LyricProvider>,
     private val lrcParser: LrcParser,
     private val songRepository: SongRepository,
-    private val youtubeClient: YoutubeClient,
+    private val youtubeMvSearchService: YoutubeMvSearchService,
     private val recentSongService: RecentSongService,
     private val lyricRepository: LyricRepository
 ) {
@@ -64,7 +63,7 @@ class LyricProcessingService(
 
         // Fetch YouTube MV URL
         val youtubeUrl = try {
-            youtubeClient.searchMvUrl(title, artist)
+            youtubeMvSearchService.searchMvUrl(title, artist)
         } catch (e: Exception) {
             e.printStackTrace()
             null
