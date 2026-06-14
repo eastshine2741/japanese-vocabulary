@@ -5,6 +5,7 @@ import {
   ActivityIndicator,
   StyleSheet,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
@@ -20,6 +21,22 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'DeckDetail'>;
 
+function AllWordsArtwork() {
+  return (
+    <View style={styles.allWordsArtwork}>
+      <View style={styles.allWordsGlow} />
+      <View style={styles.allWordsAccentDot} />
+      <View style={styles.allWordsBackCard}>
+        <Ionicons name="layers-outline" size={24} color={Colors.textMuted} />
+      </View>
+      <View style={styles.allWordsFrontCard}>
+        <Ionicons name="layers-outline" size={28} color="#FFFFFF" />
+        <Text style={styles.allWordsFrontLabel}>ALL WORDS</Text>
+      </View>
+    </View>
+  );
+}
+
 export default function DeckDetailScreen({ route, navigation }: Props) {
   const { deckId } = route.params;
   const { status, data, error, load } = useDeckDetailStore(
@@ -27,6 +44,7 @@ export default function DeckDetailScreen({ route, navigation }: Props) {
   );
   const loadById = usePlayerStore(s => s.loadById);
   const playerStatus = usePlayerStore(s => s.status);
+  const isAllDeck = deckId == null;
 
   useFocusEffect(
     useCallback(() => {
@@ -56,13 +74,28 @@ export default function DeckDetailScreen({ route, navigation }: Props) {
         {status === 'success' && data && (
           <View style={styles.content}>
             {/* Artwork */}
-            <ArtworkImage url={data.artworkUrl} size={200} cornerRadius={16} />
+            {isAllDeck ? (
+              <AllWordsArtwork />
+            ) : (
+              <ArtworkImage url={data.artworkUrl} size={200} cornerRadius={16} />
+            )}
 
-            {/* Song title */}
-            {data.title && <Text style={styles.title}>{data.title}</Text>}
+            {isAllDeck ? (
+              <View style={styles.allDeckInfo}>
+                <Text style={styles.allDeckTitle}>전체 단어장</Text>
+                <Text style={styles.allDeckDescription}>
+                  모든 단어를 한 곳에서 빠르게 복습해요.
+                </Text>
+              </View>
+            ) : (
+              <>
+                {/* Song title */}
+                {data.title && <Text style={styles.title}>{data.title}</Text>}
 
-            {/* Artist */}
-            {data.artist && <Text style={styles.artist}>{data.artist}</Text>}
+                {/* Artist */}
+                {data.artist && <Text style={styles.artist}>{data.artist}</Text>}
+              </>
+            )}
 
             {/* Hero: due count */}
             <View style={styles.heroSection}>
@@ -164,6 +197,93 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: Dimens.screenPadding,
     gap: 32,
+  },
+  allWordsArtwork: {
+    width: 200,
+    height: 200,
+    borderRadius: 28,
+    backgroundColor: '#F4EFE7',
+    overflow: 'hidden',
+  },
+  allWordsGlow: {
+    position: 'absolute',
+    top: 22,
+    right: 22,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#DCEEDD',
+  },
+  allWordsAccentDot: {
+    position: 'absolute',
+    left: 21,
+    top: 119,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F3D4B8',
+  },
+  allWordsBackCard: {
+    position: 'absolute',
+    left: 35,
+    top: 47,
+    width: 104,
+    height: 126,
+    borderRadius: 24,
+    backgroundColor: '#E6DED3',
+    justifyContent: 'center',
+    alignItems: 'center',
+    transform: [{ rotate: '-6deg' }],
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.03,
+    shadowRadius: 10,
+    elevation: 1,
+  },
+  allWordsFrontCard: {
+    position: 'absolute',
+    left: 53,
+    top: 29,
+    width: 112,
+    height: 136,
+    borderRadius: 24,
+    backgroundColor: Colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 10,
+    transform: [{ rotate: '6deg' }],
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.07,
+    shadowRadius: 20,
+    elevation: 3,
+  },
+  allWordsFrontLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1.2,
+    color: '#FFFFFF',
+  },
+  allDeckInfo: {
+    alignItems: 'center',
+    gap: 8,
+    marginTop: -16,
+    width: '100%',
+  },
+  allDeckTitle: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: Colors.textPrimary,
+    textAlign: 'center',
+    letterSpacing: -1,
+  },
+  allDeckDescription: {
+    maxWidth: 260,
+    fontSize: 14,
+    fontWeight: '500',
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
   },
   title: {
     fontSize: 20,
