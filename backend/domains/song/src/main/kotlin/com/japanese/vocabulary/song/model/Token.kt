@@ -9,5 +9,5 @@ data class Token(
     val charStart: Int,
     val charEnd: Int,
     val koreanText: String? = null,
-    val jlpt: List<String> = emptyList()
+    val jlpt: String? = null
 )

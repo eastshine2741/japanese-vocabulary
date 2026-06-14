@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.japanese.vocabulary.cache.Cache
 import com.japanese.vocabulary.cache.RedisCache
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoEntryDto
+import com.japanese.vocabulary.translation.client.jisho.dto.JishoEntryRawDto
+import com.japanese.vocabulary.translation.client.jisho.dto.JishoOptionDto
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoSearchResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -23,9 +25,13 @@ import java.time.Duration
 /**
  * jisho.org dictionary client used to ground word-meaning generation (EN senses + POS + JLPT).
  *
- * Faithful port of the playground `common.py` jisho stage:
- * - **Exact-match only**: an entry counts only if some `japanese.word` or `reading` equals the query;
- *   the FIRST matching entry wins, senses are capped at 4 and joined with " / ".
+ * Faithful port of the playground `common.py` jisho_full stage:
+ * - **Flatten all senses**: every sense of every exact-match entry (`japanese.word`/`reading` == query)
+ *   becomes one [JishoOptionDto] carrying its own reading/POS/EN gloss/JLPT. The sense-select LLM
+ *   chooses one option per word downstream.
+ * - **Fuzzy fallback**: if NO entry exactly matches (the query is an inflected/script variant, e.g.
+ *   巡り会い→巡り会う, くり返す→繰り返す, ズルい→狡い), fall back to jisho's TOP entry — jisho deinflects
+ *   the query and ranks the lemma first. The sense-select LLM still filters bad candidates to senseId=-1.
  * - **Shared cache**: results are cached in Redis (key `jisho:{word}`) so repeated forms across songs
  *   cost no network calls. Cache read/write errors are swallowed (degrade to a live fetch).
  * - **Bounded concurrency**: a process-global [Semaphore] caps concurrent outbound requests at
@@ -102,22 +108,39 @@ class JishoClient(
         return null
     }
 
-    /** Exact-match selection over the response, taking the first matching entry. */
+    /**
+     * Flatten exact-match entries' senses into options; if none match, fall back to jisho's top entry.
+     * Mirrors `_jisho_full_fetch`'s match policy + `_flatten_entry`.
+     */
     private fun distill(word: String, response: JishoSearchResponse): JishoEntryDto {
-        for (entry in response.data) {
-            val matched = entry.japanese.any { it.word == word || it.reading == word }
-            if (!matched) continue
-            val first = entry.japanese.firstOrNull()
-            val senses = entry.senses
-            return JishoEntryDto(
-                found = true,
-                word = first?.word ?: first?.reading ?: word,
-                pos = senses.firstOrNull()?.partsOfSpeech ?: emptyList(),
-                jlpt = entry.jlpt,
-                senses = senses.take(4).map { it.englishDefinitions.joinToString(" / ") },
+        val options = response.data
+            .filter { entry -> entry.japanese.any { it.word == word || it.reading == word } }
+            .flatMap { flattenEntry(it) }
+            .ifEmpty { response.data.firstOrNull()?.let { flattenEntry(it) } ?: emptyList() }
+        return JishoEntryDto(found = options.isNotEmpty(), word = word, options = options)
+    }
+
+    /** One jisho entry → one [JishoOptionDto] per sense. Mirrors `_flatten_entry`. */
+    private fun flattenEntry(entry: JishoEntryRawDto): List<JishoOptionDto> {
+        val first = entry.japanese.firstOrNull()
+        val reading = first?.reading ?: first?.word
+        val options = mutableListOf<JishoOptionDto>()
+        var carryPos: List<String> = emptyList() // jisho repeats POS only when it changes; carry forward
+        for (sense in entry.senses) {
+            if (sense.englishDefinitions.isEmpty()) continue
+            val pos = sense.partsOfSpeech.ifEmpty { carryPos }
+            carryPos = pos
+            if (pos.any { it.contains("Wikipedia") }) continue // drop meta senses
+            options.add(
+                JishoOptionDto(
+                    reading = reading,
+                    pos = pos,
+                    english = sense.englishDefinitions.joinToString(" / "),
+                    jlpt = entry.jlpt,
+                ),
             )
         }
-        return NOT_FOUND.copy(word = word)
+        return options
     }
 
     private fun cacheGet(word: String): JishoEntryDto? = try {

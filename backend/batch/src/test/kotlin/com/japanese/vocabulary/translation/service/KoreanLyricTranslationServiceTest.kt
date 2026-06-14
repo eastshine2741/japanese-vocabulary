@@ -1,12 +1,14 @@
 package com.japanese.vocabulary.translation.service
 
 import com.japanese.vocabulary.translation.batch.KoreanLyricTranslationScheduler
-import com.japanese.vocabulary.translation.client.gemini.dto.CorrLineDto
-import com.japanese.vocabulary.translation.client.gemini.dto.CorrWordDto
-import com.japanese.vocabulary.translation.client.gemini.dto.MeaningDto
 import com.japanese.vocabulary.translation.client.gemini.dto.SegLineDto
 import com.japanese.vocabulary.translation.client.gemini.dto.SegWordDto
+import com.japanese.vocabulary.translation.client.gemini.dto.SelectLineDto
+import com.japanese.vocabulary.translation.client.gemini.dto.SelectWordDto
+import com.japanese.vocabulary.translation.client.gemini.dto.SenseTranslationDto
 import com.japanese.vocabulary.translation.client.gemini.dto.TranslationResultDto
+import com.japanese.vocabulary.translation.client.jisho.dto.JishoEntryDto
+import com.japanese.vocabulary.translation.client.jisho.dto.JishoOptionDto
 import com.japanese.vocabulary.song.entity.KoreanLyricStatus
 import com.japanese.vocabulary.song.entity.LyricEntity
 import com.japanese.vocabulary.song.entity.LyricType
@@ -53,11 +55,11 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
     }
 
     /**
-     * Stub the L3 pipeline so it round-trips deterministically:
+     * Stub the redesigned pipeline so it round-trips deterministically:
      * - segment: one word per line whose surface/dictionaryForm = the whole line text.
-     * - jisho: empty (the meaning stub doesn't need grounding here).
-     * - meaning: koreanText = "뜻:{dictionaryForm}".
-     * - correction: echoes its input verbatim (no corrections).
+     * - jisho: every dictForm → one option (reading ヨミ, Noun, jlpt-n5), so a senseId exists.
+     * - sense-select: pick the first sense's senseId per segment (or -1 when none).
+     * - translate-sense: koreanText = "뜻:{senseId}".
      */
     private fun stubHappyPath() {
         every { geminiClient.segmentAndLemmatize(any()) } answers {
@@ -66,31 +68,47 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
             input.map { line ->
                 val idx = line["index"] as Int
                 val text = line["text"] as String
-                SegLineDto(idx, listOf(SegWordDto(surface = text, dictionaryForm = text, reading = "ヨミ")))
+                SegLineDto(idx, listOf(SegWordDto(surface = text, dictionaryForm = text)))
             }
         }
-        coEvery { jishoClient.lookupAll(any()) } returns emptyMap()
-        every { geminiClient.translateMeanings(any()) } answers {
-            @Suppress("UNCHECKED_CAST")
-            val input = firstArg<List<Map<String, Any?>>>()
-            input.map {
-                val df = it["dictionaryForm"] as String
-                MeaningDto(dictionaryForm = df, koreanText = "뜻:$df")
+        coEvery { jishoClient.lookupAll(any()) } answers {
+            firstArg<List<String>>().associateWith { df ->
+                JishoEntryDto(
+                    found = true,
+                    word = df,
+                    options = listOf(
+                        JishoOptionDto(reading = "ヨミ", pos = listOf("Noun"), english = "meaning", jlpt = listOf("jlpt-n5")),
+                    ),
+                )
             }
         }
-        every { geminiClient.correctMeanings(any()) } answers {
+        stubSenseSelectAndTranslate()
+    }
+
+    /**
+     * Generic sense-select + translate stubs that read the service-built input:
+     * select echoes each segment with its first sense's senseId (-1 if none); translate maps senseId → "뜻:{id}".
+     */
+    private fun stubSenseSelectAndTranslate() {
+        every { geminiClient.selectSenses(any()) } answers {
             @Suppress("UNCHECKED_CAST")
             val input = firstArg<List<Map<String, Any?>>>()
             input.map { line ->
                 @Suppress("UNCHECKED_CAST")
-                val words = (line["words"] as List<Map<String, Any?>>).map {
-                    CorrWordDto(
-                        surface = it["surface"] as String,
-                        dictionaryForm = it["dictionaryForm"] as String,
-                        koreanText = it["koreanText"] as String,
-                    )
+                val words = (line["segments"] as List<Map<String, Any?>>).map { seg ->
+                    @Suppress("UNCHECKED_CAST")
+                    val senses = seg["senses"] as List<Map<String, Any?>>
+                    val sid = senses.firstOrNull()?.get("senseId") as? Int ?: -1
+                    SelectWordDto(seg["surface"] as String, seg["dictionaryForm"] as String, sid)
                 }
-                CorrLineDto(index = line["index"] as Int, words = words)
+                SelectLineDto(index = line["index"] as Int, words = words)
+            }
+        }
+        every { geminiClient.translateSenses(any()) } answers {
+            @Suppress("UNCHECKED_CAST")
+            firstArg<List<Map<String, Any?>>>().map {
+                val sid = it["senseId"] as Int
+                SenseTranslationDto(senseId = sid, koreanText = "뜻:$sid")
             }
         }
     }
@@ -134,29 +152,13 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
             SegLineDto(
                 0,
                 listOf(
-                    SegWordDto("猫", "猫", "ネコ"),
-                    SegWordDto("が", "が", "ガ"),
-                    SegWordDto("寝る", "寝る", "ネル"),
+                    SegWordDto("猫", "猫"),
+                    SegWordDto("が", "が"),
+                    SegWordDto("寝る", "寝る"),
                 ),
             ),
         )
-        every { geminiClient.translateMeanings(any()) } answers {
-            @Suppress("UNCHECKED_CAST")
-            firstArg<List<Map<String, Any?>>>().map {
-                MeaningDto(it["dictionaryForm"] as String, "뜻")
-            }
-        }
-        every { geminiClient.correctMeanings(any()) } answers {
-            @Suppress("UNCHECKED_CAST")
-            val input = firstArg<List<Map<String, Any?>>>()
-            input.map { line ->
-                @Suppress("UNCHECKED_CAST")
-                val words = (line["words"] as List<Map<String, Any?>>).map {
-                    CorrWordDto(it["surface"] as String, it["dictionaryForm"] as String, it["koreanText"] as String)
-                }
-                CorrLineDto(line["index"] as Int, words)
-            }
-        }
+        stubSenseSelectAndTranslate()
 
         scheduler.processOne(lyric)
 
@@ -211,8 +213,8 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
 
         verify(exactly = 1) { geminiClient.translateLyrics(any()) }
         verify(exactly = 1) { geminiClient.segmentAndLemmatize(any()) }
-        verify(exactly = 1) { geminiClient.translateMeanings(any()) }
-        verify(exactly = 1) { geminiClient.correctMeanings(any()) }
+        verify(exactly = 1) { geminiClient.selectSenses(any()) }
+        verify(exactly = 1) { geminiClient.translateSenses(any()) }
     }
 
     @Test

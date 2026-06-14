@@ -2,9 +2,9 @@ package com.japanese.vocabulary.translation.client.gemini
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.japanese.vocabulary.observability.MetricNames
-import com.japanese.vocabulary.translation.client.gemini.dto.CorrLineDto
-import com.japanese.vocabulary.translation.client.gemini.dto.MeaningDto
 import com.japanese.vocabulary.translation.client.gemini.dto.SegLineDto
+import com.japanese.vocabulary.translation.client.gemini.dto.SelectLineDto
+import com.japanese.vocabulary.translation.client.gemini.dto.SenseTranslationDto
 import com.japanese.vocabulary.translation.client.gemini.dto.TranslationResultDto
 import io.micrometer.core.instrument.Counter
 import io.micrometer.core.instrument.MeterRegistry
@@ -44,11 +44,11 @@ class GeminiClient(
     }
 
     /**
-     * L3 stage 1 — segmentation + lemmatization.
-     * Input: [{index, text}] (raw lyric lines). Output: [{index, words:[{surface,dictionaryForm,reading}]}].
-     * The LLM both segments and reduces each word to its dictionary headword (collapsing
-     * potential/causative/passive forms), so criterion #1 (no derived lemmas) is satisfied here.
-     * Replaces the dropped Kuromoji ensemble. Uses the lightweight model.
+     * Redesign stage 1 — segmentation + lemmatization (meaning-aware, no reading).
+     * Input: [{index, text}] (raw lyric lines). Output: [{index, words:[{surface,dictionaryForm}]}].
+     * The LLM segments by meaning units (keeping fixed adverbs/compounds whole) and reduces each word
+     * to its dictionary headword (collapsing potential/causative/passive forms), so criterion #1
+     * (no derived lemmas) is satisfied here. Replaces the dropped Kuromoji ensemble. Lightweight model.
      */
     fun segmentAndLemmatize(lyricLines: List<Map<String, Any?>>): List<SegLineDto> {
         return callGemini(
@@ -63,38 +63,39 @@ class GeminiClient(
     }
 
     /**
-     * L3 stage 2 — jisho-grounded Korean meaning per dictionary form.
-     * Input: [{dictionaryForm, jishoPos, jishoSenses, jlpt}]. Output: [{dictionaryForm, koreanText}].
-     * jisho EN senses + POS ground the translation; empty senses → model-knowledge fallback.
+     * Redesign stage 3 — per-line sense selection.
+     * Input: [{index, japanese, korean, segments:[{surface, dictionaryForm, senses:[{senseId,english,pos}]}]}].
+     * Output: [{index, words:[{surface, dictionaryForm, senseId}]}].
+     * The LLM uses the Korean translation as a context cue to pick the senseId that fits this line, or
+     * -1 when none fits. It does NOT generate Korean meanings (blocks the over-correction failure mode).
      */
-    fun translateMeanings(words: List<Map<String, Any?>>): List<MeaningDto> {
+    fun selectSenses(lyricLines: List<Map<String, Any?>>): List<SelectLineDto> {
         return callGemini(
-            call = "meaning",
+            call = "select",
             model = wordMeaningModel,
-            systemPrompt = MEANING_PROMPT,
-            input = words,
-            responseType = MeaningDto::class.java,
+            systemPrompt = SELECT_PROMPT,
+            input = lyricLines,
+            responseType = SelectLineDto::class.java,
             temperature = 0.0,
-            responseSchema = MEANING_SCHEMA
+            responseSchema = SELECT_SCHEMA
         )
     }
 
     /**
-     * L3 correction pass — runs AFTER translation completes, using the finished Korean translation
-     * as source-of-truth to fix (1) context-wrong meanings (single-kana homographs like ね→뿌리)
-     * and (2) segmentation errors (ちゃん+と → ちゃんと).
-     * Input: [{index, japanese, korean, words:[{surface,dictionaryForm,koreanText}]}].
-     * Output: [{index, words:[{surface,dictionaryForm,koreanText}]}].
+     * Redesign stage 4 — translate the chosen English senses to Korean.
+     * Input: [{senseId, pos, english}] (unique chosen senses). Output: [{senseId, koreanText}].
+     * POS-consistent, 1–2 comma-separated meanings; particles render as Korean particles (は→"~은/는").
      */
-    fun correctMeanings(lyricLines: List<Map<String, Any?>>): List<CorrLineDto> {
+    fun translateSenses(senses: List<Map<String, Any?>>): List<SenseTranslationDto> {
+        if (senses.isEmpty()) return emptyList()
         return callGemini(
-            call = "correction",
+            call = "translate-sense",
             model = wordMeaningModel,
-            systemPrompt = CORRECTION_PROMPT,
-            input = lyricLines,
-            responseType = CorrLineDto::class.java,
+            systemPrompt = TRANSLATE_PROMPT,
+            input = senses,
+            responseType = SenseTranslationDto::class.java,
             temperature = 0.0,
-            responseSchema = CORRECTION_SCHEMA
+            responseSchema = TRANSLATE_SCHEMA
         )
     }
 
@@ -276,63 +277,62 @@ class GeminiClient(
         """.trimIndent()
 
         /**
-         * L3 stage 1 — segmentation + lemmatization. Mirrors playground `run_l3.py` SEG_SYS verbatim.
-         * Update both together when the playground prompt changes.
+         * Redesign stage 1 — segmentation + lemmatization. Mirrors playground `run_redesign.py` SEG_SYS
+         * verbatim. Update both together when the playground prompt changes.
          */
         private val SEGMENTATION_PROMPT = """
             너는 일본어 가사를 형태소 분석(분절 + 표제형 환원)하는 전문가다.
             입력: JSON 배열, 각 원소는 {"index": N, "text": "일본어 가사 한 줄"}.
-            출력: 같은 배열, 각 줄을 {"index": N, "words": [{"surface","dictionaryForm","reading"}]}로. JSON만.
+            출력: 같은 배열, 각 줄을 {"index": N, "words": [{"surface","dictionaryForm"}]}로. JSON만.
 
-            ## 규칙
-            - surface: 원문에 나타난 그대로의 표면형(활용형 포함). 원문 순서대로 빠짐없이. 조사/조동사도 각각 하나의 word로.
+            ## 핵심 원칙: 의미 단위로 분절하라
+            기계적으로 글자를 쪼개지 말고, **그 줄의 의미를 먼저 이해한 뒤** 사전에 한 표제어로 실리는 단위를 하나의 word로 묶어라.
+            - **부사·연어·관용표현은 통째로 한 단어**다. 조사처럼 생긴 끝글자(と·に·て 등)가 붙어 있어도 쪼개지 마라.
+              - ちゃんと(제대로), きっと(분명), ずっと(쭉), やっと(겨우), そっと(살며시), もっと(더), わざと(일부러), ふと(문득) → 각각 하나의 word. ちゃん+と, きっ+と처럼 나누면 안 된다.
+              - 何時も·いつも, どうして, なんだか, とにかく 등 부사/연어도 하나로.
+            - 복합동사(飛び立つ, 巡り会う, 弾き出す)·복합명사도 한 단어로 묶는다. 의미가 한 덩어리면 쪼개지 않는다.
+
+            ## 분절 규칙
+            - surface: 원문에 나타난 그대로의 표면형(활용형 포함). 원문 순서대로 빠짐없이. 표면형들을 순서대로 이으면 (공백/기호 제외) 원문을 덮어야 한다.
+            - 진짜 조사/조동사(は·を·が·の·で·た·ない·ている 등)는 각각 하나의 word로 분리. (단 위의 부사/연어와 혼동하지 말 것.)
             - dictionaryForm: 그 단어의 **사전 표제형(기본형)**. 활용·조동사·파생을 모두 환원한다.
               - 가능동사·가능형 → 원동사: 消せる→消す, 出会える→出会う, 飛び立てる→飛び立つ, 愛せる→愛す, なれる→なる, 言える→言う.
               - 사역/수동/~てしまう/~ている 등 보조성분 → 본동사 기본형: 紛らわせる→紛らわす, 見られる→見る.
               - 단, 진짜 下一段/上一段 동사(考える·捧げる·越える 등)는 가능형이 아니므로 그대로 둔다.
               - **결과에 "가능/사역/수동" 뉘앙스가 박힌 표제어가 있으면 안 된다.**
-            - reading: dictionaryForm의 가타카나 요미가나.
+              - 부사/연어는 그 자체가 표제형이다(ちゃんと→ちゃんと).
         """.trimIndent()
 
         /**
-         * L3 stage 2 — jisho-grounded Korean meaning. Mirrors playground `common.py` MEAN_SYS verbatim.
+         * Redesign stage 3 — per-line sense selection. Mirrors playground `run_redesign.py` SELECT_SYS verbatim.
          */
-        private val MEANING_PROMPT = """
-            일본어 단어를 한국어 단어장(플래시카드)용으로 번역한다.
-            입력: [{"dictionaryForm","jishoPos","jishoSenses"(영어 뜻 후보),"jlpt"}].
-             jishoSenses가 비면 사전에 없는 것이니 네 지식으로 번역(fallback).
-            출력: [{"dictionaryForm","koreanText"}] (입력과 1:1, 순서 동일). JSON만.
+        private val SELECT_PROMPT = """
+            너는 일본어 가사 단어장(플래시카드)의 **뜻 선택기**다.
+            각 줄마다: 일본어 원문(japanese), 그 줄의 한국어 번역(korean), 분절된 단어들(segments)을 받는다.
+            각 segment에는 그 단어(dictionaryForm)의 사전 뜻 후보 senses=[{senseId, english(영어 뜻), pos(품사)}]가 들어있다.
+            **한국어 번역을 문맥 단서로** 삼아, 각 단어가 이 줄에서 실제로 가지는 뜻에 해당하는 senseId 하나를 고른다.
+            출력: 같은 배열, 각 줄을 {"index", "words":[{"surface","dictionaryForm","senseId"}]}로. JSON만.
+
+            ## 규칙
+            - senseId: 그 segment의 senses 중 이 문맥에 가장 맞는 것의 senseId. **반드시 주어진 senses에 있는 값**이어야 한다.
+            - senses가 비어있거나(사전에 없음) 어느 것도 문맥에 맞지 않으면 senseId = -1.
+            - 한국어 뜻을 직접 만들지 마라. **오직 senseId 선택만** 한다.
+            - words는 입력 segments와 1:1, 순서 동일. surface/dictionaryForm는 입력 그대로 복사.
+        """.trimIndent()
+
+        /**
+         * Redesign stage 4 — translate chosen English senses. Mirrors playground `run_redesign.py` TRANSLATE_SYS verbatim.
+         */
+        private val TRANSLATE_PROMPT = """
+            일본어 단어의 **영어 사전 뜻(english)** 을 한국어 단어장(플래시카드)용으로 번역한다.
+            입력: [{"senseId","pos"(품사),"english"(영어 뜻)}]. 출력: [{"senseId","koreanText"}] (입력과 1:1, 순서 동일). JSON만.
 
             규칙:
-            - koreanText = dictionaryForm의 **정확하고 구체적인 한국어 사전 뜻**. jishoSenses(영어)가 있으면 그 뜻을 한국어로 옮기되, 여러 sense 중 가장 대표적/구체적 뉘앙스를 담아라(얕은 1차역 금지).
-              예: 紛らわす jishoSenses=[divert / distract / relieve, conceal grief / shift conversation] → "(슬픔 등을) 딴 데로 돌려 잊다, 얼버무리다".
-            - 품사별 한국어 형태 일관: VERB→"~다", I/NA형용사(형용동사 포함)→"~다"(명사형 금지, 好き→"좋아하다"), NOUN→명사, ADVERB→부사. jishoPos를 참고하되 dictionaryForm 기준.
-            - 한자어는 한국 한자음이 아니라 실제 의미로.
-        """.trimIndent()
-
-        /**
-         * L3 correction pass — translation-grounded correction. Mirrors playground `run_l3_correct.py`
-         * SYS verbatim (the over-correction guard was deliberately rolled back to favor recall).
-         */
-        private val CORRECTION_PROMPT = """
-            너는 일본어 가사 단어장(플래시카드)의 **교정기**다.
-            각 줄에 대해: 일본어 원문(japanese), 그 줄의 완성된 한국어 번역(korean), 그리고 현재 분절된 단어 목록(words)을 받는다.
-            **한국어 번역을 source of truth로 삼아** 단어들의 분절과 뜻을 교정하라.
-            출력: 같은 배열, 각 줄을 {"index", "words":[{"surface","dictionaryForm","koreanText"}]}로. JSON만.
-
-            ## 교정 1 — 문맥과 동떨어진 뜻
-            번역은 그 줄에서 단어가 실제로 가진 sense/품사를 알려준다. koreanText가 다른 sense면 **맞는 sense의 사전형 뜻**으로 교체.
-            - 예: ね가 "뿌리"(根)로 돼 있지만 문맥상 종조사 → "~네, ~지(종조사)".
-            - 예: ほら가 "허풍"(法螺)으로 돼 있지만 문맥상 감동사 → "자!, 봐!(감동사)".
-            - 단, **맞는 뜻을 문맥 활용형으로 바꾸지 말 것**(플래시카드 사전형 유지). **명백한 sense 오류만** 고친다.
-
-            ## 교정 2 — 분절 오류
-            잘못 쪼개졌거나 합쳐진 단어를 바로잡는다.
-            - 잘못 분리 병합: ちゃん + と → 하나의 ちゃんと("제대로"). 인접 토큰이 사실 한 단어면 합쳐서 하나로.
-            - 잘못 병합 분리: 두 단어가 한 토큰에 뭉쳐있으면 나눈다.
-            - **제약**: 각 surface는 일본어 원문(japanese)에 실제로 나타난 부분문자열이어야 하고, 한 줄의 surface들을 순서대로 이으면 원문을 (공백 제외) 덮어야 한다. dictionaryForm은 사전 표제형, koreanText는 품사 일관(동사/형용사→~다, 명사→명사).
-
-            바뀐 게 없으면 입력 그대로 출력. JSON 배열만 반환.
+            - koreanText = 주어진 english sense의 **정확하고 구체적인 한국어 사전 뜻**. 여러 영어 정의가 묶여 있어도 **가장 대표적인 뜻 1~2개만** 골라 옮긴다(전부 나열 금지, 얕은 1차역도 금지).
+            - 뜻이 2개면 **쉼표(,)로 구분**한다. 슬래시(/)는 쓰지 마라. 예: "제대로, 확실히".
+            - 품사 일관: 동사/형용사(형용동사 포함)→"~다"(명사형 금지, 好き→"좋아하다"), 명사→명사, 부사→부사.
+            - **pos가 PARTICLE(조사)면** 영어 설명("indicates the subject" 등)을 그대로 옮기지 말고, **같은 기능의 한국어 조사로** 번역한다. 문장에 끼워도 자연스러운 조사 형태로. 예: は→"~은/는", が→"~이/가", を→"~을/를", の→"~의", に→"~에, ~에게", へ→"~으로", と→"~와/과, ~라고", も→"~도", から→"~부터, ~에서", まで→"~까지", で→"~에서, ~로", や→"~이나".
+            - 한자어는 한국 한자음이 아니라 실제 의미로. english 그대로의 뜻만 옮기고 새 뜻을 지어내지 마라.
         """.trimIndent()
 
         private val TRANSLATION_SCHEMA = mapOf(
@@ -360,10 +360,9 @@ class GeminiClient(
                             "type" to "OBJECT",
                             "properties" to mapOf(
                                 "surface" to mapOf("type" to "STRING"),
-                                "dictionaryForm" to mapOf("type" to "STRING"),
-                                "reading" to mapOf("type" to "STRING")
+                                "dictionaryForm" to mapOf("type" to "STRING")
                             ),
-                            "required" to listOf("surface", "dictionaryForm", "reading")
+                            "required" to listOf("surface", "dictionaryForm")
                         )
                     )
                 ),
@@ -371,19 +370,7 @@ class GeminiClient(
             )
         )
 
-        private val MEANING_SCHEMA = mapOf(
-            "type" to "ARRAY",
-            "items" to mapOf(
-                "type" to "OBJECT",
-                "properties" to mapOf(
-                    "dictionaryForm" to mapOf("type" to "STRING"),
-                    "koreanText" to mapOf("type" to "STRING")
-                ),
-                "required" to listOf("dictionaryForm", "koreanText")
-            )
-        )
-
-        private val CORRECTION_SCHEMA = mapOf(
+        private val SELECT_SCHEMA = mapOf(
             "type" to "ARRAY",
             "items" to mapOf(
                 "type" to "OBJECT",
@@ -396,13 +383,25 @@ class GeminiClient(
                             "properties" to mapOf(
                                 "surface" to mapOf("type" to "STRING"),
                                 "dictionaryForm" to mapOf("type" to "STRING"),
-                                "koreanText" to mapOf("type" to "STRING")
+                                "senseId" to mapOf("type" to "INTEGER")
                             ),
-                            "required" to listOf("surface", "dictionaryForm", "koreanText")
+                            "required" to listOf("surface", "dictionaryForm", "senseId")
                         )
                     )
                 ),
                 "required" to listOf("index", "words")
+            )
+        )
+
+        private val TRANSLATE_SCHEMA = mapOf(
+            "type" to "ARRAY",
+            "items" to mapOf(
+                "type" to "OBJECT",
+                "properties" to mapOf(
+                    "senseId" to mapOf("type" to "INTEGER"),
+                    "koreanText" to mapOf("type" to "STRING")
+                ),
+                "required" to listOf("senseId", "koreanText")
             )
         )
     }
