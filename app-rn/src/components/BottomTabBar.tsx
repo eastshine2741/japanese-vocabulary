@@ -11,7 +11,7 @@ type TabKey = 'Home' | 'Search' | 'MyPage';
 // label). This mirrors the Pencil design where tab.*.iconFill is fixed to the
 // accent regardless of selection.
 const TAB_CONFIG: Record<TabKey, { active: keyof typeof Ionicons.glyphMap; inactive: keyof typeof Ionicons.glyphMap; label: string }> = {
-  Home: { active: 'home', inactive: 'home-outline', label: '학습' },
+  Home: { active: 'home', inactive: 'home-outline', label: '홈' },
   Search: { active: 'search', inactive: 'search-outline', label: '검색' },
   MyPage: { active: 'person', inactive: 'person-outline', label: '마이' },
 };

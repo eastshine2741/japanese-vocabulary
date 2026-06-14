@@ -439,6 +439,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    // Reserve room for the absolute mute toggle (32px) + gap so a long
+    // title/artist truncates before colliding with it.
+    paddingRight: 40,
   },
   sInfoCol: {
     flex: 1,
