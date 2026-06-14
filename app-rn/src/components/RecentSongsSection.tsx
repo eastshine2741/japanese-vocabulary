@@ -14,7 +14,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { useHomeStore } from '../stores/homeStore';
 import { usePlayerStore } from '../stores/playerStore';
 import ErrorDialog from './ErrorDialog';
-import { Colors } from '../theme/theme';
+import { Colors, Dimens } from '../theme/theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { getErrorMessage } from '../utils/errorMessages';
 import { RecentSongItem } from '../types/song';
@@ -131,9 +131,12 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '700',
     color: Colors.textPrimary,
+    paddingHorizontal: Dimens.screenPadding,
   },
   listContent: {
-    // no extra padding needed; parent screen handles horizontal padding
+    // Inset only the content; the FlatList itself spans full width so the
+    // carousel bleeds to the screen edge as it scrolls.
+    paddingHorizontal: Dimens.screenPadding,
   },
   separator: {
     width: 12,

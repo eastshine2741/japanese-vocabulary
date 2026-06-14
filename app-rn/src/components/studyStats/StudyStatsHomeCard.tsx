@@ -5,7 +5,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { useShallow } from 'zustand/react/shallow';
 import { useStudyStatsStore } from '../../stores/studyStatsStore';
-import { Colors } from '../../theme/theme';
+import { Colors, Dimens } from '../../theme/theme';
 import { TabParamList } from '../../navigation/AppNavigator';
 import { WeekDot } from '../../types/studyStats';
 
@@ -83,6 +83,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 16,
     paddingVertical: 8,
+    paddingHorizontal: Dimens.screenPadding,
   },
   left: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   streakTxt: { flexDirection: 'column', gap: 1 },

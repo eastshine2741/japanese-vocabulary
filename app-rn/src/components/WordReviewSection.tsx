@@ -16,7 +16,7 @@ import { useDeckListStore } from '../stores/deckListStore';
 import { flashcardApi } from '../api/flashcardApi';
 import { FlashcardStatsResponse } from '../types/flashcard';
 import { SongDeckSummary } from '../types/deck';
-import { Colors } from '../theme/theme';
+import { Colors, Dimens } from '../theme/theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -185,6 +185,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingHorizontal: Dimens.screenPadding,
   },
   headerTitle: {
     fontSize: 17,
@@ -194,6 +195,7 @@ const styles = StyleSheet.create({
   reviewSummary: {
     paddingTop: 12,
     paddingBottom: 4,
+    paddingHorizontal: Dimens.screenPadding,
     gap: 9,
   },
   segBar: {
@@ -224,7 +226,7 @@ const styles = StyleSheet.create({
   },
   page: {
     flexDirection: 'column',
-    paddingRight: 18,
+    paddingHorizontal: Dimens.screenPadding,
   },
   row: {
     flexDirection: 'row',

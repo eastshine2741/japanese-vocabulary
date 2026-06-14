@@ -56,8 +56,9 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
   },
   content: {
+    // No horizontal padding here: each section pads itself so horizontal
+    // scrollers (recent-songs carousel, deck pager) can bleed to the screen edge.
     paddingTop: 8,
-    paddingHorizontal: Dimens.screenPadding,
     paddingBottom: Dimens.bottomBarHeight + 40,
     gap: 24,
   },

@@ -1,4 +1,4 @@
-import React, { useRef, useCallback, useImperativeHandle, forwardRef } from 'react';
+import React, { useRef, useCallback, useMemo, useImperativeHandle, forwardRef } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { WebView, WebViewMessageEvent } from 'react-native-webview';
 
@@ -138,7 +138,16 @@ const YouTubePlayer = forwardRef<YouTubePlayerRef, Props>(({
   onStateChange,
 }, ref) => {
   const webViewRef = useRef<WebView>(null);
-  const html = buildPlayerHTML(videoId, autoplay, muted);
+  // Freeze autoplay/muted to their mount-time values: the WebView's source
+  // (html) must NOT change when `muted` is toggled later, or the WebView
+  // reloads and the video restarts. Post-mount mute changes go through the
+  // imperative mute()/unMute() handles instead.
+  const initialAutoplay = useRef(autoplay).current;
+  const initialMuted = useRef(muted).current;
+  const html = useMemo(
+    () => buildPlayerHTML(videoId, initialAutoplay, initialMuted),
+    [videoId, initialAutoplay, initialMuted],
+  );
 
   useImperativeHandle(ref, () => ({
     seekTo: (seconds: number) => {

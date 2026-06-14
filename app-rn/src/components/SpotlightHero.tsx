@@ -11,6 +11,7 @@ import {
   Image,
   StyleSheet,
   Pressable,
+  ActivityIndicator,
   GestureResponderEvent,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
@@ -30,9 +31,12 @@ import YouTubePlayer, { YouTubePlayerRef } from './YouTubePlayer';
 import ArtworkImage from './ArtworkImage';
 import { useSpotlightStore } from '../stores/spotlightStore';
 import { usePlayerStore } from '../stores/playerStore';
-import { flashcardApi } from '../api/flashcardApi';
+import { wordApi } from '../api/wordApi';
+import { deckApi } from '../api/deckApi';
 import { StudyUnit } from '../types/song';
+import { AddWordRequest } from '../types/word';
 import { getPosSpotlightColor } from '../types/pos';
+import { Dimens } from '../theme/theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -40,6 +44,34 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 const MUTE_KEY = 'spotlight_muted';
 const LYRIC_ANIM_MS = 300;
 const LYRIC_SLIDE = 18;
+
+// The POS that are checked by default in the word-list bottom sheet
+// (WordListSheet.DEFAULT_ON_POS). "단어장 만들기" picks exactly these words so the
+// auto-created deck matches what the user would get by accepting the sheet's defaults.
+const DEFAULT_ON_POS = new Set(['NOUN', 'VERB', 'ADJECTIVE', 'NA_ADJECTIVE', 'ADVERB']);
+
+// Build the default-checked word set from study data: default-on POS only, with a
+// Korean meaning, unique by base form — same rules the bottom sheet applies.
+function buildDefaultWords(studyUnits: StudyUnit[], songId: number): AddWordRequest[] {
+  const map = new Map<string, AddWordRequest>();
+  for (const unit of studyUnits) {
+    for (const token of unit.tokens) {
+      if (!DEFAULT_ON_POS.has(token.partOfSpeech)) continue;
+      if (token.koreanText == null) continue;
+      if (map.has(token.baseForm)) continue;
+      map.set(token.baseForm, {
+        japanese: token.baseForm,
+        reading: token.baseFormReading ?? token.reading ?? '',
+        koreanText: token.koreanText,
+        partOfSpeech: token.partOfSpeech,
+        songId,
+        lyricLine: unit.originalText,
+        koreanLyricLine: unit.koreanLyrics ?? undefined,
+      });
+    }
+  }
+  return Array.from(map.values());
+}
 
 const YOUTUBE_ID_RE = /(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
 function extractVideoId(url: string | null): string | null {
@@ -102,8 +134,12 @@ function SpotlightHero() {
   const loadById = usePlayerStore(s => s.loadById);
 
   const playerRef = useRef<YouTubePlayerRef>(null);
+  const isFocusedRef = useRef(false);
   const [muted, setMuted] = useState(true);
-  const [dueCount, setDueCount] = useState(0);
+  // "단어장 만들기" lifecycle: idle → creating (batch-add words) → created ("학습 N").
+  const [deckState, setDeckState] = useState<'idle' | 'creating' | 'created'>('idle');
+  const [learnCount, setLearnCount] = useState(0);
+  const [createdDeckId, setCreatedDeckId] = useState<number | null>(null);
   // currentMs tracked locally — the hero MV is independent of the global
   // PlayerScreen, so we drive the synced line from onTimeChange.
   const [currentMs, setCurrentMs] = useState(0);
@@ -114,17 +150,47 @@ function SpotlightHero() {
   const videoId = useMemo(() => extractVideoId(youtubeUrl), [youtubeUrl]);
   const isSynced = song?.lyricType === 'SYNCED';
 
-  // Load spotlight + due count, and resume/pause MV on tab focus.
+  const defaultWords = useMemo(
+    () => (song ? buildDefaultWords(studyUnits, song.id) : []),
+    [studyUnits, song],
+  );
+
+  // Reset the create-deck state whenever the spotlighted song changes, so a
+  // freshly surfaced song starts at "단어장 만들기" rather than a stale "학습 N".
+  useEffect(() => {
+    setDeckState('idle');
+    setLearnCount(0);
+    setCreatedDeckId(null);
+  }, [song?.id]);
+
+  // Load spotlight + due count, and keep the MV playing whenever Home is focused.
+  // We intentionally do NOT pause on blur: react-native-screens may detach the
+  // inactive tab's WebView (which pauses it on its own), and a single play() on
+  // return races that re-attach. Instead we resume on focus AND re-resume from
+  // handleStateChange whenever the player reports it got paused while focused.
   useFocusEffect(
     useCallback(() => {
+      isFocusedRef.current = true;
       load();
-      flashcardApi.getStats().then(s => setDueCount(s.due)).catch(() => {});
       playerRef.current?.play();
       return () => {
-        playerRef.current?.pause();
+        isFocusedRef.current = false;
       };
     }, [load]),
   );
+
+  // The hero MV should always be playing while Home is focused. If the platform
+  // paused it (tab detach / visibility change), resume as soon as it reports a
+  // non-playing state. A ready player resolves to 'playing' so this never loops;
+  // a not-yet-attached player no-ops until its next state event.
+  const handleStateChange = useCallback((state: string) => {
+    if (
+      isFocusedRef.current &&
+      (state === 'paused' || state === 'cued' || state === 'unstarted')
+    ) {
+      playerRef.current?.play();
+    }
+  }, []);
 
   // Restore persisted mute preference (default muted).
   useEffect(() => {
@@ -195,9 +261,28 @@ function SpotlightHero() {
     }
   }, [song, loadById, navigation]);
 
-  const goToReview = useCallback(() => {
-    navigation.navigate('Review', {});
-  }, [navigation]);
+  // Create a deck from the song's default-checked words, then surface "학습 N".
+  const handleCreateDeck = useCallback(async (e: GestureResponderEvent) => {
+    e.stopPropagation();
+    if (!song || defaultWords.length === 0 || deckState !== 'idle') return;
+    setDeckState('creating');
+    try {
+      await wordApi.batchAddWords({ words: defaultWords });
+      // The deck is created synchronously via the after-commit flashcard event,
+      // so it exists by the time the batch call returns.
+      const deck = await deckApi.getDeckBySongId(song.id);
+      setCreatedDeckId(deck?.deckId ?? null);
+      setLearnCount(deck?.dueCount ?? defaultWords.length);
+      setDeckState('created');
+    } catch {
+      setDeckState('idle');
+    }
+  }, [song, defaultWords, deckState]);
+
+  const goToStudy = useCallback((e: GestureResponderEvent) => {
+    e.stopPropagation();
+    navigation.navigate('Review', createdDeckId != null ? { deckId: createdDeckId } : {});
+  }, [navigation, createdDeckId]);
 
   const toggleMute = useCallback((e: GestureResponderEvent) => {
     e.stopPropagation();
@@ -233,10 +318,12 @@ function SpotlightHero() {
                 autoplay
                 muted={muted}
                 onTimeChange={handleTimeChange}
+                onStateChange={handleStateChange}
               />
               <BlurView
                 intensity={60}
                 tint="dark"
+                experimentalBlurMethod="dimezisBlurView"
                 style={StyleSheet.absoluteFill}
               />
             </>
@@ -255,6 +342,7 @@ function SpotlightHero() {
               <BlurView
                 intensity={60}
                 tint="dark"
+                experimentalBlurMethod="dimezisBlurView"
                 style={StyleSheet.absoluteFill}
               />
             </>
@@ -287,10 +375,30 @@ function SpotlightHero() {
             <Feather name="play" size={17} color="#FFFFFF" />
             <Text style={styles.ctaLabel}>이어듣기</Text>
           </Pressable>
-          <Pressable style={styles.cta} onPress={goToReview}>
-            <Feather name="rotate-ccw" size={17} color="#FFFFFF" />
-            <Text style={styles.ctaLabel}>복습 {dueCount}</Text>
-          </Pressable>
+          {deckState === 'created' ? (
+            <Pressable style={styles.cta} onPress={goToStudy}>
+              <Feather name="zap" size={17} color="#FFFFFF" />
+              <Text style={styles.ctaLabel}>학습 {learnCount}</Text>
+            </Pressable>
+          ) : (
+            <Pressable
+              style={[
+                styles.cta,
+                (deckState === 'creating' || defaultWords.length === 0) && styles.ctaDisabled,
+              ]}
+              onPress={handleCreateDeck}
+              disabled={deckState === 'creating' || defaultWords.length === 0}
+            >
+              {deckState === 'creating' ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <>
+                  <Feather name="plus" size={17} color="#FFFFFF" />
+                  <Text style={styles.ctaLabel}>단어장 만들기</Text>
+                </>
+              )}
+            </Pressable>
+          )}
         </View>
 
         {/* Mute toggle (absolute, top-right) */}
@@ -311,6 +419,7 @@ export default React.memo(SpotlightHero);
 const styles = StyleSheet.create({
   hero: {
     height: 300,
+    marginHorizontal: Dimens.screenPadding,
     borderRadius: 16,
     padding: 18,
     backgroundColor: '#16161E',
@@ -379,6 +488,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF2E',
     borderWidth: 1,
     borderColor: '#FFFFFF5C',
+  },
+  ctaDisabled: {
+    opacity: 0.5,
   },
   ctaLabel: {
     fontSize: 14,
