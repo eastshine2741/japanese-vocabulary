@@ -23,6 +23,10 @@ interface Props {
   // Start muted. Defaults to false. Muted autoplay is always permitted by the
   // platform, so the Spotlight hero passes muted + autoplay.
   muted?: boolean;
+  // Force the lowest video resolution to save data. Defaults to false. The
+  // Spotlight hero passes this since its MV is blurred behind a scrim, so detail
+  // is irrelevant. PlayerScreen leaves it off to keep auto/high quality.
+  lowestQuality?: boolean;
   onTimeChange?: (seconds: number) => void;
   onDurationChange?: (seconds: number) => void;
   onStateChange?: (state: string) => void;
@@ -36,7 +40,7 @@ interface Props {
  * - origin set to app package name (not youtube.com)
  * - loadVideoById called from a JS function invoked after ready
  */
-function buildPlayerHTML(videoId: string, autoplay: boolean, muted: boolean): string {
+function buildPlayerHTML(videoId: string, autoplay: boolean, muted: boolean, lowestQuality: boolean): string {
   return `<!DOCTYPE html>
 <html>
   <style type="text/css">
@@ -69,7 +73,8 @@ function buildPlayerHTML(videoId: string, autoplay: boolean, muted: boolean): st
           onReady: function(event) {
             sendMessage('ready', {});
             ${muted ? 'event.target.mute();' : ''}
-            ${autoplay ? `loadVideo('${videoId}', 0);` : `player.cueVideoById('${videoId}', 0);`}
+            ${lowestQuality ? "event.target.setPlaybackQuality('small');" : ''}
+            ${autoplay ? `loadVideo('${videoId}', 0);` : `cueVideo('${videoId}', 0);`}
           },
           onStateChange: function(event) { sendPlayerStateChange(event.data); },
           onError: function(error) { sendMessage('error', { code: error.data }); }
@@ -118,7 +123,11 @@ function buildPlayerHTML(videoId: string, autoplay: boolean, muted: boolean): st
     }
 
     function loadVideo(videoId, startSeconds) {
-      player.loadVideoById(videoId, startSeconds);
+      player.loadVideoById({ videoId: videoId, startSeconds: startSeconds${lowestQuality ? ", suggestedQuality: 'small'" : ''} });
+    }
+
+    function cueVideo(videoId, startSeconds) {
+      player.cueVideoById({ videoId: videoId, startSeconds: startSeconds${lowestQuality ? ", suggestedQuality: 'small'" : ''} });
     }
 
     function sendMessage(type, data) {
@@ -133,20 +142,22 @@ const YouTubePlayer = forwardRef<YouTubePlayerRef, Props>(({
   height,
   autoplay = true,
   muted = false,
+  lowestQuality = false,
   onTimeChange,
   onDurationChange,
   onStateChange,
 }, ref) => {
   const webViewRef = useRef<WebView>(null);
-  // Freeze autoplay/muted to their mount-time values: the WebView's source
-  // (html) must NOT change when `muted` is toggled later, or the WebView
+  // Freeze autoplay/muted/lowestQuality to their mount-time values: the WebView's
+  // source (html) must NOT change when `muted` is toggled later, or the WebView
   // reloads and the video restarts. Post-mount mute changes go through the
   // imperative mute()/unMute() handles instead.
   const initialAutoplay = useRef(autoplay).current;
   const initialMuted = useRef(muted).current;
+  const initialLowestQuality = useRef(lowestQuality).current;
   const html = useMemo(
-    () => buildPlayerHTML(videoId, initialAutoplay, initialMuted),
-    [videoId, initialAutoplay, initialMuted],
+    () => buildPlayerHTML(videoId, initialAutoplay, initialMuted, initialLowestQuality),
+    [videoId, initialAutoplay, initialMuted, initialLowestQuality],
   );
 
   useImperativeHandle(ref, () => ({

@@ -14,7 +14,7 @@ import {
   ActivityIndicator,
   GestureResponderEvent,
 } from 'react-native';
-import { BlurView } from 'expo-blur';
+import { BlurView, BlurTargetView } from 'expo-blur';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -135,6 +135,9 @@ function SpotlightHero() {
 
   const playerRef = useRef<YouTubePlayerRef>(null);
   const isFocusedRef = useRef(false);
+  // expo-blur 55: dimezisBlurView blurs the pixels of a captured BlurTargetView,
+  // referenced via the BlurView's blurTarget prop (no target → falls back to none).
+  const blurTargetRef = useRef<View | null>(null);
   const [muted, setMuted] = useState(true);
   // "단어장 만들기" lifecycle: idle → creating (batch-add words) → created ("학습 N").
   const [deckState, setDeckState] = useState<'idle' | 'creating' | 'created'>('idle');
@@ -304,49 +307,40 @@ function SpotlightHero() {
   return (
     <Pressable onPress={goToPlayer}>
       <View style={styles.hero}>
-        {/* Background layer: MV or album image, then BlurView, then scrim. */}
+        {/* Background layer: capture target (MV or album image) → BlurView → scrim.
+            iOS blurs the content behind the BlurView natively; Android blurs the
+            captured BlurTargetView pixels (blurTarget). A live WebView MV may not
+            be captured on Android — the scrim still darkens it for legibility. */}
         <View style={styles.bgLayer} pointerEvents="none">
-          {videoId ? (
-            // MV path: player fills the slot; BlurView sits on top.
-            // On Android the BlurView may not visually blur the WebView — the
-            // scrim still darkens it for legibility.
-            <>
+          <BlurTargetView ref={blurTargetRef} style={StyleSheet.absoluteFill}>
+            {videoId ? (
               <YouTubePlayer
                 ref={playerRef}
                 videoId={videoId}
                 height={300}
                 autoplay
                 muted={muted}
+                lowestQuality
                 onTimeChange={handleTimeChange}
                 onStateChange={handleStateChange}
               />
-              <BlurView
-                intensity={60}
-                tint="dark"
-                experimentalBlurMethod="dimezisBlurView"
-                style={StyleSheet.absoluteFill}
+            ) : song?.artworkUrl ? (
+              <Image
+                source={{ uri: song.artworkUrl }}
+                style={styles.bgImage}
+                resizeMode="cover"
               />
-            </>
-          ) : (
-            // No-video path: full-bleed album art + BlurView (blurs reliably on both platforms).
-            <>
-              {song?.artworkUrl ? (
-                <Image
-                  source={{ uri: song.artworkUrl }}
-                  style={styles.bgImage}
-                  resizeMode="cover"
-                />
-              ) : (
-                <View style={styles.bgFallback} />
-              )}
-              <BlurView
-                intensity={60}
-                tint="dark"
-                experimentalBlurMethod="dimezisBlurView"
-                style={StyleSheet.absoluteFill}
-              />
-            </>
-          )}
+            ) : (
+              <View style={styles.bgFallback} />
+            )}
+          </BlurTargetView>
+          <BlurView
+            intensity={60}
+            tint="dark"
+            blurMethod="dimezisBlurView"
+            blurTarget={blurTargetRef}
+            style={StyleSheet.absoluteFill}
+          />
         </View>
         {/* Scrim gradient: #00000070 → #0000001F@45% → #000000C7 */}
         <View style={styles.scrim} pointerEvents="none" />
