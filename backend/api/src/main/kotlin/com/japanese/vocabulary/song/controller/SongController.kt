@@ -72,8 +72,8 @@ class SongController(
     }
 
     /**
-     * The home "Spotlight" song: the most recently played song the user has NOT yet saved words
-     * from (no deck). Returns full study data so the hero can play its MV + synced lyrics.
+     * The home "Spotlight" song: a random pick among recently played songs the user has NOT yet
+     * saved words from (no deck). Returns full study data so the hero can play its MV + synced lyrics.
      * 204 when there is no eligible song. Does NOT record a listen (read-only surfacing).
      */
     @GetMapping("/spotlight")
@@ -81,7 +81,8 @@ class SongController(
         val userId = currentUserId()
         val deckSongIds = deckService.getDeckSongIds(userId)
         val spotlightId = recentSongService.getRecentSongIds(userId)
-            .firstOrNull { it !in deckSongIds }
+            .filter { it !in deckSongIds }
+            .randomOrNull()
             ?: return ResponseEntity.noContent().build()
 
         val entity = songRepository.findById(spotlightId).orElse(null)

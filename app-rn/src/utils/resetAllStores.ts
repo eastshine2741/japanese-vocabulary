@@ -5,7 +5,6 @@ import { useDeckWordListStore } from '../stores/deckWordListStore';
 import { useHomeStore } from '../stores/homeStore';
 import { usePlayerStore } from '../stores/playerStore';
 import { useReviewStore } from '../stores/reviewStore';
-import { useSearchStore } from '../stores/searchStore';
 import { useSearchHistoryStore } from '../stores/searchHistoryStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useStudyStatsStore } from '../stores/studyStatsStore';
@@ -80,7 +79,6 @@ export function resetAllStores() {
   });
 
   usePlayerStore.setState({ status: 'idle', studyData: null, errorCode: null, currentMs: 0, durationMs: 0 });
-  useSearchStore.setState({ searchStatus: 'idle', items: [], searchError: null });
   useSearchHistoryStore.setState({ terms: [] });
   useWordExamplesStore.setState({ byId: {} });
 }

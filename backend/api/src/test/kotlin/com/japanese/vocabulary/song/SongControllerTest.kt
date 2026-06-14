@@ -3,6 +3,7 @@ package com.japanese.vocabulary.song
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.japanese.vocabulary.auth.jwt.JwtUtil
+import com.japanese.vocabulary.deck.entity.DeckEntity
 import com.japanese.vocabulary.song.client.LyricsResult
 import com.japanese.vocabulary.song.dto.AnalyzeSongRequest
 import com.japanese.vocabulary.song.model.AnalyzedLine
@@ -75,6 +76,19 @@ class SongControllerTest : ApiBaseIntegrationTest() {
     private fun recentKey(userId: Long) = "user:$userId:recent_songs"
 
     @Autowired private lateinit var redis: StringRedisTemplate
+
+    // Mark a song as recently listened (mirrors RecentSongService's ZSet, score-by-id keeps it unique).
+    private fun listen(user: UserEntity, song: SongEntity) {
+        redis.opsForZSet().add(recentKey(user.id!!), song.id!!.toString(), song.id!!.toDouble())
+    }
+
+    // Mark a song as "learned" by giving it a deck — getSpotlight excludes these.
+    private fun learn(user: UserEntity, song: SongEntity) {
+        entityManager.persist(
+            DeckEntity(userId = user.id!!, songId = song.id!!, title = song.title, description = song.artist),
+        )
+        entityManager.flush()
+    }
 
     @Nested
     inner class Analyze {
@@ -299,6 +313,85 @@ class SongControllerTest : ApiBaseIntegrationTest() {
             }.andReturn().response.contentAsString
             assertThat(readBody<List<RecentSongItemDto>>(otherBody).map { it.id })
                 .containsExactly(s1.id)
+        }
+    }
+
+    @Nested
+    inner class Spotlight {
+
+        @Test
+        fun `204 when user has no recent songs`() {
+            val me = newUser()
+
+            mockMvc.get("/api/songs/spotlight") {
+                header("Authorization", bearer(me))
+            }.andExpect { status { isNoContent() } }
+        }
+
+        @Test
+        fun `204 when every recent song is already learned`() {
+            val me = newUser()
+            val s1 = newSong(); val s2 = newSong()
+            listen(me, s1); listen(me, s2)
+            learn(me, s1); learn(me, s2)
+
+            mockMvc.get("/api/songs/spotlight") {
+                header("Authorization", bearer(me))
+            }.andExpect { status { isNoContent() } }
+        }
+
+        @Test
+        fun `returns a recent song the user has not learned`() {
+            val me = newUser()
+            val learned = newSong(); val fresh = newSong()
+            listen(me, learned); listen(me, fresh)
+            learn(me, learned)
+
+            val body = mockMvc.get("/api/songs/spotlight") {
+                header("Authorization", bearer(me))
+            }.andExpect { status { isOk() } }.andReturn().response.contentAsString
+
+            assertThat(readBody<SongDto>(body).song.id).isEqualTo(fresh.id)
+        }
+
+        @Test
+        fun `decks of other users do not exclude a song`() {
+            val me = newUser()
+            val other = newUser()
+            val song = newSong()
+            listen(me, song)
+            learn(other, song) // someone else learned it — must not affect me
+
+            val body = mockMvc.get("/api/songs/spotlight") {
+                header("Authorization", bearer(me))
+            }.andExpect { status { isOk() } }.andReturn().response.contentAsString
+
+            assertThat(readBody<SongDto>(body).song.id).isEqualTo(song.id)
+        }
+
+        @Test
+        fun `picks randomly among unlearned songs and never surfaces a learned one`() {
+            val me = newUser()
+            val learned = newSong()
+            listen(me, learned); learn(me, learned)
+            val fresh = (1..4).map { newSong() }
+            fresh.forEach { listen(me, it) }
+            val freshIds = fresh.mapNotNull { it.id }.toSet()
+
+            val seen = mutableSetOf<Long?>()
+            repeat(40) {
+                val body = mockMvc.get("/api/songs/spotlight") {
+                    header("Authorization", bearer(me))
+                }.andExpect { status { isOk() } }.andReturn().response.contentAsString
+                seen.add(readBody<SongDto>(body).song.id)
+            }
+
+            // Only unlearned songs are ever surfaced; the learned one never appears.
+            assertThat(seen).isSubsetOf(freshIds)
+            assertThat(seen).doesNotContain(learned.id)
+            // With 4 candidates over 40 draws, always returning a single fixed song is
+            // effectively impossible (~4·(1/4)^40), so this proves the pick is randomized.
+            assertThat(seen.size).isGreaterThan(1)
         }
     }
 
