@@ -9,6 +9,7 @@ import ProfileEditScreen from '../screens/ProfileEditScreen';
 import SearchScreen from '../screens/SearchScreen';
 import PlayerScreen from '../screens/PlayerScreen';
 import ReviewScreen from '../screens/ReviewScreen';
+import DeckListScreen from '../screens/DeckListScreen';
 import DeckDetailScreen from '../screens/DeckDetailScreen';
 import DeckWordListScreen from '../screens/DeckWordListScreen';
 import EditWordScreen from '../screens/EditWordScreen';
@@ -30,6 +31,7 @@ export type RootStackParamList = {
   OssLicense: undefined;
   Player: { origin: string; initialSeekMs?: number; initialLyricIndex?: number };
   Review: { deckId?: number | null; startFlashcardId?: number } | undefined;
+  DeckList: undefined;
   DeckDetail: { deckId: number | null };
   DeckWordList: { deckId: number | null };
   EditWord: {
@@ -85,6 +87,7 @@ export default function AppNavigator({ initialRoute }: Props) {
       <Stack.Screen name="OssLicense" component={OssLicenseScreen} />
       <Stack.Screen name="Player" component={PlayerScreen} options={{ presentation: 'transparentModal', animation: 'slide_from_bottom' }} />
       <Stack.Screen name="Review" component={ReviewScreen} />
+      <Stack.Screen name="DeckList" component={DeckListScreen} />
       <Stack.Screen name="DeckDetail" component={DeckDetailScreen} />
       <Stack.Screen name="DeckWordList" component={DeckWordListScreen} />
       <Stack.Screen name="EditWord" component={EditWordScreen} />

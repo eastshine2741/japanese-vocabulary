@@ -19,6 +19,13 @@ const namespace = resolveNamespace();
 const suffix = `.${namespace.replace(/[^a-z0-9]/g, '')}`;
 const label = isProd ? '' : namespace !== 'main' ? ` (${namespace})` : '-dev';
 
+// Worktrees use per-namespace package names (dev.eastshine.kotonoha.<ns>) that
+// aren't registered in google-services.json, which makes the google-services
+// Gradle plugin fail the build. Set EXPO_PUBLIC_FIREBASE_DISABLED=1 to drop the
+// Firebase plugin + config so worktree builds succeed without registering a
+// client. Push notifications are inert in that mode (guarded in pushNotifications.ts).
+const firebaseDisabled = process.env.EXPO_PUBLIC_FIREBASE_DISABLED === '1';
+
 const packageName = isProd
   ? 'dev.eastshine.kotonoha'
   : `dev.eastshine.kotonoha${suffix}`;
@@ -43,7 +50,7 @@ export default {
       package: packageName,
       ...(versionCode !== undefined ? { versionCode } : {}),
       usesCleartextTraffic: true,
-      googleServicesFile: './google-services.json',
+      ...(firebaseDisabled ? {} : { googleServicesFile: './google-services.json' }),
     },
     web: {
       favicon: './assets/favicon.png',
@@ -51,7 +58,7 @@ export default {
     plugins: [
       './plugins/withReleaseSigning',
       '@react-native-google-signin/google-signin',
-      '@react-native-firebase/app',
+      ...(firebaseDisabled ? [] : ['@react-native-firebase/app']),
       'expo-notifications',
       [
         'expo-splash-screen',

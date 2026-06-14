@@ -6,6 +6,11 @@ import { navigate } from '../navigation/navigationRef';
 
 const REVIEW_CHANNEL_ID = 'review-reminders';
 
+// Mirrors app.config.js: when Firebase is disabled (worktree builds without a
+// registered google-services client), the native default FirebaseApp doesn't
+// exist, so any messaging() call throws. Guard every messaging() use behind this.
+const FIREBASE_ENABLED = process.env.EXPO_PUBLIC_FIREBASE_DISABLED !== '1';
+
 let currentToken: string | null = null;
 let handlersRegistered = false;
 
@@ -44,6 +49,7 @@ async function requestPermission(): Promise<boolean> {
 }
 
 export async function requestPermissionAndRegisterToken(): Promise<void> {
+  if (!FIREBASE_ENABLED) return;
   const granted = await requestPermission();
   if (!granted) return;
 
@@ -97,9 +103,11 @@ async function displayLocalNotification(
 
 // Module-scope: must be registered BEFORE the runtime delivers a data-only push to a killed or
 // backgrounded app. Importing this module from App.tsx ensures the handler is set during JS init.
-messaging().setBackgroundMessageHandler(async (remoteMessage) => {
-  await displayLocalNotification(remoteMessage);
-});
+if (FIREBASE_ENABLED) {
+  messaging().setBackgroundMessageHandler(async (remoteMessage) => {
+    await displayLocalNotification(remoteMessage);
+  });
+}
 
 export function registerNotificationHandlers(): void {
   if (handlersRegistered) return;
@@ -118,22 +126,24 @@ export function registerNotificationHandlers(): void {
     }),
   });
 
-  messaging().onTokenRefresh(async (newToken) => {
-    try {
-      if (currentToken && currentToken !== newToken) {
-        await flashcardApi.unregisterDeviceToken({ token: currentToken });
+  if (FIREBASE_ENABLED) {
+    messaging().onTokenRefresh(async (newToken) => {
+      try {
+        if (currentToken && currentToken !== newToken) {
+          await flashcardApi.unregisterDeviceToken({ token: currentToken });
+        }
+        await flashcardApi.registerDeviceToken({ token: newToken, platform: getPlatform() });
+        currentToken = newToken;
+      } catch {
+        // ignore — will retry next refresh / next signIn
       }
-      await flashcardApi.registerDeviceToken({ token: newToken, platform: getPlatform() });
-      currentToken = newToken;
-    } catch {
-      // ignore — will retry next refresh / next signIn
-    }
-  });
+    });
 
-  // Foreground data-only arrival → render locally via expo-notifications
-  messaging().onMessage(async (remoteMessage) => {
-    await displayLocalNotification(remoteMessage);
-  });
+    // Foreground data-only arrival → render locally via expo-notifications
+    messaging().onMessage(async (remoteMessage) => {
+      await displayLocalNotification(remoteMessage);
+    });
+  }
 
   // Tap handler. Covers both foreground onMessage path and background
   // setBackgroundMessageHandler path; expo-notifications also fires this for cold-start taps on a

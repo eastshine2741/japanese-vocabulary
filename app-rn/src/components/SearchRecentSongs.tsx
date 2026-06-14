@@ -2,7 +2,6 @@ import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
-  Image,
   FlatList,
   TouchableOpacity,
   StyleSheet,
@@ -13,52 +12,46 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useShallow } from 'zustand/react/shallow';
 import { useHomeStore } from '../stores/homeStore';
 import { usePlayerStore } from '../stores/playerStore';
+import ArtworkImage from './ArtworkImage';
 import ErrorDialog from './ErrorDialog';
-import { Colors, Dimens } from '../theme/theme';
+import { Colors } from '../theme/theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { getErrorMessage } from '../utils/errorMessages';
 import { RecentSongItem } from '../types/song';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
-interface SongCarouselItemProps {
+const COVER_SIZE = 84;
+const COVER_RADIUS = 10;
+
+interface ItemProps {
   item: RecentSongItem;
   onPress: (id: number) => void;
 }
 
-const SongCarouselItem = React.memo(function SongCarouselItem({
+const SearchRecentSongItem = React.memo(function SearchRecentSongItem({
   item,
   onPress,
-}: SongCarouselItemProps) {
+}: ItemProps) {
   const handlePress = useCallback(() => {
     onPress(item.id);
   }, [item.id, onPress]);
 
   return (
-    <TouchableOpacity
-      style={styles.item}
-      onPress={handlePress}
-      activeOpacity={0.7}
-    >
-      {item.artworkUrl ? (
-        <Image
-          source={{ uri: item.artworkUrl }}
-          style={styles.cover}
-        />
-      ) : (
-        <View style={[styles.cover, styles.coverPlaceholder]} />
-      )}
+    <TouchableOpacity style={styles.item} onPress={handlePress} activeOpacity={0.7}>
+      <ArtworkImage url={item.artworkUrl} size={COVER_SIZE} cornerRadius={COVER_RADIUS} />
       <Text style={styles.title} numberOfLines={1}>
         {item.title}
-      </Text>
-      <Text style={styles.artist} numberOfLines={1}>
-        {item.artist}
       </Text>
     </TouchableOpacity>
   );
 });
 
-export default function RecentSongsSection() {
+function Separator() {
+  return <View style={styles.separator} />;
+}
+
+export default function SearchRecentSongs() {
   const navigation = useNavigation<Nav>();
   const [errorDialogMessage, setErrorDialogMessage] = useState<string | null>(null);
 
@@ -88,7 +81,7 @@ export default function RecentSongsSection() {
 
   const renderItem = useCallback(
     ({ item }: ListRenderItemInfo<RecentSongItem>) => (
-      <SongCarouselItem item={item} onPress={handleSongPress} />
+      <SearchRecentSongItem item={item} onPress={handleSongPress} />
     ),
     [handleSongPress],
   );
@@ -100,8 +93,7 @@ export default function RecentSongsSection() {
   }
 
   return (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>최근 들은 노래</Text>
+    <View>
       <FlatList
         data={songs}
         renderItem={renderItem}
@@ -119,50 +111,21 @@ export default function RecentSongsSection() {
   );
 }
 
-function Separator() {
-  return <View style={styles.separator} />;
-}
-
 const styles = StyleSheet.create({
-  section: {
-    gap: 12,
-  },
-  sectionTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-    paddingHorizontal: Dimens.screenPadding,
-  },
   listContent: {
-    // Inset only the content; the FlatList itself spans full width so the
-    // carousel bleeds to the screen edge as it scrolls.
-    paddingHorizontal: Dimens.screenPadding,
+    paddingHorizontal: 16,
   },
   separator: {
     width: 12,
   },
   item: {
-    width: 116,
-    gap: 8,
-  },
-  cover: {
-    width: 116,
-    height: 116,
-    borderRadius: 12,
-  },
-  coverPlaceholder: {
-    backgroundColor: Colors.card,
+    width: COVER_SIZE,
+    gap: 6,
   },
   title: {
     fontSize: 13,
     fontWeight: '500',
     color: Colors.textPrimary,
-    width: 116,
-  },
-  artist: {
-    fontSize: 11,
-    fontWeight: '400',
-    color: Colors.textMuted,
-    width: 116,
+    width: COVER_SIZE,
   },
 });
