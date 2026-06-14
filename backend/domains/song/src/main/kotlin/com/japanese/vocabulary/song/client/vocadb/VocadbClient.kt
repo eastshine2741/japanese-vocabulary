@@ -24,16 +24,15 @@ class VocadbClient(webClientBuilder: WebClient.Builder) : LyricProvider {
 
     override fun search(query: NormalizedSongQuery): LyricsResult? {
         return try {
-            val normalizedParts = query.artistParts.map { it.lowercase() }
             logger.info(
                 "Lyric search attempt | provider=VocaDB | strategy=keyword-search | query='{}' | artistFilter={}",
-                query.normalizedTitle, normalizedParts
+                query.normalizedTitle, query.artistParts
             )
             val response = webClient.get()
                 .uri { uriBuilder ->
                     uriBuilder.path("/api/songs")
                         .queryParam("query", query.normalizedTitle)
-                        .queryParam("fields", "Lyrics")
+                        .queryParam("fields", "Lyrics,Artists,Names,PVs,WebLinks")
                         .queryParam("maxResults", 10)
                         .queryParam("sort", "FavoritedTimes")
                         .queryParam("songTypes", "Original")
@@ -46,9 +45,7 @@ class VocadbClient(webClientBuilder: WebClient.Builder) : LyricProvider {
                 ?: return null
 
             for (song in response.items) {
-                val songArtist = song.artistString.lowercase()
-                val artistMatches = normalizedParts.any { part -> songArtist.contains(part) }
-                if (!artistMatches) continue
+                if (!VocadbSongMatcher.matches(query, song)) continue
 
                 val lyrics = song.lyrics?.firstOrNull { lyric ->
                     lyric.translationType == "Original" &&
