@@ -9,6 +9,7 @@ import com.japanese.vocabulary.deck.service.DeckService
 import com.japanese.vocabulary.song.repository.SongRepository
 import com.japanese.vocabulary.song.service.LyricProcessingService
 import com.japanese.vocabulary.song.service.RecentSongService
+import com.japanese.vocabulary.song.service.SearchHistoryService
 import com.japanese.vocabulary.song.service.SongSearchService
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.context.SecurityContextHolder
@@ -26,6 +27,7 @@ class SongController(
     private val lyricProcessingService: LyricProcessingService,
     private val songSearchService: SongSearchService,
     private val recentSongService: RecentSongService,
+    private val searchHistoryService: SearchHistoryService,
     private val songRepository: SongRepository,
     private val deckService: DeckService,
 ) {
@@ -101,8 +103,10 @@ class SongController(
     }
 
     @GetMapping("/search")
-    fun searchSongs(@RequestParam q: String): ResponseEntity<SongSearchResponse> =
-        ResponseEntity.ok(songSearchService.search(q))
+    fun searchSongs(@RequestParam q: String): ResponseEntity<SongSearchResponse> {
+        searchHistoryService.record(currentUserId(), q)
+        return ResponseEntity.ok(songSearchService.search(q))
+    }
 
     private fun AnalyzedSongDto.toResponse() = SongDto(
         song = song,

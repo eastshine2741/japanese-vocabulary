@@ -4,6 +4,7 @@ import {
   Text,
   TextInput,
   FlatList,
+  ScrollView,
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
@@ -20,7 +21,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useShallow } from 'zustand/react/shallow';
 import { useSearchStore } from '../stores/searchStore';
 import { usePlayerStore } from '../stores/playerStore';
+import { useSearchHistoryStore } from '../stores/searchHistoryStore';
 import SongListItem from '../components/SongListItem';
+import RecentSearchesSection from '../components/RecentSearchesSection';
+import SearchRecentSongs from '../components/SearchRecentSongs';
 import ErrorDialog from '../components/ErrorDialog';
 import { Colors, Dimens } from '../theme/theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -51,8 +55,11 @@ export default function SearchScreen() {
   );
   const playerStatus = usePlayerStore(s => s.status);
   const analyze = usePlayerStore(s => s.analyze);
+  const recordSearchLocally = useSearchHistoryStore(s => s.recordLocally);
 
   const analyzing = playerStatus === 'loading';
+  const showEmptyState =
+    !analyzing && items.length === 0 && searchStatus !== 'loading';
 
   const rowAnim = useRef(new Animated.Value(0)).current;
   const spinAnim = useRef(new Animated.Value(0)).current;
@@ -126,9 +133,19 @@ export default function SearchScreen() {
     }
   }, [analyze, navigation, rowRefs]);
 
-  const handleSearch = () => {
-    if (query.trim()) search(query.trim());
-  };
+  const runSearch = useCallback(
+    (raw: string) => {
+      const trimmed = raw.trim();
+      if (!trimmed) return;
+      setQuery(trimmed);
+      Keyboard.dismiss();
+      search(trimmed);
+      recordSearchLocally(trimmed);
+    },
+    [search, recordSearchLocally],
+  );
+
+  const handleSearch = () => runSearch(query);
 
   const spinRotate = spinAnim.interpolate({
     inputRange: [0, 1],
@@ -139,9 +156,10 @@ export default function SearchScreen() {
     <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <View style={[styles.searchRow, analyzing && styles.hidden]}>
         <View style={styles.inputWrapper}>
+          <Ionicons name="search" size={18} color={Colors.textMuted} />
           <TextInput
             style={styles.input}
-            placeholder="노래 검색..."
+            placeholder="노래, 아티스트 검색"
             placeholderTextColor={Colors.textMuted}
             value={query}
             onChangeText={setQuery}
@@ -167,7 +185,15 @@ export default function SearchScreen() {
         </View>
       )}
 
-      {analyzing ? (
+      {showEmptyState ? (
+        <ScrollView
+          contentContainerStyle={styles.emptyState}
+          keyboardShouldPersistTaps="handled"
+        >
+          <SearchRecentSongs />
+          <RecentSearchesSection onSelectTerm={runSearch} />
+        </ScrollView>
+      ) : analyzing ? (
         <AnalyzingView
           slot={
             analyzingItem ? (
@@ -242,20 +268,21 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   searchRow: {
-    height: 48,
+    height: 56,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: Dimens.screenPadding,
+    paddingHorizontal: 16,
     gap: 12,
   },
   inputWrapper: {
     flex: 1,
-    height: 40,
+    height: 44,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.card,
-    borderRadius: Dimens.smallCornerRadius,
+    borderRadius: 12,
     paddingHorizontal: 14,
+    gap: 10,
   },
   input: {
     flex: 1,
@@ -264,7 +291,7 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
   },
   clearButton: {
-    marginLeft: 8,
+    marginLeft: 0,
   },
   resultHeader: {
     flexDirection: 'row',
@@ -312,4 +339,9 @@ const styles = StyleSheet.create({
   analyzingTitle: { fontSize: 15, fontWeight: '600', color: Colors.textPrimary },
   analyzingSubtitle: { fontSize: 13, color: Colors.textSecondary, marginTop: 2 },
   hidden: { display: 'none' },
+  emptyState: {
+    paddingTop: 12,
+    paddingBottom: 28,
+    gap: 28,
+  },
 });
