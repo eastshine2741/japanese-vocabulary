@@ -1,6 +1,8 @@
 package com.japanese.vocabulary.song.client.youtube
 
-import com.japanese.vocabulary.song.client.youtube.dto.YoutubeMvSearchResponse
+import com.japanese.vocabulary.song.client.youtube.dto.YoutubeChannelItemDto
+import com.japanese.vocabulary.song.client.youtube.dto.YoutubeChannelsResponse
+import com.japanese.vocabulary.song.client.youtube.dto.YoutubePlaylistItemsResponse
 import com.japanese.vocabulary.song.client.youtube.dto.YoutubeSearchResponse
 import com.japanese.vocabulary.song.client.youtube.dto.YoutubeVideosResponse
 import com.japanese.vocabulary.song.dto.SongSearchItemDto
@@ -17,20 +19,12 @@ class YoutubeClient(
     private val restClient = restClientBuilder.baseUrl("https://www.googleapis.com").build()
 
     fun search(query: String, pageToken: String?, maxResults: Int = 10): SongSearchResponse {
-        val searchResponse = restClient.get()
-            .uri { builder ->
-                builder.path("/youtube/v3/search")
-                    .queryParam("q", query)
-                    .queryParam("type", "video")
-                    .queryParam("part", "snippet")
-                    .queryParam("maxResults", maxResults)
-                    .queryParam("videoCategoryId", "10")
-                    .queryParam("key", apiKey)
-                    .apply { if (pageToken != null) queryParam("pageToken", pageToken) }
-                    .build()
-            }
-            .retrieve()
-            .body(YoutubeSearchResponse::class.java)
+        val searchResponse = searchVideos(
+            query = query,
+            pageToken = pageToken,
+            maxResults = maxResults,
+            videoCategoryId = "10"
+        )
             ?: return SongSearchResponse(emptyList())
 
         val videoIds = searchResponse.items.mapNotNull { it.id.videoId }
@@ -67,23 +61,58 @@ class YoutubeClient(
         return SongSearchResponse(items)
     }
 
-    fun searchMvUrl(title: String, artist: String): String? {
-        val searchResponse = restClient.get()
+    fun searchVideos(
+        query: String,
+        pageToken: String? = null,
+        maxResults: Int = 15,
+        videoCategoryId: String? = null,
+    ): YoutubeSearchResponse? =
+        restClient.get()
             .uri { builder ->
                 builder.path("/youtube/v3/search")
-                    .queryParam("q", "$title $artist")
+                    .queryParam("q", query)
                     .queryParam("type", "video")
-                    .queryParam("part", "id")
-                    .queryParam("maxResults", 1)
-                    .queryParam("videoCategoryId", "10")
+                    .queryParam("part", "snippet")
+                    .queryParam("maxResults", maxResults)
+                    .queryParam("key", apiKey)
+                    .apply { if (pageToken != null) queryParam("pageToken", pageToken) }
+                    .apply { if (videoCategoryId != null) queryParam("videoCategoryId", videoCategoryId) }
+                    .build()
+            }
+            .retrieve()
+            .body(YoutubeSearchResponse::class.java)
+
+    fun getChannel(channelId: String): YoutubeChannelItemDto? =
+        restClient.get()
+            .uri { builder ->
+                builder.path("/youtube/v3/channels")
+                    .queryParam("id", channelId)
+                    .queryParam("part", "snippet,contentDetails")
                     .queryParam("key", apiKey)
                     .build()
             }
             .retrieve()
-            .body(YoutubeMvSearchResponse::class.java)
-        val videoId = searchResponse?.items?.firstOrNull()?.id?.videoId ?: return null
-        return "https://www.youtube.com/watch?v=$videoId"
-    }
+            .body(YoutubeChannelsResponse::class.java)
+            ?.items
+            ?.firstOrNull()
+
+    fun listPlaylistItems(
+        playlistId: String,
+        pageToken: String? = null,
+        maxResults: Int = 50,
+    ): YoutubePlaylistItemsResponse? =
+        restClient.get()
+            .uri { builder ->
+                builder.path("/youtube/v3/playlistItems")
+                    .queryParam("playlistId", playlistId)
+                    .queryParam("part", "snippet")
+                    .queryParam("maxResults", maxResults)
+                    .queryParam("key", apiKey)
+                    .apply { if (pageToken != null) queryParam("pageToken", pageToken) }
+                    .build()
+            }
+            .retrieve()
+            .body(YoutubePlaylistItemsResponse::class.java)
 
     private fun parseDuration(iso8601: String): Int {
         val pattern = Regex("""PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?""")
@@ -93,4 +122,5 @@ class YoutubeClient(
         val seconds = match.groupValues[3].toIntOrNull() ?: 0
         return hours * 3600 + minutes * 60 + seconds
     }
+
 }
