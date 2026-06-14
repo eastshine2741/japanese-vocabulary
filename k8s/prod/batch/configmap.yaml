@@ -4,6 +4,7 @@ metadata:
   name: batch-config
 data:
   MYSQL_HOST: mysql
+  REDIS_HOST: redis
   MYSQL_DATABASE: "${MYSQL_DATABASE}"
   PUSH_FIREBASE_ENABLED: "true"
   SPRING_PROFILES_ACTIVE: "prod"

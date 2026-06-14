@@ -4,8 +4,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-webflux")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
 
-    // Kuromoji dictionaries load fully into heap when a Tokenizer is constructed.
-    // This module is depended on by :batch only — keep it off the api classpath.
-    implementation("com.atilika.kuromoji:kuromoji-ipadic:0.9.0")
-    implementation("com.atilika.kuromoji:kuromoji-unidic:0.9.0")
+    // jisho.org lookups (JishoClient) are cached in Redis. Available transitively via :domains:song,
+    // but declared explicitly here since RedisCache/StringRedisTemplate are used at this site.
+    implementation("org.springframework.boot:spring-boot-starter-data-redis")
 }
