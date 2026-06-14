@@ -13,12 +13,12 @@ DEPLOY_ENV="${DEPLOY_ENV:-dev}"
 
 # --- 환경별 설정 (IMAGE_PREFIX는 prod에서 env 로드 후 GHCR_USERNAME으로 조립) ---
 if [[ "$DEPLOY_ENV" == "prod" ]]; then
-  EXPECTED_CONTEXT="kotonoha-prod"
+  KUBE_CONTEXT="kotonoha-prod"
   NS="kotonoha"
   ENV_FILE="$PROJECT_ROOT/.env.prod"
   K8S_DIR="$PROJECT_ROOT/k8s/prod"
 elif [[ "$DEPLOY_ENV" == "dev" ]]; then
-  EXPECTED_CONTEXT="default"
+  KUBE_CONTEXT="default"
   ENV_FILE="$PROJECT_ROOT/.env"
   IMAGE_PREFIX="japanese-vocabulary"
   K8S_DIR="$PROJECT_ROOT/k8s/dev"
@@ -27,12 +27,11 @@ else
   exit 1
 fi
 
-# --- context 확인 ---
-CURRENT_CONTEXT="$(kubectl config current-context)"
-if [[ "$CURRENT_CONTEXT" != "$EXPECTED_CONTEXT" ]]; then
-  echo "Error: expected kubectl context '$EXPECTED_CONTEXT', got '$CURRENT_CONTEXT'" >&2
-  exit 1
-fi
+# --- kube context: 명시된 환경의 context를 kubectl에 직접 지정 ---
+# 현재 활성 context와 무관하게 항상 DEPLOY_ENV에 맞는 context로 배포한다.
+kubectl() {
+  command kubectl --context "$KUBE_CONTEXT" "$@"
+}
 
 # --- namespace 결정 (dev만 동적, prod는 고정) ---
 if [[ "$DEPLOY_ENV" == "dev" ]]; then
@@ -71,7 +70,7 @@ if [[ "$DEPLOY_ENV" == "prod" ]]; then
 
   echo ""
   echo "⚠️  PROD DEPLOY"
-  echo "  context:   $EXPECTED_CONTEXT"
+  echo "  context:   $KUBE_CONTEXT"
   echo "  namespace: $NS"
   echo "  registry:  $IMAGE_PREFIX"
   echo ""
