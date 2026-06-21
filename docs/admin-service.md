@@ -13,6 +13,8 @@ Admin v1 is an internal inspection surface for `song`, `lyric`, and `user`.
 
 Module: `backend/admin-api`
 
+The module reads shared song/lyric/user tables, but it does not use Redis. Redis auto-configuration and health checks are disabled for this bootstrap so local k3s probes do not depend on cache infrastructure.
+
 Run:
 
 ```bash

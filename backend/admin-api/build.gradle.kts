@@ -12,7 +12,9 @@ java {
 
 dependencies {
     implementation(project(":common"))
-    implementation(project(":domains:song"))
+    implementation(project(":domains:song")) {
+        exclude(group = "org.springframework.boot", module = "spring-boot-starter-data-redis")
+    }
     implementation(project(":domains:user"))
 
     implementation("org.springframework.boot:spring-boot-starter-web")
