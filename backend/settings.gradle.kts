@@ -1,6 +1,6 @@
 rootProject.name = "japanese-vocabulary-backend"
 
-include("common", "api", "batch", "migration")
+include("common", "api", "admin-api", "batch", "migration")
 include(
     "domains:song",
     "domains:translation",

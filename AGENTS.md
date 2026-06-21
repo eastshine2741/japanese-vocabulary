@@ -16,6 +16,8 @@ Japanese learning app based on songs. Users pick a song they like, study its lyr
 
 ```bash
 ./deploy.sh                                   # k3s에 backend(api+batch) + mysql + redis 배포
+cd backend && ./gradlew :admin-api:test       # Admin API tests
+cd admin-web && npm run dev                   # Admin Web (local, http://localhost:5174)
 cd app-rn && npx expo run:android             # App - Android
 cd app-rn && npx expo start --web             # App - Web (dev)
 ```
@@ -41,7 +43,7 @@ DEPLOY_NS=issue-21 npx expo run:android      # dev.eastshine.kotonoha.issue21 �
 ### K8s Deploy (k3s)
 
 ```bash
-./deploy.sh              # 현재 브랜치명으로 namespace 결정, 빌드+배포
+./deploy.sh              # 현재 브랜치명으로 namespace 결정, 빌드+배포 (dev: api+batch+admin-api+admin-web)
 ./deploy.sh foo           # namespace 직접 지정
 ./teardown.sh             # 현재 브랜치 namespace 삭제 (main은 거부)
 ./teardown.sh foo         # namespace 직접 지정하여 삭제
@@ -63,6 +65,8 @@ DEPLOY_NS=issue-21 npx expo run:android      # dev.eastshine.kotonoha.issue21 �
 | `GOOGLE_OAUTH_CLIENT_ID` | Google Web OAuth Client ID — audience for ID token verification (same value as `EXPO_PUBLIC_GOOGLE_OAUTH_WEB_CLIENT_ID` in `app-rn/.env`) |
 | `PENCIL_CLI_KEY` | Pencil CLI auth for headless .pen file editing |
 | `FIREBASE_SERVICE_ACCOUNT_JSON_BASE64` | Base64-encoded Firebase service account JSON. Mounted into the batch pod at `/var/secrets/firebase/service-account.json`; FCM admin sender uses it. Generate via Firebase console → Service accounts → Generate new private key. See `.omc/runbooks/push-notification-setup.md`. |
+| `ADMIN_PASSWORD` / `ADMIN_PASSWORD_SHA256` | Admin API password source. For local dev, `ADMIN_PASSWORD` defaults to `admin` in `deploy.sh` if unset. Prefer `ADMIN_PASSWORD_SHA256` for shared environments. |
+| `ADMIN_TOKEN_SECRET` | Admin-only bearer token signing key. Separate from public `JWT_SECRET`; defaults only for local dev. |
 
 ## Backend Module Structure
 
@@ -83,6 +87,7 @@ backend/
 │   ├── studystats/          — DailyStudySummary, StreakCalculator (Spring Batch 잡 본체는 batch 모듈로 분리됨 — 도메인 모듈은 Job/Scheduler를 갖지 않음. 그래야 api가 studystats를 의존해도 spring-batch가 classpath에 안 올라와 startup 잡 자동실행이 안 생김)
 │   └── notification/        — FCM 전송 + FirebaseConfig + NotificationLogEntity 만. Scheduler/조회 로직은 없음. 외부 데이터 접근은 `PushNotificationDataPort` 인터페이스로 추상화 (구현체는 `batch`)
 ├── api/                     — REST bootstrap (@SpringBootApplication). translation을 제외한 모든 도메인 모듈 의존. controller/ + per-domain dto/ (HTTP 입출력). @Scheduled 없음.
+├── admin-api/               — internal admin REST bootstrap. v1 is read-only for song/lyric/user inspection, password-only admin auth, admin-specific stateless bearer token. Component scan is limited to `com.japanese.vocabulary.admin`; JPA scans admin repositories plus song/user entities only. It currently depends on `domains:song` for entity/model classes but must not component-scan song runtime packages.
 └── batch/                   — 스케줄 잡 bootstrap (@SpringBootApplication, @EnableScheduling). 필요한 도메인만 의존 (현재 song, translation, studystats, notification, user, flashcard). 모든 @Scheduled는 여기. KoreanLyricTranslationScheduler, FreezeConsumeScheduler 등.
 ```
 
@@ -90,6 +95,7 @@ backend/
 
 - **batch가 의존하는 도메인은 최소화**. 필요한 도메인만 추가. JPA 엔티티 로드 비용 절감.
 - **api는 모든 도메인 의존**. REST 표면이 전체 도메인을 노출하므로. **예외: translation** — 가사 번역 스케줄러(batch)만 사용하므로 batch 전용 유지. (Kuromoji 폐기 후 힙 비용 사유는 사라졌지만 api가 의존할 이유도 없음.)
+- **admin-api는 public api와 분리된 bootstrap**. v1은 `song`, `lyric`, `user` 조회만 제공하고 mutation route를 만들지 않는다. `domains:song`는 WebFlux/Redis/external client/service bean이 많은 runtime-heavy module이므로 admin-api에서 broad component scan 금지. 필요한 경우 admin-api 내부 repository를 추가하고 entity scan만 도메인 패키지로 명시한다.
 - **Spring Batch Job/Step config·Scheduler·잡 워커 서비스는 batch bootstrap 모듈에만 둔다. 도메인 모듈에 두지 말 것** — 도메인 모듈에 `spring-boot-starter-batch`가 들어가면 그 모듈을 의존하는 api에도 spring-batch가 classpath에 올라와 `JobLauncherApplicationRunner`가 startup에 잡을 자동 실행한다 (`runDate parameter required` 류 에러). 잡은 batch가 스케줄러로만 트리거.
 - **외부 API 클라이언트(`@Value`로 필수 키 주입)가 도메인 모듈에 있고 그 도메인을 batch가 의존하면, batch yml에도 해당 키를 (안 쓰면 빈 기본값 `${KEY:}`으로) 넣어야** placeholder 미해석 크래시를 피한다 (e.g. song의 `YoutubeClient` → batch에 `youtube.api-key`).
 - **통합테스트는 bootstrap 모듈(api/batch)에만 둔다. 도메인 모듈에 테스트용 @SpringBootApplication(TestBoot)을 만들지 말 것** — 부트클래스가 도메인 패키지에 있으면 repo/entity 스캔 범위가 그 패키지로 좁아져 cross-domain 빈이 unresolved 된다 (`scanBasePackages`는 컴포넌트 스캔만 넓힐 뿐). 리스너 직접 호출 테스트는 api의 `ApiAfterCommitListenerTest` 상속.
@@ -155,12 +161,15 @@ Outer:  Deck, DeckFlashcard      — 조직화 레이어
 - **Song search**: iTunes API (Japan region) → YouTube API for MV URL
 - **Decks**: per-song decks in DB; "all" deck is virtual
 - **Auth**: stateless JWT, 30-day expiry, no refresh token
+- **Admin v1**: separate `admin-api` + `admin-web`; password-only admin login; short-lived admin bearer token stored in `sessionStorage`; read-only, entity-specific inspection pages only. Future writes must be invariant-preserving per-entity workflows with audit logging.
 
 ## Current State
 
 **Implemented:** Song search → lyric fetch → async batch (LLM segment+lemmatize + jisho options + sense-select + Gemini translation) → study view, YouTube MV playback with synced lyrics, word save with meanings, flashcard review (FSRS), decks, recent songs, user settings, push notifications (FCM admin SDK, batch cron 09:00·18:00 KST, deep-link to flashcard review from notification tap)
 
-**Backend modularization:** Multi-module Gradle split (`common` + `domains/*` + `api` + `batch`) 완료. dto/ 규칙 (Request/Response/Dto, 1-class-per-file) 적용. @Scheduled는 batch에만. notification 모듈은 FCM 전송 책임만, DB 조회는 batch가 담당하고 `PushNotificationDataPort`로 추상화.
+**Backend modularization:** Multi-module Gradle split (`common` + `domains/*` + `api` + `admin-api` + `batch`) 완료. dto/ 규칙 (Request/Response/Dto, 1-class-per-file) 적용. @Scheduled는 batch에만. notification 모듈은 FCM 전송 책임만, DB 조회는 batch가 담당하고 `PushNotificationDataPort`로 추상화.
+
+**Admin surface:** `backend/admin-api` exposes `/admin/api/auth/login`, `/admin/api/songs`, `/admin/api/lyrics`, and `/admin/api/users`. `admin-web` is a Vite React TypeScript shadcn-style SPA. Local dev: `cd admin-web && npm run dev`; local k3s: `./deploy.sh <namespace>` then use `http://localhost/<namespace>/admin` through the dev ingress. Port-forward `svc/admin-api 8081:8081` only for direct API checks. See `docs/admin-service.md`.
 
 **Partial coverage:** Backend integration tests for new domains; broader e2e tests still pending
 
