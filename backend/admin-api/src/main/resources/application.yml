@@ -1,0 +1,27 @@
+server:
+  port: ${ADMIN_API_PORT:8081}
+
+spring:
+  application:
+    name: admin-api
+  datasource:
+    url: ${MYSQL_URL:jdbc:mysql://localhost:3306/japanese_vocabulary}
+    username: ${MYSQL_USER:root}
+    password: ${MYSQL_PASSWORD:password}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+admin:
+  security:
+    password: ${ADMIN_PASSWORD:}
+    password-sha256: ${ADMIN_PASSWORD_SHA256:}
+    token-secret: ${ADMIN_TOKEN_SECRET:dev-admin-token-secret-must-be-at-least-32-bytes}
+    token-ttl-minutes: ${ADMIN_TOKEN_TTL_MINUTES:60}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

@@ -1,0 +1,10 @@
+admin:
+  security:
+    password: test-admin-password
+    token-secret: test-admin-token-secret-must-be-at-least-32-bytes
+    token-ttl-minutes: 60
+
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
