@@ -5,7 +5,6 @@ import { adminApi } from "@/api/client"
 import type { AnalyzedLyricLine, LyricDetail, LyricToken, RawLyricLine } from "@/api/types"
 import { DetailGrid, DetailItem } from "@/components/DetailGrid"
 import { ErrorState, LoadingState } from "@/components/StateViews"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { PageHeader } from "@/components/PageHeader"
 import { useAuth } from "@/features/auth"
@@ -95,13 +94,13 @@ export function LyricDetailPage() {
 
   return (
     <>
-      <PageHeader title={`Lyric #${lyric.id}`} meta={<Badge tone={lyric.status === "COMPLETED" ? "success" : "warning"}>{lyric.status}</Badge>} />
+      <PageHeader title={`Lyric #${lyric.id}`} meta={`${lyric.rawContent.length} raw lines`} />
       <DetailGrid>
         <DetailItem label="Song" value={<Link className="text-[#0f766e] hover:underline" to={`/songs/${lyric.songId}`}>{lyric.songId}</Link>} />
         <DetailItem label="Type" value={lyric.lyricType} />
-        <DetailItem label="Retries" value={lyric.retryCount} />
         <DetailItem label="LRCLIB" value={lyric.lrclibId ?? "-"} />
         <DetailItem label="VocaDB" value={lyric.vocadbId ?? "-"} />
+        <DetailItem label="Created" value={formatDateTime(lyric.createdAt)} />
         <DetailItem label="Updated" value={formatDateTime(lyric.updatedAt)} />
       </DetailGrid>
       <section className="mt-6 border-y border-[#d9e1ea] bg-white">

@@ -10,8 +10,6 @@ data class AdminLyricDetailResponse(
     val lyricType: String,
     val rawContent: List<LyricLineData>,
     val analyzedContent: List<AnalyzedLine>?,
-    val status: String,
-    val retryCount: Int,
     val lrclibId: Long?,
     val vocadbId: Long?,
     val createdAt: Instant?,

@@ -2,6 +2,8 @@ package com.japanese.vocabulary.admin.service
 
 import com.japanese.vocabulary.admin.dto.AdminLyricDetailResponse
 import com.japanese.vocabulary.admin.dto.AdminLyricSummaryResponse
+import com.japanese.vocabulary.admin.dto.AdminSongAnalysisWorkDetailResponse
+import com.japanese.vocabulary.admin.dto.AdminSongAnalysisWorkSummaryResponse
 import com.japanese.vocabulary.admin.dto.AdminSongDetailResponse
 import com.japanese.vocabulary.admin.dto.AdminSongSummaryResponse
 import com.japanese.vocabulary.admin.dto.AdminUserResponse
@@ -37,27 +39,37 @@ class AdminReadService(
     fun getSong(id: Long): AdminSongDetailResponse {
         val song = songRepository.findById(id).orElseThrow { NoSuchElementException("Song not found") }
         val lyric = lyricRepository.findBySongId(id)
-        val work = lyric?.id?.let { songAnalysisWorkRepository.findFirstByLyricIdOrderByCreatedAtDesc(it) }
-        return song.toDetailResponse(lyric, work)
+        return song.toDetailResponse(lyric)
     }
 
     fun getSongLyric(songId: Long): AdminLyricDetailResponse {
         val lyric = lyricRepository.findBySongId(songId) ?: throw NoSuchElementException("Lyric not found")
-        val work = lyric.id?.let { songAnalysisWorkRepository.findFirstByLyricIdOrderByCreatedAtDesc(it) }
-        return lyric.toDetailResponse(work)
+        return lyric.toDetailResponse()
     }
 
-    fun listLyrics(status: SongAnalysisWorkStatus?, pageable: Pageable): Page<AdminLyricSummaryResponse> {
-        val page = status?.let { lyricRepository.findByAnalysisWorkStatus(it, pageable) }
-            ?: lyricRepository.findAll(pageable)
-        val worksByLyricId = latestWorksByLyricId(page.content)
-        return page.map { it.toSummaryResponse(worksByLyricId[it.id]) }
+    fun listLyrics(pageable: Pageable): Page<AdminLyricSummaryResponse> {
+        return lyricRepository.findAll(pageable).map { it.toSummaryResponse() }
     }
 
     fun getLyric(id: Long): AdminLyricDetailResponse {
         val lyric = lyricRepository.findById(id).orElseThrow { NoSuchElementException("Lyric not found") }
-        val work = lyric.id?.let { songAnalysisWorkRepository.findFirstByLyricIdOrderByCreatedAtDesc(it) }
-        return lyric.toDetailResponse(work)
+        return lyric.toDetailResponse()
+    }
+
+    fun listSongAnalysisWorks(
+        status: SongAnalysisWorkStatus?,
+        pageable: Pageable,
+    ): Page<AdminSongAnalysisWorkSummaryResponse> {
+        val page = status?.let { songAnalysisWorkRepository.findByStatus(it, pageable) }
+            ?: songAnalysisWorkRepository.findAll(pageable)
+        return page.map { it.toSummaryResponse() }
+    }
+
+    fun getSongAnalysisWork(id: Long): AdminSongAnalysisWorkDetailResponse {
+        val work = songAnalysisWorkRepository.findById(id).orElseThrow {
+            NoSuchElementException("Song analysis work not found")
+        }
+        return work.toDetailResponse()
     }
 
     fun listUsers(query: String?, pageable: Pageable): Page<AdminUserResponse> {
@@ -77,15 +89,6 @@ class AdminReadService(
     fun getUser(id: Long): AdminUserResponse {
         return userRepository.findById(id).orElseThrow { NoSuchElementException("User not found") }.toResponse()
     }
-
-    private fun latestWorksByLyricId(lyrics: List<LyricEntity>): Map<Long, SongAnalysisWorkEntity> {
-        val lyricIds = lyrics.mapNotNull { it.id }
-        if (lyricIds.isEmpty()) return emptyMap()
-        return songAnalysisWorkRepository.findByLyricIdInOrderByCreatedAtDesc(lyricIds)
-            .filter { it.lyricId != null }
-            .distinctBy { it.lyricId }
-            .associateBy { requireNotNull(it.lyricId) }
-    }
 }
 
 fun SongEntity.toSummaryResponse(): AdminSongSummaryResponse = AdminSongSummaryResponse(
@@ -100,7 +103,6 @@ fun SongEntity.toSummaryResponse(): AdminSongSummaryResponse = AdminSongSummaryR
 
 fun SongEntity.toDetailResponse(
     lyric: LyricEntity?,
-    work: SongAnalysisWorkEntity?,
 ): AdminSongDetailResponse = AdminSongDetailResponse(
     id = requireNotNull(id),
     title = title,
@@ -109,41 +111,73 @@ fun SongEntity.toDetailResponse(
     youtubeUrl = youtubeUrl,
     artworkUrl = artworkUrl,
     createdAt = createdAt,
-    lyric = lyric?.toSummaryResponse(work),
+    lyric = lyric?.toSummaryResponse(),
 )
 
-fun LyricEntity.toSummaryResponse(work: SongAnalysisWorkEntity?): AdminLyricSummaryResponse = AdminLyricSummaryResponse(
+fun LyricEntity.toSummaryResponse(): AdminLyricSummaryResponse = AdminLyricSummaryResponse(
     id = requireNotNull(id),
     songId = songId,
     lyricType = lyricType.name,
-    status = analysisStatus(work),
-    retryCount = 0,
     lrclibId = lrclibId,
     vocadbId = vocadbId,
     createdAt = createdAt,
     updatedAt = updatedAt,
 )
 
-fun LyricEntity.toDetailResponse(work: SongAnalysisWorkEntity?): AdminLyricDetailResponse = AdminLyricDetailResponse(
+fun LyricEntity.toDetailResponse(): AdminLyricDetailResponse = AdminLyricDetailResponse(
     id = requireNotNull(id),
     songId = songId,
     lyricType = lyricType.name,
     rawContent = rawContent,
     analyzedContent = analyzedContent,
-    status = analysisStatus(work),
-    retryCount = 0,
     lrclibId = lrclibId,
     vocadbId = vocadbId,
     createdAt = createdAt,
     updatedAt = updatedAt,
 )
 
-private fun LyricEntity.analysisStatus(work: SongAnalysisWorkEntity?): String =
-    work?.status?.name ?: if (analyzedContent != null) {
-        SongAnalysisWorkStatus.COMPLETED.name
-    } else {
-        SongAnalysisWorkStatus.PENDING.name
-    }
+fun SongAnalysisWorkEntity.toSummaryResponse(): AdminSongAnalysisWorkSummaryResponse =
+    AdminSongAnalysisWorkSummaryResponse(
+        id = requireNotNull(id),
+        rawTitle = rawTitle,
+        rawArtist = rawArtist,
+        status = status.name,
+        currentStage = currentStage?.name,
+        songId = songId,
+        lyricId = lyricId,
+        triggerSource = triggerSource.name,
+        createdByUserId = createdByUserId,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+        playerReadyAt = playerReadyAt,
+        completedAt = completedAt,
+        failedAt = failedAt,
+    )
+
+fun SongAnalysisWorkEntity.toDetailResponse(): AdminSongAnalysisWorkDetailResponse =
+    AdminSongAnalysisWorkDetailResponse(
+        id = requireNotNull(id),
+        rawTitle = rawTitle,
+        rawArtist = rawArtist,
+        durationSeconds = durationSeconds,
+        artworkUrl = artworkUrl,
+        activeDedupKey = activeDedupKey,
+        status = status.name,
+        currentStage = currentStage?.name,
+        songId = songId,
+        lyricId = lyricId,
+        lockedBy = lockedBy,
+        lockedUntil = lockedUntil,
+        errorCode = errorCode,
+        errorMessage = errorMessage,
+        triggerSource = triggerSource.name,
+        createdByUserId = createdByUserId,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+        playerReadyAt = playerReadyAt,
+        completedAt = completedAt,
+        failedAt = failedAt,
+    )
 
 fun UserEntity.toResponse(): AdminUserResponse = AdminUserResponse(
     id = requireNotNull(id),

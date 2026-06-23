@@ -175,7 +175,7 @@ Work status는 `PENDING`, `RUNNING`, `COMPLETED`, `FAILED`만 사용한다. 첫 
 
 **Backend modularization:** Multi-module Gradle split (`common` + `domains/*` + `api` + `admin-api` + `batch`) 완료. dto/ 규칙 (Request/Response/Dto, 1-class-per-file) 적용. @Scheduled는 batch에만. notification 모듈은 FCM 전송 책임만, DB 조회는 batch가 담당하고 `PushNotificationDataPort`로 추상화.
 
-**Admin surface:** `backend/admin-api` exposes `/admin/api/auth/login`, `/admin/api/songs`, `/admin/api/lyrics`, and `/admin/api/users`. `admin-web` is a Vite React TypeScript shadcn-style SPA. Local dev: `cd admin-web && npm run dev`; local k3s: `./deploy.sh <namespace>` then use `http://localhost/<namespace>/admin` through the dev ingress. Port-forward `svc/admin-api 8081:8081` only for direct API checks. See `docs/admin-service.md`.
+**Admin surface:** `backend/admin-api` exposes `/admin/api/auth/login`, `/admin/api/songs`, `/admin/api/lyrics`, `/admin/api/song-analysis-works`, and `/admin/api/users`. `admin-web` is a Vite React TypeScript shadcn-style SPA. Lyrics pages do not expose work status; status/timing inspection lives under Song Analysis Work. Local dev: `cd admin-web && npm run dev`; local k3s: `./deploy.sh <namespace>` then use `http://localhost/<namespace>/admin` through the dev ingress. Port-forward `svc/admin-api 8081:8081` only for direct API checks. See `docs/admin-service.md`.
 
 **Partial coverage:** Backend integration tests for new domains; broader e2e tests still pending
 

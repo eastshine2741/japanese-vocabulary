@@ -4,6 +4,8 @@ import type {
   LyricDetail,
   LyricSummary,
   PageResponse,
+  SongAnalysisWorkDetail,
+  SongAnalysisWorkSummary,
   SongDetail,
   SongSummary,
 } from "@/api/types"
@@ -51,13 +53,20 @@ export const adminApi = {
   song(token: string, id: string) {
     return request<SongDetail>(`/songs/${id}`, token)
   },
-  lyrics(token: string, page: number, status?: string) {
+  lyrics(token: string, page: number) {
     const params = new URLSearchParams({ page: String(page), size: "20" })
-    if (status) params.set("status", status)
     return request<PageResponse<LyricSummary>>(`/lyrics?${params}`, token)
   },
   lyric(token: string, id: string) {
     return request<LyricDetail>(`/lyrics/${id}`, token)
+  },
+  songAnalysisWorks(token: string, page: number, status?: string) {
+    const params = new URLSearchParams({ page: String(page), size: "20" })
+    if (status) params.set("status", status)
+    return request<PageResponse<SongAnalysisWorkSummary>>(`/song-analysis-works?${params}`, token)
+  },
+  songAnalysisWork(token: string, id: string) {
+    return request<SongAnalysisWorkDetail>(`/song-analysis-works/${id}`, token)
   },
   users(token: string, page: number, query?: string) {
     return request<PageResponse<AdminUser>>(`/users?${pageParams(page, query)}`, token)

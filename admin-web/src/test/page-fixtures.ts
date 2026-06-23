@@ -1,4 +1,13 @@
-import type { AdminUser, LyricDetail, LyricSummary, PageResponse, SongDetail, SongSummary } from "@/api/types"
+import type {
+  AdminUser,
+  LyricDetail,
+  LyricSummary,
+  PageResponse,
+  SongAnalysisWorkDetail,
+  SongAnalysisWorkSummary,
+  SongDetail,
+  SongSummary,
+} from "@/api/types"
 
 export function page<T>(content: T[]): PageResponse<T> {
   return {
@@ -26,8 +35,6 @@ export const lyricSummary: LyricSummary = {
   id: 2,
   songId: 1,
   lyricType: "PLAIN",
-  status: "COMPLETED",
-  retryCount: 0,
   lrclibId: null,
   vocadbId: null,
   createdAt: "2026-01-01T00:00:00Z",
@@ -101,4 +108,32 @@ export const adminUser: AdminUser = {
   name: "Admin Read",
   createdAt: "2026-01-01T00:00:00Z",
   deletedAt: null,
+}
+
+export const songAnalysisWorkSummary: SongAnalysisWorkSummary = {
+  id: 4,
+  rawTitle: "夜に駆ける",
+  rawArtist: "YOASOBI",
+  status: "COMPLETED",
+  currentStage: "ANALYZE_LYRICS",
+  songId: 1,
+  lyricId: 2,
+  triggerSource: "USER_APP",
+  createdByUserId: null,
+  createdAt: "2026-01-01T00:00:00Z",
+  updatedAt: "2026-01-01T00:03:00Z",
+  playerReadyAt: "2026-01-01T00:01:00Z",
+  completedAt: "2026-01-01T00:03:00Z",
+  failedAt: null,
+}
+
+export const songAnalysisWorkDetail: SongAnalysisWorkDetail = {
+  ...songAnalysisWorkSummary,
+  durationSeconds: 261,
+  artworkUrl: null,
+  activeDedupKey: null,
+  lockedBy: null,
+  lockedUntil: null,
+  errorCode: null,
+  errorMessage: null,
 }

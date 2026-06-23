@@ -75,7 +75,7 @@ class AdminApiIntegrationTest : AdminBaseIntegrationTest() {
             header("Authorization", "Bearer $token")
         }.andExpect {
             status { isOk() }
-            jsonPath("$.lyric.status") { value("PENDING") }
+            jsonPath("$.lyric.id") { value(lyricIdForSong(song.id!!).toInt()) }
         }
 
         mockMvc.get("/admin/api/songs/${song.id}/lyric") {
@@ -87,10 +87,27 @@ class AdminApiIntegrationTest : AdminBaseIntegrationTest() {
 
         mockMvc.get("/admin/api/lyrics") {
             header("Authorization", "Bearer $token")
-            param("status", "PENDING")
         }.andExpect {
             status { isOk() }
             jsonPath("$.content[0].songId") { value(song.id!!.toInt()) }
+            jsonPath("$.content[0].status") { doesNotExist() }
+        }
+
+        mockMvc.get("/admin/api/song-analysis-works") {
+            header("Authorization", "Bearer $token")
+            param("status", "PENDING")
+        }.andExpect {
+            status { isOk() }
+            jsonPath("$.content[0].rawTitle") { value("管理曲") }
+            jsonPath("$.content[0].status") { value("PENDING") }
+        }
+
+        mockMvc.get("/admin/api/song-analysis-works/${workIdForSong(song.id!!)}") {
+            header("Authorization", "Bearer $token")
+        }.andExpect {
+            status { isOk() }
+            jsonPath("$.status") { value("PENDING") }
+            jsonPath("$.stageTimings") { doesNotExist() }
         }
 
         mockMvc.get("/admin/api/users/${user.id}") {
@@ -176,5 +193,19 @@ class AdminApiIntegrationTest : AdminBaseIntegrationTest() {
         entityManager.persist(work)
         entityManager.flush()
         return lyric
+    }
+
+    private fun lyricIdForSong(songId: Long): Long {
+        return entityManager
+            .createQuery("SELECT l.id FROM LyricEntity l WHERE l.songId = :songId", Long::class.java)
+            .setParameter("songId", songId)
+            .singleResult
+    }
+
+    private fun workIdForSong(songId: Long): Long {
+        return entityManager
+            .createQuery("SELECT w.id FROM SongAnalysisWorkEntity w WHERE w.songId = :songId", Long::class.java)
+            .setParameter("songId", songId)
+            .singleResult
     }
 }

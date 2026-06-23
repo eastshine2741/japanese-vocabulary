@@ -5,7 +5,6 @@ import { adminApi } from "@/api/client"
 import type { SongDetail } from "@/api/types"
 import { DetailGrid, DetailItem } from "@/components/DetailGrid"
 import { ErrorState, LoadingState } from "@/components/StateViews"
-import { Badge } from "@/components/ui/badge"
 import { PageHeader } from "@/components/PageHeader"
 import { useAuth } from "@/features/auth"
 import { formatDateTime } from "@/lib/utils"
@@ -60,7 +59,7 @@ export function SongDetailPage() {
           value={
             song.lyric ? (
               <Link className="inline-flex items-center gap-2 text-[#0f766e] hover:underline" to={`/lyrics/${song.lyric.id}`}>
-                #{song.lyric.id} <Badge tone={song.lyric.status === "COMPLETED" ? "success" : "warning"}>{song.lyric.status}</Badge>
+                #{song.lyric.id}
               </Link>
             ) : (
               "-"

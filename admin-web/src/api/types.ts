@@ -31,8 +31,6 @@ export type LyricSummary = {
   id: number
   songId: number
   lyricType: string
-  status: string
-  retryCount: number
   lrclibId: number | null
   vocadbId: number | null
   createdAt: string | null
@@ -42,6 +40,33 @@ export type LyricSummary = {
 export type LyricDetail = LyricSummary & {
   rawContent: RawLyricLine[]
   analyzedContent: AnalyzedLyricLine[] | null
+}
+
+export type SongAnalysisWorkSummary = {
+  id: number
+  rawTitle: string
+  rawArtist: string
+  status: string
+  currentStage: string | null
+  songId: number | null
+  lyricId: number | null
+  triggerSource: string
+  createdByUserId: number | null
+  createdAt: string | null
+  updatedAt: string | null
+  playerReadyAt: string | null
+  completedAt: string | null
+  failedAt: string | null
+}
+
+export type SongAnalysisWorkDetail = SongAnalysisWorkSummary & {
+  durationSeconds: number | null
+  artworkUrl: string | null
+  activeDedupKey: string | null
+  lockedBy: string | null
+  lockedUntil: string | null
+  errorCode: string | null
+  errorMessage: string | null
 }
 
 export type RawLyricLine = {

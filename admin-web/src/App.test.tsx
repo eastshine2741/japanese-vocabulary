@@ -3,7 +3,16 @@ import userEvent from "@testing-library/user-event"
 import { MemoryRouter } from "react-router-dom"
 import { beforeEach, describe, expect, test, vi } from "vitest"
 import { App } from "@/App"
-import { adminUser, lyricDetail, lyricSummary, page, songDetail, songSummary } from "@/test/page-fixtures"
+import {
+  adminUser,
+  lyricDetail,
+  lyricSummary,
+  page,
+  songAnalysisWorkDetail,
+  songAnalysisWorkSummary,
+  songDetail,
+  songSummary,
+} from "@/test/page-fixtures"
 
 function mockFetch() {
   const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -14,6 +23,8 @@ function mockFetch() {
     }
     if (url.includes("/songs/1")) return json(songDetail)
     if (url.includes("/songs?")) return json(page([songSummary]))
+    if (url.includes("/song-analysis-works/4")) return json(songAnalysisWorkDetail)
+    if (url.includes("/song-analysis-works?")) return json(page([songAnalysisWorkSummary]))
     if (url.includes("/lyrics/2")) return json(lyricDetail)
     if (url.includes("/lyrics?")) return json(page([lyricSummary]))
     if (url.includes("/users/3")) return json(adminUser)
@@ -64,6 +75,7 @@ describe("admin web", () => {
 
     expect(await screen.findByText("夜に駆ける")).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "Lyrics" })).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "Analysis Work" })).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "Users" })).toBeInTheDocument()
   })
 
@@ -81,5 +93,15 @@ describe("admin web", () => {
     expect(screen.getByText("Base form")).toBeInTheDocument()
     expect(screen.queryByRole("button", { name: /\b(Edit|Delete|Save|Create)\b/i })).not.toBeInTheDocument()
     expect(screen.queryByText(/\b(Edit|Delete|Save|Create)\b/i)).not.toBeInTheDocument()
+  })
+
+  test("renders song analysis work milestones", async () => {
+    sessionStorage.setItem("kotonoha.admin.token", "admin-token")
+    renderApp("/song-analysis-works/4")
+
+    expect(await screen.findByRole("heading", { name: "Work #4" })).toBeInTheDocument()
+    expect(screen.getByText("Elapsed time")).toBeInTheDocument()
+    expect(screen.getByText("Created to player ready")).toBeInTheDocument()
+    expect(screen.getByText("2m 00s")).toBeInTheDocument()
   })
 })

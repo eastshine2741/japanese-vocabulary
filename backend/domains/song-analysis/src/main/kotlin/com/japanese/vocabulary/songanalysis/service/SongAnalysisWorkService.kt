@@ -93,7 +93,8 @@ class SongAnalysisWorkService(
     @Transactional
     fun markStage(workId: Long, workerId: String, stage: SongAnalysisWorkStage): Boolean {
         val work = getEntityForUpdate(workId)
-        if (!work.isOwnedRunningBy(workerId, Instant.now())) return false
+        val now = Instant.now()
+        if (!work.isOwnedRunningBy(workerId, now)) return false
         work.currentStage = stage
         return true
     }
