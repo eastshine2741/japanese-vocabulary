@@ -10,7 +10,6 @@ import com.japanese.vocabulary.song.dto.*
 import com.japanese.vocabulary.song.entity.LyricType
 import com.japanese.vocabulary.song.entity.SongEntity
 import com.japanese.vocabulary.song.parser.LrcParser
-import com.japanese.vocabulary.song.entity.KoreanLyricStatus
 import com.japanese.vocabulary.song.entity.LyricEntity
 import com.japanese.vocabulary.song.repository.LyricRepository
 import com.japanese.vocabulary.song.repository.SongRepository
@@ -29,6 +28,18 @@ class LyricProcessingService(
 
     private val logger = LoggerFactory.getLogger(LyricProcessingService::class.java)
 
+    data class PreparedLyric(
+        val lyricType: LyricType,
+        val lines: List<LyricLineData>,
+        val lrclibId: Long?,
+        val vocadbId: Long?,
+    )
+
+    data class SongLyricCreationResult(
+        val song: SongEntity,
+        val lyric: LyricEntity,
+    )
+
     private data class LyricsSource(val name: String?, val url: String?)
 
     private fun resolveLyricsSource(vocadbId: Long?, lrclibId: Long?): LyricsSource = when {
@@ -46,13 +57,42 @@ class LyricProcessingService(
             return buildResponseFromEntity(it)
         }
 
-        // Fetch lyrics from providers
-        val lyricsResult = searchLyrics(title, artist, durationSeconds)
+        val preparedLyric = prepareLyrics(title, artist, durationSeconds)
+        val youtubeUrl = searchYoutubeUrl(title, artist)
+        val created = saveSongAndLyric(
+            title = title,
+            artist = artist,
+            durationSeconds = durationSeconds,
+            artworkUrl = artworkUrl,
+            youtubeUrl = youtubeUrl,
+            preparedLyric = preparedLyric,
+        )
 
-        // Parse lyrics
+        if (userId != null) {
+            recentSongService.recordListen(userId, created.song.id!!)
+        }
+
+        // Build response — batch not yet done, so tokens empty, no korean
+        val source = resolveLyricsSource(preparedLyric.vocadbId, preparedLyric.lrclibId)
+        return AnalyzedSongDto(
+            song = SongInfoDto(
+                id = created.song.id!!,
+                title = created.song.title,
+                artist = created.song.artist,
+                lyricType = preparedLyric.lyricType.name,
+                artworkUrl = created.song.artworkUrl,
+            ),
+            studyUnits = preparedLyric.lines.map { it.toStudyUnit() },
+            youtubeUrl = created.song.youtubeUrl,
+            lyricsSourceName = source.name,
+            lyricsSourceUrl = source.url
+        )
+    }
+
+    fun prepareLyrics(title: String, artist: String, durationSeconds: Int?): PreparedLyric {
+        val lyricsResult = searchLyrics(title, artist, durationSeconds)
         val parsedLines = lrcParser.parse(lyricsResult.lyrics, lyricsResult.isSynced)
         val lyricType = if (lyricsResult.isSynced) LyricType.SYNCED else LyricType.PLAIN
-
         val lyricLineData = parsedLines.map { line ->
             LyricLineData(
                 index = line.index,
@@ -60,16 +100,49 @@ class LyricProcessingService(
                 text = line.text
             )
         }
+        return PreparedLyric(
+            lyricType = lyricType,
+            lines = lyricLineData,
+            lrclibId = lyricsResult.lrclibId,
+            vocadbId = lyricsResult.vocadbId,
+        )
+    }
 
-        // Fetch YouTube MV URL
-        val youtubeUrl = try {
+    fun searchYoutubeUrl(title: String, artist: String): String? {
+        return try {
             youtubeMvSearchService.searchMvUrl(title, artist)
         } catch (e: Exception) {
-            e.printStackTrace()
+            logger.warn("YouTube MV search failed for '{}' by '{}': {}", title, artist, e.message)
             null
         }
+    }
 
-        // Save song (metadata only)
+    fun saveSongAndLyric(
+        title: String,
+        artist: String,
+        durationSeconds: Int?,
+        artworkUrl: String?,
+        youtubeUrl: String?,
+        preparedLyric: PreparedLyric,
+    ): SongLyricCreationResult {
+        val existingSong = songRepository.findByArtistAndTitle(artist, title)
+        if (existingSong != null) {
+            val songId = existingSong.id!!
+            lyricRepository.findBySongId(songId)?.let { existingLyric ->
+                return SongLyricCreationResult(existingSong, existingLyric)
+            }
+            val lyric = lyricRepository.save(
+                LyricEntity(
+                    songId = songId,
+                    lyricType = preparedLyric.lyricType,
+                    rawContent = preparedLyric.lines,
+                    lrclibId = preparedLyric.lrclibId,
+                    vocadbId = preparedLyric.vocadbId,
+                )
+            )
+            return SongLyricCreationResult(existingSong, lyric)
+        }
+
         val savedSong = songRepository.save(
             SongEntity(
                 title = title,
@@ -79,38 +152,16 @@ class LyricProcessingService(
                 artworkUrl = artworkUrl
             )
         )
-
-        // Create LyricEntity with rawContent and PENDING status
-        lyricRepository.save(
-            LyricEntity(
-                songId = savedSong.id!!,
-                lyricType = lyricType,
-                rawContent = lyricLineData,
-                status = KoreanLyricStatus.PENDING,
-                lrclibId = lyricsResult.lrclibId,
-                vocadbId = lyricsResult.vocadbId
-            )
+        val lyric = lyricRepository.save(
+                LyricEntity(
+                    songId = savedSong.id!!,
+                    lyricType = preparedLyric.lyricType,
+                    rawContent = preparedLyric.lines,
+                    lrclibId = preparedLyric.lrclibId,
+                    vocadbId = preparedLyric.vocadbId
+                )
         )
-
-        if (userId != null) {
-            recentSongService.recordListen(userId, savedSong.id!!)
-        }
-
-        // Build response — batch not yet done, so tokens empty, no korean
-        val source = resolveLyricsSource(lyricsResult.vocadbId, lyricsResult.lrclibId)
-        return AnalyzedSongDto(
-            song = SongInfoDto(
-                id = savedSong.id!!,
-                title = savedSong.title,
-                artist = savedSong.artist,
-                lyricType = lyricType.name,
-                artworkUrl = savedSong.artworkUrl,
-            ),
-            studyUnits = lyricLineData.map { it.toStudyUnit() },
-            youtubeUrl = savedSong.youtubeUrl,
-            lyricsSourceName = source.name,
-            lyricsSourceUrl = source.url
-        )
+        return SongLyricCreationResult(savedSong, lyric)
     }
 
     private fun searchLyrics(title: String, artist: String, durationSeconds: Int?): LyricsResult {
@@ -140,11 +191,12 @@ class LyricProcessingService(
     fun buildAnalyzedSong(entity: SongEntity): AnalyzedSongDto = buildResponseFromEntity(entity)
 
     private fun buildResponseFromEntity(entity: SongEntity): AnalyzedSongDto {
-        val lyricEntity = lyricRepository.findBySongId(entity.id!!)
+        val songId = entity.id!!
+        val lyricEntity = lyricRepository.findBySongId(songId)
 
         if (lyricEntity == null) {
             return AnalyzedSongDto(
-                song = SongInfoDto(id = entity.id!!, title = entity.title, artist = entity.artist, lyricType = "PLAIN", artworkUrl = entity.artworkUrl),
+                song = SongInfoDto(id = songId, title = entity.title, artist = entity.artist, lyricType = "PLAIN", artworkUrl = entity.artworkUrl),
                 studyUnits = emptyList(),
                 youtubeUrl = entity.youtubeUrl,
                 lyricsSourceName = null,
@@ -154,7 +206,7 @@ class LyricProcessingService(
 
         val lyricLines = lyricEntity.rawContent
 
-        val studyUnits = if (lyricEntity.status == KoreanLyricStatus.COMPLETED && lyricEntity.analyzedContent != null) {
+        val studyUnits = if (lyricEntity.analyzedContent != null) {
             val analyzedMap = lyricEntity.analyzedContent!!.associateBy { it.index }
             lyricLines.map { line ->
                 val analyzed = analyzedMap[line.index]
@@ -173,7 +225,7 @@ class LyricProcessingService(
 
         val source = resolveLyricsSource(lyricEntity.vocadbId, lyricEntity.lrclibId)
         return AnalyzedSongDto(
-            song = SongInfoDto(id = entity.id!!, title = entity.title, artist = entity.artist, lyricType = lyricEntity.lyricType.name, artworkUrl = entity.artworkUrl),
+            song = SongInfoDto(id = songId, title = entity.title, artist = entity.artist, lyricType = lyricEntity.lyricType.name, artworkUrl = entity.artworkUrl),
             studyUnits = studyUnits,
             youtubeUrl = entity.youtubeUrl,
             lyricsSourceName = source.name,

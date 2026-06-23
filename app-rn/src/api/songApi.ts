@@ -4,6 +4,7 @@ import {
   SongStudyData,
   RecentSongItem,
   AnalyzeSongRequest,
+  SongAnalysisWorkResponse,
 } from '../types/song';
 
 export const songApi = {
@@ -14,9 +15,24 @@ export const songApi = {
     return data;
   },
 
-  async analyze(req: AnalyzeSongRequest): Promise<SongStudyData> {
-    const { data } = await client.post<SongStudyData>('/api/songs/analyze', req);
+  async analyze(req: AnalyzeSongRequest): Promise<SongAnalysisWorkResponse> {
+    const { data } = await client.post<SongAnalysisWorkResponse>('/api/songs/analyze', req);
     return data;
+  },
+
+  async getAnalysisWork(workId: number): Promise<SongAnalysisWorkResponse> {
+    const { data } = await client.get<SongAnalysisWorkResponse>(`/api/songs/analysis-work/${workId}`);
+    return data;
+  },
+
+  async getByTitleArtist(title: string, artistName: string): Promise<SongStudyData | null> {
+    const res = await client.get<SongStudyData>('/api/songs', {
+      params: { title, artistName },
+    });
+    if (res.status === 204 || res.data == null || !(res.data as any).song) {
+      return null;
+    }
+    return res.data;
   },
 
   async getRecent(): Promise<RecentSongItem[]> {

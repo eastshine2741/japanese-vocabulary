@@ -2,11 +2,15 @@ package com.japanese.vocabulary.song.controller
 
 import com.japanese.vocabulary.song.dto.AnalyzeSongRequest
 import com.japanese.vocabulary.song.dto.RecentSongItemDto
+import com.japanese.vocabulary.song.dto.SongAnalysisWorkResponse
 import com.japanese.vocabulary.song.dto.SongDto
 import com.japanese.vocabulary.song.dto.AnalyzedSongDto
 import com.japanese.vocabulary.song.dto.SongSearchResponse
 import com.japanese.vocabulary.deck.service.DeckService
+import com.japanese.vocabulary.song.dto.SongAnalysisWorkDto
+import com.japanese.vocabulary.song.repository.LyricRepository
 import com.japanese.vocabulary.song.repository.SongRepository
+import com.japanese.vocabulary.song.service.SongAnalysisWorkService
 import com.japanese.vocabulary.song.service.LyricProcessingService
 import com.japanese.vocabulary.song.service.RecentSongService
 import com.japanese.vocabulary.song.service.SearchHistoryService
@@ -25,10 +29,12 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/api/songs")
 class SongController(
     private val lyricProcessingService: LyricProcessingService,
+    private val songAnalysisWorkService: SongAnalysisWorkService,
     private val songSearchService: SongSearchService,
     private val recentSongService: RecentSongService,
     private val searchHistoryService: SearchHistoryService,
     private val songRepository: SongRepository,
+    private val lyricRepository: LyricRepository,
     private val deckService: DeckService,
 ) {
 
@@ -36,14 +42,36 @@ class SongController(
         SecurityContextHolder.getContext().authentication.principal as Long
 
     @PostMapping("/analyze")
-    fun analyzeSong(@RequestBody request: AnalyzeSongRequest): ResponseEntity<SongDto> {
-        val analyzed = lyricProcessingService.analyze(
+    fun analyzeSong(@RequestBody request: AnalyzeSongRequest): ResponseEntity<SongAnalysisWorkResponse> {
+        val work = songAnalysisWorkService.createOrReuse(
             title = request.title,
             artist = request.artist,
             durationSeconds = request.durationSeconds,
             artworkUrl = request.artworkUrl,
-            userId = currentUserId(),
+            createdByUserId = currentUserId(),
         )
+        return ResponseEntity.ok(work.toResponse())
+    }
+
+    @GetMapping("/analysis-work/{workId}")
+    fun getAnalysisWork(@PathVariable workId: Long): ResponseEntity<SongAnalysisWorkResponse> {
+        return ResponseEntity.ok(songAnalysisWorkService.getById(workId).toResponse())
+    }
+
+    @GetMapping(params = ["title", "artistName"])
+    fun getSongByTitleAndArtist(
+        @RequestParam title: String,
+        @RequestParam artistName: String,
+    ): ResponseEntity<SongDto> {
+        val entity = songRepository.findByArtistAndTitle(artistName, title)
+            ?: return ResponseEntity.noContent().build()
+
+        if (lyricRepository.findBySongId(entity.id!!) == null) {
+            return ResponseEntity.noContent().build()
+        }
+
+        recentSongService.recordListen(currentUserId(), entity.id!!)
+        val analyzed = lyricProcessingService.buildAnalyzedSong(entity)
         return ResponseEntity.ok(analyzed.toResponse())
     }
 
@@ -115,5 +143,16 @@ class SongController(
         youtubeUrl = youtubeUrl,
         lyricsSourceName = lyricsSourceName,
         lyricsSourceUrl = lyricsSourceUrl,
+    )
+
+    private fun SongAnalysisWorkDto.toResponse() = SongAnalysisWorkResponse(
+        workId = workId,
+        status = status.name,
+        currentStage = currentStage,
+        songId = songId,
+        canOpenPlayer = canOpenPlayer,
+        isAnalysisComplete = isAnalysisComplete,
+        errorCode = errorCode,
+        errorMessage = errorMessage,
     )
 }

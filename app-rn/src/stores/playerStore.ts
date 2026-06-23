@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { songApi } from '../api/songApi';
-import { SongSearchItem, SongStudyData } from '../types/song';
+import { SongAnalysisWorkResponse, SongSearchItem, SongStudyData } from '../types/song';
 
 type Status = 'idle' | 'loading' | 'success' | 'error';
 
@@ -24,6 +24,10 @@ interface PlayerState {
   reset: () => void;
 }
 
+let analysisRunId = 0;
+
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 export const usePlayerStore = create<PlayerState>((set, get) => ({
   status: 'idle',
   studyData: null,
@@ -35,16 +39,33 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   setDurationMs: (ms) => set({ durationMs: ms }),
 
   analyze: async (item: SongSearchItem) => {
+    const runId = ++analysisRunId;
     set({ status: 'loading', errorCode: null });
     try {
-      const data = await songApi.analyze({
+      const existing = await songApi.getByTitleArtist(item.title, item.artistName);
+      if (analysisRunId !== runId) return;
+      if (existing) {
+        set({ status: 'success', studyData: existing, currentMs: 0, durationMs: 0 });
+        return;
+      }
+
+      const accepted = await songApi.analyze({
         title: item.title,
         artist: item.artistName,
         durationSeconds: item.durationSeconds,
         artworkUrl: item.thumbnail,
       });
+      const ready = await waitForPlayerReady(accepted, runId);
+      if (analysisRunId !== runId) return;
+      if (!ready.songId) {
+        set({ status: 'error', errorCode: ready.errorCode ?? 'SONG_ANALYSIS_WORK_FAILED' });
+        return;
+      }
+      const data = await songApi.getById(ready.songId);
+      if (analysisRunId !== runId) return;
       set({ status: 'success', studyData: data, currentMs: 0, durationMs: 0 });
     } catch (e: any) {
+      if (analysisRunId !== runId) return;
       set({ status: 'error', errorCode: e.response?.data?.error });
     }
   },
@@ -70,5 +91,31 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     }
   },
 
-  reset: () => set({ status: 'idle', studyData: null, errorCode: null, currentMs: 0, durationMs: 0 }),
+  reset: () => {
+    analysisRunId++;
+    set({ status: 'idle', studyData: null, errorCode: null, currentMs: 0, durationMs: 0 });
+  },
 }));
+
+async function waitForPlayerReady(
+  initial: SongAnalysisWorkResponse,
+  runId: number,
+): Promise<SongAnalysisWorkResponse> {
+  let current = initial;
+  while (analysisRunId === runId) {
+    if (current.canOpenPlayer && current.songId != null) {
+      return current;
+    }
+    if (current.status === 'FAILED') {
+      return current;
+    }
+    await sleep(ANALYSIS_POLL_INTERVAL_MS);
+    if (analysisRunId !== runId) {
+      return current;
+    }
+    current = await songApi.getAnalysisWork(current.workId);
+  }
+  return current;
+}
+
+const ANALYSIS_POLL_INTERVAL_MS = 3000;

@@ -361,20 +361,22 @@ class LyricProcessingServiceTest : ApiBaseIntegrationTest() {
 
 **`StudyStatsService.getHeatmap`**: 잘 정의된 기간 내 날짜별 reviewCount 정확성.
 
-### 4.8 batch — KoreanLyricTranslationService (Phase 4 예정)
+### 4.8 batch — SongAnalysisWorkScheduler / KoreanLyricTranslationService
 
-**가장 까다로운 도메인.** 코루틴 + 스케줄러 + 외부 API 3중 의존.
+**가장 까다로운 도메인.** work claim + 코루틴 + 외부 API 3중 의존.
 
 **전략:**
-- `@Scheduled`는 테스트에서 끔: `@TestPropertySource(properties = ["spring.task.scheduling.enabled=false"])` 또는 `@Profile("!test")` on the scheduled bean.
-- `processTranslations()`을 **직접 호출**하여 검증.
+- `@Scheduled`는 테스트에서 끔: `spring.task.scheduling.enabled=false`.
+- `SongAnalysisWorkService.claimPending()` / `failExpiredRunning()`과 `KoreanLyricTranslationService.runPipeline()`을 직접 검증.
 - `@MockkBean(GeminiClient::class)`로 translateLyrics, lookupWordMeanings stub.
 - 실제 KuromojiMorphologicalAnalyzer는 그대로 실행 (사전 동봉 — 외부 의존 없음).
 
 **시나리오:**
-- PENDING lyric 1개 → 정상 처리 → status=COMPLETED, analyzedContent JSON 검증.
-- Gemini가 빈 결과 → retry 카운트 증가, 3회 초과 시 FAILED.
-- BATCH_SIZE(5) 동시 처리 → 모두 COMPLETED.
+- PENDING work claim → RUNNING, lock owner/until 기록.
+- expired RUNNING work → reclaim 없이 FAILED, activeDedupKey 해제.
+- lyric 1개 → 정상 분석 → analyzedContent JSON 검증.
+- Gemini 실패 → lyric analyzedContent를 저장하지 않고 예외 전파. work processor가 terminal FAILED를 담당.
+- BATCH_SIZE(5) work claim 순서 검증.
 - 토큰 1:1 매칭 — 토큰 수와 LLM meaning 수가 다를 때 처리.
 
 **`FreezeConsumeScheduler`** (cron 04:00 KST):

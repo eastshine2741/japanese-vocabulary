@@ -3,23 +3,25 @@ package com.japanese.vocabulary.song
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.japanese.vocabulary.auth.jwt.JwtUtil
+import com.japanese.vocabulary.common.exception.BusinessException
 import com.japanese.vocabulary.deck.entity.DeckEntity
-import com.japanese.vocabulary.song.client.LyricsResult
 import com.japanese.vocabulary.song.dto.AnalyzeSongRequest
 import com.japanese.vocabulary.song.model.AnalyzedLine
 import com.japanese.vocabulary.song.model.LyricLineData
 import com.japanese.vocabulary.song.model.PartOfSpeech
 import com.japanese.vocabulary.song.dto.RecentSongItemDto
+import com.japanese.vocabulary.song.dto.SongAnalysisWorkResponse
 import com.japanese.vocabulary.song.dto.SongDto
 import com.japanese.vocabulary.song.dto.SongSearchItemDto
 import com.japanese.vocabulary.song.dto.SongSearchResponse
 import com.japanese.vocabulary.song.model.Token
-import com.japanese.vocabulary.song.entity.KoreanLyricStatus
 import com.japanese.vocabulary.song.entity.LyricEntity
 import com.japanese.vocabulary.song.entity.LyricType
 import com.japanese.vocabulary.song.entity.SongEntity
 import com.japanese.vocabulary.song.repository.LyricRepository
+import com.japanese.vocabulary.song.repository.SongAnalysisWorkRepository
 import com.japanese.vocabulary.song.repository.SongRepository
+import com.japanese.vocabulary.song.service.SongAnalysisWorkService
 import com.japanese.vocabulary.test.ApiBaseIntegrationTest
 import com.japanese.vocabulary.test.fixtures.TestSongBuilder
 import com.japanese.vocabulary.test.fixtures.TestUserBuilder
@@ -35,6 +37,12 @@ import org.springframework.http.MediaType
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.get
 import org.springframework.test.web.servlet.post
+import org.springframework.transaction.annotation.Propagation
+import org.springframework.transaction.annotation.Transactional
+import java.util.Collections
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 @AutoConfigureMockMvc
 class SongControllerTest : ApiBaseIntegrationTest() {
@@ -44,6 +52,8 @@ class SongControllerTest : ApiBaseIntegrationTest() {
     @Autowired private lateinit var jwtUtil: JwtUtil
     @Autowired private lateinit var songRepository: SongRepository
     @Autowired private lateinit var lyricRepository: LyricRepository
+    @Autowired private lateinit var workRepository: SongAnalysisWorkRepository
+    @Autowired private lateinit var workService: SongAnalysisWorkService
 
     private fun newUser(): UserEntity = TestUserBuilder(entityManager).build()
     private fun newSong(title: String? = null, artist: String? = null): SongEntity =
@@ -54,7 +64,6 @@ class SongControllerTest : ApiBaseIntegrationTest() {
 
     private fun newLyric(
         song: SongEntity,
-        status: KoreanLyricStatus,
         raw: List<LyricLineData>,
         analyzed: List<AnalyzedLine>? = null,
     ): LyricEntity {
@@ -63,7 +72,6 @@ class SongControllerTest : ApiBaseIntegrationTest() {
             lyricType = LyricType.PLAIN,
             rawContent = raw,
             analyzedContent = analyzed,
-            status = status,
         )
         entityManager.persist(entity)
         entityManager.flush()
@@ -94,9 +102,13 @@ class SongControllerTest : ApiBaseIntegrationTest() {
     inner class Analyze {
 
         @Test
-        fun `existing song hits DB and skips external providers`() {
+        fun `existing song with lyric returns player-ready work and skips external providers`() {
             val me = newUser()
             val existing = newSong(title = "既存曲", artist = "歌手")
+            newLyric(
+                existing,
+                raw = listOf(LyricLineData(index = 0, startTimeMs = 0, text = "既存")),
+            )
 
             val body = mockMvc.post("/api/songs/analyze") {
                 header("Authorization", bearer(me))
@@ -106,26 +118,17 @@ class SongControllerTest : ApiBaseIntegrationTest() {
                 )
             }.andExpect { status { isOk() } }.andReturn().response.contentAsString
 
-            assertThat(readBody<SongDto>(body).song.id).isEqualTo(existing.id)
-            // recent recorded for this user
-            val recents = redis.opsForZSet().reverseRange(recentKey(me.id!!), 0, -1)
-            assertThat(recents).contains(existing.id.toString())
-            // no LyricEntity created since song already existed without one
-            assertThat(lyricRepository.findBySongId(existing.id!!)).isNull()
+            val dto = readBody<SongAnalysisWorkResponse>(body)
+            assertThat(dto.songId).isEqualTo(existing.id)
+            assertThat(dto.canOpenPlayer).isTrue
+            io.mockk.verify(exactly = 0) { lrclibClient.search(any()) }
+            io.mockk.verify(exactly = 0) { vocadbClient.search(any()) }
+            io.mockk.verify(exactly = 0) { youtubeMvSearchService.searchMvUrl(any(), any()) }
         }
 
         @Test
-        fun `new song from LRClib persists Song and Lyric(PENDING) and pulls youtube url`() {
+        fun `new song creates pending work without calling providers in request thread`() {
             val me = newUser()
-            every { lrclibClient.providerName } returns "LRCLIB"
-            every { lrclibClient.search(any()) } returns LyricsResult(
-                lrclibId = 42,
-                lyrics = "ライン1\nライン2",
-                isSynced = false,
-            )
-            every { vocadbClient.providerName } returns "VocaDB"
-            every { vocadbClient.search(any()) } returns null
-            every { youtubeMvSearchService.searchMvUrl(any(), any()) } returns "https://youtu.be/abc"
 
             val body = mockMvc.post("/api/songs/analyze") {
                 header("Authorization", bearer(me))
@@ -135,50 +138,46 @@ class SongControllerTest : ApiBaseIntegrationTest() {
                 )
             }.andExpect { status { isOk() } }.andReturn().response.contentAsString
 
-            val dto = readBody<SongDto>(body)
-            assertThat(dto.youtubeUrl).isEqualTo("https://youtu.be/abc")
-            assertThat(dto.lyricsSourceName).isEqualTo("LRCLIB")
-            assertThat(dto.studyUnits.map { it.originalText }).containsExactly("ライン1", "ライン2")
+            val dto = readBody<SongAnalysisWorkResponse>(body)
+            assertThat(dto.status).isEqualTo("PENDING")
+            assertThat(dto.songId).isNull()
+            assertThat(dto.canOpenPlayer).isFalse
+            assertThat(dto.isAnalysisComplete).isFalse
 
             entityManager.flush(); entityManager.clear()
-            val savedSong = songRepository.findByArtistAndTitle("新歌手", "新曲")!!
-            val savedLyric = lyricRepository.findBySongId(savedSong.id!!)!!
-            assertThat(savedLyric.status).isEqualTo(KoreanLyricStatus.PENDING)
-            assertThat(savedLyric.analyzedContent.isNullOrEmpty()).isTrue
-            assertThat(savedLyric.lrclibId).isEqualTo(42L)
-
-            assertThat(redis.opsForZSet().reverseRange(recentKey(me.id!!), 0, -1))
-                .contains(savedSong.id.toString())
+            assertThat(songRepository.findByArtistAndTitle("新歌手", "新曲")).isNull()
+            val work = workRepository.findById(dto.workId).orElseThrow()
+            assertThat(work.rawTitle).isEqualTo("新曲")
+            assertThat(work.rawArtist).isEqualTo("新歌手")
+            assertThat(work.durationSeconds).isEqualTo(180)
+            io.mockk.verify(exactly = 0) { lrclibClient.search(any()) }
+            io.mockk.verify(exactly = 0) { vocadbClient.search(any()) }
+            io.mockk.verify(exactly = 0) { youtubeMvSearchService.searchMvUrl(any(), any()) }
         }
 
         @Test
-        fun `all providers returning null surfaces LYRICS_NOT_FOUND`() {
+        fun `provider failures are not surfaced from analyze request thread`() {
             val me = newUser()
-            every { lrclibClient.providerName } returns "LRCLIB"
-            every { lrclibClient.search(any()) } returns null
-            every { vocadbClient.providerName } returns "VocaDB"
-            every { vocadbClient.search(any()) } returns null
 
-            mockMvc.post("/api/songs/analyze") {
+            val body = mockMvc.post("/api/songs/analyze") {
                 header("Authorization", bearer(me))
                 contentType = MediaType.APPLICATION_JSON
                 content = objectMapper.writeValueAsString(
                     AnalyzeSongRequest(title = "なし", artist = "なし歌手"),
                 )
-            }.andExpect { status { isNotFound() } }
+            }.andExpect { status { isOk() } }.andReturn().response.contentAsString
+
+            assertThat(readBody<SongAnalysisWorkResponse>(body).status).isEqualTo("PENDING")
 
             entityManager.flush(); entityManager.clear()
             assertThat(songRepository.findByArtistAndTitle("なし歌手", "なし")).isNull()
+            io.mockk.verify(exactly = 0) { lrclibClient.search(any()) }
+            io.mockk.verify(exactly = 0) { vocadbClient.search(any()) }
         }
 
         @Test
-        fun `youtube failure is swallowed and youtubeUrl stays null`() {
+        fun `youtube is not called from analyze request thread`() {
             val me = newUser()
-            every { lrclibClient.providerName } returns "LRCLIB"
-            every { lrclibClient.search(any()) } returns LyricsResult(lyrics = "テスト", isSynced = false)
-            every { vocadbClient.providerName } returns "VocaDB"
-            every { vocadbClient.search(any()) } returns null
-            every { youtubeMvSearchService.searchMvUrl(any(), any()) } throws RuntimeException("network down")
 
             val body = mockMvc.post("/api/songs/analyze") {
                 header("Authorization", bearer(me))
@@ -188,12 +187,159 @@ class SongControllerTest : ApiBaseIntegrationTest() {
                 )
             }.andExpect { status { isOk() } }.andReturn().response.contentAsString
 
-            val dto = readBody<SongDto>(body)
-            assertThat(dto.youtubeUrl).isNull()
+            val dto = readBody<SongAnalysisWorkResponse>(body)
+            assertThat(dto.status).isEqualTo("PENDING")
+            assertThat(dto.songId).isNull()
 
             entityManager.flush(); entityManager.clear()
-            val savedSong = songRepository.findByArtistAndTitle("歌手", "YT失敗")!!
-            assertThat(savedSong.youtubeUrl).isNull()
+            assertThat(songRepository.findByArtistAndTitle("歌手", "YT失敗")).isNull()
+            io.mockk.verify(exactly = 0) { youtubeMvSearchService.searchMvUrl(any(), any()) }
+        }
+
+        @Test
+        @Transactional(propagation = Propagation.NOT_SUPPORTED)
+        fun `concurrent analyze requests create only one active work for same title and artist`() {
+            val title = "同時作成"
+            val artist = "同時歌手"
+            val activeDedupKey = SongAnalysisWorkService.buildActiveDedupKey(title, artist)
+            workRepository.findByActiveDedupKey(activeDedupKey)?.let { workRepository.delete(it) }
+
+            val threadCount = 8
+            val ready = CountDownLatch(threadCount)
+            val start = CountDownLatch(1)
+            val done = CountDownLatch(threadCount)
+            val executor = Executors.newFixedThreadPool(threadCount)
+            val successfulWorkIds = Collections.synchronizedList(mutableListOf<Long>())
+            val conflictCount = java.util.concurrent.atomic.AtomicInteger(0)
+            val unexpectedFailures = Collections.synchronizedList(mutableListOf<Throwable>())
+
+            try {
+                repeat(threadCount) {
+                    executor.execute {
+                        ready.countDown()
+                        start.await(5, TimeUnit.SECONDS)
+                        try {
+                            val work = workService.createOrReuse(title = title, artist = artist)
+                            successfulWorkIds.add(work.workId)
+                        } catch (e: BusinessException) {
+                            if (e.errorCode.name == "SONG_ANALYSIS_WORK_ALREADY_EXISTS") {
+                                conflictCount.incrementAndGet()
+                            } else {
+                                unexpectedFailures.add(e)
+                            }
+                        } catch (t: Throwable) {
+                            unexpectedFailures.add(t)
+                        } finally {
+                            done.countDown()
+                        }
+                    }
+                }
+
+                assertThat(ready.await(5, TimeUnit.SECONDS)).isTrue
+                start.countDown()
+                assertThat(done.await(10, TimeUnit.SECONDS)).isTrue
+
+                assertThat(unexpectedFailures).isEmpty()
+                assertThat(successfulWorkIds.size + conflictCount.get()).isEqualTo(threadCount)
+                assertThat(successfulWorkIds).isNotEmpty
+
+                val activeWork = workRepository.findByActiveDedupKey(activeDedupKey)
+                assertThat(activeWork).isNotNull
+                assertThat(successfulWorkIds.toSet()).containsExactly(activeWork!!.id)
+                assertThat(workRepository.findAll().filter { it.activeDedupKey == activeDedupKey }).hasSize(1)
+            } finally {
+                executor.shutdownNow()
+                workRepository.findByActiveDedupKey(activeDedupKey)?.let { workRepository.delete(it) }
+            }
+        }
+    }
+
+    @Nested
+    inner class GetAnalysisWork {
+
+        @Test
+        fun `existing work returns 200 with current state`() {
+            val me = newUser()
+            val created = mockMvc.post("/api/songs/analyze") {
+                header("Authorization", bearer(me))
+                contentType = MediaType.APPLICATION_JSON
+                content = objectMapper.writeValueAsString(
+                    AnalyzeSongRequest(title = "조회곡", artist = "조회가수", durationSeconds = 210),
+                )
+            }.andExpect { status { isOk() } }.andReturn().response.contentAsString
+            val createdDto = readBody<SongAnalysisWorkResponse>(created)
+
+            val body = mockMvc.get("/api/songs/analysis-work/${createdDto.workId}") {
+                header("Authorization", bearer(me))
+            }.andExpect { status { isOk() } }.andReturn().response.contentAsString
+
+            val dto = readBody<SongAnalysisWorkResponse>(body)
+            assertThat(dto.workId).isEqualTo(createdDto.workId)
+            assertThat(dto.status).isEqualTo("PENDING")
+            assertThat(dto.songId).isNull()
+            assertThat(dto.canOpenPlayer).isFalse
+            assertThat(dto.isAnalysisComplete).isFalse
+        }
+
+        @Test
+        fun `missing work returns 404`() {
+            val me = newUser()
+
+            mockMvc.get("/api/songs/analysis-work/999999999") {
+                header("Authorization", bearer(me))
+            }.andExpect {
+                status { isNotFound() }
+                jsonPath("$.error") { value("SONG_ANALYSIS_WORK_NOT_FOUND") }
+            }
+        }
+    }
+
+    @Nested
+    inner class GetByTitleAndArtist {
+
+        @Test
+        fun `existing song with lyric returns player data by exact title and artist`() {
+            val me = newUser()
+            val song = newSong(title = "既存曲", artist = "歌手")
+            newLyric(
+                song,
+                raw = listOf(LyricLineData(index = 0, startTimeMs = 0, text = "既存")),
+            )
+
+            val body = mockMvc.get("/api/songs") {
+                header("Authorization", bearer(me))
+                param("title", "既存曲")
+                param("artistName", "歌手")
+            }.andExpect { status { isOk() } }.andReturn().response.contentAsString
+
+            val dto = readBody<SongDto>(body)
+            assertThat(dto.song.id).isEqualTo(song.id)
+            assertThat(dto.studyUnits.map { it.originalText }).containsExactly("既存")
+            assertThat(redis.opsForZSet().reverseRange(recentKey(me.id!!), 0, -1))
+                .contains(song.id.toString())
+        }
+
+        @Test
+        fun `missing song returns 204 by title and artist`() {
+            val me = newUser()
+
+            mockMvc.get("/api/songs") {
+                header("Authorization", bearer(me))
+                param("title", "없는곡")
+                param("artistName", "없는가수")
+            }.andExpect { status { isNoContent() } }
+        }
+
+        @Test
+        fun `existing song without lyric returns 204 so analysis work can create lyric`() {
+            val me = newUser()
+            newSong(title = "가사없음", artist = "가수")
+
+            mockMvc.get("/api/songs") {
+                header("Authorization", bearer(me))
+                param("title", "가사없음")
+                param("artistName", "가수")
+            }.andExpect { status { isNoContent() } }
         }
     }
 
@@ -206,7 +352,6 @@ class SongControllerTest : ApiBaseIntegrationTest() {
             val song = newSong()
             newLyric(
                 song,
-                status = KoreanLyricStatus.COMPLETED,
                 raw = listOf(LyricLineData(index = 0, startTimeMs = 0, text = "夜")),
                 analyzed = listOf(
                     AnalyzedLine(
@@ -247,7 +392,6 @@ class SongControllerTest : ApiBaseIntegrationTest() {
             val song = newSong()
             newLyric(
                 song,
-                status = KoreanLyricStatus.PENDING,
                 raw = listOf(LyricLineData(index = 0, startTimeMs = 0, text = "待機中")),
             )
 
