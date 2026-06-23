@@ -40,8 +40,33 @@ export type LyricSummary = {
 }
 
 export type LyricDetail = LyricSummary & {
-  rawContent: unknown[]
-  analyzedContent: unknown[] | null
+  rawContent: RawLyricLine[]
+  analyzedContent: AnalyzedLyricLine[] | null
+}
+
+export type RawLyricLine = {
+  index: number
+  startTimeMs?: number | null
+  text: string
+}
+
+export type LyricToken = {
+  surface: string
+  baseForm: string
+  reading: string | null
+  baseFormReading: string | null
+  partOfSpeech: string
+  charStart: number
+  charEnd: number
+  koreanText?: string | null
+  jlpt?: string | null
+}
+
+export type AnalyzedLyricLine = {
+  index: number
+  koreanLyrics: string | null
+  koreanPronounciation?: string | null
+  tokens: LyricToken[]
 }
 
 export type AdminUser = {

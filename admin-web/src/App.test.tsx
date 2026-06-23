@@ -68,11 +68,17 @@ describe("admin web", () => {
   })
 
   test("renders detail pages without write controls", async () => {
+    const user = userEvent.setup()
     sessionStorage.setItem("kotonoha.admin.token", "admin-token")
     renderApp("/lyrics/2")
 
-    expect(await screen.findByText("Raw content")).toBeInTheDocument()
-    expect(screen.getByText("Analyzed content")).toBeInTheDocument()
+    expect(await screen.findByRole("button", { name: "Copy raw JSON" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Copy analyzed JSON" })).toBeInTheDocument()
+    expect(screen.getByText("가라앉듯이 녹아가듯이")).toBeInTheDocument()
+    expect(screen.queryByText(/"koreanLyrics"/)).not.toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Inspect 沈む" }))
+    expect(screen.getByText("가라앉다")).toBeInTheDocument()
+    expect(screen.getByText("Base form")).toBeInTheDocument()
     expect(screen.queryByRole("button", { name: /\b(Edit|Delete|Save|Create)\b/i })).not.toBeInTheDocument()
     expect(screen.queryByText(/\b(Edit|Delete|Save|Create)\b/i)).not.toBeInTheDocument()
   })

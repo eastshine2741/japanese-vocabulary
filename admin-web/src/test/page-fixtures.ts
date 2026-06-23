@@ -42,7 +42,55 @@ export const songDetail: SongDetail = {
 export const lyricDetail: LyricDetail = {
   ...lyricSummary,
   rawContent: [{ index: 0, text: "沈むように溶けてゆくように" }],
-  analyzedContent: [{ index: 0, koreanLyrics: "가라앉듯이 녹아가듯이" }],
+  analyzedContent: [
+    {
+      index: 0,
+      koreanLyrics: "가라앉듯이 녹아가듯이",
+      koreanPronounciation: "시즈무요-니 토케테유쿠요-니",
+      tokens: [
+        {
+          surface: "沈む",
+          baseForm: "沈む",
+          reading: "シズム",
+          baseFormReading: "シズム",
+          partOfSpeech: "VERB",
+          charStart: 0,
+          charEnd: 2,
+          koreanText: "가라앉다",
+        },
+        {
+          surface: "ように",
+          baseForm: "ようだ",
+          reading: "ヨウニ",
+          baseFormReading: "ヨウダ",
+          partOfSpeech: "AUXILIARY_VERB",
+          charStart: 2,
+          charEnd: 5,
+          koreanText: "듯이",
+        },
+        {
+          surface: "溶けてゆく",
+          baseForm: "溶けてゆく",
+          reading: "トケテユク",
+          baseFormReading: "トケテユク",
+          partOfSpeech: "VERB",
+          charStart: 5,
+          charEnd: 10,
+          koreanText: "녹아가다",
+        },
+        {
+          surface: "ように",
+          baseForm: "ようだ",
+          reading: "ヨウニ",
+          baseFormReading: "ヨウダ",
+          partOfSpeech: "AUXILIARY_VERB",
+          charStart: 10,
+          charEnd: 13,
+          koreanText: "듯이",
+        },
+      ],
+    },
+  ],
 }
 
 export const adminUser: AdminUser = {
