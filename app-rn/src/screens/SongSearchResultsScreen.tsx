@@ -53,6 +53,7 @@ export default function SongSearchResultsScreen() {
 
   const analyze = usePlayerStore(s => s.analyze);
   const playerStatus = usePlayerStore(s => s.status);
+  const resetPlayer = usePlayerStore(s => s.reset);
   const recordSearchLocally = useSearchHistoryStore(s => s.recordLocally);
 
   const analyzing = playerStatus === 'loading';
@@ -108,6 +109,14 @@ export default function SongSearchResultsScreen() {
       setRowMorphReady(false);
     }
   }, [analyzing]);
+
+  useEffect(() => {
+    return () => {
+      if (usePlayerStore.getState().status === 'loading') {
+        resetPlayer();
+      }
+    };
+  }, [resetPlayer]);
 
   const handleAnalyzingRowLayout = useCallback(() => {
     if (rowMorphReady) return;

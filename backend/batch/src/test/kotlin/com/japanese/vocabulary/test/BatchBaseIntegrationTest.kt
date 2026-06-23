@@ -1,6 +1,9 @@
 package com.japanese.vocabulary.test
 
 import com.google.firebase.messaging.FirebaseMessaging
+import com.japanese.vocabulary.song.client.lrclib.LrclibClient
+import com.japanese.vocabulary.song.client.vocadb.VocadbClient
+import com.japanese.vocabulary.song.client.youtube.YoutubeClient
 import com.japanese.vocabulary.translation.client.gemini.GeminiClient
 import com.japanese.vocabulary.translation.service.JishoService
 import com.ninjasquad.springmockk.MockkBean
@@ -15,6 +18,15 @@ abstract class BatchBaseIntegrationTest : BaseIntegrationTest() {
     @MockkBean
     protected lateinit var jishoService: JishoService
 
+    @MockkBean
+    protected lateinit var lrclibClient: LrclibClient
+
+    @MockkBean
+    protected lateinit var vocadbClient: VocadbClient
+
+    @MockkBean
+    protected lateinit var youtubeClient: YoutubeClient
+
     /**
      * `PushNotificationService` requires a `FirebaseMessaging` bean, but tests don't load
      * `FirebaseConfig` (it's gated on `push.firebase.enabled=true` and would need real credentials).
@@ -25,8 +37,15 @@ abstract class BatchBaseIntegrationTest : BaseIntegrationTest() {
     protected lateinit var firebaseMessaging: FirebaseMessaging
 
     @BeforeEach
-    fun resetGeminiMock() {
-        clearMocks(geminiClient, answers = true, recordedCalls = true)
-        clearMocks(jishoService, answers = true, recordedCalls = true)
+    fun resetExternalApiMocks() {
+        clearMocks(
+            geminiClient,
+            jishoService,
+            lrclibClient,
+            vocadbClient,
+            youtubeClient,
+            answers = true,
+            recordedCalls = true,
+        )
     }
 }

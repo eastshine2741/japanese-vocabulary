@@ -13,7 +13,12 @@ enum class ErrorCode(val status: HttpStatus, val message: String) {
 
     // Song / Lyrics
     LYRICS_NOT_FOUND(HttpStatus.NOT_FOUND, "Could not find lyrics for this song"),
+    LYRIC_NOT_FOUND(HttpStatus.NOT_FOUND, "Lyric not found"),
     SONG_NOT_FOUND(HttpStatus.NOT_FOUND, "Song not found"),
+    SONG_ANALYSIS_WORK_NOT_FOUND(HttpStatus.NOT_FOUND, "Song analysis work not found"),
+    SONG_ANALYSIS_WORK_ALREADY_EXISTS(HttpStatus.CONFLICT, "Song analysis work already exists"),
+    SONG_ANALYSIS_WORK_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "Song analysis failed"),
+    SONG_ANALYSIS_WORK_TIMEOUT(HttpStatus.INTERNAL_SERVER_ERROR, "Song analysis timed out"),
 
     // Word
     WORD_NOT_FOUND(HttpStatus.NOT_FOUND, "Word not found"),

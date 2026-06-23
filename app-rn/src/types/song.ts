@@ -59,3 +59,16 @@ export interface AnalyzeSongRequest {
   durationSeconds?: number;
   artworkUrl?: string;
 }
+
+export type SongAnalysisWorkStatus = 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED';
+
+export interface SongAnalysisWorkResponse {
+  workId: number;
+  status: SongAnalysisWorkStatus;
+  currentStage: string | null;
+  songId: number | null;
+  canOpenPlayer: boolean;
+  isAnalysisComplete: boolean;
+  errorCode: string | null;
+  errorMessage: string | null;
+}

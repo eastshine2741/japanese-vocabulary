@@ -3,10 +3,12 @@ package com.japanese.vocabulary.admin
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.japanese.vocabulary.admin.dto.AdminLoginRequest
 import com.japanese.vocabulary.admin.dto.AdminLoginResponse
-import com.japanese.vocabulary.song.entity.KoreanLyricStatus
 import com.japanese.vocabulary.song.entity.LyricEntity
 import com.japanese.vocabulary.song.entity.LyricType
 import com.japanese.vocabulary.song.model.LyricLineData
+import com.japanese.vocabulary.songanalysis.entity.SongAnalysisTriggerSource
+import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkEntity
+import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStatus
 import com.japanese.vocabulary.test.fixtures.TestSongBuilder
 import com.japanese.vocabulary.test.fixtures.TestUserBuilder
 import com.japanese.vocabulary.user.entity.UserEntity
@@ -159,9 +161,19 @@ class AdminApiIntegrationTest : AdminBaseIntegrationTest() {
             songId = songId,
             lyricType = LyricType.PLAIN,
             rawContent = listOf(LyricLineData(index = 0, startTimeMs = 0, text = "歌詞")),
-            status = KoreanLyricStatus.PENDING,
         )
         entityManager.persist(lyric)
+        entityManager.flush()
+
+        val work = SongAnalysisWorkEntity(
+            rawTitle = "管理曲",
+            rawArtist = "管理歌手",
+            triggerSource = SongAnalysisTriggerSource.USER_APP,
+            status = SongAnalysisWorkStatus.PENDING,
+        )
+        work.songId = songId
+        work.lyricId = requireNotNull(lyric.id)
+        entityManager.persist(work)
         entityManager.flush()
         return lyric
     }

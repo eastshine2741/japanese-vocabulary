@@ -1,6 +1,5 @@
 package com.japanese.vocabulary.translation.service
 
-import com.japanese.vocabulary.observability.MetricNames
 import com.japanese.vocabulary.translation.client.gemini.GeminiClient
 import com.japanese.vocabulary.translation.client.gemini.dto.SegLineDto
 import com.japanese.vocabulary.translation.client.gemini.dto.SelectWordDto
@@ -8,25 +7,21 @@ import com.japanese.vocabulary.translation.client.gemini.dto.TranslationResultDt
 import com.japanese.vocabulary.translation.client.jisho.JishoPartOfSpeechMapper
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoEntryDto
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoOptionDto
-import com.japanese.vocabulary.song.entity.KoreanLyricStatus
 import com.japanese.vocabulary.song.entity.LyricEntity
 import com.japanese.vocabulary.song.model.AnalyzedLine
 import com.japanese.vocabulary.song.model.PartOfSpeech
 import com.japanese.vocabulary.song.model.Token
 import com.japanese.vocabulary.song.repository.LyricRepository
-import io.micrometer.core.instrument.Gauge
-import io.micrometer.core.instrument.MeterRegistry
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import org.slf4j.LoggerFactory
-import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 /**
- * Domain-level lyric translation operations. Exposes granular methods over a single [LyricEntity];
- * the polling / batching / coroutine / retry-policy flow lives in
- * `batch.KoreanLyricTranslationScheduler`, which composes these primitives.
+ * Domain-level lyric translation operations. Exposes pure compute and analyzed-content persistence
+ * over a single [LyricEntity]. Work polling, stage transitions, and terminal failure handling live
+ * in the batch module's song-analysis work scheduler/processor.
  *
  * The word-meaning pipeline is the redesigned segment → jisho → sense-select → translate harness
  * (Kuromoji dropped, correction pass removed). See [runPipeline].
@@ -36,41 +31,12 @@ class KoreanLyricTranslationService(
     private val lyricRepository: LyricRepository,
     private val geminiClient: GeminiClient,
     private val jishoService: JishoService,
-    private val meterRegistry: MeterRegistry,
 ) {
     private val logger = LoggerFactory.getLogger("KoreanLyricTranslation")
 
-    init {
-        registerStatusGauge(KoreanLyricStatus.PENDING, MetricNames.LYRIC_TRANSLATION_PENDING)
-        registerStatusGauge(KoreanLyricStatus.PROCESSING, MetricNames.LYRIC_TRANSLATION_PROCESSING)
-        registerStatusGauge(KoreanLyricStatus.FAILED, MetricNames.LYRIC_TRANSLATION_FAILED)
-    }
-
-    private fun registerStatusGauge(status: KoreanLyricStatus, name: String) {
-        Gauge.builder(name) { lyricRepository.countByStatus(status).toDouble() }
-            .register(meterRegistry)
-    }
-
-    @Transactional(readOnly = true)
-    fun findPendingLyrics(limit: Int): List<LyricEntity> =
-        lyricRepository.findNextForTranslation(
-            listOf(KoreanLyricStatus.PENDING),
-            Pageable.ofSize(limit),
-        )
-
-    @Transactional
-    fun markProcessing(entities: List<LyricEntity>) {
-        if (entities.isEmpty()) return
-        entities.forEach { entity ->
-            logger.info("[songId={}] Status: {} → PROCESSING", entity.songId, entity.status)
-            entity.status = KoreanLyricStatus.PROCESSING
-        }
-        lyricRepository.saveAllAndFlush(entities)
-    }
-
     /**
      * Pure compute: the redesigned word-meaning pipeline. No DB writes.
-     * Throws on failure so the caller can decide retry vs terminal-fail policy.
+     * Throws on failure so the work processor can mark the owning work terminal FAILED.
      *
      * Stages (all word-meaning calls use the lightweight model). Diagram:
      *   `(translation ∥ [segment → jisho]) → sense-select → translate-sense → assemble`
@@ -87,8 +53,8 @@ class KoreanLyricTranslationService(
      */
     suspend fun runPipeline(entity: LyricEntity): List<AnalyzedLine> {
         logger.info(
-            "[songId={}] Starting translation (retryCount={})",
-            entity.songId, entity.retryCount,
+            "[songId={}] Starting translation",
+            entity.songId,
         )
 
         val lyricLines = entity.rawContent
@@ -250,34 +216,10 @@ class KoreanLyricTranslationService(
     }
 
     @Transactional
-    fun markCompleted(entity: LyricEntity, lines: List<AnalyzedLine>) {
+    fun saveAnalyzedContent(entity: LyricEntity, lines: List<AnalyzedLine>) {
         entity.analyzedContent = lines
-        entity.status = KoreanLyricStatus.COMPLETED
         lyricRepository.save(entity)
-        logger.info("[songId={}] Status: PROCESSING → COMPLETED", entity.songId)
-    }
-
-    /**
-     * Increments [LyricEntity.retryCount] and resets status to PENDING for another attempt.
-     * Returns the new retry count so the caller can decide whether to mark FAILED.
-     */
-    @Transactional
-    fun recordRetryAttempt(entity: LyricEntity): Int {
-        entity.retryCount++
-        entity.status = KoreanLyricStatus.PENDING
-        lyricRepository.save(entity)
-        logger.info(
-            "[songId={}] Status: PROCESSING → PENDING (retry attempt {})",
-            entity.songId, entity.retryCount,
-        )
-        return entity.retryCount
-    }
-
-    @Transactional
-    fun markFailed(entity: LyricEntity) {
-        entity.status = KoreanLyricStatus.FAILED
-        lyricRepository.save(entity)
-        logger.info("[songId={}] Status: PROCESSING → FAILED (terminal)", entity.songId)
+        logger.info("[songId={}] Analyzed lyric content saved", entity.songId)
     }
 
     /** Carries the results of the parallel (translation ∥ segment→jisho) stage out of coroutineScope. */

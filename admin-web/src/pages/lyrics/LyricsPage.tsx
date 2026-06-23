@@ -12,7 +12,7 @@ import { Table, Td, Th } from "@/components/ui/table"
 import { useAuth } from "@/features/auth"
 import { formatDateTime, formatNumber } from "@/lib/utils"
 
-const statuses = ["", "PENDING", "COMPLETED", "FAILED"]
+const statuses = ["", "PENDING", "RUNNING", "COMPLETED", "FAILED"]
 
 export function LyricsPage() {
   const { token } = useAuth()

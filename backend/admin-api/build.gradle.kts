@@ -15,6 +15,7 @@ dependencies {
     implementation(project(":domains:song")) {
         exclude(group = "org.springframework.boot", module = "spring-boot-starter-data-redis")
     }
+    implementation(project(":domains:song-analysis"))
     implementation(project(":domains:user"))
 
     implementation("org.springframework.boot:spring-boot-starter-web")

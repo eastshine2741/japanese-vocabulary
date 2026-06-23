@@ -81,20 +81,21 @@ backend/
 │   ├── user/                — UserEntity + Settings + DeviceToken
 │   ├── userinventory/       — freeze inventory etc.
 │   ├── song/                — Song/Lyric entity + iTunes/YouTube/VocaDB/LRCLIB clients + LyricProcessingService (동기 단계). 저장 모델(AnalyzedLine/Token/PartOfSpeech)도 여기 (LyricEntity JSON + api study view가 사용)
+│   ├── song-analysis/       — song_analysis_work 상태머신 + trigger/polling DTO. song 모듈을 의존하지 않으며 song_id/lyric_id는 Long projection으로만 보관
 │   ├── translation/         — 가사 분석+번역 파이프라인: KoreanLyricTranslationService + GeminiClient + JishoService(cache-aside+동시성) + JishoClient(API만) + JishoCache(RedisCache 자식). **batch만 의존** (가사 번역 스케줄러만 사용). 형태소 분석은 LLM이 직접 수행(Kuromoji 폐기 2026-06) — analyzer/사전 의존성 없음. jisho 조회는 Redis 캐시(`JishoCache`)
 │   ├── flashcard/           — word + flashcard packages merged (word ↔ flashcard cycle): WordEntity, FlashcardEntity, repositories, services, events
 │   ├── deck/                — DeckEntity, DeckService, DeckEventListener
 │   ├── studystats/          — DailyStudySummary, StreakCalculator (Spring Batch 잡 본체는 batch 모듈로 분리됨 — 도메인 모듈은 Job/Scheduler를 갖지 않음. 그래야 api가 studystats를 의존해도 spring-batch가 classpath에 안 올라와 startup 잡 자동실행이 안 생김)
 │   └── notification/        — FCM 전송 + FirebaseConfig + NotificationLogEntity 만. Scheduler/조회 로직은 없음. 외부 데이터 접근은 `PushNotificationDataPort` 인터페이스로 추상화 (구현체는 `batch`)
-├── api/                     — REST bootstrap (@SpringBootApplication). translation을 제외한 모든 도메인 모듈 의존. controller/ + per-domain dto/ (HTTP 입출력). @Scheduled 없음.
+├── api/                     — REST bootstrap (@SpringBootApplication). translation을 제외한 사용자 API 도메인 모듈 의존(song-analysis 포함). controller/ + per-domain dto/ (HTTP 입출력). @Scheduled 없음.
 ├── admin-api/               — internal admin REST bootstrap. v1 is read-only for song/lyric/user inspection, password-only admin auth, admin-specific stateless bearer token. Component scan is limited to `com.japanese.vocabulary.admin`; JPA scans admin repositories plus song/user entities only. It currently depends on `domains:song` for entity/model classes but must not component-scan song runtime packages.
-└── batch/                   — 스케줄 잡 bootstrap (@SpringBootApplication, @EnableScheduling). 필요한 도메인만 의존 (현재 song, translation, studystats, notification, user, flashcard). 모든 @Scheduled는 여기. KoreanLyricTranslationScheduler, FreezeConsumeScheduler 등.
+└── batch/                   — 스케줄 잡 bootstrap (@SpringBootApplication, @EnableScheduling). 필요한 도메인만 의존 (현재 song, song-analysis, translation, studystats, notification, user, flashcard). 모든 @Scheduled는 여기. SongAnalysisWorkScheduler, FreezeConsumeScheduler 등.
 ```
 
 ### 모듈 의존성 원칙
 
 - **batch가 의존하는 도메인은 최소화**. 필요한 도메인만 추가. JPA 엔티티 로드 비용 절감.
-- **api는 모든 도메인 의존**. REST 표면이 전체 도메인을 노출하므로. **예외: translation** — 가사 번역 스케줄러(batch)만 사용하므로 batch 전용 유지. (Kuromoji 폐기 후 힙 비용 사유는 사라졌지만 api가 의존할 이유도 없음.)
+- **api는 사용자 API에 필요한 도메인 의존**. 현재 REST 표면은 대부분의 사용자 도메인을 노출하고 song 조회/분석 polling 때문에 `song`과 `song-analysis`를 둘 다 의존한다. **예외: translation** — 가사 번역 스케줄러(batch)만 사용하므로 batch 전용 유지. (Kuromoji 폐기 후 힙 비용 사유는 사라졌지만 api가 의존할 이유도 없음.)
 - **admin-api는 public api와 분리된 bootstrap**. v1은 `song`, `lyric`, `user` 조회만 제공하고 mutation route를 만들지 않는다. `domains:song`는 WebFlux/Redis/external client/service bean이 많은 runtime-heavy module이므로 admin-api에서 broad component scan 금지. 필요한 경우 admin-api 내부 repository를 추가하고 entity scan만 도메인 패키지로 명시한다.
 - **Spring Batch Job/Step config·Scheduler·잡 워커 서비스는 batch bootstrap 모듈에만 둔다. 도메인 모듈에 두지 말 것** — 도메인 모듈에 `spring-boot-starter-batch`가 들어가면 그 모듈을 의존하는 api에도 spring-batch가 classpath에 올라와 `JobLauncherApplicationRunner`가 startup에 잡을 자동 실행한다 (`runDate parameter required` 류 에러). 잡은 batch가 스케줄러로만 트리거.
 - **외부 API 클라이언트(`@Value`로 필수 키 주입)가 도메인 모듈에 있고 그 도메인을 batch가 의존하면, batch yml에도 해당 키를 (안 쓰면 빈 기본값 `${KEY:}`으로) 넣어야** placeholder 미해석 크래시를 피한다 (e.g. song의 `YoutubeClient` → batch에 `youtube.api-key`).
@@ -129,12 +130,17 @@ Outer:  Deck, DeckFlashcard      — 조직화 레이어
 - **listener 직접 호출 테스트는 `AfterCommitListenerTest` 상속, setup은 `inTx { ... }`로 감쌀 것.** 기본 rollback base는 AFTER_COMMIT을 발화시키지 않고 REQUIRES_NEW와 row lock 충돌함
 - 이벤트 발행 검증은 기존 base + `@RecordApplicationEvents` (변경 없음)
 
-## Lyric Analysis Flow
+## Song Analysis Flow
 
-동기 저장 + 비동기 배치 2단계.
+비동기 work pipeline. 검색 결과 선택 시 유저앱은 먼저 `GET /api/songs?title=...&artistName=...`로 기존 song+lyric을 exact match 조회한다. 200이면 즉시 player 데이터를 사용하고, 204이면 `/api/songs/analyze`로 `song_analysis_work`를 생성 또는 재사용한다. `/api/songs/analyze`는 더 이상 가사/Youtube/provider 조회를 동기 실행하지 않고 즉시 work 상태를 반환한다. 유저앱은 `/api/songs/analysis-work/{workId}`를 polling하고, `song_id + lyric_id + player_ready_at` milestone이 생기면 `GET /api/songs/{id}`로 player 데이터를 읽는다.
 
-1. **동기** (`LyricProcessingService`, song 도메인): LRCLIB/VocaDB에서 가사 fetch → songs + lyrics 저장 (status=PENDING) → 원본 가사 응답
-2. **비동기 배치**: `KoreanLyricTranslationService.runPipeline()` (translation 도메인, suspend) — word-meaning 파이프라인(segment→jisho→sense-select→translate, Kuromoji·correction 폐기) → analyzed_content 저장, status=COMPLETED. `KoreanLyricTranslationScheduler` (batch 모듈, `@Scheduled fixedRate=30s`)가 호출 트리거.
+1. **Trigger** (`api` + `song-analysis`): analyze 요청 → `SongAnalysisWorkService.createOrReuse()` → active raw `title|artist` work가 있으면 기존 `workId` 반환, 없으면 `song_analysis_work(PENDING)` 생성. 기존 song+lyric 조회는 `GET /api/songs?title&artistName` 사전 조회의 책임이며, analyze trigger는 provider/song 조회를 하지 않는다.
+2. **Batch claim** (`batch`, `SongAnalysisWorkScheduler`, `@Scheduled fixedRate=30s`): `PENDING` work를 claim해 `RUNNING`으로 바꾸고 lock owner/until을 기록한다.
+3. **Pre-analysis pipeline** (`batch` + `song`): stage를 `FETCH_LYRICS` → `FETCH_YOUTUBE` → `CREATE_SONG_AND_LYRIC`로 갱신하며 LRCLIB/VocaDB 가사 조회, Youtube MV 조회, songs+lyrics 생성을 수행한다.
+4. **Player-ready milestone**: song과 lyric이 생성되면 `song_id`, `lyric_id`, `player_ready_at`을 설정한다. `PLAYER_READY`는 status가 아니다.
+5. **Lyric analysis** (`batch` + `translation`): stage `ANALYZE_LYRICS`에서 `KoreanLyricTranslationService.runPipeline()` 실행 → batch-local completion service가 `lyrics.analyzed_content` 저장과 work `COMPLETED`를 같은 트랜잭션에서 처리.
+
+Work status는 `PENDING`, `RUNNING`, `COMPLETED`, `FAILED`만 사용한다. 첫 pass에는 request table, attempt table, automatic retry, MQ, FCM completion path가 없다. 실패 시 work는 `FAILED`가 되고 `active_dedup_key`를 `NULL`로 비워서 같은 곡을 다시 요청하면 새 work를 만들 수 있다. `lyrics`는 원문/분석 결과 저장만 맡고, 상태머신은 `song_analysis_work`가 소유한다.
 
 ### word-meaning 파이프라인 (2026-06 재설계, 뜻 생성 단계 gemini-3.1-flash-lite)
 
@@ -146,7 +152,7 @@ Outer:  Deck, DeckFlashcard      — 조직화 레이어
 4. **translate** (LLM): 선택된 sense의 영어 뜻을 한국어로(품사 일관). 조사는 대응 한국어 조사로.
 5. **assemble** (코드): 선택 sense에서 reading/품사/JLPT/뜻을 채운다. sense 없으면 비움(no-fallback). 비(非)일본어(문장부호·영어·숫자)는 `SYMBOL`로 표시해 학습 대상에서 제외.
 
-실패 시 retry(최대 3회) 후 `FAILED`. 배치/재시도 정책은 `KoreanLyricTranslationScheduler`. 실험·검증 코드: `gemini-playground/word-meaning-harness/`(Python 프로토타입이 Kotlin과 동치). 비용 ≈ $0.031/곡.
+실패 시 첫 pass에서는 자동 retry 없이 `song_analysis_work.status=FAILED`로 종료한다. 사용자가 같은 곡을 다시 요청하면 새 work가 생성되어 다시 처리된다. 실험·검증 코드: `gemini-playground/word-meaning-harness/`(Python 프로토타입이 Kotlin과 동치). 비용 ≈ $0.031/곡.
 
 > **주의**: jisho 캐시 등 Redis에 저장하는 DTO 스키마를 바꾸면 **옛 `jisho:*` 캐시를 반드시 비울 것**. unknown 필드 무시로 옛 값이 빈 결과로 역직렬화되면 전 토큰이 무음(뜻/품사 없음)이 되며 에러 로그도 안 남는다.
 

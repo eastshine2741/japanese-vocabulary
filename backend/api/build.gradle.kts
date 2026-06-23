@@ -15,6 +15,7 @@ dependencies {
 
     // Domain modules (api bootstrap wires all of them)
     implementation(project(":domains:song"))
+    implementation(project(":domains:song-analysis"))
     implementation(project(":domains:auth"))
     implementation(project(":domains:user"))
     implementation(project(":domains:userinventory"))

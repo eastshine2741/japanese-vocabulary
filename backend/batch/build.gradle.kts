@@ -15,6 +15,7 @@ dependencies {
 
     // Domains the batch process actually loads
     implementation(project(":domains:song"))
+    implementation(project(":domains:song-analysis"))
     implementation(project(":domains:translation"))
     implementation(project(":domains:studystats"))
     implementation(project(":domains:notification"))
