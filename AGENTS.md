@@ -77,19 +77,20 @@ backend/
 │   ├── user/                — UserEntity + Settings + DeviceToken
 │   ├── userinventory/       — freeze inventory etc.
 │   ├── song/                — Song/Lyric entity + iTunes/YouTube/VocaDB/LRCLIB clients + LyricProcessingService (동기 단계). 저장 모델(AnalyzedLine/Token/PartOfSpeech)도 여기 (LyricEntity JSON + api study view가 사용)
+│   ├── song-analysis/       — song_analysis_work 상태머신 + trigger/polling DTO. song 모듈을 의존하지 않으며 song_id/lyric_id는 Long projection으로만 보관
 │   ├── translation/         — 가사 분석+번역 파이프라인: KoreanLyricTranslationService + GeminiClient + JishoService(cache-aside+동시성) + JishoClient(API만) + JishoCache(RedisCache 자식). **batch만 의존** (가사 번역 스케줄러만 사용). 형태소 분석은 LLM이 직접 수행(Kuromoji 폐기 2026-06) — analyzer/사전 의존성 없음. jisho 조회는 Redis 캐시(`JishoCache`)
 │   ├── flashcard/           — word + flashcard packages merged (word ↔ flashcard cycle): WordEntity, FlashcardEntity, repositories, services, events
 │   ├── deck/                — DeckEntity, DeckService, DeckEventListener
 │   ├── studystats/          — DailyStudySummary, StreakCalculator (Spring Batch 잡 본체는 batch 모듈로 분리됨 — 도메인 모듈은 Job/Scheduler를 갖지 않음. 그래야 api가 studystats를 의존해도 spring-batch가 classpath에 안 올라와 startup 잡 자동실행이 안 생김)
 │   └── notification/        — FCM 전송 + FirebaseConfig + NotificationLogEntity 만. Scheduler/조회 로직은 없음. 외부 데이터 접근은 `PushNotificationDataPort` 인터페이스로 추상화 (구현체는 `batch`)
-├── api/                     — REST bootstrap (@SpringBootApplication). translation을 제외한 모든 도메인 모듈 의존. controller/ + per-domain dto/ (HTTP 입출력). @Scheduled 없음.
-└── batch/                   — 스케줄 잡 bootstrap (@SpringBootApplication, @EnableScheduling). 필요한 도메인만 의존 (현재 song, translation, studystats, notification, user, flashcard). 모든 @Scheduled는 여기. SongAnalysisWorkScheduler, FreezeConsumeScheduler 등.
+├── api/                     — REST bootstrap (@SpringBootApplication). translation을 제외한 필요한 도메인 모듈 의존. controller/ + per-domain dto/ (HTTP 입출력). @Scheduled 없음.
+└── batch/                   — 스케줄 잡 bootstrap (@SpringBootApplication, @EnableScheduling). 필요한 도메인만 의존 (현재 song, song-analysis, translation, studystats, notification, user, flashcard). 모든 @Scheduled는 여기. SongAnalysisWorkScheduler, FreezeConsumeScheduler 등.
 ```
 
 ### 모듈 의존성 원칙
 
 - **batch가 의존하는 도메인은 최소화**. 필요한 도메인만 추가. JPA 엔티티 로드 비용 절감.
-- **api는 모든 도메인 의존**. REST 표면이 전체 도메인을 노출하므로. **예외: translation** — 가사 번역 스케줄러(batch)만 사용하므로 batch 전용 유지. (Kuromoji 폐기 후 힙 비용 사유는 사라졌지만 api가 의존할 이유도 없음.)
+- **api는 필요한 도메인만 의존**. user API는 song 조회 때문에 `song`과 `song-analysis`를 둘 다 의존하지만, future admin API가 분석 trigger/status만 제공하면 `song-analysis`만 의존하게 분리할 수 있다. **translation은 batch 전용 유지** — 가사 번역 스케줄러만 사용하므로 api가 의존할 이유가 없음.
 - **Spring Batch Job/Step config·Scheduler·잡 워커 서비스는 batch bootstrap 모듈에만 둔다. 도메인 모듈에 두지 말 것** — 도메인 모듈에 `spring-boot-starter-batch`가 들어가면 그 모듈을 의존하는 api에도 spring-batch가 classpath에 올라와 `JobLauncherApplicationRunner`가 startup에 잡을 자동 실행한다 (`runDate parameter required` 류 에러). 잡은 batch가 스케줄러로만 트리거.
 - **외부 API 클라이언트(`@Value`로 필수 키 주입)가 도메인 모듈에 있고 그 도메인을 batch가 의존하면, batch yml에도 해당 키를 (안 쓰면 빈 기본값 `${KEY:}`으로) 넣어야** placeholder 미해석 크래시를 피한다 (e.g. song의 `YoutubeClient` → batch에 `youtube.api-key`).
 - **통합테스트는 bootstrap 모듈(api/batch)에만 둔다. 도메인 모듈에 테스트용 @SpringBootApplication(TestBoot)을 만들지 말 것** — 부트클래스가 도메인 패키지에 있으면 repo/entity 스캔 범위가 그 패키지로 좁아져 cross-domain 빈이 unresolved 된다 (`scanBasePackages`는 컴포넌트 스캔만 넓힐 뿐). 리스너 직접 호출 테스트는 api의 `ApiAfterCommitListenerTest` 상속.
@@ -127,11 +128,11 @@ Outer:  Deck, DeckFlashcard      — 조직화 레이어
 
 비동기 work pipeline. 검색 결과 선택 시 유저앱은 먼저 `GET /api/songs?title=...&artistName=...`로 기존 song+lyric을 exact match 조회한다. 200이면 즉시 player 데이터를 사용하고, 204이면 `/api/songs/analyze`로 `song_analysis_work`를 생성 또는 재사용한다. `/api/songs/analyze`는 더 이상 가사/Youtube/provider 조회를 동기 실행하지 않고 즉시 work 상태를 반환한다. 유저앱은 `/api/songs/analysis-work/{workId}`를 polling하고, `song_id + lyric_id + player_ready_at` milestone이 생기면 `GET /api/songs/{id}`로 player 데이터를 읽는다.
 
-1. **Trigger** (`api`): analyze 요청 → `SongAnalysisWorkService.createOrReuse()` → active raw `title|artist` work가 있으면 기존 `workId` 반환, 없으면 `song_analysis_work(PENDING)` 생성. 기존 song+lyric도 raw `artist,title` exact match로 조회하며, 있으면 player-ready projection을 즉시 반환.
+1. **Trigger** (`api` + `song-analysis`): analyze 요청 → `SongAnalysisWorkService.createOrReuse()` → active raw `title|artist` work가 있으면 기존 `workId` 반환, 없으면 `song_analysis_work(PENDING)` 생성. 기존 song+lyric 조회는 `GET /api/songs?title&artistName` 사전 조회의 책임이며, analyze trigger는 provider/song 조회를 하지 않는다.
 2. **Batch claim** (`batch`, `SongAnalysisWorkScheduler`, `@Scheduled fixedRate=30s`): `PENDING` work를 claim해 `RUNNING`으로 바꾸고 lock owner/until을 기록한다.
 3. **Pre-analysis pipeline** (`batch` + `song`): stage를 `FETCH_LYRICS` → `FETCH_YOUTUBE` → `CREATE_SONG_AND_LYRIC`로 갱신하며 LRCLIB/VocaDB 가사 조회, Youtube MV 조회, songs+lyrics 생성을 수행한다.
 4. **Player-ready milestone**: song과 lyric이 생성되면 `song_id`, `lyric_id`, `player_ready_at`을 설정한다. `PLAYER_READY`는 status가 아니다.
-5. **Lyric analysis** (`batch` + `translation`): stage `ANALYZE_LYRICS`에서 `KoreanLyricTranslationService.runPipeline()` 실행 → `lyrics.analyzed_content` 저장 → work `COMPLETED`.
+5. **Lyric analysis** (`batch` + `translation`): stage `ANALYZE_LYRICS`에서 `KoreanLyricTranslationService.runPipeline()` 실행 → batch-local completion service가 `lyrics.analyzed_content` 저장과 work `COMPLETED`를 같은 트랜잭션에서 처리.
 
 Work status는 `PENDING`, `RUNNING`, `COMPLETED`, `FAILED`만 사용한다. 첫 pass에는 request table, attempt table, automatic retry, MQ, FCM completion path가 없다. 실패 시 work는 `FAILED`가 되고 `active_dedup_key`를 `NULL`로 비워서 같은 곡을 다시 요청하면 새 work를 만들 수 있다. `lyrics`는 원문/분석 결과 저장만 맡고, 상태머신은 `song_analysis_work`가 소유한다.
 

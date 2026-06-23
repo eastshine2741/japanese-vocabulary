@@ -1,4 +1,4 @@
-package com.japanese.vocabulary.song.entity
+package com.japanese.vocabulary.songanalysis.entity
 
 import jakarta.persistence.Column
 import jakarta.persistence.Entity

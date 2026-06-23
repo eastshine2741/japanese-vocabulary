@@ -7,10 +7,10 @@ import com.japanese.vocabulary.song.dto.SongDto
 import com.japanese.vocabulary.song.dto.AnalyzedSongDto
 import com.japanese.vocabulary.song.dto.SongSearchResponse
 import com.japanese.vocabulary.deck.service.DeckService
-import com.japanese.vocabulary.song.dto.SongAnalysisWorkDto
+import com.japanese.vocabulary.songanalysis.dto.SongAnalysisWorkDto
 import com.japanese.vocabulary.song.repository.LyricRepository
 import com.japanese.vocabulary.song.repository.SongRepository
-import com.japanese.vocabulary.song.service.SongAnalysisWorkService
+import com.japanese.vocabulary.songanalysis.service.SongAnalysisWorkService
 import com.japanese.vocabulary.song.service.LyricProcessingService
 import com.japanese.vocabulary.song.service.RecentSongService
 import com.japanese.vocabulary.song.service.SearchHistoryService

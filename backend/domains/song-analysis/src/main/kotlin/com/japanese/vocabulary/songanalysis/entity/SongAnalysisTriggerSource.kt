@@ -1,4 +1,4 @@
-package com.japanese.vocabulary.song.entity
+package com.japanese.vocabulary.songanalysis.entity
 
 enum class SongAnalysisTriggerSource {
     USER_APP,

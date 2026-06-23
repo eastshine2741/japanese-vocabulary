@@ -1,17 +1,14 @@
-package com.japanese.vocabulary.song.service
+package com.japanese.vocabulary.songanalysis.service
 
 import com.japanese.vocabulary.common.exception.BusinessException
 import com.japanese.vocabulary.common.exception.ErrorCode
-import com.japanese.vocabulary.song.dto.SongAnalysisWorkDto
-import com.japanese.vocabulary.song.dto.toDto
-import com.japanese.vocabulary.song.entity.SongAnalysisTriggerSource
-import com.japanese.vocabulary.song.entity.SongAnalysisWorkEntity
-import com.japanese.vocabulary.song.entity.SongAnalysisWorkStage
-import com.japanese.vocabulary.song.entity.SongAnalysisWorkStatus
-import com.japanese.vocabulary.song.model.AnalyzedLine
-import com.japanese.vocabulary.song.repository.LyricRepository
-import com.japanese.vocabulary.song.repository.SongAnalysisWorkRepository
-import com.japanese.vocabulary.song.repository.SongRepository
+import com.japanese.vocabulary.songanalysis.dto.SongAnalysisWorkDto
+import com.japanese.vocabulary.songanalysis.dto.toDto
+import com.japanese.vocabulary.songanalysis.entity.SongAnalysisTriggerSource
+import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkEntity
+import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStage
+import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStatus
+import com.japanese.vocabulary.songanalysis.repository.SongAnalysisWorkRepository
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -20,8 +17,6 @@ import java.time.Instant
 @Service
 class SongAnalysisWorkService(
     private val songAnalysisWorkRepository: SongAnalysisWorkRepository,
-    private val songRepository: SongRepository,
-    private val lyricRepository: LyricRepository,
 ) {
 
     @Transactional
@@ -39,10 +34,6 @@ class SongAnalysisWorkService(
             return it.toDto()
         }
 
-        val now = Instant.now()
-        val existingSong = songRepository.findByArtistAndTitle(artist, title)
-        val existingLyric = existingSong?.id?.let { lyricRepository.findBySongId(it) }
-
         val work = SongAnalysisWorkEntity(
             rawTitle = title,
             rawArtist = artist,
@@ -52,14 +43,6 @@ class SongAnalysisWorkService(
             triggerSource = triggerSource,
             createdByUserId = createdByUserId,
         )
-
-        if (existingSong != null && existingLyric != null) {
-            work.attachPlayerReady(existingSong.id, existingLyric.id!!, now)
-            work.currentStage = SongAnalysisWorkStage.ANALYZE_LYRICS
-            if (existingLyric.analyzedContent != null) {
-                work.markCompleted(now)
-            }
-        }
 
         return try {
             songAnalysisWorkRepository.saveAndFlush(work).toDto()
@@ -128,27 +111,6 @@ class SongAnalysisWorkService(
         val work = getEntityForUpdate(workId)
         if (!work.isOwnedRunningBy(workerId, Instant.now())) return false
         work.markCompleted(Instant.now())
-        return true
-    }
-
-    @Transactional
-    fun completeWithAnalyzedContent(
-        workId: Long,
-        workerId: String,
-        lyricId: Long,
-        analyzedLines: List<AnalyzedLine>,
-    ): Boolean {
-        val now = Instant.now()
-        val work = getEntityForUpdate(workId)
-        if (!work.isOwnedRunningBy(workerId, now)) return false
-
-        val lyric = lyricRepository.findById(lyricId).orElseThrow {
-            BusinessException(ErrorCode.LYRIC_NOT_FOUND)
-        }
-        lyric.analyzedContent = analyzedLines
-        lyricRepository.save(lyric)
-
-        work.markCompleted(now)
         return true
     }
 

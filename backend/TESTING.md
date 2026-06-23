@@ -367,7 +367,7 @@ class LyricProcessingServiceTest : ApiBaseIntegrationTest() {
 
 **전략:**
 - `@Scheduled`는 테스트에서 끔: `spring.task.scheduling.enabled=false`.
-- `SongAnalysisWorkService.claimPending()` / `failExpiredRunning()`과 `KoreanLyricTranslationService.runPipeline()`을 직접 검증.
+- `song-analysis` 모듈의 `SongAnalysisWorkService.claimPending()` / `failExpiredRunning()`과 `KoreanLyricTranslationService.runPipeline()`을 직접 검증.
 - `@MockkBean(GeminiClient::class)`로 translateLyrics, lookupWordMeanings stub.
 - 실제 KuromojiMorphologicalAnalyzer는 그대로 실행 (사전 동봉 — 외부 의존 없음).
 

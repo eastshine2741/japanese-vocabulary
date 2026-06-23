@@ -1,7 +1,8 @@
 package com.japanese.vocabulary.song.batch
 
 import com.japanese.vocabulary.observability.MetricNames
-import com.japanese.vocabulary.song.service.SongAnalysisWorkService
+import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkEntity
+import com.japanese.vocabulary.songanalysis.service.SongAnalysisWorkService
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Timer
 import kotlinx.coroutines.CoroutineScope
@@ -64,7 +65,7 @@ class SongAnalysisWorkScheduler(
         }
     }
 
-    private suspend fun processOne(work: com.japanese.vocabulary.song.entity.SongAnalysisWorkEntity): Boolean {
+    private suspend fun processOne(work: SongAnalysisWorkEntity): Boolean {
         val sample = Timer.start(meterRegistry)
         var outcome = "success"
         return try {

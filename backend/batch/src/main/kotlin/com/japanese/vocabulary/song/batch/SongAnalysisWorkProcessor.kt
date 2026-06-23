@@ -3,11 +3,11 @@ package com.japanese.vocabulary.song.batch
 import com.japanese.vocabulary.common.exception.BusinessException
 import com.japanese.vocabulary.common.exception.ErrorCode
 import com.japanese.vocabulary.song.entity.LyricEntity
-import com.japanese.vocabulary.song.entity.SongAnalysisWorkEntity
-import com.japanese.vocabulary.song.entity.SongAnalysisWorkStage
 import com.japanese.vocabulary.song.repository.LyricRepository
 import com.japanese.vocabulary.song.service.LyricProcessingService
-import com.japanese.vocabulary.song.service.SongAnalysisWorkService
+import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkEntity
+import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStage
+import com.japanese.vocabulary.songanalysis.service.SongAnalysisWorkService
 import com.japanese.vocabulary.translation.service.KoreanLyricTranslationService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
@@ -15,6 +15,7 @@ import org.springframework.stereotype.Component
 @Component
 class SongAnalysisWorkProcessor(
     private val workService: SongAnalysisWorkService,
+    private val completionService: SongAnalysisWorkCompletionService,
     private val lyricProcessingService: LyricProcessingService,
     private val translationService: KoreanLyricTranslationService,
     private val lyricRepository: LyricRepository,
@@ -28,7 +29,7 @@ class SongAnalysisWorkProcessor(
             val lyric = resolveOrCreatePlayerReadyLyric(work, workerId) ?: return false
             if (!workService.markStage(workId, workerId, SongAnalysisWorkStage.ANALYZE_LYRICS)) return false
             val analyzedLines = translationService.runPipeline(lyric)
-            if (!workService.completeWithAnalyzedContent(workId, workerId, lyric.id!!, analyzedLines)) return false
+            if (!completionService.completeWithAnalyzedContent(workId, workerId, lyric.id!!, analyzedLines)) return false
             logger.info("[workId={}] Song analysis completed", work.id)
             true
         } catch (e: Exception) {

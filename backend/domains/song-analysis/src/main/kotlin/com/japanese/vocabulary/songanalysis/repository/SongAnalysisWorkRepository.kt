@@ -1,7 +1,7 @@
-package com.japanese.vocabulary.song.repository
+package com.japanese.vocabulary.songanalysis.repository
 
-import com.japanese.vocabulary.song.entity.SongAnalysisWorkEntity
-import com.japanese.vocabulary.song.entity.SongAnalysisWorkStatus
+import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkEntity
+import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStatus
 import jakarta.persistence.LockModeType
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
@@ -24,7 +24,7 @@ interface SongAnalysisWorkRepository : JpaRepository<SongAnalysisWorkEntity, Lon
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query(
         "SELECT w FROM SongAnalysisWorkEntity w " +
-            "WHERE w.status = com.japanese.vocabulary.song.entity.SongAnalysisWorkStatus.PENDING " +
+            "WHERE w.status = com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStatus.PENDING " +
             "ORDER BY w.createdAt ASC"
     )
     fun findClaimableForUpdate(
@@ -34,7 +34,7 @@ interface SongAnalysisWorkRepository : JpaRepository<SongAnalysisWorkEntity, Lon
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query(
         "SELECT w FROM SongAnalysisWorkEntity w " +
-            "WHERE w.status = com.japanese.vocabulary.song.entity.SongAnalysisWorkStatus.RUNNING " +
+            "WHERE w.status = com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStatus.RUNNING " +
             "AND w.lockedUntil < :now " +
             "ORDER BY w.lockedUntil ASC"
     )

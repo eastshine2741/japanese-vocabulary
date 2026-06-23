@@ -1,7 +1,7 @@
-package com.japanese.vocabulary.song.dto
+package com.japanese.vocabulary.songanalysis.dto
 
-import com.japanese.vocabulary.song.entity.SongAnalysisWorkEntity
-import com.japanese.vocabulary.song.entity.SongAnalysisWorkStatus
+import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkEntity
+import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStatus
 
 data class SongAnalysisWorkDto(
     val workId: Long,

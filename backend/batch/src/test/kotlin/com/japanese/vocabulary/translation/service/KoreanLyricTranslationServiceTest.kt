@@ -8,19 +8,20 @@ import com.japanese.vocabulary.translation.client.gemini.dto.SenseTranslationDto
 import com.japanese.vocabulary.translation.client.gemini.dto.TranslationResultDto
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoEntryDto
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoOptionDto
+import com.japanese.vocabulary.song.batch.SongAnalysisWorkCompletionService
 import com.japanese.vocabulary.song.entity.LyricEntity
 import com.japanese.vocabulary.song.entity.LyricType
-import com.japanese.vocabulary.song.entity.SongAnalysisTriggerSource
-import com.japanese.vocabulary.song.entity.SongAnalysisWorkEntity
-import com.japanese.vocabulary.song.entity.SongAnalysisWorkStatus
 import com.japanese.vocabulary.song.entity.SongEntity
 import com.japanese.vocabulary.song.model.AnalyzedLine
 import com.japanese.vocabulary.song.model.LyricLineData
 import com.japanese.vocabulary.song.model.PartOfSpeech
 import com.japanese.vocabulary.song.repository.LyricRepository
-import com.japanese.vocabulary.song.repository.SongAnalysisWorkRepository
+import com.japanese.vocabulary.songanalysis.entity.SongAnalysisTriggerSource
+import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkEntity
+import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStatus
+import com.japanese.vocabulary.songanalysis.repository.SongAnalysisWorkRepository
 import com.japanese.vocabulary.song.repository.SongRepository
-import com.japanese.vocabulary.song.service.SongAnalysisWorkService
+import com.japanese.vocabulary.songanalysis.service.SongAnalysisWorkService
 import com.japanese.vocabulary.test.BatchBaseIntegrationTest
 import io.mockk.coEvery
 import io.mockk.every
@@ -37,6 +38,7 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
 
     @Autowired private lateinit var translationService: KoreanLyricTranslationService
     @Autowired private lateinit var workService: SongAnalysisWorkService
+    @Autowired private lateinit var completionService: SongAnalysisWorkCompletionService
     @Autowired private lateinit var workRepository: SongAnalysisWorkRepository
     @Autowired private lateinit var lyricRepository: LyricRepository
     @Autowired private lateinit var songRepository: SongRepository
@@ -362,7 +364,7 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
         workRepository.saveAndFlush(expired)
 
         workService.failExpiredRunning(limit = 5)
-        val completed = workService.completeWithAnalyzedContent(
+        val completed = completionService.completeWithAnalyzedContent(
             workId = expired.id!!,
             workerId = "dead-worker",
             lyricId = lyric.id!!,

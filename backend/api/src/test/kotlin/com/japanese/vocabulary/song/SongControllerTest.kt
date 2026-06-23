@@ -19,9 +19,9 @@ import com.japanese.vocabulary.song.entity.LyricEntity
 import com.japanese.vocabulary.song.entity.LyricType
 import com.japanese.vocabulary.song.entity.SongEntity
 import com.japanese.vocabulary.song.repository.LyricRepository
-import com.japanese.vocabulary.song.repository.SongAnalysisWorkRepository
+import com.japanese.vocabulary.songanalysis.repository.SongAnalysisWorkRepository
 import com.japanese.vocabulary.song.repository.SongRepository
-import com.japanese.vocabulary.song.service.SongAnalysisWorkService
+import com.japanese.vocabulary.songanalysis.service.SongAnalysisWorkService
 import com.japanese.vocabulary.test.ApiBaseIntegrationTest
 import com.japanese.vocabulary.test.fixtures.TestSongBuilder
 import com.japanese.vocabulary.test.fixtures.TestUserBuilder
@@ -102,13 +102,14 @@ class SongControllerTest : ApiBaseIntegrationTest() {
     inner class Analyze {
 
         @Test
-        fun `existing song with lyric returns player-ready work and skips external providers`() {
+        fun `existing song with lyric still creates pending work when analyze is called directly`() {
             val me = newUser()
-            val existing = newSong(title = "既存曲", artist = "歌手")
-            newLyric(
-                existing,
-                raw = listOf(LyricLineData(index = 0, startTimeMs = 0, text = "既存")),
-            )
+            newSong(title = "既存曲", artist = "歌手").also { existing ->
+                newLyric(
+                    existing,
+                    raw = listOf(LyricLineData(index = 0, startTimeMs = 0, text = "既存")),
+                )
+            }
 
             val body = mockMvc.post("/api/songs/analyze") {
                 header("Authorization", bearer(me))
@@ -119,8 +120,9 @@ class SongControllerTest : ApiBaseIntegrationTest() {
             }.andExpect { status { isOk() } }.andReturn().response.contentAsString
 
             val dto = readBody<SongAnalysisWorkResponse>(body)
-            assertThat(dto.songId).isEqualTo(existing.id)
-            assertThat(dto.canOpenPlayer).isTrue
+            assertThat(dto.status).isEqualTo("PENDING")
+            assertThat(dto.songId).isNull()
+            assertThat(dto.canOpenPlayer).isFalse
             io.mockk.verify(exactly = 0) { lrclibClient.search(any()) }
             io.mockk.verify(exactly = 0) { vocadbClient.search(any()) }
             io.mockk.verify(exactly = 0) { youtubeMvSearchService.searchMvUrl(any(), any()) }
