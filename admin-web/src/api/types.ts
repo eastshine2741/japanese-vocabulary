@@ -103,3 +103,42 @@ export type AdminUser = {
   createdAt: string | null
   deletedAt: string | null
 }
+
+export type ReelsSongCandidate = {
+  id: number
+  title: string
+  artist: string
+  durationSeconds: number | null
+  youtubeUrl: string | null
+  artworkUrl: string | null
+  hasAnalyzedLyrics: boolean
+  renderEligible: boolean
+  ineligibleReason: string | null
+}
+
+export type ReelsSongDetail = {
+  song: ReelsSongCandidate
+  headline: string
+  instagramHandle: string
+  catchphrase: string
+  minLineCount: number
+  maxLineCount: number
+  lines: ReelsLyricLine[]
+}
+
+export type ReelsLyricLine = {
+  index: number
+  startTimeMs: number | null
+  originalText: string
+  koreanLyrics: string | null
+  tokens: LyricToken[]
+  recommendedVocabulary: ReelsVocabulary[]
+  selectable: boolean
+  ineligibleReason: string | null
+}
+
+export type ReelsVocabulary = {
+  japanese: string
+  reading: string
+  korean: string
+}

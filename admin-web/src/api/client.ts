@@ -4,6 +4,8 @@ import type {
   LyricDetail,
   LyricSummary,
   PageResponse,
+  ReelsSongCandidate,
+  ReelsSongDetail,
   SongAnalysisWorkDetail,
   SongAnalysisWorkSummary,
   SongDetail,
@@ -29,9 +31,30 @@ async function request<T>(path: string, token?: string | null, init: RequestInit
 
   const response = await fetch(`${API_BASE}${path}`, { ...init, headers })
   if (!response.ok) {
-    throw new ApiError(response.statusText || "Request failed", response.status)
+    throw new ApiError(await errorMessage(response), response.status)
   }
   return response.json() as Promise<T>
+}
+
+async function requestBlob(path: string, token: string, init: RequestInit): Promise<Blob> {
+  const headers = new Headers(init.headers)
+  headers.set("Accept", "video/mp4")
+  if (init.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json")
+  headers.set("Authorization", `Bearer ${token}`)
+  const response = await fetch(`${API_BASE}${path}`, { ...init, headers })
+  if (!response.ok) {
+    throw new ApiError(await errorMessage(response), response.status)
+  }
+  return response.blob()
+}
+
+async function errorMessage(response: Response) {
+  try {
+    const body = await response.json()
+    return body.message || body.error || response.statusText || "Request failed"
+  } catch {
+    return response.statusText || "Request failed"
+  }
 }
 
 function pageParams(page: number, query?: string) {
@@ -73,5 +96,20 @@ export const adminApi = {
   },
   user(token: string, id: string) {
     return request<AdminUser>(`/users/${id}`, token)
+  },
+  reelsSongs(token: string, page: number, query?: string) {
+    return request<PageResponse<ReelsSongCandidate>>(`/reels-factory/songs?${pageParams(page, query)}`, token)
+  },
+  reelsSong(token: string, id: number) {
+    return request<ReelsSongDetail>(`/reels-factory/songs/${id}`, token)
+  },
+  renderReel(
+    token: string,
+    body: { songId: number; lineIndexes: number[]; acknowledgeSourceRightsAndPlatformRisk: boolean },
+  ) {
+    return requestBlob("/reels-factory/render", token, {
+      method: "POST",
+      body: JSON.stringify(body),
+    })
   },
 }

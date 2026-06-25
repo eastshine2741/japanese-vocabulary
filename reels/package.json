@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "remotion studio",
     "render:lemon": "remotion render PromoReel out/lemon-promo-raw.mp4 --codec=h264 --crf=18 && ffmpeg -y -i out/lemon-promo-raw.mp4 -map 0:v:0 -map '0:a?' -c:v libx264 -pix_fmt yuv420p -profile:v high -level 4.1 -crf 20 -preset medium -color_range tv -colorspace bt709 -color_primaries bt709 -color_trc bt709 -movflags +faststart -c:a aac -b:a 192k out/lemon-promo.mp4",
+    "render:request": "node scripts/render-request.mjs",
+    "smoke:fixture": "node scripts/render-fixture-smoke.mjs",
     "still:lemon": "remotion still PromoReel out/lemon-cover-frame.png --frame=400",
     "check": "tsc --noEmit"
   },

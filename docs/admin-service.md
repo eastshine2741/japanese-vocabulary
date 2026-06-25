@@ -2,12 +2,13 @@
 
 ## Scope
 
-Admin v1 is an internal inspection surface for `song`, `lyric`, and `user`.
+Admin v1 is an internal inspection surface for `song`, `lyric`, and `user`, plus one workflow-specific Reels Factory action.
 
-- Read-only list/detail pages only.
+- Read-only list/detail pages by default.
 - No create/update/delete endpoints.
 - No generic table editor or raw field editor.
 - Future write paths must be entity-specific, invariant-preserving workflows with audit logging.
+- Exception: Reels Factory exposes a transient `POST /admin/api/reels-factory/render` workflow. It does not mutate database state, create render history, store generated files, or upload to social platforms.
 
 Architecture direction:
 
@@ -49,6 +50,18 @@ Routes:
 - `GET /admin/api/lyrics/{lyricId}`
 - `GET /admin/api/users`
 - `GET /admin/api/users/{userId}`
+- `GET /admin/api/reels-factory/songs`
+- `GET /admin/api/reels-factory/songs/{songId}`
+- `POST /admin/api/reels-factory/render`
+
+Reels Factory:
+
+- Admin selects an analyzed song and 4–6 timed analyzed lyric lines.
+- The render action requires explicit acknowledgement of source-rights and platform-policy risk.
+- The server invokes the repo-local Remotion package through `AdminReelsRenderService` and returns an MP4 attachment directly.
+- No DB entity, migration, Object Storage object, or job history is created.
+- Normal tests use a fake renderer. The subprocess renderer requires Node, npm dependencies under `/opt/reels`, `ffmpeg`, and `yt-dlp`.
+- YouTube extraction can fail due to policy, region, private/age-gated media, or extractor changes. This workflow is admin-only and is not legal advice.
 
 Auth:
 
@@ -62,6 +75,8 @@ Environment:
 - `ADMIN_PASSWORD_SHA256`
 - `ADMIN_TOKEN_SECRET`
 - `ADMIN_TOKEN_TTL_MINUTES`
+- `ADMIN_REELS_RENDERER_WORKING_DIRECTORY` (default in container: `/opt/reels`)
+- `ADMIN_REELS_RENDERER_TIMEOUT` (Spring duration; default: `8m`)
 - `MYSQL_URL`, `MYSQL_USER`, `MYSQL_PASSWORD`
 
 `ADMIN_PASSWORD` has no application default. `deploy.sh` supplies a dev-only fallback for local k3s, but direct `bootRun` must set either `ADMIN_PASSWORD` or `ADMIN_PASSWORD_SHA256`.

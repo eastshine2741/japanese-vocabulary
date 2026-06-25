@@ -135,7 +135,7 @@ else
   docker build -t "$API_IMAGE" -f "$PROJECT_ROOT/backend/api/Dockerfile" "$PROJECT_ROOT/backend/api/"
   docker build -t "$BATCH_IMAGE" -f "$PROJECT_ROOT/backend/batch/Dockerfile" "$PROJECT_ROOT/backend/batch/"
   docker build -t "$MIGRATION_IMAGE" -f "$PROJECT_ROOT/backend/migration/Dockerfile" "$PROJECT_ROOT/backend/migration/"
-  docker build -t "$ADMIN_API_IMAGE" -f "$PROJECT_ROOT/backend/admin-api/Dockerfile" "$PROJECT_ROOT/backend/admin-api/"
+  docker build -t "$ADMIN_API_IMAGE" -f "$PROJECT_ROOT/backend/admin-api/Dockerfile" "$PROJECT_ROOT/"
   docker build \
     --build-arg VITE_ADMIN_API_BASE_URL="/${NS}/admin/api" \
     --build-arg VITE_ADMIN_BASE_PATH="/${NS}/admin" \

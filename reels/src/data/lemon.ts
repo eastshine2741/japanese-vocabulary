@@ -13,6 +13,7 @@ export const lemonPromo: PromoReelData = {
   headline: '떠난 뒤에도 남은 레몬 향기',
   instagramHandle: '@kotonoha.music',
   catchphrase: '좋아하는 노래가, 나의 일본어가 되도록.',
+  sourceStartFrame: 0,
   lyricLines: [
     {
       startFrame: 0,

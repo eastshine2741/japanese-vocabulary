@@ -3,6 +3,8 @@ import type {
   LyricDetail,
   LyricSummary,
   PageResponse,
+  ReelsSongCandidate,
+  ReelsSongDetail,
   SongAnalysisWorkDetail,
   SongAnalysisWorkSummary,
   SongDetail,
@@ -136,4 +138,35 @@ export const songAnalysisWorkDetail: SongAnalysisWorkDetail = {
   lockedUntil: null,
   errorCode: null,
   errorMessage: null,
+}
+
+export const reelsSongCandidate: ReelsSongCandidate = {
+  id: 1,
+  title: "夜に駆ける",
+  artist: "YOASOBI",
+  durationSeconds: 261,
+  youtubeUrl: "https://youtu.be/x8VYWazR5mE",
+  artworkUrl: null,
+  hasAnalyzedLyrics: true,
+  renderEligible: true,
+  ineligibleReason: null,
+}
+
+export const reelsSongDetail: ReelsSongDetail = {
+  song: reelsSongCandidate,
+  headline: "밤을 달리는 마음",
+  instagramHandle: "@kotonoha.music",
+  catchphrase: "가사에서 바로 배우는 일본어",
+  minLineCount: 4,
+  maxLineCount: 6,
+  lines: [0, 1, 2, 3].map((index) => ({
+    index,
+    startTimeMs: index * 2000,
+    originalText: `歌詞${index}`,
+    koreanLyrics: `가사${index}`,
+    selectable: true,
+    ineligibleReason: null,
+    tokens: lyricDetail.analyzedContent?.[0]?.tokens ?? [],
+    recommendedVocabulary: [{ japanese: "夢", reading: "ユメ", korean: "꿈" }],
+  })),
 }

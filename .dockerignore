@@ -1,0 +1,16 @@
+.git
+.omx
+.omc
+
+admin-web/node_modules
+admin-web/dist
+
+reels/node_modules
+reels/out
+reels/public/admin-render
+reels/public/fixture
+reels/public/*.mp4
+reels/public/*.jpg
+reels/public/*.png
+
+**/.DS_Store

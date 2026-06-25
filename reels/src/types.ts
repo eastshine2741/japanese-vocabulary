@@ -7,8 +7,16 @@ export type PartOfSpeech =
   | 'PARTICLE'
   | 'PRONOUN'
   | 'ADNOMINAL'
+  | 'CONJUNCTION'
   | 'AUXILIARY_VERB'
-  | 'SYMBOL';
+  | 'INTERJECTION'
+  | 'PREFIX'
+  | 'SUFFIX'
+  | 'FILLER'
+  | 'OTHER'
+  | 'SYMBOL'
+  | 'SUPPLEMENTARY_SYMBOL'
+  | 'WHITESPACE';
 
 export type LyricToken = {
   surface: string;
@@ -43,5 +51,6 @@ export type PromoReelData = {
   headline: string;
   instagramHandle: string;
   catchphrase: string;
+  sourceStartFrame: number;
   lyricLines: PromoLine[];
 };

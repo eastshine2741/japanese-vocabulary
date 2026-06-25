@@ -3,9 +3,15 @@ package com.japanese.vocabulary.admin
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.japanese.vocabulary.admin.dto.AdminLoginRequest
 import com.japanese.vocabulary.admin.dto.AdminLoginResponse
+import com.japanese.vocabulary.admin.dto.reels.AdminReelsRenderRequest
+import com.japanese.vocabulary.admin.reels.AdminReelsRenderService
+import com.japanese.vocabulary.admin.reels.model.AdminReelsRenderInput
 import com.japanese.vocabulary.song.entity.LyricEntity
 import com.japanese.vocabulary.song.entity.LyricType
+import com.japanese.vocabulary.song.model.AnalyzedLine
 import com.japanese.vocabulary.song.model.LyricLineData
+import com.japanese.vocabulary.song.model.PartOfSpeech
+import com.japanese.vocabulary.song.model.Token
 import com.japanese.vocabulary.songanalysis.entity.SongAnalysisTriggerSource
 import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkEntity
 import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStatus
@@ -17,18 +23,26 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.NoSuchBeanDefinitionException
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
+import org.springframework.boot.test.context.TestConfiguration
+import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.Primary
+import org.springframework.context.annotation.Import
 import org.springframework.http.MediaType
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.get
 import org.springframework.test.web.servlet.post
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping
+import java.nio.file.Files
+import java.nio.file.Path
 import java.time.Instant
 
 @AutoConfigureMockMvc
+@Import(AdminApiIntegrationTest.ReelsFactoryTestConfig::class)
 class AdminApiIntegrationTest : AdminBaseIntegrationTest() {
     @Autowired private lateinit var mockMvc: MockMvc
     @Autowired private lateinit var objectMapper: ObjectMapper
     @Autowired private lateinit var requestMappingHandlerMapping: RequestMappingHandlerMapping
+    @Autowired private lateinit var fakeRenderer: FakeReelsRenderService
 
     @Test
     fun `admin api starts without song runtime beans`() {
@@ -147,16 +161,112 @@ class AdminApiIntegrationTest : AdminBaseIntegrationTest() {
     }
 
     @Test
-    fun `admin api has no resource mutation mappings beyond login`() {
+    fun `reels factory lists candidates and exposes analyzed timed lines`() {
+        val song = TestSongBuilder(entityManager)
+            .withTitle("Lemon")
+            .withArtist("米津玄師")
+            .withYoutubeUrl("https://youtu.be/SX_ViT4Ra7k")
+            .build()
+        persistLyric(song.id!!, analyzed = true, lineCount = 4)
+
+        mockMvc.get("/admin/api/reels-factory/songs") {
+            header("Authorization", "Bearer ${login()}")
+            param("q", "lem")
+        }.andExpect {
+            status { isOk() }
+            jsonPath("$.content[0].title") { value("Lemon") }
+            jsonPath("$.content[0].hasAnalyzedLyrics") { value(true) }
+            jsonPath("$.content[0].renderEligible") { value(true) }
+        }
+
+        mockMvc.get("/admin/api/reels-factory/songs/${song.id}") {
+            header("Authorization", "Bearer ${login()}")
+        }.andExpect {
+            status { isOk() }
+            jsonPath("$.song.artist") { value("米津玄師") }
+            jsonPath("$.lines[0].originalText") { value("歌詞0") }
+            jsonPath("$.lines[0].recommendedVocabulary[0].japanese") { value("夢") }
+            jsonPath("$.minLineCount") { value(4) }
+            jsonPath("$.maxLineCount") { value(6) }
+        }
+    }
+
+    @Test
+    fun `reels factory render validates acknowledgement and returns mp4 from renderer`() {
+        val song = TestSongBuilder(entityManager)
+            .withTitle("Lemon")
+            .withArtist("米津玄師")
+            .withYoutubeUrl("https://youtu.be/SX_ViT4Ra7k")
+            .build()
+        persistLyric(song.id!!, analyzed = true, lineCount = 4)
+        val token = login()
+
+        mockMvc.post("/admin/api/reels-factory/render") {
+            header("Authorization", "Bearer $token")
+            contentType = MediaType.APPLICATION_JSON
+            content = objectMapper.writeValueAsString(
+                AdminReelsRenderRequest(
+                    songId = song.id!!,
+                    lineIndexes = listOf(0, 1, 2, 3),
+                    acknowledgeSourceRightsAndPlatformRisk = false,
+                ),
+            )
+        }.andExpect {
+            status { isBadRequest() }
+            jsonPath("$.error") { value("bad_request") }
+        }
+
+        mockMvc.post("/admin/api/reels-factory/render") {
+            header("Authorization", "Bearer $token")
+            contentType = MediaType.APPLICATION_JSON
+            content = objectMapper.writeValueAsString(
+                AdminReelsRenderRequest(
+                    songId = song.id!!,
+                    lineIndexes = listOf(0, 1, 2, 3),
+                    acknowledgeSourceRightsAndPlatformRisk = true,
+                ),
+            )
+        }.andExpect {
+            status { isOk() }
+            header { string("Content-Type", "video/mp4") }
+            header { string("Content-Disposition", "attachment; filename=\"kotonoha-reel-${song.id}.mp4\"") }
+        }
+
+        assertThat(fakeRenderer.lastInput?.source?.youtubeUrl).isEqualTo("https://youtu.be/SX_ViT4Ra7k")
+        assertThat(fakeRenderer.lastInput?.data?.lyricLines).hasSize(4)
+    }
+
+    @Test
+    fun `reels factory render rejects missing analyzed lyrics youtube url duplicate lines and missing timing`() {
+        val noAnalysisSong = TestSongBuilder(entityManager).withYoutubeUrl("https://youtu.be/no-analysis").build()
+        persistLyric(noAnalysisSong.id!!, analyzed = false, lineCount = 4)
+        val noYoutubeSong = TestSongBuilder(entityManager).withYoutubeUrl(null).build()
+        persistLyric(noYoutubeSong.id!!, analyzed = true, lineCount = 4)
+        val missingTimingSong = TestSongBuilder(entityManager).withYoutubeUrl("https://youtu.be/no-time").build()
+        persistLyric(missingTimingSong.id!!, analyzed = true, lineCount = 4, missingTimingIndex = 2)
+        val token = login()
+
+        renderExpectingBadRequest(token, noAnalysisSong.id!!, listOf(0, 1, 2, 3))
+        renderExpectingBadRequest(token, noYoutubeSong.id!!, listOf(0, 1, 2, 3))
+        renderExpectingBadRequest(token, missingTimingSong.id!!, listOf(0, 1, 2, 3))
+        renderExpectingBadRequest(token, missingTimingSong.id!!, listOf(0, 1, 1, 3))
+        renderExpectingBadRequest(token, missingTimingSong.id!!, listOf(0, 1, 99, 3))
+        renderExpectingBadRequest(token, missingTimingSong.id!!, listOf(0, 1, 2))
+    }
+
+    @Test
+    fun `admin api mutation mappings are explicitly allowlisted`() {
         val mutatingMappings = requestMappingHandlerMapping.handlerMethods.keys
             .filter { it.patternValues.any { pattern -> pattern.startsWith("/admin/api/") } }
             .flatMap { info ->
                 info.methodsCondition.methods.map { method -> "${method.name} ${info.patternValues}" }
             }
-            .filterNot { it == "POST [/admin/api/auth/login]" }
             .filter { it.startsWith("POST ") || it.startsWith("PUT ") || it.startsWith("PATCH ") || it.startsWith("DELETE ") }
 
-        assertThat(mutatingMappings).isEmpty()
+        assertThat(mutatingMappings).containsExactlyInAnyOrder(
+            "POST [/admin/api/auth/login]",
+            "POST [/admin/api/reels-factory/render]",
+        )
     }
 
     private fun login(): String {
@@ -169,11 +279,60 @@ class AdminApiIntegrationTest : AdminBaseIntegrationTest() {
         return objectMapper.readValue(body, AdminLoginResponse::class.java).token
     }
 
-    private fun persistLyric(songId: Long): LyricEntity {
+    private fun renderExpectingBadRequest(token: String, songId: Long, lineIndexes: List<Int>) {
+        mockMvc.post("/admin/api/reels-factory/render") {
+            header("Authorization", "Bearer $token")
+            contentType = MediaType.APPLICATION_JSON
+            content = objectMapper.writeValueAsString(
+                AdminReelsRenderRequest(
+                    songId = songId,
+                    lineIndexes = lineIndexes,
+                    acknowledgeSourceRightsAndPlatformRisk = true,
+                ),
+            )
+        }.andExpect {
+            status { isBadRequest() }
+            jsonPath("$.error") { value("bad_request") }
+        }
+    }
+
+    private fun persistLyric(
+        songId: Long,
+        analyzed: Boolean = false,
+        lineCount: Int = 1,
+        missingTimingIndex: Int? = null,
+    ): LyricEntity {
+        val rawContent = (0 until lineCount).map { index ->
+            LyricLineData(
+                index = index,
+                startTimeMs = if (index == missingTimingIndex) null else index * 2_000L,
+                text = if (lineCount == 1) "歌詞" else "歌詞$index",
+            )
+        }
         val lyric = LyricEntity(
             songId = songId,
             lyricType = LyricType.PLAIN,
-            rawContent = listOf(LyricLineData(index = 0, startTimeMs = 0, text = "歌詞")),
+            rawContent = rawContent,
+            analyzedContent = if (analyzed) rawContent.map {
+                AnalyzedLine(
+                    index = it.index,
+                    koreanLyrics = "가사${it.index}",
+                    koreanPronounciation = null,
+                    tokens = listOf(
+                        Token(
+                            surface = "夢",
+                            baseForm = "夢",
+                            reading = "ユメ",
+                            baseFormReading = "ユメ",
+                            partOfSpeech = PartOfSpeech.NOUN,
+                            charStart = 0,
+                            charEnd = 1,
+                            koreanText = "꿈",
+                            jlpt = "N5",
+                        ),
+                    ),
+                )
+            } else null,
         )
         entityManager.persist(lyric)
         entityManager.flush()
@@ -203,5 +362,24 @@ class AdminApiIntegrationTest : AdminBaseIntegrationTest() {
             .createQuery("SELECT w.id FROM SongAnalysisWorkEntity w WHERE w.songId = :songId", Long::class.java)
             .setParameter("songId", songId)
             .singleResult
+    }
+
+    @TestConfiguration
+    class ReelsFactoryTestConfig {
+        @Bean
+        @Primary
+        fun fakeReelsRenderService(): FakeReelsRenderService = FakeReelsRenderService()
+    }
+
+    class FakeReelsRenderService : AdminReelsRenderService {
+        var lastInput: AdminReelsRenderInput? = null
+
+        override fun render(input: AdminReelsRenderInput): Path {
+            lastInput = input
+            val dir = Files.createTempDirectory("fake-reels-")
+            val output = dir.resolve("reel.mp4")
+            Files.write(output, "fake mp4".toByteArray())
+            return output
+        }
     }
 }

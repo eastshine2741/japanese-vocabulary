@@ -8,6 +8,8 @@ import {
   lyricDetail,
   lyricSummary,
   page,
+  reelsSongCandidate,
+  reelsSongDetail,
   songAnalysisWorkDetail,
   songAnalysisWorkSummary,
   songDetail,
@@ -21,6 +23,9 @@ function mockFetch() {
       const body = JSON.parse(String(init?.body))
       return json(body.password === "secret" ? { token: "admin-token", expiresAt: "2026-01-01T01:00:00Z" } : {}, body.password === "secret" ? 200 : 401)
     }
+    if (url.includes("/reels-factory/render")) return new Response(new Blob(["mp4"], { type: "video/mp4" }), { status: 200 })
+    if (url.includes("/reels-factory/songs/1")) return json(reelsSongDetail)
+    if (url.includes("/reels-factory/songs?")) return json(page([reelsSongCandidate]))
     if (url.includes("/songs/1")) return json(songDetail)
     if (url.includes("/songs?")) return json(page([songSummary]))
     if (url.includes("/song-analysis-works/4")) return json(songAnalysisWorkDetail)
@@ -76,6 +81,7 @@ describe("admin web", () => {
     expect(await screen.findByText("夜に駆ける")).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "Lyrics" })).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "Analysis Work" })).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "Reels Factory" })).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "Users" })).toBeInTheDocument()
   })
 
@@ -103,5 +109,22 @@ describe("admin web", () => {
     expect(screen.getByText("Elapsed time")).toBeInTheDocument()
     expect(screen.getByText("Created to player ready")).toBeInTheDocument()
     expect(screen.getByText("2m 00s")).toBeInTheDocument()
+  })
+
+  test("renders reels factory and enables render after line selection and acknowledgement", async () => {
+    const user = userEvent.setup()
+    sessionStorage.setItem("kotonoha.admin.token", "admin-token")
+    renderApp("/reels-factory")
+
+    expect(await screen.findByRole("heading", { name: "Reels Factory" })).toBeInTheDocument()
+    expect(await screen.findByText("밤을 달리는 마음")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /Render and download MP4/ })).toBeDisabled()
+
+    for (const index of [0, 1, 2, 3]) {
+      await user.click(screen.getByLabelText(`Select lyric line ${index}`))
+    }
+    await user.click(screen.getByLabelText("Acknowledge source rights and platform risk"))
+
+    expect(screen.getByRole("button", { name: /Render and download MP4/ })).toBeEnabled()
   })
 })

@@ -1,6 +1,5 @@
 import {
   AbsoluteFill,
-  Img,
   OffthreadVideo,
   interpolate,
   spring,
@@ -32,8 +31,16 @@ const posColors: Record<PartOfSpeech, string> = {
   PARTICLE: ink,
   PRONOUN: ink,
   ADNOMINAL: ink,
+  CONJUNCTION: ink,
   AUXILIARY_VERB: ink,
+  INTERJECTION: ink,
+  PREFIX: ink,
+  SUFFIX: ink,
+  FILLER: ink,
+  OTHER: ink,
   SYMBOL: ink,
+  SUPPLEMENTARY_SYMBOL: ink,
+  WHITESPACE: ink,
 };
 
 type TextRun = {
@@ -71,6 +78,7 @@ export const PromoReel = ({data}: {data: PromoReelData}) => {
         <OffthreadVideo
           muted
           src={staticFile(data.song.mvAsset)}
+          startFrom={data.sourceStartFrame}
           style={styles.backgroundVideo}
         />
       </AbsoluteFill>
@@ -86,6 +94,7 @@ export const PromoReel = ({data}: {data: PromoReelData}) => {
         <OffthreadVideo
           muted={false}
           src={staticFile(data.song.mvAsset)}
+          startFrom={data.sourceStartFrame}
           style={styles.framedVideo}
           volume={0.72}
         />
@@ -173,7 +182,7 @@ const EndCard = ({data, frame}: {data: PromoReelData; frame: number}) => {
   return (
     <AbsoluteFill style={{...styles.endCardFrame, opacity}}>
       <div style={{...styles.endCard, transform: `translateY(${y}px) scale(${scale})`}}>
-        <Img src={staticFile('kotonoha-icon.png')} style={styles.logo} />
+        <div style={styles.logo}>K</div>
         <div style={styles.endBrand}>kotonoha</div>
         <div style={styles.endCopy}>{data.catchphrase}</div>
       </div>
@@ -399,8 +408,15 @@ const styles = {
     textAlign: 'center',
   },
   logo: {
+    alignItems: 'center',
+    backgroundColor: paper,
     borderRadius: 32,
+    color: night,
+    display: 'flex',
+    fontSize: 64,
+    fontWeight: 1000,
     height: 128,
+    justifyContent: 'center',
     width: 128,
   },
   endBrand: {
