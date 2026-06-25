@@ -1,0 +1,23 @@
+{
+  "name": "kotonoha-reels",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "remotion studio",
+    "render:lemon": "remotion render PromoReel out/lemon-promo-raw.mp4 --codec=h264 --crf=18 && ffmpeg -y -i out/lemon-promo-raw.mp4 -map 0:v:0 -map '0:a?' -c:v libx264 -pix_fmt yuv420p -profile:v high -level 4.1 -crf 20 -preset medium -color_range tv -colorspace bt709 -color_primaries bt709 -color_trc bt709 -movflags +faststart -c:a aac -b:a 192k out/lemon-promo.mp4",
+    "still:lemon": "remotion still PromoReel out/lemon-cover-frame.png --frame=400",
+    "check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.481",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "remotion": "4.0.481"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "typescript": "5.9.3"
+  }
+}
