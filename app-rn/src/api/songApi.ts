@@ -3,6 +3,7 @@ import {
   SongSearchResponse,
   SongStudyData,
   RecentSongItem,
+  RecommendedSongItem,
   AnalyzeSongRequest,
   SongAnalysisWorkResponse,
 } from '../types/song';
@@ -37,6 +38,11 @@ export const songApi = {
 
   async getRecent(): Promise<RecentSongItem[]> {
     const { data } = await client.get<RecentSongItem[]>('/api/songs/recent');
+    return data;
+  },
+
+  async getRecommendations(): Promise<RecommendedSongItem[]> {
+    const { data } = await client.get<RecommendedSongItem[]>('/api/songs/recommendations');
     return data;
   },
 

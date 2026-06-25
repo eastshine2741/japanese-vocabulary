@@ -8,6 +8,7 @@ import SpotlightHero from '../../components/SpotlightHero';
 import StudyStatsHomeCard from '../../components/studyStats/StudyStatsHomeCard';
 import WordReviewSection from '../../components/WordReviewSection';
 import RecentSongsSection from '../../components/RecentSongsSection';
+import RecommendedSongsSection from '../../components/RecommendedSongsSection';
 import { Colors, Dimens } from '../../theme/theme';
 import { TabParamList } from '../../navigation/AppNavigator';
 
@@ -35,6 +36,7 @@ export default function HomeTab() {
         <StudyStatsHomeCard />
         <WordReviewSection />
         <RecentSongsSection />
+        <RecommendedSongsSection />
       </ScrollView>
     </SafeAreaView>
   );

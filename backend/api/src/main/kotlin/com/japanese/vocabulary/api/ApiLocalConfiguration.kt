@@ -10,6 +10,8 @@ import com.japanese.vocabulary.deck.controller.DeckController
 import com.japanese.vocabulary.flashcard.controller.FlashcardController
 import com.japanese.vocabulary.notification.controller.DeviceTokenController
 import com.japanese.vocabulary.observability.HttpClientMetricsConfig
+import com.japanese.vocabulary.api.recommendation.service.SongRecommendationHomeService
+import com.japanese.vocabulary.recommendation.controller.SongRecommendationController
 import com.japanese.vocabulary.song.cache.SongSearchCache
 import com.japanese.vocabulary.song.controller.SearchHistoryController
 import com.japanese.vocabulary.song.controller.SongController
@@ -37,6 +39,8 @@ import org.springframework.context.annotation.Import
     DeckController::class,
     FlashcardController::class,
     DeviceTokenController::class,
+    SongRecommendationController::class,
+    SongRecommendationHomeService::class,
     SearchHistoryController::class,
     SongController::class,
     SongSearchCache::class,

@@ -53,6 +53,15 @@ export interface RecentSongItem {
   artworkUrl: string | null;
 }
 
+export interface RecommendedSongItem {
+  id: number;
+  songId: number;
+  title: string;
+  artist: string;
+  artworkUrl: string | null;
+  weekStartDate: string;
+}
+
 export interface AnalyzeSongRequest {
   title: string;
   artist: string;

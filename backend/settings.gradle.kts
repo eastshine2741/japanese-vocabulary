@@ -5,10 +5,12 @@ include(
     "integrations:song-search",
     "integrations:lyric-search",
     "integrations:mv-search",
+    "integrations:apple-music-rss",
 )
 include(
     "domains:song",
     "domains:song-analysis",
+    "domains:recommendation",
     "domains:translation",
     "domains:auth",
     "domains:user",

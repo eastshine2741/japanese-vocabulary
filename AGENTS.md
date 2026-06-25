@@ -26,6 +26,7 @@ cd app-rn && npx expo start --web             # App - Web (dev)
 - Song analysis and word-meaning pipeline: `docs/architecture/song-analysis.md`
 - Push notification architecture: `docs/architecture/push-notification.md`
 - Admin service: `docs/admin-service.md`
+- Recommended songs: `docs/recommended-songs.md`
 - k3s deploy and environment variables: `docs/runbooks/k3s-deploy.md`
 - Pencil editing: `docs/runbooks/pencil-editing.md`
 

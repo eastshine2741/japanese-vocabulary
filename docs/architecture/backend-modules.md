@@ -12,12 +12,13 @@ backend/
 │   ├── userinventory/       — freeze inventory etc.
 │   ├── song/                — Song/Lyric entity + repository + lyric 저장 모델(AnalyzedLine/Token/PartOfSpeech/LyricLineData) + LRC parser. Redis/external music client/use case 없음
 │   ├── song-analysis/       — song_analysis_work 상태머신 + trigger/polling DTO. song 모듈을 의존하지 않으며 song_id/lyric_id는 Long projection으로만 보관
+│   ├── recommendation/      — 추천곡 후보/발행 상태. Apple RSS 원본 메타데이터, song_analysis_work 링크, PUBLISHED 추천 row를 보관
 │   ├── translation/         — KoreanLyricTranslationService + GeminiClient + JishoService(cache-aside+동시성) + JishoClient + JishoCache. batch만 의존
 │   ├── flashcard/           — word + flashcard packages merged (word <-> flashcard cycle): WordEntity, FlashcardEntity, repositories, services, events
 │   ├── deck/                — DeckEntity, DeckService, DeckEventListener
 │   ├── studystats/          — DailyStudySummary, StreakCalculator. Spring Batch job 본체는 batch 모듈로 분리됨
 │   └── notification/        — FCM 전송 + FirebaseConfig + NotificationLogEntity. Scheduler/조회 로직 없음
-├── integrations/            — external music provider clients. `song-search`, `lyric-search`, `mv-search`
+├── integrations/            — external music provider clients. `song-search`, `lyric-search`, `mv-search`, `apple-music-rss`
 ├── api/                     — REST bootstrap. 사용자 API 도메인 모듈 의존. @Scheduled 없음
 ├── admin-api/               — internal admin REST bootstrap. read-only inspection 중심
 └── batch/                   — scheduled/background job bootstrap. 모든 @Scheduled는 여기
@@ -26,12 +27,12 @@ backend/
 ## Dependency Principles
 
 - **batch가 의존하는 도메인은 최소화**. 필요한 도메인만 추가한다.
-- **api는 사용자 API에 필요한 도메인 의존**. 현재 REST 표면은 대부분의 사용자 도메인을 노출하고 song 조회/분석 polling 때문에 `song`과 `song-analysis`를 둘 다 의존한다. **예외: translation**은 batch 전용 유지.
+- **api는 사용자 API에 필요한 도메인 의존**. 현재 REST 표면은 대부분의 사용자 도메인을 노출하고 song 조회/분석 polling 때문에 `song`과 `song-analysis`를 둘 다 의존한다. 홈 추천곡 읽기 때문에 `recommendation`도 의존한다. **예외: translation**은 batch 전용 유지.
 - **admin-api는 public api와 분리된 bootstrap**. v1은 `song`, `lyric`, `user` 조회만 제공하고 mutation route를 만들지 않는다. admin-api는 `domains:song` core를 의존하되 music integration module을 의존하지 않는다. 타 모듈 entity/repository scan 지식은 application bootstrap에 두지 않고, 각 active module의 AutoConfiguration이 제공한다.
 - **active module은 자기 Spring surface를 AutoConfiguration으로 선언한다**. Spring bean을 제공하는 domain/integration module은 `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`와 `com.japanese.autoconfigure.*` 설정 클래스를 둔다. AutoConfiguration은 해당 모듈의 `com.japanese.vocabulary.<module>` package를 `@ComponentScan`으로 열고, entity/repository는 `@EntityScan`/`@EnableJpaRepositories`로 등록한다.
 - **도메인 모듈은 persistence-aware domain core로 수렴**. 목표 구조는 entity/model/enum, domain method/service, invariant/state transition 중심이다. `SongRepository`, `LyricRepository` 같은 JPA repository는 이번 모듈화 pass에서 외부 노출을 유지한다.
-- **외부 API client는 domain core가 아니다**. iTunes/YouTube/LRCLIB/VocaDB client와 provider DTO는 application별로 중복하지 않고 기능별 integration 모듈에 둔다. 이 프로젝트에서는 불필요한 port/adapter 복잡도를 피하고, 필요한 application module이 client class를 직접 사용한다.
-- **integration package는 domain package와 분리한다**. integration 모듈의 Kotlin package는 `com.japanese.vocabulary.songsearch`, `com.japanese.vocabulary.lyricsearch`, `com.japanese.vocabulary.mvsearch`처럼 소유 모듈을 드러낸다. `com.japanese.vocabulary.song.client.*` 아래에 새 외부 client를 추가하지 않는다.
+- **외부 API client는 domain core가 아니다**. iTunes/YouTube/LRCLIB/VocaDB/Apple Music RSS client와 provider DTO는 application별로 중복하지 않고 기능별 integration 모듈에 둔다. 이 프로젝트에서는 불필요한 port/adapter 복잡도를 피하고, 필요한 application module이 client class를 직접 사용한다.
+- **integration package는 domain package와 분리한다**. integration 모듈의 Kotlin package는 `com.japanese.vocabulary.songsearch`, `com.japanese.vocabulary.lyricsearch`, `com.japanese.vocabulary.mvsearch`, `com.japanese.vocabulary.applemusicrss`처럼 소유 모듈을 드러낸다. `com.japanese.vocabulary.song.client.*` 아래에 새 외부 client를 추가하지 않는다.
 - **외부 client 설정은 integration client + application별 properties override로 처리한다**. timeout, connection, retry 차이가 필요하면 client class를 복제하지 말고 application yml/env에서 같은 property namespace를 다르게 설정한다.
 - **cache 위치는 의미로 결정한다**. Redis cache를 integration module에 넣지 않고 현재 behavior owner application에 둔다. `SongSearchCache`는 `api`, `ArtistChannelCache`는 `batch`, `RecentSongService`/`SearchHistoryService`는 `api`가 소유한다.
 - **Admin write는 raw field update 금지**. 향후 admin mutation은 entity별로 허용된 domain method/service를 통해서만 수행한다. DTO 바인딩이나 generic table editor로 엔티티 필드를 직접 여는 방식은 금지하며, 필요한 경우 audit logging을 붙인다.
