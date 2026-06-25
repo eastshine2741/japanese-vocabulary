@@ -1,8 +1,8 @@
 import type {PromoReelData} from '../types';
 
-// Snapshot of songs.id=1 / lyrics.analyzed_content on 2026-06-20.
-// The source MV has been trimmed so this chorus starts at frame 0 (30 fps).
-export const lemonPromo: PromoReelData = {
+// Local-only preview fixture for Remotion Studio and sample renders.
+// Admin rendering does not read this file; it passes PromoReelData through render props.
+export const samplePreviewPromo: PromoReelData = {
   song: {
     title: 'Lemon',
     artist: '米津玄師',

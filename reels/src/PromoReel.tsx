@@ -19,7 +19,7 @@ const ENDCARD_START_FRAME = 810;
 const paper = '#F4F1EA';
 const ink = '#FAFAF6';
 const softInk = 'rgba(250,250,246,0.78)';
-const lemon = '#EFD463';
+const accent = '#EFD463';
 const night = '#111012';
 
 const posColors: Record<PartOfSpeech, string> = {
@@ -255,7 +255,7 @@ const styles = {
   songCard: {
     alignSelf: 'flex-start',
     backgroundColor: 'rgba(244,241,234,0.92)',
-    borderLeft: `8px solid ${lemon}`,
+    borderLeft: `8px solid ${accent}`,
     boxShadow: '0 18px 48px rgba(0,0,0,0.30)',
     display: 'flex',
     flexDirection: 'column',
@@ -374,7 +374,7 @@ const styles = {
     lineHeight: 1,
   },
   wordReading: {
-    color: lemon,
+    color: accent,
     fontSize: 25,
     fontWeight: 900,
     letterSpacing: -0.4,
