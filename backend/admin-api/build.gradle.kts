@@ -12,6 +12,7 @@ java {
 
 dependencies {
     implementation(project(":common"))
+    implementation(project(":domains:recommendation"))
     implementation(project(":domains:song"))
     implementation(project(":domains:song-analysis"))
     implementation(project(":domains:user"))

@@ -8,6 +8,7 @@ import {
   lyricDetail,
   lyricSummary,
   page,
+  recommendationOperationResult,
   songAnalysisWorkDetail,
   songAnalysisWorkSummary,
   songDetail,
@@ -25,6 +26,8 @@ function mockFetch() {
     if (url.includes("/songs?")) return json(page([songSummary]))
     if (url.includes("/song-analysis-works/4")) return json(songAnalysisWorkDetail)
     if (url.includes("/song-analysis-works?")) return json(page([songAnalysisWorkSummary]))
+    if (url.includes("/recommendations/dispatch-analysis")) return json(recommendationOperationResult)
+    if (url.includes("/recommendations/reconcile-completed")) return json(recommendationOperationResult)
     if (url.includes("/lyrics/2")) return json(lyricDetail)
     if (url.includes("/lyrics?")) return json(page([lyricSummary]))
     if (url.includes("/users/3")) return json(adminUser)
@@ -75,8 +78,22 @@ describe("admin web", () => {
 
     expect(await screen.findByText("夜に駆ける")).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "Lyrics" })).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "Recommendations" })).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "Analysis Work" })).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "Users" })).toBeInTheDocument()
+  })
+
+  test("runs recommendation manual operations", async () => {
+    const user = userEvent.setup()
+    sessionStorage.setItem("kotonoha.admin.token", "admin-token")
+    renderApp("/recommendations")
+
+    expect(await screen.findByRole("heading", { name: "Recommendations" })).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Dispatch analysis" }))
+
+    expect(await screen.findByText("Processed")).toBeInTheDocument()
+    expect(screen.getByText("SUCCEEDED")).toBeInTheDocument()
+    expect(screen.getByText("10")).toBeInTheDocument()
   })
 
   test("renders detail pages without write controls", async () => {

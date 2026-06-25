@@ -8,7 +8,7 @@ Scope is intentionally narrow:
 - no personalization
 - no metrics
 - no blacklist
-- no admin mutation UI/API in this pass
+- admin trigger UI/API only for analysis dispatch and completed-work reconciliation
 - no UI visual-design decisions beyond a basic carousel section
 
 ## Data source
@@ -43,11 +43,11 @@ Important statuses:
 1. Weekly collector upserts up to 100 Apple RSS rows into `song_recommendation_candidate`.
 2. Existing candidates keep operator status; source rank/metadata can be refreshed.
 3. Operator directly edits DB rows from `PENDING` to `APPROVED` or `REJECTED`.
-4. Batch dispatcher finds `APPROVED` candidates without `song_analysis_work_id`.
-5. Dispatcher calls `SongAnalysisWorkService.createOrReuse()` with `trigger_source=RECOMMENDATION`.
+4. Operator clicks `Dispatch analysis` in admin-web, which calls `POST /admin/api/recommendations/dispatch-analysis`.
+5. Admin API finds `APPROVED` candidates without `song_analysis_work_id` and calls `SongAnalysisWorkService.createOrReuse()` with `trigger_source=RECOMMENDATION`.
 6. The generic song-analysis worker performs lyric lookup, YouTube lookup, song/lyric creation, and lyric analysis. It does not import recommendation classes.
-7. Batch reconciler finds approved candidates with completed work.
-8. Reconciler creates one `PENDING` `song_recommendation` only when:
+7. Operator clicks `Reconcile completed` in admin-web, which calls `POST /admin/api/recommendations/reconcile-completed`.
+8. Admin API finds approved candidates with completed work and creates one `PENDING` `song_recommendation` only when:
    - work status is `COMPLETED`
    - work has `song_id`, `lyric_id`, and `player_ready_at`
    - linked lyric has non-null `analyzed_content`
@@ -85,6 +85,13 @@ If an approved candidate is linked to failed work and should be retried, clear:
 - `song_recommendation_candidate.song_id`
 - `song_recommendation_candidate.lyric_id`
 
-Then leave the candidate as `APPROVED`; the dispatcher will create or reuse analysis work again.
+Then leave the candidate as `APPROVED`; the admin `Dispatch analysis` operation will create or reuse analysis work again.
 
 Bad direct DB publishes are still blocked by the home API safety gate when lyrics are missing analyzed content.
+
+## Admin operation API
+
+- `POST /admin/api/recommendations/dispatch-analysis?limit=10`
+- `POST /admin/api/recommendations/reconcile-completed?limit=10`
+
+Both endpoints are authenticated admin-only operations. `limit` is clamped to `1..100`.

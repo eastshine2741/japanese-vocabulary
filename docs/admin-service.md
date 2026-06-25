@@ -47,6 +47,8 @@ Routes:
 - `GET /admin/api/songs/{songId}/lyric`
 - `GET /admin/api/lyrics`
 - `GET /admin/api/lyrics/{lyricId}`
+- `POST /admin/api/recommendations/dispatch-analysis`
+- `POST /admin/api/recommendations/reconcile-completed`
 - `GET /admin/api/users`
 - `GET /admin/api/users/{userId}`
 

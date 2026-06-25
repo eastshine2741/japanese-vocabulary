@@ -7,8 +7,6 @@ import com.japanese.vocabulary.notification.ReviewReminderScheduler
 import com.japanese.vocabulary.observability.HttpClientMetricsConfig
 import com.japanese.vocabulary.recommendation.batch.AppleMusicRecommendationCollector
 import com.japanese.vocabulary.recommendation.batch.RecommendationWeekCalculator
-import com.japanese.vocabulary.recommendation.batch.SongRecommendationAnalysisDispatcher
-import com.japanese.vocabulary.recommendation.batch.SongRecommendationCompletionReconciler
 import com.japanese.vocabulary.song.batch.SongAnalysisWorkCompletionService
 import com.japanese.vocabulary.song.batch.SongAnalysisWorkProcessor
 import com.japanese.vocabulary.song.batch.SongAnalysisWorkScheduler
@@ -32,8 +30,6 @@ import org.springframework.context.annotation.Import
     ReviewReminderScheduler::class,
     AppleMusicRecommendationCollector::class,
     RecommendationWeekCalculator::class,
-    SongRecommendationAnalysisDispatcher::class,
-    SongRecommendationCompletionReconciler::class,
     SongAnalysisWorkCompletionService::class,
     SongAnalysisWorkProcessor::class,
     SongAnalysisWorkScheduler::class,

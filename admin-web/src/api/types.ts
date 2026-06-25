@@ -69,6 +69,22 @@ export type SongAnalysisWorkDetail = SongAnalysisWorkSummary & {
   errorMessage: string | null
 }
 
+export type RecommendationOperationItem = {
+  candidateId: number
+  status: string
+  workId: number | null
+  recommendationId: number | null
+  message: string | null
+}
+
+export type RecommendationOperationResult = {
+  processed: number
+  succeeded: number
+  skipped: number
+  failed: number
+  items: RecommendationOperationItem[]
+}
+
 export type RawLyricLine = {
   index: number
   startTimeMs?: number | null
