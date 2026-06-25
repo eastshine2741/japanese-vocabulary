@@ -1,10 +1,8 @@
 package com.japanese.autoconfigure.lyricsearch
 
-import com.japanese.vocabulary.lyricsearch.lrclib.LrclibClient
-import com.japanese.vocabulary.lyricsearch.vocadb.VocadbClient
 import org.springframework.boot.autoconfigure.AutoConfiguration
-import org.springframework.context.annotation.Import
+import org.springframework.context.annotation.ComponentScan
 
 @AutoConfiguration
-@Import(LrclibClient::class, VocadbClient::class)
+@ComponentScan(basePackages = ["com.japanese.vocabulary.lyricsearch"])
 class LyricSearchAutoConfiguration

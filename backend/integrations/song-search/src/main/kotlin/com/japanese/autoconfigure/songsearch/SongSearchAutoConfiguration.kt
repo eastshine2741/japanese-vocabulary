@@ -1,9 +1,8 @@
 package com.japanese.autoconfigure.songsearch
 
-import com.japanese.vocabulary.songsearch.client.itunes.ItunesClient
 import org.springframework.boot.autoconfigure.AutoConfiguration
-import org.springframework.context.annotation.Import
+import org.springframework.context.annotation.ComponentScan
 
 @AutoConfiguration
-@Import(ItunesClient::class)
+@ComponentScan(basePackages = ["com.japanese.vocabulary.songsearch"])
 class SongSearchAutoConfiguration

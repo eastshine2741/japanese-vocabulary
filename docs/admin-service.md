@@ -16,7 +16,7 @@ Architecture direction:
 - `SongRepository` and `LyricRepository` stay externally visible for this pass; repository-wide internalization is out of scope.
 - External music clients should live outside domain core in function-specific integration modules (`integrations:song-search`, `integrations:lyric-search`, `integrations:mv-search`), with direct class usage rather than a hexagonal port layer unless complexity later justifies it.
 - Integration Kotlin packages should also stay outside the domain package tree: `songsearch`, `lyricsearch`, and `mvsearch`, not `song.client`.
-- Active domain/integration modules provide Spring wiring through `AutoConfiguration.imports` and `com.japanese.autoconfigure.*` classes. Application bootstraps should not carry sibling module `@EntityScan` or repository scan knowledge, and broad root component scan should not be used as a backup wiring path.
+- Active domain/integration modules provide Spring wiring through `AutoConfiguration.imports` and `com.japanese.autoconfigure.*` classes. AutoConfiguration component-scans the module-owned `com.japanese.vocabulary.<module>` package and registers JPA entities/repositories explicitly. Application bootstraps should not carry sibling module `@EntityScan` or repository scan knowledge, and broad root component scan should not be used as a backup wiring path.
 - Integration clients should use `RestClient` where behavior can stay equivalent. Applications avoid unused clients by depending only on the integration modules they need; the depended module's AutoConfiguration exposes its client beans.
 - Product/read-model cache belongs to the application module that owns the behavior. For this pass, song search cache belongs to `api` and artist-channel cache belongs to `batch`.
 - Admin mutations must call domain methods/services; raw field updates stay out of scope.
@@ -26,6 +26,8 @@ Architecture direction:
 Module: `backend/admin-api`
 
 The module reads shared song/lyric/user tables, but it does not use Redis or music integration modules. Its runtime classpath should stay free of Redis/WebFlux/music-provider clients. Domain entity/repository scan comes from the depended domain modules' AutoConfiguration; admin-api only registers its own admin repositories.
+
+Marker classes are not required for module component scanning. This project uses package strings because module package names are part of the documented module boundary; JPA scan remains type-based through entity/repository classes.
 
 Run:
 

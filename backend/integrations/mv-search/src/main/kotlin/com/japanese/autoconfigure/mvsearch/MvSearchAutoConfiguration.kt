@@ -1,9 +1,8 @@
 package com.japanese.autoconfigure.mvsearch
 
-import com.japanese.vocabulary.mvsearch.client.youtube.YoutubeClient
 import org.springframework.boot.autoconfigure.AutoConfiguration
-import org.springframework.context.annotation.Import
+import org.springframework.context.annotation.ComponentScan
 
 @AutoConfiguration
-@Import(YoutubeClient::class)
+@ComponentScan(basePackages = ["com.japanese.vocabulary.mvsearch"])
 class MvSearchAutoConfiguration
