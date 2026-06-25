@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: admin-api-config
+data:
+  MYSQL_URL: "jdbc:mysql://mysql:3306/${MYSQL_DATABASE}?allowPublicKeyRetrieval=true&useSSL=false"
+  SPRING_PROFILES_ACTIVE: "dev"
+  ADMIN_API_PORT: "8081"

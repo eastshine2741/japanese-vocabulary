@@ -6,6 +6,9 @@ const errorMessages: Record<string, string> = {
   // Song / Lyrics
   LYRICS_NOT_FOUND: '이 노래의 가사를 찾을 수 없었어요.',
   SONG_NOT_FOUND: '노래를 찾을 수 없었어요.',
+  SONG_ANALYSIS_WORK_FAILED: '곡 분석에 실패했어요. 잠시 후 다시 시도해주세요.',
+  SONG_ANALYSIS_WORK_TIMEOUT: '곡 분석 시간이 너무 오래 걸렸어요. 다시 시도해주세요.',
+  SONG_ANALYSIS_WORK_ALREADY_EXISTS: '이미 같은 곡 분석 요청이 처리 중이에요. 잠시 후 다시 시도해주세요.',
 
   // Word
   WORD_NOT_FOUND: '단어를 찾을 수 없었어요.',

@@ -1,5 +1,6 @@
 package com.japanese.vocabulary.translation.client.jisho
 
+import org.springframework.stereotype.Component
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoEntryDto
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoEntryRawDto
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoOptionDto
@@ -8,7 +9,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
-import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
 import org.springframework.web.client.RestClientResponseException
 

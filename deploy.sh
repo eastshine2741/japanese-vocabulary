@@ -85,6 +85,13 @@ GIT_SHA="$(git rev-parse --short HEAD)"
 API_IMAGE="${IMAGE_PREFIX}-api:${GIT_SHA}"
 BATCH_IMAGE="${IMAGE_PREFIX}-batch:${GIT_SHA}"
 MIGRATION_IMAGE="${IMAGE_PREFIX}-migration:${GIT_SHA}"
+if [[ "$DEPLOY_ENV" == "dev" ]]; then
+  ADMIN_API_IMAGE="${IMAGE_PREFIX}-admin-api:${GIT_SHA}"
+  ADMIN_WEB_IMAGE="${IMAGE_PREFIX}-admin-web:${GIT_SHA}"
+  ADMIN_PASSWORD="${ADMIN_PASSWORD:-admin}"
+  ADMIN_PASSWORD_SHA256="${ADMIN_PASSWORD_SHA256:-}"
+  ADMIN_TOKEN_SECRET="${ADMIN_TOKEN_SECRET:-dev-admin-token-secret-must-be-at-least-32-bytes}"
+fi
 
 if [[ "$DEPLOY_ENV" == "prod" ]]; then
   SENTRY_ENVIRONMENT="production"
@@ -92,14 +99,19 @@ else
   SENTRY_ENVIRONMENT="${NS}"
 fi
 SENTRY_RELEASE="${GIT_SHA}"
-export API_IMAGE BATCH_IMAGE MIGRATION_IMAGE NS SENTRY_ENVIRONMENT SENTRY_RELEASE
+export API_IMAGE BATCH_IMAGE MIGRATION_IMAGE ADMIN_API_IMAGE ADMIN_WEB_IMAGE NS SENTRY_ENVIRONMENT SENTRY_RELEASE
+export ADMIN_PASSWORD ADMIN_PASSWORD_SHA256 ADMIN_TOKEN_SECRET
 
 echo "=== env: $DEPLOY_ENV | namespace: $NS | sha: $GIT_SHA ==="
 
 # --- 1. Gradle 테스트 + 빌드 (test 실패 시 배포 중단) ---
 STEP_START=$SECONDS
 echo "[gradle] test + bootJar..."
-cd "$PROJECT_ROOT/backend" && ./gradlew :api:test :batch:test :api:bootJar :batch:bootJar --no-daemon
+if [[ "$DEPLOY_ENV" == "dev" ]]; then
+  cd "$PROJECT_ROOT/backend" && ./gradlew :api:test :batch:test :admin-api:test :api:bootJar :batch:bootJar :admin-api:bootJar --no-daemon
+else
+  cd "$PROJECT_ROOT/backend" && ./gradlew :api:test :batch:test :api:bootJar :batch:bootJar --no-daemon
+fi
 cd "$PROJECT_ROOT"
 echo "  → $((SECONDS - STEP_START))s"
 
@@ -123,9 +135,15 @@ else
   docker build -t "$API_IMAGE" -f "$PROJECT_ROOT/backend/api/Dockerfile" "$PROJECT_ROOT/backend/api/"
   docker build -t "$BATCH_IMAGE" -f "$PROJECT_ROOT/backend/batch/Dockerfile" "$PROJECT_ROOT/backend/batch/"
   docker build -t "$MIGRATION_IMAGE" -f "$PROJECT_ROOT/backend/migration/Dockerfile" "$PROJECT_ROOT/backend/migration/"
+  docker build -t "$ADMIN_API_IMAGE" -f "$PROJECT_ROOT/backend/admin-api/Dockerfile" "$PROJECT_ROOT/backend/admin-api/"
+  docker build \
+    --build-arg VITE_ADMIN_API_BASE_URL="/${NS}/admin/api" \
+    --build-arg VITE_ADMIN_BASE_PATH="/${NS}/admin" \
+    -t "$ADMIN_WEB_IMAGE" \
+    -f "$PROJECT_ROOT/admin-web/Dockerfile" "$PROJECT_ROOT/admin-web/"
 
   echo "[k3s] importing images..."
-  docker save "$API_IMAGE" "$BATCH_IMAGE" "$MIGRATION_IMAGE" | sudo k3s ctr images import -
+  docker save "$API_IMAGE" "$BATCH_IMAGE" "$MIGRATION_IMAGE" "$ADMIN_API_IMAGE" "$ADMIN_WEB_IMAGE" | sudo k3s ctr images import -
 fi
 echo "  → $((SECONDS - STEP_START))s"
 
@@ -184,6 +202,18 @@ envsubst < "$K8S_DIR/batch/deployment.yaml" | kubectl apply -n "$NS" -f -
 for sm in "$K8S_DIR/api/servicemonitor.yaml" "$K8S_DIR/batch/servicemonitor.yaml"; do
   [[ -f "$sm" ]] && kubectl apply -n "$NS" -f "$sm"
 done
+
+if [[ "$DEPLOY_ENV" == "dev" ]]; then
+  envsubst < "$K8S_DIR/admin-api/secret.template.yaml" | kubectl apply -n "$NS" -f -
+  envsubst < "$K8S_DIR/admin-api/configmap.yaml" | kubectl apply -n "$NS" -f -
+  envsubst < "$K8S_DIR/admin-api/deployment.yaml" | kubectl apply -n "$NS" -f -
+  kubectl apply -n "$NS" -f "$K8S_DIR/admin-api/service.yaml"
+  envsubst < "$K8S_DIR/admin-api/ingress.yaml" | kubectl apply -n "$NS" -f -
+
+  envsubst < "$K8S_DIR/admin-web/deployment.yaml" | kubectl apply -n "$NS" -f -
+  kubectl apply -n "$NS" -f "$K8S_DIR/admin-web/service.yaml"
+  envsubst < "$K8S_DIR/admin-web/ingress.yaml" | kubectl apply -n "$NS" -f -
+fi
 echo "  → $((SECONDS - STEP_START))s"
 
 # --- 8. 롤아웃 대기 ---
@@ -191,6 +221,10 @@ STEP_START=$SECONDS
 echo "[rollout] waiting..."
 kubectl rollout status -n "$NS" deployment/api --timeout=120s
 kubectl rollout status -n "$NS" deployment/batch --timeout=120s
+if [[ "$DEPLOY_ENV" == "dev" ]]; then
+  kubectl rollout status -n "$NS" deployment/admin-api --timeout=120s
+  kubectl rollout status -n "$NS" deployment/admin-web --timeout=120s
+fi
 echo "  → $((SECONDS - STEP_START))s"
 
 echo ""
@@ -201,4 +235,6 @@ if [[ "$DEPLOY_ENV" == "prod" ]]; then
   echo "  curl https://api.kotonoha.eastshine.dev/health"
 else
   echo "  kubectl port-forward -n $NS svc/api 8080:8080"
+  echo "  kubectl port-forward -n $NS svc/admin-api 8081:8081"
+  echo "  admin web via ingress: http://localhost/$NS/admin"
 fi

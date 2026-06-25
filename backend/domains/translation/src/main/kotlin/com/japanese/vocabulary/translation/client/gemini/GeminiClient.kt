@@ -1,5 +1,6 @@
 package com.japanese.vocabulary.translation.client.gemini
 
+import org.springframework.stereotype.Component
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.japanese.vocabulary.observability.MetricNames
 import com.japanese.vocabulary.translation.client.gemini.dto.SegLineDto
@@ -10,7 +11,6 @@ import io.micrometer.core.instrument.Counter
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Timer
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
 
 @Component

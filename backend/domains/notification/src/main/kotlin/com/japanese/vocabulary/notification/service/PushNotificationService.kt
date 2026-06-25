@@ -1,5 +1,6 @@
 package com.japanese.vocabulary.notification.service
 
+import org.springframework.stereotype.Service
 import com.google.firebase.messaging.AndroidConfig
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.FirebaseMessagingException
@@ -10,7 +11,6 @@ import com.japanese.vocabulary.notification.repository.DeviceTokenRepository
 import com.japanese.vocabulary.notification.repository.NotificationLogRepository
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
-import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 
@@ -26,8 +26,8 @@ import java.time.Instant
  *   - INVALID_ARGUMENT → log, keep token (could be a sender-side format bug)
  *   - other errors    → log, keep token
  */
-@Service
 @ConditionalOnProperty(name = ["push.firebase.enabled"], havingValue = "true")
+@Service
 class PushNotificationService(
     private val firebaseMessaging: FirebaseMessaging,
     private val notificationLogRepository: NotificationLogRepository,

@@ -25,11 +25,6 @@ class LyricEntity(
     @Convert(converter = AnalyzedLineListConverter::class)
     @Column(name = "analyzed_content", columnDefinition = "JSON")
     var analyzedContent: List<AnalyzedLine>? = null,
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    var status: KoreanLyricStatus = KoreanLyricStatus.PENDING,
-    @Column(name = "retry_count", nullable = false)
-    var retryCount: Int = 0,
     @Column(name = "lrclib_id")
     val lrclibId: Long? = null,
     @Column(name = "vocadb_id")

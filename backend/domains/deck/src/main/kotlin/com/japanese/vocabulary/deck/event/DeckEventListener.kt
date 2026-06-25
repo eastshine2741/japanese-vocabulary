@@ -1,5 +1,6 @@
 package com.japanese.vocabulary.deck.event
 
+import org.springframework.stereotype.Component
 import com.japanese.vocabulary.deck.entity.DeckEntity
 import com.japanese.vocabulary.deck.entity.DeckFlashcardEntity
 import com.japanese.vocabulary.deck.repository.DeckFlashcardRepository
@@ -7,7 +8,6 @@ import com.japanese.vocabulary.deck.repository.DeckRepository
 import com.japanese.vocabulary.flashcard.event.FlashcardDeletedEvent
 import com.japanese.vocabulary.song.repository.SongRepository
 import com.japanese.vocabulary.word.event.SongWordCreatedEvent
-import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.event.TransactionPhase

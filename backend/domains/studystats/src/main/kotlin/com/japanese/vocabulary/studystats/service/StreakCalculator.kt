@@ -1,8 +1,8 @@
 package com.japanese.vocabulary.studystats.service
 
+import org.springframework.stereotype.Service
 import com.japanese.vocabulary.studystats.repository.DailyStudySummaryRepository
 import org.springframework.data.domain.PageRequest
-import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
 

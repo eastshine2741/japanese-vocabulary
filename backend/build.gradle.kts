@@ -41,7 +41,6 @@ configure(subprojects.filter { it.path.startsWith(":domains:") }) {
         "compileOnly"("jakarta.servlet:jakarta.servlet-api")
 
         "testImplementation"("org.springframework.boot:spring-boot-starter-test")
-        "testImplementation"(testFixtures(project(":common")))
     }
 
     the<io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension>().imports {
@@ -58,6 +57,46 @@ configure(subprojects.filter { it.path.startsWith(":domains:") }) {
     tasks.withType<Test> {
         useJUnitPlatform()
         // Testcontainers' shaded docker-java client defaults to API 1.32, which Docker 25+ rejects.
+        systemProperty("api.version", "1.43")
+        environment("DOCKER_API_VERSION", "1.43")
+    }
+}
+
+configure(subprojects.filter { it.path.startsWith(":integrations:") }) {
+    apply(plugin = "org.jetbrains.kotlin.jvm")
+    apply(plugin = "org.jetbrains.kotlin.plugin.spring")
+    apply(plugin = "io.spring.dependency-management")
+    apply(plugin = "java-test-fixtures")
+
+    extensions.configure<JavaPluginExtension> {
+        sourceCompatibility = JavaVersion.VERSION_17
+    }
+
+    dependencies {
+        "implementation"("org.springframework.boot:spring-boot-autoconfigure")
+        "implementation"("org.springframework:spring-context")
+        "implementation"("org.springframework:spring-web")
+        "implementation"("com.fasterxml.jackson.module:jackson-module-kotlin")
+        "implementation"("org.jetbrains.kotlin:kotlin-reflect")
+        "implementation"("org.slf4j:slf4j-api")
+
+        "testImplementation"("org.springframework.boot:spring-boot-starter-test")
+        "testImplementation"(testFixtures(project(":common")))
+    }
+
+    the<io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension>().imports {
+        mavenBom(org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES)
+    }
+
+    tasks.withType<KotlinCompile> {
+        kotlinOptions {
+            freeCompilerArgs += "-Xjsr305=strict"
+            jvmTarget = "17"
+        }
+    }
+
+    tasks.withType<Test> {
+        useJUnitPlatform()
         systemProperty("api.version", "1.43")
         environment("DOCKER_API_VERSION", "1.43")
     }

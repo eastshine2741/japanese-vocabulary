@@ -1,6 +1,5 @@
 package com.japanese.vocabulary.translation.service
 
-import com.japanese.vocabulary.translation.batch.KoreanLyricTranslationScheduler
 import com.japanese.vocabulary.translation.client.gemini.dto.SegLineDto
 import com.japanese.vocabulary.translation.client.gemini.dto.SegWordDto
 import com.japanese.vocabulary.translation.client.gemini.dto.SelectLineDto
@@ -9,33 +8,43 @@ import com.japanese.vocabulary.translation.client.gemini.dto.SenseTranslationDto
 import com.japanese.vocabulary.translation.client.gemini.dto.TranslationResultDto
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoEntryDto
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoOptionDto
-import com.japanese.vocabulary.song.entity.KoreanLyricStatus
+import com.japanese.vocabulary.song.batch.SongAnalysisWorkCompletionService
 import com.japanese.vocabulary.song.entity.LyricEntity
 import com.japanese.vocabulary.song.entity.LyricType
 import com.japanese.vocabulary.song.entity.SongEntity
+import com.japanese.vocabulary.song.model.AnalyzedLine
 import com.japanese.vocabulary.song.model.LyricLineData
 import com.japanese.vocabulary.song.model.PartOfSpeech
 import com.japanese.vocabulary.song.repository.LyricRepository
+import com.japanese.vocabulary.songanalysis.entity.SongAnalysisTriggerSource
+import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkEntity
+import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStatus
+import com.japanese.vocabulary.songanalysis.repository.SongAnalysisWorkRepository
 import com.japanese.vocabulary.song.repository.SongRepository
+import com.japanese.vocabulary.songanalysis.service.SongAnalysisWorkService
 import com.japanese.vocabulary.test.BatchBaseIntegrationTest
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.verify
 import kotlinx.coroutines.runBlocking
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import java.time.Duration
+import java.time.Instant
 
 class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
 
-    @Autowired private lateinit var scheduler: KoreanLyricTranslationScheduler
+    @Autowired private lateinit var translationService: KoreanLyricTranslationService
+    @Autowired private lateinit var workService: SongAnalysisWorkService
+    @Autowired private lateinit var completionService: SongAnalysisWorkCompletionService
+    @Autowired private lateinit var workRepository: SongAnalysisWorkRepository
     @Autowired private lateinit var lyricRepository: LyricRepository
     @Autowired private lateinit var songRepository: SongRepository
 
     private fun seedLyric(
         lines: List<String>,
-        status: KoreanLyricStatus = KoreanLyricStatus.PENDING,
-        retryCount: Int = 0,
     ): LyricEntity {
         val song = songRepository.save(
             SongEntity(
@@ -49,10 +58,31 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
                 songId = song.id!!,
                 lyricType = LyricType.PLAIN,
                 rawContent = lines.mapIndexed { i, t -> LyricLineData(index = i, startTimeMs = null, text = t) },
-                status = status,
-                retryCount = retryCount,
             ),
         )
+    }
+
+    private fun seedWork(title: String, status: SongAnalysisWorkStatus = SongAnalysisWorkStatus.PENDING): SongAnalysisWorkEntity {
+        val artist = "アーティスト"
+        return workRepository.save(
+            SongAnalysisWorkEntity(
+                rawTitle = title,
+                rawArtist = artist,
+                activeDedupKey = if (status == SongAnalysisWorkStatus.PENDING) {
+                    SongAnalysisWorkService.buildActiveDedupKey(title, artist)
+                } else {
+                    null
+                },
+                status = status,
+                triggerSource = SongAnalysisTriggerSource.USER_APP,
+            ),
+        )
+    }
+
+    private suspend fun processLyric(lyric: LyricEntity): Boolean {
+        val lines = translationService.runPipeline(lyric)
+        translationService.saveAnalyzedContent(lyric, lines)
+        return true
     }
 
     /**
@@ -115,7 +145,7 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
     }
 
     @Test
-    fun `golden path - PENDING lyric becomes COMPLETED with tokens and translation`(): Unit = runBlocking {
+    fun `golden path - lyric saves analyzed content with tokens and translation`(): Unit = runBlocking {
         val lyric = seedLyric(listOf("猫が寝る"))
 
         every { geminiClient.translateLyrics(any()) } returns listOf(
@@ -123,12 +153,10 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
         )
         stubHappyPath()
 
-        val ok = scheduler.processOne(lyric)
+        val ok = processLyric(lyric)
 
         assertThat(ok).isTrue
         val refreshed = lyricRepository.findById(lyric.id!!).orElseThrow()
-        assertThat(refreshed.status).isEqualTo(KoreanLyricStatus.COMPLETED)
-        assertThat(refreshed.retryCount).isZero
         val analyzed = refreshed.analyzedContent!!
         assertThat(analyzed).hasSize(1)
         val line = analyzed[0]
@@ -159,7 +187,7 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
         )
         stubSenseSelectAndTranslate()
 
-        scheduler.processOne(lyric)
+        processLyric(lyric)
 
         val tokens = lyricRepository.findById(lyric.id!!).orElseThrow().analyzedContent!![0].tokens
         val cat = tokens.first { it.surface == "猫" }
@@ -192,7 +220,7 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
         )
         stubSenseSelectAndTranslate()
 
-        scheduler.processOne(lyric)
+        processLyric(lyric)
 
         val tokens = lyricRepository.findById(lyric.id!!).orElseThrow().analyzedContent!![0].tokens
         assertThat(tokens.map { Triple(it.surface, it.charStart, it.charEnd) }).containsExactly(
@@ -203,35 +231,31 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
     }
 
     @Test
-    fun `failure under MAX_RETRIES bumps retryCount and resets status to PENDING`(): Unit = runBlocking {
+    fun `pipeline failure does not save analyzed content`() {
         val lyric = seedLyric(listOf("猫"))
 
         every { geminiClient.translateLyrics(any()) } throws RuntimeException("boom")
         every { geminiClient.segmentAndLemmatize(any()) } throws RuntimeException("boom")
 
-        val ok = scheduler.processOne(lyric)
+        assertThatThrownBy { runBlocking { translationService.runPipeline(lyric) } }
+            .isInstanceOf(RuntimeException::class.java)
 
-        assertThat(ok).isFalse
         val refreshed = lyricRepository.findById(lyric.id!!).orElseThrow()
-        assertThat(refreshed.status).isEqualTo(KoreanLyricStatus.PENDING)
-        assertThat(refreshed.retryCount).isEqualTo(1)
         assertThat(refreshed.analyzedContent).isNullOrEmpty()
     }
 
     @Test
-    fun `failure at last attempt marks lyric FAILED with retryCount=MAX_RETRIES`(): Unit = runBlocking {
-        // Seed already at retryCount=2; one more failure will hit MAX_RETRIES=3.
-        val lyric = seedLyric(listOf("猫"), retryCount = 2)
+    fun `pipeline failure does not mark lyric terminal state`() {
+        val lyric = seedLyric(listOf("猫"))
 
         every { geminiClient.translateLyrics(any()) } throws RuntimeException("permanent failure")
         every { geminiClient.segmentAndLemmatize(any()) } throws RuntimeException("permanent failure")
 
-        val ok = scheduler.processOne(lyric)
+        assertThatThrownBy { runBlocking { translationService.runPipeline(lyric) } }
+            .isInstanceOf(RuntimeException::class.java)
 
-        assertThat(ok).isFalse
         val refreshed = lyricRepository.findById(lyric.id!!).orElseThrow()
-        assertThat(refreshed.status).isEqualTo(KoreanLyricStatus.FAILED)
-        assertThat(refreshed.retryCount).isEqualTo(3)
+        assertThat(refreshed.analyzedContent).isNullOrEmpty()
     }
 
     @Test
@@ -241,7 +265,7 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
         every { geminiClient.translateLyrics(any()) } returns listOf(TranslationResultDto(0, "고양이", "네코"))
         stubHappyPath()
 
-        scheduler.processOne(lyric)
+        processLyric(lyric)
 
         verify(exactly = 1) { geminiClient.translateLyrics(any()) }
         verify(exactly = 1) { geminiClient.segmentAndLemmatize(any()) }
@@ -250,40 +274,108 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
     }
 
     @Test
-    fun `scheduler claim marks oldest PENDING entries as PROCESSING up to BATCH_SIZE`() {
-        // Slow-stub Gemini so the async portion does not race ahead and flip PROCESSING → COMPLETED
-        // before we can read.
-        every { geminiClient.translateLyrics(any()) } answers {
-            Thread.sleep(2_000); listOf(TranslationResultDto(0, "x", "y"))
-        }
-        stubHappyPath()
+    fun `work claim marks oldest PENDING entries as RUNNING up to batch size`() {
+        val all = (1..7).map { seedWork("猫$it") }
 
-        val all = (1..7).map { seedLyric(listOf("猫$it")) }
+        val claimed = workService.claimPending(
+            limit = 5,
+            workerId = "test-worker",
+            lockUntil = Instant.now().plus(Duration.ofMinutes(30)),
+        )
 
-        scheduler.run()
-
-        val statuses = all.map { lyricRepository.findById(it.id!!).orElseThrow().status }
-        val processingCount = statuses.count { it == KoreanLyricStatus.PROCESSING }
-        val pendingCount = statuses.count { it == KoreanLyricStatus.PENDING }
-        assertThat(processingCount + pendingCount).isEqualTo(7)
-        assertThat(processingCount).isEqualTo(5)
-        assertThat(pendingCount).isEqualTo(2)
-
-        val oldest5Ids = all.take(5).map { it.id!! }.toSet()
-        val processingIds = all
-            .filter { lyricRepository.findById(it.id!!).orElseThrow().status == KoreanLyricStatus.PROCESSING }
-            .map { it.id!! }
-            .toSet()
-        assertThat(processingIds).isEqualTo(oldest5Ids)
+        assertThat(claimed).hasSize(5)
+        val statuses = all.map { workRepository.findById(it.id!!).orElseThrow().status }
+        assertThat(statuses.count { it == SongAnalysisWorkStatus.RUNNING }).isEqualTo(5)
+        assertThat(statuses.count { it == SongAnalysisWorkStatus.PENDING }).isEqualTo(2)
+        assertThat(claimed.map { it.id }).containsExactlyElementsOf(all.take(5).map { it.id })
     }
 
     @Test
-    fun `scheduler run is a no-op when there are no PENDING lyrics`() {
-        seedLyric(listOf("猫"), status = KoreanLyricStatus.COMPLETED)
+    fun `work claim ignores terminal rows`() {
+        seedWork("失敗", status = SongAnalysisWorkStatus.FAILED)
 
-        scheduler.run()
+        val claimed = workService.claimPending(
+            limit = 5,
+            workerId = "test-worker",
+            lockUntil = Instant.now().plus(Duration.ofMinutes(30)),
+        )
 
+        assertThat(claimed).isEmpty()
         verify(exactly = 0) { geminiClient.translateLyrics(any()) }
         verify(exactly = 0) { geminiClient.segmentAndLemmatize(any()) }
+    }
+
+    @Test
+    fun `expired RUNNING work is failed instead of reclaimed`() {
+        val expired = seedWork("期限切れ", status = SongAnalysisWorkStatus.RUNNING).apply {
+            lockedBy = "dead-worker"
+            lockedUntil = Instant.now().minus(Duration.ofMinutes(1))
+        }
+        workRepository.saveAndFlush(expired)
+
+        val claimed = workService.claimPending(
+            limit = 5,
+            workerId = "new-worker",
+            lockUntil = Instant.now().plus(Duration.ofMinutes(30)),
+        )
+        val failedCount = workService.failExpiredRunning(limit = 5)
+
+        assertThat(claimed).isEmpty()
+        assertThat(failedCount).isEqualTo(1)
+        val refreshed = workRepository.findById(expired.id!!).orElseThrow()
+        assertThat(refreshed.status).isEqualTo(SongAnalysisWorkStatus.FAILED)
+        assertThat(refreshed.activeDedupKey).isNull()
+        assertThat(refreshed.errorCode).isEqualTo("SONG_ANALYSIS_WORK_TIMEOUT")
+    }
+
+    @Test
+    fun `stale worker cannot complete work after timeout failure`() {
+        val expired = seedWork("復活禁止", status = SongAnalysisWorkStatus.RUNNING).apply {
+            lockedBy = "dead-worker"
+            lockedUntil = Instant.now().minus(Duration.ofMinutes(1))
+        }
+        workRepository.saveAndFlush(expired)
+
+        workService.failExpiredRunning(limit = 5)
+        val completed = workService.markCompleted(expired.id!!, "dead-worker")
+        val failedAgain = workService.markFailed(
+            expired.id!!,
+            "dead-worker",
+            "SONG_ANALYSIS_WORK_FAILED",
+            "unsafe overwrite",
+        )
+
+        assertThat(completed).isFalse
+        assertThat(failedAgain).isFalse
+        val refreshed = workRepository.findById(expired.id!!).orElseThrow()
+        assertThat(refreshed.status).isEqualTo(SongAnalysisWorkStatus.FAILED)
+        assertThat(refreshed.errorCode).isEqualTo("SONG_ANALYSIS_WORK_TIMEOUT")
+        assertThat(refreshed.errorMessage).isEqualTo("Song analysis timed out")
+    }
+
+    @Test
+    fun `stale worker cannot save analyzed content after timeout failure`() {
+        val lyric = seedLyric(listOf("猫"))
+        val expired = seedWork("副作用禁止", status = SongAnalysisWorkStatus.RUNNING).apply {
+            lyricId = lyric.id
+            lockedBy = "dead-worker"
+            lockedUntil = Instant.now().minus(Duration.ofMinutes(1))
+        }
+        workRepository.saveAndFlush(expired)
+
+        workService.failExpiredRunning(limit = 5)
+        val completed = completionService.completeWithAnalyzedContent(
+            workId = expired.id!!,
+            workerId = "dead-worker",
+            lyricId = lyric.id!!,
+            analyzedLines = listOf(AnalyzedLine(0, "고양이", "네코", emptyList())),
+        )
+
+        assertThat(completed).isFalse
+        val refreshedWork = workRepository.findById(expired.id!!).orElseThrow()
+        assertThat(refreshedWork.status).isEqualTo(SongAnalysisWorkStatus.FAILED)
+        assertThat(refreshedWork.errorCode).isEqualTo("SONG_ANALYSIS_WORK_TIMEOUT")
+        val refreshedLyric = lyricRepository.findById(lyric.id!!).orElseThrow()
+        assertThat(refreshedLyric.analyzedContent).isNull()
     }
 }

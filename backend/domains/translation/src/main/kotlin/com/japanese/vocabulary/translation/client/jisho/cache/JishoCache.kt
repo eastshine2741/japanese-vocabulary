@@ -1,11 +1,11 @@
 package com.japanese.vocabulary.translation.client.jisho.cache
 
+import org.springframework.stereotype.Component
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.japanese.vocabulary.cache.RedisCache
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoEntryDto
 import org.slf4j.LoggerFactory
 import org.springframework.data.redis.core.StringRedisTemplate
-import org.springframework.stereotype.Component
 import java.time.Duration
 
 /**

@@ -1,5 +1,6 @@
 package com.japanese.vocabulary.translation.service
 
+import org.springframework.stereotype.Service
 import com.japanese.vocabulary.translation.client.jisho.JishoClient
 import com.japanese.vocabulary.translation.client.jisho.cache.JishoCache
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoEntryDto
@@ -8,7 +9,6 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
-import org.springframework.stereotype.Service
 
 /**
  * Cache-aside orchestration over [JishoClient]: serves jisho lookups from [JishoCache] first and

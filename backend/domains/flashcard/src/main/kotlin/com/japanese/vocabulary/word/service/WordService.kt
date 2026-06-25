@@ -1,5 +1,6 @@
 package com.japanese.vocabulary.word.service
 
+import org.springframework.stereotype.Service
 import com.japanese.vocabulary.common.exception.BusinessException
 import com.japanese.vocabulary.common.exception.ErrorCode
 import com.japanese.vocabulary.flashcard.service.FlashcardService
@@ -20,7 +21,6 @@ import com.japanese.vocabulary.word.repository.SongWordRepository
 import com.japanese.vocabulary.word.repository.WordRepository
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.domain.PageRequest
-import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 @Service

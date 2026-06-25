@@ -1,0 +1,25 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: admin-web-strip-prefix
+spec:
+  stripPrefix:
+    prefixes:
+      - /${NS}/admin
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: admin-web
+spec:
+  entryPoints:
+    - web
+  routes:
+    - match: PathPrefix(`/${NS}/admin`)
+      kind: Rule
+      priority: 50
+      services:
+        - name: admin-web
+          port: 80
+      middlewares:
+        - name: admin-web-strip-prefix

@@ -1,9 +1,9 @@
 package com.japanese.vocabulary.userinventory.service
 
+import org.springframework.stereotype.Service
 import com.japanese.vocabulary.userinventory.entity.InventoryItemType
 import com.japanese.vocabulary.userinventory.entity.UserInventoryEntity
 import com.japanese.vocabulary.userinventory.repository.UserInventoryRepository
-import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 @Service

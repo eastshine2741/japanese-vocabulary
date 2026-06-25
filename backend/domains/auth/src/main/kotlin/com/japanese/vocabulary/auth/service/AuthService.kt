@@ -1,5 +1,6 @@
 package com.japanese.vocabulary.auth.service
 
+import org.springframework.stereotype.Service
 import com.japanese.vocabulary.auth.dto.UsernameAvailabilityDto
 import com.japanese.vocabulary.common.exception.BusinessException
 import com.japanese.vocabulary.common.exception.ErrorCode
@@ -8,7 +9,6 @@ import com.japanese.vocabulary.user.dto.UserDto
 import com.japanese.vocabulary.user.dto.toDto
 import com.japanese.vocabulary.user.repository.UserRepository
 import com.japanese.vocabulary.user.service.UsernamePolicy
-import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 sealed class GoogleLoginResult {
