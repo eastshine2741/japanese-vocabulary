@@ -1,9 +1,9 @@
 package com.japanese.vocabulary.test
 
 import com.google.firebase.messaging.FirebaseMessaging
-import com.japanese.vocabulary.song.client.lrclib.LrclibClient
-import com.japanese.vocabulary.song.client.vocadb.VocadbClient
-import com.japanese.vocabulary.song.client.youtube.YoutubeClient
+import com.japanese.vocabulary.lyricsearch.lrclib.LrclibClient
+import com.japanese.vocabulary.lyricsearch.vocadb.VocadbClient
+import com.japanese.vocabulary.mvsearch.client.youtube.YoutubeClient
 import com.japanese.vocabulary.translation.client.gemini.GeminiClient
 import com.japanese.vocabulary.translation.service.JishoService
 import com.ninjasquad.springmockk.MockkBean

@@ -21,10 +21,12 @@ dependencies {
     implementation(project(":domains:notification"))
     implementation(project(":domains:user"))
     implementation(project(":domains:flashcard"))
+    implementation(project(":integrations:lyric-search"))
+    implementation(project(":integrations:mv-search"))
 
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
-    implementation("org.springframework.boot:spring-boot-starter-webflux")
+    implementation("org.springframework.boot:spring-boot-starter-data-redis")
     implementation("org.springframework.boot:spring-boot-starter-batch")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     runtimeOnly("io.micrometer:micrometer-registry-prometheus")

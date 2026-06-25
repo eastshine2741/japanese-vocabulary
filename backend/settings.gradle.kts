@@ -2,6 +2,11 @@ rootProject.name = "japanese-vocabulary-backend"
 
 include("common", "api", "admin-api", "batch", "migration")
 include(
+    "integrations:song-search",
+    "integrations:lyric-search",
+    "integrations:mv-search",
+)
+include(
     "domains:song",
     "domains:song-analysis",
     "domains:translation",

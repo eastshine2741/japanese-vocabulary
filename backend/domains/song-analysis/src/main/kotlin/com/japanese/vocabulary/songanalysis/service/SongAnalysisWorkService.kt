@@ -1,5 +1,6 @@
 package com.japanese.vocabulary.songanalysis.service
 
+import org.springframework.stereotype.Service
 import com.japanese.vocabulary.common.exception.BusinessException
 import com.japanese.vocabulary.common.exception.ErrorCode
 import com.japanese.vocabulary.songanalysis.dto.SongAnalysisWorkDto
@@ -10,7 +11,6 @@ import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStage
 import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStatus
 import com.japanese.vocabulary.songanalysis.repository.SongAnalysisWorkRepository
 import org.springframework.dao.DataIntegrityViolationException
-import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 

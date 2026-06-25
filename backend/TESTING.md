@@ -14,7 +14,7 @@
 - **컨트롤러 권한·검증·직렬화** → Spring Web 슬라이스 (`@WebMvcTest`)
 
 ### 외부 API 호출은 절연한다
-모든 WebClient/RestClient 클라이언트(`ItunesClient`, `YoutubeClient`, `LrclibClient`, `VocadbClient`, `JishoClient`, `GeminiClient`)는 통합테스트에서 `@MockkBean`으로 stub. **테스트가 인터넷에 의존하면 안 됨.**
+모든 외부 클라이언트(`ItunesClient`, `YoutubeClient`, `LrclibClient`, `VocadbClient`, `JishoClient`, `GeminiClient`)는 해당 application 통합테스트에서 `@MockkBean`으로 stub. **테스트가 인터넷에 의존하면 안 됨.**
 
 ### 시계는 주입된 `Clock` 으로 통제한다
 운영 코드는 `Instant.now()` / `LocalDateTime.now()` 직접 호출 금지 — `Clock` 빈을 주입받아 `Instant.now(clock)` 형태로 사용. 테스트는 `MutableClock` 으로 시간을 advance. FSRS 누적, KST 날짜 전환, freeze 만료 같은 시간 의존 시나리오를 결정적으로 검증 가능.
@@ -44,7 +44,7 @@
 | 리포지터리 native query | `FlashcardRepository.findDueByUserIdAndSongId`, `DailyStudySummaryRepository.longestStreak`, `DeckRepository.getDeckList` | JPA + 실제 DB | `@SpringBootTest` (BaseIntegrationTest 상속) |
 | Spring Event flow | `FlashcardCreatedEvent` → `DeckEventListener`, `StudyStatsEventListener` | 도메인 통합 | `@SpringBootTest` + `ApplicationEvents` |
 | 인증/필터 | `JwtAuthFilter`, `SecurityConfig` | 통합 | `@SpringBootTest` + MockMvc |
-| 외부 API 클라이언트 호출 도메인 | `LyricProcessingService`, `WordService.lookupMeaning`, `KoreanLyricTranslationService` | 통합 + `@MockkBean(GeminiClient::class)` | `@SpringBootTest` |
+| 외부 API 클라이언트 호출 도메인 | `SongAnalysisPreparationService`, `WordService.lookupMeaning`, `KoreanLyricTranslationService` | 통합 + 해당 외부 client `@MockkBean` | `@SpringBootTest` |
 | 배치 스케줄러 | `KoreanLyricTranslationService.processTranslations`, `FreezeConsumeScheduler` | 통합 (스케줄 비동기 X, 직접 invoke) | `@SpringBootTest` |
 
 ---
@@ -93,7 +93,7 @@ abstract class BaseIntegrationTest {
 }
 ```
 
-api 모듈은 `ApiBaseIntegrationTest` 가 `BaseIntegrationTest` 를 상속하며 외부 WebClient 클라이언트 5개(`JishoClient`, `LrclibClient`, `VocadbClient`, `YoutubeClient`, `ItunesClient`)를 `@MockkBean` (relaxed 미지정 = `false`) 로 선언한다.
+api 모듈은 `ApiBaseIntegrationTest` 가 `BaseIntegrationTest` 를 상속하며 api가 직접 의존하는 외부 클라이언트(`ItunesClient`)를 `@MockkBean` (relaxed 미지정 = `false`) 로 선언한다. batch 모듈은 `BatchBaseIntegrationTest` 에서 LRCLIB/VocaDB/YouTube/Gemini/Jisho 의존을 stub한다.
 
 **왜 이렇게:**
 - `@Transactional` 롤백으로 각 테스트 격리. 빌더는 단순 `em.persist()` 만 — 별도 commit 안 함.
@@ -297,11 +297,11 @@ fun `flashcard 복습 시 FSRS 갱신 + StudyStatsEvent`() {
 **Native query:**
 - `FlashcardRepository.findDueByUserIdAndSongId` — 다른 user 카드 제외, due 미래 카드 제외, deck-song 조인 정확성.
 
-### 4.3 song (Phase 2 예정)
-**`LyricProcessingService`:**
+### 4.3 song analysis (Phase 2 예정)
+**`SongAnalysisPreparationService`:**
 - `LyricProvider` chain (LRCLIB → VocaDB) fallback이 첫 provider null 시 다음으로 넘어가는지.
-- `@MockkBean(LrclibClient::class, VocadbClient::class, YoutubeClient::class, ItunesClient::class)`로 stub.
-- 가사 found → SongEntity + LyricEntity(status=PENDING) 저장 검증.
+- batch의 `@MockkBean(LrclibClient::class, VocadbClient::class, YoutubeClient::class)`로 stub.
+- 가사 found → SongEntity + LyricEntity 저장 검증.
 
 **`SongQueryNormalizer`** (단위): 일본어/영어 혼합, 다중 아티스트 (`feat.`, `&`), 특수문자 처리.
 
@@ -311,12 +311,10 @@ fun `flashcard 복습 시 FSRS 갱신 + StudyStatsEvent`() {
 
 **예제 패턴:**
 ```kotlin
-class LyricProcessingServiceTest : ApiBaseIntegrationTest() {
-    // @MockkBean 추가 선언 X — 부모 ApiBaseIntegrationTest 의 mock 빈 사용
-
+class SongAnalysisPreparationServiceTest : BatchBaseIntegrationTest() {
     @Test fun `falls back to VocaDB when LRCLIB returns null`() {
-        every { lrclibClient.search(any(), any(), any()) } returns null
-        every { vocadbClient.search(any(), any()) } returns LyricResult(...)
+        every { lrclibClient.search(any()) } returns null
+        every { vocadbClient.search(any()) } returns LyricsResult(...)
         // ...
     }
 }

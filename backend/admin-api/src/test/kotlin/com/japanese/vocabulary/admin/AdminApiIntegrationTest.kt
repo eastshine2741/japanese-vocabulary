@@ -38,10 +38,6 @@ class AdminApiIntegrationTest : AdminBaseIntegrationTest() {
             "vocadbClient",
             "songSearchCache",
             "recentSongService",
-            "redisConnectionFactory",
-            "reactiveRedisConnectionFactory",
-            "redisTemplate",
-            "stringRedisTemplate",
         ).forEach { beanName ->
             org.junit.jupiter.api.assertThrows<NoSuchBeanDefinitionException> {
                 applicationContext.getBean(beanName)

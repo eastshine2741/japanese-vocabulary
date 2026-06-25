@@ -2,10 +2,8 @@ package com.japanese.vocabulary.flashcard.repository
 
 import com.japanese.vocabulary.flashcard.entity.FlashcardEntity
 import org.springframework.data.jpa.repository.JpaRepository
-import org.springframework.stereotype.Repository
 import java.time.Instant
 
-@Repository
 interface FlashcardRepository : JpaRepository<FlashcardEntity, Long> {
     fun findByUserIdAndDueLessThanEqual(userId: Long, due: Instant): List<FlashcardEntity>
     fun findByUserIdAndDueBetweenAndLastReviewIsNotNull(userId: Long, since: Instant, now: Instant): List<FlashcardEntity>

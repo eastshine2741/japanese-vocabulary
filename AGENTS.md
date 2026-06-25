@@ -80,25 +80,33 @@ backend/
 │   ├── auth/                — Google OIDC + JWT, AuthService
 │   ├── user/                — UserEntity + Settings + DeviceToken
 │   ├── userinventory/       — freeze inventory etc.
-│   ├── song/                — Song/Lyric entity + iTunes/YouTube/VocaDB/LRCLIB clients + LyricProcessingService (동기 단계). 저장 모델(AnalyzedLine/Token/PartOfSpeech)도 여기 (LyricEntity JSON + api study view가 사용)
+│   ├── song/                — Song/Lyric entity + repository + lyric 저장 모델(AnalyzedLine/Token/PartOfSpeech/LyricLineData) + LRC parser. Redis/external music client/use case 없음
 │   ├── song-analysis/       — song_analysis_work 상태머신 + trigger/polling DTO. song 모듈을 의존하지 않으며 song_id/lyric_id는 Long projection으로만 보관
 │   ├── translation/         — 가사 분석+번역 파이프라인: KoreanLyricTranslationService + GeminiClient + JishoService(cache-aside+동시성) + JishoClient(API만) + JishoCache(RedisCache 자식). **batch만 의존** (가사 번역 스케줄러만 사용). 형태소 분석은 LLM이 직접 수행(Kuromoji 폐기 2026-06) — analyzer/사전 의존성 없음. jisho 조회는 Redis 캐시(`JishoCache`)
 │   ├── flashcard/           — word + flashcard packages merged (word ↔ flashcard cycle): WordEntity, FlashcardEntity, repositories, services, events
 │   ├── deck/                — DeckEntity, DeckService, DeckEventListener
 │   ├── studystats/          — DailyStudySummary, StreakCalculator (Spring Batch 잡 본체는 batch 모듈로 분리됨 — 도메인 모듈은 Job/Scheduler를 갖지 않음. 그래야 api가 studystats를 의존해도 spring-batch가 classpath에 안 올라와 startup 잡 자동실행이 안 생김)
 │   └── notification/        — FCM 전송 + FirebaseConfig + NotificationLogEntity 만. Scheduler/조회 로직은 없음. 외부 데이터 접근은 `PushNotificationDataPort` 인터페이스로 추상화 (구현체는 `batch`)
-├── api/                     — REST bootstrap (@SpringBootApplication). translation을 제외한 사용자 API 도메인 모듈 의존(song-analysis 포함). controller/ + per-domain dto/ (HTTP 입출력). @Scheduled 없음.
-├── admin-api/               — internal admin REST bootstrap. v1 is read-only for song/lyric/user inspection, password-only admin auth, admin-specific stateless bearer token. Component scan is limited to `com.japanese.vocabulary.admin`; JPA scans admin repositories plus song/user entities only. It currently depends on `domains:song` for entity/model classes but must not component-scan song runtime packages.
-└── batch/                   — 스케줄 잡 bootstrap (@SpringBootApplication, @EnableScheduling). 필요한 도메인만 의존 (현재 song, song-analysis, translation, studystats, notification, user, flashcard). 모든 @Scheduled는 여기. SongAnalysisWorkScheduler, FreezeConsumeScheduler 등.
+├── integrations/            — external music provider clients. `song-search`(iTunes, package `songsearch`), `lyric-search`(LRCLIB/VocaDB, package `lyricsearch`), `mv-search`(YouTube, package `mvsearch`). Active integration modules provide AutoConfiguration; no hexagonal port layer.
+├── api/                     — REST bootstrap (@SpringBootApplication). translation을 제외한 사용자 API 도메인 모듈 의존(song-analysis 포함). controller/ + per-domain dto/ (HTTP 입출력). @Scheduled 없음. Component scan은 app-local package로 좁히고, `ApiLocalConfiguration`이 api-local controllers/services/config를 @Import한다.
+├── admin-api/               — internal admin REST bootstrap. v1 is read-only for song/lyric/user inspection, password-only admin auth, admin-specific stateless bearer token. It depends on song/user/song-analysis core only and must not depend on music integration modules. Cross-module JPA wiring comes from depended modules' AutoConfiguration; admin-api registers only its own repositories.
+└── batch/                   — 스케줄 잡 bootstrap (@SpringBootApplication, @EnableScheduling). 필요한 도메인만 의존 (현재 song, song-analysis, translation, studystats, notification, user, flashcard) plus lyric-search/mv-search integrations. 모든 @Scheduled는 여기. SongAnalysisWorkScheduler, FreezeConsumeScheduler 등. Component scan은 app-local package로 좁히고, `BatchLocalConfiguration`이 batch-local scheduler/job/service/config를 @Import한다.
 ```
 
 ### 모듈 의존성 원칙
 
 - **batch가 의존하는 도메인은 최소화**. 필요한 도메인만 추가. JPA 엔티티 로드 비용 절감.
 - **api는 사용자 API에 필요한 도메인 의존**. 현재 REST 표면은 대부분의 사용자 도메인을 노출하고 song 조회/분석 polling 때문에 `song`과 `song-analysis`를 둘 다 의존한다. **예외: translation** — 가사 번역 스케줄러(batch)만 사용하므로 batch 전용 유지. (Kuromoji 폐기 후 힙 비용 사유는 사라졌지만 api가 의존할 이유도 없음.)
-- **admin-api는 public api와 분리된 bootstrap**. v1은 `song`, `lyric`, `user` 조회만 제공하고 mutation route를 만들지 않는다. `domains:song`는 WebFlux/Redis/external client/service bean이 많은 runtime-heavy module이므로 admin-api에서 broad component scan 금지. 필요한 경우 admin-api 내부 repository를 추가하고 entity scan만 도메인 패키지로 명시한다.
+- **admin-api는 public api와 분리된 bootstrap**. v1은 `song`, `lyric`, `user` 조회만 제공하고 mutation route를 만들지 않는다. admin-api는 `domains:song` core를 의존하되 music integration module을 의존하지 않는다. 타 모듈 entity/repository scan 지식은 application bootstrap에 두지 않고, 각 active module의 AutoConfiguration이 제공한다. admin-api는 자기 repository만 app-local config로 등록한다.
+- **active module은 자기 Spring surface를 AutoConfiguration으로 선언한다**. Spring bean을 제공하는 domain/integration module은 `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`와 `com.japanese.autoconfigure.*` 설정 클래스를 둔다. Application module은 Gradle dependency로 기능 조합을 선택하고, module 내부 wiring은 해당 module이 소유한다. `api`/`batch` bootstrap은 broad root component scan을 쓰지 않고 app-local class만 `@Import`한다.
+- **도메인 모듈은 persistence-aware domain core로 수렴**. 목표 구조는 entity/model/enum, domain method/service, invariant/state transition 중심이다. `SongRepository`, `LyricRepository` 같은 JPA repository는 이번 모듈화 pass에서 외부 노출을 유지한다. Page/search/projection/read-model repository와 application별 read/write workflow는 장기적으로 `api`, `admin-api`, `batch`가 각자 소유하되 이번 pass에서 repository 전면 분리는 하지 않는다.
+- **외부 API client는 domain core가 아니다**. iTunes/YouTube/LRCLIB/VocaDB 같은 HTTP client와 provider DTO는 application별로 중복하지 않고 기능별 integration 모듈에 둔다. 목표 모듈은 `integrations:song-search`(iTunes), `integrations:lyric-search`(LRCLIB/VocaDB), `integrations:mv-search`(YouTube)다. 이 프로젝트에서는 불필요한 port/adapter 복잡도를 피하고, 필요한 application module이 client class를 직접 사용한다. integration client는 `RestClient` 중심으로 통일하고, 해당 integration module의 AutoConfiguration이 client bean surface를 제공한다.
+- **integration package는 domain package와 분리한다**. integration 모듈의 Kotlin package는 `com.japanese.vocabulary.songsearch`, `com.japanese.vocabulary.lyricsearch`, `com.japanese.vocabulary.mvsearch`처럼 소유 모듈을 드러내야 한다. `com.japanese.vocabulary.song.client.*` 아래에 새 외부 client를 추가하지 않는다.
+- **외부 client 설정은 integration client + application별 properties override로 처리한다**. timeout, connection, retry 같은 차이가 필요하면 client class를 복제하지 말고 해당 integration module을 사용하는 `api`, `batch` 등의 yml/env에서 같은 property namespace를 다르게 설정한다.
+- **cache 위치는 의미로 결정한다**. 이번 pass에서는 Redis cache를 integration module에 넣지 않고 현재 behavior owner application에 둔다. `SongSearchCache`는 `api`, `ArtistChannelCache`는 `batch`, `RecentSongService`/`SearchHistoryService`는 `api`가 소유한다.
+- **Admin write는 raw field update 금지**. 향후 admin mutation은 entity별로 허용된 domain method/service를 통해서만 수행한다. DTO 바인딩이나 generic table editor로 엔티티 필드를 직접 여는 방식은 금지하며, 필요한 경우 audit logging을 붙인다.
 - **Spring Batch Job/Step config·Scheduler·잡 워커 서비스는 batch bootstrap 모듈에만 둔다. 도메인 모듈에 두지 말 것** — 도메인 모듈에 `spring-boot-starter-batch`가 들어가면 그 모듈을 의존하는 api에도 spring-batch가 classpath에 올라와 `JobLauncherApplicationRunner`가 startup에 잡을 자동 실행한다 (`runDate parameter required` 류 에러). 잡은 batch가 스케줄러로만 트리거.
-- **외부 API 클라이언트(`@Value`로 필수 키 주입)가 도메인 모듈에 있고 그 도메인을 batch가 의존하면, batch yml에도 해당 키를 (안 쓰면 빈 기본값 `${KEY:}`으로) 넣어야** placeholder 미해석 크래시를 피한다 (e.g. song의 `YoutubeClient` → batch에 `youtube.api-key`).
+- **외부 API 클라이언트(`@Value`로 필수 키 주입)가 integration 모듈에 있고 그 integration을 application이 의존하면, 해당 application yml에도 해당 키를 넣어야** placeholder 미해석 크래시를 피한다 (e.g. `integrations:mv-search`의 `YoutubeClient` → batch에 `youtube.api-key`).
 - **통합테스트는 bootstrap 모듈(api/batch)에만 둔다. 도메인 모듈에 테스트용 @SpringBootApplication(TestBoot)을 만들지 말 것** — 부트클래스가 도메인 패키지에 있으면 repo/entity 스캔 범위가 그 패키지로 좁아져 cross-domain 빈이 unresolved 된다 (`scanBasePackages`는 컴포넌트 스캔만 넓힐 뿐). 리스너 직접 호출 테스트는 api의 `ApiAfterCommitListenerTest` 상속.
 - 도메인 모듈끼리는 필요할 때 의존 (e.g. `flashcard` → `song` repository 사용). 단 한쪽이 너무 많은 cross-domain repo를 import하면 service 메서드 도입 고려.
 
@@ -181,7 +189,7 @@ Work status는 `PENDING`, `RUNNING`, `COMPLETED`, `FAILED`만 사용한다. 첫 
 
 ## Conventions
 
-- Backend: 도메인 기반 멀티모듈 (위 [Backend Module Structure](#backend-module-structure) 참고). 패키지는 `com.japanese.vocabulary.<domain>` (e.g. `auth`, `song`, `word`, `flashcard`, `deck`, `user`, `studystats`, `notification`). WebClient for external APIs.
+- Backend: 도메인 기반 멀티모듈 (위 [Backend Module Structure](#backend-module-structure) 참고). 패키지는 `com.japanese.vocabulary.<domain>` (e.g. `auth`, `song`, `word`, `flashcard`, `deck`, `user`, `studystats`, `notification`). Music provider clients live in function-specific `integrations:*` modules and use `RestClient` where behavior is equivalent.
 - DB migrations: `backend/migration/src/main/resources/db/migration/`. 새 테이블은 여기에 V_숫자 SQL로 추가. 도메인 모듈의 JPA `@Entity`와 migration이 일치해야 함.
 - App: Zustand stores (도메인별), Axios with auth interceptor, `StyleSheet.create()` co-located with components
 

@@ -1,5 +1,6 @@
 package com.japanese.vocabulary.studystats.event
 
+import org.springframework.stereotype.Component
 import com.japanese.vocabulary.flashcard.event.FlashcardReviewedEvent
 import com.japanese.vocabulary.studystats.repository.DailyStudySummaryRepository
 import com.japanese.vocabulary.studystats.service.StreakCalculator
@@ -7,7 +8,6 @@ import com.japanese.vocabulary.studystats.service.StudyStatsService
 import com.japanese.vocabulary.studystats.util.KstClock
 import com.japanese.vocabulary.userinventory.entity.InventoryItemType
 import com.japanese.vocabulary.userinventory.service.UserInventoryService
-import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.event.TransactionPhase

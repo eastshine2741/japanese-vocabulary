@@ -1,11 +1,11 @@
 package com.japanese.vocabulary.user.service
 
+import org.springframework.stereotype.Service
 import com.japanese.vocabulary.common.exception.BusinessException
 import com.japanese.vocabulary.common.exception.ErrorCode
 import com.japanese.vocabulary.user.dto.UserDto
 import com.japanese.vocabulary.user.dto.toDto
 import com.japanese.vocabulary.user.repository.UserRepository
-import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 
