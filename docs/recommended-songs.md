@@ -13,13 +13,26 @@ Scope is intentionally narrow:
 
 ## Data source
 
-`batch` calls Apple Music RSS through `integrations:apple-music-rss`:
+`batch` calls Apple Music RSS through `integrations:apple-music-rss` from the Spring Batch job
+`appleMusicRecommendationCollectJob`:
 
 ```text
 https://rss.marketingtools.apple.com/api/v2/jp/music/most-played/100/songs.json
 ```
 
-The collector derives `week_start_date` from the collector run timestamp as the Monday start date in Japan timezone.
+The job derives `week_start_date` from the run timestamp as the Monday start date in Japan timezone unless
+`weekStartDate` is supplied as a job parameter.
+
+Manual one-off execution:
+
+```bash
+cd backend
+./gradlew :batch:bootRun --args='--spring.batch.job.enabled=true --spring.batch.job.name=appleMusicRecommendationCollectJob weekStartDate=2026-06-22'
+```
+
+`spring.batch.job.enabled` stays `false` by default so the long-running batch application does not run all
+Spring Batch jobs on normal startup. `:batch:bootRun` is still a long-running batch application process, so
+for one-off testing, confirm the job completion log and stop the process manually.
 
 ## Tables
 
@@ -40,7 +53,7 @@ Important statuses:
 
 ## Flow
 
-1. Weekly collector upserts up to 100 Apple RSS rows into `song_recommendation_candidate`.
+1. Weekly `appleMusicRecommendationCollectJob` upserts up to 100 Apple RSS rows into `song_recommendation_candidate`.
 2. Existing candidates keep operator status; source rank/metadata can be refreshed.
 3. Operator directly edits DB rows from `PENDING` to `APPROVED` or `REJECTED`.
 4. Operator clicks `Dispatch analysis` in admin-web, which calls `POST /admin/api/recommendations/dispatch-analysis`.
