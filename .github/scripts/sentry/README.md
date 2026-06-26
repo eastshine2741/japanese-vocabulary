@@ -12,12 +12,12 @@ The runner does not resolve, ignore, archive, delete, or otherwise mutate Sentry
 
 ## Files
 
-- `.github/scripts/sentry-triage.sh` - cron-safe runner.
-- `.github/scripts/prompts/sentry/triage.md` - Codex classification prompt.
-- `.github/scripts/schemas/sentry-triage-result.schema.json` - Codex output schema.
-- `.github/scripts/schemas/sentry-pr-implementation-result.schema.json` - second-pass PR implementation schema.
-- `.github/scripts/sentry-triage.env.example` - public-safe env list.
-- `.github/scripts/fixtures/sentry-triage/` - dry-run fixtures.
+- `.github/scripts/sentry/triage.sh` - cron-safe runner.
+- `.github/scripts/sentry/prompts/triage.md` - Codex classification prompt.
+- `.github/scripts/sentry/schemas/sentry-triage-result.schema.json` - Codex output schema.
+- `.github/scripts/sentry/schemas/sentry-pr-implementation-result.schema.json` - second-pass PR implementation schema.
+- `.github/scripts/sentry/triage.env.example` - public-safe env list.
+- `.github/scripts/sentry/fixtures/` - dry-run fixtures.
 
 ## Required Local Tools
 
@@ -40,7 +40,7 @@ Codex is launched with a scrubbed environment (`env -i`) so Sentry, Discord, Git
 
 ## Environment
 
-Use `.github/scripts/sentry-triage.env.example` as a template. Required live variables:
+Use `.github/scripts/sentry/triage.env.example` as a template. Required live variables:
 
 - `SENTRY_AUTH_TOKEN`
 - `SENTRY_ORG`
@@ -83,9 +83,9 @@ The Sentry poll query uses the replay window and cursor pagination. If the confi
 Run fixture paths without external mutation:
 
 ```bash
-.github/scripts/sentry-triage.sh --dry-run --fixture .github/scripts/fixtures/sentry-triage/pr-small-null-check.json
-.github/scripts/sentry-triage.sh --dry-run --fixture .github/scripts/fixtures/sentry-triage/github-issue-large-refactor.json
-.github/scripts/sentry-triage.sh --dry-run --fixture .github/scripts/fixtures/sentry-triage/cause-only-transient.json
+.github/scripts/sentry/triage.sh --dry-run --fixture .github/scripts/sentry/fixtures/pr-small-null-check.json
+.github/scripts/sentry/triage.sh --dry-run --fixture .github/scripts/sentry/fixtures/github-issue-large-refactor.json
+.github/scripts/sentry/triage.sh --dry-run --fixture .github/scripts/sentry/fixtures/cause-only-transient.json
 .github/scripts/sentry/run-dry-run-tests.sh
 ```
 
@@ -94,7 +94,7 @@ Use an isolated state file for replay checks:
 ```bash
 tmp_state="$(mktemp)"
 printf '{"version":1,"issues":{},"attempts":[]}\n' > "$tmp_state"
-.github/scripts/sentry-triage.sh --dry-run --record-dry-run --state-file "$tmp_state" --fixture .github/scripts/fixtures/sentry-triage/partial-success-discord-failed.json
+.github/scripts/sentry/triage.sh --dry-run --record-dry-run --state-file "$tmp_state" --fixture .github/scripts/sentry/fixtures/partial-success-discord-failed.json
 ```
 
 ## Cron
@@ -102,7 +102,7 @@ printf '{"version":1,"issues":{},"attempts":[]}\n' > "$tmp_state"
 Example every five minutes:
 
 ```cron
-*/5 * * * * cd /absolute/path/to/this/repo && . ./.github/scripts/sentry-triage.env && ./.github/scripts/sentry-triage.sh >> /tmp/kotonoha-sentry-triage-cron.log 2>&1
+*/5 * * * * cd /absolute/path/to/this/repo && . ./.github/scripts/sentry/triage.env && ./.github/scripts/sentry/triage.sh >> /tmp/kotonoha-sentry-triage-cron.log 2>&1
 ```
 
 Prefer loading real secrets from a private file outside git.
@@ -124,9 +124,9 @@ If the bot cannot read or mutate the original Sentry notification, enable `SENTR
 Recommended before enabling cron:
 
 ```bash
-bash -n .github/scripts/sentry-triage.sh
-shellcheck .github/scripts/sentry-triage.sh
-rg -n 'sentry_api(_page)? .*(PUT|POST|PATCH|DELETE)|/issues/.*/(resolve|resolved|ignored|archive)' .github/scripts/sentry-triage.sh
-rg -n "deplo[y]\\.sh|kubectl roll[o]ut|pr[o]d deploy" .github/scripts/sentry-triage.sh .github/scripts/prompts/sentry
-rg -n "c[o]dex exec --ask-for-approval|c[o]dex exec --sandbox workspace-write" .github/scripts/sentry-triage.sh .github/scripts/prompts/sentry
+bash -n .github/scripts/sentry/triage.sh
+shellcheck .github/scripts/sentry/triage.sh
+rg -n 'sentry_api(_page)? .*(PUT|POST|PATCH|DELETE)|/issues/.*/(resolve|resolved|ignored|archive)' .github/scripts/sentry/triage.sh
+rg -n "deplo[y]\\.sh|kubectl roll[o]ut|pr[o]d deploy" .github/scripts/sentry/triage.sh .github/scripts/sentry/prompts
+rg -n "c[o]dex exec --ask-for-approval|c[o]dex exec --sandbox workspace-write" .github/scripts/sentry/triage.sh .github/scripts/sentry/prompts
 ```

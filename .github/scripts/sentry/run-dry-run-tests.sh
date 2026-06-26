@@ -2,8 +2,8 @@
 set -euo pipefail
 
 REPO_DIR="$(git rev-parse --show-toplevel)"
-RUNNER="$REPO_DIR/.github/scripts/sentry-triage.sh"
-FIXTURE_DIR="$REPO_DIR/.github/scripts/fixtures/sentry-triage"
+RUNNER="$REPO_DIR/.github/scripts/sentry/triage.sh"
+FIXTURE_DIR="$REPO_DIR/.github/scripts/sentry/fixtures"
 
 run_fixture() {
   local fixture="$1"
@@ -22,7 +22,7 @@ run_fixture() {
 }
 
 bash -n "$RUNNER"
-jq empty "$REPO_DIR"/.github/scripts/schemas/*.json "$FIXTURE_DIR"/*.json
+jq empty "$REPO_DIR"/.github/scripts/sentry/schemas/*.json "$FIXTURE_DIR"/*.json
 
 run_fixture pr-small-null-check
 run_fixture github-issue-large-refactor
@@ -332,7 +332,7 @@ grep -q 'Sentry triage completed:' "$RUNNER"
 grep -q 'discord_completion_message_exists' "$RUNNER"
 grep -q 'DISCORD_COMPLETION_LOOKUP_PAGES' "$RUNNER"
 grep -q 'before=' "$RUNNER"
-! grep -q '/home/eastshine/IdeaProjects/japanese-vocabulary' "$REPO_DIR/.github/scripts/sentry/README.md" "$REPO_DIR/.github/scripts/sentry-triage.env.example"
+! grep -q '/home/eastshine/IdeaProjects/japanese-vocabulary' "$REPO_DIR/.github/scripts/sentry/README.md" "$REPO_DIR/.github/scripts/sentry/triage.env.example"
 printf 'ok discord-message-safety-static\n'
 
 rg -n 'sentry_api(_page)? .*(PUT|POST|PATCH|DELETE)|/issues/.*/(resolve|resolved|ignored|archive)' "$RUNNER" >/tmp/sentry-triage-forbidden.out || true
@@ -341,13 +341,13 @@ if [[ -s /tmp/sentry-triage-forbidden.out ]]; then
   exit 1
 fi
 
-rg -n "deploy\\.sh|kubectl rollout|production deployment" "$RUNNER" "$REPO_DIR/.github/scripts/prompts/sentry" "$REPO_DIR/.github/scripts/sentry/README.md" >/tmp/sentry-triage-deploy.out || true
+rg -n "deploy\\.sh|kubectl rollout|production deployment" "$RUNNER" "$REPO_DIR/.github/scripts/sentry/prompts" "$REPO_DIR/.github/scripts/sentry/README.md" >/tmp/sentry-triage-deploy.out || true
 if [[ -s /tmp/sentry-triage-deploy.out ]]; then
   cat /tmp/sentry-triage-deploy.out
   exit 1
 fi
 
-rg -n "codex exec --ask-for-approval|codex exec --sandbox workspace-write" "$RUNNER" "$REPO_DIR/.github/scripts/prompts/sentry" "$REPO_DIR/.github/scripts/sentry/README.md" >/tmp/sentry-triage-codex.out || true
+rg -n "codex exec --ask-for-approval|codex exec --sandbox workspace-write" "$RUNNER" "$REPO_DIR/.github/scripts/sentry/prompts" "$REPO_DIR/.github/scripts/sentry/README.md" >/tmp/sentry-triage-codex.out || true
 if [[ -s /tmp/sentry-triage-codex.out ]]; then
   cat /tmp/sentry-triage-codex.out
   exit 1

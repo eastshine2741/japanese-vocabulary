@@ -2,10 +2,10 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_DIR="${SENTRY_TRIAGE_REPO_DIR:-$(git -C "$SCRIPT_DIR/../.." rev-parse --show-toplevel)}"
-SCHEMA_FILE="$REPO_DIR/.github/scripts/schemas/sentry-triage-result.schema.json"
-PR_IMPL_SCHEMA_FILE="$REPO_DIR/.github/scripts/schemas/sentry-pr-implementation-result.schema.json"
-TRIAGE_PROMPT="$REPO_DIR/.github/scripts/prompts/sentry/triage.md"
+REPO_DIR="${SENTRY_TRIAGE_REPO_DIR:-$(git -C "$SCRIPT_DIR/../../.." rev-parse --show-toplevel)}"
+SCHEMA_FILE="$REPO_DIR/.github/scripts/sentry/schemas/sentry-triage-result.schema.json"
+PR_IMPL_SCHEMA_FILE="$REPO_DIR/.github/scripts/sentry/schemas/sentry-pr-implementation-result.schema.json"
+TRIAGE_PROMPT="$REPO_DIR/.github/scripts/sentry/prompts/triage.md"
 
 STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
 STATE_DIR="${SENTRY_TRIAGE_STATE_DIR:-$STATE_HOME/kotonoha-sentry-triage}"
@@ -31,7 +31,7 @@ COMMAND_LOG="${SENTRY_TRIAGE_COMMAND_LOG:-}"
 
 usage() {
   cat <<'EOF'
-Usage: .github/scripts/sentry-triage.sh [options]
+Usage: .github/scripts/sentry/triage.sh [options]
 
 Options:
   --dry-run                 Do not mutate GitHub, Discord, or local completed state.
@@ -846,7 +846,7 @@ run_pr_implementation() {
   {
     printf 'Implement the following narrow Sentry fix in this isolated worktree.\n\n'
     printf 'Hard constraints: no deploy commands, no broad refactor, no Sentry status mutation, keep the change narrow. Tests are optional only for obvious small fixes; explain if not run.\n\n'
-    printf 'Return final JSON matching .github/scripts/schemas/sentry-pr-implementation-result.schema.json. Use action=github_issue instead of action=implemented if the fix needs broad investigation or a large refactor.\n\n'
+    printf 'Return final JSON matching .github/scripts/sentry/schemas/sentry-pr-implementation-result.schema.json. Use action=github_issue instead of action=implemented if the fix needs broad investigation or a large refactor.\n\n'
     printf '## PR plan JSON\n\n```json\n'
     jq '.prPlan' "$result_file"
     printf '\n```\n\n## Sentry context JSON\n\n```json\n'

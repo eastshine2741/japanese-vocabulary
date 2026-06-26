@@ -1,7 +1,7 @@
 # Sentry Auto Triage
 
 You are classifying one Sentry issue for the Kotonoha Japanese vocabulary repo.
-Return only JSON matching `.github/scripts/schemas/sentry-triage-result.schema.json`.
+Return only JSON matching `.github/scripts/sentry/schemas/sentry-triage-result.schema.json`.
 
 ## Allowed Actions
 
