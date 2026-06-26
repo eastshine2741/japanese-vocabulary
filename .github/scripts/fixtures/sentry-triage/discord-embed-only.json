@@ -1,0 +1,43 @@
+{
+  "issue": {
+    "id": "1008",
+    "shortId": "KOTONOHA-API-8",
+    "title": "IllegalStateException in study session",
+    "permalink": "https://sentry.io/organizations/example/issues/1008/",
+    "firstSeen": "2026-06-25T00:30:00Z"
+  },
+  "event": {
+    "eventID": "evt-embed-1",
+    "message": "IllegalStateException: missing study session"
+  },
+  "discord": {
+    "messages": [
+      {
+        "id": "9008",
+        "content": "",
+        "embeds": [
+          {
+            "title": "Sentry issue",
+            "url": "https://sentry.io/organizations/example/issues/1008/",
+            "description": "A new production error was reported.",
+            "fields": [
+              {
+                "name": "Issue",
+                "value": "KOTONOHA-API-8"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "mockCodexResult": {
+    "action": "cause_only",
+    "confidence": "medium",
+    "summary": "A study session was missing during lookup.",
+    "rootCause": "The request referenced a session that no longer exists.",
+    "evidence": ["Sentry event message reports missing study session"],
+    "requiresLargeRefactor": false,
+    "discordReply": "원인은 이미 사라진 study session 참조로 보입니다. 재현 빈도가 낮아 원인만 남깁니다."
+  }
+}

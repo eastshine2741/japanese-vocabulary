@@ -1,0 +1,41 @@
+{
+  "issue": {
+    "id": "1009",
+    "shortId": "KOTONOHA-API-9",
+    "title": "Invalid multiple action payloads",
+    "permalink": "https://sentry.io/organizations/example/issues/1009/",
+    "firstSeen": "2026-06-25T01:20:00Z"
+  },
+  "event": {
+    "eventID": "evt-invalid-one-hot",
+    "message": "One-hot schema should be enforced"
+  },
+  "discord": {
+    "messages": [
+      {
+        "id": "9009",
+        "content": "Sentry KOTONOHA-API-9 https://sentry.io/organizations/example/issues/1009/"
+      }
+    ]
+  },
+  "mockCodexResult": {
+    "action": "github_issue",
+    "confidence": "medium",
+    "summary": "This includes both payloads and must fail.",
+    "rootCause": "Multiple action payloads are ambiguous.",
+    "evidence": ["negative fixture"],
+    "requiresLargeRefactor": false,
+    "discordReply": "This should fail validation.",
+    "prPlan": {
+      "branchSlug": "invalid-one-hot",
+      "title": "Invalid one hot",
+      "implementationPrompt": "This must not run.",
+      "testPlan": []
+    },
+    "githubIssue": {
+      "title": "Invalid duplicate payloads",
+      "body": "This must not be created.",
+      "labels": ["sentry"]
+    }
+  }
+}

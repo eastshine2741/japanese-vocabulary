@@ -1,0 +1,54 @@
+{
+  "issue": {
+    "id": "1001",
+    "shortId": "KOTONOHA-API-1",
+    "title": "NullPointerException in SongController",
+    "permalink": "https://sentry.io/organizations/example/issues/1001/",
+    "firstSeen": "2026-06-25T00:00:00Z"
+  },
+  "event": {
+    "eventID": "evt-pr-1",
+    "message": "NullPointerException: lyric is null",
+    "exception": {
+      "values": [
+        {
+          "type": "NullPointerException",
+          "value": "lyric is null",
+          "stacktrace": {
+            "frames": [
+              {
+                "filename": "SongController.kt",
+                "function": "getSong",
+                "lineno": 42,
+                "in_app": true
+              }
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "discord": {
+    "messages": [
+      {
+        "id": "9001",
+        "content": "Sentry KOTONOHA-API-1 https://sentry.io/organizations/example/issues/1001/"
+      }
+    ]
+  },
+  "mockCodexResult": {
+    "action": "pr",
+    "confidence": "high",
+    "summary": "A nullable lyric path can throw before the API returns a controlled error.",
+    "rootCause": "The controller assumes a lyric exists for every song.",
+    "evidence": ["Stacktrace points at SongController.getSong"],
+    "requiresLargeRefactor": false,
+    "discordReply": "원인은 song detail 조회에서 lyric null을 방어하지 못한 것입니다. 작은 null guard PR로 처리합니다.",
+    "prPlan": {
+      "branchSlug": "song-lyric-null-guard",
+      "title": "Fix Sentry lyric null guard",
+      "implementationPrompt": "Inspect SongController.getSong and add the narrowest null guard or controlled error for missing lyric. Do not refactor unrelated song flow.",
+      "testPlan": ["Run targeted backend test if one exists", "If no narrow test exists, document not run"]
+    }
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "issue": {
+    "id": "1008",
+    "shortId": "KOTONOHA-API-8",
+    "title": "Invalid low-confidence PR",
+    "permalink": "https://sentry.io/organizations/example/issues/1008/",
+    "firstSeen": "2026-06-25T01:10:00Z"
+  },
+  "event": {
+    "eventID": "evt-invalid-low-pr",
+    "message": "Low-confidence PR should be rejected"
+  },
+  "discord": {
+    "messages": [
+      {
+        "id": "9008",
+        "content": "Sentry KOTONOHA-API-8 https://sentry.io/organizations/example/issues/1008/"
+      }
+    ]
+  },
+  "mockCodexResult": {
+    "action": "pr",
+    "confidence": "low",
+    "summary": "This should not be accepted as a PR.",
+    "rootCause": "Low confidence is unsafe for automated code changes.",
+    "evidence": ["negative fixture"],
+    "requiresLargeRefactor": false,
+    "discordReply": "This should fail validation.",
+    "prPlan": {
+      "branchSlug": "invalid-low-confidence",
+      "title": "Invalid low confidence PR",
+      "implementationPrompt": "This must not run.",
+      "testPlan": []
+    }
+  }
+}
