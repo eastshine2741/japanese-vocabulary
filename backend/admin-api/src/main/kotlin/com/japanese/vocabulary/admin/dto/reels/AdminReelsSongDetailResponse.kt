@@ -6,6 +6,6 @@ data class AdminReelsSongDetailResponse(
     val instagramHandle: String,
     val catchphrase: String,
     val minLineCount: Int,
-    val maxLineCount: Int,
+    val maxLineCount: Int?,
     val lines: List<AdminReelsLyricLineResponse>,
 )

@@ -38,7 +38,7 @@ async function request<T>(path: string, token?: string | null, init: RequestInit
 
 async function requestBlob(path: string, token: string, init: RequestInit): Promise<Blob> {
   const headers = new Headers(init.headers)
-  headers.set("Accept", "video/mp4")
+  headers.set("Accept", "video/mp4, application/json")
   if (init.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json")
   headers.set("Authorization", `Bearer ${token}`)
   const response = await fetch(`${API_BASE}${path}`, { ...init, headers })

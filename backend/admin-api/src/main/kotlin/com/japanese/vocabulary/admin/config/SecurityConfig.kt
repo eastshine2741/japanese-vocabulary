@@ -1,6 +1,7 @@
 package com.japanese.vocabulary.admin.config
 
 import com.japanese.vocabulary.admin.auth.AdminTokenAuthFilter
+import jakarta.servlet.DispatcherType
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -29,6 +30,7 @@ class SecurityConfig(
             .formLogin { it.disable() }
             .authorizeHttpRequests { auth ->
                 auth
+                    .dispatcherTypeMatchers(DispatcherType.ERROR, DispatcherType.ASYNC).permitAll()
                     .requestMatchers("/admin/api/auth/login").permitAll()
                     .requestMatchers("/actuator/health/**").permitAll()
                     .requestMatchers("/error").permitAll()

@@ -122,7 +122,7 @@ export type ReelsSongDetail = {
   instagramHandle: string
   catchphrase: string
   minLineCount: number
-  maxLineCount: number
+  maxLineCount: number | null
   lines: ReelsLyricLine[]
 }
 

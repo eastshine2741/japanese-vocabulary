@@ -73,7 +73,6 @@ export function ReelsFactoryPage() {
   const canRender =
     Boolean(detail?.song.renderEligible) &&
     selectedLines.length >= (detail?.minLineCount ?? 4) &&
-    selectedLines.length <= (detail?.maxLineCount ?? 6) &&
     acknowledged &&
     !rendering
 
@@ -99,7 +98,7 @@ export function ReelsFactoryPage() {
     <div className="space-y-5">
       <PageHeader
         title="Reels Factory"
-        meta="분석 완료 곡에서 4–6개 lyric line을 골라 Remotion MP4를 직접 생성하고 다운로드합니다."
+        meta="분석 완료 곡에서 lyric line을 골라 Remotion MP4를 직접 생성하고 다운로드합니다."
       />
 
       {error ? <ErrorState label={error} /> : null}
@@ -166,7 +165,7 @@ export function ReelsFactoryPage() {
                     <p className="mt-1 text-sm font-semibold text-[#0f766e]">{detail.headline}</p>
                   </div>
                   <Badge tone={detail.song.renderEligible ? "success" : "warning"}>
-                    {selectedLines.length}/{detail.minLineCount}–{detail.maxLineCount} lines
+                    {selectedLines.length}/{detail.minLineCount}+ lines
                   </Badge>
                 </div>
               </div>
@@ -176,7 +175,7 @@ export function ReelsFactoryPage() {
                     key={line.index}
                     line={line}
                     checked={selectedLines.includes(line.index)}
-                    disabled={!line.selectable || selectedLines.length >= detail.maxLineCount && !selectedLines.includes(line.index)}
+                    disabled={!line.selectable}
                     onChange={(checked) => {
                       setSelectedLines((current) =>
                         checked

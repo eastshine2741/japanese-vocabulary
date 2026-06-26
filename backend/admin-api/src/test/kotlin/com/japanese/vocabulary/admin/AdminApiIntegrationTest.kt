@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.japanese.vocabulary.admin.dto.AdminLoginRequest
 import com.japanese.vocabulary.admin.dto.AdminLoginResponse
 import com.japanese.vocabulary.admin.dto.reels.AdminReelsRenderRequest
+import com.japanese.vocabulary.admin.reels.AdminReelsRenderFailedException
 import com.japanese.vocabulary.admin.reels.AdminReelsRenderService
 import com.japanese.vocabulary.admin.reels.model.AdminReelsRenderInput
 import com.japanese.vocabulary.song.entity.LyricEntity
@@ -187,7 +188,7 @@ class AdminApiIntegrationTest : AdminBaseIntegrationTest() {
             jsonPath("$.lines[0].originalText") { value("歌詞0") }
             jsonPath("$.lines[0].recommendedVocabulary[0].japanese") { value("夢") }
             jsonPath("$.minLineCount") { value(4) }
-            jsonPath("$.maxLineCount") { value(6) }
+            jsonPath("$.maxLineCount") { doesNotExist() }
         }
     }
 
@@ -198,7 +199,7 @@ class AdminApiIntegrationTest : AdminBaseIntegrationTest() {
             .withArtist("米津玄師")
             .withYoutubeUrl("https://youtu.be/SX_ViT4Ra7k")
             .build()
-        persistLyric(song.id!!, analyzed = true, lineCount = 4)
+        persistLyric(song.id!!, analyzed = true, lineCount = 7)
         val token = login()
 
         mockMvc.post("/admin/api/reels-factory/render") {
@@ -222,7 +223,7 @@ class AdminApiIntegrationTest : AdminBaseIntegrationTest() {
             content = objectMapper.writeValueAsString(
                 AdminReelsRenderRequest(
                     songId = song.id!!,
-                    lineIndexes = listOf(0, 1, 2, 3),
+                    lineIndexes = listOf(0, 1, 2, 3, 4, 5, 6),
                     acknowledgeSourceRightsAndPlatformRisk = true,
                 ),
             )
@@ -233,7 +234,35 @@ class AdminApiIntegrationTest : AdminBaseIntegrationTest() {
         }
 
         assertThat(fakeRenderer.lastInput?.source?.youtubeUrl).isEqualTo("https://youtu.be/SX_ViT4Ra7k")
-        assertThat(fakeRenderer.lastInput?.data?.lyricLines).hasSize(4)
+        assertThat(fakeRenderer.lastInput?.data?.lyricLines).hasSize(7)
+    }
+
+    @Test
+    fun `reels factory render failure returns json for mp4 accept header`() {
+        val song = TestSongBuilder(entityManager)
+            .withTitle("Lemon")
+            .withArtist("米津玄師")
+            .withYoutubeUrl("https://youtu.be/SX_ViT4Ra7k")
+            .build()
+        persistLyric(song.id!!, analyzed = true, lineCount = 4)
+        fakeRenderer.failWith = AdminReelsRenderFailedException("boom")
+
+        mockMvc.post("/admin/api/reels-factory/render") {
+            header("Authorization", "Bearer ${login()}")
+            accept(MediaType.parseMediaType("video/mp4"))
+            contentType = MediaType.APPLICATION_JSON
+            content = objectMapper.writeValueAsString(
+                AdminReelsRenderRequest(
+                    songId = song.id!!,
+                    lineIndexes = listOf(0, 1, 2, 3),
+                    acknowledgeSourceRightsAndPlatformRisk = true,
+                ),
+            )
+        }.andExpect {
+            status { isInternalServerError() }
+            content { contentType(MediaType.APPLICATION_JSON) }
+            jsonPath("$.error") { value("render_failed") }
+        }
     }
 
     @Test
@@ -373,9 +402,14 @@ class AdminApiIntegrationTest : AdminBaseIntegrationTest() {
 
     class FakeReelsRenderService : AdminReelsRenderService {
         var lastInput: AdminReelsRenderInput? = null
+        var failWith: RuntimeException? = null
 
         override fun render(input: AdminReelsRenderInput): Path {
             lastInput = input
+            failWith?.let { exception ->
+                failWith = null
+                throw exception
+            }
             val dir = Files.createTempDirectory("fake-reels-")
             val output = dir.resolve("reel.mp4")
             Files.write(output, "fake mp4".toByteArray())

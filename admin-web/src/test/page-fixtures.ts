@@ -158,7 +158,7 @@ export const reelsSongDetail: ReelsSongDetail = {
   instagramHandle: "@kotonoha.music",
   catchphrase: "가사에서 바로 배우는 일본어",
   minLineCount: 4,
-  maxLineCount: 6,
+  maxLineCount: null,
   lines: [0, 1, 2, 3].map((index) => ({
     index,
     startTimeMs: index * 2000,

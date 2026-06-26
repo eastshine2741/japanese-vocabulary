@@ -64,8 +64,8 @@ class AdminReelsFactoryService(
         if (request.lineIndexes.size != uniqueIndexes.size) {
             throw IllegalArgumentException("lineIndexes must not contain duplicates")
         }
-        if (uniqueIndexes.size !in MIN_LINE_COUNT..MAX_LINE_COUNT) {
-            throw IllegalArgumentException("lineIndexes must contain $MIN_LINE_COUNT to $MAX_LINE_COUNT lines")
+        if (uniqueIndexes.size < MIN_LINE_COUNT) {
+            throw IllegalArgumentException("lineIndexes must contain at least $MIN_LINE_COUNT lines")
         }
 
         val song = songRepository.findById(request.songId).orElseThrow { NoSuchElementException("Song not found") }
@@ -131,7 +131,7 @@ class AdminReelsFactoryService(
             instagramHandle = INSTAGRAM_HANDLE,
             catchphrase = CATCHPHRASE,
             minLineCount = MIN_LINE_COUNT,
-            maxLineCount = MAX_LINE_COUNT,
+            maxLineCount = null,
             lines = lyric.rawContent.map { raw ->
                 val analyzed = analyzedByIndex[raw.index]
                 AdminReelsLyricLineResponse(
@@ -241,7 +241,6 @@ class AdminReelsFactoryService(
 
     companion object {
         const val MIN_LINE_COUNT = 4
-        const val MAX_LINE_COUNT = 6
         const val FPS = 30
         const val INSTAGRAM_HANDLE = "@kotonoha.music"
         const val CATCHPHRASE = "가사에서 바로 배우는 일본어"

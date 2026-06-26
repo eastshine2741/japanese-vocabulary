@@ -5,36 +5,39 @@ import com.japanese.vocabulary.admin.reels.AdminReelsRenderBusyException
 import com.japanese.vocabulary.admin.reels.AdminReelsRenderFailedException
 import com.japanese.vocabulary.admin.reels.AdminReelsRenderTimeoutException
 import org.springframework.http.HttpStatus
+import org.springframework.http.MediaType
+import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.ExceptionHandler
-import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestControllerAdvice
 
 @RestControllerAdvice
 class AdminErrorHandler {
     @ExceptionHandler(NoSuchElementException::class)
-    @ResponseStatus(HttpStatus.NOT_FOUND)
-    fun notFound(): Map<String, String> = mapOf("error" to "not_found")
+    fun notFound(): ResponseEntity<Map<String, String>> =
+        json(HttpStatus.NOT_FOUND, mapOf("error" to "not_found"))
 
     @ExceptionHandler(IllegalArgumentException::class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    fun badRequest(exception: IllegalArgumentException): Map<String, String> =
-        mapOf("error" to "bad_request", "message" to (exception.message ?: "bad request"))
+    fun badRequest(exception: IllegalArgumentException): ResponseEntity<Map<String, String>> =
+        json(HttpStatus.BAD_REQUEST, mapOf("error" to "bad_request", "message" to (exception.message ?: "bad request")))
 
     @ExceptionHandler(AdminReelsRenderBusyException::class)
-    @ResponseStatus(HttpStatus.CONFLICT)
-    fun renderBusy(): Map<String, String> = mapOf("error" to "render_busy")
+    fun renderBusy(): ResponseEntity<Map<String, String>> =
+        json(HttpStatus.CONFLICT, mapOf("error" to "render_busy"))
 
     @ExceptionHandler(AdminReelsExtractionException::class)
-    @ResponseStatus(HttpStatus.BAD_GATEWAY)
-    fun extractionFailed(exception: AdminReelsExtractionException): Map<String, String> =
-        mapOf("error" to "extraction_failed", "message" to (exception.message ?: "extraction failed"))
+    fun extractionFailed(exception: AdminReelsExtractionException): ResponseEntity<Map<String, String>> =
+        json(HttpStatus.BAD_GATEWAY, mapOf("error" to "extraction_failed", "message" to (exception.message ?: "extraction failed")))
 
     @ExceptionHandler(AdminReelsRenderTimeoutException::class)
-    @ResponseStatus(HttpStatus.GATEWAY_TIMEOUT)
-    fun renderTimeout(): Map<String, String> = mapOf("error" to "render_timeout")
+    fun renderTimeout(): ResponseEntity<Map<String, String>> =
+        json(HttpStatus.GATEWAY_TIMEOUT, mapOf("error" to "render_timeout"))
 
     @ExceptionHandler(AdminReelsRenderFailedException::class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    fun renderFailed(): Map<String, String> =
-        mapOf("error" to "render_failed", "message" to "Renderer failed")
+    fun renderFailed(): ResponseEntity<Map<String, String>> =
+        json(HttpStatus.INTERNAL_SERVER_ERROR, mapOf("error" to "render_failed", "message" to "Renderer failed"))
+
+    private fun json(status: HttpStatus, body: Map<String, String>): ResponseEntity<Map<String, String>> =
+        ResponseEntity.status(status)
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(body)
 }

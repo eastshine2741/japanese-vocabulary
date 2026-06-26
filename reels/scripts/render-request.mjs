@@ -99,6 +99,8 @@ async function downloadYoutubeMp4(url, outputPath) {
   }
   await run('yt-dlp', [
     '--no-playlist',
+    '--js-runtimes',
+    'node',
     '--merge-output-format',
     'mp4',
     '-f',
