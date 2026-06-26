@@ -43,7 +43,11 @@ class AppleMusicRecommendationJobConfig {
             .build()
 
     private fun JobParameters.weekStartDate(): LocalDate? {
-        getLocalDate("weekStartDate")?.let { return it }
-        return getString("weekStartDate")?.let { LocalDate.parse(it) }
+        val parameter = parameters["weekStartDate"] ?: return null
+        return when (val value = parameter.value) {
+            is LocalDate -> value
+            is String -> LocalDate.parse(value)
+            else -> throw IllegalArgumentException("weekStartDate parameter must be LocalDate or ISO-8601 date string")
+        }
     }
 }

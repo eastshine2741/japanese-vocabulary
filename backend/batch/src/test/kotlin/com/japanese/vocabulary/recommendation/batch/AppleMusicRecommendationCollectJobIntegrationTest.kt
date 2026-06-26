@@ -93,4 +93,41 @@ class AppleMusicRecommendationCollectJobIntegrationTest : BatchBaseIntegrationTe
         assertThat(candidate.releaseDate).isEqualTo(LocalDate.of(2026, 6, 1))
         assertThat(candidate.genresJson).contains("J-Pop")
     }
+
+    @Test
+    fun `collect job accepts command line style weekStartDate string parameter`() {
+        val weekStartDate = LocalDate.of(2026, 6, 22)
+        val sourceSongId = "apple-song-${System.nanoTime()}"
+        every { appleMusicRssClient.fetchMostPlayedSongs(storefront = "jp", limit = 100) } returns listOf(
+            AppleMusicRssChartSongDto(
+                rank = 1,
+                id = sourceSongId,
+                name = "Command Line Song",
+                artistName = "Command Line Artist",
+                artistId = null,
+                artistUrl = null,
+                artworkUrl100 = null,
+                url = null,
+                releaseDate = null,
+                genres = emptyList(),
+            )
+        )
+
+        val execution = jobLauncher.run(
+            appleMusicRecommendationCollectJob,
+            JobParametersBuilder()
+                .addString("weekStartDate", "2026-06-22")
+                .addLong("testRunId", System.nanoTime())
+                .toJobParameters(),
+        )
+
+        assertThat(execution.status).isEqualTo(BatchStatus.COMPLETED)
+        assertThat(
+            candidateRepository.findBySourceAndWeekStartDateAndSourceSongId(
+                source = RecommendationSource.APPLE_MUSIC_RSS,
+                weekStartDate = weekStartDate,
+                sourceSongId = sourceSongId,
+            )
+        ).isNotNull
+    }
 }
