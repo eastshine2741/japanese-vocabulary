@@ -25856,7 +25856,7 @@
             {
               "type": "frame",
               "id": "n86tw",
-              "name": "Words",
+              "name": "Words Section",
               "width": "fill_container",
               "height": "fill_container",
               "layout": "vertical",
@@ -25867,212 +25867,257 @@
               ],
               "children": [
                 {
-                  "id": "E3E8K5",
-                  "type": "ref",
-                  "ref": "OEPuW",
-                  "name": "Word Row - 君",
+                  "type": "frame",
+                  "id": "uktzg",
+                  "name": "Words Section Header",
                   "width": "fill_container",
-                  "x": 16,
-                  "y": 0,
-                  "descendants": {
-                    "Aj8UD": {
-                      "content": "君"
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "n2uvy",
+                      "name": "Words Section Title",
+                      "fill": "$foreground.primary",
+                      "content": "현재 문장의 단어",
+                      "fontFamily": "$font.body",
+                      "fontSize": 13,
+                      "fontWeight": "800"
                     },
-                    "I3WOz": {
-                      "content": "너"
-                    },
-                    "heX7M": {
-                      "content": "きみ"
-                    },
-                    "HImTw": {
-                      "fill": "$jlpt-n2"
-                    },
-                    "HImTw/YtXmd": {
-                      "content": "N2"
-                    },
-                    "h4DL4l": {
-                      "fill": {
-                        "type": "gradient",
-                        "gradientType": "linear",
-                        "enabled": true,
-                        "opacity": 0.16,
-                        "rotation": 0,
-                        "size": {
-                          "height": 1
-                        },
-                        "colors": [
-                          {
-                            "color": "$pos-noun",
-                            "position": 0
-                          },
-                          {
-                            "color": "$pos-noun",
-                            "position": 1
-                          }
-                        ]
-                      }
-                    },
-                    "h4DL4l/m9Cw7": {
-                      "content": "명사",
-                      "fill": "$pos-noun"
+                    {
+                      "type": "frame",
+                      "id": "j9zzP",
+                      "name": "Word Count Pill",
+                      "fill": "$bg-subtle",
+                      "cornerRadius": "$rounded.full",
+                      "padding": [
+                        3,
+                        8
+                      ],
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "XCtAN",
+                          "name": "Word Count Label",
+                          "fill": "$foreground.secondary",
+                          "content": "4개",
+                          "fontFamily": "$font.body",
+                          "fontSize": 11,
+                          "fontWeight": "800"
+                        }
+                      ]
                     }
-                  }
+                  ]
                 },
                 {
-                  "id": "b9FH0",
-                  "type": "ref",
-                  "ref": "OEPuW",
-                  "name": "Word Row - 声",
+                  "type": "frame",
+                  "id": "xhasR",
+                  "name": "Word List Body",
+                  "clip": true,
                   "width": "fill_container",
-                  "x": 16,
-                  "y": 107,
-                  "descendants": {
-                    "Aj8UD": {
-                      "content": "声"
-                    },
-                    "I3WOz": {
-                      "content": "목소리"
-                    },
-                    "heX7M": {
-                      "content": "こえ"
-                    },
-                    "HImTw": {
-                      "fill": "$jlpt-n3"
-                    },
-                    "HImTw/YtXmd": {
-                      "content": "N3"
-                    },
-                    "h4DL4l": {
-                      "fill": {
-                        "type": "gradient",
-                        "gradientType": "linear",
-                        "enabled": true,
-                        "opacity": 0.16,
-                        "rotation": 0,
-                        "size": {
-                          "height": 1
+                  "fill": "$surface.secondary",
+                  "cornerRadius": "$rounded.2xl",
+                  "layout": "vertical",
+                  "children": [
+                    {
+                      "id": "E3E8K5",
+                      "type": "ref",
+                      "ref": "OEPuW",
+                      "name": "Word Row - 君",
+                      "width": "fill_container",
+                      "x": 0,
+                      "y": 0,
+                      "descendants": {
+                        "bH1ry": {
+                          "fill": "$jlpt-n2"
                         },
-                        "colors": [
-                          {
-                            "color": "$pos-noun",
-                            "position": 0
-                          },
-                          {
-                            "color": "$pos-noun",
-                            "position": 1
-                          }
-                        ]
+                        "Aj8UD": {
+                          "content": "君"
+                        },
+                        "I3WOz": {
+                          "content": "너"
+                        },
+                        "heX7M": {
+                          "content": "きみ"
+                        },
+                        "ioPpL": {
+                          "content": "N2",
+                          "fill": "$jlpt-n2"
+                        },
+                        "U2wpM": {
+                          "content": "명사",
+                          "fill": "$foreground.muted"
+                        }
                       }
                     },
-                    "h4DL4l/m9Cw7": {
-                      "content": "명사",
-                      "fill": "$pos-noun"
-                    }
-                  }
-                },
-                {
-                  "id": "SeMgK",
-                  "type": "ref",
-                  "ref": "OEPuW",
-                  "name": "Word Row - 今",
-                  "width": "fill_container",
-                  "x": 16,
-                  "y": 214,
-                  "descendants": {
-                    "Aj8UD": {
-                      "content": "今"
-                    },
-                    "I3WOz": {
-                      "content": "지금"
-                    },
-                    "heX7M": {
-                      "content": "いま"
-                    },
-                    "HImTw": {
-                      "fill": "$jlpt-n5"
-                    },
-                    "HImTw/YtXmd": {
-                      "content": "N5"
-                    },
-                    "h4DL4l": {
-                      "fill": {
-                        "type": "gradient",
-                        "gradientType": "linear",
-                        "enabled": true,
-                        "opacity": 0.16,
-                        "rotation": 0,
-                        "size": {
+                    {
+                      "type": "frame",
+                      "id": "N7acq",
+                      "name": "Word Row Separator",
+                      "width": "fill_container",
+                      "height": 1,
+                      "padding": [
+                        0,
+                        26,
+                        0,
+                        56
+                      ],
+                      "children": [
+                        {
+                          "type": "rectangle",
+                          "id": "nw3sf",
+                          "name": "Separator Line",
+                          "opacity": 0.65,
+                          "fill": "$border-default",
+                          "width": "fill_container",
                           "height": 1
+                        }
+                      ]
+                    },
+                    {
+                      "id": "b9FH0",
+                      "type": "ref",
+                      "ref": "OEPuW",
+                      "name": "Word Row - 声",
+                      "width": "fill_container",
+                      "x": 0,
+                      "y": 74,
+                      "descendants": {
+                        "bH1ry": {
+                          "fill": "$jlpt-n3"
                         },
-                        "colors": [
-                          {
-                            "color": "$pos-noun",
-                            "position": 0
-                          },
-                          {
-                            "color": "$pos-noun",
-                            "position": 1
-                          }
-                        ]
+                        "Aj8UD": {
+                          "content": "声"
+                        },
+                        "I3WOz": {
+                          "content": "목소리"
+                        },
+                        "heX7M": {
+                          "content": "こえ"
+                        },
+                        "ioPpL": {
+                          "content": "N3",
+                          "fill": "$jlpt-n3"
+                        },
+                        "U2wpM": {
+                          "content": "명사",
+                          "fill": "$foreground.muted"
+                        }
                       }
                     },
-                    "h4DL4l/m9Cw7": {
-                      "content": "명사",
-                      "fill": "$pos-noun"
-                    }
-                  }
-                },
-                {
-                  "id": "rZSX7",
-                  "type": "ref",
-                  "ref": "OEPuW",
-                  "name": "Word Row - 聞こえる",
-                  "width": "fill_container",
-                  "x": 16,
-                  "y": 321,
-                  "descendants": {
-                    "Aj8UD": {
-                      "content": "聞こえる"
-                    },
-                    "I3WOz": {
-                      "content": "들리다"
-                    },
-                    "heX7M": {
-                      "content": "きこえる"
-                    },
-                    "HImTw": {
-                      "fill": "$jlpt-n4"
-                    },
-                    "HImTw/YtXmd": {
-                      "content": "N4"
-                    },
-                    "h4DL4l": {
-                      "fill": {
-                        "type": "gradient",
-                        "gradientType": "linear",
-                        "enabled": true,
-                        "opacity": 0.16,
-                        "rotation": 0,
-                        "size": {
+                    {
+                      "type": "frame",
+                      "id": "cCpZE",
+                      "name": "Word Row Separator",
+                      "width": "fill_container",
+                      "height": 1,
+                      "padding": [
+                        0,
+                        26,
+                        0,
+                        56
+                      ],
+                      "children": [
+                        {
+                          "type": "rectangle",
+                          "id": "E4LkU",
+                          "name": "Separator Line",
+                          "opacity": 0.65,
+                          "fill": "$border-default",
+                          "width": "fill_container",
                           "height": 1
+                        }
+                      ]
+                    },
+                    {
+                      "id": "SeMgK",
+                      "type": "ref",
+                      "ref": "OEPuW",
+                      "name": "Word Row - 今",
+                      "width": "fill_container",
+                      "x": 0,
+                      "y": 148,
+                      "descendants": {
+                        "bH1ry": {
+                          "fill": "$jlpt-n5"
                         },
-                        "colors": [
-                          {
-                            "color": "$pos-verb",
-                            "position": 0
-                          },
-                          {
-                            "color": "$pos-verb",
-                            "position": 1
-                          }
-                        ]
+                        "Aj8UD": {
+                          "content": "今"
+                        },
+                        "I3WOz": {
+                          "content": "지금"
+                        },
+                        "heX7M": {
+                          "content": "いま"
+                        },
+                        "ioPpL": {
+                          "content": "N5",
+                          "fill": "$jlpt-n5"
+                        },
+                        "U2wpM": {
+                          "content": "명사",
+                          "fill": "$foreground.muted"
+                        }
                       }
                     },
-                    "h4DL4l/m9Cw7": {
-                      "content": "동사",
-                      "fill": "$pos-verb"
+                    {
+                      "type": "frame",
+                      "id": "a9cfr",
+                      "name": "Word Row Separator",
+                      "width": "fill_container",
+                      "height": 1,
+                      "padding": [
+                        0,
+                        26,
+                        0,
+                        56
+                      ],
+                      "children": [
+                        {
+                          "type": "rectangle",
+                          "id": "vyDsq",
+                          "name": "Separator Line",
+                          "opacity": 0.65,
+                          "fill": "$border-default",
+                          "width": "fill_container",
+                          "height": 1
+                        }
+                      ]
+                    },
+                    {
+                      "id": "rZSX7",
+                      "type": "ref",
+                      "ref": "OEPuW",
+                      "name": "Word Row - 聞こえる",
+                      "width": "fill_container",
+                      "x": 0,
+                      "y": 222,
+                      "descendants": {
+                        "bH1ry": {
+                          "fill": "$jlpt-n4"
+                        },
+                        "Aj8UD": {
+                          "content": "聞こえる"
+                        },
+                        "I3WOz": {
+                          "content": "들리다"
+                        },
+                        "heX7M": {
+                          "content": "きこえる"
+                        },
+                        "ioPpL": {
+                          "content": "N4",
+                          "fill": "$jlpt-n4"
+                        },
+                        "U2wpM": {
+                          "content": "동사",
+                          "fill": "$foreground.muted"
+                        }
+                      }
                     }
-                  }
+                  ]
                 }
               ]
             }
@@ -26098,19 +26143,28 @@
       "alignItems": "center",
       "children": [
         {
+          "type": "rectangle",
+          "cornerRadius": "$rounded.full",
+          "id": "bH1ry",
+          "name": "Word Accent",
+          "fill": "$accent.primary",
+          "width": 4,
+          "height": 46
+        },
+        {
           "type": "frame",
           "id": "MZJrD",
           "name": "Word Content",
           "width": "fill_container",
           "layout": "vertical",
-          "gap": 5,
+          "gap": 4,
           "children": [
             {
               "type": "frame",
               "id": "k7YvSU",
               "name": "Primary Meaning Row",
               "width": "fill_container",
-              "gap": 8,
+              "gap": 9,
               "alignItems": "center",
               "children": [
                 {
@@ -26120,7 +26174,7 @@
                   "fill": "$foreground.primary",
                   "content": "君",
                   "fontFamily": "$font.headings",
-                  "fontSize": 18,
+                  "fontSize": 22,
                   "fontWeight": "800"
                 },
                 {
@@ -26130,66 +26184,68 @@
                   "fill": "$foreground.primary",
                   "content": "너",
                   "fontFamily": "$font.body",
-                  "fontSize": 13,
+                  "fontSize": 14,
                   "fontWeight": "800"
                 }
               ]
             },
             {
-              "type": "text",
-              "id": "heX7M",
-              "name": "Hiragana Reading",
-              "fill": "$foreground.secondary",
-              "content": "きみ",
-              "fontFamily": "$font.body",
-              "fontSize": 12,
-              "fontWeight": "600"
-            },
-            {
               "type": "frame",
-              "id": "qUIkv",
-              "name": "Badge Row",
+              "id": "UeRuD",
+              "name": "Word Meta Row",
+              "width": "fill_container",
               "gap": 6,
               "alignItems": "center",
               "children": [
                 {
-                  "id": "HImTw",
-                  "type": "ref",
-                  "ref": "ABLIv",
-                  "name": "JLPT Badge",
-                  "fill": "$jlpt-n2"
+                  "type": "text",
+                  "id": "heX7M",
+                  "name": "Hiragana Reading",
+                  "fill": "$foreground.secondary",
+                  "content": "きみ",
+                  "fontFamily": "$font.body",
+                  "fontSize": 12,
+                  "fontWeight": "700"
                 },
                 {
-                  "id": "h4DL4l",
-                  "type": "ref",
-                  "ref": "IxqOy",
-                  "name": "POS Badge",
-                  "fill": {
-                    "type": "gradient",
-                    "gradientType": "linear",
-                    "enabled": true,
-                    "opacity": 0.16,
-                    "rotation": 0,
-                    "size": {
-                      "height": 1
-                    },
-                    "colors": [
-                      {
-                        "color": "$pos-noun",
-                        "position": 0
-                      },
-                      {
-                        "color": "$pos-noun",
-                        "position": 1
-                      }
-                    ]
-                  },
-                  "descendants": {
-                    "m9Cw7": {
-                      "content": "명사",
-                      "fill": "$pos-noun"
-                    }
-                  }
+                  "type": "text",
+                  "id": "gH6in",
+                  "name": "Meta Dot 1",
+                  "fill": "$foreground.muted",
+                  "content": "·",
+                  "fontFamily": "$font.body",
+                  "fontSize": 12,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "ioPpL",
+                  "name": "JLPT Meta",
+                  "fill": "$jlpt-n2",
+                  "content": "N2",
+                  "fontFamily": "$font.body",
+                  "fontSize": 12,
+                  "fontWeight": "800"
+                },
+                {
+                  "type": "text",
+                  "id": "wTGzp",
+                  "name": "Meta Dot 2",
+                  "fill": "$foreground.muted",
+                  "content": "·",
+                  "fontFamily": "$font.body",
+                  "fontSize": 12,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "U2wpM",
+                  "name": "POS Meta",
+                  "fill": "$foreground.muted",
+                  "content": "명사",
+                  "fontFamily": "$font.body",
+                  "fontSize": 12,
+                  "fontWeight": "700"
                 }
               ]
             }
@@ -26199,8 +26255,8 @@
           "type": "frame",
           "id": "O8Y8U5",
           "name": "Add Word Button",
-          "width": 32,
-          "height": 32,
+          "width": 36,
+          "height": 36,
           "fill": "$accent.primary",
           "cornerRadius": "$rounded.full",
           "effect": {
@@ -26220,8 +26276,8 @@
               "type": "icon",
               "id": "g5ONx",
               "name": "Add Icon",
-              "width": 16,
-              "height": 16,
+              "width": 17,
+              "height": 17,
               "icon": "plus",
               "library": "lucide",
               "fill": "$foreground.inverse"
