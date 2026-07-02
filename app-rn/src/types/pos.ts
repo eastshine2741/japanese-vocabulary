@@ -14,6 +14,7 @@ export const POS_INFO: Record<string, { korean: string; color: string }> = {
   INTERJECTION: { korean: '감동사', color: Colors.posNoun },
   PREFIX: { korean: '접두사', color: Colors.posNoun },
   SUFFIX: { korean: '접미사', color: Colors.posNoun },
+  EXPRESSION: { korean: '표현', color: Colors.posNoun },
   SYMBOL: { korean: '기호', color: Colors.textMuted },
   SUPPLEMENTARY_SYMBOL: { korean: '보조기호', color: Colors.textMuted },
   WHITESPACE: { korean: '공백', color: Colors.textMuted },
@@ -22,7 +23,7 @@ export const POS_INFO: Record<string, { korean: string; color: string }> = {
 export const POS_PICKER_KEYS = [
   'NOUN', 'VERB', 'ADJECTIVE', 'NA_ADJECTIVE', 'ADVERB',
   'PRONOUN', 'ADNOMINAL', 'CONJUNCTION', 'AUXILIARY_VERB',
-  'PARTICLE', 'INTERJECTION', 'PREFIX', 'SUFFIX',
+  'PARTICLE', 'INTERJECTION', 'PREFIX', 'SUFFIX', 'EXPRESSION',
 ] as const;
 
 export const POS_OPTIONS = POS_PICKER_KEYS.map((key) => ({

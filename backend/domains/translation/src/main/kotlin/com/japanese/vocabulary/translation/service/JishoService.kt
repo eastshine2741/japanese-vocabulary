@@ -3,6 +3,7 @@ package com.japanese.vocabulary.translation.service
 import com.japanese.vocabulary.translation.client.jisho.JishoClient
 import com.japanese.vocabulary.translation.client.jisho.cache.JishoCache
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoEntryDto
+import com.japanese.vocabulary.translation.client.jisho.dto.JishoLookupProvenance
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -49,6 +50,6 @@ class JishoService(
 
     private companion object {
         const val MAX_CONCURRENCY = 3
-        val NOT_FOUND = JishoEntryDto(found = false)
+        val NOT_FOUND = JishoEntryDto(found = false, provenance = JishoLookupProvenance.FETCH_ERROR)
     }
 }

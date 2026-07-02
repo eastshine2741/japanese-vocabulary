@@ -22,6 +22,7 @@ import com.japanese.vocabulary.translation.client.gemini.dto.SelectWordDto
 import com.japanese.vocabulary.translation.client.gemini.dto.SenseTranslationDto
 import com.japanese.vocabulary.translation.client.gemini.dto.TranslationResultDto
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoEntryDto
+import com.japanese.vocabulary.translation.client.jisho.dto.JishoLookupProvenance
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoOptionDto
 import io.mockk.coEvery
 import io.mockk.every
@@ -239,21 +240,57 @@ class SongAnalysisWorkPipelineIntegrationTest : BatchBaseIntegrationTest() {
             TranslationResultDto(0, "복숭아빛 열쇠", "모모이로노 카기"),
         )
         every { geminiClient.segmentAndLemmatize(any()) } returns listOf(
-            SegLineDto(0, listOf(SegWordDto(surface = "ももいろ", dictionaryForm = "ももいろ"))),
+            SegLineDto(
+                0,
+                listOf(
+                    SegWordDto(surface = "ももいろ", dictionaryForm = "ももいろ"),
+                    SegWordDto(surface = "の", dictionaryForm = "の"),
+                    SegWordDto(surface = "鍵", dictionaryForm = "鍵"),
+                ),
+            ),
         )
         coEvery { jishoService.lookupAll(any()) } returns mapOf(
             "ももいろ" to JishoEntryDto(
                 found = true,
                 word = "ももいろ",
                 options = listOf(JishoOptionDto(reading = "モモイロ", pos = listOf("Noun"), english = "pink", jlpt = emptyList())),
+                provenance = JishoLookupProvenance.EXACT,
+            ),
+            "鍵" to JishoEntryDto(
+                found = true,
+                word = "鍵",
+                options = listOf(JishoOptionDto(reading = "かぎ", pos = listOf("Noun"), english = "key", jlpt = emptyList())),
+                provenance = JishoLookupProvenance.EXACT,
             ),
         )
-        every { geminiClient.selectSenses(any()) } returns listOf(
-            SelectLineDto(0, listOf(SelectWordDto(surface = "ももいろ", dictionaryForm = "ももいろ", senseId = 0))),
-        )
-        every { geminiClient.translateSenses(any()) } returns listOf(
-            SenseTranslationDto(senseId = 0, koreanText = "분홍색"),
-        )
+        every { geminiClient.selectSenses(any()) } answers {
+            @Suppress("UNCHECKED_CAST")
+            firstArg<List<Map<String, Any?>>>().map { line ->
+                @Suppress("UNCHECKED_CAST")
+                val segments = line["segments"] as List<Map<String, Any?>>
+                SelectLineDto(
+                    index = line["index"] as Int,
+                    words = segments.map { segment ->
+                        @Suppress("UNCHECKED_CAST")
+                        val senses = segment["senses"] as List<Map<String, Any?>>
+                        SelectWordDto(
+                            surface = segment["surface"] as String,
+                            dictionaryForm = segment["dictionaryForm"] as String,
+                            senseId = senses.first()["senseId"] as Int,
+                            tokenId = segment["tokenId"] as String,
+                        )
+                    },
+                )
+            }
+        }
+        every { geminiClient.translateSenses(any()) } answers {
+            @Suppress("UNCHECKED_CAST")
+            firstArg<List<Map<String, Any?>>>().map {
+                val senseId = it["senseId"] as Int
+                val baseForm = it["baseForm"] as String
+                SenseTranslationDto(senseId = senseId, koreanText = if (baseForm == "鍵") "열쇠" else "분홍색")
+            }
+        }
     }
 
     private fun stubLyricAnalysisFailure() {

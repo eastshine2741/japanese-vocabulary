@@ -12,4 +12,6 @@ data class JishoEntryDto(
     val found: Boolean = false,
     val word: String = "",
     val options: List<JishoOptionDto> = emptyList(),
+    val provenance: JishoLookupProvenance = JishoLookupProvenance.NOT_FOUND,
+    val rejectedFallbackReason: String? = null,
 )

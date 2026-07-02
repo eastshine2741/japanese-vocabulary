@@ -2,6 +2,7 @@ package com.japanese.vocabulary.translation.client.jisho
 
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoEntryDto
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoEntryRawDto
+import com.japanese.vocabulary.translation.client.jisho.dto.JishoLookupProvenance
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoOptionDto
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoSearchResponse
 import kotlinx.coroutines.Dispatchers
@@ -20,9 +21,8 @@ import org.springframework.web.client.RestClientResponseException
  * [JishoEntryDto], faithful to the playground `_jisho_full_fetch`:
  * - **Flatten all senses**: every sense of every exact-match entry (`japanese.word`/`reading` == query)
  *   becomes one [JishoOptionDto] carrying its own reading/POS/EN gloss/JLPT.
- * - **Fuzzy fallback**: if NO entry exactly matches (the query is an inflected/script variant, e.g.
- *   巡り会い→巡り会う, くり返す→繰り返す, ズルい→狡い), fall back to jisho's TOP entry — jisho deinflects
- *   the query and ranks the lemma first. The sense-select LLM still filters bad candidates to senseId=-1.
+ * - **Fallback provenance**: if NO entry exactly matches, jisho's top entry is retained as rejected
+ *   fallback evidence. Downstream code must opt in before using fallback candidates.
  * - Returns null on an unrecovered network/HTTP error so the caller skips caching (retries next run).
  */
 @Component
@@ -66,15 +66,35 @@ class JishoClient(
     }
 
     /**
-     * Flatten exact-match entries' senses into options; if none match, fall back to jisho's top entry.
+     * Flatten exact-match entries' senses into options. If none match, retain jisho's top entry as
+     * rejected fallback evidence rather than silently making it usable.
      * Mirrors `_jisho_full_fetch`'s match policy + `_flatten_entry`.
      */
     private fun distill(word: String, response: JishoSearchResponse): JishoEntryDto {
-        val options = response.data
+        val exactOptions = response.data
             .filter { entry -> entry.japanese.any { it.word == word || it.reading == word } }
             .flatMap { flattenEntry(it) }
-            .ifEmpty { response.data.firstOrNull()?.let { flattenEntry(it) } ?: emptyList() }
-        return JishoEntryDto(found = options.isNotEmpty(), word = word, options = options)
+        if (exactOptions.isNotEmpty()) {
+            return JishoEntryDto(
+                found = true,
+                word = word,
+                options = exactOptions,
+                provenance = JishoLookupProvenance.EXACT,
+            )
+        }
+
+        val fallbackOptions = response.data.firstOrNull()?.let { flattenEntry(it) } ?: emptyList()
+        if (fallbackOptions.isNotEmpty()) {
+            return JishoEntryDto(
+                found = false,
+                word = word,
+                options = fallbackOptions,
+                provenance = JishoLookupProvenance.REJECTED_FALLBACK,
+                rejectedFallbackReason = "No exact japanese.word or reading matched query",
+            )
+        }
+
+        return JishoEntryDto(found = false, word = word, provenance = JishoLookupProvenance.NOT_FOUND)
     }
 
     /** One jisho entry → one [JishoOptionDto] per sense. Mirrors `_flatten_entry`. */
@@ -94,6 +114,7 @@ class JishoClient(
                     pos = pos,
                     english = sense.englishDefinitions.joinToString(" / "),
                     jlpt = entry.jlpt,
+                    englishDefinitions = sense.englishDefinitions,
                 ),
             )
         }

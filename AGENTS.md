@@ -142,15 +142,18 @@ Outer:  Deck, DeckFlashcard      — 조직화 레이어
 
 Work status는 `PENDING`, `RUNNING`, `COMPLETED`, `FAILED`만 사용한다. 첫 pass에는 request table, attempt table, automatic retry, MQ, FCM completion path가 없다. 실패 시 work는 `FAILED`가 되고 `active_dedup_key`를 `NULL`로 비워서 같은 곡을 다시 요청하면 새 work를 만들 수 있다. `lyrics`는 원문/분석 결과 저장만 맡고, 상태머신은 `song_analysis_work`가 소유한다.
 
-### word-meaning 파이프라인 (2026-06 재설계, 뜻 생성 단계 gemini-3.1-flash-lite)
+### word-meaning 파이프라인 (2026-07 guardrail 재설계, 뜻 생성 단계 gemini-3.1-flash-lite)
 
-흐름: `(번역 ∥ [segment → jisho]) → sense-select → translate → assemble`. 번역(pro)과 `segment→jisho` 체인을 병렬로 돌리고, 둘을 join해 sense-select·translate를 순차 실행한 뒤 코드가 토큰으로 조립한다.
+흐름: `(번역 ∥ [segment → surface check/retry → grammar rules → jisho/i-adjective normalize]) → sense-select → sense-translate → assemble`. `KoreanLyricTranslationService`는 orchestration만 맡고, 실제 단계는 `translation.service.pipeline.stage.PipelineStage<I, O>` 구현체로 분리한다. 단계 간 DTO는 `translation.model`에 둔다. 자세한 설계는 `docs/translation-pipeline.md`.
 
-1. **segment** (LLM): 원문 줄 → 의미 단위 분절 + 사전형 환원(가능/사역/수동 파생 제거). Kuromoji 대체.
-2. **jisho** (코드): 분절된 표제어를 jisho 조회 → 후보 뜻(sense) 목록. 동음이의·이형은 모든 후보를 펼치고, 캐시(`JishoCache`)·동시성 제한·재시도는 `JishoService`가 담당.
-3. **sense-select** (LLM): 번역문을 문맥 단서로 각 단어의 알맞은 sense 하나를 고른다(뜻을 직접 만들지 않음 → 과교정 차단). 이전 correction 패스를 이 단계가 대체.
-4. **translate** (LLM): 선택된 sense의 영어 뜻을 한국어로(품사 일관). 조사는 대응 한국어 조사로.
-5. **assemble** (코드): 선택 sense에서 reading/품사/JLPT/뜻을 채운다. sense 없으면 비움(no-fallback). 비(非)일본어(문장부호·영어·숫자)는 `SYMBOL`로 표시해 학습 대상에서 제외.
+1. **translate lyrics** (LLM): 원문 줄 → 한국어 번역/발음. sense-select의 문맥 단서가 된다.
+2. **segment** (LLM): 원문 줄 → 의미 단위 분절 + 사전형 환원(가능/사역/수동 파생 제거). Kuromoji 대체.
+3. **surface check/retry** (코드): segmentation 결과의 surface가 원문 일본어 문자를 순서대로 덮는지 검증한다. 실패하면 segmentation만 재호출한다.
+4. **grammar rules** (코드): Jisho/sense-select가 회복하기 어려운 문법 토큰만 결정적으로 처리한다. `ている/てる`, 조사, `どうも こうも` rewrite 등이 해당한다. `ない`, `から`처럼 lexical meaning과 문법 meaning이 갈리는 항목은 rule table에 넣지 않는다.
+5. **jisho + i-adjective normalize** (코드): 분절된 표제어를 jisho 조회해 후보 sense 목록을 만들고, `高く`처럼 부사형 i-adjective가 부정확한 fallback으로 잡히면 `高い`를 probe해 i-adjective sense로 정규화한다. 동음이의·이형은 모든 후보를 펼치고, 캐시(`JishoCache`)·동시성 제한·재시도는 `JishoService`가 담당한다.
+6. **sense-select** (LLM): 번역문을 문맥 단서로 각 단어의 알맞은 sense 하나를 고른다(뜻을 직접 만들지 않음 → 과교정 차단).
+7. **sense-translate** (LLM): 선택된 Japanese sense의 영어 gloss 묶음을 한국어 뜻 하나로 번역한다. 여러 gloss가 하나의 Japanese sense를 설명할 때는 gloss별 직역 concat이 아니라 sense 전체를 번역한다.
+8. **assemble** (코드): rule 또는 선택 sense에서 reading/품사/JLPT/뜻을 채운다. sense 없으면 비움(no-fallback). 비(非)일본어(문장부호·영어·숫자)는 `SYMBOL`로 표시해 학습 대상에서 제외.
 
 실패 시 첫 pass에서는 자동 retry 없이 `song_analysis_work.status=FAILED`로 종료한다. 사용자가 같은 곡을 다시 요청하면 새 work가 생성되어 다시 처리된다. 실험·검증 코드: `gemini-playground/word-meaning-harness/`(Python 프로토타입이 Kotlin과 동치). 비용 ≈ $0.031/곡.
 

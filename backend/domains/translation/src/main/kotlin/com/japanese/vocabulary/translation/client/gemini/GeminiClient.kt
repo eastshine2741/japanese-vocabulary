@@ -64,8 +64,8 @@ class GeminiClient(
 
     /**
      * Redesign stage 3 — per-line sense selection.
-     * Input: [{index, japanese, korean, segments:[{surface, dictionaryForm, senses:[{senseId,english,pos}]}]}].
-     * Output: [{index, words:[{surface, dictionaryForm, senseId}]}].
+     * Input: [{index, japanese, korean, segments:[{tokenId,surface,dictionaryForm,senses:[{senseId,english,pos}]}]}].
+     * Output: [{index, words:[{tokenId, surface, dictionaryForm, senseId}]}].
      * The LLM uses the Korean translation as a context cue to pick the senseId that fits this line, or
      * -1 when none fits. It does NOT generate Korean meanings (blocks the over-correction failure mode).
      */
@@ -83,7 +83,8 @@ class GeminiClient(
 
     /**
      * Redesign stage 4 — translate the chosen English senses to Korean.
-     * Input: [{senseId, pos, english}] (unique chosen senses). Output: [{senseId, koreanText}].
+     * Input: [{senseId, surface, baseForm, reading, pos, english, englishDefinitions}].
+     * Output: [{senseId, koreanText}].
      * POS-consistent, 1–2 comma-separated meanings; particles render as Korean particles (は→"~은/는").
      */
     fun translateSenses(senses: List<Map<String, Any?>>): List<SenseTranslationDto> {
@@ -309,26 +310,27 @@ class GeminiClient(
         private val SELECT_PROMPT = """
             너는 일본어 가사 단어장(플래시카드)의 **뜻 선택기**다.
             각 줄마다: 일본어 원문(japanese), 그 줄의 한국어 번역(korean), 분절된 단어들(segments)을 받는다.
-            각 segment에는 그 단어(dictionaryForm)의 사전 뜻 후보 senses=[{senseId, english(영어 뜻), pos(품사)}]가 들어있다.
+            각 segment에는 tokenId와 그 단어(dictionaryForm)의 사전 뜻 후보 senses=[{senseId, english(영어 뜻), pos(품사)}]가 들어있다.
             **한국어 번역을 문맥 단서로** 삼아, 각 단어가 이 줄에서 실제로 가지는 뜻에 해당하는 senseId 하나를 고른다.
-            출력: 같은 배열, 각 줄을 {"index", "words":[{"surface","dictionaryForm","senseId"}]}로. JSON만.
+            출력: 같은 배열, 각 줄을 {"index", "words":[{"tokenId","surface","dictionaryForm","senseId"}]}로. JSON만.
 
             ## 규칙
             - senseId: 그 segment의 senses 중 이 문맥에 가장 맞는 것의 senseId. **반드시 주어진 senses에 있는 값**이어야 한다.
             - senses가 비어있거나(사전에 없음) 어느 것도 문맥에 맞지 않으면 senseId = -1.
             - 한국어 뜻을 직접 만들지 마라. **오직 senseId 선택만** 한다.
-            - words는 입력 segments와 1:1, 순서 동일. surface/dictionaryForm는 입력 그대로 복사.
+            - words는 입력 segments와 1:1, 순서 동일. tokenId/surface/dictionaryForm는 입력 그대로 복사.
         """.trimIndent()
 
         /**
          * Redesign stage 4 — translate chosen English senses. Mirrors playground `run_redesign.py` TRANSLATE_SYS verbatim.
          */
         private val TRANSLATE_PROMPT = """
-            일본어 단어의 **영어 사전 뜻(english)** 을 한국어 단어장(플래시카드)용으로 번역한다.
-            입력: [{"senseId","pos"(품사),"english"(영어 뜻)}]. 출력: [{"senseId","koreanText"}] (입력과 1:1, 순서 동일). JSON만.
+            일본어 단어의 **영어 사전 뜻(englishDefinitions)** 을 한국어 단어장(플래시카드)용으로 번역한다.
+            입력: [{"senseId","surface","baseForm","reading","pos"(품사),"english","englishDefinitions"}]. 출력: [{"senseId","koreanText"}] (입력과 1:1, 순서 동일). JSON만.
 
             규칙:
-            - koreanText = 주어진 english sense의 **정확하고 구체적인 한국어 사전 뜻**. 여러 영어 정의가 묶여 있어도 **가장 대표적인 뜻 1~2개만** 골라 옮긴다(전부 나열 금지, 얕은 1차역도 금지).
+            - koreanText = 주어진 Japanese sense의 **정확하고 구체적인 한국어 사전 뜻**. surface/baseForm/reading은 어떤 일본어 단어의 뜻인지 확인하기 위한 정체성 단서다.
+            - When englishDefinitions contains multiple glosses for one Japanese sense, infer the shared core meaning and return only the most natural 1-2 Korean dictionary meanings. Do not translate every gloss separately or concatenate a long list.
             - 뜻이 2개면 **쉼표(,)로 구분**한다. 슬래시(/)는 쓰지 마라. 예: "제대로, 확실히".
             - 품사 일관: 동사/형용사(형용동사 포함)→"~다"(명사형 금지, 好き→"좋아하다"), 명사→명사, 부사→부사.
             - **pos가 PARTICLE(조사)면** 영어 설명("indicates the subject" 등)을 그대로 옮기지 말고, **같은 기능의 한국어 조사로** 번역한다. 문장에 끼워도 자연스러운 조사 형태로. 예: は→"~은/는", が→"~이/가", を→"~을/를", の→"~의", に→"~에, ~에게", へ→"~으로", と→"~와/과, ~라고", も→"~도", から→"~부터, ~에서", まで→"~까지", で→"~에서, ~로", や→"~이나".
@@ -383,9 +385,10 @@ class GeminiClient(
                             "properties" to mapOf(
                                 "surface" to mapOf("type" to "STRING"),
                                 "dictionaryForm" to mapOf("type" to "STRING"),
+                                "tokenId" to mapOf("type" to "STRING"),
                                 "senseId" to mapOf("type" to "INTEGER")
                             ),
-                            "required" to listOf("surface", "dictionaryForm", "senseId")
+                            "required" to listOf("tokenId", "surface", "dictionaryForm", "senseId")
                         )
                     )
                 ),
