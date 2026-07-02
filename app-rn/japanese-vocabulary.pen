@@ -25847,6 +25847,50 @@
                           }
                         }
                       ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "v9Fx7j",
+                      "name": "View All Words Button",
+                      "width": "fill_container",
+                      "height": 40,
+                      "fill": "$bg-subtle",
+                      "cornerRadius": 10,
+                      "gap": 6,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "TM6Ff",
+                          "name": "List Icon",
+                          "width": 15,
+                          "height": 15,
+                          "icon": "list",
+                          "library": "lucide",
+                          "fill": "$accent.primary"
+                        },
+                        {
+                          "type": "text",
+                          "id": "W6NIn",
+                          "name": "Button Label",
+                          "fill": "$accent.primary",
+                          "content": "이 곡의 모든 단어 보기",
+                          "fontFamily": "$font.body",
+                          "fontSize": 13,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "icon",
+                          "id": "HXB34",
+                          "name": "Arrow Icon",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "chevron-right",
+                          "library": "lucide",
+                          "fill": "$accent.primary"
+                        }
+                      ]
                     }
                   ]
                 },
@@ -29591,6 +29635,2273 @@
               ]
             }
           ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "CNHdA",
+      "x": -555,
+      "y": -3444,
+      "name": "component/SortBottomSheet",
+      "reusable": true,
+      "clip": true,
+      "width": 402,
+      "fill": "$bg-primary",
+      "cornerRadius": [
+        20,
+        20,
+        0,
+        0
+      ],
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "JOhGd",
+          "name": "Handle Area",
+          "width": "fill_container",
+          "padding": [
+            12,
+            0
+          ],
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "rectangle",
+              "cornerRadius": 2,
+              "id": "e9SCb",
+              "name": "Drag Handle",
+              "fill": "$border-strong",
+              "width": 40,
+              "height": 4
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "hzHQW",
+          "name": "Sort Sheet Content",
+          "width": "fill_container",
+          "fill": "$bg-primary",
+          "layout": "vertical",
+          "gap": 20,
+          "padding": [
+            4,
+            20,
+            28,
+            20
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "A2XqBE",
+              "name": "Sort Sheet Header",
+              "width": "fill_container",
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "gTC1w",
+                  "name": "Sort Sheet Title",
+                  "fill": "$foreground.primary",
+                  "content": "정렬",
+                  "fontFamily": "$font.headings",
+                  "fontSize": 19,
+                  "fontWeight": "800"
+                },
+                {
+                  "type": "frame",
+                  "id": "Wm4Dk",
+                  "name": "Close Button",
+                  "width": 32,
+                  "height": 32,
+                  "fill": "$bg-subtle",
+                  "cornerRadius": "$rounded.full",
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "uVhKO",
+                      "name": "Close Icon",
+                      "width": 16,
+                      "height": 16,
+                      "icon": "x",
+                      "library": "lucide",
+                      "fill": "$foreground.secondary"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "VApl5",
+              "name": "Sort Options Section",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 10,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "TcbfX",
+                  "name": "Sort Section Label",
+                  "fill": "$foreground.secondary",
+                  "content": "정렬 기준",
+                  "fontFamily": "$font.captions",
+                  "fontSize": 11,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "frame",
+                  "id": "zGGCT",
+                  "name": "Sort Options Row",
+                  "width": "fill_container",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "id": "ZlSmi",
+                      "type": "ref",
+                      "ref": "lcqlc",
+                      "name": "중요도순 Option",
+                      "width": "fill_container",
+                      "height": 40,
+                      "fill": "$accent.primary",
+                      "descendants": {
+                        "r9ECgM": {
+                          "icon": "check",
+                          "fill": "$foreground.inverse"
+                        },
+                        "YwrIg": {
+                          "content": "중요도순",
+                          "fill": "$foreground.inverse"
+                        }
+                      }
+                    },
+                    {
+                      "id": "EyRQW",
+                      "type": "ref",
+                      "ref": "lcqlc",
+                      "name": "등장순 Option",
+                      "width": "fill_container",
+                      "height": 40,
+                      "fill": "$surface.primary",
+                      "descendants": {
+                        "r9ECgM": {
+                          "icon": "circle",
+                          "fill": "$foreground.muted"
+                        },
+                        "YwrIg": {
+                          "content": "등장순",
+                          "fill": "$foreground.primary"
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "yThF8",
+              "type": "ref",
+              "ref": "Qilli",
+              "name": "Apply Sort Button",
+              "width": "fill_container",
+              "height": 44,
+              "descendants": {
+                "6WP1o": {
+                  "enabled": false
+                },
+                "tRfPc": {
+                  "content": "적용",
+                  "fontSize": 14,
+                  "fontWeight": "800"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "HUbZy",
+      "x": -555,
+      "y": -4144,
+      "name": "component/WordListFilterSheet",
+      "reusable": true,
+      "clip": true,
+      "width": 402,
+      "fill": "$bg-primary",
+      "cornerRadius": [
+        20,
+        20,
+        0,
+        0
+      ],
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "ZD20o",
+          "name": "Handle Area",
+          "width": "fill_container",
+          "padding": [
+            12,
+            0
+          ],
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "rectangle",
+              "cornerRadius": 2,
+              "id": "ktGFA",
+              "name": "Drag Handle",
+              "fill": "$border-strong",
+              "width": 40,
+              "height": 4
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "mUvjs",
+          "name": "Filter Sheet Content",
+          "width": "fill_container",
+          "fill": "$bg-primary",
+          "layout": "vertical",
+          "gap": 20,
+          "padding": [
+            4,
+            20,
+            28,
+            20
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "NBHlG",
+              "name": "Filter Sheet Header",
+              "width": "fill_container",
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "u82kOS",
+                  "name": "Title Group",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 2,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "MkRKs",
+                      "name": "Filter Sheet Title",
+                      "fill": "$foreground.primary",
+                      "content": "필터",
+                      "fontFamily": "$font.headings",
+                      "fontSize": 19,
+                      "fontWeight": "800"
+                    },
+                    {
+                      "type": "text",
+                      "id": "OGbrs",
+                      "name": "Filter Sheet Summary",
+                      "fill": "$foreground.muted",
+                      "content": "품사 7개 · JLPT 전체",
+                      "fontFamily": "$font.body",
+                      "fontSize": 12,
+                      "fontWeight": "600"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "gGJJu",
+                  "name": "Close Button",
+                  "width": 32,
+                  "height": 32,
+                  "fill": "$bg-subtle",
+                  "cornerRadius": "$rounded.full",
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "ga92C",
+                      "name": "Close Icon",
+                      "width": 16,
+                      "height": 16,
+                      "icon": "x",
+                      "library": "lucide",
+                      "fill": "$foreground.secondary"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "OTFLH",
+              "name": "POS Section",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 10,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "d90D2",
+                  "name": "POS Section Label",
+                  "fill": "$foreground.secondary",
+                  "content": "품사",
+                  "fontFamily": "$font.captions",
+                  "fontSize": 11,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "frame",
+                  "id": "yzb75",
+                  "name": "POS Row",
+                  "width": "fill_container",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "id": "fAWNe",
+                      "type": "ref",
+                      "ref": "lcqlc",
+                      "name": "명사 Option",
+                      "width": "fill_container",
+                      "height": 38,
+                      "fill": "$accent.primary",
+                      "descendants": {
+                        "r9ECgM": {
+                          "icon": "check",
+                          "fill": "$foreground.inverse"
+                        },
+                        "YwrIg": {
+                          "content": "명사",
+                          "fill": "$foreground.inverse"
+                        }
+                      }
+                    },
+                    {
+                      "id": "k6VwZW",
+                      "type": "ref",
+                      "ref": "lcqlc",
+                      "name": "동사 Option",
+                      "width": "fill_container",
+                      "height": 38,
+                      "fill": "$accent.primary",
+                      "descendants": {
+                        "r9ECgM": {
+                          "icon": "check",
+                          "fill": "$foreground.inverse"
+                        },
+                        "YwrIg": {
+                          "content": "동사",
+                          "fill": "$foreground.inverse"
+                        }
+                      }
+                    },
+                    {
+                      "id": "MpaTs",
+                      "type": "ref",
+                      "ref": "lcqlc",
+                      "name": "형용사 Option",
+                      "width": "fill_container",
+                      "height": 38,
+                      "fill": "$accent.primary",
+                      "descendants": {
+                        "r9ECgM": {
+                          "icon": "check",
+                          "fill": "$foreground.inverse"
+                        },
+                        "YwrIg": {
+                          "content": "형용사",
+                          "fill": "$foreground.inverse"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "c9Z8ty",
+                  "name": "POS Row",
+                  "width": "fill_container",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "id": "DBEvT",
+                      "type": "ref",
+                      "ref": "lcqlc",
+                      "name": "형용동사 Option",
+                      "width": "fill_container",
+                      "height": 38,
+                      "fill": "$accent.primary",
+                      "descendants": {
+                        "r9ECgM": {
+                          "icon": "check",
+                          "fill": "$foreground.inverse"
+                        },
+                        "YwrIg": {
+                          "content": "형용동사",
+                          "fill": "$foreground.inverse"
+                        }
+                      }
+                    },
+                    {
+                      "id": "eec67",
+                      "type": "ref",
+                      "ref": "lcqlc",
+                      "name": "부사 Option",
+                      "width": "fill_container",
+                      "height": 38,
+                      "fill": "$accent.primary",
+                      "descendants": {
+                        "r9ECgM": {
+                          "icon": "check",
+                          "fill": "$foreground.inverse"
+                        },
+                        "YwrIg": {
+                          "content": "부사",
+                          "fill": "$foreground.inverse"
+                        }
+                      }
+                    },
+                    {
+                      "id": "t9mRmS",
+                      "type": "ref",
+                      "ref": "lcqlc",
+                      "name": "접속사 Option",
+                      "width": "fill_container",
+                      "height": 38,
+                      "fill": "$accent.primary",
+                      "descendants": {
+                        "r9ECgM": {
+                          "icon": "check",
+                          "fill": "$foreground.inverse"
+                        },
+                        "YwrIg": {
+                          "content": "접속사",
+                          "fill": "$foreground.inverse"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "k7A2R",
+                  "name": "POS Row",
+                  "width": "fill_container",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "id": "plTCO",
+                      "type": "ref",
+                      "ref": "lcqlc",
+                      "name": "감탄사 Option",
+                      "width": "fill_container",
+                      "height": 38,
+                      "fill": "$accent.primary",
+                      "descendants": {
+                        "r9ECgM": {
+                          "icon": "check",
+                          "fill": "$foreground.inverse"
+                        },
+                        "YwrIg": {
+                          "content": "감탄사",
+                          "fill": "$foreground.inverse"
+                        }
+                      }
+                    },
+                    {
+                      "id": "I4JPCi",
+                      "type": "ref",
+                      "ref": "lcqlc",
+                      "name": "대명사 Option",
+                      "width": "fill_container",
+                      "height": 38,
+                      "fill": "$surface.primary",
+                      "descendants": {
+                        "r9ECgM": {
+                          "icon": "circle",
+                          "fill": "$foreground.muted"
+                        },
+                        "YwrIg": {
+                          "content": "대명사",
+                          "fill": "$foreground.primary"
+                        }
+                      }
+                    },
+                    {
+                      "id": "nlgWy",
+                      "type": "ref",
+                      "ref": "lcqlc",
+                      "name": "조동사 Option",
+                      "width": "fill_container",
+                      "height": 38,
+                      "fill": "$surface.primary",
+                      "descendants": {
+                        "r9ECgM": {
+                          "icon": "circle",
+                          "fill": "$foreground.muted"
+                        },
+                        "YwrIg": {
+                          "content": "조동사",
+                          "fill": "$foreground.primary"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "eHa5Q",
+                  "name": "POS Row",
+                  "width": "fill_container",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "id": "qVUk0",
+                      "type": "ref",
+                      "ref": "lcqlc",
+                      "name": "조사 Option",
+                      "width": "fill_container",
+                      "height": 38,
+                      "fill": "$surface.primary",
+                      "descendants": {
+                        "r9ECgM": {
+                          "icon": "circle",
+                          "fill": "$foreground.muted"
+                        },
+                        "YwrIg": {
+                          "content": "조사",
+                          "fill": "$foreground.primary"
+                        }
+                      }
+                    },
+                    {
+                      "id": "BGFBq",
+                      "type": "ref",
+                      "ref": "lcqlc",
+                      "name": "접미사 Option",
+                      "width": "fill_container",
+                      "height": 38,
+                      "fill": "$surface.primary",
+                      "descendants": {
+                        "r9ECgM": {
+                          "icon": "circle",
+                          "fill": "$foreground.muted"
+                        },
+                        "YwrIg": {
+                          "content": "접미사",
+                          "fill": "$foreground.primary"
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "K9aC0Y",
+              "name": "JLPT Section",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 10,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "ayHi4",
+                  "name": "JLPT Section Label",
+                  "fill": "$foreground.secondary",
+                  "content": "JLPT",
+                  "fontFamily": "$font.captions",
+                  "fontSize": 11,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "frame",
+                  "id": "XrWjt",
+                  "name": "JLPT Row",
+                  "width": "fill_container",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "id": "Z8iU9",
+                      "type": "ref",
+                      "ref": "lcqlc",
+                      "name": "N5 Option",
+                      "width": "fill_container",
+                      "height": 38,
+                      "fill": "$accent.primary",
+                      "descendants": {
+                        "r9ECgM": {
+                          "icon": "check",
+                          "fill": "$foreground.inverse"
+                        },
+                        "YwrIg": {
+                          "content": "N5",
+                          "fill": "$foreground.inverse"
+                        }
+                      }
+                    },
+                    {
+                      "id": "r93Ie7",
+                      "type": "ref",
+                      "ref": "lcqlc",
+                      "name": "N4 Option",
+                      "width": "fill_container",
+                      "height": 38,
+                      "fill": "$accent.primary",
+                      "descendants": {
+                        "r9ECgM": {
+                          "icon": "check",
+                          "fill": "$foreground.inverse"
+                        },
+                        "YwrIg": {
+                          "content": "N4",
+                          "fill": "$foreground.inverse"
+                        }
+                      }
+                    },
+                    {
+                      "id": "r0Mhl",
+                      "type": "ref",
+                      "ref": "lcqlc",
+                      "name": "N3 Option",
+                      "width": "fill_container",
+                      "height": 38,
+                      "fill": "$accent.primary",
+                      "descendants": {
+                        "r9ECgM": {
+                          "icon": "check",
+                          "fill": "$foreground.inverse"
+                        },
+                        "YwrIg": {
+                          "content": "N3",
+                          "fill": "$foreground.inverse"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "QPaY7",
+                  "name": "JLPT Row",
+                  "width": "fill_container",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "id": "aVfpe",
+                      "type": "ref",
+                      "ref": "lcqlc",
+                      "name": "N2 Option",
+                      "width": "fill_container",
+                      "height": 38,
+                      "fill": "$accent.primary",
+                      "descendants": {
+                        "r9ECgM": {
+                          "icon": "check",
+                          "fill": "$foreground.inverse"
+                        },
+                        "YwrIg": {
+                          "content": "N2",
+                          "fill": "$foreground.inverse"
+                        }
+                      }
+                    },
+                    {
+                      "id": "nc7Ca",
+                      "type": "ref",
+                      "ref": "lcqlc",
+                      "name": "N1 Option",
+                      "width": "fill_container",
+                      "height": 38,
+                      "fill": "$accent.primary",
+                      "descendants": {
+                        "r9ECgM": {
+                          "icon": "check",
+                          "fill": "$foreground.inverse"
+                        },
+                        "YwrIg": {
+                          "content": "N1",
+                          "fill": "$foreground.inverse"
+                        }
+                      }
+                    },
+                    {
+                      "id": "bZxVQ",
+                      "type": "ref",
+                      "ref": "lcqlc",
+                      "name": "알수없음 Option",
+                      "width": "fill_container",
+                      "height": 38,
+                      "fill": "$accent.primary",
+                      "descendants": {
+                        "r9ECgM": {
+                          "icon": "check",
+                          "fill": "$foreground.inverse"
+                        },
+                        "YwrIg": {
+                          "content": "알수없음",
+                          "fill": "$foreground.inverse"
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "G185ZG",
+              "name": "Filter Actions",
+              "width": "fill_container",
+              "gap": 10,
+              "children": [
+                {
+                  "id": "TRqiL",
+                  "type": "ref",
+                  "ref": "pcVLy",
+                  "name": "Reset Filter Button",
+                  "width": "fill_container",
+                  "height": 44,
+                  "descendants": {
+                    "aulVa": {
+                      "enabled": true,
+                      "icon": "rotate-ccw",
+                      "width": 14,
+                      "height": 14,
+                      "fill": "$foreground.secondary"
+                    },
+                    "d1yay": {
+                      "content": "초기화",
+                      "fontSize": 13,
+                      "fontWeight": "700",
+                      "fill": "$foreground.secondary"
+                    }
+                  }
+                },
+                {
+                  "id": "dY91s",
+                  "type": "ref",
+                  "ref": "Qilli",
+                  "name": "Apply Filter Button",
+                  "width": "fill_container",
+                  "height": 44,
+                  "descendants": {
+                    "6WP1o": {
+                      "enabled": false
+                    },
+                    "tRfPc": {
+                      "content": "적용",
+                      "fontSize": 14,
+                      "fontWeight": "800"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "fsOnB",
+      "x": 3398,
+      "y": -1904,
+      "name": "18. Song Word List",
+      "clip": true,
+      "width": 402,
+      "height": 874,
+      "fill": "$bg-primary",
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "Jx5Ye",
+          "name": "Header",
+          "width": "fill_container",
+          "height": 56,
+          "fill": "$bg-primary",
+          "stroke": "$border-default",
+          "strokeWidth": {
+            "bottom": 1
+          },
+          "strokeAlignment": "inner",
+          "padding": [
+            0,
+            8
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "MRRc3",
+              "name": "Back Button",
+              "width": 40,
+              "height": 40,
+              "fill": "#FFFFFF00",
+              "cornerRadius": "$rounded.full",
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "Jw2lR",
+                  "name": "Back Icon",
+                  "width": 22,
+                  "height": 22,
+                  "icon": "chevron-left",
+                  "library": "lucide",
+                  "fill": "$foreground.primary"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "Tuk2k",
+              "name": "Header Title",
+              "fill": "$foreground.primary",
+              "content": "Lemon — 단어 목록",
+              "fontFamily": "$font.headings",
+              "fontSize": 16,
+              "fontWeight": "700"
+            },
+            {
+              "type": "frame",
+              "id": "m2iIo",
+              "name": "Header Actions",
+              "fill": "#FFFFFF00",
+              "gap": 4,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "bk6Ue",
+                  "name": "Sort Button",
+                  "width": 36,
+                  "height": 36,
+                  "fill": "$bg-subtle",
+                  "cornerRadius": 8,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "LTwoL",
+                      "name": "Sort Icon",
+                      "width": 18,
+                      "height": 18,
+                      "icon": "arrow-up-down",
+                      "library": "lucide",
+                      "fill": "$foreground.primary"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "tyRHR",
+                  "name": "Filter Button",
+                  "width": 36,
+                  "height": 36,
+                  "fill": "$bg-subtle",
+                  "cornerRadius": 8,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "fiK4O",
+                      "name": "Filter Icon",
+                      "width": 18,
+                      "height": 18,
+                      "icon": "sliders-horizontal",
+                      "library": "lucide",
+                      "fill": "$foreground.primary"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "yZ4CD",
+          "name": "Summary Bar",
+          "width": "fill_container",
+          "height": 40,
+          "fill": "$bg-subtle",
+          "stroke": "$border-default",
+          "strokeWidth": {
+            "bottom": 1
+          },
+          "strokeAlignment": "inner",
+          "gap": 8,
+          "padding": [
+            0,
+            16
+          ],
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "Y4jRR",
+              "name": "Word Count",
+              "fill": "$foreground.secondary",
+              "content": "총 48개 단어",
+              "fontFamily": "$font.captions",
+              "fontSize": 12,
+              "fontWeight": "700"
+            },
+            {
+              "type": "rectangle",
+              "id": "rLdfZ",
+              "name": "Divider",
+              "fill": "$border-default",
+              "width": 1,
+              "height": 14
+            },
+            {
+              "type": "text",
+              "id": "iw5wc",
+              "name": "Filter Summary",
+              "fill": "$foreground.muted",
+              "content": "중요도순 · 품사 7개 · JLPT 전체",
+              "fontFamily": "$font.captions",
+              "fontSize": 12,
+              "fontWeight": "500"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "a9P1gm",
+          "name": "Word List",
+          "width": "fill_container",
+          "height": "fill_container",
+          "fill": "$bg-primary",
+          "layout": "vertical",
+          "padding": [
+            0,
+            16
+          ],
+          "children": [
+            {
+              "id": "BWIE3",
+              "type": "ref",
+              "ref": "D4IBl",
+              "name": "Row - 夢",
+              "width": "fill_container",
+              "descendants": {
+                "cb2iz": {
+                  "content": "夢"
+                },
+                "Z8Lj8": {
+                  "content": "ゆめ"
+                },
+                "NjLHi": {
+                  "content": "꿈"
+                },
+                "13g45": {
+                  "fill": "$jlpt-n3"
+                },
+                "JRkwQ": {
+                  "content": "N3"
+                }
+              }
+            },
+            {
+              "id": "RQUN2",
+              "type": "ref",
+              "ref": "D4IBl",
+              "name": "Row - 君",
+              "width": "fill_container",
+              "descendants": {
+                "cb2iz": {
+                  "content": "君"
+                },
+                "Z8Lj8": {
+                  "content": "きみ"
+                },
+                "NjLHi": {
+                  "content": "너"
+                },
+                "13g45": {
+                  "fill": "$jlpt-n2"
+                },
+                "JRkwQ": {
+                  "content": "N2"
+                }
+              }
+            },
+            {
+              "id": "vcyHg",
+              "type": "ref",
+              "ref": "D4IBl",
+              "name": "Row - 声",
+              "width": "fill_container",
+              "descendants": {
+                "cb2iz": {
+                  "content": "声"
+                },
+                "Z8Lj8": {
+                  "content": "こえ"
+                },
+                "NjLHi": {
+                  "content": "목소리"
+                },
+                "13g45": {
+                  "fill": "$jlpt-n3"
+                },
+                "JRkwQ": {
+                  "content": "N3"
+                }
+              }
+            },
+            {
+              "id": "dvFic",
+              "type": "ref",
+              "ref": "D4IBl",
+              "name": "Row - 空",
+              "width": "fill_container",
+              "descendants": {
+                "cb2iz": {
+                  "content": "空"
+                },
+                "Z8Lj8": {
+                  "content": "そら"
+                },
+                "NjLHi": {
+                  "content": "하늘"
+                },
+                "13g45": {
+                  "fill": "$jlpt-n3"
+                },
+                "JRkwQ": {
+                  "content": "N3"
+                }
+              }
+            },
+            {
+              "id": "bipb0",
+              "type": "ref",
+              "ref": "D4IBl",
+              "name": "Row - 走る",
+              "width": "fill_container",
+              "descendants": {
+                "cb2iz": {
+                  "content": "走る"
+                },
+                "Z8Lj8": {
+                  "content": "はしる"
+                },
+                "NjLHi": {
+                  "content": "달리다"
+                },
+                "13g45": {
+                  "fill": "$jlpt-n3"
+                },
+                "JRkwQ": {
+                  "content": "N3"
+                }
+              }
+            },
+            {
+              "id": "g3Q93u",
+              "type": "ref",
+              "ref": "D4IBl",
+              "name": "Row - 世界",
+              "width": "fill_container",
+              "descendants": {
+                "cb2iz": {
+                  "content": "世界"
+                },
+                "Z8Lj8": {
+                  "content": "せかい"
+                },
+                "NjLHi": {
+                  "content": "세계"
+                },
+                "13g45": {
+                  "fill": "$jlpt-n2"
+                },
+                "JRkwQ": {
+                  "content": "N2"
+                }
+              }
+            },
+            {
+              "id": "EneLM",
+              "type": "ref",
+              "ref": "D4IBl",
+              "name": "Row - 光",
+              "width": "fill_container",
+              "descendants": {
+                "cb2iz": {
+                  "content": "光"
+                },
+                "Z8Lj8": {
+                  "content": "ひかり"
+                },
+                "NjLHi": {
+                  "content": "빛"
+                },
+                "13g45": {
+                  "fill": "$jlpt-n3"
+                },
+                "JRkwQ": {
+                  "content": "N3"
+                }
+              }
+            },
+            {
+              "id": "yVh2h",
+              "type": "ref",
+              "ref": "D4IBl",
+              "name": "Row - 愛",
+              "width": "fill_container",
+              "descendants": {
+                "cb2iz": {
+                  "content": "愛"
+                },
+                "Z8Lj8": {
+                  "content": "あい"
+                },
+                "NjLHi": {
+                  "content": "사랑"
+                },
+                "13g45": {
+                  "fill": "$jlpt-n3"
+                },
+                "JRkwQ": {
+                  "content": "N3"
+                }
+              }
+            },
+            {
+              "id": "BuleG",
+              "type": "ref",
+              "ref": "D4IBl",
+              "name": "Row - 泣く",
+              "width": "fill_container",
+              "descendants": {
+                "cb2iz": {
+                  "content": "泣く"
+                },
+                "Z8Lj8": {
+                  "content": "なく"
+                },
+                "NjLHi": {
+                  "content": "울다"
+                },
+                "13g45": {
+                  "fill": "$jlpt-n4"
+                },
+                "JRkwQ": {
+                  "content": "N4"
+                }
+              }
+            },
+            {
+              "id": "VEVWf",
+              "type": "ref",
+              "ref": "D4IBl",
+              "name": "Row - 時間",
+              "width": "fill_container",
+              "descendants": {
+                "cb2iz": {
+                  "content": "時間"
+                },
+                "Z8Lj8": {
+                  "content": "じかん"
+                },
+                "NjLHi": {
+                  "content": "시간"
+                },
+                "13g45": {
+                  "fill": "$jlpt-n4"
+                },
+                "JRkwQ": {
+                  "content": "N4"
+                }
+              }
+            },
+            {
+              "id": "m587U",
+              "type": "ref",
+              "ref": "D4IBl",
+              "name": "Row - 気持ち",
+              "width": "fill_container",
+              "descendants": {
+                "cb2iz": {
+                  "content": "気持ち"
+                },
+                "Z8Lj8": {
+                  "content": "きもち"
+                },
+                "NjLHi": {
+                  "content": "기분"
+                },
+                "13g45": {
+                  "fill": "$jlpt-n3"
+                },
+                "JRkwQ": {
+                  "content": "N3"
+                }
+              }
+            },
+            {
+              "id": "u63AcD",
+              "type": "ref",
+              "ref": "D4IBl",
+              "name": "Row - 言葉",
+              "width": "fill_container",
+              "descendants": {
+                "cb2iz": {
+                  "content": "言葉"
+                },
+                "Z8Lj8": {
+                  "content": "ことば"
+                },
+                "NjLHi": {
+                  "content": "말/언어"
+                },
+                "13g45": {
+                  "fill": "$jlpt-n3"
+                },
+                "JRkwQ": {
+                  "content": "N3"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "J7Z0CF",
+          "type": "ref",
+          "ref": "anPPw",
+          "name": "Bottom Nav Bar",
+          "width": "fill_container"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "GeToG",
+      "x": 5037,
+      "y": -1904,
+      "name": "18a. Song Word List — Sort Sheet",
+      "clip": true,
+      "width": 402,
+      "height": 874,
+      "fill": "$bg-primary",
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "UUhHd",
+          "name": "Header",
+          "width": "fill_container",
+          "height": 56,
+          "fill": "$bg-primary",
+          "stroke": "$border-default",
+          "strokeWidth": {
+            "bottom": 1
+          },
+          "strokeAlignment": "inner",
+          "padding": [
+            0,
+            8
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "nYi5a",
+              "name": "Back Button",
+              "width": 40,
+              "height": 40,
+              "fill": "#FFFFFF00",
+              "cornerRadius": "$rounded.full",
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "VKgKN",
+                  "name": "Back Icon",
+                  "width": 22,
+                  "height": 22,
+                  "icon": "chevron-left",
+                  "library": "lucide",
+                  "fill": "$foreground.primary"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "DJYFz",
+              "name": "Header Title",
+              "fill": "$foreground.primary",
+              "content": "Lemon — 단어 목록",
+              "fontFamily": "$font.headings",
+              "fontSize": 16,
+              "fontWeight": "700"
+            },
+            {
+              "type": "frame",
+              "id": "LyfM4",
+              "name": "Header Actions",
+              "fill": "#FFFFFF00",
+              "gap": 4,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "f3RNEA",
+                  "name": "Sort Button",
+                  "width": 36,
+                  "height": 36,
+                  "fill": "$bg-subtle",
+                  "cornerRadius": 8,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "ZnnMq",
+                      "name": "Sort Icon",
+                      "width": 18,
+                      "height": 18,
+                      "icon": "arrow-up-down",
+                      "library": "lucide",
+                      "fill": "$foreground.primary"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "jRmwl",
+                  "name": "Filter Button",
+                  "width": 36,
+                  "height": 36,
+                  "fill": "$bg-subtle",
+                  "cornerRadius": 8,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "QlGI1",
+                      "name": "Filter Icon",
+                      "width": 18,
+                      "height": 18,
+                      "icon": "sliders-horizontal",
+                      "library": "lucide",
+                      "fill": "$foreground.primary"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "XEolo",
+          "name": "Summary Bar",
+          "width": "fill_container",
+          "height": 40,
+          "fill": "$bg-subtle",
+          "stroke": "$border-default",
+          "strokeWidth": {
+            "bottom": 1
+          },
+          "strokeAlignment": "inner",
+          "gap": 8,
+          "padding": [
+            0,
+            16
+          ],
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "EfnHw",
+              "name": "Word Count",
+              "fill": "$foreground.secondary",
+              "content": "총 48개 단어",
+              "fontFamily": "$font.captions",
+              "fontSize": 12,
+              "fontWeight": "700"
+            },
+            {
+              "type": "rectangle",
+              "id": "XFKWI",
+              "name": "Divider",
+              "fill": "$border-default",
+              "width": 1,
+              "height": 14
+            },
+            {
+              "type": "text",
+              "id": "v3Ukxg",
+              "name": "Filter Summary",
+              "fill": "$foreground.muted",
+              "content": "중요도순 · 품사 7개 · JLPT 전체",
+              "fontFamily": "$font.captions",
+              "fontSize": 12,
+              "fontWeight": "500"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "wamrv",
+          "name": "Word List",
+          "width": "fill_container",
+          "height": "fill_container",
+          "fill": "$bg-primary",
+          "layout": "vertical",
+          "padding": [
+            0,
+            16
+          ],
+          "children": [
+            {
+              "id": "RTO9d",
+              "type": "ref",
+              "ref": "D4IBl",
+              "name": "Row - 夢",
+              "width": "fill_container",
+              "descendants": {
+                "cb2iz": {
+                  "content": "夢"
+                },
+                "Z8Lj8": {
+                  "content": "ゆめ"
+                },
+                "NjLHi": {
+                  "content": "꿈"
+                },
+                "13g45": {
+                  "fill": "$jlpt-n3"
+                },
+                "JRkwQ": {
+                  "content": "N3"
+                }
+              }
+            },
+            {
+              "id": "F4cDjL",
+              "type": "ref",
+              "ref": "D4IBl",
+              "name": "Row - 君",
+              "width": "fill_container",
+              "descendants": {
+                "cb2iz": {
+                  "content": "君"
+                },
+                "Z8Lj8": {
+                  "content": "きみ"
+                },
+                "NjLHi": {
+                  "content": "너"
+                },
+                "13g45": {
+                  "fill": "$jlpt-n2"
+                },
+                "JRkwQ": {
+                  "content": "N2"
+                }
+              }
+            },
+            {
+              "id": "WCRr1",
+              "type": "ref",
+              "ref": "D4IBl",
+              "name": "Row - 声",
+              "width": "fill_container",
+              "descendants": {
+                "cb2iz": {
+                  "content": "声"
+                },
+                "Z8Lj8": {
+                  "content": "こえ"
+                },
+                "NjLHi": {
+                  "content": "목소리"
+                },
+                "13g45": {
+                  "fill": "$jlpt-n3"
+                },
+                "JRkwQ": {
+                  "content": "N3"
+                }
+              }
+            },
+            {
+              "id": "VpIYM",
+              "type": "ref",
+              "ref": "D4IBl",
+              "name": "Row - 空",
+              "width": "fill_container",
+              "descendants": {
+                "cb2iz": {
+                  "content": "空"
+                },
+                "Z8Lj8": {
+                  "content": "そら"
+                },
+                "NjLHi": {
+                  "content": "하늘"
+                },
+                "13g45": {
+                  "fill": "$jlpt-n3"
+                },
+                "JRkwQ": {
+                  "content": "N3"
+                }
+              }
+            },
+            {
+              "id": "gtGCC",
+              "type": "ref",
+              "ref": "D4IBl",
+              "name": "Row - 走る",
+              "width": "fill_container",
+              "descendants": {
+                "cb2iz": {
+                  "content": "走る"
+                },
+                "Z8Lj8": {
+                  "content": "はしる"
+                },
+                "NjLHi": {
+                  "content": "달리다"
+                },
+                "13g45": {
+                  "fill": "$jlpt-n3"
+                },
+                "JRkwQ": {
+                  "content": "N3"
+                }
+              }
+            },
+            {
+              "id": "secRL",
+              "type": "ref",
+              "ref": "D4IBl",
+              "name": "Row - 世界",
+              "width": "fill_container",
+              "descendants": {
+                "cb2iz": {
+                  "content": "世界"
+                },
+                "Z8Lj8": {
+                  "content": "せかい"
+                },
+                "NjLHi": {
+                  "content": "세계"
+                },
+                "13g45": {
+                  "fill": "$jlpt-n2"
+                },
+                "JRkwQ": {
+                  "content": "N2"
+                }
+              }
+            },
+            {
+              "id": "PuIr0",
+              "type": "ref",
+              "ref": "D4IBl",
+              "name": "Row - 光",
+              "width": "fill_container",
+              "descendants": {
+                "cb2iz": {
+                  "content": "光"
+                },
+                "Z8Lj8": {
+                  "content": "ひかり"
+                },
+                "NjLHi": {
+                  "content": "빛"
+                },
+                "13g45": {
+                  "fill": "$jlpt-n3"
+                },
+                "JRkwQ": {
+                  "content": "N3"
+                }
+              }
+            },
+            {
+              "id": "KaxAR",
+              "type": "ref",
+              "ref": "D4IBl",
+              "name": "Row - 愛",
+              "width": "fill_container",
+              "descendants": {
+                "cb2iz": {
+                  "content": "愛"
+                },
+                "Z8Lj8": {
+                  "content": "あい"
+                },
+                "NjLHi": {
+                  "content": "사랑"
+                },
+                "13g45": {
+                  "fill": "$jlpt-n3"
+                },
+                "JRkwQ": {
+                  "content": "N3"
+                }
+              }
+            },
+            {
+              "id": "D9uAAs",
+              "type": "ref",
+              "ref": "D4IBl",
+              "name": "Row - 泣く",
+              "width": "fill_container",
+              "descendants": {
+                "cb2iz": {
+                  "content": "泣く"
+                },
+                "Z8Lj8": {
+                  "content": "なく"
+                },
+                "NjLHi": {
+                  "content": "울다"
+                },
+                "13g45": {
+                  "fill": "$jlpt-n4"
+                },
+                "JRkwQ": {
+                  "content": "N4"
+                }
+              }
+            },
+            {
+              "id": "NpmJm",
+              "type": "ref",
+              "ref": "D4IBl",
+              "name": "Row - 時間",
+              "width": "fill_container",
+              "descendants": {
+                "cb2iz": {
+                  "content": "時間"
+                },
+                "Z8Lj8": {
+                  "content": "じかん"
+                },
+                "NjLHi": {
+                  "content": "시간"
+                },
+                "13g45": {
+                  "fill": "$jlpt-n4"
+                },
+                "JRkwQ": {
+                  "content": "N4"
+                }
+              }
+            },
+            {
+              "id": "P4ncB6",
+              "type": "ref",
+              "ref": "D4IBl",
+              "name": "Row - 気持ち",
+              "width": "fill_container",
+              "descendants": {
+                "cb2iz": {
+                  "content": "気持ち"
+                },
+                "Z8Lj8": {
+                  "content": "きもち"
+                },
+                "NjLHi": {
+                  "content": "기분"
+                },
+                "13g45": {
+                  "fill": "$jlpt-n3"
+                },
+                "JRkwQ": {
+                  "content": "N3"
+                }
+              }
+            },
+            {
+              "id": "FspSj",
+              "type": "ref",
+              "ref": "D4IBl",
+              "name": "Row - 言葉",
+              "width": "fill_container",
+              "descendants": {
+                "cb2iz": {
+                  "content": "言葉"
+                },
+                "Z8Lj8": {
+                  "content": "ことば"
+                },
+                "NjLHi": {
+                  "content": "말/언어"
+                },
+                "13g45": {
+                  "fill": "$jlpt-n3"
+                },
+                "JRkwQ": {
+                  "content": "N3"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ixIbV",
+          "type": "ref",
+          "ref": "anPPw",
+          "name": "Bottom Nav Bar",
+          "width": "fill_container"
+        },
+        {
+          "type": "rectangle",
+          "id": "Zqme7",
+          "layoutPosition": "absolute",
+          "x": 0,
+          "y": 0,
+          "name": "Dim Overlay",
+          "fill": "#00000055",
+          "width": 402,
+          "height": 874
+        },
+        {
+          "id": "AjAJg",
+          "type": "ref",
+          "ref": "CNHdA",
+          "name": "Sort Bottom Sheet",
+          "layoutPosition": "absolute",
+          "x": 0,
+          "y": 594
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "WO3sZ",
+      "x": 8288,
+      "y": -1904,
+      "name": "18b. Song Word List — Filter Sheet",
+      "clip": true,
+      "width": 402,
+      "height": 874,
+      "fill": "$bg-primary",
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "Xm7In",
+          "name": "Header",
+          "width": "fill_container",
+          "height": 56,
+          "fill": "$bg-primary",
+          "stroke": "$border-default",
+          "strokeWidth": {
+            "bottom": 1
+          },
+          "strokeAlignment": "inner",
+          "padding": [
+            0,
+            8
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "nZ8f5",
+              "name": "Back Button",
+              "width": 40,
+              "height": 40,
+              "fill": "#FFFFFF00",
+              "cornerRadius": "$rounded.full",
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "og6lz",
+                  "name": "Back Icon",
+                  "width": 22,
+                  "height": 22,
+                  "icon": "chevron-left",
+                  "library": "lucide",
+                  "fill": "$foreground.primary"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "l4yFJ",
+              "name": "Header Title",
+              "fill": "$foreground.primary",
+              "content": "Lemon — 단어 목록",
+              "fontFamily": "$font.headings",
+              "fontSize": 16,
+              "fontWeight": "700"
+            },
+            {
+              "type": "frame",
+              "id": "bFpjR",
+              "name": "Header Actions",
+              "fill": "#FFFFFF00",
+              "gap": 4,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "NHDHd",
+                  "name": "Sort Button",
+                  "width": 36,
+                  "height": 36,
+                  "fill": "$bg-subtle",
+                  "cornerRadius": 8,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "EkKLw",
+                      "name": "Sort Icon",
+                      "width": 18,
+                      "height": 18,
+                      "icon": "arrow-up-down",
+                      "library": "lucide",
+                      "fill": "$foreground.primary"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "juobn",
+                  "name": "Filter Button",
+                  "width": 36,
+                  "height": 36,
+                  "fill": "$bg-subtle",
+                  "cornerRadius": 8,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "TcNPs",
+                      "name": "Filter Icon",
+                      "width": 18,
+                      "height": 18,
+                      "icon": "sliders-horizontal",
+                      "library": "lucide",
+                      "fill": "$foreground.primary"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "wZFni",
+          "name": "Summary Bar",
+          "width": "fill_container",
+          "height": 40,
+          "fill": "$bg-subtle",
+          "stroke": "$border-default",
+          "strokeWidth": {
+            "bottom": 1
+          },
+          "strokeAlignment": "inner",
+          "gap": 8,
+          "padding": [
+            0,
+            16
+          ],
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "tdyJ0",
+              "name": "Word Count",
+              "fill": "$foreground.secondary",
+              "content": "총 48개 단어",
+              "fontFamily": "$font.captions",
+              "fontSize": 12,
+              "fontWeight": "700"
+            },
+            {
+              "type": "rectangle",
+              "id": "JQ1Pi",
+              "name": "Divider",
+              "fill": "$border-default",
+              "width": 1,
+              "height": 14
+            },
+            {
+              "type": "text",
+              "id": "t6YFP",
+              "name": "Filter Summary",
+              "fill": "$foreground.muted",
+              "content": "중요도순 · 품사 7개 · JLPT 전체",
+              "fontFamily": "$font.captions",
+              "fontSize": 12,
+              "fontWeight": "500"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "VALCY",
+          "name": "Word List",
+          "width": "fill_container",
+          "height": "fill_container",
+          "fill": "$bg-primary",
+          "layout": "vertical",
+          "padding": [
+            0,
+            16
+          ],
+          "children": [
+            {
+              "id": "xy5eE",
+              "type": "ref",
+              "ref": "D4IBl",
+              "name": "Row - 夢",
+              "width": "fill_container",
+              "descendants": {
+                "cb2iz": {
+                  "content": "夢"
+                },
+                "Z8Lj8": {
+                  "content": "ゆめ"
+                },
+                "NjLHi": {
+                  "content": "꿈"
+                },
+                "13g45": {
+                  "fill": "$jlpt-n3"
+                },
+                "JRkwQ": {
+                  "content": "N3"
+                }
+              }
+            },
+            {
+              "id": "O1pA9F",
+              "type": "ref",
+              "ref": "D4IBl",
+              "name": "Row - 君",
+              "width": "fill_container",
+              "descendants": {
+                "cb2iz": {
+                  "content": "君"
+                },
+                "Z8Lj8": {
+                  "content": "きみ"
+                },
+                "NjLHi": {
+                  "content": "너"
+                },
+                "13g45": {
+                  "fill": "$jlpt-n2"
+                },
+                "JRkwQ": {
+                  "content": "N2"
+                }
+              }
+            },
+            {
+              "id": "TMF8k",
+              "type": "ref",
+              "ref": "D4IBl",
+              "name": "Row - 声",
+              "width": "fill_container",
+              "descendants": {
+                "cb2iz": {
+                  "content": "声"
+                },
+                "Z8Lj8": {
+                  "content": "こえ"
+                },
+                "NjLHi": {
+                  "content": "목소리"
+                },
+                "13g45": {
+                  "fill": "$jlpt-n3"
+                },
+                "JRkwQ": {
+                  "content": "N3"
+                }
+              }
+            },
+            {
+              "id": "A5WaR",
+              "type": "ref",
+              "ref": "D4IBl",
+              "name": "Row - 空",
+              "width": "fill_container",
+              "descendants": {
+                "cb2iz": {
+                  "content": "空"
+                },
+                "Z8Lj8": {
+                  "content": "そら"
+                },
+                "NjLHi": {
+                  "content": "하늘"
+                },
+                "13g45": {
+                  "fill": "$jlpt-n3"
+                },
+                "JRkwQ": {
+                  "content": "N3"
+                }
+              }
+            },
+            {
+              "id": "xMy8V",
+              "type": "ref",
+              "ref": "D4IBl",
+              "name": "Row - 走る",
+              "width": "fill_container",
+              "descendants": {
+                "cb2iz": {
+                  "content": "走る"
+                },
+                "Z8Lj8": {
+                  "content": "はしる"
+                },
+                "NjLHi": {
+                  "content": "달리다"
+                },
+                "13g45": {
+                  "fill": "$jlpt-n3"
+                },
+                "JRkwQ": {
+                  "content": "N3"
+                }
+              }
+            },
+            {
+              "id": "hqy27",
+              "type": "ref",
+              "ref": "D4IBl",
+              "name": "Row - 世界",
+              "width": "fill_container",
+              "descendants": {
+                "cb2iz": {
+                  "content": "世界"
+                },
+                "Z8Lj8": {
+                  "content": "せかい"
+                },
+                "NjLHi": {
+                  "content": "세계"
+                },
+                "13g45": {
+                  "fill": "$jlpt-n2"
+                },
+                "JRkwQ": {
+                  "content": "N2"
+                }
+              }
+            },
+            {
+              "id": "Orxa3",
+              "type": "ref",
+              "ref": "D4IBl",
+              "name": "Row - 光",
+              "width": "fill_container",
+              "descendants": {
+                "cb2iz": {
+                  "content": "光"
+                },
+                "Z8Lj8": {
+                  "content": "ひかり"
+                },
+                "NjLHi": {
+                  "content": "빛"
+                },
+                "13g45": {
+                  "fill": "$jlpt-n3"
+                },
+                "JRkwQ": {
+                  "content": "N3"
+                }
+              }
+            },
+            {
+              "id": "VTYSk",
+              "type": "ref",
+              "ref": "D4IBl",
+              "name": "Row - 愛",
+              "width": "fill_container",
+              "descendants": {
+                "cb2iz": {
+                  "content": "愛"
+                },
+                "Z8Lj8": {
+                  "content": "あい"
+                },
+                "NjLHi": {
+                  "content": "사랑"
+                },
+                "13g45": {
+                  "fill": "$jlpt-n3"
+                },
+                "JRkwQ": {
+                  "content": "N3"
+                }
+              }
+            },
+            {
+              "id": "i0tnPe",
+              "type": "ref",
+              "ref": "D4IBl",
+              "name": "Row - 泣く",
+              "width": "fill_container",
+              "descendants": {
+                "cb2iz": {
+                  "content": "泣く"
+                },
+                "Z8Lj8": {
+                  "content": "なく"
+                },
+                "NjLHi": {
+                  "content": "울다"
+                },
+                "13g45": {
+                  "fill": "$jlpt-n4"
+                },
+                "JRkwQ": {
+                  "content": "N4"
+                }
+              }
+            },
+            {
+              "id": "T9xTBJ",
+              "type": "ref",
+              "ref": "D4IBl",
+              "name": "Row - 時間",
+              "width": "fill_container",
+              "descendants": {
+                "cb2iz": {
+                  "content": "時間"
+                },
+                "Z8Lj8": {
+                  "content": "じかん"
+                },
+                "NjLHi": {
+                  "content": "시간"
+                },
+                "13g45": {
+                  "fill": "$jlpt-n4"
+                },
+                "JRkwQ": {
+                  "content": "N4"
+                }
+              }
+            },
+            {
+              "id": "KccuT",
+              "type": "ref",
+              "ref": "D4IBl",
+              "name": "Row - 気持ち",
+              "width": "fill_container",
+              "descendants": {
+                "cb2iz": {
+                  "content": "気持ち"
+                },
+                "Z8Lj8": {
+                  "content": "きもち"
+                },
+                "NjLHi": {
+                  "content": "기분"
+                },
+                "13g45": {
+                  "fill": "$jlpt-n3"
+                },
+                "JRkwQ": {
+                  "content": "N3"
+                }
+              }
+            },
+            {
+              "id": "QmuTP",
+              "type": "ref",
+              "ref": "D4IBl",
+              "name": "Row - 言葉",
+              "width": "fill_container",
+              "descendants": {
+                "cb2iz": {
+                  "content": "言葉"
+                },
+                "Z8Lj8": {
+                  "content": "ことば"
+                },
+                "NjLHi": {
+                  "content": "말/언어"
+                },
+                "13g45": {
+                  "fill": "$jlpt-n3"
+                },
+                "JRkwQ": {
+                  "content": "N3"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "TuKiK",
+          "type": "ref",
+          "ref": "anPPw",
+          "name": "Bottom Nav Bar",
+          "width": "fill_container"
+        },
+        {
+          "type": "rectangle",
+          "id": "REbet",
+          "layoutPosition": "absolute",
+          "x": 0,
+          "y": 0,
+          "name": "Dim Overlay",
+          "fill": "#00000055",
+          "width": 402,
+          "height": 874
+        },
+        {
+          "id": "cn08Y",
+          "type": "ref",
+          "ref": "HUbZy",
+          "name": "Filter Bottom Sheet",
+          "layoutPosition": "absolute",
+          "x": 0,
+          "y": 254
         }
       ]
     }
