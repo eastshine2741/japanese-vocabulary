@@ -25197,7 +25197,7 @@
       "name": "17. Song Detail",
       "clip": true,
       "width": 402,
-      "height": 874,
+      "height": 1109,
       "fill": "#FFFFFF",
       "layout": "none",
       "children": [
@@ -25208,60 +25208,274 @@
           "y": 0.5,
           "name": "Contents",
           "clip": true,
-          "width": "fill_container(402)",
-          "height": "fill_container(874)",
-          "fill": "#FFFFFF",
+          "width": 402,
+          "height": 1109,
+          "fill": "$bg-primary",
           "layout": "vertical",
           "children": [
             {
               "type": "frame",
-              "id": "ue6Dd",
-              "name": "Status Bar",
+              "id": "mVhCh",
+              "name": "Hero Section",
               "width": "fill_container",
-              "height": 62,
+              "height": 360,
+              "layout": "vertical",
               "padding": [
                 0,
-                24
+                0,
+                24,
+                0
               ],
               "justifyContent": "space_between",
-              "alignItems": "center",
               "children": [
                 {
-                  "type": "text",
-                  "id": "k8TzI",
-                  "name": "Status Time",
-                  "fill": "#1A1A1A",
-                  "content": "9:41",
-                  "fontFamily": "Inter",
-                  "fontSize": 14,
-                  "fontWeight": "600"
+                  "type": "rectangle",
+                  "id": "zyKd2",
+                  "layoutPosition": "absolute",
+                  "x": 0,
+                  "y": 0,
+                  "name": "Hero Background",
+                  "metadata": {
+                    "type": "unsplash",
+                    "username": "mosdesign",
+                    "link": "https://unsplash.com/@mosdesign",
+                    "author": "mos design"
+                  },
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "https://images.unsplash.com/photo-1693240817505-f59d02b89ef9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzM5MjU2MzB8&ixlib=rb-4.1.0&q=80&w=1080",
+                    "mode": "fill"
+                  },
+                  "width": 402,
+                  "height": 360
+                },
+                {
+                  "type": "rectangle",
+                  "id": "EXTvP",
+                  "layoutPosition": "absolute",
+                  "x": 0,
+                  "y": 0,
+                  "name": "Hero Scrim",
+                  "fill": {
+                    "type": "gradient",
+                    "gradientType": "linear",
+                    "enabled": true,
+                    "rotation": 270,
+                    "size": {
+                      "height": 1
+                    },
+                    "colors": [
+                      {
+                        "color": "#000000AA",
+                        "position": 0
+                      },
+                      {
+                        "color": "#00000000",
+                        "position": 0.25
+                      },
+                      {
+                        "color": "#000000CC",
+                        "position": 1
+                      }
+                    ]
+                  },
+                  "width": 402,
+                  "height": 360
                 },
                 {
                   "type": "frame",
-                  "id": "l32XO",
-                  "name": "Status Icons",
-                  "gap": 6,
-                  "alignItems": "center",
+                  "id": "r8LBk",
+                  "name": "Top Group",
+                  "width": "fill_container",
+                  "layout": "vertical",
                   "children": [
                     {
-                      "type": "icon",
-                      "id": "KdhNR",
-                      "name": "Signal Icon",
-                      "width": 16,
-                      "height": 16,
-                      "icon": "signal",
-                      "library": "lucide",
-                      "fill": "#1A1A1A"
+                      "type": "frame",
+                      "id": "ue6Dd",
+                      "name": "Status Bar",
+                      "width": "fill_container",
+                      "height": 62,
+                      "fill": "#FFFFFF00",
+                      "padding": [
+                        0,
+                        24
+                      ],
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "k8TzI",
+                          "name": "Status Time",
+                          "fill": "#FFFFFF",
+                          "content": "9:41",
+                          "fontFamily": "Inter",
+                          "fontSize": 14,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "l32XO",
+                          "name": "Status Icons",
+                          "gap": 6,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "KdhNR",
+                              "name": "Signal Icon",
+                              "width": 16,
+                              "height": 16,
+                              "icon": "signal",
+                              "library": "lucide",
+                              "fill": "#FFFFFF"
+                            },
+                            {
+                              "type": "icon",
+                              "id": "X6B33X",
+                              "name": "Battery Icon",
+                              "width": 16,
+                              "height": 16,
+                              "icon": "battery-full",
+                              "library": "lucide",
+                              "fill": "#FFFFFF"
+                            }
+                          ]
+                        }
+                      ]
                     },
                     {
-                      "type": "icon",
-                      "id": "X6B33X",
-                      "name": "Battery Icon",
-                      "width": 16,
-                      "height": 16,
-                      "icon": "battery-full",
-                      "library": "lucide",
-                      "fill": "#1A1A1A"
+                      "type": "frame",
+                      "id": "SjxUG",
+                      "name": "Hero App Bar",
+                      "width": "fill_container",
+                      "height": 52,
+                      "padding": [
+                        0,
+                        16
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "pNEMO",
+                          "name": "Back Button",
+                          "width": 40,
+                          "height": 40,
+                          "fill": "#00000066",
+                          "cornerRadius": 9999,
+                          "effect": {
+                            "type": "background_blur",
+                            "radius": 10
+                          },
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "M5NPlD",
+                              "width": 24,
+                              "height": 24,
+                              "icon": "chevron-left",
+                              "library": "lucide",
+                              "fill": "#FFFFFF"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "PqXDT",
+                  "name": "Hero Info Group",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 20,
+                  "padding": [
+                    0,
+                    24
+                  ],
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "W9BI2",
+                      "name": "Info Text",
+                      "layout": "vertical",
+                      "gap": 8,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "xScJl",
+                          "fill": "#FFFFFF",
+                          "content": "Lemon",
+                          "fontFamily": "$font.headings",
+                          "fontSize": 30,
+                          "fontWeight": "800",
+                          "letterSpacing": -0.5
+                        },
+                        {
+                          "type": "text",
+                          "id": "k7uia",
+                          "fill": "#FFFFFFAA",
+                          "content": "米津玄師",
+                          "fontFamily": "$font.body",
+                          "fontSize": 13
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "HTZED",
+                      "name": "CTA Row",
+                      "width": "fill_container",
+                      "gap": 12,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "TOxbf",
+                          "name": "Play Button",
+                          "width": "fill_container",
+                          "height": 48,
+                          "fill": "$accent.primary",
+                          "cornerRadius": 9999,
+                          "effect": {
+                            "type": "shadow",
+                            "shadowType": "outer",
+                            "color": "$shadow.sm.color",
+                            "offset": {
+                              "x": "$shadow.sm.offset.x",
+                              "y": "$shadow.sm.offset.y"
+                            },
+                            "blur": "$shadow.sm.blur"
+                          },
+                          "gap": 8,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "oYzBp",
+                              "width": 18,
+                              "height": 18,
+                              "icon": "play",
+                              "library": "lucide",
+                              "fill": "#FFFFFF"
+                            },
+                            {
+                              "type": "text",
+                              "id": "umpzt",
+                              "fill": "#FFFFFF",
+                              "content": "모든 단어 담기",
+                              "fontFamily": "$font.body",
+                              "fontSize": 15,
+                              "fontWeight": "600"
+                            }
+                          ]
+                        }
+                      ]
                     }
                   ]
                 }
@@ -25269,214 +25483,1008 @@
             },
             {
               "type": "frame",
-              "id": "Q9iq2",
-              "name": "Song App Bar",
+              "id": "AlkgY",
+              "name": "Grid Container",
               "width": "fill_container",
-              "height": 64,
-              "gap": 10,
+              "fill": "#FFFFFF00",
+              "layout": "vertical",
+              "gap": 28,
               "padding": [
-                0,
-                16
+                24,
+                20,
+                120,
+                20
               ],
-              "alignItems": "center",
               "children": [
                 {
                   "type": "frame",
-                  "id": "aIeMY",
-                  "name": "Back Button",
-                  "width": 40,
-                  "height": 40,
+                  "id": "plC3H",
+                  "name": "Key Words",
+                  "width": "fill_container",
                   "fill": "#FFFFFF00",
-                  "cornerRadius": 9999,
-                  "justifyContent": "center",
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "icon",
-                      "id": "X4hJH8",
-                      "name": "Back Chevron",
-                      "width": 24,
-                      "height": 24,
-                      "icon": "chevron-left",
-                      "library": "lucide",
-                      "fill": "#1A1A1A"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "Fk50X",
-                  "name": "Song Title Group",
-                  "width": "fill_container",
                   "layout": "vertical",
-                  "gap": 3,
+                  "gap": 12,
                   "children": [
                     {
-                      "type": "text",
-                      "id": "JQX5W",
-                      "name": "Song Title",
-                      "fill": "#1A1A1A",
-                      "content": "Lemon",
-                      "fontFamily": "Funnel Sans",
-                      "fontSize": 18,
-                      "fontWeight": "800"
+                      "type": "frame",
+                      "id": "lAlRF",
+                      "name": "Card Header",
+                      "width": "fill_container",
+                      "gap": 8,
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "wla4O",
+                          "name": "Title Row",
+                          "gap": 8,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "o7Szr",
+                              "name": "Title Text",
+                              "fill": "$foreground.primary",
+                              "content": "주요 단어",
+                              "fontFamily": "$font.headings",
+                              "fontSize": 17,
+                              "fontWeight": "700"
+                            }
+                          ]
+                        }
+                      ]
                     },
                     {
-                      "type": "text",
-                      "id": "rfD6f",
-                      "name": "Artist Name",
-                      "fill": "#666666",
-                      "content": "米津玄師",
-                      "fontFamily": "Inter",
-                      "fontSize": 13,
-                      "fontWeight": "normal"
+                      "type": "frame",
+                      "id": "fVKds",
+                      "name": "Word List",
+                      "clip": true,
+                      "width": "fill_container",
+                      "fill": "#FFFFFF00",
+                      "layout": "vertical",
+                      "children": [
+                        {
+                          "id": "AoohS",
+                          "type": "ref",
+                          "ref": "HjaHz",
+                          "name": "Word Row - 君",
+                          "width": "fill_container",
+                          "padding": [
+                            10,
+                            0
+                          ],
+                          "descendants": {
+                            "uzDGY": {
+                              "content": "君"
+                            },
+                            "YMQJs": {
+                              "content": "きみ"
+                            },
+                            "rpxCy": {
+                              "content": "너"
+                            },
+                            "Bd4uY": {
+                              "fill": "$jlpt-n2"
+                            },
+                            "Bd4uY/YtXmd": {
+                              "content": "N2"
+                            },
+                            "nW4Qe": {
+                              "fill": {
+                                "type": "gradient",
+                                "gradientType": "linear",
+                                "enabled": true,
+                                "opacity": 0.2,
+                                "rotation": 0,
+                                "size": {
+                                  "height": 1
+                                },
+                                "colors": [
+                                  {
+                                    "color": "$pos-noun",
+                                    "position": 0
+                                  },
+                                  {
+                                    "color": "$pos-noun",
+                                    "position": 1
+                                  }
+                                ]
+                              }
+                            },
+                            "nW4Qe/m9Cw7": {
+                              "content": "명사",
+                              "fill": "$pos-noun"
+                            }
+                          }
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "pOur1",
+                          "name": "Divider",
+                          "fill": "$border-default",
+                          "width": "fill_container",
+                          "height": 1
+                        },
+                        {
+                          "id": "o1b5CT",
+                          "type": "ref",
+                          "ref": "HjaHz",
+                          "name": "Word Row - 声",
+                          "width": "fill_container",
+                          "padding": [
+                            10,
+                            0
+                          ],
+                          "descendants": {
+                            "uzDGY": {
+                              "content": "声"
+                            },
+                            "YMQJs": {
+                              "content": "こえ"
+                            },
+                            "rpxCy": {
+                              "content": "목소리"
+                            },
+                            "Bd4uY": {
+                              "fill": "$jlpt-n3"
+                            },
+                            "Bd4uY/YtXmd": {
+                              "content": "N3"
+                            },
+                            "nW4Qe": {
+                              "fill": {
+                                "type": "gradient",
+                                "gradientType": "linear",
+                                "enabled": true,
+                                "opacity": 0.2,
+                                "rotation": 0,
+                                "size": {
+                                  "height": 1
+                                },
+                                "colors": [
+                                  {
+                                    "color": "$pos-noun",
+                                    "position": 0
+                                  },
+                                  {
+                                    "color": "$pos-noun",
+                                    "position": 1
+                                  }
+                                ]
+                              }
+                            },
+                            "nW4Qe/m9Cw7": {
+                              "content": "명사",
+                              "fill": "$pos-noun"
+                            }
+                          }
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "ttx5Q",
+                          "name": "Divider",
+                          "fill": "$border-default",
+                          "width": "fill_container",
+                          "height": 1
+                        },
+                        {
+                          "id": "HGFp8",
+                          "type": "ref",
+                          "ref": "HjaHz",
+                          "name": "Word Row - 夢",
+                          "width": "fill_container",
+                          "padding": [
+                            10,
+                            0
+                          ],
+                          "descendants": {
+                            "uzDGY": {
+                              "content": "夢"
+                            },
+                            "YMQJs": {
+                              "content": "ゆめ"
+                            },
+                            "rpxCy": {
+                              "content": "꿈"
+                            },
+                            "Bd4uY": {
+                              "fill": "$jlpt-n3"
+                            },
+                            "Bd4uY/YtXmd": {
+                              "content": "N3"
+                            },
+                            "nW4Qe": {
+                              "fill": {
+                                "type": "gradient",
+                                "gradientType": "linear",
+                                "enabled": true,
+                                "opacity": 0.2,
+                                "rotation": 0,
+                                "size": {
+                                  "height": 1
+                                },
+                                "colors": [
+                                  {
+                                    "color": "$pos-noun",
+                                    "position": 0
+                                  },
+                                  {
+                                    "color": "$pos-noun",
+                                    "position": 1
+                                  }
+                                ]
+                              }
+                            },
+                            "nW4Qe/m9Cw7": {
+                              "content": "명사",
+                              "fill": "$pos-noun"
+                            }
+                          }
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "zxhfa",
+                          "name": "Divider",
+                          "fill": "$border-default",
+                          "width": "fill_container",
+                          "height": 1
+                        },
+                        {
+                          "id": "IDbQL",
+                          "type": "ref",
+                          "ref": "HjaHz",
+                          "name": "Word Row - 空",
+                          "width": "fill_container",
+                          "padding": [
+                            10,
+                            0
+                          ],
+                          "descendants": {
+                            "uzDGY": {
+                              "content": "空"
+                            },
+                            "YMQJs": {
+                              "content": "そら"
+                            },
+                            "rpxCy": {
+                              "content": "하늘"
+                            },
+                            "Bd4uY": {
+                              "fill": "$jlpt-n3"
+                            },
+                            "Bd4uY/YtXmd": {
+                              "content": "N3"
+                            },
+                            "nW4Qe": {
+                              "fill": {
+                                "type": "gradient",
+                                "gradientType": "linear",
+                                "enabled": true,
+                                "opacity": 0.2,
+                                "rotation": 0,
+                                "size": {
+                                  "height": 1
+                                },
+                                "colors": [
+                                  {
+                                    "color": "$pos-noun",
+                                    "position": 0
+                                  },
+                                  {
+                                    "color": "$pos-noun",
+                                    "position": 1
+                                  }
+                                ]
+                              }
+                            },
+                            "nW4Qe/m9Cw7": {
+                              "content": "명사",
+                              "fill": "$pos-noun"
+                            }
+                          }
+                        },
+                        {
+                          "type": "rectangle",
+                          "id": "mDrgN",
+                          "name": "Divider",
+                          "fill": "$border-default",
+                          "width": "fill_container",
+                          "height": 1
+                        },
+                        {
+                          "id": "ajYGE",
+                          "type": "ref",
+                          "ref": "HjaHz",
+                          "name": "Word Row - 走る",
+                          "width": "fill_container",
+                          "padding": [
+                            10,
+                            0
+                          ],
+                          "descendants": {
+                            "uzDGY": {
+                              "content": "走る"
+                            },
+                            "YMQJs": {
+                              "content": "はしる"
+                            },
+                            "rpxCy": {
+                              "content": "달리다"
+                            },
+                            "Bd4uY": {
+                              "fill": "$jlpt-n3"
+                            },
+                            "Bd4uY/YtXmd": {
+                              "content": "N3"
+                            },
+                            "nW4Qe": {
+                              "fill": {
+                                "type": "gradient",
+                                "gradientType": "linear",
+                                "enabled": true,
+                                "opacity": 0.2,
+                                "rotation": 0,
+                                "size": {
+                                  "height": 1
+                                },
+                                "colors": [
+                                  {
+                                    "color": "$pos-verb",
+                                    "position": 0
+                                  },
+                                  {
+                                    "color": "$pos-verb",
+                                    "position": 1
+                                  }
+                                ]
+                              }
+                            },
+                            "nW4Qe/m9Cw7": {
+                              "content": "동사",
+                              "fill": "$pos-verb"
+                            }
+                          }
+                        }
+                      ]
                     }
                   ]
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "plC3H",
-              "name": "Key Words",
-              "width": "fill_container",
-              "fill": "#FFFFFF",
-              "layout": "vertical",
-              "padding": [
-                0,
-                16
-              ],
-              "children": [
-                {
-                  "type": "text",
-                  "id": "bs39u",
-                  "name": "Title",
-                  "fill": "#000000",
-                  "textGrowth": "fixed-width",
-                  "width": "fill_container",
-                  "content": "주요 단어",
-                  "fontFamily": "Inter",
-                  "fontSize": 19,
-                  "fontWeight": "700"
                 },
                 {
                   "type": "frame",
-                  "id": "fVKds",
-                  "name": "Word List",
-                  "clip": true,
+                  "id": "HYts8",
+                  "name": "JLPT Tile",
                   "width": "fill_container",
-                  "fill": "#FFFFFF",
+                  "fill": "#FFFFFF00",
                   "layout": "vertical",
+                  "gap": 16,
                   "children": [
                     {
-                      "id": "MHgGK",
-                      "type": "ref",
-                      "ref": "OEPuW",
-                      "name": "Word Row - 君",
+                      "type": "frame",
+                      "id": "IlGmg",
+                      "name": "Card Header",
                       "width": "fill_container",
-                      "x": 0,
-                      "y": 0,
-                      "descendants": {
-                        "bH1ry": {
-                          "fill": "$jlpt-n2"
-                        },
-                        "Aj8UD": {
-                          "content": "君"
-                        },
-                        "I3WOz": {
-                          "content": "너"
-                        },
-                        "heX7M": {
-                          "content": "きみ"
-                        },
-                        "ioPpL": {
-                          "content": "N2",
-                          "fill": "$jlpt-n2"
-                        },
-                        "U2wpM": {
-                          "content": "명사",
-                          "fill": "$foreground.muted"
+                      "gap": 8,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "ryB4K",
+                          "name": "Title Text",
+                          "fill": "$foreground.primary",
+                          "content": "난이도",
+                          "fontFamily": "$font.headings",
+                          "fontSize": 17,
+                          "fontWeight": "700"
                         }
-                      }
+                      ]
                     },
                     {
-                      "id": "SBRfD",
-                      "type": "ref",
-                      "ref": "OEPuW",
-                      "name": "Word Row - 声",
+                      "type": "frame",
+                      "id": "JaAJo",
+                      "name": "Body",
                       "width": "fill_container",
-                      "x": 0,
-                      "y": 73,
-                      "descendants": {
-                        "bH1ry": {
-                          "fill": "$jlpt-n3"
+                      "gap": 32,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "C7VO3",
+                          "name": "Chart Wrapper",
+                          "width": 120,
+                          "height": 120,
+                          "layout": "none",
+                          "children": [
+                            {
+                              "type": "ellipse",
+                              "id": "dluwZ",
+                              "x": 0,
+                              "y": 0,
+                              "name": "N1",
+                              "innerRadius": 0.65,
+                              "startAngle": -90,
+                              "sweepAngle": 36,
+                              "fill": "$jlpt-n1",
+                              "width": 120,
+                              "height": 120
+                            },
+                            {
+                              "type": "ellipse",
+                              "id": "P2j2x",
+                              "x": 0,
+                              "y": 0,
+                              "name": "N2",
+                              "innerRadius": 0.65,
+                              "startAngle": -54,
+                              "sweepAngle": 72,
+                              "fill": "$jlpt-n2",
+                              "width": 120,
+                              "height": 120
+                            },
+                            {
+                              "type": "ellipse",
+                              "id": "kv1hb",
+                              "x": 0,
+                              "y": 0,
+                              "name": "N3",
+                              "innerRadius": 0.65,
+                              "startAngle": 18,
+                              "sweepAngle": 144,
+                              "fill": "$jlpt-n3",
+                              "width": 120,
+                              "height": 120
+                            },
+                            {
+                              "type": "ellipse",
+                              "id": "NasHa",
+                              "x": 0,
+                              "y": 0,
+                              "name": "N4",
+                              "innerRadius": 0.65,
+                              "startAngle": 162,
+                              "sweepAngle": 54,
+                              "fill": "$jlpt-n4",
+                              "width": 120,
+                              "height": 120
+                            },
+                            {
+                              "type": "ellipse",
+                              "id": "AerJy",
+                              "x": 0,
+                              "y": 0,
+                              "name": "N5",
+                              "innerRadius": 0.65,
+                              "startAngle": 216,
+                              "sweepAngle": 36,
+                              "fill": "$jlpt-n5",
+                              "width": 120,
+                              "height": 120
+                            },
+                            {
+                              "type": "ellipse",
+                              "id": "AkwUN",
+                              "x": 0,
+                              "y": 0,
+                              "name": "Unknown",
+                              "innerRadius": 0.65,
+                              "startAngle": 252,
+                              "sweepAngle": 18,
+                              "fill": "$border-strong",
+                              "width": 120,
+                              "height": 120
+                            }
+                          ]
                         },
-                        "Aj8UD": {
-                          "content": "声"
-                        },
-                        "I3WOz": {
-                          "content": "목소리"
-                        },
-                        "heX7M": {
-                          "content": "こえ"
-                        },
-                        "ioPpL": {
-                          "content": "N3",
-                          "fill": "$jlpt-n3"
-                        },
-                        "U2wpM": {
-                          "content": "명사",
-                          "fill": "$foreground.muted"
+                        {
+                          "type": "frame",
+                          "id": "YkCot",
+                          "name": "Legend",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 10,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "hb4n0",
+                              "name": "Row",
+                              "width": "fill_container",
+                              "justifyContent": "space_between",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "X2wi8h",
+                                  "name": "Left",
+                                  "gap": 8,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "frame",
+                                      "id": "nBhEH",
+                                      "name": "Dot",
+                                      "width": 8,
+                                      "height": 8,
+                                      "fill": "$jlpt-n3",
+                                      "cornerRadius": "$rounded.full"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "T5xKVL",
+                                      "name": "Label",
+                                      "fill": "$text-secondary",
+                                      "content": "N3",
+                                      "fontFamily": "$font.body",
+                                      "fontSize": 13,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "RHnkM",
+                                  "name": "Value",
+                                  "fill": "$text-primary",
+                                  "content": "40%",
+                                  "fontFamily": "$font.data",
+                                  "fontSize": 13,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "z8GpH",
+                              "name": "Row",
+                              "width": "fill_container",
+                              "justifyContent": "space_between",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "SIcts",
+                                  "name": "Left",
+                                  "gap": 8,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "frame",
+                                      "id": "ypFaE",
+                                      "name": "Dot",
+                                      "width": 8,
+                                      "height": 8,
+                                      "fill": "$jlpt-n2",
+                                      "cornerRadius": "$rounded.full"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "bJi3X",
+                                      "name": "Label",
+                                      "fill": "$text-secondary",
+                                      "content": "N2",
+                                      "fontFamily": "$font.body",
+                                      "fontSize": 13,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "U8vRyS",
+                                  "name": "Value",
+                                  "fill": "$text-primary",
+                                  "content": "20%",
+                                  "fontFamily": "$font.data",
+                                  "fontSize": 13,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "lsux8",
+                              "name": "Row",
+                              "width": "fill_container",
+                              "justifyContent": "space_between",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "rdlqq",
+                                  "name": "Left",
+                                  "gap": 8,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "frame",
+                                      "id": "v5QOJy",
+                                      "name": "Dot",
+                                      "width": 8,
+                                      "height": 8,
+                                      "fill": "$jlpt-n4",
+                                      "cornerRadius": "$rounded.full"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "McbBY",
+                                      "name": "Label",
+                                      "fill": "$text-secondary",
+                                      "content": "N4",
+                                      "fontFamily": "$font.body",
+                                      "fontSize": 13,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "hWRK7",
+                                  "name": "Value",
+                                  "fill": "$text-primary",
+                                  "content": "15%",
+                                  "fontFamily": "$font.data",
+                                  "fontSize": 13,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "l5i6P",
+                              "name": "Row",
+                              "width": "fill_container",
+                              "justifyContent": "space_between",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "Audtc",
+                                  "name": "Left",
+                                  "gap": 8,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "frame",
+                                      "id": "a1Q7AF",
+                                      "name": "Dot",
+                                      "width": 8,
+                                      "height": 8,
+                                      "fill": "$jlpt-n1",
+                                      "cornerRadius": "$rounded.full"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "H8rhX",
+                                      "name": "Label",
+                                      "fill": "$text-secondary",
+                                      "content": "N1",
+                                      "fontFamily": "$font.body",
+                                      "fontSize": 13,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "jXrwY",
+                                  "name": "Value",
+                                  "fill": "$text-primary",
+                                  "content": "10%",
+                                  "fontFamily": "$font.data",
+                                  "fontSize": 13,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "E46zW",
+                              "name": "Row",
+                              "width": "fill_container",
+                              "justifyContent": "space_between",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "w6zUN",
+                                  "name": "Left",
+                                  "gap": 8,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "frame",
+                                      "id": "WtNoX",
+                                      "name": "Dot",
+                                      "width": 8,
+                                      "height": 8,
+                                      "fill": "$jlpt-n5",
+                                      "cornerRadius": "$rounded.full"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "oKOZD",
+                                      "name": "Label",
+                                      "fill": "$text-secondary",
+                                      "content": "N5",
+                                      "fontFamily": "$font.body",
+                                      "fontSize": 13,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "afjIf",
+                                  "name": "Value",
+                                  "fill": "$text-primary",
+                                  "content": "10%",
+                                  "fontFamily": "$font.data",
+                                  "fontSize": 13,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "riXAG",
+                              "name": "Row",
+                              "width": "fill_container",
+                              "justifyContent": "space_between",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "wsqWP",
+                                  "name": "Left",
+                                  "gap": 8,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "frame",
+                                      "id": "DhuEI",
+                                      "name": "Dot",
+                                      "width": 8,
+                                      "height": 8,
+                                      "fill": "$border-strong",
+                                      "cornerRadius": "$rounded.full"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "OxrfQ",
+                                      "name": "Label",
+                                      "fill": "$text-secondary",
+                                      "content": "알수없음",
+                                      "fontFamily": "$font.body",
+                                      "fontSize": 13,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "VspZm",
+                                  "name": "Value",
+                                  "fill": "$text-primary",
+                                  "content": "5%",
+                                  "fontFamily": "$font.data",
+                                  "fontSize": 13,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            }
+                          ]
                         }
-                      }
+                      ]
                     }
                   ]
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "Jfrig",
-              "name": "Difficulty",
-              "width": "fill_container",
-              "fill": "#FFFFFF",
-              "layout": "vertical",
-              "padding": [
-                0,
-                16
-              ],
-              "children": [
-                {
-                  "type": "text",
-                  "id": "y0wANe",
-                  "name": "Title",
-                  "fill": "#000000",
-                  "textGrowth": "fixed-width",
-                  "width": "fill_container",
-                  "content": "난이도",
-                  "fontFamily": "Inter",
-                  "fontSize": 19,
-                  "fontWeight": "700"
                 },
                 {
                   "type": "frame",
-                  "id": "OpPzJ",
-                  "name": "JLPT Level Piechart",
-                  "clip": true,
+                  "id": "jbDcH",
+                  "name": "Ratio Tile",
                   "width": "fill_container",
-                  "height": 33,
-                  "fill": "#FFFFFF",
-                  "layout": "none"
-                },
-                {
-                  "type": "frame",
-                  "id": "BJ4JE",
-                  "name": "Known Words Ratio Graph",
-                  "clip": true,
-                  "width": "fill_container",
-                  "height": 33,
-                  "fill": "#FFFFFF",
-                  "layout": "none"
+                  "fill": "#FFFFFF00",
+                  "layout": "vertical",
+                  "gap": 16,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "K1YAHw",
+                      "name": "Card Header",
+                      "width": "fill_container",
+                      "gap": 8,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "c4ePh",
+                          "name": "Title Text",
+                          "fill": "$foreground.primary",
+                          "content": "학습 현황",
+                          "fontFamily": "$font.headings",
+                          "fontSize": 17,
+                          "fontWeight": "700"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "TQ6ct",
+                      "name": "Body",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 16,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "nYxBe",
+                          "name": "Main Value",
+                          "gap": 6,
+                          "alignItems": "end",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "iwfMU",
+                              "name": "Value",
+                              "fill": "$accent.primary",
+                              "content": "70%",
+                              "fontFamily": "$font.data",
+                              "fontSize": 36,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "text",
+                              "id": "u4MBm",
+                              "name": "Caption",
+                              "fill": "$foreground.muted",
+                              "content": "담은 단어 비중",
+                              "fontFamily": "$font.body",
+                              "fontSize": 13,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "W23KK",
+                          "name": "Progress Container",
+                          "clip": true,
+                          "width": "fill_container",
+                          "height": 10,
+                          "cornerRadius": 9999,
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "id": "q08Fi",
+                              "name": "Saved",
+                              "fill": "$accent.primary",
+                              "width": 250,
+                              "height": "fill_container"
+                            },
+                            {
+                              "type": "rectangle",
+                              "id": "HjWtB",
+                              "name": "Unknown",
+                              "fill": "$surface.primary",
+                              "width": "fill_container",
+                              "height": "fill_container"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "aHxtr",
+                          "name": "Legend",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 12,
+                          "padding": [
+                            8,
+                            0,
+                            0,
+                            0
+                          ],
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "E5tEl",
+                              "name": "Row",
+                              "width": "fill_container",
+                              "justifyContent": "space_between",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "NVLkN",
+                                  "name": "Left",
+                                  "gap": 8,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "frame",
+                                      "id": "aY7xW",
+                                      "name": "Dot",
+                                      "width": 8,
+                                      "height": 8,
+                                      "fill": "$accent.primary",
+                                      "cornerRadius": "$rounded.full"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "JP1wZ",
+                                      "name": "Label",
+                                      "fill": "$text-secondary",
+                                      "content": "담은 단어",
+                                      "fontFamily": "$font.body",
+                                      "fontSize": 13,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "I2aOo3",
+                                  "name": "Value",
+                                  "fill": "$text-primary",
+                                  "content": "70%",
+                                  "fontFamily": "$font.data",
+                                  "fontSize": 13,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "M5hxm7",
+                              "name": "Row",
+                              "width": "fill_container",
+                              "justifyContent": "space_between",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "I2Yca",
+                                  "name": "Left",
+                                  "gap": 8,
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "frame",
+                                      "id": "VOFzT",
+                                      "name": "Dot",
+                                      "width": 8,
+                                      "height": 8,
+                                      "fill": "$border-strong",
+                                      "cornerRadius": "$rounded.full"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "UZWMm",
+                                      "name": "Label",
+                                      "fill": "$text-secondary",
+                                      "content": "모르는 단어",
+                                      "fontFamily": "$font.body",
+                                      "fontSize": 13,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "kvr8f",
+                                  "name": "Value",
+                                  "fill": "$text-primary",
+                                  "content": "30%",
+                                  "fontFamily": "$font.data",
+                                  "fontSize": 13,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
                 }
               ]
             }
@@ -25488,9 +26496,10 @@
           "x": 0,
           "y": 0,
           "name": "Upper Contents",
+          "enabled": false,
           "clip": true,
-          "width": "fill_container(402)",
-          "height": "fill_container(874)",
+          "width": 402,
+          "height": 1109,
           "layout": "vertical",
           "justifyContent": "end",
           "children": [
@@ -25500,18 +26509,23 @@
               "name": "Playing Words Bottomsheet",
               "clip": true,
               "width": "fill_container",
-              "height": 468,
-              "fill": "#ffffffff",
-              "cornerRadius": 24,
+              "height": 539,
+              "fill": "#FFFFFF",
+              "cornerRadius": [
+                24,
+                24,
+                0,
+                0
+              ],
               "effect": {
                 "type": "shadow",
                 "shadowType": "outer",
-                "color": "#00000040",
+                "color": "#0000001A",
                 "offset": {
                   "x": 0,
-                  "y": -3
+                  "y": -4
                 },
-                "blur": 4
+                "blur": 16
               },
               "layout": "vertical",
               "gap": 11,
@@ -25558,10 +26572,10 @@
                       "type": "text",
                       "id": "ZWj5y",
                       "name": "Title",
-                      "fill": "#000000",
+                      "fill": "$foreground.primary",
                       "content": "지금 들리는 단어",
                       "fontFamily": "Inter",
-                      "fontSize": 20,
+                      "fontSize": 17,
                       "fontWeight": "700"
                     }
                   ]
@@ -25573,35 +26587,166 @@
                   "clip": true,
                   "width": "fill_container",
                   "fill": "#FFFFFF",
+                  "gap": 8,
                   "justifyContent": "center",
-                  "alignItems": "center",
                   "children": [
                     {
                       "type": "frame",
-                      "id": "wkNgU",
-                      "name": "Left Arrow",
-                      "clip": true,
-                      "width": 13,
-                      "height": 163,
-                      "fill": "#FFFFFF",
-                      "layout": "none"
+                      "id": "ksz3i",
+                      "name": "Page 1 (Peek)",
+                      "width": 358,
+                      "fill": "#FFFFFF00",
+                      "layout": "vertical",
+                      "gap": 12,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "b0rpeG",
+                          "name": "Lyric Line 2",
+                          "width": "fill_container",
+                          "height": 110,
+                          "fill": "$surface.primary",
+                          "cornerRadius": "$rounded.xl",
+                          "layout": "vertical",
+                          "gap": 8,
+                          "padding": [
+                            0,
+                            16
+                          ],
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "fWMIb",
+                              "name": "Lyric Text",
+                              "fill": "$foreground.primary",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "風が吹いてあの日に戻れたら",
+                              "textAlign": "center",
+                              "fontFamily": "Inter",
+                              "fontSize": 20,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "text",
+                              "id": "I0INc",
+                              "name": "Translation",
+                              "fill": "$foreground.secondary",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "바람이 불어 그날로 돌아갈 수 있다면",
+                              "textAlign": "center",
+                              "fontFamily": "Inter",
+                              "fontSize": 14,
+                              "fontWeight": "600"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "cS6uW",
+                          "name": "Word List Body",
+                          "width": "fill_container",
+                          "fill": "#FFFFFF",
+                          "cornerRadius": "$rounded.2xl",
+                          "layout": "vertical",
+                          "children": [
+                            {
+                              "id": "lyEYI",
+                              "type": "ref",
+                              "ref": "HjaHz",
+                              "name": "Word - 風",
+                              "width": "fill_container",
+                              "descendants": {
+                                "uzDGY": {
+                                  "content": "風"
+                                },
+                                "YMQJs": {
+                                  "content": "かぜ"
+                                },
+                                "rpxCy": {
+                                  "content": "바람"
+                                }
+                              }
+                            },
+                            {
+                              "type": "rectangle",
+                              "id": "WeNtB",
+                              "name": "Divider",
+                              "fill": "$border-default",
+                              "width": "fill_container",
+                              "height": 1
+                            },
+                            {
+                              "id": "E1y2ph",
+                              "type": "ref",
+                              "ref": "HjaHz",
+                              "name": "Word - 日",
+                              "width": "fill_container",
+                              "descendants": {
+                                "uzDGY": {
+                                  "content": "日"
+                                },
+                                "YMQJs": {
+                                  "content": "ひ"
+                                },
+                                "rpxCy": {
+                                  "content": "날"
+                                }
+                              }
+                            },
+                            {
+                              "type": "rectangle",
+                              "id": "xB7DK",
+                              "name": "Divider",
+                              "fill": "$border-default",
+                              "width": "fill_container",
+                              "height": 1
+                            },
+                            {
+                              "id": "WqVcX",
+                              "type": "ref",
+                              "ref": "HjaHz",
+                              "name": "Word - 戻る",
+                              "width": "fill_container",
+                              "descendants": {
+                                "uzDGY": {
+                                  "content": "戻る"
+                                },
+                                "YMQJs": {
+                                  "content": "もどる"
+                                },
+                                "rpxCy": {
+                                  "content": "돌아가다"
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      ]
                     },
                     {
                       "type": "frame",
-                      "id": "GCiwZ",
-                      "name": "Card",
-                      "width": "fill_container",
-                      "fill": "#FFFFFF",
+                      "id": "IMuO3",
+                      "name": "Page 2",
+                      "width": 358,
+                      "fill": "#FFFFFF00",
                       "layout": "vertical",
+                      "gap": 12,
                       "children": [
                         {
                           "type": "frame",
                           "id": "q7KbWd",
                           "name": "Current Lyric Line",
                           "width": "fill_container",
-                          "fill": "#f5f5f5",
+                          "height": 110,
+                          "fill": "$surface.primary",
+                          "cornerRadius": "$rounded.xl",
                           "layout": "vertical",
                           "gap": 14,
+                          "justifyContent": "center",
                           "alignItems": "center",
                           "children": [
                             {
@@ -25787,7 +26932,7 @@
                               "type": "text",
                               "id": "OQqT4",
                               "name": "Current Korean Translation",
-                              "fill": "#666666",
+                              "fill": "$foreground.secondary",
                               "textGrowth": "fixed-width",
                               "width": "fill_container",
                               "content": "너의 목소리가 지금도 들려",
@@ -25800,209 +26945,119 @@
                         },
                         {
                           "type": "frame",
-                          "id": "t06b6x",
-                          "name": "Word List Body",
-                          "clip": true,
+                          "id": "GCiwZ",
+                          "name": "Current Words",
+                          "context": "This list is vertically scrollable.",
                           "width": "fill_container",
-                          "fill": "$surface.secondary",
-                          "cornerRadius": "$rounded.2xl",
-                          "layout": "vertical",
+                          "fill": "#FFFFFF",
+                          "gap": 8,
+                          "alignItems": "center",
                           "children": [
                             {
-                              "id": "E4FCLx",
-                              "type": "ref",
-                              "ref": "OEPuW",
-                              "name": "Word Row - 君",
-                              "width": "fill_container",
-                              "x": 0,
-                              "y": 0,
-                              "descendants": {
-                                "bH1ry": {
-                                  "fill": "$jlpt-n2"
-                                },
-                                "Aj8UD": {
-                                  "content": "君"
-                                },
-                                "I3WOz": {
-                                  "content": "너"
-                                },
-                                "heX7M": {
-                                  "content": "きみ"
-                                },
-                                "ioPpL": {
-                                  "content": "N2",
-                                  "fill": "$jlpt-n2"
-                                },
-                                "U2wpM": {
-                                  "content": "명사",
-                                  "fill": "$foreground.muted"
-                                }
-                              }
-                            },
-                            {
                               "type": "frame",
-                              "id": "bzNJE",
-                              "name": "Word Row Separator",
+                              "id": "t06b6x",
+                              "name": "Word List Body",
+                              "clip": true,
                               "width": "fill_container",
-                              "height": 1,
-                              "padding": [
-                                0,
-                                26,
-                                0,
-                                56
-                              ],
+                              "fill": "#FFFFFF",
+                              "cornerRadius": "$rounded.2xl",
+                              "layout": "vertical",
                               "children": [
                                 {
+                                  "id": "VO6WA",
+                                  "type": "ref",
+                                  "ref": "HjaHz",
+                                  "name": "Word Row - 君",
+                                  "width": "fill_container",
+                                  "descendants": {
+                                    "YMQJs": {
+                                      "content": "きみ"
+                                    }
+                                  }
+                                },
+                                {
                                   "type": "rectangle",
-                                  "id": "k1B9t0",
-                                  "name": "Separator Line",
-                                  "opacity": 0.65,
+                                  "id": "leVeG",
+                                  "name": "Divider",
                                   "fill": "$border-default",
                                   "width": "fill_container",
                                   "height": 1
-                                }
-                              ]
-                            },
-                            {
-                              "id": "fkxsJ",
-                              "type": "ref",
-                              "ref": "OEPuW",
-                              "name": "Word Row - 声",
-                              "width": "fill_container",
-                              "x": 0,
-                              "y": 74,
-                              "descendants": {
-                                "bH1ry": {
-                                  "fill": "$jlpt-n3"
                                 },
-                                "Aj8UD": {
-                                  "content": "声"
+                                {
+                                  "id": "q8rqP",
+                                  "type": "ref",
+                                  "ref": "HjaHz",
+                                  "name": "Word Row - 声",
+                                  "width": "fill_container",
+                                  "descendants": {
+                                    "YMQJs": {
+                                      "content": "こえ"
+                                    }
+                                  }
                                 },
-                                "I3WOz": {
-                                  "content": "목소리"
-                                },
-                                "heX7M": {
-                                  "content": "こえ"
-                                },
-                                "ioPpL": {
-                                  "content": "N3",
-                                  "fill": "$jlpt-n3"
-                                },
-                                "U2wpM": {
-                                  "content": "명사",
-                                  "fill": "$foreground.muted"
-                                }
-                              }
-                            },
-                            {
-                              "type": "frame",
-                              "id": "FQHNG",
-                              "name": "Word Row Separator",
-                              "width": "fill_container",
-                              "height": 1,
-                              "padding": [
-                                0,
-                                26,
-                                0,
-                                56
-                              ],
-                              "children": [
                                 {
                                   "type": "rectangle",
-                                  "id": "J7fLj",
-                                  "name": "Separator Line",
-                                  "opacity": 0.65,
+                                  "id": "gCz39",
+                                  "name": "Divider",
                                   "fill": "$border-default",
                                   "width": "fill_container",
                                   "height": 1
-                                }
-                              ]
-                            },
-                            {
-                              "id": "JXDuJ",
-                              "type": "ref",
-                              "ref": "OEPuW",
-                              "name": "Word Row - 今",
-                              "width": "fill_container",
-                              "x": 0,
-                              "y": 148,
-                              "descendants": {
-                                "bH1ry": {
-                                  "fill": "$jlpt-n5"
                                 },
-                                "Aj8UD": {
-                                  "content": "今"
+                                {
+                                  "id": "OQ0tP",
+                                  "type": "ref",
+                                  "ref": "HjaHz",
+                                  "name": "Word Row - 今",
+                                  "width": "fill_container",
+                                  "descendants": {
+                                    "YMQJs": {
+                                      "content": "いま"
+                                    }
+                                  }
                                 },
-                                "I3WOz": {
-                                  "content": "지금"
-                                },
-                                "heX7M": {
-                                  "content": "いま"
-                                },
-                                "ioPpL": {
-                                  "content": "N5",
-                                  "fill": "$jlpt-n5"
-                                },
-                                "U2wpM": {
-                                  "content": "명사",
-                                  "fill": "$foreground.muted"
-                                }
-                              }
-                            },
-                            {
-                              "type": "frame",
-                              "id": "pwKjm",
-                              "name": "Word Row Separator",
-                              "width": "fill_container",
-                              "height": 1,
-                              "padding": [
-                                0,
-                                26,
-                                0,
-                                56
-                              ],
-                              "children": [
                                 {
                                   "type": "rectangle",
-                                  "id": "VQpgE",
-                                  "name": "Separator Line",
-                                  "opacity": 0.65,
+                                  "id": "o1lHVG",
+                                  "name": "Divider",
                                   "fill": "$border-default",
                                   "width": "fill_container",
                                   "height": 1
+                                },
+                                {
+                                  "id": "C9v4r",
+                                  "type": "ref",
+                                  "ref": "HjaHz",
+                                  "name": "Word Row - 聞こえる",
+                                  "width": "fill_container",
+                                  "descendants": {
+                                    "YMQJs": {
+                                      "content": "きこえる"
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "rectangle",
+                                  "id": "WzCsc",
+                                  "name": "Divider",
+                                  "fill": "$border-default",
+                                  "width": "fill_container",
+                                  "height": 1
+                                },
+                                {
+                                  "id": "FLwOd",
+                                  "type": "ref",
+                                  "ref": "HjaHz",
+                                  "name": "Word Row - 聞こえる",
+                                  "width": "fill_container",
+                                  "x": 0,
+                                  "y": 312,
+                                  "descendants": {
+                                    "YMQJs": {
+                                      "content": "きこえる"
+                                    }
+                                  }
                                 }
                               ]
-                            },
-                            {
-                              "id": "wqgnV",
-                              "type": "ref",
-                              "ref": "OEPuW",
-                              "name": "Word Row - 聞こえる",
-                              "width": "fill_container",
-                              "x": 0,
-                              "y": 222,
-                              "descendants": {
-                                "bH1ry": {
-                                  "fill": "$jlpt-n4"
-                                },
-                                "Aj8UD": {
-                                  "content": "聞こえる"
-                                },
-                                "I3WOz": {
-                                  "content": "들리다"
-                                },
-                                "heX7M": {
-                                  "content": "きこえる"
-                                },
-                                "ioPpL": {
-                                  "content": "N4",
-                                  "fill": "$jlpt-n4"
-                                },
-                                "U2wpM": {
-                                  "content": "동사",
-                                  "fill": "$foreground.muted"
-                                }
-                              }
                             }
                           ]
                         }
@@ -26010,13 +27065,140 @@
                     },
                     {
                       "type": "frame",
-                      "id": "sgki6",
-                      "name": "Right Arrow",
-                      "clip": true,
-                      "width": 13,
-                      "height": 163,
-                      "fill": "#FFFFFF",
-                      "layout": "none"
+                      "id": "DSPxQ",
+                      "name": "Page 3",
+                      "width": 358,
+                      "fill": "#FFFFFF00",
+                      "layout": "vertical",
+                      "gap": 12,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "lUVN1",
+                          "name": "Lyric Line 2",
+                          "width": "fill_container",
+                          "height": 110,
+                          "fill": "$surface.primary",
+                          "cornerRadius": "$rounded.xl",
+                          "layout": "vertical",
+                          "gap": 8,
+                          "padding": [
+                            0,
+                            16
+                          ],
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "v6Q4h",
+                              "name": "Lyric Text",
+                              "fill": "$foreground.primary",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "風が吹いてあの日に戻れたら",
+                              "textAlign": "center",
+                              "fontFamily": "Inter",
+                              "fontSize": 20,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "text",
+                              "id": "UtEci",
+                              "name": "Translation",
+                              "fill": "$foreground.secondary",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "바람이 불어 그날로 돌아갈 수 있다면",
+                              "textAlign": "center",
+                              "fontFamily": "Inter",
+                              "fontSize": 14,
+                              "fontWeight": "600"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "bNLvO",
+                          "name": "Word List Body",
+                          "width": "fill_container",
+                          "fill": "#FFFFFF",
+                          "cornerRadius": "$rounded.2xl",
+                          "layout": "vertical",
+                          "children": [
+                            {
+                              "id": "OZoSC",
+                              "type": "ref",
+                              "ref": "HjaHz",
+                              "name": "Word - 風",
+                              "width": "fill_container",
+                              "descendants": {
+                                "uzDGY": {
+                                  "content": "風"
+                                },
+                                "YMQJs": {
+                                  "content": "かぜ"
+                                },
+                                "rpxCy": {
+                                  "content": "바람"
+                                }
+                              }
+                            },
+                            {
+                              "type": "rectangle",
+                              "id": "m3NHfd",
+                              "name": "Divider",
+                              "fill": "$border-default",
+                              "width": "fill_container",
+                              "height": 1
+                            },
+                            {
+                              "id": "z7tOt",
+                              "type": "ref",
+                              "ref": "HjaHz",
+                              "name": "Word - 日",
+                              "width": "fill_container",
+                              "descendants": {
+                                "uzDGY": {
+                                  "content": "日"
+                                },
+                                "YMQJs": {
+                                  "content": "ひ"
+                                },
+                                "rpxCy": {
+                                  "content": "날"
+                                }
+                              }
+                            },
+                            {
+                              "type": "rectangle",
+                              "id": "uPz7p",
+                              "name": "Divider",
+                              "fill": "$border-default",
+                              "width": "fill_container",
+                              "height": 1
+                            },
+                            {
+                              "id": "xDkNj",
+                              "type": "ref",
+                              "ref": "HjaHz",
+                              "name": "Word - 戻る",
+                              "width": "fill_container",
+                              "descendants": {
+                                "uzDGY": {
+                                  "content": "戻る"
+                                },
+                                "YMQJs": {
+                                  "content": "もどる"
+                                },
+                                "rpxCy": {
+                                  "content": "돌아가다"
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      ]
                     }
                   ]
                 }
@@ -26029,6 +27211,11 @@
               "clip": true,
               "width": "fill_container",
               "fill": "#FFFFFF",
+              "stroke": "$border-default",
+              "strokeWidth": {
+                "top": 1
+              },
+              "strokeAlignment": "inner",
               "layout": "vertical",
               "alignItems": "center",
               "children": [
@@ -26038,9 +27225,20 @@
                   "name": "Progress Bar",
                   "clip": true,
                   "width": "fill_container",
-                  "height": 8,
-                  "fill": "#FFFFFF",
-                  "layout": "none"
+                  "height": 2,
+                  "fill": "$bg-card",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "WtAVS",
+                      "name": "Progress",
+                      "clip": true,
+                      "width": 165,
+                      "height": "fill_container",
+                      "fill": "$accent.primary",
+                      "layout": "none"
+                    }
+                  ]
                 },
                 {
                   "type": "frame",
@@ -26050,10 +27248,10 @@
                   "width": "fill_container",
                   "height": 56,
                   "fill": "#FFFFFF",
-                  "gap": 9,
+                  "gap": 12,
                   "padding": [
                     0,
-                    13
+                    14
                   ],
                   "alignItems": "center",
                   "children": [
@@ -26062,39 +27260,152 @@
                       "id": "w54c3",
                       "name": "MV",
                       "clip": true,
-                      "width": 54,
-                      "height": 27,
-                      "fill": "#6e6e6eff",
-                      "layout": "none"
-                    },
-                    {
-                      "type": "text",
-                      "id": "V3e72",
-                      "fill": "#000000",
-                      "content": "Lemon - 米津玄師",
-                      "fontFamily": "Inter",
-                      "fontSize": 14,
-                      "fontWeight": "normal"
+                      "width": 60,
+                      "height": 30,
+                      "fill": {
+                        "type": "image",
+                        "enabled": true,
+                        "url": "https://images.unsplash.com/photo-1693240817505-f59d02b89ef9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzM5MjU2MzB8&ixlib=rb-4.1.0&q=80&w=1080",
+                        "mode": "fill"
+                      },
+                      "cornerRadius": 8,
+                      "stroke": "#FFFFFF33",
+                      "layout": "none",
+                      "children": [
+                        {
+                          "type": "rectangle",
+                          "id": "J7wNY",
+                          "x": 0,
+                          "y": 15,
+                          "name": "Thumbnail Shade",
+                          "fill": "#00000066",
+                          "width": 54,
+                          "height": 12
+                        },
+                        {
+                          "type": "ellipse",
+                          "id": "VMkqp",
+                          "x": 31,
+                          "y": 1,
+                          "name": "Thumbnail Glow",
+                          "opacity": 0.8,
+                          "fill": "#FFB30066",
+                          "width": 20,
+                          "height": 20
+                        },
+                        {
+                          "type": "frame",
+                          "id": "j3FI1G",
+                          "x": 19,
+                          "y": 6,
+                          "name": "Tiny Play Badge",
+                          "width": 16,
+                          "height": 16,
+                          "fill": "#FFFFFFDD",
+                          "cornerRadius": 9999,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "i49PGq",
+                              "name": "Tiny Play Icon",
+                              "width": 8,
+                              "height": 8,
+                              "icon": "play",
+                              "library": "lucide",
+                              "fill": "$foreground.primary"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "D3vTI",
+                          "x": 3,
+                          "y": 17,
+                          "name": "MV Label Badge",
+                          "width": 19,
+                          "height": 7,
+                          "fill": "#FF0000",
+                          "cornerRadius": 3,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "xOJ1t",
+                              "name": "MV Label",
+                              "fill": "#FFFFFF",
+                              "content": "MV",
+                              "fontFamily": "$font.captions",
+                              "fontSize": 5,
+                              "fontWeight": "700"
+                            }
+                          ]
+                        }
+                      ]
                     },
                     {
                       "type": "frame",
-                      "id": "D9Veo",
-                      "name": "Frame 1",
-                      "clip": true,
+                      "id": "p6mmI",
+                      "name": "Song Info Col",
                       "width": "fill_container",
-                      "height": 22,
-                      "fill": "#FFFFFF",
-                      "layout": "none"
+                      "height": "fill_container",
+                      "layout": "vertical",
+                      "gap": 1,
+                      "justifyContent": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "FYsH2",
+                          "name": "Song Title",
+                          "fill": "$foreground.primary",
+                          "content": "Lemon",
+                          "fontFamily": "$font.body",
+                          "fontSize": 13,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "QnhgY",
+                          "name": "Artist",
+                          "fill": "$foreground.muted",
+                          "content": "米津玄師",
+                          "fontFamily": "$font.body",
+                          "fontSize": 11,
+                          "fontWeight": "normal"
+                        }
+                      ]
                     },
                     {
                       "type": "frame",
                       "id": "AdQE1",
                       "name": "Play/Stop Toggle",
                       "clip": true,
-                      "width": 30,
-                      "height": 30,
-                      "fill": "#dededeff",
-                      "layout": "none"
+                      "width": 36,
+                      "height": 36,
+                      "fill": "$accent.primary",
+                      "cornerRadius": 9999,
+                      "effect": {
+                        "type": "shadow",
+                        "shadowType": "outer",
+                        "enabled": false,
+                        "color": "#000000"
+                      },
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "yhw4Y",
+                          "name": "Filled Pause Icon",
+                          "width": 22,
+                          "height": 22,
+                          "icon": "pause-fill",
+                          "library": "phosphor",
+                          "fill": "$accent.primary"
+                        }
+                      ]
                     }
                   ]
                 }
@@ -26106,125 +27417,98 @@
     },
     {
       "type": "frame",
-      "id": "OEPuW",
-      "x": 3603,
-      "y": -2364,
+      "id": "HjaHz",
+      "x": 2916,
+      "y": -2083,
       "name": "component/SentenceWordItem",
       "reusable": true,
-      "width": 304,
-      "fill": "$surface.secondary",
-      "cornerRadius": "$rounded.2xl",
-      "gap": 10,
+      "width": 340,
+      "fill": {
+        "type": "color",
+        "color": "#FFFFFF",
+        "enabled": false
+      },
       "padding": [
-        10,
-        12
+        12,
+        20
       ],
+      "justifyContent": "space_between",
       "alignItems": "center",
       "children": [
         {
-          "type": "rectangle",
-          "cornerRadius": "$rounded.full",
-          "id": "bH1ry",
-          "name": "Word Accent",
-          "fill": "$accent.primary",
-          "width": 4,
-          "height": 46
-        },
-        {
           "type": "frame",
-          "id": "MZJrD",
-          "name": "Word Content",
+          "id": "cE6Wc",
+          "name": "Word Info",
           "width": "fill_container",
           "layout": "vertical",
-          "gap": 4,
+          "gap": 3,
           "children": [
             {
               "type": "frame",
-              "id": "k7YvSU",
-              "name": "Primary Meaning Row",
-              "width": "fill_container",
-              "gap": 9,
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "text",
-                  "id": "Aj8UD",
-                  "name": "Japanese Word",
-                  "fill": "$foreground.primary",
-                  "content": "君",
-                  "fontFamily": "$font.headings",
-                  "fontSize": 22,
-                  "fontWeight": "800"
-                },
-                {
-                  "type": "text",
-                  "id": "I3WOz",
-                  "name": "Korean Meaning",
-                  "fill": "$foreground.primary",
-                  "content": "너",
-                  "fontFamily": "$font.body",
-                  "fontSize": 14,
-                  "fontWeight": "800"
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "UeRuD",
-              "name": "Word Meta Row",
-              "width": "fill_container",
+              "id": "zkjNU",
+              "name": "JP Text Row",
               "gap": 6,
               "alignItems": "center",
               "children": [
                 {
                   "type": "text",
-                  "id": "heX7M",
+                  "id": "uzDGY",
+                  "name": "Japanese Word",
+                  "fill": "$foreground.primary",
+                  "content": "君",
+                  "fontFamily": "$font.headings",
+                  "fontSize": 18,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "YMQJs",
                   "name": "Hiragana Reading",
-                  "fill": "$foreground.secondary",
+                  "fill": "$foreground.muted",
                   "content": "きみ",
                   "fontFamily": "$font.body",
                   "fontSize": 12,
-                  "fontWeight": "700"
-                },
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "ZWFuP",
+              "name": "Meaning Row",
+              "gap": 5,
+              "alignItems": "center",
+              "children": [
                 {
                   "type": "text",
-                  "id": "gH6in",
-                  "name": "Meta Dot 1",
-                  "fill": "$foreground.muted",
-                  "content": "·",
+                  "id": "rpxCy",
+                  "name": "Korean Meaning",
+                  "fill": "$foreground.secondary",
+                  "content": "너",
                   "fontFamily": "$font.body",
-                  "fontSize": 12,
-                  "fontWeight": "700"
+                  "fontSize": 13,
+                  "fontWeight": "500"
                 },
                 {
-                  "type": "text",
-                  "id": "ioPpL",
-                  "name": "JLPT Meta",
-                  "fill": "$jlpt-n2",
-                  "content": "N2",
-                  "fontFamily": "$font.body",
-                  "fontSize": 12,
-                  "fontWeight": "800"
-                },
-                {
-                  "type": "text",
-                  "id": "wTGzp",
-                  "name": "Meta Dot 2",
-                  "fill": "$foreground.muted",
-                  "content": "·",
-                  "fontFamily": "$font.body",
-                  "fontSize": 12,
-                  "fontWeight": "700"
-                },
-                {
-                  "type": "text",
-                  "id": "U2wpM",
-                  "name": "POS Meta",
-                  "fill": "$foreground.muted",
-                  "content": "명사",
-                  "fontFamily": "$font.body",
-                  "fontSize": 12,
-                  "fontWeight": "700"
+                  "type": "frame",
+                  "id": "HAp0f",
+                  "name": "Badges",
+                  "gap": 3,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "id": "Bd4uY",
+                      "type": "ref",
+                      "ref": "ABLIv",
+                      "name": "JLPT Badge Instance"
+                    },
+                    {
+                      "id": "nW4Qe",
+                      "type": "ref",
+                      "ref": "IxqOy",
+                      "name": "POS Badge Instance"
+                    }
+                  ]
                 }
               ]
             }
@@ -26232,31 +27516,30 @@
         },
         {
           "type": "frame",
-          "id": "O8Y8U5",
-          "name": "Add Word Button",
-          "width": 36,
-          "height": 36,
+          "id": "lWKWG",
+          "name": "Add Button",
+          "width": 28,
+          "height": 28,
           "fill": "$accent.primary",
           "cornerRadius": "$rounded.full",
+          "stroke": "#FFFFFF00",
+          "strokeWidth": 1,
+          "strokeAlignment": "inner",
           "effect": {
             "type": "shadow",
             "shadowType": "outer",
-            "color": "$shadow.sm.color",
-            "offset": {
-              "x": "$shadow.sm.offset.x",
-              "y": "$shadow.sm.offset.y"
-            },
-            "blur": "$shadow.sm.blur"
+            "enabled": false,
+            "color": "$shadow.sm.color"
           },
           "justifyContent": "center",
           "alignItems": "center",
           "children": [
             {
               "type": "icon",
-              "id": "g5ONx",
+              "id": "J5jKsR",
               "name": "Add Icon",
-              "width": 17,
-              "height": 17,
+              "width": 13,
+              "height": 13,
               "icon": "plus",
               "library": "lucide",
               "fill": "$foreground.inverse"
@@ -27600,35 +28883,162 @@
                   "layout": "vertical",
                   "children": [
                     {
+                      "type": "frame",
                       "id": "ABBf5",
-                      "type": "ref",
-                      "ref": "OEPuW",
                       "name": "Word Row - 君",
                       "width": "fill_container",
-                      "x": 0,
-                      "y": 0,
-                      "descendants": {
-                        "bH1ry": {
-                          "fill": "$jlpt-n2"
+                      "fill": "$surface.secondary",
+                      "cornerRadius": "$rounded.2xl",
+                      "gap": 10,
+                      "padding": [
+                        10,
+                        12
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "rectangle",
+                          "cornerRadius": "$rounded.full",
+                          "id": "bRi5d",
+                          "name": "Word Accent",
+                          "fill": "$jlpt-n2",
+                          "width": 4,
+                          "height": 46
                         },
-                        "Aj8UD": {
-                          "content": "君"
+                        {
+                          "type": "frame",
+                          "id": "FYAFM",
+                          "name": "Word Content",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 4,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "M1pn8i",
+                              "name": "Primary Meaning Row",
+                              "width": "fill_container",
+                              "gap": 9,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "nopAQ",
+                                  "name": "Japanese Word",
+                                  "fill": "$foreground.primary",
+                                  "content": "君",
+                                  "fontFamily": "$font.headings",
+                                  "fontSize": 22,
+                                  "fontWeight": "800"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "G89xCS",
+                                  "name": "Korean Meaning",
+                                  "fill": "$foreground.primary",
+                                  "content": "너",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 14,
+                                  "fontWeight": "800"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "ZvFgy",
+                              "name": "Word Meta Row",
+                              "width": "fill_container",
+                              "gap": 6,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "m8kZU3",
+                                  "name": "Hiragana Reading",
+                                  "fill": "$foreground.secondary",
+                                  "content": "きみ",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 12,
+                                  "fontWeight": "700"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "UOwU8",
+                                  "name": "Meta Dot 1",
+                                  "fill": "$foreground.muted",
+                                  "content": "·",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 12,
+                                  "fontWeight": "700"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "nSkP9",
+                                  "name": "JLPT Meta",
+                                  "fill": "$jlpt-n2",
+                                  "content": "N2",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 12,
+                                  "fontWeight": "800"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "aeAH4",
+                                  "name": "Meta Dot 2",
+                                  "fill": "$foreground.muted",
+                                  "content": "·",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 12,
+                                  "fontWeight": "700"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "KyFBx",
+                                  "name": "POS Meta",
+                                  "fill": "$foreground.muted",
+                                  "content": "명사",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 12,
+                                  "fontWeight": "700"
+                                }
+                              ]
+                            }
+                          ]
                         },
-                        "I3WOz": {
-                          "content": "너"
-                        },
-                        "heX7M": {
-                          "content": "きみ"
-                        },
-                        "ioPpL": {
-                          "content": "N2",
-                          "fill": "$jlpt-n2"
-                        },
-                        "U2wpM": {
-                          "content": "명사",
-                          "fill": "$foreground.muted"
+                        {
+                          "type": "frame",
+                          "id": "DB8y4",
+                          "name": "Add Word Button",
+                          "width": 36,
+                          "height": 36,
+                          "fill": "$accent.primary",
+                          "cornerRadius": "$rounded.full",
+                          "effect": {
+                            "type": "shadow",
+                            "shadowType": "outer",
+                            "color": "$shadow.sm.color",
+                            "offset": {
+                              "x": "$shadow.sm.offset.x",
+                              "y": "$shadow.sm.offset.y"
+                            },
+                            "blur": "$shadow.sm.blur"
+                          },
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "PoNKK",
+                              "name": "Add Icon",
+                              "width": 17,
+                              "height": 17,
+                              "icon": "plus",
+                              "library": "lucide",
+                              "fill": "$foreground.inverse"
+                            }
+                          ]
                         }
-                      }
+                      ]
                     },
                     {
                       "type": "frame",
@@ -27655,35 +29065,162 @@
                       ]
                     },
                     {
+                      "type": "frame",
                       "id": "V57UZ8",
-                      "type": "ref",
-                      "ref": "OEPuW",
                       "name": "Word Row - 声",
                       "width": "fill_container",
-                      "x": 0,
-                      "y": 74,
-                      "descendants": {
-                        "bH1ry": {
-                          "fill": "$jlpt-n3"
+                      "fill": "$surface.secondary",
+                      "cornerRadius": "$rounded.2xl",
+                      "gap": 10,
+                      "padding": [
+                        10,
+                        12
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "rectangle",
+                          "cornerRadius": "$rounded.full",
+                          "id": "X3xJ9",
+                          "name": "Word Accent",
+                          "fill": "$jlpt-n3",
+                          "width": 4,
+                          "height": 46
                         },
-                        "Aj8UD": {
-                          "content": "声"
+                        {
+                          "type": "frame",
+                          "id": "kuauR",
+                          "name": "Word Content",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 4,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "m0Fjvf",
+                              "name": "Primary Meaning Row",
+                              "width": "fill_container",
+                              "gap": 9,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "h849uo",
+                                  "name": "Japanese Word",
+                                  "fill": "$foreground.primary",
+                                  "content": "声",
+                                  "fontFamily": "$font.headings",
+                                  "fontSize": 22,
+                                  "fontWeight": "800"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "j4z3cA",
+                                  "name": "Korean Meaning",
+                                  "fill": "$foreground.primary",
+                                  "content": "목소리",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 14,
+                                  "fontWeight": "800"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "ts4BT",
+                              "name": "Word Meta Row",
+                              "width": "fill_container",
+                              "gap": 6,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "f5FokD",
+                                  "name": "Hiragana Reading",
+                                  "fill": "$foreground.secondary",
+                                  "content": "こえ",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 12,
+                                  "fontWeight": "700"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "gAFIT",
+                                  "name": "Meta Dot 1",
+                                  "fill": "$foreground.muted",
+                                  "content": "·",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 12,
+                                  "fontWeight": "700"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "iEMwb",
+                                  "name": "JLPT Meta",
+                                  "fill": "$jlpt-n3",
+                                  "content": "N3",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 12,
+                                  "fontWeight": "800"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "QW5rn",
+                                  "name": "Meta Dot 2",
+                                  "fill": "$foreground.muted",
+                                  "content": "·",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 12,
+                                  "fontWeight": "700"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "Ijg2r",
+                                  "name": "POS Meta",
+                                  "fill": "$foreground.muted",
+                                  "content": "명사",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 12,
+                                  "fontWeight": "700"
+                                }
+                              ]
+                            }
+                          ]
                         },
-                        "I3WOz": {
-                          "content": "목소리"
-                        },
-                        "heX7M": {
-                          "content": "こえ"
-                        },
-                        "ioPpL": {
-                          "content": "N3",
-                          "fill": "$jlpt-n3"
-                        },
-                        "U2wpM": {
-                          "content": "명사",
-                          "fill": "$foreground.muted"
+                        {
+                          "type": "frame",
+                          "id": "wLXyg",
+                          "name": "Add Word Button",
+                          "width": 36,
+                          "height": 36,
+                          "fill": "$accent.primary",
+                          "cornerRadius": "$rounded.full",
+                          "effect": {
+                            "type": "shadow",
+                            "shadowType": "outer",
+                            "color": "$shadow.sm.color",
+                            "offset": {
+                              "x": "$shadow.sm.offset.x",
+                              "y": "$shadow.sm.offset.y"
+                            },
+                            "blur": "$shadow.sm.blur"
+                          },
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "Q1i7f",
+                              "name": "Add Icon",
+                              "width": 17,
+                              "height": 17,
+                              "icon": "plus",
+                              "library": "lucide",
+                              "fill": "$foreground.inverse"
+                            }
+                          ]
                         }
-                      }
+                      ]
                     },
                     {
                       "type": "frame",
@@ -27710,35 +29247,162 @@
                       ]
                     },
                     {
+                      "type": "frame",
                       "id": "R7rCey",
-                      "type": "ref",
-                      "ref": "OEPuW",
                       "name": "Word Row - 今",
                       "width": "fill_container",
-                      "x": 0,
-                      "y": 148,
-                      "descendants": {
-                        "bH1ry": {
-                          "fill": "$jlpt-n5"
+                      "fill": "$surface.secondary",
+                      "cornerRadius": "$rounded.2xl",
+                      "gap": 10,
+                      "padding": [
+                        10,
+                        12
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "rectangle",
+                          "cornerRadius": "$rounded.full",
+                          "id": "nbdiO",
+                          "name": "Word Accent",
+                          "fill": "$jlpt-n5",
+                          "width": 4,
+                          "height": 46
                         },
-                        "Aj8UD": {
-                          "content": "今"
+                        {
+                          "type": "frame",
+                          "id": "Uw8Eg",
+                          "name": "Word Content",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 4,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "r4IeHH",
+                              "name": "Primary Meaning Row",
+                              "width": "fill_container",
+                              "gap": 9,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "XwiXV",
+                                  "name": "Japanese Word",
+                                  "fill": "$foreground.primary",
+                                  "content": "今",
+                                  "fontFamily": "$font.headings",
+                                  "fontSize": 22,
+                                  "fontWeight": "800"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "r4WfgI",
+                                  "name": "Korean Meaning",
+                                  "fill": "$foreground.primary",
+                                  "content": "지금",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 14,
+                                  "fontWeight": "800"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "R5zWv",
+                              "name": "Word Meta Row",
+                              "width": "fill_container",
+                              "gap": 6,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "r9ea5",
+                                  "name": "Hiragana Reading",
+                                  "fill": "$foreground.secondary",
+                                  "content": "いま",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 12,
+                                  "fontWeight": "700"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "CJIvv",
+                                  "name": "Meta Dot 1",
+                                  "fill": "$foreground.muted",
+                                  "content": "·",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 12,
+                                  "fontWeight": "700"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "Xmy7i",
+                                  "name": "JLPT Meta",
+                                  "fill": "$jlpt-n5",
+                                  "content": "N5",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 12,
+                                  "fontWeight": "800"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "kJESH",
+                                  "name": "Meta Dot 2",
+                                  "fill": "$foreground.muted",
+                                  "content": "·",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 12,
+                                  "fontWeight": "700"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "Ha1S2",
+                                  "name": "POS Meta",
+                                  "fill": "$foreground.muted",
+                                  "content": "명사",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 12,
+                                  "fontWeight": "700"
+                                }
+                              ]
+                            }
+                          ]
                         },
-                        "I3WOz": {
-                          "content": "지금"
-                        },
-                        "heX7M": {
-                          "content": "いま"
-                        },
-                        "ioPpL": {
-                          "content": "N5",
-                          "fill": "$jlpt-n5"
-                        },
-                        "U2wpM": {
-                          "content": "명사",
-                          "fill": "$foreground.muted"
+                        {
+                          "type": "frame",
+                          "id": "znEZn",
+                          "name": "Add Word Button",
+                          "width": 36,
+                          "height": 36,
+                          "fill": "$accent.primary",
+                          "cornerRadius": "$rounded.full",
+                          "effect": {
+                            "type": "shadow",
+                            "shadowType": "outer",
+                            "color": "$shadow.sm.color",
+                            "offset": {
+                              "x": "$shadow.sm.offset.x",
+                              "y": "$shadow.sm.offset.y"
+                            },
+                            "blur": "$shadow.sm.blur"
+                          },
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "k5OTsa",
+                              "name": "Add Icon",
+                              "width": 17,
+                              "height": 17,
+                              "icon": "plus",
+                              "library": "lucide",
+                              "fill": "$foreground.inverse"
+                            }
+                          ]
                         }
-                      }
+                      ]
                     },
                     {
                       "type": "frame",
@@ -27765,35 +29429,162 @@
                       ]
                     },
                     {
+                      "type": "frame",
                       "id": "e6Era",
-                      "type": "ref",
-                      "ref": "OEPuW",
                       "name": "Word Row - 聞こえる",
                       "width": "fill_container",
-                      "x": 0,
-                      "y": 222,
-                      "descendants": {
-                        "bH1ry": {
-                          "fill": "$jlpt-n4"
+                      "fill": "$surface.secondary",
+                      "cornerRadius": "$rounded.2xl",
+                      "gap": 10,
+                      "padding": [
+                        10,
+                        12
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "rectangle",
+                          "cornerRadius": "$rounded.full",
+                          "id": "J0dEw",
+                          "name": "Word Accent",
+                          "fill": "$jlpt-n4",
+                          "width": 4,
+                          "height": 46
                         },
-                        "Aj8UD": {
-                          "content": "聞こえる"
+                        {
+                          "type": "frame",
+                          "id": "IpOVI",
+                          "name": "Word Content",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 4,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "KUJkQ",
+                              "name": "Primary Meaning Row",
+                              "width": "fill_container",
+                              "gap": 9,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "Xi225",
+                                  "name": "Japanese Word",
+                                  "fill": "$foreground.primary",
+                                  "content": "聞こえる",
+                                  "fontFamily": "$font.headings",
+                                  "fontSize": 22,
+                                  "fontWeight": "800"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "cf7wT",
+                                  "name": "Korean Meaning",
+                                  "fill": "$foreground.primary",
+                                  "content": "들리다",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 14,
+                                  "fontWeight": "800"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "x5ATiN",
+                              "name": "Word Meta Row",
+                              "width": "fill_container",
+                              "gap": 6,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "dd5UM",
+                                  "name": "Hiragana Reading",
+                                  "fill": "$foreground.secondary",
+                                  "content": "きこえる",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 12,
+                                  "fontWeight": "700"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "qfeeo",
+                                  "name": "Meta Dot 1",
+                                  "fill": "$foreground.muted",
+                                  "content": "·",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 12,
+                                  "fontWeight": "700"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "L8YmBb",
+                                  "name": "JLPT Meta",
+                                  "fill": "$jlpt-n4",
+                                  "content": "N4",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 12,
+                                  "fontWeight": "800"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "XUovk",
+                                  "name": "Meta Dot 2",
+                                  "fill": "$foreground.muted",
+                                  "content": "·",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 12,
+                                  "fontWeight": "700"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "mJXlN",
+                                  "name": "POS Meta",
+                                  "fill": "$foreground.muted",
+                                  "content": "동사",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 12,
+                                  "fontWeight": "700"
+                                }
+                              ]
+                            }
+                          ]
                         },
-                        "I3WOz": {
-                          "content": "들리다"
-                        },
-                        "heX7M": {
-                          "content": "きこえる"
-                        },
-                        "ioPpL": {
-                          "content": "N4",
-                          "fill": "$jlpt-n4"
-                        },
-                        "U2wpM": {
-                          "content": "동사",
-                          "fill": "$foreground.muted"
+                        {
+                          "type": "frame",
+                          "id": "BkXdd",
+                          "name": "Add Word Button",
+                          "width": 36,
+                          "height": 36,
+                          "fill": "$accent.primary",
+                          "cornerRadius": "$rounded.full",
+                          "effect": {
+                            "type": "shadow",
+                            "shadowType": "outer",
+                            "color": "$shadow.sm.color",
+                            "offset": {
+                              "x": "$shadow.sm.offset.x",
+                              "y": "$shadow.sm.offset.y"
+                            },
+                            "blur": "$shadow.sm.blur"
+                          },
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "lbVJb",
+                              "name": "Add Icon",
+                              "width": 17,
+                              "height": 17,
+                              "icon": "plus",
+                              "library": "lucide",
+                              "fill": "$foreground.inverse"
+                            }
+                          ]
                         }
-                      }
+                      ]
                     }
                   ]
                 }
