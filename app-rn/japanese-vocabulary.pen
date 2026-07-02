@@ -23611,9 +23611,9 @@
     {
       "type": "frame",
       "id": "WLDmS",
-      "x": 3619,
-      "y": -1824,
-      "name": "17. Song Detail - Words",
+      "x": 4555,
+      "y": -1816,
+      "name": "17b. Song Detail - Words",
       "clip": true,
       "width": 402,
       "height": 874,
@@ -25192,737 +25192,184 @@
     {
       "type": "frame",
       "id": "u6dIUz",
-      "x": 3145,
-      "y": -1824,
-      "name": "17a. Song Detail - Sentences",
+      "x": 2916,
+      "y": -1904,
+      "name": "17. Song Detail",
       "clip": true,
       "width": 402,
       "height": 874,
       "fill": "#FFFFFF",
-      "layout": "vertical",
+      "layout": "none",
       "children": [
         {
           "type": "frame",
-          "id": "ue6Dd",
-          "name": "Status Bar",
-          "width": "fill_container",
-          "height": 62,
-          "padding": [
-            0,
-            24
-          ],
-          "justifyContent": "space_between",
-          "alignItems": "center",
-          "children": [
-            {
-              "type": "text",
-              "id": "k8TzI",
-              "name": "Status Time",
-              "fill": "#1A1A1A",
-              "content": "9:41",
-              "fontFamily": "Inter",
-              "fontSize": 14,
-              "fontWeight": "600"
-            },
-            {
-              "type": "frame",
-              "id": "l32XO",
-              "name": "Status Icons",
-              "gap": 6,
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "icon",
-                  "id": "KdhNR",
-                  "name": "Signal Icon",
-                  "width": 16,
-                  "height": 16,
-                  "icon": "signal",
-                  "library": "lucide",
-                  "fill": "#1A1A1A"
-                },
-                {
-                  "type": "icon",
-                  "id": "X6B33X",
-                  "name": "Battery Icon",
-                  "width": 16,
-                  "height": 16,
-                  "icon": "battery-full",
-                  "library": "lucide",
-                  "fill": "#1A1A1A"
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "type": "frame",
-          "id": "Q9iq2",
-          "name": "Song App Bar",
-          "width": "fill_container",
-          "height": 64,
-          "gap": 10,
-          "padding": [
-            0,
-            16
-          ],
-          "alignItems": "center",
-          "children": [
-            {
-              "type": "frame",
-              "id": "aIeMY",
-              "name": "Back Button",
-              "width": 40,
-              "height": 40,
-              "fill": "#FFFFFF00",
-              "cornerRadius": 9999,
-              "justifyContent": "center",
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "icon",
-                  "id": "X4hJH8",
-                  "name": "Back Chevron",
-                  "width": 24,
-                  "height": 24,
-                  "icon": "chevron-left",
-                  "library": "lucide",
-                  "fill": "#1A1A1A"
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "Fk50X",
-              "name": "Song Title Group",
-              "width": "fill_container",
-              "layout": "vertical",
-              "gap": 3,
-              "children": [
-                {
-                  "type": "text",
-                  "id": "JQX5W",
-                  "name": "Song Title",
-                  "fill": "#1A1A1A",
-                  "content": "Lemon",
-                  "fontFamily": "Funnel Sans",
-                  "fontSize": 18,
-                  "fontWeight": "800"
-                },
-                {
-                  "type": "text",
-                  "id": "rfD6f",
-                  "name": "Artist Name",
-                  "fill": "#666666",
-                  "content": "米津玄師",
-                  "fontFamily": "Inter",
-                  "fontSize": 13,
-                  "fontWeight": "normal"
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "type": "frame",
-          "id": "OsXmG",
-          "name": "Song Detail Tabs",
-          "width": "fill_container",
-          "height": 50,
-          "stroke": "#E5E5E5",
-          "strokeWidth": {
-            "bottom": 1
-          },
-          "strokeAlignment": "inner",
-          "gap": 10,
-          "padding": [
-            0,
-            16
-          ],
-          "alignItems": "center",
-          "children": [
-            {
-              "type": "frame",
-              "id": "h2bgY",
-              "name": "Tab Sentence Selected",
-              "width": "fill_container",
-              "height": "fill_container",
-              "layout": "vertical",
-              "gap": 8,
-              "justifyContent": "center",
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "text",
-                  "id": "E9sHrQ",
-                  "name": "Sentence Tab Label",
-                  "fill": "#52B788",
-                  "content": "문장",
-                  "fontFamily": "Inter",
-                  "fontSize": 15,
-                  "fontWeight": "800"
-                },
-                {
-                  "type": "rectangle",
-                  "cornerRadius": 9999,
-                  "id": "LRhTX",
-                  "name": "Sentence Tab Indicator",
-                  "fill": "#52B788",
-                  "width": 48,
-                  "height": 3
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "l37zHL",
-              "name": "Tab Word",
-              "width": "fill_container",
-              "height": "fill_container",
-              "layout": "vertical",
-              "gap": 8,
-              "justifyContent": "center",
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "text",
-                  "id": "hW5W0",
-                  "name": "Word Tab Label",
-                  "fill": "#888888",
-                  "content": "단어",
-                  "fontFamily": "Inter",
-                  "fontSize": 15,
-                  "fontWeight": "700"
-                },
-                {
-                  "type": "rectangle",
-                  "cornerRadius": 9999,
-                  "id": "hGN4x",
-                  "name": "Word Tab Indicator",
-                  "fill": "#FFFFFF00",
-                  "width": 48,
-                  "height": 3
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "type": "frame",
-          "id": "NOBJT",
-          "name": "Sentence Tab Content",
-          "width": "fill_container",
-          "height": "fill_container",
+          "id": "T2yvn",
+          "x": 0,
+          "y": 0.5,
+          "name": "Contents",
+          "clip": true,
+          "width": "fill_container(402)",
+          "height": "fill_container(874)",
           "fill": "#FFFFFF",
           "layout": "vertical",
-          "gap": 13,
-          "padding": [
-            10,
-            0,
-            18,
-            0
-          ],
           "children": [
             {
-              "type": "group",
-              "id": "RHv2M",
-              "name": "Lyrics",
-              "layout": "vertical",
-              "gap": 15,
+              "type": "frame",
+              "id": "ue6Dd",
+              "name": "Status Bar",
               "width": "fill_container",
+              "height": 62,
+              "padding": [
+                0,
+                24
+              ],
+              "justifyContent": "space_between",
+              "alignItems": "center",
               "children": [
                 {
+                  "type": "text",
+                  "id": "k8TzI",
+                  "name": "Status Time",
+                  "fill": "#1A1A1A",
+                  "content": "9:41",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "600"
+                },
+                {
                   "type": "frame",
-                  "id": "xZTBl",
-                  "name": "Previous Sentence Text Peek",
-                  "opacity": 0.28,
-                  "width": "fill_container",
-                  "layout": "vertical",
+                  "id": "l32XO",
+                  "name": "Status Icons",
                   "gap": 6,
-                  "justifyContent": "end",
                   "alignItems": "center",
                   "children": [
                     {
-                      "type": "frame",
-                      "id": "osa3Q",
-                      "name": "Previous Sentence Tokens",
-                      "width": "fill_container",
-                      "gap": 4,
-                      "justifyContent": "center",
-                      "alignItems": "end",
-                      "children": [
-                        {
-                          "id": "zkVZf",
-                          "type": "ref",
-                          "ref": "WpjTH",
-                          "name": "Token 夢",
-                          "width": 30,
-                          "descendants": {
-                            "nW89V": {
-                              "content": "ゆめ",
-                              "fontSize": 10,
-                              "fill": "#999999"
-                            },
-                            "XAVod": {
-                              "content": "夢",
-                              "fontSize": 20,
-                              "fontWeight": "700"
-                            },
-                            "L4P01o": {
-                              "opacity": 0,
-                              "fill": "#5B8FCC"
-                            }
-                          }
-                        },
-                        {
-                          "id": "WDag0",
-                          "type": "ref",
-                          "ref": "WpjTH",
-                          "name": "Token なら",
-                          "width": 48,
-                          "descendants": {
-                            "nW89V": {
-                              "content": " ",
-                              "fontSize": 10,
-                              "fill": "#999999"
-                            },
-                            "XAVod": {
-                              "content": "なら",
-                              "fontSize": 20,
-                              "fontWeight": "700"
-                            },
-                            "L4P01o": {
-                              "opacity": 0,
-                              "fill": "#5B8FCC"
-                            }
-                          }
-                        },
-                        {
-                          "id": "CkqTj",
-                          "type": "ref",
-                          "ref": "WpjTH",
-                          "name": "Token ば",
-                          "width": 22,
-                          "descendants": {
-                            "nW89V": {
-                              "content": " ",
-                              "fontSize": 10,
-                              "fill": "#999999"
-                            },
-                            "XAVod": {
-                              "content": "ば",
-                              "fontSize": 20,
-                              "fontWeight": "700"
-                            },
-                            "L4P01o": {
-                              "opacity": 0,
-                              "fill": "#5B8FCC"
-                            }
-                          }
-                        }
-                      ]
+                      "type": "icon",
+                      "id": "KdhNR",
+                      "name": "Signal Icon",
+                      "width": 16,
+                      "height": 16,
+                      "icon": "signal",
+                      "library": "lucide",
+                      "fill": "#1A1A1A"
+                    },
+                    {
+                      "type": "icon",
+                      "id": "X6B33X",
+                      "name": "Battery Icon",
+                      "width": 16,
+                      "height": 16,
+                      "icon": "battery-full",
+                      "library": "lucide",
+                      "fill": "#1A1A1A"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "Q9iq2",
+              "name": "Song App Bar",
+              "width": "fill_container",
+              "height": 64,
+              "gap": 10,
+              "padding": [
+                0,
+                16
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "aIeMY",
+                  "name": "Back Button",
+                  "width": 40,
+                  "height": 40,
+                  "fill": "#FFFFFF00",
+                  "cornerRadius": 9999,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "X4hJH8",
+                      "name": "Back Chevron",
+                      "width": 24,
+                      "height": 24,
+                      "icon": "chevron-left",
+                      "library": "lucide",
+                      "fill": "#1A1A1A"
                     }
                   ]
                 },
                 {
                   "type": "frame",
-                  "id": "nLKfy",
-                  "name": "Lyric Reader",
+                  "id": "Fk50X",
+                  "name": "Song Title Group",
                   "width": "fill_container",
-                  "fill": "#f5f5f5",
                   "layout": "vertical",
-                  "gap": 14,
-                  "alignItems": "center",
+                  "gap": 3,
                   "children": [
                     {
-                      "type": "frame",
-                      "id": "K21KjX",
-                      "name": "Current Sentence Tokens",
-                      "width": "fill_container",
-                      "gap": 4,
-                      "justifyContent": "center",
-                      "alignItems": "end",
-                      "children": [
-                        {
-                          "id": "mpJCG",
-                          "type": "ref",
-                          "ref": "WpjTH",
-                          "name": "Token 君",
-                          "width": 30,
-                          "descendants": {
-                            "nW89V": {
-                              "content": "きみ",
-                              "fontSize": 11,
-                              "fill": "#777777"
-                            },
-                            "XAVod": {
-                              "content": "君",
-                              "fontSize": 23,
-                              "fontWeight": "800"
-                            },
-                            "L4P01o": {
-                              "opacity": 1,
-                              "fill": "#5B8FCC",
-                              "height": 3
-                            }
-                          }
-                        },
-                        {
-                          "id": "IBDpn",
-                          "type": "ref",
-                          "ref": "WpjTH",
-                          "name": "Token の",
-                          "width": 22,
-                          "descendants": {
-                            "nW89V": {
-                              "content": " ",
-                              "fontSize": 11,
-                              "fill": "#777777"
-                            },
-                            "XAVod": {
-                              "content": "の",
-                              "fontSize": 23,
-                              "fontWeight": "800"
-                            },
-                            "L4P01o": {
-                              "opacity": 0,
-                              "fill": "#5B8FCC",
-                              "height": 3
-                            }
-                          }
-                        },
-                        {
-                          "id": "S4zHJz",
-                          "type": "ref",
-                          "ref": "WpjTH",
-                          "name": "Token 声",
-                          "width": 30,
-                          "descendants": {
-                            "nW89V": {
-                              "content": "こえ",
-                              "fontSize": 11,
-                              "fill": "#777777"
-                            },
-                            "XAVod": {
-                              "content": "声",
-                              "fontSize": 23,
-                              "fontWeight": "800"
-                            },
-                            "L4P01o": {
-                              "opacity": 1,
-                              "fill": "#5B8FCC",
-                              "height": 3
-                            }
-                          }
-                        },
-                        {
-                          "id": "p8NnGF",
-                          "type": "ref",
-                          "ref": "WpjTH",
-                          "name": "Token が",
-                          "width": 22,
-                          "descendants": {
-                            "nW89V": {
-                              "content": " ",
-                              "fontSize": 11,
-                              "fill": "#777777"
-                            },
-                            "XAVod": {
-                              "content": "が",
-                              "fontSize": 23,
-                              "fontWeight": "800"
-                            },
-                            "L4P01o": {
-                              "opacity": 0,
-                              "fill": "#5B8FCC",
-                              "height": 3
-                            }
-                          }
-                        },
-                        {
-                          "id": "CKxfy",
-                          "type": "ref",
-                          "ref": "WpjTH",
-                          "name": "Token 今",
-                          "width": 30,
-                          "descendants": {
-                            "nW89V": {
-                              "content": "いま",
-                              "fontSize": 11,
-                              "fill": "#777777"
-                            },
-                            "XAVod": {
-                              "content": "今",
-                              "fontSize": 23,
-                              "fontWeight": "800"
-                            },
-                            "L4P01o": {
-                              "opacity": 1,
-                              "fill": "#9D7AC4",
-                              "height": 3
-                            }
-                          }
-                        },
-                        {
-                          "id": "PVKfw",
-                          "type": "ref",
-                          "ref": "WpjTH",
-                          "name": "Token も",
-                          "width": 22,
-                          "descendants": {
-                            "nW89V": {
-                              "content": " ",
-                              "fontSize": 11,
-                              "fill": "#777777"
-                            },
-                            "XAVod": {
-                              "content": "も",
-                              "fontSize": 23,
-                              "fontWeight": "800"
-                            },
-                            "L4P01o": {
-                              "opacity": 0,
-                              "fill": "#5B8FCC",
-                              "height": 3
-                            }
-                          }
-                        },
-                        {
-                          "id": "EBO86",
-                          "type": "ref",
-                          "ref": "WpjTH",
-                          "name": "Token 聞こえる",
-                          "width": 94,
-                          "descendants": {
-                            "nW89V": {
-                              "content": "き",
-                              "fontSize": 11,
-                              "fill": "#777777"
-                            },
-                            "XAVod": {
-                              "content": "聞こえる",
-                              "fontSize": 23,
-                              "fontWeight": "800"
-                            },
-                            "L4P01o": {
-                              "opacity": 1,
-                              "fill": "#4A9D7A",
-                              "height": 3
-                            }
-                          }
-                        }
-                      ]
+                      "type": "text",
+                      "id": "JQX5W",
+                      "name": "Song Title",
+                      "fill": "#1A1A1A",
+                      "content": "Lemon",
+                      "fontFamily": "Funnel Sans",
+                      "fontSize": 18,
+                      "fontWeight": "800"
                     },
                     {
                       "type": "text",
-                      "id": "EevLl",
-                      "name": "Current Korean Translation",
+                      "id": "rfD6f",
+                      "name": "Artist Name",
                       "fill": "#666666",
-                      "textGrowth": "fixed-width",
-                      "width": "fill_container",
-                      "content": "너의 목소리가 지금도 들려",
-                      "textAlign": "center",
+                      "content": "米津玄師",
                       "fontFamily": "Inter",
-                      "fontSize": 14,
-                      "fontWeight": "600"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "ZGyI1",
-                  "name": "Next Sentence Text Peek",
-                  "opacity": 0.36,
-                  "width": "fill_container",
-                  "layout": "vertical",
-                  "gap": 7,
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "ECKN2",
-                      "name": "Next Sentence Tokens",
-                      "width": "fill_container",
-                      "gap": 4,
-                      "justifyContent": "center",
-                      "alignItems": "end",
-                      "children": [
-                        {
-                          "id": "k3MMJ",
-                          "type": "ref",
-                          "ref": "WpjTH",
-                          "name": "Token 終わらない",
-                          "width": 116,
-                          "descendants": {
-                            "nW89V": {
-                              "content": "お",
-                              "fontSize": 10,
-                              "fill": "#888888"
-                            },
-                            "XAVod": {
-                              "content": "終わらない",
-                              "fontSize": 20,
-                              "fontWeight": "700"
-                            },
-                            "L4P01o": {
-                              "opacity": 1,
-                              "fill": "#4A9D7A"
-                            }
-                          }
-                        },
-                        {
-                          "id": "BaKKj",
-                          "type": "ref",
-                          "ref": "WpjTH",
-                          "name": "Token 夢",
-                          "width": 30,
-                          "descendants": {
-                            "nW89V": {
-                              "content": "ゆめ",
-                              "fontSize": 10,
-                              "fill": "#888888"
-                            },
-                            "XAVod": {
-                              "content": "夢",
-                              "fontSize": 20,
-                              "fontWeight": "700"
-                            },
-                            "L4P01o": {
-                              "opacity": 1,
-                              "fill": "#5B8FCC"
-                            }
-                          }
-                        },
-                        {
-                          "id": "kARpm",
-                          "type": "ref",
-                          "ref": "WpjTH",
-                          "name": "Token を",
-                          "width": 22,
-                          "descendants": {
-                            "nW89V": {
-                              "content": " ",
-                              "fontSize": 10,
-                              "fill": "#888888"
-                            },
-                            "XAVod": {
-                              "content": "を",
-                              "fontSize": 20,
-                              "fontWeight": "700"
-                            },
-                            "L4P01o": {
-                              "opacity": 0,
-                              "fill": "#5B8FCC"
-                            }
-                          }
-                        },
-                        {
-                          "id": "xan1v",
-                          "type": "ref",
-                          "ref": "WpjTH",
-                          "name": "Token 見ていた",
-                          "width": 82,
-                          "descendants": {
-                            "nW89V": {
-                              "content": "み",
-                              "fontSize": 10,
-                              "fill": "#888888"
-                            },
-                            "XAVod": {
-                              "content": "見ていた",
-                              "fontSize": 20,
-                              "fontWeight": "700"
-                            },
-                            "L4P01o": {
-                              "opacity": 1,
-                              "fill": "#4A9D7A"
-                            }
-                          }
-                        }
-                      ]
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 }
               ]
             },
             {
-              "type": "rectangle",
-              "id": "R2BpJ",
-              "name": "Reader Vocabulary Divider",
-              "fill": "#EDEDED",
-              "width": "fill_container",
-              "height": 1
-            },
-            {
               "type": "frame",
-              "id": "n86tw",
-              "name": "Words Section",
+              "id": "plC3H",
+              "name": "Key Words",
               "width": "fill_container",
-              "height": "fill_container",
+              "fill": "#FFFFFF",
               "layout": "vertical",
-              "gap": 10,
               "padding": [
                 0,
                 16
               ],
               "children": [
                 {
-                  "type": "frame",
-                  "id": "uktzg",
-                  "name": "Words Section Header",
+                  "type": "text",
+                  "id": "bs39u",
+                  "name": "Title",
+                  "fill": "#000000",
+                  "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "justifyContent": "space_between",
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "n2uvy",
-                      "name": "Words Section Title",
-                      "fill": "$foreground.primary",
-                      "content": "현재 문장의 단어",
-                      "fontFamily": "$font.body",
-                      "fontSize": 13,
-                      "fontWeight": "800"
-                    },
-                    {
-                      "type": "frame",
-                      "id": "j9zzP",
-                      "name": "Word Count Pill",
-                      "fill": "$bg-subtle",
-                      "cornerRadius": "$rounded.full",
-                      "padding": [
-                        3,
-                        8
-                      ],
-                      "justifyContent": "center",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "XCtAN",
-                          "name": "Word Count Label",
-                          "fill": "$foreground.secondary",
-                          "content": "4개",
-                          "fontFamily": "$font.body",
-                          "fontSize": 11,
-                          "fontWeight": "800"
-                        }
-                      ]
-                    }
-                  ]
+                  "content": "주요 단어",
+                  "fontFamily": "Inter",
+                  "fontSize": 19,
+                  "fontWeight": "700"
                 },
                 {
                   "type": "frame",
-                  "id": "xhasR",
-                  "name": "Word List Body",
+                  "id": "fVKds",
+                  "name": "Word List",
                   "clip": true,
                   "width": "fill_container",
-                  "fill": "$surface.secondary",
-                  "cornerRadius": "$rounded.2xl",
+                  "fill": "#FFFFFF",
                   "layout": "vertical",
                   "children": [
                     {
-                      "id": "E3E8K5",
+                      "id": "MHgGK",
                       "type": "ref",
                       "ref": "OEPuW",
                       "name": "Word Row - 君",
@@ -25953,37 +25400,13 @@
                       }
                     },
                     {
-                      "type": "frame",
-                      "id": "N7acq",
-                      "name": "Word Row Separator",
-                      "width": "fill_container",
-                      "height": 1,
-                      "padding": [
-                        0,
-                        26,
-                        0,
-                        56
-                      ],
-                      "children": [
-                        {
-                          "type": "rectangle",
-                          "id": "nw3sf",
-                          "name": "Separator Line",
-                          "opacity": 0.65,
-                          "fill": "$border-default",
-                          "width": "fill_container",
-                          "height": 1
-                        }
-                      ]
-                    },
-                    {
-                      "id": "b9FH0",
+                      "id": "SBRfD",
                       "type": "ref",
                       "ref": "OEPuW",
                       "name": "Word Row - 声",
                       "width": "fill_container",
                       "x": 0,
-                      "y": 74,
+                      "y": 73,
                       "descendants": {
                         "bH1ry": {
                           "fill": "$jlpt-n3"
@@ -26006,116 +25429,672 @@
                           "fill": "$foreground.muted"
                         }
                       }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "Jfrig",
+              "name": "Difficulty",
+              "width": "fill_container",
+              "fill": "#FFFFFF",
+              "layout": "vertical",
+              "padding": [
+                0,
+                16
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "y0wANe",
+                  "name": "Title",
+                  "fill": "#000000",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "난이도",
+                  "fontFamily": "Inter",
+                  "fontSize": 19,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "frame",
+                  "id": "OpPzJ",
+                  "name": "JLPT Level Piechart",
+                  "clip": true,
+                  "width": "fill_container",
+                  "height": 33,
+                  "fill": "#FFFFFF",
+                  "layout": "none"
+                },
+                {
+                  "type": "frame",
+                  "id": "BJ4JE",
+                  "name": "Known Words Ratio Graph",
+                  "clip": true,
+                  "width": "fill_container",
+                  "height": 33,
+                  "fill": "#FFFFFF",
+                  "layout": "none"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "Y0AqxM",
+          "x": 0,
+          "y": 0,
+          "name": "Upper Contents",
+          "clip": true,
+          "width": "fill_container(402)",
+          "height": "fill_container(874)",
+          "layout": "vertical",
+          "justifyContent": "end",
+          "children": [
+            {
+              "type": "frame",
+              "id": "SNvcU",
+              "name": "Playing Words Bottomsheet",
+              "clip": true,
+              "width": "fill_container",
+              "height": 468,
+              "fill": "#ffffffff",
+              "cornerRadius": 24,
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "#00000040",
+                "offset": {
+                  "x": 0,
+                  "y": -3
+                },
+                "blur": 4
+              },
+              "layout": "vertical",
+              "gap": 11,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "e4zhs0",
+                  "name": "dragWrap",
+                  "width": "fill_container",
+                  "padding": [
+                    12,
+                    0,
+                    8,
+                    0
+                  ],
+                  "justifyContent": "center",
+                  "children": [
+                    {
+                      "type": "rectangle",
+                      "cornerRadius": 2,
+                      "id": "GyZT4",
+                      "name": "dragBar",
+                      "fill": "$border-strong",
+                      "width": 40,
+                      "height": 4
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "ov8h2",
+                  "name": "Title",
+                  "clip": true,
+                  "width": "fill_container",
+                  "fill": "#FFFFFF",
+                  "padding": [
+                    0,
+                    16
+                  ],
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "ZWj5y",
+                      "name": "Title",
+                      "fill": "#000000",
+                      "content": "지금 들리는 단어",
+                      "fontFamily": "Inter",
+                      "fontSize": 20,
+                      "fontWeight": "700"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "zj2FQ",
+                  "name": "Body",
+                  "clip": true,
+                  "width": "fill_container",
+                  "fill": "#FFFFFF",
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "wkNgU",
+                      "name": "Left Arrow",
+                      "clip": true,
+                      "width": 13,
+                      "height": 163,
+                      "fill": "#FFFFFF",
+                      "layout": "none"
                     },
                     {
                       "type": "frame",
-                      "id": "cCpZE",
-                      "name": "Word Row Separator",
+                      "id": "GCiwZ",
+                      "name": "Card",
                       "width": "fill_container",
-                      "height": 1,
-                      "padding": [
-                        0,
-                        26,
-                        0,
-                        56
-                      ],
+                      "fill": "#FFFFFF",
+                      "layout": "vertical",
                       "children": [
                         {
-                          "type": "rectangle",
-                          "id": "E4LkU",
-                          "name": "Separator Line",
-                          "opacity": 0.65,
-                          "fill": "$border-default",
+                          "type": "frame",
+                          "id": "q7KbWd",
+                          "name": "Current Lyric Line",
                           "width": "fill_container",
-                          "height": 1
+                          "fill": "#f5f5f5",
+                          "layout": "vertical",
+                          "gap": 14,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "SiV7a",
+                              "name": "Current Sentence Tokens",
+                              "width": "fill_container",
+                              "gap": 4,
+                              "justifyContent": "center",
+                              "alignItems": "end",
+                              "children": [
+                                {
+                                  "id": "qvObv",
+                                  "type": "ref",
+                                  "ref": "WpjTH",
+                                  "name": "Token 君",
+                                  "width": 30,
+                                  "descendants": {
+                                    "nW89V": {
+                                      "content": "きみ",
+                                      "fontSize": 11,
+                                      "fill": "#777777"
+                                    },
+                                    "XAVod": {
+                                      "content": "君",
+                                      "fontSize": 23,
+                                      "fontWeight": "800"
+                                    },
+                                    "L4P01o": {
+                                      "opacity": 1,
+                                      "fill": "#5B8FCC",
+                                      "height": 3
+                                    }
+                                  }
+                                },
+                                {
+                                  "id": "ojGkR",
+                                  "type": "ref",
+                                  "ref": "WpjTH",
+                                  "name": "Token の",
+                                  "width": 22,
+                                  "descendants": {
+                                    "nW89V": {
+                                      "content": " ",
+                                      "fontSize": 11,
+                                      "fill": "#777777"
+                                    },
+                                    "XAVod": {
+                                      "content": "の",
+                                      "fontSize": 23,
+                                      "fontWeight": "800"
+                                    },
+                                    "L4P01o": {
+                                      "opacity": 0,
+                                      "fill": "#5B8FCC",
+                                      "height": 3
+                                    }
+                                  }
+                                },
+                                {
+                                  "id": "xuuG5",
+                                  "type": "ref",
+                                  "ref": "WpjTH",
+                                  "name": "Token 声",
+                                  "width": 30,
+                                  "descendants": {
+                                    "nW89V": {
+                                      "content": "こえ",
+                                      "fontSize": 11,
+                                      "fill": "#777777"
+                                    },
+                                    "XAVod": {
+                                      "content": "声",
+                                      "fontSize": 23,
+                                      "fontWeight": "800"
+                                    },
+                                    "L4P01o": {
+                                      "opacity": 1,
+                                      "fill": "#5B8FCC",
+                                      "height": 3
+                                    }
+                                  }
+                                },
+                                {
+                                  "id": "FjXWE",
+                                  "type": "ref",
+                                  "ref": "WpjTH",
+                                  "name": "Token が",
+                                  "width": 22,
+                                  "descendants": {
+                                    "nW89V": {
+                                      "content": " ",
+                                      "fontSize": 11,
+                                      "fill": "#777777"
+                                    },
+                                    "XAVod": {
+                                      "content": "が",
+                                      "fontSize": 23,
+                                      "fontWeight": "800"
+                                    },
+                                    "L4P01o": {
+                                      "opacity": 0,
+                                      "fill": "#5B8FCC",
+                                      "height": 3
+                                    }
+                                  }
+                                },
+                                {
+                                  "id": "JrwpB",
+                                  "type": "ref",
+                                  "ref": "WpjTH",
+                                  "name": "Token 今",
+                                  "width": 30,
+                                  "descendants": {
+                                    "nW89V": {
+                                      "content": "いま",
+                                      "fontSize": 11,
+                                      "fill": "#777777"
+                                    },
+                                    "XAVod": {
+                                      "content": "今",
+                                      "fontSize": 23,
+                                      "fontWeight": "800"
+                                    },
+                                    "L4P01o": {
+                                      "opacity": 1,
+                                      "fill": "#9D7AC4",
+                                      "height": 3
+                                    }
+                                  }
+                                },
+                                {
+                                  "id": "Lf7NX",
+                                  "type": "ref",
+                                  "ref": "WpjTH",
+                                  "name": "Token も",
+                                  "width": 22,
+                                  "descendants": {
+                                    "nW89V": {
+                                      "content": " ",
+                                      "fontSize": 11,
+                                      "fill": "#777777"
+                                    },
+                                    "XAVod": {
+                                      "content": "も",
+                                      "fontSize": 23,
+                                      "fontWeight": "800"
+                                    },
+                                    "L4P01o": {
+                                      "opacity": 0,
+                                      "fill": "#5B8FCC",
+                                      "height": 3
+                                    }
+                                  }
+                                },
+                                {
+                                  "id": "krWNh",
+                                  "type": "ref",
+                                  "ref": "WpjTH",
+                                  "name": "Token 聞こえる",
+                                  "width": 94,
+                                  "descendants": {
+                                    "nW89V": {
+                                      "content": "き",
+                                      "fontSize": 11,
+                                      "fill": "#777777"
+                                    },
+                                    "XAVod": {
+                                      "content": "聞こえる",
+                                      "fontSize": 23,
+                                      "fontWeight": "800"
+                                    },
+                                    "L4P01o": {
+                                      "opacity": 1,
+                                      "fill": "#4A9D7A",
+                                      "height": 3
+                                    }
+                                  }
+                                }
+                              ]
+                            },
+                            {
+                              "type": "text",
+                              "id": "OQqT4",
+                              "name": "Current Korean Translation",
+                              "fill": "#666666",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "너의 목소리가 지금도 들려",
+                              "textAlign": "center",
+                              "fontFamily": "Inter",
+                              "fontSize": 14,
+                              "fontWeight": "600"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "t06b6x",
+                          "name": "Word List Body",
+                          "clip": true,
+                          "width": "fill_container",
+                          "fill": "$surface.secondary",
+                          "cornerRadius": "$rounded.2xl",
+                          "layout": "vertical",
+                          "children": [
+                            {
+                              "id": "E4FCLx",
+                              "type": "ref",
+                              "ref": "OEPuW",
+                              "name": "Word Row - 君",
+                              "width": "fill_container",
+                              "x": 0,
+                              "y": 0,
+                              "descendants": {
+                                "bH1ry": {
+                                  "fill": "$jlpt-n2"
+                                },
+                                "Aj8UD": {
+                                  "content": "君"
+                                },
+                                "I3WOz": {
+                                  "content": "너"
+                                },
+                                "heX7M": {
+                                  "content": "きみ"
+                                },
+                                "ioPpL": {
+                                  "content": "N2",
+                                  "fill": "$jlpt-n2"
+                                },
+                                "U2wpM": {
+                                  "content": "명사",
+                                  "fill": "$foreground.muted"
+                                }
+                              }
+                            },
+                            {
+                              "type": "frame",
+                              "id": "bzNJE",
+                              "name": "Word Row Separator",
+                              "width": "fill_container",
+                              "height": 1,
+                              "padding": [
+                                0,
+                                26,
+                                0,
+                                56
+                              ],
+                              "children": [
+                                {
+                                  "type": "rectangle",
+                                  "id": "k1B9t0",
+                                  "name": "Separator Line",
+                                  "opacity": 0.65,
+                                  "fill": "$border-default",
+                                  "width": "fill_container",
+                                  "height": 1
+                                }
+                              ]
+                            },
+                            {
+                              "id": "fkxsJ",
+                              "type": "ref",
+                              "ref": "OEPuW",
+                              "name": "Word Row - 声",
+                              "width": "fill_container",
+                              "x": 0,
+                              "y": 74,
+                              "descendants": {
+                                "bH1ry": {
+                                  "fill": "$jlpt-n3"
+                                },
+                                "Aj8UD": {
+                                  "content": "声"
+                                },
+                                "I3WOz": {
+                                  "content": "목소리"
+                                },
+                                "heX7M": {
+                                  "content": "こえ"
+                                },
+                                "ioPpL": {
+                                  "content": "N3",
+                                  "fill": "$jlpt-n3"
+                                },
+                                "U2wpM": {
+                                  "content": "명사",
+                                  "fill": "$foreground.muted"
+                                }
+                              }
+                            },
+                            {
+                              "type": "frame",
+                              "id": "FQHNG",
+                              "name": "Word Row Separator",
+                              "width": "fill_container",
+                              "height": 1,
+                              "padding": [
+                                0,
+                                26,
+                                0,
+                                56
+                              ],
+                              "children": [
+                                {
+                                  "type": "rectangle",
+                                  "id": "J7fLj",
+                                  "name": "Separator Line",
+                                  "opacity": 0.65,
+                                  "fill": "$border-default",
+                                  "width": "fill_container",
+                                  "height": 1
+                                }
+                              ]
+                            },
+                            {
+                              "id": "JXDuJ",
+                              "type": "ref",
+                              "ref": "OEPuW",
+                              "name": "Word Row - 今",
+                              "width": "fill_container",
+                              "x": 0,
+                              "y": 148,
+                              "descendants": {
+                                "bH1ry": {
+                                  "fill": "$jlpt-n5"
+                                },
+                                "Aj8UD": {
+                                  "content": "今"
+                                },
+                                "I3WOz": {
+                                  "content": "지금"
+                                },
+                                "heX7M": {
+                                  "content": "いま"
+                                },
+                                "ioPpL": {
+                                  "content": "N5",
+                                  "fill": "$jlpt-n5"
+                                },
+                                "U2wpM": {
+                                  "content": "명사",
+                                  "fill": "$foreground.muted"
+                                }
+                              }
+                            },
+                            {
+                              "type": "frame",
+                              "id": "pwKjm",
+                              "name": "Word Row Separator",
+                              "width": "fill_container",
+                              "height": 1,
+                              "padding": [
+                                0,
+                                26,
+                                0,
+                                56
+                              ],
+                              "children": [
+                                {
+                                  "type": "rectangle",
+                                  "id": "VQpgE",
+                                  "name": "Separator Line",
+                                  "opacity": 0.65,
+                                  "fill": "$border-default",
+                                  "width": "fill_container",
+                                  "height": 1
+                                }
+                              ]
+                            },
+                            {
+                              "id": "wqgnV",
+                              "type": "ref",
+                              "ref": "OEPuW",
+                              "name": "Word Row - 聞こえる",
+                              "width": "fill_container",
+                              "x": 0,
+                              "y": 222,
+                              "descendants": {
+                                "bH1ry": {
+                                  "fill": "$jlpt-n4"
+                                },
+                                "Aj8UD": {
+                                  "content": "聞こえる"
+                                },
+                                "I3WOz": {
+                                  "content": "들리다"
+                                },
+                                "heX7M": {
+                                  "content": "きこえる"
+                                },
+                                "ioPpL": {
+                                  "content": "N4",
+                                  "fill": "$jlpt-n4"
+                                },
+                                "U2wpM": {
+                                  "content": "동사",
+                                  "fill": "$foreground.muted"
+                                }
+                              }
+                            }
+                          ]
                         }
                       ]
                     },
                     {
-                      "id": "SeMgK",
-                      "type": "ref",
-                      "ref": "OEPuW",
-                      "name": "Word Row - 今",
-                      "width": "fill_container",
-                      "x": 0,
-                      "y": 148,
-                      "descendants": {
-                        "bH1ry": {
-                          "fill": "$jlpt-n5"
-                        },
-                        "Aj8UD": {
-                          "content": "今"
-                        },
-                        "I3WOz": {
-                          "content": "지금"
-                        },
-                        "heX7M": {
-                          "content": "いま"
-                        },
-                        "ioPpL": {
-                          "content": "N5",
-                          "fill": "$jlpt-n5"
-                        },
-                        "U2wpM": {
-                          "content": "명사",
-                          "fill": "$foreground.muted"
-                        }
-                      }
+                      "type": "frame",
+                      "id": "sgki6",
+                      "name": "Right Arrow",
+                      "clip": true,
+                      "width": 13,
+                      "height": 163,
+                      "fill": "#FFFFFF",
+                      "layout": "none"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "WUJJG",
+              "name": "MV Bar",
+              "clip": true,
+              "width": "fill_container",
+              "fill": "#FFFFFF",
+              "layout": "vertical",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "fmuaL",
+                  "name": "Progress Bar",
+                  "clip": true,
+                  "width": "fill_container",
+                  "height": 8,
+                  "fill": "#FFFFFF",
+                  "layout": "none"
+                },
+                {
+                  "type": "frame",
+                  "id": "qF7M7",
+                  "name": "MV Bar",
+                  "clip": true,
+                  "width": "fill_container",
+                  "height": 56,
+                  "fill": "#FFFFFF",
+                  "gap": 9,
+                  "padding": [
+                    0,
+                    13
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "w54c3",
+                      "name": "MV",
+                      "clip": true,
+                      "width": 54,
+                      "height": 27,
+                      "fill": "#6e6e6eff",
+                      "layout": "none"
+                    },
+                    {
+                      "type": "text",
+                      "id": "V3e72",
+                      "fill": "#000000",
+                      "content": "Lemon - 米津玄師",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
                     },
                     {
                       "type": "frame",
-                      "id": "a9cfr",
-                      "name": "Word Row Separator",
+                      "id": "D9Veo",
+                      "name": "Frame 1",
+                      "clip": true,
                       "width": "fill_container",
-                      "height": 1,
-                      "padding": [
-                        0,
-                        26,
-                        0,
-                        56
-                      ],
-                      "children": [
-                        {
-                          "type": "rectangle",
-                          "id": "vyDsq",
-                          "name": "Separator Line",
-                          "opacity": 0.65,
-                          "fill": "$border-default",
-                          "width": "fill_container",
-                          "height": 1
-                        }
-                      ]
+                      "height": 22,
+                      "fill": "#FFFFFF",
+                      "layout": "none"
                     },
                     {
-                      "id": "rZSX7",
-                      "type": "ref",
-                      "ref": "OEPuW",
-                      "name": "Word Row - 聞こえる",
-                      "width": "fill_container",
-                      "x": 0,
-                      "y": 222,
-                      "descendants": {
-                        "bH1ry": {
-                          "fill": "$jlpt-n4"
-                        },
-                        "Aj8UD": {
-                          "content": "聞こえる"
-                        },
-                        "I3WOz": {
-                          "content": "들리다"
-                        },
-                        "heX7M": {
-                          "content": "きこえる"
-                        },
-                        "ioPpL": {
-                          "content": "N4",
-                          "fill": "$jlpt-n4"
-                        },
-                        "U2wpM": {
-                          "content": "동사",
-                          "fill": "$foreground.muted"
-                        }
-                      }
+                      "type": "frame",
+                      "id": "AdQE1",
+                      "name": "Play/Stop Toggle",
+                      "clip": true,
+                      "width": 30,
+                      "height": 30,
+                      "fill": "#dededeff",
+                      "layout": "none"
                     }
                   ]
                 }
@@ -26881,6 +26860,942 @@
                       "fill": "$foreground.inverse"
                     }
                   }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "F8VGd",
+      "x": 4081,
+      "y": -1816,
+      "name": "17a. Song Detail - Sentences",
+      "clip": true,
+      "width": 402,
+      "height": 874,
+      "fill": "#FFFFFF",
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "A2kvX",
+          "name": "Status Bar",
+          "width": "fill_container",
+          "height": 62,
+          "padding": [
+            0,
+            24
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "LyBZT",
+              "name": "Status Time",
+              "fill": "#1A1A1A",
+              "content": "9:41",
+              "fontFamily": "Inter",
+              "fontSize": 14,
+              "fontWeight": "600"
+            },
+            {
+              "type": "frame",
+              "id": "WkTcY",
+              "name": "Status Icons",
+              "gap": 6,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "jb0Wg",
+                  "name": "Signal Icon",
+                  "width": 16,
+                  "height": 16,
+                  "icon": "signal",
+                  "library": "lucide",
+                  "fill": "#1A1A1A"
+                },
+                {
+                  "type": "icon",
+                  "id": "Lv3NU",
+                  "name": "Battery Icon",
+                  "width": 16,
+                  "height": 16,
+                  "icon": "battery-full",
+                  "library": "lucide",
+                  "fill": "#1A1A1A"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "ooI4h",
+          "name": "Song App Bar",
+          "width": "fill_container",
+          "height": 64,
+          "gap": 10,
+          "padding": [
+            0,
+            16
+          ],
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "bs1hS",
+              "name": "Back Button",
+              "width": 40,
+              "height": 40,
+              "fill": "#FFFFFF00",
+              "cornerRadius": 9999,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "P26bTv",
+                  "name": "Back Chevron",
+                  "width": 24,
+                  "height": 24,
+                  "icon": "chevron-left",
+                  "library": "lucide",
+                  "fill": "#1A1A1A"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "Hn9BC",
+              "name": "Song Title Group",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 3,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "A5huDD",
+                  "name": "Song Title",
+                  "fill": "#1A1A1A",
+                  "content": "Lemon",
+                  "fontFamily": "Funnel Sans",
+                  "fontSize": 18,
+                  "fontWeight": "800"
+                },
+                {
+                  "type": "text",
+                  "id": "evFHD",
+                  "name": "Artist Name",
+                  "fill": "#666666",
+                  "content": "米津玄師",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "fAlba",
+          "name": "Song Detail Tabs",
+          "width": "fill_container",
+          "height": 50,
+          "stroke": "#E5E5E5",
+          "strokeWidth": {
+            "bottom": 1
+          },
+          "strokeAlignment": "inner",
+          "gap": 10,
+          "padding": [
+            0,
+            16
+          ],
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "T1OpeY",
+              "name": "Tab Sentence Selected",
+              "width": "fill_container",
+              "height": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "aBEfz",
+                  "name": "Sentence Tab Label",
+                  "fill": "#52B788",
+                  "content": "문장",
+                  "fontFamily": "Inter",
+                  "fontSize": 15,
+                  "fontWeight": "800"
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 9999,
+                  "id": "YglWY",
+                  "name": "Sentence Tab Indicator",
+                  "fill": "#52B788",
+                  "width": 48,
+                  "height": 3
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "Wae8c",
+              "name": "Tab Word",
+              "width": "fill_container",
+              "height": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "MSVV2",
+                  "name": "Word Tab Label",
+                  "fill": "#888888",
+                  "content": "단어",
+                  "fontFamily": "Inter",
+                  "fontSize": 15,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 9999,
+                  "id": "YYDlc",
+                  "name": "Word Tab Indicator",
+                  "fill": "#FFFFFF00",
+                  "width": 48,
+                  "height": 3
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "wGZUL",
+          "name": "Sentence Tab Content",
+          "width": "fill_container",
+          "height": "fill_container",
+          "fill": "#FFFFFF",
+          "layout": "vertical",
+          "gap": 13,
+          "padding": [
+            10,
+            0,
+            18,
+            0
+          ],
+          "children": [
+            {
+              "type": "group",
+              "id": "tmuJb",
+              "name": "Lyrics",
+              "layout": "vertical",
+              "gap": 15,
+              "width": "fill_container",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "ev4xD",
+                  "name": "Previous Sentence Text Peek",
+                  "opacity": 0.28,
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "justifyContent": "end",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "eO21B",
+                      "name": "Previous Sentence Tokens",
+                      "width": "fill_container",
+                      "gap": 4,
+                      "justifyContent": "center",
+                      "alignItems": "end",
+                      "children": [
+                        {
+                          "id": "xqAcF",
+                          "type": "ref",
+                          "ref": "WpjTH",
+                          "name": "Token 夢",
+                          "width": 30,
+                          "descendants": {
+                            "nW89V": {
+                              "content": "ゆめ",
+                              "fontSize": 10,
+                              "fill": "#999999"
+                            },
+                            "XAVod": {
+                              "content": "夢",
+                              "fontSize": 20,
+                              "fontWeight": "700"
+                            },
+                            "L4P01o": {
+                              "opacity": 0,
+                              "fill": "#5B8FCC"
+                            }
+                          }
+                        },
+                        {
+                          "id": "nSfTR",
+                          "type": "ref",
+                          "ref": "WpjTH",
+                          "name": "Token なら",
+                          "width": 48,
+                          "descendants": {
+                            "nW89V": {
+                              "content": " ",
+                              "fontSize": 10,
+                              "fill": "#999999"
+                            },
+                            "XAVod": {
+                              "content": "なら",
+                              "fontSize": 20,
+                              "fontWeight": "700"
+                            },
+                            "L4P01o": {
+                              "opacity": 0,
+                              "fill": "#5B8FCC"
+                            }
+                          }
+                        },
+                        {
+                          "id": "SmpU1",
+                          "type": "ref",
+                          "ref": "WpjTH",
+                          "name": "Token ば",
+                          "width": 22,
+                          "descendants": {
+                            "nW89V": {
+                              "content": " ",
+                              "fontSize": 10,
+                              "fill": "#999999"
+                            },
+                            "XAVod": {
+                              "content": "ば",
+                              "fontSize": 20,
+                              "fontWeight": "700"
+                            },
+                            "L4P01o": {
+                              "opacity": 0,
+                              "fill": "#5B8FCC"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "CbD1G",
+                  "name": "Lyric Reader",
+                  "width": "fill_container",
+                  "fill": "#f5f5f5",
+                  "layout": "vertical",
+                  "gap": 14,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "g4CF8X",
+                      "name": "Current Sentence Tokens",
+                      "width": "fill_container",
+                      "gap": 4,
+                      "justifyContent": "center",
+                      "alignItems": "end",
+                      "children": [
+                        {
+                          "id": "Fn033",
+                          "type": "ref",
+                          "ref": "WpjTH",
+                          "name": "Token 君",
+                          "width": 30,
+                          "descendants": {
+                            "nW89V": {
+                              "content": "きみ",
+                              "fontSize": 11,
+                              "fill": "#777777"
+                            },
+                            "XAVod": {
+                              "content": "君",
+                              "fontSize": 23,
+                              "fontWeight": "800"
+                            },
+                            "L4P01o": {
+                              "opacity": 1,
+                              "fill": "#5B8FCC",
+                              "height": 3
+                            }
+                          }
+                        },
+                        {
+                          "id": "ds6Ix",
+                          "type": "ref",
+                          "ref": "WpjTH",
+                          "name": "Token の",
+                          "width": 22,
+                          "descendants": {
+                            "nW89V": {
+                              "content": " ",
+                              "fontSize": 11,
+                              "fill": "#777777"
+                            },
+                            "XAVod": {
+                              "content": "の",
+                              "fontSize": 23,
+                              "fontWeight": "800"
+                            },
+                            "L4P01o": {
+                              "opacity": 0,
+                              "fill": "#5B8FCC",
+                              "height": 3
+                            }
+                          }
+                        },
+                        {
+                          "id": "oolJO",
+                          "type": "ref",
+                          "ref": "WpjTH",
+                          "name": "Token 声",
+                          "width": 30,
+                          "descendants": {
+                            "nW89V": {
+                              "content": "こえ",
+                              "fontSize": 11,
+                              "fill": "#777777"
+                            },
+                            "XAVod": {
+                              "content": "声",
+                              "fontSize": 23,
+                              "fontWeight": "800"
+                            },
+                            "L4P01o": {
+                              "opacity": 1,
+                              "fill": "#5B8FCC",
+                              "height": 3
+                            }
+                          }
+                        },
+                        {
+                          "id": "dESHM",
+                          "type": "ref",
+                          "ref": "WpjTH",
+                          "name": "Token が",
+                          "width": 22,
+                          "descendants": {
+                            "nW89V": {
+                              "content": " ",
+                              "fontSize": 11,
+                              "fill": "#777777"
+                            },
+                            "XAVod": {
+                              "content": "が",
+                              "fontSize": 23,
+                              "fontWeight": "800"
+                            },
+                            "L4P01o": {
+                              "opacity": 0,
+                              "fill": "#5B8FCC",
+                              "height": 3
+                            }
+                          }
+                        },
+                        {
+                          "id": "jc9rz",
+                          "type": "ref",
+                          "ref": "WpjTH",
+                          "name": "Token 今",
+                          "width": 30,
+                          "descendants": {
+                            "nW89V": {
+                              "content": "いま",
+                              "fontSize": 11,
+                              "fill": "#777777"
+                            },
+                            "XAVod": {
+                              "content": "今",
+                              "fontSize": 23,
+                              "fontWeight": "800"
+                            },
+                            "L4P01o": {
+                              "opacity": 1,
+                              "fill": "#9D7AC4",
+                              "height": 3
+                            }
+                          }
+                        },
+                        {
+                          "id": "Q5MB7",
+                          "type": "ref",
+                          "ref": "WpjTH",
+                          "name": "Token も",
+                          "width": 22,
+                          "descendants": {
+                            "nW89V": {
+                              "content": " ",
+                              "fontSize": 11,
+                              "fill": "#777777"
+                            },
+                            "XAVod": {
+                              "content": "も",
+                              "fontSize": 23,
+                              "fontWeight": "800"
+                            },
+                            "L4P01o": {
+                              "opacity": 0,
+                              "fill": "#5B8FCC",
+                              "height": 3
+                            }
+                          }
+                        },
+                        {
+                          "id": "wX8RQ",
+                          "type": "ref",
+                          "ref": "WpjTH",
+                          "name": "Token 聞こえる",
+                          "width": 94,
+                          "descendants": {
+                            "nW89V": {
+                              "content": "き",
+                              "fontSize": 11,
+                              "fill": "#777777"
+                            },
+                            "XAVod": {
+                              "content": "聞こえる",
+                              "fontSize": 23,
+                              "fontWeight": "800"
+                            },
+                            "L4P01o": {
+                              "opacity": 1,
+                              "fill": "#4A9D7A",
+                              "height": 3
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "flrBg",
+                      "name": "Current Korean Translation",
+                      "fill": "#666666",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "너의 목소리가 지금도 들려",
+                      "textAlign": "center",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "600"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "Z5sYuA",
+                  "name": "Next Sentence Text Peek",
+                  "opacity": 0.36,
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 7,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "E8ZaBj",
+                      "name": "Next Sentence Tokens",
+                      "width": "fill_container",
+                      "gap": 4,
+                      "justifyContent": "center",
+                      "alignItems": "end",
+                      "children": [
+                        {
+                          "id": "A3AZif",
+                          "type": "ref",
+                          "ref": "WpjTH",
+                          "name": "Token 終わらない",
+                          "width": 116,
+                          "descendants": {
+                            "nW89V": {
+                              "content": "お",
+                              "fontSize": 10,
+                              "fill": "#888888"
+                            },
+                            "XAVod": {
+                              "content": "終わらない",
+                              "fontSize": 20,
+                              "fontWeight": "700"
+                            },
+                            "L4P01o": {
+                              "opacity": 1,
+                              "fill": "#4A9D7A"
+                            }
+                          }
+                        },
+                        {
+                          "id": "cLMUs",
+                          "type": "ref",
+                          "ref": "WpjTH",
+                          "name": "Token 夢",
+                          "width": 30,
+                          "descendants": {
+                            "nW89V": {
+                              "content": "ゆめ",
+                              "fontSize": 10,
+                              "fill": "#888888"
+                            },
+                            "XAVod": {
+                              "content": "夢",
+                              "fontSize": 20,
+                              "fontWeight": "700"
+                            },
+                            "L4P01o": {
+                              "opacity": 1,
+                              "fill": "#5B8FCC"
+                            }
+                          }
+                        },
+                        {
+                          "id": "P5yEu",
+                          "type": "ref",
+                          "ref": "WpjTH",
+                          "name": "Token を",
+                          "width": 22,
+                          "descendants": {
+                            "nW89V": {
+                              "content": " ",
+                              "fontSize": 10,
+                              "fill": "#888888"
+                            },
+                            "XAVod": {
+                              "content": "を",
+                              "fontSize": 20,
+                              "fontWeight": "700"
+                            },
+                            "L4P01o": {
+                              "opacity": 0,
+                              "fill": "#5B8FCC"
+                            }
+                          }
+                        },
+                        {
+                          "id": "hapiU",
+                          "type": "ref",
+                          "ref": "WpjTH",
+                          "name": "Token 見ていた",
+                          "width": 82,
+                          "descendants": {
+                            "nW89V": {
+                              "content": "み",
+                              "fontSize": 10,
+                              "fill": "#888888"
+                            },
+                            "XAVod": {
+                              "content": "見ていた",
+                              "fontSize": 20,
+                              "fontWeight": "700"
+                            },
+                            "L4P01o": {
+                              "opacity": 1,
+                              "fill": "#4A9D7A"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "rectangle",
+              "id": "Wue8T",
+              "name": "Reader Vocabulary Divider",
+              "fill": "#EDEDED",
+              "width": "fill_container",
+              "height": 1
+            },
+            {
+              "type": "frame",
+              "id": "jBEEP",
+              "name": "Words Section",
+              "width": "fill_container",
+              "height": "fill_container",
+              "layout": "vertical",
+              "gap": 10,
+              "padding": [
+                0,
+                16
+              ],
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "k3qwWu",
+                  "name": "Words Section Header",
+                  "width": "fill_container",
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "iv1Xu",
+                      "name": "Words Section Title",
+                      "fill": "$foreground.primary",
+                      "content": "현재 문장의 단어",
+                      "fontFamily": "$font.body",
+                      "fontSize": 13,
+                      "fontWeight": "800"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "AZTH9",
+                      "name": "Word Count Pill",
+                      "fill": "$bg-subtle",
+                      "cornerRadius": "$rounded.full",
+                      "padding": [
+                        3,
+                        8
+                      ],
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "mUmH5",
+                          "name": "Word Count Label",
+                          "fill": "$foreground.secondary",
+                          "content": "4개",
+                          "fontFamily": "$font.body",
+                          "fontSize": 11,
+                          "fontWeight": "800"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "VwnZ2",
+                  "name": "Word List Body",
+                  "clip": true,
+                  "width": "fill_container",
+                  "fill": "$surface.secondary",
+                  "cornerRadius": "$rounded.2xl",
+                  "layout": "vertical",
+                  "children": [
+                    {
+                      "id": "ABBf5",
+                      "type": "ref",
+                      "ref": "OEPuW",
+                      "name": "Word Row - 君",
+                      "width": "fill_container",
+                      "x": 0,
+                      "y": 0,
+                      "descendants": {
+                        "bH1ry": {
+                          "fill": "$jlpt-n2"
+                        },
+                        "Aj8UD": {
+                          "content": "君"
+                        },
+                        "I3WOz": {
+                          "content": "너"
+                        },
+                        "heX7M": {
+                          "content": "きみ"
+                        },
+                        "ioPpL": {
+                          "content": "N2",
+                          "fill": "$jlpt-n2"
+                        },
+                        "U2wpM": {
+                          "content": "명사",
+                          "fill": "$foreground.muted"
+                        }
+                      }
+                    },
+                    {
+                      "type": "frame",
+                      "id": "PCShs",
+                      "name": "Word Row Separator",
+                      "width": "fill_container",
+                      "height": 1,
+                      "padding": [
+                        0,
+                        26,
+                        0,
+                        56
+                      ],
+                      "children": [
+                        {
+                          "type": "rectangle",
+                          "id": "U9N9Cd",
+                          "name": "Separator Line",
+                          "opacity": 0.65,
+                          "fill": "$border-default",
+                          "width": "fill_container",
+                          "height": 1
+                        }
+                      ]
+                    },
+                    {
+                      "id": "V57UZ8",
+                      "type": "ref",
+                      "ref": "OEPuW",
+                      "name": "Word Row - 声",
+                      "width": "fill_container",
+                      "x": 0,
+                      "y": 74,
+                      "descendants": {
+                        "bH1ry": {
+                          "fill": "$jlpt-n3"
+                        },
+                        "Aj8UD": {
+                          "content": "声"
+                        },
+                        "I3WOz": {
+                          "content": "목소리"
+                        },
+                        "heX7M": {
+                          "content": "こえ"
+                        },
+                        "ioPpL": {
+                          "content": "N3",
+                          "fill": "$jlpt-n3"
+                        },
+                        "U2wpM": {
+                          "content": "명사",
+                          "fill": "$foreground.muted"
+                        }
+                      }
+                    },
+                    {
+                      "type": "frame",
+                      "id": "QmKLM",
+                      "name": "Word Row Separator",
+                      "width": "fill_container",
+                      "height": 1,
+                      "padding": [
+                        0,
+                        26,
+                        0,
+                        56
+                      ],
+                      "children": [
+                        {
+                          "type": "rectangle",
+                          "id": "dKrs7",
+                          "name": "Separator Line",
+                          "opacity": 0.65,
+                          "fill": "$border-default",
+                          "width": "fill_container",
+                          "height": 1
+                        }
+                      ]
+                    },
+                    {
+                      "id": "R7rCey",
+                      "type": "ref",
+                      "ref": "OEPuW",
+                      "name": "Word Row - 今",
+                      "width": "fill_container",
+                      "x": 0,
+                      "y": 148,
+                      "descendants": {
+                        "bH1ry": {
+                          "fill": "$jlpt-n5"
+                        },
+                        "Aj8UD": {
+                          "content": "今"
+                        },
+                        "I3WOz": {
+                          "content": "지금"
+                        },
+                        "heX7M": {
+                          "content": "いま"
+                        },
+                        "ioPpL": {
+                          "content": "N5",
+                          "fill": "$jlpt-n5"
+                        },
+                        "U2wpM": {
+                          "content": "명사",
+                          "fill": "$foreground.muted"
+                        }
+                      }
+                    },
+                    {
+                      "type": "frame",
+                      "id": "zLRQW",
+                      "name": "Word Row Separator",
+                      "width": "fill_container",
+                      "height": 1,
+                      "padding": [
+                        0,
+                        26,
+                        0,
+                        56
+                      ],
+                      "children": [
+                        {
+                          "type": "rectangle",
+                          "id": "AypyZ",
+                          "name": "Separator Line",
+                          "opacity": 0.65,
+                          "fill": "$border-default",
+                          "width": "fill_container",
+                          "height": 1
+                        }
+                      ]
+                    },
+                    {
+                      "id": "e6Era",
+                      "type": "ref",
+                      "ref": "OEPuW",
+                      "name": "Word Row - 聞こえる",
+                      "width": "fill_container",
+                      "x": 0,
+                      "y": 222,
+                      "descendants": {
+                        "bH1ry": {
+                          "fill": "$jlpt-n4"
+                        },
+                        "Aj8UD": {
+                          "content": "聞こえる"
+                        },
+                        "I3WOz": {
+                          "content": "들리다"
+                        },
+                        "heX7M": {
+                          "content": "きこえる"
+                        },
+                        "ioPpL": {
+                          "content": "N4",
+                          "fill": "$jlpt-n4"
+                        },
+                        "U2wpM": {
+                          "content": "동사",
+                          "fill": "$foreground.muted"
+                        }
+                      }
+                    }
+                  ]
                 }
               ]
             }
