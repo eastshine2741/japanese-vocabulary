@@ -1,0 +1,132 @@
+1. 추천곡을 일주일마다 배치로 갱신
+2. data source는 apple music japan top 100
+3. top 100 읽어서 후보 테이블에 적재
+
+
+song_recommendation_candidate << 사전에 관리자가 검토하기 위한 후보
+- yearweek
+- status: PENDING, APPROVED, REJECTED
+- title
+- artist name
+- song_recommendation_id
+- created_at
+- updated_at
+
+
+song_recommendation << 특정 week의 추천곡들. song 바깥에 위치
+- yearweek
+- status: PENDING, PUBLISHED
+- song_id NOT NULL
+- score
+- created_at
+- updated_at
+
+approve 했을 때 곡 분석 시작하는 파이프라인:
+- lyric provider 검색 -> song, lyric 생성 -> 배치가 분석
+- 앞의 두 단계가 강하게 결합되어있다. 둘은 한번에 일어나야한다.
+- approve시 API 또는 [approve를 긁어가는 배치]에서 그 두 단계를 실행해야함
+- 그리하여 song_recommendation도 생성하고 song_id도 연결
+- 관리자는 song_recommendation 목록에서 song->lyric으로 타고 들어가서 분석 품질을 검토
+- song_recommendation의 status를 PUBLISHED로 바꾸면 유저앱에 노출
+
+별도 request 테이블이 있으면 좋나?
+- analyzation request
+- 현재 배치는 song,lyric을 읽고 분석하므로 lyric 조회나 youtube mv 검색은 API에서 하는데
+- 만일 analyzatiotn request를 읽도록 바꾼다면
+- API는 가벼워지고
+- song_recommendation_candidate approve 시 analyzation request만 쌓아두면 song, lyric이 생성됨. 근데 어떻게 song_recommendation_candidate와 song_recommendation에 연결하지?
+- 연결 못하는이유: analyze 배치에서 recommendation 맥락을 모름
+- 그럼 analyze request에 recommendation id를 넣어둔다면? 또는 message queue로 바꾸고 message에 recommendation id를 넣어둔다면?
+- analyze 배치에서 recommendation 맥락을 가지게된다
+- 애초에 recommendation은 이미 등재된 song 중에서 할 수 있게 한다면?
+- approve 시 song 중에서 검색만 하기
+- RSS에서 받았는데 song에 없으면 분석 트리거를 따로 한다 
+- lyric, youtube mv를 백그라운드로 옮길수있음
+- 그럼 유저앱에서 analyze API 자체는 즉시 응답할거고, 로딩 화면 보여주고있다가 서버에서 lyric, MV 조회 성공 시점에 이벤트 발행하여 song을 띄워줘야함. 뭐쓰지? FCM?
+
+플로우 정리
+- RSS가 candidate 생성
+- APPROVE or REJECT
+- APPROVE하면 recommendation 생성하고, 이때 song 조회해서 recommendation에 넣음
+- 즉 APPROVE하기위해 song 필요
+- song 검색은 어떻게 할것인가? 정규화된 정보가 필요하다 << 이미 apple music 검색결과를 (artist, title) exact match해서 song 검색하고있으니 그걸로 괜찮을듯? 애초에 recommendation candidate의 artist, title 그대로 요청해서 그대로 song 생성될테니.
+- recommendation candidate에는 song_id 없다. APPROVE하면 API 또는 배치가 song 검색하고, song 검색안된게 있으면 fail
+- 곡 분석을 트리거할 수 있다. analyze request를 쌓든, analyze API가 하는일을 따라하든.
+- 모든 candidate가 song 검색되면, 그걸로 recommendation 생성. recommendation에는 song_id 있음
+- recommendation에서 song 타고들어가서 품질 검토 후 PUBLISHED 변경
+- 그럼 recommendation_candidate와 recommendation을 분리할 필요가 있는가? -> 비용이 높은 작업인 song analyze를 구분할거라면 테이블로서 구분해버리는게 좋을듯.
+
+
+
+
+아이돌 노래 같은건 필요없을거같은데,....
+인간 검수가 필요할까? -> yes
+검수 타이밍: 분석 완료시
+검수 탈락시킬 이유:
+- 한국 유저에게 흥미 X
+- 일본곡이 아님
+- 논란성 곡
+====
+- 가사를 찾을 수 없음
+
+
+==================================
+song_recommendation_candidate << 사전에 관리자가 검토하기 위한 후보
+- yearweek
+- status: PENDING, APPROVED, REJECTED
+- title
+- artist name
+- created_at
+- updated_at
+
+
+song_recommendation << 특정 week의 추천곡들
+- yearweek
+- status: PENDING, PUBLISHED
+- song_id NOT NULL
+- order << 유저앱에 보일 때 정렬 기준(오름차순)
+- created_at
+- updated_at
+
+추천곡 상태머신
+1. 일주일마다 도는 배치로 Apple RSS를 조회하여 song_recommendation_candidate를 PENDING 상태로 생성(100개)
+2. 관리자가 어드민에서 직접 APPROVE 또는 REJECTED로 변경
+3. candidate를 APPROVE로 전환 시, artist name과 title으로 exact match되는 songs row가 있어야함. 없다면 APPROVE로 전환 불가능
+3-1. candidate의 artist name과 title으로 곡 분석(=songs, lyrics 생성 및 분석 파이프라인)을 트리거하는 기능을 함께 제공하여, songs가 검색되도록 한 후 APPROVE 재시도할 수 있게 한다.
+4. APPROVE로 전환 시 검색된 song id가 연결된 recommendation을 PENDING 상태, order 0으로 생성
+5. 관리자가 어드민에서 song, lyrics 검토 후 recommendation의 order 조정하여 PUBLISHED 상태로 변경
+6. 유저앱에는 가장 최근 yearweek의 recommendation을 읽어서 (order ASC, created_at ASC)로 정렬하여 내려준다.
+
+곡 분석 파이프라인 개편
+1. /api/songs/analyze 또는 어드민에서의 곡 분석 요청 시 트리거된다.
+2. 유저앱, 어드민에는 즉시 응답하고, analyzation_request 테이블에 row INSERT 또는 message queue에 메시지 발행한다. 유저앱은 응답 받은 후 로딩뷰를 띄운다.
+3. 가사 조회 -> youtube MV 조회 -> lyric 분석 순서로 비동기 처리하며, youtube MV 조회 완료 시점에 song과 lyric을 생성하고 FCM으로 유저앱에 알려서 로딩뷰를 내리고 player screen을 띄운다.
+
+어드민 작업
+- 현재 어드민이 없고, 별도 세션에서 작업 예정. 별도 세션에서 작업 완료된 후 개발한다.
+
+남은 결정사항
+- 곡 분석 파이프라인을 배치 이용할것인지, message queue 이용할 것인지.
+  - 이미 batch 사용중이므로, batch 유지하는 것이 변경이 적다는 장점
+  - 그러나 30초마다 도는 batch는 리소스 낭비이며, scalable하지도 않으며, 곡 분석은 유저가 트리거하는 액션이므로 짧은 latency를 위해서라면 message queue가 적합
+  
+  
+  
+  
+  
+  
+  
+$oh-my-codex:deep-interview
+곡 분석 요청 파이프라인을 API 동기 처리에서 분리하고 싶어.
+곡 분석이 현재 있는 유저앱뿐만아니라 어드민 등으로부터도 트리거시킬 계획이라서, 유저앱 동기 API에 남아있는 부분까지 파이프라인으로 빼내고, 이참에 lyrics의 상태머신을 제거하고 별도 테이블에 상태머신을 두고, message queue도 고려하는 등의 개선을 하고싶어.
+
+내가 한 대략 설계:
+1. /api/songs/analyze 또는 어드민에서의 곡 분석 요청 시 트리거된다.
+2. 유저앱, 어드민에는 즉시 응답하고, analyzation_request 테이블에 row INSERT 또는 message queue에 메시지 발행한다. 유저앱은 응답 받은 후 로딩뷰를 띄운다.
+3. 가사 조회 -> youtube MV 조회 -> lyric 분석 순서로 비동기 처리하며, youtube MV 조회 완료 시점에 song과 lyric을 생성하고 FCM으로 유저앱에 알려서 로딩뷰를 내리고 player screen을 띄운다.
+
+
+남은 결정사항:
+- 곡 분석 파이프라인을 배치 이용할것인지, message queue 이용할 것인지.
+  - 이미 batch 사용중이므로, batch 유지하는 것이 변경이 적다는 장점
+  - 그러나 30초마다 도는 batch는 리소스 낭비이며, scalable하지도 않으며, 곡 분석은 유저가 트리거하는 액션이므로 짧은 latency를 위해서라면 message queue가 적합

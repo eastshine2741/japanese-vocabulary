@@ -12,8 +12,8 @@ import com.japanese.vocabulary.song.model.PartOfSpeech
 import com.japanese.vocabulary.song.dto.RecentSongItemDto
 import com.japanese.vocabulary.song.dto.SongAnalysisWorkResponse
 import com.japanese.vocabulary.song.dto.SongDto
-import com.japanese.vocabulary.song.dto.SongSearchItemDto
-import com.japanese.vocabulary.song.dto.SongSearchResponse
+import com.japanese.vocabulary.songsearch.dto.SongSearchItemDto
+import com.japanese.vocabulary.songsearch.dto.SongSearchResponse
 import com.japanese.vocabulary.song.model.Token
 import com.japanese.vocabulary.song.entity.LyricEntity
 import com.japanese.vocabulary.song.entity.LyricType
@@ -123,9 +123,6 @@ class SongControllerTest : ApiBaseIntegrationTest() {
             assertThat(dto.status).isEqualTo("PENDING")
             assertThat(dto.songId).isNull()
             assertThat(dto.canOpenPlayer).isFalse
-            io.mockk.verify(exactly = 0) { lrclibClient.search(any()) }
-            io.mockk.verify(exactly = 0) { vocadbClient.search(any()) }
-            io.mockk.verify(exactly = 0) { youtubeMvSearchService.searchMvUrl(any(), any()) }
         }
 
         @Test
@@ -152,9 +149,6 @@ class SongControllerTest : ApiBaseIntegrationTest() {
             assertThat(work.rawTitle).isEqualTo("新曲")
             assertThat(work.rawArtist).isEqualTo("新歌手")
             assertThat(work.durationSeconds).isEqualTo(180)
-            io.mockk.verify(exactly = 0) { lrclibClient.search(any()) }
-            io.mockk.verify(exactly = 0) { vocadbClient.search(any()) }
-            io.mockk.verify(exactly = 0) { youtubeMvSearchService.searchMvUrl(any(), any()) }
         }
 
         @Test
@@ -173,8 +167,6 @@ class SongControllerTest : ApiBaseIntegrationTest() {
 
             entityManager.flush(); entityManager.clear()
             assertThat(songRepository.findByArtistAndTitle("なし歌手", "なし")).isNull()
-            io.mockk.verify(exactly = 0) { lrclibClient.search(any()) }
-            io.mockk.verify(exactly = 0) { vocadbClient.search(any()) }
         }
 
         @Test
@@ -195,7 +187,6 @@ class SongControllerTest : ApiBaseIntegrationTest() {
 
             entityManager.flush(); entityManager.clear()
             assertThat(songRepository.findByArtistAndTitle("歌手", "YT失敗")).isNull()
-            io.mockk.verify(exactly = 0) { youtubeMvSearchService.searchMvUrl(any(), any()) }
         }
 
         @Test

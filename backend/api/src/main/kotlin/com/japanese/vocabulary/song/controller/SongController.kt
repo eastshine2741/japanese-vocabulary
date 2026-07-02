@@ -5,16 +5,16 @@ import com.japanese.vocabulary.song.dto.RecentSongItemDto
 import com.japanese.vocabulary.song.dto.SongAnalysisWorkResponse
 import com.japanese.vocabulary.song.dto.SongDto
 import com.japanese.vocabulary.song.dto.AnalyzedSongDto
-import com.japanese.vocabulary.song.dto.SongSearchResponse
+import com.japanese.vocabulary.songsearch.dto.SongSearchResponse
 import com.japanese.vocabulary.deck.service.DeckService
 import com.japanese.vocabulary.songanalysis.dto.SongAnalysisWorkDto
 import com.japanese.vocabulary.song.repository.LyricRepository
 import com.japanese.vocabulary.song.repository.SongRepository
 import com.japanese.vocabulary.songanalysis.service.SongAnalysisWorkService
-import com.japanese.vocabulary.song.service.LyricProcessingService
 import com.japanese.vocabulary.song.service.RecentSongService
 import com.japanese.vocabulary.song.service.SearchHistoryService
 import com.japanese.vocabulary.song.service.SongSearchService
+import com.japanese.vocabulary.song.service.SongStudyViewService
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.bind.annotation.GetMapping
@@ -28,7 +28,7 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 @RequestMapping("/api/songs")
 class SongController(
-    private val lyricProcessingService: LyricProcessingService,
+    private val songStudyViewService: SongStudyViewService,
     private val songAnalysisWorkService: SongAnalysisWorkService,
     private val songSearchService: SongSearchService,
     private val recentSongService: RecentSongService,
@@ -71,7 +71,7 @@ class SongController(
         }
 
         recentSongService.recordListen(currentUserId(), entity.id!!)
-        val analyzed = lyricProcessingService.buildAnalyzedSong(entity)
+        val analyzed = songStudyViewService.buildAnalyzedSong(entity)
         return ResponseEntity.ok(analyzed.toResponse())
     }
 
@@ -116,7 +116,7 @@ class SongController(
         val entity = songRepository.findById(spotlightId).orElse(null)
             ?: return ResponseEntity.noContent().build()
 
-        val analyzed = lyricProcessingService.buildAnalyzedSong(entity)
+        val analyzed = songStudyViewService.buildAnalyzedSong(entity)
         return ResponseEntity.ok(analyzed.toResponse())
     }
 
@@ -127,7 +127,7 @@ class SongController(
 
         recentSongService.recordListen(currentUserId(), entity.id!!)
 
-        val analyzed = lyricProcessingService.buildAnalyzedSong(entity)
+        val analyzed = songStudyViewService.buildAnalyzedSong(entity)
         return ResponseEntity.ok(analyzed.toResponse())
     }
 

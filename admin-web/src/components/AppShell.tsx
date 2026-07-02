@@ -1,4 +1,4 @@
-import { Activity, Disc3, FileText, LogOut, Users } from "lucide-react"
+import { Activity, Disc3, FileText, LogOut, Sparkles, Users } from "lucide-react"
 import { NavLink, Outlet, useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/features/auth"
@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils"
 const navItems = [
   { to: "/songs", label: "Songs", icon: Disc3 },
   { to: "/lyrics", label: "Lyrics", icon: FileText },
+  { to: "/recommendations", label: "Recommendations", icon: Sparkles },
   { to: "/song-analysis-works", label: "Analysis Work", icon: Activity },
   { to: "/users", label: "Users", icon: Users },
 ]

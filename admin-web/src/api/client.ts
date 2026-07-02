@@ -4,6 +4,7 @@ import type {
   LyricDetail,
   LyricSummary,
   PageResponse,
+  RecommendationOperationResult,
   SongAnalysisWorkDetail,
   SongAnalysisWorkSummary,
   SongDetail,
@@ -67,6 +68,18 @@ export const adminApi = {
   },
   songAnalysisWork(token: string, id: string) {
     return request<SongAnalysisWorkDetail>(`/song-analysis-works/${id}`, token)
+  },
+  dispatchRecommendationAnalysis(token: string, limit = 10) {
+    const params = new URLSearchParams({ limit: String(limit) })
+    return request<RecommendationOperationResult>(`/recommendations/dispatch-analysis?${params}`, token, {
+      method: "POST",
+    })
+  },
+  reconcileRecommendationCompleted(token: string, limit = 10) {
+    const params = new URLSearchParams({ limit: String(limit) })
+    return request<RecommendationOperationResult>(`/recommendations/reconcile-completed?${params}`, token, {
+      method: "POST",
+    })
   },
   users(token: string, page: number, query?: string) {
     return request<PageResponse<AdminUser>>(`/users?${pageParams(page, query)}`, token)

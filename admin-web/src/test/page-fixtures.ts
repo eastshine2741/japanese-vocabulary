@@ -3,6 +3,7 @@ import type {
   LyricDetail,
   LyricSummary,
   PageResponse,
+  RecommendationOperationResult,
   SongAnalysisWorkDetail,
   SongAnalysisWorkSummary,
   SongDetail,
@@ -136,4 +137,20 @@ export const songAnalysisWorkDetail: SongAnalysisWorkDetail = {
   lockedUntil: null,
   errorCode: null,
   errorMessage: null,
+}
+
+export const recommendationOperationResult: RecommendationOperationResult = {
+  processed: 1,
+  succeeded: 1,
+  skipped: 0,
+  failed: 0,
+  items: [
+    {
+      candidateId: 10,
+      status: "SUCCEEDED",
+      workId: 4,
+      recommendationId: null,
+      message: null,
+    },
+  ],
 }

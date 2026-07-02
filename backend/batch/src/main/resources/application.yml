@@ -49,6 +49,12 @@ gemini:
 youtube:
   api-key: ${YOUTUBE_API_KEY}
 
+recommendation:
+  apple-rss:
+    storefront: jp
+    limit: 100
+    collect-cron: "0 0 3 ? * MON"
+
 sentry:
   dsn: ${SENTRY_DSN_BATCH:}
   environment: ${SENTRY_ENVIRONMENT:local}

@@ -31,6 +31,7 @@ class SecurityConfig(
                 auth
                     .requestMatchers("/admin/api/auth/login").permitAll()
                     .requestMatchers("/actuator/health/**").permitAll()
+                    .requestMatchers("/error").permitAll()
                     .requestMatchers("/admin/api/**").authenticated()
                     .anyRequest().denyAll()
             }
