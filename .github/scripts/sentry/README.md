@@ -97,7 +97,73 @@ printf '{"version":1,"issues":{},"attempts":[]}\n' > "$tmp_state"
 .github/scripts/sentry/triage.sh --dry-run --record-dry-run --state-file "$tmp_state" --fixture .github/scripts/sentry/fixtures/partial-success-discord-failed.json
 ```
 
-## Cron
+## Run Once
+
+Load the private env file and check local prerequisites:
+
+```bash
+cd /absolute/path/to/this/repo
+set -a
+. .github/scripts/sentry/triage.env
+set +a
+.github/scripts/sentry/triage.sh --check-preflight
+```
+
+Run one live pass:
+
+```bash
+set -a
+. .github/scripts/sentry/triage.env
+set +a
+.github/scripts/sentry/triage.sh
+```
+
+## User Systemd Timer
+
+This machine uses user-level systemd timers for local automation. Create these files:
+
+```ini
+# ~/.config/systemd/user/sentry-triage.service
+[Unit]
+Description=Sentry Auto Triage Runner
+
+[Service]
+Type=oneshot
+WorkingDirectory=/absolute/path/to/this/repo
+EnvironmentFile=/absolute/path/to/this/repo/.github/scripts/sentry/triage.env
+ExecStart=/absolute/path/to/this/repo/.github/scripts/sentry/triage.sh
+```
+
+```ini
+# ~/.config/systemd/user/sentry-triage.timer
+[Unit]
+Description=Run Sentry Auto Triage every 5 minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+```
+
+Enable and inspect it:
+
+```bash
+systemctl --user daemon-reload
+systemctl --user enable --now sentry-triage.timer
+systemctl --user list-timers --all sentry-triage.timer
+journalctl --user -u sentry-triage.service -n 100 --no-pager
+```
+
+Stop it:
+
+```bash
+systemctl --user disable --now sentry-triage.timer
+```
+
+## Cron Alternative
 
 Example every five minutes:
 
