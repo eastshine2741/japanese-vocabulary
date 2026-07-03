@@ -22,7 +22,7 @@ function mockFetch() {
       const body = JSON.parse(String(init?.body))
       return json(body.password === "secret" ? { token: "admin-token", expiresAt: "2026-01-01T01:00:00Z" } : {}, body.password === "secret" ? 200 : 401)
     }
-    if (url.endsWith("/songs/1/reanalysis")) return json({ ...songAnalysisWorkSummary, id: 5, status: "PENDING", triggerSource: "ADMIN" })
+    if (url.endsWith("/songs/1/reanalysis") && init?.method === "POST") return json(pendingReanalysisWork)
     if (url.includes("/songs/1")) return json(songDetail)
     if (url.includes("/songs?")) return json(page([songSummary]))
     if (url.includes("/song-analysis-works/4")) return json(songAnalysisWorkDetail)
@@ -37,6 +37,28 @@ function mockFetch() {
   })
   vi.stubGlobal("fetch", fetchMock)
   return fetchMock
+}
+
+
+const pendingReanalysisWork = {
+  ...songAnalysisWorkSummary,
+  id: 7,
+  status: "PENDING",
+  triggerSource: "ADMIN",
+  lyricId: null,
+  youtubeUrl: "https://youtu.be/new-mv",
+}
+
+const songDetailWithReanalysisHistory = {
+  ...songDetail,
+  activeReanalysisWork: null,
+  analysisWorks: [pendingReanalysisWork],
+}
+
+const songDetailWithActiveBlocker = {
+  ...songDetail,
+  activeReanalysisWork: pendingReanalysisWork,
+  analysisWorks: [pendingReanalysisWork],
 }
 
 function json(body: unknown, status = 200) {
@@ -113,15 +135,54 @@ describe("admin web", () => {
     expect(screen.queryByText(/\b(Edit|Delete|Save|Create)\b/i)).not.toBeInTheDocument()
   })
 
-  test("triggers song reanalysis from song detail", async () => {
-    const user = userEvent.setup()
+
+  test("song detail exposes admin reanalysis action and work-produced MV history", async () => {
+    vi.mocked(fetch).mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input)
+      if (url.endsWith("/songs/1/reanalysis") && init?.method === "POST") return json(pendingReanalysisWork)
+      if (url.includes("/songs/1")) return json(songDetailWithReanalysisHistory)
+      return json({}, 404)
+    })
+
     sessionStorage.setItem("kotonoha.admin.token", "admin-token")
     renderApp("/songs/1")
 
-    await user.click(await screen.findByRole("button", { name: "Trigger reanalysis" }))
+    expect(await screen.findByRole("button", { name: /trigger reanalysis/i })).toBeInTheDocument()
+    expect(screen.getByText(/recent analysis works/i)).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: /work #7/i })).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: /new mv/i })).toHaveAttribute("href", "https://youtu.be/new-mv")
+  })
 
-    expect(await screen.findByText("Reanalysis work #5 PENDING is queued.")).toBeInTheDocument()
-    expect(screen.getAllByRole("link", { name: "#5 PENDING" }).length).toBeGreaterThan(0)
+  test("song detail posts reanalysis and disables duplicate trigger when active work blocks", async () => {
+    const user = userEvent.setup()
+    const fetchMock = vi.mocked(fetch)
+    fetchMock.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input)
+      if (url.endsWith("/songs/1/reanalysis") && init?.method === "POST") return json(pendingReanalysisWork)
+      if (url.includes("/songs/1")) return json(songDetailWithActiveBlocker)
+      return json({}, 404)
+    })
+
+    sessionStorage.setItem("kotonoha.admin.token", "admin-token")
+    const { unmount } = renderApp("/songs/1")
+
+    const trigger = await screen.findByRole("button", { name: /trigger reanalysis/i })
+    expect(trigger).toBeDisabled()
+    expect(screen.getByText(/active reanalysis work/i)).toBeInTheDocument()
+
+    unmount()
+    fetchMock.mockClear()
+    fetchMock.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input)
+      if (url.endsWith("/songs/1/reanalysis") && init?.method === "POST") return json(pendingReanalysisWork)
+      if (url.includes("/songs/1")) return json(songDetailWithReanalysisHistory)
+      return json({}, 404)
+    })
+    renderApp("/songs/1")
+
+    await user.click(await screen.findByRole("button", { name: /trigger reanalysis/i }))
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("/songs/1/reanalysis"), expect.objectContaining({ method: "POST" })))
+    expect(await screen.findByText(/reanalysis work #7/i)).toBeInTheDocument()
   })
 
   test("renders song analysis work milestones", async () => {
