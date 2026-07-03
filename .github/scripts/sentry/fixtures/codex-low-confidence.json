@@ -1,0 +1,35 @@
+{
+  "issue": {
+    "id": "1005",
+    "shortId": "KOTONOHA-API-5",
+    "title": "Ambiguous server error",
+    "permalink": "https://sentry.io/organizations/example/issues/1005/",
+    "firstSeen": "2026-06-25T00:40:00Z"
+  },
+  "event": {
+    "eventID": "evt-low-confidence-1",
+    "message": "Internal server error with missing stacktrace"
+  },
+  "discord": {
+    "messages": [
+      {
+        "id": "9005",
+        "content": "Sentry KOTONOHA-API-5 https://sentry.io/organizations/example/issues/1005/"
+      }
+    ]
+  },
+  "mockCodexResult": {
+    "action": "github_issue",
+    "confidence": "low",
+    "summary": "The stacktrace is insufficient for an automated PR.",
+    "rootCause": "The available Sentry event lacks enough in-app evidence.",
+    "evidence": ["Missing stacktrace", "Only generic server error is present"],
+    "requiresLargeRefactor": false,
+    "discordReply": "근거가 부족해 자동 PR 대신 조사 이슈를 등록합니다.",
+    "githubIssue": {
+      "title": "Investigate ambiguous Sentry server error",
+      "body": "The Sentry event is missing enough stacktrace data for an automated fix. Capture more context and inspect related logs.",
+      "labels": ["sentry", "needs-investigation"]
+    }
+  }
+}

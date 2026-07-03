@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Sentry triage result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "action",
+    "confidence",
+    "summary",
+    "rootCause",
+    "evidence",
+    "requiresLargeRefactor",
+    "discordReply"
+  ],
+  "properties": {
+    "action": {
+      "type": "string",
+      "enum": ["pr", "github_issue", "cause_only"]
+    },
+    "confidence": {
+      "type": "string",
+      "enum": ["low", "medium", "high"]
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "rootCause": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "requiresLargeRefactor": {
+      "type": "boolean"
+    },
+    "discordReply": {
+      "type": "string",
+      "minLength": 1
+    },
+    "prPlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["branchSlug", "title", "implementationPrompt", "testPlan"],
+      "properties": {
+        "branchSlug": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{2,60}$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "implementationPrompt": {
+          "type": "string",
+          "minLength": 1
+        },
+        "testPlan": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "githubIssue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "body", "labels"],
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "body": {
+          "type": "string",
+          "minLength": 1
+        },
+        "labels": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  },
+  "oneOf": [
+    {
+      "properties": {
+        "action": { "const": "pr" },
+        "confidence": { "enum": ["medium", "high"] },
+        "requiresLargeRefactor": { "const": false }
+      },
+      "required": ["prPlan"],
+      "not": { "required": ["githubIssue"] }
+    },
+    {
+      "properties": {
+        "action": { "const": "github_issue" }
+      },
+      "required": ["githubIssue"],
+      "not": { "required": ["prPlan"] }
+    },
+    {
+      "properties": {
+        "action": { "const": "cause_only" }
+      },
+      "not": {
+        "anyOf": [
+          { "required": ["prPlan"] },
+          { "required": ["githubIssue"] }
+        ]
+      }
+    }
+  ]
+}

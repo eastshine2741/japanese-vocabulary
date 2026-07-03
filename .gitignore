@@ -38,3 +38,4 @@ admin-web/coverage/
 !.env*.template
 !**/.env*.template
 **/application-local.yml
+.github/scripts/sentry/triage.env

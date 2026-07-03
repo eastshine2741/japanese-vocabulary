@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO_DIR="/home/eastshine/IdeaProjects/japanese-vocabulary"
-PROMPTS_DIR="$REPO_DIR/.github/scripts/prompts"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="${ISSUE_RESOLVER_REPO_DIR:-$(git -C "$SCRIPT_DIR/../../.." rev-parse --show-toplevel)}"
+PROMPTS_DIR="$SCRIPT_DIR/prompts"
 LOG_DIR="$HOME/.claude/logs"
 LOG_FILE="$LOG_DIR/issue-resolver-$(date +%Y%m%d).log"
 LOCK_FILE="/tmp/issue-resolver.lock"
 
+mkdir -p "$LOG_DIR"
 echo "=== $(date '+%Y-%m-%d %H:%M:%S') ===" >> "$LOG_FILE"
 
 # Prevent duplicate runs
