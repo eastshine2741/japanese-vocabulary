@@ -4,6 +4,7 @@ import { useDeckListStore } from '../stores/deckListStore';
 import { useDeckWordListStore } from '../stores/deckWordListStore';
 import { useHomeStore } from '../stores/homeStore';
 import { usePlayerStore } from '../stores/playerStore';
+import { useRecommendationStore } from '../stores/recommendationStore';
 import { useReviewStore } from '../stores/reviewStore';
 import { useSearchHistoryStore } from '../stores/searchHistoryStore';
 import { useSettingsStore } from '../stores/settingsStore';
@@ -17,6 +18,7 @@ export function resetAllStores() {
   useAuthStore.setState({ status: 'idle', error: null, username: null, userName: null });
 
   useHomeStore.setState({ status: 'loading', songs: [], error: null });
+  useRecommendationStore.setState({ status: 'loading', songs: [], error: null });
 
   useStudyStatsStore.setState({
     home: emptyStatsSlice(),

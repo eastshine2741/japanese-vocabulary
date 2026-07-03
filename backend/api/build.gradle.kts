@@ -16,6 +16,7 @@ dependencies {
     // Domain modules (api bootstrap wires all of them)
     implementation(project(":domains:song"))
     implementation(project(":domains:song-analysis"))
+    implementation(project(":domains:recommendation"))
     implementation(project(":domains:auth"))
     implementation(project(":domains:user"))
     implementation(project(":domains:userinventory"))
@@ -23,6 +24,7 @@ dependencies {
     implementation(project(":domains:deck"))
     implementation(project(":domains:studystats"))
     implementation(project(":domains:notification"))
+    implementation(project(":integrations:song-search"))
 
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")

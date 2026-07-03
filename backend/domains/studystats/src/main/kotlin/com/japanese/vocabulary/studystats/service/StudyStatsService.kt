@@ -1,5 +1,6 @@
 package com.japanese.vocabulary.studystats.service
 
+import org.springframework.stereotype.Service
 import com.japanese.vocabulary.studystats.entity.DailyStudySummaryEntity
 import com.japanese.vocabulary.studystats.dto.DailyDotDto
 import com.japanese.vocabulary.studystats.dto.DailyStudySummaryDto
@@ -9,7 +10,6 @@ import com.japanese.vocabulary.studystats.repository.DailyStudySummaryRepository
 import com.japanese.vocabulary.studystats.util.KstClock
 import com.japanese.vocabulary.userinventory.entity.InventoryItemType
 import com.japanese.vocabulary.userinventory.service.UserInventoryService
-import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.DayOfWeek
 import java.time.LocalDate

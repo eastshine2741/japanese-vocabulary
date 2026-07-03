@@ -1,11 +1,11 @@
 package com.japanese.vocabulary.song.batch
 
-import com.japanese.vocabulary.song.client.LyricsResult
-import com.japanese.vocabulary.song.client.youtube.dto.YoutubeSearchItemDto
-import com.japanese.vocabulary.song.client.youtube.dto.YoutubeSearchResponse
-import com.japanese.vocabulary.song.client.youtube.dto.YoutubeSnippetDto
-import com.japanese.vocabulary.song.client.youtube.dto.YoutubeThumbnailsDto
-import com.japanese.vocabulary.song.client.youtube.dto.YoutubeVideoIdDto
+import com.japanese.vocabulary.lyricsearch.LyricsResult
+import com.japanese.vocabulary.mvsearch.client.youtube.dto.YoutubeSearchItemDto
+import com.japanese.vocabulary.mvsearch.client.youtube.dto.YoutubeSearchResponse
+import com.japanese.vocabulary.mvsearch.client.youtube.dto.YoutubeSnippetDto
+import com.japanese.vocabulary.mvsearch.client.youtube.dto.YoutubeThumbnailsDto
+import com.japanese.vocabulary.mvsearch.client.youtube.dto.YoutubeVideoIdDto
 import com.japanese.vocabulary.song.entity.LyricType
 import com.japanese.vocabulary.song.repository.LyricRepository
 import com.japanese.vocabulary.song.repository.SongRepository

@@ -4,7 +4,7 @@ import com.japanese.vocabulary.common.exception.BusinessException
 import com.japanese.vocabulary.common.exception.ErrorCode
 import com.japanese.vocabulary.song.entity.LyricEntity
 import com.japanese.vocabulary.song.repository.LyricRepository
-import com.japanese.vocabulary.song.service.LyricProcessingService
+import com.japanese.vocabulary.song.service.SongAnalysisPreparationService
 import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkEntity
 import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStage
 import com.japanese.vocabulary.songanalysis.service.SongAnalysisWorkService
@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component
 class SongAnalysisWorkProcessor(
     private val workService: SongAnalysisWorkService,
     private val completionService: SongAnalysisWorkCompletionService,
-    private val lyricProcessingService: LyricProcessingService,
+    private val preparationService: SongAnalysisPreparationService,
     private val translationService: KoreanLyricTranslationService,
     private val lyricRepository: LyricRepository,
 ) {
@@ -49,18 +49,18 @@ class SongAnalysisWorkProcessor(
         }
 
         if (!workService.markStage(work.id!!, workerId, SongAnalysisWorkStage.FETCH_LYRICS)) return null
-        val preparedLyric = lyricProcessingService.prepareLyrics(
+        val preparedLyric = preparationService.prepareLyrics(
             title = work.rawTitle,
             artist = work.rawArtist,
             durationSeconds = work.durationSeconds,
         )
 
         if (!workService.markStage(work.id!!, workerId, SongAnalysisWorkStage.FETCH_YOUTUBE)) return null
-        val youtubeUrl = lyricProcessingService.searchYoutubeUrl(work.rawTitle, work.rawArtist)
+        val youtubeUrl = preparationService.searchYoutubeUrl(work.rawTitle, work.rawArtist)
             ?: throw BusinessException(ErrorCode.SONG_ANALYSIS_WORK_FAILED)
 
         if (!workService.markStage(work.id!!, workerId, SongAnalysisWorkStage.CREATE_SONG_AND_LYRIC)) return null
-        val created = lyricProcessingService.saveSongAndLyric(
+        val created = preparationService.saveSongAndLyric(
             title = work.rawTitle,
             artist = work.rawArtist,
             durationSeconds = work.durationSeconds,

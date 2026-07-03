@@ -1,5 +1,6 @@
 package com.japanese.vocabulary.translation.service
 
+import org.springframework.stereotype.Service
 import com.japanese.vocabulary.translation.client.gemini.GeminiClient
 import com.japanese.vocabulary.translation.client.gemini.dto.SegLineDto
 import com.japanese.vocabulary.translation.client.gemini.dto.SelectWordDto
@@ -15,7 +16,6 @@ import com.japanese.vocabulary.song.repository.LyricRepository
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import org.slf4j.LoggerFactory
-import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 /**

@@ -1,10 +1,10 @@
 package com.japanese.vocabulary.user.service
 
+import org.springframework.stereotype.Service
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.japanese.vocabulary.user.entity.UserSettingsEntity
 import com.japanese.vocabulary.user.model.UserSettingsData
 import com.japanese.vocabulary.user.repository.UserSettingsRepository
-import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 @Service
