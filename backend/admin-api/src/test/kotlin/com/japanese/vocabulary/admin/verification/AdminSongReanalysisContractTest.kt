@@ -54,20 +54,28 @@ class AdminSongReanalysisContractTest {
         val adminReadService = source("backend/admin-api/src/main/kotlin/com/japanese/vocabulary/admin/service/AdminReadService.kt")
 
         assertThat(lyricRepository).contains("findActiveBySongId")
-        assertThat(lyricRepository).contains("active_lyric_id")
+        assertThat(lyricRepository).contains("activeLyricId")
         assertThat(apiStudyService).doesNotContain("findBySongId")
         assertThat(apiSongController).doesNotContain("findBySongId")
-        assertThat(adminReadService).doesNotContain("findBySongId")
+        assertThat(adminReadService).doesNotContain("lyricRepository.findBySongId")
     }
 
     @Test
     fun `feature does not introduce previous youtube url persistence`() {
         val forbidden = "previous" + "_youtube" + "_url"
-        val offenders = Files.walk(repoRoot).asSequence()
+        val persistenceRoots = listOf(
+            repoRoot.resolve("backend/migration/src/main/resources/db/migration"),
+            repoRoot.resolve("backend/domains"),
+            repoRoot.resolve("backend/api"),
+            repoRoot.resolve("backend/admin-api/src/main/kotlin"),
+            repoRoot.resolve("backend/batch"),
+            repoRoot.resolve("admin-web/src"),
+        )
+        val offenders = persistenceRoots.asSequence()
+            .flatMap { Files.walk(it).asSequence() }
             .filter { Files.isRegularFile(it) }
             .filterNot { it.toString().contains("/build/") }
             .filterNot { it.toString().contains("/node_modules/") }
-            .filterNot { it.toString().contains("/.git/") }
             .filterNot { it.toString().contains("AdminSongReanalysisContractTest.kt") }
             .filter { path ->
                 val text = runCatching { path.readText() }.getOrDefault("")

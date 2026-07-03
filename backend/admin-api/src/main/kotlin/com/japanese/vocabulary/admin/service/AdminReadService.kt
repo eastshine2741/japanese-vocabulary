@@ -39,7 +39,7 @@ class AdminReadService(
 
     fun getSong(id: Long): AdminSongDetailResponse {
         val song = songRepository.findById(id).orElseThrow { NoSuchElementException("Song not found") }
-        val lyric = lyricRepository.findBySongId(id)
+        val lyric = lyricRepository.findActiveBySongId(id)
         val activeStatuses = listOf(SongAnalysisWorkStatus.PENDING, SongAnalysisWorkStatus.RUNNING)
         val activeWork = songAnalysisWorkRepository.findFirstBySongIdAndStatusInOrderByCreatedAtAsc(id, activeStatuses)
         val analysisWorks = songAnalysisWorkRepository.findBySongIdOrderByCreatedAtDesc(id, PageRequest.of(0, 10))

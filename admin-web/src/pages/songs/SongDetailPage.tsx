@@ -10,7 +10,7 @@ import { useAuth } from "@/features/auth"
 import { formatDateTime } from "@/lib/utils"
 
 function workLabel(work: SongAnalysisWorkSummary) {
-  return `#${work.id} ${work.status}`
+  return `Work #${work.id} ${work.status}`
 }
 
 function WorkLink({ work }: { work: SongAnalysisWorkSummary }) {
@@ -63,7 +63,7 @@ export function SongDetailPage() {
         }
       })
       setTriggerState("idle")
-      setTriggerMessage(`Reanalysis work ${workLabel(work)} is queued.`)
+      setTriggerMessage(`Reanalysis work #${work.id} ${work.status} is queued.`)
     } catch {
       setTriggerState("error")
       setTriggerMessage("Could not trigger reanalysis. Try again after refreshing the song detail.")
@@ -88,7 +88,7 @@ export function SongDetailPage() {
             </p>
             {activeWork ? (
               <p className="mt-2 text-sm text-[#637083]">
-                Active blocker: <WorkLink work={activeWork} />
+                Active reanalysis work: <WorkLink work={activeWork} />
               </p>
             ) : null}
             {triggerMessage ? (
@@ -102,7 +102,7 @@ export function SongDetailPage() {
             onClick={triggerReanalysis}
           >
             <RefreshCcw className="h-4 w-4" />
-            {triggerState === "submitting" ? "Triggering..." : activeWork ? "Reanalysis in progress" : "Trigger reanalysis"}
+            {triggerState === "submitting" ? "Triggering..." : activeWork ? "Trigger reanalysis blocked" : "Trigger reanalysis"}
           </button>
         </div>
       </section>
@@ -154,7 +154,7 @@ export function SongDetailPage() {
                   ) : null}
                   {work.youtubeUrl ? (
                     <a className="ml-2 inline-flex items-center gap-1 text-[#0f766e] hover:underline" href={work.youtubeUrl}>
-                      MV <ExternalLink className="h-3 w-3" />
+                      New MV <ExternalLink className="h-3 w-3" />
                     </a>
                   ) : null}
                 </div>
