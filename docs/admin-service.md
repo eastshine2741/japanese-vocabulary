@@ -4,8 +4,8 @@
 
 Admin v1 is an internal inspection surface for `song`, `lyric`, and `user`.
 
-- Read-only list/detail pages only.
-- No create/update/delete endpoints.
+- Read-oriented list/detail pages plus the entity-specific song reanalysis workflow.
+- No generic create/update/delete endpoints.
 - No generic table editor or raw field editor.
 - Future write paths must be entity-specific, invariant-preserving workflows with audit logging.
 
@@ -19,7 +19,7 @@ Architecture direction:
 - Active domain/integration modules provide Spring wiring through `AutoConfiguration.imports` and `com.japanese.autoconfigure.*` classes. AutoConfiguration component-scans the module-owned `com.japanese.vocabulary.<module>` package and registers JPA entities/repositories explicitly. Application bootstraps should not carry sibling module `@EntityScan` or repository scan knowledge, and broad root component scan should not be used as a backup wiring path.
 - Integration clients should use `RestClient` where behavior can stay equivalent. Applications avoid unused clients by depending only on the integration modules they need; the depended module's AutoConfiguration exposes its client beans.
 - Product/read-model cache belongs to the application module that owns the behavior. For this pass, song search cache belongs to `api` and artist-channel cache belongs to `batch`.
-- Admin mutations must call domain methods/services; raw field updates stay out of scope.
+- Admin mutations must call domain methods/services; raw field updates stay out of scope. Song reanalysis is the first narrow mutation: it creates or reuses an admin-owned `song_analysis_work`, blocks duplicate active writers for the song, and lets batch switch the active lyric/MV only after completion.
 
 ## Backend
 
@@ -45,6 +45,7 @@ Routes:
 - `GET /admin/api/songs`
 - `GET /admin/api/songs/{songId}`
 - `GET /admin/api/songs/{songId}/lyric`
+- `POST /admin/api/songs/{songId}/reanalysis`
 - `GET /admin/api/lyrics`
 - `GET /admin/api/lyrics/{lyricId}`
 - `POST /admin/api/recommendations/dispatch-analysis`

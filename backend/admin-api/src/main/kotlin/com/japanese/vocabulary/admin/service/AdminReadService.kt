@@ -38,12 +38,17 @@ class AdminReadService(
 
     fun getSong(id: Long): AdminSongDetailResponse {
         val song = songRepository.findById(id).orElseThrow { NoSuchElementException("Song not found") }
-        val lyric = lyricRepository.findBySongId(id)
-        return song.toDetailResponse(lyric)
+        val lyric = lyricRepository.findActiveBySongId(id)
+        val activeWork = songAnalysisWorkRepository.findBySongIdAndStatusInOrderByCreatedAtAsc(
+            id,
+            listOf(SongAnalysisWorkStatus.PENDING, SongAnalysisWorkStatus.RUNNING),
+        ).firstOrNull()
+        val recentWorks = songAnalysisWorkRepository.findBySongIdOrderByCreatedAtDesc(id).take(10)
+        return song.toDetailResponse(lyric, activeWork, recentWorks)
     }
 
     fun getSongLyric(songId: Long): AdminLyricDetailResponse {
-        val lyric = lyricRepository.findBySongId(songId) ?: throw NoSuchElementException("Lyric not found")
+        val lyric = lyricRepository.findActiveBySongId(songId) ?: throw NoSuchElementException("Lyric not found")
         return lyric.toDetailResponse()
     }
 
@@ -103,6 +108,8 @@ fun SongEntity.toSummaryResponse(): AdminSongSummaryResponse = AdminSongSummaryR
 
 fun SongEntity.toDetailResponse(
     lyric: LyricEntity?,
+    activeReanalysisWork: SongAnalysisWorkEntity?,
+    analysisWorks: List<SongAnalysisWorkEntity>,
 ): AdminSongDetailResponse = AdminSongDetailResponse(
     id = requireNotNull(id),
     title = title,
@@ -111,7 +118,10 @@ fun SongEntity.toDetailResponse(
     youtubeUrl = youtubeUrl,
     artworkUrl = artworkUrl,
     createdAt = createdAt,
+    updatedAt = updatedAt,
     lyric = lyric?.toSummaryResponse(),
+    activeReanalysisWork = activeReanalysisWork?.toSummaryResponse(),
+    analysisWorks = analysisWorks.map { it.toSummaryResponse() },
 )
 
 fun LyricEntity.toSummaryResponse(): AdminLyricSummaryResponse = AdminLyricSummaryResponse(
@@ -145,6 +155,7 @@ fun SongAnalysisWorkEntity.toSummaryResponse(): AdminSongAnalysisWorkSummaryResp
         currentStage = currentStage?.name,
         songId = songId,
         lyricId = lyricId,
+        youtubeUrl = youtubeUrl,
         triggerSource = triggerSource.name,
         createdByUserId = createdByUserId,
         createdAt = createdAt,
@@ -166,6 +177,7 @@ fun SongAnalysisWorkEntity.toDetailResponse(): AdminSongAnalysisWorkDetailRespon
         currentStage = currentStage?.name,
         songId = songId,
         lyricId = lyricId,
+        youtubeUrl = youtubeUrl,
         lockedBy = lockedBy,
         lockedUntil = lockedUntil,
         errorCode = errorCode,

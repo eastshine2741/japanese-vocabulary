@@ -8,4 +8,11 @@ import org.springframework.data.jpa.repository.JpaRepository
 
 interface AdminSongAnalysisWorkRepository : JpaRepository<SongAnalysisWorkEntity, Long> {
     fun findByStatus(status: SongAnalysisWorkStatus, pageable: Pageable): Page<SongAnalysisWorkEntity>
+
+    fun findBySongIdAndStatusInOrderByCreatedAtAsc(
+        songId: Long,
+        statuses: Collection<SongAnalysisWorkStatus>,
+    ): List<SongAnalysisWorkEntity>
+
+    fun findBySongIdOrderByCreatedAtDesc(songId: Long): List<SongAnalysisWorkEntity>
 }
