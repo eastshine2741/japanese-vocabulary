@@ -4,7 +4,10 @@ import com.japanese.vocabulary.song.dto.AnalyzeSongRequest
 import com.japanese.vocabulary.song.dto.RecentSongItemDto
 import com.japanese.vocabulary.song.dto.SongAnalysisWorkResponse
 import com.japanese.vocabulary.song.dto.SongDto
+import com.japanese.vocabulary.song.dto.SongStudyDto
 import com.japanese.vocabulary.song.dto.AnalyzedSongDto
+import com.japanese.vocabulary.song.dto.songdetail.SongLyricsDto
+import com.japanese.vocabulary.song.dto.songdetail.WordsInSongDto
 import com.japanese.vocabulary.songsearch.dto.SongSearchResponse
 import com.japanese.vocabulary.deck.service.DeckService
 import com.japanese.vocabulary.songanalysis.dto.SongAnalysisWorkDto
@@ -15,6 +18,7 @@ import com.japanese.vocabulary.song.service.RecentSongService
 import com.japanese.vocabulary.song.service.SearchHistoryService
 import com.japanese.vocabulary.song.service.SongSearchService
 import com.japanese.vocabulary.song.service.SongStudyViewService
+import com.japanese.vocabulary.song.service.songdetail.SongDetailQueryService
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.bind.annotation.GetMapping
@@ -36,6 +40,7 @@ class SongController(
     private val songRepository: SongRepository,
     private val lyricRepository: LyricRepository,
     private val deckService: DeckService,
+    private val songDetailQueryService: SongDetailQueryService,
 ) {
 
     private fun currentUserId(): Long =
@@ -62,7 +67,7 @@ class SongController(
     fun getSongByTitleAndArtist(
         @RequestParam title: String,
         @RequestParam artistName: String,
-    ): ResponseEntity<SongDto> {
+    ): ResponseEntity<SongStudyDto> {
         val entity = songRepository.findByArtistAndTitle(artistName, title)
             ?: return ResponseEntity.noContent().build()
 
@@ -105,7 +110,7 @@ class SongController(
      * 204 when there is no eligible song. Does NOT record a listen (read-only surfacing).
      */
     @GetMapping("/spotlight")
-    fun getSpotlight(): ResponseEntity<SongDto> {
+    fun getSpotlight(): ResponseEntity<SongStudyDto> {
         val userId = currentUserId()
         val deckSongIds = deckService.getDeckSongIds(userId)
         val spotlightId = recentSongService.getRecentSongIds(userId)
@@ -122,13 +127,33 @@ class SongController(
 
     @GetMapping("/{id}")
     fun getSongById(@PathVariable id: Long): ResponseEntity<SongDto> {
-        val entity = songRepository.findById(id).orElse(null)
-            ?: return ResponseEntity.notFound().build()
+        val response = try {
+            songDetailQueryService.metadata(id)
+        } catch (e: com.japanese.vocabulary.common.exception.BusinessException) {
+            return ResponseEntity.status(e.errorCode.status).build()
+        }
+        recentSongService.recordListen(currentUserId(), id)
+        return ResponseEntity.ok(response)
+    }
 
-        recentSongService.recordListen(currentUserId(), entity.id!!)
+    @GetMapping("/{id}/lyrics")
+    fun getSongLyrics(@PathVariable id: Long): ResponseEntity<SongLyricsDto> {
+        val response = try {
+            songDetailQueryService.lyrics(id)
+        } catch (e: com.japanese.vocabulary.common.exception.BusinessException) {
+            return ResponseEntity.status(e.errorCode.status).build()
+        }
+        return ResponseEntity.ok().header("Cache-Control", "no-store").body(response)
+    }
 
-        val analyzed = songStudyViewService.buildAnalyzedSong(entity)
-        return ResponseEntity.ok(analyzed.toResponse())
+    @GetMapping("/{id}/words")
+    fun getSongWords(@PathVariable id: Long): ResponseEntity<WordsInSongDto> {
+        val response = try {
+            songDetailQueryService.words(id, currentUserId())
+        } catch (e: com.japanese.vocabulary.common.exception.BusinessException) {
+            return ResponseEntity.status(e.errorCode.status).build()
+        }
+        return ResponseEntity.ok().header("Cache-Control", "no-store").body(response)
     }
 
     @GetMapping("/search")
@@ -137,7 +162,7 @@ class SongController(
         return ResponseEntity.ok(songSearchService.search(q))
     }
 
-    private fun AnalyzedSongDto.toResponse() = SongDto(
+    private fun AnalyzedSongDto.toResponse() = SongStudyDto(
         song = song,
         studyUnits = studyUnits,
         youtubeUrl = youtubeUrl,

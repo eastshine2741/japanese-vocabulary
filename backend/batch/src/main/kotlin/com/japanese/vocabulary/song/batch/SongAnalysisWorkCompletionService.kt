@@ -2,8 +2,10 @@ package com.japanese.vocabulary.song.batch
 
 import com.japanese.vocabulary.common.exception.BusinessException
 import com.japanese.vocabulary.common.exception.ErrorCode
+import com.japanese.vocabulary.song.candidate.WordCandidateGenerator
 import com.japanese.vocabulary.song.model.AnalyzedLine
 import com.japanese.vocabulary.song.repository.LyricRepository
+import com.japanese.vocabulary.song.repository.SongRepository
 import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStatus
 import com.japanese.vocabulary.songanalysis.repository.SongAnalysisWorkRepository
 import org.springframework.stereotype.Service
@@ -14,6 +16,8 @@ import java.time.Instant
 class SongAnalysisWorkCompletionService(
     private val workRepository: SongAnalysisWorkRepository,
     private val lyricRepository: LyricRepository,
+    private val songRepository: SongRepository,
+    private val wordCandidateGenerator: WordCandidateGenerator,
 ) {
     @Transactional
     fun completeWithAnalyzedContent(
@@ -37,6 +41,12 @@ class SongAnalysisWorkCompletionService(
             BusinessException(ErrorCode.LYRIC_NOT_FOUND)
         }
         lyric.analyzedContent = analyzedLines
+        val song = songRepository.findById(lyric.songId).orElse(null)
+        val wordCandidates = wordCandidateGenerator.generate(
+            title = song?.title ?: "",
+            analyzedLines = analyzedLines,
+        )
+        lyric.wordCandidates = wordCandidates
         lyricRepository.save(lyric)
 
         work.markCompleted(now)
