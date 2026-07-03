@@ -41,6 +41,26 @@ class AdminSongControllerTest : AdminBaseIntegrationTest() {
     }
 
     @Test
+    fun `song detail returns active lyric when multiple lyrics exist for same song`() {
+        val song = TestSongBuilder(entityManager)
+            .withTitle("複数歌詞曲")
+            .withArtist("管理歌手")
+            .build()
+        val oldLyric = persistLyric(song.id!!, text = "古い歌詞")
+        val activeLyric = persistLyric(song.id!!, text = "新しい歌詞")
+        entityManager.flush()
+        entityManager.clear()
+
+        mockMvc.get("/admin/api/songs/${song.id}") {
+            header("Authorization", "Bearer ${adminToken()}")
+        }.andExpect {
+            status { isOk() }
+            jsonPath("$.lyric.id") { value(activeLyric.id!!.toInt()) }
+            jsonPath("$.lyric.id") { value(org.hamcrest.Matchers.not(oldLyric.id!!.toInt())) }
+        }
+    }
+
+    @Test
     fun `authenticated admin can inspect song lyric`() {
         val song = TestSongBuilder(entityManager).build()
         persistLyric(song.id!!)
@@ -107,11 +127,11 @@ class AdminSongControllerTest : AdminBaseIntegrationTest() {
         }
     }
 
-    private fun persistLyric(songId: Long): LyricEntity {
+    private fun persistLyric(songId: Long, text: String = "歌詞"): LyricEntity {
         val lyric = LyricEntity(
             songId = songId,
             lyricType = LyricType.PLAIN,
-            rawContent = listOf(LyricLineData(index = 0, startTimeMs = 0, text = "歌詞")),
+            rawContent = listOf(LyricLineData(index = 0, startTimeMs = 0, text = text)),
         )
         entityManager.persist(lyric)
         entityManager.flush()
