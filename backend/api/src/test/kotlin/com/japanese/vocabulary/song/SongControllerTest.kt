@@ -75,6 +75,8 @@ class SongControllerTest : ApiBaseIntegrationTest() {
         )
         entityManager.persist(entity)
         entityManager.flush()
+        song.activeLyricId = entity.id
+        entityManager.flush()
         return entity
     }
 

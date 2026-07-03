@@ -57,6 +57,9 @@ class AdminSongControllerTest : AdminBaseIntegrationTest() {
         )
         entityManager.persist(lyric)
         entityManager.flush()
+        val song = entityManager.find(com.japanese.vocabulary.song.entity.SongEntity::class.java, songId)
+        song.activeLyricId = lyric.id
+        entityManager.flush()
         return lyric
     }
 

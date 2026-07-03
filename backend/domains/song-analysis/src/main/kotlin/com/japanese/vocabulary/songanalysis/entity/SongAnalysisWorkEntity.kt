@@ -51,6 +51,9 @@ class SongAnalysisWorkEntity(
     @Column(name = "lyric_id")
     var lyricId: Long? = null,
 
+    @Column(name = "youtube_url")
+    var youtubeUrl: String? = null,
+
     @Column(name = "locked_by")
     var lockedBy: String? = null,
 
@@ -93,9 +96,10 @@ class SongAnalysisWorkEntity(
         failedAt = null
     }
 
-    fun attachPlayerReady(songId: Long, lyricId: Long, now: Instant) {
+    fun attachPlayerReady(songId: Long, lyricId: Long, youtubeUrl: String?, now: Instant) {
         this.songId = songId
         this.lyricId = lyricId
+        this.youtubeUrl = youtubeUrl
         if (playerReadyAt == null) {
             playerReadyAt = now
         }

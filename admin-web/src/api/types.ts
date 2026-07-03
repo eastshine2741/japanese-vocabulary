@@ -21,10 +21,13 @@ export type SongSummary = {
   youtubeUrl: string | null
   artworkUrl: string | null
   createdAt: string | null
+  updatedAt?: string | null
 }
 
 export type SongDetail = SongSummary & {
   lyric: LyricSummary | null
+  activeReanalysisWork: SongAnalysisWorkSummary | null
+  analysisWorks: SongAnalysisWorkSummary[]
 }
 
 export type LyricSummary = {
@@ -50,6 +53,7 @@ export type SongAnalysisWorkSummary = {
   currentStage: string | null
   songId: number | null
   lyricId: number | null
+  youtubeUrl: string | null
   triggerSource: string
   createdByUserId: number | null
   createdAt: string | null
@@ -57,6 +61,19 @@ export type SongAnalysisWorkSummary = {
   playerReadyAt: string | null
   completedAt: string | null
   failedAt: string | null
+}
+
+export type SongAnalysisWorkOperation = {
+  workId: number
+  status: string
+  currentStage: string | null
+  songId: number | null
+  lyricId: number | null
+  youtubeUrl: string | null
+  canOpenPlayer: boolean
+  isAnalysisComplete: boolean
+  errorCode: string | null
+  errorMessage: string | null
 }
 
 export type SongAnalysisWorkDetail = SongAnalysisWorkSummary & {

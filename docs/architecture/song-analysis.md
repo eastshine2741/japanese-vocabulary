@@ -14,7 +14,7 @@ Recommendation analysis also reuses `song_analysis_work`, but only after an oper
 2. **Batch claim** (`batch`, `SongAnalysisWorkScheduler`, `@Scheduled fixedRate=30s`): claims `PENDING` work, changes it to `RUNNING`, and records lock owner/until.
 3. **Pre-analysis pipeline** (`batch` + `song`): stage changes through `FETCH_LYRICS` -> `FETCH_YOUTUBE` -> `CREATE_SONG_AND_LYRIC`, running LRCLIB/VocaDB lyric lookup, YouTube MV lookup, and songs+lyrics creation.
 4. **Player-ready milestone**: once song and lyric are created, `song_id`, `lyric_id`, and `player_ready_at` are set. `PLAYER_READY` is not a status.
-5. **Lyric analysis** (`batch` + `translation`): stage `ANALYZE_LYRICS` runs `KoreanLyricTranslationService.runPipeline()`. A batch-local completion service saves `lyrics.analyzed_content` and marks work `COMPLETED` in the same transaction.
+5. **Lyric analysis** (`batch` + `translation`): stage `ANALYZE_LYRICS` runs `KoreanLyricTranslationService.runPipeline()`. A batch-local completion service saves `lyrics.analyzed_content` and marks work `COMPLETED` in the same transaction. For admin reanalysis of an existing song, that same transaction locks the song row and switches `songs.active_lyric_id`, `songs.youtube_url`, and `songs.updated_at`.
 
 Work status uses only `PENDING`, `RUNNING`, `COMPLETED`, and `FAILED`. The first pass has no request table, attempt table, automatic retry, MQ, or FCM completion path. On failure, work becomes `FAILED` and `active_dedup_key` is cleared so the same song can create a new work later. `lyrics` stores original/analyzed content only; `song_analysis_work` owns the state machine.
 
@@ -23,6 +23,15 @@ Work status uses only `PENDING`, `RUNNING`, `COMPLETED`, and `FAILED`. The first
 - `USER_APP`: user app `/api/songs/analyze`
 - `ADMIN`: reserved for admin-triggered analysis
 - `RECOMMENDATION`: admin recommendation dispatch after candidate approval
+
+
+## Admin Song Reanalysis
+
+Admin song detail can trigger `POST /admin/api/songs/{songId}/reanalysis`. The endpoint creates or returns a `song_analysis_work` with `trigger_source=ADMIN`, `song_id` set to the target song, and an admin-scoped active dedupe key. Any active `PENDING` or `RUNNING` work for the song blocks a new admin work, regardless of trigger source. A raw `title|artist` active work without a `song_id` also blocks conservatively.
+
+Admin reanalysis reruns lyric lookup, YouTube lookup, lyric creation, and analysis for the existing song. It creates a new lyric row rather than reusing the current active lyric. The candidate lyric and the newly produced MV are attached to `song_analysis_work.lyric_id` and `song_analysis_work.youtube_url` at the player-ready milestone, but the public/admin active read paths continue to use `songs.active_lyric_id` until completion.
+
+Completion is the active switch boundary: it locks the work row and target song row, writes analyzed content to the candidate lyric, updates `songs.active_lyric_id`, overwrites current `songs.youtube_url` with the work-produced MV, updates `songs.updated_at`, and marks the work `COMPLETED`. Failures never mutate the active song pointer or MV. Previous lyric rows remain queryable for audit/comparison; previous active MV values are not guaranteed to be retained. Do not add `previous_youtube_url`; only the newly produced MV belongs on `song_analysis_work.youtube_url`.
 
 ## Word Meaning Pipeline
 
