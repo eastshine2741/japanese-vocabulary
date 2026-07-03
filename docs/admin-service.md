@@ -4,7 +4,7 @@
 
 Admin v1 is an internal inspection surface for `song`, `lyric`, and `user`.
 
-- Read-oriented list/detail pages plus the entity-specific song reanalysis workflow.
+- Read-mostly list/detail pages plus narrow invariant-preserving operations.
 - No generic create/update/delete endpoints.
 - No generic table editor or raw field editor.
 - Future write paths must be entity-specific, invariant-preserving workflows with audit logging.
@@ -19,7 +19,7 @@ Architecture direction:
 - Active domain/integration modules provide Spring wiring through `AutoConfiguration.imports` and `com.japanese.autoconfigure.*` classes. AutoConfiguration component-scans the module-owned `com.japanese.vocabulary.<module>` package and registers JPA entities/repositories explicitly. Application bootstraps should not carry sibling module `@EntityScan` or repository scan knowledge, and broad root component scan should not be used as a backup wiring path.
 - Integration clients should use `RestClient` where behavior can stay equivalent. Applications avoid unused clients by depending only on the integration modules they need; the depended module's AutoConfiguration exposes its client beans.
 - Product/read-model cache belongs to the application module that owns the behavior. For this pass, song search cache belongs to `api` and artist-channel cache belongs to `batch`.
-- Admin mutations must call domain methods/services; raw field updates stay out of scope. Song reanalysis is the first narrow mutation: it creates or reuses an admin-owned `song_analysis_work`, blocks duplicate active writers for the song, and lets batch switch the active lyric/MV only after completion.
+- Admin mutations must call domain methods/services; raw field updates stay out of scope. Current mutation: song reanalysis creates or reuses a `song_analysis_work` and never edits song/lyric fields directly.
 
 ## Backend
 
@@ -90,6 +90,8 @@ VITE_ADMIN_API_BASE_URL=http://localhost:8081/admin/api npm run dev
 ```
 
 The browser token is stored in `sessionStorage`.
+
+Song detail exposes a reanalysis action. If a `PENDING` or `RUNNING` analysis work already blocks the song, the trigger is disabled and the active work is linked. Recent work history links to work and lyric details and shows the work-produced MV URL from `song_analysis_work.youtube_url` when present. The UI does not implement rollback or active-result selection.
 
 ## Local k3s
 

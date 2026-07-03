@@ -9,10 +9,12 @@ import org.springframework.data.jpa.repository.JpaRepository
 interface AdminSongAnalysisWorkRepository : JpaRepository<SongAnalysisWorkEntity, Long> {
     fun findByStatus(status: SongAnalysisWorkStatus, pageable: Pageable): Page<SongAnalysisWorkEntity>
 
-    fun findBySongIdAndStatusInOrderByCreatedAtAsc(
+    fun findByActiveDedupKey(activeDedupKey: String): SongAnalysisWorkEntity?
+
+    fun findFirstBySongIdAndStatusInOrderByCreatedAtAsc(
         songId: Long,
         statuses: Collection<SongAnalysisWorkStatus>,
-    ): List<SongAnalysisWorkEntity>
+    ): SongAnalysisWorkEntity?
 
-    fun findBySongIdOrderByCreatedAtDesc(songId: Long): List<SongAnalysisWorkEntity>
+    fun findBySongIdOrderByCreatedAtDesc(songId: Long, pageable: Pageable): List<SongAnalysisWorkEntity>
 }

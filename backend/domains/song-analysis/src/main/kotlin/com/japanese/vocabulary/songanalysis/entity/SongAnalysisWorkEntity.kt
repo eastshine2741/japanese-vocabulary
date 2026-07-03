@@ -51,7 +51,7 @@ class SongAnalysisWorkEntity(
     @Column(name = "lyric_id")
     var lyricId: Long? = null,
 
-    @Column(name = "youtube_url")
+    @Column(name = "youtube_url", length = 500)
     var youtubeUrl: String? = null,
 
     @Column(name = "locked_by")

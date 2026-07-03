@@ -17,6 +17,7 @@ import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkEntity
 import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStatus
 import com.japanese.vocabulary.user.entity.UserEntity
 import org.springframework.data.domain.Page
+import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -38,13 +39,11 @@ class AdminReadService(
 
     fun getSong(id: Long): AdminSongDetailResponse {
         val song = songRepository.findById(id).orElseThrow { NoSuchElementException("Song not found") }
-        val lyric = lyricRepository.findActiveBySongId(id)
-        val activeWork = songAnalysisWorkRepository.findBySongIdAndStatusInOrderByCreatedAtAsc(
-            id,
-            listOf(SongAnalysisWorkStatus.PENDING, SongAnalysisWorkStatus.RUNNING),
-        ).firstOrNull()
-        val recentWorks = songAnalysisWorkRepository.findBySongIdOrderByCreatedAtDesc(id).take(10)
-        return song.toDetailResponse(lyric, activeWork, recentWorks)
+        val lyric = lyricRepository.findBySongId(id)
+        val activeStatuses = listOf(SongAnalysisWorkStatus.PENDING, SongAnalysisWorkStatus.RUNNING)
+        val activeWork = songAnalysisWorkRepository.findFirstBySongIdAndStatusInOrderByCreatedAtAsc(id, activeStatuses)
+        val analysisWorks = songAnalysisWorkRepository.findBySongIdOrderByCreatedAtDesc(id, PageRequest.of(0, 10))
+        return song.toDetailResponse(lyric, activeWork, analysisWorks)
     }
 
     fun getSongLyric(songId: Long): AdminLyricDetailResponse {

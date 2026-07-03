@@ -56,7 +56,9 @@ export const adminApi = {
     return request<SongDetail>(`/songs/${id}`, token)
   },
   triggerSongReanalysis(token: string, id: string) {
-    return request<SongAnalysisWorkOperation>(`/songs/${id}/reanalysis`, token, { method: "POST" })
+    return request<SongAnalysisWorkSummary>(`/songs/${id}/reanalysis`, token, {
+      method: "POST",
+    })
   },
   lyrics(token: string, page: number) {
     const params = new URLSearchParams({ page: String(page), size: "20" })

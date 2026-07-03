@@ -22,6 +22,7 @@ function mockFetch() {
       const body = JSON.parse(String(init?.body))
       return json(body.password === "secret" ? { token: "admin-token", expiresAt: "2026-01-01T01:00:00Z" } : {}, body.password === "secret" ? 200 : 401)
     }
+    if (url.endsWith("/songs/1/reanalysis")) return json({ ...songAnalysisWorkSummary, id: 5, status: "PENDING", triggerSource: "ADMIN" })
     if (url.includes("/songs/1")) return json(songDetail)
     if (url.includes("/songs?")) return json(page([songSummary]))
     if (url.includes("/song-analysis-works/4")) return json(songAnalysisWorkDetail)
@@ -110,6 +111,17 @@ describe("admin web", () => {
     expect(screen.getByText("Base form")).toBeInTheDocument()
     expect(screen.queryByRole("button", { name: /\b(Edit|Delete|Save|Create)\b/i })).not.toBeInTheDocument()
     expect(screen.queryByText(/\b(Edit|Delete|Save|Create)\b/i)).not.toBeInTheDocument()
+  })
+
+  test("triggers song reanalysis from song detail", async () => {
+    const user = userEvent.setup()
+    sessionStorage.setItem("kotonoha.admin.token", "admin-token")
+    renderApp("/songs/1")
+
+    await user.click(await screen.findByRole("button", { name: "Trigger reanalysis" }))
+
+    expect(await screen.findByText("Reanalysis work #5 PENDING is queued.")).toBeInTheDocument()
+    expect(screen.getAllByRole("link", { name: "#5 PENDING" }).length).toBeGreaterThan(0)
   })
 
   test("renders song analysis work milestones", async () => {
