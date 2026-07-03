@@ -22383,6 +22383,21 @@
                   "strokeAlignment": "inner"
                 },
                 {
+                  "id": "onpIr",
+                  "type": "ref",
+                  "ref": "N02Al",
+                  "x": 20,
+                  "y": 72,
+                  "width": "fill_container",
+                  "stroke": "$border-default",
+                  "strokeLinecap": "butt",
+                  "strokeLinejoin": "miter",
+                  "strokeWidth": {
+                    "bottom": 1
+                  },
+                  "strokeAlignment": "inner"
+                },
+                {
                   "id": "R8cnno",
                   "type": "ref",
                   "ref": "HjaHz",
@@ -23454,32 +23469,23 @@
         },
         {
           "type": "frame",
-          "id": "lWKWG",
+          "id": "Z800oO",
           "name": "Add Button",
           "width": 28,
           "height": 28,
-          "fill": "#FFFFFF00",
+          "fill": "$accent-primary-bg",
           "cornerRadius": "$rounded.full",
-          "stroke": "$accent.primary",
-          "strokeWidth": 1.5,
-          "strokeAlignment": "inner",
-          "effect": {
-            "type": "shadow",
-            "shadowType": "outer",
-            "enabled": false,
-            "color": "$shadow.sm.color"
-          },
           "justifyContent": "center",
           "alignItems": "center",
           "children": [
             {
               "type": "icon",
-              "id": "J5jKsR",
-              "name": "Add Icon",
-              "width": 13,
-              "height": 13,
-              "icon": "plus",
-              "library": "lucide",
+              "id": "DHpKs",
+              "name": "bookmark-outline (담기 전)",
+              "width": 16,
+              "height": 16,
+              "icon": "bookmark-simple",
+              "library": "phosphor",
               "fill": "$accent.primary"
             }
           ]
@@ -24812,35 +24818,23 @@
                     },
                     {
                       "type": "rectangle",
-                      "id": "M0hwD",
+                      "id": "LqdMC",
                       "name": "Divider",
                       "fill": "$border-default",
                       "width": "fill_container",
                       "height": 1
                     },
                     {
-                      "id": "e93wl",
+                      "id": "G8E4Ai",
                       "type": "ref",
                       "ref": "N02Al",
                       "x": 0,
                       "y": 69,
-                      "width": "fill_container",
-                      "descendants": {
-                        "q6vpD": {
-                          "strokeLinecap": "butt",
-                          "strokeLinejoin": "miter",
-                          "strokeAlignment": "inner",
-                          "fill": "#53b888ff",
-                          "stroke": []
-                        },
-                        "K3obeV": {
-                          "fill": "$bg-card"
-                        }
-                      }
+                      "width": "fill_container"
                     },
                     {
                       "type": "rectangle",
-                      "id": "LqdMC",
+                      "id": "M0hwD",
                       "name": "Divider",
                       "fill": "$border-default",
                       "width": "fill_container",
@@ -26738,24 +26732,137 @@
                   "strokeAlignment": "inner"
                 },
                 {
+                  "type": "frame",
                   "id": "MbiPk",
-                  "type": "ref",
-                  "ref": "N02Al",
-                  "x": 20,
-                  "y": 72,
+                  "name": "component/SentenceWordItem--Added",
                   "width": "fill_container",
-                  "descendants": {
-                    "q6vpD": {
-                      "strokeLinecap": "butt",
-                      "strokeLinejoin": "miter",
-                      "strokeAlignment": "inner",
-                      "fill": "#53b888ff",
-                      "stroke": []
+                  "fill": {
+                    "type": "color",
+                    "color": "#FFFFFF",
+                    "enabled": false
+                  },
+                  "padding": [
+                    12,
+                    0
+                  ],
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "zqndH",
+                      "name": "Word Info",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 3,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "OEy9K",
+                          "name": "JP Text Row",
+                          "gap": 6,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "Rw0gv",
+                              "name": "Japanese Word",
+                              "fill": "$foreground.primary",
+                              "content": "君",
+                              "fontFamily": "$font.headings",
+                              "fontSize": 18,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "text",
+                              "id": "eJXpf",
+                              "name": "Hiragana Reading",
+                              "fill": "$foreground.muted",
+                              "content": "きみ",
+                              "fontFamily": "$font.body",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "F3Rxy",
+                          "name": "Meaning Row",
+                          "gap": 12,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "D223n",
+                              "name": "Korean Meaning",
+                              "fill": "$foreground.secondary",
+                              "content": "너",
+                              "fontFamily": "$font.body",
+                              "fontSize": 13,
+                              "fontWeight": "500"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "i66Vi4",
+                              "name": "Badges",
+                              "gap": 3,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "id": "x8yZE",
+                                  "type": "ref",
+                                  "ref": "ABLIv",
+                                  "name": "JLPT Badge Instance",
+                                  "height": "fill_container"
+                                },
+                                {
+                                  "id": "nPVSS",
+                                  "type": "ref",
+                                  "ref": "IxqOy",
+                                  "name": "POS Badge Instance",
+                                  "padding": [
+                                    1,
+                                    8,
+                                    3,
+                                    8
+                                  ],
+                                  "descendants": {
+                                    "m9Cw7": {
+                                      "fontSize": 10
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
                     },
-                    "K3obeV": {
-                      "fill": "$bg-card"
+                    {
+                      "type": "frame",
+                      "id": "cVtSP",
+                      "name": "Remove Button",
+                      "width": 28,
+                      "height": 28,
+                      "fill": "#53b888ff",
+                      "cornerRadius": "$rounded.full",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "kDuwn",
+                          "name": "bookmark-outline (담기 전)",
+                          "width": 16,
+                          "height": 16,
+                          "icon": "bookmark-simple",
+                          "library": "phosphor",
+                          "fill": "$accent.primary"
+                        }
+                      ]
                     }
-                  }
+                  ]
                 },
                 {
                   "id": "nlw62",
@@ -27874,12 +27981,12 @@
           "children": [
             {
               "type": "icon",
-              "id": "K3obeV",
-              "name": "Remove Icon",
-              "width": 13,
-              "height": 13,
-              "icon": "minus",
-              "library": "lucide",
+              "id": "mIiQu",
+              "name": "bookmark-fill (담긴 후)",
+              "width": 16,
+              "height": 16,
+              "icon": "bookmark-simple-fill",
+              "library": "phosphor",
               "fill": "$accent.primary"
             }
           ]
@@ -28427,26 +28534,6 @@
                     "bottom": 1
                   },
                   "strokeAlignment": "inner"
-                },
-                {
-                  "id": "k9ySmx",
-                  "type": "ref",
-                  "ref": "N02Al",
-                  "x": 20,
-                  "y": 72,
-                  "width": "fill_container",
-                  "descendants": {
-                    "q6vpD": {
-                      "strokeLinecap": "butt",
-                      "strokeLinejoin": "miter",
-                      "strokeAlignment": "inner",
-                      "fill": "#53b888ff",
-                      "stroke": []
-                    },
-                    "K3obeV": {
-                      "fill": "$bg-card"
-                    }
-                  }
                 },
                 {
                   "id": "EcygH",
@@ -29970,24 +30057,19 @@
                   "strokeAlignment": "inner"
                 },
                 {
-                  "id": "BHmDB",
+                  "id": "USB0r",
                   "type": "ref",
                   "ref": "N02Al",
                   "x": 20,
                   "y": 72,
                   "width": "fill_container",
-                  "descendants": {
-                    "q6vpD": {
-                      "strokeLinecap": "butt",
-                      "strokeLinejoin": "miter",
-                      "strokeAlignment": "inner",
-                      "fill": "#53b888ff",
-                      "stroke": []
-                    },
-                    "K3obeV": {
-                      "fill": "$bg-card"
-                    }
-                  }
+                  "stroke": "$border-default",
+                  "strokeLinecap": "butt",
+                  "strokeLinejoin": "miter",
+                  "strokeWidth": {
+                    "bottom": 1
+                  },
+                  "strokeAlignment": "inner"
                 },
                 {
                   "id": "d1mAyU",
@@ -31491,24 +31573,137 @@
                   "strokeAlignment": "inner"
                 },
                 {
+                  "type": "frame",
                   "id": "VJg6P",
-                  "type": "ref",
-                  "ref": "N02Al",
-                  "x": 20,
-                  "y": 72,
+                  "name": "component/SentenceWordItem--Added",
                   "width": "fill_container",
-                  "descendants": {
-                    "q6vpD": {
-                      "strokeLinecap": "butt",
-                      "strokeLinejoin": "miter",
-                      "strokeAlignment": "inner",
-                      "fill": "#53b888ff",
-                      "stroke": []
+                  "fill": {
+                    "type": "color",
+                    "color": "#FFFFFF",
+                    "enabled": false
+                  },
+                  "padding": [
+                    12,
+                    0
+                  ],
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "jYL3P",
+                      "name": "Word Info",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 3,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "ijAIJ",
+                          "name": "JP Text Row",
+                          "gap": 6,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "YZ8MD",
+                              "name": "Japanese Word",
+                              "fill": "$foreground.primary",
+                              "content": "君",
+                              "fontFamily": "$font.headings",
+                              "fontSize": 18,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "text",
+                              "id": "W8fLA",
+                              "name": "Hiragana Reading",
+                              "fill": "$foreground.muted",
+                              "content": "きみ",
+                              "fontFamily": "$font.body",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "Iy7YV",
+                          "name": "Meaning Row",
+                          "gap": 12,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "brkoV",
+                              "name": "Korean Meaning",
+                              "fill": "$foreground.secondary",
+                              "content": "너",
+                              "fontFamily": "$font.body",
+                              "fontSize": 13,
+                              "fontWeight": "500"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "gQLn2",
+                              "name": "Badges",
+                              "gap": 3,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "id": "QHQKH",
+                                  "type": "ref",
+                                  "ref": "ABLIv",
+                                  "name": "JLPT Badge Instance",
+                                  "height": "fill_container"
+                                },
+                                {
+                                  "id": "y0uh2",
+                                  "type": "ref",
+                                  "ref": "IxqOy",
+                                  "name": "POS Badge Instance",
+                                  "padding": [
+                                    1,
+                                    8,
+                                    3,
+                                    8
+                                  ],
+                                  "descendants": {
+                                    "m9Cw7": {
+                                      "fontSize": 10
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
                     },
-                    "K3obeV": {
-                      "fill": "$bg-card"
+                    {
+                      "type": "frame",
+                      "id": "y5ClZ",
+                      "name": "Remove Button",
+                      "width": 28,
+                      "height": 28,
+                      "fill": "#53b888ff",
+                      "cornerRadius": "$rounded.full",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "H1NVE",
+                          "name": "bookmark-outline (담기 전)",
+                          "width": 16,
+                          "height": 16,
+                          "icon": "bookmark-simple",
+                          "library": "phosphor",
+                          "fill": "$accent.primary"
+                        }
+                      ]
                     }
-                  }
+                  ]
                 },
                 {
                   "id": "ys5CM",
@@ -32485,7 +32680,12 @@
           "name": "Filter Bottom Sheet",
           "layoutPosition": "absolute",
           "x": 0,
-          "y": 409
+          "y": 409,
+          "descendants": {
+            "bZxVQ/YwrIg": {
+              "content": "알 수 없음"
+            }
+          }
         }
       ]
     }
