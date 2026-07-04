@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Creates a git worktree and copies gitignored config files (.env, local.properties)
+# Creates a git worktree and copies gitignored local files (.env, local.properties, dev dump)
 #
 # Usage: ./create-worktree.sh <branch-name> [worktree-path]
 # Example:
@@ -31,6 +31,7 @@ IGNORED_FILES=(
   "app-rn/release.keystore"
   "app-rn/kotonoha-prod.jks"
   "app-rn/google-services.json"
+  "local/mysql/dev-dump.sql"
 )
 
 echo ""
