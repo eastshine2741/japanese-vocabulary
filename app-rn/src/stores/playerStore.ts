@@ -61,7 +61,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         set({ status: 'error', errorCode: ready.errorCode ?? 'SONG_ANALYSIS_WORK_FAILED' });
         return;
       }
-      const data = await songApi.getById(ready.songId);
+      const data = await songApi.getStudyDataById(ready.songId);
       if (analysisRunId !== runId) return;
       set({ status: 'success', studyData: data, currentMs: 0, durationMs: 0 });
     } catch (e: any) {
@@ -73,7 +73,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   loadById: async (id: number) => {
     set({ status: 'loading', errorCode: null });
     try {
-      const data = await songApi.getById(id);
+      const data = await songApi.getStudyDataById(id);
       set({ status: 'success', studyData: data, currentMs: 0, durationMs: 0 });
     } catch (e: any) {
       set({ status: 'error', errorCode: e.response?.data?.error });
@@ -84,7 +84,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     const current = get().studyData;
     if (!current) return;
     try {
-      const data = await songApi.getById(current.song.id);
+      const data = await songApi.getStudyDataById(current.song.id);
       set({ studyData: data });
     } catch {
       // silent — manual retry button stays available

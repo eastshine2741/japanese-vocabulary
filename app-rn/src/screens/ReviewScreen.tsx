@@ -118,7 +118,7 @@ export default function ReviewScreen({ route, navigation }: Props) {
           }
         }
       }
-      navigation.navigate('Player', { origin: 'Review', initialSeekMs, initialLyricIndex });
+      navigation.navigate('SongDetail', { songId, origin: 'Review', initialSeekMs, initialLyricIndex });
     }
   }, [loadById, navigation]);
 

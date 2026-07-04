@@ -260,7 +260,7 @@ function SpotlightHero() {
     await loadById(song.id);
     const state = usePlayerStore.getState();
     if (state.status === 'success') {
-      navigation.navigate('Player', { origin: 'Home' });
+      navigation.navigate('SongDetail', { songId: song.id, origin: 'Home' });
     }
   }, [song, loadById, navigation]);
 

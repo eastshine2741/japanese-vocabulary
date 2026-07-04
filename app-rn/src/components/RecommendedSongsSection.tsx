@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,13 +11,10 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useShallow } from 'zustand/react/shallow';
 import ArtworkImage from './ArtworkImage';
-import ErrorDialog from './ErrorDialog';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import { usePlayerStore } from '../stores/playerStore';
 import { useRecommendationStore } from '../stores/recommendationStore';
 import { Colors, Dimens } from '../theme/theme';
 import { RecommendedSongItem } from '../types/song';
-import { getErrorMessage } from '../utils/errorMessages';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -53,12 +50,10 @@ const RecommendedSongCard = React.memo(function RecommendedSongCard({
 
 export default function RecommendedSongsSection() {
   const navigation = useNavigation<Nav>();
-  const [errorDialogMessage, setErrorDialogMessage] = useState<string | null>(null);
 
   const { songs, load } = useRecommendationStore(
     useShallow(s => ({ songs: s.songs, load: s.load })),
   );
-  const loadById = usePlayerStore(s => s.loadById);
 
   useFocusEffect(
     useCallback(() => {
@@ -67,16 +62,10 @@ export default function RecommendedSongsSection() {
   );
 
   const handleSongPress = useCallback(
-    async (songId: number) => {
-      await loadById(songId);
-      const state = usePlayerStore.getState();
-      if (state.status === 'success') {
-        navigation.navigate('Player', { origin: 'Home' });
-      } else if (state.status === 'error') {
-        setErrorDialogMessage(getErrorMessage(state.errorCode));
-      }
+    (songId: number) => {
+      navigation.navigate('SongDetail', { songId, origin: 'Home' });
     },
-    [loadById, navigation],
+    [navigation],
   );
 
   const renderItem = useCallback(
@@ -87,10 +76,6 @@ export default function RecommendedSongsSection() {
   );
 
   const keyExtractor = useCallback((item: RecommendedSongItem) => String(item.id), []);
-
-  const dismissErrorDialog = useCallback(() => {
-    setErrorDialogMessage(null);
-  }, []);
 
   if (songs.length === 0) {
     return null;
@@ -107,10 +92,6 @@ export default function RecommendedSongsSection() {
         showsHorizontalScrollIndicator={false}
         ItemSeparatorComponent={Separator}
         contentContainerStyle={styles.listContent}
-      />
-      <ErrorDialog
-        message={errorDialogMessage}
-        onDismiss={dismissErrorDialog}
       />
     </View>
   );
