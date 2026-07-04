@@ -22181,7 +22181,8 @@
                   "fill": "$foreground.secondary",
                   "content": "홈",
                   "fontFamily": "$font.body",
-                  "fontSize": 14
+                  "fontSize": 14,
+                  "fontWeight": "normal"
                 }
               ]
             },
@@ -24588,7 +24589,8 @@
                       "fill": "#FFFFFFAA",
                       "content": "米津玄師",
                       "fontFamily": "$font.body",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -24719,7 +24721,8 @@
                   "fill": "$foreground.secondary",
                   "content": "단어",
                   "fontFamily": "$font.body",
-                  "fontSize": 14
+                  "fontSize": 14,
+                  "fontWeight": "normal"
                 }
               ]
             }
@@ -24790,7 +24793,8 @@
                           "fill": "$foreground.secondary",
                           "content": "가사 이해에 핵심이 되는 단어를 추렸어요.",
                           "fontFamily": "$font.headings",
-                          "fontSize": 11
+                          "fontSize": 11,
+                          "fontWeight": "normal"
                         }
                       ]
                     }
@@ -24951,8 +24955,8 @@
                   "id": "zfXGU",
                   "name": "Card Header",
                   "width": "fill_container",
-                  "gap": 8,
-                  "alignItems": "center",
+                  "layout": "vertical",
+                  "gap": 4,
                   "children": [
                     {
                       "type": "text",
@@ -24971,7 +24975,7 @@
                   "id": "IK6QN",
                   "name": "Body",
                   "width": "fill_container",
-                  "gap": 32,
+                  "gap": 35,
                   "alignItems": "center",
                   "children": [
                     {
@@ -25064,297 +25068,176 @@
                     },
                     {
                       "type": "frame",
-                      "id": "J1JwAr",
+                      "id": "x9A06",
                       "name": "Legend",
-                      "width": "fill_container",
                       "layout": "vertical",
-                      "gap": 10,
+                      "gap": 8,
                       "children": [
                         {
                           "type": "frame",
-                          "id": "O1H2w",
-                          "name": "Row",
-                          "width": "fill_container",
-                          "justifyContent": "space_between",
+                          "id": "L2UVV",
+                          "name": "Item N5",
+                          "gap": 5,
                           "alignItems": "center",
                           "children": [
                             {
-                              "type": "frame",
-                              "id": "vgES7",
-                              "name": "Left",
-                              "gap": 8,
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "frame",
-                                  "id": "lpCc1",
-                                  "name": "Dot",
-                                  "width": 8,
-                                  "height": 8,
-                                  "fill": "$jlpt-n3",
-                                  "cornerRadius": "$rounded.full"
-                                },
-                                {
-                                  "type": "text",
-                                  "id": "tu5IB",
-                                  "name": "Label",
-                                  "fill": "$text-secondary",
-                                  "content": "N3",
-                                  "fontFamily": "$font.body",
-                                  "fontSize": 13,
-                                  "fontWeight": "normal"
-                                }
-                              ]
+                              "type": "rectangle",
+                              "cornerRadius": 9999,
+                              "id": "s6Tbq",
+                              "name": "Dot",
+                              "fill": "$jlpt-n5",
+                              "width": 7,
+                              "height": 7
                             },
                             {
                               "type": "text",
-                              "id": "TC4Ca",
-                              "name": "Value",
+                              "id": "otgWJ",
+                              "name": "Label",
                               "fill": "$text-primary",
-                              "content": "40%",
-                              "fontFamily": "$font.data",
-                              "fontSize": 13,
-                              "fontWeight": "600"
+                              "content": "N5 · 10%",
+                              "fontFamily": "$font.body",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
                             }
                           ]
                         },
                         {
                           "type": "frame",
-                          "id": "hXOay",
-                          "name": "Row",
-                          "width": "fill_container",
-                          "justifyContent": "space_between",
+                          "id": "TtQHQ",
+                          "name": "Item N4",
+                          "gap": 5,
                           "alignItems": "center",
                           "children": [
                             {
-                              "type": "frame",
-                              "id": "tyk7j",
-                              "name": "Left",
-                              "gap": 8,
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "frame",
-                                  "id": "wGZQq",
-                                  "name": "Dot",
-                                  "width": 8,
-                                  "height": 8,
-                                  "fill": "$jlpt-n2",
-                                  "cornerRadius": "$rounded.full"
-                                },
-                                {
-                                  "type": "text",
-                                  "id": "kfLim",
-                                  "name": "Label",
-                                  "fill": "$text-secondary",
-                                  "content": "N2",
-                                  "fontFamily": "$font.body",
-                                  "fontSize": 13,
-                                  "fontWeight": "normal"
-                                }
-                              ]
+                              "type": "rectangle",
+                              "cornerRadius": 9999,
+                              "id": "B3bqj",
+                              "name": "Dot",
+                              "fill": "$jlpt-n4",
+                              "width": 7,
+                              "height": 7
                             },
                             {
                               "type": "text",
-                              "id": "jtWmq",
-                              "name": "Value",
+                              "id": "SlFHR",
+                              "name": "Label",
                               "fill": "$text-primary",
-                              "content": "20%",
-                              "fontFamily": "$font.data",
-                              "fontSize": 13,
-                              "fontWeight": "600"
+                              "content": "N4 · 15%",
+                              "fontFamily": "$font.body",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
                             }
                           ]
                         },
                         {
                           "type": "frame",
-                          "id": "vJVVL",
-                          "name": "Row",
-                          "width": "fill_container",
-                          "justifyContent": "space_between",
+                          "id": "QvDqa",
+                          "name": "Item N3",
+                          "gap": 5,
                           "alignItems": "center",
                           "children": [
                             {
-                              "type": "frame",
-                              "id": "va5hN",
-                              "name": "Left",
-                              "gap": 8,
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "frame",
-                                  "id": "I9nudF",
-                                  "name": "Dot",
-                                  "width": 8,
-                                  "height": 8,
-                                  "fill": "$jlpt-n4",
-                                  "cornerRadius": "$rounded.full"
-                                },
-                                {
-                                  "type": "text",
-                                  "id": "ZINSZ",
-                                  "name": "Label",
-                                  "fill": "$text-secondary",
-                                  "content": "N4",
-                                  "fontFamily": "$font.body",
-                                  "fontSize": 13,
-                                  "fontWeight": "normal"
-                                }
-                              ]
+                              "type": "rectangle",
+                              "cornerRadius": 9999,
+                              "id": "KCwyD",
+                              "name": "Dot",
+                              "fill": "$jlpt-n3",
+                              "width": 7,
+                              "height": 7
                             },
                             {
                               "type": "text",
-                              "id": "afrku",
-                              "name": "Value",
+                              "id": "F82ct",
+                              "name": "Label",
                               "fill": "$text-primary",
-                              "content": "15%",
-                              "fontFamily": "$font.data",
-                              "fontSize": 13,
-                              "fontWeight": "600"
+                              "content": "N3 · 40%",
+                              "fontFamily": "$font.body",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
                             }
                           ]
                         },
                         {
                           "type": "frame",
-                          "id": "QaW8P",
-                          "name": "Row",
-                          "width": "fill_container",
-                          "justifyContent": "space_between",
+                          "id": "c33SR",
+                          "name": "Item N2",
+                          "gap": 5,
                           "alignItems": "center",
                           "children": [
                             {
-                              "type": "frame",
-                              "id": "t99BUk",
-                              "name": "Left",
-                              "gap": 8,
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "frame",
-                                  "id": "M8u1kx",
-                                  "name": "Dot",
-                                  "width": 8,
-                                  "height": 8,
-                                  "fill": "$jlpt-n1",
-                                  "cornerRadius": "$rounded.full"
-                                },
-                                {
-                                  "type": "text",
-                                  "id": "OUfQb",
-                                  "name": "Label",
-                                  "fill": "$text-secondary",
-                                  "content": "N1",
-                                  "fontFamily": "$font.body",
-                                  "fontSize": 13,
-                                  "fontWeight": "normal"
-                                }
-                              ]
+                              "type": "rectangle",
+                              "cornerRadius": 9999,
+                              "id": "AK9B8",
+                              "name": "Dot",
+                              "fill": "$jlpt-n2",
+                              "width": 7,
+                              "height": 7
                             },
                             {
                               "type": "text",
-                              "id": "O3P69A",
-                              "name": "Value",
+                              "id": "vt7x0",
+                              "name": "Label",
                               "fill": "$text-primary",
-                              "content": "10%",
-                              "fontFamily": "$font.data",
-                              "fontSize": 13,
-                              "fontWeight": "600"
+                              "content": "N2 · 20%",
+                              "fontFamily": "$font.body",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
                             }
                           ]
                         },
                         {
                           "type": "frame",
-                          "id": "AaO3G",
-                          "name": "Row",
-                          "width": "fill_container",
-                          "justifyContent": "space_between",
+                          "id": "bBJQ7",
+                          "name": "Item N1",
+                          "gap": 5,
                           "alignItems": "center",
                           "children": [
                             {
-                              "type": "frame",
-                              "id": "L2lER",
-                              "name": "Left",
-                              "gap": 8,
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "frame",
-                                  "id": "S7zSJ",
-                                  "name": "Dot",
-                                  "width": 8,
-                                  "height": 8,
-                                  "fill": "$jlpt-n5",
-                                  "cornerRadius": "$rounded.full"
-                                },
-                                {
-                                  "type": "text",
-                                  "id": "o8S6e",
-                                  "name": "Label",
-                                  "fill": "$text-secondary",
-                                  "content": "N5",
-                                  "fontFamily": "$font.body",
-                                  "fontSize": 13,
-                                  "fontWeight": "normal"
-                                }
-                              ]
+                              "type": "rectangle",
+                              "cornerRadius": 9999,
+                              "id": "DdC9S",
+                              "name": "Dot",
+                              "fill": "$jlpt-n1",
+                              "width": 7,
+                              "height": 7
                             },
                             {
                               "type": "text",
-                              "id": "LXefY",
-                              "name": "Value",
+                              "id": "P2S8yg",
+                              "name": "Label",
                               "fill": "$text-primary",
-                              "content": "10%",
-                              "fontFamily": "$font.data",
-                              "fontSize": 13,
-                              "fontWeight": "600"
+                              "content": "N1 · 10%",
+                              "fontFamily": "$font.body",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
                             }
                           ]
                         },
                         {
                           "type": "frame",
-                          "id": "g7Cylj",
-                          "name": "Row",
-                          "width": "fill_container",
-                          "justifyContent": "space_between",
+                          "id": "GNa5m",
+                          "name": "Item 기타",
+                          "gap": 5,
                           "alignItems": "center",
                           "children": [
                             {
-                              "type": "frame",
-                              "id": "niGBS",
-                              "name": "Left",
-                              "gap": 8,
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "frame",
-                                  "id": "snTnz",
-                                  "name": "Dot",
-                                  "width": 8,
-                                  "height": 8,
-                                  "fill": "$border-strong",
-                                  "cornerRadius": "$rounded.full"
-                                },
-                                {
-                                  "type": "text",
-                                  "id": "EbUUF",
-                                  "name": "Label",
-                                  "fill": "$text-secondary",
-                                  "content": "알수없음",
-                                  "fontFamily": "$font.body",
-                                  "fontSize": 13,
-                                  "fontWeight": "normal"
-                                }
-                              ]
+                              "type": "rectangle",
+                              "cornerRadius": 9999,
+                              "id": "L24WLs",
+                              "name": "Dot",
+                              "fill": "$border-strong",
+                              "width": 7,
+                              "height": 7
                             },
                             {
                               "type": "text",
-                              "id": "DO8Vw",
-                              "name": "Value",
+                              "id": "LdNL4",
+                              "name": "Label",
                               "fill": "$text-primary",
-                              "content": "5%",
-                              "fontFamily": "$font.data",
-                              "fontSize": 13,
-                              "fontWeight": "600"
+                              "content": "알 수 없음 · 5%",
+                              "fontFamily": "$font.body",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
                             }
                           ]
                         }
@@ -26438,7 +26321,8 @@
                       "fill": "#FFFFFFAA",
                       "content": "米津玄師",
                       "fontFamily": "$font.body",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -26530,7 +26414,8 @@
                   "fill": "$foreground.secondary",
                   "content": "홈",
                   "fontFamily": "$font.body",
-                  "fontSize": 14
+                  "fontSize": 14,
+                  "fontWeight": "normal"
                 }
               ]
             },
@@ -28242,7 +28127,8 @@
                       "fill": "#FFFFFFAA",
                       "content": "米津玄師",
                       "fontFamily": "$font.body",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -28334,7 +28220,8 @@
                   "fill": "$foreground.secondary",
                   "content": "홈",
                   "fontFamily": "$font.body",
-                  "fontSize": 14
+                  "fontSize": 14,
+                  "fontWeight": "normal"
                 }
               ]
             },
@@ -29763,7 +29650,8 @@
                       "fill": "#FFFFFFAA",
                       "content": "米津玄師",
                       "fontFamily": "$font.body",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -29855,7 +29743,8 @@
                   "fill": "$foreground.secondary",
                   "content": "홈",
                   "fontFamily": "$font.body",
-                  "fontSize": 14
+                  "fontSize": 14,
+                  "fontWeight": "normal"
                 }
               ]
             },
@@ -31279,7 +31168,8 @@
                       "fill": "#FFFFFFAA",
                       "content": "米津玄師",
                       "fontFamily": "$font.body",
-                      "fontSize": 13
+                      "fontSize": 13,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -31371,7 +31261,8 @@
                   "fill": "$foreground.secondary",
                   "content": "홈",
                   "fontFamily": "$font.body",
-                  "fontSize": 14
+                  "fontSize": 14,
+                  "fontWeight": "normal"
                 }
               ]
             },
