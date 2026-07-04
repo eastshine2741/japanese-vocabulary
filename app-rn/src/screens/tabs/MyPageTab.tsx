@@ -2,11 +2,11 @@ import React, { useCallback, useRef } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, BackHandler } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
-import { BottomSheetModal, BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
-import type { BottomSheetBackdropProps } from '@gorhom/bottom-sheet';
+import { BottomSheetView } from '@gorhom/bottom-sheet';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuthStore } from '../../stores/authStore';
+import { AppBottomSheetModal, AppBottomSheetModalRef } from '../../components/bottomSheet';
 import { Colors, Dimens } from '../../theme/theme';
 import { RootStackParamList } from '../../navigation/AppNavigator';
 import StudyStatsProfileSection from '../../components/studyStats/StudyStatsProfileSection';
@@ -28,7 +28,7 @@ export default function MyPageTab() {
     }, [loadProfile]),
   );
 
-  const freezeSheetRef = useRef<BottomSheetModal>(null);
+  const freezeSheetRef = useRef<AppBottomSheetModalRef>(null);
   const freezeOpenRef = useRef(false);
 
   const handleOpenFreeze = useCallback(() => {
@@ -58,13 +58,6 @@ export default function MyPageTab() {
       const sub = BackHandler.addEventListener('hardwareBackPress', onBack);
       return () => sub.remove();
     }, []),
-  );
-
-  const renderBackdrop = useCallback(
-    (props: BottomSheetBackdropProps) => (
-      <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} opacity={0.25} />
-    ),
-    [],
   );
 
   const handle = username ? `@${username}` : '@user';
@@ -108,23 +101,16 @@ export default function MyPageTab() {
         <HeatmapSection onPressFreeze={handleOpenFreeze} />
       </ScrollView>
 
-      <BottomSheetModal
+      <AppBottomSheetModal
         ref={freezeSheetRef}
         enableDynamicSizing
         enablePanDownToClose
-        detached
         onChange={handleFreezeSheetChange}
-        bottomInset={insets.bottom + 12}
-        backdropComponent={renderBackdrop}
-        style={styles.sheetFloat}
-        backgroundStyle={styles.sheetBg}
-        handleStyle={styles.sheetHandle}
-        handleIndicatorStyle={styles.sheetIndicator}
       >
         <BottomSheetView>
           <FreezeInfoSheet onConfirm={handleCloseFreeze} />
         </BottomSheetView>
-      </BottomSheetModal>
+      </AppBottomSheetModal>
     </SafeAreaView>
   );
 }
@@ -188,23 +174,5 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.elevated,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-
-  sheetFloat: {
-    marginHorizontal: 12,
-  },
-  sheetBg: {
-    backgroundColor: Colors.background,
-    borderRadius: 20,
-  },
-  sheetHandle: {
-    paddingTop: 12,
-    paddingBottom: 8,
-  },
-  sheetIndicator: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#A1A1AA',
   },
 });

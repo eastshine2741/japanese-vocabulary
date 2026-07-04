@@ -14,14 +14,14 @@ import {
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import BottomSheet, { BottomSheetBackdrop, BottomSheetView } from '@gorhom/bottom-sheet';
-import type { BottomSheetBackdropProps } from '@gorhom/bottom-sheet';
+import { BottomSheetView } from '@gorhom/bottom-sheet';
 import { Feather } from '@expo/vector-icons';
 import { useSongDetailStore } from '../stores/songDetailStore';
 import { usePlayerStore } from '../stores/playerStore';
 import { deckApi } from '../api/deckApi';
 import { wordApi } from '../api/wordApi';
 import SongInfoSheet from '../components/SongInfoSheet';
+import { AppBottomSheet, AppBottomSheetRef } from '../components/bottomSheet';
 import {
   CurrentPlayingWordsSheet,
   CURRENT_PLAYING_WORDS_PEEK_HEIGHT,
@@ -45,7 +45,7 @@ const HERO_SCROLL_COLLAPSE_END = HERO_SCROLL_COLLAPSE_START + 56;
 export default function SongDetailScreen({ navigation, route }: Props) {
   const insets = useSafeAreaInsets();
   const scrollY = useRef(new Animated.Value(0)).current;
-  const infoSheetRef = useRef<BottomSheet>(null);
+  const infoSheetRef = useRef<AppBottomSheetRef>(null);
   const infoSheetOpenRef = useRef(false);
 
   const status = useSongDetailStore(s => s.status);
@@ -184,13 +184,6 @@ export default function SongDetailScreen({ navigation, route }: Props) {
       .then(deck => setVocabDeckId(deck?.deckId ?? null))
       .catch(() => setVocabDeckId(null));
   }, [load, songId]);
-
-  const renderBackdrop = useCallback(
-    (props: BottomSheetBackdropProps) => (
-      <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} opacity={0.25} />
-    ),
-    [],
-  );
 
   useFocusEffect(
     useCallback(() => {
@@ -372,19 +365,13 @@ export default function SongDetailScreen({ navigation, route }: Props) {
         />
       </Animated.View>
 
-      <BottomSheet
+      <AppBottomSheet
         ref={infoSheetRef}
+        variant="floating"
         index={-1}
         enableDynamicSizing
         enablePanDownToClose
-        detached
         onChange={handleInfoSheetChange}
-        bottomInset={insets.bottom + 12}
-        backdropComponent={renderBackdrop}
-        style={styles.infoSheetFloat}
-        backgroundStyle={styles.infoSheetBg}
-        handleStyle={styles.infoSheetHandle}
-        handleIndicatorStyle={styles.infoSheetIndicator}
       >
         <BottomSheetView>
           <SongInfoSheet
@@ -395,7 +382,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
             lyricsSourceUrl={lyrics.lyricsSourceUrl}
           />
         </BottomSheetView>
-      </BottomSheet>
+      </AppBottomSheet>
     </View>
   );
 }
@@ -707,24 +694,5 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     opacity: 0.55,
-  },
-  infoSheetFloat: {
-    marginHorizontal: 12,
-    zIndex: 100,
-    elevation: 100,
-  },
-  infoSheetBg: {
-    backgroundColor: Colors.card,
-    borderRadius: 24,
-  },
-  infoSheetHandle: {
-    paddingTop: 12,
-    paddingBottom: 8,
-  },
-  infoSheetIndicator: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#A1A1AA',
   },
 });

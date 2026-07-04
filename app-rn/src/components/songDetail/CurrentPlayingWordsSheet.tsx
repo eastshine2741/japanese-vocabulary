@@ -8,10 +8,12 @@ import {
   View,
 } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
-import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
+import { BottomSheetView } from '@gorhom/bottom-sheet';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../theme/theme';
+import { Layers } from '../../theme/layers';
+import { AppBottomSheet } from '../bottomSheet';
 import ReadingText from '../ReadingText';
 import { SONG_DETAIL_MV_BAR_HEIGHT } from './SongDetailMvBar';
 import { getCurrentLyricLineIndex } from './useCurrentLyricLine';
@@ -151,7 +153,7 @@ function CurrentPlayingWordsSheetComponent({
   fallbackLineIndex = 0,
   bottomInset,
   expandedHeight,
-  zIndex = 20,
+  zIndex = Layers.currentPlayingWordsSheet,
 }: CurrentPlayingWordsSheetProps) {
   const insets = useSafeAreaInsets();
   const listRef = useRef<FlatList<WordPage>>(null);
@@ -219,7 +221,7 @@ function CurrentPlayingWordsSheetComponent({
   }, [activePageIndex, pages.length]);
 
   return (
-    <BottomSheet
+    <AppBottomSheet
       snapPoints={snapPoints}
       index={0}
       bottomInset={sheetBottomInset}
@@ -260,7 +262,7 @@ function CurrentPlayingWordsSheetComponent({
           removeClippedSubviews={false}
         />
       </BottomSheetView>
-    </BottomSheet>
+    </AppBottomSheet>
   );
 }
 

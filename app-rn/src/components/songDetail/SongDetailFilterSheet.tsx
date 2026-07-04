@@ -77,8 +77,6 @@ export default function SongDetailFilterSheet({
 }: Props) {
   return (
     <View style={styles.container}>
-      <View style={styles.handle} />
-
       <View style={styles.section}>
         <Text style={styles.sectionLabel}>품사</Text>
         <View style={styles.chipGrid}>
@@ -149,16 +147,9 @@ function getJlptColor(jlpt: string): string {
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 20,
-    paddingTop: 12,
+    paddingTop: 4,
     paddingBottom: 20,
     gap: 24,
-  },
-  handle: {
-    alignSelf: 'center',
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: Colors.textTertiary,
   },
   section: {
     gap: 12,

@@ -7,16 +7,14 @@ import {
   View,
 } from 'react-native';
 import {
-  BottomSheetBackdrop,
-  BottomSheetModal,
   BottomSheetScrollView,
   BottomSheetView,
 } from '@gorhom/bottom-sheet';
-import type { BottomSheetBackdropProps } from '@gorhom/bottom-sheet';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { wordApi } from '../../api/wordApi';
 import AppDialog from '../AppDialog';
+import { AppBottomSheetModal, AppBottomSheetModalRef } from '../bottomSheet';
 import { Colors } from '../../theme/theme';
 import SongDetailWordRow from './SongDetailWordRow';
 import SongDetailSortSheet from './SongDetailSortSheet';
@@ -104,8 +102,8 @@ export default function SongDetailWordsTab({
   onWordsChanged,
 }: Props) {
   const insets = useSafeAreaInsets();
-  const sortSheetRef = useRef<BottomSheetModal>(null);
-  const filterSheetRef = useRef<BottomSheetModal>(null);
+  const sortSheetRef = useRef<AppBottomSheetModalRef>(null);
+  const filterSheetRef = useRef<AppBottomSheetModalRef>(null);
   const [sort, setSort] = useState<SongDetailWordsSort>(() => getInitialSort(data));
   const [selectedPos, setSelectedPos] = useState<Set<string>>(() => getInitialPos(data));
   const [selectedJlpt, setSelectedJlpt] = useState<Set<string>>(() => getInitialJlpt(data));
@@ -168,13 +166,6 @@ export default function SongDetailWordsTab({
     [getSaveState, visibleWords],
   );
   const batchCount = batchCandidates.length;
-
-  const renderBackdrop = useCallback(
-    (props: BottomSheetBackdropProps) => (
-      <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} opacity={0.25} />
-    ),
-    [],
-  );
 
   const openSortSheet = useCallback(() => {
     sortSheetRef.current?.present();
@@ -347,28 +338,22 @@ export default function SongDetailWordsTab({
         })}
       </View>
 
-      <BottomSheetModal
+      <AppBottomSheetModal
         ref={sortSheetRef}
         enableDynamicSizing
         enablePanDownToClose
-        backdropComponent={renderBackdrop}
         backgroundStyle={styles.sheetBg}
-        style={styles.modalSheet}
-        handleComponent={null}
       >
         <BottomSheetView style={{ paddingBottom: insets.bottom }}>
           <SongDetailSortSheet value={sort} onApply={handleSortApply} />
         </BottomSheetView>
-      </BottomSheetModal>
+      </AppBottomSheetModal>
 
-      <BottomSheetModal
+      <AppBottomSheetModal
         ref={filterSheetRef}
         enableDynamicSizing
         enablePanDownToClose
-        backdropComponent={renderBackdrop}
         backgroundStyle={styles.sheetBg}
-        style={styles.modalSheet}
-        handleComponent={null}
       >
         <BottomSheetScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 8 }}>
           <SongDetailFilterSheet
@@ -384,7 +369,7 @@ export default function SongDetailWordsTab({
             onApply={applyFilters}
           />
         </BottomSheetScrollView>
-      </BottomSheetModal>
+      </AppBottomSheetModal>
 
       <AppDialog
         visible={pendingRemove !== null}
@@ -476,12 +461,6 @@ const styles = StyleSheet.create({
     lineHeight: 19,
   },
   sheetBg: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
     backgroundColor: Colors.background,
-  },
-  modalSheet: {
-    zIndex: 100,
-    elevation: 100,
   },
 });

@@ -44,7 +44,6 @@ export default function SongDetailSortSheet({ value, onApply }: Props) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.handle} />
       <Text style={styles.title}>정렬</Text>
       <Text style={styles.sectionLabel}>정렬 기준</Text>
       <View style={styles.segmented}>
@@ -61,17 +60,9 @@ export default function SongDetailSortSheet({ value, onApply }: Props) {
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 20,
-    paddingTop: 12,
+    paddingTop: 4,
     paddingBottom: 24,
     gap: 14,
-  },
-  handle: {
-    alignSelf: 'center',
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: Colors.textTertiary,
-    marginBottom: 10,
   },
   title: {
     fontSize: 17,
