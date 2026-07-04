@@ -5,6 +5,7 @@ Deployment runs on a local k3s cluster. Backend, DB, admin-api, admin-web, and b
 ```bash
 ./deploy.sh              # current branch name decides namespace
 ./deploy.sh foo          # explicit namespace
+./deploy.sh foo --restore-dev-dump
 ./teardown.sh            # delete current branch namespace; refuses main
 ./teardown.sh foo        # delete explicit namespace
 ```
@@ -13,9 +14,29 @@ Rules:
 
 - Image tags use the git commit SHA. Uncommitted changes are not deployed.
 - Secrets come from repo-root `.env` (gitignored), then `envsubst` fills templates.
-- `deploy.sh` refuses to run unless kubectl context is `default`.
+- `deploy.sh` passes an explicit kubectl context for the selected environment (`default` for dev).
 - Local dev admin web is available through `http://localhost/<namespace>/admin` when k3s ingress is running.
 - Port-forward `svc/admin-api 8081:8081` only for direct Admin API checks.
+
+## Dev MySQL Dump Restore
+
+Use a local dump when a fresh worktree namespace should start from the shared dev DB contents.
+
+```bash
+mkdir -p local/mysql
+# Put the dump here manually. This path is gitignored.
+local/mysql/dev-dump.sql
+
+./deploy.sh <namespace> --restore-dev-dump
+```
+
+Restore rules:
+
+- This is dev-only. `DEPLOY_ENV=prod ./deploy.sh --restore-dev-dump` fails.
+- The dump is imported after the MySQL StatefulSet is ready and before the Flyway migration job runs.
+- The dump is only accepted for a fresh MySQL PVC. If `mysql-data-mysql-0` already exists in the namespace, deploy fails rather than overwriting the worktree DB.
+- If restore fails after the PVC was created, delete the namespace with `./teardown.sh <namespace>` before retrying.
+- Dump creation and refresh are manual. `deploy.sh` does not dump from the `main` namespace.
 
 ## Multi-worktree Frontend
 

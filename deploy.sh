@@ -1,15 +1,56 @@
 #!/bin/bash
 # deploy.sh - k3s 배포 스크립트
 # Usage:
-#   ./deploy.sh [namespace]            # dev (k3s local, default context)
-#   DEPLOY_ENV=prod ./deploy.sh        # prod (Hetzner k3s, kotonoha-prod context)
+#   ./deploy.sh [namespace] [--restore-dev-dump]  # dev (k3s local, default context)
+#   DEPLOY_ENV=prod ./deploy.sh                   # prod (Hetzner k3s, kotonoha-prod context)
 
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
 TOTAL_START=$SECONDS
+RESTORE_DEV_DUMP=false
+DEV_MYSQL_DUMP_FILE="$PROJECT_ROOT/local/mysql/dev-dump.sql"
+DEV_MYSQL_PVC="mysql-data-mysql-0"
+DEPLOY_NS_ARG=""
 
 DEPLOY_ENV="${DEPLOY_ENV:-dev}"
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  ./deploy.sh [namespace] [--restore-dev-dump]
+  DEPLOY_ENV=prod ./deploy.sh
+
+Options:
+  --restore-dev-dump  Dev only. Restore local/mysql/dev-dump.sql into a fresh MySQL PVC before Flyway migration.
+  -h, --help          Show this help.
+USAGE
+}
+
+for arg in "$@"; do
+  case "$arg" in
+    --restore-dev-dump)
+      RESTORE_DEV_DUMP=true
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    --*)
+      echo "Error: unknown option '$arg'" >&2
+      usage >&2
+      exit 1
+      ;;
+    *)
+      if [[ -n "$DEPLOY_NS_ARG" ]]; then
+        echo "Error: multiple namespace arguments: '$DEPLOY_NS_ARG' and '$arg'" >&2
+        usage >&2
+        exit 1
+      fi
+      DEPLOY_NS_ARG="$arg"
+      ;;
+  esac
+done
 
 # --- 환경별 설정 (IMAGE_PREFIX는 prod에서 env 로드 후 GHCR_USERNAME으로 조립) ---
 if [[ "$DEPLOY_ENV" == "prod" ]]; then
@@ -35,8 +76,8 @@ kubectl() {
 
 # --- namespace 결정 (dev만 동적, prod는 고정) ---
 if [[ "$DEPLOY_ENV" == "dev" ]]; then
-  if [[ -n "${1:-}" ]]; then
-    NS="$1"
+  if [[ -n "$DEPLOY_NS_ARG" ]]; then
+    NS="$DEPLOY_NS_ARG"
   else
     BRANCH="$(git rev-parse --abbrev-ref HEAD)"
     # feature/foo-bar → foo-bar, main → main
@@ -47,6 +88,11 @@ if [[ "$DEPLOY_ENV" == "dev" ]]; then
     echo "Error: invalid namespace '$NS'" >&2
     exit 1
   fi
+fi
+
+if [[ "$RESTORE_DEV_DUMP" == "true" && "$DEPLOY_ENV" != "dev" ]]; then
+  echo "Error: --restore-dev-dump is only supported with DEPLOY_ENV=dev" >&2
+  exit 1
 fi
 
 # --- env 파일 확인 ---
@@ -103,6 +149,21 @@ export API_IMAGE BATCH_IMAGE MIGRATION_IMAGE ADMIN_API_IMAGE ADMIN_WEB_IMAGE NS 
 export ADMIN_PASSWORD ADMIN_PASSWORD_SHA256 ADMIN_TOKEN_SECRET
 
 echo "=== env: $DEPLOY_ENV | namespace: $NS | sha: $GIT_SHA ==="
+
+if [[ "$RESTORE_DEV_DUMP" == "true" ]]; then
+  echo "[mysql] checking dev dump restore preconditions..."
+  if kubectl get pvc "$DEV_MYSQL_PVC" -n "$NS" >/dev/null 2>&1; then
+    echo "Error: --restore-dev-dump requested, but MySQL PVC '$DEV_MYSQL_PVC' already exists in namespace '$NS'." >&2
+    echo "Refusing to overwrite an existing worktree database." >&2
+    echo "To restore from the dump, first delete the namespace with: ./teardown.sh $NS" >&2
+    exit 1
+  fi
+  if [[ ! -r "$DEV_MYSQL_DUMP_FILE" ]]; then
+    echo "Error: dev dump file is not readable: $DEV_MYSQL_DUMP_FILE" >&2
+    echo "Create or copy the dump to local/mysql/dev-dump.sql, then rerun with --restore-dev-dump." >&2
+    exit 1
+  fi
+fi
 
 # --- 1. Gradle 테스트 + 빌드 (test 실패 시 배포 중단) ---
 STEP_START=$SECONDS
@@ -179,6 +240,19 @@ echo "  → $((SECONDS - STEP_START))s"
 STEP_START=$SECONDS
 echo "[migration] running..."
 kubectl rollout status -n "$NS" statefulset/mysql --timeout=120s
+if [[ "$RESTORE_DEV_DUMP" == "true" ]]; then
+  echo "[mysql] restoring $DEV_MYSQL_DUMP_FILE before Flyway migration..."
+  if ! kubectl exec -n "$NS" statefulset/mysql -- sh -c 'command -v mysql >/dev/null'; then
+    echo "Error: mysql client is not available in the mysql pod." >&2
+    echo "Database PVC may already have been created. Recover with: ./teardown.sh $NS" >&2
+    exit 1
+  fi
+  if ! kubectl exec -i -n "$NS" statefulset/mysql -- sh -c 'mysql -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE"' < "$DEV_MYSQL_DUMP_FILE"; then
+    echo "Error: failed to restore dev dump into namespace '$NS'." >&2
+    echo "Database PVC may contain a partial import. Recover with: ./teardown.sh $NS" >&2
+    exit 1
+  fi
+fi
 kubectl delete job migration -n "$NS" --ignore-not-found
 envsubst < "$K8S_DIR/migration/job.yaml" | kubectl apply -n "$NS" -f -
 kubectl wait --for=condition=complete -n "$NS" job/migration --timeout=120s
