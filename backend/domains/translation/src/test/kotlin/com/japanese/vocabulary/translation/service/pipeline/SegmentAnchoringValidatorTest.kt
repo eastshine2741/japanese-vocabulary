@@ -34,7 +34,34 @@ class SegmentAnchoringValidatorTest {
     }
 
     @Test
-    fun `rejects uncovered Japanese characters`() {
+    fun `accepts segmentation that covers spaces and symbols`() {
+        val result = validator.validate(
+            mapOf(0 to "「猫」 yay"),
+            listOf(
+                SegLineDto(
+                    0,
+                    listOf(
+                        SegWordDto("「", "「"),
+                        SegWordDto("猫", "猫"),
+                        SegWordDto("」", "」"),
+                        SegWordDto(" ", " "),
+                        SegWordDto("yay", "yay"),
+                    ),
+                ),
+            ),
+        )
+
+        assertThat(result[0]!!.map { Triple(it.surface, it.charStart, it.charEnd) }).containsExactly(
+            Triple("「", 0, 1),
+            Triple("猫", 1, 2),
+            Triple("」", 2, 3),
+            Triple(" ", 3, 4),
+            Triple("yay", 4, 7),
+        )
+    }
+
+    @Test
+    fun `rejects uncovered characters`() {
         assertThatThrownBy {
             validator.validate(
                 mapOf(0 to "猫が寝る"),
@@ -58,12 +85,12 @@ class SegmentAnchoringValidatorTest {
     }
 
     @Test
-    fun `allows Latin suffix when Japanese characters are covered`() {
-        val result = validator.validate(
-            mapOf(0 to "開けたなら yay"),
-            listOf(SegLineDto(0, listOf(SegWordDto("開け", "開ける"), SegWordDto("た", "た"), SegWordDto("なら", "なら")))),
-        )
-
-        assertThat(result[0]!!.map { it.surface }).containsExactly("開け", "た", "なら")
+    fun `rejects omitted Latin suffix`() {
+        assertThatThrownBy {
+            validator.validate(
+                mapOf(0 to "開けたなら yay"),
+                listOf(SegLineDto(0, listOf(SegWordDto("開け", "開ける"), SegWordDto("た", "た"), SegWordDto("なら", "なら")))),
+            )
+        }.isInstanceOf(SegmentationValidationException::class.java)
     }
 }

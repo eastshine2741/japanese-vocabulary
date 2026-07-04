@@ -45,9 +45,9 @@ class SegmentAnchoringValidator {
         }
 
         rawText.forEachIndexed { i, ch ->
-            if (isJapanese(ch) && !covered[i]) {
+            if (!covered[i]) {
                 throw SegmentationValidationException(
-                    "Japanese character '$ch' at offset=$i is not covered by segmentation at line index=$index",
+                    "Character '$ch' at offset=$i is not covered by segmentation at line index=$index",
                 )
             }
         }
@@ -68,10 +68,4 @@ class SegmentAnchoringValidator {
         }
     }
 
-    private fun isJapanese(ch: Char): Boolean =
-        ch in '\u3040'..'\u309f' ||
-            ch in '\u30a0'..'\u30ff' ||
-            ch in '\u4e00'..'\u9fff' ||
-            ch in '\u3400'..'\u4dbf' ||
-            ch in '\uff66'..'\uff9f'
 }
