@@ -7,7 +7,7 @@ import {
   ViewStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Feather } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import YouTubePlayer, { YouTubePlayerRef } from '../YouTubePlayer';
 import { Colors } from '../../theme/theme';
 
@@ -149,9 +149,6 @@ function SongDetailMvBarComponent({
                 <Feather name="play" size={12} color="#FFFFFF" />
               </View>
             )}
-            <View style={styles.mvBadge}>
-              <Text style={styles.mvBadgeText}>MV</Text>
-            </View>
           </View>
 
           <View style={styles.textCol}>
@@ -169,7 +166,12 @@ function SongDetailMvBarComponent({
             accessibilityRole="button"
             accessibilityLabel={isPlaying ? 'MV 일시정지' : 'MV 재생'}
           >
-            <Feather name={isPlaying ? 'pause' : 'play'} size={22} color={Colors.textPrimary} />
+            <Ionicons
+              name={isPlaying ? 'pause' : 'play'}
+              size={22}
+              color={Colors.primary}
+              style={!isPlaying && styles.playIcon}
+            />
           </TouchableOpacity>
         </View>
       </View>
@@ -215,29 +217,17 @@ const styles = StyleSheet.create({
   mvThumb: {
     width: 60,
     height: 30,
-    borderRadius: 7,
+    borderRadius: 8,
     overflow: 'hidden',
     backgroundColor: '#111111',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#FFFFFF33',
   },
   thumbFallback: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#1A1A1A',
-  },
-  mvBadge: {
-    position: 'absolute',
-    left: 4,
-    bottom: 4,
-    borderRadius: 3,
-    paddingHorizontal: 4,
-    paddingVertical: 1,
-    backgroundColor: '#00000099',
-  },
-  mvBadgeText: {
-    fontSize: 7,
-    fontWeight: '700',
-    color: '#FFFFFF',
   },
   textCol: {
     flex: 1,
@@ -256,9 +246,11 @@ const styles = StyleSheet.create({
   toggle: {
     width: 36,
     height: 36,
-    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.card,
+    backgroundColor: 'transparent',
+  },
+  playIcon: {
+    marginLeft: 2,
   },
 });

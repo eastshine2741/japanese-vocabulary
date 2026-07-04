@@ -52,15 +52,18 @@ interface Props {
 
 interface SummaryChipProps {
   icon: keyof typeof Feather.glyphMap;
-  label: string;
   onPress: () => void;
 }
 
-const SummaryChip = React.memo(function SummaryChip({ icon, label, onPress }: SummaryChipProps) {
+const SummaryChip = React.memo(function SummaryChip({ icon, onPress }: SummaryChipProps) {
   return (
-    <TouchableOpacity style={styles.summaryChip} onPress={onPress} activeOpacity={0.7}>
+    <TouchableOpacity
+      style={styles.summaryChip}
+      onPress={onPress}
+      activeOpacity={0.7}
+      accessibilityRole="button"
+    >
       <Feather name={icon} size={12} color={Colors.textSecondary} />
-      <Text style={styles.summaryChipText} numberOfLines={1}>{label}</Text>
     </TouchableOpacity>
   );
 });
@@ -155,24 +158,10 @@ export default function SongDetailWordsTab({
     };
   }, [saveOverrides]);
 
-  const filterLabel = useMemo(() => {
-    const allAvailablePosSelected = availablePos.length > 0 && availablePos.every(pos => selectedPos.has(pos));
-    const selectedAvailablePosCount = availablePos.filter(pos => selectedPos.has(pos)).length;
-    const posLabel = allAvailablePosSelected
-      ? '품사 전체'
-      : `${selectedAvailablePosCount}품사`;
-    const jlptLabel = selectedJlpt.size === availableJlpt.length
-      ? 'JLPT 전체'
-      : Array.from(selectedJlpt).sort((a, b) => JLPT_ORDER.indexOf(a) - JLPT_ORDER.indexOf(b)).join('/') || 'JLPT 0';
-    return `${posLabel} · ${jlptLabel}${includeUnknownJlpt ? '+미분류' : ''}`;
-  }, [availableJlpt.length, availablePos, includeUnknownJlpt, selectedJlpt, selectedPos]);
-
-  const sortLabel = sort === 'importance' ? '중요도순' : '등장순';
   const batchCandidates = useMemo(
     () => visibleWords.filter(word => !getSaveState(word).isSavedForSong),
     [getSaveState, visibleWords],
   );
-  const visibleCount = visibleWords.length;
   const batchCount = batchCandidates.length;
 
   const renderBackdrop = useCallback(
@@ -313,15 +302,12 @@ export default function SongDetailWordsTab({
   return (
     <View style={styles.container}>
       <View style={styles.summaryBar}>
-        <View style={styles.summaryTextWrap}>
-          <Text style={styles.summaryCount}>{visibleCount}개</Text>
-          <Text style={styles.summarySub} numberOfLines={1}>
-            {sortLabel} · {filterLabel}
-          </Text>
+        <View style={styles.actionChips}>
+          <SummaryChip icon="sliders" onPress={openFilterSheet} />
+          <SummaryChip icon="arrow-down" onPress={openSortSheet} />
         </View>
 
-        <SummaryChip icon="sliders" label="필터" onPress={openFilterSheet} />
-        <SummaryChip icon="arrow-down" label={sortLabel} onPress={openSortSheet} />
+        <View style={styles.summarySpacer} />
 
         <TouchableOpacity
           style={[styles.batchButton, batchCount === 0 && styles.batchButtonDisabled]}
@@ -414,52 +400,41 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   summaryBar: {
-    minHeight: 50,
+    height: 50,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.border,
     backgroundColor: Colors.background,
   },
-  summaryTextWrap: {
-    flex: 1,
-    minWidth: 0,
-  },
-  summaryCount: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: Colors.textPrimary,
-  },
-  summarySub: {
-    marginTop: 2,
-    fontSize: 11,
-    fontWeight: '600',
-    color: Colors.textMuted,
-  },
-  summaryChip: {
-    height: 32,
-    maxWidth: 92,
+  actionChips: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    borderRadius: 9999,
-    paddingHorizontal: 10,
-    backgroundColor: Colors.elevated,
+    gap: 6,
   },
-  summaryChipText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: Colors.textSecondary,
-  },
-  batchButton: {
+  summaryChip: {
+    width: 32,
     height: 32,
-    minWidth: 86,
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 5,
+    borderRadius: 20,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+  },
+  summarySpacer: {
+    flex: 1,
+    minWidth: 0,
+  },
+  batchButton: {
+    height: 32,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
     borderRadius: 9999,
     paddingHorizontal: 12,
     backgroundColor: Colors.primary,
@@ -469,7 +444,7 @@ const styles = StyleSheet.create({
   },
   batchButtonText: {
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '700',
     color: '#FFFFFF',
   },
   listContent: {

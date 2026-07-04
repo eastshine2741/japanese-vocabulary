@@ -3,6 +3,8 @@ import {
   ActivityIndicator,
   Animated,
   ImageBackground,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   Pressable,
   StyleSheet,
   Text,
@@ -54,6 +56,8 @@ export default function SongDetailScreen({ navigation, route }: Props) {
   const [activeTab, setActiveTab] = useState<DetailTab>('home');
   const [vocabDeckId, setVocabDeckId] = useState<number | null>(null);
   const [isCreatingDeck, setIsCreatingDeck] = useState(false);
+  const [isPinnedTabsVisible, setIsPinnedTabsVisible] = useState(false);
+  const isPinnedTabsVisibleRef = useRef(false);
 
   const routeSongId = route.params?.songId;
   const fallbackSongId = preloadedStudyData?.song.id;
@@ -87,6 +91,15 @@ export default function SongDetailScreen({ navigation, route }: Props) {
   const collapsedOpacity = useMemo(
     () => scrollY.interpolate({
       inputRange: [HERO_SCROLL_COLLAPSE_START, HERO_SCROLL_COLLAPSE_END],
+      outputRange: [0, 1],
+      extrapolate: 'clamp',
+    }),
+    [scrollY],
+  );
+
+  const pinnedTabsOpacity = useMemo(
+    () => scrollY.interpolate({
+      inputRange: [HERO_SCROLL_COLLAPSE_END - 1, HERO_SCROLL_COLLAPSE_END],
       outputRange: [0, 1],
       extrapolate: 'clamp',
     }),
@@ -174,7 +187,17 @@ export default function SongDetailScreen({ navigation, route }: Props) {
   const handleScroll = useMemo(
     () => Animated.event(
       [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-      { useNativeDriver: false },
+      {
+        useNativeDriver: false,
+        listener: event => {
+          const y = (event as NativeSyntheticEvent<NativeScrollEvent>).nativeEvent.contentOffset.y;
+          const nextVisible = y >= HERO_SCROLL_COLLAPSE_END;
+          if (isPinnedTabsVisibleRef.current !== nextVisible) {
+            isPinnedTabsVisibleRef.current = nextVisible;
+            setIsPinnedTabsVisible(nextVisible);
+          }
+        },
+      },
     ),
     [scrollY],
   );
@@ -244,25 +267,23 @@ export default function SongDetailScreen({ navigation, route }: Props) {
           onSelectWords={handleSelectWords}
         />
 
-        <View style={styles.content}>
-          {activeTab === 'home' ? (
-            <SongDetailHomeTab
-              words={words.words}
-              onViewAllWordsPress={handleSelectWords}
-            />
-          ) : (
-            <SongDetailWordsTab
-              data={{
-                words: words.words,
-                wordSummary: words.wordSummary,
-                filterDefaults: words.filterDefaults,
-                lineWordIndexes: words.lineWordIndexes,
-              }}
-              bottomPadding={bottomReserve}
-              onWordsChanged={handleWordsChanged}
-            />
-          )}
-        </View>
+        {activeTab === 'home' ? (
+          <SongDetailHomeTab
+            words={words.words}
+            onViewAllWordsPress={handleSelectWords}
+          />
+        ) : (
+          <SongDetailWordsTab
+            data={{
+              words: words.words,
+              wordSummary: words.wordSummary,
+              filterDefaults: words.filterDefaults,
+              lineWordIndexes: words.lineWordIndexes,
+            }}
+            bottomPadding={0}
+            onWordsChanged={handleWordsChanged}
+          />
+        )}
       </Animated.ScrollView>
 
       <PlaybackOverlays
@@ -275,7 +296,6 @@ export default function SongDetailScreen({ navigation, route }: Props) {
         lines={lyrics.lines}
         words={words.words}
         lineWordIndexes={words.lineWordIndexes}
-        onShowAllWords={handleSelectWords}
       />
 
       <Animated.View
@@ -309,6 +329,23 @@ export default function SongDetailScreen({ navigation, route }: Props) {
           <Feather name="plus" size={13} color="#FFFFFF" />
           <Text style={styles.collapsedDeckButtonText} numberOfLines={1}>단어장 만들기</Text>
         </Pressable>
+      </Animated.View>
+
+      <Animated.View
+        pointerEvents={isPinnedTabsVisible ? 'auto' : 'none'}
+        style={[
+          styles.pinnedTabBar,
+          {
+            top: insets.top + COLLAPSED_BAR_HEIGHT,
+            opacity: pinnedTabsOpacity,
+          },
+        ]}
+      >
+        <SongDetailTabs
+          activeTab={activeTab}
+          onSelectHome={handleSelectHome}
+          onSelectWords={handleSelectWords}
+        />
       </Animated.View>
 
       <BottomSheet
@@ -348,7 +385,6 @@ interface PlaybackOverlaysProps {
   lines: React.ComponentProps<typeof CurrentPlayingWordsSheet>['lines'];
   words: React.ComponentProps<typeof CurrentPlayingWordsSheet>['words'];
   lineWordIndexes: Record<string, number[]>;
-  onShowAllWords: () => void;
 }
 
 const PlaybackOverlays = React.memo(function PlaybackOverlays({
@@ -361,7 +397,6 @@ const PlaybackOverlays = React.memo(function PlaybackOverlays({
   lines,
   words,
   lineWordIndexes,
-  onShowAllWords,
 }: PlaybackOverlaysProps) {
   const currentMs = usePlayerStore(s => s.currentMs);
   const durationMs = usePlayerStore(s => s.durationMs);
@@ -377,7 +412,6 @@ const PlaybackOverlays = React.memo(function PlaybackOverlays({
         currentTimeMs={currentMs}
         fallbackLineIndex={initialLyricIndex}
         bottomInset={bottomInset + SONG_DETAIL_MV_BAR_HEIGHT}
-        onShowAllWords={onShowAllWords}
       />
       <SongDetailMvBar
         title={title}
@@ -574,9 +608,6 @@ const styles = StyleSheet.create({
   tabIndicatorActive: {
     backgroundColor: Colors.primary,
   },
-  content: {
-    minHeight: 420,
-  },
   collapsedBar: {
     position: 'absolute',
     top: 0,
@@ -590,6 +621,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#FFFFFF24',
     overflow: 'hidden',
+  },
+  pinnedTabBar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    zIndex: 12,
+    elevation: 12,
   },
   collapsedArtworkBg: {
     ...StyleSheet.absoluteFillObject,

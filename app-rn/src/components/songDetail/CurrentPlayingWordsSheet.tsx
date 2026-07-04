@@ -4,7 +4,6 @@ import {
   ListRenderItemInfo,
   StyleSheet,
   Text,
-  TouchableOpacity,
   useWindowDimensions,
   View,
 } from 'react-native';
@@ -14,7 +13,6 @@ import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../theme/theme';
 import ReadingText from '../ReadingText';
-import { POS_INFO } from '../../types/pos';
 import { SONG_DETAIL_MV_BAR_HEIGHT } from './SongDetailMvBar';
 import { getCurrentLyricLineIndex } from './useCurrentLyricLine';
 
@@ -55,7 +53,6 @@ export interface CurrentPlayingWordsSheetProps {
   bottomInset?: number;
   expandedHeight?: number;
   zIndex?: number;
-  onShowAllWords?: () => void;
 }
 
 interface PageCardProps {
@@ -89,16 +86,10 @@ function wordMeaning(word: CurrentPlayingWord): string {
   return word.meanings?.map(meaning => meaning.text).filter(Boolean).join(', ') ?? '';
 }
 
-function wordPos(word: CurrentPlayingWord): string | null {
-  return word.partOfSpeech ?? word.meanings?.[0]?.partOfSpeech ?? null;
-}
-
 const CurrentWordRow = React.memo(function CurrentWordRow({ word }: WordRowProps) {
   const label = wordLabel(word);
   const reading = wordReading(word);
   const meaning = wordMeaning(word);
-  const pos = wordPos(word);
-  const posInfo = pos ? POS_INFO[pos] : null;
 
   return (
     <View style={styles.wordRow}>
@@ -109,11 +100,9 @@ const CurrentWordRow = React.memo(function CurrentWordRow({ word }: WordRowProps
         </View>
         <Text style={styles.wordMeaning} numberOfLines={2}>{meaning || '뜻을 준비 중이에요'}</Text>
       </View>
-      {posInfo ? (
-        <View style={[styles.posBadge, { backgroundColor: posInfo.color + '20' }]}>
-          <Text style={[styles.posBadgeText, { color: posInfo.color }]}>{posInfo.korean}</Text>
-        </View>
-      ) : null}
+      <View style={styles.addButton}>
+        <Feather name="bookmark" size={16} color={Colors.primary} />
+      </View>
     </View>
   );
 });
@@ -134,19 +123,21 @@ const CurrentWordsPageCard = React.memo(function CurrentWordsPageCard({ page, wi
         showsVerticalScrollIndicator={false}
         nestedScrollEnabled
       >
-        {page.words.length > 0 ? (
-          page.words.map(word => (
-            <CurrentWordRow
-              key={`${word.id ?? wordLabel(word)}-${wordReading(word) ?? ''}`}
-              word={word}
-            />
-          ))
-        ) : (
-          <View style={styles.emptyWords}>
-            <Text style={styles.emptyTitle}>이 가사의 단어가 아직 없어요</Text>
-            <Text style={styles.emptyBody}>분석이 끝나면 여기에서 바로 볼 수 있어요.</Text>
-          </View>
-        )}
+        <View style={styles.wordListBody}>
+          {page.words.length > 0 ? (
+            page.words.map(word => (
+              <CurrentWordRow
+                key={`${word.id ?? wordLabel(word)}-${wordReading(word) ?? ''}`}
+                word={word}
+              />
+            ))
+          ) : (
+            <View style={styles.emptyWords}>
+              <Text style={styles.emptyTitle}>이 가사의 단어가 아직 없어요</Text>
+              <Text style={styles.emptyBody}>분석이 끝나면 여기에서 바로 볼 수 있어요.</Text>
+            </View>
+          )}
+        </View>
       </ScrollView>
     </View>
   );
@@ -161,7 +152,6 @@ function CurrentPlayingWordsSheetComponent({
   bottomInset,
   expandedHeight,
   zIndex = 20,
-  onShowAllWords,
 }: CurrentPlayingWordsSheetProps) {
   const insets = useSafeAreaInsets();
   const listRef = useRef<FlatList<WordPage>>(null);
@@ -245,18 +235,6 @@ function CurrentPlayingWordsSheetComponent({
           <View style={styles.dragBar} />
           <View style={styles.titleRow}>
             <Text style={styles.title}>지금 들리는 단어</Text>
-            {onShowAllWords ? (
-              <TouchableOpacity
-                style={styles.showAllButton}
-                onPress={onShowAllWords}
-                activeOpacity={0.75}
-                accessibilityRole="button"
-                accessibilityLabel="모든 단어 보기"
-              >
-                <Feather name="list" size={14} color={Colors.primary} />
-                <Text style={styles.showAllText}>모든 단어 보기</Text>
-              </TouchableOpacity>
-            ) : null}
           </View>
         </View>
 
@@ -301,10 +279,8 @@ const styles = StyleSheet.create({
   },
   sheetBackground: {
     backgroundColor: Colors.background,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: Colors.border,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
   },
   sheetContent: {
     flex: 1,
@@ -313,21 +289,20 @@ const styles = StyleSheet.create({
     height: CURRENT_PLAYING_WORDS_PEEK_HEIGHT,
     alignItems: 'center',
     paddingTop: 12,
-    paddingHorizontal: 20,
   },
   dragBar: {
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: Colors.textTertiary,
+    backgroundColor: '#D2D2D2',
   },
   titleRow: {
     width: '100%',
-    minHeight: 44,
+    minHeight: 42,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 12,
+    paddingHorizontal: 16,
   },
   title: {
     flexShrink: 1,
@@ -335,22 +310,8 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.textPrimary,
   },
-  showAllButton: {
-    minHeight: 34,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 10,
-    borderRadius: 17,
-    backgroundColor: Colors.primaryBg,
-  },
-  showAllText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: Colors.primary,
-  },
   pagesContent: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 22,
     paddingBottom: 18,
   },
   pageSeparator: {
@@ -358,31 +319,30 @@ const styles = StyleSheet.create({
   },
   pageCard: {
     flex: 1,
-    borderRadius: 16,
-    backgroundColor: Colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.border,
-    overflow: 'hidden',
+    gap: 12,
+    backgroundColor: 'transparent',
   },
   lyricBlock: {
-    minHeight: 110,
+    height: 110,
     justifyContent: 'center',
     gap: 8,
-    paddingHorizontal: 18,
-    paddingVertical: 18,
-    backgroundColor: '#F7FAF8',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    backgroundColor: Colors.elevated,
   },
   lyricText: {
     fontSize: 20,
     lineHeight: 28,
     fontWeight: '700',
     color: Colors.textPrimary,
+    textAlign: 'center',
   },
   translationText: {
     fontSize: 14,
     lineHeight: 20,
     fontWeight: '600',
     color: Colors.textSecondary,
+    textAlign: 'center',
   },
   wordsScroll: {
     flex: 1,
@@ -390,12 +350,17 @@ const styles = StyleSheet.create({
   wordsScrollContent: {
     paddingBottom: 18,
   },
+  wordListBody: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: Colors.surface,
+  },
   wordRow: {
-    minHeight: 64,
+    minHeight: 62,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    paddingHorizontal: 18,
+    paddingHorizontal: 12,
     paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.border,
@@ -426,14 +391,13 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     color: Colors.textSecondary,
   },
-  posBadge: {
-    borderRadius: 10,
-    paddingVertical: 3,
-    paddingHorizontal: 8,
-  },
-  posBadgeText: {
-    fontSize: 11,
-    fontWeight: '600',
+  addButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.primaryBg,
   },
   emptyWords: {
     minHeight: 160,
