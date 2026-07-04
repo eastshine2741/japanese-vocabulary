@@ -49,6 +49,34 @@ class RuleMeaningProvider {
                     TokenReplacement("も", "も", sourceIndex = 1, startOffset = 2, endOffset = 3),
                 ),
             ),
+            TokenRewriteRule(
+                surfaces = listOf("ここまで"),
+                replacements = listOf(
+                    TokenReplacement("ここ", "ここ", sourceIndex = 0, startOffset = 0, endOffset = 2),
+                    TokenReplacement("まで", "まで", sourceIndex = 0, startOffset = 2, endOffset = 4),
+                ),
+            ),
+            TokenRewriteRule(
+                surfaces = listOf("そこまで"),
+                replacements = listOf(
+                    TokenReplacement("そこ", "そこ", sourceIndex = 0, startOffset = 0, endOffset = 2),
+                    TokenReplacement("まで", "まで", sourceIndex = 0, startOffset = 2, endOffset = 4),
+                ),
+            ),
+            TokenRewriteRule(
+                surfaces = listOf("あそこまで"),
+                replacements = listOf(
+                    TokenReplacement("あそこ", "あそこ", sourceIndex = 0, startOffset = 0, endOffset = 3),
+                    TokenReplacement("まで", "まで", sourceIndex = 0, startOffset = 3, endOffset = 5),
+                ),
+            ),
+            TokenRewriteRule(
+                surfaces = listOf("どこまで"),
+                replacements = listOf(
+                    TokenReplacement("どこ", "どこ", sourceIndex = 0, startOffset = 0, endOffset = 2),
+                    TokenReplacement("まで", "まで", sourceIndex = 0, startOffset = 2, endOffset = 4),
+                ),
+            ),
         )
 
         val fixedExpressions = mapOf(
