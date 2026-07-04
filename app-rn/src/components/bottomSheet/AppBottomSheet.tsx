@@ -194,7 +194,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 12,
   },
   floatingBackground: {
-    backgroundColor: Colors.card,
+    backgroundColor: Colors.background,
     borderRadius: 24,
   },
   handle: {

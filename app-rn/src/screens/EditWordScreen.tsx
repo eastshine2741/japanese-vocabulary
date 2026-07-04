@@ -345,7 +345,7 @@ const styles = StyleSheet.create({
 
   // POS Picker
   pickerSheetBg: {
-    backgroundColor: Colors.card,
+    backgroundColor: Colors.background,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
   },
