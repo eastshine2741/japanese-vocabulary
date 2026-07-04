@@ -242,12 +242,25 @@ echo "[migration] running..."
 kubectl rollout status -n "$NS" statefulset/mysql --timeout=120s
 if [[ "$RESTORE_DEV_DUMP" == "true" ]]; then
   echo "[mysql] restoring $DEV_MYSQL_DUMP_FILE before Flyway migration..."
-  if ! kubectl exec -n "$NS" statefulset/mysql -- sh -c 'command -v mysql >/dev/null'; then
-    echo "Error: mysql client is not available in the mysql pod." >&2
+  if ! kubectl exec -n "$NS" statefulset/mysql -- sh -c 'command -v mysql >/dev/null && command -v mysqladmin >/dev/null'; then
+    echo "Error: mysql/mysqladmin client is not available in the mysql pod." >&2
     echo "Database PVC may already have been created. Recover with: ./teardown.sh $NS" >&2
     exit 1
   fi
-  if ! kubectl exec -i -n "$NS" statefulset/mysql -- sh -c 'mysql -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE"' < "$DEV_MYSQL_DUMP_FILE"; then
+  if ! kubectl exec -n "$NS" statefulset/mysql -- sh -c '
+    for i in $(seq 1 60); do
+      if MYSQL_PWD="$MYSQL_PASSWORD" mysqladmin ping -h127.0.0.1 -P3306 -u"$MYSQL_USER" --silent >/dev/null 2>&1; then
+        exit 0
+      fi
+      sleep 2
+    done
+    exit 1
+  '; then
+    echo "Error: MySQL did not become ready for TCP connections within 120 seconds." >&2
+    echo "Database PVC may already have been created. Recover with: ./teardown.sh $NS" >&2
+    exit 1
+  fi
+  if ! kubectl exec -i -n "$NS" statefulset/mysql -- sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" mysql -h127.0.0.1 -P3306 -u"$MYSQL_USER" "$MYSQL_DATABASE"' < "$DEV_MYSQL_DUMP_FILE"; then
     echo "Error: failed to restore dev dump into namespace '$NS'." >&2
     echo "Database PVC may contain a partial import. Recover with: ./teardown.sh $NS" >&2
     exit 1
