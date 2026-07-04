@@ -45,7 +45,7 @@ class SegmentAnchoringValidator {
         }
 
         rawText.forEachIndexed { i, ch ->
-            if (!covered[i]) {
+            if (!covered[i] && JapaneseText.containsJapanese(ch.toString())) {
                 throw SegmentationValidationException(
                     "Character '$ch' at offset=$i is not covered by segmentation at line index=$index",
                 )
