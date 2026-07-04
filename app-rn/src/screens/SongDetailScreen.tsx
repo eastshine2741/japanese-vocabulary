@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Animated,
+  BackHandler,
   ImageBackground,
   NativeScrollEvent,
   NativeSyntheticEvent,
@@ -11,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import BottomSheet, { BottomSheetBackdrop, BottomSheetView } from '@gorhom/bottom-sheet';
 import type { BottomSheetBackdropProps } from '@gorhom/bottom-sheet';
@@ -44,6 +46,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
   const insets = useSafeAreaInsets();
   const scrollY = useRef(new Animated.Value(0)).current;
   const infoSheetRef = useRef<BottomSheet>(null);
+  const infoSheetOpenRef = useRef(false);
 
   const status = useSongDetailStore(s => s.status);
   const data = useSongDetailStore(s => s.data);
@@ -137,7 +140,12 @@ export default function SongDetailScreen({ navigation, route }: Props) {
   }, [navigation]);
 
   const handleOpenInfo = useCallback(() => {
+    infoSheetOpenRef.current = true;
     infoSheetRef.current?.expand();
+  }, []);
+
+  const handleInfoSheetChange = useCallback((index: number) => {
+    infoSheetOpenRef.current = index >= 0;
   }, []);
 
   const handleOpenDeck = useCallback(async () => {
@@ -182,6 +190,21 @@ export default function SongDetailScreen({ navigation, route }: Props) {
       <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} opacity={0.25} />
     ),
     [],
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      const onBack = () => {
+        if (infoSheetOpenRef.current) {
+          infoSheetOpenRef.current = false;
+          infoSheetRef.current?.close();
+          return true;
+        }
+        return false;
+      };
+      const sub = BackHandler.addEventListener('hardwareBackPress', onBack);
+      return () => sub.remove();
+    }, []),
   );
 
   const handleScroll = useMemo(
@@ -299,7 +322,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
       />
 
       <Animated.View
-        pointerEvents="box-none"
+        pointerEvents={isPinnedTabsVisible ? 'box-none' : 'none'}
         style={[
           styles.collapsedBar,
           { height: insets.top + COLLAPSED_BAR_HEIGHT, paddingTop: insets.top, opacity: collapsedOpacity },
@@ -321,6 +344,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
           <Text style={styles.collapsedTitle} numberOfLines={1}>{song.title}</Text>
           <Text style={styles.collapsedArtist} numberOfLines={1}>{song.artist}</Text>
         </View>
+        <IconButton icon="info" onPress={handleOpenInfo} />
         <Pressable
           style={[styles.collapsedDeckButton, isCreatingDeck && styles.disabledButton]}
           onPress={handleOpenDeck}
@@ -354,6 +378,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
         enableDynamicSizing
         enablePanDownToClose
         detached
+        onChange={handleInfoSheetChange}
         bottomInset={insets.bottom + 12}
         backdropComponent={renderBackdrop}
         style={styles.infoSheetFloat}
@@ -523,6 +548,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
+    zIndex: 2,
+    elevation: 2,
   },
   iconButton: {
     width: 40,
@@ -613,6 +640,8 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
+    zIndex: 30,
+    elevation: 30,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
@@ -681,17 +710,21 @@ const styles = StyleSheet.create({
   },
   infoSheetFloat: {
     marginHorizontal: 12,
+    zIndex: 100,
+    elevation: 100,
   },
   infoSheetBg: {
-    borderRadius: 20,
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.card,
+    borderRadius: 24,
   },
   infoSheetHandle: {
-    paddingTop: 10,
-    paddingBottom: 4,
+    paddingTop: 12,
+    paddingBottom: 8,
   },
   infoSheetIndicator: {
     width: 40,
-    backgroundColor: Colors.border,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#A1A1AA',
   },
 });
