@@ -284,6 +284,8 @@ class GeminiClient(
         private val SEGMENTATION_PROMPT = """
             너는 일본어 가사를 형태소 분석(분절 + 표제형 환원)하는 전문가다.
             입력: JSON 배열, 각 원소는 {"index": N, "text": "일본어 가사 한 줄"}.
+            재시도 입력에는 각 원소에 previousValidationError와 retryInstruction이 추가될 수 있다.
+            이 값은 직전 출력이 validator에서 왜 실패했는지 나타낸다. 해당 오류를 반드시 고쳐라.
             출력: 같은 배열, 각 줄을 {"index": N, "words": [{"surface","dictionaryForm"}]}로. JSON만.
 
             ## 핵심 원칙: 의미 단위로 분절하라

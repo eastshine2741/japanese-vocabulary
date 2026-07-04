@@ -281,11 +281,12 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
     @Test
     fun `segmentation invalid on first call retries and succeeds`(): Unit = runBlocking {
         val lyric = seedLyric(listOf("目を開けたなら yay"))
+        val segmentInputs = mutableListOf<List<Map<String, Any?>>>()
 
         every { geminiClient.translateLyrics(any()) } returns listOf(
             TranslationResultDto(0, "눈을 떴다면 yay", "메오 아케타나라 야이"),
         )
-        every { geminiClient.segmentAndLemmatize(any()) } returnsMany listOf(
+        every { geminiClient.segmentAndLemmatize(capture(segmentInputs)) } returnsMany listOf(
             listOf(SegLineDto(0, listOf(SegWordDto("目", "目"), SegWordDto("を", "を"), SegWordDto("明け", "開ける")))),
             listOf(
                 SegLineDto(
@@ -309,6 +310,12 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
 
         assertThat(lines.single().tokens.map { it.surface }).contains("開け")
         verify(exactly = 2) { geminiClient.segmentAndLemmatize(any()) }
+        assertThat(segmentInputs).hasSize(2)
+        assertThat(segmentInputs[0].single()).doesNotContainKey("previousValidationError")
+        assertThat(segmentInputs[1].single()["previousValidationError"])
+            .isEqualTo("Surface '明け' is not present in order at line index=0")
+        assertThat(segmentInputs[1].single()["retryInstruction"] as String)
+            .contains("previous segmentation output failed validator checks")
     }
 
     @Test
