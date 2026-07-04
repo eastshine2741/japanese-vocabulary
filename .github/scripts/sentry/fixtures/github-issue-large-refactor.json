@@ -1,0 +1,36 @@
+{
+  "issue": {
+    "id": "1002",
+    "shortId": "KOTONOHA-BATCH-2",
+    "title": "Repeated lyric analysis timeout",
+    "permalink": "https://sentry.io/organizations/example/issues/1002/",
+    "firstSeen": "2026-06-25T00:10:00Z"
+  },
+  "event": {
+    "eventID": "evt-issue-1",
+    "message": "Lyric analysis timed out after retry budget",
+    "tags": [["environment", "production"]]
+  },
+  "discord": {
+    "messages": [
+      {
+        "id": "9002",
+        "content": "Sentry KOTONOHA-BATCH-2 https://sentry.io/organizations/example/issues/1002/"
+      }
+    ]
+  },
+  "mockCodexResult": {
+    "action": "github_issue",
+    "confidence": "medium",
+    "summary": "The lyric analysis pipeline needs broader timeout and retry design work.",
+    "rootCause": "The failure spans provider latency, LLM timeout policy, and batch retry behavior.",
+    "evidence": ["Timeout occurs after retry budget", "The fix likely crosses batch and translation boundaries"],
+    "requiresLargeRefactor": true,
+    "discordReply": "원인은 단일 코드 수정이 아니라 lyric analysis timeout/retry 정책 문제로 보입니다. 큰 개선 이슈로 넘깁니다.",
+    "githubIssue": {
+      "title": "Investigate lyric analysis timeout policy",
+      "body": "Sentry shows repeated lyric analysis timeouts. Investigate provider latency, LLM timeout, and batch retry boundaries before changing code.",
+      "labels": ["sentry", "investigation"]
+    }
+  }
+}

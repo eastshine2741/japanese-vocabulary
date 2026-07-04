@@ -14,7 +14,7 @@ import java.time.Instant
 class LyricEntity(
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long? = null,
-    @Column(name = "song_id", nullable = false, unique = true)
+    @Column(name = "song_id", nullable = false)
     val songId: Long,
     @Enumerated(EnumType.STRING)
     @Column(name = "lyric_type", nullable = false)

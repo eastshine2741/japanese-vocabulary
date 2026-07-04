@@ -6,10 +6,14 @@ import com.japanese.vocabulary.mvsearch.client.youtube.dto.YoutubeSearchResponse
 import com.japanese.vocabulary.mvsearch.client.youtube.dto.YoutubeSnippetDto
 import com.japanese.vocabulary.mvsearch.client.youtube.dto.YoutubeThumbnailsDto
 import com.japanese.vocabulary.mvsearch.client.youtube.dto.YoutubeVideoIdDto
+import com.japanese.vocabulary.song.entity.LyricEntity
 import com.japanese.vocabulary.song.entity.LyricType
+import com.japanese.vocabulary.song.entity.SongEntity
+import com.japanese.vocabulary.song.model.LyricLineData
 import com.japanese.vocabulary.song.repository.LyricRepository
 import com.japanese.vocabulary.song.repository.SongRepository
 import com.japanese.vocabulary.songanalysis.entity.SongAnalysisTriggerSource
+import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkEntity
 import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStage
 import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStatus
 import com.japanese.vocabulary.songanalysis.repository.SongAnalysisWorkRepository
@@ -189,6 +193,104 @@ class SongAnalysisWorkPipelineIntegrationTest : BatchBaseIntegrationTest() {
         verify(exactly = 1) { geminiClient.translateLyrics(any()) }
         verify(exactly = 0) { geminiClient.selectSenses(any()) }
         verify(exactly = 0) { geminiClient.translateSenses(any()) }
+    }
+
+    @Test
+    fun `admin reanalysis creates fresh lyric and switches active lyric and mv only on completion`(): Unit = runBlocking {
+        stubLyricsFound()
+        stubYoutubeFound()
+        stubLyricAnalysis()
+        val song = persistSongWithOldMv()
+        val oldLyric = persistActiveLyric(song.id!!, "古い歌詞")
+        val work = persistAdminWork(song.id!!, status = SongAnalysisWorkStatus.PENDING)
+        val claimed = claimSingleWork(work.id!!)
+
+        val processed = processor.process(claimed)
+
+        assertThat(processed).isTrue
+        entityManager.flush()
+        entityManager.clear()
+
+        val refreshedWork = workRepository.findById(work.id!!).orElseThrow()
+        val refreshedSong = songRepository.findById(song.id!!).orElseThrow()
+        val lyrics = lyricRepository.findAllBySongIdOrderByCreatedAtDesc(song.id!!)
+
+        assertThat(refreshedWork.status).isEqualTo(SongAnalysisWorkStatus.COMPLETED)
+        assertThat(refreshedWork.youtubeUrl).isEqualTo("https://www.youtube.com/watch?v=official-video-id")
+        assertThat(refreshedWork.lyricId).isNotEqualTo(oldLyric.id)
+        assertThat(refreshedSong.activeLyricId).isEqualTo(refreshedWork.lyricId)
+        assertThat(refreshedSong.youtubeUrl).isEqualTo("https://www.youtube.com/watch?v=official-video-id")
+        assertThat(lyrics.map { it.id }).contains(oldLyric.id, refreshedWork.lyricId)
+        assertThat(lyricRepository.findById(oldLyric.id!!).orElseThrow().rawContent.single().text).isEqualTo("古い歌詞")
+    }
+
+    @Test
+    fun `failed admin reanalysis keeps old active lyric and mv while retaining inactive candidate lyric`(): Unit = runBlocking {
+        stubLyricsFound()
+        stubYoutubeFound()
+        stubLyricAnalysisFailure()
+        val song = persistSongWithOldMv()
+        val oldLyric = persistActiveLyric(song.id!!, "古い歌詞")
+        val work = persistAdminWork(song.id!!, status = SongAnalysisWorkStatus.PENDING)
+        val claimed = claimSingleWork(work.id!!)
+
+        val processed = processor.process(claimed)
+
+        assertThat(processed).isFalse
+        entityManager.flush()
+        entityManager.clear()
+
+        val refreshedWork = workRepository.findById(work.id!!).orElseThrow()
+        val refreshedSong = songRepository.findById(song.id!!).orElseThrow()
+        val lyrics = lyricRepository.findAllBySongIdOrderByCreatedAtDesc(song.id!!)
+
+        assertThat(refreshedWork.status).isEqualTo(SongAnalysisWorkStatus.FAILED)
+        assertThat(refreshedWork.youtubeUrl).isEqualTo("https://www.youtube.com/watch?v=official-video-id")
+        assertThat(refreshedWork.lyricId).isNotNull
+        assertThat(refreshedWork.lyricId).isNotEqualTo(oldLyric.id)
+        assertThat(refreshedSong.activeLyricId).isEqualTo(oldLyric.id)
+        assertThat(refreshedSong.youtubeUrl).isEqualTo("https://youtu.be/old-mv")
+        assertThat(lyrics.map { it.id }).contains(oldLyric.id, refreshedWork.lyricId)
+    }
+
+    private fun persistActiveLyric(songId: Long, text: String): LyricEntity {
+        val lyric = LyricEntity(
+            songId = songId,
+            lyricType = LyricType.PLAIN,
+            rawContent = listOf(LyricLineData(index = 0, startTimeMs = 0, text = text)),
+        )
+        entityManager.persist(lyric)
+        entityManager.flush()
+        val song = songRepository.findById(songId).orElseThrow()
+        song.activeLyricId = lyric.id
+        songRepository.saveAndFlush(song)
+        return lyric
+    }
+
+    private fun persistSongWithOldMv(): SongEntity {
+        val song = SongEntity(
+            title = TITLE,
+            artist = ARTIST,
+            durationSeconds = 210,
+            youtubeUrl = "https://youtu.be/old-mv",
+        )
+        entityManager.persist(song)
+        entityManager.flush()
+        return song
+    }
+
+    private fun persistAdminWork(songId: Long, status: SongAnalysisWorkStatus): SongAnalysisWorkEntity {
+        val work = SongAnalysisWorkEntity(
+            rawTitle = TITLE,
+            rawArtist = ARTIST,
+            activeDedupKey = SongAnalysisWorkService.buildAdminReanalysisDedupKey(songId),
+            status = status,
+            songId = songId,
+            triggerSource = SongAnalysisTriggerSource.ADMIN,
+        )
+        entityManager.persist(work)
+        entityManager.flush()
+        return work
     }
 
     private fun claimSingleWork(workId: Long) =

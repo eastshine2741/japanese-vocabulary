@@ -1,0 +1,30 @@
+{
+  "issue": {
+    "id": "1007",
+    "shortId": "KOTONOHA-API-7",
+    "title": "Completed state should skip all work",
+    "permalink": "https://sentry.io/organizations/example/issues/1007/",
+    "firstSeen": "2026-06-25T01:00:00Z"
+  },
+  "event": {
+    "eventID": "evt-duplicate-1",
+    "message": "Duplicate completed fixture"
+  },
+  "discord": {
+    "messages": [
+      {
+        "id": "9007",
+        "content": "Sentry KOTONOHA-API-7 https://sentry.io/organizations/example/issues/1007/"
+      }
+    ]
+  },
+  "mockCodexResult": {
+    "action": "cause_only",
+    "confidence": "high",
+    "summary": "This mock should be skipped when completed state exists.",
+    "rootCause": "Completed state suppresses duplicate work.",
+    "evidence": ["local ledger"],
+    "requiresLargeRefactor": false,
+    "discordReply": "이미 처리된 이슈입니다."
+  }
+}

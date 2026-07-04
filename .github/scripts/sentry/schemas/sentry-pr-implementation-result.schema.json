@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Sentry PR implementation result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["action", "summary", "changedFiles", "testPlan"],
+  "properties": {
+    "action": {
+      "type": "string",
+      "enum": ["implemented", "github_issue"]
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "changedFiles": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "testPlan": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "githubIssue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "body", "labels"],
+      "properties": {
+        "title": { "type": "string", "minLength": 1 },
+        "body": { "type": "string", "minLength": 1 },
+        "labels": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  },
+  "oneOf": [
+    {
+      "properties": { "action": { "const": "implemented" } },
+      "not": { "required": ["githubIssue"] }
+    },
+    {
+      "properties": { "action": { "const": "github_issue" } },
+      "required": ["githubIssue"]
+    }
+  ]
+}

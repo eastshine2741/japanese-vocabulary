@@ -1,6 +1,6 @@
-package com.japanese.vocabulary.song.dto
+package com.japanese.vocabulary.admin.dto
 
-data class SongAnalysisWorkResponse(
+data class AdminSongAnalysisWorkOperationResponse(
     val workId: Long,
     val status: String,
     val currentStage: String?,
