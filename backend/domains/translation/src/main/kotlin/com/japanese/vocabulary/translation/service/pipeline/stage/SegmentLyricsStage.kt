@@ -3,7 +3,6 @@ package com.japanese.vocabulary.translation.service.pipeline.stage
 import com.japanese.vocabulary.translation.client.gemini.GeminiClient
 import com.japanese.vocabulary.translation.model.SegmentationStageResult
 import com.japanese.vocabulary.translation.model.TranslationPipelineSource
-import com.japanese.vocabulary.translation.service.pipeline.JapaneseText
 import com.japanese.vocabulary.translation.service.pipeline.SegmentAnchoringValidator
 import com.japanese.vocabulary.translation.service.pipeline.SegmentationValidationException
 import org.slf4j.LoggerFactory
@@ -25,9 +24,7 @@ class SegmentLyricsStage(
                 val anchoredTokens = segmentAnchoringValidator.validate(input.rawByIndex, segmented)
                 return SegmentationStageResult(
                     segLines = segmented,
-                    tokensByIndex = anchoredTokens.mapValues { (_, tokens) ->
-                        tokens.filter { JapaneseText.containsJapanese(it.surface) }
-                    },
+                    tokensByIndex = anchoredTokens,
                 )
             } catch (e: SegmentationValidationException) {
                 lastFailure = e
@@ -57,6 +54,6 @@ class SegmentLyricsStage(
         const val RETRY_INSTRUCTION_FIELD = "retryInstruction"
         const val RETRY_INSTRUCTION =
             "The previous segmentation output failed validator checks. " +
-                "Fix the segmentation so every surface appears in order and all original characters are covered."
+                "Fix the segmentation so every surface appears in order and all original Japanese text is covered."
     }
 }

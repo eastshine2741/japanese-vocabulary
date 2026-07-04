@@ -61,7 +61,7 @@ class SegmentAnchoringValidatorTest {
     }
 
     @Test
-    fun `rejects uncovered characters`() {
+    fun `rejects uncovered Japanese characters`() {
         assertThatThrownBy {
             validator.validate(
                 mapOf(0 to "猫が寝る"),
@@ -85,12 +85,16 @@ class SegmentAnchoringValidatorTest {
     }
 
     @Test
-    fun `rejects omitted Latin suffix`() {
-        assertThatThrownBy {
-            validator.validate(
-                mapOf(0 to "開けたなら yay"),
-                listOf(SegLineDto(0, listOf(SegWordDto("開け", "開ける"), SegWordDto("た", "た"), SegWordDto("なら", "なら")))),
-            )
-        }.isInstanceOf(SegmentationValidationException::class.java)
+    fun `accepts omitted Latin suffix`() {
+        val result = validator.validate(
+            mapOf(0 to "開けたなら yay"),
+            listOf(SegLineDto(0, listOf(SegWordDto("開け", "開ける"), SegWordDto("た", "た"), SegWordDto("なら", "なら")))),
+        )
+
+        assertThat(result[0]!!.map { Triple(it.surface, it.charStart, it.charEnd) }).containsExactly(
+            Triple("開け", 0, 2),
+            Triple("た", 2, 3),
+            Triple("なら", 3, 5),
+        )
     }
 }
