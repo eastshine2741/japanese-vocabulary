@@ -50,5 +50,48 @@ class RuleMeaningProviderTest {
         assertThat(rewritten.map { it.charStart to it.charEnd }).containsExactly(0 to 2, 2 to 3, 3 to 5, 5 to 6)
     }
 
+    @Test
+    fun `rewrites locative made phrases into location and particle`() {
+        val rewritten = provider.rewrite(
+            listOf(
+                PipelineToken(0, "ここまで", "ここまで", 0, 4),
+                PipelineToken(0, "そこまで", "そこまで", 4, 8),
+                PipelineToken(0, "あそこまで", "あそこまで", 8, 13),
+                PipelineToken(0, "どこまで", "どこまで", 13, 17),
+            ),
+        )
+
+        assertThat(rewritten.map { it.surface }).containsExactly(
+            "ここ",
+            "まで",
+            "そこ",
+            "まで",
+            "あそこ",
+            "まで",
+            "どこ",
+            "まで",
+        )
+        assertThat(rewritten.map { it.dictionaryForm }).containsExactly(
+            "ここ",
+            "まで",
+            "そこ",
+            "まで",
+            "あそこ",
+            "まで",
+            "どこ",
+            "まで",
+        )
+        assertThat(rewritten.map { it.charStart to it.charEnd }).containsExactly(
+            0 to 2,
+            2 to 4,
+            4 to 6,
+            6 to 8,
+            8 to 11,
+            11 to 13,
+            13 to 15,
+            15 to 17,
+        )
+    }
+
     private fun token(surface: String) = PipelineToken(0, surface, surface, 0, surface.length)
 }
