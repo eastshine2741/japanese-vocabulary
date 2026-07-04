@@ -249,7 +249,7 @@ SENTRY_TRIAGE_LOCK_FILE="$pr_lock" SENTRY_TRIAGE_COMMAND_LOG="$pr_commands" \
   "$RUNNER" --dry-run --state-file "$pr_state" --log-file "$pr_log" --fixture "$FIXTURE_DIR/pr-small-null-check.json" \
   >"$pr_log.out" 2>&1
 grep -q "git -C .* worktree add" "$pr_commands"
-grep -q "codex --ask-for-approval never exec --sandbox workspace-write" "$pr_commands"
+grep -q "codex --ask-for-approval never exec --model gpt-5.5 --config 'model_reasoning_effort=\"high\"' --sandbox workspace-write" "$pr_commands"
 grep -q "env -i .*CODEX_HOME" "$pr_commands"
 grep -q "status --porcelain --untracked-files=all" "$pr_commands"
 grep -q "gh pr create" "$pr_commands"
@@ -286,10 +286,11 @@ SENTRY_TRIAGE_LOCK_FILE="$pr_replay_lock" SENTRY_TRIAGE_COMMAND_LOG="$pr_replay_
   >"$pr_replay_log.out" 2>&1
 grep -q "gh pr create --head" "$pr_replay_commands"
 ! grep -q "create-worktree.sh" "$pr_replay_commands"
-! grep -q "codex --ask-for-approval never exec --sandbox workspace-write" "$pr_replay_commands"
+! grep -q "codex --ask-for-approval never exec --model gpt-5.5 --config 'model_reasoning_effort=\"high\"' --sandbox workspace-write" "$pr_replay_commands"
 printf 'ok pr-remote-branch-replay\n'
 
-grep -q 'firstSeen:-${REPLAY_DAYS}d' "$RUNNER"
+grep -q 'firstSeen:>${first_seen_cutoff}' "$RUNNER"
+grep -q 'date -u -d "${REPLAY_DAYS} days ago"' "$RUNNER"
 grep -q 'SENTRY_MAX_PAGES' "$RUNNER"
 grep -q 'pagination truncated' "$RUNNER"
 printf 'ok replay-pagination-static\n'

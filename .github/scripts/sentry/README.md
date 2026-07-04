@@ -36,6 +36,8 @@ codex --ask-for-approval never exec --help
 
 The triage pass runs read-only in the main repo. The PR implementation pass is the only Codex pass allowed to use `workspace-write`, and it runs inside an isolated worktree.
 
+Both Codex passes are pinned to `gpt-5.5` with `model_reasoning_effort="high"`.
+
 Codex is launched with a scrubbed environment (`env -i`) so Sentry, Discord, GitHub, deployment, and app secrets from the cron shell are not inherited. The PR worktree is created with `git worktree add` and intentionally does not copy ignored local config such as `.env`, keystores, service account files, or mobile app env files.
 
 ## Environment
@@ -47,6 +49,8 @@ Use `.github/scripts/sentry/triage.env.example` as a template. Required live var
 - `SENTRY_PROJECT` as the numeric Sentry project id accepted by the organization issues API, or comma-separated `SENTRY_PROJECTS`
 - `DISCORD_BOT_TOKEN`
 - `DISCORD_CHANNEL_ID`
+
+`SENTRY_AUTH_TOKEN` must be able to read organization issues/events for the configured projects; `--check-preflight` verifies this before cron work starts.
 
 Optional:
 
@@ -76,7 +80,7 @@ ${XDG_STATE_HOME:-$HOME/.local/state}/kotonoha-sentry-triage/logs/sentry-triage-
 
 The ledger records each issue by Sentry issue id. `actionStatus=external_created` means a PR or GitHub issue already exists and the next run should retry only Discord completion.
 
-The Sentry poll query uses the replay window and cursor pagination. If the configured page cap is reached while Sentry still advertises a next page, the runner logs a truncation warning and relies on the next cron run plus local ledger dedupe.
+The Sentry poll query converts the replay window into a UTC `firstSeen:>YYYY-MM-DDTHH:MM:SS` cutoff and uses cursor pagination. If the configured page cap is reached while Sentry still advertises a next page, the runner logs a truncation warning and relies on the next cron run plus local ledger dedupe.
 
 ## Dry Run
 

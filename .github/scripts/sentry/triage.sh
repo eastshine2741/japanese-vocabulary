@@ -256,6 +256,19 @@ preflight() {
   [[ -n "${SENTRY_PROJECTS:-${SENTRY_PROJECT:-}}" ]] || die "Missing SENTRY_PROJECT or SENTRY_PROJECTS"
   [[ -n "${DISCORD_BOT_TOKEN:-}" ]] || die "Missing DISCORD_BOT_TOKEN"
   [[ -n "${DISCORD_CHANNEL_ID:-}" ]] || die "Missing DISCORD_CHANNEL_ID"
+
+  local org project_query preflight_body_file preflight_header_file preflight_query preflight_path
+  org="$(urlencode "$SENTRY_ORG")"
+  project_query="$(append_query_params "project" "${SENTRY_PROJECTS:-${SENTRY_PROJECT:-}}")"
+  preflight_query="$(urlencode "is:unresolved")"
+  preflight_path="/organizations/${org}/issues/?query=${preflight_query}&sort=date&limit=1${project_query}"
+  preflight_body_file="$(mktemp)"
+  preflight_header_file="$(mktemp)"
+  if ! sentry_api_page "$preflight_path" "$preflight_body_file" "$preflight_header_file" >/dev/null; then
+    rm -f "$preflight_body_file" "$preflight_header_file"
+    die "Sentry API preflight failed; check SENTRY_AUTH_TOKEN scopes and project access"
+  fi
+  rm -f "$preflight_body_file" "$preflight_header_file"
 }
 
 urlencode() {
@@ -318,7 +331,12 @@ poll_sentry_issues() {
   fi
   local query
   local sentry_query
-  sentry_query="is:unresolved firstSeen:-${REPLAY_DAYS}d"
+  local first_seen_cutoff
+  if ! first_seen_cutoff="$(date -u -d "${REPLAY_DAYS} days ago" +%Y-%m-%dT%H:%M:%S 2>/dev/null)"; then
+    echo "Invalid SENTRY_TRIAGE_REPLAY_DAYS: $REPLAY_DAYS" >&2
+    return 1
+  fi
+  sentry_query="is:unresolved firstSeen:>${first_seen_cutoff}"
   query="$(urlencode "$sentry_query")"
   local org
   org="$(urlencode "$SENTRY_ORG")"
@@ -343,7 +361,11 @@ poll_sentry_issues() {
   log "INFO" "Polling Sentry issues replayDays=$REPLAY_DAYS limit=$SENTRY_LIMIT maxPages=$SENTRY_MAX_PAGES path=$base_path"
 
   while :; do
-    sentry_api_page "$path" "$body_file" "$header_file"
+    if ! sentry_api_page "$path" "$body_file" "$header_file"; then
+      rm -f "$body_file" "$header_file" "$aggregate_file"
+      echo "Sentry issue poll failed page=$page" >&2
+      return 1
+    fi
     merged_file="$(mktemp)"
     jq -s '.[0] + .[1]' "$aggregate_file" "$body_file" > "$merged_file"
     mv "$merged_file" "$aggregate_file"
@@ -382,12 +404,24 @@ real_issue_context() {
   local issue_json="$1"
   local issue_id
   issue_id="$(jq -r '.id' <<<"$issue_json")"
-  local detail events event
-  detail="$(fetch_sentry_issue "$issue_id")"
-  events="$(fetch_sentry_event "$issue_id")"
-  event="$(jq -c '.[0] // {}' <<<"$events")"
-  jq -n --argjson issue "$issue_json" --argjson detail "$detail" --argjson event "$event" --arg repo "$REPO_DIR" \
-    '{issue:$issue,issueDetail:$detail,event:$event,repo:{root:$repo}}'
+  local issue_file detail_file events_file event_file
+  issue_file="$(mktemp)"
+  detail_file="$(mktemp)"
+  events_file="$(mktemp)"
+  event_file="$(mktemp)"
+  printf '%s\n' "$issue_json" > "$issue_file"
+  if ! fetch_sentry_issue "$issue_id" > "$detail_file"; then
+    rm -f "$issue_file" "$detail_file" "$events_file" "$event_file"
+    return 1
+  fi
+  if ! fetch_sentry_event "$issue_id" > "$events_file"; then
+    rm -f "$issue_file" "$detail_file" "$events_file" "$event_file"
+    return 1
+  fi
+  jq '.[0] // {}' "$events_file" > "$event_file"
+  jq -n --slurpfile issue "$issue_file" --slurpfile detail "$detail_file" --slurpfile event "$event_file" --arg repo "$REPO_DIR" \
+    '{issue:$issue[0],issueDetail:$detail[0],event:$event[0],repo:{root:$repo}}'
+  rm -f "$issue_file" "$detail_file" "$events_file" "$event_file"
 }
 
 context_issue_id() {
@@ -528,6 +562,8 @@ run_codex_triage() {
   prompt_file="$(mktemp)"
   build_triage_input "$context_file" "$prompt_file"
   if ! codex_safe --ask-for-approval never exec \
+    --model gpt-5.5 \
+    --config 'model_reasoning_effort="high"' \
     --sandbox read-only \
     --output-schema "$SCHEMA_FILE" \
     --cd "$REPO_DIR" \
@@ -780,7 +816,7 @@ run_pr_implementation() {
       return
     fi
     record_command "git -C $(printf '%q' "$REPO_DIR") worktree add -b $(printf '%q' "$branch") $(printf '%q' "$worktree_dir")"
-    record_command "env -i HOME=<home> CODEX_HOME=<codex-home> PATH=<path> codex --ask-for-approval never exec --sandbox workspace-write --cd $(printf '%q' "$worktree_dir") --output-last-message <tmp> - < implementation-prompt"
+    record_command "env -i HOME=<home> CODEX_HOME=<codex-home> PATH=<path> codex --ask-for-approval never exec --model gpt-5.5 --config 'model_reasoning_effort=\"high\"' --sandbox workspace-write --cd $(printf '%q' "$worktree_dir") --output-last-message <tmp> - < implementation-prompt"
     record_command "git -C $(printf '%q' "$worktree_dir") status --porcelain --untracked-files=all"
     record_command "git -C $(printf '%q' "$worktree_dir") commit && git -C $(printf '%q' "$worktree_dir") push && (cd $(printf '%q' "$worktree_dir") && gh pr create)"
     if [[ "${SENTRY_TRIAGE_FAIL_PR_CREATE:-0}" == "1" ]]; then
@@ -855,6 +891,8 @@ run_pr_implementation() {
   } > "$prompt_file"
 
   if ! codex_safe --ask-for-approval never exec \
+    --model gpt-5.5 \
+    --config 'model_reasoning_effort="high"' \
     --sandbox workspace-write \
     --output-schema "$PR_IMPL_SCHEMA_FILE" \
     --cd "$worktree_dir" \
