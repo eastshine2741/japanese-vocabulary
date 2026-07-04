@@ -10,15 +10,15 @@ import org.springframework.web.bind.annotation.RestController
  * word_candidates_json. The batch service has no public ingress; call from inside the cluster.
  */
 @RestController
-@RequestMapping("/api/dev/song-word-candidates")
-class SongWordCandidateBackfillDevController(
-    private val backfillService: SongWordCandidateBackfillService,
+@RequestMapping("/api/dev/lyric-word-candidates")
+class LyricWordCandidateBackfillDevController(
+    private val backfillService: LyricWordCandidateBackfillService,
 ) {
     @PostMapping("/backfill")
     fun backfill(
         @RequestParam(required = false) songId: Long?,
         @RequestParam(defaultValue = "100") limit: Int,
         @RequestParam(defaultValue = "false") dryRun: Boolean,
-    ): SongWordCandidateBackfillService.Result =
+    ): LyricWordCandidateBackfillService.Result =
         backfillService.backfill(songId = songId, limit = limit, dryRun = dryRun)
 }

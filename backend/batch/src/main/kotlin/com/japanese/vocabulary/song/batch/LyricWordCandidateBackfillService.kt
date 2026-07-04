@@ -10,12 +10,12 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 @Service
-class SongWordCandidateBackfillService(
+class LyricWordCandidateBackfillService(
     private val lyricRepository: LyricRepository,
     private val songRepository: SongRepository,
     private val wordCandidateGenerator: WordCandidateGenerator,
 ) {
-    private val logger = LoggerFactory.getLogger(SongWordCandidateBackfillService::class.java)
+    private val logger = LoggerFactory.getLogger(LyricWordCandidateBackfillService::class.java)
 
     data class Result(
         val dryRun: Boolean,
@@ -90,7 +90,7 @@ class SongWordCandidateBackfillService(
         }
 
         logger.info(
-            "song word-candidate backfill dryRun={} songId={} scanned={} updated={} generatedCandidates={}",
+            "lyric word-candidate backfill dryRun={} songId={} scanned={} updated={} generatedCandidates={}",
             dryRun,
             songId,
             targets.size,
