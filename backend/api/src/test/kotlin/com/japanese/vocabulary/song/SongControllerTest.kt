@@ -21,12 +21,12 @@ import com.japanese.vocabulary.song.model.Token
 import com.japanese.vocabulary.song.entity.LyricEntity
 import com.japanese.vocabulary.song.entity.LyricType
 import com.japanese.vocabulary.song.entity.SongEntity
-import com.japanese.vocabulary.song.candidate.LyricWordCandidates
-import com.japanese.vocabulary.song.candidate.WordCandidate
-import com.japanese.vocabulary.song.candidate.WordScoreComponents
 import com.japanese.vocabulary.song.repository.LyricRepository
+import com.japanese.vocabulary.song.model.LyricWordCandidates
 import com.japanese.vocabulary.songanalysis.repository.SongAnalysisWorkRepository
 import com.japanese.vocabulary.song.repository.SongRepository
+import com.japanese.vocabulary.song.model.WordCandidate
+import com.japanese.vocabulary.song.model.WordScoreComponents
 import com.japanese.vocabulary.songanalysis.service.SongAnalysisWorkService
 import com.japanese.vocabulary.test.ApiBaseIntegrationTest
 import com.japanese.vocabulary.test.fixtures.TestSongBuilder

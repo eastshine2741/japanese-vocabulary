@@ -2,7 +2,7 @@ package com.japanese.vocabulary.song.entity
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
-import com.japanese.vocabulary.song.candidate.LyricWordCandidates
+import com.japanese.vocabulary.song.model.LyricWordCandidates
 import jakarta.persistence.AttributeConverter
 import jakarta.persistence.Converter
 

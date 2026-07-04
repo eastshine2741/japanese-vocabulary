@@ -4,9 +4,9 @@ import com.japanese.vocabulary.common.exception.BusinessException
 import com.japanese.vocabulary.common.exception.ErrorCode
 import com.japanese.vocabulary.song.dto.SongDto
 import com.japanese.vocabulary.song.dto.songdetail.*
-import com.japanese.vocabulary.song.candidate.WordCandidate
 import com.japanese.vocabulary.song.entity.LyricEntity
 import com.japanese.vocabulary.song.entity.LyricType
+import com.japanese.vocabulary.song.model.WordCandidate
 import com.japanese.vocabulary.song.repository.LyricRepository
 import com.japanese.vocabulary.song.repository.SongRepository
 import com.japanese.vocabulary.word.dto.AddWordRequest

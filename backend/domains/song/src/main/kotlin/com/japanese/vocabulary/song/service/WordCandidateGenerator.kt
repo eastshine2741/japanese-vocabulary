@@ -1,7 +1,10 @@
-package com.japanese.vocabulary.song.candidate
+package com.japanese.vocabulary.song.service
 
 import com.japanese.vocabulary.song.model.AnalyzedLine
+import com.japanese.vocabulary.song.model.LyricWordCandidates
 import com.japanese.vocabulary.song.model.PartOfSpeech
+import com.japanese.vocabulary.song.model.WordCandidate
+import com.japanese.vocabulary.song.model.WordScoreComponents
 import org.springframework.stereotype.Component
 import kotlin.math.ln
 

@@ -1,8 +1,8 @@
 package com.japanese.vocabulary.song.entity
 
 import com.japanese.vocabulary.song.model.AnalyzedLine
+import com.japanese.vocabulary.song.model.LyricWordCandidates
 import com.japanese.vocabulary.song.model.LyricLineData
-import com.japanese.vocabulary.song.candidate.LyricWordCandidates
 import jakarta.persistence.*
 import org.springframework.data.annotation.CreatedDate
 import org.springframework.data.annotation.LastModifiedDate

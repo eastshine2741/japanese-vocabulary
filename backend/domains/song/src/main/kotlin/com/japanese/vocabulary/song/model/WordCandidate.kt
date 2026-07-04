@@ -1,12 +1,6 @@
-package com.japanese.vocabulary.song.candidate
+package com.japanese.vocabulary.song.model
 
 import com.fasterxml.jackson.annotation.JsonInclude
-
-@JsonInclude(JsonInclude.Include.NON_NULL)
-data class LyricWordCandidates(
-    val candidates: List<WordCandidate>,
-    val lineCandidates: Map<String, List<Int>>,
-)
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 data class WordCandidate(
@@ -24,12 +18,4 @@ data class WordCandidate(
     val frequency: Int,
     val lineIndexes: List<Int>,
     val scoreComponents: WordScoreComponents,
-)
-
-data class WordScoreComponents(
-    val lineCoverage: Double,
-    val logFrequency: Double,
-    val dispersion: Double,
-    val titleBoost: Double,
-    val posWeight: Double,
 )

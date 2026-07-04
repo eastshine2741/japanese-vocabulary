@@ -2,10 +2,10 @@ package com.japanese.vocabulary.song.batch
 
 import com.japanese.vocabulary.common.exception.BusinessException
 import com.japanese.vocabulary.common.exception.ErrorCode
-import com.japanese.vocabulary.song.candidate.WordCandidateGenerator
 import com.japanese.vocabulary.song.model.AnalyzedLine
 import com.japanese.vocabulary.song.repository.LyricRepository
 import com.japanese.vocabulary.song.repository.SongRepository
+import com.japanese.vocabulary.song.service.WordCandidateGenerator
 import com.japanese.vocabulary.songanalysis.entity.SongAnalysisTriggerSource
 import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStatus
 import com.japanese.vocabulary.songanalysis.repository.SongAnalysisWorkRepository

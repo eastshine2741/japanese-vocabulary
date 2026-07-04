@@ -1,4 +1,4 @@
-package com.japanese.vocabulary.song.candidate
+package com.japanese.vocabulary.song.service
 
 import com.japanese.vocabulary.song.model.AnalyzedLine
 import com.japanese.vocabulary.song.model.PartOfSpeech
