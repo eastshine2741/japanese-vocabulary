@@ -4,8 +4,8 @@
 
 Admin v1 is an internal inspection surface for `song`, `lyric`, and `user`.
 
-- Read-only list/detail pages only.
-- No create/update/delete endpoints.
+- Read-mostly list/detail pages plus narrow invariant-preserving operations.
+- No generic create/update/delete endpoints.
 - No generic table editor or raw field editor.
 - Future write paths must be entity-specific, invariant-preserving workflows with audit logging.
 
@@ -19,7 +19,7 @@ Architecture direction:
 - Active domain/integration modules provide Spring wiring through `AutoConfiguration.imports` and `com.japanese.autoconfigure.*` classes. AutoConfiguration component-scans the module-owned `com.japanese.vocabulary.<module>` package and registers JPA entities/repositories explicitly. Application bootstraps should not carry sibling module `@EntityScan` or repository scan knowledge, and broad root component scan should not be used as a backup wiring path.
 - Integration clients should use `RestClient` where behavior can stay equivalent. Applications avoid unused clients by depending only on the integration modules they need; the depended module's AutoConfiguration exposes its client beans.
 - Product/read-model cache belongs to the application module that owns the behavior. For this pass, song search cache belongs to `api` and artist-channel cache belongs to `batch`.
-- Admin mutations must call domain methods/services; raw field updates stay out of scope.
+- Admin mutations must call domain methods/services; raw field updates stay out of scope. Current mutation: song reanalysis creates or reuses a `song_analysis_work` and never edits song/lyric fields directly.
 
 ## Backend
 
@@ -45,6 +45,7 @@ Routes:
 - `GET /admin/api/songs`
 - `GET /admin/api/songs/{songId}`
 - `GET /admin/api/songs/{songId}/lyric`
+- `POST /admin/api/songs/{songId}/reanalysis`
 - `GET /admin/api/lyrics`
 - `GET /admin/api/lyrics/{lyricId}`
 - `POST /admin/api/recommendations/dispatch-analysis`
@@ -89,6 +90,8 @@ VITE_ADMIN_API_BASE_URL=http://localhost:8081/admin/api npm run dev
 ```
 
 The browser token is stored in `sessionStorage`.
+
+Song detail exposes a reanalysis action. If a `PENDING` or `RUNNING` analysis work already blocks the song, the trigger is disabled and the active work is linked. Recent work history links to work and lyric details and shows the work-produced MV URL from `song_analysis_work.youtube_url` when present. The UI does not implement rollback or active-result selection.
 
 ## Local k3s
 

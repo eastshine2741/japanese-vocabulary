@@ -11,4 +11,5 @@ data class JishoOptionDto(
     val pos: List<String> = emptyList(),
     val english: String = "",
     val jlpt: List<String> = emptyList(),
+    val englishDefinitions: List<String> = emptyList(),
 )

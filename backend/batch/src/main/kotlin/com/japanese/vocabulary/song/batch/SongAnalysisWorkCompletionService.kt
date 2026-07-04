@@ -6,6 +6,7 @@ import com.japanese.vocabulary.song.candidate.WordCandidateGenerator
 import com.japanese.vocabulary.song.model.AnalyzedLine
 import com.japanese.vocabulary.song.repository.LyricRepository
 import com.japanese.vocabulary.song.repository.SongRepository
+import com.japanese.vocabulary.songanalysis.entity.SongAnalysisTriggerSource
 import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStatus
 import com.japanese.vocabulary.songanalysis.repository.SongAnalysisWorkRepository
 import org.springframework.stereotype.Service
@@ -41,13 +42,32 @@ class SongAnalysisWorkCompletionService(
             BusinessException(ErrorCode.LYRIC_NOT_FOUND)
         }
         lyric.analyzedContent = analyzedLines
-        val song = songRepository.findById(lyric.songId).orElse(null)
+        val sourceSong = songRepository.findById(lyric.songId).orElse(null)
         val wordCandidates = wordCandidateGenerator.generate(
-            title = song?.title ?: "",
+            title = sourceSong?.title ?: "",
             analyzedLines = analyzedLines,
         )
         lyric.wordCandidates = wordCandidates
         lyricRepository.save(lyric)
+
+        if (work.triggerSource == SongAnalysisTriggerSource.ADMIN && work.songId != null) {
+            val song = songRepository.findByIdForUpdate(work.songId!!)
+                ?: throw BusinessException(ErrorCode.SONG_NOT_FOUND)
+            if (lyric.songId != song.id || work.lyricId != lyric.id) {
+                throw BusinessException(ErrorCode.SONG_ANALYSIS_WORK_FAILED)
+            }
+            val overlappingActiveWriters = workRepository.findBySongIdAndStatusInOrderByCreatedAtAsc(
+                song.id!!,
+                listOf(SongAnalysisWorkStatus.PENDING, SongAnalysisWorkStatus.RUNNING),
+            ).filter { it.id != work.id }
+            if (overlappingActiveWriters.isNotEmpty()) {
+                throw BusinessException(ErrorCode.SONG_ANALYSIS_WORK_ALREADY_EXISTS)
+            }
+            song.activeLyricId = lyric.id
+            song.youtubeUrl = work.youtubeUrl
+            song.updatedAt = now
+            songRepository.save(song)
+        }
 
         work.markCompleted(now)
         return true

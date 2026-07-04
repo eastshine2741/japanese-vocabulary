@@ -14,6 +14,7 @@ enum class PartOfSpeech(val japaneseName: String, val koreanName: String) {
     INTERJECTION("感動詞", "감동사"),
     PREFIX("接頭辞", "접두사"),
     SUFFIX("接尾辞", "접미사"),
+    EXPRESSION("表現", "표현"),
     FILLER("フィラー", "필러"),
     OTHER("その他", "기타"),
     SYMBOL("記号", "기호"),

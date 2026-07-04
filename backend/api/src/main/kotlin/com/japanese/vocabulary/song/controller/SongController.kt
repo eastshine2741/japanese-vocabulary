@@ -71,7 +71,7 @@ class SongController(
         val entity = songRepository.findByArtistAndTitle(artistName, title)
             ?: return ResponseEntity.noContent().build()
 
-        if (lyricRepository.findBySongId(entity.id!!) == null) {
+        if (lyricRepository.findActiveBySongId(entity.id!!) == null) {
             return ResponseEntity.noContent().build()
         }
 
@@ -175,6 +175,8 @@ class SongController(
         status = status.name,
         currentStage = currentStage,
         songId = songId,
+        lyricId = lyricId,
+        youtubeUrl = youtubeUrl,
         canOpenPlayer = canOpenPlayer,
         isAnalysisComplete = isAnalysisComplete,
         errorCode = errorCode,

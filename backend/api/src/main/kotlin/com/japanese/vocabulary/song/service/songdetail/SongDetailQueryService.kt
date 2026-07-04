@@ -25,7 +25,7 @@ class SongDetailQueryService(
     @Transactional(readOnly = true)
     fun metadata(songId: Long): SongDto {
         val song = songRepository.findById(songId).orElseThrow { BusinessException(ErrorCode.SONG_NOT_FOUND) }
-        val lyric = lyricRepository.findBySongId(songId)
+        val lyric = lyricRepository.findActiveBySongId(songId)
         return SongDto(
             id = song.id!!,
             title = song.title,
@@ -40,7 +40,7 @@ class SongDetailQueryService(
     @Transactional(readOnly = true)
     fun lyrics(songId: Long): SongLyricsDto {
         songRepository.findById(songId).orElseThrow { BusinessException(ErrorCode.SONG_NOT_FOUND) }
-        val lyric = lyricRepository.findBySongId(songId) ?: throw BusinessException(ErrorCode.LYRIC_NOT_FOUND)
+        val lyric = lyricRepository.findActiveBySongId(songId) ?: throw BusinessException(ErrorCode.LYRIC_NOT_FOUND)
         val analyzedByIndex = lyric.analyzedContent.orEmpty().associateBy { it.index }
         val source = lyric.source()
         return SongLyricsDto(
@@ -63,7 +63,7 @@ class SongDetailQueryService(
     @Transactional(readOnly = true)
     fun words(songId: Long, userId: Long): WordsInSongDto {
         songRepository.findById(songId).orElseThrow { BusinessException(ErrorCode.SONG_NOT_FOUND) }
-        val lyric = lyricRepository.findBySongId(songId) ?: throw BusinessException(ErrorCode.LYRIC_NOT_FOUND)
+        val lyric = lyricRepository.findActiveBySongId(songId) ?: throw BusinessException(ErrorCode.LYRIC_NOT_FOUND)
         val emptyDefaults = WordFilterDefaultsDto()
         val wordCandidates = lyric.wordCandidates
         if (wordCandidates == null) {

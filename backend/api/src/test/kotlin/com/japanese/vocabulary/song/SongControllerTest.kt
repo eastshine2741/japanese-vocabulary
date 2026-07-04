@@ -83,6 +83,8 @@ class SongControllerTest : ApiBaseIntegrationTest() {
         )
         entityManager.persist(entity)
         entityManager.flush()
+        song.activeLyricId = entity.id
+        entityManager.flush()
         return entity
     }
 
@@ -321,6 +323,33 @@ class SongControllerTest : ApiBaseIntegrationTest() {
         }
 
         @Test
+        fun `exact title and artist lookup uses active lyric when song has historical lyrics`() {
+            val me = newUser()
+            val song = newSong(title = "履歴曲", artist = "歌手")
+            newLyric(
+                song,
+                raw = listOf(LyricLineData(index = 0, startTimeMs = 0, text = "古い歌詞")),
+            )
+            val active = newLyric(
+                song,
+                raw = listOf(LyricLineData(index = 0, startTimeMs = 0, text = "新しい歌詞")),
+            )
+            entityManager.flush()
+            entityManager.clear()
+
+            val body = mockMvc.get("/api/songs") {
+                header("Authorization", bearer(me))
+                param("title", "履歴曲")
+                param("artistName", "歌手")
+            }.andExpect { status { isOk() } }.andReturn().response.contentAsString
+
+            val dto = readBody<SongStudyDto>(body)
+            assertThat(dto.song.id).isEqualTo(song.id)
+            assertThat(dto.studyUnits.map { it.originalText }).containsExactly("新しい歌詞")
+            assertThat(lyricRepository.findActiveBySongId(song.id!!)?.id).isEqualTo(active.id)
+        }
+
+        @Test
         fun `missing song returns 204 by title and artist`() {
             val me = newUser()
 
@@ -393,24 +422,6 @@ class SongControllerTest : ApiBaseIntegrationTest() {
         }
 
         @Test
-        fun `lyrics endpoint returns display lines without recording recent`() {
-            val me = newUser()
-            val song = newSong()
-            newLyric(
-                song,
-                raw = listOf(LyricLineData(index = 0, startTimeMs = 0, text = "待機中")),
-            )
-
-            val body = mockMvc.get("/api/songs/${song.id}/lyrics") {
-                header("Authorization", bearer(me))
-            }.andExpect { status { isOk() } }.andReturn().response.contentAsString
-
-            assertThat(body).contains("\"originalText\":\"待機中\"")
-            assertThat(body).doesNotContain("tokens")
-            assertThat(redis.opsForZSet().size(recentKey(me.id!!)) ?: 0).isZero
-        }
-
-        @Test
         fun `unknown song id returns 404 and does not record recent`() {
             val me = newUser()
 
@@ -459,6 +470,59 @@ class SongControllerTest : ApiBaseIntegrationTest() {
             }.andReturn().response.contentAsString
 
             assertThat(readBody<SongLyricsDto>(body).lyricId).isEqualTo(lyric.id)
+            assertThat(redis.opsForZSet().size(recentKey(me.id!!)) ?: 0).isZero
+        }
+
+        @Test
+        fun `lyrics endpoint uses active lyric when historical lyrics exist`() {
+            val me = newUser()
+            val song = newSong()
+            newLyric(
+                song,
+                raw = listOf(LyricLineData(index = 0, startTimeMs = 0, text = "非アクティブ")),
+            )
+            val active = newLyric(
+                song,
+                raw = listOf(LyricLineData(index = 0, startTimeMs = 0, text = "アクティブ")),
+                analyzed = listOf(
+                    AnalyzedLine(
+                        index = 0,
+                        koreanLyrics = "활성",
+                        koreanPronounciation = "아쿠티부",
+                        tokens = emptyList(),
+                    ),
+                ),
+            )
+            entityManager.flush()
+            entityManager.clear()
+
+            mockMvc.get("/api/songs/${song.id}/lyrics") {
+                header("Authorization", bearer(me))
+            }.andExpect {
+                status { isOk() }
+                jsonPath("$.lyricId") { value(active.id!!.toInt()) }
+                jsonPath("$.lines[0].originalText") { value("アクティブ") }
+                jsonPath("$.lines[0].koreanLyrics") { value("활성") }
+            }
+
+            assertThat(lyricRepository.findActiveBySongId(song.id!!)?.id).isEqualTo(active.id)
+        }
+
+        @Test
+        fun `pending lyric returns raw lines without tokens`() {
+            val me = newUser()
+            val song = newSong()
+            newLyric(
+                song,
+                raw = listOf(LyricLineData(index = 0, startTimeMs = 0, text = "待機中")),
+            )
+
+            val body = mockMvc.get("/api/songs/${song.id}/lyrics") {
+                header("Authorization", bearer(me))
+            }.andExpect { status { isOk() } }.andReturn().response.contentAsString
+
+            assertThat(body).contains("\"originalText\":\"待機中\"")
+            assertThat(body).doesNotContain("tokens")
             assertThat(redis.opsForZSet().size(recentKey(me.id!!)) ?: 0).isZero
         }
     }
