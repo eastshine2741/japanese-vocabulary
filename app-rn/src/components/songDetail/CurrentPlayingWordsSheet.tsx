@@ -462,6 +462,7 @@ function CurrentPlayingWordsSheetComponent({
             horizontal
             pagingEnabled={false}
             snapToInterval={pageWidth + 12}
+            disableIntervalMomentum
             decelerationRate="fast"
             showsHorizontalScrollIndicator={false}
             initialScrollIndex={activePageIndex > 0 ? activePageIndex : undefined}

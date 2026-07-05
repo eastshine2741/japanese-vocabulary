@@ -3,12 +3,15 @@ import {
   ActivityIndicator,
   Animated,
   BackHandler,
+  Easing,
   ImageBackground,
+  LayoutChangeEvent,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Pressable,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -38,13 +41,19 @@ type DetailTab = 'home' | 'words';
 const HERO_HEIGHT = 360;
 const COLLAPSED_BAR_HEIGHT = 56;
 const TAB_BAR_HEIGHT = 44;
+const TAB_ITEM_WIDTH = 54;
+const TAB_ITEM_GAP = 10;
+const TAB_INDICATOR_WIDTH = 28;
+const TAB_TRANSITION_MS = 260;
 const HERO_SCROLL_COLLAPSE_START = HERO_HEIGHT - COLLAPSED_BAR_HEIGHT - TAB_BAR_HEIGHT - 34;
 const HERO_SCROLL_COLLAPSE_END = HERO_SCROLL_COLLAPSE_START + 56;
 const ARTWORK_COLLAPSED_OFFSET = HERO_HEIGHT * 0.4;
 
 export default function SongDetailScreen({ navigation, route }: Props) {
   const insets = useSafeAreaInsets();
+  const { width: screenWidth } = useWindowDimensions();
   const scrollY = useRef(new Animated.Value(0)).current;
+  const tabProgress = useRef(new Animated.Value(0)).current;
   const infoSheetRef = useRef<AppBottomSheetRef>(null);
   const infoSheetOpenRef = useRef(false);
 
@@ -61,6 +70,10 @@ export default function SongDetailScreen({ navigation, route }: Props) {
   const [vocabDeckId, setVocabDeckId] = useState<number | null>(null);
   const [isCreatingDeck, setIsCreatingDeck] = useState(false);
   const [isPinnedTabsVisible, setIsPinnedTabsVisible] = useState(false);
+  const [tabPageHeights, setTabPageHeights] = useState<Record<DetailTab, number>>({
+    home: 0,
+    words: 0,
+  });
   const isPinnedTabsVisibleRef = useRef(false);
 
   const routeSongId = route.params?.songId;
@@ -150,6 +163,26 @@ export default function SongDetailScreen({ navigation, route }: Props) {
 
   const bottomReserve = SONG_DETAIL_MV_BAR_HEIGHT + insets.bottom;
 
+  const tabContentTranslate = useMemo(
+    () => tabProgress.interpolate({
+      inputRange: [0, 1],
+      outputRange: [0, -screenWidth],
+      extrapolate: 'clamp',
+    }),
+    [screenWidth, tabProgress],
+  );
+
+  const activePageHeight = tabPageHeights[activeTab];
+
+  useEffect(() => {
+    Animated.timing(tabProgress, {
+      toValue: activeTab === 'words' ? 1 : 0,
+      duration: TAB_TRANSITION_MS,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [activeTab, tabProgress]);
+
   const defaultDeckWords = useMemo(() => {
     const detail = data?.words;
     if (!detail) return [];
@@ -214,6 +247,16 @@ export default function SongDetailScreen({ navigation, route }: Props) {
       .then(deck => setVocabDeckId(deck?.deckId ?? null))
       .catch(() => setVocabDeckId(null));
   }, [refreshWords, songId]);
+
+  const handleHomePageLayout = useCallback((event: LayoutChangeEvent) => {
+    const height = Math.ceil(event.nativeEvent.layout.height);
+    setTabPageHeights(prev => prev.home === height ? prev : { ...prev, home: height });
+  }, []);
+
+  const handleWordsPageLayout = useCallback((event: LayoutChangeEvent) => {
+    const height = Math.ceil(event.nativeEvent.layout.height);
+    setTabPageHeights(prev => prev.words === height ? prev : { ...prev, words: height });
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -303,27 +346,50 @@ export default function SongDetailScreen({ navigation, route }: Props) {
         <View style={styles.bodyContent}>
           <SongDetailTabs
             activeTab={activeTab}
+            tabProgress={tabProgress}
             onSelectHome={handleSelectHome}
             onSelectWords={handleSelectWords}
           />
 
-          {activeTab === 'home' ? (
-            <SongDetailHomeTab
-              words={words.words}
-              onViewAllWordsPress={handleSelectWords}
-            />
-          ) : (
-            <SongDetailWordsTab
-              data={{
-                words: words.words,
-                wordSummary: words.wordSummary,
-                filterDefaults: words.filterDefaults,
-                lineWordIndexes: words.lineWordIndexes,
-              }}
-              bottomPadding={0}
-              onWordsChanged={handleWordsChanged}
-            />
-          )}
+          <Animated.View style={[styles.tabContentViewport, activePageHeight > 0 && { height: activePageHeight }]}>
+            <Animated.View
+              style={[
+                styles.tabContentRail,
+                {
+                  width: screenWidth * 2,
+                  transform: [{ translateX: tabContentTranslate }],
+                },
+              ]}
+            >
+              <View
+                pointerEvents={activeTab === 'home' ? 'auto' : 'none'}
+                style={[styles.tabPage, { width: screenWidth }]}
+                onLayout={handleHomePageLayout}
+              >
+                <SongDetailHomeTab
+                  words={words.words}
+                  onViewAllWordsPress={handleSelectWords}
+                />
+              </View>
+              <View
+                pointerEvents={activeTab === 'words' ? 'auto' : 'none'}
+                style={[styles.tabPage, { width: screenWidth }]}
+                onLayout={handleWordsPageLayout}
+              >
+                <SongDetailWordsTab
+                  isActive={activeTab === 'words'}
+                  data={{
+                    words: words.words,
+                    wordSummary: words.wordSummary,
+                    filterDefaults: words.filterDefaults,
+                    lineWordIndexes: words.lineWordIndexes,
+                  }}
+                  bottomPadding={0}
+                  onWordsChanged={handleWordsChanged}
+                />
+              </View>
+            </Animated.View>
+          </Animated.View>
         </View>
       </Animated.ScrollView>
 
@@ -439,6 +505,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
       >
         <SongDetailTabs
           activeTab={activeTab}
+          tabProgress={tabProgress}
           onSelectHome={handleSelectHome}
           onSelectWords={handleSelectWords}
         />
@@ -550,34 +617,121 @@ const IconButton = React.memo(function IconButton({ icon, onPress, dark = false 
 
 interface TabsProps {
   activeTab: DetailTab;
+  tabProgress: Animated.Value;
   onSelectHome: () => void;
   onSelectWords: () => void;
 }
 
 const SongDetailTabs = React.memo(function SongDetailTabs({
   activeTab,
+  tabProgress,
   onSelectHome,
   onSelectWords,
 }: TabsProps) {
+  const indicatorTranslateX = useMemo(
+    () => tabProgress.interpolate({
+      inputRange: [0, 1],
+      outputRange: [0, TAB_ITEM_WIDTH + TAB_ITEM_GAP],
+      extrapolate: 'clamp',
+    }),
+    [tabProgress],
+  );
+
   return (
     <View style={styles.tabBar}>
-      <TabButton label="홈" isActive={activeTab === 'home'} onPress={onSelectHome} />
-      <TabButton label="단어" isActive={activeTab === 'words'} onPress={onSelectWords} />
+      <Animated.View
+        pointerEvents="none"
+        style={[styles.tabIndicator, { transform: [{ translateX: indicatorTranslateX }] }]}
+      />
+      <TabButton
+        tab="home"
+        label="홈"
+        isActive={activeTab === 'home'}
+        tabProgress={tabProgress}
+        onPress={onSelectHome}
+      />
+      <TabButton
+        tab="words"
+        label="단어"
+        isActive={activeTab === 'words'}
+        tabProgress={tabProgress}
+        onPress={onSelectWords}
+      />
     </View>
   );
 });
 
 interface TabButtonProps {
+  tab: DetailTab;
   label: string;
   isActive: boolean;
+  tabProgress: Animated.Value;
   onPress: () => void;
 }
 
-const TabButton = React.memo(function TabButton({ label, isActive, onPress }: TabButtonProps) {
+const TabButton = React.memo(function TabButton({
+  tab,
+  label,
+  isActive,
+  tabProgress,
+  onPress,
+}: TabButtonProps) {
+  const activeOpacity = useMemo(
+    () => tabProgress.interpolate({
+      inputRange: [0, 1],
+      outputRange: tab === 'home' ? [1, 0] : [0, 1],
+      extrapolate: 'clamp',
+    }),
+    [tab, tabProgress],
+  );
+  const inactiveOpacity = useMemo(
+    () => tabProgress.interpolate({
+      inputRange: [0, 1],
+      outputRange: tab === 'home' ? [0, 1] : [1, 0],
+      extrapolate: 'clamp',
+    }),
+    [tab, tabProgress],
+  );
+  const labelScale = useMemo(
+    () => tabProgress.interpolate({
+      inputRange: [0, 1],
+      outputRange: tab === 'home' ? [1, 0.96] : [0.96, 1],
+      extrapolate: 'clamp',
+    }),
+    [tab, tabProgress],
+  );
+
   return (
-    <Pressable style={styles.tabButton} onPress={onPress}>
-      <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>{label}</Text>
-      <View style={[styles.tabIndicator, isActive && styles.tabIndicatorActive]} />
+    <Pressable
+      accessibilityRole="tab"
+      accessibilityState={{ selected: isActive }}
+      style={styles.tabButton}
+      onPress={onPress}
+    >
+      <Animated.Text
+        style={[
+          styles.tabLabel,
+          {
+            opacity: inactiveOpacity,
+            transform: [{ scale: labelScale }],
+          },
+        ]}
+      >
+        {label}
+      </Animated.Text>
+      <Animated.Text
+        style={[
+          styles.tabLabel,
+          styles.tabLabelActive,
+          styles.tabLabelOverlay,
+          {
+            opacity: activeOpacity,
+            transform: [{ scale: labelScale }],
+          },
+        ]}
+      >
+        {label}
+      </Animated.Text>
     </Pressable>
   );
 });
@@ -641,6 +795,16 @@ const styles = StyleSheet.create({
   bodyContent: {
     backgroundColor: Colors.background,
   },
+  tabContentViewport: {
+    overflow: 'hidden',
+  },
+  tabContentRail: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  tabPage: {
+    flexShrink: 0,
+  },
   heroInfoLayer: {
     position: 'absolute',
     top: 0,
@@ -701,18 +865,17 @@ const styles = StyleSheet.create({
     height: TAB_BAR_HEIGHT,
     flexDirection: 'row',
     alignItems: 'stretch',
-    gap: 14,
+    gap: TAB_ITEM_GAP,
     paddingHorizontal: 16,
     backgroundColor: Colors.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.border,
   },
   tabButton: {
-    minWidth: 28,
+    width: TAB_ITEM_WIDTH,
     height: TAB_BAR_HEIGHT,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 8,
   },
   tabLabel: {
     fontSize: 15,
@@ -720,17 +883,18 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
   },
   tabLabelActive: {
+    fontWeight: '800',
     color: Colors.textPrimary,
+  },
+  tabLabelOverlay: {
+    position: 'absolute',
   },
   tabIndicator: {
     position: 'absolute',
-    left: 8,
-    right: 8,
+    left: 16 + ((TAB_ITEM_WIDTH - TAB_INDICATOR_WIDTH) / 2),
     bottom: 0,
+    width: TAB_INDICATOR_WIDTH,
     height: 2,
-    backgroundColor: 'transparent',
-  },
-  tabIndicatorActive: {
     backgroundColor: Colors.primary,
   },
   appBar: {

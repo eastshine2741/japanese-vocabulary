@@ -27,6 +27,8 @@ import {
 } from './types';
 
 const DEFAULT_POS = ['NOUN', 'VERB', 'ADJECTIVE', 'NA_ADJECTIVE', 'ADVERB'];
+const INITIAL_WORD_RENDER_COUNT = 18;
+const WORD_RENDER_CHUNK_SIZE = 24;
 const POS_ORDER = [
   'NOUN',
   'VERB',
@@ -47,6 +49,7 @@ const JLPT_ORDER = ['N5', 'N4', 'N3', 'N2', 'N1'];
 
 interface Props {
   data: WordsInSongDto | null;
+  isActive?: boolean;
   isLoading?: boolean;
   errorMessage?: string | null;
   bottomPadding?: number;
@@ -100,6 +103,7 @@ function getInitialSort(data: WordsInSongDto | null): SongDetailWordsSort {
 
 export default function SongDetailWordsTab({
   data,
+  isActive = true,
   isLoading = false,
   errorMessage = null,
   bottomPadding = 150,
@@ -116,6 +120,7 @@ export default function SongDetailWordsTab({
   const [busyWordKey, setBusyWordKey] = useState<string | null>(null);
   const [isBatchSaving, setIsBatchSaving] = useState(false);
   const [pendingRemove, setPendingRemove] = useState<SongDetailWordItem | null>(null);
+  const [renderLimit, setRenderLimit] = useState(INITIAL_WORD_RENDER_COUNT);
 
   const words = data?.words ?? [];
   const filterDefaultsKey = useMemo(() => {
@@ -164,6 +169,42 @@ export default function SongDetailWordsTab({
       return importanceDiff !== 0 ? importanceDiff : a.appearanceOrder - b.appearanceOrder;
     });
   }, [includeUnknownJlpt, words, selectedPos, selectedJlpt, sort]);
+
+  useEffect(() => {
+    setRenderLimit(Math.min(INITIAL_WORD_RENDER_COUNT, visibleWords.length));
+  }, [visibleWords]);
+
+  useEffect(() => {
+    if (!isActive || visibleWords.length <= INITIAL_WORD_RENDER_COUNT) return;
+
+    let cancelled = false;
+    let frame: number | null = null;
+    let idleCallback: number | null = requestIdleCallback(() => {
+      const grow = () => {
+        if (cancelled) return;
+        setRenderLimit(prev => {
+          const next = Math.min(prev + WORD_RENDER_CHUNK_SIZE, visibleWords.length);
+          if (next < visibleWords.length) {
+            frame = requestAnimationFrame(grow);
+          }
+          return next;
+        });
+      };
+      frame = requestAnimationFrame(grow);
+      idleCallback = null;
+    }, { timeout: 180 });
+
+    return () => {
+      cancelled = true;
+      if (idleCallback != null) cancelIdleCallback(idleCallback);
+      if (frame != null) cancelAnimationFrame(frame);
+    };
+  }, [isActive, visibleWords]);
+
+  const renderedWords = useMemo(
+    () => visibleWords.slice(0, Math.min(renderLimit, visibleWords.length)),
+    [renderLimit, visibleWords],
+  );
 
   const getSaveState = useCallback((word: SongDetailWordItem): SongDetailWordSaveState => {
     const override = saveOverrides.get(getWordSaveKey(word));
@@ -356,7 +397,7 @@ export default function SongDetailWordsTab({
       </View>
 
       <View style={[styles.listContent, { paddingBottom: bottomPadding + insets.bottom }]}>
-        {visibleWords.length === 0 ? listEmpty : visibleWords.map(word => {
+        {visibleWords.length === 0 ? listEmpty : renderedWords.map(word => {
           const state = getSaveState(word);
           const wordKey = getWordKey(word);
           return (
