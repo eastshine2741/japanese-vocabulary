@@ -14,9 +14,9 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 
 /**
- * Direct-call listener test. Listener carries @Transactional(REQUIRES_NEW), so setup must
- * be committed beforehand via inTx { ... } — otherwise the listener's separate connection
- * cannot see the uncommitted entities. See AfterCommitListenerTest for the full rationale.
+ * Direct-call listener test. The SongWordCreated listener carries @Transactional(REQUIRES_NEW),
+ * so setup must be committed beforehand via inTx { ... } — otherwise the listener's separate
+ * connection cannot see the uncommitted entities. See AfterCommitListenerTest for the full rationale.
  */
 class DeckEventListenerTest : ApiAfterCommitListenerTest() {
 

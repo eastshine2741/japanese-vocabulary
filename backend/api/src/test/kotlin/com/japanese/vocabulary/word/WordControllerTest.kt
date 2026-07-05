@@ -2,6 +2,8 @@ package com.japanese.vocabulary.word
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.japanese.vocabulary.auth.jwt.JwtUtil
+import com.japanese.vocabulary.deck.repository.DeckFlashcardRepository
+import com.japanese.vocabulary.deck.repository.DeckRepository
 import com.japanese.vocabulary.flashcard.event.FlashcardDeletedEvent
 import com.japanese.vocabulary.flashcard.repository.FlashcardRepository
 import com.japanese.vocabulary.song.entity.SongEntity
@@ -45,6 +47,8 @@ class WordControllerTest : ApiBaseIntegrationTest() {
     @Autowired private lateinit var wordRepository: WordRepository
     @Autowired private lateinit var songWordRepository: SongWordRepository
     @Autowired private lateinit var flashcardRepository: FlashcardRepository
+    @Autowired private lateinit var deckRepository: DeckRepository
+    @Autowired private lateinit var deckFlashcardRepository: DeckFlashcardRepository
     @Autowired private lateinit var applicationEvents: ApplicationEvents
 
     private fun newUser(): UserEntity = TestUserBuilder(entityManager).build()
@@ -387,6 +391,8 @@ class WordControllerTest : ApiBaseIntegrationTest() {
             entityManager.flush(); entityManager.clear()
             val word = wordRepository.findByUserIdAndJapaneseText(me.id!!, "削除")!!
             val flashcard = flashcardRepository.findByWordId(word.id!!)!!
+            val deck = deckRepository.findByUserIdAndSongId(me.id!!, song.id!!)!!
+            assertThat(deckFlashcardRepository.existsByDeckIdAndFlashcardId(deck.id!!, flashcard.id!!)).isTrue
 
             mockMvc.delete("/api/words/${word.id}") {
                 header("Authorization", bearer(me))
@@ -396,6 +402,7 @@ class WordControllerTest : ApiBaseIntegrationTest() {
             assertThat(wordRepository.findById(word.id!!)).isEmpty
             assertThat(songWordRepository.findByWordId(word.id!!)).isEmpty()
             assertThat(flashcardRepository.findByWordId(word.id!!)).isNull()
+            assertThat(deckFlashcardRepository.existsByDeckIdAndFlashcardId(deck.id!!, flashcard.id!!)).isFalse
 
             val events = applicationEvents.stream(FlashcardDeletedEvent::class.java).toList()
             assertThat(events.map { it.flashcardId }).contains(flashcard.id)
