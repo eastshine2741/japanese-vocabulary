@@ -18,10 +18,7 @@ SENTRY_LIMIT="${SENTRY_TRIAGE_LIMIT:-20}"
 SENTRY_MAX_PAGES="${SENTRY_TRIAGE_MAX_PAGES:-5}"
 PR_MAX_CHANGED_FILES="${SENTRY_TRIAGE_PR_MAX_CHANGED_FILES:-8}"
 PR_MAX_DIFF_LINES="${SENTRY_TRIAGE_PR_MAX_DIFF_LINES:-400}"
-DISCORD_HISTORY_LIMIT="${SENTRY_TRIAGE_DISCORD_HISTORY_LIMIT:-50}"
-DISCORD_COMPLETION_LOOKUP_PAGES="${SENTRY_TRIAGE_DISCORD_COMPLETION_LOOKUP_PAGES:-5}"
-HANDLED_EMOJI="${SENTRY_TRIAGE_HANDLED_EMOJI:-✅}"
-DISCORD_FALLBACK="${SENTRY_TRIAGE_DISCORD_FALLBACK:-0}"
+SENTRY_NOTE_COMPLETION_LOOKUP_LIMIT="${SENTRY_TRIAGE_NOTE_COMPLETION_LOOKUP_LIMIT:-100}"
 
 DRY_RUN=0
 RECORD_DRY_RUN=0
@@ -34,9 +31,9 @@ usage() {
 Usage: .github/scripts/sentry/triage.sh [options]
 
 Options:
-  --dry-run                 Do not mutate GitHub, Discord, or local completed state.
+  --dry-run                 Do not mutate GitHub, Sentry notes, or local completed state.
   --record-dry-run          Allow dry-run to write retryable local state for tests.
-  --fixture FILE            Use a fixture instead of live Sentry/Discord/Codex calls.
+  --fixture FILE            Use a fixture instead of live Sentry/Codex calls.
   --state-file FILE         Override local ledger path.
   --log-file FILE           Override log path.
   --check-preflight         Run preflight only.
@@ -254,8 +251,6 @@ preflight() {
   [[ -n "${SENTRY_AUTH_TOKEN:-}" ]] || die "Missing SENTRY_AUTH_TOKEN"
   [[ -n "${SENTRY_ORG:-}" ]] || die "Missing SENTRY_ORG"
   [[ -n "${SENTRY_PROJECTS:-${SENTRY_PROJECT:-}}" ]] || die "Missing SENTRY_PROJECT or SENTRY_PROJECTS"
-  [[ -n "${DISCORD_BOT_TOKEN:-}" ]] || die "Missing DISCORD_BOT_TOKEN"
-  [[ -n "${DISCORD_CHANNEL_ID:-}" ]] || die "Missing DISCORD_CHANNEL_ID"
 
   local org project_query preflight_body_file preflight_header_file preflight_query preflight_path
   org="$(urlencode "$SENTRY_ORG")"
@@ -275,32 +270,21 @@ urlencode() {
   jq -rn --arg v "$1" '$v|@uri'
 }
 
-discord_auth_header() {
-  printf 'Authorization: Bot %s' "$DISCORD_BOT_TOKEN"
-}
-
-discord_api() {
-  local method="$1"
-  local path="$2"
-  local body="${3:-}"
-  if [[ -n "$body" ]]; then
-    curl -fsS -X "$method" \
-      -H "$(discord_auth_header)" \
-      -H 'Content-Type: application/json' \
-      -d "$body" \
-      "https://discord.com/api/v10${path}"
-  else
-    curl -fsS -X "$method" \
-      -H "$(discord_auth_header)" \
-      "https://discord.com/api/v10${path}"
-  fi
-}
-
 sentry_api() {
   local path="$1"
   curl -fsS \
     -H "Authorization: Bearer ${SENTRY_AUTH_TOKEN}" \
     -H 'Content-Type: application/json' \
+    "https://sentry.io/api/0${path}"
+}
+
+sentry_api_post() {
+  local path="$1"
+  local body="$2"
+  curl -fsS -X POST \
+    -H "Authorization: Bearer ${SENTRY_AUTH_TOKEN}" \
+    -H 'Content-Type: application/json' \
+    -d "$body" \
     "https://sentry.io/api/0${path}"
 }
 
@@ -434,105 +418,84 @@ context_short_id() {
   jq -r --arg fallback "$issue_id" '.issue.shortId // .issue.short_id // .issueDetail.shortId // .issueDetail.short_id // $fallback' <<<"$context"
 }
 
-context_permalink() {
-  jq -r '.issue.permalink // .issueDetail.permalink // empty' <<<"$1"
-}
-
-discord_message_match_jq() {
-  cat <<'JQ'
-    def searchable_text:
-      [
-        .content?,
-        .embeds[]?.url?,
-        .embeds[]?.title?,
-        .embeds[]?.description?,
-        .embeds[]?.fields[]?.name?,
-        .embeds[]?.fields[]?.value?
-      ]
-      | map(select(type == "string"))
-      | join("\n");
-    map(select(((searchable_text | contains($short)) or (($link != "") and (searchable_text | contains($link))))))
-    | .[0].id // empty
-JQ
-}
-
-find_discord_message_fixture() {
-  local short_id="$1"
-  local permalink="$2"
-  if [[ "${SENTRY_TRIAGE_FAIL_DISCORD_LOOKUP:-0}" == "1" ]]; then
-    echo "Simulated Discord lookup failure" >&2
-    return 1
-  fi
-  jq -r --arg short "$short_id" --arg link "$permalink" "(.discord.messages // []) | $(discord_message_match_jq)" "$FIXTURE_FILE"
-}
-
-find_discord_message_live() {
-  local short_id="$1"
-  local permalink="$2"
-  local messages
-  if [[ "${SENTRY_TRIAGE_FAIL_DISCORD_LOOKUP:-0}" == "1" ]]; then
-    echo "Simulated Discord lookup failure" >&2
-    return 1
-  fi
-  messages="$(discord_api GET "/channels/${DISCORD_CHANNEL_ID}/messages?limit=${DISCORD_HISTORY_LIMIT}")"
-  jq -r --arg short "$short_id" --arg link "$permalink" "$(discord_message_match_jq)" <<<"$messages"
-}
-
-find_discord_message() {
-  local short_id="$1"
-  local permalink="$2"
-  if [[ -n "$FIXTURE_FILE" ]]; then
-    find_discord_message_fixture "$short_id" "$permalink"
-  else
-    find_discord_message_live "$short_id" "$permalink"
-  fi
-}
-
-discord_completion_marker() {
+sentry_completion_marker() {
   local short_id="$1"
   printf 'Sentry triage completed: %s' "$short_id"
 }
 
-discord_messages_contain_completion() {
-  local messages="$1"
+sentry_notes_contain_completion() {
+  local notes="$1"
   local marker="$2"
   local external_url="$3"
   jq -e --arg marker "$marker" --arg url "$external_url" '
-    any(.[]; ((.content // "") | contains($marker)) and (($url == "") or ((.content // "") | contains($url))))
-  ' <<<"$messages" >/dev/null
+    def searchable_text:
+      [.. | strings] | join("\n");
+    any(.[]?; (searchable_text | contains($marker)) and (($url == "") or (searchable_text | contains($url))))
+  ' <<<"$notes" >/dev/null
 }
 
-discord_completion_message_exists() {
-  local short_id="$1"
-  local external_url="$2"
-  local marker messages page before path count
-  marker="$(discord_completion_marker "$short_id")"
+sentry_note_completion_exists() {
+  local issue_id="$1"
+  local short_id="$2"
+  local external_url="$3"
+  local marker notes
+  marker="$(sentry_completion_marker "$short_id")"
   if [[ "$DRY_RUN" -eq 1 ]]; then
     return 1
   fi
-  page=1
-  before=""
-  while [[ "$page" -le "$DISCORD_COMPLETION_LOOKUP_PAGES" ]]; do
-    path="/channels/${DISCORD_CHANNEL_ID}/messages?limit=${DISCORD_HISTORY_LIMIT}"
-    if [[ -n "$before" ]]; then
-      path="${path}&before=${before}"
-    fi
-    if ! messages="$(discord_api GET "$path")"; then
-      echo "Discord completion lookup failed" >&2
-      return 2
-    fi
-    if discord_messages_contain_completion "$messages" "$marker" "$external_url"; then
-      return 0
-    fi
-    count="$(jq 'length' <<<"$messages")"
-    if [[ "$count" -lt "$DISCORD_HISTORY_LIMIT" ]]; then
-      break
-    fi
-    before="$(jq -r '.[-1].id // empty' <<<"$messages")"
-    [[ -n "$before" ]] || break
-    page=$((page + 1))
-  done
+  if ! notes="$(sentry_api "/issues/$(urlencode "$issue_id")/notes/?limit=${SENTRY_NOTE_COMPLETION_LOOKUP_LIMIT}")"; then
+    echo "Sentry note completion lookup failed" >&2
+    return 2
+  fi
+  if sentry_notes_contain_completion "$notes" "$marker" "$external_url"; then
+    return 0
+  fi
   return 1
+}
+
+sentry_note_body() {
+  cat <<'JQ'
+    [
+      (.sentryNote // ""),
+      (if $externalUrl != "" then $externalUrl else empty end),
+      $marker
+    ]
+    | map(select(length > 0))
+    | join("\n\n")
+JQ
+}
+
+sentry_complete() {
+  local issue_id="$1"
+  local result_file="$2"
+  local external_url="$3"
+  local short_id="$4"
+  local note_text note_body completion_lookup_status
+  if [[ "${SENTRY_TRIAGE_FAIL_SENTRY_NOTE:-0}" == "1" ]]; then
+    echo "Simulated Sentry note failure" >&2
+    return 1
+  fi
+
+  completion_lookup_status=0
+  sentry_note_completion_exists "$issue_id" "$short_id" "$external_url" || completion_lookup_status=$?
+  if [[ "$completion_lookup_status" -eq 0 ]]; then
+    return
+  fi
+  if [[ "$completion_lookup_status" -ne 1 ]]; then
+    return 1
+  fi
+
+  note_text="$(jq -r --arg externalUrl "$external_url" --arg marker "$(sentry_completion_marker "$short_id")" "$(sentry_note_body)" "$result_file")"
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    record_command "sentry add note to issue $issue_id: $note_text"
+    return
+  fi
+
+  note_body="$(jq -n --arg text "$note_text" '{text:$text}')"
+  if ! sentry_api_post "/issues/$(urlencode "$issue_id")/notes/" "$note_body" >/dev/null; then
+    echo "Sentry note creation failed" >&2
+    return 1
+  fi
 }
 
 build_triage_input() {
@@ -582,7 +545,7 @@ validate_triage_result() {
     and (.confidence == "low" or .confidence == "medium" or .confidence == "high")
     and ((.summary // "") | type == "string" and length > 0)
     and ((.rootCause // "") | type == "string" and length > 0)
-    and ((.discordReply // "") | type == "string" and length > 0)
+    and ((.sentryNote // "") | type == "string" and length > 0)
     and ((.evidence // []) | type == "array" and length > 0 and all(.[]; type == "string" and length > 0))
     and (.requiresLargeRefactor | type == "boolean")
     and (
@@ -591,7 +554,7 @@ validate_triage_result() {
           .confidence != "low"
           and .requiresLargeRefactor == false
           and has("prPlan")
-          and (has("githubIssue") | not)
+          and .githubIssue == null
           and (.prPlan | type == "object")
           and ((.prPlan.branchSlug // "") | type == "string" and length > 0)
           and ((.prPlan.title // "") | type == "string" and length > 0)
@@ -601,14 +564,14 @@ validate_triage_result() {
       elif .action == "github_issue" then
         (
           has("githubIssue")
-          and (has("prPlan") | not)
+          and .prPlan == null
           and (.githubIssue | type == "object")
           and ((.githubIssue.title // "") | type == "string" and length > 0)
           and ((.githubIssue.body // "") | type == "string" and length > 0)
           and ((.githubIssue.labels // []) | type == "array" and all(.[]; type == "string" and length > 0))
         )
       else
-        ((has("githubIssue") | not) and (has("prPlan") | not))
+        (.githubIssue == null and .prPlan == null)
       end
     )
   ' "$result_file" >/dev/null
@@ -683,8 +646,8 @@ validate_pr_implementation_result() {
     and ((.changedFiles // []) | type == "array")
     and ((.testPlan // []) | type == "array")
     and (
-      if .action == "github_issue" then has("githubIssue")
-      else (has("githubIssue") | not)
+      if .action == "github_issue" then (.githubIssue | type == "object")
+      else .githubIssue == null
       end
     )
   ' "$result_file" >/dev/null
@@ -702,7 +665,7 @@ rewrite_to_github_issue_result() {
       rootCause: ($triage[0].rootCause // "Implementation requires broader work."),
       evidence: (($triage[0].evidence // []) + ["Implementation pass declined PR path"]),
       requiresLargeRefactor: true,
-      discordReply: (($triage[0].discordReply // "자동 PR 대신 GitHub 이슈로 전환합니다.") + "\n\n구현 단계에서 PR 범위를 넘는 작업으로 판단되어 GitHub 이슈로 전환했습니다."),
+      sentryNote: (($triage[0].sentryNote // "자동 PR 대신 GitHub 이슈로 전환합니다.") + "\n\n구현 단계에서 PR 범위를 넘는 작업으로 판단되어 GitHub 이슈로 전환했습니다."),
       githubIssue: $impl[0].githubIssue
     }
   ' > "$out_file"
@@ -964,86 +927,13 @@ run_pr_implementation() {
   printf '%s\n' "$pr_url"
 }
 
-discord_complete() {
-  local message_id="$1"
-  local reply="$2"
-  local external_url="$3"
-  local short_id="$4"
-  local content
-  if [[ "${SENTRY_TRIAGE_FAIL_DISCORD:-0}" == "1" ]]; then
-    echo "Simulated Discord completion failure" >&2
-    return 1
-  fi
-  if [[ -n "$external_url" ]]; then
-    content="${reply}"$'\n\n'"${external_url}"
-  else
-    content="$reply"
-  fi
-  content="${content}"$'\n\n'"$(discord_completion_marker "$short_id")"
-
-  if [[ "$DRY_RUN" -eq 1 ]]; then
-    if [[ -n "$message_id" ]]; then
-      record_command "discord add reaction $HANDLED_EMOJI to message $message_id"
-      record_command "discord reply to message $message_id: $content"
-    else
-      record_command "discord fallback triage message for $short_id: $content"
-    fi
-    return
-  fi
-
-  if [[ -n "$message_id" ]]; then
-    local emoji
-    local body
-    local reaction_method
-    emoji="$(urlencode "$HANDLED_EMOJI")"
-    reaction_method="PUT"
-    if ! discord_api "$reaction_method" "/channels/${DISCORD_CHANNEL_ID}/messages/${message_id}/reactions/${emoji}/@me" >/dev/null; then
-      echo "Discord reaction failed" >&2
-      return 1
-    fi
-    local completion_lookup_status
-    completion_lookup_status=0
-    discord_completion_message_exists "$short_id" "$external_url" || completion_lookup_status=$?
-    if [[ "$completion_lookup_status" -eq 0 ]]; then
-      return
-    fi
-    if [[ "$completion_lookup_status" -ne 1 ]]; then
-      return 1
-    fi
-    body="$(jq -n --arg content "$content" --arg channel "$DISCORD_CHANNEL_ID" --arg message "$message_id" \
-      '{content:$content,allowed_mentions:{parse:[]},message_reference:{channel_id:$channel,message_id:$message,fail_if_not_exists:false}}')"
-    if ! discord_api POST "/channels/${DISCORD_CHANNEL_ID}/messages" "$body" >/dev/null; then
-      echo "Discord reply failed" >&2
-      return 1
-    fi
-  else
-    [[ "$DISCORD_FALLBACK" == "1" ]] || die "Discord message missing and fallback disabled"
-    local completion_lookup_status
-    completion_lookup_status=0
-    discord_completion_message_exists "$short_id" "$external_url" || completion_lookup_status=$?
-    if [[ "$completion_lookup_status" -eq 0 ]]; then
-      return
-    fi
-    if [[ "$completion_lookup_status" -ne 1 ]]; then
-      return 1
-    fi
-    local body
-    body="$(jq -n --arg content "Sentry triage fallback for ${short_id}\n\n${content}" '{content:$content,allowed_mentions:{parse:[]}}')"
-    if ! discord_api POST "/channels/${DISCORD_CHANNEL_ID}/messages" "$body" >/dev/null; then
-      echo "Discord fallback message failed" >&2
-      return 1
-    fi
-  fi
-}
-
 make_record() {
   local context="$1"
   local result_file="$2"
   local action_status="$3"
   local external_url="$4"
-  local discord_message_id="$5"
-  local last_error="$6"
-  local completed="$7"
+  local last_error="$5"
+  local completed="$6"
   local now issue_id short_id selected_action
   now="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
   issue_id="$(context_issue_id "$context")"
@@ -1054,8 +944,6 @@ make_record() {
     --arg shortId "$short_id" \
     --arg firstSeen "$(jq -r '.issue.firstSeen // .issue.first_seen // empty' <<<"$context")" \
     --arg lastSeenAtProcessing "$now" \
-    --arg discordChannelId "${DISCORD_CHANNEL_ID:-}" \
-    --arg discordMessageId "$discord_message_id" \
     --arg selectedAction "$selected_action" \
     --arg actionStatus "$action_status" \
     --arg externalUrl "$external_url" \
@@ -1064,7 +952,7 @@ make_record() {
     --arg createdAt "$(issue_record "$issue_id" | jq -r '.createdAt // empty')" \
     --arg updatedAt "$now" \
     --arg completedAt "$completed" \
-    --arg discordReply "$(jq -r '.discordReply // empty' "$result_file")" \
+    --arg sentryNote "$(jq -r '.sentryNote // empty' "$result_file")" \
     --arg replayDays "$REPLAY_DAYS" \
     '{
       sentryIssueId:$sentryIssueId,
@@ -1072,8 +960,6 @@ make_record() {
       firstSeen:$firstSeen,
       lastSeenAtProcessing:$lastSeenAtProcessing,
       pollWatermark: $replayDays,
-      discordChannelId:$discordChannelId,
-      discordMessageId:$discordMessageId,
       selectedAction:$selectedAction,
       actionStatus:$actionStatus,
       externalUrl:$externalUrl,
@@ -1082,17 +968,16 @@ make_record() {
       createdAt:(if $createdAt == "" then $updatedAt else $createdAt end),
       updatedAt:$updatedAt,
       completedAt:$completedAt,
-      discordReply:$discordReply
+      sentryNote:$sentryNote
     }'
 }
 
 process_context() {
   local context="$1"
-  local issue_id short_id permalink status existing_record context_file result_file discord_message_id external_url action completed_at record_file
+  local issue_id short_id status existing_record context_file result_file external_url action completed_at record_file
   issue_id="$(context_issue_id "$context")"
   [[ -n "$issue_id" ]] || die "Missing Sentry issue id in context"
   short_id="$(context_short_id "$context" "$issue_id")"
-  permalink="$(context_permalink "$context")"
   status="$(issue_status "$issue_id")"
 
   if [[ "$status" == "completed" ]]; then
@@ -1102,44 +987,6 @@ process_context() {
 
   existing_record="$(issue_record "$issue_id")"
   external_url="$(jq -r '.externalUrl // empty' <<<"$existing_record")"
-  discord_message_id="$(jq -r '.discordMessageId // empty' <<<"$existing_record")"
-
-  if [[ -z "$discord_message_id" ]]; then
-    local lookup_error_file
-    lookup_error_file="$(mktemp)"
-    if ! discord_message_id="$(find_discord_message "$short_id" "$permalink" 2> "$lookup_error_file")"; then
-      local lookup_error
-      lookup_error="$(cat "$lookup_error_file" 2>/dev/null || true)"
-      append_attempt_if_recording "$issue_id" "discord_lookup" "retryable" "${lookup_error:-Discord lookup failed}"
-      record_file="$(mktemp)"
-      result_file="$(mktemp)"
-      jq -n --arg reply "Discord lookup failed for ${short_id}; retrying later." \
-        '{action:"cause_only",confidence:"low",summary:"Discord lookup failed",rootCause:"Discord message lookup failed before triage completion.",evidence:["discord lookup failure"],requiresLargeRefactor:false,discordReply:$reply}' > "$result_file"
-      make_record "$context" "$result_file" "planned" "" "" "${lookup_error:-Discord lookup failed}" "" > "$record_file"
-      if [[ "$DRY_RUN" -eq 0 || "$RECORD_DRY_RUN" -eq 1 ]]; then
-        write_issue_record "$issue_id" "$record_file"
-      fi
-      rm -f "$lookup_error_file" "$record_file" "$result_file"
-      log "WARN" "Discord lookup failed for $issue_id; left retryable"
-      return 1
-    fi
-    rm -f "$lookup_error_file"
-  fi
-
-  if [[ -z "$discord_message_id" && "$DISCORD_FALLBACK" != "1" ]]; then
-    append_attempt_if_recording "$issue_id" "discord_lookup" "retryable" "Discord Sentry message not found"
-    record_file="$(mktemp)"
-    result_file="$(mktemp)"
-    jq -n --arg reply "Discord Sentry message not found for ${short_id}; retrying later." \
-      '{action:"cause_only",confidence:"low",summary:"Discord message missing",rootCause:"Discord Sentry message was not found.",evidence:["discord lookup"],requiresLargeRefactor:false,discordReply:$reply}' > "$result_file"
-    make_record "$context" "$result_file" "planned" "" "" "Discord Sentry message not found" "" > "$record_file"
-    if [[ "$DRY_RUN" -eq 0 || "$RECORD_DRY_RUN" -eq 1 ]]; then
-      write_issue_record "$issue_id" "$record_file"
-    fi
-    rm -f "$record_file" "$result_file"
-    log "WARN" "Discord message missing for $issue_id; left retryable"
-    return
-  fi
 
   context_file="$(mktemp)"
   result_file="$(mktemp)"
@@ -1149,17 +996,17 @@ process_context() {
     log "INFO" "Resuming partial success for $issue_id with $external_url"
     jq -n \
       --arg action "$(jq -r '.selectedAction // "github_issue"' <<<"$existing_record")" \
-      --arg reply "$(jq -r '.discordReply // "Triage action already created; completing Discord update."' <<<"$existing_record")" \
-      '{action:$action,confidence:"medium",summary:"Resuming partial success",rootCause:"External artifact already exists.",evidence:["local ledger externalUrl"],requiresLargeRefactor:false,discordReply:$reply}' > "$result_file"
+      --arg note "$(jq -r '.sentryNote // "Triage action already created; completing Sentry note update."' <<<"$existing_record")" \
+      '{action:$action,confidence:"medium",summary:"Resuming partial success",rootCause:"External artifact already exists.",evidence:["local ledger externalUrl"],requiresLargeRefactor:false,sentryNote:$note}' > "$result_file"
   else
     local codex_error
     if ! codex_error="$(run_codex_triage "$context_file" "$result_file" 2>&1)"; then
       printf '%s\n' "$codex_error" >&2
       append_attempt_if_recording "$issue_id" "codex_triage" "retryable" "${codex_error:-Codex triage failed}"
-      jq -n --arg reply "Codex triage failed for ${short_id}; retrying later." \
-        '{action:"cause_only",confidence:"low",summary:"Codex triage failed",rootCause:"Codex triage did not return a usable result.",evidence:["codex triage failure"],requiresLargeRefactor:false,discordReply:$reply}' > "$result_file"
+      jq -n --arg note "Codex triage failed for ${short_id}; retrying later." \
+        '{action:"cause_only",confidence:"low",summary:"Codex triage failed",rootCause:"Codex triage did not return a usable result.",evidence:["codex triage failure"],requiresLargeRefactor:false,sentryNote:$note}' > "$result_file"
       record_file="$(mktemp)"
-      make_record "$context" "$result_file" "planned" "" "$discord_message_id" "${codex_error:-Codex triage failed}" "" > "$record_file"
+      make_record "$context" "$result_file" "planned" "" "${codex_error:-Codex triage failed}" "" > "$record_file"
       if [[ "$DRY_RUN" -eq 0 || "$RECORD_DRY_RUN" -eq 1 ]]; then
         write_issue_record "$issue_id" "$record_file"
       fi
@@ -1173,10 +1020,10 @@ process_context() {
       local validation_error
       validation_error="Codex triage result failed validation for $issue_id"
       append_attempt_if_recording "$issue_id" "codex_triage" "retryable" "$validation_error"
-      jq -n --arg reply "Codex triage output was invalid for ${short_id}; retrying later." \
-        '{action:"cause_only",confidence:"low",summary:"Codex triage output invalid",rootCause:"Codex did not return schema-valid one-action output.",evidence:["schema validation failure"],requiresLargeRefactor:false,discordReply:$reply}' > "$result_file"
+      jq -n --arg note "Codex triage output was invalid for ${short_id}; retrying later." \
+        '{action:"cause_only",confidence:"low",summary:"Codex triage output invalid",rootCause:"Codex did not return schema-valid one-action output.",evidence:["schema validation failure"],requiresLargeRefactor:false,sentryNote:$note}' > "$result_file"
       record_file="$(mktemp)"
-      make_record "$context" "$result_file" "planned" "" "$discord_message_id" "$validation_error" "" > "$record_file"
+      make_record "$context" "$result_file" "planned" "" "$validation_error" "" > "$record_file"
       if [[ "$DRY_RUN" -eq 0 || "$RECORD_DRY_RUN" -eq 1 ]]; then
         write_issue_record "$issue_id" "$record_file"
       fi
@@ -1187,7 +1034,7 @@ process_context() {
     log "INFO" "Selected action=$action for $issue_id"
 
     record_file="$(mktemp)"
-    make_record "$context" "$result_file" "planned" "" "$discord_message_id" "" "" > "$record_file"
+    make_record "$context" "$result_file" "planned" "" "" "" > "$record_file"
     if [[ "$DRY_RUN" -eq 0 || "$RECORD_DRY_RUN" -eq 1 ]]; then
       write_issue_record "$issue_id" "$record_file"
       append_attempt_if_recording "$issue_id" "action" "planned" "" ""
@@ -1218,7 +1065,7 @@ process_context() {
       printf '%s\n' "$action_error" >&2
       append_attempt_if_recording "$issue_id" "action" "retryable" "${action_error:-Action execution failed}" ""
       record_file="$(mktemp)"
-      make_record "$context" "$result_file" "planned" "" "$discord_message_id" "${action_error:-Action execution failed}" "" > "$record_file"
+      make_record "$context" "$result_file" "planned" "" "${action_error:-Action execution failed}" "" > "$record_file"
       if [[ "$DRY_RUN" -eq 0 || "$RECORD_DRY_RUN" -eq 1 ]]; then
         write_issue_record "$issue_id" "$record_file"
       fi
@@ -1230,7 +1077,7 @@ process_context() {
     if [[ "$action" != "cause_only" && -z "$external_url" ]]; then
       append_attempt_if_recording "$issue_id" "action" "retryable" "Action returned empty external URL" ""
       record_file="$(mktemp)"
-      make_record "$context" "$result_file" "planned" "" "$discord_message_id" "Action returned empty external URL" "" > "$record_file"
+      make_record "$context" "$result_file" "planned" "" "Action returned empty external URL" "" > "$record_file"
       if [[ "$DRY_RUN" -eq 0 || "$RECORD_DRY_RUN" -eq 1 ]]; then
         write_issue_record "$issue_id" "$record_file"
       fi
@@ -1239,7 +1086,7 @@ process_context() {
     fi
 
     record_file="$(mktemp)"
-    make_record "$context" "$result_file" "external_created" "$external_url" "$discord_message_id" "" "" > "$record_file"
+    make_record "$context" "$result_file" "external_created" "$external_url" "" "" > "$record_file"
     if [[ "$DRY_RUN" -eq 0 || "$RECORD_DRY_RUN" -eq 1 ]]; then
       write_issue_record "$issue_id" "$record_file"
       append_attempt_if_recording "$issue_id" "action" "external_created" "" "$external_url"
@@ -1247,31 +1094,31 @@ process_context() {
     rm -f "$record_file"
   fi
 
-  local discord_error failed_status
-  if ! discord_error="$(discord_complete "$discord_message_id" "$(jq -r '.discordReply' "$result_file")" "$external_url" "$short_id" 2>&1)"; then
-    printf '%s\n' "$discord_error" >&2
-    append_attempt_if_recording "$issue_id" "discord" "retryable" "${discord_error:-Discord completion failed}" "$external_url"
+  local sentry_note_error failed_status
+  if ! sentry_note_error="$(sentry_complete "$issue_id" "$result_file" "$external_url" "$short_id" 2>&1)"; then
+    printf '%s\n' "$sentry_note_error" >&2
+    append_attempt_if_recording "$issue_id" "sentry_note" "retryable" "${sentry_note_error:-Sentry note completion failed}" "$external_url"
     failed_status="planned"
     if [[ -n "$external_url" ]]; then
       failed_status="external_created"
     fi
     record_file="$(mktemp)"
-    make_record "$context" "$result_file" "$failed_status" "$external_url" "$discord_message_id" "${discord_error:-Discord completion failed}" "" > "$record_file"
+    make_record "$context" "$result_file" "$failed_status" "$external_url" "${sentry_note_error:-Sentry note completion failed}" "" > "$record_file"
     if [[ "$DRY_RUN" -eq 0 || "$RECORD_DRY_RUN" -eq 1 ]]; then
       write_issue_record "$issue_id" "$record_file"
     fi
     rm -f "$context_file" "$result_file" "$record_file"
     return 1
   fi
-  if [[ -n "$discord_error" ]]; then
-    printf '%s\n' "$discord_error" >&2
+  if [[ -n "$sentry_note_error" ]]; then
+    printf '%s\n' "$sentry_note_error" >&2
   fi
   completed_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
   record_file="$(mktemp)"
-  make_record "$context" "$result_file" "completed" "$external_url" "$discord_message_id" "" "$completed_at" > "$record_file"
+  make_record "$context" "$result_file" "completed" "$external_url" "" "$completed_at" > "$record_file"
   if [[ "$DRY_RUN" -eq 0 || "$RECORD_DRY_RUN" -eq 1 ]]; then
     write_issue_record "$issue_id" "$record_file"
-    append_attempt_if_recording "$issue_id" "discord" "completed" "" "$external_url"
+    append_attempt_if_recording "$issue_id" "sentry_note" "completed" "" "$external_url"
   fi
   rm -f "$context_file" "$result_file" "$record_file"
   log "INFO" "Completed triage for $issue_id actionStatus=completed externalUrl=${external_url:-none}"

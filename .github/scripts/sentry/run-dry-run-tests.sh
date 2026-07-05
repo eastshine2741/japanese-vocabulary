@@ -28,7 +28,7 @@ run_fixture pr-small-null-check
 run_fixture github-issue-large-refactor
 run_fixture cause-only-transient
 run_fixture codex-low-confidence
-run_fixture discord-embed-only
+run_fixture sentry-note-cause-only
 
 missing_init_state="$(mktemp)"
 missing_init_log="$(mktemp)"
@@ -54,17 +54,17 @@ test "$(jq -r '.issues["1007"].actionStatus' "$duplicate_state")" = "completed"
 test "$(jq '.attempts | length' "$duplicate_state")" = "0"
 printf 'ok duplicate-completed-state\n'
 
-missing_state="$(mktemp)"
-missing_log="$(mktemp)"
-missing_lock="$(mktemp)"
-rm -f "$missing_lock"
-printf '{"version":1,"issues":{},"attempts":[]}\n' > "$missing_state"
-SENTRY_TRIAGE_LOCK_FILE="$missing_lock" \
-  "$RUNNER" --dry-run --record-dry-run --state-file "$missing_state" --log-file "$missing_log" --fixture "$FIXTURE_DIR/missing-discord-message.json" \
-  >"$missing_log.out" 2>&1
-test "$(jq -r '.issues["1004"].actionStatus' "$missing_state")" = "planned"
-test "$(jq -r '.issues["1004"].completedAt' "$missing_state")" = ""
-printf 'ok missing-discord-message\n'
+direct_note_state="$(mktemp)"
+direct_note_log="$(mktemp)"
+direct_note_lock="$(mktemp)"
+rm -f "$direct_note_lock"
+printf '{"version":1,"issues":{},"attempts":[]}\n' > "$direct_note_state"
+SENTRY_TRIAGE_LOCK_FILE="$direct_note_lock" \
+  "$RUNNER" --dry-run --record-dry-run --state-file "$direct_note_state" --log-file "$direct_note_log" --fixture "$FIXTURE_DIR/sentry-note-direct.json" \
+  >"$direct_note_log.out" 2>&1
+test "$(jq -r '.issues["1004"].actionStatus' "$direct_note_state")" = "completed"
+test "$(jq -r '.attempts[-1].stage' "$direct_note_state")" = "sentry_note"
+printf 'ok sentry-note-direct\n'
 
 partial_state="$(mktemp)"
 partial_log="$(mktemp)"
@@ -72,15 +72,16 @@ partial_lock="$(mktemp)"
 partial_commands="$(mktemp)"
 rm -f "$partial_lock"
 cat > "$partial_state" <<'JSON'
-{"version":1,"issues":{"1006":{"sentryIssueId":"1006","shortId":"KOTONOHA-API-6","selectedAction":"github_issue","actionStatus":"external_created","externalUrl":"https://github.com/example/repo/issues/777","discordReply":"이미 생성된 GitHub 이슈 링크로 Discord 완료 표시만 재시도합니다.","attemptCount":1,"createdAt":"2026-06-25T00:00:00Z","updatedAt":"2026-06-25T00:00:00Z"}},"attempts":[]}
+{"version":1,"issues":{"1006":{"sentryIssueId":"1006","shortId":"KOTONOHA-API-6","selectedAction":"github_issue","actionStatus":"external_created","externalUrl":"https://github.com/example/repo/issues/777","sentryNote":"이미 생성된 GitHub 이슈 링크로 Sentry note 완료 표시만 재시도합니다.","attemptCount":1,"createdAt":"2026-06-25T00:00:00Z","updatedAt":"2026-06-25T00:00:00Z"}},"attempts":[]}
 JSON
 SENTRY_TRIAGE_LOCK_FILE="$partial_lock" SENTRY_TRIAGE_COMMAND_LOG="$partial_commands" \
-  "$RUNNER" --dry-run --record-dry-run --state-file "$partial_state" --log-file "$partial_log" --fixture "$FIXTURE_DIR/partial-success-discord-failed.json" \
+  "$RUNNER" --dry-run --record-dry-run --state-file "$partial_state" --log-file "$partial_log" --fixture "$FIXTURE_DIR/partial-success-sentry-note-retry.json" \
   >"$partial_log.out" 2>&1
 test "$(jq -r '.issues["1006"].actionStatus' "$partial_state")" = "completed"
 ! grep -q "gh issue create" "$partial_commands"
 ! grep -q "gh pr create" "$partial_commands"
-printf 'ok partial-success-discord-failed\n'
+grep -q "sentry add note to issue 1006" "$partial_commands"
+printf 'ok partial-success-sentry-note-retry\n'
 
 for invalid_fixture in invalid-low-confidence-pr invalid-one-hot invalid-empty-evidence; do
   invalid_state="$(mktemp)"
@@ -119,7 +120,7 @@ printf 'ok dry-run-no-record-state-clean\n'
 preflight_state="$(mktemp)"
 preflight_log="$(mktemp)"
 printf '{"version":1,"issues":{},"attempts":[]}\n' > "$preflight_state"
-if env -u SENTRY_AUTH_TOKEN -u SENTRY_ORG -u SENTRY_PROJECT -u DISCORD_BOT_TOKEN -u DISCORD_CHANNEL_ID \
+if env -u SENTRY_AUTH_TOKEN -u SENTRY_ORG -u SENTRY_PROJECT \
   "$RUNNER" --state-file "$preflight_state" --log-file "$preflight_log" --check-preflight \
   >"$preflight_log.out" 2>&1; then
   cat "$preflight_log.out"
@@ -204,40 +205,23 @@ test "$(jq -r '.attempts[-1].stage' "$github_fail_state")" = "action"
 test "$(jq -r '.attempts[-1].result' "$github_fail_state")" = "retryable"
 printf 'ok github-action-failure-retryable\n'
 
-discord_fail_state="$(mktemp)"
-discord_fail_log="$(mktemp)"
-discord_fail_lock="$(mktemp)"
-rm -f "$discord_fail_lock"
-printf '{"version":1,"issues":{},"attempts":[]}\n' > "$discord_fail_state"
-if SENTRY_TRIAGE_LOCK_FILE="$discord_fail_lock" SENTRY_TRIAGE_FAIL_DISCORD=1 \
-  "$RUNNER" --dry-run --record-dry-run --state-file "$discord_fail_state" --log-file "$discord_fail_log" --fixture "$FIXTURE_DIR/github-issue-large-refactor.json" \
-  >"$discord_fail_log.out" 2>&1; then
-  cat "$discord_fail_log.out"
-  echo "expected Discord completion failure" >&2
+sentry_note_fail_state="$(mktemp)"
+sentry_note_fail_log="$(mktemp)"
+sentry_note_fail_lock="$(mktemp)"
+rm -f "$sentry_note_fail_lock"
+printf '{"version":1,"issues":{},"attempts":[]}\n' > "$sentry_note_fail_state"
+if SENTRY_TRIAGE_LOCK_FILE="$sentry_note_fail_lock" SENTRY_TRIAGE_FAIL_SENTRY_NOTE=1 \
+  "$RUNNER" --dry-run --record-dry-run --state-file "$sentry_note_fail_state" --log-file "$sentry_note_fail_log" --fixture "$FIXTURE_DIR/github-issue-large-refactor.json" \
+  >"$sentry_note_fail_log.out" 2>&1; then
+  cat "$sentry_note_fail_log.out"
+  echo "expected Sentry note completion failure" >&2
   exit 1
 fi
-test "$(jq -r '.issues["1002"].actionStatus' "$discord_fail_state")" = "external_created"
-test "$(jq -r '.issues["1002"].completedAt' "$discord_fail_state")" = ""
-test "$(jq -r '.attempts[-1].stage' "$discord_fail_state")" = "discord"
-test "$(jq -r '.attempts[-1].result' "$discord_fail_state")" = "retryable"
-printf 'ok discord-failure-retryable\n'
-
-discord_lookup_fail_state="$(mktemp)"
-discord_lookup_fail_log="$(mktemp)"
-discord_lookup_fail_lock="$(mktemp)"
-rm -f "$discord_lookup_fail_lock"
-printf '{"version":1,"issues":{},"attempts":[]}\n' > "$discord_lookup_fail_state"
-if SENTRY_TRIAGE_LOCK_FILE="$discord_lookup_fail_lock" SENTRY_TRIAGE_FAIL_DISCORD_LOOKUP=1 \
-  "$RUNNER" --dry-run --record-dry-run --state-file "$discord_lookup_fail_state" --log-file "$discord_lookup_fail_log" --fixture "$FIXTURE_DIR/github-issue-large-refactor.json" \
-  >"$discord_lookup_fail_log.out" 2>&1; then
-  cat "$discord_lookup_fail_log.out"
-  echo "expected Discord lookup failure" >&2
-  exit 1
-fi
-test "$(jq -r '.issues["1002"].actionStatus' "$discord_lookup_fail_state")" = "planned"
-test "$(jq -r '.attempts[-1].stage' "$discord_lookup_fail_state")" = "discord_lookup"
-test "$(jq -r '.attempts[-1].result' "$discord_lookup_fail_state")" = "retryable"
-printf 'ok discord-lookup-failure-retryable\n'
+test "$(jq -r '.issues["1002"].actionStatus' "$sentry_note_fail_state")" = "external_created"
+test "$(jq -r '.issues["1002"].completedAt' "$sentry_note_fail_state")" = ""
+test "$(jq -r '.attempts[-1].stage' "$sentry_note_fail_state")" = "sentry_note"
+test "$(jq -r '.attempts[-1].result' "$sentry_note_fail_state")" = "retryable"
+printf 'ok sentry-note-failure-retryable\n'
 
 pr_state="$(mktemp)"
 pr_log="$(mktemp)"
@@ -312,7 +296,7 @@ grep -q 'return 1' "$RUNNER"
 grep -q 'action_error_file' "$RUNNER"
 printf 'ok pr-stdout-and-untracked-diff-static\n'
 
-SENTRY_PROJECTS="123,456" SENTRY_ENVIRONMENTS="production,staging" SENTRY_AUTH_TOKEN=x SENTRY_ORG=demo DISCORD_BOT_TOKEN=x DISCORD_CHANNEL_ID=1 \
+SENTRY_PROJECTS="123,456" SENTRY_ENVIRONMENTS="production,staging" SENTRY_AUTH_TOKEN=x SENTRY_ORG=demo \
   "$RUNNER" --dry-run --check-preflight --state-file "$(mktemp)" --log-file "$(mktemp)" >/tmp/sentry-preflight-list.out 2>&1 || true
 grep -q 'append_query_params "project"' "$RUNNER"
 grep -q 'append_query_params "environment"' "$RUNNER"
@@ -327,16 +311,14 @@ grep -q 'contains ignored files; refusing' "$RUNNER"
 grep -q 'if ! process_context "$context"' "$RUNNER"
 printf 'ok repeated-project-environment-static\n'
 
-grep -q 'allowed_mentions' "$RUNNER"
-grep -q 'embeds.*url' "$RUNNER"
 grep -q 'Sentry triage completed:' "$RUNNER"
-grep -q 'discord_completion_message_exists' "$RUNNER"
-grep -q 'DISCORD_COMPLETION_LOOKUP_PAGES' "$RUNNER"
-grep -q 'before=' "$RUNNER"
+grep -q 'sentry_note_completion_exists' "$RUNNER"
+grep -q 'SENTRY_NOTE_COMPLETION_LOOKUP_LIMIT' "$RUNNER"
+grep -q '/notes/' "$RUNNER"
 ! grep -q '/home/eastshine/IdeaProjects/japanese-vocabulary' "$REPO_DIR/.github/scripts/sentry/README.md" "$REPO_DIR/.github/scripts/sentry/triage.env.example"
-printf 'ok discord-message-safety-static\n'
+printf 'ok sentry-note-safety-static\n'
 
-rg -n 'sentry_api(_page)? .*(PUT|POST|PATCH|DELETE)|/issues/.*/(resolve|resolved|ignored|archive)' "$RUNNER" >/tmp/sentry-triage-forbidden.out || true
+rg -n 'sentry_api(_page)? .*(PUT|PATCH|DELETE)|/issues/.*/(resolve|resolved|ignored|archive)' "$RUNNER" >/tmp/sentry-triage-forbidden.out || true
 if [[ -s /tmp/sentry-triage-forbidden.out ]]; then
   cat /tmp/sentry-triage-forbidden.out
   exit 1

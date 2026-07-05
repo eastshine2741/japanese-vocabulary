@@ -10,22 +10,15 @@
     "eventID": "evt-invalid-one-hot",
     "message": "One-hot schema should be enforced"
   },
-  "discord": {
-    "messages": [
-      {
-        "id": "9009",
-        "content": "Sentry KOTONOHA-API-9 https://sentry.io/organizations/example/issues/1009/"
-      }
-    ]
-  },
   "mockCodexResult": {
     "action": "github_issue",
     "confidence": "medium",
     "summary": "This includes both payloads and must fail.",
     "rootCause": "Multiple action payloads are ambiguous.",
-    "evidence": ["negative fixture"],
+    "evidence": [
+      "negative fixture"
+    ],
     "requiresLargeRefactor": false,
-    "discordReply": "This should fail validation.",
     "prPlan": {
       "branchSlug": "invalid-one-hot",
       "title": "Invalid one hot",
@@ -35,7 +28,10 @@
     "githubIssue": {
       "title": "Invalid duplicate payloads",
       "body": "This must not be created.",
-      "labels": ["sentry"]
-    }
+      "labels": [
+        "sentry"
+      ]
+    },
+    "sentryNote": "This should fail validation."
   }
 }

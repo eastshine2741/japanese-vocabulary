@@ -1,0 +1,24 @@
+{
+  "issue": {
+    "id": "1004",
+    "shortId": "KOTONOHA-API-4",
+    "title": "Sentry note direct completion fixture",
+    "permalink": "https://sentry.io/organizations/example/issues/1004/",
+    "firstSeen": "2026-06-25T00:30:00Z"
+  },
+  "event": {
+    "eventID": "evt-sentry-note-direct-1",
+    "message": "IllegalStateException: direct note completion"
+  },
+  "mockCodexResult": {
+    "action": "cause_only",
+    "confidence": "medium",
+    "summary": "This fixture should complete through a Sentry note without external notification lookup.",
+    "rootCause": "The issue only needs a cause-only note.",
+    "evidence": [
+      "Sentry issue context is sufficient for a cause-only outcome"
+    ],
+    "requiresLargeRefactor": false,
+    "sentryNote": "원인은 일시적인 상태 불일치로 보입니다. 코드 수정 없이 Sentry 이슈에 원인만 남깁니다."
+  }
+}
