@@ -10924,6 +10924,1251 @@
               ]
             }
           ]
+        },
+        {
+          "type": "frame",
+          "id": "N02Al",
+          "name": "component/SentenceWordItem--Added",
+          "reusable": true,
+          "width": 340,
+          "fill": {
+            "type": "color",
+            "color": "#FFFFFF",
+            "enabled": false
+          },
+          "padding": [
+            12,
+            0
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "CbbP8",
+              "name": "Word Info",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 3,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "iJNmO",
+                  "name": "JP Text Row",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "vLtSw",
+                      "name": "Japanese Word",
+                      "fill": "$foreground.primary",
+                      "content": "君",
+                      "fontFamily": "$font.headings",
+                      "fontSize": 18,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "MaTw4",
+                      "name": "Hiragana Reading",
+                      "fill": "$foreground.muted",
+                      "content": "きみ",
+                      "fontFamily": "$font.body",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "b8kGho",
+                  "name": "Meaning Row",
+                  "gap": 12,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "gbFNo",
+                      "name": "Korean Meaning",
+                      "fill": "$foreground.secondary",
+                      "content": "너",
+                      "fontFamily": "$font.body",
+                      "fontSize": 13,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "VJXNY",
+                      "name": "Badges",
+                      "gap": 3,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "id": "D8t6qN",
+                          "type": "ref",
+                          "ref": "ABLIv",
+                          "name": "JLPT Badge Instance",
+                          "height": "fill_container"
+                        },
+                        {
+                          "id": "SN8EV",
+                          "type": "ref",
+                          "ref": "IxqOy",
+                          "name": "POS Badge Instance",
+                          "padding": [
+                            1,
+                            8,
+                            3,
+                            8
+                          ],
+                          "descendants": {
+                            "m9Cw7": {
+                              "fontSize": 10
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "q6vpD",
+              "name": "Remove Button",
+              "width": 28,
+              "height": 28,
+              "fill": "$accent-primary-bg",
+              "cornerRadius": "$rounded.full",
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "mIiQu",
+                  "name": "bookmark-fill (담긴 후)",
+                  "width": 16,
+                  "height": 16,
+                  "icon": "bookmark-simple-fill",
+                  "library": "phosphor",
+                  "fill": "$accent.primary"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "HjaHz",
+          "name": "component/SentenceWordItem",
+          "reusable": true,
+          "width": 340,
+          "fill": {
+            "type": "color",
+            "color": "#FFFFFF",
+            "enabled": false
+          },
+          "padding": [
+            12,
+            0
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "cE6Wc",
+              "name": "Word Info",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 3,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "zkjNU",
+                  "name": "JP Text Row",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "uzDGY",
+                      "name": "Japanese Word",
+                      "fill": "$foreground.primary",
+                      "content": "君",
+                      "fontFamily": "$font.headings",
+                      "fontSize": 18,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "YMQJs",
+                      "name": "Hiragana Reading",
+                      "fill": "$foreground.muted",
+                      "content": "きみ",
+                      "fontFamily": "$font.body",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "ZWFuP",
+                  "name": "Meaning Row",
+                  "gap": 12,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "rpxCy",
+                      "name": "Korean Meaning",
+                      "fill": "$foreground.secondary",
+                      "content": "너",
+                      "fontFamily": "$font.body",
+                      "fontSize": 13,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "HAp0f",
+                      "name": "Badges",
+                      "gap": 3,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "id": "Bd4uY",
+                          "type": "ref",
+                          "ref": "ABLIv",
+                          "name": "JLPT Badge Instance",
+                          "height": "fill_container"
+                        },
+                        {
+                          "id": "nW4Qe",
+                          "type": "ref",
+                          "ref": "IxqOy",
+                          "name": "POS Badge Instance",
+                          "padding": [
+                            1,
+                            8,
+                            3,
+                            8
+                          ],
+                          "descendants": {
+                            "m9Cw7": {
+                              "fontSize": 10
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "Z800oO",
+              "name": "Add Button",
+              "width": "fit_content(47)",
+              "height": 28,
+              "fill": "$accent-primary-bg",
+              "cornerRadius": "$rounded.full",
+              "stroke": "$accent.primary",
+              "strokeWidth": 1.5,
+              "padding": [
+                0,
+                12
+              ],
+              "justifyContent": "center",
+              "alignItems": "center"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "jzuNY",
+          "name": "component/SentenceWordItem",
+          "width": 340,
+          "fill": {
+            "type": "color",
+            "color": "#FFFFFF",
+            "enabled": false
+          },
+          "layout": "vertical",
+          "padding": [
+            12,
+            0
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "D3oZcC",
+              "name": "Word Info",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 3,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "JFCyw",
+                  "name": "JP Text Row",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "mvVfX",
+                      "name": "Japanese Word",
+                      "fill": "$foreground.primary",
+                      "content": "君",
+                      "fontFamily": "$font.headings",
+                      "fontSize": 18,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "AdCLy",
+                      "name": "Hiragana Reading",
+                      "fill": "$foreground.muted",
+                      "content": "きみ",
+                      "fontFamily": "$font.body",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "GjWtU",
+                  "name": "Meaning Row",
+                  "gap": 12,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "i98pk9",
+                      "name": "Korean Meaning",
+                      "fill": "$foreground.secondary",
+                      "content": "너",
+                      "fontFamily": "$font.body",
+                      "fontSize": 13,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Cy7hM",
+                      "name": "Badges",
+                      "gap": 3,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "id": "Xnz6a",
+                          "type": "ref",
+                          "ref": "ABLIv",
+                          "name": "JLPT Badge Instance",
+                          "height": "fill_container"
+                        },
+                        {
+                          "id": "C2Tnk",
+                          "type": "ref",
+                          "ref": "IxqOy",
+                          "name": "POS Badge Instance",
+                          "padding": [
+                            1,
+                            8,
+                            3,
+                            8
+                          ],
+                          "descendants": {
+                            "m9Cw7": {
+                              "fontSize": 10
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "r4t3J",
+              "name": "Action Row",
+              "clip": true,
+              "width": "fill_container",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "jgOPl",
+                  "name": "Add Button",
+                  "width": 28,
+                  "height": 28,
+                  "fill": "$accent-primary-bg",
+                  "cornerRadius": "$rounded.full",
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "Tdueg",
+                      "name": "bookmark-outline (담기 전)",
+                      "width": 16,
+                      "height": 16,
+                      "icon": "bookmark-simple",
+                      "library": "phosphor",
+                      "fill": "$accent.primary"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "HXK1X",
+          "name": "component/SentenceWordItem (담김)",
+          "reusable": true,
+          "width": 340,
+          "padding": [
+            12,
+            0
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "UoQLT",
+              "name": "Word Info",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 3,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "E9Glu",
+                  "name": "JP Text Row",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "FtB6S",
+                      "name": "Japanese Word",
+                      "fill": "$foreground.primary",
+                      "content": "君",
+                      "fontFamily": "$font.headings",
+                      "fontSize": 18,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "sjAZO",
+                      "name": "Hiragana Reading",
+                      "fill": "$foreground.muted",
+                      "content": "きみ",
+                      "fontFamily": "$font.body",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "MdY66",
+                  "name": "Meaning Row",
+                  "gap": 12,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "b8rjZ",
+                      "name": "Korean Meaning",
+                      "fill": "$foreground.secondary",
+                      "content": "너",
+                      "fontFamily": "$font.body",
+                      "fontSize": 13,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "LBlPo",
+                      "name": "Badges",
+                      "gap": 3,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "id": "ssJgX",
+                          "type": "ref",
+                          "ref": "ABLIv",
+                          "name": "JLPT Badge",
+                          "height": "fit_content"
+                        },
+                        {
+                          "id": "x35GI",
+                          "type": "ref",
+                          "ref": "IxqOy",
+                          "name": "POS Badge",
+                          "padding": [
+                            1,
+                            8,
+                            3,
+                            8
+                          ],
+                          "descendants": {
+                            "m9Cw7": {
+                              "fontSize": 10
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "E2xqF",
+              "name": "Action Button",
+              "height": 28,
+              "fill": "$surface.primary",
+              "cornerRadius": "$rounded.full",
+              "gap": 4,
+              "padding": [
+                0,
+                12
+              ],
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "U8b3c2",
+                  "name": "Icon",
+                  "width": 12,
+                  "height": 12,
+                  "icon": "check",
+                  "library": "phosphor",
+                  "fill": "$foreground.secondary"
+                },
+                {
+                  "type": "text",
+                  "id": "SojIe",
+                  "name": "Label",
+                  "fill": "$foreground.secondary",
+                  "content": "담김",
+                  "fontFamily": "$font.body",
+                  "fontSize": 12,
+                  "fontWeight": "600"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "fm65g",
+          "name": "component/SentenceWordItem (예문 추가)",
+          "reusable": true,
+          "width": 340,
+          "padding": [
+            12,
+            0
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "y1qmI",
+              "name": "Word Info",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 3,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "g601PL",
+                  "name": "JP Text Row",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "V8dtKJ",
+                      "name": "Japanese Word",
+                      "fill": "$foreground.primary",
+                      "content": "君",
+                      "fontFamily": "$font.headings",
+                      "fontSize": 18,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "vGR6e",
+                      "name": "Hiragana Reading",
+                      "fill": "$foreground.muted",
+                      "content": "きみ",
+                      "fontFamily": "$font.body",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "O4KS0P",
+                  "name": "Meaning Row",
+                  "gap": 12,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "JmkFe",
+                      "name": "Korean Meaning",
+                      "fill": "$foreground.secondary",
+                      "content": "너",
+                      "fontFamily": "$font.body",
+                      "fontSize": 13,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "qx9ly",
+                      "name": "Badges",
+                      "gap": 3,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "id": "X4TC81",
+                          "type": "ref",
+                          "ref": "ABLIv",
+                          "name": "JLPT Badge",
+                          "height": "fit_content"
+                        },
+                        {
+                          "id": "bfFUF",
+                          "type": "ref",
+                          "ref": "IxqOy",
+                          "name": "POS Badge",
+                          "padding": [
+                            1,
+                            8,
+                            3,
+                            8
+                          ],
+                          "descendants": {
+                            "m9Cw7": {
+                              "fontSize": 10
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "w8ika",
+              "name": "Action Button",
+              "height": 28,
+              "fill": "$accent-primary-bg",
+              "cornerRadius": "$rounded.full",
+              "stroke": "$accent.primary",
+              "strokeWidth": 1.5,
+              "gap": 4,
+              "padding": [
+                0,
+                12
+              ],
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "VKw6Q",
+                  "name": "Icon",
+                  "width": 12,
+                  "height": 12,
+                  "icon": "plus",
+                  "library": "phosphor",
+                  "fill": "$accent.primary"
+                },
+                {
+                  "type": "text",
+                  "id": "QDOXi",
+                  "name": "Label",
+                  "fill": "$accent.primary",
+                  "content": "예문 추가",
+                  "fontFamily": "$font.body",
+                  "fontSize": 12,
+                  "fontWeight": "600"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "z4T1nA",
+          "name": "component/SentenceWordItem (새로 담기)",
+          "reusable": true,
+          "width": 340,
+          "padding": [
+            12,
+            0
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "nSHeT",
+              "name": "Word Info",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 3,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "J3vjzh",
+                  "name": "JP Text Row",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "eCB2r",
+                      "name": "Japanese Word",
+                      "fill": "$foreground.primary",
+                      "content": "君",
+                      "fontFamily": "$font.headings",
+                      "fontSize": 18,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "e37rFu",
+                      "name": "Hiragana Reading",
+                      "fill": "$foreground.muted",
+                      "content": "きみ",
+                      "fontFamily": "$font.body",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "P6THBs",
+                  "name": "Meaning Row",
+                  "gap": 12,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "IT565",
+                      "name": "Korean Meaning",
+                      "fill": "$foreground.secondary",
+                      "content": "너",
+                      "fontFamily": "$font.body",
+                      "fontSize": 13,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "NkgUQ",
+                      "name": "Badges",
+                      "gap": 3,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "id": "IKJ9D",
+                          "type": "ref",
+                          "ref": "ABLIv",
+                          "name": "JLPT Badge",
+                          "height": "fit_content"
+                        },
+                        {
+                          "id": "Z91mIQ",
+                          "type": "ref",
+                          "ref": "IxqOy",
+                          "name": "POS Badge",
+                          "padding": [
+                            1,
+                            8,
+                            3,
+                            8
+                          ],
+                          "descendants": {
+                            "m9Cw7": {
+                              "fontSize": 10
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "f0lZW",
+              "name": "Action Button",
+              "height": 28,
+              "fill": "$accent-primary-bg",
+              "cornerRadius": "$rounded.full",
+              "stroke": "$accent.primary",
+              "strokeWidth": 1.5,
+              "gap": 4,
+              "padding": [
+                0,
+                12
+              ],
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "PUWvZ",
+                  "name": "Icon",
+                  "width": 12,
+                  "height": 12,
+                  "icon": "bookmark-simple",
+                  "library": "phosphor",
+                  "fill": "$accent.primary"
+                },
+                {
+                  "type": "text",
+                  "id": "EMYn7",
+                  "name": "Label",
+                  "fill": "$accent.primary",
+                  "content": "담기",
+                  "fontFamily": "$font.body",
+                  "fontSize": 12,
+                  "fontWeight": "600"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "k3qUHe",
+          "name": "component/SentenceWordItem--Expandable (expanded)",
+          "reusable": true,
+          "width": 340,
+          "fill": "$bg-subtle",
+          "layout": "vertical",
+          "padding": [
+            0,
+            20
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "V46jGF",
+              "name": "Main Row",
+              "width": "fill_container",
+              "padding": [
+                12,
+                0
+              ],
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "WITCJ",
+                  "name": "Word Info",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 3,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "M1nBeb",
+                      "name": "JP Text Row",
+                      "gap": 6,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "WiwyK",
+                          "name": "Japanese Word",
+                          "fill": "$foreground.primary",
+                          "content": "君",
+                          "fontFamily": "$font.headings",
+                          "fontSize": 18,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "text",
+                          "id": "O48KVR",
+                          "name": "Hiragana Reading",
+                          "fill": "$foreground.muted",
+                          "content": "きみ",
+                          "fontFamily": "$font.body",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "gSV9D",
+                      "name": "Meaning Row",
+                      "gap": 12,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "aNewJ",
+                          "name": "Korean Meaning",
+                          "fill": "$foreground.secondary",
+                          "content": "너",
+                          "fontFamily": "$font.body",
+                          "fontSize": 13,
+                          "fontWeight": "500"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "P2FNhc",
+                          "name": "Badges",
+                          "gap": 3,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "id": "xzi5r",
+                              "type": "ref",
+                              "ref": "ABLIv",
+                              "name": "JLPT Badge"
+                            },
+                            {
+                              "id": "M8baH9",
+                              "type": "ref",
+                              "ref": "IxqOy",
+                              "name": "POS Badge",
+                              "padding": [
+                                1,
+                                8,
+                                3,
+                                8
+                              ],
+                              "descendants": {
+                                "m9Cw7": {
+                                  "fontSize": 10
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "ENN9D",
+                  "name": "Button Group",
+                  "gap": 4,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "pbpZQ",
+                      "name": "Bookmark Button",
+                      "width": 28,
+                      "height": 28,
+                      "fill": "$accent-primary-bg",
+                      "cornerRadius": "$rounded.full",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "nMhL1",
+                          "name": "Bookmark Icon",
+                          "width": 16,
+                          "height": 16,
+                          "icon": "bookmark-simple",
+                          "library": "phosphor",
+                          "fill": "$accent.primary"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "hQkI6",
+              "name": "Sentence Area",
+              "width": "fill_container",
+              "fill": "$bg-subtle",
+              "layout": "vertical",
+              "gap": 8,
+              "padding": [
+                0,
+                14,
+                8,
+                14
+              ],
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "uFWR0",
+                  "name": "Sentence Row",
+                  "width": "fill_container",
+                  "stroke": "$accent.primary",
+                  "strokeWidth": {
+                    "left": 2
+                  },
+                  "layout": "vertical",
+                  "gap": 3,
+                  "padding": [
+                    2,
+                    0,
+                    2,
+                    8
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "V4I3G7",
+                      "name": "Sentence Text",
+                      "fill": "$foreground.primary",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "君が好きだよ",
+                      "fontFamily": "$font.body",
+                      "fontSize": 12,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "text",
+                      "id": "uK4KQ",
+                      "name": "Korean Translation 1",
+                      "fill": "$foreground.muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "너가 좋아",
+                      "fontFamily": "$font.body",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "tJyVi",
+                  "name": "Sentence Row",
+                  "width": "fill_container",
+                  "stroke": "$accent.primary",
+                  "strokeWidth": {
+                    "left": 2
+                  },
+                  "layout": "vertical",
+                  "gap": 3,
+                  "padding": [
+                    2,
+                    0,
+                    2,
+                    8
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "f2JmpU",
+                      "name": "Sentence Text",
+                      "fill": "$foreground.primary",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "君といたあの夏",
+                      "fontFamily": "$font.body",
+                      "fontSize": 12,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "text",
+                      "id": "kETiU",
+                      "name": "Korean Translation 2",
+                      "fill": "$foreground.muted",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "너와 함께한 그 여름",
+                      "fontFamily": "$font.body",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "u8Ui6V",
+          "name": "component/SentenceWordItem--Expandable (collapsed)",
+          "reusable": true,
+          "width": 340,
+          "fill": "$bg-primary",
+          "layout": "vertical",
+          "padding": [
+            0,
+            20
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "xt25p",
+              "name": "Main Row",
+              "width": "fill_container",
+              "padding": [
+                12,
+                0
+              ],
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "GgwKg",
+                  "name": "Word Info",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 3,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "E1R9ZZ",
+                      "name": "JP Text Row",
+                      "gap": 6,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "C1uGya",
+                          "name": "Japanese Word",
+                          "fill": "$foreground.primary",
+                          "content": "君",
+                          "fontFamily": "$font.headings",
+                          "fontSize": 18,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "text",
+                          "id": "LsZoS",
+                          "name": "Hiragana Reading",
+                          "fill": "$foreground.muted",
+                          "content": "きみ",
+                          "fontFamily": "$font.body",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "YOtV2",
+                      "name": "Meaning Row",
+                      "gap": 12,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "SQ9Df",
+                          "name": "Korean Meaning",
+                          "fill": "$foreground.secondary",
+                          "content": "너",
+                          "fontFamily": "$font.body",
+                          "fontSize": 13,
+                          "fontWeight": "500"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "TO7g6",
+                          "name": "Badges",
+                          "gap": 3,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "id": "r5WOSU",
+                              "type": "ref",
+                              "ref": "ABLIv",
+                              "name": "JLPT Badge"
+                            },
+                            {
+                              "id": "zw6Ap",
+                              "type": "ref",
+                              "ref": "IxqOy",
+                              "name": "POS Badge",
+                              "padding": [
+                                1,
+                                8,
+                                3,
+                                8
+                              ],
+                              "descendants": {
+                                "m9Cw7": {
+                                  "fontSize": 10
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "hMBKV",
+                  "name": "Button Group",
+                  "gap": 4,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "GMvQV",
+                      "name": "Bookmark Button",
+                      "width": 28,
+                      "height": 28,
+                      "fill": "$accent-primary-bg",
+                      "cornerRadius": "$rounded.full",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "Bk1aU",
+                          "name": "Bookmark Icon",
+                          "width": 16,
+                          "height": 16,
+                          "icon": "bookmark-simple",
+                          "library": "phosphor",
+                          "fill": "$accent.primary"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -22419,159 +23664,15 @@
               ],
               "children": [
                 {
-                  "id": "e9DrG",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 夢",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
                   "id": "onpIr",
                   "type": "ref",
                   "ref": "N02Al",
                   "x": 20,
-                  "y": 72,
+                  "y": 0,
                   "width": "fill_container",
                   "stroke": "$border-default",
                   "strokeLinecap": "butt",
                   "strokeLinejoin": "miter",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "R8cnno",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 君",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "i9Bizk",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 声",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "P5mUtl",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 空",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "oMyYV",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 走る",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "pzo9z",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 世界",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "aymiq",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 光",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "JEq09",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 愛",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "X5fZ4W",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 泣く",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "Zne2F",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 時間",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "ppxn7",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 気持ち",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "wOtvN",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 言葉",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
                   "strokeWidth": {
                     "bottom": 1
                   },
@@ -22869,13 +23970,6 @@
                       "layout": "vertical",
                       "children": [
                         {
-                          "id": "P9oZ5i",
-                          "type": "ref",
-                          "ref": "HjaHz",
-                          "name": "Word - 風",
-                          "width": "fill_container"
-                        },
-                        {
                           "type": "rectangle",
                           "id": "K14C0W",
                           "name": "Divider",
@@ -22884,26 +23978,12 @@
                           "height": 1
                         },
                         {
-                          "id": "kRKtE",
-                          "type": "ref",
-                          "ref": "HjaHz",
-                          "name": "Word - 日",
-                          "width": "fill_container"
-                        },
-                        {
                           "type": "rectangle",
                           "id": "EXYn5",
                           "name": "Divider",
                           "fill": "$border-default",
                           "width": "fill_container",
                           "height": 1
-                        },
-                        {
-                          "id": "F7JJdg",
-                          "type": "ref",
-                          "ref": "HjaHz",
-                          "name": "Word - 戻る",
-                          "width": "fill_container"
                         }
                       ]
                     }
@@ -23146,26 +24226,12 @@
                           "layout": "vertical",
                           "children": [
                             {
-                              "id": "khuwH",
-                              "type": "ref",
-                              "ref": "HjaHz",
-                              "name": "Word Row - 君",
-                              "width": "fill_container"
-                            },
-                            {
                               "type": "rectangle",
                               "id": "puDIY",
                               "name": "Divider",
                               "fill": "$border-default",
                               "width": "fill_container",
                               "height": 1
-                            },
-                            {
-                              "id": "UKVw3",
-                              "type": "ref",
-                              "ref": "HjaHz",
-                              "name": "Word Row - 声",
-                              "width": "fill_container"
                             },
                             {
                               "type": "rectangle",
@@ -23176,13 +24242,6 @@
                               "height": 1
                             },
                             {
-                              "id": "P2RyXs",
-                              "type": "ref",
-                              "ref": "HjaHz",
-                              "name": "Word Row - 今",
-                              "width": "fill_container"
-                            },
-                            {
                               "type": "rectangle",
                               "id": "YTft5",
                               "name": "Divider",
@@ -23191,28 +24250,12 @@
                               "height": 1
                             },
                             {
-                              "id": "GMYC5",
-                              "type": "ref",
-                              "ref": "HjaHz",
-                              "name": "Word Row - 聞こえる",
-                              "width": "fill_container"
-                            },
-                            {
                               "type": "rectangle",
                               "id": "ZX8a2",
                               "name": "Divider",
                               "fill": "$border-default",
                               "width": "fill_container",
                               "height": 1
-                            },
-                            {
-                              "id": "aUe4h",
-                              "type": "ref",
-                              "ref": "HjaHz",
-                              "name": "Word Row - 聞こえる",
-                              "width": "fill_container",
-                              "x": 0,
-                              "y": 292
                             }
                           ]
                         }
@@ -23284,13 +24327,6 @@
                       "layout": "vertical",
                       "children": [
                         {
-                          "id": "I5iox",
-                          "type": "ref",
-                          "ref": "HjaHz",
-                          "name": "Word - 風",
-                          "width": "fill_container"
-                        },
-                        {
                           "type": "rectangle",
                           "id": "VXTpC",
                           "name": "Divider",
@@ -23299,168 +24335,18 @@
                           "height": 1
                         },
                         {
-                          "id": "PdppC",
-                          "type": "ref",
-                          "ref": "HjaHz",
-                          "name": "Word - 日",
-                          "width": "fill_container"
-                        },
-                        {
                           "type": "rectangle",
                           "id": "i8Nnmv",
                           "name": "Divider",
                           "fill": "$border-default",
                           "width": "fill_container",
                           "height": 1
-                        },
-                        {
-                          "id": "mDXS1",
-                          "type": "ref",
-                          "ref": "HjaHz",
-                          "name": "Word - 戻る",
-                          "width": "fill_container"
                         }
                       ]
                     }
                   ]
                 }
               ]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "type": "frame",
-      "id": "HjaHz",
-      "x": 2923,
-      "y": -2133,
-      "name": "component/SentenceWordItem",
-      "reusable": true,
-      "width": 340,
-      "fill": {
-        "type": "color",
-        "color": "#FFFFFF",
-        "enabled": false
-      },
-      "padding": [
-        12,
-        0
-      ],
-      "justifyContent": "space_between",
-      "alignItems": "center",
-      "children": [
-        {
-          "type": "frame",
-          "id": "cE6Wc",
-          "name": "Word Info",
-          "width": "fill_container",
-          "layout": "vertical",
-          "gap": 3,
-          "children": [
-            {
-              "type": "frame",
-              "id": "zkjNU",
-              "name": "JP Text Row",
-              "gap": 6,
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "text",
-                  "id": "uzDGY",
-                  "name": "Japanese Word",
-                  "fill": "$foreground.primary",
-                  "content": "君",
-                  "fontFamily": "$font.headings",
-                  "fontSize": 18,
-                  "fontWeight": "700"
-                },
-                {
-                  "type": "text",
-                  "id": "YMQJs",
-                  "name": "Hiragana Reading",
-                  "fill": "$foreground.muted",
-                  "content": "きみ",
-                  "fontFamily": "$font.body",
-                  "fontSize": 12,
-                  "fontWeight": "normal"
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "ZWFuP",
-              "name": "Meaning Row",
-              "gap": 12,
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "text",
-                  "id": "rpxCy",
-                  "name": "Korean Meaning",
-                  "fill": "$foreground.secondary",
-                  "content": "너",
-                  "fontFamily": "$font.body",
-                  "fontSize": 13,
-                  "fontWeight": "500"
-                },
-                {
-                  "type": "frame",
-                  "id": "HAp0f",
-                  "name": "Badges",
-                  "gap": 3,
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "id": "Bd4uY",
-                      "type": "ref",
-                      "ref": "ABLIv",
-                      "name": "JLPT Badge Instance",
-                      "height": "fill_container"
-                    },
-                    {
-                      "id": "nW4Qe",
-                      "type": "ref",
-                      "ref": "IxqOy",
-                      "name": "POS Badge Instance",
-                      "padding": [
-                        1,
-                        8,
-                        3,
-                        8
-                      ],
-                      "descendants": {
-                        "m9Cw7": {
-                          "fontSize": 10
-                        }
-                      }
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "type": "frame",
-          "id": "Z800oO",
-          "name": "Add Button",
-          "width": 28,
-          "height": 28,
-          "fill": "$accent-primary-bg",
-          "cornerRadius": "$rounded.full",
-          "justifyContent": "center",
-          "alignItems": "center",
-          "children": [
-            {
-              "type": "icon",
-              "id": "DHpKs",
-              "name": "bookmark-outline (담기 전)",
-              "width": 16,
-              "height": 16,
-              "icon": "bookmark-simple",
-              "library": "phosphor",
-              "fill": "$accent.primary"
             }
           ]
         }
@@ -24714,9 +25600,9 @@
           "gap": 28,
           "padding": [
             24,
-            20,
+            0,
             120,
-            20
+            0
           ],
           "children": [
             {
@@ -24735,6 +25621,10 @@
                   "width": "fill_container",
                   "layout": "vertical",
                   "gap": 3,
+                  "padding": [
+                    0,
+                    20
+                  ],
                   "children": [
                     {
                       "type": "frame",
@@ -24786,30 +25676,11 @@
                   "layout": "vertical",
                   "children": [
                     {
-                      "id": "MkGPE",
+                      "id": "KXzob",
                       "type": "ref",
-                      "ref": "HjaHz",
-                      "name": "Word Row - 君",
-                      "width": "fill_container",
-                      "padding": [
-                        10,
-                        0
-                      ]
-                    },
-                    {
-                      "type": "rectangle",
-                      "id": "LqdMC",
-                      "name": "Divider",
-                      "fill": "$border-default",
-                      "width": "fill_container",
-                      "height": 1
-                    },
-                    {
-                      "id": "G8E4Ai",
-                      "type": "ref",
-                      "ref": "N02Al",
+                      "ref": "u8Ui6V",
                       "x": 0,
-                      "y": 69,
+                      "y": 0,
                       "width": "fill_container"
                     },
                     {
@@ -24821,15 +25692,12 @@
                       "height": 1
                     },
                     {
-                      "id": "HbsAW",
+                      "id": "ni7hP",
                       "type": "ref",
-                      "ref": "HjaHz",
-                      "name": "Word Row - 声",
-                      "width": "fill_container",
-                      "padding": [
-                        10,
-                        0
-                      ]
+                      "ref": "k3qUHe",
+                      "x": 0,
+                      "y": 73,
+                      "width": "fill_container"
                     },
                     {
                       "type": "rectangle",
@@ -24840,34 +25708,12 @@
                       "height": 1
                     },
                     {
-                      "id": "QwbMl",
+                      "id": "ADmeJ",
                       "type": "ref",
-                      "ref": "HjaHz",
-                      "name": "Word Row - 夢",
-                      "width": "fill_container",
-                      "padding": [
-                        10,
-                        0
-                      ]
-                    },
-                    {
-                      "type": "rectangle",
-                      "id": "n8qCiP",
-                      "name": "Divider",
-                      "fill": "$border-default",
-                      "width": "fill_container",
-                      "height": 1
-                    },
-                    {
-                      "id": "Sxu43",
-                      "type": "ref",
-                      "ref": "HjaHz",
-                      "name": "Word Row - 空",
-                      "width": "fill_container",
-                      "padding": [
-                        10,
-                        0
-                      ]
+                      "ref": "u8Ui6V",
+                      "x": 0,
+                      "y": 242,
+                      "width": "fill_container"
                     }
                   ]
                 },
@@ -24925,6 +25771,10 @@
               "fill": "#FFFFFF00",
               "layout": "vertical",
               "gap": 16,
+              "padding": [
+                0,
+                20
+              ],
               "children": [
                 {
                   "type": "frame",
@@ -25511,13 +26361,6 @@
                           "layout": "vertical",
                           "children": [
                             {
-                              "id": "F5AqnT",
-                              "type": "ref",
-                              "ref": "HjaHz",
-                              "name": "Word - 風",
-                              "width": "fill_container"
-                            },
-                            {
                               "type": "rectangle",
                               "id": "KNebo",
                               "name": "Divider",
@@ -25526,26 +26369,12 @@
                               "height": 1
                             },
                             {
-                              "id": "M0ptGh",
-                              "type": "ref",
-                              "ref": "HjaHz",
-                              "name": "Word - 日",
-                              "width": "fill_container"
-                            },
-                            {
                               "type": "rectangle",
                               "id": "G8ja9",
                               "name": "Divider",
                               "fill": "$border-default",
                               "width": "fill_container",
                               "height": 1
-                            },
-                            {
-                              "id": "R7UjUd",
-                              "type": "ref",
-                              "ref": "HjaHz",
-                              "name": "Word - 戻る",
-                              "width": "fill_container"
                             }
                           ]
                         }
@@ -25788,26 +26617,12 @@
                               "layout": "vertical",
                               "children": [
                                 {
-                                  "id": "ptPxP",
-                                  "type": "ref",
-                                  "ref": "HjaHz",
-                                  "name": "Word Row - 君",
-                                  "width": "fill_container"
-                                },
-                                {
                                   "type": "rectangle",
                                   "id": "qVQsY",
                                   "name": "Divider",
                                   "fill": "$border-default",
                                   "width": "fill_container",
                                   "height": 1
-                                },
-                                {
-                                  "id": "HqZMN",
-                                  "type": "ref",
-                                  "ref": "HjaHz",
-                                  "name": "Word Row - 声",
-                                  "width": "fill_container"
                                 },
                                 {
                                   "type": "rectangle",
@@ -25818,13 +26633,6 @@
                                   "height": 1
                                 },
                                 {
-                                  "id": "zT8zO",
-                                  "type": "ref",
-                                  "ref": "HjaHz",
-                                  "name": "Word Row - 今",
-                                  "width": "fill_container"
-                                },
-                                {
                                   "type": "rectangle",
                                   "id": "c885z",
                                   "name": "Divider",
@@ -25833,28 +26641,12 @@
                                   "height": 1
                                 },
                                 {
-                                  "id": "DkW9m",
-                                  "type": "ref",
-                                  "ref": "HjaHz",
-                                  "name": "Word Row - 聞こえる",
-                                  "width": "fill_container"
-                                },
-                                {
                                   "type": "rectangle",
                                   "id": "f4o6y",
                                   "name": "Divider",
                                   "fill": "$border-default",
                                   "width": "fill_container",
                                   "height": 1
-                                },
-                                {
-                                  "id": "G63ZDs",
-                                  "type": "ref",
-                                  "ref": "HjaHz",
-                                  "name": "Word Row - 聞こえる",
-                                  "width": "fill_container",
-                                  "x": 0,
-                                  "y": 292
                                 }
                               ]
                             }
@@ -25926,26 +26718,12 @@
                           "layout": "vertical",
                           "children": [
                             {
-                              "id": "b6kmE",
-                              "type": "ref",
-                              "ref": "HjaHz",
-                              "name": "Word - 風",
-                              "width": "fill_container"
-                            },
-                            {
                               "type": "rectangle",
                               "id": "NSMWA",
                               "name": "Divider",
                               "fill": "$border-default",
                               "width": "fill_container",
                               "height": 1
-                            },
-                            {
-                              "id": "kD9Yu",
-                              "type": "ref",
-                              "ref": "HjaHz",
-                              "name": "Word - 日",
-                              "width": "fill_container"
                             },
                             {
                               "type": "rectangle",
@@ -26507,18 +27285,6 @@
               ],
               "children": [
                 {
-                  "id": "HzMh7",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 夢",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
                   "type": "frame",
                   "id": "MbiPk",
                   "name": "component/SentenceWordItem--Added",
@@ -26650,138 +27416,6 @@
                       ]
                     }
                   ]
-                },
-                {
-                  "id": "nlw62",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 君",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "IGpfD",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 声",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "H0ltB",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 空",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "Y1z83h",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 走る",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "Vzrkh",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 世界",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "W2r4JO",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 光",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "OEQ80",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 愛",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "ggFr3",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 泣く",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "p93xQB",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 時間",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "afRPO",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 気持ち",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "Y8KuVp",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 言葉",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
                 },
                 {
                   "type": "frame",
@@ -27071,13 +27705,6 @@
                               "layout": "vertical",
                               "children": [
                                 {
-                                  "id": "j2Ga0",
-                                  "type": "ref",
-                                  "ref": "HjaHz",
-                                  "name": "Word - 風",
-                                  "width": "fill_container"
-                                },
-                                {
                                   "type": "rectangle",
                                   "id": "t07qR",
                                   "name": "Divider",
@@ -27086,26 +27713,12 @@
                                   "height": 1
                                 },
                                 {
-                                  "id": "XVXv0",
-                                  "type": "ref",
-                                  "ref": "HjaHz",
-                                  "name": "Word - 日",
-                                  "width": "fill_container"
-                                },
-                                {
                                   "type": "rectangle",
                                   "id": "O5HNC",
                                   "name": "Divider",
                                   "fill": "$border-default",
                                   "width": "fill_container",
                                   "height": 1
-                                },
-                                {
-                                  "id": "v9jwp",
-                                  "type": "ref",
-                                  "ref": "HjaHz",
-                                  "name": "Word - 戻る",
-                                  "width": "fill_container"
                                 }
                               ]
                             }
@@ -27348,26 +27961,12 @@
                                   "layout": "vertical",
                                   "children": [
                                     {
-                                      "id": "jELbs",
-                                      "type": "ref",
-                                      "ref": "HjaHz",
-                                      "name": "Word Row - 君",
-                                      "width": "fill_container"
-                                    },
-                                    {
                                       "type": "rectangle",
                                       "id": "A9e08T",
                                       "name": "Divider",
                                       "fill": "$border-default",
                                       "width": "fill_container",
                                       "height": 1
-                                    },
-                                    {
-                                      "id": "XCSYa",
-                                      "type": "ref",
-                                      "ref": "HjaHz",
-                                      "name": "Word Row - 声",
-                                      "width": "fill_container"
                                     },
                                     {
                                       "type": "rectangle",
@@ -27378,13 +27977,6 @@
                                       "height": 1
                                     },
                                     {
-                                      "id": "RVWA1",
-                                      "type": "ref",
-                                      "ref": "HjaHz",
-                                      "name": "Word Row - 今",
-                                      "width": "fill_container"
-                                    },
-                                    {
                                       "type": "rectangle",
                                       "id": "jORZi",
                                       "name": "Divider",
@@ -27393,28 +27985,12 @@
                                       "height": 1
                                     },
                                     {
-                                      "id": "fD5Eq",
-                                      "type": "ref",
-                                      "ref": "HjaHz",
-                                      "name": "Word Row - 聞こえる",
-                                      "width": "fill_container"
-                                    },
-                                    {
                                       "type": "rectangle",
                                       "id": "arkNF",
                                       "name": "Divider",
                                       "fill": "$border-default",
                                       "width": "fill_container",
                                       "height": 1
-                                    },
-                                    {
-                                      "id": "cqyDQ",
-                                      "type": "ref",
-                                      "ref": "HjaHz",
-                                      "name": "Word Row - 聞こえる",
-                                      "width": "fill_container",
-                                      "x": 0,
-                                      "y": 292
                                     }
                                   ]
                                 }
@@ -27486,13 +28062,6 @@
                               "layout": "vertical",
                               "children": [
                                 {
-                                  "id": "xNdrG",
-                                  "type": "ref",
-                                  "ref": "HjaHz",
-                                  "name": "Word - 風",
-                                  "width": "fill_container"
-                                },
-                                {
                                   "type": "rectangle",
                                   "id": "wO1AD",
                                   "name": "Divider",
@@ -27501,26 +28070,12 @@
                                   "height": 1
                                 },
                                 {
-                                  "id": "tLwx1",
-                                  "type": "ref",
-                                  "ref": "HjaHz",
-                                  "name": "Word - 日",
-                                  "width": "fill_container"
-                                },
-                                {
                                   "type": "rectangle",
                                   "id": "BvOJc",
                                   "name": "Divider",
                                   "fill": "$border-default",
                                   "width": "fill_container",
                                   "height": 1
-                                },
-                                {
-                                  "id": "akEiz",
-                                  "type": "ref",
-                                  "ref": "HjaHz",
-                                  "name": "Word - 戻る",
-                                  "width": "fill_container"
                                 }
                               ]
                             }
@@ -27567,142 +28122,6 @@
               "content": "빼기"
             }
           }
-        }
-      ]
-    },
-    {
-      "type": "frame",
-      "id": "N02Al",
-      "x": 3326,
-      "y": -2133,
-      "name": "component/SentenceWordItem--Added",
-      "reusable": true,
-      "width": 340,
-      "fill": {
-        "type": "color",
-        "color": "#FFFFFF",
-        "enabled": false
-      },
-      "padding": [
-        12,
-        0
-      ],
-      "justifyContent": "space_between",
-      "alignItems": "center",
-      "children": [
-        {
-          "type": "frame",
-          "id": "CbbP8",
-          "name": "Word Info",
-          "width": "fill_container",
-          "layout": "vertical",
-          "gap": 3,
-          "children": [
-            {
-              "type": "frame",
-              "id": "iJNmO",
-              "name": "JP Text Row",
-              "gap": 6,
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "text",
-                  "id": "vLtSw",
-                  "name": "Japanese Word",
-                  "fill": "$foreground.primary",
-                  "content": "君",
-                  "fontFamily": "$font.headings",
-                  "fontSize": 18,
-                  "fontWeight": "700"
-                },
-                {
-                  "type": "text",
-                  "id": "MaTw4",
-                  "name": "Hiragana Reading",
-                  "fill": "$foreground.muted",
-                  "content": "きみ",
-                  "fontFamily": "$font.body",
-                  "fontSize": 12,
-                  "fontWeight": "normal"
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "b8kGho",
-              "name": "Meaning Row",
-              "gap": 12,
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "text",
-                  "id": "gbFNo",
-                  "name": "Korean Meaning",
-                  "fill": "$foreground.secondary",
-                  "content": "너",
-                  "fontFamily": "$font.body",
-                  "fontSize": 13,
-                  "fontWeight": "500"
-                },
-                {
-                  "type": "frame",
-                  "id": "VJXNY",
-                  "name": "Badges",
-                  "gap": 3,
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "id": "D8t6qN",
-                      "type": "ref",
-                      "ref": "ABLIv",
-                      "name": "JLPT Badge Instance",
-                      "height": "fill_container"
-                    },
-                    {
-                      "id": "SN8EV",
-                      "type": "ref",
-                      "ref": "IxqOy",
-                      "name": "POS Badge Instance",
-                      "padding": [
-                        1,
-                        8,
-                        3,
-                        8
-                      ],
-                      "descendants": {
-                        "m9Cw7": {
-                          "fontSize": 10
-                        }
-                      }
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "type": "frame",
-          "id": "q6vpD",
-          "name": "Remove Button",
-          "width": 28,
-          "height": 28,
-          "fill": "$accent-primary-bg",
-          "cornerRadius": "$rounded.full",
-          "justifyContent": "center",
-          "alignItems": "center",
-          "children": [
-            {
-              "type": "icon",
-              "id": "mIiQu",
-              "name": "bookmark-fill (담긴 후)",
-              "width": 16,
-              "height": 16,
-              "icon": "bookmark-simple-fill",
-              "library": "phosphor",
-              "fill": "$accent.primary"
-            }
-          ]
         }
       ]
     },
@@ -28236,152 +28655,6 @@
               "padding": [
                 0,
                 20
-              ],
-              "children": [
-                {
-                  "id": "WmQ7e",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 夢",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "EcygH",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 君",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "siJAP",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 声",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "j5xC6E",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 空",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "NjFtW",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 走る",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "NmDKK",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 世界",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "eODar",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 光",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "iFOA7",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 愛",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "ye0Fd",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 泣く",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "H26u2",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 時間",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "h9BZSb",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 気持ち",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "slwdk",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 言葉",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                }
               ]
             }
           ]
@@ -28540,13 +28813,6 @@
                       "layout": "vertical",
                       "children": [
                         {
-                          "id": "n0EVV",
-                          "type": "ref",
-                          "ref": "HjaHz",
-                          "name": "Word - 風",
-                          "width": "fill_container"
-                        },
-                        {
                           "type": "rectangle",
                           "id": "VeRPT",
                           "name": "Divider",
@@ -28555,26 +28821,12 @@
                           "height": 1
                         },
                         {
-                          "id": "psWoj",
-                          "type": "ref",
-                          "ref": "HjaHz",
-                          "name": "Word - 日",
-                          "width": "fill_container"
-                        },
-                        {
                           "type": "rectangle",
                           "id": "T6dGW",
                           "name": "Divider",
                           "fill": "$border-default",
                           "width": "fill_container",
                           "height": 1
-                        },
-                        {
-                          "id": "l2Gti",
-                          "type": "ref",
-                          "ref": "HjaHz",
-                          "name": "Word - 戻る",
-                          "width": "fill_container"
                         }
                       ]
                     }
@@ -28817,26 +29069,12 @@
                           "layout": "vertical",
                           "children": [
                             {
-                              "id": "rXgwd",
-                              "type": "ref",
-                              "ref": "HjaHz",
-                              "name": "Word Row - 君",
-                              "width": "fill_container"
-                            },
-                            {
                               "type": "rectangle",
                               "id": "TVZjH",
                               "name": "Divider",
                               "fill": "$border-default",
                               "width": "fill_container",
                               "height": 1
-                            },
-                            {
-                              "id": "PqeKZ",
-                              "type": "ref",
-                              "ref": "HjaHz",
-                              "name": "Word Row - 声",
-                              "width": "fill_container"
                             },
                             {
                               "type": "rectangle",
@@ -28847,13 +29085,6 @@
                               "height": 1
                             },
                             {
-                              "id": "FRhoe",
-                              "type": "ref",
-                              "ref": "HjaHz",
-                              "name": "Word Row - 今",
-                              "width": "fill_container"
-                            },
-                            {
                               "type": "rectangle",
                               "id": "r93Wt",
                               "name": "Divider",
@@ -28862,28 +29093,12 @@
                               "height": 1
                             },
                             {
-                              "id": "e9cvTA",
-                              "type": "ref",
-                              "ref": "HjaHz",
-                              "name": "Word Row - 聞こえる",
-                              "width": "fill_container"
-                            },
-                            {
                               "type": "rectangle",
                               "id": "hYjNJ",
                               "name": "Divider",
                               "fill": "$border-default",
                               "width": "fill_container",
                               "height": 1
-                            },
-                            {
-                              "id": "cDWA2",
-                              "type": "ref",
-                              "ref": "HjaHz",
-                              "name": "Word Row - 聞こえる",
-                              "width": "fill_container",
-                              "x": 0,
-                              "y": 292
                             }
                           ]
                         }
@@ -28955,13 +29170,6 @@
                       "layout": "vertical",
                       "children": [
                         {
-                          "id": "pKnNK",
-                          "type": "ref",
-                          "ref": "HjaHz",
-                          "name": "Word - 風",
-                          "width": "fill_container"
-                        },
-                        {
                           "type": "rectangle",
                           "id": "OeEFv",
                           "name": "Divider",
@@ -28970,26 +29178,12 @@
                           "height": 1
                         },
                         {
-                          "id": "ACdoV",
-                          "type": "ref",
-                          "ref": "HjaHz",
-                          "name": "Word - 日",
-                          "width": "fill_container"
-                        },
-                        {
                           "type": "rectangle",
                           "id": "V4SrJZ",
                           "name": "Divider",
                           "fill": "$border-default",
                           "width": "fill_container",
                           "height": 1
-                        },
-                        {
-                          "id": "U87i2",
-                          "type": "ref",
-                          "ref": "HjaHz",
-                          "name": "Word - 戻る",
-                          "width": "fill_container"
                         }
                       ]
                     }
@@ -29762,159 +29956,15 @@
               ],
               "children": [
                 {
-                  "id": "yuO6O",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 夢",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
                   "id": "USB0r",
                   "type": "ref",
                   "ref": "N02Al",
                   "x": 20,
-                  "y": 72,
+                  "y": 0,
                   "width": "fill_container",
                   "stroke": "$border-default",
                   "strokeLinecap": "butt",
                   "strokeLinejoin": "miter",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "d1mAyU",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 君",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "prVUE",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 声",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "jJATR",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 空",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "o4gFAG",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 走る",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "hkj1v",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 世界",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "xv63Z",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 光",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "zqLdC",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 愛",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "yY96w",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 泣く",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "wt8pH",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 時間",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "E0Fpl",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 気持ち",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "w9Ow5",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 言葉",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
                   "strokeWidth": {
                     "bottom": 1
                   },
@@ -30212,13 +30262,6 @@
                       "layout": "vertical",
                       "children": [
                         {
-                          "id": "oGO18",
-                          "type": "ref",
-                          "ref": "HjaHz",
-                          "name": "Word - 風",
-                          "width": "fill_container"
-                        },
-                        {
                           "type": "rectangle",
                           "id": "IuT2V",
                           "name": "Divider",
@@ -30227,26 +30270,12 @@
                           "height": 1
                         },
                         {
-                          "id": "VEXpm",
-                          "type": "ref",
-                          "ref": "HjaHz",
-                          "name": "Word - 日",
-                          "width": "fill_container"
-                        },
-                        {
                           "type": "rectangle",
                           "id": "S6h2mz",
                           "name": "Divider",
                           "fill": "$border-default",
                           "width": "fill_container",
                           "height": 1
-                        },
-                        {
-                          "id": "GWM3O",
-                          "type": "ref",
-                          "ref": "HjaHz",
-                          "name": "Word - 戻る",
-                          "width": "fill_container"
                         }
                       ]
                     }
@@ -30489,26 +30518,12 @@
                           "layout": "vertical",
                           "children": [
                             {
-                              "id": "qQCWN",
-                              "type": "ref",
-                              "ref": "HjaHz",
-                              "name": "Word Row - 君",
-                              "width": "fill_container"
-                            },
-                            {
                               "type": "rectangle",
                               "id": "snfBm",
                               "name": "Divider",
                               "fill": "$border-default",
                               "width": "fill_container",
                               "height": 1
-                            },
-                            {
-                              "id": "B8Pfr",
-                              "type": "ref",
-                              "ref": "HjaHz",
-                              "name": "Word Row - 声",
-                              "width": "fill_container"
                             },
                             {
                               "type": "rectangle",
@@ -30519,13 +30534,6 @@
                               "height": 1
                             },
                             {
-                              "id": "uIH6l",
-                              "type": "ref",
-                              "ref": "HjaHz",
-                              "name": "Word Row - 今",
-                              "width": "fill_container"
-                            },
-                            {
                               "type": "rectangle",
                               "id": "xTniv",
                               "name": "Divider",
@@ -30534,28 +30542,12 @@
                               "height": 1
                             },
                             {
-                              "id": "WPZHb",
-                              "type": "ref",
-                              "ref": "HjaHz",
-                              "name": "Word Row - 聞こえる",
-                              "width": "fill_container"
-                            },
-                            {
                               "type": "rectangle",
                               "id": "gDN2G",
                               "name": "Divider",
                               "fill": "$border-default",
                               "width": "fill_container",
                               "height": 1
-                            },
-                            {
-                              "id": "k5Yu7M",
-                              "type": "ref",
-                              "ref": "HjaHz",
-                              "name": "Word Row - 聞こえる",
-                              "width": "fill_container",
-                              "x": 0,
-                              "y": 292
                             }
                           ]
                         }
@@ -30627,13 +30619,6 @@
                       "layout": "vertical",
                       "children": [
                         {
-                          "id": "w4w0RJ",
-                          "type": "ref",
-                          "ref": "HjaHz",
-                          "name": "Word - 風",
-                          "width": "fill_container"
-                        },
-                        {
                           "type": "rectangle",
                           "id": "SXCTG",
                           "name": "Divider",
@@ -30642,26 +30627,12 @@
                           "height": 1
                         },
                         {
-                          "id": "DaFW5",
-                          "type": "ref",
-                          "ref": "HjaHz",
-                          "name": "Word - 日",
-                          "width": "fill_container"
-                        },
-                        {
                           "type": "rectangle",
                           "id": "t7YHWS",
                           "name": "Divider",
                           "fill": "$border-default",
                           "width": "fill_container",
                           "height": 1
-                        },
-                        {
-                          "id": "e6ifG",
-                          "type": "ref",
-                          "ref": "HjaHz",
-                          "name": "Word - 戻る",
-                          "width": "fill_container"
                         }
                       ]
                     }
@@ -31206,18 +31177,6 @@
               ],
               "children": [
                 {
-                  "id": "E10jCt",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 夢",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
                   "type": "frame",
                   "id": "VJg6P",
                   "name": "component/SentenceWordItem--Added",
@@ -31349,138 +31308,6 @@
                       ]
                     }
                   ]
-                },
-                {
-                  "id": "ys5CM",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 君",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "SvaoL",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 声",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "MpgrZ",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 空",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "CzpJj",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 走る",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "Gmqld",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 世界",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "qB2TJ",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 光",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "TukeN",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 愛",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "MGNuj",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 泣く",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "vujkB",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 時間",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "v5Dvh",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 気持ち",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "dRWkw",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 言葉",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
                 }
               ]
             }
@@ -31640,13 +31467,6 @@
                       "layout": "vertical",
                       "children": [
                         {
-                          "id": "wKqGw",
-                          "type": "ref",
-                          "ref": "HjaHz",
-                          "name": "Word - 風",
-                          "width": "fill_container"
-                        },
-                        {
                           "type": "rectangle",
                           "id": "Zif18",
                           "name": "Divider",
@@ -31655,26 +31475,12 @@
                           "height": 1
                         },
                         {
-                          "id": "j5vLj",
-                          "type": "ref",
-                          "ref": "HjaHz",
-                          "name": "Word - 日",
-                          "width": "fill_container"
-                        },
-                        {
                           "type": "rectangle",
                           "id": "ci60s",
                           "name": "Divider",
                           "fill": "$border-default",
                           "width": "fill_container",
                           "height": 1
-                        },
-                        {
-                          "id": "IQuZ3",
-                          "type": "ref",
-                          "ref": "HjaHz",
-                          "name": "Word - 戻る",
-                          "width": "fill_container"
                         }
                       ]
                     }
@@ -31917,26 +31723,12 @@
                           "layout": "vertical",
                           "children": [
                             {
-                              "id": "ZQ0pS",
-                              "type": "ref",
-                              "ref": "HjaHz",
-                              "name": "Word Row - 君",
-                              "width": "fill_container"
-                            },
-                            {
                               "type": "rectangle",
                               "id": "UmI3U",
                               "name": "Divider",
                               "fill": "$border-default",
                               "width": "fill_container",
                               "height": 1
-                            },
-                            {
-                              "id": "hNqqe",
-                              "type": "ref",
-                              "ref": "HjaHz",
-                              "name": "Word Row - 声",
-                              "width": "fill_container"
                             },
                             {
                               "type": "rectangle",
@@ -31947,13 +31739,6 @@
                               "height": 1
                             },
                             {
-                              "id": "eDqKz",
-                              "type": "ref",
-                              "ref": "HjaHz",
-                              "name": "Word Row - 今",
-                              "width": "fill_container"
-                            },
-                            {
                               "type": "rectangle",
                               "id": "Hjbcu",
                               "name": "Divider",
@@ -31962,28 +31747,12 @@
                               "height": 1
                             },
                             {
-                              "id": "j5fUC",
-                              "type": "ref",
-                              "ref": "HjaHz",
-                              "name": "Word Row - 聞こえる",
-                              "width": "fill_container"
-                            },
-                            {
                               "type": "rectangle",
                               "id": "xqQ0u",
                               "name": "Divider",
                               "fill": "$border-default",
                               "width": "fill_container",
                               "height": 1
-                            },
-                            {
-                              "id": "neG6Z",
-                              "type": "ref",
-                              "ref": "HjaHz",
-                              "name": "Word Row - 聞こえる",
-                              "width": "fill_container",
-                              "x": 0,
-                              "y": 292
                             }
                           ]
                         }
@@ -32055,13 +31824,6 @@
                       "layout": "vertical",
                       "children": [
                         {
-                          "id": "GfURR",
-                          "type": "ref",
-                          "ref": "HjaHz",
-                          "name": "Word - 風",
-                          "width": "fill_container"
-                        },
-                        {
                           "type": "rectangle",
                           "id": "LQe3C",
                           "name": "Divider",
@@ -32070,26 +31832,12 @@
                           "height": 1
                         },
                         {
-                          "id": "rHRPt",
-                          "type": "ref",
-                          "ref": "HjaHz",
-                          "name": "Word - 日",
-                          "width": "fill_container"
-                        },
-                        {
                           "type": "rectangle",
                           "id": "XVM6z",
                           "name": "Divider",
                           "fill": "$border-default",
                           "width": "fill_container",
                           "height": 1
-                        },
-                        {
-                          "id": "e21Ixy",
-                          "type": "ref",
-                          "ref": "HjaHz",
-                          "name": "Word - 戻る",
-                          "width": "fill_container"
                         }
                       ]
                     }
@@ -32867,159 +32615,15 @@
               ],
               "children": [
                 {
-                  "id": "FUDov",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 夢",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
                   "id": "DHU6f",
                   "type": "ref",
                   "ref": "N02Al",
                   "x": 20,
-                  "y": 72,
+                  "y": 0,
                   "width": "fill_container",
                   "stroke": "$border-default",
                   "strokeLinecap": "butt",
                   "strokeLinejoin": "miter",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "hW0ky",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 君",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "AcqgJ",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 声",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "pRKWb",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 空",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "sfhlg",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 走る",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "CVkty",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 世界",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "YtsTh",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 光",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "Uz7fh",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 愛",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "My94x",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 泣く",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "GTKuO",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 時間",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "mPmlR",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 気持ち",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner"
-                },
-                {
-                  "id": "SQMjY",
-                  "type": "ref",
-                  "ref": "HjaHz",
-                  "name": "Item - 言葉",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
                   "strokeWidth": {
                     "bottom": 1
                   },
@@ -33245,6 +32849,50 @@
             },
             {
               "type": "frame",
+              "id": "lhOl6",
+              "name": "Sync Toggle Bar",
+              "width": "fill_container",
+              "fill": "#00000000",
+              "padding": [
+                0,
+                16
+              ],
+              "justifyContent": "end",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "s75BoA",
+                  "name": "Sync Pill (On)",
+                  "height": 28,
+                  "fill": "$accent-primary-bg",
+                  "cornerRadius": 9999,
+                  "stroke": "$accent.primary",
+                  "strokeWidth": 1,
+                  "strokeAlignment": "inner",
+                  "gap": 5,
+                  "padding": [
+                    0,
+                    10
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "FDfo3",
+                      "name": "Sync Label",
+                      "fill": "$accent.primary",
+                      "content": "싱크 ON",
+                      "fontFamily": "$font.body",
+                      "fontSize": 12,
+                      "fontWeight": "700"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
               "id": "Y1FImG",
               "name": "Body",
               "clip": true,
@@ -33317,13 +32965,6 @@
                       "layout": "vertical",
                       "children": [
                         {
-                          "id": "Z5w93",
-                          "type": "ref",
-                          "ref": "HjaHz",
-                          "name": "Word - 風",
-                          "width": "fill_container"
-                        },
-                        {
                           "type": "rectangle",
                           "id": "q5O23",
                           "name": "Divider",
@@ -33332,26 +32973,12 @@
                           "height": 1
                         },
                         {
-                          "id": "m0xvUn",
-                          "type": "ref",
-                          "ref": "HjaHz",
-                          "name": "Word - 日",
-                          "width": "fill_container"
-                        },
-                        {
                           "type": "rectangle",
                           "id": "SVoTY",
                           "name": "Divider",
                           "fill": "$border-default",
                           "width": "fill_container",
                           "height": 1
-                        },
-                        {
-                          "id": "UY5Wj",
-                          "type": "ref",
-                          "ref": "HjaHz",
-                          "name": "Word - 戻る",
-                          "width": "fill_container"
                         }
                       ]
                     }
@@ -33594,26 +33221,12 @@
                           "layout": "vertical",
                           "children": [
                             {
-                              "id": "Bmwzh",
-                              "type": "ref",
-                              "ref": "HjaHz",
-                              "name": "Word Row - 君",
-                              "width": "fill_container"
-                            },
-                            {
                               "type": "rectangle",
                               "id": "i6iXM",
                               "name": "Divider",
                               "fill": "$border-default",
                               "width": "fill_container",
                               "height": 1
-                            },
-                            {
-                              "id": "OzRf1",
-                              "type": "ref",
-                              "ref": "HjaHz",
-                              "name": "Word Row - 声",
-                              "width": "fill_container"
                             },
                             {
                               "type": "rectangle",
@@ -33624,13 +33237,6 @@
                               "height": 1
                             },
                             {
-                              "id": "q4izel",
-                              "type": "ref",
-                              "ref": "HjaHz",
-                              "name": "Word Row - 今",
-                              "width": "fill_container"
-                            },
-                            {
                               "type": "rectangle",
                               "id": "Q3hAxE",
                               "name": "Divider",
@@ -33639,28 +33245,12 @@
                               "height": 1
                             },
                             {
-                              "id": "K1Zlf",
-                              "type": "ref",
-                              "ref": "HjaHz",
-                              "name": "Word Row - 聞こえる",
-                              "width": "fill_container"
-                            },
-                            {
                               "type": "rectangle",
                               "id": "b8aWKk",
                               "name": "Divider",
                               "fill": "$border-default",
                               "width": "fill_container",
                               "height": 1
-                            },
-                            {
-                              "id": "ZbBma",
-                              "type": "ref",
-                              "ref": "HjaHz",
-                              "name": "Word Row - 聞こえる",
-                              "width": "fill_container",
-                              "x": 0,
-                              "y": 292
                             }
                           ]
                         }
@@ -33732,13 +33322,6 @@
                       "layout": "vertical",
                       "children": [
                         {
-                          "id": "v4F72M",
-                          "type": "ref",
-                          "ref": "HjaHz",
-                          "name": "Word - 風",
-                          "width": "fill_container"
-                        },
-                        {
                           "type": "rectangle",
                           "id": "IzQpG",
                           "name": "Divider",
@@ -33747,26 +33330,12 @@
                           "height": 1
                         },
                         {
-                          "id": "O7Oy0a",
-                          "type": "ref",
-                          "ref": "HjaHz",
-                          "name": "Word - 日",
-                          "width": "fill_container"
-                        },
-                        {
                           "type": "rectangle",
                           "id": "XYsC0",
                           "name": "Divider",
                           "fill": "$border-default",
                           "width": "fill_container",
                           "height": 1
-                        },
-                        {
-                          "id": "X11UIf",
-                          "type": "ref",
-                          "ref": "HjaHz",
-                          "name": "Word - 戻る",
-                          "width": "fill_container"
                         }
                       ]
                     }
