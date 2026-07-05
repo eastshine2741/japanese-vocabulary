@@ -91,7 +91,7 @@ function getInitialJlpt(data: WordsInSongDto | null): Set<string> {
 }
 
 function getInitialIncludeUnknownJlpt(data: WordsInSongDto | null): boolean {
-  return data?.filterDefaults?.includeUnknownJlpt ?? false;
+  return data?.filterDefaults?.includeUnknownJlpt ?? true;
 }
 
 function getInitialSort(data: WordsInSongDto | null): SongDetailWordsSort {

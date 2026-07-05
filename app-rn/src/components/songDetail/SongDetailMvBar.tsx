@@ -11,7 +11,7 @@ import { Feather, Ionicons } from '@expo/vector-icons';
 import YouTubePlayer, { YouTubePlayerRef } from '../YouTubePlayer';
 import { Colors } from '../../theme/theme';
 
-export const SONG_DETAIL_MV_BAR_HEIGHT = 58;
+export const SONG_DETAIL_MV_BAR_HEIGHT = 56;
 
 export interface SongDetailMvBarProps {
   title: string;
@@ -25,6 +25,7 @@ export interface SongDetailMvBarProps {
   muted?: boolean;
   bottomInset?: number;
   zIndex?: number;
+  embedded?: boolean;
   style?: ViewStyle;
   onCurrentTimeChange?: (currentTimeMs: number) => void;
   onDurationChange?: (durationMs: number) => void;
@@ -56,6 +57,7 @@ function SongDetailMvBarComponent({
   muted = false,
   bottomInset,
   zIndex = 10,
+  embedded = false,
   style,
   onCurrentTimeChange,
   onDurationChange,
@@ -75,9 +77,6 @@ function SongDetailMvBarComponent({
 
   const effectiveCurrentMs = currentTimeMs ?? internalCurrentMs;
   const effectiveDurationMs = durationMs ?? internalDurationMs;
-  const progress = effectiveDurationMs > 0
-    ? Math.min(1, Math.max(0, effectiveCurrentMs / effectiveDurationMs))
-    : 0;
   const safeBottomInset = bottomInset ?? insets.bottom;
 
   const handleTimeChange = useCallback((seconds: number) => {
@@ -116,6 +115,59 @@ function SongDetailMvBarComponent({
     }
   }, [isPlaying, onPlayingChange]);
 
+  const bar = (
+    <View style={[styles.bar, embedded && styles.embeddedBar, embedded && style]}>
+      <View style={styles.content}>
+        <View style={styles.mvThumb}>
+          {resolvedVideoId ? (
+            <YouTubePlayer
+              ref={playerRef}
+              videoId={resolvedVideoId}
+              height={30}
+              autoplay={autoplay}
+              muted={muted}
+              lowestQuality
+              onTimeChange={handleTimeChange}
+              onDurationChange={handleDurationChange}
+              onStateChange={handleStateChange}
+            />
+          ) : (
+            <View style={styles.thumbFallback}>
+              <Feather name="play" size={12} color="#FFFFFF" />
+            </View>
+          )}
+        </View>
+
+        <View style={styles.textCol}>
+          <Text style={styles.title} numberOfLines={1}>{title}</Text>
+          <Text style={styles.artist} numberOfLines={1}>
+            {artist}
+            {effectiveDurationMs > 0 ? ` · ${formatTime(effectiveCurrentMs)} / ${formatTime(effectiveDurationMs)}` : ''}
+          </Text>
+        </View>
+
+        <TouchableOpacity
+          style={styles.toggle}
+          onPress={handleTogglePlayback}
+          activeOpacity={0.75}
+          accessibilityRole="button"
+          accessibilityLabel={isPlaying ? 'MV 일시정지' : 'MV 재생'}
+        >
+          <Ionicons
+            name={isPlaying ? 'pause' : 'play'}
+            size={22}
+            color={Colors.primary}
+            style={!isPlaying && styles.playIcon}
+          />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
+  if (embedded) {
+    return bar;
+  }
+
   return (
     <View
       pointerEvents="box-none"
@@ -125,56 +177,7 @@ function SongDetailMvBarComponent({
         style,
       ]}
     >
-      <View style={styles.bar}>
-        <View style={styles.progressTrack}>
-          <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
-        </View>
-
-        <View style={styles.content}>
-          <View style={styles.mvThumb}>
-            {resolvedVideoId ? (
-              <YouTubePlayer
-                ref={playerRef}
-                videoId={resolvedVideoId}
-                height={30}
-                autoplay={autoplay}
-                muted={muted}
-                lowestQuality
-                onTimeChange={handleTimeChange}
-                onDurationChange={handleDurationChange}
-                onStateChange={handleStateChange}
-              />
-            ) : (
-              <View style={styles.thumbFallback}>
-                <Feather name="play" size={12} color="#FFFFFF" />
-              </View>
-            )}
-          </View>
-
-          <View style={styles.textCol}>
-            <Text style={styles.title} numberOfLines={1}>{title}</Text>
-            <Text style={styles.artist} numberOfLines={1}>
-              {artist}
-              {effectiveDurationMs > 0 ? ` · ${formatTime(effectiveCurrentMs)} / ${formatTime(effectiveDurationMs)}` : ''}
-            </Text>
-          </View>
-
-          <TouchableOpacity
-            style={styles.toggle}
-            onPress={handleTogglePlayback}
-            activeOpacity={0.75}
-            accessibilityRole="button"
-            accessibilityLabel={isPlaying ? 'MV 일시정지' : 'MV 재생'}
-          >
-            <Ionicons
-              name={isPlaying ? 'pause' : 'play'}
-              size={22}
-              color={Colors.primary}
-              style={!isPlaying && styles.playIcon}
-            />
-          </TouchableOpacity>
-        </View>
-      </View>
+      {bar}
     </View>
   );
 }
@@ -199,16 +202,14 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 8,
   },
-  progressTrack: {
-    height: 2,
-    backgroundColor: '#D9D9D9',
-  },
-  progressFill: {
-    height: 2,
-    backgroundColor: Colors.primary,
+  embeddedBar: {
+    width: '100%',
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
   },
   content: {
-    height: 56,
+    height: SONG_DETAIL_MV_BAR_HEIGHT,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,

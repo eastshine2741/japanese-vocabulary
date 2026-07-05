@@ -14,7 +14,6 @@ import { Layers } from '../../theme/layers';
 import { AppBottomSheet } from '../bottomSheet';
 import { getPosColor } from '../../types/pos';
 import { Token } from '../../types/song';
-import { SONG_DETAIL_MV_BAR_HEIGHT } from './SongDetailMvBar';
 import SongDetailWordRow from './SongDetailWordRow';
 import { getCurrentLyricLineIndex } from './useCurrentLyricLine';
 
@@ -57,6 +56,8 @@ export interface CurrentPlayingWordsSheetProps {
   fallbackLineIndex?: number;
   bottomInset?: number;
   expandedHeight?: number;
+  header?: React.ReactNode;
+  headerHeight?: number;
   zIndex?: number;
 }
 
@@ -243,19 +244,22 @@ function CurrentPlayingWordsSheetComponent({
   fallbackLineIndex = 0,
   bottomInset,
   expandedHeight,
+  header,
+  headerHeight = 0,
   zIndex = Layers.currentPlayingWordsSheet,
 }: CurrentPlayingWordsSheetProps) {
   const insets = useSafeAreaInsets();
   const listRef = useRef<FlatList<WordPage>>(null);
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
-  const sheetBottomInset = bottomInset ?? insets.bottom + SONG_DETAIL_MV_BAR_HEIGHT;
+  const sheetBottomInset = bottomInset ?? insets.bottom;
   const pageWidth = Math.max(280, screenWidth - 44);
+  const collapsedHeight = header ? headerHeight : CURRENT_PLAYING_WORDS_PEEK_HEIGHT;
   const snapPoints = useMemo<(string | number)[]>(
     () => [
-      CURRENT_PLAYING_WORDS_PEEK_HEIGHT,
-      expandedHeight ?? Math.min(430, Math.max(320, screenHeight * 0.48)),
+      collapsedHeight,
+      expandedHeight ?? Math.max(320, screenHeight - sheetBottomInset - insets.top),
     ],
-    [expandedHeight, screenHeight],
+    [collapsedHeight, expandedHeight, insets.top, screenHeight, sheetBottomInset],
   );
 
   const currentLineIndex = useMemo(
@@ -314,15 +318,15 @@ function CurrentPlayingWordsSheetComponent({
       enableOverDrag={false}
       backgroundStyle={styles.sheetBackground}
       handleComponent={null}
+      containerStyle={[styles.sheetContainer, { zIndex, elevation: zIndex }]}
       style={[styles.sheet, { zIndex, elevation: zIndex }]}
     >
       <BottomSheetView style={styles.sheetContent}>
-        <View style={styles.header}>
-          <View style={styles.dragBar} />
-          <View style={styles.titleRow}>
-            <Text style={styles.title}>지금 들리는 단어</Text>
+        {header ? (
+          <View style={[styles.headerSlot, { height: headerHeight }]}>
+            {header}
           </View>
-        </View>
+        ) : null}
 
         <NativeViewGestureHandler disallowInterruption>
           <FlatList
@@ -360,7 +364,13 @@ function PageSeparator() {
 export const CurrentPlayingWordsSheet = React.memo(CurrentPlayingWordsSheetComponent);
 
 const styles = StyleSheet.create({
+  sheetContainer: {
+    zIndex: Layers.currentPlayingWordsSheet,
+    elevation: Layers.currentPlayingWordsSheet,
+  },
   sheet: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.08,
@@ -373,37 +383,21 @@ const styles = StyleSheet.create({
   },
   sheetContent: {
     flex: 1,
+    overflow: 'hidden',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    backgroundColor: Colors.background,
   },
   pagesPager: {
     flex: 1,
   },
-  header: {
-    height: CURRENT_PLAYING_WORDS_PEEK_HEIGHT,
-    alignItems: 'center',
-    paddingTop: 12,
-  },
-  dragBar: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#D2D2D2',
-  },
-  titleRow: {
+  headerSlot: {
     width: '100%',
-    minHeight: 42,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-  },
-  title: {
-    flexShrink: 1,
-    fontSize: 17,
-    fontWeight: '700',
-    color: Colors.textPrimary,
+    overflow: 'hidden',
   },
   pagesContent: {
     paddingHorizontal: 22,
+    paddingTop: 8,
     paddingBottom: 18,
   },
   pageSeparator: {

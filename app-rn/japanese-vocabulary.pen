@@ -7931,9 +7931,31 @@
                   "id": "ABLIv",
                   "name": "component/JLPTBadge",
                   "reusable": true,
-                  "fill": "$jlpt-n3",
+                  "height": 18,
+                  "fill": {
+                    "type": "gradient",
+                    "gradientType": "linear",
+                    "enabled": true,
+                    "opacity": 0.2,
+                    "rotation": 0,
+                    "size": {
+                      "height": 1
+                    },
+                    "colors": [
+                      {
+                        "color": "#EAB308",
+                        "position": 0
+                      },
+                      {
+                        "color": "#EAB308",
+                        "position": 1
+                      }
+                    ]
+                  },
                   "cornerRadius": "$rounded.full",
                   "padding": [
+                    1,
+                    8,
                     3,
                     8
                   ],
@@ -7944,7 +7966,7 @@
                       "type": "text",
                       "id": "YtXmd",
                       "name": "w2l",
-                      "fill": "$foreground.inverse",
+                      "fill": "#EAB308",
                       "content": "N2",
                       "fontFamily": "$font.captions",
                       "fontSize": 10,
@@ -7989,6 +8011,7 @@
                   "id": "IxqOy",
                   "name": "component/POSBadge",
                   "reusable": true,
+                  "height": 18,
                   "fill": {
                     "type": "gradient",
                     "gradientType": "linear",
@@ -8011,7 +8034,9 @@
                   },
                   "cornerRadius": "$rounded.full",
                   "padding": [
-                    4,
+                    1,
+                    8,
+                    3,
                     8
                   ],
                   "children": [
@@ -8022,7 +8047,7 @@
                       "fill": "$pos-verb",
                       "content": "동사",
                       "fontFamily": "$font.captions",
-                      "fontSize": 11,
+                      "fontSize": 10,
                       "fontWeight": "600"
                     }
                   ]
@@ -8298,9 +8323,31 @@
                       "type": "frame",
                       "id": "13g45",
                       "name": "w3b",
-                      "fill": "$jlpt-n4",
+                      "height": 18,
+                      "fill": {
+                        "type": "gradient",
+                        "gradientType": "linear",
+                        "enabled": true,
+                        "opacity": 0.2,
+                        "rotation": 0,
+                        "size": {
+                          "height": 1
+                        },
+                        "colors": [
+                          {
+                            "color": "#14B8A6",
+                            "position": 0
+                          },
+                          {
+                            "color": "#14B8A6",
+                            "position": 1
+                          }
+                        ]
+                      },
                       "cornerRadius": "$rounded.full",
                       "padding": [
+                        1,
+                        8,
                         3,
                         8
                       ],
@@ -8311,7 +8358,7 @@
                           "type": "text",
                           "id": "JRkwQ",
                           "name": "w3l",
-                          "fill": "$foreground.inverse",
+                          "fill": "#14B8A6",
                           "content": "N4",
                           "fontFamily": "$font.captions",
                           "fontSize": 10,
@@ -24199,12 +24246,15 @@
                       "name": "알수없음 Option",
                       "width": "fit_content",
                       "height": 38,
-                      "fill": "$bg-subtle",
+                      "fill": "#F6F6F6",
+                      "stroke": "#888888",
+                      "strokeAlignment": "inner",
+                      "strokeWidth": 1,
                       "descendants": {
                         "YwrIg": {
                           "content": "알수없음",
-                          "fill": "$foreground.secondary",
-                          "fontWeight": "500"
+                          "fill": "#666666",
+                          "fontWeight": "800"
                         }
                       }
                     }

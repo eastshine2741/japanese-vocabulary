@@ -24,7 +24,6 @@ import SongInfoSheet from '../components/SongInfoSheet';
 import { AppBottomSheet, AppBottomSheetRef } from '../components/bottomSheet';
 import {
   CurrentPlayingWordsSheet,
-  CURRENT_PLAYING_WORDS_PEEK_HEIGHT,
   SongDetailHomeTab,
   SONG_DETAIL_MV_BAR_HEIGHT,
   SongDetailMvBar,
@@ -119,7 +118,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     [scrollY],
   );
 
-  const bottomReserve = SONG_DETAIL_MV_BAR_HEIGHT + CURRENT_PLAYING_WORDS_PEEK_HEIGHT + insets.bottom;
+  const bottomReserve = SONG_DETAIL_MV_BAR_HEIGHT + insets.bottom;
 
   const defaultDeckWords = useMemo(() => {
     const detail = data?.words;
@@ -415,29 +414,40 @@ const PlaybackOverlays = React.memo(function PlaybackOverlays({
   const durationMs = usePlayerStore(s => s.durationMs);
   const setCurrentMs = usePlayerStore(s => s.setCurrentMs);
   const setDurationMs = usePlayerStore(s => s.setDurationMs);
+  const mvBarHeader = useMemo(() => (
+    <SongDetailMvBar
+      title={title}
+      artist={artist}
+      youtubeUrl={youtubeUrl}
+      initialSeekMs={initialSeekMs}
+      currentTimeMs={currentMs}
+      durationMs={durationMs}
+      embedded
+      onCurrentTimeChange={setCurrentMs}
+      onDurationChange={setDurationMs}
+    />
+  ), [
+    artist,
+    currentMs,
+    durationMs,
+    initialSeekMs,
+    setCurrentMs,
+    setDurationMs,
+    title,
+    youtubeUrl,
+  ]);
 
   return (
-    <>
-      <CurrentPlayingWordsSheet
-        lines={lines}
-        words={words}
-        lineWordIndexes={lineWordIndexes}
-        currentTimeMs={currentMs}
-        fallbackLineIndex={initialLyricIndex}
-        bottomInset={bottomInset + SONG_DETAIL_MV_BAR_HEIGHT}
-      />
-      <SongDetailMvBar
-        title={title}
-        artist={artist}
-        youtubeUrl={youtubeUrl}
-        initialSeekMs={initialSeekMs}
-        currentTimeMs={currentMs}
-        durationMs={durationMs}
-        bottomInset={bottomInset}
-        onCurrentTimeChange={setCurrentMs}
-        onDurationChange={setDurationMs}
-      />
-    </>
+    <CurrentPlayingWordsSheet
+      lines={lines}
+      words={words}
+      lineWordIndexes={lineWordIndexes}
+      currentTimeMs={currentMs}
+      fallbackLineIndex={initialLyricIndex}
+      bottomInset={bottomInset}
+      header={mvBarHeader}
+      headerHeight={SONG_DETAIL_MV_BAR_HEIGHT}
+    />
   );
 });
 
