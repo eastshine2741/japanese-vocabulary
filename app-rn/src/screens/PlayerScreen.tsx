@@ -9,8 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { Feather } from '@expo/vector-icons';
-import BottomSheet, { BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
-import type { BottomSheetBackdropProps } from '@gorhom/bottom-sheet';
+import { BottomSheetView } from '@gorhom/bottom-sheet';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -37,6 +36,7 @@ import LyricsAnalyzingCard from '../components/LyricsAnalyzingCard';
 import PlayerHeader from '../components/PlayerHeader';
 import AppDialog from '../components/AppDialog';
 import SongInfoSheet from '../components/SongInfoSheet';
+import { AppBottomSheet, AppBottomSheetRef } from '../components/bottomSheet';
 import { Token } from '../types/song';
 import { AddWordRequest } from '../types/word';
 import { Colors } from '../theme/theme';
@@ -120,9 +120,9 @@ export default function PlayerScreen({ navigation, route }: Props) {
 
   // Refs
   const youtubeRef = useRef<YouTubePlayerRef>(null);
-  const wordLookupRef = useRef<BottomSheet>(null);
-  const wordStudyRef = useRef<BottomSheet>(null);
-  const songInfoRef = useRef<BottomSheet>(null);
+  const wordLookupRef = useRef<AppBottomSheetRef>(null);
+  const wordStudyRef = useRef<AppBottomSheetRef>(null);
+  const songInfoRef = useRef<AppBottomSheetRef>(null);
   const initialSeekDone = useRef(false);
   const initialIndexApplied = useRef(false);
 
@@ -332,13 +332,6 @@ export default function PlayerScreen({ navigation, route }: Props) {
     }
   }, [isSynced, studyUnits, setCurrentMs]);
 
-  const renderBackdrop = useCallback(
-    (props: BottomSheetBackdropProps) => (
-      <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} opacity={0.25} />
-    ),
-    [],
-  );
-
   // ----- Drag-to-dismiss -----
   // Pan starts on the MV + header area; LyricsDial owns the gesture inside
   // its own region (it has its own GestureDetector for line stepping), so
@@ -469,7 +462,7 @@ export default function PlayerScreen({ navigation, route }: Props) {
           in gorhom's `handleComponent` slot so its pan gesture is the sheet's
           handle-pan and always moves the sheet, never delegated to the inner
           FlatList — fixes the "sheet locks once list is scrolled" bug. */}
-      <BottomSheet
+      <AppBottomSheet
         ref={wordStudyRef}
         snapPoints={wordListSnapPoints}
         index={0}
@@ -489,22 +482,16 @@ export default function PlayerScreen({ navigation, route }: Props) {
         backgroundStyle={styles.studySheetBg}
       >
         <WordListSheetContent controller={wordListController} />
-      </BottomSheet>
+      </AppBottomSheet>
 
       {/* Word lookup bottom sheet — opens on word tap */}
-      <BottomSheet
+      <AppBottomSheet
         ref={wordLookupRef}
+        variant="floating"
         index={-1}
         enableDynamicSizing
         enablePanDownToClose
-        detached
         onChange={handleLookupChange}
-        bottomInset={insets.bottom + 12}
-        backdropComponent={renderBackdrop}
-        style={styles.lookupSheetFloat}
-        backgroundStyle={styles.lookupSheetBg}
-        handleStyle={styles.lookupSheetHandle}
-        handleIndicatorStyle={styles.lookupSheetIndicator}
       >
         <BottomSheetView>
           {selectedToken && (
@@ -522,22 +509,16 @@ export default function PlayerScreen({ navigation, route }: Props) {
             />
           )}
         </BottomSheetView>
-      </BottomSheet>
+      </AppBottomSheet>
 
       {/* Song info / rights-holder report sheet */}
-      <BottomSheet
+      <AppBottomSheet
         ref={songInfoRef}
+        variant="floating"
         index={-1}
         enableDynamicSizing
         enablePanDownToClose
-        detached
         onChange={handleSongInfoChange}
-        bottomInset={insets.bottom + 12}
-        backdropComponent={renderBackdrop}
-        style={styles.lookupSheetFloat}
-        backgroundStyle={styles.lookupSheetBg}
-        handleStyle={styles.lookupSheetHandle}
-        handleIndicatorStyle={styles.lookupSheetIndicator}
       >
         <BottomSheetView>
           <SongInfoSheet
@@ -548,7 +529,7 @@ export default function PlayerScreen({ navigation, route }: Props) {
             lyricsSourceUrl={lyricsSourceUrl}
           />
         </BottomSheetView>
-      </BottomSheet>
+      </AppBottomSheet>
 
       <AppDialog
         visible={showDeleteDialog}
@@ -604,23 +585,5 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.08,
     shadowRadius: 14,
-  },
-  // Word lookup sheet (modal-style, opens on word tap)
-  lookupSheetFloat: {
-    marginHorizontal: 12,
-  },
-  lookupSheetBg: {
-    backgroundColor: Colors.card,
-    borderRadius: 24,
-  },
-  lookupSheetHandle: {
-    paddingTop: 12,
-    paddingBottom: 8,
-  },
-  lookupSheetIndicator: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#A1A1AA',
   },
 });

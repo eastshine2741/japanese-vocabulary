@@ -11,7 +11,7 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import BottomSheet, { BottomSheetBackdrop, BottomSheetScrollView } from '@gorhom/bottom-sheet';
+import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { ExampleSentence } from '../types/word';
 import ArtworkImage from '../components/ArtworkImage';
@@ -22,6 +22,7 @@ import { useWordForm } from '../hooks/useWordForm';
 import AppDialog from '../components/AppDialog';
 import ErrorDialog from '../components/ErrorDialog';
 import { AppBar } from '../components/AppBar';
+import { AppBottomSheet, AppBottomSheetRef } from '../components/bottomSheet';
 import { Colors, Dimens } from '../theme/theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'EditWord'>;
@@ -45,7 +46,7 @@ export default function EditWordScreen({ route, navigation }: Props) {
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
   const [saveErrorMessage, setSaveErrorMessage] = useState<string | null>(null);
 
-  const posSheetRef = useRef<BottomSheet>(null);
+  const posSheetRef = useRef<AppBottomSheetRef>(null);
   const insets = useSafeAreaInsets();
 
   // Initial snapshot for change detection
@@ -113,11 +114,6 @@ export default function EditWordScreen({ route, navigation }: Props) {
     setPosPickerIndex(index);
     posSheetRef.current?.expand();
   };
-
-  const renderBackdrop = useCallback(
-    (props: any) => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} opacity={0.25} />,
-    [],
-  );
 
   const handleSave = async (resetFlashcard: boolean = false) => {
     if (!canSave) return;
@@ -241,12 +237,12 @@ export default function EditWordScreen({ route, navigation }: Props) {
       </View>
 
       {/* POS Picker Bottom Sheet */}
-      <BottomSheet
+      <AppBottomSheet
         ref={posSheetRef}
         index={-1}
         enableDynamicSizing
         enablePanDownToClose
-        backdropComponent={renderBackdrop}
+        showBackdrop
         backgroundStyle={styles.pickerSheetBg}
         handleIndicatorStyle={styles.dragBar}
         onClose={() => setPosPickerIndex(null)}
@@ -260,7 +256,7 @@ export default function EditWordScreen({ route, navigation }: Props) {
             }}
           />
         </BottomSheetScrollView>
-      </BottomSheet>
+      </AppBottomSheet>
 
       <AppDialog
         visible={showResetDialog}
@@ -349,7 +345,7 @@ const styles = StyleSheet.create({
 
   // POS Picker
   pickerSheetBg: {
-    backgroundColor: Colors.card,
+    backgroundColor: Colors.background,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
   },

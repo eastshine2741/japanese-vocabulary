@@ -40,7 +40,7 @@ export interface AddWordRequest {
   partOfSpeech: string;
   songId: number;
   lyricLine: string;
-  koreanLyricLine?: string;
+  koreanLyricLine?: string | null;
 }
 
 export interface BatchAddWordRequest {

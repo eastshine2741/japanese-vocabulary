@@ -59,3 +59,13 @@ Failures end as `song_analysis_work.status=FAILED` without automatic retry in th
 Experiment and validation code: `gemini-playground/word-meaning-harness/`. Cost is approximately `$0.031/song`.
 
 > If Redis DTO schema for jisho cache changes, clear old `jisho:*` cache. Unknown-field-tolerant deserialization can turn old cached values into empty results, causing tokens to lose meaning/POS without obvious error logs.
+
+## Major Word Ranking
+
+Important vocabulary can be ranked from `lyrics.analyzed_content` without a
+corpus-wide TF-IDF table. The current design uses single-lyric signals such as
+line coverage, capped frequency, line dispersion, title/theme boosts, POS
+weights, and learning-value penalties for pronouns, generic words, and katakana
+loanwords.
+
+See [major-word-scoring.md](major-word-scoring.md).

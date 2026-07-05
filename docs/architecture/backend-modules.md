@@ -45,7 +45,7 @@ backend/
 
 - **`entity/`**: JPA `@Entity`. 도메인 모듈 내부 전용. cross-module로 넘기지 않는다.
 - **`dto/`**: 모든 클래스가 `Request | Response | Dto` 셋 중 하나로 끝나야 한다. 한 파일에 하나의 클래스.
-- **`model/`**: 도메인 내부 common value type. dto도 entity도 아닌 것.
+- **`model/`**: 도메인 내부 common value type. dto도 entity도 아닌 것. 한 파일에 하나의 클래스.
 - Entity -> Dto 변환은 `fun XxxEntity.toDto(): XxxDto` extension.
 
 ## Domain Layer Boundaries

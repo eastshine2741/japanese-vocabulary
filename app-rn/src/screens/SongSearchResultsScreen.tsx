@@ -146,7 +146,7 @@ export default function SongSearchResultsScreen() {
       analyze(item).then(() => {
         const state = usePlayerStore.getState();
         if (state.status === 'success') {
-          navigation.navigate('Player', { origin: 'Home' });
+          navigation.navigate('SongDetail', { songId: state.studyData?.song.id, origin: 'Home' });
         } else if (state.status === 'error') {
           setErrorDialogMessage(getErrorMessage(state.errorCode));
         }

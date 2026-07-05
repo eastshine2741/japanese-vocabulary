@@ -10,6 +10,8 @@ import com.japanese.vocabulary.recommendation.batch.RecommendationWeekCalculator
 import com.japanese.vocabulary.song.batch.SongAnalysisWorkCompletionService
 import com.japanese.vocabulary.song.batch.SongAnalysisWorkProcessor
 import com.japanese.vocabulary.song.batch.SongAnalysisWorkScheduler
+import com.japanese.vocabulary.song.batch.LyricWordCandidateBackfillDevController
+import com.japanese.vocabulary.song.batch.LyricWordCandidateBackfillService
 import com.japanese.vocabulary.song.cache.ArtistChannelCache
 import com.japanese.vocabulary.song.service.SongAnalysisPreparationService
 import com.japanese.vocabulary.song.service.YoutubeMvSearchService
@@ -33,6 +35,8 @@ import org.springframework.context.annotation.Import
     SongAnalysisWorkCompletionService::class,
     SongAnalysisWorkProcessor::class,
     SongAnalysisWorkScheduler::class,
+    LyricWordCandidateBackfillDevController::class,
+    LyricWordCandidateBackfillService::class,
     ArtistChannelCache::class,
     SongAnalysisPreparationService::class,
     YoutubeMvSearchService::class,

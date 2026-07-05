@@ -1,6 +1,7 @@
 package com.japanese.vocabulary.song.repository
 
 import com.japanese.vocabulary.song.entity.LyricEntity
+import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
@@ -13,4 +14,7 @@ interface LyricRepository : JpaRepository<LyricEntity, Long> {
     fun findActiveBySongId(@Param("songId") songId: Long): LyricEntity?
 
     fun findAllBySongIdOrderByCreatedAtDesc(songId: Long): List<LyricEntity>
+
+    @Query("SELECT l FROM LyricEntity l WHERE l.wordCandidates IS NULL AND l.analyzedContent IS NOT NULL ORDER BY l.id ASC")
+    fun findWordCandidateBackfillTargets(pageable: Pageable): List<LyricEntity>
 }

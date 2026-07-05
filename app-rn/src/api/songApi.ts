@@ -6,7 +6,38 @@ import {
   RecommendedSongItem,
   AnalyzeSongRequest,
   SongAnalysisWorkResponse,
+  SongDto,
+  SongLyricsDto,
+  WordsInSongDto,
+  StudyUnit,
 } from '../types/song';
+
+function toLegacyStudyUnits(lyrics: SongLyricsDto): StudyUnit[] {
+  return lyrics.lines.map(line => ({
+    index: line.index,
+    originalText: line.originalText,
+    startTimeMs: line.startTimeMs,
+    tokens: line.tokens,
+    koreanLyrics: line.koreanLyrics,
+    koreanPronounciation: line.koreanPronounciation,
+  }));
+}
+
+function toLegacyStudyData(song: SongDto, lyrics: SongLyricsDto): SongStudyData {
+  return {
+    song: {
+      id: song.id,
+      title: song.title,
+      artist: song.artist,
+      lyricType: song.lyricType,
+      artworkUrl: song.artworkUrl,
+    },
+    studyUnits: toLegacyStudyUnits(lyrics),
+    youtubeUrl: song.youtubeUrl,
+    lyricsSourceName: lyrics.lyricsSourceName,
+    lyricsSourceUrl: lyrics.lyricsSourceUrl,
+  };
+}
 
 export const songApi = {
   async search(query: string): Promise<SongSearchResponse> {
@@ -46,9 +77,27 @@ export const songApi = {
     return data;
   },
 
-  async getById(id: number): Promise<SongStudyData> {
-    const { data } = await client.get<SongStudyData>(`/api/songs/${id}`);
+  async getById(id: number): Promise<SongDto> {
+    const { data } = await client.get<SongDto>(`/api/songs/${id}`);
     return data;
+  },
+
+  async getLyrics(id: number): Promise<SongLyricsDto> {
+    const { data } = await client.get<SongLyricsDto>(`/api/songs/${id}/lyrics`);
+    return data;
+  },
+
+  async getWords(id: number): Promise<WordsInSongDto> {
+    const { data } = await client.get<WordsInSongDto>(`/api/songs/${id}/words`);
+    return data;
+  },
+
+  async getStudyDataById(id: number): Promise<SongStudyData> {
+    const [song, lyrics] = await Promise.all([
+      this.getById(id),
+      this.getLyrics(id),
+    ]);
+    return toLegacyStudyData(song, lyrics);
   },
 
   async getSpotlight(): Promise<SongStudyData | null> {

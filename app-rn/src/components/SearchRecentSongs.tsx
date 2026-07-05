@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,12 +11,9 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useShallow } from 'zustand/react/shallow';
 import { useHomeStore } from '../stores/homeStore';
-import { usePlayerStore } from '../stores/playerStore';
 import ArtworkImage from './ArtworkImage';
-import ErrorDialog from './ErrorDialog';
 import { Colors } from '../theme/theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import { getErrorMessage } from '../utils/errorMessages';
 import { RecentSongItem } from '../types/song';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -53,12 +50,10 @@ function Separator() {
 
 export default function SearchRecentSongs() {
   const navigation = useNavigation<Nav>();
-  const [errorDialogMessage, setErrorDialogMessage] = useState<string | null>(null);
 
   const { songs, load } = useHomeStore(
     useShallow(s => ({ songs: s.songs, load: s.load })),
   );
-  const loadById = usePlayerStore(s => s.loadById);
 
   useFocusEffect(
     useCallback(() => {
@@ -67,16 +62,10 @@ export default function SearchRecentSongs() {
   );
 
   const handleSongPress = useCallback(
-    async (id: number) => {
-      await loadById(id);
-      const state = usePlayerStore.getState();
-      if (state.status === 'success') {
-        navigation.navigate('Player', { origin: 'Home' });
-      } else if (state.status === 'error') {
-        setErrorDialogMessage(getErrorMessage(state.errorCode));
-      }
+    (id: number) => {
+      navigation.navigate('SongDetail', { songId: id, origin: 'Home' });
     },
-    [loadById, navigation],
+    [navigation],
   );
 
   const renderItem = useCallback(
@@ -102,10 +91,6 @@ export default function SearchRecentSongs() {
         showsHorizontalScrollIndicator={false}
         ItemSeparatorComponent={Separator}
         contentContainerStyle={styles.listContent}
-      />
-      <ErrorDialog
-        message={errorDialogMessage}
-        onDismiss={() => setErrorDialogMessage(null)}
       />
     </View>
   );

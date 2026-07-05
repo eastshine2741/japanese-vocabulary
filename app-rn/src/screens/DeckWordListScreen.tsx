@@ -8,10 +8,9 @@ import {
   StyleSheet,
   BackHandler,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import BottomSheet, { BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
-import type { BottomSheetBackdropProps } from '@gorhom/bottom-sheet';
+import { BottomSheetView } from '@gorhom/bottom-sheet';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { useShallow } from 'zustand/react/shallow';
@@ -28,6 +27,7 @@ import AppDialog from '../components/AppDialog';
 import ErrorDialog from '../components/ErrorDialog';
 import ArtworkImage from '../components/ArtworkImage';
 import DeckWordActionSheet from '../components/DeckWordActionSheet';
+import { AppBottomSheet, AppBottomSheetRef } from '../components/bottomSheet';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'DeckWordList'>;
@@ -90,7 +90,6 @@ const WordRow = React.memo(function WordRow({
 
 export default function DeckWordListScreen({ route, navigation }: Props) {
   const { deckId } = route.params;
-  const insets = useSafeAreaInsets();
   const readingDisplay = useSettingsStore(s => s.readingDisplay);
   const { status, words, isLoadingMore, load, loadMore } = useDeckWordListStore(
     useShallow(s => ({
@@ -108,7 +107,7 @@ export default function DeckWordListScreen({ route, navigation }: Props) {
   const [pendingDelete, setPendingDelete] = useState<DeckWordItem | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const actionSheetRef = useRef<BottomSheet>(null);
+  const actionSheetRef = useRef<AppBottomSheetRef>(null);
   // Imperative open-state tracking for the hardware back handler. Mirrors
   // PlayerScreen's pattern — a ref (not state) so it can be set
   // synchronously at expand()/close() call sites, closing the race window
@@ -209,13 +208,6 @@ export default function DeckWordListScreen({ route, navigation }: Props) {
 
   const keyExtractor = useCallback((item: DeckWordItem) => String(item.id), []);
 
-  const renderBackdrop = useCallback(
-    (props: BottomSheetBackdropProps) => (
-      <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} opacity={0.25} />
-    ),
-    [],
-  );
-
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
@@ -242,19 +234,13 @@ export default function DeckWordListScreen({ route, navigation }: Props) {
         )}
       </View>
 
-      <BottomSheet
+      <AppBottomSheet
         ref={actionSheetRef}
+        variant="floating"
         index={-1}
         enableDynamicSizing
         enablePanDownToClose
-        detached
         onChange={handleActionSheetChange}
-        bottomInset={insets.bottom + 12}
-        backdropComponent={renderBackdrop}
-        style={styles.actionSheetFloat}
-        backgroundStyle={styles.actionSheetBg}
-        handleStyle={styles.actionSheetHandle}
-        handleIndicatorStyle={styles.actionSheetIndicator}
       >
         <BottomSheetView>
           {actionItem && (
@@ -265,7 +251,7 @@ export default function DeckWordListScreen({ route, navigation }: Props) {
             />
           )}
         </BottomSheetView>
-      </BottomSheet>
+      </AppBottomSheet>
 
       <AppDialog
         visible={pendingDelete !== null}
@@ -411,23 +397,5 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
     textAlign: 'center',
     paddingVertical: 4,
-  },
-  // Action sheet — matches PlayerScreen's detached lookup-sheet style.
-  actionSheetFloat: {
-    marginHorizontal: 12,
-  },
-  actionSheetBg: {
-    backgroundColor: Colors.card,
-    borderRadius: 24,
-  },
-  actionSheetHandle: {
-    paddingTop: 12,
-    paddingBottom: 8,
-  },
-  actionSheetIndicator: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#A1A1AA',
   },
 });

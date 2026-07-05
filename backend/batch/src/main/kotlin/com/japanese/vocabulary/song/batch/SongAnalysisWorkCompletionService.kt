@@ -5,6 +5,7 @@ import com.japanese.vocabulary.common.exception.ErrorCode
 import com.japanese.vocabulary.song.model.AnalyzedLine
 import com.japanese.vocabulary.song.repository.LyricRepository
 import com.japanese.vocabulary.song.repository.SongRepository
+import com.japanese.vocabulary.song.service.WordCandidateGenerator
 import com.japanese.vocabulary.songanalysis.entity.SongAnalysisTriggerSource
 import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStatus
 import com.japanese.vocabulary.songanalysis.repository.SongAnalysisWorkRepository
@@ -17,6 +18,7 @@ class SongAnalysisWorkCompletionService(
     private val workRepository: SongAnalysisWorkRepository,
     private val lyricRepository: LyricRepository,
     private val songRepository: SongRepository,
+    private val wordCandidateGenerator: WordCandidateGenerator,
 ) {
     @Transactional
     fun completeWithAnalyzedContent(
@@ -40,6 +42,12 @@ class SongAnalysisWorkCompletionService(
             BusinessException(ErrorCode.LYRIC_NOT_FOUND)
         }
         lyric.analyzedContent = analyzedLines
+        val sourceSong = songRepository.findById(lyric.songId).orElse(null)
+        val wordCandidates = wordCandidateGenerator.generate(
+            title = sourceSong?.title ?: "",
+            analyzedLines = analyzedLines,
+        )
+        lyric.wordCandidates = wordCandidates
         lyricRepository.save(lyric)
 
         if (work.triggerSource == SongAnalysisTriggerSource.ADMIN && work.songId != null) {

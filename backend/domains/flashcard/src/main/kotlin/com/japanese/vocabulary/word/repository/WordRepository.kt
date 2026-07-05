@@ -10,4 +10,5 @@ interface WordRepository : JpaRepository<WordEntity, Long> {
     fun findByUserIdAndIdInOrderByIdDesc(userId: Long, ids: List<Long>, pageable: Pageable): List<WordEntity>
     fun findByUserIdAndIdInAndIdLessThanOrderByIdDesc(userId: Long, ids: List<Long>, id: Long, pageable: Pageable): List<WordEntity>
     fun findByUserIdAndJapaneseText(userId: Long, japaneseText: String): WordEntity?
+    fun findByUserIdAndJapaneseTextIn(userId: Long, japaneseTexts: Collection<String>): List<WordEntity>
 }
