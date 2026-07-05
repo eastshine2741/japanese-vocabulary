@@ -55,6 +55,7 @@ class SongDetailQueryService(
                     startTimeMs = raw.startTimeMs,
                     koreanLyrics = analyzed?.koreanLyrics,
                     koreanPronounciation = analyzed?.koreanPronounciation,
+                    tokens = analyzed?.tokens ?: emptyList(),
                 )
             },
         )

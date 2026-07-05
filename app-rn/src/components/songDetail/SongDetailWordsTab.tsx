@@ -75,6 +75,10 @@ function getWordKey(word: SongDetailWordItem): string {
   return `${word.baseForm}:${word.appearanceOrder}`;
 }
 
+function getWordSaveKey(word: SongDetailWordItem): string {
+  return word.addRequest.japanese || word.japanese;
+}
+
 function getInitialPos(data: WordsInSongDto | null): Set<string> {
   const configured = data?.filterDefaults?.pos;
   if (configured && configured.length > 0) return new Set(configured);
@@ -114,13 +118,22 @@ export default function SongDetailWordsTab({
   const [pendingRemove, setPendingRemove] = useState<SongDetailWordItem | null>(null);
 
   const words = data?.words ?? [];
+  const filterDefaultsKey = useMemo(() => {
+    const defaults = data?.filterDefaults;
+    return [
+      defaults?.sortDefault ?? '',
+      defaults?.includeUnknownJlpt ? '1' : '0',
+      (defaults?.pos ?? []).join(','),
+      (defaults?.jlpt ?? []).join(','),
+    ].join('|');
+  }, [data?.filterDefaults]);
 
   useEffect(() => {
     setSort(getInitialSort(data));
     setSelectedPos(getInitialPos(data));
     setSelectedJlpt(getInitialJlpt(data));
     setIncludeUnknownJlpt(getInitialIncludeUnknownJlpt(data));
-  }, [data]);
+  }, [filterDefaultsKey]);
 
   const availablePos = useMemo(() => {
     const present = new Set(words.map(word => word.partOfSpeech));
@@ -153,8 +166,13 @@ export default function SongDetailWordsTab({
   }, [includeUnknownJlpt, words, selectedPos, selectedJlpt, sort]);
 
   const getSaveState = useCallback((word: SongDetailWordItem): SongDetailWordSaveState => {
-    const override = saveOverrides.get(getWordKey(word));
-    if (override) return override;
+    const override = saveOverrides.get(getWordSaveKey(word));
+    if (override) {
+      return {
+        isSavedForSong: override.isSavedForSong,
+        savedWordId: override.isSavedForSong ? (override.savedWordId ?? word.savedWordId) : null,
+      };
+    }
     return {
       isSavedForSong: word.isSavedForSong || word.savedWordId != null,
       savedWordId: word.savedWordId,
@@ -223,6 +241,13 @@ export default function SongDetailWordsTab({
     setIsBatchSaving(true);
     try {
       await wordApi.batchAddWords({ words: batchCandidates.map(word => word.addRequest) });
+      setSaveOverrides(prev => {
+        const next = new Map(prev);
+        batchCandidates.forEach(word => {
+          next.set(getWordSaveKey(word), { isSavedForSong: true, savedWordId: null });
+        });
+        return next;
+      });
       onWordsChanged?.();
     } finally {
       setIsBatchSaving(false);
@@ -242,7 +267,7 @@ export default function SongDetailWordsTab({
       const result = await wordApi.addWord(word.addRequest);
       setSaveOverrides(prev => {
         const next = new Map(prev);
-        next.set(wordKey, { isSavedForSong: true, savedWordId: result.id });
+        next.set(getWordSaveKey(word), { isSavedForSong: true, savedWordId: result.id });
         return next;
       });
       onWordsChanged?.();
@@ -269,7 +294,7 @@ export default function SongDetailWordsTab({
       await wordApi.deleteWord(state.savedWordId);
       setSaveOverrides(prev => {
         const next = new Map(prev);
-        next.set(wordKey, { isSavedForSong: false, savedWordId: null });
+        next.set(getWordSaveKey(pendingRemove), { isSavedForSong: false, savedWordId: null });
         return next;
       });
       onWordsChanged?.();

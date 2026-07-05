@@ -52,6 +52,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
   const data = useSongDetailStore(s => s.data);
   const errorCode = useSongDetailStore(s => s.errorCode);
   const load = useSongDetailStore(s => s.load);
+  const refreshWords = useSongDetailStore(s => s.refreshWords);
   const preloadedStudyData = usePlayerStore(s => s.studyData);
   const setCurrentMs = usePlayerStore(s => s.setCurrentMs);
   const setDurationMs = usePlayerStore(s => s.setDurationMs);
@@ -163,11 +164,11 @@ export default function SongDetailScreen({ navigation, route }: Props) {
       if (nextDeckId != null) {
         navigation.navigate('DeckDetail', { deckId: nextDeckId });
       }
-      load(songId);
+      await refreshWords(songId).catch(() => undefined);
     } finally {
       setIsCreatingDeck(false);
     }
-  }, [defaultDeckWords, isCreatingDeck, load, navigation, songId, vocabDeckId]);
+  }, [defaultDeckWords, isCreatingDeck, navigation, refreshWords, songId, vocabDeckId]);
 
   const handleSelectHome = useCallback(() => {
     setActiveTab('home');
@@ -179,11 +180,11 @@ export default function SongDetailScreen({ navigation, route }: Props) {
 
   const handleWordsChanged = useCallback(() => {
     if (songId == null) return;
-    load(songId);
+    refreshWords(songId).catch(() => undefined);
     deckApi.getDeckBySongId(songId)
       .then(deck => setVocabDeckId(deck?.deckId ?? null))
       .catch(() => setVocabDeckId(null));
-  }, [load, songId]);
+  }, [refreshWords, songId]);
 
   useFocusEffect(
     useCallback(() => {

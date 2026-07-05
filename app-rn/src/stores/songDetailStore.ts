@@ -9,6 +9,7 @@ interface SongDetailState {
   data: SongDetailData | null;
   errorCode: string | null;
   load: (songId: number) => Promise<void>;
+  refreshWords: (songId: number) => Promise<void>;
   reset: () => void;
 }
 
@@ -34,6 +35,20 @@ export const useSongDetailStore = create<SongDetailState>((set) => ({
       if (loadRunId !== runId) return;
       set({ status: 'error', errorCode: e.response?.data?.error ?? 'SONG_DETAIL_LOAD_FAILED' });
     }
+  },
+
+  refreshWords: async (songId: number) => {
+    const words = await songApi.getWords(songId);
+    set(state => {
+      if (state.data == null || state.data.song.id !== songId) return state;
+      return {
+        data: {
+          ...state.data,
+          words,
+        },
+        errorCode: null,
+      };
+    });
   },
 
   reset: () => {

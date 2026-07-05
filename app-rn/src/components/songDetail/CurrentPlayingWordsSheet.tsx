@@ -1,19 +1,19 @@
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import {
-  FlatList,
   ListRenderItemInfo,
   StyleSheet,
   Text,
   useWindowDimensions,
   View,
 } from 'react-native';
-import { ScrollView } from 'react-native-gesture-handler';
+import { FlatList, NativeViewGestureHandler, ScrollView } from 'react-native-gesture-handler';
 import { BottomSheetView } from '@gorhom/bottom-sheet';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../theme/theme';
 import { Layers } from '../../theme/layers';
 import { AppBottomSheet } from '../bottomSheet';
 import { getPosColor } from '../../types/pos';
+import { Token } from '../../types/song';
 import { SONG_DETAIL_MV_BAR_HEIGHT } from './SongDetailMvBar';
 import SongDetailWordRow from './SongDetailWordRow';
 import { getCurrentLyricLineIndex } from './useCurrentLyricLine';
@@ -26,6 +26,7 @@ export interface CurrentPlayingLyricLine {
   startTimeMs: number | null;
   koreanLyrics: string | null;
   koreanPronounciation?: string | null;
+  tokens?: Token[];
 }
 
 export interface CurrentPlayingWord {
@@ -92,16 +93,46 @@ function tokenSurface(word: CurrentPlayingWord): string {
   return word.surface || word.japanese || word.baseForm || '';
 }
 
-function pushPlainTokens(tokens: LyricToken[], text: string, prefix: string) {
-  Array.from(text).forEach((char, index) => {
-    if (char === '') return;
-    tokens.push({
-      key: `${prefix}-${index}`,
-      text: char,
-      reading: ' ',
-      underlineColor: '#D2D2D2',
-    });
+function pushPlainToken(tokens: LyricToken[], text: string, key: string) {
+  if (text === '') return;
+  tokens.push({
+    key,
+    text,
+    reading: ' ',
+    underlineColor: '#D2D2D2',
   });
+}
+
+function buildAnalyzedLyricTokens(text: string, analyzedTokens: Token[]): LyricToken[] {
+  const tokens: LyricToken[] = [];
+  let cursor = 0;
+
+  analyzedTokens
+    .slice()
+    .sort((a, b) => a.charStart - b.charStart)
+    .forEach((token, index) => {
+      if (token.charStart > cursor) {
+        pushPlainToken(tokens, text.slice(cursor, token.charStart), `gap-${index}`);
+      }
+
+      tokens.push({
+        key: `token-${index}-${token.charStart}`,
+        text: text.slice(token.charStart, token.charEnd) || token.surface,
+        reading: token.baseFormReading ?? token.reading ?? ' ',
+        underlineColor: getPosColor(token.partOfSpeech),
+      });
+      cursor = Math.max(cursor, token.charEnd);
+    });
+
+  if (cursor < text.length) {
+    pushPlainToken(tokens, text.slice(cursor), 'tail');
+  }
+
+  if (tokens.length === 0) {
+    pushPlainToken(tokens, text, 'fallback');
+  }
+
+  return tokens;
 }
 
 function buildLyricTokens(text: string, words: CurrentPlayingWord[]): LyricToken[] {
@@ -124,7 +155,7 @@ function buildLyricTokens(text: string, words: CurrentPlayingWord[]): LyricToken
 
     if (matchStart < 0 || matchText === '') return;
     if (matchStart > cursor) {
-      pushPlainTokens(tokens, text.slice(cursor, matchStart), `gap-${index}`);
+      pushPlainToken(tokens, text.slice(cursor, matchStart), `gap-${index}`);
     }
     tokens.push({
       key: `word-${index}-${matchStart}`,
@@ -136,11 +167,11 @@ function buildLyricTokens(text: string, words: CurrentPlayingWord[]): LyricToken
   });
 
   if (cursor < text.length) {
-    pushPlainTokens(tokens, text.slice(cursor), 'tail');
+    pushPlainToken(tokens, text.slice(cursor), 'tail');
   }
 
   if (tokens.length === 0) {
-    pushPlainTokens(tokens, text, 'fallback');
+    pushPlainToken(tokens, text, 'fallback');
   }
 
   return tokens;
@@ -158,8 +189,10 @@ const LyricTokenStack = React.memo(function LyricTokenStack({ token }: { token: 
 
 const CurrentWordsPageCard = React.memo(function CurrentWordsPageCard({ page, width }: PageCardProps) {
   const lyricTokens = useMemo(
-    () => buildLyricTokens(page.line.originalText, page.words),
-    [page.line.originalText, page.words],
+    () => page.line.tokens && page.line.tokens.length > 0
+      ? buildAnalyzedLyricTokens(page.line.originalText, page.line.tokens)
+      : buildLyricTokens(page.line.originalText, page.words),
+    [page.line.originalText, page.line.tokens, page.words],
   );
 
   return (
@@ -231,13 +264,7 @@ function CurrentPlayingWordsSheetComponent({
   );
 
   const pages = useMemo<WordPage[]>(() => {
-    const currentIndex = currentLineIndex;
-    if (currentIndex < 0) return [];
-    const targetIndexes = [currentIndex - 1, currentIndex, currentIndex + 1]
-      .filter(index => index >= 0 && index < lines.length);
-
-    return targetIndexes.map(index => {
-      const line = lines[index];
+    return lines.map(line => {
       const wordIndexes = getLineWordIndexes(lineWordIndexes, line.index);
       return {
         key: String(line.index),
@@ -245,12 +272,12 @@ function CurrentPlayingWordsSheetComponent({
         words: wordIndexes.map(wordIndex => words[wordIndex]).filter(Boolean),
       };
     });
-  }, [lines, words, lineWordIndexes, currentLineIndex]);
+  }, [lines, words, lineWordIndexes]);
 
   const activePageIndex = useMemo(() => {
-    if (currentLineIndex < 0 || !lines[currentLineIndex]) return 0;
-    return Math.max(0, pages.findIndex(page => page.line.index === lines[currentLineIndex].index));
-  }, [currentLineIndex, lines, pages]);
+    if (pages.length === 0) return 0;
+    return Math.min(Math.max(currentLineIndex, 0), pages.length - 1);
+  }, [currentLineIndex, pages.length]);
 
   useEffect(() => {
     if (pages.length === 0) return;
@@ -297,27 +324,30 @@ function CurrentPlayingWordsSheetComponent({
           </View>
         </View>
 
-        <FlatList
-          ref={listRef}
-          data={pages}
-          keyExtractor={keyExtractor}
-          renderItem={renderPage}
-          horizontal
-          pagingEnabled={false}
-          snapToInterval={pageWidth + 12}
-          decelerationRate="fast"
-          showsHorizontalScrollIndicator={false}
-          initialScrollIndex={activePageIndex > 0 ? activePageIndex : undefined}
-          getItemLayout={(_, index) => ({
-            length: pageWidth + 12,
-            offset: (pageWidth + 12) * index,
-            index,
-          })}
-          onScrollToIndexFailed={handleScrollToIndexFailed}
-          contentContainerStyle={styles.pagesContent}
-          ItemSeparatorComponent={PageSeparator}
-          removeClippedSubviews={false}
-        />
+        <NativeViewGestureHandler disallowInterruption>
+          <FlatList
+            ref={listRef}
+            data={pages}
+            keyExtractor={keyExtractor}
+            renderItem={renderPage}
+            horizontal
+            pagingEnabled={false}
+            snapToInterval={pageWidth + 12}
+            decelerationRate="fast"
+            showsHorizontalScrollIndicator={false}
+            initialScrollIndex={activePageIndex > 0 ? activePageIndex : undefined}
+            getItemLayout={(_, index) => ({
+              length: pageWidth + 12,
+              offset: (pageWidth + 12) * index,
+              index,
+            })}
+            onScrollToIndexFailed={handleScrollToIndexFailed}
+            style={styles.pagesPager}
+            contentContainerStyle={styles.pagesContent}
+            ItemSeparatorComponent={PageSeparator}
+            removeClippedSubviews={false}
+          />
+        </NativeViewGestureHandler>
       </BottomSheetView>
     </AppBottomSheet>
   );
@@ -342,6 +372,9 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
   },
   sheetContent: {
+    flex: 1,
+  },
+  pagesPager: {
     flex: 1,
   },
   header: {

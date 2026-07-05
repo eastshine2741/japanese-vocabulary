@@ -62,6 +62,7 @@ export interface SongLyricLineDto {
   startTimeMs: number | null;
   koreanLyrics: string | null;
   koreanPronounciation: string | null;
+  tokens: Token[];
 }
 
 export interface SongLyricsDto {

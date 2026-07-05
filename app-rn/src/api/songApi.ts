@@ -17,7 +17,7 @@ function toLegacyStudyUnits(lyrics: SongLyricsDto): StudyUnit[] {
     index: line.index,
     originalText: line.originalText,
     startTimeMs: line.startTimeMs,
-    tokens: [],
+    tokens: line.tokens,
     koreanLyrics: line.koreanLyrics,
     koreanPronounciation: line.koreanPronounciation,
   }));

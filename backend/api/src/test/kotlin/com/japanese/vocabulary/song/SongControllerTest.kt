@@ -438,7 +438,7 @@ class SongControllerTest : ApiBaseIntegrationTest() {
     inner class SongDetailLyrics {
 
         @Test
-        fun `lyrics endpoint returns display lines without tokens and does not record recent listen`() {
+        fun `lyrics endpoint returns display lines with tokens and does not record recent listen`() {
             val me = newUser()
             val song = newSong()
             val lyric = newLyric(
@@ -465,11 +465,18 @@ class SongControllerTest : ApiBaseIntegrationTest() {
                 jsonPath("$.lines[0].index") { value(2) }
                 jsonPath("$.lines[0].originalText") { value("夜を越える") }
                 jsonPath("$.lines[0].koreanLyrics") { value("밤을 넘다") }
-                jsonPath("$.lines[0].tokens") { doesNotExist() }
+                jsonPath("$.lines[0].tokens[0].surface") { value("夜") }
+                jsonPath("$.lines[0].tokens[0].baseForm") { value("夜") }
+                jsonPath("$.lines[0].tokens[0].reading") { value("よる") }
+                jsonPath("$.lines[0].tokens[0].partOfSpeech") { value("NOUN") }
+                jsonPath("$.lines[0].tokens[0].charStart") { value(0) }
+                jsonPath("$.lines[0].tokens[0].charEnd") { value(1) }
                 jsonPath("$.words") { doesNotExist() }
             }.andReturn().response.contentAsString
 
-            assertThat(readBody<SongLyricsDto>(body).lyricId).isEqualTo(lyric.id)
+            val dto = readBody<SongLyricsDto>(body)
+            assertThat(dto.lyricId).isEqualTo(lyric.id)
+            assertThat(dto.lines.single().tokens.map { it.surface }).containsExactly("夜")
             assertThat(redis.opsForZSet().size(recentKey(me.id!!)) ?: 0).isZero
         }
 
@@ -509,7 +516,7 @@ class SongControllerTest : ApiBaseIntegrationTest() {
         }
 
         @Test
-        fun `pending lyric returns raw lines without tokens`() {
+        fun `pending lyric returns raw lines with empty tokens`() {
             val me = newUser()
             val song = newSong()
             newLyric(
@@ -522,7 +529,7 @@ class SongControllerTest : ApiBaseIntegrationTest() {
             }.andExpect { status { isOk() } }.andReturn().response.contentAsString
 
             assertThat(body).contains("\"originalText\":\"待機中\"")
-            assertThat(body).doesNotContain("tokens")
+            assertThat(readBody<SongLyricsDto>(body).lines.single().tokens).isEmpty()
             assertThat(redis.opsForZSet().size(recentKey(me.id!!)) ?: 0).isZero
         }
     }

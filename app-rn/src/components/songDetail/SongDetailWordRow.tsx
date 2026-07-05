@@ -63,12 +63,12 @@ function SongDetailWordRow<T extends SongDetailWordRowItem>({
           </Text>
           <View style={styles.badges}>
             {word.jlpt && (
-              <View style={[styles.jlptBadge, { backgroundColor: jlptColor }]}>
-                <Text style={styles.jlptText}>{word.jlpt}</Text>
+              <View style={[styles.badge, { backgroundColor: `${jlptColor}20` }]}>
+                <Text style={[styles.jlptText, { color: jlptColor }]}>{word.jlpt}</Text>
               </View>
             )}
             {posLabel !== '' && (
-              <View style={[styles.posBadge, { backgroundColor: `${posColor}20` }]}>
+              <View style={[styles.badge, { backgroundColor: `${posColor}20` }]}>
                 <Text style={[styles.posText, { color: posColor }]}>{posLabel}</Text>
               </View>
             )}
@@ -169,26 +169,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 3,
   },
-  jlptBadge: {
-    minHeight: 19,
-    justifyContent: 'center',
-    borderRadius: 9999,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  jlptText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  posBadge: {
-    minHeight: 18,
+  badge: {
+    height: 18,
     justifyContent: 'center',
     borderRadius: 9999,
     paddingTop: 1,
     paddingRight: 8,
     paddingBottom: 3,
     paddingLeft: 8,
+  },
+  jlptText: {
+    fontSize: 10,
+    fontWeight: '700',
   },
   posText: {
     fontSize: 10,
