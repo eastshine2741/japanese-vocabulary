@@ -23,6 +23,7 @@ import { useSongDetailStore } from '../stores/songDetailStore';
 import { usePlayerStore } from '../stores/playerStore';
 import { deckApi } from '../api/deckApi';
 import { wordApi } from '../api/wordApi';
+import AppDialog from '../components/AppDialog';
 import SongInfoSheet from '../components/SongInfoSheet';
 import { AppBottomSheet, AppBottomSheetRef } from '../components/bottomSheet';
 import {
@@ -31,7 +32,14 @@ import {
   SONG_DETAIL_MV_BAR_HEIGHT,
   SongDetailMvBar,
   SongDetailWordsTab,
+  type SongDetailWordItem,
+  type SongDetailWordSaveState,
 } from '../components/songDetail';
+import {
+  getSongDetailWordKey,
+  getSongDetailWordSaveKey,
+  resolveSongDetailWordSaveState,
+} from '../components/songDetail/songDetailWordSave';
 import { Colors, Dimens } from '../theme/theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
@@ -45,6 +53,7 @@ const TAB_ITEM_WIDTH = 54;
 const TAB_ITEM_GAP = 10;
 const TAB_INDICATOR_WIDTH = 28;
 const TAB_TRANSITION_MS = 260;
+const WORDS_TAB_BOTTOM_CLEARANCE = SONG_DETAIL_MV_BAR_HEIGHT + 24;
 const HERO_SCROLL_COLLAPSE_START = HERO_HEIGHT - COLLAPSED_BAR_HEIGHT - TAB_BAR_HEIGHT - 34;
 const HERO_SCROLL_COLLAPSE_END = HERO_SCROLL_COLLAPSE_START + 56;
 const ARTWORK_COLLAPSED_OFFSET = HERO_HEIGHT * 0.4;
@@ -74,11 +83,20 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     home: 0,
     words: 0,
   });
+  const [wordSaveOverrides, setWordSaveOverrides] = useState<Map<string, SongDetailWordSaveState>>(() => new Map());
+  const [busyWordKey, setBusyWordKey] = useState<string | null>(null);
+  const [pendingRemoveWord, setPendingRemoveWord] = useState<SongDetailWordItem | null>(null);
   const isPinnedTabsVisibleRef = useRef(false);
 
   const routeSongId = route.params?.songId;
   const fallbackSongId = preloadedStudyData?.song.id;
   const songId = routeSongId ?? fallbackSongId;
+
+  useEffect(() => {
+    setWordSaveOverrides(new Map());
+    setBusyWordKey(null);
+    setPendingRemoveWord(null);
+  }, [songId]);
 
   useEffect(() => {
     if (songId == null) return;
@@ -173,6 +191,9 @@ export default function SongDetailScreen({ navigation, route }: Props) {
   );
 
   const activePageHeight = tabPageHeights[activeTab];
+  const tabViewportHeight = activePageHeight > 0
+    ? activePageHeight + (activeTab === 'words' ? WORDS_TAB_BOTTOM_CLEARANCE + insets.bottom : 0)
+    : 0;
 
   useEffect(() => {
     Animated.timing(tabProgress, {
@@ -247,6 +268,71 @@ export default function SongDetailScreen({ navigation, route }: Props) {
       .then(deck => setVocabDeckId(deck?.deckId ?? null))
       .catch(() => setVocabDeckId(null));
   }, [refreshWords, songId]);
+
+  const getWordSaveState = useCallback((word: SongDetailWordItem): SongDetailWordSaveState => {
+    return resolveSongDetailWordSaveState(word, wordSaveOverrides);
+  }, [wordSaveOverrides]);
+
+  const handleToggleWordSave = useCallback(async (word: SongDetailWordItem) => {
+    const wordKey = getSongDetailWordKey(word);
+    const state = getWordSaveState(word);
+    if (state.isSavedForSong) {
+      setPendingRemoveWord(word);
+      return;
+    }
+
+    setBusyWordKey(wordKey);
+    try {
+      const result = await wordApi.addWord(word.addRequest);
+      setWordSaveOverrides(prev => {
+        const next = new Map(prev);
+        next.set(getSongDetailWordSaveKey(word), { isSavedForSong: true, savedWordId: result.id });
+        return next;
+      });
+      handleWordsChanged();
+    } finally {
+      setBusyWordKey(null);
+    }
+  }, [getWordSaveState, handleWordsChanged]);
+
+  const handleWordsBatchAdded = useCallback((addedWords: SongDetailWordItem[]) => {
+    setWordSaveOverrides(prev => {
+      const next = new Map(prev);
+      addedWords.forEach(word => {
+        next.set(getSongDetailWordSaveKey(word), { isSavedForSong: true, savedWordId: null });
+      });
+      return next;
+    });
+  }, []);
+
+  const cancelRemoveWord = useCallback(() => {
+    setPendingRemoveWord(null);
+  }, []);
+
+  const confirmRemoveWord = useCallback(async () => {
+    if (pendingRemoveWord == null) return;
+
+    const wordKey = getSongDetailWordKey(pendingRemoveWord);
+    const state = getWordSaveState(pendingRemoveWord);
+    if (state.savedWordId == null) {
+      setPendingRemoveWord(null);
+      return;
+    }
+
+    setBusyWordKey(wordKey);
+    try {
+      await wordApi.deleteWord(state.savedWordId);
+      setWordSaveOverrides(prev => {
+        const next = new Map(prev);
+        next.set(getSongDetailWordSaveKey(pendingRemoveWord), { isSavedForSong: false, savedWordId: null });
+        return next;
+      });
+      handleWordsChanged();
+    } finally {
+      setBusyWordKey(null);
+      setPendingRemoveWord(null);
+    }
+  }, [getWordSaveState, handleWordsChanged, pendingRemoveWord]);
 
   const handleHomePageLayout = useCallback((event: LayoutChangeEvent) => {
     const height = Math.ceil(event.nativeEvent.layout.height);
@@ -351,7 +437,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
             onSelectWords={handleSelectWords}
           />
 
-          <Animated.View style={[styles.tabContentViewport, activePageHeight > 0 && { height: activePageHeight }]}>
+          <Animated.View style={[styles.tabContentViewport, tabViewportHeight > 0 && { height: tabViewportHeight }]}>
             <Animated.View
               style={[
                 styles.tabContentRail,
@@ -369,6 +455,9 @@ export default function SongDetailScreen({ navigation, route }: Props) {
                 <SongDetailHomeTab
                   words={words.words}
                   onViewAllWordsPress={handleSelectWords}
+                  getWordSaveState={getWordSaveState}
+                  busyWordKey={busyWordKey}
+                  onToggleWordSave={handleToggleWordSave}
                 />
               </View>
               <View
@@ -384,12 +473,17 @@ export default function SongDetailScreen({ navigation, route }: Props) {
                     filterDefaults: words.filterDefaults,
                     lineWordIndexes: words.lineWordIndexes,
                   }}
-                  bottomPadding={0}
+                  bottomPadding={WORDS_TAB_BOTTOM_CLEARANCE}
                   onWordsChanged={handleWordsChanged}
+                  getWordSaveState={getWordSaveState}
+                  busyWordKey={busyWordKey}
+                  onToggleWordSave={handleToggleWordSave}
+                  onWordsBatchAdded={handleWordsBatchAdded}
                 />
               </View>
             </Animated.View>
           </Animated.View>
+
         </View>
       </Animated.ScrollView>
 
@@ -427,6 +521,9 @@ export default function SongDetailScreen({ navigation, route }: Props) {
         lines={lyrics.lines}
         words={words.words}
         lineWordIndexes={words.lineWordIndexes}
+        getWordSaveState={getWordSaveState}
+        busyWordKey={busyWordKey}
+        onToggleWordSave={handleToggleWordSave}
       />
 
       <View
@@ -529,6 +626,16 @@ export default function SongDetailScreen({ navigation, route }: Props) {
           />
         </BottomSheetView>
       </AppBottomSheet>
+
+      <AppDialog
+        visible={pendingRemoveWord !== null}
+        title="단어장에서 뺄까요?"
+        body={'이 단어의 뜻, 예문, 플래시카드가\n모두 삭제돼요.'}
+        buttons={[
+          { label: '취소', variant: 'secondary', onPress: cancelRemoveWord },
+          { label: '빼기', variant: 'danger', onPress: confirmRemoveWord },
+        ]}
+      />
     </View>
   );
 }
@@ -543,6 +650,9 @@ interface PlaybackOverlaysProps {
   lines: React.ComponentProps<typeof CurrentPlayingWordsSheet>['lines'];
   words: React.ComponentProps<typeof CurrentPlayingWordsSheet>['words'];
   lineWordIndexes: Record<string, number[]>;
+  getWordSaveState: React.ComponentProps<typeof CurrentPlayingWordsSheet>['getWordSaveState'];
+  busyWordKey: string | null;
+  onToggleWordSave: React.ComponentProps<typeof CurrentPlayingWordsSheet>['onToggleWordSave'];
 }
 
 const PlaybackOverlays = React.memo(function PlaybackOverlays({
@@ -555,6 +665,9 @@ const PlaybackOverlays = React.memo(function PlaybackOverlays({
   lines,
   words,
   lineWordIndexes,
+  getWordSaveState,
+  busyWordKey,
+  onToggleWordSave,
 }: PlaybackOverlaysProps) {
   const currentMs = usePlayerStore(s => s.currentMs);
   const durationMs = usePlayerStore(s => s.durationMs);
@@ -593,6 +706,9 @@ const PlaybackOverlays = React.memo(function PlaybackOverlays({
       bottomInset={bottomInset}
       header={mvBarHeader}
       headerHeight={SONG_DETAIL_MV_BAR_HEIGHT}
+      getWordSaveState={getWordSaveState}
+      busyWordKey={busyWordKey}
+      onToggleWordSave={onToggleWordSave}
     />
   );
 });

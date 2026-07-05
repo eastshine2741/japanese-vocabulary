@@ -15,6 +15,8 @@ import { AppBottomSheet } from '../bottomSheet';
 import { getPosColor } from '../../types/pos';
 import { Token } from '../../types/song';
 import SongDetailWordRow from './SongDetailWordRow';
+import { getSongDetailWordKey } from './songDetailWordSave';
+import { SongDetailWordItem, SongDetailWordSaveState } from './types';
 import { getCurrentLyricLineIndex } from './useCurrentLyricLine';
 
 export const CURRENT_PLAYING_WORDS_PEEK_HEIGHT = 70;
@@ -28,20 +30,11 @@ export interface CurrentPlayingLyricLine {
   tokens?: Token[];
 }
 
-export interface CurrentPlayingWord {
+export type CurrentPlayingWord = SongDetailWordItem & {
   id?: number | string;
-  japanese?: string;
-  baseForm?: string | null;
-  surface?: string;
-  reading?: string | null;
   baseFormReading?: string | null;
-  koreanText?: string | null;
   meanings?: { text: string; partOfSpeech?: string | null }[];
-  partOfSpeech?: string | null;
-  partOfSpeechLabel?: string | null;
-  jlpt?: string | null;
-  appearanceOrder?: number | null;
-}
+};
 
 interface WordPage {
   key: string;
@@ -60,11 +53,17 @@ export interface CurrentPlayingWordsSheetProps {
   header?: React.ReactNode;
   headerHeight?: number;
   zIndex?: number;
+  getWordSaveState: (word: CurrentPlayingWord) => SongDetailWordSaveState;
+  busyWordKey: string | null;
+  onToggleWordSave: (word: CurrentPlayingWord) => void;
 }
 
 interface PageCardProps {
   page: WordPage;
   width: number;
+  getWordSaveState: (word: CurrentPlayingWord) => SongDetailWordSaveState;
+  busyWordKey: string | null;
+  onToggleWordSave: (word: CurrentPlayingWord) => void;
 }
 
 interface LyricToken {
@@ -309,7 +308,13 @@ const LyricTokenStack = React.memo(function LyricTokenStack({
   );
 });
 
-const CurrentWordsPageCard = React.memo(function CurrentWordsPageCard({ page, width }: PageCardProps) {
+const CurrentWordsPageCard = React.memo(function CurrentWordsPageCard({
+  page,
+  width,
+  getWordSaveState,
+  busyWordKey,
+  onToggleWordSave,
+}: PageCardProps) {
   const lyricTokens = useMemo(
     () => page.line.tokens && page.line.tokens.length > 0
       ? buildAnalyzedLyricTokens(page.line.originalText, page.line.tokens)
@@ -342,13 +347,19 @@ const CurrentWordsPageCard = React.memo(function CurrentWordsPageCard({ page, wi
       >
         <View style={styles.wordListBody}>
           {page.words.length > 0 ? (
-            page.words.map((word, index) => (
-              <SongDetailWordRow
-                key={`${word.id ?? wordLabel(word)}-${wordReading(word) ?? ''}`}
-                word={word}
-                showDivider={index < page.words.length - 1}
-              />
-            ))
+            page.words.map((word, index) => {
+              const wordKey = getSongDetailWordKey(word);
+              return (
+                <SongDetailWordRow
+                  key={wordKey}
+                  word={word}
+                  isSaved={getWordSaveState(word).isSavedForSong}
+                  isBusy={busyWordKey === wordKey}
+                  showDivider={index < page.words.length - 1}
+                  onToggleSave={onToggleWordSave}
+                />
+              );
+            })
           ) : (
             <View style={styles.emptyWords}>
               <Text style={styles.emptyTitle}>이 가사의 단어가 아직 없어요</Text>
@@ -372,6 +383,9 @@ function CurrentPlayingWordsSheetComponent({
   header,
   headerHeight = 0,
   zIndex = Layers.currentPlayingWordsSheet,
+  getWordSaveState,
+  busyWordKey,
+  onToggleWordSave,
 }: CurrentPlayingWordsSheetProps) {
   const insets = useSafeAreaInsets();
   const listRef = useRef<FlatList<WordPage>>(null);
@@ -418,8 +432,14 @@ function CurrentPlayingWordsSheetComponent({
   }, [activePageIndex, pages.length]);
 
   const renderPage = useCallback(({ item }: ListRenderItemInfo<WordPage>) => (
-    <CurrentWordsPageCard page={item} width={pageWidth} />
-  ), [pageWidth]);
+    <CurrentWordsPageCard
+      page={item}
+      width={pageWidth}
+      getWordSaveState={getWordSaveState}
+      busyWordKey={busyWordKey}
+      onToggleWordSave={onToggleWordSave}
+    />
+  ), [busyWordKey, getWordSaveState, onToggleWordSave, pageWidth]);
 
   const keyExtractor = useCallback((item: WordPage) => item.key, []);
   const handleScrollToIndexFailed = useCallback(() => {

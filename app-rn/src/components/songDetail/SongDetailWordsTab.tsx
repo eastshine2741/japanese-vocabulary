@@ -13,12 +13,12 @@ import {
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { wordApi } from '../../api/wordApi';
-import AppDialog from '../AppDialog';
 import { AppBottomSheetModal, AppBottomSheetModalRef } from '../bottomSheet';
 import { Colors } from '../../theme/theme';
 import SongDetailWordRow from './SongDetailWordRow';
 import SongDetailSortSheet from './SongDetailSortSheet';
 import SongDetailFilterSheet from './SongDetailFilterSheet';
+import { getSongDetailWordKey } from './songDetailWordSave';
 import {
   SongDetailWordItem,
   SongDetailWordSaveState,
@@ -54,6 +54,10 @@ interface Props {
   errorMessage?: string | null;
   bottomPadding?: number;
   onWordsChanged?: () => void;
+  getWordSaveState: (word: SongDetailWordItem) => SongDetailWordSaveState;
+  busyWordKey: string | null;
+  onToggleWordSave: (word: SongDetailWordItem) => void;
+  onWordsBatchAdded: (words: SongDetailWordItem[]) => void;
 }
 
 interface SummaryChipProps {
@@ -73,14 +77,6 @@ const SummaryChip = React.memo(function SummaryChip({ icon, onPress }: SummaryCh
     </TouchableOpacity>
   );
 });
-
-function getWordKey(word: SongDetailWordItem): string {
-  return `${word.baseForm}:${word.appearanceOrder}`;
-}
-
-function getWordSaveKey(word: SongDetailWordItem): string {
-  return word.addRequest.japanese || word.japanese;
-}
 
 function getInitialPos(data: WordsInSongDto | null): Set<string> {
   const configured = data?.filterDefaults?.pos;
@@ -108,6 +104,10 @@ export default function SongDetailWordsTab({
   errorMessage = null,
   bottomPadding = 150,
   onWordsChanged,
+  getWordSaveState,
+  busyWordKey,
+  onToggleWordSave,
+  onWordsBatchAdded,
 }: Props) {
   const insets = useSafeAreaInsets();
   const sortSheetRef = useRef<AppBottomSheetModalRef>(null);
@@ -116,10 +116,7 @@ export default function SongDetailWordsTab({
   const [selectedPos, setSelectedPos] = useState<Set<string>>(() => getInitialPos(data));
   const [selectedJlpt, setSelectedJlpt] = useState<Set<string>>(() => getInitialJlpt(data));
   const [includeUnknownJlpt, setIncludeUnknownJlpt] = useState(() => getInitialIncludeUnknownJlpt(data));
-  const [saveOverrides, setSaveOverrides] = useState<Map<string, SongDetailWordSaveState>>(() => new Map());
-  const [busyWordKey, setBusyWordKey] = useState<string | null>(null);
   const [isBatchSaving, setIsBatchSaving] = useState(false);
-  const [pendingRemove, setPendingRemove] = useState<SongDetailWordItem | null>(null);
   const [renderLimit, setRenderLimit] = useState(INITIAL_WORD_RENDER_COUNT);
 
   const words = data?.words ?? [];
@@ -206,23 +203,9 @@ export default function SongDetailWordsTab({
     [renderLimit, visibleWords],
   );
 
-  const getSaveState = useCallback((word: SongDetailWordItem): SongDetailWordSaveState => {
-    const override = saveOverrides.get(getWordSaveKey(word));
-    if (override) {
-      return {
-        isSavedForSong: override.isSavedForSong,
-        savedWordId: override.isSavedForSong ? (override.savedWordId ?? word.savedWordId) : null,
-      };
-    }
-    return {
-      isSavedForSong: word.isSavedForSong || word.savedWordId != null,
-      savedWordId: word.savedWordId,
-    };
-  }, [saveOverrides]);
-
   const batchCandidates = useMemo(
-    () => visibleWords.filter(word => !getSaveState(word).isSavedForSong),
-    [getSaveState, visibleWords],
+    () => visibleWords.filter(word => !getWordSaveState(word).isSavedForSong),
+    [getWordSaveState, visibleWords],
   );
   const batchCount = batchCandidates.length;
 
@@ -282,68 +265,12 @@ export default function SongDetailWordsTab({
     setIsBatchSaving(true);
     try {
       await wordApi.batchAddWords({ words: batchCandidates.map(word => word.addRequest) });
-      setSaveOverrides(prev => {
-        const next = new Map(prev);
-        batchCandidates.forEach(word => {
-          next.set(getWordSaveKey(word), { isSavedForSong: true, savedWordId: null });
-        });
-        return next;
-      });
+      onWordsBatchAdded(batchCandidates);
       onWordsChanged?.();
     } finally {
       setIsBatchSaving(false);
     }
-  }, [batchCandidates, isBatchSaving, onWordsChanged]);
-
-  const handleToggleSave = useCallback(async (word: SongDetailWordItem) => {
-    const wordKey = getWordKey(word);
-    const state = getSaveState(word);
-    if (state.isSavedForSong) {
-      setPendingRemove(word);
-      return;
-    }
-
-    setBusyWordKey(wordKey);
-    try {
-      const result = await wordApi.addWord(word.addRequest);
-      setSaveOverrides(prev => {
-        const next = new Map(prev);
-        next.set(getWordSaveKey(word), { isSavedForSong: true, savedWordId: result.id });
-        return next;
-      });
-      onWordsChanged?.();
-    } finally {
-      setBusyWordKey(null);
-    }
-  }, [getSaveState, onWordsChanged]);
-
-  const cancelRemove = useCallback(() => {
-    setPendingRemove(null);
-  }, []);
-
-  const confirmRemove = useCallback(async () => {
-    if (pendingRemove == null) return;
-    const wordKey = getWordKey(pendingRemove);
-    const state = getSaveState(pendingRemove);
-    if (state.savedWordId == null) {
-      setPendingRemove(null);
-      return;
-    }
-
-    setBusyWordKey(wordKey);
-    try {
-      await wordApi.deleteWord(state.savedWordId);
-      setSaveOverrides(prev => {
-        const next = new Map(prev);
-        next.set(getWordSaveKey(pendingRemove), { isSavedForSong: false, savedWordId: null });
-        return next;
-      });
-      onWordsChanged?.();
-    } finally {
-      setBusyWordKey(null);
-      setPendingRemove(null);
-    }
-  }, [getSaveState, onWordsChanged, pendingRemove]);
+  }, [batchCandidates, isBatchSaving, onWordsBatchAdded, onWordsChanged]);
 
   const listEmpty = useMemo(() => {
     if (isLoading) {
@@ -398,15 +325,15 @@ export default function SongDetailWordsTab({
 
       <View style={[styles.listContent, { paddingBottom: bottomPadding + insets.bottom }]}>
         {visibleWords.length === 0 ? listEmpty : renderedWords.map(word => {
-          const state = getSaveState(word);
-          const wordKey = getWordKey(word);
+          const state = getWordSaveState(word);
+          const wordKey = getSongDetailWordKey(word);
           return (
             <SongDetailWordRow
               key={wordKey}
               word={word}
               isSaved={state.isSavedForSong}
               isBusy={busyWordKey === wordKey}
-              onToggleSave={handleToggleSave}
+              onToggleSave={onToggleWordSave}
             />
           );
         })}
@@ -445,16 +372,6 @@ export default function SongDetailWordsTab({
           />
         </BottomSheetScrollView>
       </AppBottomSheetModal>
-
-      <AppDialog
-        visible={pendingRemove !== null}
-        title="단어장에서 뺄까요?"
-        body={'이 단어의 뜻, 예문, 플래시카드가\n모두 삭제돼요.'}
-        buttons={[
-          { label: '취소', variant: 'secondary', onPress: cancelRemove },
-          { label: '빼기', variant: 'danger', onPress: confirmRemove },
-        ]}
-      />
     </View>
   );
 }

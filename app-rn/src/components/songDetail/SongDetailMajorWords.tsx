@@ -10,25 +10,40 @@ import { Feather } from '@expo/vector-icons';
 import { Colors } from '../../theme/theme';
 import SongDetailWordRow from './SongDetailWordRow';
 import { selectMajorWords } from './songDetailWordDerivation';
-import { SongDetailWordItem } from './types';
+import { getSongDetailWordKey } from './songDetailWordSave';
+import { SongDetailWordItem, SongDetailWordSaveState } from './types';
 
 interface MajorWordRowProps {
   word: SongDetailWordItem;
   isLast: boolean;
+  saveState: SongDetailWordSaveState;
+  isBusy: boolean;
+  onToggleWordSave: (word: SongDetailWordItem) => void;
 }
 
 interface SongDetailMajorWordsProps {
   words: readonly SongDetailWordItem[];
   isLoading?: boolean;
   onViewAllWordsPress?: () => void;
+  getWordSaveState: (word: SongDetailWordItem) => SongDetailWordSaveState;
+  busyWordKey: string | null;
+  onToggleWordSave: (word: SongDetailWordItem) => void;
 }
 
-const MajorWordRow = React.memo(function MajorWordRow({ word, isLast }: MajorWordRowProps) {
+const MajorWordRow = React.memo(function MajorWordRow({
+  word,
+  isLast,
+  saveState,
+  isBusy,
+  onToggleWordSave,
+}: MajorWordRowProps) {
   return (
     <SongDetailWordRow
       word={word}
-      isSaved={word.isSavedForSong || word.savedWordId != null}
+      isSaved={saveState.isSavedForSong}
+      isBusy={isBusy}
       showDivider={!isLast}
+      onToggleSave={onToggleWordSave}
     />
   );
 });
@@ -37,6 +52,9 @@ export const SongDetailMajorWords = React.memo(function SongDetailMajorWords({
   words,
   isLoading = false,
   onViewAllWordsPress,
+  getWordSaveState,
+  busyWordKey,
+  onToggleWordSave,
 }: SongDetailMajorWordsProps) {
   const majorWords = useMemo(() => selectMajorWords(words), [words]);
   const handleViewAll = useCallback(() => {
@@ -61,13 +79,19 @@ export const SongDetailMajorWords = React.memo(function SongDetailMajorWords({
             <Text style={styles.stateText}>아직 표시할 단어가 없어요.</Text>
           </View>
         ) : (
-          majorWords.map((word, index) => (
-            <MajorWordRow
-              key={`${word.japanese}-${word.appearanceOrder}-${index}`}
-              word={word}
-              isLast={index === majorWords.length - 1}
-            />
-          ))
+          majorWords.map((word, index) => {
+            const wordKey = getSongDetailWordKey(word);
+            return (
+              <MajorWordRow
+                key={wordKey}
+                word={word}
+                isLast={index === majorWords.length - 1}
+                saveState={getWordSaveState(word)}
+                isBusy={busyWordKey === wordKey}
+                onToggleWordSave={onToggleWordSave}
+              />
+            );
+          })
         )}
       </View>
 
