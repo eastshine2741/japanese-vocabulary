@@ -40,6 +40,7 @@ const COLLAPSED_BAR_HEIGHT = 56;
 const TAB_BAR_HEIGHT = 44;
 const HERO_SCROLL_COLLAPSE_START = HERO_HEIGHT - COLLAPSED_BAR_HEIGHT - TAB_BAR_HEIGHT - 34;
 const HERO_SCROLL_COLLAPSE_END = HERO_SCROLL_COLLAPSE_START + 56;
+const ARTWORK_COLLAPSED_OFFSET = HERO_HEIGHT * 0.4;
 
 export default function SongDetailScreen({ navigation, route }: Props) {
   const insets = useSafeAreaInsets();
@@ -91,7 +92,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     };
   }, [songId]);
 
-  const appBarChromeOpacity = useMemo(
+  const appBarContentOpacity = useMemo(
     () => scrollY.interpolate({
       inputRange: [HERO_SCROLL_COLLAPSE_START, HERO_SCROLL_COLLAPSE_END],
       outputRange: [0, 1],
@@ -131,6 +132,15 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     () => scrollY.interpolate({
       inputRange: [HERO_SCROLL_COLLAPSE_START, HERO_SCROLL_COLLAPSE_END],
       outputRange: [10, 0],
+      extrapolate: 'clamp',
+    }),
+    [scrollY],
+  );
+
+  const artworkTranslate = useMemo(
+    () => scrollY.interpolate({
+      inputRange: [0, HERO_SCROLL_COLLAPSE_END],
+      outputRange: [0, -ARTWORK_COLLAPSED_OFFSET],
       extrapolate: 'clamp',
     }),
     [scrollY],
@@ -267,11 +277,18 @@ export default function SongDetailScreen({ navigation, route }: Props) {
   return (
     <View style={styles.container}>
       <View pointerEvents="none" style={styles.artworkBackdrop}>
-        {song.artworkUrl ? (
-          <ImageBackground source={{ uri: song.artworkUrl }} style={styles.artworkBackdropImage} resizeMode="cover" />
-        ) : (
-          <View style={[styles.artworkBackdropImage, styles.heroFallback]} />
-        )}
+        <Animated.View
+          style={[
+            styles.artworkBackdropImageFrame,
+            { transform: [{ translateY: artworkTranslate }] },
+          ]}
+        >
+          {song.artworkUrl ? (
+            <ImageBackground source={{ uri: song.artworkUrl }} style={styles.artworkBackdropImage} resizeMode="cover" />
+          ) : (
+            <View style={[styles.artworkBackdropImage, styles.heroFallback]} />
+          )}
+        </Animated.View>
         <View style={styles.artworkBackdropScrim} />
       </View>
 
@@ -350,12 +367,19 @@ export default function SongDetailScreen({ navigation, route }: Props) {
         pointerEvents="none"
         style={[styles.appBarBackdrop, { height: collapsedBarFullHeight }]}
       >
-        {song.artworkUrl ? (
-          <ImageBackground source={{ uri: song.artworkUrl }} style={styles.appBarBackdropArtwork} resizeMode="cover" />
-        ) : (
-          <View style={[styles.appBarBackdropArtwork, styles.heroFallback]} />
-        )}
-        <View style={styles.appBarBackdropScrim} />
+        <Animated.View
+          style={[
+            styles.artworkBackdropImageFrame,
+            { transform: [{ translateY: artworkTranslate }] },
+          ]}
+        >
+          {song.artworkUrl ? (
+            <ImageBackground source={{ uri: song.artworkUrl }} style={styles.artworkBackdropImage} resizeMode="cover" />
+          ) : (
+            <View style={[styles.artworkBackdropImage, styles.heroFallback]} />
+          )}
+        </Animated.View>
+        <View style={styles.artworkBackdropScrim} />
       </View>
 
       <View
@@ -365,8 +389,6 @@ export default function SongDetailScreen({ navigation, route }: Props) {
           { height: collapsedBarFullHeight, paddingTop: insets.top },
         ]}
       >
-        <Animated.View pointerEvents="none" style={[styles.appBarChrome, { opacity: appBarChromeOpacity }]} />
-
         <View pointerEvents="box-none" style={styles.appBarContent}>
           <IconButton icon="chevron-left" onPress={handleBack} />
 
@@ -375,16 +397,11 @@ export default function SongDetailScreen({ navigation, route }: Props) {
             style={[
               styles.appBarTitleContent,
               {
-                opacity: appBarChromeOpacity,
+                opacity: appBarContentOpacity,
                 transform: [{ translateY: appBarContentTranslate }],
               },
             ]}
           >
-            {song.artworkUrl ? (
-              <ImageBackground source={{ uri: song.artworkUrl }} style={styles.appBarArtworkThumb} resizeMode="cover" />
-            ) : (
-              <View style={[styles.appBarArtworkThumb, styles.heroFallback]} />
-            )}
             <View style={styles.appBarTitleBlock}>
               <Text style={styles.appBarTitle} numberOfLines={1}>{song.title}</Text>
               <Text style={styles.appBarArtist} numberOfLines={1}>{song.artist}</Text>
@@ -394,7 +411,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
           <View pointerEvents="box-none" style={styles.appBarActions}>
             <Animated.View
               pointerEvents={isPinnedTabsVisible ? 'auto' : 'none'}
-              style={{ opacity: appBarChromeOpacity }}
+              style={{ opacity: appBarContentOpacity }}
             >
               <Pressable
                 style={[styles.appBarDeckButton, isCreatingDeck && styles.disabledButton]}
@@ -587,12 +604,19 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: Colors.textPrimary,
   },
-  artworkBackdropImage: {
-    ...StyleSheet.absoluteFillObject,
+  artworkBackdropImageFrame: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: HERO_HEIGHT,
   },
   artworkBackdropScrim: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: '#00000080',
+  },
+  artworkBackdropImage: {
+    ...StyleSheet.absoluteFillObject,
   },
   stateScreen: {
     flex: 1,
@@ -715,13 +739,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 35,
-    elevation: 35,
-  },
-  appBarChrome: {
-    ...StyleSheet.absoluteFillObject,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#FFFFFF24',
-    overflow: 'hidden',
   },
   appBarBackdrop: {
     position: 'absolute',
@@ -729,20 +746,8 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 30,
-    elevation: 30,
     overflow: 'hidden',
     backgroundColor: Colors.textPrimary,
-  },
-  appBarBackdropArtwork: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: HERO_HEIGHT,
-  },
-  appBarBackdropScrim: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#00000080',
   },
   appBarContent: {
     flex: 1,
@@ -751,7 +756,6 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 12,
     zIndex: 2,
-    elevation: 2,
   },
   appBarActions: {
     flexDirection: 'row',
@@ -763,7 +767,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 12,
-    elevation: 12,
   },
   appBarTitleContent: {
     flex: 1,
@@ -771,13 +774,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-  },
-  appBarArtworkThumb: {
-    width: 40,
-    height: 40,
-    borderRadius: 8,
-    overflow: 'hidden',
-    backgroundColor: '#00000040',
   },
   appBarTitleBlock: {
     flex: 1,
