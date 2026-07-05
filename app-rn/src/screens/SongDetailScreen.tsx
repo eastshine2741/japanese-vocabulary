@@ -91,7 +91,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     };
   }, [songId]);
 
-  const collapsedOpacity = useMemo(
+  const appBarChromeOpacity = useMemo(
     () => scrollY.interpolate({
       inputRange: [HERO_SCROLL_COLLAPSE_START, HERO_SCROLL_COLLAPSE_END],
       outputRange: [0, 1],
@@ -112,11 +112,31 @@ export default function SongDetailScreen({ navigation, route }: Props) {
   const heroTextTranslate = useMemo(
     () => scrollY.interpolate({
       inputRange: [0, HERO_SCROLL_COLLAPSE_END],
-      outputRange: [0, -24],
+      outputRange: [0, -HERO_SCROLL_COLLAPSE_END - 24],
       extrapolate: 'clamp',
     }),
     [scrollY],
   );
+
+  const heroTextOpacity = useMemo(
+    () => scrollY.interpolate({
+      inputRange: [HERO_SCROLL_COLLAPSE_START - 24, HERO_SCROLL_COLLAPSE_END],
+      outputRange: [1, 0],
+      extrapolate: 'clamp',
+    }),
+    [scrollY],
+  );
+
+  const appBarContentTranslate = useMemo(
+    () => scrollY.interpolate({
+      inputRange: [HERO_SCROLL_COLLAPSE_START, HERO_SCROLL_COLLAPSE_END],
+      outputRange: [10, 0],
+      extrapolate: 'clamp',
+    }),
+    [scrollY],
+  );
+
+  const collapsedBarFullHeight = insets.top + COLLAPSED_BAR_HEIGHT;
 
   const bottomReserve = SONG_DETAIL_MV_BAR_HEIGHT + insets.bottom;
 
@@ -204,7 +224,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     () => Animated.event(
       [{ nativeEvent: { contentOffset: { y: scrollY } } }],
       {
-        useNativeDriver: false,
+        useNativeDriver: true,
         listener: event => {
           const y = (event as NativeSyntheticEvent<NativeScrollEvent>).nativeEvent.contentOffset.y;
           const nextVisible = y >= HERO_SCROLL_COLLAPSE_END;
@@ -246,61 +266,73 @@ export default function SongDetailScreen({ navigation, route }: Props) {
 
   return (
     <View style={styles.container}>
+      <View pointerEvents="none" style={styles.artworkBackdrop}>
+        {song.artworkUrl ? (
+          <ImageBackground source={{ uri: song.artworkUrl }} style={styles.artworkBackdropImage} resizeMode="cover" />
+        ) : (
+          <View style={[styles.artworkBackdropImage, styles.heroFallback]} />
+        )}
+        <View style={styles.artworkBackdropScrim} />
+      </View>
+
       <Animated.ScrollView
         style={styles.scroll}
         onScroll={handleScroll}
         scrollEventThrottle={16}
         contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomReserve }]}
       >
-        <View style={styles.hero}>
-          {song.artworkUrl ? (
-            <ImageBackground source={{ uri: song.artworkUrl }} style={styles.heroArtwork} resizeMode="cover" />
+        <View style={styles.hero} />
+
+        <View style={styles.bodyContent}>
+          <SongDetailTabs
+            activeTab={activeTab}
+            onSelectHome={handleSelectHome}
+            onSelectWords={handleSelectWords}
+          />
+
+          {activeTab === 'home' ? (
+            <SongDetailHomeTab
+              words={words.words}
+              onViewAllWordsPress={handleSelectWords}
+            />
           ) : (
-            <View style={[styles.heroArtwork, styles.heroFallback]} />
+            <SongDetailWordsTab
+              data={{
+                words: words.words,
+                wordSummary: words.wordSummary,
+                filterDefaults: words.filterDefaults,
+                lineWordIndexes: words.lineWordIndexes,
+              }}
+              bottomPadding={0}
+              onWordsChanged={handleWordsChanged}
+            />
           )}
-          <View style={styles.heroScrim} />
-          <View style={[styles.heroTop, { paddingTop: insets.top + 6 }]}>
-            <IconButton icon="chevron-left" onPress={handleBack} />
-            <IconButton icon="info" onPress={handleOpenInfo} />
-          </View>
-          <Animated.View style={[styles.heroInfo, { transform: [{ translateY: heroTextTranslate }] }]}>
-            <Text style={styles.heroTitle} numberOfLines={2}>{song.title}</Text>
-            <Text style={styles.heroArtist} numberOfLines={1}>{song.artist}</Text>
-            <Pressable
-              style={[styles.deckButton, isCreatingDeck && styles.disabledButton]}
-              onPress={handleOpenDeck}
-              disabled={isCreatingDeck}
-            >
-              <Feather name="plus" size={17} color="#FFFFFF" />
-              <Text style={styles.deckButtonText}>단어장 만들기</Text>
-            </Pressable>
-          </Animated.View>
         </View>
-
-        <SongDetailTabs
-          activeTab={activeTab}
-          onSelectHome={handleSelectHome}
-          onSelectWords={handleSelectWords}
-        />
-
-        {activeTab === 'home' ? (
-          <SongDetailHomeTab
-            words={words.words}
-            onViewAllWordsPress={handleSelectWords}
-          />
-        ) : (
-          <SongDetailWordsTab
-            data={{
-              words: words.words,
-              wordSummary: words.wordSummary,
-              filterDefaults: words.filterDefaults,
-              lineWordIndexes: words.lineWordIndexes,
-            }}
-            bottomPadding={0}
-            onWordsChanged={handleWordsChanged}
-          />
-        )}
       </Animated.ScrollView>
+
+      <Animated.View
+        pointerEvents={isPinnedTabsVisible ? 'none' : 'box-none'}
+        style={[
+          styles.heroInfoLayer,
+          {
+            opacity: heroTextOpacity,
+            transform: [{ translateY: heroTextTranslate }],
+          },
+        ]}
+      >
+        <View style={styles.heroInfo}>
+          <Text style={styles.heroTitle} numberOfLines={2}>{song.title}</Text>
+          <Text style={styles.heroArtist} numberOfLines={1}>{song.artist}</Text>
+          <Pressable
+            style={[styles.deckButton, isCreatingDeck && styles.disabledButton]}
+            onPress={handleOpenDeck}
+            disabled={isCreatingDeck}
+          >
+            <Feather name="plus" size={17} color="#FFFFFF" />
+            <Text style={styles.deckButtonText}>단어장 만들기</Text>
+          </Pressable>
+        </View>
+      </Animated.View>
 
       <PlaybackOverlays
         title={song.title}
@@ -314,39 +346,69 @@ export default function SongDetailScreen({ navigation, route }: Props) {
         lineWordIndexes={words.lineWordIndexes}
       />
 
-      <Animated.View
-        pointerEvents={isPinnedTabsVisible ? 'box-none' : 'none'}
-        style={[
-          styles.collapsedBar,
-          { height: insets.top + COLLAPSED_BAR_HEIGHT, paddingTop: insets.top, opacity: collapsedOpacity },
-        ]}
+      <View
+        pointerEvents="none"
+        style={[styles.appBarBackdrop, { height: collapsedBarFullHeight }]}
       >
         {song.artworkUrl ? (
-          <ImageBackground source={{ uri: song.artworkUrl }} style={styles.collapsedArtworkBg} resizeMode="cover" />
+          <ImageBackground source={{ uri: song.artworkUrl }} style={styles.appBarBackdropArtwork} resizeMode="cover" />
         ) : (
-          <View style={[styles.collapsedArtworkBg, styles.heroFallback]} />
+          <View style={[styles.appBarBackdropArtwork, styles.heroFallback]} />
         )}
-        <View style={styles.collapsedScrim} />
-        <IconButton icon="chevron-left" onPress={handleBack} />
-        {song.artworkUrl ? (
-          <ImageBackground source={{ uri: song.artworkUrl }} style={styles.collapsedArtworkThumb} resizeMode="cover" />
-        ) : (
-          <View style={[styles.collapsedArtworkThumb, styles.heroFallback]} />
-        )}
-        <View style={styles.collapsedTitleBlock}>
-          <Text style={styles.collapsedTitle} numberOfLines={1}>{song.title}</Text>
-          <Text style={styles.collapsedArtist} numberOfLines={1}>{song.artist}</Text>
+        <View style={styles.appBarBackdropScrim} />
+      </View>
+
+      <View
+        pointerEvents="box-none"
+        style={[
+          styles.appBar,
+          { height: collapsedBarFullHeight, paddingTop: insets.top },
+        ]}
+      >
+        <Animated.View pointerEvents="none" style={[styles.appBarChrome, { opacity: appBarChromeOpacity }]} />
+
+        <View pointerEvents="box-none" style={styles.appBarContent}>
+          <IconButton icon="chevron-left" onPress={handleBack} />
+
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.appBarTitleContent,
+              {
+                opacity: appBarChromeOpacity,
+                transform: [{ translateY: appBarContentTranslate }],
+              },
+            ]}
+          >
+            {song.artworkUrl ? (
+              <ImageBackground source={{ uri: song.artworkUrl }} style={styles.appBarArtworkThumb} resizeMode="cover" />
+            ) : (
+              <View style={[styles.appBarArtworkThumb, styles.heroFallback]} />
+            )}
+            <View style={styles.appBarTitleBlock}>
+              <Text style={styles.appBarTitle} numberOfLines={1}>{song.title}</Text>
+              <Text style={styles.appBarArtist} numberOfLines={1}>{song.artist}</Text>
+            </View>
+          </Animated.View>
+
+          <View pointerEvents="box-none" style={styles.appBarActions}>
+            <Animated.View
+              pointerEvents={isPinnedTabsVisible ? 'auto' : 'none'}
+              style={{ opacity: appBarChromeOpacity }}
+            >
+              <Pressable
+                style={[styles.appBarDeckButton, isCreatingDeck && styles.disabledButton]}
+                onPress={handleOpenDeck}
+                disabled={isCreatingDeck}
+              >
+                <Feather name="plus" size={13} color="#FFFFFF" />
+                <Text style={styles.appBarDeckButtonText} numberOfLines={1}>단어장 만들기</Text>
+              </Pressable>
+            </Animated.View>
+            <IconButton icon="info" onPress={handleOpenInfo} />
+          </View>
         </View>
-        <IconButton icon="info" onPress={handleOpenInfo} />
-        <Pressable
-          style={[styles.collapsedDeckButton, isCreatingDeck && styles.disabledButton]}
-          onPress={handleOpenDeck}
-          disabled={isCreatingDeck}
-        >
-          <Feather name="plus" size={13} color="#FFFFFF" />
-          <Text style={styles.collapsedDeckButtonText} numberOfLines={1}>단어장 만들기</Text>
-        </Pressable>
-      </Animated.View>
+      </View>
 
       <Animated.View
         pointerEvents={isPinnedTabsVisible ? 'auto' : 'none'}
@@ -510,9 +572,27 @@ const styles = StyleSheet.create({
   },
   scroll: {
     flex: 1,
+    zIndex: 1,
   },
   scrollContent: {
-    backgroundColor: Colors.background,
+    backgroundColor: 'transparent',
+  },
+  artworkBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: HERO_HEIGHT,
+    zIndex: 0,
+    overflow: 'hidden',
+    backgroundColor: Colors.textPrimary,
+  },
+  artworkBackdropImage: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  artworkBackdropScrim: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#00000080',
   },
   stateScreen: {
     flex: 1,
@@ -529,25 +609,24 @@ const styles = StyleSheet.create({
   },
   hero: {
     height: HERO_HEIGHT,
-    overflow: 'hidden',
-    backgroundColor: Colors.textPrimary,
-  },
-  heroArtwork: {
-    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'transparent',
   },
   heroFallback: {
     backgroundColor: Colors.textPrimary,
   },
-  heroScrim: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#00000080',
+  bodyContent: {
+    backgroundColor: Colors.background,
   },
-  heroTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    zIndex: 2,
-    elevation: 2,
+  heroInfoLayer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: HERO_HEIGHT,
+    justifyContent: 'flex-end',
+    zIndex: 32,
+    elevation: 32,
+    paddingBottom: 26,
   },
   iconButton: {
     width: 40,
@@ -563,11 +642,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
   },
   heroInfo: {
-    position: 'absolute',
-    left: 22,
-    right: 22,
-    bottom: 26,
     gap: 8,
+    paddingHorizontal: 22,
   },
   heroTitle: {
     fontSize: 34,
@@ -633,21 +709,54 @@ const styles = StyleSheet.create({
   tabIndicatorActive: {
     backgroundColor: Colors.primary,
   },
-  collapsedBar: {
+  appBar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 35,
+    elevation: 35,
+  },
+  appBarChrome: {
+    ...StyleSheet.absoluteFillObject,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#FFFFFF24',
+    overflow: 'hidden',
+  },
+  appBarBackdrop: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     zIndex: 30,
     elevation: 30,
+    overflow: 'hidden',
+    backgroundColor: Colors.textPrimary,
+  },
+  appBarBackdropArtwork: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: HERO_HEIGHT,
+  },
+  appBarBackdropScrim: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#00000080',
+  },
+  appBarContent: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     paddingHorizontal: 12,
-    backgroundColor: Colors.textPrimary,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#FFFFFF24',
-    overflow: 'hidden',
+    zIndex: 2,
+    elevation: 2,
+  },
+  appBarActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   pinnedTabBar: {
     position: 'absolute',
@@ -656,36 +765,36 @@ const styles = StyleSheet.create({
     zIndex: 12,
     elevation: 12,
   },
-  collapsedArtworkBg: {
-    ...StyleSheet.absoluteFillObject,
+  appBarTitleContent: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
-  collapsedScrim: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#00000075',
-  },
-  collapsedArtworkThumb: {
+  appBarArtworkThumb: {
     width: 40,
     height: 40,
     borderRadius: 8,
     overflow: 'hidden',
     backgroundColor: '#00000040',
   },
-  collapsedTitleBlock: {
+  appBarTitleBlock: {
     flex: 1,
     gap: 2,
     minWidth: 0,
   },
-  collapsedTitle: {
+  appBarTitle: {
     fontSize: 14,
     fontWeight: '800',
     color: '#FFFFFF',
   },
-  collapsedArtist: {
+  appBarArtist: {
     fontSize: 11,
     fontWeight: '600',
     color: '#FFFFFFCC',
   },
-  collapsedDeckButton: {
+  appBarDeckButton: {
     height: 36,
     maxWidth: 136,
     borderRadius: 8,
@@ -698,7 +807,7 @@ const styles = StyleSheet.create({
     borderColor: '#FFFFFF80',
     backgroundColor: '#FFFFFF26',
   },
-  collapsedDeckButtonText: {
+  appBarDeckButtonText: {
     fontSize: 12,
     fontWeight: '800',
     color: '#FFFFFF',

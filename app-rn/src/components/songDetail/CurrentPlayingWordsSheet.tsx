@@ -40,6 +40,7 @@ export interface CurrentPlayingWord {
   partOfSpeech?: string | null;
   partOfSpeechLabel?: string | null;
   jlpt?: string | null;
+  appearanceOrder?: number | null;
 }
 
 interface WordPage {
@@ -70,8 +71,28 @@ interface LyricToken {
   key: string;
   text: string;
   reading: string;
-  underlineColor: string;
+  underlineColor: string | null;
 }
+
+interface LyricFontSizes {
+  text: number;
+  textLineHeight: number;
+  reading: number;
+  readingLineHeight: number;
+  readingMinHeight: number;
+}
+
+const KANJI_RE = /[一-鿿]/;
+const ASCII_RE = /^[\u0020-\u007E]$/;
+const JAPANESE_PUNCTUATION_RE = /^[、。，．！？・「」『』（）［］【】]$/;
+const LYRIC_BLOCK_HORIZONTAL_PADDING = 16;
+const LYRIC_TOKEN_GAP = 4;
+const MAX_LYRIC_TEXT_FONT_SIZE = 18;
+const MIN_LYRIC_TEXT_FONT_SIZE = 6;
+const MAX_LYRIC_READING_FONT_SIZE = 9;
+const MIN_LYRIC_READING_FONT_SIZE = 5;
+const LYRIC_FONT_FIT_SAFETY = 0.92;
+const NO_UNDERLINE_POS = new Set(['SYMBOL', 'SUPPLEMENTARY_SYMBOL', 'WHITESPACE']);
 
 function getLineWordIndexes(
   lineWordIndexes: Record<string, number[]> | Map<number, number[]> | undefined,
@@ -94,14 +115,80 @@ function tokenSurface(word: CurrentPlayingWord): string {
   return word.surface || word.japanese || word.baseForm || '';
 }
 
+function appearanceOrder(word: CurrentPlayingWord): number {
+  return typeof word.appearanceOrder === 'number' && Number.isFinite(word.appearanceOrder)
+    ? word.appearanceOrder
+    : Number.MAX_SAFE_INTEGER;
+}
+
+function sortWordsByAppearanceOrder(words: CurrentPlayingWord[]): CurrentPlayingWord[] {
+  return words
+    .map((word, index) => ({ word, index }))
+    .sort((a, b) => {
+      const orderDiff = appearanceOrder(a.word) - appearanceOrder(b.word);
+      return orderDiff !== 0 ? orderDiff : a.index - b.index;
+    })
+    .map(item => item.word);
+}
+
 function pushPlainToken(tokens: LyricToken[], text: string, key: string) {
   if (text === '') return;
   tokens.push({
     key,
     text,
     reading: ' ',
-    underlineColor: '#D2D2D2',
+    underlineColor: null,
   });
+}
+
+function visibleFurigana(text: string, reading: string | null | undefined): string {
+  return reading && KANJI_RE.test(text) ? reading : ' ';
+}
+
+function getTokenUnderlineColor(partOfSpeech: string | null | undefined): string | null {
+  if (!partOfSpeech || NO_UNDERLINE_POS.has(partOfSpeech)) return null;
+  return getPosColor(partOfSpeech);
+}
+
+function lyricCharacterWeight(char: string): number {
+  if (char.trim() === '') return 0.35;
+  if (ASCII_RE.test(char)) return 0.55;
+  if (JAPANESE_PUNCTUATION_RE.test(char)) return 0.65;
+  return 1;
+}
+
+function lyricTextWeight(text: string): number {
+  return Array.from(text).reduce((sum, char) => sum + lyricCharacterWeight(char), 0);
+}
+
+function getLyricFontSizes(tokens: LyricToken[], width: number): LyricFontSizes {
+  const availableWidth = Math.max(1, width - LYRIC_BLOCK_HORIZONTAL_PADDING * 2);
+  const gapWidth = Math.max(0, tokens.length - 1) * LYRIC_TOKEN_GAP;
+  const readingToTextRatio = MAX_LYRIC_READING_FONT_SIZE / MAX_LYRIC_TEXT_FONT_SIZE;
+  const tokenUnits = tokens.reduce((sum, token) => {
+    const textUnits = lyricTextWeight(token.text);
+    const readingUnits = lyricTextWeight(token.reading.trim()) * readingToTextRatio;
+    return sum + Math.max(textUnits, readingUnits);
+  }, 0);
+  const fitFontSize = tokenUnits > 0
+    ? ((availableWidth - gapWidth) / tokenUnits) * LYRIC_FONT_FIT_SAFETY
+    : MAX_LYRIC_TEXT_FONT_SIZE;
+  const text = Math.max(
+    MIN_LYRIC_TEXT_FONT_SIZE,
+    Math.min(MAX_LYRIC_TEXT_FONT_SIZE, fitFontSize),
+  );
+  const reading = Math.max(
+    MIN_LYRIC_READING_FONT_SIZE,
+    Math.min(MAX_LYRIC_READING_FONT_SIZE, text * readingToTextRatio),
+  );
+
+  return {
+    text,
+    textLineHeight: Math.ceil(text + 3),
+    reading,
+    readingLineHeight: Math.ceil(reading + 2),
+    readingMinHeight: Math.ceil(reading + 2),
+  };
 }
 
 function buildAnalyzedLyricTokens(text: string, analyzedTokens: Token[]): LyricToken[] {
@@ -116,11 +203,12 @@ function buildAnalyzedLyricTokens(text: string, analyzedTokens: Token[]): LyricT
         pushPlainToken(tokens, text.slice(cursor, token.charStart), `gap-${index}`);
       }
 
+      const tokenText = text.slice(token.charStart, token.charEnd) || token.surface;
       tokens.push({
         key: `token-${index}-${token.charStart}`,
-        text: text.slice(token.charStart, token.charEnd) || token.surface,
-        reading: token.baseFormReading ?? token.reading ?? ' ',
-        underlineColor: getPosColor(token.partOfSpeech),
+        text: tokenText,
+        reading: visibleFurigana(tokenText, token.baseFormReading ?? token.reading),
+        underlineColor: getTokenUnderlineColor(token.partOfSpeech),
       });
       cursor = Math.max(cursor, token.charEnd);
     });
@@ -161,8 +249,8 @@ function buildLyricTokens(text: string, words: CurrentPlayingWord[]): LyricToken
     tokens.push({
       key: `word-${index}-${matchStart}`,
       text: matchText,
-      reading: wordReading(word) ?? ' ',
-      underlineColor: getPosColor(word.partOfSpeech ?? ''),
+      reading: visibleFurigana(matchText, wordReading(word)),
+      underlineColor: getTokenUnderlineColor(word.partOfSpeech),
     });
     cursor = matchStart + matchText.length;
   });
@@ -178,12 +266,45 @@ function buildLyricTokens(text: string, words: CurrentPlayingWord[]): LyricToken
   return tokens;
 }
 
-const LyricTokenStack = React.memo(function LyricTokenStack({ token }: { token: LyricToken }) {
+const LyricTokenStack = React.memo(function LyricTokenStack({
+  token,
+  fontSizes,
+}: {
+  token: LyricToken;
+  fontSizes: LyricFontSizes;
+}) {
   return (
     <View style={styles.lyricToken}>
-      <Text style={styles.tokenReading} numberOfLines={1}>{token.reading}</Text>
-      <Text style={styles.tokenText} numberOfLines={1}>{token.text}</Text>
-      <View style={[styles.tokenUnderline, { backgroundColor: token.underlineColor }]} />
+      <Text
+        style={[
+          styles.tokenReading,
+          {
+            fontSize: fontSizes.reading,
+            lineHeight: fontSizes.readingLineHeight,
+            minHeight: fontSizes.readingMinHeight,
+          },
+        ]}
+        numberOfLines={1}
+        ellipsizeMode="clip"
+      >
+        {token.reading}
+      </Text>
+      <Text
+        style={[
+          styles.tokenText,
+          {
+            fontSize: fontSizes.text,
+            lineHeight: fontSizes.textLineHeight,
+          },
+        ]}
+        numberOfLines={1}
+        ellipsizeMode="clip"
+      >
+        {token.text}
+      </Text>
+      {token.underlineColor ? (
+        <View style={[styles.tokenUnderline, { backgroundColor: token.underlineColor }]} />
+      ) : null}
     </View>
   );
 });
@@ -195,13 +316,17 @@ const CurrentWordsPageCard = React.memo(function CurrentWordsPageCard({ page, wi
       : buildLyricTokens(page.line.originalText, page.words),
     [page.line.originalText, page.line.tokens, page.words],
   );
+  const lyricFontSizes = useMemo(
+    () => getLyricFontSizes(lyricTokens, width),
+    [lyricTokens, width],
+  );
 
   return (
     <View style={[styles.pageCard, { width }]}>
       <View style={styles.lyricBlock}>
         <View style={styles.lyricTokens}>
           {lyricTokens.map(token => (
-            <LyricTokenStack key={token.key} token={token} />
+            <LyricTokenStack key={token.key} token={token} fontSizes={lyricFontSizes} />
           ))}
         </View>
         {page.line.koreanLyrics ? (
@@ -273,7 +398,7 @@ function CurrentPlayingWordsSheetComponent({
       return {
         key: String(line.index),
         line,
-        words: wordIndexes.map(wordIndex => words[wordIndex]).filter(Boolean),
+        words: sortWordsByAppearanceOrder(wordIndexes.map(wordIndex => words[wordIndex]).filter(Boolean)),
       };
     });
   }, [lines, words, lineWordIndexes]);
@@ -419,22 +544,21 @@ const styles = StyleSheet.create({
   lyricTokens: {
     width: '100%',
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexWrap: 'nowrap',
     alignItems: 'flex-end',
     justifyContent: 'center',
-    gap: 4,
+    gap: LYRIC_TOKEN_GAP,
+    overflow: 'hidden',
   },
   lyricToken: {
     alignItems: 'center',
     gap: 1,
+    flexShrink: 0,
   },
   tokenReading: {
-    minHeight: 11,
-    fontSize: 9,
     color: '#777777',
   },
   tokenText: {
-    fontSize: 18,
     fontWeight: '800',
     color: Colors.textPrimary,
   },
