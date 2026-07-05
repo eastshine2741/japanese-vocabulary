@@ -75,31 +75,34 @@ export const useReviewStore = create<ReviewState>((set, get) => ({
   reveal: () => set({ isRevealed: true }),
 
   rate: async (rating: number) => {
-    const { cards, currentIndex, totalReviewed, ratingCounts } = get();
+    const { status, cards, currentIndex, isRevealed, totalReviewed, ratingCounts } = get();
+    if (status !== 'reviewing' || !isRevealed) return;
+
     const card = cards[currentIndex];
     if (!card) return;
+
+    const newRatingCounts = { ...ratingCounts, [rating]: ratingCounts[rating] + 1 };
+    const newReviewed = totalReviewed + 1;
+    const nextIndex = currentIndex + 1;
+
+    if (nextIndex >= cards.length) {
+      set({
+        status: 'summary',
+        totalReviewed: newReviewed,
+        ratingCounts: newRatingCounts,
+      });
+    } else {
+      set({
+        currentIndex: nextIndex,
+        isRevealed: false,
+        totalReviewed: newReviewed,
+        ratingCounts: newRatingCounts,
+      });
+    }
 
     try {
       await flashcardApi.review(card.id, { rating });
       useStudyStatsStore.getState().invalidate();
-      const newRatingCounts = { ...ratingCounts, [rating]: ratingCounts[rating] + 1 };
-      const newReviewed = totalReviewed + 1;
-      const nextIndex = currentIndex + 1;
-
-      if (nextIndex >= cards.length) {
-        set({
-          status: 'summary',
-          totalReviewed: newReviewed,
-          ratingCounts: newRatingCounts,
-        });
-      } else {
-        set({
-          currentIndex: nextIndex,
-          isRevealed: false,
-          totalReviewed: newReviewed,
-          ratingCounts: newRatingCounts,
-        });
-      }
     } catch (e: any) {
       set({ status: 'error', error: e.message });
     }
