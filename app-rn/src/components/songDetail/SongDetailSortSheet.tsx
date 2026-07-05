@@ -1,11 +1,13 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { Colors } from '../../theme/theme';
 import { SongDetailWordsSort } from './types';
 
 interface Props {
   value: SongDetailWordsSort;
   onApply: (value: SongDetailWordsSort) => void;
+  onClose?: () => void;
 }
 
 interface OptionProps {
@@ -31,7 +33,7 @@ const SortOption = React.memo(function SortOption({ value, label, selected, onSe
   );
 });
 
-export default function SongDetailSortSheet({ value, onApply }: Props) {
+export default function SongDetailSortSheet({ value, onApply, onClose }: Props) {
   const [draftValue, setDraftValue] = useState(value);
 
   useEffect(() => {
@@ -44,38 +46,80 @@ export default function SongDetailSortSheet({ value, onApply }: Props) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>정렬</Text>
-      <Text style={styles.sectionLabel}>정렬 기준</Text>
-      <View style={styles.segmented}>
-        <SortOption value="importance" label="중요도순" selected={draftValue === 'importance'} onSelect={setDraftValue} />
-        <SortOption value="appearance" label="등장순" selected={draftValue === 'appearance'} onSelect={setDraftValue} />
+      <View style={styles.content}>
+        <View style={styles.header}>
+          <Text style={styles.title}>정렬</Text>
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={onClose}
+            activeOpacity={0.7}
+            disabled={onClose == null}
+            accessibilityRole="button"
+            accessibilityLabel="정렬 닫기"
+          >
+            <Feather name="x" size={16} color={Colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>정렬 기준</Text>
+          <View style={styles.segmented}>
+            <SortOption value="importance" label="중요도순" selected={draftValue === 'importance'} onSelect={setDraftValue} />
+            <SortOption value="appearance" label="등장순" selected={draftValue === 'appearance'} onSelect={setDraftValue} />
+          </View>
+        </View>
+        <TouchableOpacity style={styles.applyButton} onPress={apply} activeOpacity={0.7}>
+          <Text style={styles.applyText}>적용</Text>
+        </TouchableOpacity>
       </View>
-      <TouchableOpacity style={styles.applyButton} onPress={apply} activeOpacity={0.7}>
-        <Text style={styles.applyText}>적용</Text>
-      </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 20,
+    overflow: 'hidden',
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    backgroundColor: Colors.background,
+  },
+  content: {
+    gap: 20,
     paddingTop: 4,
-    paddingBottom: 24,
-    gap: 14,
+    paddingRight: 20,
+    paddingBottom: 28,
+    paddingLeft: 20,
+    backgroundColor: Colors.background,
+  },
+  header: {
+    width: '100%',
+    minHeight: 32,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   title: {
-    fontSize: 17,
+    fontSize: 19,
     fontWeight: '800',
     color: Colors.textPrimary,
   },
+  closeButton: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 9999,
+    backgroundColor: '#F6F6F6',
+  },
+  section: {
+    gap: 10,
+  },
   sectionLabel: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: '700',
-    color: Colors.textMuted,
+    color: Colors.textSecondary,
   },
   segmented: {
-    height: 44,
+    height: 40,
     flexDirection: 'row',
     gap: 8,
   },
@@ -92,22 +136,23 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primaryBg,
   },
   optionText: {
-    fontSize: 15,
-    fontWeight: '800',
+    fontSize: 12,
+    fontWeight: '500',
     color: Colors.textSecondary,
   },
   optionTextSelected: {
+    fontWeight: '800',
     color: Colors.primary,
   },
   applyButton: {
-    height: 48,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 9999,
     backgroundColor: Colors.primary,
   },
   applyText: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '800',
     color: '#FFFFFF',
   },

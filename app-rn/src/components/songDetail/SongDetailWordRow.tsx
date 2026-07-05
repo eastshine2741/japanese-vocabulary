@@ -1,69 +1,96 @@
 import React, { useCallback } from 'react';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../theme/theme';
 import { getPosColor, getPosLabel } from '../../types/pos';
 import { convertReading } from '../../utils/readingConverter';
 import { useSettingsStore } from '../../stores/settingsStore';
-import { SongDetailWordItem } from './types';
 
-interface Props {
-  word: SongDetailWordItem;
-  isSaved: boolean;
-  isBusy: boolean;
-  onToggleSave: (word: SongDetailWordItem) => void;
+export interface SongDetailWordRowItem {
+  japanese?: string;
+  surface?: string;
+  baseForm?: string | null;
+  reading?: string | null;
+  baseFormReading?: string | null;
+  koreanText?: string | null;
+  meanings?: { text: string; partOfSpeech?: string | null }[];
+  partOfSpeech?: string | null;
+  partOfSpeechLabel?: string | null;
+  jlpt?: string | null;
 }
 
-function SongDetailWordRow({ word, isSaved, isBusy, onToggleSave }: Props) {
+interface Props<T extends SongDetailWordRowItem> {
+  word: T;
+  isSaved?: boolean;
+  isBusy?: boolean;
+  showDivider?: boolean;
+  onToggleSave?: (word: T) => void;
+}
+
+function SongDetailWordRow<T extends SongDetailWordRowItem>({
+  word,
+  isSaved = false,
+  isBusy = false,
+  showDivider = true,
+  onToggleSave,
+}: Props<T>) {
   const readingDisplay = useSettingsStore(s => s.readingDisplay);
   const handleToggle = useCallback(() => {
-    onToggleSave(word);
+    onToggleSave?.(word);
   }, [onToggleSave, word]);
 
-  const posLabel = word.partOfSpeechLabel ?? getPosLabel(word.partOfSpeech);
-  const posColor = getPosColor(word.partOfSpeech);
-  const reading = word.reading ? convertReading(word.reading, readingDisplay) : '';
+  const pos = word.partOfSpeech ?? '';
+  const posLabel = word.partOfSpeechLabel ?? (pos ? getPosLabel(pos) : '');
+  const posColor = getPosColor(pos);
+  const label = word.baseForm || word.japanese || word.surface || '';
+  const readingValue = word.baseFormReading ?? word.reading;
+  const reading = readingValue ? convertReading(readingValue, readingDisplay) : '';
+  const meaning = word.koreanText
+    ?? word.meanings?.map(item => item.text).filter(Boolean).join(', ')
+    ?? '';
   const jlptColor = getJlptColor(word.jlpt);
 
   return (
-    <View style={styles.row}>
+    <View style={[styles.row, showDivider && styles.rowDivider]}>
       <View style={styles.wordInfo}>
         <View style={styles.jpRow}>
-          <Text style={styles.japanese} numberOfLines={1}>{word.baseForm || word.japanese || word.surface}</Text>
+          <Text style={styles.japanese} numberOfLines={1}>{label}</Text>
           {reading !== '' && <Text style={styles.reading} numberOfLines={1}>{reading}</Text>}
         </View>
         <View style={styles.meaningRow}>
           <Text style={styles.meaning} numberOfLines={1}>
-            {word.koreanText ?? '뜻 정보가 없습니다'}
+            {meaning || '뜻 정보가 없습니다'}
           </Text>
           <View style={styles.badges}>
             {word.jlpt && (
-              <View style={[styles.badge, { backgroundColor: jlptColor }]}>
+              <View style={[styles.jlptBadge, { backgroundColor: jlptColor }]}>
                 <Text style={styles.jlptText}>{word.jlpt}</Text>
               </View>
             )}
-            <View style={[styles.badge, { backgroundColor: `${posColor}20` }]}>
-              <Text style={[styles.posText, { color: posColor }]}>{posLabel}</Text>
-            </View>
+            {posLabel !== '' && (
+              <View style={[styles.posBadge, { backgroundColor: `${posColor}20` }]}>
+                <Text style={[styles.posText, { color: posColor }]}>{posLabel}</Text>
+              </View>
+            )}
           </View>
         </View>
       </View>
 
       <TouchableOpacity
-        style={[styles.toggleButton, isSaved && styles.toggleButtonSaved]}
+        style={styles.toggleButton}
         onPress={handleToggle}
-        disabled={isBusy}
+        disabled={isBusy || onToggleSave == null}
         activeOpacity={0.7}
         accessibilityRole="button"
         accessibilityLabel={isSaved ? '단어장에서 빼기' : '단어 담기'}
       >
         {isBusy ? (
-          <ActivityIndicator size="small" color={isSaved ? '#FFFFFF' : Colors.primary} />
+          <ActivityIndicator size="small" color={Colors.primary} />
         ) : (
-          <Feather
-            name="bookmark"
+          <Ionicons
+            name={isSaved ? 'bookmark' : 'bookmark-outline'}
             size={17}
-            color={isSaved ? '#FFFFFF' : Colors.textSecondary}
+            color={Colors.primary}
           />
         )}
       </TouchableOpacity>
@@ -71,9 +98,9 @@ function SongDetailWordRow({ word, isSaved, isBusy, onToggleSave }: Props) {
   );
 }
 
-export default React.memo(SongDetailWordRow);
+export default React.memo(SongDetailWordRow) as typeof SongDetailWordRow;
 
-function getJlptColor(jlpt: string | null): string {
+function getJlptColor(jlpt: string | null | undefined): string {
   switch (jlpt) {
     case 'N1':
       return Colors.jlptN1;
@@ -92,79 +119,87 @@ function getJlptColor(jlpt: string | null): string {
 
 const styles = StyleSheet.create({
   row: {
-    minHeight: 68,
+    minHeight: 66,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    paddingHorizontal: 20,
     paddingVertical: 12,
+    backgroundColor: Colors.background,
+  },
+  rowDivider: {
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.border,
-    backgroundColor: Colors.background,
   },
   wordInfo: {
     flex: 1,
     minWidth: 0,
-    gap: 7,
+    gap: 3,
   },
   jpRow: {
     flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 8,
+    alignItems: 'center',
+    gap: 6,
     minWidth: 0,
   },
   japanese: {
-    maxWidth: '58%',
-    fontSize: 17,
-    fontWeight: '800',
+    flexShrink: 1,
+    fontSize: 18,
+    fontWeight: '700',
     color: Colors.textPrimary,
   },
   reading: {
-    flex: 1,
+    flexShrink: 1,
     fontSize: 12,
-    fontWeight: '500',
     color: Colors.textMuted,
   },
   meaningRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 12,
     minWidth: 0,
   },
   meaning: {
-    flex: 1,
+    flexShrink: 1,
     fontSize: 14,
+    fontWeight: '500',
     color: Colors.textSecondary,
   },
   badges: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: 3,
   },
-  badge: {
-    minHeight: 22,
+  jlptBadge: {
+    minHeight: 19,
     justifyContent: 'center',
     borderRadius: 9999,
-    paddingHorizontal: 7,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
   },
   jlptText: {
-    fontSize: 11,
-    fontWeight: '800',
+    fontSize: 10,
+    fontWeight: '700',
     color: '#FFFFFF',
   },
+  posBadge: {
+    minHeight: 18,
+    justifyContent: 'center',
+    borderRadius: 9999,
+    paddingTop: 1,
+    paddingRight: 8,
+    paddingBottom: 3,
+    paddingLeft: 8,
+  },
   posText: {
-    fontSize: 11,
-    fontWeight: '700',
+    fontSize: 10,
+    fontWeight: '600',
   },
   toggleButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.elevated,
-  },
-  toggleButtonSaved: {
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.primaryBg,
   },
 });

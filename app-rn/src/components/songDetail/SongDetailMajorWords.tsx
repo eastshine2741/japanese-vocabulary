@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Colors } from '../../theme/theme';
-import { JlptBadge, PosBadge } from '../Badges';
+import SongDetailWordRow from './SongDetailWordRow';
 import { selectMajorWords } from './songDetailWordDerivation';
 import { SongDetailWordItem } from './types';
 
@@ -24,28 +24,12 @@ interface SongDetailMajorWordsProps {
 }
 
 const MajorWordRow = React.memo(function MajorWordRow({ word, isLast }: MajorWordRowProps) {
-  const reading = word.reading ?? word.baseForm;
-  const meaning = word.koreanText ?? '뜻 정보 없음';
-  const posLabel = word.partOfSpeechLabel ?? word.partOfSpeech;
-
   return (
-    <View>
-      <View style={styles.wordRow}>
-        <View style={styles.wordTextBlock}>
-          <View style={styles.wordTitleRow}>
-            <Text style={styles.wordJapanese} numberOfLines={1}>
-              {word.japanese}
-            </Text>
-            <JlptBadge level={word.jlpt} />
-          </View>
-          <Text style={styles.wordMeta} numberOfLines={1}>
-            {reading} · {meaning}
-          </Text>
-        </View>
-        {posLabel !== '' && <PosBadge pos={word.partOfSpeech} />}
-      </View>
-      {!isLast && <View style={styles.divider} />}
-    </View>
+    <SongDetailWordRow
+      word={word}
+      isSaved={word.isSavedForSong || word.savedWordId != null}
+      showDivider={!isLast}
+    />
   );
 });
 
@@ -119,37 +103,6 @@ const styles = StyleSheet.create({
   },
   list: {
     overflow: 'hidden',
-  },
-  wordRow: {
-    minHeight: 66,
-    paddingVertical: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  wordTextBlock: {
-    flex: 1,
-    gap: 5,
-    minWidth: 0,
-  },
-  wordTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  wordJapanese: {
-    flexShrink: 1,
-    color: Colors.textPrimary,
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  wordMeta: {
-    color: Colors.textSecondary,
-    fontSize: 13,
-  },
-  divider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: Colors.border,
   },
   stateBox: {
     minHeight: 88,

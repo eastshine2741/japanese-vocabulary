@@ -175,6 +175,14 @@ export default function SongDetailWordsTab({
     filterSheetRef.current?.present();
   }, []);
 
+  const closeSortSheet = useCallback(() => {
+    sortSheetRef.current?.dismiss();
+  }, []);
+
+  const closeFilterSheet = useCallback(() => {
+    filterSheetRef.current?.dismiss();
+  }, []);
+
   const handleSortApply = useCallback((value: SongDetailWordsSort) => {
     setSort(value);
     sortSheetRef.current?.dismiss();
@@ -344,8 +352,8 @@ export default function SongDetailWordsTab({
         enablePanDownToClose
         backgroundStyle={styles.sheetBg}
       >
-        <BottomSheetView style={{ paddingBottom: insets.bottom }}>
-          <SongDetailSortSheet value={sort} onApply={handleSortApply} />
+        <BottomSheetView>
+          <SongDetailSortSheet value={sort} onApply={handleSortApply} onClose={closeSortSheet} />
         </BottomSheetView>
       </AppBottomSheetModal>
 
@@ -355,7 +363,7 @@ export default function SongDetailWordsTab({
         enablePanDownToClose
         backgroundStyle={styles.sheetBg}
       >
-        <BottomSheetScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 8 }}>
+        <BottomSheetScrollView>
           <SongDetailFilterSheet
             availablePos={availablePos}
             selectedPos={selectedPos}
@@ -367,6 +375,7 @@ export default function SongDetailWordsTab({
             onToggleUnknownJlpt={toggleUnknownJlpt}
             onReset={resetFilters}
             onApply={applyFilters}
+            onClose={closeFilterSheet}
           />
         </BottomSheetScrollView>
       </AppBottomSheetModal>
@@ -438,6 +447,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   listContent: {
+    paddingHorizontal: 20,
     backgroundColor: Colors.background,
   },
   stateView: {
@@ -462,5 +472,7 @@ const styles = StyleSheet.create({
   },
   sheetBg: {
     backgroundColor: Colors.background,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
   },
 });

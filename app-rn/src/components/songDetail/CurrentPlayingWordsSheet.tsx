@@ -9,13 +9,13 @@ import {
 } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import { BottomSheetView } from '@gorhom/bottom-sheet';
-import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../theme/theme';
 import { Layers } from '../../theme/layers';
 import { AppBottomSheet } from '../bottomSheet';
-import ReadingText from '../ReadingText';
+import { getPosColor } from '../../types/pos';
 import { SONG_DETAIL_MV_BAR_HEIGHT } from './SongDetailMvBar';
+import SongDetailWordRow from './SongDetailWordRow';
 import { getCurrentLyricLineIndex } from './useCurrentLyricLine';
 
 export const CURRENT_PLAYING_WORDS_PEEK_HEIGHT = 70;
@@ -38,6 +38,8 @@ export interface CurrentPlayingWord {
   koreanText?: string | null;
   meanings?: { text: string; partOfSpeech?: string | null }[];
   partOfSpeech?: string | null;
+  partOfSpeechLabel?: string | null;
+  jlpt?: string | null;
 }
 
 interface WordPage {
@@ -62,8 +64,11 @@ interface PageCardProps {
   width: number;
 }
 
-interface WordRowProps {
-  word: CurrentPlayingWord;
+interface LyricToken {
+  key: string;
+  text: string;
+  reading: string;
+  underlineColor: string;
 }
 
 function getLineWordIndexes(
@@ -83,37 +88,88 @@ function wordReading(word: CurrentPlayingWord): string | null {
   return word.baseFormReading ?? word.reading ?? null;
 }
 
-function wordMeaning(word: CurrentPlayingWord): string {
-  if (word.koreanText) return word.koreanText;
-  return word.meanings?.map(meaning => meaning.text).filter(Boolean).join(', ') ?? '';
+function tokenSurface(word: CurrentPlayingWord): string {
+  return word.surface || word.japanese || word.baseForm || '';
 }
 
-const CurrentWordRow = React.memo(function CurrentWordRow({ word }: WordRowProps) {
-  const label = wordLabel(word);
-  const reading = wordReading(word);
-  const meaning = wordMeaning(word);
+function pushPlainTokens(tokens: LyricToken[], text: string, prefix: string) {
+  Array.from(text).forEach((char, index) => {
+    if (char === '') return;
+    tokens.push({
+      key: `${prefix}-${index}`,
+      text: char,
+      reading: ' ',
+      underlineColor: '#D2D2D2',
+    });
+  });
+}
 
+function buildLyricTokens(text: string, words: CurrentPlayingWord[]): LyricToken[] {
+  const tokens: LyricToken[] = [];
+  let cursor = 0;
+
+  words.forEach((word, index) => {
+    const candidates = [tokenSurface(word), wordLabel(word), word.baseForm]
+      .filter((candidate): candidate is string => Boolean(candidate));
+    let matchStart = -1;
+    let matchText = '';
+
+    for (const candidate of candidates) {
+      const found = text.indexOf(candidate, cursor);
+      if (found >= 0 && (matchStart < 0 || found < matchStart)) {
+        matchStart = found;
+        matchText = candidate;
+      }
+    }
+
+    if (matchStart < 0 || matchText === '') return;
+    if (matchStart > cursor) {
+      pushPlainTokens(tokens, text.slice(cursor, matchStart), `gap-${index}`);
+    }
+    tokens.push({
+      key: `word-${index}-${matchStart}`,
+      text: matchText,
+      reading: wordReading(word) ?? ' ',
+      underlineColor: getPosColor(word.partOfSpeech ?? ''),
+    });
+    cursor = matchStart + matchText.length;
+  });
+
+  if (cursor < text.length) {
+    pushPlainTokens(tokens, text.slice(cursor), 'tail');
+  }
+
+  if (tokens.length === 0) {
+    pushPlainTokens(tokens, text, 'fallback');
+  }
+
+  return tokens;
+}
+
+const LyricTokenStack = React.memo(function LyricTokenStack({ token }: { token: LyricToken }) {
   return (
-    <View style={styles.wordRow}>
-      <View style={styles.wordTextCol}>
-        <View style={styles.wordPrimaryLine}>
-          <Text style={styles.wordJapanese} numberOfLines={1}>{label}</Text>
-          {reading ? <ReadingText style={styles.wordReading} reading={reading} /> : null}
-        </View>
-        <Text style={styles.wordMeaning} numberOfLines={2}>{meaning || '뜻을 준비 중이에요'}</Text>
-      </View>
-      <View style={styles.addButton}>
-        <Feather name="bookmark" size={16} color={Colors.primary} />
-      </View>
+    <View style={styles.lyricToken}>
+      <Text style={styles.tokenReading} numberOfLines={1}>{token.reading}</Text>
+      <Text style={styles.tokenText} numberOfLines={1}>{token.text}</Text>
+      <View style={[styles.tokenUnderline, { backgroundColor: token.underlineColor }]} />
     </View>
   );
 });
 
 const CurrentWordsPageCard = React.memo(function CurrentWordsPageCard({ page, width }: PageCardProps) {
+  const lyricTokens = useMemo(
+    () => buildLyricTokens(page.line.originalText, page.words),
+    [page.line.originalText, page.words],
+  );
+
   return (
     <View style={[styles.pageCard, { width }]}>
       <View style={styles.lyricBlock}>
-        <Text style={styles.lyricText} numberOfLines={3}>{page.line.originalText}</Text>
+        <View style={styles.lyricTokens}>
+          {lyricTokens.map(token => (
+            <LyricTokenStack key={token.key} token={token} />
+          ))}
+        </View>
         {page.line.koreanLyrics ? (
           <Text style={styles.translationText} numberOfLines={2}>{page.line.koreanLyrics}</Text>
         ) : null}
@@ -127,10 +183,11 @@ const CurrentWordsPageCard = React.memo(function CurrentWordsPageCard({ page, wi
       >
         <View style={styles.wordListBody}>
           {page.words.length > 0 ? (
-            page.words.map(word => (
-              <CurrentWordRow
+            page.words.map((word, index) => (
+              <SongDetailWordRow
                 key={`${word.id ?? wordLabel(word)}-${wordReading(word) ?? ''}`}
                 word={word}
+                showDivider={index < page.words.length - 1}
               />
             ))
           ) : (
@@ -327,22 +384,41 @@ const styles = StyleSheet.create({
   lyricBlock: {
     height: 110,
     justifyContent: 'center',
-    gap: 8,
+    gap: 14,
     borderRadius: 12,
     paddingHorizontal: 16,
     backgroundColor: Colors.elevated,
   },
-  lyricText: {
-    fontSize: 20,
-    lineHeight: 28,
-    fontWeight: '700',
+  lyricTokens: {
+    width: '100%',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    gap: 4,
+  },
+  lyricToken: {
+    alignItems: 'center',
+    gap: 1,
+  },
+  tokenReading: {
+    minHeight: 11,
+    fontSize: 9,
+    color: '#777777',
+  },
+  tokenText: {
+    fontSize: 18,
+    fontWeight: '800',
     color: Colors.textPrimary,
-    textAlign: 'center',
+  },
+  tokenUnderline: {
+    width: '100%',
+    height: 2,
   },
   translationText: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: '600',
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: '500',
     color: Colors.textSecondary,
     textAlign: 'center',
   },
@@ -356,50 +432,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     overflow: 'hidden',
     backgroundColor: Colors.surface,
-  },
-  wordRow: {
-    minHeight: 62,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.border,
-  },
-  wordTextCol: {
-    flex: 1,
-    minWidth: 0,
-    gap: 3,
-  },
-  wordPrimaryLine: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 6,
-  },
-  wordJapanese: {
-    maxWidth: '70%',
-    fontSize: 16,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-  },
-  wordReading: {
-    flexShrink: 1,
-    fontSize: 12,
-    color: Colors.textSecondary,
-  },
-  wordMeaning: {
-    fontSize: 13,
-    lineHeight: 18,
-    color: Colors.textSecondary,
-  },
-  addButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.primaryBg,
   },
   emptyWords: {
     minHeight: 160,
