@@ -45,8 +45,8 @@ class DeckEventListener(
         }
     }
 
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT)
+    @Transactional
     fun onFlashcardDeleted(event: FlashcardDeletedEvent) {
         deckFlashcardRepository.deleteByFlashcardId(event.flashcardId)
     }
