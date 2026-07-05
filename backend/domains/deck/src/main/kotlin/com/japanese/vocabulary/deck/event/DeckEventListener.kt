@@ -8,6 +8,7 @@ import com.japanese.vocabulary.deck.repository.DeckRepository
 import com.japanese.vocabulary.flashcard.event.FlashcardDeletedEvent
 import com.japanese.vocabulary.song.repository.SongRepository
 import com.japanese.vocabulary.word.event.SongWordCreatedEvent
+import org.springframework.context.event.EventListener
 import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.event.TransactionPhase
@@ -45,8 +46,8 @@ class DeckEventListener(
         }
     }
 
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @EventListener
+    @Transactional
     fun onFlashcardDeleted(event: FlashcardDeletedEvent) {
         deckFlashcardRepository.deleteByFlashcardId(event.flashcardId)
     }
