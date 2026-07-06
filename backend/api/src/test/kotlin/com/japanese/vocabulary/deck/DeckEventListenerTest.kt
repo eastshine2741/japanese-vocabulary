@@ -108,7 +108,9 @@ class DeckEventListenerTest : ApiAfterCommitListenerTest() {
         val deck = deckRepository.findByUserIdAndSongId(me.id!!, song.id!!)!!
         assertThat(deckFlashcardRepository.existsByDeckIdAndFlashcardId(deck.id!!, card.id!!)).isTrue
 
-        listener.onFlashcardDeleted(FlashcardDeletedEvent(flashcardId = card.id!!))
+        inTx {
+            listener.onFlashcardDeleted(FlashcardDeletedEvent(flashcardId = card.id!!))
+        }
 
         assertThat(deckFlashcardRepository.existsByDeckIdAndFlashcardId(deck.id!!, card.id!!)).isFalse
     }

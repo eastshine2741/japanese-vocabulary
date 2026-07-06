@@ -28,9 +28,10 @@
 - `RecentSongService`, `SongSearchService` 등이 Redis 의존. CI 의 무 Redis 환경에서 컨텍스트 부팅 실패 방지.
 - `redis:7-alpine` 컨테이너 1개를 모든 테스트가 공유. 각 테스트 `@BeforeEach` 에서 `flushDb()` 로 키 초기화.
 
-### Spring Event 는 AFTER_COMMIT, 테스트는 발행만 검증한다
-- 프로덕션 리스너 (`DeckEventListener`, `StudyStatsEventListener`) 는 `@TransactionalEventListener(phase = AFTER_COMMIT)` 사용 — 메인 트랜잭션이 실패해도 리스너 실패가 원래 트랜잭션을 롤백시키지 않는다.
-- 통합 테스트는 `@Transactional` 롤백 안에서 돌므로 AFTER_COMMIT 리스너는 발화되지 않는다. **리스너 본문 동작은 단위 테스트로 검증**하고, 통합 테스트는 `@RecordApplicationEvents` 의 `ApplicationEvents` 로 **이벤트 발행 자체만 검증** 한다.
+### Spring Event 는 기본적으로 AFTER_COMMIT, FK 선행 정리는 같은 트랜잭션
+- 프로덕션 리스너 (`DeckEventListener.onSongWordCreated`, `StudyStatsEventListener`) 는 `@TransactionalEventListener(phase = AFTER_COMMIT)` 사용 — 메인 트랜잭션이 실패해도 리스너 실패가 원래 트랜잭션을 롤백시키지 않는다.
+- FK 선행 정리처럼 publisher 커밋 전에 끝나야 하는 listener (`DeckEventListener.onFlashcardDeleted`) 는 같은 트랜잭션의 `@EventListener` + `@Transactional(propagation = MANDATORY)`를 사용한다.
+- 통합 테스트는 `@Transactional` 롤백 안에서 돌므로 AFTER_COMMIT 리스너는 발화되지 않는다. **AFTER_COMMIT 리스너 본문 동작은 단위 테스트로 검증**하고, 통합 테스트는 `@RecordApplicationEvents` 의 `ApplicationEvents` 로 **이벤트 발행 자체만 검증** 한다. 같은 트랜잭션 listener는 실제 row 변경까지 통합 테스트로 검증한다.
 
 ---
 
