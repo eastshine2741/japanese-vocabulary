@@ -10,7 +10,7 @@ import {
   BottomSheetScrollView,
   BottomSheetView,
 } from '@gorhom/bottom-sheet';
-import { Feather } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { wordApi } from '../../api/wordApi';
 import { AppBottomSheetModal, AppBottomSheetModalRef } from '../bottomSheet';
@@ -66,19 +66,39 @@ interface Props {
 }
 
 interface SummaryChipProps {
-  icon: keyof typeof Feather.glyphMap;
+  icon: keyof typeof Ionicons.glyphMap;
   onPress: () => void;
+  accessibilityLabel: string;
 }
 
-const SummaryChip = React.memo(function SummaryChip({ icon, onPress }: SummaryChipProps) {
+const SummaryChip = React.memo(function SummaryChip({ icon, onPress, accessibilityLabel }: SummaryChipProps) {
   return (
     <TouchableOpacity
       style={styles.summaryChip}
       onPress={onPress}
       activeOpacity={0.7}
       accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
     >
-      <Feather name={icon} size={12} color={Colors.textSecondary} />
+      <Ionicons name={icon} size={16} color={Colors.textSecondary} />
+    </TouchableOpacity>
+  );
+});
+
+interface SortSummaryChipProps {
+  onPress: () => void;
+}
+
+const SortSummaryChip = React.memo(function SortSummaryChip({ onPress }: SortSummaryChipProps) {
+  return (
+    <TouchableOpacity
+      style={styles.summaryChip}
+      onPress={onPress}
+      activeOpacity={0.7}
+      accessibilityRole="button"
+      accessibilityLabel="정렬"
+    >
+      <Ionicons name="swap-vertical" size={16} color={Colors.textSecondary} />
     </TouchableOpacity>
   );
 });
@@ -360,8 +380,8 @@ export const SongDetailWordsActionBar = React.memo(function SongDetailWordsActio
   return (
     <View style={styles.summaryBar}>
       <View style={styles.actionChips}>
-        <SummaryChip icon="sliders" onPress={state.openFilterSheet} />
-        <SummaryChip icon="arrow-down" onPress={state.openSortSheet} />
+        <SummaryChip icon="options" onPress={state.openFilterSheet} accessibilityLabel="필터" />
+        <SortSummaryChip onPress={state.openSortSheet} />
       </View>
 
       <View style={styles.summarySpacer} />
@@ -376,7 +396,7 @@ export const SongDetailWordsActionBar = React.memo(function SongDetailWordsActio
           <ActivityIndicator size="small" color="#FFFFFF" />
         ) : (
           <>
-            <Feather name="plus" size={12} color="#FFFFFF" />
+            <Ionicons name="add" size={14} color="#FFFFFF" />
             <Text style={styles.batchButtonText}>{state.batchCount}개 담기</Text>
           </>
         )}
