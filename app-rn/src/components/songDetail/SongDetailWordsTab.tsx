@@ -137,6 +137,9 @@ export function useSongDetailWordsTab({
   const [selectedPos, setSelectedPos] = useState<Set<string>>(() => getInitialPos(data));
   const [selectedJlpt, setSelectedJlpt] = useState<Set<string>>(() => getInitialJlpt(data));
   const [includeUnknownJlpt, setIncludeUnknownJlpt] = useState(() => getInitialIncludeUnknownJlpt(data));
+  const [draftSelectedPos, setDraftSelectedPos] = useState<Set<string>>(() => getInitialPos(data));
+  const [draftSelectedJlpt, setDraftSelectedJlpt] = useState<Set<string>>(() => getInitialJlpt(data));
+  const [draftIncludeUnknownJlpt, setDraftIncludeUnknownJlpt] = useState(() => getInitialIncludeUnknownJlpt(data));
   const [isBatchSaving, setIsBatchSaving] = useState(false);
   const [renderLimit, setRenderLimit] = useState(INITIAL_WORD_RENDER_COUNT);
 
@@ -156,6 +159,9 @@ export function useSongDetailWordsTab({
     setSelectedPos(getInitialPos(data));
     setSelectedJlpt(getInitialJlpt(data));
     setIncludeUnknownJlpt(getInitialIncludeUnknownJlpt(data));
+    setDraftSelectedPos(getInitialPos(data));
+    setDraftSelectedJlpt(getInitialJlpt(data));
+    setDraftIncludeUnknownJlpt(getInitialIncludeUnknownJlpt(data));
   }, [filterDefaultsKey]);
 
   const availablePos = useMemo(() => {
@@ -235,8 +241,11 @@ export function useSongDetailWordsTab({
   }, []);
 
   const openFilterSheet = useCallback(() => {
+    setDraftSelectedPos(new Set(selectedPos));
+    setDraftSelectedJlpt(new Set(selectedJlpt));
+    setDraftIncludeUnknownJlpt(includeUnknownJlpt);
     filterSheetRef.current?.present();
-  }, []);
+  }, [includeUnknownJlpt, selectedJlpt, selectedPos]);
 
   const closeSortSheet = useCallback(() => {
     sortSheetRef.current?.dismiss();
@@ -252,7 +261,7 @@ export function useSongDetailWordsTab({
   }, []);
 
   const togglePos = useCallback((pos: string) => {
-    setSelectedPos(prev => {
+    setDraftSelectedPos(prev => {
       const next = new Set(prev);
       if (next.has(pos)) next.delete(pos); else next.add(pos);
       return next;
@@ -260,7 +269,7 @@ export function useSongDetailWordsTab({
   }, []);
 
   const toggleJlpt = useCallback((jlpt: string) => {
-    setSelectedJlpt(prev => {
+    setDraftSelectedJlpt(prev => {
       const next = new Set(prev);
       if (next.has(jlpt)) next.delete(jlpt); else next.add(jlpt);
       return next;
@@ -268,18 +277,21 @@ export function useSongDetailWordsTab({
   }, []);
 
   const toggleUnknownJlpt = useCallback(() => {
-    setIncludeUnknownJlpt(prev => !prev);
+    setDraftIncludeUnknownJlpt(prev => !prev);
   }, []);
 
   const resetFilters = useCallback(() => {
-    setSelectedPos(getInitialPos(data));
-    setSelectedJlpt(getInitialJlpt(data));
-    setIncludeUnknownJlpt(getInitialIncludeUnknownJlpt(data));
+    setDraftSelectedPos(getInitialPos(data));
+    setDraftSelectedJlpt(getInitialJlpt(data));
+    setDraftIncludeUnknownJlpt(getInitialIncludeUnknownJlpt(data));
   }, [data]);
 
   const applyFilters = useCallback(() => {
+    setSelectedPos(new Set(draftSelectedPos));
+    setSelectedJlpt(new Set(draftSelectedJlpt));
+    setIncludeUnknownJlpt(draftIncludeUnknownJlpt);
     filterSheetRef.current?.dismiss();
-  }, []);
+  }, [draftIncludeUnknownJlpt, draftSelectedJlpt, draftSelectedPos]);
 
   const handleBatchAdd = useCallback(async () => {
     if (batchCandidates.length === 0 || isBatchSaving) return;
@@ -322,9 +334,12 @@ export function useSongDetailWordsTab({
     filterSheetRef,
     availablePos,
     selectedPos,
+    draftSelectedPos,
     availableJlpt,
     selectedJlpt,
+    draftSelectedJlpt,
     includeUnknownJlpt,
+    draftIncludeUnknownJlpt,
     renderedWords,
     visibleWords,
     batchCount,
@@ -350,9 +365,12 @@ export interface SongDetailWordsTabState {
   filterSheetRef: React.RefObject<AppBottomSheetModalRef | null>;
   availablePos: string[];
   selectedPos: Set<string>;
+  draftSelectedPos: Set<string>;
   availableJlpt: string[];
   selectedJlpt: Set<string>;
+  draftSelectedJlpt: Set<string>;
   includeUnknownJlpt: boolean;
+  draftIncludeUnknownJlpt: boolean;
   renderedWords: SongDetailWordItem[];
   visibleWords: SongDetailWordItem[];
   batchCount: number;
@@ -454,10 +472,10 @@ export default function SongDetailWordsTab({
         <BottomSheetScrollView>
           <SongDetailFilterSheet
             availablePos={state.availablePos}
-            selectedPos={state.selectedPos}
+            selectedPos={state.draftSelectedPos}
             availableJlpt={state.availableJlpt}
-            selectedJlpt={state.selectedJlpt}
-            includeUnknownJlpt={state.includeUnknownJlpt}
+            selectedJlpt={state.draftSelectedJlpt}
+            includeUnknownJlpt={state.draftIncludeUnknownJlpt}
             onTogglePos={state.togglePos}
             onToggleJlpt={state.toggleJlpt}
             onToggleUnknownJlpt={state.toggleUnknownJlpt}
