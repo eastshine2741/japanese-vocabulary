@@ -31,9 +31,11 @@ import {
   SongDetailHomeTab,
   SONG_DETAIL_MV_BAR_HEIGHT,
   SongDetailMvBar,
+  SongDetailWordsActionBar,
   SongDetailWordsTab,
   type SongDetailWordItem,
   type SongDetailWordSaveState,
+  useSongDetailWordsTab,
 } from '../components/songDetail';
 import {
   getSongDetailWordKey,
@@ -54,6 +56,7 @@ const TAB_ITEM_WIDTH = 54;
 const TAB_ITEM_GAP = 10;
 const TAB_INDICATOR_WIDTH = 28;
 const TAB_TRANSITION_MS = 260;
+const WORDS_ACTION_BAR_HEIGHT = 50;
 const WORDS_TAB_BOTTOM_CLEARANCE = SONG_DETAIL_MV_BAR_HEIGHT + 24;
 const HERO_SCROLL_COLLAPSE_START = HERO_HEIGHT - COLLAPSED_BAR_HEIGHT - TAB_BAR_HEIGHT - 34;
 const HERO_SCROLL_COLLAPSE_END = HERO_SCROLL_COLLAPSE_START + 56;
@@ -194,9 +197,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
   );
 
   const activePageHeight = tabPageHeights[activeTab];
-  const tabViewportHeight = activePageHeight > 0
-    ? activePageHeight + (activeTab === 'words' ? WORDS_TAB_BOTTOM_CLEARANCE + insets.bottom : 0)
-    : 0;
+  const tabViewportHeight = activePageHeight;
 
   useEffect(() => {
     Animated.timing(tabProgress, {
@@ -419,6 +420,14 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     [scrollY],
   );
 
+  const wordsTabState = useSongDetailWordsTab({
+    data: data?.words ?? null,
+    isActive: activeTab === 'words',
+    onWordsChanged: handleWordsChanged,
+    getWordSaveState,
+    onWordsBatchAdded: handleWordsBatchAdded,
+  });
+
   if (songId == null) {
     return (
       <View style={[styles.stateScreen, { paddingTop: insets.top }]}>
@@ -467,7 +476,10 @@ export default function SongDetailScreen({ navigation, route }: Props) {
         style={styles.scroll}
         onScroll={handleScroll}
         scrollEventThrottle={16}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomReserve }]}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: activeTab === 'words' ? 0 : bottomReserve },
+        ]}
       >
         <View style={styles.hero} />
 
@@ -508,19 +520,11 @@ export default function SongDetailScreen({ navigation, route }: Props) {
                 onLayout={handleWordsPageLayout}
               >
                 <SongDetailWordsTab
-                  isActive={activeTab === 'words'}
-                  data={{
-                    words: words.words,
-                    wordSummary: words.wordSummary,
-                    filterDefaults: words.filterDefaults,
-                    lineWordIndexes: words.lineWordIndexes,
-                  }}
+                  state={wordsTabState}
                   bottomPadding={WORDS_TAB_BOTTOM_CLEARANCE}
-                  onWordsChanged={handleWordsChanged}
                   getWordSaveState={getWordSaveState}
                   busyWordKey={busyWordKey}
                   onToggleWordSave={handleToggleWordSave}
-                  onWordsBatchAdded={handleWordsBatchAdded}
                 />
               </View>
             </Animated.View>
@@ -649,6 +653,21 @@ export default function SongDetailScreen({ navigation, route }: Props) {
           onSelectWords={handleSelectWords}
         />
       </Animated.View>
+
+      {activeTab === 'words' && (
+        <Animated.View
+          pointerEvents={isPinnedTabsVisible ? 'auto' : 'none'}
+          style={[
+            styles.pinnedWordsActionBar,
+            {
+              top: insets.top + COLLAPSED_BAR_HEIGHT + TAB_BAR_HEIGHT,
+              opacity: pinnedTabsOpacity,
+            },
+          ]}
+        >
+          <SongDetailWordsActionBar state={wordsTabState} />
+        </Animated.View>
+      )}
 
       <AppBottomSheet
         ref={infoSheetRef}
@@ -1128,6 +1147,13 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
+    zIndex: 12,
+  },
+  pinnedWordsActionBar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: WORDS_ACTION_BAR_HEIGHT,
     zIndex: 12,
   },
   appBarTitleContent: {

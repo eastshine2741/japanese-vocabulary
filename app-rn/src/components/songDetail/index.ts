@@ -9,7 +9,12 @@ export {
   JLPT_LEVELS,
   MAJOR_WORD_LIMIT,
 } from './songDetailWordDerivation';
-export { default as SongDetailWordsTab } from './SongDetailWordsTab';
+export {
+  default as SongDetailWordsTab,
+  SongDetailWordsActionBar,
+  useSongDetailWordsTab,
+  type SongDetailWordsTabState,
+} from './SongDetailWordsTab';
 export { default as SongDetailWordRow } from './SongDetailWordRow';
 export { default as SongDetailSortSheet } from './SongDetailSortSheet';
 export { default as SongDetailFilterSheet } from './SongDetailFilterSheet';

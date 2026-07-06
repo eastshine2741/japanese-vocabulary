@@ -47,17 +47,22 @@ const POS_ORDER = [
 ];
 const JLPT_ORDER = ['N5', 'N4', 'N3', 'N2', 'N1'];
 
-interface Props {
+interface UseSongDetailWordsTabParams {
   data: WordsInSongDto | null;
   isActive?: boolean;
   isLoading?: boolean;
   errorMessage?: string | null;
-  bottomPadding?: number;
   onWordsChanged?: () => void;
+  getWordSaveState: (word: SongDetailWordItem) => SongDetailWordSaveState;
+  onWordsBatchAdded: (words: SongDetailWordItem[]) => void;
+}
+
+interface Props {
+  state: SongDetailWordsTabState;
+  bottomPadding?: number;
   getWordSaveState: (word: SongDetailWordItem) => SongDetailWordSaveState;
   busyWordKey: string | null;
   onToggleWordSave: (word: SongDetailWordItem) => void;
-  onWordsBatchAdded: (words: SongDetailWordItem[]) => void;
 }
 
 interface SummaryChipProps {
@@ -97,19 +102,15 @@ function getInitialSort(data: WordsInSongDto | null): SongDetailWordsSort {
   return data?.filterDefaults?.sortDefault?.toUpperCase() === 'APPEARANCE' ? 'appearance' : 'importance';
 }
 
-export default function SongDetailWordsTab({
+export function useSongDetailWordsTab({
   data,
   isActive = true,
   isLoading = false,
   errorMessage = null,
-  bottomPadding = 150,
   onWordsChanged,
   getWordSaveState,
-  busyWordKey,
-  onToggleWordSave,
   onWordsBatchAdded,
-}: Props) {
-  const insets = useSafeAreaInsets();
+}: UseSongDetailWordsTabParams): SongDetailWordsTabState {
   const sortSheetRef = useRef<AppBottomSheetModalRef>(null);
   const filterSheetRef = useRef<AppBottomSheetModalRef>(null);
   const [sort, setSort] = useState<SongDetailWordsSort>(() => getInitialSort(data));
@@ -296,42 +297,116 @@ export default function SongDetailWordsTab({
     );
   }, [errorMessage, isLoading]);
 
+  return {
+    sortSheetRef,
+    filterSheetRef,
+    availablePos,
+    selectedPos,
+    availableJlpt,
+    selectedJlpt,
+    includeUnknownJlpt,
+    renderedWords,
+    visibleWords,
+    batchCount,
+    isBatchSaving,
+    listEmpty,
+    openFilterSheet,
+    openSortSheet,
+    closeFilterSheet,
+    closeSortSheet,
+    handleSortApply,
+    togglePos,
+    toggleJlpt,
+    toggleUnknownJlpt,
+    resetFilters,
+    applyFilters,
+    handleBatchAdd,
+    sort,
+  };
+}
+
+export interface SongDetailWordsTabState {
+  sortSheetRef: React.RefObject<AppBottomSheetModalRef | null>;
+  filterSheetRef: React.RefObject<AppBottomSheetModalRef | null>;
+  availablePos: string[];
+  selectedPos: Set<string>;
+  availableJlpt: string[];
+  selectedJlpt: Set<string>;
+  includeUnknownJlpt: boolean;
+  renderedWords: SongDetailWordItem[];
+  visibleWords: SongDetailWordItem[];
+  batchCount: number;
+  isBatchSaving: boolean;
+  listEmpty: React.ReactNode;
+  openFilterSheet: () => void;
+  openSortSheet: () => void;
+  closeFilterSheet: () => void;
+  closeSortSheet: () => void;
+  handleSortApply: (value: SongDetailWordsSort) => void;
+  togglePos: (pos: string) => void;
+  toggleJlpt: (jlpt: string) => void;
+  toggleUnknownJlpt: () => void;
+  resetFilters: () => void;
+  applyFilters: () => void;
+  handleBatchAdd: () => void;
+  sort: SongDetailWordsSort;
+}
+
+export const SongDetailWordsActionBar = React.memo(function SongDetailWordsActionBar({
+  state,
+}: {
+  state: SongDetailWordsTabState;
+}) {
   return (
-    <View style={styles.container}>
-      <View style={styles.summaryBar}>
-        <View style={styles.actionChips}>
-          <SummaryChip icon="sliders" onPress={openFilterSheet} />
-          <SummaryChip icon="arrow-down" onPress={openSortSheet} />
-        </View>
-
-        <View style={styles.summarySpacer} />
-
-        <TouchableOpacity
-          style={[styles.batchButton, batchCount === 0 && styles.batchButtonDisabled]}
-          onPress={handleBatchAdd}
-          disabled={batchCount === 0 || isBatchSaving}
-          activeOpacity={0.7}
-        >
-          {isBatchSaving ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
-          ) : (
-            <>
-              <Feather name="plus" size={12} color="#FFFFFF" />
-              <Text style={styles.batchButtonText}>{batchCount}개 담기</Text>
-            </>
-          )}
-        </TouchableOpacity>
+    <View style={styles.summaryBar}>
+      <View style={styles.actionChips}>
+        <SummaryChip icon="sliders" onPress={state.openFilterSheet} />
+        <SummaryChip icon="arrow-down" onPress={state.openSortSheet} />
       </View>
 
+      <View style={styles.summarySpacer} />
+
+      <TouchableOpacity
+        style={[styles.batchButton, state.batchCount === 0 && styles.batchButtonDisabled]}
+        onPress={state.handleBatchAdd}
+        disabled={state.batchCount === 0 || state.isBatchSaving}
+        activeOpacity={0.7}
+      >
+        {state.isBatchSaving ? (
+          <ActivityIndicator size="small" color="#FFFFFF" />
+        ) : (
+          <>
+            <Feather name="plus" size={12} color="#FFFFFF" />
+            <Text style={styles.batchButtonText}>{state.batchCount}개 담기</Text>
+          </>
+        )}
+      </TouchableOpacity>
+    </View>
+  );
+});
+
+export default function SongDetailWordsTab({
+  state,
+  bottomPadding = 150,
+  getWordSaveState,
+  busyWordKey,
+  onToggleWordSave,
+}: Props) {
+  const insets = useSafeAreaInsets();
+
+  return (
+    <View style={styles.container}>
+      <SongDetailWordsActionBar state={state} />
+
       <View style={[styles.listContent, { paddingBottom: bottomPadding + insets.bottom }]}>
-        {visibleWords.length === 0 ? listEmpty : renderedWords.map(word => {
-          const state = getWordSaveState(word);
+        {state.visibleWords.length === 0 ? state.listEmpty : state.renderedWords.map(word => {
+          const saveState = getWordSaveState(word);
           const wordKey = getSongDetailWordKey(word);
           return (
             <SongDetailWordRow
               key={wordKey}
               word={word}
-              isSaved={state.isSavedForSong}
+              isSaved={saveState.isSavedForSong}
               isBusy={busyWordKey === wordKey}
               onToggleSave={onToggleWordSave}
             />
@@ -340,35 +415,35 @@ export default function SongDetailWordsTab({
       </View>
 
       <AppBottomSheetModal
-        ref={sortSheetRef}
+        ref={state.sortSheetRef}
         enableDynamicSizing
         enablePanDownToClose
         backgroundStyle={styles.sheetBg}
       >
         <BottomSheetView>
-          <SongDetailSortSheet value={sort} onApply={handleSortApply} onClose={closeSortSheet} />
+          <SongDetailSortSheet value={state.sort} onApply={state.handleSortApply} onClose={state.closeSortSheet} />
         </BottomSheetView>
       </AppBottomSheetModal>
 
       <AppBottomSheetModal
-        ref={filterSheetRef}
+        ref={state.filterSheetRef}
         enableDynamicSizing
         enablePanDownToClose
         backgroundStyle={styles.sheetBg}
       >
         <BottomSheetScrollView>
           <SongDetailFilterSheet
-            availablePos={availablePos}
-            selectedPos={selectedPos}
-            availableJlpt={availableJlpt}
-            selectedJlpt={selectedJlpt}
-            includeUnknownJlpt={includeUnknownJlpt}
-            onTogglePos={togglePos}
-            onToggleJlpt={toggleJlpt}
-            onToggleUnknownJlpt={toggleUnknownJlpt}
-            onReset={resetFilters}
-            onApply={applyFilters}
-            onClose={closeFilterSheet}
+            availablePos={state.availablePos}
+            selectedPos={state.selectedPos}
+            availableJlpt={state.availableJlpt}
+            selectedJlpt={state.selectedJlpt}
+            includeUnknownJlpt={state.includeUnknownJlpt}
+            onTogglePos={state.togglePos}
+            onToggleJlpt={state.toggleJlpt}
+            onToggleUnknownJlpt={state.toggleUnknownJlpt}
+            onReset={state.resetFilters}
+            onApply={state.applyFilters}
+            onClose={state.closeFilterSheet}
           />
         </BottomSheetScrollView>
       </AppBottomSheetModal>
@@ -378,7 +453,6 @@ export default function SongDetailWordsTab({
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     backgroundColor: Colors.background,
   },
   summaryBar: {
