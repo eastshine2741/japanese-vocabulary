@@ -90,7 +90,7 @@ export default function RecentSongsSection() {
 
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>최근 들은 노래</Text>
+      <Text style={styles.sectionTitle}>최근 찾아본 노래</Text>
       <FlatList
         data={songs}
         renderItem={renderItem}
