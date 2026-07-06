@@ -119,7 +119,7 @@ function getInitialIncludeUnknownJlpt(data: WordsInSongDto | null): boolean {
 }
 
 function getInitialSort(data: WordsInSongDto | null): SongDetailWordsSort {
-  return data?.filterDefaults?.sortDefault?.toUpperCase() === 'APPEARANCE' ? 'appearance' : 'importance';
+  return data?.filterDefaults?.sortDefault?.toUpperCase() === 'IMPORTANCE' ? 'importance' : 'appearance';
 }
 
 export function useSongDetailWordsTab({

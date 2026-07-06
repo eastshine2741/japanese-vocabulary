@@ -63,8 +63,8 @@ export default function SongDetailSortSheet({ value, onApply, onClose }: Props) 
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>정렬 기준</Text>
           <View style={styles.segmented}>
-            <SortOption value="importance" label="중요도순" selected={draftValue === 'importance'} onSelect={setDraftValue} />
             <SortOption value="appearance" label="등장순" selected={draftValue === 'appearance'} onSelect={setDraftValue} />
+            <SortOption value="importance" label="중요도순" selected={draftValue === 'importance'} onSelect={setDraftValue} />
           </View>
         </View>
         <TouchableOpacity style={styles.applyButton} onPress={apply} activeOpacity={0.7}>
