@@ -13,8 +13,6 @@ import com.japanese.vocabulary.song.model.PartOfSpeech
 import com.japanese.vocabulary.song.model.Token
 import com.japanese.vocabulary.songanalysis.entity.SongAnalysisTriggerSource
 import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkEntity
-import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStatus
-import com.japanese.vocabulary.songanalysis.service.SongAnalysisWorkService
 import com.japanese.vocabulary.test.fixtures.TestSongBuilder
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
@@ -71,7 +69,7 @@ class AdminRecommendationControllerTest : AdminBaseIntegrationTest() {
     }
 
     @Test
-    fun `dispatch analysis creates and links recommendation analysis work`() {
+    fun `request analysis creates recommendation analysis work for selected candidates`() {
         val candidate = persistApprovedCandidate(
             sourceSongId = "apple-1",
             title = "推薦曲",
@@ -79,8 +77,10 @@ class AdminRecommendationControllerTest : AdminBaseIntegrationTest() {
             sourceRank = 1,
         )
 
-        mockMvc.post("/admin/api/recommendations/dispatch-analysis") {
+        mockMvc.post("/admin/api/recommendations/request-analysis") {
             header("Authorization", "Bearer ${adminToken()}")
+            contentType = MediaType.APPLICATION_JSON
+            content = """{"candidateIds":[${candidate.id}]}"""
         }.andExpect {
             status { isOk() }
             jsonPath("$.processed") { value(1) }
@@ -93,14 +93,14 @@ class AdminRecommendationControllerTest : AdminBaseIntegrationTest() {
         entityManager.flush()
         entityManager.clear()
 
-        val linkedWorkId = entityManager
+        val work = entityManager
             .createQuery(
-                "SELECT c.songAnalysisWorkId FROM SongRecommendationCandidateEntity c WHERE c.id = :id",
-                Long::class.java,
+                "SELECT w FROM SongAnalysisWorkEntity w WHERE w.rawTitle = :title AND w.rawArtist = :artist",
+                SongAnalysisWorkEntity::class.java,
             )
-            .setParameter("id", candidate.id)
+            .setParameter("title", "推薦曲")
+            .setParameter("artist", "推薦歌手")
             .singleResult
-        val work = entityManager.find(SongAnalysisWorkEntity::class.java, linkedWorkId)
         assertThat(work.rawTitle).isEqualTo("推薦曲")
         assertThat(work.rawArtist).isEqualTo("推薦歌手")
         assertThat(work.triggerSource).isEqualTo(SongAnalysisTriggerSource.RECOMMENDATION)
@@ -144,6 +144,8 @@ class AdminRecommendationControllerTest : AdminBaseIntegrationTest() {
             .withArtist("既存歌手")
             .build()
         val lyric = persistAnalyzedLyric(song.id!!)
+        song.activeLyricId = lyric.id
+        entityManager.flush()
         val candidate = persistApprovedCandidate(
             sourceSongId = "apple-existing",
             title = "既存分析曲",
@@ -159,16 +161,13 @@ class AdminRecommendationControllerTest : AdminBaseIntegrationTest() {
             jsonPath("$.succeeded") { value(1) }
             jsonPath("$.items[0].candidateId") { value(candidate.id!!.toInt()) }
             jsonPath("$.items[0].workId") { doesNotExist() }
+            jsonPath("$.items[0].songId") { value(song.id!!.toInt()) }
+            jsonPath("$.items[0].lyricId") { value(lyric.id!!.toInt()) }
             jsonPath("$.items[0].recommendationId") { exists() }
         }
 
         entityManager.flush()
         entityManager.clear()
-
-        val refreshedCandidate = entityManager.find(SongRecommendationCandidateEntity::class.java, candidate.id)
-        assertThat(refreshedCandidate.songAnalysisWorkId).isNull()
-        assertThat(refreshedCandidate.songId).isEqualTo(song.id)
-        assertThat(refreshedCandidate.lyricId).isEqualTo(lyric.id)
 
         val recommendationCount = entityManager
             .createNativeQuery("SELECT COUNT(*) FROM song_recommendation WHERE candidate_id = :candidateId")
@@ -178,49 +177,47 @@ class AdminRecommendationControllerTest : AdminBaseIntegrationTest() {
     }
 
     @Test
-    fun `reconcile completed work creates pending recommendation`() {
+    fun `prepare approved returns 422 with matching ids when any approved candidate is missing analyzed song`() {
         val song = TestSongBuilder(entityManager)
-            .withTitle("完成曲")
-            .withArtist("完成歌手")
+            .withTitle("既存曲")
+            .withArtist("既存歌手")
             .build()
         val lyric = persistAnalyzedLyric(song.id!!)
-        val work = SongAnalysisWorkEntity(
-            rawTitle = "完成曲",
-            rawArtist = "完成歌手",
-            activeDedupKey = SongAnalysisWorkService.buildActiveDedupKey("完成曲", "完成歌手"),
-            triggerSource = SongAnalysisTriggerSource.RECOMMENDATION,
-            status = SongAnalysisWorkStatus.COMPLETED,
+        song.activeLyricId = lyric.id
+        entityManager.flush()
+        val ready = persistApprovedCandidate(
+            sourceSongId = "apple-ready",
+            title = "既存曲",
+            artistName = "既存歌手",
+            sourceRank = 1,
         )
-        work.songId = song.id
-        work.lyricId = lyric.id
-        work.playerReadyAt = Instant.parse("2026-01-01T00:01:00Z")
-        work.completedAt = Instant.parse("2026-01-01T00:03:00Z")
-        entityManager.persist(work)
-        val candidate = persistApprovedCandidate(
-            sourceSongId = "apple-2",
-            title = "完成曲",
-            artistName = "完成歌手",
+        val missing = persistApprovedCandidate(
+            sourceSongId = "apple-missing",
+            title = "없는곡",
+            artistName = "없는가수",
             sourceRank = 2,
         )
-        candidate.songAnalysisWorkId = work.id
-        entityManager.flush()
 
-        mockMvc.post("/admin/api/recommendations/reconcile-completed") {
+        mockMvc.post("/admin/api/recommendations/prepare-approved") {
             header("Authorization", "Bearer ${adminToken()}")
         }.andExpect {
-            status { isOk() }
-            jsonPath("$.processed") { value(1) }
-            jsonPath("$.succeeded") { value(1) }
-            jsonPath("$.failed") { value(0) }
-            jsonPath("$.items[0].candidateId") { value(candidate.id!!.toInt()) }
-            jsonPath("$.items[0].recommendationId") { exists() }
+            status { isUnprocessableEntity() }
+            jsonPath("$.processed") { value(2) }
+            jsonPath("$.succeeded") { value(0) }
+            jsonPath("$.skipped") { value(1) }
+            jsonPath("$.failed") { value(1) }
+            jsonPath("$.items[0].candidateId") { value(ready.id!!.toInt()) }
+            jsonPath("$.items[0].status") { value("READY") }
+            jsonPath("$.items[0].songId") { value(song.id!!.toInt()) }
+            jsonPath("$.items[1].candidateId") { value(missing.id!!.toInt()) }
+            jsonPath("$.items[1].status") { value("MISSING_SONG") }
+            jsonPath("$.items[1].songId") { doesNotExist() }
         }
 
         val recommendationCount = entityManager
-            .createNativeQuery("SELECT COUNT(*) FROM song_recommendation WHERE candidate_id = :candidateId")
-            .setParameter("candidateId", candidate.id)
+            .createNativeQuery("SELECT COUNT(*) FROM song_recommendation")
             .singleResult as Number
-        assertThat(recommendationCount.toLong()).isEqualTo(1)
+        assertThat(recommendationCount.toLong()).isZero()
     }
 
     @Test
@@ -230,13 +227,14 @@ class AdminRecommendationControllerTest : AdminBaseIntegrationTest() {
             .withArtist("게시가수")
             .build()
         val lyric = persistAnalyzedLyric(song.id!!)
+        song.activeLyricId = lyric.id
+        entityManager.flush()
         val candidate = persistApprovedCandidate(
             sourceSongId = "apple-publish",
             title = "게시곡",
             artistName = "게시가수",
             sourceRank = 1,
         )
-        candidate.linkAnalyzedSong(song.id!!, lyric.id!!)
         val recommendation = SongRecommendationEntity(
             candidateId = candidate.id!!,
             weekStartDate = candidate.weekStartDate,

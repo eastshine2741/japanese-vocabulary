@@ -153,6 +153,8 @@ export const recommendationOperationResult: RecommendationOperationResult = {
     {
       candidateId: 10,
       status: "SUCCEEDED",
+      songId: 1,
+      lyricId: 2,
       workId: 4,
       recommendationId: null,
       message: null,
@@ -172,9 +174,6 @@ export const recommendationCandidate: RecommendationCandidate = {
   artworkUrl: null,
   sourceUrl: "https://music.apple.com/jp/song/apple-10",
   releaseDate: "2026-06-01",
-  songAnalysisWorkId: null,
-  songId: null,
-  lyricId: null,
   createdAt: "2026-06-26T00:00:00Z",
   updatedAt: "2026-06-26T00:00:00Z",
 }

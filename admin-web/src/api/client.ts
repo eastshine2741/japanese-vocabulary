@@ -20,6 +20,7 @@ export class ApiError extends Error {
   constructor(
     message: string,
     readonly status: number,
+    readonly data: unknown = null,
   ) {
     super(message)
   }
@@ -33,7 +34,13 @@ async function request<T>(path: string, token?: string | null, init: RequestInit
 
   const response = await fetch(`${API_BASE}${path}`, { ...init, headers })
   if (!response.ok) {
-    throw new ApiError(response.statusText || "Request failed", response.status)
+    let data: unknown = null
+    try {
+      data = await response.json()
+    } catch {
+      data = null
+    }
+    throw new ApiError(response.statusText || "Request failed", response.status, data)
   }
   return response.json() as Promise<T>
 }
@@ -103,14 +110,10 @@ export const adminApi = {
       method: "POST",
     })
   },
-  dispatchRecommendationAnalysis(token: string) {
-    return request<RecommendationOperationResult>("/recommendations/dispatch-analysis", token, {
+  requestRecommendationAnalysis(token: string, candidateIds: number[]) {
+    return request<RecommendationOperationResult>("/recommendations/request-analysis", token, {
       method: "POST",
-    })
-  },
-  reconcileRecommendationCompleted(token: string) {
-    return request<RecommendationOperationResult>("/recommendations/reconcile-completed", token, {
-      method: "POST",
+      body: JSON.stringify({ candidateIds }),
     })
   },
   users(token: string, page: number, query?: string) {

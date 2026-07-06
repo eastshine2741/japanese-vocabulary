@@ -2,6 +2,7 @@ package com.japanese.vocabulary.admin.controller
 
 import com.japanese.vocabulary.admin.dto.AdminRecommendationCandidateResponse
 import com.japanese.vocabulary.admin.dto.AdminRecommendationCandidateStatusUpdateRequest
+import com.japanese.vocabulary.admin.dto.AdminRecommendationAnalysisRequest
 import com.japanese.vocabulary.admin.dto.AdminRecommendationOperationResponse
 import com.japanese.vocabulary.admin.dto.AdminRecommendationResponse
 import com.japanese.vocabulary.admin.dto.AdminRecommendationUpdateRequest
@@ -12,6 +13,8 @@ import com.japanese.vocabulary.recommendation.dto.SongRecommendationDto
 import com.japanese.vocabulary.recommendation.entity.RecommendationCandidateStatus
 import com.japanese.vocabulary.recommendation.service.SongRecommendationService
 import org.springframework.format.annotation.DateTimeFormat
+import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -67,16 +70,17 @@ class AdminRecommendationController(
         ).toAdminResponse()
 
     @PostMapping("/prepare-approved")
-    fun prepareApprovedCandidates(): AdminRecommendationOperationResponse =
-        recommendationService.prepareApprovedCandidates().toAdminResponse()
+    fun prepareApprovedCandidates(): ResponseEntity<AdminRecommendationOperationResponse> {
+        val response = recommendationService.prepareApprovedCandidates().toAdminResponse()
+        val status = if (response.failed > 0) HttpStatus.UNPROCESSABLE_ENTITY else HttpStatus.OK
+        return ResponseEntity.status(status).body(response)
+    }
 
-    @PostMapping("/dispatch-analysis")
-    fun dispatchApprovedCandidates(): AdminRecommendationOperationResponse =
-        recommendationService.dispatchApprovedCandidates().toAdminResponse()
-
-    @PostMapping("/reconcile-completed")
-    fun reconcileCompletedWork(): AdminRecommendationOperationResponse =
-        recommendationService.reconcileCompletedWork().toAdminResponse()
+    @PostMapping("/request-analysis")
+    fun requestAnalysis(
+        @RequestBody request: AdminRecommendationAnalysisRequest,
+    ): AdminRecommendationOperationResponse =
+        recommendationService.requestAnalysisForCandidates(request.candidateIds).toAdminResponse()
 }
 
 private fun RecommendationOperationResultDto.toAdminResponse(): AdminRecommendationOperationResponse =
@@ -92,6 +96,8 @@ private fun RecommendationOperationItemDto.toAdminResponse() =
     com.japanese.vocabulary.admin.dto.AdminRecommendationOperationItemResponse(
         candidateId = candidateId,
         status = status,
+        songId = songId,
+        lyricId = lyricId,
         workId = workId,
         recommendationId = recommendationId,
         message = message,
@@ -110,9 +116,6 @@ private fun RecommendationCandidateDto.toAdminResponse() =
         artworkUrl = artworkUrl,
         sourceUrl = sourceUrl,
         releaseDate = releaseDate,
-        songAnalysisWorkId = songAnalysisWorkId,
-        songId = songId,
-        lyricId = lyricId,
         createdAt = createdAt,
         updatedAt = updatedAt,
     )

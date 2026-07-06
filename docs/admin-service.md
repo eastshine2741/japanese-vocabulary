@@ -53,8 +53,7 @@ Routes:
 - `GET /admin/api/recommendations`
 - `PATCH /admin/api/recommendations/{recommendationId}`
 - `POST /admin/api/recommendations/prepare-approved`
-- `POST /admin/api/recommendations/dispatch-analysis`
-- `POST /admin/api/recommendations/reconcile-completed`
+- `POST /admin/api/recommendations/request-analysis`
 - `GET /admin/api/users`
 - `GET /admin/api/users/{userId}`
 

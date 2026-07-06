@@ -1,6 +1,6 @@
 import * as React from "react"
 import { ArrowRight, CheckCircle2, RefreshCw, XCircle } from "lucide-react"
-import { adminApi } from "@/api/client"
+import { ApiError, adminApi } from "@/api/client"
 import type { Recommendation, RecommendationCandidate, RecommendationOperationResult } from "@/api/types"
 import { PageHeader } from "@/components/PageHeader"
 import { Badge } from "@/components/ui/badge"
@@ -13,8 +13,7 @@ type Stage = "candidates" | "recommendations"
 
 type OperationKey =
   | "prepare"
-  | "dispatch"
-  | "reconcile"
+  | "request-analysis"
   | `candidate-${number}-${string}`
   | `recommendation-${number}-${string}`
 
@@ -50,23 +49,40 @@ export function RecommendationsPage() {
   }, [loadPage])
 
   const runOperation = React.useCallback(
-    async (operation: "prepare" | "dispatch" | "reconcile") => {
-      setRunning(operation)
+    async () => {
+      setRunning("prepare")
       setError(null)
       try {
-        const nextResult =
-          operation === "prepare"
-            ? await adminApi.prepareApprovedRecommendations(token!)
-            : operation === "dispatch"
-              ? await adminApi.dispatchRecommendationAnalysis(token!)
-              : await adminApi.reconcileRecommendationCompleted(token!)
+        const nextResult = await adminApi.prepareApprovedRecommendations(token!)
         setResult(nextResult)
         if (nextResult.items.some((item) => item.recommendationId !== null)) {
           setActiveStage("recommendations")
         }
         await loadPage()
+      } catch (error) {
+        if (error instanceof ApiError && isRecommendationOperationResult(error.data)) {
+          setResult(error.data)
+          setError("Some approved candidates are missing analyzed songs. Request analysis for missing candidates, then process approved again.")
+        } else {
+          setError("Operation failed. Check admin-api logs for details.")
+        }
+      } finally {
+        setRunning(null)
+      }
+    },
+    [loadPage, token],
+  )
+
+  const requestMissingAnalysis = React.useCallback(
+    async (candidateIds: number[]) => {
+      setRunning("request-analysis")
+      setError(null)
+      try {
+        const nextResult = await adminApi.requestRecommendationAnalysis(token!, candidateIds)
+        setResult(nextResult)
+        await loadPage()
       } catch {
-        setError("Operation failed. Check admin-api logs for details.")
+        setError("Failed to request analysis. Check admin-api logs for details.")
       } finally {
         setRunning(null)
       }
@@ -147,6 +163,7 @@ export function RecommendationsPage() {
           result={result}
           onRefresh={loadPage}
           onRunOperation={runOperation}
+          onRequestMissingAnalysis={requestMissingAnalysis}
           onUpdateCandidateStatus={updateCandidateStatus}
         />
       ) : (
@@ -264,6 +281,7 @@ function CandidateStage({
   result,
   onRefresh,
   onRunOperation,
+  onRequestMissingAnalysis,
   onUpdateCandidateStatus,
 }: {
   candidates: RecommendationCandidate[]
@@ -271,9 +289,18 @@ function CandidateStage({
   running: OperationKey | null
   result: RecommendationOperationResult | null
   onRefresh: () => void
-  onRunOperation: (operation: "prepare" | "dispatch" | "reconcile") => void
+  onRunOperation: () => void
+  onRequestMissingAnalysis: (candidateIds: number[]) => void
   onUpdateCandidateStatus: (candidateId: number, status: string) => void
 }) {
+  const missingCandidateIds = React.useMemo(
+    () =>
+      result?.items
+        .filter((item) => item.status === "MISSING_SONG" || item.status === "MISSING_ANALYZED_LYRIC")
+        .map((item) => item.candidateId) ?? [],
+    [result],
+  )
+
   return (
     <>
       <section className="mb-4 rounded-lg border border-[#d9e1ea] bg-white p-4">
@@ -292,32 +319,25 @@ function CandidateStage({
           </div>
         </div>
 
-        <div className="grid gap-3 md:grid-cols-3">
+        <div className="grid max-w-xl gap-3">
           <OperationCard
             title="Process approved"
-            description="Use the best available path: reuse analyzed songs, create recommendations from completed work, or request analysis."
+            description="Create pending recommendations only when every approved candidate has a matching analyzed song."
             buttonLabel={running === "prepare" ? "Processing..." : "Process approved"}
             disabled={running !== null}
-            onClick={() => onRunOperation("prepare")}
+            onClick={onRunOperation}
             primary
-          />
-          <OperationCard
-            title="Request analysis"
-            description="Create analysis work for approved candidates that do not already have work."
-            buttonLabel={running === "dispatch" ? "Requesting..." : "Request analysis"}
-            disabled={running !== null}
-            onClick={() => onRunOperation("dispatch")}
-          />
-          <OperationCard
-            title="Create recommendations"
-            description="Turn completed analysis work into pending recommendations."
-            buttonLabel={running === "reconcile" ? "Creating..." : "Create recommendations"}
-            disabled={running !== null}
-            onClick={() => onRunOperation("reconcile")}
           />
         </div>
 
-        {result ? <OperationResultSummary result={result} /> : null}
+        {result ? (
+          <OperationResultSummary
+            result={result}
+            missingCandidateIds={missingCandidateIds}
+            running={running}
+            onRequestMissingAnalysis={onRequestMissingAnalysis}
+          />
+        ) : null}
       </section>
 
       <section>
@@ -335,8 +355,6 @@ function CandidateStage({
                 <Th>Song</Th>
                 <Th>Artist</Th>
                 <Th>Status</Th>
-                <Th>Work</Th>
-                <Th>Song/Lyric</Th>
                 <Th>Review</Th>
               </tr>
             </thead>
@@ -357,10 +375,6 @@ function CandidateStage({
                   <Td>{candidate.artistName}</Td>
                   <Td>
                     <Badge tone={candidateTone(candidate.status)}>{candidate.status}</Badge>
-                  </Td>
-                  <Td>{candidate.songAnalysisWorkId ?? "-"}</Td>
-                  <Td>
-                    {candidate.songId ?? "-"} / {candidate.lyricId ?? "-"}
                   </Td>
                   <Td>
                     <div className="flex flex-wrap gap-2">
@@ -523,7 +537,17 @@ function OperationCard({
   )
 }
 
-function OperationResultSummary({ result }: { result: RecommendationOperationResult }) {
+function OperationResultSummary({
+  result,
+  missingCandidateIds,
+  running,
+  onRequestMissingAnalysis,
+}: {
+  result: RecommendationOperationResult
+  missingCandidateIds: number[]
+  running: OperationKey | null
+  onRequestMissingAnalysis: (candidateIds: number[]) => void
+}) {
   return (
     <div className="mt-4 rounded-md border border-[#d9e1ea] bg-white p-3">
       <div className="mb-2 text-xs font-medium uppercase tracking-normal text-[#637083]">Last operation</div>
@@ -536,8 +560,21 @@ function OperationResultSummary({ result }: { result: RecommendationOperationRes
       {result.items.length > 0 ? (
         <div className="mt-3 text-sm text-[#637083]">
           Last item: candidate #{result.items[0].candidateId} · {result.items[0].status}
+          {result.items[0].songId ? ` · song #${result.items[0].songId}` : ""}
+          {result.items[0].lyricId ? ` · lyric #${result.items[0].lyricId}` : ""}
           {result.items[0].message ? ` · ${result.items[0].message}` : ""}
         </div>
+      ) : null}
+      {missingCandidateIds.length > 0 ? (
+        <Button
+          type="button"
+          variant="secondary"
+          disabled={running !== null}
+          onClick={() => onRequestMissingAnalysis(missingCandidateIds)}
+          className="mt-3"
+        >
+          {running === "request-analysis" ? "Requesting..." : `Request analysis for ${formatNumber(missingCandidateIds.length)} missing`}
+        </Button>
       ) : null}
     </div>
   )
@@ -571,4 +608,10 @@ function recommendationTone(status: string): "neutral" | "success" | "warning" |
   if (status === "PUBLISHED") return "success"
   if (status === "PENDING") return "warning"
   return "neutral"
+}
+
+function isRecommendationOperationResult(value: unknown): value is RecommendationOperationResult {
+  if (!value || typeof value !== "object") return false
+  const candidate = value as Partial<RecommendationOperationResult>
+  return typeof candidate.processed === "number" && Array.isArray(candidate.items)
 }

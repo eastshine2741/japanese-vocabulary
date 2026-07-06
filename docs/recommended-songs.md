@@ -8,7 +8,7 @@ Scope is intentionally narrow:
 - no personalization
 - no metrics
 - no blacklist
-- admin trigger UI/API only for analysis dispatch and completed-work reconciliation
+- admin trigger UI/API only for approved-candidate processing and missing-song analysis requests
 - no UI visual-design decisions beyond a basic carousel section
 
 ## Data source
@@ -36,7 +36,7 @@ for one-off testing, confirm the job completion log and stop the process manuall
 
 ## Tables
 
-`song_recommendation_candidate` stores collected candidates before expensive analysis. It keeps Apple source metadata, operator status, and links to `song_analysis_work`, `songs`, and `lyrics` once they exist.
+`song_recommendation_candidate` stores collected candidates before expensive analysis. It keeps only Apple source metadata and operator status; analysis work and final song/lyric results live in `song_analysis_work` and `song_recommendation`.
 
 Important statuses:
 
@@ -57,18 +57,13 @@ Important statuses:
 2. Existing candidates keep operator status; source rank/metadata can be refreshed.
 3. Operator reviews candidates in admin-web and updates status through `PATCH /admin/api/recommendations/candidates/{id}/status`.
 4. Operator clicks `Process approved` in admin-web, which calls `POST /admin/api/recommendations/prepare-approved`.
-5. Admin API finds `APPROVED` candidates without a recommendation and handles each candidate in this order:
-   - exact-match `songs.artist + songs.title`; if the song has a lyric with non-null `analyzed_content`, link the candidate to that song/lyric and create a `PENDING` `song_recommendation` without creating work
-   - if `song_analysis_work_id` already exists, reconcile it when completed
-   - otherwise call `SongAnalysisWorkService.createOrReuse()` with `trigger_source=RECOMMENDATION`
-6. The generic song-analysis worker performs lyric lookup, YouTube lookup, song/lyric creation, and lyric analysis. It does not import recommendation classes.
-7. Operator can click `Process approved` again after work completes, or use the advanced `Reconcile completed` action.
-8. Admin API creates one `PENDING` `song_recommendation` for completed work only when:
-   - work status is `COMPLETED`
-   - work has `song_id`, `lyric_id`, and `player_ready_at`
-   - linked lyric has non-null `analyzed_content`
-9. Operator orders and publishes recommendations in admin-web through `PATCH /admin/api/recommendations/{id}`.
-10. User API returns recommendations from the latest published week only.
+5. Admin API finds `APPROVED` candidates without a recommendation and exact-matches `songs.artist + songs.title`.
+6. If any candidate is missing a song or active analyzed lyric, the API returns `422 Unprocessable Entity` with one result item per candidate, including discovered `songId`/`lyricId` when present and `null` when absent. No recommendations are created in this case.
+7. Admin-web can request analysis for the missing candidate ids through `POST /admin/api/recommendations/request-analysis`, which calls `SongAnalysisWorkService.createOrReuse()` with `trigger_source=RECOMMENDATION`.
+8. The generic song-analysis worker performs lyric lookup, YouTube lookup, song/lyric creation, and lyric analysis. It does not import recommendation classes.
+9. After analysis completes, the operator clicks `Process approved` again. When every approved candidate has a matching active analyzed lyric, Admin API creates `PENDING` `song_recommendation` rows.
+10. Operator orders and publishes recommendations in admin-web through `PATCH /admin/api/recommendations/{id}`.
+11. User API returns recommendations from the latest published week only.
 
 ## Home API safety gate
 
@@ -87,21 +82,13 @@ The API:
 - orders by `order_index ASC, created_at ASC`
 - filters out missing song/lyric rows
 - filters out lyrics whose `analyzed_content` is null
-- allows recommendations created from existing analyzed songs without `song_analysis_work_id`
 - does not record recent listens
 
 The app tap path calls the existing `GET /api/songs/{id}` through `usePlayerStore.loadById(songId)`, so tapping a recommendation records recent listen before opening `SongDetail`.
 
 ## Retry notes
 
-If an approved candidate is linked to failed work and should be retried, clear these fields before running
-`Process approved` again:
-
-- `song_recommendation_candidate.song_analysis_work_id`
-- `song_recommendation_candidate.song_id`
-- `song_recommendation_candidate.lyric_id`
-
-Then leave the candidate as `APPROVED`; the admin `Process approved` operation will create or reuse analysis work again.
+If analysis failed or has not completed, leave the candidate as `APPROVED`, request analysis for the missing candidate again, and rerun `Process approved` after the song analysis worker has produced an active analyzed lyric.
 
 Bad publishes are blocked by both the admin publish API and the home API safety gate when lyrics are missing analyzed content.
 
@@ -112,7 +99,6 @@ Bad publishes are blocked by both the admin publish API and the home API safety 
 - `GET /admin/api/recommendations`
 - `PATCH /admin/api/recommendations/{recommendationId}`
 - `POST /admin/api/recommendations/prepare-approved`
-- `POST /admin/api/recommendations/dispatch-analysis`
-- `POST /admin/api/recommendations/reconcile-completed`
+- `POST /admin/api/recommendations/request-analysis`
 
 All endpoints are authenticated admin-only operations. Admin list and operation endpoints use an internal 100-row cap, matching the Apple RSS v1 source size.

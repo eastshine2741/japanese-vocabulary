@@ -15,9 +15,6 @@ data class AdminRecommendationCandidateResponse(
     val artworkUrl: String?,
     val sourceUrl: String?,
     val releaseDate: LocalDate?,
-    val songAnalysisWorkId: Long?,
-    val songId: Long?,
-    val lyricId: Long?,
     val createdAt: Instant?,
     val updatedAt: Instant?,
 )

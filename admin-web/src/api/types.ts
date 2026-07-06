@@ -89,6 +89,8 @@ export type SongAnalysisWorkDetail = SongAnalysisWorkSummary & {
 export type RecommendationOperationItem = {
   candidateId: number
   status: string
+  songId: number | null
+  lyricId: number | null
   workId: number | null
   recommendationId: number | null
   message: string | null
@@ -127,9 +129,6 @@ export type RecommendationCandidate = {
   artworkUrl: string | null
   sourceUrl: string | null
   releaseDate: string | null
-  songAnalysisWorkId: number | null
-  songId: number | null
-  lyricId: number | null
   createdAt: string | null
   updatedAt: string | null
 }
