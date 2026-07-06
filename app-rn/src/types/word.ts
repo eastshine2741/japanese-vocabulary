@@ -41,6 +41,14 @@ export interface AddWordRequest {
   songId: number;
   lyricLine: string;
   koreanLyricLine?: string | null;
+  meanings?: WordMeaning[];
+  examples?: AddWordExampleRequest[];
+}
+
+export interface AddWordExampleRequest {
+  songId: number;
+  lyricLine?: string | null;
+  koreanLyricLine?: string | null;
 }
 
 export interface BatchAddWordRequest {

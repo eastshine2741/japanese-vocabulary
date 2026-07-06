@@ -1,6 +1,7 @@
 package com.japanese.vocabulary.song.dto.songdetail
 
 import com.japanese.vocabulary.word.dto.AddWordRequest
+import com.japanese.vocabulary.word.model.WordMeaning
 
 data class WordInSongItemDto(
     val japanese: String,
@@ -8,6 +9,7 @@ data class WordInSongItemDto(
     val baseForm: String?,
     val reading: String?,
     val koreanText: String?,
+    val meanings: List<WordMeaning> = emptyList(),
     val partOfSpeech: String,
     val partOfSpeechLabel: String,
     val jlpt: String?,

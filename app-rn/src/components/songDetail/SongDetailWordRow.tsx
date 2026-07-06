@@ -45,9 +45,9 @@ function SongDetailWordRow<T extends SongDetailWordRowItem>({
   const label = word.baseForm || word.japanese || word.surface || '';
   const readingValue = word.baseFormReading ?? word.reading;
   const reading = readingValue ? convertReading(readingValue, readingDisplay) : '';
-  const meaning = word.koreanText
-    ?? word.meanings?.map(item => item.text).filter(Boolean).join(', ')
-    ?? '';
+  const meaning = word.meanings?.map(item => item.text).filter(Boolean).join(', ')
+    || word.koreanText
+    || '';
   const jlptColor = getJlptColor(word.jlpt);
 
   return (
@@ -82,7 +82,8 @@ function SongDetailWordRow<T extends SongDetailWordRowItem>({
         disabled={isBusy || onToggleSave == null}
         activeOpacity={0.7}
         accessibilityRole="button"
-        accessibilityLabel={isSaved ? '단어장에서 빼기' : '단어 담기'}
+        accessibilityLabel={isSaved ? '단어장에서 삭제' : '단어 담기'}
+        accessibilityHint={isSaved ? '단어와 모든 뜻, 예문, 복습 카드 삭제 확인창을 엽니다' : undefined}
       >
         {isBusy ? (
           <ActivityIndicator size="small" color={Colors.primary} />

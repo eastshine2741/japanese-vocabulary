@@ -32,6 +32,7 @@ import com.japanese.vocabulary.test.ApiBaseIntegrationTest
 import com.japanese.vocabulary.test.fixtures.TestSongBuilder
 import com.japanese.vocabulary.test.fixtures.TestUserBuilder
 import com.japanese.vocabulary.user.entity.UserEntity
+import com.japanese.vocabulary.word.model.WordMeaning
 import io.mockk.every
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Nested
@@ -579,6 +580,7 @@ class SongControllerTest : ApiBaseIntegrationTest() {
             val savedWord = com.japanese.vocabulary.test.fixtures.TestWordBuilder(entityManager)
                 .forUser(me)
                 .withJapaneseText("高")
+                .withMeanings(listOf(WordMeaning(text = "高-ko", partOfSpeech = "VERB")))
                 .build()
             entityManager.persist(com.japanese.vocabulary.word.entity.SongWordEntity(wordId = savedWord.id!!, songId = song.id!!, lyricLine = "高く低く"))
             entityManager.flush()
@@ -605,6 +607,109 @@ class SongControllerTest : ApiBaseIntegrationTest() {
             assertThat(dto.wordSummary.defaultBulkAddCount).isEqualTo(1)
         }
 
+        @Test
+        fun `word saved state depends on japanese text and meaning but not example link`() {
+            val me = newUser()
+            val song = newSong()
+            val wordCandidates = LyricWordCandidates(
+                candidates = listOf(
+                    candidate("意味一致", 99.0, 0, listOf(0), "N3", "NOUN"),
+                    candidate("例文のみ", 90.0, 1, listOf(1), "N3", "NOUN"),
+                ),
+                lineCandidates = mapOf("0" to listOf(0), "1" to listOf(1)),
+            )
+            newLyric(
+                song,
+                raw = listOf(
+                    LyricLineData(index = 0, startTimeMs = null, text = "意味一致"),
+                    LyricLineData(index = 1, startTimeMs = null, text = "例文のみ"),
+                ),
+                wordCandidates = wordCandidates,
+            )
+            val savedByMeaning = com.japanese.vocabulary.test.fixtures.TestWordBuilder(entityManager)
+                .forUser(me)
+                .withJapaneseText("意味一致")
+                .withMeanings(listOf(WordMeaning(text = "意味一致-ko", partOfSpeech = "NOUN")))
+                .build()
+            val savedByExampleOnly = com.japanese.vocabulary.test.fixtures.TestWordBuilder(entityManager)
+                .forUser(me)
+                .withJapaneseText("例文のみ")
+                .withMeanings(listOf(WordMeaning(text = "다른 뜻", partOfSpeech = "NOUN")))
+                .build()
+            entityManager.persist(com.japanese.vocabulary.word.entity.SongWordEntity(wordId = savedByExampleOnly.id!!, songId = song.id!!, lyricLine = "例文のみ"))
+            entityManager.flush()
+
+            val dto = readBody<WordsInSongDto>(mockMvc.get("/api/songs/${song.id}/words") {
+                header("Authorization", bearer(me))
+            }.andExpect {
+                status { isOk() }
+            }.andReturn().response.contentAsString)
+
+            assertThat(dto.words.map { it.japanese }).containsExactly("意味一致", "例文のみ")
+            assertThat(dto.words[0].isSavedGlobally).isTrue
+            assertThat(dto.words[0].isSavedForSong).isTrue
+            assertThat(dto.words[0].savedWordId).isEqualTo(savedByMeaning.id)
+            assertThat(dto.words[1].isSavedGlobally).isTrue
+            assertThat(dto.words[1].isSavedForSong).isFalse
+            assertThat(dto.words[1].savedWordId).isNull()
+        }
+
+        @Test
+        fun `same japanese candidates merge meanings and examples into one song detail word`() {
+            val me = newUser()
+            val song = newSong()
+            val wordCandidates = LyricWordCandidates(
+                candidates = listOf(
+                    candidate("重い", 99.0, 0, listOf(0), "N3", "ADJECTIVE", koreanText = "무겁다"),
+                    candidate("重い", 90.0, 1, listOf(1, 2), "N3", "ADJECTIVE", koreanText = "중요하다"),
+                ),
+                lineCandidates = mapOf("0" to listOf(0), "1" to listOf(1), "2" to listOf(1)),
+            )
+            newLyric(
+                song,
+                raw = listOf(
+                    LyricLineData(index = 0, startTimeMs = null, text = "重い荷物"),
+                    LyricLineData(index = 1, startTimeMs = null, text = "重い言葉"),
+                    LyricLineData(index = 2, startTimeMs = null, text = "重い約束"),
+                ),
+                analyzed = listOf(
+                    AnalyzedLine(index = 0, koreanLyrics = "무거운 짐", koreanPronounciation = null, tokens = emptyList()),
+                    AnalyzedLine(index = 1, koreanLyrics = "중요한 말", koreanPronounciation = null, tokens = emptyList()),
+                    AnalyzedLine(index = 2, koreanLyrics = "중요한 약속", koreanPronounciation = null, tokens = emptyList()),
+                ),
+                wordCandidates = wordCandidates,
+            )
+            com.japanese.vocabulary.test.fixtures.TestWordBuilder(entityManager)
+                .forUser(me)
+                .withJapaneseText("重い")
+                .withMeanings(listOf(WordMeaning(text = "무겁다", partOfSpeech = "ADJECTIVE")))
+                .build()
+            entityManager.flush()
+
+            val dto = readBody<WordsInSongDto>(mockMvc.get("/api/songs/${song.id}/words") {
+                header("Authorization", bearer(me))
+            }.andExpect {
+                status { isOk() }
+                jsonPath("$.words.length()") { value(1) }
+                jsonPath("$.words[0].meanings.length()") { value(2) }
+                jsonPath("$.words[0].addRequest.meanings.length()") { value(2) }
+                jsonPath("$.words[0].addRequest.examples.length()") { value(3) }
+            }.andReturn().response.contentAsString)
+
+            val word = dto.words.single()
+            assertThat(word.meanings.map { it.text }).containsExactly("무겁다", "중요하다")
+            assertThat(word.lineIndexes).containsExactly(0, 1, 2)
+            assertThat(word.isSavedGlobally).isTrue
+            assertThat(word.isSavedForSong).isFalse
+            assertThat(word.savedWordId).isNull()
+            assertThat(word.addRequest.meanings.map { it.text }).containsExactly("무겁다", "중요하다")
+            assertThat(word.addRequest.examples.map { it.lyricLine }).containsExactly("重い荷物", "重い言葉", "重い約束")
+            assertThat(dto.lineWordIndexes[0]).containsExactly(0)
+            assertThat(dto.lineWordIndexes[1]).containsExactly(0)
+            assertThat(dto.lineWordIndexes[2]).containsExactly(0)
+            assertThat(dto.wordSummary.defaultBulkAddCount).isEqualTo(1)
+        }
+
         private fun candidate(
             japanese: String,
             score: Double,
@@ -613,13 +718,14 @@ class SongControllerTest : ApiBaseIntegrationTest() {
             jlpt: String,
             pos: String,
             baseFormReading: String? = null,
+            koreanText: String = "$japanese-ko",
         ) = WordCandidate(
             japanese = japanese,
             surface = japanese,
             baseForm = japanese,
             reading = null,
             baseFormReading = baseFormReading,
-            koreanText = "$japanese-ko",
+            koreanText = koreanText,
             partOfSpeech = pos,
             partOfSpeechLabel = pos,
             jlpt = jlpt,

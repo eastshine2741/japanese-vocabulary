@@ -1,3 +1,5 @@
+import { WordMeaning } from './word';
+
 export interface SongSearchItem {
   id: string;
   title: string;
@@ -100,6 +102,7 @@ export interface WordInSongItemDto {
   baseForm: string | null;
   reading: string | null;
   koreanText: string | null;
+  meanings: WordMeaning[];
   partOfSpeech: string;
   partOfSpeechLabel: string;
   jlpt: string | null;
@@ -118,6 +121,12 @@ export interface WordInSongItemDto {
     songId: number;
     lyricLine: string;
     koreanLyricLine?: string | null;
+    meanings?: WordMeaning[];
+    examples?: {
+      songId: number;
+      lyricLine?: string | null;
+      koreanLyricLine?: string | null;
+    }[];
   };
 }
 

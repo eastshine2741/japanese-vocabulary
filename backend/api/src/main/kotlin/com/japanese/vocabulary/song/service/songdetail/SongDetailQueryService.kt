@@ -9,8 +9,9 @@ import com.japanese.vocabulary.song.entity.LyricType
 import com.japanese.vocabulary.song.model.WordCandidate
 import com.japanese.vocabulary.song.repository.LyricRepository
 import com.japanese.vocabulary.song.repository.SongRepository
+import com.japanese.vocabulary.word.dto.AddWordExampleRequest
 import com.japanese.vocabulary.word.dto.AddWordRequest
-import com.japanese.vocabulary.word.repository.SongWordRepository
+import com.japanese.vocabulary.word.model.WordMeaning
 import com.japanese.vocabulary.word.repository.WordRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -20,7 +21,6 @@ class SongDetailQueryService(
     private val songRepository: SongRepository,
     private val lyricRepository: LyricRepository,
     private val wordRepository: WordRepository,
-    private val songWordRepository: SongWordRepository,
 ) {
     @Transactional(readOnly = true)
     fun metadata(songId: Long): SongDto {
@@ -77,44 +77,77 @@ class SongDetailQueryService(
             )
         }
 
-        val sorted = wordCandidates.candidates.sortedWith(compareByDescending<WordCandidate> { it.importanceScore }.thenBy { it.appearanceOrder }.thenBy { it.japanese })
-        val wordsByJapanese = wordRepository.findByUserIdAndJapaneseTextIn(userId, sorted.map { it.japanese }.distinct()).associateBy { it.japaneseText }
-        val songWordsByWordId = songWordRepository.findBySongIdAndWordIdIn(songId, wordsByJapanese.values.mapNotNull { it.id }).associateBy { it.wordId }
-        val rawToFinalIndex = sorted.mapIndexed { finalIndex, candidate -> wordCandidates.candidates.indexOf(candidate) to finalIndex }.toMap()
+        val sorted = wordCandidates.candidates.withIndex().sortedWith(
+            compareByDescending<IndexedValue<WordCandidate>> { it.value.importanceScore }
+                .thenBy { it.value.appearanceOrder }
+                .thenBy { it.value.japanese }
+        )
+        val grouped = sorted.groupBy { it.value.japanese }.values.toList()
+        val wordsByJapanese = wordRepository.findByUserIdAndJapaneseTextIn(
+            userId,
+            grouped.map { it.first().value.japanese }.distinct()
+        ).associateBy { it.japaneseText }
+        val rawToFinalIndex = grouped.flatMapIndexed { finalIndex, group ->
+            group.map { it.index to finalIndex }
+        }.toMap()
         val analyzedByIndex = lyric.analyzedContent.orEmpty().associateBy { it.index }
         val rawByIndex = lyric.rawContent.associateBy { it.index }
-        val items = sorted.map { candidate ->
+        val items = grouped.map { group ->
+            val candidates = group.map { it.value }
+            val candidate = candidates.first()
+            val meanings = candidates.mapNotNull { item ->
+                item.koreanText
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let { WordMeaning(text = it, partOfSpeech = item.partOfSpeech) }
+            }.distinctBy { it.text }
+            val lineIndexes = candidates.flatMap { it.lineIndexes }.distinct().sorted()
+            val examples = lineIndexes.map { lineIndex ->
+                AddWordExampleRequest(
+                    songId = songId,
+                    lyricLine = rawByIndex[lineIndex]?.text ?: "",
+                    koreanLyricLine = analyzedByIndex[lineIndex]?.koreanLyrics,
+                )
+            }
             val saved = wordsByJapanese[candidate.japanese]
-            val songWord = saved?.id?.let { songWordsByWordId[it] }
-            val lineIndex = candidate.lineIndexes.sorted().firstOrNull()
+            val savedWithMeaning = saved != null &&
+                meanings.isNotEmpty() &&
+                meanings.all { required -> saved.meanings.any { it.text == required.text } }
+            val savedWordId = saved?.id?.takeIf { savedWithMeaning }
+            val lineIndex = lineIndexes.firstOrNull()
+            val primaryMeaning = meanings.firstOrNull()?.text ?: candidate.koreanText
             WordInSongItemDto(
                 japanese = candidate.japanese,
                 surface = candidate.surface,
                 baseForm = candidate.baseForm,
                 reading = candidate.baseFormReading ?: candidate.reading,
-                koreanText = candidate.koreanText,
+                koreanText = primaryMeaning,
+                meanings = meanings,
                 partOfSpeech = candidate.partOfSpeech,
                 partOfSpeechLabel = candidate.partOfSpeechLabel,
                 jlpt = candidate.jlpt,
                 importanceScore = candidate.importanceScore,
                 appearanceOrder = candidate.appearanceOrder,
-                frequency = candidate.frequency,
-                lineIndexes = candidate.lineIndexes,
+                frequency = lineIndexes.size,
+                lineIndexes = lineIndexes,
                 isSavedGlobally = saved != null,
-                isSavedForSong = songWord != null,
-                savedWordId = songWord?.let { saved.id },
+                isSavedForSong = savedWithMeaning,
+                savedWordId = savedWordId,
                 addRequest = AddWordRequest(
                     japanese = candidate.baseForm?.takeIf { it.isNotBlank() } ?: candidate.surface,
                     reading = candidate.baseFormReading ?: candidate.reading ?: "",
-                    koreanText = candidate.koreanText ?: "",
+                    koreanText = primaryMeaning ?: "",
                     partOfSpeech = candidate.partOfSpeech,
                     songId = songId,
                     lyricLine = lineIndex?.let { rawByIndex[it]?.text } ?: "",
                     koreanLyricLine = lineIndex?.let { analyzedByIndex[it]?.koreanLyrics },
+                    meanings = meanings,
+                    examples = examples,
                 ),
             )
         }
-        val lineWordIndexes = wordCandidates.lineCandidates.mapKeys { it.key.toInt() }.mapValues { (_, rawIndexes) -> rawIndexes.mapNotNull { rawToFinalIndex[it] } }
+        val lineWordIndexes = wordCandidates.lineCandidates.mapKeys { it.key.toInt() }.mapValues { (_, rawIndexes) ->
+            rawIndexes.mapNotNull { rawToFinalIndex[it] }.distinct()
+        }
         val defaultBulkAddCount = items.count { it.matchesDefaultFilters() && !it.isSavedForSong }
         return WordsInSongDto(
             lyricId = lyric.id!!,

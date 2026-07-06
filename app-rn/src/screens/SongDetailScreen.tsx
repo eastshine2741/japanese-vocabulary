@@ -42,6 +42,7 @@ import {
 } from '../components/songDetail/songDetailWordSave';
 import { Colors, Dimens } from '../theme/theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import type { WordDetailResponse } from '../types/word';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SongDetail'>;
 type DetailTab = 'home' | 'words';
@@ -86,6 +87,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
   const [wordSaveOverrides, setWordSaveOverrides] = useState<Map<string, SongDetailWordSaveState>>(() => new Map());
   const [busyWordKey, setBusyWordKey] = useState<string | null>(null);
   const [pendingRemoveWord, setPendingRemoveWord] = useState<SongDetailWordItem | null>(null);
+  const [pendingRemoveWordDetail, setPendingRemoveWordDetail] = useState<WordDetailResponse | null>(null);
   const isPinnedTabsVisibleRef = useRef(false);
 
   const routeSongId = route.params?.songId;
@@ -96,6 +98,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     setWordSaveOverrides(new Map());
     setBusyWordKey(null);
     setPendingRemoveWord(null);
+    setPendingRemoveWordDetail(null);
   }, [songId]);
 
   useEffect(() => {
@@ -273,6 +276,31 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     return resolveSongDetailWordSaveState(word, wordSaveOverrides);
   }, [wordSaveOverrides]);
 
+  useEffect(() => {
+    if (pendingRemoveWord == null) {
+      setPendingRemoveWordDetail(null);
+      return;
+    }
+
+    const savedWordId = getWordSaveState(pendingRemoveWord).savedWordId;
+    if (savedWordId == null) {
+      setPendingRemoveWordDetail(null);
+      return;
+    }
+
+    let cancelled = false;
+    wordApi.getById(savedWordId)
+      .then(detail => {
+        if (!cancelled) setPendingRemoveWordDetail(detail);
+      })
+      .catch(() => {
+        if (!cancelled) setPendingRemoveWordDetail(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [getWordSaveState, pendingRemoveWord]);
+
   const handleToggleWordSave = useCallback(async (word: SongDetailWordItem) => {
     const wordKey = getSongDetailWordKey(word);
     const state = getWordSaveState(word);
@@ -333,6 +361,20 @@ export default function SongDetailScreen({ navigation, route }: Props) {
       setPendingRemoveWord(null);
     }
   }, [getWordSaveState, handleWordsChanged, pendingRemoveWord]);
+
+  const pendingRemoveWordLabel = pendingRemoveWordDetail?.japanese
+    ?? pendingRemoveWord?.baseForm
+    ?? pendingRemoveWord?.japanese
+    ?? pendingRemoveWord?.surface
+    ?? '';
+  const pendingRemoveWordMeanings = pendingRemoveWordDetail?.meanings.map(meaning => meaning.text).filter(Boolean)
+    ?? [
+      ...(pendingRemoveWord?.meanings?.map(meaning => meaning.text) ?? []),
+      pendingRemoveWord?.koreanText,
+      ...(pendingRemoveWord?.addRequest.koreanText ? [pendingRemoveWord.addRequest.koreanText] : []),
+    ].filter((meaning): meaning is string => Boolean(meaning));
+  const pendingRemoveWordMeaningText = [...new Set(pendingRemoveWordMeanings)].join(', ');
+  const pendingRemoveWordMeaningLabel = pendingRemoveWordDetail != null ? '저장된 뜻' : '표시된 뜻';
 
   const handleHomePageLayout = useCallback((event: LayoutChangeEvent) => {
     const height = Math.ceil(event.nativeEvent.layout.height);
@@ -629,13 +671,25 @@ export default function SongDetailScreen({ navigation, route }: Props) {
 
       <AppDialog
         visible={pendingRemoveWord !== null}
-        title="단어장에서 뺄까요?"
-        body={'이 단어의 뜻, 예문, 플래시카드가\n모두 삭제돼요.'}
+        title="단어장에서 삭제할까요?"
+        body="이 단어와 모든 뜻, 예문, 복습 카드가 삭제됩니다. 이 곡에서만 빼는 동작이 아니에요."
         buttons={[
           { label: '취소', variant: 'secondary', onPress: cancelRemoveWord },
-          { label: '빼기', variant: 'danger', onPress: confirmRemoveWord },
+          { label: '단어 삭제', variant: 'danger', onPress: confirmRemoveWord },
         ]}
-      />
+      >
+        <View style={styles.removeWordPreview}>
+          <Text style={styles.removeWordLabel} numberOfLines={1}>{pendingRemoveWordLabel}</Text>
+          {pendingRemoveWordMeaningText !== '' && (
+            <View style={styles.removeWordMeaningBlock}>
+              <Text style={styles.removeWordMeaningCaption}>{pendingRemoveWordMeaningLabel}</Text>
+              <Text style={styles.removeWordMeaningText} numberOfLines={2}>
+                {pendingRemoveWordMeaningText}
+              </Text>
+            </View>
+          )}
+        </View>
+      </AppDialog>
     </View>
   );
 }
@@ -898,6 +952,34 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 15,
     fontWeight: '600',
+    color: Colors.textSecondary,
+    textAlign: 'center',
+  },
+  removeWordPreview: {
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    backgroundColor: Colors.elevated,
+    gap: 8,
+  },
+  removeWordLabel: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+    textAlign: 'center',
+  },
+  removeWordMeaningBlock: {
+    gap: 3,
+  },
+  removeWordMeaningCaption: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.textMuted,
+    textAlign: 'center',
+  },
+  removeWordMeaningText: {
+    fontSize: 13,
+    lineHeight: 18,
     color: Colors.textSecondary,
     textAlign: 'center',
   },

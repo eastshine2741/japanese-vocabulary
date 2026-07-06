@@ -8,6 +8,7 @@ import com.japanese.vocabulary.song.repository.SongRepository
 import com.japanese.vocabulary.word.entity.SongWordEntity
 import com.japanese.vocabulary.word.entity.WordEntity
 import com.japanese.vocabulary.word.event.SongWordCreatedEvent
+import com.japanese.vocabulary.word.dto.AddWordExampleDto
 import com.japanese.vocabulary.word.dto.AddWordDto
 import com.japanese.vocabulary.word.dto.BatchAddWordDto
 import com.japanese.vocabulary.word.dto.BatchAddWordResultDto
@@ -36,17 +37,11 @@ class WordService(
         var savedCount = 0
         var skippedCount = 0
         for (wordRequest in request.words) {
-            val existing = wordRepository.findByUserIdAndJapaneseText(userId, wordRequest.japanese)
-            val newMeaning = WordMeaning(text = wordRequest.koreanText, partOfSpeech = wordRequest.partOfSpeech)
-            val meaningAlreadyExists = existing != null && existing.meanings.any { it.text == newMeaning.text }
-            val songWordExists = existing != null && songWordRepository.existsByWordIdAndSongIdAndLyricLine(
-                existing.id!!, wordRequest.songId, wordRequest.lyricLine
-            )
-            if (meaningAlreadyExists && songWordExists) {
-                skippedCount++
-            } else {
-                addWord(userId, wordRequest)
+            val outcome = addWordInternal(userId, wordRequest)
+            if (outcome.changed) {
                 savedCount++
+            } else {
+                skippedCount++
             }
         }
         return BatchAddWordResultDto(savedCount = savedCount, skippedCount = skippedCount)
@@ -54,58 +49,61 @@ class WordService(
 
     @Transactional
     fun addWord(userId: Long, request: AddWordDto): Long {
-        if (!songRepository.existsById(request.songId)) {
-            throw BusinessException(ErrorCode.SONG_NOT_FOUND)
-        }
+        return addWordInternal(userId, request).wordId
+    }
+
+    private fun addWordInternal(userId: Long, request: AddWordDto): AddWordOutcome {
+        val requestedMeanings = request.normalizedMeanings()
+        if (requestedMeanings.isEmpty()) throw BusinessException(ErrorCode.MEANING_REQUIRED)
+
+        val requestedExamples = request.normalizedExamples()
+        val missingSong = requestedExamples.map { it.songId }.distinct().firstOrNull { !songRepository.existsById(it) }
+        if (missingSong != null) throw BusinessException(ErrorCode.SONG_NOT_FOUND)
 
         val word = wordRepository.findByUserIdAndJapaneseText(userId, request.japanese)
 
+        var wordChanged = false
         val savedWord = if (word != null) {
-            val newMeaning = WordMeaning(text = request.koreanText, partOfSpeech = request.partOfSpeech)
-            if (word.meanings.none { it.text == newMeaning.text }) {
-                word.meanings = word.meanings + newMeaning
+            val newMeanings = requestedMeanings.filter { newMeaning ->
+                word.meanings.none { it.text == newMeaning.text }
+            }
+            if (newMeanings.isNotEmpty()) {
+                word.meanings = word.meanings + newMeanings
                 wordRepository.save(word)
+                wordChanged = true
             }
             word
         } else {
+            wordChanged = true
             wordRepository.save(
                 WordEntity(
                     userId = userId,
                     japaneseText = request.japanese,
                     reading = request.reading,
-                    meanings = listOf(WordMeaning(text = request.koreanText, partOfSpeech = request.partOfSpeech))
+                    meanings = requestedMeanings,
                 )
             )
         }
 
-        val songWordCreated = !songWordRepository.existsByWordIdAndSongIdAndLyricLine(
-            savedWord.id!!, request.songId, request.lyricLine
-        )
-        if (songWordCreated) {
-            songWordRepository.save(
-                SongWordEntity(
-                    wordId = savedWord.id,
-                    songId = request.songId,
-                    lyricLine = request.lyricLine,
-                    koreanLyricLine = request.koreanLyricLine
-                )
-            )
-        }
+        val savedWordId = savedWord.id!!
+        val flashcardId = flashcardService.createFlashcard(userId, savedWordId)
+        val createdExampleSongIds = addExamplesWithCap(savedWord, requestedExamples)
 
-        val flashcardId = flashcardService.createFlashcard(userId, savedWord.id)
-
-        if (songWordCreated) {
+        createdExampleSongIds.distinct().forEach { songId ->
             eventPublisher.publishEvent(
                 SongWordCreatedEvent(
                     userId = userId,
-                    songId = request.songId,
-                    wordId = savedWord.id,
+                    songId = songId,
+                    wordId = savedWordId,
                     flashcardId = flashcardId,
                 )
             )
         }
 
-        return savedWord.id
+        return AddWordOutcome(
+            wordId = savedWordId,
+            changed = wordChanged || createdExampleSongIds.isNotEmpty(),
+        )
     }
 
     @Transactional
@@ -223,5 +221,61 @@ class WordService(
         val nextCursor = if (words.size == limit) words.last().id else null
 
         return WordListDto(items = items, nextCursor = nextCursor)
+    }
+
+    private fun AddWordDto.normalizedMeanings(): List<WordMeaning> {
+        val source = meanings.ifEmpty {
+            listOf(WordMeaning(text = koreanText, partOfSpeech = partOfSpeech))
+        }
+        return source
+            .filter { it.text.isNotBlank() }
+            .distinctBy { it.text }
+    }
+
+    private fun AddWordDto.normalizedExamples(): List<AddWordExampleDto> =
+        examples.ifEmpty {
+            listOf(AddWordExampleDto(songId = songId, lyricLine = lyricLine, koreanLyricLine = koreanLyricLine))
+        }
+
+    private fun addExamplesWithCap(word: WordEntity, examples: List<AddWordExampleDto>): List<Long> {
+        val wordId = word.id!!
+        val existing = songWordRepository.findByWordId(wordId)
+        val seenKeys = existing.map { ExampleKey(it.songId, it.lyricLine) }.toMutableSet()
+        val createdSongIds = mutableListOf<Long>()
+        var exampleCount = existing.size
+
+        for (example in examples) {
+            if (exampleCount >= MAX_EXAMPLES_PER_WORD) break
+
+            val key = ExampleKey(example.songId, example.lyricLine)
+            if (!seenKeys.add(key)) continue
+
+            songWordRepository.save(
+                SongWordEntity(
+                    wordId = wordId,
+                    songId = example.songId,
+                    lyricLine = example.lyricLine,
+                    koreanLyricLine = example.koreanLyricLine,
+                )
+            )
+            exampleCount++
+            createdSongIds += example.songId
+        }
+
+        return createdSongIds
+    }
+
+    private data class AddWordOutcome(
+        val wordId: Long,
+        val changed: Boolean,
+    )
+
+    private data class ExampleKey(
+        val songId: Long,
+        val lyricLine: String?,
+    )
+
+    companion object {
+        private const val MAX_EXAMPLES_PER_WORD = 10
     }
 }

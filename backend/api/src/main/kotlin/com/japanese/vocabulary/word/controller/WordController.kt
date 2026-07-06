@@ -6,6 +6,7 @@ import com.japanese.vocabulary.word.dto.BatchAddWordResponse
 import com.japanese.vocabulary.word.dto.UpdateWordRequest
 import com.japanese.vocabulary.word.dto.WordDetailResponse
 import com.japanese.vocabulary.word.dto.WordListResponse
+import com.japanese.vocabulary.word.dto.AddWordExampleDto
 import com.japanese.vocabulary.word.dto.AddWordDto
 import com.japanese.vocabulary.word.dto.BatchAddWordDto
 import com.japanese.vocabulary.word.dto.BatchAddWordResultDto
@@ -78,6 +79,8 @@ class WordController(
         songId = songId,
         lyricLine = lyricLine,
         koreanLyricLine = koreanLyricLine,
+        meanings = meanings,
+        examples = examples.map { AddWordExampleDto(it.songId, it.lyricLine, it.koreanLyricLine) },
     )
 
     private fun BatchAddWordRequest.toDto() = BatchAddWordDto(words = words.map { it.toDto() })
