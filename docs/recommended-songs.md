@@ -73,7 +73,7 @@ The API:
 - filters out lyrics whose `analyzed_content` is null
 - does not record recent listens
 
-The app tap path calls the existing `GET /api/songs/{id}` through `usePlayerStore.loadById(songId)`, so tapping a recommendation records recent listen through the existing player path.
+The app tap path calls the existing `GET /api/songs/{id}` through `usePlayerStore.loadById(songId)`, so tapping a recommendation records recent listen before opening `SongDetail`.
 
 ## Direct DB operation notes
 

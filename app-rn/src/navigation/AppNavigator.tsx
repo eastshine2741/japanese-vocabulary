@@ -8,7 +8,6 @@ import SignupScreen from '../screens/SignupScreen';
 import ProfileEditScreen from '../screens/ProfileEditScreen';
 import SearchScreen from '../screens/SearchScreen';
 import SongSearchResultsScreen from '../screens/SongSearchResultsScreen';
-import PlayerScreen from '../screens/PlayerScreen';
 import SongDetailScreen from '../screens/SongDetailScreen';
 import ReviewScreen from '../screens/ReviewScreen';
 import DeckListScreen from '../screens/DeckListScreen';
@@ -39,7 +38,6 @@ export type RootStackParamList = {
   SongSearch: { query: string };
   Settings: undefined;
   OssLicense: undefined;
-  Player: SongPlaybackEntryParams;
   SongDetail: SongPlaybackEntryParams;
   Review: { deckId?: number | null; startFlashcardId?: number } | undefined;
   DeckList: undefined;
@@ -97,7 +95,6 @@ export default function AppNavigator({ initialRoute }: Props) {
       <Stack.Screen name="SongSearch" component={SongSearchResultsScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="OssLicense" component={OssLicenseScreen} />
-      <Stack.Screen name="Player" component={PlayerScreen} options={{ presentation: 'transparentModal', animation: 'slide_from_bottom' }} />
       <Stack.Screen name="SongDetail" component={SongDetailScreen} />
       <Stack.Screen name="Review" component={ReviewScreen} />
       <Stack.Screen name="DeckList" component={DeckListScreen} />

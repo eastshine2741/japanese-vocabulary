@@ -9,10 +9,8 @@ interface PlayerState {
   studyData: SongStudyData | null;
   errorCode: string | null;
 
-  // Playback progress lives in the store (not PlayerScreen state) so the
-  // YouTubePlayer's ~100ms time ticks don't force a re-render of the whole
-  // PlayerScreen tree. Only components that actually need the tick
-  // (LyricsDial) subscribe to currentMs.
+  // Playback progress lives in the store so YouTubePlayer's ~100ms time ticks
+  // are shared by the focused song detail components without local prop chains.
   currentMs: number;
   durationMs: number;
   setCurrentMs: (ms: number) => void;

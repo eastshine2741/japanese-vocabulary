@@ -108,9 +108,8 @@ export default function DeckWordListScreen({ route, navigation }: Props) {
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const actionSheetRef = useRef<AppBottomSheetRef>(null);
-  // Imperative open-state tracking for the hardware back handler. Mirrors
-  // PlayerScreen's pattern — a ref (not state) so it can be set
-  // synchronously at expand()/close() call sites, closing the race window
+  // Imperative open-state tracking for the hardware back handler. A ref can be
+  // set synchronously at expand()/close() call sites, closing the race window
   // before gorhom's onChange settles.
   const actionOpenRef = useRef(false);
 
