@@ -137,4 +137,21 @@ class SongRecommendationCandidateEntity(
         this.songId = songId
         this.lyricId = lyricId
     }
+
+    fun markApproved(now: Instant) {
+        status = RecommendationCandidateStatus.APPROVED
+        approvedAt = now
+        rejectedAt = null
+    }
+
+    fun markRejected(now: Instant) {
+        status = RecommendationCandidateStatus.REJECTED
+        rejectedAt = now
+    }
+
+    fun markPending() {
+        status = RecommendationCandidateStatus.PENDING
+        approvedAt = null
+        rejectedAt = null
+    }
 }

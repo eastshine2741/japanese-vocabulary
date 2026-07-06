@@ -10,9 +10,11 @@ import com.japanese.vocabulary.recommendation.entity.RecommendationCandidateStat
 import com.japanese.vocabulary.recommendation.entity.RecommendationSource
 import com.japanese.vocabulary.recommendation.entity.SongRecommendationCandidateEntity
 import com.japanese.vocabulary.recommendation.entity.SongRecommendationEntity
+import com.japanese.vocabulary.recommendation.entity.SongRecommendationStatus
 import com.japanese.vocabulary.recommendation.repository.SongRecommendationCandidateRepository
 import com.japanese.vocabulary.recommendation.repository.SongRecommendationRepository
 import com.japanese.vocabulary.song.repository.LyricRepository
+import com.japanese.vocabulary.song.repository.SongRepository
 import com.japanese.vocabulary.songanalysis.entity.SongAnalysisTriggerSource
 import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStatus
 import com.japanese.vocabulary.songanalysis.repository.SongAnalysisWorkRepository
@@ -21,6 +23,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 import java.time.LocalDate
 
 @Service
@@ -29,6 +32,7 @@ class SongRecommendationService(
     private val recommendationRepository: SongRecommendationRepository,
     private val songAnalysisWorkService: SongAnalysisWorkService,
     private val workRepository: SongAnalysisWorkRepository,
+    private val songRepository: SongRepository,
     private val lyricRepository: LyricRepository,
 ) {
     private val logger = LoggerFactory.getLogger(SongRecommendationService::class.java)
@@ -78,8 +82,8 @@ class SongRecommendationService(
     }
 
     @Transactional
-    fun dispatchApprovedCandidates(limit: Int): RecommendationOperationResultDto {
-        val candidates = findApprovedCandidatesAwaitingAnalysis(limit)
+    fun dispatchApprovedCandidates(): RecommendationOperationResultDto {
+        val candidates = findApprovedCandidatesAwaitingAnalysis()
         val items = candidates.map { candidate ->
             dispatchCandidate(candidate)
         }
@@ -87,17 +91,81 @@ class SongRecommendationService(
     }
 
     @Transactional
-    fun reconcileCompletedWork(limit: Int): RecommendationOperationResultDto {
-        val candidates = findApprovedCandidatesAwaitingRecommendation(limit)
+    fun reconcileCompletedWork(): RecommendationOperationResultDto {
+        val candidates = findApprovedCandidatesAwaitingRecommendation()
         val items = candidates.map { candidate ->
             reconcileCandidate(candidate)
         }
         return items.toOperationResult()
     }
 
+    @Transactional
+    fun prepareApprovedCandidates(): RecommendationOperationResultDto {
+        val candidates = candidateRepository.findApprovedWithoutRecommendation(operationPage()).map { it.toDto() }
+        val items = candidates.map { candidate ->
+            prepareCandidate(candidate)
+        }
+        return items.toOperationResult()
+    }
+
     @Transactional(readOnly = true)
-    internal fun findApprovedCandidatesAwaitingAnalysis(limit: Int): List<RecommendationCandidateDto> =
-        candidateRepository.findApprovedAwaitingAnalysis(PageRequest.of(0, limit)).map { it.toDto() }
+    fun listCandidates(
+        weekStartDate: LocalDate?,
+        status: RecommendationCandidateStatus?,
+    ): List<RecommendationCandidateDto> {
+        val effectiveWeekStartDate = weekStartDate ?: candidateRepository.findLatestWeekStartDate()
+            ?: return emptyList()
+        return candidateRepository.findCandidatesForWeek(
+            weekStartDate = effectiveWeekStartDate,
+            status = status,
+            pageable = PageRequest.of(0, MAX_ADMIN_ROWS),
+        ).map { it.toDto() }
+    }
+
+    @Transactional(readOnly = true)
+    fun listRecommendations(weekStartDate: LocalDate?): List<SongRecommendationDto> {
+        val effectiveWeekStartDate = weekStartDate ?: recommendationRepository.findLatestWeekStartDate()
+            ?: return emptyList()
+        return recommendationRepository.findByWeekStartDateOrderByOrderIndexAscCreatedAtAsc(effectiveWeekStartDate)
+            .map { it.toDto() }
+    }
+
+    @Transactional
+    fun updateCandidateStatus(
+        candidateId: Long,
+        status: RecommendationCandidateStatus,
+    ): RecommendationCandidateDto {
+        val candidate = candidateRepository.getReferenceById(candidateId)
+        when (status) {
+            RecommendationCandidateStatus.PENDING -> candidate.markPending()
+            RecommendationCandidateStatus.APPROVED -> candidate.markApproved(Instant.now())
+            RecommendationCandidateStatus.REJECTED -> candidate.markRejected(Instant.now())
+        }
+        return candidate.toDto()
+    }
+
+    @Transactional
+    fun updateRecommendation(
+        recommendationId: Long,
+        status: SongRecommendationStatus?,
+        orderIndex: Int?,
+    ): SongRecommendationDto {
+        val recommendation = recommendationRepository.getReferenceById(recommendationId)
+        orderIndex?.let { recommendation.updateOrder(it) }
+        when (status) {
+            SongRecommendationStatus.PUBLISHED -> {
+                validatePublishable(recommendation)
+                recommendation.publish(Instant.now())
+            }
+            SongRecommendationStatus.PENDING -> recommendation.unpublish()
+            null -> Unit
+        }
+        return recommendation.toDto()
+    }
+
+    @Transactional(readOnly = true)
+    internal fun findApprovedCandidatesAwaitingAnalysis(): List<RecommendationCandidateDto> =
+        candidateRepository.findApprovedAwaitingAnalysis(operationPage()).map { it.toDto() }
 
     @Transactional
     internal fun linkAnalysisWork(candidateId: Long, workId: Long): RecommendationCandidateDto {
@@ -107,8 +175,8 @@ class SongRecommendationService(
     }
 
     @Transactional(readOnly = true)
-    internal fun findApprovedCandidatesAwaitingRecommendation(limit: Int): List<RecommendationCandidateDto> =
-        candidateRepository.findApprovedAwaitingRecommendation(PageRequest.of(0, limit)).map { it.toDto() }
+    internal fun findApprovedCandidatesAwaitingRecommendation(): List<RecommendationCandidateDto> =
+        candidateRepository.findApprovedAwaitingRecommendation(operationPage()).map { it.toDto() }
 
     @Transactional
     internal fun createPendingRecommendation(
@@ -121,9 +189,6 @@ class SongRecommendationService(
         val candidate = candidateRepository.getReferenceById(candidateId)
         require(candidate.status == RecommendationCandidateStatus.APPROVED) {
             "Only approved candidates can become recommendations."
-        }
-        require(candidate.songAnalysisWorkId != null) {
-            "Candidate must be linked to song analysis work before recommendation creation."
         }
 
         candidate.linkAnalyzedSong(songId = songId, lyricId = lyricId)
@@ -229,6 +294,73 @@ class SongRecommendationService(
         }
     }
 
+    private fun prepareCandidate(
+        candidate: RecommendationCandidateDto,
+    ): RecommendationOperationItemDto {
+        findExistingAnalyzedSong(candidate)?.let { existing ->
+            return try {
+                val recommendation = createPendingRecommendation(
+                    candidateId = candidate.id,
+                    songId = existing.songId,
+                    lyricId = existing.lyricId,
+                )
+                RecommendationOperationItemDto(
+                    candidateId = candidate.id,
+                    status = OPERATION_SUCCEEDED,
+                    recommendationId = recommendation.id,
+                    message = "Created pending recommendation from an existing analyzed song.",
+                )
+            } catch (e: Exception) {
+                logger.error("Failed to create recommendation from existing song: candidateId={}", candidate.id, e)
+                RecommendationOperationItemDto(
+                    candidateId = candidate.id,
+                    status = OPERATION_FAILED,
+                    message = e.message,
+                )
+            }
+        }
+
+        if (candidate.songAnalysisWorkId != null) {
+            return reconcileCandidate(candidate)
+        }
+
+        return dispatchCandidate(candidate)
+    }
+
+    private fun findExistingAnalyzedSong(candidate: RecommendationCandidateDto): ExistingAnalyzedSong? {
+        val song = songRepository.findByArtistAndTitle(candidate.artistName, candidate.title) ?: return null
+        val songId = song.id ?: return null
+        val lyric = lyricRepository.findBySongId(songId) ?: return null
+        val lyricId = lyric.id ?: return null
+        if (lyric.analyzedContent == null) return null
+        return ExistingAnalyzedSong(songId = songId, lyricId = lyricId)
+    }
+
+    private fun validatePublishable(recommendation: SongRecommendationEntity) {
+        val candidate = candidateRepository.getReferenceById(recommendation.candidateId)
+        require(candidate.status == RecommendationCandidateStatus.APPROVED) {
+            "Recommendation candidate must be approved before publishing."
+        }
+        require(candidate.songId == recommendation.songId && candidate.lyricId == recommendation.lyricId) {
+            "Recommendation candidate song and lyric links must match the recommendation."
+        }
+
+        if (candidate.songAnalysisWorkId != null) {
+            val work = workRepository.findById(candidate.songAnalysisWorkId!!).orElse(null)
+            require(work != null) { "Linked song analysis work was not found." }
+            require(work.status == SongAnalysisWorkStatus.COMPLETED) { "Linked song analysis work is not completed." }
+            require(work.songId == recommendation.songId && work.lyricId == recommendation.lyricId) {
+                "Linked song analysis work result does not match the recommendation."
+            }
+            require(work.playerReadyAt != null) { "Linked song analysis work is not player-ready." }
+        }
+
+        val lyric = lyricRepository.findById(recommendation.lyricId).orElse(null)
+        require(lyric != null) { "Recommendation lyric was not found." }
+        require(lyric.songId == recommendation.songId) { "Recommendation lyric does not belong to the song." }
+        require(lyric.analyzedContent != null) { "Recommendation lyric has not been analyzed." }
+    }
+
     private fun skipped(
         candidateId: Long,
         message: String,
@@ -250,9 +382,17 @@ class SongRecommendationService(
             items = this,
         )
 
+    private fun operationPage(): PageRequest = PageRequest.of(0, MAX_ADMIN_ROWS)
+
     companion object {
+        private const val MAX_ADMIN_ROWS = 100
         private const val OPERATION_SUCCEEDED = "SUCCEEDED"
         private const val OPERATION_SKIPPED = "SKIPPED"
         private const val OPERATION_FAILED = "FAILED"
     }
+
+    private data class ExistingAnalyzedSong(
+        val songId: Long,
+        val lyricId: Long,
+    )
 }

@@ -8,6 +8,8 @@ import {
   lyricDetail,
   lyricSummary,
   page,
+  recommendation,
+  recommendationCandidate,
   recommendationOperationResult,
   songAnalysisWorkDetail,
   songAnalysisWorkSummary,
@@ -26,6 +28,9 @@ function mockFetch() {
     if (url.includes("/songs?")) return json(page([songSummary]))
     if (url.includes("/song-analysis-works/4")) return json(songAnalysisWorkDetail)
     if (url.includes("/song-analysis-works?")) return json(page([songAnalysisWorkSummary]))
+    if (url.includes("/recommendations/candidates")) return json([recommendationCandidate])
+    if (url.endsWith("/recommendations")) return json([recommendation])
+    if (url.includes("/recommendations/prepare-approved")) return json(recommendationOperationResult)
     if (url.includes("/recommendations/dispatch-analysis")) return json(recommendationOperationResult)
     if (url.includes("/recommendations/reconcile-completed")) return json(recommendationOperationResult)
     if (url.includes("/lyrics/2")) return json(lyricDetail)
@@ -83,17 +88,19 @@ describe("admin web", () => {
     expect(screen.getByRole("link", { name: "Users" })).toBeInTheDocument()
   })
 
-  test("runs recommendation manual operations", async () => {
+  test("runs recommendation workflow operations", async () => {
     const user = userEvent.setup()
     sessionStorage.setItem("kotonoha.admin.token", "admin-token")
     renderApp("/recommendations")
 
     expect(await screen.findByRole("heading", { name: "Recommendations" })).toBeInTheDocument()
-    await user.click(screen.getByRole("button", { name: "Dispatch analysis" }))
+    expect((await screen.findAllByText("Plazma")).length).toBeGreaterThan(0)
+    expect(screen.getByText("Kenshi Yonezu")).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Process approved" }))
 
     expect(await screen.findByText("Processed")).toBeInTheDocument()
-    expect(screen.getByText("SUCCEEDED")).toBeInTheDocument()
-    expect(screen.getByText("10")).toBeInTheDocument()
+    expect(screen.getByText(/SUCCEEDED/)).toBeInTheDocument()
+    expect(screen.getAllByRole("tab")).toHaveLength(2)
   })
 
   test("renders detail pages without write controls", async () => {

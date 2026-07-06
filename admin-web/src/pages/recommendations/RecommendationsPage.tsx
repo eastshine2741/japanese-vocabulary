@@ -1,7 +1,7 @@
 import * as React from "react"
-import { PlayCircle, RefreshCw } from "lucide-react"
+import { ArrowRight, CheckCircle2, RefreshCw, XCircle } from "lucide-react"
 import { adminApi } from "@/api/client"
-import type { RecommendationOperationResult } from "@/api/types"
+import type { Recommendation, RecommendationCandidate, RecommendationOperationResult } from "@/api/types"
 import { PageHeader } from "@/components/PageHeader"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -9,81 +9,129 @@ import { Table, Td, Th } from "@/components/ui/table"
 import { useAuth } from "@/features/auth"
 import { formatNumber } from "@/lib/utils"
 
-type OperationKey = "dispatch" | "reconcile"
+type Stage = "candidates" | "recommendations"
+
+type OperationKey =
+  | "prepare"
+  | "dispatch"
+  | "reconcile"
+  | `candidate-${number}-${string}`
+  | `recommendation-${number}-${string}`
 
 export function RecommendationsPage() {
   const { token } = useAuth()
-  const [limit, setLimit] = React.useState(10)
+  const [activeStage, setActiveStage] = React.useState<Stage>("candidates")
+  const [candidates, setCandidates] = React.useState<RecommendationCandidate[]>([])
+  const [recommendations, setRecommendations] = React.useState<Recommendation[]>([])
+  const [loading, setLoading] = React.useState(true)
   const [running, setRunning] = React.useState<OperationKey | null>(null)
   const [result, setResult] = React.useState<RecommendationOperationResult | null>(null)
   const [error, setError] = React.useState<string | null>(null)
 
+  const loadPage = React.useCallback(async () => {
+    setLoading(true)
+      setError(null)
+      try {
+        const [nextCandidates, nextRecommendations] = await Promise.all([
+        adminApi.recommendationCandidates(token!),
+        adminApi.recommendations(token!),
+      ])
+      setCandidates(nextCandidates)
+      setRecommendations(nextRecommendations)
+    } catch {
+      setError("Failed to load recommendations. Check admin-api logs for details.")
+    } finally {
+      setLoading(false)
+    }
+  }, [token])
+
+  React.useEffect(() => {
+    void loadPage()
+  }, [loadPage])
+
   const runOperation = React.useCallback(
-    async (operation: OperationKey) => {
+    async (operation: "prepare" | "dispatch" | "reconcile") => {
       setRunning(operation)
       setError(null)
       try {
         const nextResult =
-          operation === "dispatch"
-            ? await adminApi.dispatchRecommendationAnalysis(token!, limit)
-            : await adminApi.reconcileRecommendationCompleted(token!, limit)
+          operation === "prepare"
+            ? await adminApi.prepareApprovedRecommendations(token!)
+            : operation === "dispatch"
+              ? await adminApi.dispatchRecommendationAnalysis(token!)
+              : await adminApi.reconcileRecommendationCompleted(token!)
         setResult(nextResult)
+        if (nextResult.items.some((item) => item.recommendationId !== null)) {
+          setActiveStage("recommendations")
+        }
+        await loadPage()
       } catch {
         setError("Operation failed. Check admin-api logs for details.")
       } finally {
         setRunning(null)
       }
     },
-    [limit, token],
+    [loadPage, token],
+  )
+
+  const updateCandidateStatus = React.useCallback(
+    async (candidateId: number, status: string) => {
+      const key = `candidate-${candidateId}-${status}` as const
+      setRunning(key)
+      setError(null)
+      try {
+        await adminApi.updateRecommendationCandidateStatus(token!, candidateId, status)
+        await loadPage()
+      } catch {
+        setError("Failed to update candidate status. Check admin-api logs for details.")
+      } finally {
+        setRunning(null)
+      }
+    },
+    [loadPage, token],
+  )
+
+  const updateRecommendation = React.useCallback(
+    async (recommendationId: number, payload: { status?: string; orderIndex?: number }) => {
+      const key = `recommendation-${recommendationId}-${payload.status ?? "order"}` as const
+      setRunning(key)
+      setError(null)
+      try {
+        await adminApi.updateRecommendation(token!, recommendationId, payload)
+        await loadPage()
+      } catch {
+        setError("Failed to update recommendation. Check readiness gates or admin-api logs.")
+      } finally {
+        setRunning(null)
+      }
+    },
+    [loadPage, token],
+  )
+
+  const pendingCandidateCount = candidates.filter((candidate) => candidate.status === "PENDING").length
+  const approvedCount = candidates.filter((candidate) => candidate.status === "APPROVED").length
+  const pendingRecommendationCount = recommendations.filter((recommendation) => recommendation.status === "PENDING").length
+  const publishedCount = recommendations.filter((recommendation) => recommendation.status === "PUBLISHED").length
+  const candidateById = React.useMemo(
+    () => new Map(candidates.map((candidate) => [candidate.id, candidate])),
+    [candidates],
   )
 
   return (
     <>
       <PageHeader
         title="Recommendations"
-        meta="Manual candidate analysis and recommendation reconciliation"
+        meta="Move songs from Apple RSS candidate review into published home recommendations"
       />
 
-      <section className="mb-4 rounded-lg border border-[#d9e1ea] bg-white p-4">
-        <div className="mb-3 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-          <div>
-            <h2 className="text-sm font-semibold text-[#18212f]">Manual workflow triggers</h2>
-            <p className="mt-1 text-sm text-[#637083]">
-              Run these after approving candidates. They process at most the configured limit per click.
-            </p>
-          </div>
-          <label className="text-xs font-medium uppercase tracking-normal text-[#637083]">
-            Limit
-            <input
-              className="focus-ring mt-1 block h-9 w-24 rounded-md border border-[#cbd5e1] bg-white px-3 text-sm font-normal text-[#18212f]"
-              type="number"
-              min={1}
-              max={100}
-              value={limit}
-              onChange={(event) => setLimit(Number(event.target.value) || 1)}
-            />
-          </label>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button
-            type="button"
-            onClick={() => runOperation("dispatch")}
-            disabled={running !== null}
-          >
-            <PlayCircle className="h-4 w-4" />
-            {running === "dispatch" ? "Dispatching..." : "Dispatch analysis"}
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => runOperation("reconcile")}
-            disabled={running !== null}
-          >
-            <RefreshCw className="h-4 w-4" />
-            {running === "reconcile" ? "Reconciling..." : "Reconcile completed"}
-          </Button>
-        </div>
-      </section>
+      <StageTabs
+        activeStage={activeStage}
+        onStageChange={setActiveStage}
+        pendingCandidateCount={pendingCandidateCount}
+        approvedCount={approvedCount}
+        pendingRecommendationCount={pendingRecommendationCount}
+        publishedCount={publishedCount}
+      />
 
       {error ? (
         <div className="mb-4 rounded-md border border-[#fecaca] bg-[#fff1f2] px-4 py-3 text-sm text-[#991b1b]">
@@ -91,66 +139,436 @@ export function RecommendationsPage() {
         </div>
       ) : null}
 
-      {result ? (
-        <>
-          <div className="mb-3 grid grid-cols-2 gap-2 md:grid-cols-4">
-            <SummaryCard label="Processed" value={result.processed} />
-            <SummaryCard label="Succeeded" value={result.succeeded} />
-            <SummaryCard label="Skipped" value={result.skipped} />
-            <SummaryCard label="Failed" value={result.failed} />
-          </div>
-          {result.items.length > 0 ? (
-            <Table>
-              <thead>
-                <tr>
-                  <Th>Candidate</Th>
-                  <Th>Status</Th>
-                  <Th>Work</Th>
-                  <Th>Recommendation</Th>
-                  <Th>Message</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {result.items.map((item) => (
-                  <tr key={`${item.candidateId}-${item.workId ?? "none"}-${item.status}`} className="hover:bg-[#f9fbfc]">
-                    <Td className="font-mono text-xs text-[#637083]">{item.candidateId}</Td>
-                    <Td>
-                      <Badge tone={operationTone(item.status)}>{item.status}</Badge>
-                    </Td>
-                    <Td>{item.workId ?? "-"}</Td>
-                    <Td>{item.recommendationId ?? "-"}</Td>
-                    <Td className="text-[#637083]">{item.message ?? "-"}</Td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-          ) : (
-            <div className="border-y border-[#d9e1ea] bg-white px-4 py-10 text-center text-sm text-[#637083]">
-              No eligible candidates found for this operation.
-            </div>
-          )}
-        </>
+      {activeStage === "candidates" ? (
+        <CandidateStage
+          candidates={candidates}
+          loading={loading}
+          running={running}
+          result={result}
+          onRefresh={loadPage}
+          onRunOperation={runOperation}
+          onUpdateCandidateStatus={updateCandidateStatus}
+        />
       ) : (
-        <div className="border-y border-[#d9e1ea] bg-white px-4 py-10 text-center text-sm text-[#637083]">
-          No operation has been run yet.
-        </div>
+        <RecommendationStage
+          recommendations={recommendations}
+          candidateById={candidateById}
+          loading={loading}
+          running={running}
+          onRefresh={loadPage}
+          onUpdateRecommendation={updateRecommendation}
+        />
       )}
     </>
   )
 }
 
-function SummaryCard({ label, value }: { label: string; value: number }) {
+function StageTabs({
+  activeStage,
+  onStageChange,
+  pendingCandidateCount,
+  approvedCount,
+  pendingRecommendationCount,
+  publishedCount,
+}: {
+  activeStage: Stage
+  onStageChange: (stage: Stage) => void
+  pendingCandidateCount: number
+  approvedCount: number
+  pendingRecommendationCount: number
+  publishedCount: number
+}) {
   return (
-    <div className="rounded-md border border-[#d9e1ea] bg-white px-4 py-3">
-      <div className="text-xs font-medium uppercase tracking-normal text-[#637083]">{label}</div>
-      <div className="mt-1 text-xl font-semibold text-[#18212f]">{formatNumber(value)}</div>
+    <div className="mb-5">
+      <div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-normal text-[#637083]">
+        <span>Workflow</span>
+        <ArrowRight className="h-3.5 w-3.5" />
+        <span>Candidate to recommendation</span>
+      </div>
+      <div className="grid gap-2 md:grid-cols-2" role="tablist" aria-label="Recommendation workflow stages">
+        <StageTab
+          stage="candidates"
+          activeStage={activeStage}
+          onStageChange={onStageChange}
+          title="Recommendation candidate"
+          description="Review Apple RSS songs and move approved candidates forward."
+          stats={`${pendingCandidateCount} pending · ${approvedCount} approved`}
+          shape="first"
+        />
+        <StageTab
+          stage="recommendations"
+          activeStage={activeStage}
+          onStageChange={onStageChange}
+          title="Recommendation"
+          description="Order prepared songs and publish them to the user home."
+          stats={`${pendingRecommendationCount} pending · ${publishedCount} published`}
+          shape="last"
+        />
+      </div>
     </div>
   )
 }
 
-function operationTone(status: string): "neutral" | "success" | "warning" | "danger" {
-  if (status === "SUCCEEDED") return "success"
-  if (status === "FAILED") return "danger"
-  if (status === "SKIPPED") return "warning"
+function StageTab({
+  stage,
+  activeStage,
+  onStageChange,
+  title,
+  description,
+  stats,
+  shape,
+}: {
+  stage: Stage
+  activeStage: Stage
+  onStageChange: (stage: Stage) => void
+  title: string
+  description: string
+  stats: string
+  shape: "first" | "last"
+}) {
+  const active = activeStage === stage
+  const clipPath =
+    shape === "first"
+      ? "polygon(0 0, calc(100% - 22px) 0, 100% 50%, calc(100% - 22px) 100%, 0 100%)"
+      : "polygon(0 0, calc(100% - 22px) 0, 100% 50%, calc(100% - 22px) 100%, 0 100%, 22px 50%)"
+
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      onClick={() => onStageChange(stage)}
+      className={[
+        "focus-ring min-h-28 px-6 py-4 text-left transition-colors",
+        active
+          ? "bg-[#0f766e] text-white shadow-sm"
+          : "bg-white text-[#18212f] ring-1 ring-inset ring-[#d9e1ea] hover:bg-[#f8fafc]",
+      ].join(" ")}
+      style={{ clipPath }}
+    >
+      <div className={active ? "text-xs font-semibold uppercase text-[#ccfbf1]" : "text-xs font-semibold uppercase text-[#0f766e]"}>
+        {stats}
+      </div>
+      <div className="mt-2 text-base font-semibold">{title}</div>
+      <div className={active ? "mt-1 text-sm text-[#d9fffa]" : "mt-1 text-sm text-[#637083]"}>
+        {description}
+      </div>
+    </button>
+  )
+}
+
+function CandidateStage({
+  candidates,
+  loading,
+  running,
+  result,
+  onRefresh,
+  onRunOperation,
+  onUpdateCandidateStatus,
+}: {
+  candidates: RecommendationCandidate[]
+  loading: boolean
+  running: OperationKey | null
+  result: RecommendationOperationResult | null
+  onRefresh: () => void
+  onRunOperation: (operation: "prepare" | "dispatch" | "reconcile") => void
+  onUpdateCandidateStatus: (candidateId: number, status: string) => void
+}) {
+  return (
+    <>
+      <section className="mb-4 rounded-lg border border-[#d9e1ea] bg-white p-4">
+        <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+          <div>
+            <h2 className="text-sm font-semibold text-[#18212f]">Candidate operations</h2>
+            <p className="mt-1 text-sm text-[#637083]">
+              Approve or reject RSS candidates, then run the next candidate-side operation.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-end gap-2">
+            <Button type="button" variant="secondary" onClick={onRefresh} disabled={loading || running !== null}>
+              <RefreshCw className="h-4 w-4" />
+              {loading ? "Refreshing..." : "Refresh"}
+            </Button>
+          </div>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-3">
+          <OperationCard
+            title="Process approved"
+            description="Use the best available path: reuse analyzed songs, create recommendations from completed work, or request analysis."
+            buttonLabel={running === "prepare" ? "Processing..." : "Process approved"}
+            disabled={running !== null}
+            onClick={() => onRunOperation("prepare")}
+            primary
+          />
+          <OperationCard
+            title="Request analysis"
+            description="Create analysis work for approved candidates that do not already have work."
+            buttonLabel={running === "dispatch" ? "Requesting..." : "Request analysis"}
+            disabled={running !== null}
+            onClick={() => onRunOperation("dispatch")}
+          />
+          <OperationCard
+            title="Create recommendations"
+            description="Turn completed analysis work into pending recommendations."
+            buttonLabel={running === "reconcile" ? "Creating..." : "Create recommendations"}
+            disabled={running !== null}
+            onClick={() => onRunOperation("reconcile")}
+          />
+        </div>
+
+        {result ? <OperationResultSummary result={result} /> : null}
+      </section>
+
+      <section>
+        <div className="mb-3">
+          <h2 className="text-sm font-semibold text-[#18212f]">Candidate list</h2>
+          <p className="mt-1 text-sm text-[#637083]">
+            Latest collected week, ordered by Apple RSS rank.
+          </p>
+        </div>
+        {candidates.length > 0 ? (
+          <Table>
+            <thead>
+              <tr>
+                <Th>Rank</Th>
+                <Th>Song</Th>
+                <Th>Artist</Th>
+                <Th>Status</Th>
+                <Th>Work</Th>
+                <Th>Song/Lyric</Th>
+                <Th>Review</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {candidates.map((candidate) => (
+                <tr key={candidate.id} className="hover:bg-[#f9fbfc]">
+                  <Td className="font-mono text-xs text-[#637083]">{candidate.sourceRank}</Td>
+                  <Td>
+                    {candidate.sourceUrl ? (
+                      <a className="font-medium text-[#18212f] underline-offset-2 hover:underline" href={candidate.sourceUrl} target="_blank" rel="noreferrer">
+                        {candidate.title}
+                      </a>
+                    ) : (
+                      <span className="font-medium text-[#18212f]">{candidate.title}</span>
+                    )}
+                    <div className="mt-1 font-mono text-xs text-[#94a3b8]">#{candidate.id} · {candidate.weekStartDate}</div>
+                  </Td>
+                  <Td>{candidate.artistName}</Td>
+                  <Td>
+                    <Badge tone={candidateTone(candidate.status)}>{candidate.status}</Badge>
+                  </Td>
+                  <Td>{candidate.songAnalysisWorkId ?? "-"}</Td>
+                  <Td>
+                    {candidate.songId ?? "-"} / {candidate.lyricId ?? "-"}
+                  </Td>
+                  <Td>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={() => onUpdateCandidateStatus(candidate.id, "APPROVED")}
+                        disabled={running !== null || candidate.status === "APPROVED"}
+                      >
+                        <CheckCircle2 className="h-4 w-4" />
+                        Approve
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={() => onUpdateCandidateStatus(candidate.id, "REJECTED")}
+                        disabled={running !== null || candidate.status === "REJECTED"}
+                      >
+                        <XCircle className="h-4 w-4" />
+                        Reject
+                      </Button>
+                    </div>
+                  </Td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        ) : (
+          <EmptyState loading={loading} message="No recommendation candidates found." />
+        )}
+      </section>
+    </>
+  )
+}
+
+function RecommendationStage({
+  recommendations,
+  candidateById,
+  loading,
+  running,
+  onRefresh,
+  onUpdateRecommendation,
+}: {
+  recommendations: Recommendation[]
+  candidateById: Map<number, RecommendationCandidate>
+  loading: boolean
+  running: OperationKey | null
+  onRefresh: () => void
+  onUpdateRecommendation: (recommendationId: number, payload: { status?: string; orderIndex?: number }) => void
+}) {
+  return (
+    <section>
+      <div className="mb-3 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+        <div>
+          <h2 className="text-sm font-semibold text-[#18212f]">Recommendation list</h2>
+          <p className="mt-1 text-sm text-[#637083]">
+            Order prepared recommendations and publish only the rows that should appear on the user home.
+          </p>
+        </div>
+        <Button type="button" variant="secondary" onClick={onRefresh} disabled={loading || running !== null}>
+          <RefreshCw className="h-4 w-4" />
+          {loading ? "Refreshing..." : "Refresh"}
+        </Button>
+      </div>
+      {recommendations.length > 0 ? (
+        <Table>
+          <thead>
+            <tr>
+              <Th>Order</Th>
+              <Th>Song</Th>
+              <Th>Status</Th>
+              <Th>Song/Lyric</Th>
+              <Th>Publish</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {recommendations.map((recommendation) => {
+              const candidate = candidateById.get(recommendation.candidateId)
+              return (
+                <tr key={recommendation.id} className="hover:bg-[#f9fbfc]">
+                  <Td>
+                    <input
+                      className="focus-ring h-9 w-20 rounded-md border border-[#cbd5e1] bg-white px-3 text-sm text-[#18212f]"
+                      type="number"
+                      min={0}
+                      defaultValue={recommendation.orderIndex}
+                      onBlur={(event) => {
+                        const nextOrder = Number(event.target.value)
+                        if (Number.isInteger(nextOrder) && nextOrder >= 0 && nextOrder !== recommendation.orderIndex) {
+                          void onUpdateRecommendation(recommendation.id, { orderIndex: nextOrder })
+                        }
+                      }}
+                    />
+                  </Td>
+                  <Td>
+                    <div className="font-medium text-[#18212f]">{candidate?.title ?? `Candidate #${recommendation.candidateId}`}</div>
+                    <div className="mt-1 text-xs text-[#637083]">{candidate?.artistName ?? "-"} · rec #{recommendation.id}</div>
+                  </Td>
+                  <Td>
+                    <Badge tone={recommendationTone(recommendation.status)}>{recommendation.status}</Badge>
+                  </Td>
+                  <Td>
+                    {recommendation.songId} / {recommendation.lyricId}
+                  </Td>
+                  <Td>
+                    {recommendation.status === "PUBLISHED" ? (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={() => onUpdateRecommendation(recommendation.id, { status: "PENDING" })}
+                        disabled={running !== null}
+                      >
+                        Unpublish
+                      </Button>
+                    ) : (
+                      <Button
+                        type="button"
+                        onClick={() => onUpdateRecommendation(recommendation.id, { status: "PUBLISHED" })}
+                        disabled={running !== null}
+                      >
+                        Publish
+                      </Button>
+                    )}
+                  </Td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </Table>
+      ) : (
+        <EmptyState loading={loading} message="No pending or published recommendations found. Process approved candidates first." />
+      )}
+    </section>
+  )
+}
+
+function OperationCard({
+  title,
+  description,
+  buttonLabel,
+  disabled,
+  onClick,
+  primary = false,
+}: {
+  title: string
+  description: string
+  buttonLabel: string
+  disabled: boolean
+  onClick: () => void
+  primary?: boolean
+}) {
+  return (
+    <div className={primary ? "rounded-lg border border-[#99f6e4] bg-[#f0fdfa] p-3" : "rounded-lg border border-[#d9e1ea] bg-[#f8fafc] p-3"}>
+      <div className="text-sm font-semibold text-[#18212f]">{title}</div>
+      <p className="mt-1 min-h-10 text-sm text-[#637083]">{description}</p>
+      <Button type="button" variant={primary ? "default" : "secondary"} onClick={onClick} disabled={disabled} className="mt-3">
+        {buttonLabel}
+      </Button>
+    </div>
+  )
+}
+
+function OperationResultSummary({ result }: { result: RecommendationOperationResult }) {
+  return (
+    <div className="mt-4 rounded-md border border-[#d9e1ea] bg-white p-3">
+      <div className="mb-2 text-xs font-medium uppercase tracking-normal text-[#637083]">Last operation</div>
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+        <ResultPill label="Processed" value={result.processed} />
+        <ResultPill label="Succeeded" value={result.succeeded} />
+        <ResultPill label="Skipped" value={result.skipped} />
+        <ResultPill label="Failed" value={result.failed} />
+      </div>
+      {result.items.length > 0 ? (
+        <div className="mt-3 text-sm text-[#637083]">
+          Last item: candidate #{result.items[0].candidateId} · {result.items[0].status}
+          {result.items[0].message ? ` · ${result.items[0].message}` : ""}
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+function ResultPill({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-md bg-[#f8fafc] px-3 py-2">
+      <div className="text-xs text-[#637083]">{label}</div>
+      <div className="font-semibold text-[#18212f]">{formatNumber(value)}</div>
+    </div>
+  )
+}
+
+function EmptyState({ loading = false, message }: { loading?: boolean; message: string }) {
+  return (
+    <div className="border-y border-[#d9e1ea] bg-white px-4 py-10 text-center text-sm text-[#637083]">
+      {loading ? "Loading..." : message}
+    </div>
+  )
+}
+
+function candidateTone(status: string): "neutral" | "success" | "warning" | "danger" {
+  if (status === "APPROVED") return "success"
+  if (status === "REJECTED") return "danger"
+  if (status === "PENDING") return "warning"
+  return "neutral"
+}
+
+function recommendationTone(status: string): "neutral" | "success" | "warning" | "danger" {
+  if (status === "PUBLISHED") return "success"
+  if (status === "PENDING") return "warning"
   return "neutral"
 }

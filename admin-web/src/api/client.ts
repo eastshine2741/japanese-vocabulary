@@ -4,6 +4,8 @@ import type {
   LyricDetail,
   LyricSummary,
   PageResponse,
+  Recommendation,
+  RecommendationCandidate,
   RecommendationOperationResult,
   SongAnalysisWorkDetail,
   SongAnalysisWorkSummary,
@@ -69,15 +71,39 @@ export const adminApi = {
   songAnalysisWork(token: string, id: string) {
     return request<SongAnalysisWorkDetail>(`/song-analysis-works/${id}`, token)
   },
-  dispatchRecommendationAnalysis(token: string, limit = 10) {
-    const params = new URLSearchParams({ limit: String(limit) })
-    return request<RecommendationOperationResult>(`/recommendations/dispatch-analysis?${params}`, token, {
+  recommendationCandidates(token: string, status?: string) {
+    const params = new URLSearchParams()
+    if (status) params.set("status", status)
+    const query = params.toString()
+    return request<RecommendationCandidate[]>(`/recommendations/candidates${query ? `?${query}` : ""}`, token)
+  },
+  updateRecommendationCandidateStatus(token: string, candidateId: number, status: string) {
+    return request<RecommendationCandidate>(`/recommendations/candidates/${candidateId}/status`, token, {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+    })
+  },
+  recommendations(token: string) {
+    return request<Recommendation[]>("/recommendations", token)
+  },
+  updateRecommendation(token: string, recommendationId: number, payload: { status?: string; orderIndex?: number }) {
+    return request<Recommendation>(`/recommendations/${recommendationId}`, token, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    })
+  },
+  prepareApprovedRecommendations(token: string) {
+    return request<RecommendationOperationResult>("/recommendations/prepare-approved", token, {
       method: "POST",
     })
   },
-  reconcileRecommendationCompleted(token: string, limit = 10) {
-    const params = new URLSearchParams({ limit: String(limit) })
-    return request<RecommendationOperationResult>(`/recommendations/reconcile-completed?${params}`, token, {
+  dispatchRecommendationAnalysis(token: string) {
+    return request<RecommendationOperationResult>("/recommendations/dispatch-analysis", token, {
+      method: "POST",
+    })
+  },
+  reconcileRecommendationCompleted(token: string) {
+    return request<RecommendationOperationResult>("/recommendations/reconcile-completed", token, {
       method: "POST",
     })
   },

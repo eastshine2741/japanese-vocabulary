@@ -63,4 +63,19 @@ class SongRecommendationEntity(
     @LastModifiedDate
     @Column(name = "updated_at", nullable = false)
     var updatedAt: Instant? = null,
-)
+) {
+    fun updateOrder(orderIndex: Int) {
+        require(orderIndex >= 0) { "Recommendation orderIndex must be zero or positive." }
+        this.orderIndex = orderIndex
+    }
+
+    fun publish(now: Instant) {
+        status = SongRecommendationStatus.PUBLISHED
+        publishedAt = now
+    }
+
+    fun unpublish() {
+        status = SongRecommendationStatus.PENDING
+        publishedAt = null
+    }
+}

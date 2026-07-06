@@ -65,6 +65,40 @@ class SongRecommendationControllerTest : ApiBaseIntegrationTest() {
         assertThat(redis.opsForZSet().zCard(recentKey(user.id!!)) ?: 0L).isZero()
     }
 
+    @Test
+    fun `recommendations include published rows created from existing analyzed song without work`() {
+        val user = newUser()
+        val weekStartDate = LocalDate.of(2026, 6, 22)
+        val song = song(title = "Existing", artist = "Artist")
+        val lyric = lyric(song = song, analyzed = true)
+        val candidate = candidate(
+            sourceSongId = "existing",
+            title = "Existing",
+            artist = "Artist",
+            weekStartDate = weekStartDate,
+            workId = null,
+            songId = song.id!!,
+            lyricId = lyric.id!!,
+        )
+        val recommendation = recommendation(
+            candidate = candidate,
+            songId = song.id!!,
+            lyricId = lyric.id!!,
+            weekStartDate = weekStartDate,
+            orderIndex = 0,
+        )
+        entityManager.flush()
+        entityManager.clear()
+
+        val body = mockMvc.get("/api/songs/recommendations") {
+            header("Authorization", bearer(user))
+        }.andExpect { status { isOk() } }.andReturn().response.contentAsString
+
+        val response = objectMapper.readValue<List<SongRecommendationResponse>>(body)
+        assertThat(response.map { it.id }).containsExactly(recommendation.id)
+        assertThat(response.map { it.songId }).containsExactly(song.id)
+    }
+
     private fun newUser(): UserEntity = TestUserBuilder(entityManager).build()
 
     private fun bearer(user: UserEntity): String = "Bearer ${jwtUtil.generateToken(user.id!!, user.username)}"
@@ -171,7 +205,7 @@ class SongRecommendationControllerTest : ApiBaseIntegrationTest() {
         title: String,
         artist: String,
         weekStartDate: LocalDate,
-        workId: Long,
+        workId: Long?,
         songId: Long,
         lyricId: Long,
     ): SongRecommendationCandidateEntity {

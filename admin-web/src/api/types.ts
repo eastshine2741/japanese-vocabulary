@@ -85,6 +85,38 @@ export type RecommendationOperationResult = {
   items: RecommendationOperationItem[]
 }
 
+export type Recommendation = {
+  id: number
+  candidateId: number
+  weekStartDate: string
+  status: string
+  songId: number
+  lyricId: number
+  orderIndex: number
+  publishedAt: string | null
+  createdAt: string | null
+  updatedAt: string | null
+}
+
+export type RecommendationCandidate = {
+  id: number
+  source: string
+  sourceSongId: string
+  weekStartDate: string
+  sourceRank: number
+  status: string
+  title: string
+  artistName: string
+  artworkUrl: string | null
+  sourceUrl: string | null
+  releaseDate: string | null
+  songAnalysisWorkId: number | null
+  songId: number | null
+  lyricId: number | null
+  createdAt: string | null
+  updatedAt: string | null
+}
+
 export type RawLyricLine = {
   index: number
   startTimeMs?: number | null

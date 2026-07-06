@@ -11,7 +11,12 @@ interface SongRecommendationRepository : JpaRepository<SongRecommendationEntity,
 
     fun existsByCandidateId(candidateId: Long): Boolean
 
+    fun findByWeekStartDateOrderByOrderIndexAscCreatedAtAsc(weekStartDate: LocalDate): List<SongRecommendationEntity>
+
     fun countByStatus(status: SongRecommendationStatus): Long
+
+    @Query("SELECT MAX(r.weekStartDate) FROM SongRecommendationEntity r")
+    fun findLatestWeekStartDate(): LocalDate?
 
     fun findTopByStatusOrderByWeekStartDateDesc(status: SongRecommendationStatus): SongRecommendationEntity?
 
@@ -31,7 +36,7 @@ interface SongRecommendationRepository : JpaRepository<SongRecommendationEntity,
                 r.week_start_date AS weekStartDate
             FROM song_recommendation r
             JOIN song_recommendation_candidate c ON c.id = r.candidate_id
-            JOIN song_analysis_work w ON w.id = c.song_analysis_work_id
+            LEFT JOIN song_analysis_work w ON w.id = c.song_analysis_work_id
             JOIN songs s ON s.id = r.song_id
             JOIN lyrics l ON l.id = r.lyric_id
             WHERE r.status = 'PUBLISHED'
@@ -43,10 +48,15 @@ interface SongRecommendationRepository : JpaRepository<SongRecommendationEntity,
               AND c.status = 'APPROVED'
               AND c.song_id = r.song_id
               AND c.lyric_id = r.lyric_id
-              AND w.status = 'COMPLETED'
-              AND w.song_id = r.song_id
-              AND w.lyric_id = r.lyric_id
-              AND w.player_ready_at IS NOT NULL
+              AND (
+                  c.song_analysis_work_id IS NULL
+                  OR (
+                      w.status = 'COMPLETED'
+                      AND w.song_id = r.song_id
+                      AND w.lyric_id = r.lyric_id
+                      AND w.player_ready_at IS NOT NULL
+                  )
+              )
               AND l.song_id = r.song_id
               AND l.analyzed_content IS NOT NULL
             ORDER BY r.order_index ASC, r.created_at ASC

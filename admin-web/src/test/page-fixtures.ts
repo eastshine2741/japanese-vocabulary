@@ -3,6 +3,8 @@ import type {
   LyricDetail,
   LyricSummary,
   PageResponse,
+  Recommendation,
+  RecommendationCandidate,
   RecommendationOperationResult,
   SongAnalysisWorkDetail,
   SongAnalysisWorkSummary,
@@ -153,4 +155,36 @@ export const recommendationOperationResult: RecommendationOperationResult = {
       message: null,
     },
   ],
+}
+
+export const recommendationCandidate: RecommendationCandidate = {
+  id: 10,
+  source: "APPLE_MUSIC_RSS",
+  sourceSongId: "apple-10",
+  weekStartDate: "2026-06-22",
+  sourceRank: 1,
+  status: "PENDING",
+  title: "Plazma",
+  artistName: "Kenshi Yonezu",
+  artworkUrl: null,
+  sourceUrl: "https://music.apple.com/jp/song/apple-10",
+  releaseDate: "2026-06-01",
+  songAnalysisWorkId: null,
+  songId: null,
+  lyricId: null,
+  createdAt: "2026-06-26T00:00:00Z",
+  updatedAt: "2026-06-26T00:00:00Z",
+}
+
+export const recommendation: Recommendation = {
+  id: 11,
+  candidateId: 10,
+  weekStartDate: "2026-06-22",
+  status: "PENDING",
+  songId: 1,
+  lyricId: 2,
+  orderIndex: 0,
+  publishedAt: null,
+  createdAt: "2026-06-26T00:10:00Z",
+  updatedAt: "2026-06-26T00:10:00Z",
 }
