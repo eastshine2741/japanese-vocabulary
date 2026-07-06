@@ -1,12 +1,12 @@
 # Sentry Auto Triage Runner
 
-Local cron runner for unresolved Sentry issues. It polls Sentry, asks Codex to choose exactly one outcome, then marks the Discord Sentry notification as handled.
+Local cron runner for unresolved Sentry issues. It polls Sentry, asks Codex to choose exactly one outcome, then records the result as a Sentry issue note.
 
 Outcomes:
 
 - PR for a narrow clear fix.
 - GitHub issue for broad or low-confidence work.
-- Cause-only Discord reply for minor, transient, expected, or external causes.
+- Cause-only Sentry note for minor, transient, expected, or external causes.
 
 The runner does not resolve, ignore, archive, delete, or otherwise mutate Sentry issues.
 
@@ -38,7 +38,7 @@ The triage pass runs read-only in the main repo. The PR implementation pass is t
 
 Both Codex passes are pinned to `gpt-5.5` with `model_reasoning_effort="high"`.
 
-Codex is launched with a scrubbed environment (`env -i`) so Sentry, Discord, GitHub, deployment, and app secrets from the cron shell are not inherited. The PR worktree is created with `git worktree add` and intentionally does not copy ignored local config such as `.env`, keystores, service account files, or mobile app env files.
+Codex is launched with a scrubbed environment (`env -i`) so Sentry, GitHub, deployment, and app secrets from the cron shell are not inherited. The PR worktree is created with `git worktree add` and intentionally does not copy ignored local config such as `.env`, keystores, service account files, or mobile app env files.
 
 ## Environment
 
@@ -47,10 +47,7 @@ Use `.github/scripts/sentry/triage.env.example` as a template. Required live var
 - `SENTRY_AUTH_TOKEN`
 - `SENTRY_ORG`
 - `SENTRY_PROJECT` as the numeric Sentry project id accepted by the organization issues API, or comma-separated `SENTRY_PROJECTS`
-- `DISCORD_BOT_TOKEN`
-- `DISCORD_CHANNEL_ID`
-
-`SENTRY_AUTH_TOKEN` must be able to read organization issues/events for the configured projects; `--check-preflight` verifies this before cron work starts.
+`SENTRY_AUTH_TOKEN` must be able to read organization issues/events for the configured projects and write issue notes; `--check-preflight` verifies read access before cron work starts.
 
 Optional:
 
@@ -60,8 +57,7 @@ Optional:
 - `SENTRY_TRIAGE_MAX_PAGES`, default `5`
 - `SENTRY_TRIAGE_PR_MAX_CHANGED_FILES`, default `8`
 - `SENTRY_TRIAGE_PR_MAX_DIFF_LINES`, default `400`
-- `SENTRY_TRIAGE_DISCORD_COMPLETION_LOOKUP_PAGES`, default `5`
-- `SENTRY_TRIAGE_DISCORD_FALLBACK=1` to post a bot-owned fallback message when the original Sentry Discord notification cannot be found
+- `SENTRY_TRIAGE_NOTE_COMPLETION_LOOKUP_LIMIT`, default `100`
 - `SENTRY_TRIAGE_REPO_DIR`
 
 ## State And Logs
@@ -78,7 +74,7 @@ Default logs:
 ${XDG_STATE_HOME:-$HOME/.local/state}/kotonoha-sentry-triage/logs/sentry-triage-YYYYMMDD.log
 ```
 
-The ledger records each issue by Sentry issue id. `actionStatus=external_created` means a PR or GitHub issue already exists and the next run should retry only Discord completion.
+The ledger records each issue by Sentry issue id. `actionStatus=external_created` means a PR or GitHub issue already exists and the next run should retry only Sentry note completion.
 
 The Sentry poll query converts the replay window into a UTC `firstSeen:>YYYY-MM-DDTHH:MM:SS` cutoff and uses cursor pagination. If the configured page cap is reached while Sentry still advertises a next page, the runner logs a truncation warning and relies on the next cron run plus local ledger dedupe.
 
@@ -98,7 +94,7 @@ Use an isolated state file for replay checks:
 ```bash
 tmp_state="$(mktemp)"
 printf '{"version":1,"issues":{},"attempts":[]}\n' > "$tmp_state"
-.github/scripts/sentry/triage.sh --dry-run --record-dry-run --state-file "$tmp_state" --fixture .github/scripts/sentry/fixtures/partial-success-discord-failed.json
+.github/scripts/sentry/triage.sh --dry-run --record-dry-run --state-file "$tmp_state" --fixture .github/scripts/sentry/fixtures/partial-success-sentry-note-retry.json
 ```
 
 ## Run Once
@@ -177,17 +173,15 @@ Example every five minutes:
 
 Prefer loading real secrets from a private file outside git.
 
-## Discord Completion
+## Sentry Note Completion
 
 Full completion means:
 
-1. Find the original Sentry Discord notification by Sentry permalink or short id.
-2. Add the handled emoji.
-3. Reply using `message_reference` with the PR link, GitHub issue link, or cause explanation.
+1. Create the PR, create the GitHub issue, or classify the issue as cause-only.
+2. Write a Sentry issue note with the PR link, GitHub issue link, or cause explanation.
+3. Mark the local ledger record as completed only after the note succeeds.
 
-Replies include `allowed_mentions: { "parse": [] }` and a `Sentry triage completed: <short-id>` marker. On retry, the runner searches up to `SENTRY_TRIAGE_DISCORD_COMPLETION_LOOKUP_PAGES * SENTRY_TRIAGE_DISCORD_HISTORY_LIMIT` recent messages for that marker before posting so a timeout after Discord accepted the reply is unlikely to create duplicate completion comments. Increase those values for busy channels.
-
-If the bot cannot read or mutate the original Sentry notification, enable `SENTRY_TRIAGE_DISCORD_FALLBACK=1`. In fallback mode the runner posts a bot-owned triage message keyed by the Sentry issue, and docs/logs should not claim original-message mutation support.
+Notes include a `Sentry triage completed: <short-id>` marker. On retry, the runner searches recent issue notes for that marker and external URL before posting, so a timeout after Sentry accepted the note is unlikely to create duplicate completion comments. Increase `SENTRY_TRIAGE_NOTE_COMPLETION_LOOKUP_LIMIT` for issues with long activity histories.
 
 ## Safety Checks
 
@@ -196,7 +190,7 @@ Recommended before enabling cron:
 ```bash
 bash -n .github/scripts/sentry/triage.sh
 shellcheck .github/scripts/sentry/triage.sh
-rg -n 'sentry_api(_page)? .*(PUT|POST|PATCH|DELETE)|/issues/.*/(resolve|resolved|ignored|archive)' .github/scripts/sentry/triage.sh
+rg -n 'sentry_api(_page)? .*(PUT|PATCH|DELETE)|/issues/.*/(resolve|resolved|ignored|archive)' .github/scripts/sentry/triage.sh
 rg -n "deplo[y]\\.sh|kubectl roll[o]ut|pr[o]d deploy" .github/scripts/sentry/triage.sh .github/scripts/sentry/prompts
 rg -n "c[o]dex exec --ask-for-approval|c[o]dex exec --sandbox workspace-write" .github/scripts/sentry/triage.sh .github/scripts/sentry/prompts
 ```

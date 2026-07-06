@@ -10,14 +10,6 @@
     "eventID": "evt-invalid-evidence",
     "message": "Fixture should fail local validation"
   },
-  "discord": {
-    "messages": [
-      {
-        "id": "9009",
-        "content": "Sentry KOTONOHA-API-9 https://sentry.io/organizations/example/issues/1009/"
-      }
-    ]
-  },
   "mockCodexResult": {
     "action": "github_issue",
     "confidence": "medium",
@@ -25,11 +17,13 @@
     "rootCause": "The evidence array is empty.",
     "evidence": [],
     "requiresLargeRefactor": true,
-    "discordReply": "이 응답은 evidence가 비어 있어 실패해야 합니다.",
     "githubIssue": {
       "title": "Invalid fixture",
       "body": "This should not be created.",
-      "labels": ["sentry"]
-    }
+      "labels": [
+        "sentry"
+      ]
+    },
+    "sentryNote": "이 응답은 evidence가 비어 있어 실패해야 합니다."
   }
 }

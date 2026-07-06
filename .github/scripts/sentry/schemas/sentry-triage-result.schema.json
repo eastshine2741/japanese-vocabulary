@@ -10,7 +10,9 @@
     "rootCause",
     "evidence",
     "requiresLargeRefactor",
-    "discordReply"
+    "sentryNote",
+    "prPlan",
+    "githubIssue"
   ],
   "properties": {
     "action": {
@@ -40,12 +42,12 @@
     "requiresLargeRefactor": {
       "type": "boolean"
     },
-    "discordReply": {
+    "sentryNote": {
       "type": "string",
       "minLength": 1
     },
     "prPlan": {
-      "type": "object",
+      "type": ["object", "null"],
       "additionalProperties": false,
       "required": ["branchSlug", "title", "implementationPrompt", "testPlan"],
       "properties": {
@@ -70,7 +72,7 @@
       }
     },
     "githubIssue": {
-      "type": "object",
+      "type": ["object", "null"],
       "additionalProperties": false,
       "required": ["title", "body", "labels"],
       "properties": {
@@ -91,34 +93,5 @@
         }
       }
     }
-  },
-  "oneOf": [
-    {
-      "properties": {
-        "action": { "const": "pr" },
-        "confidence": { "enum": ["medium", "high"] },
-        "requiresLargeRefactor": { "const": false }
-      },
-      "required": ["prPlan"],
-      "not": { "required": ["githubIssue"] }
-    },
-    {
-      "properties": {
-        "action": { "const": "github_issue" }
-      },
-      "required": ["githubIssue"],
-      "not": { "required": ["prPlan"] }
-    },
-    {
-      "properties": {
-        "action": { "const": "cause_only" }
-      },
-      "not": {
-        "anyOf": [
-          { "required": ["prPlan"] },
-          { "required": ["githubIssue"] }
-        ]
-      }
-    }
-  ]
+  }
 }

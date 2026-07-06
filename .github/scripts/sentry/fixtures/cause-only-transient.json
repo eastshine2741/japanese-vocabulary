@@ -10,21 +10,16 @@
     "eventID": "evt-cause-1",
     "message": "AbortError: The user aborted a request"
   },
-  "discord": {
-    "messages": [
-      {
-        "id": "9003",
-        "content": "Sentry KOTONOHA-WEB-3 https://sentry.io/organizations/example/issues/1003/"
-      }
-    ]
-  },
   "mockCodexResult": {
     "action": "cause_only",
     "confidence": "high",
     "summary": "The client cancelled the request.",
     "rootCause": "Browser AbortError from user navigation or cancellation.",
-    "evidence": ["AbortError message", "No application stack frame requiring a code fix"],
+    "evidence": [
+      "AbortError message",
+      "No application stack frame requiring a code fix"
+    ],
     "requiresLargeRefactor": false,
-    "discordReply": "원인은 사용자의 요청 취소/화면 이동으로 보이는 AbortError입니다. 코드 수정 없이 원인만 남깁니다."
+    "sentryNote": "원인은 사용자의 요청 취소/화면 이동으로 보이는 AbortError입니다. 코드 수정 없이 원인만 남깁니다."
   }
 }

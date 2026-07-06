@@ -10,26 +10,22 @@
     "eventID": "evt-partial-1",
     "message": "Partial success replay fixture"
   },
-  "discord": {
-    "messages": [
-      {
-        "id": "9006",
-        "content": "Sentry KOTONOHA-API-6 https://sentry.io/organizations/example/issues/1006/"
-      }
-    ]
-  },
   "mockCodexResult": {
     "action": "github_issue",
     "confidence": "medium",
     "summary": "This mock should be skipped when local state is external_created.",
     "rootCause": "A previous run already created the external artifact.",
-    "evidence": ["local ledger"],
+    "evidence": [
+      "local ledger"
+    ],
     "requiresLargeRefactor": false,
-    "discordReply": "이미 생성된 GitHub 이슈 링크로 Discord 완료 표시만 재시도합니다.",
     "githubIssue": {
       "title": "Should not be created again",
       "body": "If this is used, replay failed.",
-      "labels": ["sentry"]
-    }
+      "labels": [
+        "sentry"
+      ]
+    },
+    "sentryNote": "이미 생성된 GitHub 이슈 링크로 Sentry note 완료 표시만 재시도합니다."
   }
 }

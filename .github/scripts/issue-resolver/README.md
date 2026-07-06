@@ -5,7 +5,7 @@ Local GitHub issue automation runner. It polls GitHub issues by labels and invok
 This is separate from the Sentry auto-triage runner:
 
 - `issue-resolver/` handles GitHub issues labeled `status:new`, `status:feedback`, and `status:approved`.
-- `sentry/` handles Sentry error triage and Discord completion.
+- `sentry/` handles Sentry error triage and Sentry issue-note completion.
 
 ## Files
 

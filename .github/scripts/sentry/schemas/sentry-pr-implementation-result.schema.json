@@ -3,7 +3,7 @@
   "title": "Sentry PR implementation result",
   "type": "object",
   "additionalProperties": false,
-  "required": ["action", "summary", "changedFiles", "testPlan"],
+  "required": ["action", "summary", "changedFiles", "testPlan", "githubIssue"],
   "properties": {
     "action": {
       "type": "string",
@@ -26,7 +26,7 @@
       }
     },
     "githubIssue": {
-      "type": "object",
+      "type": ["object", "null"],
       "additionalProperties": false,
       "required": ["title", "body", "labels"],
       "properties": {
@@ -38,15 +38,5 @@
         }
       }
     }
-  },
-  "oneOf": [
-    {
-      "properties": { "action": { "const": "implemented" } },
-      "not": { "required": ["githubIssue"] }
-    },
-    {
-      "properties": { "action": { "const": "github_issue" } },
-      "required": ["githubIssue"]
-    }
-  ]
+  }
 }

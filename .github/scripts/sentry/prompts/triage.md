@@ -18,7 +18,7 @@ Choose exactly one action.
 - Do not propose large refactor PRs.
 - Small PRs may proceed without tests if the code change is obvious, but the test plan must say what was or was not run.
 - If confidence is low, prefer `github_issue` unless the issue is clearly cause-only.
-- The Discord reply must be concise and useful as a comment under the Sentry notification.
+- The Sentry note must be concise and useful as an issue activity comment.
 
 ## PR Plan Rules
 
