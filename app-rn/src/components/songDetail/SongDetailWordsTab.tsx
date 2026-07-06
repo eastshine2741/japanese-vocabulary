@@ -54,7 +54,7 @@ interface UseSongDetailWordsTabParams {
   errorMessage?: string | null;
   onWordsChanged?: () => void;
   getWordSaveState: (word: SongDetailWordItem) => SongDetailWordSaveState;
-  onWordsBatchAdded: (words: SongDetailWordItem[]) => void;
+  onWordsBatchAdded: (words: SongDetailWordItem[]) => void | Promise<void>;
 }
 
 interface Props {
@@ -286,7 +286,7 @@ export function useSongDetailWordsTab({
     setIsBatchSaving(true);
     try {
       await wordApi.batchAddWords({ words: batchCandidates.map(word => word.addRequest) });
-      onWordsBatchAdded(batchCandidates);
+      await onWordsBatchAdded(batchCandidates);
       onWordsChanged?.();
     } finally {
       setIsBatchSaving(false);

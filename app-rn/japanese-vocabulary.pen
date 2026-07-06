@@ -22809,38 +22809,75 @@
                 },
                 {
                   "type": "frame",
-                  "id": "n0PHA4",
-                  "name": "ctaPlay",
-                  "width": 134,
-                  "height": 36,
-                  "fill": "#FFFFFF2E",
-                  "cornerRadius": 12,
-                  "stroke": "#FFFFFF5C",
-                  "strokeWidth": 1,
-                  "strokeAlignment": "inner",
-                  "gap": 8,
-                  "justifyContent": "center",
+                  "id": "TFeQ7",
+                  "name": "Frame 1",
+                  "clip": true,
+                  "gap": 12,
                   "alignItems": "center",
                   "children": [
                     {
-                      "type": "icon",
-                      "id": "BSgAz",
-                      "name": "ic",
-                      "width": 14,
-                      "height": 14,
-                      "icon": "plus",
-                      "library": "lucide",
-                      "fill": "#FFFFFF"
+                      "type": "frame",
+                      "id": "n0PHA4",
+                      "name": "ctaPlay",
+                      "width": 134,
+                      "height": 36,
+                      "fill": "#FFFFFF2E",
+                      "cornerRadius": 12,
+                      "stroke": "#FFFFFF5C",
+                      "strokeWidth": 1,
+                      "strokeAlignment": "inner",
+                      "gap": 8,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "BSgAz",
+                          "name": "ic",
+                          "width": 14,
+                          "height": 14,
+                          "icon": "plus",
+                          "library": "lucide",
+                          "fill": "#FFFFFF"
+                        },
+                        {
+                          "type": "text",
+                          "id": "w5Mh7F",
+                          "name": "lbl",
+                          "fill": "#FFFFFF",
+                          "content": "단어장 만들기",
+                          "fontFamily": "$font.body",
+                          "fontSize": 11,
+                          "fontWeight": "600"
+                        }
+                      ]
                     },
                     {
-                      "type": "text",
-                      "id": "w5Mh7F",
-                      "name": "lbl",
-                      "fill": "#FFFFFF",
-                      "content": "단어장 만들기",
-                      "fontFamily": "$font.body",
-                      "fontSize": 11,
-                      "fontWeight": "600"
+                      "type": "frame",
+                      "id": "TgNtk",
+                      "name": "Info Button",
+                      "width": 40,
+                      "height": 40,
+                      "fill": "#00000066",
+                      "cornerRadius": 9999,
+                      "effect": {
+                        "type": "background_blur",
+                        "radius": 10
+                      },
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "nQzTR",
+                          "name": "Info Icon",
+                          "width": 22,
+                          "height": 22,
+                          "icon": "info",
+                          "library": "lucide",
+                          "fill": "#FFFFFF"
+                        }
+                      ]
                     }
                   ]
                 }
@@ -23973,21 +24010,18 @@
                   "gap": 8,
                   "children": [
                     {
-                      "id": "ZlSmi",
+                      "id": "EyRQW",
                       "type": "ref",
                       "ref": "lcqlc",
-                      "name": "중요도순 Option",
+                      "name": "등장순 Option",
                       "width": "fill_container",
                       "height": 40,
-                      "fill": "#52B78833",
+                      "fill": "$accent-primary-bg",
                       "stroke": "$accent-primary",
-                      "strokeLinecap": "butt",
-                      "strokeLinejoin": "miter",
                       "strokeWidth": 1,
-                      "strokeAlignment": "inner",
                       "descendants": {
                         "YwrIg": {
-                          "content": "중요도순",
+                          "content": "등장순",
                           "fill": "$accent-primary",
                           "fontStyle": "normal",
                           "fontWeight": "800"
@@ -23995,16 +24029,21 @@
                       }
                     },
                     {
-                      "id": "EyRQW",
+                      "id": "ZlSmi",
                       "type": "ref",
                       "ref": "lcqlc",
-                      "name": "등장순 Option",
+                      "name": "중요도순 Option",
                       "width": "fill_container",
                       "height": 40,
                       "fill": "$bg-subtle",
+                      "stroke": "#00000000",
+                      "strokeLinecap": "butt",
+                      "strokeLinejoin": "miter",
+                      "strokeWidth": 0,
+                      "strokeAlignment": "inner",
                       "descendants": {
                         "YwrIg": {
-                          "content": "등장순",
+                          "content": "중요도순",
                           "fill": "$foreground.secondary",
                           "fontStyle": "normal",
                           "fontWeight": "500"
@@ -27831,6 +27870,1280 @@
                       "fontWeight": "600"
                     }
                   ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "Stj0V",
+      "x": 3303,
+      "y": -65,
+      "name": "17d. Song Detail - Word Added Snackbar",
+      "clip": true,
+      "width": 402,
+      "height": 874,
+      "fill": "$bg-primary",
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "WC0go",
+          "name": "Hero Section",
+          "width": "fill_container",
+          "height": 360,
+          "layout": "vertical",
+          "padding": [
+            0,
+            0,
+            24,
+            0
+          ],
+          "justifyContent": "space_between",
+          "children": [
+            {
+              "type": "rectangle",
+              "id": "ejHB3",
+              "layoutPosition": "absolute",
+              "x": 0,
+              "y": 0,
+              "name": "Hero Background",
+              "metadata": {
+                "type": "unsplash",
+                "username": "mosdesign",
+                "link": "https://unsplash.com/@mosdesign",
+                "author": "mos design"
+              },
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "https://images.unsplash.com/photo-1693240817505-f59d02b89ef9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzM5MjU2MzB8&ixlib=rb-4.1.0&q=80&w=1080",
+                "mode": "fill"
+              },
+              "width": 402,
+              "height": 360
+            },
+            {
+              "type": "rectangle",
+              "id": "HA2po",
+              "layoutPosition": "absolute",
+              "x": 0,
+              "y": 0,
+              "name": "Hero Scrim",
+              "fill": {
+                "type": "gradient",
+                "gradientType": "linear",
+                "enabled": true,
+                "rotation": 270,
+                "size": {
+                  "height": 1
+                },
+                "colors": [
+                  {
+                    "color": "#000000AA",
+                    "position": 0
+                  },
+                  {
+                    "color": "#00000000",
+                    "position": 0.25
+                  },
+                  {
+                    "color": "#000000CC",
+                    "position": 1
+                  }
+                ]
+              },
+              "width": 402,
+              "height": 360
+            },
+            {
+              "type": "frame",
+              "id": "UAfN1",
+              "name": "Top Group",
+              "width": "fill_container",
+              "layout": "vertical",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "W9BHl7",
+                  "name": "Status Bar",
+                  "width": "fill_container",
+                  "height": 62,
+                  "fill": "#FFFFFF00",
+                  "padding": [
+                    0,
+                    24
+                  ],
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "pCiRa",
+                      "name": "Status Time",
+                      "fill": "#FFFFFF",
+                      "content": "9:41",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "HdusE",
+                      "name": "Status Icons",
+                      "gap": 6,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "ecH9J",
+                          "name": "Signal Icon",
+                          "width": 16,
+                          "height": 16,
+                          "icon": "signal",
+                          "library": "lucide",
+                          "fill": "#FFFFFF"
+                        },
+                        {
+                          "type": "icon",
+                          "id": "QyzdD",
+                          "name": "Battery Icon",
+                          "width": 16,
+                          "height": 16,
+                          "icon": "battery-full",
+                          "library": "lucide",
+                          "fill": "#FFFFFF"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "rlPGg",
+                  "name": "Hero App Bar",
+                  "width": "fill_container",
+                  "height": 52,
+                  "padding": [
+                    0,
+                    16
+                  ],
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "Pf64D",
+                      "name": "Back Button",
+                      "width": 40,
+                      "height": 40,
+                      "fill": "#00000066",
+                      "cornerRadius": 9999,
+                      "effect": {
+                        "type": "background_blur",
+                        "radius": 10
+                      },
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "i4OqTa",
+                          "width": 24,
+                          "height": 24,
+                          "icon": "chevron-left",
+                          "library": "lucide",
+                          "fill": "#FFFFFF"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "oEgOt",
+                      "name": "Info Button",
+                      "width": 40,
+                      "height": 40,
+                      "fill": "#00000066",
+                      "cornerRadius": 9999,
+                      "effect": {
+                        "type": "background_blur",
+                        "radius": 10
+                      },
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "mggvx",
+                          "name": "Info Icon",
+                          "width": 22,
+                          "height": 22,
+                          "icon": "info",
+                          "library": "lucide",
+                          "fill": "#FFFFFF"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "bUR4j",
+              "name": "Hero Info Group",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 20,
+              "padding": [
+                0,
+                24
+              ],
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "Gr6HJ",
+                  "name": "Info Text",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "AbCGW",
+                      "fill": "#FFFFFF",
+                      "content": "Lemon",
+                      "fontFamily": "$font.headings",
+                      "fontSize": 30,
+                      "fontWeight": "800",
+                      "letterSpacing": -0.5
+                    },
+                    {
+                      "type": "text",
+                      "id": "g01JiS",
+                      "fill": "#FFFFFFAA",
+                      "content": "米津玄師",
+                      "fontFamily": "$font.body",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "Trnif",
+                  "name": "CTA Row",
+                  "width": "fill_container",
+                  "gap": 12,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "Bdmg8",
+                      "name": "ctaPlay",
+                      "width": "fill_container",
+                      "height": 48,
+                      "fill": "#FFFFFF2E",
+                      "cornerRadius": 12,
+                      "stroke": "#FFFFFF5C",
+                      "strokeWidth": 1,
+                      "strokeAlignment": "inner",
+                      "gap": 8,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "ak9YC",
+                          "name": "ic",
+                          "width": 17,
+                          "height": 17,
+                          "icon": "plus",
+                          "library": "lucide",
+                          "fill": "#FFFFFF"
+                        },
+                        {
+                          "type": "text",
+                          "id": "eTPzc",
+                          "name": "lbl",
+                          "fill": "#FFFFFF",
+                          "content": "단어장 만들기",
+                          "fontFamily": "$font.body",
+                          "fontSize": 14,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "bqcOO",
+          "name": "Tab Bar",
+          "width": "fill_container",
+          "height": 44,
+          "fill": "$bg-primary",
+          "stroke": "$border-default",
+          "strokeWidth": {
+            "bottom": 1
+          },
+          "strokeAlignment": "inner",
+          "gap": 15,
+          "padding": [
+            0,
+            16
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "f2mG4",
+              "name": "Tab Home",
+              "height": "fill_container",
+              "layout": "vertical",
+              "padding": [
+                0,
+                8
+              ],
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "gY410",
+                  "name": "Tab Home Label",
+                  "fill": "$foreground.secondary",
+                  "content": "홈",
+                  "fontFamily": "$font.body",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "O7ige",
+              "name": "Tab Words",
+              "height": "fill_container",
+              "stroke": "$accent.primary",
+              "strokeWidth": {
+                "bottom": 2
+              },
+              "strokeAlignment": "inner",
+              "layout": "vertical",
+              "padding": [
+                0,
+                8
+              ],
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "U37cv",
+                  "name": "Tab Words Label",
+                  "fill": "$foreground.primary",
+                  "content": "단어",
+                  "fontFamily": "$font.body",
+                  "fontSize": 14,
+                  "fontWeight": "600"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "l0TNPA",
+          "name": "Grid Container",
+          "width": "fill_container",
+          "height": "fill_container",
+          "fill": "#FFFFFF00",
+          "layout": "vertical",
+          "children": [
+            {
+              "type": "frame",
+              "id": "gKwQ1",
+              "name": "Summary Bar",
+              "width": "fill_container",
+              "height": 50,
+              "fill": "$bg-primary",
+              "stroke": "$border-default",
+              "strokeWidth": {
+                "bottom": 1
+              },
+              "strokeAlignment": "inner",
+              "gap": 8,
+              "padding": [
+                0,
+                16
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "Nc5rz",
+                  "name": "Action Chips",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "JEuU3",
+                      "name": "Filter Chip",
+                      "height": 32,
+                      "fill": "$bg-primary",
+                      "cornerRadius": 20,
+                      "stroke": "$border-default",
+                      "strokeWidth": 1,
+                      "gap": 4,
+                      "padding": [
+                        0,
+                        10
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "G99im5",
+                          "name": "Filter Icon",
+                          "width": 12,
+                          "height": 12,
+                          "icon": "sliders-horizontal",
+                          "library": "lucide",
+                          "fill": "$foreground.muted"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "C8eXGB",
+                      "name": "Sort Chip",
+                      "height": 32,
+                      "fill": "$bg-primary",
+                      "cornerRadius": 20,
+                      "stroke": "$border-default",
+                      "strokeWidth": 1,
+                      "gap": 4,
+                      "padding": [
+                        0,
+                        10
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "NaWkD",
+                          "name": "Sort Icon",
+                          "width": 12,
+                          "height": 12,
+                          "icon": "arrow-up-down",
+                          "library": "lucide",
+                          "fill": "$foreground.muted"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "mGwJJ",
+                  "name": "Spacer",
+                  "width": "fill_container",
+                  "height": 1
+                },
+                {
+                  "type": "frame",
+                  "id": "DwF5K",
+                  "name": "담기 Button",
+                  "height": 32,
+                  "fill": "$accent.primary",
+                  "cornerRadius": 9999,
+                  "stroke": "#FFFFFF00",
+                  "strokeWidth": 1,
+                  "gap": 4,
+                  "padding": [
+                    0,
+                    12
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "aC5AS",
+                      "name": "Plus Icon",
+                      "width": 11,
+                      "height": 11,
+                      "icon": "plus",
+                      "library": "lucide",
+                      "fill": "$foreground.inverse"
+                    },
+                    {
+                      "type": "text",
+                      "id": "Wy9AJ",
+                      "name": "담기 Label",
+                      "fill": "$foreground.inverse",
+                      "content": "48개 담기",
+                      "fontFamily": "$font.body",
+                      "fontSize": 12,
+                      "fontWeight": "700"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "YFwxw",
+              "name": "Word List",
+              "width": "fill_container",
+              "height": "fill_container",
+              "fill": "$bg-primary",
+              "layout": "vertical",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "N4aKOi",
+                  "layoutPosition": "absolute",
+                  "x": 0,
+                  "y": 364,
+                  "name": "Playing Words Bottomsheet",
+                  "clip": true,
+                  "width": 402,
+                  "height": 56,
+                  "fill": "#FFFFFF",
+                  "cornerRadius": [
+                    24,
+                    24,
+                    0,
+                    0
+                  ],
+                  "effect": {
+                    "type": "shadow",
+                    "shadowType": "outer",
+                    "color": "#0000001A",
+                    "offset": {
+                      "x": 0,
+                      "y": -4
+                    },
+                    "blur": 16
+                  },
+                  "layout": "vertical",
+                  "gap": 11,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "oDN4b",
+                      "name": "Header",
+                      "clip": true,
+                      "width": "fill_container",
+                      "fill": "#FFFFFF",
+                      "stroke": "$border-default",
+                      "strokeWidth": {
+                        "top": 1
+                      },
+                      "strokeAlignment": "inner",
+                      "layout": "vertical",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "v3aMcQ",
+                          "name": "MV Bar",
+                          "clip": true,
+                          "width": "fill_container",
+                          "height": 56,
+                          "fill": "#FFFFFF",
+                          "gap": 12,
+                          "padding": [
+                            0,
+                            14
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "D7VYS",
+                              "name": "MV",
+                              "clip": true,
+                              "width": 60,
+                              "height": 30,
+                              "fill": {
+                                "type": "image",
+                                "enabled": true,
+                                "url": "https://images.unsplash.com/photo-1693240817505-f59d02b89ef9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzM5MjU2MzB8&ixlib=rb-4.1.0&q=80&w=1080",
+                                "mode": "fill"
+                              },
+                              "cornerRadius": 8,
+                              "stroke": "#FFFFFF33",
+                              "layout": "none",
+                              "children": [
+                                {
+                                  "type": "rectangle",
+                                  "id": "VfUSR",
+                                  "x": 0,
+                                  "y": 15,
+                                  "name": "Thumbnail Shade",
+                                  "fill": "#00000066",
+                                  "width": 54,
+                                  "height": 12
+                                },
+                                {
+                                  "type": "ellipse",
+                                  "id": "x4hLZB",
+                                  "x": 31,
+                                  "y": 1,
+                                  "name": "Thumbnail Glow",
+                                  "opacity": 0.8,
+                                  "fill": "#FFB30066",
+                                  "width": 20,
+                                  "height": 20
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "yLf9v",
+                                  "x": 19,
+                                  "y": 6,
+                                  "name": "Tiny Play Badge",
+                                  "width": 16,
+                                  "height": 16,
+                                  "fill": "#FFFFFFDD",
+                                  "cornerRadius": 9999,
+                                  "justifyContent": "center",
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon",
+                                      "id": "Qunu4",
+                                      "name": "Tiny Play Icon",
+                                      "width": 8,
+                                      "height": 8,
+                                      "icon": "play",
+                                      "library": "lucide",
+                                      "fill": "$foreground.primary"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "u6w1lR",
+                                  "x": 3,
+                                  "y": 17,
+                                  "name": "MV Label Badge",
+                                  "width": 19,
+                                  "height": 7,
+                                  "fill": "#FF0000",
+                                  "cornerRadius": 3,
+                                  "justifyContent": "center",
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "SFacZ",
+                                      "name": "MV Label",
+                                      "fill": "#FFFFFF",
+                                      "content": "MV",
+                                      "fontFamily": "$font.captions",
+                                      "fontSize": 5,
+                                      "fontWeight": "700"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "vt01k",
+                              "name": "Song Info Col",
+                              "width": "fill_container",
+                              "height": "fill_container",
+                              "layout": "vertical",
+                              "gap": 1,
+                              "justifyContent": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "dHW8S",
+                                  "name": "Song Title",
+                                  "fill": "$foreground.primary",
+                                  "content": "Lemon",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 13,
+                                  "fontWeight": "600"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "B0svW",
+                                  "name": "Artist",
+                                  "fill": "$foreground.muted",
+                                  "content": "米津玄師",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "TgxbL",
+                              "name": "Play/Stop Toggle",
+                              "clip": true,
+                              "width": 36,
+                              "height": 36,
+                              "effect": {
+                                "type": "shadow",
+                                "shadowType": "outer",
+                                "enabled": false,
+                                "color": "#000000"
+                              },
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "bPVVB",
+                                  "name": "Filled Pause Icon",
+                                  "width": 22,
+                                  "height": 22,
+                                  "icon": "pause-fill",
+                                  "library": "phosphor",
+                                  "fill": "$accent.primary"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "vThdg",
+                      "name": "Body",
+                      "clip": true,
+                      "width": "fill_container",
+                      "fill": "#FFFFFF",
+                      "gap": 8,
+                      "justifyContent": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "Cgk4K",
+                          "name": "Page 1 (Peek)",
+                          "width": 358,
+                          "fill": "#FFFFFF00",
+                          "layout": "vertical",
+                          "gap": 12,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "q63oSy",
+                              "name": "Lyric Line 2",
+                              "width": "fill_container",
+                              "height": 110,
+                              "fill": "$surface.primary",
+                              "cornerRadius": "$rounded.xl",
+                              "layout": "vertical",
+                              "gap": 8,
+                              "padding": [
+                                0,
+                                16
+                              ],
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "RvKbK",
+                                  "name": "Lyric Text",
+                                  "fill": "$foreground.primary",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "風が吹いてあの日に戻れたら",
+                                  "textAlign": "center",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 20,
+                                  "fontWeight": "700"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "O7jtFT",
+                                  "name": "Translation",
+                                  "fill": "$foreground.secondary",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "바람이 불어 그날로 돌아갈 수 있다면",
+                                  "textAlign": "center",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 14,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "SIJtL",
+                              "name": "Word List Body",
+                              "width": "fill_container",
+                              "fill": "#FFFFFF",
+                              "cornerRadius": "$rounded.2xl",
+                              "layout": "vertical",
+                              "children": [
+                                {
+                                  "type": "rectangle",
+                                  "id": "H6cTI",
+                                  "name": "Divider",
+                                  "fill": "$border-default",
+                                  "width": "fill_container",
+                                  "height": 1
+                                },
+                                {
+                                  "type": "rectangle",
+                                  "id": "Q6s3l",
+                                  "name": "Divider",
+                                  "fill": "$border-default",
+                                  "width": "fill_container",
+                                  "height": 1
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "JFUB1",
+                          "name": "Page 2",
+                          "width": 358,
+                          "fill": "#FFFFFF00",
+                          "layout": "vertical",
+                          "gap": 12,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "NqhV2",
+                              "name": "Current Lyric Line",
+                              "width": "fill_container",
+                              "height": 110,
+                              "fill": "$surface.primary",
+                              "cornerRadius": "$rounded.xl",
+                              "layout": "vertical",
+                              "gap": 14,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "sIwMx",
+                                  "name": "Current Sentence Tokens",
+                                  "width": "fill_container",
+                                  "gap": 4,
+                                  "justifyContent": "center",
+                                  "alignItems": "end",
+                                  "children": [
+                                    {
+                                      "id": "UJM9H",
+                                      "type": "ref",
+                                      "ref": "WpjTH",
+                                      "name": "Token 君",
+                                      "width": 24,
+                                      "descendants": {
+                                        "nW89V": {
+                                          "content": "きみ",
+                                          "fontSize": 9,
+                                          "fill": "#777777"
+                                        },
+                                        "XAVod": {
+                                          "content": "君",
+                                          "fontSize": 18,
+                                          "fontWeight": "800"
+                                        },
+                                        "L4P01o": {
+                                          "opacity": 1,
+                                          "fill": "#5B8FCC",
+                                          "height": 2
+                                        }
+                                      }
+                                    },
+                                    {
+                                      "id": "fbcVg",
+                                      "type": "ref",
+                                      "ref": "WpjTH",
+                                      "name": "Token の",
+                                      "width": 18,
+                                      "descendants": {
+                                        "nW89V": {
+                                          "content": " ",
+                                          "fontSize": 9,
+                                          "fill": "#777777"
+                                        },
+                                        "XAVod": {
+                                          "content": "の",
+                                          "fontSize": 18,
+                                          "fontWeight": "800"
+                                        },
+                                        "L4P01o": {
+                                          "opacity": 0,
+                                          "fill": "#5B8FCC",
+                                          "height": 2
+                                        }
+                                      }
+                                    },
+                                    {
+                                      "id": "i60qzP",
+                                      "type": "ref",
+                                      "ref": "WpjTH",
+                                      "name": "Token 声",
+                                      "width": 24,
+                                      "descendants": {
+                                        "nW89V": {
+                                          "content": "こえ",
+                                          "fontSize": 9,
+                                          "fill": "#777777"
+                                        },
+                                        "XAVod": {
+                                          "content": "声",
+                                          "fontSize": 18,
+                                          "fontWeight": "800"
+                                        },
+                                        "L4P01o": {
+                                          "opacity": 1,
+                                          "fill": "#5B8FCC",
+                                          "height": 2
+                                        }
+                                      }
+                                    },
+                                    {
+                                      "id": "cNvTD",
+                                      "type": "ref",
+                                      "ref": "WpjTH",
+                                      "name": "Token が",
+                                      "width": 18,
+                                      "descendants": {
+                                        "nW89V": {
+                                          "content": " ",
+                                          "fontSize": 9,
+                                          "fill": "#777777"
+                                        },
+                                        "XAVod": {
+                                          "content": "が",
+                                          "fontSize": 18,
+                                          "fontWeight": "800"
+                                        },
+                                        "L4P01o": {
+                                          "opacity": 0,
+                                          "fill": "#5B8FCC",
+                                          "height": 2
+                                        }
+                                      }
+                                    },
+                                    {
+                                      "id": "NhKca",
+                                      "type": "ref",
+                                      "ref": "WpjTH",
+                                      "name": "Token 今",
+                                      "width": 24,
+                                      "descendants": {
+                                        "nW89V": {
+                                          "content": "いま",
+                                          "fontSize": 9,
+                                          "fill": "#777777"
+                                        },
+                                        "XAVod": {
+                                          "content": "今",
+                                          "fontSize": 18,
+                                          "fontWeight": "800"
+                                        },
+                                        "L4P01o": {
+                                          "opacity": 1,
+                                          "fill": "#9D7AC4",
+                                          "height": 2
+                                        }
+                                      }
+                                    },
+                                    {
+                                      "id": "Z1XYS",
+                                      "type": "ref",
+                                      "ref": "WpjTH",
+                                      "name": "Token も",
+                                      "width": 18,
+                                      "descendants": {
+                                        "nW89V": {
+                                          "content": " ",
+                                          "fontSize": 9,
+                                          "fill": "#777777"
+                                        },
+                                        "XAVod": {
+                                          "content": "も",
+                                          "fontSize": 18,
+                                          "fontWeight": "800"
+                                        },
+                                        "L4P01o": {
+                                          "opacity": 0,
+                                          "fill": "#5B8FCC",
+                                          "height": 2
+                                        }
+                                      }
+                                    },
+                                    {
+                                      "id": "R3UAx",
+                                      "type": "ref",
+                                      "ref": "WpjTH",
+                                      "name": "Token 聞こえる",
+                                      "width": 74,
+                                      "descendants": {
+                                        "nW89V": {
+                                          "content": "き",
+                                          "fontSize": 9,
+                                          "fill": "#777777"
+                                        },
+                                        "XAVod": {
+                                          "content": "聞こえる",
+                                          "fontSize": 18,
+                                          "fontWeight": "800"
+                                        },
+                                        "L4P01o": {
+                                          "opacity": 1,
+                                          "fill": "#4A9D7A",
+                                          "height": 2
+                                        }
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "jgug7",
+                                  "name": "Current Korean Translation",
+                                  "fill": "$foreground.secondary",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "너의 목소리가 지금도 들려",
+                                  "textAlign": "center",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "500"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "GfBvw",
+                              "name": "Current Words",
+                              "context": "This list is vertically scrollable.",
+                              "width": "fill_container",
+                              "fill": "#FFFFFF",
+                              "gap": 8,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "O6AQzD",
+                                  "name": "Word List Body",
+                                  "clip": true,
+                                  "width": "fill_container",
+                                  "fill": "#FFFFFF",
+                                  "cornerRadius": "$rounded.2xl",
+                                  "layout": "vertical",
+                                  "children": [
+                                    {
+                                      "type": "rectangle",
+                                      "id": "wCFan",
+                                      "name": "Divider",
+                                      "fill": "$border-default",
+                                      "width": "fill_container",
+                                      "height": 1
+                                    },
+                                    {
+                                      "type": "rectangle",
+                                      "id": "E0uif",
+                                      "name": "Divider",
+                                      "fill": "$border-default",
+                                      "width": "fill_container",
+                                      "height": 1
+                                    },
+                                    {
+                                      "type": "rectangle",
+                                      "id": "o5jgJI",
+                                      "name": "Divider",
+                                      "fill": "$border-default",
+                                      "width": "fill_container",
+                                      "height": 1
+                                    },
+                                    {
+                                      "type": "rectangle",
+                                      "id": "jNgcv",
+                                      "name": "Divider",
+                                      "fill": "$border-default",
+                                      "width": "fill_container",
+                                      "height": 1
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "st3yq",
+                          "name": "Page 3",
+                          "width": 358,
+                          "fill": "#FFFFFF00",
+                          "layout": "vertical",
+                          "gap": 12,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "VwG4D",
+                              "name": "Lyric Line 2",
+                              "width": "fill_container",
+                              "height": 110,
+                              "fill": "$surface.primary",
+                              "cornerRadius": "$rounded.xl",
+                              "layout": "vertical",
+                              "gap": 8,
+                              "padding": [
+                                0,
+                                16
+                              ],
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "nJsFy",
+                                  "name": "Lyric Text",
+                                  "fill": "$foreground.primary",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "風が吹いてあの日に戻れたら",
+                                  "textAlign": "center",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 20,
+                                  "fontWeight": "700"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "gLV6M",
+                                  "name": "Translation",
+                                  "fill": "$foreground.secondary",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "바람이 불어 그날로 돌아갈 수 있다면",
+                                  "textAlign": "center",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 14,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "JkEzA",
+                              "name": "Word List Body",
+                              "width": "fill_container",
+                              "fill": "#FFFFFF",
+                              "cornerRadius": "$rounded.2xl",
+                              "layout": "vertical",
+                              "children": [
+                                {
+                                  "type": "rectangle",
+                                  "id": "CSisc",
+                                  "name": "Divider",
+                                  "fill": "$border-default",
+                                  "width": "fill_container",
+                                  "height": 1
+                                },
+                                {
+                                  "type": "rectangle",
+                                  "id": "JLA6c",
+                                  "name": "Divider",
+                                  "fill": "$border-default",
+                                  "width": "fill_container",
+                                  "height": 1
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "EO8HY",
+                  "type": "ref",
+                  "ref": "A6x4h",
+                  "x": 0,
+                  "y": 0,
+                  "width": "fill_container"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "We60c",
+          "layoutPosition": "absolute",
+          "x": 16,
+          "y": 806,
+          "name": "Snackbar",
+          "width": 370,
+          "height": 40,
+          "fill": "$bg-primary",
+          "cornerRadius": 10,
+          "effect": {
+            "type": "shadow",
+            "shadowType": "outer",
+            "color": "#00000020",
+            "offset": {
+              "x": 0,
+              "y": 8
+            },
+            "blur": 24
+          },
+          "gap": 6,
+          "padding": [
+            0,
+            14
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "C0NR6",
+              "name": "Snackbar Message",
+              "fill": "$foreground.primary",
+              "content": "%s 단어장에 담았어요",
+              "fontFamily": "$font.body",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "frame",
+              "id": "CToMF",
+              "name": "Snackbar Action",
+              "cornerRadius": 6,
+              "padding": [
+                4,
+                8
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "mlT52",
+                  "name": "Snackbar Action Label",
+                  "fill": "$accent.primary",
+                  "content": "단어장 보기",
+                  "fontFamily": "$font.body",
+                  "fontSize": 13,
+                  "fontWeight": "500"
                 }
               ]
             }
@@ -32679,9 +33992,19 @@
                 0,
                 16
               ],
-              "justifyContent": "end",
+              "justifyContent": "space_between",
               "alignItems": "center",
               "children": [
+                {
+                  "type": "text",
+                  "id": "na5Dk",
+                  "name": "Page Indicator",
+                  "fill": "$foreground.secondary",
+                  "content": "2/50",
+                  "fontFamily": "$font.body",
+                  "fontSize": 12,
+                  "fontWeight": "500"
+                },
                 {
                   "type": "frame",
                   "id": "s75BoA",
