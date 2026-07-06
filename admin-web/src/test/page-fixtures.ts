@@ -47,6 +47,8 @@ export const lyricSummary: LyricSummary = {
 export const songDetail: SongDetail = {
   ...songSummary,
   lyric: lyricSummary,
+  activeReanalysisWork: null,
+  analysisWorks: [],
 }
 
 export const lyricDetail: LyricDetail = {
@@ -121,6 +123,7 @@ export const songAnalysisWorkSummary: SongAnalysisWorkSummary = {
   currentStage: "ANALYZE_LYRICS",
   songId: 1,
   lyricId: 2,
+  youtubeUrl: "https://youtu.be/work-mv",
   triggerSource: "USER_APP",
   createdByUserId: null,
   createdAt: "2026-01-01T00:00:00Z",

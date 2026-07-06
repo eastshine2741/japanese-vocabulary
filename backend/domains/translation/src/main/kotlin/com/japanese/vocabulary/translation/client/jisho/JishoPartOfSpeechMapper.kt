@@ -29,6 +29,7 @@ object JishoPartOfSpeechMapper {
                 "pre-noun adjectival" in s || "rentaishi" in s -> PartOfSpeech.ADNOMINAL
                 "prefix" in s -> PartOfSpeech.PREFIX
                 "suffix" in s || "counter" in s -> PartOfSpeech.SUFFIX
+                "expression" in s || "phrase" in s || "phrases" in s || "clause" in s || "clauses" in s -> PartOfSpeech.EXPRESSION
                 "noun" in s -> PartOfSpeech.NOUN
                 else -> null
             }

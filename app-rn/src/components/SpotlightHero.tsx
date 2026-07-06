@@ -45,9 +45,7 @@ const MUTE_KEY = 'spotlight_muted';
 const LYRIC_ANIM_MS = 300;
 const LYRIC_SLIDE = 18;
 
-// The POS that are checked by default in the word-list bottom sheet
-// (WordListSheet.DEFAULT_ON_POS). "단어장 만들기" picks exactly these words so the
-// auto-created deck matches what the user would get by accepting the sheet's defaults.
+// The POS checked by default when creating a deck from a song.
 const DEFAULT_ON_POS = new Set(['NOUN', 'VERB', 'ADJECTIVE', 'NA_ADJECTIVE', 'ADVERB']);
 
 // Build the default-checked word set from study data: default-on POS only, with a
@@ -143,8 +141,8 @@ function SpotlightHero() {
   const [deckState, setDeckState] = useState<'idle' | 'creating' | 'created'>('idle');
   const [learnCount, setLearnCount] = useState(0);
   const [createdDeckId, setCreatedDeckId] = useState<number | null>(null);
-  // currentMs tracked locally — the hero MV is independent of the global
-  // PlayerScreen, so we drive the synced line from onTimeChange.
+  // currentMs tracked locally — the hero MV is independent of global playback,
+  // so we drive the synced line from onTimeChange.
   const [currentMs, setCurrentMs] = useState(0);
 
   const song = data?.song ?? null;
@@ -260,7 +258,7 @@ function SpotlightHero() {
     await loadById(song.id);
     const state = usePlayerStore.getState();
     if (state.status === 'success') {
-      navigation.navigate('Player', { origin: 'Home' });
+      navigation.navigate('SongDetail', { songId: song.id, origin: 'Home' });
     }
   }, [song, loadById, navigation]);
 

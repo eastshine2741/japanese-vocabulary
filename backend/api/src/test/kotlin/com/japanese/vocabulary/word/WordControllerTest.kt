@@ -2,6 +2,9 @@ package com.japanese.vocabulary.word
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.japanese.vocabulary.auth.jwt.JwtUtil
+import com.japanese.vocabulary.deck.entity.DeckEntity
+import com.japanese.vocabulary.deck.entity.DeckFlashcardEntity
+import com.japanese.vocabulary.deck.repository.DeckFlashcardRepository
 import com.japanese.vocabulary.flashcard.event.FlashcardDeletedEvent
 import com.japanese.vocabulary.flashcard.repository.FlashcardRepository
 import com.japanese.vocabulary.song.entity.SongEntity
@@ -11,6 +14,7 @@ import com.japanese.vocabulary.test.fixtures.TestUserBuilder
 import com.japanese.vocabulary.test.fixtures.TestWordBuilder
 import com.japanese.vocabulary.user.entity.UserEntity
 import com.japanese.vocabulary.word.dto.AddWordRequest
+import com.japanese.vocabulary.word.dto.AddWordExampleRequest
 import com.japanese.vocabulary.word.dto.BatchAddWordRequest
 import com.japanese.vocabulary.word.dto.BatchAddWordResponse
 import com.japanese.vocabulary.word.dto.UpdateWordRequest
@@ -45,6 +49,7 @@ class WordControllerTest : ApiBaseIntegrationTest() {
     @Autowired private lateinit var wordRepository: WordRepository
     @Autowired private lateinit var songWordRepository: SongWordRepository
     @Autowired private lateinit var flashcardRepository: FlashcardRepository
+    @Autowired private lateinit var deckFlashcardRepository: DeckFlashcardRepository
     @Autowired private lateinit var applicationEvents: ApplicationEvents
 
     private fun newUser(): UserEntity = TestUserBuilder(entityManager).build()
@@ -165,6 +170,44 @@ class WordControllerTest : ApiBaseIntegrationTest() {
         }
 
         @Test
+        fun `same word merges overlapping requested meanings without dropping existing meanings`() {
+            val me = newUser()
+            val song = newSong()
+            com.japanese.vocabulary.test.fixtures.TestWordBuilder(entityManager)
+                .forUser(me)
+                .withJapaneseText("重なる")
+                .withMeanings(
+                    listOf(
+                        WordMeaning(text = "a", partOfSpeech = "VERB"),
+                        WordMeaning(text = "b", partOfSpeech = "VERB"),
+                    ),
+                )
+                .build()
+
+            mockMvc.post("/api/words") {
+                header("Authorization", bearer(me))
+                jsonBody(
+                    AddWordRequest(
+                        japanese = "重なる",
+                        reading = "かさなる",
+                        koreanText = "b",
+                        partOfSpeech = "VERB",
+                        songId = song.id!!,
+                        lyricLine = "重なる声",
+                        meanings = listOf(
+                            WordMeaning(text = "b", partOfSpeech = "VERB"),
+                            WordMeaning(text = "c", partOfSpeech = "VERB"),
+                        ),
+                    ),
+                )
+            }.andExpect { status { isOk() } }
+
+            entityManager.flush(); entityManager.clear()
+            val word = wordRepository.findByUserIdAndJapaneseText(me.id!!, "重なる")!!
+            assertThat(word.meanings.map { it.text }).containsExactly("a", "b", "c")
+        }
+
+        @Test
         fun `same word with new lyricLine adds another SongWord`() {
             val me = newUser()
             val song = newSong()
@@ -181,6 +224,55 @@ class WordControllerTest : ApiBaseIntegrationTest() {
             val word = wordRepository.findByUserIdAndJapaneseText(me.id!!, "夜")!!
             assertThat(songWordRepository.findByWordId(word.id!!).map { it.lyricLine })
                 .containsExactlyInAnyOrder("夜の街", "夜が更ける")
+        }
+
+        @Test
+        fun `adds all requested meanings and caps examples at ten preserving existing examples`() {
+            val me = newUser()
+            val song = newSong()
+            val word = com.japanese.vocabulary.test.fixtures.TestWordBuilder(entityManager)
+                .forUser(me)
+                .withJapaneseText("限界")
+                .withMeanings(listOf(WordMeaning(text = "기존", partOfSpeech = "NOUN")))
+                .build()
+            (1..9).forEach { index ->
+                newSongWord(word, song, "既存$index")
+            }
+
+            mockMvc.post("/api/words") {
+                header("Authorization", bearer(me))
+                jsonBody(
+                    AddWordRequest(
+                        japanese = "限界",
+                        reading = "げんかい",
+                        koreanText = "기존",
+                        partOfSpeech = "NOUN",
+                        songId = song.id!!,
+                        lyricLine = "未使用",
+                        meanings = listOf(
+                            WordMeaning(text = "기존", partOfSpeech = "NOUN"),
+                            WordMeaning(text = "한계", partOfSpeech = "NOUN"),
+                            WordMeaning(text = "끝", partOfSpeech = "NOUN"),
+                        ),
+                        examples = (1..3).map { index ->
+                            AddWordExampleRequest(
+                                songId = song.id!!,
+                                lyricLine = "新規$index",
+                                koreanLyricLine = "신규$index",
+                            )
+                        },
+                    ),
+                )
+            }.andExpect { status { isOk() } }
+
+            entityManager.flush(); entityManager.clear()
+            val reloaded = wordRepository.findByUserIdAndJapaneseText(me.id!!, "限界")!!
+            assertThat(reloaded.meanings.map { it.text }).containsExactlyInAnyOrder("기존", "한계", "끝")
+            assertThat(songWordRepository.findByWordId(reloaded.id!!).map { it.lyricLine })
+                .containsExactlyInAnyOrder(
+                    "既存1", "既存2", "既存3", "既存4", "既存5",
+                    "既存6", "既存7", "既存8", "既存9", "新規1",
+                )
         }
 
         @Test
@@ -378,6 +470,7 @@ class WordControllerTest : ApiBaseIntegrationTest() {
 
         @Test
         fun `removes Word, SongWord, FlashcardDto and publishes FlashcardDeletedEvent`() {
+            // Given
             val me = newUser()
             val song = newSong()
             mockMvc.post("/api/words") {
@@ -387,15 +480,28 @@ class WordControllerTest : ApiBaseIntegrationTest() {
             entityManager.flush(); entityManager.clear()
             val word = wordRepository.findByUserIdAndJapaneseText(me.id!!, "削除")!!
             val flashcard = flashcardRepository.findByWordId(word.id!!)!!
+            val deck = DeckEntity(
+                userId = me.id!!,
+                songId = song.id!!,
+                title = song.title,
+                description = song.artist,
+            ).also { entityManager.persist(it) }
+            entityManager.flush()
+            entityManager.persist(DeckFlashcardEntity(deckId = deck.id!!, flashcardId = flashcard.id!!))
+            entityManager.flush(); entityManager.clear()
+            assertThat(deckFlashcardRepository.existsByDeckIdAndFlashcardId(deck.id!!, flashcard.id!!)).isTrue
 
+            // When
             mockMvc.delete("/api/words/${word.id}") {
                 header("Authorization", bearer(me))
             }.andExpect { status { isOk() } }
 
+            // Then
             entityManager.flush(); entityManager.clear()
             assertThat(wordRepository.findById(word.id!!)).isEmpty
             assertThat(songWordRepository.findByWordId(word.id!!)).isEmpty()
             assertThat(flashcardRepository.findByWordId(word.id!!)).isNull()
+            assertThat(deckFlashcardRepository.existsByDeckIdAndFlashcardId(deck.id!!, flashcard.id!!)).isFalse
 
             val events = applicationEvents.stream(FlashcardDeletedEvent::class.java).toList()
             assertThat(events.map { it.flashcardId }).contains(flashcard.id)

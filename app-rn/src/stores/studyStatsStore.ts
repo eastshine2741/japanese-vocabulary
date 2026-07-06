@@ -31,6 +31,7 @@ export const useStudyStatsStore = create<StudyStatsState>((set, get) => ({
 
   loadHome: async (force = false) => {
     const cur = get().home;
+    if (cur.status === 'loading') return;
     if (!force && cur.status === 'loaded' && cur.staleAt === 0) return;
     set({ home: { ...cur, status: 'loading', error: null } });
     try {
@@ -43,6 +44,7 @@ export const useStudyStatsStore = create<StudyStatsState>((set, get) => ({
 
   loadProfile: async (force = false) => {
     const cur = get().profile;
+    if (cur.status === 'loading') return;
     if (!force && cur.status === 'loaded' && cur.staleAt === 0) return;
     set({ profile: { ...cur, status: 'loading', error: null } });
     try {
@@ -55,6 +57,7 @@ export const useStudyStatsStore = create<StudyStatsState>((set, get) => ({
 
   loadHeatmap: async (force = false) => {
     const cur = get().heatmap;
+    if (cur.status === 'loading') return;
     if (!force && cur.status === 'loaded' && cur.staleAt === 0) return;
     set({ heatmap: { ...cur, status: 'loading', error: null } });
     try {

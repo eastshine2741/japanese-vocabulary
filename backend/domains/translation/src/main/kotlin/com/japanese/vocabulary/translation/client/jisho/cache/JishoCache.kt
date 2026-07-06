@@ -9,7 +9,7 @@ import org.springframework.data.redis.core.StringRedisTemplate
 import java.time.Duration
 
 /**
- * Redis cache for jisho lookups (key `jisho:{word}`, TTL 30 days). Keys are namespaced here and
+ * Redis cache for jisho lookups (key `jisho:v2:{word}`, TTL 30 days). Keys are namespaced here and
  * read/write errors are swallowed so a Redis hiccup degrades to a live fetch rather than failing
  * the pipeline. Callers pass the bare dictionary form; the prefix is applied internally.
  * Mirrors the `ArtistChannelCache` subclass pattern over [RedisCache].
@@ -48,7 +48,7 @@ class JishoCache(
     fun put(word: String, value: JishoEntryDto) = put(word, value, TTL)
 
     companion object {
-        private const val KEY_PREFIX = "jisho:"
+        private const val KEY_PREFIX = "jisho:v2:"
         private val TTL: Duration = Duration.ofDays(30)
     }
 }

@@ -21,16 +21,17 @@
 
 ### DB는 Testcontainers MySQL을 공유한다
 - Native MySQL 쿼리(window 함수, JSON 컬럼)가 도메인에 있어 H2/in-memory 호환성 위험.
-- 모든 통합테스트가 **싱글턴 컨테이너 1개**를 공유. 각 테스트는 `@Transactional` 롤백으로 격리.
-- `withReuse(true)`로 로컬 개발 시 첫 부팅(~10초) 이후 즉시 재사용.
+- 같은 Gradle `Test` task/JVM 안에서는 Spring TestContext 캐시와 컨테이너 bean을 통해 MySQL 컨테이너를 공유한다. 각 테스트는 `@Transactional` 롤백으로 격리.
+- Testcontainers의 실행 간 reuse는 사용하지 않는다. `./gradlew test` 실행이 끝난 뒤 DB 상태와 Flyway 이력이 남으면 migration 검증 신뢰성이 떨어진다.
 
 ### Redis 도 Testcontainers 공유 컨테이너
 - `RecentSongService`, `SongSearchService` 등이 Redis 의존. CI 의 무 Redis 환경에서 컨텍스트 부팅 실패 방지.
 - `redis:7-alpine` 컨테이너 1개를 모든 테스트가 공유. 각 테스트 `@BeforeEach` 에서 `flushDb()` 로 키 초기화.
 
-### Spring Event 는 AFTER_COMMIT, 테스트는 발행만 검증한다
-- 프로덕션 리스너 (`DeckEventListener`, `StudyStatsEventListener`) 는 `@TransactionalEventListener(phase = AFTER_COMMIT)` 사용 — 메인 트랜잭션이 실패해도 리스너 실패가 원래 트랜잭션을 롤백시키지 않는다.
-- 통합 테스트는 `@Transactional` 롤백 안에서 돌므로 AFTER_COMMIT 리스너는 발화되지 않는다. **리스너 본문 동작은 단위 테스트로 검증**하고, 통합 테스트는 `@RecordApplicationEvents` 의 `ApplicationEvents` 로 **이벤트 발행 자체만 검증** 한다.
+### Spring Event 는 기본적으로 AFTER_COMMIT, FK 선행 정리는 같은 트랜잭션
+- 프로덕션 리스너 (`DeckEventListener.onSongWordCreated`, `StudyStatsEventListener`) 는 `@TransactionalEventListener(phase = AFTER_COMMIT)` 사용 — 메인 트랜잭션이 실패해도 리스너 실패가 원래 트랜잭션을 롤백시키지 않는다.
+- FK 선행 정리처럼 publisher 커밋 전에 끝나야 하는 listener (`DeckEventListener.onFlashcardDeleted`) 는 같은 트랜잭션의 `@EventListener` + `@Transactional(propagation = MANDATORY)`를 사용한다.
+- 통합 테스트는 `@Transactional` 롤백 안에서 돌므로 AFTER_COMMIT 리스너는 발화되지 않는다. **AFTER_COMMIT 리스너 본문 동작은 단위 테스트로 검증**하고, 통합 테스트는 `@RecordApplicationEvents` 의 `ApplicationEvents` 로 **이벤트 발행 자체만 검증** 한다. 같은 트랜잭션 listener는 실제 row 변경까지 통합 테스트로 검증한다.
 
 ---
 
@@ -61,11 +62,12 @@
 class TestcontainersConfig {
     @Bean @ServiceConnection
     fun mysqlContainer(): MySQLContainer<*> =
-        MySQLContainer("mysql:8.0").withReuse(true)
+        MySQLContainer("mysql:8.4")
+            .withDatabaseName("japanese_vocabulary_test")
 
     @Bean
     fun redisContainer(): GenericContainer<*> =
-        GenericContainer("redis:7-alpine").withExposedPorts(6379).withReuse(true)
+        GenericContainer("redis:7-alpine").withExposedPorts(6379)
 
     @Bean
     fun redisProperties(redis: GenericContainer<*>): DynamicPropertyRegistrar =
@@ -100,10 +102,7 @@ api 모듈은 `ApiBaseIntegrationTest` 가 `BaseIntegrationTest` 를 상속하�
 - AFTER_COMMIT 리스너 본문은 발화되지 않으므로 통합 테스트가 빠르고, 이벤트 발행 자체는 `ApplicationEvents` 로 검증.
 - `@MockkBean(relaxed=false)` 정책 — 자식 테스트가 사용하는 메서드를 명시적으로 `every {}` 로 stub. 까먹으면 즉시 빨간불.
 - `clearMocks(..., answers = true, recordedCalls = true)` 으로 stub/호출 기록 둘 다 매 테스트 초기화.
-- `withReuse(true)` 사용을 위해 로컬 머신에 1회 설정 필요:
-  ```bash
-  echo "testcontainers.reuse.enable=true" >> ~/.testcontainers.properties
-  ```
+- `withReuse(true)` 와 `testcontainers.reuse.enable=true` 는 사용하지 않는다. 로컬에서 이미 켜져 있으면 `~/.testcontainers.properties` 에서 제거한다.
 
 ### 캐시 키 안정화 규약
 **subclass 에서 `@MockkBean` 선언 금지.** 추가 mock 이 필요하면 테스트 메서드 안에서 `every {}` 또는 `mockkObject` 를 사용한다. subclass 에 `@MockkBean` 을 더하면 Spring TestContext 가 별도 ApplicationContext 를 빌드해 CI 메모리/시간이 비례 증가한다.
@@ -469,10 +468,8 @@ cd backend                                                 # gradlew는 backend/
 ./gradlew :api:test --info                                 # 상세 로그 (왜 실패했는지 추적할 때)
 ```
 
-**Testcontainers 컨테이너 재사용 활성화 (1회만):**
-```bash
-echo "testcontainers.reuse.enable=true" >> ~/.testcontainers.properties
-```
+**Testcontainers 실행 간 reuse 금지:**
+`withReuse(true)` 와 `testcontainers.reuse.enable=true` 는 사용하지 않는다. 여러 번의 `./gradlew test` 사이에서 MySQL 상태와 Flyway 이력이 남으면 migration 검증이 오염된다.
 
 ---
 
@@ -482,22 +479,25 @@ echo "testcontainers.reuse.enable=true" >> ~/.testcontainers.properties
 
 | 층위 | 옵션 | 사용 여부 | 이유 |
 |---|---|---|---|
-| 모듈 간 task 병렬 | `--parallel`, `org.gradle.parallel=true` | **금지** | 모듈마다 별 JVM이 동시에 컨테이너 reuse 시도 → cross-JVM race로 컨테이너 N개 생성 가능 |
+| 모듈 간 task 병렬 | `--parallel`, `org.gradle.parallel=true` | **금지** | 모듈마다 별 JVM이 동시에 Testcontainers를 시작하고 DB/Redis 리소스 사용량이 튈 수 있음 |
 | 모듈 내 JVM fork 분기 | `maxParallelForks > 1`, `forkEvery > 0` | **금지** | fork마다 ApplicationContext 새로 빌드 (캐시 손실), 컨테이너 race, RAM N배. DB 동시성 충돌은 그대로 |
 | 통합테스트 클래스/메서드 병렬 | JUnit 5 `@Execution(CONCURRENT)` | **금지** | 같은 ApplicationContext의 mock·event·connection pool을 동시 스레드가 충돌 → silent flaky 다발 |
 | **단위테스트만 메서드 병렬** | JUnit 5 `@Execution(CONCURRENT)` (unit test source set) | **추후 허용 검토** | 단위테스트는 ApplicationContext·DB 미사용이라 격리 문제 없음. Phase 5쯤 source set 분리 + 적용 |
 
 `backend/gradle.properties`에 `org.gradle.parallel=false` 명시. CI에서도 동일 정책 유지.
 
-병렬화로 시간 단축이 필요해지는 시점:
-- 통합테스트가 100개 이상 누적되어 단일 JVM 순차로 5분을 넘기면 — **그때 컨테이너 분리(`maxParallelForks` + `withReuse(false)`)** 만 검토. 픽스처 격리(같은 DB에서 row 충돌 회피) 방식은 **시도하지 않음** — silent flaky 비용이 회귀 방지 ROI를 초과.
+병렬화/컨테이너 시작 비용 최적화가 필요해지는 시점:
+- 통합테스트가 100개 이상 누적되어 단일 JVM 순차로 5분을 넘기면 별도 테스트 인프라를 검토한다.
+- 1순위 후보: Gradle Shared BuildService. `./gradlew test` 한 번의 build lifecycle 동안 MySQL/Redis를 1회 시작하고 여러 모듈 `Test` task가 공유하게 할 수 있다. 구현 복잡도는 높다.
+- 2순위 후보: docker-compose Gradle plugin. lifecycle 관리는 더 단순하지만 Spring `@ServiceConnection` 편의성을 일부 포기하고 test profile에 host/port/env 주입을 명시해야 한다.
+- 실행 간 Testcontainers reuse는 사용하지 않는다. 빠르지만 로컬 DB 상태와 Flyway 이력을 보존해 migration 회귀 검증을 흐린다.
 
 ---
 
 ## 9. FAQ
 
 **Q. 테스트가 너무 느려요.**
-A. 컨테이너 재사용이 켜져 있는지 확인 (`~/.testcontainers.properties`). 그래도 느리면 단위테스트 중심으로 옮길 수 있는 케이스인지 검토. 도메인 협력이 본질이면 통합 유지.
+A. 먼저 변경 모듈만 테스트하고 Gradle 캐시를 활용한다. 전체 통합테스트 시간이 지속적으로 문제가 되면 Gradle Shared BuildService 또는 docker-compose Gradle plugin 기반의 build 단위 공유 컨테이너를 검토한다.
 
 **Q. H2를 쓰면 안 되나요?**
 A. `DailyStudySummaryRepository.longestStreak`(window function)와 JSON 컬럼 검색이 H2와 호환 불가. 한 번 H2로 통과해도 prod에서 깨지는 사례가 발생. 항상 Testcontainers 사용.

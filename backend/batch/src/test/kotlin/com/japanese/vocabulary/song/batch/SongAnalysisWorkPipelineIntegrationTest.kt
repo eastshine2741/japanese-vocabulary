@@ -6,10 +6,14 @@ import com.japanese.vocabulary.mvsearch.client.youtube.dto.YoutubeSearchResponse
 import com.japanese.vocabulary.mvsearch.client.youtube.dto.YoutubeSnippetDto
 import com.japanese.vocabulary.mvsearch.client.youtube.dto.YoutubeThumbnailsDto
 import com.japanese.vocabulary.mvsearch.client.youtube.dto.YoutubeVideoIdDto
+import com.japanese.vocabulary.song.entity.LyricEntity
 import com.japanese.vocabulary.song.entity.LyricType
+import com.japanese.vocabulary.song.entity.SongEntity
+import com.japanese.vocabulary.song.model.LyricLineData
 import com.japanese.vocabulary.song.repository.LyricRepository
 import com.japanese.vocabulary.song.repository.SongRepository
 import com.japanese.vocabulary.songanalysis.entity.SongAnalysisTriggerSource
+import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkEntity
 import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStage
 import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStatus
 import com.japanese.vocabulary.songanalysis.repository.SongAnalysisWorkRepository
@@ -22,6 +26,7 @@ import com.japanese.vocabulary.translation.client.gemini.dto.SelectWordDto
 import com.japanese.vocabulary.translation.client.gemini.dto.SenseTranslationDto
 import com.japanese.vocabulary.translation.client.gemini.dto.TranslationResultDto
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoEntryDto
+import com.japanese.vocabulary.translation.client.jisho.dto.JishoLookupProvenance
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoOptionDto
 import io.mockk.coEvery
 import io.mockk.every
@@ -190,6 +195,104 @@ class SongAnalysisWorkPipelineIntegrationTest : BatchBaseIntegrationTest() {
         verify(exactly = 0) { geminiClient.translateSenses(any()) }
     }
 
+    @Test
+    fun `admin reanalysis creates fresh lyric and switches active lyric and mv only on completion`(): Unit = runBlocking {
+        stubLyricsFound()
+        stubYoutubeFound()
+        stubLyricAnalysis()
+        val song = persistSongWithOldMv()
+        val oldLyric = persistActiveLyric(song.id!!, "古い歌詞")
+        val work = persistAdminWork(song.id!!, status = SongAnalysisWorkStatus.PENDING)
+        val claimed = claimSingleWork(work.id!!)
+
+        val processed = processor.process(claimed)
+
+        assertThat(processed).isTrue
+        entityManager.flush()
+        entityManager.clear()
+
+        val refreshedWork = workRepository.findById(work.id!!).orElseThrow()
+        val refreshedSong = songRepository.findById(song.id!!).orElseThrow()
+        val lyrics = lyricRepository.findAllBySongIdOrderByCreatedAtDesc(song.id!!)
+
+        assertThat(refreshedWork.status).isEqualTo(SongAnalysisWorkStatus.COMPLETED)
+        assertThat(refreshedWork.youtubeUrl).isEqualTo("https://www.youtube.com/watch?v=official-video-id")
+        assertThat(refreshedWork.lyricId).isNotEqualTo(oldLyric.id)
+        assertThat(refreshedSong.activeLyricId).isEqualTo(refreshedWork.lyricId)
+        assertThat(refreshedSong.youtubeUrl).isEqualTo("https://www.youtube.com/watch?v=official-video-id")
+        assertThat(lyrics.map { it.id }).contains(oldLyric.id, refreshedWork.lyricId)
+        assertThat(lyricRepository.findById(oldLyric.id!!).orElseThrow().rawContent.single().text).isEqualTo("古い歌詞")
+    }
+
+    @Test
+    fun `failed admin reanalysis keeps old active lyric and mv while retaining inactive candidate lyric`(): Unit = runBlocking {
+        stubLyricsFound()
+        stubYoutubeFound()
+        stubLyricAnalysisFailure()
+        val song = persistSongWithOldMv()
+        val oldLyric = persistActiveLyric(song.id!!, "古い歌詞")
+        val work = persistAdminWork(song.id!!, status = SongAnalysisWorkStatus.PENDING)
+        val claimed = claimSingleWork(work.id!!)
+
+        val processed = processor.process(claimed)
+
+        assertThat(processed).isFalse
+        entityManager.flush()
+        entityManager.clear()
+
+        val refreshedWork = workRepository.findById(work.id!!).orElseThrow()
+        val refreshedSong = songRepository.findById(song.id!!).orElseThrow()
+        val lyrics = lyricRepository.findAllBySongIdOrderByCreatedAtDesc(song.id!!)
+
+        assertThat(refreshedWork.status).isEqualTo(SongAnalysisWorkStatus.FAILED)
+        assertThat(refreshedWork.youtubeUrl).isEqualTo("https://www.youtube.com/watch?v=official-video-id")
+        assertThat(refreshedWork.lyricId).isNotNull
+        assertThat(refreshedWork.lyricId).isNotEqualTo(oldLyric.id)
+        assertThat(refreshedSong.activeLyricId).isEqualTo(oldLyric.id)
+        assertThat(refreshedSong.youtubeUrl).isEqualTo("https://youtu.be/old-mv")
+        assertThat(lyrics.map { it.id }).contains(oldLyric.id, refreshedWork.lyricId)
+    }
+
+    private fun persistActiveLyric(songId: Long, text: String): LyricEntity {
+        val lyric = LyricEntity(
+            songId = songId,
+            lyricType = LyricType.PLAIN,
+            rawContent = listOf(LyricLineData(index = 0, startTimeMs = 0, text = text)),
+        )
+        entityManager.persist(lyric)
+        entityManager.flush()
+        val song = songRepository.findById(songId).orElseThrow()
+        song.activeLyricId = lyric.id
+        songRepository.saveAndFlush(song)
+        return lyric
+    }
+
+    private fun persistSongWithOldMv(): SongEntity {
+        val song = SongEntity(
+            title = TITLE,
+            artist = ARTIST,
+            durationSeconds = 210,
+            youtubeUrl = "https://youtu.be/old-mv",
+        )
+        entityManager.persist(song)
+        entityManager.flush()
+        return song
+    }
+
+    private fun persistAdminWork(songId: Long, status: SongAnalysisWorkStatus): SongAnalysisWorkEntity {
+        val work = SongAnalysisWorkEntity(
+            rawTitle = TITLE,
+            rawArtist = ARTIST,
+            activeDedupKey = SongAnalysisWorkService.buildAdminReanalysisDedupKey(songId),
+            status = status,
+            songId = songId,
+            triggerSource = SongAnalysisTriggerSource.ADMIN,
+        )
+        entityManager.persist(work)
+        entityManager.flush()
+        return work
+    }
+
     private fun claimSingleWork(workId: Long) =
         workService.claimPending(
             limit = 1,
@@ -239,21 +342,57 @@ class SongAnalysisWorkPipelineIntegrationTest : BatchBaseIntegrationTest() {
             TranslationResultDto(0, "복숭아빛 열쇠", "모모이로노 카기"),
         )
         every { geminiClient.segmentAndLemmatize(any()) } returns listOf(
-            SegLineDto(0, listOf(SegWordDto(surface = "ももいろ", dictionaryForm = "ももいろ"))),
+            SegLineDto(
+                0,
+                listOf(
+                    SegWordDto(surface = "ももいろ", dictionaryForm = "ももいろ"),
+                    SegWordDto(surface = "の", dictionaryForm = "の"),
+                    SegWordDto(surface = "鍵", dictionaryForm = "鍵"),
+                ),
+            ),
         )
         coEvery { jishoService.lookupAll(any()) } returns mapOf(
             "ももいろ" to JishoEntryDto(
                 found = true,
                 word = "ももいろ",
                 options = listOf(JishoOptionDto(reading = "モモイロ", pos = listOf("Noun"), english = "pink", jlpt = emptyList())),
+                provenance = JishoLookupProvenance.EXACT,
+            ),
+            "鍵" to JishoEntryDto(
+                found = true,
+                word = "鍵",
+                options = listOf(JishoOptionDto(reading = "かぎ", pos = listOf("Noun"), english = "key", jlpt = emptyList())),
+                provenance = JishoLookupProvenance.EXACT,
             ),
         )
-        every { geminiClient.selectSenses(any()) } returns listOf(
-            SelectLineDto(0, listOf(SelectWordDto(surface = "ももいろ", dictionaryForm = "ももいろ", senseId = 0))),
-        )
-        every { geminiClient.translateSenses(any()) } returns listOf(
-            SenseTranslationDto(senseId = 0, koreanText = "분홍색"),
-        )
+        every { geminiClient.selectSenses(any()) } answers {
+            @Suppress("UNCHECKED_CAST")
+            firstArg<List<Map<String, Any?>>>().map { line ->
+                @Suppress("UNCHECKED_CAST")
+                val segments = line["segments"] as List<Map<String, Any?>>
+                SelectLineDto(
+                    index = line["index"] as Int,
+                    words = segments.map { segment ->
+                        @Suppress("UNCHECKED_CAST")
+                        val senses = segment["senses"] as List<Map<String, Any?>>
+                        SelectWordDto(
+                            surface = segment["surface"] as String,
+                            dictionaryForm = segment["dictionaryForm"] as String,
+                            senseId = senses.first()["senseId"] as Int,
+                            tokenId = segment["tokenId"] as String,
+                        )
+                    },
+                )
+            }
+        }
+        every { geminiClient.translateSenses(any()) } answers {
+            @Suppress("UNCHECKED_CAST")
+            firstArg<List<Map<String, Any?>>>().map {
+                val senseId = it["senseId"] as Int
+                val baseForm = it["baseForm"] as String
+                SenseTranslationDto(senseId = senseId, koreanText = if (baseForm == "鍵") "열쇠" else "분홍색")
+            }
+        }
     }
 
     private fun stubLyricAnalysisFailure() {

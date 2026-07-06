@@ -27,6 +27,7 @@ const POS_COLORS: Record<string, string> = {
   INTERJECTION: "#5B8FCC",
   PREFIX: "#5B8FCC",
   SUFFIX: "#5B8FCC",
+  EXPRESSION: "#5B8FCC",
   FILLER: "#888888",
   OTHER: "#888888",
 }
@@ -45,6 +46,7 @@ const POS_LABELS: Record<string, string> = {
   INTERJECTION: "감동사",
   PREFIX: "접두사",
   SUFFIX: "접미사",
+  EXPRESSION: "표현",
   FILLER: "필러",
   OTHER: "기타",
   SYMBOL: "기호",

@@ -9,4 +9,5 @@ data class SelectWordDto(
     val surface: String,
     val dictionaryForm: String,
     val senseId: Int,
+    val tokenId: String,
 )

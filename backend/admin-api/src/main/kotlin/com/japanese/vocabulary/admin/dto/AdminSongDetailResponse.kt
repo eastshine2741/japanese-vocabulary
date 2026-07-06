@@ -10,5 +10,8 @@ data class AdminSongDetailResponse(
     val youtubeUrl: String?,
     val artworkUrl: String?,
     val createdAt: Instant?,
+    val updatedAt: Instant?,
     val lyric: AdminLyricSummaryResponse?,
+    val activeReanalysisWork: AdminSongAnalysisWorkSummaryResponse?,
+    val analysisWorks: List<AdminSongAnalysisWorkSummaryResponse>,
 )

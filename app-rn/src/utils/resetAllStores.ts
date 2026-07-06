@@ -7,6 +7,7 @@ import { usePlayerStore } from '../stores/playerStore';
 import { useRecommendationStore } from '../stores/recommendationStore';
 import { useReviewStore } from '../stores/reviewStore';
 import { useSearchHistoryStore } from '../stores/searchHistoryStore';
+import { useSongDetailStore } from '../stores/songDetailStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useStudyStatsStore } from '../stores/studyStatsStore';
 import { useVocabularyStore } from '../stores/vocabularyStore';
@@ -81,6 +82,7 @@ export function resetAllStores() {
   });
 
   usePlayerStore.setState({ status: 'idle', studyData: null, errorCode: null, currentMs: 0, durationMs: 0 });
+  useSongDetailStore.setState({ status: 'idle', data: null, errorCode: null });
   useSearchHistoryStore.setState({ terms: [] });
   useWordExamplesStore.setState({ byId: {} });
 }

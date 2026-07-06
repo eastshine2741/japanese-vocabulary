@@ -100,10 +100,10 @@ class SongAnalysisWorkService(
     }
 
     @Transactional
-    fun markPlayerReady(workId: Long, workerId: String, songId: Long, lyricId: Long): Boolean {
+    fun markPlayerReady(workId: Long, workerId: String, songId: Long, lyricId: Long, youtubeUrl: String?): Boolean {
         val work = getEntityForUpdate(workId)
         if (!work.isOwnedRunningBy(workerId, Instant.now())) return false
-        work.attachPlayerReady(songId, lyricId, Instant.now())
+        work.attachPlayerReady(songId, lyricId, youtubeUrl, Instant.now())
         return true
     }
 
@@ -148,6 +148,10 @@ class SongAnalysisWorkService(
     companion object {
         fun buildActiveDedupKey(title: String, artist: String): String {
             return "$title|$artist"
+        }
+
+        fun buildAdminReanalysisDedupKey(songId: Long): String {
+            return "ADMIN_SONG_REANALYSIS|$songId"
         }
     }
 }

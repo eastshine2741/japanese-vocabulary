@@ -25,6 +25,8 @@ class AdminSongAnalysisWorkControllerTest : AdminBaseIntegrationTest() {
             status { isOk() }
             jsonPath("$.content[0].rawTitle") { value("管理曲") }
             jsonPath("$.content[0].status") { value("PENDING") }
+            jsonPath("$.content[0].youtubeUrl") { value("https://youtu.be/work-mv") }
+            jsonPath("$.content[0].previousYoutubeUrl") { doesNotExist() }
         }
     }
 
@@ -38,6 +40,8 @@ class AdminSongAnalysisWorkControllerTest : AdminBaseIntegrationTest() {
         }.andExpect {
             status { isOk() }
             jsonPath("$.status") { value("PENDING") }
+            jsonPath("$.youtubeUrl") { value("https://youtu.be/work-mv") }
+            jsonPath("$.previousYoutubeUrl") { doesNotExist() }
             jsonPath("$.stageTimings") { doesNotExist() }
         }
     }
@@ -50,6 +54,7 @@ class AdminSongAnalysisWorkControllerTest : AdminBaseIntegrationTest() {
             status = SongAnalysisWorkStatus.PENDING,
         )
         work.songId = songId
+        work.youtubeUrl = "https://youtu.be/work-mv"
         entityManager.persist(work)
         entityManager.flush()
         return work

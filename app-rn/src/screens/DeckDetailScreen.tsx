@@ -58,7 +58,7 @@ export default function DeckDetailScreen({ route, navigation }: Props) {
     if (songId == null) return;
     await loadById(songId);
     if (usePlayerStore.getState().status === 'success') {
-      navigation.navigate('Player', { origin: 'DeckDetail' });
+      navigation.navigate('SongDetail', { songId, origin: 'DeckDetail' });
     }
   }, [songId, loadById, navigation]);
 

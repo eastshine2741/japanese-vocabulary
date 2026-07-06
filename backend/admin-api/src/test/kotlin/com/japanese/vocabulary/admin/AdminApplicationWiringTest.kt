@@ -38,6 +38,7 @@ class AdminApplicationWiringTest : AdminBaseIntegrationTest() {
                     "POST [/admin/api/auth/login]",
                     "POST [/admin/api/recommendations/dispatch-analysis]",
                     "POST [/admin/api/recommendations/reconcile-completed]",
+                    "POST [/admin/api/songs/{songId}/reanalysis]",
                 )
             }
             .filter { it.startsWith("POST ") || it.startsWith("PUT ") || it.startsWith("PATCH ") || it.startsWith("DELETE ") }
