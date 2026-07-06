@@ -567,6 +567,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
         lines={lyrics.lines}
         words={words.words}
         lineWordIndexes={words.lineWordIndexes}
+        lyricType={song.lyricType}
         getWordSaveState={getWordSaveState}
         busyWordKey={busyWordKey}
         onToggleWordSave={handleToggleWordSave}
@@ -723,6 +724,7 @@ interface PlaybackOverlaysProps {
   lines: React.ComponentProps<typeof CurrentPlayingWordsSheet>['lines'];
   words: React.ComponentProps<typeof CurrentPlayingWordsSheet>['words'];
   lineWordIndexes: Record<string, number[]>;
+  lyricType: React.ComponentProps<typeof CurrentPlayingWordsSheet>['lyricType'];
   getWordSaveState: React.ComponentProps<typeof CurrentPlayingWordsSheet>['getWordSaveState'];
   busyWordKey: string | null;
   onToggleWordSave: React.ComponentProps<typeof CurrentPlayingWordsSheet>['onToggleWordSave'];
@@ -738,6 +740,7 @@ const PlaybackOverlays = React.memo(function PlaybackOverlays({
   lines,
   words,
   lineWordIndexes,
+  lyricType,
   getWordSaveState,
   busyWordKey,
   onToggleWordSave,
@@ -774,6 +777,7 @@ const PlaybackOverlays = React.memo(function PlaybackOverlays({
       lines={lines}
       words={words}
       lineWordIndexes={lineWordIndexes}
+      lyricType={lyricType}
       currentTimeMs={currentMs}
       fallbackLineIndex={initialLyricIndex}
       bottomInset={bottomInset}

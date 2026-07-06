@@ -1,6 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   ListRenderItemInfo,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  Pressable,
   StyleSheet,
   Text,
   useWindowDimensions,
@@ -46,6 +49,7 @@ export interface CurrentPlayingWordsSheetProps {
   lines: CurrentPlayingLyricLine[];
   words?: CurrentPlayingWord[];
   lineWordIndexes?: Record<string, number[]> | Map<number, number[]>;
+  lyricType?: 'SYNCED' | 'PLAIN';
   currentTimeMs: number;
   fallbackLineIndex?: number;
   bottomInset?: number;
@@ -376,6 +380,7 @@ function CurrentPlayingWordsSheetComponent({
   lines,
   words = [],
   lineWordIndexes,
+  lyricType,
   currentTimeMs,
   fallbackLineIndex = 0,
   bottomInset,
@@ -389,9 +394,14 @@ function CurrentPlayingWordsSheetComponent({
 }: CurrentPlayingWordsSheetProps) {
   const insets = useSafeAreaInsets();
   const listRef = useRef<FlatList<WordPage>>(null);
+  const inferredLyricType = lyricType ?? (lines.some(line => line.startTimeMs != null) ? 'SYNCED' : 'PLAIN');
+  const canAutoSync = inferredLyricType === 'SYNCED';
+  const [autoSyncEnabled, setAutoSyncEnabled] = React.useState(canAutoSync);
+  const [visiblePageIndex, setVisiblePageIndex] = React.useState(0);
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const sheetBottomInset = bottomInset ?? insets.bottom;
   const pageWidth = Math.max(280, screenWidth - 44);
+  const pageInterval = pageWidth + 12;
   const collapsedHeight = header ? headerHeight : CURRENT_PLAYING_WORDS_PEEK_HEIGHT;
   const snapPoints = useMemo<(string | number)[]>(
     () => [
@@ -422,14 +432,52 @@ function CurrentPlayingWordsSheetComponent({
     return Math.min(Math.max(currentLineIndex, 0), pages.length - 1);
   }, [currentLineIndex, pages.length]);
 
-  useEffect(() => {
+  const scrollToPage = useCallback((index: number, animated: boolean) => {
     if (pages.length === 0) return;
+    const targetIndex = Math.min(Math.max(index, 0), pages.length - 1);
     listRef.current?.scrollToIndex({
-      index: activePageIndex,
-      animated: true,
+      index: targetIndex,
+      animated,
       viewPosition: 0,
     });
-  }, [activePageIndex, pages.length]);
+    setVisiblePageIndex(targetIndex);
+  }, [pages.length]);
+
+  useEffect(() => {
+    setAutoSyncEnabled(canAutoSync);
+  }, [canAutoSync, inferredLyricType]);
+
+  useEffect(() => {
+    if (pages.length === 0) {
+      setVisiblePageIndex(0);
+      return;
+    }
+    setVisiblePageIndex(prev => Math.min(prev, pages.length - 1));
+  }, [pages.length]);
+
+  useEffect(() => {
+    if (!autoSyncEnabled) return;
+    scrollToPage(activePageIndex, true);
+  }, [activePageIndex, autoSyncEnabled, scrollToPage]);
+
+  const handleToggleAutoSync = useCallback(() => {
+    if (!canAutoSync) return;
+    const next = !autoSyncEnabled;
+    setAutoSyncEnabled(next);
+    if (next) {
+      requestAnimationFrame(() => scrollToPage(activePageIndex, true));
+    }
+  }, [activePageIndex, autoSyncEnabled, canAutoSync, scrollToPage]);
+
+  const handlePageScrollEnd = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (pages.length === 0) return;
+    const offsetX = event.nativeEvent.contentOffset.x;
+    const nextIndex = Math.min(
+      Math.max(Math.round(offsetX / pageInterval), 0),
+      pages.length - 1,
+    );
+    setVisiblePageIndex(nextIndex);
+  }, [pageInterval, pages.length]);
 
   const renderPage = useCallback(({ item }: ListRenderItemInfo<WordPage>) => (
     <CurrentWordsPageCard
@@ -444,14 +492,11 @@ function CurrentPlayingWordsSheetComponent({
   const keyExtractor = useCallback((item: WordPage) => item.key, []);
   const handleScrollToIndexFailed = useCallback(() => {
     requestAnimationFrame(() => {
-      if (pages.length === 0) return;
-      listRef.current?.scrollToIndex({
-        index: activePageIndex,
-        animated: false,
-        viewPosition: 0,
-      });
+      scrollToPage(activePageIndex, false);
     });
-  }, [activePageIndex, pages.length]);
+  }, [activePageIndex, scrollToPage]);
+
+  const pageStatusText = pages.length > 0 ? `${visiblePageIndex + 1}/${pages.length}` : '0/0';
 
   return (
     <AppBottomSheet
@@ -473,6 +518,35 @@ function CurrentPlayingWordsSheetComponent({
           </View>
         ) : null}
 
+        <View style={styles.syncRow}>
+          <Text style={styles.pageStatusText}>{pageStatusText}</Text>
+          <Pressable
+            accessibilityLabel="가사 자동 넘김"
+            accessibilityRole="switch"
+            accessibilityState={{ checked: autoSyncEnabled, disabled: !canAutoSync }}
+            disabled={!canAutoSync}
+            hitSlop={8}
+            onPress={handleToggleAutoSync}
+            style={[
+              styles.syncToggle,
+              autoSyncEnabled && styles.syncToggleOn,
+              !autoSyncEnabled && canAutoSync && styles.syncToggleOff,
+              !canAutoSync && styles.syncToggleDisabled,
+            ]}
+          >
+            <Text
+              style={[
+                styles.syncToggleText,
+                autoSyncEnabled && styles.syncToggleTextOn,
+                !autoSyncEnabled && canAutoSync && styles.syncToggleTextOff,
+                !canAutoSync && styles.syncToggleTextDisabled,
+              ]}
+            >
+              {!canAutoSync ? '싱크 OFF' : autoSyncEnabled ? '싱크 ON' : '싱크 OFF'}
+            </Text>
+          </Pressable>
+        </View>
+
         <NativeViewGestureHandler disallowInterruption>
           <FlatList
             ref={listRef}
@@ -481,17 +555,19 @@ function CurrentPlayingWordsSheetComponent({
             renderItem={renderPage}
             horizontal
             pagingEnabled={false}
-            snapToInterval={pageWidth + 12}
+            snapToInterval={pageInterval}
             disableIntervalMomentum
             decelerationRate="fast"
             showsHorizontalScrollIndicator={false}
             initialScrollIndex={activePageIndex > 0 ? activePageIndex : undefined}
             getItemLayout={(_, index) => ({
-              length: pageWidth + 12,
-              offset: (pageWidth + 12) * index,
+              length: pageInterval,
+              offset: pageInterval * index,
               index,
             })}
             onScrollToIndexFailed={handleScrollToIndexFailed}
+            onMomentumScrollEnd={handlePageScrollEnd}
+            onScrollEndDrag={handlePageScrollEnd}
             style={styles.pagesPager}
             contentContainerStyle={styles.pagesContent}
             ItemSeparatorComponent={PageSeparator}
@@ -541,9 +617,63 @@ const styles = StyleSheet.create({
     width: '100%',
     overflow: 'hidden',
   },
+  syncRow: {
+    height: 28,
+    paddingHorizontal: 16,
+    marginTop: 11,
+    marginBottom: 11,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  pageStatusText: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '500',
+    color: Colors.textSecondary,
+    fontVariant: ['tabular-nums'],
+  },
+  syncToggle: {
+    height: 28,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  syncToggleOn: {
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primaryBg,
+  },
+  syncToggleOff: {
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+  },
+  syncToggleDisabled: {
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+    opacity: 0.48,
+  },
+  syncToggleText: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '700',
+  },
+  syncToggleTextOn: {
+    color: Colors.primary,
+  },
+  syncToggleTextOff: {
+    color: Colors.textSecondary,
+    fontWeight: '500',
+  },
+  syncToggleTextDisabled: {
+    color: Colors.textSecondary,
+    fontWeight: '500',
+  },
   pagesContent: {
     paddingHorizontal: 22,
-    paddingTop: 8,
+    paddingTop: 0,
     paddingBottom: 18,
   },
   pageSeparator: {

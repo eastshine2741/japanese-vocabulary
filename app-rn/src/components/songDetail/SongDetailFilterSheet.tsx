@@ -125,7 +125,7 @@ export default function SongDetailFilterSheet({
               activeOpacity={0.7}
             >
               <Text style={[styles.chipText, includeUnknownJlpt && styles.unknownChipTextSelected]}>
-                알수없음
+                알 수 없음
               </Text>
             </TouchableOpacity>
           </View>
