@@ -672,7 +672,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
       <AppDialog
         visible={pendingRemoveWord !== null}
         title="단어장에서 삭제할까요?"
-        body="이 단어와 모든 뜻, 예문, 복습 카드가 삭제됩니다. 이 곡에서만 빼는 동작이 아니에요."
+        body="이 단어와 모든 뜻, 예문, 복습 카드가 삭제됩니다."
         buttons={[
           { label: '취소', variant: 'secondary', onPress: cancelRemoveWord },
           { label: '단어 삭제', variant: 'danger', onPress: confirmRemoveWord },

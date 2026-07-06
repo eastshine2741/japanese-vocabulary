@@ -27654,27 +27654,187 @@
           "height": 874
         },
         {
-          "id": "gSZVY",
-          "type": "ref",
-          "ref": "2V72x",
+          "type": "frame",
+          "id": "ocFk1",
           "layoutPosition": "absolute",
           "x": 41,
-          "y": 335.5,
-          "name": "a3",
-          "descendants": {
-            "zso1V": {
-              "content": "단어장에서 뺄까요?"
+          "y": 279.5,
+          "name": "Remove Word Alert",
+          "width": 320,
+          "fill": "#FFFFFF",
+          "cornerRadius": 20,
+          "effect": {
+            "type": "shadow",
+            "shadowType": "outer",
+            "color": "#00000030",
+            "offset": {
+              "x": 0,
+              "y": 16
             },
-            "4JHb0": {
-              "content": "이 단어의 뜻, 예문, 플래시카드가\n모두 삭제돼요."
+            "blur": 40,
+            "spread": -4
+          },
+          "layout": "vertical",
+          "gap": 16,
+          "padding": [
+            28,
+            24,
+            20,
+            24
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "xVthd",
+              "name": "Alert Title",
+              "fill": "#1A1A1A",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "단어장에서 삭제할까요?",
+              "textAlign": "center",
+              "fontFamily": "Inter",
+              "fontSize": 17,
+              "fontWeight": "700"
             },
-            "7qyWM": {
-              "content": "취소"
+            {
+              "type": "text",
+              "id": "JqF3L",
+              "name": "Alert Body",
+              "fill": "#666666",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "이 단어와 모든 뜻, 예문, 복습 카드가 삭제됩니다.",
+              "lineHeight": 1.5,
+              "textAlign": "center",
+              "fontFamily": "Inter",
+              "fontSize": 14
             },
-            "XVDwN": {
-              "content": "빼기"
+            {
+              "type": "frame",
+              "id": "vSjeZ",
+              "name": "Deleted Word Preview",
+              "width": "fill_container",
+              "fill": "#F7F7F7",
+              "cornerRadius": 8,
+              "layout": "vertical",
+              "gap": 8,
+              "padding": [
+                12,
+                14
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "qFCgz",
+                  "name": "Preview Word",
+                  "fill": "#1A1A1A",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "言葉",
+                  "textAlign": "center",
+                  "fontFamily": "Inter",
+                  "fontSize": 18,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "frame",
+                  "id": "f1r57t",
+                  "name": "Preview Meaning Block",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 3,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "J4sQA",
+                      "name": "Preview Meaning Caption",
+                      "fill": "#999999",
+                      "content": "저장된 뜻",
+                      "textAlign": "center",
+                      "fontFamily": "Inter",
+                      "fontSize": 11,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "LMUbp",
+                      "name": "Preview Meaning",
+                      "fill": "#666666",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "단어, 말",
+                      "lineHeight": 1.38,
+                      "textAlign": "center",
+                      "fontFamily": "Inter",
+                      "fontSize": 13
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "x7gMq",
+              "name": "Dialog Buttons",
+              "width": "fill_container",
+              "gap": 10,
+              "padding": [
+                8,
+                0,
+                0,
+                0
+              ],
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "V85VY",
+                  "name": "Cancel Button",
+                  "width": "fill_container",
+                  "height": 46,
+                  "fill": "#EEEEEE",
+                  "cornerRadius": 23,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "Zc4TV",
+                      "name": "Cancel Label",
+                      "fill": "#1A1A1A",
+                      "content": "취소",
+                      "fontFamily": "Inter",
+                      "fontSize": 15,
+                      "fontWeight": "600"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "fR1SP",
+                  "name": "Delete Button",
+                  "width": "fill_container",
+                  "height": 46,
+                  "fill": "#EF4444",
+                  "cornerRadius": 23,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "hsc8m",
+                      "name": "Delete Label",
+                      "fill": "#FFFFFF",
+                      "content": "단어 삭제",
+                      "fontFamily": "Inter",
+                      "fontSize": 15,
+                      "fontWeight": "600"
+                    }
+                  ]
+                }
+              ]
             }
-          }
+          ]
         }
       ]
     },
