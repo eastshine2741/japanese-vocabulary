@@ -14,7 +14,7 @@ import { BottomSheetView } from '@gorhom/bottom-sheet';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../theme/theme';
 import { Layers } from '../../theme/layers';
-import { AppBottomSheet } from '../bottomSheet';
+import { AppBottomSheet, AppBottomSheetRef } from '../bottomSheet';
 import { getPosColor } from '../../types/pos';
 import { Token } from '../../types/song';
 import SongDetailWordRow from './SongDetailWordRow';
@@ -60,6 +60,8 @@ export interface CurrentPlayingWordsSheetProps {
   getWordSaveState: (word: CurrentPlayingWord) => SongDetailWordSaveState;
   busyWordKey: string | null;
   onToggleWordSave: (word: CurrentPlayingWord) => void;
+  onSheetChange?: (index: number) => void;
+  onSyncedPageChange?: (line: CurrentPlayingLyricLine) => void;
 }
 
 interface PageCardProps {
@@ -88,7 +90,7 @@ interface LyricFontSizes {
 const KANJI_RE = /[一-鿿]/;
 const ASCII_RE = /^[\u0020-\u007E]$/;
 const JAPANESE_PUNCTUATION_RE = /^[、。，．！？・「」『』（）［］【】]$/;
-const LYRIC_BLOCK_HORIZONTAL_PADDING = 16;
+const LYRIC_BLOCK_HORIZONTAL_PADDING = 0;
 const LYRIC_TOKEN_GAP = 4;
 const MAX_LYRIC_TEXT_FONT_SIZE = 18;
 const MIN_LYRIC_TEXT_FONT_SIZE = 6;
@@ -329,6 +331,7 @@ const CurrentWordsPageCard = React.memo(function CurrentWordsPageCard({
     () => getLyricFontSizes(lyricTokens, width),
     [lyricTokens, width],
   );
+  const hasCurrentKorean = Boolean(page.line.koreanPronounciation || page.line.koreanLyrics);
 
   return (
     <View style={[styles.pageCard, { width }]}>
@@ -338,8 +341,19 @@ const CurrentWordsPageCard = React.memo(function CurrentWordsPageCard({
             <LyricTokenStack key={token.key} token={token} fontSizes={lyricFontSizes} />
           ))}
         </View>
-        {page.line.koreanLyrics ? (
-          <Text style={styles.translationText} numberOfLines={2}>{page.line.koreanLyrics}</Text>
+        {hasCurrentKorean ? (
+          <View style={styles.currentKorean}>
+            {page.line.koreanPronounciation ? (
+              <Text style={styles.koreanPronunciationText} numberOfLines={1}>
+                {page.line.koreanPronounciation}
+              </Text>
+            ) : null}
+            {page.line.koreanLyrics ? (
+              <Text style={styles.koreanTranslationText} numberOfLines={2}>
+                {page.line.koreanLyrics}
+              </Text>
+            ) : null}
+          </View>
         ) : null}
       </View>
 
@@ -376,7 +390,7 @@ const CurrentWordsPageCard = React.memo(function CurrentWordsPageCard({
   );
 });
 
-function CurrentPlayingWordsSheetComponent({
+const CurrentPlayingWordsSheetComponent = React.forwardRef<AppBottomSheetRef, CurrentPlayingWordsSheetProps>(function CurrentPlayingWordsSheetComponent({
   lines,
   words = [],
   lineWordIndexes,
@@ -391,9 +405,14 @@ function CurrentPlayingWordsSheetComponent({
   getWordSaveState,
   busyWordKey,
   onToggleWordSave,
-}: CurrentPlayingWordsSheetProps) {
+  onSheetChange,
+  onSyncedPageChange,
+}, ref) {
   const insets = useSafeAreaInsets();
   const listRef = useRef<FlatList<WordPage>>(null);
+  const isUserPagingRef = useRef(false);
+  const pendingUserSyncedPageIndexRef = useRef<number | null>(null);
+  const scrollEndDragTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inferredLyricType = lyricType ?? (lines.some(line => line.startTimeMs != null) ? 'SYNCED' : 'PLAIN');
   const canAutoSync = inferredLyricType === 'SYNCED';
   const [autoSyncEnabled, setAutoSyncEnabled] = React.useState(canAutoSync);
@@ -443,6 +462,13 @@ function CurrentPlayingWordsSheetComponent({
     setVisiblePageIndex(targetIndex);
   }, [pages.length]);
 
+  const clearScrollEndDragTimeout = useCallback(() => {
+    if (scrollEndDragTimeoutRef.current != null) {
+      clearTimeout(scrollEndDragTimeoutRef.current);
+      scrollEndDragTimeoutRef.current = null;
+    }
+  }, []);
+
   useEffect(() => {
     setAutoSyncEnabled(canAutoSync);
   }, [canAutoSync, inferredLyricType]);
@@ -455,8 +481,16 @@ function CurrentPlayingWordsSheetComponent({
     setVisiblePageIndex(prev => Math.min(prev, pages.length - 1));
   }, [pages.length]);
 
+  useEffect(() => clearScrollEndDragTimeout, [clearScrollEndDragTimeout]);
+
   useEffect(() => {
     if (!autoSyncEnabled) return;
+    if (isUserPagingRef.current) return;
+    const pendingUserSyncedPageIndex = pendingUserSyncedPageIndexRef.current;
+    if (pendingUserSyncedPageIndex != null) {
+      if (pendingUserSyncedPageIndex !== activePageIndex) return;
+      pendingUserSyncedPageIndexRef.current = null;
+    }
     scrollToPage(activePageIndex, true);
   }, [activePageIndex, autoSyncEnabled, scrollToPage]);
 
@@ -464,20 +498,49 @@ function CurrentPlayingWordsSheetComponent({
     if (!canAutoSync) return;
     const next = !autoSyncEnabled;
     setAutoSyncEnabled(next);
+    pendingUserSyncedPageIndexRef.current = null;
+    isUserPagingRef.current = false;
     if (next) {
       requestAnimationFrame(() => scrollToPage(activePageIndex, true));
     }
   }, [activePageIndex, autoSyncEnabled, canAutoSync, scrollToPage]);
 
-  const handlePageScrollEnd = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+  const handlePageScrollBegin = useCallback(() => {
+    clearScrollEndDragTimeout();
+    isUserPagingRef.current = true;
+  }, [clearScrollEndDragTimeout]);
+
+  const settlePageScroll = useCallback((offsetX: number) => {
     if (pages.length === 0) return;
-    const offsetX = event.nativeEvent.contentOffset.x;
+    clearScrollEndDragTimeout();
+    isUserPagingRef.current = false;
     const nextIndex = Math.min(
       Math.max(Math.round(offsetX / pageInterval), 0),
       pages.length - 1,
     );
+    const didChangePage = nextIndex !== visiblePageIndex;
     setVisiblePageIndex(nextIndex);
-  }, [pageInterval, pages.length]);
+    if (autoSyncEnabled && didChangePage) {
+      const targetLine = pages[nextIndex]?.line;
+      if (targetLine?.startTimeMs != null) {
+        pendingUserSyncedPageIndexRef.current = nextIndex;
+        onSyncedPageChange?.(targetLine);
+      }
+    }
+  }, [autoSyncEnabled, clearScrollEndDragTimeout, onSyncedPageChange, pageInterval, pages, visiblePageIndex]);
+
+  const handlePageScrollEnd = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    settlePageScroll(event.nativeEvent.contentOffset.x);
+  }, [settlePageScroll]);
+
+  const handlePageScrollEndDrag = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const offsetX = event.nativeEvent.contentOffset.x;
+    clearScrollEndDragTimeout();
+    scrollEndDragTimeoutRef.current = setTimeout(() => {
+      scrollEndDragTimeoutRef.current = null;
+      settlePageScroll(offsetX);
+    }, 120);
+  }, [clearScrollEndDragTimeout, settlePageScroll]);
 
   const renderPage = useCallback(({ item }: ListRenderItemInfo<WordPage>) => (
     <CurrentWordsPageCard
@@ -500,6 +563,7 @@ function CurrentPlayingWordsSheetComponent({
 
   return (
     <AppBottomSheet
+      ref={ref}
       snapPoints={snapPoints}
       index={0}
       bottomInset={sheetBottomInset}
@@ -510,6 +574,7 @@ function CurrentPlayingWordsSheetComponent({
       handleComponent={null}
       containerStyle={[styles.sheetContainer, { zIndex, elevation: zIndex }]}
       style={[styles.sheet, { zIndex, elevation: zIndex }]}
+      onChange={onSheetChange}
     >
       <BottomSheetView style={styles.sheetContent}>
         {header ? (
@@ -566,8 +631,10 @@ function CurrentPlayingWordsSheetComponent({
               index,
             })}
             onScrollToIndexFailed={handleScrollToIndexFailed}
+            onScrollBeginDrag={handlePageScrollBegin}
+            onMomentumScrollBegin={handlePageScrollBegin}
             onMomentumScrollEnd={handlePageScrollEnd}
-            onScrollEndDrag={handlePageScrollEnd}
+            onScrollEndDrag={handlePageScrollEndDrag}
             style={styles.pagesPager}
             contentContainerStyle={styles.pagesContent}
             ItemSeparatorComponent={PageSeparator}
@@ -577,7 +644,7 @@ function CurrentPlayingWordsSheetComponent({
       </BottomSheetView>
     </AppBottomSheet>
   );
-}
+});
 
 function PageSeparator() {
   return <View style={styles.pageSeparator} />;
@@ -687,9 +754,8 @@ const styles = StyleSheet.create({
   lyricBlock: {
     height: 110,
     justifyContent: 'center',
-    gap: 14,
+    gap: 8,
     borderRadius: 12,
-    paddingHorizontal: 16,
     backgroundColor: Colors.elevated,
   },
   lyricTokens: {
@@ -717,7 +783,17 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 2,
   },
-  translationText: {
+  currentKorean: {
+    width: '100%',
+    gap: 4,
+  },
+  koreanPronunciationText: {
+    fontSize: 10,
+    lineHeight: 14,
+    color: Colors.textMuted,
+    textAlign: 'center',
+  },
+  koreanTranslationText: {
     fontSize: 12,
     lineHeight: 17,
     fontWeight: '500',

@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { forwardRef, useCallback, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -30,6 +30,11 @@ export interface SongDetailMvBarProps {
   onCurrentTimeChange?: (currentTimeMs: number) => void;
   onDurationChange?: (durationMs: number) => void;
   onPlayingChange?: (isPlaying: boolean) => void;
+  onBarPress?: () => void;
+}
+
+export interface SongDetailMvBarRef {
+  seekToMs: (milliseconds: number) => void;
 }
 
 function extractVideoId(url: string | null | undefined): string | null {
@@ -45,7 +50,7 @@ function formatTime(ms: number): string {
   return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 }
 
-function SongDetailMvBarComponent({
+const SongDetailMvBarComponent = forwardRef<SongDetailMvBarRef, SongDetailMvBarProps>(function SongDetailMvBarComponent({
   title,
   artist,
   youtubeUrl,
@@ -62,10 +67,12 @@ function SongDetailMvBarComponent({
   onCurrentTimeChange,
   onDurationChange,
   onPlayingChange,
-}: SongDetailMvBarProps) {
+  onBarPress,
+}, ref) {
   const insets = useSafeAreaInsets();
   const playerRef = useRef<YouTubePlayerRef>(null);
   const initialSeekDoneRef = useRef(false);
+  const pendingSeekMsRef = useRef<number | null>(null);
   const resolvedVideoId = useMemo(
     () => videoId ?? extractVideoId(youtubeUrl),
     [videoId, youtubeUrl],
@@ -85,23 +92,46 @@ function SongDetailMvBarComponent({
     onCurrentTimeChange?.(nextMs);
   }, [onCurrentTimeChange]);
 
+  const applySeekToMs = useCallback((milliseconds: number) => {
+    const nextMs = Math.max(0, milliseconds);
+    playerRef.current?.seekTo(nextMs / 1000);
+    setInternalCurrentMs(nextMs);
+    onCurrentTimeChange?.(nextMs);
+  }, [onCurrentTimeChange]);
+
   const handleDurationChange = useCallback((seconds: number) => {
     const nextMs = Math.round(seconds * 1000);
     setInternalDurationMs(nextMs);
     onDurationChange?.(nextMs);
-    if (initialSeekMs != null && !initialSeekDoneRef.current && seconds > 0) {
+    if (seconds <= 0) return;
+    if (pendingSeekMsRef.current != null) {
+      const pendingSeekMs = pendingSeekMsRef.current;
+      pendingSeekMsRef.current = null;
       initialSeekDoneRef.current = true;
-      playerRef.current?.seekTo(initialSeekMs / 1000);
-      setInternalCurrentMs(initialSeekMs);
-      onCurrentTimeChange?.(initialSeekMs);
+      applySeekToMs(pendingSeekMs);
+      return;
     }
-  }, [initialSeekMs, onCurrentTimeChange, onDurationChange]);
+    if (initialSeekMs != null && !initialSeekDoneRef.current) {
+      initialSeekDoneRef.current = true;
+      applySeekToMs(initialSeekMs);
+    }
+  }, [applySeekToMs, initialSeekMs, onDurationChange]);
 
   const handleStateChange = useCallback((state: string) => {
     const nextPlaying = state === 'playing' || state === 'buffering';
     setIsPlaying(nextPlaying);
     onPlayingChange?.(nextPlaying);
   }, [onPlayingChange]);
+
+  const seekToMs = useCallback((milliseconds: number) => {
+    const nextMs = Math.max(0, milliseconds);
+    if (effectiveDurationMs <= 0) {
+      pendingSeekMsRef.current = nextMs;
+    }
+    applySeekToMs(nextMs);
+  }, [applySeekToMs, effectiveDurationMs]);
+
+  useImperativeHandle(ref, () => ({ seekToMs }), [seekToMs]);
 
   const handleTogglePlayback = useCallback(() => {
     if (isPlaying) {
@@ -118,33 +148,42 @@ function SongDetailMvBarComponent({
   const bar = (
     <View style={[styles.bar, embedded && styles.embeddedBar, embedded && style]}>
       <View style={styles.content}>
-        <View style={styles.mvThumb}>
-          {resolvedVideoId ? (
-            <YouTubePlayer
-              ref={playerRef}
-              videoId={resolvedVideoId}
-              height={30}
-              autoplay={autoplay}
-              muted={muted}
-              lowestQuality
-              onTimeChange={handleTimeChange}
-              onDurationChange={handleDurationChange}
-              onStateChange={handleStateChange}
-            />
-          ) : (
-            <View style={styles.thumbFallback}>
-              <Feather name="play" size={12} color="#FFFFFF" />
-            </View>
-          )}
-        </View>
+        <TouchableOpacity
+          style={styles.pressArea}
+          onPress={onBarPress}
+          disabled={onBarPress == null}
+          activeOpacity={0.9}
+          accessibilityRole={onBarPress ? 'button' : undefined}
+          accessibilityLabel={onBarPress ? '재생 중 단어 패널 전환' : undefined}
+        >
+          <View pointerEvents="none" style={styles.mvThumb}>
+            {resolvedVideoId ? (
+              <YouTubePlayer
+                ref={playerRef}
+                videoId={resolvedVideoId}
+                height={30}
+                autoplay={autoplay}
+                muted={muted}
+                lowestQuality
+                onTimeChange={handleTimeChange}
+                onDurationChange={handleDurationChange}
+                onStateChange={handleStateChange}
+              />
+            ) : (
+              <View style={styles.thumbFallback}>
+                <Feather name="play" size={12} color="#FFFFFF" />
+              </View>
+            )}
+          </View>
 
-        <View style={styles.textCol}>
-          <Text style={styles.title} numberOfLines={1}>{title}</Text>
-          <Text style={styles.artist} numberOfLines={1}>
-            {artist}
-            {effectiveDurationMs > 0 ? ` · ${formatTime(effectiveCurrentMs)} / ${formatTime(effectiveDurationMs)}` : ''}
-          </Text>
-        </View>
+          <View style={styles.textCol}>
+            <Text style={styles.title} numberOfLines={1}>{title}</Text>
+            <Text style={styles.artist} numberOfLines={1}>
+              {artist}
+              {effectiveDurationMs > 0 ? ` · ${formatTime(effectiveCurrentMs)} / ${formatTime(effectiveDurationMs)}` : ''}
+            </Text>
+          </View>
+        </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.toggle}
@@ -180,7 +219,7 @@ function SongDetailMvBarComponent({
       {bar}
     </View>
   );
-}
+});
 
 export const SongDetailMvBar = React.memo(SongDetailMvBarComponent);
 
@@ -214,6 +253,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     paddingHorizontal: 16,
+  },
+  pressArea: {
+    flex: 1,
+    minWidth: 0,
+    height: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
   mvThumb: {
     width: 60,

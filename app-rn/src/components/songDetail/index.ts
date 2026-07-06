@@ -29,6 +29,7 @@ export {
   SongDetailMvBar,
   SONG_DETAIL_MV_BAR_HEIGHT,
   type SongDetailMvBarProps,
+  type SongDetailMvBarRef,
 } from './SongDetailMvBar';
 export {
   getCurrentLyricLineIndex,

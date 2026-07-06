@@ -34147,7 +34147,7 @@
                       "fill": "$surface.primary",
                       "cornerRadius": "$rounded.xl",
                       "layout": "vertical",
-                      "gap": 14,
+                      "gap": 8,
                       "justifyContent": "center",
                       "alignItems": "center",
                       "children": [
@@ -34331,17 +34331,39 @@
                           ]
                         },
                         {
-                          "type": "text",
-                          "id": "DTTPA",
-                          "name": "Current Korean Translation",
-                          "fill": "$foreground.secondary",
-                          "textGrowth": "fixed-width",
+                          "type": "frame",
+                          "id": "WzADw",
+                          "name": "Current Korean",
                           "width": "fill_container",
-                          "content": "너의 목소리가 지금도 들려",
-                          "textAlign": "center",
-                          "fontFamily": "Inter",
-                          "fontSize": 12,
-                          "fontWeight": "500"
+                          "layout": "vertical",
+                          "gap": 4,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "DTTPA",
+                              "name": "Current Korean Pronuncination",
+                              "fill": "$foreground.secondary",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "키미노 코에가 이마모 키코에루",
+                              "textAlign": "center",
+                              "fontFamily": "Inter",
+                              "fontSize": 11
+                            },
+                            {
+                              "type": "text",
+                              "id": "KAyYO",
+                              "name": "Current Korean Translation",
+                              "fill": "$foreground.primary",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "너의 목소리가 지금도 들려",
+                              "textAlign": "center",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "500"
+                            }
+                          ]
                         }
                       ]
                     },

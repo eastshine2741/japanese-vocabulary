@@ -15,6 +15,7 @@ export const POS_INFO: Record<string, { korean: string; color: string }> = {
   PREFIX: { korean: '접두사', color: Colors.posNoun },
   SUFFIX: { korean: '접미사', color: Colors.posNoun },
   EXPRESSION: { korean: '표현', color: Colors.posNoun },
+  OTHER: { korean: '기타', color: Colors.textMuted },
   SYMBOL: { korean: '기호', color: Colors.textMuted },
   SUPPLEMENTARY_SYMBOL: { korean: '보조기호', color: Colors.textMuted },
   WHITESPACE: { korean: '공백', color: Colors.textMuted },

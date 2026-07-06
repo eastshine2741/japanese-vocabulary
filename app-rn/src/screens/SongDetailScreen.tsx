@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   Animated,
   BackHandler,
   Easing,
@@ -25,6 +24,7 @@ import { usePlayerStore } from '../stores/playerStore';
 import { deckApi } from '../api/deckApi';
 import { wordApi } from '../api/wordApi';
 import AppDialog from '../components/AppDialog';
+import SkeletonBox from '../components/SkeletonLoading';
 import SongInfoSheet from '../components/SongInfoSheet';
 import { AppBottomSheet, AppBottomSheetRef } from '../components/bottomSheet';
 import {
@@ -34,6 +34,7 @@ import {
   SongDetailMvBar,
   SongDetailWordsActionBar,
   SongDetailWordsTab,
+  type SongDetailMvBarRef,
   type SongDetailWordItem,
   type SongDetailWordSaveState,
   useSongDetailWordsTab,
@@ -44,6 +45,7 @@ import {
   resolveSongDetailWordSaveState,
 } from '../components/songDetail/songDetailWordSave';
 import { Colors, Dimens } from '../theme/theme';
+import { Layers } from '../theme/layers';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import type { WordDetailResponse } from '../types/word';
 
@@ -69,6 +71,8 @@ const DECK_SNACKBAR_SWIPE_DISMISS_VELOCITY = 0.65;
 const HERO_SCROLL_COLLAPSE_START = HERO_HEIGHT - COLLAPSED_BAR_HEIGHT - TAB_BAR_HEIGHT - 34;
 const HERO_SCROLL_COLLAPSE_END = HERO_SCROLL_COLLAPSE_START + 56;
 const ARTWORK_COLLAPSED_OFFSET = HERO_HEIGHT * 0.4;
+const SKELETON_WORD_ROWS = [0, 1, 2, 3];
+const SKELETON_LEGEND_ROWS = [0, 1, 2, 3, 4];
 
 export default function SongDetailScreen({ navigation, route }: Props) {
   const insets = useSafeAreaInsets();
@@ -639,9 +643,12 @@ export default function SongDetailScreen({ navigation, route }: Props) {
 
   if (status === 'loading' || status === 'idle') {
     return (
-      <View style={[styles.stateScreen, { paddingTop: insets.top }]}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-      </View>
+      <SongDetailLoadingSkeleton
+        topInset={insets.top}
+        bottomReserve={bottomReserve}
+        collapsedBarFullHeight={collapsedBarFullHeight}
+        onBack={handleBack}
+      />
     );
   }
 
@@ -772,6 +779,11 @@ export default function SongDetailScreen({ navigation, route }: Props) {
         getWordSaveState={getWordSaveState}
         busyWordKey={busyWordKey}
         onToggleWordSave={handleToggleWordSave}
+      />
+
+      <View
+        pointerEvents="none"
+        style={[styles.bottomSafeAreaBackground, { height: insets.bottom }]}
       />
 
       <View
@@ -982,12 +994,29 @@ const PlaybackOverlays = React.memo(function PlaybackOverlays({
   busyWordKey,
   onToggleWordSave,
 }: PlaybackOverlaysProps) {
+  const mvBarRef = useRef<SongDetailMvBarRef>(null);
+  const wordsSheetRef = useRef<AppBottomSheetRef>(null);
+  const wordsSheetIndexRef = useRef(0);
   const currentMs = usePlayerStore(s => s.currentMs);
   const durationMs = usePlayerStore(s => s.durationMs);
   const setCurrentMs = usePlayerStore(s => s.setCurrentMs);
   const setDurationMs = usePlayerStore(s => s.setDurationMs);
+  const handleSyncedPageChange = useCallback((line: React.ComponentProps<typeof CurrentPlayingWordsSheet>['lines'][number]) => {
+    if (line.startTimeMs == null) return;
+    mvBarRef.current?.seekToMs(line.startTimeMs);
+    setCurrentMs(line.startTimeMs);
+  }, [setCurrentMs]);
+  const handleWordsSheetChange = useCallback((index: number) => {
+    wordsSheetIndexRef.current = index;
+  }, []);
+  const handleToggleWordsSheet = useCallback(() => {
+    const nextIndex = wordsSheetIndexRef.current === 1 ? 0 : 1;
+    wordsSheetIndexRef.current = nextIndex;
+    wordsSheetRef.current?.snapToIndex(nextIndex);
+  }, []);
   const mvBarHeader = useMemo(() => (
     <SongDetailMvBar
+      ref={mvBarRef}
       title={title}
       artist={artist}
       youtubeUrl={youtubeUrl}
@@ -997,11 +1026,13 @@ const PlaybackOverlays = React.memo(function PlaybackOverlays({
       embedded
       onCurrentTimeChange={setCurrentMs}
       onDurationChange={setDurationMs}
+      onBarPress={handleToggleWordsSheet}
     />
   ), [
     artist,
     currentMs,
     durationMs,
+    handleToggleWordsSheet,
     initialSeekMs,
     setCurrentMs,
     setDurationMs,
@@ -1011,6 +1042,7 @@ const PlaybackOverlays = React.memo(function PlaybackOverlays({
 
   return (
     <CurrentPlayingWordsSheet
+      ref={wordsSheetRef}
       lines={lines}
       words={words}
       lineWordIndexes={lineWordIndexes}
@@ -1023,6 +1055,8 @@ const PlaybackOverlays = React.memo(function PlaybackOverlays({
       getWordSaveState={getWordSaveState}
       busyWordKey={busyWordKey}
       onToggleWordSave={onToggleWordSave}
+      onSheetChange={handleWordsSheetChange}
+      onSyncedPageChange={handleSyncedPageChange}
     />
   );
 });
@@ -1163,6 +1197,146 @@ const TabButton = React.memo(function TabButton({
         {label}
       </Animated.Text>
     </Pressable>
+  );
+});
+
+interface SongDetailLoadingSkeletonProps {
+  topInset: number;
+  bottomReserve: number;
+  collapsedBarFullHeight: number;
+  onBack: () => void;
+}
+
+const SongDetailLoadingSkeleton = React.memo(function SongDetailLoadingSkeleton({
+  topInset,
+  bottomReserve,
+  collapsedBarFullHeight,
+  onBack,
+}: SongDetailLoadingSkeletonProps) {
+  return (
+    <View style={styles.container}>
+      <View pointerEvents="none" style={[styles.artworkBackdrop, styles.skeletonArtworkBackdrop]}>
+        <View style={styles.skeletonArtworkGlow} />
+        <View style={styles.artworkBackdropScrim} />
+      </View>
+
+      <Animated.ScrollView
+        style={styles.scroll}
+        scrollEventThrottle={16}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: bottomReserve },
+        ]}
+      >
+        <View style={styles.hero} />
+
+        <View style={styles.bodyContent}>
+          <View style={styles.tabBar}>
+            <View style={styles.tabButton}>
+              <SkeletonBox width={26} height={15} borderRadius={4} />
+            </View>
+            <View style={styles.tabButton}>
+              <SkeletonBox width={32} height={15} borderRadius={4} />
+            </View>
+            <View pointerEvents="none" style={styles.tabIndicator} />
+          </View>
+
+          <View style={styles.skeletonHomeContent}>
+            <View style={styles.skeletonSection}>
+              <View style={styles.skeletonSectionHeader}>
+                <SkeletonBox width={78} height={20} borderRadius={5} />
+                <SkeletonBox width="58%" height={12} borderRadius={4} />
+              </View>
+
+              <View style={styles.skeletonWordList}>
+                {SKELETON_WORD_ROWS.map(row => (
+                  <View
+                    key={row}
+                    style={[
+                      styles.skeletonWordRow,
+                      row !== SKELETON_WORD_ROWS.length - 1 && styles.skeletonWordRowDivider,
+                    ]}
+                  >
+                    <View style={styles.skeletonWordInfo}>
+                      <View style={styles.skeletonWordTitleLine}>
+                        <SkeletonBox width={row % 2 === 0 ? 72 : 94} height={21} borderRadius={5} />
+                        <SkeletonBox width={row % 2 === 0 ? 48 : 64} height={13} borderRadius={4} />
+                      </View>
+                      <View style={styles.skeletonMeaningLine}>
+                        <SkeletonBox width={row === 1 ? '46%' : '61%'} height={13} borderRadius={4} />
+                        <SkeletonBox width={38} height={19} borderRadius={7} />
+                        <SkeletonBox width={46} height={19} borderRadius={7} />
+                      </View>
+                    </View>
+                    <SkeletonBox width={34} height={34} borderRadius={17} />
+                  </View>
+                ))}
+              </View>
+
+              <View style={styles.skeletonViewAllButton}>
+                <SkeletonBox width={112} height={14} borderRadius={5} />
+              </View>
+            </View>
+
+            <View style={styles.skeletonSection}>
+              <SkeletonBox width={54} height={20} borderRadius={5} />
+              <View style={styles.skeletonChartBody}>
+                <SkeletonBox width={120} height={120} borderRadius={60} />
+                <View style={styles.skeletonLegend}>
+                  {SKELETON_LEGEND_ROWS.map(row => (
+                    <View key={row} style={styles.skeletonLegendRow}>
+                      <SkeletonBox width={7} height={7} borderRadius={999} />
+                      <SkeletonBox width={row % 2 === 0 ? 64 : 78} height={12} borderRadius={4} />
+                    </View>
+                  ))}
+                </View>
+              </View>
+            </View>
+          </View>
+        </View>
+      </Animated.ScrollView>
+
+      <View pointerEvents="none" style={styles.heroInfoLayer}>
+        <View style={styles.heroInfo}>
+          <SkeletonBox width="82%" height={40} borderRadius={8} style={styles.skeletonOnDark} />
+          <SkeletonBox width="48%" height={17} borderRadius={5} style={styles.skeletonOnDark} />
+          <View style={styles.skeletonDeckButton}>
+            <SkeletonBox width={142} height={16} borderRadius={5} style={styles.skeletonOnDark} />
+          </View>
+        </View>
+      </View>
+
+      <View pointerEvents="none" style={[styles.appBarBackdrop, { height: collapsedBarFullHeight }, styles.skeletonAppBarBackdrop]}>
+        <View style={styles.artworkBackdropScrim} />
+      </View>
+
+      <View
+        pointerEvents="box-none"
+        style={[
+          styles.appBar,
+          { height: collapsedBarFullHeight, paddingTop: topInset },
+        ]}
+      >
+        <View pointerEvents="box-none" style={styles.appBarContent}>
+          <IconButton icon="chevron-left" onPress={onBack} />
+          <View style={styles.appBarTitleContent} />
+          <View pointerEvents="none" style={styles.appBarActions}>
+            <View style={styles.iconButton} />
+          </View>
+        </View>
+      </View>
+
+      <View pointerEvents="none" style={[styles.skeletonMvBar, { paddingBottom: bottomReserve - SONG_DETAIL_MV_BAR_HEIGHT }]}>
+        <View style={styles.skeletonMvContent}>
+          <SkeletonBox width={60} height={30} borderRadius={8} />
+          <View style={styles.skeletonMvText}>
+            <SkeletonBox width="68%" height={14} borderRadius={4} />
+            <SkeletonBox width="44%" height={12} borderRadius={4} />
+          </View>
+          <SkeletonBox width={36} height={36} borderRadius={18} />
+        </View>
+      </View>
+    </View>
   );
 });
 
@@ -1397,6 +1571,15 @@ const styles = StyleSheet.create({
     height: WORDS_ACTION_BAR_HEIGHT,
     zIndex: 12,
   },
+  bottomSafeAreaBackground: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: Colors.background,
+    zIndex: Layers.currentPlayingWordsSheet - 1,
+    elevation: Layers.currentPlayingWordsSheet - 1,
+  },
   deckSnackbarWrap: {
     position: 'absolute',
     left: 16,
@@ -1490,5 +1673,116 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     opacity: 0.55,
+  },
+  skeletonArtworkBackdrop: {
+    backgroundColor: '#E2E2E2',
+  },
+  skeletonArtworkGlow: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#D8D8D8',
+  },
+  skeletonAppBarBackdrop: {
+    backgroundColor: '#E2E2E2',
+  },
+  skeletonOnDark: {
+    backgroundColor: '#FFFFFF4D',
+  },
+  skeletonDeckButton: {
+    height: 48,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#FFFFFF66',
+    backgroundColor: '#FFFFFF1F',
+  },
+  skeletonHomeContent: {
+    gap: 28,
+    paddingTop: 24,
+    paddingHorizontal: 20,
+    paddingBottom: 120,
+  },
+  skeletonSection: {
+    gap: 12,
+  },
+  skeletonSectionHeader: {
+    gap: 5,
+  },
+  skeletonWordList: {
+    overflow: 'hidden',
+  },
+  skeletonWordRow: {
+    minHeight: 66,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 12,
+    backgroundColor: Colors.background,
+  },
+  skeletonWordRowDivider: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.border,
+  },
+  skeletonWordInfo: {
+    flex: 1,
+    minWidth: 0,
+    gap: 7,
+  },
+  skeletonWordTitleLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  skeletonMeaningLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  skeletonViewAllButton: {
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: Colors.elevated,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  skeletonChartBody: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 35,
+  },
+  skeletonLegend: {
+    gap: 8,
+  },
+  skeletonLegendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  skeletonMvBar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: Colors.background,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.border,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 8,
+    zIndex: 10,
+  },
+  skeletonMvContent: {
+    height: SONG_DETAIL_MV_BAR_HEIGHT,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+  },
+  skeletonMvText: {
+    flex: 1,
+    minWidth: 0,
+    gap: 6,
   },
 });
