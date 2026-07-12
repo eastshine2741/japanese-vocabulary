@@ -10,6 +10,7 @@ Use this as the master-agent workflow for turning Pencil design context into sma
 ## Ground Rules
 
 - Treat Pencil frames and their prompts as the UI/interaction source of truth.
+- If Pencil MCP connection or frame read fails, stop immediately. Do not retry, do not use screenshots from memory, and do not create capsules from assumptions; report the failure to the user.
 - Treat the capsule as an index and handoff packet, not a rewritten design spec.
 - Keep the capsule minimal. Do not duplicate colors, typography, padding, or frame details that the implementer can read directly from Pencil.
 - Capture only the information needed to route work: scope, source frames, state mapping, interaction mapping, data/code entry points, and conflicts.
@@ -20,7 +21,7 @@ Use this as the master-agent workflow for turning Pencil design context into sma
 
 1. Read the relevant Product Intent or user request.
 2. Inspect local frontend structure enough to identify likely screen/component targets and existing patterns.
-3. Use Pencil MCP to inspect the relevant page/frame tree and frame prompts. Prefer the smallest frame set that covers all states.
+3. Use Pencil MCP to inspect the relevant page/frame tree and frame prompts. If this call fails, stop immediately and report the Pencil MCP failure without additional attempts. Prefer the smallest frame set that covers all states.
 4. Identify implementation units that can be assigned independently: screen shell, repeated row/card, bottom sheet/modal, player/control area, navigation integration, or state/data integration.
 5. Write one capsule per implementation unit.
 6. Hand each subagent only its capsule, relevant Product Intent excerpt, code paths it may touch, and Pencil frame ids it must inspect directly.
@@ -113,6 +114,7 @@ Follow existing frontend patterns and report any Pencil/capsule/product conflict
 Stop capsule creation and ask the user only when:
 
 - The target Pencil page/frame cannot be identified.
+- Pencil MCP connection or frame read fails.
 - Required state frames are absent and the missing behavior materially changes implementation.
 - Product Intent and Pencil conflict on core user flow.
 - Work cannot be split without overlapping edits to the same component ownership boundary.

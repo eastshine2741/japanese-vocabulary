@@ -11,6 +11,7 @@ Use this as the implementation workflow for a frontend subagent that receives a 
 
 - Do not implement from the capsule alone.
 - Treat Pencil frames and frame prompts as the visual and interaction source of truth.
+- If Pencil MCP connection or referenced frame read fails, stop immediately. Do not retry, do not infer from the capsule alone, and do not edit code; report the failure to the user.
 - Treat the capsule as a routing index: scope, frame ids, state mapping, interaction mapping, code targets.
 - Implement only the capsule's scope. Do not redesign adjacent UI or add unrequested UX.
 - If capsule and Pencil disagree, follow Pencil for UI details and report the discrepancy.
@@ -21,8 +22,8 @@ Use this as the implementation workflow for a frontend subagent that receives a 
 
 1. Read the capsule completely.
 2. Read repository instructions that apply to the target frontend area.
-3. Inspect the referenced existing code paths before editing.
-4. Use Pencil MCP to inspect every referenced frame and relevant frame prompt.
+3. Use Pencil MCP to inspect every referenced frame and relevant frame prompt. If this fails, stop immediately and report the Pencil MCP failure without additional attempts.
+4. Inspect the referenced existing code paths before editing.
 5. Build a small implementation plan from the capsule mappings:
    - component/file targets
    - UI states

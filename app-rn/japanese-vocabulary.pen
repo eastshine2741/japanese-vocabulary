@@ -34556,6 +34556,1365 @@
           ]
         }
       ]
+    },
+    {
+      "type": "frame",
+      "id": "PBJjj",
+      "x": 2331,
+      "y": -1338,
+      "name": "17e. Song Detail - Analyzing",
+      "clip": true,
+      "width": 402,
+      "height": 1109,
+      "fill": "$bg-primary",
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "JIjfK",
+          "name": "Hero Section",
+          "width": "fill_container",
+          "height": 360,
+          "layout": "vertical",
+          "padding": [
+            0,
+            0,
+            24,
+            0
+          ],
+          "justifyContent": "space_between",
+          "children": [
+            {
+              "type": "rectangle",
+              "id": "QR5yo",
+              "layoutPosition": "absolute",
+              "x": 0,
+              "y": 0,
+              "name": "Hero Background",
+              "metadata": {
+                "type": "unsplash",
+                "username": "mosdesign",
+                "link": "https://unsplash.com/@mosdesign",
+                "author": "mos design"
+              },
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "https://images.unsplash.com/photo-1693240817505-f59d02b89ef9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzM5MjU2MzB8&ixlib=rb-4.1.0&q=80&w=1080",
+                "mode": "fill"
+              },
+              "width": 402,
+              "height": 360
+            },
+            {
+              "type": "rectangle",
+              "id": "wbIUC",
+              "layoutPosition": "absolute",
+              "x": 0,
+              "y": 0,
+              "name": "Hero Scrim",
+              "fill": {
+                "type": "gradient",
+                "gradientType": "linear",
+                "enabled": true,
+                "rotation": 270,
+                "size": {
+                  "height": 1
+                },
+                "colors": [
+                  {
+                    "color": "#000000AA",
+                    "position": 0
+                  },
+                  {
+                    "color": "#00000000",
+                    "position": 0.25
+                  },
+                  {
+                    "color": "#000000CC",
+                    "position": 1
+                  }
+                ]
+              },
+              "width": 402,
+              "height": 360
+            },
+            {
+              "type": "frame",
+              "id": "YsQlU",
+              "name": "Top Group",
+              "width": "fill_container",
+              "layout": "vertical",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "Ty3Se",
+                  "name": "Status Bar",
+                  "width": "fill_container",
+                  "height": 62,
+                  "fill": "#FFFFFF00",
+                  "padding": [
+                    0,
+                    24
+                  ],
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "IhlyT",
+                      "name": "Status Time",
+                      "fill": "#FFFFFF",
+                      "content": "9:41",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "YxsBu",
+                      "name": "Status Icons",
+                      "gap": 6,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "hChZy",
+                          "name": "Signal Icon",
+                          "width": 16,
+                          "height": 16,
+                          "icon": "signal",
+                          "library": "lucide",
+                          "fill": "#FFFFFF"
+                        },
+                        {
+                          "type": "icon",
+                          "id": "i5L16S",
+                          "name": "Battery Icon",
+                          "width": 16,
+                          "height": 16,
+                          "icon": "battery-full",
+                          "library": "lucide",
+                          "fill": "#FFFFFF"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "UL7ti",
+                  "name": "Hero App Bar",
+                  "width": "fill_container",
+                  "height": 52,
+                  "padding": [
+                    0,
+                    16
+                  ],
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "XgBgm",
+                      "name": "Back Button",
+                      "width": 40,
+                      "height": 40,
+                      "fill": "#00000066",
+                      "cornerRadius": 9999,
+                      "effect": {
+                        "type": "background_blur",
+                        "radius": 10
+                      },
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "IdH9w",
+                          "width": 24,
+                          "height": 24,
+                          "icon": "chevron-left",
+                          "library": "lucide",
+                          "fill": "#FFFFFF"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "qAHy7",
+                      "name": "Info Button",
+                      "width": 40,
+                      "height": 40,
+                      "fill": "#00000066",
+                      "cornerRadius": 9999,
+                      "effect": {
+                        "type": "background_blur",
+                        "radius": 10
+                      },
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "CuCHg",
+                          "name": "Info Icon",
+                          "width": 22,
+                          "height": 22,
+                          "icon": "info",
+                          "library": "lucide",
+                          "fill": "#FFFFFF"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "w0rjLG",
+              "name": "Hero Info Group",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 20,
+              "padding": [
+                0,
+                24
+              ],
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "f46TV",
+                  "name": "Info Text",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "m781Bw",
+                      "fill": "#FFFFFF",
+                      "content": "Lemon",
+                      "fontFamily": "$font.headings",
+                      "fontSize": 30,
+                      "fontWeight": "800",
+                      "letterSpacing": -0.5
+                    },
+                    {
+                      "type": "text",
+                      "id": "Y10TMh",
+                      "fill": "#FFFFFFAA",
+                      "content": "米津玄師",
+                      "fontFamily": "$font.body",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "QGWng",
+                  "name": "CTA Row",
+                  "width": "fill_container",
+                  "gap": 12,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "EKRhT",
+                      "name": "CTA Row",
+                      "width": "fill_container",
+                      "gap": 12,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "FCXR4",
+                          "name": "ctaPlay",
+                          "width": "fill_container",
+                          "height": 48,
+                          "fill": "#FFFFFF2E",
+                          "cornerRadius": 12,
+                          "stroke": "#FFFFFF5C",
+                          "strokeWidth": 1,
+                          "strokeAlignment": "inner",
+                          "gap": 8,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "LbmdD",
+                              "name": "ic",
+                              "width": 17,
+                              "height": 17,
+                              "icon": "plus",
+                              "library": "lucide",
+                              "fill": "#FFFFFF"
+                            },
+                            {
+                              "type": "text",
+                              "id": "I6EHf",
+                              "name": "lbl",
+                              "fill": "#FFFFFF",
+                              "content": "모든 단어 담기",
+                              "fontFamily": "$font.body",
+                              "fontSize": 14,
+                              "fontWeight": "600"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "upUpW",
+          "name": "Tab Bar",
+          "width": "fill_container",
+          "height": 44,
+          "fill": "$bg-primary",
+          "stroke": "$border-default",
+          "strokeWidth": {
+            "bottom": 1
+          },
+          "strokeAlignment": "inner",
+          "gap": 15,
+          "padding": [
+            0,
+            16
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "BEIK0",
+              "name": "Tab Home",
+              "height": "fill_container",
+              "stroke": "$accent.primary",
+              "strokeWidth": {
+                "bottom": 2
+              },
+              "strokeAlignment": "inner",
+              "layout": "vertical",
+              "padding": [
+                0,
+                8
+              ],
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "s7XVBy",
+                  "name": "Tab Home Label",
+                  "fill": "$foreground.primary",
+                  "content": "홈",
+                  "fontFamily": "$font.body",
+                  "fontSize": 14,
+                  "fontWeight": "600"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "VROnH",
+              "name": "Tab Words",
+              "height": "fill_container",
+              "layout": "vertical",
+              "padding": [
+                0,
+                8
+              ],
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "y8hEC",
+                  "name": "Tab Words Label",
+                  "fill": "$foreground.secondary",
+                  "content": "단어",
+                  "fontFamily": "$font.body",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "iB9lr",
+          "name": "Grid Container",
+          "width": "fill_container",
+          "fill": "#FFFFFF00",
+          "layout": "vertical",
+          "gap": 28,
+          "padding": [
+            24,
+            0,
+            120,
+            0
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "n3lW4",
+              "layoutPosition": "absolute",
+              "x": 0,
+              "y": 649,
+              "name": "Playing Words Bottomsheet",
+              "clip": true,
+              "width": 402,
+              "height": 56,
+              "fill": "#FFFFFF",
+              "cornerRadius": [
+                24,
+                24,
+                0,
+                0
+              ],
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "#0000001A",
+                "offset": {
+                  "x": 0,
+                  "y": -4
+                },
+                "blur": 16
+              },
+              "layout": "vertical",
+              "gap": 11,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "cSox9",
+                  "name": "Header",
+                  "clip": true,
+                  "width": "fill_container",
+                  "fill": "#FFFFFF",
+                  "stroke": "$border-default",
+                  "strokeWidth": {
+                    "top": 1
+                  },
+                  "strokeAlignment": "inner",
+                  "layout": "vertical",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "CVclP",
+                      "name": "MV Bar",
+                      "clip": true,
+                      "width": "fill_container",
+                      "height": 56,
+                      "fill": "#FFFFFF",
+                      "gap": 12,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "PyVXi",
+                          "name": "MV",
+                          "clip": true,
+                          "width": 60,
+                          "height": 30,
+                          "fill": {
+                            "type": "image",
+                            "enabled": true,
+                            "url": "https://images.unsplash.com/photo-1693240817505-f59d02b89ef9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzM5MjU2MzB8&ixlib=rb-4.1.0&q=80&w=1080",
+                            "mode": "fill"
+                          },
+                          "cornerRadius": 8,
+                          "stroke": "#FFFFFF33",
+                          "layout": "none",
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "id": "MyIJj",
+                              "x": 0,
+                              "y": 15,
+                              "name": "Thumbnail Shade",
+                              "fill": "#00000066",
+                              "width": 54,
+                              "height": 12
+                            },
+                            {
+                              "type": "ellipse",
+                              "id": "EbtJP",
+                              "x": 31,
+                              "y": 1,
+                              "name": "Thumbnail Glow",
+                              "opacity": 0.8,
+                              "fill": "#FFB30066",
+                              "width": 20,
+                              "height": 20
+                            },
+                            {
+                              "type": "frame",
+                              "id": "LOe3M",
+                              "x": 19,
+                              "y": 6,
+                              "name": "Tiny Play Badge",
+                              "width": 16,
+                              "height": 16,
+                              "fill": "#FFFFFFDD",
+                              "cornerRadius": 9999,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "VAb5J",
+                                  "name": "Tiny Play Icon",
+                                  "width": 8,
+                                  "height": 8,
+                                  "icon": "play",
+                                  "library": "lucide",
+                                  "fill": "$foreground.primary"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "D6fBc",
+                              "x": 3,
+                              "y": 17,
+                              "name": "MV Label Badge",
+                              "width": 19,
+                              "height": 7,
+                              "fill": "#FF0000",
+                              "cornerRadius": 3,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "y77eqn",
+                                  "name": "MV Label",
+                                  "fill": "#FFFFFF",
+                                  "content": "MV",
+                                  "fontFamily": "$font.captions",
+                                  "fontSize": 5,
+                                  "fontWeight": "700"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "I06Qa",
+                          "name": "Song Info Col",
+                          "width": "fill_container",
+                          "height": "fill_container",
+                          "layout": "vertical",
+                          "gap": 1,
+                          "justifyContent": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "E2YxR",
+                              "name": "Song Title",
+                              "fill": "$foreground.primary",
+                              "content": "Lemon",
+                              "fontFamily": "$font.body",
+                              "fontSize": 13,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "l7zLqS",
+                              "name": "Artist",
+                              "fill": "$foreground.muted",
+                              "content": "米津玄師",
+                              "fontFamily": "$font.body",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "SyQOs",
+                          "name": "Play/Stop Toggle",
+                          "clip": true,
+                          "width": 36,
+                          "height": 36,
+                          "effect": {
+                            "type": "shadow",
+                            "shadowType": "outer",
+                            "enabled": false,
+                            "color": "#000000"
+                          },
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "Zzkan",
+                              "name": "Filled Pause Icon",
+                              "width": 22,
+                              "height": 22,
+                              "icon": "pause-fill",
+                              "library": "phosphor",
+                              "fill": "$accent.primary"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "AaWoo",
+                  "name": "Body",
+                  "clip": true,
+                  "width": "fill_container",
+                  "fill": "#FFFFFF",
+                  "gap": 8,
+                  "justifyContent": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "TwBnc",
+                      "name": "Page 1 (Peek)",
+                      "width": 358,
+                      "fill": "#FFFFFF00",
+                      "layout": "vertical",
+                      "gap": 12,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "ReSbx",
+                          "name": "Lyric Line 2",
+                          "width": "fill_container",
+                          "height": 110,
+                          "fill": "$surface.primary",
+                          "cornerRadius": "$rounded.xl",
+                          "layout": "vertical",
+                          "gap": 8,
+                          "padding": [
+                            0,
+                            16
+                          ],
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "nEjSj",
+                              "name": "Lyric Text",
+                              "fill": "$foreground.primary",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "風が吹いてあの日に戻れたら",
+                              "textAlign": "center",
+                              "fontFamily": "Inter",
+                              "fontSize": 20,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "text",
+                              "id": "L10AI",
+                              "name": "Translation",
+                              "fill": "$foreground.secondary",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "바람이 불어 그날로 돌아갈 수 있다면",
+                              "textAlign": "center",
+                              "fontFamily": "Inter",
+                              "fontSize": 14,
+                              "fontWeight": "600"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "he1C0",
+                          "name": "Word List Body",
+                          "width": "fill_container",
+                          "fill": "#FFFFFF",
+                          "cornerRadius": "$rounded.2xl",
+                          "layout": "vertical",
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "id": "PbKPY",
+                              "name": "Divider",
+                              "fill": "$border-default",
+                              "width": "fill_container",
+                              "height": 1
+                            },
+                            {
+                              "type": "rectangle",
+                              "id": "mohle",
+                              "name": "Divider",
+                              "fill": "$border-default",
+                              "width": "fill_container",
+                              "height": 1
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "OwIQg",
+                      "name": "Page 2",
+                      "width": 358,
+                      "fill": "#FFFFFF00",
+                      "layout": "vertical",
+                      "gap": 12,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "h9qdMi",
+                          "name": "Current Lyric Line",
+                          "width": "fill_container",
+                          "height": 110,
+                          "fill": "$surface.primary",
+                          "cornerRadius": "$rounded.xl",
+                          "layout": "vertical",
+                          "gap": 14,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "Fdom1",
+                              "name": "Current Sentence Tokens",
+                              "width": "fill_container",
+                              "gap": 4,
+                              "justifyContent": "center",
+                              "alignItems": "end",
+                              "children": [
+                                {
+                                  "id": "cjR4T",
+                                  "type": "ref",
+                                  "ref": "WpjTH",
+                                  "name": "Token 君",
+                                  "width": 24,
+                                  "descendants": {
+                                    "nW89V": {
+                                      "content": "きみ",
+                                      "fontSize": 9,
+                                      "fill": "#777777"
+                                    },
+                                    "XAVod": {
+                                      "content": "君",
+                                      "fontSize": 18,
+                                      "fontWeight": "800"
+                                    },
+                                    "L4P01o": {
+                                      "opacity": 1,
+                                      "fill": "#5B8FCC",
+                                      "height": 2
+                                    }
+                                  }
+                                },
+                                {
+                                  "id": "n5u5C5",
+                                  "type": "ref",
+                                  "ref": "WpjTH",
+                                  "name": "Token の",
+                                  "width": 18,
+                                  "descendants": {
+                                    "nW89V": {
+                                      "content": " ",
+                                      "fontSize": 9,
+                                      "fill": "#777777"
+                                    },
+                                    "XAVod": {
+                                      "content": "の",
+                                      "fontSize": 18,
+                                      "fontWeight": "800"
+                                    },
+                                    "L4P01o": {
+                                      "opacity": 0,
+                                      "fill": "#5B8FCC",
+                                      "height": 2
+                                    }
+                                  }
+                                },
+                                {
+                                  "id": "W53EG",
+                                  "type": "ref",
+                                  "ref": "WpjTH",
+                                  "name": "Token 声",
+                                  "width": 24,
+                                  "descendants": {
+                                    "nW89V": {
+                                      "content": "こえ",
+                                      "fontSize": 9,
+                                      "fill": "#777777"
+                                    },
+                                    "XAVod": {
+                                      "content": "声",
+                                      "fontSize": 18,
+                                      "fontWeight": "800"
+                                    },
+                                    "L4P01o": {
+                                      "opacity": 1,
+                                      "fill": "#5B8FCC",
+                                      "height": 2
+                                    }
+                                  }
+                                },
+                                {
+                                  "id": "bVAyC",
+                                  "type": "ref",
+                                  "ref": "WpjTH",
+                                  "name": "Token が",
+                                  "width": 18,
+                                  "descendants": {
+                                    "nW89V": {
+                                      "content": " ",
+                                      "fontSize": 9,
+                                      "fill": "#777777"
+                                    },
+                                    "XAVod": {
+                                      "content": "が",
+                                      "fontSize": 18,
+                                      "fontWeight": "800"
+                                    },
+                                    "L4P01o": {
+                                      "opacity": 0,
+                                      "fill": "#5B8FCC",
+                                      "height": 2
+                                    }
+                                  }
+                                },
+                                {
+                                  "id": "dz6ip",
+                                  "type": "ref",
+                                  "ref": "WpjTH",
+                                  "name": "Token 今",
+                                  "width": 24,
+                                  "descendants": {
+                                    "nW89V": {
+                                      "content": "いま",
+                                      "fontSize": 9,
+                                      "fill": "#777777"
+                                    },
+                                    "XAVod": {
+                                      "content": "今",
+                                      "fontSize": 18,
+                                      "fontWeight": "800"
+                                    },
+                                    "L4P01o": {
+                                      "opacity": 1,
+                                      "fill": "#9D7AC4",
+                                      "height": 2
+                                    }
+                                  }
+                                },
+                                {
+                                  "id": "cq5Wr",
+                                  "type": "ref",
+                                  "ref": "WpjTH",
+                                  "name": "Token も",
+                                  "width": 18,
+                                  "descendants": {
+                                    "nW89V": {
+                                      "content": " ",
+                                      "fontSize": 9,
+                                      "fill": "#777777"
+                                    },
+                                    "XAVod": {
+                                      "content": "も",
+                                      "fontSize": 18,
+                                      "fontWeight": "800"
+                                    },
+                                    "L4P01o": {
+                                      "opacity": 0,
+                                      "fill": "#5B8FCC",
+                                      "height": 2
+                                    }
+                                  }
+                                },
+                                {
+                                  "id": "dEv1D",
+                                  "type": "ref",
+                                  "ref": "WpjTH",
+                                  "name": "Token 聞こえる",
+                                  "width": 74,
+                                  "descendants": {
+                                    "nW89V": {
+                                      "content": "き",
+                                      "fontSize": 9,
+                                      "fill": "#777777"
+                                    },
+                                    "XAVod": {
+                                      "content": "聞こえる",
+                                      "fontSize": 18,
+                                      "fontWeight": "800"
+                                    },
+                                    "L4P01o": {
+                                      "opacity": 1,
+                                      "fill": "#4A9D7A",
+                                      "height": 2
+                                    }
+                                  }
+                                }
+                              ]
+                            },
+                            {
+                              "type": "text",
+                              "id": "MToBC",
+                              "name": "Current Korean Translation",
+                              "fill": "$foreground.secondary",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "너의 목소리가 지금도 들려",
+                              "textAlign": "center",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "WIAax",
+                          "name": "Current Words",
+                          "context": "This list is vertically scrollable.",
+                          "width": "fill_container",
+                          "fill": "#FFFFFF",
+                          "gap": 8,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "En1LR",
+                              "name": "Word List Body",
+                              "clip": true,
+                              "width": "fill_container",
+                              "fill": "#FFFFFF",
+                              "cornerRadius": "$rounded.2xl",
+                              "layout": "vertical",
+                              "children": [
+                                {
+                                  "type": "rectangle",
+                                  "id": "XTwly",
+                                  "name": "Divider",
+                                  "fill": "$border-default",
+                                  "width": "fill_container",
+                                  "height": 1
+                                },
+                                {
+                                  "type": "rectangle",
+                                  "id": "U4Z2s",
+                                  "name": "Divider",
+                                  "fill": "$border-default",
+                                  "width": "fill_container",
+                                  "height": 1
+                                },
+                                {
+                                  "type": "rectangle",
+                                  "id": "UkoHB",
+                                  "name": "Divider",
+                                  "fill": "$border-default",
+                                  "width": "fill_container",
+                                  "height": 1
+                                },
+                                {
+                                  "type": "rectangle",
+                                  "id": "G4gDb",
+                                  "name": "Divider",
+                                  "fill": "$border-default",
+                                  "width": "fill_container",
+                                  "height": 1
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "H76H99",
+                      "name": "Page 3",
+                      "width": 358,
+                      "fill": "#FFFFFF00",
+                      "layout": "vertical",
+                      "gap": 12,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "C0msZ5",
+                          "name": "Lyric Line 2",
+                          "width": "fill_container",
+                          "height": 110,
+                          "fill": "$surface.primary",
+                          "cornerRadius": "$rounded.xl",
+                          "layout": "vertical",
+                          "gap": 8,
+                          "padding": [
+                            0,
+                            16
+                          ],
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "YPARd",
+                              "name": "Lyric Text",
+                              "fill": "$foreground.primary",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "風が吹いてあの日に戻れたら",
+                              "textAlign": "center",
+                              "fontFamily": "Inter",
+                              "fontSize": 20,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "text",
+                              "id": "Q0O8yf",
+                              "name": "Translation",
+                              "fill": "$foreground.secondary",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "바람이 불어 그날로 돌아갈 수 있다면",
+                              "textAlign": "center",
+                              "fontFamily": "Inter",
+                              "fontSize": 14,
+                              "fontWeight": "600"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "i4EKY6",
+                          "name": "Word List Body",
+                          "width": "fill_container",
+                          "fill": "#FFFFFF",
+                          "cornerRadius": "$rounded.2xl",
+                          "layout": "vertical",
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "id": "KYlV2",
+                              "name": "Divider",
+                              "fill": "$border-default",
+                              "width": "fill_container",
+                              "height": 1
+                            },
+                            {
+                              "type": "rectangle",
+                              "id": "Ea5zT",
+                              "name": "Divider",
+                              "fill": "$border-default",
+                              "width": "fill_container",
+                              "height": 1
+                            },
+                            {
+                              "type": "frame",
+                              "id": "C9kFf",
+                              "name": "Word - 戻る",
+                              "width": "fill_container",
+                              "fill": {
+                                "type": "color",
+                                "color": "#FFFFFF",
+                                "enabled": false
+                              },
+                              "padding": [
+                                12,
+                                0
+                              ],
+                              "justifyContent": "space_between",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "w0299C",
+                                  "name": "Word Info",
+                                  "width": "fill_container",
+                                  "layout": "vertical",
+                                  "gap": 3,
+                                  "children": [
+                                    {
+                                      "type": "frame",
+                                      "id": "xnqTK",
+                                      "name": "JP Text Row",
+                                      "gap": 6,
+                                      "alignItems": "center",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "oE47u",
+                                          "name": "Japanese Word",
+                                          "fill": "$foreground.primary",
+                                          "content": "君",
+                                          "fontFamily": "$font.headings",
+                                          "fontSize": 18,
+                                          "fontWeight": "700"
+                                        },
+                                        {
+                                          "type": "text",
+                                          "id": "ocf5K",
+                                          "name": "Hiragana Reading",
+                                          "fill": "$foreground.muted",
+                                          "content": "きみ",
+                                          "fontFamily": "$font.body",
+                                          "fontSize": 12,
+                                          "fontWeight": "normal"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "frame",
+                                      "id": "Xhtp6",
+                                      "name": "Meaning Row",
+                                      "gap": 12,
+                                      "alignItems": "center",
+                                      "children": [
+                                        {
+                                          "type": "text",
+                                          "id": "e4Ocix",
+                                          "name": "Korean Meaning",
+                                          "fill": "$foreground.secondary",
+                                          "content": "너",
+                                          "fontFamily": "$font.body",
+                                          "fontSize": 13,
+                                          "fontWeight": "500"
+                                        },
+                                        {
+                                          "type": "frame",
+                                          "id": "W08yBB",
+                                          "name": "Badges",
+                                          "gap": 3,
+                                          "alignItems": "center",
+                                          "children": [
+                                            {
+                                              "type": "frame",
+                                              "id": "E1wTuV",
+                                              "name": "JLPT Badge Instance",
+                                              "height": "fill_container",
+                                              "fill": {
+                                                "type": "gradient",
+                                                "gradientType": "linear",
+                                                "enabled": true,
+                                                "opacity": 0.2,
+                                                "rotation": 0,
+                                                "size": {
+                                                  "height": 1
+                                                },
+                                                "colors": [
+                                                  {
+                                                    "color": "#EAB308",
+                                                    "position": 0
+                                                  },
+                                                  {
+                                                    "color": "#EAB308",
+                                                    "position": 1
+                                                  }
+                                                ]
+                                              },
+                                              "cornerRadius": "$rounded.full",
+                                              "padding": [
+                                                1,
+                                                8,
+                                                3,
+                                                8
+                                              ],
+                                              "justifyContent": "center",
+                                              "alignItems": "center",
+                                              "children": [
+                                                {
+                                                  "type": "text",
+                                                  "id": "nkmn0",
+                                                  "name": "w2l",
+                                                  "fill": "#EAB308",
+                                                  "content": "N2",
+                                                  "fontFamily": "$font.captions",
+                                                  "fontSize": 10,
+                                                  "fontWeight": "700"
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "type": "frame",
+                                              "id": "AqEd1",
+                                              "name": "POS Badge Instance",
+                                              "height": 18,
+                                              "fill": {
+                                                "type": "gradient",
+                                                "gradientType": "linear",
+                                                "enabled": true,
+                                                "opacity": 0.2,
+                                                "rotation": 0,
+                                                "size": {
+                                                  "height": 1
+                                                },
+                                                "colors": [
+                                                  {
+                                                    "color": "$pos-verb",
+                                                    "position": 0
+                                                  },
+                                                  {
+                                                    "color": "$pos-verb",
+                                                    "position": 1
+                                                  }
+                                                ]
+                                              },
+                                              "cornerRadius": "$rounded.full",
+                                              "padding": [
+                                                1,
+                                                8,
+                                                3,
+                                                8
+                                              ],
+                                              "children": [
+                                                {
+                                                  "type": "text",
+                                                  "id": "Z15RWv",
+                                                  "name": "posText",
+                                                  "fill": "$pos-verb",
+                                                  "content": "동사",
+                                                  "fontFamily": "$font.captions",
+                                                  "fontSize": 10,
+                                                  "fontWeight": "600"
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "YExsj",
+                                  "name": "Add Button",
+                                  "width": "fit_content(40)",
+                                  "height": 28,
+                                  "fill": "$accent-primary-bg",
+                                  "cornerRadius": "$rounded.full",
+                                  "stroke": "$accent.primary",
+                                  "strokeWidth": 1.5,
+                                  "padding": [
+                                    0,
+                                    12
+                                  ],
+                                  "justifyContent": "center",
+                                  "alignItems": "center"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "ijHoz",
+              "name": "Empty State - Analyzing",
+              "width": "fill_container",
+              "height": 580,
+              "layout": "vertical",
+              "gap": 20,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "k98db7",
+                  "name": "Icon Bg",
+                  "width": 68,
+                  "height": 68,
+                  "fill": "$accent-primary-bg",
+                  "cornerRadius": 999,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "E4nvs6",
+                      "name": "Analysis Icon",
+                      "width": 30,
+                      "height": 30,
+                      "icon": "wand-sparkles",
+                      "library": "lucide",
+                      "fill": "$accent.primary"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "Buxee",
+                  "name": "Text Area",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 10,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "c8h0G",
+                      "name": "Title",
+                      "fill": "$foreground.primary",
+                      "content": "단어를 준비하는 중이에요",
+                      "fontFamily": "$font.headings",
+                      "fontSize": 17,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "DJLoM",
+                      "name": "Subtitle",
+                      "fill": "$foreground.secondary",
+                      "textGrowth": "fixed-width",
+                      "width": 270,
+                      "content": "분석에 2~3분 정도 소요돼요.",
+                      "lineHeight": 1.6,
+                      "textAlign": "center",
+                      "fontFamily": "$font.body",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "id": "sCEqL",
+                  "type": "ref",
+                  "ref": "pcVLy",
+                  "name": "Refresh Button",
+                  "width": 152,
+                  "descendants": {
+                    "aulVa": {
+                      "enabled": true,
+                      "icon": "refresh-cw",
+                      "width": 16,
+                      "height": 16
+                    },
+                    "d1yay": {
+                      "content": "새로고침"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
     }
   ],
   "themes": {
