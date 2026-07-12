@@ -1,0 +1,4 @@
+interface:
+  display_name: "Pencil Capsule Distributor"
+  short_description: "Create and split Pencil UI capsules."
+  default_prompt: "Use Pencil MCP, product intent, and frontend code context to create minimal implementation capsules, then hand scoped work to frontend subagents."
