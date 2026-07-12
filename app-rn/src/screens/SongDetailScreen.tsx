@@ -18,7 +18,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BottomSheetView } from '@gorhom/bottom-sheet';
-import { Feather } from '@expo/vector-icons';
+import { Feather, FontAwesome6 } from '@expo/vector-icons';
 import { useSongDetailStore } from '../stores/songDetailStore';
 import { usePlayerStore } from '../stores/playerStore';
 import { deckApi } from '../api/deckApi';
@@ -73,6 +73,10 @@ const HERO_SCROLL_COLLAPSE_END = HERO_SCROLL_COLLAPSE_START + 56;
 const ARTWORK_COLLAPSED_OFFSET = HERO_HEIGHT * 0.4;
 const SKELETON_WORD_ROWS = [0, 1, 2, 3];
 const SKELETON_LEGEND_ROWS = [0, 1, 2, 3, 4];
+
+function isAnalyzedLine(line: { tokens: readonly unknown[]; koreanLyrics: string | null; koreanPronounciation: string | null }) {
+  return line.tokens.length > 0 || line.koreanLyrics != null || line.koreanPronounciation != null;
+}
 
 export default function SongDetailScreen({ navigation, route }: Props) {
   const insets = useSafeAreaInsets();
@@ -468,6 +472,11 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     setActiveTab('words');
   }, []);
 
+  const handleRefreshAnalysisStatus = useCallback(() => {
+    if (songId == null) return;
+    load(songId);
+  }, [load, songId]);
+
   const handleWordsChanged = useCallback(() => {
     if (songId == null) return;
     refreshWords(songId).catch(() => undefined);
@@ -661,6 +670,11 @@ export default function SongDetailScreen({ navigation, route }: Props) {
   }
 
   const { song, lyrics, words } = data;
+  const isSongAnalysisPending = words.words.length === 0
+    && words.wordSummary.totalCandidateCount === 0
+    && Object.keys(words.lineWordIndexes).length === 0
+    && !lyrics.lines.some(isAnalyzedLine);
+  const isDeckActionDisabled = isCreatingDeck || isSongAnalysisPending;
 
   return (
     <View style={styles.container}>
@@ -699,44 +713,48 @@ export default function SongDetailScreen({ navigation, route }: Props) {
             onSelectWords={handleSelectWords}
           />
 
-          <Animated.View style={[styles.tabContentViewport, tabViewportHeight > 0 && { height: tabViewportHeight }]}>
-            <Animated.View
-              style={[
-                styles.tabContentRail,
-                {
-                  width: screenWidth * 2,
-                  transform: [{ translateX: tabContentTranslate }],
-                },
-              ]}
-            >
-              <View
-                pointerEvents={activeTab === 'home' ? 'auto' : 'none'}
-                style={[styles.tabPage, { width: screenWidth }]}
-                onLayout={handleHomePageLayout}
+          {isSongAnalysisPending ? (
+            <SongDetailAnalysisPendingPlaceholder onRefresh={handleRefreshAnalysisStatus} />
+          ) : (
+            <Animated.View style={[styles.tabContentViewport, tabViewportHeight > 0 && { height: tabViewportHeight }]}>
+              <Animated.View
+                style={[
+                  styles.tabContentRail,
+                  {
+                    width: screenWidth * 2,
+                    transform: [{ translateX: tabContentTranslate }],
+                  },
+                ]}
               >
-                <SongDetailHomeTab
-                  words={words.words}
-                  onViewAllWordsPress={handleSelectWords}
-                  getWordSaveState={getWordSaveState}
-                  busyWordKey={busyWordKey}
-                  onToggleWordSave={handleToggleWordSave}
-                />
-              </View>
-              <View
-                pointerEvents={activeTab === 'words' ? 'auto' : 'none'}
-                style={[styles.tabPage, { width: screenWidth }]}
-                onLayout={handleWordsPageLayout}
-              >
-                <SongDetailWordsTab
-                  state={wordsTabState}
-                  bottomPadding={WORDS_TAB_BOTTOM_CLEARANCE}
-                  getWordSaveState={getWordSaveState}
-                  busyWordKey={busyWordKey}
-                  onToggleWordSave={handleToggleWordSave}
-                />
-              </View>
+                <View
+                  pointerEvents={activeTab === 'home' ? 'auto' : 'none'}
+                  style={[styles.tabPage, { width: screenWidth }]}
+                  onLayout={handleHomePageLayout}
+                >
+                  <SongDetailHomeTab
+                    words={words.words}
+                    onViewAllWordsPress={handleSelectWords}
+                    getWordSaveState={getWordSaveState}
+                    busyWordKey={busyWordKey}
+                    onToggleWordSave={handleToggleWordSave}
+                  />
+                </View>
+                <View
+                  pointerEvents={activeTab === 'words' ? 'auto' : 'none'}
+                  style={[styles.tabPage, { width: screenWidth }]}
+                  onLayout={handleWordsPageLayout}
+                >
+                  <SongDetailWordsTab
+                    state={wordsTabState}
+                    bottomPadding={WORDS_TAB_BOTTOM_CLEARANCE}
+                    getWordSaveState={getWordSaveState}
+                    busyWordKey={busyWordKey}
+                    onToggleWordSave={handleToggleWordSave}
+                  />
+                </View>
+              </Animated.View>
             </Animated.View>
-          </Animated.View>
+          )}
 
         </View>
       </Animated.ScrollView>
@@ -755,9 +773,9 @@ export default function SongDetailScreen({ navigation, route }: Props) {
           <Text style={styles.heroTitle} numberOfLines={2}>{song.title}</Text>
           <Text style={styles.heroArtist} numberOfLines={1}>{song.artist}</Text>
           <Pressable
-            style={[styles.deckButton, isCreatingDeck && styles.disabledButton]}
+            style={[styles.deckButton, isDeckActionDisabled && styles.disabledButton]}
             onPress={handleOpenDeck}
-            disabled={isCreatingDeck}
+            disabled={isDeckActionDisabled}
           >
             <Feather name={deckButtonIcon} size={17} color="#FFFFFF" />
             <Text style={styles.deckButtonText}>{deckButtonLabel}</Text>
@@ -837,9 +855,9 @@ export default function SongDetailScreen({ navigation, route }: Props) {
               style={{ opacity: appBarContentOpacity }}
             >
               <Pressable
-                style={[styles.appBarDeckButton, isCreatingDeck && styles.disabledButton]}
+                style={[styles.appBarDeckButton, isDeckActionDisabled && styles.disabledButton]}
                 onPress={handleOpenDeck}
-                disabled={isCreatingDeck}
+                disabled={isDeckActionDisabled}
               >
                 <Feather name={deckButtonIcon} size={13} color="#FFFFFF" />
                 <Text style={styles.appBarDeckButtonText} numberOfLines={1}>{deckButtonLabel}</Text>
@@ -868,7 +886,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
         />
       </Animated.View>
 
-      {activeTab === 'words' && (
+      {activeTab === 'words' && !isSongAnalysisPending && (
         <Animated.View
           pointerEvents={isPinnedTabsVisible ? 'auto' : 'none'}
           style={[
@@ -1200,6 +1218,37 @@ const TabButton = React.memo(function TabButton({
   );
 });
 
+const SongDetailAnalysisPendingPlaceholder = React.memo(function SongDetailAnalysisPendingPlaceholder({
+  onRefresh,
+}: {
+  onRefresh: () => void;
+}) {
+  return (
+    <View style={styles.analysisPendingWrap}>
+      <View style={styles.analysisPendingIconWrap}>
+        <FontAwesome6 name="wand-sparkles" size={23} color={Colors.primary} />
+      </View>
+
+      <View style={styles.analysisPendingTextBlock}>
+        <Text style={styles.analysisPendingTitle}>단어를 준비하는 중이에요</Text>
+        <Text style={styles.analysisPendingBody}>
+          분석에 2~3분 정도 소요돼요.
+        </Text>
+      </View>
+
+      <Pressable
+        style={styles.analysisPendingRefreshButton}
+        onPress={onRefresh}
+        accessibilityRole="button"
+        accessibilityLabel="분석 상태 새로고침"
+      >
+        <Feather name="refresh-cw" size={16} color={Colors.textSecondary} />
+        <Text style={styles.analysisPendingRefreshText}>새로고침</Text>
+      </Pressable>
+    </View>
+  );
+});
+
 interface SongDetailLoadingSkeletonProps {
   topInset: number;
   bottomReserve: number;
@@ -1528,6 +1577,54 @@ const styles = StyleSheet.create({
     width: TAB_INDICATOR_WIDTH,
     height: 2,
     backgroundColor: Colors.primary,
+  },
+  analysisPendingWrap: {
+    minHeight: 580,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 20,
+    paddingHorizontal: 24,
+    backgroundColor: Colors.background,
+  },
+  analysisPendingIconWrap: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.primaryBg,
+  },
+  analysisPendingTextBlock: {
+    alignItems: 'center',
+    gap: 10,
+  },
+  analysisPendingTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+    textAlign: 'center',
+  },
+  analysisPendingBody: {
+    width: 270,
+    fontSize: 14,
+    lineHeight: 22,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+  },
+  analysisPendingRefreshButton: {
+    width: 152,
+    height: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderRadius: 9999,
+    backgroundColor: Colors.elevated,
+  },
+  analysisPendingRefreshText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.textSecondary,
   },
   appBar: {
     position: 'absolute',
