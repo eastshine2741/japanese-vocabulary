@@ -70,6 +70,17 @@ deck 멤버십의 유일한 소유자. `deck_flashcards` 를 대체한다.
 | deck | word 보다 오래 산다 | 담을 때 없으면 생성. 안이 비어도 안 지우고, deck 을 지워도 안의 word 는 안 지운다 |
 | 전체 단어장 | 모든 word 가 연결 | 유저당 1개, 삭제 불가 |
 
+### 뜻 쪼개기
+
+곡 분석이 내려주는 뜻은 "사랑, 애정" 처럼 쉼표로 이어붙인 문자열 **하나**다. 단어는 뜻 단위이므로 담기 직전에 조각마다 별개의 sense 로 쪼갠다 (`splitMeaningText`). 조각은 원래 sense 의 품사·JLPT·예문을 그대로 물려받는다. 괄호 안 쉼표는 자르지 않는다 — "(사람, 물건이) 있다" 가 반토막 나면 안 된다.
+
+쪼개는 지점은 둘이다.
+
+- **저장 경로** (`WordService.forSave`): `POST /api/words`, `POST /api/words/batch` 로 들어온 sense 를 쪼갠 뒤 merge 한다. 쪼갠 조각 중 이미 담긴 뜻에는 예문만 붙고, 처음 보는 조각만 새 sense 가 된다. `PUT /api/words/{id}` 는 쪼개지 않는다 — 사용자가 직접 입력한 뜻을 서버가 나누면 안 된다.
+- **SongDetail 응답** (`SongDetailQueryService`): `senses` 와 `addRequest.senses` 를 쪼개서 내려보내므로 담김 판정도 조각 단위가 된다. 요약 표시용 `koreanText` 만 쪼개기 전 문자열을 유지한다.
+
+앱도 같은 규칙의 `splitMeaningText` 를 갖는다 (`app-rn/src/types/word.ts`). 가사 탭으로 담는 경로의 요청 조립, '다른 뜻 담기 / 예문 담기' 판정, 편집 화면의 뜻 줄 프리필이 여기에 걸린다.
+
 ### 단어 담기
 
 한 트랜잭션에서 순서대로 처리한다.
@@ -95,7 +106,7 @@ saved = SELECT * FROM words WHERE user_id = ? AND japanese_text IN (...)
 isSaved(candidate) = candidate 의 뜻 전부가 saved[japanese].senses[].meaning 에 존재
 ```
 
-sense 동일성 기준은 **뜻 텍스트 문자열 일치**다. 부분 저장은 미저장으로 본다(ALL 판정).
+sense 동일성 기준은 **뜻 텍스트 문자열 일치**다. 비교 대상인 candidate 의 뜻은 쉼표로 쪼갠 뒤의 조각이다. 부분 저장은 미저장으로 본다(ALL 판정).
 
 ### 단어 수정
 

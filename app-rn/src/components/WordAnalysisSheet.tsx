@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet, NativeSynt
 import { ScrollView } from 'react-native-gesture-handler';
 import { Feather } from '@expo/vector-icons';
 import { Token } from '../types/song';
-import { WordDetailResponse, flattenExamples } from '../types/word';
+import { WordDetailResponse, flattenExamples, splitMeaningText } from '../types/word';
 import { POS_INFO } from '../types/pos';
 import { Colors } from '../theme/theme';
 import { convertReading } from '../utils/readingConverter';
@@ -47,8 +47,9 @@ function WordAnalysisSheet({
     ex => ex.songId === songId && ex.text === lyricLine,
   );
 
-  const isMeaningNew = token.koreanText != null &&
-    !savedSenses.some(s => s.meaning === token.koreanText);
+  // 토큰의 뜻은 쉼표로 이어진 문자열 하나이고 저장은 조각 단위다 — 판정도 조각 단위로 맞춘다.
+  const isMeaningNew = splitMeaningText(token.koreanText)
+    .some(meaning => !savedSenses.some(s => s.meaning === meaning));
 
   const posInfo = POS_INFO[token.partOfSpeech];
 

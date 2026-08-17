@@ -62,6 +62,38 @@ export interface UpdateWordRequest {
   resetFlashcard?: boolean;
 }
 
+const MEANING_SEPARATORS = new Set([',', '，', '、']);
+const MEANING_OPEN_BRACKETS = new Set(['(', '（', '[', '［']);
+const MEANING_CLOSE_BRACKETS = new Set([')', '）', ']', '］']);
+
+/**
+ * 곡 분석이 주는 뜻은 "사랑, 애정" 처럼 쉼표로 이어진 문자열 하나다. 단어는 뜻 단위이므로 조각마다
+ * 별개의 sense 로 쪼갠다 — 서버의 `splitMeaningText` 와 같은 규칙이다.
+ * 괄호 안 쉼표는 자르지 않는다: "(사람, 물건이) 있다" 가 반토막 나면 안 된다.
+ */
+export function splitMeaningText(meaning: string | null | undefined): string[] {
+  if (!meaning) return [];
+  const parts: string[] = [];
+  let buffer = '';
+  let depth = 0;
+  for (const ch of meaning) {
+    if (MEANING_OPEN_BRACKETS.has(ch)) {
+      depth++;
+      buffer += ch;
+    } else if (MEANING_CLOSE_BRACKETS.has(ch)) {
+      if (depth > 0) depth--;
+      buffer += ch;
+    } else if (MEANING_SEPARATORS.has(ch) && depth === 0) {
+      parts.push(buffer);
+      buffer = '';
+    } else {
+      buffer += ch;
+    }
+  }
+  parts.push(buffer);
+  return [...new Set(parts.map(p => p.trim()).filter(p => p !== ''))];
+}
+
 /** 여러 뜻을 한 줄로 요약할 때 쓰는 공통 헬퍼. */
 export function joinMeanings(senses: WordSense[] | undefined): string {
   return (senses ?? []).map(s => s.meaning).filter(Boolean).join(', ');

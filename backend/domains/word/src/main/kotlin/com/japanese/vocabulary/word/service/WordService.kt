@@ -17,6 +17,7 @@ import com.japanese.vocabulary.word.dto.WordListDto
 import com.japanese.vocabulary.word.dto.WordListItemDto
 import com.japanese.vocabulary.word.model.SenseExample
 import com.japanese.vocabulary.word.model.WordSense
+import com.japanese.vocabulary.word.model.splitMeanings
 import com.japanese.vocabulary.word.repository.WordRepository
 import com.japanese.vocabulary.word.service.SenseEnricher.toDtos
 import org.slf4j.LoggerFactory
@@ -76,7 +77,7 @@ class WordService(
      * 경합을 키운다.
      */
     private fun validateAndResolveDecks(userId: Long, words: List<AddWordDto>): DeckTargets {
-        val senses = words.map { it.senses.normalized() }
+        val senses = words.map { it.senses.forSave() }
         if (senses.any { it.isEmpty() }) throw BusinessException(ErrorCode.MEANING_REQUIRED)
         requireExistingSongs(senses.flatten().flatMap { it.examples }.mapNotNull { it.songId })
         return deckService.resolveDeckTargets(userId, words.mapNotNull { it.songId })
@@ -110,7 +111,7 @@ class WordService(
 
     /** 호출 전에 [validateAndResolveDecks] 가 끝나 있어야 한다. */
     private fun addWordInternal(userId: Long, request: AddWordDto, targets: DeckTargets): AddWordOutcome {
-        val requestedSenses = request.senses.normalized()
+        val requestedSenses = request.senses.forSave()
 
         val existing = wordRepository.findByUserIdAndJapaneseText(userId, request.japanese)
         val word = existing ?: WordEntity(
@@ -216,6 +217,13 @@ class WordService(
             throw BusinessException(ErrorCode.SONG_NOT_FOUND)
         }
     }
+
+    /**
+     * 담기 경로의 정규화. 곡이 주는 뜻은 "사랑, 애정" 같은 한 문자열이라 조각마다 sense 를 만든다.
+     * 쪼갠 뒤 [merge] 가 문자열 일치로 판정하므로, 이미 담은 조각에는 예문만 붙고 처음 보는
+     * 조각만 새 sense 로 들어간다.
+     */
+    private fun List<WordSense>.forSave(): List<WordSense> = splitMeanings().normalized()
 
     /** 빈 뜻 제거, 뜻 텍스트 기준 중복 제거, sense 별 예문 상한 적용. */
     private fun List<WordSense>.normalized(): List<WordSense> =

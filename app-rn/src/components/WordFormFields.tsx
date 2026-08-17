@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-nativ
 import { Feather } from '@expo/vector-icons';
 import { WordSense } from '../types/word';
 import { getPosLabel, getPosColor } from '../types/pos';
+import ArtworkImage from './ArtworkImage';
 import { Colors } from '../theme/theme';
 
 interface Props {
@@ -16,6 +17,9 @@ interface Props {
   onOpenPosPicker: (index: number) => void;
   onAddMeaning: () => void;
   shouldShowError: (index: number) => boolean;
+  /** 예문은 뜻에 붙어 있으므로 뜻 항목 안에서 편집한다. */
+  showExamples?: boolean;
+  onRemoveExample?: (senseIndex: number, exampleIndex: number) => void;
 }
 
 export default function WordFormFields({
@@ -29,6 +33,8 @@ export default function WordFormFields({
   onOpenPosPicker,
   onAddMeaning,
   shouldShowError,
+  showExamples = false,
+  onRemoveExample,
 }: Props) {
   return (
     <>
@@ -53,8 +59,11 @@ export default function WordFormFields({
         {senses.map((m, i) => {
           const posColor = getPosColor(m.partOfSpeech);
           const showError = shouldShowError(i);
+          const examples = m.examples ?? [];
+          // 구분선은 앞 뜻이 예문을 달고 있을 때만 — 그때만 뜻 경계가 헷갈린다.
+          const needsDivider = showExamples && i > 0 && (senses[i - 1].examples?.length ?? 0) > 0;
           return (
-            <View key={i}>
+            <View key={i} style={[styles.senseBlock, needsDivider && styles.senseBlockDivider]}>
               <View style={styles.meaningRow}>
                 <TouchableOpacity
                   style={[styles.posChip, { backgroundColor: posColor + '20' }]}
@@ -91,6 +100,29 @@ export default function WordFormFields({
                   <Text style={styles.errorText}>뜻을 입력해주세요</Text>
                 </View>
               )}
+
+              {showExamples && examples.length > 0 && (
+                <View style={styles.exampleList}>
+                  <Text style={styles.exampleLabel}>예문</Text>
+                  {examples.map((ex, j) => (
+                    <View key={j} style={styles.exampleRow}>
+                      <View style={styles.exampleContent}>
+                        <Text style={styles.exampleJp}>{ex.text}</Text>
+                        {ex.translation != null && <Text style={styles.exampleKr}>{ex.translation}</Text>}
+                        {ex.songTitle != null && (
+                          <View style={styles.exampleSongRow}>
+                            <ArtworkImage url={ex.artworkUrl ?? null} size={14} cornerRadius={3} />
+                            <Text style={styles.exampleSong}>{ex.songTitle}</Text>
+                          </View>
+                        )}
+                      </View>
+                      <TouchableOpacity onPress={() => onRemoveExample?.(i, j)} hitSlop={8}>
+                        <Feather name="x" size={16} color={Colors.textMuted} />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              )}
             </View>
           );
         })}
@@ -118,6 +150,14 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.border,
     paddingBottom: 10,
     paddingTop: 0,
+  },
+
+  senseBlock: { paddingBottom: 4 },
+  senseBlockDivider: {
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+    marginTop: 14,
+    paddingTop: 6,
   },
 
   meaningRow: {
@@ -155,6 +195,28 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   errorText: { fontSize: 12, color: '#EF4444' },
+
+  exampleList: {
+    marginTop: 2,
+    paddingLeft: 12,
+    gap: 10,
+  },
+  exampleLabel: { fontSize: 11, fontWeight: '500', color: Colors.textMuted },
+  exampleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  exampleContent: { flex: 1, gap: 3 },
+  exampleJp: { fontSize: 14, fontWeight: '500', color: Colors.textPrimary },
+  exampleKr: { fontSize: 12, color: Colors.textMuted },
+  exampleSongRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 2,
+  },
+  exampleSong: { fontSize: 11, color: Colors.textMuted },
 
   addRow: {
     flexDirection: 'row',

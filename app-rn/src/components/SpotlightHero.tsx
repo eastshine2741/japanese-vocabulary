@@ -34,7 +34,7 @@ import { usePlayerStore } from '../stores/playerStore';
 import { wordApi } from '../api/wordApi';
 import { deckApi } from '../api/deckApi';
 import { StudyUnit } from '../types/song';
-import { AddWordRequest } from '../types/word';
+import { AddWordRequest, splitMeaningText } from '../types/word';
 import { getPosSpotlightColor } from '../types/pos';
 import { Dimens } from '../theme/theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -60,8 +60,9 @@ function buildDefaultWords(studyUnits: StudyUnit[], songId: number): AddWordRequ
       map.set(token.baseForm, {
         japanese: token.baseForm,
         reading: token.baseFormReading ?? token.reading ?? '',
-        senses: [{
-          meaning: token.koreanText,
+        // 토큰의 뜻은 쉼표로 이어진 문자열 하나다 — 조각마다 sense 를 만든다.
+        senses: splitMeaningText(token.koreanText).map(meaning => ({
+          meaning,
           partOfSpeech: token.partOfSpeech,
           jlpt: null,
           examples: [{
@@ -70,7 +71,7 @@ function buildDefaultWords(studyUnits: StudyUnit[], songId: number): AddWordRequ
             songId,
             lineIndex: unit.index,
           }],
-        }],
+        })),
         songId,
       });
     }

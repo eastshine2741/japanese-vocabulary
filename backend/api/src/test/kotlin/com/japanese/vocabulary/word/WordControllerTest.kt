@@ -249,6 +249,63 @@ class WordControllerTest : ApiBaseIntegrationTest() {
         }
 
         @Test
+        fun `a comma-joined meaning becomes one sense per meaning`() {
+            val me = newUser()
+            val song = newSong()
+
+            mockMvc.post("/api/words") {
+                header("Authorization", bearer(me))
+                jsonBody(
+                    AddWordRequest(
+                        japanese = "愛",
+                        reading = "あい",
+                        senses = listOf(
+                            sense("사랑, 애정", jlpt = "N3", examples = listOf(example(song, "愛の歌", lineIndex = 2))),
+                        ),
+                        songId = song.id!!,
+                    ),
+                )
+            }.andExpect { status { isOk() } }
+
+            entityManager.flush(); entityManager.clear()
+            val word = wordRepository.findByUserIdAndJapaneseText(me.id!!, "愛")!!
+            assertThat(word.senses.map { it.meaning }).containsExactly("사랑", "애정")
+            // 쪼갠 뜻은 원래 sense 의 품사·JLPT·예문을 그대로 물려받는다.
+            assertThat(word.senses.map { it.jlpt }).containsOnly("N3")
+            assertThat(word.senses.map { it.examples.single().text }).containsOnly("愛の歌")
+        }
+
+        @Test
+        fun `an already saved meaning only gains the example while a new one becomes a sense`() {
+            val me = newUser()
+            val song = newSong()
+            TestWordBuilder(entityManager)
+                .forUser(me)
+                .withJapaneseText("愛")
+                .withSenses(listOf(sense("사랑", examples = listOf(example(song, "愛の歌", lineIndex = 2)))))
+                .build()
+
+            mockMvc.post("/api/words") {
+                header("Authorization", bearer(me))
+                jsonBody(
+                    AddWordRequest(
+                        japanese = "愛",
+                        reading = "あい",
+                        senses = listOf(sense("사랑, 애정", examples = listOf(example(song, "愛してる", lineIndex = 5)))),
+                        songId = song.id!!,
+                    ),
+                )
+            }.andExpect { status { isOk() } }
+
+            entityManager.flush(); entityManager.clear()
+            val word = wordRepository.findByUserIdAndJapaneseText(me.id!!, "愛")!!
+            val bySense = word.senses.associateBy { it.meaning }
+            assertThat(word.senses.map { it.meaning }).containsExactly("사랑", "애정")
+            assertThat(bySense.getValue("사랑").examples.map { it.text }).containsExactly("愛の歌", "愛してる")
+            assertThat(bySense.getValue("애정").examples.map { it.text }).containsExactly("愛してる")
+        }
+
+        @Test
         fun `nonexistent songId returns SONG_NOT_FOUND`() {
             val me = newUser()
             mockMvc.post("/api/words") {

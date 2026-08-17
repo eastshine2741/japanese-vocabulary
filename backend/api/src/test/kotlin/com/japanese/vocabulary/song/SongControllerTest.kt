@@ -714,6 +714,42 @@ class SongControllerTest : ApiBaseIntegrationTest() {
             assertThat(dto.wordSummary.defaultBulkAddCount).isEqualTo(1)
         }
 
+        @Test
+        fun `a comma-joined candidate meaning becomes one sense per meaning`() {
+            val me = newUser()
+            val song = newSong()
+            val wordCandidates = LyricWordCandidates(
+                candidates = listOf(candidate("愛", 99.0, 0, listOf(0), "N3", "NOUN", koreanText = "사랑, 애정")),
+                lineCandidates = mapOf("0" to listOf(0)),
+            )
+            newLyric(
+                song,
+                raw = listOf(LyricLineData(index = 0, startTimeMs = null, text = "愛の歌")),
+                wordCandidates = wordCandidates,
+            )
+            // 쪼갠 뜻 중 하나만 담긴 상태 — ALL 판정이라 아직 담긴 것으로 보지 않는다.
+            TestWordBuilder(entityManager)
+                .forUser(me)
+                .withJapaneseText("愛")
+                .withSenses(listOf(WordSense(meaning = "사랑", partOfSpeech = "NOUN")))
+                .build()
+            entityManager.flush()
+
+            val dto = readBody<WordsInSongDto>(mockMvc.get("/api/songs/${song.id}/words") {
+                header("Authorization", bearer(me))
+            }.andExpect { status { isOk() } }.andReturn().response.contentAsString)
+
+            val word = dto.words.single()
+            assertThat(word.senses.map { it.meaning }).containsExactly("사랑", "애정")
+            assertThat(word.addRequest.senses.map { it.meaning }).containsExactly("사랑", "애정")
+            assertThat(word.senses.map { it.examples.single().text }).containsOnly("愛の歌")
+            // 요약 표시용 뜻은 쪼개기 전 문자열 그대로다.
+            assertThat(word.koreanText).isEqualTo("사랑, 애정")
+            assertThat(word.isSavedGlobally).isTrue
+            assertThat(word.isSavedForSong).isFalse
+            assertThat(word.savedWordId).isNull()
+        }
+
         private fun candidate(
             japanese: String,
             score: Double,

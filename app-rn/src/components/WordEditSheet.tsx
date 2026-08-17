@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { Token } from '../types/song';
-import { WordSense } from '../types/word';
+import { WordSense, splitMeaningText } from '../types/word';
 import WordFormFields from './WordFormFields';
 import PosPickerList from './PosPickerList';
 import { wordApi } from '../api/wordApi';
@@ -43,14 +43,16 @@ export default function WordEditSheet({
 }: Props) {
   const { top: safeTop, bottom: safeBottom } = useSafeAreaInsets();
 
-  const buildInitialSenses = useCallback((source: Token | null): WordSense[] => [{
-    meaning: source?.koreanText ?? '',
-    partOfSpeech: source?.partOfSpeech ?? 'NOUN',
-    jlpt: null,
-    examples: lyricLine
+  // 곡이 준 뜻은 쉼표로 이어진 문자열 하나다 — 저장되는 모양 그대로 뜻마다 한 줄씩 편집하게 한다.
+  const buildInitialSenses = useCallback((source: Token | null): WordSense[] => {
+    const examples = lyricLine
       ? [{ text: lyricLine, translation: koreanLyricLine ?? null, songId, lineIndex: lyricLineIndex ?? null }]
-      : [],
-  }], [lyricLine, koreanLyricLine, songId, lyricLineIndex]);
+      : [];
+    const partOfSpeech = source?.partOfSpeech ?? 'NOUN';
+    const meanings = splitMeaningText(source?.koreanText);
+    if (meanings.length === 0) return [{ meaning: '', partOfSpeech, jlpt: null, examples }];
+    return meanings.map(meaning => ({ meaning, partOfSpeech, jlpt: null, examples }));
+  }, [lyricLine, koreanLyricLine, songId, lyricLineIndex]);
 
   const form = useWordForm(
     token?.baseFormReading ?? token?.reading ?? '',

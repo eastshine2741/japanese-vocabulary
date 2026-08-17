@@ -12,6 +12,7 @@ import com.japanese.vocabulary.song.repository.SongRepository
 import com.japanese.vocabulary.word.dto.AddWordRequest
 import com.japanese.vocabulary.word.model.SenseExample
 import com.japanese.vocabulary.word.model.WordSense
+import com.japanese.vocabulary.word.model.splitMeanings
 import com.japanese.vocabulary.word.repository.WordRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -96,7 +97,7 @@ class SongDetailQueryService(
             val candidates = group.map { it.value }
             val candidate = candidates.first()
             // candidate 하나가 뜻 하나다. 각 sense 는 자기 품사·JLPT 와, 자기가 등장한 가사 줄로 만든 예문을 갖는다.
-            val senses = candidates.mapNotNull { item ->
+            val candidateSenses = candidates.mapNotNull { item ->
                 item.koreanText
                     ?.takeIf { it.isNotBlank() }
                     ?.let { meaning ->
@@ -114,7 +115,10 @@ class SongDetailQueryService(
                             },
                         )
                     }
-            }.distinctBy { it.meaning }
+            }
+            // 분석이 준 뜻은 "사랑, 애정" 처럼 쉼표로 이어진 문자열 하나다. 조각마다 별개의 sense 로
+            // 쪼개야 담을 때도, 담겼는지 판정할 때도 뜻 단위가 된다.
+            val senses = candidateSenses.splitMeanings().distinctBy { it.meaning }
             val lineIndexes = candidates.flatMap { it.lineIndexes }.distinct().sorted()
             val saved = wordsByJapanese[candidate.japanese]
             // ALL 판정: 곡이 제시한 뜻이 전부 저장돼 있어야 담긴 것으로 본다. 비교는 이미 로드한 senses 로 메모리에서.
@@ -122,7 +126,8 @@ class SongDetailQueryService(
                 senses.isNotEmpty() &&
                 senses.all { required -> saved.senses.any { it.meaning == required.meaning } }
             val savedWordId = saved?.id?.takeIf { savedWithMeaning }
-            val primaryMeaning = senses.firstOrNull()?.meaning ?: candidate.koreanText
+            // 요약 표시용 뜻은 쪼개기 전 문자열이다 — 조각 하나만 보여주면 뜻이 잘려 보인다.
+            val primaryMeaning = candidateSenses.firstOrNull()?.meaning ?: candidate.koreanText
             WordInSongItemDto(
                 japanese = candidate.japanese,
                 surface = candidate.surface,

@@ -9,12 +9,10 @@ import {
 } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Feather } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import { WordSense } from '../types/word';
-import ArtworkImage from '../components/ArtworkImage';
+import { WordSense, splitMeaningText } from '../types/word';
 import WordFormFields from '../components/WordFormFields';
 import PosPickerList from '../components/PosPickerList';
 import { wordApi } from '../api/wordApi';
@@ -35,21 +33,23 @@ export default function EditWordScreen({ route, navigation }: Props) {
 
   const japaneseText = mode === 'edit' ? japanese! : token!.baseForm;
   const initialReadingValue = mode === 'edit' ? (initReading ?? '') : (token!.baseFormReading ?? token!.reading ?? '');
+  // 곡이 준 뜻은 쉼표로 이어진 문자열 하나다 — 저장되는 모양 그대로 뜻마다 한 줄씩 편집하게 한다.
   const initialSensesValue: WordSense[] = mode === 'edit'
     ? (initSenses ?? []).map(s => ({ ...s, examples: [...(s.examples ?? [])] }))
-    : [{
-        meaning: token!.koreanText ?? '',
-        partOfSpeech: token!.partOfSpeech ?? '명사',
-        jlpt: null,
-        examples: songId != null && lyricLine
+    : (() => {
+        const partOfSpeech = token!.partOfSpeech ?? '명사';
+        const examples = songId != null && lyricLine
           ? [{
               text: lyricLine,
               translation: koreanLyricLine ?? null,
               songId,
               lineIndex: lyricLineIndex ?? null,
             }]
-          : [],
-      }];
+          : [];
+        const meanings = splitMeaningText(token!.koreanText);
+        if (meanings.length === 0) return [{ meaning: '', partOfSpeech, jlpt: null, examples }];
+        return meanings.map(meaning => ({ meaning, partOfSpeech, jlpt: null, examples }));
+      })();
 
   const form = useWordForm(initialReadingValue, initialSensesValue);
 
@@ -179,42 +179,9 @@ export default function EditWordScreen({ route, navigation }: Props) {
             onOpenPosPicker={openPosPicker}
             onAddMeaning={form.addMeaning}
             shouldShowError={form.shouldShowError}
+            showExamples={mode === 'edit'}
+            onRemoveExample={form.removeExample}
           />
-
-          {/* Examples — 뜻마다 따로 쌓이므로 뜻 단위로 묶어서 보여준다. */}
-          {mode === 'edit' && form.senses.map((sense, senseIndex) => (
-            (sense.examples?.length ?? 0) > 0 && (
-              <View key={senseIndex} style={styles.section}>
-                <Text style={styles.sectionLabel}>{`예문 · ${sense.meaning}`}</Text>
-                {sense.examples!.map((ex, i) => (
-                  <View
-                    key={i}
-                    style={[
-                      styles.exampleRow,
-                      i < sense.examples!.length - 1 && styles.exampleRowBorder,
-                    ]}
-                  >
-                    <View style={styles.exampleContent}>
-                      <Text style={styles.exampleJp}>{ex.text}</Text>
-                      {ex.translation != null && <Text style={styles.exampleKr}>{ex.translation}</Text>}
-                      {ex.songTitle != null && (
-                        <View style={styles.exampleSongRow}>
-                          <ArtworkImage url={ex.artworkUrl ?? null} size={14} cornerRadius={3} />
-                          <Text style={styles.exampleSong}>{ex.songTitle}</Text>
-                        </View>
-                      )}
-                    </View>
-                    <TouchableOpacity
-                      onPress={() => form.removeExample(senseIndex, i)}
-                      hitSlop={8}
-                    >
-                      <Feather name="x" size={16} color={Colors.textMuted} />
-                    </TouchableOpacity>
-                  </View>
-                ))}
-              </View>
-            )
-          ))}
 
           {/* Save button */}
           <View style={styles.saveArea}>
@@ -288,45 +255,6 @@ const styles = StyleSheet.create({
   // Scroll content
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 24, paddingBottom: 20, gap: 32 },
-
-  // Sections (for examples)
-  section: { gap: 6 },
-  sectionLabel: { fontSize: 12, fontWeight: '500', color: Colors.textMuted },
-
-  // Examples
-  exampleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingVertical: 12,
-  },
-  exampleRowBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  exampleContent: {
-    flex: 1,
-    gap: 3,
-  },
-  exampleJp: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: Colors.textPrimary,
-  },
-  exampleKr: {
-    fontSize: 12,
-    color: Colors.textMuted,
-  },
-  exampleSongRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    marginTop: 2,
-  },
-  exampleSong: {
-    fontSize: 11,
-    color: Colors.textMuted,
-  },
 
   // Save
   saveArea: { paddingTop: 16, paddingBottom: 34 },
