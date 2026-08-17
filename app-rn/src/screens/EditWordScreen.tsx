@@ -181,23 +181,23 @@ export default function EditWordScreen({ route, navigation }: Props) {
             showExamples={mode === 'edit'}
             onRemoveExample={form.removeExample}
           />
-
-          {/* Save button */}
-          <View style={styles.saveArea}>
-            <TouchableOpacity
-              style={[styles.saveBtn, !canSave && styles.saveBtnDisabled]}
-              onPress={handleSavePress}
-              disabled={!canSave}
-              activeOpacity={0.7}
-            >
-              {saving ? (
-                <ActivityIndicator color="#FFF" size="small" />
-              ) : (
-                <Text style={[styles.saveBtnText, !canSave && styles.saveBtnTextDisabled]}>저장</Text>
-              )}
-            </TouchableOpacity>
-          </View>
         </KeyboardAwareScrollView>
+
+        {/* Save button — 스크롤과 분리된 하단 고정 영역 */}
+        <View style={styles.saveArea}>
+          <TouchableOpacity
+            style={[styles.saveBtn, !canSave && styles.saveBtnDisabled]}
+            onPress={handleSavePress}
+            disabled={!canSave}
+            activeOpacity={0.8}
+          >
+            {saving ? (
+              <ActivityIndicator color="#FFF" size="small" />
+            ) : (
+              <Text style={[styles.saveBtnText, !canSave && styles.saveBtnTextDisabled]}>저장</Text>
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* POS Picker Bottom Sheet */}
@@ -256,17 +256,22 @@ const styles = StyleSheet.create({
   scrollContent: { paddingHorizontal: 24, paddingBottom: 20, gap: 32 },
 
   // Save
-  saveArea: { paddingTop: 16, paddingBottom: 34 },
+  saveArea: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 20 },
   saveBtn: {
-    height: 52,
-    borderRadius: 26,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: Colors.primaryShadow,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 1,
+    shadowRadius: 2,
+    elevation: 2,
   },
-  saveBtnDisabled: { backgroundColor: Colors.elevated },
-  saveBtnText: { fontSize: 16, fontWeight: '600', color: '#FFFFFF' },
-  saveBtnTextDisabled: { fontSize: 16, fontWeight: '600', color: Colors.textMuted },
+  saveBtnDisabled: { backgroundColor: Colors.elevated, shadowOpacity: 0, elevation: 0 },
+  saveBtnText: { fontSize: 14, fontWeight: '600', color: '#FFFFFF' },
+  saveBtnTextDisabled: { fontSize: 14, fontWeight: '600', color: Colors.textMuted },
 
   // POS Picker
   pickerSheetBg: {

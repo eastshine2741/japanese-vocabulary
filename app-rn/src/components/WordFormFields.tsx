@@ -53,18 +53,20 @@ export default function WordFormFields({
         />
       </View>
 
-      {/* Meanings */}
-      <View style={styles.section}>
+      {/* Meanings — 뜻마다 번호 배지를 달고, 그 뜻의 예문을 바로 아래에 들여쓴다. */}
+      <View style={styles.meanSection}>
         <Text style={styles.sectionLabel}>뜻</Text>
         {senses.map((m, i) => {
           const posColor = getPosColor(m.partOfSpeech);
           const showError = shouldShowError(i);
           const examples = m.examples ?? [];
-          // 구분선은 앞 뜻이 예문을 달고 있을 때만 — 그때만 뜻 경계가 헷갈린다.
-          const needsDivider = showExamples && i > 0 && (senses[i - 1].examples?.length ?? 0) > 0;
           return (
-            <View key={i} style={[styles.senseBlock, needsDivider && styles.senseBlockDivider]}>
+            <View key={i}>
               <View style={styles.meaningRow}>
+                <View style={styles.numBadge}>
+                  <Text style={styles.numBadgeText}>{i + 1}</Text>
+                </View>
+
                 <TouchableOpacity
                   style={[styles.posChip, { backgroundColor: posColor + '20' }]}
                   onPress={() => onOpenPosPicker(i)}
@@ -91,6 +93,7 @@ export default function WordFormFields({
                   <Feather name="x" size={16} color={senses.length <= 1 ? Colors.border : Colors.textMuted} />
                 </TouchableOpacity>
               </View>
+
               {showError && (
                 <View style={styles.errorRow}>
                   <View style={[styles.posChip, { opacity: 0 }]}>
@@ -103,11 +106,10 @@ export default function WordFormFields({
 
               {showExamples && examples.length > 0 && (
                 <View style={styles.exampleList}>
-                  <Text style={styles.exampleLabel}>예문</Text>
                   {examples.map((ex, j) => (
                     <View key={j} style={styles.exampleRow}>
                       <View style={styles.exampleContent}>
-                        <Text style={styles.exampleJp}>{ex.text}</Text>
+                        <Text style={styles.exampleJp}>{`― ${ex.text}`}</Text>
                         {ex.translation != null && <Text style={styles.exampleKr}>{ex.translation}</Text>}
                         {ex.songTitle != null && (
                           <View style={styles.exampleSongRow}>
@@ -137,7 +139,7 @@ export default function WordFormFields({
 }
 
 const styles = StyleSheet.create({
-  jpArea: { alignItems: 'flex-start', paddingTop: 24, paddingBottom: 8 },
+  jpArea: { alignItems: 'center', gap: 6, paddingTop: 24, paddingBottom: 8 },
   jpText: { fontSize: 40, fontWeight: '800', color: Colors.textPrimary, letterSpacing: -1 },
 
   section: { gap: 6 },
@@ -152,13 +154,7 @@ const styles = StyleSheet.create({
     paddingTop: 0,
   },
 
-  senseBlock: { paddingBottom: 4 },
-  senseBlockDivider: {
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
-    marginTop: 14,
-    paddingTop: 6,
-  },
+  meanSection: { gap: 20 },
 
   meaningRow: {
     flexDirection: 'row',
@@ -166,6 +162,15 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingVertical: 8,
   },
+  numBadge: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#F6F6F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  numBadgeText: { fontSize: 12, fontWeight: '700', color: Colors.textSecondary },
   posChip: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -183,7 +188,7 @@ const styles = StyleSheet.create({
     paddingBottom: 6,
     paddingTop: 6,
   },
-  meaningInputError: { borderBottomColor: '#EF4444' },
+  meaningInputError: { borderBottomColor: Colors.accentRed },
   meaningInput: {
     fontSize: 17,
     color: Colors.textPrimary,
@@ -193,15 +198,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+    paddingLeft: 30,
   },
-  errorText: { fontSize: 12, color: '#EF4444' },
+  errorText: { fontSize: 12, color: Colors.accentRed },
 
   exampleList: {
-    marginTop: 2,
-    paddingLeft: 12,
-    gap: 10,
+    gap: 16,
+    paddingTop: 4,
+    paddingBottom: 4,
+    paddingLeft: 34,
   },
-  exampleLabel: { fontSize: 11, fontWeight: '500', color: Colors.textMuted },
   exampleRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -214,7 +220,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    marginTop: 2,
+    paddingTop: 2,
   },
   exampleSong: { fontSize: 11, color: Colors.textMuted },
 
