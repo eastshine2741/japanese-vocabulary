@@ -29,7 +29,12 @@ guardrails for deterministic checks and transformations.
    validates line indices.
 2. `SegmentLyricsStage`: calls Gemini for segmentation/lemmatization, then
    `SegmentAnchoringValidator` checks that token surfaces cover the original
-   Japanese text in order. Segmentation is retried on validation failure.
+   Japanese text in order. Validation is per line: the validator returns anchored
+   tokens for the lines that passed plus a reason per failing line, and the stage
+   retries **only the failing lines** with that line's own error attached. Lines
+   that already anchored are kept, so one bad line neither discards the rest nor
+   lets a correct line regress on a later attempt. The stage throws only if some
+   line is still invalid after `MAX_SEGMENTATION_ATTEMPTS`.
 3. `ApplyRuleMeaningsStage`: rewrites and resolves deterministic grammar tokens
    through `RuleMeaningProvider`.
 4. `ResolveLexicalSensesStage`: sends unresolved Japanese tokens to

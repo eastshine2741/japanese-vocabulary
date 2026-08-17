@@ -2,6 +2,7 @@ package com.japanese.vocabulary.translation.service.pipeline
 
 import com.japanese.vocabulary.translation.client.gemini.dto.SegLineDto
 import com.japanese.vocabulary.translation.model.PipelineToken
+import com.japanese.vocabulary.translation.model.SegmentAnchoringResult
 import org.springframework.stereotype.Component
 
 class SegmentationValidationException(message: String) : RuntimeException(message)
@@ -9,14 +10,40 @@ class SegmentationValidationException(message: String) : RuntimeException(messag
 @Component
 class SegmentAnchoringValidator {
 
-    fun validate(rawByIndex: Map<Int, String>, segmentedLines: List<SegLineDto>): Map<Int, List<PipelineToken>> {
-        validateLineIndices(rawByIndex.keys, segmentedLines)
-        val segmentedByIndex = segmentedLines.associateBy { it.index }
-        return rawByIndex.mapValues { (index, rawText) ->
-            val line = segmentedByIndex[index]
-                ?: throw SegmentationValidationException("Missing segmented line for index=$index")
-            anchorLine(index, rawText, line)
+    /**
+     * Anchors each requested line in [rawByIndex] against the segmentation response. Never throws for
+     * a bad line — the caller decides which lines to retry. Lines present in the response but not
+     * requested are ignored.
+     */
+    fun anchor(rawByIndex: Map<Int, String>, segmentedLines: List<SegLineDto>): SegmentAnchoringResult {
+        val anchoredByIndex = mutableMapOf<Int, List<PipelineToken>>()
+        val failuresByIndex = mutableMapOf<Int, String>()
+        val seenIndices = mutableSetOf<Int>()
+
+        segmentedLines.forEach { line ->
+            val rawText = rawByIndex[line.index] ?: return@forEach
+            if (!seenIndices.add(line.index)) {
+                anchoredByIndex.remove(line.index)
+                failuresByIndex[line.index] = "Duplicate line index=${line.index} in segmentation response"
+                return@forEach
+            }
+            try {
+                anchoredByIndex[line.index] = anchorLine(line.index, rawText, line)
+            } catch (e: SegmentationValidationException) {
+                failuresByIndex[line.index] = e.message ?: "Segmentation validation failed at line index=${line.index}"
+            }
         }
+
+        rawByIndex.keys.forEach { index ->
+            if (index !in seenIndices) {
+                failuresByIndex[index] = "Missing segmented line for index=$index"
+            }
+        }
+
+        return SegmentAnchoringResult(
+            anchoredByIndex = anchoredByIndex,
+            failuresByIndex = failuresByIndex,
+        )
     }
 
     private fun anchorLine(index: Int, rawText: String, line: SegLineDto): List<PipelineToken> {
@@ -53,19 +80,4 @@ class SegmentAnchoringValidator {
         }
         return tokens
     }
-
-    private fun validateLineIndices(expectedIndices: Set<Int>, segmentedLines: List<SegLineDto>) {
-        val actualIndices = segmentedLines.map { it.index }
-        val duplicated = actualIndices.groupingBy { it }.eachCount().filterValues { it > 1 }.keys
-        if (duplicated.isNotEmpty()) {
-            throw SegmentationValidationException("Segmentation returned duplicate line indices: $duplicated")
-        }
-        val actualSet = actualIndices.toSet()
-        if (actualSet != expectedIndices) {
-            throw SegmentationValidationException(
-                "Segmentation line indices mismatch: expected=$expectedIndices actual=$actualSet",
-            )
-        }
-    }
-
 }

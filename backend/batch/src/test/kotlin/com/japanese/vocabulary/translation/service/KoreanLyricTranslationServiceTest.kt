@@ -322,6 +322,49 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
     }
 
     @Test
+    fun `retry re-sends only the invalid line and keeps the already valid one`(): Unit = runBlocking {
+        val lyric = seedLyric(listOf("猫が寝る", "目を開けたなら yay"))
+        val segmentInputs = mutableListOf<List<Map<String, Any?>>>()
+
+        every { geminiClient.translateLyrics(any()) } returns listOf(
+            TranslationResultDto(0, "고양이가 잔다", "네코가 네루"),
+            TranslationResultDto(1, "눈을 떴다면 yay", "메오 아케타나라 야이"),
+        )
+        every { geminiClient.segmentAndLemmatize(capture(segmentInputs)) } returnsMany listOf(
+            listOf(
+                SegLineDto(0, listOf(SegWordDto("猫", "猫"), SegWordDto("が", "が"), SegWordDto("寝る", "寝る"))),
+                SegLineDto(1, listOf(SegWordDto("目", "目"), SegWordDto("を", "を"), SegWordDto("明け", "開ける"))),
+            ),
+            listOf(
+                SegLineDto(
+                    1,
+                    listOf(
+                        SegWordDto("目", "目"),
+                        SegWordDto("を", "を"),
+                        SegWordDto("開け", "開ける"),
+                        SegWordDto("た", "た"),
+                        SegWordDto("なら", "なら"),
+                    ),
+                ),
+            ),
+        )
+        coEvery { jishoService.lookupAll(any()) } answers {
+            firstArg<List<String>>().associateWith { exactEntry(it) }
+        }
+        stubSenseSelectAndTranslate()
+
+        val lines = translationService.runPipeline(lyric)
+
+        verify(exactly = 2) { geminiClient.segmentAndLemmatize(any()) }
+        assertThat(segmentInputs[0].map { it["index"] }).containsExactly(0, 1)
+        assertThat(segmentInputs[1].map { it["index"] }).containsExactly(1)
+        assertThat(segmentInputs[1].single()["previousValidationError"])
+            .isEqualTo("Surface '明け' is not present in order at line index=1")
+        assertThat(lines[0].tokens.map { it.surface }).containsExactly("猫", "が", "寝る")
+        assertThat(lines[1].tokens.map { it.surface }).containsExactly("目", "を", "開け", "た", "なら")
+    }
+
+    @Test
     fun `segmentation invalid through max retry throws`() {
         val lyric = seedLyric(listOf("目を開けたなら yay"))
 
