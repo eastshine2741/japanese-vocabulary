@@ -22,6 +22,7 @@ cd app-rn && npx expo start --web             # App - Web (dev)
 
 ### Detailed Docs
 
+- Feature development workflow (기획 -> 디자인 -> 개발 -> QA): `docs/workflow/feature-development.md`
 - Backend module boundaries: `docs/architecture/backend-modules.md`
 - Song analysis and word-meaning pipeline: `docs/architecture/song-analysis.md`
 - Translation pipeline guardrails: `docs/translation-pipeline.md`
