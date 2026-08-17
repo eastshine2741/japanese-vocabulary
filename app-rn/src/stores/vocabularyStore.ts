@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { wordApi } from '../api/wordApi';
-import { AddWordRequest, WordDetailResponse, WordListItem, splitMeaningText } from '../types/word';
+import { AddWordRequest, WordDetailResponse, WordListItem, sensesFromMeaningText } from '../types/word';
 import { Token } from '../types/song';
 
 type AddStatus = 'idle' | 'loading' | 'success' | 'error';
@@ -82,18 +82,13 @@ export const useVocabularyStore = create<VocabularyState>((set, get) => ({
       const res = await wordApi.addWord({
         japanese: token.baseForm,
         reading: token.baseFormReading ?? token.reading ?? '',
-        // 토큰의 뜻은 쉼표로 이어진 문자열 하나다 — 조각마다 sense 를 만들고 예문은 모두가 공유한다.
-        senses: splitMeaningText(token.koreanText).map(meaning => ({
-          meaning,
-          partOfSpeech: token.partOfSpeech,
-          jlpt: null,
-          examples: [{
-            text: lyricLine,
-            translation: koreanLyricLine ?? null,
-            songId,
-            lineIndex: lyricLineIndex ?? null,
-          }],
-        })),
+        // 토큰의 뜻은 쉼표로 이어진 문자열 하나다 — 조각마다 sense 를 만들고, 예문은 첫 조각만 갖는다.
+        senses: sensesFromMeaningText(token.koreanText, token.partOfSpeech, [{
+          text: lyricLine,
+          translation: koreanLyricLine ?? null,
+          songId,
+          lineIndex: lyricLineIndex ?? null,
+        }]),
         songId,
       });
       set({ addStatus: 'success', addedId: res.id });

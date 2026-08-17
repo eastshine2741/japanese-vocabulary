@@ -94,6 +94,23 @@ export function splitMeaningText(meaning: string | null | undefined): string[] {
   return [...new Set(parts.map(p => p.trim()).filter(p => p !== ''))];
 }
 
+/**
+ * 곡이 준 뜻 문자열을 sense 배열로 만든다. **예문은 첫 뜻만** 갖는다 — 그 가사 줄이 어느 뜻으로
+ * 쓰였는지 모르는 채 복제하면 예문 목록에 같은 줄이 반복된다. 서버 `WordSense.splitMeanings` 와 같은 규칙.
+ */
+export function sensesFromMeaningText(
+  meaning: string | null | undefined,
+  partOfSpeech: string,
+  examples: SenseExample[],
+): WordSense[] {
+  return splitMeaningText(meaning).map((m, i) => ({
+    meaning: m,
+    partOfSpeech,
+    jlpt: null,
+    examples: i === 0 ? examples : [],
+  }));
+}
+
 /** 여러 뜻을 한 줄로 요약할 때 쓰는 공통 헬퍼. */
 export function joinMeanings(senses: WordSense[] | undefined): string {
   return (senses ?? []).map(s => s.meaning).filter(Boolean).join(', ');

@@ -270,9 +270,10 @@ class WordControllerTest : ApiBaseIntegrationTest() {
             entityManager.flush(); entityManager.clear()
             val word = wordRepository.findByUserIdAndJapaneseText(me.id!!, "愛")!!
             assertThat(word.senses.map { it.meaning }).containsExactly("사랑", "애정")
-            // 쪼갠 뜻은 원래 sense 의 품사·JLPT·예문을 그대로 물려받는다.
             assertThat(word.senses.map { it.jlpt }).containsOnly("N3")
-            assertThat(word.senses.map { it.examples.single().text }).containsOnly("愛の歌")
+            // 예문은 첫 조각만 갖는다 — 어느 뜻으로 쓰인 줄인지 모르는 채 복제하지 않는다.
+            assertThat(word.senses[0].examples.map { it.text }).containsExactly("愛の歌")
+            assertThat(word.senses[1].examples).isEmpty()
         }
 
         @Test
@@ -302,7 +303,8 @@ class WordControllerTest : ApiBaseIntegrationTest() {
             val bySense = word.senses.associateBy { it.meaning }
             assertThat(word.senses.map { it.meaning }).containsExactly("사랑", "애정")
             assertThat(bySense.getValue("사랑").examples.map { it.text }).containsExactly("愛の歌", "愛してる")
-            assertThat(bySense.getValue("애정").examples.map { it.text }).containsExactly("愛してる")
+            // 새로 생긴 뒷 조각은 예문 없이 시작한다 — 나중에 그 뜻으로 담길 때 자기 예문을 갖는다.
+            assertThat(bySense.getValue("애정").examples).isEmpty()
         }
 
         @Test

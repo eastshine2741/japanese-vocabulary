@@ -12,7 +12,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import { WordSense, splitMeaningText } from '../types/word';
+import { WordSense, sensesFromMeaningText } from '../types/word';
 import WordFormFields from '../components/WordFormFields';
 import PosPickerList from '../components/PosPickerList';
 import { wordApi } from '../api/wordApi';
@@ -46,9 +46,8 @@ export default function EditWordScreen({ route, navigation }: Props) {
               lineIndex: lyricLineIndex ?? null,
             }]
           : [];
-        const meanings = splitMeaningText(token!.koreanText);
-        if (meanings.length === 0) return [{ meaning: '', partOfSpeech, jlpt: null, examples }];
-        return meanings.map(meaning => ({ meaning, partOfSpeech, jlpt: null, examples }));
+        const senses = sensesFromMeaningText(token!.koreanText, partOfSpeech, examples);
+        return senses.length > 0 ? senses : [{ meaning: '', partOfSpeech, jlpt: null, examples }];
       })();
 
   const form = useWordForm(initialReadingValue, initialSensesValue);

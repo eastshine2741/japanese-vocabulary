@@ -34,7 +34,7 @@ import { usePlayerStore } from '../stores/playerStore';
 import { wordApi } from '../api/wordApi';
 import { deckApi } from '../api/deckApi';
 import { StudyUnit } from '../types/song';
-import { AddWordRequest, splitMeaningText } from '../types/word';
+import { AddWordRequest, sensesFromMeaningText } from '../types/word';
 import { getPosSpotlightColor } from '../types/pos';
 import { Dimens } from '../theme/theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -60,18 +60,13 @@ function buildDefaultWords(studyUnits: StudyUnit[], songId: number): AddWordRequ
       map.set(token.baseForm, {
         japanese: token.baseForm,
         reading: token.baseFormReading ?? token.reading ?? '',
-        // 토큰의 뜻은 쉼표로 이어진 문자열 하나다 — 조각마다 sense 를 만든다.
-        senses: splitMeaningText(token.koreanText).map(meaning => ({
-          meaning,
-          partOfSpeech: token.partOfSpeech,
-          jlpt: null,
-          examples: [{
-            text: unit.originalText,
-            translation: unit.koreanLyrics ?? null,
-            songId,
-            lineIndex: unit.index,
-          }],
-        })),
+        // 토큰의 뜻은 쉼표로 이어진 문자열 하나다 — 조각마다 sense 를 만들고, 예문은 첫 조각만 갖는다.
+        senses: sensesFromMeaningText(token.koreanText, token.partOfSpeech, [{
+          text: unit.originalText,
+          translation: unit.koreanLyrics ?? null,
+          songId,
+          lineIndex: unit.index,
+        }]),
         songId,
       });
     }

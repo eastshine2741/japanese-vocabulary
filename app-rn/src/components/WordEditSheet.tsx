@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { Token } from '../types/song';
-import { WordSense, splitMeaningText } from '../types/word';
+import { WordSense, sensesFromMeaningText } from '../types/word';
 import WordFormFields from './WordFormFields';
 import PosPickerList from './PosPickerList';
 import { wordApi } from '../api/wordApi';
@@ -49,9 +49,8 @@ export default function WordEditSheet({
       ? [{ text: lyricLine, translation: koreanLyricLine ?? null, songId, lineIndex: lyricLineIndex ?? null }]
       : [];
     const partOfSpeech = source?.partOfSpeech ?? 'NOUN';
-    const meanings = splitMeaningText(source?.koreanText);
-    if (meanings.length === 0) return [{ meaning: '', partOfSpeech, jlpt: null, examples }];
-    return meanings.map(meaning => ({ meaning, partOfSpeech, jlpt: null, examples }));
+    const senses = sensesFromMeaningText(source?.koreanText, partOfSpeech, examples);
+    return senses.length > 0 ? senses : [{ meaning: '', partOfSpeech, jlpt: null, examples }];
   }, [lyricLine, koreanLyricLine, songId, lyricLineIndex]);
 
   const form = useWordForm(

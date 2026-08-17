@@ -22,9 +22,17 @@ fun splitMeaningText(meaning: String): List<String> {
     return parts.map { it.trim() }.filter { it.isNotEmpty() }.distinct()
 }
 
-/** 쪼갠 뜻 각각이 원래 sense 의 품사·JLPT·예문을 그대로 물려받는다. */
+/**
+ * 쪼갠 뜻 각각이 원래 sense 의 품사·JLPT 를 물려받는다. **예문은 첫 조각만** 갖는다.
+ *
+ * 그 가사 줄이 "사랑" 으로 쓰인 건지 "애정" 으로 쓰인 건지 우리는 모른다. 모르는 채로 양쪽에
+ * 복제하면 예문 목록에 같은 줄이 조각 수만큼 반복되고 sense 당 예문 상한도 그 중복이 먹는다.
+ * 뒷 조각은 예문 없이 시작해서, 나중에 그 뜻으로 담길 때 자기 예문을 갖는다.
+ */
 fun WordSense.splitMeanings(): List<WordSense> =
-    splitMeaningText(meaning).map { copy(meaning = it) }
+    splitMeaningText(meaning).mapIndexed { index, part ->
+        copy(meaning = part, examples = if (index == 0) examples else emptyList())
+    }
 
 fun List<WordSense>.splitMeanings(): List<WordSense> = flatMap { it.splitMeanings() }
 

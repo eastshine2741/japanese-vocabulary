@@ -117,8 +117,13 @@ class SongDetailQueryService(
                     }
             }
             // 분석이 준 뜻은 "사랑, 애정" 처럼 쉼표로 이어진 문자열 하나다. 조각마다 별개의 sense 로
-            // 쪼개야 담을 때도, 담겼는지 판정할 때도 뜻 단위가 된다.
-            val senses = candidateSenses.splitMeanings().distinctBy { it.meaning }
+            // 쪼개야 담을 때도, 담겼는지 판정할 때도 뜻 단위가 된다. 예문은 첫 조각만 갖는다.
+            // 같은 뜻이 여러 candidate 에서 나오면 하나로 합친다 — 예문을 가진 쪽이 버려지면 안 된다.
+            val senses = candidateSenses.splitMeanings()
+                .groupBy { it.meaning }
+                .map { (_, sameMeaning) ->
+                    sameMeaning.first().copy(examples = sameMeaning.flatMap { it.examples }.distinct())
+                }
             val lineIndexes = candidates.flatMap { it.lineIndexes }.distinct().sorted()
             val saved = wordsByJapanese[candidate.japanese]
             // ALL 판정: 곡이 제시한 뜻이 전부 저장돼 있어야 담긴 것으로 본다. 비교는 이미 로드한 senses 로 메모리에서.

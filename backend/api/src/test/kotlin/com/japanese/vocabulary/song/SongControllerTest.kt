@@ -742,12 +742,46 @@ class SongControllerTest : ApiBaseIntegrationTest() {
             val word = dto.words.single()
             assertThat(word.senses.map { it.meaning }).containsExactly("사랑", "애정")
             assertThat(word.addRequest.senses.map { it.meaning }).containsExactly("사랑", "애정")
-            assertThat(word.senses.map { it.examples.single().text }).containsOnly("愛の歌")
+            // 예문은 첫 조각만 갖는다 — 같은 가사 줄이 뜻마다 반복되면 안 된다.
+            assertThat(word.senses[0].examples.map { it.text }).containsExactly("愛の歌")
+            assertThat(word.senses[1].examples).isEmpty()
             // 요약 표시용 뜻은 쪼개기 전 문자열 그대로다.
             assertThat(word.koreanText).isEqualTo("사랑, 애정")
             assertThat(word.isSavedGlobally).isTrue
             assertThat(word.isSavedForSong).isFalse
             assertThat(word.savedWordId).isNull()
+        }
+
+        @Test
+        fun `a meaning that also appears alone keeps the example of its own candidate`() {
+            val me = newUser()
+            val song = newSong()
+            val wordCandidates = LyricWordCandidates(
+                candidates = listOf(
+                    candidate("愛", 99.0, 0, listOf(0), "N3", "NOUN", koreanText = "사랑, 애정"),
+                    candidate("愛", 90.0, 1, listOf(1), "N3", "NOUN", koreanText = "애정"),
+                ),
+                lineCandidates = mapOf("0" to listOf(0), "1" to listOf(1)),
+            )
+            newLyric(
+                song,
+                raw = listOf(
+                    LyricLineData(index = 0, startTimeMs = null, text = "愛の歌"),
+                    LyricLineData(index = 1, startTimeMs = null, text = "愛してる"),
+                ),
+                wordCandidates = wordCandidates,
+            )
+            entityManager.flush()
+
+            val dto = readBody<WordsInSongDto>(mockMvc.get("/api/songs/${song.id}/words") {
+                header("Authorization", bearer(me))
+            }.andExpect { status { isOk() } }.andReturn().response.contentAsString)
+
+            val word = dto.words.single()
+            assertThat(word.senses.map { it.meaning }).containsExactly("사랑", "애정")
+            assertThat(word.senses[0].examples.map { it.text }).containsExactly("愛の歌")
+            // "애정" 은 쪼개진 쪽에선 예문이 없지만 자기 candidate 의 예문은 살아 있어야 한다.
+            assertThat(word.senses[1].examples.map { it.text }).containsExactly("愛してる")
         }
 
         private fun candidate(

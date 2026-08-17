@@ -28,7 +28,7 @@ class MeaningSplitTest {
     }
 
     @Test
-    fun `each split meaning inherits the part of speech, jlpt and examples`() {
+    fun `each split meaning inherits the part of speech and jlpt, but only the first keeps the examples`() {
         val sense = WordSense(
             meaning = "무겁다, 묵직하다",
             partOfSpeech = "ADJECTIVE",
@@ -36,9 +36,21 @@ class MeaningSplitTest {
             examples = listOf(SenseExample(text = "重い荷物", translation = null, songId = 1, lineIndex = 0)),
         )
 
+        // 그 가사 줄이 어느 뜻으로 쓰였는지 모른다 — 뒷 조각에 복제하지 않고 비워 둔다.
         assertThat(sense.splitMeanings()).containsExactly(
             sense.copy(meaning = "무겁다"),
-            sense.copy(meaning = "묵직하다"),
+            sense.copy(meaning = "묵직하다", examples = emptyList()),
         )
+    }
+
+    @Test
+    fun `a single meaning keeps its examples`() {
+        val sense = WordSense(
+            meaning = "무겁다",
+            partOfSpeech = "ADJECTIVE",
+            examples = listOf(SenseExample(text = "重い荷物", translation = null, songId = 1, lineIndex = 0)),
+        )
+
+        assertThat(sense.splitMeanings()).containsExactly(sense)
     }
 }
