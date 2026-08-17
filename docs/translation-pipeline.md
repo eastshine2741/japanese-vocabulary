@@ -40,9 +40,10 @@ guardrails for deterministic checks and transformations.
 4. `ResolveLexicalSensesStage`: sends unresolved Japanese tokens to
    `LexicalResolver`, which performs Jisho lookup and i-adjective normalization.
 5. `SelectSensesStage`: builds context input from lyric translation plus Jisho
-   senses and asks Gemini to choose sense IDs only.
+   senses and asks Gemini to choose sense IDs only. Sent in chunks of
+   `SELECT_CHUNK_LINES` lines.
 6. `TranslateSensesStage`: translates chosen senses to Korean using
-   `SenseTranslationPreparer`.
+   `SenseTranslationPreparer`. Sent in chunks of `TRANSLATE_CHUNK_SENSES` senses.
 7. `AssembleAnalyzedLinesStage`: creates final `AnalyzedLine` and `Token`
    objects from rule results, selected senses, and sense translations.
 
@@ -55,6 +56,30 @@ translate lyrics
         /
 segment -> surface check -> rules -> jisho/i-adjective normalize
 ```
+
+## Response Length Guardrails
+
+Response length scaled with song length, and past a point the model stopped
+mid-array: it returned valid JSON holding only the first N lines, which surfaced
+as a downstream "line indices mismatch". Three code-level guards:
+
+- `ChunkedGeminiCall.flatMap` splits sense-select and sense-translation into
+  fixed-size chunks and concatenates the responses in input order, so no single
+  response has to carry a whole song. Chunk sizes live on the stages
+  (`SelectSensesStage.SELECT_CHUNK_LINES`,
+  `TranslateSensesStage.TRANSLATE_CHUNK_SENSES`).
+- The sense-select response carries only `{tokenId, senseId}` per word.
+  `tokenId` is `lineIndex:charStart:charEnd:surface`, so matching it already pins
+  the token identity — echoing `surface`/`dictionaryForm` only doubled the output.
+- `GeminiResponseGuard.verifyComplete` rejects any response whose
+  `finishReason` is not `STOP`, naming the reason and token counts instead of
+  letting a truncated response look like a bad line index. Set
+  `gemini.max-output-tokens` to raise the cap explicitly; unset (`0`) sends no
+  `maxOutputTokens` and uses the model default.
+
+`TranslateSensesStage` is chunked for a different failure than sense-select: a
+short response there does not throw, it silently leaves `koreanText` null for the
+senses that never came back.
 
 ## Package Layout
 

@@ -6,6 +6,7 @@ import com.japanese.vocabulary.translation.model.PipelineSenseOption
 import com.japanese.vocabulary.translation.model.PipelineToken
 import com.japanese.vocabulary.translation.model.PipelineTokenKey
 import com.japanese.vocabulary.translation.model.SenseSelectionStageInput
+import com.japanese.vocabulary.translation.service.pipeline.ChunkedGeminiCall
 import com.japanese.vocabulary.translation.service.pipeline.JapaneseText
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
@@ -45,7 +46,9 @@ class SelectSensesStage(
         }
         if (selectInput.isEmpty()) return emptyMap()
 
-        val selectedLines = geminiClient.selectSenses(selectInput)
+        val selectedLines = ChunkedGeminiCall.flatMap(selectInput, SELECT_CHUNK_LINES) {
+            geminiClient.selectSenses(it)
+        }
         val selectByIndex = validateLineIndices(selectableTokensByIndex.keys, selectedLines)
         return selectedSenseByKey(selectableTokensByIndex, selectByIndex, input)
     }
@@ -92,10 +95,11 @@ class SelectSensesStage(
                 val selected = selectedWords.getOrNull(i)
                 val resolved = lexical.byTokenKey[token.key]
                 val selectedSenseId = selected?.senseId ?: -1
+                // tokenId is lineIndex:charStart:charEnd:surface, so matching it pins the token
+                // identity — no surface/dictionaryForm echo needed.
                 val valid = selected != null &&
                     selected.tokenId == token.key.tokenId &&
-                    selected.surface == token.surface &&
-                    selected.dictionaryForm == resolved?.baseForm &&
+                    resolved != null &&
                     resolved.options.any { it.senseId == selectedSenseId }
                 if (!valid && selected != null) {
                     logger.warn(
@@ -126,5 +130,10 @@ class SelectSensesStage(
             )
         }
         return selectedLines.associateBy { it.index }
+    }
+
+    companion object {
+        /** Lines per sense-select call. Bounds response length so long songs cannot stop mid-array. */
+        const val SELECT_CHUNK_LINES = 20
     }
 }

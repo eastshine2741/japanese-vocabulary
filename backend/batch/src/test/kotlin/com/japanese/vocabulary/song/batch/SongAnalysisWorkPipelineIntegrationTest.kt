@@ -376,8 +376,6 @@ class SongAnalysisWorkPipelineIntegrationTest : BatchBaseIntegrationTest() {
                         @Suppress("UNCHECKED_CAST")
                         val senses = segment["senses"] as List<Map<String, Any?>>
                         SelectWordDto(
-                            surface = segment["surface"] as String,
-                            dictionaryForm = segment["dictionaryForm"] as String,
                             senseId = senses.first()["senseId"] as Int,
                             tokenId = segment["tokenId"] as String,
                         )

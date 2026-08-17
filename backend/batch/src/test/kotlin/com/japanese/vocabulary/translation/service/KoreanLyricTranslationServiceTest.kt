@@ -10,6 +10,7 @@ import com.japanese.vocabulary.translation.client.jisho.dto.JishoEntryDto
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoLookupProvenance
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoOptionDto
 import com.japanese.vocabulary.translation.service.pipeline.stage.SegmentLyricsStage
+import com.japanese.vocabulary.translation.service.pipeline.stage.SelectSensesStage
 import com.japanese.vocabulary.song.batch.SongAnalysisWorkCompletionService
 import com.japanese.vocabulary.song.entity.LyricEntity
 import com.japanese.vocabulary.song.entity.LyricType
@@ -135,8 +136,6 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
                     val senses = seg["senses"] as List<Map<String, Any?>>
                     val sid = senses.firstOrNull()?.get("senseId") as? Int ?: -1
                     SelectWordDto(
-                        surface = seg["surface"] as String,
-                        dictionaryForm = seg["dictionaryForm"] as String,
                         senseId = sid,
                         tokenId = seg["tokenId"] as String,
                     )
@@ -423,8 +422,6 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
                         @Suppress("UNCHECKED_CAST")
                         val senses = it["senses"] as List<Map<String, Any?>>
                         SelectWordDto(
-                            surface = it["surface"] as String,
-                            dictionaryForm = it["dictionaryForm"] as String,
                             senseId = senses.first()["senseId"] as Int,
                             tokenId = it["tokenId"] as String,
                         )
@@ -574,14 +571,10 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
                     0,
                     listOf(
                         SelectWordDto(
-                            surface = "猫",
-                            dictionaryForm = "猫",
                             senseId = catSenses.first()["senseId"] as Int,
                             tokenId = segments[0]["tokenId"] as String,
                         ),
                         SelectWordDto(
-                            surface = "犬",
-                            dictionaryForm = "犬",
                             senseId = catSenses.first()["senseId"] as Int,
                             tokenId = segments[1]["tokenId"] as String,
                         ),
@@ -603,6 +596,30 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
         assertThat(cat.koreanText).isEqualTo("고양이")
         assertThat(dog.koreanText).isNull()
         assertThat(dog.reading).isNull()
+    }
+
+    @Test
+    fun `sense-select splits a long song into chunks instead of one call`(): Unit = runBlocking {
+        val lineCount = SelectSensesStage.SELECT_CHUNK_LINES + 5
+        val lyric = seedLyric((0 until lineCount).map { "猫$it" })
+        val selectInputs = mutableListOf<List<Map<String, Any?>>>()
+
+        every { geminiClient.translateLyrics(any()) } returns (0 until lineCount).map {
+            TranslationResultDto(it, "고양이$it", "네코$it")
+        }
+        stubHappyPath()
+
+        val lines = translationService.runPipeline(lyric)
+
+        verify(exactly = 2) { geminiClient.selectSenses(capture(selectInputs)) }
+        assertThat(selectInputs.map { it.size })
+            .containsExactly(SelectSensesStage.SELECT_CHUNK_LINES, 5)
+        assertThat(selectInputs.flatMap { chunk -> chunk.map { it["index"] } })
+            .isEqualTo((0 until lineCount).toList())
+        assertThat(lines).hasSize(lineCount)
+        assertThat(lines).allSatisfy { line ->
+            assertThat(line.tokens.single().koreanText).startsWith("뜻:")
+        }
     }
 
     @Test
@@ -642,8 +659,6 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
                     0,
                     listOf(
                         SelectWordDto(
-                            surface = firstSegment["surface"] as String,
-                            dictionaryForm = firstSegment["dictionaryForm"] as String,
                             senseId = firstSenses.first()["senseId"] as Int,
                             tokenId = firstSegment["tokenId"] as String,
                         ),
@@ -653,8 +668,6 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
                     0,
                     listOf(
                         SelectWordDto(
-                            surface = secondSegment["surface"] as String,
-                            dictionaryForm = secondSegment["dictionaryForm"] as String,
                             senseId = secondSenses.first()["senseId"] as Int,
                             tokenId = secondSegment["tokenId"] as String,
                         ),

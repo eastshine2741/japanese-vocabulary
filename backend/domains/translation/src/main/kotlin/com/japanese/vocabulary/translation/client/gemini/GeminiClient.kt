@@ -19,6 +19,7 @@ class GeminiClient(
     @Value("\${gemini.api-key}") private val apiKey: String,
     @Value("\${gemini.translation-model}") private val translationModel: String,
     @Value("\${gemini.word-meaning-model}") private val wordMeaningModel: String,
+    @Value("\${gemini.max-output-tokens:0}") private val maxOutputTokens: Int,
     private val objectMapper: ObjectMapper,
     private val meterRegistry: MeterRegistry,
 ) {
@@ -120,6 +121,9 @@ class GeminiClient(
         if (responseSchema != null) {
             generationConfig["responseSchema"] = responseSchema
         }
+        if (maxOutputTokens > 0) {
+            generationConfig["maxOutputTokens"] = maxOutputTokens
+        }
 
         val requestBody = mapOf(
             "system_instruction" to mapOf(
@@ -143,6 +147,7 @@ class GeminiClient(
                 ?: throw RuntimeException("Empty response from Gemini API")
 
             recordTokenUsage(call, model, response)
+            GeminiResponseGuard.verifyComplete(call, model, response, maxOutputTokens)
 
             val text = extractText(response)
 
@@ -328,13 +333,15 @@ class GeminiClient(
             각 줄마다: 일본어 원문(japanese), 그 줄의 한국어 번역(korean), 분절된 단어들(segments)을 받는다.
             각 segment에는 tokenId와 그 단어(dictionaryForm)의 사전 뜻 후보 senses=[{senseId, english(영어 뜻), pos(품사)}]가 들어있다.
             **한국어 번역을 문맥 단서로** 삼아, 각 단어가 이 줄에서 실제로 가지는 뜻에 해당하는 senseId 하나를 고른다.
-            출력: 같은 배열, 각 줄을 {"index", "words":[{"tokenId","surface","dictionaryForm","senseId"}]}로. JSON만.
+            출력: 같은 배열, 각 줄을 {"index", "words":[{"tokenId","senseId"}]}로. JSON만.
 
             ## 규칙
             - senseId: 그 segment의 senses 중 이 문맥에 가장 맞는 것의 senseId. **반드시 주어진 senses에 있는 값**이어야 한다.
             - senses가 비어있거나(사전에 없음) 어느 것도 문맥에 맞지 않으면 senseId = -1.
             - 한국어 뜻을 직접 만들지 마라. **오직 senseId 선택만** 한다.
-            - words는 입력 segments와 1:1, 순서 동일. tokenId/surface/dictionaryForm는 입력 그대로 복사.
+            - words는 입력 segments와 1:1, 순서 동일. tokenId는 입력 그대로 복사한다.
+              surface와 dictionaryForm은 출력하지 마라.
+            - 입력에 있는 줄을 그 index 그대로 **전부** 출력한다. 중간에 멈추지 마라.
         """.trimIndent()
 
         /**
@@ -399,12 +406,10 @@ class GeminiClient(
                         "items" to mapOf(
                             "type" to "OBJECT",
                             "properties" to mapOf(
-                                "surface" to mapOf("type" to "STRING"),
-                                "dictionaryForm" to mapOf("type" to "STRING"),
                                 "tokenId" to mapOf("type" to "STRING"),
                                 "senseId" to mapOf("type" to "INTEGER")
                             ),
-                            "required" to listOf("tokenId", "surface", "dictionaryForm", "senseId")
+                            "required" to listOf("tokenId", "senseId")
                         )
                     )
                 ),
