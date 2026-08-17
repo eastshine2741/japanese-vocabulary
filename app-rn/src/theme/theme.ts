@@ -67,7 +67,7 @@ export const Colors = {
 };
 
 export const Dimens = {
-  screenPadding: 20,
+  screenPadding: 16,
   cardCornerRadius: 16,
   smallCornerRadius: 12,
   artworkCornerRadius: 12,
