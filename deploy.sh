@@ -145,6 +145,30 @@ else
   SENTRY_ENVIRONMENT="${NS}"
 fi
 SENTRY_RELEASE="${GIT_SHA}"
+
+# build/libs 안에는 bootJar 말고 -plain.jar 도 같이 생긴다.
+# Dockerfile 의 COPY 가 여러 파일을 잡지 않도록 boot jar 하나를 정확히 골라 전달한다.
+build_boot_image() {
+  local module="$1" image="$2"
+  local ctx="$PROJECT_ROOT/backend/$module"
+  local jar boot_jars=()
+
+  for jar in "$ctx"/build/libs/*.jar; do
+    [[ -f "$jar" ]] || continue
+    [[ "$jar" == *-plain.jar ]] && continue
+    boot_jars+=("$(basename "$jar")")
+  done
+
+  if [[ ${#boot_jars[@]} -ne 1 ]]; then
+    echo "Error: $module boot jar 를 하나로 특정할 수 없음 (found: ${boot_jars[*]:-none}). backend/$module/build/libs 확인." >&2
+    exit 1
+  fi
+
+  docker build \
+    --build-arg JAR_FILE="${boot_jars[0]}" \
+    -t "$image" \
+    -f "$ctx/Dockerfile" "$ctx/"
+}
 export API_IMAGE BATCH_IMAGE MIGRATION_IMAGE ADMIN_API_IMAGE ADMIN_WEB_IMAGE NS SENTRY_ENVIRONMENT SENTRY_RELEASE
 export ADMIN_PASSWORD ADMIN_PASSWORD_SHA256 ADMIN_TOKEN_SECRET
 
@@ -183,8 +207,8 @@ if [[ "$DEPLOY_ENV" == "prod" ]]; then
   echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
 
   echo "[build] images..."
-  docker build -t "$API_IMAGE" -f "$PROJECT_ROOT/backend/api/Dockerfile" "$PROJECT_ROOT/backend/api/"
-  docker build -t "$BATCH_IMAGE" -f "$PROJECT_ROOT/backend/batch/Dockerfile" "$PROJECT_ROOT/backend/batch/"
+  build_boot_image api "$API_IMAGE"
+  build_boot_image batch "$BATCH_IMAGE"
   docker build -t "$MIGRATION_IMAGE" -f "$PROJECT_ROOT/backend/migration/Dockerfile" "$PROJECT_ROOT/backend/migration/"
 
   echo "[push] ghcr..."
@@ -193,10 +217,10 @@ if [[ "$DEPLOY_ENV" == "prod" ]]; then
   docker push "$MIGRATION_IMAGE"
 else
   echo "[build] images..."
-  docker build -t "$API_IMAGE" -f "$PROJECT_ROOT/backend/api/Dockerfile" "$PROJECT_ROOT/backend/api/"
-  docker build -t "$BATCH_IMAGE" -f "$PROJECT_ROOT/backend/batch/Dockerfile" "$PROJECT_ROOT/backend/batch/"
+  build_boot_image api "$API_IMAGE"
+  build_boot_image batch "$BATCH_IMAGE"
   docker build -t "$MIGRATION_IMAGE" -f "$PROJECT_ROOT/backend/migration/Dockerfile" "$PROJECT_ROOT/backend/migration/"
-  docker build -t "$ADMIN_API_IMAGE" -f "$PROJECT_ROOT/backend/admin-api/Dockerfile" "$PROJECT_ROOT/backend/admin-api/"
+  build_boot_image admin-api "$ADMIN_API_IMAGE"
   docker build \
     --build-arg VITE_ADMIN_API_BASE_URL="/${NS}/admin/api" \
     --build-arg VITE_ADMIN_BASE_PATH="/${NS}/admin" \
