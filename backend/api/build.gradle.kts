@@ -20,8 +20,7 @@ dependencies {
     implementation(project(":domains:auth"))
     implementation(project(":domains:user"))
     implementation(project(":domains:userinventory"))
-    implementation(project(":domains:flashcard"))
-    implementation(project(":domains:deck"))
+    implementation(project(":domains:word"))
     implementation(project(":domains:studystats"))
     implementation(project(":domains:notification"))
     implementation(project(":integrations:song-search"))
@@ -51,7 +50,7 @@ dependencies {
     testImplementation(testFixtures(project(":common")))
     testImplementation(testFixtures(project(":domains:user")))
     testImplementation(testFixtures(project(":domains:song")))
-    testImplementation(testFixtures(project(":domains:flashcard")))
+    testImplementation(testFixtures(project(":domains:word")))
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {

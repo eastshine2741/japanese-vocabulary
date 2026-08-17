@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.japanese.vocabulary.auth.jwt.JwtUtil
 import com.japanese.vocabulary.deck.entity.DeckEntity
 import com.japanese.vocabulary.deck.entity.DeckWordEntity
+import com.japanese.vocabulary.deck.repository.DeckRepository
 import com.japanese.vocabulary.deck.repository.DeckWordRepository
 import com.japanese.vocabulary.flashcard.repository.FlashcardRepository
 import com.japanese.vocabulary.song.entity.SongEntity
@@ -19,8 +20,6 @@ import com.japanese.vocabulary.word.dto.UpdateWordRequest
 import com.japanese.vocabulary.word.dto.WordDetailResponse
 import com.japanese.vocabulary.word.dto.WordListResponse
 import com.japanese.vocabulary.word.entity.WordEntity
-import com.japanese.vocabulary.word.event.WordDeletedEvent
-import com.japanese.vocabulary.word.event.WordSavedEvent
 import com.japanese.vocabulary.word.model.SenseExample
 import com.japanese.vocabulary.word.model.WordSense
 import com.japanese.vocabulary.word.repository.WordRepository
@@ -29,8 +28,8 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
+import org.springframework.data.domain.Pageable
 import org.springframework.http.MediaType
-import org.springframework.test.context.event.ApplicationEvents
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.MockHttpServletRequestDsl
 import org.springframework.test.web.servlet.delete
@@ -47,7 +46,7 @@ class WordControllerTest : ApiBaseIntegrationTest() {
     @Autowired private lateinit var wordRepository: WordRepository
     @Autowired private lateinit var flashcardRepository: FlashcardRepository
     @Autowired private lateinit var deckWordRepository: DeckWordRepository
-    @Autowired private lateinit var applicationEvents: ApplicationEvents
+    @Autowired private lateinit var deckRepository: DeckRepository
 
     private fun newUser(): UserEntity = TestUserBuilder(entityManager).build()
     private fun newSong(): SongEntity = TestSongBuilder(entityManager).build()
@@ -79,7 +78,7 @@ class WordControllerTest : ApiBaseIntegrationTest() {
     inner class AddWord {
 
         @Test
-        fun `creates word with senses, a flashcard and publishes WordSavedEvent`() {
+        fun `creates the word with senses, its flashcard and both deck links in one request`() {
             val me = newUser()
             val song = newSong()
 
@@ -116,10 +115,12 @@ class WordControllerTest : ApiBaseIntegrationTest() {
             assertThat(flashcard).isNotNull
             assertThat(flashcard!!.userId).isEqualTo(me.id)
 
-            val events = applicationEvents.stream(WordSavedEvent::class.java).toList()
-            assertThat(events).hasSize(1)
-            assertThat(events.single().wordId).isEqualTo(wordId)
-            assertThat(events.single().songId).isEqualTo(song.id)
+            // 같은 트랜잭션에서 곡 단어장과 전체 단어장 연결까지 끝나 있어야 한다.
+            val songDeck = deckRepository.findByUserIdAndSongId(me.id!!, song.id!!)!!
+            assertThat(songDeck.title).isEqualTo(song.title)
+            assertThat(deckWordRepository.existsByDeckIdAndWordId(songDeck.id!!, wordId)).isTrue
+            val defaultDeck = deckRepository.findByUserIdAndIsDefaultTrue(me.id!!)!!
+            assertThat(deckWordRepository.existsByDeckIdAndWordId(defaultDeck.id!!, wordId)).isTrue
         }
 
         @Test
@@ -132,8 +133,11 @@ class WordControllerTest : ApiBaseIntegrationTest() {
             }.andExpect { status { isOk() } }
 
             entityManager.flush(); entityManager.clear()
-            assertThat(wordRepository.findByUserIdAndJapaneseText(me.id!!, "独立")).isNotNull
-            assertThat(applicationEvents.stream(WordSavedEvent::class.java).toList().single().songId).isNull()
+            val word = wordRepository.findByUserIdAndJapaneseText(me.id!!, "独立")!!
+            // 곡 단어장은 안 생기지만 전체 단어장 연결은 불변식이라 반드시 있어야 한다.
+            val defaultDeck = deckRepository.findByUserIdAndIsDefaultTrue(me.id!!)!!
+            assertThat(deckWordRepository.existsByDeckIdAndWordId(defaultDeck.id!!, word.id!!)).isTrue
+            assertThat(deckRepository.findByUserIdOrderByCreatedAtDesc(me.id!!, Pageable.unpaged())).hasSize(1)
         }
 
         @Test
@@ -452,7 +456,7 @@ class WordControllerTest : ApiBaseIntegrationTest() {
     inner class DeleteWord {
 
         @Test
-        fun `removes word, flashcard and deck links, and publishes WordDeletedEvent`() {
+        fun `removes the word and its flashcard, unlinks both decks, and keeps the decks`() {
             val me = newUser()
             val song = newSong()
             mockMvc.post("/api/words") {
@@ -460,18 +464,13 @@ class WordControllerTest : ApiBaseIntegrationTest() {
                 jsonBody(AddWordRequest(japanese = "削除", reading = "さくじょ", senses = listOf(sense("삭제")), songId = song.id!!))
             }.andExpect { status { isOk() } }
             entityManager.flush(); entityManager.clear()
+
             val word = wordRepository.findByUserIdAndJapaneseText(me.id!!, "削除")!!
             assertThat(flashcardRepository.findByWordId(word.id!!)).isNotNull
-            val deck = DeckEntity(
-                userId = me.id!!,
-                songId = song.id!!,
-                title = song.title,
-                description = song.artist,
-            ).also { entityManager.persist(it) }
-            entityManager.flush()
-            entityManager.persist(DeckWordEntity(deckId = deck.id!!, wordId = word.id!!))
-            entityManager.flush(); entityManager.clear()
-            assertThat(deckWordRepository.existsByDeckIdAndWordId(deck.id!!, word.id!!)).isTrue
+            val songDeck = deckRepository.findByUserIdAndSongId(me.id!!, song.id!!)!!
+            val defaultDeck = deckRepository.findByUserIdAndIsDefaultTrue(me.id!!)!!
+            assertThat(deckWordRepository.existsByDeckIdAndWordId(songDeck.id!!, word.id!!)).isTrue
+            assertThat(deckWordRepository.existsByDeckIdAndWordId(defaultDeck.id!!, word.id!!)).isTrue
 
             mockMvc.delete("/api/words/${word.id}") {
                 header("Authorization", bearer(me))
@@ -480,10 +479,11 @@ class WordControllerTest : ApiBaseIntegrationTest() {
             entityManager.flush(); entityManager.clear()
             assertThat(wordRepository.findById(word.id!!)).isEmpty
             assertThat(flashcardRepository.findByWordId(word.id!!)).isNull()
-            assertThat(deckWordRepository.existsByDeckIdAndWordId(deck.id!!, word.id!!)).isFalse
-
-            val events = applicationEvents.stream(WordDeletedEvent::class.java).toList()
-            assertThat(events.map { it.wordId }).contains(word.id)
+            assertThat(deckWordRepository.existsByDeckIdAndWordId(songDeck.id!!, word.id!!)).isFalse
+            assertThat(deckWordRepository.existsByDeckIdAndWordId(defaultDeck.id!!, word.id!!)).isFalse
+            // 단어장은 word 보다 오래 산다 — 안이 비어도 남아야 한다.
+            assertThat(deckRepository.findById(songDeck.id!!)).isPresent
+            assertThat(deckRepository.findById(defaultDeck.id!!)).isPresent
         }
 
         @Test

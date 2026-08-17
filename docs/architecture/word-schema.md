@@ -60,15 +60,33 @@ deck 멤버십의 유일한 소유자. `deck_flashcards` 를 대체한다.
 
 ## 동작 규칙
 
+### 수명주기
+
+`domains:word` 의 주인은 word 다. flashcard 와 deck 은 부수 개념이고, `WordService` 가 셋을 **한 트랜잭션 안에서** 관리한다.
+
+| 대상 | word 와의 관계 | 규칙 |
+|---|---|---|
+| flashcard | 수명주기 동일 | word 저장 시 생성, 삭제 시 삭제. flashcard 없는 word 는 존재할 수 없다 |
+| deck | word 보다 오래 산다 | 담을 때 없으면 생성. 안이 비어도 안 지우고, deck 을 지워도 안의 word 는 안 지운다 |
+| 전체 단어장 | 모든 word 가 연결 | 유저당 1개, 삭제 불가 |
+
 ### 단어 담기
 
+한 트랜잭션에서 순서대로 처리한다.
+
 1. `words` 에 `(user_id, japanese_text)` upsert — 기존 레코드면 **누락된 sense 만 append**. 같은 뜻이면 예문만 5개까지 덧붙인다.
-2. `flashcards` 1:1 생성.
-3. `WordSavedEvent(userId, wordId, songId?)` 발행 → deck 계층이 전체 단어장에 연결하고, `songId` 가 있으면 곡 deck 을 upsert 해서 거기에도 연결한다.
+2. `flashcards` 1:1 생성 (이미 있으면 재사용해 FSRS 진행 상태를 보존).
+3. 전체 단어장에 연결. `songId` 가 있으면 곡 단어장을 upsert 해서 거기에도 연결.
 
-**두 연결은 서로 다른 트랜잭션이다.** `song_words` 가 사라지면서 `deck_word` 는 deck 구성의 유일한 기록이 됐다 — 예전엔 `deck_flashcards` 가 `song_words` 에서 재구성 가능한 파생 인덱스였지만(V10 이 실제로 그렇게 백필했다) 이제 재구성 경로가 없다. 그런데 이 쓰기는 커밋 이후에 도는 best-effort 리스너다. 곡 단어장 생성이 실패했다고 전체 단어장 연결까지 롤백하면 단어가 **어느 단어장에도 없는 상태로 영구히** 남고, 사용자가 다시 담아서 고칠 수도 없다 — 이미 저장된 단어라 SongDetail 이 '담기'가 아니라 '상세로 이동'을 띄워서 이벤트가 다시 발행되지 않기 때문이다.
+**커밋 뒤에 도는 이벤트로 3번을 미루지 않는 이유가 있다.** `song_words` 가 사라지면서 `deck_word` 는 단어장 구성의 유일한 기록이 됐다 — 예전엔 `deck_flashcards` 가 `song_words` 에서 재구성 가능한 파생 인덱스였지만(V10 이 실제로 그렇게 백필했다) 이제 재구성 경로가 없다. 그래서 단어만 커밋되고 연결이 유실되면 단어가 **어느 단어장에도 없는 상태로 영구히** 남고, 사용자가 다시 담아 고칠 수도 없다 — 이미 저장된 단어라 SongDetail 이 '담기'가 아니라 '상세로 이동'을 띄우기 때문이다. 한 트랜잭션이면 실패가 전부 롤백돼서 그 상태 자체가 생기지 않는다.
 
-동시에 같은 유저가 두 단어를 담으면 양쪽이 deck 을 만들려다 `UNIQUE(user_id, song_id)` / `UNIQUE(user_id, is_default)` 에 걸린다. 이건 새 트랜잭션에서 재조회하는 재시도로 흡수한다(이긴 쪽이 만든 deck 을 보고 연결만 한다). 회귀 테스트: `DeckEventListenerTest` 의 동시 저장 테스트 — 두 연결을 한 트랜잭션으로 합치면 이 테스트가 실패한다.
+대신 단어장 생성이 트랜잭션 안으로 들어오면서, 같은 유저가 동시에 담을 때의 deck UNIQUE 충돌이 단어 저장까지 롤백시킬 수 있게 됐다. 이건 트랜잭션 **밖에서** 저장을 통째로 재시도해 흡수한다 (`WordService.retryingSave`). 저장 경로가 전부 upsert 라 재실행이 안전하다.
+
+회귀 테스트는 `WordLifecycleTest`. `WordControllerTest` 의 저장 테스트는 같은 트랜잭션 안에서 단어장 연결을 확인하므로, 3번을 다시 `AFTER_COMMIT` 으로 미루면 실패한다.
+
+### 단어장 삭제
+
+`DELETE /api/decks/{id}` 는 `deck_word` 행과 `decks` 행만 지운다. 안의 단어와 flashcard 는 그대로 남고 전체 단어장 연결도 유지된다. 전체 단어장은 "모든 단어는 전체 단어장에 속한다"는 불변식의 담지자라 `DEFAULT_DECK_NOT_DELETABLE` 로 거부한다.
 
 ### 담김 판정 (SongDetailScreen)
 
@@ -85,7 +103,7 @@ sense 동일성 기준은 **뜻 텍스트 문자열 일치**다. 부분 저장�
 
 ### 단어 삭제
 
-`deck_word` 는 `words` 에 FK 를 갖고 있어 publisher 커밋 전에 정리돼야 한다. 그래서 `WordDeletedEvent` 는 `AFTER_COMMIT` 이 아니라 같은 트랜잭션의 `@EventListener` + `MANDATORY` 로 처리한다.
+`flashcards.word_id` 와 `deck_word.word_id` 가 `words` 를 FK 로 참조하므로 그 둘을 먼저 지우고 word 를 지운다. 셋 다 같은 트랜잭션이다. 단어장 자체는 비어도 남는다.
 
 ## 결정과 감수한 비용
 

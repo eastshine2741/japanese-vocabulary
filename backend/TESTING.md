@@ -28,11 +28,14 @@
 - `RecentSongService`, `SongSearchService` 등이 Redis 의존. CI 의 무 Redis 환경에서 컨텍스트 부팅 실패 방지.
 - `redis:7-alpine` 컨테이너 1개를 모든 테스트가 공유. 각 테스트 `@BeforeEach` 에서 `flushDb()` 로 키 초기화.
 
-### Spring Event 는 기본적으로 AFTER_COMMIT, FK 선행 정리는 같은 트랜잭션
-- 프로덕션 리스너 (`DeckEventListener.onWordSaved`, `StudyStatsEventListener`) 는 `@TransactionalEventListener(phase = AFTER_COMMIT)` 사용 — 메인 트랜잭션이 실패해도 리스너 실패가 원래 트랜잭션을 롤백시키지 않는다.
-- FK 선행 정리처럼 publisher 커밋 전에 끝나야 하는 listener (`DeckEventListener.onWordDeleted`) 는 같은 트랜잭션의 `@EventListener` + `@Transactional(propagation = MANDATORY)`를 사용한다.
-- `onWordSaved` 는 전체 단어장 연결과 곡 단어장 연결을 **각각 다른 REQUIRES_NEW 트랜잭션**에서 수행한다. `deck_word` 가 deck 구성의 유일한 기록이라, 한쪽 실패가 다른 쪽을 롤백시키면 단어가 어느 단어장에도 없는 상태로 남고 복구 경로가 없다. deck UNIQUE 충돌은 재조회 재시도로 흡수한다 — 동시성 회귀 테스트가 `DeckEventListenerTest` 에 있다.
-- 통합 테스트는 `@Transactional` 롤백 안에서 돌므로 AFTER_COMMIT 리스너는 발화되지 않는다. **AFTER_COMMIT 리스너 본문 동작은 단위 테스트로 검증**하고, 통합 테스트는 `@RecordApplicationEvents` 의 `ApplicationEvents` 로 **이벤트 발행 자체만 검증** 한다. 같은 트랜잭션 listener는 실제 row 변경까지 통합 테스트로 검증한다.
+### Spring Event 는 모듈 경계용, AFTER_COMMIT 이 기본
+- 이벤트는 **모듈 경계를 넘는 부수효과에만** 쓴다. 현재 유일한 사례는 `FlashcardReviewedEvent` → `StudyStatsEventListener`.
+- 프로덕션 리스너 (`StudyStatsEventListener`) 는 `@TransactionalEventListener(phase = AFTER_COMMIT)` + `@Transactional(REQUIRES_NEW)` 사용 — 메인 트랜잭션이 실패해도 리스너 실패가 원래 트랜잭션을 롤백시키지 않는다.
+- FK 선행 정리처럼 publisher 커밋 전에 끝나야 하는 listener 는 같은 트랜잭션의 `@EventListener` + `@Transactional(propagation = MANDATORY)`를 사용한다.
+- 통합 테스트는 `@Transactional` 롤백 안에서 돌므로 AFTER_COMMIT 리스너는 발화되지 않는다. **리스너 본문 동작은 `AfterCommitListenerTest` 계열로 검증**하고, 일반 통합 테스트는 `@RecordApplicationEvents` 의 `ApplicationEvents` 로 **이벤트 발행 자체만 검증** 한다.
+
+### 진짜 커밋 경계가 필요한 테스트는 AfterCommitListenerTest 상속
+`@Transactional` 테스트 안에서는 롤백·동시성·"한 트랜잭션에서 끝난다"를 검증할 수 없다. `AfterCommitListenerTest` 는 테스트 트랜잭션을 열지 않고(`NOT_SUPPORTED`) `inTx { }` 로 setup 을 커밋하며 `@AfterEach` TRUNCATE 로 정리한다. `WordLifecycleTest` 가 이 방식이다.
 
 ---
 
@@ -44,7 +47,8 @@
 | 컨트롤러 | `WordController`, `FlashcardController` | Spring Web 슬라이스 | `@WebMvcTest(WordController::class)` |
 | 서비스 + DB | `WordService`, `FlashcardService` | 도메인 통합 | `@SpringBootTest` (BaseIntegrationTest 상속) |
 | 리포지터리 native query | `FlashcardRepository.findDueByUserIdAndSongId`, `DailyStudySummaryRepository.longestStreak`, `DeckRepository.getDeckList` | JPA + 실제 DB | `@SpringBootTest` (BaseIntegrationTest 상속) |
-| Spring Event flow | `FlashcardCreatedEvent` → `DeckEventListener`, `StudyStatsEventListener` | 도메인 통합 | `@SpringBootTest` + `ApplicationEvents` |
+| Spring Event flow | `FlashcardReviewedEvent` → `StudyStatsEventListener` | 도메인 통합 | `@SpringBootTest` + `ApplicationEvents` |
+| 수명주기 불변식 / 동시성 / 롤백 | `WordService.addWord` 의 word+flashcard+deck 원자성 | 통합 (커밋 경계 필요) | `AfterCommitListenerTest` 상속 + `inTx { }` |
 | 인증/필터 | `JwtAuthFilter`, `SecurityConfig` | 통합 | `@SpringBootTest` + MockMvc |
 | 외부 API 클라이언트 호출 도메인 | `SongAnalysisPreparationService`, `WordService.lookupMeaning`, `KoreanLyricTranslationService` | 통합 + 해당 외부 client `@MockkBean` | `@SpringBootTest` |
 | 배치 스케줄러 | `KoreanLyricTranslationService.processTranslations`, `FreezeConsumeScheduler` | 통합 (스케줄 비동기 X, 직접 invoke) | `@SpringBootTest` |
@@ -289,9 +293,11 @@ fun `flashcard 복습 시 FSRS 갱신 + StudyStatsEvent`() {
 - rating 1~4별로 due/stability/difficulty가 *방향성 있게* 변하는지 검증 (정확한 일수 X — 라이브러리 업그레이드 시 깨짐).
 - `FlashcardReviewedEvent` 발행 검증.
 
-**이벤트 플로우:**
-- `WordService.addWord` → `WordSavedEvent` → `DeckEventListener` → 전체 단어장/곡 `DeckEntity` + `DeckWordEntity` 자동 생성.
-- word 삭제 → `WordDeletedEvent` → `DeckWordEntity` 제거 (같은 트랜잭션, `words` FK 선행 정리).
+**수명주기 (`WordLifecycleTest`):**
+- `WordService.addWord` 한 트랜잭션에서 `WordEntity` + `FlashcardEntity` + 전체 단어장/곡 `DeckEntity` + `DeckWordEntity` 가 전부 생긴다.
+- word 삭제 → flashcard 와 `DeckWordEntity` 선삭제 후 word 삭제 (`words` FK). 단어장 자체는 남는다.
+- deck 삭제 → 안의 word/flashcard 는 남는다. 전체 단어장은 삭제 거부.
+- 같은 유저·같은 곡으로 동시에 담아도 전부 연결된다.
 - review → `StudyStatsEventListener` → `DailyStudySummaryEntity` upsert (KST 날짜 처리).
 
 **Native query:**
@@ -324,7 +330,7 @@ class SongAnalysisPreparationServiceTest : BatchBaseIntegrationTest() {
 **`WordService`:**
 - 같은 userId + japaneseText 중복 방지.
 - batch add: 일부 실패 시 트랜잭션 정책 (현재 코드 확인 후 결정).
-- delete → `WordDeletedEvent` → `deck_word` 선삭제 후 word 삭제.
+- delete → flashcard / `deck_word` 선삭제 후 word 삭제 (같은 트랜잭션).
 - `getUserWords` cursor 페이지네이션.
 
 **Jisho 의존성:** `@MockkBean(JishoClient::class)`로 의미 lookup 결과 fixed.
@@ -339,7 +345,7 @@ class SongAnalysisPreparationServiceTest : BatchBaseIntegrationTest() {
 
 **"all" 가상 deck:** DB 없이 전체 카드 집계 — 별도 메서드 검증.
 
-**`DeckEventListener`** (Phase 1 flashcard 테스트에서 함께 검증되므로 추가 작업 불필요).
+**단어장 수명주기** 는 `WordLifecycleTest` 에서 함께 검증되므로 추가 작업 불필요.
 
 ### 4.6 user (Phase 3 예정)
 **`UserSettingsService`:**

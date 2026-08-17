@@ -43,6 +43,7 @@ backend/
 ├── common/                  — cross-cutting infra and test fixtures
 ├── migration/               — Flyway migrations
 ├── domains/                 — domain modules, no @SpringBootApplication
+│   └── word/                — word + flashcard + deck. 학습 데이터 일체
 ├── integrations/            — external music provider clients
 ├── api/                     — user REST bootstrap
 ├── admin-api/               — internal admin REST bootstrap
@@ -72,28 +73,36 @@ backend/
 ## Domain Layer Boundaries
 
 ```text
-Inner:  Song, Lyric        — 콘텐츠 원본
-Middle: Word, Flashcard    — 사용자 학습 데이터
-Outer:  Deck, DeckWord     — 조직화 레이어
+Inner:  Song, Lyric              — 콘텐츠 원본 (domains:song)
+Outer:  Word, Flashcard, Deck    — 사용자 학습 데이터 (domains:word)
 ```
 
-- 같은 계층 내: 서비스 간 직접 호출.
-- 계층 경계를 넘을 때만 Spring Event 사용.
+- 같은 모듈 내: 서비스 간 직접 호출.
+- 모듈 경계를 넘을 때만 Spring Event 사용.
 - 안쪽 계층이 바깥쪽 계층을 참조하면 안 됨.
 - **word 도메인 → song 도메인의 물리적 FK는 `decks.song_id` 하나뿐**. 곡과 단어를 매핑하는 테이블은 만들지 않는다. 예문의 `songId`/`lineIndex`는 `words.senses` JSON 안의 논리 참조다.
 
+### word / flashcard / deck 수명주기
+
+`domains:word` 의 주인은 word 다. 세 수명주기를 `WordService` 가 **한 트랜잭션 안에서** 소유한다.
+
+- **flashcard 는 word 와 수명주기가 같다.** word 저장 시 만들고 삭제 시 지운다. flashcard 없는 word 는 존재할 수 없다.
+- **deck 은 word 보다 오래 산다.** 담을 때 없으면 만들지만, 안의 word 가 모두 지워져도 deck 은 남고 deck 을 지워도 안의 word 는 남는다.
+- **모든 word 는 전체 단어장(`is_default = 1`)에 연결된다.** 전체 단어장은 유저당 1개이고 삭제할 수 없다.
+
 ### Spring Event Listeners
 
+- 모듈 경계를 넘는 부수효과에만 쓴다. 같은 모듈이면 서비스를 직접 부른다 — 이벤트로 감싸면 불변식을 커밋 단위로 지킬 수 없다.
 - `@TransactionalEventListener(phase = AFTER_COMMIT)` 안에서 DB 쓰기를 하려면 `@Transactional(propagation = REQUIRES_NEW)`를 같이 붙일 것.
 - FK 선행 정리처럼 publisher 커밋 전에 끝나야 하는 listener는 `AFTER_COMMIT`을 쓰지 말고 같은 트랜잭션의 `@EventListener` + `@Transactional(propagation = MANDATORY)`로 처리할 것.
-- listener 직접 호출 테스트는 `AfterCommitListenerTest` 상속, setup은 `inTx { ... }`로 감쌀 것.
+- 진짜 커밋 경계가 필요한 테스트(AFTER_COMMIT 리스너, 롤백, 동시성)는 `AfterCommitListenerTest` 상속, setup은 `inTx { ... }`로 감쌀 것.
 - 이벤트 발행 검증은 기존 base + `@RecordApplicationEvents`.
 
 ## Current State
 
 **Implemented:** Song search -> lyric fetch -> async batch word-meaning analysis -> study view, YouTube MV playback with synced lyrics, word save with meanings, flashcard review, decks, recent songs, user settings, push notifications, admin inspection surface.
 
-**Backend modularization:** Multi-module Gradle split 완료. dto 규칙 적용. `@Scheduled`는 batch에만. notification 모듈은 FCM 전송 책임만, DB 조회는 batch가 담당하고 `PushNotificationDataPort`로 추상화.
+**Backend modularization:** Multi-module Gradle split 완료. dto 규칙 적용. `@Scheduled`는 batch에만. notification 모듈은 FCM 전송 책임만, DB 조회는 batch가 담당하고 `PushNotificationDataPort`로 추상화. 학습 데이터는 `domains:word` 한 모듈로 통합됐다 — `word`/`flashcard`/`deck` package 가 같은 모듈에 있고 `WordService` 가 셋의 수명주기를 한 트랜잭션에서 소유한다. word↔deck 사이 Spring Event 는 제거됐다.
 
 **Word 스키마 (V29):** 단어는 뜻(sense) 단위다. `words.senses` JSON 이 `{meaning, partOfSpeech, jlpt, examples[]}` 배열을 들고 있고, 예문은 sense 당 최대 5개다. `song_words`·`deck_flashcards` 는 제거됐고 deck 멤버십은 `deck_word(deck_id, word_id)` 가 갖는다. SongDetail 담김 판정은 `words` 를 `UNIQUE(user_id, japanese_text)` 로 한 번 조회한 뒤 곡이 제시한 뜻이 **전부** 저장돼 있는지 메모리에서 비교한다(ALL 판정). `PUT /api/words/{id}` 는 `senses` 전체 replace 다. 설계 근거는 `docs/architecture/word-schema.md`.
 

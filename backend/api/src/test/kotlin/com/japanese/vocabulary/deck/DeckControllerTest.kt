@@ -26,6 +26,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.http.MediaType
 import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.delete
 import org.springframework.test.web.servlet.get
 import org.springframework.test.web.servlet.post
 import java.time.Duration
@@ -388,6 +389,56 @@ class DeckControllerTest : ApiBaseIntegrationTest() {
             mockMvc.get("/api/decks/${theirDeck.id}/words") {
                 header("Authorization", bearer(me))
             }.andExpect { status { isForbidden() } }
+        }
+    }
+
+    @Nested
+    inner class DeleteDeck {
+
+        @Test
+        fun `deletes the deck but keeps its words and their flashcards`() {
+            val me = newUser()
+            val song = newSong()
+            val deck = newDeck(me, song)
+            val word = newWord(me)
+            val card = newCard(me, word)
+            link(deck, word)
+
+            mockMvc.delete("/api/decks/${deck.id}") {
+                header("Authorization", bearer(me))
+            }.andExpect { status { isNoContent() } }
+
+            entityManager.flush(); entityManager.clear()
+            assertThat(entityManager.find(DeckEntity::class.java, deck.id)).isNull()
+            assertThat(entityManager.find(WordEntity::class.java, word.id)).isNotNull
+            assertThat(entityManager.find(FlashcardEntity::class.java, card.id)).isNotNull
+        }
+
+        @Test
+        fun `the default deck cannot be deleted`() {
+            val me = newUser()
+            val defaultDeck = newDefaultDeck(me)
+
+            mockMvc.delete("/api/decks/${defaultDeck.id}") {
+                header("Authorization", bearer(me))
+            }.andExpect { status { isBadRequest() } }
+
+            entityManager.flush(); entityManager.clear()
+            assertThat(entityManager.find(DeckEntity::class.java, defaultDeck.id)).isNotNull
+        }
+
+        @Test
+        fun `another user's deck delete is forbidden`() {
+            val me = newUser()
+            val other = newUser()
+            val theirDeck = newDeck(other, newSong())
+
+            mockMvc.delete("/api/decks/${theirDeck.id}") {
+                header("Authorization", bearer(me))
+            }.andExpect { status { isForbidden() } }
+
+            entityManager.flush(); entityManager.clear()
+            assertThat(entityManager.find(DeckEntity::class.java, theirDeck.id)).isNotNull
         }
     }
 }

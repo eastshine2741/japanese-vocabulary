@@ -15,14 +15,17 @@ import com.japanese.vocabulary.deck.dto.DeckSummaryDto
 import com.japanese.vocabulary.deck.service.DeckService
 import com.japanese.vocabulary.word.dto.WordListDto
 import com.japanese.vocabulary.word.dto.WordListItemDto
+import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.context.SecurityContextHolder
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
+import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
@@ -56,6 +59,13 @@ class DeckController(private val deckService: DeckService) {
     @GetMapping("/{deckId}")
     fun getDeckDetail(@PathVariable deckId: Long): DeckDetailResponse =
         deckService.getDeckDetail(currentUserId(), deckId).toResponse()
+
+    /** 단어장만 지운다 — 안의 단어는 남는다. 전체 단어장은 지울 수 없다. */
+    @DeleteMapping("/{deckId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    fun deleteDeck(@PathVariable deckId: Long) {
+        deckService.deleteDeck(currentUserId(), deckId)
+    }
 
     @GetMapping("/{deckId}/words")
     fun getDeckWords(

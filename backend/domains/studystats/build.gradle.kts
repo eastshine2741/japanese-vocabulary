@@ -1,5 +1,5 @@
 dependencies {
-    implementation(project(":domains:flashcard"))
+    implementation(project(":domains:word"))
     implementation(project(":domains:user"))
     implementation(project(":domains:userinventory"))
 }
