@@ -225,7 +225,9 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
                 JishoEntryDto(
                     found = true,
                     word = df,
-                    options = listOf(JishoOptionDto("ヨミ", listOf("Noun"), "x", listOf("jlpt-n5"))),
+                    options = listOf(
+                        JishoOptionDto(reading = "ヨミ", pos = listOf("Noun"), english = "x", jlpt = listOf("jlpt-n5")),
+                    ),
                     provenance = JishoLookupProvenance.EXACT,
                 )
             }

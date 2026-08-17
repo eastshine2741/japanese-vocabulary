@@ -70,10 +70,10 @@ class JishoClient(
      * rejected fallback evidence rather than silently making it usable.
      * Mirrors `_jisho_full_fetch`'s match policy + `_flatten_entry`.
      */
-    private fun distill(word: String, response: JishoSearchResponse): JishoEntryDto {
+    internal fun distill(word: String, response: JishoSearchResponse): JishoEntryDto {
         val exactOptions = response.data
             .filter { entry -> entry.japanese.any { it.word == word || it.reading == word } }
-            .flatMap { flattenEntry(it) }
+            .flatMap { flattenEntry(word, it) }
         if (exactOptions.isNotEmpty()) {
             return JishoEntryDto(
                 found = true,
@@ -83,7 +83,7 @@ class JishoClient(
             )
         }
 
-        val fallbackOptions = response.data.firstOrNull()?.let { flattenEntry(it) } ?: emptyList()
+        val fallbackOptions = response.data.firstOrNull()?.let { flattenEntry(word, it) } ?: emptyList()
         if (fallbackOptions.isNotEmpty()) {
             return JishoEntryDto(
                 found = false,
@@ -97,10 +97,20 @@ class JishoClient(
         return JishoEntryDto(found = false, word = word, provenance = JishoLookupProvenance.NOT_FOUND)
     }
 
-    /** One jisho entry → one [JishoOptionDto] per sense. Mirrors `_flatten_entry`. */
-    private fun flattenEntry(entry: JishoEntryRawDto): List<JishoOptionDto> {
-        val first = entry.japanese.firstOrNull()
-        val reading = first?.reading ?: first?.word
+    /**
+     * One jisho entry → one [JishoOptionDto] per sense. Mirrors `_flatten_entry`.
+     *
+     * Headword and reading are taken from the `japanese[]` element that matched [word], not from
+     * `japanese[0]`. One entry bundles every spelling/reading pair it owns — `言` carries 言[げん] and
+     * 言[こと], `岳` carries 岳[たけ] and 岳[だけ] — so keying off the first element attributes げん to a
+     * query for こと. Falls back to the first element for the rejected-fallback path, where no element
+     * matches by definition.
+     */
+    private fun flattenEntry(word: String, entry: JishoEntryRawDto): List<JishoOptionDto> {
+        val matched = entry.japanese.firstOrNull { it.word == word || it.reading == word }
+            ?: entry.japanese.firstOrNull()
+        val reading = matched?.reading ?: matched?.word
+        val headword = matched?.word
         val options = mutableListOf<JishoOptionDto>()
         var carryPos: List<String> = emptyList() // jisho repeats POS only when it changes; carry forward
         for (sense in entry.senses) {
@@ -110,6 +120,7 @@ class JishoClient(
             if (pos.any { it.contains("Wikipedia") }) continue // drop meta senses
             options.add(
                 JishoOptionDto(
+                    headword = headword,
                     reading = reading,
                     pos = pos,
                     english = sense.englishDefinitions.joinToString(" / "),

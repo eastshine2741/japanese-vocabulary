@@ -2,6 +2,7 @@ package com.japanese.vocabulary.translation.service.pipeline.stage
 
 import com.japanese.vocabulary.translation.client.gemini.GeminiClient
 import com.japanese.vocabulary.translation.client.gemini.dto.SelectLineDto
+import com.japanese.vocabulary.translation.model.PipelineSenseOption
 import com.japanese.vocabulary.translation.model.PipelineToken
 import com.japanese.vocabulary.translation.model.PipelineTokenKey
 import com.japanese.vocabulary.translation.model.SenseSelectionStageInput
@@ -37,14 +38,7 @@ class SelectSensesStage(
                         "tokenId" to token.key.tokenId,
                         "surface" to token.surface,
                         "dictionaryForm" to resolved.baseForm,
-                        "senses" to resolved.options.map { option ->
-                            mapOf(
-                                "senseId" to option.senseId,
-                                "english" to option.english,
-                                "englishDefinitions" to option.englishDefinitions,
-                                "pos" to option.rawPos.joinToString(" / "),
-                            )
-                        },
+                        "senses" to resolved.options.map(::senseCandidate),
                     )
                 },
             )
@@ -54,6 +48,28 @@ class SelectSensesStage(
         val selectedLines = geminiClient.selectSenses(selectInput)
         val selectByIndex = validateLineIndices(selectableTokensByIndex.keys, selectedLines)
         return selectedSenseByKey(selectableTokensByIndex, selectByIndex, input)
+    }
+
+    /**
+     * One sense candidate as the LLM sees it.
+     *
+     * [PipelineSenseOption.headword] and [PipelineSenseOption.reading] are what make homographs
+     * separable. A query flattens EVERY exact-match entry into one list under a single
+     * `dictionaryForm`, so 前 arrives as 前[ぜん] + 先[さき] + 前[まえ] with no boundary between them,
+     * and 前[ぜん]'s "before / earlier" is indistinguishable from 前[まえ]'s "before / earlier /
+     * previously" on the English gloss alone. Without the reading the pick is a coin flip; with it the
+     * context (〜する前に reads まえ) decides. Null headwords (kana-only entries such as メッセージ) are
+     * omitted rather than sent as nulls.
+     *
+     * `englishDefinitions` is deliberately absent: [PipelineSenseOption.english] is that same list
+     * joined with " / ", so sending both duplicated every gloss in the request.
+     */
+    private fun senseCandidate(option: PipelineSenseOption): Map<String, Any?> = buildMap {
+        put("senseId", option.senseId)
+        option.headword?.let { put("headword", it) }
+        option.reading?.let { put("reading", it) }
+        put("english", option.english)
+        put("pos", option.rawPos.joinToString(" / "))
     }
 
     private fun selectedSenseByKey(

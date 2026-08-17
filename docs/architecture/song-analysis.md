@@ -49,8 +49,8 @@ Flow: `(translation || [segment -> surface check/retry -> grammar rules -> jisho
 2. **segment** (LLM): original line -> semantic segments + lemma restoration. Replaces Kuromoji.
 3. **surface check/retry** (code): validates segmented surfaces cover the original Japanese text in order. Failed segmentation is retried.
 4. **grammar rules** (code): deterministically handles only grammar tokens that lexical lookup cannot reliably recover, such as `ている/てる`, particles, and `どうも こうも` rewrite. Ambiguous words such as `ない` and `から` stay out of the rule table.
-5. **jisho + i-adjective normalize** (code): segmented headwords -> candidate sense list. Unsafe fallbacks are rejected, and i-adjective adverbials such as `高く` can be normalized through a `高い` probe.
-6. **sense-select** (LLM): chooses the matching sense ID for each word using lyric translation as context. It does not create meanings directly.
+5. **jisho + i-adjective normalize** (code): segmented headwords -> candidate sense list. Unsafe fallbacks are rejected, and i-adjective adverbials such as `高く` can be normalized through a `高い` probe. Each candidate carries the headword and reading of the `japanese[]` element that matched the query, not of `japanese[0]` — one jisho entry bundles several spelling/reading pairs (`言` owns 言[げん] and 言[こと]).
+6. **sense-select** (LLM): chooses the matching sense ID for each word using lyric translation as context. It does not create meanings directly. Candidates are sent as `{senseId, headword, reading, english, pos}`; headword/reading separate homographs that share a `dictionaryForm` and can have near-identical English glosses (前[ぜん] "before / earlier" vs 前[まえ] "before / earlier / previously").
 7. **sense-translate** (LLM): translates each chosen Japanese sense to one Korean meaning. Multiple English glosses for one sense are treated as one sense description, not concatenated gloss translations.
 8. **assemble** (code): fills reading, POS, JLPT, and meaning from rule results or selected sense. If no sense exists, leave it empty. Non-Japanese punctuation, English, and numbers are marked `SYMBOL`.
 

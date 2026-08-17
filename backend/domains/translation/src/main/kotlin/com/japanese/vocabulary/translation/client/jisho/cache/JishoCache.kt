@@ -48,7 +48,10 @@ class JishoCache(
     fun put(word: String, value: JishoEntryDto) = put(word, value, TTL)
 
     companion object {
-        private const val KEY_PREFIX = "jisho:v2:"
+        // v3: JishoOptionDto gained `headword`, and `reading` now comes from the matched japanese[]
+        // element instead of japanese[0]. v2 payloads carry the old (wrong) reading, so they must not
+        // be reused.
+        private const val KEY_PREFIX = "jisho:v3:"
         private val TTL: Duration = Duration.ofDays(30)
     }
 }

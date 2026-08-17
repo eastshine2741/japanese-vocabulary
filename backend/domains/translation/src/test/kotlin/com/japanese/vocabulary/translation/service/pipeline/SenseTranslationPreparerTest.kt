@@ -19,6 +19,7 @@ class SenseTranslationPreparerTest {
                     senseId = 7,
                     surface = "真っ逆様",
                     baseForm = "真っ逆様",
+                    headword = "真っ逆様",
                     reading = "まっさかさま",
                     partOfSpeech = PartOfSpeech.NOUN,
                     rawPos = listOf("Noun"),
