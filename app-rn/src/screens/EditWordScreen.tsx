@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   BackHandler,
   StyleSheet,
+  useWindowDimensions,
 } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -20,8 +21,8 @@ import { useWordForm } from '../hooks/useWordForm';
 import AppDialog from '../components/AppDialog';
 import ErrorDialog from '../components/ErrorDialog';
 import { AppBar } from '../components/AppBar';
-import { AppBottomSheet, AppBottomSheetRef } from '../components/bottomSheet';
-import { Colors, Dimens } from '../theme/theme';
+import { AppBottomSheetModal, AppBottomSheetModalRef } from '../components/bottomSheet';
+import { Colors } from '../theme/theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'EditWord'>;
 
@@ -58,8 +59,14 @@ export default function EditWordScreen({ route, navigation }: Props) {
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
   const [saveErrorMessage, setSaveErrorMessage] = useState<string | null>(null);
 
-  const posSheetRef = useRef<AppBottomSheetRef>(null);
+  const posSheetRef = useRef<AppBottomSheetModalRef>(null);
   const insets = useSafeAreaInsets();
+  const windowHeight = useWindowDimensions().height;
+  // 품사 14개는 화면보다 길다 — 시트가 화면을 다 먹지 않게 상한을 둔다.
+  const maxSheetHeight = useMemo(
+    () => (windowHeight - insets.top) * 0.8,
+    [windowHeight, insets.top],
+  );
 
   // Initial snapshot for change detection
   const initialSnapshot = useRef(
@@ -111,7 +118,7 @@ export default function EditWordScreen({ route, navigation }: Props) {
 
   const openPosPicker = (index: number) => {
     setPosPickerIndex(index);
-    posSheetRef.current?.expand();
+    posSheetRef.current?.present();
   };
 
   const handleSave = async (resetFlashcard: boolean = false) => {
@@ -200,27 +207,26 @@ export default function EditWordScreen({ route, navigation }: Props) {
         </View>
       </View>
 
-      {/* POS Picker Bottom Sheet */}
-      <AppBottomSheet
+      {/* POS Picker — 다른 picker 들과 같이 modal 로 띄운다. non-modal sheet 는 닫혀 있어도
+          화면 위에 backdrop 이 상주해서 폼 터치를 먹는다. topInset 으로 status bar 는 비워 둔다. */}
+      <AppBottomSheetModal
         ref={posSheetRef}
-        index={-1}
+        topInset={insets.top}
+        maxDynamicContentSize={maxSheetHeight}
         enableDynamicSizing
         enablePanDownToClose
-        showBackdrop
-        backgroundStyle={styles.pickerSheetBg}
-        handleIndicatorStyle={styles.dragBar}
-        onClose={() => setPosPickerIndex(null)}
+        onDismiss={() => setPosPickerIndex(null)}
       >
-        <BottomSheetScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 8 }}>
+        <BottomSheetScrollView contentContainerStyle={styles.pickerContent}>
           <PosPickerList
             selectedPos={posPickerIndex !== null ? form.senses[posPickerIndex]?.partOfSpeech : null}
             onSelect={(pos) => {
               if (posPickerIndex !== null) form.updateMeaningPos(posPickerIndex, pos);
-              posSheetRef.current?.close();
+              posSheetRef.current?.dismiss();
             }}
           />
         </BottomSheetScrollView>
-      </AppBottomSheet>
+      </AppBottomSheetModal>
 
       <AppDialog
         visible={showResetDialog}
@@ -273,11 +279,6 @@ const styles = StyleSheet.create({
   saveBtnText: { fontSize: 14, fontWeight: '600', color: '#FFFFFF' },
   saveBtnTextDisabled: { fontSize: 14, fontWeight: '600', color: Colors.textMuted },
 
-  // POS Picker
-  pickerSheetBg: {
-    backgroundColor: Colors.background,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-  },
-  dragBar: { width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.textMuted },
+  // POS Picker — sheet chrome(배경·radius·drag bar)은 AppBottomSheetModal 이 갖는다.
+  pickerContent: { paddingBottom: 8 },
 });
