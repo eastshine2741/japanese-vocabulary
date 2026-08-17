@@ -1,5 +1,5 @@
 {
-  "version": "2.14",
+  "version": "2.17",
   "children": [
     {
       "type": "context",
@@ -1415,6 +1415,7 @@
                 "bottom": 1
               },
               "strokeAlignment": "inner",
+              "strokeLinejoin": "round",
               "layout": "vertical",
               "alignItems": "center",
               "children": [
@@ -1788,6 +1789,7 @@
                 "bottom": 1
               },
               "strokeAlignment": "inner",
+              "strokeLinejoin": "round",
               "gap": 8,
               "padding": [
                 14,
@@ -1917,6 +1919,7 @@
                 "bottom": 1
               },
               "strokeAlignment": "inner",
+              "strokeLinejoin": "round",
               "gap": 8,
               "padding": [
                 14,
@@ -2046,6 +2049,7 @@
                 "bottom": 1
               },
               "strokeAlignment": "inner",
+              "strokeLinejoin": "round",
               "gap": 8,
               "padding": [
                 14,
@@ -2175,6 +2179,7 @@
                 "bottom": 1
               },
               "strokeAlignment": "inner",
+              "strokeLinejoin": "round",
               "gap": 8,
               "padding": [
                 14,
@@ -2304,6 +2309,7 @@
                 "bottom": 1
               },
               "strokeAlignment": "inner",
+              "strokeLinejoin": "round",
               "gap": 8,
               "padding": [
                 14,
@@ -2433,6 +2439,7 @@
                 "bottom": 1
               },
               "strokeAlignment": "inner",
+              "strokeLinejoin": "round",
               "gap": 8,
               "padding": [
                 14,
@@ -2562,6 +2569,7 @@
                 "bottom": 1
               },
               "strokeAlignment": "inner",
+              "strokeLinejoin": "round",
               "gap": 8,
               "padding": [
                 14,
@@ -2691,6 +2699,7 @@
                 "bottom": 1
               },
               "strokeAlignment": "inner",
+              "strokeLinejoin": "round",
               "gap": 8,
               "padding": [
                 14,
@@ -4457,6 +4466,8 @@
               "id": "rOC1z",
               "name": "jpArea",
               "width": "fill_container",
+              "layout": "vertical",
+              "gap": 6,
               "padding": [
                 24,
                 0,
@@ -4479,7 +4490,7 @@
             },
             {
               "type": "frame",
-              "id": "76Pvb",
+              "id": "LibWi",
               "name": "readSection",
               "width": "fill_container",
               "layout": "vertical",
@@ -4487,7 +4498,8 @@
               "children": [
                 {
                   "type": "text",
-                  "id": "B377L",
+                  "id": "r8Df9I",
+                  "name": "readLabel",
                   "fill": "$text-muted",
                   "content": "읽기",
                   "fontFamily": "Inter",
@@ -4496,7 +4508,7 @@
                 },
                 {
                   "type": "frame",
-                  "id": "v2qGa",
+                  "id": "W0gUv",
                   "name": "readRow",
                   "width": "fill_container",
                   "stroke": "$border-default",
@@ -4504,6 +4516,7 @@
                     "bottom": 1
                   },
                   "strokeAlignment": "inner",
+                  "strokeLinejoin": "round",
                   "padding": [
                     0,
                     0,
@@ -4513,7 +4526,8 @@
                   "children": [
                     {
                       "type": "text",
-                      "id": "03kZr",
+                      "id": "OKiA7",
+                      "name": "readingText",
                       "fill": "$text-primary",
                       "content": "とどける",
                       "fontFamily": "Inter",
@@ -4530,6 +4544,7 @@
               "name": "meanSection",
               "width": "fill_container",
               "layout": "vertical",
+              "gap": 20,
               "children": [
                 {
                   "type": "text",
@@ -4542,165 +4557,427 @@
                 },
                 {
                   "type": "frame",
-                  "id": "34EJ1",
-                  "name": "meaningRow1",
+                  "id": "kwcmM",
+                  "name": "meaningGroup1",
                   "width": "fill_container",
-                  "gap": 10,
-                  "padding": [
-                    8,
-                    0
-                  ],
-                  "alignItems": "center",
+                  "layout": "vertical",
                   "children": [
                     {
                       "type": "frame",
-                      "id": "SvOuZ",
-                      "name": "posChip1",
-                      "fill": "#10B98120",
-                      "cornerRadius": 10,
-                      "gap": 4,
+                      "id": "wP1pX",
+                      "name": "meaningRow1",
+                      "width": "fill_container",
+                      "gap": 10,
                       "padding": [
-                        5,
-                        10
+                        8,
+                        0
                       ],
                       "alignItems": "center",
                       "children": [
                         {
-                          "type": "text",
-                          "id": "ZZtVV",
-                          "fill": "$pos-verb",
-                          "content": "동사",
-                          "fontFamily": "Inter",
-                          "fontSize": 12,
-                          "fontWeight": "600"
+                          "type": "frame",
+                          "id": "eE7XF",
+                          "name": "numBadge1",
+                          "width": 20,
+                          "height": 20,
+                          "fill": "$bg-subtle",
+                          "cornerRadius": 10,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "aqF5r",
+                              "name": "num1",
+                              "fill": "$text-secondary",
+                              "content": "1",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "700"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "skYmE",
+                          "name": "posChip1",
+                          "fill": "#10B98120",
+                          "cornerRadius": 10,
+                          "gap": 4,
+                          "padding": [
+                            5,
+                            10
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "mFdvr",
+                              "fill": "$pos-verb",
+                              "content": "동사",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "icon",
+                              "id": "N6TK1t",
+                              "width": 12,
+                              "height": 12,
+                              "icon": "chevron-down",
+                              "library": "lucide",
+                              "fill": "$pos-verb"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "Acncr",
+                          "name": "txtWrap1",
+                          "width": "fill_container",
+                          "stroke": "$border-default",
+                          "strokeWidth": {
+                            "bottom": 1
+                          },
+                          "strokeAlignment": "inner",
+                          "strokeLinejoin": "round",
+                          "padding": [
+                            6,
+                            0
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "i13lq",
+                              "fill": "$text-primary",
+                              "content": "전달하다",
+                              "fontFamily": "Inter",
+                              "fontSize": 17,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
                           "type": "icon",
-                          "id": "I2skO",
-                          "width": 12,
-                          "height": 12,
-                          "icon": "chevron-down",
+                          "id": "LB1cE",
+                          "name": "deleteMeaning1",
+                          "width": 16,
+                          "height": 16,
+                          "icon": "x",
                           "library": "lucide",
-                          "fill": "$pos-verb"
+                          "fill": "$text-muted"
                         }
                       ]
                     },
                     {
                       "type": "frame",
-                      "id": "iesWQ",
-                      "name": "txtWrap1",
+                      "id": "mFi2E",
+                      "name": "examplesList1",
                       "width": "fill_container",
-                      "stroke": "$border-default",
-                      "strokeWidth": {
-                        "bottom": 1
-                      },
-                      "strokeAlignment": "inner",
+                      "layout": "vertical",
+                      "gap": 16,
                       "padding": [
-                        6,
-                        0
+                        4,
+                        0,
+                        4,
+                        34
                       ],
                       "children": [
                         {
-                          "type": "text",
-                          "id": "pCyMB",
-                          "fill": "$text-primary",
-                          "content": "전달하다",
-                          "fontFamily": "Inter",
-                          "fontSize": 17,
-                          "fontWeight": "normal"
+                          "type": "frame",
+                          "id": "kukcb",
+                          "name": "exRow",
+                          "width": "fill_container",
+                          "gap": 10,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "q8XMWg",
+                              "name": "txt",
+                              "width": "fill_container",
+                              "layout": "vertical",
+                              "gap": 3,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "dLsdo",
+                                  "name": "jp",
+                                  "fill": "$text-primary",
+                                  "content": "― 届けたいのに、言葉にならない",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 14,
+                                  "fontWeight": "500"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "KNgEo",
+                                  "name": "kr",
+                                  "fill": "$text-muted",
+                                  "content": "전하고 싶은데, 말이 안 나와",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "Y5287",
+                                  "name": "songRow",
+                                  "gap": 5,
+                                  "padding": [
+                                    2,
+                                    0,
+                                    0,
+                                    0
+                                  ],
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "frame",
+                                      "id": "qEp4T",
+                                      "name": "art",
+                                      "width": 14,
+                                      "height": 14,
+                                      "fill": {
+                                        "type": "image",
+                                        "enabled": true,
+                                        "url": "images/generated-1774069357299.png",
+                                        "mode": "fill"
+                                      },
+                                      "cornerRadius": 3
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "om1ib",
+                                      "name": "sl",
+                                      "fill": "$text-muted",
+                                      "content": "夜に駆ける — YOASOBI",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 11,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "icon",
+                              "id": "pf8fA",
+                              "name": "x",
+                              "width": 16,
+                              "height": 16,
+                              "icon": "x",
+                              "library": "lucide",
+                              "fill": "$text-muted"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "b2YDLq",
+                          "name": "exRow",
+                          "width": "fill_container",
+                          "gap": 10,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "riRQT",
+                              "name": "txt",
+                              "width": "fill_container",
+                              "layout": "vertical",
+                              "gap": 3,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "PqIeU",
+                                  "name": "jp",
+                                  "fill": "$text-primary",
+                                  "content": "― 届かない声を抱きしめて",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 14,
+                                  "fontWeight": "500"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "raRP2",
+                                  "name": "kr",
+                                  "fill": "$text-muted",
+                                  "content": "닿지 않는 목소리를 안고",
+                                  "fontFamily": "Inter",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "hKHXn",
+                                  "name": "songRow",
+                                  "gap": 5,
+                                  "padding": [
+                                    2,
+                                    0,
+                                    0,
+                                    0
+                                  ],
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "frame",
+                                      "id": "flEZ9",
+                                      "name": "art",
+                                      "width": 14,
+                                      "height": 14,
+                                      "fill": {
+                                        "type": "image",
+                                        "enabled": true,
+                                        "url": "images/generated-1774069357299.png",
+                                        "mode": "fill"
+                                      },
+                                      "cornerRadius": 3
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "pACk2",
+                                      "name": "sl",
+                                      "fill": "$text-muted",
+                                      "content": "群青 — YOASOBI",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 11,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "type": "icon",
+                              "id": "oRMx9",
+                              "name": "x",
+                              "width": 16,
+                              "height": 16,
+                              "icon": "x",
+                              "library": "lucide",
+                              "fill": "$text-muted"
+                            }
+                          ]
                         }
                       ]
-                    },
-                    {
-                      "type": "icon",
-                      "id": "cVjon",
-                      "width": 16,
-                      "height": 16,
-                      "icon": "x",
-                      "library": "lucide",
-                      "fill": "$text-muted"
                     }
                   ]
                 },
                 {
                   "type": "frame",
-                  "id": "Eujbv",
-                  "name": "meaningRow2",
+                  "id": "BWnaS",
+                  "name": "meaningGroup2",
                   "width": "fill_container",
-                  "gap": 10,
-                  "padding": [
-                    8,
-                    0
-                  ],
-                  "alignItems": "center",
+                  "layout": "vertical",
                   "children": [
                     {
                       "type": "frame",
-                      "id": "qdhBN",
-                      "name": "posChip2",
-                      "fill": "#10B98120",
-                      "cornerRadius": 10,
-                      "gap": 4,
+                      "id": "UXLhO",
+                      "name": "meaningRow2",
+                      "width": "fill_container",
+                      "gap": 10,
                       "padding": [
-                        5,
-                        10
+                        8,
+                        0
                       ],
                       "alignItems": "center",
                       "children": [
                         {
-                          "type": "text",
-                          "id": "tAsJb",
-                          "fill": "$pos-verb",
-                          "content": "동사",
-                          "fontFamily": "Inter",
-                          "fontSize": 12,
-                          "fontWeight": "600"
+                          "type": "frame",
+                          "id": "uDX2U",
+                          "name": "numBadge2",
+                          "width": 20,
+                          "height": 20,
+                          "fill": "$bg-subtle",
+                          "cornerRadius": 10,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "ANKFX",
+                              "name": "num2",
+                              "fill": "$text-secondary",
+                              "content": "2",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "700"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "X8hTgp",
+                          "name": "posChip2",
+                          "fill": "#10B98120",
+                          "cornerRadius": 10,
+                          "gap": 4,
+                          "padding": [
+                            5,
+                            10
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "Krmd3",
+                              "fill": "$pos-verb",
+                              "content": "동사",
+                              "fontFamily": "Inter",
+                              "fontSize": 12,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "icon",
+                              "id": "wz6pq",
+                              "width": 12,
+                              "height": 12,
+                              "icon": "chevron-down",
+                              "library": "lucide",
+                              "fill": "$pos-verb"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "tftrw",
+                          "name": "txtWrap2",
+                          "width": "fill_container",
+                          "stroke": "$border-default",
+                          "strokeWidth": {
+                            "bottom": 1
+                          },
+                          "strokeAlignment": "inner",
+                          "strokeLinejoin": "round",
+                          "padding": [
+                            6,
+                            0
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "Ko3v0",
+                              "fill": "$text-primary",
+                              "content": "보내다",
+                              "fontFamily": "Inter",
+                              "fontSize": 17,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         },
                         {
                           "type": "icon",
-                          "id": "NER8v",
-                          "width": 12,
-                          "height": 12,
-                          "icon": "chevron-down",
+                          "id": "k9KXiR",
+                          "name": "deleteMeaning2",
+                          "width": 16,
+                          "height": 16,
+                          "icon": "x",
                           "library": "lucide",
-                          "fill": "$pos-verb"
+                          "fill": "$text-muted"
                         }
                       ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "3IAVW",
-                      "name": "txtWrap2",
-                      "width": "fill_container",
-                      "stroke": "$border-default",
-                      "strokeWidth": {
-                        "bottom": 1
-                      },
-                      "strokeAlignment": "inner",
-                      "padding": [
-                        6,
-                        0
-                      ],
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "FgLVi",
-                          "fill": "$text-primary",
-                          "content": "보내다",
-                          "fontFamily": "Inter",
-                          "fontSize": 17,
-                          "fontWeight": "normal"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "icon",
-                      "id": "SUmI9",
-                      "width": 16,
-                      "height": 16,
-                      "icon": "x",
-                      "library": "lucide",
-                      "fill": "$text-muted"
                     }
                   ]
                 },
@@ -4734,216 +5011,6 @@
                       "fontFamily": "Inter",
                       "fontSize": 15,
                       "fontWeight": "500"
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "EwHWV",
-              "name": "exSection",
-              "width": "fill_container",
-              "layout": "vertical",
-              "children": [
-                {
-                  "type": "text",
-                  "id": "WgRh5",
-                  "name": "exLabel",
-                  "fill": "$text-muted",
-                  "content": "예문",
-                  "fontFamily": "Inter",
-                  "fontSize": 12,
-                  "fontWeight": "500"
-                },
-                {
-                  "type": "frame",
-                  "id": "uADOS",
-                  "name": "exRow1",
-                  "width": "fill_container",
-                  "stroke": "$border-default",
-                  "strokeWidth": {
-                    "bottom": 1
-                  },
-                  "strokeAlignment": "inner",
-                  "gap": 10,
-                  "padding": [
-                    12,
-                    0
-                  ],
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "N73lS",
-                      "name": "txt1",
-                      "width": "fill_container",
-                      "layout": "vertical",
-                      "gap": 3,
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "0XSQB",
-                          "name": "jp1",
-                          "fill": "$text-primary",
-                          "content": "届けたいのに、言葉にならない",
-                          "fontFamily": "Inter",
-                          "fontSize": 14,
-                          "fontWeight": "500"
-                        },
-                        {
-                          "type": "text",
-                          "id": "btfwc",
-                          "name": "kr1",
-                          "fill": "$text-muted",
-                          "content": "전하고 싶은데, 말이 안 나와",
-                          "fontFamily": "Inter",
-                          "fontSize": 12,
-                          "fontWeight": "normal"
-                        },
-                        {
-                          "type": "frame",
-                          "id": "96SqL",
-                          "name": "songRow1",
-                          "gap": 5,
-                          "padding": [
-                            2,
-                            0,
-                            0,
-                            0
-                          ],
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "frame",
-                              "id": "jgdIk",
-                              "name": "art1",
-                              "width": 14,
-                              "height": 14,
-                              "fill": {
-                                "type": "image",
-                                "enabled": true,
-                                "url": "images/generated-1774069357299.png",
-                                "mode": "fill"
-                              },
-                              "cornerRadius": 3
-                            },
-                            {
-                              "type": "text",
-                              "id": "AENt7",
-                              "name": "sl1",
-                              "fill": "$text-muted",
-                              "content": "夜に駆ける — YOASOBI",
-                              "fontFamily": "Inter",
-                              "fontSize": 11,
-                              "fontWeight": "normal"
-                            }
-                          ]
-                        }
-                      ]
-                    },
-                    {
-                      "type": "icon",
-                      "id": "Jpzm3",
-                      "name": "x1",
-                      "width": 16,
-                      "height": 16,
-                      "icon": "x",
-                      "library": "lucide",
-                      "fill": "$text-muted"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "kMiau",
-                  "name": "exRow2",
-                  "width": "fill_container",
-                  "gap": 10,
-                  "padding": [
-                    12,
-                    0
-                  ],
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "6sdRj",
-                      "name": "txt2",
-                      "width": "fill_container",
-                      "layout": "vertical",
-                      "gap": 3,
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "f3J9R",
-                          "name": "jp2",
-                          "fill": "$text-primary",
-                          "content": "届かない声を抱きしめて",
-                          "fontFamily": "Inter",
-                          "fontSize": 14,
-                          "fontWeight": "500"
-                        },
-                        {
-                          "type": "text",
-                          "id": "Qy7zQ",
-                          "name": "kr2",
-                          "fill": "$text-muted",
-                          "content": "닿지 않는 목소리를 안고",
-                          "fontFamily": "Inter",
-                          "fontSize": 12,
-                          "fontWeight": "normal"
-                        },
-                        {
-                          "type": "frame",
-                          "id": "Szpv6",
-                          "name": "songRow2",
-                          "gap": 5,
-                          "padding": [
-                            2,
-                            0,
-                            0,
-                            0
-                          ],
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "frame",
-                              "id": "Qp4Kc",
-                              "name": "art2",
-                              "width": 14,
-                              "height": 14,
-                              "fill": {
-                                "type": "image",
-                                "enabled": true,
-                                "url": "images/generated-1774069357299.png",
-                                "mode": "fill"
-                              },
-                              "cornerRadius": 3
-                            },
-                            {
-                              "type": "text",
-                              "id": "AeWXv",
-                              "name": "sl2",
-                              "fill": "$text-muted",
-                              "content": "群青 — YOASOBI",
-                              "fontFamily": "Inter",
-                              "fontSize": 11,
-                              "fontWeight": "normal"
-                            }
-                          ]
-                        }
-                      ]
-                    },
-                    {
-                      "type": "icon",
-                      "id": "hUj4c",
-                      "name": "x2",
-                      "width": 16,
-                      "height": 16,
-                      "icon": "x",
-                      "library": "lucide",
-                      "fill": "$text-muted"
                     }
                   ]
                 }
@@ -5158,6 +5225,7 @@
                     "bottom": 1
                   },
                   "strokeAlignment": "inner",
+                  "strokeLinejoin": "round",
                   "padding": [
                     0,
                     0,
@@ -5252,6 +5320,7 @@
                         "bottom": 1
                       },
                       "strokeAlignment": "inner",
+                      "strokeLinejoin": "round",
                       "padding": [
                         6,
                         0
@@ -5334,6 +5403,7 @@
                         "bottom": 1
                       },
                       "strokeAlignment": "inner",
+                      "strokeLinejoin": "round",
                       "padding": [
                         6,
                         0
@@ -5937,6 +6007,7 @@
                     "bottom": 1
                   },
                   "strokeAlignment": "inner",
+                  "strokeLinejoin": "round",
                   "padding": [
                     0,
                     0,
@@ -6028,6 +6099,7 @@
                         "bottom": 1
                       },
                       "strokeAlignment": "inner",
+                      "strokeLinejoin": "round",
                       "padding": [
                         6,
                         0
@@ -6110,6 +6182,7 @@
                         "bottom": 1
                       },
                       "strokeAlignment": "inner",
+                      "strokeLinejoin": "round",
                       "padding": [
                         6,
                         0
@@ -6415,6 +6488,7 @@
                     "bottom": 1
                   },
                   "strokeAlignment": "inner",
+                  "strokeLinejoin": "round",
                   "padding": [
                     0,
                     0,
@@ -6506,6 +6580,7 @@
                         "bottom": 1
                       },
                       "strokeAlignment": "inner",
+                      "strokeLinejoin": "round",
                       "padding": [
                         6,
                         0
@@ -6588,6 +6663,7 @@
                         "bottom": 1
                       },
                       "strokeAlignment": "inner",
+                      "strokeLinejoin": "round",
                       "padding": [
                         6,
                         0
@@ -8253,6 +8329,7 @@
                     "bottom": 1
                   },
                   "strokeAlignment": "inner",
+                  "strokeLinejoin": "round",
                   "gap": 8,
                   "padding": [
                     14,
@@ -8578,6 +8655,7 @@
                   "strokeWidth": {
                     "top": 1
                   },
+                  "strokeLinejoin": "round",
                   "padding": [
                     6,
                     8
@@ -8897,6 +8975,7 @@
                         "right": 1
                       },
                       "strokeAlignment": "inner",
+                      "strokeLinejoin": "round",
                       "justifyContent": "center",
                       "alignItems": "center",
                       "children": [
@@ -10182,6 +10261,7 @@
                 "bottom": 1
               },
               "strokeAlignment": "inner",
+              "strokeLinejoin": "round",
               "gap": 12,
               "padding": [
                 8,
@@ -10293,6 +10373,7 @@
                     "bottom": 0.5
                   },
                   "strokeAlignment": "inner",
+                  "strokeLinejoin": "round",
                   "gap": 12,
                   "padding": [
                     12,
@@ -10423,6 +10504,7 @@
                     "bottom": 0.5
                   },
                   "strokeAlignment": "inner",
+                  "strokeLinejoin": "round",
                   "gap": 12,
                   "padding": [
                     12,
@@ -10553,6 +10635,7 @@
                     "bottom": 0.5
                   },
                   "strokeAlignment": "inner",
+                  "strokeLinejoin": "round",
                   "gap": 12,
                   "padding": [
                     12,
@@ -10683,6 +10766,7 @@
                     "bottom": 0.5
                   },
                   "strokeAlignment": "inner",
+                  "strokeLinejoin": "round",
                   "gap": 12,
                   "padding": [
                     12,
@@ -10801,6 +10885,7 @@
                     "bottom": 0.5
                   },
                   "strokeAlignment": "inner",
+                  "strokeLinejoin": "round",
                   "gap": 12,
                   "padding": [
                     12,
@@ -11104,6 +11189,7 @@
                   "strokeWidth": {
                     "left": 2
                   },
+                  "strokeLinejoin": "round",
                   "layout": "vertical",
                   "gap": 3,
                   "padding": [
@@ -11148,6 +11234,7 @@
                   "strokeWidth": {
                     "left": 2
                   },
+                  "strokeLinejoin": "round",
                   "layout": "vertical",
                   "gap": 3,
                   "padding": [
@@ -20278,6 +20365,7 @@
                 "bottom": 1
               },
               "strokeAlignment": "inner",
+              "strokeLinejoin": "round",
               "gap": 12,
               "padding": [
                 14,
@@ -20367,6 +20455,7 @@
                 "bottom": 1
               },
               "strokeAlignment": "inner",
+              "strokeLinejoin": "round",
               "gap": 12,
               "padding": [
                 14,
@@ -20456,6 +20545,7 @@
                 "bottom": 1
               },
               "strokeAlignment": "inner",
+              "strokeLinejoin": "round",
               "gap": 12,
               "padding": [
                 14,
@@ -20545,6 +20635,7 @@
                 "bottom": 1
               },
               "strokeAlignment": "inner",
+              "strokeLinejoin": "round",
               "gap": 12,
               "padding": [
                 14,
@@ -20634,6 +20725,7 @@
                 "bottom": 1
               },
               "strokeAlignment": "inner",
+              "strokeLinejoin": "round",
               "gap": 12,
               "padding": [
                 14,
@@ -22643,6 +22735,7 @@
             "bottom": 1
           },
           "strokeAlignment": "inner",
+          "strokeLinejoin": "round",
           "layout": "vertical",
           "children": [
             {
@@ -22897,6 +22990,7 @@
             "bottom": 1
           },
           "strokeAlignment": "inner",
+          "strokeLinejoin": "round",
           "gap": 15,
           "padding": [
             0,
@@ -22938,6 +23032,7 @@
                 "bottom": 2
               },
               "strokeAlignment": "inner",
+              "strokeLinejoin": "round",
               "layout": "vertical",
               "padding": [
                 0,
@@ -22981,6 +23076,7 @@
                 "bottom": 1
               },
               "strokeAlignment": "inner",
+              "strokeLinejoin": "round",
               "gap": 8,
               "padding": [
                 0,
@@ -23227,6 +23323,7 @@
                 "top": 1
               },
               "strokeAlignment": "inner",
+              "strokeLinejoin": "round",
               "layout": "vertical",
               "alignItems": "center",
               "children": [
@@ -25032,6 +25129,7 @@
             "bottom": 1
           },
           "strokeAlignment": "inner",
+          "strokeLinejoin": "round",
           "gap": 15,
           "padding": [
             0,
@@ -25048,6 +25146,7 @@
                 "bottom": 2
               },
               "strokeAlignment": "inner",
+              "strokeLinejoin": "round",
               "layout": "vertical",
               "padding": [
                 0,
@@ -25652,6 +25751,7 @@
                     "top": 1
                   },
                   "strokeAlignment": "inner",
+                  "strokeLinejoin": "round",
                   "layout": "vertical",
                   "alignItems": "center",
                   "children": [
@@ -26793,6 +26893,7 @@
             "bottom": 1
           },
           "strokeAlignment": "inner",
+          "strokeLinejoin": "round",
           "gap": 15,
           "padding": [
             0,
@@ -26834,6 +26935,7 @@
                 "bottom": 2
               },
               "strokeAlignment": "inner",
+              "strokeLinejoin": "round",
               "layout": "vertical",
               "padding": [
                 0,
@@ -26877,6 +26979,7 @@
                 "bottom": 1
               },
               "strokeAlignment": "inner",
+              "strokeLinejoin": "round",
               "gap": 8,
               "padding": [
                 0,
@@ -27051,6 +27154,7 @@
                         "top": 1
                       },
                       "strokeAlignment": "inner",
+                      "strokeLinejoin": "round",
                       "layout": "vertical",
                       "alignItems": "center",
                       "children": [
@@ -28195,6 +28299,7 @@
             "bottom": 1
           },
           "strokeAlignment": "inner",
+          "strokeLinejoin": "round",
           "gap": 15,
           "padding": [
             0,
@@ -28236,6 +28341,7 @@
                 "bottom": 2
               },
               "strokeAlignment": "inner",
+              "strokeLinejoin": "round",
               "layout": "vertical",
               "padding": [
                 0,
@@ -28279,6 +28385,7 @@
                 "bottom": 1
               },
               "strokeAlignment": "inner",
+              "strokeLinejoin": "round",
               "gap": 8,
               "padding": [
                 0,
@@ -28449,6 +28556,7 @@
                         "top": 1
                       },
                       "strokeAlignment": "inner",
+                      "strokeLinejoin": "round",
                       "layout": "vertical",
                       "alignItems": "center",
                       "children": [
@@ -29469,6 +29577,7 @@
             "bottom": 1
           },
           "strokeAlignment": "inner",
+          "strokeLinejoin": "round",
           "gap": 15,
           "padding": [
             0,
@@ -29510,6 +29619,7 @@
                 "bottom": 2
               },
               "strokeAlignment": "inner",
+              "strokeLinejoin": "round",
               "layout": "vertical",
               "padding": [
                 0,
@@ -29553,6 +29663,7 @@
                 "bottom": 1
               },
               "strokeAlignment": "inner",
+              "strokeLinejoin": "round",
               "gap": 8,
               "padding": [
                 0,
@@ -30236,6 +30347,7 @@
             "top": 1
           },
           "strokeAlignment": "inner",
+          "strokeLinejoin": "round",
           "layout": "vertical",
           "alignItems": "center",
           "children": [
@@ -30767,6 +30879,7 @@
             "bottom": 1
           },
           "strokeAlignment": "inner",
+          "strokeLinejoin": "round",
           "gap": 15,
           "padding": [
             0,
@@ -30808,6 +30921,7 @@
                 "bottom": 2
               },
               "strokeAlignment": "inner",
+              "strokeLinejoin": "round",
               "layout": "vertical",
               "padding": [
                 0,
@@ -30851,6 +30965,7 @@
                 "bottom": 1
               },
               "strokeAlignment": "inner",
+              "strokeLinejoin": "round",
               "gap": 8,
               "padding": [
                 0,
@@ -31097,6 +31212,7 @@
                 "top": 1
               },
               "strokeAlignment": "inner",
+              "strokeLinejoin": "round",
               "layout": "vertical",
               "alignItems": "center",
               "children": [
@@ -32041,6 +32157,7 @@
             "bottom": 1
           },
           "strokeAlignment": "inner",
+          "strokeLinejoin": "round",
           "gap": 15,
           "padding": [
             0,
@@ -32082,6 +32199,7 @@
                 "bottom": 2
               },
               "strokeAlignment": "inner",
+              "strokeLinejoin": "round",
               "layout": "vertical",
               "padding": [
                 0,
@@ -32125,6 +32243,7 @@
                 "bottom": 1
               },
               "strokeAlignment": "inner",
+              "strokeLinejoin": "round",
               "gap": 8,
               "padding": [
                 0,
@@ -32808,6 +32927,7 @@
             "top": 1
           },
           "strokeAlignment": "inner",
+          "strokeLinejoin": "round",
           "layout": "vertical",
           "alignItems": "center",
           "children": [
@@ -33344,6 +33464,7 @@
             "bottom": 1
           },
           "strokeAlignment": "inner",
+          "strokeLinejoin": "round",
           "gap": 15,
           "padding": [
             0,
@@ -33385,6 +33506,7 @@
                 "bottom": 2
               },
               "strokeAlignment": "inner",
+              "strokeLinejoin": "round",
               "layout": "vertical",
               "padding": [
                 0,
@@ -33428,6 +33550,7 @@
                 "bottom": 1
               },
               "strokeAlignment": "inner",
+              "strokeLinejoin": "round",
               "gap": 8,
               "padding": [
                 0,
@@ -33575,6 +33698,7 @@
                     "bottom": 1
                   },
                   "strokeAlignment": "inner",
+                  "strokeLinejoin": "round",
                   "padding": [
                     12,
                     0
@@ -33812,6 +33936,7 @@
                 "top": 1
               },
               "strokeAlignment": "inner",
+              "strokeLinejoin": "round",
               "layout": "vertical",
               "alignItems": "center",
               "children": [
@@ -34882,6 +35007,7 @@
             "bottom": 1
           },
           "strokeAlignment": "inner",
+          "strokeLinejoin": "round",
           "gap": 15,
           "padding": [
             0,
@@ -34898,6 +35024,7 @@
                 "bottom": 2
               },
               "strokeAlignment": "inner",
+              "strokeLinejoin": "round",
               "layout": "vertical",
               "padding": [
                 0,
@@ -35002,6 +35129,7 @@
                     "top": 1
                   },
                   "strokeAlignment": "inner",
+                  "strokeLinejoin": "round",
                   "layout": "vertical",
                   "alignItems": "center",
                   "children": [
