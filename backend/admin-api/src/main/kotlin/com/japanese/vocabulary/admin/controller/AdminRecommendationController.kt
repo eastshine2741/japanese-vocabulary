@@ -30,6 +30,9 @@ import java.time.LocalDate
 class AdminRecommendationController(
     private val recommendationService: SongRecommendationService,
 ) {
+    @GetMapping("/weeks")
+    fun weeks(): List<LocalDate> = recommendationService.listCollectedWeeks()
+
     @GetMapping("/candidates")
     fun candidates(
         @RequestParam(required = false)

@@ -151,6 +151,10 @@ class SongRecommendationService(
     }
 
     @Transactional(readOnly = true)
+    fun listCollectedWeeks(): List<LocalDate> =
+        candidateRepository.findCollectedWeekStartDates(PageRequest.of(0, MAX_ADMIN_WEEKS))
+
+    @Transactional(readOnly = true)
     fun listCandidates(
         weekStartDate: LocalDate?,
         status: RecommendationCandidateStatus?,
@@ -321,6 +325,7 @@ class SongRecommendationService(
 
     companion object {
         private const val MAX_ADMIN_ROWS = 100
+        private const val MAX_ADMIN_WEEKS = 104
         private const val OPERATION_SUCCEEDED = "SUCCEEDED"
         private const val OPERATION_SKIPPED = "SKIPPED"
         private const val OPERATION_FAILED = "FAILED"

@@ -84,8 +84,12 @@ export const adminApi = {
   songAnalysisWork(token: string, id: string) {
     return request<SongAnalysisWorkDetail>(`/song-analysis-works/${id}`, token)
   },
-  recommendationCandidates(token: string, status?: string) {
+  recommendationWeeks(token: string) {
+    return request<string[]>("/recommendations/weeks", token)
+  },
+  recommendationCandidates(token: string, weekStartDate?: string, status?: string) {
     const params = new URLSearchParams()
+    if (weekStartDate) params.set("weekStartDate", weekStartDate)
     if (status) params.set("status", status)
     const query = params.toString()
     return request<RecommendationCandidate[]>(`/recommendations/candidates${query ? `?${query}` : ""}`, token)
@@ -96,8 +100,11 @@ export const adminApi = {
       body: JSON.stringify({ status }),
     })
   },
-  recommendations(token: string) {
-    return request<Recommendation[]>("/recommendations", token)
+  recommendations(token: string, weekStartDate?: string) {
+    const params = new URLSearchParams()
+    if (weekStartDate) params.set("weekStartDate", weekStartDate)
+    const query = params.toString()
+    return request<Recommendation[]>(`/recommendations${query ? `?${query}` : ""}`, token)
   },
   updateRecommendation(token: string, recommendationId: number, payload: { status?: string; orderIndex?: number }) {
     return request<Recommendation>(`/recommendations/${recommendationId}`, token, {

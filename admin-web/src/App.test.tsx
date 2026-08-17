@@ -29,9 +29,10 @@ function mockFetch() {
     if (url.includes("/songs?")) return json(page([songSummary]))
     if (url.includes("/song-analysis-works/4")) return json(songAnalysisWorkDetail)
     if (url.includes("/song-analysis-works?")) return json(page([songAnalysisWorkSummary]))
+    if (url.includes("/recommendations/weeks")) return json([recommendationCandidate.weekStartDate])
     if (url.includes("/recommendations/candidates")) return json([recommendationCandidate])
-    if (url.endsWith("/recommendations")) return json([recommendation])
     if (url.includes("/recommendations/prepare-approved")) return json(recommendationOperationResult)
+    if (url.includes("/recommendations?") || url.endsWith("/recommendations")) return json([recommendation])
     if (url.includes("/recommendations/request-analysis")) return json(recommendationOperationResult)
     if (url.includes("/lyrics/2")) return json(lyricDetail)
     if (url.includes("/lyrics?")) return json(page([lyricSummary]))
@@ -123,6 +124,43 @@ describe("admin web", () => {
     expect(await screen.findByText("Processed")).toBeInTheDocument()
     expect(screen.getByText(/SUCCEEDED/)).toBeInTheDocument()
     expect(screen.getAllByRole("tab")).toHaveLength(2)
+  })
+
+  test("scopes recommendation lists and operations to the selected week", async () => {
+    const user = userEvent.setup()
+    const fetchMock = mockFetch()
+    sessionStorage.setItem("kotonoha.admin.token", "admin-token")
+    renderApp("/recommendations")
+
+    expect((await screen.findAllByText("Plazma")).length).toBeGreaterThan(0)
+
+    const weekSelect = screen.getByLabelText("Week")
+    await user.selectOptions(weekSelect, recommendationCandidate.weekStartDate)
+
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some(([input]) =>
+          String(input).includes(`/recommendations/candidates?weekStartDate=${recommendationCandidate.weekStartDate}`),
+        ),
+      ).toBe(true),
+    )
+    expect(
+      fetchMock.mock.calls.some(([input]) =>
+        String(input).includes(`/recommendations?weekStartDate=${recommendationCandidate.weekStartDate}`),
+      ),
+    ).toBe(true)
+
+    await user.click(screen.getByRole("button", { name: "Process approved" }))
+
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some(([input]) =>
+          String(input).includes(
+            `/recommendations/prepare-approved?weekStartDate=${recommendationCandidate.weekStartDate}`,
+          ),
+        ),
+      ).toBe(true),
+    )
   })
 
   test("renders detail pages without write controls", async () => {

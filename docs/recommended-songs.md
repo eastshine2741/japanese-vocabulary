@@ -94,11 +94,17 @@ Bad publishes are blocked by both the admin publish API and the home API safety 
 
 ## Admin operation API
 
+- `GET /admin/api/recommendations/weeks`
 - `GET /admin/api/recommendations/candidates`
 - `PATCH /admin/api/recommendations/candidates/{candidateId}/status`
 - `GET /admin/api/recommendations`
 - `PATCH /admin/api/recommendations/{recommendationId}`
 - `POST /admin/api/recommendations/prepare-approved` (optional `weekStartDate`; defaults to the latest candidate week)
 - `POST /admin/api/recommendations/request-analysis`
+
+Admin-web has a week selector that defaults to the week containing today. Candidate list, recommendation
+list, and `prepare-approved` all run against the selected week. `GET /admin/api/recommendations/weeks`
+returns the weeks that have collected candidates; the current week stays selectable even before its
+candidates exist.
 
 All endpoints are authenticated admin-only operations. Admin list and operation endpoints use an internal 100-row cap, matching the Apple RSS v1 source size.

@@ -17,9 +17,22 @@ type OperationKey =
   | `candidate-${number}-${string}`
   | `recommendation-${number}-${string}`
 
+// Apple RSS collection buckets candidates into Monday-start weeks, so the operator
+// picks a Monday. The default is the week that contains today.
+function currentWeekStartDate(): string {
+  const today = new Date()
+  const daysSinceMonday = (today.getDay() + 6) % 7
+  const monday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - daysSinceMonday)
+  const month = String(monday.getMonth() + 1).padStart(2, "0")
+  const day = String(monday.getDate()).padStart(2, "0")
+  return `${monday.getFullYear()}-${month}-${day}`
+}
+
 export function RecommendationsPage() {
   const { token } = useAuth()
   const [activeStage, setActiveStage] = React.useState<Stage>("candidates")
+  const [selectedWeek, setSelectedWeek] = React.useState<string>(currentWeekStartDate)
+  const [collectedWeeks, setCollectedWeeks] = React.useState<string[]>([])
   const [candidates, setCandidates] = React.useState<RecommendationCandidate[]>([])
   const [recommendations, setRecommendations] = React.useState<Recommendation[]>([])
   const [loading, setLoading] = React.useState(true)
@@ -31,10 +44,12 @@ export function RecommendationsPage() {
     setLoading(true)
       setError(null)
       try {
-        const [nextCandidates, nextRecommendations] = await Promise.all([
-        adminApi.recommendationCandidates(token!),
-        adminApi.recommendations(token!),
+        const [nextWeeks, nextCandidates, nextRecommendations] = await Promise.all([
+        adminApi.recommendationWeeks(token!),
+        adminApi.recommendationCandidates(token!, selectedWeek),
+        adminApi.recommendations(token!, selectedWeek),
       ])
+      setCollectedWeeks(nextWeeks)
       setCandidates(nextCandidates)
       setRecommendations(nextRecommendations)
     } catch {
@@ -42,23 +57,31 @@ export function RecommendationsPage() {
     } finally {
       setLoading(false)
     }
-  }, [token])
+  }, [selectedWeek, token])
 
   React.useEffect(() => {
     void loadPage()
   }, [loadPage])
+
+  const changeWeek = React.useCallback((week: string) => {
+    setSelectedWeek(week)
+    setResult(null)
+  }, [])
+
+  // The current week stays selectable even before its candidates are collected.
+  const weekOptions = React.useMemo(
+    () => Array.from(new Set([...collectedWeeks, selectedWeek])).sort().reverse(),
+    [collectedWeeks, selectedWeek],
+  )
 
   const runOperation = React.useCallback(
     async () => {
       setRunning("prepare")
       setError(null)
       try {
-        // Send the week this page is showing so the operation cannot touch approved
-        // candidates of another week that is not visible in this list.
-        const nextResult = await adminApi.prepareApprovedRecommendations(
-          token!,
-          candidates[0]?.weekStartDate,
-        )
+        // Send the selected week so the operation cannot touch approved candidates
+        // of another week that is not visible in this list.
+        const nextResult = await adminApi.prepareApprovedRecommendations(token!, selectedWeek)
         setResult(nextResult)
         if (nextResult.items.some((item) => item.recommendationId !== null)) {
           setActiveStage("recommendations")
@@ -75,7 +98,7 @@ export function RecommendationsPage() {
         setRunning(null)
       }
     },
-    [candidates, loadPage, token],
+    [loadPage, selectedWeek, token],
   )
 
   const requestMissingAnalysis = React.useCallback(
@@ -145,6 +168,14 @@ export function RecommendationsPage() {
         meta="Move songs from Apple RSS candidate review into published home recommendations"
       />
 
+      <WeekSelector
+        selectedWeek={selectedWeek}
+        weekOptions={weekOptions}
+        collectedWeeks={collectedWeeks}
+        disabled={loading || running !== null}
+        onWeekChange={changeWeek}
+      />
+
       <StageTabs
         activeStage={activeStage}
         onStageChange={setActiveStage}
@@ -163,6 +194,7 @@ export function RecommendationsPage() {
       {activeStage === "candidates" ? (
         <CandidateStage
           candidates={candidates}
+          selectedWeek={selectedWeek}
           loading={loading}
           running={running}
           result={result}
@@ -175,6 +207,7 @@ export function RecommendationsPage() {
         <RecommendationStage
           recommendations={recommendations}
           candidateById={candidateById}
+          selectedWeek={selectedWeek}
           loading={loading}
           running={running}
           onRefresh={loadPage}
@@ -182,6 +215,42 @@ export function RecommendationsPage() {
         />
       )}
     </>
+  )
+}
+
+function WeekSelector({
+  selectedWeek,
+  weekOptions,
+  collectedWeeks,
+  disabled,
+  onWeekChange,
+}: {
+  selectedWeek: string
+  weekOptions: string[]
+  collectedWeeks: string[]
+  disabled: boolean
+  onWeekChange: (week: string) => void
+}) {
+  return (
+    <div className="mb-5 flex flex-wrap items-center gap-3 rounded-lg border border-[#d9e1ea] bg-white px-4 py-3">
+      <label className="text-xs font-medium uppercase tracking-normal text-[#637083]" htmlFor="recommendation-week">
+        Week
+      </label>
+      <select
+        id="recommendation-week"
+        className="focus-ring h-9 rounded-md border border-[#cbd5e1] bg-white px-3 text-sm"
+        value={selectedWeek}
+        disabled={disabled}
+        onChange={(event) => onWeekChange(event.target.value)}
+      >
+        {weekOptions.map((week) => (
+          <option key={week} value={week}>
+            {week}
+            {collectedWeeks.includes(week) ? "" : " (not collected)"}
+          </option>
+        ))}
+      </select>
+    </div>
   )
 }
 
@@ -281,6 +350,7 @@ function StageTab({
 
 function CandidateStage({
   candidates,
+  selectedWeek,
   loading,
   running,
   result,
@@ -290,6 +360,7 @@ function CandidateStage({
   onUpdateCandidateStatus,
 }: {
   candidates: RecommendationCandidate[]
+  selectedWeek: string
   loading: boolean
   running: OperationKey | null
   result: RecommendationOperationResult | null
@@ -349,7 +420,7 @@ function CandidateStage({
         <div className="mb-3">
           <h2 className="text-sm font-semibold text-[#18212f]">Candidate list</h2>
           <p className="mt-1 text-sm text-[#637083]">
-            Latest collected week, ordered by Apple RSS rank.
+            Week of {selectedWeek}, ordered by Apple RSS rank.
           </p>
         </div>
         {candidates.length > 0 ? (
@@ -418,6 +489,7 @@ function CandidateStage({
 function RecommendationStage({
   recommendations,
   candidateById,
+  selectedWeek,
   loading,
   running,
   onRefresh,
@@ -425,6 +497,7 @@ function RecommendationStage({
 }: {
   recommendations: Recommendation[]
   candidateById: Map<number, RecommendationCandidate>
+  selectedWeek: string
   loading: boolean
   running: OperationKey | null
   onRefresh: () => void
@@ -436,7 +509,7 @@ function RecommendationStage({
         <div>
           <h2 className="text-sm font-semibold text-[#18212f]">Recommendation list</h2>
           <p className="mt-1 text-sm text-[#637083]">
-            Order prepared recommendations and publish only the rows that should appear on the user home.
+            Week of {selectedWeek}. Order prepared recommendations and publish only the rows that should appear on the user home.
           </p>
         </div>
         <Button type="button" variant="secondary" onClick={onRefresh} disabled={loading || running !== null}>

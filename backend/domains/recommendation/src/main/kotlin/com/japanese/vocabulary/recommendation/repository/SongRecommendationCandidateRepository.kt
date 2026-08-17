@@ -40,6 +40,12 @@ interface SongRecommendationCandidateRepository : JpaRepository<SongRecommendati
     fun findLatestWeekStartDate(): LocalDate?
 
     @Query(
+        "SELECT DISTINCT c.weekStartDate FROM SongRecommendationCandidateEntity c " +
+            "ORDER BY c.weekStartDate DESC"
+    )
+    fun findCollectedWeekStartDates(pageable: Pageable): List<LocalDate>
+
+    @Query(
         "SELECT c FROM SongRecommendationCandidateEntity c " +
             "WHERE c.weekStartDate = :weekStartDate " +
             "AND (:status IS NULL OR c.status = :status) " +
