@@ -105,10 +105,15 @@ export const adminApi = {
       body: JSON.stringify(payload),
     })
   },
-  prepareApprovedRecommendations(token: string) {
-    return request<RecommendationOperationResult>("/recommendations/prepare-approved", token, {
-      method: "POST",
-    })
+  prepareApprovedRecommendations(token: string, weekStartDate?: string) {
+    const params = new URLSearchParams()
+    if (weekStartDate) params.set("weekStartDate", weekStartDate)
+    const query = params.toString()
+    return request<RecommendationOperationResult>(
+      `/recommendations/prepare-approved${query ? `?${query}` : ""}`,
+      token,
+      { method: "POST" },
+    )
   },
   requestRecommendationAnalysis(token: string, candidateIds: number[]) {
     return request<RecommendationOperationResult>("/recommendations/request-analysis", token, {

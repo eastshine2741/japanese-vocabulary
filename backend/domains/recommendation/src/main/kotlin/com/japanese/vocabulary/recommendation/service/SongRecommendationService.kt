@@ -109,9 +109,18 @@ class SongRecommendationService(
         return items.toOperationResult()
     }
 
+    /**
+     * Prepares approved candidates of a single week. The week is scoped because the admin candidate
+     * list shows one week at a time; without scoping, approved candidates of other weeks that the
+     * operator cannot see would join the batch and block it through the all-or-nothing gate below.
+     */
     @Transactional
-    fun prepareApprovedCandidates(): RecommendationOperationResultDto {
-        val candidates = candidateRepository.findApprovedWithoutRecommendation(operationPage()).map { it.toDto() }
+    fun prepareApprovedCandidates(weekStartDate: LocalDate?): RecommendationOperationResultDto {
+        val effectiveWeekStartDate = weekStartDate ?: candidateRepository.findLatestWeekStartDate()
+            ?: return emptyList<RecommendationOperationItemDto>().toOperationResult()
+        val candidates = candidateRepository
+            .findApprovedWithoutRecommendationForWeek(effectiveWeekStartDate, operationPage())
+            .map { it.toDto() }
         val matches = candidates.map { candidate -> candidate to findAnalyzedSong(candidate) }
         val missingItems = matches
             .filterNot { (_, match) -> match.isReady }

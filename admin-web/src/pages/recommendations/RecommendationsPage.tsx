@@ -53,7 +53,12 @@ export function RecommendationsPage() {
       setRunning("prepare")
       setError(null)
       try {
-        const nextResult = await adminApi.prepareApprovedRecommendations(token!)
+        // Send the week this page is showing so the operation cannot touch approved
+        // candidates of another week that is not visible in this list.
+        const nextResult = await adminApi.prepareApprovedRecommendations(
+          token!,
+          candidates[0]?.weekStartDate,
+        )
         setResult(nextResult)
         if (nextResult.items.some((item) => item.recommendationId !== null)) {
           setActiveStage("recommendations")
@@ -70,7 +75,7 @@ export function RecommendationsPage() {
         setRunning(null)
       }
     },
-    [loadPage, token],
+    [candidates, loadPage, token],
   )
 
   const requestMissingAnalysis = React.useCallback(

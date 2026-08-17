@@ -70,8 +70,12 @@ class AdminRecommendationController(
         ).toAdminResponse()
 
     @PostMapping("/prepare-approved")
-    fun prepareApprovedCandidates(): ResponseEntity<AdminRecommendationOperationResponse> {
-        val response = recommendationService.prepareApprovedCandidates().toAdminResponse()
+    fun prepareApprovedCandidates(
+        @RequestParam(required = false)
+        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+        weekStartDate: LocalDate?,
+    ): ResponseEntity<AdminRecommendationOperationResponse> {
+        val response = recommendationService.prepareApprovedCandidates(weekStartDate).toAdminResponse()
         val status = if (response.failed > 0) HttpStatus.UNPROCESSABLE_ENTITY else HttpStatus.OK
         return ResponseEntity.status(status).body(response)
     }

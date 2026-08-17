@@ -57,7 +57,7 @@ Important statuses:
 2. Existing candidates keep operator status; source rank/metadata can be refreshed.
 3. Operator reviews candidates in admin-web and updates status through `PATCH /admin/api/recommendations/candidates/{id}/status`.
 4. Operator clicks `Process approved` in admin-web, which calls `POST /admin/api/recommendations/prepare-approved`.
-5. Admin API finds `APPROVED` candidates without a recommendation and exact-matches `songs.artist + songs.title`.
+5. Admin API finds `APPROVED` candidates without a recommendation **within one week** and exact-matches `songs.artist + songs.title`. The week comes from the `weekStartDate` query parameter, and falls back to the latest candidate week when the parameter is absent. Admin-web sends the week it is currently listing, so the operation can never touch approved candidates of a week the operator cannot see.
 6. If any candidate is missing a song or active analyzed lyric, the API returns `422 Unprocessable Entity` with one result item per candidate, including discovered `songId`/`lyricId` when present and `null` when absent. No recommendations are created in this case.
 7. Admin-web can request analysis for the missing candidate ids through `POST /admin/api/recommendations/request-analysis`, which calls `SongAnalysisWorkService.createOrReuse()` with `trigger_source=RECOMMENDATION`.
 8. The generic song-analysis worker performs lyric lookup, YouTube lookup, song/lyric creation, and lyric analysis. It does not import recommendation classes.
@@ -98,7 +98,7 @@ Bad publishes are blocked by both the admin publish API and the home API safety 
 - `PATCH /admin/api/recommendations/candidates/{candidateId}/status`
 - `GET /admin/api/recommendations`
 - `PATCH /admin/api/recommendations/{recommendationId}`
-- `POST /admin/api/recommendations/prepare-approved`
+- `POST /admin/api/recommendations/prepare-approved` (optional `weekStartDate`; defaults to the latest candidate week)
 - `POST /admin/api/recommendations/request-analysis`
 
 All endpoints are authenticated admin-only operations. Admin list and operation endpoints use an internal 100-row cap, matching the Apple RSS v1 source size.

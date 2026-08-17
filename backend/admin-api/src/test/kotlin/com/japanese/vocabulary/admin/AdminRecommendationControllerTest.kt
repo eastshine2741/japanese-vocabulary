@@ -221,6 +221,84 @@ class AdminRecommendationControllerTest : AdminBaseIntegrationTest() {
     }
 
     @Test
+    fun `prepare approved ignores approved candidates of other weeks`() {
+        val song = TestSongBuilder(entityManager)
+            .withTitle("최신주차곡")
+            .withArtist("최신주차가수")
+            .build()
+        val lyric = persistAnalyzedLyric(song.id!!)
+        song.activeLyricId = lyric.id
+        entityManager.flush()
+        val olderWeekMissing = persistApprovedCandidate(
+            sourceSongId = "apple-older-week",
+            title = "지난주없는곡",
+            artistName = "지난주없는가수",
+            sourceRank = 1,
+            weekStartDate = LocalDate.parse("2026-01-05"),
+        )
+        val latestWeekReady = persistApprovedCandidate(
+            sourceSongId = "apple-latest-week",
+            title = "최신주차곡",
+            artistName = "최신주차가수",
+            sourceRank = 1,
+            weekStartDate = LocalDate.parse("2026-01-12"),
+        )
+
+        mockMvc.post("/admin/api/recommendations/prepare-approved") {
+            header("Authorization", "Bearer ${adminToken()}")
+        }.andExpect {
+            status { isOk() }
+            jsonPath("$.processed") { value(1) }
+            jsonPath("$.succeeded") { value(1) }
+            jsonPath("$.failed") { value(0) }
+            jsonPath("$.items[0].candidateId") { value(latestWeekReady.id!!.toInt()) }
+        }
+
+        entityManager.flush()
+        entityManager.clear()
+
+        val olderWeekRecommendationCount = entityManager
+            .createNativeQuery("SELECT COUNT(*) FROM song_recommendation WHERE candidate_id = :candidateId")
+            .setParameter("candidateId", olderWeekMissing.id)
+            .singleResult as Number
+        assertThat(olderWeekRecommendationCount.toLong()).isZero()
+    }
+
+    @Test
+    fun `prepare approved accepts an explicit week start date`() {
+        val song = TestSongBuilder(entityManager)
+            .withTitle("지난주곡")
+            .withArtist("지난주가수")
+            .build()
+        val lyric = persistAnalyzedLyric(song.id!!)
+        song.activeLyricId = lyric.id
+        entityManager.flush()
+        val olderWeekReady = persistApprovedCandidate(
+            sourceSongId = "apple-older-ready",
+            title = "지난주곡",
+            artistName = "지난주가수",
+            sourceRank = 1,
+            weekStartDate = LocalDate.parse("2026-01-05"),
+        )
+        persistApprovedCandidate(
+            sourceSongId = "apple-latest-missing",
+            title = "최신주차없는곡",
+            artistName = "최신주차없는가수",
+            sourceRank = 1,
+            weekStartDate = LocalDate.parse("2026-01-12"),
+        )
+
+        mockMvc.post("/admin/api/recommendations/prepare-approved?weekStartDate=2026-01-05") {
+            header("Authorization", "Bearer ${adminToken()}")
+        }.andExpect {
+            status { isOk() }
+            jsonPath("$.processed") { value(1) }
+            jsonPath("$.succeeded") { value(1) }
+            jsonPath("$.items[0].candidateId") { value(olderWeekReady.id!!.toInt()) }
+        }
+    }
+
+    @Test
     fun `update recommendation order and publish without direct db edits`() {
         val song = TestSongBuilder(entityManager)
             .withTitle("게시곡")

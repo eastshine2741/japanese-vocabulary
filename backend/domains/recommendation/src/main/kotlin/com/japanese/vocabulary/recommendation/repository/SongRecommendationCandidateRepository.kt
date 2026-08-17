@@ -21,14 +21,18 @@ interface SongRecommendationCandidateRepository : JpaRepository<SongRecommendati
             SELECT c.*
             FROM song_recommendation_candidate c
             WHERE c.status = 'APPROVED'
+              AND c.week_start_date = :weekStartDate
               AND NOT EXISTS (
                   SELECT 1 FROM song_recommendation r WHERE r.candidate_id = c.id
               )
-            ORDER BY c.week_start_date DESC, c.source_rank ASC, c.id ASC
+            ORDER BY c.source_rank ASC, c.id ASC
         """,
         nativeQuery = true,
     )
-    fun findApprovedWithoutRecommendation(pageable: Pageable): List<SongRecommendationCandidateEntity>
+    fun findApprovedWithoutRecommendationForWeek(
+        @Param("weekStartDate") weekStartDate: LocalDate,
+        pageable: Pageable,
+    ): List<SongRecommendationCandidateEntity>
 
     fun countByStatus(@Param("status") status: RecommendationCandidateStatus): Long
 
