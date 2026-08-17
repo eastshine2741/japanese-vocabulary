@@ -8,6 +8,7 @@ data class PipelineSenseOption(
     val senseId: Int,
     val surface: String,
     val baseForm: String,
+    val headword: String?,
     val reading: String?,
     val partOfSpeech: PartOfSpeech,
     val rawPos: List<String>,

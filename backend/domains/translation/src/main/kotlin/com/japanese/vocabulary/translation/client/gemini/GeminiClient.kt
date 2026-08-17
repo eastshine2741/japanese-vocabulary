@@ -64,7 +64,9 @@ class GeminiClient(
 
     /**
      * Redesign stage 3 — per-line sense selection.
-     * Input: [{index, japanese, korean, segments:[{tokenId,surface,dictionaryForm,senses:[{senseId,english,pos}]}]}].
+     * Input: [{index, japanese, korean, segments:[{tokenId,surface,dictionaryForm,senses:[{senseId,headword,reading,english,pos}]}]}].
+     * headword/reading identify which dictionary entry a sense came from — several distinct words share
+     * one dictionaryForm (前[ぜん] / 先[さき] / 前[まえ]) and their English glosses can be identical.
      * Output: [{index, words:[{tokenId, surface, dictionaryForm, senseId}]}].
      * The LLM uses the Korean translation as a context cue to pick the senseId that fits this line, or
      * -1 when none fits. It does NOT generate Korean meanings (blocks the over-correction failure mode).

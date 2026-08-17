@@ -53,6 +53,7 @@ class LexicalResolver(
                     senseId = senseId,
                     surface = token.surface,
                     baseForm = resolved.baseForm,
+                    headword = option.headword,
                     reading = option.reading,
                     partOfSpeech = JishoPartOfSpeechMapper.map(option.pos),
                     rawPos = option.pos,
