@@ -60,11 +60,18 @@ function buildDefaultWords(studyUnits: StudyUnit[], songId: number): AddWordRequ
       map.set(token.baseForm, {
         japanese: token.baseForm,
         reading: token.baseFormReading ?? token.reading ?? '',
-        koreanText: token.koreanText,
-        partOfSpeech: token.partOfSpeech,
+        senses: [{
+          meaning: token.koreanText,
+          partOfSpeech: token.partOfSpeech,
+          jlpt: null,
+          examples: [{
+            text: unit.originalText,
+            translation: unit.koreanLyrics ?? null,
+            songId,
+            lineIndex: unit.index,
+          }],
+        }],
         songId,
-        lyricLine: unit.originalText,
-        koreanLyricLine: unit.koreanLyrics ?? undefined,
       });
     }
   }

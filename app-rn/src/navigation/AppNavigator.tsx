@@ -20,7 +20,7 @@ import OssLicenseScreen from '../screens/OssLicenseScreen';
 import HomeTab from '../screens/tabs/HomeTab';
 import MyPageTab from '../screens/tabs/MyPageTab';
 
-import { WordMeaning } from '../types/word';
+import { WordSense } from '../types/word';
 import { Token } from '../types/song';
 
 type SongPlaybackEntryParams = {
@@ -48,10 +48,11 @@ export type RootStackParamList = {
     wordId?: number;
     japanese?: string;
     reading?: string;
-    meanings?: WordMeaning[];
+    senses?: WordSense[];
     token?: Token;
     songId?: number;
     lyricLine?: string;
+    lyricLineIndex?: number;
     koreanLyricLine?: string;
   };
 };

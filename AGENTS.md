@@ -23,6 +23,7 @@ cd app-rn && npx expo start --web             # App - Web (dev)
 ### Detailed Docs
 
 - Backend module boundaries: `docs/architecture/backend-modules.md`
+- Word 스키마와 song 결합 해제: `docs/architecture/word-schema.md`
 - Song analysis and word-meaning pipeline: `docs/architecture/song-analysis.md`
 - Translation pipeline guardrails: `docs/translation-pipeline.md`
 - Push notification architecture: `docs/architecture/push-notification.md`
@@ -71,14 +72,15 @@ backend/
 ## Domain Layer Boundaries
 
 ```text
-Inner:  Song, Lyric              — 콘텐츠 원본
-Middle: Word, SongWord, Flashcard — 사용자 학습 데이터
-Outer:  Deck, DeckFlashcard       — 조직화 레이어
+Inner:  Song, Lyric        — 콘텐츠 원본
+Middle: Word, Flashcard    — 사용자 학습 데이터
+Outer:  Deck, DeckWord     — 조직화 레이어
 ```
 
 - 같은 계층 내: 서비스 간 직접 호출.
 - 계층 경계를 넘을 때만 Spring Event 사용.
 - 안쪽 계층이 바깥쪽 계층을 참조하면 안 됨.
+- **word 도메인 → song 도메인의 물리적 FK는 `decks.song_id` 하나뿐**. 곡과 단어를 매핑하는 테이블은 만들지 않는다. 예문의 `songId`/`lineIndex`는 `words.senses` JSON 안의 논리 참조다.
 
 ### Spring Event Listeners
 
@@ -92,6 +94,8 @@ Outer:  Deck, DeckFlashcard       — 조직화 레이어
 **Implemented:** Song search -> lyric fetch -> async batch word-meaning analysis -> study view, YouTube MV playback with synced lyrics, word save with meanings, flashcard review, decks, recent songs, user settings, push notifications, admin inspection surface.
 
 **Backend modularization:** Multi-module Gradle split 완료. dto 규칙 적용. `@Scheduled`는 batch에만. notification 모듈은 FCM 전송 책임만, DB 조회는 batch가 담당하고 `PushNotificationDataPort`로 추상화.
+
+**Word 스키마 (V29):** 단어는 뜻(sense) 단위다. `words.senses` JSON 이 `{meaning, partOfSpeech, jlpt, examples[]}` 배열을 들고 있고, 예문은 sense 당 최대 5개다. `song_words`·`deck_flashcards` 는 제거됐고 deck 멤버십은 `deck_word(deck_id, word_id)` 가 갖는다. SongDetail 담김 판정은 `words` 를 `UNIQUE(user_id, japanese_text)` 로 한 번 조회한 뒤 곡이 제시한 뜻이 **전부** 저장돼 있는지 메모리에서 비교한다(ALL 판정). `PUT /api/words/{id}` 는 `senses` 전체 replace 다. 설계 근거는 `docs/architecture/word-schema.md`.
 
 **Admin surface:** `backend/admin-api` exposes `/admin/api/auth/login`, `/admin/api/songs`, `/admin/api/lyrics`, `/admin/api/song-analysis-works`, and `/admin/api/users`. `admin-web` is a Vite React TypeScript shadcn-style SPA. See `docs/admin-service.md`.
 

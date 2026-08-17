@@ -29,7 +29,13 @@ interface VocabularyState {
   isLoadingMore: boolean;
 
   getWord: (japanese: string) => Promise<void>;
-  addWord: (token: Token, songId: number, lyricLine: string, koreanLyricLine?: string | null) => Promise<void>;
+  addWord: (
+    token: Token,
+    songId: number,
+    lyricLine: string,
+    koreanLyricLine?: string | null,
+    lyricLineIndex?: number | null,
+  ) => Promise<void>;
   batchAddWords: (wordRequests: AddWordRequest[]) => Promise<void>;
   resetBatchAdd: () => void;
   loadWords: () => Promise<void>;
@@ -64,17 +70,30 @@ export const useVocabularyStore = create<VocabularyState>((set, get) => ({
     }
   },
 
-  addWord: async (token: Token, songId: number, lyricLine: string, koreanLyricLine?: string | null) => {
+  addWord: async (
+    token: Token,
+    songId: number,
+    lyricLine: string,
+    koreanLyricLine?: string | null,
+    lyricLineIndex?: number | null,
+  ) => {
     set({ addStatus: 'loading' });
     try {
       const res = await wordApi.addWord({
         japanese: token.baseForm,
         reading: token.baseFormReading ?? token.reading ?? '',
-        koreanText: token.koreanText ?? '',
-        partOfSpeech: token.partOfSpeech,
+        senses: [{
+          meaning: token.koreanText ?? '',
+          partOfSpeech: token.partOfSpeech,
+          jlpt: null,
+          examples: [{
+            text: lyricLine,
+            translation: koreanLyricLine ?? null,
+            songId,
+            lineIndex: lyricLineIndex ?? null,
+          }],
+        }],
         songId,
-        lyricLine,
-        koreanLyricLine: koreanLyricLine ?? undefined,
       });
       set({ addStatus: 'success', addedId: res.id });
     } catch {

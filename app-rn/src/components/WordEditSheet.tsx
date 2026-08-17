@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { Token } from '../types/song';
+import { WordSense } from '../types/word';
 import WordFormFields from './WordFormFields';
 import PosPickerList from './PosPickerList';
 import { wordApi } from '../api/wordApi';
@@ -24,6 +25,7 @@ interface Props {
   token: Token | null;
   songId: number;
   lyricLine: string;
+  lyricLineIndex?: number;
   koreanLyricLine?: string;
   onSaved: () => void;
   onClose: () => void;
@@ -34,14 +36,25 @@ export default function WordEditSheet({
   token,
   songId,
   lyricLine,
+  lyricLineIndex,
   koreanLyricLine,
   onSaved,
   onClose,
 }: Props) {
   const { top: safeTop, bottom: safeBottom } = useSafeAreaInsets();
+
+  const buildInitialSenses = useCallback((source: Token | null): WordSense[] => [{
+    meaning: source?.koreanText ?? '',
+    partOfSpeech: source?.partOfSpeech ?? 'NOUN',
+    jlpt: null,
+    examples: lyricLine
+      ? [{ text: lyricLine, translation: koreanLyricLine ?? null, songId, lineIndex: lyricLineIndex ?? null }]
+      : [],
+  }], [lyricLine, koreanLyricLine, songId, lyricLineIndex]);
+
   const form = useWordForm(
     token?.baseFormReading ?? token?.reading ?? '',
-    [{ text: token?.koreanText ?? '', partOfSpeech: token?.partOfSpeech ?? 'NOUN' }],
+    buildInitialSenses(token),
   );
   const [saving, setSaving] = useState(false);
   const [posPickerIndex, setPosPickerIndex] = useState<number | null>(null);
@@ -49,17 +62,15 @@ export default function WordEditSheet({
   // Reset state when sheet opens with a new token
   useEffect(() => {
     if (visible && token) {
-      form.reset(
-        token.baseFormReading ?? token.reading ?? '',
-        [{ text: token.koreanText ?? '', partOfSpeech: token.partOfSpeech ?? 'NOUN' }],
-      );
+      form.reset(token.baseFormReading ?? token.reading ?? '', buildInitialSenses(token));
       setSaving(false);
       setPosPickerIndex(null);
     }
-  }, [visible, token]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, token, buildInitialSenses]);
 
   const japaneseText = token?.baseForm ?? '';
-  const canSave = !form.hasEmptyMeaning && form.meanings.length > 0 && !saving;
+  const canSave = !form.hasEmptyMeaning && form.senses.length > 0 && !saving;
 
   const openPosPicker = useCallback((index: number) => {
     Keyboard.dismiss();
@@ -71,21 +82,17 @@ export default function WordEditSheet({
     if (!canSave || !token) return;
     setSaving(true);
     try {
-      const firstMeaning = form.meanings[0];
       await wordApi.addWord({
         japanese: japaneseText,
         reading: form.reading,
-        koreanText: firstMeaning.text,
-        partOfSpeech: firstMeaning.partOfSpeech,
+        senses: form.senses,
         songId,
-        lyricLine,
-        koreanLyricLine,
       });
       onSaved();
     } catch {
       setSaving(false);
     }
-  }, [canSave, token, form.meanings, form.reading, japaneseText, songId, lyricLine, koreanLyricLine, onSaved]);
+  }, [canSave, token, form.senses, form.reading, japaneseText, songId, onSaved]);
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
@@ -110,7 +117,7 @@ export default function WordEditSheet({
             japaneseText={japaneseText}
             reading={form.reading}
             onReadingChange={form.setReading}
-            meanings={form.meanings}
+            senses={form.senses}
             onMeaningTextChange={form.updateMeaningText}
             onMeaningBlur={form.markTouched}
             onRemoveMeaning={form.removeMeaning}
@@ -156,7 +163,7 @@ export default function WordEditSheet({
             </View>
             <ScrollView>
               <PosPickerList
-                selectedPos={posPickerIndex !== null ? form.meanings[posPickerIndex]?.partOfSpeech : null}
+                selectedPos={posPickerIndex !== null ? form.senses[posPickerIndex]?.partOfSpeech : null}
                 onSelect={(pos) => {
                   if (posPickerIndex !== null) form.updateMeaningPos(posPickerIndex, pos);
                   setPosPickerIndex(null);

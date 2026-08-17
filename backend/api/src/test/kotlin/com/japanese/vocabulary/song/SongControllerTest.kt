@@ -32,7 +32,8 @@ import com.japanese.vocabulary.test.ApiBaseIntegrationTest
 import com.japanese.vocabulary.test.fixtures.TestSongBuilder
 import com.japanese.vocabulary.test.fixtures.TestUserBuilder
 import com.japanese.vocabulary.user.entity.UserEntity
-import com.japanese.vocabulary.word.model.WordMeaning
+import com.japanese.vocabulary.test.fixtures.TestWordBuilder
+import com.japanese.vocabulary.word.model.WordSense
 import io.mockk.every
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Nested
@@ -577,12 +578,11 @@ class SongControllerTest : ApiBaseIntegrationTest() {
                 analyzed = listOf(AnalyzedLine(index = 0, koreanLyrics = "높고 낮게", koreanPronounciation = null, tokens = emptyList())),
                 wordCandidates = wordCandidates,
             )
-            val savedWord = com.japanese.vocabulary.test.fixtures.TestWordBuilder(entityManager)
+            val savedWord = TestWordBuilder(entityManager)
                 .forUser(me)
                 .withJapaneseText("高")
-                .withMeanings(listOf(WordMeaning(text = "高-ko", partOfSpeech = "VERB")))
+                .withSenses(listOf(WordSense(meaning = "高-ko", partOfSpeech = "VERB")))
                 .build()
-            entityManager.persist(com.japanese.vocabulary.word.entity.SongWordEntity(wordId = savedWord.id!!, songId = song.id!!, lyricLine = "高く低く"))
             entityManager.flush()
 
             val dto = readBody<WordsInSongDto>(mockMvc.get("/api/songs/${song.id}/words") {
@@ -595,8 +595,10 @@ class SongControllerTest : ApiBaseIntegrationTest() {
                 jsonPath("$.words[0].savedWordId") { value(savedWord.id!!.toInt()) }
                 jsonPath("$.words[0].addRequest.japanese") { value("高") }
                 jsonPath("$.words[0].addRequest.reading") { value("たかい") }
-                jsonPath("$.words[0].addRequest.lyricLine") { value("高く低く") }
-                jsonPath("$.words[0].addRequest.koreanLyricLine") { value("높고 낮게") }
+                jsonPath("$.words[0].addRequest.songId") { value(song.id!!.toInt()) }
+                jsonPath("$.words[0].addRequest.senses[0].examples[0].text") { value("高く低く") }
+                jsonPath("$.words[0].addRequest.senses[0].examples[0].translation") { value("높고 낮게") }
+                jsonPath("$.words[0].addRequest.senses[0].examples[0].lineIndex") { value(0) }
             }.andReturn().response.contentAsString)
 
             assertThat(dto.lyricId).isEqualTo(lyric.id)
@@ -608,13 +610,13 @@ class SongControllerTest : ApiBaseIntegrationTest() {
         }
 
         @Test
-        fun `word saved state depends on japanese text and meaning but not example link`() {
+        fun `word saved state depends on japanese text and every meaning being present`() {
             val me = newUser()
             val song = newSong()
             val wordCandidates = LyricWordCandidates(
                 candidates = listOf(
                     candidate("意味一致", 99.0, 0, listOf(0), "N3", "NOUN"),
-                    candidate("例文のみ", 90.0, 1, listOf(1), "N3", "NOUN"),
+                    candidate("意味不一致", 90.0, 1, listOf(1), "N3", "NOUN"),
                 ),
                 lineCandidates = mapOf("0" to listOf(0), "1" to listOf(1)),
             )
@@ -622,21 +624,20 @@ class SongControllerTest : ApiBaseIntegrationTest() {
                 song,
                 raw = listOf(
                     LyricLineData(index = 0, startTimeMs = null, text = "意味一致"),
-                    LyricLineData(index = 1, startTimeMs = null, text = "例文のみ"),
+                    LyricLineData(index = 1, startTimeMs = null, text = "意味不一致"),
                 ),
                 wordCandidates = wordCandidates,
             )
-            val savedByMeaning = com.japanese.vocabulary.test.fixtures.TestWordBuilder(entityManager)
+            val savedByMeaning = TestWordBuilder(entityManager)
                 .forUser(me)
                 .withJapaneseText("意味一致")
-                .withMeanings(listOf(WordMeaning(text = "意味一致-ko", partOfSpeech = "NOUN")))
+                .withSenses(listOf(WordSense(meaning = "意味一致-ko", partOfSpeech = "NOUN")))
                 .build()
-            val savedByExampleOnly = com.japanese.vocabulary.test.fixtures.TestWordBuilder(entityManager)
+            TestWordBuilder(entityManager)
                 .forUser(me)
-                .withJapaneseText("例文のみ")
-                .withMeanings(listOf(WordMeaning(text = "다른 뜻", partOfSpeech = "NOUN")))
+                .withJapaneseText("意味不一致")
+                .withSenses(listOf(WordSense(meaning = "다른 뜻", partOfSpeech = "NOUN")))
                 .build()
-            entityManager.persist(com.japanese.vocabulary.word.entity.SongWordEntity(wordId = savedByExampleOnly.id!!, songId = song.id!!, lyricLine = "例文のみ"))
             entityManager.flush()
 
             val dto = readBody<WordsInSongDto>(mockMvc.get("/api/songs/${song.id}/words") {
@@ -645,7 +646,7 @@ class SongControllerTest : ApiBaseIntegrationTest() {
                 status { isOk() }
             }.andReturn().response.contentAsString)
 
-            assertThat(dto.words.map { it.japanese }).containsExactly("意味一致", "例文のみ")
+            assertThat(dto.words.map { it.japanese }).containsExactly("意味一致", "意味不一致")
             assertThat(dto.words[0].isSavedGlobally).isTrue
             assertThat(dto.words[0].isSavedForSong).isTrue
             assertThat(dto.words[0].savedWordId).isEqualTo(savedByMeaning.id)
@@ -655,7 +656,7 @@ class SongControllerTest : ApiBaseIntegrationTest() {
         }
 
         @Test
-        fun `same japanese candidates merge meanings and examples into one song detail word`() {
+        fun `same japanese candidates become separate senses of one song detail word`() {
             val me = newUser()
             val song = newSong()
             val wordCandidates = LyricWordCandidates(
@@ -679,10 +680,10 @@ class SongControllerTest : ApiBaseIntegrationTest() {
                 ),
                 wordCandidates = wordCandidates,
             )
-            com.japanese.vocabulary.test.fixtures.TestWordBuilder(entityManager)
+            TestWordBuilder(entityManager)
                 .forUser(me)
                 .withJapaneseText("重い")
-                .withMeanings(listOf(WordMeaning(text = "무겁다", partOfSpeech = "ADJECTIVE")))
+                .withSenses(listOf(WordSense(meaning = "무겁다", partOfSpeech = "ADJECTIVE")))
                 .build()
             entityManager.flush()
 
@@ -691,19 +692,22 @@ class SongControllerTest : ApiBaseIntegrationTest() {
             }.andExpect {
                 status { isOk() }
                 jsonPath("$.words.length()") { value(1) }
-                jsonPath("$.words[0].meanings.length()") { value(2) }
-                jsonPath("$.words[0].addRequest.meanings.length()") { value(2) }
-                jsonPath("$.words[0].addRequest.examples.length()") { value(3) }
+                jsonPath("$.words[0].senses.length()") { value(2) }
+                jsonPath("$.words[0].addRequest.senses.length()") { value(2) }
             }.andReturn().response.contentAsString)
 
             val word = dto.words.single()
-            assertThat(word.meanings.map { it.text }).containsExactly("무겁다", "중요하다")
+            assertThat(word.senses.map { it.meaning }).containsExactly("무겁다", "중요하다")
             assertThat(word.lineIndexes).containsExactly(0, 1, 2)
+            // 부분 저장은 미저장 취급(ALL 판정) — "중요하다"가 없으므로 담긴 것으로 보지 않는다.
             assertThat(word.isSavedGlobally).isTrue
             assertThat(word.isSavedForSong).isFalse
             assertThat(word.savedWordId).isNull()
-            assertThat(word.addRequest.meanings.map { it.text }).containsExactly("무겁다", "중요하다")
-            assertThat(word.addRequest.examples.map { it.lyricLine }).containsExactly("重い荷物", "重い言葉", "重い約束")
+            // 예문은 sense 별로 자기가 등장한 줄만 갖는다.
+            assertThat(word.senses[0].jlpt).isEqualTo("N3")
+            assertThat(word.senses[0].examples.map { it.text }).containsExactly("重い荷物")
+            assertThat(word.senses[1].examples.map { it.text }).containsExactly("重い言葉", "重い約束")
+            assertThat(word.addRequest.senses.map { it.meaning }).containsExactly("무겁다", "중요하다")
             assertThat(dto.lineWordIndexes[0]).containsExactly(0)
             assertThat(dto.lineWordIndexes[1]).containsExactly(0)
             assertThat(dto.lineWordIndexes[2]).containsExactly(0)

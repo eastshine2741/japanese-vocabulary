@@ -4,7 +4,6 @@ import org.springframework.stereotype.Service
 import com.japanese.vocabulary.common.exception.BusinessException
 import com.japanese.vocabulary.common.exception.ErrorCode
 import com.japanese.vocabulary.flashcard.entity.FlashcardEntity
-import com.japanese.vocabulary.flashcard.event.FlashcardDeletedEvent
 import com.japanese.vocabulary.flashcard.event.FlashcardReviewedEvent
 import com.japanese.vocabulary.flashcard.dto.DueFlashcardsDto
 import com.japanese.vocabulary.flashcard.dto.FlashcardDto
@@ -13,9 +12,9 @@ import com.japanese.vocabulary.flashcard.dto.ReviewResultDto
 import com.japanese.vocabulary.flashcard.repository.FlashcardRepository
 import com.japanese.vocabulary.song.repository.SongRepository
 import com.japanese.vocabulary.user.repository.UserSettingsRepository
-import com.japanese.vocabulary.word.model.ExampleSentence
-import com.japanese.vocabulary.word.repository.SongWordRepository
 import com.japanese.vocabulary.word.repository.WordRepository
+import com.japanese.vocabulary.word.service.SenseEnricher
+import com.japanese.vocabulary.word.service.SenseEnricher.toDtos
 import io.github.openspacedrepetition.Card
 import io.github.openspacedrepetition.Rating
 import io.github.openspacedrepetition.Scheduler
@@ -29,7 +28,6 @@ import java.time.Instant
 class FlashcardService(
     private val flashcardRepository: FlashcardRepository,
     private val wordRepository: WordRepository,
-    private val songWordRepository: SongWordRepository,
     private val songRepository: SongRepository,
     private val userSettingsRepository: UserSettingsRepository,
     private val eventPublisher: ApplicationEventPublisher,
@@ -56,7 +54,6 @@ class FlashcardService(
     @Transactional
     fun deleteByWordId(wordId: Long) {
         val flashcard = flashcardRepository.findByWordId(wordId) ?: return
-        eventPublisher.publishEvent(FlashcardDeletedEvent(flashcard.id!!))
         flashcardRepository.delete(flashcard)
     }
 
@@ -88,11 +85,7 @@ class FlashcardService(
     private fun assembleDueFlashcards(userId: Long, dueEntities: List<FlashcardEntity>, now: Instant): DueFlashcardsDto {
         val wordIds = dueEntities.map { it.wordId }
         val words = wordRepository.findAllById(wordIds).associateBy { it.id }
-
-        val songWordMap = songWordRepository.findByWordIdIn(wordIds).groupBy { it.wordId }
-
-        val songIds = songWordMap.values.flatten().map { it.songId }.toSet()
-        val songMap = songRepository.findAllById(songIds).associateBy { it.id }
+        val songMap = SenseEnricher.loadSongs(words.values.flatMap { it.senses }, songRepository)
 
         val settingsData = userSettingsRepository.findByUserId(userId)?.settings
         val showIntervals = settingsData?.showIntervals ?: true
@@ -100,17 +93,6 @@ class FlashcardService(
 
         val cards = dueEntities.mapNotNull { entity ->
             val word = words[entity.wordId] ?: return@mapNotNull null
-            val songWords = songWordMap[entity.wordId] ?: emptyList()
-            val examples = songWords.map { sw ->
-                ExampleSentence(
-                    id = sw.id!!,
-                    songId = sw.songId,
-                    songTitle = songMap[sw.songId]?.title,
-                    lyricLine = sw.lyricLine,
-                    koreanLyricLine = sw.koreanLyricLine,
-                    artworkUrl = songMap[sw.songId]?.artworkUrl
-                )
-            }
 
             val intervals = if (showIntervals) {
                 val scheduler = Scheduler.builder()
@@ -130,8 +112,7 @@ class FlashcardService(
                 wordId = entity.wordId,
                 japanese = word.japaneseText,
                 reading = word.reading,
-                meanings = word.meanings,
-                examples = examples,
+                senses = word.senses.toDtos(songMap),
                 state = entity.state,
                 due = entity.due.toString(),
                 intervals = intervals,

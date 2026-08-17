@@ -1,6 +1,6 @@
 package com.japanese.vocabulary.word.entity
 
-import com.japanese.vocabulary.word.model.WordMeaning
+import com.japanese.vocabulary.word.model.WordSense
 import jakarta.persistence.*
 import org.springframework.data.annotation.CreatedDate
 import org.springframework.data.jpa.domain.support.AuditingEntityListener
@@ -26,9 +26,9 @@ class WordEntity(
     @Column(length = 255)
     var reading: String? = null,
 
-    @Convert(converter = WordMeaningListConverter::class)
-    @Column(name = "meanings", columnDefinition = "JSON", nullable = false)
-    var meanings: List<WordMeaning> = emptyList(),
+    @Convert(converter = WordSenseListConverter::class)
+    @Column(name = "senses", columnDefinition = "JSON", nullable = false)
+    var senses: List<WordSense> = emptyList(),
 
     @CreatedDate
     @Column(name = "created_at", updatable = false)

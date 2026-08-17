@@ -1,7 +1,11 @@
 package com.japanese.vocabulary.deck.controller
 
+import com.japanese.vocabulary.deck.dto.CreateDeckDto
+import com.japanese.vocabulary.deck.dto.CreateDeckRequest
 import com.japanese.vocabulary.deck.dto.DeckDetailResponse
+import com.japanese.vocabulary.deck.dto.DeckDto
 import com.japanese.vocabulary.deck.dto.DeckListResponse
+import com.japanese.vocabulary.deck.dto.DeckResponse
 import com.japanese.vocabulary.deck.dto.DeckWordItemDto
 import com.japanese.vocabulary.deck.dto.DeckWordListResponse
 import com.japanese.vocabulary.deck.dto.SongDeckSummaryDto
@@ -15,6 +19,8 @@ import org.springframework.http.ResponseEntity
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
@@ -26,6 +32,11 @@ class DeckController(private val deckService: DeckService) {
     @GetMapping
     fun getDeckList(@RequestParam(required = false) cursor: Long?): DeckListResponse =
         deckService.getDeckList(currentUserId(), cursor).toResponse()
+
+    /** 곡에 매핑되지 않은 일반 단어장을 만든다. */
+    @PostMapping
+    fun createDeck(@RequestBody request: CreateDeckRequest): DeckResponse =
+        deckService.createDeck(currentUserId(), CreateDeckDto(request.title, request.description)).toResponse()
 
     @GetMapping("/all")
     fun getAllDeckDetail(): DeckDetailResponse =
@@ -93,6 +104,14 @@ class DeckController(private val deckService: DeckService) {
         id = id,
         japanese = japanese,
         reading = reading,
-        meanings = meanings,
+        senses = senses,
+    )
+
+    private fun DeckDto.toResponse() = DeckResponse(
+        deckId = id,
+        songId = songId,
+        isDefault = isDefault,
+        title = title,
+        description = description,
     )
 }

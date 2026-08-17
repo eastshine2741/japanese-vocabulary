@@ -29,8 +29,9 @@
 - `redis:7-alpine` 컨테이너 1개를 모든 테스트가 공유. 각 테스트 `@BeforeEach` 에서 `flushDb()` 로 키 초기화.
 
 ### Spring Event 는 기본적으로 AFTER_COMMIT, FK 선행 정리는 같은 트랜잭션
-- 프로덕션 리스너 (`DeckEventListener.onSongWordCreated`, `StudyStatsEventListener`) 는 `@TransactionalEventListener(phase = AFTER_COMMIT)` 사용 — 메인 트랜잭션이 실패해도 리스너 실패가 원래 트랜잭션을 롤백시키지 않는다.
-- FK 선행 정리처럼 publisher 커밋 전에 끝나야 하는 listener (`DeckEventListener.onFlashcardDeleted`) 는 같은 트랜잭션의 `@EventListener` + `@Transactional(propagation = MANDATORY)`를 사용한다.
+- 프로덕션 리스너 (`DeckEventListener.onWordSaved`, `StudyStatsEventListener`) 는 `@TransactionalEventListener(phase = AFTER_COMMIT)` 사용 — 메인 트랜잭션이 실패해도 리스너 실패가 원래 트랜잭션을 롤백시키지 않는다.
+- FK 선행 정리처럼 publisher 커밋 전에 끝나야 하는 listener (`DeckEventListener.onWordDeleted`) 는 같은 트랜잭션의 `@EventListener` + `@Transactional(propagation = MANDATORY)`를 사용한다.
+- `onWordSaved` 는 전체 단어장 연결과 곡 단어장 연결을 **각각 다른 REQUIRES_NEW 트랜잭션**에서 수행한다. `deck_word` 가 deck 구성의 유일한 기록이라, 한쪽 실패가 다른 쪽을 롤백시키면 단어가 어느 단어장에도 없는 상태로 남고 복구 경로가 없다. deck UNIQUE 충돌은 재조회 재시도로 흡수한다 — 동시성 회귀 테스트가 `DeckEventListenerTest` 에 있다.
 - 통합 테스트는 `@Transactional` 롤백 안에서 돌므로 AFTER_COMMIT 리스너는 발화되지 않는다. **AFTER_COMMIT 리스너 본문 동작은 단위 테스트로 검증**하고, 통합 테스트는 `@RecordApplicationEvents` 의 `ApplicationEvents` 로 **이벤트 발행 자체만 검증** 한다. 같은 트랜잭션 listener는 실제 row 변경까지 통합 테스트로 검증한다.
 
 ---
@@ -289,8 +290,8 @@ fun `flashcard 복습 시 FSRS 갱신 + StudyStatsEvent`() {
 - `FlashcardReviewedEvent` 발행 검증.
 
 **이벤트 플로우:**
-- `WordService.addWord` → `FlashcardCreatedEvent` → `DeckEventListener` → `DeckEntity`/`DeckFlashcardEntity` 자동 생성.
-- word 삭제 → `FlashcardDeletedEvent` → `DeckFlashcardEntity` 제거.
+- `WordService.addWord` → `WordSavedEvent` → `DeckEventListener` → 전체 단어장/곡 `DeckEntity` + `DeckWordEntity` 자동 생성.
+- word 삭제 → `WordDeletedEvent` → `DeckWordEntity` 제거 (같은 트랜잭션, `words` FK 선행 정리).
 - review → `StudyStatsEventListener` → `DailyStudySummaryEntity` upsert (KST 날짜 처리).
 
 **Native query:**
@@ -323,7 +324,7 @@ class SongAnalysisPreparationServiceTest : BatchBaseIntegrationTest() {
 **`WordService`:**
 - 같은 userId + japaneseText 중복 방지.
 - batch add: 일부 실패 시 트랜잭션 정책 (현재 코드 확인 후 결정).
-- delete → `FlashcardDeletedEvent` → cascade 동작.
+- delete → `WordDeletedEvent` → `deck_word` 선삭제 후 word 삭제.
 - `getUserWords` cursor 페이지네이션.
 
 **Jisho 의존성:** `@MockkBean(JishoClient::class)`로 의미 lookup 결과 fixed.

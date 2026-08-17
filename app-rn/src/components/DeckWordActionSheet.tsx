@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../theme/theme';
 import { DeckWordItem } from '../types/deck';
+import { joinMeanings } from '../types/word';
 
 interface Props {
   item: DeckWordItem;
@@ -16,7 +17,7 @@ function DeckWordActionSheet({ item, onEdit, onDelete }: Props) {
       <View style={styles.header}>
         <Text style={styles.wordJapanese} numberOfLines={1}>{item.japanese}</Text>
         <Text style={styles.wordMeaning} numberOfLines={1}>
-          {item.meanings.map(m => m.text).join(', ')}
+          {joinMeanings(item.senses)}
         </Text>
       </View>
 

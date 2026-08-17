@@ -116,7 +116,7 @@ export const useReviewStore = create<ReviewState>((set, get) => ({
       const word = await wordApi.getByText(card.japanese);
       if (!word) return;
       const updatedCards = cards.map((c, i) =>
-        i === currentIndex ? { ...c, reading: word.reading, meanings: word.meanings, examples: word.examples } : c,
+        i === currentIndex ? { ...c, reading: word.reading, senses: word.senses } : c,
       );
       set({ cards: updatedCards });
     } catch {}

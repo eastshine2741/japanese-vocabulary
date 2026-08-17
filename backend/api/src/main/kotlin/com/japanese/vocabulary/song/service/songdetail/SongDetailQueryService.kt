@@ -9,9 +9,9 @@ import com.japanese.vocabulary.song.entity.LyricType
 import com.japanese.vocabulary.song.model.WordCandidate
 import com.japanese.vocabulary.song.repository.LyricRepository
 import com.japanese.vocabulary.song.repository.SongRepository
-import com.japanese.vocabulary.word.dto.AddWordExampleRequest
 import com.japanese.vocabulary.word.dto.AddWordRequest
-import com.japanese.vocabulary.word.model.WordMeaning
+import com.japanese.vocabulary.word.model.SenseExample
+import com.japanese.vocabulary.word.model.WordSense
 import com.japanese.vocabulary.word.repository.WordRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -95,33 +95,41 @@ class SongDetailQueryService(
         val items = grouped.map { group ->
             val candidates = group.map { it.value }
             val candidate = candidates.first()
-            val meanings = candidates.mapNotNull { item ->
+            // candidate 하나가 뜻 하나다. 각 sense 는 자기 품사·JLPT 와, 자기가 등장한 가사 줄로 만든 예문을 갖는다.
+            val senses = candidates.mapNotNull { item ->
                 item.koreanText
                     ?.takeIf { it.isNotBlank() }
-                    ?.let { WordMeaning(text = it, partOfSpeech = item.partOfSpeech) }
-            }.distinctBy { it.text }
+                    ?.let { meaning ->
+                        WordSense(
+                            meaning = meaning,
+                            partOfSpeech = item.partOfSpeech,
+                            jlpt = item.jlpt,
+                            examples = item.lineIndexes.distinct().sorted().map { line ->
+                                SenseExample(
+                                    text = rawByIndex[line]?.text ?: "",
+                                    translation = analyzedByIndex[line]?.koreanLyrics,
+                                    songId = songId,
+                                    lineIndex = line,
+                                )
+                            },
+                        )
+                    }
+            }.distinctBy { it.meaning }
             val lineIndexes = candidates.flatMap { it.lineIndexes }.distinct().sorted()
-            val examples = lineIndexes.map { lineIndex ->
-                AddWordExampleRequest(
-                    songId = songId,
-                    lyricLine = rawByIndex[lineIndex]?.text ?: "",
-                    koreanLyricLine = analyzedByIndex[lineIndex]?.koreanLyrics,
-                )
-            }
             val saved = wordsByJapanese[candidate.japanese]
+            // ALL 판정: 곡이 제시한 뜻이 전부 저장돼 있어야 담긴 것으로 본다. 비교는 이미 로드한 senses 로 메모리에서.
             val savedWithMeaning = saved != null &&
-                meanings.isNotEmpty() &&
-                meanings.all { required -> saved.meanings.any { it.text == required.text } }
+                senses.isNotEmpty() &&
+                senses.all { required -> saved.senses.any { it.meaning == required.meaning } }
             val savedWordId = saved?.id?.takeIf { savedWithMeaning }
-            val lineIndex = lineIndexes.firstOrNull()
-            val primaryMeaning = meanings.firstOrNull()?.text ?: candidate.koreanText
+            val primaryMeaning = senses.firstOrNull()?.meaning ?: candidate.koreanText
             WordInSongItemDto(
                 japanese = candidate.japanese,
                 surface = candidate.surface,
                 baseForm = candidate.baseForm,
                 reading = candidate.baseFormReading ?: candidate.reading,
                 koreanText = primaryMeaning,
-                meanings = meanings,
+                senses = senses,
                 partOfSpeech = candidate.partOfSpeech,
                 partOfSpeechLabel = candidate.partOfSpeechLabel,
                 jlpt = candidate.jlpt,
@@ -134,14 +142,9 @@ class SongDetailQueryService(
                 savedWordId = savedWordId,
                 addRequest = AddWordRequest(
                     japanese = candidate.baseForm?.takeIf { it.isNotBlank() } ?: candidate.surface,
-                    reading = candidate.baseFormReading ?: candidate.reading ?: "",
-                    koreanText = primaryMeaning ?: "",
-                    partOfSpeech = candidate.partOfSpeech,
+                    reading = candidate.baseFormReading ?: candidate.reading,
+                    senses = senses,
                     songId = songId,
-                    lyricLine = lineIndex?.let { rawByIndex[it]?.text } ?: "",
-                    koreanLyricLine = lineIndex?.let { analyzedByIndex[it]?.koreanLyrics },
-                    meanings = meanings,
-                    examples = examples,
                 ),
             )
         }

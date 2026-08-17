@@ -23,13 +23,13 @@ enum class ErrorCode(val status: HttpStatus, val message: String) {
     // Word
     WORD_NOT_FOUND(HttpStatus.NOT_FOUND, "Word not found"),
     MEANING_REQUIRED(HttpStatus.BAD_REQUEST, "At least one meaning required"),
-    INVALID_EXAMPLES(HttpStatus.BAD_REQUEST, "Some examples do not belong to this word"),
 
     // FlashcardDto
     FLASHCARD_NOT_FOUND(HttpStatus.NOT_FOUND, "Flashcard not found"),
 
     // DeckDto
     DECK_NOT_FOUND(HttpStatus.NOT_FOUND, "Deck not found"),
+    DECK_TITLE_REQUIRED(HttpStatus.BAD_REQUEST, "Deck title required"),
 
     INVALID_RATING(HttpStatus.BAD_REQUEST, "Rating must be 1-4"),
 

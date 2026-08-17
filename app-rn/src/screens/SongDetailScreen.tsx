@@ -23,7 +23,6 @@ import { useSongDetailStore } from '../stores/songDetailStore';
 import { usePlayerStore } from '../stores/playerStore';
 import { deckApi } from '../api/deckApi';
 import { wordApi } from '../api/wordApi';
-import AppDialog from '../components/AppDialog';
 import SkeletonBox from '../components/SkeletonLoading';
 import SongInfoSheet from '../components/SongInfoSheet';
 import { AppBottomSheet, AppBottomSheetRef } from '../components/bottomSheet';
@@ -47,7 +46,6 @@ import {
 import { Colors, Dimens } from '../theme/theme';
 import { Layers } from '../theme/layers';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import type { WordDetailResponse } from '../types/word';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SongDetail'>;
 type DetailTab = 'home' | 'words';
@@ -110,8 +108,6 @@ export default function SongDetailScreen({ navigation, route }: Props) {
   });
   const [wordSaveOverrides, setWordSaveOverrides] = useState<Map<string, SongDetailWordSaveState>>(() => new Map());
   const [busyWordKey, setBusyWordKey] = useState<string | null>(null);
-  const [pendingRemoveWord, setPendingRemoveWord] = useState<SongDetailWordItem | null>(null);
-  const [pendingRemoveWordDetail, setPendingRemoveWordDetail] = useState<WordDetailResponse | null>(null);
   const [deckSnackbar, setDeckSnackbar] = useState<DeckAddedSnackbar | null>(null);
   const isPinnedTabsVisibleRef = useRef(false);
 
@@ -124,8 +120,6 @@ export default function SongDetailScreen({ navigation, route }: Props) {
   useEffect(() => {
     setWordSaveOverrides(new Map());
     setBusyWordKey(null);
-    setPendingRemoveWord(null);
-    setPendingRemoveWordDetail(null);
   }, [songId]);
 
   useEffect(() => {
@@ -489,36 +483,31 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     return resolveSongDetailWordSaveState(word, wordSaveOverrides);
   }, [wordSaveOverrides]);
 
-  useEffect(() => {
-    if (pendingRemoveWord == null) {
-      setPendingRemoveWordDetail(null);
-      return;
-    }
-
-    const savedWordId = getWordSaveState(pendingRemoveWord).savedWordId;
-    if (savedWordId == null) {
-      setPendingRemoveWordDetail(null);
-      return;
-    }
-
-    let cancelled = false;
-    wordApi.getById(savedWordId)
-      .then(detail => {
-        if (!cancelled) setPendingRemoveWordDetail(detail);
-      })
-      .catch(() => {
-        if (!cancelled) setPendingRemoveWordDetail(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [getWordSaveState, pendingRemoveWord]);
-
+  /**
+   * 담긴 단어는 상세화면으로 보내고, 아직이면 담는다.
+   * 담기 취소와 뜻 개별 삭제는 이 화면에서 제공하지 않는다 — 단어 상세화면에서만 가능하다.
+   */
   const handleToggleWordSave = useCallback(async (word: SongDetailWordItem) => {
     const wordKey = getSongDetailWordKey(word);
     const state = getWordSaveState(word);
     if (state.isSavedForSong) {
-      setPendingRemoveWord(word);
+      setBusyWordKey(wordKey);
+      try {
+        // 일괄 담기로 저장된 단어는 id 를 모르므로 표기 문자열로 되찾는다.
+        const detail = state.savedWordId != null
+          ? await wordApi.getById(state.savedWordId)
+          : await wordApi.getByText(word.addRequest.japanese);
+        if (detail == null) return;
+        navigation.navigate('EditWord', {
+          mode: 'edit',
+          wordId: detail.id,
+          japanese: detail.japanese,
+          reading: detail.reading ?? undefined,
+          senses: detail.senses,
+        });
+      } finally {
+        setBusyWordKey(null);
+      }
       return;
     }
 
@@ -535,7 +524,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     } finally {
       setBusyWordKey(null);
     }
-  }, [getWordSaveState, handleWordsChanged, showSavedWordSnackbar]);
+  }, [getWordSaveState, handleWordsChanged, navigation, showSavedWordSnackbar]);
 
   const handleWordsBatchAdded = useCallback((addedWords: SongDetailWordItem[]) => {
     setWordSaveOverrides(prev => {
@@ -547,49 +536,6 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     });
     showSavedWordSnackbar();
   }, [showSavedWordSnackbar]);
-
-  const cancelRemoveWord = useCallback(() => {
-    setPendingRemoveWord(null);
-  }, []);
-
-  const confirmRemoveWord = useCallback(async () => {
-    if (pendingRemoveWord == null) return;
-
-    const wordKey = getSongDetailWordKey(pendingRemoveWord);
-    const state = getWordSaveState(pendingRemoveWord);
-    if (state.savedWordId == null) {
-      setPendingRemoveWord(null);
-      return;
-    }
-
-    setBusyWordKey(wordKey);
-    try {
-      await wordApi.deleteWord(state.savedWordId);
-      setWordSaveOverrides(prev => {
-        const next = new Map(prev);
-        next.set(getSongDetailWordSaveKey(pendingRemoveWord), { isSavedForSong: false, savedWordId: null });
-        return next;
-      });
-      handleWordsChanged();
-    } finally {
-      setBusyWordKey(null);
-      setPendingRemoveWord(null);
-    }
-  }, [getWordSaveState, handleWordsChanged, pendingRemoveWord]);
-
-  const pendingRemoveWordLabel = pendingRemoveWordDetail?.japanese
-    ?? pendingRemoveWord?.baseForm
-    ?? pendingRemoveWord?.japanese
-    ?? pendingRemoveWord?.surface
-    ?? '';
-  const pendingRemoveWordMeanings = pendingRemoveWordDetail?.meanings.map(meaning => meaning.text).filter(Boolean)
-    ?? [
-      ...(pendingRemoveWord?.meanings?.map(meaning => meaning.text) ?? []),
-      pendingRemoveWord?.koreanText,
-      ...(pendingRemoveWord?.addRequest.koreanText ? [pendingRemoveWord.addRequest.koreanText] : []),
-    ].filter((meaning): meaning is string => Boolean(meaning));
-  const pendingRemoveWordMeaningText = [...new Set(pendingRemoveWordMeanings)].join(', ');
-  const pendingRemoveWordMeaningLabel = pendingRemoveWordDetail != null ? '저장된 뜻' : '표시된 뜻';
 
   const handleHomePageLayout = useCallback((event: LayoutChangeEvent) => {
     const height = Math.ceil(event.nativeEvent.layout.height);
@@ -956,27 +902,6 @@ export default function SongDetailScreen({ navigation, route }: Props) {
         </BottomSheetView>
       </AppBottomSheet>
 
-      <AppDialog
-        visible={pendingRemoveWord !== null}
-        title="단어장에서 삭제할까요?"
-        body="이 단어와 모든 뜻, 예문, 복습 카드가 삭제됩니다."
-        buttons={[
-          { label: '취소', variant: 'secondary', onPress: cancelRemoveWord },
-          { label: '단어 삭제', variant: 'danger', onPress: confirmRemoveWord },
-        ]}
-      >
-        <View style={styles.removeWordPreview}>
-          <Text style={styles.removeWordLabel} numberOfLines={1}>{pendingRemoveWordLabel}</Text>
-          {pendingRemoveWordMeaningText !== '' && (
-            <View style={styles.removeWordMeaningBlock}>
-              <Text style={styles.removeWordMeaningCaption}>{pendingRemoveWordMeaningLabel}</Text>
-              <Text style={styles.removeWordMeaningText} numberOfLines={2}>
-                {pendingRemoveWordMeaningText}
-              </Text>
-            </View>
-          )}
-        </View>
-      </AppDialog>
     </View>
   );
 }
@@ -1435,34 +1360,6 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 15,
     fontWeight: '600',
-    color: Colors.textSecondary,
-    textAlign: 'center',
-  },
-  removeWordPreview: {
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    backgroundColor: Colors.elevated,
-    gap: 8,
-  },
-  removeWordLabel: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-    textAlign: 'center',
-  },
-  removeWordMeaningBlock: {
-    gap: 3,
-  },
-  removeWordMeaningCaption: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: Colors.textMuted,
-    textAlign: 'center',
-  },
-  removeWordMeaningText: {
-    fontSize: 13,
-    lineHeight: 18,
     color: Colors.textSecondary,
     textAlign: 'center',
   },

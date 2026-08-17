@@ -100,16 +100,15 @@ export default function ReviewScreen({ route, navigation }: Props) {
 
   const loadById = usePlayerStore(s => s.loadById);
 
-  const handleSongPress = useCallback(async (songId: number, lyricLine: string | null) => {
+  // 예문이 들고 있는 lineIndex 로 해당 가사 줄까지 바로 이동한다.
+  const handleSongPress = useCallback(async (songId: number, lineIndex: number | null) => {
     await loadById(songId);
     const playerState = usePlayerStore.getState();
     if (playerState.status === 'success') {
       let initialSeekMs: number | undefined;
       let initialLyricIndex: number | undefined;
-      if (lyricLine && playerState.studyData) {
-        const idx = playerState.studyData.studyUnits.findIndex(
-          u => u.originalText === lyricLine,
-        );
+      if (lineIndex != null && playerState.studyData) {
+        const idx = playerState.studyData.studyUnits.findIndex(u => u.index === lineIndex);
         if (idx >= 0) {
           initialLyricIndex = idx;
           const match = playerState.studyData.studyUnits[idx];
@@ -130,7 +129,7 @@ export default function ReviewScreen({ route, navigation }: Props) {
       wordId: card.wordId,
       japanese: card.japanese,
       reading: card.reading ?? undefined,
-      meanings: card.meanings,
+      senses: card.senses,
     });
   };
 

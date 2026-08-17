@@ -6,7 +6,6 @@ import com.japanese.vocabulary.word.dto.BatchAddWordResponse
 import com.japanese.vocabulary.word.dto.UpdateWordRequest
 import com.japanese.vocabulary.word.dto.WordDetailResponse
 import com.japanese.vocabulary.word.dto.WordListResponse
-import com.japanese.vocabulary.word.dto.AddWordExampleDto
 import com.japanese.vocabulary.word.dto.AddWordDto
 import com.japanese.vocabulary.word.dto.BatchAddWordDto
 import com.japanese.vocabulary.word.dto.BatchAddWordResultDto
@@ -74,22 +73,16 @@ class WordController(
     private fun AddWordRequest.toDto() = AddWordDto(
         japanese = japanese,
         reading = reading,
-        koreanText = koreanText,
-        partOfSpeech = partOfSpeech,
+        senses = senses,
         songId = songId,
-        lyricLine = lyricLine,
-        koreanLyricLine = koreanLyricLine,
-        meanings = meanings,
-        examples = examples.map { AddWordExampleDto(it.songId, it.lyricLine, it.koreanLyricLine) },
     )
 
     private fun BatchAddWordRequest.toDto() = BatchAddWordDto(words = words.map { it.toDto() })
 
     private fun UpdateWordRequest.toDto() = UpdateWordDto(
         reading = reading,
-        meanings = meanings,
+        senses = senses,
         resetFlashcard = resetFlashcard,
-        deleteExampleIds = deleteExampleIds,
     )
 
     private fun BatchAddWordResultDto.toResponse() = BatchAddWordResponse(
@@ -101,8 +94,7 @@ class WordController(
         id = id,
         japanese = japanese,
         reading = reading,
-        meanings = meanings,
-        examples = examples,
+        senses = senses,
     )
 
     private fun WordListDto.toResponse() = WordListResponse(

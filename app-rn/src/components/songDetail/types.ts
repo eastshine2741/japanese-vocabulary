@@ -1,4 +1,4 @@
-import { AddWordRequest, WordMeaning } from '../../types/word';
+import { AddWordRequest, WordSense } from '../../types/word';
 
 export type SongDetailJlptLevel = 'N1' | 'N2' | 'N3' | 'N4' | 'N5';
 export type SongDetailJlptBucket = SongDetailJlptLevel | 'UNKNOWN';
@@ -25,7 +25,7 @@ export interface SongDetailWordItem {
   baseForm: string | null;
   reading: string | null;
   koreanText: string | null;
-  meanings?: WordMeaning[];
+  senses?: WordSense[];
   partOfSpeech: string;
   partOfSpeechLabel: string | null;
   jlpt: SongDetailJlptLevel | string | null;

@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, NativeSyntheticEvent, NativeScrollEvent, useWindowDimensions } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { FlashcardDTO } from '../types/flashcard';
+import { flattenExamples, joinMeanings } from '../types/word';
 import { Colors } from '../theme/theme';
 import { convertReading } from '../utils/readingConverter';
 import { useSettingsStore } from '../stores/settingsStore';
@@ -10,7 +11,7 @@ import ArtworkImage from './ArtworkImage';
 
 interface Props {
   card: FlashcardDTO;
-  onSongPress?: (songId: number, lyricLine: string | null) => void;
+  onSongPress?: (songId: number, lineIndex: number | null) => void;
 }
 
 /**
@@ -22,6 +23,9 @@ export default function FlashcardBackDetails({ card, onSongPress }: Props) {
   const { width: screenWidth } = useWindowDimensions();
   const pageWidth = screenWidth - 48;
   const [activeIndex, setActiveIndex] = useState(0);
+  const meaningText = joinMeanings(card.senses);
+  const posList = [...new Set(card.senses.map(s => s.partOfSpeech).filter(Boolean))];
+  const examples = flattenExamples(card.senses);
 
   const handleScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const idx = Math.round(e.nativeEvent.contentOffset.x / pageWidth);
@@ -32,19 +36,19 @@ export default function FlashcardBackDetails({ card, onSongPress }: Props) {
     <View style={styles.container}>
       {card.reading && <Text style={styles.reading}>{convertReading(card.reading, readingDisplay)}</Text>}
 
-      {card.meanings.length > 0 && (
+      {posList.length > 0 && (
         <View style={styles.badgesRow}>
-          {[...new Set(card.meanings.map(m => m.partOfSpeech))].map((pos, i) => (
+          {posList.map((pos, i) => (
             <PosBadge key={i} pos={pos} />
           ))}
         </View>
       )}
 
-      {card.meanings.length > 0 && (
-        <Text style={styles.korean}>{card.meanings.map(m => m.text).join(', ')}</Text>
+      {meaningText !== '' && (
+        <Text style={styles.korean}>{meaningText}</Text>
       )}
 
-      {card.examples.length > 0 && (
+      {examples.length > 0 && (
         <View style={styles.exampleCarousel}>
           <ScrollView
             horizontal
@@ -56,22 +60,22 @@ export default function FlashcardBackDetails({ card, onSongPress }: Props) {
             contentContainerStyle={{ paddingHorizontal: 24 }}
             style={{ marginHorizontal: -24 }}
           >
-            {card.examples.map((ex, i) => (
+            {examples.map((ex, i) => (
               <View key={i} style={[styles.exPage, { width: pageWidth }]}>
-                {ex.lyricLine && (
-                  <Text style={styles.jpText}>{ex.lyricLine}</Text>
+                {ex.text !== '' && (
+                  <Text style={styles.jpText}>{ex.text}</Text>
                 )}
-                {ex.koreanLyricLine && (
-                  <Text style={styles.krText}>{ex.koreanLyricLine}</Text>
+                {ex.translation && (
+                  <Text style={styles.krText}>{ex.translation}</Text>
                 )}
-                {ex.songTitle && (
+                {ex.songTitle && ex.songId != null && (
                   <TouchableOpacity
                     style={styles.songRow}
-                    onPress={onSongPress ? () => onSongPress(ex.songId, ex.lyricLine) : undefined}
+                    onPress={onSongPress ? () => onSongPress(ex.songId!, ex.lineIndex ?? null) : undefined}
                     disabled={!onSongPress}
                     activeOpacity={0.6}
                   >
-                    <ArtworkImage url={ex.artworkUrl} size={18} cornerRadius={4} />
+                    <ArtworkImage url={ex.artworkUrl ?? null} size={18} cornerRadius={4} />
                     <Text style={styles.songLabel}>{ex.songTitle}</Text>
                     {onSongPress && <Feather name="play-circle" size={14} color={Colors.textMuted} />}
                   </TouchableOpacity>
@@ -79,9 +83,9 @@ export default function FlashcardBackDetails({ card, onSongPress }: Props) {
               </View>
             ))}
           </ScrollView>
-          {card.examples.length > 1 && (
+          {examples.length > 1 && (
             <View style={styles.pageDots}>
-              {card.examples.map((_, i) => (
+              {examples.map((_, i) => (
                 <View
                   key={i}
                   style={[

@@ -2,7 +2,7 @@ package com.japanese.vocabulary.deck.dto
 
 data class DeckSummaryDto(
     val deckId: Long,
-    val songId: Long,
+    val songId: Long?,
     val title: String,
     val artist: String,
     val artworkUrl: String?,

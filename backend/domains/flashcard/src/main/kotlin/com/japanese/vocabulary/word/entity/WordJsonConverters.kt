@@ -1,8 +1,8 @@
 package com.japanese.vocabulary.word.entity
 
 import com.japanese.vocabulary.config.converter.JsonListConverter
-import com.japanese.vocabulary.word.model.WordMeaning
+import com.japanese.vocabulary.word.model.WordSense
 import jakarta.persistence.Converter
 
 @Converter
-class WordMeaningListConverter : JsonListConverter<WordMeaning>(WordMeaning::class.java)
+class WordSenseListConverter : JsonListConverter<WordSense>(WordSense::class.java)

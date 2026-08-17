@@ -13,7 +13,7 @@ export interface SongDetailWordRowItem {
   reading?: string | null;
   baseFormReading?: string | null;
   koreanText?: string | null;
-  meanings?: { text: string; partOfSpeech?: string | null }[];
+  senses?: { meaning: string }[];
   partOfSpeech?: string | null;
   partOfSpeechLabel?: string | null;
   jlpt?: string | null;
@@ -45,7 +45,7 @@ function SongDetailWordRow<T extends SongDetailWordRowItem>({
   const label = word.baseForm || word.japanese || word.surface || '';
   const readingValue = word.baseFormReading ?? word.reading;
   const reading = readingValue ? convertReading(readingValue, readingDisplay) : '';
-  const meaning = word.meanings?.map(item => item.text).filter(Boolean).join(', ')
+  const meaning = word.senses?.map(item => item.meaning).filter(Boolean).join(', ')
     || word.koreanText
     || '';
   const jlptColor = getJlptColor(word.jlpt);
@@ -82,14 +82,14 @@ function SongDetailWordRow<T extends SongDetailWordRowItem>({
         disabled={isBusy || onToggleSave == null}
         activeOpacity={0.7}
         accessibilityRole="button"
-        accessibilityLabel={isSaved ? '단어장에서 삭제' : '단어 담기'}
-        accessibilityHint={isSaved ? '단어와 모든 뜻, 예문, 복습 카드 삭제 확인창을 엽니다' : undefined}
+        accessibilityLabel={isSaved ? '단어 상세로 이동' : '단어 담기'}
+        accessibilityHint={isSaved ? '뜻과 예문을 수정할 수 있는 단어 상세화면을 엽니다' : undefined}
       >
         {isBusy ? (
           <ActivityIndicator size="small" color={Colors.primary} />
         ) : (
           <Ionicons
-            name={isSaved ? 'bookmark' : 'bookmark-outline'}
+            name={isSaved ? 'chevron-forward' : 'bookmark-outline'}
             size={17}
             color={Colors.primary}
           />

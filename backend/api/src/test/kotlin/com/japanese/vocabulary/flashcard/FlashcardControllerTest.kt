@@ -3,7 +3,7 @@ package com.japanese.vocabulary.flashcard
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.japanese.vocabulary.auth.jwt.JwtUtil
 import com.japanese.vocabulary.deck.entity.DeckEntity
-import com.japanese.vocabulary.deck.entity.DeckFlashcardEntity
+import com.japanese.vocabulary.deck.entity.DeckWordEntity
 import com.japanese.vocabulary.flashcard.dto.DueFlashcardsResponse
 import com.japanese.vocabulary.flashcard.dto.FlashcardStatsResponse
 import com.japanese.vocabulary.flashcard.dto.ReviewRequest
@@ -66,7 +66,7 @@ class FlashcardControllerTest : ApiBaseIntegrationTest() {
 
     private fun newSong(): SongEntity = TestSongBuilder(entityManager).build()
 
-    private fun linkCardToSongDeck(user: UserEntity, song: SongEntity, card: FlashcardEntity): DeckEntity {
+    private fun linkWordToSongDeck(user: UserEntity, song: SongEntity, word: WordEntity): DeckEntity {
         val deck = DeckEntity(
             userId = user.id!!,
             songId = song.id!!,
@@ -75,7 +75,7 @@ class FlashcardControllerTest : ApiBaseIntegrationTest() {
         )
         entityManager.persist(deck)
         entityManager.flush()
-        entityManager.persist(DeckFlashcardEntity(deckId = deck.id!!, flashcardId = card.id!!))
+        entityManager.persist(DeckWordEntity(deckId = deck.id!!, wordId = word.id!!))
         entityManager.flush()
         return deck
     }
@@ -142,11 +142,13 @@ class FlashcardControllerTest : ApiBaseIntegrationTest() {
             val song = newSong()
             val otherSong = newSong()
 
-            val linkedCard = newCard(me, dueAt = clock.instant().minus(Duration.ofHours(1)))
-            val deck = linkCardToSongDeck(me, song, linkedCard)
+            val linkedWord = newWord(me)
+            val linkedCard = newCard(me, linkedWord, dueAt = clock.instant().minus(Duration.ofHours(1)))
+            val deck = linkWordToSongDeck(me, song, linkedWord)
 
-            val unlinkedCard = newCard(me, dueAt = clock.instant().minus(Duration.ofHours(1)))
-            linkCardToSongDeck(me, otherSong, unlinkedCard)
+            val unlinkedWord = newWord(me)
+            newCard(me, unlinkedWord, dueAt = clock.instant().minus(Duration.ofHours(1)))
+            linkWordToSongDeck(me, otherSong, unlinkedWord)
 
             val body = mockMvc.get("/api/flashcards/due") {
                 header("Authorization", bearer(me))

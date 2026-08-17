@@ -1,15 +1,13 @@
 package com.japanese.vocabulary.flashcard.dto
 
-import com.japanese.vocabulary.word.model.ExampleSentence
-import com.japanese.vocabulary.word.model.WordMeaning
+import com.japanese.vocabulary.word.dto.WordSenseDto
 
 data class FlashcardDto(
     val id: Long,
     val wordId: Long,
     val japanese: String,
     val reading: String?,
-    val meanings: List<WordMeaning>,
-    val examples: List<ExampleSentence> = emptyList(),
+    val senses: List<WordSenseDto> = emptyList(),
     val state: Int,
     val due: String,
     val intervals: Map<Int, String>? = null,

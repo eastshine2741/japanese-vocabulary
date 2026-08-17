@@ -36,7 +36,7 @@ export interface CurrentPlayingLyricLine {
 export type CurrentPlayingWord = SongDetailWordItem & {
   id?: number | string;
   baseFormReading?: string | null;
-  meanings?: { text: string; partOfSpeech?: string | null }[];
+  senses?: { meaning: string }[];
 };
 
 interface WordPage {

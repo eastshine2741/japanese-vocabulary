@@ -1,4 +1,4 @@
-import { WordMeaning } from './word';
+import { AddWordRequest, WordSense } from './word';
 
 export interface SongSearchItem {
   id: string;
@@ -102,7 +102,7 @@ export interface WordInSongItemDto {
   baseForm: string | null;
   reading: string | null;
   koreanText: string | null;
-  meanings: WordMeaning[];
+  senses: WordSense[];
   partOfSpeech: string;
   partOfSpeechLabel: string;
   jlpt: string | null;
@@ -113,21 +113,7 @@ export interface WordInSongItemDto {
   isSavedGlobally: boolean;
   isSavedForSong: boolean;
   savedWordId: number | null;
-  addRequest: {
-    japanese: string;
-    reading: string;
-    koreanText: string;
-    partOfSpeech: string;
-    songId: number;
-    lyricLine: string;
-    koreanLyricLine?: string | null;
-    meanings?: WordMeaning[];
-    examples?: {
-      songId: number;
-      lyricLine?: string | null;
-      koreanLyricLine?: string | null;
-    }[];
-  };
+  addRequest: AddWordRequest;
 }
 
 export interface WordsInSongDto {

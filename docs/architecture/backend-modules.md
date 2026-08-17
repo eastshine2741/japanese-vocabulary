@@ -51,14 +51,24 @@ backend/
 ## Domain Layer Boundaries
 
 ```text
-Inner:  Song, Lyric              — 콘텐츠 원본
-Middle: Word, SongWord, Flashcard — 사용자 학습 데이터
-Outer:  Deck, DeckFlashcard       — 조직화 레이어
+Inner:  Song, Lyric        — 콘텐츠 원본
+Middle: Word, Flashcard    — 사용자 학습 데이터
+Outer:  Deck, DeckWord     — 조직화 레이어
 ```
 
 - 같은 계층 내: 서비스 간 직접 호출.
 - 계층 경계를 넘을 때만 Spring Event 사용.
 - 안쪽 계층이 바깥쪽 계층을 참조하면 안 됨.
+
+### deck ↔ flashcard 의존
+
+deck 멤버십은 `deck_word(deck_id, word_id)`가 소유한다. flashcard 는 FSRS 상태만 들고 있는
+word 의 1:1 보조 테이블로, deck 과 직접 연결되지 않는다. deck 이 복습 통계를 낼 때는
+`deck_word JOIN flashcards ON flashcards.word_id = deck_word.word_id` 로 word 를 경유한다.
+deck 은 flashcard 엔티티를 밖으로 넘기지 않고 id 만 반환하며, 응답 조립은 flashcard 모듈이 한다.
+
+`decks` 는 세 종류를 컬럼 조합으로 구분한다 — `is_default = 1` 전체 단어장(유저당 1개,
+`UNIQUE(user_id, is_default)` 로 DB 가 강제), `song_id IS NOT NULL` 곡 단어장, 둘 다 아니면 일반 단어장.
 
 ## Spring Event Listeners
 

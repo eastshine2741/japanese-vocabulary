@@ -1,8 +1,8 @@
 package com.japanese.vocabulary.test.fixtures
 
 import com.japanese.vocabulary.user.entity.UserEntity
-import com.japanese.vocabulary.word.model.WordMeaning
 import com.japanese.vocabulary.word.entity.WordEntity
+import com.japanese.vocabulary.word.model.WordSense
 import jakarta.persistence.EntityManager
 import java.util.concurrent.atomic.AtomicLong
 
@@ -11,14 +11,14 @@ class TestWordBuilder(private val em: EntityManager) {
     private var user: UserEntity? = null
     private var japaneseText: String = "言葉$seq"
     private var reading: String? = "ことば"
-    private var meanings: List<WordMeaning> = listOf(
-        WordMeaning(text = "word", partOfSpeech = "noun"),
+    private var senses: List<WordSense> = listOf(
+        WordSense(meaning = "word", partOfSpeech = "noun"),
     )
 
     fun forUser(value: UserEntity) = apply { user = value }
     fun withJapaneseText(value: String) = apply { japaneseText = value }
     fun withReading(value: String?) = apply { reading = value }
-    fun withMeanings(value: List<WordMeaning>) = apply { meanings = value }
+    fun withSenses(value: List<WordSense>) = apply { senses = value }
 
     fun build(): WordEntity {
         val owner = user ?: TestUserBuilder(em).build()
@@ -26,7 +26,7 @@ class TestWordBuilder(private val em: EntityManager) {
             userId = owner.id!!,
             japaneseText = japaneseText,
             reading = reading,
-            meanings = meanings,
+            senses = senses,
         ).also {
             em.persist(it)
             em.flush()

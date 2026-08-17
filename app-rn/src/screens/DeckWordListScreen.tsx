@@ -20,6 +20,7 @@ import { convertReading, ReadingDisplay } from '../utils/readingConverter';
 import { useSettingsStore } from '../stores/settingsStore';
 import { Colors, Dimens } from '../theme/theme';
 import { DeckWordItem } from '../types/deck';
+import { joinMeanings } from '../types/word';
 import { wordApi } from '../api/wordApi';
 import { PosBadge } from '../components/Badges';
 import { AppBar } from '../components/AppBar';
@@ -52,7 +53,7 @@ const WordRow = React.memo(function WordRow({
   // Subscribe only to this row's examples — when one row's fetch resolves,
   // other rows' selectors return the same reference and skip re-render.
   const examples = useWordExamplesStore(s => s.byId[item.id]);
-  const pos = item.meanings[0]?.partOfSpeech;
+  const pos = item.senses[0]?.partOfSpeech;
   const handleToggle = useCallback(() => onToggleExpand(item), [onToggleExpand, item]);
   const handleLongPress = useCallback(() => onLongPress(item), [onLongPress, item]);
 
@@ -71,7 +72,7 @@ const WordRow = React.memo(function WordRow({
             <Text style={styles.reading}>{convertReading(item.reading, readingDisplay)}</Text>
             <Text style={styles.dot}>·</Text>
             <Text style={styles.korean} numberOfLines={1}>
-              {item.meanings.map(m => m.text).join(', ')}
+              {joinMeanings(item.senses)}
             </Text>
           </View>
         </View>
@@ -167,7 +168,7 @@ export default function DeckWordListScreen({ route, navigation }: Props) {
       wordId: item.id,
       japanese: item.japanese,
       reading: item.reading,
-      meanings: item.meanings,
+      senses: item.senses,
     });
   }, [actionItem, navigation]);
 
@@ -291,12 +292,12 @@ function ExampleSection({ state }: { state: ExamplesState | undefined }) {
   }
   return (
     <View style={styles.exSection}>
-      {state.map((ex) => (
-        <View key={ex.id} style={styles.exRow}>
-          <ArtworkImage url={ex.artworkUrl} size={28} cornerRadius={6} />
+      {state.map((ex, i) => (
+        <View key={i} style={styles.exRow}>
+          <ArtworkImage url={ex.artworkUrl ?? null} size={28} cornerRadius={6} />
           <View style={styles.exText}>
-            {ex.lyricLine && <Text style={styles.exJp}>{ex.lyricLine}</Text>}
-            {ex.koreanLyricLine && <Text style={styles.exKr}>{ex.koreanLyricLine}</Text>}
+            {ex.text !== '' && <Text style={styles.exJp}>{ex.text}</Text>}
+            {ex.translation && <Text style={styles.exKr}>{ex.translation}</Text>}
             {ex.songTitle && <Text style={styles.exSrc}>{ex.songTitle}</Text>}
           </View>
         </View>

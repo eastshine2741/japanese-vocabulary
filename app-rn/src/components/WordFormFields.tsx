@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { WordMeaning } from '../types/word';
+import { WordSense } from '../types/word';
 import { getPosLabel, getPosColor } from '../types/pos';
 import { Colors } from '../theme/theme';
 
@@ -9,7 +9,7 @@ interface Props {
   japaneseText: string;
   reading: string;
   onReadingChange: (text: string) => void;
-  meanings: WordMeaning[];
+  senses: WordSense[];
   onMeaningTextChange: (index: number, text: string) => void;
   onMeaningBlur: (index: number) => void;
   onRemoveMeaning: (index: number) => void;
@@ -22,7 +22,7 @@ export default function WordFormFields({
   japaneseText,
   reading,
   onReadingChange,
-  meanings,
+  senses,
   onMeaningTextChange,
   onMeaningBlur,
   onRemoveMeaning,
@@ -50,7 +50,7 @@ export default function WordFormFields({
       {/* Meanings */}
       <View style={styles.section}>
         <Text style={styles.sectionLabel}>뜻</Text>
-        {meanings.map((m, i) => {
+        {senses.map((m, i) => {
           const posColor = getPosColor(m.partOfSpeech);
           const showError = shouldShowError(i);
           return (
@@ -68,7 +68,7 @@ export default function WordFormFields({
                 <View style={[styles.meaningInputWrap, showError && styles.meaningInputError]}>
                   <TextInput
                     style={styles.meaningInput}
-                    value={m.text}
+                    value={m.meaning}
                     onChangeText={(t) => onMeaningTextChange(i, t)}
                     onBlur={() => onMeaningBlur(i)}
                   />
@@ -77,9 +77,9 @@ export default function WordFormFields({
                 <TouchableOpacity
                   onPress={() => onRemoveMeaning(i)}
                   hitSlop={8}
-                  disabled={meanings.length <= 1}
+                  disabled={senses.length <= 1}
                 >
-                  <Feather name="x" size={16} color={meanings.length <= 1 ? Colors.border : Colors.textMuted} />
+                  <Feather name="x" size={16} color={senses.length <= 1 ? Colors.border : Colors.textMuted} />
                 </TouchableOpacity>
               </View>
               {showError && (

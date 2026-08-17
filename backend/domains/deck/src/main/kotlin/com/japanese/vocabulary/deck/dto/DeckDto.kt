@@ -5,7 +5,8 @@ import com.japanese.vocabulary.deck.entity.DeckEntity
 data class DeckDto(
     val id: Long,
     val userId: Long,
-    val songId: Long,
+    val songId: Long?,
+    val isDefault: Boolean,
     val title: String,
     val description: String,
 )
@@ -14,6 +15,7 @@ fun DeckEntity.toDto(): DeckDto = DeckDto(
     id = id!!,
     userId = userId,
     songId = songId,
+    isDefault = isDefault == true,
     title = title,
     description = description,
 )

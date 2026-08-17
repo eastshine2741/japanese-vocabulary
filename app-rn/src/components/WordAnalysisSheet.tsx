@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet, NativeSynt
 import { ScrollView } from 'react-native-gesture-handler';
 import { Feather } from '@expo/vector-icons';
 import { Token } from '../types/song';
-import { WordDetailResponse } from '../types/word';
+import { WordDetailResponse, flattenExamples } from '../types/word';
 import { POS_INFO } from '../types/pos';
 import { Colors } from '../theme/theme';
 import { convertReading } from '../utils/readingConverter';
@@ -41,12 +41,14 @@ function WordAnalysisSheet({
   const [activeExIndex, setActiveExIndex] = useState(0);
 
   const isExisting = getWordStatus === 'found';
-  const isFromThisLine = existingWord?.examples.some(
-    ex => ex.songId === songId && ex.lyricLine === lyricLine,
-  ) ?? false;
+  const savedSenses = existingWord?.senses ?? [];
+  const savedExamples = flattenExamples(savedSenses);
+  const isFromThisLine = savedExamples.some(
+    ex => ex.songId === songId && ex.text === lyricLine,
+  );
 
   const isMeaningNew = token.koreanText != null &&
-    !(existingWord?.meanings.some(m => m.text === token.koreanText) ?? false);
+    !savedSenses.some(s => s.meaning === token.koreanText);
 
   const posInfo = POS_INFO[token.partOfSpeech];
 
@@ -143,18 +145,18 @@ function WordAnalysisSheet({
           </TouchableOpacity>
         </View>
 
-        {isExisting && existingWord && isMeaningNew && existingWord.meanings.length > 0 && (
+        {isExisting && isMeaningNew && savedSenses.length > 0 && (
           <View style={styles.savedMeaningsSection}>
             <Text style={styles.savedMeaningsLabel}>이미 담은 뜻</Text>
-            {existingWord.meanings.map((m, i) => (
-              <Text key={i} style={styles.savedMeaningItem}>• {m.text}</Text>
+            {savedSenses.map((s, i) => (
+              <Text key={i} style={styles.savedMeaningItem}>• {s.meaning}</Text>
             ))}
           </View>
         )}
       </View>
 
       {/* Example section — only when word already exists AND not showing saved meanings (2c) */}
-      {isExisting && existingWord && !isMeaningNew && existingWord.examples.length > 0 && (
+      {isExisting && !isMeaningNew && savedExamples.length > 0 && (
         <View style={styles.exSec}>
           <ScrollView
             horizontal
@@ -166,12 +168,12 @@ function WordAnalysisSheet({
             snapToInterval={examplePageWidth}
             decelerationRate="fast"
           >
-            {existingWord.examples.map((ex, i) => (
+            {savedExamples.map((ex, i) => (
               <View key={i} style={[styles.exCard, { width: examplePageWidth }]}>
-                <ArtworkImage url={ex.artworkUrl} size={28} cornerRadius={6} />
+                <ArtworkImage url={ex.artworkUrl ?? null} size={28} cornerRadius={6} />
                 <View style={styles.ex1Txt}>
-                  {ex.lyricLine && (
-                    <Text style={styles.e1jp}>{ex.lyricLine}</Text>
+                  {ex.text !== '' && (
+                    <Text style={styles.e1jp}>{ex.text}</Text>
                   )}
                   {ex.songTitle && (
                     <Text style={styles.e1src}>{ex.songTitle}</Text>
@@ -180,9 +182,9 @@ function WordAnalysisSheet({
               </View>
             ))}
           </ScrollView>
-          {existingWord.examples.length > 1 && (
+          {savedExamples.length > 1 && (
             <View style={styles.dots}>
-              {existingWord.examples.map((_, i) => (
+              {savedExamples.map((_, i) => (
                 <View
                   key={i}
                   style={[styles.dot, { backgroundColor: i === activeExIndex ? Colors.textPrimary : Colors.border }]}

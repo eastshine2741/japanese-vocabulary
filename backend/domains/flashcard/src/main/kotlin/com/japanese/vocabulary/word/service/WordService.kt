@@ -5,21 +5,20 @@ import com.japanese.vocabulary.common.exception.BusinessException
 import com.japanese.vocabulary.common.exception.ErrorCode
 import com.japanese.vocabulary.flashcard.service.FlashcardService
 import com.japanese.vocabulary.song.repository.SongRepository
-import com.japanese.vocabulary.word.entity.SongWordEntity
 import com.japanese.vocabulary.word.entity.WordEntity
-import com.japanese.vocabulary.word.event.SongWordCreatedEvent
-import com.japanese.vocabulary.word.dto.AddWordExampleDto
+import com.japanese.vocabulary.word.event.WordDeletedEvent
+import com.japanese.vocabulary.word.event.WordSavedEvent
 import com.japanese.vocabulary.word.dto.AddWordDto
 import com.japanese.vocabulary.word.dto.BatchAddWordDto
 import com.japanese.vocabulary.word.dto.BatchAddWordResultDto
-import com.japanese.vocabulary.word.model.ExampleSentence
 import com.japanese.vocabulary.word.dto.UpdateWordDto
 import com.japanese.vocabulary.word.dto.WordDetailDto
 import com.japanese.vocabulary.word.dto.WordListDto
 import com.japanese.vocabulary.word.dto.WordListItemDto
-import com.japanese.vocabulary.word.model.WordMeaning
-import com.japanese.vocabulary.word.repository.SongWordRepository
+import com.japanese.vocabulary.word.model.SenseExample
+import com.japanese.vocabulary.word.model.WordSense
 import com.japanese.vocabulary.word.repository.WordRepository
+import com.japanese.vocabulary.word.service.SenseEnricher.toDtos
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.domain.PageRequest
 import org.springframework.transaction.annotation.Transactional
@@ -27,7 +26,6 @@ import org.springframework.transaction.annotation.Transactional
 @Service
 class WordService(
     private val wordRepository: WordRepository,
-    private val songWordRepository: SongWordRepository,
     private val songRepository: SongRepository,
     private val flashcardService: FlashcardService,
     private val eventPublisher: ApplicationEventPublisher,
@@ -37,73 +35,40 @@ class WordService(
         var savedCount = 0
         var skippedCount = 0
         for (wordRequest in request.words) {
-            val outcome = addWordInternal(userId, wordRequest)
-            if (outcome.changed) {
-                savedCount++
-            } else {
-                skippedCount++
-            }
+            if (addWordInternal(userId, wordRequest).changed) savedCount++ else skippedCount++
         }
         return BatchAddWordResultDto(savedCount = savedCount, skippedCount = skippedCount)
     }
 
     @Transactional
-    fun addWord(userId: Long, request: AddWordDto): Long {
-        return addWordInternal(userId, request).wordId
-    }
+    fun addWord(userId: Long, request: AddWordDto): Long = addWordInternal(userId, request).wordId
 
     private fun addWordInternal(userId: Long, request: AddWordDto): AddWordOutcome {
-        val requestedMeanings = request.normalizedMeanings()
-        if (requestedMeanings.isEmpty()) throw BusinessException(ErrorCode.MEANING_REQUIRED)
+        val requestedSenses = request.senses.normalized()
+        if (requestedSenses.isEmpty()) throw BusinessException(ErrorCode.MEANING_REQUIRED)
 
-        val requestedExamples = request.normalizedExamples()
-        val missingSong = requestedExamples.map { it.songId }.distinct().firstOrNull { !songRepository.existsById(it) }
-        if (missingSong != null) throw BusinessException(ErrorCode.SONG_NOT_FOUND)
+        requireExistingSongs(requestedSenses, request.songId)
 
-        val word = wordRepository.findByUserIdAndJapaneseText(userId, request.japanese)
-
-        var wordChanged = false
-        val savedWord = if (word != null) {
-            val newMeanings = requestedMeanings.filter { newMeaning ->
-                word.meanings.none { it.text == newMeaning.text }
-            }
-            if (newMeanings.isNotEmpty()) {
-                word.meanings = word.meanings + newMeanings
-                wordRepository.save(word)
-                wordChanged = true
-            }
-            word
-        } else {
-            wordChanged = true
-            wordRepository.save(
-                WordEntity(
-                    userId = userId,
-                    japaneseText = request.japanese,
-                    reading = request.reading,
-                    meanings = requestedMeanings,
-                )
-            )
-        }
-
-        val savedWordId = savedWord.id!!
-        val flashcardId = flashcardService.createFlashcard(userId, savedWordId)
-        val createdExampleSongIds = addExamplesWithCap(savedWord, requestedExamples)
-
-        createdExampleSongIds.distinct().forEach { songId ->
-            eventPublisher.publishEvent(
-                SongWordCreatedEvent(
-                    userId = userId,
-                    songId = songId,
-                    wordId = savedWordId,
-                    flashcardId = flashcardId,
-                )
-            )
-        }
-
-        return AddWordOutcome(
-            wordId = savedWordId,
-            changed = wordChanged || createdExampleSongIds.isNotEmpty(),
+        val existing = wordRepository.findByUserIdAndJapaneseText(userId, request.japanese)
+        val word = existing ?: WordEntity(
+            userId = userId,
+            japaneseText = request.japanese,
+            reading = request.reading,
         )
+
+        val mergedSenses = merge(word.senses, requestedSenses)
+        val changed = existing == null || mergedSenses != word.senses
+        if (changed) {
+            word.senses = mergedSenses
+            wordRepository.save(word)
+        }
+
+        val wordId = word.id!!
+        flashcardService.createFlashcard(userId, wordId)
+        // 담을 때마다 발행한다 — sense 가 이미 다 있어도 deck 연결은 보장되어야 한다.
+        eventPublisher.publishEvent(WordSavedEvent(userId = userId, wordId = wordId, songId = request.songId))
+
+        return AddWordOutcome(wordId = wordId, changed = changed)
     }
 
     @Transactional
@@ -111,26 +76,21 @@ class WordService(
         val word = wordRepository.findById(wordId)
             .orElseThrow { BusinessException(ErrorCode.WORD_NOT_FOUND) }
         if (word.userId != userId) throw BusinessException(ErrorCode.FORBIDDEN)
-        if (request.meanings.isEmpty()) throw BusinessException(ErrorCode.MEANING_REQUIRED)
+
+        val senses = request.senses.normalized()
+        if (senses.isEmpty()) throw BusinessException(ErrorCode.MEANING_REQUIRED)
+        // 저장 경로와 같은 검증 — 없는 곡을 가리키는 예문이 들어오면 곡 제목이 빈 채로 렌더된다.
+        requireExistingSongs(senses, songId = null)
 
         word.reading = request.reading
-        word.meanings = request.meanings
+        word.senses = senses
         wordRepository.save(word)
-
-        if (request.deleteExampleIds.isNotEmpty()) {
-            val songWords = songWordRepository.findAllById(request.deleteExampleIds)
-            val invalid = songWords.filter { it.wordId != wordId }
-            if (invalid.isNotEmpty()) {
-                throw BusinessException(ErrorCode.INVALID_EXAMPLES)
-            }
-            songWordRepository.deleteAll(songWords)
-        }
 
         if (request.resetFlashcard) {
             flashcardService.resetByWordId(wordId)
         }
 
-        return getWord(userId, word.japaneseText)!!
+        return buildDetail(word)
     }
 
     @Transactional
@@ -140,16 +100,14 @@ class WordService(
         if (word.userId != userId) throw BusinessException(ErrorCode.FORBIDDEN)
 
         flashcardService.deleteByWordId(wordId)
-
-        songWordRepository.deleteByWordId(wordId)
+        // deck_word 는 words 에 FK 를 가지므로 같은 트랜잭션에서 먼저 정리되어야 한다.
+        eventPublisher.publishEvent(WordDeletedEvent(wordId))
         wordRepository.delete(word)
     }
 
     @Transactional(readOnly = true)
-    fun getWord(userId: Long, japaneseText: String): WordDetailDto? {
-        val word = wordRepository.findByUserIdAndJapaneseText(userId, japaneseText) ?: return null
-        return buildDetail(word)
-    }
+    fun getWord(userId: Long, japaneseText: String): WordDetailDto? =
+        wordRepository.findByUserIdAndJapaneseText(userId, japaneseText)?.let { buildDetail(it) }
 
     @Transactional(readOnly = true)
     fun getWordById(userId: Long, wordId: Long): WordDetailDto? {
@@ -158,30 +116,12 @@ class WordService(
         return buildDetail(word)
     }
 
-    private fun buildDetail(word: WordEntity): WordDetailDto {
-        val songWords = songWordRepository.findByWordId(word.id!!)
-        val songIds = songWords.map { it.songId }.toSet()
-        val songMap = songRepository.findAllById(songIds).associateBy { it.id }
-
-        val examples = songWords.map { sw ->
-            ExampleSentence(
-                id = sw.id!!,
-                songId = sw.songId,
-                songTitle = songMap[sw.songId]?.title,
-                lyricLine = sw.lyricLine,
-                koreanLyricLine = sw.koreanLyricLine,
-                artworkUrl = songMap[sw.songId]?.artworkUrl
-            )
-        }
-
-        return WordDetailDto(
-            id = word.id,
-            japanese = word.japaneseText,
-            reading = word.reading,
-            meanings = word.meanings,
-            examples = examples,
-        )
-    }
+    private fun buildDetail(word: WordEntity): WordDetailDto = WordDetailDto(
+        id = word.id!!,
+        japanese = word.japaneseText,
+        reading = word.reading,
+        senses = word.senses.toDtos(songRepository),
+    )
 
     @Transactional(readOnly = true)
     fun getUserWords(userId: Long, cursor: Long?, limit: Int = 20): WordListDto {
@@ -191,91 +131,71 @@ class WordService(
         } else {
             wordRepository.findByUserIdOrderByIdDesc(userId, pageable)
         }
+        return words.toListDto(limit)
+    }
 
-        val wordIds = words.mapNotNull { it.id }
-        val songWordMap = songWordRepository.findByWordIdIn(wordIds).groupBy { it.wordId }
-
-        val songIds = songWordMap.values.flatten().map { it.songId }.toSet()
-        val songMap = songRepository.findAllById(songIds).associateBy { it.id }
-
-        val items = words.map { word ->
-            val songWords = songWordMap[word.id] ?: emptyList()
-            val examples = songWords.map { sw ->
-                ExampleSentence(
-                    id = sw.id!!,
-                    songId = sw.songId,
-                    songTitle = songMap[sw.songId]?.title,
-                    lyricLine = sw.lyricLine,
-                    koreanLyricLine = sw.koreanLyricLine
-                )
-            }
+    /** 여러 word 의 sense 를 곡 메타데이터와 함께 조립한다 — 곡 조회는 페이지당 1회로 묶인다. */
+    private fun List<WordEntity>.toListDto(limit: Int): WordListDto {
+        val songMap = SenseEnricher.loadSongs(flatMap { it.senses }, songRepository)
+        val items = map { word ->
             WordListItemDto(
                 id = word.id!!,
                 japanese = word.japaneseText,
                 reading = word.reading ?: "",
-                meanings = word.meanings,
-                examples = examples,
+                senses = word.senses.toDtos(songMap),
             )
         }
-
-        val nextCursor = if (words.size == limit) words.last().id else null
-
-        return WordListDto(items = items, nextCursor = nextCursor)
+        return WordListDto(items = items, nextCursor = if (size == limit) last().id else null)
     }
 
-    private fun AddWordDto.normalizedMeanings(): List<WordMeaning> {
-        val source = meanings.ifEmpty {
-            listOf(WordMeaning(text = koreanText, partOfSpeech = partOfSpeech))
+    private fun requireExistingSongs(senses: List<WordSense>, songId: Long?) {
+        val referenced = (senses.flatMap { it.examples }.mapNotNull { it.songId } + listOfNotNull(songId)).distinct()
+        if (referenced.any { !songRepository.existsById(it) }) {
+            throw BusinessException(ErrorCode.SONG_NOT_FOUND)
         }
-        return source
-            .filter { it.text.isNotBlank() }
-            .distinctBy { it.text }
     }
 
-    private fun AddWordDto.normalizedExamples(): List<AddWordExampleDto> =
-        examples.ifEmpty {
-            listOf(AddWordExampleDto(songId = songId, lyricLine = lyricLine, koreanLyricLine = koreanLyricLine))
-        }
+    /** 빈 뜻 제거, 뜻 텍스트 기준 중복 제거, sense 별 예문 상한 적용. */
+    private fun List<WordSense>.normalized(): List<WordSense> =
+        filter { it.meaning.isNotBlank() }
+            .distinctBy { it.meaning }
+            .map { it.copy(examples = it.examples.distinctBy(::exampleKey).take(MAX_EXAMPLES_PER_SENSE)) }
 
-    private fun addExamplesWithCap(word: WordEntity, examples: List<AddWordExampleDto>): List<Long> {
-        val wordId = word.id!!
-        val existing = songWordRepository.findByWordId(wordId)
-        val seenKeys = existing.map { ExampleKey(it.songId, it.lyricLine) }.toMutableSet()
-        val createdSongIds = mutableListOf<Long>()
-        var exampleCount = existing.size
-
-        for (example in examples) {
-            if (exampleCount >= MAX_EXAMPLES_PER_WORD) break
-
-            val key = ExampleKey(example.songId, example.lyricLine)
-            if (!seenKeys.add(key)) continue
-
-            songWordRepository.save(
-                SongWordEntity(
-                    wordId = wordId,
-                    songId = example.songId,
-                    lyricLine = example.lyricLine,
-                    koreanLyricLine = example.koreanLyricLine,
-                )
+    /** 기존 sense 는 보존하고 누락된 sense 만 추가한다. 같은 뜻이면 예문만 상한까지 덧붙인다. */
+    private fun merge(current: List<WordSense>, incoming: List<WordSense>): List<WordSense> {
+        val result = current.toMutableList()
+        for (sense in incoming) {
+            val index = result.indexOfFirst { it.meaning == sense.meaning }
+            if (index < 0) {
+                result += sense
+                continue
+            }
+            val existing = result[index]
+            result[index] = existing.copy(
+                jlpt = existing.jlpt ?: sense.jlpt,
+                examples = appendExamples(existing.examples, sense.examples),
             )
-            exampleCount++
-            createdSongIds += example.songId
         }
-
-        return createdSongIds
+        return result
     }
 
-    private data class AddWordOutcome(
-        val wordId: Long,
-        val changed: Boolean,
-    )
+    private fun appendExamples(current: List<SenseExample>, incoming: List<SenseExample>): List<SenseExample> {
+        if (current.size >= MAX_EXAMPLES_PER_SENSE) return current
+        val seen = current.map(::exampleKey).toMutableSet()
+        val result = current.toMutableList()
+        for (example in incoming) {
+            if (result.size >= MAX_EXAMPLES_PER_SENSE) break
+            if (seen.add(exampleKey(example))) result += example
+        }
+        return result
+    }
 
-    private data class ExampleKey(
-        val songId: Long,
-        val lyricLine: String?,
-    )
+    private data class AddWordOutcome(val wordId: Long, val changed: Boolean)
 
     companion object {
-        private const val MAX_EXAMPLES_PER_WORD = 10
+        const val MAX_EXAMPLES_PER_SENSE = 5
+
+        private fun exampleKey(example: SenseExample) =
+            Triple(example.songId, example.lineIndex, example.text)
     }
 }
