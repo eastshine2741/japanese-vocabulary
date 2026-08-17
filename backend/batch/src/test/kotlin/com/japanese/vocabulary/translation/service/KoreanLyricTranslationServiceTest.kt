@@ -9,6 +9,7 @@ import com.japanese.vocabulary.translation.client.gemini.dto.TranslationResultDt
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoEntryDto
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoLookupProvenance
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoOptionDto
+import com.japanese.vocabulary.translation.service.pipeline.stage.SegmentLyricsStage
 import com.japanese.vocabulary.song.batch.SongAnalysisWorkCompletionService
 import com.japanese.vocabulary.song.entity.LyricEntity
 import com.japanese.vocabulary.song.entity.LyricType
@@ -333,7 +334,7 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
 
         assertThatThrownBy { runBlocking { translationService.runPipeline(lyric) } }
             .isInstanceOf(RuntimeException::class.java)
-        verify(exactly = 2) { geminiClient.segmentAndLemmatize(any()) }
+        verify(exactly = SegmentLyricsStage.MAX_SEGMENTATION_ATTEMPTS) { geminiClient.segmentAndLemmatize(any()) }
         coVerify(exactly = 0) { jishoService.lookupAll(any()) }
     }
 

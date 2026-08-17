@@ -48,11 +48,11 @@ class SegmentLyricsStage(
             )
         }
 
-    private companion object {
+    companion object {
         const val MAX_SEGMENTATION_ATTEMPTS = 4
-        const val PREVIOUS_VALIDATION_ERROR_FIELD = "previousValidationError"
-        const val RETRY_INSTRUCTION_FIELD = "retryInstruction"
-        const val RETRY_INSTRUCTION =
+        private const val PREVIOUS_VALIDATION_ERROR_FIELD = "previousValidationError"
+        private const val RETRY_INSTRUCTION_FIELD = "retryInstruction"
+        private const val RETRY_INSTRUCTION =
             "The previous segmentation output failed validator checks. " +
                 "Fix the segmentation so every surface appears in order and all original Japanese text is covered."
     }
