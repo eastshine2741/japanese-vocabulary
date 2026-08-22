@@ -35998,7 +35998,7 @@
       "name": "R1 Recommended. 홈 탭 (Home)",
       "clip": true,
       "width": 402,
-      "height": 1635,
+      "height": 1519,
       "fill": "$surface.secondary",
       "layout": "vertical",
       "children": [
@@ -37665,261 +37665,441 @@
                   "id": "EjTsP",
                   "name": "recCarousel",
                   "width": "fill_container",
-                  "gap": 14,
+                  "gap": 12,
                   "children": [
                     {
                       "type": "frame",
-                      "id": "HgOMj",
+                      "id": "IyJYT",
                       "name": "recCard_夜に駆ける",
-                      "width": 272,
+                      "metadata": {
+                        "type": "unsplash",
+                        "username": "winstontjia",
+                        "link": "https://unsplash.com/@winstontjia",
+                        "author": "Winston Tjia"
+                      },
+                      "clip": true,
+                      "width": 200,
+                      "height": 264,
+                      "fill": [
+                        {
+                          "type": "image",
+                          "enabled": true,
+                          "url": "https://images.unsplash.com/photo-1716908331958-dfe8e734e560?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3ODY5NjAzOTV8&ixlib=rb-4.1.0&q=80&w=1080",
+                          "mode": "fill"
+                        },
+                        "#00000014"
+                      ],
+                      "cornerRadius": 14,
+                      "stroke": "#00000024",
+                      "strokeWidth": 1,
+                      "strokeAlignment": "inner",
                       "layout": "vertical",
-                      "gap": 12,
+                      "justifyContent": "end",
                       "children": [
                         {
                           "type": "rectangle",
-                          "cornerRadius": "$rounded.2xl",
-                          "id": "n7Z43",
-                          "name": "recCover",
-                          "metadata": {
-                            "type": "unsplash",
-                            "username": "winstontjia",
-                            "link": "https://unsplash.com/@winstontjia",
-                            "author": "Winston Tjia"
-                          },
+                          "id": "o023X",
+                          "layoutPosition": "absolute",
+                          "x": 0,
+                          "y": 0,
+                          "name": "scrim",
                           "fill": {
-                            "type": "image",
+                            "type": "gradient",
+                            "gradientType": "linear",
                             "enabled": true,
-                            "url": "https://images.unsplash.com/photo-1716908331958-dfe8e734e560?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3ODY5NjAzOTV8&ixlib=rb-4.1.0&q=80&w=1080",
-                            "mode": "fill"
-                          },
-                          "width": 272,
-                          "height": 272,
-                          "effect": {
-                            "type": "shadow",
-                            "shadowType": "outer",
-                            "color": "#0000001A",
-                            "offset": {
-                              "x": 0,
-                              "y": "$shadow.sm.offset.y"
+                            "rotation": 180,
+                            "size": {
+                              "height": 1
                             },
-                            "blur": 8
-                          }
+                            "colors": [
+                              {
+                                "color": "#00000000",
+                                "position": 0
+                              },
+                              {
+                                "color": "#00000000",
+                                "position": 0.34
+                              },
+                              {
+                                "color": "#000000A8",
+                                "position": 0.7
+                              },
+                              {
+                                "color": "#000000ED",
+                                "position": 1
+                              }
+                            ]
+                          },
+                          "width": 200,
+                          "height": 264
                         },
                         {
-                          "type": "text",
-                          "id": "hu0RZ",
-                          "name": "recCardTitle",
-                          "fill": "$foreground.primary",
-                          "textGrowth": "fixed-width",
+                          "type": "frame",
+                          "id": "xwSox",
+                          "name": "cardText",
                           "width": "fill_container",
-                          "content": "夜に駆ける",
-                          "fontFamily": "$font.body",
-                          "fontSize": 16,
-                          "fontWeight": "600"
-                        },
-                        {
-                          "type": "text",
-                          "id": "A4FAw",
-                          "name": "recCardArtist",
-                          "fill": "$foreground.muted",
-                          "textGrowth": "fixed-width",
-                          "width": "fill_container",
-                          "content": "YOASOBI",
-                          "fontFamily": "$font.body",
-                          "fontSize": 13,
-                          "fontWeight": "normal"
+                          "layout": "vertical",
+                          "gap": 3,
+                          "padding": [
+                            0,
+                            14,
+                            14,
+                            14
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "EOfcz",
+                              "name": "cardTitle",
+                              "fill": "#FFFFFF",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "夜に駆ける",
+                              "lineHeight": 1.32,
+                              "fontFamily": "$font.body",
+                              "fontSize": 15,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "x74HJV",
+                              "name": "cardArtist",
+                              "fill": "#FFFFFFB8",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "YOASOBI",
+                              "fontFamily": "$font.body",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         }
                       ]
                     },
                     {
                       "type": "frame",
-                      "id": "bTwsx",
+                      "id": "iizHD",
                       "name": "recCard_Lemon",
-                      "width": 272,
+                      "metadata": {
+                        "type": "unsplash",
+                        "username": "yogidan2012",
+                        "link": "https://unsplash.com/@yogidan2012",
+                        "author": "Daniele Levis Pelusi"
+                      },
+                      "clip": true,
+                      "width": 200,
+                      "height": 264,
+                      "fill": [
+                        {
+                          "type": "image",
+                          "enabled": true,
+                          "url": "https://images.unsplash.com/photo-1682946543931-2c0dded9ba65?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3ODY5NjAzOTZ8&ixlib=rb-4.1.0&q=80&w=1080",
+                          "mode": "fill"
+                        },
+                        "#00000014"
+                      ],
+                      "cornerRadius": 14,
+                      "stroke": "#00000024",
+                      "strokeWidth": 1,
+                      "strokeAlignment": "inner",
                       "layout": "vertical",
-                      "gap": 12,
+                      "justifyContent": "end",
                       "children": [
                         {
                           "type": "rectangle",
-                          "cornerRadius": "$rounded.2xl",
-                          "id": "AKySm",
-                          "name": "recCover",
-                          "metadata": {
-                            "type": "unsplash",
-                            "username": "yogidan2012",
-                            "link": "https://unsplash.com/@yogidan2012",
-                            "author": "Daniele Levis Pelusi"
-                          },
+                          "id": "UDxOo",
+                          "layoutPosition": "absolute",
+                          "x": 0,
+                          "y": 0,
+                          "name": "scrim",
                           "fill": {
-                            "type": "image",
+                            "type": "gradient",
+                            "gradientType": "linear",
                             "enabled": true,
-                            "url": "https://images.unsplash.com/photo-1682946543931-2c0dded9ba65?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3ODY5NjAzOTZ8&ixlib=rb-4.1.0&q=80&w=1080",
-                            "mode": "fill"
-                          },
-                          "width": 272,
-                          "height": 272,
-                          "effect": {
-                            "type": "shadow",
-                            "shadowType": "outer",
-                            "color": "#0000001A",
-                            "offset": {
-                              "x": 0,
-                              "y": "$shadow.sm.offset.y"
+                            "rotation": 180,
+                            "size": {
+                              "height": 1
                             },
-                            "blur": 8
-                          }
+                            "colors": [
+                              {
+                                "color": "#00000000",
+                                "position": 0
+                              },
+                              {
+                                "color": "#00000000",
+                                "position": 0.34
+                              },
+                              {
+                                "color": "#000000A8",
+                                "position": 0.7
+                              },
+                              {
+                                "color": "#000000ED",
+                                "position": 1
+                              }
+                            ]
+                          },
+                          "width": 200,
+                          "height": 264
                         },
                         {
-                          "type": "text",
-                          "id": "j2KmU",
-                          "name": "recCardTitle",
-                          "fill": "$foreground.primary",
-                          "textGrowth": "fixed-width",
+                          "type": "frame",
+                          "id": "aJAwZ",
+                          "name": "cardText",
                           "width": "fill_container",
-                          "content": "Lemon",
-                          "fontFamily": "$font.body",
-                          "fontSize": 16,
-                          "fontWeight": "600"
-                        },
-                        {
-                          "type": "text",
-                          "id": "UCUFQ",
-                          "name": "recCardArtist",
-                          "fill": "$foreground.muted",
-                          "textGrowth": "fixed-width",
-                          "width": "fill_container",
-                          "content": "米津玄師",
-                          "fontFamily": "$font.body",
-                          "fontSize": 13,
-                          "fontWeight": "normal"
+                          "layout": "vertical",
+                          "gap": 3,
+                          "padding": [
+                            0,
+                            14,
+                            14,
+                            14
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "g16TV",
+                              "name": "cardTitle",
+                              "fill": "#FFFFFF",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "Lemon",
+                              "lineHeight": 1.32,
+                              "fontFamily": "$font.body",
+                              "fontSize": 15,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "M7y4v",
+                              "name": "cardArtist",
+                              "fill": "#FFFFFFB8",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "米津玄師",
+                              "fontFamily": "$font.body",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         }
                       ]
                     },
                     {
                       "type": "frame",
-                      "id": "ZLCSR",
-                      "name": "recCard_六本木クラブでゆらゆら揺れながら踊り明かした結果生まれた…",
-                      "width": 272,
+                      "id": "dU0Ca",
+                      "name": "recCard_六本木クラブでゆらゆら揺れながら…",
+                      "metadata": {
+                        "type": "unsplash",
+                        "username": "mosdesign",
+                        "link": "https://unsplash.com/@mosdesign",
+                        "author": "mos design"
+                      },
+                      "clip": true,
+                      "width": 200,
+                      "height": 264,
+                      "fill": [
+                        {
+                          "type": "image",
+                          "enabled": true,
+                          "url": "https://images.unsplash.com/photo-1701762292571-2875f1e522b6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3ODY5NjAzOTd8&ixlib=rb-4.1.0&q=80&w=1080",
+                          "mode": "fill"
+                        },
+                        "#00000014"
+                      ],
+                      "cornerRadius": 14,
+                      "stroke": "#00000024",
+                      "strokeWidth": 1,
+                      "strokeAlignment": "inner",
                       "layout": "vertical",
-                      "gap": 12,
+                      "justifyContent": "end",
                       "children": [
                         {
                           "type": "rectangle",
-                          "cornerRadius": "$rounded.2xl",
-                          "id": "pNZqd",
-                          "name": "recCover",
-                          "metadata": {
-                            "type": "unsplash",
-                            "username": "mosdesign",
-                            "link": "https://unsplash.com/@mosdesign",
-                            "author": "mos design"
-                          },
+                          "id": "vCNTm",
+                          "layoutPosition": "absolute",
+                          "x": 0,
+                          "y": 0,
+                          "name": "scrim",
                           "fill": {
-                            "type": "image",
+                            "type": "gradient",
+                            "gradientType": "linear",
                             "enabled": true,
-                            "url": "https://images.unsplash.com/photo-1701762292571-2875f1e522b6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3ODY5NjAzOTd8&ixlib=rb-4.1.0&q=80&w=1080",
-                            "mode": "fill"
-                          },
-                          "width": 272,
-                          "height": 272,
-                          "effect": {
-                            "type": "shadow",
-                            "shadowType": "outer",
-                            "color": "#0000001A",
-                            "offset": {
-                              "x": 0,
-                              "y": "$shadow.sm.offset.y"
+                            "rotation": 180,
+                            "size": {
+                              "height": 1
                             },
-                            "blur": 8
-                          }
+                            "colors": [
+                              {
+                                "color": "#00000000",
+                                "position": 0
+                              },
+                              {
+                                "color": "#00000000",
+                                "position": 0.34
+                              },
+                              {
+                                "color": "#000000A8",
+                                "position": 0.7
+                              },
+                              {
+                                "color": "#000000ED",
+                                "position": 1
+                              }
+                            ]
+                          },
+                          "width": 200,
+                          "height": 264
                         },
                         {
-                          "type": "text",
-                          "id": "HTi1o",
-                          "name": "recCardTitle",
-                          "fill": "$foreground.primary",
-                          "textGrowth": "fixed-width",
+                          "type": "frame",
+                          "id": "P0gfuv",
+                          "name": "cardText",
                           "width": "fill_container",
-                          "content": "六本木クラブでゆらゆら揺れ…",
-                          "fontFamily": "$font.body",
-                          "fontSize": 16,
-                          "fontWeight": "600"
-                        },
-                        {
-                          "type": "text",
-                          "id": "SizWZ",
-                          "name": "recCardArtist",
-                          "fill": "$foreground.muted",
-                          "textGrowth": "fixed-width",
-                          "width": "fill_container",
-                          "content": "全世界公認クリエイターズ超合同…",
-                          "fontFamily": "$font.body",
-                          "fontSize": 13,
-                          "fontWeight": "normal"
+                          "layout": "vertical",
+                          "gap": 3,
+                          "padding": [
+                            0,
+                            14,
+                            14,
+                            14
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "XIkgo",
+                              "name": "cardTitle",
+                              "fill": "#FFFFFF",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "六本木クラブでゆらゆら揺れながら…",
+                              "lineHeight": 1.32,
+                              "fontFamily": "$font.body",
+                              "fontSize": 15,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "qkiOx",
+                              "name": "cardArtist",
+                              "fill": "#FFFFFFB8",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "全世界公認クリエイターズ…",
+                              "fontFamily": "$font.body",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         }
                       ]
                     },
                     {
                       "type": "frame",
-                      "id": "J3PWW9",
+                      "id": "i4XoGU",
                       "name": "recCard_マリーゴールド",
-                      "width": 272,
+                      "metadata": {
+                        "type": "unsplash",
+                        "username": "liyichuan",
+                        "link": "https://unsplash.com/@liyichuan",
+                        "author": "YiChuan Li"
+                      },
+                      "clip": true,
+                      "width": 200,
+                      "height": 264,
+                      "fill": [
+                        {
+                          "type": "image",
+                          "enabled": true,
+                          "url": "https://images.unsplash.com/photo-1769430724125-96853e0eadbb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3ODY5NjAzOTd8&ixlib=rb-4.1.0&q=80&w=1080",
+                          "mode": "fill"
+                        },
+                        "#00000014"
+                      ],
+                      "cornerRadius": 14,
+                      "stroke": "#00000024",
+                      "strokeWidth": 1,
+                      "strokeAlignment": "inner",
                       "layout": "vertical",
-                      "gap": 12,
+                      "justifyContent": "end",
                       "children": [
                         {
                           "type": "rectangle",
-                          "cornerRadius": "$rounded.2xl",
-                          "id": "rbgqi",
-                          "name": "recCover",
-                          "metadata": {
-                            "type": "unsplash",
-                            "username": "liyichuan",
-                            "link": "https://unsplash.com/@liyichuan",
-                            "author": "YiChuan Li"
-                          },
+                          "id": "wrrh5",
+                          "layoutPosition": "absolute",
+                          "x": 0,
+                          "y": 0,
+                          "name": "scrim",
                           "fill": {
-                            "type": "image",
+                            "type": "gradient",
+                            "gradientType": "linear",
                             "enabled": true,
-                            "url": "https://images.unsplash.com/photo-1769430724125-96853e0eadbb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3ODY5NjAzOTd8&ixlib=rb-4.1.0&q=80&w=1080",
-                            "mode": "fill"
-                          },
-                          "width": 272,
-                          "height": 272,
-                          "effect": {
-                            "type": "shadow",
-                            "shadowType": "outer",
-                            "color": "#0000001A",
-                            "offset": {
-                              "x": 0,
-                              "y": "$shadow.sm.offset.y"
+                            "rotation": 180,
+                            "size": {
+                              "height": 1
                             },
-                            "blur": 8
-                          }
+                            "colors": [
+                              {
+                                "color": "#00000000",
+                                "position": 0
+                              },
+                              {
+                                "color": "#00000000",
+                                "position": 0.34
+                              },
+                              {
+                                "color": "#000000A8",
+                                "position": 0.7
+                              },
+                              {
+                                "color": "#000000ED",
+                                "position": 1
+                              }
+                            ]
+                          },
+                          "width": 200,
+                          "height": 264
                         },
                         {
-                          "type": "text",
-                          "id": "EKYz6",
-                          "name": "recCardTitle",
-                          "fill": "$foreground.primary",
-                          "textGrowth": "fixed-width",
+                          "type": "frame",
+                          "id": "X5Dc5W",
+                          "name": "cardText",
                           "width": "fill_container",
-                          "content": "マリーゴールド",
-                          "fontFamily": "$font.body",
-                          "fontSize": 16,
-                          "fontWeight": "600"
-                        },
-                        {
-                          "type": "text",
-                          "id": "Oyk1m",
-                          "name": "recCardArtist",
-                          "fill": "$foreground.muted",
-                          "textGrowth": "fixed-width",
-                          "width": "fill_container",
-                          "content": "あいみょん",
-                          "fontFamily": "$font.body",
-                          "fontSize": 13,
-                          "fontWeight": "normal"
+                          "layout": "vertical",
+                          "gap": 3,
+                          "padding": [
+                            0,
+                            14,
+                            14,
+                            14
+                          ],
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "o7Kz9",
+                              "name": "cardTitle",
+                              "fill": "#FFFFFF",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "マリーゴールド",
+                              "lineHeight": 1.32,
+                              "fontFamily": "$font.body",
+                              "fontSize": 15,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "k3nZmq",
+                              "name": "cardArtist",
+                              "fill": "#FFFFFFB8",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "あいみょん",
+                              "fontFamily": "$font.body",
+                              "fontSize": 12,
+                              "fontWeight": "normal"
+                            }
+                          ]
                         }
                       ]
                     }
@@ -38218,7 +38398,7 @@
       "name": "R1 Recommended Loading. 홈 탭 (Home)",
       "clip": true,
       "width": 402,
-      "height": 1635,
+      "height": 1519,
       "fill": "$surface.secondary",
       "layout": "vertical",
       "children": [
@@ -39885,155 +40065,43 @@
                   "id": "FjFjy",
                   "name": "recCarousel",
                   "width": "fill_container",
-                  "gap": 14,
+                  "gap": 12,
                   "children": [
                     {
-                      "type": "frame",
-                      "id": "P6VPCA",
+                      "type": "rectangle",
+                      "cornerRadius": 14,
+                      "id": "Z9hJP",
                       "name": "recCardSkeleton",
-                      "width": 272,
-                      "layout": "vertical",
-                      "gap": 12,
-                      "children": [
-                        {
-                          "type": "rectangle",
-                          "cornerRadius": "$rounded.2xl",
-                          "id": "f4JZhc",
-                          "name": "skeletonCover",
-                          "fill": "$bg-elevated",
-                          "width": 272,
-                          "height": 272
-                        },
-                        {
-                          "type": "rectangle",
-                          "cornerRadius": "$rounded.lg",
-                          "id": "bPzW1",
-                          "name": "skeletonTitle",
-                          "fill": "$bg-elevated",
-                          "width": 169,
-                          "height": 16
-                        },
-                        {
-                          "type": "rectangle",
-                          "cornerRadius": "$rounded.lg",
-                          "id": "mfzQV",
-                          "name": "skeletonArtist",
-                          "fill": "$bg-elevated",
-                          "width": 109,
-                          "height": 13
-                        }
-                      ]
+                      "fill": "$bg-elevated",
+                      "width": 200,
+                      "height": 264
                     },
                     {
-                      "type": "frame",
-                      "id": "A0XreC",
+                      "type": "rectangle",
+                      "cornerRadius": 14,
+                      "id": "tZSPe",
                       "name": "recCardSkeleton",
-                      "width": 272,
-                      "layout": "vertical",
-                      "gap": 12,
-                      "children": [
-                        {
-                          "type": "rectangle",
-                          "cornerRadius": "$rounded.2xl",
-                          "id": "DAAWa",
-                          "name": "skeletonCover",
-                          "fill": "$bg-elevated",
-                          "width": 272,
-                          "height": 272
-                        },
-                        {
-                          "type": "rectangle",
-                          "cornerRadius": "$rounded.lg",
-                          "id": "sLe0G",
-                          "name": "skeletonTitle",
-                          "fill": "$bg-elevated",
-                          "width": 169,
-                          "height": 16
-                        },
-                        {
-                          "type": "rectangle",
-                          "cornerRadius": "$rounded.lg",
-                          "id": "nEsbg",
-                          "name": "skeletonArtist",
-                          "fill": "$bg-elevated",
-                          "width": 109,
-                          "height": 13
-                        }
-                      ]
+                      "fill": "$bg-elevated",
+                      "width": 200,
+                      "height": 264
                     },
                     {
-                      "type": "frame",
-                      "id": "TttCs",
+                      "type": "rectangle",
+                      "cornerRadius": 14,
+                      "id": "VBRHI",
                       "name": "recCardSkeleton",
-                      "width": 272,
-                      "layout": "vertical",
-                      "gap": 12,
-                      "children": [
-                        {
-                          "type": "rectangle",
-                          "cornerRadius": "$rounded.2xl",
-                          "id": "KpP4o",
-                          "name": "skeletonCover",
-                          "fill": "$bg-elevated",
-                          "width": 272,
-                          "height": 272
-                        },
-                        {
-                          "type": "rectangle",
-                          "cornerRadius": "$rounded.lg",
-                          "id": "y27jv5",
-                          "name": "skeletonTitle",
-                          "fill": "$bg-elevated",
-                          "width": 169,
-                          "height": 16
-                        },
-                        {
-                          "type": "rectangle",
-                          "cornerRadius": "$rounded.lg",
-                          "id": "i8cRqi",
-                          "name": "skeletonArtist",
-                          "fill": "$bg-elevated",
-                          "width": 109,
-                          "height": 13
-                        }
-                      ]
+                      "fill": "$bg-elevated",
+                      "width": 200,
+                      "height": 264
                     },
                     {
-                      "type": "frame",
-                      "id": "y7T9k9",
+                      "type": "rectangle",
+                      "cornerRadius": 14,
+                      "id": "lEAIc",
                       "name": "recCardSkeleton",
-                      "width": 272,
-                      "layout": "vertical",
-                      "gap": 12,
-                      "children": [
-                        {
-                          "type": "rectangle",
-                          "cornerRadius": "$rounded.2xl",
-                          "id": "HongT",
-                          "name": "skeletonCover",
-                          "fill": "$bg-elevated",
-                          "width": 272,
-                          "height": 272
-                        },
-                        {
-                          "type": "rectangle",
-                          "cornerRadius": "$rounded.lg",
-                          "id": "zx3Ce",
-                          "name": "skeletonTitle",
-                          "fill": "$bg-elevated",
-                          "width": 169,
-                          "height": 16
-                        },
-                        {
-                          "type": "rectangle",
-                          "cornerRadius": "$rounded.lg",
-                          "id": "rvQWd",
-                          "name": "skeletonArtist",
-                          "fill": "$bg-elevated",
-                          "width": 109,
-                          "height": 13
-                        }
-                      ]
+                      "fill": "$bg-elevated",
+                      "width": 200,
+                      "height": 264
                     }
                   ]
                 }
