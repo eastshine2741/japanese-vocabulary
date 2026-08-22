@@ -62,11 +62,19 @@ class WordCandidateGenerator {
                 lineIndexes = lineIndexes,
                 scoreComponents = WordScoreComponents(lineCoverage, logFrequency, dispersion, titleBoost, posWeight),
             )
-        }.sortedWith(compareByDescending<WordCandidate> { it.importanceScore }.thenBy { it.appearanceOrder }.thenBy { it.japanese })
+        }
 
-        val originalIndexByCandidate = candidates.mapIndexed { index, candidate -> candidate to index }.toMap()
-        val lineCandidates = candidates.flatMap { candidate -> candidate.lineIndexes.map { it to originalIndexByCandidate.getValue(candidate) } }
-            .groupBy({ it.first.toString() }, { it.second })
+        // candidates 배열 순서는 곡 전체 등장순이다 — occurrences 가 LinkedHashMap 이라 첫 등장 시점에 자리가 잡힌다.
+        // 중요도 순위는 배열 순서가 아니라 importanceScore 로 따로 매긴다. 배열 순서를 중요도로 잡으면
+        // 이 인덱스를 참조하는 lineCandidates 까지 중요도순으로 끌려간다.
+        val candidateIndexByKey = occurrences.keys.withIndex().associate { (index, key) -> key to index }
+        // 가사 줄별 단어는 그 줄 안에서 나온 순서다. order 는 줄 단위로 증가하므로 줄 안에서는 토큰 위치와 같다.
+        val lineCandidates = occurrences.entries
+            .flatMap { (key, group) ->
+                group.map { LineSlot(it.lineIndex, it.order, candidateIndexByKey.getValue(key)) }
+            }
+            .sortedWith(compareBy({ it.lineIndex }, { it.order }))
+            .groupBy({ it.lineIndex.toString() }, { it.candidateIndex })
             .mapValues { (_, indexes) -> indexes.distinct() }
 
         return LyricWordCandidates(
@@ -74,6 +82,12 @@ class WordCandidateGenerator {
             lineCandidates = lineCandidates,
         )
     }
+
+    private data class LineSlot(
+        val lineIndex: Int,
+        val order: Int,
+        val candidateIndex: Int,
+    )
 
     private data class Occurrence(
         val surface: String,

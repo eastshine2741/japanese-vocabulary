@@ -7,7 +7,9 @@ import org.springframework.web.bind.annotation.RestController
 
 /**
  * One-off internal backfill for lyrics that already have analyzed tokens but are missing
- * word_candidates_json. The batch service has no public ingress; call from inside the cluster.
+ * word_candidates_json. `regenerate=true` rebuilds lyrics that already have candidates, which is how
+ * existing songs pick up a changed generator (e.g. per-line appearance ordering).
+ * The batch service has no public ingress; call from inside the cluster.
  */
 @RestController
 @RequestMapping("/api/dev/lyric-word-candidates")
@@ -19,6 +21,7 @@ class LyricWordCandidateBackfillDevController(
         @RequestParam(required = false) songId: Long?,
         @RequestParam(defaultValue = "100") limit: Int,
         @RequestParam(defaultValue = "false") dryRun: Boolean,
+        @RequestParam(defaultValue = "false") regenerate: Boolean,
     ): LyricWordCandidateBackfillService.Result =
-        backfillService.backfill(songId = songId, limit = limit, dryRun = dryRun)
+        backfillService.backfill(songId = songId, limit = limit, dryRun = dryRun, regenerate = regenerate)
 }
