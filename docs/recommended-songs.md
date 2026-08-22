@@ -86,6 +86,27 @@ The API:
 
 The app tap path calls the existing `GET /api/songs/{id}` through `usePlayerStore.loadById(songId)`, so tapping a recommendation records recent listen before opening `SongDetail`.
 
+## Spotlight hero
+
+`GET /api/songs/spotlight` picks the home hero song. Its candidate pool is the union of two sources:
+
+- the user's recently played songs (`RecentSongService`, Redis ZSET, max 27)
+- the latest published-ready recommendations (the same `findLatestPublishedReadyRecommendations()`
+  rows the home carousel reads)
+
+`SpotlightService.candidateSongIds()` deduplicates that union by song id, removes every song the
+user already has a deck for, and the pick is an **unweighted random** over what remains. 204 when
+the pool is empty. The endpoint does not record a recent listen.
+
+Consequences that are intentional, not bugs:
+
+- A published week usually holds far more songs than a user's unlearned recent history, so the hero
+  is dominated by recommendations. No pool balancing, group weighting, or top-N cap is applied.
+- The same song can appear in the hero and in the "이번 주 추천곡" carousel at once. The carousel is
+  the full weekly list and is never filtered by what the hero picked.
+- A song that is both recently played and recommended is one candidate, not two.
+- `SpotlightHero` reloads on every Home focus, so the pick re-rolls each time Home is focused.
+
 ## Retry notes
 
 If analysis failed or has not completed, leave the candidate as `APPROVED`, request analysis for the missing candidate again, and rerun `Process approved` after the song analysis worker has produced an active analyzed lyric.
