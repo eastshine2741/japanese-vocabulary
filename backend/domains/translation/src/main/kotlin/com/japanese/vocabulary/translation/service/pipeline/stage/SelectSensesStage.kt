@@ -47,7 +47,7 @@ class SelectSensesStage(
         if (selectInput.isEmpty()) return emptyMap()
 
         val selectedLines = ChunkedGeminiCall.flatMap(selectInput, SELECT_CHUNK_LINES) {
-            geminiClient.selectSenses(it)
+            geminiClient.selectSenses(it, input.source.callContext)
         }
         val selectByIndex = validateLineIndices(selectableTokensByIndex.keys, selectedLines)
         return selectedSenseByKey(selectableTokensByIndex, selectByIndex, input)

@@ -90,8 +90,8 @@ class SongAnalysisWorkPipelineIntegrationTest : BatchBaseIntegrationTest() {
         verify(exactly = 1) { lrclibClient.search(any()) }
         verify(exactly = 0) { vocadbClient.search(any()) }
         verify(exactly = 1) { youtubeClient.searchVideos(any(), any(), any(), any()) }
-        verify(exactly = 1) { geminiClient.translateLyrics(any()) }
-        verify(exactly = 1) { geminiClient.segmentAndLemmatize(any()) }
+        verify(exactly = 1) { geminiClient.translateLyrics(any(), any()) }
+        verify(exactly = 1) { geminiClient.segmentAndLemmatize(any(), any()) }
     }
 
     @Test
@@ -123,8 +123,8 @@ class SongAnalysisWorkPipelineIntegrationTest : BatchBaseIntegrationTest() {
 
         verify(exactly = 1) { lrclibClient.search(any()) }
         verify(exactly = 1) { youtubeClient.searchVideos(any(), any(), any(), any()) }
-        verify(exactly = 0) { geminiClient.translateLyrics(any()) }
-        verify(exactly = 0) { geminiClient.segmentAndLemmatize(any()) }
+        verify(exactly = 0) { geminiClient.translateLyrics(any(), any()) }
+        verify(exactly = 0) { geminiClient.segmentAndLemmatize(any(), any()) }
     }
 
     @Test
@@ -155,8 +155,8 @@ class SongAnalysisWorkPipelineIntegrationTest : BatchBaseIntegrationTest() {
         verify(exactly = 1) { lrclibClient.search(any()) }
         verify(exactly = 1) { vocadbClient.search(any()) }
         verify(exactly = 0) { youtubeClient.searchVideos(any(), any(), any(), any()) }
-        verify(exactly = 0) { geminiClient.translateLyrics(any()) }
-        verify(exactly = 0) { geminiClient.segmentAndLemmatize(any()) }
+        verify(exactly = 0) { geminiClient.translateLyrics(any(), any()) }
+        verify(exactly = 0) { geminiClient.segmentAndLemmatize(any(), any()) }
     }
 
     @Test
@@ -190,9 +190,9 @@ class SongAnalysisWorkPipelineIntegrationTest : BatchBaseIntegrationTest() {
 
         verify(exactly = 1) { lrclibClient.search(any()) }
         verify(exactly = 1) { youtubeClient.searchVideos(any(), any(), any(), any()) }
-        verify(exactly = 1) { geminiClient.translateLyrics(any()) }
-        verify(exactly = 0) { geminiClient.selectSenses(any()) }
-        verify(exactly = 0) { geminiClient.translateSenses(any()) }
+        verify(exactly = 1) { geminiClient.translateLyrics(any(), any()) }
+        verify(exactly = 0) { geminiClient.selectSenses(any(), any()) }
+        verify(exactly = 0) { geminiClient.translateSenses(any(), any()) }
     }
 
     @Test
@@ -338,10 +338,10 @@ class SongAnalysisWorkPipelineIntegrationTest : BatchBaseIntegrationTest() {
     }
 
     private fun stubLyricAnalysis() {
-        every { geminiClient.translateLyrics(any()) } returns listOf(
+        every { geminiClient.translateLyrics(any(), any()) } returns listOf(
             TranslationResultDto(0, "복숭아빛 열쇠", "모모이로노 카기"),
         )
-        every { geminiClient.segmentAndLemmatize(any()) } returns listOf(
+        every { geminiClient.segmentAndLemmatize(any(), any()) } returns listOf(
             SegLineDto(
                 0,
                 listOf(
@@ -365,7 +365,7 @@ class SongAnalysisWorkPipelineIntegrationTest : BatchBaseIntegrationTest() {
                 provenance = JishoLookupProvenance.EXACT,
             ),
         )
-        every { geminiClient.selectSenses(any()) } answers {
+        every { geminiClient.selectSenses(any(), any()) } answers {
             @Suppress("UNCHECKED_CAST")
             firstArg<List<Map<String, Any?>>>().map { line ->
                 @Suppress("UNCHECKED_CAST")
@@ -383,7 +383,7 @@ class SongAnalysisWorkPipelineIntegrationTest : BatchBaseIntegrationTest() {
                 )
             }
         }
-        every { geminiClient.translateSenses(any()) } answers {
+        every { geminiClient.translateSenses(any(), any()) } answers {
             @Suppress("UNCHECKED_CAST")
             firstArg<List<Map<String, Any?>>>().map {
                 val senseId = it["senseId"] as Int
@@ -394,8 +394,8 @@ class SongAnalysisWorkPipelineIntegrationTest : BatchBaseIntegrationTest() {
     }
 
     private fun stubLyricAnalysisFailure() {
-        every { geminiClient.translateLyrics(any()) } throws RuntimeException("Gemini unavailable")
-        every { geminiClient.segmentAndLemmatize(any()) } returns listOf(
+        every { geminiClient.translateLyrics(any(), any()) } throws RuntimeException("Gemini unavailable")
+        every { geminiClient.segmentAndLemmatize(any(), any()) } returns listOf(
             SegLineDto(0, listOf(SegWordDto(surface = "ももいろ", dictionaryForm = "ももいろ"))),
         )
         coEvery { jishoService.lookupAll(any()) } returns emptyMap()

@@ -29,7 +29,7 @@ class SegmentLyricsStage(
         var failuresByIndex: Map<Int, String> = emptyMap()
 
         repeat(MAX_SEGMENTATION_ATTEMPTS) { attempt ->
-            val segmented = geminiClient.segmentAndLemmatize(buildRequest(input, failuresByIndex))
+            val segmented = geminiClient.segmentAndLemmatize(buildRequest(input, failuresByIndex), input.callContext)
             val result = segmentAnchoringValidator.anchor(pendingByIndex, segmented)
 
             anchoredByIndex.putAll(result.anchoredByIndex)

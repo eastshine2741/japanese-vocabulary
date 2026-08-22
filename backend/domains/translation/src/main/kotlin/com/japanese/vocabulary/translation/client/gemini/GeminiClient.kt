@@ -22,6 +22,7 @@ class GeminiClient(
     @Value("\${gemini.max-output-tokens:0}") private val maxOutputTokens: Int,
     private val objectMapper: ObjectMapper,
     private val meterRegistry: MeterRegistry,
+    private val geminiCallLogger: GeminiCallLogger,
 ) {
     private val restClient = restClientBuilder
         .baseUrl("https://generativelanguage.googleapis.com")
@@ -32,9 +33,10 @@ class GeminiClient(
      * Input: [{index, text}] — no morphological data needed.
      * Uses the higher-quality model for natural translation.
      */
-    fun translateLyrics(lyricLines: List<Map<String, Any?>>): List<TranslationResultDto> {
+    fun translateLyrics(lyricLines: List<Map<String, Any?>>, context: GeminiCallContext): List<TranslationResultDto> {
         return callGemini(
             call = "translation",
+            context = context,
             model = translationModel,
             systemPrompt = TRANSLATION_PROMPT,
             input = lyricLines,
@@ -51,9 +53,10 @@ class GeminiClient(
      * to its dictionary headword (collapsing potential/causative/passive forms), so criterion #1
      * (no derived lemmas) is satisfied here. Replaces the dropped Kuromoji ensemble. Lightweight model.
      */
-    fun segmentAndLemmatize(lyricLines: List<Map<String, Any?>>): List<SegLineDto> {
+    fun segmentAndLemmatize(lyricLines: List<Map<String, Any?>>, context: GeminiCallContext): List<SegLineDto> {
         return callGemini(
             call = "segment",
+            context = context,
             model = wordMeaningModel,
             systemPrompt = SEGMENTATION_PROMPT,
             input = lyricLines,
@@ -72,9 +75,10 @@ class GeminiClient(
      * The LLM uses the Korean translation as a context cue to pick the senseId that fits this line, or
      * -1 when none fits. It does NOT generate Korean meanings (blocks the over-correction failure mode).
      */
-    fun selectSenses(lyricLines: List<Map<String, Any?>>): List<SelectLineDto> {
+    fun selectSenses(lyricLines: List<Map<String, Any?>>, context: GeminiCallContext): List<SelectLineDto> {
         return callGemini(
             call = "select",
+            context = context,
             model = wordMeaningModel,
             systemPrompt = SELECT_PROMPT,
             input = lyricLines,
@@ -90,10 +94,11 @@ class GeminiClient(
      * Output: [{senseId, koreanText}].
      * POS-consistent, 1–2 comma-separated meanings; particles render as Korean particles (は→"~은/는").
      */
-    fun translateSenses(senses: List<Map<String, Any?>>): List<SenseTranslationDto> {
+    fun translateSenses(senses: List<Map<String, Any?>>, context: GeminiCallContext): List<SenseTranslationDto> {
         if (senses.isEmpty()) return emptyList()
         return callGemini(
             call = "translate-sense",
+            context = context,
             model = wordMeaningModel,
             systemPrompt = TRANSLATE_PROMPT,
             input = senses,
@@ -105,6 +110,7 @@ class GeminiClient(
 
     private fun <T> callGemini(
         call: String,
+        context: GeminiCallContext,
         model: String,
         systemPrompt: String,
         input: Any,
@@ -137,6 +143,8 @@ class GeminiClient(
 
         val sample = Timer.start(meterRegistry)
         var outcome = "success"
+        var responseJson: String? = null
+        var errorMessage: String? = null
         try {
             val response = restClient.post()
                 .uri("/v1beta/models/{model}:generateContent?key={apiKey}", model, apiKey)
@@ -145,6 +153,7 @@ class GeminiClient(
                 .retrieve()
                 .body(Map::class.java)
                 ?: throw RuntimeException("Empty response from Gemini API")
+            responseJson = runCatching { objectMapper.writeValueAsString(response) }.getOrNull()
 
             recordTokenUsage(call, model, response)
             GeminiResponseGuard.verifyComplete(call, model, response, maxOutputTokens)
@@ -157,8 +166,10 @@ class GeminiClient(
             )
         } catch (e: Throwable) {
             outcome = "failure"
+            errorMessage = "${e::class.simpleName}: ${e.message}"
             throw e
         } finally {
+            geminiCallLogger.record(context, call, model, inputJson, responseJson, errorMessage)
             sample.stop(
                 Timer.builder(MetricNames.GEMINI_CALL_DURATION)
                     .tag("call", call)

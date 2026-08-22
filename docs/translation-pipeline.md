@@ -125,3 +125,37 @@ and Korean meaning.
 When changing Jisho DTO schema, clear old `jisho:*` Redis cache entries. Old
 cached values can deserialize with missing fields and silently remove meanings or
 POS data.
+
+## Payload Log (temporary)
+
+Every Gemini call's input payload and raw response is written to
+`gemini_call_log` by `GeminiCallLogger`, called from the single choke point in
+`GeminiClient.callGemini`. It exists so a wrong pipeline result can be read back
+against what the model actually saw — which sense candidates a homograph was
+offered, which lines a chunk held, what a cut-off response contained.
+
+- Rows carry `song_id` / `lyric_id` from `GeminiCallContext`, threaded through
+  `TranslationPipelineSource.callContext` and `SenseTranslationStageInput`. The
+  scheduler analyzes a batch of works concurrently, so calls from different songs
+  interleave and a timestamp alone cannot separate them.
+- `select` and `translate-sense` are chunked, so one lyric produces several rows
+  per call name. The line indices inside `request_json` identify the chunk.
+- The system prompt is not stored (compile-time constant). `response_json` is the
+  whole Gemini response, including `finishReason` and `usageMetadata`.
+- Failures are recorded too: `response_json` holds whatever came back and
+  `error_message` the exception. Logging never fails the pipeline.
+
+Example — the sense candidates `前` was offered in one song:
+
+```sql
+SELECT request_json FROM gemini_call_log
+WHERE song_id = ? AND call_name = 'select' AND request_json LIKE '%前%';
+```
+
+TODO: this is temporary. There is no log collector in the cluster yet
+(`k8s/observability` runs Prometheus + Grafana only), which is the only reason
+this lives in MySQL. Once Loki or an equivalent is in place, delete the table,
+`GeminiCallLogger`, `GeminiCallLogEntity`, `GeminiCallLogRepository`,
+`GeminiCallContext`, and the JPA dependency in `domains/translation`, and emit
+the same payloads as structured stdout logs. Until then there is no retention
+policy — delete old rows by hand when the table grows.
