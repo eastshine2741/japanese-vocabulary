@@ -16,7 +16,6 @@ class SenseTranslationPreparerTest {
             mapOf(
                 7 to PipelineSenseOption(
                     senseId = 7,
-                    surface = "真っ逆様",
                     baseForm = "真っ逆様",
                     headword = "真っ逆様",
                     reading = "マッサカサマ",
@@ -33,7 +32,6 @@ class SenseTranslationPreparerTest {
         assertThat(input).hasSize(1)
         val item = input.single()
         assertThat(item["senseId"]).isEqualTo(7)
-        assertThat(item["surface"]).isEqualTo("真っ逆様")
         assertThat(item["baseForm"]).isEqualTo("真っ逆様")
         assertThat(item["reading"]).isEqualTo("マッサカサマ")
         assertThat(item["pos"]).isEqualTo("NOUN")

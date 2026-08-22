@@ -43,6 +43,11 @@ class LexicalResolver(
 
         val byToken = linkedMapOf<PipelineTokenKey, LexicalResolvedToken>()
         val optionsById = linkedMapOf<Int, PipelineSenseOption>()
+        // One dictionary sense is one senseId for the whole song. The id used to be minted per token
+        // occurrence, so a word sung on six lines reached sense-translate six times and the model
+        // wrote a different Korean gloss for each: シャイ — a single-sense entry, "shy" — came back as
+        // 수줍음이 많은 / 수줍은 / 수줍어하다, and the app stored one word with three near-identical senses.
+        val senseIdByIdentity = hashMapOf<SenseIdentity, Int>()
         var nextSenseId = 0
 
         for (token in tokens) {
@@ -58,22 +63,31 @@ class LexicalResolver(
 
             val senseOptions = resolved.entries.flatMap { entry ->
                 entry.senses.map { sense ->
-                    val senseId = nextSenseId++
-                    PipelineSenseOption(
-                        senseId = senseId,
-                        surface = token.surface,
+                    val identity = SenseIdentity(
                         baseForm = resolved.baseForm,
                         headword = entry.headword,
                         reading = entry.reading,
-                        partOfSpeech = JishoPartOfSpeechMapper.map(sense.pos),
-                        rawPos = sense.pos,
                         english = sense.english,
-                        englishDefinitions = sense.englishDefinitions.ifEmpty {
-                            sense.english.takeIf { it.isNotBlank() }?.let(::listOf) ?: emptyList()
-                        },
-                        jlpt = entry.jlpt,
+                        rawPos = sense.pos,
                         provenance = resolved.provenance,
-                    ).also { optionsById[senseId] = it }
+                    )
+                    val senseId = senseIdByIdentity.getOrPut(identity) { nextSenseId++ }
+                    optionsById.getOrPut(senseId) {
+                        PipelineSenseOption(
+                            senseId = senseId,
+                            baseForm = resolved.baseForm,
+                            headword = entry.headword,
+                            reading = entry.reading,
+                            partOfSpeech = JishoPartOfSpeechMapper.map(sense.pos),
+                            rawPos = sense.pos,
+                            english = sense.english,
+                            englishDefinitions = sense.englishDefinitions.ifEmpty {
+                                sense.english.takeIf { it.isNotBlank() }?.let(::listOf) ?: emptyList()
+                            },
+                            jlpt = entry.jlpt,
+                            provenance = resolved.provenance,
+                        )
+                    }
                 }
             }
             byToken[token.key] = LexicalResolvedToken(token, resolved.baseForm, senseOptions)
@@ -176,6 +190,21 @@ class LexicalResolver(
         if (token.headword.endsWith("い") && token.headword.length >= 2) return token.headword
         return token.surface.dropLast(1) + "い"
     }
+
+    /**
+     * What makes two candidate senses the same sense. Everything a [PipelineSenseOption] carries
+     * except the id itself — [provenance] included, because it decides whether sense-select is told
+     * the entry's headword and reading, so an EXACT hit and an AMBIGUOUS_HEADWORD hit on the same
+     * sense are not interchangeable in the prompt.
+     */
+    private data class SenseIdentity(
+        val baseForm: String,
+        val headword: String?,
+        val reading: String?,
+        val english: String,
+        val rawPos: List<String>,
+        val provenance: JishoLookupProvenance,
+    )
 
     private data class AcceptedLexicalEntry(
         val baseForm: String,

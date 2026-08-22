@@ -62,7 +62,9 @@ which already encoded the same mapping. The prompt's few-shot pairs live on as
 `도-`), where the prompt asked for `도우`.
 
 `AnalyzedLine.koreanPronounciation` is legacy. New analysis always writes null; it stays on the model
-only so rows written before `pronounciation` existed still deserialize.
+so rows written before `pronounciation` existed still deserialize, and on the read DTOs so those songs
+still show a pronunciation line — the client falls back to that Hangul as-is when `pronounciation` is
+null.
 
 Failures end as `song_analysis_work.status=FAILED` without automatic retry in the first pass. If the user requests the same song again, a new work is created.
 

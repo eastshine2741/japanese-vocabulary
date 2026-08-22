@@ -49,6 +49,8 @@ export interface StudyUnit {
   koreanLyrics: string | null;
   /** The line's reading in katakana. Convert with `convertReading` before display. */
   pronounciation: string | null;
+  /** 구 데이터 전용 한글 독음. 이미 한글이라 변환 없이 그대로 쓴다. 신규 분석은 항상 null. */
+  koreanPronounciation: string | null;
 }
 
 export interface SongStudyData {
@@ -66,6 +68,8 @@ export interface SongLyricLineDto {
   koreanLyrics: string | null;
   /** The line's reading in katakana. Convert with `convertReading` before display. */
   pronounciation: string | null;
+  /** 구 데이터 전용 한글 독음. 이미 한글이라 변환 없이 그대로 쓴다. 신규 분석은 항상 null. */
+  koreanPronounciation: string | null;
   tokens: Token[];
 }
 

@@ -256,6 +256,37 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
     }
 
     @Test
+    fun `a word sung on several lines is translated once and reads the same everywhere`(): Unit = runBlocking {
+        // 뜻 하나에 senseId 하나. 예전에는 occurrence 마다 id 를 새로 발급해서 같은 sense 가 줄마다
+        // 따로 번역됐고, 모델이 줄마다 다른 한국어를 써서 한 단어에 비슷한 뜻이 여러 개 저장됐다.
+        val lyric = seedLyric(listOf("シャイ", "シャイ", "シャイ"))
+        val translateInputs = mutableListOf<List<Map<String, Any?>>>()
+
+        every { geminiClient.translateLyrics(any(), any()) } returns (0..2).map {
+            TranslationResultDto(it, "샤이")
+        }
+        every { geminiClient.segmentAndLemmatize(any(), any()) } returns (0..2).map {
+            SegLineDto(it, listOf(segWord("シャイ", "シャイ", "しゃい")))
+        }
+        coEvery { jishoService.lookupAll(any()) } returns mapOf(
+            "シャイ" to exactEntry("シャイ", reading = "しゃい", pos = listOf("Na-adjective"), english = "shy"),
+        )
+        stubSenseSelectAndTranslate()
+        every { geminiClient.translateSenses(capture(translateInputs), any()) } answers {
+            @Suppress("UNCHECKED_CAST")
+            firstArg<List<Map<String, Any?>>>().map {
+                SenseTranslationDto(senseId = it["senseId"] as Int, koreanText = "수줍다")
+            }
+        }
+
+        processLyric(lyric)
+
+        assertThat(translateInputs.single()).hasSize(1)
+        val analyzed = lyricRepository.findById(lyric.id!!).orElseThrow().analyzedContent!!
+        assertThat(analyzed.map { it.tokens.single().koreanText }).containsOnly("수줍다")
+    }
+
+    @Test
     fun `non-Japanese tokens are marked SYMBOL with no meaning`(): Unit = runBlocking {
         val lyric = seedLyric(listOf("猫、"))
 
@@ -652,7 +683,8 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
         translationService.runPipeline(lyric)
 
         val input = translateInputs.single().single()
-        assertThat(input["surface"]).isEqualTo("真っ逆様")
+        // 정체성은 baseForm/reading 이다. 표면형은 sense 하나를 여러 줄이 공유하므로 여기 없다.
+        assertThat(input).doesNotContainKey("surface")
         assertThat(input["baseForm"]).isEqualTo("真っ逆様")
         assertThat(input["reading"]).isEqualTo("マッサカサマ")
         assertThat(input["englishDefinitions"]).isEqualTo(listOf("head over heels", "headlong", "head first"))

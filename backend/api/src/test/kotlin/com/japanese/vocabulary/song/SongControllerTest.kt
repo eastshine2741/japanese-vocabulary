@@ -467,10 +467,10 @@ class SongControllerTest : ApiBaseIntegrationTest() {
                 jsonPath("$.lines[0].index") { value(2) }
                 jsonPath("$.lines[0].originalText") { value("夜を越える") }
                 jsonPath("$.lines[0].koreanLyrics") { value("밤을 넘다") }
-                // The clients read only `pronounciation` and derive the Hangul reading themselves, so
-                // the katakana has to survive the wire and the retired field must not come back.
+                // New analysis ships katakana and the clients derive the Hangul reading themselves, so
+                // the katakana has to survive the wire and the legacy Hangul field stays null.
                 jsonPath("$.lines[0].pronounciation") { value("ヨルヲコエル") }
-                jsonPath("$.lines[0].koreanPronounciation") { doesNotExist() }
+                jsonPath("$.lines[0].koreanPronounciation") { value(null as String?) }
                 jsonPath("$.lines[0].tokens[0].surface") { value("夜") }
                 jsonPath("$.lines[0].tokens[0].baseForm") { value("夜") }
                 jsonPath("$.lines[0].tokens[0].reading") { value("よる") }
@@ -484,6 +484,36 @@ class SongControllerTest : ApiBaseIntegrationTest() {
             assertThat(dto.lyricId).isEqualTo(lyric.id)
             assertThat(dto.lines.single().tokens.map { it.surface }).containsExactly("夜")
             assertThat(redis.opsForZSet().size(recentKey(me.id!!)) ?: 0).isZero
+        }
+
+        @Test
+        fun `lyrics endpoint keeps the Hangul reading of lyrics analyzed before pronounciation existed`() {
+            val me = newUser()
+            val song = newSong()
+            // 구 로우는 카타카나 발음이 없고 한글 독음만 갖고 있다. 그걸 내리지 않으면 재분석 전까지
+            // 앱에서 독음이 사라진다. 구 토큰은 기본형 리딩을 단어별로 갖고 있어서 서버가 줄 단위 발음을 다시 조립할 수도 없다.
+            @Suppress("DEPRECATION")
+            val legacy = AnalyzedLine(
+                index = 0,
+                koreanLyrics = "그저 병명이 갖고 싶었어",
+                koreanPronounciation = "타다 뵤-메이가 호시캇타",
+                tokens = listOf(
+                    Token("病名", "病名", "びょうめい", "びょうめい", PartOfSpeech.NOUN, 2, 4),
+                ),
+            )
+            newLyric(
+                song,
+                raw = listOf(LyricLineData(index = 0, startTimeMs = null, text = "ただ病名が欲しかった")),
+                analyzed = listOf(legacy),
+            )
+
+            mockMvc.get("/api/songs/${song.id}/lyrics") {
+                header("Authorization", bearer(me))
+            }.andExpect {
+                status { isOk() }
+                jsonPath("$.lines[0].pronounciation") { value(null as String?) }
+                jsonPath("$.lines[0].koreanPronounciation") { value("타다 뵤-메이가 호시캇타") }
+            }
         }
 
         @Test
@@ -786,6 +816,39 @@ class SongControllerTest : ApiBaseIntegrationTest() {
             assertThat(word.senses[0].examples.map { it.text }).containsExactly("愛の歌")
             // "애정" 은 쪼개진 쪽에선 예문이 없지만 자기 candidate 의 예문은 살아 있어야 한다.
             assertThat(word.senses[1].examples.map { it.text }).containsExactly("愛してる")
+        }
+
+        @Test
+        fun `one lyric line becomes an example of a single sense`() {
+            val me = newUser()
+            val song = newSong()
+            // 같은 줄에서 뜻이 둘로 갈린 경우. 그 줄이 어느 뜻으로 쓰였는지 모르는 채 양쪽에
+            // 복제하면 예문 목록에 같은 줄이 뜻 수만큼 반복된다.
+            val wordCandidates = LyricWordCandidates(
+                candidates = listOf(
+                    candidate("重い", 99.0, 0, listOf(0), "N3", "ADJECTIVE", koreanText = "무겁다"),
+                    candidate("重い", 90.0, 1, listOf(0, 1), "N3", "ADJECTIVE", koreanText = "묵직하다"),
+                ),
+                lineCandidates = mapOf("0" to listOf(0, 1), "1" to listOf(1)),
+            )
+            newLyric(
+                song,
+                raw = listOf(
+                    LyricLineData(index = 0, startTimeMs = null, text = "重い荷物"),
+                    LyricLineData(index = 1, startTimeMs = null, text = "重い言葉"),
+                ),
+                wordCandidates = wordCandidates,
+            )
+            entityManager.flush()
+
+            val dto = readBody<WordsInSongDto>(mockMvc.get("/api/songs/${song.id}/words") {
+                header("Authorization", bearer(me))
+            }.andExpect { status { isOk() } }.andReturn().response.contentAsString)
+
+            val word = dto.words.single()
+            assertThat(word.senses.map { it.meaning }).containsExactly("무겁다", "묵직하다")
+            assertThat(word.senses[0].examples.map { it.text }).containsExactly("重い荷物")
+            assertThat(word.senses[1].examples.map { it.text }).containsExactly("重い言葉")
         }
 
         private fun candidate(

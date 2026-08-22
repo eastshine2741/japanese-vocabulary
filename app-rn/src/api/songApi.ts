@@ -20,6 +20,7 @@ function toLegacyStudyUnits(lyrics: SongLyricsDto): StudyUnit[] {
     tokens: line.tokens,
     koreanLyrics: line.koreanLyrics,
     pronounciation: line.pronounciation,
+    koreanPronounciation: line.koreanPronounciation,
   }));
 }
 

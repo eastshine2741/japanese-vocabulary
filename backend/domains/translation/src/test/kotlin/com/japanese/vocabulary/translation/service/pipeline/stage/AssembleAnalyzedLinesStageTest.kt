@@ -155,7 +155,6 @@ class AssembleAnalyzedLinesStageTest {
 
     private fun senseOption(senseId: Int, baseForm: String, reading: String) = PipelineSenseOption(
         senseId = senseId,
-        surface = baseForm,
         baseForm = baseForm,
         headword = baseForm,
         reading = reading,

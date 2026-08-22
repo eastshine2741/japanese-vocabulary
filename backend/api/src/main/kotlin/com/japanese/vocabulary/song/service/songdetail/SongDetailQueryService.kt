@@ -38,6 +38,8 @@ class SongDetailQueryService(
         )
     }
 
+    // 구 데이터의 한글 독음을 그대로 내려보낸다. 아직 재분석되지 않은 곡은 그것 말고 독음이 없다.
+    @Suppress("DEPRECATION")
     @Transactional(readOnly = true)
     fun lyrics(songId: Long): SongLyricsDto {
         songRepository.findById(songId).orElseThrow { BusinessException(ErrorCode.SONG_NOT_FOUND) }
@@ -56,6 +58,7 @@ class SongDetailQueryService(
                     startTimeMs = raw.startTimeMs,
                     koreanLyrics = analyzed?.koreanLyrics,
                     pronounciation = analyzed?.pronounciation,
+                    koreanPronounciation = analyzed?.koreanPronounciation,
                     tokens = analyzed?.tokens ?: emptyList(),
                 )
             },
@@ -119,11 +122,17 @@ class SongDetailQueryService(
             // 분석이 준 뜻은 "사랑, 애정" 처럼 쉼표로 이어진 문자열 하나다. 조각마다 별개의 sense 로
             // 쪼개야 담을 때도, 담겼는지 판정할 때도 뜻 단위가 된다. 예문은 첫 조각만 갖는다.
             // 같은 뜻이 여러 candidate 에서 나오면 하나로 합친다 — 예문을 가진 쪽이 버려지면 안 된다.
-            val senses = candidateSenses.splitMeanings()
+            val mergedSenses = candidateSenses.splitMeanings()
                 .groupBy { it.meaning }
                 .map { (_, sameMeaning) ->
                     sameMeaning.first().copy(examples = sameMeaning.flatMap { it.examples }.distinct())
                 }
+            // 한 가사 줄은 뜻 하나에만 붙는다. 그 줄이 어느 뜻으로 쓰였는지 모르는 채 여러 뜻에
+            // 복제하면 예문 목록에 같은 줄이 뜻 수만큼 반복되고, sense 당 예문 상한도 그 중복이 먹는다.
+            val claimedLines = mutableSetOf<Int?>()
+            val senses = mergedSenses.map { sense ->
+                sense.copy(examples = sense.examples.filter { claimedLines.add(it.lineIndex) })
+            }
             val lineIndexes = candidates.flatMap { it.lineIndexes }.distinct().sorted()
             val saved = wordsByJapanese[candidate.japanese]
             // ALL 판정: 곡이 제시한 뜻이 전부 저장돼 있어야 담긴 것으로 본다. 비교는 이미 로드한 senses 로 메모리에서.
