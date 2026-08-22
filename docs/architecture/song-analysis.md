@@ -66,27 +66,22 @@ only so rows written before `pronounciation` existed still deserialize.
 
 Failures end as `song_analysis_work.status=FAILED` without automatic retry in the first pass. If the user requests the same song again, a new work is created.
 
-### Measurement harness
+### How the numbers below were measured
 
-`EntrySelectHarness` (`backend/domains/translation/src/test/.../harness/`) runs the real stage
-objects in `runPipeline`'s order but keeps every intermediate, so it can report what the finished
-`AnalyzedLine` no longer carries — each token's jisho provenance and whether sense-select answered
-`-1`. It is skipped unless `-Dharness.input` names a directory of golden lyrics, so a normal
-`:domains:translation:test` stays free.
+A throwaway harness ran the real stage objects in `runPipeline`'s order while keeping every
+intermediate, so it could report what the finished `AnalyzedLine` does not carry — each token's jisho
+provenance and whether sense-select answered `-1`. It was deleted after the measurement rather than
+kept: it only earns its keep when the model choice is reopened, and a live-API test sitting in the
+tree costs more in upkeep than in rewriting.
 
-```
-cd backend && ./gradlew :domains:translation:test --tests '*EntrySelectHarness*' \
-  -Dharness.input=<golden-dir> -Dharness.output=<out.json> -Dharness.jisho.cache=<cache.json> \
-  -Dharness.segmentation.model=gemini-3.1-flash-lite
-```
+To redo the comparison, rebuild it against `KoreanLyricTranslationService.runPipeline` (commit
+`ae13c2e` has the version used here) and feed it golden lyrics regenerated from the `lyrics` table —
+they are copyrighted and never committed. The set used below was chosen by script composition:
+`晴る` (kanji 0.37), `Lemon` (kana 0.78), `バッカアノ` (latin 0.12).
 
-Golden lyrics are **not committed** — they are copyrighted. Regenerate them from the `lyrics` table
-(one file per song: `{lyricId, songId, title, artist, profile, lines:[{index,startTimeMs,text}]}`).
-The set used below was chosen by script composition: `晴る` (kanji 0.37), `Lemon` (kana 0.78),
-`バッカアノ` (latin 0.12).
-
-Prompt-level experiments still live under `gemini-playground/src/experiments/`; the pipeline-level
-harness lives with the pipeline because a re-implementation would measure a copy, not the code.
+Prompt-level experiments still live under `gemini-playground/src/experiments/`. A pipeline-level
+harness belongs with the pipeline, not there: a re-implementation would measure a copy of
+`distill`/`LexicalResolver`, not the code that ships.
 
 ### Segmentation model: measured, kept at flash-lite
 

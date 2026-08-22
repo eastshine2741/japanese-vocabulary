@@ -15,22 +15,3 @@ dependencies {
     // Same mockk the bootstrap modules use; domain modules do not get :common's test fixtures.
     testImplementation("io.mockk:mockk:1.13.10")
 }
-
-// The Step 9 measurement harness (`EntrySelectHarness`) talks to the live Gemini and jisho APIs, so
-// it needs the key and its run parameters from outside the build. It stays skipped unless
-// `-Dharness.input` is given, which is what keeps a normal `:domains:translation:test` free.
-tasks.withType<Test> {
-    // providers.environmentVariable, not System.getenv: the latter reads the long-lived Gradle
-    // daemon's own environment, which does not pick up a key exported after the daemon started.
-    providers.environmentVariable("GEMINI_API_KEY").orNull?.let { environment("GEMINI_API_KEY", it) }
-    listOf(
-        "harness.input",
-        "harness.output",
-        "harness.jisho.cache",
-        "harness.segmentation.model",
-        "harness.translation.model",
-        "harness.word.model",
-        "harness.max.output.tokens",
-        "harness.thinking.level",
-    ).forEach { key -> System.getProperty(key)?.let { systemProperty(key, it) } }
-}
