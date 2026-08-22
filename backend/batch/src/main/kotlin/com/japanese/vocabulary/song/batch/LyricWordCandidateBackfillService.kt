@@ -19,6 +19,7 @@ class LyricWordCandidateBackfillService(
 
     data class Result(
         val dryRun: Boolean,
+        val regenerate: Boolean,
         val songId: Long?,
         val scannedLyrics: Int,
         val updatedLyrics: Int,
@@ -37,9 +38,9 @@ class LyricWordCandidateBackfillService(
     )
 
     @Transactional
-    fun backfill(songId: Long?, limit: Int, dryRun: Boolean): Result {
+    fun backfill(songId: Long?, limit: Int, dryRun: Boolean, regenerate: Boolean = false): Result {
         val normalizedLimit = limit.coerceIn(1, 1000)
-        val targets = findTargets(songId, normalizedLimit)
+        val targets = findTargets(songId, normalizedLimit, regenerate)
         val songsById = songRepository.findAllById(targets.map { it.songId }.distinct())
             .associateBy { it.id!! }
         val items = mutableListOf<Item>()
@@ -50,7 +51,9 @@ class LyricWordCandidateBackfillService(
         var totalCandidatesGenerated = 0
 
         for (lyric in targets) {
-            if (lyric.wordCandidates != null) {
+            // regenerate 는 이미 만들어진 candidate 를 지금 generator 로 다시 찍는다.
+            // 저장된 lineCandidates 순서가 바뀌었을 때 기존 곡을 따라오게 하는 통로다.
+            if (!regenerate && lyric.wordCandidates != null) {
                 skippedAlreadyPresent++
                 continue
             }
@@ -90,8 +93,9 @@ class LyricWordCandidateBackfillService(
         }
 
         logger.info(
-            "lyric word-candidate backfill dryRun={} songId={} scanned={} updated={} generatedCandidates={}",
+            "lyric word-candidate backfill dryRun={} regenerate={} songId={} scanned={} updated={} generatedCandidates={}",
             dryRun,
+            regenerate,
             songId,
             targets.size,
             lyricsToSave.size,
@@ -100,6 +104,7 @@ class LyricWordCandidateBackfillService(
 
         return Result(
             dryRun = dryRun,
+            regenerate = regenerate,
             songId = songId,
             scannedLyrics = targets.size,
             updatedLyrics = lyricsToSave.size,
@@ -111,10 +116,9 @@ class LyricWordCandidateBackfillService(
         )
     }
 
-    private fun findTargets(songId: Long?, limit: Int): List<LyricEntity> =
-        if (songId != null) {
-            lyricRepository.findAllBySongIdOrderByCreatedAtDesc(songId)
-        } else {
-            lyricRepository.findWordCandidateBackfillTargets(PageRequest.of(0, limit))
-        }
+    private fun findTargets(songId: Long?, limit: Int, regenerate: Boolean): List<LyricEntity> = when {
+        songId != null -> lyricRepository.findAllBySongIdOrderByCreatedAtDesc(songId)
+        regenerate -> lyricRepository.findWordCandidateRegenerateTargets(PageRequest.of(0, limit))
+        else -> lyricRepository.findWordCandidateBackfillTargets(PageRequest.of(0, limit))
+    }
 }

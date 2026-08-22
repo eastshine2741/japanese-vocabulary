@@ -17,4 +17,7 @@ interface LyricRepository : JpaRepository<LyricEntity, Long> {
 
     @Query("SELECT l FROM LyricEntity l WHERE l.wordCandidates IS NULL AND l.analyzedContent IS NOT NULL ORDER BY l.id ASC")
     fun findWordCandidateBackfillTargets(pageable: Pageable): List<LyricEntity>
+
+    @Query("SELECT l FROM LyricEntity l WHERE l.analyzedContent IS NOT NULL ORDER BY l.id ASC")
+    fun findWordCandidateRegenerateTargets(pageable: Pageable): List<LyricEntity>
 }

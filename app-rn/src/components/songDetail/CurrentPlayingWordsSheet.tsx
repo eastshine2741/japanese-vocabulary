@@ -124,22 +124,6 @@ function tokenSurface(word: CurrentPlayingWord): string {
   return word.surface || word.japanese || word.baseForm || '';
 }
 
-function appearanceOrder(word: CurrentPlayingWord): number {
-  return typeof word.appearanceOrder === 'number' && Number.isFinite(word.appearanceOrder)
-    ? word.appearanceOrder
-    : Number.MAX_SAFE_INTEGER;
-}
-
-function sortWordsByAppearanceOrder(words: CurrentPlayingWord[]): CurrentPlayingWord[] {
-  return words
-    .map((word, index) => ({ word, index }))
-    .sort((a, b) => {
-      const orderDiff = appearanceOrder(a.word) - appearanceOrder(b.word);
-      return orderDiff !== 0 ? orderDiff : a.index - b.index;
-    })
-    .map(item => item.word);
-}
-
 function pushPlainToken(tokens: LyricToken[], text: string, key: string) {
   if (text === '') return;
   tokens.push({
@@ -448,11 +432,13 @@ const CurrentPlayingWordsSheetComponent = React.forwardRef<AppBottomSheetRef, Cu
 
   const pages = useMemo<WordPage[]>(() => {
     return lines.map(line => {
+      // lineWordIndexes 는 서버가 그 줄에 나온 순서로 내려준다. 여기서 다시 정렬하면
+      // 줄 안 어순이 곡 전체 등장순으로 덮인다 — 후렴에서 먼저 나온 단어가 앞으로 끌려온다.
       const wordIndexes = getLineWordIndexes(lineWordIndexes, line.index);
       return {
         key: String(line.index),
         line,
-        words: sortWordsByAppearanceOrder(wordIndexes.map(wordIndex => words[wordIndex]).filter(Boolean)),
+        words: wordIndexes.map(wordIndex => words[wordIndex]).filter(Boolean),
       };
     });
   }, [lines, words, lineWordIndexes]);

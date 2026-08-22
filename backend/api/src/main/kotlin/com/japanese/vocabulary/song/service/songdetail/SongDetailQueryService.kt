@@ -81,12 +81,12 @@ class SongDetailQueryService(
             )
         }
 
-        val sorted = wordCandidates.candidates.withIndex().sortedWith(
-            compareByDescending<IndexedValue<WordCandidate>> { it.value.importanceScore }
-                .thenBy { it.value.appearanceOrder }
-                .thenBy { it.value.japanese }
-        )
-        val grouped = sorted.groupBy { it.value.japanese }.values.toList()
+        // words 배열은 곡 등장순이다. 중요도 순위는 배열 순서가 아니라 topWords 에서 따로 매긴다.
+        // 정렬 기준은 그룹 안 최솟값 — 그 단어가 곡에서 처음 나온 시점이지, 대표 뜻이 나온 시점이 아니다.
+        val grouped = wordCandidates.candidates.withIndex()
+            .groupBy { it.value.japanese }
+            .values
+            .sortedWith(compareBy({ group -> group.minOf { it.value.appearanceOrder } }, { it.first().value.japanese }))
         val wordsByJapanese = wordRepository.findByUserIdAndJapaneseTextIn(
             userId,
             grouped.map { it.first().value.japanese }.distinct()
@@ -97,7 +97,8 @@ class SongDetailQueryService(
         val analyzedByIndex = lyric.analyzedContent.orEmpty().associateBy { it.index }
         val rawByIndex = lyric.rawContent.associateBy { it.index }
         val items = grouped.map { group ->
-            val candidates = group.map { it.value }
+            // 한 japanese 안에서는 중요도 높은 뜻이 대표다 — 표제 품사·JLPT·요약 뜻이 여기서 나온다.
+            val candidates = group.map { it.value }.sortedWith(BY_IMPORTANCE)
             val candidate = candidates.first()
             // candidate 하나가 뜻 하나다. 각 sense 는 자기 품사·JLPT 와, 자기가 등장한 가사 줄로 만든 예문을 갖는다.
             val candidateSenses = candidates.mapNotNull { item ->
@@ -153,7 +154,8 @@ class SongDetailQueryService(
                 partOfSpeechLabel = candidate.partOfSpeechLabel,
                 jlpt = candidate.jlpt,
                 importanceScore = candidate.importanceScore,
-                appearanceOrder = candidate.appearanceOrder,
+                // 대표 뜻이 아니라 이 단어가 곡에서 처음 나온 시점이다. 등장순 정렬의 기준값.
+                appearanceOrder = group.minOf { it.value.appearanceOrder },
                 frequency = lineIndexes.size,
                 lineIndexes = lineIndexes,
                 isSavedGlobally = saved != null,
@@ -171,10 +173,19 @@ class SongDetailQueryService(
             rawIndexes.mapNotNull { rawToFinalIndex[it] }.distinct()
         }
         val defaultBulkAddCount = items.count { it.matchesDefaultFilters() && !it.isSavedForSong }
+        // 주요 단어는 배열 순서와 무관한 별개 랭킹이다.
+        val topWords = items
+            .sortedWith(
+                compareByDescending<WordInSongItemDto> { it.importanceScore }
+                    .thenBy { it.appearanceOrder }
+                    .thenBy { it.japanese }
+            )
+            .take(TOP_WORD_COUNT)
+            .map { WordSummaryItemDto(it.japanese, it.reading, it.koreanText, it.jlpt, it.importanceScore) }
         return WordsInSongDto(
             lyricId = lyric.id!!,
             wordSummary = WordSummaryDto(
-                topWords = items.take(5).map { WordSummaryItemDto(it.japanese, it.reading, it.koreanText, it.jlpt, it.importanceScore) },
+                topWords = topWords,
                 jlptDistribution = emptyJlptDistribution() + items.groupingBy { it.jlpt?.takeIf(String::isNotBlank) ?: "UNKNOWN" }.eachCount(),
                 totalCandidateCount = items.size,
                 defaultBulkAddCount = defaultBulkAddCount,
@@ -189,6 +200,13 @@ class SongDetailQueryService(
         partOfSpeech in WordFilterDefaultsDto().pos && jlpt in WordFilterDefaultsDto().jlpt
 
     private fun emptyJlptDistribution() = linkedMapOf("N1" to 0, "N2" to 0, "N3" to 0, "N4" to 0, "N5" to 0, "UNKNOWN" to 0)
+
+    companion object {
+        private const val TOP_WORD_COUNT = 5
+        private val BY_IMPORTANCE = compareByDescending<WordCandidate> { it.importanceScore }
+            .thenBy { it.appearanceOrder }
+            .thenBy { it.japanese }
+    }
 
     private data class LyricsSource(val name: String?, val url: String?)
     private fun LyricEntity.source() = when {
