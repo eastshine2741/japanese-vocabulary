@@ -116,7 +116,7 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
      * - translate-sense: koreanText = "뜻:{senseId}".
      */
     private fun stubHappyPath() {
-        every { geminiClient.segmentAndLemmatize(any(), any()) } answers {
+        every { geminiClient.segmentAndLemmatize(any(), any(), any()) } answers {
             @Suppress("UNCHECKED_CAST")
             val input = firstArg<List<Map<String, Any?>>>()
             input.map { line ->
@@ -265,7 +265,7 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
         every { geminiClient.translateLyrics(any(), any()) } returns (0..2).map {
             TranslationResultDto(it, "샤이")
         }
-        every { geminiClient.segmentAndLemmatize(any(), any()) } returns (0..2).map {
+        every { geminiClient.segmentAndLemmatize(any(), any(), any()) } returns (0..2).map {
             SegLineDto(it, listOf(segWord("シャイ", "シャイ", "しゃい")))
         }
         coEvery { jishoService.lookupAll(any()) } returns mapOf(
@@ -287,34 +287,32 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
     }
 
     @Test
-    fun `non-Japanese tokens are marked SYMBOL with no meaning`(): Unit = runBlocking {
+    fun `non-Japanese tokens are dropped and never reach the dictionary`(): Unit = runBlocking {
         val lyric = seedLyric(listOf("猫、"))
 
         every { geminiClient.translateLyrics(any(), any()) } returns listOf(
             TranslationResultDto(0, "고양이"),
         )
-        // jisho + select would happily attach a sense even to the comma; the SYMBOL guard must override.
+        // jisho + select would happily attach a sense even to the comma; it must not get that far.
         coEvery { jishoService.lookupAll(any()) } answers {
             firstArg<List<String>>().associateWith { df ->
                 exactEntry(df, english = "x")
             }
         }
-        every { geminiClient.segmentAndLemmatize(any(), any()) } returns listOf(
+        every { geminiClient.segmentAndLemmatize(any(), any(), any()) } returns listOf(
             SegLineDto(0, listOf(segWord("猫", "猫"), segWord("、", "、"))),
         )
         stubSenseSelectAndTranslate()
 
         processLyric(lyric)
 
+        // The comma stays in the line — the app renders the gap between tokens from the raw text — it
+        // just no longer occupies a token of its own.
         val tokens = lyricRepository.findById(lyric.id!!).orElseThrow().analyzedContent!![0].tokens
-        val cat = tokens.first { it.surface == "猫" }
-        val comma = tokens.first { it.surface == "、" }
-        assertThat(cat.partOfSpeech).isNotEqualTo(PartOfSpeech.SYMBOL)
-        assertThat(cat.koreanText).isNotNull
-        assertThat(comma.partOfSpeech).isEqualTo(PartOfSpeech.SYMBOL)
-        assertThat(comma.koreanText).isNull()
-        assertThat(comma.reading).isNull()
-        assertThat(comma.jlpt).isNull()
+        assertThat(tokens.map { it.surface }).containsExactly("猫")
+        assertThat(tokens.single().partOfSpeech).isNotEqualTo(PartOfSpeech.SYMBOL)
+        assertThat(tokens.single().koreanText).isNotNull
+        coVerify { jishoService.lookupAll(match { "、" !in it }) }
     }
 
     @Test
@@ -325,7 +323,7 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
             TranslationResultDto(0, "고양이가 잔다"),
         )
         coEvery { jishoService.lookupAll(any()) } returns emptyMap()
-        every { geminiClient.segmentAndLemmatize(any(), any()) } returns listOf(
+        every { geminiClient.segmentAndLemmatize(any(), any(), any()) } returns listOf(
             SegLineDto(
                 0,
                 listOf(
@@ -351,11 +349,14 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
     fun `segmentation invalid on first call retries and succeeds`(): Unit = runBlocking {
         val lyric = seedLyric(listOf("目を開けたなら yay"))
         val segmentInputs = mutableListOf<List<Map<String, Any?>>>()
+        val temperatures = mutableListOf<Double>()
 
         every { geminiClient.translateLyrics(any(), any()) } returns listOf(
             TranslationResultDto(0, "눈을 떴다면 yay"),
         )
-        every { geminiClient.segmentAndLemmatize(capture(segmentInputs), any()) } returnsMany listOf(
+        every {
+            geminiClient.segmentAndLemmatize(capture(segmentInputs), any(), capture(temperatures))
+        } returnsMany listOf(
             listOf(SegLineDto(0, listOf(segWord("目", "目"), segWord("を", "を"), segWord("明け", "開ける")))),
             listOf(
                 SegLineDto(
@@ -378,13 +379,16 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
         val lines = translationService.runPipeline(lyric)
 
         assertThat(lines.single().tokens.map { it.surface }).contains("開け")
-        verify(exactly = 2) { geminiClient.segmentAndLemmatize(any(), any()) }
+        verify(exactly = 2) { geminiClient.segmentAndLemmatize(any(), any(), any()) }
         assertThat(segmentInputs).hasSize(2)
         assertThat(segmentInputs[0].single()).doesNotContainKey("previousValidationError")
-        assertThat(segmentInputs[1].single()["previousValidationError"])
-            .isEqualTo("Surface '明け' is not present in order at line index=0")
+        assertThat(segmentInputs[1].single()["previousValidationError"] as String)
+            .startsWith("Surface '明け' is not present in order at line index=0")
         assertThat(segmentInputs[1].single()["retryInstruction"] as String)
             .contains("previous segmentation output failed validator checks")
+        // The retry has to sample. At temperature 0 the model reproduced the rejected array verbatim
+        // and every attempt was spent on an output that could not change.
+        assertThat(temperatures).containsExactly(0.0, SegmentLyricsStage.SEGMENT_TEMPERATURE_STEP)
     }
 
     @Test
@@ -396,7 +400,7 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
             TranslationResultDto(0, "고양이가 잔다"),
             TranslationResultDto(1, "눈을 떴다면 yay"),
         )
-        every { geminiClient.segmentAndLemmatize(capture(segmentInputs), any()) } returnsMany listOf(
+        every { geminiClient.segmentAndLemmatize(capture(segmentInputs), any(), any()) } returnsMany listOf(
             listOf(
                 SegLineDto(0, listOf(segWord("猫", "猫"), segWord("が", "が"), segWord("寝る", "寝る"))),
                 SegLineDto(1, listOf(segWord("目", "目"), segWord("を", "を"), segWord("明け", "開ける"))),
@@ -421,11 +425,11 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
 
         val lines = translationService.runPipeline(lyric)
 
-        verify(exactly = 2) { geminiClient.segmentAndLemmatize(any(), any()) }
+        verify(exactly = 2) { geminiClient.segmentAndLemmatize(any(), any(), any()) }
         assertThat(segmentInputs[0].map { it["index"] }).containsExactly(0, 1)
         assertThat(segmentInputs[1].map { it["index"] }).containsExactly(1)
-        assertThat(segmentInputs[1].single()["previousValidationError"])
-            .isEqualTo("Surface '明け' is not present in order at line index=1")
+        assertThat(segmentInputs[1].single()["previousValidationError"] as String)
+            .startsWith("Surface '明け' is not present in order at line index=1")
         assertThat(lines[0].tokens.map { it.surface }).containsExactly("猫", "が", "寝る")
         assertThat(lines[1].tokens.map { it.surface }).containsExactly("目", "を", "開け", "た", "なら")
     }
@@ -437,13 +441,13 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
         every { geminiClient.translateLyrics(any(), any()) } returns listOf(
             TranslationResultDto(0, "눈을 떴다면 yay"),
         )
-        every { geminiClient.segmentAndLemmatize(any(), any()) } returns listOf(
+        every { geminiClient.segmentAndLemmatize(any(), any(), any()) } returns listOf(
             SegLineDto(0, listOf(segWord("目", "目"), segWord("を", "を"), segWord("明け", "開ける"))),
         )
 
         assertThatThrownBy { runBlocking { translationService.runPipeline(lyric) } }
             .isInstanceOf(RuntimeException::class.java)
-        verify(exactly = SegmentLyricsStage.MAX_SEGMENTATION_ATTEMPTS) { geminiClient.segmentAndLemmatize(any(), any()) }
+        verify(exactly = SegmentLyricsStage.MAX_SEGMENTATION_ATTEMPTS) { geminiClient.segmentAndLemmatize(any(), any(), any()) }
         coVerify(exactly = 0) { jishoService.lookupAll(any()) }
     }
 
@@ -452,7 +456,7 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
         val lyric = seedLyric(listOf("てる"))
 
         every { geminiClient.translateLyrics(any(), any()) } returns listOf(TranslationResultDto(0, "하고 있어"))
-        every { geminiClient.segmentAndLemmatize(any(), any()) } returns listOf(
+        every { geminiClient.segmentAndLemmatize(any(), any(), any()) } returns listOf(
             SegLineDto(0, listOf(segWord("てる", "てる"))),
         )
 
@@ -472,7 +476,7 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
         val selectInputs = mutableListOf<List<Map<String, Any?>>>()
 
         every { geminiClient.translateLyrics(any(), any()) } returns listOf(TranslationResultDto(0, "고양이도"))
-        every { geminiClient.segmentAndLemmatize(any(), any()) } returns listOf(
+        every { geminiClient.segmentAndLemmatize(any(), any(), any()) } returns listOf(
             SegLineDto(0, listOf(segWord("猫", "猫"), segWord("も", "も"))),
         )
         coEvery { jishoService.lookupAll(capture(lookupArgs)) } answers {
@@ -515,7 +519,7 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
         val selectInputs = mutableListOf<List<Map<String, Any?>>>()
 
         every { geminiClient.translateLyrics(any(), any()) } returns listOf(TranslationResultDto(0, "고양이 개"))
-        every { geminiClient.segmentAndLemmatize(any(), any()) } returns listOf(
+        every { geminiClient.segmentAndLemmatize(any(), any(), any()) } returns listOf(
             SegLineDto(0, listOf(segWord("猫", "猫", "ねこ"), segWord("犬", "犬", "いぬ"))),
         )
         coEvery { jishoService.lookupAll(any()) } answers {
@@ -564,7 +568,7 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
         val lyric = seedLyric(listOf("猫"))
 
         every { geminiClient.translateLyrics(any(), any()) } returns listOf(TranslationResultDto(0, "고양이"))
-        every { geminiClient.segmentAndLemmatize(any(), any()) } returns listOf(
+        every { geminiClient.segmentAndLemmatize(any(), any(), any()) } returns listOf(
             SegLineDto(0, listOf(segWord("猫", "猫", "ねこ"))),
         )
         coEvery { jishoService.lookupAll(any()) } answers {
@@ -589,7 +593,7 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
         val lyric = seedLyric(listOf("高く"))
 
         every { geminiClient.translateLyrics(any(), any()) } returns listOf(TranslationResultDto(0, "높게"))
-        every { geminiClient.segmentAndLemmatize(any(), any()) } returns listOf(
+        every { geminiClient.segmentAndLemmatize(any(), any(), any()) } returns listOf(
             SegLineDto(0, listOf(segWord("高く", "高く", usedReading = "タカク", baseFormReading = "タカイ"))),
         )
         coEvery { jishoService.lookupAll(any()) } answers {
@@ -619,7 +623,7 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
         val lyric = seedLyric(listOf("こうも"))
 
         every { geminiClient.translateLyrics(any(), any()) } returns listOf(TranslationResultDto(0, "이렇게도"))
-        every { geminiClient.segmentAndLemmatize(any(), any()) } returns listOf(
+        every { geminiClient.segmentAndLemmatize(any(), any(), any()) } returns listOf(
             SegLineDto(0, listOf(segWord("こうも", "こうも"))),
         )
         coEvery { jishoService.lookupAll(any()) } answers {
@@ -638,7 +642,7 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
         val lyric = seedLyric(listOf("誰も"))
 
         every { geminiClient.translateLyrics(any(), any()) } returns listOf(TranslationResultDto(0, "아무도"))
-        every { geminiClient.segmentAndLemmatize(any(), any()) } returns listOf(
+        every { geminiClient.segmentAndLemmatize(any(), any(), any()) } returns listOf(
             SegLineDto(0, listOf(segWord("誰も", "誰も", "だれも"))),
         )
         coEvery { jishoService.lookupAll(any()) } returns mapOf(
@@ -665,7 +669,7 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
         val translateInputs = mutableListOf<List<Map<String, Any?>>>()
 
         every { geminiClient.translateLyrics(any(), any()) } returns listOf(TranslationResultDto(0, "곤두박질"))
-        every { geminiClient.segmentAndLemmatize(any(), any()) } returns listOf(
+        every { geminiClient.segmentAndLemmatize(any(), any(), any()) } returns listOf(
             SegLineDto(0, listOf(segWord("真っ逆様", "真っ逆様", "まっさかさま"))),
         )
         coEvery { jishoService.lookupAll(any()) } returns mapOf(
@@ -695,7 +699,7 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
         val lyric = seedLyric(listOf("猫犬"))
 
         every { geminiClient.translateLyrics(any(), any()) } returns listOf(TranslationResultDto(0, "고양이 개"))
-        every { geminiClient.segmentAndLemmatize(any(), any()) } returns listOf(
+        every { geminiClient.segmentAndLemmatize(any(), any(), any()) } returns listOf(
             SegLineDto(0, listOf(segWord("猫", "猫", "ねこ"), segWord("犬", "犬", "いぬ"))),
         )
         coEvery { jishoService.lookupAll(any()) } answers {
@@ -780,7 +784,7 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
             TranslationResultDto(0, "고양이"),
             TranslationResultDto(1, "개"),
         )
-        every { geminiClient.segmentAndLemmatize(any(), any()) } returns listOf(
+        every { geminiClient.segmentAndLemmatize(any(), any(), any()) } returns listOf(
             SegLineDto(0, listOf(segWord("猫", "猫", "ねこ"))),
             SegLineDto(1, listOf(segWord("犬", "犬", "いぬ"))),
         )
@@ -839,7 +843,7 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
             TranslationResultDto(0, "고양이"),
             TranslationResultDto(0, "개"),
         )
-        every { geminiClient.segmentAndLemmatize(any(), any()) } returns listOf(
+        every { geminiClient.segmentAndLemmatize(any(), any(), any()) } returns listOf(
             SegLineDto(0, listOf(segWord("猫", "猫", "ねこ"))),
             SegLineDto(1, listOf(segWord("犬", "犬", "いぬ"))),
         )
@@ -858,7 +862,7 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
         val lyric = seedLyric(listOf("猫"))
 
         every { geminiClient.translateLyrics(any(), any()) } throws RuntimeException("boom")
-        every { geminiClient.segmentAndLemmatize(any(), any()) } throws RuntimeException("boom")
+        every { geminiClient.segmentAndLemmatize(any(), any(), any()) } throws RuntimeException("boom")
 
         assertThatThrownBy { runBlocking { translationService.runPipeline(lyric) } }
             .isInstanceOf(RuntimeException::class.java)
@@ -872,7 +876,7 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
         val lyric = seedLyric(listOf("猫"))
 
         every { geminiClient.translateLyrics(any(), any()) } throws RuntimeException("permanent failure")
-        every { geminiClient.segmentAndLemmatize(any(), any()) } throws RuntimeException("permanent failure")
+        every { geminiClient.segmentAndLemmatize(any(), any(), any()) } throws RuntimeException("permanent failure")
 
         assertThatThrownBy { runBlocking { translationService.runPipeline(lyric) } }
             .isInstanceOf(RuntimeException::class.java)
@@ -891,7 +895,7 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
         processLyric(lyric)
 
         verify(exactly = 1) { geminiClient.translateLyrics(any(), any()) }
-        verify(exactly = 1) { geminiClient.segmentAndLemmatize(any(), any()) }
+        verify(exactly = 1) { geminiClient.segmentAndLemmatize(any(), any(), any()) }
         verify(exactly = 1) { geminiClient.selectSenses(any(), any()) }
         verify(exactly = 1) { geminiClient.translateSenses(any(), any()) }
     }
@@ -925,7 +929,7 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
 
         assertThat(claimed).isEmpty()
         verify(exactly = 0) { geminiClient.translateLyrics(any(), any()) }
-        verify(exactly = 0) { geminiClient.segmentAndLemmatize(any(), any()) }
+        verify(exactly = 0) { geminiClient.segmentAndLemmatize(any(), any(), any()) }
     }
 
     @Test

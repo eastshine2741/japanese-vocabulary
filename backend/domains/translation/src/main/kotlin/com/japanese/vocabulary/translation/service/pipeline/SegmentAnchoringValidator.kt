@@ -47,22 +47,34 @@ class SegmentAnchoringValidator {
         )
     }
 
+    /**
+     * Anchors the line's Japanese words to positions in [rawText], left to right.
+     *
+     * Words with no Japanese in them — whitespace, punctuation, latin runs — are **dropped instead of
+     * anchored**. They carry no reading and no meaning, and both the assembled pronunciation and the
+     * app read them straight back out of the raw text by position, so nothing needs a token for them.
+     * Searching for them was actively harmful: a space the model invented matches whichever *real*
+     * space comes next, which drags the cursor past every word in between and then blames the first of
+     * those for not being present. `涼しい風吹く 青空の匂い` failed four identical retries over a `風`
+     * sitting right there at offset 3, because a bogus space after `涼しい` had already consumed the
+     * one at offset 6.
+     */
     private fun anchorLine(index: Int, rawText: String, line: SegLineDto): List<PipelineToken> {
         val covered = BooleanArray(rawText.length)
         var cursor = 0
-        val tokens = line.words.map { word ->
-            if (word.surface.isEmpty()) {
-                throw SegmentationValidationException("Empty surface at line index=$index")
-            }
+        var previousSurface: String? = null
+        val tokens = line.words.mapNotNull { word ->
+            if (!JapaneseText.containsJapanese(word.surface)) return@mapNotNull null
             val start = rawText.indexOf(word.surface, cursor)
             if (start < 0) {
                 throw SegmentationValidationException(
-                    "Surface '${word.surface}' is not present in order at line index=$index",
+                    notInOrderMessage(index, word.surface, rawText, cursor, previousSurface),
                 )
             }
             val end = start + word.surface.length
             for (i in start until end) covered[i] = true
             cursor = end
+            previousSurface = word.surface
             PipelineToken(
                 lineIndex = index,
                 surface = word.surface,
@@ -75,28 +87,61 @@ class SegmentAnchoringValidator {
             )
         }
 
-        rawText.forEachIndexed { i, ch ->
-            if (!covered[i] && JapaneseText.containsJapanese(ch.toString())) {
-                throw SegmentationValidationException(
-                    "Character '$ch' at offset=$i is not covered by segmentation at line index=$index",
-                )
-            }
+        uncoveredJapaneseRun(rawText, covered)?.let { (offset, text) ->
+            throw SegmentationValidationException(
+                "Japanese text '$text' at offset=$offset is not covered by segmentation at line index=$index",
+            )
         }
         return tokens
     }
 
     /**
-     * Normalizes one reading field, or fails the line.
+     * Says where the search actually stood when it gave up. Naming only the missing surface reads as
+     * "this word is not in the line" even when it plainly is, and a retry told to fix a word that is
+     * already right cannot converge. Quoting the text still ahead of the cursor — and the surface that
+     * put it there — is the part the model can act on.
+     */
+    private fun notInOrderMessage(
+        index: Int,
+        surface: String,
+        rawText: String,
+        cursor: Int,
+        previousSurface: String?,
+    ): String {
+        val remaining = rawText.substring(cursor.coerceAtMost(rawText.length))
+        val after = previousSurface?.let { " after surface '$it'" } ?: " at the start of the line"
+        return "Surface '$surface' is not present in order at line index=$index: " +
+            "the text still unmatched$after is '$remaining'"
+    }
+
+    /**
+     * The first run of consecutive Japanese characters no surface claimed, as `(offset, text)`.
      *
-     * A non-Japanese surface (whitespace, punctuation, latin, digits) has no reading to speak of, so
-     * its reading is *forced* to the surface rather than validated — whatever the model invented there
-     * is discarded. For a Japanese surface the reading must be kana; anything else (kanji left in,
-     * empty string) means the model did not do the job and only this line is retried. Hiragana is not
-     * a failure: the prompt asks for katakana but [JapaneseText.toKatakana] absorbs the other script,
-     * which is a cheaper correction than a round trip.
+     * The run rather than its first character: `風吹く` left behind by a mis-anchored line is a
+     * segmentation the model can look at, where `Character '風'` invites it to fix one character.
+     */
+    private fun uncoveredJapaneseRun(rawText: String, covered: BooleanArray): Pair<Int, String>? {
+        val start = rawText.indices.firstOrNull { i ->
+            !covered[i] && JapaneseText.containsJapanese(rawText[i].toString())
+        } ?: return null
+        var end = start
+        while (end < rawText.length && !covered[end] && JapaneseText.containsJapanese(rawText[end].toString())) {
+            end++
+        }
+        return start to rawText.substring(start, end)
+    }
+
+    /**
+     * Normalizes one reading field, or fails the line. Only Japanese surfaces reach here — the rest
+     * were dropped by [anchorLine], so whatever the model invented as their reading is discarded with
+     * them.
+     *
+     * The reading must be kana; anything else (kanji left in, empty string) means the model did not do
+     * the job and only this line is retried. Hiragana is not a failure: the prompt asks for katakana
+     * but [JapaneseText.toKatakana] absorbs the other script, which is a cheaper correction than a
+     * round trip.
      */
     private fun readingOf(index: Int, word: SegWordDto, reading: String, field: String): String {
-        if (!JapaneseText.containsJapanese(word.surface)) return word.surface
         if (!JapaneseText.isKanaOnly(reading)) {
             throw SegmentationValidationException(
                 "$field '$reading' for surface '${word.surface}' is not kana-only at line index=$index",

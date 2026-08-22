@@ -85,8 +85,9 @@ class SegmentAnchoringValidatorTest {
     }
 
     @Test
-    fun `forces non-Japanese tokens to carry their surface as the reading`() {
-        // Symbols and latin have no reading; whatever the model invented for them is discarded.
+    fun `drops non-Japanese tokens instead of anchoring them`() {
+        // Symbols, spaces and latin have no reading and no meaning; the assembled pronunciation and
+        // the app both read them back out of the raw text by position, so they need no token.
         val result = validator.anchor(
             mapOf(0 to "「猫」 yay"),
             listOf(
@@ -104,15 +105,51 @@ class SegmentAnchoringValidatorTest {
         )
 
         assertThat(result.failuresByIndex).isEmpty()
-        assertThat(result.anchoredByIndex[0]!!.map { it.usedReading })
-            .containsExactly("「", "ネコ", "」", " ", "yay")
+        assertThat(result.anchoredByIndex[0]!!.map { Triple(it.surface, it.charStart, it.charEnd) })
+            .containsExactly(Triple("猫", 1, 2))
+    }
+
+    @Test
+    fun `an invented space does not consume the real space later in the line`() {
+        // The song-77 failure. The model put a separator space after 涼しい that the line does not
+        // have; anchoring it matched the real space at offset 6, dragged the cursor past 風吹く, and
+        // then reported the `風` sitting at offset 3 as "not present in order" — an unfixable
+        // instruction the model answered with the same array three retries running.
+        val result = validator.anchor(
+            mapOf(0 to "涼しい風吹く 青空の匂い"),
+            listOf(
+                SegLineDto(
+                    0,
+                    listOf(
+                        word("涼しい", "涼しい", "スズシイ", "スズシイ"),
+                        word(" ", " ", " ", " "),
+                        word("風", "風", "カゼ", "カゼ"),
+                        word("吹く", "吹く", "フク", "フク"),
+                        word(" ", " ", " ", " "),
+                        word("青空", "青空", "アオゾラ", "アオゾラ"),
+                        word("の", "の", "ノ", "ノ"),
+                        word("匂い", "匂い", "ニオイ", "ニオイ"),
+                    ),
+                ),
+            ),
+        )
+
+        assertThat(result.failuresByIndex).isEmpty()
+        assertThat(result.anchoredByIndex[0]!!.map { Triple(it.surface, it.charStart, it.charEnd) }).containsExactly(
+            Triple("涼しい", 0, 3),
+            Triple("風", 3, 4),
+            Triple("吹く", 4, 6),
+            Triple("青空", 7, 9),
+            Triple("の", 9, 10),
+            Triple("匂い", 10, 12),
+        )
     }
 
     @Test
     fun `accepts a line whose punctuation lives inside the katakana Unicode block`() {
-        // `・` is U+30FB — inside the katakana block, but it has no reading. It must take the forcing
-        // path like any other symbol; treating it as Japanese demanded a reading nothing could supply,
-        // so the line failed every retry and took the whole song's analysis down with it.
+        // `・` is U+30FB — inside the katakana block, but it has no reading. It must be dropped like
+        // any other symbol; treating it as Japanese demanded a reading nothing could supply, so the
+        // line failed every retry and took the whole song's analysis down with it.
         val result = validator.anchor(
             mapOf(0 to "ロックン・ロール"),
             listOf(
@@ -128,8 +165,21 @@ class SegmentAnchoringValidatorTest {
         )
 
         assertThat(result.failuresByIndex).isEmpty()
-        assertThat(result.anchoredByIndex[0]!!.map { it.usedReading })
-            .containsExactly("ロックン", "・", "ロール")
+        assertThat(result.anchoredByIndex[0]!!.map { Triple(it.surface, it.charStart, it.charEnd) }).containsExactly(
+            Triple("ロックン", 0, 4),
+            Triple("ロール", 5, 8),
+        )
+    }
+
+    @Test
+    fun `a line with no Japanese word anchors to no tokens rather than failing`() {
+        val result = validator.anchor(
+            mapOf(0 to "1, 2, 3"),
+            listOf(SegLineDto(0, listOf(word("1", "1", "", ""), word("2", "2", "", ""), word("3", "3", "", "")))),
+        )
+
+        assertThat(result.failuresByIndex).isEmpty()
+        assertThat(result.anchoredByIndex[0]).isEmpty()
     }
 
     @Test
@@ -161,7 +211,12 @@ class SegmentAnchoringValidatorTest {
         )
 
         assertThat(result.anchoredByIndex).isEmpty()
-        assertThat(result.failuresByIndex[0]).isEqualTo("Surface '明け' is not present in order at line index=0")
+        // The message names where the search stood, not just the word it could not find: `明け` really
+        // is absent, and the remaining text is what the model has to re-segment.
+        assertThat(result.failuresByIndex[0]).isEqualTo(
+            "Surface '明け' is not present in order at line index=0: " +
+                "the text still unmatched after surface 'を' is '開けたなら yay'",
+        )
     }
 
     @Test
@@ -173,7 +228,7 @@ class SegmentAnchoringValidatorTest {
 
         assertThat(result.anchoredByIndex).isEmpty()
         assertThat(result.failuresByIndex[0])
-            .isEqualTo("Character 'が' at offset=1 is not covered by segmentation at line index=0")
+            .isEqualTo("Japanese text 'が' at offset=1 is not covered by segmentation at line index=0")
     }
 
     @Test
