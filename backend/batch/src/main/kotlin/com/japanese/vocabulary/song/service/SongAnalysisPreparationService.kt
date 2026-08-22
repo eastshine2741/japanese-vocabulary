@@ -57,9 +57,9 @@ class SongAnalysisPreparationService(
         )
     }
 
-    fun searchYoutubeUrl(title: String, artist: String): String? {
+    fun searchYoutubeUrl(title: String, artist: String, durationSeconds: Int?): String? {
         return try {
-            youtubeMvSearchService.searchMvUrl(title, artist)
+            youtubeMvSearchService.searchMvUrl(title, artist, durationSeconds)
         } catch (e: Exception) {
             logger.warn("YouTube MV search failed for '{}' by '{}': {}", title, artist, e.message)
             null
