@@ -4,6 +4,8 @@ import type {
   LyricDetail,
   LyricSummary,
   PageResponse,
+  Recommendation,
+  RecommendationCandidate,
   RecommendationOperationResult,
   SongAnalysisWorkDetail,
   SongAnalysisWorkSummary,
@@ -18,6 +20,7 @@ export class ApiError extends Error {
   constructor(
     message: string,
     readonly status: number,
+    readonly data: unknown = null,
   ) {
     super(message)
   }
@@ -31,7 +34,13 @@ async function request<T>(path: string, token?: string | null, init: RequestInit
 
   const response = await fetch(`${API_BASE}${path}`, { ...init, headers })
   if (!response.ok) {
-    throw new ApiError(response.statusText || "Request failed", response.status)
+    let data: unknown = null
+    try {
+      data = await response.json()
+    } catch {
+      data = null
+    }
+    throw new ApiError(response.statusText || "Request failed", response.status, data)
   }
   return response.json() as Promise<T>
 }
@@ -75,16 +84,48 @@ export const adminApi = {
   songAnalysisWork(token: string, id: string) {
     return request<SongAnalysisWorkDetail>(`/song-analysis-works/${id}`, token)
   },
-  dispatchRecommendationAnalysis(token: string, limit = 10) {
-    const params = new URLSearchParams({ limit: String(limit) })
-    return request<RecommendationOperationResult>(`/recommendations/dispatch-analysis?${params}`, token, {
-      method: "POST",
+  recommendationWeeks(token: string) {
+    return request<string[]>("/recommendations/weeks", token)
+  },
+  recommendationCandidates(token: string, weekStartDate?: string, status?: string) {
+    const params = new URLSearchParams()
+    if (weekStartDate) params.set("weekStartDate", weekStartDate)
+    if (status) params.set("status", status)
+    const query = params.toString()
+    return request<RecommendationCandidate[]>(`/recommendations/candidates${query ? `?${query}` : ""}`, token)
+  },
+  updateRecommendationCandidateStatus(token: string, candidateId: number, status: string) {
+    return request<RecommendationCandidate>(`/recommendations/candidates/${candidateId}/status`, token, {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
     })
   },
-  reconcileRecommendationCompleted(token: string, limit = 10) {
-    const params = new URLSearchParams({ limit: String(limit) })
-    return request<RecommendationOperationResult>(`/recommendations/reconcile-completed?${params}`, token, {
+  recommendations(token: string, weekStartDate?: string) {
+    const params = new URLSearchParams()
+    if (weekStartDate) params.set("weekStartDate", weekStartDate)
+    const query = params.toString()
+    return request<Recommendation[]>(`/recommendations${query ? `?${query}` : ""}`, token)
+  },
+  updateRecommendation(token: string, recommendationId: number, payload: { status?: string; orderIndex?: number }) {
+    return request<Recommendation>(`/recommendations/${recommendationId}`, token, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    })
+  },
+  prepareApprovedRecommendations(token: string, weekStartDate?: string) {
+    const params = new URLSearchParams()
+    if (weekStartDate) params.set("weekStartDate", weekStartDate)
+    const query = params.toString()
+    return request<RecommendationOperationResult>(
+      `/recommendations/prepare-approved${query ? `?${query}` : ""}`,
+      token,
+      { method: "POST" },
+    )
+  },
+  requestRecommendationAnalysis(token: string, candidateIds: number[]) {
+    return request<RecommendationOperationResult>("/recommendations/request-analysis", token, {
       method: "POST",
+      body: JSON.stringify({ candidateIds }),
     })
   },
   users(token: string, page: number, query?: string) {

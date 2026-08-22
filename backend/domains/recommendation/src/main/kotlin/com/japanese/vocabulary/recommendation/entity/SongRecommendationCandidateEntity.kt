@@ -28,8 +28,6 @@ import java.time.LocalDate
     ],
     indexes = [
         Index(name = "idx_song_rec_candidate_status_week_rank", columnList = "status, week_start_date, source_rank"),
-        Index(name = "idx_song_rec_candidate_work", columnList = "song_analysis_work_id"),
-        Index(name = "idx_song_rec_candidate_song", columnList = "song_id"),
     ],
 )
 @EntityListeners(AuditingEntityListener::class)
@@ -82,15 +80,6 @@ class SongRecommendationCandidateEntity(
     @Column(name = "genres_json", columnDefinition = "JSON")
     var genresJson: String? = null,
 
-    @Column(name = "song_analysis_work_id")
-    var songAnalysisWorkId: Long? = null,
-
-    @Column(name = "song_id")
-    var songId: Long? = null,
-
-    @Column(name = "lyric_id")
-    var lyricId: Long? = null,
-
     @Column(name = "approved_at")
     var approvedAt: Instant? = null,
 
@@ -129,12 +118,20 @@ class SongRecommendationCandidateEntity(
         this.genresJson = genresJson
     }
 
-    fun linkAnalysisWork(workId: Long) {
-        songAnalysisWorkId = workId
+    fun markApproved(now: Instant) {
+        status = RecommendationCandidateStatus.APPROVED
+        approvedAt = now
+        rejectedAt = null
     }
 
-    fun linkAnalyzedSong(songId: Long, lyricId: Long) {
-        this.songId = songId
-        this.lyricId = lyricId
+    fun markRejected(now: Instant) {
+        status = RecommendationCandidateStatus.REJECTED
+        rejectedAt = now
+    }
+
+    fun markPending() {
+        status = RecommendationCandidateStatus.PENDING
+        approvedAt = null
+        rejectedAt = null
     }
 }

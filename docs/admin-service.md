@@ -48,8 +48,13 @@ Routes:
 - `POST /admin/api/songs/{songId}/reanalysis`
 - `GET /admin/api/lyrics`
 - `GET /admin/api/lyrics/{lyricId}`
-- `POST /admin/api/recommendations/dispatch-analysis`
-- `POST /admin/api/recommendations/reconcile-completed`
+- `GET /admin/api/recommendations/weeks`
+- `GET /admin/api/recommendations/candidates`
+- `PATCH /admin/api/recommendations/candidates/{candidateId}/status`
+- `GET /admin/api/recommendations`
+- `PATCH /admin/api/recommendations/{recommendationId}`
+- `POST /admin/api/recommendations/prepare-approved`
+- `POST /admin/api/recommendations/request-analysis`
 - `GET /admin/api/users`
 - `GET /admin/api/users/{userId}`
 

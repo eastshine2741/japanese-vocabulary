@@ -4,6 +4,8 @@ import { RecommendedSongItem } from '../types/song';
 
 type RecommendationStatus = 'loading' | 'success' | 'error';
 
+const MAX_RECOMMENDED_SONGS = 10;
+
 interface RecommendationState {
   status: RecommendationStatus;
   songs: RecommendedSongItem[];
@@ -21,7 +23,7 @@ export const useRecommendationStore = create<RecommendationState>((set, get) => 
     if (!hasData) set({ status: 'loading', error: null });
     try {
       const songs = await songApi.getRecommendations();
-      set({ status: 'success', songs, error: null });
+      set({ status: 'success', songs: songs.slice(0, MAX_RECOMMENDED_SONGS), error: null });
     } catch (e: any) {
       const msg = e.message || 'Failed to load recommended songs';
       if (hasData) set({ error: msg });

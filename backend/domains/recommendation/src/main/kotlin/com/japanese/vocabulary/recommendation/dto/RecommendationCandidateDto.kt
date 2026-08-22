@@ -22,9 +22,6 @@ data class RecommendationCandidateDto(
     val sourceArtistUrl: String?,
     val releaseDate: LocalDate?,
     val genresJson: String?,
-    val songAnalysisWorkId: Long?,
-    val songId: Long?,
-    val lyricId: Long?,
     val createdAt: Instant?,
     val updatedAt: Instant?,
 )
@@ -45,9 +42,6 @@ fun SongRecommendationCandidateEntity.toDto(): RecommendationCandidateDto = Reco
     sourceArtistUrl = sourceArtistUrl,
     releaseDate = releaseDate,
     genresJson = genresJson,
-    songAnalysisWorkId = songAnalysisWorkId,
-    songId = songId,
-    lyricId = lyricId,
     createdAt = createdAt,
     updatedAt = updatedAt,
 )

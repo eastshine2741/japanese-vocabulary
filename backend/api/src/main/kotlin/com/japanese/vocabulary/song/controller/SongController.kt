@@ -9,7 +9,6 @@ import com.japanese.vocabulary.song.dto.AnalyzedSongDto
 import com.japanese.vocabulary.song.dto.songdetail.SongLyricsDto
 import com.japanese.vocabulary.song.dto.songdetail.WordsInSongDto
 import com.japanese.vocabulary.songsearch.dto.SongSearchResponse
-import com.japanese.vocabulary.deck.service.DeckService
 import com.japanese.vocabulary.songanalysis.dto.SongAnalysisWorkDto
 import com.japanese.vocabulary.song.repository.LyricRepository
 import com.japanese.vocabulary.song.repository.SongRepository
@@ -18,6 +17,7 @@ import com.japanese.vocabulary.song.service.RecentSongService
 import com.japanese.vocabulary.song.service.SearchHistoryService
 import com.japanese.vocabulary.song.service.SongSearchService
 import com.japanese.vocabulary.song.service.SongStudyViewService
+import com.japanese.vocabulary.song.service.SpotlightService
 import com.japanese.vocabulary.song.service.songdetail.SongDetailQueryService
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.context.SecurityContextHolder
@@ -33,13 +33,13 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/api/songs")
 class SongController(
     private val songStudyViewService: SongStudyViewService,
+    private val spotlightService: SpotlightService,
     private val songAnalysisWorkService: SongAnalysisWorkService,
     private val songSearchService: SongSearchService,
     private val recentSongService: RecentSongService,
     private val searchHistoryService: SearchHistoryService,
     private val songRepository: SongRepository,
     private val lyricRepository: LyricRepository,
-    private val deckService: DeckService,
     private val songDetailQueryService: SongDetailQueryService,
 ) {
 
@@ -105,23 +105,15 @@ class SongController(
     }
 
     /**
-     * The home "Spotlight" song: a random pick among recently played songs the user has NOT yet
-     * saved words from (no deck). Returns full study data so the hero can play its MV + synced lyrics.
+     * The home "Spotlight" song: a random pick among the user's recently played songs and this
+     * week's published recommendations, excluding songs the user has already saved words from
+     * (no deck). Returns full study data so the hero can play its MV + synced lyrics.
      * 204 when there is no eligible song. Does NOT record a listen (read-only surfacing).
      */
     @GetMapping("/spotlight")
     fun getSpotlight(): ResponseEntity<SongStudyDto> {
-        val userId = currentUserId()
-        val deckSongIds = deckService.getDeckSongIds(userId)
-        val spotlightId = recentSongService.getRecentSongIds(userId)
-            .filter { it !in deckSongIds }
-            .randomOrNull()
+        val analyzed = spotlightService.pickForUser(currentUserId())
             ?: return ResponseEntity.noContent().build()
-
-        val entity = songRepository.findById(spotlightId).orElse(null)
-            ?: return ResponseEntity.noContent().build()
-
-        val analyzed = songStudyViewService.buildAnalyzedSong(entity)
         return ResponseEntity.ok(analyzed.toResponse())
     }
 

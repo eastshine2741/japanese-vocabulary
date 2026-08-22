@@ -35,8 +35,8 @@ export default function HomeTab() {
         <SpotlightHero />
         <StudyStatsHomeCard />
         <WordReviewSection />
-        <RecentSongsSection />
         <RecommendedSongsSection />
+        <RecentSongsSection />
       </ScrollView>
     </SafeAreaView>
   );

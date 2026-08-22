@@ -12,9 +12,6 @@ import com.japanese.vocabulary.recommendation.entity.SongRecommendationStatus
 import com.japanese.vocabulary.song.entity.LyricEntity
 import com.japanese.vocabulary.song.entity.LyricType
 import com.japanese.vocabulary.song.entity.SongEntity
-import com.japanese.vocabulary.songanalysis.entity.SongAnalysisTriggerSource
-import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkEntity
-import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStatus
 import com.japanese.vocabulary.test.ApiBaseIntegrationTest
 import com.japanese.vocabulary.test.fixtures.TestUserBuilder
 import com.japanese.vocabulary.user.entity.UserEntity
@@ -25,7 +22,6 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.get
-import java.time.Instant
 import java.time.LocalDate
 
 @AutoConfigureMockMvc
@@ -49,7 +45,7 @@ class SongRecommendationControllerTest : ApiBaseIntegrationTest() {
         publishedReady(title = "Older", artist = "Artist", weekStartDate = olderWeek, orderIndex = 0)
         val second = publishedReady(title = "Second", artist = "Artist B", weekStartDate = latestWeek, orderIndex = 2)
         val first = publishedReady(title = "First", artist = "Artist A", weekStartDate = latestWeek, orderIndex = 1)
-        publishedUnsafeMissingPlayerReady(title = "Unsafe", artist = "Artist C", weekStartDate = latestWeek, orderIndex = 0)
+        publishedUnsafeMissingAnalyzedLyric(title = "Unsafe", artist = "Artist C", weekStartDate = latestWeek, orderIndex = 0)
         entityManager.flush()
         entityManager.clear()
 
@@ -63,6 +59,37 @@ class SongRecommendationControllerTest : ApiBaseIntegrationTest() {
         assertThat(response.map { it.title }).containsExactly("First", "Second")
         assertThat(response).allSatisfy { assertThat(it.weekStartDate).isEqualTo(latestWeek) }
         assertThat(redis.opsForZSet().zCard(recentKey(user.id!!)) ?: 0L).isZero()
+    }
+
+    @Test
+    fun `recommendations include published rows created from existing analyzed song without work`() {
+        val user = newUser()
+        val weekStartDate = LocalDate.of(2026, 6, 22)
+        val song = song(title = "Existing", artist = "Artist")
+        val lyric = lyric(song = song, analyzed = true)
+        val candidate = candidate(
+            sourceSongId = "existing",
+            title = "Existing",
+            artist = "Artist",
+            weekStartDate = weekStartDate,
+        )
+        val recommendation = recommendation(
+            candidate = candidate,
+            songId = song.id!!,
+            lyricId = lyric.id!!,
+            weekStartDate = weekStartDate,
+            orderIndex = 0,
+        )
+        entityManager.flush()
+        entityManager.clear()
+
+        val body = mockMvc.get("/api/songs/recommendations") {
+            header("Authorization", bearer(user))
+        }.andExpect { status { isOk() } }.andReturn().response.contentAsString
+
+        val response = objectMapper.readValue<List<SongRecommendationResponse>>(body)
+        assertThat(response.map { it.id }).containsExactly(recommendation.id)
+        assertThat(response.map { it.songId }).containsExactly(song.id)
     }
 
     private fun newUser(): UserEntity = TestUserBuilder(entityManager).build()
@@ -79,15 +106,11 @@ class SongRecommendationControllerTest : ApiBaseIntegrationTest() {
     ): PublishedFixture {
         val song = song(title = title, artist = artist)
         val lyric = lyric(song = song, analyzed = true)
-        val work = work(title = title, artist = artist, songId = song.id, lyricId = lyric.id, playerReady = true)
         val candidate = candidate(
             sourceSongId = title,
             title = title,
             artist = artist,
             weekStartDate = weekStartDate,
-            workId = work.id!!,
-            songId = song.id!!,
-            lyricId = lyric.id!!,
         )
         val recommendation = recommendation(
             candidate = candidate,
@@ -99,23 +122,19 @@ class SongRecommendationControllerTest : ApiBaseIntegrationTest() {
         return PublishedFixture(song = song, recommendation = recommendation)
     }
 
-    private fun publishedUnsafeMissingPlayerReady(
+    private fun publishedUnsafeMissingAnalyzedLyric(
         title: String,
         artist: String,
         weekStartDate: LocalDate,
         orderIndex: Int,
     ) {
         val song = song(title = title, artist = artist)
-        val lyric = lyric(song = song, analyzed = true)
-        val work = work(title = title, artist = artist, songId = song.id, lyricId = lyric.id, playerReady = false)
+        val lyric = lyric(song = song, analyzed = false)
         val candidate = candidate(
             sourceSongId = title,
             title = title,
             artist = artist,
             weekStartDate = weekStartDate,
-            workId = work.id!!,
-            songId = song.id!!,
-            lyricId = lyric.id!!,
         )
         recommendation(
             candidate = candidate,
@@ -142,28 +161,13 @@ class SongRecommendationControllerTest : ApiBaseIntegrationTest() {
         )
         entityManager.persist(lyric)
         entityManager.flush()
+        if (!analyzed) {
+            entityManager.createNativeQuery("UPDATE lyrics SET analyzed_content = NULL WHERE id = :id")
+                .setParameter("id", lyric.id)
+                .executeUpdate()
+            entityManager.flush()
+        }
         return lyric
-    }
-
-    private fun work(
-        title: String,
-        artist: String,
-        songId: Long?,
-        lyricId: Long?,
-        playerReady: Boolean,
-    ): SongAnalysisWorkEntity {
-        val work = SongAnalysisWorkEntity(
-            rawTitle = title,
-            rawArtist = artist,
-            status = SongAnalysisWorkStatus.COMPLETED,
-            triggerSource = SongAnalysisTriggerSource.RECOMMENDATION,
-            songId = songId,
-            lyricId = lyricId,
-            playerReadyAt = if (playerReady) Instant.parse("2026-06-25T00:00:00Z") else null,
-        )
-        entityManager.persist(work)
-        entityManager.flush()
-        return work
     }
 
     private fun candidate(
@@ -171,9 +175,6 @@ class SongRecommendationControllerTest : ApiBaseIntegrationTest() {
         title: String,
         artist: String,
         weekStartDate: LocalDate,
-        workId: Long,
-        songId: Long,
-        lyricId: Long,
     ): SongRecommendationCandidateEntity {
         val candidate = SongRecommendationCandidateEntity(
             source = RecommendationSource.APPLE_MUSIC_RSS,
@@ -183,9 +184,6 @@ class SongRecommendationControllerTest : ApiBaseIntegrationTest() {
             status = RecommendationCandidateStatus.APPROVED,
             title = title,
             artistName = artist,
-            songAnalysisWorkId = workId,
-            songId = songId,
-            lyricId = lyricId,
         )
         entityManager.persist(candidate)
         entityManager.flush()

@@ -89,6 +89,8 @@ export type SongAnalysisWorkDetail = SongAnalysisWorkSummary & {
 export type RecommendationOperationItem = {
   candidateId: number
   status: string
+  songId: number | null
+  lyricId: number | null
   workId: number | null
   recommendationId: number | null
   message: string | null
@@ -100,6 +102,35 @@ export type RecommendationOperationResult = {
   skipped: number
   failed: number
   items: RecommendationOperationItem[]
+}
+
+export type Recommendation = {
+  id: number
+  candidateId: number
+  weekStartDate: string
+  status: string
+  songId: number
+  lyricId: number
+  orderIndex: number
+  publishedAt: string | null
+  createdAt: string | null
+  updatedAt: string | null
+}
+
+export type RecommendationCandidate = {
+  id: number
+  source: string
+  sourceSongId: string
+  weekStartDate: string
+  sourceRank: number
+  status: string
+  title: string
+  artistName: string
+  artworkUrl: string | null
+  sourceUrl: string | null
+  releaseDate: string | null
+  createdAt: string | null
+  updatedAt: string | null
 }
 
 export type RawLyricLine = {
