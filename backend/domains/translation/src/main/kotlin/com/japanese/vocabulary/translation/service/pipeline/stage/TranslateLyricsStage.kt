@@ -11,7 +11,7 @@ class TranslateLyricsStage(
 ) : PipelineStage<TranslationPipelineSource, Map<Int, TranslationResultDto>> {
 
     override suspend fun execute(input: TranslationPipelineSource): Map<Int, TranslationResultDto> {
-        val translatedLines = geminiClient.translateLyrics(input.lineInput)
+        val translatedLines = geminiClient.translateLyrics(input.lineInput, input.callContext)
         return validateLineIndices(input.rawByIndex.keys, translatedLines)
     }
 

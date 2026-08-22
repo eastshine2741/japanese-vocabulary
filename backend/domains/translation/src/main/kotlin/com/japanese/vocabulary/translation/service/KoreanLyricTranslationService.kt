@@ -3,6 +3,7 @@ package com.japanese.vocabulary.translation.service
 import com.japanese.vocabulary.song.entity.LyricEntity
 import com.japanese.vocabulary.song.model.AnalyzedLine
 import com.japanese.vocabulary.song.repository.LyricRepository
+import com.japanese.vocabulary.translation.client.gemini.GeminiCallContext
 import com.japanese.vocabulary.translation.model.AssembleAnalyzedLinesInput
 import com.japanese.vocabulary.translation.model.SenseSelectionStageInput
 import com.japanese.vocabulary.translation.model.SenseTranslationStageInput
@@ -45,7 +46,10 @@ class KoreanLyricTranslationService(
     suspend fun runPipeline(entity: LyricEntity): List<AnalyzedLine> {
         logger.info("[songId={}] Starting translation", entity.songId)
 
-        val source = TranslationPipelineSource.from(entity.rawContent)
+        val source = TranslationPipelineSource.from(
+            entity.rawContent,
+            GeminiCallContext(songId = entity.songId, lyricId = entity.id),
+        )
         logger.info("[songId={}] Parsed {} lyric lines", entity.songId, source.lyricLines.size)
 
         logger.info("[songId={}] Calling Gemini APIs (translation ∥ segment→validate→lexical)...", entity.songId)
@@ -78,6 +82,7 @@ class KoreanLyricTranslationService(
             SenseTranslationStageInput(
                 selectedSenseByKey = selectedSenseByKey,
                 lexical = wordPreparation.lexical,
+                callContext = source.callContext,
             ),
         )
 
