@@ -21,6 +21,19 @@ class GeminiClient(
     @Value("\${gemini.word-meaning-model}") private val wordMeaningModel: String,
     @Value("\${gemini.segmentation-model}") private val segmentationModel: String,
     @Value("\${gemini.max-output-tokens:0}") private val maxOutputTokens: Int,
+    /**
+     * Thinking level for the segmentation call only — `minimal` / `low` / `high`, or blank to leave
+     * the model's own default alone.
+     *
+     * Blank is the default and sends no `thinkingConfig`, so the request body is unchanged for the
+     * models this pipeline runs on today. It exists because the flash tiers above
+     * `gemini-3.1-flash-lite` think by default and charge those thoughts to the same output budget as
+     * the answer: a 20-line segmentation chunk stops at `finishReason=MAX_TOKENS` with the JSON array
+     * barely started, even at `maxOutputTokens=32768`. It is scoped to segmentation because the
+     * levels are not portable — `gemini-3.1-pro-preview`, which translates the lyrics, rejects
+     * `minimal` outright.
+     */
+    @Value("\${gemini.segmentation-thinking-level:}") private val segmentationThinkingLevel: String,
     private val objectMapper: ObjectMapper,
     private val meterRegistry: MeterRegistry,
     private val geminiCallLogger: GeminiCallLogger,
@@ -70,7 +83,8 @@ class GeminiClient(
             input = lyricLines,
             responseType = SegLineDto::class.java,
             temperature = 0.0,
-            responseSchema = SEGMENTATION_SCHEMA
+            responseSchema = SEGMENTATION_SCHEMA,
+            thinkingLevel = segmentationThinkingLevel.takeIf { it.isNotBlank() }
         )
     }
 
@@ -126,7 +140,8 @@ class GeminiClient(
         input: Any,
         responseType: Class<T>,
         temperature: Double,
-        responseSchema: Map<String, Any>? = null
+        responseSchema: Map<String, Any>? = null,
+        thinkingLevel: String? = null
     ): List<T> {
         val inputJson = objectMapper.writeValueAsString(input)
 
@@ -139,6 +154,9 @@ class GeminiClient(
         }
         if (maxOutputTokens > 0) {
             generationConfig["maxOutputTokens"] = maxOutputTokens
+        }
+        if (thinkingLevel != null) {
+            generationConfig["thinkingConfig"] = mapOf("thinkingLevel" to thinkingLevel)
         }
 
         val requestBody = mapOf(

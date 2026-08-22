@@ -66,7 +66,76 @@ only so rows written before `pronounciation` existed still deserialize.
 
 Failures end as `song_analysis_work.status=FAILED` without automatic retry in the first pass. If the user requests the same song again, a new work is created.
 
-Experiment and validation code lives under `gemini-playground/src/experiments/`. Cost was approximately `$0.031/song` before this redesign; segmentation now produces five fields per word instead of two, and sense-select is skipped for unambiguous words, so the split between the two has shifted and has not been re-measured.
+### Measurement harness
+
+`EntrySelectHarness` (`backend/domains/translation/src/test/.../harness/`) runs the real stage
+objects in `runPipeline`'s order but keeps every intermediate, so it can report what the finished
+`AnalyzedLine` no longer carries — each token's jisho provenance and whether sense-select answered
+`-1`. It is skipped unless `-Dharness.input` names a directory of golden lyrics, so a normal
+`:domains:translation:test` stays free.
+
+```
+cd backend && ./gradlew :domains:translation:test --tests '*EntrySelectHarness*' \
+  -Dharness.input=<golden-dir> -Dharness.output=<out.json> -Dharness.jisho.cache=<cache.json> \
+  -Dharness.segmentation.model=gemini-3.1-flash-lite
+```
+
+Golden lyrics are **not committed** — they are copyrighted. Regenerate them from the `lyrics` table
+(one file per song: `{lyricId, songId, title, artist, profile, lines:[{index,startTimeMs,text}]}`).
+The set used below was chosen by script composition: `晴る` (kanji 0.37), `Lemon` (kana 0.78),
+`バッカアノ` (latin 0.12).
+
+Prompt-level experiments still live under `gemini-playground/src/experiments/`; the pipeline-level
+harness lives with the pipeline because a re-implementation would measure a copy, not the code.
+
+### Segmentation model: measured, kept at flash-lite
+
+Golden 3 songs, one run each, temperature 0. "before" is the pre-refactor pipeline at `0e1d6d6`.
+
+| | before | `gemini-3.1-flash-lite` | `gemini-3-flash-preview` |
+|---|---|---|---|
+| jisho `EXACT` share | 0.945 | 0.672 | 0.669 |
+| candidate senses per token (mean) | 8.27 | 7.72 | — |
+| tokens offered >10 senses | 141 | 96 | — |
+| `senseId = -1` | 0.060 | 0.043 | 0.041 |
+| `koreanText == null` | 0.045 | 0.034 | 0.030 |
+| `easiestJlpt == N1` | 0.051 | 0.056 | 0.051 |
+| tokens whose inflected reading differs from the dictionary one | 0 | 112 | — |
+| hiragana left in a reading | 669 tokens | 0 | 0 |
+| line pronunciation not katakana | n/a | 0 | 0 |
+| output tokens / song | 14,874 | 20,106 | 18,949 |
+| wall clock / song | ~91 s | ~83 s | ~96 s |
+
+**Decision: keep `gemini-3.1-flash-lite`.** The higher tier matches it inside run-to-run noise and
+costs more per token, so nothing justifies the upgrade.
+
+Two findings behind that decision:
+
+- The flash tiers above flash-lite **think by default and charge those thoughts to the same output
+  budget as the answer.** A 20-line segmentation chunk stops at `finishReason=MAX_TOKENS` with the
+  JSON array barely started — 1,298 candidate tokens against `maxOutputTokens=32768`. They are
+  unusable for this stage unless `gemini.segmentation-thinking-level` bounds the thinking.
+- At `low` the same model wrote **the Korean translation's surfaces into the segmentation output**
+  (`Surface '가' is not present in order`), failed all four attempts on four lines, and took the whole
+  song down. Only `minimal` — thinking off — produced the numbers in the table.
+
+`gemini.segmentation-thinking-level` (`minimal`/`low`/`high`, blank by default) exists for that
+comparison. Blank sends no `thinkingConfig` at all, so today's requests are unchanged. It is scoped
+to the segmentation call because the levels are not portable: `gemini-3.1-pro-preview` rejects
+`minimal` with HTTP 400.
+
+Interpreting the `EXACT` drop: the label changed meaning. Before, a lookup was `EXACT` when the
+headword **or** any reading matched, so `前` scored `EXACT` while handing sense-select the senses of
+前[マエ], 前[ゼン] and 先[サキ] mixed together — 94.5% of tokens carried a label that guaranteed
+nothing. Now `EXACT` means the `(headword, reading)` pair pinned exactly one entry, and the rest are
+labelled `AMBIGUOUS_HEADWORD` instead of being silently mislabelled. The comparable number is
+candidate senses per token, and it falls where homographs actually live: on the kanji-heavy song,
+9.45 → 7.01 mean and 50 → 27 tokens offered more than ten senses.
+
+Cost: prompt 71.9k → 65.1k and output 14.9k → 20.1k tokens per song. Segmentation grew (five fields
+per word instead of two) and sense-select shrank (147.6k prompt vs 173.5k; single-candidate tokens
+never leave the process). The largest saving is on the expensive model: dropping the pronunciation
+from the translation schema cut `gemini-3.1-pro-preview` output 7,277 → 4,237 tokens per song.
 
 > The jisho Redis cache key carries a schema version (`jisho:v4:`). Bump it whenever the cached DTO
 > changes: unknown-field-tolerant deserialization turns an old cached value into an empty result,

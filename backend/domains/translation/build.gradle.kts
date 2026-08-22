@@ -30,5 +30,7 @@ tasks.withType<Test> {
         "harness.segmentation.model",
         "harness.translation.model",
         "harness.word.model",
+        "harness.max.output.tokens",
+        "harness.thinking.level",
     ).forEach { key -> System.getProperty(key)?.let { systemProperty(key, it) } }
 }

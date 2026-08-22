@@ -97,6 +97,16 @@ as a downstream "line indices mismatch". Three code-level guards:
 short response there does not throw, it silently leaves `koreanText` null for the
 senses that never came back.
 
+Raising `gemini.max-output-tokens` does not rescue a thinking model. The flash
+tiers above `gemini-3.1-flash-lite` think by default and spend that budget on
+thoughts before the answer starts: a 20-line segmentation chunk on
+`gemini-3-flash-preview` still stopped at `MAX_TOKENS` with 1,298 candidate
+tokens against `maxOutputTokens=32768`. `gemini.segmentation-thinking-level`
+(`minimal`/`low`/`high`) bounds the thinking for the segmentation call; blank —
+the default — sends no `thinkingConfig` at all. It is scoped to segmentation
+because the levels are not portable: `gemini-3.1-pro-preview` rejects `minimal`
+with HTTP 400. Measurements are in `docs/architecture/song-analysis.md`.
+
 ## Package Layout
 
 - `translation.service.KoreanLyricTranslationService`: orchestration and DB save.

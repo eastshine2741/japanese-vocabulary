@@ -47,7 +47,15 @@ gemini:
   word-meaning-model: gemini-3.1-flash-lite
   # Segmentation now carries the whole pipeline's disambiguation signal — both readings and the
   # context gloss. Its tier is tuned separately from the cheaper select/translate calls.
+  #
+  # Measured against gemini-3-flash-preview on three golden songs: the higher tier matches flash-lite
+  # inside run-to-run noise, needs its thinking bounded to answer at all, and hallucinated the Korean
+  # translation into the segmentation output at thinking level `low`. See the table in
+  # docs/architecture/song-analysis.md. Keep flash-lite until that comparison says otherwise.
   segmentation-model: gemini-3.1-flash-lite
+  # Blank sends no thinkingConfig, which is what flash-lite wants. Set to minimal/low/high only when
+  # moving segmentation to a model that thinks by default, or its answer runs out of output budget.
+  segmentation-thinking-level: ""
 
 youtube:
   api-key: ${YOUTUBE_API_KEY}

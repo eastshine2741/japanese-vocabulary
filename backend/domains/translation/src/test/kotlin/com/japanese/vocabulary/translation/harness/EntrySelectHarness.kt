@@ -39,6 +39,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty
+import org.springframework.http.client.JdkClientHttpRequestFactory
 import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.web.client.RestClient
 import java.io.File
@@ -76,22 +77,26 @@ class EntrySelectHarness {
         val translationModel = System.getProperty("harness.translation.model", "gemini-3.1-pro-preview")
         val wordMeaningModel = System.getProperty("harness.word.model", "gemini-3.1-flash-lite")
         val cacheFile = System.getProperty("harness.jisho.cache")?.let(::File)
+        // 0 = leave it to the model default, which is what `batch/application.yml` does today.
+        val maxOutputTokens = System.getProperty("harness.max.output.tokens", "0").toInt()
+        val thinkingLevel = System.getProperty("harness.thinking.level", "")  // segmentation only
 
         val registry = SimpleMeterRegistry()
         val jishoCache = FileBackedJishoCache(mapper, cacheFile)
         val pipeline = Pipeline(
             geminiClient = GeminiClient(
-                restClientBuilder = RestClient.builder(),
+                restClientBuilder = restClientBuilder(),
                 apiKey = requireNotNull(System.getenv("GEMINI_API_KEY")) { "GEMINI_API_KEY is not set" },
                 translationModel = translationModel,
                 wordMeaningModel = wordMeaningModel,
                 segmentationModel = segmentationModel,
-                maxOutputTokens = 0,
+                maxOutputTokens = maxOutputTokens,
+                segmentationThinkingLevel = thinkingLevel,
                 objectMapper = mapper,
                 meterRegistry = registry,
                 geminiCallLogger = GeminiCallLogger(mockk<GeminiCallLogRepository>(relaxed = true)),
             ),
-            jishoService = JishoService(JishoClient(RestClient.builder()), jishoCache),
+            jishoService = JishoService(JishoClient(restClientBuilder()), jishoCache),
         )
 
         val songs = inputDir.listFiles { f -> f.extension == "json" }.orEmpty().sortedBy { it.name }
@@ -110,6 +115,8 @@ class EntrySelectHarness {
             "segmentationModel" to segmentationModel,
             "translationModel" to translationModel,
             "wordMeaningModel" to wordMeaningModel,
+            "maxOutputTokens" to maxOutputTokens,
+            "segmentationThinkingLevel" to thinkingLevel,
             "songs" to results,
             "totals" to totals(results),
             "geminiTokens" to tokenUsage(registry),
@@ -118,6 +125,17 @@ class EntrySelectHarness {
         System.getProperty("harness.output")?.let { File(it).writeText(json) }
         println(json)
     }
+
+    /**
+     * The bootstrap modules get their [RestClient.Builder] from Spring Boot, which leaves the read
+     * timeout unset. A bare `RestClient.builder()` instead picks up Reactor Netty's 10-second
+     * default, which every `gemini-3.1-pro-preview` translation call blows through — so the
+     * harness states the timeout rather than inheriting a default the real pipeline never sees.
+     */
+    private fun restClientBuilder(): RestClient.Builder = RestClient.builder()
+        .requestFactory(
+            JdkClientHttpRequestFactory().apply { setReadTimeout(Duration.ofMinutes(10)) },
+        )
 
     /** The stage sequence of `KoreanLyricTranslationService.runPipeline`, with the intermediates kept. */
     private class Pipeline(geminiClient: GeminiClient, jishoService: JishoService) {
@@ -168,12 +186,19 @@ class EntrySelectHarness {
         val provenance = lexicalTokens.groupingBy { token ->
             prep.lexical.byTokenKey[token.key]?.options?.firstOrNull()?.provenance?.name ?: "NO_CANDIDATE"
         }.eachCount()
+        // How many senses sense-select is actually asked to choose between. This is the number the
+        // entry boundary is supposed to move: EXACT means different things before and after the
+        // refactor, but "candidate senses per token" means the same thing in both.
+        val candidateCounts = lexicalTokens.mapNotNull { token ->
+            prep.lexical.byTokenKey[token.key]?.options?.size?.takeIf { it > 0 }
+        }
         val exact = provenance[JishoLookupProvenance.EXACT.name] ?: 0
         val unselected = lexicalTokens.count { (outcome.selectedByKey[it.key] ?: -1) < 0 }
 
         val analyzed = outcome.lines.flatMap { it.tokens }
         val japanese = analyzed.filter { JapaneseText.containsJapanese(it.surface) }
         val jlptKnown = japanese.filter { it.jlpt != null }
+        val inflectedReadings = japanese.count { it.reading != null && it.reading != it.baseFormReading }
         val hiraganaReadings = japanese.count { token ->
             listOfNotNull(token.reading, token.baseFormReading).any { it != JapaneseText.toKatakana(it) }
         }
@@ -190,12 +215,18 @@ class EntrySelectHarness {
             "elapsedMs" to elapsedMs,
             "lexicalTokens" to lexicalTokens.size,
             "provenance" to provenance,
+            "tokensWithCandidates" to candidateCounts.size,
+            "meanSensesPerToken" to round(candidateCounts.average().takeIf { !it.isNaN() } ?: 0.0),
+            "medianSensesPerToken" to (candidateCounts.sorted().getOrNull(candidateCounts.size / 2) ?: 0),
+            "maxSensesPerToken" to (candidateCounts.maxOrNull() ?: 0),
+            "tokensOver10Senses" to candidateCounts.count { it > 10 },
             "exactRatio" to ratio(exact, lexicalTokens.size),
             "unselectedRatio" to ratio(unselected, lexicalTokens.size), // AC8: senseId == -1
             "japaneseTokens" to japanese.size,
             "koreanNullRatio" to ratio(japanese.count { it.koreanText == null }, japanese.size), // AC9
             "jlptKnown" to jlptKnown.size,
             "n1Ratio" to ratio(jlptKnown.count { it.jlpt == "N1" }, jlptKnown.size), // AC11
+            "inflectedReadingTokens" to inflectedReadings, // AC2
             "hiraganaReadingTokens" to hiraganaReadings, // AC3 violations
             "nonKatakanaPronounciationLines" to badPronounciation, // AC4 violations
         )
@@ -211,10 +242,13 @@ class EntrySelectHarness {
         }
         return mapOf(
             "lexicalTokens" to sum("lexicalTokens"),
+            "meanSensesPerToken" to weighted("meanSensesPerToken", "tokensWithCandidates"),
+            "tokensOver10Senses" to sum("tokensOver10Senses"),
             "exactRatio" to weighted("exactRatio", "lexicalTokens"),
             "unselectedRatio" to weighted("unselectedRatio", "lexicalTokens"),
             "koreanNullRatio" to weighted("koreanNullRatio", "japaneseTokens"),
             "n1Ratio" to weighted("n1Ratio", "jlptKnown"),
+            "inflectedReadingTokens" to sum("inflectedReadingTokens"),
             "hiraganaReadingTokens" to sum("hiraganaReadingTokens"),
             "nonKatakanaPronounciationLines" to sum("nonKatakanaPronounciationLines"),
             "elapsedMs" to sum("elapsedMs"),
