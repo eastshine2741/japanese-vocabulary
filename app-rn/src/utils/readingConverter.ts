@@ -210,3 +210,49 @@ export function convertReading(text: string, display: ReadingDisplay): string {
   if (display === 'HIRAGANA') return katakanaToHiragana(text);
   return katakanaToKorean(text);
 }
+
+/** The token fields a line's reading is assembled from. Structurally satisfied by `Token`. */
+export interface ReadingToken {
+  surface: string;
+  reading: string | null;
+  charStart: number;
+  charEnd: number;
+}
+
+/**
+ * A lyric line's reading, converted one token at a time.
+ *
+ * The long-vowel rules carry state from one character to the next, and converting a whole line at
+ * once lets that state cross a word boundary: a token starting with ウ/イ folds into the previous
+ * token's vowel, so 僕の歌 (ボクノ + ウタ) came out 보쿠노-타 instead of 보쿠노우타. Converting each
+ * token on its own keeps the long vowel inside the word it belongs to.
+ *
+ * Mirrors the server's `buildPronounciation`: each token's reading in position order, with the raw
+ * text of any gap between tokens copied verbatim — spaces, punctuation and latin runs are not
+ * tokens, and reproducing them keeps the line's shape. A line with no tokens has no reading to
+ * assemble, so its own text is converted as-is.
+ *
+ * Only call this for lines whose `pronounciation` is non-null. Songs analyzed before that field
+ * existed carry base-form token readings (欲しかった → ホシイ), which would assemble a wrong line.
+ */
+export function convertLineReading(
+  originalText: string,
+  tokens: readonly ReadingToken[],
+  display: ReadingDisplay,
+): string {
+  if (tokens.length === 0) return convertReading(originalText, display);
+
+  const parts: string[] = [];
+  let cursor = 0;
+  for (const token of [...tokens].sort((a, b) => a.charStart - b.charStart)) {
+    if (token.charStart > cursor) {
+      parts.push(originalText.slice(cursor, token.charStart));
+    }
+    parts.push(convertReading(token.reading ?? token.surface, display));
+    cursor = Math.max(cursor, token.charEnd);
+  }
+  if (cursor < originalText.length) {
+    parts.push(originalText.slice(cursor));
+  }
+  return parts.join('');
+}

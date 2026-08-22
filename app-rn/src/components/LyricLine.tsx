@@ -1,10 +1,10 @@
-import React, { useRef, useCallback } from 'react';
+import React, { useRef, useCallback, useMemo } from 'react';
 import { View, Text, TouchableOpacity, Pressable, Animated, StyleSheet, LayoutChangeEvent } from 'react-native';
 import { Token, StudyUnit } from '../types/song';
 import { POS_INFO } from '../types/pos';
 import { Colors } from '../theme/theme';
 import { useSettingsStore } from '../stores/settingsStore';
-import { convertReading, katakanaToHiragana } from '../utils/readingConverter';
+import { convertLineReading, convertReading, katakanaToHiragana } from '../utils/readingConverter';
 
 const NO_UNDERLINE_POS = new Set(['SYMBOL', 'SUPPLEMENTARY_SYMBOL', 'WHITESPACE']);
 
@@ -39,6 +39,16 @@ function LyricLine({
   const flashOpacity = useRef(new Animated.Value(0)).current;
 
   const canSeek = onLineSeek != null && studyUnit.startTimeMs != null;
+
+  // Converted per token, not per line — a line-wide conversion lets one word's long vowel swallow
+  // the next word's leading ウ/イ. A line the analysis found no words in has no token readings to
+  // assemble, so the stored line reading is the source there.
+  const koreanPronunciation = useMemo(() => {
+    if (!studyUnit.pronounciation) return null;
+    return studyUnit.tokens.length > 0
+      ? convertLineReading(studyUnit.originalText, studyUnit.tokens, 'KOREAN')
+      : convertReading(studyUnit.pronounciation, 'KOREAN');
+  }, [studyUnit.pronounciation, studyUnit.originalText, studyUnit.tokens]);
 
   const handleLinePress = useCallback(() => {
     if (!onLineSeek || studyUnit.startTimeMs == null) return;
@@ -134,9 +144,9 @@ function LyricLine({
         />
       )}
       <View style={styles.tokensRow}>{renderTokens()}</View>
-      {showKoreanPronunciation && studyUnit.pronounciation && (
+      {showKoreanPronunciation && koreanPronunciation && (
         <Text style={isActive ? styles.pronActive : styles.pronInactive}>
-          {convertReading(studyUnit.pronounciation, 'KOREAN')}
+          {koreanPronunciation}
         </Text>
       )}
       {showTranslation && studyUnit.koreanLyrics && (

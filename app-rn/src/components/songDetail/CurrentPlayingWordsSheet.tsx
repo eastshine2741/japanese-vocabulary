@@ -17,7 +17,7 @@ import { Layers } from '../../theme/layers';
 import { AppBottomSheet, AppBottomSheetRef } from '../bottomSheet';
 import { getPosColor } from '../../types/pos';
 import { Token } from '../../types/song';
-import { convertReading } from '../../utils/readingConverter';
+import { convertLineReading, convertReading } from '../../utils/readingConverter';
 import SongDetailWordRow from './SongDetailWordRow';
 import { getSongDetailWordKey } from './songDetailWordSave';
 import { SongDetailWordItem, SongDetailWordSaveState } from './types';
@@ -319,13 +319,16 @@ const CurrentWordsPageCard = React.memo(function CurrentWordsPageCard({
     () => getLyricFontSizes(lyricTokens, width),
     [lyricTokens, width],
   );
+  // 줄 전체를 한 번에 변환하면 앞 단어의 장음이 다음 단어의 첫 ウ/イ 를 삼킨다. 토큰마다 변환한다.
+  // 단어가 없는 줄은 조립할 토큰 리딩이 없으니 저장된 줄 발음이 그대로 소스다.
   // 재분석 전 곡은 카타카나 발음이 없고 한글 독음만 갖고 있다. 그때는 저장된 한글을 그대로 쓴다.
-  const koreanPronunciation = useMemo(
-    () => (page.line.pronounciation
-      ? convertReading(page.line.pronounciation, 'KOREAN')
-      : page.line.koreanPronounciation ?? null),
-    [page.line.pronounciation, page.line.koreanPronounciation],
-  );
+  const koreanPronunciation = useMemo(() => {
+    const { pronounciation, koreanPronounciation, originalText, tokens } = page.line;
+    if (!pronounciation) return koreanPronounciation ?? null;
+    return tokens && tokens.length > 0
+      ? convertLineReading(originalText, tokens, 'KOREAN')
+      : convertReading(pronounciation, 'KOREAN');
+  }, [page.line]);
   const hasCurrentKorean = Boolean(koreanPronunciation || page.line.koreanLyrics);
 
   return (
