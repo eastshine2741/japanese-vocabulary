@@ -197,9 +197,13 @@ divergence: that function writes a long vowel as a hyphen (`ドウ` → `도-`) 
 the prompt asked for `도우`.
 
 `AnalyzedLine.koreanPronounciation` is legacy — always null in new output, kept
-on the model only so pre-`pronounciation` rows still deserialize. Because the
-clients read only `pronounciation`, **a song analyzed before this change shows no
-pronunciation line until it is re-analyzed.**
+on the model so pre-`pronounciation` rows still deserialize. It also stays on the
+wire: `SongLyricLineDto` and `StudyUnitDto` carry both fields, and the client
+prefers the converted katakana and falls back to the stored Hangul as-is. Without
+that fallback a song analyzed before this change showed **no** pronunciation line
+until it was re-analyzed, and re-deriving one server-side is not possible — legacy
+tokens hold the base-form reading (`欲しかった` → `ほしい`), so assembling the line
+from them would misread it. Drop both fields once every song has been re-analyzed.
 
 ## Jisho Entry Select
 

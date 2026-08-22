@@ -32,6 +32,8 @@ export interface CurrentPlayingLyricLine {
   koreanLyrics: string | null;
   /** Katakana reading of the line; converted to Hangul for display. */
   pronounciation?: string | null;
+  /** 구 데이터 전용 한글 독음. 이미 한글이라 변환하지 않고 그대로 쓴다. */
+  koreanPronounciation?: string | null;
   tokens?: Token[];
 }
 
@@ -333,9 +335,12 @@ const CurrentWordsPageCard = React.memo(function CurrentWordsPageCard({
     () => getLyricFontSizes(lyricTokens, width),
     [lyricTokens, width],
   );
+  // 재분석 전 곡은 카타카나 발음이 없고 한글 독음만 갖고 있다. 그때는 저장된 한글을 그대로 쓴다.
   const koreanPronunciation = useMemo(
-    () => (page.line.pronounciation ? convertReading(page.line.pronounciation, 'KOREAN') : null),
-    [page.line.pronounciation],
+    () => (page.line.pronounciation
+      ? convertReading(page.line.pronounciation, 'KOREAN')
+      : page.line.koreanPronounciation ?? null),
+    [page.line.pronounciation, page.line.koreanPronounciation],
   );
   const hasCurrentKorean = Boolean(koreanPronunciation || page.line.koreanLyrics);
 
