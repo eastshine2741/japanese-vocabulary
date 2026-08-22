@@ -58,7 +58,9 @@ guardrails for deterministic checks and transformations.
    scope the retry. Lines that already anchored are kept, so one bad line neither
    discards the rest nor lets a correct line regress on a later attempt. The
    stage throws only if some line is still invalid after
-   `MAX_SEGMENTATION_ATTEMPTS`.
+   `MAX_SEGMENTATION_ATTEMPTS`. Retries raise the temperature by
+   `SEGMENT_TEMPERATURE_STEP` per attempt (0.0, 0.3, …, capped at
+   `SEGMENT_MAX_TEMPERATURE`) — see **Anchoring** below.
 3. `ApplyRuleMeaningsStage`: rewrites and resolves deterministic grammar tokens
    through `RuleMeaningProvider`.
 4. `ResolveLexicalSensesStage`: sends unresolved Japanese tokens to
@@ -181,6 +183,36 @@ katakana Unicode block but are punctuation — counting them as Japanese made
 Conversely `々` (U+3005) sits outside every kana and kanji block yet is read
 aloud, so leaving it out let `人々` pass with `々` uncovered and leak a raw glyph
 into the assembled reading.
+
+## Anchoring
+
+`SegmentAnchoringValidator` anchors each word by searching the raw line for its
+surface from the previous match onward, so a surface must be an exact substring
+appearing in the line's own order. **Only Japanese surfaces are anchored.**
+Whitespace, punctuation, quotes, latin runs and digits are dropped: they carry no
+reading and no meaning, and both the assembled pronunciation and the app read
+them back out of the raw text by position, so nothing downstream needs a token
+for them. The prompt therefore asks for Japanese words only — it used to ask for
+the gaps as tokens too.
+
+Anchoring a whitespace token is not merely useless, it is unsound. A space the
+model invented as a word separator matches whichever **real** space comes next,
+which drags the cursor past every word in between; the next real word then fails
+to match and gets reported as missing. `涼しい風吹く 青空の匂い` failed four
+identical attempts over a `風` sitting at offset 3, because a bogus space after
+`涼しい` had already consumed the one at offset 6, and the retry feedback asked
+the model to fix a word that was already correct.
+
+Two consequences shape the retry feedback:
+
+- A "not present in order" failure names where the search stood — the surface
+  that last matched and the text still unmatched after it — not just the surface
+  it could not find. An uncovered-text failure quotes the whole run of Japanese
+  characters no surface claimed, not its first character.
+- The retry raises the temperature. At temperature 0 the model is deterministic,
+  so a retry whose only difference is the two extra feedback fields reproduces
+  the rejected output verbatim; the song-77 failure burned three retries on
+  byte-identical responses.
 
 ## Pronunciation
 

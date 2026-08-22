@@ -73,8 +73,15 @@ class GeminiClient(
      *
      * Runs on its own model property: this stage now carries the whole pipeline's disambiguation
      * signal, so its tier is tuned separately from the cheaper downstream select/translate calls.
+     *
+     * [temperature] is the caller's, not a constant, because retries need it: see
+     * [com.japanese.vocabulary.translation.service.pipeline.stage.SegmentLyricsStage].
      */
-    fun segmentAndLemmatize(lyricLines: List<Map<String, Any?>>, context: GeminiCallContext): List<SegLineDto> {
+    fun segmentAndLemmatize(
+        lyricLines: List<Map<String, Any?>>,
+        context: GeminiCallContext,
+        temperature: Double,
+    ): List<SegLineDto> {
         return callGemini(
             call = "segment",
             context = context,
@@ -82,7 +89,7 @@ class GeminiClient(
             systemPrompt = SEGMENTATION_PROMPT,
             input = lyricLines,
             responseType = SegLineDto::class.java,
-            temperature = 0.0,
+            temperature = temperature,
             responseSchema = SEGMENTATION_SCHEMA,
             thinkingLevel = segmentationThinkingLevel.takeIf { it.isNotBlank() }
         )
@@ -321,8 +328,10 @@ class GeminiClient(
               - 정도·희망 등의 접미 성분: わからなすぎ → わから / なすぎ, 見たい → 見 / たい
               - 사전 표제어가 아닌 복합명사: 納豆巻き → 納豆 / 巻き
               보조 성분의 headword는 그 보조어의 사전형이다: った → いく, なすぎ → ない, たい → たい.
-            - 공백과 기호 등 일본어 단어가 아닌 부분도 원문 순서대로 word로 출력한다.
-              이런 토큰은 headword/usedReading/baseFormReading을 모두 surface와 같게 두고 contextGloss는 빈 문자열로 둔다.
+            - **일본어 단어만 출력한다.** 공백·구두점·따옴표·라틴 문자·숫자는 word로 만들지 마라.
+              서버가 원문에서 위치로 되읽으므로 출력할 필요가 없다.
+              특히 원문에 없는 공백을 단어 구분자로 끼워 넣지 마라. 그러면 뒤에 있는 진짜 공백과 어긋나
+              그 줄 전체의 위치 정렬이 깨진다.
 
             ## 예시
             - 上手くいって → 上手く / いって
@@ -335,11 +344,14 @@ class GeminiClient(
             - どこかで → どこか / で
             - 行く宛 → 行く / 宛
             - 飛び立つ → 飛び立つ
-            - 「それでも」って → 「 / それでも / 」 / って
-            - 「　　　　」 → 「 / 　　　　 / 」
+            - 「それでも」って → それでも / って  (따옴표는 출력하지 않는다)
+            - 涼しい風吹く 青空の匂い → 涼しい / 風 / 吹く / 青空 / の / 匂い  (공백은 출력하지 않는다)
+            - 「　　　　」 → words: []  (일본어 단어가 없는 줄은 빈 배열)
 
             ## 출력 규칙
-            - surface: 원문에 나타난 그대로의 표면형(활용형 포함). 원문 순서대로 빠짐없이. surface를 순서대로 이으면 원문과 같아야 한다.
+            - surface: 원문에 나타난 그대로의 표면형(활용형 포함). **원문을 그대로 잘라낸 부분문자열**이어야 한다.
+              원문 등장 순서를 지키고, 원문의 일본어 부분을 하나도 빠뜨리지 않는다.
+              공백·기호는 출력하지 않으니 surface 사이에 그만큼의 틈이 생기는 것은 정상이다.
             - headword: 그 word 하나의 사전 표제형. 조사/조동사를 붙인 구 형태를 headword로 만들지 마라.
               - **headword 자체가 두 단어의 결합이면 분절이 틀린 것이다**: 長くない, わからない, 置いていく, 飛んでいく, そうでもない은 headword가 될 수 없다.
               - 가능동사·가능형 → 원동사: 消せる→消す, 出会える→出会う, 飛び立てる→飛び立つ, 愛せる→愛す, なれる→なる, 言える→言う.

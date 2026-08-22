@@ -39,7 +39,7 @@ class SegmentLyricsStage(
             val segmented = ChunkedGeminiCall.flatMap(
                 buildRequest(input, failuresByIndex),
                 SEGMENT_CHUNK_LINES,
-            ) { chunk -> geminiClient.segmentAndLemmatize(chunk, input.callContext) }
+            ) { chunk -> geminiClient.segmentAndLemmatize(chunk, input.callContext, temperatureFor(attempt)) }
             val result = segmentAnchoringValidator.anchor(pendingByIndex, segmented)
 
             anchoredByIndex.putAll(result.anchoredByIndex)
@@ -91,6 +91,18 @@ class SegmentLyricsStage(
             }
     }
 
+    /**
+     * Retries sample; the first attempt does not.
+     *
+     * At temperature 0 the model is deterministic, so a retry whose only difference is two extra
+     * fields reproduces the rejected output verbatim — three retries on `涼しい風吹く 青空の匂い` came
+     * back byte-identical and burned every attempt. Sampling is what makes a second attempt a second
+     * attempt. It stays low: this stage carries the pipeline's disambiguation signal and a hot model
+     * invents readings.
+     */
+    private fun temperatureFor(attempt: Int): Double =
+        minOf(SEGMENT_MAX_TEMPERATURE, attempt * SEGMENT_TEMPERATURE_STEP)
+
     private fun describeFailures(failuresByIndex: Map<Int, String>): String {
         val sorted = failuresByIndex.entries.sortedBy { it.key }
         val shown = sorted.take(FAILURE_DETAIL_LIMIT).joinToString("; ") { "index=${it.key}: ${it.value}" }
@@ -103,13 +115,27 @@ class SegmentLyricsStage(
 
         /** Lines per segmentation call. Bounds response length so long songs cannot stop mid-array. */
         const val SEGMENT_CHUNK_LINES = 20
+
+        /** Temperature added per retry: attempt 0 is deterministic, attempt 1 is 0.3, and so on. */
+        const val SEGMENT_TEMPERATURE_STEP = 0.3
+
+        const val SEGMENT_MAX_TEMPERATURE = 0.9
         private const val FAILURE_DETAIL_LIMIT = 3
         private const val INDEX_FIELD = "index"
         private const val PREVIOUS_VALIDATION_ERROR_FIELD = "previousValidationError"
         private const val RETRY_INSTRUCTION_FIELD = "retryInstruction"
         private const val RETRY_INSTRUCTION =
             "The previous segmentation output failed validator checks for this line. " +
-                "Fix the segmentation so every surface appears in order and all original Japanese text is covered. " +
+                // Naming the rules the validator actually enforces, in the order it enforces them.
+                // A retry that only repeats "appears in order" leaves the model guessing which of its
+                // words moved the anchor, and it answers by re-sending the same array.
+                "Every surface must be an exact substring of this line's text, cut from it without " +
+                "changing a character, and the surfaces must appear in the line's own order. " +
+                // The failure this feedback exists for: an invented space matches the next real space
+                // and drags the anchor past the words in between.
+                "Output Japanese words only — no whitespace, punctuation, quote or latin tokens, and " +
+                "never a separator that is not in the text. Gaps between surfaces are expected. " +
+                "Every Japanese character of the line must fall inside some surface. " +
                 // The validator rejects readings too, so a retry that only talks about surfaces steers
                 // the model away from half the failures it is being asked to fix.
                 "usedReading and baseFormReading must be kana only — katakana preferred, no kanji, no " +
