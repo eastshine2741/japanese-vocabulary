@@ -39,7 +39,7 @@ class SongStudyViewService(
                     startTimeMs = line.startTimeMs,
                     tokens = analyzed?.tokens ?: emptyList(),
                     koreanLyrics = analyzed?.koreanLyrics,
-                    koreanPronounciation = analyzed?.koreanPronounciation,
+                    pronounciation = analyzed?.pronounciation,
                 )
             }
         } else {

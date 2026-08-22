@@ -37,28 +37,40 @@ Completion is the active switch boundary: it locks the work row and target song 
 
 ## Word Meaning Pipeline
 
-2026-07 guardrail redesign, meaning generation stage: `gemini-3.1-flash-lite`.
-
 Detailed design: `docs/translation-pipeline.md`.
 
-Flow: `(translation || [segment -> surface check/retry -> grammar rules -> jisho/i-adjective normalize]) -> sense-select -> sense-translate -> assemble`.
+Flow: `(translation || [segment -> surface/reading check + retry -> grammar rules -> jisho entry-select]) -> sense-select -> sense-translate -> assemble`.
 
 `KoreanLyricTranslationService` is the orchestrator. Concrete steps live in `translation.service.pipeline.stage` as `PipelineStage<I, O>` implementations, and stage DTOs live in `translation.model`.
 
-1. **translate lyrics** (LLM): original line -> Korean lyrics/pronunciation. This gives sense-select context.
-2. **segment** (LLM): original line -> semantic segments + lemma restoration. Replaces Kuromoji.
-3. **surface check/retry** (code): validates segmented surfaces cover the original Japanese text in order. Failed segmentation is retried.
-4. **grammar rules** (code): deterministically handles only grammar tokens that lexical lookup cannot reliably recover, such as `ている/てる`, particles, and `どうも こうも` rewrite. Ambiguous words such as `ない` and `から` stay out of the rule table.
-5. **jisho + i-adjective normalize** (code): segmented headwords -> candidate sense list. Unsafe fallbacks are rejected, and i-adjective adverbials such as `高く` can be normalized through a `高い` probe. Each candidate carries the headword and reading of the `japanese[]` element that matched the query, not of `japanese[0]` — one jisho entry bundles several spelling/reading pairs (`言` owns 言[げん] and 言[こと]).
-6. **sense-select** (LLM): chooses the matching sense ID for each word using lyric translation as context. It does not create meanings directly. Candidates are sent as `{senseId, headword, reading, english, pos}`; headword/reading separate homographs that share a `dictionaryForm` and can have near-identical English glosses (前[ぜん] "before / earlier" vs 前[まえ] "before / earlier / previously").
+1. **translate lyrics** (LLM, `gemini.translation-model`): original line -> Korean lyrics. This gives sense-select context. It no longer produces a pronunciation.
+2. **segment** (LLM, `gemini.segmentation-model`): original line -> segments, each with `surface`, `headword`, `usedReading`, `baseFormReading` (both katakana), and a short English `contextGloss`. Replaces Kuromoji. This stage carries the pipeline's disambiguation signal, so its model tier is configured separately from the cheaper downstream calls. Sent in `SEGMENT_CHUNK_LINES` chunks.
+3. **surface/reading check + retry** (code): validates that segmented surfaces cover the original Japanese text in order and that both readings are kana-only. Hiragana is normalized to katakana rather than retried; kanji left in a reading fails that line, which is retried on its own.
+4. **grammar rules** (code): deterministically handles only grammar tokens that lexical lookup cannot reliably recover, such as `ている/てる`, particles, and the `どうも こうも` rewrite. Ambiguous words such as `ない` and `から` stay out of the rule table.
+5. **jisho entry-select** (code): a lookup keyed by headword returns every dictionary entry it touched, boundaries intact — one entry per `(headword, reading)` pair. `LexicalResolver` narrows to the entry matching the segment's `(headword, baseFormReading)` pair and offers only that entry's senses — or, when the pair still matches several entries (a kana headword such as かける does this), offers them all with entry labels attached. See the grade table in `docs/translation-pipeline.md`. i-adjective adverbials such as `高く` can still be normalized through a `高い` probe.
+6. **sense-select** (LLM): chooses the matching sense ID for each word, using the lyric translation and the segment's `contextGloss` as context. It does not create meanings directly. **A word with only one candidate sense is settled in code without a request.** Sense candidates carry headword/reading only in the `AMBIGUOUS_HEADWORD` grade, where senses from several entries share one request.
 7. **sense-translate** (LLM): translates each chosen Japanese sense to one Korean meaning. Multiple English glosses for one sense are treated as one sense description, not concatenated gloss translations.
-8. **assemble** (code): fills reading, POS, JLPT, and meaning from rule results or selected sense. If no sense exists, leave it empty. Non-Japanese punctuation, English, and numbers are marked `SYMBOL`.
+8. **assemble** (code): `Token.reading` is the segment's inflected `usedReading` and `Token.baseFormReading` is the chosen entry's dictionary reading, so 行って keeps イッテ while its headword 行く reads イク. POS, JLPT, and meaning come from the rule result or the selected sense. If no sense exists, leave it empty. Non-Japanese punctuation, English, and numbers are marked `SYMBOL`. The line's `pronounciation` is assembled here by joining the tokens' `usedReading` in position order and copying the raw text of the gaps between them.
+
+### Pronunciation is katakana; Hangul is derived on the client
+
+`AnalyzedLine.pronounciation` holds katakana. The Hangul transcription that used to come from the
+translation prompt — including its rule forcing voiceless K/T rows to aspirated Korean against
+외래어 표기법's word-initial rule — is now `app-rn/src/utils/readingConverter.ts`'s `katakanaToKorean`,
+which already encoded the same mapping. The prompt's few-shot pairs live on as
+`readingConverter.test.ts`. One divergence: that function writes a long vowel as a hyphen (`ドウ` →
+`도-`), where the prompt asked for `도우`.
+
+`AnalyzedLine.koreanPronounciation` is legacy. New analysis always writes null; it stays on the model
+only so rows written before `pronounciation` existed still deserialize.
 
 Failures end as `song_analysis_work.status=FAILED` without automatic retry in the first pass. If the user requests the same song again, a new work is created.
 
-Experiment and validation code: `gemini-playground/word-meaning-harness/`. Cost is approximately `$0.031/song`.
+Experiment and validation code lives under `gemini-playground/src/experiments/`. Cost was approximately `$0.031/song` before this redesign; segmentation now produces five fields per word instead of two, and sense-select is skipped for unambiguous words, so the split between the two has shifted and has not been re-measured.
 
-> If Redis DTO schema for jisho cache changes, clear old `jisho:*` cache. Unknown-field-tolerant deserialization can turn old cached values into empty results, causing tokens to lose meaning/POS without obvious error logs.
+> The jisho Redis cache key carries a schema version (`jisho:v4:`). Bump it whenever the cached DTO
+> changes: unknown-field-tolerant deserialization turns an old cached value into an empty result,
+> which drops meanings and POS with no error in the logs.
 
 ## Major Word Ranking
 

@@ -1,11 +1,13 @@
 package com.japanese.vocabulary.translation.client.jisho
 
 import org.springframework.stereotype.Component
+import com.japanese.vocabulary.translation.client.jisho.dto.JishoDictionaryEntryDto
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoEntryDto
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoEntryRawDto
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoLookupProvenance
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoOptionDto
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoSearchResponse
+import com.japanese.vocabulary.translation.service.pipeline.JapaneseText
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -18,12 +20,13 @@ import org.springframework.web.client.RestClientResponseException
  * fan-out live in [com.japanese.vocabulary.translation.service.JishoService].
  *
  * A single [fetch] does one HTTP GET (with 429 backoff) and distills the response into a
- * [JishoEntryDto], faithful to the playground `_jisho_full_fetch`:
- * - **Flatten all senses**: every sense of every exact-match entry (`japanese.word`/`reading` == query)
- *   becomes one [JishoOptionDto] carrying its own reading/POS/EN gloss/JLPT.
- * - **Fallback provenance**: if NO entry exactly matches, jisho's top entry is retained as rejected
- *   fallback evidence. Downstream code must opt in before using fallback candidates.
- * - Returns null on an unrecovered network/HTTP error so the caller skips caching (retries next run).
+ * [JishoEntryDto] whose **entry boundaries are preserved**: one [JishoDictionaryEntryDto] per
+ * `(headword, reading)` pair the query touched, each carrying only its own senses. Narrowing to one
+ * entry is not done here — the query knows the headword but not the reading, and one headword lookup
+ * is shared by tokens that read it differently, so the cached value must hold every entry and
+ * [com.japanese.vocabulary.translation.service.pipeline.LexicalResolver] picks.
+ *
+ * Returns null on an unrecovered network/HTTP error so the caller skips caching (retries next run).
  */
 @Component
 class JishoClient(
@@ -66,29 +69,32 @@ class JishoClient(
     }
 
     /**
-     * Flatten exact-match entries' senses into options. If none match, retain jisho's top entry as
-     * rejected fallback evidence rather than silently making it usable.
-     * Mirrors `_jisho_full_fetch`'s match policy + `_flatten_entry`.
+     * Expands the response into dictionary entries, one per `(headword, reading)` pair.
+     *
+     * A jisho entry's `japanese[]` block lists every spelling/reading pair the entry owns, and the
+     * senses belong to all of them. Each pair becomes its own [JishoDictionaryEntryDto] so a later
+     * pair match can name exactly one word. Entries that touch the query at all are kept: if none
+     * does, jisho's top hit is retained as rejected-fallback evidence rather than being made usable.
      */
     internal fun distill(word: String, response: JishoSearchResponse): JishoEntryDto {
-        val exactOptions = response.data
+        val matching = response.data
             .filter { entry -> entry.japanese.any { it.word == word || it.reading == word } }
-            .flatMap { flattenEntry(word, it) }
-        if (exactOptions.isNotEmpty()) {
+            .flatMap { expandEntry(it) }
+        if (matching.isNotEmpty()) {
             return JishoEntryDto(
                 found = true,
                 word = word,
-                options = exactOptions,
+                entries = matching,
                 provenance = JishoLookupProvenance.EXACT,
             )
         }
 
-        val fallbackOptions = response.data.firstOrNull()?.let { flattenEntry(word, it) } ?: emptyList()
-        if (fallbackOptions.isNotEmpty()) {
+        val fallback = response.data.firstOrNull()?.let { expandEntry(it) } ?: emptyList()
+        if (fallback.isNotEmpty()) {
             return JishoEntryDto(
                 found = false,
                 word = word,
-                options = fallbackOptions,
+                entries = fallback,
                 provenance = JishoLookupProvenance.REJECTED_FALLBACK,
                 rejectedFallbackReason = "No exact japanese.word or reading matched query",
             )
@@ -98,38 +104,62 @@ class JishoClient(
     }
 
     /**
-     * One jisho entry → one [JishoOptionDto] per sense. Mirrors `_flatten_entry`.
+     * One raw jisho entry → one [JishoDictionaryEntryDto] per spelling/reading pair it lists.
      *
-     * Headword and reading are taken from the `japanese[]` element that matched [word], not from
-     * `japanese[0]`. One entry bundles every spelling/reading pair it owns — `言` carries 言[げん] and
-     * 言[こと], `岳` carries 岳[たけ] and 岳[だけ] — so keying off the first element attributes げん to a
-     * query for こと. Falls back to the first element for the rejected-fallback path, where no element
-     * matches by definition.
+     * The senses are shared across those pairs — that is how jisho models it, and splitting them is
+     * what makes 前[マエ] addressable without dragging in 先[サキ]'s meanings from the same raw entry.
+     * Readings are converted to katakana here so every downstream comparison and every cached value
+     * speaks one script.
      */
-    private fun flattenEntry(word: String, entry: JishoEntryRawDto): List<JishoOptionDto> {
-        val matched = entry.japanese.firstOrNull { it.word == word || it.reading == word }
-            ?: entry.japanese.firstOrNull()
-        val reading = matched?.reading ?: matched?.word
-        val headword = matched?.word
-        val options = mutableListOf<JishoOptionDto>()
+    private fun expandEntry(entry: JishoEntryRawDto): List<JishoDictionaryEntryDto> {
+        val senses = flattenSenses(entry)
+        if (senses.isEmpty()) return emptyList()
+        return entry.japanese.mapNotNull { japanese ->
+            val reading = readingOf(japanese.reading ?: japanese.word)
+            // Nothing to address the entry by. jisho really does ship these — `ソフト・クリーム` and
+            // `いすゞ` have readings that are not kana — and a null/null entry can match nothing, so it
+            // would only take up room in the cached payload.
+            if (japanese.word == null && reading == null) return@mapNotNull null
+            JishoDictionaryEntryDto(
+                headword = japanese.word,
+                reading = reading,
+                jlpt = entry.jlpt,
+                senses = senses,
+            )
+        }
+    }
+
+    /**
+     * A reading, or null when jisho gave something that is not one.
+     *
+     * An element normally carries its own kana reading, but a few carry only a written form — and
+     * falling back to that would put kanji in a reading field, which then reaches the app's
+     * katakana-to-Hangul conversion. A null reading simply cannot match a pair, which downgrades the
+     * lookup to a headword match instead of poisoning the entry.
+     */
+    private fun readingOf(raw: String?): String? {
+        if (raw == null) return null
+        return JapaneseText.toKatakana(raw).takeIf { JapaneseText.isKanaOnly(it) }
+    }
+
+    /** Entry senses in order, dropping meta senses and carrying POS forward the way jisho reports it. */
+    private fun flattenSenses(entry: JishoEntryRawDto): List<JishoOptionDto> {
+        val senses = mutableListOf<JishoOptionDto>()
         var carryPos: List<String> = emptyList() // jisho repeats POS only when it changes; carry forward
         for (sense in entry.senses) {
             if (sense.englishDefinitions.isEmpty()) continue
             val pos = sense.partsOfSpeech.ifEmpty { carryPos }
             carryPos = pos
             if (pos.any { it.contains("Wikipedia") }) continue // drop meta senses
-            options.add(
+            senses.add(
                 JishoOptionDto(
-                    headword = headword,
-                    reading = reading,
                     pos = pos,
                     english = sense.englishDefinitions.joinToString(" / "),
-                    jlpt = entry.jlpt,
                     englishDefinitions = sense.englishDefinitions,
                 ),
             )
         }
-        return options
+        return senses
     }
 
     private companion object {

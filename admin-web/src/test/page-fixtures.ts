@@ -56,7 +56,7 @@ export const lyricDetail: LyricDetail = {
     {
       index: 0,
       koreanLyrics: "가라앉듯이 녹아가듯이",
-      koreanPronounciation: "시즈무요-니 토케테유쿠요-니",
+      pronounciation: "シズムヨウニトケテユクヨウニ",
       tokens: [
         {
           surface: "沈む",

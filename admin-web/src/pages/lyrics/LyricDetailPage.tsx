@@ -209,8 +209,8 @@ function LyricPreviewLine({
         <div className="flex flex-wrap items-end gap-x-1.5 gap-y-3">
           {renderTokens(rawLine, analyzedLine, selectedKey, onTokenSelect)}
         </div>
-        {analyzedLine?.koreanPronounciation ? (
-          <p className="mt-3 text-sm text-[#637083]">{analyzedLine.koreanPronounciation}</p>
+        {analyzedLine?.pronounciation ? (
+          <p className="mt-3 text-sm text-[#637083]">{analyzedLine.pronounciation}</p>
         ) : null}
         {analyzedLine?.koreanLyrics ? (
           <p className="mt-1 text-sm font-medium leading-6 text-[#18212f]">{analyzedLine.koreanLyrics}</p>
@@ -374,8 +374,8 @@ function WordInspector({ selectedToken }: { selectedToken: SelectedToken | null 
 
       <div className="space-y-4 px-5 py-4">
         <ContextBlock label="Original line" value={highlightToken(rawLine.text, token.charStart, token.charEnd)} />
-        {analyzedLine.koreanPronounciation ? (
-          <ContextBlock label="Pronunciation" value={analyzedLine.koreanPronounciation} />
+        {analyzedLine.pronounciation ? (
+          <ContextBlock label="Pronunciation" value={analyzedLine.pronounciation} />
         ) : null}
         <ContextBlock label="Translation" value={analyzedLine.koreanLyrics || "해석 없음"} />
       </div>

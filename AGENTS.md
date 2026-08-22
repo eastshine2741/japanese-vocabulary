@@ -16,6 +16,7 @@ Japanese learning app based on songs. Users pick a song they like, study its lyr
 ./deploy.sh                                   # k3s에 backend(api+batch+admin-api+admin-web) + mysql + redis 배포
 cd backend && ./gradlew :admin-api:test       # Admin API tests
 cd admin-web && npm run dev                   # Admin Web (local, http://localhost:5174)
+cd app-rn && npm test                         # App unit tests (vitest)
 cd app-rn && npx expo run:android             # App - Android
 cd app-rn && npx expo start --web             # App - Web (dev)
 ```
@@ -105,6 +106,8 @@ Outer:  Word, Flashcard, Deck    — 사용자 학습 데이터 (domains:word)
 **Backend modularization:** Multi-module Gradle split 완료. dto 규칙 적용. `@Scheduled`는 batch에만. notification 모듈은 FCM 전송 책임만, DB 조회는 batch가 담당하고 `PushNotificationDataPort`로 추상화. 학습 데이터는 `domains:word` 한 모듈로 통합됐다 — `word`/`flashcard`/`deck` package 가 같은 모듈에 있고 `WordService` 가 셋의 수명주기를 한 트랜잭션에서 소유한다. word↔deck 사이 Spring Event 는 제거됐다.
 
 **Word 스키마 (V29):** 단어는 뜻(sense) 단위다. `words.senses` JSON 이 `{meaning, partOfSpeech, jlpt, examples[]}` 배열을 들고 있고, 예문은 sense 당 최대 5개다. `song_words`·`deck_flashcards` 는 제거됐고 deck 멤버십은 `deck_word(deck_id, word_id)` 가 갖는다. SongDetail 담김 판정은 `words` 를 `UNIQUE(user_id, japanese_text)` 로 한 번 조회한 뒤 곡이 제시한 뜻이 **전부** 저장돼 있는지 메모리에서 비교한다(ALL 판정). `PUT /api/words/{id}` 는 `senses` 전체 replace 다. 곡 분석이 주는 뜻은 "사랑, 애정" 같은 쉼표 문자열 하나라서 담기 직전에 조각마다 sense 로 쪼갠다 — 이미 담긴 조각엔 예문만 붙고 처음 보는 조각만 새 sense 가 된다. 예문은 **첫 조각만** 갖는다(같은 가사 줄이 뜻마다 반복되면 안 된다). `splitMeaningText`, 앱에도 같은 규칙이 있다. 설계 근거는 `docs/architecture/word-schema.md`.
+
+**Word Meaning Pipeline (jisho entry 경계):** 사전 entry 는 `(headword, reading)` 페어다. `JishoClient.distill` 이 조회 결과를 페어 단위 entry 로 보존하고, `LexicalResolver` 가 segmentation 이 준 `(headword, baseFormReading)` 과 맞춰 **한 entry 로 좁힌 뒤 그 entry 의 sense 만** sense-select 에 넘긴다. 이전에는 모든 entry 의 모든 sense 가 경계 없이 한 배열로 합쳐져, `前` 조회에 前[マエ]·前[ゼン]·先[サキ] 의 뜻이 섞였다. 페어가 entry 하나를 특정할 때만 `EXACT` 다 — 가나 표제어(`かける` → 掛ける/賭ける/欠ける 전부 カケル)처럼 페어가 여러 entry 에 걸리면 `AMBIGUOUS_HEADWORD` 로 라벨을 붙여 넘긴다. reading 이 어긋날 때도 후보 entry 수에 따라 `APPROVED_FALLBACK` / `AMBIGUOUS_HEADWORD` 로 완충한다. **후보 sense 가 1개면 LLM 을 부르지 않고 코드가 확정한다.** 발음은 **카타카나**로 통일했다 — `JapaneseText.toKatakana` 가 유일한 정규화 지점이고, `AnalyzedLine.pronounciation` 이 그 줄의 카타카나 발음이다. 한글 독음은 서버 프롬프트가 아니라 앱의 `katakanaToKorean` 이 파생한다. `koreanPronounciation` 은 구 데이터 전용(신규 분석은 항상 null). jisho 캐시 키는 `jisho:v4:`. 설계 근거는 `docs/translation-pipeline.md`.
 
 **Admin surface:** `backend/admin-api` exposes `/admin/api/auth/login`, `/admin/api/songs`, `/admin/api/lyrics`, `/admin/api/song-analysis-works`, and `/admin/api/users`. `admin-web` is a Vite React TypeScript shadcn-style SPA. See `docs/admin-service.md`.
 

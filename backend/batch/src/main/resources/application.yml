@@ -45,6 +45,9 @@ gemini:
   api-key: ${GEMINI_API_KEY}
   translation-model: gemini-3.1-pro-preview
   word-meaning-model: gemini-3.1-flash-lite
+  # Segmentation now carries the whole pipeline's disambiguation signal — both readings and the
+  # context gloss. Its tier is tuned separately from the cheaper select/translate calls.
+  segmentation-model: gemini-3.1-flash-lite
 
 youtube:
   api-key: ${YOUTUBE_API_KEY}

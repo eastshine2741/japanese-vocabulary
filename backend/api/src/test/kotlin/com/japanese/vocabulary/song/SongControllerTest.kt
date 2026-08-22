@@ -393,7 +393,7 @@ class SongControllerTest : ApiBaseIntegrationTest() {
                     AnalyzedLine(
                         index = 0,
                         koreanLyrics = "밤",
-                        koreanPronounciation = "요루",
+                        pronounciation = "ヨル",
                         tokens = listOf(
                             Token(
                                 surface = "夜",
@@ -450,7 +450,7 @@ class SongControllerTest : ApiBaseIntegrationTest() {
                     AnalyzedLine(
                         index = 2,
                         koreanLyrics = "밤을 넘다",
-                        koreanPronounciation = "요루오 코에루",
+                        pronounciation = "ヨルヲコエル",
                         tokens = listOf(
                             Token("夜", "夜", "よる", "よる", PartOfSpeech.NOUN, 0, 1),
                         ),
@@ -467,6 +467,10 @@ class SongControllerTest : ApiBaseIntegrationTest() {
                 jsonPath("$.lines[0].index") { value(2) }
                 jsonPath("$.lines[0].originalText") { value("夜を越える") }
                 jsonPath("$.lines[0].koreanLyrics") { value("밤을 넘다") }
+                // The clients read only `pronounciation` and derive the Hangul reading themselves, so
+                // the katakana has to survive the wire and the retired field must not come back.
+                jsonPath("$.lines[0].pronounciation") { value("ヨルヲコエル") }
+                jsonPath("$.lines[0].koreanPronounciation") { doesNotExist() }
                 jsonPath("$.lines[0].tokens[0].surface") { value("夜") }
                 jsonPath("$.lines[0].tokens[0].baseForm") { value("夜") }
                 jsonPath("$.lines[0].tokens[0].reading") { value("よる") }
@@ -497,7 +501,7 @@ class SongControllerTest : ApiBaseIntegrationTest() {
                     AnalyzedLine(
                         index = 0,
                         koreanLyrics = "활성",
-                        koreanPronounciation = "아쿠티부",
+                        pronounciation = "アクティブ",
                         tokens = emptyList(),
                     ),
                 ),
@@ -575,7 +579,7 @@ class SongControllerTest : ApiBaseIntegrationTest() {
                     LyricLineData(index = 0, startTimeMs = null, text = "高く低く"),
                     LyricLineData(index = 1, startTimeMs = null, text = "高く"),
                 ),
-                analyzed = listOf(AnalyzedLine(index = 0, koreanLyrics = "높고 낮게", koreanPronounciation = null, tokens = emptyList())),
+                analyzed = listOf(AnalyzedLine(index = 0, koreanLyrics = "높고 낮게", tokens = emptyList())),
                 wordCandidates = wordCandidates,
             )
             val savedWord = TestWordBuilder(entityManager)
@@ -674,9 +678,9 @@ class SongControllerTest : ApiBaseIntegrationTest() {
                     LyricLineData(index = 2, startTimeMs = null, text = "重い約束"),
                 ),
                 analyzed = listOf(
-                    AnalyzedLine(index = 0, koreanLyrics = "무거운 짐", koreanPronounciation = null, tokens = emptyList()),
-                    AnalyzedLine(index = 1, koreanLyrics = "중요한 말", koreanPronounciation = null, tokens = emptyList()),
-                    AnalyzedLine(index = 2, koreanLyrics = "중요한 약속", koreanPronounciation = null, tokens = emptyList()),
+                    AnalyzedLine(index = 0, koreanLyrics = "무거운 짐", tokens = emptyList()),
+                    AnalyzedLine(index = 1, koreanLyrics = "중요한 말", tokens = emptyList()),
+                    AnalyzedLine(index = 2, koreanLyrics = "중요한 약속", tokens = emptyList()),
                 ),
                 wordCandidates = wordCandidates,
             )

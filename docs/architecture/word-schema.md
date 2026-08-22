@@ -132,6 +132,24 @@ sense 동일성 기준은 **뜻 텍스트 문자열 일치**다. 비교 대상�
 | `UpdateWord` API | `senses` 전체 replace | **lost update 가능** — 상세화면을 열어둔 채 SongDetail 에서 같은 단어를 담으면 상세화면 저장이 그 사이 추가된 sense 를 덮어쓴다. 낙관적 잠금·원소 UUID 는 범위 밖 |
 | 기존 데이터 | V29 전체 백필 | 예문을 어느 sense 에 붙일지 알 수 없어 첫 sense 에 몰아넣음 |
 
+## 미해결 — 동음이의어가 한 행으로 합쳐진다
+
+`words` 의 유일성 제약은 `UNIQUE(user_id, japanese_text)`
+(`V8__word_unique_constraints.sql:1`) 이고 `reading` 은 word 당 하나다. 곡 분석
+파이프라인은 사전 entry 를 `(headword, reading)` 페어로 구분하지만
+(`docs/translation-pipeline.md` 의 "Jisho Entry Select"), **저장 계층은 headword
+만으로 유일하다.** 그래서 前[マエ] 와 前[ゼン] 은 한 행으로 합쳐지고, `reading`
+은 먼저 담은 쪽이 이긴다. 나중에 담긴 뜻은 같은 행의 sense 로 붙어, 읽는 법이
+다른 두 단어의 뜻이 한 카드에 섞인다.
+
+해소하려면 유일성을 `(user_id, japanese_text, reading)` 로 확장하는 마이그레이션과
+앱의 조회·저장 경로 변경이 함께 필요하다. **이번 파이프라인 리팩토링 범위 밖이다.**
+
+관련해서, `words.reading` 은 담은 시점의 `token.baseFormReading` 사본이다.
+파이프라인이 카타카나로 바뀌었으므로 그 이전에 담긴 단어는 히라가나로 남아 있다.
+앱이 `convertReading` 으로 항상 변환해 보여주므로 화면은 일관되지만, 카타카나
+모드에서 구 단어만 히라가나로 보인다. 백필은 별도 작업이다.
+
 ## 범위 밖
 
 - 사전 sense id 기반 식별
@@ -141,3 +159,5 @@ sense 동일성 기준은 **뜻 텍스트 문자열 일치**다. 비교 대상�
 - 담기 취소 / 뜻 개별 삭제를 SongDetailScreen 에 노출하기
 - `senses` replace 의 lost update 방지
 - 곡 삭제 시 `decks.song_id` 처리 정책
+- `words` 유일성을 `(user_id, japanese_text, reading)` 로 확장해 동음이의어 분리 저장
+- `words.reading` 히라가나 → 카타카나 백필

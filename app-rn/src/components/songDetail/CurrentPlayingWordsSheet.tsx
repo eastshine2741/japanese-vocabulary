@@ -17,6 +17,7 @@ import { Layers } from '../../theme/layers';
 import { AppBottomSheet, AppBottomSheetRef } from '../bottomSheet';
 import { getPosColor } from '../../types/pos';
 import { Token } from '../../types/song';
+import { convertReading } from '../../utils/readingConverter';
 import SongDetailWordRow from './SongDetailWordRow';
 import { getSongDetailWordKey } from './songDetailWordSave';
 import { SongDetailWordItem, SongDetailWordSaveState } from './types';
@@ -29,7 +30,8 @@ export interface CurrentPlayingLyricLine {
   originalText: string;
   startTimeMs: number | null;
   koreanLyrics: string | null;
-  koreanPronounciation?: string | null;
+  /** Katakana reading of the line; converted to Hangul for display. */
+  pronounciation?: string | null;
   tokens?: Token[];
 }
 
@@ -331,7 +333,11 @@ const CurrentWordsPageCard = React.memo(function CurrentWordsPageCard({
     () => getLyricFontSizes(lyricTokens, width),
     [lyricTokens, width],
   );
-  const hasCurrentKorean = Boolean(page.line.koreanPronounciation || page.line.koreanLyrics);
+  const koreanPronunciation = useMemo(
+    () => (page.line.pronounciation ? convertReading(page.line.pronounciation, 'KOREAN') : null),
+    [page.line.pronounciation],
+  );
+  const hasCurrentKorean = Boolean(koreanPronunciation || page.line.koreanLyrics);
 
   return (
     <View style={[styles.pageCard, { width }]}>
@@ -343,9 +349,9 @@ const CurrentWordsPageCard = React.memo(function CurrentWordsPageCard({
         </View>
         {hasCurrentKorean ? (
           <View style={styles.currentKorean}>
-            {page.line.koreanPronounciation ? (
+            {koreanPronunciation ? (
               <Text style={styles.koreanPronunciationText} numberOfLines={1}>
-                {page.line.koreanPronounciation}
+                {koreanPronunciation}
               </Text>
             ) : null}
             {page.line.koreanLyrics ? (

@@ -19,7 +19,7 @@ function toLegacyStudyUnits(lyrics: SongLyricsDto): StudyUnit[] {
     startTimeMs: line.startTimeMs,
     tokens: line.tokens,
     koreanLyrics: line.koreanLyrics,
-    koreanPronounciation: line.koreanPronounciation,
+    pronounciation: line.pronounciation,
   }));
 }
 

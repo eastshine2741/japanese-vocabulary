@@ -27,6 +27,7 @@ import com.japanese.vocabulary.translation.client.gemini.dto.SenseTranslationDto
 import com.japanese.vocabulary.translation.client.gemini.dto.TranslationResultDto
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoEntryDto
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoLookupProvenance
+import com.japanese.vocabulary.translation.client.jisho.dto.JishoDictionaryEntryDto
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoOptionDto
 import io.mockk.coEvery
 import io.mockk.every
@@ -339,31 +340,21 @@ class SongAnalysisWorkPipelineIntegrationTest : BatchBaseIntegrationTest() {
 
     private fun stubLyricAnalysis() {
         every { geminiClient.translateLyrics(any(), any()) } returns listOf(
-            TranslationResultDto(0, "복숭아빛 열쇠", "모모이로노 카기"),
+            TranslationResultDto(0, "복숭아빛 열쇠"),
         )
         every { geminiClient.segmentAndLemmatize(any(), any()) } returns listOf(
             SegLineDto(
                 0,
                 listOf(
-                    SegWordDto(surface = "ももいろ", dictionaryForm = "ももいろ"),
-                    SegWordDto(surface = "の", dictionaryForm = "の"),
-                    SegWordDto(surface = "鍵", dictionaryForm = "鍵"),
+                    segWord("ももいろ", "モモイロ"),
+                    segWord("の", "ノ"),
+                    segWord("鍵", "カギ"),
                 ),
             ),
         )
         coEvery { jishoService.lookupAll(any()) } returns mapOf(
-            "ももいろ" to JishoEntryDto(
-                found = true,
-                word = "ももいろ",
-                options = listOf(JishoOptionDto(reading = "モモイロ", pos = listOf("Noun"), english = "pink", jlpt = emptyList())),
-                provenance = JishoLookupProvenance.EXACT,
-            ),
-            "鍵" to JishoEntryDto(
-                found = true,
-                word = "鍵",
-                options = listOf(JishoOptionDto(reading = "かぎ", pos = listOf("Noun"), english = "key", jlpt = emptyList())),
-                provenance = JishoLookupProvenance.EXACT,
-            ),
+            "ももいろ" to exactEntry("ももいろ", "モモイロ", "pink"),
+            "鍵" to exactEntry("鍵", "カギ", "key"),
         )
         every { geminiClient.selectSenses(any(), any()) } answers {
             @Suppress("UNCHECKED_CAST")
@@ -393,10 +384,32 @@ class SongAnalysisWorkPipelineIntegrationTest : BatchBaseIntegrationTest() {
         }
     }
 
+    private fun segWord(surface: String, reading: String) =
+        SegWordDto(
+            surface = surface,
+            headword = surface,
+            usedReading = reading,
+            baseFormReading = reading,
+            contextGloss = "gloss",
+        )
+
+    private fun exactEntry(word: String, reading: String, english: String) = JishoEntryDto(
+        found = true,
+        word = word,
+        entries = listOf(
+            JishoDictionaryEntryDto(
+                headword = word,
+                reading = reading,
+                senses = listOf(JishoOptionDto(pos = listOf("Noun"), english = english, englishDefinitions = listOf(english))),
+            ),
+        ),
+        provenance = JishoLookupProvenance.EXACT,
+    )
+
     private fun stubLyricAnalysisFailure() {
         every { geminiClient.translateLyrics(any(), any()) } throws RuntimeException("Gemini unavailable")
         every { geminiClient.segmentAndLemmatize(any(), any()) } returns listOf(
-            SegLineDto(0, listOf(SegWordDto(surface = "ももいろ", dictionaryForm = "ももいろ"))),
+            SegLineDto(0, listOf(segWord("ももいろ", "モモイロ"))),
         )
         coEvery { jishoService.lookupAll(any()) } returns emptyMap()
     }

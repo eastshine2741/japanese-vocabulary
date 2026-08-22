@@ -2,6 +2,7 @@ package com.japanese.vocabulary.translation.service.pipeline.stage
 
 import com.japanese.vocabulary.translation.client.gemini.GeminiClient
 import com.japanese.vocabulary.translation.client.gemini.dto.SelectLineDto
+import com.japanese.vocabulary.translation.client.jisho.dto.JishoLookupProvenance
 import com.japanese.vocabulary.translation.model.PipelineSenseOption
 import com.japanese.vocabulary.translation.model.PipelineToken
 import com.japanese.vocabulary.translation.model.PipelineTokenKey
@@ -20,13 +21,26 @@ class SelectSensesStage(
     override suspend fun execute(input: SenseSelectionStageInput): Map<PipelineTokenKey, Int> {
         val wordPreparation = input.wordPreparation
         val lexical = wordPreparation.lexical
-        val selectableTokensByIndex = wordPreparation.tokensByIndex.mapValues { (_, tokens) ->
+        val candidateTokensByIndex = wordPreparation.tokensByIndex.mapValues { (_, tokens) ->
             tokens.filter { token ->
                 JapaneseText.containsJapanese(token.surface) &&
                     !wordPreparation.ruleResolvedByKey.containsKey(token.key) &&
                     lexical.byTokenKey[token.key]?.options?.isNotEmpty() == true
             }
         }.filterValues { it.isNotEmpty() }
+
+        // A word with one candidate sense has nothing to choose between. Now that entry narrowing
+        // usually leaves a single entry, this is the common case, and asking the model to confirm it
+        // would be paying for an answer that is already determined.
+        val settledSenseByKey = candidateTokensByIndex.values.flatten()
+            .mapNotNull { token ->
+                lexical.byTokenKey.getValue(token.key).options.singleOrNull()?.let { token.key to it.senseId }
+            }.toMap()
+
+        val selectableTokensByIndex = candidateTokensByIndex
+            .mapValues { (_, tokens) -> tokens.filterNot { it.key in settledSenseByKey } }
+            .filterValues { it.isNotEmpty() }
+        if (selectableTokensByIndex.isEmpty()) return settledSenseByKey
 
         val selectInput = selectableTokensByIndex.map { (index, tokens) ->
             mapOf(
@@ -35,42 +49,44 @@ class SelectSensesStage(
                 "korean" to (input.translationMap[index]?.koreanLyrics ?: ""),
                 "segments" to tokens.map { token ->
                     val resolved = lexical.byTokenKey.getValue(token.key)
-                    mapOf(
-                        "tokenId" to token.key.tokenId,
-                        "surface" to token.surface,
-                        "dictionaryForm" to resolved.baseForm,
-                        "senses" to resolved.options.map(::senseCandidate),
-                    )
+                    buildMap {
+                        put("tokenId", token.key.tokenId)
+                        put("surface", token.surface)
+                        put("headword", resolved.baseForm)
+                        // An empty gloss is worse than none: the prompt tells the model to match
+                        // against it, and matching against "" is noise.
+                        token.contextGloss.takeIf { it.isNotBlank() }?.let { put("contextGloss", it) }
+                        put("senses", resolved.options.map(::senseCandidate))
+                    }
                 },
             )
         }
-        if (selectInput.isEmpty()) return emptyMap()
 
         val selectedLines = ChunkedGeminiCall.flatMap(selectInput, SELECT_CHUNK_LINES) {
             geminiClient.selectSenses(it, input.source.callContext)
         }
         val selectByIndex = validateLineIndices(selectableTokensByIndex.keys, selectedLines)
-        return selectedSenseByKey(selectableTokensByIndex, selectByIndex, input)
+        return settledSenseByKey + selectedSenseByKey(selectableTokensByIndex, selectByIndex, input)
     }
 
     /**
      * One sense candidate as the LLM sees it.
      *
-     * [PipelineSenseOption.headword] and [PipelineSenseOption.reading] are what make homographs
-     * separable. A query flattens EVERY exact-match entry into one list under a single
-     * `dictionaryForm`, so 前 arrives as 前[ぜん] + 先[さき] + 前[まえ] with no boundary between them,
-     * and 前[ぜん]'s "before / earlier" is indistinguishable from 前[まえ]'s "before / earlier /
-     * previously" on the English gloss alone. Without the reading the pick is a coin flip; with it the
-     * context (〜する前に reads まえ) decides. Null headwords (kana-only entries such as メッセージ) are
-     * omitted rather than sent as nulls.
+     * Headword and reading are sent only for [JishoLookupProvenance.AMBIGUOUS_HEADWORD], the one grade
+     * where senses from more than one dictionary entry share a request — there they are what makes
+     * 前[マエ]'s "before / earlier" distinguishable from 前[ゼン]'s. Every other grade has already been
+     * narrowed to a single entry, so repeating its headword and reading on each sense would restate a
+     * constant the model cannot act on.
      *
      * `englishDefinitions` is deliberately absent: [PipelineSenseOption.english] is that same list
      * joined with " / ", so sending both duplicated every gloss in the request.
      */
     private fun senseCandidate(option: PipelineSenseOption): Map<String, Any?> = buildMap {
         put("senseId", option.senseId)
-        option.headword?.let { put("headword", it) }
-        option.reading?.let { put("reading", it) }
+        if (option.provenance == JishoLookupProvenance.AMBIGUOUS_HEADWORD) {
+            option.headword?.let { put("headword", it) }
+            option.reading?.let { put("reading", it) }
+        }
         put("english", option.english)
         put("pos", option.rawPos.joinToString(" / "))
     }
@@ -96,7 +112,7 @@ class SelectSensesStage(
                 val resolved = lexical.byTokenKey[token.key]
                 val selectedSenseId = selected?.senseId ?: -1
                 // tokenId is lineIndex:charStart:charEnd:surface, so matching it pins the token
-                // identity — no surface/dictionaryForm echo needed.
+                // identity — no surface/headword echo needed.
                 val valid = selected != null &&
                     selected.tokenId == token.key.tokenId &&
                     resolved != null &&

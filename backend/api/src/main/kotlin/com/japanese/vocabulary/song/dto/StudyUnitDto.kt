@@ -8,5 +8,6 @@ data class StudyUnitDto(
     val startTimeMs: Long? = null,
     val tokens: List<Token> = emptyList(),
     val koreanLyrics: String? = null,
-    val koreanPronounciation: String? = null
+    /** The line's reading in katakana. Clients convert it for display. */
+    val pronounciation: String? = null,
 )

@@ -4,7 +4,7 @@ import { Token, StudyUnit } from '../types/song';
 import { POS_INFO } from '../types/pos';
 import { Colors } from '../theme/theme';
 import { useSettingsStore } from '../stores/settingsStore';
-import { katakanaToHiragana } from '../utils/readingConverter';
+import { convertReading, katakanaToHiragana } from '../utils/readingConverter';
 
 const NO_UNDERLINE_POS = new Set(['SYMBOL', 'SUPPLEMENTARY_SYMBOL', 'WHITESPACE']);
 
@@ -134,9 +134,9 @@ function LyricLine({
         />
       )}
       <View style={styles.tokensRow}>{renderTokens()}</View>
-      {showKoreanPronunciation && studyUnit.koreanPronounciation && (
+      {showKoreanPronunciation && studyUnit.pronounciation && (
         <Text style={isActive ? styles.pronActive : styles.pronInactive}>
-          {studyUnit.koreanPronounciation}
+          {convertReading(studyUnit.pronounciation, 'KOREAN')}
         </Text>
       )}
       {showTranslation && studyUnit.koreanLyrics && (

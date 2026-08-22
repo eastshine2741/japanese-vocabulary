@@ -17,12 +17,15 @@ class AssembleAnalyzedLinesStage : PipelineStage<AssembleAnalyzedLinesInput, Lis
     override suspend fun execute(input: AssembleAnalyzedLinesInput): List<AnalyzedLine> {
         val wordPreparation = input.wordPreparation
         return input.source.lyricLines.map { line ->
+            val tokens = wordPreparation.tokensByIndex[line.index] ?: emptyList()
+            // koreanPronounciation is left at its null default: the pronunciation this pipeline
+            // produces is katakana, and the app derives the Hangul reading from it.
             AnalyzedLine(
                 index = line.index,
                 koreanLyrics = input.translationMap[line.index]?.koreanLyrics,
-                koreanPronounciation = input.translationMap[line.index]?.koreanPronounciation,
+                pronounciation = buildPronounciation(line.text, tokens),
                 tokens = buildTokens(
-                    tokens = wordPreparation.tokensByIndex[line.index] ?: emptyList(),
+                    tokens = tokens,
                     ruleResolvedByKey = wordPreparation.ruleResolvedByKey,
                     lexical = wordPreparation.lexical,
                     selectedSenseByKey = input.selectedSenseByKey,
@@ -30,6 +33,32 @@ class AssembleAnalyzedLinesStage : PipelineStage<AssembleAnalyzedLinesInput, Lis
                 ),
             )
         }
+    }
+
+    /**
+     * The line's reading: each token's katakana reading in position order, with the raw text of any
+     * gap between tokens copied verbatim.
+     *
+     * The gaps are what keep the line legible — spaces, punctuation, and latin runs sit between tokens
+     * and have no reading of their own, so reproducing them preserves the line's shape instead of
+     * fusing every word together. A line with no tokens has nothing to transcribe, so its raw text
+     * stands in.
+     */
+    private fun buildPronounciation(rawText: String, tokens: List<PipelineToken>): String {
+        if (tokens.isEmpty()) return rawText
+        val builder = StringBuilder()
+        var cursor = 0
+        tokens.sortedBy { it.charStart }.forEach { token ->
+            if (token.charStart > cursor) {
+                builder.append(rawText, cursor, token.charStart)
+            }
+            builder.append(token.usedReading.ifBlank { token.surface })
+            cursor = maxOf(cursor, token.charEnd)
+        }
+        if (cursor < rawText.length) {
+            builder.append(rawText, cursor, rawText.length)
+        }
+        return builder.toString()
     }
 
     private fun buildTokens(
@@ -43,7 +72,7 @@ class AssembleAnalyzedLinesStage : PipelineStage<AssembleAnalyzedLinesInput, Lis
             if (!JapaneseText.containsJapanese(token.surface)) {
                 return@map Token(
                     surface = token.surface,
-                    baseForm = token.dictionaryForm,
+                    baseForm = token.headword,
                     reading = null,
                     baseFormReading = null,
                     partOfSpeech = PartOfSpeech.SYMBOL,
@@ -71,12 +100,15 @@ class AssembleAnalyzedLinesStage : PipelineStage<AssembleAnalyzedLinesInput, Lis
 
             val senseId = selectedSenseByKey[token.key] ?: -1
             val option = if (senseId >= 0) lexical.optionsById[senseId] else null
-            val resolvedBaseForm = lexical.byTokenKey[token.key]?.baseForm ?: token.dictionaryForm
+            val resolvedBaseForm = lexical.byTokenKey[token.key]?.baseForm ?: token.headword
             Token(
                 surface = token.surface,
                 baseForm = option?.baseForm ?: resolvedBaseForm,
-                reading = option?.reading,
-                baseFormReading = option?.reading,
+                // The inflected reading comes from segmentation and the dictionary reading from the
+                // chosen entry, so 行って now keeps イッテ while its headword 行く reads イク. They used
+                // to be the same jisho value, which made furigana show the dictionary form.
+                reading = token.usedReading.ifBlank { null },
+                baseFormReading = option?.reading ?: token.baseFormReading.ifBlank { null },
                 partOfSpeech = option?.partOfSpeech ?: PartOfSpeech.OTHER,
                 charStart = token.charStart,
                 charEnd = token.charEnd,

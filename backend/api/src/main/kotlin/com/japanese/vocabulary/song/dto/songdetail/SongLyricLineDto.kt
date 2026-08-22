@@ -7,6 +7,7 @@ data class SongLyricLineDto(
     val originalText: String,
     val startTimeMs: Long?,
     val koreanLyrics: String?,
-    val koreanPronounciation: String?,
+    /** The line's reading in katakana. Clients convert it for display. */
+    val pronounciation: String?,
     val tokens: List<Token> = emptyList(),
 )

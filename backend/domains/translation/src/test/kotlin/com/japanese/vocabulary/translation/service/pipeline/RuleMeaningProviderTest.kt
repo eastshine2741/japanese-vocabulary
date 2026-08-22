@@ -71,7 +71,7 @@ class RuleMeaningProviderTest {
             "どこ",
             "まで",
         )
-        assertThat(rewritten.map { it.dictionaryForm }).containsExactly(
+        assertThat(rewritten.map { it.headword }).containsExactly(
             "ここ",
             "まで",
             "そこ",
@@ -91,6 +91,38 @@ class RuleMeaningProviderTest {
             13 to 15,
             15 to 17,
         )
+    }
+
+    @Test
+    fun `gives rule-resolved grammar tokens katakana readings`() {
+        // Everything else in the pipeline stores readings in katakana; a hiragana reading here would
+        // leave particles and auxiliaries as the odd ones out in an assembled line.
+        assertThat(provider.resolve(token("は"))!!.reading).isEqualTo("ハ")
+        assertThat(provider.resolve(token("ている"))!!.baseFormReading).isEqualTo("テイル")
+        assertThat(provider.resolve(token("どうして"))!!.reading).isEqualTo("ドウシテ")
+
+        val ikagashite = provider.resolve(token("如何して"))!!
+        assertThat(ikagashite.surface).isEqualTo("如何して") // kanji spelling is kept
+        assertThat(ikagashite.reading).isEqualTo("ドウシテ")
+    }
+
+    @Test
+    fun `gives rewritten tokens katakana readings`() {
+        val rewritten = provider.rewrite(listOf(PipelineToken(0, "ここまで", "ここまで", 0, 4)))
+
+        assertThat(rewritten.map { it.usedReading }).containsExactly("ココ", "マデ")
+        assertThat(rewritten.map { it.baseFormReading }).containsExactly("ココ", "マデ")
+    }
+
+    @Test
+    fun `gives rewritten tokens a context gloss`() {
+        // ここ is a kana headword, so jisho answers it with several homophones. Sending it to
+        // sense-select with an empty gloss would strip the one hint that tells them apart — and the
+        // rewrite rules are what produce these tokens in the first place.
+        val rewritten = provider.rewrite(listOf(PipelineToken(0, "ここまで", "ここまで", 0, 4)))
+
+        assertThat(rewritten.map { it.contextGloss }).allSatisfy { assertThat(it).isNotBlank() }
+        assertThat(rewritten.first().contextGloss).contains("here")
     }
 
     private fun token(surface: String) = PipelineToken(0, surface, surface, 0, surface.length)

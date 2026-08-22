@@ -19,6 +19,7 @@ class GeminiClient(
     @Value("\${gemini.api-key}") private val apiKey: String,
     @Value("\${gemini.translation-model}") private val translationModel: String,
     @Value("\${gemini.word-meaning-model}") private val wordMeaningModel: String,
+    @Value("\${gemini.segmentation-model}") private val segmentationModel: String,
     @Value("\${gemini.max-output-tokens:0}") private val maxOutputTokens: Int,
     private val objectMapper: ObjectMapper,
     private val meterRegistry: MeterRegistry,
@@ -47,17 +48,24 @@ class GeminiClient(
     }
 
     /**
-     * Redesign stage 1 — segmentation + lemmatization (meaning-aware, no reading).
-     * Input: [{index, text}] (raw lyric lines). Output: [{index, words:[{surface,dictionaryForm}]}].
+     * Segmentation + lemmatization + readings + a context gloss.
+     * Input: [{index, text}] (raw lyric lines).
+     * Output: [{index, words:[{surface,headword,usedReading,baseFormReading,contextGloss}]}].
+     *
      * The LLM segments by meaning units (keeping fixed adverbs/compounds whole) and reduces each word
-     * to its dictionary headword (collapsing potential/causative/passive forms), so criterion #1
-     * (no derived lemmas) is satisfied here. Replaces the dropped Kuromoji ensemble. Lightweight model.
+     * to its dictionary headword (collapsing potential/causative/passive forms), so no derived lemma
+     * reaches the dictionary. It also supplies both readings in katakana — `baseFormReading` is half
+     * of the `(headword, reading)` key that pins down which jisho entry a homograph belongs to — and a
+     * short English `contextGloss` that sense-select later matches against the dictionary glosses.
+     *
+     * Runs on its own model property: this stage now carries the whole pipeline's disambiguation
+     * signal, so its tier is tuned separately from the cheaper downstream select/translate calls.
      */
     fun segmentAndLemmatize(lyricLines: List<Map<String, Any?>>, context: GeminiCallContext): List<SegLineDto> {
         return callGemini(
             call = "segment",
             context = context,
-            model = wordMeaningModel,
+            model = segmentationModel,
             systemPrompt = SEGMENTATION_PROMPT,
             input = lyricLines,
             responseType = SegLineDto::class.java,
@@ -68,10 +76,12 @@ class GeminiClient(
 
     /**
      * Redesign stage 3 — per-line sense selection.
-     * Input: [{index, japanese, korean, segments:[{tokenId,surface,dictionaryForm,senses:[{senseId,headword,reading,english,pos}]}]}].
-     * headword/reading identify which dictionary entry a sense came from — several distinct words share
-     * one dictionaryForm (前[ぜん] / 先[さき] / 前[まえ]) and their English glosses can be identical.
-     * Output: [{index, words:[{tokenId, surface, dictionaryForm, senseId}]}].
+     * Input: [{index, japanese, korean, segments:[{tokenId,surface,headword,contextGloss,senses:[{senseId,english,pos}]}]}].
+     * contextGloss is the segmentation stage's short English hint at this line's meaning; the model
+     * matches it against the candidate glosses. Senses additionally carry headword/reading only when
+     * the lookup stayed ambiguous across dictionary entries — there English glosses alone cannot
+     * separate 前[マエ] from 前[ゼン].
+     * Output: [{index, words:[{tokenId, senseId}]}].
      * The LLM uses the Korean translation as a context cue to pick the senseId that fits this line, or
      * -1 when none fits. It does NOT generate Korean meanings (blocks the over-correction failure mode).
      */
@@ -222,7 +232,6 @@ class GeminiClient(
             Return: JSON array with:
             - "index": same as input
             - "koreanLyrics": natural, poetic Korean translation
-            - "koreanPronounciation": Korean Hangul transcription of the Japanese pronunciation
 
             ## Core Principles
 
@@ -262,37 +271,10 @@ class GeminiClient(
             - **Naturalness**: '薄い目' → '얇은 눈' is wrong. The final output must read like a native Korean song.
 
             ## Output Rules
-            - Translate ALL lines in original order. Empty input → empty strings for both fields.
+            - Translate ALL lines in original order. Empty input → empty koreanLyrics.
             - Return ONLY a valid JSON array. No surrounding text.
-            - "koreanPronounciation" must be a precise Hangul transcription of the Japanese pronunciation, strictly following standard Korean transliteration rules (외래어 표기법). It must contain ONLY Hangul. Do not include any Japanese characters (e.g., 'ッ', 'テ'). For example, '断った' is '탓타', not '코탓타'; 'ド' is '도', not '드'; 'って' is '떼', not 'ッテ'. Accuracy is mandatory.
-            - Non-Japanese text (e.g., "1, 2, 3"): keep koreanLyrics and koreanPronounciation consistent.
+            - Non-Japanese text (e.g., "1, 2, 3"): keep it as-is in koreanLyrics.
 
-            ## Additional Examples and Rules (accumulated from past evaluations)
-
-            ### [PRONUNCIATION_OVERRIDE] Voiceless K/T rows → aspirated Korean (override 외래어 표기법)
-            OVERRIDE the 외래어 표기법 word-initial rule for `koreanPronounciation`. Voiceless Japanese consonants must always be transcribed as aspirated Korean (ㅋ/ㅌ/ㅊ), regardless of word position. Voiced consonants stay non-aspirated.
-
-            Mapping:
-            - カ/キ/ク/ケ/コ → 카/키/쿠/케/코   (NOT 가/기/구/게/고)
-            - タ/テ/ト → 타/테/토               (NOT 다/데/도)
-            - チ → 치                           (NOT 지)
-            - ツ → 츠                           (NOT 쓰)
-            - ガ/ギ/グ/ゲ/ゴ → 가/기/구/게/고   (voiced — unchanged)
-            - ダ/デ/ド → 다/데/도               (voiced — unchanged)
-            - ジ → 지, ズ → 즈                  (voiced — unchanged)
-
-            Few-shot (drawn from real lyrics):
-            WRONG: くらげ (海月) → 구라게        /  RIGHT: 쿠라게
-            WRONG: つき (月)   → 쓰키            /  RIGHT: 츠키
-            WRONG: きみ (君)   → 기미            /  RIGHT: 키미
-            WRONG: ただ        → 다다            /  RIGHT: 타다
-            WRONG: きっと      → 깃토            /  RIGHT: 킷토
-            WRONG: くち (口)   → 구치            /  RIGHT: 쿠치
-            WRONG: なつ (夏)   → 나쓰            /  RIGHT: 나츠
-            WRONG: たえず (絶えず) → 다에즈      /  RIGHT: 타에즈
-            RIGHT (unchanged): あたま (頭) → 아타마   (mid-word た already aspirated by both rules)
-            RIGHT (unchanged): だけ → 다케            (voiced だ → 다)
-            RIGHT (unchanged): どう → 도우            (voiced ど → 도)
         """.trimIndent()
 
         /** Redesign stage 1 — segmentation + lemmatization for dictionary-grounded lookup. */
@@ -303,7 +285,8 @@ class GeminiClient(
             이 값은 그 줄의 직전 출력이 validator에서 왜 실패했는지 나타낸다. 해당 오류를 반드시 고쳐라.
             재시도 입력은 실패한 줄만 담고 있다. 입력에 있는 줄을 그 index 그대로 전부 출력하고,
             입력에 없는 줄을 새로 만들지 마라.
-            출력: 같은 배열, 각 줄을 {"index": N, "words": [{"surface","dictionaryForm"}]}로. JSON만.
+            출력: 같은 배열, 각 줄을
+            {"index": N, "words": [{"surface","headword","usedReading","baseFormReading","contextGloss"}]}로. JSON만.
 
             ## 핵심 원칙
             단어장과 사전 조회에 쓸 분절이다. 하나의 word는 사전에서 따로 찾을 수 있는
@@ -314,7 +297,7 @@ class GeminiClient(
             - 동사·형용사·명사·부사는 각각 따로 찾을 수 있는 한 단어 단위로 분리한다.
             - 이미 사전 한 단어인 복합어는 유지한다. 단어 여러 개가 만든 구는 분리한다.
             - 공백과 기호 등 일본어 단어가 아닌 부분도 원문 순서대로 word로 출력한다.
-              이런 토큰은 dictionaryForm을 surface와 같게 둔다.
+              이런 토큰은 headword/usedReading/baseFormReading을 모두 surface와 같게 두고 contextGloss는 빈 문자열로 둔다.
 
             ## 예시
             - 上手くいって → 上手く / いって
@@ -328,12 +311,24 @@ class GeminiClient(
 
             ## 출력 규칙
             - surface: 원문에 나타난 그대로의 표면형(활용형 포함). 원문 순서대로 빠짐없이. surface를 순서대로 이으면 원문과 같아야 한다.
-            - dictionaryForm: 그 word 하나의 사전 표제형. 조사/조동사를 붙인 구 형태를 dictionaryForm으로 만들지 마라.
+            - headword: 그 word 하나의 사전 표제형. 조사/조동사를 붙인 구 형태를 headword로 만들지 마라.
               - 가능동사·가능형 → 원동사: 消せる→消す, 出会える→出会う, 飛び立てる→飛び立つ, 愛せる→愛す, なれる→なる, 言える→言う.
               - 사역/수동/~てしまう/~ている 등 보조성분 → 본동사 기본형: 紛らわせる→紛らわす, 見られる→見る.
               - しよう→する, いって/行って→行く, 上手く→上手い 또는 上手, ろ(〜たろ)→だろう.
               - 단, 진짜 下一段/上一段 동사(考える·捧げる·越える 등)는 가능형이 아니므로 그대로 둔다.
               - **결과에 "가능/사역/수동" 뉘앙스가 박힌 표제어가 있으면 안 된다.**
+            - usedReading: 그 줄에서 실제로 읽히는 발음. **가타카나로만** 쓴다. 활용형은 활용형 그대로의 발음이다.
+              - 行って → イッテ, 高く → タカク, 消せる → ケセル.
+            - baseFormReading: headword의 사전 발음. **가타카나로만** 쓴다.
+              - 行く → イク, 高い → タカイ, 消す → ケス.
+              - **동음이의어를 가르는 값이다.** 前(먼저/이전)는 マエ, 前(앞 접두)는 ゼン이다.
+                문맥에 맞는 쪽을 골라라. 여기가 틀리면 사전에서 엉뚱한 표제어를 집는다.
+            - 발음 표기: 장음은 `ー`가 아니라 실제 모음으로 쓴다(どう → ドウ, とうきょう → トウキョウ).
+              촉음 `ッ`와 발음 `ン`은 그대로 쓴다. 한자·히라가나를 발음 필드에 남기지 마라.
+            - contextGloss: 이 줄에서 그 단어가 가지는 뜻의 영어 힌트. 2~4단어의 짧은 영어.
+              사전 정의를 옮겨 적는 것이 아니라, 여러 뜻 중 어느 갈래인지만 구별되면 된다.
+              - 前(まえ, 시간적 이전) → "before, earlier", 前(ぜん, 앞쪽) → "front, forward"
+              - 上手い(솜씨가 좋다) → "skillful, good at"
         """.trimIndent()
 
         /**
@@ -342,16 +337,21 @@ class GeminiClient(
         private val SELECT_PROMPT = """
             너는 일본어 가사 단어장(플래시카드)의 **뜻 선택기**다.
             각 줄마다: 일본어 원문(japanese), 그 줄의 한국어 번역(korean), 분절된 단어들(segments)을 받는다.
-            각 segment에는 tokenId와 그 단어(dictionaryForm)의 사전 뜻 후보 senses=[{senseId, english(영어 뜻), pos(품사)}]가 들어있다.
-            **한국어 번역을 문맥 단서로** 삼아, 각 단어가 이 줄에서 실제로 가지는 뜻에 해당하는 senseId 하나를 고른다.
+            각 segment에는 tokenId, contextGloss, 그리고 그 단어(headword)의 사전 뜻 후보
+            senses=[{senseId, english(영어 뜻), pos(품사)}]가 들어있다.
+            contextGloss는 그 단어가 이 줄에서 가지는 뜻의 짧은 영어 힌트다.
+            **contextGloss와 한국어 번역을 문맥 단서로** 삼아, 각 단어가 이 줄에서 실제로 가지는 뜻에 해당하는 senseId 하나를 고른다.
+            senses 중 contextGloss와 뜻이 가장 가까운 것 하나를 고르면 된다.
             출력: 같은 배열, 각 줄을 {"index", "words":[{"tokenId","senseId"}]}로. JSON만.
 
             ## 규칙
             - senseId: 그 segment의 senses 중 이 문맥에 가장 맞는 것의 senseId. **반드시 주어진 senses에 있는 값**이어야 한다.
+            - 일부 sense에는 headword와 reading이 붙어 있다. 이는 그 뜻이 어느 사전 표제어의 것인지 나타낸다.
+              영어 뜻이 서로 비슷해 보여도 headword/reading이 다르면 **다른 단어**다. 문맥에 맞는 표제어 쪽을 골라라.
             - senses가 비어있거나(사전에 없음) 어느 것도 문맥에 맞지 않으면 senseId = -1.
             - 한국어 뜻을 직접 만들지 마라. **오직 senseId 선택만** 한다.
             - words는 입력 segments와 1:1, 순서 동일. tokenId는 입력 그대로 복사한다.
-              surface와 dictionaryForm은 출력하지 마라.
+              surface와 headword는 출력하지 마라.
             - 입력에 있는 줄을 그 index 그대로 **전부** 출력한다. 중간에 멈추지 마라.
         """.trimIndent()
 
@@ -377,10 +377,9 @@ class GeminiClient(
                 "type" to "OBJECT",
                 "properties" to mapOf(
                     "index" to mapOf("type" to "INTEGER"),
-                    "koreanLyrics" to mapOf("type" to "STRING"),
-                    "koreanPronounciation" to mapOf("type" to "STRING")
+                    "koreanLyrics" to mapOf("type" to "STRING")
                 ),
-                "required" to listOf("index", "koreanLyrics", "koreanPronounciation")
+                "required" to listOf("index", "koreanLyrics")
             )
         )
 
@@ -396,9 +395,18 @@ class GeminiClient(
                             "type" to "OBJECT",
                             "properties" to mapOf(
                                 "surface" to mapOf("type" to "STRING"),
-                                "dictionaryForm" to mapOf("type" to "STRING")
+                                "headword" to mapOf("type" to "STRING"),
+                                "usedReading" to mapOf("type" to "STRING"),
+                                "baseFormReading" to mapOf("type" to "STRING"),
+                                "contextGloss" to mapOf("type" to "STRING")
                             ),
-                            "required" to listOf("surface", "dictionaryForm")
+                            "required" to listOf(
+                                "surface",
+                                "headword",
+                                "usedReading",
+                                "baseFormReading",
+                                "contextGloss"
+                            )
                         )
                     )
                 ),

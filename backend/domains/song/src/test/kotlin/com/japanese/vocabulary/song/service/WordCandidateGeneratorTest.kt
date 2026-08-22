@@ -17,7 +17,6 @@ class WordCandidateGeneratorTest {
                 AnalyzedLine(
                     index = 0,
                     koreanLyrics = null,
-                    koreanPronounciation = null,
                     tokens = listOf(
                         token("夜", "夜", PartOfSpeech.NOUN, baseReading = "よる", korean = "밤", jlpt = "N5"),
                         token("は", "は", PartOfSpeech.PARTICLE),
@@ -26,7 +25,6 @@ class WordCandidateGeneratorTest {
                 AnalyzedLine(
                     index = 1,
                     koreanLyrics = null,
-                    koreanPronounciation = null,
                     tokens = listOf(
                         token("夜", "夜", PartOfSpeech.NOUN, baseReading = "よる", korean = "밤", jlpt = "N5"),
                         token("", "", PartOfSpeech.NOUN),

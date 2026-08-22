@@ -47,7 +47,8 @@ export interface StudyUnit {
   startTimeMs: number | null;
   tokens: Token[];
   koreanLyrics: string | null;
-  koreanPronounciation: string | null;
+  /** The line's reading in katakana. Convert with `convertReading` before display. */
+  pronounciation: string | null;
 }
 
 export interface SongStudyData {
@@ -63,7 +64,8 @@ export interface SongLyricLineDto {
   originalText: string;
   startTimeMs: number | null;
   koreanLyrics: string | null;
-  koreanPronounciation: string | null;
+  /** The line's reading in katakana. Convert with `convertReading` before display. */
+  pronounciation: string | null;
   tokens: Token[];
 }
 

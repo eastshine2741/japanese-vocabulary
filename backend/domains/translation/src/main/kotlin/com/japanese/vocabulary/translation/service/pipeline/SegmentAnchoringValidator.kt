@@ -1,6 +1,7 @@
 package com.japanese.vocabulary.translation.service.pipeline
 
 import com.japanese.vocabulary.translation.client.gemini.dto.SegLineDto
+import com.japanese.vocabulary.translation.client.gemini.dto.SegWordDto
 import com.japanese.vocabulary.translation.model.PipelineToken
 import com.japanese.vocabulary.translation.model.SegmentAnchoringResult
 import org.springframework.stereotype.Component
@@ -65,9 +66,12 @@ class SegmentAnchoringValidator {
             PipelineToken(
                 lineIndex = index,
                 surface = word.surface,
-                dictionaryForm = word.dictionaryForm,
+                headword = word.headword,
                 charStart = start,
                 charEnd = end,
+                usedReading = readingOf(index, word, word.usedReading, "usedReading"),
+                baseFormReading = readingOf(index, word, word.baseFormReading, "baseFormReading"),
+                contextGloss = word.contextGloss,
             )
         }
 
@@ -79,5 +83,25 @@ class SegmentAnchoringValidator {
             }
         }
         return tokens
+    }
+
+    /**
+     * Normalizes one reading field, or fails the line.
+     *
+     * A non-Japanese surface (whitespace, punctuation, latin, digits) has no reading to speak of, so
+     * its reading is *forced* to the surface rather than validated — whatever the model invented there
+     * is discarded. For a Japanese surface the reading must be kana; anything else (kanji left in,
+     * empty string) means the model did not do the job and only this line is retried. Hiragana is not
+     * a failure: the prompt asks for katakana but [JapaneseText.toKatakana] absorbs the other script,
+     * which is a cheaper correction than a round trip.
+     */
+    private fun readingOf(index: Int, word: SegWordDto, reading: String, field: String): String {
+        if (!JapaneseText.containsJapanese(word.surface)) return word.surface
+        if (!JapaneseText.isKanaOnly(reading)) {
+            throw SegmentationValidationException(
+                "$field '$reading' for surface '${word.surface}' is not kana-only at line index=$index",
+            )
+        }
+        return JapaneseText.toKatakana(reading)
     }
 }

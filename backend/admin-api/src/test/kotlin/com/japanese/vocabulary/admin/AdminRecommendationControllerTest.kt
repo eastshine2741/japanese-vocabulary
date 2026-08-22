@@ -116,7 +116,6 @@ class AdminRecommendationControllerTest : AdminBaseIntegrationTest() {
                 AnalyzedLine(
                     index = 0,
                     koreanLyrics = "완성된 가사",
-                    koreanPronounciation = null,
                     tokens = listOf(
                         Token(
                             surface = "完成",

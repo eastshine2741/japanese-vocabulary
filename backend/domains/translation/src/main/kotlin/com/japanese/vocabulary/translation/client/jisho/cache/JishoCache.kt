@@ -9,7 +9,7 @@ import org.springframework.data.redis.core.StringRedisTemplate
 import java.time.Duration
 
 /**
- * Redis cache for jisho lookups (key `jisho:v2:{word}`, TTL 30 days). Keys are namespaced here and
+ * Redis cache for jisho lookups (key `jisho:v4:{word}`, TTL 30 days). Keys are namespaced here and
  * read/write errors are swallowed so a Redis hiccup degrades to a live fetch rather than failing
  * the pipeline. Callers pass the bare dictionary form; the prefix is applied internally.
  * Mirrors the `ArtistChannelCache` subclass pattern over [RedisCache].
@@ -48,10 +48,11 @@ class JishoCache(
     fun put(word: String, value: JishoEntryDto) = put(word, value, TTL)
 
     companion object {
-        // v3: JishoOptionDto gained `headword`, and `reading` now comes from the matched japanese[]
-        // element instead of japanese[0]. v2 payloads carry the old (wrong) reading, so they must not
-        // be reused.
-        private const val KEY_PREFIX = "jisho:v3:"
+        // v4: the payload keeps jisho's entry boundaries (`entries`, one per (headword, reading) pair)
+        // instead of a flat `options` list, and readings are stored as katakana. A v3 payload
+        // deserializes into an empty `entries` list — every meaning silently gone — so it must not be
+        // reused. Bumping the prefix retires the old keys on their own TTL; no manual flush.
+        private const val KEY_PREFIX = "jisho:v4:"
         private val TTL: Duration = Duration.ofDays(30)
     }
 }

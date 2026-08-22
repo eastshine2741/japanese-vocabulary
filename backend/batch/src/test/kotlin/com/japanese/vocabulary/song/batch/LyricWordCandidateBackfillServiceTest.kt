@@ -32,7 +32,6 @@ class LyricWordCandidateBackfillServiceTest : BatchBaseIntegrationTest() {
                     AnalyzedLine(
                         index = 0,
                         koreanLyrics = "밤을 달리다",
-                        koreanPronounciation = null,
                         tokens = listOf(
                             token("夜", "夜", "よる", PartOfSpeech.NOUN, "밤", 0, 1),
                             token("走る", "走る", "はしる", PartOfSpeech.VERB, "달리다", 2, 4),
