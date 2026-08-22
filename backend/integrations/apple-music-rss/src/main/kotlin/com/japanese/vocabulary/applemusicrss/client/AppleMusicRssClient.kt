@@ -32,7 +32,7 @@ class AppleMusicRssClient(restClientBuilder: RestClient.Builder) {
                 artistName = song.artistName,
                 artistId = song.artistId,
                 artistUrl = song.artistUrl,
-                artworkUrl100 = song.artworkUrl100,
+                artworkUrl = upsizeArtwork(song.artworkUrl100),
                 url = song.url,
                 releaseDate = song.releaseDate,
                 genres = song.genres,
@@ -49,6 +49,17 @@ class AppleMusicRssClient(restClientBuilder: RestClient.Builder) {
         }
 
         return results
+    }
+
+    // Same rule as ItunesClient.upsizeArtwork: the mzstatic URL templates the size in the path,
+    // and the RSS feed only ever hands out the 100x100 variant, which is blurry on the home
+    // recommendation cards (roughly half the screen width).
+    private fun upsizeArtwork(url: String?): String? = url?.let {
+        when {
+            it.endsWith("/100x100bb.jpg") -> it.replace("/100x100bb.jpg", "/600x600bb.jpg")
+            it.endsWith("/100x100bb.png") -> it.replace("/100x100bb.png", "/600x600bb.png")
+            else -> it
+        }
     }
 
     companion object {

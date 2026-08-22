@@ -9,7 +9,7 @@ data class AppleMusicRssChartSongDto(
     val artistName: String,
     val artistId: String?,
     val artistUrl: String?,
-    val artworkUrl100: String?,
+    val artworkUrl: String?,
     val url: String?,
     val releaseDate: String?,
     val genres: List<AppleMusicRssGenreDto>,

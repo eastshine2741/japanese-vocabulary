@@ -34,7 +34,7 @@ class AppleMusicRecommendationCollector(
                 sourceRank = song.rank,
                 title = song.name,
                 artistName = song.artistName,
-                artworkUrl = song.artworkUrl100,
+                artworkUrl = song.artworkUrl,
                 sourceUrl = song.url,
                 sourceArtistId = song.artistId,
                 sourceArtistUrl = song.artistUrl,
