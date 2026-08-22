@@ -13,7 +13,6 @@ class SenseTranslationPreparer {
             val option = optionsById[senseId] ?: return@mapNotNull null
             mapOf(
                 "senseId" to senseId,
-                "surface" to option.surface,
                 "baseForm" to option.baseForm,
                 "reading" to option.reading,
                 "pos" to option.partOfSpeech.name,

@@ -80,6 +80,7 @@ deck 멤버십의 유일한 소유자. `deck_flashcards` 를 대체한다.
 
 - **저장 경로** (`WordService.forSave`): `POST /api/words`, `POST /api/words/batch` 로 들어온 sense 를 쪼갠 뒤 merge 한다. 쪼갠 조각 중 이미 담긴 뜻에는 예문만 붙고, 처음 보는 조각만 새 sense 가 된다. `PUT /api/words/{id}` 는 쪼개지 않는다 — 사용자가 직접 입력한 뜻을 서버가 나누면 안 된다.
 - **SongDetail 응답** (`SongDetailQueryService`): `senses` 와 `addRequest.senses` 를 쪼개서 내려보내므로 담김 판정도 조각 단위가 된다. 같은 뜻이 여러 candidate 에서 나오면 예문을 합쳐 하나로 만든다 — 쪼개진 쪽의 빈 조각이 자기 예문을 가진 candidate 를 덮으면 안 된다. 요약 표시용 `koreanText` 만 쪼개기 전 문자열을 유지한다.
+  **한 가사 줄은 뜻 하나에만 붙는다.** 조각 단위 규칙("첫 조각만")은 candidate 하나 안에서만 성립해서, 같은 단어가 뜻이 갈린 candidate 로 여러 개 잡히면 줄이 뜻마다 반복될 수 있었다. 이미 앞선 뜻이 가져간 `lineIndex` 는 뒤 뜻의 예문에서 뺀다.
 
 앱도 같은 규칙의 `splitMeaningText` 를 갖는다 (`app-rn/src/types/word.ts`). 가사 탭으로 담는 경로의 요청 조립, '다른 뜻 담기 / 예문 담기' 판정, 편집 화면의 뜻 줄 프리필이 여기에 걸린다.
 

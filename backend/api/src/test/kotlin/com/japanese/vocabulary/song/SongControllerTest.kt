@@ -788,6 +788,39 @@ class SongControllerTest : ApiBaseIntegrationTest() {
             assertThat(word.senses[1].examples.map { it.text }).containsExactly("愛してる")
         }
 
+        @Test
+        fun `one lyric line becomes an example of a single sense`() {
+            val me = newUser()
+            val song = newSong()
+            // 같은 줄에서 뜻이 둘로 갈린 경우. 그 줄이 어느 뜻으로 쓰였는지 모르는 채 양쪽에
+            // 복제하면 예문 목록에 같은 줄이 뜻 수만큼 반복된다.
+            val wordCandidates = LyricWordCandidates(
+                candidates = listOf(
+                    candidate("重い", 99.0, 0, listOf(0), "N3", "ADJECTIVE", koreanText = "무겁다"),
+                    candidate("重い", 90.0, 1, listOf(0, 1), "N3", "ADJECTIVE", koreanText = "묵직하다"),
+                ),
+                lineCandidates = mapOf("0" to listOf(0, 1), "1" to listOf(1)),
+            )
+            newLyric(
+                song,
+                raw = listOf(
+                    LyricLineData(index = 0, startTimeMs = null, text = "重い荷物"),
+                    LyricLineData(index = 1, startTimeMs = null, text = "重い言葉"),
+                ),
+                wordCandidates = wordCandidates,
+            )
+            entityManager.flush()
+
+            val dto = readBody<WordsInSongDto>(mockMvc.get("/api/songs/${song.id}/words") {
+                header("Authorization", bearer(me))
+            }.andExpect { status { isOk() } }.andReturn().response.contentAsString)
+
+            val word = dto.words.single()
+            assertThat(word.senses.map { it.meaning }).containsExactly("무겁다", "묵직하다")
+            assertThat(word.senses[0].examples.map { it.text }).containsExactly("重い荷物")
+            assertThat(word.senses[1].examples.map { it.text }).containsExactly("重い言葉")
+        }
+
         private fun candidate(
             japanese: String,
             score: Double,

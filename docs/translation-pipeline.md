@@ -16,6 +16,19 @@ or one dictionary fallback too much:
   when their meaning is deterministic in context
 - multiple English glosses for one Japanese sense could be translated as a long
   concat of glosses instead of one Korean meaning
+- **one dictionary sense was minted once per occurrence**: senseIds were handed
+  out per token, so a word sung on six lines reached sense-translate six times
+  and the model wrote a different Korean gloss for each. `シャイ` — a single-sense
+  entry whose only gloss is "shy" — came back as 수줍음이 많은 / 수줍은 / 수줍어하다
+  in one song. Every distinct string became its own word candidate and, once
+  saved, its own sense, so one word held six near-identical meanings.
+- sense-translation was allowed "the most natural 1-2 Korean meanings", and the
+  meaning string is split on commas when a word is saved — so a synonym pair
+  turned into two senses of the same word
+- **compounds the dictionary has no entry for arrived as one token**: 長くない,
+  わからない, 置いてった, 飛んでった, そうでもない, 納豆巻き. Their headwords are not
+  dictionary headwords, so the lookup missed and the word ended up with no
+  meaning at all
 - **a lookup answered with no entry boundary at all**: every sense of every
   entry the query touched arrived as one flat list, so a query for `前` returned
   前[マエ], 前[ゼン], and — because jisho's `先` entry lists `前` as an alternate
@@ -50,7 +63,9 @@ guardrails for deterministic checks and transformations.
    through `RuleMeaningProvider`.
 4. `ResolveLexicalSensesStage`: sends unresolved Japanese tokens to
    `LexicalResolver`, which narrows the Jisho lookup to one dictionary entry and
-   performs i-adjective normalization.
+   performs i-adjective normalization. **One dictionary sense gets one senseId
+   for the whole song**, shared by every token that means it — see
+   **Sense Identity** below.
 5. `SelectSensesStage`: builds context input from lyric translation, the
    segment's `contextGloss`, and the entry's senses, and asks Gemini to choose
    sense IDs only. **A word with a single candidate sense never reaches the
@@ -222,6 +237,54 @@ repeating them would restate a constant the model cannot act on.
 `LexicalResolver` still probes i-adjective base forms for tokens ending in `く`
 when the pair match finds nothing. Segmentation now usually supplies `高い` as the
 headword directly, but the probe stays as a net for when it supplies `高く`.
+
+## Sense Identity
+
+A senseId names a dictionary sense, not a token occurrence. `LexicalResolver`
+keys the id on everything a `PipelineSenseOption` carries — base form, the
+entry's headword and reading, the English gloss, the raw POS list, and the
+provenance grade — so the six tokens of a word repeated through a chorus all
+point at the same option.
+
+That is what makes the word's meaning stable. Sense-translate is one LLM call per
+senseId, and asking it the same question six times got six different phrasings of
+the same meaning; the app then saved each phrasing as a separate sense of the same
+word. Sharing the id also shrinks the sense-translate payload to the song's
+distinct senses.
+
+Provenance is part of the identity because it decides whether sense-select is told
+the entry's headword and reading, so the same sense reached through `EXACT` and
+through `AMBIGUOUS_HEADWORD` is not interchangeable in the prompt.
+
+The option therefore holds nothing occurrence-scoped: the surface as sung lives on
+the token, and sense-translate identifies the word by `baseForm` + `reading`.
+
+**Sense-translate returns exactly one Korean meaning per sense.** The meaning
+string is split on commas at save time (`splitMeaningText`), so a synonym list
+becomes several senses of one word. Particles are the exception — "~에, ~에게" is
+how a Korean dictionary writes に — and they are listed in the prompt.
+
+## Compound Splitting
+
+A token is only useful if the dictionary can answer it. Segmentation is asked to
+split combinations that are not dictionary headwords into the words they are made
+of, each with its own headword:
+
+| lyric | tokens (headword) |
+|---|---|
+| 長くない | 長く (長い) / ない (ない) |
+| わからない | わから (わかる) / ない (ない) |
+| わからなすぎ | わから (わかる) / なすぎ (ない) |
+| 置いてった | 置いて (置く) / った (いく) |
+| 飛んでった | 飛んで (飛ぶ) / った (いく) |
+| そうでもない | そう / でも / ない |
+| 打たれ弱い | 打たれ (打つ) / 弱い (弱い) |
+| 納豆巻き | 納豆 / 巻き |
+
+The rule is stated twice on purpose: once as a segmentation rule with examples,
+and once as a headword constraint — a headword that is itself two words joined
+(長くない, 置いていく) is the sign the split was missed. Compounds that **are**
+dictionary entries stay whole (飛び立つ, 粘り強い).
 
 ## Cache Note
 

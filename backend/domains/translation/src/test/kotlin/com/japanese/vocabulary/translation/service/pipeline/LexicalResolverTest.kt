@@ -199,6 +199,39 @@ class LexicalResolverTest {
         assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
     }
 
+    @Test
+    fun `the same word on several lines shares one senseId per dictionary sense`(): Unit = runBlocking {
+        // A minted-per-occurrence id sent the same sense to sense-translate once per line, and the
+        // model wrote a different Korean gloss each time — one word, three near-identical senses.
+        stub("シャイ" to found(entry(headword = null, reading = "シャイ", english = "shy")))
+
+        val resolution = resolver.resolve(
+            listOf(
+                token("シャイ", "シャイ", "シャイ", lineIndex = 14),
+                token("シャイ", "シャイ", "シャイ", lineIndex = 42),
+                token("シャイ", "シャイ", "シャイ", lineIndex = 68),
+            ),
+        )
+
+        assertThat(resolution.optionsById).hasSize(1)
+        assertThat(resolution.byTokenKey.values.map { it.options.single().senseId }).containsOnly(0)
+    }
+
+    @Test
+    fun `senses of different entries keep separate ids`(): Unit = runBlocking {
+        stub("前" to maeAndZenAndSaki())
+
+        val resolution = resolver.resolve(
+            listOf(
+                token("前", "前", "マエ", lineIndex = 1),
+                token("前", "前", "ゼン", lineIndex = 2),
+            ),
+        )
+
+        assertThat(resolution.optionsById).hasSize(2)
+        assertThat(resolution.optionsById.values.map { it.reading }).containsExactlyInAnyOrder("マエ", "ゼン")
+    }
+
     private fun stub(vararg entries: Pair<String, JishoEntryDto>) {
         val byWord = entries.toMap()
         coEvery { jishoService.lookupAll(any()) } answers {
@@ -234,8 +267,13 @@ class LexicalResolverTest {
         ),
     )
 
-    private fun token(surface: String, headword: String, baseFormReading: String) = PipelineToken(
-        lineIndex = 0,
+    private fun token(
+        surface: String,
+        headword: String,
+        baseFormReading: String,
+        lineIndex: Int = 0,
+    ) = PipelineToken(
+        lineIndex = lineIndex,
         surface = surface,
         headword = headword,
         charStart = 0,
