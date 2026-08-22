@@ -57,7 +57,11 @@ class SongAnalysisWorkProcessor(
         )
 
         if (!workService.markStage(work.id!!, workerId, SongAnalysisWorkStage.FETCH_YOUTUBE)) return null
-        val youtubeUrl = preparationService.searchYoutubeUrl(work.rawTitle, work.rawArtist)
+        val youtubeUrl = preparationService.searchYoutubeUrl(
+            title = work.rawTitle,
+            artist = work.rawArtist,
+            durationSeconds = work.durationSeconds,
+        )
             ?: throw BusinessException(ErrorCode.SONG_ANALYSIS_WORK_FAILED)
 
         if (!workService.markStage(work.id!!, workerId, SongAnalysisWorkStage.CREATE_SONG_AND_LYRIC)) return null

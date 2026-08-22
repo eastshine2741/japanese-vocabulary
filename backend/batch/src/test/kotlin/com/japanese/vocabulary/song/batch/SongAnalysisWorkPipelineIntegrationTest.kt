@@ -5,7 +5,9 @@ import com.japanese.vocabulary.mvsearch.client.youtube.dto.YoutubeSearchItemDto
 import com.japanese.vocabulary.mvsearch.client.youtube.dto.YoutubeSearchResponse
 import com.japanese.vocabulary.mvsearch.client.youtube.dto.YoutubeSnippetDto
 import com.japanese.vocabulary.mvsearch.client.youtube.dto.YoutubeThumbnailsDto
+import com.japanese.vocabulary.mvsearch.client.youtube.dto.YoutubeContentDetailsDto
 import com.japanese.vocabulary.mvsearch.client.youtube.dto.YoutubeVideoIdDto
+import com.japanese.vocabulary.mvsearch.client.youtube.dto.YoutubeVideoItemDto
 import com.japanese.vocabulary.song.entity.LyricEntity
 import com.japanese.vocabulary.song.entity.LyricType
 import com.japanese.vocabulary.song.entity.SongEntity
@@ -334,6 +336,12 @@ class SongAnalysisWorkPipelineIntegrationTest : BatchBaseIntegrationTest() {
                         channelId = null,
                     ),
                 ),
+            ),
+        )
+        every { youtubeClient.listVideoContentDetails(any()) } returns listOf(
+            YoutubeVideoItemDto(
+                id = "official-video-id",
+                contentDetails = YoutubeContentDetailsDto(duration = "PT4M13S"),
             ),
         )
     }

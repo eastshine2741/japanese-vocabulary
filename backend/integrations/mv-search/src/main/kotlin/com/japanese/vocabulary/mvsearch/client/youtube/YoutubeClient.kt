@@ -5,6 +5,8 @@ import com.japanese.vocabulary.mvsearch.client.youtube.dto.YoutubeChannelItemDto
 import com.japanese.vocabulary.mvsearch.client.youtube.dto.YoutubeChannelsResponse
 import com.japanese.vocabulary.mvsearch.client.youtube.dto.YoutubePlaylistItemsResponse
 import com.japanese.vocabulary.mvsearch.client.youtube.dto.YoutubeSearchResponse
+import com.japanese.vocabulary.mvsearch.client.youtube.dto.YoutubeVideoItemDto
+import com.japanese.vocabulary.mvsearch.client.youtube.dto.YoutubeVideosResponse
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.web.client.RestClient
 
@@ -50,6 +52,27 @@ class YoutubeClient(
             ?.items
             ?.firstOrNull()
 
+    /**
+     * `videos.list` costs 1 quota unit per call regardless of how many ids it carries,
+     * so batching is what keeps the Shorts filter cheap next to a 100-unit search.
+     */
+    fun listVideoContentDetails(videoIds: List<String>): List<YoutubeVideoItemDto> =
+        videoIds.chunked(VIDEOS_BATCH_SIZE).flatMap { chunk ->
+            restClient.get()
+                .uri { builder ->
+                    builder.path("/youtube/v3/videos")
+                        .queryParam("id", chunk.joinToString(","))
+                        .queryParam("part", "contentDetails")
+                        .queryParam("maxResults", chunk.size)
+                        .queryParam("key", apiKey)
+                        .build()
+                }
+                .retrieve()
+                .body(YoutubeVideosResponse::class.java)
+                ?.items
+                ?: emptyList()
+        }
+
     fun listPlaylistItems(
         playlistId: String,
         pageToken: String? = null,
@@ -68,4 +91,7 @@ class YoutubeClient(
             .retrieve()
             .body(YoutubePlaylistItemsResponse::class.java)
 
+    companion object {
+        private const val VIDEOS_BATCH_SIZE = 50
+    }
 }
