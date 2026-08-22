@@ -107,6 +107,12 @@ Consequences that are intentional, not bugs:
 - A song that is both recently played and recommended is one candidate, not two.
 - `SpotlightHero` reloads on every Home focus, so the pick re-rolls each time Home is focused.
 
+Known asymmetry: the published-ready gate checks `song_recommendation.lyric_id`, while study-data
+reads (`SongStudyViewService.buildAnalyzedSong`) resolve `songs.active_lyric_id`. If a recommendation's
+published lyric is later replaced as the song's active lyric, the row still passes the gate but the
+hero renders with empty `studyUnits`. That degrades rather than errors, so it is tracked as a
+follow-up rather than a blocker.
+
 ## Retry notes
 
 If analysis failed or has not completed, leave the candidate as `APPROVED`, request analysis for the missing candidate again, and rerun `Process approved` after the song analysis worker has produced an active analyzed lyric.

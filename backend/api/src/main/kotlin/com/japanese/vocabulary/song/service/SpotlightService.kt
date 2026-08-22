@@ -33,9 +33,10 @@ class SpotlightService(
 
     /**
      * The eligible pool, deduplicated by song id so a song that is both recently played and
-     * recommended does not get twice the chance of being picked.
+     * recommended does not get twice the chance of being picked. Internal because it exists to
+     * make the dedup rule deterministically testable — the pick itself is the public surface.
      */
-    fun candidateSongIds(userId: Long): List<Long> {
+    internal fun candidateSongIds(userId: Long): List<Long> {
         val recentIds = recentSongService.getRecentSongIds(userId)
         val recommendedIds = recommendationHomeService.getLatestPublishedRecommendations().map { it.songId }
         val deckSongIds = deckService.getDeckSongIds(userId)
