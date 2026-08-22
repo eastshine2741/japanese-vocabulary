@@ -10,21 +10,24 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { Colors } from '../theme/theme';
-import { EXTERNAL_SERVICES, FRONTEND_OSS, OssEntry } from '../data/ossList';
+import { Colors, Dimens } from '../theme/theme';
+import { EXTERNAL_SERVICES, FRONTEND_OSS, ICON_ASSETS, OssEntry } from '../data/ossList';
 import { AppBar } from '../components/AppBar';
 
 function Row({ entry }: { entry: OssEntry }) {
   return (
-    <TouchableOpacity
-      style={styles.row}
-      activeOpacity={0.6}
-      onPress={() => Linking.openURL(entry.url)}
-    >
-      <Text style={styles.rowName} numberOfLines={1}>{entry.name}</Text>
-      <Text style={styles.rowLicense}>{entry.license}</Text>
-      <Feather name="external-link" size={14} color={Colors.textMuted} />
-    </TouchableOpacity>
+    <View>
+      <TouchableOpacity
+        style={styles.row}
+        activeOpacity={0.6}
+        onPress={() => Linking.openURL(entry.url)}
+      >
+        <Text style={styles.rowName} numberOfLines={1}>{entry.name}</Text>
+        <Text style={styles.rowLicense}>{entry.license}</Text>
+        <Feather name="external-link" size={14} color={Colors.textMuted} />
+      </TouchableOpacity>
+      {entry.notice ? <Text style={styles.notice}>{entry.notice}</Text> : null}
+    </View>
   );
 }
 
@@ -53,6 +56,15 @@ export default function OssLicenseScreen() {
             ))}
           </View>
         </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>앱 아이콘</Text>
+          <View>
+            {ICON_ASSETS.map((entry) => (
+              <Row key={entry.name} entry={entry} />
+            ))}
+          </View>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -74,4 +86,14 @@ const styles = StyleSheet.create({
   },
   rowName: { flex: 1, fontSize: 14, fontWeight: '600', color: Colors.textPrimary },
   rowLicense: { fontSize: 12, fontWeight: '500', color: Colors.textSecondary },
+
+  notice: {
+    fontSize: 11,
+    lineHeight: 16,
+    color: Colors.textMuted,
+    backgroundColor: Colors.card,
+    borderRadius: Dimens.smallCornerRadius,
+    padding: 12,
+    marginBottom: 4,
+  },
 });
