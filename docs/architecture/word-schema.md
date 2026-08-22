@@ -27,6 +27,8 @@ UNIQUE (user_id, japanese_text)
 
 `jlpt`, `translation`, `songId`, `lineIndex` 는 nullable. `songId` + `lineIndex` 가 있으면 앱이 해당 곡의 그 가사 줄로 이동한다. 유저가 직접 넣은 예문은 둘 다 null.
 
+**예문의 동일성은 문장 텍스트다** (`WordService.exampleKey`). 후렴처럼 같은 가사 줄이 곡 안에서 반복되면 `lineIndex` 만 다른 같은 문장이 계속 들어오는데, 예문으로서는 구별되지 않으므로 처음 하나만 남긴다 — 키에 `lineIndex` 도 `songId` 도 넣지 않는다. 중복 제거는 **단어 전체** 기준이라 sense 를 가로지르는 반복도 걸러진다("한 가사 줄은 뜻 하나에만"). 이미 중복이 저장된 단어도 다시 담길 때 저장 경로에서 정리된다.
+
 **예문 상한은 sense 당 5개** (`WordService.MAX_EXAMPLES_PER_SENSE`). word 전체 기준이 아니라 sense 별로 센다 — word 기준으로 두면 먼저 담긴 sense 가 상한을 다 먹어 나중 sense 의 예문이 0개가 되고, 그건 "뜻마다 예문을 갖는다"는 목적과 정면으로 충돌한다.
 
 ### decks

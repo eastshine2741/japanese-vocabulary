@@ -308,6 +308,69 @@ class WordControllerTest : ApiBaseIntegrationTest() {
         }
 
         @Test
+        fun `a lyric line repeated in the song is kept as one example even at another line index`() {
+            val me = newUser()
+            val song = newSong()
+            TestWordBuilder(entityManager)
+                .forUser(me)
+                .withJapaneseText("愛")
+                .withSenses(listOf(sense("사랑", examples = listOf(example(song, "愛してる", lineIndex = 2)))))
+                .build()
+
+            // 후렴이 반복되는 곡에서 같은 줄을 또 담은 상황 — 줄 번호만 다르다.
+            mockMvc.post("/api/words") {
+                header("Authorization", bearer(me))
+                jsonBody(
+                    AddWordRequest(
+                        japanese = "愛",
+                        reading = "あい",
+                        senses = listOf(sense("사랑", examples = listOf(example(song, "愛してる", lineIndex = 18)))),
+                        songId = song.id!!,
+                    ),
+                )
+            }.andExpect { status { isOk() } }
+
+            entityManager.flush(); entityManager.clear()
+            val word = wordRepository.findByUserIdAndJapaneseText(me.id!!, "愛")!!
+            assertThat(word.senses.single().examples.map { it.text }).containsExactly("愛してる")
+        }
+
+        @Test
+        fun `an example already held by another sense is not repeated in a new sense`() {
+            val me = newUser()
+            val song = newSong()
+            TestWordBuilder(entityManager)
+                .forUser(me)
+                .withJapaneseText("愛")
+                .withSenses(
+                    listOf(
+                        sense("사랑", examples = listOf(example(song, "愛の歌", lineIndex = 2))),
+                        sense("애정"),
+                    ),
+                )
+                .build()
+
+            mockMvc.post("/api/words") {
+                header("Authorization", bearer(me))
+                jsonBody(
+                    AddWordRequest(
+                        japanese = "愛",
+                        reading = "あい",
+                        senses = listOf(sense("애정", examples = listOf(example(song, "愛の歌", lineIndex = 40)))),
+                        songId = song.id!!,
+                    ),
+                )
+            }.andExpect { status { isOk() } }
+
+            entityManager.flush(); entityManager.clear()
+            val word = wordRepository.findByUserIdAndJapaneseText(me.id!!, "愛")!!
+            val bySense = word.senses.associateBy { it.meaning }
+            // 한 가사 줄은 뜻 하나에만 붙는다 — 이미 다른 뜻이 들고 있으면 새 뜻엔 붙지 않는다.
+            assertThat(bySense.getValue("사랑").examples.map { it.text }).containsExactly("愛の歌")
+            assertThat(bySense.getValue("애정").examples).isEmpty()
+        }
+
+        @Test
         fun `nonexistent songId returns SONG_NOT_FOUND`() {
             val me = newUser()
             mockMvc.post("/api/words") {

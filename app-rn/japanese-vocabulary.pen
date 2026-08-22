@@ -4704,7 +4704,7 @@
                                   "id": "dLsdo",
                                   "name": "jp",
                                   "fill": "$text-primary",
-                                  "content": "― 届けたいのに、言葉にならない",
+                                  "content": "届けたいのに、言葉にならない",
                                   "fontFamily": "Inter",
                                   "fontSize": 14,
                                   "fontWeight": "500"
@@ -4793,7 +4793,7 @@
                                   "id": "PqIeU",
                                   "name": "jp",
                                   "fill": "$text-primary",
-                                  "content": "― 届かない声を抱きしめて",
+                                  "content": "届かない声を抱きしめて",
                                   "fontFamily": "Inter",
                                   "fontSize": 14,
                                   "fontWeight": "500"

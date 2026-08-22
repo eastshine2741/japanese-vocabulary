@@ -109,7 +109,7 @@ export default function WordFormFields({
                   {examples.map((ex, j) => (
                     <View key={j} style={styles.exampleRow}>
                       <View style={styles.exampleContent}>
-                        <Text style={styles.exampleJp}>{`― ${ex.text}`}</Text>
+                        <Text style={styles.exampleJp}>{ex.text}</Text>
                         {ex.translation != null && <Text style={styles.exampleKr}>{ex.translation}</Text>}
                         {ex.songTitle != null && (
                           <View style={styles.exampleSongRow}>

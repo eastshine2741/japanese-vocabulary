@@ -246,7 +246,25 @@ class WordService(
                 examples = appendExamples(existing.examples, sense.examples),
             )
         }
-        return result
+        return result.dedupExamples()
+    }
+
+    /**
+     * 예문 중복 제거는 **단어 전체** 기준이다. 후렴처럼 같은 가사 줄이 곡 안에서 반복되면 줄
+     * 번호만 다른 같은 문장이 sense 마다·여러 번 담기는데, 예문으로서는 완전히 같은 것이라
+     * 처음 하나만 남긴다. sense 를 가로지르는 것도 같다 — 한 가사 줄은 뜻 하나에만 붙는다.
+     *
+     * 이미 중복이 저장된 단어도 다시 담길 때 이 경로를 타면서 정리된다.
+     */
+    private fun List<WordSense>.dedupExamples(): List<WordSense> {
+        val seen = mutableSetOf<String>()
+        return map { sense ->
+            sense.copy(
+                examples = sense.examples
+                    .filter { seen.add(exampleKey(it)) }
+                    .take(MAX_EXAMPLES_PER_SENSE),
+            )
+        }
     }
 
     private fun appendExamples(current: List<SenseExample>, incoming: List<SenseExample>): List<SenseExample> {
@@ -270,7 +288,12 @@ class WordService(
 
         private val log = LoggerFactory.getLogger(WordService::class.java)
 
-        private fun exampleKey(example: SenseExample) =
-            Triple(example.songId, example.lineIndex, example.text)
+        /**
+         * 예문의 동일성은 **문장 텍스트**다. 같은 줄이 곡 안에서 반복되면 `lineIndex` 는
+         * 다르지만 예문으로는 구별되지 않으므로, 줄 번호나 곡을 키에 넣지 않는다.
+         */
+        private fun exampleKey(example: SenseExample) = example.text.trim().replace(WHITESPACE, " ")
+
+        private val WHITESPACE = Regex("\\s+")
     }
 }
