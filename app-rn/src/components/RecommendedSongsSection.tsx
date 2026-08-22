@@ -2,6 +2,7 @@ import React, { useCallback, useMemo } from 'react';
 import {
   View,
   Text,
+  Image,
   FlatList,
   ScrollView,
   TouchableOpacity,
@@ -12,7 +13,7 @@ import {
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useShallow } from 'zustand/react/shallow';
-import ArtworkImage from './ArtworkImage';
+import { LinearGradient } from 'expo-linear-gradient';
 import SkeletonBox from './SkeletonLoading';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useRecommendationStore } from '../stores/recommendationStore';
@@ -21,25 +22,33 @@ import { RecommendedSongItem } from '../types/song';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
-// Pencil recCarousel (frame AlUIg): card width 272 on a 402-wide frame.
-// Kept as a ratio so the carousel adapts to device width while preserving
-// the "peek" of the next card.
-const CARD_WIDTH_RATIO = 272 / 402;
-const CARD_GAP = 14;
-const CARD_INNER_GAP = 12;
+// Pencil recCarousel (frames AlUIg / CXbuw): card 200x264 on a 402-wide frame.
+// Width is kept as a ratio so the carousel adapts to device width while
+// preserving the "peek" of the next card; the 200:264 aspect is fixed.
+const CARD_WIDTH_RATIO = 200 / 402;
+const CARD_ASPECT = 264 / 200;
+const CARD_GAP = 12;
+const CARD_RADIUS = 14;
+const CARD_PADDING = 14;
+const CARD_STROKE = '#00000024';
+const CARD_TINT = '#00000014';
+const SCRIM_COLORS = ['#00000000', '#00000000', '#000000A8', '#000000ED'] as const;
+const SCRIM_LOCATIONS = [0, 0.34, 0.7, 1] as const;
+const TITLE_FONT_SIZE = 15;
+const TITLE_LINE_HEIGHT = TITLE_FONT_SIZE * 1.32;
 const SKELETON_CARD_COUNT = 4;
-const SKELETON_TITLE_RATIO = 169 / 272;
-const SKELETON_ARTIST_RATIO = 109 / 272;
 
 interface RecommendedSongCardProps {
   item: RecommendedSongItem;
   cardWidth: number;
+  cardHeight: number;
   onPress: (songId: number) => void;
 }
 
 const RecommendedSongCard = React.memo(function RecommendedSongCard({
   item,
   cardWidth,
+  cardHeight,
   onPress,
 }: RecommendedSongCardProps) {
   const handlePress = useCallback(() => {
@@ -48,51 +57,51 @@ const RecommendedSongCard = React.memo(function RecommendedSongCard({
 
   return (
     <TouchableOpacity
-      style={[styles.item, { width: cardWidth }]}
+      style={[styles.card, { width: cardWidth, height: cardHeight }]}
       onPress={handlePress}
       activeOpacity={0.7}
     >
-      <View style={[styles.coverShadow, { width: cardWidth, height: cardWidth }]}>
-        <ArtworkImage
-          url={item.artworkUrl}
-          size={cardWidth}
-          cornerRadius={Dimens.cardCornerRadius}
-        />
+      {item.artworkUrl ? (
+        <Image source={{ uri: item.artworkUrl }} style={styles.artwork} resizeMode="cover" />
+      ) : (
+        <View style={[styles.artwork, styles.artworkPlaceholder]} />
+      )}
+      {/* Pencil card fill: artwork image + #00000014 tint, inner 1px stroke. */}
+      <View style={styles.tint} pointerEvents="none" />
+      <LinearGradient
+        colors={SCRIM_COLORS}
+        locations={SCRIM_LOCATIONS}
+        style={styles.scrim}
+        pointerEvents="none"
+      />
+      <View style={styles.cardText}>
+        <Text style={styles.title} numberOfLines={1}>
+          {item.title}
+        </Text>
+        <Text style={styles.artist} numberOfLines={1}>
+          {item.artist}
+        </Text>
       </View>
-      <Text style={[styles.title, { width: cardWidth }]} numberOfLines={1}>
-        {item.title}
-      </Text>
-      <Text style={[styles.artist, { width: cardWidth }]} numberOfLines={1}>
-        {item.artist}
-      </Text>
     </TouchableOpacity>
   );
 });
 
 interface SkeletonCardProps {
   cardWidth: number;
+  cardHeight: number;
 }
 
-const SkeletonCard = React.memo(function SkeletonCard({ cardWidth }: SkeletonCardProps) {
+const SkeletonCard = React.memo(function SkeletonCard({
+  cardWidth,
+  cardHeight,
+}: SkeletonCardProps) {
   return (
-    <View style={[styles.item, { width: cardWidth }]}>
-      <SkeletonBox
-        width={cardWidth}
-        height={cardWidth}
-        borderRadius={Dimens.cardCornerRadius}
-        color={Colors.elevated}
-      />
-      <SkeletonBox
-        width={cardWidth * SKELETON_TITLE_RATIO}
-        height={16}
-        color={Colors.elevated}
-      />
-      <SkeletonBox
-        width={cardWidth * SKELETON_ARTIST_RATIO}
-        height={13}
-        color={Colors.elevated}
-      />
-    </View>
+    <SkeletonBox
+      width={cardWidth}
+      height={cardHeight}
+      borderRadius={CARD_RADIUS}
+      color={Colors.elevated}
+    />
   );
 });
 
@@ -114,6 +123,7 @@ export default function RecommendedSongsSection() {
     () => Math.round(windowWidth * CARD_WIDTH_RATIO),
     [windowWidth],
   );
+  const cardHeight = useMemo(() => Math.round(cardWidth * CARD_ASPECT), [cardWidth]);
 
   const handleSongPress = useCallback(
     (songId: number) => {
@@ -124,9 +134,14 @@ export default function RecommendedSongsSection() {
 
   const renderItem = useCallback(
     ({ item }: ListRenderItemInfo<RecommendedSongItem>) => (
-      <RecommendedSongCard item={item} cardWidth={cardWidth} onPress={handleSongPress} />
+      <RecommendedSongCard
+        item={item}
+        cardWidth={cardWidth}
+        cardHeight={cardHeight}
+        onPress={handleSongPress}
+      />
     ),
-    [cardWidth, handleSongPress],
+    [cardWidth, cardHeight, handleSongPress],
   );
 
   const keyExtractor = useCallback((item: RecommendedSongItem) => String(item.id), []);
@@ -163,7 +178,7 @@ export default function RecommendedSongsSection() {
           {Array.from({ length: SKELETON_CARD_COUNT }).map((_, index) => (
             <React.Fragment key={index}>
               {index > 0 && <Separator />}
-              <SkeletonCard cardWidth={cardWidth} />
+              <SkeletonCard cardWidth={cardWidth} cardHeight={cardHeight} />
             </React.Fragment>
           ))}
         </ScrollView>
@@ -200,28 +215,42 @@ const styles = StyleSheet.create({
   separator: {
     width: CARD_GAP,
   },
-  item: {
-    gap: CARD_INNER_GAP,
+  card: {
+    borderRadius: CARD_RADIUS,
+    overflow: 'hidden',
+    justifyContent: 'flex-end',
+    backgroundColor: Colors.elevated,
   },
-  coverShadow: {
-    borderRadius: Dimens.cardCornerRadius,
-    // Opaque background: Android elevation and iOS shadows do not render
-    // behind a fully transparent view.
-    backgroundColor: Colors.background,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+  artwork: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  artworkPlaceholder: {
+    backgroundColor: Colors.cardBorder,
+  },
+  tint: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: CARD_TINT,
+    borderRadius: CARD_RADIUS,
+    borderWidth: 1,
+    borderColor: CARD_STROKE,
+  },
+  scrim: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  cardText: {
+    gap: 3,
+    paddingHorizontal: CARD_PADDING,
+    paddingBottom: CARD_PADDING,
   },
   title: {
-    fontSize: 16,
+    fontSize: TITLE_FONT_SIZE,
+    lineHeight: TITLE_LINE_HEIGHT,
     fontWeight: '600',
-    color: Colors.textPrimary,
+    color: '#FFFFFF',
   },
   artist: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '400',
-    color: Colors.textMuted,
+    color: '#FFFFFFB8',
   },
 });
