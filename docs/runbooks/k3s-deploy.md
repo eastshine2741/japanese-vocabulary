@@ -17,6 +17,8 @@ Rules:
 - `deploy.sh` passes an explicit kubectl context for the selected environment (`default` for dev).
 - Local dev admin web is available through `http://localhost/<namespace>/admin` when k3s ingress is running.
 - Port-forward `svc/admin-api 8081:8081` only for direct Admin API checks.
+- Prod admin runs at `https://kotonoha.eastshine.dev/admin`; it needs a `kotonoha.eastshine.dev` A record pointing at the same LB IP as `api.kotonoha.eastshine.dev`. See `docs/admin-service.md`.
+- Prod requires `ADMIN_PASSWORD_SHA256` and `ADMIN_TOKEN_SECRET` in `.env.prod`; `deploy.sh` refuses to deploy without them.
 
 ## Dev MySQL Dump Restore
 

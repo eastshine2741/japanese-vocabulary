@@ -114,6 +114,19 @@ if [[ "$DEPLOY_ENV" == "prod" ]]; then
   fi
   IMAGE_PREFIX="ghcr.io/${GHCR_USERNAME}/kotonoha"
 
+  # admin-api 는 prod 에서 평문 비밀번호를 받지 않는다. sha256 해시와 토큰 시크릿이 필수다.
+  ADMIN_TOKEN_SECRET="${ADMIN_TOKEN_SECRET:-}"
+  if [[ ! "${ADMIN_PASSWORD_SHA256:-}" =~ ^[0-9a-f]{64}$ ]]; then
+    echo "Error: ADMIN_PASSWORD_SHA256 must be a 64-char lowercase hex sha256 in $ENV_FILE" >&2
+    echo "  generate: printf '%s' 'your-password' | sha256sum" >&2
+    exit 1
+  fi
+  if [[ ${#ADMIN_TOKEN_SECRET} -lt 32 ]]; then
+    echo "Error: ADMIN_TOKEN_SECRET must be at least 32 characters in $ENV_FILE" >&2
+    echo "  generate: openssl rand -hex 32" >&2
+    exit 1
+  fi
+
   echo ""
   echo "⚠️  PROD DEPLOY"
   echo "  context:   $KUBE_CONTEXT"
@@ -131,13 +144,23 @@ GIT_SHA="$(git rev-parse --short HEAD)"
 API_IMAGE="${IMAGE_PREFIX}-api:${GIT_SHA}"
 BATCH_IMAGE="${IMAGE_PREFIX}-batch:${GIT_SHA}"
 MIGRATION_IMAGE="${IMAGE_PREFIX}-migration:${GIT_SHA}"
+ADMIN_API_IMAGE="${IMAGE_PREFIX}-admin-api:${GIT_SHA}"
+ADMIN_WEB_IMAGE="${IMAGE_PREFIX}-admin-web:${GIT_SHA}"
+ADMIN_PASSWORD="${ADMIN_PASSWORD:-}"
+ADMIN_PASSWORD_SHA256="${ADMIN_PASSWORD_SHA256:-}"
 if [[ "$DEPLOY_ENV" == "dev" ]]; then
-  ADMIN_API_IMAGE="${IMAGE_PREFIX}-admin-api:${GIT_SHA}"
-  ADMIN_WEB_IMAGE="${IMAGE_PREFIX}-admin-web:${GIT_SHA}"
   ADMIN_PASSWORD="${ADMIN_PASSWORD:-admin}"
-  ADMIN_PASSWORD_SHA256="${ADMIN_PASSWORD_SHA256:-}"
   ADMIN_TOKEN_SECRET="${ADMIN_TOKEN_SECRET:-dev-admin-token-secret-must-be-at-least-32-bytes}"
 fi
+
+# admin-web 은 asset base 와 router basename 을 빌드 시점에 굽는다.
+# dev 는 namespace 경로 아래, prod 는 kotonoha.eastshine.dev/admin 아래에 붙는다.
+if [[ "$DEPLOY_ENV" == "prod" ]]; then
+  ADMIN_WEB_BASE_PATH="/admin"
+else
+  ADMIN_WEB_BASE_PATH="/${NS}/admin"
+fi
+ADMIN_WEB_API_BASE_URL="${ADMIN_WEB_BASE_PATH}/api"
 
 if [[ "$DEPLOY_ENV" == "prod" ]]; then
   SENTRY_ENVIRONMENT="production"
@@ -192,11 +215,9 @@ fi
 # --- 1. Gradle 테스트 + 빌드 (test 실패 시 배포 중단) ---
 STEP_START=$SECONDS
 echo "[gradle] test + bootJar..."
-if [[ "$DEPLOY_ENV" == "dev" ]]; then
-  cd "$PROJECT_ROOT/backend" && ./gradlew :api:test :batch:test :admin-api:test :api:bootJar :batch:bootJar :admin-api:bootJar --no-daemon
-else
-  cd "$PROJECT_ROOT/backend" && ./gradlew :api:test :batch:test :api:bootJar :batch:bootJar --no-daemon
-fi
+cd "$PROJECT_ROOT/backend" && ./gradlew \
+  :api:test :batch:test :admin-api:test \
+  :api:bootJar :batch:bootJar :admin-api:bootJar --no-daemon
 cd "$PROJECT_ROOT"
 echo "  → $((SECONDS - STEP_START))s"
 
@@ -210,11 +231,19 @@ if [[ "$DEPLOY_ENV" == "prod" ]]; then
   build_boot_image api "$API_IMAGE"
   build_boot_image batch "$BATCH_IMAGE"
   docker build -t "$MIGRATION_IMAGE" -f "$PROJECT_ROOT/backend/migration/Dockerfile" "$PROJECT_ROOT/backend/migration/"
+  build_boot_image admin-api "$ADMIN_API_IMAGE"
+  docker build \
+    --build-arg VITE_ADMIN_API_BASE_URL="$ADMIN_WEB_API_BASE_URL" \
+    --build-arg VITE_ADMIN_BASE_PATH="$ADMIN_WEB_BASE_PATH" \
+    -t "$ADMIN_WEB_IMAGE" \
+    -f "$PROJECT_ROOT/admin-web/Dockerfile" "$PROJECT_ROOT/admin-web/"
 
   echo "[push] ghcr..."
   docker push "$API_IMAGE"
   docker push "$BATCH_IMAGE"
   docker push "$MIGRATION_IMAGE"
+  docker push "$ADMIN_API_IMAGE"
+  docker push "$ADMIN_WEB_IMAGE"
 else
   echo "[build] images..."
   build_boot_image api "$API_IMAGE"
@@ -222,8 +251,8 @@ else
   docker build -t "$MIGRATION_IMAGE" -f "$PROJECT_ROOT/backend/migration/Dockerfile" "$PROJECT_ROOT/backend/migration/"
   build_boot_image admin-api "$ADMIN_API_IMAGE"
   docker build \
-    --build-arg VITE_ADMIN_API_BASE_URL="/${NS}/admin/api" \
-    --build-arg VITE_ADMIN_BASE_PATH="/${NS}/admin" \
+    --build-arg VITE_ADMIN_API_BASE_URL="$ADMIN_WEB_API_BASE_URL" \
+    --build-arg VITE_ADMIN_BASE_PATH="$ADMIN_WEB_BASE_PATH" \
     -t "$ADMIN_WEB_IMAGE" \
     -f "$PROJECT_ROOT/admin-web/Dockerfile" "$PROJECT_ROOT/admin-web/"
 
@@ -310,21 +339,27 @@ envsubst < "$K8S_DIR/batch/configmap.yaml" | kubectl apply -n "$NS" -f -
 envsubst < "$K8S_DIR/batch/deployment.yaml" | kubectl apply -n "$NS" -f -
 [[ -f "$K8S_DIR/batch/service.yaml" ]] && kubectl apply -n "$NS" -f "$K8S_DIR/batch/service.yaml"
 
-for sm in "$K8S_DIR/api/servicemonitor.yaml" "$K8S_DIR/batch/servicemonitor.yaml"; do
-  [[ -f "$sm" ]] && kubectl apply -n "$NS" -f "$sm"
-done
+echo "[apply] admin-api + admin-web..."
+envsubst < "$K8S_DIR/admin-api/secret.template.yaml" | kubectl apply -n "$NS" -f -
+envsubst < "$K8S_DIR/admin-api/configmap.yaml" | kubectl apply -n "$NS" -f -
+envsubst < "$K8S_DIR/admin-api/deployment.yaml" | kubectl apply -n "$NS" -f -
+kubectl apply -n "$NS" -f "$K8S_DIR/admin-api/service.yaml"
 
-if [[ "$DEPLOY_ENV" == "dev" ]]; then
-  envsubst < "$K8S_DIR/admin-api/secret.template.yaml" | kubectl apply -n "$NS" -f -
-  envsubst < "$K8S_DIR/admin-api/configmap.yaml" | kubectl apply -n "$NS" -f -
-  envsubst < "$K8S_DIR/admin-api/deployment.yaml" | kubectl apply -n "$NS" -f -
-  kubectl apply -n "$NS" -f "$K8S_DIR/admin-api/service.yaml"
+envsubst < "$K8S_DIR/admin-web/deployment.yaml" | kubectl apply -n "$NS" -f -
+kubectl apply -n "$NS" -f "$K8S_DIR/admin-web/service.yaml"
+
+if [[ "$DEPLOY_ENV" == "prod" ]]; then
+  # prod 는 kotonoha.eastshine.dev 한 호스트를 path 로 나눠 쓴다 (admin/ 아래 cert + IngressRoute).
+  kubectl apply -n "$NS" -f "$K8S_DIR/admin/certificate.yaml"
+  kubectl apply -n "$NS" -f "$K8S_DIR/admin/ingress.yaml"
+else
   envsubst < "$K8S_DIR/admin-api/ingress.yaml" | kubectl apply -n "$NS" -f -
-
-  envsubst < "$K8S_DIR/admin-web/deployment.yaml" | kubectl apply -n "$NS" -f -
-  kubectl apply -n "$NS" -f "$K8S_DIR/admin-web/service.yaml"
   envsubst < "$K8S_DIR/admin-web/ingress.yaml" | kubectl apply -n "$NS" -f -
 fi
+
+for sm in "$K8S_DIR/api/servicemonitor.yaml" "$K8S_DIR/batch/servicemonitor.yaml" "$K8S_DIR/admin-api/servicemonitor.yaml"; do
+  [[ -f "$sm" ]] && kubectl apply -n "$NS" -f "$sm"
+done
 echo "  → $((SECONDS - STEP_START))s"
 
 # --- 8. 롤아웃 대기 ---
@@ -332,10 +367,8 @@ STEP_START=$SECONDS
 echo "[rollout] waiting..."
 kubectl rollout status -n "$NS" deployment/api --timeout=120s
 kubectl rollout status -n "$NS" deployment/batch --timeout=120s
-if [[ "$DEPLOY_ENV" == "dev" ]]; then
-  kubectl rollout status -n "$NS" deployment/admin-api --timeout=120s
-  kubectl rollout status -n "$NS" deployment/admin-web --timeout=120s
-fi
+kubectl rollout status -n "$NS" deployment/admin-api --timeout=120s
+kubectl rollout status -n "$NS" deployment/admin-web --timeout=120s
 echo "  → $((SECONDS - STEP_START))s"
 
 echo ""
@@ -344,6 +377,7 @@ echo "  kubectl get pods -n $NS"
 if [[ "$DEPLOY_ENV" == "prod" ]]; then
   echo "  kubectl get certificate -n $NS"
   echo "  curl https://api.kotonoha.eastshine.dev/health"
+  echo "  admin web: https://kotonoha.eastshine.dev/admin"
 else
   echo "  kubectl port-forward -n $NS svc/api 8080:8080"
   echo "  kubectl port-forward -n $NS svc/admin-api 8081:8081"
