@@ -56,7 +56,7 @@ class SegmentLyricsStage(
             }
 
             pendingByIndex = input.rawByIndex.filterKeys { it in failuresByIndex }
-            logger.warn(
+            logger.info(
                 "Segmentation surface validation failed on attempt {}/{}: {} of {} lines invalid, retrying those only: {}",
                 attempt + 1,
                 MAX_SEGMENTATION_ATTEMPTS,
