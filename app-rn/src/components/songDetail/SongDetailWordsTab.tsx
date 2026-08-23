@@ -6,14 +6,15 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import {
-  BottomSheetScrollView,
-  BottomSheetView,
-} from '@gorhom/bottom-sheet';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { wordApi } from '../../api/wordApi';
-import { AppBottomSheetModal, AppBottomSheetModalRef } from '../bottomSheet';
+import {
+  AppBottomSheetModal,
+  AppBottomSheetModalRef,
+  AppBottomSheetView,
+  AppSheetHandoffScrollView,
+} from '../bottomSheet';
 import { Colors } from '../../theme/theme';
 import SongDetailWordRow from './SongDetailWordRow';
 import SongDetailSortSheet from './SongDetailSortSheet';
@@ -467,9 +468,9 @@ export default function SongDetailWordsTab({
         enablePanDownToClose
         backgroundStyle={styles.sheetBg}
       >
-        <BottomSheetView>
+        <AppBottomSheetView>
           <SongDetailSortSheet value={state.sort} onApply={state.handleSortApply} onClose={state.closeSortSheet} />
-        </BottomSheetView>
+        </AppBottomSheetView>
       </AppBottomSheetModal>
 
       <AppBottomSheetModal
@@ -478,7 +479,7 @@ export default function SongDetailWordsTab({
         enablePanDownToClose
         backgroundStyle={styles.sheetBg}
       >
-        <BottomSheetScrollView>
+        <AppSheetHandoffScrollView>
           <SongDetailFilterSheet
             availablePos={state.availablePos}
             selectedPos={state.draftSelectedPos}
@@ -492,7 +493,7 @@ export default function SongDetailWordsTab({
             onApply={state.applyFilters}
             onClose={state.closeFilterSheet}
           />
-        </BottomSheetScrollView>
+        </AppSheetHandoffScrollView>
       </AppBottomSheetModal>
     </View>
   );

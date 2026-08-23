@@ -9,12 +9,16 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import { FlatList, ScrollView } from 'react-native-gesture-handler';
-import { BottomSheetView } from '@gorhom/bottom-sheet';
+import { FlatList } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../theme/theme';
 import { Layers } from '../../theme/layers';
-import { AppBottomSheet, AppBottomSheetRef } from '../bottomSheet';
+import {
+  AppBottomSheet,
+  AppBottomSheetRef,
+  AppBottomSheetView,
+  AppSheetOwnedScrollView,
+} from '../bottomSheet';
 import { getPosColor } from '../../types/pos';
 import { Token } from '../../types/song';
 import { convertLineReading } from '../../utils/readingConverter';
@@ -98,9 +102,6 @@ const MIN_LYRIC_TEXT_FONT_SIZE = 6;
 const MAX_LYRIC_READING_FONT_SIZE = 9;
 const MIN_LYRIC_READING_FONT_SIZE = 5;
 const LYRIC_FONT_FIT_SAFETY = 0.92;
-// 시트를 끄는 제스처는 세로 의도가 분명할 때만 잡고, 가로로 밀면 실패시켜 페이저에 넘긴다.
-const SHEET_PAN_ACTIVE_OFFSET_Y: [number, number] = [-10, 10];
-const SHEET_PAN_FAIL_OFFSET_X: [number, number] = [-10, 10];
 const NO_UNDERLINE_POS = new Set(['SYMBOL', 'SUPPLEMENTARY_SYMBOL', 'WHITESPACE']);
 
 function getLineWordIndexes(
@@ -373,12 +374,8 @@ const CurrentWordsPageCard = React.memo(function CurrentWordsPageCard({
         ) : null}
       </View>
 
-      {/*
-        react-native-gesture-handler 의 ScrollView 는 disallowInterruption 으로 감싸져
-        있어서, 활성화되면 시트의 본문 pan 이 이 드래그를 가로채지 못한다. 그래서 시트
-        본문 중 세로 드래그를 먹는 건 이 목록뿐이고, 위의 가사 카드는 시트로 넘어간다.
-      */}
-      <ScrollView
+      {/* 세로 드래그를 이 목록이 소유한다. 위의 가사 카드에서 밀면 시트가 움직인다. */}
+      <AppSheetOwnedScrollView
         style={styles.wordsScroll}
         showsVerticalScrollIndicator={false}
         nestedScrollEnabled
@@ -405,7 +402,7 @@ const CurrentWordsPageCard = React.memo(function CurrentWordsPageCard({
             </View>
           )}
         </View>
-      </ScrollView>
+      </AppSheetOwnedScrollView>
     </View>
   );
 });
@@ -599,20 +596,15 @@ const CurrentPlayingWordsSheetComponent = React.forwardRef<AppBottomSheetRef, Cu
         bottomInset={sheetBottomInset}
         enablePanDownToClose={false}
         enableDynamicSizing={false}
-        activeOffsetY={SHEET_PAN_ACTIVE_OFFSET_Y}
-        failOffsetX={SHEET_PAN_FAIL_OFFSET_X}
         enableOverDrag={false}
-        // 기본값 2.5 는 시트 본문 아래에 over-drag 여유 패딩(약 70dp)을 만든다. 그 패딩은
-        // 시트 밖에 걸려서 단어 목록의 마지막 줄을 가리고, 시트 위치에 따라 매 프레임
-        // 높이가 다시 계산돼 드래그를 무겁게 한다. over-drag 를 안 쓰니 0 으로 없앤다.
-        overDragResistanceFactor={0}
+        hasHorizontalContent
         backgroundStyle={styles.sheetBackground}
         handleComponent={header ? SheetHandle : null}
         containerStyle={[styles.sheetContainer, { zIndex, elevation: zIndex }]}
         style={[styles.sheet, { zIndex, elevation: zIndex }]}
         onChange={onSheetChange}
       >
-        <BottomSheetView style={styles.sheetContent}>
+        <AppBottomSheetView fill style={styles.sheetContent}>
           <View style={styles.syncRow}>
             <Text style={styles.pageStatusText}>{pageStatusText}</Text>
             <Pressable
@@ -673,7 +665,7 @@ const CurrentPlayingWordsSheetComponent = React.forwardRef<AppBottomSheetRef, Cu
             maxToRenderPerBatch={3}
             windowSize={3}
           />
-        </BottomSheetView>
+        </AppBottomSheetView>
       </AppBottomSheet>
     </SheetHandleContext.Provider>
   );
@@ -704,10 +696,6 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
   },
   sheetContent: {
-    // BottomSheetView 는 자기 스타일 뒤에 position:absolute + top/left/right 를 덮어쓴다.
-    // bottom 이 없으면 높이가 내용만큼 늘어나 flex:1 이 죽고, 단어 목록도 넘치기만 하고
-    // 스크롤되지 않는다. bottom:0 으로 시트 본문 높이에 묶어야 목록이 스크롤을 얻는다.
-    bottom: 0,
     flex: 1,
     overflow: 'hidden',
     borderTopLeftRadius: 24,

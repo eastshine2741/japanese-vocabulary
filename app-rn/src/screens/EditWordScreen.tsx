@@ -11,7 +11,6 @@ import {
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { WordSense, sensesFromMeaningText } from '../types/word';
 import WordFormFields from '../components/WordFormFields';
@@ -21,7 +20,7 @@ import { useWordForm } from '../hooks/useWordForm';
 import AppDialog from '../components/AppDialog';
 import ErrorDialog from '../components/ErrorDialog';
 import { AppBar } from '../components/AppBar';
-import { AppBottomSheetModal, AppBottomSheetModalRef } from '../components/bottomSheet';
+import { AppBottomSheetModal, AppBottomSheetModalRef, AppSheetHandoffScrollView } from '../components/bottomSheet';
 import { Colors } from '../theme/theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'EditWord'>;
@@ -217,7 +216,7 @@ export default function EditWordScreen({ route, navigation }: Props) {
         enablePanDownToClose
         onDismiss={() => setPosPickerIndex(null)}
       >
-        <BottomSheetScrollView contentContainerStyle={styles.pickerContent}>
+        <AppSheetHandoffScrollView contentContainerStyle={styles.pickerContent}>
           <PosPickerList
             selectedPos={posPickerIndex !== null ? form.senses[posPickerIndex]?.partOfSpeech : null}
             onSelect={(pos) => {
@@ -225,7 +224,7 @@ export default function EditWordScreen({ route, navigation }: Props) {
               posSheetRef.current?.dismiss();
             }}
           />
-        </BottomSheetScrollView>
+        </AppSheetHandoffScrollView>
       </AppBottomSheetModal>
 
       <AppDialog

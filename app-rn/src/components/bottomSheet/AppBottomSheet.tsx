@@ -15,8 +15,17 @@ import { Layers } from '../../theme/layers';
 
 type BottomSheetVariant = 'standard' | 'floating';
 
+// 시트 pan 은 세로 의도가 분명할 때만 잡고, 가로로 밀면 실패시켜 안쪽 가로 스크롤에 넘긴다.
+const VERTICAL_DRAG_ACTIVE_OFFSET_Y: [number, number] = [-10, 10];
+const HORIZONTAL_DRAG_FAIL_OFFSET_X: [number, number] = [-10, 10];
+
 interface AppBottomSheetChromeProps {
   variant?: BottomSheetVariant;
+  /**
+   * 본문에 가로 스크롤(페이저 등)이 있는 시트. 켜면 시트 pan 이 세로 드래그만 잡는다.
+   * 이게 없으면 가로 스와이프를 시트가 훔쳐서 페이지가 넘어가지 않는다.
+   */
+  hasHorizontalContent?: boolean;
   showBackdrop?: boolean;
   backdropOpacity?: number;
   backdropStyle?: StyleProp<ViewStyle>;
@@ -37,8 +46,10 @@ function useAppSheetChrome({
   backdropStyle,
   floatingBottomOffset = 12,
   sheetZIndex,
+  hasHorizontalContent,
   bottomInset,
   detached,
+  enableOverDrag,
   style,
   backgroundStyle,
   handleStyle,
@@ -47,6 +58,7 @@ function useAppSheetChrome({
 }: AppBottomSheetChromeProps & {
   bottomInset?: number;
   detached?: boolean;
+  enableOverDrag?: boolean;
   style?: BottomSheetProps['style'];
   backgroundStyle?: BottomSheetProps['backgroundStyle'];
   handleStyle?: BottomSheetProps['handleStyle'];
@@ -78,6 +90,12 @@ function useAppSheetChrome({
 
   return {
     detached: isFloating ? (detached ?? true) : detached,
+    // over-drag 을 끈 시트에서 기본값 2.5 는 본문 아래에 쓸데없는 여유 패딩(약 70dp)을
+    // 만든다. 그 패딩은 시트 밖에 걸려서 본문 마지막 줄을 가리고, 시트 위치에 따라 매
+    // 프레임 본문 높이가 다시 계산돼 드래그를 무겁게 한다.
+    overDragResistanceFactor: enableOverDrag === false ? 0 : undefined,
+    activeOffsetY: hasHorizontalContent ? VERTICAL_DRAG_ACTIVE_OFFSET_Y : undefined,
+    failOffsetX: hasHorizontalContent ? HORIZONTAL_DRAG_FAIL_OFFSET_X : undefined,
     bottomInset: bottomInset ?? (isFloating ? insets.bottom + floatingBottomOffset : undefined),
     backdropComponent: backdropComponent ?? (shouldShowBackdrop ? renderBackdrop : undefined),
     style: isFloating ? [styles.floatingSheet, zIndexStyle, style] : [zIndexStyle, style],
@@ -95,8 +113,10 @@ export const AppBottomSheet = React.forwardRef<AppBottomSheetRef, AppBottomSheet
     backdropStyle,
     floatingBottomOffset,
     sheetZIndex,
+    hasHorizontalContent,
     bottomInset,
     detached,
+    enableOverDrag,
     style,
     backgroundStyle,
     handleStyle,
@@ -111,8 +131,10 @@ export const AppBottomSheet = React.forwardRef<AppBottomSheetRef, AppBottomSheet
       backdropStyle,
       floatingBottomOffset,
       sheetZIndex,
+      hasHorizontalContent,
       bottomInset,
       detached,
+      enableOverDrag,
       style,
       backgroundStyle,
       handleStyle,
@@ -125,6 +147,10 @@ export const AppBottomSheet = React.forwardRef<AppBottomSheetRef, AppBottomSheet
         ref={ref}
         bottomInset={chrome.bottomInset}
         detached={chrome.detached}
+        enableOverDrag={enableOverDrag}
+        overDragResistanceFactor={chrome.overDragResistanceFactor}
+        activeOffsetY={chrome.activeOffsetY}
+        failOffsetX={chrome.failOffsetX}
         backdropComponent={chrome.backdropComponent}
         style={chrome.style}
         backgroundStyle={chrome.backgroundStyle}
@@ -144,8 +170,10 @@ export const AppBottomSheetModal = React.forwardRef<AppBottomSheetModalRef, AppB
     backdropStyle,
     floatingBottomOffset,
     sheetZIndex,
+    hasHorizontalContent,
     bottomInset,
     detached,
+    enableOverDrag,
     style,
     backgroundStyle,
     handleStyle,
@@ -160,8 +188,10 @@ export const AppBottomSheetModal = React.forwardRef<AppBottomSheetModalRef, AppB
       backdropStyle,
       floatingBottomOffset,
       sheetZIndex,
+      hasHorizontalContent,
       bottomInset,
       detached,
+      enableOverDrag,
       style,
       backgroundStyle,
       handleStyle,
@@ -174,6 +204,10 @@ export const AppBottomSheetModal = React.forwardRef<AppBottomSheetModalRef, AppB
         ref={ref}
         bottomInset={chrome.bottomInset}
         detached={chrome.detached}
+        enableOverDrag={enableOverDrag}
+        overDragResistanceFactor={chrome.overDragResistanceFactor}
+        activeOffsetY={chrome.activeOffsetY}
+        failOffsetX={chrome.failOffsetX}
         backdropComponent={chrome.backdropComponent}
         style={chrome.style}
         backgroundStyle={chrome.backgroundStyle}

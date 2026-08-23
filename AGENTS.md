@@ -32,6 +32,7 @@ cd app-rn && npx expo start --web             # App - Web (dev)
 - Admin service: `docs/admin-service.md`
 - Recommended songs: `docs/recommended-songs.md`
 - k3s deploy and environment variables: `docs/runbooks/k3s-deploy.md`
+- Bottom sheet nested scroll: `docs/runbooks/bottom-sheet-nested-scroll.md`
 - Pencil editing: `docs/runbooks/pencil-editing.md`
 
 Directory-specific instructions live in nested `AGENTS.md` files. Each has a sibling `CLAUDE.md` that links to it with `@AGENTS.md`.

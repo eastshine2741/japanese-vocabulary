@@ -8,3 +8,11 @@ export type {
   AppBottomSheetProps,
   AppBottomSheetRef,
 } from './AppBottomSheet';
+export { AppBottomSheetView } from './AppBottomSheetView';
+export type { AppBottomSheetViewProps } from './AppBottomSheetView';
+export {
+  AppSheetHandoffFlatList,
+  AppSheetHandoffScrollView,
+  AppSheetOwnedFlatList,
+  AppSheetOwnedScrollView,
+} from './AppSheetScrollables';

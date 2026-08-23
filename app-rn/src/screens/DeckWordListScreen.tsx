@@ -10,7 +10,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { BottomSheetView } from '@gorhom/bottom-sheet';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { useShallow } from 'zustand/react/shallow';
@@ -28,7 +27,7 @@ import AppDialog from '../components/AppDialog';
 import ErrorDialog from '../components/ErrorDialog';
 import ArtworkImage from '../components/ArtworkImage';
 import DeckWordActionSheet from '../components/DeckWordActionSheet';
-import { AppBottomSheet, AppBottomSheetRef } from '../components/bottomSheet';
+import { AppBottomSheet, AppBottomSheetRef, AppBottomSheetView } from '../components/bottomSheet';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'DeckWordList'>;
@@ -242,7 +241,7 @@ export default function DeckWordListScreen({ route, navigation }: Props) {
         enablePanDownToClose
         onChange={handleActionSheetChange}
       >
-        <BottomSheetView>
+        <AppBottomSheetView>
           {actionItem && (
             <DeckWordActionSheet
               item={actionItem}
@@ -250,7 +249,7 @@ export default function DeckWordListScreen({ route, navigation }: Props) {
               onDelete={handleDeleteFromSheet}
             />
           )}
-        </BottomSheetView>
+        </AppBottomSheetView>
       </AppBottomSheet>
 
       <AppDialog

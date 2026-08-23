@@ -17,7 +17,6 @@ import {
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { BottomSheetView } from '@gorhom/bottom-sheet';
 import { Feather, FontAwesome6 } from '@expo/vector-icons';
 import { useSongDetailStore } from '../stores/songDetailStore';
 import { usePlayerStore } from '../stores/playerStore';
@@ -25,7 +24,7 @@ import { deckApi } from '../api/deckApi';
 import { wordApi } from '../api/wordApi';
 import SkeletonBox from '../components/SkeletonLoading';
 import SongInfoSheet from '../components/SongInfoSheet';
-import { AppBottomSheet, AppBottomSheetRef } from '../components/bottomSheet';
+import { AppBottomSheet, AppBottomSheetRef, AppBottomSheetView } from '../components/bottomSheet';
 import {
   CurrentPlayingWordsSheet,
   SongDetailHomeTab,
@@ -891,7 +890,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
         enablePanDownToClose
         onChange={handleInfoSheetChange}
       >
-        <BottomSheetView>
+        <AppBottomSheetView>
           <SongInfoSheet
             songId={song.id}
             title={song.title}
@@ -899,7 +898,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
             lyricsSourceName={lyrics.lyricsSourceName}
             lyricsSourceUrl={lyrics.lyricsSourceUrl}
           />
-        </BottomSheetView>
+        </AppBottomSheetView>
       </AppBottomSheet>
 
     </View>

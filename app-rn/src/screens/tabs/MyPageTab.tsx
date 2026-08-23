@@ -2,11 +2,10 @@ import React, { useCallback, useRef } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, BackHandler } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
-import { BottomSheetView } from '@gorhom/bottom-sheet';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuthStore } from '../../stores/authStore';
-import { AppBottomSheetModal, AppBottomSheetModalRef } from '../../components/bottomSheet';
+import { AppBottomSheetModal, AppBottomSheetModalRef, AppBottomSheetView } from '../../components/bottomSheet';
 import { Colors, Dimens } from '../../theme/theme';
 import { RootStackParamList } from '../../navigation/AppNavigator';
 import StudyStatsProfileSection from '../../components/studyStats/StudyStatsProfileSection';
@@ -107,9 +106,9 @@ export default function MyPageTab() {
         enablePanDownToClose
         onChange={handleFreezeSheetChange}
       >
-        <BottomSheetView>
+        <AppBottomSheetView>
           <FreezeInfoSheet onConfirm={handleCloseFreeze} />
-        </BottomSheetView>
+        </AppBottomSheetView>
       </AppBottomSheetModal>
     </SafeAreaView>
   );
