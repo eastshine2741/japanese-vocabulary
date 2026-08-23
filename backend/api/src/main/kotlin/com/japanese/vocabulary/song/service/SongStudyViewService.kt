@@ -14,8 +14,6 @@ class SongStudyViewService(
 ) {
     private data class LyricsSource(val name: String?, val url: String?)
 
-    // 구 데이터의 한글 독음을 그대로 내려보낸다. 아직 재분석되지 않은 곡은 그것 말고 독음이 없다.
-    @Suppress("DEPRECATION")
     fun buildAnalyzedSong(entity: SongEntity): AnalyzedSongDto {
         val songId = entity.id!!
         val lyricEntity = lyricRepository.findActiveBySongId(songId)
@@ -41,8 +39,6 @@ class SongStudyViewService(
                     startTimeMs = line.startTimeMs,
                     tokens = analyzed?.tokens ?: emptyList(),
                     koreanLyrics = analyzed?.koreanLyrics,
-                    pronounciation = analyzed?.pronounciation,
-                    koreanPronounciation = analyzed?.koreanPronounciation,
                 )
             }
         } else {

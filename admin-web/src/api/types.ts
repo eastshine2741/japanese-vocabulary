@@ -154,8 +154,7 @@ export type LyricToken = {
 export type AnalyzedLyricLine = {
   index: number
   koreanLyrics: string | null
-  /** The line's reading in katakana. */
-  pronounciation?: string | null
+  /** No line-level reading is stored — assemble it from the tokens (`buildLineReading`). */
   tokens: LyricToken[]
 }
 

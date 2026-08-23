@@ -47,10 +47,6 @@ export interface StudyUnit {
   startTimeMs: number | null;
   tokens: Token[];
   koreanLyrics: string | null;
-  /** The line's reading in katakana. Convert with `convertReading` before display. */
-  pronounciation: string | null;
-  /** 구 데이터 전용 한글 독음. 이미 한글이라 변환 없이 그대로 쓴다. 신규 분석은 항상 null. */
-  koreanPronounciation: string | null;
 }
 
 export interface SongStudyData {
@@ -66,10 +62,7 @@ export interface SongLyricLineDto {
   originalText: string;
   startTimeMs: number | null;
   koreanLyrics: string | null;
-  /** The line's reading in katakana. Convert with `convertReading` before display. */
-  pronounciation: string | null;
-  /** 구 데이터 전용 한글 독음. 이미 한글이라 변환 없이 그대로 쓴다. 신규 분석은 항상 null. */
-  koreanPronounciation: string | null;
+  /** 줄 발음은 저장되지 않는다. 토큰마다 그 줄에서 불리는 발음이 있어 앱이 조립한다. */
   tokens: Token[];
 }
 

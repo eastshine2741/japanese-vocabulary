@@ -445,7 +445,6 @@ class SongControllerTest : ApiBaseIntegrationTest() {
                     AnalyzedLine(
                         index = 0,
                         koreanLyrics = "밤",
-                        pronounciation = "ヨル",
                         tokens = listOf(
                             Token(
                                 surface = "夜",
@@ -502,7 +501,6 @@ class SongControllerTest : ApiBaseIntegrationTest() {
                     AnalyzedLine(
                         index = 2,
                         koreanLyrics = "밤을 넘다",
-                        pronounciation = "ヨルヲコエル",
                         tokens = listOf(
                             Token("夜", "夜", "よる", "よる", PartOfSpeech.NOUN, 0, 1),
                         ),
@@ -519,10 +517,8 @@ class SongControllerTest : ApiBaseIntegrationTest() {
                 jsonPath("$.lines[0].index") { value(2) }
                 jsonPath("$.lines[0].originalText") { value("夜を越える") }
                 jsonPath("$.lines[0].koreanLyrics") { value("밤을 넘다") }
-                // New analysis ships katakana and the clients derive the Hangul reading themselves, so
-                // the katakana has to survive the wire and the legacy Hangul field stays null.
-                jsonPath("$.lines[0].pronounciation") { value("ヨルヲコエル") }
-                jsonPath("$.lines[0].koreanPronounciation") { value(null as String?) }
+                // No line reading on the wire: the client assembles it from the tokens, so what has to
+                // survive is each token's reading and char range.
                 jsonPath("$.lines[0].tokens[0].surface") { value("夜") }
                 jsonPath("$.lines[0].tokens[0].baseForm") { value("夜") }
                 jsonPath("$.lines[0].tokens[0].reading") { value("よる") }
@@ -536,36 +532,6 @@ class SongControllerTest : ApiBaseIntegrationTest() {
             assertThat(dto.lyricId).isEqualTo(lyric.id)
             assertThat(dto.lines.single().tokens.map { it.surface }).containsExactly("夜")
             assertThat(redis.opsForZSet().size(recentKey(me.id!!)) ?: 0).isZero
-        }
-
-        @Test
-        fun `lyrics endpoint keeps the Hangul reading of lyrics analyzed before pronounciation existed`() {
-            val me = newUser()
-            val song = newSong()
-            // 구 로우는 카타카나 발음이 없고 한글 독음만 갖고 있다. 그걸 내리지 않으면 재분석 전까지
-            // 앱에서 독음이 사라진다. 구 토큰은 기본형 리딩을 단어별로 갖고 있어서 서버가 줄 단위 발음을 다시 조립할 수도 없다.
-            @Suppress("DEPRECATION")
-            val legacy = AnalyzedLine(
-                index = 0,
-                koreanLyrics = "그저 병명이 갖고 싶었어",
-                koreanPronounciation = "타다 뵤-메이가 호시캇타",
-                tokens = listOf(
-                    Token("病名", "病名", "びょうめい", "びょうめい", PartOfSpeech.NOUN, 2, 4),
-                ),
-            )
-            newLyric(
-                song,
-                raw = listOf(LyricLineData(index = 0, startTimeMs = null, text = "ただ病名が欲しかった")),
-                analyzed = listOf(legacy),
-            )
-
-            mockMvc.get("/api/songs/${song.id}/lyrics") {
-                header("Authorization", bearer(me))
-            }.andExpect {
-                status { isOk() }
-                jsonPath("$.lines[0].pronounciation") { value(null as String?) }
-                jsonPath("$.lines[0].koreanPronounciation") { value("타다 뵤-메이가 호시캇타") }
-            }
         }
 
         @Test
@@ -583,7 +549,6 @@ class SongControllerTest : ApiBaseIntegrationTest() {
                     AnalyzedLine(
                         index = 0,
                         koreanLyrics = "활성",
-                        pronounciation = "アクティブ",
                         tokens = emptyList(),
                     ),
                 ),
