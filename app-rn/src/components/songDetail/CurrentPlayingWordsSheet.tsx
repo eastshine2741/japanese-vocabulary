@@ -98,6 +98,9 @@ const MIN_LYRIC_TEXT_FONT_SIZE = 6;
 const MAX_LYRIC_READING_FONT_SIZE = 9;
 const MIN_LYRIC_READING_FONT_SIZE = 5;
 const LYRIC_FONT_FIT_SAFETY = 0.92;
+// 시트를 끄는 제스처는 세로 의도가 분명할 때만 잡고, 가로로 밀면 실패시켜 페이저에 넘긴다.
+const SHEET_PAN_ACTIVE_OFFSET_Y: [number, number] = [-10, 10];
+const SHEET_PAN_FAIL_OFFSET_X: [number, number] = [-10, 10];
 const NO_UNDERLINE_POS = new Set(['SYMBOL', 'SUPPLEMENTARY_SYMBOL', 'WHITESPACE']);
 
 function getLineWordIndexes(
@@ -310,8 +313,7 @@ const SheetHandleContext = React.createContext<SheetHandleContextValue>({
 });
 
 /**
- * MV 바가 시트의 핸들이다. 시트를 끄는 제스처를 핸들에만 두고 본문에서 빼야
- * 단어 목록 위 세로 드래그가 목록으로만 간다.
+ * MV 바가 시트의 핸들이다. 본문 pan 과 별개로 바에서도 시트를 끌 수 있다.
  *
  * 모듈 레벨 컴포넌트여야 한다 — handleComponent 로 매 렌더 새 함수를 넘기면 React 가
  * 다른 타입으로 보고 핸들을 새로 마운트해서, 안에 든 MV WebView 가 계속 초기화된다.
@@ -371,9 +373,13 @@ const CurrentWordsPageCard = React.memo(function CurrentWordsPageCard({
         ) : null}
       </View>
 
+      {/*
+        react-native-gesture-handler 의 ScrollView 는 disallowInterruption 으로 감싸져
+        있어서, 활성화되면 시트의 본문 pan 이 이 드래그를 가로채지 못한다. 그래서 시트
+        본문 중 세로 드래그를 먹는 건 이 목록뿐이고, 위의 가사 카드는 시트로 넘어간다.
+      */}
       <ScrollView
         style={styles.wordsScroll}
-        contentContainerStyle={styles.wordsScrollContent}
         showsVerticalScrollIndicator={false}
         nestedScrollEnabled
       >
@@ -593,9 +599,8 @@ const CurrentPlayingWordsSheetComponent = React.forwardRef<AppBottomSheetRef, Cu
         bottomInset={sheetBottomInset}
         enablePanDownToClose={false}
         enableDynamicSizing={false}
-        // 본문 pan 을 끄면 단어 목록과 페이저가 자기 제스처를 온전히 가진다.
-        // 시트를 끄는 건 핸들(MV 바)이 맡는다.
-        enableContentPanningGesture={false}
+        activeOffsetY={SHEET_PAN_ACTIVE_OFFSET_Y}
+        failOffsetX={SHEET_PAN_FAIL_OFFSET_X}
         enableOverDrag={false}
         // 기본값 2.5 는 시트 본문 아래에 over-drag 여유 패딩(약 70dp)을 만든다. 그 패딩은
         // 시트 밖에 걸려서 단어 목록의 마지막 줄을 가리고, 시트 위치에 따라 매 프레임
@@ -776,7 +781,6 @@ const styles = StyleSheet.create({
   pagesContent: {
     paddingHorizontal: 22,
     paddingTop: 0,
-    paddingBottom: 18,
   },
   pageSeparator: {
     width: 12,
@@ -837,9 +841,6 @@ const styles = StyleSheet.create({
   },
   wordsScroll: {
     flex: 1,
-  },
-  wordsScrollContent: {
-    paddingBottom: 18,
   },
   wordListBody: {
     borderRadius: 16,
