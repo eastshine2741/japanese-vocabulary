@@ -9,7 +9,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import { FlatList, NativeViewGestureHandler, ScrollView } from 'react-native-gesture-handler';
+import { FlatList, ScrollView } from 'react-native-gesture-handler';
 import { BottomSheetView } from '@gorhom/bottom-sheet';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../theme/theme';
@@ -302,6 +302,29 @@ const LyricTokenStack = React.memo(function LyricTokenStack({
   );
 });
 
+interface SheetHandleContextValue {
+  header: React.ReactNode;
+  headerHeight: number;
+}
+
+const SheetHandleContext = React.createContext<SheetHandleContextValue>({
+  header: null,
+  headerHeight: 0,
+});
+
+/**
+ * MV 바가 시트의 핸들이다. 시트를 끄는 제스처를 핸들에만 두고 본문에서 빼야
+ * 단어 목록 위 세로 드래그가 목록으로만 간다.
+ *
+ * 모듈 레벨 컴포넌트여야 한다 — handleComponent 로 매 렌더 새 함수를 넘기면 React 가
+ * 다른 타입으로 보고 핸들을 새로 마운트해서, 안에 든 MV WebView 가 계속 초기화된다.
+ * 바뀌는 값은 context 로 넘겨 리렌더만 시킨다.
+ */
+function SheetHandle() {
+  const { header, headerHeight } = React.useContext(SheetHandleContext);
+  return <View style={[styles.headerSlot, { height: headerHeight }]}>{header}</View>;
+}
+
 const CurrentWordsPageCard = React.memo(function CurrentWordsPageCard({
   page,
   width,
@@ -414,7 +437,9 @@ const CurrentPlayingWordsSheetComponent = React.forwardRef<AppBottomSheetRef, Cu
   const inferredLyricType = lyricType ?? (lines.some(line => line.startTimeMs != null) ? 'SYNCED' : 'PLAIN');
   const canAutoSync = inferredLyricType === 'SYNCED';
   const [autoSyncEnabled, setAutoSyncEnabled] = React.useState(canAutoSync);
-  const [visiblePageIndex, setVisiblePageIndex] = React.useState(0);
+  // 첫 렌더에 보이는 페이지는 initialScrollIndex 가 가리키는 자리다. 0 으로 두면
+  // 화면에 없는 카드가 보이는 카드로 취급돼 시트에 아무 스크롤도 등록되지 않는다.
+  const [visiblePageIndex, setVisiblePageIndex] = React.useState(() => Math.max(fallbackLineIndex, 0));
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const sheetBottomInset = bottomInset ?? insets.bottom;
   const pageWidth = Math.max(280, screenWidth - 44);
@@ -559,60 +584,66 @@ const CurrentPlayingWordsSheetComponent = React.forwardRef<AppBottomSheetRef, Cu
     });
   }, [activePageIndex, scrollToPage]);
 
+  const handleContextValue = useMemo<SheetHandleContextValue>(
+    () => ({ header, headerHeight }),
+    [header, headerHeight],
+  );
+
   const pageStatusText = pages.length > 0 ? `${visiblePageIndex + 1}/${pages.length}` : '0/0';
 
   return (
-    <AppBottomSheet
-      ref={ref}
-      snapPoints={snapPoints}
-      index={0}
-      bottomInset={sheetBottomInset}
-      enablePanDownToClose={false}
-      enableDynamicSizing={false}
-      enableOverDrag={false}
-      backgroundStyle={styles.sheetBackground}
-      handleComponent={null}
-      containerStyle={[styles.sheetContainer, { zIndex, elevation: zIndex }]}
-      style={[styles.sheet, { zIndex, elevation: zIndex }]}
-      onChange={onSheetChange}
-    >
-      <BottomSheetView style={styles.sheetContent}>
-        {header ? (
-          <View style={[styles.headerSlot, { height: headerHeight }]}>
-            {header}
-          </View>
-        ) : null}
-
-        <View style={styles.syncRow}>
-          <Text style={styles.pageStatusText}>{pageStatusText}</Text>
-          <Pressable
-            accessibilityLabel="가사 자동 넘김"
-            accessibilityRole="switch"
-            accessibilityState={{ checked: autoSyncEnabled, disabled: !canAutoSync }}
-            disabled={!canAutoSync}
-            hitSlop={8}
-            onPress={handleToggleAutoSync}
-            style={[
-              styles.syncToggle,
-              autoSyncEnabled && styles.syncToggleOn,
-              !autoSyncEnabled && canAutoSync && styles.syncToggleOff,
-              !canAutoSync && styles.syncToggleDisabled,
-            ]}
-          >
-            <Text
+    <SheetHandleContext.Provider value={handleContextValue}>
+      <AppBottomSheet
+        ref={ref}
+        snapPoints={snapPoints}
+        index={0}
+        bottomInset={sheetBottomInset}
+        enablePanDownToClose={false}
+        enableDynamicSizing={false}
+        // 본문 pan 을 끄면 단어 목록과 페이저가 자기 제스처를 온전히 가진다.
+        // 시트를 끄는 건 핸들(MV 바)이 맡는다.
+        enableContentPanningGesture={false}
+        enableOverDrag={false}
+        // 기본값 2.5 는 시트 본문 아래에 over-drag 여유 패딩(약 70dp)을 만든다. 그 패딩은
+        // 시트 밖에 걸려서 단어 목록의 마지막 줄을 가리고, 시트 위치에 따라 매 프레임
+        // 높이가 다시 계산돼 드래그를 무겁게 한다. over-drag 를 안 쓰니 0 으로 없앤다.
+        overDragResistanceFactor={0}
+        backgroundStyle={styles.sheetBackground}
+        handleComponent={header ? SheetHandle : null}
+        containerStyle={[styles.sheetContainer, { zIndex, elevation: zIndex }]}
+        style={[styles.sheet, { zIndex, elevation: zIndex }]}
+        onChange={onSheetChange}
+      >
+        <BottomSheetView style={styles.sheetContent}>
+          <View style={styles.syncRow}>
+            <Text style={styles.pageStatusText}>{pageStatusText}</Text>
+            <Pressable
+              accessibilityLabel="가사 자동 넘김"
+              accessibilityRole="switch"
+              accessibilityState={{ checked: autoSyncEnabled, disabled: !canAutoSync }}
+              disabled={!canAutoSync}
+              hitSlop={8}
+              onPress={handleToggleAutoSync}
               style={[
-                styles.syncToggleText,
-                autoSyncEnabled && styles.syncToggleTextOn,
-                !autoSyncEnabled && canAutoSync && styles.syncToggleTextOff,
-                !canAutoSync && styles.syncToggleTextDisabled,
+                styles.syncToggle,
+                autoSyncEnabled && styles.syncToggleOn,
+                !autoSyncEnabled && canAutoSync && styles.syncToggleOff,
+                !canAutoSync && styles.syncToggleDisabled,
               ]}
             >
-              {!canAutoSync ? '싱크 OFF' : autoSyncEnabled ? '싱크 ON' : '싱크 OFF'}
-            </Text>
-          </Pressable>
-        </View>
+              <Text
+                style={[
+                  styles.syncToggleText,
+                  autoSyncEnabled && styles.syncToggleTextOn,
+                  !autoSyncEnabled && canAutoSync && styles.syncToggleTextOff,
+                  !canAutoSync && styles.syncToggleTextDisabled,
+                ]}
+              >
+                {!canAutoSync ? '싱크 OFF' : autoSyncEnabled ? '싱크 ON' : '싱크 OFF'}
+              </Text>
+            </Pressable>
+          </View>
 
-        <NativeViewGestureHandler disallowInterruption>
           <FlatList
             ref={listRef}
             data={pages}
@@ -639,10 +670,14 @@ const CurrentPlayingWordsSheetComponent = React.forwardRef<AppBottomSheetRef, Cu
             contentContainerStyle={styles.pagesContent}
             ItemSeparatorComponent={PageSeparator}
             removeClippedSubviews={false}
+            // 96줄짜리 곡이면 기본값으로 카드가 열 장 넘게 살아 있다. 앞뒤 한 장만 준비해 둔다.
+            initialNumToRender={3}
+            maxToRenderPerBatch={3}
+            windowSize={3}
           />
-        </NativeViewGestureHandler>
-      </BottomSheetView>
-    </AppBottomSheet>
+        </BottomSheetView>
+      </AppBottomSheet>
+    </SheetHandleContext.Provider>
   );
 });
 
@@ -671,6 +706,10 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
   },
   sheetContent: {
+    // BottomSheetView 는 자기 스타일 뒤에 position:absolute + top/left/right 를 덮어쓴다.
+    // bottom 이 없으면 높이가 내용만큼 늘어나 flex:1 이 죽고, 단어 목록도 넘치기만 하고
+    // 스크롤되지 않는다. bottom:0 으로 시트 본문 높이에 묶어야 목록이 스크롤을 얻는다.
+    bottom: 0,
     flex: 1,
     overflow: 'hidden',
     borderTopLeftRadius: 24,
@@ -683,6 +722,9 @@ const styles = StyleSheet.create({
   headerSlot: {
     width: '100%',
     overflow: 'hidden',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    backgroundColor: Colors.background,
   },
   syncRow: {
     height: 28,
