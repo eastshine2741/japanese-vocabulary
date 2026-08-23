@@ -76,8 +76,9 @@ guardrails for deterministic checks and transformations.
 6. `TranslateSensesStage`: translates chosen senses to Korean using
    `SenseTranslationPreparer`. Sent in chunks of `TRANSLATE_CHUNK_SENSES` senses.
 7. `AssembleAnalyzedLinesStage`: creates final `AnalyzedLine` and `Token`
-   objects from rule results, selected senses, and sense translations, and
-   assembles the line's `pronounciation`.
+   objects from rule results, selected senses, and sense translations. No
+   line-level reading is stored — each token carries the reading sung in that
+   line and the client assembles from those.
 
 The lyric translation branch and the word-preparation branch run in parallel:
 
@@ -216,10 +217,19 @@ Two consequences shape the retry feedback:
 
 ## Pronunciation
 
-`AnalyzedLine.pronounciation` is the line's reading in katakana, assembled in
-`AssembleAnalyzedLinesStage` by joining the tokens' `usedReading` in `charStart`
-order and copying the raw text of the gaps between them, so spaces, punctuation,
-and latin runs survive.
+**The line's reading is not stored.** `Token.reading` is the reading actually sung
+in that line and `charStart`/`charEnd` say where the token sits in the raw text, so
+a client assembles the reading it needs: tokens in position order, with the raw text
+of any gap between them copied verbatim, which keeps spaces, punctuation, and latin
+runs. `convertLineReading` (app-rn) and `buildLineReading` (admin-web) each hold
+that ten-line rule; the app converts every token separately on the way.
+
+Converting per token is the point, not an optimization. `katakanaToKorean` carries a
+vowel state from one character to the next so it can mark オ段+ウ / エ段+イ as a long
+vowel, and a whole-line pass lets that state cross a word boundary: 僕の歌 (ボクノ +
+ウタ) came out 보쿠노-타, eating 歌's first syllable, and a `ー` folded the next word's
+ウ into the same long vowel (もう歌う → 모--타우). A stored line reading cannot be
+converted correctly, because assembling it is what destroys the boundaries.
 
 The Hangul transcription the translation prompt used to generate is now derived
 on the client by `katakanaToKorean`, which already implemented the same
@@ -228,14 +238,12 @@ enforced. Those few-shot pairs now live in `readingConverter.test.ts`. The one
 divergence: that function writes a long vowel as a hyphen (`ドウ` → `도-`) where
 the prompt asked for `도우`.
 
-`AnalyzedLine.koreanPronounciation` is legacy — always null in new output, kept
-on the model so pre-`pronounciation` rows still deserialize. It also stays on the
-wire: `SongLyricLineDto` and `StudyUnitDto` carry both fields, and the client
-prefers the converted katakana and falls back to the stored Hangul as-is. Without
-that fallback a song analyzed before this change showed **no** pronunciation line
-until it was re-analyzed, and re-deriving one server-side is not possible — legacy
-tokens hold the base-form reading (`欲しかった` → `ほしい`), so assembling the line
-from them would misread it. Drop both fields once every song has been re-analyzed.
+`AnalyzedLine.pronounciation` and `AnalyzedLine.koreanPronounciation` are gone,
+along with their DTO fields. Rows written with them still read back:
+`JsonListConverter` ignores unknown keys, which is what makes a field removable
+from a JSON column at all. **Those rows still need re-analysis** — their tokens
+hold base-form readings (`欲しかった` → `ホシイ`), so assembling a line from them
+misreads it, and nothing on the row says so any more.
 
 ## Jisho Entry Select
 

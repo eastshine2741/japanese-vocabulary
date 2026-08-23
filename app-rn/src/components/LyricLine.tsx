@@ -4,7 +4,7 @@ import { Token, StudyUnit } from '../types/song';
 import { POS_INFO } from '../types/pos';
 import { Colors } from '../theme/theme';
 import { useSettingsStore } from '../stores/settingsStore';
-import { convertLineReading, convertReading, katakanaToHiragana } from '../utils/readingConverter';
+import { convertLineReading, katakanaToHiragana } from '../utils/readingConverter';
 
 const NO_UNDERLINE_POS = new Set(['SYMBOL', 'SUPPLEMENTARY_SYMBOL', 'WHITESPACE']);
 
@@ -40,15 +40,12 @@ function LyricLine({
 
   const canSeek = onLineSeek != null && studyUnit.startTimeMs != null;
 
-  // Converted per token, not per line — a line-wide conversion lets one word's long vowel swallow
-  // the next word's leading ウ/イ. A line the analysis found no words in has no token readings to
-  // assemble, so the stored line reading is the source there.
-  const koreanPronunciation = useMemo(() => {
-    if (!studyUnit.pronounciation) return null;
-    return studyUnit.tokens.length > 0
-      ? convertLineReading(studyUnit.originalText, studyUnit.tokens, 'KOREAN')
-      : convertReading(studyUnit.pronounciation, 'KOREAN');
-  }, [studyUnit.pronounciation, studyUnit.originalText, studyUnit.tokens]);
+  // Assembled from the tokens, each converted on its own — converting a whole line at once lets one
+  // word's long vowel swallow the next word's leading ウ/イ. Empty when the line has no words.
+  const koreanPronunciation = useMemo(
+    () => convertLineReading(studyUnit.originalText, studyUnit.tokens, 'KOREAN'),
+    [studyUnit.originalText, studyUnit.tokens],
+  );
 
   const handleLinePress = useCallback(() => {
     if (!onLineSeek || studyUnit.startTimeMs == null) return;

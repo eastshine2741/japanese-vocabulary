@@ -19,8 +19,6 @@ function toLegacyStudyUnits(lyrics: SongLyricsDto): StudyUnit[] {
     startTimeMs: line.startTimeMs,
     tokens: line.tokens,
     koreanLyrics: line.koreanLyrics,
-    pronounciation: line.pronounciation,
-    koreanPronounciation: line.koreanPronounciation,
   }));
 }
 

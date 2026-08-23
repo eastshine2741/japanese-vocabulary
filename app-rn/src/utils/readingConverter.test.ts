@@ -99,8 +99,10 @@ describe('convertLineReading — a long vowel belongs to one word, so conversion
     expect(convertLineReading('「ネコ」', [token('ネコ', 'ネコ', 1)], 'KOREAN')).toBe('「네코」');
   });
 
-  it('falls back to the line itself when analysis produced no tokens', () => {
-    expect(convertLineReading('la la la', [], 'KOREAN')).toBe('la la la');
+  it('has nothing to assemble when analysis produced no tokens', () => {
+    // The caller reads this as "no reading" and draws nothing. Returning the line would pass
+    // untransliterated Japanese off as a reading.
+    expect(convertLineReading('la la la', [], 'KOREAN')).toBe('');
   });
 
   it('reads a token with no reading of its own by its surface', () => {

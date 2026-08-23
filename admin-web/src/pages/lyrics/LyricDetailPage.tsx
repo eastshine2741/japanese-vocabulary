@@ -8,6 +8,7 @@ import { ErrorState, LoadingState } from "@/components/StateViews"
 import { Button } from "@/components/ui/button"
 import { PageHeader } from "@/components/PageHeader"
 import { useAuth } from "@/features/auth"
+import { buildLineReading } from "@/lib/lineReading"
 import { cn, formatDateTime } from "@/lib/utils"
 
 const NO_UNDERLINE_POS = new Set(["SYMBOL", "SUPPLEMENTARY_SYMBOL", "WHITESPACE"])
@@ -199,6 +200,7 @@ function LyricPreviewLine({
   selectedKey: string | null
   onTokenSelect: (selectedToken: SelectedToken) => void
 }) {
+  const reading = analyzedLine ? buildLineReading(rawLine.text, analyzedLine.tokens) : ""
   return (
     <article className="grid grid-cols-[3.5rem_minmax(0,1fr)] gap-3 border-b border-[#e7edf3] bg-white px-4 py-5 last:border-b-0 sm:grid-cols-[5rem_minmax(0,1fr)] sm:px-6">
       <div className="pt-2 font-mono text-xs text-[#8a95a5]">
@@ -209,9 +211,7 @@ function LyricPreviewLine({
         <div className="flex flex-wrap items-end gap-x-1.5 gap-y-3">
           {renderTokens(rawLine, analyzedLine, selectedKey, onTokenSelect)}
         </div>
-        {analyzedLine?.pronounciation ? (
-          <p className="mt-3 text-sm text-[#637083]">{analyzedLine.pronounciation}</p>
-        ) : null}
+        {reading ? <p className="mt-3 text-sm text-[#637083]">{reading}</p> : null}
         {analyzedLine?.koreanLyrics ? (
           <p className="mt-1 text-sm font-medium leading-6 text-[#18212f]">{analyzedLine.koreanLyrics}</p>
         ) : (
@@ -339,6 +339,7 @@ function WordInspector({ selectedToken }: { selectedToken: SelectedToken | null 
   const posColor = getUnderlineColor(token.partOfSpeech) ?? "#8a95a5"
   const reading = token.reading ? katakanaToHiragana(token.reading) : null
   const baseReading = token.baseFormReading ? katakanaToHiragana(token.baseFormReading) : null
+  const lineReading = buildLineReading(rawLine.text, analyzedLine.tokens)
 
   return (
     <aside className="border-y border-[#d9e1ea] bg-white lg:sticky lg:top-4 lg:self-start" aria-live="polite">
@@ -374,9 +375,7 @@ function WordInspector({ selectedToken }: { selectedToken: SelectedToken | null 
 
       <div className="space-y-4 px-5 py-4">
         <ContextBlock label="Original line" value={highlightToken(rawLine.text, token.charStart, token.charEnd)} />
-        {analyzedLine.pronounciation ? (
-          <ContextBlock label="Pronunciation" value={analyzedLine.pronounciation} />
-        ) : null}
+        {lineReading ? <ContextBlock label="Pronunciation" value={lineReading} /> : null}
         <ContextBlock label="Translation" value={analyzedLine.koreanLyrics || "해석 없음"} />
       </div>
     </aside>

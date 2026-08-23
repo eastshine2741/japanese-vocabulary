@@ -18,12 +18,11 @@ class AssembleAnalyzedLinesStage : PipelineStage<AssembleAnalyzedLinesInput, Lis
         val wordPreparation = input.wordPreparation
         return input.source.lyricLines.map { line ->
             val tokens = wordPreparation.tokensByIndex[line.index] ?: emptyList()
-            // koreanPronounciation is left at its null default: the pronunciation this pipeline
-            // produces is katakana, and the app derives the Hangul reading from it.
+            // No line reading is stored: each token carries the reading sung in this line, and the
+            // client assembles from those. See AnalyzedLine.
             AnalyzedLine(
                 index = line.index,
                 koreanLyrics = input.translationMap[line.index]?.koreanLyrics,
-                pronounciation = buildPronounciation(line.text, tokens),
                 tokens = buildTokens(
                     tokens = tokens,
                     ruleResolvedByKey = wordPreparation.ruleResolvedByKey,
@@ -33,32 +32,6 @@ class AssembleAnalyzedLinesStage : PipelineStage<AssembleAnalyzedLinesInput, Lis
                 ),
             )
         }
-    }
-
-    /**
-     * The line's reading: each token's katakana reading in position order, with the raw text of any
-     * gap between tokens copied verbatim.
-     *
-     * The gaps are what keep the line legible — spaces, punctuation, and latin runs sit between tokens
-     * and have no reading of their own, so reproducing them preserves the line's shape instead of
-     * fusing every word together. A line with no tokens has nothing to transcribe, so its raw text
-     * stands in.
-     */
-    private fun buildPronounciation(rawText: String, tokens: List<PipelineToken>): String {
-        if (tokens.isEmpty()) return rawText
-        val builder = StringBuilder()
-        var cursor = 0
-        tokens.sortedBy { it.charStart }.forEach { token ->
-            if (token.charStart > cursor) {
-                builder.append(rawText, cursor, token.charStart)
-            }
-            builder.append(token.usedReading.ifBlank { token.surface })
-            cursor = maxOf(cursor, token.charEnd)
-        }
-        if (cursor < rawText.length) {
-            builder.append(rawText, cursor, rawText.length)
-        }
-        return builder.toString()
     }
 
     private fun buildTokens(

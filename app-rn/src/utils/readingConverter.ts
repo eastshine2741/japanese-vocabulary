@@ -227,20 +227,17 @@ export interface ReadingToken {
  * token's vowel, so 僕の歌 (ボクノ + ウタ) came out 보쿠노-타 instead of 보쿠노우타. Converting each
  * token on its own keeps the long vowel inside the word it belongs to.
  *
- * Mirrors the server's `buildPronounciation`: each token's reading in position order, with the raw
- * text of any gap between tokens copied verbatim — spaces, punctuation and latin runs are not
- * tokens, and reproducing them keeps the line's shape. A line with no tokens has no reading to
- * assemble, so its own text is converted as-is.
- *
- * Only call this for lines whose `pronounciation` is non-null. Songs analyzed before that field
- * existed carry base-form token readings (欲しかった → ホシイ), which would assemble a wrong line.
+ * Each token's reading goes in position order, and the raw text of any gap between tokens is copied
+ * verbatim — spaces, punctuation and latin runs are not tokens, and reproducing them keeps the line's
+ * shape. A line the analysis found no words in has nothing to assemble and returns an empty string;
+ * the caller shows no reading rather than passing the Japanese text off as one.
  */
 export function convertLineReading(
   originalText: string,
   tokens: readonly ReadingToken[],
   display: ReadingDisplay,
 ): string {
-  if (tokens.length === 0) return convertReading(originalText, display);
+  if (tokens.length === 0) return '';
 
   const parts: string[] = [];
   let cursor = 0;

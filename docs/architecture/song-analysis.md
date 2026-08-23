@@ -50,21 +50,20 @@ Flow: `(translation || [segment -> surface/reading check + retry -> grammar rule
 5. **jisho entry-select** (code): a lookup keyed by headword returns every dictionary entry it touched, boundaries intact — one entry per `(headword, reading)` pair. `LexicalResolver` narrows to the entry matching the segment's `(headword, baseFormReading)` pair and offers only that entry's senses — or, when the pair still matches several entries (a kana headword such as かける does this), offers them all with entry labels attached. See the grade table in `docs/translation-pipeline.md`. i-adjective adverbials such as `高く` can still be normalized through a `高い` probe.
 6. **sense-select** (LLM): chooses the matching sense ID for each word, using the lyric translation and the segment's `contextGloss` as context. It does not create meanings directly. **A word with only one candidate sense is settled in code without a request.** Sense candidates carry headword/reading only in the `AMBIGUOUS_HEADWORD` grade, where senses from several entries share one request.
 7. **sense-translate** (LLM): translates each chosen Japanese sense to one Korean meaning. Multiple English glosses for one sense are treated as one sense description, not concatenated gloss translations.
-8. **assemble** (code): `Token.reading` is the segment's inflected `usedReading` and `Token.baseFormReading` is the chosen entry's dictionary reading, so 行って keeps イッテ while its headword 行く reads イク. POS, JLPT, and meaning come from the rule result or the selected sense. If no sense exists, leave it empty. Punctuation, English, and numbers normally get no token at all — segment anchoring drops them and the app rebuilds them from the gaps between tokens; a non-Japanese surface that reaches this stage anyway is marked `SYMBOL` rather than sent to the dictionary. The line's `pronounciation` is assembled here by joining the tokens' `usedReading` in position order and copying the raw text of the gaps between them.
+8. **assemble** (code): `Token.reading` is the segment's inflected `usedReading` and `Token.baseFormReading` is the chosen entry's dictionary reading, so 行って keeps イッテ while its headword 行く reads イク. POS, JLPT, and meaning come from the rule result or the selected sense. If no sense exists, leave it empty. Punctuation, English, and numbers normally get no token at all — segment anchoring drops them and the app rebuilds them from the gaps between tokens; a non-Japanese surface that reaches this stage anyway is marked `SYMBOL` rather than sent to the dictionary. No line-level reading is stored — the tokens carry it.
 
-### Pronunciation is katakana; Hangul is derived on the client
+### Readings are katakana on the tokens; the line's reading is assembled by the client
 
-`AnalyzedLine.pronounciation` holds katakana. The Hangul transcription that used to come from the
-translation prompt — including its rule forcing voiceless K/T rows to aspirated Korean against
-외래어 표기법's word-initial rule — is now `app-rn/src/utils/readingConverter.ts`'s `katakanaToKorean`,
-which already encoded the same mapping. The prompt's few-shot pairs live on as
-`readingConverter.test.ts`. One divergence: that function writes a long vowel as a hyphen (`ドウ` →
-`도-`), where the prompt asked for `도우`.
+Nothing stores a line-level reading. `Token.reading` is the katakana actually sung for that token, and
+the client joins the tokens in position order, copying the raw text of the gaps between them
+(`convertLineReading` in app-rn, `buildLineReading` in admin-web).
 
-`AnalyzedLine.koreanPronounciation` is legacy. New analysis always writes null; it stays on the model
-so rows written before `pronounciation` existed still deserialize, and on the read DTOs so those songs
-still show a pronunciation line — the client falls back to that Hangul as-is when `pronounciation` is
-null.
+The Hangul transcription that used to come from the translation prompt — including its rule forcing
+voiceless K/T rows to aspirated Korean against 외래어 표기법's word-initial rule — is now
+`app-rn/src/utils/readingConverter.ts`'s `katakanaToKorean`, which already encoded the same mapping.
+The prompt's few-shot pairs live on as `readingConverter.test.ts`. One divergence: that function writes
+a long vowel as a hyphen (`ドウ` → `도-`), where the prompt asked for `도우`. It runs **per token** —
+its long-vowel state would otherwise cross a word boundary and swallow the next word's leading ウ/イ.
 
 Failures end as `song_analysis_work.status=FAILED` without automatic retry in the first pass. If the user requests the same song again, a new work is created.
 

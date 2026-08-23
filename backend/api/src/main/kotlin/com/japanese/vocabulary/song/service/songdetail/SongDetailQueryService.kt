@@ -38,8 +38,6 @@ class SongDetailQueryService(
         )
     }
 
-    // 구 데이터의 한글 독음을 그대로 내려보낸다. 아직 재분석되지 않은 곡은 그것 말고 독음이 없다.
-    @Suppress("DEPRECATION")
     @Transactional(readOnly = true)
     fun lyrics(songId: Long): SongLyricsDto {
         songRepository.findById(songId).orElseThrow { BusinessException(ErrorCode.SONG_NOT_FOUND) }
@@ -57,8 +55,6 @@ class SongDetailQueryService(
                     originalText = raw.text,
                     startTimeMs = raw.startTimeMs,
                     koreanLyrics = analyzed?.koreanLyrics,
-                    pronounciation = analyzed?.pronounciation,
-                    koreanPronounciation = analyzed?.koreanPronounciation,
                     tokens = analyzed?.tokens ?: emptyList(),
                 )
             },

@@ -246,8 +246,7 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
         assertThat(analyzed).hasSize(1)
         val line = analyzed[0]
         assertThat(line.koreanLyrics).isEqualTo("고양이가 잔다")
-        assertThat(line.koreanPronounciation).isNull()
-        assertThat(line.pronounciation).isEqualTo("ヨミ")
+        assertThat(line.tokens.mapNotNull { it.reading }).containsExactly("ヨミ")
         assertThat(line.tokens).isNotEmpty
         assertThat(line.tokens).allSatisfy { token ->
             assertThat(token.koreanText).isNotNull
@@ -995,7 +994,7 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
             workId = expired.id!!,
             workerId = "dead-worker",
             lyricId = lyric.id!!,
-            analyzedLines = listOf(AnalyzedLine(index = 0, koreanLyrics = "고양이", pronounciation = "ネコ", tokens = emptyList())),
+            analyzedLines = listOf(AnalyzedLine(index = 0, koreanLyrics = "고양이", tokens = emptyList())),
         )
 
         assertThat(completed).isFalse

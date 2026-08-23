@@ -21,8 +21,10 @@ class AssembleAnalyzedLinesStageTest {
     private val stage = AssembleAnalyzedLinesStage()
 
     @Test
-    fun `builds the line reading from token readings and keeps the gaps between them`(): Unit = runBlocking {
-        // 「行って」 yay — the quotes, the space and the latin run are gaps with no reading of their own.
+    fun `anchors every token with the reading sung in this line so a client can assemble it`(): Unit = runBlocking {
+        // 「行って」 yay — no line reading is stored, so what a client needs is on the tokens: the
+        // reading, and the char range that says where it sits. The quotes, the space and the latin run
+        // have no reading of their own, and a client falls back to their surface.
         val raw = "「行って」 yay"
         val tokens = listOf(
             token(raw, "「", "「", "「", "「"),
@@ -34,7 +36,14 @@ class AssembleAnalyzedLinesStageTest {
 
         val line = assemble(raw, tokens).single()
 
-        assertThat(line.pronounciation).isEqualTo("「イッテ」 yay")
+        assertThat(line.tokens.map { Triple(it.surface, it.reading, it.charStart to it.charEnd) })
+            .containsExactly(
+                Triple("「", null, 0 to 1),
+                Triple("行って", "イッテ", 1 to 4),
+                Triple("」", null, 4 to 5),
+                Triple(" ", null, 5 to 6),
+                Triple("yay", null, 6 to 9),
+            )
     }
 
     @Test
@@ -74,11 +83,11 @@ class AssembleAnalyzedLinesStageTest {
     }
 
     @Test
-    fun `falls back to the raw line when nothing was segmented`(): Unit = runBlocking {
+    fun `produces a line with no tokens when nothing was segmented`(): Unit = runBlocking {
         val line = assemble("1, 2, 3", emptyList()).single()
 
-        assertThat(line.pronounciation).isEqualTo("1, 2, 3")
         assertThat(line.tokens).isEmpty()
+        assertThat(line.koreanLyrics).isEqualTo("번역")
     }
 
     @Test
@@ -92,20 +101,11 @@ class AssembleAnalyzedLinesStageTest {
 
         val line = assemble(raw, tokens, ruleResolvedByKey = mapOf(tokens[1].key to rule)).single()
 
-        assertThat(line.pronounciation).isEqualTo("ネコハ")
+        assertThat(line.tokens.map { it.reading }).containsExactly("ネコ", "ハ")
         assertThat(line.tokens[1].partOfSpeech).isEqualTo(PartOfSpeech.PARTICLE)
         assertThat(line.tokens[1].koreanText).isEqualTo("~은/는")
     }
 
-    @Test
-    fun `leaves the legacy korean pronunciation empty`(): Unit = runBlocking {
-        val raw = "猫"
-
-        @Suppress("DEPRECATION")
-        val legacy = assemble(raw, listOf(token(raw, "猫", "猫", "ネコ", "ネコ"))).single().koreanPronounciation
-
-        assertThat(legacy).isNull()
-    }
 
     private suspend fun assemble(
         raw: String,

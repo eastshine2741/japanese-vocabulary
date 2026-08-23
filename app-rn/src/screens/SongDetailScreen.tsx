@@ -72,8 +72,8 @@ const ARTWORK_COLLAPSED_OFFSET = HERO_HEIGHT * 0.4;
 const SKELETON_WORD_ROWS = [0, 1, 2, 3];
 const SKELETON_LEGEND_ROWS = [0, 1, 2, 3, 4];
 
-function isAnalyzedLine(line: { tokens: readonly unknown[]; koreanLyrics: string | null; pronounciation: string | null }) {
-  return line.tokens.length > 0 || line.koreanLyrics != null || line.pronounciation != null;
+function isAnalyzedLine(line: { tokens: readonly unknown[]; koreanLyrics: string | null }) {
+  return line.tokens.length > 0 || line.koreanLyrics != null;
 }
 
 export default function SongDetailScreen({ navigation, route }: Props) {
