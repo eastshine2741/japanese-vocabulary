@@ -57,9 +57,9 @@ class SongAnalysisPreparationService(
         )
     }
 
-    fun searchYoutubeUrl(title: String, artist: String): String? {
+    fun searchYoutubeUrl(title: String, artist: String, durationSeconds: Int?): String? {
         return try {
-            youtubeMvSearchService.searchMvUrl(title, artist)
+            youtubeMvSearchService.searchMvUrl(title, artist, durationSeconds)
         } catch (e: Exception) {
             logger.warn("YouTube MV search failed for '{}' by '{}': {}", title, artist, e.message)
             null
@@ -77,7 +77,7 @@ class SongAnalysisPreparationService(
         val existingSong = songRepository.findByArtistAndTitle(artist, title)
         if (existingSong != null) {
             val songId = existingSong.id!!
-            lyricRepository.findBySongId(songId)?.let { existingLyric ->
+            lyricRepository.findActiveBySongId(songId)?.let { existingLyric ->
                 return SongLyricCreationResult(existingSong, existingLyric)
             }
             val lyric = lyricRepository.save(
@@ -89,6 +89,9 @@ class SongAnalysisPreparationService(
                     vocadbId = preparedLyric.vocadbId,
                 )
             )
+            existingSong.activeLyricId = lyric.id
+            if (existingSong.youtubeUrl == null) existingSong.youtubeUrl = youtubeUrl
+            songRepository.save(existingSong)
             return SongLyricCreationResult(existingSong, lyric)
         }
 
@@ -110,7 +113,25 @@ class SongAnalysisPreparationService(
                     vocadbId = preparedLyric.vocadbId
                 )
         )
+        savedSong.activeLyricId = lyric.id
+        songRepository.save(savedSong)
         return SongLyricCreationResult(savedSong, lyric)
+    }
+
+    fun createReplacementLyricForSong(songId: Long, preparedLyric: PreparedLyric): SongLyricCreationResult {
+        val song = songRepository.findById(songId).orElseThrow {
+            BusinessException(ErrorCode.SONG_NOT_FOUND)
+        }
+        val lyric = lyricRepository.save(
+            LyricEntity(
+                songId = songId,
+                lyricType = preparedLyric.lyricType,
+                rawContent = preparedLyric.lines,
+                lrclibId = preparedLyric.lrclibId,
+                vocadbId = preparedLyric.vocadbId,
+            )
+        )
+        return SongLyricCreationResult(song, lyric)
     }
 
     private fun searchLyrics(title: String, artist: String, durationSeconds: Int?): LyricsResult {

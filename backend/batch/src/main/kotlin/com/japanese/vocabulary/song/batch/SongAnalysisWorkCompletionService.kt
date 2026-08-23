@@ -4,6 +4,9 @@ import com.japanese.vocabulary.common.exception.BusinessException
 import com.japanese.vocabulary.common.exception.ErrorCode
 import com.japanese.vocabulary.song.model.AnalyzedLine
 import com.japanese.vocabulary.song.repository.LyricRepository
+import com.japanese.vocabulary.song.repository.SongRepository
+import com.japanese.vocabulary.song.service.WordCandidateGenerator
+import com.japanese.vocabulary.songanalysis.entity.SongAnalysisTriggerSource
 import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStatus
 import com.japanese.vocabulary.songanalysis.repository.SongAnalysisWorkRepository
 import org.springframework.stereotype.Service
@@ -14,6 +17,8 @@ import java.time.Instant
 class SongAnalysisWorkCompletionService(
     private val workRepository: SongAnalysisWorkRepository,
     private val lyricRepository: LyricRepository,
+    private val songRepository: SongRepository,
+    private val wordCandidateGenerator: WordCandidateGenerator,
 ) {
     @Transactional
     fun completeWithAnalyzedContent(
@@ -37,7 +42,32 @@ class SongAnalysisWorkCompletionService(
             BusinessException(ErrorCode.LYRIC_NOT_FOUND)
         }
         lyric.analyzedContent = analyzedLines
+        val sourceSong = songRepository.findById(lyric.songId).orElse(null)
+        val wordCandidates = wordCandidateGenerator.generate(
+            title = sourceSong?.title ?: "",
+            analyzedLines = analyzedLines,
+        )
+        lyric.wordCandidates = wordCandidates
         lyricRepository.save(lyric)
+
+        if (work.triggerSource == SongAnalysisTriggerSource.ADMIN && work.songId != null) {
+            val song = songRepository.findByIdForUpdate(work.songId!!)
+                ?: throw BusinessException(ErrorCode.SONG_NOT_FOUND)
+            if (lyric.songId != song.id || work.lyricId != lyric.id) {
+                throw BusinessException(ErrorCode.SONG_ANALYSIS_WORK_FAILED)
+            }
+            val overlappingActiveWriters = workRepository.findBySongIdAndStatusInOrderByCreatedAtAsc(
+                song.id!!,
+                listOf(SongAnalysisWorkStatus.PENDING, SongAnalysisWorkStatus.RUNNING),
+            ).filter { it.id != work.id }
+            if (overlappingActiveWriters.isNotEmpty()) {
+                throw BusinessException(ErrorCode.SONG_ANALYSIS_WORK_ALREADY_EXISTS)
+            }
+            song.activeLyricId = lyric.id
+            song.youtubeUrl = work.youtubeUrl
+            song.updatedAt = now
+            songRepository.save(song)
+        }
 
         work.markCompleted(now)
         return true

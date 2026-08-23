@@ -10,6 +10,7 @@ data class AdminSongAnalysisWorkSummaryResponse(
     val currentStage: String?,
     val songId: Long?,
     val lyricId: Long?,
+    val youtubeUrl: String?,
     val triggerSource: String,
     val createdByUserId: Long?,
     val createdAt: Instant?,

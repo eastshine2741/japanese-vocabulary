@@ -4,8 +4,10 @@ import { useDeckListStore } from '../stores/deckListStore';
 import { useDeckWordListStore } from '../stores/deckWordListStore';
 import { useHomeStore } from '../stores/homeStore';
 import { usePlayerStore } from '../stores/playerStore';
+import { useRecommendationStore } from '../stores/recommendationStore';
 import { useReviewStore } from '../stores/reviewStore';
 import { useSearchHistoryStore } from '../stores/searchHistoryStore';
+import { useSongDetailStore } from '../stores/songDetailStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useStudyStatsStore } from '../stores/studyStatsStore';
 import { useVocabularyStore } from '../stores/vocabularyStore';
@@ -17,6 +19,7 @@ export function resetAllStores() {
   useAuthStore.setState({ status: 'idle', error: null, username: null, userName: null });
 
   useHomeStore.setState({ status: 'loading', songs: [], error: null });
+  useRecommendationStore.setState({ status: 'loading', songs: [], error: null });
 
   useStudyStatsStore.setState({
     home: emptyStatsSlice(),
@@ -79,6 +82,7 @@ export function resetAllStores() {
   });
 
   usePlayerStore.setState({ status: 'idle', studyData: null, errorCode: null, currentMs: 0, durationMs: 0 });
+  useSongDetailStore.setState({ status: 'idle', data: null, errorCode: null });
   useSearchHistoryStore.setState({ terms: [] });
   useWordExamplesStore.setState({ byId: {} });
 }

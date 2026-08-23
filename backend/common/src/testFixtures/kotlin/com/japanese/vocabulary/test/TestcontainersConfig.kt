@@ -17,13 +17,11 @@ class TestcontainersConfig {
     fun mysqlContainer(): MySQLContainer<*> =
         MySQLContainer(DockerImageName.parse("mysql:8.4"))
             .withDatabaseName("japanese_vocabulary_test")
-            .withReuse(true)
 
     @Bean
     fun redisContainer(): GenericContainer<*> =
         GenericContainer(DockerImageName.parse("redis:7-alpine"))
             .withExposedPorts(REDIS_PORT)
-            .withReuse(true)
 
     @Bean
     fun redisProperties(

@@ -1,9 +1,13 @@
 package com.japanese.vocabulary.song.dto
 
+import com.japanese.vocabulary.song.entity.LyricType
+
 data class SongDto(
-    val song: SongInfoDto,
-    val studyUnits: List<StudyUnitDto>,
+    val id: Long,
+    val title: String,
+    val artist: String,
+    val durationSeconds: Int?,
+    val artworkUrl: String?,
     val youtubeUrl: String?,
-    val lyricsSourceName: String?,
-    val lyricsSourceUrl: String?,
+    val lyricType: LyricType,
 )

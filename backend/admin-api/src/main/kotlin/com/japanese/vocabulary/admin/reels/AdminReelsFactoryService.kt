@@ -39,14 +39,14 @@ class AdminReelsFactoryService(
         val page = query?.trim()?.takeIf { it.isNotEmpty() }
             ?.let { songRepository.findByTitleContainingIgnoreCaseOrArtistContainingIgnoreCase(it, it, pageable) }
             ?: songRepository.findAll(pageable)
-        val lyricBySongId = lyricRepository.findBySongIdIn(page.content.mapNotNull { it.id }).associateBy { it.songId }
+        val lyricBySongId = lyricRepository.findActiveBySongIdIn(page.content.mapNotNull { it.id }).associateBy { it.songId }
         return page.map { song -> song.toCandidateResponse(lyricBySongId[song.id]) }
     }
 
     @Transactional(readOnly = true)
     fun getSong(songId: Long): AdminReelsSongDetailResponse {
         val song = songRepository.findById(songId).orElseThrow { NoSuchElementException("Song not found") }
-        val lyric = lyricRepository.findBySongId(songId) ?: throw NoSuchElementException("Lyric not found")
+        val lyric = lyricRepository.findActiveBySongId(songId) ?: throw NoSuchElementException("Lyric not found")
         return detailResponse(song, lyric)
     }
 
@@ -72,7 +72,7 @@ class AdminReelsFactoryService(
         val youtubeUrl = song.youtubeUrl?.takeIf { it.isNotBlank() }
             ?: throw IllegalArgumentException("song must have youtubeUrl")
         validateYoutubeUrl(youtubeUrl)
-        val lyric = lyricRepository.findBySongId(request.songId) ?: throw NoSuchElementException("Lyric not found")
+        val lyric = lyricRepository.findActiveBySongId(request.songId) ?: throw NoSuchElementException("Lyric not found")
         val analyzedByIndex = lyric.analyzedContent?.associateBy { it.index }
             ?: throw IllegalArgumentException("song must have analyzed lyrics")
         val rawByIndex = lyric.rawContent.associateBy { it.index }

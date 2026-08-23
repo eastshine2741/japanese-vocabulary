@@ -1,7 +1,19 @@
 import client from './client';
-import { DeckListResponse, DeckDetailResponse, DeckWordListResponse } from '../types/deck';
+import {
+  CreateDeckRequest,
+  DeckDetailResponse,
+  DeckListResponse,
+  DeckResponse,
+  DeckWordListResponse,
+} from '../types/deck';
 
 export const deckApi = {
+  /** 곡에 매핑되지 않은 일반 단어장을 만든다. */
+  async createDeck(req: CreateDeckRequest): Promise<DeckResponse> {
+    const { data } = await client.post<DeckResponse>('/api/decks', req);
+    return data;
+  },
+
   async getDecks(cursor?: number): Promise<DeckListResponse> {
     const { data } = await client.get<DeckListResponse>('/api/decks', {
       params: cursor != null ? { cursor } : {},

@@ -1,8 +1,8 @@
 import { create } from 'zustand';
 import { wordApi } from '../api/wordApi';
-import { ExampleSentence } from '../types/word';
+import { SenseExample, flattenExamples } from '../types/word';
 
-export type ExamplesState = ExampleSentence[] | 'loading' | 'error';
+export type ExamplesState = SenseExample[] | 'loading' | 'error';
 
 interface State {
   byId: Record<number, ExamplesState>;
@@ -21,7 +21,7 @@ export const useWordExamplesStore = create<State>((set, get) => ({
     set((s) => ({ byId: { ...s.byId, [id]: 'loading' } }));
     try {
       const detail = await wordApi.getById(id);
-      set((s) => ({ byId: { ...s.byId, [id]: detail?.examples ?? [] } }));
+      set((s) => ({ byId: { ...s.byId, [id]: flattenExamples(detail?.senses) } }));
     } catch {
       set((s) => ({ byId: { ...s.byId, [id]: 'error' } }));
     }

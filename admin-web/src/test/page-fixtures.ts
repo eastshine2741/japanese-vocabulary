@@ -3,6 +3,9 @@ import type {
   LyricDetail,
   LyricSummary,
   PageResponse,
+  Recommendation,
+  RecommendationCandidate,
+  RecommendationOperationResult,
   ReelsSongCandidate,
   ReelsSongDetail,
   SongAnalysisWorkDetail,
@@ -46,6 +49,8 @@ export const lyricSummary: LyricSummary = {
 export const songDetail: SongDetail = {
   ...songSummary,
   lyric: lyricSummary,
+  activeReanalysisWork: null,
+  analysisWorks: [],
 }
 
 export const lyricDetail: LyricDetail = {
@@ -55,7 +60,6 @@ export const lyricDetail: LyricDetail = {
     {
       index: 0,
       koreanLyrics: "가라앉듯이 녹아가듯이",
-      koreanPronounciation: "시즈무요-니 토케테유쿠요-니",
       tokens: [
         {
           surface: "沈む",
@@ -120,6 +124,7 @@ export const songAnalysisWorkSummary: SongAnalysisWorkSummary = {
   currentStage: "ANALYZE_LYRICS",
   songId: 1,
   lyricId: 2,
+  youtubeUrl: "https://youtu.be/work-mv",
   triggerSource: "USER_APP",
   createdByUserId: null,
   createdAt: "2026-01-01T00:00:00Z",
@@ -169,4 +174,51 @@ export const reelsSongDetail: ReelsSongDetail = {
     tokens: lyricDetail.analyzedContent?.[0]?.tokens ?? [],
     recommendedVocabulary: [{ japanese: "夢", reading: "ユメ", korean: "꿈" }],
   })),
+}
+
+export const recommendationOperationResult: RecommendationOperationResult = {
+  processed: 1,
+  succeeded: 1,
+  skipped: 0,
+  failed: 0,
+  items: [
+    {
+      candidateId: 10,
+      status: "SUCCEEDED",
+      songId: 1,
+      lyricId: 2,
+      workId: 4,
+      recommendationId: null,
+      message: null,
+    },
+  ],
+}
+
+export const recommendationCandidate: RecommendationCandidate = {
+  id: 10,
+  source: "APPLE_MUSIC_RSS",
+  sourceSongId: "apple-10",
+  weekStartDate: "2026-06-22",
+  sourceRank: 1,
+  status: "PENDING",
+  title: "Plazma",
+  artistName: "Kenshi Yonezu",
+  artworkUrl: null,
+  sourceUrl: "https://music.apple.com/jp/song/apple-10",
+  releaseDate: "2026-06-01",
+  createdAt: "2026-06-26T00:00:00Z",
+  updatedAt: "2026-06-26T00:00:00Z",
+}
+
+export const recommendation: Recommendation = {
+  id: 11,
+  candidateId: 10,
+  weekStartDate: "2026-06-22",
+  status: "PENDING",
+  songId: 1,
+  lyricId: 2,
+  orderIndex: 0,
+  publishedAt: null,
+  createdAt: "2026-06-26T00:10:00Z",
+  updatedAt: "2026-06-26T00:10:00Z",
 }

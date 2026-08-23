@@ -1,10 +1,10 @@
-import React, { useRef, useCallback } from 'react';
+import React, { useRef, useCallback, useMemo } from 'react';
 import { View, Text, TouchableOpacity, Pressable, Animated, StyleSheet, LayoutChangeEvent } from 'react-native';
 import { Token, StudyUnit } from '../types/song';
 import { POS_INFO } from '../types/pos';
 import { Colors } from '../theme/theme';
 import { useSettingsStore } from '../stores/settingsStore';
-import { katakanaToHiragana } from '../utils/readingConverter';
+import { convertLineReading, katakanaToHiragana } from '../utils/readingConverter';
 
 const NO_UNDERLINE_POS = new Set(['SYMBOL', 'SUPPLEMENTARY_SYMBOL', 'WHITESPACE']);
 
@@ -39,6 +39,13 @@ function LyricLine({
   const flashOpacity = useRef(new Animated.Value(0)).current;
 
   const canSeek = onLineSeek != null && studyUnit.startTimeMs != null;
+
+  // Assembled from the tokens, each converted on its own — converting a whole line at once lets one
+  // word's long vowel swallow the next word's leading ウ/イ. Empty when the line has no words.
+  const koreanPronunciation = useMemo(
+    () => convertLineReading(studyUnit.originalText, studyUnit.tokens, 'KOREAN'),
+    [studyUnit.originalText, studyUnit.tokens],
+  );
 
   const handleLinePress = useCallback(() => {
     if (!onLineSeek || studyUnit.startTimeMs == null) return;
@@ -134,9 +141,9 @@ function LyricLine({
         />
       )}
       <View style={styles.tokensRow}>{renderTokens()}</View>
-      {showKoreanPronunciation && studyUnit.koreanPronounciation && (
+      {showKoreanPronunciation && koreanPronunciation && (
         <Text style={isActive ? styles.pronActive : styles.pronInactive}>
-          {studyUnit.koreanPronounciation}
+          {koreanPronunciation}
         </Text>
       )}
       {showTranslation && studyUnit.koreanLyrics && (

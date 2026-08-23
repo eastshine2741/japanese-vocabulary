@@ -1,8 +1,9 @@
-import { WordMeaning } from './word';
+import { WordSense } from './word';
 
+/** songId 가 null 이면 곡에 매핑되지 않은 일반 단어장이다. */
 export interface SongDeckSummary {
   deckId: number;
-  songId: number;
+  songId: number | null;
   title: string;
   artist: string;
   artworkUrl: string | null;
@@ -33,10 +34,23 @@ export interface DeckWordItem {
   id: number;
   japanese: string;
   reading: string;
-  meanings: WordMeaning[];
+  senses: WordSense[];
 }
 
 export interface DeckWordListResponse {
   words: DeckWordItem[];
   nextCursor: number | null;
+}
+
+export interface CreateDeckRequest {
+  title: string;
+  description?: string | null;
+}
+
+export interface DeckResponse {
+  deckId: number;
+  songId: number | null;
+  isDefault: boolean;
+  title: string;
+  description: string;
 }

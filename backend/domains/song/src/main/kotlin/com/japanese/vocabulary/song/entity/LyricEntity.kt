@@ -1,6 +1,7 @@
 package com.japanese.vocabulary.song.entity
 
 import com.japanese.vocabulary.song.model.AnalyzedLine
+import com.japanese.vocabulary.song.model.LyricWordCandidates
 import com.japanese.vocabulary.song.model.LyricLineData
 import jakarta.persistence.*
 import org.springframework.data.annotation.CreatedDate
@@ -14,7 +15,7 @@ import java.time.Instant
 class LyricEntity(
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long? = null,
-    @Column(name = "song_id", nullable = false, unique = true)
+    @Column(name = "song_id", nullable = false)
     val songId: Long,
     @Enumerated(EnumType.STRING)
     @Column(name = "lyric_type", nullable = false)
@@ -29,6 +30,9 @@ class LyricEntity(
     val lrclibId: Long? = null,
     @Column(name = "vocadb_id")
     val vocadbId: Long? = null,
+    @Convert(converter = LyricWordCandidatesConverter::class)
+    @Column(name = "word_candidates_json", columnDefinition = "JSON")
+    var wordCandidates: LyricWordCandidates? = null,
     @CreatedDate
     @Column(name = "created_at", updatable = false)
     var createdAt: Instant? = null,

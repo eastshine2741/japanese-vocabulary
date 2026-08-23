@@ -23,12 +23,18 @@ class SongEntity(
     val durationSeconds: Int? = null,
 
     @Column(name = "youtube_url")
-    val youtubeUrl: String? = null,
+    var youtubeUrl: String? = null,
 
     @Column(name = "artwork_url")
     val artworkUrl: String? = null,
 
+    @Column(name = "active_lyric_id")
+    var activeLyricId: Long? = null,
+
     @CreatedDate
     @Column(name = "created_at", updatable = false)
-    var createdAt: Instant? = null
+    var createdAt: Instant? = null,
+
+    @Column(name = "updated_at")
+    var updatedAt: Instant? = null,
 )

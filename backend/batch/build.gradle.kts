@@ -16,13 +16,15 @@ dependencies {
     // Domains the batch process actually loads
     implementation(project(":domains:song"))
     implementation(project(":domains:song-analysis"))
+    implementation(project(":domains:recommendation"))
     implementation(project(":domains:translation"))
     implementation(project(":domains:studystats"))
     implementation(project(":domains:notification"))
     implementation(project(":domains:user"))
-    implementation(project(":domains:flashcard"))
+    implementation(project(":domains:word"))
     implementation(project(":integrations:lyric-search"))
     implementation(project(":integrations:mv-search"))
+    implementation(project(":integrations:apple-music-rss"))
 
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")

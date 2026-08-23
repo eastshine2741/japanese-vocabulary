@@ -58,7 +58,7 @@ export default function DeckDetailScreen({ route, navigation }: Props) {
     if (songId == null) return;
     await loadById(songId);
     if (usePlayerStore.getState().status === 'success') {
-      navigation.navigate('Player', { origin: 'DeckDetail' });
+      navigation.navigate('SongDetail', { songId, origin: 'DeckDetail' });
     }
   }, [songId, loadById, navigation]);
 
@@ -156,7 +156,7 @@ export default function DeckDetailScreen({ route, navigation }: Props) {
             {songId !== null && (
               <SecondaryButton
                 icon="play-circle-outline"
-                label="노래 듣기"
+                label="곡으로 이동"
                 onPress={handleListenSong}
                 style={styles.secondaryBtn}
               />

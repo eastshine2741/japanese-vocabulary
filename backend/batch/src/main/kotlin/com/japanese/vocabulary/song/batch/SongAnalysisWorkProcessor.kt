@@ -6,6 +6,7 @@ import com.japanese.vocabulary.song.entity.LyricEntity
 import com.japanese.vocabulary.song.repository.LyricRepository
 import com.japanese.vocabulary.song.service.SongAnalysisPreparationService
 import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkEntity
+import com.japanese.vocabulary.songanalysis.entity.SongAnalysisTriggerSource
 import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStage
 import com.japanese.vocabulary.songanalysis.service.SongAnalysisWorkService
 import com.japanese.vocabulary.translation.service.KoreanLyricTranslationService
@@ -44,7 +45,7 @@ class SongAnalysisWorkProcessor(
     private fun resolveOrCreatePlayerReadyLyric(work: SongAnalysisWorkEntity, workerId: String): LyricEntity? {
         val existingLyric = work.lyricId?.let { lyricRepository.findById(it).orElse(null) }
         if (existingLyric != null && work.songId != null) {
-            if (!workService.markPlayerReady(work.id!!, workerId, work.songId!!, existingLyric.id!!)) return null
+            if (!workService.markPlayerReady(work.id!!, workerId, work.songId!!, existingLyric.id!!, work.youtubeUrl)) return null
             return existingLyric
         }
 
@@ -56,19 +57,27 @@ class SongAnalysisWorkProcessor(
         )
 
         if (!workService.markStage(work.id!!, workerId, SongAnalysisWorkStage.FETCH_YOUTUBE)) return null
-        val youtubeUrl = preparationService.searchYoutubeUrl(work.rawTitle, work.rawArtist)
-            ?: throw BusinessException(ErrorCode.SONG_ANALYSIS_WORK_FAILED)
-
-        if (!workService.markStage(work.id!!, workerId, SongAnalysisWorkStage.CREATE_SONG_AND_LYRIC)) return null
-        val created = preparationService.saveSongAndLyric(
+        val youtubeUrl = preparationService.searchYoutubeUrl(
             title = work.rawTitle,
             artist = work.rawArtist,
             durationSeconds = work.durationSeconds,
-            artworkUrl = work.artworkUrl,
-            youtubeUrl = youtubeUrl,
-            preparedLyric = preparedLyric,
         )
-        if (!workService.markPlayerReady(work.id!!, workerId, created.song.id!!, created.lyric.id!!)) return null
+            ?: throw BusinessException(ErrorCode.SONG_ANALYSIS_WORK_FAILED)
+
+        if (!workService.markStage(work.id!!, workerId, SongAnalysisWorkStage.CREATE_SONG_AND_LYRIC)) return null
+        val created = if (work.triggerSource == SongAnalysisTriggerSource.ADMIN && work.songId != null) {
+            preparationService.createReplacementLyricForSong(work.songId!!, preparedLyric)
+        } else {
+            preparationService.saveSongAndLyric(
+                title = work.rawTitle,
+                artist = work.rawArtist,
+                durationSeconds = work.durationSeconds,
+                artworkUrl = work.artworkUrl,
+                youtubeUrl = youtubeUrl,
+                preparedLyric = preparedLyric,
+            )
+        }
+        if (!workService.markPlayerReady(work.id!!, workerId, created.song.id!!, created.lyric.id!!, youtubeUrl)) return null
         return created.lyric
     }
 

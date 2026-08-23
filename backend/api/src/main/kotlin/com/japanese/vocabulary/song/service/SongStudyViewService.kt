@@ -16,7 +16,7 @@ class SongStudyViewService(
 
     fun buildAnalyzedSong(entity: SongEntity): AnalyzedSongDto {
         val songId = entity.id!!
-        val lyricEntity = lyricRepository.findBySongId(songId)
+        val lyricEntity = lyricRepository.findActiveBySongId(songId)
 
         if (lyricEntity == null) {
             return AnalyzedSongDto(
@@ -39,7 +39,6 @@ class SongStudyViewService(
                     startTimeMs = line.startTimeMs,
                     tokens = analyzed?.tokens ?: emptyList(),
                     koreanLyrics = analyzed?.koreanLyrics,
-                    koreanPronounciation = analyzed?.koreanPronounciation,
                 )
             }
         } else {

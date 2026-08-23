@@ -5,6 +5,8 @@ data class SongAnalysisWorkResponse(
     val status: String,
     val currentStage: String?,
     val songId: Long?,
+    val lyricId: Long?,
+    val youtubeUrl: String?,
     val canOpenPlayer: Boolean,
     val isAnalysisComplete: Boolean,
     val errorCode: String?,

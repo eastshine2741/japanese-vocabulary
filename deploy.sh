@@ -1,15 +1,56 @@
 #!/bin/bash
 # deploy.sh - k3s 배포 스크립트
 # Usage:
-#   ./deploy.sh [namespace]            # dev (k3s local, default context)
-#   DEPLOY_ENV=prod ./deploy.sh        # prod (Hetzner k3s, kotonoha-prod context)
+#   ./deploy.sh [namespace] [--restore-dev-dump]  # dev (k3s local, default context)
+#   DEPLOY_ENV=prod ./deploy.sh                   # prod (Hetzner k3s, kotonoha-prod context)
 
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
 TOTAL_START=$SECONDS
+RESTORE_DEV_DUMP=false
+DEV_MYSQL_DUMP_FILE="$PROJECT_ROOT/local/mysql/dev-dump.sql"
+DEV_MYSQL_PVC="mysql-data-mysql-0"
+DEPLOY_NS_ARG=""
 
 DEPLOY_ENV="${DEPLOY_ENV:-dev}"
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  ./deploy.sh [namespace] [--restore-dev-dump]
+  DEPLOY_ENV=prod ./deploy.sh
+
+Options:
+  --restore-dev-dump  Dev only. Restore local/mysql/dev-dump.sql into a fresh MySQL PVC before Flyway migration.
+  -h, --help          Show this help.
+USAGE
+}
+
+for arg in "$@"; do
+  case "$arg" in
+    --restore-dev-dump)
+      RESTORE_DEV_DUMP=true
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    --*)
+      echo "Error: unknown option '$arg'" >&2
+      usage >&2
+      exit 1
+      ;;
+    *)
+      if [[ -n "$DEPLOY_NS_ARG" ]]; then
+        echo "Error: multiple namespace arguments: '$DEPLOY_NS_ARG' and '$arg'" >&2
+        usage >&2
+        exit 1
+      fi
+      DEPLOY_NS_ARG="$arg"
+      ;;
+  esac
+done
 
 # --- 환경별 설정 (IMAGE_PREFIX는 prod에서 env 로드 후 GHCR_USERNAME으로 조립) ---
 if [[ "$DEPLOY_ENV" == "prod" ]]; then
@@ -35,8 +76,8 @@ kubectl() {
 
 # --- namespace 결정 (dev만 동적, prod는 고정) ---
 if [[ "$DEPLOY_ENV" == "dev" ]]; then
-  if [[ -n "${1:-}" ]]; then
-    NS="$1"
+  if [[ -n "$DEPLOY_NS_ARG" ]]; then
+    NS="$DEPLOY_NS_ARG"
   else
     BRANCH="$(git rev-parse --abbrev-ref HEAD)"
     # feature/foo-bar → foo-bar, main → main
@@ -47,6 +88,11 @@ if [[ "$DEPLOY_ENV" == "dev" ]]; then
     echo "Error: invalid namespace '$NS'" >&2
     exit 1
   fi
+fi
+
+if [[ "$RESTORE_DEV_DUMP" == "true" && "$DEPLOY_ENV" != "dev" ]]; then
+  echo "Error: --restore-dev-dump is only supported with DEPLOY_ENV=dev" >&2
+  exit 1
 fi
 
 # --- env 파일 확인 ---
@@ -68,6 +114,19 @@ if [[ "$DEPLOY_ENV" == "prod" ]]; then
   fi
   IMAGE_PREFIX="ghcr.io/${GHCR_USERNAME}/kotonoha"
 
+  # admin-api 는 prod 에서 평문 비밀번호를 받지 않는다. sha256 해시와 토큰 시크릿이 필수다.
+  ADMIN_TOKEN_SECRET="${ADMIN_TOKEN_SECRET:-}"
+  if [[ ! "${ADMIN_PASSWORD_SHA256:-}" =~ ^[0-9a-f]{64}$ ]]; then
+    echo "Error: ADMIN_PASSWORD_SHA256 must be a 64-char lowercase hex sha256 in $ENV_FILE" >&2
+    echo "  generate: printf '%s' 'your-password' | sha256sum" >&2
+    exit 1
+  fi
+  if [[ ${#ADMIN_TOKEN_SECRET} -lt 32 ]]; then
+    echo "Error: ADMIN_TOKEN_SECRET must be at least 32 characters in $ENV_FILE" >&2
+    echo "  generate: openssl rand -hex 32" >&2
+    exit 1
+  fi
+
   echo ""
   echo "⚠️  PROD DEPLOY"
   echo "  context:   $KUBE_CONTEXT"
@@ -85,13 +144,23 @@ GIT_SHA="$(git rev-parse --short HEAD)"
 API_IMAGE="${IMAGE_PREFIX}-api:${GIT_SHA}"
 BATCH_IMAGE="${IMAGE_PREFIX}-batch:${GIT_SHA}"
 MIGRATION_IMAGE="${IMAGE_PREFIX}-migration:${GIT_SHA}"
+ADMIN_API_IMAGE="${IMAGE_PREFIX}-admin-api:${GIT_SHA}"
+ADMIN_WEB_IMAGE="${IMAGE_PREFIX}-admin-web:${GIT_SHA}"
+ADMIN_PASSWORD="${ADMIN_PASSWORD:-}"
+ADMIN_PASSWORD_SHA256="${ADMIN_PASSWORD_SHA256:-}"
 if [[ "$DEPLOY_ENV" == "dev" ]]; then
-  ADMIN_API_IMAGE="${IMAGE_PREFIX}-admin-api:${GIT_SHA}"
-  ADMIN_WEB_IMAGE="${IMAGE_PREFIX}-admin-web:${GIT_SHA}"
   ADMIN_PASSWORD="${ADMIN_PASSWORD:-admin}"
-  ADMIN_PASSWORD_SHA256="${ADMIN_PASSWORD_SHA256:-}"
   ADMIN_TOKEN_SECRET="${ADMIN_TOKEN_SECRET:-dev-admin-token-secret-must-be-at-least-32-bytes}"
 fi
+
+# admin-web 은 asset base 와 router basename 을 빌드 시점에 굽는다.
+# dev 는 namespace 경로 아래, prod 는 kotonoha.eastshine.dev/admin 아래에 붙는다.
+if [[ "$DEPLOY_ENV" == "prod" ]]; then
+  ADMIN_WEB_BASE_PATH="/admin"
+else
+  ADMIN_WEB_BASE_PATH="/${NS}/admin"
+fi
+ADMIN_WEB_API_BASE_URL="${ADMIN_WEB_BASE_PATH}/api"
 
 if [[ "$DEPLOY_ENV" == "prod" ]]; then
   SENTRY_ENVIRONMENT="production"
@@ -99,19 +168,57 @@ else
   SENTRY_ENVIRONMENT="${NS}"
 fi
 SENTRY_RELEASE="${GIT_SHA}"
+
+# build/libs 안에는 bootJar 말고 -plain.jar 도 같이 생긴다.
+# Dockerfile 의 COPY 가 여러 파일을 잡지 않도록 boot jar 하나를 정확히 골라 전달한다.
+# admin-api 는 이미지에 reels/ 를 담아야 해서 build context 가 repo root 다 (3번째 인자).
+build_boot_image() {
+  local module="$1" image="$2" ctx="${3:-$PROJECT_ROOT/backend/$1}"
+  local module_dir="$PROJECT_ROOT/backend/$module"
+  local jar boot_jars=()
+
+  for jar in "$module_dir"/build/libs/*.jar; do
+    [[ -f "$jar" ]] || continue
+    [[ "$jar" == *-plain.jar ]] && continue
+    boot_jars+=("$(basename "$jar")")
+  done
+
+  if [[ ${#boot_jars[@]} -ne 1 ]]; then
+    echo "Error: $module boot jar 를 하나로 특정할 수 없음 (found: ${boot_jars[*]:-none}). backend/$module/build/libs 확인." >&2
+    exit 1
+  fi
+
+  docker build \
+    --build-arg JAR_FILE="${boot_jars[0]}" \
+    -t "$image" \
+    -f "$module_dir/Dockerfile" "$ctx/"
+}
 export API_IMAGE BATCH_IMAGE MIGRATION_IMAGE ADMIN_API_IMAGE ADMIN_WEB_IMAGE NS SENTRY_ENVIRONMENT SENTRY_RELEASE
 export ADMIN_PASSWORD ADMIN_PASSWORD_SHA256 ADMIN_TOKEN_SECRET
 
 echo "=== env: $DEPLOY_ENV | namespace: $NS | sha: $GIT_SHA ==="
 
+if [[ "$RESTORE_DEV_DUMP" == "true" ]]; then
+  echo "[mysql] checking dev dump restore preconditions..."
+  if kubectl get pvc "$DEV_MYSQL_PVC" -n "$NS" >/dev/null 2>&1; then
+    echo "Error: --restore-dev-dump requested, but MySQL PVC '$DEV_MYSQL_PVC' already exists in namespace '$NS'." >&2
+    echo "Refusing to overwrite an existing worktree database." >&2
+    echo "To restore from the dump, first delete the namespace with: ./teardown.sh $NS" >&2
+    exit 1
+  fi
+  if [[ ! -r "$DEV_MYSQL_DUMP_FILE" ]]; then
+    echo "Error: dev dump file is not readable: $DEV_MYSQL_DUMP_FILE" >&2
+    echo "Create or copy the dump to local/mysql/dev-dump.sql, then rerun with --restore-dev-dump." >&2
+    exit 1
+  fi
+fi
+
 # --- 1. Gradle 테스트 + 빌드 (test 실패 시 배포 중단) ---
 STEP_START=$SECONDS
 echo "[gradle] test + bootJar..."
-if [[ "$DEPLOY_ENV" == "dev" ]]; then
-  cd "$PROJECT_ROOT/backend" && ./gradlew :api:test :batch:test :admin-api:test :api:bootJar :batch:bootJar :admin-api:bootJar --no-daemon
-else
-  cd "$PROJECT_ROOT/backend" && ./gradlew :api:test :batch:test :api:bootJar :batch:bootJar --no-daemon
-fi
+cd "$PROJECT_ROOT/backend" && ./gradlew \
+  :api:test :batch:test :admin-api:test \
+  :api:bootJar :batch:bootJar :admin-api:bootJar --no-daemon
 cd "$PROJECT_ROOT"
 echo "  → $((SECONDS - STEP_START))s"
 
@@ -122,23 +229,31 @@ if [[ "$DEPLOY_ENV" == "prod" ]]; then
   echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
 
   echo "[build] images..."
-  docker build -t "$API_IMAGE" -f "$PROJECT_ROOT/backend/api/Dockerfile" "$PROJECT_ROOT/backend/api/"
-  docker build -t "$BATCH_IMAGE" -f "$PROJECT_ROOT/backend/batch/Dockerfile" "$PROJECT_ROOT/backend/batch/"
+  build_boot_image api "$API_IMAGE"
+  build_boot_image batch "$BATCH_IMAGE"
   docker build -t "$MIGRATION_IMAGE" -f "$PROJECT_ROOT/backend/migration/Dockerfile" "$PROJECT_ROOT/backend/migration/"
+  build_boot_image admin-api "$ADMIN_API_IMAGE" "$PROJECT_ROOT"
+  docker build \
+    --build-arg VITE_ADMIN_API_BASE_URL="$ADMIN_WEB_API_BASE_URL" \
+    --build-arg VITE_ADMIN_BASE_PATH="$ADMIN_WEB_BASE_PATH" \
+    -t "$ADMIN_WEB_IMAGE" \
+    -f "$PROJECT_ROOT/admin-web/Dockerfile" "$PROJECT_ROOT/admin-web/"
 
   echo "[push] ghcr..."
   docker push "$API_IMAGE"
   docker push "$BATCH_IMAGE"
   docker push "$MIGRATION_IMAGE"
+  docker push "$ADMIN_API_IMAGE"
+  docker push "$ADMIN_WEB_IMAGE"
 else
   echo "[build] images..."
-  docker build -t "$API_IMAGE" -f "$PROJECT_ROOT/backend/api/Dockerfile" "$PROJECT_ROOT/backend/api/"
-  docker build -t "$BATCH_IMAGE" -f "$PROJECT_ROOT/backend/batch/Dockerfile" "$PROJECT_ROOT/backend/batch/"
+  build_boot_image api "$API_IMAGE"
+  build_boot_image batch "$BATCH_IMAGE"
   docker build -t "$MIGRATION_IMAGE" -f "$PROJECT_ROOT/backend/migration/Dockerfile" "$PROJECT_ROOT/backend/migration/"
-  docker build -t "$ADMIN_API_IMAGE" -f "$PROJECT_ROOT/backend/admin-api/Dockerfile" "$PROJECT_ROOT/"
+  build_boot_image admin-api "$ADMIN_API_IMAGE" "$PROJECT_ROOT"
   docker build \
-    --build-arg VITE_ADMIN_API_BASE_URL="/${NS}/admin/api" \
-    --build-arg VITE_ADMIN_BASE_PATH="/${NS}/admin" \
+    --build-arg VITE_ADMIN_API_BASE_URL="$ADMIN_WEB_API_BASE_URL" \
+    --build-arg VITE_ADMIN_BASE_PATH="$ADMIN_WEB_BASE_PATH" \
     -t "$ADMIN_WEB_IMAGE" \
     -f "$PROJECT_ROOT/admin-web/Dockerfile" "$PROJECT_ROOT/admin-web/"
 
@@ -179,6 +294,32 @@ echo "  → $((SECONDS - STEP_START))s"
 STEP_START=$SECONDS
 echo "[migration] running..."
 kubectl rollout status -n "$NS" statefulset/mysql --timeout=120s
+if [[ "$RESTORE_DEV_DUMP" == "true" ]]; then
+  echo "[mysql] restoring $DEV_MYSQL_DUMP_FILE before Flyway migration..."
+  if ! kubectl exec -n "$NS" statefulset/mysql -- sh -c 'command -v mysql >/dev/null && command -v mysqladmin >/dev/null'; then
+    echo "Error: mysql/mysqladmin client is not available in the mysql pod." >&2
+    echo "Database PVC may already have been created. Recover with: ./teardown.sh $NS" >&2
+    exit 1
+  fi
+  if ! kubectl exec -n "$NS" statefulset/mysql -- sh -c '
+    for i in $(seq 1 60); do
+      if MYSQL_PWD="$MYSQL_PASSWORD" mysqladmin ping -h127.0.0.1 -P3306 -u"$MYSQL_USER" --silent >/dev/null 2>&1; then
+        exit 0
+      fi
+      sleep 2
+    done
+    exit 1
+  '; then
+    echo "Error: MySQL did not become ready for TCP connections within 120 seconds." >&2
+    echo "Database PVC may already have been created. Recover with: ./teardown.sh $NS" >&2
+    exit 1
+  fi
+  if ! kubectl exec -i -n "$NS" statefulset/mysql -- sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" mysql -h127.0.0.1 -P3306 -u"$MYSQL_USER" "$MYSQL_DATABASE"' < "$DEV_MYSQL_DUMP_FILE"; then
+    echo "Error: failed to restore dev dump into namespace '$NS'." >&2
+    echo "Database PVC may contain a partial import. Recover with: ./teardown.sh $NS" >&2
+    exit 1
+  fi
+fi
 kubectl delete job migration -n "$NS" --ignore-not-found
 envsubst < "$K8S_DIR/migration/job.yaml" | kubectl apply -n "$NS" -f -
 kubectl wait --for=condition=complete -n "$NS" job/migration --timeout=120s
@@ -199,21 +340,27 @@ envsubst < "$K8S_DIR/batch/configmap.yaml" | kubectl apply -n "$NS" -f -
 envsubst < "$K8S_DIR/batch/deployment.yaml" | kubectl apply -n "$NS" -f -
 [[ -f "$K8S_DIR/batch/service.yaml" ]] && kubectl apply -n "$NS" -f "$K8S_DIR/batch/service.yaml"
 
-for sm in "$K8S_DIR/api/servicemonitor.yaml" "$K8S_DIR/batch/servicemonitor.yaml"; do
-  [[ -f "$sm" ]] && kubectl apply -n "$NS" -f "$sm"
-done
+echo "[apply] admin-api + admin-web..."
+envsubst < "$K8S_DIR/admin-api/secret.template.yaml" | kubectl apply -n "$NS" -f -
+envsubst < "$K8S_DIR/admin-api/configmap.yaml" | kubectl apply -n "$NS" -f -
+envsubst < "$K8S_DIR/admin-api/deployment.yaml" | kubectl apply -n "$NS" -f -
+kubectl apply -n "$NS" -f "$K8S_DIR/admin-api/service.yaml"
 
-if [[ "$DEPLOY_ENV" == "dev" ]]; then
-  envsubst < "$K8S_DIR/admin-api/secret.template.yaml" | kubectl apply -n "$NS" -f -
-  envsubst < "$K8S_DIR/admin-api/configmap.yaml" | kubectl apply -n "$NS" -f -
-  envsubst < "$K8S_DIR/admin-api/deployment.yaml" | kubectl apply -n "$NS" -f -
-  kubectl apply -n "$NS" -f "$K8S_DIR/admin-api/service.yaml"
+envsubst < "$K8S_DIR/admin-web/deployment.yaml" | kubectl apply -n "$NS" -f -
+kubectl apply -n "$NS" -f "$K8S_DIR/admin-web/service.yaml"
+
+if [[ "$DEPLOY_ENV" == "prod" ]]; then
+  # prod 는 kotonoha.eastshine.dev 한 호스트를 path 로 나눠 쓴다 (admin/ 아래 cert + IngressRoute).
+  kubectl apply -n "$NS" -f "$K8S_DIR/admin/certificate.yaml"
+  kubectl apply -n "$NS" -f "$K8S_DIR/admin/ingress.yaml"
+else
   envsubst < "$K8S_DIR/admin-api/ingress.yaml" | kubectl apply -n "$NS" -f -
-
-  envsubst < "$K8S_DIR/admin-web/deployment.yaml" | kubectl apply -n "$NS" -f -
-  kubectl apply -n "$NS" -f "$K8S_DIR/admin-web/service.yaml"
   envsubst < "$K8S_DIR/admin-web/ingress.yaml" | kubectl apply -n "$NS" -f -
 fi
+
+for sm in "$K8S_DIR/api/servicemonitor.yaml" "$K8S_DIR/batch/servicemonitor.yaml" "$K8S_DIR/admin-api/servicemonitor.yaml"; do
+  [[ -f "$sm" ]] && kubectl apply -n "$NS" -f "$sm"
+done
 echo "  → $((SECONDS - STEP_START))s"
 
 # --- 8. 롤아웃 대기 ---
@@ -221,10 +368,8 @@ STEP_START=$SECONDS
 echo "[rollout] waiting..."
 kubectl rollout status -n "$NS" deployment/api --timeout=120s
 kubectl rollout status -n "$NS" deployment/batch --timeout=120s
-if [[ "$DEPLOY_ENV" == "dev" ]]; then
-  kubectl rollout status -n "$NS" deployment/admin-api --timeout=120s
-  kubectl rollout status -n "$NS" deployment/admin-web --timeout=120s
-fi
+kubectl rollout status -n "$NS" deployment/admin-api --timeout=120s
+kubectl rollout status -n "$NS" deployment/admin-web --timeout=120s
 echo "  → $((SECONDS - STEP_START))s"
 
 echo ""
@@ -233,6 +378,7 @@ echo "  kubectl get pods -n $NS"
 if [[ "$DEPLOY_ENV" == "prod" ]]; then
   echo "  kubectl get certificate -n $NS"
   echo "  curl https://api.kotonoha.eastshine.dev/health"
+  echo "  admin web: https://kotonoha.eastshine.dev/admin"
 else
   echo "  kubectl port-forward -n $NS svc/api 8080:8080"
   echo "  kubectl port-forward -n $NS svc/admin-api 8081:8081"

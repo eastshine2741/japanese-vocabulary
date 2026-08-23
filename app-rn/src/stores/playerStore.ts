@@ -9,10 +9,8 @@ interface PlayerState {
   studyData: SongStudyData | null;
   errorCode: string | null;
 
-  // Playback progress lives in the store (not PlayerScreen state) so the
-  // YouTubePlayer's ~100ms time ticks don't force a re-render of the whole
-  // PlayerScreen tree. Only components that actually need the tick
-  // (LyricsDial) subscribe to currentMs.
+  // Playback progress lives in the store so YouTubePlayer's ~100ms time ticks
+  // are shared by the focused song detail components without local prop chains.
   currentMs: number;
   durationMs: number;
   setCurrentMs: (ms: number) => void;
@@ -61,7 +59,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         set({ status: 'error', errorCode: ready.errorCode ?? 'SONG_ANALYSIS_WORK_FAILED' });
         return;
       }
-      const data = await songApi.getById(ready.songId);
+      const data = await songApi.getStudyDataById(ready.songId);
       if (analysisRunId !== runId) return;
       set({ status: 'success', studyData: data, currentMs: 0, durationMs: 0 });
     } catch (e: any) {
@@ -73,7 +71,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   loadById: async (id: number) => {
     set({ status: 'loading', errorCode: null });
     try {
-      const data = await songApi.getById(id);
+      const data = await songApi.getStudyDataById(id);
       set({ status: 'success', studyData: data, currentMs: 0, durationMs: 0 });
     } catch (e: any) {
       set({ status: 'error', errorCode: e.response?.data?.error });
@@ -84,7 +82,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     const current = get().studyData;
     if (!current) return;
     try {
-      const data = await songApi.getById(current.song.id);
+      const data = await songApi.getStudyDataById(current.song.id);
       set({ studyData: data });
     } catch {
       // silent — manual retry button stays available

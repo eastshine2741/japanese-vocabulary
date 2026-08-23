@@ -1,0 +1,4 @@
+interface:
+  display_name: "Pencil Frontend Implementer"
+  short_description: "Implement UI from Pencil capsules."
+  default_prompt: "Use the implementation capsule as an index, inspect referenced Pencil frames directly, and implement the scoped UI in the existing frontend codebase."

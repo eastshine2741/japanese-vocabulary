@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { wordApi } from '../api/wordApi';
-import { AddWordRequest, WordDetailResponse, WordListItem } from '../types/word';
+import { AddWordRequest, WordDetailResponse, WordListItem, sensesFromMeaningText } from '../types/word';
 import { Token } from '../types/song';
 
 type AddStatus = 'idle' | 'loading' | 'success' | 'error';
@@ -29,7 +29,13 @@ interface VocabularyState {
   isLoadingMore: boolean;
 
   getWord: (japanese: string) => Promise<void>;
-  addWord: (token: Token, songId: number, lyricLine: string, koreanLyricLine?: string | null) => Promise<void>;
+  addWord: (
+    token: Token,
+    songId: number,
+    lyricLine: string,
+    koreanLyricLine?: string | null,
+    lyricLineIndex?: number | null,
+  ) => Promise<void>;
   batchAddWords: (wordRequests: AddWordRequest[]) => Promise<void>;
   resetBatchAdd: () => void;
   loadWords: () => Promise<void>;
@@ -64,17 +70,26 @@ export const useVocabularyStore = create<VocabularyState>((set, get) => ({
     }
   },
 
-  addWord: async (token: Token, songId: number, lyricLine: string, koreanLyricLine?: string | null) => {
+  addWord: async (
+    token: Token,
+    songId: number,
+    lyricLine: string,
+    koreanLyricLine?: string | null,
+    lyricLineIndex?: number | null,
+  ) => {
     set({ addStatus: 'loading' });
     try {
       const res = await wordApi.addWord({
         japanese: token.baseForm,
         reading: token.baseFormReading ?? token.reading ?? '',
-        koreanText: token.koreanText ?? '',
-        partOfSpeech: token.partOfSpeech,
+        // 토큰의 뜻은 쉼표로 이어진 문자열 하나다 — 조각마다 sense 를 만들고, 예문은 첫 조각만 갖는다.
+        senses: sensesFromMeaningText(token.koreanText, token.partOfSpeech, [{
+          text: lyricLine,
+          translation: koreanLyricLine ?? null,
+          songId,
+          lineIndex: lyricLineIndex ?? null,
+        }]),
         songId,
-        lyricLine,
-        koreanLyricLine: koreanLyricLine ?? undefined,
       });
       set({ addStatus: 'success', addedId: res.id });
     } catch {

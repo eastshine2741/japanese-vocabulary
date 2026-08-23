@@ -2,7 +2,32 @@ export interface OssEntry {
   name: string;
   license: string;
   url: string;
+  /** 원문 보존이 요구되는 저작권/허가 고지. 링크만으로 충족되지 않는 항목에만 채운다. */
+  notice?: string;
 }
+
+export const ICON_ASSETS: OssEntry[] = [
+  {
+    name: 'Lucide',
+    license: 'ISC',
+    url: 'https://lucide.dev/license',
+    notice: `ISC License
+
+Copyright (c) 2026 Lucide Icons and Contributors
+
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted, provided that the above
+copyright notice and this permission notice appear in all copies.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.`,
+  },
+];
 
 export const EXTERNAL_SERVICES: OssEntry[] = [
   { name: 'Kuromoji', license: 'Apache-2.0', url: 'https://github.com/atilika/kuromoji' },

@@ -25,7 +25,7 @@ interface Props {
   muted?: boolean;
   // Force the lowest video resolution to save data. Defaults to false. The
   // Spotlight hero passes this since its MV is blurred behind a scrim, so detail
-  // is irrelevant. PlayerScreen leaves it off to keep auto/high quality.
+  // is irrelevant. Song detail leaves it off to keep auto/high quality.
   lowestQuality?: boolean;
   onTimeChange?: (seconds: number) => void;
   onDurationChange?: (seconds: number) => void;
@@ -216,8 +216,7 @@ const YouTubePlayer = forwardRef<YouTubePlayerRef, Props>(({
   );
 });
 
-// Memoize: PlayerScreen re-renders ~10×/s on currentMs ticks; without this
-// the WebView wrapper reconciles every tick even though its props are stable.
+// Memoize so parent playback progress updates do not recreate the WebView.
 export default React.memo(YouTubePlayer);
 
 const styles = StyleSheet.create({

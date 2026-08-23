@@ -1,0 +1,1 @@
+../../../.codex/skills/pencil-capsule-distributor/SKILL.md

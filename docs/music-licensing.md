@@ -123,7 +123,7 @@ UX 정의:
 
 ## 7. 구현 변경사항
 
-### `app-rn/src/screens/PlayerScreen.tsx`
+### `app-rn/src/screens/SongDetailScreen.tsx`
 - `FlatList` 데이터를 `studyUnits` 전체가 아닌 **포커스 라인 ±N의 슬라이딩 윈도우**로 제한 (N ≤ 2~3)
 - `initialNumToRender={studyUnits.length}` 제거
 - 정지 상태에서도 한 화면에 윈도우 외부 라인이 동시 노출되지 않도록 수직 가시 영역 자체를 윈도우 크기로 제한

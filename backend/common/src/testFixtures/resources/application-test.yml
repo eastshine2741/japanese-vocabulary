@@ -35,3 +35,4 @@ gemini:
   api-key: test-gemini-key
   translation-model: gemini-test
   word-meaning-model: gemini-test
+  segmentation-model: gemini-test

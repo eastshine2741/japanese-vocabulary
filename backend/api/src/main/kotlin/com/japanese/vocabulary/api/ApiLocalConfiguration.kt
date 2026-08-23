@@ -10,6 +10,8 @@ import com.japanese.vocabulary.deck.controller.DeckController
 import com.japanese.vocabulary.flashcard.controller.FlashcardController
 import com.japanese.vocabulary.notification.controller.DeviceTokenController
 import com.japanese.vocabulary.observability.HttpClientMetricsConfig
+import com.japanese.vocabulary.api.recommendation.service.SongRecommendationHomeService
+import com.japanese.vocabulary.recommendation.controller.SongRecommendationController
 import com.japanese.vocabulary.song.cache.SongSearchCache
 import com.japanese.vocabulary.song.controller.SearchHistoryController
 import com.japanese.vocabulary.song.controller.SongController
@@ -17,6 +19,8 @@ import com.japanese.vocabulary.song.service.RecentSongService
 import com.japanese.vocabulary.song.service.SearchHistoryService
 import com.japanese.vocabulary.song.service.SongSearchService
 import com.japanese.vocabulary.song.service.SongStudyViewService
+import com.japanese.vocabulary.song.service.SpotlightService
+import com.japanese.vocabulary.song.service.songdetail.SongDetailQueryService
 import com.japanese.vocabulary.studystats.controller.StudyStatsController
 import com.japanese.vocabulary.studystats.util.KstClock
 import com.japanese.vocabulary.user.controller.SettingsController
@@ -37,6 +41,8 @@ import org.springframework.context.annotation.Import
     DeckController::class,
     FlashcardController::class,
     DeviceTokenController::class,
+    SongRecommendationController::class,
+    SongRecommendationHomeService::class,
     SearchHistoryController::class,
     SongController::class,
     SongSearchCache::class,
@@ -44,6 +50,8 @@ import org.springframework.context.annotation.Import
     SearchHistoryService::class,
     SongSearchService::class,
     SongStudyViewService::class,
+    SpotlightService::class,
+    SongDetailQueryService::class,
     StudyStatsController::class,
     KstClock::class,
     SettingsController::class,

@@ -6,6 +6,7 @@ interface Props {
   width?: number | string;
   height?: number | string;
   borderRadius?: number;
+  color?: string;
   style?: ViewStyle;
 }
 
@@ -13,6 +14,7 @@ export default function SkeletonBox({
   width = '100%',
   height = 20,
   borderRadius = 8,
+  color = Colors.cardBorder,
   style,
 }: Props) {
   const opacity = useRef(new Animated.Value(0.3)).current;
@@ -32,7 +34,7 @@ export default function SkeletonBox({
     <Animated.View
       style={[
         styles.skeleton,
-        { width: width as any, height: height as any, borderRadius, opacity },
+        { width: width as any, height: height as any, borderRadius, backgroundColor: color, opacity },
         style,
       ]}
     />

@@ -1,7 +1,7 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { useShallow } from 'zustand/react/shallow';
 import { useStudyStatsStore } from '../../stores/studyStatsStore';
@@ -19,11 +19,13 @@ export default React.memo(function StudyStatsHomeCard() {
     useShallow((s) => ({ home: s.home, loadHome: s.loadHome })),
   );
 
-  useEffect(() => {
-    if (home.status === 'idle' || home.staleAt > 0) {
-      loadHome(home.staleAt > 0);
-    }
-  }, [home.status, home.staleAt, loadHome]);
+  useFocusEffect(
+    useCallback(() => {
+      if (home.status === 'idle' || home.staleAt > 0) {
+        loadHome(home.staleAt > 0);
+      }
+    }, [home.status, home.staleAt, loadHome]),
+  );
 
   const handlePress = useCallback(() => {
     navigation.navigate('MyPage');

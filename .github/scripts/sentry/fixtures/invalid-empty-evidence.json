@@ -1,0 +1,29 @@
+{
+  "issue": {
+    "id": "1009",
+    "shortId": "KOTONOHA-API-9",
+    "title": "Invalid triage evidence fixture",
+    "permalink": "https://sentry.io/organizations/example/issues/1009/",
+    "firstSeen": "2026-06-25T00:40:00Z"
+  },
+  "event": {
+    "eventID": "evt-invalid-evidence",
+    "message": "Fixture should fail local validation"
+  },
+  "mockCodexResult": {
+    "action": "github_issue",
+    "confidence": "medium",
+    "summary": "This result is missing evidence.",
+    "rootCause": "The evidence array is empty.",
+    "evidence": [],
+    "requiresLargeRefactor": true,
+    "githubIssue": {
+      "title": "Invalid fixture",
+      "body": "This should not be created.",
+      "labels": [
+        "sentry"
+      ]
+    },
+    "sentryNote": "이 응답은 evidence가 비어 있어 실패해야 합니다."
+  }
+}

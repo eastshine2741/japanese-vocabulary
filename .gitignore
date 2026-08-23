@@ -1,5 +1,6 @@
 # Claude Code
-.claude/
+.claude/*
+!.claude/skills/
 
 # OMC
 .omc/
@@ -38,3 +39,7 @@ admin-web/coverage/
 !.env*.template
 !**/.env*.template
 **/application-local.yml
+.github/scripts/sentry/triage.env
+
+# Local dev database dump baseline
+local/mysql/

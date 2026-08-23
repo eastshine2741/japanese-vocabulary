@@ -1,0 +1,31 @@
+{
+  "issue": {
+    "id": "1006",
+    "shortId": "KOTONOHA-API-6",
+    "title": "Existing GitHub issue should be reused",
+    "permalink": "https://sentry.io/organizations/example/issues/1006/",
+    "firstSeen": "2026-06-25T00:50:00Z"
+  },
+  "event": {
+    "eventID": "evt-partial-1",
+    "message": "Partial success replay fixture"
+  },
+  "mockCodexResult": {
+    "action": "github_issue",
+    "confidence": "medium",
+    "summary": "This mock should be skipped when local state is external_created.",
+    "rootCause": "A previous run already created the external artifact.",
+    "evidence": [
+      "local ledger"
+    ],
+    "requiresLargeRefactor": false,
+    "githubIssue": {
+      "title": "Should not be created again",
+      "body": "If this is used, replay failed.",
+      "labels": [
+        "sentry"
+      ]
+    },
+    "sentryNote": "이미 생성된 GitHub 이슈 링크로 Sentry note 완료 표시만 재시도합니다."
+  }
+}

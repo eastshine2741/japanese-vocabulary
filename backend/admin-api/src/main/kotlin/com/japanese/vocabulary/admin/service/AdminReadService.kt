@@ -17,6 +17,7 @@ import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkEntity
 import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStatus
 import com.japanese.vocabulary.user.entity.UserEntity
 import org.springframework.data.domain.Page
+import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -38,12 +39,15 @@ class AdminReadService(
 
     fun getSong(id: Long): AdminSongDetailResponse {
         val song = songRepository.findById(id).orElseThrow { NoSuchElementException("Song not found") }
-        val lyric = lyricRepository.findBySongId(id)
-        return song.toDetailResponse(lyric)
+        val lyric = lyricRepository.findActiveBySongId(id)
+        val activeStatuses = listOf(SongAnalysisWorkStatus.PENDING, SongAnalysisWorkStatus.RUNNING)
+        val activeWork = songAnalysisWorkRepository.findFirstBySongIdAndStatusInOrderByCreatedAtAsc(id, activeStatuses)
+        val analysisWorks = songAnalysisWorkRepository.findBySongIdOrderByCreatedAtDesc(id, PageRequest.of(0, 10))
+        return song.toDetailResponse(lyric, activeWork, analysisWorks)
     }
 
     fun getSongLyric(songId: Long): AdminLyricDetailResponse {
-        val lyric = lyricRepository.findBySongId(songId) ?: throw NoSuchElementException("Lyric not found")
+        val lyric = lyricRepository.findActiveBySongId(songId) ?: throw NoSuchElementException("Lyric not found")
         return lyric.toDetailResponse()
     }
 
@@ -103,6 +107,8 @@ fun SongEntity.toSummaryResponse(): AdminSongSummaryResponse = AdminSongSummaryR
 
 fun SongEntity.toDetailResponse(
     lyric: LyricEntity?,
+    activeReanalysisWork: SongAnalysisWorkEntity?,
+    analysisWorks: List<SongAnalysisWorkEntity>,
 ): AdminSongDetailResponse = AdminSongDetailResponse(
     id = requireNotNull(id),
     title = title,
@@ -111,7 +117,10 @@ fun SongEntity.toDetailResponse(
     youtubeUrl = youtubeUrl,
     artworkUrl = artworkUrl,
     createdAt = createdAt,
+    updatedAt = updatedAt,
     lyric = lyric?.toSummaryResponse(),
+    activeReanalysisWork = activeReanalysisWork?.toSummaryResponse(),
+    analysisWorks = analysisWorks.map { it.toSummaryResponse() },
 )
 
 fun LyricEntity.toSummaryResponse(): AdminLyricSummaryResponse = AdminLyricSummaryResponse(
@@ -145,6 +154,7 @@ fun SongAnalysisWorkEntity.toSummaryResponse(): AdminSongAnalysisWorkSummaryResp
         currentStage = currentStage?.name,
         songId = songId,
         lyricId = lyricId,
+        youtubeUrl = youtubeUrl,
         triggerSource = triggerSource.name,
         createdByUserId = createdByUserId,
         createdAt = createdAt,
@@ -166,6 +176,7 @@ fun SongAnalysisWorkEntity.toDetailResponse(): AdminSongAnalysisWorkDetailRespon
         currentStage = currentStage?.name,
         songId = songId,
         lyricId = lyricId,
+        youtubeUrl = youtubeUrl,
         lockedBy = lockedBy,
         lockedUntil = lockedUntil,
         errorCode = errorCode,

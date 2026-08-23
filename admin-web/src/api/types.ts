@@ -21,10 +21,13 @@ export type SongSummary = {
   youtubeUrl: string | null
   artworkUrl: string | null
   createdAt: string | null
+  updatedAt?: string | null
 }
 
 export type SongDetail = SongSummary & {
   lyric: LyricSummary | null
+  activeReanalysisWork: SongAnalysisWorkSummary | null
+  analysisWorks: SongAnalysisWorkSummary[]
 }
 
 export type LyricSummary = {
@@ -50,6 +53,7 @@ export type SongAnalysisWorkSummary = {
   currentStage: string | null
   songId: number | null
   lyricId: number | null
+  youtubeUrl: string | null
   triggerSource: string
   createdByUserId: number | null
   createdAt: string | null
@@ -57,6 +61,19 @@ export type SongAnalysisWorkSummary = {
   playerReadyAt: string | null
   completedAt: string | null
   failedAt: string | null
+}
+
+export type SongAnalysisWorkOperation = {
+  workId: number
+  status: string
+  currentStage: string | null
+  songId: number | null
+  lyricId: number | null
+  youtubeUrl: string | null
+  canOpenPlayer: boolean
+  isAnalysisComplete: boolean
+  errorCode: string | null
+  errorMessage: string | null
 }
 
 export type SongAnalysisWorkDetail = SongAnalysisWorkSummary & {
@@ -67,6 +84,53 @@ export type SongAnalysisWorkDetail = SongAnalysisWorkSummary & {
   lockedUntil: string | null
   errorCode: string | null
   errorMessage: string | null
+}
+
+export type RecommendationOperationItem = {
+  candidateId: number
+  status: string
+  songId: number | null
+  lyricId: number | null
+  workId: number | null
+  recommendationId: number | null
+  message: string | null
+}
+
+export type RecommendationOperationResult = {
+  processed: number
+  succeeded: number
+  skipped: number
+  failed: number
+  items: RecommendationOperationItem[]
+}
+
+export type Recommendation = {
+  id: number
+  candidateId: number
+  weekStartDate: string
+  status: string
+  songId: number
+  lyricId: number
+  orderIndex: number
+  publishedAt: string | null
+  createdAt: string | null
+  updatedAt: string | null
+}
+
+export type RecommendationCandidate = {
+  id: number
+  source: string
+  sourceSongId: string
+  weekStartDate: string
+  sourceRank: number
+  status: string
+  title: string
+  artistName: string
+  artworkUrl: string | null
+  sourceUrl: string | null
+  releaseDate: string | null
+  createdAt: string | null
+  updatedAt: string | null
 }
 
 export type RawLyricLine = {
@@ -90,7 +154,7 @@ export type LyricToken = {
 export type AnalyzedLyricLine = {
   index: number
   koreanLyrics: string | null
-  koreanPronounciation?: string | null
+  /** No line-level reading is stored — assemble it from the tokens (`buildLineReading`). */
   tokens: LyricToken[]
 }
 

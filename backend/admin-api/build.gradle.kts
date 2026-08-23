@@ -12,6 +12,7 @@ java {
 
 dependencies {
     implementation(project(":common"))
+    implementation(project(":domains:recommendation"))
     implementation(project(":domains:song"))
     implementation(project(":domains:song-analysis"))
     implementation(project(":domains:user"))
@@ -20,6 +21,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
+    runtimeOnly("io.micrometer:micrometer-registry-prometheus")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
 

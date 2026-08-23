@@ -73,20 +73,16 @@ class WordController(
     private fun AddWordRequest.toDto() = AddWordDto(
         japanese = japanese,
         reading = reading,
-        koreanText = koreanText,
-        partOfSpeech = partOfSpeech,
+        senses = senses,
         songId = songId,
-        lyricLine = lyricLine,
-        koreanLyricLine = koreanLyricLine,
     )
 
     private fun BatchAddWordRequest.toDto() = BatchAddWordDto(words = words.map { it.toDto() })
 
     private fun UpdateWordRequest.toDto() = UpdateWordDto(
         reading = reading,
-        meanings = meanings,
+        senses = senses,
         resetFlashcard = resetFlashcard,
-        deleteExampleIds = deleteExampleIds,
     )
 
     private fun BatchAddWordResultDto.toResponse() = BatchAddWordResponse(
@@ -98,8 +94,7 @@ class WordController(
         id = id,
         japanese = japanese,
         reading = reading,
-        meanings = meanings,
-        examples = examples,
+        senses = senses,
     )
 
     private fun WordListDto.toResponse() = WordListResponse(

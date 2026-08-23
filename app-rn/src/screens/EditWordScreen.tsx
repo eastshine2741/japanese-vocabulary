@@ -6,15 +6,13 @@ import {
   ActivityIndicator,
   BackHandler,
   StyleSheet,
+  useWindowDimensions,
 } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Feather } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import BottomSheet, { BottomSheetBackdrop, BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import { ExampleSentence } from '../types/word';
-import ArtworkImage from '../components/ArtworkImage';
+import { WordSense, sensesFromMeaningText } from '../types/word';
 import WordFormFields from '../components/WordFormFields';
 import PosPickerList from '../components/PosPickerList';
 import { wordApi } from '../api/wordApi';
@@ -22,67 +20,75 @@ import { useWordForm } from '../hooks/useWordForm';
 import AppDialog from '../components/AppDialog';
 import ErrorDialog from '../components/ErrorDialog';
 import { AppBar } from '../components/AppBar';
-import { Colors, Dimens } from '../theme/theme';
+import { AppBottomSheetModal, AppBottomSheetModalRef, AppSheetHandoffScrollView } from '../components/bottomSheet';
+import { Colors } from '../theme/theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'EditWord'>;
 
 export default function EditWordScreen({ route, navigation }: Props) {
-  const { mode, wordId, japanese, reading: initReading, meanings: initMeanings, token, songId, lyricLine, koreanLyricLine } = route.params;
+  const {
+    mode, wordId, japanese, reading: initReading, senses: initSenses,
+    token, songId, lyricLine, lyricLineIndex, koreanLyricLine,
+  } = route.params;
 
   const japaneseText = mode === 'edit' ? japanese! : token!.baseForm;
   const initialReadingValue = mode === 'edit' ? (initReading ?? '') : (token!.baseFormReading ?? token!.reading ?? '');
-  const initialMeaningsValue = mode === 'edit'
-    ? [...initMeanings!]
-    : [{ text: token!.koreanText ?? '', partOfSpeech: token!.partOfSpeech ?? '명사' }];
+  // 곡이 준 뜻은 쉼표로 이어진 문자열 하나다 — 저장되는 모양 그대로 뜻마다 한 줄씩 편집하게 한다.
+  const initialSensesValue: WordSense[] = mode === 'edit'
+    ? (initSenses ?? []).map(s => ({ ...s, examples: [...(s.examples ?? [])] }))
+    : (() => {
+        const partOfSpeech = token!.partOfSpeech ?? '명사';
+        const examples = songId != null && lyricLine
+          ? [{
+              text: lyricLine,
+              translation: koreanLyricLine ?? null,
+              songId,
+              lineIndex: lyricLineIndex ?? null,
+            }]
+          : [];
+        const senses = sensesFromMeaningText(token!.koreanText, partOfSpeech, examples);
+        return senses.length > 0 ? senses : [{ meaning: '', partOfSpeech, jlpt: null, examples }];
+      })();
 
-  const form = useWordForm(initialReadingValue, initialMeaningsValue);
+  const form = useWordForm(initialReadingValue, initialSensesValue);
 
-  const [examples, setExamples] = useState<ExampleSentence[]>([]);
-  const [deletedExampleIds, setDeletedExampleIds] = useState<Set<number>>(new Set());
   const [saving, setSaving] = useState(false);
   const [posPickerIndex, setPosPickerIndex] = useState<number | null>(null);
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
   const [saveErrorMessage, setSaveErrorMessage] = useState<string | null>(null);
 
-  const posSheetRef = useRef<BottomSheet>(null);
+  const posSheetRef = useRef<AppBottomSheetModalRef>(null);
   const insets = useSafeAreaInsets();
+  const windowHeight = useWindowDimensions().height;
+  // 품사 14개는 화면보다 길다 — 시트가 화면을 다 먹지 않게 상한을 둔다.
+  const maxSheetHeight = useMemo(
+    () => (windowHeight - insets.top) * 0.8,
+    [windowHeight, insets.top],
+  );
 
   // Initial snapshot for change detection
   const initialSnapshot = useRef(
     JSON.stringify({
       reading: initialReadingValue,
-      meanings: initialMeaningsValue,
+      senses: initialSensesValue,
     }),
   ).current;
 
-  const hasWordChanges = useMemo(() => {
-    return JSON.stringify({ reading: form.reading, meanings: form.meanings }) !== initialSnapshot;
-  }, [form.reading, form.meanings, initialSnapshot]);
-
+  // 예문 삭제도 senses 안에서 일어나므로 스냅샷 하나로 전부 잡힌다.
   const hasChanges = useMemo(() => {
-    return hasWordChanges || deletedExampleIds.size > 0;
-  }, [hasWordChanges, deletedExampleIds]);
+    return JSON.stringify({ reading: form.reading, senses: form.senses }) !== initialSnapshot;
+  }, [form.reading, form.senses, initialSnapshot]);
 
-  const visibleExamples = useMemo(
-    () => examples.filter((ex) => !deletedExampleIds.has(ex.id)),
-    [examples, deletedExampleIds],
-  );
+  // 읽기·뜻이 바뀌면 복습 진도 초기화를 물어보지만, 예문만 지운 경우는 묻지 않는다.
+  const hasWordChanges = useMemo(() => {
+    const strip = (senses: WordSense[]) => senses.map(s => ({ meaning: s.meaning, partOfSpeech: s.partOfSpeech }));
+    return JSON.stringify({ reading: form.reading, senses: strip(form.senses) })
+      !== JSON.stringify({ reading: initialReadingValue, senses: strip(initialSensesValue) });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.reading, form.senses]);
 
-  const canSave = !form.hasEmptyMeaning && form.meanings.length > 0 && !saving;
-
-  // Fetch examples on mount (edit mode)
-  useEffect(() => {
-    if (mode === 'edit' && japaneseText) {
-      wordApi.getByText(japaneseText).then((word) => {
-        if (word) setExamples(word.examples);
-      });
-    }
-  }, [mode, japaneseText]);
-
-  const deleteExample = (exampleId: number) => {
-    setDeletedExampleIds((prev) => new Set(prev).add(exampleId));
-  };
+  const canSave = !form.hasEmptyMeaning && form.senses.length > 0 && !saving;
 
   // Back guard
   const confirmGoBack = useCallback(() => {
@@ -111,37 +117,26 @@ export default function EditWordScreen({ route, navigation }: Props) {
 
   const openPosPicker = (index: number) => {
     setPosPickerIndex(index);
-    posSheetRef.current?.expand();
+    posSheetRef.current?.present();
   };
-
-  const renderBackdrop = useCallback(
-    (props: any) => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} opacity={0.25} />,
-    [],
-  );
 
   const handleSave = async (resetFlashcard: boolean = false) => {
     if (!canSave) return;
     setSaving(true);
     try {
       if (mode === 'edit') {
+        // senses 는 전체 replace — 뜻 추가·삭제와 예문 삭제가 이 한 번의 호출로 반영된다.
         await wordApi.updateWord(wordId!, {
           reading: form.reading || null,
-          meanings: form.meanings,
+          senses: form.senses,
           resetFlashcard,
-          deleteExampleIds: deletedExampleIds.size > 0
-            ? Array.from(deletedExampleIds)
-            : undefined,
         });
       } else {
-        const firstMeaning = form.meanings[0];
         await wordApi.addWord({
           japanese: japaneseText,
           reading: form.reading,
-          koreanText: firstMeaning.text,
-          partOfSpeech: firstMeaning.partOfSpeech,
-          songId: songId!,
-          lyricLine: lyricLine!,
-          koreanLyricLine,
+          senses: form.senses,
+          songId,
         });
       }
       navigation.goBack();
@@ -182,85 +177,55 @@ export default function EditWordScreen({ route, navigation }: Props) {
             japaneseText={japaneseText}
             reading={form.reading}
             onReadingChange={form.setReading}
-            meanings={form.meanings}
+            senses={form.senses}
             onMeaningTextChange={form.updateMeaningText}
             onMeaningBlur={form.markTouched}
             onRemoveMeaning={form.removeMeaning}
             onOpenPosPicker={openPosPicker}
             onAddMeaning={form.addMeaning}
             shouldShowError={form.shouldShowError}
+            showExamples={mode === 'edit'}
+            onRemoveExample={form.removeExample}
           />
-
-          {/* Examples */}
-          {mode === 'edit' && visibleExamples.length > 0 && (
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>예문</Text>
-              {visibleExamples.map((ex, i) => (
-                <View
-                  key={ex.id}
-                  style={[
-                    styles.exampleRow,
-                    i < visibleExamples.length - 1 && styles.exampleRowBorder,
-                  ]}
-                >
-                  <View style={styles.exampleContent}>
-                    <Text style={styles.exampleJp}>{ex.lyricLine}</Text>
-                    <Text style={styles.exampleKr}>{ex.koreanLyricLine}</Text>
-                    <View style={styles.exampleSongRow}>
-                      <ArtworkImage url={ex.artworkUrl ?? null} size={14} cornerRadius={3} />
-                      <Text style={styles.exampleSong}>{ex.songTitle}</Text>
-                    </View>
-                  </View>
-                  <TouchableOpacity
-                    onPress={() => deleteExample(ex.id)}
-                    hitSlop={8}
-                  >
-                    <Feather name="x" size={16} color={Colors.textMuted} />
-                  </TouchableOpacity>
-                </View>
-              ))}
-            </View>
-          )}
-
-          {/* Save button */}
-          <View style={styles.saveArea}>
-            <TouchableOpacity
-              style={[styles.saveBtn, !canSave && styles.saveBtnDisabled]}
-              onPress={handleSavePress}
-              disabled={!canSave}
-              activeOpacity={0.7}
-            >
-              {saving ? (
-                <ActivityIndicator color="#FFF" size="small" />
-              ) : (
-                <Text style={[styles.saveBtnText, !canSave && styles.saveBtnTextDisabled]}>저장</Text>
-              )}
-            </TouchableOpacity>
-          </View>
         </KeyboardAwareScrollView>
+
+        {/* Save button — 스크롤과 분리된 하단 고정 영역 */}
+        <View style={styles.saveArea}>
+          <TouchableOpacity
+            style={[styles.saveBtn, !canSave && styles.saveBtnDisabled]}
+            onPress={handleSavePress}
+            disabled={!canSave}
+            activeOpacity={0.8}
+          >
+            {saving ? (
+              <ActivityIndicator color="#FFF" size="small" />
+            ) : (
+              <Text style={[styles.saveBtnText, !canSave && styles.saveBtnTextDisabled]}>저장</Text>
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
 
-      {/* POS Picker Bottom Sheet */}
-      <BottomSheet
+      {/* POS Picker — 다른 picker 들과 같이 modal 로 띄운다. non-modal sheet 는 닫혀 있어도
+          화면 위에 backdrop 이 상주해서 폼 터치를 먹는다. topInset 으로 status bar 는 비워 둔다. */}
+      <AppBottomSheetModal
         ref={posSheetRef}
-        index={-1}
+        topInset={insets.top}
+        maxDynamicContentSize={maxSheetHeight}
         enableDynamicSizing
         enablePanDownToClose
-        backdropComponent={renderBackdrop}
-        backgroundStyle={styles.pickerSheetBg}
-        handleIndicatorStyle={styles.dragBar}
-        onClose={() => setPosPickerIndex(null)}
+        onDismiss={() => setPosPickerIndex(null)}
       >
-        <BottomSheetScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 8 }}>
+        <AppSheetHandoffScrollView contentContainerStyle={styles.pickerContent}>
           <PosPickerList
-            selectedPos={posPickerIndex !== null ? form.meanings[posPickerIndex]?.partOfSpeech : null}
+            selectedPos={posPickerIndex !== null ? form.senses[posPickerIndex]?.partOfSpeech : null}
             onSelect={(pos) => {
               if (posPickerIndex !== null) form.updateMeaningPos(posPickerIndex, pos);
-              posSheetRef.current?.close();
+              posSheetRef.current?.dismiss();
             }}
           />
-        </BottomSheetScrollView>
-      </BottomSheet>
+        </AppSheetHandoffScrollView>
+      </AppBottomSheetModal>
 
       <AppDialog
         visible={showResetDialog}
@@ -295,63 +260,24 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 24, paddingBottom: 20, gap: 32 },
 
-  // Sections (for examples)
-  section: { gap: 6 },
-  sectionLabel: { fontSize: 12, fontWeight: '500', color: Colors.textMuted },
-
-  // Examples
-  exampleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingVertical: 12,
-  },
-  exampleRowBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  exampleContent: {
-    flex: 1,
-    gap: 3,
-  },
-  exampleJp: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: Colors.textPrimary,
-  },
-  exampleKr: {
-    fontSize: 12,
-    color: Colors.textMuted,
-  },
-  exampleSongRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    marginTop: 2,
-  },
-  exampleSong: {
-    fontSize: 11,
-    color: Colors.textMuted,
-  },
-
   // Save
-  saveArea: { paddingTop: 16, paddingBottom: 34 },
+  saveArea: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 20 },
   saveBtn: {
-    height: 52,
-    borderRadius: 26,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: Colors.primaryShadow,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 1,
+    shadowRadius: 2,
+    elevation: 2,
   },
-  saveBtnDisabled: { backgroundColor: Colors.elevated },
-  saveBtnText: { fontSize: 16, fontWeight: '600', color: '#FFFFFF' },
-  saveBtnTextDisabled: { fontSize: 16, fontWeight: '600', color: Colors.textMuted },
+  saveBtnDisabled: { backgroundColor: Colors.elevated, shadowOpacity: 0, elevation: 0 },
+  saveBtnText: { fontSize: 14, fontWeight: '600', color: '#FFFFFF' },
+  saveBtnTextDisabled: { fontSize: 14, fontWeight: '600', color: Colors.textMuted },
 
-  // POS Picker
-  pickerSheetBg: {
-    backgroundColor: Colors.card,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-  },
-  dragBar: { width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.textMuted },
+  // POS Picker — sheet chrome(배경·radius·drag bar)은 AppBottomSheetModal 이 갖는다.
+  pickerContent: { paddingBottom: 8 },
 });

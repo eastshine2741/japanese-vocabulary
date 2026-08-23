@@ -1,0 +1,14 @@
+# admin-web(/admin) 과 admin-api(/admin/api) 가 같은 호스트를 공유하므로 인증서는 한 장이다.
+# 두 IngressRoute 가 이 secret 을 참조한다. cert-manager ingress-shim(annotation) 대신
+# Certificate 를 명시적으로 선언한다 — 라우팅 리소스가 IngressRoute 라 shim 이 붙지 않는다.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: admin-tls
+spec:
+  secretName: admin-tls
+  dnsNames:
+    - kotonoha.eastshine.dev
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer

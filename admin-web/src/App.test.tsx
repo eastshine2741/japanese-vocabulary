@@ -8,6 +8,9 @@ import {
   lyricDetail,
   lyricSummary,
   page,
+  recommendation,
+  recommendationCandidate,
+  recommendationOperationResult,
   reelsSongCandidate,
   reelsSongDetail,
   songAnalysisWorkDetail,
@@ -26,10 +29,16 @@ function mockFetch() {
     if (url.includes("/reels-factory/render")) return new Response(new Blob(["mp4"], { type: "video/mp4" }), { status: 200 })
     if (url.includes("/reels-factory/songs/1")) return json(reelsSongDetail)
     if (url.includes("/reels-factory/songs?")) return json(page([reelsSongCandidate]))
+    if (url.endsWith("/songs/1/reanalysis") && init?.method === "POST") return json(pendingReanalysisWork)
     if (url.includes("/songs/1")) return json(songDetail)
     if (url.includes("/songs?")) return json(page([songSummary]))
     if (url.includes("/song-analysis-works/4")) return json(songAnalysisWorkDetail)
     if (url.includes("/song-analysis-works?")) return json(page([songAnalysisWorkSummary]))
+    if (url.includes("/recommendations/weeks")) return json([recommendationCandidate.weekStartDate])
+    if (url.includes("/recommendations/candidates")) return json([recommendationCandidate])
+    if (url.includes("/recommendations/prepare-approved")) return json(recommendationOperationResult)
+    if (url.includes("/recommendations?") || url.endsWith("/recommendations")) return json([recommendation])
+    if (url.includes("/recommendations/request-analysis")) return json(recommendationOperationResult)
     if (url.includes("/lyrics/2")) return json(lyricDetail)
     if (url.includes("/lyrics?")) return json(page([lyricSummary]))
     if (url.includes("/users/3")) return json(adminUser)
@@ -38,6 +47,28 @@ function mockFetch() {
   })
   vi.stubGlobal("fetch", fetchMock)
   return fetchMock
+}
+
+
+const pendingReanalysisWork = {
+  ...songAnalysisWorkSummary,
+  id: 7,
+  status: "PENDING",
+  triggerSource: "ADMIN",
+  lyricId: null,
+  youtubeUrl: "https://youtu.be/new-mv",
+}
+
+const songDetailWithReanalysisHistory = {
+  ...songDetail,
+  activeReanalysisWork: null,
+  analysisWorks: [pendingReanalysisWork],
+}
+
+const songDetailWithActiveBlocker = {
+  ...songDetail,
+  activeReanalysisWork: pendingReanalysisWork,
+  analysisWorks: [pendingReanalysisWork],
 }
 
 function json(body: unknown, status = 200) {
@@ -80,9 +111,62 @@ describe("admin web", () => {
 
     expect(await screen.findByText("夜に駆ける")).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "Lyrics" })).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "Recommendations" })).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "Analysis Work" })).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "Reels Factory" })).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "Users" })).toBeInTheDocument()
+  })
+
+  test("runs recommendation workflow operations", async () => {
+    const user = userEvent.setup()
+    sessionStorage.setItem("kotonoha.admin.token", "admin-token")
+    renderApp("/recommendations")
+
+    expect(await screen.findByRole("heading", { name: "Recommendations" })).toBeInTheDocument()
+    expect((await screen.findAllByText("Plazma")).length).toBeGreaterThan(0)
+    expect(screen.getByText("Kenshi Yonezu")).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Process approved" }))
+
+    expect(await screen.findByText("Processed")).toBeInTheDocument()
+    expect(screen.getByText(/SUCCEEDED/)).toBeInTheDocument()
+    expect(screen.getAllByRole("tab")).toHaveLength(2)
+  })
+
+  test("scopes recommendation lists and operations to the selected week", async () => {
+    const user = userEvent.setup()
+    const fetchMock = mockFetch()
+    sessionStorage.setItem("kotonoha.admin.token", "admin-token")
+    renderApp("/recommendations")
+
+    expect((await screen.findAllByText("Plazma")).length).toBeGreaterThan(0)
+
+    const weekSelect = screen.getByLabelText("Week")
+    await user.selectOptions(weekSelect, recommendationCandidate.weekStartDate)
+
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some(([input]) =>
+          String(input).includes(`/recommendations/candidates?weekStartDate=${recommendationCandidate.weekStartDate}`),
+        ),
+      ).toBe(true),
+    )
+    expect(
+      fetchMock.mock.calls.some(([input]) =>
+        String(input).includes(`/recommendations?weekStartDate=${recommendationCandidate.weekStartDate}`),
+      ),
+    ).toBe(true)
+
+    await user.click(screen.getByRole("button", { name: "Process approved" }))
+
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some(([input]) =>
+          String(input).includes(
+            `/recommendations/prepare-approved?weekStartDate=${recommendationCandidate.weekStartDate}`,
+          ),
+        ),
+      ).toBe(true),
+    )
   })
 
   test("renders detail pages without write controls", async () => {
@@ -99,6 +183,56 @@ describe("admin web", () => {
     expect(screen.getByText("Base form")).toBeInTheDocument()
     expect(screen.queryByRole("button", { name: /\b(Edit|Delete|Save|Create)\b/i })).not.toBeInTheDocument()
     expect(screen.queryByText(/\b(Edit|Delete|Save|Create)\b/i)).not.toBeInTheDocument()
+  })
+
+
+  test("song detail exposes admin reanalysis action and work-produced MV history", async () => {
+    vi.mocked(fetch).mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input)
+      if (url.endsWith("/songs/1/reanalysis") && init?.method === "POST") return json(pendingReanalysisWork)
+      if (url.includes("/songs/1")) return json(songDetailWithReanalysisHistory)
+      return json({}, 404)
+    })
+
+    sessionStorage.setItem("kotonoha.admin.token", "admin-token")
+    renderApp("/songs/1")
+
+    expect(await screen.findByRole("button", { name: /trigger reanalysis/i })).toBeInTheDocument()
+    expect(screen.getByText(/recent analysis works/i)).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: /work #7/i })).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: /new mv/i })).toHaveAttribute("href", "https://youtu.be/new-mv")
+  })
+
+  test("song detail posts reanalysis and disables duplicate trigger when active work blocks", async () => {
+    const user = userEvent.setup()
+    const fetchMock = vi.mocked(fetch)
+    fetchMock.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input)
+      if (url.endsWith("/songs/1/reanalysis") && init?.method === "POST") return json(pendingReanalysisWork)
+      if (url.includes("/songs/1")) return json(songDetailWithActiveBlocker)
+      return json({}, 404)
+    })
+
+    sessionStorage.setItem("kotonoha.admin.token", "admin-token")
+    const { unmount } = renderApp("/songs/1")
+
+    const trigger = await screen.findByRole("button", { name: /trigger reanalysis/i })
+    expect(trigger).toBeDisabled()
+    expect(screen.getByText(/active reanalysis work/i)).toBeInTheDocument()
+
+    unmount()
+    fetchMock.mockClear()
+    fetchMock.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input)
+      if (url.endsWith("/songs/1/reanalysis") && init?.method === "POST") return json(pendingReanalysisWork)
+      if (url.includes("/songs/1")) return json(songDetailWithReanalysisHistory)
+      return json({}, 404)
+    })
+    renderApp("/songs/1")
+
+    await user.click(await screen.findByRole("button", { name: /trigger reanalysis/i }))
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("/songs/1/reanalysis"), expect.objectContaining({ method: "POST" })))
+    expect(await screen.findByText(/reanalysis work #7/i)).toBeInTheDocument()
   })
 
   test("renders song analysis work milestones", async () => {

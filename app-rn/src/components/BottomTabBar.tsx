@@ -13,7 +13,7 @@ type TabKey = 'Home' | 'Search' | 'MyPage';
 const TAB_CONFIG: Record<TabKey, { active: keyof typeof Ionicons.glyphMap; inactive: keyof typeof Ionicons.glyphMap; label: string }> = {
   Home: { active: 'home', inactive: 'home-outline', label: '홈' },
   Search: { active: 'search', inactive: 'search-outline', label: '검색' },
-  MyPage: { active: 'person', inactive: 'person-outline', label: '마이' },
+  MyPage: { active: 'person', inactive: 'person-outline', label: '프로필' },
 };
 
 export default function BottomTabBar({ state, navigation }: any) {

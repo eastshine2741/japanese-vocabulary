@@ -1,3 +1,5 @@
+import { AddWordRequest, WordSense } from './word';
+
 export interface SongSearchItem {
   id: string;
   title: string;
@@ -18,6 +20,16 @@ export interface SongInfo {
   artworkUrl: string | null;
 }
 
+export interface SongDto {
+  id: number;
+  title: string;
+  artist: string;
+  durationSeconds: number | null;
+  artworkUrl: string | null;
+  youtubeUrl: string | null;
+  lyricType: 'SYNCED' | 'PLAIN';
+}
+
 export interface Token {
   surface: string;
   baseForm: string;
@@ -35,7 +47,6 @@ export interface StudyUnit {
   startTimeMs: number | null;
   tokens: Token[];
   koreanLyrics: string | null;
-  koreanPronounciation: string | null;
 }
 
 export interface SongStudyData {
@@ -46,11 +57,92 @@ export interface SongStudyData {
   lyricsSourceUrl: string | null;
 }
 
+export interface SongLyricLineDto {
+  index: number;
+  originalText: string;
+  startTimeMs: number | null;
+  koreanLyrics: string | null;
+  /** 줄 발음은 저장되지 않는다. 토큰마다 그 줄에서 불리는 발음이 있어 앱이 조립한다. */
+  tokens: Token[];
+}
+
+export interface SongLyricsDto {
+  lyricId: number;
+  lyricsSourceName: string | null;
+  lyricsSourceUrl: string | null;
+  lines: SongLyricLineDto[];
+}
+
+export interface WordSummaryItemDto {
+  japanese: string;
+  reading: string | null;
+  koreanText: string | null;
+  jlpt: string | null;
+  importanceScore: number;
+}
+
+export interface WordSummaryDto {
+  topWords: WordSummaryItemDto[];
+  jlptDistribution: Record<string, number>;
+  totalCandidateCount: number;
+  defaultBulkAddCount: number;
+}
+
+export interface WordFilterDefaultsDto {
+  pos: string[];
+  jlpt: string[];
+  includeUnknownJlpt: boolean;
+  sortDefault: string;
+}
+
+export interface WordInSongItemDto {
+  japanese: string;
+  surface: string;
+  baseForm: string | null;
+  reading: string | null;
+  koreanText: string | null;
+  senses: WordSense[];
+  partOfSpeech: string;
+  partOfSpeechLabel: string;
+  jlpt: string | null;
+  importanceScore: number;
+  appearanceOrder: number;
+  frequency: number;
+  lineIndexes: number[];
+  isSavedGlobally: boolean;
+  isSavedForSong: boolean;
+  savedWordId: number | null;
+  addRequest: AddWordRequest;
+}
+
+export interface WordsInSongDto {
+  lyricId: number;
+  wordSummary: WordSummaryDto;
+  filterDefaults: WordFilterDefaultsDto;
+  words: WordInSongItemDto[];
+  lineWordIndexes: Record<string, number[]>;
+}
+
+export interface SongDetailData {
+  song: SongDto;
+  lyrics: SongLyricsDto;
+  words: WordsInSongDto;
+}
+
 export interface RecentSongItem {
   id: number;
   title: string;
   artist: string;
   artworkUrl: string | null;
+}
+
+export interface RecommendedSongItem {
+  id: number;
+  songId: number;
+  title: string;
+  artist: string;
+  artworkUrl: string | null;
+  weekStartDate: string;
 }
 
 export interface AnalyzeSongRequest {

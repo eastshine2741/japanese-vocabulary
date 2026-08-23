@@ -15,6 +15,13 @@ interface SongAnalysisWorkRepository : JpaRepository<SongAnalysisWorkEntity, Lon
 
     fun countByStatus(status: SongAnalysisWorkStatus): Long
 
+    fun findBySongIdAndStatusInOrderByCreatedAtAsc(
+        songId: Long,
+        statuses: Collection<SongAnalysisWorkStatus>,
+    ): List<SongAnalysisWorkEntity>
+
+    fun findBySongIdOrderByCreatedAtDesc(songId: Long): List<SongAnalysisWorkEntity>
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT w FROM SongAnalysisWorkEntity w WHERE w.id = :id")
     fun findByIdForUpdate(@Param("id") id: Long): SongAnalysisWorkEntity?
