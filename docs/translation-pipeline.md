@@ -411,6 +411,25 @@ repeating them would restate a constant the model cannot act on.
 when the pair match finds nothing. Segmentation now usually supplies `高い` as the
 headword directly, but the probe stays as a net for when it supplies `高く`.
 
+### Katakana Headwords
+
+Jisho's *search* is script-sensitive, so a lyric that writes a native word in
+katakana needs two things:
+
+- **The reading comparison in `distill` normalizes script.** Jisho answers `アタシ`
+  with 私[あたし] as its top hit, but comparing `あたし` to `アタシ` literally rejected
+  it — the same normalization `expandEntry` already applies to the stored reading.
+- **A missed katakana-only headword is queried again in hiragana**
+  (`LexicalResolver.hiraganaProbe`), because `アンタ` answers with アンタレス and
+  アンタナナリボ, never 貴方. The accepted entry reports `あんた` as the base form, which
+  also merges the word with the lines where segmentation normalized the script
+  itself — lyric 93 had `アタシ` with no meaning on one line and `あたし` → 나 on the
+  next.
+
+The rescue switches the script; it does not invent an entry. A coinage
+(`ステンバイミー`) misses in hiragana too, and katakana-only surfaces stay exempt from
+the headword check for that reason.
+
 ## Sense Identity
 
 A senseId names a dictionary sense, not a token occurrence. `LexicalResolver`
@@ -461,11 +480,13 @@ dictionary entries stay whole (飛び立つ, 粘り強い).
 
 ## Cache Note
 
-The Jisho Redis key carries a schema version (currently `jisho:v4:`). **Bump it
-whenever the cached DTO changes.** Unknown-field-tolerant deserialization turns
-an old cached value into an empty result, which silently removes meanings and POS
-with no error in the logs. Bumping retires the old keys on their own TTL — no
-manual flush.
+The Jisho Redis key carries a schema version (currently `jisho:v5:`). **Bump it
+whenever the cached DTO changes, and whenever `distill` would distill the same
+response differently** — the cached value is the distilled one, so a stale
+`REJECTED_FALLBACK` for `アタシ` would outlive the fix by a TTL.
+Unknown-field-tolerant deserialization turns an old cached value into an empty
+result, which silently removes meanings and POS with no error in the logs.
+Bumping retires the old keys on their own TTL — no manual flush.
 
 ## Payload Log (temporary)
 

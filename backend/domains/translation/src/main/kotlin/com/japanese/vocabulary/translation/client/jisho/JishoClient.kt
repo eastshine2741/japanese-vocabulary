@@ -75,10 +75,18 @@ class JishoClient(
      * senses belong to all of them. Each pair becomes its own [JishoDictionaryEntryDto] so a later
      * pair match can name exactly one word. Entries that touch the query at all are kept: if none
      * does, jisho's top hit is retained as rejected-fallback evidence rather than being made usable.
+     *
+     * A reading is compared as katakana, the way [expandEntry] already stores it. jisho writes its
+     * readings in hiragana and lyrics write plenty of native words in katakana, so a literal
+     * comparison threw away hits jisho had answered correctly: `アタシ` returns 私[あたし] as its top
+     * result, and `あたし != アタシ` turned that into a rejected fallback with no meaning at all.
      */
     internal fun distill(word: String, response: JishoSearchResponse): JishoEntryDto {
+        val queryAsKana = JapaneseText.toKatakana(word)
         val matching = response.data
-            .filter { entry -> entry.japanese.any { it.word == word || it.reading == word } }
+            .filter { entry ->
+                entry.japanese.any { it.word == word || it.reading?.let(JapaneseText::toKatakana) == queryAsKana }
+            }
             .flatMap { expandEntry(it) }
         if (matching.isNotEmpty()) {
             return JishoEntryDto(

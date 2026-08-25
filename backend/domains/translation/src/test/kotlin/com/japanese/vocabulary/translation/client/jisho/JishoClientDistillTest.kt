@@ -114,6 +114,33 @@ class JishoClientDistillTest {
     }
 
     @Test
+    fun `a katakana query matches an entry whose reading jisho writes in hiragana`() {
+        // Real shape of jisho's answer to アタシ: it returns 私[あたし] as the top hit. Comparing the
+        // scripts literally rejected it, and the lyric's アタシ reached the app with no meaning while
+        // the same word on the next line — spelled あたし by the segmentation stage — had one.
+        val response = JishoSearchResponse(
+            data = listOf(
+                JishoEntryRawDto(
+                    japanese = listOf(
+                        JishoJapaneseDto(word = "私", reading = "あたし"),
+                        JishoJapaneseDto(word = "私", reading = "あたくし"),
+                    ),
+                    senses = listOf(
+                        JishoSenseDto(englishDefinitions = listOf("I", "me"), partsOfSpeech = listOf("Pronoun")),
+                    ),
+                ),
+            ),
+        )
+
+        val entry = client.distill("アタシ", response)
+
+        assertThat(entry.found).isTrue()
+        assertThat(entry.provenance).isEqualTo(JishoLookupProvenance.EXACT)
+        assertThat(entry.entries.map { it.headword to it.reading })
+            .containsExactly("私" to "アタシ", "私" to "アタクシ")
+    }
+
+    @Test
     fun `part of speech carries forward across senses that omit it`() {
         val response = JishoSearchResponse(
             data = listOf(

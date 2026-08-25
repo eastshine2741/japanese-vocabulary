@@ -21,6 +21,17 @@ class JapaneseTextTest {
     }
 
     @Test
+    fun `converts katakana to hiragana for a lookup key`() {
+        assertThat(JapaneseText.toHiragana("アタシ")).isEqualTo("あたし")
+        assertThat(JapaneseText.toHiragana("アンタ")).isEqualTo("あんた")
+        // Not kana, so not the script switch's business: the prolonged sound mark, kanji and latin all
+        // pass through, and a query built from them stays exactly as unhelpful as it was.
+        assertThat(JapaneseText.toHiragana("ステンバイミー")).isEqualTo("すてんばいみー")
+        assertThat(JapaneseText.toHiragana("あたし")).isEqualTo("あたし")
+        assertThat(JapaneseText.toHiragana("前 Lucky")).isEqualTo("前 Lucky")
+    }
+
+    @Test
     fun `keeps the prolonged sound mark and small kana`() {
         assertThat(JapaneseText.toKatakana("きっと")).isEqualTo("キット")
         assertThat(JapaneseText.toKatakana("メッセージ")).isEqualTo("メッセージ")

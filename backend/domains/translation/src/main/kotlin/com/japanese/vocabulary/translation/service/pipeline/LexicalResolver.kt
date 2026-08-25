@@ -35,11 +35,10 @@ class LexicalResolver(
         if (tokens.isEmpty()) return LexicalResolution(emptyMap(), emptyMap())
 
         val firstPass = jishoService.lookupAll(tokens.map { it.headword }.distinct())
-        // Narrow once per token and reuse: deciding which tokens need the i-adjective probe asks the
-        // same question the main loop asks, and grading twice would also emit every log line twice.
+        // Narrow once per token and reuse: deciding which tokens need a probe asks the same question
+        // the main loop asks, and grading twice would also emit every log line twice.
         val narrowed = tokens.associate { it.key to narrow(it, firstPass[it.headword], it.headword) }
-        val needsIAdjective = tokens.filter { narrowed[it.key] == null && iAdjectiveProbe(it) != null }
-        val iAdjectiveLookups = jishoService.lookupAll(needsIAdjective.mapNotNull { iAdjectiveProbe(it) }.distinct())
+        val probeLookups = jishoService.lookupAll(probeKeys(tokens.filter { narrowed[it.key] == null }))
 
         val byToken = linkedMapOf<PipelineTokenKey, LexicalResolvedToken>()
         val optionsById = linkedMapOf<Int, PipelineSenseOption>()
@@ -51,7 +50,9 @@ class LexicalResolver(
         var nextSenseId = 0
 
         for (token in tokens) {
-            val resolved = narrowed[token.key] ?: resolveIAdjective(token, iAdjectiveLookups)
+            val resolved = narrowed[token.key]
+                ?: resolveIAdjective(token, probeLookups)
+                ?: resolveHiraganaQuery(token, probeLookups)
 
             if (resolved == null) {
                 if (firstPass[token.headword]?.provenance == JishoLookupProvenance.REJECTED_FALLBACK) {
@@ -115,9 +116,16 @@ class LexicalResolver(
         val missed = tokens.filter { narrow(it, firstPass[it.headword], it.headword, logGrading = false) == null }
         if (missed.isEmpty()) return emptyList()
 
-        val iAdjectiveLookups = jishoService.lookupAll(missed.mapNotNull { iAdjectiveProbe(it) }.distinct())
-        return missed.filter { resolveIAdjective(it, iAdjectiveLookups, logRescue = false) == null }
+        val probeLookups = jishoService.lookupAll(probeKeys(missed))
+        return missed.filter {
+            resolveIAdjective(it, probeLookups, logRescue = false) == null &&
+                resolveHiraganaQuery(it, probeLookups, logRescue = false) == null
+        }
     }
+
+    /** Every alternate lookup key the rescues below might ask for, in one batch. */
+    private fun probeKeys(missed: List<PipelineToken>): List<String> =
+        missed.flatMap { listOfNotNull(iAdjectiveProbe(it), hiraganaProbe(it)) }.distinct()
 
     /**
      * Grades how well [lookup] pins down the entry [token] means, using the `(headword, reading)` pair.
@@ -202,6 +210,36 @@ class LexicalResolver(
         if (logRescue) logger.info("Normalized i-adjective adverbial '{}' to '{}'", token.surface, base)
         return AcceptedLexicalEntry(base, adjectiveEntries, accepted.provenance)
     }
+
+    /**
+     * Safety net for a word the lyric writes in katakana and the dictionary indexes in hiragana.
+     *
+     * `アタシ`, `アンタ`, `アナタ` are dictionary words — 私, 貴方 — but jisho's *search* answers a
+     * katakana query with katakana headwords only: `アンタ` returns アンタレス and アンタナナリボ, never
+     * 貴方. Nothing about the token is wrong here, only the script of the query, so it is asked again
+     * in hiragana. The accepted entry then reports `あたし` as the base form, which also merges the
+     * word with the lines where the segmentation stage happened to normalize the script itself — the
+     * same lyric had `アタシ` with a meaning on one line and without on the next.
+     */
+    private fun resolveHiraganaQuery(
+        token: PipelineToken,
+        lookups: Map<String, JishoEntryDto>,
+        logRescue: Boolean = true,
+    ): AcceptedLexicalEntry? {
+        val base = hiraganaProbe(token) ?: return null
+        // The reading survives the script switch untouched — アタシ is what the line says either way —
+        // so the pair match still applies and a katakana-only coinage simply misses again.
+        val accepted = narrow(token, lookups[base], base, logGrading = logRescue) ?: return null
+        if (logRescue) logger.info("Looked up katakana headword '{}' as '{}'", token.headword, base)
+        return accepted
+    }
+
+    /**
+     * The hiragana spelling of a katakana-only headword. Null for anything else: a kanji or hiragana
+     * headword already queried the script the dictionary indexes.
+     */
+    private fun hiraganaProbe(token: PipelineToken): String? =
+        token.headword.takeIf { JapaneseText.isKatakanaOnly(it) }?.let { JapaneseText.toHiragana(it) }
 
     /** The probed base form's reading: `タカク` → `タカイ`, mirroring [iAdjectiveProbe] on the surface. */
     private fun iAdjectiveProbeReading(token: PipelineToken): String? {

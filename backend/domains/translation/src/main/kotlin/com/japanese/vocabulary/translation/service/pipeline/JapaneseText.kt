@@ -40,6 +40,17 @@ object JapaneseText {
     }.joinToString("")
 
     /**
+     * Katakana → hiragana, for a **dictionary lookup key** — never for a reading.
+     *
+     * Readings are stored in katakana and only [toKatakana] produces them. This is the other
+     * direction, and it exists because jisho's *search* is script-sensitive: a lyric that writes 私 as
+     * `アタシ` needs the query `あたし` to reach the entry at all.
+     */
+    fun toHiragana(text: String): String = text.map { ch ->
+        if (ch in KATAKANA_START..KATAKANA_END) ch - KATAKANA_OFFSET else ch
+    }.joinToString("")
+
+    /**
      * True when [text] is non-empty and made only of kana (either script) plus the prolonged sound
      * mark. Kanji, latin, digits, and punctuation all make it false — this is the check that keeps an
      * unnormalized surface from being stored as if it were a reading.
