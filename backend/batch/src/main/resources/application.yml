@@ -2,6 +2,9 @@ server:
   port: 8081
 
 management:
+  observations:
+    long-task-timer:
+      enabled: false
   endpoints:
     web:
       exposure:
