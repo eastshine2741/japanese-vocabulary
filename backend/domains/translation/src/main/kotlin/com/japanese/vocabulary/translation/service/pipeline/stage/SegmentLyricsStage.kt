@@ -38,77 +38,81 @@ class SegmentLyricsStage(
      *
      * Two checks decide a line, and they are not equally severe:
      *
-     * - **Anchoring** ([SegmentAnchoringValidator]) is structural. Its failures make the positions
-     *   unusable, so they are retried to exhaustion and then throw.
-     * - **Headword resolvability** ([headwordMisses]) asks whether the dictionary can answer each
-     *   headword. A miss means the model handed back an inflected form (`帰れない` for `帰る`) and the
-     *   token would silently reach the app with no meaning at all. It is worth one resampled retry —
-     *   the same line segmented correctly elsewhere in the same song, so a second look does help — but
-     *   it is **not** worth failing the song over: after [MAX_DICTIONARY_RETRIES] the best attempt is
-     *   kept and the miss is logged.
+     * - **Anchoring** ([SegmentAnchoringValidator]) is structural, but only its *position* failures
+     *   are fatal. A surface the line does not hold, or one out of order, makes every offset in the
+     *   line meaningless, so those are retried to exhaustion and then throw.
+     * - **Completeness and headword resolvability** are both "the model gave us less than the line
+     *   holds", and neither is worth failing the song over. Text no surface claimed
+     *   (`晴れ舞台（イェイ）` → `晴れ舞台`) still renders from the raw line, just without a word card; a
+     *   headword the dictionary cannot answer (`帰れない` for `帰る`) reaches the app with no meaning.
+     *   Both get one resampled retry — the same line often comes back right, since it was segmented
+     *   correctly elsewhere in the same song — and after [MAX_DEFECT_RETRIES] the best attempt is kept
+     *   and the defect is logged.
      */
     override suspend fun execute(input: TranslationPipelineSource): SegmentationStageResult {
         val acceptedTokens = mutableMapOf<Int, List<PipelineToken>>()
         val acceptedSegLines = mutableMapOf<Int, SegLineDto>()
-        val acceptedMisses = mutableMapOf<Int, List<PipelineToken>>()
+        val acceptedDefects = mutableMapOf<Int, LineDefects>()
         var pendingByIndex = input.rawByIndex
         var anchorFailures: Map<Int, String> = emptyMap()
-        var dictionaryFailures: Map<Int, String> = emptyMap()
-        var dictionaryRetriesLeft = MAX_DICTIONARY_RETRIES
+        var defectFeedback: Map<Int, String> = emptyMap()
+        var defectRetriesLeft = MAX_DEFECT_RETRIES
 
         repeat(MAX_SEGMENTATION_ATTEMPTS) { attempt ->
-            val segmented = segment(input, pendingByIndex, anchorFailures + dictionaryFailures, attempt)
+            val segmented = segment(input, pendingByIndex, anchorFailures + defectFeedback, attempt)
             val anchored = segmentAnchoringValidator.anchor(pendingByIndex, segmented)
             val splitByIndex = gluedParticleSplitter.split(anchored.anchoredByIndex)
             val missesByIndex = headwordMisses(splitByIndex)
             val segLineByIndex = segmented.associateBy { it.index }
 
             splitByIndex.forEach { (index, tokens) ->
-                val misses = missesByIndex[index].orEmpty()
-                val accepted = acceptedMisses[index]
-                // A resampled retry is not automatically better. Keep the attempt with fewer
-                // unresolvable headwords, or a line retried for one bad token could come back with
-                // three.
-                if (accepted == null || misses.size < accepted.size) {
+                val defects = LineDefects(
+                    unresolvedHeadwords = missesByIndex[index].orEmpty(),
+                    uncovered = anchored.incompleteByIndex[index],
+                )
+                val accepted = acceptedDefects[index]
+                // A resampled retry is not automatically better. Keep the attempt with fewer defects,
+                // or a line retried for one bad token could come back with three.
+                if (accepted == null || defects.count < accepted.count) {
                     acceptedTokens[index] = tokens
-                    acceptedMisses[index] = misses
+                    acceptedDefects[index] = defects
                     segLineByIndex[index]?.let { acceptedSegLines[index] = it }
                 }
             }
 
-            // A line retried for a dictionary miss can come back unanchorable. That is not fatal — the
-            // earlier attempt is still held — so only a line with no accepted version at all counts as
-            // an anchoring failure.
+            // A line retried for a defect can come back unanchorable. That is not fatal — the earlier
+            // attempt is still held — so only a line with no accepted version at all counts as an
+            // anchoring failure.
             anchorFailures = anchored.failuresByIndex.filterKeys { it !in acceptedTokens }
-            val unresolvedByIndex = acceptedMisses.filterValues { it.isNotEmpty() }
-            val retryDictionary = unresolvedByIndex.isNotEmpty() && dictionaryRetriesLeft > 0
-            if (anchorFailures.isEmpty() && !retryDictionary) {
-                reportUnresolved(input, unresolvedByIndex)
+            val defectiveByIndex = acceptedDefects.filterValues { !it.isClean }
+            val retryDefects = defectiveByIndex.isNotEmpty() && defectRetriesLeft > 0
+            if (anchorFailures.isEmpty() && !retryDefects) {
+                reportDefects(input, defectiveByIndex)
                 return result(input, acceptedSegLines, acceptedTokens)
             }
 
-            dictionaryFailures = if (retryDictionary) {
-                dictionaryRetriesLeft -= 1
-                unresolvedByIndex.mapValues { (_, misses) -> unresolvedHeadwordMessage(misses) }
+            defectFeedback = if (retryDefects) {
+                defectRetriesLeft -= 1
+                defectiveByIndex.mapValues { (_, defects) -> defects.retryMessage() }
             } else {
                 emptyMap()
             }
-            pendingByIndex = input.rawByIndex.filterKeys { it in anchorFailures || it in dictionaryFailures }
+            pendingByIndex = input.rawByIndex.filterKeys { it in anchorFailures || it in defectFeedback }
             logger.warn(
-                "Segmentation attempt {}/{}: {} line(s) failed anchoring, {} line(s) hold an unresolvable " +
-                    "headword, retrying those only: {}",
+                "Segmentation attempt {}/{}: {} line(s) failed anchoring, {} line(s) came back " +
+                    "incomplete, retrying those only: {}",
                 attempt + 1,
                 MAX_SEGMENTATION_ATTEMPTS,
                 anchorFailures.size,
-                dictionaryFailures.size,
-                describeFailures(anchorFailures + dictionaryFailures),
+                defectFeedback.size,
+                describeFailures(anchorFailures + defectFeedback),
             )
         }
 
-        // Anchoring is the only check that gets here: a dictionary miss stops asking once its retry
+        // Position failures are the only check that gets here: a defect stops asking once its retry
         // budget is spent, which is inside the loop.
         if (anchorFailures.isEmpty() && acceptedTokens.keys.containsAll(input.rawByIndex.keys)) {
-            reportUnresolved(input, acceptedMisses.filterValues { it.isNotEmpty() })
+            reportDefects(input, acceptedDefects.filterValues { !it.isClean })
             return result(input, acceptedSegLines, acceptedTokens)
         }
         throw SegmentationValidationException(
@@ -193,27 +197,58 @@ class SegmentLyricsStage(
     )
 
     /**
-     * What a line still holds after the retry budget is spent. Nothing downstream can tell a token
-     * with no meaning from one that legitimately has none, so this is the only place the pipeline says
-     * it out loud.
+     * What the lines still hold after the retry budget is spent. Nothing downstream can tell a token
+     * with no meaning from one that legitimately has none, or a line that lost a word from one that
+     * never had it, so this is the only place the pipeline says either out loud.
      */
-    private fun reportUnresolved(input: TranslationPipelineSource, unresolvedByIndex: Map<Int, List<PipelineToken>>) {
-        if (unresolvedByIndex.isEmpty()) return
-        val unresolved = unresolvedByIndex.values.flatten()
-        logger.warn(
-            "[songId={}] {} token(s) on {} line(s) keep an unresolvable headword and will have no meaning: {}",
-            input.callContext.songId,
-            unresolved.size,
-            unresolvedByIndex.size,
-            unresolved.take(UNRESOLVED_DETAIL_LIMIT).joinToString(", ") { "'${it.surface}'(${it.headword})" },
-        )
+    private fun reportDefects(input: TranslationPipelineSource, defectsByIndex: Map<Int, LineDefects>) {
+        if (defectsByIndex.isEmpty()) return
+        val unresolved = defectsByIndex.values.flatMap { it.unresolvedHeadwords }
+        if (unresolved.isNotEmpty()) {
+            logger.warn(
+                "[songId={}] {} token(s) on {} line(s) keep an unresolvable headword and will have no meaning: {}",
+                input.callContext.songId,
+                unresolved.size,
+                defectsByIndex.count { it.value.unresolvedHeadwords.isNotEmpty() },
+                unresolved.take(UNRESOLVED_DETAIL_LIMIT).joinToString(", ") { "'${it.surface}'(${it.headword})" },
+            )
+        }
+        val uncovered = defectsByIndex.filterValues { it.uncovered != null }
+        if (uncovered.isNotEmpty()) {
+            logger.warn(
+                "[songId={}] {} line(s) leave Japanese text outside every surface, so it carries no word: {}",
+                input.callContext.songId,
+                uncovered.size,
+                uncovered.entries.sortedBy { it.key }.take(FAILURE_DETAIL_LIMIT)
+                    .joinToString("; ") { it.value.uncovered.orEmpty() },
+            )
+        }
     }
 
-    private fun unresolvedHeadwordMessage(misses: List<PipelineToken>): String {
-        val named = misses.take(FAILURE_DETAIL_LIMIT).joinToString(", ") { "'${it.headword}' (surface '${it.surface}')" }
-        val omitted = misses.size - FAILURE_DETAIL_LIMIT
-        val suffix = if (omitted > 0) " (+$omitted more)" else ""
-        return "No jisho dictionary entry exists for headword $named$suffix"
+    /**
+     * The two ways a kept line can be short of what the raw line holds — a headword the dictionary
+     * cannot answer, and Japanese text no surface claimed. Both cost the reader a word rather than the
+     * whole song, so they share one retry budget and one comparison: [count] is what decides whether a
+     * resample was an improvement.
+     */
+    private data class LineDefects(
+        val unresolvedHeadwords: List<PipelineToken>,
+        val uncovered: String?,
+    ) {
+        val count: Int get() = unresolvedHeadwords.size + if (uncovered == null) 0 else 1
+
+        val isClean: Boolean get() = count == 0
+
+        fun retryMessage(): String = listOfNotNull(unresolvedHeadwordMessage(), uncovered).joinToString(". ")
+
+        private fun unresolvedHeadwordMessage(): String? {
+            if (unresolvedHeadwords.isEmpty()) return null
+            val named = unresolvedHeadwords.take(FAILURE_DETAIL_LIMIT)
+                .joinToString(", ") { "'${it.headword}' (surface '${it.surface}')" }
+            val omitted = unresolvedHeadwords.size - FAILURE_DETAIL_LIMIT
+            val suffix = if (omitted > 0) " (+$omitted more)" else ""
+            return "No jisho dictionary entry exists for headword $named$suffix"
+        }
     }
 
     /**
@@ -239,11 +274,12 @@ class SegmentLyricsStage(
         const val MAX_SEGMENTATION_ATTEMPTS = 4
 
         /**
-         * How many attempts an unresolvable headword may cost. One: a resampled line does sometimes
-         * come back with the dictionary form, but a word the dictionary simply does not hold would
-         * otherwise spend the whole budget and take the song's analysis down with it.
+         * How many attempts an incomplete line may cost. One: a resampled line does sometimes come
+         * back with the dictionary form, or with the word it skipped, but text the model will never
+         * treat as a word — a parenthesized ad-lib, a name no dictionary holds — would otherwise spend
+         * the whole budget and take the song's analysis down with it.
          */
-        const val MAX_DICTIONARY_RETRIES = 1
+        const val MAX_DEFECT_RETRIES = 1
 
         /** Lines per segmentation call. Bounds response length so long songs cannot stop mid-array. */
         const val SEGMENT_CHUNK_LINES = 20
@@ -277,8 +313,13 @@ class SegmentLyricsStage(
                 // rule that fixes it.
                 "Every headword must be the plain dictionary form of ONE word: not an inflected form " +
                 "(帰れない → 帰る, 離れない → 離れる, できない → できる), not a form carrying a particle " +
-                "(までは → まで, 何を → 何), and not two words joined (長くない → 長く / ない). Split such a " +
-                "token into the words it is made of, each with its own headword. " +
+                "(までは, 何を, こんなにも), and not two words joined (長くない → 長く / ない). Split such a " +
+                "token into separate surfaces, each with its own headword: までは → まで + は. " +
+                // How the previous prompt was misread: headword split, surface left glued, particle
+                // emitted a second time — so its kana was claimed twice and the line could not anchor.
+                "Every character of the line belongs to exactly one surface. " +
+                // Uncovered-text feedback arrives through this same instruction.
+                "Japanese inside brackets is lyric too: drop the brackets, keep the words. " +
                 "Return exactly the lines given in this input, with the same index values."
     }
 }

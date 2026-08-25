@@ -512,12 +512,71 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
 
         val token = translationService.runPipeline(lyric).single().tokens.single()
 
-        verify(exactly = SegmentLyricsStage.MAX_DICTIONARY_RETRIES + 1) {
+        verify(exactly = SegmentLyricsStage.MAX_DEFECT_RETRIES + 1) {
             geminiClient.segmentAndLemmatize(any(), any(), any())
         }
         assertThat(token.surface).isEqualTo("帰れない")
         assertThat(token.koreanText).isNull()
         assertThat(token.partOfSpeech).isEqualTo(PartOfSpeech.OTHER)
+    }
+
+    @Test
+    fun `text the segmentation skips keeps the line instead of failing the song`(): Unit = runBlocking {
+        // 晴れ舞台（イェイ） came back as 晴れ舞台 four attempts running: a parenthesized ad-lib does not read
+        // as a lyric word to the model. Every surface it did return anchors correctly, so the line is
+        // usable — the ad-lib just carries no word card, which is not worth losing the song over.
+        val lyric = seedLyric(listOf("晴れ舞台（イェイ）"))
+
+        every { geminiClient.translateLyrics(any(), any()) } returns listOf(TranslationResultDto(0, "화려한 무대"))
+        every { geminiClient.segmentAndLemmatize(any(), any(), any()) } returns listOf(
+            SegLineDto(0, listOf(segWord("晴れ舞台", "晴れ舞台", usedReading = "ハレブタイ", baseFormReading = "ハレブタイ"))),
+        )
+        coEvery { jishoService.lookupAll(any()) } answers {
+            firstArg<List<String>>().associateWith { exactEntry(it) }
+        }
+        stubSenseSelectAndTranslate()
+
+        val tokens = translationService.runPipeline(lyric).single().tokens
+
+        // One resample, then the incomplete line is accepted rather than retried to exhaustion.
+        verify(exactly = SegmentLyricsStage.MAX_DEFECT_RETRIES + 1) {
+            geminiClient.segmentAndLemmatize(any(), any(), any())
+        }
+        assertThat(tokens.map { it.surface }).containsExactly("晴れ舞台")
+        assertThat(tokens.single().charStart).isZero
+        assertThat(tokens.single().charEnd).isEqualTo(4)
+    }
+
+    @Test
+    fun `the retry for skipped text names the text and asks for the words inside brackets`(): Unit = runBlocking {
+        val lyric = seedLyric(listOf("晴れ舞台（イェイ）"))
+        val segmentInputs = mutableListOf<List<Map<String, Any?>>>()
+
+        every { geminiClient.translateLyrics(any(), any()) } returns listOf(TranslationResultDto(0, "화려한 무대"))
+        every { geminiClient.segmentAndLemmatize(capture(segmentInputs), any(), any()) } returnsMany listOf(
+            listOf(SegLineDto(0, listOf(segWord("晴れ舞台", "晴れ舞台", usedReading = "ハレブタイ", baseFormReading = "ハレブタイ")))),
+            listOf(
+                SegLineDto(
+                    0,
+                    listOf(
+                        segWord("晴れ舞台", "晴れ舞台", usedReading = "ハレブタイ", baseFormReading = "ハレブタイ"),
+                        segWord("イェイ", "イェイ", usedReading = "イェイ", baseFormReading = "イェイ"),
+                    ),
+                ),
+            ),
+        )
+        coEvery { jishoService.lookupAll(any()) } answers {
+            firstArg<List<String>>().associateWith { exactEntry(it) }
+        }
+        stubSenseSelectAndTranslate()
+
+        val tokens = translationService.runPipeline(lyric).single().tokens
+
+        assertThat(segmentInputs[1].single()["previousValidationError"] as String)
+            .isEqualTo("Japanese text 'イェイ' at offset=5 is not covered by segmentation at line index=0")
+        assertThat(segmentInputs[1].single()["retryInstruction"] as String)
+            .contains("Japanese inside brackets is lyric too")
+        assertThat(tokens.map { it.surface }).containsExactly("晴れ舞台", "イェイ")
     }
 
     @Test

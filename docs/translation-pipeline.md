@@ -252,6 +252,33 @@ Mid-word gluing (`ありはしない`, headword `ある`) is out of reach: neith
 matches and the headword is a real entry, so the meaning is right and only the
 surface reads oddly. Catching it would need a rule loose enough to hit real words.
 
+A prompt rule caused the mirror-image mistake, and it is worth recording because
+the fix is not code. A bullet under the `headword` field said a particle-carrying
+form is not a headword — `までは→まで(+は)` — and the model applied it to that field
+only: surface `にも`, headword `に`, plus a separate `も` token. Both claim the same
+kana, so anchoring matched `にも` to the end of the line and then looked for `も` in
+what was left. Nothing outside the model can tell whether the surface or the extra
+token is the wrong one, so the rule moved to the segmentation rules where it
+belongs and now names the output — `まで` + `は` — under the invariant *every
+character of the line belongs to exactly one surface*.
+
+## Incomplete Lines
+
+The two anchoring outcomes are not equally severe, and treating them alike killed
+a song: `晴れ舞台（イェイ）` came back as `晴れ舞台` on all four attempts, because a
+parenthesized ad-lib does not read as a lyric word to the model.
+
+- **Positions unusable** — a surface the line does not hold, one out of order, a
+  duplicate index, a non-kana reading. Nothing in the line can be trusted, so it
+  is retried to exhaustion and then fails the song.
+- **Text left out** — every surface was found where it really is, so the tokens
+  that exist carry correct offsets and the raw text still renders. The reader
+  loses one word card. Retried once, then kept.
+
+`SegmentAnchoringResult` reports them separately: `failuresByIndex` withholds the
+line from `anchoredByIndex`, while `incompleteByIndex` names what was skipped for a
+line that is kept anyway.
+
 ## Unresolvable Headwords
 
 A headword that is not a dictionary form (`帰れない` for `帰る`, `淋しさ` for `淋しい`)
@@ -267,22 +294,23 @@ particle and auxiliary would be reported as a missing word. The rewrite applied
 there is thrown away — `ApplyRuleMeaningsStage` does it for real — and the lookups
 are cached, so asking twice costs one Redis hit.
 
-The retry is bounded at `MAX_DICTIONARY_RETRIES` (1) and **never throws**:
+A dictionary miss and a line with text left out are the same kind of loss — the
+model returned less than the line holds, and the reader loses a word rather than
+the song — so they share one budget, `MAX_DEFECT_RETRIES` (1), one comparison, and
+one policy: **never throw**. One resampled retry is worth it, since the same line
+is often segmented correctly elsewhere in the same song, but a word the dictionary
+genuinely does not hold would otherwise spend the whole budget and take the
+analysis down with it.
 
-- An anchoring failure is structural. The positions are unusable, so it retries to
-  exhaustion and then fails the song.
-- A dictionary miss costs one token its meaning. One resampled retry is worth it —
-  the same line segmented correctly elsewhere in the same song — but a word the
-  dictionary genuinely does not hold would otherwise spend the whole budget and
-  take the analysis down with it.
+Katakana-only surfaces are exempt from the dictionary check: `ステンバイミー`,
+`チリン`, `ダラッ` have no entry to find, and retrying them can only fail. A retried
+line is accepted only if it carries **fewer** defects than the version already
+kept, counting unresolvable headwords and uncovered text together, so a resample
+cannot make a line worse; a line that becomes unanchorable on its retry keeps its
+earlier version instead of failing the song.
 
-Katakana-only surfaces are exempt: `ステンバイミー`, `チリン`, `ダラッ` have no entry to
-find, and retrying them can only fail. A retried line is accepted only if it holds
-**fewer** unresolvable headwords than the version already kept, so a resample
-cannot make a line worse; a line that becomes unanchorable on its dictionary retry
-keeps its earlier version instead of failing the song.
-
-What survives is logged as a WARN naming the tokens. `WordCandidateGenerator` also drops
+What survives is logged as a WARN naming the tokens, and a second WARN naming the
+text no surface claimed. `WordCandidateGenerator` also drops
 tokens with no `koreanText`, so a meaning the pipeline could not find no longer
 reaches the app as a word card with an empty meaning.
 
@@ -309,7 +337,7 @@ Two consequences shape the retry feedback:
 
 - A "not present in order" failure names where the search stood — the surface
   that last matched and the text still unmatched after it — not just the surface
-  it could not find. An uncovered-text failure quotes the whole run of Japanese
+  it could not find. An uncovered-text report quotes the whole run of Japanese
   characters no surface claimed, not its first character.
 - The retry raises the temperature. At temperature 0 the model is deterministic,
   so a retry whose only difference is the two extra feedback fields reproduces
