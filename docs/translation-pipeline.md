@@ -61,6 +61,11 @@ guardrails for deterministic checks and transformations.
    `MAX_SEGMENTATION_ATTEMPTS`. Retries raise the temperature by
    `SEGMENT_TEMPERATURE_STEP` per attempt (0.0, 0.3, …, capped at
    `SEGMENT_MAX_TEMPERATURE`) — see **Anchoring** below.
+   **Identical lines are asked about once** and the answer is copied onto every
+   index holding that text — see **Repeated Lines**. The anchored result then goes
+   through `GluedParticleSplitter` (**Glued Particles**) and a headword
+   resolvability check (**Unresolvable Headwords**), which is the second thing
+   that can send a line back for a retry.
 3. `ApplyRuleMeaningsStage`: rewrites and resolves deterministic grammar tokens
    through `RuleMeaningProvider`.
 4. `ResolveLexicalSensesStage`: sends unresolved Japanese tokens to
@@ -184,6 +189,102 @@ katakana Unicode block but are punctuation — counting them as Japanese made
 Conversely `々` (U+3005) sits outside every kana and kanji block yet is read
 aloud, so leaving it out let `人々` pass with `々` uncovered and leak a raw glyph
 into the assembled reading.
+
+## Repeated Lines
+
+A chorus repeats whole lines, and each occurrence used to be segmented on its own.
+Chunking made that worse: two copies of a line usually land in different chunks,
+which are different requests, so the same text came back segmented two different
+ways. In song 63 one copy of `雨が降り止むまでは帰れない` resolved completely while the
+other returned `までは` and `帰れない` as their own headwords and lost both meanings —
+and the app then held `帰る` and `帰れない` as two separate word candidates, one of
+them without a meaning.
+
+`SegmentLyricsStage` therefore sends the **distinct** texts of the lines it needs
+and copies each answer onto every index holding that text. Repeats are consistent
+by construction rather than by luck, and the request shrinks by however much the
+song repeats itself. Positions need no adjustment: the text is identical, so the
+anchoring offsets are too.
+
+## Glued Particles
+
+The prompt asks for particles as their own words. Nothing enforced it, so
+`幸せがある` arrived as `幸せ` + `がある`: the headword (`ある`) was right, the surface
+carried the particle, and the reading `ガアル` reached the app as one word — shown
+as 가아루. Anchoring cannot catch this. A glued surface is still an exact substring
+in the right order with a kana reading, which is everything the validator checks.
+
+`GluedParticleSplitter` splits the particle out, and it fires only on the model
+contradicting **itself**:
+
+| shape | example | meaning of the shape |
+|---|---|---|
+| `surface` = `headword` + one particle | `何を` (`何`), `までは` (`まで`) | the model said the dictionary form is the surface minus this particle |
+| `surface` starts with a particle the `headword` does not | `がある` (`ある`), `がいなきゃ` (`いる`) | same statement, from the front |
+
+Three checks then have to agree, and any of them failing leaves the token whole:
+
+- **the dictionary gate**: if the glued form is itself an entry, keep it. `いつも`,
+  `ように` and `何を` are real words, and splitting them would break an entry into
+  two grammar fragments. A fetch error is not an answer either — a network blip
+  must not read as "not a word".
+- **the reading has to divide**: the model writes it either with the particle
+  (`ガアル` → `ガ` + `アル`) or without it (`までは` came back `マデ`, so there is
+  nothing to take off). In the trailing shape `baseFormReading` settles which,
+  because the word half is not inflected — `母は` read `ハハ` is 母 read ハハ, not 母
+  read ハ plus a particle. The leading shape falls back to how the particle is
+  *sung*: 僕は is ボクワ, and leaving ワ on 僕 would mispronounce the word.
+- **something has to be left** for both halves.
+
+Leaving a glued token whole costs a mis-rendered surface and reading on a meaning
+that is already right; splitting a word that was never glued destroys a real
+dictionary entry. The checks are asymmetric on purpose.
+
+`TRAILING_PARTICLES` is `は を が も` and `LEADING_PARTICLES` is `が を の も`. Every
+one is in `RuleMeaningProvider`'s particle table, so the split-off token takes its
+meaning from there and never reaches jisho or sense-select. `で` and `ね` are
+excluded because `です` (headword `だ`) and `ねばった` (headword `粘る`) match the
+leading shape without being glued; `に` is excluded because its hits are mostly
+`ように`, which reads better whole than as `よう` + `に`. Measured over 24,161 stored
+tokens the rule fires 15 times with no false positive.
+
+Mid-word gluing (`ありはしない`, headword `ある`) is out of reach: neither shape
+matches and the headword is a real entry, so the meaning is right and only the
+surface reads oddly. Catching it would need a rule loose enough to hit real words.
+
+## Unresolvable Headwords
+
+A headword that is not a dictionary form (`帰れない` for `帰る`, `淋しさ` for `淋しい`)
+leaves the token with **no candidate sense at all**, and every stage downstream
+reads that as "nothing to choose": `SelectSensesStage` skips the token,
+`AssembleAnalyzedLinesStage` writes `partOfSpeech = OTHER` with a null
+`koreanText`, and nothing logs a thing. Song 63 shipped five such tokens.
+
+`LexicalResolver.unresolvedTokens` answers the same question `resolve` would,
+early enough for the segmentation stage to retry the line. Order matters: the
+check runs **after** `RuleMeaningProvider`'s rewrite and resolve, or every
+particle and auxiliary would be reported as a missing word. The rewrite applied
+there is thrown away — `ApplyRuleMeaningsStage` does it for real — and the lookups
+are cached, so asking twice costs one Redis hit.
+
+The retry is bounded at `MAX_DICTIONARY_RETRIES` (1) and **never throws**:
+
+- An anchoring failure is structural. The positions are unusable, so it retries to
+  exhaustion and then fails the song.
+- A dictionary miss costs one token its meaning. One resampled retry is worth it —
+  the same line segmented correctly elsewhere in the same song — but a word the
+  dictionary genuinely does not hold would otherwise spend the whole budget and
+  take the analysis down with it.
+
+Katakana-only surfaces are exempt: `ステンバイミー`, `チリン`, `ダラッ` have no entry to
+find, and retrying them can only fail. A retried line is accepted only if it holds
+**fewer** unresolvable headwords than the version already kept, so a resample
+cannot make a line worse; a line that becomes unanchorable on its dictionary retry
+keeps its earlier version instead of failing the song.
+
+What survives is logged as a WARN naming the tokens. `WordCandidateGenerator` also drops
+tokens with no `koreanText`, so a meaning the pipeline could not find no longer
+reaches the app as a word card with an empty meaning.
 
 ## Anchoring
 

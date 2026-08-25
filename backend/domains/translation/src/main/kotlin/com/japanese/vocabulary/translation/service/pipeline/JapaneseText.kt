@@ -51,6 +51,17 @@ object JapaneseText {
                 ch == PROLONGED_SOUND_MARK
         }
 
+    /**
+     * True when [text] is non-empty and written only in katakana (plus the prolonged sound mark).
+     *
+     * Marks the words a Japanese dictionary is not expected to answer: loanwords the lyric coined
+     * (`ステンバイミー`), onomatopoeia (`チリン`, `ダラッ`), and names. A missing dictionary entry is
+     * evidence of bad segmentation for everything else, but for these it is simply the truth, so they
+     * are exempt from the headword check instead of burning segmentation retries.
+     */
+    fun isKatakanaOnly(text: String): Boolean =
+        text.isNotEmpty() && text.all { ch -> ch in KATAKANA_START..KATAKANA_END || ch == PROLONGED_SOUND_MARK }
+
     private fun Char.hasReading(): Boolean =
         this in HIRAGANA_START..HIRAGANA_END ||
             this in KATAKANA_START..KATAKANA_END ||

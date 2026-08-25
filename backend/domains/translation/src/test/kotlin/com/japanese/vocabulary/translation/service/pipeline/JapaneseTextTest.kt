@@ -80,4 +80,21 @@ class JapaneseTextTest {
         assertThat(JapaneseText.isKanaOnly("マエ ")).isFalse // trailing space
         assertThat(JapaneseText.isKanaOnly("、")).isFalse
     }
+
+    /**
+     * Katakana-only marks the words a dictionary is not expected to hold, which exempts them from the
+     * headword check. Hiragana must not qualify: `までは` is kana too, and it is exactly the kind of
+     * missing headword the check exists to catch.
+     */
+    @Test
+    fun `katakana-only separates loanwords from kana grammar`() {
+        assertThat(JapaneseText.isKatakanaOnly("ステンバイミー")).isTrue
+        assertThat(JapaneseText.isKatakanaOnly("チリン")).isTrue
+        assertThat(JapaneseText.isKatakanaOnly("ダラッ")).isTrue
+        assertThat(JapaneseText.isKatakanaOnly("レモン")).isTrue
+        assertThat(JapaneseText.isKatakanaOnly("までは")).isFalse
+        assertThat(JapaneseText.isKatakanaOnly("帰れない")).isFalse
+        assertThat(JapaneseText.isKatakanaOnly("")).isFalse
+        assertThat(JapaneseText.isKatakanaOnly("Hip hop")).isFalse
+    }
 }

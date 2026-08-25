@@ -97,6 +97,29 @@ class LexicalResolver(
     }
 
     /**
+     * The tokens no dictionary entry answers — the same verdict [resolve] would reach, asked early.
+     *
+     * A headword that is not a dictionary form (`帰れない` instead of `帰る`) leaves the token with no
+     * candidate sense at all, and every stage downstream treats that as "nothing to choose", so the
+     * word reaches the app with no meaning and nothing in the pipeline objects. Answering the question
+     * here lets the segmentation stage retry the line while it still can.
+     *
+     * Repeating the lookups costs nothing: [com.japanese.vocabulary.translation.service.JishoService]
+     * caches, so [resolve] serves the same keys from Redis afterwards. Grading is silent here so a
+     * probe does not log every narrowing decision twice.
+     */
+    suspend fun unresolvedTokens(tokens: List<PipelineToken>): List<PipelineToken> {
+        if (tokens.isEmpty()) return emptyList()
+
+        val firstPass = jishoService.lookupAll(tokens.map { it.headword }.distinct())
+        val missed = tokens.filter { narrow(it, firstPass[it.headword], it.headword, logGrading = false) == null }
+        if (missed.isEmpty()) return emptyList()
+
+        val iAdjectiveLookups = jishoService.lookupAll(missed.mapNotNull { iAdjectiveProbe(it) }.distinct())
+        return missed.filter { resolveIAdjective(it, iAdjectiveLookups, logRescue = false) == null }
+    }
+
+    /**
      * Grades how well [lookup] pins down the entry [token] means, using the `(headword, reading)` pair.
      *
      * Returns null when nothing usable is left — a rejected fallback, a genuine miss, or a fetch
@@ -111,6 +134,7 @@ class LexicalResolver(
         lookup: JishoEntryDto?,
         baseForm: String,
         expectedReading: String? = null,
+        logGrading: Boolean = true,
     ): AcceptedLexicalEntry? {
         if (lookup == null || lookup.entries.isEmpty()) return null
         if (lookup.provenance != JishoLookupProvenance.EXACT) return null
@@ -137,7 +161,7 @@ class LexicalResolver(
             exact.isEmpty() -> JishoLookupProvenance.APPROVED_FALLBACK
             else -> JishoLookupProvenance.EXACT
         }
-        if (provenance != JishoLookupProvenance.EXACT) {
+        if (logGrading && provenance != JishoLookupProvenance.EXACT) {
             logger.info(
                 "Narrowed '{}' [{}] to {} candidate(s), graded {}",
                 baseForm,
@@ -156,13 +180,15 @@ class LexicalResolver(
     private fun resolveIAdjective(
         token: PipelineToken,
         iAdjectiveLookups: Map<String, JishoEntryDto>,
+        logRescue: Boolean = true,
     ): AcceptedLexicalEntry? {
         val base = iAdjectiveProbe(token) ?: return null
         // The probe only fires when the model gave the wrong headword (高く for 高い), so the token's
         // own reading is that wrong headword's — タカク, which can never equal the probed entry's
         // タカイ. Comparing against it would classify every rescue as a fallback. Inflect the reading
         // the same way the base form was inflected.
-        val accepted = narrow(token, iAdjectiveLookups[base], base, iAdjectiveProbeReading(token)) ?: return null
+        val accepted = narrow(token, iAdjectiveLookups[base], base, iAdjectiveProbeReading(token), logRescue)
+            ?: return null
         val adjectiveEntries = accepted.entries.mapNotNull { entry ->
             val adjectiveSenses = entry.senses.filter { sense ->
                 sense.pos.any { pos ->
@@ -173,7 +199,7 @@ class LexicalResolver(
             if (adjectiveSenses.isEmpty()) null else entry.copy(senses = adjectiveSenses)
         }
         if (adjectiveEntries.isEmpty()) return null
-        logger.info("Normalized i-adjective adverbial '{}' to '{}'", token.surface, base)
+        if (logRescue) logger.info("Normalized i-adjective adverbial '{}' to '{}'", token.surface, base)
         return AcceptedLexicalEntry(base, adjectiveEntries, accepted.provenance)
     }
 

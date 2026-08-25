@@ -28,7 +28,8 @@ class WordCandidateGeneratorTest {
                     tokens = listOf(
                         token("夜", "夜", PartOfSpeech.NOUN, baseReading = "よる", korean = "밤", jlpt = "N5"),
                         token("", "", PartOfSpeech.NOUN),
-                        token("走る", "走る", PartOfSpeech.VERB, reading = null, korean = null, jlpt = null),
+                        // 읽는 법이 없어도 후보다. 뜻이 없을 때만 후보에서 빠진다.
+                        token("走る", "走る", PartOfSpeech.VERB, reading = null, korean = "달리다", jlpt = null),
                     ),
                 ),
             ),
@@ -67,6 +68,28 @@ class WordCandidateGeneratorTest {
         assertThat(byIndex.map { it.japanese }).containsExactly("夢", "星")
         assertThat(wordCandidates.lineCandidates.getValue("0").map { byIndex[it].japanese })
             .containsExactly("夢", "星")
+    }
+
+    @Test
+    fun `a token with no meaning is not a candidate`() {
+        // 분절이 사전에 없는 표제형(帰れない)을 내면 후보 sense 가 0개라 뜻이 빈다. 그대로 후보에 실으면
+        // 앱 단어 목록에 뜻 없는 카드가 뜬다.
+        val wordCandidates = generator.generate(
+            title = "t",
+            analyzedLines = listOf(
+                AnalyzedLine(
+                    index = 0,
+                    koreanLyrics = null,
+                    tokens = listOf(
+                        token("夢", "夢", PartOfSpeech.NOUN, korean = "꿈"),
+                        token("帰れない", "帰れない", PartOfSpeech.OTHER, korean = null),
+                    ),
+                ),
+            ),
+        )
+
+        assertThat(wordCandidates.candidates.map { it.japanese }).containsExactly("夢")
+        assertThat(wordCandidates.lineCandidates.getValue("0")).containsExactly(0)
     }
 
     private fun token(

@@ -434,6 +434,130 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
     }
 
     @Test
+    fun `a line repeated in the song is segmented once and both copies agree`(): Unit = runBlocking {
+        // A chorus repeats whole lines. Asking per occurrence let the same text come back segmented two
+        // different ways — one copy of 雨が降り止むまでは帰れない resolved while the other gave までは and
+        // 帰れない as their own headwords and lost both meanings.
+        val lyric = seedLyric(listOf("猫が寝る", "犬が寝る", "猫が寝る"))
+        val segmentInputs = mutableListOf<List<Map<String, Any?>>>()
+
+        every { geminiClient.translateLyrics(any(), any()) } returns listOf(
+            TranslationResultDto(0, "고양이가 잔다"),
+            TranslationResultDto(1, "개가 잔다"),
+            TranslationResultDto(2, "고양이가 잔다"),
+        )
+        every { geminiClient.segmentAndLemmatize(capture(segmentInputs), any(), any()) } answers {
+            @Suppress("UNCHECKED_CAST")
+            firstArg<List<Map<String, Any?>>>().map { line ->
+                val text = line["text"] as String
+                SegLineDto(line["index"] as Int, listOf(segWord(text, text)))
+            }
+        }
+        coEvery { jishoService.lookupAll(any()) } answers {
+            firstArg<List<String>>().associateWith { exactEntry(it) }
+        }
+        stubSenseSelectAndTranslate()
+
+        val lines = translationService.runPipeline(lyric)
+
+        assertThat(segmentInputs.single().map { it["text"] }).containsExactly("猫が寝る", "犬が寝る")
+        assertThat(lines.map { it.tokens.map { token -> token.surface to token.koreanText } })
+            .satisfies({ tokens -> assertThat(tokens[0]).isEqualTo(tokens[2]) })
+        assertThat(lines[2].tokens).isNotEmpty
+    }
+
+    @Test
+    fun `a headword the dictionary cannot answer is retried once and then resolves`(): Unit = runBlocking {
+        // 帰れない as its own headword has no dictionary entry, so the token would reach the app with no
+        // meaning and nothing in the pipeline would object. The retry says which headword failed.
+        val lyric = seedLyric(listOf("帰れない"))
+        val segmentInputs = mutableListOf<List<Map<String, Any?>>>()
+
+        every { geminiClient.translateLyrics(any(), any()) } returns listOf(TranslationResultDto(0, "돌아갈 수 없다"))
+        every { geminiClient.segmentAndLemmatize(capture(segmentInputs), any(), any()) } returnsMany listOf(
+            listOf(SegLineDto(0, listOf(segWord("帰れない", "帰れない")))),
+            listOf(SegLineDto(0, listOf(segWord("帰れない", "帰る")))),
+        )
+        coEvery { jishoService.lookupAll(any()) } answers {
+            firstArg<List<String>>().associateWith { word ->
+                if (word == "帰る") exactEntry(word) else JishoEntryDto(found = false, word = word)
+            }
+        }
+        stubSenseSelectAndTranslate()
+
+        val token = translationService.runPipeline(lyric).single().tokens.single()
+
+        verify(exactly = 2) { geminiClient.segmentAndLemmatize(any(), any(), any()) }
+        assertThat(segmentInputs[1].single()["previousValidationError"] as String)
+            .isEqualTo("No jisho dictionary entry exists for headword '帰れない' (surface '帰れない')")
+        assertThat(segmentInputs[1].single()["retryInstruction"] as String)
+            .contains("Every headword must be the plain dictionary form of ONE word")
+        assertThat(token.baseForm).isEqualTo("帰る")
+        assertThat(token.koreanText).isNotNull
+    }
+
+    @Test
+    fun `a headword no retry can rescue keeps the line instead of failing the song`(): Unit = runBlocking {
+        // A word the dictionary simply does not hold must not take the song's analysis down. One retry,
+        // then the best attempt is kept and the token is left without a meaning.
+        val lyric = seedLyric(listOf("帰れない"))
+
+        every { geminiClient.translateLyrics(any(), any()) } returns listOf(TranslationResultDto(0, "돌아갈 수 없다"))
+        every { geminiClient.segmentAndLemmatize(any(), any(), any()) } returns listOf(
+            SegLineDto(0, listOf(segWord("帰れない", "帰れない"))),
+        )
+        coEvery { jishoService.lookupAll(any()) } answers {
+            firstArg<List<String>>().associateWith { JishoEntryDto(found = false, word = it) }
+        }
+
+        val token = translationService.runPipeline(lyric).single().tokens.single()
+
+        verify(exactly = SegmentLyricsStage.MAX_DICTIONARY_RETRIES + 1) {
+            geminiClient.segmentAndLemmatize(any(), any(), any())
+        }
+        assertThat(token.surface).isEqualTo("帰れない")
+        assertThat(token.koreanText).isNull()
+        assertThat(token.partOfSpeech).isEqualTo(PartOfSpeech.OTHER)
+    }
+
+    @Test
+    fun `a glued particle is split out of the surface it was stuck to`(): Unit = runBlocking {
+        // 幸せがある came back as 幸せ + がある: the headword was right, the surface carried the particle,
+        // and the reading ガアル reached the app as one word — displayed 가아루.
+        val lyric = seedLyric(listOf("幸せがある"))
+
+        every { geminiClient.translateLyrics(any(), any()) } returns listOf(TranslationResultDto(0, "행복이 있다"))
+        every { geminiClient.segmentAndLemmatize(any(), any(), any()) } returns listOf(
+            SegLineDto(
+                0,
+                listOf(
+                    segWord("幸せ", "幸せ", usedReading = "シアワセ", baseFormReading = "シアワセ"),
+                    segWord("がある", "ある", usedReading = "ガアル", baseFormReading = "アル"),
+                ),
+            ),
+        )
+        coEvery { jishoService.lookupAll(any()) } answers {
+            firstArg<List<String>>().associateWith { word ->
+                when (word) {
+                    "幸せ" -> exactEntry(word, reading = "シアワセ")
+                    "ある" -> exactEntry(word, reading = "アル")
+                    // The gate: がある is not a dictionary entry, which is what allows the split.
+                    else -> JishoEntryDto(found = false, word = word)
+                }
+            }
+        }
+        stubSenseSelectAndTranslate()
+
+        val tokens = translationService.runPipeline(lyric).single().tokens
+
+        assertThat(tokens.map { it.surface }).containsExactly("幸せ", "が", "ある")
+        assertThat(tokens.map { it.reading }).containsExactly("シアワセ", "ガ", "アル")
+        assertThat(tokens.map { it.charStart to it.charEnd }).containsExactly(0 to 2, 2 to 3, 3 to 5)
+        assertThat(tokens[1].koreanText).isEqualTo("~이/가")
+        assertThat(tokens[2].koreanText).isNotNull
+    }
+
+    @Test
     fun `segmentation invalid through max retry throws`() {
         val lyric = seedLyric(listOf("目を開けたなら yay"))
 
@@ -503,7 +627,10 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
 
         val tokens = translationService.runPipeline(lyric).single().tokens
 
-        assertThat(lookupArgs.flatten()).containsExactly("猫")
+        // も is rule-resolved, so it must never be asked about. 猫 is asked twice — once by the
+        // segmentation stage's headword check and once by the lexical stage — and in production the
+        // second one is a Redis hit.
+        assertThat(lookupArgs.flatten().distinct()).containsExactly("猫")
         @Suppress("UNCHECKED_CAST")
         val segments = selectInputs.single().single()["segments"] as List<Map<String, Any?>>
         assertThat(segments.map { it["surface"] }).containsExactly("猫")
