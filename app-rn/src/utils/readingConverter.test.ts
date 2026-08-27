@@ -48,9 +48,11 @@ describe('convertReading KOREAN — voiceless K/T rows stay aspirated in any pos
     expect(convertReading('ホン', 'KOREAN')).toBe('혼');
   });
 
-  it('puts a 받침 on the syllable a long vowel belongs to, not on the hyphen', () => {
-    // ワンシーン used to end in an orphan jamo: 완시-ㄴ.
-    expect(convertReading('ワンシーン', 'KOREAN')).toBe('완신-');
+  it('spells a long vowel out when a 받침 has to land on it', () => {
+    // A hyphen cannot carry one: ワンシーン ended in an orphan jamo (완시-ㄴ) and せいって put the
+    // 촉음 before the length (셋-테).
+    expect(convertReading('ワンシーン', 'KOREAN')).toBe('완시인');
+    expect(convertReading('セイッテ', 'KOREAN')).toBe('세잇테');
   });
 
   it('drops a 촉음 that has no syllable to sit on', () => {

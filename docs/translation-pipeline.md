@@ -359,6 +359,12 @@ Two rules are server-side because the sources disagree:
   `RuleMeaningProvider`'s table produced ハ every time by transliterating its own
   surface. を stays ヲ: it reads 오 either way, and オ can be swallowed as a long
   vowel (トモ + オ → 토모-).
+- **An uninflected surface takes the dictionary's reading.** The model misreads a
+  word jisho spells out on the same token (痛々しい → イタタマシイ for イタイタシイ,
+  腹立たしい → ハラタタシイ for ハラダタシイ). Only when `surface == baseForm` and the
+  entry is unambiguous (`EXACT`/`APPROVED_FALLBACK`) — otherwise the reading would
+  follow whichever entry sense-select picked. A small-kana spelling (ハァ vs ハア) is
+  the same reading, not a correction.
 - **The rule table's reading is a fallback, never an override.** The table is keyed
   by headword and `resolve` falls back to it, so a longer surface (なんだ→だ,
   だった→だ, って→と) took the headword's reading and lost morae: 馬鹿だった read
@@ -382,9 +388,11 @@ Four are client-side:
   without the reset one word's vowel ate the next word's ウ/イ (ボクノ + ウタ →
   보쿠노-타). A stored line reading can do neither — assembling it destroys the
   boundaries.
-- **Korean-side spelling** in `katakanaToKorean`: a 받침 looks past a long vowel sign
-  (ワンシーン → 완신-), a long vowel is spent once written (エイエン → 에-엔), and a
-  촉음 with nowhere to sit is dropped (喰わん + って → 쿠완테).
+- **Korean-side spelling** in `katakanaToKorean`: a long vowel is written as the
+  repeated syllable and only *shows* as `-`, so a 받침 landing on it spells it out
+  (ワンシーン → 완시인, せいって → 세잇테, where a hyphen left 완시-ㄴ and 셋-테); a long
+  vowel is spent once written (エイエン → 에-엔); a 촉음 with nowhere to sit is dropped
+  (喰わん + って → 쿠완테).
 
 The Hangul transcription the translation prompt used to generate is now derived on
 the client by `katakanaToKorean`, which already implemented the prompt's

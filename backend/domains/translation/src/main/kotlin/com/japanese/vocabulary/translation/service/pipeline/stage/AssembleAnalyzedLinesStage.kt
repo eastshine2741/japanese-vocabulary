@@ -3,8 +3,10 @@ package com.japanese.vocabulary.translation.service.pipeline.stage
 import com.japanese.vocabulary.song.model.AnalyzedLine
 import com.japanese.vocabulary.song.model.PartOfSpeech
 import com.japanese.vocabulary.song.model.Token
+import com.japanese.vocabulary.translation.client.jisho.dto.JishoLookupProvenance
 import com.japanese.vocabulary.translation.model.AssembleAnalyzedLinesInput
 import com.japanese.vocabulary.translation.model.LexicalResolution
+import com.japanese.vocabulary.translation.model.PipelineSenseOption
 import com.japanese.vocabulary.translation.model.PipelineToken
 import com.japanese.vocabulary.translation.model.PipelineTokenKey
 import com.japanese.vocabulary.translation.model.RuleResolvedToken
@@ -78,13 +80,18 @@ class AssembleAnalyzedLinesStage : PipelineStage<AssembleAnalyzedLinesInput, Lis
             val option = if (senseId >= 0) lexical.optionsById[senseId] else null
             val resolvedBaseForm = lexical.byTokenKey[token.key]?.baseForm ?: token.headword
             val partOfSpeech = option?.partOfSpeech ?: PartOfSpeech.OTHER
+            val baseForm = option?.baseForm ?: resolvedBaseForm
             Token(
                 surface = token.surface,
-                baseForm = option?.baseForm ?: resolvedBaseForm,
+                baseForm = baseForm,
                 // The inflected reading comes from segmentation and the dictionary reading from the
                 // chosen entry, so 行って now keeps イッテ while its headword 行く reads イク. They used
                 // to be the same jisho value, which made furigana show the dictionary form.
-                reading = readingFor(token.surface, partOfSpeech, token.usedReading.ifBlank { null }),
+                reading = readingFor(
+                    token.surface,
+                    partOfSpeech,
+                    dictionaryReading(token, option, baseForm) ?: token.usedReading.ifBlank { null },
+                ),
                 baseFormReading = option?.reading ?: token.baseFormReading.ifBlank { null },
                 partOfSpeech = partOfSpeech,
                 charStart = token.charStart,
@@ -93,6 +100,24 @@ class AssembleAnalyzedLinesStage : PipelineStage<AssembleAnalyzedLinesInput, Lis
                 jlpt = if (option != null) easiestJlpt(option.jlpt) else null,
             )
         }
+    }
+
+    /**
+     * The dictionary's reading, when the surface *is* the dictionary form and so has no reading of its
+     * own to keep. The model misreads a word the dictionary spells out on the same token
+     * (痛々しい → イタタマシイ where jisho says イタイタシイ, 腹立たしい → ハラタタシイ for ハラダタシイ).
+     *
+     * Only for an unambiguous entry: with several entries in play the reading follows whichever entry
+     * sense-select picked, and a wrong pick would then corrupt the reading too (前 as マエ or ゼン).
+     * A lyric that glosses a word with a ruby reading loses it here — rare, and the model was already
+     * answering the dictionary reading for those.
+     */
+    private fun dictionaryReading(token: PipelineToken, option: PipelineSenseOption?, baseForm: String): String? {
+        if (option == null || token.surface != baseForm) return null
+        if (option.provenance !in TRUSTED_READING_PROVENANCE) return null
+        val reading = option.reading?.ifBlank { null } ?: return null
+        // `はぁ` is stored ハァ and sung ハア: same reading, and the model's spelling of it converts better.
+        return reading.takeUnless { JapaneseText.readingsAgree(it, token.usedReading) }
     }
 
     /**
@@ -109,5 +134,12 @@ class AssembleAnalyzedLinesStage : PipelineStage<AssembleAnalyzedLinesInput, Lis
     private fun easiestJlpt(jlpt: List<String>): String? {
         val levels = jlpt.mapNotNull { it.substringAfterLast("-n", "").toIntOrNull() }
         return levels.maxOrNull()?.let { "N$it" }
+    }
+
+    private companion object {
+        val TRUSTED_READING_PROVENANCE = setOf(
+            JishoLookupProvenance.EXACT,
+            JishoLookupProvenance.APPROVED_FALLBACK,
+        )
     }
 }

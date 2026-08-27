@@ -128,4 +128,13 @@ class JapaneseTextTest {
         assertThat(JapaneseText.particleReading("猫は")).isNull() // not kana, so it has no reading here
         assertThat(JapaneseText.particleReading("")).isNull()
     }
+
+    /** ハァ and ハア are one reading written two ways, so neither corrects the other. */
+    @Test
+    fun `tells a small-kana spelling apart from a different reading`() {
+        assertThat(JapaneseText.readingsAgree("ハァ", "ハア")).isTrue
+        assertThat(JapaneseText.readingsAgree("ネェ", "ネエ")).isTrue
+        assertThat(JapaneseText.readingsAgree("ハラダタシイ", "ハラタタシイ")).isFalse
+        assertThat(JapaneseText.readingsAgree("イタイタシイ", "イタタマシイ")).isFalse
+    }
 }

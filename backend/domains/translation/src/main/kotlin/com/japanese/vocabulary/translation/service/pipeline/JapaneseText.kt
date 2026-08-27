@@ -50,6 +50,18 @@ object JapaneseText {
         if (ch in KATAKANA_START..KATAKANA_END) ch - KATAKANA_OFFSET else ch
     }.joinToString("")
 
+    /** Small vowel kana and the full-size kana they are the same sound as. */
+    private val SMALL_VOWEL_KANA = mapOf('ァ' to 'ア', 'ィ' to 'イ', 'ゥ' to 'ウ', 'ェ' to 'エ', 'ォ' to 'オ')
+
+    /**
+     * True when two readings differ only in whether a vowel is written small: `ハァ` and `ハア` are the
+     * same reading, so neither is a correction of the other.
+     */
+    fun readingsAgree(a: String, b: String): Boolean = fullSizeVowels(a) == fullSizeVowels(b)
+
+    private fun fullSizeVowels(text: String): String =
+        text.map { ch -> SMALL_VOWEL_KANA[ch] ?: ch }.joinToString("")
+
     /**
      * True when [text] is non-empty and made only of kana (either script) plus the prolonged sound
      * mark. Kanji, latin, digits, and punctuation all make it false — this is the check that keeps an

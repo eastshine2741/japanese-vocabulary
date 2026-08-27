@@ -151,6 +151,68 @@ class AssembleAnalyzedLinesStageTest {
     }
 
 
+    @Test
+    fun `takes the dictionary reading when the surface is the dictionary form`(): Unit = runBlocking {
+        // The model misreads a word jisho spells out on the same token: 痛々しい is イタイタシイ.
+        val raw = "痛々しい"
+        val option = senseOption(senseId = 0, baseForm = raw, reading = "イタイタシイ")
+        val tokens = listOf(token(raw, raw, raw, "イタタマシイ", "イタイタシイ"))
+
+        val line = assembleWith(raw, tokens, option).single()
+
+        assertThat(line.tokens.single().reading).isEqualTo("イタイタシイ")
+    }
+
+    @Test
+    fun `keeps the sung reading when the surface is inflected`(): Unit = runBlocking {
+        // 行って is not 行く, so the dictionary reading is not this token's reading.
+        val raw = "行って"
+        val option = senseOption(senseId = 0, baseForm = "行く", reading = "イク")
+        val tokens = listOf(token(raw, "行って", "行く", "イッテ", "イク"))
+
+        val line = assembleWith(raw, tokens, option).single()
+
+        assertThat(line.tokens.single().reading).isEqualTo("イッテ")
+    }
+
+    @Test
+    fun `keeps the sung reading when the dictionary only spells a vowel small`(): Unit = runBlocking {
+        // はぁ is stored ハァ and sung ハア — the same reading, so there is nothing to correct.
+        val raw = "はぁ"
+        val option = senseOption(senseId = 0, baseForm = raw, reading = "ハァ")
+        val tokens = listOf(token(raw, raw, raw, "ハア", "ハァ"))
+
+        val line = assembleWith(raw, tokens, option).single()
+
+        assertThat(line.tokens.single().reading).isEqualTo("ハア")
+    }
+
+    @Test
+    fun `keeps the sung reading when the headword is ambiguous`(): Unit = runBlocking {
+        // 前 is マエ or ゼン; the entry's reading follows whichever sense was picked, so it cannot
+        // correct a reading.
+        val raw = "前"
+        val option = senseOption(senseId = 0, baseForm = raw, reading = "ゼン")
+            .copy(provenance = JishoLookupProvenance.AMBIGUOUS_HEADWORD)
+        val tokens = listOf(token(raw, raw, raw, "マエ", "マエ"))
+
+        val line = assembleWith(raw, tokens, option).single()
+
+        assertThat(line.tokens.single().reading).isEqualTo("マエ")
+    }
+
+    private suspend fun assembleWith(raw: String, tokens: List<PipelineToken>, option: PipelineSenseOption) =
+        assemble(
+            raw,
+            tokens,
+            lexical = LexicalResolution(
+                byTokenKey = mapOf(tokens[0].key to LexicalResolvedToken(tokens[0], option.baseForm, listOf(option))),
+                optionsById = mapOf(option.senseId to option),
+            ),
+            selectedSenseByKey = mapOf(tokens[0].key to option.senseId),
+            koreanBySenseId = mapOf(option.senseId to "뜻"),
+        )
+
     private suspend fun assemble(
         raw: String,
         tokens: List<PipelineToken>,

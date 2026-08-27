@@ -131,37 +131,57 @@ const LONG_VOWEL_EXTENDS: Record<string, VowelRow[]> = {
 
 const LONG_VOWEL_SIGN = '-';
 
+/** The syllable a long vowel repeats, per vowel row. */
+const PLAIN_VOWEL: Record<VowelRow, string> = { a: '아', i: '이', u: '우', e: '에', o: '오' };
+
 // 종성 (받침) indices in Korean Unicode block
 const JONGSEONG_NIEUN = 4;  // ㄴ
 const JONGSEONG_SIOT = 19;  // ㅅ
 
 /**
- * Put a 받침 on the last syllable written, looking past long vowel signs — in ワンシーン the ン
- * belongs to シ (완신-, not 완시-ㄴ). False when there is no bare syllable to take it: one already
- * carrying a 받침, copied punctuation, or nothing written yet.
+ * Syllables written so far. `long` marks the ones that only repeat the vowel before them: they show
+ * as `-`, unless a 받침 lands on one — spelling the vowel out is the only way Korean can write that
+ * (せい + って → 세잇테, where 세- had nowhere to put the 촉음).
  */
-function attachBatchim(syllables: string[], jongseongIndex: number): boolean {
-  for (let i = syllables.length - 1; i >= 0; i--) {
-    const syllable = syllables[i];
-    if (syllable === LONG_VOWEL_SIGN) continue;
-    if (syllable.length !== 1) return false;
-    const code = syllable.charCodeAt(0);
-    if (code < 0xac00 || code > 0xd7a3) return false;
-    if ((code - 0xac00) % 28 !== 0) return false;
-    syllables[i] = String.fromCharCode(code + jongseongIndex);
-    return true;
-  }
-  return false;
+interface SyllableBuffer {
+  out: string[];
+  long: Set<number>;
+}
+
+function pushLongVowel(buffer: SyllableBuffer, syllable: string): void {
+  buffer.long.add(buffer.out.length);
+  buffer.out.push(syllable);
+}
+
+function render(buffer: SyllableBuffer): string {
+  return buffer.out.map((syllable, i) => (buffer.long.has(i) ? LONG_VOWEL_SIGN : syllable)).join('');
 }
 
 /**
- * Write one reading as Korean syllables, appending to [syllables].
+ * Put a 받침 on the syllable just written. False when there is none to take it: one already carrying
+ * a 받침 (완 + ッ), copied punctuation (…わ！ + って), or nothing written yet.
+ */
+function attachBatchim(buffer: SyllableBuffer, jongseongIndex: number): boolean {
+  const last = buffer.out.length - 1;
+  if (last < 0) return false;
+  const syllable = buffer.out[last];
+  if (syllable.length !== 1) return false;
+  const code = syllable.charCodeAt(0);
+  if (code < 0xac00 || code > 0xd7a3) return false;
+  if ((code - 0xac00) % 28 !== 0) return false;
+  buffer.out[last] = String.fromCharCode(code + jongseongIndex);
+  buffer.long.delete(last);
+  return true;
+}
+
+/**
+ * Write one reading as Korean syllables, appending to [buffer].
  *
  * One syllable per element so a 받침 can reach back across a token boundary (だ + って → 닷테). The
  * long vowel state starts fresh instead, or one word's vowel eats the next word's ウ/イ
  * (ボクノ + ウタ → 보쿠노-타).
  */
-function appendKorean(syllables: string[], text: string): void {
+function appendKorean(buffer: SyllableBuffer, text: string): void {
   let prevVowelRow: VowelRow | null = null;
   // Whether a vowel *kana* may lengthen what came before. ー is separate: it lengthens anything.
   let kanaLengthenable = false;
@@ -171,7 +191,8 @@ function appendKorean(syllables: string[], text: string): void {
 
     // ー (chōon mark) → long vowel
     if (ch === 'ー') {
-      syllables.push(prevVowelRow ? LONG_VOWEL_SIGN : ch);
+      if (prevVowelRow) pushLongVowel(buffer, PLAIN_VOWEL[prevVowelRow]);
+      else buffer.out.push(ch);
       // prevVowelRow stays the same (장음 뒤에 또 장음 가능)
       i++;
       continue;
@@ -180,7 +201,7 @@ function appendKorean(syllables: string[], text: string): void {
     // Long vowel: vowel kana extending previous syllable's vowel row
     const extends_ = LONG_VOWEL_EXTENDS[ch];
     if (extends_ && prevVowelRow && kanaLengthenable && extends_.includes(prevVowelRow)) {
-      syllables.push(LONG_VOWEL_SIGN);
+      pushLongVowel(buffer, KANA_MAP[ch]);
       // Spent: letting it stand let the next vowel kana extend it too (エイエン → 에--).
       prevVowelRow = null;
       kanaLengthenable = false;
@@ -191,7 +212,7 @@ function appendKorean(syllables: string[], text: string): void {
     // ン → ㄴ 받침 on the preceding syllable
     if (ch === 'ン') {
       // With nowhere to sit, 응 keeps the mora audible where a bare ㄴ reads as a broken glyph.
-      if (!attachBatchim(syllables, JONGSEONG_NIEUN)) syllables.push('응');
+      if (!attachBatchim(buffer, JONGSEONG_NIEUN)) buffer.out.push('응');
       i++;
       prevVowelRow = null;
       kanaLengthenable = false;
@@ -202,7 +223,7 @@ function appendKorean(syllables: string[], text: string): void {
     if (ch === 'ッ') {
       // Dropped when nothing can take it (喰わん + って → 쿠완테): Korean tenses the next consonant
       // instead and cannot write a second 받침.
-      attachBatchim(syllables, JONGSEONG_SIOT);
+      attachBatchim(buffer, JONGSEONG_SIOT);
       i++;
       prevVowelRow = null;
       kanaLengthenable = false;
@@ -213,7 +234,7 @@ function appendKorean(syllables: string[], text: string): void {
     if (i + 1 < text.length) {
       const pair = ch + text[i + 1];
       if (YOON_MAP[pair]) {
-        syllables.push(YOON_MAP[pair]);
+        buffer.out.push(YOON_MAP[pair]);
         prevVowelRow = YOON_VOWEL[pair] ?? null;
         kanaLengthenable = !LOANWORD_PAIRS.has(pair);
         i += 2;
@@ -223,11 +244,11 @@ function appendKorean(syllables: string[], text: string): void {
 
     // single-char match
     if (KANA_MAP[ch]) {
-      syllables.push(KANA_MAP[ch]);
+      buffer.out.push(KANA_MAP[ch]);
       prevVowelRow = VOWEL_ROW[ch] ?? null;
       kanaLengthenable = true;
     } else {
-      syllables.push(ch);
+      buffer.out.push(ch);
       prevVowelRow = null;
       kanaLengthenable = false;
     }
@@ -238,9 +259,9 @@ function appendKorean(syllables: string[], text: string): void {
 export function convertReading(text: string, display: ReadingDisplay): string {
   if (display === 'KATAKANA') return text;
   if (display === 'HIRAGANA') return katakanaToHiragana(text);
-  const syllables: string[] = [];
-  appendKorean(syllables, text);
-  return syllables.join('');
+  const buffer: SyllableBuffer = { out: [], long: new Set() };
+  appendKorean(buffer, text);
+  return render(buffer);
 }
 
 /** The token fields a line's reading is assembled from. Structurally satisfied by `Token`. */
@@ -283,12 +304,12 @@ function separatorFor(text: string): string {
   return JAPANESE.test(text) ? ' ' : text;
 }
 
-function appendReading(parts: string[], reading: string, display: ReadingDisplay): void {
+function appendReading(buffer: SyllableBuffer, reading: string, display: ReadingDisplay): void {
   if (display === 'KOREAN') {
-    appendKorean(parts, reading);
+    appendKorean(buffer, reading);
     return;
   }
-  parts.push(display === 'HIRAGANA' ? katakanaToHiragana(reading) : reading);
+  buffer.out.push(display === 'HIRAGANA' ? katakanaToHiragana(reading) : reading);
 }
 
 /**
@@ -305,21 +326,21 @@ export function convertLineReading(
 ): string {
   if (tokens.length === 0) return '';
 
-  const parts: string[] = [];
+  const buffer: SyllableBuffer = { out: [], long: new Set() };
   let cursor = 0;
   let previous: ReadingToken | null = null;
   for (const token of [...tokens].sort((a, b) => a.charStart - b.charStart)) {
     if (token.charStart > cursor) {
-      parts.push(separatorFor(originalText.slice(cursor, token.charStart)));
+      buffer.out.push(separatorFor(originalText.slice(cursor, token.charStart)));
     } else if (startsNewWord(token, previous)) {
-      parts.push(' ');
+      buffer.out.push(' ');
     }
-    appendReading(parts, token.reading ?? token.surface, display);
+    appendReading(buffer, token.reading ?? token.surface, display);
     cursor = Math.max(cursor, token.charEnd);
     previous = token;
   }
   if (cursor < originalText.length) {
-    parts.push(separatorFor(originalText.slice(cursor)));
+    buffer.out.push(separatorFor(originalText.slice(cursor)));
   }
-  return parts.join('').replace(/ {2,}/g, ' ').trim();
+  return render(buffer).replace(/ {2,}/g, ' ').trim();
 }
