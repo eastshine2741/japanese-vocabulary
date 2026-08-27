@@ -14,7 +14,7 @@ export function katakanaToHiragana(text: string): string {
   return result;
 }
 
-// 2-char yōon combinations (must be checked before single chars)
+// 2-char combinations (must be checked before single chars)
 const YOON_MAP: Record<string, string> = {
   'キャ': '캬', 'キュ': '큐', 'キョ': '쿄',
   'シャ': '샤', 'シュ': '슈', 'ショ': '쇼',
@@ -27,6 +27,13 @@ const YOON_MAP: Record<string, string> = {
   'ジャ': '자', 'ジュ': '주', 'ジョ': '조',
   'ビャ': '뱌', 'ビュ': '뷰', 'ビョ': '뵤',
   'ピャ': '퍄', 'ピュ': '퓨', 'ピョ': '표',
+  // Loanword sounds: without these the small kana becomes its own syllable (イェイ → 이에-).
+  'イェ': '예',
+  'ウィ': '위', 'ウェ': '웨', 'ウォ': '워',
+  'シェ': '셰', 'ジェ': '제', 'チェ': '체',
+  'ティ': '티', 'トゥ': '투', 'ディ': '디', 'ドゥ': '두',
+  'ファ': '파', 'フィ': '피', 'フェ': '페', 'フォ': '포',
+  'ツァ': '차', 'ツェ': '체', 'ツォ': '초',
 };
 
 // Single-char kana mapping
@@ -92,7 +99,26 @@ const YOON_VOWEL: Record<string, VowelRow> = {
   'ジャ': 'a', 'ジュ': 'u', 'ジョ': 'o',
   'ビャ': 'a', 'ビュ': 'u', 'ビョ': 'o',
   'ピャ': 'a', 'ピュ': 'u', 'ピョ': 'o',
+  'イェ': 'e',
+  'ウィ': 'i', 'ウェ': 'e', 'ウォ': 'o',
+  'シェ': 'e', 'ジェ': 'e', 'チェ': 'e',
+  'ティ': 'i', 'トゥ': 'u', 'ディ': 'i', 'ドゥ': 'u',
+  'ファ': 'a', 'フィ': 'i', 'フェ': 'e', 'フォ': 'o',
+  'ツァ': 'a', 'ツェ': 'e', 'ツォ': 'o',
 };
+
+/**
+ * Loanword pairs, as opposed to native yōon. Loanwords write length with ー, so a vowel kana after
+ * one of these is its own syllable (イェイ is yay, not ye-) where キョウ is one long syllable.
+ */
+const LOANWORD_PAIRS = new Set([
+  'イェ',
+  'ウィ', 'ウェ', 'ウォ',
+  'シェ', 'ジェ', 'チェ',
+  'ティ', 'トゥ', 'ディ', 'ドゥ',
+  'ファ', 'フィ', 'フェ', 'フォ',
+  'ツァ', 'ツェ', 'ツォ',
+]);
 
 // Which vowel rows each vowel kana can extend as a long vowel
 const LONG_VOWEL_EXTENDS: Record<string, VowelRow[]> = {
@@ -103,36 +129,49 @@ const LONG_VOWEL_EXTENDS: Record<string, VowelRow[]> = {
   'オ': ['o'],
 };
 
+const LONG_VOWEL_SIGN = '-';
+
 // 종성 (받침) indices in Korean Unicode block
 const JONGSEONG_NIEUN = 4;  // ㄴ
 const JONGSEONG_SIOT = 19;  // ㅅ
 
 /**
- * Add a 받침 (final consonant) to a Korean syllable.
- * Korean syllable = 0xAC00 + (초성*21 + 중성)*28 + 종성
- * If the char already has 받침 or isn't a Korean syllable, returns null.
+ * Put a 받침 on the last syllable written, looking past long vowel signs — in ワンシーン the ン
+ * belongs to シ (완신-, not 완시-ㄴ). False when there is no bare syllable to take it: one already
+ * carrying a 받침, copied punctuation, or nothing written yet.
  */
-function addBatchim(char: string, jongseongIndex: number): string | null {
-  const code = char.charCodeAt(0);
-  if (code < 0xac00 || code > 0xd7a3) return null;
-  if ((code - 0xac00) % 28 !== 0) return null; // already has 받침
-  return String.fromCharCode(code + jongseongIndex);
+function attachBatchim(syllables: string[], jongseongIndex: number): boolean {
+  for (let i = syllables.length - 1; i >= 0; i--) {
+    const syllable = syllables[i];
+    if (syllable === LONG_VOWEL_SIGN) continue;
+    if (syllable.length !== 1) return false;
+    const code = syllable.charCodeAt(0);
+    if (code < 0xac00 || code > 0xd7a3) return false;
+    if ((code - 0xac00) % 28 !== 0) return false;
+    syllables[i] = String.fromCharCode(code + jongseongIndex);
+    return true;
+  }
+  return false;
 }
 
-function katakanaToKorean(text: string): string {
-  const result: string[] = [];
+/**
+ * Write one reading as Korean syllables, appending to [syllables].
+ *
+ * One syllable per element so a 받침 can reach back across a token boundary (だ + って → 닷테). The
+ * long vowel state starts fresh instead, or one word's vowel eats the next word's ウ/イ
+ * (ボクノ + ウタ → 보쿠노-타).
+ */
+function appendKorean(syllables: string[], text: string): void {
   let prevVowelRow: VowelRow | null = null;
+  // Whether a vowel *kana* may lengthen what came before. ー is separate: it lengthens anything.
+  let kanaLengthenable = false;
   let i = 0;
   while (i < text.length) {
     const ch = text[i];
 
     // ー (chōon mark) → long vowel
     if (ch === 'ー') {
-      if (prevVowelRow) {
-        result.push('-');
-      } else {
-        result.push(ch);
-      }
+      syllables.push(prevVowelRow ? LONG_VOWEL_SIGN : ch);
       // prevVowelRow stays the same (장음 뒤에 또 장음 가능)
       i++;
       continue;
@@ -140,53 +179,43 @@ function katakanaToKorean(text: string): string {
 
     // Long vowel: vowel kana extending previous syllable's vowel row
     const extends_ = LONG_VOWEL_EXTENDS[ch];
-    if (extends_ && prevVowelRow && extends_.includes(prevVowelRow)) {
-      result.push('-');
-      // prevVowelRow stays the same
+    if (extends_ && prevVowelRow && kanaLengthenable && extends_.includes(prevVowelRow)) {
+      syllables.push(LONG_VOWEL_SIGN);
+      // Spent: letting it stand let the next vowel kana extend it too (エイエン → 에--).
+      prevVowelRow = null;
+      kanaLengthenable = false;
       i++;
       continue;
     }
 
-    // ン → ㄴ 받침 on previous syllable
+    // ン → ㄴ 받침 on the preceding syllable
     if (ch === 'ン') {
-      if (result.length > 0) {
-        const modified = addBatchim(result[result.length - 1], JONGSEONG_NIEUN);
-        if (modified) {
-          result[result.length - 1] = modified;
-          i++;
-          prevVowelRow = null;
-          continue;
-        }
-      }
-      result.push('ㄴ');
+      // With nowhere to sit, 응 keeps the mora audible where a bare ㄴ reads as a broken glyph.
+      if (!attachBatchim(syllables, JONGSEONG_NIEUN)) syllables.push('응');
       i++;
       prevVowelRow = null;
+      kanaLengthenable = false;
       continue;
     }
 
-    // ッ → ㅅ 받침 on previous syllable (촉음, 외래어표기법)
+    // ッ → ㅅ 받침 on the preceding syllable (촉음, 외래어표기법)
     if (ch === 'ッ') {
-      if (result.length > 0) {
-        const modified = addBatchim(result[result.length - 1], JONGSEONG_SIOT);
-        if (modified) {
-          result[result.length - 1] = modified;
-          i++;
-          prevVowelRow = null;
-          continue;
-        }
-      }
-      result.push(ch);
+      // Dropped when nothing can take it (喰わん + って → 쿠완테): Korean tenses the next consonant
+      // instead and cannot write a second 받침.
+      attachBatchim(syllables, JONGSEONG_SIOT);
       i++;
       prevVowelRow = null;
+      kanaLengthenable = false;
       continue;
     }
 
-    // try 2-char yōon match first
+    // try 2-char combination match first
     if (i + 1 < text.length) {
       const pair = ch + text[i + 1];
       if (YOON_MAP[pair]) {
-        result.push(YOON_MAP[pair]);
+        syllables.push(YOON_MAP[pair]);
         prevVowelRow = YOON_VOWEL[pair] ?? null;
+        kanaLengthenable = !LOANWORD_PAIRS.has(pair);
         i += 2;
         continue;
       }
@@ -194,21 +223,24 @@ function katakanaToKorean(text: string): string {
 
     // single-char match
     if (KANA_MAP[ch]) {
-      result.push(KANA_MAP[ch]);
+      syllables.push(KANA_MAP[ch]);
       prevVowelRow = VOWEL_ROW[ch] ?? null;
+      kanaLengthenable = true;
     } else {
-      result.push(ch);
+      syllables.push(ch);
       prevVowelRow = null;
+      kanaLengthenable = false;
     }
     i++;
   }
-  return result.join('');
 }
 
 export function convertReading(text: string, display: ReadingDisplay): string {
   if (display === 'KATAKANA') return text;
   if (display === 'HIRAGANA') return katakanaToHiragana(text);
-  return katakanaToKorean(text);
+  const syllables: string[] = [];
+  appendKorean(syllables, text);
+  return syllables.join('');
 }
 
 /** The token fields a line's reading is assembled from. Structurally satisfied by `Token`. */
@@ -217,20 +249,54 @@ export interface ReadingToken {
   reading: string | null;
   charStart: number;
   charEnd: number;
+  partOfSpeech?: string;
+}
+
+/** Parts of speech that are read as part of the word in front of them, never as a word of their own. */
+const GLUED_POS = new Set(['PARTICLE', 'AUXILIARY_VERB', 'SUFFIX']);
+
+const HIRAGANA_ONLY = /^[ぁ-ゖー]+$/;
+
+const JAPANESE = /[぀-ヿ㐀-鿿]/;
+
+/**
+ * Whether a space goes in front of [token]. Japanese writes none, so the whole line arrived as one
+ * run. Segmentation splits finer than a reader reads, so grammar stays attached: particles,
+ * auxiliaries and suffixes, a reading opening with ッ/ン, and an all-hiragana surface after one that
+ * is not — that is inflection (揺ら + せば).
+ */
+function startsNewWord(token: ReadingToken, previous: ReadingToken | null): boolean {
+  if (previous == null) return false;
+  if (token.partOfSpeech != null && GLUED_POS.has(token.partOfSpeech)) return false;
+  const reading = token.reading ?? token.surface;
+  if (reading.startsWith('ッ') || reading.startsWith('ン')) return false;
+  if (HIRAGANA_ONLY.test(token.surface) && !HIRAGANA_ONLY.test(previous.surface)) return false;
+  return true;
 }
 
 /**
- * A lyric line's reading, converted one token at a time.
+ * Text between two tokens: punctuation and latin runs are copied to hold the line's shape, but
+ * Japanese no token claimed (an ad-lib, a ruby gloss) has no reading and would put Japanese in the
+ * middle of a Korean line (叫べべベノム → 사케베べ베노무), so it becomes a word break.
+ */
+function separatorFor(text: string): string {
+  return JAPANESE.test(text) ? ' ' : text;
+}
+
+function appendReading(parts: string[], reading: string, display: ReadingDisplay): void {
+  if (display === 'KOREAN') {
+    appendKorean(parts, reading);
+    return;
+  }
+  parts.push(display === 'HIRAGANA' ? katakanaToHiragana(reading) : reading);
+}
+
+/**
+ * A lyric line's reading, assembled from its tokens in position order — the analysis stores no line
+ * reading. See [startsNewWord] and [separatorFor] for what goes between them.
  *
- * The long-vowel rules carry state from one character to the next, and converting a whole line at
- * once lets that state cross a word boundary: a token starting with ウ/イ folds into the previous
- * token's vowel, so 僕の歌 (ボクノ + ウタ) came out 보쿠노-타 instead of 보쿠노우타. Converting each
- * token on its own keeps the long vowel inside the word it belongs to.
- *
- * Each token's reading goes in position order, and the raw text of any gap between tokens is copied
- * verbatim — spaces, punctuation and latin runs are not tokens, and reproducing them keeps the line's
- * shape. A line the analysis found no words in has nothing to assemble and returns an empty string;
- * the caller shows no reading rather than passing the Japanese text off as one.
+ * Empty when the line has no tokens; the caller then shows no reading rather than passing the
+ * Japanese text off as one.
  */
 export function convertLineReading(
   originalText: string,
@@ -241,15 +307,19 @@ export function convertLineReading(
 
   const parts: string[] = [];
   let cursor = 0;
+  let previous: ReadingToken | null = null;
   for (const token of [...tokens].sort((a, b) => a.charStart - b.charStart)) {
     if (token.charStart > cursor) {
-      parts.push(originalText.slice(cursor, token.charStart));
+      parts.push(separatorFor(originalText.slice(cursor, token.charStart)));
+    } else if (startsNewWord(token, previous)) {
+      parts.push(' ');
     }
-    parts.push(convertReading(token.reading ?? token.surface, display));
+    appendReading(parts, token.reading ?? token.surface, display);
     cursor = Math.max(cursor, token.charEnd);
+    previous = token;
   }
   if (cursor < originalText.length) {
-    parts.push(originalText.slice(cursor));
+    parts.push(separatorFor(originalText.slice(cursor)));
   }
-  return parts.join('');
+  return parts.join('').replace(/ {2,}/g, ' ').trim();
 }

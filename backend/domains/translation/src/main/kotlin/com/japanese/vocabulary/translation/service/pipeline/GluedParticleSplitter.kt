@@ -167,13 +167,15 @@ class GluedParticleSplitter(
         return if (glued.trailing) reading.dropLast(1) else reading.drop(1)
     }
 
-    /** Every katakana the particle can be sung as: `は` is spelled ハ but sung ワ, `を` ヲ but sung オ. */
-    private fun spokenReadings(particle: Char): Set<Char> = when (particle) {
-        'は' -> setOf('ハ', 'ワ')
-        'を' -> setOf('ヲ', 'オ')
-        'へ' -> setOf('ヘ', 'エ')
-        else -> setOf(JapaneseText.toKatakana(particle.toString()).first())
-    }
+    /**
+     * Every katakana the particle can appear as — spelled or sung — because the model writes either.
+     * Which one gets *stored* is [JapaneseText.particleReading]'s call, not this one's.
+     */
+    private fun spokenReadings(particle: Char): Set<Char> =
+        setOfNotNull(
+            JapaneseText.toKatakana(particle.toString()).first(),
+            JapaneseText.sungParticleKana(particle),
+        )
 
     private data class GluedParticle(val particle: Char, val trailing: Boolean)
 

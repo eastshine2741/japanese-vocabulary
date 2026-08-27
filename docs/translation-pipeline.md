@@ -347,32 +347,59 @@ Two consequences shape the retry feedback:
 ## Pronunciation
 
 **The line's reading is not stored.** `Token.reading` is the reading actually sung
-in that line and `charStart`/`charEnd` say where the token sits in the raw text, so
-a client assembles the reading it needs: tokens in position order, with the raw text
-of any gap between them copied verbatim, which keeps spaces, punctuation, and latin
-runs. `convertLineReading` (app-rn) and `buildLineReading` (admin-web) each hold
-that ten-line rule; the app converts every token separately on the way.
+in that line and `charStart`/`charEnd` say where the token sits, so a client
+assembles it: tokens in position order. `convertLineReading` (app-rn) and
+`buildLineReading` (admin-web) each hold that rule.
 
-Converting per token is the point, not an optimization. `katakanaToKorean` carries a
-vowel state from one character to the next so it can mark オ段+ウ / エ段+イ as a long
-vowel, and a whole-line pass lets that state cross a word boundary: 僕の歌 (ボクノ +
-ウタ) came out 보쿠노-타, eating 歌's first syllable, and a `ー` folded the next word's
-ウ into the same long vowel (もう歌う → 모--타우). A stored line reading cannot be
-converted correctly, because assembling it is what destroys the boundaries.
+Two rules are server-side because the sources disagree:
 
-The Hangul transcription the translation prompt used to generate is now derived
-on the client by `katakanaToKorean`, which already implemented the same
-aspirated-consonant rule the prompt's `[PRONUNCIATION_OVERRIDE]` section
-enforced. Those few-shot pairs now live in `readingConverter.test.ts`. The one
-divergence: that function writes a long vowel as a hyphen (`ドウ` → `도-`) where
-the prompt asked for `도우`.
+- **A particle's reading is not its spelling.** `JapaneseText.particleReading`
+  rewrites は → ワ and へ → エ positionally, compounds included (には → ニワ). The
+  segmentation model answers ワ only about three times in four, and
+  `RuleMeaningProvider`'s table produced ハ every time by transliterating its own
+  surface. を stays ヲ: it reads 오 either way, and オ can be swallowed as a long
+  vowel (トモ + オ → 토모-).
+- **The rule table's reading is a fallback, never an override.** The table is keyed
+  by headword and `resolve` falls back to it, so a longer surface (なんだ→だ,
+  だった→だ, って→と) took the headword's reading and lost morae: 馬鹿だった read
+  바카다. `AssembleAnalyzedLinesStage` prefers `usedReading` and reaches for the
+  table only for a rewrite's token (どうも → どう + も), which has no reading.
+
+Four are client-side:
+
+- **Words are separated.** Japanese writes none, and segmentation splits finer than
+  a reader reads, so grammar stays attached: particles/auxiliaries/suffixes, a
+  reading opening with ッ/ン, an all-hiragana surface after one that is not
+  (揺ら + せば). It still over-splits two adjacent nouns (六弦 → 로쿠 겐); attaching
+  too little is a display nit, attaching too much invents a word.
+- **Japanese no token claimed is a word break.** Punctuation and latin runs between
+  tokens are copied, but text anchoring left uncovered (an ad-lib, a ruby gloss) has
+  no reading, and copying it put Japanese in a Korean line (叫べべベノム →
+  사케베べ베노무). A parenthesised ad-lib that *was* tokenised keeps its reading.
+- **A 받침 crosses a token boundary; a long vowel does not.** `appendKorean` writes
+  one syllable per array element and resets only the vowel state per token. Without
+  the reach-back a leading ッ/ン left the kana in the line (だ + って → 다ッ테);
+  without the reset one word's vowel ate the next word's ウ/イ (ボクノ + ウタ →
+  보쿠노-타). A stored line reading can do neither — assembling it destroys the
+  boundaries.
+- **Korean-side spelling** in `katakanaToKorean`: a 받침 looks past a long vowel sign
+  (ワンシーン → 완신-), a long vowel is spent once written (エイエン → 에-엔), and a
+  촉음 with nowhere to sit is dropped (喰わん + って → 쿠완테).
+
+The Hangul transcription the translation prompt used to generate is now derived on
+the client by `katakanaToKorean`, which already implemented the prompt's
+`[PRONUNCIATION_OVERRIDE]` aspirated-consonant rule; those few-shot pairs live in
+`readingConverter.test.ts`. It writes a long vowel as a hyphen (`ドウ` → `도-`) where
+the prompt asked for `도우`. Loanword kana pairs (`イェ ティ ファ` …) are one syllable
+and cannot be lengthened by a following vowel kana — loanwords use ー, so イェイ is
+예이.
 
 `AnalyzedLine.pronounciation` and `AnalyzedLine.koreanPronounciation` are gone,
 along with their DTO fields. Rows written with them still read back:
-`JsonListConverter` ignores unknown keys, which is what makes a field removable
-from a JSON column at all. **Those rows still need re-analysis** — their tokens
-hold base-form readings (`欲しかった` → `ホシイ`), so assembling a line from them
-misreads it, and nothing on the row says so any more.
+`JsonListConverter` ignores unknown keys. **Those rows need re-analysis** — their
+tokens hold base-form readings (`欲しかった` → `ホシイ`), and rows written before the
+two server-side rules above need it too (particles read ハ, rule-resolved tokens
+missing morae). Nothing on a row says so.
 
 ## Jisho Entry Select
 

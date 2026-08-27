@@ -62,6 +62,29 @@ object JapaneseText {
                 ch == PROLONGED_SOUND_MARK
         }
 
+    /** Kana sung differently from how they are spelled. */
+    private val SUNG_KANA = mapOf('は' to 'ワ', 'へ' to 'エ', 'を' to 'オ')
+
+    /** Kana [particleReading] rewrites. を is sung オ but stays ヲ: both read 오, and オ can be
+     * swallowed as a long vowel by the syllable in front of it (トモ + オ → 토모-). */
+    private val REWRITTEN_KANA = mapOf('は' to 'ワ', 'へ' to 'エ')
+
+    /** The katakana a kana particle is *sung* as when that differs from its spelling; null otherwise. */
+    fun sungParticleKana(particle: Char): Char? = SUNG_KANA[particle]
+
+    /**
+     * The reading of a particle [surface], or null when transliterating it is already right.
+     *
+     * [toKatakana] alone cannot produce it: 夕暮れは is sung ユウグレワ, and the app derives the Hangul
+     * from this field, so a spelled reading showed 유-구레하. Positional, so compounds work too
+     * (には → ニワ, までは → マデワ).
+     */
+    fun particleReading(surface: String): String? {
+        if (!isKanaOnly(surface)) return null
+        if (surface.none { it in REWRITTEN_KANA }) return null
+        return surface.map { ch -> REWRITTEN_KANA[ch] ?: toKatakana(ch.toString()).first() }.joinToString("")
+    }
+
     /**
      * True when [text] is non-empty and written only in katakana (plus the prolonged sound mark).
      *

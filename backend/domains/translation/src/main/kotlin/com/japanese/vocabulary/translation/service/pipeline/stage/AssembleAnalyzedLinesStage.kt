@@ -61,7 +61,10 @@ class AssembleAnalyzedLinesStage : PipelineStage<AssembleAnalyzedLinesInput, Lis
                 return@map Token(
                     surface = token.surface,
                     baseForm = rule.baseForm,
-                    reading = rule.reading,
+                    // The reading this line sings, not the table's: the table is keyed by headword, so
+                    // a longer surface resolving through it lost morae (なんだ read ダ, だった read ダ).
+                    // The table value is the fallback for a rewrite's token, which has no reading.
+                    reading = readingFor(token.surface, rule.partOfSpeech, token.usedReading.ifBlank { rule.reading }),
                     baseFormReading = rule.baseFormReading,
                     partOfSpeech = rule.partOfSpeech,
                     charStart = token.charStart,
@@ -74,15 +77,16 @@ class AssembleAnalyzedLinesStage : PipelineStage<AssembleAnalyzedLinesInput, Lis
             val senseId = selectedSenseByKey[token.key] ?: -1
             val option = if (senseId >= 0) lexical.optionsById[senseId] else null
             val resolvedBaseForm = lexical.byTokenKey[token.key]?.baseForm ?: token.headword
+            val partOfSpeech = option?.partOfSpeech ?: PartOfSpeech.OTHER
             Token(
                 surface = token.surface,
                 baseForm = option?.baseForm ?: resolvedBaseForm,
                 // The inflected reading comes from segmentation and the dictionary reading from the
                 // chosen entry, so 行って now keeps イッテ while its headword 行く reads イク. They used
                 // to be the same jisho value, which made furigana show the dictionary form.
-                reading = token.usedReading.ifBlank { null },
+                reading = readingFor(token.surface, partOfSpeech, token.usedReading.ifBlank { null }),
                 baseFormReading = option?.reading ?: token.baseFormReading.ifBlank { null },
-                partOfSpeech = option?.partOfSpeech ?: PartOfSpeech.OTHER,
+                partOfSpeech = partOfSpeech,
                 charStart = token.charStart,
                 charEnd = token.charEnd,
                 koreanText = if (option != null) koreanBySenseId[senseId] else null,
@@ -90,6 +94,13 @@ class AssembleAnalyzedLinesStage : PipelineStage<AssembleAnalyzedLinesInput, Lis
             )
         }
     }
+
+    /**
+     * [reading], with a particle's spelling corrected to what is sung. The model answers ワ for は only
+     * about three times in four, so deciding it here makes the reading the same whatever the source.
+     */
+    private fun readingFor(surface: String, partOfSpeech: PartOfSpeech, reading: String?): String? =
+        if (partOfSpeech == PartOfSpeech.PARTICLE) JapaneseText.particleReading(surface) ?: reading else reading
 
     /**
      * jisho jlpt is an entry-level array (e.g. ["jlpt-n1","jlpt-n5"]), not sense-scoped. Reduce to the
