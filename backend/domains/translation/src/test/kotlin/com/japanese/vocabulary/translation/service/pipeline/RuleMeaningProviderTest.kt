@@ -38,6 +38,16 @@ class RuleMeaningProviderTest {
     }
 
     @Test
+    fun `resolves datteba as exact expression`() {
+        val resolved = provider.resolve(token("だってば"))!!
+
+        assertThat(resolved.partOfSpeech).isEqualTo(PartOfSpeech.EXPRESSION)
+        assertThat(resolved.reading).isEqualTo("ダッテバ")
+        assertThat(resolved.baseFormReading).isEqualTo("ダッテバ")
+        assertThat(resolved.koreanText).isNotBlank()
+    }
+
+    @Test
     fun `rewrites doumo koumo pair into deterministic smaller tokens`() {
         val rewritten = provider.rewrite(
             listOf(

@@ -170,6 +170,7 @@ class RuleMeaningProvider {
             "如何して" to RuleResolvedToken("如何して", "どうして", "ドウシテ", "ドウシテ", PartOfSpeech.ADVERB, "왜, 어째서"),
             "どう" to RuleResolvedToken("どう", "どう", "ドウ", "ドウ", PartOfSpeech.ADVERB, "어떻게"),
             "こう" to RuleResolvedToken("こう", "こう", "コウ", "コウ", PartOfSpeech.ADVERB, "이렇게"),
+            "だってば" to RuleResolvedToken("だってば", "だってば", "ダッテバ", "ダッテバ", PartOfSpeech.EXPRESSION, "~라니까"),
         )
 
         val particles = mapOf(
