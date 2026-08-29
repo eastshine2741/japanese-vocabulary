@@ -39,4 +39,5 @@ enum class ErrorCode(val status: HttpStatus, val message: String) {
 
     // Common
     FORBIDDEN(HttpStatus.FORBIDDEN, "Access denied"),
+    INVALID_MULTIPART_REQUEST(HttpStatus.BAD_REQUEST, "Invalid multipart request"),
 }

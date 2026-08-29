@@ -4,6 +4,7 @@ import com.japanese.vocabulary.common.dto.ErrorResponse
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
+import org.springframework.web.multipart.MultipartException
 
 @RestControllerAdvice
 class GlobalExceptionHandler {
@@ -13,5 +14,17 @@ class GlobalExceptionHandler {
         return ResponseEntity
             .status(e.errorCode.status)
             .body(ErrorResponse(error = e.errorCode.name, message = e.errorCode.message))
+    }
+
+    @ExceptionHandler(MultipartException::class)
+    fun handleMultipartException(e: MultipartException): ResponseEntity<ErrorResponse> {
+        return ResponseEntity
+            .status(ErrorCode.INVALID_MULTIPART_REQUEST.status)
+            .body(
+                ErrorResponse(
+                    error = ErrorCode.INVALID_MULTIPART_REQUEST.name,
+                    message = ErrorCode.INVALID_MULTIPART_REQUEST.message,
+                )
+            )
     }
 }
