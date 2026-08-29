@@ -8,7 +8,6 @@ import com.japanese.vocabulary.lyricsearch.NormalizedSongQuery
 import com.japanese.vocabulary.lyricsearch.lrclib.dto.LrclibResponse
 import org.slf4j.LoggerFactory
 import org.springframework.core.annotation.Order
-import org.springframework.web.client.HttpClientErrorException
 import org.springframework.web.client.RestClient
 import org.springframework.web.client.RestClientResponseException
 import kotlin.math.abs
@@ -68,7 +67,7 @@ class LrclibClient(restClientBuilder: RestClient.Builder) : LyricProvider {
                 .retrieve()
                 .body(LrclibResponse::class.java)
                 ?: return null
-        } catch (e: HttpClientErrorException.NotFound) {
+        } catch (e: RestClientResponseException) {
             return null
         }
 
