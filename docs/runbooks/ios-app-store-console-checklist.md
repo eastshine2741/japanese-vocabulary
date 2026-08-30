@@ -8,7 +8,11 @@
 - Apple Developer Program에 가입한다.
 - 개인 계정이면 판매자/개발자 이름이 개인명으로 노출된다.
 - 법인 계정이면 법인명 노출이 가능하지만 D-U-N-S Number가 필요하다.
-- Team ID를 기록해 둔다. 단, 비밀번호, 2FA 코드, private key 파일은 repo에 커밋하지 않는다.
+- 결제 후 이름 옆 상태가 `대기중`이면 아직 멤버십 활성화가 끝나지 않은 상태로 본다.
+- 결제 확인 메일, Apple Store 주문 번호, Developer enrollment ID를 보관한다.
+- 결제 후 24시간 안에 Apple Developer Program 멤버십 확인 메일이 오지 않으면 Apple Developer Support에 문의한다. 문의에는 enrollment ID와 결제/주문 정보를 함께 넣는다.
+- Team ID는 멤버십이 활성화된 뒤 Apple Developer Account의 Membership Details에서 확인한다. 아직 `대기중`이면 Team ID가 안 보일 수 있다.
+- Team ID를 확인하면 기록해 둔다. 단, 비밀번호, 2FA 코드, private key 파일은 repo에 커밋하지 않는다.
 
 ## 2. Apple Developer Identifiers
 
