@@ -25,6 +25,7 @@
 - App Store Connect의 앱 레코드와 동일한 Bundle ID가 연결되는지 확인한다.
 - Apple 로그인은 사용자가 이메일을 숨길 수 있으므로 `privaterelay.appleid.com` 및 `private.icloud.com` 이메일을 정상 이메일처럼 취급한다.
 - Apple은 이름/이메일을 최초 승인 시점에만 줄 수 있으므로, 최초 가입 테스트에서 이름/이메일 수신 여부를 확인한다.
+- Apple 로그인 계정은 backend의 별도 Apple provider 경로(`provider = "apple"`)로 유지하고, Google 계정과 자동 병합/연결하지 않는다.
 
 ## 4. Firebase / Google Console
 
@@ -100,7 +101,7 @@ App Store Connect의 App Privacy 항목을 작성한다. 현재 앱 기준으로
 ## 12. 최종 제출 전 확인
 
 - 실제 iPhone에서 production 빌드 로그인, 가입, 로그아웃, 계정 삭제를 테스트한다.
-- Apple 로그인 최초 가입과 재로그인을 각각 테스트한다.
+- Apple 로그인 최초 가입과 재로그인을 backend의 별도 Apple auth 경로(`/api/auth/apple`, `/api/auth/apple/signup`)에서 각각 테스트한다.
 - Google 로그인도 iOS에서 동작하는지 확인한다.
 - 푸시 권한 요청, token 등록, 서버 저장을 확인한다.
 - 개인정보처리방침/약관/오픈소스 라이선스/권리자 신고 링크가 앱 안에서 열리는지 확인한다.
