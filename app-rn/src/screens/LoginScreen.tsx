@@ -110,6 +110,7 @@ export default function LoginScreen({ navigation }: Props) {
   }, [appleLogin, status]);
 
   const handleAppleLogin = async () => {
+    if (loading) return;
     try {
       const credential = await AppleAuthentication.signInAsync({
         requestedScopes: [
@@ -180,7 +181,7 @@ export default function LoginScreen({ navigation }: Props) {
             buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
             cornerRadius={9999}
             style={styles.appleBtn}
-            onPress={loading ? undefined : handleAppleLogin}
+            onPress={handleAppleLogin}
           />
         )}
 
