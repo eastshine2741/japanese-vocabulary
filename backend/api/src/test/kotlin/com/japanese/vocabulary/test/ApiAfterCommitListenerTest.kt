@@ -1,6 +1,7 @@
 package com.japanese.vocabulary.test
 
 import com.google.firebase.messaging.FirebaseMessaging
+import com.japanese.vocabulary.auth.service.AppleOidcService
 import com.japanese.vocabulary.auth.service.GoogleOidcService
 import com.japanese.vocabulary.songsearch.client.itunes.ItunesClient
 import com.ninjasquad.springmockk.MockkBean
@@ -25,12 +26,15 @@ abstract class ApiAfterCommitListenerTest : AfterCommitListenerTest() {
     protected lateinit var googleOidcService: GoogleOidcService
 
     @MockkBean
+    protected lateinit var appleOidcService: AppleOidcService
+
+    @MockkBean
     protected lateinit var firebaseMessaging: FirebaseMessaging
 
     @BeforeEach
     fun resetClientMocks() {
         clearMocks(
-            itunesClient, googleOidcService, firebaseMessaging,
+            itunesClient, googleOidcService, appleOidcService, firebaseMessaging,
             answers = true,
             recordedCalls = true,
         )
