@@ -20,6 +20,16 @@
         "BUILD_ENV": "staging"
       }
     },
+    "simulator": {
+      "distribution": "internal",
+      "environment": "production",
+      "ios": {
+        "simulator": true
+      },
+      "env": {
+        "BUILD_ENV": "prod"
+      }
+    },
     "production": {
       "environment": "production",
       "autoIncrement": true,
