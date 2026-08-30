@@ -121,6 +121,32 @@ export const authApi = {
     return data;
   },
 
+  async appleLogin(idToken: string): Promise<ProviderLoginResult> {
+    const { data } = await client.post<GoogleLoginResponseBody>('/api/auth/apple', { idToken });
+    if (data.kind === 'needsSignup') {
+      return { kind: 'needsSignup', identity: data.identity! };
+    }
+    return {
+      kind: 'authenticated',
+      token: data.token!,
+      username: data.username!,
+      name: data.name ?? null,
+    };
+  },
+
+  async appleSignup(
+    idToken: string,
+    username: string,
+    displayName?: string,
+  ): Promise<GoogleAuthResponse> {
+    const { data } = await client.post<GoogleAuthResponse>('/api/auth/apple/signup', {
+      idToken,
+      username,
+      displayName,
+    });
+    return data;
+  },
+
   async checkUsername(username: string): Promise<UsernameAvailability> {
     const { data } = await client.get<UsernameAvailability>('/api/auth/username/available', {
       params: { username },
