@@ -1,0 +1,37 @@
+{
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "local"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "ios": {
+        "simulator": true
+      },
+      "env": {
+        "BUILD_ENV": "dev"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "env": {
+        "BUILD_ENV": "staging"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "env": {
+        "BUILD_ENV": "prod"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "ascAppId": "TODO_APP_STORE_CONNECT_APP_ID"
+      }
+    }
+  }
+}
