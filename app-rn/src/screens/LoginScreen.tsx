@@ -82,6 +82,7 @@ export default function LoginScreen({ navigation }: Props) {
   }, [googleLogin]);
 
   const handleAppleLogin = useCallback(async () => {
+    if (status === 'loading') return;
     try {
       const credential = await AppleAuthentication.signInAsync({
         requestedScopes: [
@@ -95,7 +96,7 @@ export default function LoginScreen({ navigation }: Props) {
       if (e?.code === 'ERR_REQUEST_CANCELED' || e?.code === 'ERR_CANCELED') return;
       // Store-level API errors are surfaced through `error`; native availability errors are retryable.
     }
-  }, [appleLogin]);
+  }, [appleLogin, status]);
 
   const handleAppleLogin = async () => {
     try {
@@ -158,7 +159,7 @@ export default function LoginScreen({ navigation }: Props) {
             buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
             cornerRadius={26}
             style={[styles.appleBtn, loading && styles.authBtnDisabled]}
-            onPress={loading ? undefined : handleAppleLogin}
+            onPress={handleAppleLogin}
           />
         )}
 
