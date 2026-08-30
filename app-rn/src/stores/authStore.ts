@@ -14,7 +14,7 @@ interface AuthState {
   pendingIdToken: string | null;
   pendingProvider: AuthProvider | null;
   googleLogin: (idToken: string) => Promise<void>;
-  appleLogin: (idToken: string) => Promise<void>;
+  appleLogin: (idToken: string, displayName?: string) => Promise<void>;
   googleSignup: (idToken: string, username: string, displayName?: string) => Promise<void>;
   appleSignup: (idToken: string, username: string, displayName?: string) => Promise<void>;
   loadProfile: () => Promise<void>;
@@ -52,21 +52,31 @@ export const useAuthStore = create<AuthState>((set) => ({
       }
       await tokenStorage.saveToken(res.token);
       await persistProfile(res.username, res.name);
-      set({ status: 'success', username: res.username, userName: res.name });
+      set({
+        status: 'success',
+        username: res.username,
+        userName: res.name,
+        pendingIdentity: null,
+        pendingIdToken: null,
+        pendingProvider: null,
+      });
       requestPermissionAndRegisterToken();
     } catch (e: any) {
       set({ status: 'error', error: e.response?.data?.message || 'Google sign-in failed' });
     }
   },
 
-  appleLogin: async (idToken) => {
+  appleLogin: async (idToken, displayName) => {
     set({ status: 'loading', error: null });
     try {
-      const res = await authApi.appleLogin(idToken);
+      const res = await authApi.appleLogin(idToken, displayName);
       if (res.kind === 'needsSignup') {
         set({
           status: 'needs_signup',
-          pendingIdentity: res.identity,
+          pendingIdentity: {
+            ...res.identity,
+            name: res.identity.name ?? displayName ?? null,
+          },
           pendingIdToken: idToken,
           pendingProvider: 'apple',
         });
@@ -74,7 +84,14 @@ export const useAuthStore = create<AuthState>((set) => ({
       }
       await tokenStorage.saveToken(res.token);
       await persistProfile(res.username, res.name);
-      set({ status: 'success', username: res.username, userName: res.name });
+      set({
+        status: 'success',
+        username: res.username,
+        userName: res.name,
+        pendingIdentity: null,
+        pendingIdToken: null,
+        pendingProvider: null,
+      });
       requestPermissionAndRegisterToken();
     } catch (e: any) {
       set({ status: 'error', error: e.response?.data?.message || 'Apple sign-in failed' });

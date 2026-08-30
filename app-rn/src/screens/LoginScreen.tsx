@@ -91,7 +91,11 @@ export default function LoginScreen({ navigation }: Props) {
         ],
       });
       if (!credential.identityToken) return;
-      await appleLogin(credential.identityToken);
+      const displayName = [credential.fullName?.givenName, credential.fullName?.familyName]
+        .filter(Boolean)
+        .join(' ')
+        .trim();
+      await appleLogin(credential.identityToken, displayName || undefined);
     } catch (e: any) {
       if (e?.code === 'ERR_REQUEST_CANCELED' || e?.code === 'ERR_CANCELED') return;
       // Store-level API errors are surfaced through `error`; native availability errors are retryable.
