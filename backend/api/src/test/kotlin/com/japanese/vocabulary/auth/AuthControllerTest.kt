@@ -1,12 +1,15 @@
 package com.japanese.vocabulary.auth
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.japanese.vocabulary.auth.dto.AppleAuthRequest
+import com.japanese.vocabulary.auth.dto.AppleSignupRequest
 import com.japanese.vocabulary.auth.dto.AuthResponse
 import com.japanese.vocabulary.auth.dto.GoogleAuthRequest
 import com.japanese.vocabulary.auth.dto.GoogleLoginResponse
 import com.japanese.vocabulary.auth.dto.GoogleSignupRequest
 import com.japanese.vocabulary.auth.dto.UsernameAvailabilityResponse
 import com.japanese.vocabulary.auth.jwt.JwtUtil
+import com.japanese.vocabulary.auth.service.VerifiedAppleIdentity
 import com.japanese.vocabulary.auth.service.VerifiedGoogleIdentity
 import com.japanese.vocabulary.common.exception.BusinessException
 import com.japanese.vocabulary.common.exception.ErrorCode
@@ -37,6 +40,83 @@ class AuthControllerTest : ApiBaseIntegrationTest() {
     private fun postJson(path: String, body: Any) = mockMvc.post(path) {
         contentType = MediaType.APPLICATION_JSON
         content = objectMapper.writeValueAsString(body)
+    }
+
+    @Nested
+    inner class AppleLogin {
+
+        @Test
+        fun `existing Apple identity returns authenticated with usable JWT`() {
+            val user = newUserBuilder()
+                .withProvider("apple")
+                .withProviderSub("apple-sub-1")
+                .withUsername("appleuser")
+                .withEmail("relay@privaterelay.appleid.com")
+                .build()
+            every { appleOidcService.verify("apple-token") } returns
+                VerifiedAppleIdentity(sub = "apple-sub-1", email = null, name = null)
+
+            val result = postJson("/api/auth/apple", AppleAuthRequest("apple-token"))
+                .andExpect { status { isOk() } }
+                .andReturn().response.contentAsString
+
+            val body = readBody<GoogleLoginResponse>(result)
+            assertThat(body.kind).isEqualTo(GoogleLoginResponse.Kind.authenticated)
+            assertThat(body.username).isEqualTo("appleuser")
+            assertThat(body.token).isNotBlank()
+            assertThat(jwtUtil.getUserId(body.token!!)).isEqualTo(user.id)
+
+            entityManager.flush()
+            entityManager.clear()
+            val reloaded = userRepository.findById(user.id!!).get()
+            assertThat(reloaded.email).isEqualTo("relay@privaterelay.appleid.com")
+        }
+
+        @Test
+        fun `unknown Apple identity returns needsSignup and accepts relay email`() {
+            every { appleOidcService.verify("apple-token") } returns
+                VerifiedAppleIdentity(
+                    sub = "new-apple-sub",
+                    email = "relay@privaterelay.appleid.com",
+                    name = null,
+                )
+
+            val result = postJson("/api/auth/apple", AppleAuthRequest("apple-token"))
+                .andExpect { status { isOk() } }
+                .andReturn().response.contentAsString
+
+            val body = readBody<GoogleLoginResponse>(result)
+            assertThat(body.kind).isEqualTo(GoogleLoginResponse.Kind.needsSignup)
+            assertThat(body.identity?.sub).isEqualTo("new-apple-sub")
+            assertThat(body.identity?.email).isEqualTo("relay@privaterelay.appleid.com")
+            assertThat(body.identity?.name).isNull()
+        }
+
+        @Test
+        fun `Apple signup creates separate provider scoped user`() {
+            newUserBuilder()
+                .withProvider("google")
+                .withProviderSub("same-sub")
+                .withUsername("googleuser")
+                .build()
+            every { appleOidcService.verify("apple-token") } returns
+                VerifiedAppleIdentity(sub = "same-sub", email = null, name = null)
+
+            val result = postJson(
+                "/api/auth/apple/signup",
+                AppleSignupRequest(idToken = "apple-token", username = "appleuser", displayName = "Apple"),
+            ).andExpect { status { isOk() } }
+                .andReturn().response.contentAsString
+
+            val body = readBody<AuthResponse>(result)
+            assertThat(body.username).isEqualTo("appleuser")
+            assertThat(body.name).isEqualTo("Apple")
+
+            val persisted = userRepository.findByProviderAndProviderSub("apple", "same-sub")
+            assertThat(persisted).isNotNull
+            assertThat(persisted!!.username).isEqualTo("appleuser")
+            assertThat(jwtUtil.getUserId(body.token)).isEqualTo(persisted.id)
+        }
     }
 
     private inline fun <reified T> readBody(json: String): T = objectMapper.readValue(json, T::class.java)
