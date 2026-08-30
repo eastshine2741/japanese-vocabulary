@@ -1,11 +1,10 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, ActivityIndicator, Linking, Pressable, StyleSheet } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { View, Text, ActivityIndicator, Linking, Platform, Pressable, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useShallow } from 'zustand/react/shallow';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import * as AppleAuthentication from 'expo-apple-authentication';
-import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../stores/authStore';
 import { TOS_URL, PRIVACY_URL } from '../config/legal';
 import { Colors } from '../theme/theme';
@@ -19,6 +18,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
 export default function LoginScreen({ navigation }: Props) {
   const [showServerModal, setShowServerModal] = useState(false);
+  const [appleAvailable, setAppleAvailable] = useState(false);
   const {
     status,
     error,
@@ -49,20 +49,27 @@ export default function LoginScreen({ navigation }: Props) {
   }, []);
 
   useEffect(() => {
+    if (Platform.OS !== 'ios') return;
+    AppleAuthentication.isAvailableAsync()
+      .then(setAppleAvailable)
+      .catch(() => setAppleAvailable(false));
+  }, []);
+
+  useEffect(() => {
     if (status === 'success') {
       reset();
       navigation.replace('Main');
     } else if (status === 'needs_signup' && pendingIdToken) {
       navigation.replace('Signup', {
+        provider: pendingProvider ?? 'google',
         idToken: pendingIdToken,
         email: pendingIdentity?.email ?? null,
-        displayName: pendingIdentity?.name ?? null,
-        provider: pendingProvider ?? 'google',
+        providerName: pendingIdentity?.name ?? null,
       });
     }
-  }, [status, pendingIdToken, pendingIdentity, pendingProvider, navigation, reset]);
+  }, [navigation, pendingIdentity?.email, pendingIdentity?.name, pendingIdToken, pendingProvider, reset, status]);
 
-  const handleGoogleLogin = async () => {
+  const handleGoogleLogin = useCallback(async () => {
     try {
       await GoogleSignin.hasPlayServices();
       const result = await GoogleSignin.signIn();
@@ -72,7 +79,23 @@ export default function LoginScreen({ navigation }: Props) {
     } catch {
       // user cancel or platform error — surface via store, retry available
     }
-  };
+  }, [googleLogin]);
+
+  const handleAppleLogin = useCallback(async () => {
+    try {
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+      if (!credential.identityToken) return;
+      await appleLogin(credential.identityToken);
+    } catch (e: any) {
+      if (e?.code === 'ERR_REQUEST_CANCELED' || e?.code === 'ERR_CANCELED') return;
+      // Store-level API errors are surfaced through `error`; native availability errors are retryable.
+    }
+  }, [appleLogin]);
 
   const handleAppleLogin = async () => {
     try {
@@ -129,6 +152,15 @@ export default function LoginScreen({ navigation }: Props) {
             </>
           )}
         </Pressable>
+        {appleAvailable && (
+          <AppleAuthentication.AppleAuthenticationButton
+            buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
+            buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+            cornerRadius={26}
+            style={[styles.appleBtn, loading && styles.authBtnDisabled]}
+            onPress={loading ? undefined : handleAppleLogin}
+          />
+        )}
 
         {appleAvailable && (
           <AppleAuthentication.AppleAuthenticationButton
@@ -200,7 +232,8 @@ const styles = StyleSheet.create({
   },
   googleBtnPressed: { opacity: 0.85 },
   googleLabel: { fontSize: 15, fontWeight: '600', color: Colors.textPrimary },
-  appleBtn: { height: 52, width: '100%' },
+  appleBtn: { height: 52, borderRadius: 9999 },
+  authBtnDisabled: { opacity: 0.55 },
   terms: { alignItems: 'center', marginTop: 6 },
   termsLine: { fontSize: 12, color: Colors.textMuted, textAlign: 'center' },
   termsLink: {

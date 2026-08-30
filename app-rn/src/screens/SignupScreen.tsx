@@ -47,7 +47,7 @@ const REASON_HINT: Record<UsernameAvailabilityReason, string> = {
 const DEFAULT_HINT = '영문/숫자/_ 3~20자';
 
 export default function SignupScreen({ navigation, route }: Props) {
-  const { idToken, email, provider, displayName: initialDisplayName } = route.params;
+  const { provider, idToken, email, providerName } = route.params;
 
   const { status, error, googleSignup, appleSignup, reset } = useAuthStore(
     useShallow((s) => ({
@@ -60,7 +60,7 @@ export default function SignupScreen({ navigation, route }: Props) {
   );
 
   const [username, setUsername] = useState('');
-  const [displayName, setDisplayName] = useState(initialDisplayName ?? '');
+  const [displayName, setDisplayName] = useState(providerName ?? '');
   const [usernameState, setUsernameState] = useState<UsernameState>({ kind: 'idle' });
   const [focusedField, setFocusedField] = useState<'username' | 'name' | null>(null);
 
