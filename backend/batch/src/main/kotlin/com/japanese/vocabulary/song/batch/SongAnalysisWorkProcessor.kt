@@ -37,7 +37,11 @@ class SongAnalysisWorkProcessor(
             val code = errorCode(e)
             val message = errorMessage(e)
             workService.markFailed(workId, workerId, code, message)
-            logger.error("[workId={}] Song analysis failed with {}", work.id, code, e)
+            if (e is BusinessException && e.errorCode == ErrorCode.LYRICS_NOT_FOUND) {
+                logger.warn("[workId={}] Song analysis failed with {}", work.id, code)
+            } else {
+                logger.error("[workId={}] Song analysis failed with {}", work.id, code, e)
+            }
             false
         }
     }
