@@ -18,6 +18,7 @@ interface AuthState {
   appleLogin: (idToken: string, displayName?: string) => Promise<void>;
   googleSignup: (idToken: string, username: string, displayName?: string) => Promise<void>;
   appleSignup: (idToken: string, username: string, displayName?: string) => Promise<void>;
+  setError: (message: string | null) => void;
   loadProfile: () => Promise<void>;
   setUserName: (name: string | null) => Promise<void>;
   setUsername: (username: string) => Promise<void>;
@@ -138,6 +139,11 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ status: 'error', error: apiErrorMessage(e, 'Sign-up failed') });
     }
   },
+
+  // Sign-in can fail natively, before any store action runs (no Apple account on the
+  // device, Play Services missing). Those failures need the same error slot as the
+  // API ones, or the button just looks dead.
+  setError: (message) => set({ status: message ? 'error' : 'idle', error: message }),
 
   loadProfile: async () => {
     const [username, name] = await Promise.all([

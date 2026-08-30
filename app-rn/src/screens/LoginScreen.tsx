@@ -3,7 +3,7 @@ import { View, Text, ActivityIndicator, Linking, Pressable, StyleSheet } from 'r
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useShallow } from 'zustand/react/shallow';
-import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { useAuthStore } from '../stores/authStore';
 import { TOS_URL, PRIVACY_URL } from '../config/legal';
@@ -16,6 +16,19 @@ import { isDevBuild } from '../utils/buildEnv';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
+// The native sign-in sheet can fail before any request is made. Codes are surfaced
+// because the same generic wording across every cause is what makes these
+// undiagnosable from a user report.
+function nativeSignInError(provider: 'Apple' | 'Google', e: any): string {
+  if (provider === 'Apple' && e?.code === 'ERR_REQUEST_UNKNOWN') {
+    return 'Apple 로그인을 시작할 수 없습니다. 기기에 Apple 계정이 로그인되어 있는지 확인해주세요.';
+  }
+  if (provider === 'Google' && e?.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+    return 'Google Play 서비스를 사용할 수 없습니다.';
+  }
+  return `${provider} 로그인에 실패했습니다.${e?.code ? ` (${e.code})` : ''}`;
+}
+
 export default function LoginScreen({ navigation }: Props) {
   const [showServerModal, setShowServerModal] = useState(false);
   const {
@@ -26,6 +39,7 @@ export default function LoginScreen({ navigation }: Props) {
     pendingProvider,
     googleLogin,
     appleLogin,
+    setError,
     reset,
   } = useAuthStore(
     useShallow((s) => ({
@@ -36,6 +50,7 @@ export default function LoginScreen({ navigation }: Props) {
       pendingProvider: s.pendingProvider,
       googleLogin: s.googleLogin,
       appleLogin: s.appleLogin,
+      setError: s.setError,
       reset: s.reset,
     })),
   );
@@ -62,19 +77,22 @@ export default function LoginScreen({ navigation }: Props) {
   }, [status, pendingIdToken, pendingIdentity, pendingProvider, navigation, reset]);
 
   const handleGoogleLogin = useCallback(async () => {
+    setError(null);
     try {
       await GoogleSignin.hasPlayServices();
       const result = await GoogleSignin.signIn();
       const idToken = (result as any)?.data?.idToken ?? (result as any)?.idToken;
       if (!idToken) return;
       await googleLogin(idToken);
-    } catch {
-      // user cancel or platform error — surface via store, retry available
+    } catch (e: any) {
+      if (e?.code === statusCodes.SIGN_IN_CANCELLED || e?.code === statusCodes.IN_PROGRESS) return;
+      setError(nativeSignInError('Google', e));
     }
-  }, [googleLogin]);
+  }, [googleLogin, setError]);
 
   const handleAppleLogin = useCallback(async () => {
     if (status === 'loading') return;
+    setError(null);
     try {
       const credential = await AppleAuthentication.signInAsync({
         requestedScopes: [
@@ -90,9 +108,9 @@ export default function LoginScreen({ navigation }: Props) {
       await appleLogin(credential.identityToken, displayName || undefined);
     } catch (e: any) {
       if (e?.code === 'ERR_REQUEST_CANCELED' || e?.code === 'ERR_CANCELED') return;
-      // Store-level API errors are surfaced through `error`; native availability errors are retryable.
+      setError(nativeSignInError('Apple', e));
     }
-  }, [appleLogin, status]);
+  }, [appleLogin, status, setError]);
 
   const loading = status === 'loading';
 
