@@ -20,6 +20,7 @@ import OssLicenseScreen from '../screens/OssLicenseScreen';
 import HomeTab from '../screens/tabs/HomeTab';
 import MyPageTab from '../screens/tabs/MyPageTab';
 
+import { AuthProvider } from '../api/authApi';
 import { WordSense } from '../types/word';
 import { Token } from '../types/song';
 
@@ -33,10 +34,10 @@ type SongPlaybackEntryParams = {
 export type RootStackParamList = {
   Login: undefined;
   Signup: {
+    provider: AuthProvider;
     idToken: string;
     email: string | null;
-    displayName: string | null;
-    provider: 'google' | 'apple';
+    providerName: string | null;
   };
   ProfileEdit: undefined;
   Main: undefined;

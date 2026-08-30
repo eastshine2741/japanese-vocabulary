@@ -14,8 +14,8 @@ interface AuthState {
   pendingIdToken: string | null;
   pendingProvider: AuthProvider | null;
   googleLogin: (idToken: string) => Promise<void>;
-  googleSignup: (idToken: string, username: string, displayName?: string) => Promise<void>;
   appleLogin: (idToken: string) => Promise<void>;
+  googleSignup: (idToken: string, username: string, displayName?: string) => Promise<void>;
   appleSignup: (idToken: string, username: string, displayName?: string) => Promise<void>;
   loadProfile: () => Promise<void>;
   setUserName: (name: string | null) => Promise<void>;
@@ -59,26 +59,6 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
   },
 
-  googleSignup: async (idToken, username, displayName) => {
-    set({ status: 'loading', error: null });
-    try {
-      const res = await authApi.googleSignup(idToken, username, displayName);
-      await tokenStorage.saveToken(res.token);
-      await persistProfile(res.username, res.name);
-      set({
-        status: 'success',
-        username: res.username,
-        userName: res.name,
-        pendingIdentity: null,
-        pendingIdToken: null,
-        pendingProvider: null,
-      });
-      requestPermissionAndRegisterToken();
-    } catch (e: any) {
-      set({ status: 'error', error: e.response?.data?.message || 'Sign-up failed' });
-    }
-  },
-
   appleLogin: async (idToken) => {
     set({ status: 'loading', error: null });
     try {
@@ -98,6 +78,26 @@ export const useAuthStore = create<AuthState>((set) => ({
       requestPermissionAndRegisterToken();
     } catch (e: any) {
       set({ status: 'error', error: e.response?.data?.message || 'Apple sign-in failed' });
+    }
+  },
+
+  googleSignup: async (idToken, username, displayName) => {
+    set({ status: 'loading', error: null });
+    try {
+      const res = await authApi.googleSignup(idToken, username, displayName);
+      await tokenStorage.saveToken(res.token);
+      await persistProfile(res.username, res.name);
+      set({
+        status: 'success',
+        username: res.username,
+        userName: res.name,
+        pendingIdentity: null,
+        pendingIdToken: null,
+        pendingProvider: null,
+      });
+      requestPermissionAndRegisterToken();
+    } catch (e: any) {
+      set({ status: 'error', error: e.response?.data?.message || 'Sign-up failed' });
     }
   },
 

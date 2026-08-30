@@ -12,6 +12,7 @@ function resolveNamespace() {
 
 const isProd = process.env.BUILD_ENV === 'prod';
 const versionName = process.env.BUILD_VERSION_NAME ?? '1.0.0';
+const buildNumber = process.env.BUILD_NUMBER ?? '1';
 const versionCodeEnv = process.env.BUILD_VERSION_CODE;
 const versionCode = versionCodeEnv ? parseInt(versionCodeEnv, 10) : undefined;
 const buildNumber = process.env.BUILD_NUMBER ?? '1';
@@ -41,11 +42,13 @@ export default {
     icon: './assets/icon.png',
     userInterfaceStyle: 'light',
     ios: {
-      bundleIdentifier,
+      bundleIdentifier: packageName,
       buildNumber,
       supportsTablet: false,
       usesAppleSignIn: true,
-      ...(firebaseDisabled ? {} : { googleServicesFile: './GoogleService-Info.plist' }),
+      infoPlist: {
+        CFBundleAllowMixedLocalizations: true,
+      },
     },
     android: {
       adaptiveIcon: {
@@ -63,6 +66,7 @@ export default {
     },
     plugins: [
       './plugins/withReleaseSigning',
+      'expo-apple-authentication',
       '@react-native-google-signin/google-signin',
       'expo-apple-authentication',
       ...(firebaseDisabled ? [] : ['@react-native-firebase/app']),

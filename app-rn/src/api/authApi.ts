@@ -14,7 +14,9 @@ export interface VerifiedIdentity {
   name: string | null;
 }
 
-export type LoginResult =
+export type AuthProvider = 'google' | 'apple';
+
+export type ProviderLoginResult =
   | { kind: 'authenticated'; token: string; username: string; name: string | null }
   | { kind: 'needsSignup'; identity: VerifiedIdentity };
 
@@ -46,9 +48,17 @@ function toLoginResult(data: LoginResponseBody): LoginResult {
 }
 
 export const authApi = {
-  async googleLogin(idToken: string): Promise<LoginResult> {
-    const { data } = await client.post<LoginResponseBody>('/api/auth/google', { idToken });
-    return toLoginResult(data);
+  async googleLogin(idToken: string): Promise<ProviderLoginResult> {
+    const { data } = await client.post<GoogleLoginResponseBody>('/api/auth/google', { idToken });
+    if (data.kind === 'needsSignup') {
+      return { kind: 'needsSignup', identity: data.identity! };
+    }
+    return {
+      kind: 'authenticated',
+      token: data.token!,
+      username: data.username!,
+      name: data.name ?? null,
+    };
   },
 
   async googleSignup(
@@ -75,6 +85,32 @@ export const authApi = {
     displayName?: string,
   ): Promise<AuthResponse> {
     const { data } = await client.post<AuthResponse>('/api/auth/apple/signup', {
+      idToken,
+      username,
+      displayName,
+    });
+    return data;
+  },
+
+  async appleLogin(idToken: string): Promise<ProviderLoginResult> {
+    const { data } = await client.post<GoogleLoginResponseBody>('/api/auth/apple', { idToken });
+    if (data.kind === 'needsSignup') {
+      return { kind: 'needsSignup', identity: data.identity! };
+    }
+    return {
+      kind: 'authenticated',
+      token: data.token!,
+      username: data.username!,
+      name: data.name ?? null,
+    };
+  },
+
+  async appleSignup(
+    idToken: string,
+    username: string,
+    displayName?: string,
+  ): Promise<GoogleAuthResponse> {
+    const { data } = await client.post<GoogleAuthResponse>('/api/auth/apple/signup', {
       idToken,
       username,
       displayName,
