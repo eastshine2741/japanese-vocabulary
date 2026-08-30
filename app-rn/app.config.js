@@ -14,6 +14,7 @@ const isProd = process.env.BUILD_ENV === 'prod';
 const versionName = process.env.BUILD_VERSION_NAME ?? '1.0.0';
 const versionCodeEnv = process.env.BUILD_VERSION_CODE;
 const versionCode = versionCodeEnv ? parseInt(versionCodeEnv, 10) : undefined;
+const buildNumber = process.env.BUILD_NUMBER ?? '1';
 
 const namespace = resolveNamespace();
 const suffix = `.${namespace.replace(/[^a-z0-9]/g, '')}`;
@@ -29,6 +30,7 @@ const firebaseDisabled = process.env.EXPO_PUBLIC_FIREBASE_DISABLED === '1';
 const packageName = isProd
   ? 'dev.eastshine.kotonoha'
   : `dev.eastshine.kotonoha${suffix}`;
+const bundleIdentifier = packageName;
 
 export default {
   expo: {
@@ -39,7 +41,11 @@ export default {
     icon: './assets/icon.png',
     userInterfaceStyle: 'light',
     ios: {
-      supportsTablet: true,
+      bundleIdentifier,
+      buildNumber,
+      supportsTablet: false,
+      usesAppleSignIn: true,
+      ...(firebaseDisabled ? {} : { googleServicesFile: './GoogleService-Info.plist' }),
     },
     android: {
       adaptiveIcon: {
@@ -58,6 +64,7 @@ export default {
     plugins: [
       './plugins/withReleaseSigning',
       '@react-native-google-signin/google-signin',
+      'expo-apple-authentication',
       ...(firebaseDisabled ? [] : ['@react-native-firebase/app']),
       'expo-notifications',
       [
