@@ -56,6 +56,13 @@ export default function LoginScreen({ navigation }: Props) {
   }, []);
 
   useEffect(() => {
+    if (Platform.OS !== 'ios') return;
+    AppleAuthentication.isAvailableAsync()
+      .then(setAppleAvailable)
+      .catch(() => setAppleAvailable(false));
+  }, []);
+
+  useEffect(() => {
     if (status === 'success') {
       reset();
       navigation.replace('Main');
