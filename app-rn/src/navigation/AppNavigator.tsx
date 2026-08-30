@@ -37,7 +37,7 @@ export type RootStackParamList = {
     idToken: string;
     email: string | null;
     displayName: string | null;
-    provider: 'google' | 'apple';
+    provider: AuthProvider;
   };
   ProfileEdit: undefined;
   Main: undefined;

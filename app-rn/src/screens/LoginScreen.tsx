@@ -1,11 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, ActivityIndicator, Linking, Platform, Pressable, StyleSheet } from 'react-native';
+import { View, Text, ActivityIndicator, Linking, Pressable, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useShallow } from 'zustand/react/shallow';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import * as AppleAuthentication from 'expo-apple-authentication';
-import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../stores/authStore';
 import { TOS_URL, PRIVACY_URL } from '../config/legal';
 import { Colors } from '../theme/theme';
@@ -58,7 +57,6 @@ export default function LoginScreen({ navigation }: Props) {
         idToken: pendingIdToken,
         email: pendingIdentity?.email ?? null,
         displayName: pendingIdentity?.name ?? null,
-        provider: pendingProvider ?? 'google',
       });
     }
   }, [status, pendingIdToken, pendingIdentity, pendingProvider, navigation, reset]);
@@ -95,38 +93,6 @@ export default function LoginScreen({ navigation }: Props) {
       // Store-level API errors are surfaced through `error`; native availability errors are retryable.
     }
   }, [appleLogin, status]);
-
-  const handleAppleLogin = async () => {
-    if (loading) return;
-    try {
-      const credential = await AppleAuthentication.signInAsync({
-        requestedScopes: [
-          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
-          AppleAuthentication.AppleAuthenticationScope.EMAIL,
-        ],
-      });
-      if (!credential.identityToken) return;
-      await appleLogin(credential.identityToken);
-    } catch {
-      // user cancel or platform error — retry available
-    }
-  };
-
-  const handleAppleLogin = async () => {
-    if (loading) return;
-    try {
-      const credential = await AppleAuthentication.signInAsync({
-        requestedScopes: [
-          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
-          AppleAuthentication.AppleAuthenticationScope.EMAIL,
-        ],
-      });
-      if (!credential.identityToken) return;
-      await appleLogin(credential.identityToken);
-    } catch {
-      // user cancel or platform error — retry available
-    }
-  };
 
   const loading = status === 'loading';
 
@@ -174,26 +140,6 @@ export default function LoginScreen({ navigation }: Props) {
             buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
             cornerRadius={26}
             style={[styles.appleBtn, loading && styles.authBtnDisabled]}
-            onPress={handleAppleLogin}
-          />
-        )}
-
-        {appleAvailable && (
-          <AppleAuthentication.AppleAuthenticationButton
-            buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
-            buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-            cornerRadius={9999}
-            style={styles.appleBtn}
-            onPress={handleAppleLogin}
-          />
-        )}
-
-        {appleAvailable && (
-          <AppleAuthentication.AppleAuthenticationButton
-            buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
-            buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-            cornerRadius={9999}
-            style={styles.appleBtn}
             onPress={handleAppleLogin}
           />
         )}
@@ -259,6 +205,7 @@ const styles = StyleSheet.create({
   googleBtnPressed: { opacity: 0.85 },
   googleLabel: { fontSize: 15, fontWeight: '600', color: Colors.textPrimary },
   appleBtn: { height: 52, width: '100%' },
+  authBtnDisabled: { opacity: 0.6 },
   terms: { alignItems: 'center', marginTop: 6 },
   termsLine: { fontSize: 12, color: Colors.textMuted, textAlign: 'center' },
   termsLink: {

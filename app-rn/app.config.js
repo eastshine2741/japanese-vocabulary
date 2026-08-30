@@ -15,7 +15,6 @@ const versionName = process.env.BUILD_VERSION_NAME ?? '1.0.0';
 const buildNumber = process.env.BUILD_NUMBER ?? '1';
 const versionCodeEnv = process.env.BUILD_VERSION_CODE;
 const versionCode = versionCodeEnv ? parseInt(versionCodeEnv, 10) : undefined;
-const buildNumber = process.env.BUILD_NUMBER ?? '1';
 
 const namespace = resolveNamespace();
 const suffix = `.${namespace.replace(/[^a-z0-9]/g, '')}`;
@@ -66,7 +65,6 @@ export default {
       './plugins/withReleaseSigning',
       'expo-apple-authentication',
       '@react-native-google-signin/google-signin',
-      'expo-apple-authentication',
       ...(firebaseDisabled ? [] : ['@react-native-firebase/app']),
       'expo-notifications',
       [
