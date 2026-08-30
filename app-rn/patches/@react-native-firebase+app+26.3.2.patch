@@ -1,0 +1,26 @@
+diff --git a/node_modules/@react-native-firebase/app/ios/generated/RNFBAppTurboModules/RNFBAppTurboModules.h b/node_modules/@react-native-firebase/app/ios/generated/RNFBAppTurboModules/RNFBAppTurboModules.h
+index 8f48f8f..b5c996c 100644
+--- a/node_modules/@react-native-firebase/app/ios/generated/RNFBAppTurboModules/RNFBAppTurboModules.h
++++ b/node_modules/@react-native-firebase/app/ios/generated/RNFBAppTurboModules/RNFBAppTurboModules.h
+@@ -205,8 +205,8 @@ namespace JS {
+ - (void)preferencesClearAll:(RCTPromiseResolveBlock)resolve
+                      reject:(RCTPromiseRejectBlock)reject;
+ - (void)setLogLevel:(NSString *)logLevel;
+-- (facebook::react::ModuleConstants<JS::NativeRNFBTurboApp::Constants>)constantsToExport;
+-- (facebook::react::ModuleConstants<JS::NativeRNFBTurboApp::Constants>)getConstants;
++- (facebook::react::ModuleConstants<JS::NativeRNFBTurboApp::Constants::Builder>)constantsToExport;
++- (facebook::react::ModuleConstants<JS::NativeRNFBTurboApp::Constants::Builder>)getConstants;
+ 
+ @end
+ 
+@@ -280,8 +280,8 @@ namespace JS {
+                                   reject:(RCTPromiseRejectBlock)reject;
+ - (void)androidMakePlayServicesAvailable:(RCTPromiseResolveBlock)resolve
+                                   reject:(RCTPromiseRejectBlock)reject;
+-- (facebook::react::ModuleConstants<JS::NativeRNFBTurboUtils::Constants>)constantsToExport;
+-- (facebook::react::ModuleConstants<JS::NativeRNFBTurboUtils::Constants>)getConstants;
++- (facebook::react::ModuleConstants<JS::NativeRNFBTurboUtils::Constants::Builder>)constantsToExport;
++- (facebook::react::ModuleConstants<JS::NativeRNFBTurboUtils::Constants::Builder>)getConstants;
+ 
+ @end
+ 

@@ -45,7 +45,15 @@ export default {
       buildNumber,
       supportsTablet: false,
       usesAppleSignIn: true,
-      ...(firebaseDisabled ? {} : { googleServicesFile: './GoogleService-Info.plist' }),
+      infoPlist: {
+        ITSAppUsesNonExemptEncryption: false,
+      },
+      ...(firebaseDisabled
+        ? {}
+        : {
+            googleServicesFile:
+              process.env.GOOGLE_SERVICES_PLIST ?? './GoogleService-Info.plist',
+          }),
     },
     android: {
       adaptiveIcon: {
@@ -61,11 +69,37 @@ export default {
     web: {
       favicon: './assets/favicon.png',
     },
+    extra: {
+      eas: {
+        projectId: 'f03be909-9675-45fc-8ad5-818e30cdf18e',
+      },
+    },
     plugins: [
       './plugins/withReleaseSigning',
       'expo-apple-authentication',
       '@react-native-google-signin/google-signin',
-      ...(firebaseDisabled ? [] : ['@react-native-firebase/app']),
+      ...(firebaseDisabled
+        ? []
+        : [
+            [
+              '@react-native-firebase/app',
+              {
+                ios: {
+                  disableSPM: true,
+                },
+              },
+            ],
+            '@react-native-firebase/messaging',
+          ]),
+      [
+        'expo-build-properties',
+        {
+          ios: {
+            useFrameworks: 'static',
+            forceStaticLinking: ['RNFBApp', 'RNFBMessaging'],
+          },
+        },
+      ],
       'expo-notifications',
       [
         'expo-splash-screen',

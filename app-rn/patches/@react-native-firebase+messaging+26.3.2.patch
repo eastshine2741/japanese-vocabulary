@@ -1,0 +1,15 @@
+diff --git a/node_modules/@react-native-firebase/messaging/ios/generated/RNFBMessagingTurboModules/RNFBMessagingTurboModules.h b/node_modules/@react-native-firebase/messaging/ios/generated/RNFBMessagingTurboModules/RNFBMessagingTurboModules.h
+index 8db7d58..68c7829 100644
+--- a/node_modules/@react-native-firebase/messaging/ios/generated/RNFBMessagingTurboModules/RNFBMessagingTurboModules.h
++++ b/node_modules/@react-native-firebase/messaging/ios/generated/RNFBMessagingTurboModules/RNFBMessagingTurboModules.h
+@@ -140,8 +140,8 @@ namespace JS {
+                                   reject:(RCTPromiseRejectBlock)reject;
+ - (void)isNotificationDelegationEnabled:(RCTPromiseResolveBlock)resolve
+                                  reject:(RCTPromiseRejectBlock)reject;
+-- (facebook::react::ModuleConstants<JS::NativeRNFBTurboMessaging::Constants>)constantsToExport;
+-- (facebook::react::ModuleConstants<JS::NativeRNFBTurboMessaging::Constants>)getConstants;
++- (facebook::react::ModuleConstants<JS::NativeRNFBTurboMessaging::Constants::Builder>)constantsToExport;
++- (facebook::react::ModuleConstants<JS::NativeRNFBTurboMessaging::Constants::Builder>)getConstants;
+ 
+ @end
+ 

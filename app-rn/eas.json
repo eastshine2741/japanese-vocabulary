@@ -21,7 +21,7 @@
       }
     },
     "production": {
-      "autoIncrement": true,
+      "environment": "production",
       "env": {
         "BUILD_ENV": "prod"
       }
@@ -30,7 +30,7 @@
   "submit": {
     "production": {
       "ios": {
-        "ascAppId": "TODO_APP_STORE_CONNECT_APP_ID"
+        "ascAppId": "6806729387"
       }
     }
   }
