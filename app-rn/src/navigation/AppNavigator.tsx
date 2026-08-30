@@ -32,7 +32,12 @@ type SongPlaybackEntryParams = {
 
 export type RootStackParamList = {
   Login: undefined;
-  Signup: { idToken: string; email: string | null; googleName: string | null };
+  Signup: {
+    idToken: string;
+    email: string | null;
+    displayName: string | null;
+    provider: 'google' | 'apple';
+  };
   ProfileEdit: undefined;
   Main: undefined;
   SongSearch: { query: string };
