@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { authApi, VerifiedIdentity } from '../api/authApi';
+import { AuthProvider, authApi, VerifiedIdentity } from '../api/authApi';
 import { tokenStorage } from '../utils/tokenStorage';
 import { requestPermissionAndRegisterToken } from '../services/pushNotifications';
 
@@ -12,8 +12,11 @@ interface AuthState {
   userName: string | null;
   pendingIdentity: VerifiedIdentity | null;
   pendingIdToken: string | null;
+  pendingProvider: AuthProvider | null;
   googleLogin: (idToken: string) => Promise<void>;
   googleSignup: (idToken: string, username: string, displayName?: string) => Promise<void>;
+  appleLogin: (idToken: string) => Promise<void>;
+  appleSignup: (idToken: string, username: string, displayName?: string) => Promise<void>;
   loadProfile: () => Promise<void>;
   setUserName: (name: string | null) => Promise<void>;
   setUsername: (username: string) => Promise<void>;
@@ -32,13 +35,19 @@ export const useAuthStore = create<AuthState>((set) => ({
   userName: null,
   pendingIdentity: null,
   pendingIdToken: null,
+  pendingProvider: null,
 
   googleLogin: async (idToken) => {
     set({ status: 'loading', error: null });
     try {
       const res = await authApi.googleLogin(idToken);
       if (res.kind === 'needsSignup') {
-        set({ status: 'needs_signup', pendingIdentity: res.identity, pendingIdToken: idToken });
+        set({
+          status: 'needs_signup',
+          pendingIdentity: res.identity,
+          pendingIdToken: idToken,
+          pendingProvider: 'google',
+        });
         return;
       }
       await tokenStorage.saveToken(res.token);
@@ -62,6 +71,49 @@ export const useAuthStore = create<AuthState>((set) => ({
         userName: res.name,
         pendingIdentity: null,
         pendingIdToken: null,
+        pendingProvider: null,
+      });
+      requestPermissionAndRegisterToken();
+    } catch (e: any) {
+      set({ status: 'error', error: e.response?.data?.message || 'Sign-up failed' });
+    }
+  },
+
+  appleLogin: async (idToken) => {
+    set({ status: 'loading', error: null });
+    try {
+      const res = await authApi.appleLogin(idToken);
+      if (res.kind === 'needsSignup') {
+        set({
+          status: 'needs_signup',
+          pendingIdentity: res.identity,
+          pendingIdToken: idToken,
+          pendingProvider: 'apple',
+        });
+        return;
+      }
+      await tokenStorage.saveToken(res.token);
+      await persistProfile(res.username, res.name);
+      set({ status: 'success', username: res.username, userName: res.name });
+      requestPermissionAndRegisterToken();
+    } catch (e: any) {
+      set({ status: 'error', error: e.response?.data?.message || 'Apple sign-in failed' });
+    }
+  },
+
+  appleSignup: async (idToken, username, displayName) => {
+    set({ status: 'loading', error: null });
+    try {
+      const res = await authApi.appleSignup(idToken, username, displayName);
+      await tokenStorage.saveToken(res.token);
+      await persistProfile(res.username, res.name);
+      set({
+        status: 'success',
+        username: res.username,
+        userName: res.name,
+        pendingIdentity: null,
+        pendingIdToken: null,
+        pendingProvider: null,
       });
       requestPermissionAndRegisterToken();
     } catch (e: any) {
@@ -87,5 +139,12 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ username });
   },
 
-  reset: () => set({ status: 'idle', error: null, pendingIdentity: null, pendingIdToken: null }),
+  reset: () =>
+    set({
+      status: 'idle',
+      error: null,
+      pendingIdentity: null,
+      pendingIdToken: null,
+      pendingProvider: null,
+    }),
 }));
