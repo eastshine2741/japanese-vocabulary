@@ -42,13 +42,11 @@ export default {
     icon: './assets/icon.png',
     userInterfaceStyle: 'light',
     ios: {
-      bundleIdentifier: packageName,
+      bundleIdentifier,
       buildNumber,
       supportsTablet: false,
       usesAppleSignIn: true,
-      infoPlist: {
-        CFBundleAllowMixedLocalizations: true,
-      },
+      ...(firebaseDisabled ? {} : { googleServicesFile: './GoogleService-Info.plist' }),
     },
     android: {
       adaptiveIcon: {

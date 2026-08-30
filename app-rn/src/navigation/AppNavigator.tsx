@@ -34,10 +34,10 @@ type SongPlaybackEntryParams = {
 export type RootStackParamList = {
   Login: undefined;
   Signup: {
-    provider: AuthProvider;
     idToken: string;
     email: string | null;
-    providerName: string | null;
+    displayName: string | null;
+    provider: 'google' | 'apple';
   };
   ProfileEdit: undefined;
   Main: undefined;
