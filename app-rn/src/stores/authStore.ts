@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { AuthProvider, authApi, VerifiedIdentity } from '../api/authApi';
+import { apiErrorMessage } from '../api/errors';
 import { tokenStorage } from '../utils/tokenStorage';
 import { requestPermissionAndRegisterToken } from '../services/pushNotifications';
 
@@ -62,7 +63,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       });
       requestPermissionAndRegisterToken();
     } catch (e: any) {
-      set({ status: 'error', error: e.response?.data?.message || 'Google sign-in failed' });
+      set({ status: 'error', error: apiErrorMessage(e, 'Google sign-in failed') });
     }
   },
 
@@ -94,7 +95,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       });
       requestPermissionAndRegisterToken();
     } catch (e: any) {
-      set({ status: 'error', error: e.response?.data?.message || 'Apple sign-in failed' });
+      set({ status: 'error', error: apiErrorMessage(e, 'Apple sign-in failed') });
     }
   },
 
@@ -114,7 +115,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       });
       requestPermissionAndRegisterToken();
     } catch (e: any) {
-      set({ status: 'error', error: e.response?.data?.message || 'Sign-up failed' });
+      set({ status: 'error', error: apiErrorMessage(e, 'Sign-up failed') });
     }
   },
 
@@ -134,7 +135,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       });
       requestPermissionAndRegisterToken();
     } catch (e: any) {
-      set({ status: 'error', error: e.response?.data?.message || 'Sign-up failed' });
+      set({ status: 'error', error: apiErrorMessage(e, 'Sign-up failed') });
     }
   },
 
