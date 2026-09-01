@@ -40,6 +40,29 @@ object JapaneseText {
     }.joinToString("")
 
     /**
+     * Katakana → hiragana, for a **dictionary lookup key** — never for a reading.
+     *
+     * Readings are stored in katakana and only [toKatakana] produces them. This is the other
+     * direction, and it exists because jisho's *search* is script-sensitive: a lyric that writes 私 as
+     * `アタシ` needs the query `あたし` to reach the entry at all.
+     */
+    fun toHiragana(text: String): String = text.map { ch ->
+        if (ch in KATAKANA_START..KATAKANA_END) ch - KATAKANA_OFFSET else ch
+    }.joinToString("")
+
+    /** Small vowel kana and the full-size kana they are the same sound as. */
+    private val SMALL_VOWEL_KANA = mapOf('ァ' to 'ア', 'ィ' to 'イ', 'ゥ' to 'ウ', 'ェ' to 'エ', 'ォ' to 'オ')
+
+    /**
+     * True when two readings differ only in whether a vowel is written small: `ハァ` and `ハア` are the
+     * same reading, so neither is a correction of the other.
+     */
+    fun readingsAgree(a: String, b: String): Boolean = fullSizeVowels(a) == fullSizeVowels(b)
+
+    private fun fullSizeVowels(text: String): String =
+        text.map { ch -> SMALL_VOWEL_KANA[ch] ?: ch }.joinToString("")
+
+    /**
      * True when [text] is non-empty and made only of kana (either script) plus the prolonged sound
      * mark. Kanji, latin, digits, and punctuation all make it false — this is the check that keeps an
      * unnormalized surface from being stored as if it were a reading.
@@ -50,6 +73,40 @@ object JapaneseText {
                 ch in KATAKANA_START..KATAKANA_END ||
                 ch == PROLONGED_SOUND_MARK
         }
+
+    /** Kana sung differently from how they are spelled. */
+    private val SUNG_KANA = mapOf('は' to 'ワ', 'へ' to 'エ', 'を' to 'オ')
+
+    /** Kana [particleReading] rewrites. を is sung オ but stays ヲ: both read 오, and オ can be
+     * swallowed as a long vowel by the syllable in front of it (トモ + オ → 토모-). */
+    private val REWRITTEN_KANA = mapOf('は' to 'ワ', 'へ' to 'エ')
+
+    /** The katakana a kana particle is *sung* as when that differs from its spelling; null otherwise. */
+    fun sungParticleKana(particle: Char): Char? = SUNG_KANA[particle]
+
+    /**
+     * The reading of a particle [surface], or null when transliterating it is already right.
+     *
+     * [toKatakana] alone cannot produce it: 夕暮れは is sung ユウグレワ, and the app derives the Hangul
+     * from this field, so a spelled reading showed 유-구레하. Positional, so compounds work too
+     * (には → ニワ, までは → マデワ).
+     */
+    fun particleReading(surface: String): String? {
+        if (!isKanaOnly(surface)) return null
+        if (surface.none { it in REWRITTEN_KANA }) return null
+        return surface.map { ch -> REWRITTEN_KANA[ch] ?: toKatakana(ch.toString()).first() }.joinToString("")
+    }
+
+    /**
+     * True when [text] is non-empty and written only in katakana (plus the prolonged sound mark).
+     *
+     * Marks the words a Japanese dictionary is not expected to answer: loanwords the lyric coined
+     * (`ステンバイミー`), onomatopoeia (`チリン`, `ダラッ`), and names. A missing dictionary entry is
+     * evidence of bad segmentation for everything else, but for these it is simply the truth, so they
+     * are exempt from the headword check instead of burning segmentation retries.
+     */
+    fun isKatakanaOnly(text: String): Boolean =
+        text.isNotEmpty() && text.all { ch -> ch in KATAKANA_START..KATAKANA_END || ch == PROLONGED_SOUND_MARK }
 
     private fun Char.hasReading(): Boolean =
         this in HIRAGANA_START..HIRAGANA_END ||

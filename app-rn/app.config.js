@@ -12,6 +12,7 @@ function resolveNamespace() {
 
 const isProd = process.env.BUILD_ENV === 'prod';
 const versionName = process.env.BUILD_VERSION_NAME ?? '1.0.0';
+const buildNumber = process.env.BUILD_NUMBER ?? '1';
 const versionCodeEnv = process.env.BUILD_VERSION_CODE;
 const versionCode = versionCodeEnv ? parseInt(versionCodeEnv, 10) : undefined;
 
@@ -29,6 +30,7 @@ const firebaseDisabled = process.env.EXPO_PUBLIC_FIREBASE_DISABLED === '1';
 const packageName = isProd
   ? 'dev.eastshine.kotonoha'
   : `dev.eastshine.kotonoha${suffix}`;
+const bundleIdentifier = packageName;
 
 export default {
   expo: {
@@ -39,7 +41,19 @@ export default {
     icon: './assets/icon.png',
     userInterfaceStyle: 'light',
     ios: {
-      supportsTablet: true,
+      bundleIdentifier,
+      buildNumber,
+      supportsTablet: false,
+      usesAppleSignIn: true,
+      infoPlist: {
+        ITSAppUsesNonExemptEncryption: false,
+      },
+      ...(firebaseDisabled
+        ? {}
+        : {
+            googleServicesFile:
+              process.env.GOOGLE_SERVICES_PLIST ?? './GoogleService-Info.plist',
+          }),
     },
     android: {
       adaptiveIcon: {
@@ -55,10 +69,37 @@ export default {
     web: {
       favicon: './assets/favicon.png',
     },
+    extra: {
+      eas: {
+        projectId: 'f03be909-9675-45fc-8ad5-818e30cdf18e',
+      },
+    },
     plugins: [
       './plugins/withReleaseSigning',
+      'expo-apple-authentication',
       '@react-native-google-signin/google-signin',
-      ...(firebaseDisabled ? [] : ['@react-native-firebase/app']),
+      ...(firebaseDisabled
+        ? []
+        : [
+            [
+              '@react-native-firebase/app',
+              {
+                ios: {
+                  disableSPM: true,
+                },
+              },
+            ],
+            '@react-native-firebase/messaging',
+          ]),
+      [
+        'expo-build-properties',
+        {
+          ios: {
+            useFrameworks: 'static',
+            forceStaticLinking: ['RNFBApp', 'RNFBMessaging'],
+          },
+        },
+      ],
       'expo-notifications',
       [
         'expo-splash-screen',

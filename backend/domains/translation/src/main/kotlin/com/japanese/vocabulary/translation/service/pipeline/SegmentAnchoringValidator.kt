@@ -19,17 +19,21 @@ class SegmentAnchoringValidator {
     fun anchor(rawByIndex: Map<Int, String>, segmentedLines: List<SegLineDto>): SegmentAnchoringResult {
         val anchoredByIndex = mutableMapOf<Int, List<PipelineToken>>()
         val failuresByIndex = mutableMapOf<Int, String>()
+        val incompleteByIndex = mutableMapOf<Int, String>()
         val seenIndices = mutableSetOf<Int>()
 
         segmentedLines.forEach { line ->
             val rawText = rawByIndex[line.index] ?: return@forEach
             if (!seenIndices.add(line.index)) {
                 anchoredByIndex.remove(line.index)
+                incompleteByIndex.remove(line.index)
                 failuresByIndex[line.index] = "Duplicate line index=${line.index} in segmentation response"
                 return@forEach
             }
             try {
-                anchoredByIndex[line.index] = anchorLine(line.index, rawText, line)
+                val anchoredLine = anchorLine(line.index, rawText, line)
+                anchoredByIndex[line.index] = anchoredLine.tokens
+                anchoredLine.uncovered?.let { incompleteByIndex[line.index] = it }
             } catch (e: SegmentationValidationException) {
                 failuresByIndex[line.index] = e.message ?: "Segmentation validation failed at line index=${line.index}"
             }
@@ -44,6 +48,7 @@ class SegmentAnchoringValidator {
         return SegmentAnchoringResult(
             anchoredByIndex = anchoredByIndex,
             failuresByIndex = failuresByIndex,
+            incompleteByIndex = incompleteByIndex,
         )
     }
 
@@ -58,8 +63,14 @@ class SegmentAnchoringValidator {
      * those for not being present. `涼しい風吹く 青空の匂い` failed four identical retries over a `風`
      * sitting right there at offset 3, because a bogus space after `涼しい` had already consumed the
      * one at offset 6.
+     *
+     * Japanese text the words left out is **reported, not thrown**. Every surface was found at a real
+     * position, so the tokens are usable as they are; what is missing is a word, not a position. The
+     * uncovered case is a model that skipped part of the line — `晴れ舞台（イェイ）` came back as
+     * `晴れ舞台` four attempts running, because a parenthesized ad-lib does not read as a lyric word —
+     * and losing one ad-lib is not worth losing the song.
      */
-    private fun anchorLine(index: Int, rawText: String, line: SegLineDto): List<PipelineToken> {
+    private fun anchorLine(index: Int, rawText: String, line: SegLineDto): AnchoredLine {
         val covered = BooleanArray(rawText.length)
         var cursor = 0
         var previousSurface: String? = null
@@ -87,13 +98,14 @@ class SegmentAnchoringValidator {
             )
         }
 
-        uncoveredJapaneseRun(rawText, covered)?.let { (offset, text) ->
-            throw SegmentationValidationException(
-                "Japanese text '$text' at offset=$offset is not covered by segmentation at line index=$index",
-            )
+        val uncovered = uncoveredJapaneseRun(rawText, covered)?.let { (offset, text) ->
+            "Japanese text '$text' at offset=$offset is not covered by segmentation at line index=$index"
         }
-        return tokens
+        return AnchoredLine(tokens = tokens, uncovered = uncovered)
     }
+
+    /** One anchored line: its tokens, and why it is incomplete if Japanese text carries no token. */
+    private data class AnchoredLine(val tokens: List<PipelineToken>, val uncovered: String?)
 
     /**
      * Says where the search actually stood when it gave up. Naming only the missing surface reads as

@@ -40,8 +40,8 @@ function LyricLine({
 
   const canSeek = onLineSeek != null && studyUnit.startTimeMs != null;
 
-  // Assembled from the tokens, each converted on its own — converting a whole line at once lets one
-  // word's long vowel swallow the next word's leading ウ/イ. Empty when the line has no words.
+  // Assembled from the tokens: words separated, 받침 carried across a token boundary, long vowels
+  // kept inside the word they belong to. Empty when the line has no words.
   const koreanPronunciation = useMemo(
     () => convertLineReading(studyUnit.originalText, studyUnit.tokens, 'KOREAN'),
     [studyUnit.originalText, studyUnit.tokens],

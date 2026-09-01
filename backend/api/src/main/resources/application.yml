@@ -49,6 +49,11 @@ google:
     # Same value passed as @react-native-google-signin's webClientId on the app side.
     client-id: ${GOOGLE_OAUTH_CLIENT_ID:}
 
+apple:
+  oauth:
+    # iOS Bundle ID / Apple Service ID used as audience when verifying Sign in with Apple ID tokens.
+    client-id: ${APPLE_OAUTH_CLIENT_ID:dev.eastshine.kotonoha}
+
 sentry:
   dsn: ${SENTRY_DSN_API:}
   environment: ${SENTRY_ENVIRONMENT:local}

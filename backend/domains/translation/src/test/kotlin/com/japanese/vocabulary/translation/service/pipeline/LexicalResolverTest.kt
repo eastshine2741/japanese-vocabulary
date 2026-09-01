@@ -200,6 +200,53 @@ class LexicalResolverTest {
     }
 
     @Test
+    fun `a katakana headword the dictionary indexes in hiragana is queried again in hiragana`(): Unit = runBlocking {
+        // jisho's search is script-sensitive: アンタ answers with アンタレス and アンタナナリボ, never 貴方.
+        // Only the script of the query is wrong, and the lyric writing 貴方 as アンタ is ordinary J-pop,
+        // so the word must not lose its meaning over it.
+        stub(
+            "アンタ" to JishoEntryDto(
+                found = false,
+                word = "アンタ",
+                entries = listOf(entry(headword = null, reading = "アンタレス", english = "Antares")),
+                provenance = JishoLookupProvenance.REJECTED_FALLBACK,
+            ),
+            "あんた" to found(entry(headword = "貴方", reading = "アンタ", english = "you")),
+        )
+
+        val resolved = resolver.resolve(listOf(token("アンタ", "アンタ", "アンタ"))).byTokenKey.values.single()
+
+        assertThat(resolved.baseForm).isEqualTo("あんた")
+        assertThat(resolved.options.map { it.english }).containsExactly("you")
+        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+    }
+
+    @Test
+    fun `the hiragana query reports the same token as unresolved as the full resolve does`(): Unit = runBlocking {
+        // The early probe exists to let segmentation retry a line, so a word the rescue saves must not
+        // be reported as a miss — it would burn a retry on a line that is already correct.
+        stub("あんた" to found(entry(headword = "貴方", reading = "アンタ", english = "you")))
+
+        val missed = resolver.unresolvedTokens(listOf(token("アンタ", "アンタ", "アンタ")))
+
+        assertThat(missed).isEmpty()
+    }
+
+    @Test
+    fun `a katakana word no dictionary answers in either script stays without candidates`(): Unit = runBlocking {
+        // The rescue switches the script, it does not invent an entry: a coinage the lyric made up
+        // misses in hiragana too, and it is exempt from the headword check for exactly that reason.
+        stub()
+
+        val resolved = resolver.resolve(
+            listOf(token("ステンバイミー", "ステンバイミー", "ステンバイミー")),
+        ).byTokenKey.values.single()
+
+        assertThat(resolved.baseForm).isEqualTo("ステンバイミー")
+        assertThat(resolved.options).isEmpty()
+    }
+
+    @Test
     fun `the same word on several lines shares one senseId per dictionary sense`(): Unit = runBlocking {
         // A minted-per-occurrence id sent the same sense to sense-translate once per line, and the
         // model wrote a different Korean gloss each time — one word, three near-identical senses.

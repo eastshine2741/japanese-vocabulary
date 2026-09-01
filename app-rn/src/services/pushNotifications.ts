@@ -1,5 +1,15 @@
 import { Platform } from 'react-native';
-import messaging, { FirebaseMessagingTypes } from '@react-native-firebase/messaging';
+import { getApp } from '@react-native-firebase/app';
+import {
+  AuthorizationStatus,
+  getMessaging,
+  onMessage,
+  onTokenRefresh,
+  requestPermission as requestMessagingPermission,
+  setBackgroundMessageHandler,
+  getToken,
+  type RemoteMessage,
+} from '@react-native-firebase/messaging';
 import * as Notifications from 'expo-notifications';
 import { flashcardApi } from '../api/flashcardApi';
 import { navigate } from '../navigation/navigationRef';
@@ -10,6 +20,10 @@ const REVIEW_CHANNEL_ID = 'review-reminders';
 // registered google-services client), the native default FirebaseApp doesn't
 // exist, so any messaging() call throws. Guard every messaging() use behind this.
 const FIREBASE_ENABLED = process.env.EXPO_PUBLIC_FIREBASE_DISABLED !== '1';
+
+function getFirebaseMessaging() {
+  return getMessaging(getApp());
+}
 
 let currentToken: string | null = null;
 let handlersRegistered = false;
@@ -38,10 +52,10 @@ async function requestPermission(): Promise<boolean> {
     if (status === 'granted') return true;
 
     // RNFirebase iOS path — covers iOS explicit auth + Android 13+ POST_NOTIFICATIONS
-    const authStatus = await messaging().requestPermission();
+    const authStatus = await requestMessagingPermission(getFirebaseMessaging());
     return (
-      authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-      authStatus === messaging.AuthorizationStatus.PROVISIONAL
+      authStatus === AuthorizationStatus.AUTHORIZED ||
+      authStatus === AuthorizationStatus.PROVISIONAL
     );
   } catch {
     return false;
@@ -54,7 +68,7 @@ export async function requestPermissionAndRegisterToken(): Promise<void> {
   if (!granted) return;
 
   try {
-    const token = await messaging().getToken();
+    const token = await getToken(getFirebaseMessaging());
     if (!token) return;
     await flashcardApi.registerDeviceToken({ token, platform: getPlatform() });
     currentToken = token;
@@ -74,7 +88,7 @@ export async function unregisterCurrentToken(): Promise<void> {
   }
 }
 
-function handleData(data: FirebaseMessagingTypes.RemoteMessage['data']): void {
+function handleData(data: RemoteMessage['data']): void {
   if (!data) return;
   if (data.type === 'review_reminder' && data.flashcardId != null) {
     const id = Number(data.flashcardId);
@@ -85,7 +99,7 @@ function handleData(data: FirebaseMessagingTypes.RemoteMessage['data']): void {
 }
 
 async function displayLocalNotification(
-  remoteMessage: FirebaseMessagingTypes.RemoteMessage,
+  remoteMessage: RemoteMessage,
 ): Promise<void> {
   const data = remoteMessage.data ?? {};
   const title = typeof data.title === 'string' ? data.title : '';
@@ -104,7 +118,7 @@ async function displayLocalNotification(
 // Module-scope: must be registered BEFORE the runtime delivers a data-only push to a killed or
 // backgrounded app. Importing this module from App.tsx ensures the handler is set during JS init.
 if (FIREBASE_ENABLED) {
-  messaging().setBackgroundMessageHandler(async (remoteMessage) => {
+  setBackgroundMessageHandler(getFirebaseMessaging(), async (remoteMessage) => {
     await displayLocalNotification(remoteMessage);
   });
 }
@@ -127,7 +141,7 @@ export function registerNotificationHandlers(): void {
   });
 
   if (FIREBASE_ENABLED) {
-    messaging().onTokenRefresh(async (newToken) => {
+    onTokenRefresh(getFirebaseMessaging(), async (newToken) => {
       try {
         if (currentToken && currentToken !== newToken) {
           await flashcardApi.unregisterDeviceToken({ token: currentToken });
@@ -140,7 +154,7 @@ export function registerNotificationHandlers(): void {
     });
 
     // Foreground data-only arrival → render locally via expo-notifications
-    messaging().onMessage(async (remoteMessage) => {
+    onMessage(getFirebaseMessaging(), async (remoteMessage) => {
       await displayLocalNotification(remoteMessage);
     });
   }
@@ -150,7 +164,7 @@ export function registerNotificationHandlers(): void {
   // locally-displayed notification.
   Notifications.addNotificationResponseReceivedListener((response) => {
     const data = response.notification.request.content.data as
-      | FirebaseMessagingTypes.RemoteMessage['data']
+      | RemoteMessage['data']
       | undefined;
     handleData(data);
   });

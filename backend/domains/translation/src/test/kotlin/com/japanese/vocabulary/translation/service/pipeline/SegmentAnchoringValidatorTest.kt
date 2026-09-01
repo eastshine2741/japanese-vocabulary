@@ -183,15 +183,15 @@ class SegmentAnchoringValidatorTest {
     }
 
     @Test
-    fun `requires the kanji iteration mark to be covered by segmentation`() {
-        // 々 is read aloud, so leaving it uncovered would leak a raw glyph into the line's reading.
+    fun `counts the kanji iteration mark as text that must be covered`() {
+        // 々 is read aloud, so leaving it uncovered loses a character the reader hears.
         val result = validator.anchor(
             mapOf(0 to "人々"),
             listOf(SegLineDto(0, listOf(word("人", "人", "ヒト", "ヒト")))),
         )
 
-        assertThat(result.anchoredByIndex).isEmpty()
-        assertThat(result.failuresByIndex[0]).contains("々")
+        assertThat(result.incompleteByIndex[0]).contains("々")
+        assertThat(result.failuresByIndex).isEmpty()
     }
 
     @Test
@@ -220,15 +220,48 @@ class SegmentAnchoringValidatorTest {
     }
 
     @Test
-    fun `reports uncovered Japanese characters as a line failure`() {
+    fun `reports uncovered Japanese as incomplete, and keeps the tokens that did anchor`() {
+        // Uncovered text is a missing word, not a wrong position: every surface here was found where
+        // it really is, so throwing the line away would cost 猫 and 寝る to save nothing.
         val result = validator.anchor(
             mapOf(0 to "猫が寝る"),
             listOf(SegLineDto(0, listOf(word("猫", "猫", "ネコ", "ネコ"), word("寝る", "寝る", "ネル", "ネル")))),
         )
 
-        assertThat(result.anchoredByIndex).isEmpty()
-        assertThat(result.failuresByIndex[0])
+        assertThat(result.failuresByIndex).isEmpty()
+        assertThat(result.incompleteByIndex[0])
             .isEqualTo("Japanese text 'が' at offset=1 is not covered by segmentation at line index=0")
+        assertThat(result.anchoredByIndex.getValue(0).map { it.surface }).containsExactly("猫", "寝る")
+        assertThat(result.anchoredByIndex.getValue(0).map { it.charStart }).containsExactly(0, 2)
+    }
+
+    @Test
+    fun `a line with a surface out of order fails outright rather than counting as incomplete`() {
+        // The opposite case, so the two severities stay distinguishable: 寝る is searched for after the
+        // cursor has already passed it, and no offset in the line can be trusted afterwards.
+        val result = validator.anchor(
+            mapOf(0 to "猫が寝る"),
+            listOf(SegLineDto(0, listOf(word("寝る", "寝る", "ネル", "ネル"), word("猫", "猫", "ネコ", "ネコ")))),
+        )
+
+        assertThat(result.anchoredByIndex).isEmpty()
+        assertThat(result.incompleteByIndex).isEmpty()
+        assertThat(result.failuresByIndex[0]).contains("Surface '猫' is not present in order")
+    }
+
+    @Test
+    fun `parenthesized text left out is incomplete, not a failure`() {
+        // The song killer: 晴れ舞台（イェイ） came back as 晴れ舞台 on every attempt, because the ad-lib in
+        // parentheses does not read as a lyric word to the model.
+        val result = validator.anchor(
+            mapOf(0 to "晴れ舞台（イェイ）"),
+            listOf(SegLineDto(0, listOf(word("晴れ舞台", "晴れ舞台", "ハレブタイ", "ハレブタイ")))),
+        )
+
+        assertThat(result.failuresByIndex).isEmpty()
+        assertThat(result.incompleteByIndex[0])
+            .isEqualTo("Japanese text 'イェイ' at offset=5 is not covered by segmentation at line index=0")
+        assertThat(result.anchoredByIndex.getValue(0).map { it.surface }).containsExactly("晴れ舞台")
     }
 
     @Test

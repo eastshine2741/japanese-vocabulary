@@ -61,6 +61,11 @@ guardrails for deterministic checks and transformations.
    `MAX_SEGMENTATION_ATTEMPTS`. Retries raise the temperature by
    `SEGMENT_TEMPERATURE_STEP` per attempt (0.0, 0.3, …, capped at
    `SEGMENT_MAX_TEMPERATURE`) — see **Anchoring** below.
+   **Identical lines are asked about once** and the answer is copied onto every
+   index holding that text — see **Repeated Lines**. The anchored result then goes
+   through `GluedParticleSplitter` (**Glued Particles**) and a headword
+   resolvability check (**Unresolvable Headwords**), which is the second thing
+   that can send a line back for a retry.
 3. `ApplyRuleMeaningsStage`: rewrites and resolves deterministic grammar tokens
    through `RuleMeaningProvider`.
 4. `ResolveLexicalSensesStage`: sends unresolved Japanese tokens to
@@ -185,6 +190,130 @@ Conversely `々` (U+3005) sits outside every kana and kanji block yet is read
 aloud, so leaving it out let `人々` pass with `々` uncovered and leak a raw glyph
 into the assembled reading.
 
+## Repeated Lines
+
+A chorus repeats whole lines, and each occurrence used to be segmented on its own.
+Chunking made that worse: two copies of a line usually land in different chunks,
+which are different requests, so the same text came back segmented two different
+ways. In song 63 one copy of `雨が降り止むまでは帰れない` resolved completely while the
+other returned `までは` and `帰れない` as their own headwords and lost both meanings —
+and the app then held `帰る` and `帰れない` as two separate word candidates, one of
+them without a meaning.
+
+`SegmentLyricsStage` therefore sends the **distinct** texts of the lines it needs
+and copies each answer onto every index holding that text. Repeats are consistent
+by construction rather than by luck, and the request shrinks by however much the
+song repeats itself. Positions need no adjustment: the text is identical, so the
+anchoring offsets are too.
+
+## Glued Particles
+
+The prompt asks for particles as their own words. Nothing enforced it, so
+`幸せがある` arrived as `幸せ` + `がある`: the headword (`ある`) was right, the surface
+carried the particle, and the reading `ガアル` reached the app as one word — shown
+as 가아루. Anchoring cannot catch this. A glued surface is still an exact substring
+in the right order with a kana reading, which is everything the validator checks.
+
+`GluedParticleSplitter` splits the particle out, and it fires only on the model
+contradicting **itself**:
+
+| shape | example | meaning of the shape |
+|---|---|---|
+| `surface` = `headword` + one particle | `何を` (`何`), `までは` (`まで`) | the model said the dictionary form is the surface minus this particle |
+| `surface` starts with a particle the `headword` does not | `がある` (`ある`), `がいなきゃ` (`いる`) | same statement, from the front |
+
+Three checks then have to agree, and any of them failing leaves the token whole:
+
+- **the dictionary gate**: if the glued form is itself an entry, keep it. `いつも`,
+  `ように` and `何を` are real words, and splitting them would break an entry into
+  two grammar fragments. A fetch error is not an answer either — a network blip
+  must not read as "not a word".
+- **the reading has to divide**: the model writes it either with the particle
+  (`ガアル` → `ガ` + `アル`) or without it (`までは` came back `マデ`, so there is
+  nothing to take off). In the trailing shape `baseFormReading` settles which,
+  because the word half is not inflected — `母は` read `ハハ` is 母 read ハハ, not 母
+  read ハ plus a particle. The leading shape falls back to how the particle is
+  *sung*: 僕は is ボクワ, and leaving ワ on 僕 would mispronounce the word.
+- **something has to be left** for both halves.
+
+Leaving a glued token whole costs a mis-rendered surface and reading on a meaning
+that is already right; splitting a word that was never glued destroys a real
+dictionary entry. The checks are asymmetric on purpose.
+
+`TRAILING_PARTICLES` is `は を が も` and `LEADING_PARTICLES` is `が を の も`. Every
+one is in `RuleMeaningProvider`'s particle table, so the split-off token takes its
+meaning from there and never reaches jisho or sense-select. `で` and `ね` are
+excluded because `です` (headword `だ`) and `ねばった` (headword `粘る`) match the
+leading shape without being glued; `に` is excluded because its hits are mostly
+`ように`, which reads better whole than as `よう` + `に`. Measured over 24,161 stored
+tokens the rule fires 15 times with no false positive.
+
+Mid-word gluing (`ありはしない`, headword `ある`) is out of reach: neither shape
+matches and the headword is a real entry, so the meaning is right and only the
+surface reads oddly. Catching it would need a rule loose enough to hit real words.
+
+A prompt rule caused the mirror-image mistake, and it is worth recording because
+the fix is not code. A bullet under the `headword` field said a particle-carrying
+form is not a headword — `までは→まで(+は)` — and the model applied it to that field
+only: surface `にも`, headword `に`, plus a separate `も` token. Both claim the same
+kana, so anchoring matched `にも` to the end of the line and then looked for `も` in
+what was left. Nothing outside the model can tell whether the surface or the extra
+token is the wrong one, so the rule moved to the segmentation rules where it
+belongs and now names the output — `まで` + `は` — under the invariant *every
+character of the line belongs to exactly one surface*.
+
+## Incomplete Lines
+
+The two anchoring outcomes are not equally severe, and treating them alike killed
+a song: `晴れ舞台（イェイ）` came back as `晴れ舞台` on all four attempts, because a
+parenthesized ad-lib does not read as a lyric word to the model.
+
+- **Positions unusable** — a surface the line does not hold, one out of order, a
+  duplicate index, a non-kana reading. Nothing in the line can be trusted, so it
+  is retried to exhaustion and then fails the song.
+- **Text left out** — every surface was found where it really is, so the tokens
+  that exist carry correct offsets and the raw text still renders. The reader
+  loses one word card. Retried once, then kept.
+
+`SegmentAnchoringResult` reports them separately: `failuresByIndex` withholds the
+line from `anchoredByIndex`, while `incompleteByIndex` names what was skipped for a
+line that is kept anyway.
+
+## Unresolvable Headwords
+
+A headword that is not a dictionary form (`帰れない` for `帰る`, `淋しさ` for `淋しい`)
+leaves the token with **no candidate sense at all**, and every stage downstream
+reads that as "nothing to choose": `SelectSensesStage` skips the token,
+`AssembleAnalyzedLinesStage` writes `partOfSpeech = OTHER` with a null
+`koreanText`, and nothing logs a thing. Song 63 shipped five such tokens.
+
+`LexicalResolver.unresolvedTokens` answers the same question `resolve` would,
+early enough for the segmentation stage to retry the line. Order matters: the
+check runs **after** `RuleMeaningProvider`'s rewrite and resolve, or every
+particle and auxiliary would be reported as a missing word. The rewrite applied
+there is thrown away — `ApplyRuleMeaningsStage` does it for real — and the lookups
+are cached, so asking twice costs one Redis hit.
+
+A dictionary miss and a line with text left out are the same kind of loss — the
+model returned less than the line holds, and the reader loses a word rather than
+the song — so they share one budget, `MAX_DEFECT_RETRIES` (1), one comparison, and
+one policy: **never throw**. One resampled retry is worth it, since the same line
+is often segmented correctly elsewhere in the same song, but a word the dictionary
+genuinely does not hold would otherwise spend the whole budget and take the
+analysis down with it.
+
+Katakana-only surfaces are exempt from the dictionary check: `ステンバイミー`,
+`チリン`, `ダラッ` have no entry to find, and retrying them can only fail. A retried
+line is accepted only if it carries **fewer** defects than the version already
+kept, counting unresolvable headwords and uncovered text together, so a resample
+cannot make a line worse; a line that becomes unanchorable on its retry keeps its
+earlier version instead of failing the song.
+
+What survives is logged as a WARN naming the tokens, and a second WARN naming the
+text no surface claimed. `WordCandidateGenerator` also drops
+tokens with no `koreanText`, so a meaning the pipeline could not find no longer
+reaches the app as a word card with an empty meaning.
+
 ## Anchoring
 
 `SegmentAnchoringValidator` anchors each word by searching the raw line for its
@@ -208,7 +337,7 @@ Two consequences shape the retry feedback:
 
 - A "not present in order" failure names where the search stood — the surface
   that last matched and the text still unmatched after it — not just the surface
-  it could not find. An uncovered-text failure quotes the whole run of Japanese
+  it could not find. An uncovered-text report quotes the whole run of Japanese
   characters no surface claimed, not its first character.
 - The retry raises the temperature. At temperature 0 the model is deterministic,
   so a retry whose only difference is the two extra feedback fields reproduces
@@ -218,32 +347,67 @@ Two consequences shape the retry feedback:
 ## Pronunciation
 
 **The line's reading is not stored.** `Token.reading` is the reading actually sung
-in that line and `charStart`/`charEnd` say where the token sits in the raw text, so
-a client assembles the reading it needs: tokens in position order, with the raw text
-of any gap between them copied verbatim, which keeps spaces, punctuation, and latin
-runs. `convertLineReading` (app-rn) and `buildLineReading` (admin-web) each hold
-that ten-line rule; the app converts every token separately on the way.
+in that line and `charStart`/`charEnd` say where the token sits, so a client
+assembles it: tokens in position order. `convertLineReading` (app-rn) and
+`buildLineReading` (admin-web) each hold that rule.
 
-Converting per token is the point, not an optimization. `katakanaToKorean` carries a
-vowel state from one character to the next so it can mark オ段+ウ / エ段+イ as a long
-vowel, and a whole-line pass lets that state cross a word boundary: 僕の歌 (ボクノ +
-ウタ) came out 보쿠노-타, eating 歌's first syllable, and a `ー` folded the next word's
-ウ into the same long vowel (もう歌う → 모--타우). A stored line reading cannot be
-converted correctly, because assembling it is what destroys the boundaries.
+Two rules are server-side because the sources disagree:
 
-The Hangul transcription the translation prompt used to generate is now derived
-on the client by `katakanaToKorean`, which already implemented the same
-aspirated-consonant rule the prompt's `[PRONUNCIATION_OVERRIDE]` section
-enforced. Those few-shot pairs now live in `readingConverter.test.ts`. The one
-divergence: that function writes a long vowel as a hyphen (`ドウ` → `도-`) where
-the prompt asked for `도우`.
+- **A particle's reading is not its spelling.** `JapaneseText.particleReading`
+  rewrites は → ワ and へ → エ positionally, compounds included (には → ニワ). The
+  segmentation model answers ワ only about three times in four, and
+  `RuleMeaningProvider`'s table produced ハ every time by transliterating its own
+  surface. を stays ヲ: it reads 오 either way, and オ can be swallowed as a long
+  vowel (トモ + オ → 토모-).
+- **An uninflected surface takes the dictionary's reading.** The model misreads a
+  word jisho spells out on the same token (痛々しい → イタタマシイ for イタイタシイ,
+  腹立たしい → ハラタタシイ for ハラダタシイ). Only when `surface == baseForm` and the
+  entry is unambiguous (`EXACT`/`APPROVED_FALLBACK`) — otherwise the reading would
+  follow whichever entry sense-select picked. A small-kana spelling (ハァ vs ハア) is
+  the same reading, not a correction.
+- **The rule table's reading is a fallback, never an override.** The table is keyed
+  by headword and `resolve` falls back to it, so a longer surface (なんだ→だ,
+  だった→だ, って→と) took the headword's reading and lost morae: 馬鹿だった read
+  바카다. `AssembleAnalyzedLinesStage` prefers `usedReading` and reaches for the
+  table only for a rewrite's token (どうも → どう + も), which has no reading.
+
+Four are client-side:
+
+- **Words are separated.** Japanese writes none, and segmentation splits finer than
+  a reader reads, so grammar stays attached: particles/auxiliaries/suffixes, a
+  reading opening with ッ/ン, an all-hiragana surface after one that is not
+  (揺ら + せば). It still over-splits two adjacent nouns (六弦 → 로쿠 겐); attaching
+  too little is a display nit, attaching too much invents a word.
+- **Japanese no token claimed is a word break.** Punctuation and latin runs between
+  tokens are copied, but text anchoring left uncovered (an ad-lib, a ruby gloss) has
+  no reading, and copying it put Japanese in a Korean line (叫べべベノム →
+  사케베べ베노무). A parenthesised ad-lib that *was* tokenised keeps its reading.
+- **A 받침 crosses a token boundary; a long vowel does not.** `appendKorean` writes
+  one syllable per array element and resets only the vowel state per token. Without
+  the reach-back a leading ッ/ン left the kana in the line (だ + って → 다ッ테);
+  without the reset one word's vowel ate the next word's ウ/イ (ボクノ + ウタ →
+  보쿠노-타). A stored line reading can do neither — assembling it destroys the
+  boundaries.
+- **Korean-side spelling** in `katakanaToKorean`: a long vowel is written as the
+  repeated syllable and only *shows* as `-`, so a 받침 landing on it spells it out
+  (ワンシーン → 완시인, せいって → 세잇테, where a hyphen left 완시-ㄴ and 셋-테); a long
+  vowel is spent once written (エイエン → 에-엔); a 촉음 with nowhere to sit is dropped
+  (喰わん + って → 쿠완테).
+
+The Hangul transcription the translation prompt used to generate is now derived on
+the client by `katakanaToKorean`, which already implemented the prompt's
+`[PRONUNCIATION_OVERRIDE]` aspirated-consonant rule; those few-shot pairs live in
+`readingConverter.test.ts`. It writes a long vowel as a hyphen (`ドウ` → `도-`) where
+the prompt asked for `도우`. Loanword kana pairs (`イェ ティ ファ` …) are one syllable
+and cannot be lengthened by a following vowel kana — loanwords use ー, so イェイ is
+예이.
 
 `AnalyzedLine.pronounciation` and `AnalyzedLine.koreanPronounciation` are gone,
 along with their DTO fields. Rows written with them still read back:
-`JsonListConverter` ignores unknown keys, which is what makes a field removable
-from a JSON column at all. **Those rows still need re-analysis** — their tokens
-hold base-form readings (`欲しかった` → `ホシイ`), so assembling a line from them
-misreads it, and nothing on the row says so any more.
+`JsonListConverter` ignores unknown keys. **Those rows need re-analysis** — their
+tokens hold base-form readings (`欲しかった` → `ホシイ`), and rows written before the
+two server-side rules above need it too (particles read ハ, rule-resolved tokens
+missing morae). Nothing on a row says so.
 
 ## Jisho Entry Select
 
@@ -281,6 +445,25 @@ repeating them would restate a constant the model cannot act on.
 `LexicalResolver` still probes i-adjective base forms for tokens ending in `く`
 when the pair match finds nothing. Segmentation now usually supplies `高い` as the
 headword directly, but the probe stays as a net for when it supplies `高く`.
+
+### Katakana Headwords
+
+Jisho's *search* is script-sensitive, so a lyric that writes a native word in
+katakana needs two things:
+
+- **The reading comparison in `distill` normalizes script.** Jisho answers `アタシ`
+  with 私[あたし] as its top hit, but comparing `あたし` to `アタシ` literally rejected
+  it — the same normalization `expandEntry` already applies to the stored reading.
+- **A missed katakana-only headword is queried again in hiragana**
+  (`LexicalResolver.hiraganaProbe`), because `アンタ` answers with アンタレス and
+  アンタナナリボ, never 貴方. The accepted entry reports `あんた` as the base form, which
+  also merges the word with the lines where segmentation normalized the script
+  itself — lyric 93 had `アタシ` with no meaning on one line and `あたし` → 나 on the
+  next.
+
+The rescue switches the script; it does not invent an entry. A coinage
+(`ステンバイミー`) misses in hiragana too, and katakana-only surfaces stay exempt from
+the headword check for that reason.
 
 ## Sense Identity
 
@@ -332,11 +515,13 @@ dictionary entries stay whole (飛び立つ, 粘り強い).
 
 ## Cache Note
 
-The Jisho Redis key carries a schema version (currently `jisho:v4:`). **Bump it
-whenever the cached DTO changes.** Unknown-field-tolerant deserialization turns
-an old cached value into an empty result, which silently removes meanings and POS
-with no error in the logs. Bumping retires the old keys on their own TTL — no
-manual flush.
+The Jisho Redis key carries a schema version (currently `jisho:v5:`). **Bump it
+whenever the cached DTO changes, and whenever `distill` would distill the same
+response differently** — the cached value is the distilled one, so a stale
+`REJECTED_FALLBACK` for `アタシ` would outlive the fix by a TTL.
+Unknown-field-tolerant deserialization turns an old cached value into an empty
+result, which silently removes meanings and POS with no error in the logs.
+Bumping retires the old keys on their own TTL — no manual flush.
 
 ## Payload Log (temporary)
 

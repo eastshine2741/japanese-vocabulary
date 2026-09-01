@@ -8,4 +8,7 @@ dependencies {
 
     // Google OIDC (ID token JWKS verify)
     implementation("com.google.api-client:google-api-client:2.7.0")
+
+    // Apple OIDC (Sign in with Apple identity token JWKS verify)
+    implementation("com.nimbusds:nimbus-jose-jwt:9.37.3")
 }

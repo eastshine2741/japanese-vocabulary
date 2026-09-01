@@ -47,19 +47,20 @@ const REASON_HINT: Record<UsernameAvailabilityReason, string> = {
 const DEFAULT_HINT = '영문/숫자/_ 3~20자';
 
 export default function SignupScreen({ navigation, route }: Props) {
-  const { idToken, email } = route.params;
+  const { idToken, email, provider, displayName: initialDisplayName } = route.params;
 
-  const { status, error, googleSignup, reset } = useAuthStore(
+  const { status, error, googleSignup, appleSignup, reset } = useAuthStore(
     useShallow((s) => ({
       status: s.status,
       error: s.error,
       googleSignup: s.googleSignup,
+      appleSignup: s.appleSignup,
       reset: s.reset,
     })),
   );
 
   const [username, setUsername] = useState('');
-  const [displayName, setDisplayName] = useState('');
+  const [displayName, setDisplayName] = useState(initialDisplayName ?? '');
   const [usernameState, setUsernameState] = useState<UsernameState>({ kind: 'idle' });
   const [focusedField, setFocusedField] = useState<'username' | 'name' | null>(null);
 
@@ -75,7 +76,9 @@ export default function SignupScreen({ navigation, route }: Props) {
 
   const handleBack = useCallback(async () => {
     try {
-      await GoogleSignin.signOut();
+      if (provider === 'google') {
+        await GoogleSignin.signOut();
+      }
     } catch {
       // ignore
     }
@@ -83,7 +86,7 @@ export default function SignupScreen({ navigation, route }: Props) {
     // Login navigated here with `replace`, so there's nothing to pop back to —
     // route to Login explicitly instead of `goBack()`.
     navigation.replace('Login');
-  }, [navigation, reset]);
+  }, [navigation, provider, reset]);
 
   useFocusEffect(
     useCallback(() => {
@@ -144,7 +147,8 @@ export default function SignupScreen({ navigation, route }: Props) {
   const handleSubmit = async () => {
     if (!canSubmit) return;
     Keyboard.dismiss();
-    await googleSignup(idToken, username, displayName.trim() || undefined);
+    const signup = provider === 'apple' ? appleSignup : googleSignup;
+    await signup(idToken, username, displayName.trim() || undefined);
   };
 
   const usernameHasError =

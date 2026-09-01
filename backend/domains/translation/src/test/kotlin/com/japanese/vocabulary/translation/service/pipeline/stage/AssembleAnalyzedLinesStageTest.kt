@@ -91,7 +91,8 @@ class AssembleAnalyzedLinesStageTest {
     }
 
     @Test
-    fun `takes rule-resolved readings for grammar tokens`(): Unit = runBlocking {
+    fun `takes rule-resolved meanings for grammar tokens, and reads a particle as it is sung`(): Unit = runBlocking {
+        // The table transliterates its own surfaces, so it holds は as ハ. 猫は is sung ネコワ.
         val raw = "猫は"
         val tokens = listOf(
             token(raw, "猫", "猫", "ネコ", "ネコ"),
@@ -101,11 +102,116 @@ class AssembleAnalyzedLinesStageTest {
 
         val line = assemble(raw, tokens, ruleResolvedByKey = mapOf(tokens[1].key to rule)).single()
 
-        assertThat(line.tokens.map { it.reading }).containsExactly("ネコ", "ハ")
+        assertThat(line.tokens.map { it.reading }).containsExactly("ネコ", "ワ")
         assertThat(line.tokens[1].partOfSpeech).isEqualTo(PartOfSpeech.PARTICLE)
         assertThat(line.tokens[1].koreanText).isEqualTo("~은/는")
     }
 
+    @Test
+    fun `keeps the sung reading of a surface the rule table only knows by its headword`(): Unit = runBlocking {
+        // なんだ resolves through だ and used to take だ's reading: 바카다 instead of 바카닷타.
+        val raw = "馬鹿なんだ"
+        val tokens = listOf(
+            token(raw, "馬鹿", "馬鹿", "バカ", "バカ"),
+            token(raw, "なんだ", "だ", "ナンダ", "ダ"),
+        )
+        val rule = RuleResolvedToken("だ", "だ", "ダ", "ダ", PartOfSpeech.AUXILIARY_VERB, "~이다")
+
+        val line = assemble(raw, tokens, ruleResolvedByKey = mapOf(tokens[1].key to rule)).single()
+
+        assertThat(line.tokens.map { it.reading }).containsExactly("バカ", "ナンダ")
+        assertThat(line.tokens[1].baseFormReading).isEqualTo("ダ")
+    }
+
+    @Test
+    fun `falls back to the rule table when the token carries no reading of its own`(): Unit = runBlocking {
+        // A rewrite's token (どうも → どう + も) has no segmentation reading behind it.
+        val raw = "どうも"
+        val tokens = listOf(token(raw, "も", "も", "", ""))
+        val rule = RuleResolvedToken("も", "も", "モ", "モ", PartOfSpeech.PARTICLE, "~도")
+
+        val line = assemble(raw, tokens, ruleResolvedByKey = mapOf(tokens[0].key to rule)).single()
+
+        assertThat(line.tokens.single().reading).isEqualTo("モ")
+    }
+
+    @Test
+    fun `reads every は in a compound particle as it is sung`(): Unit = runBlocking {
+        // までは is one token the model splits itself, and it kept the spelling: マデハ.
+        val raw = "夏までは"
+        val tokens = listOf(
+            token(raw, "夏", "夏", "ナツ", "ナツ"),
+            token(raw, "までは", "まで", "マデハ", "マデ"),
+        )
+        val rule = RuleResolvedToken("まで", "まで", "マデ", "マデ", PartOfSpeech.PARTICLE, "~까지")
+
+        val line = assemble(raw, tokens, ruleResolvedByKey = mapOf(tokens[1].key to rule)).single()
+
+        assertThat(line.tokens.map { it.reading }).containsExactly("ナツ", "マデワ")
+    }
+
+
+    @Test
+    fun `takes the dictionary reading when the surface is the dictionary form`(): Unit = runBlocking {
+        // The model misreads a word jisho spells out on the same token: 痛々しい is イタイタシイ.
+        val raw = "痛々しい"
+        val option = senseOption(senseId = 0, baseForm = raw, reading = "イタイタシイ")
+        val tokens = listOf(token(raw, raw, raw, "イタタマシイ", "イタイタシイ"))
+
+        val line = assembleWith(raw, tokens, option).single()
+
+        assertThat(line.tokens.single().reading).isEqualTo("イタイタシイ")
+    }
+
+    @Test
+    fun `keeps the sung reading when the surface is inflected`(): Unit = runBlocking {
+        // 行って is not 行く, so the dictionary reading is not this token's reading.
+        val raw = "行って"
+        val option = senseOption(senseId = 0, baseForm = "行く", reading = "イク")
+        val tokens = listOf(token(raw, "行って", "行く", "イッテ", "イク"))
+
+        val line = assembleWith(raw, tokens, option).single()
+
+        assertThat(line.tokens.single().reading).isEqualTo("イッテ")
+    }
+
+    @Test
+    fun `keeps the sung reading when the dictionary only spells a vowel small`(): Unit = runBlocking {
+        // はぁ is stored ハァ and sung ハア — the same reading, so there is nothing to correct.
+        val raw = "はぁ"
+        val option = senseOption(senseId = 0, baseForm = raw, reading = "ハァ")
+        val tokens = listOf(token(raw, raw, raw, "ハア", "ハァ"))
+
+        val line = assembleWith(raw, tokens, option).single()
+
+        assertThat(line.tokens.single().reading).isEqualTo("ハア")
+    }
+
+    @Test
+    fun `keeps the sung reading when the headword is ambiguous`(): Unit = runBlocking {
+        // 前 is マエ or ゼン; the entry's reading follows whichever sense was picked, so it cannot
+        // correct a reading.
+        val raw = "前"
+        val option = senseOption(senseId = 0, baseForm = raw, reading = "ゼン")
+            .copy(provenance = JishoLookupProvenance.AMBIGUOUS_HEADWORD)
+        val tokens = listOf(token(raw, raw, raw, "マエ", "マエ"))
+
+        val line = assembleWith(raw, tokens, option).single()
+
+        assertThat(line.tokens.single().reading).isEqualTo("マエ")
+    }
+
+    private suspend fun assembleWith(raw: String, tokens: List<PipelineToken>, option: PipelineSenseOption) =
+        assemble(
+            raw,
+            tokens,
+            lexical = LexicalResolution(
+                byTokenKey = mapOf(tokens[0].key to LexicalResolvedToken(tokens[0], option.baseForm, listOf(option))),
+                optionsById = mapOf(option.senseId to option),
+            ),
+            selectedSenseByKey = mapOf(tokens[0].key to option.senseId),
+            koreanBySenseId = mapOf(option.senseId to "뜻"),
+        )
 
     private suspend fun assemble(
         raw: String,

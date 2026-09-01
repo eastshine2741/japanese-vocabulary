@@ -17,6 +17,9 @@ class WordCandidateGenerator {
         for (line in analyzedLines.sortedBy { it.index }) {
             for (token in line.tokens) {
                 if (token.partOfSpeech in EXCLUDED_POS) continue
+                // 뜻 없는 토큰은 단어 후보가 아니다. 분절이 사전에 없는 표제형(`帰れない`)을 내면 후보 sense 가
+                // 0개라 뜻이 비는데, 그대로 실으면 앱 단어 목록에 뜻 없는 카드가 뜬다.
+                if (token.koreanText.isNullOrBlank()) continue
                 val japanese = token.baseForm.takeUnless { it.isBlank() } ?: token.surface
                 if (japanese.isBlank()) continue
                 val key = listOf(japanese, token.partOfSpeech.name, token.koreanText.orEmpty()).joinToString("\u0001")

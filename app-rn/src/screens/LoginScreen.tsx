@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, ActivityIndicator, Linking, Pressable, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useShallow } from 'zustand/react/shallow';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
-import { Ionicons } from '@expo/vector-icons';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { useAuthStore } from '../stores/authStore';
 import { TOS_URL, PRIVACY_URL } from '../config/legal';
 import { Colors } from '../theme/theme';
@@ -18,16 +18,34 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
 export default function LoginScreen({ navigation }: Props) {
   const [showServerModal, setShowServerModal] = useState(false);
-  const { status, error, pendingIdentity, pendingIdToken, googleLogin, reset } = useAuthStore(
+  const {
+    status,
+    error,
+    pendingIdentity,
+    pendingIdToken,
+    pendingProvider,
+    googleLogin,
+    appleLogin,
+    reset,
+  } = useAuthStore(
     useShallow((s) => ({
       status: s.status,
       error: s.error,
       pendingIdentity: s.pendingIdentity,
       pendingIdToken: s.pendingIdToken,
+      pendingProvider: s.pendingProvider,
       googleLogin: s.googleLogin,
+      appleLogin: s.appleLogin,
       reset: s.reset,
     })),
   );
+  const [appleAvailable, setAppleAvailable] = useState(false);
+
+  useEffect(() => {
+    AppleAuthentication.isAvailableAsync()
+      .then(setAppleAvailable)
+      .catch(() => setAppleAvailable(false));
+  }, []);
 
   useEffect(() => {
     if (status === 'success') {
@@ -35,14 +53,15 @@ export default function LoginScreen({ navigation }: Props) {
       navigation.replace('Main');
     } else if (status === 'needs_signup' && pendingIdToken) {
       navigation.replace('Signup', {
+        provider: pendingProvider ?? 'google',
         idToken: pendingIdToken,
         email: pendingIdentity?.email ?? null,
-        googleName: pendingIdentity?.name ?? null,
+        displayName: pendingIdentity?.name ?? null,
       });
     }
-  }, [status]);
+  }, [status, pendingIdToken, pendingIdentity, pendingProvider, navigation, reset]);
 
-  const handleGoogleLogin = async () => {
+  const handleGoogleLogin = useCallback(async () => {
     try {
       await GoogleSignin.hasPlayServices();
       const result = await GoogleSignin.signIn();
@@ -52,7 +71,28 @@ export default function LoginScreen({ navigation }: Props) {
     } catch {
       // user cancel or platform error — surface via store, retry available
     }
-  };
+  }, [googleLogin]);
+
+  const handleAppleLogin = useCallback(async () => {
+    if (status === 'loading') return;
+    try {
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+      if (!credential.identityToken) return;
+      const displayName = [credential.fullName?.givenName, credential.fullName?.familyName]
+        .filter(Boolean)
+        .join(' ')
+        .trim();
+      await appleLogin(credential.identityToken, displayName || undefined);
+    } catch (e: any) {
+      if (e?.code === 'ERR_REQUEST_CANCELED' || e?.code === 'ERR_CANCELED') return;
+      // Store-level API errors are surfaced through `error`; native availability errors are retryable.
+    }
+  }, [appleLogin, status]);
 
   const loading = status === 'loading';
 
@@ -94,6 +134,15 @@ export default function LoginScreen({ navigation }: Props) {
             </>
           )}
         </Pressable>
+        {appleAvailable && (
+          <AppleAuthentication.AppleAuthenticationButton
+            buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
+            buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+            cornerRadius={26}
+            style={[styles.appleBtn, loading && styles.authBtnDisabled]}
+            onPress={handleAppleLogin}
+          />
+        )}
 
         <View style={styles.terms}>
           <Text style={styles.termsLine}>계속 진행하면 다음 사항에 동의하는 것입니다</Text>
@@ -155,6 +204,8 @@ const styles = StyleSheet.create({
   },
   googleBtnPressed: { opacity: 0.85 },
   googleLabel: { fontSize: 15, fontWeight: '600', color: Colors.textPrimary },
+  appleBtn: { height: 52, width: '100%' },
+  authBtnDisabled: { opacity: 0.6 },
   terms: { alignItems: 'center', marginTop: 6 },
   termsLine: { fontSize: 12, color: Colors.textMuted, textAlign: 'center' },
   termsLink: {

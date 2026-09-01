@@ -21,6 +21,17 @@ class JapaneseTextTest {
     }
 
     @Test
+    fun `converts katakana to hiragana for a lookup key`() {
+        assertThat(JapaneseText.toHiragana("アタシ")).isEqualTo("あたし")
+        assertThat(JapaneseText.toHiragana("アンタ")).isEqualTo("あんた")
+        // Not kana, so not the script switch's business: the prolonged sound mark, kanji and latin all
+        // pass through, and a query built from them stays exactly as unhelpful as it was.
+        assertThat(JapaneseText.toHiragana("ステンバイミー")).isEqualTo("すてんばいみー")
+        assertThat(JapaneseText.toHiragana("あたし")).isEqualTo("あたし")
+        assertThat(JapaneseText.toHiragana("前 Lucky")).isEqualTo("前 Lucky")
+    }
+
+    @Test
     fun `keeps the prolonged sound mark and small kana`() {
         assertThat(JapaneseText.toKatakana("きっと")).isEqualTo("キット")
         assertThat(JapaneseText.toKatakana("メッセージ")).isEqualTo("メッセージ")
@@ -79,5 +90,51 @@ class JapaneseTextTest {
         assertThat(JapaneseText.isKanaOnly("Lucky")).isFalse
         assertThat(JapaneseText.isKanaOnly("マエ ")).isFalse // trailing space
         assertThat(JapaneseText.isKanaOnly("、")).isFalse
+    }
+
+    /**
+     * Katakana-only marks the words a dictionary is not expected to hold, which exempts them from the
+     * headword check. Hiragana must not qualify: `までは` is kana too, and it is exactly the kind of
+     * missing headword the check exists to catch.
+     */
+    @Test
+    fun `katakana-only separates loanwords from kana grammar`() {
+        assertThat(JapaneseText.isKatakanaOnly("ステンバイミー")).isTrue
+        assertThat(JapaneseText.isKatakanaOnly("チリン")).isTrue
+        assertThat(JapaneseText.isKatakanaOnly("ダラッ")).isTrue
+        assertThat(JapaneseText.isKatakanaOnly("レモン")).isTrue
+        assertThat(JapaneseText.isKatakanaOnly("までは")).isFalse
+        assertThat(JapaneseText.isKatakanaOnly("帰れない")).isFalse
+        assertThat(JapaneseText.isKatakanaOnly("")).isFalse
+        assertThat(JapaneseText.isKatakanaOnly("Hip hop")).isFalse
+    }
+
+    /** は is written ハ and sung ワ — the one place transliterating the surface is not enough. */
+    @Test
+    fun `reads a particle as it is sung`() {
+        assertThat(JapaneseText.particleReading("は")).isEqualTo("ワ")
+        assertThat(JapaneseText.particleReading("へ")).isEqualTo("エ")
+        assertThat(JapaneseText.particleReading("には")).isEqualTo("ニワ")
+        assertThat(JapaneseText.particleReading("までは")).isEqualTo("マデワ")
+        assertThat(JapaneseText.particleReading("へと")).isEqualTo("エト")
+    }
+
+    /** Null means "transliteration already has it right", so the caller keeps the reading it holds. */
+    @Test
+    fun `leaves a particle whose spelling is already its reading`() {
+        assertThat(JapaneseText.particleReading("を")).isNull() // ヲ and オ both read 오
+        assertThat(JapaneseText.particleReading("が")).isNull()
+        assertThat(JapaneseText.particleReading("って")).isNull()
+        assertThat(JapaneseText.particleReading("猫は")).isNull() // not kana, so it has no reading here
+        assertThat(JapaneseText.particleReading("")).isNull()
+    }
+
+    /** ハァ and ハア are one reading written two ways, so neither corrects the other. */
+    @Test
+    fun `tells a small-kana spelling apart from a different reading`() {
+        assertThat(JapaneseText.readingsAgree("ハァ", "ハア")).isTrue
+        assertThat(JapaneseText.readingsAgree("ネェ", "ネエ")).isTrue
+        assertThat(JapaneseText.readingsAgree("ハラダタシイ", "ハラタタシイ")).isFalse
+        assertThat(JapaneseText.readingsAgree("イタイタシイ", "イタタマシイ")).isFalse
     }
 }

@@ -342,7 +342,7 @@ const CurrentWordsPageCard = React.memo(function CurrentWordsPageCard({
     () => getLyricFontSizes(lyricTokens, width),
     [lyricTokens, width],
   );
-  // 줄 전체를 한 번에 변환하면 앞 단어의 장음이 다음 단어의 첫 ウ/イ 를 삼킨다. 토큰마다 변환한다.
+  // 토큰에서 조립한다 — 단어 사이는 띄고, 받침은 토큰 경계를 넘고, 장음은 넘지 않는다.
   // 단어가 없는 줄은 조립할 게 없어서 빈 문자열이고, 그때는 독음 줄을 그리지 않는다.
   const koreanPronunciation = useMemo(
     () => convertLineReading(page.line.originalText, page.line.tokens ?? [], 'KOREAN'),
