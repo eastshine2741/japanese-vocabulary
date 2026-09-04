@@ -60,6 +60,10 @@ gemini:
 youtube:
   api-key: ${YOUTUBE_API_KEY}
 
+push:
+  manual:
+    secret: ${MANUAL_PUSH_SECRET:}
+
 recommendation:
   apple-rss:
     storefront: jp
