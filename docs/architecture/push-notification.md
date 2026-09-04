@@ -4,7 +4,7 @@ Push notification is split between the `notification` domain module and the `bat
 
 ## Responsibilities
 
-- FCM send: `PushNotificationService` in `domains:notification`.
+- FCM/APNs visible push send: `PushNotificationService` in `domains:notification`.
 - Firebase wiring and FCM sender dependency: `FirebaseConfig` in `domains:notification`.
 - Notification persistence: `NotificationLogEntity` in `domains:notification`.
 - Candidate query: `PushNotificationQueryService` in `batch`.
@@ -19,13 +19,13 @@ Push notification is split between the `notification` domain module and the `bat
 The scheduler flow is:
 
 ```text
-candidate query -> FCM send -> notification log write -> failed token cleanup
+candidate query -> FCM/APNs send -> notification log write -> failed token cleanup
 ```
 
 The manual single-user flow is:
 
 ```text
-userId -> registered device tokens -> FCM send -> notification log write -> failed token cleanup
+userId -> registered device tokens -> FCM/APNs send -> notification log write -> failed token cleanup
 ```
 
 The `notification` module must not own scheduling or broad cross-domain reads. Those belong to `batch`.

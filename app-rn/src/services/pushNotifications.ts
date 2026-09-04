@@ -2,8 +2,10 @@ import { Platform } from 'react-native';
 import { getApp } from '@react-native-firebase/app';
 import {
   AuthorizationStatus,
+  getInitialNotification,
   getMessaging,
   onMessage,
+  onNotificationOpenedApp,
   onTokenRefresh,
   requestPermission as requestMessagingPermission,
   setBackgroundMessageHandler,
@@ -98,12 +100,18 @@ function handleData(data: RemoteMessage['data']): void {
   }
 }
 
+function handleRemoteMessage(remoteMessage: RemoteMessage | null): void {
+  handleData(remoteMessage?.data);
+}
+
 async function displayLocalNotification(
   remoteMessage: RemoteMessage,
 ): Promise<void> {
   const data = remoteMessage.data ?? {};
-  const title = typeof data.title === 'string' ? data.title : '';
-  const body = typeof data.body === 'string' ? data.body : '';
+  const title =
+    typeof data.title === 'string' ? data.title : remoteMessage.notification?.title ?? '';
+  const body =
+    typeof data.body === 'string' ? data.body : remoteMessage.notification?.body ?? '';
   await Notifications.scheduleNotificationAsync({
     content: {
       title,
@@ -119,6 +127,7 @@ async function displayLocalNotification(
 // backgrounded app. Importing this module from App.tsx ensures the handler is set during JS init.
 if (FIREBASE_ENABLED) {
   setBackgroundMessageHandler(getFirebaseMessaging(), async (remoteMessage) => {
+    if (remoteMessage.notification) return;
     await displayLocalNotification(remoteMessage);
   });
 }
@@ -153,10 +162,13 @@ export function registerNotificationHandlers(): void {
       }
     });
 
-    // Foreground data-only arrival → render locally via expo-notifications
+    // Foreground FCM arrival -> render locally because the OS only auto-displays in background.
     onMessage(getFirebaseMessaging(), async (remoteMessage) => {
       await displayLocalNotification(remoteMessage);
     });
+
+    onNotificationOpenedApp(getFirebaseMessaging(), handleRemoteMessage);
+    getInitialNotification(getFirebaseMessaging()).then(handleRemoteMessage);
   }
 
   // Tap handler. Covers both foreground onMessage path and background

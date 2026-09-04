@@ -2,10 +2,14 @@ package com.japanese.vocabulary.notification.service
 
 import org.springframework.stereotype.Service
 import com.google.firebase.messaging.AndroidConfig
+import com.google.firebase.messaging.AndroidNotification
+import com.google.firebase.messaging.ApnsConfig
+import com.google.firebase.messaging.Aps
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.FirebaseMessagingException
 import com.google.firebase.messaging.Message
 import com.google.firebase.messaging.MessagingErrorCode
+import com.google.firebase.messaging.Notification
 import com.japanese.vocabulary.notification.entity.NotificationLogEntity
 import com.japanese.vocabulary.notification.repository.DeviceTokenRepository
 import com.japanese.vocabulary.notification.repository.NotificationLogRepository
@@ -17,7 +21,7 @@ import java.time.Instant
 /**
  * Pure FCM dispatch. Caller-agnostic: knows nothing about review reminders, candidates, users,
  * flashcards. Responsibilities:
- *   - Send a single data-only push to one device token via firebase-admin
+ *   - Send a single visible push to one device token via firebase-admin
  *   - Persist accepted sends to `notification_logs`
  *   - Auto-delete tokens that FCM reports as UNREGISTERED (stale install)
  *
@@ -45,12 +49,35 @@ class PushNotificationService(
     ): Boolean {
         val message = Message.builder()
             .setToken(token)
+            .setNotification(
+                Notification.builder()
+                    .setTitle(title)
+                    .setBody(body)
+                    .build()
+            )
             .setAndroidConfig(
                 AndroidConfig.builder()
                     .setPriority(AndroidConfig.Priority.HIGH)
+                    .setNotification(
+                        AndroidNotification.builder()
+                            .setChannelId(REVIEW_CHANNEL_ID)
+                            .setPriority(AndroidNotification.Priority.HIGH)
+                            .build()
+                    )
                     .build()
             )
-            .putAllData(data + mapOf("title" to title, "body" to body))
+            .setApnsConfig(
+                ApnsConfig.builder()
+                    .putHeader("apns-push-type", "alert")
+                    .putHeader("apns-priority", "10")
+                    .setAps(
+                        Aps.builder()
+                            .setSound("default")
+                            .build()
+                    )
+                    .build()
+            )
+            .putAllData(data)
             .build()
 
         return try {
@@ -111,6 +138,7 @@ class PushNotificationService(
         if (token.length <= 8) "***" else "${token.take(4)}…${token.takeLast(4)}"
 
     private companion object {
+        const val REVIEW_CHANNEL_ID = "review-reminders"
         const val MAX_TITLE_LEN = 255
         const val MAX_BODY_LEN = 512
     }
