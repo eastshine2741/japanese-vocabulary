@@ -414,21 +414,7 @@ export const SongDetailWordsActionBar = React.memo(function SongDetailWordsActio
 
       <View style={styles.summarySpacer} />
 
-      <TouchableOpacity
-        style={[styles.batchButton, state.batchCount === 0 && styles.batchButtonDisabled]}
-        onPress={state.handleBatchAdd}
-        disabled={state.batchCount === 0 || state.isBatchSaving}
-        activeOpacity={0.7}
-      >
-        {state.isBatchSaving ? (
-          <ActivityIndicator size="small" color="#FFFFFF" />
-        ) : (
-          <>
-            <Ionicons name="add" size={14} color="#FFFFFF" />
-            <Text style={styles.batchButtonText}>{state.batchCount}개 담기</Text>
-          </>
-        )}
-      </TouchableOpacity>
+      <Text style={styles.wordCountText}>총 {state.visibleWords.length}개</Text>
     </View>
   );
 });
@@ -533,23 +519,10 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
   },
-  batchButton: {
-    height: 32,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    borderRadius: 9999,
-    paddingHorizontal: 12,
-    backgroundColor: Colors.primary,
-  },
-  batchButtonDisabled: {
-    opacity: 0.4,
-  },
-  batchButtonText: {
+  wordCountText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: Colors.textMuted,
   },
   listContent: {
     paddingHorizontal: 20,

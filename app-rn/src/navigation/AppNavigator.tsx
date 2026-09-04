@@ -16,6 +16,7 @@ import DeckWordListScreen from '../screens/DeckWordListScreen';
 import EditWordScreen from '../screens/EditWordScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import OssLicenseScreen from '../screens/OssLicenseScreen';
+import SongProgressListScreen from '../screens/SongProgressListScreen';
 
 import HomeTab from '../screens/tabs/HomeTab';
 import MyPageTab from '../screens/tabs/MyPageTab';
@@ -47,6 +48,7 @@ export type RootStackParamList = {
   SongDetail: SongPlaybackEntryParams;
   Review: { deckId?: number | null; startFlashcardId?: number } | undefined;
   DeckList: undefined;
+  SongProgressList: undefined;
   DeckDetail: { deckId: number | null };
   DeckWordList: { deckId: number | null };
   EditWord: {
@@ -105,6 +107,7 @@ export default function AppNavigator({ initialRoute }: Props) {
       <Stack.Screen name="SongDetail" component={SongDetailScreen} />
       <Stack.Screen name="Review" component={ReviewScreen} />
       <Stack.Screen name="DeckList" component={DeckListScreen} />
+      <Stack.Screen name="SongProgressList" component={SongProgressListScreen} />
       <Stack.Screen name="DeckDetail" component={DeckDetailScreen} />
       <Stack.Screen name="DeckWordList" component={DeckWordListScreen} />
       <Stack.Screen name="EditWord" component={EditWordScreen} />

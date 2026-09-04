@@ -11,8 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import RecentSearchesSection from '../components/RecentSearchesSection';
-import SearchRecentSongs from '../components/SearchRecentSongs';
+import SearchDiscoverySections from '../components/searchDiscovery/SearchDiscoverySections';
 import { Colors } from '../theme/theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
@@ -30,6 +29,13 @@ export default function SearchScreen() {
       if (!trimmed) return;
       Keyboard.dismiss();
       navigation.navigate('SongSearch', { query: trimmed });
+    },
+    [navigation],
+  );
+
+  const openSong = useCallback(
+    (songId: number) => {
+      navigation.navigate('SongDetail', { songId, origin: 'Home' });
     },
     [navigation],
   );
@@ -61,11 +67,9 @@ export default function SearchScreen() {
       </View>
 
       <ScrollView
-        contentContainerStyle={styles.emptyState}
         keyboardShouldPersistTaps="handled"
       >
-        <SearchRecentSongs />
-        <RecentSearchesSection onSelectTerm={runSearch} />
+        <SearchDiscoverySections onSelectTerm={runSearch} onSelectSong={openSong} />
       </ScrollView>
     </View>
   );
@@ -101,10 +105,5 @@ const styles = StyleSheet.create({
   },
   clearButton: {
     marginLeft: 0,
-  },
-  emptyState: {
-    paddingTop: 12,
-    paddingBottom: 28,
-    gap: 28,
   },
 });

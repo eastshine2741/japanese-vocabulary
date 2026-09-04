@@ -24,6 +24,7 @@ import { deckApi } from '../api/deckApi';
 import { wordApi } from '../api/wordApi';
 import SkeletonBox from '../components/SkeletonLoading';
 import SongInfoSheet from '../components/SongInfoSheet';
+import ErrorDialog from '../components/ErrorDialog';
 import { AppBottomSheet, AppBottomSheetRef, AppBottomSheetView } from '../components/bottomSheet';
 import {
   CurrentPlayingWordsSheet,
@@ -45,9 +46,11 @@ import {
 import { Colors, Dimens } from '../theme/theme';
 import { Layers } from '../theme/layers';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import type { DeckDetailResponse } from '../types/deck';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SongDetail'>;
 type DetailTab = 'home' | 'words';
+type LearningActionMode = 'start' | 'review' | 'preparing';
 type DeckAddedSnackbar = {
   deckId: number;
   deckName: string;
@@ -98,8 +101,9 @@ export default function SongDetailScreen({ navigation, route }: Props) {
   const setDurationMs = usePlayerStore(s => s.setDurationMs);
 
   const [activeTab, setActiveTab] = useState<DetailTab>('home');
-  const [vocabDeckId, setVocabDeckId] = useState<number | null>(null);
-  const [isCreatingDeck, setIsCreatingDeck] = useState(false);
+  const [songDeckDetail, setSongDeckDetail] = useState<DeckDetailResponse | null>(null);
+  const [isStartingLearning, setIsStartingLearning] = useState(false);
+  const [learningError, setLearningError] = useState<string | null>(null);
   const [isPinnedTabsVisible, setIsPinnedTabsVisible] = useState(false);
   const [tabPageHeights, setTabPageHeights] = useState<Record<DetailTab, number>>({
     home: 0,
@@ -108,17 +112,17 @@ export default function SongDetailScreen({ navigation, route }: Props) {
   const [wordSaveOverrides, setWordSaveOverrides] = useState<Map<string, SongDetailWordSaveState>>(() => new Map());
   const [busyWordKey, setBusyWordKey] = useState<string | null>(null);
   const [deckSnackbar, setDeckSnackbar] = useState<DeckAddedSnackbar | null>(null);
+  const [analysisNotificationSubscribed, setAnalysisNotificationSubscribed] = useState(false);
   const isPinnedTabsVisibleRef = useRef(false);
 
   const routeSongId = route.params?.songId;
   const fallbackSongId = preloadedStudyData?.song.id;
   const songId = routeSongId ?? fallbackSongId;
-  const deckButtonIcon = vocabDeckId != null ? 'book-open' : 'plus';
-  const deckButtonLabel = vocabDeckId != null ? '단어장 보기' : '단어장 만들기';
 
   useEffect(() => {
     setWordSaveOverrides(new Map());
     setBusyWordKey(null);
+    setAnalysisNotificationSubscribed(false);
   }, [songId]);
 
   useEffect(() => {
@@ -130,16 +134,16 @@ export default function SongDetailScreen({ navigation, route }: Props) {
 
   useEffect(() => {
     if (songId == null) {
-      setVocabDeckId(null);
+      setSongDeckDetail(null);
       return;
     }
     let cancelled = false;
     deckApi.getDeckBySongId(songId)
       .then(deck => {
-        if (!cancelled) setVocabDeckId(deck?.deckId ?? null);
+        if (!cancelled) setSongDeckDetail(deck);
       })
       .catch(() => {
-        if (!cancelled) setVocabDeckId(null);
+        if (!cancelled) setSongDeckDetail(null);
       });
     return () => {
       cancelled = true;
@@ -371,7 +375,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     deckApi.getDeckBySongId(songId)
       .then(deck => {
         const deckId = deck?.deckId ?? null;
-        setVocabDeckId(deckId);
+        setSongDeckDetail(deck);
         if (deckId == null) return;
         const deckName = deck?.title?.trim() || data?.song.title?.trim() || '이 곡';
         showDeckSnackbar({ deckId, deckName });
@@ -436,26 +440,44 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     infoSheetOpenRef.current = index >= 0;
   }, []);
 
-  const handleOpenDeck = useCallback(async () => {
-    if (vocabDeckId != null) {
-      navigation.navigate('DeckDetail', { deckId: vocabDeckId });
-      return;
-    }
-    if (songId == null || defaultDeckWords.length === 0 || isCreatingDeck) return;
-    setIsCreatingDeck(true);
+  const ensureSongDeck = useCallback(async (): Promise<number | null> => {
+    if (songDeckDetail?.deckId != null) return songDeckDetail.deckId;
+    if (songId == null || defaultDeckWords.length === 0) return null;
+
+    await wordApi.batchAddWords({ words: defaultDeckWords });
+    const deck = await deckApi.getDeckBySongId(songId);
+    setSongDeckDetail(deck);
+    await refreshWords(songId).catch(() => undefined);
+    return deck?.deckId ?? null;
+  }, [defaultDeckWords, refreshWords, songDeckDetail?.deckId, songId]);
+
+  const handleStartLearning = useCallback(async (focusWord?: SongDetailWordItem) => {
+    if (songId == null || isStartingLearning) return;
+    const wordKey = focusWord ? getSongDetailWordKey(focusWord) : null;
+    setBusyWordKey(wordKey);
+    setIsStartingLearning(true);
     try {
-      await wordApi.batchAddWords({ words: defaultDeckWords });
-      const deck = await deckApi.getDeckBySongId(songId);
-      const nextDeckId = deck?.deckId ?? null;
-      setVocabDeckId(nextDeckId);
-      if (nextDeckId != null) {
-        navigation.navigate('DeckDetail', { deckId: nextDeckId });
+      const deckId = await ensureSongDeck();
+      if (deckId != null) {
+        navigation.navigate('Review', { deckId });
+      } else {
+        setLearningError('학습할 단어를 준비하지 못했어요. 잠시 후 다시 시도해 주세요.');
       }
-      await refreshWords(songId).catch(() => undefined);
+    } catch (e: any) {
+      setLearningError(e?.message ?? '학습을 시작하지 못했어요. 잠시 후 다시 시도해 주세요.');
     } finally {
-      setIsCreatingDeck(false);
+      setBusyWordKey(null);
+      setIsStartingLearning(false);
     }
-  }, [defaultDeckWords, isCreatingDeck, navigation, refreshWords, songId, vocabDeckId]);
+  }, [ensureSongDeck, isStartingLearning, navigation, songId]);
+
+  const handlePrimaryLearningPress = useCallback(() => {
+    handleStartLearning();
+  }, [handleStartLearning]);
+
+  const handleDismissLearningError = useCallback(() => {
+    setLearningError(null);
+  }, []);
 
   const handleSelectHome = useCallback(() => {
     setActiveTab('home');
@@ -470,12 +492,16 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     load(songId);
   }, [load, songId]);
 
+  const handleToggleAnalysisNotification = useCallback(() => {
+    setAnalysisNotificationSubscribed(prev => !prev);
+  }, []);
+
   const handleWordsChanged = useCallback(() => {
     if (songId == null) return;
     refreshWords(songId).catch(() => undefined);
     deckApi.getDeckBySongId(songId)
-      .then(deck => setVocabDeckId(deck?.deckId ?? null))
-      .catch(() => setVocabDeckId(null));
+      .then(deck => setSongDeckDetail(deck))
+      .catch(() => setSongDeckDetail(null));
   }, [refreshWords, songId]);
 
   const getWordSaveState = useCallback((word: SongDetailWordItem): SongDetailWordSaveState => {
@@ -619,7 +645,26 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     && words.wordSummary.totalCandidateCount === 0
     && Object.keys(words.lineWordIndexes).length === 0
     && !lyrics.lines.some(isAnalyzedLine);
-  const isDeckActionDisabled = isCreatingDeck || isSongAnalysisPending;
+  const actionMode: LearningActionMode = isSongAnalysisPending
+    ? 'preparing'
+    : (songDeckDetail?.dueCount ?? 0) > 0 ? 'review' : 'start';
+  const learningActionLabel = actionMode === 'review'
+    ? `오늘 복습 ${songDeckDetail?.dueCount ?? 0}개`
+    : actionMode === 'preparing' ? '학습 준비 중' : '학습 시작';
+  const learningActionIcon: keyof typeof Feather.glyphMap = actionMode === 'review'
+    ? 'rotate-ccw'
+    : actionMode === 'preparing' ? 'info' : 'layers';
+  const isLearningActionDisabled = isStartingLearning || actionMode === 'preparing' || (songDeckDetail?.deckId == null && defaultDeckWords.length === 0);
+  const totalWords = words.wordSummary.totalCandidateCount ?? words.words.length;
+  const masteredWords = songDeckDetail?.masteredCount ?? 0;
+  const studyingWords = songDeckDetail?.studyingCount ?? 0;
+  const newWords = songDeckDetail?.newWordCount ?? Math.max(0, totalWords - masteredWords - studyingWords);
+  const learningProgress = {
+    total: totalWords,
+    mastered: masteredWords,
+    studying: studyingWords,
+    newWords,
+  };
 
   return (
     <View style={styles.container}>
@@ -659,7 +704,11 @@ export default function SongDetailScreen({ navigation, route }: Props) {
           />
 
           {isSongAnalysisPending ? (
-            <SongDetailAnalysisPendingPlaceholder onRefresh={handleRefreshAnalysisStatus} />
+            <SongDetailAnalysisPendingPlaceholder
+              subscribed={analysisNotificationSubscribed}
+              onToggleNotification={handleToggleAnalysisNotification}
+              onRefresh={handleRefreshAnalysisStatus}
+            />
           ) : (
             <Animated.View style={[styles.tabContentViewport, tabViewportHeight > 0 && { height: tabViewportHeight }]}>
               <Animated.View
@@ -678,10 +727,10 @@ export default function SongDetailScreen({ navigation, route }: Props) {
                 >
                   <SongDetailHomeTab
                     words={words.words}
+                    progress={learningProgress}
                     onViewAllWordsPress={handleSelectWords}
-                    getWordSaveState={getWordSaveState}
                     busyWordKey={busyWordKey}
-                    onToggleWordSave={handleToggleWordSave}
+                    onStartWordLearning={handleStartLearning}
                   />
                 </View>
                 <View
@@ -718,12 +767,12 @@ export default function SongDetailScreen({ navigation, route }: Props) {
           <Text style={styles.heroTitle} numberOfLines={2}>{song.title}</Text>
           <Text style={styles.heroArtist} numberOfLines={1}>{song.artist}</Text>
           <Pressable
-            style={[styles.deckButton, isDeckActionDisabled && styles.disabledButton]}
-            onPress={handleOpenDeck}
-            disabled={isDeckActionDisabled}
+            style={[styles.deckButton, isLearningActionDisabled && styles.disabledButton]}
+            onPress={handlePrimaryLearningPress}
+            disabled={isLearningActionDisabled}
           >
-            <Feather name={deckButtonIcon} size={17} color="#FFFFFF" />
-            <Text style={styles.deckButtonText}>{deckButtonLabel}</Text>
+            <Feather name={learningActionIcon} size={17} color="#FFFFFF" />
+            <Text style={styles.deckButtonText}>{learningActionLabel}</Text>
           </Pressable>
         </View>
       </Animated.View>
@@ -800,12 +849,12 @@ export default function SongDetailScreen({ navigation, route }: Props) {
               style={{ opacity: appBarContentOpacity }}
             >
               <Pressable
-                style={[styles.appBarDeckButton, isDeckActionDisabled && styles.disabledButton]}
-                onPress={handleOpenDeck}
-                disabled={isDeckActionDisabled}
+                style={[styles.appBarDeckButton, isLearningActionDisabled && styles.disabledButton]}
+                onPress={handlePrimaryLearningPress}
+                disabled={isLearningActionDisabled}
               >
-                <Feather name={deckButtonIcon} size={13} color="#FFFFFF" />
-                <Text style={styles.appBarDeckButtonText} numberOfLines={1}>{deckButtonLabel}</Text>
+                <Feather name={learningActionIcon} size={13} color="#FFFFFF" />
+                <Text style={styles.appBarDeckButtonText} numberOfLines={1}>{learningActionLabel}</Text>
               </Pressable>
             </Animated.View>
             <IconButton icon="info" onPress={handleOpenInfo} />
@@ -900,6 +949,8 @@ export default function SongDetailScreen({ navigation, route }: Props) {
           />
         </AppBottomSheetView>
       </AppBottomSheet>
+
+      <ErrorDialog message={learningError} onDismiss={handleDismissLearningError} />
 
     </View>
   );
@@ -1143,8 +1194,12 @@ const TabButton = React.memo(function TabButton({
 });
 
 const SongDetailAnalysisPendingPlaceholder = React.memo(function SongDetailAnalysisPendingPlaceholder({
+  subscribed,
+  onToggleNotification,
   onRefresh,
 }: {
+  subscribed: boolean;
+  onToggleNotification: () => void;
   onRefresh: () => void;
 }) {
   return (
@@ -1156,9 +1211,22 @@ const SongDetailAnalysisPendingPlaceholder = React.memo(function SongDetailAnaly
       <View style={styles.analysisPendingTextBlock}>
         <Text style={styles.analysisPendingTitle}>단어를 준비하는 중이에요</Text>
         <Text style={styles.analysisPendingBody}>
-          분석에 2~3분 정도 소요돼요.
+          보통 2~3분 걸려요.{'\n'}
+          완료되면 알림으로 알려드릴게요.
         </Text>
       </View>
+
+      <Pressable
+        style={[styles.analysisPendingNotifyButton, subscribed && styles.analysisPendingNotifyButtonActive]}
+        onPress={onToggleNotification}
+        accessibilityRole="button"
+        accessibilityLabel={subscribed ? '분석 완료 알림 신청됨' : '분석 완료 알림 받기'}
+      >
+        <Feather name={subscribed ? 'check' : 'bell'} size={16} color={subscribed ? '#FFFFFF' : Colors.primary} />
+        <Text style={[styles.analysisPendingNotifyText, subscribed && styles.analysisPendingNotifyTextActive]}>
+          {subscribed ? '알림 받을게요' : '완료되면 알림 받기'}
+        </Text>
+      </Pressable>
 
       <Pressable
         style={styles.analysisPendingRefreshButton}
@@ -1166,8 +1234,8 @@ const SongDetailAnalysisPendingPlaceholder = React.memo(function SongDetailAnaly
         accessibilityRole="button"
         accessibilityLabel="분석 상태 새로고침"
       >
-        <Feather name="refresh-cw" size={16} color={Colors.textSecondary} />
-        <Text style={styles.analysisPendingRefreshText}>새로고침</Text>
+        <Feather name="refresh-cw" size={13} color={Colors.textMuted} />
+        <Text style={styles.analysisPendingRefreshText}>상태 새로고침</Text>
       </Pressable>
     </View>
   );
@@ -1478,7 +1546,7 @@ const styles = StyleSheet.create({
     minHeight: 580,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 20,
+    gap: 18,
     paddingHorizontal: 24,
     backgroundColor: Colors.background,
   },
@@ -1502,25 +1570,47 @@ const styles = StyleSheet.create({
   },
   analysisPendingBody: {
     width: 270,
-    fontSize: 14,
-    lineHeight: 22,
+    fontSize: 13,
+    lineHeight: 21,
     color: Colors.textSecondary,
     textAlign: 'center',
   },
-  analysisPendingRefreshButton: {
-    width: 152,
-    height: 44,
+  analysisPendingNotifyButton: {
+    minWidth: 178,
+    height: 46,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
     borderRadius: 9999,
-    backgroundColor: Colors.elevated,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.primary,
+    backgroundColor: Colors.background,
+  },
+  analysisPendingNotifyButtonActive: {
+    backgroundColor: Colors.primary,
+  },
+  analysisPendingNotifyText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.primary,
+  },
+  analysisPendingNotifyTextActive: {
+    color: '#FFFFFF',
+  },
+  analysisPendingRefreshButton: {
+    minHeight: 32,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderRadius: 9999,
+    paddingHorizontal: 10,
   },
   analysisPendingRefreshText: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
-    color: Colors.textSecondary,
+    color: Colors.textMuted,
   },
   appBar: {
     position: 'absolute',

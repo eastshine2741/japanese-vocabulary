@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo } from 'react';
 import {
   ActivityIndicator,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -8,43 +9,68 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Colors } from '../../theme/theme';
-import SongDetailWordRow from './SongDetailWordRow';
 import { selectMajorWords } from './songDetailWordDerivation';
 import { getSongDetailWordKey } from './songDetailWordSave';
-import { SongDetailWordItem, SongDetailWordSaveState } from './types';
+import { SongDetailWordItem } from './types';
 
-interface MajorWordRowProps {
+interface MajorWordCardProps {
   word: SongDetailWordItem;
-  isLast: boolean;
-  saveState: SongDetailWordSaveState;
   isBusy: boolean;
-  onToggleWordSave: (word: SongDetailWordItem) => void;
+  onStartWordLearning: (word: SongDetailWordItem) => void;
 }
 
 interface SongDetailMajorWordsProps {
   words: readonly SongDetailWordItem[];
   isLoading?: boolean;
   onViewAllWordsPress?: () => void;
-  getWordSaveState: (word: SongDetailWordItem) => SongDetailWordSaveState;
-  busyWordKey: string | null;
-  onToggleWordSave: (word: SongDetailWordItem) => void;
+  busyWordKey?: string | null;
+  onStartWordLearning: (word: SongDetailWordItem) => void;
 }
 
-const MajorWordRow = React.memo(function MajorWordRow({
+const MajorWordCard = React.memo(function MajorWordCard({
   word,
-  isLast,
-  saveState,
   isBusy,
-  onToggleWordSave,
-}: MajorWordRowProps) {
+  onStartWordLearning,
+}: MajorWordCardProps) {
+  const handlePress = useCallback(() => {
+    onStartWordLearning(word);
+  }, [onStartWordLearning, word]);
+  const label = word.baseForm || word.japanese || word.surface;
+  const reading = word.reading;
+
   return (
-    <SongDetailWordRow
-      word={word}
-      isSaved={saveState.isSavedForSong}
-      isBusy={isBusy}
-      showDivider={!isLast}
-      onToggleSave={onToggleWordSave}
-    />
+    <TouchableOpacity
+      style={[styles.wordCard, isBusy && styles.wordCardBusy]}
+      onPress={handlePress}
+      activeOpacity={0.78}
+      disabled={isBusy}
+      accessibilityRole="button"
+      accessibilityLabel={`${label} 단어로 학습 시작`}
+    >
+      <View style={styles.cardBadgeRow}>
+        {word.jlpt ? (
+          <View style={styles.jlptBadge}>
+            <Text style={styles.jlptText}>{word.jlpt}</Text>
+          </View>
+        ) : <View />}
+      </View>
+      <View style={styles.wordTextBlock}>
+        {reading ? <Text style={styles.reading} numberOfLines={1}>{reading}</Text> : null}
+        <Text style={styles.japanese} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72}>
+          {label}
+        </Text>
+      </View>
+      <View style={styles.maskButton}>
+        {isBusy ? (
+          <ActivityIndicator size="small" color={Colors.primary} />
+        ) : (
+          <>
+            <Feather name="eye-off" size={12} color={Colors.textMuted} />
+            <Text style={styles.maskLabel}>뜻 확인하기</Text>
+          </>
+        )}
+      </View>
+    </TouchableOpacity>
   );
 });
 
@@ -52,9 +78,8 @@ export const SongDetailMajorWords = React.memo(function SongDetailMajorWords({
   words,
   isLoading = false,
   onViewAllWordsPress,
-  getWordSaveState,
   busyWordKey,
-  onToggleWordSave,
+  onStartWordLearning,
 }: SongDetailMajorWordsProps) {
   const majorWords = useMemo(() => selectMajorWords(words), [words]);
   const handleViewAll = useCallback(() => {
@@ -64,36 +89,42 @@ export const SongDetailMajorWords = React.memo(function SongDetailMajorWords({
   return (
     <View style={styles.section}>
       <View style={styles.header}>
-        <Text style={styles.title}>주요 단어</Text>
-        <Text style={styles.description}>가사 이해에 핵심이 되는 단어를 추렸어요.</Text>
+        <Text style={styles.title}>핵심 단어</Text>
+        <Text style={styles.description}>뜻을 보기 전에, 아는 단어인지 먼저 떠올려 보세요.</Text>
       </View>
 
-      <View style={styles.list}>
-        {isLoading ? (
+      {isLoading ? (
+        <View style={styles.list}>
           <View style={styles.stateBox}>
             <ActivityIndicator color={Colors.primary} />
             <Text style={styles.stateText}>단어를 불러오는 중이에요.</Text>
           </View>
-        ) : majorWords.length === 0 ? (
+        </View>
+      ) : majorWords.length === 0 ? (
+        <View style={styles.list}>
           <View style={styles.stateBox}>
             <Text style={styles.stateText}>아직 표시할 단어가 없어요.</Text>
           </View>
-        ) : (
-          majorWords.map((word, index) => {
+        </View>
+      ) : (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.cardRail}
+        >
+          {majorWords.map(word => {
             const wordKey = getSongDetailWordKey(word);
             return (
-              <MajorWordRow
+              <MajorWordCard
                 key={wordKey}
                 word={word}
-                isLast={index === majorWords.length - 1}
-                saveState={getWordSaveState(word)}
                 isBusy={busyWordKey === wordKey}
-                onToggleWordSave={onToggleWordSave}
+                onStartWordLearning={onStartWordLearning}
               />
             );
-          })
-        )}
-      </View>
+          })}
+        </ScrollView>
+      )}
 
       <TouchableOpacity
         style={styles.viewAllButton}
@@ -127,6 +158,71 @@ const styles = StyleSheet.create({
   },
   list: {
     overflow: 'hidden',
+  },
+  cardRail: {
+    gap: 10,
+    paddingRight: 4,
+  },
+  wordCard: {
+    width: 122,
+    minHeight: 138,
+    justifyContent: 'space-between',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+  },
+  wordCardBusy: {
+    opacity: 0.68,
+  },
+  cardBadgeRow: {
+    minHeight: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  jlptBadge: {
+    height: 18,
+    justifyContent: 'center',
+    borderRadius: 9999,
+    paddingHorizontal: 7,
+    backgroundColor: Colors.primaryBg,
+  },
+  jlptText: {
+    color: Colors.primary,
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  wordTextBlock: {
+    alignItems: 'center',
+    gap: 2,
+  },
+  reading: {
+    maxWidth: '100%',
+    color: Colors.textMuted,
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  japanese: {
+    maxWidth: '100%',
+    color: Colors.textPrimary,
+    fontSize: 32,
+    lineHeight: 40,
+    fontWeight: '800',
+  },
+  maskButton: {
+    height: 30,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    borderRadius: 6,
+    backgroundColor: Colors.elevated,
+  },
+  maskLabel: {
+    color: Colors.textSecondary,
+    fontSize: 11,
+    fontWeight: '700',
   },
   stateBox: {
     minHeight: 88,

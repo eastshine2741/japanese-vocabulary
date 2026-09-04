@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../theme/theme';
+import { Colors, Dimens } from '../theme/theme';
 
 type TabKey = 'Home' | 'Search' | 'MyPage';
 
@@ -13,14 +13,14 @@ type TabKey = 'Home' | 'Search' | 'MyPage';
 const TAB_CONFIG: Record<TabKey, { active: keyof typeof Ionicons.glyphMap; inactive: keyof typeof Ionicons.glyphMap; label: string }> = {
   Home: { active: 'home', inactive: 'home-outline', label: '홈' },
   Search: { active: 'search', inactive: 'search-outline', label: '검색' },
-  MyPage: { active: 'person', inactive: 'person-outline', label: '프로필' },
+  MyPage: { active: 'person', inactive: 'person-outline', label: '마이' },
 };
 
 export default function BottomTabBar({ state, navigation }: any) {
   const insets = useSafeAreaInsets();
 
   return (
-    <View style={[styles.bar, { paddingBottom: insets.bottom, height: 56 + insets.bottom }]}>
+    <View style={[styles.bar, { paddingBottom: insets.bottom, height: Dimens.bottomBarHeight + insets.bottom }]}>
       {state.routes.map((route: any, index: number) => {
         const focused = state.index === index;
         const config = TAB_CONFIG[route.name as TabKey];
@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 10,
     fontWeight: '500',
-    letterSpacing: 0.2,
+    letterSpacing: 0,
   },
   labelActive: {
     color: Colors.textPrimary,

@@ -71,5 +71,5 @@ export const Dimens = {
   cardCornerRadius: 16,
   smallCornerRadius: 12,
   artworkCornerRadius: 12,
-  bottomBarHeight: 64,
+  bottomBarHeight: 56,
 };
