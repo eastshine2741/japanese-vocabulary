@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { CompletionStage, ErrorStage } from './CompletionStage';
 import { WordLayer } from './WordLayer';
+import { StudySource } from './types';
 import { StudyStackState } from './useStudyStack';
 
 export interface StudyStackProps {
@@ -10,6 +11,8 @@ export interface StudyStackProps {
   stack: StudyStackState;
   onOpenSource: () => void;
   onSearch: () => void;
+  /** 완주 화면에서 추천곡을 선택했을 때. 넘기지 않으면 추천곡 넛지를 그리지 않는다. */
+  onSelectRecommended?: (source: StudySource) => void;
   /**
    * 무대 위에 겹쳐 그릴 크롬(곡 진입 오버레이 등). 홈처럼 스택 밖에 놓는 크롬은
    * 이 prop 을 쓰지 말고 StudyStack 의 형제로 배치한다.
@@ -24,6 +27,7 @@ export const StudyStack = React.memo(function StudyStack({
   stack,
   onOpenSource,
   onSearch,
+  onSelectRecommended,
   overlay,
   contentInsetTop,
 }: StudyStackProps) {
@@ -46,8 +50,11 @@ export const StudyStack = React.memo(function StudyStack({
     selectRating,
     reload,
     continueDue,
-    startRecommended,
   } = stack;
+
+  const handleRecommended = useCallback(() => {
+    if (recommendedSource) onSelectRecommended?.(recommendedSource);
+  }, [onSelectRecommended, recommendedSource]);
 
   return (
     <View style={styles.stage}>
@@ -88,7 +95,7 @@ export const StudyStack = React.memo(function StudyStack({
           nextDueSource={nextDueSource}
           recommendedSource={recommendedSource}
           onContinueDue={continueDue}
-          onRecommended={startRecommended}
+          onRecommended={handleRecommended}
           onSearch={onSearch}
           contentInsetTop={contentInsetTop}
         />

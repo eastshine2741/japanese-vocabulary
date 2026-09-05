@@ -1,15 +1,13 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
-  createSongQueueOrderer,
   StackReviewOverlay,
   STACK_REVIEW_CHROME_HEIGHT,
   StudyStack,
   useStudyStack,
 } from '../components/studyStack';
-import { useSongDetailStore } from '../stores/songDetailStore';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SongReview'>;
@@ -17,19 +15,9 @@ type Props = NativeStackScreenProps<RootStackParamList, 'SongReview'>;
 /** 곡 진입 복습 — 홈과 같은 카드 스택에 크롬만 오버레이로 바뀐 스택 화면. */
 export default function SongReviewScreen({ navigation, route }: Props) {
   const insets = useSafeAreaInsets();
-  const { source, focusJapanese } = route.params;
-  const songId = source.songId;
+  const { source } = route.params;
 
-  // 큐 순서 재료는 바로 아래 SongDetail 이 이미 들고 있다. 없으면 서버 순서를 그대로 쓴다.
-  const songWords = useSongDetailStore(
-    s => (songId != null && s.data?.song.id === songId ? s.data.words.words : null),
-  );
-  const orderCards = useMemo(
-    () => createSongQueueOrderer(songWords, focusJapanese),
-    [focusJapanese, songWords],
-  );
-
-  const stack = useStudyStack({ mode: 'source', source, orderCards });
+  const stack = useStudyStack({ mode: 'source', source });
   const { isComplete, session, status } = stack;
 
   const goBack = useCallback(() => navigation.goBack(), [navigation]);

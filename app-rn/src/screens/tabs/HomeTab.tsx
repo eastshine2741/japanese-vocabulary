@@ -5,7 +5,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { CompositeNavigationProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { HomeChrome, StudyStack, useStudyStack } from '../../components/studyStack';
+import { HomeChrome, StudySource, StudyStack, useStudyStack } from '../../components/studyStack';
 import { RootStackParamList, TabParamList } from '../../navigation/AppNavigator';
 import { Colors } from '../../theme/theme';
 
@@ -17,7 +17,7 @@ type Nav = CompositeNavigationProp<
 export default function HomeTab() {
   const navigation = useNavigation<Nav>();
   const stack = useStudyStack({ mode: 'home' });
-  const visibleSongId = stack.visibleSource.songId;
+  const visibleSongId = stack.visibleSource?.songId ?? null;
 
   const goSearch = useCallback(() => navigation.navigate('Search'), [navigation]);
 
@@ -26,6 +26,11 @@ export default function HomeTab() {
     navigation.navigate('SongDetail', { songId: visibleSongId, origin: 'Home' });
   }, [navigation, visibleSongId]);
 
+  const openRecommended = useCallback((recommended: StudySource) => {
+    if (recommended.songId == null) return;
+    navigation.navigate('SongDetail', { songId: recommended.songId, origin: 'Home' });
+  }, [navigation]);
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <HomeChrome
@@ -33,7 +38,12 @@ export default function HomeTab() {
         progress={stack.session.progress}
         onSearch={goSearch}
       />
-      <StudyStack stack={stack} onOpenSource={openSource} onSearch={goSearch} />
+      <StudyStack
+        stack={stack}
+        onOpenSource={openSource}
+        onSearch={goSearch}
+        onSelectRecommended={openRecommended}
+      />
     </SafeAreaView>
   );
 }

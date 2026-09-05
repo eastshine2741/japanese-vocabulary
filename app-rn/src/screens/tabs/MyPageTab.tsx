@@ -13,11 +13,7 @@ import { RootStackParamList } from '../../navigation/AppNavigator';
 import HeatmapSection from '../../components/studyStats/HeatmapSection';
 import FreezeInfoSheet from '../../components/studyStats/FreezeInfoSheet';
 import SongProgressRow from '../../components/studyStats/SongProgressRow';
-import {
-  SongProgressItem,
-  sortSongProgress,
-  toSongProgressItem,
-} from '../../components/studyStats/songProgress';
+import { SongProgressItem, toSongProgressItem } from '../../components/studyStats/songProgress';
 import { flashcardApi } from '../../api/flashcardApi';
 import { FlashcardStatsResponse } from '../../types/flashcard';
 
@@ -97,10 +93,7 @@ export default function MyPageTab() {
 
   const handle = username ? `@${username}` : '@user';
   const displayName = userName?.trim() || '학습자';
-  const progressItems = useMemo(
-    () => sortSongProgress(songDecks.map(toSongProgressItem), 'due'),
-    [songDecks],
-  );
+  const progressItems = useMemo(() => songDecks.map(toSongProgressItem), [songDecks]);
   const representativeSongs = useMemo(() => progressItems.slice(0, 2), [progressItems]);
   const totalWords = flashcardStats?.total ?? sumBy(progressItems, (item) => item.totalWords);
   const masteredWords = flashcardStats?.review ?? sumBy(progressItems, (item) => item.masteredCount);

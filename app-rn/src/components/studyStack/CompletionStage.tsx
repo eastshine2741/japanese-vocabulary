@@ -2,7 +2,6 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { ArtworkThumb, CardStage } from './CardStage';
-import { MOCK_RECOMMENDED_SOURCE } from './studySource';
 import { StudySource } from './types';
 
 export interface CompletionStageProps {
@@ -26,9 +25,35 @@ export const CompletionStage = React.memo(function CompletionStage({
   onSearch,
   contentInsetTop,
 }: CompletionStageProps) {
-  const stageSource = nextDueSource ?? recommendedSource ?? completedSource ?? MOCK_RECOMMENDED_SOURCE;
+  const stageSource = nextDueSource ?? recommendedSource ?? completedSource;
   const hasNextDue = nextDueSource != null;
-  const primaryLabel = hasNextDue ? '이어서 복습' : '이어서 학습';
+  const hasRecommended = recommendedSource != null;
+  const primaryLabel = hasNextDue ? '이어서 복습' : hasRecommended ? '이어서 학습' : '새 곡 검색';
+  const handlePrimary = hasNextDue ? onContinueDue : hasRecommended ? onRecommended : onSearch;
+
+  if (!stageSource) {
+    return (
+      <CardStage artworkUrl={null} contentInsetTop={contentInsetTop}>
+        <View style={styles.completeCenter}>
+          <View style={styles.doneBadge}>
+            <Feather name="check" size={32} color="#A7E3C4" />
+          </View>
+          <View style={styles.doneGroup}>
+            <Text style={styles.doneTitle}>오늘 복습 끝!</Text>
+            <View style={styles.doneSubRow}>
+              <Feather name="check-circle" size={15} color="#A7E3C4" />
+              <Text style={styles.doneSub}>새로 배울 곡을 검색해보세요</Text>
+            </View>
+          </View>
+        </View>
+        <View style={styles.completeBottom}>
+          <Pressable style={styles.primaryAction} onPress={onSearch}>
+            <Text style={styles.primaryActionText}>새 곡 검색</Text>
+          </Pressable>
+        </View>
+      </CardStage>
+    );
+  }
 
   return (
     <CardStage artworkUrl={stageSource.artworkUrl} contentInsetTop={contentInsetTop}>
@@ -56,40 +81,44 @@ export const CompletionStage = React.memo(function CompletionStage({
       </View>
 
       <View style={styles.completeBottom}>
-        <View style={styles.nudgeDivider} />
-        <View style={styles.nudgeBlock}>
-          <Text style={styles.nudgeReason}>
-            {hasNextDue ? '복습할 단어가 남은 곡이 하나 더 있어요' : '새 단어를 배울 곡을 골라봤어요'}
-          </Text>
-          {stageSource && (
-            <View style={styles.nextSourceRow}>
-              <ArtworkThumb artworkUrl={stageSource.artworkUrl} size={34} radius={7} />
-              <View style={styles.nextSourceText}>
-                <Text numberOfLines={1} style={styles.nextTitle}>{stageSource.title}</Text>
-                <Text numberOfLines={1} style={styles.nextSub}>
-                  {stageSource.artist} · {hasNextDue ? `오늘 ${stageSource.dueCount}개 남음` : `배울 단어 ${stageSource.totalCount}개`}
-                </Text>
+        {(hasNextDue || hasRecommended) && (
+          <>
+            <View style={styles.nudgeDivider} />
+            <View style={styles.nudgeBlock}>
+              <Text style={styles.nudgeReason}>
+                {hasNextDue ? '복습할 단어가 남은 곡이 하나 더 있어요' : '새 단어를 배울 곡을 골라봤어요'}
+              </Text>
+              <View style={styles.nextSourceRow}>
+                <ArtworkThumb artworkUrl={stageSource.artworkUrl} size={34} radius={7} />
+                <View style={styles.nextSourceText}>
+                  <Text numberOfLines={1} style={styles.nextTitle}>{stageSource.title}</Text>
+                  <Text numberOfLines={1} style={styles.nextSub}>
+                    {stageSource.artist} · {hasNextDue ? `오늘 ${stageSource.dueCount}개 남음` : `배울 단어 ${stageSource.totalCount}개`}
+                  </Text>
+                </View>
               </View>
             </View>
-          )}
-        </View>
+          </>
+        )}
 
-        <Pressable style={styles.primaryAction} onPress={hasNextDue ? onContinueDue : onRecommended}>
+        <Pressable style={styles.primaryAction} onPress={handlePrimary}>
           <Text style={styles.primaryActionText}>{primaryLabel}</Text>
         </Pressable>
 
-        <View style={styles.secondaryActions}>
-          {hasNextDue && recommendedSource && (
-            <Pressable style={styles.secondaryAction} onPress={onRecommended}>
-              <Feather name="book-open" size={15} color="rgba(255,255,255,0.6)" />
-              <Text style={styles.secondaryActionText}>추천곡 학습</Text>
+        {(hasNextDue || hasRecommended) && (
+          <View style={styles.secondaryActions}>
+            {hasNextDue && hasRecommended && (
+              <Pressable style={styles.secondaryAction} onPress={onRecommended}>
+                <Feather name="book-open" size={15} color="rgba(255,255,255,0.6)" />
+                <Text style={styles.secondaryActionText}>추천곡 학습</Text>
+              </Pressable>
+            )}
+            <Pressable style={styles.secondaryAction} onPress={onSearch}>
+              <Feather name="search" size={15} color="rgba(255,255,255,0.6)" />
+              <Text style={styles.secondaryActionText}>새 곡 검색</Text>
             </Pressable>
-          )}
-          <Pressable style={styles.secondaryAction} onPress={onSearch}>
-            <Feather name="search" size={15} color="rgba(255,255,255,0.6)" />
-            <Text style={styles.secondaryActionText}>새 곡 검색</Text>
-          </Pressable>
-        </View>
+          </View>
+        )}
       </View>
     </CardStage>
   );

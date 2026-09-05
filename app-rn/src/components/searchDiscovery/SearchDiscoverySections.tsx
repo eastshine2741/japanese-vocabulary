@@ -22,7 +22,6 @@ import { useSearchHistoryStore } from '../../stores/searchHistoryStore';
 import { Colors, Dimens } from '../../theme/theme';
 import { RecentSongItem, RecommendedSongItem } from '../../types/song';
 
-const TRENDING_TERMS = ['YOASOBI', '夜に駆ける', '米津玄師', '紅蓮華', 'Official髭男dism'];
 const MAX_TERMS = 5;
 
 const RECENT_COVER_SIZE = 84;
@@ -71,14 +70,12 @@ const RecentSongCard = React.memo(function RecentSongCard({
 
 interface TermRowProps {
   term: string;
-  kind: 'recent' | 'trending';
   onSelect: (term: string) => void;
   onRemove: (term: string) => void;
 }
 
 const TermRow = React.memo(function TermRow({
   term,
-  kind,
   onSelect,
   onRemove,
 }: TermRowProps) {
@@ -92,19 +89,13 @@ const TermRow = React.memo(function TermRow({
 
   return (
     <TouchableOpacity style={styles.termRow} onPress={handleSelect} activeOpacity={0.72}>
-      <Ionicons
-        name={kind === 'recent' ? 'time-outline' : 'trending-up-outline'}
-        size={18}
-        color={Colors.textMuted}
-      />
+      <Ionicons name="time-outline" size={18} color={Colors.textMuted} />
       <Text style={styles.termText} numberOfLines={1}>
         {term}
       </Text>
-      {kind === 'recent' ? (
-        <TouchableOpacity onPress={handleRemove} hitSlop={8}>
-          <Ionicons name="close" size={16} color={Colors.textMuted} />
-        </TouchableOpacity>
-      ) : null}
+      <TouchableOpacity onPress={handleRemove} hitSlop={8}>
+        <Ionicons name="close" size={16} color={Colors.textMuted} />
+      </TouchableOpacity>
     </TouchableOpacity>
   );
 });
@@ -214,15 +205,7 @@ export default function SearchDiscoverySections({
     }, [loadRecentSongs, loadTerms, loadRecommendations]),
   );
 
-  const termRows = useMemo(() => {
-    const recent = terms.slice(0, MAX_TERMS).map(term => ({ term, kind: 'recent' as const }));
-    if (recent.length >= MAX_TERMS) return recent;
-    const seen = new Set(recent.map(row => row.term));
-    const trending = TRENDING_TERMS.filter(term => !seen.has(term))
-      .slice(0, MAX_TERMS - recent.length)
-      .map(term => ({ term, kind: 'trending' as const }));
-    return [...recent, ...trending];
-  }, [terms]);
+  const termRows = useMemo(() => terms.slice(0, MAX_TERMS), [terms]);
 
   const cardWidth = useMemo(
     () => Math.round(windowWidth * REC_CARD_WIDTH_RATIO),
@@ -267,11 +250,10 @@ export default function SearchDiscoverySections({
       ) : null}
 
       <View style={styles.termsSection}>
-        {termRows.map(row => (
+        {termRows.map(term => (
           <TermRow
-            key={`${row.kind}:${row.term}`}
-            term={row.term}
-            kind={row.kind}
+            key={term}
+            term={term}
             onSelect={onSelectTerm}
             onRemove={removeTerm}
           />

@@ -7,15 +7,9 @@ import { studyStatsApi } from '../../api/studyStatsApi';
 import { useStudyStatsStore } from '../../stores/studyStatsStore';
 import { SongDeckSummary } from '../../types/deck';
 import { FlashcardDTO } from '../../types/flashcard';
-import {
-  MOCK_RECOMMENDED_SOURCE,
-  makeMockCards,
-  sourceFromDeck,
-  sourceFromRecommendation,
-} from './studySource';
+import { sourceFromDeck, sourceFromRecommendation } from './studySource';
 import {
   StudyCard,
-  StudyCardOrigin,
   StudySessionProgress,
   StudySource,
   StudyStackStatus,
@@ -25,6 +19,17 @@ const SWIPE_OUT_DISTANCE = -420;
 const SWIPE_DRAG_LIMIT = -160;
 const SWIPE_COMMIT_DISTANCE = -72;
 
+/**
+ * 서버 due 응답은 정렬 계약이 없어 클라이언트에서 (due, id) 로 다시 세운다.
+ * 곡별 due flashcards 에 deckId+limit 정렬 계약이 생기면 이 정렬만 걷어내면 된다.
+ */
+function sortCardsByDue(cards: FlashcardDTO[]): FlashcardDTO[] {
+  return [...cards].sort((a, b) => {
+    const dueDiff = Date.parse(a.due) - Date.parse(b.due);
+    return dueDiff !== 0 ? dueDiff : a.id - b.id;
+  });
+}
+
 export interface UseStudyStackOptions {
   /**
    * 'home': due 덱을 스스로 골라 스택을 시작하고 완주 후 다음 곡을 넛지한다.
@@ -33,11 +38,6 @@ export interface UseStudyStackOptions {
   mode: 'home' | 'source';
   /** mode 가 'source' 일 때 복습할 곡. mode 가 'home' 이면 무시된다. */
   source?: StudySource | null;
-  /**
-   * due 응답을 큐 순서로 다시 세우는 어댑터. 서버가 셔플해서 주기 때문에
-   * 곡 진입 복습처럼 순서가 정해진 큐는 여기서 바꾼다. 넘기지 않으면 서버 순서 그대로.
-   */
-  orderCards?: (cards: FlashcardDTO[]) => FlashcardDTO[];
 }
 
 export interface StudyStackState {
@@ -55,8 +55,8 @@ export interface StudyStackState {
   completedSource: StudySource | null;
   nextDueSource: StudySource | null;
   recommendedSource: StudySource | null;
-  /** 무대(아트워크)가 그려야 할 곡 — 카드가 없어도 항상 값이 있다. */
-  visibleSource: StudySource;
+  /** 무대(아트워크)가 그려야 할 곡. 아무 것도 없으면 null. */
+  visibleSource: StudySource | null;
   /** mode 'home' 에서만 채워진다. 실패 시 임의값으로 메우지 않는다. */
   streak: number;
   session: StudySessionProgress;
@@ -66,11 +66,9 @@ export interface StudyStackState {
   selectRating: (rating: number) => void;
   reload: () => void;
   continueDue: () => void;
-  startRecommended: () => void;
-  loadSource: (source: StudySource, origin?: StudyCardOrigin) => void;
 }
 
-export function useStudyStack({ mode, source, orderCards }: UseStudyStackOptions): StudyStackState {
+export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStackState {
   const [status, setStatus] = useState<StudyStackStatus>('loading');
   const [cards, setCards] = useState<StudyCard[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -78,7 +76,7 @@ export function useStudyStack({ mode, source, orderCards }: UseStudyStackOptions
   const [selectedRating, setSelectedRating] = useState<number | null>(null);
   const [completedSource, setCompletedSource] = useState<StudySource | null>(null);
   const [nextDueSource, setNextDueSource] = useState<StudySource | null>(null);
-  const [recommendedSource, setRecommendedSource] = useState<StudySource | null>(MOCK_RECOMMENDED_SOURCE);
+  const [recommendedSource, setRecommendedSource] = useState<StudySource | null>(null);
   const [streak, setStreak] = useState(0);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [reviewError, setReviewError] = useState<string | null>(null);
@@ -89,12 +87,9 @@ export function useStudyStack({ mode, source, orderCards }: UseStudyStackOptions
   const sourceRef = useRef<StudySource | null>(source ?? null);
   sourceRef.current = source ?? null;
   const sourceKey = source ? `${source.deckId}:${source.songId}` : null;
-  // 어댑터가 바뀌어도 큐를 다시 열지 않는다 — 정렬은 로딩 시점에만 쓰인다.
-  const orderCardsRef = useRef(orderCards);
-  orderCardsRef.current = orderCards;
 
   const currentCard = cards[currentIndex] ?? null;
-  const visibleSource = currentCard?.source ?? nextDueSource ?? recommendedSource ?? completedSource ?? MOCK_RECOMMENDED_SOURCE;
+  const visibleSource = currentCard?.source ?? nextDueSource ?? recommendedSource ?? completedSource ?? null;
   const isComplete = status === 'ready' && !currentCard;
   const isError = status === 'error';
 
@@ -128,7 +123,7 @@ export function useStudyStack({ mode, source, orderCards }: UseStudyStackOptions
     setStatus('ready');
   }, []);
 
-  const loadCardsForSource = useCallback(async (target: StudySource, origin: StudyCardOrigin = 'due') => {
+  const loadCardsForSource = useCallback(async (target: StudySource) => {
     setStatus('loading');
     setLoadError(null);
     setReviewError(null);
@@ -138,20 +133,22 @@ export function useStudyStack({ mode, source, orderCards }: UseStudyStackOptions
     setSelectedRating(null);
     setRevealed(false);
     try {
-      if (origin === 'due' && target.deckId != null) {
-        const due = await flashcardApi.getDueCards(target.deckId);
-        if (due.cards.length > 0) {
-          const ordered = orderCardsRef.current?.(due.cards) ?? due.cards;
-          setCards(ordered.map(card => ({ ...card, source: target, origin })));
-          setStatus('ready');
-          return;
-        }
+      if (target.deckId == null) {
+        // 아직 이 곡의 덱이 없다 — 복습할 카드가 없는 상태로 완료 화면을 보여준다.
         setCards([]);
         setCompletedSource(target);
         setStatus('ready');
         return;
       }
-      setCards(makeMockCards(target, origin));
+      const due = await flashcardApi.getDueCards(target.deckId);
+      if (due.cards.length > 0) {
+        const ordered = sortCardsByDue(due.cards);
+        setCards(ordered.map(card => ({ ...card, source: target })));
+        setStatus('ready');
+        return;
+      }
+      setCards([]);
+      setCompletedSource(target);
       setStatus('ready');
     } catch (e: any) {
       // 실제 due API 실패를 완료 화면으로 위장하지 않는다.
@@ -171,10 +168,7 @@ export function useStudyStack({ mode, source, orderCards }: UseStudyStackOptions
         studyStatsApi.getHome(),
         songApi.getRecommendations(),
       ]);
-      const recommended = recommendations[0]
-        ? sourceFromRecommendation(recommendations[0])
-        : MOCK_RECOMMENDED_SOURCE;
-      setRecommendedSource(recommended);
+      setRecommendedSource(recommendations[0] ? sourceFromRecommendation(recommendations[0]) : null);
       setStreak(homeStats.currentStreak);
 
       const dueDecks = deckRes.songDecks.filter(deck => deck.dueCount > 0);
@@ -185,7 +179,7 @@ export function useStudyStack({ mode, source, orderCards }: UseStudyStackOptions
           .filter(deck => deck.deckId !== firstDeck.deckId)
           .sort((a, b) => b.dueCount - a.dueCount)[0];
         setNextDueSource(followingDeck ? sourceFromDeck(followingDeck) : null);
-        await loadCardsForSource(firstSource, 'due');
+        await loadCardsForSource(firstSource);
       } else {
         showCompletion(null, []);
       }
@@ -212,7 +206,7 @@ export function useStudyStack({ mode, source, orderCards }: UseStudyStackOptions
       setStatus('loading');
       return;
     }
-    loadCardsForSource(target, target.deckId != null ? 'due' : 'mockDue');
+    loadCardsForSource(target);
   }, [loadCardsForSource, loadHomeStack, mode]);
 
   useEffect(() => {
@@ -248,20 +242,18 @@ export function useStudyStack({ mode, source, orderCards }: UseStudyStackOptions
   const advanceAfterReview = useCallback(async () => {
     if (!currentCard || selectedRating == null || saving) return;
     setSaving(true);
-    if (currentCard.origin === 'due') {
-      try {
-        await flashcardApi.review(currentCard.id, { rating: selectedRating });
-        useStudyStatsStore.getState().invalidate();
-      } catch (e: any) {
-        // 저장에 실패하면 카드를 넘기지 않는다 — 넘기면 평가가 조용히 유실된다.
-        setReviewError(e.message ?? '복습 저장에 실패했어요. 다시 시도해 주세요');
-        setSaving(false);
-        Animated.spring(translateY, {
-          toValue: 0,
-          useNativeDriver: true,
-        }).start();
-        return;
-      }
+    try {
+      await flashcardApi.review(currentCard.id, { rating: selectedRating });
+      useStudyStatsStore.getState().invalidate();
+    } catch (e: any) {
+      // 저장에 실패하면 카드를 넘기지 않는다 — 넘기면 평가가 조용히 유실된다.
+      setReviewError(e.message ?? '복습 저장에 실패했어요. 다시 시도해 주세요');
+      setSaving(false);
+      Animated.spring(translateY, {
+        toValue: 0,
+        useNativeDriver: true,
+      }).start();
+      return;
     }
     setReviewError(null);
     const nextIndex = currentIndex + 1;
@@ -318,16 +310,8 @@ export function useStudyStack({ mode, source, orderCards }: UseStudyStackOptions
 
   const continueDue = useCallback(() => {
     if (!nextDueSource) return;
-    loadCardsForSource(nextDueSource, nextDueSource.deckId != null ? 'due' : 'mockDue');
+    loadCardsForSource(nextDueSource);
   }, [loadCardsForSource, nextDueSource]);
-
-  const startRecommended = useCallback(() => {
-    loadCardsForSource(recommendedSource ?? MOCK_RECOMMENDED_SOURCE, 'recommended');
-  }, [loadCardsForSource, recommendedSource]);
-
-  const loadSource = useCallback((target: StudySource, origin: StudyCardOrigin = 'due') => {
-    loadCardsForSource(target, origin);
-  }, [loadCardsForSource]);
 
   return {
     status,
@@ -353,7 +337,5 @@ export function useStudyStack({ mode, source, orderCards }: UseStudyStackOptions
     selectRating: setSelectedRating,
     reload,
     continueDue,
-    startRecommended,
-    loadSource,
   };
 }

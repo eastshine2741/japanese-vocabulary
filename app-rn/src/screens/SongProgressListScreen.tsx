@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -16,13 +16,7 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import { useDeckListStore } from '../stores/deckListStore';
 import { Colors, Dimens } from '../theme/theme';
 import SongProgressRow from '../components/studyStats/SongProgressRow';
-import {
-  filterSongProgress,
-  SongProgressItem,
-  SongProgressSort,
-  sortSongProgress,
-  toSongProgressItem,
-} from '../components/studyStats/songProgress';
+import { SongProgressItem, toSongProgressItem } from '../components/studyStats/songProgress';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SongProgressList'>;
 
@@ -37,19 +31,13 @@ export default function SongProgressListScreen({ navigation }: Props) {
       loadMore: s.loadMore,
     })),
   );
-  const [query] = useState('');
-  const [sort] = useState<SongProgressSort>('due');
-
   useFocusEffect(
     useCallback(() => {
       load();
     }, [load]),
   );
 
-  const items = useMemo(() => {
-    const mapped = songDecks.map(toSongProgressItem);
-    return sortSongProgress(filterSongProgress(mapped, query), sort);
-  }, [query, songDecks, sort]);
+  const items = useMemo(() => songDecks.map(toSongProgressItem), [songDecks]);
 
   const handleRowPress = useCallback((item: SongProgressItem) => {
     if (item.songId != null) {

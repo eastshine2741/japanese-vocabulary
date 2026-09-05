@@ -463,7 +463,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     return ensureSongDeck();
   }, [ensureSongDeck, songDeckDetail, songId]);
 
-  const openSongReview = useCallback((deck: DeckDetailResponse, focusJapanese: string | null) => {
+  const openSongReview = useCallback((deck: DeckDetailResponse) => {
     if (songId == null || deck.deckId == null) return false;
     navigation.navigate('SongReview', {
       source: {
@@ -475,7 +475,6 @@ export default function SongDetailScreen({ navigation, route }: Props) {
         dueCount: deck.dueCount,
         totalCount: deck.wordCount,
       },
-      focusJapanese,
     });
     return true;
   }, [data?.song, navigation, songId]);
@@ -485,7 +484,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     setIsStartingLearning(true);
     try {
       const deck = await ensureSongDeck();
-      if (deck == null || !openSongReview(deck, null)) {
+      if (deck == null || !openSongReview(deck)) {
         setLearningError('학습할 단어를 준비하지 못했어요. 잠시 후 다시 시도해 주세요.');
       }
     } catch (e: any) {
@@ -496,8 +495,8 @@ export default function SongDetailScreen({ navigation, route }: Props) {
   }, [ensureSongDeck, isStartingLearning, openSongReview, songId]);
 
   /**
-   * 단어를 누르면 항상 그 단어부터 복습한다. 아직 안 담긴 단어는 조용히 담고 시작한다.
-   * 방금 담은 단어의 flashcard 는 due = now 라 바로 큐 첫 카드가 된다.
+   * 단어를 누르면 그 곡 복습을 연다. 아직 안 담긴 단어는 조용히 담고 시작하지만,
+   * 큐는 서버 due 순서를 따르므로 이 단어가 큐의 첫 카드라는 보장은 없다.
    */
   const handleStartWordReview = useCallback(async (word: SongDetailWordItem) => {
     if (songId == null || isStartingLearning) return;
@@ -513,11 +512,10 @@ export default function SongDetailScreen({ navigation, route }: Props) {
           next.set(saveKey, { isSavedForSong: true, savedWordId: result.id });
           return next;
         });
-        // 복습 큐 순서 재료(곡 등장순)를 복습 화면이 최신으로 읽게 한다.
         await refreshWords(songId).catch(() => undefined);
       }
       const deck = await resolveSongDeck();
-      if (deck == null || !openSongReview(deck, saveKey)) {
+      if (deck == null || !openSongReview(deck)) {
         setLearningError('학습할 단어를 준비하지 못했어요. 잠시 후 다시 시도해 주세요.');
       }
     } catch (e: any) {

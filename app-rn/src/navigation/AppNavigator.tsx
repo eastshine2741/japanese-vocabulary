@@ -50,8 +50,8 @@ export type RootStackParamList = {
   OssLicense: undefined;
   SongDetail: SongPlaybackEntryParams;
   Review: { deckId?: number | null; startFlashcardId?: number } | undefined;
-  /** 곡 진입 복습. focusJapanese 단어가 큐의 첫 카드가 된다. */
-  SongReview: { source: StudySource; focusJapanese?: string | null };
+  /** 곡 진입 복습. 큐 순서는 서버 due 응답을 그대로 따른다. */
+  SongReview: { source: StudySource };
   DeckList: undefined;
   SongProgressList: undefined;
   DeckDetail: { deckId: number | null };

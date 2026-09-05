@@ -1,11 +1,8 @@
 import { FlashcardDTO } from '../../types/flashcard';
 
-/** 카드 스택이 어디서 왔는지 — due 덱, 추천곡(mock), 다음 due 덱(mock). */
-export type StudyCardOrigin = 'due' | 'recommended' | 'mockDue';
-
 export type StudyStackStatus = 'loading' | 'ready' | 'error';
 
-/** 스택 한 세션의 출처가 되는 곡. deckId 가 null 이면 실제 덱이 아니다(mock). */
+/** 스택 한 세션의 출처가 되는 곡. deckId 가 null 이면 아직 이 곡의 덱이 없다. */
 export interface StudySource {
   deckId: number | null;
   songId: number | null;
@@ -18,7 +15,6 @@ export interface StudySource {
 
 export interface StudyCard extends FlashcardDTO {
   source: StudySource;
-  origin: StudyCardOrigin;
 }
 
 /** 크롬이 그리는 세션 진행 정보. 공용 스택은 이 값만 노출하고 크롬은 그리지 않는다. */

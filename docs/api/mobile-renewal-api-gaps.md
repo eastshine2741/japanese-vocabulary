@@ -49,7 +49,7 @@ Current implementation loads every due card for the selected scope and shuffles 
 Required change:
 
 ```http
-GET /api/flashcards/due?deckId={deckId}&limit={n}&cursor={cursor}
+GET /api/flashcards/due?deckId={deckId}&limit={n}
 ```
 
 Contract requirements:
@@ -58,7 +58,6 @@ Contract requirements:
 - Return only cards whose `due <= server now`.
 - Order by earliest due first. Use a deterministic tie-breaker such as `(due, id)`.
 - Return at most `limit` cards, not every due card in the deck.
-- Add cursor pagination for the due-ordered queue. The cursor must be based on the sort key, not just an offset, because review writes mutate `due`.
 - Return `totalCount` for currently due cards if needed by UI counters.
 - Optionally return `nextDueAt` for the earliest future card in the same deck when no due cards remain.
 
@@ -66,8 +65,8 @@ Why this replaces `study/session`:
 
 - A session resource would couple API shape to the current card UI. The backend resource is flashcards due within a deck.
 - Some cards can be scheduled again in less than 1 minute after a rating. The client must not assume a fetched batch is a complete, stable session.
-- After `POST /api/flashcards/{id}/review`, invalidate the old queue/cursor and refresh the head page of `GET /api/flashcards/due?deckId=&limit=`. Also refresh when the earliest known future `due` arrives, even if buffered cards remain. Use review responses and, when available, `nextDueAt` to schedule that refresh; check again when the app resumes.
-- A cursor continues one traversal; it is not a permanent position in a changing queue. Restart from the head after queue changes. The same card may become due again and must not be excluded merely because it was already reviewed.
+- After `POST /api/flashcards/{id}/review`, refresh `GET /api/flashcards/due?deckId=&limit=` from the beginning. The same card may become due again and must not be excluded merely because it was already reviewed.
+- Also refresh when the earliest known future `due` arrives, even if buffered cards remain. Use review responses and, when available, `nextDueAt` to schedule that refresh; check again when the app resumes.
 - An empty page means no cards are due at that query time, not that every word is mastered or the deck is permanently complete. If future due timing is unknown, refresh periodically while study remains active.
 
 Dropped from previous draft:
@@ -90,23 +89,18 @@ GET /api/users/me/song-progress
 Use or extend:
 
 ```http
-GET /api/decks?cursor=&limit=&sort=&q=
+GET /api/decks?cursor=
 ```
 
 Current implementation:
 
 - `GET /api/decks` returns `songDecks` and `nextCursor`.
 - Each item has `deckId`, `songId`, `title`, `artist`, `artworkUrl`, `wordCount`, `dueCount`, and `masteredCount`.
-- Current server sort is created-at descending cursor pagination. There is no `sort`, `q`, or `limit` request parameter.
+- Current server order is `createdAt` descending with cursor pagination.
 
-If the profile/song-progress UI needs richer list behavior, add it to the deck collection contract:
+P2a is a simple song-status list: it has no sort, search, or filter control. Keep the collection contract in created-at descending order; there is no current UI requirement for `sort`, `q`, or `limit` parameters.
 
-- `sort=due|recent|progress|title`
-- `q=` for title/artist search
-- `limit=`
-- optional item fields: `studyingCount`, `newWordCount`, `completionRate`, `lastStudiedAt`
-
-Frontend fallback: fetch all pages of current `GET /api/decks`, then sort/search/page locally in the mock adapter. Sorting a single server page cannot produce a globally sorted result. New server sort modes need matching cursor semantics and a deterministic tie-breaker.
+Optional item fields such as `studyingCount`, `newWordCount`, `completionRate`, and `lastStudiedAt` remain separate data requirements if a later UI introduces them; they do not imply list sorting or filtering.
 
 ### 3. User Profile Read
 
@@ -139,13 +133,7 @@ Compose the search screen from existing resources:
 - `GET /api/songs/recent`
 - `GET /api/search-history`
 
-The only currently unbacked concept from the inspected UI is trending terms. If product still needs global trending search terms, add a dedicated resource later, for example:
-
-```http
-GET /api/search/trending-terms
-```
-
-Frontend fallback: keep trending terms mocked locally.
+Trending terms are not a feature in the inspected UI. Do not add `GET /api/search/trending-terms`, and do not mock trending terms in the frontend.
 
 ### 5. Song Analysis Notification Subscription
 
@@ -162,7 +150,7 @@ Current mobile API supports device token registration, but not a per-song analys
 
 - Home can request deck list, flashcard stats, study stats, recommendations, and recent songs in parallel where needed.
 - Do not add `GET /api/home/overview`. Existing `study-stats/home` and `study-stats/profile` are reused legacy endpoints, not a pattern for new screen aggregates; redesigning them is outside this note's scope.
-- Search can request recommendations, recent songs, and search history in parallel, with trending terms mocked until a resource exists.
+- Search can request recommendations, recent songs, and search history in parallel.
 - Profile can request user profile, study stats, flashcard stats, deck list, and heatmap as separate resources.
 - SongDetail can request song metadata, lyrics, words, and deck-by-song independently after the song id is known.
 - Study flow should request a deck-scoped due page, review cards one by one, then refetch the due head page instead of assuming an all-cards session snapshot.
@@ -172,4 +160,4 @@ Current mobile API supports device token registration, but not a per-song analys
 - Put missing-contract mocks in frontend-owned files only.
 - Do not change backend controllers, DTOs, services, or migrations.
 - Keep mock adapters shaped like the resource contracts above so replacing them with real API calls later is mechanical.
-- Prefer current real APIs where data exists; use mock fields only for due pagination/sorting, deck list sort/search fields, user profile read, trending terms, and analysis notification subscription gaps.
+- Prefer current real APIs where data exists; use mock fields only for due pagination/sorting, user profile read, and analysis notification subscription gaps.
