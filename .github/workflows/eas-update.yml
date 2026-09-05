@@ -1,0 +1,93 @@
+name: Deploy EAS Update
+
+on:
+  push:
+    tags:
+      - 'js-v*'
+
+jobs:
+  parse:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.parse.outputs.matrix }}
+    steps:
+      - name: Parse tag
+        id: parse
+        run: |
+          TAG="$GITHUB_REF_NAME"
+          if [[ "$TAG" =~ ^js-v[0-9]+\.[0-9]+\.[0-9]+(-dev\.([0-9]+)|-rc\.([0-9]+))?$ ]]; then
+            if [[ -n "${BASH_REMATCH[2]}" ]]; then
+              echo 'matrix=[{"build_env":"dev","channel":"development"}]' >> "$GITHUB_OUTPUT"
+            elif [[ -n "${BASH_REMATCH[3]}" ]]; then
+              echo 'matrix=[{"build_env":"prod","channel":"production-rc"}]' >> "$GITHUB_OUTPUT"
+            else
+              echo 'matrix=[{"build_env":"prod","channel":"production"}]' >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "::error::Invalid tag format: $TAG (expected js-vM.m.p, js-vM.m.p-dev.N, or js-vM.m.p-rc.N)"
+            exit 1
+          fi
+
+  deploy:
+    needs: parse
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ${{ fromJSON(needs.parse.outputs.matrix) }}
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: app-rn/package-lock.json
+
+      - name: Install dependencies
+        working-directory: app-rn
+        run: npm ci
+
+      - name: Create app environment
+        working-directory: app-rn
+        env:
+          BUILD_ENV: ${{ matrix.target.build_env }}
+          OTA_CHANNEL: ${{ matrix.target.channel }}
+          BACKEND_URL: ${{ matrix.target.build_env == 'dev' && secrets.BACKEND_URL || secrets.PROD_BACKEND_URL }}
+          GOOGLE_WEB_CLIENT_ID: ${{ matrix.target.build_env == 'dev' && secrets.GOOGLE_OAUTH_WEB_CLIENT_ID || secrets.PROD_GOOGLE_OAUTH_WEB_CLIENT_ID }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN_APP }}
+        run: |
+          cat > .env <<EOF
+          EXPO_PUBLIC_BACKEND_URL=${BACKEND_URL}
+          EXPO_PUBLIC_GOOGLE_OAUTH_WEB_CLIENT_ID=${GOOGLE_WEB_CLIENT_ID}
+          EXPO_PUBLIC_BUILD_ENV=${BUILD_ENV}
+          EXPO_PUBLIC_EAS_UPDATE_CHANNEL=${OTA_CHANNEL}
+          EXPO_PUBLIC_SENTRY_DSN=${SENTRY_DSN}
+          EXPO_PUBLIC_SENTRY_ENVIRONMENT=${BUILD_ENV}
+          EOF
+
+      - name: Publish EAS Update
+        working-directory: app-rn
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          BUILD_ENV: ${{ matrix.target.build_env }}
+          EAS_UPDATE_CHANNEL: ${{ matrix.target.channel }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT_APP }}
+        run: |
+          npx eas-cli@latest update \
+            --channel "$EAS_UPDATE_CHANNEL" \
+            --message "$GITHUB_REF_NAME ($GITHUB_SHA)" \
+            --non-interactive
+
+      - name: Upload Sentry source maps
+        working-directory: app-rn
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT_APP }}
+        run: npx --package=@sentry/react-native sentry-expo-upload-sourcemaps dist
