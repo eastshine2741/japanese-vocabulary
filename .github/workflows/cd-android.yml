@@ -28,7 +28,7 @@ jobs:
               IS_RC=true
               RC_N=$RC
               VN="${MAJOR}.${MINOR}.${PATCH}-rc.${RC}"
-              MATRIX='[{"env":"dev","channel":"development","fmt":"apk"},{"env":"prod","channel":"production-rc","fmt":"apk"},{"env":"prod","channel":"production-rc","fmt":"aab"}]'
+              MATRIX='[{"env":"dev","channel":"development","fmt":"apk"},{"env":"prod","channel":"production","fmt":"apk"},{"env":"prod","channel":"production","fmt":"aab"}]'
             else
               IS_RC=false
               RC_N=999

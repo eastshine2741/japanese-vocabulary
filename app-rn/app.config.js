@@ -20,8 +20,8 @@ const buildNumber = process.env.BUILD_NUMBER ?? '1';
 const versionCodeEnv = process.env.BUILD_VERSION_CODE;
 const versionCode = versionCodeEnv ? parseInt(versionCodeEnv, 10) : undefined;
 // OTA compatibility is keyed by the native release's major.minor.patch. A JS
-// tag such as js-v1.2.1-rc.1 therefore targets native runtime 1.2.1, regardless
-// of its OTA iteration suffix.
+// tag such as js-v1.2.1-update.3.prod therefore targets native runtime 1.2.1,
+// regardless of its OTA iteration and target environment suffix.
 const nativeRuntimeVersion =
   process.env.NATIVE_RUNTIME_VERSION ?? versionName.replace(/-(?:dev|rc)\.\d+$/, '');
 
