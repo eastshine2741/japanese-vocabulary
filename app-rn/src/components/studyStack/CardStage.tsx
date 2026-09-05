@@ -77,9 +77,7 @@ export const SourceHeader = React.memo(function SourceHeader({ source, onPress }
       <ArtworkThumb artworkUrl={source.artworkUrl} size={40} radius={8} />
       <View style={styles.sourceTextCol}>
         <Text numberOfLines={1} style={styles.sourceTitle}>{source.title}</Text>
-        <Text numberOfLines={1} style={styles.sourceSub}>
-          {source.artist}{source.totalCount > 0 ? ` · ${Math.max(0, source.totalCount - source.dueCount)} / ${source.totalCount}` : ''}
-        </Text>
+        <Text numberOfLines={1} style={styles.sourceSub}>{source.artist}</Text>
       </View>
       <Feather name="chevron-right" size={16} color="rgba(255,255,255,0.6)" />
     </Pressable>

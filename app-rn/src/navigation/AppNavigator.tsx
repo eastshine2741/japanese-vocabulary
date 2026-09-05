@@ -46,6 +46,8 @@ export type RootStackParamList = {
   ProfileEdit: undefined;
   Main: NavigatorScreenParams<TabParamList> | undefined;
   SongSearch: { query: string };
+  /** 탭 밖(SongDetail 등)에서 검색탭 UI로 진입할 때 쓰는 스택 화면. 바텀탭 없이 뜬다. */
+  SearchStack: undefined;
   Settings: undefined;
   OssLicense: undefined;
   SongDetail: SongPlaybackEntryParams;
@@ -107,6 +109,7 @@ export default function AppNavigator({ initialRoute }: Props) {
       <Stack.Screen name="ProfileEdit" component={ProfileEditScreen} />
       <Stack.Screen name="Main" component={MainTabs} />
       <Stack.Screen name="SongSearch" component={SongSearchResultsScreen} />
+      <Stack.Screen name="SearchStack" component={SearchScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="OssLicense" component={OssLicenseScreen} />
       <Stack.Screen name="SongDetail" component={SongDetailScreen} />

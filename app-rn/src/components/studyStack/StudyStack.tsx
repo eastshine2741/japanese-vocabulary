@@ -36,6 +36,8 @@ export const StudyStack = React.memo(function StudyStack({
 }: StudyStackProps) {
   const {
     status,
+    cards,
+    currentIndex,
     currentCard,
     revealed,
     selectedRating,
@@ -59,6 +61,8 @@ export const StudyStack = React.memo(function StudyStack({
     if (recommendedSource) onSelectRecommended?.(recommendedSource);
   }, [onSelectRecommended, recommendedSource]);
 
+  const nextCard = cards[currentIndex + 1] ?? null;
+
   return (
     <View style={styles.stage}>
       {status === 'loading' && (
@@ -81,6 +85,7 @@ export const StudyStack = React.memo(function StudyStack({
       {status === 'ready' && currentCard && (
         <WordLayer
           card={currentCard}
+          nextCard={nextCard}
           revealed={revealed}
           selectedRating={selectedRating}
           saving={saving}

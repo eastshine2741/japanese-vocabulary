@@ -46,8 +46,8 @@ function Harness({ studySource = source }: { studySource?: StudySource }) {
 async function mount(studySource?: StudySource) {
   await act(async () => { renderer = create(React.createElement(Harness, { studySource })); });
 }
-async function rate() {
-  await act(async () => { stack.reveal(); stack.selectRating(1); });
+async function rate(rating = 1) {
+  await act(async () => { stack.reveal(); stack.selectRating(rating); });
   await act(async () => {
     const handlers = stack.panHandlers as unknown as {
       onPanResponderRelease: (event: unknown, gesture: { dy: number }) => void;
@@ -71,31 +71,65 @@ afterEach(async () => {
   vi.useRealTimers();
 });
 
-it('keeps server order and total count, and allows reviewed cards to return', async () => {
+it('advances to the already-buffered next card locally, without refetching', async () => {
   vi.mocked(flashcardApi.getDueCards)
-    .mockResolvedValueOnce({ cards: [card(9), card(1)], totalCount: 30, nextDueAt: null })
-    .mockResolvedValueOnce({ cards: [card(9), card(2)], totalCount: 29, nextDueAt: null });
+    .mockResolvedValueOnce({ cards: [card(9), card(1)], totalCount: 2, nextDueAt: null });
   await mount();
   expect(flashcardApi.getDueCards).toHaveBeenCalledWith(7, 20);
   expect(stack.cards.map(c => c.id)).toEqual([9, 1]);
-  expect(stack.session.queueTotal).toBe(30);
   await rate();
   expect(flashcardApi.review).toHaveBeenCalledWith(9, { rating: 1 });
-  expect(stack.currentCard?.id).toBe(9);
+  expect(stack.currentCard?.id).toBe(1);
   expect(stack.session.reviewedCount).toBe(1);
+  expect(stack.session.queueTotal).toBe(2);
   expect(stack.revealed).toBe(false);
-  expect(flashcardApi.getDueCards).toHaveBeenCalledTimes(2);
+  // 다음 카드가 이미 버퍼에 있으면 스와이프 한 번에 서버를 다시 조회하지 않는다.
+  expect(flashcardApi.getDueCards).toHaveBeenCalledTimes(1);
 });
 
-it('passes leadWordId only on the initial load, not on later refreshes', async () => {
+it('prefetches the next page once the local buffer drops to the threshold, deduping already-buffered cards', async () => {
+  const initialCards = [1, 2, 3, 4, 5, 6].map(card);
   vi.mocked(flashcardApi.getDueCards)
-    .mockResolvedValueOnce({ cards: [card(5), card(1)], totalCount: 31, nextDueAt: null })
-    .mockResolvedValueOnce({ cards: [card(1), card(2)], totalCount: 29, nextDueAt: null });
+    .mockResolvedValueOnce({ cards: initialCards, totalCount: 10, nextDueAt: null })
+    .mockResolvedValueOnce({
+      cards: [2, 3, 4, 5, 6, 7, 8, 9, 10].map(card),
+      totalCount: 9,
+      nextDueAt: null,
+    });
+  await mount();
+  expect(stack.cards.map(c => c.id)).toEqual([1, 2, 3, 4, 5, 6]);
+  // 남은 카드(6개)가 아직 임계값(5)보다 많으므로 이 시점엔 미리 불러오지 않는다.
+  expect(flashcardApi.getDueCards).toHaveBeenCalledTimes(1);
+
+  await rate();
+  // 첫 카드를 넘기고 나면 남은 카드가 5개로 임계값에 닿아 다음 페이지를 불러온다.
+  expect(flashcardApi.getDueCards).toHaveBeenNthCalledWith(2, 7, 26);
+  expect(stack.cards.map(c => c.id)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+  expect(stack.currentCard?.id).toBe(2);
+  expect(stack.session.queueTotal).toBe(10);
+});
+
+it('does not prefetch once every currently due card is already buffered', async () => {
+  vi.mocked(flashcardApi.getDueCards)
+    .mockResolvedValueOnce({ cards: [card(1), card(2), card(3)], totalCount: 3, nextDueAt: null });
+  await mount();
+  await rate();
+  await rate();
+  expect(stack.currentCard?.id).toBe(3);
+  expect(flashcardApi.getDueCards).toHaveBeenCalledTimes(1);
+});
+
+it('passes leadWordId only on the initial load, not on a buffer-exhausted refresh', async () => {
+  vi.mocked(flashcardApi.getDueCards)
+    .mockResolvedValueOnce({ cards: [card(5)], totalCount: 1, nextDueAt: null })
+    .mockResolvedValueOnce({ cards: [card(2)], totalCount: 1, nextDueAt: null });
   await mount({ ...source, leadWordId: 5 });
   expect(flashcardApi.getDueCards).toHaveBeenNthCalledWith(1, 7, 20, 5);
-  expect(stack.cards.map(c => c.id)).toEqual([5, 1]);
+  expect(stack.cards.map(c => c.id)).toEqual([5]);
   await rate();
+  // 버퍼가 바닥나 서버를 다시 확인할 때는 leadWordId 를 다시 보내지 않는다.
   expect(flashcardApi.getDueCards).toHaveBeenNthCalledWith(2, 7, 20);
+  expect(stack.currentCard?.id).toBe(2);
 });
 
 it('refreshes at nextDueAt with buffered cards and reopens an empty queue', async () => {
@@ -141,6 +175,26 @@ it('does not resubmit a successful review when the following fetch fails', async
   await act(async () => { await vi.advanceTimersByTimeAsync(10_000); });
   expect(stack.isComplete).toBe(true);
   expect(flashcardApi.review).toHaveBeenCalledTimes(1);
+});
+
+it('counts a re-queued card only once toward the distinct session counter, keeps the denominator fixed', async () => {
+  vi.mocked(flashcardApi.getDueCards)
+    .mockResolvedValueOnce({ cards: [card(1), card(2)], totalCount: 2, nextDueAt: null })
+    // 카드 1이 (예: '다시' 평가로) 짧은 간격 뒤 다시 due 가 되어 페이지네이션으로 재등장한다.
+    .mockResolvedValueOnce({ cards: [card(1)], totalCount: 1, nextDueAt: null })
+    .mockResolvedValueOnce({ cards: [], totalCount: 0, nextDueAt: null });
+  await mount();
+  await rate(); // 카드 1 첫 리뷰 — 로컬 버퍼의 카드 2로 이동
+  await rate(); // 카드 2 리뷰 — 버퍼 소진, refreshDue 가 카드 1을 다시 가져온다
+  expect(stack.currentCard?.id).toBe(1);
+  expect(stack.session.reviewedCount).toBe(2);
+  expect(stack.session.position).toBe(2);
+  expect(stack.session.queueTotal).toBe(2);
+
+  await rate(); // 카드 1 두 번째 리뷰 — distinct 카운트는 늘지 않아야 한다
+  expect(stack.session.reviewedCount).toBe(3);
+  expect(stack.session.position).toBe(2);
+  expect(stack.session.queueTotal).toBe(2);
 });
 
 it('keeps failed reviews available for retry', async () => {

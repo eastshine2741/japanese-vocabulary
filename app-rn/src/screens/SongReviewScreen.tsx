@@ -21,9 +21,11 @@ export default function SongReviewScreen({ navigation, route }: Props) {
   const { isComplete, session, status } = stack;
 
   const goBack = useCallback(() => navigation.goBack(), [navigation]);
-  const goSearch = useCallback(() => navigation.navigate('Main', { screen: 'Search' }), [navigation]);
+  // 탭 안(Main)까지 내려가면 바텀탭·다른 탭 화면이 같이 뜬다 — 검색탭 UI만 새 스택으로 띄운다.
+  const goSearch = useCallback(() => navigation.navigate('SearchStack'), [navigation]);
 
-  // 큐를 다 보면 cards 가 비어 카운터가 0 이 된다 — 복습을 끝낸 개수로 마지막 값을 유지한다.
+  // 세션 시작 시점에 due 카드가 없었는데 도중에 새로 due 된 카드를 리뷰하면 queueTotal 이 0으로 남는다 —
+  // 그때는 진행한 개수로 카운터를 대체한다.
   const counterTotal = session.queueTotal > 0 ? session.queueTotal : session.reviewedCount;
   const counterPosition = session.queueTotal > 0 ? session.position : session.reviewedCount;
 

@@ -95,7 +95,7 @@ export default function MyPageTab() {
   const handle = username ? `@${username}` : '@user';
   const displayName = userName?.trim() || '학습자';
   const progressItems = useMemo(() => songDecks.map(toSongProgressItem), [songDecks]);
-  const representativeSongs = useMemo(() => progressItems.slice(0, 2), [progressItems]);
+  const representativeSongs = useMemo(() => progressItems.slice(0, 5), [progressItems]);
   const totalWords = flashcardStats?.total ?? sumBy(progressItems, (item) => item.totalWords);
   const masteredWords = flashcardStats?.review ?? sumBy(progressItems, (item) => item.masteredCount);
   const learningWords = flashcardStats?.learning ?? sumBy(progressItems, (item) => item.learningCount);

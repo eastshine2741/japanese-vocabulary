@@ -21,11 +21,11 @@ export interface StudyCard extends FlashcardDTO {
 
 /** 크롬이 그리는 세션 진행 정보. 공용 스택은 이 값만 노출하고 크롬은 그리지 않는다. */
 export interface StudySessionProgress {
-  /** 이번 세션에서 저장까지 끝난 카드 수 */
+  /** 이번 세션에서 저장까지 끝난 카드 수 (같은 카드를 다시 봐도 매번 센다) */
   reviewedCount: number;
-  /** 현재 카드의 1-based 번호. 큐가 끝나면 queueTotal 과 같다. */
+  /** n: 이번 세션에서 리뷰를 마친 distinct 카드 수. 페이지네이션으로 같은 카드를 다시 봐도 한 번만 센다. */
   position: number;
-  /** 이번 세션 큐의 전체 카드 수 */
+  /** m: 이번 세션 시작 시점에 due였던 카드 수. 세션 도중엔 바뀌지 않는다. */
   queueTotal: number;
   /** 곡 단어장 대비 진행률 0~1 (홈 세션 바) */
   progress: number;

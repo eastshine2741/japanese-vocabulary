@@ -4,17 +4,16 @@ import {
   FlatList,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { useShallow } from 'zustand/react/shallow';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useDeckListStore } from '../stores/deckListStore';
 import { Colors, Dimens } from '../theme/theme';
+import { AppBar } from '../components/AppBar';
 import SongProgressRow from '../components/studyStats/SongProgressRow';
 import { SongProgressItem, toSongProgressItem } from '../components/studyStats/songProgress';
 
@@ -59,17 +58,11 @@ export default function SongProgressListScreen({ navigation }: Props) {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <View style={styles.container}>
-        <View style={styles.topNav}>
-          <TouchableOpacity
-            style={styles.navLeft}
-            onPress={() => navigation.goBack()}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="chevron-back" size={22} color={Colors.textPrimary} />
-            <Text style={styles.navTitle}>곡별 진도</Text>
-          </TouchableOpacity>
-          <Text style={styles.navCount}>{items.length}곡</Text>
-        </View>
+        <AppBar
+          title="곡별 진도"
+          onBack={() => navigation.goBack()}
+          trailing={<Text style={styles.navCount}>{items.length}곡</Text>}
+        />
 
         {status === 'loading' && items.length === 0 ? (
           <ActivityIndicator color={Colors.primary} style={styles.center} />
@@ -113,29 +106,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.surface,
   },
-  topNav: {
-    height: 42,
-    marginHorizontal: 24,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  navLeft: {
-    height: 42,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  navTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-  },
   navCount: {
     fontSize: 12,
     fontWeight: '600',
     color: Colors.textMuted,
     fontVariant: ['tabular-nums'],
+    paddingRight: 8,
   },
   center: {
     flex: 1,
