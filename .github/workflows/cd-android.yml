@@ -27,12 +27,12 @@ jobs:
               IS_RC=true
               RC_N=$RC
               VN="${MAJOR}.${MINOR}.${PATCH}-rc.${RC}"
-              MATRIX='[{"env":"dev","fmt":"apk"},{"env":"prod","fmt":"apk"},{"env":"prod","fmt":"aab"}]'
+              MATRIX='[{"env":"dev","channel":"development","fmt":"apk"},{"env":"prod","channel":"production-rc","fmt":"apk"},{"env":"prod","channel":"production-rc","fmt":"aab"}]'
             else
               IS_RC=false
               RC_N=999
               VN="${MAJOR}.${MINOR}.${PATCH}"
-              MATRIX='[{"env":"prod","fmt":"aab"}]'
+              MATRIX='[{"env":"prod","channel":"production","fmt":"apk"},{"env":"prod","channel":"production","fmt":"aab"}]'
             fi
             VC=$((MAJOR * 1000000000 + MINOR * 1000000 + PATCH * 1000 + RC_N))
             echo "is_rc=$IS_RC" >> "$GITHUB_OUTPUT"
@@ -79,6 +79,7 @@ jobs:
           EXPO_PUBLIC_BACKEND_URL=${BACKEND_URL}
           EXPO_PUBLIC_GOOGLE_OAUTH_WEB_CLIENT_ID=${GOOGLE_WEB_CLIENT_ID}
           EXPO_PUBLIC_BUILD_ENV=${{ matrix.target.env }}
+          EXPO_PUBLIC_EAS_UPDATE_CHANNEL=${{ matrix.target.channel }}
           EXPO_PUBLIC_SENTRY_DSN=${SENTRY_DSN}
           EXPO_PUBLIC_SENTRY_ENVIRONMENT=${{ matrix.target.env }}
           EOF
@@ -102,6 +103,7 @@ jobs:
         working-directory: app-rn
         env:
           BUILD_ENV: ${{ matrix.target.env }}
+          EAS_UPDATE_CHANNEL: ${{ matrix.target.channel }}
           BUILD_VERSION_NAME: ${{ needs.parse.outputs.version_name }}
           BUILD_VERSION_CODE: ${{ needs.parse.outputs.version_code }}
           DEPLOY_NS: main
@@ -145,13 +147,14 @@ jobs:
         run: |
           VN="${{ needs.parse.outputs.version_name }}"
           ENV="${{ matrix.target.env }}"
+          CHANNEL="${{ matrix.target.channel }}"
           FMT="${{ matrix.target.fmt }}"
           if [[ "$FMT" == "aab" ]]; then
             SRC=app-rn/android/app/build/outputs/bundle/release/app-release.aab
           else
             SRC=app-rn/android/app/build/outputs/apk/release/app-release.apk
           fi
-          DST="kotonoha-${ENV}-${VN}.${FMT}"
+          DST="kotonoha-${ENV}-${CHANNEL}-${VN}.${FMT}"
           mv "$SRC" "$DST"
           echo "path=$DST" >> "$GITHUB_OUTPUT"
 
