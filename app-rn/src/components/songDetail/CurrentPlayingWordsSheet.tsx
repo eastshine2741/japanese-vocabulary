@@ -24,7 +24,7 @@ import { Token } from '../../types/song';
 import { convertLineReading } from '../../utils/readingConverter';
 import SongDetailWordRow from './SongDetailWordRow';
 import { getSongDetailWordKey } from './songDetailWordSave';
-import { SongDetailWordItem, SongDetailWordSaveState } from './types';
+import { SongDetailWordItem } from './types';
 import { getCurrentLyricLineIndex } from './useCurrentLyricLine';
 
 export const CURRENT_PLAYING_WORDS_PEEK_HEIGHT = 70;
@@ -62,9 +62,9 @@ export interface CurrentPlayingWordsSheetProps {
   header?: React.ReactNode;
   headerHeight?: number;
   zIndex?: number;
-  getWordSaveState: (word: CurrentPlayingWord) => SongDetailWordSaveState;
   busyWordKey: string | null;
-  onToggleWordSave: (word: CurrentPlayingWord) => void;
+  /** 단어를 누르면 그 단어부터 복습한다 — 단어 탭·주요 단어와 같은 동작. */
+  onStartWordReview: (word: CurrentPlayingWord) => void;
   onSheetChange?: (index: number) => void;
   onSyncedPageChange?: (line: CurrentPlayingLyricLine) => void;
 }
@@ -72,9 +72,8 @@ export interface CurrentPlayingWordsSheetProps {
 interface PageCardProps {
   page: WordPage;
   width: number;
-  getWordSaveState: (word: CurrentPlayingWord) => SongDetailWordSaveState;
   busyWordKey: string | null;
-  onToggleWordSave: (word: CurrentPlayingWord) => void;
+  onStartWordReview: (word: CurrentPlayingWord) => void;
 }
 
 interface LyricToken {
@@ -328,9 +327,8 @@ function SheetHandle() {
 const CurrentWordsPageCard = React.memo(function CurrentWordsPageCard({
   page,
   width,
-  getWordSaveState,
   busyWordKey,
-  onToggleWordSave,
+  onStartWordReview,
 }: PageCardProps) {
   const lyricTokens = useMemo(
     () => page.line.tokens && page.line.tokens.length > 0
@@ -388,10 +386,9 @@ const CurrentWordsPageCard = React.memo(function CurrentWordsPageCard({
                 <SongDetailWordRow
                   key={wordKey}
                   word={word}
-                  isSaved={getWordSaveState(word).isSavedForSong}
                   isBusy={busyWordKey === wordKey}
                   showDivider={index < page.words.length - 1}
-                  onToggleSave={onToggleWordSave}
+                  onStartReview={onStartWordReview}
                 />
               );
             })
@@ -419,9 +416,8 @@ const CurrentPlayingWordsSheetComponent = React.forwardRef<AppBottomSheetRef, Cu
   header,
   headerHeight = 0,
   zIndex = Layers.currentPlayingWordsSheet,
-  getWordSaveState,
   busyWordKey,
-  onToggleWordSave,
+  onStartWordReview,
   onSheetChange,
   onSyncedPageChange,
 }, ref) {
@@ -567,11 +563,10 @@ const CurrentPlayingWordsSheetComponent = React.forwardRef<AppBottomSheetRef, Cu
     <CurrentWordsPageCard
       page={item}
       width={pageWidth}
-      getWordSaveState={getWordSaveState}
       busyWordKey={busyWordKey}
-      onToggleWordSave={onToggleWordSave}
+      onStartWordReview={onStartWordReview}
     />
-  ), [busyWordKey, getWordSaveState, onToggleWordSave, pageWidth]);
+  ), [busyWordKey, onStartWordReview, pageWidth]);
 
   const keyExtractor = useCallback((item: WordPage) => item.key, []);
   const handleScrollToIndexFailed = useCallback(() => {

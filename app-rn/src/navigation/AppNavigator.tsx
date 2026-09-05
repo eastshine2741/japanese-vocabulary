@@ -1,4 +1,5 @@
 import React from 'react';
+import type { NavigatorScreenParams } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import BottomTabBar from '../components/BottomTabBar';
@@ -17,6 +18,7 @@ import EditWordScreen from '../screens/EditWordScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import OssLicenseScreen from '../screens/OssLicenseScreen';
 import SongProgressListScreen from '../screens/SongProgressListScreen';
+import SongReviewScreen from '../screens/SongReviewScreen';
 
 import HomeTab from '../screens/tabs/HomeTab';
 import MyPageTab from '../screens/tabs/MyPageTab';
@@ -24,6 +26,7 @@ import MyPageTab from '../screens/tabs/MyPageTab';
 import { AuthProvider } from '../api/authApi';
 import { WordSense } from '../types/word';
 import { Token } from '../types/song';
+import type { StudySource } from '../components/studyStack';
 
 type SongPlaybackEntryParams = {
   songId?: number;
@@ -41,12 +44,14 @@ export type RootStackParamList = {
     provider: AuthProvider;
   };
   ProfileEdit: undefined;
-  Main: undefined;
+  Main: NavigatorScreenParams<TabParamList> | undefined;
   SongSearch: { query: string };
   Settings: undefined;
   OssLicense: undefined;
   SongDetail: SongPlaybackEntryParams;
   Review: { deckId?: number | null; startFlashcardId?: number } | undefined;
+  /** 곡 진입 복습. focusJapanese 단어가 큐의 첫 카드가 된다. */
+  SongReview: { source: StudySource; focusJapanese?: string | null };
   DeckList: undefined;
   SongProgressList: undefined;
   DeckDetail: { deckId: number | null };
@@ -106,6 +111,7 @@ export default function AppNavigator({ initialRoute }: Props) {
       <Stack.Screen name="OssLicense" component={OssLicenseScreen} />
       <Stack.Screen name="SongDetail" component={SongDetailScreen} />
       <Stack.Screen name="Review" component={ReviewScreen} />
+      <Stack.Screen name="SongReview" component={SongReviewScreen} />
       <Stack.Screen name="DeckList" component={DeckListScreen} />
       <Stack.Screen name="SongProgressList" component={SongProgressListScreen} />
       <Stack.Screen name="DeckDetail" component={DeckDetailScreen} />

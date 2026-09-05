@@ -61,9 +61,9 @@ interface UseSongDetailWordsTabParams {
 interface Props {
   state: SongDetailWordsTabState;
   bottomPadding?: number;
-  getWordSaveState: (word: SongDetailWordItem) => SongDetailWordSaveState;
   busyWordKey: string | null;
-  onToggleWordSave: (word: SongDetailWordItem) => void;
+  /** 행을 누르면 그 단어를 첫 카드로 복습을 시작한다. 담기는 필요할 때 선행된다. */
+  onStartWordReview: (word: SongDetailWordItem) => void;
 }
 
 interface SummaryChipProps {
@@ -422,9 +422,8 @@ export const SongDetailWordsActionBar = React.memo(function SongDetailWordsActio
 export default function SongDetailWordsTab({
   state,
   bottomPadding = 150,
-  getWordSaveState,
   busyWordKey,
-  onToggleWordSave,
+  onStartWordReview,
 }: Props) {
   const insets = useSafeAreaInsets();
 
@@ -434,15 +433,13 @@ export default function SongDetailWordsTab({
 
       <View style={[styles.listContent, { paddingBottom: bottomPadding + insets.bottom }]}>
         {state.visibleWords.length === 0 ? state.listEmpty : state.renderedWords.map(word => {
-          const saveState = getWordSaveState(word);
           const wordKey = getSongDetailWordKey(word);
           return (
             <SongDetailWordRow
               key={wordKey}
               word={word}
-              isSaved={saveState.isSavedForSong}
               isBusy={busyWordKey === wordKey}
-              onToggleSave={onToggleWordSave}
+              onStartReview={onStartWordReview}
             />
           );
         })}

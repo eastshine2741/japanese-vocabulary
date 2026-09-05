@@ -21,23 +21,22 @@ export interface SongDetailWordRowItem {
 
 interface Props<T extends SongDetailWordRowItem> {
   word: T;
-  isSaved?: boolean;
   isBusy?: boolean;
   showDivider?: boolean;
-  onToggleSave?: (word: T) => void;
+  /** 이 단어로 복습 시작. 안 담긴 단어는 호출부가 담고 나서 연다. */
+  onStartReview: (word: T) => void;
 }
 
 function SongDetailWordRow<T extends SongDetailWordRowItem>({
   word,
-  isSaved = false,
   isBusy = false,
   showDivider = true,
-  onToggleSave,
+  onStartReview,
 }: Props<T>) {
   const readingDisplay = useSettingsStore(s => s.readingDisplay);
-  const handleToggle = useCallback(() => {
-    onToggleSave?.(word);
-  }, [onToggleSave, word]);
+  const handleStartReview = useCallback(() => {
+    onStartReview(word);
+  }, [onStartReview, word]);
 
   const pos = word.partOfSpeech ?? '';
   const posLabel = word.partOfSpeechLabel ?? (pos ? getPosLabel(pos) : '');
@@ -50,52 +49,50 @@ function SongDetailWordRow<T extends SongDetailWordRowItem>({
     || '';
   const jlptColor = getJlptColor(word.jlpt);
 
-  return (
-    <View style={[styles.row, showDivider && styles.rowDivider]}>
-      <View style={styles.wordInfo}>
-        <View style={styles.jpRow}>
-          <Text style={styles.japanese} numberOfLines={1}>{label}</Text>
-          {reading !== '' && <Text style={styles.reading} numberOfLines={1}>{reading}</Text>}
-        </View>
-        <View style={styles.meaningRow}>
-          <Text style={styles.meaning} numberOfLines={1}>
-            {meaning || '뜻 정보가 없습니다'}
-          </Text>
-          <View style={styles.badges}>
-            {word.jlpt && (
-              <View style={[styles.badge, { backgroundColor: `${jlptColor}20` }]}>
-                <Text style={[styles.jlptText, { color: jlptColor }]}>{word.jlpt}</Text>
-              </View>
-            )}
-            {posLabel !== '' && (
-              <View style={[styles.badge, { backgroundColor: `${posColor}20` }]}>
-                <Text style={[styles.posText, { color: posColor }]}>{posLabel}</Text>
-              </View>
-            )}
-          </View>
+  const wordInfo = (
+    <View style={styles.wordInfo}>
+      <View style={styles.jpRow}>
+        <Text style={styles.japanese} numberOfLines={1}>{label}</Text>
+        {reading !== '' && <Text style={styles.reading} numberOfLines={1}>{reading}</Text>}
+      </View>
+      <View style={styles.meaningRow}>
+        <Text style={styles.meaning} numberOfLines={1}>
+          {meaning || '뜻 정보가 없습니다'}
+        </Text>
+        <View style={styles.badges}>
+          {word.jlpt && (
+            <View style={[styles.badge, { backgroundColor: `${jlptColor}20` }]}>
+              <Text style={[styles.jlptText, { color: jlptColor }]}>{word.jlpt}</Text>
+            </View>
+          )}
+          {posLabel !== '' && (
+            <View style={[styles.badge, { backgroundColor: `${posColor}20` }]}>
+              <Text style={[styles.posText, { color: posColor }]}>{posLabel}</Text>
+            </View>
+          )}
         </View>
       </View>
+    </View>
+  );
 
-      <TouchableOpacity
-        style={styles.toggleButton}
-        onPress={handleToggle}
-        disabled={isBusy || onToggleSave == null}
-        activeOpacity={0.7}
-        accessibilityRole="button"
-        accessibilityLabel={isSaved ? '단어 상세로 이동' : '단어 담기'}
-        accessibilityHint={isSaved ? '뜻과 예문을 수정할 수 있는 단어 상세화면을 엽니다' : undefined}
-      >
+  return (
+    <TouchableOpacity
+      style={[styles.row, showDivider && styles.rowDivider]}
+      onPress={handleStartReview}
+      disabled={isBusy}
+      activeOpacity={0.7}
+      accessibilityRole="button"
+      accessibilityLabel={`${label} 복습 시작`}
+    >
+      {wordInfo}
+      <View style={styles.chevronSlot}>
         {isBusy ? (
           <ActivityIndicator size="small" color={Colors.primary} />
         ) : (
-          <Ionicons
-            name={isSaved ? 'chevron-forward' : 'bookmark-outline'}
-            size={17}
-            color={Colors.primary}
-          />
+          <Ionicons name="chevron-forward" size={20} color={Colors.textMuted} />
         )}
-      </TouchableOpacity>
-    </View>
+      </View>
+    </TouchableOpacity>
   );
 }
 
@@ -187,12 +184,10 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '600',
   },
-  toggleButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+  chevronSlot: {
+    width: 20,
+    height: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.primaryBg,
   },
 });

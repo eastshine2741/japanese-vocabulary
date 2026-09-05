@@ -440,27 +440,84 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     infoSheetOpenRef.current = index >= 0;
   }, []);
 
-  const ensureSongDeck = useCallback(async (): Promise<number | null> => {
-    if (songDeckDetail?.deckId != null) return songDeckDetail.deckId;
+  const ensureSongDeck = useCallback(async (): Promise<DeckDetailResponse | null> => {
+    if (songDeckDetail?.deckId != null) return songDeckDetail;
     if (songId == null || defaultDeckWords.length === 0) return null;
 
     await wordApi.batchAddWords({ words: defaultDeckWords });
     const deck = await deckApi.getDeckBySongId(songId);
     setSongDeckDetail(deck);
     await refreshWords(songId).catch(() => undefined);
-    return deck?.deckId ?? null;
-  }, [defaultDeckWords, refreshWords, songDeckDetail?.deckId, songId]);
+    return deck;
+  }, [defaultDeckWords, refreshWords, songDeckDetail, songId]);
 
-  const handleStartLearning = useCallback(async (focusWord?: SongDetailWordItem) => {
+  /** 단어 하나만 담은 뒤에는 덱이 이미 있으므로 기본 단어 일괄 담기를 태우지 않는다. */
+  const resolveSongDeck = useCallback(async (): Promise<DeckDetailResponse | null> => {
+    if (songDeckDetail?.deckId != null) return songDeckDetail;
+    if (songId == null) return null;
+    const deck = await deckApi.getDeckBySongId(songId);
+    if (deck?.deckId != null) {
+      setSongDeckDetail(deck);
+      return deck;
+    }
+    return ensureSongDeck();
+  }, [ensureSongDeck, songDeckDetail, songId]);
+
+  const openSongReview = useCallback((deck: DeckDetailResponse, focusJapanese: string | null) => {
+    if (songId == null || deck.deckId == null) return false;
+    navigation.navigate('SongReview', {
+      source: {
+        deckId: deck.deckId,
+        songId,
+        title: deck.title ?? data?.song.title ?? '',
+        artist: deck.artist ?? data?.song.artist ?? '',
+        artworkUrl: deck.artworkUrl ?? data?.song.artworkUrl ?? null,
+        dueCount: deck.dueCount,
+        totalCount: deck.wordCount,
+      },
+      focusJapanese,
+    });
+    return true;
+  }, [data?.song, navigation, songId]);
+
+  const handleStartLearning = useCallback(async () => {
     if (songId == null || isStartingLearning) return;
-    const wordKey = focusWord ? getSongDetailWordKey(focusWord) : null;
+    setIsStartingLearning(true);
+    try {
+      const deck = await ensureSongDeck();
+      if (deck == null || !openSongReview(deck, null)) {
+        setLearningError('학습할 단어를 준비하지 못했어요. 잠시 후 다시 시도해 주세요.');
+      }
+    } catch (e: any) {
+      setLearningError(e?.message ?? '학습을 시작하지 못했어요. 잠시 후 다시 시도해 주세요.');
+    } finally {
+      setIsStartingLearning(false);
+    }
+  }, [ensureSongDeck, isStartingLearning, openSongReview, songId]);
+
+  /**
+   * 단어를 누르면 항상 그 단어부터 복습한다. 아직 안 담긴 단어는 조용히 담고 시작한다.
+   * 방금 담은 단어의 flashcard 는 due = now 라 바로 큐 첫 카드가 된다.
+   */
+  const handleStartWordReview = useCallback(async (word: SongDetailWordItem) => {
+    if (songId == null || isStartingLearning) return;
+    const wordKey = getSongDetailWordKey(word);
+    const saveKey = getSongDetailWordSaveKey(word);
     setBusyWordKey(wordKey);
     setIsStartingLearning(true);
     try {
-      const deckId = await ensureSongDeck();
-      if (deckId != null) {
-        navigation.navigate('Review', { deckId });
-      } else {
+      if (!resolveSongDetailWordSaveState(word, wordSaveOverrides).isSavedForSong) {
+        const result = await wordApi.addWord(word.addRequest);
+        setWordSaveOverrides(prev => {
+          const next = new Map(prev);
+          next.set(saveKey, { isSavedForSong: true, savedWordId: result.id });
+          return next;
+        });
+        // 복습 큐 순서 재료(곡 등장순)를 복습 화면이 최신으로 읽게 한다.
+        await refreshWords(songId).catch(() => undefined);
+      }
+      const deck = await resolveSongDeck();
+      if (deck == null || !openSongReview(deck, saveKey)) {
         setLearningError('학습할 단어를 준비하지 못했어요. 잠시 후 다시 시도해 주세요.');
       }
     } catch (e: any) {
@@ -469,7 +526,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
       setBusyWordKey(null);
       setIsStartingLearning(false);
     }
-  }, [ensureSongDeck, isStartingLearning, navigation, songId]);
+  }, [isStartingLearning, openSongReview, refreshWords, resolveSongDeck, songId, wordSaveOverrides]);
 
   const handlePrimaryLearningPress = useCallback(() => {
     handleStartLearning();
@@ -507,49 +564,6 @@ export default function SongDetailScreen({ navigation, route }: Props) {
   const getWordSaveState = useCallback((word: SongDetailWordItem): SongDetailWordSaveState => {
     return resolveSongDetailWordSaveState(word, wordSaveOverrides);
   }, [wordSaveOverrides]);
-
-  /**
-   * 담긴 단어는 상세화면으로 보내고, 아직이면 담는다.
-   * 담기 취소와 뜻 개별 삭제는 이 화면에서 제공하지 않는다 — 단어 상세화면에서만 가능하다.
-   */
-  const handleToggleWordSave = useCallback(async (word: SongDetailWordItem) => {
-    const wordKey = getSongDetailWordKey(word);
-    const state = getWordSaveState(word);
-    if (state.isSavedForSong) {
-      setBusyWordKey(wordKey);
-      try {
-        // 일괄 담기로 저장된 단어는 id 를 모르므로 표기 문자열로 되찾는다.
-        const detail = state.savedWordId != null
-          ? await wordApi.getById(state.savedWordId)
-          : await wordApi.getByText(word.addRequest.japanese);
-        if (detail == null) return;
-        navigation.navigate('EditWord', {
-          mode: 'edit',
-          wordId: detail.id,
-          japanese: detail.japanese,
-          reading: detail.reading ?? undefined,
-          senses: detail.senses,
-        });
-      } finally {
-        setBusyWordKey(null);
-      }
-      return;
-    }
-
-    setBusyWordKey(wordKey);
-    try {
-      const result = await wordApi.addWord(word.addRequest);
-      setWordSaveOverrides(prev => {
-        const next = new Map(prev);
-        next.set(getSongDetailWordSaveKey(word), { isSavedForSong: true, savedWordId: result.id });
-        return next;
-      });
-      handleWordsChanged();
-      showSavedWordSnackbar();
-    } finally {
-      setBusyWordKey(null);
-    }
-  }, [getWordSaveState, handleWordsChanged, navigation, showSavedWordSnackbar]);
 
   const handleWordsBatchAdded = useCallback((addedWords: SongDetailWordItem[]) => {
     setWordSaveOverrides(prev => {
@@ -730,7 +744,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
                     progress={learningProgress}
                     onViewAllWordsPress={handleSelectWords}
                     busyWordKey={busyWordKey}
-                    onStartWordLearning={handleStartLearning}
+                    onStartWordLearning={handleStartWordReview}
                   />
                 </View>
                 <View
@@ -741,9 +755,8 @@ export default function SongDetailScreen({ navigation, route }: Props) {
                   <SongDetailWordsTab
                     state={wordsTabState}
                     bottomPadding={WORDS_TAB_BOTTOM_CLEARANCE}
-                    getWordSaveState={getWordSaveState}
                     busyWordKey={busyWordKey}
-                    onToggleWordSave={handleToggleWordSave}
+                    onStartWordReview={handleStartWordReview}
                   />
                 </View>
               </Animated.View>
@@ -788,9 +801,8 @@ export default function SongDetailScreen({ navigation, route }: Props) {
         words={words.words}
         lineWordIndexes={words.lineWordIndexes}
         lyricType={song.lyricType}
-        getWordSaveState={getWordSaveState}
         busyWordKey={busyWordKey}
-        onToggleWordSave={handleToggleWordSave}
+        onStartWordReview={handleStartWordReview}
       />
 
       <View
@@ -967,9 +979,8 @@ interface PlaybackOverlaysProps {
   words: React.ComponentProps<typeof CurrentPlayingWordsSheet>['words'];
   lineWordIndexes: Record<string, number[]>;
   lyricType: React.ComponentProps<typeof CurrentPlayingWordsSheet>['lyricType'];
-  getWordSaveState: React.ComponentProps<typeof CurrentPlayingWordsSheet>['getWordSaveState'];
   busyWordKey: string | null;
-  onToggleWordSave: React.ComponentProps<typeof CurrentPlayingWordsSheet>['onToggleWordSave'];
+  onStartWordReview: React.ComponentProps<typeof CurrentPlayingWordsSheet>['onStartWordReview'];
 }
 
 const PlaybackOverlays = React.memo(function PlaybackOverlays({
@@ -983,9 +994,8 @@ const PlaybackOverlays = React.memo(function PlaybackOverlays({
   words,
   lineWordIndexes,
   lyricType,
-  getWordSaveState,
   busyWordKey,
-  onToggleWordSave,
+  onStartWordReview,
 }: PlaybackOverlaysProps) {
   const mvBarRef = useRef<SongDetailMvBarRef>(null);
   const wordsSheetRef = useRef<AppBottomSheetRef>(null);
@@ -1045,9 +1055,8 @@ const PlaybackOverlays = React.memo(function PlaybackOverlays({
       bottomInset={bottomInset}
       header={mvBarHeader}
       headerHeight={SONG_DETAIL_MV_BAR_HEIGHT}
-      getWordSaveState={getWordSaveState}
       busyWordKey={busyWordKey}
-      onToggleWordSave={onToggleWordSave}
+      onStartWordReview={onStartWordReview}
       onSheetChange={handleWordsSheetChange}
       onSyncedPageChange={handleSyncedPageChange}
     />
