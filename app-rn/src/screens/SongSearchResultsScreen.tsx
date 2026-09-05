@@ -9,8 +9,10 @@ import {
   Animated,
   Easing,
   Keyboard,
+  ActivityIndicator,
 } from 'react-native';
 import ArtworkImage from '../components/ArtworkImage';
+import AnalyzingView from '../components/AnalyzingView';
 import ErrorDialog from '../components/ErrorDialog';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -19,7 +21,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { usePlayerStore } from '../stores/playerStore';
 import { useSearchHistoryStore } from '../stores/searchHistoryStore';
 import { songApi } from '../api/songApi';
-import { Colors } from '../theme/theme';
+import { Colors, Dimens } from '../theme/theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { getErrorMessage } from '../utils/errorMessages';
 import { SongSearchItem } from '../types/song';
@@ -87,78 +89,6 @@ const SearchResultRow = React.memo(React.forwardRef<View, SearchResultRowProps>(
 
 function ResultSeparator() {
   return <View style={styles.resultGap} />;
-}
-
-interface SearchAnalyzingStateProps {
-  item: SongSearchItem | null;
-  rowAnim: Animated.Value;
-  rowMorphReady: boolean;
-  spinRotate: Animated.AnimatedInterpolation<string | number>;
-  animatedRowRef: React.RefObject<View | null>;
-  onRowLayout: () => void;
-}
-
-function SearchAnalyzingState({
-  item,
-  rowAnim,
-  rowMorphReady,
-  spinRotate,
-  animatedRowRef,
-  onRowLayout,
-}: SearchAnalyzingStateProps) {
-  return (
-    <View style={styles.loadingBody}>
-      <View style={styles.loadingCenter}>
-        {item ? (
-          <Animated.View
-            ref={animatedRowRef}
-            onLayout={onRowLayout}
-            style={[
-              styles.selectedAnalyzingRow,
-              {
-                transform: [{ translateY: rowAnim }],
-                opacity: rowMorphReady ? 1 : 0,
-              },
-            ]}
-          >
-            <ArtworkImage url={item.thumbnail} size={52} cornerRadius={12} />
-            <View style={styles.selectedAnalyzingInfo}>
-              <Text style={styles.resultTitle} numberOfLines={1}>
-                {item.title}
-              </Text>
-              <Text style={styles.resultSubtitle} numberOfLines={1}>
-                {item.artistName} · {formatDuration(item.durationSeconds)}
-              </Text>
-            </View>
-            <Animated.View style={{ transform: [{ rotate: spinRotate }] }}>
-              <Feather name="loader" size={18} color={Colors.primary} />
-            </Animated.View>
-          </Animated.View>
-        ) : null}
-
-        <View style={styles.loadingHero}>
-          <View style={styles.loadingRingOuter} />
-          <View style={styles.loadingRingMiddle} />
-          <View style={styles.loadingRingInner} />
-          <View style={styles.loadingCore}>
-            <Feather name="music" size={32} color="#FFFFFF" />
-          </View>
-        </View>
-
-        <View style={styles.loadingTextBlock}>
-          <Text style={styles.loadingTitle}>가사를 분석하는 중...</Text>
-          <Text style={styles.loadingSubtitle}>
-            꼼꼼하게 확인하고 있으니 조금만 기다려주세요
-          </Text>
-        </View>
-
-        <View style={styles.loadingHint}>
-          <Feather name="clock" size={14} color={Colors.textMuted} />
-          <Text style={styles.loadingHintText}>보통 15~20초 정도 걸려요</Text>
-        </View>
-      </View>
-    </View>
-  );
 }
 
 export default function SongSearchResultsScreen() {
@@ -361,9 +291,8 @@ export default function SongSearchResultsScreen() {
 
   const keyExtractor = useCallback((item: SongSearchItem) => item.id, []);
   // The full-screen "가사를 분석하는 중..." graphic is reserved for an actual
-  // new analysis request (step 3) and the initial search itself. The cheap
-  // existing-song check (step 2) keeps the list visible with a row spinner.
-  const showFullScreenLoading = isAnalyzingNewSong || status === 'loading';
+  // new analysis request. Plain search loading keeps the search UI visible.
+  const showFullScreenLoading = isAnalyzingNewSong;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
@@ -398,14 +327,41 @@ export default function SongSearchResultsScreen() {
       )}
 
       {showFullScreenLoading ? (
-        <SearchAnalyzingState
-          item={analyzingItem}
-          rowAnim={rowAnim}
-          rowMorphReady={rowMorphReady}
-          spinRotate={spinRotate}
-          animatedRowRef={animatedRowRef}
-          onRowLayout={handleAnalyzingRowLayout}
+        <AnalyzingView
+          slot={
+            analyzingItem ? (
+              <Animated.View
+                ref={animatedRowRef}
+                onLayout={handleAnalyzingRowLayout}
+                style={[
+                  styles.analyzingRow,
+                  {
+                    transform: [{ translateY: rowAnim }],
+                    opacity: rowMorphReady ? 1 : 0,
+                  },
+                ]}
+              >
+                <ArtworkImage url={analyzingItem.thumbnail} size={48} cornerRadius={8} />
+                <View style={styles.analyzingContent}>
+                  <Text style={styles.analyzingTitle} numberOfLines={1}>
+                    {analyzingItem.title}
+                  </Text>
+                  <Text style={styles.analyzingSubtitle} numberOfLines={1}>
+                    {analyzingItem.artistName} · {formatDuration(analyzingItem.durationSeconds)}
+                  </Text>
+                </View>
+                <Animated.View style={{ transform: [{ rotate: spinRotate }] }}>
+                  <Feather name="loader" size={18} color={Colors.primary} />
+                </Animated.View>
+              </Animated.View>
+            ) : null
+          }
         />
+      ) : status === 'loading' ? (
+        <View style={styles.messageBox}>
+          <ActivityIndicator color={Colors.primary} />
+          <Text style={styles.messageText}>검색 중...</Text>
+        </View>
       ) : status === 'error' ? (
         <View style={styles.messageBox}>
           <Feather name="alert-circle" size={28} color={Colors.textMuted} />
@@ -520,92 +476,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
     gap: 6,
   },
-  loadingBody: {
-    flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 16,
-    paddingBottom: 40,
-  },
-  loadingCenter: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 24,
-  },
-  selectedAnalyzingRow: {
-    width: '100%',
-    minHeight: 76,
+  analyzingRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    padding: 12,
-    borderRadius: 16,
-  },
-  selectedAnalyzingInfo: {
-    flex: 1,
-    gap: 2,
-  },
-  loadingHero: {
-    width: 240,
-    height: 240,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loadingRingOuter: {
-    position: 'absolute',
-    width: 240,
-    height: 240,
-    borderRadius: 120,
-    backgroundColor: Colors.primary + '12',
-  },
-  loadingRingMiddle: {
-    position: 'absolute',
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    backgroundColor: Colors.primary + '24',
-  },
-  loadingRingInner: {
-    position: 'absolute',
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: Colors.primary + '38',
-  },
-  loadingCore: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loadingTextBlock: {
-    alignItems: 'center',
-    gap: 10,
+    paddingVertical: 10,
+    paddingHorizontal: Dimens.screenPadding,
     alignSelf: 'stretch',
   },
-  loadingTitle: {
-    fontSize: 20,
+  analyzingContent: {
+    flex: 1,
+  },
+  analyzingTitle: {
+    fontSize: 15,
     fontWeight: '600',
     color: Colors.textPrimary,
-    textAlign: 'center',
   },
-  loadingSubtitle: {
-    fontSize: 14,
-    lineHeight: 20,
+  analyzingSubtitle: {
+    fontSize: 13,
     color: Colors.textSecondary,
-    textAlign: 'center',
-  },
-  loadingHint: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  loadingHintText: {
-    fontSize: 12,
-    color: Colors.textMuted,
+    marginTop: 2,
   },
   messageText: {
     fontSize: 14,

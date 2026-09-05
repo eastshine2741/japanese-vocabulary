@@ -28,15 +28,17 @@ class FlashcardController(
 ) {
 
     // deckId == null means the virtual "all" deck: every due card the user owns.
+    // leadWordId only applies within a deck — it forces that word's card to the head of the queue.
     @GetMapping("/due")
     fun getDueFlashcards(
         @RequestParam(required = false) deckId: Long?,
         @RequestParam(required = false) limit: Int?,
+        @RequestParam(required = false) leadWordId: Long?,
     ): DueFlashcardsResponse {
         if (limit != null && limit !in 1..100) throw BusinessException(ErrorCode.INVALID_LIMIT)
         return when (deckId) {
             null -> flashcardService.getDueFlashcards(currentUserId(), limit)
-            else -> deckService.getDueFlashcards(currentUserId(), deckId, limit)
+            else -> deckService.getDueFlashcards(currentUserId(), deckId, limit, leadWordId)
         }.toResponse()
     }
 

@@ -97,11 +97,17 @@ class FlashcardControllerTest : ApiBaseIntegrationTest() {
     @Nested
     inner class Due {
 
-        private fun due(user: UserEntity, limit: Int? = null, deckId: Long? = null): DueFlashcardsResponse {
+        private fun due(
+            user: UserEntity,
+            limit: Int? = null,
+            deckId: Long? = null,
+            leadWordId: Long? = null,
+        ): DueFlashcardsResponse {
             val body = mockMvc.get("/api/flashcards/due") {
                 header("Authorization", bearer(user))
                 limit?.let { param("limit", it.toString()) }
                 deckId?.let { param("deckId", it.toString()) }
+                leadWordId?.let { param("leadWordId", it.toString()) }
             }.andExpect { status { isOk() } }.andReturn().response.contentAsString
             return readBody(body)
         }
@@ -269,6 +275,58 @@ class FlashcardControllerTest : ApiBaseIntegrationTest() {
             val resp = readBody<DueFlashcardsResponse>(body)
             assertThat(resp.totalCount).isEqualTo(1)
             assertThat(resp.cards.single().id).isEqualTo(linkedCard.id)
+        }
+
+        @Test
+        fun `leadWordId splices a not-yet-due word to the head and bumps the total`() {
+            val me = newUser()
+            val song = newSong()
+            val dueWord = newWord(me)
+            val dueCard = newCard(me, dueWord, dueAt = clock.instant().minusSeconds(60))
+            val deck = linkWordToSongDeck(me, song, dueWord)
+            val tappedWord = newWord(me)
+            val tappedCard = newCard(me, tappedWord, dueAt = clock.instant().plusSeconds(600))
+            entityManager.persist(DeckWordEntity(deckId = deck.id!!, wordId = tappedWord.id!!))
+            entityManager.flush()
+
+            val response = due(me, deckId = deck.id, leadWordId = tappedWord.id)
+
+            assertThat(response.cards.map { it.id }).containsExactly(tappedCard.id, dueCard.id)
+            assertThat(response.totalCount).isEqualTo(2)
+        }
+
+        @Test
+        fun `leadWordId on an already-due word keeps the total unchanged`() {
+            val me = newUser()
+            val song = newSong()
+            val firstWord = newWord(me)
+            val first = newCard(me, firstWord, dueAt = clock.instant().minusSeconds(120))
+            val deck = linkWordToSongDeck(me, song, firstWord)
+            val tappedWord = newWord(me)
+            val tapped = newCard(me, tappedWord, dueAt = clock.instant().minusSeconds(1))
+            entityManager.persist(DeckWordEntity(deckId = deck.id!!, wordId = tappedWord.id!!))
+            entityManager.flush()
+
+            val response = due(me, deckId = deck.id, leadWordId = tappedWord.id)
+
+            assertThat(response.cards.map { it.id }).containsExactly(tapped.id, first.id)
+            assertThat(response.totalCount).isEqualTo(2)
+        }
+
+        @Test
+        fun `leadWordId outside the deck is ignored`() {
+            val me = newUser()
+            val song = newSong()
+            val deckWord = newWord(me)
+            val deckCard = newCard(me, deckWord, dueAt = clock.instant().minusSeconds(60))
+            val deck = linkWordToSongDeck(me, song, deckWord)
+            val outsideWord = newWord(me)
+            newCard(me, outsideWord, dueAt = clock.instant().minusSeconds(1))
+
+            val response = due(me, deckId = deck.id, leadWordId = outsideWord.id)
+
+            assertThat(response.cards.map { it.id }).containsExactly(deckCard.id)
+            assertThat(response.totalCount).isEqualTo(1)
         }
 
         @Test

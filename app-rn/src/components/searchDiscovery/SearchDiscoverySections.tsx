@@ -7,11 +7,10 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  useWindowDimensions,
   View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Path } from 'react-native-svg';
 import { useFocusEffect } from '@react-navigation/native';
 import { useShallow } from 'zustand/react/shallow';
 import ArtworkImage from '../ArtworkImage';
@@ -24,13 +23,18 @@ import { RecentSongItem, RecommendedSongItem } from '../../types/song';
 
 const MAX_TERMS = 5;
 
-const RECENT_COVER_SIZE = 84;
-const RECENT_COVER_RADIUS = 10;
+const SECTION_LABEL_HEIGHT = 22;
+const SECTION_LABEL_FONT_SIZE = 15;
 
-const REC_CARD_WIDTH_RATIO = 152 / 402;
-const REC_CARD_ASPECT = 200 / 152;
+const RECENT_COVER_SIZE = 72;
+const RECENT_COVER_RADIUS = 12;
+const RECENT_CARD_HEIGHT = 96;
+const RECENT_TITLE_HEIGHT = 16;
+
+const REC_CARD_WIDTH = 152;
+const REC_CARD_HEIGHT = 200;
 const REC_CARD_GAP = 12;
-const REC_CARD_RADIUS = 14;
+const REC_CARD_RADIUS = 12;
 const REC_CARD_PADDING = 12;
 const REC_SKELETON_COUNT = 4;
 const SCRIM_COLORS = ['#00000000', '#00000000', '#000000A8', '#000000ED'] as const;
@@ -61,9 +65,11 @@ const RecentSongCard = React.memo(function RecentSongCard({
         size={RECENT_COVER_SIZE}
         cornerRadius={RECENT_COVER_RADIUS}
       />
-      <Text style={styles.recentSongTitle} numberOfLines={1}>
-        {item.title}
-      </Text>
+      <View style={styles.recentSongTitleClip}>
+        <Text style={styles.recentSongTitle} numberOfLines={1} ellipsizeMode="tail">
+          {item.title}
+        </Text>
+      </View>
     </TouchableOpacity>
   );
 });
@@ -89,12 +95,14 @@ const TermRow = React.memo(function TermRow({
 
   return (
     <TouchableOpacity style={styles.termRow} onPress={handleSelect} activeOpacity={0.72}>
-      <Ionicons name="time-outline" size={18} color={Colors.textMuted} />
-      <Text style={styles.termText} numberOfLines={1}>
-        {term}
-      </Text>
+      <HistoryIcon />
+      <View style={styles.termClip}>
+        <Text style={styles.termText} numberOfLines={1} ellipsizeMode="clip">
+          {term}
+        </Text>
+      </View>
       <TouchableOpacity onPress={handleRemove} hitSlop={8}>
-        <Ionicons name="close" size={16} color={Colors.textMuted} />
+        <XIcon />
       </TouchableOpacity>
     </TouchableOpacity>
   );
@@ -102,15 +110,11 @@ const TermRow = React.memo(function TermRow({
 
 interface RecommendedCardProps {
   item: RecommendedSongItem;
-  cardWidth: number;
-  cardHeight: number;
   onPress: (songId: number) => void;
 }
 
 const RecommendedCard = React.memo(function RecommendedCard({
   item,
-  cardWidth,
-  cardHeight,
   onPress,
 }: RecommendedCardProps) {
   const handlePress = useCallback(() => {
@@ -119,7 +123,7 @@ const RecommendedCard = React.memo(function RecommendedCard({
 
   return (
     <TouchableOpacity
-      style={[styles.recommendedCard, { width: cardWidth, height: cardHeight }]}
+      style={styles.recommendedCard}
       onPress={handlePress}
       activeOpacity={0.76}
     >
@@ -132,7 +136,6 @@ const RecommendedCard = React.memo(function RecommendedCard({
       ) : (
         <View style={[styles.recommendedArtwork, styles.recommendedPlaceholder]} />
       )}
-      <View style={styles.recommendedTint} pointerEvents="none" />
       <LinearGradient
         colors={SCRIM_COLORS}
         locations={SCRIM_LOCATIONS}
@@ -140,30 +143,26 @@ const RecommendedCard = React.memo(function RecommendedCard({
         pointerEvents="none"
       />
       <View style={styles.recommendedText}>
-        <Text style={styles.recommendedTitle} numberOfLines={2}>
-          {item.title}
-        </Text>
-        <Text style={styles.recommendedArtist} numberOfLines={1}>
-          {item.artist}
-        </Text>
+        <View style={styles.recommendedTitleClip}>
+          <Text style={styles.recommendedTitle} numberOfLines={1} ellipsizeMode="clip">
+            {item.title}
+          </Text>
+        </View>
+        <View style={styles.recommendedArtistClip}>
+          <Text style={styles.recommendedArtist} numberOfLines={1} ellipsizeMode="clip">
+            {item.artist}
+          </Text>
+        </View>
       </View>
     </TouchableOpacity>
   );
 });
 
-interface SkeletonCardProps {
-  cardWidth: number;
-  cardHeight: number;
-}
-
-const RecommendedSkeletonCard = React.memo(function RecommendedSkeletonCard({
-  cardWidth,
-  cardHeight,
-}: SkeletonCardProps) {
+const RecommendedSkeletonCard = React.memo(function RecommendedSkeletonCard() {
   return (
     <SkeletonBox
-      width={cardWidth}
-      height={cardHeight}
+      width={REC_CARD_WIDTH}
+      height={REC_CARD_HEIGHT}
       borderRadius={REC_CARD_RADIUS}
       color={Colors.elevated}
     />
@@ -178,11 +177,47 @@ function RecommendedSeparator() {
   return <View style={styles.recommendedSeparator} />;
 }
 
+function HistoryIcon() {
+  return (
+    <Svg
+      width={20}
+      height={20}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={Colors.textMuted}
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <Path d="M3 12a9 9 0 1 0 3-6.7" />
+      <Path d="M3 3v6h6" />
+      <Path d="M12 7v5l4 2" />
+    </Svg>
+  );
+}
+
+function XIcon() {
+  return (
+    <Svg
+      width={18}
+      height={18}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={Colors.textMuted}
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <Path d="M18 6 6 18" />
+      <Path d="m6 6 12 12" />
+    </Svg>
+  );
+}
+
 export default function SearchDiscoverySections({
   onSelectTerm,
   onSelectSong,
 }: SearchDiscoverySectionsProps) {
-  const { width: windowWidth } = useWindowDimensions();
   const { recentSongs, loadRecentSongs } = useHomeStore(
     useShallow(s => ({ recentSongs: s.songs, loadRecentSongs: s.load })),
   );
@@ -207,12 +242,6 @@ export default function SearchDiscoverySections({
 
   const termRows = useMemo(() => terms.slice(0, MAX_TERMS), [terms]);
 
-  const cardWidth = useMemo(
-    () => Math.round(windowWidth * REC_CARD_WIDTH_RATIO),
-    [windowWidth],
-  );
-  const cardHeight = useMemo(() => Math.round(cardWidth * REC_CARD_ASPECT), [cardWidth]);
-
   const renderRecentSong = useCallback(
     ({ item }: ListRenderItemInfo<RecentSongItem>) => (
       <RecentSongCard item={item} onPress={onSelectSong} />
@@ -224,12 +253,10 @@ export default function SearchDiscoverySections({
     ({ item }: ListRenderItemInfo<RecommendedSongItem>) => (
       <RecommendedCard
         item={item}
-        cardWidth={cardWidth}
-        cardHeight={cardHeight}
         onPress={onSelectSong}
       />
     ),
-    [cardWidth, cardHeight, onSelectSong],
+    [onSelectSong],
   );
 
   const recentKeyExtractor = useCallback((item: RecentSongItem) => String(item.id), []);
@@ -238,34 +265,40 @@ export default function SearchDiscoverySections({
   return (
     <View style={styles.container}>
       {recentSongs.length > 0 ? (
-        <FlatList
-          data={recentSongs}
-          renderItem={renderRecentSong}
-          keyExtractor={recentKeyExtractor}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          ItemSeparatorComponent={RecentSongSeparator}
-          contentContainerStyle={styles.recentList}
-        />
+        <View style={styles.recentSongsSection}>
+          <SectionLabel>최근 본 곡</SectionLabel>
+          <FlatList
+            data={recentSongs}
+            renderItem={renderRecentSong}
+            keyExtractor={recentKeyExtractor}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            ItemSeparatorComponent={RecentSongSeparator}
+            contentContainerStyle={styles.recentList}
+            style={styles.recentListWrap}
+          />
+        </View>
       ) : null}
 
-      <View style={styles.termsSection}>
-        {termRows.map(term => (
-          <TermRow
-            key={term}
-            term={term}
-            onSelect={onSelectTerm}
-            onRemove={removeTerm}
-          />
-        ))}
-      </View>
+      {termRows.length > 0 ? (
+        <View style={styles.termsSection}>
+          <SectionLabel>최근 검색어</SectionLabel>
+          <View>
+            {termRows.map(term => (
+              <TermRow
+                key={term}
+                term={term}
+                onSelect={onSelectTerm}
+                onRemove={removeTerm}
+              />
+            ))}
+          </View>
+        </View>
+      ) : null}
 
       {recommendedSongs.length > 0 || recommendationStatus === 'loading' ? (
         <View style={styles.recommendedSection}>
-          <View style={styles.recommendedHeader}>
-            <Text style={styles.recommendedHeaderTitle}>이런 곡은 어때요?</Text>
-            <Text style={styles.recommendedHeaderSubtitle}>요즘 인기 있는 노래를 모았어요.</Text>
-          </View>
+          <SectionLabel>이런 곡은 어때요?</SectionLabel>
 
           {recommendedSongs.length > 0 ? (
             <FlatList
@@ -286,7 +319,7 @@ export default function SearchDiscoverySections({
               {Array.from({ length: REC_SKELETON_COUNT }).map((_, index) => (
                 <React.Fragment key={index}>
                   {index > 0 && <RecommendedSeparator />}
-                  <RecommendedSkeletonCard cardWidth={cardWidth} cardHeight={cardHeight} />
+                  <RecommendedSkeletonCard />
                 </React.Fragment>
               ))}
             </ScrollView>
@@ -297,59 +330,87 @@ export default function SearchDiscoverySections({
   );
 }
 
+function SectionLabel({ children }: { children: string }) {
+  return (
+    <View style={styles.sectionLabelRow}>
+      <Text style={styles.sectionLabel}>{children}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   container: {
-    gap: 28,
-    paddingTop: 12,
-    paddingBottom: 28,
+    gap: 32,
+    paddingTop: 4,
+    paddingBottom: 8,
+  },
+  recentSongsSection: {
+    gap: 8,
+  },
+  sectionLabelRow: {
+    height: SECTION_LABEL_HEIGHT,
+    justifyContent: 'center',
+    paddingHorizontal: Dimens.screenPadding,
+  },
+  sectionLabel: {
+    fontSize: SECTION_LABEL_FONT_SIZE,
+    lineHeight: SECTION_LABEL_HEIGHT,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+  },
+  recentListWrap: {
+    height: RECENT_CARD_HEIGHT,
   },
   recentList: {
     paddingHorizontal: Dimens.screenPadding,
   },
   recentSeparator: {
-    width: 12,
+    width: 16,
   },
   recentSongCard: {
     width: RECENT_COVER_SIZE,
-    gap: 6,
+    height: RECENT_CARD_HEIGHT,
+    gap: 8,
+    overflow: 'hidden',
+  },
+  recentSongTitleClip: {
+    width: RECENT_COVER_SIZE,
+    height: RECENT_TITLE_HEIGHT,
+    overflow: 'hidden',
   },
   recentSongTitle: {
     width: RECENT_COVER_SIZE,
-    fontSize: 13,
-    fontWeight: '500',
-    color: Colors.textPrimary,
+    height: RECENT_TITLE_HEIGHT,
+    fontSize: 11,
+    lineHeight: RECENT_TITLE_HEIGHT,
+    fontWeight: '400',
+    color: Colors.textSecondary,
   },
   termsSection: {
-    paddingHorizontal: Dimens.screenPadding,
-    gap: 2,
+    gap: 8,
   },
   termRow: {
-    minHeight: 40,
+    height: 44,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    paddingVertical: 11,
+    paddingHorizontal: Dimens.screenPadding,
+  },
+  termClip: {
+    flex: 1,
+    height: SECTION_LABEL_HEIGHT,
+    overflow: 'hidden',
+    justifyContent: 'center',
   },
   termText: {
-    flex: 1,
     fontSize: 15,
+    lineHeight: SECTION_LABEL_HEIGHT,
+    fontWeight: '400',
     color: Colors.textPrimary,
   },
   recommendedSection: {
-    gap: 14,
-  },
-  recommendedHeader: {
-    gap: 4,
-    paddingHorizontal: Dimens.screenPadding,
-  },
-  recommendedHeaderTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-  },
-  recommendedHeaderSubtitle: {
-    fontSize: 13,
-    color: Colors.textSecondary,
+    gap: 8,
+    paddingTop: 8,
   },
   recommendedList: {
     paddingHorizontal: Dimens.screenPadding,
@@ -358,6 +419,8 @@ const styles = StyleSheet.create({
     width: REC_CARD_GAP,
   },
   recommendedCard: {
+    width: REC_CARD_WIDTH,
+    height: REC_CARD_HEIGHT,
     borderRadius: REC_CARD_RADIUS,
     overflow: 'hidden',
     justifyContent: 'flex-end',
@@ -369,27 +432,38 @@ const styles = StyleSheet.create({
   recommendedPlaceholder: {
     backgroundColor: Colors.cardBorder,
   },
-  recommendedTint: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#00000014',
-    borderRadius: REC_CARD_RADIUS,
-  },
   recommendedScrim: {
     ...StyleSheet.absoluteFillObject,
   },
   recommendedText: {
-    gap: 3,
-    paddingHorizontal: REC_CARD_PADDING,
-    paddingBottom: REC_CARD_PADDING,
+    width: 128,
+    height: 40,
+    gap: 2,
+    marginLeft: REC_CARD_PADDING,
+    marginBottom: REC_CARD_PADDING,
+  },
+  recommendedTitleClip: {
+    width: 128,
+    height: 20,
+    overflow: 'hidden',
   },
   recommendedTitle: {
+    width: 128,
     fontSize: 14,
-    lineHeight: 18,
+    lineHeight: 20,
     fontWeight: '600',
     color: '#FFFFFF',
   },
+  recommendedArtistClip: {
+    width: 128,
+    height: 18,
+    overflow: 'hidden',
+  },
   recommendedArtist: {
-    fontSize: 11,
+    width: 128,
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: '400',
     color: '#FFFFFFB8',
   },
 });

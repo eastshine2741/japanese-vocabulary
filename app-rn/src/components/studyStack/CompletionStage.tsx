@@ -13,6 +13,8 @@ export interface CompletionStageProps {
   onSearch: () => void;
   /** 무대 위에 얹힌 크롬 높이 — 무대 안쪽 내용만 그만큼 내려간다. */
   contentInsetTop?: number;
+  /** 시스템 하단 영역 높이 — CTA 영역을 그만큼 올린다. */
+  contentInsetBottom?: number;
 }
 
 /** 완주 카드 — 다음 due 넛지 / 전체 복습 완료 두 변형. 무대 자체가 다음 곡으로 바뀐다. */
@@ -24,6 +26,7 @@ export const CompletionStage = React.memo(function CompletionStage({
   onRecommended,
   onSearch,
   contentInsetTop,
+  contentInsetBottom,
 }: CompletionStageProps) {
   const stageSource = nextDueSource ?? recommendedSource ?? completedSource;
   const hasNextDue = nextDueSource != null;
@@ -33,7 +36,11 @@ export const CompletionStage = React.memo(function CompletionStage({
 
   if (!stageSource) {
     return (
-      <CardStage artworkUrl={null} contentInsetTop={contentInsetTop}>
+      <CardStage
+        artworkUrl={null}
+        contentInsetTop={contentInsetTop}
+        contentInsetBottom={contentInsetBottom}
+      >
         <View style={styles.completeCenter}>
           <View style={styles.doneBadge}>
             <Feather name="check" size={32} color="#A7E3C4" />
@@ -56,7 +63,11 @@ export const CompletionStage = React.memo(function CompletionStage({
   }
 
   return (
-    <CardStage artworkUrl={stageSource.artworkUrl} contentInsetTop={contentInsetTop}>
+    <CardStage
+      artworkUrl={stageSource.artworkUrl}
+      contentInsetTop={contentInsetTop}
+      contentInsetBottom={contentInsetBottom}
+    >
       <View style={styles.completeCenter}>
         {hasNextDue || completedSource ? (
           <ArtworkThumb artworkUrl={(completedSource ?? stageSource).artworkUrl} size={72} radius={14} />
@@ -128,11 +139,23 @@ export interface ErrorStageProps {
   onSearch: () => void;
   /** 무대 위에 얹힌 크롬 높이 — 무대 안쪽 내용만 그만큼 내려간다. */
   contentInsetTop?: number;
+  /** 시스템 하단 영역 높이 — CTA 영역을 그만큼 올린다. */
+  contentInsetBottom?: number;
 }
 
-export const ErrorStage = React.memo(function ErrorStage({ message, onRetry, onSearch, contentInsetTop }: ErrorStageProps) {
+export const ErrorStage = React.memo(function ErrorStage({
+  message,
+  onRetry,
+  onSearch,
+  contentInsetTop,
+  contentInsetBottom,
+}: ErrorStageProps) {
   return (
-    <CardStage artworkUrl={null} contentInsetTop={contentInsetTop}>
+    <CardStage
+      artworkUrl={null}
+      contentInsetTop={contentInsetTop}
+      contentInsetBottom={contentInsetBottom}
+    >
       <View style={styles.completeCenter}>
         <View style={styles.errorBadge}>
           <Feather name="wifi-off" size={30} color="#FFD4D4" />

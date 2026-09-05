@@ -87,6 +87,9 @@ class FlashcardService(
     /**
      * Builds the due-flashcards view for a pre-selected id set — used by the deck module, which
      * owns the deck-scoped due query but must not assemble flashcard internals itself.
+     *
+     * [leadId] bypasses the due-date filter for one card — the deck module uses this to force a
+     * word the user just tapped into the response even if FSRS hasn't made it due yet.
      */
     @Transactional(readOnly = true)
     fun getDueFlashcardsByIds(
@@ -95,10 +98,23 @@ class FlashcardService(
         now: Instant,
         totalCount: Int,
         nextDueAt: Instant?,
+        leadId: Long? = null,
     ): DueFlashcardsDto {
         val byId = flashcardRepository.findAllById(flashcardIds).associateBy { it.id }
-        val entities = flashcardIds.mapNotNull { byId[it] }.filter { it.userId == userId && it.due <= now }
+        val entities = flashcardIds.mapNotNull { byId[it] }
+            .filter { it.userId == userId && (it.due <= now || it.id == leadId) }
         return assembleDueFlashcards(userId, entities, now, totalCount, nextDueAt)
+    }
+
+    /**
+     * The flashcard id for a word and whether it is currently due — used by the deck module to
+     * splice a specific word to the head of its due queue without duplicating due-date logic.
+     */
+    @Transactional(readOnly = true)
+    fun findLeadCandidate(userId: Long, wordId: Long): LeadFlashcardCandidate? {
+        val entity = flashcardRepository.findByWordId(wordId) ?: return null
+        if (entity.userId != userId) return null
+        return LeadFlashcardCandidate(id = entity.id!!, isDue = entity.due <= Instant.now(clock))
     }
 
     private fun assembleDueFlashcards(
@@ -226,3 +242,5 @@ class FlashcardService(
         }
     }
 }
+
+data class LeadFlashcardCandidate(val id: Long, val isDue: Boolean)

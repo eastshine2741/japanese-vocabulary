@@ -1,4 +1,20 @@
 import * as Sentry from '@sentry/react-native';
+import {
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+  Inter_800ExtraBold,
+  useFonts as useInterFonts,
+} from '@expo-google-fonts/inter';
+import {
+  FunnelSans_400Regular,
+  FunnelSans_500Medium,
+  FunnelSans_600SemiBold,
+  FunnelSans_700Bold,
+  FunnelSans_800ExtraBold,
+  useFonts as useFunnelSansFonts,
+} from '@expo-google-fonts/funnel-sans';
 
 Sentry.init({
   dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
@@ -22,6 +38,7 @@ import { initBaseURL } from './src/api/client';
 import { useSettingsStore } from './src/stores/settingsStore';
 import SplashScreen from './src/screens/SplashScreen';
 import { registerNotificationHandlers, requestPermissionAndRegisterToken } from './src/services/pushNotifications';
+import { applyGlobalTypography } from './src/theme/typography';
 
 GoogleSignin.configure({
   webClientId: process.env.EXPO_PUBLIC_GOOGLE_OAUTH_WEB_CLIENT_ID ?? '',
@@ -29,6 +46,23 @@ GoogleSignin.configure({
 
 function App() {
   const [initialRoute, setInitialRoute] = useState<keyof RootStackParamList | null>(null);
+  const [interLoaded] = useInterFonts({
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+    Inter_800ExtraBold,
+  });
+  const [funnelSansLoaded] = useFunnelSansFonts({
+    FunnelSans_400Regular,
+    FunnelSans_500Medium,
+    FunnelSans_600SemiBold,
+    FunnelSans_700Bold,
+    FunnelSans_800ExtraBold,
+  });
+  const fontsLoaded = interLoaded && funnelSansLoaded;
+
+  if (fontsLoaded) applyGlobalTypography();
 
   useEffect(() => {
     registerNotificationHandlers();
@@ -49,7 +83,7 @@ function App() {
       <SafeAreaProvider>
         <BottomSheetModalProvider>
           <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
-          {!initialRoute ? (
+          {!initialRoute || !fontsLoaded ? (
             <SplashScreen />
           ) : (
             <NavigationContainer ref={navigationRef} onReady={flushPending}>

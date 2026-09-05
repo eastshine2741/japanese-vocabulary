@@ -47,17 +47,36 @@ class DeckService(
     /**
      * Due cards scoped to one deck. The deck-membership query lives here (outer layer owns the
      * join); response assembly is delegated to the flashcard module.
+     *
+     * [leadWordId] is the word the user just tapped in SongDetail — it must lead the returned
+     * queue even if FSRS hasn't made it due yet, so it is spliced to the front here and only
+     * added to [totalCount] when it wasn't already counted as due.
      */
     @Transactional(readOnly = true)
-    fun getDueFlashcards(userId: Long, deckId: Long, limit: Int? = null): DueFlashcardsDto {
+    fun getDueFlashcards(userId: Long, deckId: Long, limit: Int? = null, leadWordId: Long? = null): DueFlashcardsDto {
         loadOwnedDeck(userId, deckId)
         val now = Instant.now(clock)
         val pageable = limit?.let { Pageable.ofSize(it) } ?: Pageable.unpaged()
-        val ids = deckRepository.findDueFlashcardIds(userId, deckId, now, pageable)
+        val ids = deckRepository.findDueFlashcardIds(userId, deckId, now, pageable).toMutableList()
+        var totalCount = deckRepository.countDueFlashcards(userId, deckId, now).toInt()
+        var leadId: Long? = null
+
+        if (leadWordId != null && deckWordRepository.existsByDeckIdAndWordId(deckId, leadWordId)) {
+            flashcardService.findLeadCandidate(userId, leadWordId)?.let { lead ->
+                leadId = lead.id
+                val wasQueued = ids.remove(lead.id)
+                if (!wasQueued && !lead.isDue) totalCount += 1
+                ids.add(0, lead.id)
+            }
+        }
+
         return flashcardService.getDueFlashcardsByIds(
-            userId, ids, now,
-            totalCount = deckRepository.countDueFlashcards(userId, deckId, now).toInt(),
+            userId,
+            flashcardIds = limit?.let { ids.take(it) } ?: ids,
+            now = now,
+            totalCount = totalCount,
             nextDueAt = deckRepository.findNextDueAt(userId, deckId, now),
+            leadId = leadId,
         )
     }
 

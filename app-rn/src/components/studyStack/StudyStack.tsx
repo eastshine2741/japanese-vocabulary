@@ -20,6 +20,8 @@ export interface StudyStackProps {
   overlay?: React.ReactNode;
   /** overlay 가 무대 위를 덮는 높이. 아트워크는 전체를 덮고 카드 내용만 내려간다. */
   contentInsetTop?: number;
+  /** 시스템 하단 영역이 무대 위를 덮는 높이. 하단 컨트롤만 그만큼 올린다. */
+  contentInsetBottom?: number;
 }
 
 /** 크롬에 독립적인 카드 스택. 크롬은 그리지 않는다. */
@@ -30,6 +32,7 @@ export const StudyStack = React.memo(function StudyStack({
   onSelectRecommended,
   overlay,
   contentInsetTop,
+  contentInsetBottom,
 }: StudyStackProps) {
   const {
     status,
@@ -71,6 +74,7 @@ export const StudyStack = React.memo(function StudyStack({
           onRetry={reload}
           onSearch={onSearch}
           contentInsetTop={contentInsetTop}
+          contentInsetBottom={contentInsetBottom}
         />
       )}
 
@@ -86,6 +90,7 @@ export const StudyStack = React.memo(function StudyStack({
           onRating={selectRating}
           onSourcePress={onOpenSource}
           contentInsetTop={contentInsetTop}
+          contentInsetBottom={contentInsetBottom}
         />
       )}
 
@@ -98,11 +103,18 @@ export const StudyStack = React.memo(function StudyStack({
           onRecommended={handleRecommended}
           onSearch={onSearch}
           contentInsetTop={contentInsetTop}
+          contentInsetBottom={contentInsetBottom}
         />
       )}
 
       {status === 'ready' && currentCard && reviewError && (
-        <View style={styles.reviewErrorBanner} pointerEvents="none">
+        <View
+          style={[
+            styles.reviewErrorBanner,
+            contentInsetBottom ? { bottom: REVIEW_ERROR_BOTTOM_OFFSET + contentInsetBottom } : null,
+          ]}
+          pointerEvents="none"
+        >
           <Feather name="alert-circle" size={14} color="#FFD4D4" />
           <Text numberOfLines={2} style={styles.reviewErrorText}>{reviewError}</Text>
         </View>
@@ -116,6 +128,8 @@ export const StudyStack = React.memo(function StudyStack({
     </View>
   );
 });
+
+const REVIEW_ERROR_BOTTOM_OFFSET = 24;
 
 const styles = StyleSheet.create({
   stage: {
@@ -138,7 +152,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 20,
     right: 20,
-    bottom: 24,
+    bottom: REVIEW_ERROR_BOTTOM_OFFSET,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,

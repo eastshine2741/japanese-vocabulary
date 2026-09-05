@@ -11,6 +11,8 @@ export interface StudySource {
   artworkUrl: string | null;
   dueCount: number;
   totalCount: number;
+  /** 이 곡 복습을 특정 단어 클릭으로 열었다면 그 단어. 첫 카드로 강제된다. */
+  leadWordId?: number | null;
 }
 
 export interface StudyCard extends FlashcardDTO {

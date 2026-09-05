@@ -50,13 +50,16 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         return;
       }
 
-      set({ status: 'analyzing' });
       const accepted = await songApi.analyze({
         title: item.title,
         artist: item.artistName,
         durationSeconds: item.durationSeconds,
         artworkUrl: item.thumbnail,
       });
+      if (analysisRunId !== runId) return;
+      if (!accepted.canOpenPlayer && accepted.status !== 'FAILED') {
+        set({ status: 'analyzing' });
+      }
       const ready = await waitForPlayerReady(accepted, runId);
       if (analysisRunId !== runId) return;
       if (!ready.songId) {

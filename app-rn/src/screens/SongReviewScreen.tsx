@@ -45,6 +45,7 @@ export default function SongReviewScreen({ navigation, route }: Props) {
         onSearch={goSearch}
         overlay={overlay}
         contentInsetTop={insets.top + STACK_REVIEW_CHROME_HEIGHT}
+        contentInsetBottom={insets.bottom}
       />
     </View>
   );

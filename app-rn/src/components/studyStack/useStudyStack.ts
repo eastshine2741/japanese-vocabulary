@@ -146,7 +146,10 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
         setStatus('ready');
         return;
       }
-      const due = await flashcardApi.getDueCards(target.deckId, DUE_PAGE_SIZE);
+      // leadWordId 는 최초 진입에만 적용한다 — 이후 refreshDue 는 서버 due 순서를 그대로 따른다.
+      const due = target.leadWordId != null
+        ? await flashcardApi.getDueCards(target.deckId, DUE_PAGE_SIZE, target.leadWordId)
+        : await flashcardApi.getDueCards(target.deckId, DUE_PAGE_SIZE);
       if (version !== requestVersion.current) return;
       setNextDueAt(due.nextDueAt);
       setDueCount(due.totalCount);

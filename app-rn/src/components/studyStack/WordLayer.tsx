@@ -17,6 +17,8 @@ export interface WordLayerProps {
   onSourcePress: () => void;
   /** 무대 위에 얹힌 크롬 높이 — 무대 안쪽 내용만 그만큼 내려간다. */
   contentInsetTop?: number;
+  /** 시스템 하단 영역 높이 — rating/스와이프 affordance 를 그만큼 올린다. */
+  contentInsetBottom?: number;
 }
 
 /**
@@ -34,6 +36,7 @@ export const WordLayer = React.memo(function WordLayer({
   onRating,
   onSourcePress,
   contentInsetTop,
+  contentInsetBottom,
 }: WordLayerProps) {
   const opacity = translateY.interpolate({
     inputRange: [-160, 0],
@@ -42,7 +45,11 @@ export const WordLayer = React.memo(function WordLayer({
   });
 
   return (
-    <CardStage artworkUrl={card.source.artworkUrl} contentInsetTop={contentInsetTop}>
+    <CardStage
+      artworkUrl={card.source.artworkUrl}
+      contentInsetTop={contentInsetTop}
+      contentInsetBottom={contentInsetBottom}
+    >
       <SourceHeader source={card.source} onPress={onSourcePress} />
       <Animated.View
         style={[

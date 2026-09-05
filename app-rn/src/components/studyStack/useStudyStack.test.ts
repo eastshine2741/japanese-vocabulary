@@ -39,8 +39,13 @@ const card = (id: number): FlashcardDTO => ({
 });
 let stack: StudyStackState;
 let renderer: ReactTestRenderer;
-function Harness() { stack = useStudyStack({ mode: 'source', source }); return null; }
-async function mount() { await act(async () => { renderer = create(React.createElement(Harness)); }); }
+function Harness({ studySource = source }: { studySource?: StudySource }) {
+  stack = useStudyStack({ mode: 'source', source: studySource });
+  return null;
+}
+async function mount(studySource?: StudySource) {
+  await act(async () => { renderer = create(React.createElement(Harness, { studySource })); });
+}
 async function rate() {
   await act(async () => { stack.reveal(); stack.selectRating(1); });
   await act(async () => {
@@ -80,6 +85,17 @@ it('keeps server order and total count, and allows reviewed cards to return', as
   expect(stack.session.reviewedCount).toBe(1);
   expect(stack.revealed).toBe(false);
   expect(flashcardApi.getDueCards).toHaveBeenCalledTimes(2);
+});
+
+it('passes leadWordId only on the initial load, not on later refreshes', async () => {
+  vi.mocked(flashcardApi.getDueCards)
+    .mockResolvedValueOnce({ cards: [card(5), card(1)], totalCount: 31, nextDueAt: null })
+    .mockResolvedValueOnce({ cards: [card(1), card(2)], totalCount: 29, nextDueAt: null });
+  await mount({ ...source, leadWordId: 5 });
+  expect(flashcardApi.getDueCards).toHaveBeenNthCalledWith(1, 7, 20, 5);
+  expect(stack.cards.map(c => c.id)).toEqual([5, 1]);
+  await rate();
+  expect(flashcardApi.getDueCards).toHaveBeenNthCalledWith(2, 7, 20);
 });
 
 it('refreshes at nextDueAt with buffered cards and reopens an empty queue', async () => {

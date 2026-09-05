@@ -6,17 +6,28 @@ import { StudySource } from './types';
 
 /** 무대 안쪽 기본 위 여백. 크롬이 무대 위에 얹힐 때 그만큼 더 내려준다. */
 const STAGE_PADDING_TOP = 14;
+const STAGE_PADDING_BOTTOM = 22;
 
 export interface CardStageProps {
   artworkUrl: string | null;
   /** 무대 위에 겹쳐 그리는 크롬 높이. 아트워크는 그대로 전체를 덮고 내용만 내려간다. */
   contentInsetTop?: number;
+  /** 시스템 하단 영역 높이. 아트워크는 그대로 전체를 덮고 내용만 올린다. */
+  contentInsetBottom?: number;
   children: React.ReactNode;
 }
 
 /** 곡 무대 — 아트워크 + 틴트 + 스크림 2겹. 같은 곡 안에서는 움직이지 않는다. */
-export const CardStage = React.memo(function CardStage({ artworkUrl, contentInsetTop, children }: CardStageProps) {
-  const insetStyle = contentInsetTop ? { paddingTop: STAGE_PADDING_TOP + contentInsetTop } : null;
+export const CardStage = React.memo(function CardStage({
+  artworkUrl,
+  contentInsetTop,
+  contentInsetBottom,
+  children,
+}: CardStageProps) {
+  const insetStyle = {
+    paddingTop: STAGE_PADDING_TOP + (contentInsetTop ?? 0),
+    paddingBottom: STAGE_PADDING_BOTTOM + (contentInsetBottom ?? 0),
+  };
   const content = (
     <>
       <View style={styles.tint} />
@@ -101,7 +112,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#14181C',
     paddingHorizontal: 20,
     paddingTop: STAGE_PADDING_TOP,
-    paddingBottom: 22,
+    paddingBottom: STAGE_PADDING_BOTTOM,
   },
   fallbackArt: {
     backgroundColor: '#16242A',

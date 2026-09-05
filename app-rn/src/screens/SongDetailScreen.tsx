@@ -18,6 +18,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather, FontAwesome6 } from '@expo/vector-icons';
+import Svg, { Path } from 'react-native-svg';
 import { useSongDetailStore } from '../stores/songDetailStore';
 import { usePlayerStore } from '../stores/playerStore';
 import { deckApi } from '../api/deckApi';
@@ -46,6 +47,7 @@ import {
 } from '../components/songDetail/songDetailWordSave';
 import { Colors, Dimens } from '../theme/theme';
 import { Layers } from '../theme/layers';
+import { Typography } from '../theme/typography';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import type { DeckDetailResponse } from '../types/deck';
 
@@ -468,7 +470,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     return ensureSongDeck();
   }, [ensureSongDeck, songDeckDetail, songId]);
 
-  const openSongReview = useCallback((deck: DeckDetailResponse) => {
+  const openSongReview = useCallback((deck: DeckDetailResponse, leadWordId?: number | null) => {
     if (songId == null || deck.deckId == null) return false;
     navigation.navigate('SongReview', {
       source: {
@@ -479,6 +481,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
         artworkUrl: deck.artworkUrl ?? data?.song.artworkUrl ?? null,
         dueCount: deck.dueCount,
         totalCount: deck.wordCount,
+        leadWordId: leadWordId ?? null,
       },
     });
     return true;
@@ -499,10 +502,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     }
   }, [ensureSongDeck, isStartingLearning, openSongReview, songId]);
 
-  /**
-   * 단어를 누르면 그 곡 복습을 연다. 아직 안 담긴 단어는 조용히 담고 시작하지만,
-   * 큐는 서버 due 순서를 따르므로 이 단어가 큐의 첫 카드라는 보장은 없다.
-   */
+  /** 단어를 누르면 그 곡 복습을 연다. 아직 안 담긴 단어는 조용히 담고, 그 단어를 큐의 첫 카드로 연다. */
   const handleStartWordReview = useCallback(async (word: SongDetailWordItem) => {
     if (songId == null || isStartingLearning) return;
     const wordKey = getSongDetailWordKey(word);
@@ -510,8 +510,10 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     setBusyWordKey(wordKey);
     setIsStartingLearning(true);
     try {
-      if (!resolveSongDetailWordSaveState(word, wordSaveOverrides).isSavedForSong) {
+      let leadWordId = resolveSongDetailWordSaveState(word, wordSaveOverrides).savedWordId;
+      if (leadWordId == null) {
         const result = await wordApi.addWord(word.addRequest);
+        leadWordId = result.id;
         setWordSaveOverrides(prev => {
           const next = new Map(prev);
           next.set(saveKey, { isSavedForSong: true, savedWordId: result.id });
@@ -520,7 +522,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
         await refreshWords(songId).catch(() => undefined);
       }
       const deck = await resolveSongDeck();
-      if (deck == null || !openSongReview(deck)) {
+      if (deck == null || !openSongReview(deck, leadWordId)) {
         setLearningError('학습할 단어를 준비하지 못했어요. 잠시 후 다시 시도해 주세요.');
       }
     } catch (e: any) {
@@ -799,7 +801,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
             onPress={handlePrimaryLearningPress}
             disabled={isLearningActionDisabled}
           >
-            <Feather name={learningActionIcon} size={17} color="#FFFFFF" />
+            <LearningActionIcon icon={learningActionIcon} size={18} color={Colors.textPrimary} />
             <Text style={styles.deckButtonText}>{learningActionLabel}</Text>
           </Pressable>
         </View>
@@ -1217,6 +1219,48 @@ const TabButton = React.memo(function TabButton({
   );
 });
 
+interface LearningActionIconProps {
+  icon: keyof typeof Feather.glyphMap;
+  size: number;
+  color: string;
+}
+
+const LearningActionIcon = React.memo(function LearningActionIcon({
+  icon,
+  size,
+  color,
+}: LearningActionIconProps) {
+  if (icon !== 'layers') {
+    return <Feather name={icon} size={size} color={color} />;
+  }
+
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+});
+
 const SongDetailAnalysisPendingPlaceholder = React.memo(function SongDetailAnalysisPendingPlaceholder({
   subscribed,
   saving,
@@ -1507,12 +1551,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 22,
   },
   heroTitle: {
+    ...Typography.headingExtraBold,
     fontSize: 34,
     lineHeight: 40,
     fontWeight: '800',
     color: '#FFFFFF',
   },
   heroArtist: {
+    ...Typography.bodySemiBold,
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFFCC',
@@ -1520,19 +1566,22 @@ const styles = StyleSheet.create({
   },
   deckButton: {
     height: 48,
-    borderRadius: 8,
+    marginHorizontal: 2,
+    borderRadius: 9999,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#FFFFFF80',
-    backgroundColor: '#FFFFFF26',
+    borderWidth: 1,
+    borderColor: '#FFFFFF33',
+    backgroundColor: '#FFFFFF',
   },
   deckButtonText: {
+    ...Typography.bodyBold,
     fontSize: 15,
-    fontWeight: '800',
-    color: '#FFFFFF',
+    fontWeight: '700',
+    letterSpacing: 0.1,
+    color: Colors.textPrimary,
   },
   tabBar: {
     height: TAB_BAR_HEIGHT,
@@ -1551,6 +1600,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   tabLabel: {
+    ...Typography.bodyBold,
     fontSize: 15,
     fontWeight: '700',
     color: Colors.textMuted,
@@ -1591,6 +1641,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   analysisPendingTitle: {
+    ...Typography.headingBold,
     fontSize: 17,
     fontWeight: '700',
     color: Colors.textPrimary,
@@ -1619,6 +1670,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
   },
   analysisPendingNotifyText: {
+    ...Typography.bodyBold,
     fontSize: 14,
     fontWeight: '700',
     color: Colors.primary,
@@ -1755,11 +1807,13 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   appBarTitle: {
+    ...Typography.bodyExtraBold,
     fontSize: 14,
     fontWeight: '800',
     color: '#FFFFFF',
   },
   appBarArtist: {
+    ...Typography.bodySemiBold,
     fontSize: 11,
     fontWeight: '600',
     color: '#FFFFFFCC',
@@ -1778,6 +1832,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF26',
   },
   appBarDeckButtonText: {
+    ...Typography.bodyExtraBold,
     fontSize: 12,
     fontWeight: '800',
     color: '#FFFFFF',
