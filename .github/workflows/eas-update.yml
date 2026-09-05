@@ -10,15 +10,17 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.parse.outputs.matrix }}
+      native_runtime_version: ${{ steps.parse.outputs.native_runtime_version }}
     steps:
       - name: Parse tag
         id: parse
         run: |
           TAG="$GITHUB_REF_NAME"
-          if [[ "$TAG" =~ ^js-v[0-9]+\.[0-9]+\.[0-9]+(-dev\.([0-9]+)|-rc\.([0-9]+))?$ ]]; then
-            if [[ -n "${BASH_REMATCH[2]}" ]]; then
+          if [[ "$TAG" =~ ^js-v([0-9]+)\.([0-9]+)\.([0-9]+)(-dev\.([0-9]+)|-rc\.([0-9]+))?$ ]]; then
+            echo "native_runtime_version=${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.${BASH_REMATCH[3]}" >> "$GITHUB_OUTPUT"
+            if [[ -n "${BASH_REMATCH[5]}" ]]; then
               echo 'matrix=[{"build_env":"dev","channel":"development"}]' >> "$GITHUB_OUTPUT"
-            elif [[ -n "${BASH_REMATCH[3]}" ]]; then
+            elif [[ -n "${BASH_REMATCH[6]}" ]]; then
               echo 'matrix=[{"build_env":"prod","channel":"production-rc"}]' >> "$GITHUB_OUTPUT"
             else
               echo 'matrix=[{"build_env":"prod","channel":"production"}]' >> "$GITHUB_OUTPUT"
@@ -76,6 +78,7 @@ jobs:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           BUILD_ENV: ${{ matrix.target.build_env }}
           EAS_UPDATE_CHANNEL: ${{ matrix.target.channel }}
+          NATIVE_RUNTIME_VERSION: ${{ needs.parse.outputs.native_runtime_version }}
           SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT_APP }}
         run: |
