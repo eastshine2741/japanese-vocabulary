@@ -1,7 +1,8 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import ArtworkImage from '../ArtworkImage';
+import WordMasteryProgressBar from '../WordMasteryProgressBar';
 import { Colors } from '../../theme/theme';
 import { SongProgressItem } from './songProgress';
 
@@ -15,14 +16,6 @@ function SongProgressRow({ item, onPress }: Props) {
     onPress(item);
   }, [item, onPress]);
 
-  const segments = useMemo(() => {
-    const total = Math.max(1, item.totalWords);
-    return {
-      mastered: Math.round((item.masteredCount / total) * 260),
-      learning: Math.round((item.learningCount / total) * 260),
-    };
-  }, [item.learningCount, item.masteredCount, item.totalWords]);
-
   return (
     <TouchableOpacity style={styles.row} onPress={handlePress} activeOpacity={0.72}>
       <ArtworkImage url={item.artworkUrl} size={48} cornerRadius={10} style={styles.artwork} />
@@ -31,10 +24,11 @@ function SongProgressRow({ item, onPress }: Props) {
           <Text style={styles.title} numberOfLines={1}>{item.title}</Text>
           <Text style={styles.count}>{item.totalWords}단어</Text>
         </View>
-        <View style={styles.track}>
-          <View style={[styles.knownSegment, { width: segments.mastered }]} />
-          <View style={[styles.learningSegment, { width: segments.learning, left: segments.mastered + 2 }]} />
-        </View>
+        <WordMasteryProgressBar
+          totalCount={item.totalWords}
+          masteredCount={item.masteredCount}
+          studyingCount={item.learningCount}
+        />
       </View>
       <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
     </TouchableOpacity>
@@ -77,24 +71,5 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: Colors.textMuted,
     fontVariant: ['tabular-nums'],
-  },
-  track: {
-    height: 8,
-    borderRadius: 999,
-    backgroundColor: '#F6F6F6',
-    overflow: 'hidden',
-  },
-  knownSegment: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    backgroundColor: Colors.primary,
-  },
-  learningSegment: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    backgroundColor: Colors.accentSecondary,
   },
 });

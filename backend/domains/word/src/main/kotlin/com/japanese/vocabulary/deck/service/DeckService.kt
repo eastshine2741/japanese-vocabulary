@@ -48,10 +48,17 @@ class DeckService(
      * Due cards scoped to one deck. The deck-membership query lives here (outer layer owns the
      * join); response assembly is delegated to the flashcard module.
      */
-    @Transactional
-    fun getDueFlashcards(userId: Long, deckId: Long): DueFlashcardsDto {
-        val ids = deckRepository.findDueFlashcardIds(userId, deckId, Instant.now(clock))
-        return flashcardService.getDueFlashcardsByIds(userId, ids)
+    @Transactional(readOnly = true)
+    fun getDueFlashcards(userId: Long, deckId: Long, limit: Int? = null): DueFlashcardsDto {
+        loadOwnedDeck(userId, deckId)
+        val now = Instant.now(clock)
+        val pageable = limit?.let { Pageable.ofSize(it) } ?: Pageable.unpaged()
+        val ids = deckRepository.findDueFlashcardIds(userId, deckId, now, pageable)
+        return flashcardService.getDueFlashcardsByIds(
+            userId, ids, now,
+            totalCount = deckRepository.countDueFlashcards(userId, deckId, now).toInt(),
+            nextDueAt = deckRepository.findNextDueAt(userId, deckId, now),
+        )
     }
 
     /** 전체 단어장은 `/decks/all` 로 따로 노출되므로 목록에서는 뺀다. */

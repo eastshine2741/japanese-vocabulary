@@ -29,12 +29,36 @@ interface DeckRepository : JpaRepository<DeckEntity, Long> {
         SELECT f.id FROM DeckWordEntity dw, FlashcardEntity f
         WHERE dw.wordId = f.wordId AND dw.deckId = :deckId
         AND f.userId = :userId AND f.due <= :now
+        ORDER BY f.due ASC, f.id ASC
     """)
     fun findDueFlashcardIds(
         @Param("userId") userId: Long,
         @Param("deckId") deckId: Long,
         @Param("now") now: Instant,
+        pageable: Pageable,
     ): List<Long>
+
+    @Query("""
+        SELECT COUNT(f.id) FROM DeckWordEntity dw, FlashcardEntity f
+        WHERE dw.wordId = f.wordId AND dw.deckId = :deckId
+        AND f.userId = :userId AND f.due <= :now
+    """)
+    fun countDueFlashcards(
+        @Param("userId") userId: Long,
+        @Param("deckId") deckId: Long,
+        @Param("now") now: Instant,
+    ): Long
+
+    @Query("""
+        SELECT MIN(f.due) FROM DeckWordEntity dw, FlashcardEntity f
+        WHERE dw.wordId = f.wordId AND dw.deckId = :deckId
+        AND f.userId = :userId AND f.due > :now
+    """)
+    fun findNextDueAt(
+        @Param("userId") userId: Long,
+        @Param("deckId") deckId: Long,
+        @Param("now") now: Instant,
+    ): Instant?
 
     // COALESCE: SUM over zero rows returns NULL, which fails projection mapping to non-null Int.
     // words JOIN 은 소유자 스코프용 — 이게 없으면 목록의 wordCount 가 상세(findDeckDetailStats,

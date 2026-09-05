@@ -14,6 +14,7 @@ import HeatmapSection from '../../components/studyStats/HeatmapSection';
 import FreezeInfoSheet from '../../components/studyStats/FreezeInfoSheet';
 import SongProgressRow from '../../components/studyStats/SongProgressRow';
 import { SongProgressItem, toSongProgressItem } from '../../components/studyStats/songProgress';
+import WordMasteryProgressBar from '../../components/WordMasteryProgressBar';
 import { flashcardApi } from '../../api/flashcardApi';
 import { FlashcardStatsResponse } from '../../types/flashcard';
 
@@ -98,7 +99,6 @@ export default function MyPageTab() {
   const totalWords = flashcardStats?.total ?? sumBy(progressItems, (item) => item.totalWords);
   const masteredWords = flashcardStats?.review ?? sumBy(progressItems, (item) => item.masteredCount);
   const learningWords = flashcardStats?.learning ?? sumBy(progressItems, (item) => item.learningCount);
-  const newWords = flashcardStats?.newCount ?? sumBy(progressItems, (item) => item.newCount);
   const showStatsFallback = !flashcardStats && !!statsError;
 
   const handleSongProgressPress = useCallback((item: SongProgressItem) => {
@@ -152,7 +152,6 @@ export default function MyPageTab() {
           totalWords={totalWords}
           masteredWords={masteredWords}
           learningWords={learningWords}
-          newWords={newWords}
           showFallback={showStatsFallback}
         />
         <HeatmapSection onPressFreeze={handleOpenFreeze} />
@@ -200,19 +199,16 @@ function LearningHero({
   totalWords,
   masteredWords,
   learningWords,
-  newWords,
   showFallback,
 }: {
   totalWords: number;
   masteredWords: number;
   learningWords: number;
-  newWords: number;
   showFallback: boolean;
 }) {
   const safeTotal = Math.max(0, totalWords);
   const safeMastered = Math.min(Math.max(0, masteredWords), safeTotal);
   const safeLearning = Math.min(Math.max(0, learningWords), Math.max(0, safeTotal - safeMastered));
-  const safeNew = Math.min(Math.max(0, newWords), Math.max(0, safeTotal - safeMastered - safeLearning));
   const caption = safeTotal > 0
     ? `${safeTotal}단어 중 ${safeMastered}개를 외웠어요`
     : '저장한 단어가 아직 없어요';
@@ -225,28 +221,19 @@ function LearningHero({
       <Text style={styles.heroCaption}>
         {showFallback ? `${caption} · 일부 통계는 곡별 진도로 계산했어요` : caption}
       </Text>
-      <View style={styles.heroTrack}>
-        {safeMastered > 0 && <View style={[styles.heroKnown, { flex: safeMastered }]} />}
-        {safeLearning > 0 && <View style={[styles.heroLearning, { flex: safeLearning }]} />}
-        {safeNew > 0 && <View style={[styles.heroNew, { flex: safeNew }]} />}
-      </View>
-      <View style={styles.heroLegend}>
-        <LegendDot color={Colors.primary} label={`외운 ${safeMastered}`} />
-        <LegendDot color={Colors.accentSecondary} label={`학습 중 ${safeLearning}`} />
-        <LegendDot color={Colors.freezeStroke} label={`새 단어 ${safeNew}`} />
-      </View>
+      <WordMasteryProgressBar
+        totalCount={safeTotal}
+        masteredCount={safeMastered}
+        studyingCount={safeLearning}
+        showLegend
+        legendAlignment="space-between"
+        masteredLabel="외운"
+        studyingLabel="학습 중"
+        newLabel="새 단어"
+      />
     </View>
   );
 }
-
-const LegendDot = React.memo(function LegendDot({ color, label }: { color: string; label: string }) {
-  return (
-    <View style={styles.legendItem}>
-      <View style={[styles.legendDot, { backgroundColor: color }]} />
-      <Text style={styles.legendText}>{label}</Text>
-    </View>
-  );
-});
 
 function sumBy(items: SongProgressItem[], pick: (item: SongProgressItem) => number): number {
   return items.reduce((acc, item) => acc + pick(item), 0);
@@ -336,47 +323,6 @@ const styles = StyleSheet.create({
   },
   heroCaption: {
     fontSize: 13,
-    fontWeight: '500',
-    color: Colors.textSecondary,
-  },
-  heroTrack: {
-    height: 8,
-    borderRadius: 999,
-    overflow: 'hidden',
-    flexDirection: 'row',
-    backgroundColor: '#F6F6F6',
-    marginTop: 4,
-  },
-  heroKnown: {
-    height: 8,
-    backgroundColor: Colors.primary,
-  },
-  heroLearning: {
-    height: 8,
-    backgroundColor: Colors.accentSecondary,
-  },
-  heroNew: {
-    height: 8,
-    backgroundColor: Colors.freezeStroke,
-  },
-  heroLegend: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 14,
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-  },
-  legendDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-  },
-  legendText: {
-    fontSize: 11,
     fontWeight: '500',
     color: Colors.textSecondary,
   },

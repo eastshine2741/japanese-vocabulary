@@ -7,6 +7,8 @@ import com.japanese.vocabulary.flashcard.dto.FlashcardStatsResponse
 import com.japanese.vocabulary.flashcard.dto.ReviewRequest
 import com.japanese.vocabulary.flashcard.dto.ReviewResponse
 import com.japanese.vocabulary.deck.service.DeckService
+import com.japanese.vocabulary.common.exception.BusinessException
+import com.japanese.vocabulary.common.exception.ErrorCode
 import com.japanese.vocabulary.flashcard.dto.ReviewResultDto
 import com.japanese.vocabulary.flashcard.service.FlashcardService
 import org.springframework.security.core.context.SecurityContextHolder
@@ -27,11 +29,16 @@ class FlashcardController(
 
     // deckId == null means the virtual "all" deck: every due card the user owns.
     @GetMapping("/due")
-    fun getDueFlashcards(@RequestParam(required = false) deckId: Long?): DueFlashcardsResponse =
-        when (deckId) {
-            null -> flashcardService.getDueFlashcards(currentUserId())
-            else -> deckService.getDueFlashcards(currentUserId(), deckId)
+    fun getDueFlashcards(
+        @RequestParam(required = false) deckId: Long?,
+        @RequestParam(required = false) limit: Int?,
+    ): DueFlashcardsResponse {
+        if (limit != null && limit !in 1..100) throw BusinessException(ErrorCode.INVALID_LIMIT)
+        return when (deckId) {
+            null -> flashcardService.getDueFlashcards(currentUserId(), limit)
+            else -> deckService.getDueFlashcards(currentUserId(), deckId, limit)
         }.toResponse()
+    }
 
     @PostMapping("/{id}/review")
     fun reviewCard(@PathVariable id: Long, @RequestBody request: ReviewRequest): ReviewResponse =
@@ -47,6 +54,7 @@ class FlashcardController(
     private fun DueFlashcardsDto.toResponse() = DueFlashcardsResponse(
         cards = items,
         totalCount = totalCount,
+        nextDueAt = nextDueAt,
     )
 
     private fun ReviewResultDto.toResponse() = ReviewResponse(
