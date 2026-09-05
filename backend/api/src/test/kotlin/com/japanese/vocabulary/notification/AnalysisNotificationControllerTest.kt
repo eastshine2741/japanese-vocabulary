@@ -125,7 +125,7 @@ class AnalysisNotificationControllerTest : ApiAfterCommitListenerTest() {
         mockMvc.post("/api/songs/${f.songId}/analysis-notifications") {
             contentType = MediaType.APPLICATION_JSON
             content = """{"enabled":true}"""
-        }.andExpect { status { isUnauthorized() } }
+        }.andExpect { status { isForbidden() } }
         for (body in listOf("{}", """{"enabled":null}""")) {
             mockMvc.post("/api/songs/${f.songId}/analysis-notifications") {
                 header("Authorization", f.token)

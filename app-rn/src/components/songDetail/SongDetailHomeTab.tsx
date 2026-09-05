@@ -69,9 +69,6 @@ const SongDetailProgressSummary = React.memo(function SongDetailProgressSummary(
         masteredCount={mastered}
         studyingCount={studying}
         showLegend
-        masteredLabel="아는 단어"
-        studyingLabel="익히는 중"
-        newLabel="아직"
       />
     </View>
   );

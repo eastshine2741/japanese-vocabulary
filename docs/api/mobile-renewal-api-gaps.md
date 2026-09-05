@@ -95,12 +95,13 @@ GET /api/decks?cursor=
 Current implementation:
 
 - `GET /api/decks` returns `songDecks` and `nextCursor`.
-- Each item has `deckId`, `songId`, `title`, `artist`, `artworkUrl`, `wordCount`, `dueCount`, and `masteredCount`.
+- Each item has `deckId`, `songId`, `title`, `artist`, `artworkUrl`, `wordCount`, `dueCount`, `masteredCount`, `studyingCount`, and `newWordCount`.
+- `studyingCount`/`newWordCount` are real flashcard-state counts (same CASE-based derivation as `GET /api/decks/{deckId}`'s `DeckDetailResponse`), not an approximation from `dueCount`. `dueCount` keeps its separate meaning — "due for review today" — and is unrelated to `newWordCount`.
 - Current server order is `createdAt` descending with cursor pagination.
 
 P2a is a simple song-status list: it has no sort, search, or filter control. Keep the collection contract in created-at descending order; there is no current UI requirement for `sort`, `q`, or `limit` parameters.
 
-Optional item fields such as `studyingCount`, `newWordCount`, `completionRate`, and `lastStudiedAt` remain separate data requirements if a later UI introduces them; they do not imply list sorting or filtering.
+Optional item fields such as `completionRate` and `lastStudiedAt` remain separate data requirements if a later UI introduces them; they do not imply list sorting or filtering.
 
 ### 3. User Profile Read
 

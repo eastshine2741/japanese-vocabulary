@@ -68,7 +68,9 @@ interface DeckRepository : JpaRepository<DeckEntity, Long> {
         SELECT dw.deck_id AS deckId,
                COUNT(DISTINCT dw.word_id) AS wordCount,
                COALESCE(SUM(CASE WHEN f.due <= :now THEN 1 ELSE 0 END), 0) AS dueCount,
-               COALESCE(SUM(CASE WHEN f.state = 1 THEN 1 ELSE 0 END), 0) AS masteredCount
+               COALESCE(SUM(CASE WHEN f.state = 1 THEN 1 ELSE 0 END), 0) AS masteredCount,
+               COALESCE(SUM(CASE WHEN (f.state = 0 AND f.last_review IS NOT NULL) OR f.state = 2 THEN 1 ELSE 0 END), 0) AS studyingCount,
+               COALESCE(SUM(CASE WHEN f.state = 0 AND f.last_review IS NULL THEN 1 ELSE 0 END), 0) AS newWordCount
         FROM deck_word dw
         JOIN words w ON w.id = dw.word_id AND w.user_id = :userId
         LEFT JOIN flashcards f ON f.word_id = dw.word_id
@@ -117,6 +119,8 @@ interface DeckStatsProjection {
     fun getWordCount(): Int
     fun getDueCount(): Int
     fun getMasteredCount(): Int
+    fun getStudyingCount(): Int
+    fun getNewWordCount(): Int
 }
 
 interface DeckDetailStatsProjection {

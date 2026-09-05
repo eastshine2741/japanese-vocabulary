@@ -26,9 +26,9 @@ function WordMasteryProgressBar({
   studyingCount,
   showLegend = false,
   legendAlignment = 'start',
-  masteredLabel = '아는 단어',
-  studyingLabel = '학습 중',
-  newLabel = '아직',
+  masteredLabel = '외운 단어',
+  studyingLabel = '외우는 중',
+  newLabel = '새 단어',
   trackHeight = 8,
   style,
 }: WordMasteryProgressBarProps) {

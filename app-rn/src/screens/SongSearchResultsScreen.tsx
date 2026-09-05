@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -38,17 +38,31 @@ function formatDuration(seconds: number): string {
 interface SearchResultRowProps {
   item: SongSearchItem;
   onPress: (item: SongSearchItem) => void;
+  // Whether ANY row-triggered work (existence check or a brand-new analysis)
+  // is in flight screen-wide. Every row must be untappable while this is
+  // true, or a second tap can race the first request's callback and
+  // navigate to the wrong song (see handleAnalyze).
+  disabled: boolean;
+  // Whether THIS row is the one being checked/analyzed, so only it shows
+  // the spinner in place of the chevron.
+  isActiveRow: boolean;
+  spinRotate: Animated.AnimatedInterpolation<string | number>;
 }
 
 const SearchResultRow = React.memo(React.forwardRef<View, SearchResultRowProps>(
-  function SearchResultRow({ item, onPress }, ref) {
+  function SearchResultRow({ item, onPress, disabled, isActiveRow, spinRotate }, ref) {
     const handlePress = useCallback(() => {
       onPress(item);
     }, [item, onPress]);
 
     return (
       <View ref={ref} collapsable={false}>
-        <TouchableOpacity style={styles.resultRow} onPress={handlePress} activeOpacity={0.72}>
+        <TouchableOpacity
+          style={styles.resultRow}
+          onPress={handlePress}
+          activeOpacity={0.72}
+          disabled={disabled}
+        >
           <ArtworkImage url={item.thumbnail} size={48} cornerRadius={8} />
           <View style={styles.resultInfo}>
             <Text style={styles.resultTitle} numberOfLines={1}>
@@ -58,7 +72,13 @@ const SearchResultRow = React.memo(React.forwardRef<View, SearchResultRowProps>(
               {item.artistName} · {formatDuration(item.durationSeconds)}
             </Text>
           </View>
-          <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
+          {isActiveRow ? (
+            <Animated.View style={{ transform: [{ rotate: spinRotate }] }}>
+              <Feather name="loader" size={18} color={Colors.primary} />
+            </Animated.View>
+          ) : (
+            <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
+          )}
         </TouchableOpacity>
       </View>
     );
@@ -153,19 +173,25 @@ export default function SongSearchResultsScreen() {
   const [errorDialogMessage, setErrorDialogMessage] = useState<string | null>(null);
   const [analyzingItem, setAnalyzingItem] = useState<SongSearchItem | null>(null);
   const [rowMorphReady, setRowMorphReady] = useState(false);
+  const [checkingItemId, setCheckingItemId] = useState<string | null>(null);
 
   const analyze = usePlayerStore(s => s.analyze);
   const playerStatus = usePlayerStore(s => s.status);
   const resetPlayer = usePlayerStore(s => s.reset);
   const recordSearchLocally = useSearchHistoryStore(s => s.recordLocally);
 
-  const analyzing = playerStatus === 'loading';
+  // Existence check ('loading') keeps the list on screen with just a row
+  // spinner; only an actual new analysis ('analyzing') earns the full-screen
+  // "가사를 분석하는 중..." graphic.
+  const isChecking = playerStatus === 'loading';
+  const isAnalyzingNewSong = playerStatus === 'analyzing';
 
   const rowAnim = useRef(new Animated.Value(0)).current;
   const spinAnim = useRef(new Animated.Value(0)).current;
   const rowRefs = useRef<Map<string, View>>(new Map()).current;
   const fromYRef = useRef<number>(0);
   const animatedRowRef = useRef<View>(null);
+  const pendingItemRef = useRef<SongSearchItem | null>(null);
 
   // Run the search for this screen's query once on mount. Each executed search
   // lives on its own stack entry, so a fresh screen == a fresh search.
@@ -190,7 +216,7 @@ export default function SongSearchResultsScreen() {
   }, [initialQuery, recordSearchLocally]);
 
   useEffect(() => {
-    if (!analyzing) return;
+    if (!isChecking && !isAnalyzingNewSong) return;
     const spin = Animated.loop(
       Animated.timing(spinAnim, {
         toValue: 1,
@@ -204,18 +230,34 @@ export default function SongSearchResultsScreen() {
       spin.stop();
       spinAnim.setValue(0);
     };
-  }, [analyzing, spinAnim]);
+  }, [isChecking, isAnalyzingNewSong, spinAnim]);
 
+  // Only the real "new analysis" phase (step 3) morphs the row into the
+  // full-screen graphic. The cheap existence check (step 2) never sets
+  // analyzingItem, so the list stays on screen for it.
   useEffect(() => {
-    if (!analyzing) {
+    if (isAnalyzingNewSong && pendingItemRef.current) {
+      setAnalyzingItem(pendingItemRef.current);
+      setRowMorphReady(false);
+    } else if (!isAnalyzingNewSong) {
       setAnalyzingItem(null);
       setRowMorphReady(false);
     }
-  }, [analyzing]);
+  }, [isAnalyzingNewSong]);
+
+  // Once the existence check (or the analysis it may lead to) finishes, drop
+  // the row-level "checking" indicator.
+  useEffect(() => {
+    if (!isChecking && !isAnalyzingNewSong) {
+      setCheckingItemId(null);
+      pendingItemRef.current = null;
+    }
+  }, [isChecking, isAnalyzingNewSong]);
 
   useEffect(() => {
     return () => {
-      if (usePlayerStore.getState().status === 'loading') {
+      const currentStatus = usePlayerStore.getState().status;
+      if (currentStatus === 'loading' || currentStatus === 'analyzing') {
         resetPlayer();
       }
     };
@@ -241,11 +283,18 @@ export default function SongSearchResultsScreen() {
   }, [rowMorphReady, rowAnim]);
 
   const handleAnalyze = useCallback((item: SongSearchItem) => {
+    // Row taps are disabled screen-wide while a check/analysis is in
+    // flight, but guard re-entry here too in case a tap is already queued
+    // before disabled propagates.
+    if (isChecking || isAnalyzingNewSong) return;
     Keyboard.dismiss();
     const start = (fromY: number) => {
+      // Captured now, while the row is still on screen, so the later morph
+      // into the full-screen graphic (if a new analysis turns out to be
+      // needed) animates from the right spot.
       fromYRef.current = fromY;
-      setRowMorphReady(false);
-      setAnalyzingItem(item);
+      pendingItemRef.current = item;
+      setCheckingItemId(item.id);
       analyze(item).then(() => {
         const state = usePlayerStore.getState();
         if (state.status === 'success') {
@@ -261,7 +310,7 @@ export default function SongSearchResultsScreen() {
     } else {
       start(0);
     }
-  }, [analyze, navigation, rowRefs]);
+  }, [analyze, navigation, rowRefs, isChecking, isAnalyzingNewSong]);
 
   // Refining the search pushes a new stack entry so each query keeps its own
   // results and the back button steps through them.
@@ -275,10 +324,23 @@ export default function SongSearchResultsScreen() {
     [navigation],
   );
 
-  const spinRotate = spinAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0deg', '360deg'],
-  });
+  // Stabilized so it doesn't change identity every render (e.g. on every
+  // `setQuery` keystroke) — otherwise `renderResultItem` below would change
+  // identity too, defeating `SearchResultRow`'s React.memo for every row.
+  const spinRotate = useMemo(
+    () =>
+      spinAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: ['0deg', '360deg'],
+      }),
+    [spinAnim],
+  );
+
+  // Screen-wide busy flag: any row-triggered work in flight (existence
+  // check or a brand-new analysis) must disable every row, not just the
+  // one being checked — otherwise a second tap can race the first
+  // request's callback and navigate to the wrong song.
+  const isRowInteractionDisabled = isChecking || isAnalyzingNewSong;
 
   const renderResultItem = useCallback(
     ({ item }: { item: SongSearchItem }) => (
@@ -289,13 +351,19 @@ export default function SongSearchResultsScreen() {
         }}
         item={item}
         onPress={handleAnalyze}
+        disabled={isRowInteractionDisabled}
+        isActiveRow={item.id === checkingItemId}
+        spinRotate={spinRotate}
       />
     ),
-    [handleAnalyze, rowRefs],
+    [handleAnalyze, rowRefs, checkingItemId, isRowInteractionDisabled, spinRotate],
   );
 
   const keyExtractor = useCallback((item: SongSearchItem) => item.id, []);
-  const showFullScreenLoading = analyzing || status === 'loading';
+  // The full-screen "가사를 분석하는 중..." graphic is reserved for an actual
+  // new analysis request (step 3) and the initial search itself. The cheap
+  // existing-song check (step 2) keeps the list visible with a row spinner.
+  const showFullScreenLoading = isAnalyzingNewSong || status === 'loading';
 
   return (
     <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>

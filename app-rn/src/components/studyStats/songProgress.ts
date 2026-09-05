@@ -19,9 +19,8 @@ export function toSongProgressItem(deck: SongDeckSummary): SongProgressItem {
   const totalWords = Math.max(0, deck.wordCount);
   const masteredCount = clamp(deck.masteredCount, 0, totalWords);
   const dueCount = clamp(deck.dueCount, 0, totalWords);
-  const remaining = Math.max(0, totalWords - masteredCount);
-  const learningCount = Math.min(remaining, dueCount);
-  const newCount = Math.max(0, remaining - learningCount);
+  const learningCount = clamp(deck.studyingCount, 0, totalWords);
+  const newCount = clamp(deck.newWordCount, 0, totalWords);
 
   return {
     deckId: deck.deckId,

@@ -227,9 +227,6 @@ function LearningHero({
         studyingCount={safeLearning}
         showLegend
         legendAlignment="space-between"
-        masteredLabel="외운"
-        studyingLabel="학습 중"
-        newLabel="새 단어"
       />
     </View>
   );

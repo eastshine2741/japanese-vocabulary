@@ -94,6 +94,8 @@ class DeckService(
                 wordCount = stats?.getWordCount() ?: 0,
                 dueCount = stats?.getDueCount() ?: 0,
                 masteredCount = stats?.getMasteredCount() ?: 0,
+                studyingCount = stats?.getStudyingCount() ?: 0,
+                newWordCount = stats?.getNewWordCount() ?: 0,
             )
         }
 
