@@ -18,7 +18,11 @@ import com.japanese.vocabulary.song.dto.RecentSongItemDto
 import com.japanese.vocabulary.song.dto.SongAnalysisWorkResponse
 import com.japanese.vocabulary.song.dto.SongDto
 import com.japanese.vocabulary.song.dto.SongStudyDto
+import com.japanese.vocabulary.deck.dto.DeckDetailResponse
+import com.japanese.vocabulary.flashcard.dto.DueFlashcardsResponse
 import com.japanese.vocabulary.song.dto.songdetail.SongLyricsDto
+import com.japanese.vocabulary.song.dto.songdetail.SongStudyBootstrapRequest
+import com.japanese.vocabulary.song.dto.songdetail.SongStudyBootstrapResponse
 import com.japanese.vocabulary.song.dto.songdetail.WordsInSongDto
 import com.japanese.vocabulary.songsearch.dto.SongSearchItemDto
 import com.japanese.vocabulary.songsearch.dto.SongSearchResponse
@@ -53,6 +57,7 @@ import org.springframework.test.web.servlet.get
 import org.springframework.test.web.servlet.post
 import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 import java.time.LocalDate
 import java.util.Collections
 import java.util.concurrent.CountDownLatch
@@ -1173,6 +1178,119 @@ class SongControllerTest : ApiBaseIntegrationTest() {
             }
 
             io.mockk.verify(exactly = 1) { itunesClient.search(any()) }
+        }
+    }
+
+    @Nested
+    inner class StudyBootstrap {
+
+        private fun candidate(
+            japanese: String,
+            score: Double,
+            order: Int,
+            lineIndexes: List<Int>,
+            jlpt: String = "N3",
+            pos: String = "NOUN",
+        ) = WordCandidate(
+            japanese = japanese,
+            surface = japanese,
+            baseForm = japanese,
+            reading = null,
+            baseFormReading = null,
+            koreanText = "$japanese-ko",
+            partOfSpeech = pos,
+            partOfSpeechLabel = pos,
+            jlpt = jlpt,
+            importanceScore = score,
+            appearanceOrder = order,
+            frequency = lineIndexes.size,
+            lineIndexes = lineIndexes,
+            scoreComponents = WordScoreComponents(0.0, 0.0, 0.0, 0.0, 1.0),
+        )
+
+        private fun bootstrap(user: UserEntity, songId: Long, rating: Int) =
+            mockMvc.post("/api/songs/$songId/study-bootstrap") {
+                header("Authorization", bearer(user))
+                contentType = MediaType.APPLICATION_JSON
+                content = objectMapper.writeValueAsString(SongStudyBootstrapRequest(rating = rating))
+            }
+
+        @Test
+        fun `bootstraps the whole song deck and reviews only the lead word`() {
+            val me = newUser()
+            val song = newSong()
+            val wordCandidates = LyricWordCandidates(
+                candidates = listOf(
+                    candidate("低い", 10.0, 1, listOf(0)),
+                    candidate("高い", 99.0, 0, listOf(0)),
+                ),
+                lineCandidates = mapOf("0" to listOf(0, 1)),
+            )
+            newLyric(
+                song,
+                raw = listOf(LyricLineData(index = 0, startTimeMs = null, text = "高い低い")),
+                wordCandidates = wordCandidates,
+            )
+
+            // FSRS 라이브러리는 새 카드의 due 를 (주입 가능한 clock 이 아니라) 진짜 벽시계
+            // Instant.now() 로 못박는다 — 고정 테스트 clock(2026-01-01) 이 실제 지금보다
+            // 한참 과거라 그대로 두면 방금 만든 카드조차 due 로 안 잡힌다. 요청 처리 지연을
+            // 흡수할 만큼만 살짝 앞서 두면, lead 를 리뷰해서 생기는 새 due(며칠 뒤)는 여전히
+            // 이 시점보다 한참 미래라 제외된다.
+            clock.setTo(Instant.now().plusSeconds(5))
+
+            val body = bootstrap(me, song.id!!, rating = 3)
+                .andExpect { status { isOk() } }
+                .andReturn().response.contentAsString
+            val result = readBody<SongStudyBootstrapResponse>(body)
+
+            // 전체 담기와 동일 기준으로 두 단어 모두 담기지만, lead("高い")만 이 호출에서
+            // 리뷰돼 미래로 밀린다 — 남은 due 는 "低い" 하나뿐이다.
+            assertThat(result.totalCount).isEqualTo(1)
+            assertThat(result.cards.map { it.japanese }).containsExactly("低い")
+
+            val deckBody = mockMvc.get("/api/decks/by-song/${song.id}") {
+                header("Authorization", bearer(me))
+            }.andExpect { status { isOk() } }.andReturn().response.contentAsString
+            val deck = readBody<DeckDetailResponse>(deckBody)
+            assertThat(deck.deckId).isEqualTo(result.deckId)
+            assertThat(deck.wordCount).isEqualTo(2)
+
+            // lead 는 방금 리뷰되어 미래로 밀렸으니 due 목록엔 나머지 하나만 남는다.
+            val dueBody = mockMvc.get("/api/flashcards/due") {
+                header("Authorization", bearer(me))
+                param("deckId", result.deckId.toString())
+            }.andExpect { status { isOk() } }.andReturn().response.contentAsString
+            val due = readBody<DueFlashcardsResponse>(dueBody)
+            assertThat(due.cards.map { it.japanese }).containsExactly("低い")
+        }
+
+        @Test
+        fun `no eligible words returns conflict`() {
+            val me = newUser()
+            val song = newSong()
+            newLyric(song, raw = listOf(LyricLineData(index = 0, startTimeMs = null, text = "待機中")))
+
+            bootstrap(me, song.id!!, rating = 3)
+                .andExpect { status { isEqualTo(409) } }
+        }
+
+        @Test
+        fun `invalid rating is rejected like a normal review`() {
+            val me = newUser()
+            val song = newSong()
+            val wordCandidates = LyricWordCandidates(
+                candidates = listOf(candidate("高い", 99.0, 0, listOf(0))),
+                lineCandidates = mapOf("0" to listOf(0)),
+            )
+            newLyric(
+                song,
+                raw = listOf(LyricLineData(index = 0, startTimeMs = null, text = "高い")),
+                wordCandidates = wordCandidates,
+            )
+
+            bootstrap(me, song.id!!, rating = 99)
+                .andExpect { status { isBadRequest() } }
         }
     }
 }

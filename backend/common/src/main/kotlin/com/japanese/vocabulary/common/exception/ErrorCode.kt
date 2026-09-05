@@ -26,6 +26,7 @@ enum class ErrorCode(val status: HttpStatus, val message: String) {
     // Word
     WORD_NOT_FOUND(HttpStatus.NOT_FOUND, "Word not found"),
     MEANING_REQUIRED(HttpStatus.BAD_REQUEST, "At least one meaning required"),
+    NO_ELIGIBLE_WORDS(HttpStatus.CONFLICT, "No eligible words to bootstrap"),
 
     // Flashcard
     FLASHCARD_NOT_FOUND(HttpStatus.NOT_FOUND, "Flashcard not found"),

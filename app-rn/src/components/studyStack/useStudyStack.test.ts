@@ -3,9 +3,12 @@ import { act, create, ReactTestRenderer } from 'react-test-renderer';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { deckApi } from '../../api/deckApi';
 import { flashcardApi } from '../../api/flashcardApi';
+import { songApi } from '../../api/songApi';
+import { studyStatsApi } from '../../api/studyStatsApi';
 import { useStudyStack, StudyStackState } from './useStudyStack';
 import { StudySource } from './types';
 import { FlashcardDTO } from '../../types/flashcard';
+import { RecommendedSongItem, WordInSongItemDto, WordsInSongDto } from '../../types/song';
 
 const native = vi.hoisted(() => ({ listeners: new Set<(state: string) => void>(), focused: true }));
 vi.mock('react-native', () => ({
@@ -26,8 +29,10 @@ vi.mock('react-native', () => ({
 vi.mock('@react-navigation/native', () => ({ useIsFocused: () => native.focused }));
 vi.mock('../../api/flashcardApi', () => ({ flashcardApi: { getDueCards: vi.fn(), review: vi.fn() } }));
 vi.mock('../../api/deckApi', () => ({ deckApi: { getDecks: vi.fn().mockResolvedValue({ songDecks: [] }) } }));
-vi.mock('../../api/songApi', () => ({ songApi: {} }));
-vi.mock('../../api/studyStatsApi', () => ({ studyStatsApi: {} }));
+vi.mock('../../api/songApi', () => ({
+  songApi: { getRecommendations: vi.fn(), getWords: vi.fn(), studyBootstrap: vi.fn() },
+}));
+vi.mock('../../api/studyStatsApi', () => ({ studyStatsApi: { getHome: vi.fn() } }));
 vi.mock('../../stores/studyStatsStore', () => ({ useStudyStatsStore: { getState: () => ({ invalidate: vi.fn() }) } }));
 
 const source: StudySource = {
@@ -206,4 +211,94 @@ it('keeps failed reviews available for retry', async () => {
   expect(stack.reviewError).toBe('offline');
   expect(stack.session.reviewedCount).toBe(0);
   expect(flashcardApi.getDueCards).toHaveBeenCalledTimes(1);
+});
+
+// 홈 콜드스타트: due 덱이 하나도 없을 때 추천곡 미리보기 카드 → rating 확정 시 부트스트랩.
+const recommendation: RecommendedSongItem = {
+  id: 1, songId: 9, title: 'Rec Song', artist: 'Rec Artist', artworkUrl: null, weekStartDate: '2026-09-01',
+};
+const wordItem = (japanese: string, importanceScore: number, appearanceOrder = 0, overrides: Partial<WordInSongItemDto> = {}): WordInSongItemDto => ({
+  japanese,
+  surface: japanese,
+  baseForm: japanese,
+  reading: japanese,
+  koreanText: `${japanese}-ko`,
+  senses: [{ meaning: `${japanese}-ko`, partOfSpeech: 'NOUN' }],
+  partOfSpeech: 'NOUN',
+  partOfSpeechLabel: '명사',
+  jlpt: 'N3',
+  importanceScore,
+  appearanceOrder,
+  frequency: 1,
+  lineIndexes: [0],
+  isSavedGlobally: false,
+  isSavedForSong: false,
+  savedWordId: null,
+  addRequest: { japanese, reading: japanese, senses: [], songId: 9 },
+  ...overrides,
+});
+const wordsInSong = (words: WordInSongItemDto[]): WordsInSongDto => ({
+  lyricId: 1,
+  wordSummary: { topWords: [], jlptDistribution: {}, totalCandidateCount: words.length, defaultBulkAddCount: words.length },
+  filterDefaults: { pos: [], jlpt: [], includeUnknownJlpt: true, sortDefault: 'APPEARANCE' },
+  words,
+  lineWordIndexes: {},
+});
+function HomeHarness() {
+  stack = useStudyStack({ mode: 'home' });
+  return null;
+}
+async function mountHome() {
+  await act(async () => { renderer = create(React.createElement(HomeHarness)); });
+}
+beforeEach(() => {
+  vi.mocked(studyStatsApi.getHome).mockResolvedValue({ currentStreak: 0, freezeCount: 0, freezeMax: 0, weekDots: [] });
+});
+
+it('shows a preview card for the most important eligible word of the recommended song when nothing is due', async () => {
+  vi.mocked(songApi.getRecommendations).mockResolvedValue([recommendation]);
+  vi.mocked(songApi.getWords).mockResolvedValue(wordsInSong([
+    wordItem('低い', 10, 1),
+    wordItem('高い', 99, 0),
+  ]));
+  await mountHome();
+  expect(songApi.getWords).toHaveBeenCalledWith(9);
+  expect(stack.currentCard?.japanese).toBe('高い');
+  expect(stack.isComplete).toBe(false);
+});
+
+it('bootstraps the song and continues the session with the returned due cards on rating confirm', async () => {
+  vi.mocked(songApi.getRecommendations).mockResolvedValue([recommendation]);
+  vi.mocked(songApi.getWords).mockResolvedValue(wordsInSong([wordItem('高い', 99, 0)]));
+  vi.mocked(songApi.studyBootstrap).mockResolvedValue({
+    deckId: 42,
+    cards: [card(2)],
+    totalCount: 2,
+    nextDueAt: null,
+  });
+  await mountHome();
+  await rate(3);
+  expect(songApi.studyBootstrap).toHaveBeenCalledWith(9, 3);
+  expect(stack.cards.map(c => c.id)).toEqual([2]);
+  expect(stack.currentCard?.source.deckId).toBe(42);
+  expect(stack.session.queueTotal).toBe(2);
+  expect(stack.reviewError).toBeNull();
+});
+
+it('falls back to the completion nudge when the recommended song has no eligible words', async () => {
+  vi.mocked(songApi.getRecommendations).mockResolvedValue([recommendation]);
+  vi.mocked(songApi.getWords).mockResolvedValue(wordsInSong([]));
+  await mountHome();
+  expect(stack.currentCard).toBeNull();
+  expect(stack.isComplete).toBe(true);
+  expect(stack.recommendedSource?.songId).toBe(9);
+});
+
+it('surfaces an error and leaves the card swiped away when bootstrap fails', async () => {
+  vi.mocked(songApi.getRecommendations).mockResolvedValue([recommendation]);
+  vi.mocked(songApi.getWords).mockResolvedValue(wordsInSong([wordItem('高い', 99, 0)]));
+  vi.mocked(songApi.studyBootstrap).mockRejectedValue(new Error('offline'));
+  await mountHome();
+  await rate(3);
+  expect(stack.reviewError).toBe('offline');
 });

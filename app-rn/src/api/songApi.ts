@@ -8,6 +8,7 @@ import {
   SongAnalysisWorkResponse,
   SongDto,
   SongLyricsDto,
+  SongStudyBootstrapResponse,
   WordsInSongDto,
   StudyUnit,
 } from '../types/song';
@@ -97,6 +98,15 @@ export const songApi = {
 
   async getWords(id: number): Promise<WordsInSongDto> {
     const { data } = await client.get<WordsInSongDto>(`/api/songs/${id}/words`);
+    return data;
+  },
+
+  /** 홈 콜드스타트 부트스트랩: 이 곡을 통째로 담고 rating 을 준 단어를 곧바로 리뷰한다. */
+  async studyBootstrap(songId: number, rating: number): Promise<SongStudyBootstrapResponse> {
+    const { data } = await client.post<SongStudyBootstrapResponse>(
+      `/api/songs/${songId}/study-bootstrap`,
+      { rating },
+    );
     return data;
   },
 

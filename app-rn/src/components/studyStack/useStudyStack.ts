@@ -7,6 +7,7 @@ import { studyStatsApi } from '../../api/studyStatsApi';
 import { useStudyStatsStore } from '../../stores/studyStatsStore';
 import { SongDeckSummary } from '../../types/deck';
 import { WeekDot } from '../../types/studyStats';
+import { WordInSongItemDto, WordsInSongDto } from '../../types/song';
 import { useIsFocused } from '@react-navigation/native';
 import { sourceFromDeck, sourceFromRecommendation } from './studySource';
 import {
@@ -24,6 +25,45 @@ const DUE_PAGE_SIZE = 20;
 const DUE_REFRESH_INTERVAL_MS = 30_000;
 /** 로컬 버퍼에 이 개수 이하로 남으면 다음 페이지를 미리 불러온다. */
 const PREFETCH_REMAINING_THRESHOLD = 5;
+
+/** 미리보기 카드에 부여하는 자리표시자 id — 실제 flashcard 가 아니라는 신호로만 쓴다. */
+const PREVIEW_FLASHCARD_ID = -1;
+
+// 서버 WordFilterDefaultsDto 기본값과 동일 기준 — 홈 미리보기가 서버가 실제로 부트스트랩할
+// lead 단어와 다른 단어를 보여주면 안 되므로 정렬·필터 기준을 여기서도 그대로 맞춘다.
+const DEFAULT_ELIGIBLE_POS = new Set(['NOUN', 'VERB', 'ADJECTIVE', 'NA_ADJECTIVE', 'ADVERB']);
+const DEFAULT_ELIGIBLE_JLPT = new Set(['N1', 'N2', 'N3', 'N4', 'N5']);
+
+function matchesDefaultFilters(word: WordInSongItemDto): boolean {
+  const matchesPos = DEFAULT_ELIGIBLE_POS.has(word.partOfSpeech);
+  const matchesJlpt = word.jlpt == null ? true : DEFAULT_ELIGIBLE_JLPT.has(word.jlpt);
+  return matchesPos && matchesJlpt;
+}
+
+/** 서버 `SongDetailQueryService.IMPORTANCE_RANKING` 과 동일한 랭킹으로 lead 후보를 고른다. */
+function pickLeadCandidate(data: WordsInSongDto): WordInSongItemDto | null {
+  const eligible = data.words.filter(word => matchesDefaultFilters(word) && !word.isSavedForSong);
+  if (eligible.length === 0) return null;
+  return [...eligible].sort((a, b) => {
+    if (b.importanceScore !== a.importanceScore) return b.importanceScore - a.importanceScore;
+    if (a.appearanceOrder !== b.appearanceOrder) return a.appearanceOrder - b.appearanceOrder;
+    return a.japanese.localeCompare(b.japanese);
+  })[0];
+}
+
+function toPreviewCard(lead: WordInSongItemDto, source: StudySource): StudyCard {
+  return {
+    id: PREVIEW_FLASHCARD_ID,
+    wordId: PREVIEW_FLASHCARD_ID,
+    japanese: lead.japanese,
+    reading: lead.reading,
+    senses: lead.senses,
+    state: 0,
+    due: new Date().toISOString(),
+    intervals: null,
+    source: { ...source, totalCount: 1 },
+  };
+}
 
 export interface UseStudyStackOptions {
   /**
@@ -70,6 +110,8 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
   const activeSourceRef = useRef<StudySource | null>(null);
   const requestVersion = useRef(0);
   const busyRef = useRef(false);
+  /** 현재 카드가 실제 flashcard 가 아니라 홈 콜드스타트 미리보기 카드인지. */
+  const isPreviewRef = useRef(false);
   const [nextDueAt, setNextDueAt] = useState<string | null>(null);
   const [dueCount, setDueCount] = useState(0);
   const [refreshTick, setRefreshTick] = useState(0);
@@ -265,9 +307,37 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     }
   }, []);
 
+  /**
+   * due 덱이 하나도 없을 때 추천곡에서 lead 후보를 찾아 미리보기 카드로 띄운다.
+   * 성공(진짜 카드를 세팅했든, 후보가 없어 폴백이 필요하다고 판단했든)하면 true.
+   */
+  const tryShowPreviewCard = useCallback(async (source: StudySource, version: number): Promise<boolean> => {
+    if (source.songId == null) return false;
+    try {
+      const words = await songApi.getWords(source.songId);
+      if (version !== requestVersion.current) return true;
+      const lead = pickLeadCandidate(words);
+      if (!lead) return false;
+      isPreviewRef.current = true;
+      activeSourceRef.current = null;
+      setCards([toPreviewCard(lead, source)]);
+      setCurrentIndex(0);
+      setCompletedSource(null);
+      setRevealed(false);
+      setSelectedRating(null);
+      setTranslateY(new Animated.Value(0));
+      setStatus('ready');
+      return true;
+    } catch {
+      // 추천곡 분석이 아직 없거나 조회에 실패하면 조용히 폴백(완료+추천곡 넛지)으로 넘긴다.
+      return false;
+    }
+  }, []);
+
   const loadHomeStack = useCallback(async () => {
     const version = ++requestVersion.current;
     activeSourceRef.current = null;
+    isPreviewRef.current = false;
     setDueCount(0);
     setReviewedCount(0);
     setSessionDueTotal(0);
@@ -283,7 +353,8 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
         songApi.getRecommendations(),
       ]);
       if (version !== requestVersion.current) return;
-      setRecommendedSource(recommendations[0] ? sourceFromRecommendation(recommendations[0]) : null);
+      const recommended = recommendations[0] ? sourceFromRecommendation(recommendations[0]) : null;
+      setRecommendedSource(recommended);
       setStreak(homeStats.currentStreak);
       setWeekDots(homeStats.weekDots);
 
@@ -296,7 +367,13 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
           .sort((a, b) => b.dueCount - a.dueCount)[0];
         setNextDueSource(followingDeck ? sourceFromDeck(followingDeck) : null);
         await loadCardsForSource(firstSource);
-      } else {
+        return;
+      }
+
+      setNextDueSource(null);
+      const showedPreview = recommended != null && await tryShowPreviewCard(recommended, version);
+      if (version !== requestVersion.current) return;
+      if (!showedPreview) {
         showCompletion(null, []);
       }
     } catch (e: any) {
@@ -308,7 +385,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
       setNextDueSource(null);
       setStatus('error');
     }
-  }, [loadCardsForSource, showCompletion]);
+  }, [loadCardsForSource, showCompletion, tryShowPreviewCard]);
 
   const reload = useCallback(() => {
     if (mode === 'home') {
@@ -367,7 +444,66 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
 
   const reveal = useCallback(() => setRevealed(true), []);
 
-  const advanceAfterReview = useCallback(async () => {
+  /**
+   * 홈 콜드스타트 미리보기 카드의 rating 확정. 이 순간에만 서버에 그 곡을 통째로 담고
+   * (SongDetailScreen 의 "전체 담기"와 동일 기준) lead 단어를 곧바로 리뷰한다 — 응답의 남은
+   * due 카드로 곧장 이어서 복습한다.
+   *
+   * 실패해도 이미 스와이프 아웃된 카드를 되돌리지 않는다 — 부분 실패(단어는 담겼는데 리뷰만
+   * 실패)여도 다음 홈 진입에서 정상적으로 다시 due 로 잡히므로 스스로 복구된다.
+   */
+  const advancePreviewReview = useCallback(async () => {
+    if (!currentCard || selectedRating == null || busyRef.current) return;
+    busyRef.current = true;
+    setSaving(true);
+    const version = ++requestVersion.current;
+    const songId = currentCard.source.songId;
+    const rating = selectedRating;
+    try {
+      setSelectedRating(null);
+      setRevealed(false);
+      await new Promise<void>(resolve => {
+        Animated.timing(translateY, {
+          toValue: SWIPE_OUT_DISTANCE,
+          duration: 180,
+          useNativeDriver: true,
+        }).start(() => resolve());
+      });
+      if (version !== requestVersion.current) return;
+      if (songId == null) throw new Error('추천곡 정보를 확인하지 못했어요');
+      const result = await songApi.studyBootstrap(songId, rating);
+      if (version !== requestVersion.current) return;
+      useStudyStatsStore.getState().invalidate();
+      isPreviewRef.current = false;
+      const newSource: StudySource = { ...currentCard.source, deckId: result.deckId, totalCount: result.totalCount };
+      activeSourceRef.current = newSource;
+      setReviewError(null);
+      setNextDueAt(result.nextDueAt);
+      setDueCount(result.cards.length);
+      setSessionDueTotal(result.totalCount);
+      reviewedIdsRef.current = new Set([PREVIEW_FLASHCARD_ID]);
+      setReviewedCount(1);
+      setDistinctReviewedCount(1);
+      if (result.cards.length > 0) {
+        setCards(result.cards.map(card => ({ ...card, source: newSource })));
+        setCurrentIndex(0);
+        setTranslateY(new Animated.Value(0));
+      } else {
+        setCards([]);
+        setCompletedSource(newSource);
+      }
+      setStatus('ready');
+    } catch (e: any) {
+      if (version === requestVersion.current) {
+        setReviewError(e.message ?? '복습 저장에 실패했어요. 다시 시도해 주세요');
+      }
+    } finally {
+      busyRef.current = false;
+      setSaving(false);
+    }
+  }, [currentCard, selectedRating, translateY]);
+
+  const advanceRealReview = useCallback(async () => {
     if (!currentCard || selectedRating == null || busyRef.current) return;
     busyRef.current = true;
     setSaving(true);
@@ -417,6 +553,14 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
       setSaving(false);
     }
   }, [currentCard, refreshDue, selectedRating, translateY]);
+
+  const advanceAfterReview = useCallback(async () => {
+    if (isPreviewRef.current) {
+      await advancePreviewReview();
+      return;
+    }
+    await advanceRealReview();
+  }, [advancePreviewReview, advanceRealReview]);
 
   // 버퍼가 남아 있어도 미래 due 도착, 앱 복귀, 화면 재진입 시 다시 조회한다.
   useEffect(() => {

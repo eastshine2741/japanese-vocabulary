@@ -23,60 +23,71 @@ type Nav = CompositeNavigationProp<
 >;
 
 /** 헤더가 완전히 접히는 드래그 거리. 손가락이 이 구간을 그대로 끌고 간다. */
-const COLLAPSE_DISTANCE = 120;
+const IMMERSE_DISTANCE = 120;
 /** 놓았을 때 접힘으로 확정되는 지점. */
-const COLLAPSE_COMMIT_DISTANCE = -56;
+const IMMERSE_COMMIT_DISTANCE = -56;
 /** 손을 뗀 뒤 남은 구간을 마저 접거나 되돌리는 시간. */
-const COLLAPSE_SETTLE_MS = 320;
-const COLLAPSE_REVERT_MS = 220;
+const IMMERSE_SETTLE_MS = 320;
+const IMMERSE_REVERT_MS = 220;
 
 export default function HomeTab() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
   const focused = useIsFocused();
   const stack = useStudyStack({ mode: 'home' });
-  const { isComplete, revealed, session, status, streak, weekDots } = stack;
+  const { isComplete, revealed, reload, session, status, streak, weekDots } = stack;
   const visibleSongId = stack.visibleSource?.songId ?? null;
 
   const setDark = useHomeChromeStore(s => s.setDark);
-  const [collapsed, setCollapsed] = useState(false);
-  const collapsedRef = useRef(collapsed);
-  collapsedRef.current = collapsed;
+  const focusedRef = useRef(focused);
+  focusedRef.current = focused;
+  const [immersed, setImmersed] = useState(false);
+  const immersedRef = useRef(immersed);
+  immersedRef.current = immersed;
   const revealedRef = useRef(revealed);
   revealedRef.current = revealed;
-  const collapse = useRef(new Animated.Value(0)).current;
+  const immerse = useRef(new Animated.Value(0)).current;
 
   // 접힘은 이번 세션 동안 유지되고, 탭을 떠날 때만 펼침으로 되돌린다.
   useEffect(() => {
     if (focused) return;
-    collapse.setValue(0);
-    setCollapsed(false);
+    immerse.setValue(0);
+    setImmersed(false);
     setDark(false);
-  }, [collapse, focused, setDark]);
+  }, [immerse, focused, setDark]);
 
-  // collapse 는 헤더 transform 뿐 아니라 카드 안쪽 여백(레이아웃 값)까지 끌기 때문에
+  // 이미 홈탭에 있는 상태에서 홈탭을 다시 누르면 몰입 모드를 풀고 스택을 새로고침한다.
+  useEffect(() => navigation.addListener('tabPress', () => {
+    if (!focusedRef.current) return;
+    immerse.setValue(0);
+    setImmersed(false);
+    setDark(false);
+    reload();
+  }), [immerse, navigation, reload, setDark]);
+
+  // immerse 는 헤더 transform 뿐 아니라 카드 안쪽 여백(레이아웃 값)까지 끌기 때문에
   // 네이티브 드라이버를 쓸 수 없다 — 두 층이 같은 값을 봐야 어긋나지 않는다.
   const settle = useCallback((toValue: 0 | 1) => {
-    Animated.timing(collapse, {
+    Animated.timing(immerse, {
       toValue,
-      duration: toValue === 1 ? COLLAPSE_SETTLE_MS : COLLAPSE_REVERT_MS,
+      duration: toValue === 1 ? IMMERSE_SETTLE_MS : IMMERSE_REVERT_MS,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: false,
     }).start();
-  }, [collapse]);
+  }, [immerse]);
 
-  const collapsePan = useMemo(
+  const immersePan = useMemo(
     () => PanResponder.create({
       // 카드가 앞면일 때만 세로 드래그를 가로챈다 — 뒷면 rating 스와이프와는 상태로 배타적이다.
       onMoveShouldSetPanResponder: (_, gesture) =>
-        !collapsedRef.current && !revealedRef.current && gesture.dy < -8,
+        !immersedRef.current && !revealedRef.current && gesture.dy < -8,
       onPanResponderMove: (_, gesture) => {
         if (gesture.dy >= 0) return;
-        collapse.setValue(Math.min(1, -gesture.dy / COLLAPSE_DISTANCE));
+        immerse.setValue(Math.min(1, -gesture.dy / IMMERSE_DISTANCE));
       },
       onPanResponderRelease: (_, gesture) => {
-        if (gesture.dy < COLLAPSE_COMMIT_DISTANCE) {
-          setCollapsed(true);
+        if (gesture.dy < IMMERSE_COMMIT_DISTANCE) {
+          setImmersed(true);
           setDark(true);
           settle(1);
           return;
@@ -84,11 +95,11 @@ export default function HomeTab() {
         settle(0);
       },
       onPanResponderTerminate: () => {
-        if (collapsedRef.current) return;
+        if (immersedRef.current) return;
         settle(0);
       },
     }),
-    [collapse, setDark, settle],
+    [immerse, setDark, settle],
   );
 
   const goSearch = useCallback(() => navigation.navigate('Search'), [navigation]);
@@ -110,7 +121,7 @@ export default function HomeTab() {
   // 카드 안쪽 내용은 헤더가 올라가는 만큼 같이 따라 올라간다 — 헤더는 자기 높이 전체를,
   // 카드는 두 크롬의 차이만큼만 움직여서 시차가 생긴다.
   const contentInsetTop = useMemo(
-    () => collapse.interpolate({
+    () => immerse.interpolate({
       inputRange: [0, 1],
       outputRange: [
         insets.top + HOME_HEADER_CONTENT_HEIGHT,
@@ -118,27 +129,27 @@ export default function HomeTab() {
       ],
       extrapolate: 'clamp',
     }),
-    [collapse, insets.top],
+    [immerse, insets.top],
   );
 
   // 진행 바·카운터는 헤더 아래에서 같이 딸려 올라오며 드러난다. 헤더가 다 걷힌 뒤
   // 뒤늦게 켜지면 튀어 보인다.
   const overlayStyle = useMemo(
     () => ({
-      opacity: collapse.interpolate({
+      opacity: immerse.interpolate({
         inputRange: [0.2, 0.8],
         outputRange: [0, 1],
         extrapolate: 'clamp' as const,
       }),
       transform: [{
-        translateY: collapse.interpolate({
+        translateY: immerse.interpolate({
           inputRange: [0.2, 1],
           outputRange: [12, 0],
           extrapolate: 'clamp' as const,
         }),
       }],
     }),
-    [collapse],
+    [immerse],
   );
 
   const overlay = (
@@ -154,7 +165,7 @@ export default function HomeTab() {
 
   return (
     <View style={styles.screen}>
-      <View style={styles.stackWrap} {...collapsePan.panHandlers}>
+      <View style={styles.stackWrap} {...immersePan.panHandlers}>
         <StudyStack
           stack={stack}
           onOpenSource={openSource}
@@ -164,7 +175,7 @@ export default function HomeTab() {
           contentInsetTop={contentInsetTop}
         />
       </View>
-      <HomeExpandedHeader streak={streak} weekDots={weekDots} collapse={collapse} />
+      <HomeExpandedHeader streak={streak} weekDots={weekDots} immerse={immerse} />
     </View>
   );
 }

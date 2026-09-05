@@ -16,35 +16,35 @@ export const HOME_HEADER_CONTENT_HEIGHT = APP_BAR_HEIGHT + STREAK_BANNER_HEIGHT;
 export interface HomeExpandedHeaderProps {
   streak: number;
   weekDots: WeekDot[];
-  /** 0 = 펼침(H5), 1 = 접힘(H1). */
-  collapse: Animated.Value;
+  /** 0 = 펼침(H5), 1 = 몰입(H1). */
+  immerse: Animated.Value;
 }
 
 /** H5 헤더 — 상태바 여백 + 워드마크 앱바 + 스트릭 배너. 위쪽 블록부터 먼저 빠진다. */
 export const HomeExpandedHeader = React.memo(function HomeExpandedHeader({
   streak,
   weekDots,
-  collapse,
+  immerse,
 }: HomeExpandedHeaderProps) {
   const insets = useSafeAreaInsets();
   const height = insets.top + HOME_HEADER_CONTENT_HEIGHT;
 
   const shell = {
     transform: [{
-      translateY: collapse.interpolate({
+      translateY: immerse.interpolate({
         inputRange: [0, 1],
         outputRange: [0, -height],
       }),
     }],
   };
   const appBar = {
-    opacity: collapse.interpolate({
+    opacity: immerse.interpolate({
       inputRange: [0, 0.55],
       outputRange: [1, 0],
       extrapolate: 'clamp' as const,
     }),
     transform: [{
-      translateY: collapse.interpolate({
+      translateY: immerse.interpolate({
         inputRange: [0, 0.6],
         outputRange: [0, -18],
         extrapolate: 'clamp' as const,
@@ -52,13 +52,13 @@ export const HomeExpandedHeader = React.memo(function HomeExpandedHeader({
     }],
   };
   const banner = {
-    opacity: collapse.interpolate({
+    opacity: immerse.interpolate({
       inputRange: [0.15, 0.85],
       outputRange: [1, 0],
       extrapolate: 'clamp' as const,
     }),
     transform: [{
-      translateY: collapse.interpolate({
+      translateY: immerse.interpolate({
         inputRange: [0, 0.85],
         outputRange: [0, -10],
         extrapolate: 'clamp' as const,
