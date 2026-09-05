@@ -39,7 +39,7 @@ export const CompletionStage = React.memo(function CompletionStage({
             <Feather name="check" size={32} color="#A7E3C4" />
           </View>
           <View style={styles.doneGroup}>
-            <Text style={styles.doneTitle}>오늘 복습 끝!</Text>
+            <Text style={styles.doneTitle}>지금 복습할 단어가 없어요</Text>
             <View style={styles.doneSubRow}>
               <Feather name="check-circle" size={15} color="#A7E3C4" />
               <Text style={styles.doneSub}>새로 배울 곡을 검색해보세요</Text>
@@ -67,14 +67,12 @@ export const CompletionStage = React.memo(function CompletionStage({
         )}
         <View style={styles.doneGroup}>
           <Text style={styles.doneTitle}>
-            {completedSource ? `${completedSource.title} 완주!` : '오늘 복습 끝!'}
+            지금 복습할 단어가 없어요
           </Text>
           <View style={styles.doneSubRow}>
             <Feather name="check-circle" size={15} color="#A7E3C4" />
             <Text numberOfLines={2} style={styles.doneSub}>
-              {completedSource
-                ? `이 곡 단어 ${completedSource.totalCount}개를 전부 복습했어요`
-                : '오늘의 모든 단어를 복습했어요'}
+              다음 복습 시간이 되면 카드가 다시 나타나요
             </Text>
           </View>
         </View>

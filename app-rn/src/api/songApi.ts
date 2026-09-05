@@ -39,6 +39,15 @@ function toLegacyStudyData(song: SongDto, lyrics: SongLyricsDto): SongStudyData 
 }
 
 export const songApi = {
+  async setAnalysisNotification(songId: number, enabled: boolean): Promise<{
+    songId: number; workId: number; enabled: boolean;
+  }> {
+    const { data } = await client.post<{ songId: number; workId: number; enabled: boolean }>(
+      `/api/songs/${songId}/analysis-notifications`, { enabled },
+    );
+    return data;
+  },
+
   async search(query: string): Promise<SongSearchResponse> {
     const { data } = await client.get<SongSearchResponse>('/api/songs/search', {
       params: { q: query },

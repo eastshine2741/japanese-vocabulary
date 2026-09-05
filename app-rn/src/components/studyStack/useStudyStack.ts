@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, GestureResponderHandlers, PanResponder } from 'react-native';
+import { Animated, AppState, GestureResponderHandlers, PanResponder } from 'react-native';
 import { deckApi } from '../../api/deckApi';
 import { flashcardApi } from '../../api/flashcardApi';
 import { songApi } from '../../api/songApi';
 import { studyStatsApi } from '../../api/studyStatsApi';
 import { useStudyStatsStore } from '../../stores/studyStatsStore';
 import { SongDeckSummary } from '../../types/deck';
-import { FlashcardDTO } from '../../types/flashcard';
+import { useIsFocused } from '@react-navigation/native';
 import { sourceFromDeck, sourceFromRecommendation } from './studySource';
 import {
   StudyCard,
@@ -19,16 +19,8 @@ const SWIPE_OUT_DISTANCE = -420;
 const SWIPE_DRAG_LIMIT = -160;
 const SWIPE_COMMIT_DISTANCE = -72;
 
-/**
- * 서버 due 응답은 정렬 계약이 없어 클라이언트에서 (due, id) 로 다시 세운다.
- * 곡별 due flashcards 에 deckId+limit 정렬 계약이 생기면 이 정렬만 걷어내면 된다.
- */
-function sortCardsByDue(cards: FlashcardDTO[]): FlashcardDTO[] {
-  return [...cards].sort((a, b) => {
-    const dueDiff = Date.parse(a.due) - Date.parse(b.due);
-    return dueDiff !== 0 ? dueDiff : a.id - b.id;
-  });
-}
+const DUE_PAGE_SIZE = 20;
+const DUE_REFRESH_INTERVAL_MS = 30_000;
 
 export interface UseStudyStackOptions {
   /**
@@ -69,6 +61,13 @@ export interface StudyStackState {
 }
 
 export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStackState {
+  const focused = useIsFocused();
+  const activeSourceRef = useRef<StudySource | null>(null);
+  const requestVersion = useRef(0);
+  const busyRef = useRef(false);
+  const [nextDueAt, setNextDueAt] = useState<string | null>(null);
+  const [dueCount, setDueCount] = useState(0);
+  const [refreshTick, setRefreshTick] = useState(0);
   const [status, setStatus] = useState<StudyStackStatus>('loading');
   const [cards, setCards] = useState<StudyCard[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -89,13 +88,15 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
   const sourceKey = source ? `${source.deckId}:${source.songId}` : null;
 
   const currentCard = cards[currentIndex] ?? null;
+  const currentCardRef = useRef(currentCard);
+  currentCardRef.current = currentCard;
   const visibleSource = currentCard?.source ?? nextDueSource ?? recommendedSource ?? completedSource ?? null;
   const isComplete = status === 'ready' && !currentCard;
   const isError = status === 'error';
 
   const session = useMemo<StudySessionProgress>(() => {
-    const queueTotal = cards.length;
-    const position = currentCard ? currentIndex + 1 : queueTotal;
+    const queueTotal = reviewedCount + dueCount;
+    const position = currentCard ? reviewedCount + 1 : reviewedCount;
     const progress = currentCard
       ? Math.min(1, (reviewedCount + 1) / Math.max(1, currentCard.source.totalCount))
       : completedSource
@@ -108,7 +109,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
       progress,
       queueProgress: queueTotal === 0 ? 0 : Math.min(1, position / queueTotal),
     };
-  }, [cards.length, completedSource, currentCard, currentIndex, reviewedCount]);
+  }, [dueCount, completedSource, currentCard, reviewedCount]);
 
   const showCompletion = useCallback((completed: StudySource | null, dueDecks: SongDeckSummary[]) => {
     const nextDeck = dueDecks
@@ -124,6 +125,11 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
   }, []);
 
   const loadCardsForSource = useCallback(async (target: StudySource) => {
+    const version = ++requestVersion.current;
+    activeSourceRef.current = target;
+    setNextDueSource(next => next?.deckId === target.deckId ? null : next);
+    setNextDueAt(null);
+    setDueCount(0);
     setStatus('loading');
     setLoadError(null);
     setReviewError(null);
@@ -140,10 +146,12 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
         setStatus('ready');
         return;
       }
-      const due = await flashcardApi.getDueCards(target.deckId);
+      const due = await flashcardApi.getDueCards(target.deckId, DUE_PAGE_SIZE);
+      if (version !== requestVersion.current) return;
+      setNextDueAt(due.nextDueAt);
+      setDueCount(due.totalCount);
       if (due.cards.length > 0) {
-        const ordered = sortCardsByDue(due.cards);
-        setCards(ordered.map(card => ({ ...card, source: target })));
+        setCards(due.cards.map(card => ({ ...card, source: target })));
         setStatus('ready');
         return;
       }
@@ -151,6 +159,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
       setCompletedSource(target);
       setStatus('ready');
     } catch (e: any) {
+      if (version !== requestVersion.current) return;
       // 실제 due API 실패를 완료 화면으로 위장하지 않는다.
       setLoadError(e.message ?? '복습 카드를 불러오지 못했어요');
       setCards([]);
@@ -159,7 +168,41 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     }
   }, []);
 
+  // 매번 서버 큐의 맨 앞을 다시 읽는다. 이미 평가한 카드도 다시 due 가 될 수 있다.
+  const refreshDue = useCallback(async () => {
+    const target = activeSourceRef.current;
+    if (target?.deckId == null) return;
+    const version = ++requestVersion.current;
+    try {
+      const due = await flashcardApi.getDueCards(target.deckId, DUE_PAGE_SIZE);
+      if (version !== requestVersion.current) return;
+      setCards(due.cards.map(card => ({ ...card, source: target })));
+      setCurrentIndex(0);
+      if (currentCardRef.current?.id !== due.cards[0]?.id) {
+        setRevealed(false);
+        setSelectedRating(null);
+      }
+      setDueCount(due.totalCount);
+      setNextDueAt(due.nextDueAt);
+      setCompletedSource(due.cards.length === 0 ? target : null);
+      setLoadError(null);
+      setStatus('ready');
+    } catch (e: any) {
+      if (version !== requestVersion.current) return;
+      setLoadError(e.message ?? '복습 카드를 불러오지 못했어요');
+      setCards([]);
+      setStatus('error');
+    } finally {
+      if (version === requestVersion.current) setRefreshTick(tick => tick + 1);
+    }
+  }, []);
+
   const loadHomeStack = useCallback(async () => {
+    const version = ++requestVersion.current;
+    activeSourceRef.current = null;
+    setDueCount(0);
+    setReviewedCount(0);
+    setNextDueAt(null);
     setStatus('loading');
     setLoadError(null);
     try {
@@ -168,6 +211,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
         studyStatsApi.getHome(),
         songApi.getRecommendations(),
       ]);
+      if (version !== requestVersion.current) return;
       setRecommendedSource(recommendations[0] ? sourceFromRecommendation(recommendations[0]) : null);
       setStreak(homeStats.currentStreak);
 
@@ -184,6 +228,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
         showCompletion(null, []);
       }
     } catch (e: any) {
+      if (version !== requestVersion.current) return;
       // streak 은 실제 API 가 있는 값이라 실패 시 임의 숫자를 채우지 않는다.
       setLoadError(e.message ?? '홈 데이터를 불러오지 못했어요');
       setCards([]);
@@ -211,6 +256,10 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
 
   useEffect(() => {
     reload();
+    return () => {
+      requestVersion.current += 1;
+      activeSourceRef.current = null;
+    };
     // sourceKey 가 바뀌면 다른 곡이므로 스택을 다시 연다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reload, sourceKey]);
@@ -240,45 +289,68 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
   const reveal = useCallback(() => setRevealed(true), []);
 
   const advanceAfterReview = useCallback(async () => {
-    if (!currentCard || selectedRating == null || saving) return;
+    if (!currentCard || selectedRating == null || busyRef.current) return;
+    busyRef.current = true;
     setSaving(true);
+    const version = ++requestVersion.current;
     try {
-      await flashcardApi.review(currentCard.id, { rating: selectedRating });
+      const result = await flashcardApi.review(currentCard.id, { rating: selectedRating });
       useStudyStatsStore.getState().invalidate();
-    } catch (e: any) {
-      // 저장에 실패하면 카드를 넘기지 않는다 — 넘기면 평가가 조용히 유실된다.
-      setReviewError(e.message ?? '복습 저장에 실패했어요. 다시 시도해 주세요');
-      setSaving(false);
-      Animated.spring(translateY, {
-        toValue: 0,
-        useNativeDriver: true,
-      }).start();
-      return;
-    }
-    setReviewError(null);
-    const nextIndex = currentIndex + 1;
-    Animated.timing(translateY, {
-      toValue: SWIPE_OUT_DISTANCE,
-      duration: 180,
-      useNativeDriver: true,
-    }).start(() => {
-      translateY.setValue(0);
-      setSaving(false);
+      if (version !== requestVersion.current) return;
+      setNextDueAt(result.due);
+      setReviewError(null);
       setReviewedCount(count => count + 1);
       setSelectedRating(null);
       setRevealed(false);
-      if (nextIndex >= cards.length) {
-        setCards([]);
-        setCurrentIndex(0);
-        setCompletedSource(currentCard.source);
-        if (nextDueSource?.deckId === currentCard.source.deckId) {
-          setNextDueSource(null);
-        }
-      } else {
-        setCurrentIndex(nextIndex);
+      await new Promise<void>(resolve => {
+        Animated.timing(translateY, {
+          toValue: SWIPE_OUT_DISTANCE,
+          duration: 180,
+          useNativeDriver: true,
+        }).start(() => resolve());
+      });
+      if (version !== requestVersion.current) return;
+      // 저장 성공 뒤 조회만 실패한 경우 평가를 중복 제출하지 않는다.
+      await refreshDue();
+    } catch (e: any) {
+      if (version === requestVersion.current) {
+        setReviewError(e.message ?? '복습 저장에 실패했어요. 다시 시도해 주세요');
       }
+    } finally {
+      translateY.setValue(0);
+      busyRef.current = false;
+      setSaving(false);
+    }
+  }, [currentCard, refreshDue, selectedRating, translateY]);
+
+  // 버퍼가 남아 있어도 미래 due 도착, 앱 복귀, 화면 재진입 시 다시 조회한다.
+  useEffect(() => {
+    if (!focused || status === 'loading' || saving) return;
+    const refresh = () => {
+      if (AppState.currentState !== 'background' && AppState.currentState !== 'inactive' && !busyRef.current) {
+        if (activeSourceRef.current == null && mode === 'home') void loadHomeStack();
+        else void refreshDue();
+      }
+    };
+    const dueDelay = nextDueAt == null ? DUE_REFRESH_INTERVAL_MS : Date.parse(nextDueAt) - Date.now();
+    const timer = setTimeout(refresh, Math.max(1000, Math.min(DUE_REFRESH_INTERVAL_MS, dueDelay || 1000)));
+    const subscription = AppState.addEventListener('change', state => {
+      if (state === 'active') refresh();
     });
-  }, [cards.length, currentCard, currentIndex, nextDueSource?.deckId, saving, selectedRating, translateY]);
+    return () => {
+      clearTimeout(timer);
+      subscription.remove();
+    };
+  }, [focused, loadHomeStack, mode, nextDueAt, refreshDue, refreshTick, saving, status]);
+
+  const wasFocused = useRef(focused);
+  useEffect(() => {
+    if (focused && !wasFocused.current && !busyRef.current) {
+      if (activeSourceRef.current == null && mode === 'home') void loadHomeStack();
+      else void refreshDue();
+    }
+    wasFocused.current = focused;
+  }, [focused, loadHomeStack, mode, refreshDue]);
 
   const panResponder = useMemo(
     () => PanResponder.create({

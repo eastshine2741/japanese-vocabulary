@@ -21,6 +21,7 @@ import { Feather, FontAwesome6 } from '@expo/vector-icons';
 import { useSongDetailStore } from '../stores/songDetailStore';
 import { usePlayerStore } from '../stores/playerStore';
 import { deckApi } from '../api/deckApi';
+import { songApi } from '../api/songApi';
 import { wordApi } from '../api/wordApi';
 import SkeletonBox from '../components/SkeletonLoading';
 import SongInfoSheet from '../components/SongInfoSheet';
@@ -113,11 +114,15 @@ export default function SongDetailScreen({ navigation, route }: Props) {
   const [busyWordKey, setBusyWordKey] = useState<string | null>(null);
   const [deckSnackbar, setDeckSnackbar] = useState<DeckAddedSnackbar | null>(null);
   const [analysisNotificationSubscribed, setAnalysisNotificationSubscribed] = useState(false);
+  const notificationRequestRef = useRef(false);
+  const activeSongIdRef = useRef<number | undefined>(undefined);
+  const [notificationSaving, setNotificationSaving] = useState(false);
   const isPinnedTabsVisibleRef = useRef(false);
 
   const routeSongId = route.params?.songId;
   const fallbackSongId = preloadedStudyData?.song.id;
   const songId = routeSongId ?? fallbackSongId;
+  activeSongIdRef.current = songId;
 
   useEffect(() => {
     setWordSaveOverrides(new Map());
@@ -547,9 +552,20 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     load(songId);
   }, [load, songId]);
 
-  const handleToggleAnalysisNotification = useCallback(() => {
-    setAnalysisNotificationSubscribed(prev => !prev);
-  }, []);
+  const handleToggleAnalysisNotification = useCallback(async () => {
+    if (songId == null || notificationRequestRef.current) return;
+    notificationRequestRef.current = true;
+    setNotificationSaving(true);
+    try {
+      const result = await songApi.setAnalysisNotification(songId, !analysisNotificationSubscribed);
+      if (activeSongIdRef.current === songId) setAnalysisNotificationSubscribed(result.enabled);
+    } catch {
+      if (activeSongIdRef.current === songId) setLearningError('알림 설정을 저장하지 못했어요. 다시 시도해 주세요.');
+    } finally {
+      notificationRequestRef.current = false;
+      setNotificationSaving(false);
+    }
+  }, [analysisNotificationSubscribed, songId]);
 
   const handleWordsChanged = useCallback(() => {
     if (songId == null) return;
@@ -718,6 +734,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
           {isSongAnalysisPending ? (
             <SongDetailAnalysisPendingPlaceholder
               subscribed={analysisNotificationSubscribed}
+              saving={notificationSaving}
               onToggleNotification={handleToggleAnalysisNotification}
               onRefresh={handleRefreshAnalysisStatus}
             />
@@ -1202,10 +1219,12 @@ const TabButton = React.memo(function TabButton({
 
 const SongDetailAnalysisPendingPlaceholder = React.memo(function SongDetailAnalysisPendingPlaceholder({
   subscribed,
+  saving,
   onToggleNotification,
   onRefresh,
 }: {
   subscribed: boolean;
+  saving: boolean;
   onToggleNotification: () => void;
   onRefresh: () => void;
 }) {
@@ -1226,6 +1245,8 @@ const SongDetailAnalysisPendingPlaceholder = React.memo(function SongDetailAnaly
       <Pressable
         style={[styles.analysisPendingNotifyButton, subscribed && styles.analysisPendingNotifyButtonActive]}
         onPress={onToggleNotification}
+        disabled={saving}
+        accessibilityState={{ disabled: saving, busy: saving }}
         accessibilityRole="button"
         accessibilityLabel={subscribed ? '분석 완료 알림 신청됨' : '분석 완료 알림 받기'}
       >

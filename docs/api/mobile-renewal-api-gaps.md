@@ -3,7 +3,14 @@
 Source of truth for UI/interaction: `app-rn/japanese-vocabulary.pen`.
 Frames inspected on 2026-09-05: Home `H0-H4`, Search `R3/R3a/R3b/R3c`, Profile `P2/P2a/P2c`, SongDetail `17/17a`, Study Session `shKUp/uQLfI/rSRxY/W9VzAD`.
 
-This document is a planning note only. Backend endpoint design and implementation are out of scope for the current frontend session. Frontend work should mock missing APIs behind local adapters.
+This document records the original renewal API requirements. Integration status (2026-09-05):
+
+- The renewed Home/SongReview card stack now uses `GET /api/flashcards/due?deckId=&limit=20`, preserves server order, and reads `totalCount`/`nextDueAt`. It refetches after each successful review, at future due times, and on app/screen resume; active screens also check periodically.
+- SongDetail now persists analysis notification subscriptions through `POST /api/songs/{songId}/analysis-notifications`; failed requests do not change the subscription display.
+- Deck progress and search discovery already use real resource APIs.
+- `GET /api/users/me` was intentionally dropped. Keep displaying the username/name from the existing auth profile storage. No new profile read endpoint is required.
+
+The gap descriptions below preserve the original planning context; the integration status above supersedes their mock instructions.
 
 ## Direction
 

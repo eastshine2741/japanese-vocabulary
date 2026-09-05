@@ -14,6 +14,7 @@ export interface FlashcardDTO {
 export interface DueFlashcardsResponse {
   cards: FlashcardDTO[];
   totalCount: number;
+  nextDueAt: string | null;
 }
 
 export interface FlashcardStatsResponse {
