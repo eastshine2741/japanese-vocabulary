@@ -169,38 +169,19 @@ it('passes leadWordId only on the initial load, not on a buffer-exhausted refres
   expect(stack.currentCard?.id).toBe(2);
 });
 
-it('refreshes at nextDueAt with buffered cards and reopens an empty queue', async () => {
-  vi.mocked(flashcardApi.getDueCards)
-    .mockResolvedValueOnce({ cards: [card(1), card(2)], totalCount: 2, nextDueAt: '2026-09-05T01:00:05Z' })
-    .mockResolvedValueOnce({ cards: [], totalCount: 0, nextDueAt: '2026-09-05T01:00:10Z' })
-    .mockResolvedValueOnce({ cards: [card(1)], totalCount: 1, nextDueAt: null });
-  await mount();
-  await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
-  expect(stack.isComplete).toBe(true);
-  await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
-  expect(stack.currentCard?.id).toBe(1);
-  expect(stack.isComplete).toBe(false);
-});
-
-it('preserves revealed answers on periodic refresh and refreshes on resume', async () => {
+it('does not silently retry on tab focus regain or app foreground return', async () => {
   vi.mocked(flashcardApi.getDueCards).mockResolvedValue({ cards: [card(1)], totalCount: 1, nextDueAt: null });
   await mount();
-  await act(async () => { stack.reveal(); stack.selectRating(3); });
-  await act(async () => { await vi.advanceTimersByTimeAsync(30_000); });
-  expect(stack.revealed).toBe(true);
-  expect(stack.selectedRating).toBe(3);
-  await act(async () => { native.listeners.forEach(listener => listener('active')); });
-  expect(flashcardApi.getDueCards).toHaveBeenCalledTimes(3);
+  expect(flashcardApi.getDueCards).toHaveBeenCalledTimes(1);
   native.focused = false;
   await act(async () => renderer.update(React.createElement(Harness)));
-  await act(async () => { await vi.advanceTimersByTimeAsync(30_000); });
-  expect(flashcardApi.getDueCards).toHaveBeenCalledTimes(3);
   native.focused = true;
   await act(async () => renderer.update(React.createElement(Harness)));
-  expect(flashcardApi.getDueCards).toHaveBeenCalledTimes(4);
+  await act(async () => { native.listeners.forEach(listener => listener('active')); });
+  expect(flashcardApi.getDueCards).toHaveBeenCalledTimes(1);
 });
 
-it('does not resubmit a successful review when the following fetch fails', async () => {
+it('does not resubmit a successful review when the following fetch fails, and recovers only on explicit reload', async () => {
   vi.mocked(flashcardApi.getDueCards)
     .mockResolvedValueOnce({ cards: [card(1)], totalCount: 1, nextDueAt: null })
     .mockRejectedValueOnce(new Error('offline'))
@@ -210,6 +191,9 @@ it('does not resubmit a successful review when the following fetch fails', async
   expect(stack.isError).toBe(true);
   expect(stack.session.reviewedCount).toBe(1);
   await act(async () => { await vi.advanceTimersByTimeAsync(10_000); });
+  // 자동 재시도가 없으므로 에러 상태가 그대로 남는다.
+  expect(stack.isError).toBe(true);
+  await act(async () => { stack.reload(); });
   expect(stack.isComplete).toBe(true);
   expect(flashcardApi.review).toHaveBeenCalledTimes(1);
 });

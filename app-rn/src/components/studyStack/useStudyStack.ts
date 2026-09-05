@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, AppState, Easing, GestureResponderHandlers, PanResponder } from 'react-native';
+import { Animated, Easing, GestureResponderHandlers, PanResponder } from 'react-native';
 import { deckApi } from '../../api/deckApi';
 import { flashcardApi } from '../../api/flashcardApi';
 import { songApi } from '../../api/songApi';
@@ -8,7 +8,6 @@ import { useStudyStatsStore } from '../../stores/studyStatsStore';
 import { SongDeckSummary } from '../../types/deck';
 import { WeekDot } from '../../types/studyStats';
 import { WordInSongItemDto, WordsInSongDto } from '../../types/song';
-import { useIsFocused } from '@react-navigation/native';
 import { sourceFromDeck, sourceFromRecommendation } from './studySource';
 import {
   StudyCard,
@@ -22,7 +21,6 @@ export const SWIPE_OUT_DISTANCE = -420;
 const SWIPE_COMMIT_DISTANCE = -72;
 
 const DUE_PAGE_SIZE = 20;
-const DUE_REFRESH_INTERVAL_MS = 30_000;
 /** 로컬 버퍼에 이 개수 이하로 남으면 다음 페이지를 미리 불러온다. */
 const PREFETCH_REMAINING_THRESHOLD = 5;
 
@@ -107,15 +105,12 @@ export interface StudyStackState {
 }
 
 export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStackState {
-  const focused = useIsFocused();
   const activeSourceRef = useRef<StudySource | null>(null);
   const requestVersion = useRef(0);
   const busyRef = useRef(false);
   /** 현재 카드가 실제 flashcard 가 아니라 홈 콜드스타트 미리보기 카드인지. */
   const isPreviewRef = useRef(false);
-  const [nextDueAt, setNextDueAt] = useState<string | null>(null);
   const [dueCount, setDueCount] = useState(0);
-  const [refreshTick, setRefreshTick] = useState(0);
   const [status, setStatus] = useState<StudyStackStatus>('loading');
   const [cards, setCards] = useState<StudyCard[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -199,7 +194,6 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     const version = ++requestVersion.current;
     activeSourceRef.current = target;
     setNextDueSource(next => next?.deckId === target.deckId ? null : next);
-    setNextDueAt(null);
     setDueCount(0);
     setStatus('loading');
     setLoadError(null);
@@ -227,7 +221,6 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
         ? await flashcardApi.getDueCards(target.deckId, DUE_PAGE_SIZE, target.leadWordId)
         : await flashcardApi.getDueCards(target.deckId, DUE_PAGE_SIZE);
       if (version !== requestVersion.current) return;
-      setNextDueAt(due.nextDueAt);
       setDueCount(due.totalCount);
       setSessionDueTotal(due.totalCount);
       if (due.cards.length > 0) {
@@ -249,7 +242,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
   }, []);
 
   // 서버 큐의 맨 앞을 다시 읽는다. 이미 평가한 카드도 다시 due 가 될 수 있다.
-  // 주기적 동기화와, 로컬 버퍼가 바닥났을 때의 폴백으로만 쓰인다 — 매 리뷰마다 부르지 않는다.
+  // 로컬 버퍼가 바닥났을 때의 폴백으로만 쓰인다 — 매 리뷰마다 부르지 않는다.
   const refreshDue = useCallback(async () => {
     const target = activeSourceRef.current;
     if (target?.deckId == null) return;
@@ -266,7 +259,6 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
         setTranslateY(new Animated.Value(0));
       }
       setDueCount(due.totalCount);
-      setNextDueAt(due.nextDueAt);
       setCompletedSource(due.cards.length === 0 ? target : null);
       setLoadError(null);
       setStatus('ready');
@@ -275,14 +267,12 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
       setLoadError(e.message ?? '복습 카드를 불러오지 못했어요');
       setCards([]);
       setStatus('error');
-    } finally {
-      if (version === requestVersion.current) setRefreshTick(tick => tick + 1);
     }
   }, []);
 
   // 무한스크롤처럼 로컬 버퍼가 얼마 안 남았을 때 다음 페이지를 미리 불러와 이어붙인다.
   // 스와이프 시점엔 네트워크를 타지 않도록 하는 게 목적이라 실패해도 조용히 넘어간다 —
-  // 다음 임계값 체크나 주기적 refreshDue 가 다시 시도한다.
+  // 다음 임계값 체크에서 다시 시도한다.
   const prefetchMore = useCallback(async () => {
     const target = activeSourceRef.current;
     if (target?.deckId == null) return;
@@ -305,7 +295,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
       });
       setDueCount(due.totalCount);
     } catch {
-      // 조용히 실패 — 다음 임계값 체크나 주기적 refreshDue 가 재시도한다.
+      // 조용히 실패 — 다음 임계값 체크에서 재시도한다.
     } finally {
       prefetchingRef.current = false;
     }
@@ -348,7 +338,6 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     setSessionDueTotal(0);
     reviewedIdsRef.current = new Set();
     setDistinctReviewedCount(0);
-    setNextDueAt(null);
     setStatus('loading');
     setLoadError(null);
     try {
@@ -358,7 +347,10 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
         songApi.getRecommendations(),
       ]);
       if (version !== requestVersion.current) return;
-      const recommended = recommendations[0] ? sourceFromRecommendation(recommendations[0]) : null;
+      const pickedRecommendation = recommendations.length > 0
+        ? recommendations[Math.floor(Math.random() * recommendations.length)]
+        : null;
+      const recommended = pickedRecommendation ? sourceFromRecommendation(pickedRecommendation) : null;
       setRecommendedSource(recommended);
       setStreak(homeStats.currentStreak);
       setWeekDots(homeStats.weekDots);
@@ -490,7 +482,6 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
       const newSource: StudySource = { ...currentCard.source, deckId: result.deckId, totalCount: result.totalCount };
       activeSourceRef.current = newSource;
       setReviewError(null);
-      setNextDueAt(result.nextDueAt);
       setDueCount(result.cards.length);
       setSessionDueTotal(result.totalCount);
       reviewedIdsRef.current = new Set([PREVIEW_FLASHCARD_ID]);
@@ -528,7 +519,6 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
       const result = await flashcardApi.review(currentCard.id, { rating: selectedRating });
       useStudyStatsStore.getState().invalidate();
       if (version !== requestVersion.current) return;
-      setNextDueAt(result.due);
       setReviewError(null);
       setReviewedCount(count => count + 1);
       if (!reviewedIdsRef.current.has(currentCard.id)) {
@@ -578,35 +568,6 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     }
     await advanceRealReview();
   }, [advancePreviewReview, advanceRealReview]);
-
-  // 버퍼가 남아 있어도 미래 due 도착, 앱 복귀, 화면 재진입 시 다시 조회한다.
-  useEffect(() => {
-    if (!focused || status === 'loading' || saving) return;
-    const refresh = () => {
-      if (AppState.currentState !== 'background' && AppState.currentState !== 'inactive' && !busyRef.current) {
-        if (activeSourceRef.current == null && mode === 'home') void loadHomeStack();
-        else void refreshDue();
-      }
-    };
-    const dueDelay = nextDueAt == null ? DUE_REFRESH_INTERVAL_MS : Date.parse(nextDueAt) - Date.now();
-    const timer = setTimeout(refresh, Math.max(1000, Math.min(DUE_REFRESH_INTERVAL_MS, dueDelay || 1000)));
-    const subscription = AppState.addEventListener('change', state => {
-      if (state === 'active') refresh();
-    });
-    return () => {
-      clearTimeout(timer);
-      subscription.remove();
-    };
-  }, [focused, loadHomeStack, mode, nextDueAt, refreshDue, refreshTick, saving, status]);
-
-  const wasFocused = useRef(focused);
-  useEffect(() => {
-    if (focused && !wasFocused.current && !busyRef.current) {
-      if (activeSourceRef.current == null && mode === 'home') void loadHomeStack();
-      else void refreshDue();
-    }
-    wasFocused.current = focused;
-  }, [focused, loadHomeStack, mode, refreshDue]);
 
   const panResponder = useMemo(
     () => PanResponder.create({
