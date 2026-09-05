@@ -144,11 +144,11 @@ class DeckService(
     }
 
     /**
-     * 단어를 담을 단어장들을 확보한다. **저장 트랜잭션 밖에서, 요청당 한 번** 부른다.
+     * 단어를 담을 단어장들을 확보한다. word 저장 트랜잭션 **안에서, 요청당 한 번** 부른다.
      *
-     * 단어장 행 생성을 저장 트랜잭션에서 빼면 두 가지가 좋아진다. 단어마다 반복 조회하지 않게
-     * 되고, 같은 유저의 동시 저장이 `decks` UNIQUE 에서 부딪히는 창이 짧아진다. 빼도 되는 이유는
-     * 단어장이 단어보다 오래 살기 때문 — 저장이 실패해 빈 단어장만 남아도 그건 정상 상태다.
+     * deck 이 이미 있으면 락 없는 SELECT 라 word 저장과 같은 트랜잭션에 넣어도 잠금 시간이
+     * 늘지 않는다 — INSERT 락이 걸리는 건 그 유저가 그 deck 을 처음 만드는 순간뿐이고, 그마저도
+     * word 저장 자체가 재시도되는 경합 상황이라 별 트랜잭션으로 쪼개서 얻는 이득이 크지 않다.
      */
     @Transactional
     fun resolveDeckTargets(userId: Long, songIds: Collection<Long>): DeckTargets = DeckTargets(
@@ -191,6 +191,11 @@ class DeckService(
      * 같은 유저가 동시에 담으면 여기서 `UNIQUE(user_id, is_default)` 에 걸릴 수 있다. 이 예외는
      * 삼키지 않고 트랜잭션을 통째로 롤백시킨 뒤 [com.japanese.vocabulary.word.service.WordService]
      * 가 새 트랜잭션으로 재시도한다 — 재시도의 새 스냅샷에서는 이긴 쪽이 만든 deck 이 보인다.
+     *
+     * `INSERT ... ON DUPLICATE KEY UPDATE` 로는 대체하지 않는다 — 값이 안 바뀌는 UPDATE 는
+     * MySQL 이 실제 쓰기로 치지 않아(affected rows 0) 이 트랜잭션이 그 행을 소유하지 못하고,
+     * REPEATABLE READ 에서 재조회가 트랜잭션 시작 시점 스냅샷에 갇혀 방금 커밋된 행을 영영
+     * 못 볼 수 있다.
      */
     private fun ensureDefaultDeckId(userId: Long): Long =
         deckRepository.findByUserIdAndIsDefaultTrue(userId)?.id

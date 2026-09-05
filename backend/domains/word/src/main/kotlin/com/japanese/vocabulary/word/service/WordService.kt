@@ -55,8 +55,8 @@ class WordService(
     private val saveTx = TransactionTemplate(transactionManager)
 
     fun batchAddWords(userId: Long, request: BatchAddWordDto): BatchAddWordResultDto = retryingSave {
-        val targets = validateAndResolveDecks(userId, request.words)
         saveTx.execute {
+            val targets = validateAndResolveDecks(userId, request.words)
             var savedCount = 0
             var skippedCount = 0
             for (wordRequest in request.words) {
@@ -67,14 +67,16 @@ class WordService(
     }
 
     fun addWord(userId: Long, request: AddWordDto): Long = retryingSave {
-        val targets = validateAndResolveDecks(userId, listOf(request))
-        saveTx.execute { addWordInternal(userId, request, targets).wordId }!!
+        saveTx.execute {
+            val targets = validateAndResolveDecks(userId, listOf(request))
+            addWordInternal(userId, request, targets).wordId
+        }!!
     }
 
     /**
-     * 검증과 단어장 확보를 저장 트랜잭션 **앞에서, 요청당 한 번** 끝낸다. 단어마다 반복하면
-     * 배치 저장이 단어 수에 비례해 `decks` 를 잠그게 되고, 그게 바로 재시도가 흡수해야 하는
-     * 경합을 키운다.
+     * 검증과 단어장 확보를 저장 트랜잭션 **안에서, 요청당 한 번** 끝낸다. 단어마다 반복하지
+     * 않는 건 순전히 낭비를 피하기 위해서다 — deck 이 이미 있으면 매번 락 없는 SELECT 라
+     * 반복해도 안전하지만, 배치 크기만큼 같은 조회를 반복할 이유는 없다.
      */
     private fun validateAndResolveDecks(userId: Long, words: List<AddWordDto>): DeckTargets {
         val senses = words.map { it.senses.forSave() }
@@ -84,9 +86,9 @@ class WordService(
     }
 
     /**
-     * 단어장 생성이 저장 트랜잭션에 맞물려 있어서, 같은 유저가 동시에 담으면 `decks` 나 `words`
-     * 의 UNIQUE 에 걸리거나 데드락이 난다. 롤백된 뒤 통째로 다시 돌리면 이긴 쪽이 만든 단어장을
-     * 찾아 쓴다. 저장 경로가 전부 upsert 라 재실행이 안전하다.
+     * 단어장 생성과 word 저장이 한 트랜잭션 안에 있어서, 같은 유저가 동시에 담으면 `decks` 나
+     * `words` 의 UNIQUE 에 걸리거나 데드락이 난다. 롤백된 뒤 통째로 다시 돌리면 이긴 쪽이 만든
+     * 단어장을 찾아 쓴다. 저장 경로가 전부 upsert 라 재실행이 안전하다.
      *
      * 재시도는 트랜잭션 **밖**이어야 한다 — 안에서는 이미 rollback-only 이고, REPEATABLE READ
      * 스냅샷도 그대로라 방금 커밋된 단어장이 보이지 않는다.
@@ -283,8 +285,10 @@ class WordService(
     companion object {
         const val MAX_EXAMPLES_PER_SENSE = 5
 
-        // 경쟁 상대의 트랜잭션은 곧 끝나고, 두 번째 시도는 이미 만들어진 단어장을 찾기만 한다.
-        private const val MAX_SAVE_ATTEMPTS = 3
+        // 한 저장에 독립적인 충돌 지점이 최대 셋이다 — 전체 단어장, 곡 단어장, 겹치는 단어 하나.
+        // 재시도 한 번은 그중 하나만 해소하므로(첫 예외에서 트랜잭션 전체가 롤백된다), 운 나쁜
+        // 스레드는 셋을 순서대로 다 만날 수 있어 예산은 그 수보다 커야 한다.
+        private const val MAX_SAVE_ATTEMPTS = 5
 
         private val log = LoggerFactory.getLogger(WordService::class.java)
 
