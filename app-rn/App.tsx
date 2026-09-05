@@ -22,6 +22,7 @@ import { initBaseURL } from './src/api/client';
 import { useSettingsStore } from './src/stores/settingsStore';
 import SplashScreen from './src/screens/SplashScreen';
 import { registerNotificationHandlers, requestPermissionAndRegisterToken } from './src/services/pushNotifications';
+import { scheduleOtaUpdateCheck } from './src/services/otaUpdates';
 
 GoogleSignin.configure({
   webClientId: process.env.EXPO_PUBLIC_GOOGLE_OAUTH_WEB_CLIENT_ID ?? '',
@@ -32,6 +33,7 @@ function App() {
 
   useEffect(() => {
     registerNotificationHandlers();
+    scheduleOtaUpdateCheck();
     initBaseURL().then(() =>
       tokenStorage.getToken().then((token) => {
         const valid = !!token && !isJwtExpired(token);
