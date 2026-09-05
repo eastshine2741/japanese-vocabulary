@@ -4,7 +4,6 @@ import org.springframework.stereotype.Service
 import com.japanese.vocabulary.common.exception.BusinessException
 import com.japanese.vocabulary.common.exception.ErrorCode
 import com.japanese.vocabulary.deck.entity.DeckEntity
-import com.japanese.vocabulary.deck.entity.DeckWordEntity
 import com.japanese.vocabulary.deck.dto.CreateDeckDto
 import com.japanese.vocabulary.deck.dto.DeckDto
 import com.japanese.vocabulary.deck.dto.DeckDetailDto
@@ -164,9 +163,7 @@ class DeckService(
     @Transactional
     fun linkSavedWord(targets: DeckTargets, wordId: Long, songId: Long?) {
         targets.idsFor(songId).forEach { deckId ->
-            if (!deckWordRepository.existsByDeckIdAndWordId(deckId, wordId)) {
-                deckWordRepository.save(DeckWordEntity(deckId = deckId, wordId = wordId))
-            }
+            deckWordRepository.insertIfAbsent(deckId, wordId)
         }
     }
 

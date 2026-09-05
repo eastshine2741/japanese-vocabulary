@@ -10,6 +10,17 @@ interface DeckWordRepository : JpaRepository<DeckWordEntity, Long> {
     fun findByDeckId(deckId: Long): List<DeckWordEntity>
     fun existsByDeckIdAndWordId(deckId: Long, wordId: Long): Boolean
 
+    @Modifying(flushAutomatically = true)
+    @Query(
+        value = """
+            INSERT INTO deck_word (deck_id, word_id)
+            VALUES (:deckId, :wordId)
+            ON DUPLICATE KEY UPDATE word_id = VALUES(word_id)
+        """,
+        nativeQuery = true,
+    )
+    fun insertIfAbsent(@Param("deckId") deckId: Long, @Param("wordId") wordId: Long): Int
+
     /*
      * flushAutomatically 는 필수다. 두 삭제 모두 `words` / `decks` 행을 지우기 직전에 불리는데,
      * Hibernate 의 AUTO flush 는 질의 대상 테이블과 겹치는 변경만 내보내므로 이게 없으면

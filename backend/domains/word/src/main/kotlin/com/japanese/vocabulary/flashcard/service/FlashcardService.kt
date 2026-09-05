@@ -54,7 +54,17 @@ class FlashcardService(
             state = card.state?.ordinal ?: 0,
             fsrsCardJson = card.toJson()
         )
-        return flashcardRepository.save(entity).id!!
+        flashcardRepository.insertIfAbsent(
+            wordId = entity.wordId,
+            userId = entity.userId,
+            due = entity.due,
+            stability = entity.stability,
+            difficulty = entity.difficulty,
+            state = entity.state,
+            fsrsCardJson = entity.fsrsCardJson,
+        )
+        return flashcardRepository.findByWordId(wordId)?.id
+            ?: error("flashcard insert did not materialize for wordId=$wordId")
     }
 
     /** word 삭제와 같은 트랜잭션에서 불린다. `flashcards.word_id` 가 `words` 를 FK 로 참조한다. */
@@ -196,17 +206,18 @@ class FlashcardService(
         entity.fsrsCardJson = updatedCard.toJson()
         flashcardRepository.save(entity)
 
+        val savedFlashcardId = entity.id!!
         eventPublisher.publishEvent(
             FlashcardReviewedEvent(
                 userId = userId,
-                flashcardId = entity.id!!,
+                flashcardId = savedFlashcardId,
                 rating = rating,
                 reviewedAt = entity.lastReview!!
             )
         )
 
         return ReviewResultDto(
-            id = entity.id!!,
+            id = savedFlashcardId,
             state = entity.state,
             due = entity.due.toString(),
             stability = entity.stability,
