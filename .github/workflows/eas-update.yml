@@ -90,4 +90,4 @@ jobs:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT_APP }}
-        run: npx --package=@sentry/react-native sentry-expo-upload-sourcemaps dist
+        run: npx --no-install sentry-expo-upload-sourcemaps dist
