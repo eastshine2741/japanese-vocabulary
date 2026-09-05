@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, BackHandler, ActivityIndicator } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
@@ -43,22 +43,24 @@ export default function MyPageTab() {
     }, [loadProfile, loadDecks]),
   );
 
-  useEffect(() => {
-    let alive = true;
-    flashcardApi.getStats()
-      .then((data) => {
-        if (!alive) return;
-        setFlashcardStats(data);
-        setStatsError(null);
-      })
-      .catch((e: any) => {
-        if (!alive) return;
-        setStatsError(e.message ?? 'failed');
-      });
-    return () => {
-      alive = false;
-    };
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      let alive = true;
+      flashcardApi.getStats()
+        .then((data) => {
+          if (!alive) return;
+          setFlashcardStats(data);
+          setStatsError(null);
+        })
+        .catch((e: any) => {
+          if (!alive) return;
+          setStatsError(e.message ?? 'failed');
+        });
+      return () => {
+        alive = false;
+      };
+    }, []),
+  );
 
   const freezeSheetRef = useRef<AppBottomSheetModalRef>(null);
   const freezeOpenRef = useRef(false);

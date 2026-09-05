@@ -124,10 +124,26 @@ it('prefetches the next page once the local buffer drops to the threshold, dedup
 
   await rate();
   // 첫 카드를 넘기고 나면 남은 카드가 5개로 임계값에 닿아 다음 페이지를 불러온다.
-  expect(flashcardApi.getDueCards).toHaveBeenNthCalledWith(2, 7, 26);
+  expect(flashcardApi.getDueCards).toHaveBeenNthCalledWith(2, 7, 20);
   expect(stack.cards.map(c => c.id)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
   expect(stack.currentCard?.id).toBe(2);
   expect(stack.session.queueTotal).toBe(10);
+});
+
+it('keeps the due-card limit fixed while prefetching', async () => {
+  const initialCards = Array.from({ length: 100 }, (_, index) => card(index + 1));
+  vi.mocked(flashcardApi.getDueCards)
+    .mockResolvedValueOnce({ cards: initialCards, totalCount: 120, nextDueAt: null })
+    .mockResolvedValueOnce({ cards: Array.from({ length: 20 }, (_, index) => card(index + 96)), totalCount: 25, nextDueAt: null });
+  await mount();
+
+  for (let i = 0; i < 95; i += 1) {
+    await rate();
+  }
+
+  expect(stack.currentCard?.id).toBe(96);
+  expect(flashcardApi.getDueCards).toHaveBeenNthCalledWith(2, 7, 20);
+  expect(flashcardApi.getDueCards).not.toHaveBeenCalledWith(7, 120);
 });
 
 it('does not prefetch once every currently due card is already buffered', async () => {

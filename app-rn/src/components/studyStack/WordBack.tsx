@@ -17,6 +17,7 @@ import { Colors } from '../../theme/theme';
 import { getJlptColor } from '../Badges';
 import { getPosColor, getPosLabel } from '../../types/pos';
 import { flattenExamples, joinMeanings, SenseExample } from '../../types/word';
+import ReadingText from '../ReadingText';
 import { StudyCard } from './types';
 
 export const RATINGS = [
@@ -198,7 +199,7 @@ export const WordBack = React.memo(function WordBack({
             </Text>
           </View>
           <View style={styles.readingRow}>
-            {card.reading && <Text style={styles.reading}>{card.reading}</Text>}
+            {card.reading && <ReadingText style={styles.reading} reading={card.reading} />}
             {(pos || jlpt) && (
               <View style={styles.metaLine}>
                 {pos && <Text style={[styles.metaPos, { color: getPosColor(pos) }]}>{getPosLabel(pos)}</Text>}

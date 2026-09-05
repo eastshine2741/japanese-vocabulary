@@ -1,6 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { useShallow } from 'zustand/react/shallow';
 import { useStudyStatsStore } from '../../stores/studyStatsStore';
 import { Colors } from '../../theme/theme';
@@ -30,14 +31,16 @@ export default React.memo(function HeatmapSection({ onPressFreeze }: HeatmapSect
     })),
   );
 
-  useEffect(() => {
-    if (heatmap.status === 'idle' || heatmap.staleAt > 0) {
-      loadHeatmap(heatmap.staleAt > 0);
-    }
-    if (profile.status === 'idle' || profile.staleAt > 0) {
-      loadProfile(profile.staleAt > 0);
-    }
-  }, [heatmap.status, heatmap.staleAt, profile.status, profile.staleAt, loadHeatmap, loadProfile]);
+  useFocusEffect(
+    useCallback(() => {
+      if (heatmap.status === 'idle' || heatmap.staleAt > 0) {
+        loadHeatmap(heatmap.staleAt > 0);
+      }
+      if (profile.status === 'idle' || profile.staleAt > 0) {
+        loadProfile(profile.staleAt > 0);
+      }
+    }, [heatmap.status, heatmap.staleAt, profile.status, profile.staleAt, loadHeatmap, loadProfile]),
+  );
 
   const cells = useMemo(() => {
     return computeGrid(heatmap.data?.days ?? []);

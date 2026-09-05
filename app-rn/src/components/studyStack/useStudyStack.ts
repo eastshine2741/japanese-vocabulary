@@ -294,8 +294,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     prefetchingRef.current = true;
     const version = requestVersion.current;
     try {
-      const nextLimit = loaded + DUE_PAGE_SIZE;
-      const due = await flashcardApi.getDueCards(target.deckId, nextLimit);
+      const due = await flashcardApi.getDueCards(target.deckId, DUE_PAGE_SIZE);
       if (version !== requestVersion.current) return;
       setCards(prev => {
         const existingIds = new Set(prev.map(card => card.id));
