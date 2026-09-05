@@ -33,6 +33,16 @@ export const CompletionStage = React.memo(function CompletionStage({
   const hasRecommended = recommendedSource != null;
   const primaryLabel = hasNextDue ? '이어서 복습' : hasRecommended ? '이어서 학습' : '새 곡 검색';
   const handlePrimary = hasNextDue ? onContinueDue : hasRecommended ? onRecommended : onSearch;
+  const completeTitle = hasNextDue && completedSource
+    ? `${completedSource.title} 완주!`
+    : hasRecommended
+      ? '오늘 복습 끝!'
+      : '지금 복습할 단어가 없어요';
+  const completeSub = hasNextDue && completedSource
+    ? `이 곡 단어 ${completedSource.totalCount}개를 전부 복습했어요`
+    : hasRecommended
+      ? '대단해요! 오늘의 모든 단어를 복습했어요'
+      : '다음 복습 시간이 되면 카드가 다시 나타나요';
 
   if (!stageSource) {
     return (
@@ -78,12 +88,12 @@ export const CompletionStage = React.memo(function CompletionStage({
         )}
         <View style={styles.doneGroup}>
           <Text style={styles.doneTitle}>
-            지금 복습할 단어가 없어요
+            {completeTitle}
           </Text>
           <View style={styles.doneSubRow}>
             <Feather name="check-circle" size={15} color="#A7E3C4" />
             <Text numberOfLines={2} style={styles.doneSub}>
-              다음 복습 시간이 되면 카드가 다시 나타나요
+              {completeSub}
             </Text>
           </View>
         </View>
