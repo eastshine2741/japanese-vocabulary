@@ -27,8 +27,12 @@ push하면 JS tag와 커밋 SHA를 메시지로 사용해 OTA와 Sentry 소스�
 `production` 채널에 배포한다. 네이티브 `vM.m.p` tag는 OTA를 배포하지 않는다. 아래 명령은
 GitHub Actions를 쓸 수 없을 때의 수동 fallback이다.
 
+JS tag의 `M.m.p`는 대상 native runtime version이다. `runtimeVersion`은 이 값으로
+고정되므로 native build와 OTA가 같은 `NATIVE_RUNTIME_VERSION`을 써야 한다. Android CD는
+native tag에서 이를 자동으로 계산하며, iOS EAS build와 수동 OTA에서는 명시한다.
+
 ```bash
-BUILD_ENV=prod EAS_UPDATE_CHANNEL=production \
+BUILD_ENV=prod EAS_UPDATE_CHANNEL=production NATIVE_RUNTIME_VERSION=1.2.1 \
   eas update --channel production --message "..."   # dist/ 를 만들고 업로드
 SENTRY_AUTH_TOKEN=... SENTRY_ORG=eastshine SENTRY_PROJECT=kotonoha-app-prod \
   npx --package=@sentry/react-native sentry-expo-upload-sourcemaps dist

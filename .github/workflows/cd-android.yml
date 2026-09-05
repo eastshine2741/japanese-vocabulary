@@ -12,6 +12,7 @@ jobs:
       is_rc: ${{ steps.parse.outputs.is_rc }}
       version_name: ${{ steps.parse.outputs.version_name }}
       version_code: ${{ steps.parse.outputs.version_code }}
+      native_runtime_version: ${{ steps.parse.outputs.native_runtime_version }}
       matrix: ${{ steps.parse.outputs.matrix }}
     steps:
       - name: Parse tag
@@ -38,6 +39,7 @@ jobs:
             echo "is_rc=$IS_RC" >> "$GITHUB_OUTPUT"
             echo "version_name=$VN" >> "$GITHUB_OUTPUT"
             echo "version_code=$VC" >> "$GITHUB_OUTPUT"
+            echo "native_runtime_version=${MAJOR}.${MINOR}.${PATCH}" >> "$GITHUB_OUTPUT"
             echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
           else
             echo "::error::Invalid tag format: $TAG (expected vM.m.p or vM.m.p-rc.N)"
@@ -106,6 +108,7 @@ jobs:
           EAS_UPDATE_CHANNEL: ${{ matrix.target.channel }}
           BUILD_VERSION_NAME: ${{ needs.parse.outputs.version_name }}
           BUILD_VERSION_CODE: ${{ needs.parse.outputs.version_code }}
+          NATIVE_RUNTIME_VERSION: ${{ needs.parse.outputs.native_runtime_version }}
           DEPLOY_NS: main
         run: npx expo prebuild --platform android --clean
 

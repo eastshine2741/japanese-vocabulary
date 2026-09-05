@@ -19,6 +19,11 @@ const versionName = process.env.BUILD_VERSION_NAME ?? '1.0.0';
 const buildNumber = process.env.BUILD_NUMBER ?? '1';
 const versionCodeEnv = process.env.BUILD_VERSION_CODE;
 const versionCode = versionCodeEnv ? parseInt(versionCodeEnv, 10) : undefined;
+// OTA compatibility is keyed by the native release's major.minor.patch. A JS
+// tag such as js-v1.2.1-rc.1 therefore targets native runtime 1.2.1, regardless
+// of its OTA iteration suffix.
+const nativeRuntimeVersion =
+  process.env.NATIVE_RUNTIME_VERSION ?? versionName.replace(/-(?:dev|rc)\.\d+$/, '');
 
 const namespace = resolveNamespace();
 const suffix = `.${namespace.replace(/[^a-z0-9]/g, '')}`;
@@ -41,7 +46,7 @@ export default {
     name: `코토노하${label}`,
     slug: 'app-rn',
     version: versionName,
-    runtimeVersion: { policy: 'fingerprint' },
+    runtimeVersion: nativeRuntimeVersion,
     updates: {
       url: 'https://u.expo.dev/f03be909-9675-45fc-8ad5-818e30cdf18e',
       requestHeaders: {

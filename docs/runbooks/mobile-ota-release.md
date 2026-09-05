@@ -30,8 +30,19 @@ JS OTA 전용 태그를 push하면 **Deploy EAS Update** 워크플로가 자동 
 | `js-v1.0.0-rc.1` | `production-rc` |
 | `js-v1.0.0` | `production` |
 
-JS 버전은 네이티브 버전과 독립적으로 증가한다. 설정 화면의 `JS <id>`는 EAS가 생성한
-update UUID이지 이 태그 버전은 아니다.
+JS 태그의 `X.X.X`는 대상 네이티브 runtime 버전이다. 즉 `js-v1.2.1-rc.1`과
+`js-v1.2.1`은 모두 native runtime `1.2.1`만 대상으로 하며, suffix는 OTA 배포 단계만
+나눈다. native `v1.2.1-rc.1`/`v1.2.1` 빌드는 Android CD가 같은 runtime을 자동으로
+내장한다. 설정 화면의 `JS <id>`는 EAS가 생성한 update UUID이지 이 태그 버전은 아니다.
+
+`runtimeVersion` 계약이 바뀐 시점 이전의 fingerprint 기반 바이너리는 새 OTA를 받을 수
+없다. 이 규칙을 처음 도입할 때는 새 native build를 설치해야 한다. iOS EAS build를
+수동으로 만들 때는 해당 native runtime을 명시한다.
+
+```bash
+cd app-rn
+NATIVE_RUNTIME_VERSION=1.2.1 eas build --profile production --platform ios
+```
 
 필요한 GitHub Actions secrets:
 
@@ -46,7 +57,7 @@ update UUID이지 이 태그 버전은 아니다.
 
 ```bash
 cd app-rn
-BUILD_ENV=dev EAS_UPDATE_CHANNEL=development \
+BUILD_ENV=dev EAS_UPDATE_CHANNEL=development NATIVE_RUNTIME_VERSION=1.2.1 \
   eas update --channel development --message "dev ota smoke"
 ```
 
