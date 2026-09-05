@@ -515,27 +515,31 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     busyRef.current = true;
     setSaving(true);
     const version = ++requestVersion.current;
+    const reviewedCard = currentCard;
+    const rating = selectedRating;
+    setSelectedRating(null);
+    // review API 호출과 스와이프 애니메이션을 동시에 시작한다 — 이전엔 API 응답을 먼저 기다린
+    // 뒤에야 애니메이션을 시작해서 스와이프가 네트워크 왕복만큼 멈춰 보였다.
+    const reviewPromise = flashcardApi.review(reviewedCard.id, { rating });
+    const animationPromise = new Promise<void>(resolve => {
+      Animated.timing(translateY, {
+        toValue: SWIPE_OUT_DISTANCE,
+        duration: 180,
+        useNativeDriver: true,
+      }).start(() => resolve());
+    });
     try {
-      const result = await flashcardApi.review(currentCard.id, { rating: selectedRating });
-      useStudyStatsStore.getState().invalidate();
+      await Promise.all([animationPromise, reviewPromise]);
       if (version !== requestVersion.current) return;
+      useStudyStatsStore.getState().invalidate();
       setReviewError(null);
       setReviewedCount(count => count + 1);
-      if (!reviewedIdsRef.current.has(currentCard.id)) {
-        reviewedIdsRef.current.add(currentCard.id);
+      if (!reviewedIdsRef.current.has(reviewedCard.id)) {
+        reviewedIdsRef.current.add(reviewedCard.id);
         setDistinctReviewedCount(count => count + 1);
       }
       // FSRS 는 리뷰 직후 due 를 항상 미래로 미룬다 — 서버 왕복 없이 큐 카운터를 맞춰둔다.
       setDueCount(count => Math.max(0, count - 1));
-      setSelectedRating(null);
-      await new Promise<void>(resolve => {
-        Animated.timing(translateY, {
-          toValue: SWIPE_OUT_DISTANCE,
-          duration: 180,
-          useNativeDriver: true,
-        }).start(() => resolve());
-      });
-      if (version !== requestVersion.current) return;
       const nextIndex = currentIndexRef.current + 1;
       if (nextIndex < cardsRef.current.length) {
         // 다음 카드는 이미 미리 불러와져 있다 — 스와이프 도중 네트워크를 기다리지 않는다.
@@ -550,10 +554,12 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
         await refreshDue();
       }
     } catch (e: any) {
+      // 애니메이션 자체는 실패하지 않으니 이 catch 는 review 실패다 — 카드가 이미 화면 밖으로
+      // 나가 있을 수 있어 되돌린다.
+      await animationPromise;
       if (version === requestVersion.current) {
         setReviewError(e.message ?? '복습 저장에 실패했어요. 다시 시도해 주세요');
       }
-      // 실패하면 카드가 그대로라 currentCard 변경 effect 가 돌지 않는다 — 직접 되돌린다.
       translateY.setValue(0);
     } finally {
       busyRef.current = false;
