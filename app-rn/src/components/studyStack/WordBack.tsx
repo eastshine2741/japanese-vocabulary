@@ -283,9 +283,10 @@ interface ExamplePageProps {
 const ExamplePage = React.memo(function ExamplePage({ example, japanese, onOpenSource }: ExamplePageProps) {
   const jpText = example.text;
   const hitIndex = jpText.indexOf(japanese);
-  const beforeHit = hitIndex >= 0 ? jpText.slice(0, hitIndex) : '';
-  const hit = hitIndex >= 0 ? jpText.slice(hitIndex, hitIndex + japanese.length) : japanese;
-  const afterHit = hitIndex >= 0 ? jpText.slice(hitIndex + japanese.length) : jpText;
+  const hasHit = hitIndex >= 0;
+  const beforeHit = hasHit ? jpText.slice(0, hitIndex) : '';
+  const hit = hasHit ? jpText.slice(hitIndex, hitIndex + japanese.length) : '';
+  const afterHit = hasHit ? jpText.slice(hitIndex + japanese.length) : jpText;
   const { songId, songTitle } = example;
   const handlePress = useCallback(() => {
     if (songId != null) onOpenSource?.(songId);
@@ -300,7 +301,7 @@ const ExamplePage = React.memo(function ExamplePage({ example, japanese, onOpenS
         </Pressable>
       )}
       <Text numberOfLines={2} style={styles.jpLine}>
-        {beforeHit}<Text style={styles.jpHit}>{hit}</Text>{afterHit}
+        {beforeHit}{hasHit && <Text style={styles.jpHit}>{hit}</Text>}{afterHit}
       </Text>
       {example.translation && (
         <Text numberOfLines={1} style={styles.krLine}>{example.translation}</Text>
