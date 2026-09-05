@@ -5,36 +5,53 @@
   },
   "build": {
     "development": {
+      "channel": "development",
       "developmentClient": true,
       "distribution": "internal",
       "ios": {
         "simulator": true
       },
       "env": {
-        "BUILD_ENV": "dev"
+        "BUILD_ENV": "dev",
+        "EAS_UPDATE_CHANNEL": "development"
       }
     },
     "preview": {
+      "channel": "preview",
       "distribution": "internal",
       "env": {
-        "BUILD_ENV": "staging"
+        "BUILD_ENV": "staging",
+        "EAS_UPDATE_CHANNEL": "preview"
+      }
+    },
+    "production-rc": {
+      "channel": "production-rc",
+      "distribution": "internal",
+      "environment": "production",
+      "env": {
+        "BUILD_ENV": "prod",
+        "EAS_UPDATE_CHANNEL": "production-rc"
       }
     },
     "simulator": {
+      "channel": "production",
       "distribution": "internal",
       "environment": "production",
       "ios": {
         "simulator": true
       },
       "env": {
-        "BUILD_ENV": "prod"
+        "BUILD_ENV": "prod",
+        "EAS_UPDATE_CHANNEL": "production"
       }
     },
     "production": {
+      "channel": "production",
       "environment": "production",
       "autoIncrement": true,
       "env": {
-        "BUILD_ENV": "prod"
+        "BUILD_ENV": "prod",
+        "EAS_UPDATE_CHANNEL": "production"
       }
     }
   },

@@ -10,7 +10,11 @@ function resolveNamespace() {
   }
 }
 
-const isProd = process.env.BUILD_ENV === 'prod';
+const buildEnv = process.env.BUILD_ENV ?? process.env.EXPO_PUBLIC_BUILD_ENV ?? 'dev';
+const isProd = buildEnv === 'prod';
+const defaultUpdateChannel =
+  buildEnv === 'prod' ? 'production' : buildEnv === 'staging' ? 'preview' : 'development';
+const updateChannel = process.env.EAS_UPDATE_CHANNEL ?? defaultUpdateChannel;
 const versionName = process.env.BUILD_VERSION_NAME ?? '1.0.0';
 const buildNumber = process.env.BUILD_NUMBER ?? '1';
 const versionCodeEnv = process.env.BUILD_VERSION_CODE;
@@ -37,6 +41,13 @@ export default {
     name: `코토노하${label}`,
     slug: 'app-rn',
     version: versionName,
+    runtimeVersion: { policy: 'fingerprint' },
+    updates: {
+      url: 'https://u.expo.dev/f03be909-9675-45fc-8ad5-818e30cdf18e',
+      requestHeaders: {
+        'expo-channel-name': updateChannel,
+      },
+    },
     orientation: 'portrait',
     icon: './assets/icon.png',
     userInterfaceStyle: 'light',
