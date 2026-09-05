@@ -12610,240 +12610,630 @@
           "width": "fill_container",
           "height": "fill_container",
           "layout": "vertical",
-          "gap": 28,
+          "gap": 32,
           "padding": [
-            12,
+            4,
             0,
-            28,
+            8,
             0
           ],
           "children": [
             {
               "type": "frame",
-              "id": "DdLa5",
-              "name": "recentSongs",
+              "id": "m7RgFY",
+              "name": "historyGroup",
               "width": "fill_container",
               "layout": "vertical",
-              "gap": 12,
+              "gap": 32,
               "children": [
                 {
                   "type": "frame",
-                  "id": "cWSDZ",
-                  "name": "carousel",
+                  "id": "poNGN",
+                  "name": "recentSongsSection",
                   "width": "fill_container",
-                  "gap": 12,
-                  "padding": [
-                    0,
-                    16
-                  ],
+                  "layout": "vertical",
+                  "gap": 8,
                   "children": [
                     {
                       "type": "frame",
-                      "id": "GIe44",
-                      "name": "recentItem0",
-                      "width": 84,
-                      "layout": "vertical",
-                      "gap": 6,
+                      "id": "Ju3AG",
+                      "name": "sectionLabelRow",
+                      "width": "fill_container",
+                      "padding": [
+                        0,
+                        16
+                      ],
                       "children": [
                         {
-                          "type": "rectangle",
-                          "cornerRadius": 10,
-                          "id": "V1fRd",
-                          "name": "cover0",
-                          "metadata": {
-                            "type": "unsplash",
-                            "username": "luismorerat",
-                            "link": "https://unsplash.com/@luismorerat",
-                            "author": "Luis Morera"
-                          },
-                          "fill": {
-                            "type": "image",
-                            "enabled": true,
-                            "url": "https://images.unsplash.com/photo-1615754890640-1b07ac20cdbc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3ODA0OTgwMzB8&ixlib=rb-4.1.0&q=80&w=1080",
-                            "mode": "fill"
-                          },
-                          "width": 84,
-                          "height": 84
-                        },
-                        {
                           "type": "text",
-                          "id": "TUxCi",
-                          "name": "rt0",
+                          "id": "cjjP7",
+                          "name": "sectionLabel",
                           "fill": "$foreground.primary",
-                          "textGrowth": "fixed-width",
-                          "width": "fill_container",
-                          "content": "アイドル",
+                          "content": "최근 본 곡",
                           "fontFamily": "$font.body",
-                          "fontSize": 13,
-                          "fontWeight": "500"
+                          "fontSize": 15,
+                          "fontWeight": "600"
                         }
                       ]
                     },
                     {
                       "type": "frame",
-                      "id": "iF3Iw",
-                      "name": "recentItem1",
-                      "width": 84,
-                      "layout": "vertical",
-                      "gap": 6,
+                      "id": "HxFJR",
+                      "name": "recentSongsStrip",
+                      "clip": true,
+                      "width": "fill_container",
+                      "height": 96,
+                      "gap": 16,
+                      "padding": [
+                        0,
+                        16
+                      ],
                       "children": [
                         {
-                          "type": "rectangle",
-                          "cornerRadius": 10,
-                          "id": "mqRB2",
-                          "name": "cover1",
-                          "metadata": {
-                            "type": "unsplash",
-                            "username": "unternata",
-                            "link": "https://unsplash.com/@unternata",
-                            "author": "Natalia Slastnikova"
-                          },
-                          "fill": {
-                            "type": "image",
-                            "enabled": true,
-                            "url": "https://images.unsplash.com/photo-1646753950523-19fb8a2a1457?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3ODA0OTgwMzB8&ixlib=rb-4.1.0&q=80&w=1080",
-                            "mode": "fill"
-                          },
-                          "width": 84,
-                          "height": 84
+                          "type": "frame",
+                          "id": "ly0Wt",
+                          "name": "recentSongItem",
+                          "clip": true,
+                          "width": 72,
+                          "height": 96,
+                          "layout": "vertical",
+                          "gap": 8,
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "cornerRadius": 12,
+                              "id": "TwjiU",
+                              "name": "cover",
+                              "fill": {
+                                "type": "image",
+                                "enabled": true,
+                                "url": "https://images.unsplash.com/photo-1615754890640-1b07ac20cdbc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3ODA0OTgwMzB8&ixlib=rb-4.1.0&q=80&w=1080",
+                                "mode": "fill"
+                              },
+                              "width": 72,
+                              "height": 72
+                            },
+                            {
+                              "type": "frame",
+                              "id": "m8uDu",
+                              "name": "songTitleClip",
+                              "clip": true,
+                              "width": "fill_container",
+                              "height": 16,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "z6W0N",
+                                  "name": "songTitle",
+                                  "fill": "$foreground.secondary",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "アイドル",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
                         },
                         {
+                          "type": "frame",
+                          "id": "xTXVv",
+                          "name": "recentSongItem",
+                          "clip": true,
+                          "width": 72,
+                          "height": 96,
+                          "layout": "vertical",
+                          "gap": 8,
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "cornerRadius": 12,
+                              "id": "FerwX",
+                              "name": "cover",
+                              "fill": {
+                                "type": "image",
+                                "enabled": true,
+                                "url": "https://images.unsplash.com/photo-1646753950523-19fb8a2a1457?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3ODA0OTgwMzB8&ixlib=rb-4.1.0&q=80&w=1080",
+                                "mode": "fill"
+                              },
+                              "width": 72,
+                              "height": 72
+                            },
+                            {
+                              "type": "frame",
+                              "id": "z7vxY",
+                              "name": "songTitleClip",
+                              "clip": true,
+                              "width": "fill_container",
+                              "height": 16,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "zqiKp",
+                                  "name": "songTitle",
+                                  "fill": "$foreground.secondary",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "第ゼロ感",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "HSaJj",
+                          "name": "recentSongItem",
+                          "clip": true,
+                          "width": 72,
+                          "height": 96,
+                          "layout": "vertical",
+                          "gap": 8,
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "cornerRadius": 12,
+                              "id": "auHMH",
+                              "name": "cover",
+                              "fill": {
+                                "type": "image",
+                                "enabled": true,
+                                "url": "https://images.unsplash.com/photo-1574610758891-5b809b6e6e2e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3ODA0OTgwMzF8&ixlib=rb-4.1.0&q=80&w=1080",
+                                "mode": "fill"
+                              },
+                              "width": 72,
+                              "height": 72
+                            },
+                            {
+                              "type": "frame",
+                              "id": "m0sZA2",
+                              "name": "songTitleClip",
+                              "clip": true,
+                              "width": "fill_container",
+                              "height": 16,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "G06bE2",
+                                  "name": "songTitle",
+                                  "fill": "$foreground.secondary",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "ベテルギウス",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "TMsgF",
+                          "name": "recentSongItem",
+                          "clip": true,
+                          "width": 72,
+                          "height": 96,
+                          "layout": "vertical",
+                          "gap": 8,
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "cornerRadius": 12,
+                              "id": "egccT",
+                              "name": "cover",
+                              "fill": {
+                                "type": "image",
+                                "enabled": true,
+                                "url": "https://images.unsplash.com/photo-1535980347652-aff78daeebf0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3ODA0OTgwMzJ8&ixlib=rb-4.1.0&q=80&w=1080",
+                                "mode": "fill"
+                              },
+                              "width": 72,
+                              "height": 72
+                            },
+                            {
+                              "type": "frame",
+                              "id": "MPO0b",
+                              "name": "songTitleClip",
+                              "clip": true,
+                              "width": "fill_container",
+                              "height": 16,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "J82jX",
+                                  "name": "songTitle",
+                                  "fill": "$foreground.secondary",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "サブタイトル",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "UdNXk",
+                          "name": "recentSongItem",
+                          "clip": true,
+                          "width": 72,
+                          "height": 96,
+                          "layout": "vertical",
+                          "gap": 8,
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "cornerRadius": 12,
+                              "id": "ASLbh",
+                              "name": "cover",
+                              "fill": {
+                                "type": "image",
+                                "enabled": true,
+                                "url": "https://images.unsplash.com/photo-1615754890640-1b07ac20cdbc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3ODA0OTgwMzB8&ixlib=rb-4.1.0&q=80&w=1080",
+                                "mode": "fill"
+                              },
+                              "width": 72,
+                              "height": 72
+                            },
+                            {
+                              "type": "frame",
+                              "id": "s0WqY",
+                              "name": "songTitleClip",
+                              "clip": true,
+                              "width": "fill_container",
+                              "height": 16,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "L3BHR",
+                                  "name": "songTitle",
+                                  "fill": "$foreground.secondary",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "怪物",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "NmTVT",
+                  "name": "recentSearchesSection",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "Hz9tp",
+                      "name": "sectionLabelRow",
+                      "width": "fill_container",
+                      "padding": [
+                        0,
+                        16
+                      ],
+                      "children": [
+                        {
                           "type": "text",
-                          "id": "GHYGJ",
-                          "name": "rt1",
+                          "id": "F0Pem",
+                          "name": "sectionLabel",
                           "fill": "$foreground.primary",
-                          "textGrowth": "fixed-width",
-                          "width": "fill_container",
-                          "content": "第ゼロ感",
+                          "content": "최근 검색어",
                           "fontFamily": "$font.body",
-                          "fontSize": 13,
-                          "fontWeight": "500"
+                          "fontSize": 15,
+                          "fontWeight": "600"
                         }
                       ]
                     },
                     {
                       "type": "frame",
-                      "id": "o0ORmy",
-                      "name": "recentItem2",
-                      "width": 84,
+                      "id": "aliyA",
+                      "name": "recentSearchList",
+                      "width": "fill_container",
                       "layout": "vertical",
-                      "gap": 6,
                       "children": [
                         {
-                          "type": "rectangle",
-                          "cornerRadius": 10,
-                          "id": "G48WI",
-                          "name": "cover2",
-                          "metadata": {
-                            "type": "unsplash",
-                            "username": "haseebjkhan",
-                            "link": "https://unsplash.com/@haseebjkhan",
-                            "author": "Haseeb Jamil"
-                          },
-                          "fill": {
-                            "type": "image",
-                            "enabled": true,
-                            "url": "https://images.unsplash.com/photo-1574610758891-5b809b6e6e2e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3ODA0OTgwMzF8&ixlib=rb-4.1.0&q=80&w=1080",
-                            "mode": "fill"
-                          },
-                          "width": 84,
-                          "height": 84
+                          "type": "frame",
+                          "id": "D2tgW",
+                          "name": "recentSearchRow",
+                          "width": "fill_container",
+                          "height": 44,
+                          "gap": 12,
+                          "padding": [
+                            0,
+                            16
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "O7ayR",
+                              "name": "historyIcon",
+                              "width": 20,
+                              "height": 20,
+                              "icon": "history",
+                              "library": "lucide",
+                              "fill": "$foreground.muted"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "aJKRA",
+                              "name": "termClip",
+                              "clip": true,
+                              "width": "fill_container",
+                              "height": 22,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "WoNbP",
+                                  "name": "term",
+                                  "fill": "$foreground.primary",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "YOASOBI",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 15,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "icon",
+                              "id": "s4ArQ",
+                              "name": "removeIcon",
+                              "width": 18,
+                              "height": 18,
+                              "icon": "x",
+                              "library": "lucide",
+                              "fill": "$foreground.muted"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "zUi0s",
-                          "name": "rt2",
-                          "fill": "$foreground.primary",
-                          "textGrowth": "fixed-width",
+                          "type": "frame",
+                          "id": "vcq0r",
+                          "name": "recentSearchRow",
                           "width": "fill_container",
-                          "content": "ベテルギウス",
-                          "fontFamily": "$font.body",
-                          "fontSize": 13,
-                          "fontWeight": "500"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "U2CbtY",
-                      "name": "recentItem3",
-                      "width": 84,
-                      "layout": "vertical",
-                      "gap": 6,
-                      "children": [
-                        {
-                          "type": "rectangle",
-                          "cornerRadius": 10,
-                          "id": "yQA6f",
-                          "name": "cover3",
-                          "metadata": {
-                            "type": "unsplash",
-                            "username": "chuttersnap",
-                            "link": "https://unsplash.com/@chuttersnap",
-                            "author": "CHUTTERSNAP"
-                          },
-                          "fill": {
-                            "type": "image",
-                            "enabled": true,
-                            "url": "https://images.unsplash.com/photo-1535980347652-aff78daeebf0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3ODA0OTgwMzJ8&ixlib=rb-4.1.0&q=80&w=1080",
-                            "mode": "fill"
-                          },
-                          "width": 84,
-                          "height": 84
+                          "height": 44,
+                          "gap": 12,
+                          "padding": [
+                            0,
+                            16
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "yjviq",
+                              "name": "historyIcon",
+                              "width": 20,
+                              "height": 20,
+                              "icon": "history",
+                              "library": "lucide",
+                              "fill": "$foreground.muted"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "nBxuH",
+                              "name": "termClip",
+                              "clip": true,
+                              "width": "fill_container",
+                              "height": 22,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "FJrmu",
+                                  "name": "term",
+                                  "fill": "$foreground.primary",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "夜に駆ける",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 15,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "icon",
+                              "id": "dUtNV",
+                              "name": "removeIcon",
+                              "width": 18,
+                              "height": 18,
+                              "icon": "x",
+                              "library": "lucide",
+                              "fill": "$foreground.muted"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "K09N6",
-                          "name": "rt3",
-                          "fill": "$foreground.primary",
-                          "textGrowth": "fixed-width",
+                          "type": "frame",
+                          "id": "RPqwg",
+                          "name": "recentSearchRow",
                           "width": "fill_container",
-                          "content": "Subtitle",
-                          "fontFamily": "$font.body",
-                          "fontSize": 13,
-                          "fontWeight": "500"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "YseC5",
-                      "name": "recentItem0",
-                      "width": 84,
-                      "layout": "vertical",
-                      "gap": 6,
-                      "children": [
-                        {
-                          "type": "rectangle",
-                          "cornerRadius": 10,
-                          "id": "ToRoA",
-                          "name": "cover0",
-                          "metadata": {
-                            "type": "unsplash",
-                            "username": "luismorerat",
-                            "link": "https://unsplash.com/@luismorerat",
-                            "author": "Luis Morera"
-                          },
-                          "fill": {
-                            "type": "image",
-                            "enabled": true,
-                            "url": "https://images.unsplash.com/photo-1615754890640-1b07ac20cdbc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3ODA0OTgwMzB8&ixlib=rb-4.1.0&q=80&w=1080",
-                            "mode": "fill"
-                          },
-                          "width": 84,
-                          "height": 84
+                          "height": 44,
+                          "gap": 12,
+                          "padding": [
+                            0,
+                            16
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "Kn7AM",
+                              "name": "historyIcon",
+                              "width": 20,
+                              "height": 20,
+                              "icon": "history",
+                              "library": "lucide",
+                              "fill": "$foreground.muted"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "vfYas",
+                              "name": "termClip",
+                              "clip": true,
+                              "width": "fill_container",
+                              "height": 22,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "tsJJ4",
+                                  "name": "term",
+                                  "fill": "$foreground.primary",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "米津玄師",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 15,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "icon",
+                              "id": "qVOTl",
+                              "name": "removeIcon",
+                              "width": 18,
+                              "height": 18,
+                              "icon": "x",
+                              "library": "lucide",
+                              "fill": "$foreground.muted"
+                            }
+                          ]
                         },
                         {
-                          "type": "text",
-                          "id": "sdT5F",
-                          "name": "rt0",
-                          "fill": "$foreground.primary",
-                          "textGrowth": "fixed-width",
+                          "type": "frame",
+                          "id": "zLYgC",
+                          "name": "recentSearchRow",
                           "width": "fill_container",
-                          "content": "アイドル",
-                          "fontFamily": "$font.body",
-                          "fontSize": 13,
-                          "fontWeight": "500"
+                          "height": 44,
+                          "gap": 12,
+                          "padding": [
+                            0,
+                            16
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "KVcIt",
+                              "name": "historyIcon",
+                              "width": 20,
+                              "height": 20,
+                              "icon": "history",
+                              "library": "lucide",
+                              "fill": "$foreground.muted"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "A1lMC",
+                              "name": "termClip",
+                              "clip": true,
+                              "width": "fill_container",
+                              "height": 22,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "qo4oY",
+                                  "name": "term",
+                                  "fill": "$foreground.primary",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "紅蓮華",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 15,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "icon",
+                              "id": "HG9bn",
+                              "name": "removeIcon",
+                              "width": 18,
+                              "height": 18,
+                              "icon": "x",
+                              "library": "lucide",
+                              "fill": "$foreground.muted"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "v2qls",
+                          "name": "recentSearchRow",
+                          "width": "fill_container",
+                          "height": 44,
+                          "gap": 12,
+                          "padding": [
+                            0,
+                            16
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "qWsjN",
+                              "name": "historyIcon",
+                              "width": 20,
+                              "height": 20,
+                              "icon": "history",
+                              "library": "lucide",
+                              "fill": "$foreground.muted"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "GnaWy",
+                              "name": "termClip",
+                              "clip": true,
+                              "width": "fill_container",
+                              "height": 22,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "c7ZpI",
+                                  "name": "term",
+                                  "fill": "$foreground.primary",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "Official髭男dism",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 15,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "icon",
+                              "id": "ZvS8U",
+                              "name": "removeIcon",
+                              "width": 18,
+                              "height": 18,
+                              "icon": "x",
+                              "library": "lucide",
+                              "fill": "$foreground.muted"
+                            }
+                          ]
                         }
                       ]
                     }
@@ -12853,263 +13243,23 @@
             },
             {
               "type": "frame",
-              "id": "ITUXL",
-              "name": "recentSearches",
+              "id": "xvsXs",
+              "name": "recommendedSection",
               "width": "fill_container",
               "layout": "vertical",
-              "gap": 2,
+              "gap": 8,
               "padding": [
+                8,
                 0,
-                16
+                0,
+                0
               ],
               "children": [
                 {
                   "type": "frame",
-                  "id": "MjRbC",
-                  "name": "sRow",
+                  "id": "diWKK",
+                  "name": "sectionLabelRow",
                   "width": "fill_container",
-                  "gap": 12,
-                  "padding": [
-                    11,
-                    0
-                  ],
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "icon",
-                      "id": "ebnSh",
-                      "name": "histIco",
-                      "width": 18,
-                      "height": 18,
-                      "icon": "history",
-                      "library": "lucide",
-                      "fill": "$foreground.muted"
-                    },
-                    {
-                      "type": "text",
-                      "id": "A1cImb",
-                      "name": "term",
-                      "fill": "$foreground.primary",
-                      "textGrowth": "fixed-width",
-                      "width": "fill_container",
-                      "content": "YOASOBI",
-                      "fontFamily": "$font.body",
-                      "fontSize": 15,
-                      "fontWeight": "normal"
-                    },
-                    {
-                      "type": "icon",
-                      "id": "X5yxkO",
-                      "name": "removeIco",
-                      "width": 16,
-                      "height": 16,
-                      "icon": "x",
-                      "library": "lucide",
-                      "fill": "$foreground.muted"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "aFeyM",
-                  "name": "sRow",
-                  "width": "fill_container",
-                  "gap": 12,
-                  "padding": [
-                    11,
-                    0
-                  ],
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "icon",
-                      "id": "j0Ka9s",
-                      "name": "histIco",
-                      "width": 18,
-                      "height": 18,
-                      "icon": "history",
-                      "library": "lucide",
-                      "fill": "$foreground.muted"
-                    },
-                    {
-                      "type": "text",
-                      "id": "msapR",
-                      "name": "term",
-                      "fill": "$foreground.primary",
-                      "textGrowth": "fixed-width",
-                      "width": "fill_container",
-                      "content": "夜に駆ける",
-                      "fontFamily": "$font.body",
-                      "fontSize": 15,
-                      "fontWeight": "normal"
-                    },
-                    {
-                      "type": "icon",
-                      "id": "v5Ipg6",
-                      "name": "removeIco",
-                      "width": 16,
-                      "height": 16,
-                      "icon": "x",
-                      "library": "lucide",
-                      "fill": "$foreground.muted"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "k42obd",
-                  "name": "sRow",
-                  "width": "fill_container",
-                  "gap": 12,
-                  "padding": [
-                    11,
-                    0
-                  ],
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "icon",
-                      "id": "iojII",
-                      "name": "histIco",
-                      "width": 18,
-                      "height": 18,
-                      "icon": "history",
-                      "library": "lucide",
-                      "fill": "$foreground.muted"
-                    },
-                    {
-                      "type": "text",
-                      "id": "pX4C5",
-                      "name": "term",
-                      "fill": "$foreground.primary",
-                      "textGrowth": "fixed-width",
-                      "width": "fill_container",
-                      "content": "米津玄師",
-                      "fontFamily": "$font.body",
-                      "fontSize": 15,
-                      "fontWeight": "normal"
-                    },
-                    {
-                      "type": "icon",
-                      "id": "IdUux",
-                      "name": "removeIco",
-                      "width": 16,
-                      "height": 16,
-                      "icon": "x",
-                      "library": "lucide",
-                      "fill": "$foreground.muted"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "MTPsm",
-                  "name": "sRow",
-                  "width": "fill_container",
-                  "gap": 12,
-                  "padding": [
-                    11,
-                    0
-                  ],
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "icon",
-                      "id": "xXkD0",
-                      "name": "histIco",
-                      "width": 18,
-                      "height": 18,
-                      "icon": "history",
-                      "library": "lucide",
-                      "fill": "$foreground.muted"
-                    },
-                    {
-                      "type": "text",
-                      "id": "Vfqzs",
-                      "name": "term",
-                      "fill": "$foreground.primary",
-                      "textGrowth": "fixed-width",
-                      "width": "fill_container",
-                      "content": "紅蓮華",
-                      "fontFamily": "$font.body",
-                      "fontSize": 15,
-                      "fontWeight": "normal"
-                    },
-                    {
-                      "type": "icon",
-                      "id": "k5PIP",
-                      "name": "removeIco",
-                      "width": 16,
-                      "height": 16,
-                      "icon": "x",
-                      "library": "lucide",
-                      "fill": "$foreground.muted"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "f2WyS",
-                  "name": "sRow",
-                  "width": "fill_container",
-                  "gap": 12,
-                  "padding": [
-                    11,
-                    0
-                  ],
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "icon",
-                      "id": "LMcSX",
-                      "name": "histIco",
-                      "width": 18,
-                      "height": 18,
-                      "icon": "history",
-                      "library": "lucide",
-                      "fill": "$foreground.muted"
-                    },
-                    {
-                      "type": "text",
-                      "id": "KW6rG",
-                      "name": "term",
-                      "fill": "$foreground.primary",
-                      "textGrowth": "fixed-width",
-                      "width": "fill_container",
-                      "content": "Official髭男dism",
-                      "fontFamily": "$font.body",
-                      "fontSize": 15,
-                      "fontWeight": "normal"
-                    },
-                    {
-                      "type": "icon",
-                      "id": "txqQg",
-                      "name": "removeIco",
-                      "width": 16,
-                      "height": 16,
-                      "icon": "x",
-                      "library": "lucide",
-                      "fill": "$foreground.muted"
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "r3Fa7L",
-              "name": "recommendedSection",
-              "width": "fill_container",
-              "layout": "vertical",
-              "gap": 14,
-              "children": [
-                {
-                  "type": "frame",
-                  "id": "GsYjM",
-                  "name": "recHeader",
-                  "width": "fill_container",
-                  "layout": "vertical",
-                  "gap": 4,
                   "padding": [
                     0,
                     16
@@ -13117,31 +13267,23 @@
                   "children": [
                     {
                       "type": "text",
-                      "id": "tvyJp",
-                      "name": "recTitle",
+                      "id": "HfQqC",
+                      "name": "sectionLabel",
                       "fill": "$foreground.primary",
                       "content": "이런 곡은 어때요?",
-                      "fontFamily": "$font.headings",
-                      "fontSize": 17,
-                      "fontWeight": "700"
-                    },
-                    {
-                      "type": "text",
-                      "id": "MhN2R",
-                      "name": "recSubtitle",
-                      "fill": "$foreground.secondary",
-                      "content": "요즘 인기 있는 노래를 모았어요.",
                       "fontFamily": "$font.body",
-                      "fontSize": 13,
-                      "fontWeight": "normal"
+                      "fontSize": 15,
+                      "fontWeight": "600"
                     }
                   ]
                 },
                 {
                   "type": "frame",
-                  "id": "H7ef0B",
+                  "id": "DpEiv",
                   "name": "recCarousel",
+                  "clip": true,
                   "width": "fill_container",
+                  "height": 200,
                   "gap": 12,
                   "padding": [
                     0,
@@ -13150,30 +13292,25 @@
                   "children": [
                     {
                       "type": "frame",
-                      "id": "XD8Wj",
-                      "name": "recCard_六本木クラブでゆらゆら揺れながら",
+                      "id": "Q8GKVx",
+                      "name": "recCard",
                       "clip": true,
                       "width": 152,
                       "height": 200,
-                      "fill": [
-                        {
-                          "type": "image",
-                          "enabled": true,
-                          "url": "https://images.unsplash.com/photo-1701762292571-2875f1e522b6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3ODY5NjAzOTd8&ixlib=rb-4.1.0&q=80&w=1080",
-                          "mode": "fill"
-                        },
-                        "#00000014"
-                      ],
-                      "cornerRadius": 14,
-                      "stroke": "#00000024",
-                      "strokeWidth": 1,
-                      "strokeAlignment": "inner",
+                      "fill": {
+                        "type": "image",
+                        "enabled": true,
+                        "url": "https://images.unsplash.com/photo-1701762292571-2875f1e522b6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3ODY5NjAzOTd8&ixlib=rb-4.1.0&q=80&w=1080",
+                        "mode": "fill"
+                      },
+                      "cornerRadius": 12,
                       "layout": "vertical",
+                      "padding": 12,
                       "justifyContent": "end",
                       "children": [
                         {
                           "type": "rectangle",
-                          "id": "duF9x",
+                          "id": "XJXis",
                           "layoutPosition": "absolute",
                           "x": 0,
                           "y": 0,
@@ -13210,42 +13347,55 @@
                         },
                         {
                           "type": "frame",
-                          "id": "RfBIs",
+                          "id": "wqUuc",
                           "name": "cardText",
                           "width": "fill_container",
                           "layout": "vertical",
-                          "gap": 3,
-                          "padding": [
-                            0,
-                            12,
-                            12,
-                            12
-                          ],
+                          "gap": 2,
                           "children": [
                             {
-                              "type": "text",
-                              "id": "uzX9a",
-                              "name": "cardTitle",
-                              "fill": "#FFFFFF",
-                              "textGrowth": "fixed-width",
+                              "type": "frame",
+                              "id": "NuJK2",
+                              "name": "cardTitleClip",
+                              "clip": true,
                               "width": "fill_container",
-                              "content": "六本木クラブでゆらゆら揺れながら",
-                              "lineHeight": 1.32,
-                              "fontFamily": "$font.body",
-                              "fontSize": 14,
-                              "fontWeight": "600"
+                              "height": 20,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "YLszg",
+                                  "name": "cardTitle",
+                                  "fill": "#FFFFFF",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "六本木クラブでゆらゆら揺れながら",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 14,
+                                  "fontWeight": "600"
+                                }
+                              ]
                             },
                             {
-                              "type": "text",
-                              "id": "chn5Z",
-                              "name": "cardArtist",
-                              "fill": "#FFFFFFB8",
-                              "textGrowth": "fixed-width",
+                              "type": "frame",
+                              "id": "eoJyB",
+                              "name": "cardArtistClip",
+                              "clip": true,
                               "width": "fill_container",
-                              "content": "back number",
-                              "fontFamily": "$font.body",
-                              "fontSize": 11,
-                              "fontWeight": "normal"
+                              "height": 18,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "wbBXw",
+                                  "name": "cardArtist",
+                                  "fill": "#FFFFFFB8",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "back number",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
                             }
                           ]
                         }
@@ -13253,30 +13403,25 @@
                     },
                     {
                       "type": "frame",
-                      "id": "uMSKU",
-                      "name": "recCard_マリーゴールド",
+                      "id": "c4MucL",
+                      "name": "recCard",
                       "clip": true,
                       "width": 152,
                       "height": 200,
-                      "fill": [
-                        {
-                          "type": "image",
-                          "enabled": true,
-                          "url": "https://images.unsplash.com/photo-1769430724125-96853e0eadbb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3ODY5NjAzOTd8&ixlib=rb-4.1.0&q=80&w=1080",
-                          "mode": "fill"
-                        },
-                        "#00000014"
-                      ],
-                      "cornerRadius": 14,
-                      "stroke": "#00000024",
-                      "strokeWidth": 1,
-                      "strokeAlignment": "inner",
+                      "fill": {
+                        "type": "image",
+                        "enabled": true,
+                        "url": "https://images.unsplash.com/photo-1769430724125-96853e0eadbb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3ODY5NjAzOTd8&ixlib=rb-4.1.0&q=80&w=1080",
+                        "mode": "fill"
+                      },
+                      "cornerRadius": 12,
                       "layout": "vertical",
+                      "padding": 12,
                       "justifyContent": "end",
                       "children": [
                         {
                           "type": "rectangle",
-                          "id": "s9u4YG",
+                          "id": "R8QQy",
                           "layoutPosition": "absolute",
                           "x": 0,
                           "y": 0,
@@ -13313,42 +13458,55 @@
                         },
                         {
                           "type": "frame",
-                          "id": "Ip5o9",
+                          "id": "rf6y1",
                           "name": "cardText",
                           "width": "fill_container",
                           "layout": "vertical",
-                          "gap": 3,
-                          "padding": [
-                            0,
-                            12,
-                            12,
-                            12
-                          ],
+                          "gap": 2,
                           "children": [
                             {
-                              "type": "text",
-                              "id": "Pg0m6",
-                              "name": "cardTitle",
-                              "fill": "#FFFFFF",
-                              "textGrowth": "fixed-width",
+                              "type": "frame",
+                              "id": "r0UW32",
+                              "name": "cardTitleClip",
+                              "clip": true,
                               "width": "fill_container",
-                              "content": "マリーゴールド",
-                              "lineHeight": 1.32,
-                              "fontFamily": "$font.body",
-                              "fontSize": 14,
-                              "fontWeight": "600"
+                              "height": 20,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "gEwqb",
+                                  "name": "cardTitle",
+                                  "fill": "#FFFFFF",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "マリーゴールド",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 14,
+                                  "fontWeight": "600"
+                                }
+                              ]
                             },
                             {
-                              "type": "text",
-                              "id": "j8BKvd",
-                              "name": "cardArtist",
-                              "fill": "#FFFFFFB8",
-                              "textGrowth": "fixed-width",
+                              "type": "frame",
+                              "id": "SA9Ne",
+                              "name": "cardArtistClip",
+                              "clip": true,
                               "width": "fill_container",
-                              "content": "あいみょん",
-                              "fontFamily": "$font.body",
-                              "fontSize": 11,
-                              "fontWeight": "normal"
+                              "height": 18,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "h4JFR",
+                                  "name": "cardArtist",
+                                  "fill": "#FFFFFFB8",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "あいみょん",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
                             }
                           ]
                         }
@@ -13356,30 +13514,25 @@
                     },
                     {
                       "type": "frame",
-                      "id": "T3EnAX",
-                      "name": "recCard_第ゼロ感",
+                      "id": "m9ha7t",
+                      "name": "recCard",
                       "clip": true,
                       "width": 152,
                       "height": 200,
-                      "fill": [
-                        {
-                          "type": "image",
-                          "enabled": true,
-                          "url": "https://images.unsplash.com/photo-1716809699704-209488bbac53?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3ODA1ODExNDR8&ixlib=rb-4.1.0&q=80&w=1080",
-                          "mode": "fill"
-                        },
-                        "#00000014"
-                      ],
-                      "cornerRadius": 14,
-                      "stroke": "#00000024",
-                      "strokeWidth": 1,
-                      "strokeAlignment": "inner",
+                      "fill": {
+                        "type": "image",
+                        "enabled": true,
+                        "url": "https://images.unsplash.com/photo-1716809699704-209488bbac53?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3ODA1ODExNDR8&ixlib=rb-4.1.0&q=80&w=1080",
+                        "mode": "fill"
+                      },
+                      "cornerRadius": 12,
                       "layout": "vertical",
+                      "padding": 12,
                       "justifyContent": "end",
                       "children": [
                         {
                           "type": "rectangle",
-                          "id": "tiUAi",
+                          "id": "mn648",
                           "layoutPosition": "absolute",
                           "x": 0,
                           "y": 0,
@@ -13416,42 +13569,55 @@
                         },
                         {
                           "type": "frame",
-                          "id": "INHAs",
+                          "id": "thRKA",
                           "name": "cardText",
                           "width": "fill_container",
                           "layout": "vertical",
-                          "gap": 3,
-                          "padding": [
-                            0,
-                            12,
-                            12,
-                            12
-                          ],
+                          "gap": 2,
                           "children": [
                             {
-                              "type": "text",
-                              "id": "GycoK",
-                              "name": "cardTitle",
-                              "fill": "#FFFFFF",
-                              "textGrowth": "fixed-width",
+                              "type": "frame",
+                              "id": "T75TxU",
+                              "name": "cardTitleClip",
+                              "clip": true,
                               "width": "fill_container",
-                              "content": "第ゼロ感",
-                              "lineHeight": 1.32,
-                              "fontFamily": "$font.body",
-                              "fontSize": 14,
-                              "fontWeight": "600"
+                              "height": 20,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "Uc3HQ",
+                                  "name": "cardTitle",
+                                  "fill": "#FFFFFF",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "第ゼロ感",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 14,
+                                  "fontWeight": "600"
+                                }
+                              ]
                             },
                             {
-                              "type": "text",
-                              "id": "a1qo4",
-                              "name": "cardArtist",
-                              "fill": "#FFFFFFB8",
-                              "textGrowth": "fixed-width",
+                              "type": "frame",
+                              "id": "n67rw",
+                              "name": "cardArtistClip",
+                              "clip": true,
                               "width": "fill_container",
-                              "content": "10-FEET",
-                              "fontFamily": "$font.body",
-                              "fontSize": 11,
-                              "fontWeight": "normal"
+                              "height": 18,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "VM6WW",
+                                  "name": "cardArtist",
+                                  "fill": "#FFFFFFB8",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "10-FEET",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
                             }
                           ]
                         }
@@ -13459,30 +13625,25 @@
                     },
                     {
                       "type": "frame",
-                      "id": "oY9vm",
-                      "name": "recCard_ベテルギウス",
+                      "id": "oFaOI",
+                      "name": "recCard",
                       "clip": true,
                       "width": 152,
                       "height": 200,
-                      "fill": [
-                        {
-                          "type": "image",
-                          "enabled": true,
-                          "url": "https://images.unsplash.com/photo-1506105524407-94b39b1e7415?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3ODA1ODExNDV8&ixlib=rb-4.1.0&q=80&w=1080",
-                          "mode": "fill"
-                        },
-                        "#00000014"
-                      ],
-                      "cornerRadius": 14,
-                      "stroke": "#00000024",
-                      "strokeWidth": 1,
-                      "strokeAlignment": "inner",
+                      "fill": {
+                        "type": "image",
+                        "enabled": true,
+                        "url": "https://images.unsplash.com/photo-1506105524407-94b39b1e7415?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3ODA1ODExNDV8&ixlib=rb-4.1.0&q=80&w=1080",
+                        "mode": "fill"
+                      },
+                      "cornerRadius": 12,
                       "layout": "vertical",
+                      "padding": 12,
                       "justifyContent": "end",
                       "children": [
                         {
                           "type": "rectangle",
-                          "id": "OWsiD",
+                          "id": "YXAkU",
                           "layoutPosition": "absolute",
                           "x": 0,
                           "y": 0,
@@ -13519,42 +13680,55 @@
                         },
                         {
                           "type": "frame",
-                          "id": "Tyq8z",
+                          "id": "eOWLa",
                           "name": "cardText",
                           "width": "fill_container",
                           "layout": "vertical",
-                          "gap": 3,
-                          "padding": [
-                            0,
-                            12,
-                            12,
-                            12
-                          ],
+                          "gap": 2,
                           "children": [
                             {
-                              "type": "text",
-                              "id": "h2nmC",
-                              "name": "cardTitle",
-                              "fill": "#FFFFFF",
-                              "textGrowth": "fixed-width",
+                              "type": "frame",
+                              "id": "w0vsW",
+                              "name": "cardTitleClip",
+                              "clip": true,
                               "width": "fill_container",
-                              "content": "ベテルギウス",
-                              "lineHeight": 1.32,
-                              "fontFamily": "$font.body",
-                              "fontSize": 14,
-                              "fontWeight": "600"
+                              "height": 20,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "jee05",
+                                  "name": "cardTitle",
+                                  "fill": "#FFFFFF",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "ベテルギウス",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 14,
+                                  "fontWeight": "600"
+                                }
+                              ]
                             },
                             {
-                              "type": "text",
-                              "id": "iiKju",
-                              "name": "cardArtist",
-                              "fill": "#FFFFFFB8",
-                              "textGrowth": "fixed-width",
+                              "type": "frame",
+                              "id": "GmC4E",
+                              "name": "cardArtistClip",
+                              "clip": true,
                               "width": "fill_container",
-                              "content": "優里",
-                              "fontFamily": "$font.body",
-                              "fontSize": 11,
-                              "fontWeight": "normal"
+                              "height": 18,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "u7Tbie",
+                                  "name": "cardArtist",
+                                  "fill": "#FFFFFFB8",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "優里",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
                             }
                           ]
                         }
