@@ -19,6 +19,7 @@ import io.github.openspacedrepetition.Card
 import io.github.openspacedrepetition.Rating
 import io.github.openspacedrepetition.Scheduler
 import org.springframework.context.ApplicationEventPublisher
+import org.springframework.data.domain.Pageable
 import org.springframework.transaction.annotation.Transactional
 import java.time.Clock
 import java.time.Duration
@@ -71,24 +72,58 @@ class FlashcardService(
         }
     }
 
-    @Transactional
-    fun getDueFlashcards(userId: Long): DueFlashcardsDto {
+    @Transactional(readOnly = true)
+    fun getDueFlashcards(userId: Long, limit: Int? = null): DueFlashcardsDto {
         val now = Instant.now(clock)
-        return assembleDueFlashcards(userId, flashcardRepository.findByUserIdAndDueLessThanEqual(userId, now), now)
+        val pageable = limit?.let { Pageable.ofSize(it) } ?: Pageable.unpaged()
+        val entities = flashcardRepository.findByUserIdAndDueLessThanEqualOrderByDueAscIdAsc(userId, now, pageable)
+        return assembleDueFlashcards(
+            userId, entities, now,
+            totalCount = flashcardRepository.countByUserIdAndDueLessThanEqual(userId, now).toInt(),
+            nextDueAt = flashcardRepository.findFirstByUserIdAndDueGreaterThanOrderByDueAscIdAsc(userId, now)?.due,
+        )
     }
 
     /**
      * Builds the due-flashcards view for a pre-selected id set — used by the deck module, which
      * owns the deck-scoped due query but must not assemble flashcard internals itself.
+     *
+     * [leadId] bypasses the due-date filter for one card — the deck module uses this to force a
+     * word the user just tapped into the response even if FSRS hasn't made it due yet.
      */
-    @Transactional
-    fun getDueFlashcardsByIds(userId: Long, flashcardIds: List<Long>): DueFlashcardsDto {
-        val now = Instant.now(clock)
-        val entities = flashcardRepository.findAllById(flashcardIds).filter { it.userId == userId }
-        return assembleDueFlashcards(userId, entities, now)
+    @Transactional(readOnly = true)
+    fun getDueFlashcardsByIds(
+        userId: Long,
+        flashcardIds: List<Long>,
+        now: Instant,
+        totalCount: Int,
+        nextDueAt: Instant?,
+        leadId: Long? = null,
+    ): DueFlashcardsDto {
+        val byId = flashcardRepository.findAllById(flashcardIds).associateBy { it.id }
+        val entities = flashcardIds.mapNotNull { byId[it] }
+            .filter { it.userId == userId && (it.due <= now || it.id == leadId) }
+        return assembleDueFlashcards(userId, entities, now, totalCount, nextDueAt)
     }
 
-    private fun assembleDueFlashcards(userId: Long, dueEntities: List<FlashcardEntity>, now: Instant): DueFlashcardsDto {
+    /**
+     * The flashcard id for a word and whether it is currently due — used by the deck module to
+     * splice a specific word to the head of its due queue without duplicating due-date logic.
+     */
+    @Transactional(readOnly = true)
+    fun findLeadCandidate(userId: Long, wordId: Long): LeadFlashcardCandidate? {
+        val entity = flashcardRepository.findByWordId(wordId) ?: return null
+        if (entity.userId != userId) return null
+        return LeadFlashcardCandidate(id = entity.id!!, isDue = entity.due <= Instant.now(clock))
+    }
+
+    private fun assembleDueFlashcards(
+        userId: Long,
+        dueEntities: List<FlashcardEntity>,
+        now: Instant,
+        totalCount: Int,
+        nextDueAt: Instant?,
+    ): DueFlashcardsDto {
         val wordIds = dueEntities.map { it.wordId }
         val words = wordRepository.findAllById(wordIds).associateBy { it.id }
         val songMap = SenseEnricher.loadSongs(words.values.flatMap { it.senses }, songRepository)
@@ -125,7 +160,7 @@ class FlashcardService(
             )
         }
 
-        return DueFlashcardsDto(items = cards.shuffled(), totalCount = cards.size)
+        return DueFlashcardsDto(items = cards, totalCount = totalCount, nextDueAt = nextDueAt?.toString())
     }
 
     @Transactional
@@ -207,3 +242,5 @@ class FlashcardService(
         }
     }
 }
+
+data class LeadFlashcardCandidate(val id: Long, val isDue: Boolean)

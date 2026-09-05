@@ -9,4 +9,6 @@ data class DeckSummaryDto(
     val wordCount: Int,
     val dueCount: Int,
     val masteredCount: Int,
+    val studyingCount: Int,
+    val newWordCount: Int,
 )

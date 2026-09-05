@@ -2,7 +2,10 @@ import { create } from 'zustand';
 import { songApi } from '../api/songApi';
 import { SongAnalysisWorkResponse, SongSearchItem, SongStudyData } from '../types/song';
 
-type Status = 'idle' | 'loading' | 'success' | 'error';
+// 'loading' covers the cheap existing-song lookup (usually well under a second).
+// 'analyzing' means a brand-new analysis was actually requested from the server
+// and is worth showing the full-screen "가사를 분석하는 중..." graphic for.
+type Status = 'idle' | 'loading' | 'analyzing' | 'success' | 'error';
 
 interface PlayerState {
   status: Status;
@@ -53,6 +56,10 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         durationSeconds: item.durationSeconds,
         artworkUrl: item.thumbnail,
       });
+      if (analysisRunId !== runId) return;
+      if (!accepted.canOpenPlayer && accepted.status !== 'FAILED') {
+        set({ status: 'analyzing' });
+      }
       const ready = await waitForPlayerReady(accepted, runId);
       if (analysisRunId !== runId) return;
       if (!ready.songId) {

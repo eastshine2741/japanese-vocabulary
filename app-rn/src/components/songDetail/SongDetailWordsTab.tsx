@@ -61,9 +61,9 @@ interface UseSongDetailWordsTabParams {
 interface Props {
   state: SongDetailWordsTabState;
   bottomPadding?: number;
-  getWordSaveState: (word: SongDetailWordItem) => SongDetailWordSaveState;
   busyWordKey: string | null;
-  onToggleWordSave: (word: SongDetailWordItem) => void;
+  /** 행을 누르면 그 단어를 첫 카드로 복습을 시작한다. 담기는 필요할 때 선행된다. */
+  onStartWordReview: (word: SongDetailWordItem) => void;
 }
 
 interface SummaryChipProps {
@@ -414,21 +414,7 @@ export const SongDetailWordsActionBar = React.memo(function SongDetailWordsActio
 
       <View style={styles.summarySpacer} />
 
-      <TouchableOpacity
-        style={[styles.batchButton, state.batchCount === 0 && styles.batchButtonDisabled]}
-        onPress={state.handleBatchAdd}
-        disabled={state.batchCount === 0 || state.isBatchSaving}
-        activeOpacity={0.7}
-      >
-        {state.isBatchSaving ? (
-          <ActivityIndicator size="small" color="#FFFFFF" />
-        ) : (
-          <>
-            <Ionicons name="add" size={14} color="#FFFFFF" />
-            <Text style={styles.batchButtonText}>{state.batchCount}개 담기</Text>
-          </>
-        )}
-      </TouchableOpacity>
+      <Text style={styles.wordCountText}>총 {state.visibleWords.length}개</Text>
     </View>
   );
 });
@@ -436,9 +422,8 @@ export const SongDetailWordsActionBar = React.memo(function SongDetailWordsActio
 export default function SongDetailWordsTab({
   state,
   bottomPadding = 150,
-  getWordSaveState,
   busyWordKey,
-  onToggleWordSave,
+  onStartWordReview,
 }: Props) {
   const insets = useSafeAreaInsets();
 
@@ -448,15 +433,13 @@ export default function SongDetailWordsTab({
 
       <View style={[styles.listContent, { paddingBottom: bottomPadding + insets.bottom }]}>
         {state.visibleWords.length === 0 ? state.listEmpty : state.renderedWords.map(word => {
-          const saveState = getWordSaveState(word);
           const wordKey = getSongDetailWordKey(word);
           return (
             <SongDetailWordRow
               key={wordKey}
               word={word}
-              isSaved={saveState.isSavedForSong}
               isBusy={busyWordKey === wordKey}
-              onToggleSave={onToggleWordSave}
+              onStartReview={onStartWordReview}
             />
           );
         })}
@@ -533,23 +516,10 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
   },
-  batchButton: {
-    height: 32,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    borderRadius: 9999,
-    paddingHorizontal: 12,
-    backgroundColor: Colors.primary,
-  },
-  batchButtonDisabled: {
-    opacity: 0.4,
-  },
-  batchButtonText: {
+  wordCountText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: Colors.textMuted,
   },
   listContent: {
     paddingHorizontal: 20,

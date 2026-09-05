@@ -93,6 +93,13 @@ export default {
     plugins: [
       './plugins/withReleaseSigning',
       'expo-apple-authentication',
+      [
+        'expo-navigation-bar',
+        {
+          enforceContrast: false,
+          barStyle: 'dark',
+        },
+      ],
       '@react-native-google-signin/google-signin',
       ...(firebaseDisabled
         ? []

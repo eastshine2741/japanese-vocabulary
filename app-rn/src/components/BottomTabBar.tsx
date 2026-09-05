@@ -2,9 +2,19 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../theme/theme';
+import { Colors, Dimens } from '../theme/theme';
+import { useHomeChromeStore } from '../stores/homeChromeStore';
 
 type TabKey = 'Home' | 'Search' | 'MyPage';
+
+const DarkPalette = {
+  bar: '#14181C',
+  border: '#FFFFFF1F',
+  iconActive: '#FFFFFF',
+  iconInactive: '#FFFFFF80',
+  labelActive: '#FFFFFF',
+  labelInactive: '#FFFFFF80',
+};
 
 // Icon glyph is always the brand green; the active tab is distinguished by the
 // filled glyph + primary label color (inactive uses the outline glyph + muted
@@ -13,14 +23,23 @@ type TabKey = 'Home' | 'Search' | 'MyPage';
 const TAB_CONFIG: Record<TabKey, { active: keyof typeof Ionicons.glyphMap; inactive: keyof typeof Ionicons.glyphMap; label: string }> = {
   Home: { active: 'home', inactive: 'home-outline', label: '홈' },
   Search: { active: 'search', inactive: 'search-outline', label: '검색' },
-  MyPage: { active: 'person', inactive: 'person-outline', label: '프로필' },
+  MyPage: { active: 'person', inactive: 'person-outline', label: '마이' },
 };
 
 export default function BottomTabBar({ state, navigation }: any) {
   const insets = useSafeAreaInsets();
+  const homeIsDark = useHomeChromeStore((s) => s.isDark);
+  const activeRouteName = state.routes[state.index]?.name as TabKey | undefined;
+  const isDark = activeRouteName === 'Home' && homeIsDark;
 
   return (
-    <View style={[styles.bar, { paddingBottom: insets.bottom, height: 56 + insets.bottom }]}>
+    <View
+      style={[
+        styles.bar,
+        { paddingBottom: insets.bottom, height: Dimens.bottomBarHeight + insets.bottom },
+        isDark && styles.barDark,
+      ]}
+    >
       {state.routes.map((route: any, index: number) => {
         const focused = state.index === index;
         const config = TAB_CONFIG[route.name as TabKey];
@@ -43,9 +62,21 @@ export default function BottomTabBar({ state, navigation }: any) {
             <Ionicons
               name={focused ? config.active : config.inactive}
               size={20}
-              color={Colors.primary}
+              color={
+                isDark
+                  ? focused
+                    ? DarkPalette.iconActive
+                    : DarkPalette.iconInactive
+                  : Colors.primary
+              }
             />
-            <Text style={[styles.label, focused ? styles.labelActive : styles.labelInactive]}>
+            <Text
+              style={[
+                styles.label,
+                focused ? styles.labelActive : styles.labelInactive,
+                isDark && (focused ? styles.labelActiveDark : styles.labelInactiveDark),
+              ]}
+            >
               {config.label}
             </Text>
           </TouchableOpacity>
@@ -73,12 +104,22 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 10,
     fontWeight: '500',
-    letterSpacing: 0.2,
+    letterSpacing: 0,
   },
   labelActive: {
     color: Colors.textPrimary,
   },
   labelInactive: {
     color: Colors.textMuted,
+  },
+  barDark: {
+    backgroundColor: DarkPalette.bar,
+    borderTopColor: DarkPalette.border,
+  },
+  labelActiveDark: {
+    color: DarkPalette.labelActive,
+  },
+  labelInactiveDark: {
+    color: DarkPalette.labelInactive,
   },
 });

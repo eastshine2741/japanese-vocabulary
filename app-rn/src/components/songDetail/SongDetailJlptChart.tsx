@@ -1,46 +1,27 @@
 import React, { useMemo } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
-import Svg, { Circle } from 'react-native-svg';
 import { Colors } from '../../theme/theme';
+import { Typography } from '../../theme/typography';
 import { buildJlptDistribution } from './songDetailWordDerivation';
 import { SongDetailJlptSlice, SongDetailWordItem } from './types';
-
-const CHART_SIZE = 120;
-const STROKE_WIDTH = 21;
-const RADIUS = (CHART_SIZE - STROKE_WIDTH) / 2;
-const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
-
-interface DonutSegmentProps {
-  slice: SongDetailJlptSlice;
-  offset: number;
-  total: number;
-}
 
 interface SongDetailJlptChartProps {
   words: readonly SongDetailWordItem[];
   isLoading?: boolean;
 }
 
-const DonutSegment = React.memo(function DonutSegment({ slice, offset, total }: DonutSegmentProps) {
-  if (slice.count === 0 || total === 0) return null;
-
-  const ratio = slice.count / total;
-  const dashLength = CIRCUMFERENCE * ratio;
-  const dashOffset = CIRCUMFERENCE * (1 - offset / total);
+const LevelBarSegment = React.memo(function LevelBarSegment({ slice }: { slice: SongDetailJlptSlice }) {
+  if (slice.count === 0) return null;
 
   return (
-    <Circle
-      cx={CHART_SIZE / 2}
-      cy={CHART_SIZE / 2}
-      r={RADIUS}
-      fill="none"
-      stroke={slice.color}
-      strokeWidth={STROKE_WIDTH}
-      strokeDasharray={`${dashLength} ${CIRCUMFERENCE - dashLength}`}
-      strokeDashoffset={dashOffset}
-      rotation="-90"
-      originX={CHART_SIZE / 2}
-      originY={CHART_SIZE / 2}
+    <View
+      style={[
+        styles.levelBarSegment,
+        {
+          flexGrow: slice.count,
+          backgroundColor: slice.color,
+        },
+      ]}
     />
   );
 });
@@ -62,12 +43,21 @@ export const SongDetailJlptChart = React.memo(function SongDetailJlptChart({
 }: SongDetailJlptChartProps) {
   const slices = useMemo(() => buildJlptDistribution(words), [words]);
   const total = words.length;
-
-  let runningCount = 0;
+  const summary = useMemo(() => {
+    if (total === 0) return null;
+    const dominant = slices.reduce((current, slice) => {
+      if (slice.count > current.count) return slice;
+      return current;
+    }, slices[0]);
+    return `${dominant.label} 중심`;
+  }, [slices, total]);
 
   return (
     <View style={styles.section}>
-      <Text style={styles.title}>난이도</Text>
+      <View style={styles.header}>
+        <Text style={styles.title}>난이도</Text>
+        {summary ? <Text style={styles.summary}>{summary}</Text> : null}
+      </View>
 
       {isLoading ? (
         <View style={styles.stateBox}>
@@ -76,40 +66,28 @@ export const SongDetailJlptChart = React.memo(function SongDetailJlptChart({
         </View>
       ) : total === 0 ? (
         <View style={styles.stateBox}>
-          <View style={styles.emptyDonut} />
+          <View style={styles.emptyBar} />
           <Text style={styles.stateText}>아직 분석할 단어가 없어요.</Text>
         </View>
       ) : (
         <View style={styles.body}>
-          <View style={styles.chartWrapper}>
-            <Svg width={CHART_SIZE} height={CHART_SIZE}>
-              <Circle
-                cx={CHART_SIZE / 2}
-                cy={CHART_SIZE / 2}
-                r={RADIUS}
-                fill="none"
-                stroke={Colors.border}
-                strokeWidth={STROKE_WIDTH}
-              />
-              {slices.map(slice => {
-                const offset = runningCount;
-                runningCount += slice.count;
-                return (
-                  <DonutSegment
-                    key={slice.key}
-                    slice={slice}
-                    offset={offset}
-                    total={total}
-                  />
-                );
-              })}
-            </Svg>
+          <View style={styles.levelBar}>
+            {slices.map(slice => (
+              <LevelBarSegment key={slice.key} slice={slice} />
+            ))}
           </View>
 
           <View style={styles.legend}>
-            {slices.map(slice => (
-              <LegendItem key={slice.key} slice={slice} />
-            ))}
+            <View style={styles.legendRow}>
+              {slices.slice(0, 3).map(slice => (
+                <LegendItem key={slice.key} slice={slice} />
+              ))}
+            </View>
+            <View style={styles.legendRow}>
+              {slices.slice(3).map(slice => (
+                <LegendItem key={slice.key} slice={slice} />
+              ))}
+            </View>
           </View>
         </View>
       )}
@@ -119,26 +97,48 @@ export const SongDetailJlptChart = React.memo(function SongDetailJlptChart({
 
 const styles = StyleSheet.create({
   section: {
-    gap: 16,
+    gap: 12,
   },
-  title: {
-    color: Colors.textPrimary,
-    fontSize: 17,
-    fontWeight: '700',
-  },
-  body: {
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 35,
+    justifyContent: 'space-between',
   },
-  chartWrapper: {
-    width: CHART_SIZE,
-    height: CHART_SIZE,
+  title: {
+    ...Typography.headingBold,
+    color: Colors.textPrimary,
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  summary: {
+    ...Typography.bodySemiBold,
+    color: Colors.textMuted,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  body: {
+    gap: 10,
+  },
+  levelBar: {
+    height: 10,
+    flexDirection: 'row',
+    gap: 2,
+    overflow: 'hidden',
+    borderRadius: 9999,
+    backgroundColor: '#F6F6F6',
+  },
+  levelBarSegment: {
+    height: 10,
+    flexBasis: 0,
   },
   legend: {
-    gap: 8,
+    gap: 6,
+  },
+  legendRow: {
+    flexDirection: 'row',
   },
   legendItem: {
+    width: 110,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
@@ -149,24 +149,25 @@ const styles = StyleSheet.create({
     borderRadius: 9999,
   },
   legendText: {
-    color: Colors.textPrimary,
+    ...Typography.body,
+    color: Colors.textSecondary,
     fontSize: 11,
   },
   stateBox: {
-    minHeight: 120,
+    minHeight: 60,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
   },
   stateText: {
+    ...Typography.body,
     color: Colors.textSecondary,
     fontSize: 13,
   },
-  emptyDonut: {
-    width: CHART_SIZE,
-    height: CHART_SIZE,
-    borderRadius: CHART_SIZE / 2,
-    borderWidth: STROKE_WIDTH,
-    borderColor: Colors.border,
+  emptyBar: {
+    width: '100%',
+    height: 10,
+    borderRadius: 9999,
+    backgroundColor: '#F6F6F6',
   },
 });

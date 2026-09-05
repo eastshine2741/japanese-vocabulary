@@ -1,19 +1,18 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
   TextInput,
   FlatList,
   TouchableOpacity,
-  ActivityIndicator,
   StyleSheet,
   Animated,
   Easing,
   Keyboard,
+  ActivityIndicator,
 } from 'react-native';
-import AnalyzingView from '../components/AnalyzingView';
 import ArtworkImage from '../components/ArtworkImage';
-import SongListItem from '../components/SongListItem';
+import AnalyzingView from '../components/AnalyzingView';
 import ErrorDialog from '../components/ErrorDialog';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -38,6 +37,60 @@ function formatDuration(seconds: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
+interface SearchResultRowProps {
+  item: SongSearchItem;
+  onPress: (item: SongSearchItem) => void;
+  // Whether ANY row-triggered work (existence check or a brand-new analysis)
+  // is in flight screen-wide. Every row must be untappable while this is
+  // true, or a second tap can race the first request's callback and
+  // navigate to the wrong song (see handleAnalyze).
+  disabled: boolean;
+  // Whether THIS row is the one being checked/analyzed, so only it shows
+  // the spinner in place of the chevron.
+  isActiveRow: boolean;
+  spinRotate: Animated.AnimatedInterpolation<string | number>;
+}
+
+const SearchResultRow = React.memo(React.forwardRef<View, SearchResultRowProps>(
+  function SearchResultRow({ item, onPress, disabled, isActiveRow, spinRotate }, ref) {
+    const handlePress = useCallback(() => {
+      onPress(item);
+    }, [item, onPress]);
+
+    return (
+      <View ref={ref} collapsable={false}>
+        <TouchableOpacity
+          style={styles.resultRow}
+          onPress={handlePress}
+          activeOpacity={0.72}
+          disabled={disabled}
+        >
+          <ArtworkImage url={item.thumbnail} size={48} cornerRadius={8} />
+          <View style={styles.resultInfo}>
+            <Text style={styles.resultTitle} numberOfLines={1}>
+              {item.title}
+            </Text>
+            <Text style={styles.resultSubtitle} numberOfLines={1}>
+              {item.artistName} · {formatDuration(item.durationSeconds)}
+            </Text>
+          </View>
+          {isActiveRow ? (
+            <Animated.View style={{ transform: [{ rotate: spinRotate }] }}>
+              <Feather name="loader" size={18} color={Colors.primary} />
+            </Animated.View>
+          ) : (
+            <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
+          )}
+        </TouchableOpacity>
+      </View>
+    );
+  },
+));
+
+function ResultSeparator() {
+  return <View style={styles.resultGap} />;
+}
+
 export default function SongSearchResultsScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
@@ -50,19 +103,25 @@ export default function SongSearchResultsScreen() {
   const [errorDialogMessage, setErrorDialogMessage] = useState<string | null>(null);
   const [analyzingItem, setAnalyzingItem] = useState<SongSearchItem | null>(null);
   const [rowMorphReady, setRowMorphReady] = useState(false);
+  const [checkingItemId, setCheckingItemId] = useState<string | null>(null);
 
   const analyze = usePlayerStore(s => s.analyze);
   const playerStatus = usePlayerStore(s => s.status);
   const resetPlayer = usePlayerStore(s => s.reset);
   const recordSearchLocally = useSearchHistoryStore(s => s.recordLocally);
 
-  const analyzing = playerStatus === 'loading';
+  // Existence check ('loading') keeps the list on screen with just a row
+  // spinner; only an actual new analysis ('analyzing') earns the full-screen
+  // "가사를 분석하는 중..." graphic.
+  const isChecking = playerStatus === 'loading';
+  const isAnalyzingNewSong = playerStatus === 'analyzing';
 
   const rowAnim = useRef(new Animated.Value(0)).current;
   const spinAnim = useRef(new Animated.Value(0)).current;
   const rowRefs = useRef<Map<string, View>>(new Map()).current;
   const fromYRef = useRef<number>(0);
   const animatedRowRef = useRef<View>(null);
+  const pendingItemRef = useRef<SongSearchItem | null>(null);
 
   // Run the search for this screen's query once on mount. Each executed search
   // lives on its own stack entry, so a fresh screen == a fresh search.
@@ -87,7 +146,7 @@ export default function SongSearchResultsScreen() {
   }, [initialQuery, recordSearchLocally]);
 
   useEffect(() => {
-    if (!analyzing) return;
+    if (!isChecking && !isAnalyzingNewSong) return;
     const spin = Animated.loop(
       Animated.timing(spinAnim, {
         toValue: 1,
@@ -101,18 +160,34 @@ export default function SongSearchResultsScreen() {
       spin.stop();
       spinAnim.setValue(0);
     };
-  }, [analyzing, spinAnim]);
+  }, [isChecking, isAnalyzingNewSong, spinAnim]);
 
+  // Only the real "new analysis" phase (step 3) morphs the row into the
+  // full-screen graphic. The cheap existence check (step 2) never sets
+  // analyzingItem, so the list stays on screen for it.
   useEffect(() => {
-    if (!analyzing) {
+    if (isAnalyzingNewSong && pendingItemRef.current) {
+      setAnalyzingItem(pendingItemRef.current);
+      setRowMorphReady(false);
+    } else if (!isAnalyzingNewSong) {
       setAnalyzingItem(null);
       setRowMorphReady(false);
     }
-  }, [analyzing]);
+  }, [isAnalyzingNewSong]);
+
+  // Once the existence check (or the analysis it may lead to) finishes, drop
+  // the row-level "checking" indicator.
+  useEffect(() => {
+    if (!isChecking && !isAnalyzingNewSong) {
+      setCheckingItemId(null);
+      pendingItemRef.current = null;
+    }
+  }, [isChecking, isAnalyzingNewSong]);
 
   useEffect(() => {
     return () => {
-      if (usePlayerStore.getState().status === 'loading') {
+      const currentStatus = usePlayerStore.getState().status;
+      if (currentStatus === 'loading' || currentStatus === 'analyzing') {
         resetPlayer();
       }
     };
@@ -138,11 +213,18 @@ export default function SongSearchResultsScreen() {
   }, [rowMorphReady, rowAnim]);
 
   const handleAnalyze = useCallback((item: SongSearchItem) => {
+    // Row taps are disabled screen-wide while a check/analysis is in
+    // flight, but guard re-entry here too in case a tap is already queued
+    // before disabled propagates.
+    if (isChecking || isAnalyzingNewSong) return;
     Keyboard.dismiss();
     const start = (fromY: number) => {
+      // Captured now, while the row is still on screen, so the later morph
+      // into the full-screen graphic (if a new analysis turns out to be
+      // needed) animates from the right spot.
       fromYRef.current = fromY;
-      setRowMorphReady(false);
-      setAnalyzingItem(item);
+      pendingItemRef.current = item;
+      setCheckingItemId(item.id);
       analyze(item).then(() => {
         const state = usePlayerStore.getState();
         if (state.status === 'success') {
@@ -158,7 +240,7 @@ export default function SongSearchResultsScreen() {
     } else {
       start(0);
     }
-  }, [analyze, navigation, rowRefs]);
+  }, [analyze, navigation, rowRefs, isChecking, isAnalyzingNewSong]);
 
   // Refining the search pushes a new stack entry so each query keeps its own
   // results and the back button steps through them.
@@ -172,14 +254,49 @@ export default function SongSearchResultsScreen() {
     [navigation],
   );
 
-  const spinRotate = spinAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0deg', '360deg'],
-  });
+  // Stabilized so it doesn't change identity every render (e.g. on every
+  // `setQuery` keystroke) — otherwise `renderResultItem` below would change
+  // identity too, defeating `SearchResultRow`'s React.memo for every row.
+  const spinRotate = useMemo(
+    () =>
+      spinAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: ['0deg', '360deg'],
+      }),
+    [spinAnim],
+  );
+
+  // Screen-wide busy flag: any row-triggered work in flight (existence
+  // check or a brand-new analysis) must disable every row, not just the
+  // one being checked — otherwise a second tap can race the first
+  // request's callback and navigate to the wrong song.
+  const isRowInteractionDisabled = isChecking || isAnalyzingNewSong;
+
+  const renderResultItem = useCallback(
+    ({ item }: { item: SongSearchItem }) => (
+      <SearchResultRow
+        ref={(el) => {
+          if (el) rowRefs.set(item.id, el);
+          else rowRefs.delete(item.id);
+        }}
+        item={item}
+        onPress={handleAnalyze}
+        disabled={isRowInteractionDisabled}
+        isActiveRow={item.id === checkingItemId}
+        spinRotate={spinRotate}
+      />
+    ),
+    [handleAnalyze, rowRefs, checkingItemId, isRowInteractionDisabled, spinRotate],
+  );
+
+  const keyExtractor = useCallback((item: SongSearchItem) => item.id, []);
+  // The full-screen "가사를 분석하는 중..." graphic is reserved for an actual
+  // new analysis request. Plain search loading keeps the search UI visible.
+  const showFullScreenLoading = isAnalyzingNewSong;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-      <View style={[styles.searchRow, analyzing && styles.hidden]}>
+      <View style={[styles.searchRow, showFullScreenLoading && styles.hidden]}>
         <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={8}>
           <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
         </TouchableOpacity>
@@ -202,14 +319,14 @@ export default function SongSearchResultsScreen() {
         </View>
       </View>
 
-      {!analyzing && status === 'success' && items.length > 0 && (
+      {!showFullScreenLoading && status === 'success' && items.length > 0 && (
         <View style={styles.resultHeader}>
           <Text style={styles.resultLabel}>검색 결과</Text>
           <Text style={styles.resultCount}>{items.length}곡</Text>
         </View>
       )}
 
-      {analyzing ? (
+      {showFullScreenLoading ? (
         <AnalyzingView
           slot={
             analyzingItem ? (
@@ -241,41 +358,35 @@ export default function SongSearchResultsScreen() {
           }
         />
       ) : status === 'loading' ? (
-        <ActivityIndicator style={styles.centerLoader} color={Colors.primary} />
+        <View style={styles.messageBox}>
+          <ActivityIndicator color={Colors.primary} />
+          <Text style={styles.messageText}>검색 중...</Text>
+        </View>
       ) : status === 'error' ? (
         <View style={styles.messageBox}>
+          <Feather name="alert-circle" size={28} color={Colors.textMuted} />
           <Text style={styles.messageText}>검색에 실패했어요. 다시 시도해주세요.</Text>
         </View>
       ) : items.length === 0 ? (
         <View style={styles.messageBox}>
-          <Text style={styles.messageText}>검색 결과가 없어요.</Text>
+          <View style={styles.emptyIconWrap}>
+            <Feather name="search" size={28} color={Colors.textMuted} />
+          </View>
+          <Text style={styles.emptyTitle} numberOfLines={2}>
+            '{initialQuery}'에 대한 검색 결과가 없어요
+          </Text>
+          <Text style={styles.emptySubtitle}>다른 검색어로 다시 시도해보세요</Text>
         </View>
       ) : (
         <FlatList
           data={items}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <View
-              ref={(el) => {
-                if (el) rowRefs.set(item.id, el);
-                else rowRefs.delete(item.id);
-              }}
-              collapsable={false}
-            >
-              <SongListItem
-                artworkUrl={item.thumbnail}
-                title={item.title}
-                subtitle={`${item.artistName} · ${formatDuration(item.durationSeconds)}`}
-                showChevron
-                onPress={() => handleAnalyze(item)}
-              />
-            </View>
-          )}
+          keyExtractor={keyExtractor}
+          renderItem={renderResultItem}
           ListFooterComponent={
             <Text style={styles.attribution}>Music search powered by iTunes</Text>
           }
           contentContainerStyle={styles.list}
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          ItemSeparatorComponent={ResultSeparator}
           keyboardShouldPersistTaps="handled"
         />
       )}
@@ -291,10 +402,10 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   searchRow: {
-    height: 56,
+    height: 48,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     gap: 12,
   },
   inputWrapper: {
@@ -303,7 +414,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.card,
-    borderRadius: 12,
+    borderRadius: 16,
     paddingHorizontal: 14,
     gap: 10,
   },
@@ -317,38 +428,98 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: Dimens.screenPadding,
+    paddingHorizontal: 20,
     paddingTop: 8,
-    paddingBottom: 4,
+    paddingBottom: 0,
   },
   resultLabel: {
-    fontSize: 14,
+    fontSize: 13,
+    fontWeight: '600',
     color: Colors.textSecondary,
   },
   resultCount: {
-    fontSize: 14,
-    color: Colors.textSecondary,
+    fontSize: 13,
+    color: Colors.textMuted,
   },
   list: {
-    paddingHorizontal: Dimens.screenPadding,
-    paddingBottom: 20,
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 24,
   },
-  separator: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: Colors.border,
-    marginLeft: 48 + 12, // artwork size + gap
+  resultGap: {
+    height: 4,
   },
-  centerLoader: {
+  resultRow: {
+    minHeight: 68,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 10,
+  },
+  resultInfo: {
     flex: 1,
+    gap: 2,
+  },
+  resultTitle: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: Colors.textPrimary,
+  },
+  resultSubtitle: {
+    fontSize: 12,
+    color: Colors.textSecondary,
   },
   messageBox: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 32,
+    paddingHorizontal: 40,
+    gap: 6,
+  },
+  analyzingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 10,
+    paddingHorizontal: Dimens.screenPadding,
+    alignSelf: 'stretch',
+  },
+  analyzingContent: {
+    flex: 1,
+  },
+  analyzingTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+  },
+  analyzingSubtitle: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    marginTop: 2,
   },
   messageText: {
     fontSize: 14,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+  },
+  emptyIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: Colors.elevated,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  emptyTitle: {
+    alignSelf: 'stretch',
+    fontSize: 15,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+    textAlign: 'center',
+  },
+  emptySubtitle: {
+    fontSize: 13,
     color: Colors.textSecondary,
     textAlign: 'center',
   },
@@ -358,16 +529,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingVertical: 16,
   },
-  analyzingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: Dimens.screenPadding,
-    gap: 12,
-    alignSelf: 'stretch',
-  },
-  analyzingContent: { flex: 1 },
-  analyzingTitle: { fontSize: 15, fontWeight: '600', color: Colors.textPrimary },
-  analyzingSubtitle: { fontSize: 13, color: Colors.textSecondary, marginTop: 2 },
   hidden: { display: 'none' },
 });

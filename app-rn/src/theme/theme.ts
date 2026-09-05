@@ -61,6 +61,11 @@ export const Colors = {
   freezeFill: '#E8F0F9',
   freezeStroke: '#5B9BF5',
 
+  // Word mastery progress bar (profile hero, song progress row, song detail progress)
+  wordMasteryTrackBackground: '#F6F6F6',
+  wordMasteryStudying: '#FABD23',
+  wordMasteryNewIndicator: '#D2D2D2',
+
   // Legacy aliases
   textTertiary: '#A1A1AA',
   cardBorder: '#E5E5E5',
@@ -71,5 +76,5 @@ export const Dimens = {
   cardCornerRadius: 16,
   smallCornerRadius: 12,
   artworkCornerRadius: 12,
-  bottomBarHeight: 64,
+  bottomBarHeight: 56,
 };
