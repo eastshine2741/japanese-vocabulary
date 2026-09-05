@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { Animated, Easing, PanResponder, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
@@ -26,6 +26,8 @@ type Nav = CompositeNavigationProp<
 const IMMERSE_DISTANCE = 120;
 /** 놓았을 때 접힘으로 확정되는 지점. */
 const IMMERSE_COMMIT_DISTANCE = -56;
+/** 몰입 상태에서 놓았을 때 펼침으로 확정되는 지점. */
+const IMMERSE_EXIT_COMMIT_DISTANCE = 56;
 /** 손을 뗀 뒤 남은 구간을 마저 접거나 되돌리는 시간. */
 const IMMERSE_SETTLE_MS = 320;
 const IMMERSE_REVERT_MS = 220;
@@ -38,29 +40,20 @@ export default function HomeTab() {
   const { isComplete, revealed, reload, session, status, streak, weekDots } = stack;
   const visibleSongId = stack.visibleSource?.songId ?? null;
 
+  const immersed = useHomeChromeStore(s => s.isDark);
   const setDark = useHomeChromeStore(s => s.setDark);
   const focusedRef = useRef(focused);
   focusedRef.current = focused;
-  const [immersed, setImmersed] = useState(false);
   const immersedRef = useRef(immersed);
   immersedRef.current = immersed;
   const revealedRef = useRef(revealed);
   revealedRef.current = revealed;
-  const immerse = useRef(new Animated.Value(0)).current;
-
-  // 접힘은 이번 세션 동안 유지되고, 탭을 떠날 때만 펼침으로 되돌린다.
-  useEffect(() => {
-    if (focused) return;
-    immerse.setValue(0);
-    setImmersed(false);
-    setDark(false);
-  }, [immerse, focused, setDark]);
+  const immerse = useRef(new Animated.Value(immersed ? 1 : 0)).current;
 
   // 이미 홈탭에 있는 상태에서 홈탭을 다시 누르면 몰입 모드를 풀고 스택을 새로고침한다.
   useEffect(() => navigation.addListener('tabPress', () => {
     if (!focusedRef.current) return;
     immerse.setValue(0);
-    setImmersed(false);
     setDark(false);
     reload();
   }), [immerse, navigation, reload, setDark]);
@@ -76,6 +69,18 @@ export default function HomeTab() {
     }).start();
   }, [immerse]);
 
+  const enterImmerse = useCallback(() => {
+    if (immersedRef.current) return;
+    setDark(true);
+    settle(1);
+  }, [setDark, settle]);
+
+  const exitImmerse = useCallback(() => {
+    if (!immersedRef.current) return;
+    setDark(false);
+    settle(0);
+  }, [setDark, settle]);
+
   const immersePan = useMemo(
     () => PanResponder.create({
       // 카드가 앞면일 때만 세로 드래그를 가로챈다 — 뒷면 rating 스와이프와는 상태로 배타적이다.
@@ -87,9 +92,7 @@ export default function HomeTab() {
       },
       onPanResponderRelease: (_, gesture) => {
         if (gesture.dy < IMMERSE_COMMIT_DISTANCE) {
-          setImmersed(true);
-          setDark(true);
-          settle(1);
+          enterImmerse();
           return;
         }
         settle(0);
@@ -99,7 +102,51 @@ export default function HomeTab() {
         settle(0);
       },
     }),
-    [immerse, setDark, settle],
+    [enterImmerse, immerse, settle],
+  );
+
+  const chromeImmersePan = useMemo(
+    () => PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gesture) => {
+        const isVertical = Math.abs(gesture.dy) > Math.abs(gesture.dx);
+        return isVertical && (
+          (immersedRef.current && gesture.dy > 8)
+          || (!immersedRef.current && gesture.dy < -8)
+        );
+      },
+      onPanResponderMove: (_, gesture) => {
+        if (immersedRef.current) {
+          if (gesture.dy <= 0) return;
+          immerse.setValue(Math.max(0, 1 - gesture.dy / IMMERSE_DISTANCE));
+          return;
+        }
+        if (gesture.dy >= 0) return;
+        immerse.setValue(Math.min(1, -gesture.dy / IMMERSE_DISTANCE));
+      },
+      onPanResponderRelease: (_, gesture) => {
+        if (immersedRef.current) {
+          if (gesture.dy > IMMERSE_EXIT_COMMIT_DISTANCE) {
+            exitImmerse();
+            return;
+          }
+          settle(1);
+          return;
+        }
+        if (gesture.dy < IMMERSE_COMMIT_DISTANCE) {
+          enterImmerse();
+          return;
+        }
+        settle(0);
+      },
+      onPanResponderTerminate: () => {
+        if (immersedRef.current) {
+          settle(1);
+          return;
+        }
+        settle(0);
+      },
+    }),
+    [enterImmerse, exitImmerse, immerse, settle],
   );
 
   const goSearch = useCallback(() => navigation.navigate('Search'), [navigation]);
@@ -112,6 +159,10 @@ export default function HomeTab() {
   const openRecommended = useCallback((recommended: StudySource) => {
     if (recommended.songId == null) return;
     navigation.navigate('SongDetail', { songId: recommended.songId, origin: 'Home' });
+  }, [navigation]);
+
+  const openExampleSource = useCallback((songId: number) => {
+    navigation.navigate('SongDetail', { songId, origin: 'Home' });
   }, [navigation]);
 
   // 세션 시작 시점에 due 가 없었는데 도중에 새로 due 된 카드를 리뷰하면 queueTotal 이 0으로 남는다.
@@ -163,18 +214,32 @@ export default function HomeTab() {
     </Animated.View>
   );
 
+  const chromeGestureStyle = useMemo(
+    () => ({
+      height: insets.top + (immersed ? STACK_REVIEW_CHROME_HEIGHT : HOME_HEADER_CONTENT_HEIGHT),
+    }),
+    [immersed, insets.top],
+  );
+
   return (
     <View style={styles.screen}>
       <View style={styles.stackWrap} {...immersePan.panHandlers}>
         <StudyStack
           stack={stack}
           onOpenSource={openSource}
+          onOpenExampleSource={openExampleSource}
           onSearch={goSearch}
           onSelectRecommended={openRecommended}
           overlay={overlay}
           contentInsetTop={contentInsetTop}
+          requireImmersedInteraction={!immersed}
+          onRequestImmerse={enterImmerse}
         />
       </View>
+      <View
+        style={[styles.chromeGestureArea, chromeGestureStyle]}
+        {...chromeImmersePan.panHandlers}
+      />
       <HomeExpandedHeader streak={streak} weekDots={weekDots} immerse={immerse} />
     </View>
   );
@@ -187,5 +252,11 @@ const styles = StyleSheet.create({
   },
   stackWrap: {
     flex: 1,
+  },
+  chromeGestureArea: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
   },
 });

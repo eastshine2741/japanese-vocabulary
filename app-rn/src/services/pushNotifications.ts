@@ -93,7 +93,7 @@ function handleData(data: RemoteMessage['data']): void {
   if (data.type === 'review_reminder' && data.flashcardId != null) {
     const id = Number(data.flashcardId);
     if (Number.isFinite(id)) {
-      navigate('Review', { startFlashcardId: id });
+      navigate('Main', { screen: 'Home' });
     }
   }
 }

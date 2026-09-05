@@ -1,5 +1,5 @@
 import React from 'react';
-import { Animated, ImageBackground, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, ImageBackground, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StudySource } from './types';
@@ -23,6 +23,9 @@ function withStagePadding(inset: StageInset | undefined, base: number) {
 
 export interface CardStageProps {
   artworkUrl: string | null;
+  /** 다른 곡 무대로 넘어갈 때 이전 아트워크를 잠깐 겹쳐 배경 색 점프를 줄인다. */
+  previousArtworkUrl?: string | null;
+  artworkTransitionProgress?: Animated.Value;
   /** 무대 위에 겹쳐 그리는 크롬 높이. 아트워크는 그대로 전체를 덮고 내용만 내려간다. */
   contentInsetTop?: StageInset;
   /** 시스템 하단 영역 높이. 아트워크는 그대로 전체를 덮고 내용만 올린다. */
@@ -33,6 +36,8 @@ export interface CardStageProps {
 /** 곡 무대 — 아트워크 + 틴트 + 스크림 2겹. 같은 곡 안에서는 움직이지 않는다. */
 export const CardStage = React.memo(function CardStage({
   artworkUrl,
+  previousArtworkUrl,
+  artworkTransitionProgress,
   contentInsetTop,
   contentInsetBottom,
   children,
@@ -41,8 +46,35 @@ export const CardStage = React.memo(function CardStage({
     paddingTop: withStagePadding(contentInsetTop, STAGE_PADDING_TOP),
     paddingBottom: STAGE_PADDING_BOTTOM + (contentInsetBottom ?? 0),
   };
+  const previousArtworkOpacity = artworkTransitionProgress?.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
   const content = (
     <>
+      {artworkUrl ? (
+        <Image
+          source={{ uri: artworkUrl }}
+          resizeMode="cover"
+          blurRadius={8}
+          style={[styles.stageImageLayer, styles.stageImage]}
+        />
+      ) : (
+        <View style={[StyleSheet.absoluteFill, styles.fallbackArt]} />
+      )}
+      {previousArtworkUrl && previousArtworkOpacity && previousArtworkUrl !== artworkUrl && (
+        <Animated.Image
+          source={{ uri: previousArtworkUrl }}
+          resizeMode="cover"
+          blurRadius={8}
+          style={[
+            styles.stageImageLayer,
+            styles.stageImage,
+            { opacity: previousArtworkOpacity },
+          ]}
+        />
+      )}
       <View style={styles.tint} />
       <LinearGradient
         pointerEvents="none"
@@ -62,22 +94,7 @@ export const CardStage = React.memo(function CardStage({
       </Animated.View>
     </>
   );
-
-  if (!artworkUrl) {
-    return <View style={[styles.stageArt, styles.fallbackArt]}>{content}</View>;
-  }
-
-  return (
-    <ImageBackground
-      source={{ uri: artworkUrl }}
-      resizeMode="cover"
-      blurRadius={8}
-      style={styles.stageArt}
-      imageStyle={styles.stageImage}
-    >
-      {content}
-    </ImageBackground>
-  );
+  return <View style={styles.stageArt}>{content}</View>;
 });
 
 export interface SourceHeaderProps {
@@ -130,6 +147,11 @@ const styles = StyleSheet.create({
   },
   fallbackArt: {
     backgroundColor: '#16242A',
+  },
+  stageImageLayer: {
+    ...StyleSheet.absoluteFillObject,
+    width: undefined,
+    height: undefined,
   },
   stageImage: {
     transform: [{ scale: 1.18 }],

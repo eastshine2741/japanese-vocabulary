@@ -474,6 +474,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
   const openSongReview = useCallback((deck: DeckDetailResponse, leadWordId?: number | null) => {
     if (songId == null || deck.deckId == null) return false;
     navigation.navigate('SongReview', {
+      origin: 'SongDetail',
       source: {
         deckId: deck.deckId,
         songId,

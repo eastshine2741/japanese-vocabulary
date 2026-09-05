@@ -24,8 +24,8 @@ Sentry.init({
 });
 
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, StatusBar } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { Platform, StyleSheet, StatusBar } from 'react-native';
+import { NavigationContainer, type NavigationState } from '@react-navigation/native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -39,13 +39,63 @@ import { useSettingsStore } from './src/stores/settingsStore';
 import SplashScreen from './src/screens/SplashScreen';
 import { registerNotificationHandlers, requestPermissionAndRegisterToken } from './src/services/pushNotifications';
 import { applyGlobalTypography } from './src/theme/typography';
+import { useHomeChromeStore } from './src/stores/homeChromeStore';
+import { useAndroidNavigationBarColor } from './src/hooks/useAndroidNavigationBarColor';
 
 GoogleSignin.configure({
   webClientId: process.env.EXPO_PUBLIC_GOOGLE_OAUTH_WEB_CLIENT_ID ?? '',
 });
 
+const HOME_IMMERSE_NAVIGATION_BAR_COLOR = '#14181C';
+const SONG_REVIEW_NAVIGATION_BAR_COLOR = '#000000';
+
+type NavigationMode = 'default' | 'homeImmerse' | 'songReview';
+
+function getAndroidNavigationMode(
+  navigationState: NavigationState | null,
+  homeIsDark: boolean,
+): NavigationMode {
+  const currentRootRoute = navigationState?.routes[navigationState.index];
+  if (currentRootRoute?.name === 'SongReview') {
+    const params = currentRootRoute.params as RootStackParamList['SongReview'] | undefined;
+    return params?.origin === 'SongDetail' ? 'songReview' : 'default';
+  }
+
+  if (currentRootRoute?.name === 'Main') {
+    const tabState = currentRootRoute.state as NavigationState | undefined;
+    const activeTabRoute = tabState?.routes[tabState.index ?? 0];
+    return activeTabRoute?.name === 'Home' && homeIsDark ? 'homeImmerse' : 'default';
+  }
+
+  return 'default';
+}
+
+function AndroidSystemBarController({ navigationState }: { navigationState: NavigationState | null }) {
+  const homeIsDark = useHomeChromeStore((s) => s.isDark);
+  const navigationMode = getAndroidNavigationMode(navigationState, homeIsDark);
+  const usesDarkSystemBars = navigationMode !== 'default';
+
+  useAndroidNavigationBarColor({
+    active: usesDarkSystemBars,
+    color:
+      navigationMode === 'songReview'
+        ? SONG_REVIEW_NAVIGATION_BAR_COLOR
+        : HOME_IMMERSE_NAVIGATION_BAR_COLOR,
+    buttonStyle: 'light',
+  });
+
+  return (
+    <StatusBar
+      barStyle={Platform.OS === 'android' && usesDarkSystemBars ? 'light-content' : 'dark-content'}
+      backgroundColor="transparent"
+      translucent
+    />
+  );
+}
+
 function App() {
   const [initialRoute, setInitialRoute] = useState<keyof RootStackParamList | null>(null);
+  const [navigationState, setNavigationState] = useState<NavigationState | null>(null);
   const [interLoaded] = useInterFonts({
     Inter_400Regular,
     Inter_500Medium,
@@ -82,11 +132,18 @@ function App() {
     <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider>
         <BottomSheetModalProvider>
-          <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
           {!initialRoute || !fontsLoaded ? (
             <SplashScreen />
           ) : (
-            <NavigationContainer ref={navigationRef} onReady={flushPending}>
+            <NavigationContainer
+              ref={navigationRef}
+              onReady={() => {
+                flushPending();
+                setNavigationState(navigationRef.getRootState());
+              }}
+              onStateChange={(state) => setNavigationState(state ?? null)}
+            >
+              <AndroidSystemBarController navigationState={navigationState} />
               <AppNavigator initialRoute={initialRoute} />
             </NavigationContainer>
           )}

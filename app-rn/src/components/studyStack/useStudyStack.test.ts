@@ -14,8 +14,12 @@ const native = vi.hoisted(() => ({ listeners: new Set<(state: string) => void>()
 vi.mock('react-native', () => ({
   Animated: {
     Value: class { setValue() {} },
-    timing: () => ({ start: (done: () => void) => done() }),
+    timing: () => ({ start: (done?: () => void) => done?.() }),
     spring: () => ({ start() {} }),
+  },
+  Easing: {
+    cubic: vi.fn(),
+    out: vi.fn((easing) => easing),
   },
   AppState: {
     currentState: 'active',
@@ -44,6 +48,10 @@ const card = (id: number): FlashcardDTO => ({
 });
 let stack: StudyStackState;
 let renderer: ReactTestRenderer;
+type PanHandlers = {
+  onMoveShouldSetPanResponder: (event: unknown, gesture: { dx: number; dy: number }) => boolean;
+  onPanResponderRelease: (event: unknown, gesture: { dx?: number; dy: number }) => void;
+};
 function Harness({ studySource = source }: { studySource?: StudySource }) {
   stack = useStudyStack({ mode: 'source', source: studySource });
   return null;
@@ -54,9 +62,7 @@ async function mount(studySource?: StudySource) {
 async function rate(rating = 1) {
   await act(async () => { stack.reveal(); stack.selectRating(rating); });
   await act(async () => {
-    const handlers = stack.panHandlers as unknown as {
-      onPanResponderRelease: (event: unknown, gesture: { dy: number }) => void;
-    };
+    const handlers = stack.panHandlers as unknown as PanHandlers;
     handlers.onPanResponderRelease({}, { dy: -100 });
   });
 }
@@ -90,6 +96,16 @@ it('advances to the already-buffered next card locally, without refetching', asy
   expect(stack.revealed).toBe(false);
   // 다음 카드가 이미 버퍼에 있으면 스와이프 한 번에 서버를 다시 조회하지 않는다.
   expect(flashcardApi.getDueCards).toHaveBeenCalledTimes(1);
+});
+
+it('lets horizontal example carousel swipes pass through after rating is selected', async () => {
+  vi.mocked(flashcardApi.getDueCards)
+    .mockResolvedValueOnce({ cards: [card(9), card(1)], totalCount: 2, nextDueAt: null });
+  await mount();
+  await act(async () => { stack.reveal(); stack.selectRating(1); });
+  const handlers = stack.panHandlers as unknown as PanHandlers;
+  expect(handlers.onMoveShouldSetPanResponder({}, { dx: 70, dy: -14 })).toBe(false);
+  expect(handlers.onMoveShouldSetPanResponder({}, { dx: 8, dy: -32 })).toBe(true);
 });
 
 it('prefetches the next page once the local buffer drops to the threshold, deduping already-buffered cards', async () => {

@@ -28,7 +28,9 @@ const TAB_CONFIG: Record<TabKey, { active: keyof typeof Ionicons.glyphMap; inact
 
 export default function BottomTabBar({ state, navigation }: any) {
   const insets = useSafeAreaInsets();
-  const isDark = useHomeChromeStore((s) => s.isDark);
+  const homeIsDark = useHomeChromeStore((s) => s.isDark);
+  const activeRouteName = state.routes[state.index]?.name as TabKey | undefined;
+  const isDark = activeRouteName === 'Home' && homeIsDark;
 
   return (
     <View

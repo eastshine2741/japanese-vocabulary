@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, AppState, GestureResponderHandlers, PanResponder } from 'react-native';
+import { Animated, AppState, Easing, GestureResponderHandlers, PanResponder } from 'react-native';
 import { deckApi } from '../../api/deckApi';
 import { flashcardApi } from '../../api/flashcardApi';
 import { songApi } from '../../api/songApi';
@@ -98,6 +98,7 @@ export interface StudyStackState {
   weekDots: WeekDot[];
   session: StudySessionProgress;
   translateY: Animated.Value;
+  revealProgress: Animated.Value;
   panHandlers: GestureResponderHandlers;
   reveal: () => void;
   selectRating: (rating: number) => void;
@@ -141,6 +142,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
   // 아직 안 바뀐 레이어 내용이 fully opaque 로 잠깐 노출된다. 새 값은 항상 0에서
   // 시작하므로 이런 경합 자체가 생기지 않는다.
   const [translateY, setTranslateY] = useState<Animated.Value>(() => new Animated.Value(0));
+  const [revealProgress, setRevealProgress] = useState<Animated.Value>(() => new Animated.Value(0));
 
   const sourceRef = useRef<StudySource | null>(source ?? null);
   sourceRef.current = source ?? null;
@@ -186,6 +188,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     setCards([]);
     setCurrentIndex(0);
     setRevealed(false);
+    setRevealProgress(new Animated.Value(0));
     setSelectedRating(null);
     setCompletedSource(completed);
     setNextDueSource(nextDeck ? sourceFromDeck(nextDeck) : null);
@@ -204,6 +207,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     setCompletedSource(null);
     setCurrentIndex(0);
     setTranslateY(new Animated.Value(0));
+    setRevealProgress(new Animated.Value(0));
     setReviewedCount(0);
     setSessionDueTotal(0);
     reviewedIdsRef.current = new Set();
@@ -257,6 +261,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
       setCurrentIndex(0);
       if (currentCardRef.current?.id !== due.cards[0]?.id) {
         setRevealed(false);
+        setRevealProgress(new Animated.Value(0));
         setSelectedRating(null);
         setTranslateY(new Animated.Value(0));
       }
@@ -324,6 +329,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
       setCurrentIndex(0);
       setCompletedSource(null);
       setRevealed(false);
+      setRevealProgress(new Animated.Value(0));
       setSelectedRating(null);
       setTranslateY(new Animated.Value(0));
       setStatus('ready');
@@ -442,7 +448,15 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     void prefetchMore();
   }, [cards.length, currentIndex, status, prefetchMore]);
 
-  const reveal = useCallback(() => setRevealed(true), []);
+  const reveal = useCallback(() => {
+    setRevealed(true);
+    Animated.timing(revealProgress, {
+      toValue: 1,
+      duration: 320,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [revealProgress]);
 
   /**
    * 홈 콜드스타트 미리보기 카드의 rating 확정. 이 순간에만 서버에 그 곡을 통째로 담고
@@ -461,7 +475,6 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     const rating = selectedRating;
     try {
       setSelectedRating(null);
-      setRevealed(false);
       await new Promise<void>(resolve => {
         Animated.timing(translateY, {
           toValue: SWIPE_OUT_DISTANCE,
@@ -488,9 +501,13 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
         setCards(result.cards.map(card => ({ ...card, source: newSource })));
         setCurrentIndex(0);
         setTranslateY(new Animated.Value(0));
+        setRevealProgress(new Animated.Value(0));
+        setRevealed(false);
       } else {
         setCards([]);
         setCompletedSource(newSource);
+        setRevealProgress(new Animated.Value(0));
+        setRevealed(false);
       }
       setStatus('ready');
     } catch (e: any) {
@@ -522,7 +539,6 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
       // FSRS 는 리뷰 직후 due 를 항상 미래로 미룬다 — 서버 왕복 없이 큐 카운터를 맞춰둔다.
       setDueCount(count => Math.max(0, count - 1));
       setSelectedRating(null);
-      setRevealed(false);
       await new Promise<void>(resolve => {
         Animated.timing(translateY, {
           toValue: SWIPE_OUT_DISTANCE,
@@ -537,6 +553,8 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
         // 새 Animated.Value 로 교체해 다음 카드가 처음부터 정지 상태(0)로 렌더되게 한다.
         setCurrentIndex(nextIndex);
         setTranslateY(new Animated.Value(0));
+        setRevealProgress(new Animated.Value(0));
+        setRevealed(false);
       } else {
         // 버퍼가 바닥났을 때만 서버를 다시 확인한다. 저장 성공 뒤 조회만 실패한 경우
         // 평가를 중복 제출하지 않도록 이 폴백에서도 review 를 다시 부르지 않는다.
@@ -593,7 +611,11 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
 
   const panResponder = useMemo(
     () => PanResponder.create({
-      onMoveShouldSetPanResponder: (_, gesture) => revealed && selectedRating != null && Math.abs(gesture.dy) > 8,
+      onMoveShouldSetPanResponder: (_, gesture) =>
+        revealed
+        && selectedRating != null
+        && gesture.dy < -8
+        && Math.abs(gesture.dy) > Math.abs(gesture.dx) * 1.2,
       onPanResponderMove: (_, gesture) => {
         if (gesture.dy < 0) {
           translateY.setValue(Math.max(gesture.dy, SWIPE_OUT_DISTANCE));
@@ -644,6 +666,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     weekDots,
     session,
     translateY,
+    revealProgress,
     panHandlers: panResponder.panHandlers,
     reveal,
     selectRating: setSelectedRating,

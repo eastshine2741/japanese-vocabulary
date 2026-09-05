@@ -105,6 +105,6 @@ const styles = StyleSheet.create({
   progressFill: {
     height: 4,
     borderRadius: 999,
-    backgroundColor: '#52B788',
+    backgroundColor: 'rgba(255,255,255,0.6)',
   },
 });

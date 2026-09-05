@@ -1,7 +1,8 @@
-import React, { useCallback } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useEffect, useRef } from 'react';
+import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { StageInset } from './CardStage';
+import SkeletonBox from '../SkeletonLoading';
+import { CardStage, StageInset } from './CardStage';
 import { CompletionStage, ErrorStage } from './CompletionStage';
 import { WordLayer } from './WordLayer';
 import { StudySource } from './types';
@@ -11,6 +12,8 @@ export interface StudyStackProps {
   /** useStudyStack 반환값 전체. 크롬은 여기서 session/streak 를 읽는다. */
   stack: StudyStackState;
   onOpenSource: () => void;
+  /** 예문 캐러셀에서 그 예문이 나온 곡(카드 자체 source 와 다를 수 있다)으로 이동할 때. */
+  onOpenExampleSource?: (songId: number) => void;
   onSearch: () => void;
   /** 완주 화면에서 추천곡을 선택했을 때. 넘기지 않으면 추천곡 넛지를 그리지 않는다. */
   onSelectRecommended?: (source: StudySource) => void;
@@ -23,17 +26,23 @@ export interface StudyStackProps {
   contentInsetTop?: StageInset;
   /** 시스템 하단 영역이 무대 위를 덮는 높이. 하단 컨트롤만 그만큼 올린다. */
   contentInsetBottom?: number;
+  /** 홈 확장 상태처럼 카드 조작 전에 먼저 immersive 전환이 필요한 경우. */
+  requireImmersedInteraction?: boolean;
+  onRequestImmerse?: () => void;
 }
 
 /** 크롬에 독립적인 카드 스택. 크롬은 그리지 않는다. */
 export const StudyStack = React.memo(function StudyStack({
   stack,
   onOpenSource,
+  onOpenExampleSource,
   onSearch,
   onSelectRecommended,
   overlay,
   contentInsetTop,
   contentInsetBottom,
+  requireImmersedInteraction = false,
+  onRequestImmerse,
 }: StudyStackProps) {
   const {
     status,
@@ -44,6 +53,7 @@ export const StudyStack = React.memo(function StudyStack({
     selectedRating,
     saving,
     translateY,
+    revealProgress,
     panHandlers,
     isComplete,
     isError,
@@ -63,14 +73,38 @@ export const StudyStack = React.memo(function StudyStack({
   }, [onSelectRecommended, recommendedSource]);
 
   const nextCard = cards[currentIndex + 1] ?? null;
+  const lastCardArtworkUrlRef = useRef<string | null>(currentCard?.source.artworkUrl ?? null);
+  const wasCompleteRef = useRef(false);
+  const completionEntranceProgress = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (currentCard) {
+      lastCardArtworkUrlRef.current = currentCard.source.artworkUrl;
+    }
+  }, [currentCard]);
+
+  useEffect(() => {
+    if (isComplete && !wasCompleteRef.current) {
+      completionEntranceProgress.setValue(0);
+      Animated.timing(completionEntranceProgress, {
+        toValue: 1,
+        duration: 520,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
+    } else if (!isComplete) {
+      completionEntranceProgress.setValue(0);
+    }
+    wasCompleteRef.current = isComplete;
+  }, [completionEntranceProgress, isComplete]);
 
   return (
     <View style={styles.stage}>
       {status === 'loading' && (
-        <View style={styles.loadingLayer}>
-          <ActivityIndicator color="#FFFFFF" />
-          <Text style={styles.loadingText}>오늘 볼 단어를 고르는 중</Text>
-        </View>
+        <StudyStackLoadingSkeleton
+          contentInsetTop={contentInsetTop}
+          contentInsetBottom={contentInsetBottom}
+        />
       )}
 
       {isError && (
@@ -91,10 +125,14 @@ export const StudyStack = React.memo(function StudyStack({
           selectedRating={selectedRating}
           saving={saving}
           translateY={translateY}
+          revealProgress={revealProgress}
           panHandlers={panHandlers}
           onReveal={reveal}
           onRating={selectRating}
           onSourcePress={onOpenSource}
+          onOpenExampleSource={onOpenExampleSource}
+          requireImmersedInteraction={requireImmersedInteraction}
+          onRequestImmerse={onRequestImmerse}
           contentInsetTop={contentInsetTop}
           contentInsetBottom={contentInsetBottom}
         />
@@ -105,6 +143,8 @@ export const StudyStack = React.memo(function StudyStack({
           completedSource={completedSource}
           nextDueSource={nextDueSource}
           recommendedSource={recommendedSource}
+          previousArtworkUrl={lastCardArtworkUrlRef.current}
+          entranceProgress={completionEntranceProgress}
           onContinueDue={continueDue}
           onRecommended={handleRecommended}
           onSearch={onSearch}
@@ -136,23 +176,60 @@ export const StudyStack = React.memo(function StudyStack({
 });
 
 const REVIEW_ERROR_BOTTOM_OFFSET = 24;
+const SKELETON_RATING_BUTTONS = [0, 1, 2, 3];
+
+interface StudyStackLoadingSkeletonProps {
+  contentInsetTop?: StageInset;
+  contentInsetBottom?: number;
+}
+
+const StudyStackLoadingSkeleton = React.memo(function StudyStackLoadingSkeleton({
+  contentInsetTop,
+  contentInsetBottom,
+}: StudyStackLoadingSkeletonProps) {
+  return (
+    <CardStage
+      artworkUrl={null}
+      contentInsetTop={contentInsetTop}
+      contentInsetBottom={contentInsetBottom}
+    >
+      <View pointerEvents="none" style={styles.skeletonGrayBackground} />
+      <View pointerEvents="none" style={styles.skeletonSourceRow}>
+        <SkeletonBox width={40} height={40} borderRadius={8} color="rgba(255,255,255,0.18)" />
+        <View style={styles.skeletonSourceTextCol}>
+          <SkeletonBox width="56%" height={14} borderRadius={4} color="rgba(255,255,255,0.22)" />
+          <SkeletonBox width="34%" height={11} borderRadius={4} color="rgba(255,255,255,0.14)" />
+        </View>
+        <SkeletonBox width={16} height={16} borderRadius={8} color="rgba(255,255,255,0.12)" />
+      </View>
+
+      <View pointerEvents="none" style={styles.skeletonStack}>
+        <View style={styles.skeletonWordGroup}>
+          <SkeletonBox width="68%" height={64} borderRadius={10} color="rgba(255,255,255,0.24)" />
+          <View style={styles.skeletonHintRow}>
+            <SkeletonBox width={16} height={16} borderRadius={8} color="rgba(255,255,255,0.18)" />
+            <SkeletonBox width={132} height={12} borderRadius={4} color="rgba(255,255,255,0.16)" />
+          </View>
+        </View>
+
+        <View style={styles.skeletonRatingRow}>
+          {SKELETON_RATING_BUTTONS.map((rating) => (
+            <View key={rating} style={styles.skeletonRatingButton}>
+              <SkeletonBox width="54%" height={12} borderRadius={4} color="rgba(255,255,255,0.20)" />
+              <SkeletonBox width="42%" height={10} borderRadius={4} color="rgba(255,255,255,0.13)" />
+            </View>
+          ))}
+        </View>
+      </View>
+    </CardStage>
+  );
+});
 
 const styles = StyleSheet.create({
   stage: {
     flex: 1,
     backgroundColor: '#14181C',
     overflow: 'hidden',
-  },
-  loadingLayer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-  },
-  loadingText: {
-    color: 'rgba(255,255,255,0.82)',
-    fontSize: 13,
-    fontWeight: '600',
   },
   reviewErrorBanner: {
     position: 'absolute',
@@ -174,5 +251,49 @@ const styles = StyleSheet.create({
     color: '#FFD4D4',
     fontSize: 13,
     lineHeight: 18,
+  },
+  skeletonGrayBackground: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#6B7178',
+  },
+  skeletonSourceRow: {
+    height: 40,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  skeletonSourceTextCol: {
+    flex: 1,
+    gap: 7,
+  },
+  skeletonStack: {
+    flex: 1,
+  },
+  skeletonWordGroup: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+    gap: 18,
+  },
+  skeletonHintRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  skeletonRatingRow: {
+    height: 48,
+    flexDirection: 'row',
+    gap: 8,
+  },
+  skeletonRatingButton: {
+    flex: 1,
+    height: 48,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.16)',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
   },
 });

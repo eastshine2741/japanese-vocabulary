@@ -10,7 +10,6 @@ import ProfileEditScreen from '../screens/ProfileEditScreen';
 import SearchScreen from '../screens/SearchScreen';
 import SongSearchResultsScreen from '../screens/SongSearchResultsScreen';
 import SongDetailScreen from '../screens/SongDetailScreen';
-import ReviewScreen from '../screens/ReviewScreen';
 import DeckListScreen from '../screens/DeckListScreen';
 import DeckDetailScreen from '../screens/DeckDetailScreen';
 import DeckWordListScreen from '../screens/DeckWordListScreen';
@@ -51,9 +50,8 @@ export type RootStackParamList = {
   Settings: undefined;
   OssLicense: undefined;
   SongDetail: SongPlaybackEntryParams;
-  Review: { deckId?: number | null; startFlashcardId?: number } | undefined;
   /** 곡 진입 복습. 큐 순서는 서버 due 응답을 그대로 따른다. */
-  SongReview: { source: StudySource };
+  SongReview: { source: StudySource; origin?: 'SongDetail' };
   DeckList: undefined;
   SongProgressList: undefined;
   DeckDetail: { deckId: number | null };
@@ -113,7 +111,6 @@ export default function AppNavigator({ initialRoute }: Props) {
       <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="OssLicense" component={OssLicenseScreen} />
       <Stack.Screen name="SongDetail" component={SongDetailScreen} />
-      <Stack.Screen name="Review" component={ReviewScreen} />
       <Stack.Screen name="SongReview" component={SongReviewScreen} />
       <Stack.Screen name="DeckList" component={DeckListScreen} />
       <Stack.Screen name="SongProgressList" component={SongProgressListScreen} />

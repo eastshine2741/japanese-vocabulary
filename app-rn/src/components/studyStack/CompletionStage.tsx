@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { ArtworkThumb, CardStage, StageInset } from './CardStage';
 import { StudySource } from './types';
@@ -8,6 +8,8 @@ export interface CompletionStageProps {
   completedSource: StudySource | null;
   nextDueSource: StudySource | null;
   recommendedSource: StudySource | null;
+  previousArtworkUrl?: string | null;
+  entranceProgress?: Animated.Value;
   onContinueDue: () => void;
   onRecommended: () => void;
   onSearch: () => void;
@@ -22,6 +24,8 @@ export const CompletionStage = React.memo(function CompletionStage({
   completedSource,
   nextDueSource,
   recommendedSource,
+  previousArtworkUrl,
+  entranceProgress,
   onContinueDue,
   onRecommended,
   onSearch,
@@ -43,15 +47,60 @@ export const CompletionStage = React.memo(function CompletionStage({
     : hasRecommended
       ? '대단해요! 오늘의 모든 단어를 복습했어요'
       : '다음 복습 시간이 되면 카드가 다시 나타나요';
+  const centerEntranceStyle = entranceProgress
+    ? {
+        opacity: entranceProgress.interpolate({
+          inputRange: [0, 0.28, 1],
+          outputRange: [0, 0, 1],
+          extrapolate: 'clamp',
+        }),
+        transform: [
+          {
+            translateY: entranceProgress.interpolate({
+              inputRange: [0, 1],
+              outputRange: [18, 0],
+              extrapolate: 'clamp',
+            }),
+          },
+          {
+            scale: entranceProgress.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0.98, 1],
+              extrapolate: 'clamp',
+            }),
+          },
+        ],
+      }
+    : null;
+  const bottomEntranceStyle = entranceProgress
+    ? {
+        opacity: entranceProgress.interpolate({
+          inputRange: [0, 0.44, 1],
+          outputRange: [0, 0, 1],
+          extrapolate: 'clamp',
+        }),
+        transform: [
+          {
+            translateY: entranceProgress.interpolate({
+              inputRange: [0, 1],
+              outputRange: [24, 0],
+              extrapolate: 'clamp',
+            }),
+          },
+        ],
+      }
+    : null;
 
   if (!stageSource) {
     return (
       <CardStage
         artworkUrl={null}
+        previousArtworkUrl={previousArtworkUrl}
+        artworkTransitionProgress={entranceProgress}
         contentInsetTop={contentInsetTop}
         contentInsetBottom={contentInsetBottom}
       >
-        <View style={styles.completeCenter}>
+        <Animated.View style={[styles.completeCenter, centerEntranceStyle]}>
           <View style={styles.doneBadge}>
             <Feather name="check" size={32} color="#A7E3C4" />
           </View>
@@ -62,12 +111,12 @@ export const CompletionStage = React.memo(function CompletionStage({
               <Text style={styles.doneSub}>새로 배울 곡을 검색해보세요</Text>
             </View>
           </View>
-        </View>
-        <View style={styles.completeBottom}>
+        </Animated.View>
+        <Animated.View style={[styles.completeBottom, bottomEntranceStyle]}>
           <Pressable style={styles.primaryAction} onPress={onSearch}>
             <Text style={styles.primaryActionText}>새 곡 검색</Text>
           </Pressable>
-        </View>
+        </Animated.View>
       </CardStage>
     );
   }
@@ -75,10 +124,12 @@ export const CompletionStage = React.memo(function CompletionStage({
   return (
     <CardStage
       artworkUrl={stageSource.artworkUrl}
+      previousArtworkUrl={previousArtworkUrl}
+      artworkTransitionProgress={entranceProgress}
       contentInsetTop={contentInsetTop}
       contentInsetBottom={contentInsetBottom}
     >
-      <View style={styles.completeCenter}>
+      <Animated.View style={[styles.completeCenter, centerEntranceStyle]}>
         {hasNextDue || completedSource ? (
           <ArtworkThumb artworkUrl={(completedSource ?? stageSource).artworkUrl} size={72} radius={14} />
         ) : (
@@ -97,9 +148,9 @@ export const CompletionStage = React.memo(function CompletionStage({
             </Text>
           </View>
         </View>
-      </View>
+      </Animated.View>
 
-      <View style={styles.completeBottom}>
+      <Animated.View style={[styles.completeBottom, bottomEntranceStyle]}>
         {(hasNextDue || hasRecommended) && (
           <>
             <View style={styles.nudgeDivider} />
@@ -138,7 +189,7 @@ export const CompletionStage = React.memo(function CompletionStage({
             </Pressable>
           </View>
         )}
-      </View>
+      </Animated.View>
     </CardStage>
   );
 });
