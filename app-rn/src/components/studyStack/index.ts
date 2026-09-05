@@ -13,6 +13,11 @@ export {
 } from './CompletionStage';
 export { HomeChrome, type HomeChromeProps } from './HomeChrome';
 export {
+  HomeExpandedHeader,
+  HOME_HEADER_CONTENT_HEIGHT,
+  type HomeExpandedHeaderProps,
+} from './HomeExpandedHeader';
+export {
   StackReviewOverlay,
   STACK_REVIEW_CHROME_HEIGHT,
   type StackReviewOverlayProps,

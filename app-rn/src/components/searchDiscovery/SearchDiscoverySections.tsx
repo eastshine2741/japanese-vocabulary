@@ -3,7 +3,6 @@ import {
   FlatList,
   Image,
   ListRenderItemInfo,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -14,7 +13,6 @@ import Svg, { Path } from 'react-native-svg';
 import { useFocusEffect } from '@react-navigation/native';
 import { useShallow } from 'zustand/react/shallow';
 import ArtworkImage from '../ArtworkImage';
-import SkeletonBox from '../SkeletonLoading';
 import { useHomeStore } from '../../stores/homeStore';
 import { useRecommendationStore } from '../../stores/recommendationStore';
 import { useSearchHistoryStore } from '../../stores/searchHistoryStore';
@@ -36,7 +34,6 @@ const REC_CARD_HEIGHT = 200;
 const REC_CARD_GAP = 12;
 const REC_CARD_RADIUS = 12;
 const REC_CARD_PADDING = 12;
-const REC_SKELETON_COUNT = 4;
 const SCRIM_COLORS = ['#00000000', '#00000000', '#000000A8', '#000000ED'] as const;
 const SCRIM_LOCATIONS = [0, 0.34, 0.7, 1] as const;
 
@@ -158,17 +155,6 @@ const RecommendedCard = React.memo(function RecommendedCard({
   );
 });
 
-const RecommendedSkeletonCard = React.memo(function RecommendedSkeletonCard() {
-  return (
-    <SkeletonBox
-      width={REC_CARD_WIDTH}
-      height={REC_CARD_HEIGHT}
-      borderRadius={REC_CARD_RADIUS}
-      color={Colors.elevated}
-    />
-  );
-});
-
 function RecentSongSeparator() {
   return <View style={styles.recentSeparator} />;
 }
@@ -224,10 +210,9 @@ export default function SearchDiscoverySections({
   const { terms, loadTerms, removeTerm } = useSearchHistoryStore(
     useShallow(s => ({ terms: s.terms, loadTerms: s.load, removeTerm: s.remove })),
   );
-  const { recommendedSongs, recommendationStatus, loadRecommendations } = useRecommendationStore(
+  const { recommendedSongs, loadRecommendations } = useRecommendationStore(
     useShallow(s => ({
       recommendedSongs: s.songs,
-      recommendationStatus: s.status,
       loadRecommendations: s.load,
     })),
   );
@@ -296,34 +281,19 @@ export default function SearchDiscoverySections({
         </View>
       ) : null}
 
-      {recommendedSongs.length > 0 || recommendationStatus === 'loading' ? (
+      {recommendedSongs.length > 0 ? (
         <View style={styles.recommendedSection}>
           <SectionLabel>이런 곡은 어때요?</SectionLabel>
 
-          {recommendedSongs.length > 0 ? (
-            <FlatList
-              data={recommendedSongs}
-              renderItem={renderRecommendedSong}
-              keyExtractor={recommendedKeyExtractor}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              ItemSeparatorComponent={RecommendedSeparator}
-              contentContainerStyle={styles.recommendedList}
-            />
-          ) : (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.recommendedList}
-            >
-              {Array.from({ length: REC_SKELETON_COUNT }).map((_, index) => (
-                <React.Fragment key={index}>
-                  {index > 0 && <RecommendedSeparator />}
-                  <RecommendedSkeletonCard />
-                </React.Fragment>
-              ))}
-            </ScrollView>
-          )}
+          <FlatList
+            data={recommendedSongs}
+            renderItem={renderRecommendedSong}
+            keyExtractor={recommendedKeyExtractor}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            ItemSeparatorComponent={RecommendedSeparator}
+            contentContainerStyle={styles.recommendedList}
+          />
         </View>
       ) : null}
     </View>

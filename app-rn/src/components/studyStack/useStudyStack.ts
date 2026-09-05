@@ -6,6 +6,7 @@ import { songApi } from '../../api/songApi';
 import { studyStatsApi } from '../../api/studyStatsApi';
 import { useStudyStatsStore } from '../../stores/studyStatsStore';
 import { SongDeckSummary } from '../../types/deck';
+import { WeekDot } from '../../types/studyStats';
 import { useIsFocused } from '@react-navigation/native';
 import { sourceFromDeck, sourceFromRecommendation } from './studySource';
 import {
@@ -53,6 +54,8 @@ export interface StudyStackState {
   visibleSource: StudySource | null;
   /** mode 'home' 에서만 채워진다. 실패 시 임의값으로 메우지 않는다. */
   streak: number;
+  /** mode 'home' 에서만 채워진다. 로드 전에는 빈 배열. */
+  weekDots: WeekDot[];
   session: StudySessionProgress;
   translateY: Animated.Value;
   panHandlers: GestureResponderHandlers;
@@ -79,6 +82,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
   const [nextDueSource, setNextDueSource] = useState<StudySource | null>(null);
   const [recommendedSource, setRecommendedSource] = useState<StudySource | null>(null);
   const [streak, setStreak] = useState(0);
+  const [weekDots, setWeekDots] = useState<WeekDot[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [reviewError, setReviewError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -281,6 +285,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
       if (version !== requestVersion.current) return;
       setRecommendedSource(recommendations[0] ? sourceFromRecommendation(recommendations[0]) : null);
       setStreak(homeStats.currentStreak);
+      setWeekDots(homeStats.weekDots);
 
       const dueDecks = deckRes.songDecks.filter(deck => deck.dueCount > 0);
       const firstDeck = [...dueDecks].sort((a, b) => b.dueCount - a.dueCount)[0];
@@ -492,6 +497,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     recommendedSource,
     visibleSource,
     streak,
+    weekDots,
     session,
     translateY,
     panHandlers: panResponder.panHandlers,

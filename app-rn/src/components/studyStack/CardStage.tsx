@@ -1,5 +1,5 @@
 import React from 'react';
-import { ImageBackground, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, ImageBackground, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StudySource } from './types';
@@ -8,10 +8,23 @@ import { StudySource } from './types';
 const STAGE_PADDING_TOP = 14;
 const STAGE_PADDING_BOTTOM = 22;
 
+/**
+ * 크롬 높이는 홈처럼 접히는 화면에서 애니메이션 값으로 들어온다 — 크롬이 올라가는
+ * 동안 카드 안쪽 내용이 같이 따라 올라가야 두 층이 끊기지 않는다.
+ */
+export type StageInset = number | Animated.AnimatedInterpolation<number>;
+
+/** 애니메이션 inset 은 기본 여백을 더해서 넘긴다. 숫자면 그냥 더한다. */
+function withStagePadding(inset: StageInset | undefined, base: number) {
+  if (inset == null) return base;
+  if (typeof inset === 'number') return base + inset;
+  return Animated.add(inset, base);
+}
+
 export interface CardStageProps {
   artworkUrl: string | null;
   /** 무대 위에 겹쳐 그리는 크롬 높이. 아트워크는 그대로 전체를 덮고 내용만 내려간다. */
-  contentInsetTop?: number;
+  contentInsetTop?: StageInset;
   /** 시스템 하단 영역 높이. 아트워크는 그대로 전체를 덮고 내용만 올린다. */
   contentInsetBottom?: number;
   children: React.ReactNode;
@@ -25,7 +38,7 @@ export const CardStage = React.memo(function CardStage({
   children,
 }: CardStageProps) {
   const insetStyle = {
-    paddingTop: STAGE_PADDING_TOP + (contentInsetTop ?? 0),
+    paddingTop: withStagePadding(contentInsetTop, STAGE_PADDING_TOP),
     paddingBottom: STAGE_PADDING_BOTTOM + (contentInsetBottom ?? 0),
   };
   const content = (
@@ -44,12 +57,14 @@ export const CardStage = React.memo(function CardStage({
         locations={[0, 0.42, 1]}
         style={StyleSheet.absoluteFill}
       />
-      {children}
+      <Animated.View style={[styles.stageContent, insetStyle]}>
+        {children}
+      </Animated.View>
     </>
   );
 
   if (!artworkUrl) {
-    return <View style={[styles.stageArt, styles.fallbackArt, insetStyle]}>{content}</View>;
+    return <View style={[styles.stageArt, styles.fallbackArt]}>{content}</View>;
   }
 
   return (
@@ -57,7 +72,7 @@ export const CardStage = React.memo(function CardStage({
       source={{ uri: artworkUrl }}
       resizeMode="cover"
       blurRadius={8}
-      style={[styles.stageArt, insetStyle]}
+      style={styles.stageArt}
       imageStyle={styles.stageImage}
     >
       {content}
@@ -108,9 +123,10 @@ const styles = StyleSheet.create({
   stageArt: {
     flex: 1,
     backgroundColor: '#14181C',
+  },
+  stageContent: {
+    flex: 1,
     paddingHorizontal: 20,
-    paddingTop: STAGE_PADDING_TOP,
-    paddingBottom: STAGE_PADDING_BOTTOM,
   },
   fallbackArt: {
     backgroundColor: '#16242A',

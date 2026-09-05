@@ -1,6 +1,7 @@
 import React, { useCallback } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { StageInset } from './CardStage';
 import { CompletionStage, ErrorStage } from './CompletionStage';
 import { WordLayer } from './WordLayer';
 import { StudySource } from './types';
@@ -19,7 +20,7 @@ export interface StudyStackProps {
    */
   overlay?: React.ReactNode;
   /** overlay 가 무대 위를 덮는 높이. 아트워크는 전체를 덮고 카드 내용만 내려간다. */
-  contentInsetTop?: number;
+  contentInsetTop?: StageInset;
   /** 시스템 하단 영역이 무대 위를 덮는 높이. 하단 컨트롤만 그만큼 올린다. */
   contentInsetBottom?: number;
 }

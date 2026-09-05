@@ -15,7 +15,8 @@ export interface StackReviewOverlayProps {
   queueProgress: number;
   /** 완주 카드에서는 진행 바를 그리지 않는다. */
   showProgress: boolean;
-  onBack: () => void;
+  /** 없으면 뒤로가기 버튼을 그리지 않고 카운터를 앱바 끝으로 보낸다(홈처럼 돌아갈 곳이 없는 화면). */
+  onBack?: () => void;
 }
 
 /** 곡 진입 복습 크롬 — 흰 앱바 없이 카드 위에 얹는다. */
@@ -31,10 +32,12 @@ export const StackReviewOverlay = React.memo(function StackReviewOverlay({
   return (
     <View style={styles.overlay} pointerEvents="box-none">
       <View style={{ height: insets.top }} pointerEvents="none" />
-      <View style={styles.appBar} pointerEvents="box-none">
-        <Pressable style={styles.backButton} onPress={onBack} hitSlop={8}>
-          <Feather name="chevron-left" size={24} color="#FFFFFF" />
-        </Pressable>
+      <View style={[styles.appBar, !onBack && styles.appBarEnd]} pointerEvents="box-none">
+        {onBack && (
+          <Pressable style={styles.backButton} onPress={onBack} hitSlop={8}>
+            <Feather name="chevron-left" size={24} color="#FFFFFF" />
+          </Pressable>
+        )}
         {queueTotal > 0 && (
           <View style={styles.counterPill} pointerEvents="none">
             <Text style={styles.counterText}>{position} / {queueTotal}</Text>
@@ -65,6 +68,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
+  },
+  appBarEnd: {
+    justifyContent: 'flex-end',
   },
   backButton: {
     width: 40,

@@ -3,8 +3,18 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Dimens } from '../theme/theme';
+import { useHomeChromeStore } from '../stores/homeChromeStore';
 
 type TabKey = 'Home' | 'Search' | 'MyPage';
+
+const DarkPalette = {
+  bar: '#14181C',
+  border: '#FFFFFF1F',
+  iconActive: '#FFFFFF',
+  iconInactive: '#FFFFFF80',
+  labelActive: '#FFFFFF',
+  labelInactive: '#FFFFFF80',
+};
 
 // Icon glyph is always the brand green; the active tab is distinguished by the
 // filled glyph + primary label color (inactive uses the outline glyph + muted
@@ -18,9 +28,16 @@ const TAB_CONFIG: Record<TabKey, { active: keyof typeof Ionicons.glyphMap; inact
 
 export default function BottomTabBar({ state, navigation }: any) {
   const insets = useSafeAreaInsets();
+  const isDark = useHomeChromeStore((s) => s.isDark);
 
   return (
-    <View style={[styles.bar, { paddingBottom: insets.bottom, height: Dimens.bottomBarHeight + insets.bottom }]}>
+    <View
+      style={[
+        styles.bar,
+        { paddingBottom: insets.bottom, height: Dimens.bottomBarHeight + insets.bottom },
+        isDark && styles.barDark,
+      ]}
+    >
       {state.routes.map((route: any, index: number) => {
         const focused = state.index === index;
         const config = TAB_CONFIG[route.name as TabKey];
@@ -43,9 +60,21 @@ export default function BottomTabBar({ state, navigation }: any) {
             <Ionicons
               name={focused ? config.active : config.inactive}
               size={20}
-              color={Colors.primary}
+              color={
+                isDark
+                  ? focused
+                    ? DarkPalette.iconActive
+                    : DarkPalette.iconInactive
+                  : Colors.primary
+              }
             />
-            <Text style={[styles.label, focused ? styles.labelActive : styles.labelInactive]}>
+            <Text
+              style={[
+                styles.label,
+                focused ? styles.labelActive : styles.labelInactive,
+                isDark && (focused ? styles.labelActiveDark : styles.labelInactiveDark),
+              ]}
+            >
               {config.label}
             </Text>
           </TouchableOpacity>
@@ -80,5 +109,15 @@ const styles = StyleSheet.create({
   },
   labelInactive: {
     color: Colors.textMuted,
+  },
+  barDark: {
+    backgroundColor: DarkPalette.bar,
+    borderTopColor: DarkPalette.border,
+  },
+  labelActiveDark: {
+    color: DarkPalette.labelActive,
+  },
+  labelInactiveDark: {
+    color: DarkPalette.labelInactive,
   },
 });

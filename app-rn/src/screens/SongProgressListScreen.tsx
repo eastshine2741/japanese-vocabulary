@@ -111,14 +111,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Colors.textMuted,
     fontVariant: ['tabular-nums'],
-    paddingRight: 8,
+    paddingRight: 16,
   },
   center: {
     flex: 1,
     justifyContent: 'center',
   },
   list: {
-    paddingTop: 18,
     paddingHorizontal: 24,
   },
   footerLoading: {

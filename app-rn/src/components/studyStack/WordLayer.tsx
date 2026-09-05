@@ -1,6 +1,6 @@
 import React from 'react';
 import { Animated, GestureResponderHandlers, Pressable, StyleSheet, View } from 'react-native';
-import { CardStage, SourceHeader } from './CardStage';
+import { CardStage, SourceHeader, StageInset } from './CardStage';
 import { SWIPE_OUT_DISTANCE } from './useStudyStack';
 import { WordBack } from './WordBack';
 import { WordFront } from './WordFront';
@@ -19,7 +19,7 @@ export interface WordLayerProps {
   onRating: (rating: number) => void;
   onSourcePress: () => void;
   /** 무대 위에 얹힌 크롬 높이 — 무대 안쪽 내용만 그만큼 내려간다. */
-  contentInsetTop?: number;
+  contentInsetTop?: StageInset;
   /** 시스템 하단 영역 높이 — rating/스와이프 affordance 를 그만큼 올린다. */
   contentInsetBottom?: number;
 }

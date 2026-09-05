@@ -93,6 +93,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
   const deckSnackbarFrameRef = useRef<number | null>(null);
   const infoSheetRef = useRef<AppBottomSheetRef>(null);
   const infoSheetOpenRef = useRef(false);
+  const isInitialFocusRef = useRef(true);
 
   const status = useSongDetailStore(s => s.status);
   const data = useSongDetailStore(s => s.data);
@@ -617,6 +618,17 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     }, []),
   );
 
+  /** 다른 화면에 다녀온 뒤 돌아오면 단어 저장 상태와 덱 진행도를 다시 불러온다. 최초 마운트 시 진입은 건너뛴다. */
+  useFocusEffect(
+    useCallback(() => {
+      if (isInitialFocusRef.current) {
+        isInitialFocusRef.current = false;
+        return;
+      }
+      handleWordsChanged();
+    }, [handleWordsChanged]),
+  );
+
   const handleScroll = useMemo(
     () => Animated.event(
       [{ nativeEvent: { contentOffset: { y: scrollY } } }],
@@ -651,7 +663,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     );
   }
 
-  if (status === 'loading' || status === 'idle') {
+  if (status === 'idle' || (status === 'loading' && data == null)) {
     return (
       <SongDetailLoadingSkeleton
         topInset={insets.top}
@@ -882,7 +894,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
                 onPress={handlePrimaryLearningPress}
                 disabled={isLearningActionDisabled}
               >
-                <Feather name={learningActionIcon} size={13} color="#FFFFFF" />
+                <LearningActionIcon icon={learningActionIcon} size={13} color={Colors.textPrimary} />
                 <Text style={styles.appBarDeckButtonText} numberOfLines={1}>{learningActionLabel}</Text>
               </Pressable>
             </Animated.View>
@@ -1821,21 +1833,21 @@ const styles = StyleSheet.create({
   appBarDeckButton: {
     height: 36,
     maxWidth: 136,
-    borderRadius: 8,
+    borderRadius: 9999,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    paddingHorizontal: 10,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#FFFFFF80',
-    backgroundColor: '#FFFFFF26',
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#FFFFFF33',
+    backgroundColor: '#FFFFFF',
   },
   appBarDeckButtonText: {
     ...Typography.bodyExtraBold,
     fontSize: 12,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
   },
   disabledButton: {
     opacity: 0.55,
