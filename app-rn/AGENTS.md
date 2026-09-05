@@ -21,6 +21,12 @@ JS-only 변경은 `eas update`로 배포한다. 네이티브 변경은 새 빌�
 
 채널: `development`(Android dev), `production-rc`(RC), `production`(정식). 절차는 `../docs/runbooks/mobile-ota-release.md`.
 
+기본 배포 경로는 GitHub Actions의 **Deploy EAS Update** 워크플로다. JS OTA 전용 tag를
+push하면 JS tag와 커밋 SHA를 메시지로 사용해 OTA와 Sentry 소스맵을 차례로 업로드한다.
+`js-vM.m.p-dev.N`은 `development`, `js-vM.m.p-rc.N`은 `production-rc`, `js-vM.m.p`는
+`production` 채널에 배포한다. 네이티브 `vM.m.p` tag는 OTA를 배포하지 않는다. 아래 명령은
+GitHub Actions를 쓸 수 없을 때의 수동 fallback이다.
+
 ```bash
 BUILD_ENV=prod EAS_UPDATE_CHANNEL=production \
   eas update --channel production --message "..."   # dist/ 를 만들고 업로드
