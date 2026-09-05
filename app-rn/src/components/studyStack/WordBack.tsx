@@ -21,10 +21,10 @@ import ReadingText from '../ReadingText';
 import { StudyCard } from './types';
 
 export const RATINGS = [
-  { rating: 1, label: '다시', fallbackInterval: '< 1분', color: Colors.ratingAgain },
-  { rating: 2, label: '어려움', fallbackInterval: '6분', color: Colors.ratingHard },
-  { rating: 3, label: '알고 있음', fallbackInterval: '1일', color: Colors.ratingGood },
-  { rating: 4, label: '쉬움', fallbackInterval: '4일', color: Colors.ratingEasy },
+  { rating: 1, label: '다시', color: Colors.ratingAgain },
+  { rating: 2, label: '어려움', color: Colors.ratingHard },
+  { rating: 3, label: '알고 있음', color: Colors.ratingGood },
+  { rating: 4, label: '쉬움', color: Colors.ratingEasy },
 ];
 
 /** CardStage.stageContent 의 paddingHorizontal — 캐러셀은 이 안쪽 여백을 넘겨 화면 끝까지 펼친다. */
@@ -244,12 +244,12 @@ export const WordBack = React.memo(function WordBack({
       </View>
 
       <Animated.View style={[styles.ratingRow, controlsStyle]}>
-        {RATINGS.map(({ rating, label, fallbackInterval, color }) => (
+        {RATINGS.map(({ rating, label, color }) => (
           <RatingButton
             key={rating}
             rating={rating}
             label={label}
-            interval={card.intervals?.[rating] ?? fallbackInterval}
+            interval={card.intervals?.[rating]}
             color={color}
             selected={selectedRating === rating}
             dimmed={selectedRating != null && selectedRating !== rating}
@@ -314,7 +314,7 @@ const ExamplePage = React.memo(function ExamplePage({ example, japanese, onOpenS
 interface RatingButtonProps {
   rating: number;
   label: string;
-  interval: string;
+  interval?: string;
   color: string;
   selected: boolean;
   dimmed: boolean;
@@ -346,7 +346,9 @@ const RatingButton = React.memo(function RatingButton({
       disabled={disabled}
     >
       <Text style={[styles.ratingLabel, selected ? styles.ratingLabelSelected : { color }]}>{label}</Text>
-      <Text style={[styles.ratingInterval, selected ? styles.ratingIntervalSelected : { color }]}>{interval}</Text>
+      {interval != null && (
+        <Text style={[styles.ratingInterval, selected ? styles.ratingIntervalSelected : { color }]}>{interval}</Text>
+      )}
     </Pressable>
   );
 });
