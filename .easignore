@@ -1,0 +1,75 @@
+# EAS CLI가 프로젝트 아카이브를 만들 때 쓰는 업로드 필터.
+#
+# 이 파일은 반드시 저장소 루트에 있어야 한다 — eas-cli는 `git rev-parse --show-toplevel`
+# 기준으로만 찾는다. 그리고 이 파일이 있으면 저장소의 **모든 .gitignore가 무시되므로**,
+# 여기 없는 규칙은 곧 원격 빌드로 업로드된다. .gitignore에 규칙을 추가하면 여기에도 넣을 것.
+#
+# 존재 이유: app-rn/native-build.json은 git에서 무시하되 EAS 원격 빌드에는 올려야 한다.
+# 없으면 app.config.js의 readNativeBuildConfig()가 빈 객체를 돌려주고 runtimeVersion이
+# 기본값 1.0.0으로 떨어져 "Runtime version mismatch"로 빌드가 깨진다.
+# 그래서 아래 목록에 native-build.json만 일부러 빠져 있다.
+
+# --- 루트 .gitignore ---
+.claude/
+.omc/
+.omx/
+.idea/
+*.iml
+.gradle/
+build/
+local.properties
+*.class
+*.jar
+!backend/gradle/wrapper/gradle-wrapper.jar
+*.war
+*.aar
+admin-web/dist/
+admin-web/.vite/
+admin-web/coverage/
+.DS_Store
+**/sudachi/*.dic
+.env*
+!.env*.template
+!.env.example
+**/application-local.yml
+.github/scripts/sentry/triage.env
+local/mysql/
+
+# --- app-rn/.gitignore ---
+node_modules/
+app-rn/.expo/
+app-rn/dist/
+app-rn/web-build/
+app-rn/expo-env.d.ts
+app-rn/ios/
+app-rn/android/
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.keystore
+*.mobileprovision
+.metro-health-check*
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+*.pem
+*.tsbuildinfo
+app-rn/google-services.json
+app-rn/GoogleService-Info.plist
+
+# --- gemini-playground/.gitignore ---
+logs
+*.log
+dist/
+dist-ssr/
+*.local
+.vscode/*
+!.vscode/extensions.json
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

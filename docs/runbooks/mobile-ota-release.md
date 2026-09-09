@@ -44,10 +44,22 @@ Android CD가 같은 runtime을 자동으로 내장하고, prod 설정 빌드는
 "Runtime version mismatch"로 빌드가 깨진다.
 
 `native-build.json`은 릴리스마다 새로 생성되는 임시 파일이라 git이 무시하지만, EAS cloud
-build는 워킹 디렉토리를 tarball로 말아 올리면서 ignore된 파일을 뺀다. 그래서 `app-rn/.easignore`
-가 업로드 필터를 대신 맡아 이 파일만 통과시킨다. **`.easignore`가 있으면 EAS는 `.gitignore`를
-아예 보지 않으므로**, `.gitignore`에 규칙을 추가할 때 app-rn 하위에 걸리는 것이면 `.easignore`
-에도 같이 넣어야 한다. 안 그러면 `.env`나 keystore가 원격 빌드로 업로드된다.
+build는 워킹 디렉토리를 tarball로 말아 올리면서 ignore된 파일을 뺀다. 그래서 저장소 루트의
+`.easignore`가 업로드 필터를 대신 맡아 이 파일만 통과시킨다. 주의할 점 두 가지:
+
+- **`.easignore`는 저장소 루트에만 둘 수 있다.** eas-cli가 `git rev-parse --show-toplevel`
+  기준으로만 찾는다. `app-rn/`에 두면 조용히 무시된다.
+- **`.easignore`가 있으면 저장소의 모든 `.gitignore`가 무시된다.** 그래서 루트 `.easignore`
+  하나가 monorepo 전체 규칙을 들고 있다. `.gitignore`에 규칙을 추가하면 `.easignore`에도
+  같이 넣어야 한다. 안 그러면 `.env`나 keystore가 원격 빌드로 업로드된다.
+
+업로드될 내용은 빌드 없이 확인할 수 있다. EAS build 한도를 쓰지 않는다.
+
+```bash
+cd app-rn
+eas build:inspect -p ios -s archive -o /tmp/eas-archive
+ls /tmp/eas-archive/app-rn/native-build.json   # 있어야 한다
+```
 
 iOS는 태그를 push해도 아무것도 트리거되지 않는다. RC(`v1.2.1-rc.1`)는 EAS build 한도를
 아끼려고 아예 만들지 않고, 정식(`v1.2.1`)만 아래처럼 손으로 굽고 App Store Connect에
