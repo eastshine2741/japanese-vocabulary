@@ -37,20 +37,43 @@ Android CD가 같은 runtime을 자동으로 내장하고, prod 설정 빌드는
 본다. 설정 화면의 `JS <id>`는 EAS가 생성한 update UUID이지 이 태그 버전은 아니다.
 
 `runtimeVersion` 계약이 바뀐 시점 이전의 fingerprint 기반 바이너리는 새 OTA를 받을 수
-없다. 이 규칙을 처음 도입할 때는 새 native build를 설치해야 한다. iOS EAS build를
-수동으로 만들 때는 해당 native runtime을 명시한다.
+없다. 이 규칙을 처음 도입할 때는 새 native build를 설치해야 한다. iOS EAS build는
+`vM.m.p`/`vM.m.p-rc.N` 태그를 push하면 **CD - iOS** 워크플로가 자동으로 트리거한다.
+워크플로는 태그에서 `native-build.json`을 생성한 뒤 EAS build를 실행한다. 이 파일이
+없으면 EAS 원격 config 평가가 로컬 shell env를 보지 못해 `runtimeVersion`이 기본값
+`1.0.0`으로 돌아갈 수 있다.
+
+| 태그 | iOS 동작 |
+|---|---|
+| `v1.2.1-rc.1` | `production-rc` internal EAS build |
+| `v1.2.1` | `production` EAS build + App Store Connect submit |
+
+수동으로 만들 때도 `native-build.json`을 먼저 생성한다.
 
 ```bash
 cd app-rn
-NATIVE_RUNTIME_VERSION=1.2.1 eas build --profile production --platform ios
+node scripts/write-native-build-config.js 1.2.1 1002001999 1.2.1
+BUILD_ENV=prod EAS_UPDATE_CHANNEL=production eas build --profile production --platform ios
 ```
 
 필요한 GitHub Actions secrets:
 
 - `EXPO_TOKEN`
-- `BACKEND_URL`, `GOOGLE_OAUTH_WEB_CLIENT_ID` (development)
-- `PROD_BACKEND_URL`, `PROD_GOOGLE_OAUTH_WEB_CLIENT_ID` (production)
-- `SENTRY_DSN_APP`, `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT_APP`
+- `SENTRY_ORG`, `SENTRY_PROJECT_APP`
+- `DISCORD_WEBHOOK_URL`
+
+iOS EAS cloud build는 GitHub Actions runner의 `.env`나 ignored plist를 원격 빌드에
+그대로 가져가지 않는다. EAS project의 `production` environment에 최소 아래 값을 둔다.
+`GOOGLE_SERVICES_PLIST`는 file type env var로 등록한다.
+
+- `EXPO_PUBLIC_BACKEND_URL`
+- `EXPO_PUBLIC_GOOGLE_OAUTH_WEB_CLIENT_ID`
+- `EXPO_PUBLIC_SENTRY_DSN`
+- `EXPO_PUBLIC_SENTRY_ENVIRONMENT`
+- `GOOGLE_SERVICES_PLIST`
+- `SENTRY_AUTH_TOKEN`
+- `SENTRY_ORG`
+- `SENTRY_PROJECT`
 
 ## Manual fallback
 
