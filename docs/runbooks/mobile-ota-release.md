@@ -38,14 +38,14 @@ Android CD가 같은 runtime을 자동으로 내장하고, prod 설정 빌드는
 
 `runtimeVersion` 계약이 바뀐 시점 이전의 fingerprint 기반 바이너리는 새 OTA를 받을 수
 없다. 이 규칙을 처음 도입할 때는 새 native build를 설치해야 한다. iOS EAS build는
-`vM.m.p`/`vM.m.p-rc.N` 태그를 push하면 **CD - iOS** 워크플로가 자동으로 트리거한다.
+`vM.m.p` 정식 태그를 push하면 **CD - iOS** 워크플로가 자동으로 트리거한다.
 워크플로는 태그에서 `native-build.json`을 생성한 뒤 EAS build를 실행한다. 이 파일이
 없으면 EAS 원격 config 평가가 로컬 shell env를 보지 못해 `runtimeVersion`이 기본값
 `1.0.0`으로 돌아갈 수 있다.
 
 | 태그 | iOS 동작 |
 |---|---|
-| `v1.2.1-rc.1` | `production-rc` internal EAS build |
+| `v1.2.1-rc.1` | 빌드하지 않음 |
 | `v1.2.1` | `production` EAS build + App Store Connect submit |
 
 수동으로 만들 때도 `native-build.json`을 먼저 생성한다.

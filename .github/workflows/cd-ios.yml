@@ -48,6 +48,7 @@ jobs:
 
   build:
     needs: parse
+    if: needs.parse.outputs.is_rc != 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
