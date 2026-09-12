@@ -211,14 +211,13 @@ export const WordLayer = React.memo(function WordLayer({
       contentInsetBottom={contentInsetBottom}
     >
       <SourceHeader source={card.source} onPress={handleSourcePress} />
-      <View style={styles.stack}>
+      <View key={card.id} style={styles.stack}>
         {nextCard && (
           <Animated.View style={[styles.nextLayer, { opacity: nextOpacity }]} pointerEvents="none">
             <WordFront card={nextCard} />
           </Animated.View>
         )}
         <Animated.View
-          key={card.id}
           style={[
             styles.wordLayer,
             { opacity, transform: [{ translateY }] },
