@@ -32,11 +32,12 @@ import { isDevBuild } from '../utils/buildEnv';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
+const otaUpdateNumber = process.env.EXPO_PUBLIC_OTA_UPDATE_NUMBER?.trim();
 const jsRevision = !Updates.isEnabled
   ? '비활성'
   : Updates.isEmbeddedLaunch
     ? '내장'
-    : `update.${Updates.updateId?.slice(0, 8)}`;
+    : `update.${otaUpdateNumber || '?'}`;
 
 export default function SettingsScreen() {
   const navigation = useNavigation<Nav>();

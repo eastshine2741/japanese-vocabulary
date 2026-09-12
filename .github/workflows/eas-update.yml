@@ -11,6 +11,7 @@ jobs:
     outputs:
       matrix: ${{ steps.parse.outputs.matrix }}
       native_runtime_version: ${{ steps.parse.outputs.native_runtime_version }}
+      update_number: ${{ steps.parse.outputs.update_number }}
     steps:
       - name: Parse tag
         id: parse
@@ -18,6 +19,7 @@ jobs:
           TAG="$GITHUB_REF_NAME"
           if [[ "$TAG" =~ ^js-v([0-9]+)\.([0-9]+)\.([0-9]+)-update\.([0-9]+)\.(dev|prod)$ ]]; then
             echo "native_runtime_version=${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.${BASH_REMATCH[3]}" >> "$GITHUB_OUTPUT"
+            echo "update_number=${BASH_REMATCH[4]}" >> "$GITHUB_OUTPUT"
             if [[ "${BASH_REMATCH[5]}" == "dev" ]]; then
               echo 'matrix=[{"build_env":"dev","channel":"development"}]' >> "$GITHUB_OUTPUT"
             else
@@ -66,6 +68,7 @@ jobs:
           EXPO_PUBLIC_GOOGLE_OAUTH_WEB_CLIENT_ID=${GOOGLE_WEB_CLIENT_ID}
           EXPO_PUBLIC_BUILD_ENV=${BUILD_ENV}
           EXPO_PUBLIC_EAS_UPDATE_CHANNEL=${OTA_CHANNEL}
+          EXPO_PUBLIC_OTA_UPDATE_NUMBER=${{ needs.parse.outputs.update_number }}
           EXPO_PUBLIC_SENTRY_DSN=${SENTRY_DSN}
           EXPO_PUBLIC_SENTRY_ENVIRONMENT=${BUILD_ENV}
           EOF
@@ -77,6 +80,7 @@ jobs:
           BUILD_ENV: ${{ matrix.target.build_env }}
           EAS_UPDATE_CHANNEL: ${{ matrix.target.channel }}
           NATIVE_RUNTIME_VERSION: ${{ needs.parse.outputs.native_runtime_version }}
+          EXPO_PUBLIC_OTA_UPDATE_NUMBER: ${{ needs.parse.outputs.update_number }}
           SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT_APP }}
         run: |

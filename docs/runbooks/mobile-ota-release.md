@@ -34,7 +34,7 @@ JS OTA revision이다. 마지막 suffix는 배포 환경이며 `dev`는 `develop
 `production` 채널로 배포한다. 예를 들어 `js-v1.2.1-update.3.prod`는 native runtime
 `1.2.1`에서만 실행되는 세 번째 production OTA다. native `v1.2.1-rc.1`/`v1.2.1` 빌드는
 Android CD가 같은 runtime을 자동으로 내장하고, prod 설정 빌드는 둘 다 `production` 채널을
-본다. 설정 화면의 `JS <id>`는 EAS가 생성한 update UUID이지 이 태그 버전은 아니다.
+본다. 설정 화면은 OTA bundle 실행 시 태그의 `update.N` 값을 표시한다.
 
 `runtimeVersion` 계약이 바뀐 시점 이전의 fingerprint 기반 바이너리는 새 OTA를 받을 수
 없다. 이 규칙을 처음 도입할 때는 새 native build를 설치해야 한다. **iOS EAS build는 현재
@@ -96,6 +96,7 @@ iOS EAS cloud build는 로컬 `.env`나 ignore된 plist를 원격 빌드에 그�
 ```bash
 cd app-rn
 BUILD_ENV=dev EAS_UPDATE_CHANNEL=development NATIVE_RUNTIME_VERSION=1.2.1 \
+  EXPO_PUBLIC_OTA_UPDATE_NUMBER=1 \
   eas update --channel development --message "dev ota smoke"
 ```
 
@@ -120,6 +121,7 @@ git push origin js-v1.0.0-update.2.prod
 ## Check
 
 - 앱 완전 종료 후 재시작.
-- 설정 화면 하단의 `JS <id>`가 `내장`이 아니면 OTA bundle이 실행 중이다.
-- prod OTA는 `BUILD_ENV=prod EAS_UPDATE_CHANNEL=production`을 명시한다.
+- 설정 화면 하단은 `비활성`, `내장`, `update.N` 세 상태만 표시한다. `update.N`이면 OTA bundle이 실행 중이다.
+- 수동 OTA는 `EXPO_PUBLIC_OTA_UPDATE_NUMBER=N`을 같이 명시한다. 누락되면 OTA 실행 중일 때 `update.?`로 표시된다.
+- prod OTA는 `BUILD_ENV=prod EAS_UPDATE_CHANNEL=production EXPO_PUBLIC_OTA_UPDATE_NUMBER=N`을 명시한다.
 - OTA 후 Sentry 소스맵 업로드.
