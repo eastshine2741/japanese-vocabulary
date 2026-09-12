@@ -46,6 +46,7 @@ try {
     rawOutputPath,
     '--codec=h264',
     '--crf=18',
+    '--ipv4',
     `--props=${JSON.stringify({data})}`,
   ], {cwd: root});
 
