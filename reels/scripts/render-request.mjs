@@ -47,6 +47,8 @@ try {
     '--codec=h264',
     '--crf=18',
     '--ipv4',
+    '--concurrency=1',
+    '--disallow-parallel-encoding',
     `--props=${JSON.stringify({data})}`,
   ], {cwd: root});
 
@@ -105,7 +107,7 @@ async function downloadYoutubeMp4(url, outputPath) {
     '--merge-output-format',
     'mp4',
     '-f',
-    'bv*+ba/b',
+    'bv*[height<=1080]+ba/b[height<=1080]/b',
     '-o',
     outputPath,
     url,
