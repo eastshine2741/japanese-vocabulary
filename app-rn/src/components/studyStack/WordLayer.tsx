@@ -218,6 +218,7 @@ export const WordLayer = React.memo(function WordLayer({
           </Animated.View>
         )}
         <Animated.View
+          key={card.id}
           style={[
             styles.wordLayer,
             { opacity, transform: [{ translateY }] },
