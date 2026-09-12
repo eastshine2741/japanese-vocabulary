@@ -57,6 +57,8 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
             jsonPath("$.song.artist") { value("米津玄師") }
             jsonPath("$.lines[0].originalText") { value("歌詞0") }
             jsonPath("$.lines[0].recommendedVocabulary[0].japanese") { value("夢") }
+            jsonPath("$.lines[0].recommendedVocabulary[0].partOfSpeechLabel") { value("명사") }
+            jsonPath("$.lines[0].recommendedVocabulary[0].jlpt") { value("N5") }
             jsonPath("$.minLineCount") { value(4) }
             jsonPath("$.maxLineCount") { doesNotExist() }
         }
@@ -105,6 +107,9 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
 
         assertThat(fakeRenderer.lastInput?.source?.youtubeUrl).isEqualTo("https://youtu.be/SX_ViT4Ra7k")
         assertThat(fakeRenderer.lastInput?.data?.lyricLines).hasSize(7)
+        assertThat(fakeRenderer.lastInput?.data?.wordCount).isEqualTo(1)
+        assertThat(fakeRenderer.lastInput?.data?.lyricLines?.first()?.tokens?.first()?.reading).isEqualTo("ユメ")
+        assertThat(fakeRenderer.lastInput?.data?.lyricLines?.first()?.vocabulary?.first()?.partOfSpeechLabel).isEqualTo("명사")
     }
 
     @Test

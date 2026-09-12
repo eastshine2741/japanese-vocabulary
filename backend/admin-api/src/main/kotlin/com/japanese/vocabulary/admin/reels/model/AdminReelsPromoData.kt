@@ -7,4 +7,5 @@ data class AdminReelsPromoData(
     val catchphrase: String,
     val sourceStartFrame: Int,
     val lyricLines: List<AdminReelsPromoLine>,
+    val wordCount: Int? = null,
 )

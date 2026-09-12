@@ -88,6 +88,29 @@ class AdminReelsFactoryService(
         val firstMs = requireNotNull(selected.first().first.startTimeMs)
         val sourceStartFrame = (firstMs / 1000.0 * FPS).roundToInt()
 
+        val promoLines = selected.map { (raw, analyzed) ->
+            val startFrame = (((requireNotNull(raw.startTimeMs) - firstMs).coerceAtLeast(0)) / 1000.0 * FPS).roundToInt()
+            AdminReelsPromoLine(
+                startFrame = startFrame,
+                originalText = raw.text,
+                koreanLyrics = analyzed.koreanLyrics.orEmpty(),
+                tokens = analyzed.tokens.map {
+                    AdminReelsPromoToken(
+                        surface = it.surface,
+                        baseForm = it.baseForm,
+                        reading = it.reading,
+                        baseFormReading = it.baseFormReading,
+                        partOfSpeech = it.partOfSpeech.name,
+                        charStart = it.charStart,
+                        charEnd = it.charEnd,
+                        koreanText = it.koreanText,
+                        jlpt = it.jlpt,
+                    )
+                },
+                vocabulary = vocabularyFor(analyzed),
+            )
+        }
+
         return AdminReelsRenderInput(
             source = AdminReelsRenderSource(youtubeUrl = youtubeUrl),
             data = AdminReelsPromoData(
@@ -101,24 +124,10 @@ class AdminReelsFactoryService(
                 instagramHandle = INSTAGRAM_HANDLE,
                 catchphrase = CATCHPHRASE,
                 sourceStartFrame = sourceStartFrame,
-                lyricLines = selected.map { (raw, analyzed) ->
-                    val startFrame = (((requireNotNull(raw.startTimeMs) - firstMs).coerceAtLeast(0)) / 1000.0 * FPS).roundToInt()
-                    AdminReelsPromoLine(
-                        startFrame = startFrame,
-                        originalText = raw.text,
-                        koreanLyrics = analyzed.koreanLyrics.orEmpty(),
-                        tokens = analyzed.tokens.map {
-                            AdminReelsPromoToken(
-                                surface = it.surface,
-                                baseForm = it.baseForm,
-                                partOfSpeech = it.partOfSpeech.name,
-                                charStart = it.charStart,
-                                charEnd = it.charEnd,
-                            )
-                        },
-                        vocabulary = vocabularyFor(analyzed),
-                    )
-                },
+                lyricLines = promoLines,
+                wordCount = promoLines.flatMap { line -> line.vocabulary }
+                    .distinctBy { word -> word.japanese }
+                    .size,
             ),
         )
     }
@@ -198,6 +207,9 @@ class AdminReelsFactoryService(
                     japanese = it.baseForm.ifBlank { it.surface },
                     reading = it.baseFormReading ?: it.reading ?: "",
                     korean = requireNotNull(it.koreanText),
+                    partOfSpeech = it.partOfSpeech.name,
+                    partOfSpeechLabel = it.partOfSpeech.koreanName,
+                    jlpt = it.jlpt,
                 )
             }
             .toList()

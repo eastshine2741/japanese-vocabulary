@@ -12,6 +12,7 @@ export type PartOfSpeech =
   | 'INTERJECTION'
   | 'PREFIX'
   | 'SUFFIX'
+  | 'EXPRESSION'
   | 'FILLER'
   | 'OTHER'
   | 'SYMBOL'
@@ -21,15 +22,22 @@ export type PartOfSpeech =
 export type LyricToken = {
   surface: string;
   baseForm: string;
+  reading?: string | null;
+  baseFormReading?: string | null;
   partOfSpeech: PartOfSpeech;
   charStart: number;
   charEnd: number;
+  koreanText?: string | null;
+  jlpt?: string | null;
 };
 
 export type VocabularyWord = {
   japanese: string;
   reading: string;
   korean: string;
+  partOfSpeech?: PartOfSpeech | string | null;
+  partOfSpeechLabel?: string | null;
+  jlpt?: string | null;
 };
 
 export type PromoLine = {
@@ -52,5 +60,6 @@ export type PromoReelData = {
   instagramHandle: string;
   catchphrase: string;
   sourceStartFrame: number;
+  wordCount?: number;
   lyricLines: PromoLine[];
 };
