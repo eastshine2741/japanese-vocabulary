@@ -32,8 +32,11 @@ import { isDevBuild } from '../utils/buildEnv';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
-// null on a development build or a store build still running its embedded bundle.
-const jsRevision = Updates.updateId ? Updates.updateId.slice(0, 8) : '내장';
+const jsRevision = !Updates.isEnabled
+  ? '비활성'
+  : Updates.isEmbeddedLaunch
+    ? '내장'
+    : `update.${Updates.updateId?.slice(0, 8)}`;
 
 export default function SettingsScreen() {
   const navigation = useNavigation<Nav>();
@@ -299,7 +302,7 @@ export default function SettingsScreen() {
             <Text style={styles.deleteAccountText}>계정 삭제</Text>
           </TouchableOpacity>
 
-          <Text style={styles.jsRevisionText}>JS {jsRevision}</Text>
+          <Text style={styles.jsRevisionText}>{jsRevision}</Text>
         </View>
       </ScrollView>
       {isDevBuild && (
