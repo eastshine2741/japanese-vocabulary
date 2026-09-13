@@ -10,7 +10,6 @@ import {
   HOME_HEADER_CONTENT_HEIGHT,
   StackReviewOverlay,
   STACK_REVIEW_CHROME_HEIGHT,
-  StudySource,
   StudyStack,
   useStudyStack,
 } from '../../components/studyStack';
@@ -32,8 +31,9 @@ export default function HomeTab() {
   const insets = useSafeAreaInsets();
   const focused = useIsFocused();
   const stack = useStudyStack({ mode: 'home' });
-  const { isComplete, reload, session, status, streak, weekDots } = stack;
+  const { deckStripItems, isComplete, reload, selectSource, session, status, streak } = stack;
   const visibleSongId = stack.visibleSource?.songId ?? null;
+  const selectedSongId = stack.selectedSource?.songId ?? null;
 
   const immersed = useHomeChromeStore(s => s.isDark);
   const setDark = useHomeChromeStore(s => s.setDark);
@@ -90,11 +90,6 @@ export default function HomeTab() {
     if (visibleSongId == null) return;
     navigation.navigate('SongDetail', { songId: visibleSongId, origin: 'Home' });
   }, [navigation, visibleSongId]);
-
-  const openRecommended = useCallback((recommended: StudySource) => {
-    if (recommended.songId == null) return;
-    navigation.navigate('SongDetail', { songId: recommended.songId, origin: 'Home' });
-  }, [navigation]);
 
   const openExampleSource = useCallback((songId: number) => {
     navigation.navigate('SongDetail', { songId, origin: 'Home' });
@@ -157,14 +152,20 @@ export default function HomeTab() {
           onOpenSource={openSource}
           onOpenExampleSource={openExampleSource}
           onSearch={goSearch}
-          onSelectRecommended={openRecommended}
           overlay={overlay}
           contentInsetTop={contentInsetTop}
           requireImmersedInteraction={!immersed}
           onRequestImmerse={enterImmerse}
         />
       </View>
-      <HomeExpandedHeader streak={streak} weekDots={weekDots} immerse={immerse} />
+      <HomeExpandedHeader
+        streak={streak}
+        deckStripItems={deckStripItems}
+        selectedSongId={selectedSongId}
+        onSelectDeckStripItem={selectSource}
+        onSearch={goSearch}
+        immerse={immerse}
+      />
     </View>
   );
 }

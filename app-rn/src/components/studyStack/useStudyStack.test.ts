@@ -318,3 +318,125 @@ it('surfaces an error and leaves the card swiped away when bootstrap fails', asy
   await rate(3);
   expect(stack.reviewError).toBe('offline');
 });
+
+// 덱 스트립: due 많은 순 정렬 + 첫 곡 자동 선택 + 선택 전환.
+const deck = (deckId: number, songId: number, title: string, dueCount: number) => ({
+  deckId, songId, title, artist: '', artworkUrl: null, wordCount: 10, dueCount, masteredCount: 0, studyingCount: 0, newWordCount: 0,
+});
+
+it('sorts song decks by due count for the deck strip and auto-loads the top one', async () => {
+  vi.mocked(deckApi.getDecks).mockResolvedValue({
+    songDecks: [
+      deck(1, 10, 'Low', 2),
+      deck(2, 20, 'High', 9),
+      { ...deck(3, 0, 'General', 100), songId: null },
+    ],
+    nextCursor: null,
+  });
+  vi.mocked(songApi.getRecommendations).mockResolvedValue([]);
+  vi.mocked(flashcardApi.getDueCards).mockResolvedValue({ cards: [card(1)], totalCount: 9, nextDueAt: null });
+  await mountHome();
+  expect(flashcardApi.getDueCards).toHaveBeenCalledWith(2, 20);
+  expect(stack.deckStripItems.map(s => s.songId)).toEqual([20, 10]);
+  expect(stack.selectedSource?.songId).toBe(20);
+  expect(stack.nextDueSource?.songId).toBe(10);
+});
+
+it('auto-selects the first recommendation deterministically for a brand-new user with no song decks', async () => {
+  const rec2: RecommendedSongItem = { id: 2, songId: 99, title: 'Second', artist: 'B', artworkUrl: null, weekStartDate: '2026-09-01' };
+  vi.mocked(songApi.getRecommendations).mockResolvedValue([recommendation, rec2]);
+  vi.mocked(songApi.getWords).mockResolvedValue(wordsInSong([wordItem('高い', 99, 0)]));
+  await mountHome();
+  expect(stack.deckStripItems.map(s => s.songId)).toEqual([9, 99]);
+  expect(stack.selectedSource?.songId).toBe(9);
+  expect(stack.recommendedSource?.songId).toBe(9);
+});
+
+it('recomputes the next due deck from a fresh deck list whenever a deck completes', async () => {
+  const decksAtEntry = [deck(1, 10, 'A', 1), deck(2, 20, 'B', 1), deck(3, 30, 'C', 1)];
+  vi.mocked(deckApi.getDecks).mockResolvedValue({ songDecks: decksAtEntry, nextCursor: null });
+  vi.mocked(songApi.getRecommendations).mockResolvedValue([]);
+  vi.mocked(flashcardApi.getDueCards)
+    .mockResolvedValueOnce({ cards: [card(1)], totalCount: 1, nextDueAt: null })
+    .mockResolvedValue({ cards: [], totalCount: 0, nextDueAt: null });
+  await mountHome();
+  expect(stack.nextDueSource?.songId).toBe(20);
+
+  // A 완주 — 서버는 A 가 끝났다고 알려준다.
+  vi.mocked(deckApi.getDecks).mockResolvedValue({
+    songDecks: [deck(1, 10, 'A', 0), deck(2, 20, 'B', 1), deck(3, 30, 'C', 1)], nextCursor: null,
+  });
+  await rate();
+  expect(stack.isComplete).toBe(true);
+  expect(stack.nextDueSource?.songId).toBe(20);
+
+  // B 로 이어서 갔더니 B 는 이미 due 가 없다 — C 가 남아 있으면 C 를 다음으로 잡는다.
+  vi.mocked(deckApi.getDecks).mockResolvedValue({
+    songDecks: [deck(1, 10, 'A', 0), deck(2, 20, 'B', 0), deck(3, 30, 'C', 1)], nextCursor: null,
+  });
+  await act(async () => { stack.continueDue(); });
+  expect(stack.isComplete).toBe(true);
+  expect(stack.completedSource?.songId).toBe(20);
+  expect(stack.nextDueSource?.songId).toBe(30);
+
+  // C 까지 끝나면 그제야 다음 due 덱이 없다.
+  vi.mocked(deckApi.getDecks).mockResolvedValue({
+    songDecks: [deck(1, 10, 'A', 0), deck(2, 20, 'B', 0), deck(3, 30, 'C', 0)], nextCursor: null,
+  });
+  await act(async () => { stack.continueDue(); });
+  expect(stack.nextDueSource).toBeNull();
+});
+
+it('selectSource switches the loaded deck and is a no-op when reselecting the active song', async () => {
+  vi.mocked(deckApi.getDecks).mockResolvedValue({
+    songDecks: [deck(1, 10, 'A', 5), deck(2, 20, 'B', 1)],
+    nextCursor: null,
+  });
+  vi.mocked(songApi.getRecommendations).mockResolvedValue([]);
+  vi.mocked(flashcardApi.getDueCards)
+    .mockResolvedValueOnce({ cards: [card(1)], totalCount: 1, nextDueAt: null })
+    .mockResolvedValueOnce({ cards: [card(2)], totalCount: 1, nextDueAt: null });
+  await mountHome();
+  expect(stack.selectedSource?.songId).toBe(10);
+
+  await act(async () => { stack.selectSource(stack.deckStripItems[0]); });
+  expect(flashcardApi.getDueCards).toHaveBeenCalledTimes(1);
+
+  await act(async () => { stack.selectSource(stack.deckStripItems[1]); });
+  expect(flashcardApi.getDueCards).toHaveBeenCalledTimes(2);
+  expect(flashcardApi.getDueCards).toHaveBeenNthCalledWith(2, 2, 20);
+  expect(stack.selectedSource?.songId).toBe(20);
+});
+
+it('startRecommended opens the recommended preview card even when it is already the selected source', async () => {
+  vi.mocked(songApi.getRecommendations).mockResolvedValue([recommendation]);
+  vi.mocked(songApi.getWords)
+    .mockResolvedValueOnce(wordsInSong([]))
+    .mockResolvedValueOnce(wordsInSong([wordItem('高い', 99, 0)]));
+  await mountHome();
+  expect(stack.isComplete).toBe(true);
+  expect(stack.selectedSource?.songId).toBe(recommendation.songId);
+
+  await act(async () => { stack.selectSource(stack.recommendedSource!); });
+  expect(songApi.getWords).toHaveBeenCalledTimes(1);
+
+  await act(async () => { stack.startRecommended(); });
+  expect(songApi.getWords).toHaveBeenCalledTimes(2);
+  expect(stack.isComplete).toBe(false);
+  expect(stack.currentCard?.japanese).toBe('高い');
+});
+
+it('selectSource on another recommendation loads a fresh preview card', async () => {
+  const rec2: RecommendedSongItem = { id: 2, songId: 99, title: 'Second', artist: 'B', artworkUrl: null, weekStartDate: '2026-09-01' };
+  vi.mocked(songApi.getRecommendations).mockResolvedValue([recommendation, rec2]);
+  vi.mocked(songApi.getWords)
+    .mockResolvedValueOnce(wordsInSong([wordItem('高い', 99, 0)]))
+    .mockResolvedValueOnce(wordsInSong([wordItem('低い', 50, 0)]));
+  await mountHome();
+  expect(stack.currentCard?.japanese).toBe('高い');
+
+  await act(async () => { stack.selectSource(stack.deckStripItems[1]); });
+  expect(songApi.getWords).toHaveBeenCalledWith(99);
+  expect(stack.currentCard?.japanese).toBe('低い');
+  expect(stack.selectedSource?.songId).toBe(99);
+});

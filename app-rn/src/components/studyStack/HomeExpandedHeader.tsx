@@ -4,26 +4,33 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../theme/theme';
 import { Typography } from '../../theme/typography';
-import { WeekDot } from '../../types/studyStats';
+import { DeckStrip, DECK_STRIP_HEIGHT } from './DeckStrip';
+import { StudySource } from './types';
 
 const APP_BAR_HEIGHT = 52;
-const STREAK_BANNER_HEIGHT = 67;
-const WEEKDAY_LABELS = ['월', '화', '수', '목', '금', '토', '일'];
 
-/** 곡 진입 복습과 다르게 홈 최초 진입은 스트릭 배너까지 펼친다. */
-export const HOME_HEADER_CONTENT_HEIGHT = APP_BAR_HEIGHT + STREAK_BANNER_HEIGHT;
+/** 곡 진입 복습과 다르게 홈 최초 진입은 덱 스트립까지 펼친다. */
+export const HOME_HEADER_CONTENT_HEIGHT = APP_BAR_HEIGHT + DECK_STRIP_HEIGHT;
 
 export interface HomeExpandedHeaderProps {
   streak: number;
-  weekDots: WeekDot[];
+  /** 덱 스트립에 그릴 목록 — 곡 덱이 있으면 due 많은 순 덱, 없으면 추천곡. */
+  deckStripItems: StudySource[];
+  /** 덱 스트립에서 현재 강조돼야 할 곡. */
+  selectedSongId: number | null;
+  onSelectDeckStripItem: (source: StudySource) => void;
+  onSearch: () => void;
   /** 0 = 펼침(H5), 1 = 몰입(H1). */
   immerse: Animated.Value;
 }
 
-/** H5 헤더 — 상태바 여백 + 워드마크 앱바 + 스트릭 배너. 위쪽 블록부터 먼저 빠진다. */
+/** H5 헤더 — 상태바 여백 + 워드마크·스트릭 칩 앱바 + 덱 스트립. 위쪽 블록부터 먼저 빠진다. */
 export const HomeExpandedHeader = React.memo(function HomeExpandedHeader({
   streak,
-  weekDots,
+  deckStripItems,
+  selectedSongId,
+  onSelectDeckStripItem,
+  onSearch,
   immerse,
 }: HomeExpandedHeaderProps) {
   const insets = useSafeAreaInsets();
@@ -51,7 +58,7 @@ export const HomeExpandedHeader = React.memo(function HomeExpandedHeader({
       }),
     }],
   };
-  const banner = {
+  const deckStripAnim = {
     opacity: immerse.interpolate({
       inputRange: [0.15, 0.85],
       outputRange: [1, 0],
@@ -67,58 +74,29 @@ export const HomeExpandedHeader = React.memo(function HomeExpandedHeader({
   };
 
   return (
-    <Animated.View style={[styles.shell, { height }, shell]} pointerEvents="none">
-      <View style={{ height: insets.top }} />
-      <Animated.View style={[styles.appBar, appBar]}>
+    <Animated.View style={[styles.shell, { height }, shell]} pointerEvents="box-none">
+      <View style={{ height: insets.top }} pointerEvents="none" />
+      <Animated.View style={[styles.appBar, appBar]} pointerEvents="none">
         <Text style={styles.wordmark}>Kotonoha</Text>
-      </Animated.View>
-      <Animated.View style={[styles.banner, banner]}>
-        {weekDots.length > 0 && (
-          <View style={styles.bannerRow}>
-            <View style={styles.streakLeft}>
-              <Ionicons name="flame" size={26} color={Colors.streakFlame} />
-              <View style={styles.streakNumRow}>
-                <Text style={styles.streakNum}>{streak}</Text>
-                <Text style={styles.streakUnit}>일 연속</Text>
-              </View>
-            </View>
-            <View style={styles.weekDots}>
-              {weekDots.map((dot, i) => (
-                <DotCell key={dot.date} label={WEEKDAY_LABELS[i] ?? ''} dot={dot} />
-              ))}
-            </View>
+        <View style={styles.streak}>
+          <Ionicons name="flame" size={20} color={Colors.streakFlame} />
+          <View style={styles.streakLabel}>
+            <Text style={styles.streakNum}>{streak}일</Text>
+            <Text style={styles.streakWord}>연속</Text>
           </View>
-        )}
+        </View>
+      </Animated.View>
+      <Animated.View style={[styles.deckStripWrap, deckStripAnim]} pointerEvents="box-none">
+        <DeckStrip
+          items={deckStripItems}
+          selectedSongId={selectedSongId}
+          onSelect={onSelectDeckStripItem}
+          onSearch={onSearch}
+        />
       </Animated.View>
     </Animated.View>
   );
 });
-
-const DotCell = React.memo(function DotCell({ label, dot }: { label: string; dot: WeekDot }) {
-  const isToday = dot.status === 'today';
-  return (
-    <View style={styles.dayCol}>
-      <Text style={[styles.dayLabel, isToday && styles.dayLabelToday]}>{label}</Text>
-      <DotMark dot={dot} />
-    </View>
-  );
-});
-
-function DotMark({ dot }: { dot: WeekDot }) {
-  if (dot.status === 'freeze') {
-    return <Ionicons name="snow" size={10} color={DOT_FREEZE} />;
-  }
-  if (dot.status === 'studied') {
-    return <View style={[styles.dot, styles.dotStudied]} />;
-  }
-  if (dot.status === 'today') {
-    return <View style={[styles.dot, styles.dotToday]} />;
-  }
-  return <View style={[styles.dot, styles.dotEmpty]} />;
-}
-
-const DOT_STUDIED = '#10B981';
-const DOT_FREEZE = '#52B788';
 
 const styles = StyleSheet.create({
   shell: {
@@ -130,7 +108,9 @@ const styles = StyleSheet.create({
   },
   appBar: {
     height: APP_BAR_HEIGHT,
-    justifyContent: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
   },
   wordmark: {
@@ -139,73 +119,28 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
     color: Colors.textPrimary,
   },
-  banner: {
-    height: STREAK_BANNER_HEIGHT,
-    justifyContent: 'center',
-    paddingHorizontal: 16,
-  },
-  bannerRow: {
+  streak: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 16,
+    alignItems: 'flex-end',
+    gap: 3,
   },
-  streakLeft: {
+  streakLabel: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  streakNumRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
+    alignItems: 'flex-end',
+    gap: 3,
   },
   streakNum: {
-    ...Typography.bodyExtraBold,
-    fontSize: 24,
+    ...Typography.bodyBold,
+    fontSize: 14,
+    letterSpacing: -0.2,
     color: Colors.textPrimary,
   },
-  streakUnit: {
-    ...Typography.bodySemiBold,
-    fontSize: 13,
+  streakWord: {
+    ...Typography.bodyMedium,
+    fontSize: 14,
     color: Colors.textSecondary,
   },
-  weekDots: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  dayCol: {
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: 4,
-    width: 14,
-  },
-  dayLabel: {
-    ...Typography.bodyMedium,
-    fontSize: 9,
-    color: Colors.textMuted,
-  },
-  dayLabelToday: {
-    ...Typography.bodyBold,
-    color: DOT_FREEZE,
-  },
-  dot: {
-    width: 9,
-    height: 9,
-    borderRadius: 4.5,
-  },
-  dotStudied: {
-    backgroundColor: DOT_STUDIED,
-  },
-  dotToday: {
-    backgroundColor: 'transparent',
-    borderWidth: 1.5,
-    borderColor: DOT_FREEZE,
-  },
-  dotEmpty: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: Colors.border,
+  deckStripWrap: {
+    height: DECK_STRIP_HEIGHT,
   },
 });

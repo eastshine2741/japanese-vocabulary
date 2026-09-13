@@ -177,12 +177,6 @@ export const CompletionStage = React.memo(function CompletionStage({
 
         {(hasNextDue || hasRecommended) && (
           <View style={styles.secondaryActions}>
-            {hasNextDue && hasRecommended && (
-              <Pressable style={styles.secondaryAction} onPress={onRecommended}>
-                <Feather name="book-open" size={15} color="rgba(255,255,255,0.6)" />
-                <Text style={styles.secondaryActionText}>추천곡 학습</Text>
-              </Pressable>
-            )}
             <Pressable style={styles.secondaryAction} onPress={onSearch}>
               <Feather name="search" size={15} color="rgba(255,255,255,0.6)" />
               <Text style={styles.secondaryActionText}>새 곡 검색</Text>
