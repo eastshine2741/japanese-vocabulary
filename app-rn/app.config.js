@@ -1,4 +1,12 @@
 const { execSync } = require('child_process');
+const fs = require('fs');
+const path = require('path');
+
+function readNativeBuildConfig() {
+  const file = path.join(__dirname, 'native-build.json');
+  if (!fs.existsSync(file)) return {};
+  return JSON.parse(fs.readFileSync(file, 'utf-8'));
+}
 
 function resolveNamespace() {
   if (process.env.DEPLOY_NS) return process.env.DEPLOY_NS;
@@ -10,11 +18,23 @@ function resolveNamespace() {
   }
 }
 
-const isProd = process.env.BUILD_ENV === 'prod';
-const versionName = process.env.BUILD_VERSION_NAME ?? '1.0.0';
-const buildNumber = process.env.BUILD_NUMBER ?? '1';
+const buildEnv = process.env.BUILD_ENV ?? process.env.EXPO_PUBLIC_BUILD_ENV ?? 'dev';
+const isProd = buildEnv === 'prod';
+const nativeBuildConfig = isProd ? readNativeBuildConfig() : {};
+const defaultUpdateChannel =
+  buildEnv === 'prod' ? 'production' : buildEnv === 'staging' ? 'preview' : 'development';
+const updateChannel = process.env.EAS_UPDATE_CHANNEL ?? defaultUpdateChannel;
+const versionName = process.env.BUILD_VERSION_NAME ?? nativeBuildConfig.versionName ?? '1.0.0';
+const buildNumber = process.env.BUILD_NUMBER ?? nativeBuildConfig.buildNumber ?? '1';
 const versionCodeEnv = process.env.BUILD_VERSION_CODE;
 const versionCode = versionCodeEnv ? parseInt(versionCodeEnv, 10) : undefined;
+// OTA compatibility is keyed by the native release's major.minor.patch. A JS
+// tag such as js-v1.2.1-update.3.prod therefore targets native runtime 1.2.1,
+// regardless of its OTA iteration and target environment suffix.
+const nativeRuntimeVersion =
+  process.env.NATIVE_RUNTIME_VERSION ??
+  nativeBuildConfig.nativeRuntimeVersion ??
+  versionName.replace(/-(?:dev|rc)\.\d+$/, '');
 
 const namespace = resolveNamespace();
 const suffix = `.${namespace.replace(/[^a-z0-9]/g, '')}`;
@@ -37,6 +57,13 @@ export default {
     name: `코토노하${label}`,
     slug: 'app-rn',
     version: versionName,
+    runtimeVersion: nativeRuntimeVersion,
+    updates: {
+      url: 'https://u.expo.dev/f03be909-9675-45fc-8ad5-818e30cdf18e',
+      requestHeaders: {
+        'expo-channel-name': updateChannel,
+      },
+    },
     orientation: 'portrait',
     icon: './assets/icon.png',
     userInterfaceStyle: 'light',
@@ -77,6 +104,13 @@ export default {
     plugins: [
       './plugins/withReleaseSigning',
       'expo-apple-authentication',
+      [
+        'expo-navigation-bar',
+        {
+          enforceContrast: false,
+          barStyle: 'dark',
+        },
+      ],
       '@react-native-google-signin/google-signin',
       ...(firebaseDisabled
         ? []
@@ -110,7 +144,7 @@ export default {
         },
       ],
       [
-        '@sentry/react-native',
+        '@sentry/react-native/expo',
         {
           organization: process.env.SENTRY_ORG,
           project: process.env.SENTRY_PROJECT,

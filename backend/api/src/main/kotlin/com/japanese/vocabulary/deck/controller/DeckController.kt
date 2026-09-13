@@ -90,6 +90,8 @@ class DeckController(private val deckService: DeckService) {
         wordCount = wordCount,
         dueCount = dueCount,
         masteredCount = masteredCount,
+        studyingCount = studyingCount,
+        newWordCount = newWordCount,
     )
 
     private fun DeckDetailDto.toResponse() = DeckDetailResponse(

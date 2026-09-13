@@ -8,11 +8,11 @@ import {
   Keyboard,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import Svg, { Circle, Path } from 'react-native-svg';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import RecentSearchesSection from '../components/RecentSearchesSection';
-import SearchRecentSongs from '../components/SearchRecentSongs';
+import SearchDiscoverySections from '../components/searchDiscovery/SearchDiscoverySections';
 import { Colors } from '../theme/theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
@@ -34,11 +34,30 @@ export default function SearchScreen() {
     [navigation],
   );
 
+  const openSong = useCallback(
+    (songId: number) => {
+      navigation.navigate('SongDetail', { songId, origin: 'Home' });
+    },
+    [navigation],
+  );
+
   return (
-    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.searchRow}>
         <View style={styles.inputWrapper}>
-          <Ionicons name="search" size={18} color={Colors.textMuted} />
+          <Svg
+            width={18}
+            height={18}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke={Colors.textMuted}
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <Circle cx={11} cy={11} r={8} />
+            <Path d="m21 21-4.3-4.3" />
+          </Svg>
           <TextInput
             style={styles.input}
             placeholder="노래, 아티스트 검색"
@@ -61,11 +80,9 @@ export default function SearchScreen() {
       </View>
 
       <ScrollView
-        contentContainerStyle={styles.emptyState}
         keyboardShouldPersistTaps="handled"
       >
-        <SearchRecentSongs />
-        <RecentSearchesSection onSelectTerm={runSearch} />
+        <SearchDiscoverySections onSelectTerm={runSearch} onSelectSong={openSong} />
       </ScrollView>
     </View>
   );
@@ -101,10 +118,5 @@ const styles = StyleSheet.create({
   },
   clearButton: {
     marginLeft: 0,
-  },
-  emptyState: {
-    paddingTop: 12,
-    paddingBottom: 28,
-    gap: 28,
   },
 });

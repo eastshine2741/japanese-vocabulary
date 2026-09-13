@@ -62,6 +62,29 @@ class PushNotificationServiceTest {
         verify(exactly = 0) { deviceTokenRepository.deleteByToken(any()) }
         assertThat(logSlot.captured.userId).isEqualTo(7L)
         assertThat(logSlot.captured.title).isEqualTo("勉強, 이 단어 기억나시나요?")
+
+        val message = captured.captured
+        assertThat(message.fieldValue<String>("token")).isEqualTo("tok-7")
+        assertThat(message.fieldValue<Map<String, String>>("data"))
+            .isEqualTo(mapOf("type" to "review_reminder", "flashcardId" to "42"))
+
+        val notification = message.fieldValue<Any>("notification")
+        assertThat(notification.fieldValue<String>("title")).isEqualTo("勉強, 이 단어 기억나시나요?")
+        assertThat(notification.fieldValue<String>("body")).isEqualTo("잊어버리기 전에 잠깐 들러보세요.")
+
+        val android = message.fieldValue<Any>("androidConfig")
+        assertThat(android.fieldValue<String>("priority")).isEqualTo("high")
+        val androidNotification = android.fieldValue<Any>("notification")
+        assertThat(androidNotification.fieldValue<String>("channelId")).isEqualTo("review-reminders")
+        assertThat(androidNotification.fieldValue<String>("priority")).isEqualTo("PRIORITY_HIGH")
+
+        val apns = message.fieldValue<Any>("apnsConfig")
+        val headers = apns.fieldValue<Map<*, *>>("headers")
+        assertThat(headers["apns-push-type"]).isEqualTo("alert")
+        assertThat(headers["apns-priority"]).isEqualTo("10")
+        val apnsPayload = apns.fieldValue<Map<*, *>>("payload")
+        val aps = apnsPayload["aps"] as Map<*, *>
+        assertThat(aps["sound"]).isEqualTo("default")
     }
 
     @Test
@@ -84,5 +107,12 @@ class PushNotificationServiceTest {
         assertThat(ok).isFalse()
         verify(exactly = 0) { deviceTokenRepository.deleteByToken(any()) }
         verify(exactly = 0) { notificationLogRepository.save(any()) }
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun <T> Any.fieldValue(name: String): T {
+        val field = javaClass.getDeclaredField(name)
+        field.isAccessible = true
+        return field.get(this) as T
     }
 }

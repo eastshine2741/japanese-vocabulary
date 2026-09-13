@@ -125,6 +125,38 @@ class DeckControllerTest : ApiBaseIntegrationTest() {
             assertThat(summary.wordCount).isEqualTo(1)
             assertThat(summary.dueCount).isEqualTo(1)
             assertThat(summary.masteredCount).isEqualTo(1)
+            assertThat(summary.studyingCount).isEqualTo(0)
+            assertThat(summary.newWordCount).isEqualTo(0)
+        }
+
+        @Test
+        fun `studyingCount and newWordCount reflect real card state, not dueCount`() {
+            val me = newUser()
+            val song = newSong()
+            val deck = newDeck(me, song)
+            val now = clock.instant()
+            val masteredWord = newWord(me)
+            val studyingWord = newWord(me)
+            val newWord = newWord(me)
+            newCard(me, masteredWord, dueAt = now.minus(Duration.ofMinutes(1)), state = 1, lastReviewedAt = now)
+            newCard(me, studyingWord, dueAt = now.plus(Duration.ofDays(1)), state = 0, lastReviewedAt = now)
+            newCard(me, newWord, dueAt = now.minus(Duration.ofMinutes(2)), state = 0, lastReviewedAt = null)
+            link(deck, masteredWord); link(deck, studyingWord); link(deck, newWord)
+
+            val listBody = mockMvc.get("/api/decks") {
+                header("Authorization", bearer(me))
+            }.andReturn().response.contentAsString
+            val detailBody = mockMvc.get("/api/decks/${deck.id}") {
+                header("Authorization", bearer(me))
+            }.andReturn().response.contentAsString
+
+            val summary = readBody<DeckListResponse>(listBody).songDecks.single()
+            val detail = readBody<DeckDetailResponse>(detailBody)
+            // 목록과 상세가 같은 studyingCount/newWordCount 를 말해야 한다 (dueCount 근사가 아니라 실제 카드 상태 기반).
+            assertThat(summary.studyingCount).isEqualTo(1)
+            assertThat(summary.newWordCount).isEqualTo(1)
+            assertThat(summary.studyingCount).isEqualTo(detail.studyingCount)
+            assertThat(summary.newWordCount).isEqualTo(detail.newWordCount)
         }
 
         @Test

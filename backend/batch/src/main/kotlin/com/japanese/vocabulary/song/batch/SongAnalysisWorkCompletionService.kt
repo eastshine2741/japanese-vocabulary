@@ -9,6 +9,8 @@ import com.japanese.vocabulary.song.service.WordCandidateGenerator
 import com.japanese.vocabulary.songanalysis.entity.SongAnalysisTriggerSource
 import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStatus
 import com.japanese.vocabulary.songanalysis.repository.SongAnalysisWorkRepository
+import com.japanese.vocabulary.songanalysis.event.SongAnalysisCompletedEvent
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
@@ -19,6 +21,7 @@ class SongAnalysisWorkCompletionService(
     private val lyricRepository: LyricRepository,
     private val songRepository: SongRepository,
     private val wordCandidateGenerator: WordCandidateGenerator,
+    private val eventPublisher: ApplicationEventPublisher,
 ) {
     @Transactional
     fun completeWithAnalyzedContent(
@@ -70,6 +73,7 @@ class SongAnalysisWorkCompletionService(
         }
 
         work.markCompleted(now)
+        eventPublisher.publishEvent(SongAnalysisCompletedEvent(workId, lyric.songId))
         return true
     }
 }

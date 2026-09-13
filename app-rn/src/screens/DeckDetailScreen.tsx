@@ -62,6 +62,21 @@ export default function DeckDetailScreen({ route, navigation }: Props) {
     }
   }, [songId, loadById, navigation]);
 
+  const handleStartStudy = useCallback(() => {
+    if (!data?.deckId) return;
+    navigation.navigate('SongReview', {
+      source: {
+        deckId: data.deckId,
+        songId: data.songId,
+        title: data.title ?? '전체 단어장',
+        artist: data.artist ?? '저장한 단어',
+        artworkUrl: data.artworkUrl,
+        dueCount: data.dueCount,
+        totalCount: data.wordCount,
+      },
+    });
+  }, [data, navigation]);
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
@@ -139,7 +154,7 @@ export default function DeckDetailScreen({ route, navigation }: Props) {
             <PrimaryButton
               icon="layers-outline"
               label="학습하기"
-              onPress={() => navigation.navigate('Review', { deckId })}
+              onPress={handleStartStudy}
               disabled={data.dueCount === 0}
               style={styles.primaryBtn}
             />

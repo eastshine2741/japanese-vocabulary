@@ -10,6 +10,8 @@ export interface SongDeckSummary {
   wordCount: number;
   dueCount: number;
   masteredCount: number;
+  studyingCount: number;
+  newWordCount: number;
 }
 
 export interface DeckListResponse {

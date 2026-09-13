@@ -34,6 +34,7 @@ import { usePlayerStore } from '../stores/playerStore';
 import { wordApi } from '../api/wordApi';
 import { deckApi } from '../api/deckApi';
 import { StudyUnit } from '../types/song';
+import { DeckDetailResponse } from '../types/deck';
 import { AddWordRequest, sensesFromMeaningText } from '../types/word';
 import { getPosSpotlightColor } from '../types/pos';
 import { Dimens } from '../theme/theme';
@@ -143,7 +144,7 @@ function SpotlightHero() {
   // "단어장 만들기" lifecycle: idle → creating (batch-add words) → created ("학습 N").
   const [deckState, setDeckState] = useState<'idle' | 'creating' | 'created'>('idle');
   const [learnCount, setLearnCount] = useState(0);
-  const [createdDeckId, setCreatedDeckId] = useState<number | null>(null);
+  const [createdDeck, setCreatedDeck] = useState<DeckDetailResponse | null>(null);
   // currentMs tracked locally — the hero MV is independent of global playback,
   // so we drive the synced line from onTimeChange.
   const [currentMs, setCurrentMs] = useState(0);
@@ -164,7 +165,7 @@ function SpotlightHero() {
   useEffect(() => {
     setDeckState('idle');
     setLearnCount(0);
-    setCreatedDeckId(null);
+    setCreatedDeck(null);
   }, [song?.id]);
 
   // Load spotlight + due count, and keep the MV playing whenever Home is focused.
@@ -275,7 +276,7 @@ function SpotlightHero() {
       // The deck is created synchronously via the after-commit flashcard event,
       // so it exists by the time the batch call returns.
       const deck = await deckApi.getDeckBySongId(song.id);
-      setCreatedDeckId(deck?.deckId ?? null);
+      setCreatedDeck(deck);
       setLearnCount(deck?.dueCount ?? defaultWords.length);
       setDeckState('created');
     } catch {
@@ -285,8 +286,19 @@ function SpotlightHero() {
 
   const goToStudy = useCallback((e: GestureResponderEvent) => {
     e.stopPropagation();
-    navigation.navigate('Review', createdDeckId != null ? { deckId: createdDeckId } : {});
-  }, [navigation, createdDeckId]);
+    if (!song || !createdDeck?.deckId) return;
+    navigation.navigate('SongReview', {
+      source: {
+        deckId: createdDeck.deckId,
+        songId: createdDeck.songId ?? song.id,
+        title: createdDeck.title ?? song.title,
+        artist: createdDeck.artist ?? song.artist,
+        artworkUrl: createdDeck.artworkUrl ?? song.artworkUrl,
+        dueCount: createdDeck.dueCount,
+        totalCount: createdDeck.wordCount,
+      },
+    });
+  }, [navigation, createdDeck, song]);
 
   const toggleMute = useCallback((e: GestureResponderEvent) => {
     e.stopPropagation();

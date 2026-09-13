@@ -1,6 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { useShallow } from 'zustand/react/shallow';
 import { useStudyStatsStore } from '../../stores/studyStatsStore';
 import { Colors } from '../../theme/theme';
@@ -30,14 +31,16 @@ export default React.memo(function HeatmapSection({ onPressFreeze }: HeatmapSect
     })),
   );
 
-  useEffect(() => {
-    if (heatmap.status === 'idle' || heatmap.staleAt > 0) {
-      loadHeatmap(heatmap.staleAt > 0);
-    }
-    if (profile.status === 'idle' || profile.staleAt > 0) {
-      loadProfile(profile.staleAt > 0);
-    }
-  }, [heatmap.status, heatmap.staleAt, profile.status, profile.staleAt, loadHeatmap, loadProfile]);
+  useFocusEffect(
+    useCallback(() => {
+      if (heatmap.status === 'idle' || heatmap.staleAt > 0) {
+        loadHeatmap(heatmap.staleAt > 0);
+      }
+      if (profile.status === 'idle' || profile.staleAt > 0) {
+        loadProfile(profile.staleAt > 0);
+      }
+    }, [heatmap.status, heatmap.staleAt, profile.status, profile.staleAt, loadHeatmap, loadProfile]),
+  );
 
   const cells = useMemo(() => {
     return computeGrid(heatmap.data?.days ?? []);
@@ -59,6 +62,8 @@ export default React.memo(function HeatmapSection({ onPressFreeze }: HeatmapSect
   }, [selectedDate, heatmap.data]);
 
   const totalDays = profile.data?.totalStudyDays ?? 0;
+  const currentStreak = profile.data?.currentStreak ?? 0;
+  const longestStreak = profile.data?.longestStreak ?? 0;
   const freezeCount = profile.data?.freezeCount ?? 0;
   const freezeMax = profile.data?.freezeMax ?? 2;
 
@@ -73,9 +78,16 @@ export default React.memo(function HeatmapSection({ onPressFreeze }: HeatmapSect
         >
           <Ionicons name="snow" size={11} color={Colors.freezeStroke} />
           <Text style={styles.freezeText}>{freezeCount}/{freezeMax}</Text>
-          <Text style={styles.dotSep}>·</Text>
-          <Text style={styles.totalText}>총 {totalDays}일</Text>
         </Pressable>
+      </View>
+
+      <View style={styles.statsLine}>
+        <Ionicons name="flame" size={13} color={Colors.streakFlame} />
+        <Text style={styles.streakText}>연속 {currentStreak}일</Text>
+        <Text style={styles.dotSep}>·</Text>
+        <Text style={styles.statText}>최장 {longestStreak}일</Text>
+        <Text style={styles.dotSep}>·</Text>
+        <Text style={styles.statText}>총 {totalDays}일</Text>
       </View>
 
       <View style={styles.grid}>
@@ -241,10 +253,22 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.textMuted,
   },
-  totalText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: Colors.textMuted,
+  statsLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  streakText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+    fontVariant: ['tabular-nums'],
+  },
+  statText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: Colors.textSecondary,
+    fontVariant: ['tabular-nums'],
   },
 
   grid: {

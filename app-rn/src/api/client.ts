@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { tokenStorage } from '../utils/tokenStorage';
+import { isDevBuild } from '../utils/buildEnv';
 
 const DEFAULT_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -13,6 +14,12 @@ export function getBaseURL(): string {
 }
 
 export async function initBaseURL(): Promise<void> {
+  // The stored override is a dev-only affordance. Release builds stay pinned to
+  // EXPO_PUBLIC_BACKEND_URL: iOS keeps SecureStore (Keychain) entries across app
+  // uninstalls, so a dev URL left behind by an earlier install would otherwise
+  // redirect the released app to an unreachable host — and the dialog that could
+  // undo it is compiled out of release builds.
+  if (!isDevBuild) return;
   const stored = await tokenStorage.getBaseURL();
   if (stored) {
     client.defaults.baseURL = stored;

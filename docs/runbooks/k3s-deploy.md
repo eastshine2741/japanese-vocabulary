@@ -68,5 +68,6 @@ DEPLOY_NS=issue-21 npx expo run:android
 | `GOOGLE_OAUTH_CLIENT_ID` | Google Web OAuth Client ID, same audience as `EXPO_PUBLIC_GOOGLE_OAUTH_WEB_CLIENT_ID` |
 | `PENCIL_CLI_KEY` | Pencil CLI auth for headless `.pen` editing |
 | `FIREBASE_SERVICE_ACCOUNT_JSON_BASE64` | Base64-encoded Firebase service account JSON |
+| `MANUAL_PUSH_SECRET` | Shared secret required by batch `POST /dev/push/send`; blank disables manual push sends |
 | `ADMIN_PASSWORD` / `ADMIN_PASSWORD_SHA256` | Admin API password source. Local dev defaults `ADMIN_PASSWORD` to `admin` in `deploy.sh` if unset |
 | `ADMIN_TOKEN_SECRET` | Admin-only bearer token signing key. Separate from public `JWT_SECRET` |

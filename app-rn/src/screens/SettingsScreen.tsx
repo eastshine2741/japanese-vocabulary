@@ -16,6 +16,7 @@ import { useNavigation, CommonActions } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useShallow } from 'zustand/react/shallow';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import * as Updates from 'expo-updates';
 import { useSettingsStore } from '../stores/settingsStore';
 import { userApi } from '../api/userApi';
 import { tokenStorage } from '../utils/tokenStorage';
@@ -30,6 +31,13 @@ import { TOS_URL, PRIVACY_URL, buildReportMailto } from '../config/legal';
 import { isDevBuild } from '../utils/buildEnv';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
+
+const otaUpdateNumber = process.env.EXPO_PUBLIC_OTA_UPDATE_NUMBER?.trim();
+const jsRevision = !Updates.isEnabled
+  ? '비활성'
+  : Updates.isEmbeddedLaunch
+    ? '내장'
+    : `update.${otaUpdateNumber || '?'}`;
 
 export default function SettingsScreen() {
   const navigation = useNavigation<Nav>();
@@ -294,6 +302,8 @@ export default function SettingsScreen() {
           >
             <Text style={styles.deleteAccountText}>계정 삭제</Text>
           </TouchableOpacity>
+
+          <Text style={styles.jsRevisionText}>{jsRevision}</Text>
         </View>
       </ScrollView>
       {isDevBuild && (
@@ -381,4 +391,8 @@ const styles = StyleSheet.create({
   accountActionButton: { alignItems: 'center', paddingVertical: 10 },
   logoutText: { fontSize: 14, color: Colors.textMuted },
   deleteAccountText: { fontSize: 14, color: Colors.accentRed },
+  jsRevisionText: {
+    fontSize: 11, color: Colors.textMuted, textAlign: 'center',
+    marginTop: 12, fontVariant: ['tabular-nums'],
+  },
 });

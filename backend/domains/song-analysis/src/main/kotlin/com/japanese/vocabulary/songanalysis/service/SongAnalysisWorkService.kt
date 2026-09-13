@@ -12,6 +12,8 @@ import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStatus
 import com.japanese.vocabulary.songanalysis.repository.SongAnalysisWorkRepository
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.transaction.annotation.Transactional
+import org.springframework.transaction.annotation.Propagation
+import org.springframework.data.domain.Pageable
 import java.time.Instant
 
 @Service
@@ -55,6 +57,14 @@ class SongAnalysisWorkService(
     fun getById(id: Long): SongAnalysisWorkDto {
         return songAnalysisWorkRepository.findById(id).orElse(null)?.toDto()
             ?: throw BusinessException(ErrorCode.SONG_ANALYSIS_WORK_NOT_FOUND)
+    }
+
+    /** Caller keeps the work lock until its subscription change has finished. */
+    @Transactional(propagation = Propagation.MANDATORY)
+    fun getLatestForLyricForUpdate(songId: Long, lyricId: Long): SongAnalysisWorkDto? {
+        val id = songAnalysisWorkRepository.findLatestIdsForLyric(songId, lyricId, Pageable.ofSize(1))
+            .firstOrNull() ?: return null
+        return songAnalysisWorkRepository.findByIdForUpdate(id)?.toDto()
     }
 
     @Transactional

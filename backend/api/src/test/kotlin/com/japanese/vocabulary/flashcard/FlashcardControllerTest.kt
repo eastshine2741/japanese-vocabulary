@@ -97,6 +97,123 @@ class FlashcardControllerTest : ApiBaseIntegrationTest() {
     @Nested
     inner class Due {
 
+        private fun due(
+            user: UserEntity,
+            limit: Int? = null,
+            deckId: Long? = null,
+            leadWordId: Long? = null,
+        ): DueFlashcardsResponse {
+            val body = mockMvc.get("/api/flashcards/due") {
+                header("Authorization", bearer(user))
+                limit?.let { param("limit", it.toString()) }
+                deckId?.let { param("deckId", it.toString()) }
+                leadWordId?.let { param("leadWordId", it.toString()) }
+            }.andExpect { status { isOk() } }.andReturn().response.contentAsString
+            return readBody(body)
+        }
+
+        @Test
+        fun `head page is due ordered with id ties and global count and future timing`() {
+            val me = newUser()
+            val boundary = newCard(me, dueAt = clock.instant())
+            val first = newCard(me, dueAt = clock.instant().minusSeconds(60))
+            val second = newCard(me, dueAt = first.due)
+            val future = newCard(me, dueAt = clock.instant().plusSeconds(20))
+            newCard(me, dueAt = clock.instant().plusSeconds(40))
+            newCard(newUser(), dueAt = clock.instant().plusSeconds(1))
+
+            val response = due(me, limit = 2)
+
+            assertThat(response.cards.map { it.id }).containsExactly(first.id, second.id)
+            assertThat(response.totalCount).isEqualTo(3)
+            assertThat(response.nextDueAt).isEqualTo(future.due.toString())
+            assertThat(due(me).cards.map { it.id }).containsExactly(first.id, second.id, boundary.id)
+        }
+
+        @Test
+        fun `deck head page keeps query order and scopes both count and future timing`() {
+            val me = newUser()
+            val firstWord = newWord(me)
+            val deck = linkWordToSongDeck(me, newSong(), firstWord)
+            val later = newCard(me, firstWord, dueAt = clock.instant())
+            val earlierWord = newWord(me)
+            val earlier = newCard(me, earlierWord, dueAt = clock.instant().minusSeconds(1))
+            val futureWord = newWord(me)
+            val future = newCard(me, futureWord, dueAt = clock.instant().plusSeconds(30))
+            for (word in listOf(earlierWord, futureWord)) {
+                entityManager.persist(DeckWordEntity(deckId = deck.id!!, wordId = word.id!!))
+            }
+            newCard(me, dueAt = clock.instant().minusSeconds(100))
+            newCard(me, dueAt = clock.instant().plusSeconds(1))
+            entityManager.flush()
+
+            val response = due(me, limit = 1, deckId = deck.id)
+            assertThat(response.cards.map { it.id }).containsExactly(earlier.id)
+            assertThat(response.totalCount).isEqualTo(2)
+            assertThat(response.nextDueAt).isEqualTo(future.due.toString())
+            assertThat(due(me, deckId = deck.id).cards.map { it.id }).containsExactly(earlier.id, later.id)
+        }
+
+        @Test
+        fun `no due cards still returns earliest future and empty deck returns null`() {
+            val me = newUser()
+            val word = newWord(me)
+            val deck = linkWordToSongDeck(me, newSong(), word)
+            val future = newCard(me, word, dueAt = clock.instant().plusSeconds(10))
+            val response = due(me, limit = 1, deckId = deck.id)
+            assertThat(response.cards).isEmpty()
+            assertThat(response.totalCount).isZero()
+            assertThat(response.nextDueAt).isEqualTo(future.due.toString())
+            assertThat(due(newUser()).nextDueAt).isNull()
+        }
+
+        @Test
+        fun `omitting limit preserves unlimited response`() {
+            val me = newUser()
+            repeat(101) { newCard(me) }
+            assertThat(due(me).cards).hasSize(101)
+            assertThat(due(me, limit = 100).cards).hasSize(100)
+        }
+
+        @Test
+        fun `rejects invalid limits and decks outside ownership`() {
+            val me = newUser()
+            for (limit in listOf("0", "-1", "101", "invalid")) {
+                mockMvc.get("/api/flashcards/due") {
+                    header("Authorization", bearer(me))
+                    param("limit", limit)
+                }.andExpect { status { isBadRequest() } }
+            }
+            mockMvc.get("/api/flashcards/due") {
+                header("Authorization", bearer(me))
+                param("deckId", "999999")
+            }.andExpect { status { isNotFound() } }
+            val other = newUser()
+            val theirDeck = linkWordToSongDeck(other, newSong(), newWord(other))
+            mockMvc.get("/api/flashcards/due") {
+                header("Authorization", bearer(me))
+                param("deckId", theirDeck.id.toString())
+            }.andExpect { status { isForbidden() } }
+        }
+
+        @Test
+        fun `reviewed card returns to the head when its new due arrives`() {
+            val me = newUser()
+            val card = newCard(me)
+            val body = mockMvc.post("/api/flashcards/${card.id}/review") {
+                header("Authorization", bearer(me))
+                contentType = MediaType.APPLICATION_JSON
+                content = objectMapper.writeValueAsString(ReviewRequest(rating = 1))
+            }.andExpect { status { isOk() } }.andReturn().response.contentAsString
+            val reviewed = readBody<ReviewResponse>(body)
+            val nextDue = Instant.parse(reviewed.due)
+            clock.setTo(nextDue.minusSeconds(1))
+            assertThat(due(me, limit = 1).cards).isEmpty()
+            assertThat(due(me, limit = 1).nextDueAt).isEqualTo(reviewed.due)
+            clock.setTo(nextDue)
+            assertThat(due(me, limit = 1).cards.map { it.id }).containsExactly(card.id)
+        }
+
         @Test
         fun `returns empty when user has no cards`() {
             val me = newUser()
@@ -158,6 +275,58 @@ class FlashcardControllerTest : ApiBaseIntegrationTest() {
             val resp = readBody<DueFlashcardsResponse>(body)
             assertThat(resp.totalCount).isEqualTo(1)
             assertThat(resp.cards.single().id).isEqualTo(linkedCard.id)
+        }
+
+        @Test
+        fun `leadWordId splices a not-yet-due word to the head and bumps the total`() {
+            val me = newUser()
+            val song = newSong()
+            val dueWord = newWord(me)
+            val dueCard = newCard(me, dueWord, dueAt = clock.instant().minusSeconds(60))
+            val deck = linkWordToSongDeck(me, song, dueWord)
+            val tappedWord = newWord(me)
+            val tappedCard = newCard(me, tappedWord, dueAt = clock.instant().plusSeconds(600))
+            entityManager.persist(DeckWordEntity(deckId = deck.id!!, wordId = tappedWord.id!!))
+            entityManager.flush()
+
+            val response = due(me, deckId = deck.id, leadWordId = tappedWord.id)
+
+            assertThat(response.cards.map { it.id }).containsExactly(tappedCard.id, dueCard.id)
+            assertThat(response.totalCount).isEqualTo(2)
+        }
+
+        @Test
+        fun `leadWordId on an already-due word keeps the total unchanged`() {
+            val me = newUser()
+            val song = newSong()
+            val firstWord = newWord(me)
+            val first = newCard(me, firstWord, dueAt = clock.instant().minusSeconds(120))
+            val deck = linkWordToSongDeck(me, song, firstWord)
+            val tappedWord = newWord(me)
+            val tapped = newCard(me, tappedWord, dueAt = clock.instant().minusSeconds(1))
+            entityManager.persist(DeckWordEntity(deckId = deck.id!!, wordId = tappedWord.id!!))
+            entityManager.flush()
+
+            val response = due(me, deckId = deck.id, leadWordId = tappedWord.id)
+
+            assertThat(response.cards.map { it.id }).containsExactly(tapped.id, first.id)
+            assertThat(response.totalCount).isEqualTo(2)
+        }
+
+        @Test
+        fun `leadWordId outside the deck is ignored`() {
+            val me = newUser()
+            val song = newSong()
+            val deckWord = newWord(me)
+            val deckCard = newCard(me, deckWord, dueAt = clock.instant().minusSeconds(60))
+            val deck = linkWordToSongDeck(me, song, deckWord)
+            val outsideWord = newWord(me)
+            newCard(me, outsideWord, dueAt = clock.instant().minusSeconds(1))
+
+            val response = due(me, deckId = deck.id, leadWordId = outsideWord.id)
+
+            assertThat(response.cards.map { it.id }).containsExactly(deckCard.id)
+            assertThat(response.totalCount).isEqualTo(1)
         }
 
         @Test

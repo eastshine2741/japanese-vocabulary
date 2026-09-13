@@ -12,6 +12,7 @@ jobs:
       is_rc: ${{ steps.parse.outputs.is_rc }}
       version_name: ${{ steps.parse.outputs.version_name }}
       version_code: ${{ steps.parse.outputs.version_code }}
+      native_runtime_version: ${{ steps.parse.outputs.native_runtime_version }}
       matrix: ${{ steps.parse.outputs.matrix }}
     steps:
       - name: Parse tag
@@ -27,17 +28,18 @@ jobs:
               IS_RC=true
               RC_N=$RC
               VN="${MAJOR}.${MINOR}.${PATCH}-rc.${RC}"
-              MATRIX='[{"env":"dev","fmt":"apk"},{"env":"prod","fmt":"apk"},{"env":"prod","fmt":"aab"}]'
+              MATRIX='[{"env":"dev","channel":"development","fmt":"apk"},{"env":"prod","channel":"production","fmt":"apk"},{"env":"prod","channel":"production","fmt":"aab"}]'
             else
               IS_RC=false
               RC_N=999
               VN="${MAJOR}.${MINOR}.${PATCH}"
-              MATRIX='[{"env":"prod","fmt":"aab"}]'
+              MATRIX='[{"env":"prod","channel":"production","fmt":"apk"},{"env":"prod","channel":"production","fmt":"aab"}]'
             fi
             VC=$((MAJOR * 1000000000 + MINOR * 1000000 + PATCH * 1000 + RC_N))
             echo "is_rc=$IS_RC" >> "$GITHUB_OUTPUT"
             echo "version_name=$VN" >> "$GITHUB_OUTPUT"
             echo "version_code=$VC" >> "$GITHUB_OUTPUT"
+            echo "native_runtime_version=${MAJOR}.${MINOR}.${PATCH}" >> "$GITHUB_OUTPUT"
             echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
           else
             echo "::error::Invalid tag format: $TAG (expected vM.m.p or vM.m.p-rc.N)"
@@ -79,6 +81,7 @@ jobs:
           EXPO_PUBLIC_BACKEND_URL=${BACKEND_URL}
           EXPO_PUBLIC_GOOGLE_OAUTH_WEB_CLIENT_ID=${GOOGLE_WEB_CLIENT_ID}
           EXPO_PUBLIC_BUILD_ENV=${{ matrix.target.env }}
+          EXPO_PUBLIC_EAS_UPDATE_CHANNEL=${{ matrix.target.channel }}
           EXPO_PUBLIC_SENTRY_DSN=${SENTRY_DSN}
           EXPO_PUBLIC_SENTRY_ENVIRONMENT=${{ matrix.target.env }}
           EOF
@@ -102,8 +105,10 @@ jobs:
         working-directory: app-rn
         env:
           BUILD_ENV: ${{ matrix.target.env }}
+          EAS_UPDATE_CHANNEL: ${{ matrix.target.channel }}
           BUILD_VERSION_NAME: ${{ needs.parse.outputs.version_name }}
           BUILD_VERSION_CODE: ${{ needs.parse.outputs.version_code }}
+          NATIVE_RUNTIME_VERSION: ${{ needs.parse.outputs.native_runtime_version }}
           DEPLOY_NS: main
         run: npx expo prebuild --platform android --clean
 
@@ -145,13 +150,14 @@ jobs:
         run: |
           VN="${{ needs.parse.outputs.version_name }}"
           ENV="${{ matrix.target.env }}"
+          CHANNEL="${{ matrix.target.channel }}"
           FMT="${{ matrix.target.fmt }}"
           if [[ "$FMT" == "aab" ]]; then
             SRC=app-rn/android/app/build/outputs/bundle/release/app-release.aab
           else
             SRC=app-rn/android/app/build/outputs/apk/release/app-release.apk
           fi
-          DST="kotonoha-${ENV}-${VN}.${FMT}"
+          DST="kotonoha-${ENV}-${CHANNEL}-${VN}.${FMT}"
           mv "$SRC" "$DST"
           echo "path=$DST" >> "$GITHUB_OUTPUT"
 

@@ -17,7 +17,7 @@ export const JLPT_COLORS: Record<SongDetailJlptBucket, string> = {
   N3: Colors.jlptN3,
   N4: Colors.jlptN4,
   N5: Colors.jlptN5,
-  UNKNOWN: Colors.border,
+  UNKNOWN: '#D2D2D2',
 };
 
 const JLPT_LABELS: Record<SongDetailJlptBucket, string> = {
@@ -26,7 +26,7 @@ const JLPT_LABELS: Record<SongDetailJlptBucket, string> = {
   N3: 'N3',
   N4: 'N4',
   N5: 'N5',
-  UNKNOWN: '알 수 없음',
+  UNKNOWN: '기타',
 };
 
 function normalizeJlpt(jlpt: SongDetailWordItem['jlpt']): SongDetailJlptBucket {

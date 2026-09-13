@@ -19,13 +19,18 @@ enum class ErrorCode(val status: HttpStatus, val message: String) {
     SONG_ANALYSIS_WORK_ALREADY_EXISTS(HttpStatus.CONFLICT, "Song analysis work already exists"),
     SONG_ANALYSIS_WORK_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "Song analysis failed"),
     SONG_ANALYSIS_WORK_TIMEOUT(HttpStatus.INTERNAL_SERVER_ERROR, "Song analysis timed out"),
+    SONG_ANALYSIS_NOT_PENDING(HttpStatus.CONFLICT, "No pending analysis for this song"),
+    ANALYSIS_NOTIFICATION_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "Analysis notification subscription is unavailable"),
+    INVALID_NOTIFICATION_REQUEST(HttpStatus.BAD_REQUEST, "enabled must be a boolean"),
 
     // Word
     WORD_NOT_FOUND(HttpStatus.NOT_FOUND, "Word not found"),
     MEANING_REQUIRED(HttpStatus.BAD_REQUEST, "At least one meaning required"),
+    NO_ELIGIBLE_WORDS(HttpStatus.CONFLICT, "No eligible words to bootstrap"),
 
     // Flashcard
     FLASHCARD_NOT_FOUND(HttpStatus.NOT_FOUND, "Flashcard not found"),
+    INVALID_LIMIT(HttpStatus.BAD_REQUEST, "limit must be between 1 and 100"),
 
     // Deck
     DECK_NOT_FOUND(HttpStatus.NOT_FOUND, "Deck not found"),

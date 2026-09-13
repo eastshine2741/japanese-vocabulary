@@ -171,11 +171,7 @@ class SongDetailQueryService(
         val defaultBulkAddCount = items.count { it.matchesDefaultFilters() && !it.isSavedForSong }
         // 주요 단어는 배열 순서와 무관한 별개 랭킹이다.
         val topWords = items
-            .sortedWith(
-                compareByDescending<WordInSongItemDto> { it.importanceScore }
-                    .thenBy { it.appearanceOrder }
-                    .thenBy { it.japanese }
-            )
+            .sortedWith(IMPORTANCE_RANKING)
             .take(TOP_WORD_COUNT)
             .map { WordSummaryItemDto(it.japanese, it.reading, it.koreanText, it.jlpt, it.importanceScore) }
         return WordsInSongDto(
@@ -192,14 +188,20 @@ class SongDetailQueryService(
         )
     }
 
-    private fun WordInSongItemDto.matchesDefaultFilters(): Boolean =
-        partOfSpeech in WordFilterDefaultsDto().pos && jlpt in WordFilterDefaultsDto().jlpt
-
     private fun emptyJlptDistribution() = linkedMapOf("N1" to 0, "N2" to 0, "N3" to 0, "N4" to 0, "N5" to 0, "UNKNOWN" to 0)
+
+    /** "전체 담기" 대상 판정. 홈 부트스트랩의 lead 후보 선정도 이 기준을 그대로 쓴다. */
+    internal fun WordInSongItemDto.matchesDefaultFilters(): Boolean =
+        partOfSpeech in WordFilterDefaultsDto().pos && jlpt in WordFilterDefaultsDto().jlpt
 
     companion object {
         private const val TOP_WORD_COUNT = 5
         private val BY_IMPORTANCE = compareByDescending<WordCandidate> { it.importanceScore }
+            .thenBy { it.appearanceOrder }
+            .thenBy { it.japanese }
+
+        /** "전체 담기"·홈 부트스트랩이 곡 안 단어 하나를 고를 때 공유하는 대표 랭킹. */
+        internal val IMPORTANCE_RANKING: Comparator<WordInSongItemDto> = compareByDescending<WordInSongItemDto> { it.importanceScore }
             .thenBy { it.appearanceOrder }
             .thenBy { it.japanese }
     }

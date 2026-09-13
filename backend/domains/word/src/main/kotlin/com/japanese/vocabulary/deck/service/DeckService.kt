@@ -4,7 +4,6 @@ import org.springframework.stereotype.Service
 import com.japanese.vocabulary.common.exception.BusinessException
 import com.japanese.vocabulary.common.exception.ErrorCode
 import com.japanese.vocabulary.deck.entity.DeckEntity
-import com.japanese.vocabulary.deck.entity.DeckWordEntity
 import com.japanese.vocabulary.deck.dto.CreateDeckDto
 import com.japanese.vocabulary.deck.dto.DeckDto
 import com.japanese.vocabulary.deck.dto.DeckDetailDto
@@ -47,11 +46,37 @@ class DeckService(
     /**
      * Due cards scoped to one deck. The deck-membership query lives here (outer layer owns the
      * join); response assembly is delegated to the flashcard module.
+     *
+     * [leadWordId] is the word the user just tapped in SongDetail — it must lead the returned
+     * queue even if FSRS hasn't made it due yet, so it is spliced to the front here and only
+     * added to [totalCount] when it wasn't already counted as due.
      */
-    @Transactional
-    fun getDueFlashcards(userId: Long, deckId: Long): DueFlashcardsDto {
-        val ids = deckRepository.findDueFlashcardIds(userId, deckId, Instant.now(clock))
-        return flashcardService.getDueFlashcardsByIds(userId, ids)
+    @Transactional(readOnly = true)
+    fun getDueFlashcards(userId: Long, deckId: Long, limit: Int? = null, leadWordId: Long? = null): DueFlashcardsDto {
+        loadOwnedDeck(userId, deckId)
+        val now = Instant.now(clock)
+        val pageable = limit?.let { Pageable.ofSize(it) } ?: Pageable.unpaged()
+        val ids = deckRepository.findDueFlashcardIds(userId, deckId, now, pageable).toMutableList()
+        var totalCount = deckRepository.countDueFlashcards(userId, deckId, now).toInt()
+        var leadId: Long? = null
+
+        if (leadWordId != null && deckWordRepository.existsByDeckIdAndWordId(deckId, leadWordId)) {
+            flashcardService.findLeadCandidate(userId, leadWordId)?.let { lead ->
+                leadId = lead.id
+                val wasQueued = ids.remove(lead.id)
+                if (!wasQueued && !lead.isDue) totalCount += 1
+                ids.add(0, lead.id)
+            }
+        }
+
+        return flashcardService.getDueFlashcardsByIds(
+            userId,
+            flashcardIds = limit?.let { ids.take(it) } ?: ids,
+            now = now,
+            totalCount = totalCount,
+            nextDueAt = deckRepository.findNextDueAt(userId, deckId, now),
+            leadId = leadId,
+        )
     }
 
     /** 전체 단어장은 `/decks/all` 로 따로 노출되므로 목록에서는 뺀다. */
@@ -87,6 +112,8 @@ class DeckService(
                 wordCount = stats?.getWordCount() ?: 0,
                 dueCount = stats?.getDueCount() ?: 0,
                 masteredCount = stats?.getMasteredCount() ?: 0,
+                studyingCount = stats?.getStudyingCount() ?: 0,
+                newWordCount = stats?.getNewWordCount() ?: 0,
             )
         }
 
@@ -117,11 +144,11 @@ class DeckService(
     }
 
     /**
-     * 단어를 담을 단어장들을 확보한다. **저장 트랜잭션 밖에서, 요청당 한 번** 부른다.
+     * 단어를 담을 단어장들을 확보한다. word 저장 트랜잭션 **안에서, 요청당 한 번** 부른다.
      *
-     * 단어장 행 생성을 저장 트랜잭션에서 빼면 두 가지가 좋아진다. 단어마다 반복 조회하지 않게
-     * 되고, 같은 유저의 동시 저장이 `decks` UNIQUE 에서 부딪히는 창이 짧아진다. 빼도 되는 이유는
-     * 단어장이 단어보다 오래 살기 때문 — 저장이 실패해 빈 단어장만 남아도 그건 정상 상태다.
+     * deck 이 이미 있으면 락 없는 SELECT 라 word 저장과 같은 트랜잭션에 넣어도 잠금 시간이
+     * 늘지 않는다 — INSERT 락이 걸리는 건 그 유저가 그 deck 을 처음 만드는 순간뿐이고, 그마저도
+     * word 저장 자체가 재시도되는 경합 상황이라 별 트랜잭션으로 쪼개서 얻는 이득이 크지 않다.
      */
     @Transactional
     fun resolveDeckTargets(userId: Long, songIds: Collection<Long>): DeckTargets = DeckTargets(
@@ -136,9 +163,7 @@ class DeckService(
     @Transactional
     fun linkSavedWord(targets: DeckTargets, wordId: Long, songId: Long?) {
         targets.idsFor(songId).forEach { deckId ->
-            if (!deckWordRepository.existsByDeckIdAndWordId(deckId, wordId)) {
-                deckWordRepository.save(DeckWordEntity(deckId = deckId, wordId = wordId))
-            }
+            deckWordRepository.insertIfAbsent(deckId, wordId)
         }
     }
 
@@ -166,6 +191,11 @@ class DeckService(
      * 같은 유저가 동시에 담으면 여기서 `UNIQUE(user_id, is_default)` 에 걸릴 수 있다. 이 예외는
      * 삼키지 않고 트랜잭션을 통째로 롤백시킨 뒤 [com.japanese.vocabulary.word.service.WordService]
      * 가 새 트랜잭션으로 재시도한다 — 재시도의 새 스냅샷에서는 이긴 쪽이 만든 deck 이 보인다.
+     *
+     * `INSERT ... ON DUPLICATE KEY UPDATE` 로는 대체하지 않는다 — 값이 안 바뀌는 UPDATE 는
+     * MySQL 이 실제 쓰기로 치지 않아(affected rows 0) 이 트랜잭션이 그 행을 소유하지 못하고,
+     * REPEATABLE READ 에서 재조회가 트랜잭션 시작 시점 스냅샷에 갇혀 방금 커밋된 행을 영영
+     * 못 볼 수 있다.
      */
     private fun ensureDefaultDeckId(userId: Long): Long =
         deckRepository.findByUserIdAndIsDefaultTrue(userId)?.id

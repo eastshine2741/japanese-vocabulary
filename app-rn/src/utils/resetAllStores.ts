@@ -5,7 +5,6 @@ import { useDeckWordListStore } from '../stores/deckWordListStore';
 import { useHomeStore } from '../stores/homeStore';
 import { usePlayerStore } from '../stores/playerStore';
 import { useRecommendationStore } from '../stores/recommendationStore';
-import { useReviewStore } from '../stores/reviewStore';
 import { useSearchHistoryStore } from '../stores/searchHistoryStore';
 import { useSongDetailStore } from '../stores/songDetailStore';
 import { useSettingsStore } from '../stores/settingsStore';
@@ -54,18 +53,6 @@ export function resetAllStores() {
     words: [],
     nextCursor: null,
     isLoadingMore: false,
-    error: null,
-  });
-
-  useReviewStore.setState({
-    status: 'loading',
-    cards: [],
-    currentIndex: 0,
-    isRevealed: false,
-    totalCount: 0,
-    stats: null,
-    totalReviewed: 0,
-    ratingCounts: { 1: 0, 2: 0, 3: 0, 4: 0 },
     error: null,
   });
 
