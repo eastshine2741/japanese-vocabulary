@@ -111,8 +111,10 @@ export const PromoReel = ({data}: {data: PromoReelData}) => {
   const activeIndex = lines.reduce((found, line, index) => (line.startFrame <= frame ? index : found), -1);
   const activeLine = lines[Math.max(0, activeIndex)];
   const localFrame = Math.max(0, frame - activeLine.startFrame);
-  // 줄은 자막처럼 하드컷으로 바뀐다. 단어 블록만 몇 프레임 뒤에 따라 붙는다(첫 줄은 처음부터 다 보인다).
-  const wordsVisible = activeIndex <= 0 || localFrame >= WORDS_DELAY_FRAMES;
+  // 줄 진입은 짧은 직선 이동이다 — 스프링처럼 감속하지 않고 6프레임에 끝난다. 첫 줄은 처음부터 다 보인다.
+  const entry = (delay: number) => (activeIndex <= 0 ? 1 : linear(localFrame - delay, 0, ENTRY_FRAMES));
+  const lyricEntry = entry(0);
+  const wordsEntry = entry(4);
 
   return (
     <AbsoluteFill style={styles.canvas}>
@@ -131,17 +133,17 @@ export const PromoReel = ({data}: {data: PromoReelData}) => {
       <div style={styles.videoBottomScrim} />
       <div style={styles.videoTopScrim} />
 
-      {frame < lyricsEndFrame && (
+      {frame < lyricsEndFrame + END_CARD_FADE_FRAMES && (
         <div style={styles.activeLayer}>
           <Header data={data} />
           {activeIndex >= 0 && (
             <section style={styles.content}>
-              <div style={styles.lyricBlock}>
+              <div style={{...styles.lyricBlock, ...entryStyle(lyricEntry)}}>
                 <JapaneseLine line={activeLine} />
                 <p style={styles.korean}>{activeLine.koreanLyrics}</p>
               </div>
               {activeLine.vocabulary.length > 0 && (
-                <div style={{opacity: wordsVisible ? 1 : 0}}>
+                <div style={entryStyle(wordsEntry)}>
                   <Vocabulary words={topWords(activeLine.vocabulary)} />
                 </div>
               )}
@@ -155,11 +157,17 @@ export const PromoReel = ({data}: {data: PromoReelData}) => {
   );
 };
 
-const WORDS_DELAY_FRAMES = 8;
+const ENTRY_FRAMES = 6;
+const END_CARD_FADE_FRAMES = 6;
 
 // 0→1 직선 진행. 스프링 없이 짧게 움직이고 끝난다.
 const linear = (frame: number, from: number, to: number) =>
   interpolate(frame, [from, to], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+
+const entryStyle = (progress: number): CSSProperties => ({
+  opacity: progress,
+  transform: `translateY(${interpolate(progress, [0, 1], [14, 0])}px)`,
+});
 
 const Header = ({data}: {data: PromoReelData}) => {
   return (
@@ -220,8 +228,9 @@ const EndCard = ({
 }) => {
   const frame = useCurrentFrame();
   const localFrame = frame - startFrame;
-  // 가사 레이어를 하드컷으로 덮는다. 페이드도 슬라이드도 없다.
   if (localFrame < 0) return null;
+  // 가사 레이어를 6프레임 직선 페이드로 덮고, 제목은 같은 길이만큼 올라온다.
+  const enter = linear(localFrame, 0, END_CARD_FADE_FRAMES);
   const typedLength = Math.max(0, Math.min(SEARCH_QUERY.length, Math.floor((localFrame - TYPING_START) / TYPING_FRAMES_PER_CHAR) + 1));
   const typingDone = localFrame >= TYPING_START + SEARCH_QUERY.length * TYPING_FRAMES_PER_CHAR;
   // 입력 중엔 커서가 켜져 있고, 다 친 뒤에만 깜빡인다.
@@ -229,11 +238,11 @@ const EndCard = ({
   const artwork = data.song.artworkAsset.trim() === '' ? null : assetSrc(data.song.artworkAsset);
 
   return (
-    <AbsoluteFill style={styles.endCardLayer}>
+    <AbsoluteFill style={{...styles.endCardLayer, opacity: enter}}>
       {artwork && <div style={{...styles.endBackdropArt, backgroundImage: `url("${artwork}")`}} />}
       <div style={styles.endBackdropScrim} />
       <div style={styles.ambientGlow} />
-      <div style={styles.endTitleBlock}>
+      <div style={{...styles.endTitleBlock, transform: `translateY(${interpolate(enter, [0, 1], [20, 0])}px)`}}>
         <div style={styles.endTitle}>전체 단어는</div>
         <div style={styles.endTitle}>
           <span style={styles.endTitleBrand}>코토노하</span> 앱에서
