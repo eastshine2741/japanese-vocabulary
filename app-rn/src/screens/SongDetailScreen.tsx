@@ -7,7 +7,6 @@ import {
   LayoutChangeEvent,
   NativeScrollEvent,
   NativeSyntheticEvent,
-  PanResponder,
   Pressable,
   StyleSheet,
   Text,
@@ -37,14 +36,9 @@ import {
   SongDetailWordsTab,
   type SongDetailMvBarRef,
   type SongDetailWordItem,
-  type SongDetailWordSaveState,
   useSongDetailWordsTab,
 } from '../components/songDetail';
-import {
-  getSongDetailWordKey,
-  getSongDetailWordSaveKey,
-  resolveSongDetailWordSaveState,
-} from '../components/songDetail/songDetailWordSave';
+import { getSongDetailWordKey } from '../components/songDetail/songDetailWordSave';
 import { Colors, Dimens } from '../theme/theme';
 import { Layers } from '../theme/layers';
 import { Typography } from '../theme/typography';
@@ -54,10 +48,6 @@ import type { DeckDetailResponse } from '../types/deck';
 type Props = NativeStackScreenProps<RootStackParamList, 'SongDetail'>;
 type DetailTab = 'home' | 'words';
 type LearningActionMode = 'start' | 'review' | 'preparing';
-type DeckAddedSnackbar = {
-  deckId: number;
-  deckName: string;
-};
 
 const HERO_HEIGHT = 360;
 const COLLAPSED_BAR_HEIGHT = 56;
@@ -68,9 +58,6 @@ const TAB_INDICATOR_WIDTH = 28;
 const TAB_TRANSITION_MS = 260;
 const WORDS_ACTION_BAR_HEIGHT = 50;
 const WORDS_TAB_BOTTOM_CLEARANCE = SONG_DETAIL_MV_BAR_HEIGHT + 24;
-const DECK_SNACKBAR_BOTTOM_OFFSET = 28;
-const DECK_SNACKBAR_SWIPE_DISMISS_DISTANCE = 96;
-const DECK_SNACKBAR_SWIPE_DISMISS_VELOCITY = 0.65;
 const HERO_SCROLL_COLLAPSE_START = HERO_HEIGHT - COLLAPSED_BAR_HEIGHT - TAB_BAR_HEIGHT - 34;
 const HERO_SCROLL_COLLAPSE_END = HERO_SCROLL_COLLAPSE_START + 56;
 const ARTWORK_COLLAPSED_OFFSET = HERO_HEIGHT * 0.4;
@@ -86,11 +73,6 @@ export default function SongDetailScreen({ navigation, route }: Props) {
   const { width: screenWidth } = useWindowDimensions();
   const scrollY = useRef(new Animated.Value(0)).current;
   const tabProgress = useRef(new Animated.Value(0)).current;
-  const deckSnackbarOpacity = useRef(new Animated.Value(0)).current;
-  const deckSnackbarTranslateX = useRef(new Animated.Value(0)).current;
-  const deckSnackbarTranslateY = useRef(new Animated.Value(18)).current;
-  const deckSnackbarTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const deckSnackbarFrameRef = useRef<number | null>(null);
   const infoSheetRef = useRef<AppBottomSheetRef>(null);
   const infoSheetOpenRef = useRef(false);
   const isInitialFocusRef = useRef(true);
@@ -113,9 +95,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     home: 0,
     words: 0,
   });
-  const [wordSaveOverrides, setWordSaveOverrides] = useState<Map<string, SongDetailWordSaveState>>(() => new Map());
   const [busyWordKey, setBusyWordKey] = useState<string | null>(null);
-  const [deckSnackbar, setDeckSnackbar] = useState<DeckAddedSnackbar | null>(null);
   const [analysisNotificationSubscribed, setAnalysisNotificationSubscribed] = useState(false);
   const notificationRequestRef = useRef(false);
   const activeSongIdRef = useRef<number | undefined>(undefined);
@@ -128,7 +108,6 @@ export default function SongDetailScreen({ navigation, route }: Props) {
   activeSongIdRef.current = songId;
 
   useEffect(() => {
-    setWordSaveOverrides(new Map());
     setBusyWordKey(null);
     setAnalysisNotificationSubscribed(false);
   }, [songId]);
@@ -228,189 +207,6 @@ export default function SongDetailScreen({ navigation, route }: Props) {
   const activePageHeight = tabPageHeights[activeTab];
   const tabViewportHeight = activePageHeight;
 
-  const hideDeckSnackbar = useCallback(() => {
-    if (deckSnackbarTimeoutRef.current != null) {
-      clearTimeout(deckSnackbarTimeoutRef.current);
-      deckSnackbarTimeoutRef.current = null;
-    }
-    if (deckSnackbarFrameRef.current != null) {
-      cancelAnimationFrame(deckSnackbarFrameRef.current);
-      deckSnackbarFrameRef.current = null;
-    }
-    Animated.parallel([
-      Animated.timing(deckSnackbarOpacity, {
-        toValue: 0,
-        duration: 120,
-        easing: Easing.in(Easing.cubic),
-        useNativeDriver: true,
-      }),
-      Animated.timing(deckSnackbarTranslateY, {
-        toValue: 10,
-        duration: 140,
-        easing: Easing.in(Easing.cubic),
-        useNativeDriver: true,
-      }),
-      Animated.timing(deckSnackbarTranslateX, {
-        toValue: 0,
-        duration: 140,
-        easing: Easing.in(Easing.cubic),
-        useNativeDriver: true,
-      }),
-    ]).start(({ finished }) => {
-      if (finished) setDeckSnackbar(null);
-    });
-  }, [deckSnackbarOpacity, deckSnackbarTranslateX, deckSnackbarTranslateY]);
-
-  const dismissDeckSnackbarBySwipe = useCallback((direction: number) => {
-    if (deckSnackbarTimeoutRef.current != null) {
-      clearTimeout(deckSnackbarTimeoutRef.current);
-      deckSnackbarTimeoutRef.current = null;
-    }
-    if (deckSnackbarFrameRef.current != null) {
-      cancelAnimationFrame(deckSnackbarFrameRef.current);
-      deckSnackbarFrameRef.current = null;
-    }
-    Animated.parallel([
-      Animated.timing(deckSnackbarTranslateX, {
-        toValue: direction * screenWidth,
-        duration: 160,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-      Animated.timing(deckSnackbarOpacity, {
-        toValue: 0,
-        duration: 120,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-    ]).start(({ finished }) => {
-      if (finished) {
-        deckSnackbarTranslateX.setValue(0);
-        setDeckSnackbar(null);
-      }
-    });
-  }, [deckSnackbarOpacity, deckSnackbarTranslateX, screenWidth]);
-
-  const showDeckSnackbar = useCallback((snackbar: DeckAddedSnackbar) => {
-    if (deckSnackbarTimeoutRef.current != null) {
-      clearTimeout(deckSnackbarTimeoutRef.current);
-      deckSnackbarTimeoutRef.current = null;
-    }
-    if (deckSnackbarFrameRef.current != null) {
-      cancelAnimationFrame(deckSnackbarFrameRef.current);
-      deckSnackbarFrameRef.current = null;
-    }
-    setDeckSnackbar(snackbar);
-    deckSnackbarOpacity.setValue(0);
-    deckSnackbarTranslateX.setValue(0);
-    deckSnackbarTranslateY.setValue(18);
-    deckSnackbarFrameRef.current = requestAnimationFrame(() => {
-      deckSnackbarFrameRef.current = null;
-      Animated.parallel([
-        Animated.timing(deckSnackbarOpacity, {
-          toValue: 1,
-          duration: 120,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-        Animated.timing(deckSnackbarTranslateY, {
-          toValue: 0,
-          duration: 180,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-      ]).start();
-    });
-    deckSnackbarTimeoutRef.current = setTimeout(hideDeckSnackbar, 4500);
-  }, [deckSnackbarOpacity, deckSnackbarTranslateX, deckSnackbarTranslateY, hideDeckSnackbar]);
-
-  const deckSnackbarPanResponder = useMemo(() => PanResponder.create({
-    onMoveShouldSetPanResponder: (_event, gestureState) => {
-      const horizontal = Math.abs(gestureState.dx);
-      const vertical = Math.abs(gestureState.dy);
-      return horizontal > 10 && horizontal > vertical * 1.4;
-    },
-    onPanResponderMove: (_event, gestureState) => {
-      deckSnackbarTranslateX.setValue(gestureState.dx);
-      const opacity = Math.max(0.45, 1 - Math.abs(gestureState.dx) / screenWidth);
-      deckSnackbarOpacity.setValue(opacity);
-    },
-    onPanResponderRelease: (_event, gestureState) => {
-      const direction = gestureState.dx >= 0 ? 1 : -1;
-      const shouldDismiss = Math.abs(gestureState.dx) >= DECK_SNACKBAR_SWIPE_DISMISS_DISTANCE
-        || (Math.abs(gestureState.vx) >= DECK_SNACKBAR_SWIPE_DISMISS_VELOCITY && Math.abs(gestureState.dx) > 24);
-
-      if (shouldDismiss) {
-        dismissDeckSnackbarBySwipe(direction);
-        return;
-      }
-
-      Animated.parallel([
-        Animated.timing(deckSnackbarTranslateX, {
-          toValue: 0,
-          duration: 150,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-        Animated.timing(deckSnackbarOpacity, {
-          toValue: 1,
-          duration: 120,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-      ]).start();
-    },
-    onPanResponderTerminate: () => {
-      Animated.parallel([
-        Animated.timing(deckSnackbarTranslateX, {
-          toValue: 0,
-          duration: 150,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-        Animated.timing(deckSnackbarOpacity, {
-          toValue: 1,
-          duration: 120,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-      ]).start();
-    },
-  }), [deckSnackbarOpacity, deckSnackbarTranslateX, dismissDeckSnackbarBySwipe, screenWidth]);
-
-  const showSavedWordSnackbar = useCallback(() => {
-    if (songId == null) return;
-    deckApi.getDeckBySongId(songId)
-      .then(deck => {
-        const deckId = deck?.deckId ?? null;
-        setSongDeckDetail(deck);
-        if (deckId == null) return;
-        const deckName = deck?.title?.trim() || data?.song.title?.trim() || '이 곡';
-        showDeckSnackbar({ deckId, deckName });
-      })
-      .catch(() => undefined);
-  }, [data?.song.title, showDeckSnackbar, songId]);
-
-  const handleOpenSnackbarDeck = useCallback(() => {
-    if (deckSnackbar == null) return;
-    const { deckId } = deckSnackbar;
-    hideDeckSnackbar();
-    navigation.navigate('DeckDetail', { deckId });
-  }, [deckSnackbar, hideDeckSnackbar, navigation]);
-
-  useEffect(() => {
-    return () => {
-      if (deckSnackbarTimeoutRef.current != null) {
-        clearTimeout(deckSnackbarTimeoutRef.current);
-        deckSnackbarTimeoutRef.current = null;
-      }
-      if (deckSnackbarFrameRef.current != null) {
-        cancelAnimationFrame(deckSnackbarFrameRef.current);
-        deckSnackbarFrameRef.current = null;
-      }
-    };
-  }, []);
-
   useEffect(() => {
     Animated.timing(tabProgress, {
       toValue: activeTab === 'words' ? 1 : 0,
@@ -459,7 +255,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     return deck;
   }, [defaultDeckWords, refreshWords, songDeckDetail, songId]);
 
-  /** 단어 하나만 담은 뒤에는 덱이 이미 있으므로 기본 단어 일괄 담기를 태우지 않는다. */
+  /** 이미 담긴 단어로 여는 경로라 덱이 있어야 정상이다 — 없으면 "학습 시작"과 같은 기본 담기로 만든다. */
   const resolveSongDeck = useCallback(async (): Promise<DeckDetailResponse | null> => {
     if (songDeckDetail?.deckId != null) return songDeckDetail;
     if (songId == null) return null;
@@ -504,27 +300,39 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     }
   }, [ensureSongDeck, isStartingLearning, openSongReview, songId]);
 
-  /** 단어를 누르면 그 곡 복습을 연다. 아직 안 담긴 단어는 조용히 담고, 그 단어를 큐의 첫 카드로 연다. */
+  /**
+   * 단어를 누르면 그 곡 복습을 연다. 이미 담긴 단어는 그 덱을 열어 첫 카드로 강제한다.
+   * 아직 안 담긴 단어는 여기서 담지 않는다 — 덱 없이 미리보기 카드로 먼저 보여주고, rating 을
+   * 확정하는 순간 서버가 "학습 시작"과 같은 기준으로 곡을 통째로 담는다(`study-bootstrap`).
+   * 단어 하나만 먼저 담으면 단어 하나짜리 곡 덱이 생기고 이후 기본 담기가 건너뛰어진다.
+   */
   const handleStartWordReview = useCallback(async (word: SongDetailWordItem) => {
     if (songId == null || isStartingLearning) return;
-    const wordKey = getSongDetailWordKey(word);
-    const saveKey = getSongDetailWordSaveKey(word);
-    setBusyWordKey(wordKey);
+    if (word.savedWordId == null) {
+      navigation.navigate('SongReview', {
+        origin: 'SongDetail',
+        source: {
+          deckId: songDeckDetail?.deckId ?? null,
+          songId,
+          title: data?.song.title ?? '',
+          artist: data?.song.artist ?? '',
+          artworkUrl: data?.song.artworkUrl ?? null,
+          dueCount: songDeckDetail?.dueCount ?? 0,
+          totalCount: songDeckDetail?.wordCount ?? 0,
+          previewWord: {
+            japanese: word.addRequest.japanese,
+            reading: word.addRequest.reading ?? null,
+            senses: word.addRequest.senses,
+          },
+        },
+      });
+      return;
+    }
+    setBusyWordKey(getSongDetailWordKey(word));
     setIsStartingLearning(true);
     try {
-      let leadWordId = resolveSongDetailWordSaveState(word, wordSaveOverrides).savedWordId;
-      if (leadWordId == null) {
-        const result = await wordApi.addWord(word.addRequest);
-        leadWordId = result.id;
-        setWordSaveOverrides(prev => {
-          const next = new Map(prev);
-          next.set(saveKey, { isSavedForSong: true, savedWordId: result.id });
-          return next;
-        });
-        await refreshWords(songId).catch(() => undefined);
-      }
       const deck = await resolveSongDeck();
-      if (deck == null || !openSongReview(deck, leadWordId)) {
+      if (deck == null || !openSongReview(deck, word.savedWordId)) {
         setLearningError('학습할 단어를 준비하지 못했어요. 잠시 후 다시 시도해 주세요.');
       }
     } catch (e: any) {
@@ -533,7 +341,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
       setBusyWordKey(null);
       setIsStartingLearning(false);
     }
-  }, [isStartingLearning, openSongReview, refreshWords, resolveSongDeck, songId, wordSaveOverrides]);
+  }, [data?.song, isStartingLearning, navigation, openSongReview, resolveSongDeck, songDeckDetail, songId]);
 
   const handlePrimaryLearningPress = useCallback(() => {
     handleStartLearning();
@@ -578,21 +386,6 @@ export default function SongDetailScreen({ navigation, route }: Props) {
       .then(deck => setSongDeckDetail(deck))
       .catch(() => setSongDeckDetail(null));
   }, [refreshWords, songId]);
-
-  const getWordSaveState = useCallback((word: SongDetailWordItem): SongDetailWordSaveState => {
-    return resolveSongDetailWordSaveState(word, wordSaveOverrides);
-  }, [wordSaveOverrides]);
-
-  const handleWordsBatchAdded = useCallback((addedWords: SongDetailWordItem[]) => {
-    setWordSaveOverrides(prev => {
-      const next = new Map(prev);
-      addedWords.forEach(word => {
-        next.set(getSongDetailWordSaveKey(word), { isSavedForSong: true, savedWordId: null });
-      });
-      return next;
-    });
-    showSavedWordSnackbar();
-  }, [showSavedWordSnackbar]);
 
   const handleHomePageLayout = useCallback((event: LayoutChangeEvent) => {
     const height = Math.ceil(event.nativeEvent.layout.height);
@@ -651,9 +444,6 @@ export default function SongDetailScreen({ navigation, route }: Props) {
   const wordsTabState = useSongDetailWordsTab({
     data: data?.words ?? null,
     isActive: activeTab === 'words',
-    onWordsChanged: handleWordsChanged,
-    getWordSaveState,
-    onWordsBatchAdded: handleWordsBatchAdded,
   });
 
   if (songId == null) {
@@ -934,42 +724,6 @@ export default function SongDetailScreen({ navigation, route }: Props) {
           ]}
         >
           <SongDetailWordsActionBar state={wordsTabState} />
-        </Animated.View>
-      )}
-
-      {deckSnackbar != null && (
-        <Animated.View
-          pointerEvents="auto"
-          {...deckSnackbarPanResponder.panHandlers}
-          style={[
-            styles.deckSnackbarWrap,
-            {
-              bottom: insets.bottom + DECK_SNACKBAR_BOTTOM_OFFSET,
-              opacity: deckSnackbarOpacity,
-              transform: [
-                { translateX: deckSnackbarTranslateX },
-                { translateY: deckSnackbarTranslateY },
-              ],
-            },
-          ]}
-        >
-          <View style={styles.deckSnackbar}>
-            <View style={styles.deckSnackbarMessage}>
-              <Text style={styles.deckSnackbarTitle} numberOfLines={1}>
-                {deckSnackbar.deckName}
-              </Text>
-              <Text style={styles.deckSnackbarSuffix}> 단어장에 담았어요</Text>
-            </View>
-            <Pressable
-              onPress={handleOpenSnackbarDeck}
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel="단어장 보기"
-              style={styles.deckSnackbarAction}
-            >
-              <Text style={styles.deckSnackbarActionText}>단어장 보기</Text>
-            </Pressable>
-          </View>
         </Animated.View>
       )}
 
@@ -1755,57 +1509,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
     zIndex: Layers.currentPlayingWordsSheet - 1,
     elevation: Layers.currentPlayingWordsSheet - 1,
-  },
-  deckSnackbarWrap: {
-    position: 'absolute',
-    left: 16,
-    right: 16,
-    zIndex: 44,
-    elevation: 44,
-  },
-  deckSnackbar: {
-    height: 40,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    justifyContent: 'space-between',
-    paddingHorizontal: 14,
-    borderRadius: 10,
-    backgroundColor: Colors.surface,
-    shadowColor: '#000000',
-    shadowOpacity: 0.13,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 8,
-  },
-  deckSnackbarMessage: {
-    flex: 1,
-    minWidth: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  deckSnackbarTitle: {
-    flexShrink: 1,
-    minWidth: 0,
-    fontSize: 13,
-    fontWeight: '400',
-    color: Colors.textPrimary,
-  },
-  deckSnackbarSuffix: {
-    flexShrink: 0,
-    fontSize: 13,
-    fontWeight: '400',
-    color: Colors.textPrimary,
-  },
-  deckSnackbarAction: {
-    borderRadius: 6,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-  },
-  deckSnackbarActionText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: Colors.primary,
   },
   appBarTitleContent: {
     flex: 1,

@@ -53,8 +53,3 @@ export interface SongDetailJlptSlice {
   percent: number;
   color: string;
 }
-
-export interface SongDetailWordSaveState {
-  isSavedForSong: boolean;
-  savedWordId: number | null;
-}

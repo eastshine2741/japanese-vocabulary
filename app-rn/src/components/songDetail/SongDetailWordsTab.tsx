@@ -8,7 +8,6 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { wordApi } from '../../api/wordApi';
 import {
   AppBottomSheetModal,
   AppBottomSheetModalRef,
@@ -22,7 +21,6 @@ import SongDetailFilterSheet from './SongDetailFilterSheet';
 import { getSongDetailWordKey } from './songDetailWordSave';
 import {
   SongDetailWordItem,
-  SongDetailWordSaveState,
   SongDetailWordsSort,
   WordsInSongDto,
 } from './types';
@@ -53,9 +51,6 @@ interface UseSongDetailWordsTabParams {
   isActive?: boolean;
   isLoading?: boolean;
   errorMessage?: string | null;
-  onWordsChanged?: () => void;
-  getWordSaveState: (word: SongDetailWordItem) => SongDetailWordSaveState;
-  onWordsBatchAdded: (words: SongDetailWordItem[]) => void | Promise<void>;
 }
 
 interface Props {
@@ -128,9 +123,6 @@ export function useSongDetailWordsTab({
   isActive = true,
   isLoading = false,
   errorMessage = null,
-  onWordsChanged,
-  getWordSaveState,
-  onWordsBatchAdded,
 }: UseSongDetailWordsTabParams): SongDetailWordsTabState {
   const sortSheetRef = useRef<AppBottomSheetModalRef>(null);
   const filterSheetRef = useRef<AppBottomSheetModalRef>(null);
@@ -141,7 +133,6 @@ export function useSongDetailWordsTab({
   const [draftSelectedPos, setDraftSelectedPos] = useState<Set<string>>(() => getInitialPos(data));
   const [draftSelectedJlpt, setDraftSelectedJlpt] = useState<Set<string>>(() => getInitialJlpt(data));
   const [draftIncludeUnknownJlpt, setDraftIncludeUnknownJlpt] = useState(() => getInitialIncludeUnknownJlpt(data));
-  const [isBatchSaving, setIsBatchSaving] = useState(false);
   const [renderLimit, setRenderLimit] = useState(INITIAL_WORD_RENDER_COUNT);
 
   const words = data?.words ?? [];
@@ -240,12 +231,6 @@ export function useSongDetailWordsTab({
     [renderLimit, visibleWords],
   );
 
-  const batchCandidates = useMemo(
-    () => visibleWords.filter(word => !getWordSaveState(word).isSavedForSong),
-    [getWordSaveState, visibleWords],
-  );
-  const batchCount = batchCandidates.length;
-
   const openSortSheet = useCallback(() => {
     sortSheetRef.current?.present();
   }, []);
@@ -303,18 +288,6 @@ export function useSongDetailWordsTab({
     filterSheetRef.current?.dismiss();
   }, [draftIncludeUnknownJlpt, draftSelectedJlpt, draftSelectedPos]);
 
-  const handleBatchAdd = useCallback(async () => {
-    if (batchCandidates.length === 0 || isBatchSaving) return;
-    setIsBatchSaving(true);
-    try {
-      await wordApi.batchAddWords({ words: batchCandidates.map(word => word.addRequest) });
-      await onWordsBatchAdded(batchCandidates);
-      onWordsChanged?.();
-    } finally {
-      setIsBatchSaving(false);
-    }
-  }, [batchCandidates, isBatchSaving, onWordsBatchAdded, onWordsChanged]);
-
   const listEmpty = useMemo(() => {
     if (isLoading) {
       return (
@@ -352,8 +325,6 @@ export function useSongDetailWordsTab({
     draftIncludeUnknownJlpt,
     renderedWords,
     visibleWords,
-    batchCount,
-    isBatchSaving,
     listEmpty,
     openFilterSheet,
     openSortSheet,
@@ -365,7 +336,6 @@ export function useSongDetailWordsTab({
     toggleUnknownJlpt,
     resetFilters,
     applyFilters,
-    handleBatchAdd,
     sort,
   };
 }
@@ -383,8 +353,6 @@ export interface SongDetailWordsTabState {
   draftIncludeUnknownJlpt: boolean;
   renderedWords: SongDetailWordItem[];
   visibleWords: SongDetailWordItem[];
-  batchCount: number;
-  isBatchSaving: boolean;
   listEmpty: React.ReactNode;
   openFilterSheet: () => void;
   openSortSheet: () => void;
@@ -396,7 +364,6 @@ export interface SongDetailWordsTabState {
   toggleUnknownJlpt: () => void;
   resetFilters: () => void;
   applyFilters: () => void;
-  handleBatchAdd: () => void;
   sort: SongDetailWordsSort;
 }
 

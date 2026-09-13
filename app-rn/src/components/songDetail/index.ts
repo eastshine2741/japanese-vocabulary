@@ -41,7 +41,6 @@ export type {
   SongDetailJlptLevel,
   SongDetailJlptSlice,
   SongDetailWordItem,
-  SongDetailWordSaveState,
   SongDetailWordSummary,
   SongDetailWordsSort,
   WordsInSongDto,

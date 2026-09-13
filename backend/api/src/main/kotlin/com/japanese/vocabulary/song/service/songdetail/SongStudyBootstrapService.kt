@@ -12,8 +12,11 @@ import com.japanese.vocabulary.word.service.WordService
 import org.springframework.stereotype.Service
 
 /**
- * 홈탭 콜드스타트: 오늘 due 가 하나도 없을 때 추천곡 미리보기 단어에 rating 을 주면 그 곡을
- * 통째로 담고("전체 담기"와 같은 기준) 그 단어를 곧바로 리뷰한다.
+ * 미리보기 카드의 rating 확정. 홈 콜드스타트(추천곡의 중요도 1위 단어)와 곡 상세의 단어 탭
+ * (유저가 고른 단어) 둘 다 이 경로다 — 아직 안 담긴 단어를 먼저 카드로 보여주고, rating 을
+ * 주는 순간에야 그 곡을 통째로 담고("전체 담기"와 같은 기준) 그 단어를 곧바로 리뷰한다.
+ * 고른 단어가 기본 필터 밖이어도 그 단어는 함께 담는다 — 안 그러면 방금 매긴 rating 을 붙일
+ * flashcard 가 없다.
  *
  * [WordService.batchAddWords] 는 트랜잭션 밖에서 재시도한다(그 클래스 주석 참고 — 이미 열린
  * 트랜잭션 안에서 부르면 rollback-only 상태라 재시도가 깨진다). 그래서 이 메서드는 전체를
@@ -27,17 +30,24 @@ class SongStudyBootstrapService(
     private val flashcardService: FlashcardService,
     private val deckService: DeckService,
 ) {
-    fun bootstrap(userId: Long, songId: Long, rating: Int): SongStudyBootstrapResponse {
+    fun bootstrap(userId: Long, songId: Long, rating: Int, leadJapanese: String? = null): SongStudyBootstrapResponse {
         val words = songDetailQueryService.words(songId, userId)
         val eligible = with(songDetailQueryService) {
             words.words.filter { it.matchesDefaultFilters() && !it.isSavedForSong }
         }
-        val lead = eligible.sortedWith(SongDetailQueryService.IMPORTANCE_RANKING).firstOrNull()
-            ?: throw BusinessException(ErrorCode.NO_ELIGIBLE_WORDS)
+        val lead = if (leadJapanese != null) {
+            words.words.firstOrNull { it.japanese == leadJapanese }
+                ?: throw BusinessException(ErrorCode.WORD_NOT_FOUND)
+        } else {
+            eligible.sortedWith(SongDetailQueryService.IMPORTANCE_RANKING).firstOrNull()
+                ?: throw BusinessException(ErrorCode.NO_ELIGIBLE_WORDS)
+        }
 
+        // 이미 담긴 lead 는 upsert 가 건너뛴다.
+        val toSave = (eligible + lead).distinctBy { it.japanese }
         wordService.batchAddWords(
             userId,
-            BatchAddWordDto(words = eligible.map { it.addRequest.toDto() }),
+            BatchAddWordDto(words = toSave.map { it.addRequest.toDto() }),
         )
 
         val wordId = wordService.getWord(userId, lead.japanese)?.id

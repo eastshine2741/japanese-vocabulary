@@ -98,6 +98,42 @@ it('advances to the already-buffered next card locally, without refetching', asy
   expect(flashcardApi.getDueCards).toHaveBeenCalledTimes(1);
 });
 
+// 곡 상세에서 아직 안 담긴 단어를 눌러 들어온 경우: 덱을 만들지 않고 그 단어를 미리보기 카드로 띄우고,
+// rating 확정 시 그 단어를 lead 로 곡을 통째로 담는다.
+const previewSource: StudySource = {
+  deckId: null, songId: 3, title: 'Song', artist: 'Artist', artworkUrl: null, dueCount: 0, totalCount: 0,
+  previewWord: { japanese: '歌', reading: 'ウタ', senses: [] },
+};
+
+it('shows the chosen word as a preview card without touching the deck', async () => {
+  await mount(previewSource);
+  expect(flashcardApi.getDueCards).not.toHaveBeenCalled();
+  expect(stack.currentCard?.japanese).toBe('歌');
+  expect(stack.isComplete).toBe(false);
+});
+
+it('bootstraps the song with the chosen word as lead on rating confirm and continues with the returned cards', async () => {
+  vi.mocked(songApi.studyBootstrap).mockResolvedValue({ deckId: 42, cards: [card(2)], totalCount: 2, nextDueAt: null });
+  await mount(previewSource);
+  await rate(3);
+  expect(songApi.studyBootstrap).toHaveBeenCalledWith(3, 3, '歌');
+  expect(flashcardApi.review).not.toHaveBeenCalled();
+  expect(stack.cards.map(c => c.id)).toEqual([2]);
+  expect(stack.currentCard?.source.deckId).toBe(42);
+  expect(stack.currentCard?.source.previewWord).toBeNull();
+  expect(stack.session.reviewedCount).toBe(1);
+});
+
+it('reviews the next card as a real flashcard after the preview bootstrap', async () => {
+  vi.mocked(songApi.studyBootstrap).mockResolvedValue({ deckId: 42, cards: [card(2)], totalCount: 2, nextDueAt: null });
+  vi.mocked(flashcardApi.getDueCards).mockResolvedValue({ cards: [], totalCount: 0, nextDueAt: null });
+  await mount(previewSource);
+  await rate(3);
+  await rate(2);
+  expect(flashcardApi.review).toHaveBeenCalledWith(2, { rating: 2 });
+  expect(songApi.studyBootstrap).toHaveBeenCalledTimes(1);
+});
+
 it('lets horizontal example carousel swipes pass through after rating is selected', async () => {
   vi.mocked(flashcardApi.getDueCards)
     .mockResolvedValueOnce({ cards: [card(9), card(1)], totalCount: 2, nextDueAt: null });
@@ -294,7 +330,7 @@ it('bootstraps the song and continues the session with the returned due cards on
   });
   await mountHome();
   await rate(3);
-  expect(songApi.studyBootstrap).toHaveBeenCalledWith(9, 3);
+  expect(songApi.studyBootstrap).toHaveBeenCalledWith(9, 3, undefined);
   expect(stack.cards.map(c => c.id)).toEqual([2]);
   expect(stack.currentCard?.source.deckId).toBe(42);
   expect(stack.session.queueTotal).toBe(2);

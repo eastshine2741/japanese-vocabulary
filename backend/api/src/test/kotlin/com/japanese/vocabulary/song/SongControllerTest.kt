@@ -963,11 +963,11 @@ class SongControllerTest : ApiBaseIntegrationTest() {
             scoreComponents = WordScoreComponents(0.0, 0.0, 0.0, 0.0, 1.0),
         )
 
-        private fun bootstrap(user: UserEntity, songId: Long, rating: Int) =
+        private fun bootstrap(user: UserEntity, songId: Long, rating: Int, leadJapanese: String? = null) =
             mockMvc.post("/api/songs/$songId/study-bootstrap") {
                 header("Authorization", bearer(user))
                 contentType = MediaType.APPLICATION_JSON
-                content = objectMapper.writeValueAsString(SongStudyBootstrapRequest(rating = rating))
+                content = objectMapper.writeValueAsString(SongStudyBootstrapRequest(rating = rating, leadJapanese = leadJapanese))
             }
 
         @Test
@@ -1018,6 +1018,56 @@ class SongControllerTest : ApiBaseIntegrationTest() {
             }.andExpect { status { isOk() } }.andReturn().response.contentAsString
             val due = readBody<DueFlashcardsResponse>(dueBody)
             assertThat(due.cards.map { it.japanese }).containsExactly("低い")
+        }
+
+        @Test
+        fun `chosen lead outside the default filter is saved alongside the default words and reviewed`() {
+            val me = newUser()
+            val song = newSong()
+            val wordCandidates = LyricWordCandidates(
+                candidates = listOf(
+                    candidate("高い", 99.0, 0, listOf(0)),
+                    candidate("低い", 10.0, 1, listOf(0)),
+                    // 조사는 기본 필터 밖이라 "전체 담기"엔 안 들어간다.
+                    candidate("を", 1.0, 2, listOf(0), pos = "PARTICLE"),
+                ),
+                lineCandidates = mapOf("0" to listOf(0, 1, 2)),
+            )
+            newLyric(
+                song,
+                raw = listOf(LyricLineData(index = 0, startTimeMs = null, text = "高い低いを")),
+                wordCandidates = wordCandidates,
+            )
+            clock.setTo(Instant.now().plusSeconds(5))
+
+            val body = bootstrap(me, song.id!!, rating = 3, leadJapanese = "を")
+                .andExpect { status { isOk() } }
+                .andReturn().response.contentAsString
+            val result = readBody<SongStudyBootstrapResponse>(body)
+
+            // 기본 단어 둘 + 고른 단어 하나가 담기고, 고른 단어만 리뷰돼 due 에서 빠진다.
+            assertThat(result.cards.map { it.japanese }).containsExactlyInAnyOrder("高い", "低い")
+            val deckBody = mockMvc.get("/api/decks/by-song/${song.id}") {
+                header("Authorization", bearer(me))
+            }.andExpect { status { isOk() } }.andReturn().response.contentAsString
+            assertThat(readBody<DeckDetailResponse>(deckBody).wordCount).isEqualTo(3)
+        }
+
+        @Test
+        fun `chosen lead not in the song returns not found`() {
+            val me = newUser()
+            val song = newSong()
+            newLyric(
+                song,
+                raw = listOf(LyricLineData(index = 0, startTimeMs = null, text = "高い")),
+                wordCandidates = LyricWordCandidates(
+                    candidates = listOf(candidate("高い", 99.0, 0, listOf(0))),
+                    lineCandidates = mapOf("0" to listOf(0)),
+                ),
+            )
+
+            bootstrap(me, song.id!!, rating = 3, leadJapanese = "없는말")
+                .andExpect { status { isNotFound() } }
         }
 
         @Test

@@ -10,6 +10,7 @@ import { WordInSongItemDto, WordsInSongDto } from '../../types/song';
 import { sourceFromDeck, sourceFromRecommendation } from './studySource';
 import {
   StudyCard,
+  StudyPreviewWord,
   StudySessionProgress,
   StudySource,
   StudyStackStatus,
@@ -48,7 +49,7 @@ function pickLeadCandidate(data: WordsInSongDto): WordInSongItemDto | null {
   })[0];
 }
 
-function toPreviewCard(lead: WordInSongItemDto, source: StudySource): StudyCard {
+function toPreviewCard(lead: StudyPreviewWord, source: StudySource): StudyCard {
   return {
     id: PREVIEW_FLASHCARD_ID,
     wordId: PREVIEW_FLASHCARD_ID,
@@ -113,7 +114,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
   const activeSourceRef = useRef<StudySource | null>(null);
   const requestVersion = useRef(0);
   const busyRef = useRef(false);
-  /** 현재 카드가 실제 flashcard 가 아니라 홈 콜드스타트 미리보기 카드인지. */
+  /** 현재 카드가 실제 flashcard 가 아니라 미리보기 카드(홈 콜드스타트 또는 곡 상세의 안 담긴 단어)인지. */
   const isPreviewRef = useRef(false);
   const [dueCount, setDueCount] = useState(0);
   const [status, setStatus] = useState<StudyStackStatus>('loading');
@@ -232,7 +233,17 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     setDistinctReviewedCount(0);
     setSelectedRating(null);
     setRevealed(false);
+    isPreviewRef.current = false;
     try {
+      if (target.previewWord) {
+        // 곡 상세에서 아직 안 담긴 단어를 눌렀다 — 덱을 만들지 않고 그 단어를 미리보기 카드로 띄운다.
+        // rating 확정 시 advancePreviewReview 가 곡을 통째로 담는다.
+        isPreviewRef.current = true;
+        activeSourceRef.current = null;
+        setCards([toPreviewCard(target.previewWord, target)]);
+        setStatus('ready');
+        return;
+      }
       if (target.deckId == null) {
         // 아직 이 곡의 덱이 없다 — 복습할 카드가 없는 상태로 완료 화면을 보여준다.
         setCards([]);
@@ -485,9 +496,10 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
   }, [revealProgress]);
 
   /**
-   * 홈 콜드스타트 미리보기 카드의 rating 확정. 이 순간에만 서버에 그 곡을 통째로 담고
-   * (SongDetailScreen 의 "전체 담기"와 동일 기준) lead 단어를 곧바로 리뷰한다 — 응답의 남은
-   * due 카드로 곧장 이어서 복습한다.
+   * 미리보기 카드의 rating 확정. 이 순간에만 서버에 그 곡을 통째로 담고(SongDetailScreen 의
+   * "학습 시작"과 동일 기준) lead 단어를 곧바로 리뷰한다 — 응답의 남은 due 카드로 곧장 이어서
+   * 복습한다. 홈 콜드스타트는 서버가 중요도 1위를 lead 로 고르고, 곡 상세에서 온 미리보기는
+   * 유저가 고른 단어(`previewWord`)가 lead 다.
    *
    * 실패해도 이미 스와이프 아웃된 카드를 되돌리지 않는다 — 부분 실패(단어는 담겼는데 리뷰만
    * 실패)여도 다음 홈 진입에서 정상적으로 다시 due 로 잡히므로 스스로 복구된다.
@@ -510,11 +522,16 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
       });
       if (version !== requestVersion.current) return;
       if (songId == null) throw new Error('추천곡 정보를 확인하지 못했어요');
-      const result = await songApi.studyBootstrap(songId, rating);
+      const result = await songApi.studyBootstrap(songId, rating, currentCard.source.previewWord?.japanese);
       if (version !== requestVersion.current) return;
       useStudyStatsStore.getState().invalidate();
       isPreviewRef.current = false;
-      const newSource: StudySource = { ...currentCard.source, deckId: result.deckId, totalCount: result.totalCount };
+      const newSource: StudySource = {
+        ...currentCard.source,
+        deckId: result.deckId,
+        totalCount: result.totalCount,
+        previewWord: null,
+      };
       activeSourceRef.current = newSource;
       setReviewError(null);
       setDueCount(result.cards.length);
