@@ -6,6 +6,7 @@ type Status = 'idle' | 'loading' | 'success' | 'error';
 
 interface SongDetailState {
   status: Status;
+  songId: number | null;
   data: SongDetailData | null;
   errorCode: string | null;
   load: (songId: number) => Promise<void>;
@@ -17,12 +18,18 @@ let loadRunId = 0;
 
 export const useSongDetailStore = create<SongDetailState>((set) => ({
   status: 'idle',
+  songId: null,
   data: null,
   errorCode: null,
 
   load: async (songId: number) => {
     const runId = ++loadRunId;
-    set({ status: 'loading', errorCode: null });
+    set(state => ({
+      status: 'loading',
+      songId,
+      errorCode: null,
+      data: state.data?.song.id === songId ? state.data : null,
+    }));
     try {
       const [song, lyrics, words] = await Promise.all([
         songApi.getById(songId),
@@ -53,6 +60,6 @@ export const useSongDetailStore = create<SongDetailState>((set) => ({
 
   reset: () => {
     loadRunId++;
-    set({ status: 'idle', data: null, errorCode: null });
+    set({ status: 'idle', songId: null, data: null, errorCode: null });
   },
 }));

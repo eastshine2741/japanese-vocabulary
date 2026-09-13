@@ -78,6 +78,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
   const isInitialFocusRef = useRef(true);
 
   const status = useSongDetailStore(s => s.status);
+  const loadedSongId = useSongDetailStore(s => s.songId);
   const data = useSongDetailStore(s => s.data);
   const errorCode = useSongDetailStore(s => s.errorCode);
   const load = useSongDetailStore(s => s.load);
@@ -454,7 +455,8 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     );
   }
 
-  if (status === 'idle' || (status === 'loading' && data == null)) {
+  const isCurrentSong = loadedSongId === songId;
+  if (!isCurrentSong || status === 'idle' || (status === 'loading' && data == null)) {
     return (
       <SongDetailLoadingSkeleton
         topInset={insets.top}
