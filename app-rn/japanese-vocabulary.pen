@@ -5614,17 +5614,6 @@
                           "icon": "$tab.home.iconName",
                           "library": "phosphor",
                           "fill": "$tab.home.iconFill"
-                        },
-                        {
-                          "type": "text",
-                          "id": "GEIsQ",
-                          "name": "l2a",
-                          "fill": "$tab.home.labelFill",
-                          "content": "홈",
-                          "fontFamily": "$font.body",
-                          "fontSize": 10,
-                          "fontWeight": "500",
-                          "letterSpacing": 0.2
                         }
                       ]
                     },
@@ -5649,17 +5638,6 @@
                           "icon": "$tab.words.iconName",
                           "library": "phosphor",
                           "fill": "$tab.words.iconFill"
-                        },
-                        {
-                          "type": "text",
-                          "id": "qRRf9",
-                          "name": "l2b",
-                          "fill": "$tab.words.labelFill",
-                          "content": "검색",
-                          "fontFamily": "$font.body",
-                          "fontSize": 10,
-                          "fontWeight": "500",
-                          "letterSpacing": 0.2
                         }
                       ]
                     },
@@ -5684,17 +5662,6 @@
                           "icon": "$tab.mypage.iconName",
                           "library": "phosphor",
                           "fill": "$tab.mypage.iconFill"
-                        },
-                        {
-                          "type": "text",
-                          "id": "0xClG",
-                          "name": "l2c",
-                          "fill": "$tab.mypage.labelFill",
-                          "content": "마이",
-                          "fontFamily": "$font.body",
-                          "fontSize": 10,
-                          "fontWeight": "500",
-                          "letterSpacing": 0.2
                         }
                       ]
                     }
@@ -13757,18 +13724,9 @@
                 "selected-tab": "words"
               },
               "descendants": {
-                "GEIsQ": {
-                  "content": "홈"
-                },
                 "4tzVt": {
                   "icon": "$tab.words.iconName",
                   "library": "phosphor"
-                },
-                "qRRf9": {
-                  "content": "검색"
-                },
-                "0xClG": {
-                  "content": "마이"
                 }
               }
             }
@@ -29375,24 +29333,12 @@
                 "JWWYd": {
                   "fill": "#FFFFFF"
                 },
-                "GEIsQ": {
-                  "content": "홈",
-                  "fill": "#FFFFFF"
-                },
                 "4tzVt": {
                   "icon": "$tab.words.iconName",
                   "library": "phosphor",
                   "fill": "#FFFFFF80"
                 },
-                "qRRf9": {
-                  "content": "검색",
-                  "fill": "#FFFFFF80"
-                },
                 "wOA4W": {
-                  "fill": "#FFFFFF80"
-                },
-                "0xClG": {
-                  "content": "마이",
                   "fill": "#FFFFFF80"
                 }
               }
@@ -29838,24 +29784,12 @@
                 "JWWYd": {
                   "fill": "#FFFFFF"
                 },
-                "GEIsQ": {
-                  "content": "홈",
-                  "fill": "#FFFFFF"
-                },
                 "4tzVt": {
                   "icon": "$tab.words.iconName",
                   "library": "phosphor",
                   "fill": "#FFFFFF80"
                 },
-                "qRRf9": {
-                  "content": "검색",
-                  "fill": "#FFFFFF80"
-                },
                 "wOA4W": {
-                  "fill": "#FFFFFF80"
-                },
-                "0xClG": {
-                  "content": "마이",
                   "fill": "#FFFFFF80"
                 }
               }
@@ -30316,24 +30250,12 @@
                 "JWWYd": {
                   "fill": "#FFFFFF"
                 },
-                "GEIsQ": {
-                  "content": "홈",
-                  "fill": "#FFFFFF"
-                },
                 "4tzVt": {
                   "icon": "$tab.words.iconName",
                   "library": "phosphor",
                   "fill": "#FFFFFF80"
                 },
-                "qRRf9": {
-                  "content": "검색",
-                  "fill": "#FFFFFF80"
-                },
                 "wOA4W": {
-                  "fill": "#FFFFFF80"
-                },
-                "0xClG": {
-                  "content": "마이",
                   "fill": "#FFFFFF80"
                 }
               }
@@ -32192,24 +32114,12 @@
                 "JWWYd": {
                   "fill": "#FFFFFF"
                 },
-                "GEIsQ": {
-                  "content": "홈",
-                  "fill": "#FFFFFF"
-                },
                 "4tzVt": {
                   "icon": "$tab.words.iconName",
                   "library": "phosphor",
                   "fill": "#FFFFFF80"
                 },
-                "qRRf9": {
-                  "content": "검색",
-                  "fill": "#FFFFFF80"
-                },
                 "wOA4W": {
-                  "fill": "#FFFFFF80"
-                },
-                "0xClG": {
-                  "content": "마이",
                   "fill": "#FFFFFF80"
                 }
               }
@@ -32475,18 +32385,9 @@
                 "selected-tab": "words"
               },
               "descendants": {
-                "GEIsQ": {
-                  "content": "홈"
-                },
                 "4tzVt": {
                   "icon": "$tab.words.iconName",
                   "library": "phosphor"
-                },
-                "qRRf9": {
-                  "content": "검색"
-                },
-                "0xClG": {
-                  "content": "마이"
                 }
               }
             }
@@ -55081,18 +54982,9 @@
                     "selected-tab": "home"
                   },
                   "descendants": {
-                    "GEIsQ": {
-                      "content": "홈"
-                    },
                     "4tzVt": {
                       "icon": "$tab.words.iconName",
                       "library": "phosphor"
-                    },
-                    "qRRf9": {
-                      "content": "검색"
-                    },
-                    "0xClG": {
-                      "content": "마이"
                     }
                   }
                 }
@@ -57888,17 +57780,8 @@
                     "selected-tab": "home"
                   },
                   "descendants": {
-                    "GEIsQ": {
-                      "content": "홈"
-                    },
                     "4tzVt": {
                       "icon": "search"
-                    },
-                    "qRRf9": {
-                      "content": "검색"
-                    },
-                    "0xClG": {
-                      "content": "마이"
                     }
                   }
                 }
@@ -60377,18 +60260,9 @@
                     "selected-tab": "home"
                   },
                   "descendants": {
-                    "GEIsQ": {
-                      "content": "홈"
-                    },
                     "4tzVt": {
                       "icon": "$tab.words.iconName",
                       "library": "phosphor"
-                    },
-                    "qRRf9": {
-                      "content": "검색"
-                    },
-                    "0xClG": {
-                      "content": "마이"
                     }
                   }
                 }
@@ -64850,25 +64724,13 @@
                 "JWWYd": {
                   "fill": "#FFFFFF"
                 },
-                "GEIsQ": {
-                  "fill": "#FFFFFF",
-                  "content": "홈"
-                },
                 "4tzVt": {
                   "icon": "$tab.words.iconName",
                   "library": "phosphor",
                   "fill": "#FFFFFF80"
                 },
-                "qRRf9": {
-                  "fill": "#FFFFFF80",
-                  "content": "검색"
-                },
                 "wOA4W": {
                   "fill": "#FFFFFF80"
-                },
-                "0xClG": {
-                  "fill": "#FFFFFF80",
-                  "content": "마이"
                 }
               }
             }
@@ -65584,18 +65446,9 @@
                 "selected-tab": "home"
               },
               "descendants": {
-                "GEIsQ": {
-                  "content": "홈"
-                },
                 "4tzVt": {
                   "icon": "$tab.words.iconName",
                   "library": "phosphor"
-                },
-                "qRRf9": {
-                  "content": "검색"
-                },
-                "0xClG": {
-                  "content": "마이"
                 }
               }
             }
