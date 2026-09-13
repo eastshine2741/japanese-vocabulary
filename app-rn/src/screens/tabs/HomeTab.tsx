@@ -16,23 +16,13 @@ import {
 } from '../../components/studyStack';
 import { useHomeChromeStore } from '../../stores/homeChromeStore';
 import { RootStackParamList, TabParamList } from '../../navigation/AppNavigator';
-import {
-  shouldStackCaptureImmerseExit,
-  shouldStartChromeImmersePan,
-  shouldStartStackImmersePan,
-} from './homeImmerseGesture';
+import { immerseProgress, shouldStartImmersePan } from './homeImmerseGesture';
 
 type Nav = CompositeNavigationProp<
   BottomTabNavigationProp<TabParamList, 'Home'>,
   NativeStackNavigationProp<RootStackParamList>
 >;
 
-/** 헤더가 완전히 접히는 드래그 거리. 손가락이 이 구간을 그대로 끌고 간다. */
-const IMMERSE_DISTANCE = 120;
-/** 놓았을 때 접힘으로 확정되는 지점. */
-const IMMERSE_COMMIT_DISTANCE = -56;
-/** 몰입 상태에서 놓았을 때 펼침으로 확정되는 지점. */
-const IMMERSE_EXIT_COMMIT_DISTANCE = 56;
 /** 손을 뗀 뒤 남은 구간을 마저 접거나 되돌리는 시간. */
 const IMMERSE_SETTLE_MS = 320;
 const IMMERSE_REVERT_MS = 220;
@@ -42,7 +32,7 @@ export default function HomeTab() {
   const insets = useSafeAreaInsets();
   const focused = useIsFocused();
   const stack = useStudyStack({ mode: 'home' });
-  const { isComplete, revealed, reload, session, status, streak, weekDots } = stack;
+  const { isComplete, reload, session, status, streak, weekDots } = stack;
   const visibleSongId = stack.visibleSource?.songId ?? null;
 
   const immersed = useHomeChromeStore(s => s.isDark);
@@ -51,8 +41,6 @@ export default function HomeTab() {
   focusedRef.current = focused;
   const immersedRef = useRef(immersed);
   immersedRef.current = immersed;
-  const revealedRef = useRef(revealed);
-  revealedRef.current = revealed;
   const immerse = useRef(new Animated.Value(immersed ? 1 : 0)).current;
 
   // 이미 홈탭에 있는 상태에서 홈탭을 다시 누르면 몰입 모드를 풀고 스택을 새로고침한다.
@@ -63,109 +51,37 @@ export default function HomeTab() {
     reload();
   }), [immerse, navigation, reload, setDark]);
 
+  // 몰입 규칙:
+  //  ① 몰입 밖에서는 카드를 못 만진다 — 탭이든 드래그든 몰입 진입이다 (WordLayer 잠금 오버레이).
+  //  ② 세로 드래그가 몰입 값을 끈다 — 몰입 중엔 아래로, 아니면 위로. 카드 앞뒤면은 무관하다.
+  //  ③ 놓으면 가까운 쪽(0.5 기준)으로 붙는다.
   // immerse 는 헤더 transform 뿐 아니라 카드 안쪽 여백(레이아웃 값)까지 끌기 때문에
   // 네이티브 드라이버를 쓸 수 없다 — 두 층이 같은 값을 봐야 어긋나지 않는다.
-  const settle = useCallback((toValue: 0 | 1) => {
+  const setImmersed = useCallback((next: boolean) => {
+    setDark(next);
     Animated.timing(immerse, {
-      toValue,
-      duration: toValue === 1 ? IMMERSE_SETTLE_MS : IMMERSE_REVERT_MS,
+      toValue: next ? 1 : 0,
+      duration: next ? IMMERSE_SETTLE_MS : IMMERSE_REVERT_MS,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: false,
     }).start();
-  }, [immerse]);
+  }, [immerse, setDark]);
 
-  const enterImmerse = useCallback(() => {
-    if (immersedRef.current) return;
-    setDark(true);
-    settle(1);
-  }, [setDark, settle]);
-
-  const exitImmerse = useCallback(() => {
-    if (!immersedRef.current) return;
-    setDark(false);
-    settle(0);
-  }, [setDark, settle]);
+  const enterImmerse = useCallback(() => setImmersed(true), [setImmersed]);
 
   const immersePan = useMemo(
     () => PanResponder.create({
-      // 몰입 해제는 카드 안쪽 스크롤/터치보다 먼저 잡고, 진입은 앞면에서만 잡는다.
+      // capture 단계에서 잡아야 카드 안쪽 ScrollView/Pressable 보다 먼저 온다.
+      // 몰입 중 뒷면 rating 스와이프(위)와는 방향이 반대라 겹치지 않는다.
       onMoveShouldSetPanResponderCapture: (_, gesture) =>
-        shouldStackCaptureImmerseExit(immersedRef.current, gesture),
-      onMoveShouldSetPanResponder: (_, gesture) =>
-        shouldStartStackImmersePan(immersedRef.current, revealedRef.current, gesture),
-      onPanResponderMove: (_, gesture) => {
-        if (immersedRef.current) {
-          if (gesture.dy <= 0) return;
-          immerse.setValue(Math.max(0, 1 - gesture.dy / IMMERSE_DISTANCE));
-          return;
-        }
-        if (gesture.dy >= 0) return;
-        immerse.setValue(Math.min(1, -gesture.dy / IMMERSE_DISTANCE));
-      },
-      onPanResponderRelease: (_, gesture) => {
-        if (immersedRef.current) {
-          if (gesture.dy > IMMERSE_EXIT_COMMIT_DISTANCE) {
-            exitImmerse();
-            return;
-          }
-          settle(1);
-          return;
-        }
-        if (gesture.dy < IMMERSE_COMMIT_DISTANCE) {
-          enterImmerse();
-          return;
-        }
-        settle(0);
-      },
-      onPanResponderTerminate: () => {
-        if (immersedRef.current) {
-          settle(1);
-          return;
-        }
-        settle(0);
-      },
+        shouldStartImmersePan(immersedRef.current, gesture),
+      onPanResponderMove: (_, gesture) =>
+        immerse.setValue(immerseProgress(immersedRef.current, gesture.dy)),
+      onPanResponderRelease: (_, gesture) =>
+        setImmersed(immerseProgress(immersedRef.current, gesture.dy) >= 0.5),
+      onPanResponderTerminate: () => setImmersed(immersedRef.current),
     }),
-    [enterImmerse, exitImmerse, immerse, settle],
-  );
-
-  const chromeImmersePan = useMemo(
-    () => PanResponder.create({
-      onMoveShouldSetPanResponder: (_, gesture) => {
-        return shouldStartChromeImmersePan(immersedRef.current, gesture);
-      },
-      onPanResponderMove: (_, gesture) => {
-        if (immersedRef.current) {
-          if (gesture.dy <= 0) return;
-          immerse.setValue(Math.max(0, 1 - gesture.dy / IMMERSE_DISTANCE));
-          return;
-        }
-        if (gesture.dy >= 0) return;
-        immerse.setValue(Math.min(1, -gesture.dy / IMMERSE_DISTANCE));
-      },
-      onPanResponderRelease: (_, gesture) => {
-        if (immersedRef.current) {
-          if (gesture.dy > IMMERSE_EXIT_COMMIT_DISTANCE) {
-            exitImmerse();
-            return;
-          }
-          settle(1);
-          return;
-        }
-        if (gesture.dy < IMMERSE_COMMIT_DISTANCE) {
-          enterImmerse();
-          return;
-        }
-        settle(0);
-      },
-      onPanResponderTerminate: () => {
-        if (immersedRef.current) {
-          settle(1);
-          return;
-        }
-        settle(0);
-      },
-    }),
-    [enterImmerse, exitImmerse, immerse, settle],
+    [immerse, setImmersed],
   );
 
   const goSearch = useCallback(() => navigation.navigate('Search'), [navigation]);
@@ -233,13 +149,6 @@ export default function HomeTab() {
     </Animated.View>
   );
 
-  const chromeGestureStyle = useMemo(
-    () => ({
-      height: insets.top + (immersed ? STACK_REVIEW_CHROME_HEIGHT : HOME_HEADER_CONTENT_HEIGHT),
-    }),
-    [immersed, insets.top],
-  );
-
   return (
     <View style={styles.screen}>
       <View style={styles.stackWrap} {...immersePan.panHandlers}>
@@ -255,10 +164,6 @@ export default function HomeTab() {
           onRequestImmerse={enterImmerse}
         />
       </View>
-      <View
-        style={[styles.chromeGestureArea, chromeGestureStyle]}
-        {...chromeImmersePan.panHandlers}
-      />
       <HomeExpandedHeader streak={streak} weekDots={weekDots} immerse={immerse} />
     </View>
   );
@@ -271,11 +176,5 @@ const styles = StyleSheet.create({
   },
   stackWrap: {
     flex: 1,
-  },
-  chromeGestureArea: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
   },
 });
