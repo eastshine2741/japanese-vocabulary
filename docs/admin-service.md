@@ -60,7 +60,8 @@ Routes:
 - `GET /admin/api/users/{userId}`
 - `GET /admin/api/reels-factory/songs`
 - `GET /admin/api/reels-factory/songs/{songId}`
-- `POST /admin/api/reels-factory/songs/{songId}/source`
+- `POST /admin/api/reels-factory/songs/{songId}/source` (multipart `file`)
+- `GET /admin/api/reels-factory/songs/{songId}/source`
 - `GET /admin/api/reels-factory/songs/{songId}/mv?token=...` (media token only; no admin bearer)
 - `POST /admin/api/reels-factory/render`
 
@@ -71,14 +72,14 @@ Reels Factory:
 - Timing tools: drag the clip range on the MV overview, drag line blocks or the end handle on the reel timeline, type `m:ss.t` in the inspector, or use the playhead: `Space` play/pause, `M` stamp the selected line's start at the playhead and move to the next line, `I`/`O` set clip start/end, `←`/`→` nudge one frame (`Shift` one second). The monitor has a Source tab (raw MV `<video>`, for finding the section) and a Reel tab (`PromoReel` in `@remotion/player`); both share one playhead in MV time.
 - Words: each line's `recommendedVocabulary` (N5/N4 content words) is the default selection; the inspector lets the admin toggle any content-word token with a Korean meaning, up to `maxVocabularyPerLine` (2, the PromoReel word block layout). Particles, auxiliaries and symbols cannot be picked.
 - `GET /songs/{songId}` returns `lyricType`, `fps`, `minLineCount`, `maxLyricsSpanMs`, `maxVocabularyPerLine` and every raw line with its analysis; a line is `selectable` when it is analyzed (missing timing no longer blocks it).
-- `POST /songs/{songId}/source` downloads the YouTube source into the server-side source cache (`AdminReelsSourceCache`, yt-dlp via `reels/scripts/fetch-source.mjs`) and returns `mvPath`. This is the only step that extracts from YouTube before render.
-- `POST /render` takes `{ songId, data: PromoReelData, acknowledgeSourceRightsAndPlatformRisk }` (the flag is still validated server-side; `admin-web` always sends `true` and shows no checkbox) — the same Remotion props the browser preview used, built by `admin-web/src/pages/reels-factory/reelEditor.ts` (`buildPromoData`). The server checks the song is eligible (YouTube URL, analyzed lyrics) and the timeline (≥ 4 lines, song order, strictly increasing `startFrame`, `lyricsEndFrame` after the last line and ≤ 60s, ≤ 2 words per line with text and meaning), blanks `song.mvAsset`, and renders. Preview and MP4 therefore share exactly one data path; fonts (browser Noto Sans KR/JP vs container Noto Sans CJK) and colour space (final MP4 is yuv420p/bt709) can differ slightly.
-- MV streaming: `<video>` cannot send an `Authorization` header, so the source response embeds a 30-minute media token scoped to `reels-mv` + `songId` in `mvPath`. The `/mv` endpoint is `permitAll` in `SecurityConfig` and validates that token itself; it only serves files already in the cache and never triggers a download. Media tokens are rejected by the normal admin bearer filter.
-- Source cache: `ADMIN_REELS_SOURCE_DIRECTORY` (default `${java.io.tmpdir}/kotonoha-reels-sources`), keyed by SHA-256 of `song.youtubeUrl`, LRU-trimmed to `ADMIN_REELS_SOURCE_MAX_FILES` (default 4). Render reuses a cached file via `source.localPath`, so loading the MV in the editor followed by a render downloads once.
+- The MV is not fetched by the server. The admin downloads the MV mp4 themselves (the monitor's empty state links to `song.youtubeUrl`) and uploads it with `POST /songs/{songId}/source` (multipart `file`, up to `ADMIN_REELS_SOURCE_MAX_UPLOAD`, default 1GB). The server checks the `ftyp` signature, stores it in the source cache (`AdminReelsSourceCache`) and returns `mvPath`. `GET /songs/{songId}/source` returns the same `mvPath` (with a fresh media token) when a previous upload is still cached, or 404 — the editor calls it when a song is picked so a reload does not force a re-upload. yt-dlp was removed: the prod egress IP (Hetzner) is flagged by YouTube as a bot regardless of player client, so server-side extraction is not an option there.
+- `POST /render` takes `{ songId, data: PromoReelData, acknowledgeSourceRightsAndPlatformRisk }` (the flag is still validated server-side; `admin-web` always sends `true` and shows no checkbox) — the same Remotion props the browser preview used, built by `admin-web/src/pages/reels-factory/reelEditor.ts` (`buildPromoData`). The server checks the song is eligible (analyzed lyrics), that a source mp4 is cached for the song (400 otherwise), and the timeline (≥ 4 lines, song order, strictly increasing `startFrame`, `lyricsEndFrame` after the last line and ≤ 60s, ≤ 2 words per line with text and meaning), blanks `song.mvAsset`, and renders. Preview and MP4 therefore share exactly one data path; fonts (browser Noto Sans KR/JP vs container Noto Sans CJK) and colour space (final MP4 is yuv420p/bt709) can differ slightly.
+- MV streaming: `<video>` cannot send an `Authorization` header, so the source response embeds a 30-minute media token scoped to `reels-mv` + `songId` in `mvPath`. The `/mv` endpoint is `permitAll` in `SecurityConfig` and validates that token itself; it only serves files already in the cache. Media tokens are rejected by the normal admin bearer filter.
+- Source cache: `ADMIN_REELS_SOURCE_DIRECTORY` (default `${java.io.tmpdir}/kotonoha-reels-sources`), one `song-{id}.mp4` per song, LRU-trimmed to `ADMIN_REELS_SOURCE_MAX_FILES` (default 4). Render passes the cached file to the render script as `source.localPath`; the script never downloads anything.
 - The server invokes the repo-local Remotion package through `AdminReelsRenderService` and returns an MP4 attachment directly.
 - No DB entity, migration, Object Storage object, or job history is created.
-- Normal tests use a fake renderer. The subprocess renderer requires Node, npm dependencies under `/opt/reels`, `ffmpeg`, and `yt-dlp`.
-- YouTube extraction can fail due to policy, region, private/age-gated media, or extractor changes. This workflow is admin-only and is not legal advice.
+- Normal tests use a fake renderer and the real file cache on a temp directory. The subprocess renderer requires Node, npm dependencies under `/opt/reels`, and `ffmpeg`.
+- Uploaded MVs are copyrighted material. This workflow is admin-only and is not legal advice.
 
 Auth:
 
@@ -95,8 +96,8 @@ Environment:
 - `ADMIN_REELS_RENDERER_WORKING_DIRECTORY` (default in container: `/opt/reels`)
 - `ADMIN_REELS_RENDERER_TIMEOUT` (Spring duration; default: `8m`)
 - `ADMIN_REELS_SOURCE_DIRECTORY` (default: `${java.io.tmpdir}/kotonoha-reels-sources`)
-- `ADMIN_REELS_SOURCE_TIMEOUT` (Spring duration; default: `3m`)
 - `ADMIN_REELS_SOURCE_MAX_FILES` (default: `4`)
+- `ADMIN_REELS_SOURCE_MAX_UPLOAD` (Spring data size; default: `1GB`)
 - `MYSQL_URL`, `MYSQL_USER`, `MYSQL_PASSWORD`
 
 `ADMIN_PASSWORD` has no application default. `deploy.sh` supplies a dev-only fallback for local k3s, but direct `bootRun` must set either `ADMIN_PASSWORD` or `ADMIN_PASSWORD_SHA256`.

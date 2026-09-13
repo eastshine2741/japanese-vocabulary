@@ -1,11 +1,12 @@
 package com.japanese.vocabulary.admin
 
 import com.japanese.vocabulary.admin.dto.reels.AdminReelsRenderRequest
-import com.japanese.vocabulary.admin.dto.reels.AdminReelsSourceRequest
 import com.japanese.vocabulary.admin.dto.reels.AdminReelsVocabularyResponse
 import com.japanese.vocabulary.admin.reels.AdminReelsRenderFailedException
 import com.japanese.vocabulary.admin.reels.AdminReelsRenderService
 import com.japanese.vocabulary.admin.reels.AdminReelsSourceCache
+import com.japanese.vocabulary.admin.reels.AdminReelsSourceProperties
+import com.japanese.vocabulary.admin.reels.FileAdminReelsSourceCache
 import com.japanese.vocabulary.admin.reels.model.AdminReelsPromoData
 import com.japanese.vocabulary.admin.reels.model.AdminReelsPromoLine
 import com.japanese.vocabulary.admin.reels.model.AdminReelsPromoSong
@@ -28,7 +29,9 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Import
 import org.springframework.context.annotation.Primary
 import org.springframework.http.MediaType
+import org.springframework.mock.web.MockMultipartFile
 import org.springframework.test.web.servlet.get
+import org.springframework.test.web.servlet.multipart
 import org.springframework.test.web.servlet.post
 import java.nio.file.Files
 import java.nio.file.Path
@@ -37,7 +40,7 @@ import java.nio.file.Path
 @Import(AdminReelsFactoryControllerTest.ReelsFactoryTestConfig::class)
 class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
     @Autowired private lateinit var fakeRenderer: FakeReelsRenderService
-    @Autowired private lateinit var fakeSourceCache: FakeReelsSourceCache
+    @Autowired private lateinit var sourceCache: AdminReelsSourceCache
 
     @Test
     fun `reels factory lists candidates and exposes analyzed lines with editor limits`() {
@@ -88,6 +91,7 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
             .build()
         persistLyric(song.id!!, analyzed = true, lineCount = 7)
         val token = adminToken()
+        uploadSource(token, song.id!!)
 
         mockMvc.post("/admin/api/reels-factory/render") {
             header("Authorization", "Bearer $token")
@@ -123,10 +127,9 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
             header { string("Content-Disposition", "attachment; filename=\"kotonoha-reel-${song.id}.mp4\"") }
         }
 
-        assertThat(fakeRenderer.lastInput?.source?.youtubeUrl).isEqualTo("https://youtu.be/SX_ViT4Ra7k")
-        // source 캐시가 받아 둔 파일을 렌더 스크립트에 그대로 넘긴다
+        // 어드민이 올려 둔 파일을 렌더 스크립트에 그대로 넘긴다
         assertThat(fakeRenderer.lastInput?.source?.localPath)
-            .isEqualTo(fakeSourceCache.cached("https://youtu.be/SX_ViT4Ra7k").toString())
+            .isEqualTo(sourceCache.cached(song.id!!).toString())
         val rendered = requireNotNull(fakeRenderer.lastInput?.data)
         assertThat(rendered.sourceStartFrame).isEqualTo(900)
         assertThat(rendered.lyricLines.map { it.startFrame }).containsExactly(45, 90, 200, 260, 400)
@@ -144,10 +147,12 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
             .withYoutubeUrl("https://youtu.be/SX_ViT4Ra7k")
             .build()
         persistLyric(song.id!!, analyzed = true, lineCount = 4)
+        val token = adminToken()
+        uploadSource(token, song.id!!)
         fakeRenderer.failWith = AdminReelsRenderFailedException("boom")
 
         mockMvc.post("/admin/api/reels-factory/render") {
-            header("Authorization", "Bearer ${adminToken()}")
+            header("Authorization", "Bearer $token")
             accept(MediaType.parseMediaType("video/mp4"))
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(
@@ -168,15 +173,18 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
     fun `reels factory render rejects ineligible songs and invalid timelines`() {
         val noAnalysisSong = TestSongBuilder(entityManager).withYoutubeUrl("https://youtu.be/no-analysis").build()
         persistLyric(noAnalysisSong.id!!, analyzed = false, lineCount = 4)
-        val noYoutubeSong = TestSongBuilder(entityManager).withYoutubeUrl(null).build()
-        persistLyric(noYoutubeSong.id!!, analyzed = true, lineCount = 4)
+        // MV 는 어드민이 올리므로 youtubeUrl 이 없어도 곡 자체는 eligible 이다
+        val noSourceSong = TestSongBuilder(entityManager).withYoutubeUrl(null).build()
+        persistLyric(noSourceSong.id!!, analyzed = true, lineCount = 4)
         val song = TestSongBuilder(entityManager).withYoutubeUrl("https://youtu.be/ok").build()
         persistLyric(song.id!!, analyzed = true, lineCount = 4)
         val token = adminToken()
         val valid = promoData(startFrames = listOf(0, 60, 120, 180), lyricsEndFrame = 240)
 
         renderExpectingBadRequest(token, noAnalysisSong.id!!, valid)
-        renderExpectingBadRequest(token, noYoutubeSong.id!!, valid)
+        // 분석은 됐지만 source 를 올리지 않음
+        renderExpectingBadRequest(token, noSourceSong.id!!, valid)
+        uploadSource(token, song.id!!)
         // 줄 수 부족
         renderExpectingBadRequest(token, song.id!!, promoData(startFrames = listOf(0, 60, 120), lyricsEndFrame = 240))
         // 시작 프레임이 단조 증가하지 않음
@@ -196,7 +204,7 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
     }
 
     @Test
-    fun `reels factory source prepares cached mv and streams it with media token`() {
+    fun `reels factory source accepts uploaded mp4 and streams it with media token`() {
         val song = TestSongBuilder(entityManager)
             .withTitle("Lemon")
             .withArtist("米津玄師")
@@ -205,29 +213,35 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
         persistLyric(song.id!!, analyzed = true, lineCount = 7)
         val token = adminToken()
 
-        // source 준비도 렌더와 같은 acknowledgement 를 요구한다 — 여기서 YouTube 추출이 일어난다
-        mockMvc.post("/admin/api/reels-factory/songs/${song.id}/source") {
+        // 아직 올린 게 없다
+        mockMvc.get("/admin/api/reels-factory/songs/${song.id}/source") {
             header("Authorization", "Bearer $token")
-            contentType = MediaType.APPLICATION_JSON
-            content = objectMapper.writeValueAsString(AdminReelsSourceRequest(acknowledgeSourceRightsAndPlatformRisk = false))
+        }.andExpect {
+            status { isNotFound() }
+        }
+
+        // 확장자만 mp4 인 파일은 거절
+        mockMvc.multipart("/admin/api/reels-factory/songs/${song.id}/source") {
+            header("Authorization", "Bearer $token")
+            file(MockMultipartFile("file", "mv.mp4", "video/mp4", "not an mp4 at all".toByteArray()))
         }.andExpect {
             status { isBadRequest() }
+            jsonPath("$.error") { value("bad_request") }
         }
-        assertThat(fakeSourceCache.fetchCount).isEqualTo(0)
+        assertThat(sourceCache.cached(song.id!!)).isNull()
 
-        val sourceBody = mockMvc.post("/admin/api/reels-factory/songs/${song.id}/source") {
+        val mvPath = uploadSource(token, song.id!!)
+        assertThat(mvPath).startsWith("/reels-factory/songs/${song.id}/mv?token=")
+        assertThat(fakeRenderer.lastInput).isNull()
+        val mediaToken = mvPath.substringAfter("token=")
+
+        // 올린 뒤에는 다시 올리지 않고 경로만 받을 수 있다 (새 미디어 토큰)
+        mockMvc.get("/admin/api/reels-factory/songs/${song.id}/source") {
             header("Authorization", "Bearer $token")
-            contentType = MediaType.APPLICATION_JSON
-            content = objectMapper.writeValueAsString(AdminReelsSourceRequest(acknowledgeSourceRightsAndPlatformRisk = true))
         }.andExpect {
             status { isOk() }
             jsonPath("$.mvPath") { value(org.hamcrest.Matchers.startsWith("/reels-factory/songs/${song.id}/mv?token=")) }
-        }.andReturn().response.contentAsString
-        assertThat(fakeSourceCache.fetchCount).isEqualTo(1)
-        assertThat(fakeRenderer.lastInput).isNull()
-
-        val mvPath = objectMapper.readTree(sourceBody)["mvPath"].asText()
-        val mediaToken = mvPath.substringAfter("token=")
+        }
 
         // 미디어 토큰만으로 스트리밍 — Authorization 헤더 없음
         mockMvc.get("/admin/api/reels-factory/songs/${song.id}/mv") {
@@ -236,7 +250,7 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
             status { isOk() }
             header { string("Content-Type", "video/mp4") }
             header { string("Accept-Ranges", "bytes") }
-            content { bytes("fake source mp4".toByteArray()) }
+            content { bytes(FAKE_MP4) }
         }
 
         // Range 요청은 206 으로 잘라 준다
@@ -245,8 +259,8 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
             header("Range", "bytes=0-3")
         }.andExpect {
             status { isPartialContent() }
-            header { string("Content-Range", "bytes 0-3/15") }
-            content { bytes("fake".toByteArray()) }
+            header { string("Content-Range", "bytes 0-3/${FAKE_MP4.size}") }
+            content { bytes(FAKE_MP4.copyOfRange(0, 4)) }
         }
 
         // 미디어 토큰은 다른 곡·어드민 토큰에는 안 통한다
@@ -273,14 +287,23 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
             status { isForbidden() }
         }
 
-        // 캐시에 없으면 404 — GET 은 다운로드를 시작하지 않는다
-        fakeSourceCache.clear()
+        // 캐시에서 밀려나면 404
+        Files.deleteIfExists(requireNotNull(sourceCache.cached(song.id!!)))
         mockMvc.get("/admin/api/reels-factory/songs/${song.id}/mv") {
             param("token", mediaToken)
         }.andExpect {
             status { isNotFound() }
         }
-        assertThat(fakeSourceCache.fetchCount).isEqualTo(1)
+    }
+
+    private fun uploadSource(token: String, songId: Long): String {
+        val body = mockMvc.multipart("/admin/api/reels-factory/songs/$songId/source") {
+            header("Authorization", "Bearer $token")
+            file(MockMultipartFile("file", "mv.mp4", "video/mp4", FAKE_MP4))
+        }.andExpect {
+            status { isOk() }
+        }.andReturn().response.contentAsString
+        return objectMapper.readTree(body)["mvPath"].asText()
     }
 
     private fun renderExpectingBadRequest(token: String, songId: Long, data: AdminReelsPromoData) {
@@ -375,26 +398,16 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
         @Primary
         fun fakeReelsRenderService(): FakeReelsRenderService = FakeReelsRenderService()
 
+        /** 진짜 파일 캐시를 쓰되 다른 실행에서 남은 파일이 섞이지 않게 테스트 전용 디렉토리를 준다. */
         @Bean
         @Primary
-        fun fakeReelsSourceCache(): FakeReelsSourceCache = FakeReelsSourceCache()
+        fun testReelsSourceCache(): AdminReelsSourceCache =
+            FileAdminReelsSourceCache(AdminReelsSourceProperties(directory = Files.createTempDirectory("test-reels-sources-")))
     }
 
-    class FakeReelsSourceCache : AdminReelsSourceCache {
-        private val files = mutableMapOf<String, Path>()
-        var fetchCount = 0
-
-        override fun fetch(youtubeUrl: String): Path {
-            fetchCount += 1
-            return files.getOrPut(youtubeUrl) {
-                val dir = Files.createTempDirectory("fake-reels-source-")
-                dir.resolve("source.mp4").also { Files.write(it, "fake source mp4".toByteArray()) }
-            }
-        }
-
-        override fun cached(youtubeUrl: String): Path? = files[youtubeUrl]
-
-        fun clear() = files.clear()
+    companion object {
+        /** ISO BMFF 시그니처(`ftyp`)만 갖춘 최소 mp4. 캐시가 mp4 인지 검사하는 데 쓴다. */
+        private val FAKE_MP4: ByteArray = byteArrayOf(0, 0, 0, 16) + "ftypisom".toByteArray() + "mp4!".toByteArray()
     }
 
     class FakeReelsRenderService : AdminReelsRenderService {

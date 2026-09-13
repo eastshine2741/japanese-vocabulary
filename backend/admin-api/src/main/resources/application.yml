@@ -12,6 +12,11 @@ spring:
     hibernate:
       ddl-auto: validate
     open-in-view: false
+  servlet:
+    multipart:
+      # reels factory MV 업로드. 1080p MV 가 100~200MB 라 여유를 둔다.
+      max-file-size: ${ADMIN_REELS_SOURCE_MAX_UPLOAD:1GB}
+      max-request-size: ${ADMIN_REELS_SOURCE_MAX_UPLOAD:1GB}
 
 admin:
   security:

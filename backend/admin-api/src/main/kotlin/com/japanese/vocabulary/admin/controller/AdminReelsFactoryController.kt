@@ -3,7 +3,6 @@ package com.japanese.vocabulary.admin.controller
 import com.japanese.vocabulary.admin.dto.reels.AdminReelsRenderRequest
 import com.japanese.vocabulary.admin.dto.reels.AdminReelsSongCandidateResponse
 import com.japanese.vocabulary.admin.dto.reels.AdminReelsSongDetailResponse
-import com.japanese.vocabulary.admin.dto.reels.AdminReelsSourceRequest
 import com.japanese.vocabulary.admin.dto.reels.AdminReelsSourceResponse
 import com.japanese.vocabulary.admin.reels.AdminReelsFactoryService
 import org.springframework.core.io.FileSystemResource
@@ -21,7 +20,9 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
+import org.springframework.web.bind.annotation.RequestPart
 import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.multipart.MultipartFile
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -39,12 +40,17 @@ class AdminReelsFactoryController(
     @GetMapping("/songs/{songId}")
     fun getSong(@PathVariable songId: Long): AdminReelsSongDetailResponse = service.getSong(songId)
 
-    /** 에디터가 스크럽할 MV 를 캐시에 받아 두고 스트리밍 경로를 돌려준다. YouTube 추출이 여기서 일어난다. */
-    @PostMapping("/songs/{songId}/source")
-    fun prepareSource(
+    /** 어드민이 직접 받은 MV mp4 를 올린다. 에디터가 스크럽할 스트리밍 경로를 돌려주고 본 렌더도 이 파일을 쓴다. */
+    @PostMapping("/songs/{songId}/source", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
+    fun uploadSource(
         @PathVariable songId: Long,
-        @RequestBody request: AdminReelsSourceRequest,
-    ): AdminReelsSourceResponse = service.prepareSource(songId, request)
+        @RequestPart file: MultipartFile,
+    ): AdminReelsSourceResponse = service.uploadSource(songId, file)
+
+    /** 이전에 올린 MV 가 아직 캐시에 있으면 다시 올리지 않고 쓸 수 있게 경로만 돌려준다. */
+    @GetMapping("/songs/{songId}/source")
+    fun cachedSource(@PathVariable songId: Long): ResponseEntity<AdminReelsSourceResponse> =
+        service.cachedSource(songId)?.let { ResponseEntity.ok(it) } ?: ResponseEntity.notFound().build()
 
     /**
      * 에디터 `<video>` 와 Remotion Player 가 읽는 MV 스트림. 인증은 query 의 미디어 토큰으로 하고(SecurityConfig 에서 permitAll),

@@ -4,7 +4,7 @@ import {existsSync, readFileSync} from 'node:fs';
 import {dirname, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
-import {assertYoutubeUrl, downloadYoutubeMp4, exitCodeFor, parseArgs, run} from './lib/source.mjs';
+import {exitCodeFor, parseArgs, run} from './lib/process.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const publicRenderDir = resolve(root, 'public', 'admin-render');
@@ -21,25 +21,17 @@ if (!args.input || !args.output) {
 const inputPath = resolve(args.input);
 const outputPath = resolve(args.output);
 const rawOutputPath = outputPath.replace(/\.mp4$/i, '-raw.mp4');
-const downloadedSourcePath = resolve(dirname(outputPath), 'source.mp4');
 const publicMvPath = resolve(publicRenderDir, 'mv.mp4');
 
 try {
   const request = JSON.parse(await readFile(inputPath, 'utf8'));
-  if (!request?.source?.youtubeUrl) {
-    throw new Error('Missing source.youtubeUrl');
+  // source 는 어드민이 admin-api 에 올려 둔 mp4 뿐이다. 여기서 아무것도 받지 않는다.
+  if (!request?.source?.localPath || !existsSync(request.source.localPath)) {
+    throw new Error('Missing source.localPath');
   }
-  assertYoutubeUrl(request.source.youtubeUrl);
 
   await mkdir(publicRenderDir, {recursive: true});
-  // admin-api 가 미리보기 캐시에 받아 둔 source 가 있으면 다시 받지 않는다.
-  const cachedSourcePath = request.source.localPath && existsSync(request.source.localPath)
-    ? request.source.localPath
-    : null;
-  if (!cachedSourcePath) {
-    await downloadYoutubeMp4(request.source.youtubeUrl, downloadedSourcePath, {cwd: root});
-  }
-  await copyFile(cachedSourcePath ?? downloadedSourcePath, publicMvPath);
+  await copyFile(request.source.localPath, publicMvPath);
 
   const data = {
     ...request.data,

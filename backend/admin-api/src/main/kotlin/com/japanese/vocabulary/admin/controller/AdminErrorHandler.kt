@@ -1,6 +1,5 @@
 package com.japanese.vocabulary.admin.controller
 
-import com.japanese.vocabulary.admin.reels.AdminReelsExtractionException
 import com.japanese.vocabulary.admin.reels.AdminReelsMediaTokenException
 import com.japanese.vocabulary.admin.reels.AdminReelsRenderBusyException
 import com.japanese.vocabulary.admin.reels.AdminReelsRenderFailedException
@@ -10,6 +9,7 @@ import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
+import org.springframework.web.multipart.MaxUploadSizeExceededException
 
 @RestControllerAdvice
 class AdminErrorHandler {
@@ -29,9 +29,9 @@ class AdminErrorHandler {
     fun renderBusy(): ResponseEntity<Map<String, String>> =
         json(HttpStatus.CONFLICT, mapOf("error" to "render_busy"))
 
-    @ExceptionHandler(AdminReelsExtractionException::class)
-    fun extractionFailed(exception: AdminReelsExtractionException): ResponseEntity<Map<String, String>> =
-        json(HttpStatus.BAD_GATEWAY, mapOf("error" to "extraction_failed", "message" to (exception.message ?: "extraction failed")))
+    @ExceptionHandler(MaxUploadSizeExceededException::class)
+    fun uploadTooLarge(): ResponseEntity<Map<String, String>> =
+        json(HttpStatus.PAYLOAD_TOO_LARGE, mapOf("error" to "payload_too_large", "message" to "Uploaded file is too large"))
 
     @ExceptionHandler(AdminReelsRenderTimeoutException::class)
     fun renderTimeout(): ResponseEntity<Map<String, String>> =

@@ -37,7 +37,8 @@ export function ReelsFactoryPage() {
   const [selectedIndex, setSelectedIndex] = React.useState<number | null>(null)
   const [mvUrl, setMvUrl] = React.useState<string | null>(null)
   const [mvDurationMs, setMvDurationMs] = React.useState<number | null>(null)
-  const [loadingSource, setLoadingSource] = React.useState(false)
+  /** 업로드 진행률 0..1. 올리는 중이 아니면 null. */
+  const [uploadProgress, setUploadProgress] = React.useState<number | null>(null)
   const [rendering, setRendering] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
   const [mode, setMode] = React.useState<MonitorMode>("source")
@@ -59,10 +60,12 @@ export function ReelsFactoryPage() {
     setMode("source")
     setPlayheadMs(0)
     setError(null)
-    adminApi
-      .reelsSong(token, selectedSongId)
-      .then((nextDetail) => {
-        if (!cancelled) setDetail(nextDetail)
+    // 이전에 올린 MV 가 서버에 남아 있으면 다시 올리지 않아도 되게 같이 확인한다.
+    Promise.all([adminApi.reelsSong(token, selectedSongId), adminApi.reelsCachedSource(token, selectedSongId)])
+      .then(([nextDetail, source]) => {
+        if (cancelled) return
+        setDetail(nextDetail)
+        if (source) setMvUrl(apiUrl(source.mvPath))
       })
       .catch((cause) => {
         if (!cancelled) setError(errorLabel(cause))
@@ -82,7 +85,8 @@ export function ReelsFactoryPage() {
   )
   const fps = detail?.fps ?? 30
   const inputReady = Boolean(detail?.song.renderEligible) && errors.length === 0
-  const canRender = inputReady && !rendering
+  // 서버는 올려 둔 MV 로만 렌더한다.
+  const canRender = inputReady && mvUrl != null && !rendering
 
   // ── 편집 ──────────────────────────────────────────────────────────────────
 
@@ -182,17 +186,17 @@ export function ReelsFactoryPage() {
 
   // ── 서버 ───────────────────────────────────────────────────────────────────
 
-  async function loadSource() {
+  async function uploadSource(file: File) {
     if (!token || !detail) return
-    setLoadingSource(true)
+    setUploadProgress(0)
     setError(null)
     try {
-      const source = await adminApi.reelsSource(token, detail.song.id)
+      const source = await adminApi.reelsUploadSource(token, detail.song.id, file, setUploadProgress)
       setMvUrl(apiUrl(source.mvPath))
     } catch (cause) {
       setError(errorLabel(cause))
     } finally {
-      setLoadingSource(false)
+      setUploadProgress(null)
     }
   }
 
@@ -245,19 +249,20 @@ export function ReelsFactoryPage() {
           <div className="grid min-h-0 flex-1 gap-3 xl:grid-cols-[260px_minmax(0,1fr)_320px]">
             <LineBin detail={detail} editor={editor} selectedIndex={selectedIndex} onSelect={setSelectedIndex} onToggle={handleToggleLine} />
             <ReelMonitor
-              canLoadSource={detail.song.renderEligible}
+              canUploadSource={detail.song.renderEligible}
               data={data}
               fps={fps}
-              loadingSource={loadingSource}
               mode={mode}
               mvUrl={mvUrl}
               onDuration={setMvDurationMs}
-              onLoadSource={loadSource}
               onModeChange={setMode}
+              onUploadSource={uploadSource}
               onPlayhead={setPlayheadMs}
               playheadMs={playheadMs}
               ref={monitorRef}
               sourceStartMs={editor.sourceStartMs}
+              uploadProgress={uploadProgress}
+              youtubeUrl={detail.song.youtubeUrl}
             />
             <LineInspector
               detail={detail}

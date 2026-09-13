@@ -6,10 +6,6 @@ open class AdminReelsException(
 
 class AdminReelsRenderBusyException : AdminReelsException("A reel render is already running")
 
-class AdminReelsExtractionException(
-    message: String,
-) : AdminReelsException(message)
-
 class AdminReelsRenderFailedException(
     message: String,
 ) : AdminReelsException(message)

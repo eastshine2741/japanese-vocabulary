@@ -93,13 +93,8 @@ class SubprocessAdminReelsRenderService(
     }
 
     private fun classifyFailure(output: String): AdminReelsException {
-        return if (output.contains("EXTRACTION_FAILED", ignoreCase = true)) {
-            logger.warn("Admin reel source extraction failed: {}", output.ifBlank { "(no renderer output)" })
-            AdminReelsExtractionException("Could not extract source media for this YouTube URL")
-        } else {
-            logger.warn("Admin reel renderer failed: {}", output.ifBlank { "(no renderer output)" })
-            AdminReelsRenderFailedException("Renderer failed")
-        }
+        logger.warn("Admin reel renderer failed: {}", output.ifBlank { "(no renderer output)" })
+        return AdminReelsRenderFailedException("Renderer failed")
     }
 
     private fun killProcessTree(process: Process) {

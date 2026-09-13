@@ -15,11 +15,10 @@ npm run still:sample
 npm run smoke:fixture
 ```
 
-어드민 입력으로 렌더할 때는 `render:request`가 request JSON을 받아 YouTube source를 임시 asset으로 준비하고 Remotion props를 주입합니다. `source.localPath` 가 있으면 다시 받지 않고 그 파일을 씁니다.
+어드민 입력으로 렌더할 때는 `render:request`가 request JSON을 받아 `source.localPath`(admin-api 에 어드민이 올려 둔 MV mp4)를 임시 asset으로 복사하고 Remotion props를 주입합니다. 스크립트는 아무것도 다운로드하지 않습니다.
 
 ```bash
 npm run render:request -- --input /tmp/render-input.json --output /tmp/reel.mp4
-npm run fetch:source -- --url https://youtu.be/... --output /tmp/source.mp4   # admin-api source 캐시가 호출
 ```
 
 ## 어드민 미리보기
@@ -71,4 +70,4 @@ Remotion 컴포지션은 `PromoReelData` 하나를 받습니다. `lyricLines`가
 
 엔드카드의 폰 목업은 실제 앱 화면(`SongDetailScreen` → `CurrentPlayingWordsSheet` → 단어 탭 → `SongReviewScreen` 앞면/뒷면/rating/스와이프)을 코드로 다시 그린 것이다. 앱 UI 가 바뀌면 `PromoReel.tsx` 의 목업도 같이 고친다. 전환은 자막처럼 하드컷이고 움직임은 시트 상승과 카드 스와이프 둘뿐이다(스프링·페이드 없음).
 
-어드민 자동화 단계에서는 DB에서 `raw_content`, `analyzed_content`를 읽어 사용자가 선택한 줄만 `lyricLines`로 조립합니다. 현재 MVP는 analyzed lyric 기반 deterministic headline을 사용하고, 권리/플랫폼 risk acknowledgement 뒤 YouTube source를 임시 추출해 direct MP4 download로 반환합니다.
+어드민 자동화 단계에서는 DB에서 `raw_content`, `analyzed_content`를 읽어 사용자가 선택한 줄만 `lyricLines`로 조립합니다. 현재 MVP는 analyzed lyric 기반 deterministic headline을 사용하고, 어드민이 올린 MV mp4 를 source 로 렌더해 direct MP4 download로 반환합니다.

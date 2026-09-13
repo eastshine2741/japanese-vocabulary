@@ -6,8 +6,6 @@ RUN apt-get update \
       ffmpeg \
       nodejs \
       npm \
-      python3 \
-      python3-pip \
       libnss3 \
       libdbus-1-3 \
       libatk1.0-0t64 \
@@ -23,7 +21,6 @@ RUN apt-get update \
       libcairo2 \
       libcups2t64 \
       fonts-noto-cjk \
-    && python3 -m pip install --break-system-packages --no-cache-dir yt-dlp \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /opt/reels

@@ -26,6 +26,8 @@ function mockFetch() {
       return json(body.password === "secret" ? { token: "admin-token", expiresAt: "2026-01-01T01:00:00Z" } : {}, body.password === "secret" ? 200 : 401)
     }
     if (url.includes("/reels-factory/render")) return new Response(new Blob(["mp4"], { type: "video/mp4" }), { status: 200 })
+    // 이전에 올려 둔 MV 가 서버 캐시에 남아 있는 상황
+    if (url.endsWith("/reels-factory/songs/1/source")) return json({ mvPath: "/reels-factory/songs/1/mv?token=media" })
     if (url.includes("/reels-factory/songs/1")) return json(reelsSongDetail)
     if (url.includes("/reels-factory/songs?")) return json(page([reelsSongCandidate]))
     if (url.endsWith("/songs/1/reanalysis") && init?.method === "POST") return json(pendingReanalysisWork)

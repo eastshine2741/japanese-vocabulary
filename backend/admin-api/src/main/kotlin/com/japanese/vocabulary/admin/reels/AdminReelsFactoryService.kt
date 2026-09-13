@@ -5,7 +5,6 @@ import com.japanese.vocabulary.admin.dto.reels.AdminReelsLyricTokenResponse
 import com.japanese.vocabulary.admin.dto.reels.AdminReelsRenderRequest
 import com.japanese.vocabulary.admin.dto.reels.AdminReelsSongCandidateResponse
 import com.japanese.vocabulary.admin.dto.reels.AdminReelsSongDetailResponse
-import com.japanese.vocabulary.admin.dto.reels.AdminReelsSourceRequest
 import com.japanese.vocabulary.admin.dto.reels.AdminReelsSourceResponse
 import com.japanese.vocabulary.admin.dto.reels.AdminReelsVocabularyResponse
 import com.japanese.vocabulary.admin.auth.AdminTokenService
@@ -23,8 +22,8 @@ import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import org.springframework.web.multipart.MultipartFile
 import java.nio.file.Path
-import java.net.URI
 
 @Service
 class AdminReelsFactoryService(
@@ -51,37 +50,44 @@ class AdminReelsFactoryService(
     }
 
     /**
-     * 에디터가 MV 를 스크럽할 수 있게 source mp4 를 캐시에 받아 두고 스트리밍 경로를 돌려준다.
+     * 어드민이 올린 source mp4 를 캐시에 넣고 에디터가 스크럽할 스트리밍 경로를 돌려준다.
      * 여기서 받은 파일은 본 렌더가 그대로 쓴다.
      */
     @Transactional(readOnly = true)
-    fun prepareSource(songId: Long, request: AdminReelsSourceRequest): AdminReelsSourceResponse {
-        requireAcknowledgement(request.acknowledgeSourceRightsAndPlatformRisk)
-        val youtubeUrl = eligibleYoutubeUrl(songId)
-        sourceCache.fetch(youtubeUrl)
-        val token = tokenService.issueMediaToken(songId)
-        return AdminReelsSourceResponse(mvPath = "/reels-factory/songs/$songId/mv?token=$token")
+    fun uploadSource(songId: Long, file: MultipartFile): AdminReelsSourceResponse {
+        requireEligible(songId)
+        if (file.isEmpty) {
+            throw IllegalArgumentException("source file is empty")
+        }
+        sourceCache.store(songId, file.inputStream)
+        return AdminReelsSourceResponse(mvPath = mvPath(songId))
     }
 
-    /** 미리보기 MV 스트림. 캐시에 있는 파일만 내주고 다운로드는 하지 않는다. */
+    /** 이미 올려 둔 source 가 있으면 다시 올리지 않고 스트리밍 경로만 돌려준다. */
+    @Transactional(readOnly = true)
+    fun cachedSource(songId: Long): AdminReelsSourceResponse? {
+        requireEligible(songId)
+        return sourceCache.cached(songId)?.let { AdminReelsSourceResponse(mvPath = mvPath(songId)) }
+    }
+
+    /** 미리보기 MV 스트림. 캐시에 있는 파일만 내준다. */
     @Transactional(readOnly = true)
     fun previewSource(songId: Long, token: String): Path {
         if (!tokenService.validateMediaToken(token, songId)) {
             throw AdminReelsMediaTokenException()
         }
-        val song = songRepository.findById(songId).orElseThrow { NoSuchElementException("Song not found") }
-        val youtubeUrl = song.youtubeUrl?.takeIf { it.isNotBlank() } ?: throw NoSuchElementException("Song has no youtubeUrl")
-        return sourceCache.cached(youtubeUrl) ?: throw NoSuchElementException("Source is not cached")
+        return sourceCache.cached(songId) ?: throw NoSuchElementException("Source is not cached")
     }
 
     @Transactional(readOnly = true)
     fun render(request: AdminReelsRenderRequest): Path {
         requireAcknowledgement(request.acknowledgeSourceRightsAndPlatformRisk)
-        val youtubeUrl = eligibleYoutubeUrl(request.songId)
+        requireEligible(request.songId)
         validateRenderData(request.data)
-        val source = sourceCache.fetch(youtubeUrl)
+        val source = sourceCache.cached(request.songId)
+            ?: throw IllegalArgumentException("source mp4 must be uploaded before render")
         val input = AdminReelsRenderInput(
-            source = AdminReelsRenderSource(youtubeUrl = youtubeUrl, localPath = source.toString()),
+            source = AdminReelsRenderSource(localPath = source.toString()),
             // 렌더 스크립트가 mvAsset 을 채운다. 클라이언트가 넣은 스트리밍 URL 은 버린다.
             data = request.data.copy(song = request.data.song.copy(mvAsset = "")),
         )
@@ -94,16 +100,15 @@ class AdminReelsFactoryService(
         }
     }
 
-    private fun eligibleYoutubeUrl(songId: Long): String {
-        val song = songRepository.findById(songId).orElseThrow { NoSuchElementException("Song not found") }
-        val youtubeUrl = song.youtubeUrl?.takeIf { it.isNotBlank() }
-            ?: throw IllegalArgumentException("song must have youtubeUrl")
-        validateYoutubeUrl(youtubeUrl)
+    private fun mvPath(songId: Long): String =
+        "/reels-factory/songs/$songId/mv?token=${tokenService.issueMediaToken(songId)}"
+
+    private fun requireEligible(songId: Long) {
+        if (!songRepository.existsById(songId)) throw NoSuchElementException("Song not found")
         val lyric = lyricRepository.findActiveBySongId(songId) ?: throw NoSuchElementException("Lyric not found")
         if (lyric.analyzedContent.isNullOrEmpty()) {
             throw IllegalArgumentException("song must have analyzed lyrics")
         }
-        return youtubeUrl
     }
 
     /**
@@ -178,14 +183,9 @@ class AdminReelsFactoryService(
         )
     }
 
+    /** MV 는 어드민이 직접 올리므로 곡 쪽 조건은 분석된 가사뿐이다. youtubeUrl 은 어디서 받을지 안내용으로만 내려간다. */
     private fun SongEntity.toCandidateResponse(lyric: LyricEntity?): AdminReelsSongCandidateResponse {
-        val youtubeReason = youtubeUrl?.let { youtubeUrlIneligibleReason(it) }
-        val reason = when {
-            youtubeUrl.isNullOrBlank() -> "missing_youtube_url"
-            youtubeReason != null -> youtubeReason
-            lyric?.analyzedContent.isNullOrEmpty() -> "missing_analyzed_lyrics"
-            else -> null
-        }
+        val reason = if (lyric?.analyzedContent.isNullOrEmpty()) "missing_analyzed_lyrics" else null
         return AdminReelsSongCandidateResponse(
             id = requireNotNull(id),
             title = title,
@@ -240,33 +240,6 @@ class AdminReelsFactoryService(
             ?.replace(Regex("\\s+"), " ")
             ?.take(28)
         return firstKorean ?: "${song.title}에서 배우는 일본어 가사"
-    }
-
-    private fun validateYoutubeUrl(url: String) {
-        youtubeUrlIneligibleReason(url)?.let { reason ->
-            throw IllegalArgumentException(
-                when (reason) {
-                    "invalid_youtube_url" -> "song youtubeUrl must be a valid URL"
-                    "non_https_youtube_url" -> "song youtubeUrl must use https"
-                    "missing_youtube_host" -> "song youtubeUrl must have a host"
-                    else -> "song youtubeUrl must be a YouTube URL"
-                },
-            )
-        }
-    }
-
-    private fun youtubeUrlIneligibleReason(url: String): String? {
-        val uri = runCatching { URI(url) }.getOrNull()
-            ?: return "invalid_youtube_url"
-        if (uri.scheme != "https") {
-            return "non_https_youtube_url"
-        }
-        val host = uri.host?.lowercase()?.removePrefix("www.")
-            ?: return "missing_youtube_host"
-        if (host != "youtube.com" && host != "youtu.be" && host != "music.youtube.com") {
-            return "non_youtube_url"
-        }
-        return null
     }
 
     companion object {

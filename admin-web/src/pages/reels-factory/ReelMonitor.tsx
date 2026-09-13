@@ -1,6 +1,6 @@
 import * as React from "react"
 import type { PlayerRef } from "@remotion/player"
-import { Film, Loader2, Pause, Play } from "lucide-react"
+import { Film, Loader2, Pause, Play, Upload } from "lucide-react"
 import type { PromoReelData } from "@reels/types"
 import { LoadingState } from "@/components/StateViews"
 import { Button } from "@/components/ui/button"
@@ -24,11 +24,14 @@ export type MonitorHandle = {
 type Props = {
   mode: MonitorMode
   onModeChange(mode: MonitorMode): void
-  /** 서버 캐시의 MV 스트림. 없으면 아직 안 받은 것. */
+  /** 서버 캐시의 MV 스트림. 없으면 아직 안 올린 것. */
   mvUrl: string | null
-  loadingSource: boolean
-  canLoadSource: boolean
-  onLoadSource(): void
+  /** 업로드 진행률 0..1. 올리는 중이 아니면 null. */
+  uploadProgress: number | null
+  canUploadSource: boolean
+  onUploadSource(file: File): void
+  /** 어드민이 MV 를 어디서 받을지 찾아가는 링크. */
+  youtubeUrl: string | null
   data: PromoReelData | null
   sourceStartMs: number
   fps: number
@@ -42,10 +45,11 @@ type Props = {
  * 둘 다 같은 플레이헤드(MV 절대 시각)를 공유하고 모드를 바꾸면 그 시각으로 따라간다.
  */
 export const ReelMonitor = React.forwardRef<MonitorHandle, Props>(function ReelMonitor(
-  { mode, onModeChange, mvUrl, loadingSource, canLoadSource, onLoadSource, data, sourceStartMs, fps, playheadMs, onPlayhead, onDuration },
+  { mode, onModeChange, mvUrl, uploadProgress, canUploadSource, onUploadSource, youtubeUrl, data, sourceStartMs, fps, playheadMs, onPlayhead, onDuration },
   ref,
 ) {
   const videoRef = React.useRef<HTMLVideoElement>(null)
+  const fileInputRef = React.useRef<HTMLInputElement>(null)
   const playerRef = React.useRef<PlayerRef | null>(null)
   const [player, setPlayer] = React.useState<PlayerRef | null>(null)
   const [playing, setPlaying] = React.useState(false)
@@ -163,11 +167,33 @@ export const ReelMonitor = React.forwardRef<MonitorHandle, Props>(function ReelM
         {mvUrl == null ? (
           <div className="flex flex-col items-center gap-3 text-center text-sm text-white/70">
             <Film className="h-8 w-8 text-white/40" />
-            <p>YouTube 에서 MV 를 받아 와야 구간을 찾고 미리볼 수 있습니다.</p>
-            <Button disabled={!canLoadSource || loadingSource} onClick={onLoadSource} type="button" variant="secondary">
-              {loadingSource ? <Loader2 className="h-4 w-4 animate-spin" /> : <Film className="h-4 w-4" />}
-              {loadingSource ? "MV 받는 중..." : "MV 불러오기"}
+            <p>MV mp4 를 올려야 구간을 찾고 미리볼 수 있습니다.</p>
+            <input
+              accept="video/mp4,.mp4"
+              aria-label="MV mp4 file"
+              className="hidden"
+              onChange={(event) => {
+                const file = event.currentTarget.files?.[0]
+                event.currentTarget.value = ""
+                if (file) onUploadSource(file)
+              }}
+              ref={fileInputRef}
+              type="file"
+            />
+            <Button
+              disabled={!canUploadSource || uploadProgress != null}
+              onClick={() => fileInputRef.current?.click()}
+              type="button"
+              variant="secondary"
+            >
+              {uploadProgress != null ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+              {uploadProgress != null ? `MV 올리는 중... ${Math.round(uploadProgress * 100)}%` : "MV mp4 올리기"}
             </Button>
+            {youtubeUrl ? (
+              <a className="text-xs text-white/50 underline-offset-2 hover:underline" href={youtubeUrl} rel="noreferrer" target="_blank">
+                YouTube 에서 열기
+              </a>
+            ) : null}
           </div>
         ) : null}
         {mvUrl != null ? (

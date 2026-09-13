@@ -66,9 +66,12 @@ async function apiError(response: Response) {
   } catch {
     data = null
   }
+  return new ApiError(errorMessage(data, response.statusText), response.status, data)
+}
+
+function errorMessage(data: unknown, fallback: string | number) {
   const body = data as { message?: string; error?: string } | null
-  const message = body?.message || body?.error || response.statusText || "Request failed"
-  return new ApiError(message, response.status, data)
+  return body?.message || body?.error || String(fallback) || "Request failed"
 }
 
 function pageParams(page: number, query?: string) {
@@ -165,12 +168,39 @@ export const adminApi = {
   reelsSong(token: string, id: number) {
     return request<ReelsSongDetail>(`/reels-factory/songs/${id}`, token)
   },
-  /** MV 를 서버 캐시에 받아 두고 스트리밍 경로를 받는다. YouTube 추출이 여기서 일어난다. */
-  reelsSource(token: string, songId: number) {
-    return request<ReelsSource>(`/reels-factory/songs/${songId}/source`, token, {
-      method: "POST",
-      // 어드민 전용 화면이라 별도 확인 없이 항상 동의로 보낸다.
-      body: JSON.stringify({ acknowledgeSourceRightsAndPlatformRisk: true }),
+  /** 이전에 올린 MV 가 서버 캐시에 남아 있으면 스트리밍 경로를 받는다. 없으면 null. */
+  async reelsCachedSource(token: string, songId: number) {
+    try {
+      return await request<ReelsSource>(`/reels-factory/songs/${songId}/source`, token)
+    } catch (cause) {
+      if (cause instanceof ApiError && cause.status === 404) return null
+      throw cause
+    }
+  },
+  /** 어드민이 직접 받은 MV mp4 를 올린다. 수백 MB 라 진행률을 보여 주려고 fetch 대신 XHR 을 쓴다. */
+  reelsUploadSource(token: string, songId: number, file: File, onProgress: (ratio: number) => void) {
+    return new Promise<ReelsSource>((resolve, reject) => {
+      const body = new FormData()
+      body.append("file", file, file.name)
+      const xhr = new XMLHttpRequest()
+      xhr.open("POST", `${API_BASE}/reels-factory/songs/${songId}/source`)
+      xhr.setRequestHeader("Accept", "application/json")
+      xhr.setRequestHeader("Authorization", `Bearer ${token}`)
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) onProgress(event.loaded / event.total)
+      }
+      xhr.onerror = () => reject(new ApiError("Network error", 0))
+      xhr.onload = () => {
+        let data: unknown = null
+        try {
+          data = JSON.parse(xhr.responseText)
+        } catch {
+          data = null
+        }
+        if (xhr.status >= 200 && xhr.status < 300) resolve(data as ReelsSource)
+        else reject(new ApiError(errorMessage(data, xhr.status), xhr.status, data))
+      }
+      xhr.send(body)
     })
   },
   renderReel(token: string, body: ReelsRenderRequest) {
