@@ -1,4 +1,4 @@
-import { Activity, Disc3, LogOut, Sparkles, Users } from "lucide-react"
+import { Activity, Clapperboard, Disc3, LogOut, Sparkles, Users } from "lucide-react"
 import { NavLink, Outlet, useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/features/auth"
@@ -8,6 +8,7 @@ const navItems = [
   { to: "/songs", label: "Songs", icon: Disc3 },
   { to: "/recommendations", label: "Recommendations", icon: Sparkles },
   { to: "/song-analysis-works", label: "Analysis Work", icon: Activity },
+  { to: "/reels-factory", label: "Reels Factory", icon: Clapperboard },
   { to: "/users", label: "Users", icon: Users },
 ]
 
@@ -18,7 +19,7 @@ export function AppShell() {
   return (
     <div className="min-h-screen bg-[#f6f7f9]">
       <header className="sticky top-0 z-20 border-b border-[#d9e1ea] bg-white">
-        <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4">
+        <div className="flex h-14 items-center justify-between px-4">
           <div className="flex items-center gap-3">
             <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[#18212f] text-sm font-semibold text-white">
               K
@@ -40,7 +41,7 @@ export function AppShell() {
         </div>
       </header>
 
-      <div className="mx-auto grid max-w-7xl grid-cols-1 md:grid-cols-[192px_1fr]">
+      <div className="grid grid-cols-1 md:grid-cols-[192px_1fr]">
         <nav className="border-b border-[#d9e1ea] bg-white px-2 py-2 md:min-h-[calc(100vh-56px)] md:border-b-0 md:border-r">
           <div className="flex gap-1 md:flex-col">
             {navItems.map((item) => (

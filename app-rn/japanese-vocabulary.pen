@@ -67708,6 +67708,2164 @@
           "height": 3
         }
       ]
+    },
+    {
+      "type": "frame",
+      "id": "zmWb3",
+      "x": 3680,
+      "y": 16400,
+      "name": "Reel v2 · 1 Active (Lyric + Words)",
+      "clip": true,
+      "width": 1080,
+      "height": 1920,
+      "fill": "$night",
+      "layout": "none",
+      "children": [
+        {
+          "type": "rectangle",
+          "id": "VcC6T",
+          "x": 0,
+          "y": 0,
+          "name": "MV Frame",
+          "fill": {
+            "type": "image",
+            "enabled": true,
+            "url": "images/lemon-cover.jpg",
+            "mode": "fill"
+          },
+          "width": 1080,
+          "height": 1920
+        },
+        {
+          "type": "rectangle",
+          "id": "Yb4AI",
+          "x": 0,
+          "y": 0,
+          "name": "MV Top Scrim",
+          "fill": {
+            "type": "gradient",
+            "gradientType": "linear",
+            "enabled": true,
+            "rotation": 180,
+            "size": {
+              "height": 1
+            },
+            "colors": [
+              {
+                "color": "#111012F2",
+                "position": 0
+              },
+              {
+                "color": "#11101200",
+                "position": 1
+              }
+            ]
+          },
+          "width": 1080,
+          "height": 300
+        },
+        {
+          "type": "rectangle",
+          "id": "HAFUZ",
+          "x": 0,
+          "y": 620,
+          "name": "MV Bottom Scrim",
+          "fill": {
+            "type": "gradient",
+            "gradientType": "linear",
+            "enabled": true,
+            "rotation": 180,
+            "size": {
+              "height": 1
+            },
+            "colors": [
+              {
+                "color": "#11101200",
+                "position": 0
+              },
+              {
+                "color": "#111012B8",
+                "position": 0.2
+              },
+              {
+                "color": "#111012E8",
+                "position": 0.32
+              },
+              {
+                "color": "#111012F2",
+                "position": 0.55
+              },
+              {
+                "color": "#111012F2",
+                "position": 1
+              }
+            ]
+          },
+          "width": 1080,
+          "height": 1300
+        },
+        {
+          "type": "frame",
+          "id": "VJJOD",
+          "x": 0,
+          "y": 118,
+          "name": "Header",
+          "width": 1080,
+          "height": 96,
+          "padding": [
+            0,
+            72
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "QnUCz",
+              "name": "Brand And Song",
+              "gap": 22,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "eM7CA",
+                  "name": "Song Text",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "O1Otp",
+                      "name": "Song Title",
+                      "fill": "$ink",
+                      "content": "Lemon",
+                      "lineHeight": 1,
+                      "fontFamily": "$fontKr",
+                      "fontSize": 50,
+                      "fontWeight": "800"
+                    },
+                    {
+                      "type": "text",
+                      "id": "wh4QB",
+                      "name": "Song Artist",
+                      "fill": "$softInk",
+                      "content": "米津玄師 ",
+                      "lineHeight": 1,
+                      "fontFamily": "$fontJp",
+                      "fontSize": 29,
+                      "fontWeight": "500"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "pYgdd",
+              "name": "Watermark",
+              "gap": 12,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "XIOz3",
+                  "name": "Watermark Label",
+                  "fill": "#FAFAF659",
+                  "content": "@kotonoha.app",
+                  "lineHeight": 1,
+                  "fontFamily": "$fontKr",
+                  "fontSize": 28,
+                  "fontWeight": "500"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "BWWQq",
+          "x": 0,
+          "y": 0,
+          "name": "Safe Area Guide (reference only)",
+          "opacity": 0.55,
+          "width": 1080,
+          "height": 1920,
+          "layout": "none",
+          "children": [
+            {
+              "type": "rectangle",
+              "id": "rvPRk",
+              "x": 0,
+              "y": 1560,
+              "name": "Guide Bottom Unsafe",
+              "width": 1080,
+              "height": 360,
+              "stroke": "#FF4D4D",
+              "strokeWidth": 3,
+              "strokeAlignment": "inner"
+            },
+            {
+              "type": "rectangle",
+              "id": "WW3Uv",
+              "x": 930,
+              "y": 900,
+              "name": "Guide Right Unsafe",
+              "width": 150,
+              "height": 660,
+              "stroke": "#FF4D4D",
+              "strokeWidth": 3,
+              "strokeAlignment": "inner"
+            },
+            {
+              "type": "rectangle",
+              "id": "dB4xU",
+              "x": 0,
+              "y": 0,
+              "name": "Guide Top Unsafe",
+              "width": 930,
+              "height": 100,
+              "stroke": "#FF4D4D",
+              "strokeWidth": 3,
+              "strokeAlignment": "inner"
+            },
+            {
+              "type": "text",
+              "id": "z9oEsm",
+              "x": 36,
+              "y": 1590,
+              "name": "Guide Label",
+              "fill": "#FF4D4D",
+              "content": "인스타 릴스 UI 가림 영역 — 콘텐츠 금지 (렌더 전 숨김)",
+              "lineHeight": 1,
+              "fontFamily": "$fontKr",
+              "fontSize": 26,
+              "fontWeight": "600"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "UbxoL",
+          "x": 160,
+          "y": 1030,
+          "name": "Content",
+          "width": 760,
+          "layout": "vertical",
+          "gap": 80,
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "gwhz4",
+              "name": "Lyric",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 20,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "V3I9j",
+                  "name": "Japanese",
+                  "layout": "vertical",
+                  "gap": 4,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "E6VnVq",
+                      "name": "Line 1",
+                      "gap": 6,
+                      "alignItems": "end",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "OABWv",
+                          "name": "T 胸",
+                          "fill": "$ink",
+                          "content": "胸",
+                          "lineHeight": 1.16,
+                          "fontFamily": "$fontJp",
+                          "fontSize": 58,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "text",
+                          "id": "bE5gu",
+                          "name": "T に",
+                          "fill": "$ink",
+                          "content": "に",
+                          "lineHeight": 1.16,
+                          "fontFamily": "$fontJp",
+                          "fontSize": 58,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "text",
+                          "id": "iO0v2",
+                          "name": "T 残り",
+                          "fill": "$ink",
+                          "content": "残り",
+                          "lineHeight": 1.16,
+                          "fontFamily": "$fontJp",
+                          "fontSize": 58,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "text",
+                          "id": "ksc1K",
+                          "name": "T 離れ",
+                          "fill": "$ink",
+                          "content": "離れ",
+                          "lineHeight": 1.16,
+                          "fontFamily": "$fontJp",
+                          "fontSize": 58,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "text",
+                          "id": "rlNu6",
+                          "name": "T ない",
+                          "fill": "$ink",
+                          "content": "ない",
+                          "lineHeight": 1.16,
+                          "fontFamily": "$fontJp",
+                          "fontSize": 58,
+                          "fontWeight": "700"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "r59Ddt",
+                      "name": "Line 2",
+                      "gap": 6,
+                      "alignItems": "end",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "E2qfG",
+                          "name": "Key 苦い",
+                          "layout": "vertical",
+                          "gap": 2,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "P3fqt",
+                              "name": "T 苦い",
+                              "fill": "$pos-adjective-spotlight",
+                              "content": "苦い",
+                              "lineHeight": 1.16,
+                              "fontFamily": "$fontJp",
+                              "fontSize": 58,
+                              "fontWeight": "700"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "xIygg",
+                          "name": "T レモン",
+                          "fill": "$ink",
+                          "content": "レモン",
+                          "lineHeight": 1.16,
+                          "fontFamily": "$fontJp",
+                          "fontSize": 58,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "text",
+                          "id": "TLFPN",
+                          "name": "T の",
+                          "fill": "$ink",
+                          "content": "の",
+                          "lineHeight": 1.16,
+                          "fontFamily": "$fontJp",
+                          "fontSize": 58,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "g0IbZ",
+                          "name": "Key 匂い",
+                          "layout": "vertical",
+                          "gap": 2,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "WiXq0",
+                              "name": "T 匂い",
+                              "fill": "$pos-noun-spotlight",
+                              "content": "匂い",
+                              "lineHeight": 1.16,
+                              "fontFamily": "$fontJp",
+                              "fontSize": 58,
+                              "fontWeight": "700"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "Vwrq1",
+                  "name": "Korean Subtitle",
+                  "fill": "#FAFAF6D9",
+                  "content": "가슴에 남아 떠나지 않는 씁쓸한 레몬 향기",
+                  "lineHeight": 1.3,
+                  "fontFamily": "$fontKr",
+                  "fontSize": 38,
+                  "fontWeight": "500",
+                  "letterSpacing": -0.8
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "XCzlI",
+              "name": "Words",
+              "width": 600,
+              "layout": "vertical",
+              "gap": 40,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "rectangle",
+                  "id": "Ghnc3",
+                  "name": "Section Rule",
+                  "fill": "#F4F1EA33",
+                  "width": "fill_container",
+                  "height": 2
+                },
+                {
+                  "type": "frame",
+                  "id": "yrEm1",
+                  "name": "Word List",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 36,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "yVQ7c",
+                      "name": "Word 苦い",
+                      "width": "fill_container",
+                      "gap": 24,
+                      "justifyContent": "space_between",
+                      "alignItems": "end",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "v2z8KD",
+                          "name": "Jp",
+                          "gap": 12,
+                          "alignItems": "end",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "A2nabH",
+                              "name": "Word Japanese",
+                              "fill": "$pos-adjective-spotlight",
+                              "content": "苦い",
+                              "lineHeight": 1,
+                              "fontFamily": "$fontJp",
+                              "fontSize": 48,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "text",
+                              "id": "xy8Lw",
+                              "name": "Word Reading",
+                              "fill": "#FAFAF680",
+                              "content": "니가이",
+                              "lineHeight": 1.5,
+                              "fontFamily": "$fontKr",
+                              "fontSize": 24,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "P8HHnd",
+                          "name": "Word Meaning",
+                          "fill": "#FAFAF6E6",
+                          "content": "쓰다",
+                          "lineHeight": 1.3,
+                          "fontFamily": "$fontKr",
+                          "fontSize": 36,
+                          "fontWeight": "600",
+                          "letterSpacing": -0.6
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "DyYRm",
+                      "name": "Word 匂い",
+                      "width": "fill_container",
+                      "gap": 24,
+                      "justifyContent": "space_between",
+                      "alignItems": "end",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "p6sjG",
+                          "name": "Jp",
+                          "gap": 12,
+                          "alignItems": "end",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "PpiBz",
+                              "name": "Word Japanese",
+                              "fill": "$pos-noun-spotlight",
+                              "content": "匂い",
+                              "lineHeight": 1,
+                              "fontFamily": "$fontJp",
+                              "fontSize": 48,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "text",
+                              "id": "lBXeZ",
+                              "name": "Word Reading",
+                              "fill": "#FAFAF680",
+                              "content": "니오이",
+                              "lineHeight": 1.5,
+                              "fontFamily": "$fontKr",
+                              "fontSize": 24,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "SdFQP",
+                          "name": "Word Meaning",
+                          "fill": "#FAFAF6E6",
+                          "content": "냄새, 향기",
+                          "lineHeight": 1.3,
+                          "fontFamily": "$fontKr",
+                          "fontSize": 36,
+                          "fontWeight": "600",
+                          "letterSpacing": -0.6
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "k50jrd",
+      "x": 4920,
+      "y": 16400,
+      "name": "Reel v2 · 2 End Card (Store Cue)",
+      "clip": true,
+      "width": 1080,
+      "height": 1920,
+      "fill": "$night",
+      "layout": "none",
+      "children": [
+        {
+          "type": "rectangle",
+          "id": "iuTTX",
+          "x": -100,
+          "y": -100,
+          "name": "Album Cover Backdrop (blurred)",
+          "opacity": 0.22,
+          "fill": {
+            "type": "image",
+            "enabled": true,
+            "url": "images/lemon-cover.jpg",
+            "mode": "fill"
+          },
+          "width": 1280,
+          "height": 2120,
+          "effect": {
+            "type": "blur",
+            "radius": 56
+          }
+        },
+        {
+          "type": "rectangle",
+          "id": "j7aHx",
+          "x": 0,
+          "y": 500,
+          "name": "Backdrop Bottom Scrim",
+          "fill": {
+            "type": "gradient",
+            "gradientType": "linear",
+            "enabled": true,
+            "rotation": 180,
+            "size": {
+              "height": 1
+            },
+            "colors": [
+              {
+                "color": "#11101200",
+                "position": 0
+              },
+              {
+                "color": "#111012",
+                "position": 0.75
+              }
+            ]
+          },
+          "width": 1080,
+          "height": 1420
+        },
+        {
+          "type": "rectangle",
+          "cornerRadius": 999,
+          "id": "p4t2Bm",
+          "x": 90,
+          "y": 250,
+          "name": "Ambient Glow",
+          "fill": {
+            "type": "gradient",
+            "gradientType": "radial",
+            "enabled": true,
+            "rotation": 0,
+            "size": {
+              "width": 1,
+              "height": 1
+            },
+            "colors": [
+              {
+                "color": "#EFD4632E",
+                "position": 0
+              },
+              {
+                "color": "#EFD46300",
+                "position": 1
+              }
+            ]
+          },
+          "width": 900,
+          "height": 900
+        },
+        {
+          "type": "frame",
+          "id": "akq9M",
+          "x": 60,
+          "y": 150,
+          "name": "CTA Title Block",
+          "width": 960,
+          "layout": "vertical",
+          "gap": 4,
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "m8xERZ",
+              "name": "Title Line 1",
+              "fill": "$paper",
+              "content": "전체 단어는",
+              "lineHeight": 1.1,
+              "fontFamily": "$fontKr",
+              "fontSize": 92,
+              "fontWeight": "800"
+            },
+            {
+              "type": "frame",
+              "id": "cKih0",
+              "name": "Title Line 2",
+              "alignItems": "end",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "n2Rz1",
+                  "name": "Title Brand",
+                  "fill": "$ctaGreen",
+                  "content": "코토노하",
+                  "lineHeight": 1.1,
+                  "fontFamily": "$fontKr",
+                  "fontSize": 92,
+                  "fontWeight": "800"
+                },
+                {
+                  "type": "text",
+                  "id": "Y0akzU",
+                  "name": "Title Rest",
+                  "fill": "$paper",
+                  "content": " 앱에서",
+                  "lineHeight": 1.1,
+                  "fontFamily": "$fontKr",
+                  "fontSize": 92,
+                  "fontWeight": "800"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "dgJ0v",
+          "x": 310,
+          "y": 400,
+          "name": "App Mockup (SongDetail + Lyric Sheet)",
+          "clip": true,
+          "width": 460,
+          "height": 860,
+          "fill": "$appWhite",
+          "cornerRadius": 46,
+          "stroke": "#F4F1EA3D",
+          "strokeWidth": 3,
+          "effect": {
+            "type": "shadow",
+            "shadowType": "outer",
+            "color": "#000000",
+            "offset": {
+              "x": 0,
+              "y": 28
+            },
+            "blur": 80
+          },
+          "layout": "none",
+          "children": [
+            {
+              "type": "rectangle",
+              "id": "pvvw2",
+              "x": 0,
+              "y": 0,
+              "name": "Mock Hero Artwork",
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "images/lemon-cover.jpg",
+                "mode": "fill"
+              },
+              "width": 460,
+              "height": 300
+            },
+            {
+              "type": "rectangle",
+              "id": "RuJtG",
+              "x": 0,
+              "y": 120,
+              "name": "Mock Hero Scrim",
+              "fill": {
+                "type": "gradient",
+                "gradientType": "linear",
+                "enabled": true,
+                "rotation": 180,
+                "size": {
+                  "height": 1
+                },
+                "colors": [
+                  {
+                    "color": "#00000000",
+                    "position": 0
+                  },
+                  {
+                    "color": "#000000C4",
+                    "position": 1
+                  }
+                ]
+              },
+              "width": 460,
+              "height": 180
+            },
+            {
+              "type": "icon",
+              "id": "P28SXV",
+              "x": 22,
+              "y": 26,
+              "name": "Mock Back Icon",
+              "width": 26,
+              "height": 26,
+              "icon": "chevron-left",
+              "library": "feather",
+              "fill": "$appWhite"
+            },
+            {
+              "type": "frame",
+              "id": "K241xh",
+              "x": 22,
+              "y": 200,
+              "name": "Mock Hero Text",
+              "width": 416,
+              "layout": "vertical",
+              "gap": 6,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "U8mWx",
+                  "name": "Mock Song Title",
+                  "fill": "$appWhite",
+                  "content": "Lemon",
+                  "lineHeight": 1,
+                  "fontFamily": "$fontKr",
+                  "fontSize": 34,
+                  "fontWeight": "800"
+                },
+                {
+                  "type": "text",
+                  "id": "j9XwO7",
+                  "name": "Mock Song Artist",
+                  "fill": "#FFFFFFC7",
+                  "content": "米津玄師",
+                  "lineHeight": 1,
+                  "fontFamily": "$fontJp",
+                  "fontSize": 20,
+                  "fontWeight": "500"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "ukfXA",
+              "x": 0,
+              "y": 300,
+              "name": "Mock Tab Bar",
+              "width": 460,
+              "height": 52,
+              "fill": "$appWhite",
+              "gap": 26,
+              "padding": [
+                0,
+                22
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "d2HHWF",
+                  "name": "Mock Tab 홈",
+                  "layout": "vertical",
+                  "gap": 7,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "WymJx",
+                      "name": "Mock Tab Label 홈",
+                      "fill": "$ctaGreen",
+                      "content": "홈",
+                      "lineHeight": 1,
+                      "fontFamily": "$fontKr",
+                      "fontSize": 22,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "rectangle",
+                      "cornerRadius": 999,
+                      "id": "ddcC9",
+                      "name": "Mock Tab Indicator 홈",
+                      "fill": "$ctaGreen",
+                      "width": 28,
+                      "height": 4
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "T8cI9t",
+                  "name": "Mock Tab 단어",
+                  "layout": "vertical",
+                  "gap": 7,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "ZJ5yn",
+                      "name": "Mock Tab Label 단어",
+                      "fill": "$appSubText",
+                      "content": "단어",
+                      "lineHeight": 1,
+                      "fontFamily": "$fontKr",
+                      "fontSize": 22,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "rectangle",
+                      "cornerRadius": 999,
+                      "id": "I9HJnP",
+                      "name": "Mock Tab Indicator 단어",
+                      "fill": "#00000000",
+                      "width": 28,
+                      "height": 4
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "rectangle",
+              "id": "dcrMW",
+              "x": 0,
+              "y": 351,
+              "name": "Mock Tab Divider",
+              "fill": "$appBorder",
+              "width": 460,
+              "height": 1.5
+            },
+            {
+              "type": "frame",
+              "id": "bJzKK",
+              "x": 0,
+              "y": 365,
+              "name": "Mock Lyric Sheet",
+              "width": 460,
+              "height": 595,
+              "fill": "$appWhite",
+              "cornerRadius": [
+                26,
+                26,
+                0,
+                0
+              ],
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "#00000029",
+                "offset": {
+                  "x": 0,
+                  "y": -3
+                },
+                "blur": 18
+              },
+              "layout": "none",
+              "children": [
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 999,
+                  "id": "fFYJa",
+                  "x": 208,
+                  "y": 12,
+                  "name": "Mock Sheet Grabber",
+                  "fill": "#D8D8D8",
+                  "width": 44,
+                  "height": 5
+                },
+                {
+                  "type": "frame",
+                  "id": "ZRDMn",
+                  "x": 0,
+                  "y": 32,
+                  "name": "Mock Sync Row",
+                  "width": 460,
+                  "height": 32,
+                  "padding": [
+                    0,
+                    18
+                  ],
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "q8PdwO",
+                      "name": "Mock Page Status",
+                      "fill": "$appSubText",
+                      "content": "3 / 12",
+                      "lineHeight": 1,
+                      "fontFamily": "$fontKr",
+                      "fontSize": 17,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "BNXRu",
+                      "name": "Mock Sync Chip",
+                      "fill": "#52B78820",
+                      "cornerRadius": 999,
+                      "stroke": "$ctaGreen",
+                      "strokeWidth": 1.5,
+                      "padding": [
+                        7,
+                        13
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "rYEKT",
+                          "name": "Mock Sync Label",
+                          "fill": "$ctaGreen",
+                          "content": "싱크 ON",
+                          "lineHeight": 1,
+                          "fontFamily": "$fontKr",
+                          "fontSize": 16,
+                          "fontWeight": "700"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "gjQcb",
+                  "x": 18,
+                  "y": 76,
+                  "name": "Mock Lyric Block",
+                  "width": 424,
+                  "height": 142,
+                  "fill": "$appGrey",
+                  "cornerRadius": 12,
+                  "layout": "vertical",
+                  "gap": 9,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "d6xgUX",
+                      "name": "Mock Lyric Tokens",
+                      "gap": 4,
+                      "alignItems": "end",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "PGPp9",
+                          "name": "Mock Token 胸",
+                          "layout": "vertical",
+                          "gap": 2,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "iowYJ",
+                              "name": "Mock Reading 胸",
+                              "fill": "$appSubText",
+                              "content": "ムネ",
+                              "lineHeight": 1,
+                              "fontFamily": "$fontJp",
+                              "fontSize": 11,
+                              "fontWeight": "500"
+                            },
+                            {
+                              "type": "text",
+                              "id": "NRfFi",
+                              "name": "Mock Text 胸",
+                              "fill": "$appText",
+                              "content": "胸",
+                              "lineHeight": 1,
+                              "fontFamily": "$fontJp",
+                              "fontSize": 23,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "rectangle",
+                              "cornerRadius": 999,
+                              "id": "d94l8",
+                              "name": "Mock Underline 胸",
+                              "fill": "#5B8FCC",
+                              "width": 23,
+                              "height": 3
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "S31xk",
+                          "name": "Mock Token に",
+                          "layout": "vertical",
+                          "gap": 2,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "z8qbJ",
+                              "name": "Mock Reading に",
+                              "fill": "$appSubText",
+                              "content": " ",
+                              "lineHeight": 1,
+                              "fontFamily": "$fontJp",
+                              "fontSize": 11,
+                              "fontWeight": "500"
+                            },
+                            {
+                              "type": "text",
+                              "id": "QDSNo",
+                              "name": "Mock Text に",
+                              "fill": "$appText",
+                              "content": "に",
+                              "lineHeight": 1,
+                              "fontFamily": "$fontJp",
+                              "fontSize": 23,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "rectangle",
+                              "cornerRadius": 999,
+                              "id": "YXjWS",
+                              "name": "Mock Underline に",
+                              "fill": "#00000000",
+                              "width": 23,
+                              "height": 3
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "s35Cci",
+                          "name": "Mock Token 残り",
+                          "layout": "vertical",
+                          "gap": 2,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "izAYJ",
+                              "name": "Mock Reading 残り",
+                              "fill": "$appSubText",
+                              "content": "ノコリ",
+                              "lineHeight": 1,
+                              "fontFamily": "$fontJp",
+                              "fontSize": 11,
+                              "fontWeight": "500"
+                            },
+                            {
+                              "type": "text",
+                              "id": "BnDqa",
+                              "name": "Mock Text 残り",
+                              "fill": "$appText",
+                              "content": "残り",
+                              "lineHeight": 1,
+                              "fontFamily": "$fontJp",
+                              "fontSize": 23,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "rectangle",
+                              "cornerRadius": 999,
+                              "id": "N9TvVl",
+                              "name": "Mock Underline 残り",
+                              "fill": "#4A9D7A",
+                              "width": 46,
+                              "height": 3
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "DNlkJ",
+                          "name": "Mock Token 離れ",
+                          "layout": "vertical",
+                          "gap": 2,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "S4NvSg",
+                              "name": "Mock Reading 離れ",
+                              "fill": "$appSubText",
+                              "content": "ハナレ",
+                              "lineHeight": 1,
+                              "fontFamily": "$fontJp",
+                              "fontSize": 11,
+                              "fontWeight": "500"
+                            },
+                            {
+                              "type": "text",
+                              "id": "Z1Bbi",
+                              "name": "Mock Text 離れ",
+                              "fill": "$appText",
+                              "content": "離れ",
+                              "lineHeight": 1,
+                              "fontFamily": "$fontJp",
+                              "fontSize": 23,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "rectangle",
+                              "cornerRadius": 999,
+                              "id": "sX3SZ",
+                              "name": "Mock Underline 離れ",
+                              "fill": "#4A9D7A",
+                              "width": 46,
+                              "height": 3
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "w8Pck",
+                          "name": "Mock Token ない",
+                          "layout": "vertical",
+                          "gap": 2,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "fq2oS",
+                              "name": "Mock Reading ない",
+                              "fill": "$appSubText",
+                              "content": " ",
+                              "lineHeight": 1,
+                              "fontFamily": "$fontJp",
+                              "fontSize": 11,
+                              "fontWeight": "500"
+                            },
+                            {
+                              "type": "text",
+                              "id": "D5lkFV",
+                              "name": "Mock Text ない",
+                              "fill": "$appText",
+                              "content": "ない",
+                              "lineHeight": 1,
+                              "fontFamily": "$fontJp",
+                              "fontSize": 23,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "rectangle",
+                              "cornerRadius": 999,
+                              "id": "cvzsB",
+                              "name": "Mock Underline ない",
+                              "fill": "#00000000",
+                              "width": 46,
+                              "height": 3
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "SurQQ",
+                          "name": "Mock Token 苦い",
+                          "layout": "vertical",
+                          "gap": 2,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "pNiA8",
+                              "name": "Mock Reading 苦い",
+                              "fill": "$appSubText",
+                              "content": "ニガイ",
+                              "lineHeight": 1,
+                              "fontFamily": "$fontJp",
+                              "fontSize": 11,
+                              "fontWeight": "500"
+                            },
+                            {
+                              "type": "text",
+                              "id": "wF53W",
+                              "name": "Mock Text 苦い",
+                              "fill": "$appText",
+                              "content": "苦い",
+                              "lineHeight": 1,
+                              "fontFamily": "$fontJp",
+                              "fontSize": 23,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "rectangle",
+                              "cornerRadius": 999,
+                              "id": "mtREy",
+                              "name": "Mock Underline 苦い",
+                              "fill": "#E89B3E",
+                              "width": 46,
+                              "height": 3
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "iIJ5A",
+                          "name": "Mock Token レモン",
+                          "layout": "vertical",
+                          "gap": 2,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "vOIDC",
+                              "name": "Mock Reading レモン",
+                              "fill": "$appSubText",
+                              "content": " ",
+                              "lineHeight": 1,
+                              "fontFamily": "$fontJp",
+                              "fontSize": 11,
+                              "fontWeight": "500"
+                            },
+                            {
+                              "type": "text",
+                              "id": "G3VoJ",
+                              "name": "Mock Text レモン",
+                              "fill": "$appText",
+                              "content": "レモン",
+                              "lineHeight": 1,
+                              "fontFamily": "$fontJp",
+                              "fontSize": 23,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "rectangle",
+                              "cornerRadius": 999,
+                              "id": "HUfnE",
+                              "name": "Mock Underline レモン",
+                              "fill": "#5B8FCC",
+                              "width": 69,
+                              "height": 3
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "O7UWP",
+                          "name": "Mock Token の",
+                          "layout": "vertical",
+                          "gap": 2,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "mcBT3",
+                              "name": "Mock Reading の",
+                              "fill": "$appSubText",
+                              "content": " ",
+                              "lineHeight": 1,
+                              "fontFamily": "$fontJp",
+                              "fontSize": 11,
+                              "fontWeight": "500"
+                            },
+                            {
+                              "type": "text",
+                              "id": "kzzIm",
+                              "name": "Mock Text の",
+                              "fill": "$appText",
+                              "content": "の",
+                              "lineHeight": 1,
+                              "fontFamily": "$fontJp",
+                              "fontSize": 23,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "rectangle",
+                              "cornerRadius": 999,
+                              "id": "fyBca",
+                              "name": "Mock Underline の",
+                              "fill": "#00000000",
+                              "width": 23,
+                              "height": 3
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "l4pGC",
+                          "name": "Mock Token 匂い",
+                          "layout": "vertical",
+                          "gap": 2,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "zOCkf",
+                              "name": "Mock Reading 匂い",
+                              "fill": "$appSubText",
+                              "content": "ニオイ",
+                              "lineHeight": 1,
+                              "fontFamily": "$fontJp",
+                              "fontSize": 11,
+                              "fontWeight": "500"
+                            },
+                            {
+                              "type": "text",
+                              "id": "tH4DS",
+                              "name": "Mock Text 匂い",
+                              "fill": "$appText",
+                              "content": "匂い",
+                              "lineHeight": 1,
+                              "fontFamily": "$fontJp",
+                              "fontSize": 23,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "rectangle",
+                              "cornerRadius": 999,
+                              "id": "VgUoj",
+                              "name": "Mock Underline 匂い",
+                              "fill": "#5B8FCC",
+                              "width": 46,
+                              "height": 3
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "mpTaL",
+                      "name": "Mock Korean Pronunciation",
+                      "fill": "$appSubText",
+                      "content": "무네니 노코리 하나레나이 니가이 레몬노 니오이",
+                      "lineHeight": 1,
+                      "fontFamily": "$fontKr",
+                      "fontSize": 15,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "text",
+                      "id": "jNLrv",
+                      "name": "Mock Korean Translation",
+                      "fill": "$appText",
+                      "content": "가슴에 남아 떠나지 않는 씁쓸한 레몬 향기",
+                      "lineHeight": 1,
+                      "fontFamily": "$fontKr",
+                      "fontSize": 19,
+                      "fontWeight": "600"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "NML8x",
+                  "x": 18,
+                  "y": 236,
+                  "name": "Mock Word Rows",
+                  "width": 424,
+                  "layout": "vertical",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "EVg46",
+                      "name": "Mock Word Row 苦い",
+                      "width": "fill_container",
+                      "height": 92,
+                      "stroke": "$appBorder",
+                      "strokeWidth": {
+                        "bottom": 1.5
+                      },
+                      "gap": 12,
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "wpzlv",
+                          "name": "Mock Word Info 苦い",
+                          "layout": "vertical",
+                          "gap": 9,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "KozZV",
+                              "name": "Mock Word Jp Row 苦い",
+                              "gap": 9,
+                              "alignItems": "end",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "E5ClN",
+                                  "name": "Mock Word Japanese 苦い",
+                                  "fill": "$appText",
+                                  "content": "苦い",
+                                  "lineHeight": 1,
+                                  "fontFamily": "$fontJp",
+                                  "fontSize": 27,
+                                  "fontWeight": "700"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "X4897g",
+                                  "name": "Mock Word Reading 苦い",
+                                  "fill": "$appSubText",
+                                  "content": "ニガイ",
+                                  "lineHeight": 1.1,
+                                  "fontFamily": "$fontJp",
+                                  "fontSize": 16,
+                                  "fontWeight": "500"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "MI2hL",
+                              "name": "Mock Word Meaning Row 苦い",
+                              "gap": 8,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "WXy98",
+                                  "name": "Mock Word Meaning 苦い",
+                                  "fill": "$appSubText",
+                                  "content": "쓰다",
+                                  "lineHeight": 1,
+                                  "fontFamily": "$fontKr",
+                                  "fontSize": 19,
+                                  "fontWeight": "500"
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "QuY6K",
+                                  "name": "Mock Badge 苦い N3",
+                                  "fill": "#EAB30826",
+                                  "cornerRadius": 7,
+                                  "padding": [
+                                    5,
+                                    9
+                                  ],
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "b1YBd",
+                                      "name": "Mock Badge Label 苦い N3",
+                                      "fill": "#EAB308",
+                                      "content": "N3",
+                                      "lineHeight": 1,
+                                      "fontFamily": "$fontKr",
+                                      "fontSize": 14,
+                                      "fontWeight": "700"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "OzeNF",
+                                  "name": "Mock Badge 苦い 형용사",
+                                  "fill": "#E89B3E26",
+                                  "cornerRadius": 7,
+                                  "padding": [
+                                    5,
+                                    9
+                                  ],
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "rTvsP",
+                                      "name": "Mock Badge Label 苦い 형용사",
+                                      "fill": "#E89B3E",
+                                      "content": "형용사",
+                                      "lineHeight": 1,
+                                      "fontFamily": "$fontKr",
+                                      "fontSize": 14,
+                                      "fontWeight": "700"
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "u5Nqfa",
+                          "name": "Mock Save Button 苦い",
+                          "width": 40,
+                          "height": 40,
+                          "fill": "#52B78820",
+                          "cornerRadius": 999,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "qlhgV",
+                              "name": "Mock Save Icon 苦い",
+                              "width": 22,
+                              "height": 22,
+                              "icon": "plus",
+                              "library": "feather",
+                              "fill": "$ctaGreen"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "RCZhJ",
+                      "name": "Mock Word Row 匂い",
+                      "width": "fill_container",
+                      "height": 92,
+                      "stroke": "$appBorder",
+                      "strokeWidth": {
+                        "bottom": 1.5
+                      },
+                      "gap": 12,
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "CPV6i",
+                          "name": "Mock Word Info 匂い",
+                          "layout": "vertical",
+                          "gap": 9,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "uIVuK",
+                              "name": "Mock Word Jp Row 匂い",
+                              "gap": 9,
+                              "alignItems": "end",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "g5zdYM",
+                                  "name": "Mock Word Japanese 匂い",
+                                  "fill": "$appText",
+                                  "content": "匂い",
+                                  "lineHeight": 1,
+                                  "fontFamily": "$fontJp",
+                                  "fontSize": 27,
+                                  "fontWeight": "700"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "i36WyZ",
+                                  "name": "Mock Word Reading 匂い",
+                                  "fill": "$appSubText",
+                                  "content": "ニオイ",
+                                  "lineHeight": 1.1,
+                                  "fontFamily": "$fontJp",
+                                  "fontSize": 16,
+                                  "fontWeight": "500"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "DvTFM",
+                              "name": "Mock Word Meaning Row 匂い",
+                              "gap": 8,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "OWr7a",
+                                  "name": "Mock Word Meaning 匂い",
+                                  "fill": "$appSubText",
+                                  "content": "냄새, 향기",
+                                  "lineHeight": 1,
+                                  "fontFamily": "$fontKr",
+                                  "fontSize": 19,
+                                  "fontWeight": "500"
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "ZnD4H",
+                                  "name": "Mock Badge 匂い N4",
+                                  "fill": "#14B8A626",
+                                  "cornerRadius": 7,
+                                  "padding": [
+                                    5,
+                                    9
+                                  ],
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "Yf2Ew",
+                                      "name": "Mock Badge Label 匂い N4",
+                                      "fill": "#14B8A6",
+                                      "content": "N4",
+                                      "lineHeight": 1,
+                                      "fontFamily": "$fontKr",
+                                      "fontSize": 14,
+                                      "fontWeight": "700"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "Tx7HQ",
+                                  "name": "Mock Badge 匂い 명사",
+                                  "fill": "#5B8FCC26",
+                                  "cornerRadius": 7,
+                                  "padding": [
+                                    5,
+                                    9
+                                  ],
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "nLt5x",
+                                      "name": "Mock Badge Label 匂い 명사",
+                                      "fill": "#5B8FCC",
+                                      "content": "명사",
+                                      "lineHeight": 1,
+                                      "fontFamily": "$fontKr",
+                                      "fontSize": 14,
+                                      "fontWeight": "700"
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "kXMx0",
+                          "name": "Mock Save Button 匂い",
+                          "width": 40,
+                          "height": 40,
+                          "fill": "#52B78820",
+                          "cornerRadius": 999,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "RBl51",
+                              "name": "Mock Save Icon 匂い",
+                              "width": 22,
+                              "height": 22,
+                              "icon": "plus",
+                              "library": "feather",
+                              "fill": "$ctaGreen"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "YFspb",
+                      "name": "Mock Word Row 残る",
+                      "width": "fill_container",
+                      "height": 92,
+                      "stroke": "$appBorder",
+                      "strokeWidth": {
+                        "bottom": 1.5
+                      },
+                      "gap": 12,
+                      "justifyContent": "space_between",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "HZzsh",
+                          "name": "Mock Word Info 残る",
+                          "layout": "vertical",
+                          "gap": 9,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "jO1gm",
+                              "name": "Mock Word Jp Row 残る",
+                              "gap": 9,
+                              "alignItems": "end",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "cupit",
+                                  "name": "Mock Word Japanese 残る",
+                                  "fill": "$appText",
+                                  "content": "残る",
+                                  "lineHeight": 1,
+                                  "fontFamily": "$fontJp",
+                                  "fontSize": 27,
+                                  "fontWeight": "700"
+                                },
+                                {
+                                  "type": "text",
+                                  "id": "s7KqZ",
+                                  "name": "Mock Word Reading 残る",
+                                  "fill": "$appSubText",
+                                  "content": "ノコル",
+                                  "lineHeight": 1.1,
+                                  "fontFamily": "$fontJp",
+                                  "fontSize": 16,
+                                  "fontWeight": "500"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "pZ78x",
+                              "name": "Mock Word Meaning Row 残る",
+                              "gap": 8,
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "knPlF",
+                                  "name": "Mock Word Meaning 残る",
+                                  "fill": "$appSubText",
+                                  "content": "남다",
+                                  "lineHeight": 1,
+                                  "fontFamily": "$fontKr",
+                                  "fontSize": 19,
+                                  "fontWeight": "500"
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "wO90S",
+                                  "name": "Mock Badge 残る N4",
+                                  "fill": "#14B8A626",
+                                  "cornerRadius": 7,
+                                  "padding": [
+                                    5,
+                                    9
+                                  ],
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "V8ZET",
+                                      "name": "Mock Badge Label 残る N4",
+                                      "fill": "#14B8A6",
+                                      "content": "N4",
+                                      "lineHeight": 1,
+                                      "fontFamily": "$fontKr",
+                                      "fontSize": 14,
+                                      "fontWeight": "700"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "j3ylP2",
+                                  "name": "Mock Badge 残る 동사",
+                                  "fill": "#4A9D7A26",
+                                  "cornerRadius": 7,
+                                  "padding": [
+                                    5,
+                                    9
+                                  ],
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "tSQCT",
+                                      "name": "Mock Badge Label 残る 동사",
+                                      "fill": "#4A9D7A",
+                                      "content": "동사",
+                                      "lineHeight": 1,
+                                      "fontFamily": "$fontKr",
+                                      "fontSize": 14,
+                                      "fontWeight": "700"
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "CU4Nh",
+                          "name": "Mock Save Button 残る",
+                          "width": 40,
+                          "height": 40,
+                          "fill": "#52B78820",
+                          "cornerRadius": 999,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "gRCnb",
+                              "name": "Mock Save Icon 残る",
+                              "width": 22,
+                              "height": 22,
+                              "icon": "plus",
+                              "library": "feather",
+                              "fill": "$ctaGreen"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "wo65E",
+          "x": 60,
+          "y": 1320,
+          "name": "CTA Block",
+          "width": 960,
+          "layout": "vertical",
+          "gap": 20,
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "d1Kp7",
+              "name": "Store Search Cue",
+              "fill": "$paper",
+              "cornerRadius": 34,
+              "stroke": "#00000000",
+              "gap": 22,
+              "padding": [
+                24,
+                44
+              ],
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "yaN58",
+                  "name": "Search Icon",
+                  "width": 44,
+                  "height": 44,
+                  "icon": "search",
+                  "library": "lucide",
+                  "fill": "$night"
+                },
+                {
+                  "type": "text",
+                  "id": "s5EiPh",
+                  "name": "Search Query",
+                  "fill": "$night",
+                  "content": "코토노하",
+                  "lineHeight": 1,
+                  "fontFamily": "$fontReel",
+                  "fontSize": 46,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 3,
+                  "id": "t19mNM",
+                  "name": "Search Caret",
+                  "fill": "$night",
+                  "width": 5,
+                  "height": 48
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "Z5MaEN",
+              "name": "Store Row",
+              "gap": 44,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "E6ci1e",
+                  "name": "Store Google Play",
+                  "gap": 12,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "RR82v",
+                      "name": "Google Play Icon",
+                      "width": 40,
+                      "height": 40,
+                      "icon": "google-play-logo",
+                      "library": "phosphor",
+                      "weight": 700,
+                      "fill": "$softInk"
+                    },
+                    {
+                      "type": "text",
+                      "id": "fOjSj",
+                      "name": "Google Play Label",
+                      "fill": "$softInk",
+                      "content": "Google Play",
+                      "lineHeight": 1,
+                      "fontFamily": "$fontReel",
+                      "fontSize": 30,
+                      "fontWeight": "600"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "Q8AYbV",
+                  "name": "Store App Store",
+                  "gap": 12,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "xuFTc",
+                      "name": "App Store Icon",
+                      "width": 40,
+                      "height": 40,
+                      "icon": "app-store-logo",
+                      "library": "phosphor",
+                      "weight": 700,
+                      "fill": "$softInk"
+                    },
+                    {
+                      "type": "text",
+                      "id": "b2xTI",
+                      "name": "App Store Label",
+                      "fill": "$softInk",
+                      "content": "App Store",
+                      "lineHeight": 1,
+                      "fontFamily": "$fontReel",
+                      "fontSize": 30,
+                      "fontWeight": "600"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "OG227",
+              "name": "Profile Link Note",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "DOUK7",
+                  "name": "Profile Link Label",
+                  "fill": "$softInk",
+                  "content": "프로필 링크에서 설치",
+                  "lineHeight": 1,
+                  "fontFamily": "$fontKr",
+                  "fontSize": 28,
+                  "fontWeight": "500"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "btP3u",
+          "x": 0,
+          "y": 0,
+          "name": "Safe Area Guide (reference only)",
+          "enabled": false,
+          "opacity": 0.55,
+          "width": 1080,
+          "height": 1920,
+          "layout": "none",
+          "children": [
+            {
+              "type": "rectangle",
+              "id": "j4lGfW",
+              "x": 0,
+              "y": 1560,
+              "name": "Guide Bottom Unsafe",
+              "width": 1080,
+              "height": 360,
+              "stroke": "#FF4D4D",
+              "strokeWidth": 3,
+              "strokeAlignment": "inner"
+            },
+            {
+              "type": "rectangle",
+              "id": "aJxly",
+              "x": 930,
+              "y": 900,
+              "name": "Guide Right Unsafe",
+              "width": 150,
+              "height": 660,
+              "stroke": "#FF4D4D",
+              "strokeWidth": 3,
+              "strokeAlignment": "inner"
+            },
+            {
+              "type": "rectangle",
+              "id": "HTL0f",
+              "x": 0,
+              "y": 0,
+              "name": "Guide Top Unsafe",
+              "width": 930,
+              "height": 100,
+              "stroke": "#FF4D4D",
+              "strokeWidth": 3,
+              "strokeAlignment": "inner"
+            },
+            {
+              "type": "text",
+              "id": "OU95W",
+              "x": 36,
+              "y": 1590,
+              "name": "Guide Label",
+              "fill": "#FF4D4D",
+              "content": "인스타 릴스 UI 가림 영역 — 콘텐츠 금지 (렌더 전 숨김)",
+              "lineHeight": 1,
+              "fontFamily": "$fontKr",
+              "fontSize": 26,
+              "fontWeight": "600"
+            }
+          ]
+        },
+        {
+          "type": "rectangle",
+          "id": "XM9Q9",
+          "x": 290,
+          "y": 1040,
+          "name": "Mockup Bottom Fade",
+          "fill": {
+            "type": "gradient",
+            "gradientType": "linear",
+            "enabled": true,
+            "rotation": 180,
+            "size": {
+              "height": 1
+            },
+            "colors": [
+              {
+                "color": "#11101200",
+                "position": 0
+              },
+              {
+                "color": "#111012",
+                "position": 0.8
+              }
+            ]
+          },
+          "width": 500,
+          "height": 270
+        }
+      ]
+    },
+    {
+      "type": "context",
+      "id": "u2iJwp",
+      "x": 7480,
+      "y": 16400,
+      "name": "Reel v2 · 타이밍",
+      "width": 940,
+      "height": 0,
+      "content": "[타이밍 — 디자인에 그릴 수 없는 부분]\n\n총 길이 33s / 990 frames @30fps. 화면은 2개. 오프닝(훅)은 폐지했다.\n\n0 – 840f (0 – 28s)  Active(가사 + 단어)\n  · 첫 프레임부터 MV 재생 + 가사 1줄 + 단어 카드 2장이 이미 보인다.\n    페이드인·진입 애니메이션을 걸지 않는다 — 릴스 첫 0.5s 가 비면 그대로 넘긴다.\n  · 가사 5줄, 줄당 약 5.6s\n  · 줄이 바뀔 때 일본어/번역/단어 카드 2장이 함께 교체\n  · 줄 전환 애니메이션만 유지: 단어 카드는 spring 으로 아래 20px → 0,\n    가사보다 4f 늦게 진입. 첫 줄(0f)은 예외로 정지 상태에서 시작한다.\n\n840 – 990f (28 – 33s)  End Card(스토어 유도)\n  · 5s. 앱 목업 + 스토어 검색 큐를 읽을 시간\n\n훅 문구(\"이 노래 하나로 배우는 일본어 단어 9개\")와 헤드라인은 화면에서 빠졌다.\n같은 정보는 상시 노출되는 헤더의 곡 제목 + \"단어 9개\" 칩과 워터마크가 대신한다.\n훅 카피는 릴스 캡션(본문)으로 옮긴다.\n\n워터마크: 0 – 840f 상시 노출. 엔드카드는 프로필 화살표 줄로 대체\n헤더(로고·곡·단어 개수 칩): 0 – 840f 상시 고정"
+    },
+    {
+      "type": "context",
+      "id": "W5bpF",
+      "x": 7480,
+      "y": 17160,
+      "name": "Reel v2 · 앱 목업 구현",
+      "width": 940,
+      "height": 0,
+      "content": "[엔드카드 앱 목업 — 녹화 대신 Remotion 으로 재현]\n\n매번 화면 녹화하지 않고 programmatic 하게 그린다. 참조 컴포넌트:\n  · app-rn/src/screens/SongDetailScreen.tsx — hero 360, 홈/단어 탭\n  · app-rn/src/components/songDetail/CurrentPlayingWordsSheet.tsx — 가사 시트(후리가나 + 품사 밑줄 + 한글 독음 + 번역)\n  · app-rn/src/components/songDetail/SongDetailWordRow.tsx — japanese/reading/meaning + JLPT·품사 배지 + 담기 버튼\n\n앱 테마값(app-rn/src/theme/theme.ts, 라이트):\n  primary #52B788 · textPrimary #1A1A1A · textSecondary #666666\n  elevated #EEEEEE · border #E5E5E5\n  posNoun #5B8FCC · posVerb #4A9D7A · posAdjective #E89B3E\n  jlptN3 #EAB308 · jlptN4 #14B8A6\n\n목업 프레임 460×960(9:18.8). 내부 타이포는 실제 비율보다 약 1.3배 크게 —\n릴스에서 축소돼 보이므로 실제 스케일 그대로 두면 안 읽힌다.\n목업 데이터는 릴스 대상 곡의 실제 가사/단어를 그대로 쓴다(고정 문구 금지)."
+    },
+    {
+      "type": "context",
+      "id": "hP1je",
+      "x": 7480,
+      "y": 17920,
+      "name": "Reel v2 · 데이터·코드 변경",
+      "width": 940,
+      "height": 0,
+      "content": "[디자인 반영에 필요한 코드 변경 — 아직 미적용]\n\nPromoReelData\n  + wordCount : 헤더 칩의 \"단어 9개\" 숫자. lyricLines[].vocabulary 합집합 크기\n  · headline : 화면에서 제거. 캡션 문구로만 쓰거나 필드 삭제\n  · instagramHandle : 워터마크 + 엔드카드 프로필 줄에 사용\n  · 줄당 강조 단어 2개 : importanceScore 상위 2개 선택\n\nVocabularyWord\n  + partOfSpeech : 카드 하단 품사 칩(명사/형용사/동사)\n  + jlpt : 카드 상단 JLPT 칩(N3/N4). 담기 버튼 자리를 대체한다\n\nPromoReel.tsx\n  · OpeningHook 시퀀스/컴포넌트 삭제. Active 는 frame 0 부터 시작하고\n    frame 0 에 진입 애니메이션을 걸지 않는다\n  · PROMO_DURATION_IN_FRAMES 900 → 990\n  · ENDCARD_START_FRAME 810 → 840\n  · 단어 카드의 담기(+) 버튼 삭제 → JLPT 칩. 릴스는 탭이 불가능해서\n    누를 수 있는 것처럼 보이는 요소를 두지 않는다\n  · 엔드카드 \"kotonoha 설치하기\" 버튼 삭제 → 스토어 검색창 목업 +\n    프로필 화살표 줄. 둘 다 지시문이지 버튼이 아니다\n  · 엔드카드의 \"30s Remotion PromoReel · 1080×1920 …\" 내부 메타 노트 삭제\n  · 가사 토큰 스트로크 제거, 하단 solid 패널 위로 이동\n  · 상/하 스크림은 단색 사각형이 아니라 linear gradient\n  · 폰트는 Noto Sans CJK 유지(pen 파일은 fontJp/fontKr 변수로 분리)\n\n앱 목업 안의 담기 버튼은 그대로 둔다 — 릴스 UI 가 아니라 앱 화면 재현이다"
+    },
+    {
+      "type": "context",
+      "id": "H0dzdh",
+      "x": 7480,
+      "y": 18680,
+      "name": "Reel v2 · 가독성·안전영역 규칙",
+      "width": 940,
+      "height": 0,
+      "content": "[레이아웃 규칙]\n\n가사는 MV 위에 얹지 않는다.\n  MV : y 0 – 1010 (full-bleed)\n  가사·단어 : y 1040 이하, 배경은 solid #111012\n  경계는 y 640 – 1010 gradient(투명 → #111012)로 잇는다\n\n토큰 스트로크(1.5px)는 제거했다. 작은 글자의 속을 갉아먹어 오히려 안 읽힌다.\n대비는 스트로크가 아니라 solid 패널이 보장한다.\n\n인스타 릴스 UI 가림 영역 — 콘텐츠 금지\n  상단 100px / 하단 360px(y 1560 이상) / 우측 150px 중 y 900–1560 구간\n  각 화면의 \"Safe Area Guide\" 프레임은 참고용. 렌더 전 enabled:false 로 끌 것"
     }
   ],
   "themes": {
@@ -68243,6 +70401,90 @@
     "ig-mint-muted": {
       "type": "color",
       "value": "#8FC7AD"
+    },
+    "night": {
+      "type": "color",
+      "value": "#111012"
+    },
+    "paper": {
+      "type": "color",
+      "value": "#F4F1EA"
+    },
+    "ink": {
+      "type": "color",
+      "value": "#FAFAF6"
+    },
+    "softInk": {
+      "type": "color",
+      "value": "#FAFAF6C7"
+    },
+    "accent": {
+      "type": "color",
+      "value": "#EFD463"
+    },
+    "nounBlue": {
+      "type": "color",
+      "value": "#5BA9FF"
+    },
+    "verbGreen": {
+      "type": "color",
+      "value": "#3FE0A1"
+    },
+    "adjectiveOrange": {
+      "type": "color",
+      "value": "#FFB347"
+    },
+    "chipFill": {
+      "type": "color",
+      "value": "#111012A8"
+    },
+    "chipBorder": {
+      "type": "color",
+      "value": "#F4F1EA33"
+    },
+    "fontReel": {
+      "type": "string",
+      "value": "Inter"
+    },
+    "fontKr": {
+      "type": "string",
+      "value": "Noto Sans KR"
+    },
+    "fontJp": {
+      "type": "string",
+      "value": "Noto Sans JP"
+    },
+    "cardFill": {
+      "type": "color",
+      "value": "#1C1B1F"
+    },
+    "cardBorder": {
+      "type": "color",
+      "value": "#F4F1EA2B"
+    },
+    "ctaGreen": {
+      "type": "color",
+      "value": "#52B788"
+    },
+    "appWhite": {
+      "type": "color",
+      "value": "#FFFFFF"
+    },
+    "appGrey": {
+      "type": "color",
+      "value": "#EEEEEE"
+    },
+    "appText": {
+      "type": "color",
+      "value": "#1A1A1A"
+    },
+    "appSubText": {
+      "type": "color",
+      "value": "#666666"
+    },
+    "appBorder": {
+      "type": "color",
+      "value": "#E5E5E5"
     }
   },
   "fileToken": "f7fb5f58-62f3-4049-8513-0fa8ff4ec69a"

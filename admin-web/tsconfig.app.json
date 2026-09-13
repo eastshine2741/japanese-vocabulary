@@ -19,9 +19,18 @@
     "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@reels/*": ["../reels/src/*"],
+      "react": ["./node_modules/@types/react"],
+      "react/jsx-runtime": ["./node_modules/@types/react/jsx-runtime"],
+      "remotion": ["./node_modules/remotion"]
     },
     "types": ["vite/client", "vitest/globals", "@testing-library/jest-dom"]
   },
-  "include": ["src"]
+  "include": [
+    "src",
+    "../reels/src/PromoReel.tsx",
+    "../reels/src/types.ts",
+    "../app-rn/src/utils/readingConverter.ts"
+  ]
 }

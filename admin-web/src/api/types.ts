@@ -1,3 +1,5 @@
+import type { PromoReelData } from "@reels/types"
+
 export type PageResponse<T> = {
   content: T[]
   number: number
@@ -166,4 +168,62 @@ export type AdminUser = {
   name: string | null
   createdAt: string | null
   deletedAt: string | null
+}
+
+export type ReelsSongCandidate = {
+  id: number
+  title: string
+  artist: string
+  durationSeconds: number | null
+  youtubeUrl: string | null
+  artworkUrl: string | null
+  hasAnalyzedLyrics: boolean
+  renderEligible: boolean
+  ineligibleReason: string | null
+}
+
+export type ReelsSongDetail = {
+  song: ReelsSongCandidate
+  /** SYNCED 면 줄에 startTimeMs 가 있어 에디터 초기값으로 쓰고, PLAIN 이면 어드민이 전부 찍는다. */
+  lyricType: string
+  headline: string
+  instagramHandle: string
+  catchphrase: string
+  fps: number
+  minLineCount: number
+  maxLineCount: number | null
+  maxLyricsSpanMs: number
+  maxVocabularyPerLine: number
+  lines: ReelsLyricLine[]
+}
+
+export type ReelsLyricLine = {
+  index: number
+  startTimeMs: number | null
+  originalText: string
+  koreanLyrics: string | null
+  tokens: LyricToken[]
+  recommendedVocabulary: ReelsVocabulary[]
+  selectable: boolean
+  ineligibleReason: string | null
+}
+
+export type ReelsVocabulary = {
+  japanese: string
+  reading: string
+  korean: string
+  partOfSpeech?: string | null
+  partOfSpeechLabel?: string | null
+  jlpt?: string | null
+}
+
+export type ReelsSource = {
+  /** admin API base 기준 MV 스트림 상대 경로. 미디어 토큰이 query 에 들어 있다. */
+  mvPath: string
+}
+
+export type ReelsRenderRequest = {
+  songId: number
+  data: PromoReelData
+  acknowledgeSourceRightsAndPlatformRisk: boolean
 }

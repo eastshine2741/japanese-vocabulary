@@ -6,6 +6,10 @@ import type {
   Recommendation,
   RecommendationCandidate,
   RecommendationOperationResult,
+  ReelsRenderRequest,
+  ReelsSongCandidate,
+  ReelsSongDetail,
+  ReelsSource,
   SongAnalysisWorkDetail,
   SongAnalysisWorkSummary,
   SongAnalysisWorkOperation,
@@ -14,6 +18,11 @@ import type {
 } from "@/api/types"
 
 const API_BASE = import.meta.env.VITE_ADMIN_API_BASE_URL ?? "http://localhost:8081/admin/api"
+
+/** `<video src>` 처럼 fetch 를 거치지 않는 곳에서 API 상대 경로를 절대 URL 로 만든다. */
+export function apiUrl(path: string) {
+  return `${API_BASE}${path}`
+}
 
 export class ApiError extends Error {
   constructor(
@@ -33,15 +42,33 @@ async function request<T>(path: string, token?: string | null, init: RequestInit
 
   const response = await fetch(`${API_BASE}${path}`, { ...init, headers })
   if (!response.ok) {
-    let data: unknown = null
-    try {
-      data = await response.json()
-    } catch {
-      data = null
-    }
-    throw new ApiError(response.statusText || "Request failed", response.status, data)
+    throw await apiError(response)
   }
   return response.json() as Promise<T>
+}
+
+async function requestBlob(path: string, token: string, init: RequestInit): Promise<Blob> {
+  const headers = new Headers(init.headers)
+  headers.set("Accept", "video/mp4, application/json")
+  if (init.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json")
+  headers.set("Authorization", `Bearer ${token}`)
+  const response = await fetch(`${API_BASE}${path}`, { ...init, headers })
+  if (!response.ok) {
+    throw await apiError(response)
+  }
+  return response.blob()
+}
+
+async function apiError(response: Response) {
+  let data: unknown = null
+  try {
+    data = await response.json()
+  } catch {
+    data = null
+  }
+  const body = data as { message?: string; error?: string } | null
+  const message = body?.message || body?.error || response.statusText || "Request failed"
+  return new ApiError(message, response.status, data)
 }
 
 function pageParams(page: number, query?: string) {
@@ -131,5 +158,25 @@ export const adminApi = {
   },
   user(token: string, id: string) {
     return request<AdminUser>(`/users/${id}`, token)
+  },
+  reelsSongs(token: string, page: number, query?: string) {
+    return request<PageResponse<ReelsSongCandidate>>(`/reels-factory/songs?${pageParams(page, query)}`, token)
+  },
+  reelsSong(token: string, id: number) {
+    return request<ReelsSongDetail>(`/reels-factory/songs/${id}`, token)
+  },
+  /** MV 를 서버 캐시에 받아 두고 스트리밍 경로를 받는다. YouTube 추출이 여기서 일어난다. */
+  reelsSource(token: string, songId: number) {
+    return request<ReelsSource>(`/reels-factory/songs/${songId}/source`, token, {
+      method: "POST",
+      // 어드민 전용 화면이라 별도 확인 없이 항상 동의로 보낸다.
+      body: JSON.stringify({ acknowledgeSourceRightsAndPlatformRisk: true }),
+    })
+  },
+  renderReel(token: string, body: ReelsRenderRequest) {
+    return requestBlob("/reels-factory/render", token, {
+      method: "POST",
+      body: JSON.stringify(body),
+    })
   },
 }

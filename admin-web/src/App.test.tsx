@@ -10,6 +10,8 @@ import {
   recommendation,
   recommendationCandidate,
   recommendationOperationResult,
+  reelsSongCandidate,
+  reelsSongDetail,
   songAnalysisWorkDetail,
   songAnalysisWorkSummary,
   songDetail,
@@ -23,6 +25,9 @@ function mockFetch() {
       const body = JSON.parse(String(init?.body))
       return json(body.password === "secret" ? { token: "admin-token", expiresAt: "2026-01-01T01:00:00Z" } : {}, body.password === "secret" ? 200 : 401)
     }
+    if (url.includes("/reels-factory/render")) return new Response(new Blob(["mp4"], { type: "video/mp4" }), { status: 200 })
+    if (url.includes("/reels-factory/songs/1")) return json(reelsSongDetail)
+    if (url.includes("/reels-factory/songs?")) return json(page([reelsSongCandidate]))
     if (url.endsWith("/songs/1/reanalysis") && init?.method === "POST") return json(pendingReanalysisWork)
     if (url.endsWith("/songs/1/lyric")) return json(lyricDetail)
     if (url.includes("/songs/1")) return json(songDetail)
@@ -107,6 +112,7 @@ describe("admin web", () => {
     expect(screen.queryByRole("link", { name: "Lyrics" })).not.toBeInTheDocument()
     expect(screen.getByRole("link", { name: "Recommendations" })).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "Analysis Work" })).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "Reels Factory" })).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "Users" })).toBeInTheDocument()
   })
 
@@ -241,5 +247,29 @@ describe("admin web", () => {
     expect(screen.getByText("Elapsed time")).toBeInTheDocument()
     expect(screen.getByText("Created to player ready")).toBeInTheDocument()
     expect(screen.getByText("2m 00s")).toBeInTheDocument()
+  })
+
+  test("renders reels factory and enables render after line selection", async () => {
+    const user = userEvent.setup()
+    sessionStorage.setItem("kotonoha.admin.token", "admin-token")
+    renderApp("/reels-factory")
+
+    expect(await screen.findByRole("heading", { name: "Reels Factory" })).toBeInTheDocument()
+    expect(await screen.findByText("歌詞0")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /Render and download MP4/ })).toBeDisabled()
+
+    for (const index of [0, 1, 2, 3]) {
+      await user.click(screen.getByLabelText(`Select lyric line ${index}`))
+    }
+    // 타임스탬프에서 클립 구간이 잡히고 마지막 줄은 인스펙터에 뜬다
+    expect(screen.getByLabelText("Clip start")).toHaveValue("0:00.0")
+    expect(screen.getByLabelText("Line 3 start")).toHaveValue("0:06.0")
+    // 추천 단어는 기본 선택, 조동사는 고를 수 없고, 다른 동사는 눌러서 넣는다
+    expect(screen.getByLabelText("Toggle word 沈む")).toHaveAttribute("aria-pressed", "true")
+    expect(screen.getAllByLabelText("Toggle word ように")[0]).toBeDisabled()
+    await user.click(screen.getByLabelText("Toggle word 溶けてゆく"))
+    expect(screen.getByLabelText("Toggle word 溶けてゆく")).toHaveAttribute("aria-pressed", "true")
+
+    expect(screen.getByRole("button", { name: /Render and download MP4/ })).toBeEnabled()
   })
 })
