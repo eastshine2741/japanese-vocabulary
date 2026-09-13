@@ -172,6 +172,7 @@ SENTRY_RELEASE="${GIT_SHA}"
 # build/libs 안에는 bootJar 말고 -plain.jar 도 같이 생긴다.
 # Dockerfile 의 COPY 가 여러 파일을 잡지 않도록 boot jar 하나를 정확히 골라 전달한다.
 # admin-api 는 이미지에 reels/ 를 담아야 해서 build context 가 repo root 다 (3번째 인자).
+# admin-web 도 릴스 미리보기가 reels/src 를 가져와서 repo root 에서 빌드한다.
 build_boot_image() {
   local module="$1" image="$2" ctx="${3:-$PROJECT_ROOT/backend/$1}"
   local module_dir="$PROJECT_ROOT/backend/$module"
@@ -237,7 +238,7 @@ if [[ "$DEPLOY_ENV" == "prod" ]]; then
     --build-arg VITE_ADMIN_API_BASE_URL="$ADMIN_WEB_API_BASE_URL" \
     --build-arg VITE_ADMIN_BASE_PATH="$ADMIN_WEB_BASE_PATH" \
     -t "$ADMIN_WEB_IMAGE" \
-    -f "$PROJECT_ROOT/admin-web/Dockerfile" "$PROJECT_ROOT/admin-web/"
+    -f "$PROJECT_ROOT/admin-web/Dockerfile" "$PROJECT_ROOT"
 
   echo "[push] ghcr..."
   docker push "$API_IMAGE"
@@ -255,7 +256,7 @@ else
     --build-arg VITE_ADMIN_API_BASE_URL="$ADMIN_WEB_API_BASE_URL" \
     --build-arg VITE_ADMIN_BASE_PATH="$ADMIN_WEB_BASE_PATH" \
     -t "$ADMIN_WEB_IMAGE" \
-    -f "$PROJECT_ROOT/admin-web/Dockerfile" "$PROJECT_ROOT/admin-web/"
+    -f "$PROJECT_ROOT/admin-web/Dockerfile" "$PROJECT_ROOT"
 
   echo "[k3s] importing images..."
   docker save "$API_IMAGE" "$BATCH_IMAGE" "$MIGRATION_IMAGE" "$ADMIN_API_IMAGE" "$ADMIN_WEB_IMAGE" | sudo k3s ctr images import -

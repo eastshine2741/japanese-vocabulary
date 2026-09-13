@@ -7,6 +7,7 @@
     "dev": "remotion studio",
     "render:sample": "remotion render PromoReel out/sample-preview-raw.mp4 --codec=h264 --crf=18 && ffmpeg -y -i out/sample-preview-raw.mp4 -map 0:v:0 -map '0:a?' -c:v libx264 -pix_fmt yuv420p -profile:v high -level 4.1 -crf 20 -preset medium -color_range tv -colorspace bt709 -color_primaries bt709 -color_trc bt709 -movflags +faststart -c:a aac -b:a 192k out/sample-preview.mp4",
     "render:request": "node scripts/render-request.mjs",
+    "fetch:source": "node scripts/fetch-source.mjs",
     "smoke:fixture": "node scripts/render-fixture-smoke.mjs",
     "still:sample": "remotion still PromoReel out/sample-preview-frame.png --frame=400",
     "check": "tsc --noEmit"

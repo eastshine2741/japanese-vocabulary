@@ -60,13 +60,18 @@ Routes:
 - `GET /admin/api/users/{userId}`
 - `GET /admin/api/reels-factory/songs`
 - `GET /admin/api/reels-factory/songs/{songId}`
+- `POST /admin/api/reels-factory/preview`
+- `GET /admin/api/reels-factory/songs/{songId}/mv?token=...` (media token only; no admin bearer)
 - `POST /admin/api/reels-factory/render`
 
 Reels Factory:
 
 - Admin selects an analyzed song and at least 4 timed analyzed lyric lines. Lines play in song order regardless of click order.
 - The reel runs exactly as long as the selected lines: the MV starts at the first selected line, each line switches at its own `startTimeMs`, and the end card (5s) starts when the line after the last selected one begins (capped at 8s after the last line; falls back to song duration or +4s). First-to-end span must be ≤ 60s.
-- The render action requires explicit acknowledgement of source-rights and platform-policy risk.
+- Both preview and render require explicit acknowledgement of source-rights and platform-policy risk.
+- Preview: `POST /preview` takes the same body as render, validates it the same way, downloads the YouTube source into the server-side source cache (`AdminReelsSourceCache`, yt-dlp via `reels/scripts/fetch-source.mjs`), and returns the Remotion props plus `mvPath`. `admin-web` plays the same `reels/src/PromoReel.tsx` component in `@remotion/player`, so no Chrome or ffmpeg runs for a preview. Timing, layout, and line switching are identical to the MP4; fonts (browser Noto Sans KR/JP vs container Noto Sans CJK) and colour space (final MP4 is yuv420p/bt709) can differ slightly.
+- MV streaming: `<video>` cannot send an `Authorization` header, so the preview response embeds a 30-minute media token scoped to `reels-mv` + `songId` in `mvPath`. The `/mv` endpoint is `permitAll` in `SecurityConfig` and validates that token itself; it only serves files already in the cache and never triggers a download. Media tokens are rejected by the normal admin bearer filter.
+- Source cache: `ADMIN_REELS_SOURCE_DIRECTORY` (default `${java.io.tmpdir}/kotonoha-reels-sources`), keyed by SHA-256 of `song.youtubeUrl`, LRU-trimmed to `ADMIN_REELS_SOURCE_MAX_FILES` (default 4). Render reuses a cached file via `source.localPath`, so a preview followed by a render downloads once.
 - The server invokes the repo-local Remotion package through `AdminReelsRenderService` and returns an MP4 attachment directly.
 - No DB entity, migration, Object Storage object, or job history is created.
 - Normal tests use a fake renderer. The subprocess renderer requires Node, npm dependencies under `/opt/reels`, `ffmpeg`, and `yt-dlp`.
@@ -86,6 +91,9 @@ Environment:
 - `ADMIN_TOKEN_TTL_MINUTES`
 - `ADMIN_REELS_RENDERER_WORKING_DIRECTORY` (default in container: `/opt/reels`)
 - `ADMIN_REELS_RENDERER_TIMEOUT` (Spring duration; default: `8m`)
+- `ADMIN_REELS_SOURCE_DIRECTORY` (default: `${java.io.tmpdir}/kotonoha-reels-sources`)
+- `ADMIN_REELS_SOURCE_TIMEOUT` (Spring duration; default: `3m`)
+- `ADMIN_REELS_SOURCE_MAX_FILES` (default: `4`)
 - `MYSQL_URL`, `MYSQL_USER`, `MYSQL_PASSWORD`
 
 `ADMIN_PASSWORD` has no application default. `deploy.sh` supplies a dev-only fallback for local k3s, but direct `bootRun` must set either `ADMIN_PASSWORD` or `ADMIN_PASSWORD_SHA256`.

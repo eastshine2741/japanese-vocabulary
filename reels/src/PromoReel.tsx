@@ -130,7 +130,7 @@ export const PromoReel = ({data}: {data: PromoReelData}) => {
       <AbsoluteFill>
         <OffthreadVideo
           muted={false}
-          src={staticFile(data.song.mvAsset)}
+          src={assetSrc(data.song.mvAsset)}
           startFrom={data.sourceStartFrame}
           style={styles.fullVideo}
           volume={(f) => interpolate(f, [durationInFrames - 36, durationInFrames - 1], [0.72, 0], {
@@ -239,7 +239,7 @@ const EndCard = ({
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   }));
-  const artwork = artworkUrl(data.song.artworkAsset);
+  const artwork = data.song.artworkAsset.trim() === '' ? null : assetSrc(data.song.artworkAsset);
 
   return (
     <AbsoluteFill style={{...styles.endCardLayer, opacity}}>
@@ -600,10 +600,9 @@ const readingTokens = (tokens: LyricToken[]) => tokens.flatMap((token) => {
 
 const normalizeHandle = (handle: string) => handle === '@kotonoha.music' ? '@kotonoha.app' : handle;
 
-const artworkUrl = (artworkAsset: string): string | null => {
-  if (artworkAsset.trim() === '') return null;
-  return artworkAsset.startsWith('http') ? artworkAsset : staticFile(artworkAsset);
-};
+// 렌더는 public/ 아래 파일명을, 어드민 미리보기는 admin-api 가 스트리밍하는 URL 을 넘긴다.
+const assetSrc = (asset: string): string =>
+  (asset.startsWith('http') || asset.startsWith('/') ? asset : staticFile(asset));
 
 const emptyLine: PromoLine = {
   startFrame: 0,

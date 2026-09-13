@@ -2,8 +2,9 @@
 import {copyFile, mkdir, readFile, rm} from 'node:fs/promises';
 import {existsSync, readFileSync} from 'node:fs';
 import {dirname, resolve} from 'node:path';
-import {spawn} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
+
+import {assertYoutubeUrl, downloadYoutubeMp4, exitCodeFor, parseArgs, run} from './lib/source.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const publicRenderDir = resolve(root, 'public', 'admin-render');
@@ -31,8 +32,14 @@ try {
   assertYoutubeUrl(request.source.youtubeUrl);
 
   await mkdir(publicRenderDir, {recursive: true});
-  await downloadYoutubeMp4(request.source.youtubeUrl, downloadedSourcePath);
-  await copyFile(downloadedSourcePath, publicMvPath);
+  // admin-api 가 미리보기 캐시에 받아 둔 source 가 있으면 다시 받지 않는다.
+  const cachedSourcePath = request.source.localPath && existsSync(request.source.localPath)
+    ? request.source.localPath
+    : null;
+  if (!cachedSourcePath) {
+    await downloadYoutubeMp4(request.source.youtubeUrl, downloadedSourcePath, {cwd: root});
+  }
+  await copyFile(cachedSourcePath ?? downloadedSourcePath, publicMvPath);
 
   const data = {
     ...request.data,
@@ -95,80 +102,9 @@ try {
     outputPath,
   ], {cwd: root});
 } catch (error) {
-  const message = error instanceof Error ? error.message : String(error);
-  console.error(message);
-  process.exit(message.includes('EXTRACTION_FAILED') ? 20 : 1);
+  process.exit(exitCodeFor(error));
 } finally {
   await rm(publicRenderDir, {recursive: true, force: true}).catch(() => {});
-}
-
-async function downloadYoutubeMp4(url, outputPath) {
-  if (!existsOnPath('yt-dlp')) {
-    throw new Error('EXTRACTION_FAILED: yt-dlp is not installed');
-  }
-  await run('yt-dlp', [
-    '--no-playlist',
-    '--js-runtimes',
-    'node',
-    '--merge-output-format',
-    'mp4',
-    '-f',
-    'bv*[height<=1080]+ba/b[height<=1080]/b',
-    '-o',
-    outputPath,
-    url,
-  ], {cwd: root, extraction: true});
-}
-
-function assertYoutubeUrl(url) {
-  let parsed;
-  try {
-    parsed = new URL(url);
-  } catch {
-    throw new Error('EXTRACTION_FAILED: invalid source URL');
-  }
-  const host = parsed.hostname.toLowerCase().replace(/^www\./, '');
-  if (parsed.protocol !== 'https:' || !['youtube.com', 'youtu.be', 'music.youtube.com'].includes(host)) {
-    throw new Error('EXTRACTION_FAILED: source URL is not an allowed YouTube URL');
-  }
-}
-
-function parseArgs(values) {
-  const parsed = {};
-  for (let index = 0; index < values.length; index += 1) {
-    const current = values[index];
-    if (current === '--input') parsed.input = values[++index];
-    if (current === '--output') parsed.output = values[++index];
-  }
-  return parsed;
-}
-
-function run(command, args, options = {}) {
-  return new Promise((resolvePromise, reject) => {
-    const child = spawn(command, args, {
-      cwd: options.cwd,
-      env: process.env,
-      shell: false,
-      stdio: ['ignore', 'pipe', 'pipe'],
-    });
-    let captured = '';
-    child.stdout.on('data', (chunk) => {
-      process.stdout.write(chunk);
-      captured = trimCaptured(captured + chunk.toString());
-    });
-    child.stderr.on('data', (chunk) => {
-      process.stderr.write(chunk);
-      captured = trimCaptured(captured + chunk.toString());
-    });
-    child.on('error', reject);
-    child.on('close', (code) => {
-      if (code === 0) {
-        resolvePromise();
-        return;
-      }
-      reject(new Error(`${options.extraction ? 'EXTRACTION_FAILED: ' : ''}${command} exited with ${code}\n${captured}`));
-    });
-  });
 }
 
 // Remotion compositor 는 /proc/meminfo(호스트 메모리)의 절반을 프레임 캐시로 잡는다.
@@ -190,13 +126,4 @@ function cgroupMemoryLimit() {
     } catch {}
   }
   return null;
-}
-
-function existsOnPath(command) {
-  const pathValue = process.env.PATH ?? '';
-  return pathValue.split(':').some((entry) => existsSync(resolve(entry, command)));
-}
-
-function trimCaptured(value) {
-  return value.length > 8192 ? value.slice(value.length - 8192) : value;
 }

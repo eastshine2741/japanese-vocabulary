@@ -1,3 +1,5 @@
+import type { PromoReelData } from "@reels/types"
+
 export type PageResponse<T> = {
   content: T[]
   number: number
@@ -205,4 +207,9 @@ export type ReelsVocabulary = {
   japanese: string
   reading: string
   korean: string
+}
+
+export type ReelsPreview = {
+  data: PromoReelData
+  mvPath: string
 }

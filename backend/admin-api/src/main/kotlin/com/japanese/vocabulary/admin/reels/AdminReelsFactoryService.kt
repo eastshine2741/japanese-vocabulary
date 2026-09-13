@@ -2,10 +2,12 @@ package com.japanese.vocabulary.admin.reels
 
 import com.japanese.vocabulary.admin.dto.reels.AdminReelsLyricLineResponse
 import com.japanese.vocabulary.admin.dto.reels.AdminReelsLyricTokenResponse
+import com.japanese.vocabulary.admin.dto.reels.AdminReelsPreviewResponse
 import com.japanese.vocabulary.admin.dto.reels.AdminReelsRenderRequest
 import com.japanese.vocabulary.admin.dto.reels.AdminReelsSongCandidateResponse
 import com.japanese.vocabulary.admin.dto.reels.AdminReelsSongDetailResponse
 import com.japanese.vocabulary.admin.dto.reels.AdminReelsVocabularyResponse
+import com.japanese.vocabulary.admin.auth.AdminTokenService
 import com.japanese.vocabulary.admin.repository.AdminLyricRepository
 import com.japanese.vocabulary.admin.repository.AdminSongRepository
 import com.japanese.vocabulary.admin.reels.model.AdminReelsPromoData
@@ -33,6 +35,8 @@ class AdminReelsFactoryService(
     private val songRepository: AdminSongRepository,
     private val lyricRepository: AdminLyricRepository,
     private val renderService: AdminReelsRenderService,
+    private val sourceCache: AdminReelsSourceCache,
+    private val tokenService: AdminTokenService,
 ) {
     @Transactional(readOnly = true)
     fun listSongs(query: String?, pageable: Pageable): Page<AdminReelsSongCandidateResponse> {
@@ -53,7 +57,34 @@ class AdminReelsFactoryService(
     @Transactional(readOnly = true)
     fun render(request: AdminReelsRenderRequest): Path {
         val input = buildRenderInput(request)
-        return renderService.render(input)
+        val source = sourceCache.fetch(input.source.youtubeUrl)
+        return renderService.render(input.copy(source = input.source.copy(localPath = source.toString())))
+    }
+
+    /**
+     * 브라우저 Remotion Player 용 props. 렌더와 같은 입력 검증을 거치고, source mp4 를 캐시에 받아 둔 뒤
+     * 스트리밍 경로를 돌려준다. 여기서 받은 파일은 본 렌더가 그대로 쓴다.
+     */
+    @Transactional(readOnly = true)
+    fun preview(request: AdminReelsRenderRequest): AdminReelsPreviewResponse {
+        val input = buildRenderInput(request)
+        sourceCache.fetch(input.source.youtubeUrl)
+        val token = tokenService.issueMediaToken(request.songId)
+        return AdminReelsPreviewResponse(
+            data = input.data,
+            mvPath = "/reels-factory/songs/${request.songId}/mv?token=$token",
+        )
+    }
+
+    /** 미리보기 MV 스트림. 캐시에 있는 파일만 내주고 다운로드는 하지 않는다. */
+    @Transactional(readOnly = true)
+    fun previewSource(songId: Long, token: String): Path {
+        if (!tokenService.validateMediaToken(token, songId)) {
+            throw AdminReelsMediaTokenException()
+        }
+        val song = songRepository.findById(songId).orElseThrow { NoSuchElementException("Song not found") }
+        val youtubeUrl = song.youtubeUrl?.takeIf { it.isNotBlank() } ?: throw NoSuchElementException("Song has no youtubeUrl")
+        return sourceCache.cached(youtubeUrl) ?: throw NoSuchElementException("Source is not cached")
     }
 
     private fun buildRenderInput(request: AdminReelsRenderRequest): AdminReelsRenderInput {

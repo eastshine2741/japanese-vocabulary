@@ -15,3 +15,5 @@ class AdminReelsRenderFailedException(
 ) : AdminReelsException(message)
 
 class AdminReelsRenderTimeoutException : AdminReelsException("Reel render timed out")
+
+class AdminReelsMediaTokenException : AdminReelsException("Invalid or expired media token")

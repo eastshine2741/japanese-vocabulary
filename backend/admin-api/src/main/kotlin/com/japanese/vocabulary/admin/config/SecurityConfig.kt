@@ -5,6 +5,7 @@ import jakarta.servlet.DispatcherType
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.http.HttpMethod
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
 import org.springframework.security.config.http.SessionCreationPolicy
@@ -32,6 +33,8 @@ class SecurityConfig(
                 auth
                     .dispatcherTypeMatchers(DispatcherType.ERROR, DispatcherType.ASYNC).permitAll()
                     .requestMatchers("/admin/api/auth/login").permitAll()
+                    // 릴스 미리보기 MV 스트림은 <video src> 라 헤더를 못 붙인다. 컨트롤러가 query 의 미디어 토큰을 검사한다.
+                    .requestMatchers(HttpMethod.GET, "/admin/api/reels-factory/songs/*/mv").permitAll()
                     .requestMatchers("/actuator/health/**").permitAll()
                     .requestMatchers("/error").permitAll()
                     .requestMatchers("/admin/api/**").authenticated()

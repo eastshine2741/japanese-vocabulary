@@ -1,7 +1,8 @@
 import * as React from "react"
-import { AlertTriangle, Download, Search } from "lucide-react"
-import { adminApi, ApiError } from "@/api/client"
+import { AlertTriangle, Download, Play, Search } from "lucide-react"
+import { adminApi, ApiError, apiUrl } from "@/api/client"
 import type { ReelsLyricLine, ReelsSongCandidate, ReelsSongDetail } from "@/api/types"
+import type { PromoReelData } from "@reels/types"
 import { PageHeader } from "@/components/PageHeader"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -9,6 +10,11 @@ import { Input } from "@/components/ui/input"
 import { ErrorState, LoadingState } from "@/components/StateViews"
 import { useAuth } from "@/features/auth"
 import { cn } from "@/lib/utils"
+
+// Remotion Player 는 무거워서 미리보기를 처음 열 때만 내려받는다.
+const ReelPreviewPlayer = React.lazy(() =>
+  import("./ReelPreviewPlayer").then((module) => ({ default: module.ReelPreviewPlayer })),
+)
 
 export function ReelsFactoryPage() {
   const { token } = useAuth()
@@ -21,6 +27,8 @@ export function ReelsFactoryPage() {
   const [loadingSongs, setLoadingSongs] = React.useState(true)
   const [loadingDetail, setLoadingDetail] = React.useState(false)
   const [rendering, setRendering] = React.useState(false)
+  const [previewing, setPreviewing] = React.useState(false)
+  const [preview, setPreview] = React.useState<PromoReelData | null>(null)
   const [error, setError] = React.useState<string | null>(null)
 
   React.useEffect(() => {
@@ -51,6 +59,7 @@ export function ReelsFactoryPage() {
     setLoadingDetail(true)
     setSelectedLines([])
     setAcknowledged(false)
+    setPreview(null)
     adminApi
       .reelsSong(token, selectedSongId)
       .then((nextDetail) => {
@@ -70,11 +79,33 @@ export function ReelsFactoryPage() {
     }
   }, [selectedSongId, token])
 
-  const canRender =
+  const inputReady =
     Boolean(detail?.song.renderEligible) &&
     selectedLines.length >= (detail?.minLineCount ?? 4) &&
-    acknowledged &&
-    !rendering
+    acknowledged
+  const canRender = inputReady && !rendering && !previewing
+  const canPreview = inputReady && !previewing && !rendering
+
+  async function previewReel() {
+    if (!token || !detail) return
+    setPreviewing(true)
+    setError(null)
+    try {
+      const response = await adminApi.previewReel(token, {
+        songId: detail.song.id,
+        lineIndexes: selectedLines,
+        acknowledgeSourceRightsAndPlatformRisk: acknowledged,
+      })
+      setPreview({
+        ...response.data,
+        song: { ...response.data.song, mvAsset: apiUrl(response.mvPath) },
+      })
+    } catch (cause) {
+      setError(errorLabel(cause))
+    } finally {
+      setPreviewing(false)
+    }
+  }
 
   async function renderReel() {
     if (!token || !detail) return
@@ -177,6 +208,7 @@ export function ReelsFactoryPage() {
                     checked={selectedLines.includes(line.index)}
                     disabled={!line.selectable}
                     onChange={(checked) => {
+                      setPreview(null)
                       setSelectedLines((current) =>
                         checked
                           ? [...current, line.index].sort((a, b) => a - b)
@@ -193,9 +225,15 @@ export function ReelsFactoryPage() {
         </div>
 
         <aside className="space-y-4 rounded-lg border border-[#d9e1ea] bg-white p-4">
-          <div className="mx-auto flex aspect-[9/16] w-40 items-center justify-center rounded-xl border border-dashed border-[#94a3b8] bg-[#111012] p-4 text-center text-xs font-semibold text-[#f8fafc]">
-            9:16 Remotion Preview
-          </div>
+          {preview ? (
+            <React.Suspense fallback={<LoadingState />}>
+              <ReelPreviewPlayer data={preview} />
+            </React.Suspense>
+          ) : (
+            <div className="mx-auto flex aspect-[9/16] w-40 items-center justify-center rounded-xl border border-dashed border-[#94a3b8] bg-[#111012] p-4 text-center text-xs font-semibold text-[#f8fafc]">
+              {previewing ? "Preparing source..." : "9:16 Remotion Preview"}
+            </div>
+          )}
           <div>
             <div className="text-sm font-semibold text-[#18212f]">Download-only MVP</div>
             <p className="mt-1 text-xs leading-5 text-[#637083]">
@@ -214,6 +252,10 @@ export function ReelsFactoryPage() {
               YouTube source extraction and promotional upload may be constrained by rights and platform policy. I acknowledge this admin-only risk.
             </span>
           </label>
+          <Button className="w-full" disabled={!canPreview} onClick={previewReel} variant="secondary">
+            <Play className="h-4 w-4" />
+            {previewing ? "Preparing source..." : "Preview in browser"}
+          </Button>
           <Button className="w-full" disabled={!canRender} onClick={renderReel}>
             <Download className="h-4 w-4" />
             {rendering ? "Rendering..." : "Render and download MP4"}

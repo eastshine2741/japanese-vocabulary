@@ -15,11 +15,20 @@ npm run still:sample
 npm run smoke:fixture
 ```
 
-어드민 입력으로 렌더할 때는 `render:request`가 request JSON을 받아 YouTube source를 임시 asset으로 준비하고 Remotion props를 주입합니다.
+어드민 입력으로 렌더할 때는 `render:request`가 request JSON을 받아 YouTube source를 임시 asset으로 준비하고 Remotion props를 주입합니다. `source.localPath` 가 있으면 다시 받지 않고 그 파일을 씁니다.
 
 ```bash
 npm run render:request -- --input /tmp/render-input.json --output /tmp/reel.mp4
+npm run fetch:source -- --url https://youtu.be/... --output /tmp/source.mp4   # admin-api 미리보기 캐시가 호출
 ```
+
+## 어드민 미리보기
+
+`admin-web` 이 `src/PromoReel.tsx` 를 `@remotion/player` 로 그대로 틀어 mp4 인코딩 없이 미리보기를 보여줍니다. 그래서:
+
+- `admin-web/package.json` 의 `remotion` / `@remotion/player` 버전은 이 패키지의 `remotion` 과 **정확히 같아야** 합니다 (Remotion 은 패키지 간 버전 불일치를 거부).
+- `PromoReel.tsx` 는 `remotion` 과 `react` 외의 의존성을 추가하면 안 됩니다. `../../app-rn/src/utils/readingConverter` 처럼 import 가 없는 순수 TS 파일만 가져오세요.
+- `song.mvAsset` / `song.artworkAsset` 은 `public/` 파일명 또는 URL(`http…`, `/…`) 둘 다 받습니다. 렌더는 파일명, 미리보기는 admin-api 스트리밍 URL 을 넘깁니다.
 
 sample 렌더 결과:
 

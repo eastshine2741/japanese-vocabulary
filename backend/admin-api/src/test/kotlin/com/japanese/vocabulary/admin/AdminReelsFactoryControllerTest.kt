@@ -3,6 +3,7 @@ package com.japanese.vocabulary.admin
 import com.japanese.vocabulary.admin.dto.reels.AdminReelsRenderRequest
 import com.japanese.vocabulary.admin.reels.AdminReelsRenderFailedException
 import com.japanese.vocabulary.admin.reels.AdminReelsRenderService
+import com.japanese.vocabulary.admin.reels.AdminReelsSourceCache
 import com.japanese.vocabulary.admin.reels.model.AdminReelsRenderInput
 import com.japanese.vocabulary.song.entity.LyricEntity
 import com.japanese.vocabulary.song.entity.LyricType
@@ -30,6 +31,7 @@ import java.nio.file.Path
 @Import(AdminReelsFactoryControllerTest.ReelsFactoryTestConfig::class)
 class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
     @Autowired private lateinit var fakeRenderer: FakeReelsRenderService
+    @Autowired private lateinit var fakeSourceCache: FakeReelsSourceCache
 
     @Test
     fun `reels factory lists candidates and exposes analyzed timed lines`() {
@@ -107,6 +109,9 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
         }
 
         assertThat(fakeRenderer.lastInput?.source?.youtubeUrl).isEqualTo("https://youtu.be/SX_ViT4Ra7k")
+        // 미리보기 캐시가 받아 둔 source 를 렌더 스크립트에 그대로 넘긴다
+        assertThat(fakeRenderer.lastInput?.source?.localPath)
+            .isEqualTo(fakeSourceCache.cached("https://youtu.be/SX_ViT4Ra7k").toString())
         val data = requireNotNull(fakeRenderer.lastInput?.data)
         assertThat(data.lyricLines).hasSize(5)
         assertThat(data.lyricLines.map { it.lineNumber }).containsExactly(2, 3, 4, 5, 6)
@@ -170,6 +175,102 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
         val longSpanSong = TestSongBuilder(entityManager).withYoutubeUrl("https://youtu.be/long-span").build()
         persistLyric(longSpanSong.id!!, analyzed = true, lineCount = 40)
         renderExpectingBadRequest(token, longSpanSong.id!!, listOf(0, 1, 2, 39))
+    }
+
+    @Test
+    fun `reels factory preview returns player props and streams cached mv with media token`() {
+        val song = TestSongBuilder(entityManager)
+            .withTitle("Lemon")
+            .withArtist("米津玄師")
+            .withYoutubeUrl("https://youtu.be/SX_ViT4Ra7k")
+            .build()
+        persistLyric(song.id!!, analyzed = true, lineCount = 7)
+        val token = adminToken()
+
+        // 미리보기도 렌더와 같은 acknowledgement 를 요구한다
+        mockMvc.post("/admin/api/reels-factory/preview") {
+            header("Authorization", "Bearer $token")
+            contentType = MediaType.APPLICATION_JSON
+            content = objectMapper.writeValueAsString(
+                AdminReelsRenderRequest(songId = song.id!!, lineIndexes = listOf(0, 1, 2, 3), acknowledgeSourceRightsAndPlatformRisk = false),
+            )
+        }.andExpect {
+            status { isBadRequest() }
+        }
+
+        val previewBody = mockMvc.post("/admin/api/reels-factory/preview") {
+            header("Authorization", "Bearer $token")
+            contentType = MediaType.APPLICATION_JSON
+            content = objectMapper.writeValueAsString(
+                AdminReelsRenderRequest(songId = song.id!!, lineIndexes = listOf(1, 2, 3, 4, 5), acknowledgeSourceRightsAndPlatformRisk = true),
+            )
+        }.andExpect {
+            status { isOk() }
+            jsonPath("$.data.song.title") { value("Lemon") }
+            jsonPath("$.data.song.mvAsset") { value("") }
+            jsonPath("$.data.sourceStartFrame") { value(60) }
+            jsonPath("$.data.lyricsEndFrame") { value(300) }
+            jsonPath("$.data.lyricLines.length()") { value(5) }
+            jsonPath("$.mvPath") { value(org.hamcrest.Matchers.startsWith("/reels-factory/songs/${song.id}/mv?token=")) }
+        }.andReturn().response.contentAsString
+        assertThat(fakeSourceCache.fetchCount).isEqualTo(1)
+        assertThat(fakeRenderer.lastInput).isNull()
+
+        val mvPath = objectMapper.readTree(previewBody)["mvPath"].asText()
+        val mediaToken = mvPath.substringAfter("token=")
+
+        // 미디어 토큰만으로 스트리밍 — Authorization 헤더 없음
+        mockMvc.get("/admin/api/reels-factory/songs/${song.id}/mv") {
+            param("token", mediaToken)
+        }.andExpect {
+            status { isOk() }
+            header { string("Content-Type", "video/mp4") }
+            header { string("Accept-Ranges", "bytes") }
+            content { bytes("fake source mp4".toByteArray()) }
+        }
+
+        // Range 요청은 206 으로 잘라 준다
+        mockMvc.get("/admin/api/reels-factory/songs/${song.id}/mv") {
+            param("token", mediaToken)
+            header("Range", "bytes=0-3")
+        }.andExpect {
+            status { isPartialContent() }
+            header { string("Content-Range", "bytes 0-3/15") }
+            content { bytes("fake".toByteArray()) }
+        }
+
+        // 미디어 토큰은 다른 곡·어드민 토큰에는 안 통한다
+        mockMvc.get("/admin/api/reels-factory/songs/${song.id!! + 1}/mv") {
+            param("token", mediaToken)
+        }.andExpect {
+            status { isUnauthorized() }
+        }
+        mockMvc.get("/admin/api/reels-factory/songs/${song.id}/mv") {
+            param("token", token)
+        }.andExpect {
+            status { isUnauthorized() }
+        }
+        // 어드민 토큰을 헤더에 붙여도 미디어 토큰이 없으면 안 된다 (query 파라미터 필수)
+        mockMvc.get("/admin/api/reels-factory/songs/${song.id}/mv") {
+            header("Authorization", "Bearer $token")
+        }.andExpect {
+            status { isBadRequest() }
+        }
+        // 미디어 토큰으로는 일반 어드민 API 를 못 쓴다
+        mockMvc.get("/admin/api/reels-factory/songs/${song.id}") {
+            header("Authorization", "Bearer $mediaToken")
+        }.andExpect {
+            status { isForbidden() }
+        }
+
+        // 캐시에 없으면 404 — GET 은 다운로드를 시작하지 않는다
+        fakeSourceCache.clear()
+        mockMvc.get("/admin/api/reels-factory/songs/${song.id}/mv") {
+            param("token", mediaToken)
+        }.andExpect {
+            status { isNotFound() }
+        }
+        assertThat(fakeSourceCache.fetchCount).isEqualTo(1)
     }
 
     private fun renderExpectingBadRequest(token: String, songId: Long, lineIndexes: List<Int>) {
@@ -238,6 +339,27 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
         @Bean
         @Primary
         fun fakeReelsRenderService(): FakeReelsRenderService = FakeReelsRenderService()
+
+        @Bean
+        @Primary
+        fun fakeReelsSourceCache(): FakeReelsSourceCache = FakeReelsSourceCache()
+    }
+
+    class FakeReelsSourceCache : AdminReelsSourceCache {
+        private val files = mutableMapOf<String, Path>()
+        var fetchCount = 0
+
+        override fun fetch(youtubeUrl: String): Path {
+            fetchCount += 1
+            return files.getOrPut(youtubeUrl) {
+                val dir = Files.createTempDirectory("fake-reels-source-")
+                dir.resolve("source.mp4").also { Files.write(it, "fake source mp4".toByteArray()) }
+            }
+        }
+
+        override fun cached(youtubeUrl: String): Path? = files[youtubeUrl]
+
+        fun clear() = files.clear()
     }
 
     class FakeReelsRenderService : AdminReelsRenderService {

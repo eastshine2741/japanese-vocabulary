@@ -1,6 +1,7 @@
 package com.japanese.vocabulary.admin.controller
 
 import com.japanese.vocabulary.admin.reels.AdminReelsExtractionException
+import com.japanese.vocabulary.admin.reels.AdminReelsMediaTokenException
 import com.japanese.vocabulary.admin.reels.AdminReelsRenderBusyException
 import com.japanese.vocabulary.admin.reels.AdminReelsRenderFailedException
 import com.japanese.vocabulary.admin.reels.AdminReelsRenderTimeoutException
@@ -19,6 +20,10 @@ class AdminErrorHandler {
     @ExceptionHandler(IllegalArgumentException::class)
     fun badRequest(exception: IllegalArgumentException): ResponseEntity<Map<String, String>> =
         json(HttpStatus.BAD_REQUEST, mapOf("error" to "bad_request", "message" to (exception.message ?: "bad request")))
+
+    @ExceptionHandler(AdminReelsMediaTokenException::class)
+    fun mediaTokenRejected(): ResponseEntity<Map<String, String>> =
+        json(HttpStatus.UNAUTHORIZED, mapOf("error" to "unauthorized"))
 
     @ExceptionHandler(AdminReelsRenderBusyException::class)
     fun renderBusy(): ResponseEntity<Map<String, String>> =

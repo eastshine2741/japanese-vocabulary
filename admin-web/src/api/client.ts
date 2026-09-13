@@ -7,6 +7,7 @@ import type {
   Recommendation,
   RecommendationCandidate,
   RecommendationOperationResult,
+  ReelsPreview,
   ReelsSongCandidate,
   ReelsSongDetail,
   SongAnalysisWorkDetail,
@@ -17,6 +18,11 @@ import type {
 } from "@/api/types"
 
 const API_BASE = import.meta.env.VITE_ADMIN_API_BASE_URL ?? "http://localhost:8081/admin/api"
+
+/** `<video src>` 처럼 fetch 를 거치지 않는 곳에서 API 상대 경로를 절대 URL 로 만든다. */
+export function apiUrl(path: string) {
+  return `${API_BASE}${path}`
+}
 
 export class ApiError extends Error {
   constructor(
@@ -159,6 +165,15 @@ export const adminApi = {
   },
   reelsSong(token: string, id: number) {
     return request<ReelsSongDetail>(`/reels-factory/songs/${id}`, token)
+  },
+  previewReel(
+    token: string,
+    body: { songId: number; lineIndexes: number[]; acknowledgeSourceRightsAndPlatformRisk: boolean },
+  ) {
+    return request<ReelsPreview>("/reels-factory/preview", token, {
+      method: "POST",
+      body: JSON.stringify(body),
+    })
   },
   renderReel(
     token: string,

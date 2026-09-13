@@ -1,9 +1,12 @@
 package com.japanese.vocabulary.admin.controller
 
+import com.japanese.vocabulary.admin.dto.reels.AdminReelsPreviewResponse
 import com.japanese.vocabulary.admin.dto.reels.AdminReelsRenderRequest
 import com.japanese.vocabulary.admin.dto.reels.AdminReelsSongCandidateResponse
 import com.japanese.vocabulary.admin.dto.reels.AdminReelsSongDetailResponse
 import com.japanese.vocabulary.admin.reels.AdminReelsFactoryService
+import org.springframework.core.io.FileSystemResource
+import org.springframework.core.io.Resource
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.http.ContentDisposition
@@ -34,6 +37,26 @@ class AdminReelsFactoryController(
 
     @GetMapping("/songs/{songId}")
     fun getSong(@PathVariable songId: Long): AdminReelsSongDetailResponse = service.getSong(songId)
+
+    @PostMapping("/preview")
+    fun preview(@RequestBody request: AdminReelsRenderRequest): AdminReelsPreviewResponse = service.preview(request)
+
+    /**
+     * 미리보기 `<video>` 가 읽는 MV 스트림. 인증은 query 의 미디어 토큰으로 하고(SecurityConfig 에서 permitAll),
+     * Range 요청은 Spring 이 Resource 응답을 206 으로 잘라 준다.
+     */
+    @GetMapping("/songs/{songId}/mv")
+    fun previewSource(
+        @PathVariable songId: Long,
+        @RequestParam token: String,
+    ): ResponseEntity<Resource> {
+        val source = service.previewSource(songId, token)
+        return ResponseEntity.ok()
+            .contentType(MediaType.parseMediaType("video/mp4"))
+            .header(HttpHeaders.ACCEPT_RANGES, "bytes")
+            .header(HttpHeaders.CACHE_CONTROL, "private, no-store")
+            .body(FileSystemResource(source))
+    }
 
     @PostMapping("/render")
     fun render(@RequestBody request: AdminReelsRenderRequest): ResponseEntity<StreamingResponseBody> {
