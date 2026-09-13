@@ -296,6 +296,10 @@ const MOCK_T = {
   swipeEnd: 166,
 };
 const TAP_FRAMES = 8;
+// 화면 전환 길이. 프로덕션은 260ms 안팎이고, 스프링 대신 직선으로 간다.
+const PUSH_FRAMES = 8;
+const REVEAL_FRAMES = 8;
+const AFFORDANCE_FRAMES = 8;
 
 const AppMockup = ({
   data,
@@ -482,12 +486,15 @@ const TapDot = ({x, y, dark}: {x: number; y: number; dark?: boolean}) => (
 
 // ─── 복습 화면 목업 ───────────────────────────────────────────────────────────
 // SongReviewScreen = CardStage(아트워크 + 틴트 + 스크림 2겹) + StackReviewOverlay(뒤로 · n/N · 진행 바)
-// + SourceHeader + WordFront/WordBack. 폰 아래쪽은 마스크로 사라지므로 내용을 위쪽 600px 안에 둔다.
+// + SourceHeader + WordFront/WordBack. rating 줄은 프로덕션처럼 화면 맨 아래(paddingBottom 22 + 하단 inset)에
+// 붙고, 어포던스가 뜨면 그만큼 위로 밀린다. 폰 마스크는 그 아래 60px 만 녹인다.
 
 const REVIEW_CONTENT_TOP = 104;
-const REVIEW_CONTENT_BOTTOM = 600;
+const REVIEW_CONTENT_BOTTOM = PHONE_HEIGHT - 50;
 const REVIEW_STACK_TOP = REVIEW_CONTENT_TOP + 46 + 14;
 const REVIEW_STACK_HEIGHT = REVIEW_CONTENT_BOTTOM - REVIEW_STACK_TOP;
+
+const REVIEW_AFFORDANCE_HEIGHT = 58;
 
 const ratings = [
   {rating: 1, label: '다시', interval: '10분', color: '#EF4444'},
@@ -512,8 +519,12 @@ const ReviewMock = ({
   artwork: string | null;
   frame: number;
 }) => {
-  const revealed = frame >= MOCK_T.reveal;
+  // native-stack push — 오른쪽에서 밀려 들어온다.
+  const push = linear(frame, MOCK_T.reviewOpen, MOCK_T.reviewOpen + PUSH_FRAMES);
+  // WordLayer.revealProgress — 앞면 표제어가 줄며 올라가고 뒷면이 아래서 올라온다.
+  const reveal = linear(frame, MOCK_T.reveal, MOCK_T.reveal + REVEAL_FRAMES);
   const rated = frame >= MOCK_T.ratingTap;
+  const affordance = linear(frame, MOCK_T.affordance, MOCK_T.affordance + AFFORDANCE_FRAMES);
   const swipe = linear(frame, MOCK_T.swipeStart, MOCK_T.swipeEnd);
   const current = words[0];
   const next = words[1] ?? null;
@@ -526,9 +537,10 @@ const ReviewMock = ({
   const ratingTapDot = frame >= MOCK_T.ratingTap && frame < MOCK_T.ratingTap + TAP_FRAMES;
   const ratingIndex = ratings.findIndex((item) => item.rating === PICKED_RATING);
   const ratingWidth = (PHONE_WIDTH - 2 * 24 - 3 * 10) / 4;
+  const ratingRowCenterY = REVIEW_CONTENT_BOTTOM - affordance * REVIEW_AFFORDANCE_HEIGHT - 28;
 
   return (
-    <div style={styles.review}>
+    <div style={{...styles.review, transform: `translateX(${(1 - push) * PHONE_WIDTH}px)`}}>
       {artwork
         ? <div style={{...styles.reviewArt, backgroundImage: `url("${artwork}")`}} />
         : <div style={{...styles.reviewArt, backgroundColor: '#16242A'}} />}
@@ -557,9 +569,16 @@ const ReviewMock = ({
             <div style={styles.reviewLayer}><ReviewFront word={next} /></div>
           ) : (
             <div style={{...styles.reviewLayer, opacity: 1 - crossfade, transform: `translateY(${-swipe * REVIEW_STACK_HEIGHT}px)`}}>
-              {revealed
-                ? <ReviewBack data={data} line={line} word={current} rated={rated} showAffordance={frame >= MOCK_T.affordance} />
-                : <ReviewFront word={current} />}
+              {reveal > 0 && (
+                <div style={styles.reviewLayer}>
+                  <ReviewBack data={data} line={line} word={current} rated={rated} reveal={reveal} affordance={affordance} />
+                </div>
+              )}
+              {reveal < 1 && (
+                <div style={styles.reviewLayer}>
+                  <ReviewFront word={current} reveal={reveal} />
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -576,30 +595,56 @@ const ReviewMock = ({
       </div>
 
       {frontTapDot && <TapDot x={PHONE_WIDTH / 2} y={REVIEW_STACK_TOP + REVIEW_STACK_HEIGHT / 2} />}
-      {ratingTapDot && <TapDot x={24 + ratingWidth * ratingIndex + ratingWidth / 2 + 10 * ratingIndex} y={REVIEW_CONTENT_BOTTOM - 58 - 28} />}
+      {ratingTapDot && <TapDot x={24 + ratingWidth * ratingIndex + ratingWidth / 2 + 10 * ratingIndex} y={ratingRowCenterY} />}
     </div>
   );
 };
 
-const ReviewFront = ({word}: {word: VocabularyWord}) => (
+// reveal: WordFront 의 revealProgress 스타일 — 표제어는 왼쪽 기준으로 0.69배로 줄며 올라가고, 힌트는 먼저 사라진다.
+const ReviewFront = ({word, reveal = 0}: {word: VocabularyWord; reveal?: number}) => (
   <div style={styles.reviewFront}>
-    <span style={styles.reviewFrontHeadword}>{word.japanese}</span>
-    <div style={styles.reviewHint}><TouchIcon /><span>떠올린 후 탭해서 뜻 보기</span></div>
+    <span
+      style={{
+        ...styles.reviewFrontHeadword,
+        opacity: interpolate(reveal, [0, 0.72, 1], [1, 1, 0]),
+        transform: `translateY(${reveal * -108}px) scale(${interpolate(reveal, [0, 1], [1, 0.69])})`,
+        transformOrigin: 'left center',
+      }}
+    >
+      {word.japanese}
+    </span>
+    <div
+      style={{
+        ...styles.reviewHint,
+        opacity: interpolate(reveal, [0, 0.28], [1, 0], {extrapolateRight: 'clamp'}),
+        transform: `translateY(${reveal * 12}px)`,
+      }}
+    >
+      <TouchIcon /><span>떠올린 후 탭해서 뜻 보기</span>
+    </div>
   </div>
 );
+
+// 뒷면 그룹이 아래서 올라오는 구간(WordBack 의 revealProgress interpolate 와 같은 값).
+const rise = (progress: number, from: number, distance: number): CSSProperties => ({
+  opacity: interpolate(progress, [from, 1], [0, 1], {extrapolateLeft: 'clamp'}),
+  transform: `translateY(${interpolate(progress, [0, 1], [distance, 0])}px)`,
+});
 
 const ReviewBack = ({
   data,
   line,
   word,
   rated,
-  showAffordance,
+  reveal,
+  affordance,
 }: {
   data: PromoReelData;
   line: PromoLine;
   word: VocabularyWord;
   rated: boolean;
-  showAffordance: boolean;
+  reveal: number;
+  affordance: number;
 }) => {
   const pos = word.partOfSpeech ?? '';
   const posLabel = word.partOfSpeechLabel ?? posLabels[pos] ?? '';
@@ -608,7 +653,7 @@ const ReviewBack = ({
   return (
     <div style={styles.reviewBack}>
       <div style={styles.reviewBackCenter}>
-        <div style={styles.reviewQuestion}>
+        <div style={{...styles.reviewQuestion, ...rise(reveal, 0.62, 21)}}>
           <span style={styles.reviewBackHeadword}>{word.japanese}</span>
           <div style={styles.reviewReadingRow}>
             {word.reading && <span style={styles.reviewReading}>{convertReading(word.reading, 'KOREAN')}</span>}
@@ -617,7 +662,7 @@ const ReviewBack = ({
             {word.jlpt && <span style={{...styles.reviewMetaJlpt, color: jlptColors[word.jlpt] ?? app.textMuted}}>{word.jlpt}</span>}
           </div>
         </div>
-        <div style={styles.reviewAnswer}>
+        <div style={{...styles.reviewAnswer, ...rise(reveal, 0.32, 28)}}>
           <span style={styles.reviewMeaning}>{word.korean}</span>
           <div style={styles.reviewExample}>
             <div style={styles.reviewExampleSource}>
@@ -637,7 +682,7 @@ const ReviewBack = ({
           </div>
         </div>
       </div>
-      <div style={styles.reviewRatingRow}>
+      <div style={{...styles.reviewRatingRow, ...rise(reveal, 0.54, 24)}}>
         {ratings.map((item) => {
           const selected = rated && item.rating === PICKED_RATING;
           const dimmed = rated && !selected;
@@ -658,10 +703,12 @@ const ReviewBack = ({
           );
         })}
       </div>
-      {showAffordance && (
-        <div style={styles.reviewAffordance}>
-          <div style={styles.reviewAffordanceLabel}><ChevronUpIcon /><span>위로 쓸어올려 다음 단어</span></div>
-          <div style={styles.reviewGrabber} />
+      {affordance > 0 && (
+        <div style={{...styles.reviewAffordance, height: affordance * REVIEW_AFFORDANCE_HEIGHT}}>
+          <div style={{...styles.reviewAffordanceContent, ...rise(affordance, 0, 30)}}>
+            <div style={styles.reviewAffordanceLabel}><ChevronUpIcon /><span>위로 쓸어올려 다음 단어</span></div>
+            <div style={styles.reviewGrabber} />
+          </div>
         </div>
       )}
     </div>
@@ -1120,11 +1167,12 @@ const styles = {
     height: PHONE_HEIGHT,
     left: 310,
     // 폰 아래쪽은 배경으로 녹아든다. 테두리·그림자까지 같이 사라져야 해서 별도 fade 사각형이 아니라 mask 다.
-    maskImage: 'linear-gradient(180deg, #000 0%, #000 72%, transparent 100%)',
+    // 복습 화면의 rating 줄이 아래 60px 위에 오므로 그보다 아래만 녹인다.
+    maskImage: 'linear-gradient(180deg, #000 0%, #000 93%, transparent 100%)',
     overflow: 'hidden',
     position: 'absolute',
     top: 400,
-    WebkitMaskImage: 'linear-gradient(180deg, #000 0%, #000 72%, transparent 100%)',
+    WebkitMaskImage: 'linear-gradient(180deg, #000 0%, #000 93%, transparent 100%)',
     width: PHONE_WIDTH,
   },
   phonePage: {
@@ -1815,13 +1863,17 @@ const styles = {
     lineHeight: 1,
   },
   reviewAffordance: {
-    alignItems: 'center',
     display: 'flex',
     flexDirection: 'column',
     flexShrink: 0,
-    gap: 10,
-    height: 58,
     justifyContent: 'flex-end',
+    overflow: 'hidden',
+  },
+  reviewAffordanceContent: {
+    alignItems: 'center',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 10,
     paddingTop: 18,
   },
   reviewAffordanceLabel: {
