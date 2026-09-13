@@ -55,7 +55,7 @@ Remotion 컴포지션은 `PromoReelData` 하나를 받습니다. `lyricLines`가
 - `instagramHandle`: MV 영역에 노출할 계정명
 - `catchphrase`: 엔드카드 카피
 - `sourceStartFrame`: 원본 MV/음원을 어느 프레임부터 재생할지
-- `lyricsEndFrame`: 마지막 줄이 끝나는 프레임. 여기서부터 엔드카드(150f)가 붙고, 컴포지션 길이는 `calculateMetadata` 가 `lyricsEndFrame + 150` 으로 정한다
+- `lyricsEndFrame`: 마지막 줄이 끝나는 프레임. 여기서부터 엔드카드(210f, 7초)가 붙고, 컴포지션 길이는 `calculateMetadata` 가 `lyricsEndFrame + 210` 으로 정한다
 - `totalLineCount`: 곡 전체 줄 수. 엔드카드 앱 목업의 `n/전체` 표시용
 - `lyricLines`: 프레임 기준 싱크(`startFrame`), 곡 안 줄 번호(`lineNumber`), 일본어 원문, 한국어 번역, 토큰, N5/N4 단어
 
@@ -69,6 +69,6 @@ Remotion 컴포지션은 `PromoReelData` 하나를 받습니다. `lyricLines`가
 - な형용사 `#FF8FB3`
 - 부사 `#C49BFF`
 
-엔드카드의 폰 목업은 실제 앱 화면(`SongDetailScreen` → `CurrentPlayingWordsSheet`)을 코드로 다시 그린 것이다. 앱 UI 가 바뀌면 `PromoReel.tsx` 의 목업도 같이 고친다.
+엔드카드의 폰 목업은 실제 앱 화면(`SongDetailScreen` → `CurrentPlayingWordsSheet` → 단어 탭 → `SongReviewScreen` 앞면/뒷면/rating/스와이프)을 코드로 다시 그린 것이다. 앱 UI 가 바뀌면 `PromoReel.tsx` 의 목업도 같이 고친다. 전환은 자막처럼 하드컷이고 움직임은 시트 상승과 카드 스와이프 둘뿐이다(스프링·페이드 없음).
 
 어드민 자동화 단계에서는 DB에서 `raw_content`, `analyzed_content`를 읽어 사용자가 선택한 줄만 `lyricLines`로 조립합니다. 현재 MVP는 analyzed lyric 기반 deterministic headline을 사용하고, 권리/플랫폼 risk acknowledgement 뒤 YouTube source를 임시 추출해 direct MP4 download로 반환합니다.

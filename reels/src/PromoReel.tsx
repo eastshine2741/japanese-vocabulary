@@ -2,7 +2,6 @@ import {
   AbsoluteFill,
   OffthreadVideo,
   interpolate,
-  spring,
   staticFile,
   useCurrentFrame,
   useVideoConfig,
@@ -13,8 +12,9 @@ import {convertLineReading, convertReading} from '../../app-rn/src/utils/reading
 import type {LyricToken, PartOfSpeech, PromoLine, PromoReelData, VocabularyWord} from './types';
 
 export const PROMO_FPS = 30;
-// 엔드카드 5초. 앱 목업 + 스토어 검색 큐를 읽을 시간이다.
-export const END_CARD_DURATION_IN_FRAMES = 150;
+// 엔드카드 7초. 앱 목업이 시트 → 단어 탭 → 복습 → rating → 다음 단어까지 흐르고, 스토어 검색 큐를 읽을 시간이다.
+// 바꾸면 admin-web reelEditor.ts 의 END_CARD_MS 도 같이 바꾼다.
+export const END_CARD_DURATION_IN_FRAMES = 210;
 
 // 릴스 팔레트 — japanese-vocabulary.pen 의 Reel v2 프레임 변수와 같은 값
 const night = '#111012';
@@ -103,7 +103,7 @@ type TextRun = {
 
 export const PromoReel = ({data}: {data: PromoReelData}) => {
   const frame = useCurrentFrame();
-  const {fps, durationInFrames} = useVideoConfig();
+  const {durationInFrames} = useVideoConfig();
   const lines = data.lyricLines.length > 0 ? data.lyricLines : [emptyLine];
   const lyricsEndFrame = Math.max(1, data.lyricsEndFrame);
   // 지금 프레임에 시작해 있는 마지막 줄이 현재 줄이다. MV 타임라인과 같은 기준(startFrame)이다.
@@ -111,20 +111,8 @@ export const PromoReel = ({data}: {data: PromoReelData}) => {
   const activeIndex = lines.reduce((found, line, index) => (line.startFrame <= frame ? index : found), -1);
   const activeLine = lines[Math.max(0, activeIndex)];
   const localFrame = Math.max(0, frame - activeLine.startFrame);
-  // 첫 줄은 진입 애니메이션 없이 정지 상태로 시작한다 — 릴스 첫 0.5초가 비면 그대로 넘긴다.
-  const entry = (delay: number) => (activeIndex <= 0
-    ? 1
-    : spring({
-      config: {damping: 18, mass: 0.7, stiffness: 110},
-      fps,
-      frame: Math.max(0, localFrame - delay),
-    }));
-  const lyricEntry = entry(0);
-  const wordsEntry = entry(4);
-  const activeOpacity = interpolate(frame, [lyricsEndFrame - 8, lyricsEndFrame + 2], [1, 0], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
+  // 줄은 자막처럼 하드컷으로 바뀐다. 단어 블록만 몇 프레임 뒤에 따라 붙는다(첫 줄은 처음부터 다 보인다).
+  const wordsVisible = activeIndex <= 0 || localFrame >= WORDS_DELAY_FRAMES;
 
   return (
     <AbsoluteFill style={styles.canvas}>
@@ -143,32 +131,35 @@ export const PromoReel = ({data}: {data: PromoReelData}) => {
       <div style={styles.videoBottomScrim} />
       <div style={styles.videoTopScrim} />
 
-      <div style={{...styles.activeLayer, opacity: activeOpacity}}>
-        <Header data={data} />
-        {activeIndex >= 0 && (
-          <section style={styles.content}>
-            <div style={{...styles.lyricBlock, ...entryStyle(lyricEntry)}}>
-              <JapaneseLine line={activeLine} />
-              <p style={styles.korean}>{activeLine.koreanLyrics}</p>
-            </div>
-            {activeLine.vocabulary.length > 0 && (
-              <div style={entryStyle(wordsEntry)}>
-                <Vocabulary words={topWords(activeLine.vocabulary)} />
+      {frame < lyricsEndFrame && (
+        <div style={styles.activeLayer}>
+          <Header data={data} />
+          {activeIndex >= 0 && (
+            <section style={styles.content}>
+              <div style={styles.lyricBlock}>
+                <JapaneseLine line={activeLine} />
+                <p style={styles.korean}>{activeLine.koreanLyrics}</p>
               </div>
-            )}
-          </section>
-        )}
-      </div>
+              {activeLine.vocabulary.length > 0 && (
+                <div style={{opacity: wordsVisible ? 1 : 0}}>
+                  <Vocabulary words={topWords(activeLine.vocabulary)} />
+                </div>
+              )}
+            </section>
+          )}
+        </div>
+      )}
 
       <EndCard data={data} line={lines[lines.length - 1]} lineCount={lines.length} startFrame={lyricsEndFrame} />
     </AbsoluteFill>
   );
 };
 
-const entryStyle = (progress: number): CSSProperties => ({
-  opacity: interpolate(progress, [0, 1], [0, 1]),
-  transform: `translateY(${interpolate(progress, [0, 1], [20, 0])}px)`,
-});
+const WORDS_DELAY_FRAMES = 8;
+
+// 0→1 직선 진행. 스프링 없이 짧게 움직이고 끝난다.
+const linear = (frame: number, from: number, to: number) =>
+  interpolate(frame, [from, to], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
 
 const Header = ({data}: {data: PromoReelData}) => {
   return (
@@ -228,30 +219,21 @@ const EndCard = ({
   startFrame: number;
 }) => {
   const frame = useCurrentFrame();
-  const {fps} = useVideoConfig();
   const localFrame = frame - startFrame;
-  if (localFrame < -4) return null;
-  const progress = spring({
-    config: {damping: 21, mass: 0.85, stiffness: 120},
-    fps,
-    frame: Math.max(0, localFrame),
-  });
-  const opacity = interpolate(localFrame, [-4, 10], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
-  const typedLength = Math.floor(interpolate(localFrame, [24, 72], [0, 4], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  }));
+  // 가사 레이어를 하드컷으로 덮는다. 페이드도 슬라이드도 없다.
+  if (localFrame < 0) return null;
+  const typedLength = Math.max(0, Math.min(SEARCH_QUERY.length, Math.floor((localFrame - TYPING_START) / TYPING_FRAMES_PER_CHAR) + 1));
+  const typingDone = localFrame >= TYPING_START + SEARCH_QUERY.length * TYPING_FRAMES_PER_CHAR;
+  // 입력 중엔 커서가 켜져 있고, 다 친 뒤에만 깜빡인다.
+  const caretOn = !typingDone || Math.floor(localFrame / 15) % 2 === 0;
   const artwork = data.song.artworkAsset.trim() === '' ? null : assetSrc(data.song.artworkAsset);
 
   return (
-    <AbsoluteFill style={{...styles.endCardLayer, opacity}}>
+    <AbsoluteFill style={styles.endCardLayer}>
       {artwork && <div style={{...styles.endBackdropArt, backgroundImage: `url("${artwork}")`}} />}
       <div style={styles.endBackdropScrim} />
       <div style={styles.ambientGlow} />
-      <div style={{...styles.endTitleBlock, transform: `translateY(${interpolate(progress, [0, 1], [30, 0])}px)`}}>
+      <div style={styles.endTitleBlock}>
         <div style={styles.endTitle}>전체 단어는</div>
         <div style={styles.endTitle}>
           <span style={styles.endTitleBrand}>코토노하</span> 앱에서
@@ -261,12 +243,14 @@ const EndCard = ({
       <div style={styles.ctaBlock}>
         <div style={styles.searchCue}>
           <SearchIcon />
-          <span style={styles.searchQuery}>{'코토노하'.slice(0, typedLength)}</span>
-          <span style={{...styles.searchCaret, opacity: Math.floor(localFrame / 14) % 2 === 0 ? 1 : 0}} />
+          <span style={styles.searchInput}>
+            <span style={styles.searchQuery}>{SEARCH_QUERY.slice(0, typedLength)}</span>
+            <span style={{...styles.searchCaret, opacity: caretOn ? 1 : 0}} />
+          </span>
         </div>
         <div style={styles.storeRow}>
           <span style={styles.storeItem}><GooglePlayIcon /> Google Play</span>
-          <span style={styles.storeItem}><AppStoreIcon /> App Store</span>
+          <span style={styles.storeItem}><AppleIcon /> App Store</span>
         </div>
         <div style={styles.profileLink}>프로필 링크에서 설치</div>
       </div>
@@ -274,15 +258,35 @@ const EndCard = ({
   );
 };
 
+const SEARCH_QUERY = '코토노하';
+const TYPING_START = 30;
+const TYPING_FRAMES_PER_CHAR = 9;
+
 // ─── 앱 목업 ───────────────────────────────────────────────────────────────────
 // SongDetailScreen(hero 360 · 홈/단어 탭 · 홈 탭 본문 · MV 바)을 460×860 폰 안에 그리고,
-// CurrentPlayingWordsSheet 가 MV 바를 핸들 삼아 올라온다. 타이포는 실제 비율보다 1.2배 크다 —
-// 릴스에서 축소돼 보이므로 실제 스케일 그대로 두면 안 읽힌다.
+// CurrentPlayingWordsSheet 가 MV 바를 핸들 삼아 올라온다. 첫 단어를 누르면 SongReviewScreen 이
+// 폰을 덮고, 앞면 탭 → rating → 위로 스와이프 → 다음 단어까지 이어진다. 타이포는 실제 비율보다
+// 1.2배 크다 — 릴스에서 축소돼 보이므로 실제 스케일 그대로 두면 안 읽힌다.
 
 const PHONE_WIDTH = 460;
 const PHONE_HEIGHT = 860;
 const SHEET_PEEK_HEIGHT = 80;
 const SHEET_EXPANDED_TOP = 64;
+
+// 엔드카드 안 목업 타임라인(엔드카드 시작 기준 프레임). 전환은 전부 하드컷이고 움직임은 시트·스와이프 둘뿐이다.
+const MOCK_T = {
+  sheetRise: 10,
+  sheetRiseEnd: 22,
+  wordTap: 40,
+  reviewOpen: 48,
+  frontTap: 84,
+  reveal: 90,
+  ratingTap: 126,
+  affordance: 132,
+  swipeStart: 156,
+  swipeEnd: 166,
+};
+const TAP_FRAMES = 8;
 
 const AppMockup = ({
   data,
@@ -297,18 +301,15 @@ const AppMockup = ({
   artwork: string | null;
   frame: number;
 }) => {
-  const {fps} = useVideoConfig();
-  const rise = spring({
-    config: {damping: 24, mass: 1, stiffness: 60},
-    fps,
-    frame: Math.max(0, frame - 26),
-  });
+  const rise = linear(frame, MOCK_T.sheetRise, MOCK_T.sheetRiseEnd);
   const sheetTop = interpolate(rise, [0, 1], [PHONE_HEIGHT - SHEET_PEEK_HEIGHT, SHEET_EXPANDED_TOP]);
   const words = mockWords(line);
+  const wordCount = data.wordCount ?? uniqueWordCount(data.lyricLines);
+  const wordPressed = frame >= MOCK_T.wordTap && frame < MOCK_T.reviewOpen;
 
   return (
     <div style={styles.phone}>
-      <SongDetailPage data={data} artwork={artwork} wordCount={data.wordCount ?? uniqueWordCount(data.lyricLines)} />
+      <SongDetailPage data={data} artwork={artwork} wordCount={wordCount} />
       <div style={{...styles.sheet, top: sheetTop, height: PHONE_HEIGHT - SHEET_EXPANDED_TOP}}>
         <div style={styles.sheetGrabber} />
         <MvBar data={data} />
@@ -320,11 +321,20 @@ const AppMockup = ({
           <LyricBlock line={line} />
           <div style={styles.mockWordList}>
             {words.map((word, index) => (
-              <MockWordRow key={`${word.japanese}-${word.korean}`} word={word} showDivider={index < words.length - 1} />
+              <MockWordRow
+                key={`${word.japanese}-${word.korean}`}
+                pressed={index === 0 && wordPressed}
+                showDivider={index < words.length - 1}
+                word={word}
+              />
             ))}
           </div>
         </div>
       </div>
+      {wordPressed && frame < MOCK_T.wordTap + TAP_FRAMES && <TapDot x={PHONE_WIDTH / 2} y={SHEET_EXPANDED_TOP + 330} dark />}
+      {frame >= MOCK_T.reviewOpen && words.length > 0 && (
+        <ReviewMock data={data} line={line} words={words} wordCount={wordCount} artwork={artwork} frame={frame} />
+      )}
     </div>
   );
 };
@@ -420,13 +430,20 @@ const LyricBlock = ({line}: {line: PromoLine}) => {
   );
 };
 
-const MockWordRow = ({word, showDivider}: {word: VocabularyWord; showDivider: boolean}) => {
+const MockWordRow = ({word, pressed, showDivider}: {word: VocabularyWord; pressed: boolean; showDivider: boolean}) => {
   const pos = word.partOfSpeech ?? '';
   const posLabel = word.partOfSpeechLabel ?? posLabels[pos] ?? '';
   const posColor = posAppColors[pos] ?? app.textMuted;
   const jlptColor = word.jlpt ? (jlptColors[word.jlpt] ?? app.textMuted) : app.textMuted;
   return (
-    <div style={{...styles.mockWordRow, borderBottom: showDivider ? `1px solid ${app.border}` : 'none'}}>
+    <div
+      style={{
+        ...styles.mockWordRow,
+        borderBottom: showDivider ? `1px solid ${app.border}` : 'none',
+        // SongDetailWordRow 의 TouchableOpacity activeOpacity 0.7
+        opacity: pressed ? 0.7 : 1,
+      }}
+    >
       <div style={styles.mockWordInfo}>
         <div style={styles.mockWordJpRow}>
           <span style={styles.mockWordJapanese}>{word.japanese}</span>
@@ -440,7 +457,7 @@ const MockWordRow = ({word, showDivider}: {word: VocabularyWord; showDivider: bo
           </div>
         </div>
       </div>
-      <ChevronRightIcon />
+      <ChevronRightIcon color={app.textMuted} size={23} />
     </div>
   );
 };
@@ -449,6 +466,199 @@ const Badge = ({color, label, bold}: {color: string; label: string; bold?: boole
   <span style={{...styles.mockBadge, color, backgroundColor: `${color}20`, fontWeight: bold ? 700 : 600}}>{label}</span>
 );
 
+// 손가락이 닿은 자리. 몇 프레임 켜졌다 꺼진다.
+const TapDot = ({x, y, dark}: {x: number; y: number; dark?: boolean}) => (
+  <div style={{...styles.tapDot, left: x - 24, top: y - 24, backgroundColor: dark ? 'rgba(0,0,0,0.16)' : 'rgba(255,255,255,0.38)'}} />
+);
+
+// ─── 복습 화면 목업 ───────────────────────────────────────────────────────────
+// SongReviewScreen = CardStage(아트워크 + 틴트 + 스크림 2겹) + StackReviewOverlay(뒤로 · n/N · 진행 바)
+// + SourceHeader + WordFront/WordBack. 폰 아래쪽은 마스크로 사라지므로 내용을 위쪽 600px 안에 둔다.
+
+const REVIEW_CONTENT_TOP = 104;
+const REVIEW_CONTENT_BOTTOM = 600;
+const REVIEW_STACK_TOP = REVIEW_CONTENT_TOP + 46 + 14;
+const REVIEW_STACK_HEIGHT = REVIEW_CONTENT_BOTTOM - REVIEW_STACK_TOP;
+
+const ratings = [
+  {rating: 1, label: '다시', interval: '10분', color: '#EF4444'},
+  {rating: 2, label: '어려움', interval: '1일', color: '#F97316'},
+  {rating: 3, label: '알고 있음', interval: '3일', color: '#10B981'},
+  {rating: 4, label: '쉬움', interval: '7일', color: '#3B82F6'},
+];
+const PICKED_RATING = 3;
+
+const ReviewMock = ({
+  data,
+  line,
+  words,
+  wordCount,
+  artwork,
+  frame,
+}: {
+  data: PromoReelData;
+  line: PromoLine;
+  words: VocabularyWord[];
+  wordCount: number;
+  artwork: string | null;
+  frame: number;
+}) => {
+  const revealed = frame >= MOCK_T.reveal;
+  const rated = frame >= MOCK_T.ratingTap;
+  const swipe = linear(frame, MOCK_T.swipeStart, MOCK_T.swipeEnd);
+  const current = words[0];
+  const next = words[1] ?? null;
+  const swiped = next !== null && swipe >= 1;
+  const position = swiped ? 2 : 1;
+  const total = Math.max(wordCount, words.length, 1);
+  // WordLayer 와 같은 규칙 — 드래그 80% 지점에서 크로스페이드가 끝난다.
+  const crossfade = next === null ? 0 : Math.min(1, swipe / 0.8);
+  const frontTapDot = frame >= MOCK_T.frontTap && frame < MOCK_T.frontTap + TAP_FRAMES;
+  const ratingTapDot = frame >= MOCK_T.ratingTap && frame < MOCK_T.ratingTap + TAP_FRAMES;
+  const ratingIndex = ratings.findIndex((item) => item.rating === PICKED_RATING);
+  const ratingWidth = (PHONE_WIDTH - 2 * 24 - 3 * 10) / 4;
+
+  return (
+    <div style={styles.review}>
+      {artwork
+        ? <div style={{...styles.reviewArt, backgroundImage: `url("${artwork}")`}} />
+        : <div style={{...styles.reviewArt, backgroundColor: '#16242A'}} />}
+      <div style={styles.reviewTint} />
+      <div style={styles.reviewSideScrim} />
+      <div style={styles.reviewVerticalScrim} />
+
+      <div style={styles.reviewContent}>
+        <div style={styles.reviewSourceRow}>
+          {artwork
+            ? <div style={{...styles.reviewThumb, backgroundImage: `url("${artwork}")`}} />
+            : <div style={{...styles.reviewThumb, backgroundColor: 'rgba(82,183,136,0.24)'}} />}
+          <div style={styles.reviewSourceText}>
+            <span style={styles.reviewSourceTitle}>{data.song.title}</span>
+            <span style={styles.reviewSourceSub}>{data.song.artist}</span>
+          </div>
+          <ChevronRightIcon color="rgba(255,255,255,0.6)" size={19} />
+        </div>
+        <div style={styles.reviewStack}>
+          {next && !swiped && (
+            <div style={{...styles.reviewLayer, opacity: crossfade}}>
+              <ReviewFront word={next} />
+            </div>
+          )}
+          {swiped && next ? (
+            <div style={styles.reviewLayer}><ReviewFront word={next} /></div>
+          ) : (
+            <div style={{...styles.reviewLayer, opacity: 1 - crossfade, transform: `translateY(${-swipe * REVIEW_STACK_HEIGHT}px)`}}>
+              {revealed
+                ? <ReviewBack data={data} line={line} word={current} rated={rated} showAffordance={frame >= MOCK_T.affordance} />
+                : <ReviewFront word={current} />}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div style={styles.reviewChrome}>
+        <div style={styles.reviewAppBar}>
+          <div style={styles.reviewBackButton}><ChevronLeftIcon /></div>
+          <span style={styles.reviewCounter}>{position} / {total}</span>
+        </div>
+        <div style={styles.reviewProgressTrack}>
+          <div style={{...styles.reviewProgressFill, width: `${((position - 1) / total) * 100}%`}} />
+        </div>
+      </div>
+
+      {frontTapDot && <TapDot x={PHONE_WIDTH / 2} y={REVIEW_STACK_TOP + REVIEW_STACK_HEIGHT / 2} />}
+      {ratingTapDot && <TapDot x={24 + ratingWidth * ratingIndex + ratingWidth / 2 + 10 * ratingIndex} y={REVIEW_CONTENT_BOTTOM - 58 - 28} />}
+    </div>
+  );
+};
+
+const ReviewFront = ({word}: {word: VocabularyWord}) => (
+  <div style={styles.reviewFront}>
+    <span style={styles.reviewFrontHeadword}>{word.japanese}</span>
+    <div style={styles.reviewHint}><TouchIcon /><span>떠올린 후 탭해서 뜻 보기</span></div>
+  </div>
+);
+
+const ReviewBack = ({
+  data,
+  line,
+  word,
+  rated,
+  showAffordance,
+}: {
+  data: PromoReelData;
+  line: PromoLine;
+  word: VocabularyWord;
+  rated: boolean;
+  showAffordance: boolean;
+}) => {
+  const pos = word.partOfSpeech ?? '';
+  const posLabel = word.partOfSpeechLabel ?? posLabels[pos] ?? '';
+  const hitIndex = line.originalText.indexOf(word.japanese);
+  const hasHit = hitIndex >= 0;
+  return (
+    <div style={styles.reviewBack}>
+      <div style={styles.reviewBackCenter}>
+        <div style={styles.reviewQuestion}>
+          <span style={styles.reviewBackHeadword}>{word.japanese}</span>
+          <div style={styles.reviewReadingRow}>
+            {word.reading && <span style={styles.reviewReading}>{convertReading(word.reading, 'KOREAN')}</span>}
+            {posLabel && <span style={{...styles.reviewMetaPos, color: posAppColors[pos] ?? app.textMuted}}>{posLabel}</span>}
+            {posLabel && word.jlpt && <span style={styles.reviewMetaDot}>·</span>}
+            {word.jlpt && <span style={{...styles.reviewMetaJlpt, color: jlptColors[word.jlpt] ?? app.textMuted}}>{word.jlpt}</span>}
+          </div>
+        </div>
+        <div style={styles.reviewAnswer}>
+          <span style={styles.reviewMeaning}>{word.korean}</span>
+          <div style={styles.reviewExample}>
+            <div style={styles.reviewExampleSource}>
+              <span style={styles.reviewExampleSourceTitle}>{data.song.title}</span>
+              <ChevronRightIcon color="rgba(255,255,255,0.45)" size={14} />
+            </div>
+            <span style={styles.reviewExampleJp}>
+              {hasHit ? (
+                <>
+                  {line.originalText.slice(0, hitIndex)}
+                  <span style={styles.reviewExampleHit}>{word.japanese}</span>
+                  {line.originalText.slice(hitIndex + word.japanese.length)}
+                </>
+              ) : line.originalText}
+            </span>
+            {line.koreanLyrics && <span style={styles.reviewExampleKr}>{line.koreanLyrics}</span>}
+          </div>
+        </div>
+      </div>
+      <div style={styles.reviewRatingRow}>
+        {ratings.map((item) => {
+          const selected = rated && item.rating === PICKED_RATING;
+          const dimmed = rated && !selected;
+          return (
+            <div
+              key={item.rating}
+              style={{
+                ...styles.reviewRatingButton,
+                ...(selected
+                  ? {backgroundColor: item.color, border: 'none', boxShadow: `0 2px 14px ${item.color}73`}
+                  : {border: `1px solid ${item.color}66`}),
+                opacity: dimmed ? 0.42 : 1,
+              }}
+            >
+              <span style={{...styles.reviewRatingLabel, color: selected ? '#FFFFFF' : item.color, fontWeight: selected ? 700 : 600}}>{item.label}</span>
+              <span style={{...styles.reviewRatingInterval, color: selected ? 'rgba(255,255,255,0.8)' : item.color}}>{item.interval}</span>
+            </div>
+          );
+        })}
+      </div>
+      {showAffordance && (
+        <div style={styles.reviewAffordance}>
+          <div style={styles.reviewAffordanceLabel}><ChevronUpIcon /><span>위로 쓸어올려 다음 단어</span></div>
+          <div style={styles.reviewGrabber} />
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── 아이콘 ────────────────────────────────────────────────────────────────────
 
 const svgProps = {fill: 'none', stroke: 'currentColor', strokeLinecap: 'round', strokeLinejoin: 'round'} as const;
@@ -456,10 +666,13 @@ const svgProps = {fill: 'none', stroke: 'currentColor', strokeLinecap: 'round', 
 const ChevronLeftIcon = () => (
   <svg height={24} viewBox="0 0 24 24" width={24} {...svgProps} strokeWidth={2.4}><path d="M15 18l-6-6 6-6" /></svg>
 );
-const ChevronRightIcon = () => (
-  <svg height={23} style={{color: app.textMuted, flexShrink: 0}} viewBox="0 0 24 24" width={23} {...svgProps} strokeWidth={2.2}>
+const ChevronRightIcon = ({color, size}: {color: string; size: number}) => (
+  <svg height={size} style={{color, flexShrink: 0}} viewBox="0 0 24 24" width={size} {...svgProps} strokeWidth={2.2}>
     <path d="M9 6l6 6-6 6" />
   </svg>
+);
+const ChevronUpIcon = () => (
+  <svg height={18} viewBox="0 0 24 24" width={18} {...svgProps} strokeWidth={2.4}><path d="M18 15l-6-6-6 6" /></svg>
 );
 const LayersIcon = () => (
   <svg height={20} viewBox="0 0 24 24" width={20} {...svgProps} strokeWidth={2}>
@@ -477,14 +690,21 @@ const SearchIcon = () => (
     <circle cx={11} cy={11} r={7} /><path d="M20 20l-3.5-3.5" />
   </svg>
 );
-const GooglePlayIcon = () => (
-  <svg height={40} viewBox="0 0 24 24" width={40} {...svgProps} strokeWidth={1.8}>
-    <path d="M4 3.5v17l9.5-8.5L4 3.5z" /><path d="M4 3.5l12.5 7L4 20.5" /><path d="M16.5 10.5l3.2 1.8-3.2 1.8" />
+// MaterialIcons touch-app(WordFront 의 탭 힌트)
+const TouchIcon = () => (
+  <svg fill="currentColor" height={19} viewBox="0 0 24 24" width={19}>
+    <path d="M9 11.24V7.5C9 6.12 10.12 5 11.5 5S14 6.12 14 7.5v3.74c1.21-.81 2-2.18 2-3.74C16 5.01 13.99 3 11.5 3S7 5.01 7 7.5c0 1.56.79 2.93 2 3.74zm9.84 4.63l-4.54-2.26c-.17-.07-.35-.11-.54-.11H13v-6c0-.83-.67-1.5-1.5-1.5S10 6.67 10 7.5v10.74c-3.6-.76-3.54-.75-3.67-.75-.31 0-.59.13-.79.33l-.79.8 4.94 4.94c.27.27.65.44 1.06.44h6.79c.75 0 1.33-.55 1.44-1.28l.75-5.27c.01-.07.02-.14.02-.2 0-.62-.38-1.16-.91-1.38z" />
   </svg>
 );
-const AppStoreIcon = () => (
-  <svg height={40} viewBox="0 0 24 24" width={40} {...svgProps} strokeWidth={1.8}>
-    <path d="M8.5 20l7-12" /><path d="M15.5 20l-7-12" /><path d="M4 15h16" /><path d="M12 7l-1.5-2.5M12 7l1.5-2.5" />
+// 스토어 마크는 Simple Icons(CC0) 의 정식 path 다. 선으로 흉내 내지 않는다.
+const GooglePlayIcon = () => (
+  <svg fill="currentColor" height={34} viewBox="0 0 24 24" width={34}>
+    <path d="M22.018 13.298l-3.919 2.218-3.515-3.493 3.543-3.521 3.891 2.202a1.49 1.49 0 0 1 0 2.594zM1.337.924a1.486 1.486 0 0 0-.112.568v21.017c0 .217.045.419.124.6l11.155-11.087L1.337.924zm12.207 10.065l3.258-3.238L3.45.195a1.466 1.466 0 0 0-.946-.179l11.04 10.973zm0 2.067l-11 10.933c.298.036.612-.016.906-.183l13.324-7.54-3.23-3.21z" />
+  </svg>
+);
+const AppleIcon = () => (
+  <svg fill="currentColor" height={36} style={{marginTop: -4}} viewBox="0 0 24 24" width={36}>
+    <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701" />
   </svg>
 );
 
@@ -835,18 +1055,25 @@ const styles = {
     alignItems: 'center',
     backgroundColor: paper,
     borderRadius: 34,
+    boxSizing: 'border-box',
     display: 'flex',
     gap: 22,
     height: 96,
     padding: '0 44px',
-    width: 351,
+    width: 372,
+  },
+  // 커서는 마지막 글자 바로 오른쪽에 붙는다. 칸 폭은 고정이라 글자가 늘어도 상자는 안 움직인다.
+  searchInput: {
+    alignItems: 'center',
+    display: 'flex',
+    gap: 3,
   },
   searchQuery: {
     color: night,
     fontSize: 46,
     fontWeight: 700,
     lineHeight: 1,
-    minWidth: 170,
+    whiteSpace: 'pre',
   },
   searchCaret: {
     backgroundColor: night,
@@ -1302,5 +1529,304 @@ const styles = {
     height: 21,
     lineHeight: 1,
     padding: '0 9px 1px',
+  },
+  tapDot: {
+    borderRadius: 999,
+    height: 48,
+    position: 'absolute',
+    width: 48,
+    zIndex: 5,
+  },
+
+  // ─── 복습 화면 목업 ───
+  review: {
+    backgroundColor: '#14181C',
+    color: '#FFFFFF',
+    inset: 0,
+    overflow: 'hidden',
+    position: 'absolute',
+    zIndex: 3,
+  },
+  reviewArt: {
+    backgroundPosition: 'center',
+    backgroundSize: 'cover',
+    filter: 'blur(10px)',
+    inset: 0,
+    position: 'absolute',
+    transform: 'scale(1.18)',
+  },
+  reviewTint: {
+    backgroundColor: 'rgba(20,24,28,0.30)',
+    inset: 0,
+    position: 'absolute',
+  },
+  reviewSideScrim: {
+    background: 'linear-gradient(90deg, rgba(0,0,0,0.68) 0%, rgba(0,0,0,0.22) 50%, rgba(0,0,0,0) 100%)',
+    inset: 0,
+    position: 'absolute',
+  },
+  reviewVerticalScrim: {
+    background: 'linear-gradient(180deg, rgba(0,0,0,0.50) 0%, rgba(0,0,0,0.07) 42%, rgba(0,0,0,0.88) 100%)',
+    inset: 0,
+    position: 'absolute',
+  },
+  reviewChrome: {
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 14,
+  },
+  reviewAppBar: {
+    alignItems: 'center',
+    display: 'flex',
+    height: 60,
+    justifyContent: 'space-between',
+    padding: '0 18px',
+  },
+  reviewBackButton: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.40)',
+    borderRadius: 999,
+    color: '#FFFFFF',
+    display: 'flex',
+    height: 46,
+    justifyContent: 'center',
+    width: 46,
+  },
+  reviewCounter: {
+    backgroundColor: 'rgba(0,0,0,0.40)',
+    borderRadius: 999,
+    color: 'rgba(255,255,255,0.90)',
+    fontSize: 15,
+    fontVariantNumeric: 'tabular-nums',
+    fontWeight: 600,
+    padding: '8px 14px',
+  },
+  reviewProgressTrack: {
+    backgroundColor: 'rgba(255,255,255,0.20)',
+    borderRadius: 999,
+    height: 5,
+    margin: '10px 18px 0',
+    overflow: 'hidden',
+  },
+  reviewProgressFill: {
+    backgroundColor: 'rgba(255,255,255,0.6)',
+    borderRadius: 999,
+    height: 5,
+  },
+  reviewContent: {
+    bottom: PHONE_HEIGHT - REVIEW_CONTENT_BOTTOM,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 14,
+    left: 24,
+    position: 'absolute',
+    right: 24,
+    top: REVIEW_CONTENT_TOP,
+  },
+  reviewSourceRow: {
+    alignItems: 'center',
+    display: 'flex',
+    flexShrink: 0,
+    gap: 12,
+    height: 46,
+  },
+  reviewThumb: {
+    backgroundPosition: 'center',
+    backgroundSize: 'cover',
+    border: '1px solid rgba(255,255,255,0.18)',
+    borderRadius: 9,
+    flexShrink: 0,
+    height: 46,
+    width: 46,
+  },
+  reviewSourceText: {
+    display: 'flex',
+    flex: 1,
+    flexDirection: 'column',
+    gap: 2,
+    minWidth: 0,
+  },
+  reviewSourceTitle: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 700,
+  },
+  reviewSourceSub: {
+    color: 'rgba(255,255,255,0.60)',
+    fontSize: 13,
+    fontWeight: 500,
+  },
+  reviewStack: {
+    flex: 1,
+    position: 'relative',
+  },
+  reviewLayer: {
+    display: 'flex',
+    flexDirection: 'column',
+    inset: 0,
+    position: 'absolute',
+  },
+  reviewFront: {
+    alignItems: 'flex-start',
+    display: 'flex',
+    flex: 1,
+    flexDirection: 'column',
+    gap: 20,
+    justifyContent: 'center',
+  },
+  reviewFrontHeadword: {
+    color: '#FFFFFF',
+    fontSize: 74,
+    fontWeight: 700,
+    lineHeight: 1.1,
+  },
+  reviewHint: {
+    alignItems: 'center',
+    color: 'rgba(255,255,255,0.85)',
+    display: 'flex',
+    fontSize: 14,
+    fontWeight: 600,
+    gap: 6,
+  },
+  reviewBack: {
+    display: 'flex',
+    flex: 1,
+    flexDirection: 'column',
+    paddingTop: 60,
+  },
+  reviewBackCenter: {
+    display: 'flex',
+    flex: 1,
+    flexDirection: 'column',
+    gap: 28,
+    justifyContent: 'center',
+  },
+  reviewQuestion: {
+    alignItems: 'flex-start',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 6,
+  },
+  reviewBackHeadword: {
+    color: '#FFFFFF',
+    fontSize: 52,
+    fontWeight: 700,
+    lineHeight: 1.1,
+  },
+  reviewReadingRow: {
+    alignItems: 'center',
+    display: 'flex',
+    gap: 8,
+  },
+  reviewReading: {
+    color: 'rgba(255,255,255,0.80)',
+    fontSize: 17,
+    marginRight: 2,
+  },
+  reviewMetaPos: {
+    fontSize: 13,
+    fontWeight: 600,
+    letterSpacing: 0.5,
+  },
+  reviewMetaDot: {
+    color: 'rgba(255,255,255,0.40)',
+    fontSize: 13,
+    fontWeight: 600,
+  },
+  reviewMetaJlpt: {
+    fontSize: 13,
+    fontWeight: 700,
+    letterSpacing: 0.5,
+  },
+  reviewAnswer: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 18,
+  },
+  reviewMeaning: {
+    color: '#FFFFFF',
+    fontSize: 30,
+    fontWeight: 700,
+    lineHeight: 1.2,
+  },
+  reviewExample: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 6,
+  },
+  reviewExampleSource: {
+    alignItems: 'center',
+    display: 'flex',
+    gap: 6,
+  },
+  reviewExampleSourceTitle: {
+    color: 'rgba(255,255,255,0.55)',
+    fontSize: 13,
+    fontWeight: 600,
+  },
+  reviewExampleJp: {
+    color: 'rgba(255,255,255,0.80)',
+    fontSize: 17,
+    lineHeight: '26px',
+  },
+  reviewExampleHit: {
+    color: '#FFFFFF',
+    fontWeight: 700,
+  },
+  reviewExampleKr: {
+    color: 'rgba(255,255,255,0.60)',
+    fontSize: 14,
+  },
+  reviewRatingRow: {
+    display: 'flex',
+    flexShrink: 0,
+    gap: 10,
+    height: 56,
+  },
+  reviewRatingButton: {
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF0D',
+    borderRadius: 18,
+    boxSizing: 'border-box',
+    display: 'flex',
+    flex: 1,
+    flexDirection: 'column',
+    gap: 3,
+    height: 56,
+    justifyContent: 'center',
+  },
+  reviewRatingLabel: {
+    fontSize: 14,
+    lineHeight: 1,
+    whiteSpace: 'nowrap',
+  },
+  reviewRatingInterval: {
+    fontSize: 12,
+    lineHeight: 1,
+  },
+  reviewAffordance: {
+    alignItems: 'center',
+    display: 'flex',
+    flexDirection: 'column',
+    flexShrink: 0,
+    gap: 10,
+    height: 58,
+    justifyContent: 'flex-end',
+    paddingTop: 18,
+  },
+  reviewAffordanceLabel: {
+    alignItems: 'center',
+    color: 'rgba(255,255,255,0.85)',
+    display: 'flex',
+    fontSize: 14,
+    fontWeight: 600,
+    gap: 5,
+  },
+  reviewGrabber: {
+    backgroundColor: 'rgba(255,255,255,0.90)',
+    borderRadius: 4,
+    height: 7,
+    width: 132,
   },
 } satisfies Record<string, CSSProperties>;

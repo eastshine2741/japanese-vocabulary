@@ -29,8 +29,8 @@ export const DEFAULT_LINE_GAP_MS = 3000
 export const DEFAULT_TAIL_MS = 4000
 /** 다음 줄 타임스탬프가 이보다 멀면(간주) 거기까지 기다리지 않고 자른다. */
 export const MAX_TAIL_MS = 8000
-/** PromoReel END_CARD_DURATION_IN_FRAMES(150) / 30fps. */
-export const END_CARD_MS = 5000
+/** PromoReel END_CARD_DURATION_IN_FRAMES(210) / 30fps. */
+export const END_CARD_MS = 7000
 
 /** 릴스 단어로 고를 수 없는 품사. PromoReel 의 NON_WORD_POS 와 같다. */
 const NON_WORD_POS = new Set(["PARTICLE", "AUXILIARY_VERB", "SYMBOL", "SUPPLEMENTARY_SYMBOL", "WHITESPACE"])
