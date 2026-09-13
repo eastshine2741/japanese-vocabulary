@@ -17,6 +17,7 @@ import {
   frameToMs,
   setEnd,
   setLineStart,
+  setLinesIncluded,
   setSourceStart,
   shiftAll,
   toggleLine,
@@ -98,6 +99,14 @@ export function ReelsFactoryPage() {
     },
     [detail],
   )
+  const handleSetLinesIncluded = React.useCallback(
+    (indexes: number[], included: boolean) => {
+      if (!detail) return
+      setEditor((current) => setLinesIncluded(current, detail, indexes, included))
+    },
+    [detail],
+  )
+  const handleClearLines = React.useCallback(() => setEditor(emptyEditor()), [])
   const handleSetLineStart = React.useCallback(
     (index: number, ms: number) => {
       if (!detail) return
@@ -247,7 +256,14 @@ export function ReelsFactoryPage() {
       ) : detail ? (
         <>
           <div className="grid min-h-0 flex-1 gap-3 xl:grid-cols-[260px_minmax(0,1fr)_320px]">
-            <LineBin detail={detail} editor={editor} selectedIndex={selectedIndex} onSelect={setSelectedIndex} onToggle={handleToggleLine} />
+            <LineBin
+              detail={detail}
+              editor={editor}
+              selectedIndex={selectedIndex}
+              onClear={handleClearLines}
+              onSelect={setSelectedIndex}
+              onSetIncluded={handleSetLinesIncluded}
+            />
             <ReelMonitor
               canUploadSource={detail.song.renderEligible}
               data={data}
