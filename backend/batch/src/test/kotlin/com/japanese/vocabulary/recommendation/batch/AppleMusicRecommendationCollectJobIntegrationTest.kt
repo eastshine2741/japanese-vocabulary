@@ -5,6 +5,7 @@ import com.japanese.vocabulary.applemusicrss.client.dto.AppleMusicRssGenreDto
 import com.japanese.vocabulary.applemusicrss.dto.AppleMusicRssChartSongDto
 import com.japanese.vocabulary.recommendation.entity.RecommendationSource
 import com.japanese.vocabulary.recommendation.repository.SongRecommendationCandidateRepository
+import com.japanese.vocabulary.songsearch.client.itunes.ItunesClient
 import com.japanese.vocabulary.test.BatchBaseIntegrationTest
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
@@ -27,6 +28,9 @@ class AppleMusicRecommendationCollectJobIntegrationTest : BatchBaseIntegrationTe
 
     @MockkBean
     private lateinit var appleMusicRssClient: AppleMusicRssClient
+
+    @MockkBean
+    private lateinit var itunesClient: ItunesClient
 
     @Autowired
     private lateinit var jobLauncher: JobLauncher
@@ -55,6 +59,7 @@ class AppleMusicRecommendationCollectJobIntegrationTest : BatchBaseIntegrationTe
     fun `collect job fetches Apple RSS and upserts recommendation candidates`() {
         val weekStartDate = LocalDate.of(2026, 6, 22)
         val sourceSongId = "apple-song-${System.nanoTime()}"
+        every { itunesClient.lookupTrackDurations(listOf(sourceSongId)) } returns mapOf(sourceSongId to 226)
         every { appleMusicRssClient.fetchMostPlayedSongs(storefront = "jp", limit = 100) } returns listOf(
             AppleMusicRssChartSongDto(
                 rank = 1,
@@ -90,6 +95,7 @@ class AppleMusicRecommendationCollectJobIntegrationTest : BatchBaseIntegrationTe
         assertThat(candidate!!.sourceRank).isEqualTo(1)
         assertThat(candidate.title).isEqualTo("Test Song")
         assertThat(candidate.artistName).isEqualTo("Test Artist")
+        assertThat(candidate.durationSeconds).isEqualTo(226)
         assertThat(candidate.releaseDate).isEqualTo(LocalDate.of(2026, 6, 1))
         assertThat(candidate.genresJson).contains("J-Pop")
     }
@@ -98,6 +104,7 @@ class AppleMusicRecommendationCollectJobIntegrationTest : BatchBaseIntegrationTe
     fun `collect job accepts command line style weekStartDate string parameter`() {
         val weekStartDate = LocalDate.of(2026, 6, 22)
         val sourceSongId = "apple-song-${System.nanoTime()}"
+        every { itunesClient.lookupTrackDurations(any()) } throws RuntimeException("iTunes down")
         every { appleMusicRssClient.fetchMostPlayedSongs(storefront = "jp", limit = 100) } returns listOf(
             AppleMusicRssChartSongDto(
                 rank = 1,

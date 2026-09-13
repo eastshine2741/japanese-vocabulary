@@ -18,15 +18,15 @@ class YoutubeMvSearchService(
     private val logger = LoggerFactory.getLogger(YoutubeMvSearchService::class.java)
 
     fun searchMvUrl(title: String, artist: String, trackDurationSeconds: Int?): String? {
-        val shortsCutoffSeconds = shortsCutoffSeconds(trackDurationSeconds)
+        val durationBounds = DurationBounds.forTrack(trackDurationSeconds)
 
         artistChannelCache.get(artist)
             ?.let { cached ->
-                searchCachedUploads(title, artist, cached, shortsCutoffSeconds)
+                searchCachedUploads(title, artist, cached, durationBounds)
                     ?.let { return youtubeUrl(it.videoId) }
             }
 
-        val fallback = searchFallback(title, artist, shortsCutoffSeconds) ?: return null
+        val fallback = searchFallback(title, artist, durationBounds) ?: return null
         maybeCacheArtistChannel(artist, fallback)
         return youtubeUrl(fallback.videoId)
     }
@@ -35,7 +35,7 @@ class YoutubeMvSearchService(
         title: String,
         artist: String,
         cached: ArtistChannelCacheEntry,
-        shortsCutoffSeconds: Long,
+        durationBounds: DurationBounds,
     ): MvCandidate? {
         var pageToken: String? = null
         val matches = mutableListOf<MvCandidate>()
@@ -48,16 +48,20 @@ class YoutubeMvSearchService(
             ) ?: return null
             pagesRead += 1
 
-            // An artist's uploads playlist mixes Shorts in with MVs, so the title-matched
-            // items are collected first and filtered by duration in one batch below.
+            // An artist's uploads playlist mixes Shorts and live clips in with MVs, so the
+            // title-matched items are collected first and filtered by duration in one batch below.
             matches += response.items.mapNotNull { it.toCandidate(title, artist) }
 
             pageToken = response.nextPageToken ?: break
         }
-        return excludeShorts(matches, shortsCutoffSeconds).maxByOrNull { it.score }
+        // The artist's own channel is where live/tour clips of the song live, so the same
+        // score floor as the broad search applies; a rejected upload falls through to it.
+        return filterByDuration(matches, durationBounds)
+            .filter { it.score >= MIN_ACCEPTABLE_SCORE }
+            .maxByOrNull { it.score }
     }
 
-    private fun searchFallback(title: String, artist: String, shortsCutoffSeconds: Long): MvCandidate? {
+    private fun searchFallback(title: String, artist: String, durationBounds: DurationBounds): MvCandidate? {
         // MV lookup intentionally uses broad video search, then local ranking:
         // 1. Strip iTunes-style trailing descriptors from the query, e.g. "(feat. ...)".
         // 2. Do not restrict videoCategoryId to Music. Publisher uploads such as
@@ -72,7 +76,7 @@ class YoutubeMvSearchService(
         )?.items
             ?.filter { titleMatches(it.snippet.title, title) }
             ?.mapNotNull { it.toCandidate(artist) }
-            ?.let { excludeShorts(it, shortsCutoffSeconds) }
+            ?.let { filterByDuration(it, durationBounds) }
             ?: emptyList()
 
         val bestNonTopic = candidates
@@ -85,14 +89,15 @@ class YoutubeMvSearchService(
     }
 
     /**
-     * The Data API exposes no "is this a Short" flag, so length is the usable proxy: a video
-     * far shorter than the track it should carry is a Short, a teaser, or a clipped excerpt.
-     * The iTunes track length drives the cutoff; see [shortsCutoffSeconds] for the bounds.
+     * The Data API exposes no "is this a Short" or "is this a live clip" flag, so length is
+     * the usable proxy: a video far shorter than the track is a Short, a teaser, or a clipped
+     * excerpt; one far longer is a full concert, a compilation, or a full album. The iTunes
+     * track length drives both bounds; see [DurationBounds.forTrack].
      *
      * Videos whose duration is missing or unparsable are kept — a flaky secondary lookup
      * must not drop a legitimate MV. `P0D` (live/premiere) has no length and is dropped.
      */
-    private fun excludeShorts(candidates: List<MvCandidate>, cutoffSeconds: Long): List<MvCandidate> {
+    private fun filterByDuration(candidates: List<MvCandidate>, bounds: DurationBounds): List<MvCandidate> {
         if (candidates.isEmpty()) return candidates
 
         val durationsByVideoId = runCatching {
@@ -105,29 +110,44 @@ class YoutubeMvSearchService(
 
         return candidates.filter { candidate ->
             val seconds = durationsByVideoId[candidate.videoId] ?: return@filter true
-            val isShort = seconds <= cutoffSeconds
-            if (isShort) {
-                logger.info(
-                    "Skipping Shorts-length YouTube candidate '{}' ({}s <= {}s cutoff, videoId={})",
-                    candidate.title, seconds, cutoffSeconds, candidate.videoId
-                )
-            }
-            !isShort
+            val rejection = bounds.rejectionReason(seconds) ?: return@filter true
+            logger.info(
+                "Skipping {} YouTube candidate '{}' ({}s, bounds={}, videoId={})",
+                rejection, candidate.title, seconds, bounds, candidate.videoId
+            )
+            false
         }
     }
 
     /**
-     * A video worth half the track's length or less cannot be carrying the whole song.
-     * The cutoff is clamped on both ends:
-     * - never below [MIN_SHORTS_CUTOFF_SECONDS], so a two-minute song still rejects a 45s Short;
-     * - never above [MAX_SHORTS_CUTOFF_SECONDS], YouTube's own Shorts length cap — a longer
-     *   video is not a Short, and rejecting it would be duration matching, not Shorts filtering.
-     *
-     * An unknown track length falls back to the lower bound alone.
+     * Acceptable video length for a track.
+     * - A video worth half the track's length or less cannot be carrying the whole song. The
+     *   floor never drops below [MIN_SHORTS_CUTOFF_SECONDS], so a two-minute song still
+     *   rejects a 45s Short.
+     * - A video longer than twice the track is not an MV of it. Story MVs run a minute or two
+     *   over the track; concerts and full albums run far past 2x. Unknown when the track
+     *   length is unknown.
      */
-    private fun shortsCutoffSeconds(trackDurationSeconds: Int?): Long {
-        val halfTrack = trackDurationSeconds?.let { it / 2L } ?: return MIN_SHORTS_CUTOFF_SECONDS
-        return halfTrack.coerceIn(MIN_SHORTS_CUTOFF_SECONDS, MAX_SHORTS_CUTOFF_SECONDS)
+    private data class DurationBounds(val minExclusiveSeconds: Long, val maxInclusiveSeconds: Long?) {
+        fun rejectionReason(seconds: Long): String? = when {
+            seconds <= minExclusiveSeconds -> "Shorts-length"
+            maxInclusiveSeconds != null && seconds > maxInclusiveSeconds -> "over-length"
+            else -> null
+        }
+
+        override fun toString(): String = "($minExclusiveSeconds, ${maxInclusiveSeconds ?: "∞"}]"
+
+        companion object {
+            fun forTrack(trackDurationSeconds: Int?): DurationBounds {
+                if (trackDurationSeconds == null || trackDurationSeconds <= 0) {
+                    return DurationBounds(MIN_SHORTS_CUTOFF_SECONDS, null)
+                }
+                return DurationBounds(
+                    minExclusiveSeconds = maxOf(trackDurationSeconds / 2L, MIN_SHORTS_CUTOFF_SECONDS),
+                    maxInclusiveSeconds = trackDurationSeconds * 2L,
+                )
+            }
+        }
     }
 
     private fun parseDurationSeconds(isoDuration: String): Long? =
@@ -200,10 +220,17 @@ class YoutubeMvSearchService(
         return targetTitleVariants(targetTitle).any { normalizedVideoTitle.contains(it) }
     }
 
+    /**
+     * iTunes titles are often bilingual, e.g. "ピースサイン - Peace Sign", while an upload
+     * carries only one half or both halves apart, so each separator-delimited part is a
+     * variant of its own. Single-character parts are too ambiguous to match on.
+     */
     private fun targetTitleVariants(title: String): List<String> {
-        val normalized = normalizeForMatch(title)
-        val withoutTrailingDescriptor = normalizeForMatch(title.replace(TRAILING_DESCRIPTOR_RE, ""))
-        return listOf(normalized, withoutTrailingDescriptor)
+        val withoutTrailingDescriptor = title.replace(TRAILING_DESCRIPTOR_RE, "")
+        val parts = withoutTrailingDescriptor.split(TITLE_SEPARATOR_RE)
+            .map { normalizeForMatch(it) }
+            .filter { it.length >= MIN_TITLE_PART_LENGTH }
+        return (listOf(normalizeForMatch(title), normalizeForMatch(withoutTrailingDescriptor)) + parts)
             .filter { it.isNotBlank() }
             .distinct()
     }
@@ -251,7 +278,7 @@ class YoutubeMvSearchService(
         private const val MIN_CACHEABLE_SCORE = 1
 
         private const val MIN_SHORTS_CUTOFF_SECONDS = 60L
-        private const val MAX_SHORTS_CUTOFF_SECONDS = 180L
+        private const val MIN_TITLE_PART_LENGTH = 2
 
         // Keep this narrower than plain "MV": AMV/MAD/original-MV covers often
         // contain the target title but are not the official/publisher upload.
@@ -259,8 +286,13 @@ class YoutubeMvSearchService(
             "Music Video|Official Video|Official MV|オフィシャル|公式",
             RegexOption.IGNORE_CASE
         )
+        // Live/tour clips are the artist's own uploads and often run exactly the track
+        // length, so only the title tells them apart from the MV. English words are bounded
+        // by explicit lookarounds rather than \b, whose Unicode handling differs across JDKs
+        // ("LIVE映像" must still match).
         private val BAD_TITLE_RE = Regex(
-            "弾いてみた|歌ってみた|cover|covered by|ピアノ|ギター|drum|アレンジ|off vocal|ニコカラ|字幕|한글자막|中文字幕|ローマ字|lyrics|lyric video|the first take|game size|アナザーボーカル|AMV|MAD",
+            "弾いてみた|歌ってみた|cover|covered by|ピアノ|ギター|drum|アレンジ|off vocal|ニコカラ|字幕|한글자막|中文字幕|ローマ字|lyrics|lyric video|the first take|game size|アナザーボーカル|AMV|MAD" +
+                "|(?<![a-z])(?:live|tour|concert)(?![a-z])|ライブ|ライヴ|ツアー|コンサート|フェス|カラオケ|karaoke|instrumental",
             RegexOption.IGNORE_CASE
         )
         private val HANGUL_RE = Regex("""[\uAC00-\uD7AF]""")
@@ -270,6 +302,7 @@ class YoutubeMvSearchService(
         )
         private val SHORTS_TITLE_RE = Regex("""[#＃](?:shorts?|ショート)""", RegexOption.IGNORE_CASE)
         private val TRAILING_DESCRIPTOR_RE = Regex("""\s*[\[(（【].*?[】）)\]]\s*$""")
+        private val TITLE_SEPARATOR_RE = Regex("""\s+[-–—/／|｜]\s+""")
         private val HTML_ENTITY_RE = Regex("""&(?:amp|quot|#39|apos);""", RegexOption.IGNORE_CASE)
         private val PUNCTUATION_RE = Regex("""[\p{P}\p{S}]""")
         private val WHITESPACE_RE = Regex("""\s+""")
