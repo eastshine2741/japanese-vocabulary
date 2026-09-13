@@ -16,6 +16,11 @@ import {
 } from '../../components/studyStack';
 import { useHomeChromeStore } from '../../stores/homeChromeStore';
 import { RootStackParamList, TabParamList } from '../../navigation/AppNavigator';
+import {
+  shouldStackCaptureImmerseExit,
+  shouldStartChromeImmersePan,
+  shouldStartStackImmersePan,
+} from './homeImmerseGesture';
 
 type Nav = CompositeNavigationProp<
   BottomTabNavigationProp<TabParamList, 'Home'>,
@@ -83,14 +88,29 @@ export default function HomeTab() {
 
   const immersePan = useMemo(
     () => PanResponder.create({
-      // 카드가 앞면일 때만 세로 드래그를 가로챈다 — 뒷면 rating 스와이프와는 상태로 배타적이다.
+      // 몰입 해제는 카드 안쪽 스크롤/터치보다 먼저 잡고, 진입은 앞면에서만 잡는다.
+      onMoveShouldSetPanResponderCapture: (_, gesture) =>
+        shouldStackCaptureImmerseExit(immersedRef.current, gesture),
       onMoveShouldSetPanResponder: (_, gesture) =>
-        !immersedRef.current && !revealedRef.current && gesture.dy < -8,
+        shouldStartStackImmersePan(immersedRef.current, revealedRef.current, gesture),
       onPanResponderMove: (_, gesture) => {
+        if (immersedRef.current) {
+          if (gesture.dy <= 0) return;
+          immerse.setValue(Math.max(0, 1 - gesture.dy / IMMERSE_DISTANCE));
+          return;
+        }
         if (gesture.dy >= 0) return;
         immerse.setValue(Math.min(1, -gesture.dy / IMMERSE_DISTANCE));
       },
       onPanResponderRelease: (_, gesture) => {
+        if (immersedRef.current) {
+          if (gesture.dy > IMMERSE_EXIT_COMMIT_DISTANCE) {
+            exitImmerse();
+            return;
+          }
+          settle(1);
+          return;
+        }
         if (gesture.dy < IMMERSE_COMMIT_DISTANCE) {
           enterImmerse();
           return;
@@ -98,21 +118,20 @@ export default function HomeTab() {
         settle(0);
       },
       onPanResponderTerminate: () => {
-        if (immersedRef.current) return;
+        if (immersedRef.current) {
+          settle(1);
+          return;
+        }
         settle(0);
       },
     }),
-    [enterImmerse, immerse, settle],
+    [enterImmerse, exitImmerse, immerse, settle],
   );
 
   const chromeImmersePan = useMemo(
     () => PanResponder.create({
       onMoveShouldSetPanResponder: (_, gesture) => {
-        const isVertical = Math.abs(gesture.dy) > Math.abs(gesture.dx);
-        return isVertical && (
-          (immersedRef.current && gesture.dy > 8)
-          || (!immersedRef.current && gesture.dy < -8)
-        );
+        return shouldStartChromeImmersePan(immersedRef.current, gesture);
       },
       onPanResponderMove: (_, gesture) => {
         if (immersedRef.current) {
