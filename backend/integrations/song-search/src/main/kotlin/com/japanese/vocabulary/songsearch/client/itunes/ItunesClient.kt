@@ -50,6 +50,30 @@ class ItunesClient(restClientBuilder: RestClient.Builder, objectMapper: ObjectMa
         return SongSearchResponse(items)
     }
 
+    /**
+     * Track length by iTunes track id, for sources that carry the id but not the length
+     * (the Apple Music RSS charts). Ids the lookup does not return are absent from the map.
+     */
+    fun lookupTrackDurations(trackIds: Collection<String>): Map<String, Int> =
+        trackIds.distinct().chunked(LOOKUP_BATCH_SIZE).flatMap { chunk ->
+            restClient.get()
+                .uri { builder ->
+                    builder.path("/lookup")
+                        .queryParam("id", chunk.joinToString(","))
+                        .queryParam("entity", "song")
+                        .queryParam("country", "jp")
+                        .build()
+                }
+                .retrieve()
+                .body(ItunesSearchResponse::class.java)
+                ?.results
+                ?: emptyList()
+        }.mapNotNull { track ->
+            val id = track.trackId?.toString() ?: return@mapNotNull null
+            val millis = track.trackTimeMillis?.takeIf { it > 0 } ?: return@mapNotNull null
+            id to millis / 1000
+        }.toMap()
+
     // The mzstatic URL templates the size in the path, so swap 100x100 → 600x600.
     // 100x100 from artworkUrl100 looks blurry on deck cover screens at 3x density.
     private fun upsizeArtwork(url: String?): String? = url?.let {
@@ -58,5 +82,9 @@ class ItunesClient(restClientBuilder: RestClient.Builder, objectMapper: ObjectMa
             it.endsWith("/100x100bb.png") -> it.replace("/100x100bb.png", "/600x600bb.png")
             else -> it
         }
+    }
+
+    companion object {
+        private const val LOOKUP_BATCH_SIZE = 100
     }
 }

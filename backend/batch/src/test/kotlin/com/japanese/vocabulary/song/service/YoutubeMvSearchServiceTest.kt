@@ -20,9 +20,9 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 
 /**
- * Pure-mock coverage of the Shorts exclusion in [YoutubeMvSearchService]: an upload far
- * shorter than the iTunes track never wins over the full MV, on both the broad-search and
- * cached-uploads paths.
+ * Pure-mock coverage of candidate filtering in [YoutubeMvSearchService]: an upload far
+ * shorter or longer than the iTunes track, or titled as a live/tour clip, never wins over
+ * the full MV, on both the broad-search and cached-uploads paths.
  */
 class YoutubeMvSearchServiceTest {
 
@@ -91,14 +91,80 @@ class YoutubeMvSearchServiceTest {
     }
 
     @Test
-    fun `search keeps a video longer than the Shorts length cap even for a long track`() {
+    fun `search skips a video worth half of a long track`() {
         every { artistChannelCache.get(ARTIST) } returns null
-        stubSearch(searchItem("edit-id", "$TITLE Official MV"))
-        // A 200s video of a 600s track: not a Short, so the cutoff stays clamped at 180s.
-        stubDurations("edit-id" to "PT3M20S")
+        stubSearch(
+            searchItem("edit-id", "$TITLE Official MV"),
+            searchItem("mv-id", "$TITLE Music Video"),
+        )
+        // A 200s video of a 600s track is not carrying the whole song, Short or not.
+        stubDurations("edit-id" to "PT3M20S", "mv-id" to "PT10M5S")
 
         assertThat(service.searchMvUrl(TITLE, ARTIST, 600))
-            .isEqualTo("https://www.youtube.com/watch?v=edit-id")
+            .isEqualTo("https://www.youtube.com/watch?v=mv-id")
+    }
+
+    @Test
+    fun `search skips a video far longer than the track but keeps a story MV`() {
+        every { artistChannelCache.get(ARTIST) } returns null
+        stubSearch(
+            searchItem("concert-id", "$TITLE Official MV"),
+            searchItem("mv-id", "$TITLE Music Video"),
+        )
+        // 240s track: a 6-minute story MV is fine, a 90-minute concert is not.
+        stubDurations("concert-id" to "PT1H30M", "mv-id" to "PT6M")
+
+        assertThat(service.searchMvUrl(TITLE, ARTIST, TRACK_SECONDS))
+            .isEqualTo("https://www.youtube.com/watch?v=mv-id")
+    }
+
+    @Test
+    fun `search does not apply an upper bound when the track length is unknown`() {
+        every { artistChannelCache.get(ARTIST) } returns null
+        stubSearch(searchItem("long-id", "$TITLE Official MV"))
+        stubDurations("long-id" to "PT12M")
+
+        assertThat(service.searchMvUrl(TITLE, ARTIST, null))
+            .isEqualTo("https://www.youtube.com/watch?v=long-id")
+    }
+
+    @Test
+    fun `search prefers the MV over a same-length live clip from the artist channel`() {
+        every { artistChannelCache.get(ARTIST) } returns null
+        stubSearch(
+            searchItem("live-id", "$ARTIST - $TITLE ($ARTIST CEN+RAL Tour 2026 at TOKYO ARENA)"),
+            searchItem("mv-id", "$ARTIST - $TITLE"),
+        )
+        stubDurations("live-id" to "PT3M58S", "mv-id" to "PT3M58S")
+
+        assertThat(service.searchMvUrl(TITLE, ARTIST, TRACK_SECONDS))
+            .isEqualTo("https://www.youtube.com/watch?v=mv-id")
+    }
+
+    @Test
+    fun `search returns nothing when the only candidate is a live clip`() {
+        every { artistChannelCache.get(ARTIST) } returns null
+        stubSearch(
+            searchItem("live-id", "$TITLE LIVE映像"),
+            searchItem("live-en-id", "$TITLE Live at Budokan"),
+            searchItem("karaoke-id", "【カラオケ】$TITLE / $ARTIST"),
+        )
+        stubDurations("live-id" to "PT4M", "live-en-id" to "PT4M", "karaoke-id" to "PT4M")
+
+        assertThat(service.searchMvUrl(TITLE, ARTIST, TRACK_SECONDS)).isNull()
+    }
+
+    @Test
+    fun `search matches either half of a bilingual iTunes title`() {
+        every { artistChannelCache.get(ARTIST) } returns null
+        stubSearch(
+            searchItem("jp-id", "米津玄師 - ピースサイン , Kenshi Yonezu - Peace Sign"),
+            searchItem("unrelated-id", "米津玄師 - Lemon"),
+        )
+        stubDurations("jp-id" to "PT4M3S", "unrelated-id" to "PT4M15S")
+
+        assertThat(service.searchMvUrl("ピースサイン - Peace Sign", ARTIST, 237))
+            .isEqualTo("https://www.youtube.com/watch?v=jp-id")
     }
 
     @Test
@@ -133,6 +199,26 @@ class YoutubeMvSearchServiceTest {
         stubDurations("short-id" to "PT45S", "mv-id" to "PT3M20S")
 
         assertThat(service.searchMvUrl(TITLE, ARTIST, TRACK_SECONDS))
+            .isEqualTo("https://www.youtube.com/watch?v=mv-id")
+    }
+
+    @Test
+    fun `cached uploads path falls through to search when its only match is a live clip`() {
+        every { artistChannelCache.get(ARTIST) } returns ArtistChannelCacheEntry(
+            artistName = ARTIST,
+            channelId = "channel-id",
+            uploadsPlaylistId = "uploads-id",
+            channelTitle = ARTIST,
+        )
+        every { youtubeClient.listPlaylistItems(any(), any(), any()) } returns
+            YoutubePlaylistItemsResponse(
+                nextPageToken = null,
+                items = listOf(playlistItem("live-id", "\"$ARTIST Tour 2026\" $TITLE in Hong Kong")),
+            )
+        stubSearch(searchItem("mv-id", "$TITLE Music Video"))
+        stubDurations("live-id" to "PT1M8S", "mv-id" to "PT3M58S")
+
+        assertThat(service.searchMvUrl(TITLE, ARTIST, null))
             .isEqualTo("https://www.youtube.com/watch?v=mv-id")
     }
 

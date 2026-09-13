@@ -55,6 +55,7 @@ Important statuses:
 
 1. Weekly `appleMusicRecommendationCollectJob` upserts up to 100 Apple RSS rows into `song_recommendation_candidate`.
    `AppleMusicRssClient` upsizes the feed's `artworkUrl100` to `600x600` before it becomes the candidate's `artworkUrl`, because that URL ends up as `songs.artwork_url` and the home recommendation card renders it at roughly half the screen width. `ItunesClient` does the same for the search path.
+   The feed carries no track length, so the collector fills `duration_seconds` from `ItunesClient.lookupTrackDurations()` (iTunes `/lookup` by the feed's track id). The MV search needs it to reject Shorts and live clips; a failed lookup leaves the candidate's existing value untouched.
 2. Existing candidates keep operator status; source rank/metadata can be refreshed.
 3. Operator reviews candidates in admin-web and updates status through `PATCH /admin/api/recommendations/candidates/{id}/status`.
 4. Operator clicks `Process approved` in admin-web, which calls `POST /admin/api/recommendations/prepare-approved`.

@@ -109,7 +109,8 @@ class SongRecommendationCandidateEntity(
         this.sourceRank = sourceRank
         this.title = title
         this.artistName = artistName
-        this.durationSeconds = durationSeconds
+        // The length comes from a secondary lookup; a failed refresh must not erase a known one.
+        this.durationSeconds = durationSeconds ?: this.durationSeconds
         this.artworkUrl = artworkUrl
         this.sourceUrl = sourceUrl
         this.sourceArtistId = sourceArtistId
