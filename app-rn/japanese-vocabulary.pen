@@ -67063,20 +67063,6 @@
               "alignItems": "center",
               "children": [
                 {
-                  "type": "rectangle",
-                  "cornerRadius": 20,
-                  "id": "KIwZb",
-                  "name": "Kotonoha Mark",
-                  "fill": {
-                    "type": "image",
-                    "enabled": true,
-                    "url": "images/kotonoha-icon.png",
-                    "mode": "fill"
-                  },
-                  "width": 76,
-                  "height": 76
-                },
-                {
                   "type": "frame",
                   "id": "eM7CA",
                   "name": "Song Text",
@@ -67622,7 +67608,7 @@
               "id": "m8xERZ",
               "name": "Title Line 1",
               "fill": "$paper",
-              "content": "나머지 단어는",
+              "content": "전체 단어는",
               "lineHeight": 1.1,
               "fontFamily": "$fontKr",
               "fontSize": 92,
@@ -69651,6 +69637,90 @@
     "ig-mint-muted": {
       "type": "color",
       "value": "#8FC7AD"
+    },
+    "night": {
+      "type": "color",
+      "value": "#111012"
+    },
+    "paper": {
+      "type": "color",
+      "value": "#F4F1EA"
+    },
+    "ink": {
+      "type": "color",
+      "value": "#FAFAF6"
+    },
+    "softInk": {
+      "type": "color",
+      "value": "#FAFAF6C7"
+    },
+    "accent": {
+      "type": "color",
+      "value": "#EFD463"
+    },
+    "nounBlue": {
+      "type": "color",
+      "value": "#5BA9FF"
+    },
+    "verbGreen": {
+      "type": "color",
+      "value": "#3FE0A1"
+    },
+    "adjectiveOrange": {
+      "type": "color",
+      "value": "#FFB347"
+    },
+    "chipFill": {
+      "type": "color",
+      "value": "#111012A8"
+    },
+    "chipBorder": {
+      "type": "color",
+      "value": "#F4F1EA33"
+    },
+    "fontReel": {
+      "type": "string",
+      "value": "Inter"
+    },
+    "fontKr": {
+      "type": "string",
+      "value": "Noto Sans KR"
+    },
+    "fontJp": {
+      "type": "string",
+      "value": "Noto Sans JP"
+    },
+    "cardFill": {
+      "type": "color",
+      "value": "#1C1B1F"
+    },
+    "cardBorder": {
+      "type": "color",
+      "value": "#F4F1EA2B"
+    },
+    "ctaGreen": {
+      "type": "color",
+      "value": "#52B788"
+    },
+    "appWhite": {
+      "type": "color",
+      "value": "#FFFFFF"
+    },
+    "appGrey": {
+      "type": "color",
+      "value": "#EEEEEE"
+    },
+    "appText": {
+      "type": "color",
+      "value": "#1A1A1A"
+    },
+    "appSubText": {
+      "type": "color",
+      "value": "#666666"
+    },
+    "appBorder": {
+      "type": "color",
+      "value": "#E5E5E5"
     }
   },
   "fileToken": "f7fb5f58-62f3-4049-8513-0fa8ff4ec69a"

@@ -60,7 +60,8 @@ class AdminReelsFactoryService(
         if (!request.acknowledgeSourceRightsAndPlatformRisk) {
             throw IllegalArgumentException("source rights and platform risk acknowledgement is required")
         }
-        val uniqueIndexes = request.lineIndexes.distinct()
+        // 어드민이 고른 순서가 아니라 곡 순서로 튼다. 줄 index 가 곧 시간 순서다.
+        val uniqueIndexes = request.lineIndexes.distinct().sorted()
         if (request.lineIndexes.size != uniqueIndexes.size) {
             throw IllegalArgumentException("lineIndexes must not contain duplicates")
         }
@@ -86,12 +87,18 @@ class AdminReelsFactoryService(
             raw to analyzed
         }
         val firstMs = requireNotNull(selected.first().first.startTimeMs)
+        val lastMs = requireNotNull(selected.last().first.startTimeMs)
+        val lyricsEndMs = lyricsEndMs(lyric.rawContent, song, lastMs)
+        if (lyricsEndMs - firstMs > MAX_LYRICS_SPAN_MS) {
+            throw IllegalArgumentException("selected lines must span at most ${MAX_LYRICS_SPAN_MS / 1000} seconds")
+        }
         val sourceStartFrame = (firstMs / 1000.0 * FPS).roundToInt()
 
         val promoLines = selected.map { (raw, analyzed) ->
             val startFrame = (((requireNotNull(raw.startTimeMs) - firstMs).coerceAtLeast(0)) / 1000.0 * FPS).roundToInt()
             AdminReelsPromoLine(
                 startFrame = startFrame,
+                lineNumber = raw.index + 1,
                 originalText = raw.text,
                 koreanLyrics = analyzed.koreanLyrics.orEmpty(),
                 tokens = analyzed.tokens.map {
@@ -124,12 +131,28 @@ class AdminReelsFactoryService(
                 instagramHandle = INSTAGRAM_HANDLE,
                 catchphrase = CATCHPHRASE,
                 sourceStartFrame = sourceStartFrame,
+                lyricsEndFrame = ((lyricsEndMs - firstMs) / 1000.0 * FPS).roundToInt(),
+                totalLineCount = lyric.rawContent.size,
                 lyricLines = promoLines,
                 wordCount = promoLines.flatMap { line -> line.vocabulary }
                     .distinctBy { word -> word.japanese }
                     .size,
             ),
         )
+    }
+
+    /**
+     * 마지막 선택 줄이 끝나는 시각. 그 다음에 시작하는 줄이 있으면 거기까지, 없으면 곡 길이까지다.
+     * 간주가 길면 줄이 끝난 뒤에도 화면이 멈춰 있으니 [MAX_LAST_LINE_MS] 로 자른다.
+     */
+    private fun lyricsEndMs(rawContent: List<LyricLineData>, song: SongEntity, lastMs: Long): Long {
+        val nextLineMs = rawContent.asSequence()
+            .mapNotNull { it.startTimeMs }
+            .filter { it > lastMs }
+            .minOrNull()
+        val songEndMs = song.durationSeconds?.toLong()?.times(1000)?.takeIf { it > lastMs }
+        val endMs = nextLineMs ?: songEndMs ?: (lastMs + DEFAULT_LAST_LINE_MS)
+        return minOf(endMs, lastMs + MAX_LAST_LINE_MS)
     }
 
     private fun detailResponse(song: SongEntity, lyric: LyricEntity): AdminReelsSongDetailResponse {
@@ -254,6 +277,10 @@ class AdminReelsFactoryService(
     companion object {
         const val MIN_LINE_COUNT = 4
         const val FPS = 30
+        /** 릴스 가사 구간 상한. 이 위로는 렌더 시간·메모리가 컨테이너 한도를 넘긴다. */
+        const val MAX_LYRICS_SPAN_MS = 60_000L
+        const val MAX_LAST_LINE_MS = 8_000L
+        const val DEFAULT_LAST_LINE_MS = 4_000L
         const val INSTAGRAM_HANDLE = "@kotonoha.music"
         const val CATCHPHRASE = "가사에서 바로 배우는 일본어"
     }

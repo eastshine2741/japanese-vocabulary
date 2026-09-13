@@ -14,6 +14,8 @@ export const samplePreviewPromo: PromoReelData = {
   instagramHandle: '@kotonoha.music',
   catchphrase: '좋아하는 노래가, 나의 일본어가 되도록.',
   sourceStartFrame: 0,
+  lyricsEndFrame: 840,
+  totalLineCount: 12,
   lyricLines: [
     {
       startFrame: 0,

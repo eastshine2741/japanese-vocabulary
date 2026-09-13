@@ -95,7 +95,8 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
             content = objectMapper.writeValueAsString(
                 AdminReelsRenderRequest(
                     songId = song.id!!,
-                    lineIndexes = listOf(0, 1, 2, 3, 4, 5, 6),
+                    // 어드민이 고른 순서와 무관하게 곡 순서로 튼다
+                    lineIndexes = listOf(4, 2, 1, 3, 5),
                     acknowledgeSourceRightsAndPlatformRisk = true,
                 ),
             )
@@ -106,8 +107,16 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
         }
 
         assertThat(fakeRenderer.lastInput?.source?.youtubeUrl).isEqualTo("https://youtu.be/SX_ViT4Ra7k")
-        assertThat(fakeRenderer.lastInput?.data?.lyricLines).hasSize(7)
-        assertThat(fakeRenderer.lastInput?.data?.wordCount).isEqualTo(1)
+        val data = requireNotNull(fakeRenderer.lastInput?.data)
+        assertThat(data.lyricLines).hasSize(5)
+        assertThat(data.lyricLines.map { it.lineNumber }).containsExactly(2, 3, 4, 5, 6)
+        // 줄 간격 2초 = 60프레임. 첫 선택 줄(index 1, 2초)이 0프레임이다
+        assertThat(data.sourceStartFrame).isEqualTo(60)
+        assertThat(data.lyricLines.map { it.startFrame }).containsExactly(0, 60, 120, 180, 240)
+        // 마지막 선택 줄(index 5) 다음 줄(index 6, 12초)이 시작할 때 가사가 끝난다
+        assertThat(data.lyricsEndFrame).isEqualTo(300)
+        assertThat(data.totalLineCount).isEqualTo(7)
+        assertThat(data.wordCount).isEqualTo(1)
         assertThat(fakeRenderer.lastInput?.data?.lyricLines?.first()?.tokens?.first()?.reading).isEqualTo("ユメ")
         assertThat(fakeRenderer.lastInput?.data?.lyricLines?.first()?.vocabulary?.first()?.partOfSpeechLabel).isEqualTo("명사")
     }
@@ -156,6 +165,11 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
         renderExpectingBadRequest(token, missingTimingSong.id!!, listOf(0, 1, 1, 3))
         renderExpectingBadRequest(token, missingTimingSong.id!!, listOf(0, 1, 99, 3))
         renderExpectingBadRequest(token, missingTimingSong.id!!, listOf(0, 1, 2))
+
+        // 줄 간격 2초짜리 40줄 — 첫 줄부터 마지막 줄까지 78초라 60초 상한을 넘는다
+        val longSpanSong = TestSongBuilder(entityManager).withYoutubeUrl("https://youtu.be/long-span").build()
+        persistLyric(longSpanSong.id!!, analyzed = true, lineCount = 40)
+        renderExpectingBadRequest(token, longSpanSong.id!!, listOf(0, 1, 2, 39))
     }
 
     private fun renderExpectingBadRequest(token: String, songId: Long, lineIndexes: List<Int>) {

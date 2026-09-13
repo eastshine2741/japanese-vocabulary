@@ -42,6 +42,8 @@ export type VocabularyWord = {
 
 export type PromoLine = {
   startFrame: number;
+  /** 곡 안에서 몇 번째 줄인지(1-based). 엔드카드 앱 목업의 페이지 표시용. */
+  lineNumber?: number;
   originalText: string;
   koreanLyrics: string;
   tokens: LyricToken[];
@@ -60,6 +62,10 @@ export type PromoReelData = {
   instagramHandle: string;
   catchphrase: string;
   sourceStartFrame: number;
+  /** 마지막 선택 줄이 끝나는 프레임. 이 프레임부터 엔드카드가 뜬다. */
+  lyricsEndFrame: number;
+  /** 곡 전체 가사 줄 수. 엔드카드 앱 목업의 "n/전체" 표시용. */
+  totalLineCount?: number;
   wordCount?: number;
   lyricLines: PromoLine[];
 };

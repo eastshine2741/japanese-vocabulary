@@ -64,7 +64,8 @@ Routes:
 
 Reels Factory:
 
-- Admin selects an analyzed song and 4–6 timed analyzed lyric lines.
+- Admin selects an analyzed song and at least 4 timed analyzed lyric lines. Lines play in song order regardless of click order.
+- The reel runs exactly as long as the selected lines: the MV starts at the first selected line, each line switches at its own `startTimeMs`, and the end card (5s) starts when the line after the last selected one begins (capped at 8s after the last line; falls back to song duration or +4s). First-to-end span must be ≤ 60s.
 - The render action requires explicit acknowledgement of source-rights and platform-policy risk.
 - The server invokes the repo-local Remotion package through `AdminReelsRenderService` and returns an MP4 attachment directly.
 - No DB entity, migration, Object Storage object, or job history is created.

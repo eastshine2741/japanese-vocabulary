@@ -47,6 +47,8 @@ const data = {
   instagramHandle: '@kotonoha.music',
   catchphrase: '가사에서 바로 배우는 일본어',
   sourceStartFrame: 0,
+  lyricsEndFrame: 120,
+  totalLineCount: 4,
   lyricLines: [0, 1, 2, 3].map((index) => ({
     startFrame: index * 30,
     originalText: `夢を見る${index}`,
