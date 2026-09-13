@@ -6,7 +6,6 @@ import { App } from "@/App"
 import {
   adminUser,
   lyricDetail,
-  lyricSummary,
   page,
   recommendation,
   recommendationCandidate,
@@ -25,6 +24,7 @@ function mockFetch() {
       return json(body.password === "secret" ? { token: "admin-token", expiresAt: "2026-01-01T01:00:00Z" } : {}, body.password === "secret" ? 200 : 401)
     }
     if (url.endsWith("/songs/1/reanalysis") && init?.method === "POST") return json(pendingReanalysisWork)
+    if (url.endsWith("/songs/1/lyric")) return json(lyricDetail)
     if (url.includes("/songs/1")) return json(songDetail)
     if (url.includes("/songs?")) return json(page([songSummary]))
     if (url.includes("/song-analysis-works/4")) return json(songAnalysisWorkDetail)
@@ -35,7 +35,6 @@ function mockFetch() {
     if (url.includes("/recommendations?") || url.endsWith("/recommendations")) return json([recommendation])
     if (url.includes("/recommendations/request-analysis")) return json(recommendationOperationResult)
     if (url.includes("/lyrics/2")) return json(lyricDetail)
-    if (url.includes("/lyrics?")) return json(page([lyricSummary]))
     if (url.includes("/users/3")) return json(adminUser)
     if (url.includes("/users?")) return json(page([adminUser]))
     return json({}, 404)
@@ -105,7 +104,7 @@ describe("admin web", () => {
     renderApp("/songs")
 
     expect(await screen.findByText("夜に駆ける")).toBeInTheDocument()
-    expect(screen.getByRole("link", { name: "Lyrics" })).toBeInTheDocument()
+    expect(screen.queryByRole("link", { name: "Lyrics" })).not.toBeInTheDocument()
     expect(screen.getByRole("link", { name: "Recommendations" })).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "Analysis Work" })).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "Users" })).toBeInTheDocument()
@@ -163,11 +162,13 @@ describe("admin web", () => {
     )
   })
 
-  test("renders detail pages without write controls", async () => {
+  test("song detail embeds the active lyric without write controls", async () => {
     const user = userEvent.setup()
     sessionStorage.setItem("kotonoha.admin.token", "admin-token")
-    renderApp("/lyrics/2")
+    renderApp("/songs/1")
 
+    expect(await screen.findByRole("heading", { name: "夜に駆ける" })).toBeInTheDocument()
+    expect(await screen.findByRole("heading", { name: "Lyric" })).toBeInTheDocument()
     expect(await screen.findByRole("button", { name: "Copy raw JSON" })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Copy analyzed JSON" })).toBeInTheDocument()
     expect(screen.getByText("가라앉듯이 녹아가듯이")).toBeInTheDocument()
@@ -184,6 +185,7 @@ describe("admin web", () => {
     vi.mocked(fetch).mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input)
       if (url.endsWith("/songs/1/reanalysis") && init?.method === "POST") return json(pendingReanalysisWork)
+      if (url.endsWith("/songs/1/lyric")) return json({}, 404)
       if (url.includes("/songs/1")) return json(songDetailWithReanalysisHistory)
       return json({}, 404)
     })
@@ -203,6 +205,7 @@ describe("admin web", () => {
     fetchMock.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input)
       if (url.endsWith("/songs/1/reanalysis") && init?.method === "POST") return json(pendingReanalysisWork)
+      if (url.endsWith("/songs/1/lyric")) return json({}, 404)
       if (url.includes("/songs/1")) return json(songDetailWithActiveBlocker)
       return json({}, 404)
     })
@@ -219,6 +222,7 @@ describe("admin web", () => {
     fetchMock.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input)
       if (url.endsWith("/songs/1/reanalysis") && init?.method === "POST") return json(pendingReanalysisWork)
+      if (url.endsWith("/songs/1/lyric")) return json({}, 404)
       if (url.includes("/songs/1")) return json(songDetailWithReanalysisHistory)
       return json({}, 404)
     })

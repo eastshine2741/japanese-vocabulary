@@ -1,12 +1,13 @@
 import * as React from "react"
-import { ExternalLink, RefreshCcw } from "lucide-react"
+import { ExternalLink, FileText, RefreshCcw } from "lucide-react"
 import { Link, useParams } from "react-router-dom"
-import { adminApi } from "@/api/client"
-import type { SongAnalysisWorkSummary, SongDetail } from "@/api/types"
+import { ApiError, adminApi } from "@/api/client"
+import type { LyricDetail, SongAnalysisWorkSummary, SongDetail } from "@/api/types"
 import { DetailGrid, DetailItem } from "@/components/DetailGrid"
 import { ErrorState, LoadingState } from "@/components/StateViews"
 import { PageHeader } from "@/components/PageHeader"
 import { useAuth } from "@/features/auth"
+import { LyricDetailContent } from "@/features/lyrics/LyricDetailContent"
 import { formatDateTime } from "@/lib/utils"
 
 function workLabel(work: SongAnalysisWorkSummary) {
@@ -25,7 +26,9 @@ export function SongDetailPage() {
   const { token } = useAuth()
   const { songId = "" } = useParams()
   const [song, setSong] = React.useState<SongDetail | null>(null)
+  const [lyric, setLyric] = React.useState<LyricDetail | null>(null)
   const [state, setState] = React.useState<"loading" | "ready" | "error">("loading")
+  const [lyricState, setLyricState] = React.useState<"loading" | "ready" | "missing" | "error">("loading")
   const [triggerState, setTriggerState] = React.useState<"idle" | "submitting" | "error">("idle")
   const [triggerMessage, setTriggerMessage] = React.useState<string | null>(null)
 
@@ -34,6 +37,7 @@ export function SongDetailPage() {
     setState("loading")
     setTriggerState("idle")
     setTriggerMessage(null)
+    setLyricState("loading")
     adminApi
       .song(token!, songId)
       .then((result) => {
@@ -42,6 +46,17 @@ export function SongDetailPage() {
         setState("ready")
       })
       .catch(() => alive && setState("error"))
+    adminApi
+      .songLyric(token!, songId)
+      .then((result) => {
+        if (!alive) return
+        setLyric(result)
+        setLyricState("ready")
+      })
+      .catch((error: unknown) => {
+        if (!alive) return
+        setLyricState(error instanceof ApiError && error.status === 404 ? "missing" : "error")
+      })
     return () => {
       alive = false
     }
@@ -123,18 +138,6 @@ export function SongDetailPage() {
             )
           }
         />
-        <DetailItem
-          label="Lyric"
-          value={
-            song.lyric ? (
-              <Link className="inline-flex items-center gap-2 text-[#0f766e] hover:underline" to={`/lyrics/${song.lyric.id}`}>
-                #{song.lyric.id}
-              </Link>
-            ) : (
-              "-"
-            )
-          }
-        />
       </DetailGrid>
       <section className="mt-5 rounded-lg border border-[#d9e1ea] bg-white p-4 shadow-sm">
         <h2 className="text-sm font-semibold text-[#18212f]">Recent analysis works</h2>
@@ -163,6 +166,19 @@ export function SongDetailPage() {
             ))}
           </ul>
         )}
+      </section>
+      <section className="mt-10 border-t-2 border-[#18212f] pt-6" aria-labelledby="song-lyric-heading">
+        <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+          <h2 id="song-lyric-heading" className="flex items-center gap-2 text-lg font-semibold text-[#18212f]">
+            <FileText className="h-5 w-5 text-[#0f766e]" />
+            Lyric
+          </h2>
+          {lyric ? <span className="font-mono text-xs text-[#637083]">#{lyric.id} · {lyric.rawContent.length} raw lines</span> : null}
+        </div>
+        {lyricState === "loading" ? <LoadingState /> : null}
+        {lyricState === "error" ? <ErrorState label="Could not load lyric." /> : null}
+        {lyricState === "missing" ? <p className="text-sm text-[#637083]">No active lyric for this song.</p> : null}
+        {lyricState === "ready" && lyric ? <LyricDetailContent lyric={lyric} /> : null}
       </section>
     </>
   )

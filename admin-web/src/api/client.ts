@@ -2,7 +2,6 @@ import type {
   AdminUser,
   LoginResponse,
   LyricDetail,
-  LyricSummary,
   PageResponse,
   Recommendation,
   RecommendationCandidate,
@@ -69,9 +68,8 @@ export const adminApi = {
       method: "POST",
     })
   },
-  lyrics(token: string, page: number) {
-    const params = new URLSearchParams({ page: String(page), size: "20" })
-    return request<PageResponse<LyricSummary>>(`/lyrics?${params}`, token)
+  songLyric(token: string, id: string) {
+    return request<LyricDetail>(`/songs/${id}/lyric`, token)
   },
   lyric(token: string, id: string) {
     return request<LyricDetail>(`/lyrics/${id}`, token)

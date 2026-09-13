@@ -19,6 +19,7 @@ import com.japanese.vocabulary.user.entity.UserEntity
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
+import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -31,9 +32,10 @@ class AdminReadService(
     private val userRepository: AdminUserRepository,
 ) {
     fun listSongs(query: String?, pageable: Pageable): Page<AdminSongSummaryResponse> {
+        val sorted = pageable.byIdDesc()
         val page = query?.trim()?.takeIf { it.isNotEmpty() }
-            ?.let { songRepository.findByTitleContainingIgnoreCaseOrArtistContainingIgnoreCase(it, it, pageable) }
-            ?: songRepository.findAll(pageable)
+            ?.let { songRepository.findByTitleContainingIgnoreCaseOrArtistContainingIgnoreCase(it, it, sorted) }
+            ?: songRepository.findAll(sorted)
         return page.map { it.toSummaryResponse() }
     }
 
@@ -52,7 +54,7 @@ class AdminReadService(
     }
 
     fun listLyrics(pageable: Pageable): Page<AdminLyricSummaryResponse> {
-        return lyricRepository.findAll(pageable).map { it.toSummaryResponse() }
+        return lyricRepository.findAll(pageable.byIdDesc()).map { it.toSummaryResponse() }
     }
 
     fun getLyric(id: Long): AdminLyricDetailResponse {
@@ -64,8 +66,9 @@ class AdminReadService(
         status: SongAnalysisWorkStatus?,
         pageable: Pageable,
     ): Page<AdminSongAnalysisWorkSummaryResponse> {
-        val page = status?.let { songAnalysisWorkRepository.findByStatus(it, pageable) }
-            ?: songAnalysisWorkRepository.findAll(pageable)
+        val sorted = pageable.byIdDesc()
+        val page = status?.let { songAnalysisWorkRepository.findByStatus(it, sorted) }
+            ?: songAnalysisWorkRepository.findAll(sorted)
         return page.map { it.toSummaryResponse() }
     }
 
@@ -77,22 +80,26 @@ class AdminReadService(
     }
 
     fun listUsers(query: String?, pageable: Pageable): Page<AdminUserResponse> {
+        val sorted = pageable.byIdDesc()
         val page = query?.trim()?.takeIf { it.isNotEmpty() }
             ?.let {
                 userRepository.findByUsernameContainingIgnoreCaseOrEmailContainingIgnoreCaseOrNameContainingIgnoreCase(
                     it,
                     it,
                     it,
-                    pageable,
+                    sorted,
                 )
             }
-            ?: userRepository.findAll(pageable)
+            ?: userRepository.findAll(sorted)
         return page.map { it.toResponse() }
     }
 
     fun getUser(id: Long): AdminUserResponse {
         return userRepository.findById(id).orElseThrow { NoSuchElementException("User not found") }.toResponse()
     }
+
+    private fun Pageable.byIdDesc(): Pageable =
+        PageRequest.of(pageNumber, pageSize, Sort.by(Sort.Direction.DESC, "id"))
 }
 
 fun SongEntity.toSummaryResponse(): AdminSongSummaryResponse = AdminSongSummaryResponse(

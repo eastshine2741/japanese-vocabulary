@@ -6,7 +6,6 @@ import { LoginPage } from "@/pages/LoginPage"
 import { SongDetailPage } from "@/pages/songs/SongDetailPage"
 import { SongsPage } from "@/pages/songs/SongsPage"
 import { LyricDetailPage } from "@/pages/lyrics/LyricDetailPage"
-import { LyricsPage } from "@/pages/lyrics/LyricsPage"
 import { RecommendationsPage } from "@/pages/recommendations/RecommendationsPage"
 import { SongAnalysisWorkDetailPage } from "@/pages/song-analysis-works/SongAnalysisWorkDetailPage"
 import { SongAnalysisWorksPage } from "@/pages/song-analysis-works/SongAnalysisWorksPage"
@@ -22,7 +21,6 @@ export function App() {
           <Route element={<AppShell />}>
             <Route path="/songs" element={<SongsPage />} />
             <Route path="/songs/:songId" element={<SongDetailPage />} />
-            <Route path="/lyrics" element={<LyricsPage />} />
             <Route path="/lyrics/:lyricId" element={<LyricDetailPage />} />
             <Route path="/recommendations" element={<RecommendationsPage />} />
             <Route path="/song-analysis-works" element={<SongAnalysisWorksPage />} />

@@ -41,6 +41,20 @@ class AdminSongControllerTest : AdminBaseIntegrationTest() {
     }
 
     @Test
+    fun `song list is ordered by id descending`() {
+        val older = TestSongBuilder(entityManager).withTitle("先の曲").withArtist("管理歌手").build()
+        val newer = TestSongBuilder(entityManager).withTitle("後の曲").withArtist("管理歌手").build()
+
+        mockMvc.get("/admin/api/songs") {
+            header("Authorization", "Bearer ${adminToken()}")
+        }.andExpect {
+            status { isOk() }
+            jsonPath("$.content[0].id") { value(newer.id!!.toInt()) }
+            jsonPath("$.content[1].id") { value(older.id!!.toInt()) }
+        }
+    }
+
+    @Test
     fun `song detail returns active lyric when multiple lyrics exist for same song`() {
         val song = TestSongBuilder(entityManager)
             .withTitle("複数歌詞曲")
