@@ -184,11 +184,16 @@ export type ReelsSongCandidate = {
 
 export type ReelsSongDetail = {
   song: ReelsSongCandidate
+  /** SYNCED 면 줄에 startTimeMs 가 있어 에디터 초기값으로 쓰고, PLAIN 이면 어드민이 전부 찍는다. */
+  lyricType: string
   headline: string
   instagramHandle: string
   catchphrase: string
+  fps: number
   minLineCount: number
   maxLineCount: number | null
+  maxLyricsSpanMs: number
+  maxVocabularyPerLine: number
   lines: ReelsLyricLine[]
 }
 
@@ -207,9 +212,18 @@ export type ReelsVocabulary = {
   japanese: string
   reading: string
   korean: string
+  partOfSpeech?: string | null
+  partOfSpeechLabel?: string | null
+  jlpt?: string | null
 }
 
-export type ReelsPreview = {
-  data: PromoReelData
+export type ReelsSource = {
+  /** admin API base 기준 MV 스트림 상대 경로. 미디어 토큰이 query 에 들어 있다. */
   mvPath: string
+}
+
+export type ReelsRenderRequest = {
+  songId: number
+  data: PromoReelData
+  acknowledgeSourceRightsAndPlatformRisk: boolean
 }

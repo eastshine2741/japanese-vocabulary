@@ -159,11 +159,15 @@ export const reelsSongCandidate: ReelsSongCandidate = {
 
 export const reelsSongDetail: ReelsSongDetail = {
   song: reelsSongCandidate,
+  lyricType: "SYNCED",
   headline: "밤을 달리는 마음",
   instagramHandle: "@kotonoha.music",
   catchphrase: "가사에서 바로 배우는 일본어",
+  fps: 30,
   minLineCount: 4,
   maxLineCount: null,
+  maxLyricsSpanMs: 60_000,
+  maxVocabularyPerLine: 2,
   lines: [0, 1, 2, 3].map((index) => ({
     index,
     startTimeMs: index * 2000,
@@ -172,7 +176,7 @@ export const reelsSongDetail: ReelsSongDetail = {
     selectable: true,
     ineligibleReason: null,
     tokens: lyricDetail.analyzedContent?.[0]?.tokens ?? [],
-    recommendedVocabulary: [{ japanese: "夢", reading: "ユメ", korean: "꿈" }],
+    recommendedVocabulary: [{ japanese: "沈む", reading: "シズム", korean: "가라앉다", partOfSpeech: "VERB" }],
   })),
 }
 

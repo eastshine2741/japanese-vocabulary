@@ -245,19 +245,26 @@ describe("admin web", () => {
     expect(screen.getByText("2m 00s")).toBeInTheDocument()
   })
 
-  test("renders reels factory and enables render after line selection and acknowledgement", async () => {
+  test("renders reels factory and enables render after line selection", async () => {
     const user = userEvent.setup()
     sessionStorage.setItem("kotonoha.admin.token", "admin-token")
     renderApp("/reels-factory")
 
     expect(await screen.findByRole("heading", { name: "Reels Factory" })).toBeInTheDocument()
-    expect(await screen.findByText("밤을 달리는 마음")).toBeInTheDocument()
+    expect(await screen.findByText("歌詞0")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: /Render and download MP4/ })).toBeDisabled()
 
     for (const index of [0, 1, 2, 3]) {
       await user.click(screen.getByLabelText(`Select lyric line ${index}`))
     }
-    await user.click(screen.getByLabelText("Acknowledge source rights and platform risk"))
+    // 타임스탬프에서 클립 구간이 잡히고 마지막 줄은 인스펙터에 뜬다
+    expect(screen.getByLabelText("Clip start")).toHaveValue("0:00.0")
+    expect(screen.getByLabelText("Line 3 start")).toHaveValue("0:06.0")
+    // 추천 단어는 기본 선택, 조동사는 고를 수 없고, 다른 동사는 눌러서 넣는다
+    expect(screen.getByLabelText("Toggle word 沈む")).toHaveAttribute("aria-pressed", "true")
+    expect(screen.getAllByLabelText("Toggle word ように")[0]).toBeDisabled()
+    await user.click(screen.getByLabelText("Toggle word 溶けてゆく"))
+    expect(screen.getByLabelText("Toggle word 溶けてゆく")).toHaveAttribute("aria-pressed", "true")
 
     expect(screen.getByRole("button", { name: /Render and download MP4/ })).toBeEnabled()
   })

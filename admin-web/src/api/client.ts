@@ -7,9 +7,10 @@ import type {
   Recommendation,
   RecommendationCandidate,
   RecommendationOperationResult,
-  ReelsPreview,
+  ReelsRenderRequest,
   ReelsSongCandidate,
   ReelsSongDetail,
+  ReelsSource,
   SongAnalysisWorkDetail,
   SongAnalysisWorkSummary,
   SongAnalysisWorkOperation,
@@ -166,19 +167,15 @@ export const adminApi = {
   reelsSong(token: string, id: number) {
     return request<ReelsSongDetail>(`/reels-factory/songs/${id}`, token)
   },
-  previewReel(
-    token: string,
-    body: { songId: number; lineIndexes: number[]; acknowledgeSourceRightsAndPlatformRisk: boolean },
-  ) {
-    return request<ReelsPreview>("/reels-factory/preview", token, {
+  /** MV 를 서버 캐시에 받아 두고 스트리밍 경로를 받는다. YouTube 추출이 여기서 일어난다. */
+  reelsSource(token: string, songId: number) {
+    return request<ReelsSource>(`/reels-factory/songs/${songId}/source`, token, {
       method: "POST",
-      body: JSON.stringify(body),
+      // 어드민 전용 화면이라 별도 확인 없이 항상 동의로 보낸다.
+      body: JSON.stringify({ acknowledgeSourceRightsAndPlatformRisk: true }),
     })
   },
-  renderReel(
-    token: string,
-    body: { songId: number; lineIndexes: number[]; acknowledgeSourceRightsAndPlatformRisk: boolean },
-  ) {
+  renderReel(token: string, body: ReelsRenderRequest) {
     return requestBlob("/reels-factory/render", token, {
       method: "POST",
       body: JSON.stringify(body),

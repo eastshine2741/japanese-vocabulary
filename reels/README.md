@@ -19,7 +19,7 @@ npm run smoke:fixture
 
 ```bash
 npm run render:request -- --input /tmp/render-input.json --output /tmp/reel.mp4
-npm run fetch:source -- --url https://youtu.be/... --output /tmp/source.mp4   # admin-api 미리보기 캐시가 호출
+npm run fetch:source -- --url https://youtu.be/... --output /tmp/source.mp4   # admin-api source 캐시가 호출
 ```
 
 ## 어드민 미리보기
@@ -29,6 +29,7 @@ npm run fetch:source -- --url https://youtu.be/... --output /tmp/source.mp4   # 
 - `admin-web/package.json` 의 `remotion` / `@remotion/player` 버전은 이 패키지의 `remotion` 과 **정확히 같아야** 합니다 (Remotion 은 패키지 간 버전 불일치를 거부).
 - `PromoReel.tsx` 는 `remotion` 과 `react` 외의 의존성을 추가하면 안 됩니다. `../../app-rn/src/utils/readingConverter` 처럼 import 가 없는 순수 TS 파일만 가져오세요.
 - `song.mvAsset` / `song.artworkAsset` 은 `public/` 파일명 또는 URL(`http…`, `/…`) 둘 다 받습니다. 렌더는 파일명, 미리보기는 admin-api 스트리밍 URL 을 넘깁니다.
+- props 는 어드민 에디터가 브라우저에서 만들고(`admin-web/src/pages/reels-factory/reelEditor.ts`) 렌더 요청에 그대로 실립니다. 첫 줄 `startFrame` 이 0 보다 크면 그 앞은 가사 없이 MV 만 흐르고, `vocabulary` 가 빈 줄은 단어 블록을 그리지 않습니다.
 
 sample 렌더 결과:
 

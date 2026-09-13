@@ -1,9 +1,10 @@
 package com.japanese.vocabulary.admin.controller
 
-import com.japanese.vocabulary.admin.dto.reels.AdminReelsPreviewResponse
 import com.japanese.vocabulary.admin.dto.reels.AdminReelsRenderRequest
 import com.japanese.vocabulary.admin.dto.reels.AdminReelsSongCandidateResponse
 import com.japanese.vocabulary.admin.dto.reels.AdminReelsSongDetailResponse
+import com.japanese.vocabulary.admin.dto.reels.AdminReelsSourceRequest
+import com.japanese.vocabulary.admin.dto.reels.AdminReelsSourceResponse
 import com.japanese.vocabulary.admin.reels.AdminReelsFactoryService
 import org.springframework.core.io.FileSystemResource
 import org.springframework.core.io.Resource
@@ -38,11 +39,15 @@ class AdminReelsFactoryController(
     @GetMapping("/songs/{songId}")
     fun getSong(@PathVariable songId: Long): AdminReelsSongDetailResponse = service.getSong(songId)
 
-    @PostMapping("/preview")
-    fun preview(@RequestBody request: AdminReelsRenderRequest): AdminReelsPreviewResponse = service.preview(request)
+    /** 에디터가 스크럽할 MV 를 캐시에 받아 두고 스트리밍 경로를 돌려준다. YouTube 추출이 여기서 일어난다. */
+    @PostMapping("/songs/{songId}/source")
+    fun prepareSource(
+        @PathVariable songId: Long,
+        @RequestBody request: AdminReelsSourceRequest,
+    ): AdminReelsSourceResponse = service.prepareSource(songId, request)
 
     /**
-     * 미리보기 `<video>` 가 읽는 MV 스트림. 인증은 query 의 미디어 토큰으로 하고(SecurityConfig 에서 permitAll),
+     * 에디터 `<video>` 와 Remotion Player 가 읽는 MV 스트림. 인증은 query 의 미디어 토큰으로 하고(SecurityConfig 에서 permitAll),
      * Range 요청은 Spring 이 Resource 응답을 206 으로 잘라 준다.
      */
     @GetMapping("/songs/{songId}/mv")

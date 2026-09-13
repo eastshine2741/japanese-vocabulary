@@ -107,11 +107,12 @@ export const PromoReel = ({data}: {data: PromoReelData}) => {
   const lines = data.lyricLines.length > 0 ? data.lyricLines : [emptyLine];
   const lyricsEndFrame = Math.max(1, data.lyricsEndFrame);
   // 지금 프레임에 시작해 있는 마지막 줄이 현재 줄이다. MV 타임라인과 같은 기준(startFrame)이다.
-  const activeIndex = lines.reduce((found, line, index) => (line.startFrame <= frame ? index : found), 0);
-  const activeLine = lines[activeIndex];
+  // 첫 줄보다 앞이면(어드민이 클립 시작을 첫 줄 앞에 둔 경우) 가사 없이 MV 만 흐른다.
+  const activeIndex = lines.reduce((found, line, index) => (line.startFrame <= frame ? index : found), -1);
+  const activeLine = lines[Math.max(0, activeIndex)];
   const localFrame = Math.max(0, frame - activeLine.startFrame);
   // 첫 줄은 진입 애니메이션 없이 정지 상태로 시작한다 — 릴스 첫 0.5초가 비면 그대로 넘긴다.
-  const entry = (delay: number) => (activeIndex === 0
+  const entry = (delay: number) => (activeIndex <= 0
     ? 1
     : spring({
       config: {damping: 18, mass: 0.7, stiffness: 110},
@@ -144,15 +145,19 @@ export const PromoReel = ({data}: {data: PromoReelData}) => {
 
       <div style={{...styles.activeLayer, opacity: activeOpacity}}>
         <Header data={data} />
-        <section style={styles.content}>
-          <div style={{...styles.lyricBlock, ...entryStyle(lyricEntry)}}>
-            <JapaneseLine line={activeLine} />
-            <p style={styles.korean}>{activeLine.koreanLyrics}</p>
-          </div>
-          <div style={entryStyle(wordsEntry)}>
-            <Vocabulary words={topWords(activeLine.vocabulary)} />
-          </div>
-        </section>
+        {activeIndex >= 0 && (
+          <section style={styles.content}>
+            <div style={{...styles.lyricBlock, ...entryStyle(lyricEntry)}}>
+              <JapaneseLine line={activeLine} />
+              <p style={styles.korean}>{activeLine.koreanLyrics}</p>
+            </div>
+            {activeLine.vocabulary.length > 0 && (
+              <div style={entryStyle(wordsEntry)}>
+                <Vocabulary words={topWords(activeLine.vocabulary)} />
+              </div>
+            )}
+          </section>
+        )}
       </div>
 
       <EndCard data={data} line={lines[lines.length - 1]} lineCount={lines.length} startFrame={lyricsEndFrame} />
