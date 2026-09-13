@@ -4,12 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.japanese.vocabulary.auth.jwt.JwtUtil
 import com.japanese.vocabulary.common.exception.BusinessException
-import com.japanese.vocabulary.deck.entity.DeckEntity
-import com.japanese.vocabulary.recommendation.entity.RecommendationCandidateStatus
-import com.japanese.vocabulary.recommendation.entity.RecommendationSource
-import com.japanese.vocabulary.recommendation.entity.SongRecommendationCandidateEntity
-import com.japanese.vocabulary.recommendation.entity.SongRecommendationEntity
-import com.japanese.vocabulary.recommendation.entity.SongRecommendationStatus
 import com.japanese.vocabulary.song.dto.AnalyzeSongRequest
 import com.japanese.vocabulary.song.model.AnalyzedLine
 import com.japanese.vocabulary.song.model.LyricLineData
@@ -34,7 +28,6 @@ import com.japanese.vocabulary.song.repository.LyricRepository
 import com.japanese.vocabulary.song.model.LyricWordCandidates
 import com.japanese.vocabulary.songanalysis.repository.SongAnalysisWorkRepository
 import com.japanese.vocabulary.song.repository.SongRepository
-import com.japanese.vocabulary.song.service.SpotlightService
 import com.japanese.vocabulary.song.model.WordCandidate
 import com.japanese.vocabulary.song.model.WordScoreComponents
 import com.japanese.vocabulary.songanalysis.service.SongAnalysisWorkService
@@ -58,7 +51,6 @@ import org.springframework.test.web.servlet.post
 import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
-import java.time.LocalDate
 import java.util.Collections
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
@@ -74,7 +66,6 @@ class SongControllerTest : ApiBaseIntegrationTest() {
     @Autowired private lateinit var lyricRepository: LyricRepository
     @Autowired private lateinit var workRepository: SongAnalysisWorkRepository
     @Autowired private lateinit var workService: SongAnalysisWorkService
-    @Autowired private lateinit var spotlightService: SpotlightService
 
     private fun newUser(): UserEntity = TestUserBuilder(entityManager).build()
     private fun newSong(title: String? = null, artist: String? = null): SongEntity =
@@ -109,63 +100,6 @@ class SongControllerTest : ApiBaseIntegrationTest() {
     private fun recentKey(userId: Long) = "user:$userId:recent_songs"
 
     @Autowired private lateinit var redis: StringRedisTemplate
-
-    // Mark a song as recently listened (mirrors RecentSongService's ZSet, score-by-id keeps it unique).
-    private fun listen(user: UserEntity, song: SongEntity) {
-        redis.opsForZSet().add(recentKey(user.id!!), song.id!!.toString(), song.id!!.toDouble())
-    }
-
-    // Mark a song as "learned" by giving it a deck — getSpotlight excludes these.
-    private fun learn(user: UserEntity, song: SongEntity) {
-        entityManager.persist(
-            DeckEntity(userId = user.id!!, songId = song.id!!, title = song.title, description = song.artist),
-        )
-        entityManager.flush()
-    }
-
-    private val latestRecommendationWeek: LocalDate = LocalDate.of(2026, 6, 22)
-
-    // Publish a song as a weekly recommendation. `analyzed = false` leaves analyzed_content NULL,
-    // which the published-ready gate rejects, so such a row must never become a spotlight candidate.
-    private fun recommend(
-        song: SongEntity,
-        weekStartDate: LocalDate = latestRecommendationWeek,
-        status: SongRecommendationStatus = SongRecommendationStatus.PUBLISHED,
-        analyzed: Boolean = true,
-        orderIndex: Int = 0,
-    ): SongRecommendationEntity {
-        val lyric = newLyric(song, raw = emptyList(), analyzed = if (analyzed) emptyList() else null)
-        if (!analyzed) {
-            // The JSON converter persists a null payload as the literal "null"; force a real NULL
-            // so the read-time safety gate sees a missing analysis (mirrors the recommendation tests).
-            entityManager.createNativeQuery("UPDATE lyrics SET analyzed_content = NULL WHERE id = :id")
-                .setParameter("id", lyric.id)
-                .executeUpdate()
-            entityManager.flush()
-        }
-        val candidate = SongRecommendationCandidateEntity(
-            source = RecommendationSource.APPLE_MUSIC_RSS,
-            sourceSongId = "src-${song.id}",
-            weekStartDate = weekStartDate,
-            sourceRank = 1,
-            status = RecommendationCandidateStatus.APPROVED,
-            title = song.title,
-            artistName = song.artist,
-        )
-        entityManager.persist(candidate)
-        entityManager.flush()
-        val recommendation = SongRecommendationEntity(
-            candidateId = candidate.id!!,
-            weekStartDate = weekStartDate,
-            status = status,
-            songId = song.id!!,
-            lyricId = lyric.id!!,
-            orderIndex = orderIndex,
-        )
-        entityManager.persist(recommendation)
-        entityManager.flush()
-        return recommendation
-    }
 
     @Nested
     inner class Analyze {
@@ -940,185 +874,6 @@ class SongControllerTest : ApiBaseIntegrationTest() {
             }.andReturn().response.contentAsString
             assertThat(readBody<List<RecentSongItemDto>>(otherBody).map { it.id })
                 .containsExactly(s1.id)
-        }
-    }
-
-    @Nested
-    inner class Spotlight {
-
-        @Test
-        fun `204 when user has no recent songs`() {
-            val me = newUser()
-
-            mockMvc.get("/api/songs/spotlight") {
-                header("Authorization", bearer(me))
-            }.andExpect { status { isNoContent() } }
-        }
-
-        @Test
-        fun `204 when every recent song is already learned`() {
-            val me = newUser()
-            val s1 = newSong(); val s2 = newSong()
-            listen(me, s1); listen(me, s2)
-            learn(me, s1); learn(me, s2)
-
-            mockMvc.get("/api/songs/spotlight") {
-                header("Authorization", bearer(me))
-            }.andExpect { status { isNoContent() } }
-        }
-
-        @Test
-        fun `returns a recent song the user has not learned`() {
-            val me = newUser()
-            val learned = newSong(); val fresh = newSong()
-            listen(me, learned); listen(me, fresh)
-            learn(me, learned)
-
-            val body = mockMvc.get("/api/songs/spotlight") {
-                header("Authorization", bearer(me))
-            }.andExpect { status { isOk() } }.andReturn().response.contentAsString
-
-            assertThat(readBody<SongStudyDto>(body).song.id).isEqualTo(fresh.id)
-        }
-
-        @Test
-        fun `decks of other users do not exclude a song`() {
-            val me = newUser()
-            val other = newUser()
-            val song = newSong()
-            listen(me, song)
-            learn(other, song) // someone else learned it — must not affect me
-
-            val body = mockMvc.get("/api/songs/spotlight") {
-                header("Authorization", bearer(me))
-            }.andExpect { status { isOk() } }.andReturn().response.contentAsString
-
-            assertThat(readBody<SongStudyDto>(body).song.id).isEqualTo(song.id)
-        }
-
-        @Test
-        fun `picks randomly among unlearned songs and never surfaces a learned one`() {
-            val me = newUser()
-            val learned = newSong()
-            listen(me, learned); learn(me, learned)
-            val fresh = (1..4).map { newSong() }
-            fresh.forEach { listen(me, it) }
-            val freshIds = fresh.mapNotNull { it.id }.toSet()
-
-            val seen = mutableSetOf<Long?>()
-            repeat(40) {
-                val body = mockMvc.get("/api/songs/spotlight") {
-                    header("Authorization", bearer(me))
-                }.andExpect { status { isOk() } }.andReturn().response.contentAsString
-                seen.add(readBody<SongStudyDto>(body).song.id)
-            }
-
-            // Only unlearned songs are ever surfaced; the learned one never appears.
-            assertThat(seen).isSubsetOf(freshIds)
-            assertThat(seen).doesNotContain(learned.id)
-            // With 4 candidates over 40 draws, always returning a single fixed song is
-            // effectively impossible (~4·(1/4)^40), so this proves the pick is randomized.
-            assertThat(seen.size).isGreaterThan(1)
-        }
-
-        @Test
-        fun `returns a published recommendation when the user has no recent songs`() {
-            val me = newUser()
-            val recommended = newSong()
-            recommend(recommended)
-
-            val body = mockMvc.get("/api/songs/spotlight") {
-                header("Authorization", bearer(me))
-            }.andExpect { status { isOk() } }.andReturn().response.contentAsString
-
-            assertThat(readBody<SongStudyDto>(body).song.id).isEqualTo(recommended.id)
-        }
-
-        @Test
-        fun `surfaces songs from both the recent pool and the recommendation pool`() {
-            val me = newUser()
-            val recent = newSong()
-            listen(me, recent)
-            val recommended = (1..3).map { index -> newSong().also { song -> recommend(song, orderIndex = index) } }
-            val poolIds = (recommended.mapNotNull { it.id } + recent.id!!).toSet()
-
-            val seen = mutableSetOf<Long?>()
-            repeat(40) {
-                val body = mockMvc.get("/api/songs/spotlight") {
-                    header("Authorization", bearer(me))
-                }.andExpect { status { isOk() } }.andReturn().response.contentAsString
-                seen.add(readBody<SongStudyDto>(body).song.id)
-            }
-
-            assertThat(seen).isSubsetOf(poolIds)
-            // 4 equally likely candidates over 40 draws: a single fixed answer is effectively
-            // impossible, so both pools really feed the same random pick.
-            assertThat(seen.size).isGreaterThan(1)
-        }
-
-        @Test
-        fun `a recommendation the user already learned is never surfaced`() {
-            val me = newUser()
-            val learnedRecommendation = newSong()
-            recommend(learnedRecommendation)
-            learn(me, learnedRecommendation)
-            val fresh = newSong()
-            listen(me, fresh)
-
-            repeat(20) {
-                val body = mockMvc.get("/api/songs/spotlight") {
-                    header("Authorization", bearer(me))
-                }.andExpect { status { isOk() } }.andReturn().response.contentAsString
-                assertThat(readBody<SongStudyDto>(body).song.id).isEqualTo(fresh.id)
-            }
-        }
-
-        @Test
-        fun `204 when every recent song and every recommendation is already learned`() {
-            val me = newUser()
-            val recent = newSong()
-            listen(me, recent); learn(me, recent)
-            val recommended = newSong()
-            recommend(recommended); learn(me, recommended)
-
-            mockMvc.get("/api/songs/spotlight") {
-                header("Authorization", bearer(me))
-            }.andExpect { status { isNoContent() } }
-        }
-
-        @Test
-        fun `a song that is both recent and recommended is a single candidate`() {
-            val me = newUser()
-            val both = newSong()
-            listen(me, both)
-            recommend(both)
-
-            assertThat(spotlightService.candidateSongIds(me.id!!)).containsExactly(both.id)
-        }
-
-        @Test
-        fun `recommendations that fail the published-ready gate are not candidates`() {
-            val me = newUser()
-            recommend(newSong(), status = SongRecommendationStatus.PENDING)
-            recommend(newSong(), analyzed = false)
-            recommend(newSong(), weekStartDate = latestRecommendationWeek.minusWeeks(1))
-            // A newer published week exists, so the older week above is not the latest.
-            val latest = newSong()
-            recommend(latest)
-
-            assertThat(spotlightService.candidateSongIds(me.id!!)).containsExactly(latest.id)
-        }
-
-        @Test
-        fun `spotlighting a recommendation does not record a recent listen`() {
-            val me = newUser()
-            recommend(newSong())
-
-            mockMvc.get("/api/songs/spotlight") {
-                header("Authorization", bearer(me))
-            }.andExpect { status { isOk() } }
-
-            assertThat(redis.opsForZSet().zCard(recentKey(me.id!!)) ?: 0L).isZero()
         }
     }
 

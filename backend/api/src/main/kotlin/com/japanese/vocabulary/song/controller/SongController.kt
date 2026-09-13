@@ -19,7 +19,6 @@ import com.japanese.vocabulary.song.service.RecentSongService
 import com.japanese.vocabulary.song.service.SearchHistoryService
 import com.japanese.vocabulary.song.service.SongSearchService
 import com.japanese.vocabulary.song.service.SongStudyViewService
-import com.japanese.vocabulary.song.service.SpotlightService
 import com.japanese.vocabulary.song.service.songdetail.SongDetailQueryService
 import com.japanese.vocabulary.song.service.songdetail.SongStudyBootstrapService
 import org.springframework.http.ResponseEntity
@@ -36,7 +35,6 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/api/songs")
 class SongController(
     private val songStudyViewService: SongStudyViewService,
-    private val spotlightService: SpotlightService,
     private val songAnalysisWorkService: SongAnalysisWorkService,
     private val songSearchService: SongSearchService,
     private val recentSongService: RecentSongService,
@@ -106,19 +104,6 @@ class SongController(
         }
 
         return ResponseEntity.ok(recentSongs)
-    }
-
-    /**
-     * The home "Spotlight" song: a random pick among the user's recently played songs and this
-     * week's published recommendations, excluding songs the user has already saved words from
-     * (no deck). Returns full study data so the hero can play its MV + synced lyrics.
-     * 204 when there is no eligible song. Does NOT record a listen (read-only surfacing).
-     */
-    @GetMapping("/spotlight")
-    fun getSpotlight(): ResponseEntity<SongStudyDto> {
-        val analyzed = spotlightService.pickForUser(currentUserId())
-            ?: return ResponseEntity.noContent().build()
-        return ResponseEntity.ok(analyzed.toResponse())
     }
 
     @GetMapping("/{id}")

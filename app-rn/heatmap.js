@@ -3,16 +3,19 @@
  * @input populated: boolean = true
  * @input selectedCol: number = -1
  * @input selectedRow: number = -1
+ * @input scale: number = 1
  */
 const populated = pencil.input.populated;
 const selectedCol = pencil.input.selectedCol;
 const selectedRow = pencil.input.selectedRow;
+const scale = pencil.input.scale || 1;
 const cols = 16;
 const rows = 7;
-const cellSize = 14;
-const gap = 3;
-const labelWidth = 18;
-const labelGap = 6;
+const cellSize = 14 * scale;
+const gap = 3 * scale;
+const labelWidth = 18 * scale;
+const labelGap = 6 * scale;
+const radius = 3 * scale;
 const gridStart = labelWidth + labelGap;
 
 const colors = ["$heatmap-l0", "$heatmap-l1", "$heatmap-l2", "$heatmap-l3", "$heatmap-l4"];
@@ -32,8 +35,8 @@ for (let r = 0; r < rows; r++) {
       type: "text",
       content: dayLabels[r],
       x: 0,
-      y: r * (cellSize + gap) + 2,
-      fontSize: 9,
+      y: r * (cellSize + gap) + 2 * scale,
+      fontSize: 9 * scale,
       fontFamily: "Inter",
       fill: "#888888",
     });
@@ -58,18 +61,18 @@ for (let c = 0; c < cols; c++) {
         y: cellY,
         width: cellSize,
         height: cellSize,
-        cornerRadius: 3,
+        cornerRadius: radius,
         fill: freezeFill,
-        stroke: { thickness: 1, fill: freezeStroke, align: "inside" },
+        stroke: { thickness: scale, fill: freezeStroke, align: "inside" },
       });
       nodes.push({
         type: "icon_font",
         iconFontFamily: "lucide",
         iconFontName: "snowflake",
-        x: cellX + 2,
-        y: cellY + 2,
-        width: 10,
-        height: 10,
+        x: cellX + 2 * scale,
+        y: cellY + 2 * scale,
+        width: 10 * scale,
+        height: 10 * scale,
         fill: freezeStroke,
       });
       continue;
@@ -96,7 +99,7 @@ for (let c = 0; c < cols; c++) {
       y: cellY,
       width: cellSize,
       height: cellSize,
-      cornerRadius: 3,
+      cornerRadius: radius,
       fill: colors[intensity],
     });
   }
@@ -107,13 +110,13 @@ if (selectedCol >= 0 && selectedRow >= 0) {
   const cellY = selectedRow * (cellSize + gap);
   nodes.push({
     type: "rectangle",
-    x: cellX - 2,
-    y: cellY - 2,
-    width: cellSize + 4,
-    height: cellSize + 4,
-    cornerRadius: 5,
+    x: cellX - 2 * scale,
+    y: cellY - 2 * scale,
+    width: cellSize + 4 * scale,
+    height: cellSize + 4 * scale,
+    cornerRadius: 5 * scale,
     fill: "#FFFFFF00",
-    stroke: { thickness: 1.5, fill: "#1A1A1A", align: "inside" },
+    stroke: { thickness: 1.5 * scale, fill: "#1A1A1A", align: "inside" },
   });
 }
 

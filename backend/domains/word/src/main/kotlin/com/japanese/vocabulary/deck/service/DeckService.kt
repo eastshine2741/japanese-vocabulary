@@ -121,13 +121,6 @@ class DeckService(
         return DeckListDto(items = items, nextCursor = nextCursor)
     }
 
-    /** Song ids the user has a deck for (i.e. has saved words from). */
-    @Transactional(readOnly = true)
-    fun getDeckSongIds(userId: Long): Set<Long> =
-        deckRepository.findByUserIdOrderByCreatedAtDesc(userId, Pageable.unpaged())
-            .mapNotNull { it.songId }
-            .toSet()
-
     @Transactional
     fun createDeck(userId: Long, request: CreateDeckDto): DeckDto {
         val title = request.title.trim()

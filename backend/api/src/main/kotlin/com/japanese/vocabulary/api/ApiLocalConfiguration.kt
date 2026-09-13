@@ -21,7 +21,6 @@ import com.japanese.vocabulary.song.service.RecentSongService
 import com.japanese.vocabulary.song.service.SearchHistoryService
 import com.japanese.vocabulary.song.service.SongSearchService
 import com.japanese.vocabulary.song.service.SongStudyViewService
-import com.japanese.vocabulary.song.service.SpotlightService
 import com.japanese.vocabulary.song.service.songdetail.SongDetailQueryService
 import com.japanese.vocabulary.studystats.controller.StudyStatsController
 import com.japanese.vocabulary.studystats.util.KstClock
@@ -54,7 +53,6 @@ import org.springframework.context.annotation.Import
     SearchHistoryService::class,
     SongSearchService::class,
     SongStudyViewService::class,
-    SpotlightService::class,
     SongDetailQueryService::class,
     StudyStatsController::class,
     KstClock::class,
