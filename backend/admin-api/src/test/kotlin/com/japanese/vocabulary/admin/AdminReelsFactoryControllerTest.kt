@@ -21,6 +21,7 @@ import com.japanese.vocabulary.song.model.PartOfSpeech
 import com.japanese.vocabulary.song.model.Token
 import com.japanese.vocabulary.test.fixtures.TestSongBuilder
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
@@ -41,6 +42,13 @@ import java.nio.file.Path
 class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
     @Autowired private lateinit var fakeRenderer: FakeReelsRenderService
     @Autowired private lateinit var sourceCache: AdminReelsSourceCache
+
+    /** fake 렌더러는 컨텍스트에 하나뿐이라 앞 테스트가 남긴 입력을 지운다. */
+    @BeforeEach
+    fun resetRenderer() {
+        fakeRenderer.lastInput = null
+        fakeRenderer.failWith = null
+    }
 
     @Test
     fun `reels factory lists candidates and exposes analyzed lines with editor limits`() {
