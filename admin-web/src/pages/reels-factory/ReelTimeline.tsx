@@ -39,7 +39,7 @@ export function ReelTimeline({
   onSelectLine,
 }: Props) {
   return (
-    <div className="flex h-full flex-col gap-2 rounded-lg border border-[#d9e1ea] bg-white p-3">
+    <div className="flex h-full select-none flex-col gap-2 rounded-lg border border-[#d9e1ea] bg-white p-3 [touch-action:none]">
       <Overview
         editor={editor}
         mvDurationMs={mvDurationMs}
@@ -126,11 +126,7 @@ function Overview({
             }}
             style={{ left: `${left}%`, width: `${Math.max(width, 0.4)}%` }}
           >
-            <Handle
-              ariaLabel="Clip start handle"
-              side="left"
-              onDrag={(clientX) => onSetSourceStart(msAt(clientX))}
-            />
+            <Handle ariaLabel="Clip start handle" side="left" onDrag={(clientX) => onSetSourceStart(msAt(clientX))} />
             <Handle ariaLabel="Clip end handle" side="right" onDrag={(clientX) => onSetEnd(msAt(clientX))} />
           </div>
         ) : null}
@@ -264,7 +260,7 @@ function Detail({
               </div>
               <div
                 aria-label="Lyrics end"
-                className="absolute inset-y-0 z-10 w-2 -translate-x-1/2 cursor-ew-resize"
+                className="group absolute -top-1 -bottom-1 z-10 w-6 -translate-x-1/2 cursor-ew-resize"
                 onPointerDown={(event) => {
                   if (event.button !== 0) return
                   event.stopPropagation()
@@ -272,7 +268,8 @@ function Detail({
                 }}
                 style={{ left: `${at(editor.endMs)}%` }}
               >
-                <div className="mx-auto h-full w-0.5 bg-[#475569]" />
+                <div className="mx-auto h-full w-0.5 bg-[#475569] group-hover:w-1 group-active:w-1" />
+                <div className="absolute top-0 left-1/2 h-3 w-3 -translate-x-1/2 rounded-sm bg-[#475569]" />
               </div>
             </>
           ) : null}
@@ -294,12 +291,13 @@ function Handle({
   side: "left" | "right"
   onDrag(clientX: number): void
 }) {
+  // 잡는 영역은 20px 로 클립 경계 양쪽에 걸치고, 보이는 막대는 안쪽 10px 이다.
   return (
     <div
       aria-label={ariaLabel}
       className={cn(
-        "absolute inset-y-0 z-10 w-2.5 cursor-ew-resize bg-[#0f766e]",
-        side === "left" ? "left-0 rounded-l" : "right-0 rounded-r",
+        "group absolute -top-1 -bottom-1 z-10 w-5 cursor-ew-resize",
+        side === "left" ? "-left-2.5" : "-right-2.5",
       )}
       onPointerDown={(event) => {
         if (event.button !== 0) return
@@ -307,7 +305,14 @@ function Handle({
         startDrag(event, { onMove: (_delta, clientX) => onDrag(clientX) })
       }}
       role="presentation"
-    />
+    >
+      <div
+        className={cn(
+          "absolute top-1 bottom-1 w-2.5 bg-[#0f766e] group-hover:bg-[#115e59] group-active:bg-[#115e59]",
+          side === "left" ? "left-2.5 rounded-l" : "right-2.5 rounded-r",
+        )}
+      />
+    </div>
   )
 }
 
@@ -323,11 +328,24 @@ function Playhead({ percent }: { percent: number }) {
 /**
  * 포인터 드래그. 창 단위 리스너라 트랙 밖으로 나가도 계속 잡힌다.
  * 3px 이내 움직임은 클릭으로 본다(onEnd 의 moved=false).
+ * 기본 동작을 막고 포인터를 잡아 두지 않으면 브라우저가 텍스트 선택·네이티브 드래그로 가져간다.
  */
 function startDrag(
   event: React.PointerEvent,
   handlers: { onMove?(deltaPx: number, clientX: number): void; onEnd?(moved: boolean): void },
 ) {
+  event.preventDefault()
+  const target = event.currentTarget
+  try {
+    target.setPointerCapture(event.pointerId)
+  } catch {
+    // 이미 캡처가 끝난 포인터면 창 리스너만으로 간다.
+  }
+  const bodyUserSelect = document.body.style.userSelect
+  const bodyCursor = document.body.style.cursor
+  document.body.style.userSelect = "none"
+  // 드래그 중엔 잡은 요소의 커서를 창 전체에 유지한다(트랙 밖으로 나가도 안 바뀌게).
+  document.body.style.cursor = getComputedStyle(target).cursor
   const originX = event.clientX
   let moved = false
   const onMove = (move: PointerEvent) => {
@@ -339,6 +357,9 @@ function startDrag(
     window.removeEventListener("pointermove", onMove)
     window.removeEventListener("pointerup", onUp)
     window.removeEventListener("pointercancel", onUp)
+    document.body.style.userSelect = bodyUserSelect
+    document.body.style.cursor = bodyCursor
+    if (target.hasPointerCapture(event.pointerId)) target.releasePointerCapture(event.pointerId)
     handlers.onEnd?.(moved)
   }
   window.addEventListener("pointermove", onMove)
