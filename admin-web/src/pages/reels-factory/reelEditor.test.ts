@@ -10,6 +10,7 @@ import {
   parseTimecode,
   setEnd,
   setLineStart,
+  setLinesIncluded,
   setSourceStart,
   shiftAll,
   toggleLine,
@@ -112,6 +113,36 @@ describe("toggleLine", () => {
   test("ignores lines that are not selectable", () => {
     const detail = detailWith([{ index: 0, selectable: false, ineligibleReason: "not_analyzed" }])
     expect(toggleLine(emptyEditor(), detail, 0).lines).toEqual([])
+  })
+})
+
+describe("setLinesIncluded", () => {
+  test("adds a dragged range in song order and skips lines already in or not selectable", () => {
+    const detail = detailWith([
+      { index: 0, startTimeMs: 10_000 },
+      { index: 1, startTimeMs: 12_000 },
+      { index: 2, startTimeMs: 14_000, selectable: false, ineligibleReason: "no words" },
+      { index: 3, startTimeMs: 16_000 },
+      { index: 4, startTimeMs: 18_000 },
+    ])
+    const seeded = toggleLine(emptyEditor(), detail, 3)
+    // 범위를 거꾸로 줘도 곡 순서로 들어가고, 이미 든 3번은 그대로다
+    const state = setLinesIncluded(seeded, detail, [4, 3, 1, 0], true)
+    expect(state.lines.map((line) => line.index)).toEqual([0, 1, 3, 4])
+    expect(state.sourceStartMs).toBe(10_000)
+    expect(state.endMs).toBe(18_000 + DEFAULT_TAIL_MS)
+    // 고를 수 없는 줄은 범위에 있어도 안 들어간다
+    expect(setLinesIncluded(state, detail, [2], true)).toEqual(state)
+  })
+
+  test("removes a dragged range and leaves the rest untouched", () => {
+    let state = emptyEditor()
+    for (const index of [0, 1, 2, 3, 4]) state = toggleLine(state, synced, index)
+    const removed = setLinesIncluded(state, synced, [1, 2, 3], false)
+    expect(removed.lines.map((line) => line.index)).toEqual([0, 4])
+    expect(removed.lines[1]).toEqual(state.lines[4])
+    expect(removed.endMs).toBe(state.endMs)
+    expect(setLinesIncluded(removed, synced, [1, 2], false)).toEqual(removed)
   })
 })
 

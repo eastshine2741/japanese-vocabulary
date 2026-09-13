@@ -98,6 +98,18 @@ export function toggleLine(state: EditorState, detail: ReelsSongDetail, index: n
   return appended ? { ...fitted, endMs: Math.max(fitted.endMs, defaultEndMs(detail, fitted.lines[at])) } : fitted
 }
 
+/**
+ * 여러 줄을 한 번에 넣거나 뺀다. 줄 목록에서 드래그로 범위를 고를 때 쓴다.
+ * 곡 순서로 하나씩 [toggleLine] 을 접어 타이밍 불변식을 그대로 지키고, 이미 그 상태인 줄은 건너뛴다.
+ */
+export function setLinesIncluded(state: EditorState, detail: ReelsSongDetail, indexes: number[], included: boolean): EditorState {
+  const sorted = [...new Set(indexes)].sort((a, b) => a - b)
+  return sorted.reduce((current, index) => {
+    const has = current.lines.some((line) => line.index === index)
+    return has === included ? current : toggleLine(current, detail, index)
+  }, state)
+}
+
 /** 줄 시작을 옮긴다. 이웃 줄 사이로 clamp 하고, 첫 줄·마지막 줄이면 클립 범위를 넓힌다. */
 export function setLineStart(state: EditorState, detail: ReelsSongDetail, index: number, startMs: number): EditorState {
   const at = state.lines.findIndex((line) => line.index === index)

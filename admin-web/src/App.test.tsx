@@ -260,8 +260,12 @@ describe("admin web", () => {
     expect(await screen.findByText("歌詞0")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: /Render and download MP4/ })).toBeDisabled()
 
+    // 줄 목록이 첫 번째. 인스펙터·타임라인에도 같은 가사가 뜬다.
+    const row = (index: number) => screen.getAllByText(`歌詞${index}`)[0]
+    // 첫 줄에서 눌러 마지막 줄까지 끌면 범위가 한 번에 들어간다
+    await user.pointer([{ keys: "[MouseLeft>]", target: row(0) }, { target: row(1) }, { target: row(3) }, { keys: "[/MouseLeft]" }])
     for (const index of [0, 1, 2, 3]) {
-      await user.click(screen.getByLabelText(`Select lyric line ${index}`))
+      expect(screen.getByLabelText(`Select lyric line ${index}`)).toHaveAttribute("aria-pressed", "true")
     }
     // 타임스탬프에서 클립 구간이 잡히고 마지막 줄은 인스펙터에 뜬다
     expect(screen.getByLabelText("Clip start")).toHaveValue("0:00.0")
@@ -273,5 +277,21 @@ describe("admin web", () => {
     expect(screen.getByLabelText("Toggle word 溶けてゆく")).toHaveAttribute("aria-pressed", "true")
 
     expect(screen.getByRole("button", { name: /Render and download MP4/ })).toBeEnabled()
+
+    // 든 줄에서 끌기 시작하면 빼기, 체크 한 번은 그 줄만 토글, Shift+클릭은 마지막 줄부터 범위
+    await user.pointer([{ keys: "[MouseLeft>]", target: row(2) }, { target: row(3) }, { keys: "[/MouseLeft]" }])
+    expect(screen.getByLabelText("Select lyric line 2")).toHaveAttribute("aria-pressed", "false")
+    expect(screen.getByLabelText("Select lyric line 3")).toHaveAttribute("aria-pressed", "false")
+    expect(screen.getByLabelText("Select lyric line 1")).toHaveAttribute("aria-pressed", "true")
+    await user.click(screen.getByLabelText("Select lyric line 1"))
+    expect(screen.getByLabelText("Select lyric line 1")).toHaveAttribute("aria-pressed", "false")
+    await user.keyboard("{Shift>}")
+    await user.click(row(3))
+    await user.keyboard("{/Shift}")
+    for (const index of [1, 2, 3]) {
+      expect(screen.getByLabelText(`Select lyric line ${index}`)).toHaveAttribute("aria-pressed", "true")
+    }
+    await user.click(screen.getByLabelText("Clear selected lines"))
+    expect(screen.getByRole("button", { name: /Render and download MP4/ })).toBeDisabled()
   })
 })
