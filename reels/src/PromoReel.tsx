@@ -1,7 +1,9 @@
 import {
   AbsoluteFill,
+  Easing,
   OffthreadVideo,
   interpolate,
+  spring,
   staticFile,
   useCurrentFrame,
   useVideoConfig,
@@ -164,6 +166,10 @@ const END_CARD_FADE_FRAMES = 6;
 const linear = (frame: number, from: number, to: number) =>
   interpolate(frame, [from, to], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
 
+// 목업 안 화면 전환용 — 앱처럼 감속(ease-out)한다. 가사·엔드카드 전환은 linear 를 쓴다.
+const eased = (frame: number, from: number, to: number) =>
+  interpolate(frame, [from, to], [0, 1], {easing: Easing.out(Easing.cubic), extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+
 const entryStyle = (progress: number): CSSProperties => ({
   opacity: progress,
   transform: `translateY(${interpolate(progress, [0, 1], [14, 0])}px)`,
@@ -285,7 +291,6 @@ const SHEET_EXPANDED_TOP = 64;
 // 엔드카드 안 목업 타임라인(엔드카드 시작 기준 프레임). 전환은 전부 하드컷이고 움직임은 시트·스와이프 둘뿐이다.
 const MOCK_T = {
   sheetRise: 10,
-  sheetRiseEnd: 22,
   wordTap: 40,
   reviewOpen: 48,
   frontTap: 84,
@@ -293,13 +298,13 @@ const MOCK_T = {
   ratingTap: 126,
   affordance: 132,
   swipeStart: 156,
-  swipeEnd: 166,
 };
 const TAP_FRAMES = 8;
-// 화면 전환 길이. 프로덕션은 260ms 안팎이고, 스프링 대신 직선으로 간다.
-const PUSH_FRAMES = 8;
-const REVEAL_FRAMES = 8;
+// 화면 전환 길이. 프로덕션(260ms 안팎)처럼 ease-out 으로 감속한다.
+const PUSH_FRAMES = 10;
+const REVEAL_FRAMES = 10;
 const AFFORDANCE_FRAMES = 8;
+const SWIPE_FRAMES = 12;
 
 const AppMockup = ({
   data,
@@ -314,7 +319,9 @@ const AppMockup = ({
   artwork: string | null;
   frame: number;
 }) => {
-  const rise = linear(frame, MOCK_T.sheetRise, MOCK_T.sheetRiseEnd);
+  const {fps} = useVideoConfig();
+  // gorhom BottomSheet 의 스프링 감속
+  const rise = spring({config: {damping: 20, mass: 0.8, stiffness: 120}, fps, frame: Math.max(0, frame - MOCK_T.sheetRise)});
   const sheetTop = interpolate(rise, [0, 1], [PHONE_HEIGHT - SHEET_PEEK_HEIGHT, SHEET_EXPANDED_TOP]);
   const words = mockWords(line);
   const wordCount = data.wordCount ?? uniqueWordCount(data.lyricLines);
@@ -520,12 +527,12 @@ const ReviewMock = ({
   frame: number;
 }) => {
   // native-stack push — 오른쪽에서 밀려 들어온다.
-  const push = linear(frame, MOCK_T.reviewOpen, MOCK_T.reviewOpen + PUSH_FRAMES);
+  const push = eased(frame, MOCK_T.reviewOpen, MOCK_T.reviewOpen + PUSH_FRAMES);
   // WordLayer.revealProgress — 앞면 표제어가 줄며 올라가고 뒷면이 아래서 올라온다.
-  const reveal = linear(frame, MOCK_T.reveal, MOCK_T.reveal + REVEAL_FRAMES);
+  const reveal = eased(frame, MOCK_T.reveal, MOCK_T.reveal + REVEAL_FRAMES);
   const rated = frame >= MOCK_T.ratingTap;
-  const affordance = linear(frame, MOCK_T.affordance, MOCK_T.affordance + AFFORDANCE_FRAMES);
-  const swipe = linear(frame, MOCK_T.swipeStart, MOCK_T.swipeEnd);
+  const affordance = eased(frame, MOCK_T.affordance, MOCK_T.affordance + AFFORDANCE_FRAMES);
+  const swipe = eased(frame, MOCK_T.swipeStart, MOCK_T.swipeStart + SWIPE_FRAMES);
   const current = words[0];
   const next = words[1] ?? null;
   const swiped = next !== null && swipe >= 1;
