@@ -1,7 +1,11 @@
 import React from 'react';
+import { Easing } from 'react-native';
 import type { NavigatorScreenParams } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import {
+  createBottomTabNavigator,
+  type BottomTabNavigationOptions,
+} from '@react-navigation/bottom-tabs';
 import BottomTabBar from '../components/BottomTabBar';
 
 import LoginScreen from '../screens/LoginScreen';
@@ -79,11 +83,46 @@ export type TabParamList = {
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
 
+// 탭 전환 애니메이션. 옆 탭으로 갈 때 이전 화면은 반대쪽으로 밀리며 사라지고 새 화면은
+// 그쪽에서 밀려 들어오며 나타난다. 탭바 탭이든 `navigation.navigate('Search')` 같은
+// 코드 호출이든 navigator state 의 index 변화가 구동하므로 진입 경로와 무관하게 같다.
+// 내장 `forShift` 는 50px 을 밀어서 두 화면이 겹치는 동안 옆 경계가 드러난다 — 이동은
+// 방향만 느껴질 만큼 줄이고, 겹침 구간은 페이드가 대부분 가리게 둔다.
+const TAB_SHIFT_PX = 12;
+
+const forSubtleShift: NonNullable<BottomTabNavigationOptions['sceneStyleInterpolator']> = ({ current }) => {
+  return {
+    sceneStyle: {
+      opacity: current.progress.interpolate({
+        inputRange: [-1, 0, 1],
+        outputRange: [0, 1, 0],
+      }),
+      transform: [
+        {
+          translateX: current.progress.interpolate({
+            inputRange: [-1, 0, 1],
+            outputRange: [-TAB_SHIFT_PX, 0, TAB_SHIFT_PX],
+          }),
+        },
+      ],
+    },
+  };
+};
+
+const TAB_SCREEN_OPTIONS: BottomTabNavigationOptions = {
+  headerShown: false,
+  transitionSpec: {
+    animation: 'timing',
+    config: { duration: 200, easing: Easing.out(Easing.cubic) },
+  },
+  sceneStyleInterpolator: forSubtleShift,
+};
+
 function MainTabs() {
   return (
     <Tab.Navigator
       tabBar={(props) => <BottomTabBar {...props} />}
-      screenOptions={{ headerShown: false }}
+      screenOptions={TAB_SCREEN_OPTIONS}
     >
       <Tab.Screen name="Home" component={HomeTab} />
       <Tab.Screen name="Search" component={SearchScreen} />

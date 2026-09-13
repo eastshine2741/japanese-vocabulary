@@ -19,7 +19,6 @@ import com.japanese.vocabulary.song.service.RecentSongService
 import com.japanese.vocabulary.song.service.SearchHistoryService
 import com.japanese.vocabulary.song.service.SongSearchService
 import com.japanese.vocabulary.song.service.SongStudyViewService
-import com.japanese.vocabulary.song.service.SpotlightService
 import com.japanese.vocabulary.song.service.songdetail.SongDetailQueryService
 import com.japanese.vocabulary.song.service.songdetail.SongStudyBootstrapService
 import org.springframework.http.ResponseEntity
@@ -36,7 +35,6 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/api/songs")
 class SongController(
     private val songStudyViewService: SongStudyViewService,
-    private val spotlightService: SpotlightService,
     private val songAnalysisWorkService: SongAnalysisWorkService,
     private val songSearchService: SongSearchService,
     private val recentSongService: RecentSongService,
@@ -108,19 +106,6 @@ class SongController(
         return ResponseEntity.ok(recentSongs)
     }
 
-    /**
-     * The home "Spotlight" song: a random pick among the user's recently played songs and this
-     * week's published recommendations, excluding songs the user has already saved words from
-     * (no deck). Returns full study data so the hero can play its MV + synced lyrics.
-     * 204 when there is no eligible song. Does NOT record a listen (read-only surfacing).
-     */
-    @GetMapping("/spotlight")
-    fun getSpotlight(): ResponseEntity<SongStudyDto> {
-        val analyzed = spotlightService.pickForUser(currentUserId())
-            ?: return ResponseEntity.noContent().build()
-        return ResponseEntity.ok(analyzed.toResponse())
-    }
-
     @GetMapping("/{id}")
     fun getSongById(@PathVariable id: Long): ResponseEntity<SongDto> {
         val response = try {
@@ -153,16 +138,16 @@ class SongController(
     }
 
     /**
-     * 홈탭 콜드스타트 전용: 오늘 due 가 없을 때 보여준 추천곡 미리보기 단어에 rating 을 주면
-     * 그 곡을 통째로 담고 그 단어를 곧바로 리뷰한다. 응답에 남은 due 카드까지 담아 클라이언트가
-     * 별도 조회 없이 바로 이어서 복습하게 한다.
+     * 미리보기 카드(홈 콜드스타트의 추천곡 단어, 곡 상세에서 고른 아직 안 담긴 단어)에 rating 을
+     * 주면 그 곡을 통째로 담고 그 단어를 곧바로 리뷰한다. 응답에 남은 due 카드까지 담아
+     * 클라이언트가 별도 조회 없이 바로 이어서 복습하게 한다.
      */
     @PostMapping("/{id}/study-bootstrap")
     fun studyBootstrap(
         @PathVariable id: Long,
         @RequestBody request: SongStudyBootstrapRequest,
     ): SongStudyBootstrapResponse =
-        songStudyBootstrapService.bootstrap(currentUserId(), id, request.rating)
+        songStudyBootstrapService.bootstrap(currentUserId(), id, request.rating, request.leadJapanese)
 
     @GetMapping("/search")
     fun searchSongs(@RequestParam q: String): ResponseEntity<SongSearchResponse> {

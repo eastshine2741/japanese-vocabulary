@@ -15,16 +15,6 @@ export function getJlptColor(level: string | null | undefined): string {
   return (level && JLPT_COLORS[level]) || Colors.textMuted;
 }
 
-export function JlptBadge({ level }: { level: string | null }) {
-  if (!level) return null;
-  const color = JLPT_COLORS[level] || Colors.textMuted;
-  return (
-    <View style={[styles.badge, { backgroundColor: color + '20' }]}>
-      <Text style={[styles.badgeText, { color }]}>{level}</Text>
-    </View>
-  );
-}
-
 export function PosBadge({ pos }: { pos: string }) {
   const info = POS_INFO[pos];
   const color = info?.color ?? Colors.primary;

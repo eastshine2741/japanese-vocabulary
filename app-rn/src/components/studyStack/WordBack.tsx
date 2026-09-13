@@ -11,6 +11,15 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
+import Reanimated, {
+  Easing as ReEasing,
+  Extrapolation,
+  cancelAnimation,
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import { Feather } from '@expo/vector-icons';
 import { ArtworkThumb } from './CardStage';
 import { Colors } from '../../theme/theme';
@@ -29,6 +38,9 @@ export const RATINGS = [
 
 /** CardStage.stageContent 의 paddingHorizontal — 캐러셀은 이 안쪽 여백을 넘겨 화면 끝까지 펼친다. */
 const STAGE_HORIZONTAL_PADDING = 20;
+/** rating 선택 뒤 스와이프 어포던스가 펼쳐지는 시간과 높이. WordLayer 의 headword 보정(-24.5)은 높이의 절반이다. */
+const AFFORDANCE_MS = 260;
+const AFFORDANCE_HEIGHT = 49;
 
 export interface WordBackProps {
   card: StudyCard;
@@ -66,7 +78,10 @@ export const WordBack = React.memo(function WordBack({
   const pageWidth = screenWidth;
   const [activeExampleIndex, setActiveExampleIndex] = useState(0);
   const exampleScrollRef = useRef<ScrollView>(null);
-  const layoutAffordanceProgress = useRef(new Animated.Value(0)).current;
+  // 어포던스 컨테이너 height 는 레이아웃 값이라 RN Animated 네이티브 드라이버로 못 끈다 —
+  // Reanimated 로 UI 스레드에서 돌린다. headword 를 따라 올리는 affordanceProgress(RN Animated,
+  // 네이티브)와는 같은 duration/easing 으로 나란히 달린다.
+  const layoutAffordanceProgress = useSharedValue(0);
   const hasAnimatedRatingSelectionRef = useRef(false);
 
   useEffect(() => {
@@ -77,8 +92,8 @@ export const WordBack = React.memo(function WordBack({
   useEffect(() => {
     if (selectedRating == null) {
       hasAnimatedRatingSelectionRef.current = false;
-      layoutAffordanceProgress.stopAnimation();
-      layoutAffordanceProgress.setValue(0);
+      cancelAnimation(layoutAffordanceProgress);
+      layoutAffordanceProgress.value = 0;
       affordanceProgress?.stopAnimation();
       affordanceProgress?.setValue(0);
       return;
@@ -86,104 +101,64 @@ export const WordBack = React.memo(function WordBack({
     if (hasAnimatedRatingSelectionRef.current) return;
     hasAnimatedRatingSelectionRef.current = true;
 
-    layoutAffordanceProgress.setValue(0);
-    affordanceProgress?.setValue(0);
-    const animations = [
-      Animated.timing(layoutAffordanceProgress, {
-        toValue: 1,
-        duration: 260,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: false,
-      }),
-    ];
+    layoutAffordanceProgress.value = 0;
+    layoutAffordanceProgress.value = withTiming(1, {
+      duration: AFFORDANCE_MS,
+      easing: ReEasing.out(ReEasing.cubic),
+    });
     if (affordanceProgress) {
-      animations.push(Animated.timing(affordanceProgress, {
+      affordanceProgress.setValue(0);
+      Animated.timing(affordanceProgress, {
         toValue: 1,
-        duration: 260,
+        duration: AFFORDANCE_MS,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
-      }));
+      }).start();
     }
-    Animated.parallel(animations).start();
   }, [affordanceProgress, layoutAffordanceProgress, selectedRating]);
 
   const handleExampleScrollEnd = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
     setActiveExampleIndex(Math.round(e.nativeEvent.contentOffset.x / pageWidth));
   }, [pageWidth]);
 
-  const questionStyle = revealProgress
-    ? {
-        opacity: revealProgress.interpolate({
-          inputRange: [0.62, 1],
-          outputRange: [0, 1],
-          extrapolate: 'clamp',
-        }),
-        transform: [
-          {
-            translateY: revealProgress.interpolate({
-              inputRange: [0, 1],
-              outputRange: [18, 0],
-              extrapolate: 'clamp',
-            }),
-          },
-        ],
-      }
-    : null;
-  const answerStyle = revealProgress
-    ? {
-        opacity: revealProgress.interpolate({
-          inputRange: [0.32, 1],
-          outputRange: [0, 1],
-          extrapolate: 'clamp',
-        }),
-        transform: [
-          {
-            translateY: revealProgress.interpolate({
-              inputRange: [0, 1],
-              outputRange: [24, 0],
-              extrapolate: 'clamp',
-            }),
-          },
-        ],
-      }
-    : null;
-  const controlsStyle = revealProgress
-    ? {
-        opacity: revealProgress.interpolate({
-          inputRange: [0.54, 1],
-          outputRange: [0, 1],
-          extrapolate: 'clamp',
-        }),
-        transform: [
-          {
-            translateY: revealProgress.interpolate({
-              inputRange: [0, 1],
-              outputRange: [20, 0],
-              extrapolate: 'clamp',
-            }),
-          },
-        ],
-      }
-    : null;
-  const affordanceStyle = {
-    opacity: layoutAffordanceProgress,
-    transform: [
-      {
-        translateY: layoutAffordanceProgress.interpolate({
-          inputRange: [0, 1],
-          outputRange: [26, 0],
-          extrapolate: 'clamp',
-        }),
-      },
-    ],
-  };
-  const affordanceContainerStyle = {
-    height: layoutAffordanceProgress.interpolate({
-      inputRange: [0, 1],
-      outputRange: [0, 49],
-      extrapolate: 'clamp',
-    }),
-  };
+  // 뒤집기 인터폴레이션은 revealProgress 가 바뀔 때만 다시 만든다 — 렌더마다 만들면
+  // 네이티브 Animated 노드를 떼고 다시 붙인다.
+  const revealStyles = useMemo(() => {
+    if (!revealProgress) return null;
+    const fade = (from: number, dy: number) => ({
+      opacity: revealProgress.interpolate({
+        inputRange: [from, 1],
+        outputRange: [0, 1],
+        extrapolate: 'clamp' as const,
+      }),
+      transform: [
+        {
+          translateY: revealProgress.interpolate({
+            inputRange: [0, 1],
+            outputRange: [dy, 0],
+            extrapolate: 'clamp' as const,
+          }),
+        },
+      ],
+    });
+    return {
+      question: fade(0.62, 18),
+      answer: fade(0.32, 24),
+      controls: fade(0.54, 20),
+    };
+  }, [revealProgress]);
+  const questionStyle = revealStyles?.question ?? null;
+  const answerStyle = revealStyles?.answer ?? null;
+  const controlsStyle = revealStyles?.controls ?? null;
+  const affordanceStyle = useAnimatedStyle(() => ({
+    opacity: layoutAffordanceProgress.value,
+    transform: [{
+      translateY: interpolate(layoutAffordanceProgress.value, [0, 1], [26, 0], Extrapolation.CLAMP),
+    }],
+  }), [layoutAffordanceProgress]);
+  const affordanceContainerStyle = useAnimatedStyle(() => ({
+    height: interpolate(layoutAffordanceProgress.value, [0, 1], [0, AFFORDANCE_HEIGHT], Extrapolation.CLAMP),
+  }), [layoutAffordanceProgress]);
 
   return (
     <View style={styles.wordBack}>
@@ -259,17 +234,17 @@ export const WordBack = React.memo(function WordBack({
         ))}
       </Animated.View>
 
-      <Animated.View style={[styles.swipeAffordance, affordanceContainerStyle]}>
+      <Reanimated.View style={[styles.swipeAffordance, affordanceContainerStyle]}>
         <Animated.View style={[styles.swipeAffordanceReveal, controlsStyle]}>
-          <Animated.View style={[styles.swipeAffordanceContent, affordanceStyle]}>
+          <Reanimated.View style={[styles.swipeAffordanceContent, affordanceStyle]}>
             <View style={styles.swipeLabelRow}>
               <Feather name="chevron-up" size={15} color="rgba(255,255,255,0.85)" />
               <Text style={styles.swipeLabel}>위로 쓸어올려 다음 단어</Text>
             </View>
             <View style={styles.grabber} />
-          </Animated.View>
+          </Reanimated.View>
         </Animated.View>
-      </Animated.View>
+      </Reanimated.View>
     </View>
   );
 });

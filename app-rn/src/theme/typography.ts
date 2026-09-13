@@ -26,11 +26,6 @@ const headingFonts: Record<AppFontWeight, string> = {
   '800': 'FunnelSans_800ExtraBold',
 };
 
-export const FontFamily = {
-  body: bodyFonts,
-  heading: headingFonts,
-} as const;
-
 export function fontStyle(role: AppFontRole, weight: AppFontWeight = '400'): Pick<TextStyle, 'fontFamily' | 'fontWeight'> {
   return {
     fontFamily: role === 'heading' ? headingFonts[weight] : bodyFonts[weight],

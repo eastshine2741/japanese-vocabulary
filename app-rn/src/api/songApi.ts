@@ -102,10 +102,10 @@ export const songApi = {
   },
 
   /** 홈 콜드스타트 부트스트랩: 이 곡을 통째로 담고 rating 을 준 단어를 곧바로 리뷰한다. */
-  async studyBootstrap(songId: number, rating: number): Promise<SongStudyBootstrapResponse> {
+  async studyBootstrap(songId: number, rating: number, leadJapanese?: string | null): Promise<SongStudyBootstrapResponse> {
     const { data } = await client.post<SongStudyBootstrapResponse>(
       `/api/songs/${songId}/study-bootstrap`,
-      { rating },
+      { rating, leadJapanese: leadJapanese ?? null },
     );
     return data;
   },
@@ -116,14 +116,5 @@ export const songApi = {
       this.getLyrics(id),
     ]);
     return toLegacyStudyData(song, lyrics);
-  },
-
-  async getSpotlight(): Promise<SongStudyData | null> {
-    const res = await client.get<SongStudyData>('/api/songs/spotlight');
-    // 204 No Content (or an empty body) means there is no song to spotlight.
-    if (res.status === 204 || res.data == null || !(res.data as any).song) {
-      return null;
-    }
-    return res.data;
   },
 };

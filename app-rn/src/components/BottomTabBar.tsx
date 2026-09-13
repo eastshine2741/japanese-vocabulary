@@ -1,9 +1,10 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Dimens } from '../theme/theme';
 import { useHomeChromeStore } from '../stores/homeChromeStore';
+import SearchFilledIcon from './SearchFilledIcon';
 
 type TabKey = 'Home' | 'Search' | 'MyPage';
 
@@ -12,19 +13,20 @@ const DarkPalette = {
   border: '#FFFFFF1F',
   iconActive: '#FFFFFF',
   iconInactive: '#FFFFFF80',
-  labelActive: '#FFFFFF',
-  labelInactive: '#FFFFFF80',
 };
 
 // Icon glyph is always the brand green; the active tab is distinguished by the
-// filled glyph + primary label color (inactive uses the outline glyph + muted
-// label). This mirrors the Pencil design where tab.*.iconFill is fixed to the
-// accent regardless of selection.
-const TAB_CONFIG: Record<TabKey, { active: keyof typeof Ionicons.glyphMap; inactive: keyof typeof Ionicons.glyphMap; label: string }> = {
-  Home: { active: 'home', inactive: 'home-outline', label: '홈' },
-  Search: { active: 'search', inactive: 'search-outline', label: '검색' },
-  MyPage: { active: 'person', inactive: 'person-outline', label: '마이' },
+// filled glyph alone (inactive uses the outline glyph). This mirrors the Pencil
+// design where tab.*.iconFill is fixed to the accent regardless of selection.
+const TAB_CONFIG: Record<TabKey, { active: keyof typeof Ionicons.glyphMap; inactive: keyof typeof Ionicons.glyphMap }> = {
+  Home: { active: 'home', inactive: 'home-outline' },
+  // Ionicons `search` is the same outline as `search-outline`; the active
+  // glyph is drawn by SearchFilledIcon instead (see below).
+  Search: { active: 'search', inactive: 'search-outline' },
+  MyPage: { active: 'person', inactive: 'person-outline' },
 };
+
+const ICON_SIZE = 24;
 
 export default function BottomTabBar({ state, navigation }: any) {
   const insets = useSafeAreaInsets();
@@ -52,6 +54,12 @@ export default function BottomTabBar({ state, navigation }: any) {
           }
         };
 
+        const iconColor = isDark
+          ? focused
+            ? DarkPalette.iconActive
+            : DarkPalette.iconInactive
+          : Colors.primary;
+
         return (
           <TouchableOpacity
             key={route.key}
@@ -59,26 +67,15 @@ export default function BottomTabBar({ state, navigation }: any) {
             activeOpacity={0.7}
             style={styles.tab}
           >
-            <Ionicons
-              name={focused ? config.active : config.inactive}
-              size={20}
-              color={
-                isDark
-                  ? focused
-                    ? DarkPalette.iconActive
-                    : DarkPalette.iconInactive
-                  : Colors.primary
-              }
-            />
-            <Text
-              style={[
-                styles.label,
-                focused ? styles.labelActive : styles.labelInactive,
-                isDark && (focused ? styles.labelActiveDark : styles.labelInactiveDark),
-              ]}
-            >
-              {config.label}
-            </Text>
+            {route.name === 'Search' && focused ? (
+              <SearchFilledIcon size={ICON_SIZE} color={iconColor} />
+            ) : (
+              <Ionicons
+                name={focused ? config.active : config.inactive}
+                size={ICON_SIZE}
+                color={iconColor}
+              />
+            )}
           </TouchableOpacity>
         );
       })}
@@ -93,33 +90,14 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: Colors.border,
     paddingHorizontal: 8,
-    paddingTop: 6,
   },
   tab: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 2,
-  },
-  label: {
-    fontSize: 10,
-    fontWeight: '500',
-    letterSpacing: 0,
-  },
-  labelActive: {
-    color: Colors.textPrimary,
-  },
-  labelInactive: {
-    color: Colors.textMuted,
   },
   barDark: {
     backgroundColor: DarkPalette.bar,
     borderTopColor: DarkPalette.border,
-  },
-  labelActiveDark: {
-    color: DarkPalette.labelActive,
-  },
-  labelInactiveDark: {
-    color: DarkPalette.labelInactive,
   },
 });

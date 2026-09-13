@@ -1,5 +1,3 @@
-import { useMemo } from 'react';
-
 export interface TimedLyricLine {
   index: number;
   startTimeMs: number | null;
@@ -24,17 +22,4 @@ export function getCurrentLyricLineIndex(
   }
 
   return currentIndex;
-}
-
-export function useCurrentLyricLine<T extends TimedLyricLine>(
-  lines: T[],
-  currentTimeMs: number,
-  fallbackIndex = 0,
-): T | null {
-  const currentIndex = useMemo(
-    () => getCurrentLyricLineIndex(lines, currentTimeMs, fallbackIndex),
-    [lines, currentTimeMs, fallbackIndex],
-  );
-
-  return currentIndex >= 0 ? lines[currentIndex] : null;
 }

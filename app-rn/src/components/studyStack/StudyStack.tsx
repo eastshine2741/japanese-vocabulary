@@ -1,11 +1,10 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import SkeletonBox from '../SkeletonLoading';
 import { CardStage, StageInset } from './CardStage';
 import { CompletionStage, ErrorStage } from './CompletionStage';
 import { WordLayer } from './WordLayer';
-import { StudySource } from './types';
 import { StudyStackState } from './useStudyStack';
 
 export interface StudyStackProps {
@@ -15,8 +14,6 @@ export interface StudyStackProps {
   /** 예문 캐러셀에서 그 예문이 나온 곡(카드 자체 source 와 다를 수 있다)으로 이동할 때. */
   onOpenExampleSource?: (songId: number) => void;
   onSearch: () => void;
-  /** 완주 화면에서 추천곡을 선택했을 때. 넘기지 않으면 추천곡 넛지를 그리지 않는다. */
-  onSelectRecommended?: (source: StudySource) => void;
   /**
    * 무대 위에 겹쳐 그릴 크롬(곡 진입 오버레이 등). 홈처럼 스택 밖에 놓는 크롬은
    * 이 prop 을 쓰지 말고 StudyStack 의 형제로 배치한다.
@@ -37,7 +34,6 @@ export const StudyStack = React.memo(function StudyStack({
   onOpenSource,
   onOpenExampleSource,
   onSearch,
-  onSelectRecommended,
   overlay,
   contentInsetTop,
   contentInsetBottom,
@@ -66,11 +62,8 @@ export const StudyStack = React.memo(function StudyStack({
     selectRating,
     reload,
     continueDue,
+    startRecommended,
   } = stack;
-
-  const handleRecommended = useCallback(() => {
-    if (recommendedSource) onSelectRecommended?.(recommendedSource);
-  }, [onSelectRecommended, recommendedSource]);
 
   const nextCard = cards[currentIndex + 1] ?? null;
   const lastCardArtworkUrlRef = useRef<string | null>(currentCard?.source.artworkUrl ?? null);
@@ -146,7 +139,7 @@ export const StudyStack = React.memo(function StudyStack({
           previousArtworkUrl={lastCardArtworkUrlRef.current}
           entranceProgress={completionEntranceProgress}
           onContinueDue={continueDue}
-          onRecommended={handleRecommended}
+          onRecommended={startRecommended}
           onSearch={onSearch}
           contentInsetTop={contentInsetTop}
           contentInsetBottom={contentInsetBottom}

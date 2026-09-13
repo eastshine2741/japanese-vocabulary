@@ -1,4 +1,5 @@
 import { FlashcardDTO } from '../../types/flashcard';
+import { WordSense } from '../../types/word';
 
 export type StudyStackStatus = 'loading' | 'ready' | 'error';
 
@@ -11,8 +12,19 @@ export interface StudySource {
   artworkUrl: string | null;
   dueCount: number;
   totalCount: number;
-  /** 이 곡 복습을 특정 단어 클릭으로 열었다면 그 단어. 첫 카드로 강제된다. */
+  /** 이 곡 복습을 이미 담긴 단어 클릭으로 열었다면 그 단어. 첫 카드로 강제된다. */
   leadWordId?: number | null;
+  /**
+   * 아직 안 담긴 단어 클릭으로 열었다면 그 단어. 덱을 만들지 않고 미리보기 카드로 먼저 보여주고,
+   * rating 을 확정하는 순간 곡을 통째로 담으면서 이 단어를 lead 로 리뷰한다.
+   */
+  previewWord?: StudyPreviewWord | null;
+}
+
+export interface StudyPreviewWord {
+  japanese: string;
+  reading: string | null;
+  senses: WordSense[];
 }
 
 export interface StudyCard extends FlashcardDTO {

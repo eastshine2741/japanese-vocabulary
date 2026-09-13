@@ -9,6 +9,8 @@ export interface WordFrontProps {
   hideHeadword?: boolean;
   headwordRef?: React.Ref<View>;
   onHeadwordLayout?: () => void;
+  /** headword 앵커 안에 겹쳐 그릴 것 — 앵커가 레이아웃으로 움직이면 같은 프레임에 따라온다. */
+  headwordOverlay?: React.ReactNode;
 }
 
 /** 앞면 wordLayer — headword + 탭 힌트. */
@@ -18,8 +20,9 @@ export const WordFront = React.memo(function WordFront({
   hideHeadword = false,
   headwordRef,
   onHeadwordLayout,
+  headwordOverlay,
 }: WordFrontProps) {
-  const headwordStyle = revealProgress
+  const headwordStyle = React.useMemo(() => revealProgress
     ? {
         opacity: revealProgress.interpolate({
           inputRange: [0, 0.72, 1],
@@ -43,8 +46,8 @@ export const WordFront = React.memo(function WordFront({
           },
         ],
       }
-    : null;
-  const hintStyle = revealProgress
+    : null, [revealProgress]);
+  const hintStyle = React.useMemo(() => revealProgress
     ? {
         opacity: revealProgress.interpolate({
           inputRange: [0, 0.28],
@@ -61,7 +64,7 @@ export const WordFront = React.memo(function WordFront({
           },
         ],
       }
-    : null;
+    : null, [revealProgress]);
 
   return (
     <View style={styles.wordFront}>
@@ -74,6 +77,7 @@ export const WordFront = React.memo(function WordFront({
           >
             {card.japanese}
           </Animated.Text>
+          {headwordOverlay}
         </View>
       </View>
       <Animated.View style={[styles.tapHint, hintStyle]}>

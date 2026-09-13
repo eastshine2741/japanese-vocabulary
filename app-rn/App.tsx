@@ -40,15 +40,12 @@ import SplashScreen from './src/screens/SplashScreen';
 import { registerNotificationHandlers, requestPermissionAndRegisterToken } from './src/services/pushNotifications';
 import { applyGlobalTypography } from './src/theme/typography';
 import { useHomeChromeStore } from './src/stores/homeChromeStore';
-import { useAndroidNavigationBarColor } from './src/hooks/useAndroidNavigationBarColor';
+import { useAndroidNavigationBarStyle } from './src/hooks/useAndroidNavigationBarStyle';
 import { scheduleOtaUpdateCheck } from './src/services/otaUpdates';
 
 GoogleSignin.configure({
   webClientId: process.env.EXPO_PUBLIC_GOOGLE_OAUTH_WEB_CLIENT_ID ?? '',
 });
-
-const HOME_IMMERSE_NAVIGATION_BAR_COLOR = '#14181C';
-const SONG_REVIEW_NAVIGATION_BAR_COLOR = '#000000';
 
 type NavigationMode = 'default' | 'homeImmerse' | 'songReview';
 
@@ -76,14 +73,7 @@ function AndroidSystemBarController({ navigationState }: { navigationState: Navi
   const navigationMode = getAndroidNavigationMode(navigationState, homeIsDark);
   const usesDarkSystemBars = navigationMode !== 'default';
 
-  useAndroidNavigationBarColor({
-    active: usesDarkSystemBars,
-    color:
-      navigationMode === 'songReview'
-        ? SONG_REVIEW_NAVIGATION_BAR_COLOR
-        : HOME_IMMERSE_NAVIGATION_BAR_COLOR,
-    buttonStyle: 'light',
-  });
+  useAndroidNavigationBarStyle(usesDarkSystemBars ? 'dark' : 'light');
 
   return (
     <StatusBar
