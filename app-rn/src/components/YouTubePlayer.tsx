@@ -21,11 +21,9 @@ interface Props {
   // matching the prior behavior (onReady → loadVideoById, which auto-plays).
   autoplay?: boolean;
   // Start muted. Defaults to false. Muted autoplay is always permitted by the
-  // platform, so the Spotlight hero passes muted + autoplay.
+  // platform.
   muted?: boolean;
-  // Force the lowest video resolution to save data. Defaults to false. The
-  // Spotlight hero passes this since its MV is blurred behind a scrim, so detail
-  // is irrelevant. Song detail leaves it off to keep auto/high quality.
+  // Force the lowest video resolution to save data. Defaults to false.
   lowestQuality?: boolean;
   onTimeChange?: (seconds: number) => void;
   onDurationChange?: (seconds: number) => void;

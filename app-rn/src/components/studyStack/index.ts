@@ -11,7 +11,6 @@ export {
   type CompletionStageProps,
   type ErrorStageProps,
 } from './CompletionStage';
-export { HomeChrome, type HomeChromeProps } from './HomeChrome';
 export {
   HomeExpandedHeader,
   HOME_HEADER_CONTENT_HEIGHT,

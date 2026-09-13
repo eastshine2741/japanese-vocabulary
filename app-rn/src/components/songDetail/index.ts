@@ -33,7 +33,6 @@ export {
 } from './SongDetailMvBar';
 export {
   getCurrentLyricLineIndex,
-  useCurrentLyricLine,
   type TimedLyricLine,
 } from './useCurrentLyricLine';
 export type {
