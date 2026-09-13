@@ -92,6 +92,34 @@ class WordCandidateGeneratorTest {
         assertThat(wordCandidates.lineCandidates.getValue("0")).containsExactly(0)
     }
 
+    @Test
+    fun `common words and function-word pos are penalized but stay candidates`() {
+        // ない 은 매 줄에 나와 곡 안 분포로는 만점이지만, 범용 단어라 한 줄에만 나온 내용어보다 뒤로 간다.
+        val wordCandidates = generator.generate(
+            title = "t",
+            analyzedLines = (0 until 3).map { index ->
+                AnalyzedLine(
+                    index = index,
+                    koreanLyrics = null,
+                    tokens = listOfNotNull(
+                        token("ない", "ない", PartOfSpeech.ADJECTIVE, korean = "없다"),
+                        token("君", "君", PartOfSpeech.PRONOUN, korean = "너"),
+                        token("亡霊", "亡霊", PartOfSpeech.NOUN, korean = "망령").takeIf { index == 0 },
+                    ),
+                )
+            },
+        )
+
+        val byJapanese = wordCandidates.candidates.associateBy { it.japanese }
+        assertThat(byJapanese.keys).containsExactlyInAnyOrder("ない", "君", "亡霊")
+        assertThat(byJapanese.getValue("ない").scoreComponents.commonPenalty).isEqualTo(0.3)
+        assertThat(byJapanese.getValue("君").scoreComponents.commonPenalty).isEqualTo(0.3)
+        assertThat(byJapanese.getValue("亡霊").scoreComponents.commonPenalty).isEqualTo(1.0)
+        assertThat(byJapanese.getValue("亡霊").importanceScore)
+            .isGreaterThan(byJapanese.getValue("ない").importanceScore)
+            .isGreaterThan(byJapanese.getValue("君").importanceScore)
+    }
+
     private fun token(
         surface: String,
         base: String,
