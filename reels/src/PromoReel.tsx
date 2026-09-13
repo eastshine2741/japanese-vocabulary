@@ -113,8 +113,8 @@ export const PromoReel = ({data}: {data: PromoReelData}) => {
   const activeIndex = lines.reduce((found, line, index) => (line.startFrame <= frame ? index : found), -1);
   const activeLine = lines[Math.max(0, activeIndex)];
   const localFrame = Math.max(0, frame - activeLine.startFrame);
-  // 줄 진입은 짧은 직선 이동이다 — 스프링처럼 감속하지 않고 6프레임에 끝난다. 첫 줄은 처음부터 다 보인다.
-  const entry = (delay: number) => (activeIndex <= 0 ? 1 : linear(localFrame - delay, 0, ENTRY_FRAMES));
+  // 줄 진입은 짧은 직선 이동이다 — 스프링처럼 감속하지 않고 6프레임에 끝난다. 첫 줄도 같다.
+  const entry = (delay: number) => linear(localFrame - delay, 0, ENTRY_FRAMES);
   const lyricEntry = entry(0);
   const wordsEntry = entry(4);
 
