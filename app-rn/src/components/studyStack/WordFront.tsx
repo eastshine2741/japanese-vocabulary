@@ -22,7 +22,7 @@ export const WordFront = React.memo(function WordFront({
   onHeadwordLayout,
   headwordOverlay,
 }: WordFrontProps) {
-  const headwordStyle = revealProgress
+  const headwordStyle = React.useMemo(() => revealProgress
     ? {
         opacity: revealProgress.interpolate({
           inputRange: [0, 0.72, 1],
@@ -46,8 +46,8 @@ export const WordFront = React.memo(function WordFront({
           },
         ],
       }
-    : null;
-  const hintStyle = revealProgress
+    : null, [revealProgress]);
+  const hintStyle = React.useMemo(() => revealProgress
     ? {
         opacity: revealProgress.interpolate({
           inputRange: [0, 0.28],
@@ -64,7 +64,7 @@ export const WordFront = React.memo(function WordFront({
           },
         ],
       }
-    : null;
+    : null, [revealProgress]);
 
   return (
     <View style={styles.wordFront}>

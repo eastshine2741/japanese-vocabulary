@@ -97,62 +97,68 @@ export const WordLayer = React.memo(function WordLayer({
   }, []);
 
   const sharedHeadwordReady = headwordMorph != null;
-  const backHeadwordAffordanceShift = affordanceProgress.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, -24.5],
-    extrapolate: 'clamp',
-  });
-  const sharedHeadwordStyle = headwordMorph
-    ? {
-        transform: [
-          {
-            translateX: revealProgress.interpolate({
+  // interpolate 는 렌더마다 새로 만들면 네이티브 Animated 노드를 떼고 다시 붙인다 — 값이 바뀔 때만.
+  const sharedHeadwordStyle = React.useMemo(() => {
+    if (!headwordMorph) return null;
+    const backHeadwordAffordanceShift = affordanceProgress.interpolate({
+      inputRange: [0, 1],
+      outputRange: [0, -24.5],
+      extrapolate: 'clamp',
+    });
+    return {
+      transform: [
+        {
+          translateX: revealProgress.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0, headwordMorph.dx],
+            extrapolate: 'clamp',
+          }),
+        },
+        {
+          translateY: Animated.add(
+            revealProgress.interpolate({
               inputRange: [0, 1],
-              outputRange: [0, headwordMorph.dx],
+              outputRange: [0, headwordMorph.dy],
               extrapolate: 'clamp',
             }),
-          },
-          {
-            translateY: Animated.add(
-              revealProgress.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0, headwordMorph.dy],
-                extrapolate: 'clamp',
-              }),
-              backHeadwordAffordanceShift,
-            ),
-          },
-          {
-            scale: revealProgress.interpolate({
-              inputRange: [0, 1],
-              outputRange: [1, headwordMorph.scale],
-              extrapolate: 'clamp',
-            }),
-          },
-        ],
-      }
-    : null;
-  const sharedHeadword = sharedHeadwordStyle && (
+            backHeadwordAffordanceShift,
+          ),
+        },
+        {
+          scale: revealProgress.interpolate({
+            inputRange: [0, 1],
+            outputRange: [1, headwordMorph.scale],
+            extrapolate: 'clamp',
+          }),
+        },
+      ],
+    };
+  }, [affordanceProgress, headwordMorph, revealProgress]);
+  const sharedHeadword = React.useMemo(() => sharedHeadwordStyle && (
     <Animated.View pointerEvents="none" style={[styles.sharedHeadwordLayer, sharedHeadwordStyle]}>
       <Text adjustsFontSizeToFit numberOfLines={1} style={styles.sharedHeadword}>
         {card.japanese}
       </Text>
     </Animated.View>
-  );
+  ), [card.japanese, sharedHeadwordStyle]);
   // 크로스페이드는 전체 드래그의 80% 지점에서 끝난다 — 나머지 20%는 이미 완전히
   // 전환된 상태로 화면을 빠져나간다.
-  const crossfadeStart = SWIPE_OUT_DISTANCE * 0.8;
-  const opacity = translateY.interpolate({
-    inputRange: [crossfadeStart, 0],
-    outputRange: [0, 1],
-    extrapolate: 'clamp',
-  });
-  // 평소엔 완전히 숨겨두고, 현재 카드가 사라지는 만큼 정확히 같은 비율로 드러낸다.
-  const nextOpacity = translateY.interpolate({
-    inputRange: [crossfadeStart, 0],
-    outputRange: [1, 0],
-    extrapolate: 'clamp',
-  });
+  // 평소엔 다음 카드를 완전히 숨겨두고, 현재 카드가 사라지는 만큼 정확히 같은 비율로 드러낸다.
+  const { opacity, nextOpacity } = React.useMemo(() => {
+    const crossfadeStart = SWIPE_OUT_DISTANCE * 0.8;
+    return {
+      opacity: translateY.interpolate({
+        inputRange: [crossfadeStart, 0],
+        outputRange: [0, 1],
+        extrapolate: 'clamp',
+      }),
+      nextOpacity: translateY.interpolate({
+        inputRange: [crossfadeStart, 0],
+        outputRange: [1, 0],
+        extrapolate: 'clamp',
+      }),
+    };
+  }, [translateY]);
   const faceStack = (
     <View ref={faceStackRef} collapsable={false} style={styles.faceStack} onLayout={measureHeadwords}>
       <View style={StyleSheet.absoluteFill} pointerEvents={revealed ? 'auto' : 'none'}>
@@ -202,13 +208,12 @@ export const WordLayer = React.memo(function WordLayer({
           ]}
           {...panHandlers}
         >
-          {revealed ? (
-            <View style={styles.wordPressable}>{faceStack}</View>
-          ) : (
-            <Pressable style={styles.wordPressable} onPress={onReveal}>
-              {faceStack}
-            </Pressable>
-          )}
+          {/* 뒤집힌 뒤에도 같은 Pressable 을 유지한다 — View 로 바꿔 끼우면 부모 타입이 달라져
+              faceStack(예문 ScrollView·rating 버튼 전부)이 reveal 애니메이션 시작과 동시에
+              언마운트/재마운트된다. disabled 면 responder 를 잡지 않아 안쪽 터치는 그대로 통한다. */}
+          <Pressable style={styles.wordPressable} onPress={onReveal} disabled={revealed}>
+            {faceStack}
+          </Pressable>
         </Animated.View>
       </View>
       {requireImmersedInteraction && (

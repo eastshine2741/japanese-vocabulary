@@ -687,7 +687,11 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     startPreview(recommendedSource);
   }, [recommendedSource, startPreview]);
 
-  return {
+  const panHandlers = panResponder.panHandlers;
+
+  // 반환 객체를 고정한다 — 매 렌더 새 객체를 주면 이걸 prop 으로 받는 StudyStack 의 React.memo 가
+  // 항상 miss 나서 호출한 화면의 state 하나에 카드 서브트리 전체가 같이 그려진다.
+  return useMemo(() => ({
     status,
     cards,
     currentCard,
@@ -709,12 +713,40 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     session,
     translateY,
     revealProgress,
-    panHandlers: panResponder.panHandlers,
+    panHandlers,
     reveal,
     selectRating: setSelectedRating,
     reload,
     continueDue,
     selectSource,
     startRecommended,
-  };
+  }), [
+    status,
+    cards,
+    currentCard,
+    currentIndex,
+    revealed,
+    selectedRating,
+    saving,
+    isComplete,
+    isError,
+    loadError,
+    reviewError,
+    completedSource,
+    nextDueSource,
+    recommendedSource,
+    deckStripItems,
+    selectedSource,
+    visibleSource,
+    streak,
+    session,
+    translateY,
+    revealProgress,
+    panHandlers,
+    reveal,
+    reload,
+    continueDue,
+    selectSource,
+    startRecommended,
+  ]);
 }

@@ -1,5 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
-import { Animated, Easing, PanResponder, StyleSheet, View } from 'react-native';
+import { PanResponder, StyleSheet, View } from 'react-native';
+import Animated, {
+  Easing,
+  Extrapolation,
+  interpolate,
+  useAnimatedStyle,
+  useDerivedValue,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
@@ -41,12 +50,12 @@ export default function HomeTab() {
   focusedRef.current = focused;
   const immersedRef = useRef(immersed);
   immersedRef.current = immersed;
-  const immerse = useRef(new Animated.Value(immersed ? 1 : 0)).current;
+  const immerse = useSharedValue(immersed ? 1 : 0);
 
   // 이미 홈탭에 있는 상태에서 홈탭을 다시 누르면 몰입 모드를 풀고 스택을 새로고침한다.
   useEffect(() => navigation.addListener('tabPress', () => {
     if (!focusedRef.current) return;
-    immerse.setValue(0);
+    immerse.value = 0;
     setDark(false);
     reload();
   }), [immerse, navigation, reload, setDark]);
@@ -56,15 +65,14 @@ export default function HomeTab() {
   //  ② 세로 드래그가 몰입 값을 끈다 — 몰입 중엔 아래로, 아니면 위로. 카드 앞뒤면은 무관하다.
   //  ③ 놓으면 가까운 쪽(0.5 기준)으로 붙는다.
   // immerse 는 헤더 transform 뿐 아니라 카드 안쪽 여백(레이아웃 값)까지 끌기 때문에
-  // 네이티브 드라이버를 쓸 수 없다 — 두 층이 같은 값을 봐야 어긋나지 않는다.
+  // RN Animated 네이티브 드라이버로는 못 돌린다 — Reanimated shared value 로 두 층이 같은 값을
+  // UI 스레드에서 읽는다. setDark 가 일으키는 JS 리렌더가 애니메이션 프레임을 못 뺏는다.
   const setImmersed = useCallback((next: boolean) => {
     setDark(next);
-    Animated.timing(immerse, {
-      toValue: next ? 1 : 0,
+    immerse.value = withTiming(next ? 1 : 0, {
       duration: next ? IMMERSE_SETTLE_MS : IMMERSE_REVERT_MS,
       easing: Easing.out(Easing.cubic),
-      useNativeDriver: false,
-    }).start();
+    });
   }, [immerse, setDark]);
 
   const enterImmerse = useCallback(() => setImmersed(true), [setImmersed]);
@@ -75,8 +83,9 @@ export default function HomeTab() {
       // 몰입 중 뒷면 rating 스와이프(위)와는 방향이 반대라 겹치지 않는다.
       onMoveShouldSetPanResponderCapture: (_, gesture) =>
         shouldStartImmersePan(immersedRef.current, gesture),
-      onPanResponderMove: (_, gesture) =>
-        immerse.setValue(immerseProgress(immersedRef.current, gesture.dy)),
+      onPanResponderMove: (_, gesture) => {
+        immerse.value = immerseProgress(immersedRef.current, gesture.dy);
+      },
       onPanResponderRelease: (_, gesture) =>
         setImmersed(immerseProgress(immersedRef.current, gesture.dy) >= 0.5),
       onPanResponderTerminate: () => setImmersed(immersedRef.current),
@@ -101,48 +110,33 @@ export default function HomeTab() {
 
   // 카드 안쪽 내용은 헤더가 올라가는 만큼 같이 따라 올라간다 — 헤더는 자기 높이 전체를,
   // 카드는 두 크롬의 차이만큼만 움직여서 시차가 생긴다.
-  const contentInsetTop = useMemo(
-    () => immerse.interpolate({
-      inputRange: [0, 1],
-      outputRange: [
-        insets.top + HOME_HEADER_CONTENT_HEIGHT,
-        insets.top + STACK_REVIEW_CHROME_HEIGHT,
-      ],
-      extrapolate: 'clamp',
-    }),
-    [immerse, insets.top],
+  const expandedInset = insets.top + HOME_HEADER_CONTENT_HEIGHT;
+  const immersedInset = insets.top + STACK_REVIEW_CHROME_HEIGHT;
+  const contentInsetTop = useDerivedValue(
+    () => interpolate(immerse.value, [0, 1], [expandedInset, immersedInset], Extrapolation.CLAMP),
+    [immerse, expandedInset, immersedInset],
   );
 
   // 진행 바·카운터는 헤더 아래에서 같이 딸려 올라오며 드러난다. 헤더가 다 걷힌 뒤
   // 뒤늦게 켜지면 튀어 보인다.
-  const overlayStyle = useMemo(
-    () => ({
-      opacity: immerse.interpolate({
-        inputRange: [0.2, 0.8],
-        outputRange: [0, 1],
-        extrapolate: 'clamp' as const,
-      }),
-      transform: [{
-        translateY: immerse.interpolate({
-          inputRange: [0.2, 1],
-          outputRange: [12, 0],
-          extrapolate: 'clamp' as const,
-        }),
-      }],
-    }),
-    [immerse],
-  );
+  const overlayStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(immerse.value, [0.2, 0.8], [0, 1], Extrapolation.CLAMP),
+    transform: [{
+      translateY: interpolate(immerse.value, [0.2, 1], [12, 0], Extrapolation.CLAMP),
+    }],
+  }), [immerse]);
 
-  const overlay = (
+  const showProgress = status === 'ready' && !isComplete;
+  const overlay = useMemo(() => (
     <Animated.View style={[StyleSheet.absoluteFill, overlayStyle]} pointerEvents="box-none">
       <StackReviewOverlay
         position={counterPosition}
         queueTotal={counterTotal}
         queueProgress={session.queueProgress}
-        showProgress={status === 'ready' && !isComplete}
+        showProgress={showProgress}
       />
     </Animated.View>
-  );
+  ), [overlayStyle, counterPosition, counterTotal, session.queueProgress, showProgress]);
 
   return (
     <View style={styles.screen}>

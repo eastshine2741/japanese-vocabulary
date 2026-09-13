@@ -1,5 +1,6 @@
 import React from 'react';
 import { Animated, ImageBackground, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import Reanimated, { SharedValue, useAnimatedStyle } from 'react-native-reanimated';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StudySource } from './types';
@@ -10,16 +11,11 @@ const STAGE_PADDING_BOTTOM = 22;
 
 /**
  * 크롬 높이는 홈처럼 접히는 화면에서 애니메이션 값으로 들어온다 — 크롬이 올라가는
- * 동안 카드 안쪽 내용이 같이 따라 올라가야 두 층이 끊기지 않는다.
+ * 동안 카드 안쪽 내용이 같이 따라 올라가야 두 층이 끊기지 않는다. 레이아웃 값(padding)이라
+ * RN Animated 네이티브 드라이버로는 못 끌고, Reanimated shared value 로 받아 UI 스레드에서
+ * 레이아웃까지 돌린다 — JS 스레드가 바빠도 프레임이 안 빠진다.
  */
-export type StageInset = number | Animated.AnimatedInterpolation<number>;
-
-/** 애니메이션 inset 은 기본 여백을 더해서 넘긴다. 숫자면 그냥 더한다. */
-function withStagePadding(inset: StageInset | undefined, base: number) {
-  if (inset == null) return base;
-  if (typeof inset === 'number') return base + inset;
-  return Animated.add(inset, base);
-}
+export type StageInset = number | SharedValue<number>;
 
 export interface CardStageProps {
   artworkUrl: string | null;
@@ -42,15 +38,23 @@ export const CardStage = React.memo(function CardStage({
   contentInsetBottom,
   children,
 }: CardStageProps) {
-  const insetStyle = {
-    paddingTop: withStagePadding(contentInsetTop, STAGE_PADDING_TOP),
-    paddingBottom: STAGE_PADDING_BOTTOM + (contentInsetBottom ?? 0),
-  };
-  const previousArtworkOpacity = artworkTransitionProgress?.interpolate({
-    inputRange: [0, 1],
-    outputRange: [1, 0],
-    extrapolate: 'clamp',
-  });
+  const paddingBottom = STAGE_PADDING_BOTTOM + (contentInsetBottom ?? 0);
+  const insetStyle = useAnimatedStyle(() => ({
+    paddingTop: STAGE_PADDING_TOP + (
+      contentInsetTop == null ? 0
+        : typeof contentInsetTop === 'number' ? contentInsetTop
+        : contentInsetTop.value
+    ),
+    paddingBottom,
+  }), [contentInsetTop, paddingBottom]);
+  const previousArtworkOpacity = React.useMemo(
+    () => artworkTransitionProgress?.interpolate({
+      inputRange: [0, 1],
+      outputRange: [1, 0],
+      extrapolate: 'clamp',
+    }),
+    [artworkTransitionProgress],
+  );
   const content = (
     <>
       {artworkUrl ? (
@@ -89,9 +93,9 @@ export const CardStage = React.memo(function CardStage({
         locations={[0, 0.42, 1]}
         style={StyleSheet.absoluteFill}
       />
-      <Animated.View style={[styles.stageContent, insetStyle]}>
+      <Reanimated.View style={[styles.stageContent, insetStyle]}>
         {children}
-      </Animated.View>
+      </Reanimated.View>
     </>
   );
   return <View style={styles.stageArt}>{content}</View>;

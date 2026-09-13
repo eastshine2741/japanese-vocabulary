@@ -1,5 +1,6 @@
 import React from 'react';
-import { Animated, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import Animated, { Extrapolation, interpolate, SharedValue, useAnimatedStyle } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../theme/theme';
@@ -20,8 +21,8 @@ export interface HomeExpandedHeaderProps {
   selectedSongId: number | null;
   onSelectDeckStripItem: (source: StudySource) => void;
   onSearch: () => void;
-  /** 0 = 펼침(H5), 1 = 몰입(H1). */
-  immerse: Animated.Value;
+  /** 0 = 펼침(H5), 1 = 몰입(H1). UI 스레드에서 굴러가는 값. */
+  immerse: SharedValue<number>;
 }
 
 /** H5 헤더 — 상태바 여백 + 워드마크·스트릭 칩 앱바 + 덱 스트립. 위쪽 블록부터 먼저 빠진다. */
@@ -36,42 +37,23 @@ export const HomeExpandedHeader = React.memo(function HomeExpandedHeader({
   const insets = useSafeAreaInsets();
   const height = insets.top + HOME_HEADER_CONTENT_HEIGHT;
 
-  const shell = {
+  const shell = useAnimatedStyle(() => ({
     transform: [{
-      translateY: immerse.interpolate({
-        inputRange: [0, 1],
-        outputRange: [0, -height],
-      }),
+      translateY: interpolate(immerse.value, [0, 1], [0, -height]),
     }],
-  };
-  const appBar = {
-    opacity: immerse.interpolate({
-      inputRange: [0, 0.55],
-      outputRange: [1, 0],
-      extrapolate: 'clamp' as const,
-    }),
+  }), [immerse, height]);
+  const appBar = useAnimatedStyle(() => ({
+    opacity: interpolate(immerse.value, [0, 0.55], [1, 0], Extrapolation.CLAMP),
     transform: [{
-      translateY: immerse.interpolate({
-        inputRange: [0, 0.6],
-        outputRange: [0, -18],
-        extrapolate: 'clamp' as const,
-      }),
+      translateY: interpolate(immerse.value, [0, 0.6], [0, -18], Extrapolation.CLAMP),
     }],
-  };
-  const deckStripAnim = {
-    opacity: immerse.interpolate({
-      inputRange: [0.15, 0.85],
-      outputRange: [1, 0],
-      extrapolate: 'clamp' as const,
-    }),
+  }), [immerse]);
+  const deckStripAnim = useAnimatedStyle(() => ({
+    opacity: interpolate(immerse.value, [0.15, 0.85], [1, 0], Extrapolation.CLAMP),
     transform: [{
-      translateY: immerse.interpolate({
-        inputRange: [0, 0.85],
-        outputRange: [0, -10],
-        extrapolate: 'clamp' as const,
-      }),
+      translateY: interpolate(immerse.value, [0, 0.85], [0, -10], Extrapolation.CLAMP),
     }],
-  };
+  }), [immerse]);
 
   return (
     <Animated.View style={[styles.shell, { height }, shell]} pointerEvents="box-none">
