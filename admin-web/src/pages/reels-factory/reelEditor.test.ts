@@ -215,6 +215,15 @@ describe("validate and buildPromoData", () => {
     expect(data.song.mvAsset).toBe("http://mv")
     expect(data.totalLineCount).toBe(5)
   })
+
+  test("uses the admin-entered song credit and rejects blank ones", () => {
+    const state = [0, 1, 2, 3].reduce((current, index) => toggleLine(current, synced, index), emptyEditor())
+    const defaults = buildPromoData(synced, state, "http://mv")
+    expect(defaults.song).toMatchObject({ title: synced.song.title, artist: synced.song.artist })
+    const data = buildPromoData(synced, state, "http://mv", { title: " 레몬 ", artist: "요네즈 켄시" })
+    expect(data.song).toMatchObject({ title: "레몬", artist: "요네즈 켄시" })
+    expect(validate(state, synced, { title: " ", artist: "" })).toEqual(["곡 제목을 입력해야 합니다", "아티스트를 입력해야 합니다"])
+  })
 })
 
 describe("timecode", () => {

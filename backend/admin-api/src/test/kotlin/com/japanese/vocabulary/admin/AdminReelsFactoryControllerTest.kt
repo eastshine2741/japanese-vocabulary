@@ -122,7 +122,7 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
             lyricsEndFrame = 520,
             sourceStartFrame = 900,
             vocabulary = listOf(AdminReelsVocabularyResponse(japanese = "夢", reading = "ユメ", korean = "꿈", partOfSpeech = "NOUN", jlpt = "N5")),
-        ).copy(song = AdminReelsPromoSong(title = "Lemon", artist = "米津玄師", artworkAsset = "", mvAsset = "http://localhost/mv?token=x"))
+        ).copy(song = AdminReelsPromoSong(title = "레몬 (Lemon)", artist = "요네즈 켄시", artworkAsset = "", mvAsset = "http://localhost/mv?token=x"))
         mockMvc.post("/admin/api/reels-factory/render") {
             header("Authorization", "Bearer $token")
             contentType = MediaType.APPLICATION_JSON
@@ -143,6 +143,9 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
         assertThat(rendered.lyricLines.map { it.startFrame }).containsExactly(45, 90, 200, 260, 400)
         assertThat(rendered.lyricsEndFrame).isEqualTo(520)
         assertThat(rendered.lyricLines.first().vocabulary.single().japanese).isEqualTo("夢")
+        // 곡 제목·아티스트도 DB 값이 아니라 어드민이 고쳐 쓴 표기를 쓴다
+        assertThat(rendered.song.title).isEqualTo("레몬 (Lemon)")
+        assertThat(rendered.song.artist).isEqualTo("요네즈 켄시")
         // 클라이언트의 스트리밍 URL 은 버리고 렌더 스크립트가 mvAsset 을 채운다
         assertThat(rendered.song.mvAsset).isEmpty()
     }
@@ -208,6 +211,9 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
         // 줄당 단어 상한
         val threeWords = List(3) { AdminReelsVocabularyResponse(japanese = "夢$it", reading = "ユメ", korean = "꿈") }
         renderExpectingBadRequest(token, song.id!!, promoData(startFrames = listOf(0, 60, 120, 180), lyricsEndFrame = 240, vocabulary = threeWords))
+        // 어드민이 고쳐 쓰는 곡 제목·아티스트가 비어 있음
+        renderExpectingBadRequest(token, song.id!!, valid.copy(song = valid.song.copy(title = " ")))
+        renderExpectingBadRequest(token, song.id!!, valid.copy(song = valid.song.copy(artist = "")))
         assertThat(fakeRenderer.lastInput).isNull()
     }
 

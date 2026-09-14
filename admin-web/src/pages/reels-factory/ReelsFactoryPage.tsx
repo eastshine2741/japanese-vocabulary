@@ -13,6 +13,7 @@ import { ReelTimeline } from "./ReelTimeline"
 import { SongPicker } from "./SongPicker"
 import {
   buildPromoData,
+  defaultSongCredit,
   emptyEditor,
   frameToMs,
   setEnd,
@@ -23,6 +24,7 @@ import {
   toggleLine,
   toggleToken,
   validate,
+  type SongCredit,
 } from "./reelEditor"
 
 /**
@@ -35,6 +37,7 @@ export function ReelsFactoryPage() {
   const [detail, setDetail] = React.useState<ReelsSongDetail | null>(null)
   const [loadingDetail, setLoadingDetail] = React.useState(false)
   const [editor, setEditor] = React.useState(emptyEditor)
+  const [credit, setCredit] = React.useState<SongCredit>({ title: "", artist: "" })
   const [selectedIndex, setSelectedIndex] = React.useState<number | null>(null)
   const [mvUrl, setMvUrl] = React.useState<string | null>(null)
   const [mvDurationMs, setMvDurationMs] = React.useState<number | null>(null)
@@ -66,6 +69,7 @@ export function ReelsFactoryPage() {
       .then(([nextDetail, source]) => {
         if (cancelled) return
         setDetail(nextDetail)
+        setCredit(defaultSongCredit(nextDetail))
         if (source) setMvUrl(apiUrl(source.mvPath))
       })
       .catch((cause) => {
@@ -79,10 +83,10 @@ export function ReelsFactoryPage() {
     }
   }, [selectedSongId, token])
 
-  const errors = React.useMemo(() => (detail ? validate(editor, detail) : []), [detail, editor])
+  const errors = React.useMemo(() => (detail ? validate(editor, detail, credit) : []), [credit, detail, editor])
   const data = React.useMemo(
-    () => (detail && editor.lines.length > 0 ? buildPromoData(detail, editor, mvUrl ?? "") : null),
-    [detail, editor, mvUrl],
+    () => (detail && editor.lines.length > 0 ? buildPromoData(detail, editor, mvUrl ?? "", credit) : null),
+    [credit, detail, editor, mvUrl],
   )
   const fps = detail?.fps ?? 30
   const inputReady = Boolean(detail?.song.renderEligible) && errors.length === 0
@@ -220,7 +224,7 @@ export function ReelsFactoryPage() {
         data: { ...data, song: { ...data.song, mvAsset: "" } },
         acknowledgeSourceRightsAndPlatformRisk: true,
       })
-      downloadBlob(blob, `${detail.song.artist}-${detail.song.title}-kotonoha-reel.mp4`)
+      downloadBlob(blob, `${data.song.artist}-${data.song.title}-kotonoha-reel.mp4`)
     } catch (cause) {
       setError(errorLabel(cause))
     } finally {
@@ -281,9 +285,11 @@ export function ReelsFactoryPage() {
               youtubeUrl={detail.song.youtubeUrl}
             />
             <LineInspector
+              credit={credit}
               detail={detail}
               editor={editor}
               errors={errors}
+              onChangeCredit={setCredit}
               playheadMs={playheadMs}
               selectedIndex={selectedIndex}
               onSeekReel={seekReel}

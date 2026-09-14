@@ -113,9 +113,12 @@ class AdminReelsFactoryService(
 
     /**
      * 에디터가 만든 타임라인 검증. 줄 시작 프레임은 곡 순서대로 단조 증가해야 하고, 가사 구간은
-     * [MAX_LYRICS_SPAN_MS] 를 넘을 수 없다. 줄 텍스트·단어 내용은 어드민이 고른 그대로 믿는다.
+     * [MAX_LYRICS_SPAN_MS] 를 넘을 수 없다. 줄 텍스트·단어 내용과 곡 제목·아티스트 표기는 어드민이 고른 그대로 믿는다.
      */
     private fun validateRenderData(data: AdminReelsPromoData) {
+        if (data.song.title.isBlank() || data.song.artist.isBlank()) {
+            throw IllegalArgumentException("song title and artist must not be blank")
+        }
         val lines = data.lyricLines
         if (lines.size < MIN_LINE_COUNT) {
             throw IllegalArgumentException("lyricLines must contain at least $MIN_LINE_COUNT lines")

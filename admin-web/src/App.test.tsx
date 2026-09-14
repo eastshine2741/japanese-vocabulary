@@ -278,6 +278,15 @@ describe("admin web", () => {
 
     expect(screen.getByRole("button", { name: /Render and download MP4/ })).toBeEnabled()
 
+    // 곡 제목·아티스트는 DB 값으로 채워지고 어드민이 고쳐 쓴다. 비우면 렌더할 수 없다.
+    expect(screen.getByLabelText("Song title")).toHaveValue(reelsSongCandidate.title)
+    expect(screen.getByLabelText("Song artist")).toHaveValue(reelsSongCandidate.artist)
+    await user.clear(screen.getByLabelText("Song title"))
+    expect(screen.getByText("곡 제목을 입력해야 합니다")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /Render and download MP4/ })).toBeDisabled()
+    await user.type(screen.getByLabelText("Song title"), "레몬")
+    expect(screen.getByRole("button", { name: /Render and download MP4/ })).toBeEnabled()
+
     // 든 줄에서 끌기 시작하면 빼기, 체크 한 번은 그 줄만 토글, Shift+클릭은 마지막 줄부터 범위
     await user.pointer([{ keys: "[MouseLeft>]", target: row(2) }, { target: row(3) }, { keys: "[/MouseLeft]" }])
     expect(screen.getByLabelText("Select lyric line 2")).toHaveAttribute("aria-pressed", "false")

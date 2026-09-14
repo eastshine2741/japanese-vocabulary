@@ -10,14 +10,17 @@ import {
   parseTimecode,
   tokenSelectable,
   type EditorState,
+  type SongCredit,
 } from "./reelEditor"
 
 type Props = {
   detail: ReelsSongDetail
   editor: EditorState
+  credit: SongCredit
   selectedIndex: number | null
   playheadMs: number
   errors: string[]
+  onChangeCredit(credit: SongCredit): void
   onSetSourceStart(ms: number): void
   onSetEnd(ms: number): void
   onSetLineStart(index: number, ms: number): void
@@ -26,13 +29,15 @@ type Props = {
   onSeekReel(ms: number): void
 }
 
-/** 오른쪽 패널. 위는 클립 시작·끝, 아래는 고른 줄의 타이밍과 단어. */
+/** 오른쪽 패널. 위부터 곡 표기, 클립 시작·끝, 고른 줄의 타이밍과 단어. */
 export function LineInspector({
   detail,
   editor,
+  credit,
   selectedIndex,
   playheadMs,
   errors,
+  onChangeCredit,
   onSetSourceStart,
   onSetEnd,
   onSetLineStart,
@@ -47,6 +52,21 @@ export function LineInspector({
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-auto rounded-lg border border-[#d9e1ea] bg-white text-sm">
+      <section className="border-b border-[#e2e8f0] p-3">
+        <div className="mb-2 flex items-center justify-between">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-[#637083]">Song</span>
+          <span className="truncate pl-2 text-xs text-[#637083]" title={`${detail.song.title} / ${detail.song.artist}`}>
+            {detail.song.title} / {detail.song.artist}
+          </span>
+        </div>
+        <div className="grid grid-cols-[48px_1fr] items-center gap-x-2 gap-y-1.5">
+          <span className="font-mono text-xs text-[#637083]">TITLE</span>
+          <TextInput ariaLabel="Song title" value={credit.title} onChange={(title) => onChangeCredit({ ...credit, title })} />
+          <span className="font-mono text-xs text-[#637083]">ARTIST</span>
+          <TextInput ariaLabel="Song artist" value={credit.artist} onChange={(artist) => onChangeCredit({ ...credit, artist })} />
+        </div>
+      </section>
+
       <section className="border-b border-[#e2e8f0] p-3">
         <div className="mb-2 flex items-center justify-between">
           <span className="text-[11px] font-semibold uppercase tracking-wide text-[#637083]">Clip</span>
@@ -183,6 +203,20 @@ function PlayheadButton({ label, disabled, onClick }: { label: string; disabled?
     >
       <Crosshair className="h-4 w-4" />
     </Button>
+  )
+}
+
+function TextInput({ ariaLabel, value, onChange }: { ariaLabel: string; value: string; onChange(value: string): void }) {
+  return (
+    <input
+      aria-label={ariaLabel}
+      className="focus-ring h-8 w-full rounded-md border border-[#cbd5e1] bg-white px-2 text-sm text-[#18212f]"
+      onChange={(event) => onChange(event.target.value)}
+      onKeyDown={(event) => {
+        if (event.key === "Enter") event.currentTarget.blur()
+      }}
+      value={value}
+    />
   )
 }
 
