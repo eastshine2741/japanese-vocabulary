@@ -59,6 +59,10 @@ segment -> anchor/retry -> rules -> jisho entry-select
   being cut off.
 - `GeminiResponseGuard.verifyComplete` rejects non-`STOP` responses before they
   look like downstream data mismatches.
+- `GeminiRetryPolicy` replays a call on transport failures only — dropped
+  connection, 5xx, 429 (`gemini.retry.max-attempts`, `initial-backoff`, doubling
+  with jitter, `Retry-After` honored). 4xx, parse errors, and truncated responses
+  are not retried. Each attempt writes its own `gemini_call_log` row.
 - Segmentation retries raise temperature; retrying at temperature 0 reproduced
   identical invalid output.
 - `MAX_DEFECT_RETRIES` covers incomplete anchored text and unresolved headwords.

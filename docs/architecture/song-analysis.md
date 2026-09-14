@@ -67,7 +67,7 @@ The prompt's few-shot pairs live on as `readingConverter.test.ts`. One divergenc
 a long vowel as a hyphen (`ドウ` → `도-`), where the prompt asked for `도우`. It runs **per token** —
 its long-vowel state would otherwise cross a word boundary and swallow the next word's leading ウ/イ.
 
-Failures end as `song_analysis_work.status=FAILED` without automatic retry in the first pass. If the user requests the same song again, a new work is created.
+Failures end as `song_analysis_work.status=FAILED` without work-level retry. Only individual Gemini calls retry, and only on transport failures (see `docs/translation-pipeline.md`). If the user requests the same song again, a new work is created.
 
 ### How the numbers below were measured
 

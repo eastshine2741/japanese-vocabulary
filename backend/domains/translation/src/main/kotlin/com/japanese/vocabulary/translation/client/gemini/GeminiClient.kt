@@ -10,8 +10,10 @@ import com.japanese.vocabulary.translation.client.gemini.dto.TranslationResultDt
 import io.micrometer.core.instrument.Counter
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Timer
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.web.client.RestClient
+import java.time.Duration
 
 @Component
 class GeminiClient(
@@ -34,10 +36,20 @@ class GeminiClient(
      * `minimal` outright.
      */
     @Value("\${gemini.segmentation-thinking-level:}") private val segmentationThinkingLevel: String,
+    /**
+     * How many times one call is attempted before its failure propagates, and the wait before the
+     * second attempt (doubling after that). Only [GeminiRetryPolicy.isTransient] failures are
+     * retried; the request has no side effects and runs at a fixed temperature, so replaying the
+     * POST is safe.
+     */
+    @Value("\${gemini.retry.max-attempts:3}") private val maxAttempts: Int,
+    @Value("\${gemini.retry.initial-backoff:2s}") private val initialBackoff: Duration,
     private val objectMapper: ObjectMapper,
     private val meterRegistry: MeterRegistry,
     private val geminiCallLogger: GeminiCallLogger,
 ) {
+    private val logger = LoggerFactory.getLogger(GeminiClient::class.java)
+
     private val restClient = restClientBuilder
         .baseUrl("https://generativelanguage.googleapis.com")
         .build()
@@ -151,6 +163,41 @@ class GeminiClient(
         thinkingLevel: String? = null
     ): List<T> {
         val inputJson = objectMapper.writeValueAsString(input)
+        var attempt = 1
+        while (true) {
+            try {
+                return attemptGemini(call, context, model, systemPrompt, inputJson, responseType, temperature, responseSchema, thinkingLevel)
+            } catch (e: Throwable) {
+                if (attempt >= maxAttempts || !GeminiRetryPolicy.isTransient(e)) throw e
+                val delay = GeminiRetryPolicy.backoff(attempt, e, initialBackoff)
+                logger.warn(
+                    "[songId={}] Gemini call={} model={} attempt {}/{} failed, retrying in {}ms: {}: {}",
+                    context.songId, call, model, attempt, maxAttempts, delay.toMillis(), e::class.simpleName, e.message,
+                )
+                Counter.builder(MetricNames.GEMINI_CALL_RETRIES)
+                    .tag("call", call)
+                    .tag("model", model)
+                    .tag("reason", e::class.simpleName ?: "unknown")
+                    .register(meterRegistry)
+                    .increment()
+                Thread.sleep(delay.toMillis())
+                attempt++
+            }
+        }
+    }
+
+    /** One HTTP round trip. Every attempt gets its own call-log row and duration sample. */
+    private fun <T> attemptGemini(
+        call: String,
+        context: GeminiCallContext,
+        model: String,
+        systemPrompt: String,
+        inputJson: String,
+        responseType: Class<T>,
+        temperature: Double,
+        responseSchema: Map<String, Any>?,
+        thinkingLevel: String?
+    ): List<T> {
 
         val generationConfig = mutableMapOf<String, Any>(
             "responseMimeType" to "application/json",
