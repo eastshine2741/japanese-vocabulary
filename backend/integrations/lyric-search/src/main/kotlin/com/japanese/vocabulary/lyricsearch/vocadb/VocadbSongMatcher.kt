@@ -2,6 +2,7 @@ package com.japanese.vocabulary.lyricsearch.vocadb
 
 import com.japanese.vocabulary.lyricsearch.ArtistNameNormalizer
 import com.japanese.vocabulary.lyricsearch.NormalizedSongQuery
+import com.japanese.vocabulary.lyricsearch.vocadb.dto.VocadbArtistSearchItemDto
 import com.japanese.vocabulary.lyricsearch.vocadb.dto.VocadbSongDto
 
 object VocadbSongMatcher {
@@ -19,6 +20,24 @@ object VocadbSongMatcher {
 
         val metadataText = metadataText(song)
         return directArtistTokens.any { metadataText.contains(it) }
+    }
+
+    /**
+     * For results VocaDB already filtered by artist id: the artist is settled, so only the song
+     * identity is checked — an exact title, or a close duration when both sides know it.
+     */
+    fun matchesWithinArtist(query: NormalizedSongQuery, song: VocadbSongDto): Boolean {
+        if (!hasCloseDuration(query, song)) return false
+        if (hasExactTitleMatch(query, song)) return true
+        return query.durationSeconds != null && song.lengthSeconds != null
+    }
+
+    /** Whether an artist search result is the artist itself, not a prefix or substring hit. */
+    fun isSameArtist(artistPart: String, artist: VocadbArtistSearchItemDto): Boolean {
+        val expected = normalizeText(artistPart)
+        if (normalizeText(artist.name) == expected) return true
+        if (artist.names.orEmpty().any { normalizeText(it.value) == expected }) return true
+        return artist.additionalNames.orEmpty().split(',').any { normalizeText(it) == expected }
     }
 
     private fun hasExactTitleMatch(query: NormalizedSongQuery, song: VocadbSongDto): Boolean {
