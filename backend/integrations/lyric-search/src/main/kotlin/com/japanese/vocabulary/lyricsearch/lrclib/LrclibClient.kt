@@ -2,7 +2,8 @@ package com.japanese.vocabulary.lyricsearch.lrclib
 
 import org.springframework.stereotype.Component
 import com.japanese.vocabulary.lyricsearch.JapaneseLyricValidator
-import com.japanese.vocabulary.lyricsearch.LyricMatchConfidence
+import com.japanese.vocabulary.lyricsearch.ArtistNameNormalizer
+import com.japanese.vocabulary.lyricsearch.ItunesArtistAliasVerifier
 import com.japanese.vocabulary.lyricsearch.LyricProvider
 import com.japanese.vocabulary.lyricsearch.LyricsResult
 import com.japanese.vocabulary.lyricsearch.NormalizedSongQuery
@@ -16,7 +17,10 @@ import kotlin.math.abs
 
 @Order(1)
 @Component
-class LrclibClient(restClientBuilder: RestClient.Builder) : LyricProvider {
+class LrclibClient(
+    restClientBuilder: RestClient.Builder,
+    private val artistAliasVerifier: ItunesArtistAliasVerifier,
+) : LyricProvider {
 
     override val providerName = "LrcLib"
 
@@ -73,8 +77,7 @@ class LrclibClient(restClientBuilder: RestClient.Builder) : LyricProvider {
             return null
         }
 
-        // /api/get matched artist_name server-side.
-        return toResult(response, LyricMatchConfidence.STRONG)?.also {
+        return toResult(response)?.also {
             logger.info(
                 "Lyric search hit | provider=LrcLib | strategy=exact-match | lrclibId={} | synced={}",
                 it.lrclibId, it.isSynced
@@ -87,7 +90,7 @@ class LrclibClient(restClientBuilder: RestClient.Builder) : LyricProvider {
             query.originalTitle,
             query.normalizedTitle.takeIf { it != query.originalTitle }
         )
-        val normalizedParts = query.artistParts.map { it.lowercase() }
+        val normalizedParts = query.artistParts.map(ArtistNameNormalizer::normalize)
 
         for (title in titles) {
             // 1차: track_name + artist_name 으로 server-side 필터
@@ -102,7 +105,7 @@ class LrclibClient(restClientBuilder: RestClient.Builder) : LyricProvider {
                         .queryParam("track_name", title)
                         .queryParam("artist_name", artistPart)
                 } ?: continue
-                pickMatch(scoped, normalizedParts, query.durationSeconds, "artist-scoped")?.let { return it }
+                pickMatch(scoped, query, normalizedParts, "artist-scoped")?.let { return it }
             }
 
             // 2차: q= 로 client-side 매칭
@@ -112,7 +115,7 @@ class LrclibClient(restClientBuilder: RestClient.Builder) : LyricProvider {
                 title, normalizedParts, query.durationSeconds ?: "none"
             )
             val results = searchRequest { it.path("/api/search").queryParam("q", title) } ?: continue
-            pickMatch(results, normalizedParts, query.durationSeconds, "title-only")?.let { return it }
+            pickMatch(results, query, normalizedParts, "title-only")?.let { return it }
         }
 
         return null
@@ -134,15 +137,15 @@ class LrclibClient(restClientBuilder: RestClient.Builder) : LyricProvider {
 
     private fun pickMatch(
         results: List<LrclibResponse>,
+        query: NormalizedSongQuery,
         normalizedParts: List<String>,
-        durationSeconds: Int?,
         mode: String,
     ): LyricsResult? {
         // Tier 1: artist name match
         for (response in results) {
-            val responseArtist = response.artistName.lowercase()
+            val responseArtist = ArtistNameNormalizer.normalize(response.artistName)
             if (normalizedParts.any { responseArtist.contains(it) }) {
-                toResult(response, LyricMatchConfidence.STRONG)?.let {
+                toResult(response)?.let {
                     logger.info(
                         "Lyric search hit | provider=LrcLib | strategy=keyword-search | mode={} | matchedBy=artist | responseArtist='{}' | lrclibId={} | synced={}",
                         mode, response.artistName, it.lrclibId, it.isSynced
@@ -152,28 +155,38 @@ class LrclibClient(restClientBuilder: RestClient.Builder) : LyricProvider {
             }
         }
 
-        // Tier 2: duration match (handles cross-script artist names like あいみょん vs Aimyon).
-        // No artist evidence at all, so this is WEAK: the caller keeps looking at other providers
-        // and only falls back to it when none of them names the artist.
-        if (durationSeconds != null) {
-            for (response in results) {
-                val responseDuration = response.duration
-                if (responseDuration != null && abs(durationSeconds - responseDuration) <= 3) {
-                    toResult(response, LyricMatchConfidence.WEAK)?.let {
-                        logger.info(
-                            "Lyric search hit | provider=LrcLib | strategy=keyword-search | mode={} | matchedBy=duration | responseDuration={} | lrclibId={} | synced={}",
-                            mode, responseDuration, it.lrclibId, it.isSynced
-                        )
-                        return it
-                    }
-                }
+        // Tier 2: duration match for cross-script artist names (あいみょん vs Aimyon). Duration alone
+        // is not evidence — a one-character title like 『恋』 has dozens of same-titled songs within a
+        // few seconds of each other — so the candidate's artist must resolve to ours through an alias
+        // lookup before it is accepted.
+        val durationSeconds = query.durationSeconds ?: return null
+        val verifiedArtists = mutableMapOf<String, Boolean>()
+        for (response in results) {
+            val responseDuration = response.duration ?: continue
+            if (abs(durationSeconds - responseDuration) > DURATION_TOLERANCE_SECONDS) continue
+            val sameArtist = verifiedArtists.getOrPut(response.artistName) {
+                artistAliasVerifier.isSameArtist(query.artistParts, response.artistName)
+            }
+            if (!sameArtist) {
+                logger.info(
+                    "Rejected duration-only candidate | provider=LrcLib | mode={} | responseArtist='{}' | responseDuration={} | lrclibId={}",
+                    mode, response.artistName, responseDuration, response.id
+                )
+                continue
+            }
+            toResult(response)?.let {
+                logger.info(
+                    "Lyric search hit | provider=LrcLib | strategy=keyword-search | mode={} | matchedBy=duration+alias | responseArtist='{}' | responseDuration={} | lrclibId={} | synced={}",
+                    mode, response.artistName, responseDuration, it.lrclibId, it.isSynced
+                )
+                return it
             }
         }
 
         return null
     }
 
-    private fun toResult(response: LrclibResponse, confidence: LyricMatchConfidence): LyricsResult? {
+    private fun toResult(response: LrclibResponse): LyricsResult? {
         val lyrics = response.syncedLyrics?.takeIf { it.isNotBlank() }
             ?: response.plainLyrics?.takeIf { it.isNotBlank() }
             ?: return null
@@ -188,7 +201,10 @@ class LrclibClient(restClientBuilder: RestClient.Builder) : LyricProvider {
             lrclibId = response.id,
             lyrics = if (isSynced) response.syncedLyrics!! else lyrics,
             isSynced = isSynced,
-            confidence = confidence,
         )
+    }
+
+    private companion object {
+        const val DURATION_TOLERANCE_SECONDS = 3
     }
 }

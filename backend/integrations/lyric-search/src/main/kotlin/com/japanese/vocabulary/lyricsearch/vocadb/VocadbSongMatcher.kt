@@ -1,8 +1,8 @@
 package com.japanese.vocabulary.lyricsearch.vocadb
 
+import com.japanese.vocabulary.lyricsearch.ArtistNameNormalizer
 import com.japanese.vocabulary.lyricsearch.NormalizedSongQuery
 import com.japanese.vocabulary.lyricsearch.vocadb.dto.VocadbSongDto
-import java.text.Normalizer
 
 object VocadbSongMatcher {
     private const val DURATION_TOLERANCE_SECONDS = 8
@@ -54,8 +54,5 @@ object VocadbSongMatcher {
         return normalizeText(values.filterNotNull().joinToString(" "))
     }
 
-    private fun normalizeText(value: String): String =
-        Normalizer.normalize(value, Normalizer.Form.NFKC)
-            .lowercase()
-            .replace(Regex("""[\s　・._\-_/()\[\]（）【】「」『』"'!?！？:：]+"""), "")
+    private fun normalizeText(value: String): String = ArtistNameNormalizer.normalize(value)
 }

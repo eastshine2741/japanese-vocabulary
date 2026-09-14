@@ -5,5 +5,4 @@ data class LyricsResult(
     val vocadbId: Long? = null,
     val lyrics: String,
     val isSynced: Boolean,
-    val confidence: LyricMatchConfidence,
 )

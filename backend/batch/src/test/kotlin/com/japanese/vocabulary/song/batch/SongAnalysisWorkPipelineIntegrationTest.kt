@@ -1,6 +1,5 @@
 package com.japanese.vocabulary.song.batch
 
-import com.japanese.vocabulary.lyricsearch.LyricMatchConfidence
 import com.japanese.vocabulary.lyricsearch.LyricsResult
 import com.japanese.vocabulary.mvsearch.client.youtube.dto.YoutubeSearchItemDto
 import com.japanese.vocabulary.mvsearch.client.youtube.dto.YoutubeSearchResponse
@@ -311,7 +310,6 @@ class SongAnalysisWorkPipelineIntegrationTest : BatchBaseIntegrationTest() {
             lrclibId = 12345,
             lyrics = "[00:12.34]ももいろの鍵",
             isSynced = true,
-            confidence = LyricMatchConfidence.STRONG,
         )
         every { vocadbClient.search(any()) } returns null
     }
