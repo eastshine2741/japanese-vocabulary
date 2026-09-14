@@ -4,6 +4,8 @@ import com.japanese.vocabulary.admin.dto.reels.AdminReelsRenderRequest
 import com.japanese.vocabulary.admin.dto.reels.AdminReelsVocabularyResponse
 import com.japanese.vocabulary.admin.reels.AdminReelsRenderFailedException
 import com.japanese.vocabulary.admin.reels.AdminReelsRenderService
+import com.japanese.vocabulary.admin.reels.AdminReelsPreviewTranscodeException
+import com.japanese.vocabulary.admin.reels.AdminReelsPreviewTranscoder
 import com.japanese.vocabulary.admin.reels.AdminReelsSourceCache
 import com.japanese.vocabulary.admin.reels.AdminReelsSourceProperties
 import com.japanese.vocabulary.admin.reels.FileAdminReelsSourceCache
@@ -42,6 +44,7 @@ import java.nio.file.Path
 class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
     @Autowired private lateinit var fakeRenderer: FakeReelsRenderService
     @Autowired private lateinit var sourceCache: AdminReelsSourceCache
+    @Autowired private lateinit var fakeTranscoder: FakeReelsPreviewTranscoder
 
     /** fake 렌더러는 컨텍스트에 하나뿐이라 앞 테스트가 남긴 입력을 지운다. */
     @BeforeEach
@@ -136,8 +139,9 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
         }
 
         // 어드민이 올려 둔 파일을 렌더 스크립트에 그대로 넘긴다
+        // 본 렌더는 미리보기 사본이 아니라 올린 원본을 받는다
         assertThat(fakeRenderer.lastInput?.source?.localPath)
-            .isEqualTo(sourceCache.cached(song.id!!).toString())
+            .isEqualTo(requireNotNull(sourceCache.cached(song.id!!)).source.toString())
         val rendered = requireNotNull(fakeRenderer.lastInput?.data)
         assertThat(rendered.sourceStartFrame).isEqualTo(900)
         assertThat(rendered.lyricLines.map { it.startFrame }).containsExactly(45, 90, 200, 260, 400)
@@ -251,14 +255,19 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
             jsonPath("$.mvPath") { value(org.hamcrest.Matchers.startsWith("/reels-factory/songs/${song.id}/mv?token=")) }
         }
 
-        // 미디어 토큰만으로 스트리밍 — Authorization 헤더 없음
+        // 원본은 그대로, 미리보기는 트랜스코더가 만든 사본
+        val cached = requireNotNull(sourceCache.cached(song.id!!))
+        assertThat(Files.readAllBytes(cached.source)).isEqualTo(FAKE_MP4)
+        assertThat(Files.readAllBytes(cached.preview)).isEqualTo(FAKE_PREVIEW)
+
+        // 미디어 토큰만으로 스트리밍 — Authorization 헤더 없음. 원본이 아니라 미리보기 사본이 나간다
         mockMvc.get("/admin/api/reels-factory/songs/${song.id}/mv") {
             param("token", mediaToken)
         }.andExpect {
             status { isOk() }
             header { string("Content-Type", "video/mp4") }
             header { string("Accept-Ranges", "bytes") }
-            content { bytes(FAKE_MP4) }
+            content { bytes(FAKE_PREVIEW) }
         }
 
         // Range 요청은 206 으로 잘라 준다
@@ -267,8 +276,8 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
             header("Range", "bytes=0-3")
         }.andExpect {
             status { isPartialContent() }
-            header { string("Content-Range", "bytes 0-3/${FAKE_MP4.size}") }
-            content { bytes(FAKE_MP4.copyOfRange(0, 4)) }
+            header { string("Content-Range", "bytes 0-3/${FAKE_PREVIEW.size}") }
+            content { bytes(FAKE_PREVIEW.copyOfRange(0, 4)) }
         }
 
         // 미디어 토큰은 다른 곡·어드민 토큰에는 안 통한다
@@ -295,13 +304,38 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
             status { isForbidden() }
         }
 
-        // 캐시에서 밀려나면 404
-        Files.deleteIfExists(requireNotNull(sourceCache.cached(song.id!!)))
+        // 캐시에서 밀려나면 404. 미리보기만 없어도 다시 올려야 한다
+        Files.deleteIfExists(cached.preview)
         mockMvc.get("/admin/api/reels-factory/songs/${song.id}/mv") {
             param("token", mediaToken)
         }.andExpect {
             status { isNotFound() }
         }
+        mockMvc.get("/admin/api/reels-factory/songs/${song.id}/source") {
+            header("Authorization", "Bearer $token")
+        }.andExpect {
+            status { isNotFound() }
+        }
+    }
+
+    @Test
+    fun `reels factory source rejects mp4 the preview transcoder cannot read`() {
+        val song = TestSongBuilder(entityManager)
+            .withTitle("Lemon")
+            .withArtist("米津玄師")
+            .build()
+        persistLyric(song.id!!, analyzed = true, lineCount = 7)
+        val token = adminToken()
+
+        fakeTranscoder.failNext = true
+        mockMvc.multipart("/admin/api/reels-factory/songs/${song.id}/source") {
+            header("Authorization", "Bearer $token")
+            file(MockMultipartFile("file", "mv.mp4", "video/mp4", FAKE_MP4))
+        }.andExpect {
+            status { isUnprocessableEntity() }
+            jsonPath("$.error") { value("source_transcode_failed") }
+        }
+        assertThat(sourceCache.cached(song.id!!)).isNull()
     }
 
     private fun uploadSource(token: String, songId: Long): String {
@@ -406,16 +440,37 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
         @Primary
         fun fakeReelsRenderService(): FakeReelsRenderService = FakeReelsRenderService()
 
+        /** ffmpeg 대신 정해진 바이트를 쓴다. 스트리밍이 원본이 아니라 미리보기 사본을 내주는지 구분하는 용도. */
+        @Bean
+        @Primary
+        fun fakeReelsPreviewTranscoder(): FakeReelsPreviewTranscoder = FakeReelsPreviewTranscoder()
+
         /** 진짜 파일 캐시를 쓰되 다른 실행에서 남은 파일이 섞이지 않게 테스트 전용 디렉토리를 준다. */
         @Bean
         @Primary
-        fun testReelsSourceCache(): AdminReelsSourceCache =
-            FileAdminReelsSourceCache(AdminReelsSourceProperties(directory = Files.createTempDirectory("test-reels-sources-")))
+        fun testReelsSourceCache(transcoder: FakeReelsPreviewTranscoder): AdminReelsSourceCache =
+            FileAdminReelsSourceCache(
+                AdminReelsSourceProperties(directory = Files.createTempDirectory("test-reels-sources-")),
+                transcoder,
+            )
+    }
+
+    class FakeReelsPreviewTranscoder : AdminReelsPreviewTranscoder {
+        var failNext = false
+
+        override fun transcode(source: Path, target: Path) {
+            if (failNext) {
+                failNext = false
+                throw AdminReelsPreviewTranscodeException("Preview transcode failed")
+            }
+            Files.write(target, FAKE_PREVIEW)
+        }
     }
 
     companion object {
         /** ISO BMFF 시그니처(`ftyp`)만 갖춘 최소 mp4. 캐시가 mp4 인지 검사하는 데 쓴다. */
         private val FAKE_MP4: ByteArray = byteArrayOf(0, 0, 0, 16) + "ftypisom".toByteArray() + "mp4!".toByteArray()
+        private val FAKE_PREVIEW: ByteArray = byteArrayOf(0, 0, 0, 20) + "ftypisom".toByteArray() + "preview!".toByteArray()
     }
 
     class FakeReelsRenderService : AdminReelsRenderService {

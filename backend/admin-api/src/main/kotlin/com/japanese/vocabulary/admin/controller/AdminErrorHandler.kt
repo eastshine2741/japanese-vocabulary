@@ -1,6 +1,7 @@
 package com.japanese.vocabulary.admin.controller
 
 import com.japanese.vocabulary.admin.reels.AdminReelsMediaTokenException
+import com.japanese.vocabulary.admin.reels.AdminReelsPreviewTranscodeException
 import com.japanese.vocabulary.admin.reels.AdminReelsRenderBusyException
 import com.japanese.vocabulary.admin.reels.AdminReelsRenderFailedException
 import com.japanese.vocabulary.admin.reels.AdminReelsRenderTimeoutException
@@ -36,6 +37,11 @@ class AdminErrorHandler {
     @ExceptionHandler(AdminReelsRenderTimeoutException::class)
     fun renderTimeout(): ResponseEntity<Map<String, String>> =
         json(HttpStatus.GATEWAY_TIMEOUT, mapOf("error" to "render_timeout"))
+
+    /** ffmpeg 이 못 읽는 mp4 거나 재인코딩이 시간 안에 안 끝남. 어드민이 다른 파일로 다시 올리게 한다. */
+    @ExceptionHandler(AdminReelsPreviewTranscodeException::class)
+    fun previewTranscodeFailed(exception: AdminReelsPreviewTranscodeException): ResponseEntity<Map<String, String>> =
+        json(HttpStatus.UNPROCESSABLE_ENTITY, mapOf("error" to "source_transcode_failed", "message" to (exception.message ?: "Preview transcode failed")))
 
     @ExceptionHandler(AdminReelsRenderFailedException::class)
     fun renderFailed(): ResponseEntity<Map<String, String>> =
