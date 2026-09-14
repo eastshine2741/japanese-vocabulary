@@ -187,7 +187,11 @@ export const ReelMonitor = React.forwardRef<MonitorHandle, Props>(function ReelM
               variant="secondary"
             >
               {uploadProgress != null ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-              {uploadProgress != null ? `MV 올리는 중... ${Math.round(uploadProgress * 100)}%` : "MV mp4 올리기"}
+              {uploadProgress == null
+                ? "MV mp4 올리기"
+                : uploadProgress >= 1
+                  ? "미리보기 만드는 중..."
+                  : `MV 올리는 중... ${Math.round(uploadProgress * 100)}%`}
             </Button>
             {youtubeUrl ? (
               <a className="text-xs text-white/50 underline-offset-2 hover:underline" href={youtubeUrl} rel="noreferrer" target="_blank">

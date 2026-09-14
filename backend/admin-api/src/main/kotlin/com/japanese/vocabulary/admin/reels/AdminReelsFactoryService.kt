@@ -50,8 +50,8 @@ class AdminReelsFactoryService(
     }
 
     /**
-     * 어드민이 올린 source mp4 를 캐시에 넣고 에디터가 스크럽할 스트리밍 경로를 돌려준다.
-     * 여기서 받은 파일은 본 렌더가 그대로 쓴다.
+     * 어드민이 올린 source mp4 를 캐시에 넣고(미리보기 사본 재인코딩 포함) 에디터가 스크럽할 스트리밍 경로를 돌려준다.
+     * 여기서 받은 원본은 본 렌더가 그대로 쓴다.
      */
     @Transactional(readOnly = true)
     fun uploadSource(songId: Long, file: MultipartFile): AdminReelsSourceResponse {
@@ -70,13 +70,13 @@ class AdminReelsFactoryService(
         return sourceCache.cached(songId)?.let { AdminReelsSourceResponse(mvPath = mvPath(songId)) }
     }
 
-    /** 미리보기 MV 스트림. 캐시에 있는 파일만 내준다. */
+    /** 미리보기 MV 스트림. 캐시에 있는 곡의 재인코딩 사본만 내준다. */
     @Transactional(readOnly = true)
     fun previewSource(songId: Long, token: String): Path {
         if (!tokenService.validateMediaToken(token, songId)) {
             throw AdminReelsMediaTokenException()
         }
-        return sourceCache.cached(songId) ?: throw NoSuchElementException("Source is not cached")
+        return sourceCache.cached(songId)?.preview ?: throw NoSuchElementException("Source is not cached")
     }
 
     @Transactional(readOnly = true)
@@ -87,7 +87,7 @@ class AdminReelsFactoryService(
         val source = sourceCache.cached(request.songId)
             ?: throw IllegalArgumentException("source mp4 must be uploaded before render")
         val input = AdminReelsRenderInput(
-            source = AdminReelsRenderSource(localPath = source.toString()),
+            source = AdminReelsRenderSource(localPath = source.source.toString()),
             // 렌더 스크립트가 mvAsset 을 채운다. 클라이언트가 넣은 스트리밍 URL 은 버린다.
             data = request.data.copy(song = request.data.song.copy(mvAsset = "")),
         )
