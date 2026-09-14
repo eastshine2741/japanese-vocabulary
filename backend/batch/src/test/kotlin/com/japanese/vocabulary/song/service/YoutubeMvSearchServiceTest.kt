@@ -16,6 +16,7 @@ import com.japanese.vocabulary.song.cache.ArtistChannelCache
 import com.japanese.vocabulary.song.cache.ArtistChannelCacheEntry
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 
@@ -297,6 +298,22 @@ class YoutubeMvSearchServiceTest {
 
         assertThat(service.searchMvUrl(NIIGO_TITLE, NIIGO, 241))
             .isEqualTo("https://www.youtube.com/watch?v=mv-id")
+    }
+
+    @Test
+    fun `search rejects an unofficial fan MV and falls back to the Topic channel`() {
+        // Prod song 79: "【非公式MV】エンゼルケア / いよわ様" scored as official because "非公式"
+        // contains "公式", won over the Topic upload, and cached its channel for the artist.
+        every { artistChannelCache.get("いよわ") } returns null
+        stubSearch(
+            searchItem("fan-id", "【非公式MV】エンゼルケア / いよわ様", "ふわふわ擬"),
+            searchItem("topic-id", "エンゼルケア", "Iyowa - Topic"),
+        )
+        stubDurations("fan-id" to "PT3M45S", "topic-id" to "PT3M50S")
+
+        assertThat(service.searchMvUrl("エンゼルケア", "いよわ", 229))
+            .isEqualTo("https://www.youtube.com/watch?v=topic-id")
+        verify(exactly = 0) { artistChannelCache.put(any<String>(), any<ArtistChannelCacheEntry>()) }
     }
 
     private fun stubSearch(vararg items: YoutubeSearchItemDto) {

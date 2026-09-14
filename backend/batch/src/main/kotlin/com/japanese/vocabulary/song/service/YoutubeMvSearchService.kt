@@ -295,8 +295,9 @@ class YoutubeMvSearchService(
 
         // Keep this narrower than plain "MV": AMV/MAD/original-MV covers often
         // contain the target title but are not the official/publisher upload.
+        // "非公式" (unofficial) contains "公式" and must not count as official.
         private val OFFICIAL_TITLE_RE = Regex(
-            "Music Video|Official Video|Official MV|オフィシャル|公式",
+            "Music Video|Official Video|Official MV|オフィシャル|(?<!非)公式",
             RegexOption.IGNORE_CASE
         )
         // Live/tour clips are the artist's own uploads and often run exactly the track
@@ -304,7 +305,7 @@ class YoutubeMvSearchService(
         // by explicit lookarounds rather than \b, whose Unicode handling differs across JDKs
         // ("LIVE映像" must still match).
         private val BAD_TITLE_RE = Regex(
-            "弾いてみた|歌ってみた|cover|covered by|ピアノ|ギター|drum|アレンジ|off vocal|ニコカラ|字幕|한글자막|中文字幕|ローマ字|lyrics|lyric video|the first take|game size|アナザーボーカル|AMV|MAD|エイプリルフール|april fool" +
+            "弾いてみた|歌ってみた|cover|covered by|ピアノ|ギター|drum|アレンジ|off vocal|ニコカラ|字幕|한글자막|中文字幕|ローマ字|lyrics|lyric video|the first take|game size|アナザーボーカル|AMV|MAD|非公式|unofficial|エイプリルフール|april fool" +
                 "|(?<![a-z])(?:live|tour|concert)(?![a-z])|ライブ|ライヴ|ツアー|コンサート|フェス|カラオケ|karaoke|instrumental",
             RegexOption.IGNORE_CASE
         )
