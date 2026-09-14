@@ -67969,7 +67969,7 @@
                   "id": "V3I9j",
                   "name": "Japanese",
                   "layout": "vertical",
-                  "gap": 4,
+                  "gap": 20,
                   "alignItems": "center",
                   "children": [
                     {

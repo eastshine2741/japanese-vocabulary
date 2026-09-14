@@ -997,7 +997,8 @@ const styles = {
   japanese: {
     color: ink,
     fontWeight: 700,
-    lineHeight: 1.16,
+    // 2줄 이상일 때 답답하지 않게 — Pen Reel v2 의 줄 박스(1.16) + gap 20 과 같은 1.5 배
+    lineHeight: 1.5,
     margin: 0,
     // 어절(공백) 단위로만 줄을 바꾼다. 단어 한가운데서 꺾이면 안 읽힌다.
     overflowWrap: 'anywhere',
