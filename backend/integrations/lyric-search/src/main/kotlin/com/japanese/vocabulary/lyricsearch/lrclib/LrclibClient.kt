@@ -2,6 +2,7 @@ package com.japanese.vocabulary.lyricsearch.lrclib
 
 import org.springframework.stereotype.Component
 import com.japanese.vocabulary.lyricsearch.JapaneseLyricValidator
+import com.japanese.vocabulary.lyricsearch.LyricMatchConfidence
 import com.japanese.vocabulary.lyricsearch.LyricProvider
 import com.japanese.vocabulary.lyricsearch.LyricsResult
 import com.japanese.vocabulary.lyricsearch.NormalizedSongQuery
@@ -72,7 +73,8 @@ class LrclibClient(restClientBuilder: RestClient.Builder) : LyricProvider {
             return null
         }
 
-        return toResult(response)?.also {
+        // /api/get matched artist_name server-side.
+        return toResult(response, LyricMatchConfidence.STRONG)?.also {
             logger.info(
                 "Lyric search hit | provider=LrcLib | strategy=exact-match | lrclibId={} | synced={}",
                 it.lrclibId, it.isSynced
@@ -140,7 +142,7 @@ class LrclibClient(restClientBuilder: RestClient.Builder) : LyricProvider {
         for (response in results) {
             val responseArtist = response.artistName.lowercase()
             if (normalizedParts.any { responseArtist.contains(it) }) {
-                toResult(response)?.let {
+                toResult(response, LyricMatchConfidence.STRONG)?.let {
                     logger.info(
                         "Lyric search hit | provider=LrcLib | strategy=keyword-search | mode={} | matchedBy=artist | responseArtist='{}' | lrclibId={} | synced={}",
                         mode, response.artistName, it.lrclibId, it.isSynced
@@ -150,12 +152,14 @@ class LrclibClient(restClientBuilder: RestClient.Builder) : LyricProvider {
             }
         }
 
-        // Tier 2: duration match (handles cross-script artist names like あいみょん vs Aimyon)
+        // Tier 2: duration match (handles cross-script artist names like あいみょん vs Aimyon).
+        // No artist evidence at all, so this is WEAK: the caller keeps looking at other providers
+        // and only falls back to it when none of them names the artist.
         if (durationSeconds != null) {
             for (response in results) {
                 val responseDuration = response.duration
                 if (responseDuration != null && abs(durationSeconds - responseDuration) <= 3) {
-                    toResult(response)?.let {
+                    toResult(response, LyricMatchConfidence.WEAK)?.let {
                         logger.info(
                             "Lyric search hit | provider=LrcLib | strategy=keyword-search | mode={} | matchedBy=duration | responseDuration={} | lrclibId={} | synced={}",
                             mode, responseDuration, it.lrclibId, it.isSynced
@@ -169,7 +173,7 @@ class LrclibClient(restClientBuilder: RestClient.Builder) : LyricProvider {
         return null
     }
 
-    private fun toResult(response: LrclibResponse): LyricsResult? {
+    private fun toResult(response: LrclibResponse, confidence: LyricMatchConfidence): LyricsResult? {
         val lyrics = response.syncedLyrics?.takeIf { it.isNotBlank() }
             ?: response.plainLyrics?.takeIf { it.isNotBlank() }
             ?: return null
@@ -180,6 +184,11 @@ class LrclibClient(restClientBuilder: RestClient.Builder) : LyricProvider {
         }
 
         val isSynced = response.syncedLyrics?.isNotBlank() == true
-        return LyricsResult(lrclibId = response.id, lyrics = if (isSynced) response.syncedLyrics!! else lyrics, isSynced = isSynced)
+        return LyricsResult(
+            lrclibId = response.id,
+            lyrics = if (isSynced) response.syncedLyrics!! else lyrics,
+            isSynced = isSynced,
+            confidence = confidence,
+        )
     }
 }

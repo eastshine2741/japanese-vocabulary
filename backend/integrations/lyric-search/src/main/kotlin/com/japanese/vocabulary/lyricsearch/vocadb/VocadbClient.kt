@@ -1,6 +1,7 @@
 package com.japanese.vocabulary.lyricsearch.vocadb
 
 import org.springframework.stereotype.Component
+import com.japanese.vocabulary.lyricsearch.LyricMatchConfidence
 import com.japanese.vocabulary.lyricsearch.LyricProvider
 import com.japanese.vocabulary.lyricsearch.LyricsResult
 import com.japanese.vocabulary.lyricsearch.NormalizedSongQuery
@@ -56,10 +57,12 @@ class VocadbClient(restClientBuilder: RestClient.Builder) : LyricProvider {
                     "Lyric search hit | provider=VocaDB | matchedSong='{}' | matchedArtist='{}' | vocadbId={}",
                     song.name, song.artistString, song.id
                 )
+                // VocadbSongMatcher only accepts a song whose artist metadata names the query artist.
                 return LyricsResult(
                     vocadbId = song.id,
                     lyrics = lyrics.value!!,
-                    isSynced = false
+                    isSynced = false,
+                    confidence = LyricMatchConfidence.STRONG,
                 )
             }
 

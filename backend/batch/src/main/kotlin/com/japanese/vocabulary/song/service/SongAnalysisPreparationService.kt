@@ -2,6 +2,7 @@ package com.japanese.vocabulary.song.service
 
 import com.japanese.vocabulary.common.exception.BusinessException
 import com.japanese.vocabulary.common.exception.ErrorCode
+import com.japanese.vocabulary.lyricsearch.LyricMatchConfidence
 import com.japanese.vocabulary.lyricsearch.LyricProvider
 import com.japanese.vocabulary.lyricsearch.LyricsResult
 import com.japanese.vocabulary.lyricsearch.SongQueryNormalizer
@@ -134,6 +135,11 @@ class SongAnalysisPreparationService(
         return SongLyricCreationResult(song, lyric)
     }
 
+    /**
+     * First STRONG hit wins. A WEAK hit (duration coincidence, no artist evidence) is held back
+     * while the remaining providers get their turn, and used only when none of them can name the
+     * artist — a same-titled song from another artist is the likelier reading of a weak hit.
+     */
     private fun searchLyrics(title: String, artist: String, durationSeconds: Int?): LyricsResult {
         val query = SongQueryNormalizer.normalize(title, artist, durationSeconds)
         logger.info(
@@ -141,20 +147,40 @@ class SongAnalysisPreparationService(
             title, artist, query.normalizedTitle, query.artistParts
         )
 
+        var weakFallback: Pair<LyricProvider, LyricsResult>? = null
         for (provider in lyricProviders) {
             logger.info("Trying provider: {}", provider.providerName)
             val result = provider.search(query)
-            if (result != null) {
-                logger.info(
-                    "Lyrics found via {} (synced={}, lrclibId={}, vocadbId={})",
-                    provider.providerName, result.isSynced, result.lrclibId, result.vocadbId
-                )
+            if (result == null) {
+                logger.info("Provider {}: no results", provider.providerName)
+                continue
+            }
+            if (result.confidence == LyricMatchConfidence.STRONG) {
+                logFound(provider, result)
                 return result
             }
-            logger.info("Provider {}: no results", provider.providerName)
+            logger.info(
+                "Provider {}: weak match only (lrclibId={}, vocadbId={}), trying remaining providers",
+                provider.providerName, result.lrclibId, result.vocadbId
+            )
+            if (weakFallback == null) weakFallback = provider to result
+        }
+
+        if (weakFallback != null) {
+            val (provider, result) = weakFallback
+            logger.warn("No provider matched the artist for '{}' by '{}'; using weak match", title, artist)
+            logFound(provider, result)
+            return result
         }
 
         logger.warn("All lyric providers exhausted for: '{}' by '{}'", title, artist)
         throw BusinessException(ErrorCode.LYRICS_NOT_FOUND)
+    }
+
+    private fun logFound(provider: LyricProvider, result: LyricsResult) {
+        logger.info(
+            "Lyrics found via {} (confidence={}, synced={}, lrclibId={}, vocadbId={})",
+            provider.providerName, result.confidence, result.isSynced, result.lrclibId, result.vocadbId
+        )
     }
 }
