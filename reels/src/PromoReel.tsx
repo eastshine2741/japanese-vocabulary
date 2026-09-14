@@ -11,6 +11,7 @@ import {
 import type {CSSProperties} from 'react';
 
 import {convertLineReading, convertReading} from '../../app-rn/src/utils/readingConverter';
+import {SCORE_DREAM_FAMILY, useScoreDream} from './fonts/scoreDream';
 import type {LyricToken, PartOfSpeech, PromoLine, PromoReelData, VocabularyWord} from './types';
 
 export const PROMO_FPS = 30;
@@ -104,6 +105,7 @@ type TextRun = {
 };
 
 export const PromoReel = ({data}: {data: PromoReelData}) => {
+  useScoreDream();
   const frame = useCurrentFrame();
   const {durationInFrames} = useVideoConfig();
   const lines = data.lyricLines.length > 0 ? data.lyricLines : [emptyLine];
@@ -900,14 +902,17 @@ const emptyLine: PromoLine = {
   vocabulary: [],
 };
 
-const fontStack =
+// 앱 목업이 쓰는 폰트 — 실제 앱 화면과 같아야 해서 릴스 폰트를 따르지 않는다.
+const appFontStack =
   '"Noto Sans CJK KR", "Noto Sans CJK JP", "Noto Sans KR", "Noto Sans JP", "Apple SD Gothic Neo", "Hiragino Sans", sans-serif';
+// 릴스 폰트. 에스코어 드림에 없는 일본어는 뒤의 Noto CJK 가 맡는다.
+const reelFontStack = `"${SCORE_DREAM_FAMILY}", ${appFontStack}`;
 
 const styles = {
   canvas: {
     backgroundColor: night,
     color: ink,
-    fontFamily: fontStack,
+    fontFamily: reelFontStack,
     overflow: 'hidden',
   },
   fullVideo: {
@@ -1171,6 +1176,7 @@ const styles = {
     borderRadius: 46,
     boxShadow: '0 28px 80px rgba(0,0,0,0.6)',
     color: app.textPrimary,
+    fontFamily: appFontStack,
     height: PHONE_HEIGHT,
     left: 310,
     // 폰 아래쪽은 배경으로 녹아든다. 테두리·그림자까지 같이 사라져야 해서 별도 fade 사각형이 아니라 mask 다.
