@@ -37,6 +37,11 @@ class YoutubeMvSearchService(
         cached: ArtistChannelCacheEntry,
         durationBounds: DurationBounds,
     ): MvCandidate? {
+        // A publisher channel (Project SEKAI, a label) hosts many artists and re-uploads the
+        // same song sung by another unit (April Fools swaps, covers), so there the upload must
+        // name the artist. An artist's own channel rarely repeats its name in the title.
+        val requireArtistInTitle = !channelMatchesArtist(artist, cached.channelTitle)
+
         var pageToken: String? = null
         val matches = mutableListOf<MvCandidate>()
         var pagesRead = 0
@@ -50,7 +55,7 @@ class YoutubeMvSearchService(
 
             // An artist's uploads playlist mixes Shorts and live clips in with MVs, so the
             // title-matched items are collected first and filtered by duration in one batch below.
-            matches += response.items.mapNotNull { it.toCandidate(title, artist) }
+            matches += response.items.mapNotNull { it.toCandidate(title, artist, requireArtistInTitle) }
 
             pageToken = response.nextPageToken ?: break
         }
@@ -167,10 +172,15 @@ class YoutubeMvSearchService(
         )
     }
 
-    private fun YoutubePlaylistItemDto.toCandidate(title: String, artist: String): MvCandidate? {
+    private fun YoutubePlaylistItemDto.toCandidate(
+        title: String,
+        artist: String,
+        requireArtistInTitle: Boolean,
+    ): MvCandidate? {
         val videoId = snippet.resourceId.videoId ?: return null
         if (isShortsTitle(snippet.title)) return null
         if (!titleMatches(snippet.title, title)) return null
+        if (requireArtistInTitle && !normalizeForMatch(snippet.title).contains(normalizeForMatch(artist))) return null
         return MvCandidate(
             videoId = videoId,
             title = snippet.title,
@@ -207,12 +217,15 @@ class YoutubeMvSearchService(
     private fun isCacheableChannel(artist: String, candidate: MvCandidate): Boolean {
         if (candidate.score >= MIN_CACHEABLE_SCORE) return true
 
-        val normalizedArtist = normalizeForMatch(artist)
-        val normalizedChannel = normalizeForMatch(candidate.channelTitle)
-        val channelMatchesArtist = normalizedArtist.isNotBlank() &&
-            (normalizedArtist.contains(normalizedChannel) || normalizedChannel.contains(normalizedArtist))
         val channelIsKnownPublisher = KNOWN_PUBLISHER_CHANNEL_RE.containsMatchIn(candidate.channelTitle)
-        return channelMatchesArtist || channelIsKnownPublisher
+        return channelMatchesArtist(artist, candidate.channelTitle) || channelIsKnownPublisher
+    }
+
+    private fun channelMatchesArtist(artist: String, channelTitle: String): Boolean {
+        val normalizedArtist = normalizeForMatch(artist)
+        val normalizedChannel = normalizeForMatch(channelTitle)
+        return normalizedArtist.isNotBlank() &&
+            (normalizedArtist.contains(normalizedChannel) || normalizedChannel.contains(normalizedArtist))
     }
 
     private fun titleMatches(videoTitle: String, targetTitle: String): Boolean {
@@ -291,7 +304,7 @@ class YoutubeMvSearchService(
         // by explicit lookarounds rather than \b, whose Unicode handling differs across JDKs
         // ("LIVE映像" must still match).
         private val BAD_TITLE_RE = Regex(
-            "弾いてみた|歌ってみた|cover|covered by|ピアノ|ギター|drum|アレンジ|off vocal|ニコカラ|字幕|한글자막|中文字幕|ローマ字|lyrics|lyric video|the first take|game size|アナザーボーカル|AMV|MAD" +
+            "弾いてみた|歌ってみた|cover|covered by|ピアノ|ギター|drum|アレンジ|off vocal|ニコカラ|字幕|한글자막|中文字幕|ローマ字|lyrics|lyric video|the first take|game size|アナザーボーカル|AMV|MAD|エイプリルフール|april fool" +
                 "|(?<![a-z])(?:live|tour|concert)(?![a-z])|ライブ|ライヴ|ツアー|コンサート|フェス|カラオケ|karaoke|instrumental",
             RegexOption.IGNORE_CASE
         )
