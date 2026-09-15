@@ -48,8 +48,15 @@ class SongController(
     private fun currentUserId(): Long =
         SecurityContextHolder.getContext().authentication.principal as Long
 
+    /**
+     * 멱등하다: 같은 곡을 몇 번 요청해도 분석은 한 번만 돈다. 이미 단어 분석까지 끝난 곡이면
+     * 그 분석 작업을 그대로 돌려주고, 진행 중인 작업이 있으면 서비스가 그것을 재사용한다.
+     */
     @PostMapping("/analyze")
     fun analyzeSong(@RequestBody request: AnalyzeSongRequest): ResponseEntity<SongAnalysisWorkResponse> {
+        findCompletedAnalysis(request.title, request.artist)?.let {
+            return ResponseEntity.ok(it.toResponse())
+        }
         val work = songAnalysisWorkService.createOrReuse(
             title = request.title,
             artist = request.artist,
@@ -58,6 +65,13 @@ class SongController(
             createdByUserId = currentUserId(),
         )
         return ResponseEntity.ok(work.toResponse())
+    }
+
+    private fun findCompletedAnalysis(title: String, artist: String): SongAnalysisWorkDto? {
+        val song = songRepository.findByArtistAndTitle(artist, title) ?: return null
+        val lyric = lyricRepository.findActiveBySongId(song.id!!) ?: return null
+        if (lyric.analyzedContent == null) return null
+        return songAnalysisWorkService.findLatestCompletedForSong(song.id!!)
     }
 
     @GetMapping("/analysis-work/{workId}")

@@ -26,6 +26,8 @@ import com.japanese.vocabulary.song.entity.LyricType
 import com.japanese.vocabulary.song.entity.SongEntity
 import com.japanese.vocabulary.song.repository.LyricRepository
 import com.japanese.vocabulary.song.model.LyricWordCandidates
+import com.japanese.vocabulary.songanalysis.entity.SongAnalysisTriggerSource
+import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkEntity
 import com.japanese.vocabulary.songanalysis.repository.SongAnalysisWorkRepository
 import com.japanese.vocabulary.song.repository.SongRepository
 import com.japanese.vocabulary.song.model.WordCandidate
@@ -190,6 +192,67 @@ class SongControllerTest : ApiBaseIntegrationTest() {
 
             entityManager.flush(); entityManager.clear()
             assertThat(songRepository.findByArtistAndTitle("歌手", "YT失敗")).isNull()
+        }
+
+        @Test
+        fun `repeated analyze requests reuse the same active work`() {
+            val me = newUser()
+            val request = AnalyzeSongRequest(title = "再要求曲", artist = "再要求歌手", durationSeconds = 200)
+            val analyze = {
+                readBody<SongAnalysisWorkResponse>(
+                    mockMvc.post("/api/songs/analyze") {
+                        header("Authorization", bearer(me))
+                        contentType = MediaType.APPLICATION_JSON
+                        content = objectMapper.writeValueAsString(request)
+                    }.andExpect { status { isOk() } }.andReturn().response.contentAsString,
+                )
+            }
+
+            val first = analyze()
+            val second = analyze()
+
+            assertThat(second.workId).isEqualTo(first.workId)
+            assertThat(second.status).isEqualTo("PENDING")
+            entityManager.flush(); entityManager.clear()
+            assertThat(workRepository.findAll().filter { it.rawTitle == "再要求曲" }).hasSize(1)
+        }
+
+        @Test
+        fun `already analyzed song returns its completed work instead of starting a new analysis`() {
+            val me = newUser()
+            val song = newSong(title = "分析済曲", artist = "分析済歌手")
+            val lyric = newLyric(
+                song,
+                raw = listOf(LyricLineData(index = 0, startTimeMs = 0, text = "夜")),
+                analyzed = listOf(AnalyzedLine(index = 0, koreanLyrics = "밤", tokens = emptyList())),
+            )
+            val completed = SongAnalysisWorkEntity(
+                rawTitle = "分析済曲",
+                rawArtist = "分析済歌手",
+                triggerSource = SongAnalysisTriggerSource.USER_APP,
+                songId = song.id,
+                lyricId = lyric.id,
+                playerReadyAt = Instant.now(),
+            ).also { it.markCompleted(Instant.now()) }
+            entityManager.persist(completed)
+            entityManager.flush()
+
+            val body = mockMvc.post("/api/songs/analyze") {
+                header("Authorization", bearer(me))
+                contentType = MediaType.APPLICATION_JSON
+                content = objectMapper.writeValueAsString(
+                    AnalyzeSongRequest(title = "分析済曲", artist = "分析済歌手", durationSeconds = 200),
+                )
+            }.andExpect { status { isOk() } }.andReturn().response.contentAsString
+
+            val dto = readBody<SongAnalysisWorkResponse>(body)
+            assertThat(dto.workId).isEqualTo(completed.id)
+            assertThat(dto.status).isEqualTo("COMPLETED")
+            assertThat(dto.songId).isEqualTo(song.id)
+            assertThat(dto.canOpenPlayer).isTrue
+            assertThat(dto.isAnalysisComplete).isTrue
+            entityManager.flush(); entityManager.clear()
+            assertThat(workRepository.findAll().filter { it.rawTitle == "分析済曲" }).hasSize(1)
         }
 
         @Test
