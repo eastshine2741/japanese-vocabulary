@@ -2,10 +2,10 @@
 
 Local GitHub issue automation runner. It polls GitHub issues by labels and invokes Claude phase prompts.
 
-This is separate from the Sentry auto-triage runner:
+This is separate from the analysis feedback runner:
 
 - `issue-resolver/` handles GitHub issues labeled `status:new`, `status:feedback`, and `status:approved`.
-- `sentry/` handles Sentry error triage and Sentry issue-note completion.
+- `analysis-feedback/` turns words the song analysis pipeline shipped without a meaning into PRs.
 
 ## Files
 
