@@ -233,6 +233,21 @@ class LexicalResolverTest {
     }
 
     @Test
+    fun `a lookup jisho never answered is reported as a provider error, not a miss`(): Unit = runBlocking {
+        // songId=82: jisho returned 502 for ninety seconds and 太陽 went out with no meaning, logged
+        // as if no entry existed. The segmentation stage must be able to tell the two apart — one
+        // is worth a retry against jisho, the other is worth a retry against the model.
+        stub("太陽" to JishoEntryDto(found = false, provenance = JishoLookupProvenance.FETCH_ERROR))
+
+        val missed = resolver.unresolvedTokens(
+            listOf(token("太陽", "太陽", "タイヨウ"), token("鬱雑い", "鬱雑い", "ウザイ")),
+        )
+
+        assertThat(missed.map { it.token.headword to it.providerError })
+            .containsExactly("太陽" to true, "鬱雑い" to false)
+    }
+
+    @Test
     fun `a katakana word no dictionary answers in either script stays without candidates`(): Unit = runBlocking {
         // The rescue switches the script, it does not invent an entry: a coinage the lyric made up
         // misses in hiragana too, and it is exempt from the headword check for exactly that reason.

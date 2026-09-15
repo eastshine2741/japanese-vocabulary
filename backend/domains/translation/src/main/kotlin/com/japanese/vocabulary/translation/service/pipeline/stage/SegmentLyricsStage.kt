@@ -2,9 +2,13 @@ package com.japanese.vocabulary.translation.service.pipeline.stage
 
 import com.japanese.vocabulary.translation.client.gemini.GeminiClient
 import com.japanese.vocabulary.translation.client.gemini.dto.SegLineDto
+import com.japanese.vocabulary.translation.model.AnalysisDefect
+import com.japanese.vocabulary.translation.model.AnalysisDefectCause
 import com.japanese.vocabulary.translation.model.PipelineToken
 import com.japanese.vocabulary.translation.model.SegmentationStageResult
 import com.japanese.vocabulary.translation.model.TranslationPipelineSource
+import com.japanese.vocabulary.translation.model.UncoveredRun
+import com.japanese.vocabulary.translation.service.pipeline.AnalysisDefectReporter
 import com.japanese.vocabulary.translation.service.pipeline.ChunkedGeminiCall
 import com.japanese.vocabulary.translation.service.pipeline.GluedParticleSplitter
 import com.japanese.vocabulary.translation.service.pipeline.JapaneseText
@@ -22,6 +26,7 @@ class SegmentLyricsStage(
     private val gluedParticleSplitter: GluedParticleSplitter,
     private val ruleMeaningProvider: RuleMeaningProvider,
     private val lexicalResolver: LexicalResolver,
+    private val defectReporter: AnalysisDefectReporter,
 ) : PipelineStage<TranslationPipelineSource, SegmentationStageResult> {
     private val logger = LoggerFactory.getLogger(SegmentLyricsStage::class.java)
 
@@ -47,7 +52,11 @@ class SegmentLyricsStage(
      *   headword the dictionary cannot answer (`帰れない` for `帰る`) reaches the app with no meaning.
      *   Both get one resampled retry — the same line often comes back right, since it was segmented
      *   correctly elsewhere in the same song — and after [MAX_DEFECT_RETRIES] the best attempt is kept
-     *   and the defect is logged.
+     *   and each defect is reported through [AnalysisDefectReporter].
+     * - A headword the dictionary **never answered** is kept the same way, but reported apart
+     *   ([AnalysisDefectCause.PROVIDER_ERROR]): jisho was down, not wrong, so the retry resends the
+     *   line without feedback — errors are not cached, so that asks jisho again — and what survives
+     *   is an outage to count, not a word for anyone to fix.
      */
     override suspend fun execute(input: TranslationPipelineSource): SegmentationStageResult {
         val acceptedTokens = mutableMapOf<Int, List<PipelineToken>>()
@@ -55,7 +64,9 @@ class SegmentLyricsStage(
         val acceptedDefects = mutableMapOf<Int, LineDefects>()
         var pendingByIndex = input.rawByIndex
         var anchorFailures: Map<Int, String> = emptyMap()
-        var defectFeedback: Map<Int, String> = emptyMap()
+        // Null feedback still resends the line: a headword jisho never answered gets a plain resend,
+        // which is what makes the lookup happen again, without telling the model anything was wrong.
+        var defectFeedback: Map<Int, String?> = emptyMap()
         var defectRetriesLeft = MAX_DEFECT_RETRIES
 
         repeat(MAX_SEGMENTATION_ATTEMPTS) { attempt ->
@@ -87,8 +98,7 @@ class SegmentLyricsStage(
             val defectiveByIndex = acceptedDefects.filterValues { !it.isClean }
             val retryDefects = defectiveByIndex.isNotEmpty() && defectRetriesLeft > 0
             if (anchorFailures.isEmpty() && !retryDefects) {
-                reportDefects(input, defectiveByIndex)
-                return result(input, acceptedSegLines, acceptedTokens)
+                return finish(input, acceptedSegLines, acceptedTokens, defectiveByIndex)
             }
 
             defectFeedback = if (retryDefects) {
@@ -112,8 +122,7 @@ class SegmentLyricsStage(
         // Position failures are the only check that gets here: a defect stops asking once its retry
         // budget is spent, which is inside the loop.
         if (anchorFailures.isEmpty() && acceptedTokens.keys.containsAll(input.rawByIndex.keys)) {
-            reportDefects(input, acceptedDefects.filterValues { !it.isClean })
-            return result(input, acceptedSegLines, acceptedTokens)
+            return finish(input, acceptedSegLines, acceptedTokens, acceptedDefects.filterValues { !it.isClean })
         }
         throw SegmentationValidationException(
             "Segmentation validation failed for ${anchorFailures.size} line(s) after " +
@@ -136,7 +145,7 @@ class SegmentLyricsStage(
     private suspend fun segment(
         input: TranslationPipelineSource,
         pendingByIndex: Map<Int, String>,
-        feedbackByIndex: Map<Int, String>,
+        feedbackByIndex: Map<Int, String?>,
         attempt: Int,
     ): List<SegLineDto> {
         val representativeByText = linkedMapOf<String, Int>()
@@ -177,52 +186,39 @@ class SegmentLyricsStage(
      * Katakana-only surfaces are exempt: `ステンバイミー` and `チリン` have no dictionary entry to find, so
      * retrying them would spend the budget on the one case a retry cannot fix.
      */
-    private suspend fun headwordMisses(tokensByIndex: Map<Int, List<PipelineToken>>): Map<Int, List<PipelineToken>> {
+    private suspend fun headwordMisses(
+        tokensByIndex: Map<Int, List<PipelineToken>>,
+    ): Map<Int, List<LexicalResolver.Unresolved>> {
         val checkable = tokensByIndex.values
             .flatMap { tokens -> ruleMeaningProvider.rewrite(tokens) }
             .filter { JapaneseText.containsJapanese(it.surface) }
             .filterNot { JapaneseText.isKatakanaOnly(it.surface) }
             .filter { ruleMeaningProvider.resolve(it) == null }
         if (checkable.isEmpty()) return emptyMap()
-        return lexicalResolver.unresolvedTokens(checkable).groupBy { it.lineIndex }
+        return lexicalResolver.unresolvedTokens(checkable).groupBy { it.token.lineIndex }
     }
 
-    private fun result(
+    /**
+     * What the lines still hold after the retry budget is spent, said out loud, then the result.
+     *
+     * Nothing downstream can tell a token with no meaning from one that legitimately has none, or a
+     * line that lost a word from one that never had it, so this is the only place the pipeline says
+     * either — one [AnalysisDefect] per token, so a log search can group them by cause and headword.
+     */
+    private fun finish(
         input: TranslationPipelineSource,
         segLines: Map<Int, SegLineDto>,
         tokens: Map<Int, List<PipelineToken>>,
-    ) = SegmentationStageResult(
-        segLines = input.rawByIndex.keys.map { segLines.getValue(it) },
-        tokensByIndex = input.rawByIndex.keys.associateWith { tokens.getValue(it) },
-    )
-
-    /**
-     * What the lines still hold after the retry budget is spent. Nothing downstream can tell a token
-     * with no meaning from one that legitimately has none, or a line that lost a word from one that
-     * never had it, so this is the only place the pipeline says either out loud.
-     */
-    private fun reportDefects(input: TranslationPipelineSource, defectsByIndex: Map<Int, LineDefects>) {
-        if (defectsByIndex.isEmpty()) return
-        val unresolved = defectsByIndex.values.flatMap { it.unresolvedHeadwords }
-        if (unresolved.isNotEmpty()) {
-            logger.warn(
-                "[songId={}] {} token(s) on {} line(s) keep an unresolvable headword and will have no meaning: {}",
-                input.callContext.songId,
-                unresolved.size,
-                defectsByIndex.count { it.value.unresolvedHeadwords.isNotEmpty() },
-                unresolved.take(UNRESOLVED_DETAIL_LIMIT).joinToString(", ") { "'${it.surface}'(${it.headword})" },
-            )
+        defectsByIndex: Map<Int, LineDefects>,
+    ): SegmentationStageResult {
+        val defects = defectsByIndex.entries.sortedBy { it.key }.flatMap { (index, lineDefects) ->
+            lineDefects.toAnalysisDefects(input, index)
         }
-        val uncovered = defectsByIndex.filterValues { it.uncovered != null }
-        if (uncovered.isNotEmpty()) {
-            logger.warn(
-                "[songId={}] {} line(s) leave Japanese text outside every surface, so it carries no word: {}",
-                input.callContext.songId,
-                uncovered.size,
-                uncovered.entries.sortedBy { it.key }.take(FAILURE_DETAIL_LIMIT)
-                    .joinToString("; ") { it.value.uncovered.orEmpty() },
-            )
-        }
+        defectReporter.reportAll(defects)
+        return SegmentationStageResult(
+            segLines = input.rawByIndex.keys.map { segLines.getValue(it) },
+            tokensByIndex = input.rawByIndex.keys.associateWith { tokens.getValue(it) },
+        )
     }
 
     /**
@@ -232,20 +228,54 @@ class SegmentLyricsStage(
      * resample was an improvement.
      */
     private data class LineDefects(
-        val unresolvedHeadwords: List<PipelineToken>,
-        val uncovered: String?,
+        val unresolvedHeadwords: List<LexicalResolver.Unresolved>,
+        val uncovered: UncoveredRun?,
     ) {
         val count: Int get() = unresolvedHeadwords.size + if (uncovered == null) 0 else 1
 
         val isClean: Boolean get() = count == 0
 
-        fun retryMessage(): String = listOfNotNull(unresolvedHeadwordMessage(), uncovered).joinToString(". ")
+        /**
+         * Feedback for the model. A headword jisho never answered is left out: the model's headword
+         * may well be right, and "no entry exists for 太陽" would push it to invent another. The line
+         * is still resent, which is what makes the lookup happen again.
+         */
+        fun retryMessage(): String? =
+            listOfNotNull(unresolvedHeadwordMessage(), uncovered?.message).joinToString(". ").ifEmpty { null }
+
+        fun toAnalysisDefects(input: TranslationPipelineSource, lineIndex: Int): List<AnalysisDefect> {
+            val line = input.rawByIndex[lineIndex].orEmpty()
+            val headwords = unresolvedHeadwords.map { (token, providerError) ->
+                AnalysisDefect(
+                    songId = input.callContext.songId,
+                    lyricId = input.callContext.lyricId,
+                    lineIndex = lineIndex,
+                    cause = if (providerError) AnalysisDefectCause.PROVIDER_ERROR else AnalysisDefectCause.DICTIONARY_MISS,
+                    surface = token.surface,
+                    headword = token.headword,
+                    line = line,
+                )
+            }
+            val uncoveredText = uncovered?.let {
+                AnalysisDefect(
+                    songId = input.callContext.songId,
+                    lyricId = input.callContext.lyricId,
+                    lineIndex = lineIndex,
+                    cause = AnalysisDefectCause.UNCOVERED,
+                    surface = it.text,
+                    headword = null,
+                    line = line,
+                )
+            }
+            return headwords + listOfNotNull(uncoveredText)
+        }
 
         private fun unresolvedHeadwordMessage(): String? {
-            if (unresolvedHeadwords.isEmpty()) return null
-            val named = unresolvedHeadwords.take(FAILURE_DETAIL_LIMIT)
+            val dictionaryMisses = unresolvedHeadwords.filterNot { it.providerError }.map { it.token }
+            if (dictionaryMisses.isEmpty()) return null
+            val named = dictionaryMisses.take(FAILURE_DETAIL_LIMIT)
                 .joinToString(", ") { "'${it.headword}' (surface '${it.surface}')" }
-            val omitted = unresolvedHeadwords.size - FAILURE_DETAIL_LIMIT
+            val omitted = dictionaryMisses.size - FAILURE_DETAIL_LIMIT
             val suffix = if (omitted > 0) " (+$omitted more)" else ""
             return "No jisho dictionary entry exists for headword $named$suffix"
         }
@@ -263,9 +293,10 @@ class SegmentLyricsStage(
     private fun temperatureFor(attempt: Int): Double =
         minOf(SEGMENT_MAX_TEMPERATURE, attempt * SEGMENT_TEMPERATURE_STEP)
 
-    private fun describeFailures(failuresByIndex: Map<Int, String>): String {
+    private fun describeFailures(failuresByIndex: Map<Int, String?>): String {
         val sorted = failuresByIndex.entries.sortedBy { it.key }
-        val shown = sorted.take(FAILURE_DETAIL_LIMIT).joinToString("; ") { "index=${it.key}: ${it.value}" }
+        val shown = sorted.take(FAILURE_DETAIL_LIMIT)
+            .joinToString("; ") { "index=${it.key}: ${it.value ?: "dictionary lookup failed, resending"}" }
         val omitted = sorted.size - FAILURE_DETAIL_LIMIT
         return if (omitted > 0) "$shown (+$omitted more)" else shown
     }

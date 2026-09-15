@@ -1,5 +1,8 @@
 package com.japanese.vocabulary.translation.service
 
+import ch.qos.logback.classic.Logger
+import ch.qos.logback.classic.spi.ILoggingEvent
+import ch.qos.logback.core.read.ListAppender
 import com.japanese.vocabulary.translation.client.gemini.dto.SegLineDto
 import com.japanese.vocabulary.translation.client.gemini.dto.SegWordDto
 import com.japanese.vocabulary.translation.client.gemini.dto.SelectLineDto
@@ -10,6 +13,7 @@ import com.japanese.vocabulary.translation.client.jisho.dto.JishoEntryDto
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoLookupProvenance
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoDictionaryEntryDto
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoOptionDto
+import com.japanese.vocabulary.translation.service.pipeline.AnalysisDefectReporter
 import com.japanese.vocabulary.translation.service.pipeline.JapaneseText
 import com.japanese.vocabulary.translation.service.pipeline.stage.SegmentLyricsStage
 import com.japanese.vocabulary.translation.service.pipeline.stage.SelectSensesStage
@@ -36,6 +40,7 @@ import kotlinx.coroutines.runBlocking
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import java.time.Duration
 import java.time.Instant
@@ -518,6 +523,89 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
         assertThat(token.surface).isEqualTo("帰れない")
         assertThat(token.koreanText).isNull()
         assertThat(token.partOfSpeech).isEqualTo(PartOfSpeech.OTHER)
+    }
+
+    @Test
+    fun `a headword jisho never answered is resent without feedback and reported as a provider error`(): Unit = runBlocking {
+        // songId=82: jisho returned 502 for ninety seconds, 23 everyday words went out with no
+        // meaning, and the log said "no dictionary entry exists" for 太陽. The line is kept — a
+        // song is not failed over an outage — but the record must say it was the provider, and the
+        // model must not be told its headword was wrong.
+        val lyric = seedLyric(listOf("太陽"))
+        val segmentInputs = mutableListOf<List<Map<String, Any?>>>()
+        val appender = ListAppender<ILoggingEvent>().also { it.start() }
+        val defectLogger = LoggerFactory.getLogger(AnalysisDefectReporter::class.java) as Logger
+        defectLogger.addAppender(appender)
+
+        try {
+            every { geminiClient.translateLyrics(any(), any()) } returns listOf(TranslationResultDto(0, "태양"))
+            every { geminiClient.segmentAndLemmatize(capture(segmentInputs), any(), any()) } returns listOf(
+                SegLineDto(0, listOf(segWord("太陽", "太陽", usedReading = "タイヨウ", baseFormReading = "タイヨウ"))),
+            )
+            coEvery { jishoService.lookupAll(any()) } answers {
+                firstArg<List<String>>().associateWith {
+                    JishoEntryDto(found = false, word = it, provenance = JishoLookupProvenance.FETCH_ERROR)
+                }
+            }
+
+            val token = translationService.runPipeline(lyric).single().tokens.single()
+
+            verify(exactly = SegmentLyricsStage.MAX_DEFECT_RETRIES + 1) {
+                geminiClient.segmentAndLemmatize(any(), any(), any())
+            }
+            assertThat(segmentInputs[1].single()).doesNotContainKey("previousValidationError")
+            assertThat(token.surface).isEqualTo("太陽")
+            assertThat(token.koreanText).isNull()
+            assertThat(appender.list.single().formattedMessage)
+                .startsWith("ANALYSIS_DEFECT {")
+                .contains("\"cause\":\"PROVIDER_ERROR\"")
+                .contains("\"headword\":\"太陽\"")
+        } finally {
+            defectLogger.detachAppender(appender)
+        }
+    }
+
+    @Test
+    fun `a word shipped without a meaning is reported as one ANALYSIS_DEFECT line`(): Unit = runBlocking {
+        val lyric = seedLyric(listOf("金で買えれば"))
+        val appender = ListAppender<ILoggingEvent>().also { it.start() }
+        val defectLogger = LoggerFactory.getLogger(AnalysisDefectReporter::class.java) as Logger
+        defectLogger.addAppender(appender)
+
+        try {
+            every { geminiClient.translateLyrics(any(), any()) } returns listOf(TranslationResultDto(0, "돈으로 살 수 있다면"))
+            every { geminiClient.segmentAndLemmatize(any(), any(), any()) } returns listOf(
+                SegLineDto(
+                    0,
+                    listOf(
+                        segWord("金", "金", usedReading = "カネ", baseFormReading = "カネ"),
+                        segWord("で", "で", usedReading = "デ", baseFormReading = "デ"),
+                        segWord("買えれ", "買える", usedReading = "カエレ", baseFormReading = "カエル"),
+                        segWord("ば", "ば", usedReading = "バ", baseFormReading = "バ"),
+                    ),
+                ),
+            )
+            coEvery { jishoService.lookupAll(any()) } answers {
+                firstArg<List<String>>().associateWith { word ->
+                    if (word == "買える") JishoEntryDto(found = false, word = word) else exactEntry(word)
+                }
+            }
+            stubSenseSelectAndTranslate()
+
+            translationService.runPipeline(lyric)
+
+            val defects = appender.list.map { it.formattedMessage }
+            assertThat(defects).hasSize(1)
+            assertThat(defects.single())
+                .startsWith("ANALYSIS_DEFECT {")
+                .contains("\"cause\":\"DICTIONARY_MISS\"")
+                .contains("\"surface\":\"買えれ\"")
+                .contains("\"headword\":\"買える\"")
+                .contains("\"line\":\"金で買えれば\"")
+                .contains("\"songId\":${lyric.songId}")
+        } finally {
+            defectLogger.detachAppender(appender)
+        }
     }
 
     @Test

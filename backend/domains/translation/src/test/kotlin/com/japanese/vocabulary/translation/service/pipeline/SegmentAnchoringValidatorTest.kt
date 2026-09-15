@@ -190,7 +190,7 @@ class SegmentAnchoringValidatorTest {
             listOf(SegLineDto(0, listOf(word("人", "人", "ヒト", "ヒト")))),
         )
 
-        assertThat(result.incompleteByIndex[0]).contains("々")
+        assertThat(result.incompleteByIndex[0]?.text).contains("々")
         assertThat(result.failuresByIndex).isEmpty()
     }
 
@@ -229,7 +229,7 @@ class SegmentAnchoringValidatorTest {
         )
 
         assertThat(result.failuresByIndex).isEmpty()
-        assertThat(result.incompleteByIndex[0])
+        assertThat(result.incompleteByIndex[0]?.message)
             .isEqualTo("Japanese text 'が' at offset=1 is not covered by segmentation at line index=0")
         assertThat(result.anchoredByIndex.getValue(0).map { it.surface }).containsExactly("猫", "寝る")
         assertThat(result.anchoredByIndex.getValue(0).map { it.charStart }).containsExactly(0, 2)
@@ -259,7 +259,7 @@ class SegmentAnchoringValidatorTest {
         )
 
         assertThat(result.failuresByIndex).isEmpty()
-        assertThat(result.incompleteByIndex[0])
+        assertThat(result.incompleteByIndex[0]?.message)
             .isEqualTo("Japanese text 'イェイ' at offset=5 is not covered by segmentation at line index=0")
         assertThat(result.anchoredByIndex.getValue(0).map { it.surface }).containsExactly("晴れ舞台")
     }
