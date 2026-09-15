@@ -21,12 +21,12 @@ run.sh  fetch → ledger(cause:headword) → 새 키만 → classify(sonnet, 읽
 - `prompts/fix.md` — 2차. 워크트리에서 재현 테스트 + 최소 수정. PR 본문의 "왜"·"어떻게" 두 단락만 쓴다.
 - `schemas/*.json` — 두 단계의 출력 스키마 (`claude -p --json-schema`).
 - `fixtures/defects.json` — `--fixture` 용 샘플 (실제 prod 결손을 본뜬 것).
-- `env.example` — 환경변수 목록. 실제 값은 `env` 에 (gitignored).
+- `.env.template` — 환경변수 목록. 실제 값은 `.env` 에 (gitignored).
 
 ## 실행
 
 ```bash
-set -a; . .github/scripts/analysis-feedback/env; set +a
+set -a; . .github/scripts/analysis-feedback/.env; set +a
 .github/scripts/analysis-feedback/run.sh --check-preflight   # 도구·Sentry 접근 확인
 .github/scripts/analysis-feedback/run.sh --dry-run            # 분류까지만
 .github/scripts/analysis-feedback/run.sh --no-push            # 수정·테스트까지, 푸시/PR 직전에 멈춤
@@ -62,7 +62,7 @@ Description=Kotonoha analysis feedback runner
 [Service]
 Type=oneshot
 WorkingDirectory=/absolute/path/to/repo
-EnvironmentFile=/absolute/path/to/repo/.github/scripts/analysis-feedback/env
+EnvironmentFile=/absolute/path/to/repo/.github/scripts/analysis-feedback/.env
 Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
 ExecStart=/absolute/path/to/repo/.github/scripts/analysis-feedback/run.sh
 ```

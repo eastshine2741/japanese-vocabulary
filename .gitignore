@@ -42,4 +42,3 @@ admin-web/coverage/
 
 # Local dev database dump baseline
 local/mysql/
-.github/scripts/analysis-feedback/env
