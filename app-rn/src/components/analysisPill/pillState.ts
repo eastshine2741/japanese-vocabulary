@@ -19,7 +19,10 @@ export type PillTone = 'analyzing' | 'done' | 'failed';
 export interface PillState {
   tone: PillTone;
   title: string;
-  subtitle: string;
+  /** 부제 앞의 곡명. 넘치면 여기만 말줄임한다. 곡명을 안 보이는 상태면 null. */
+  song: string | null;
+  /** 곡명 뒤에 붙는 문구(구분자 포함). 항상 다 보인다. */
+  note: string | null;
   arts: (string | null)[];
   /** true 면 탭이 곡별 pill 로 분해, false 면 탭이 곧바로 songDetail. */
   expandable: boolean;
@@ -48,16 +51,16 @@ const DEFAULT_FAILURE_REASON = '잠시 후 다시 시도해주세요';
 export const failureReason = (errorCode: string | null) =>
   (errorCode && FAILURE_REASON[errorCode]) || DEFAULT_FAILURE_REASON;
 
-/** 한 곡이면 제목, 여럿이면 '첫 곡 외 n곡'. */
-const summarizeTitles = (jobs: AnalysisJob[]) =>
-  jobs.length > 1 ? `${jobs[0].title} 외 ${jobs.length - 1}곡` : jobs[0].title;
+/** 한 곡이면 없음, 여럿이면 '외 n곡'. */
+const restNote = (jobs: AnalysisJob[]) => (jobs.length > 1 ? ` 외 ${jobs.length - 1}곡` : null);
 
 const byLatestSettled = (a: AnalysisJob, b: AnalysisJob) => (b.settledAt ?? 0) - (a.settledAt ?? 0);
 
 const failedState = (job: AnalysisJob): PillState => ({
   tone: 'failed',
   title: PILL_TITLE.failed,
-  subtitle: `${job.title} · ${failureReason(job.errorCode)}`,
+  song: job.title,
+  note: ` · ${failureReason(job.errorCode)}`,
   arts: [job.artworkUrl],
   expandable: false,
   tapSongId: null,
@@ -79,7 +82,8 @@ export function derivePillState(jobs: AnalysisJob[]): PillState | null {
     return {
       tone: 'analyzing',
       title: PILL_TITLE.analyzing,
-      subtitle: summarizeTitles(analyzing),
+      song: analyzing[0].title,
+      note: restNote(analyzing),
       arts: analyzing.slice(0, 2).map(j => j.artworkUrl),
       expandable,
       tapSongId: expandable ? null : analyzing[0].songId,
@@ -92,7 +96,8 @@ export function derivePillState(jobs: AnalysisJob[]): PillState | null {
     return {
       tone: 'done',
       title: PILL_TITLE.done,
-      subtitle: summarizeTitles(done),
+      song: done[0].title,
+      note: restNote(done),
       arts: done.slice(0, 2).map(j => j.artworkUrl),
       expandable,
       tapSongId: expandable ? null : latest.songId,
@@ -102,8 +107,9 @@ export function derivePillState(jobs: AnalysisJob[]): PillState | null {
 
   return {
     tone: 'done',
-    title: done.length === 1 ? PILL_TITLE.done : `${done.length}곡 분석이 끝났어요`,
-    subtitle: `${latest.title} · ${analyzing.length}곡 남음`,
+    title: PILL_TITLE.done,
+    song: null,
+    note: `${analyzing.length}곡 남음`,
     arts: [latest.artworkUrl, analyzing[0].artworkUrl],
     expandable: true,
     tapSongId: null,
@@ -117,7 +123,8 @@ export function deriveJobPillState(job: AnalysisJob): PillState {
   return {
     tone: job.phase,
     title: PILL_TITLE[job.phase],
-    subtitle: job.title,
+    song: job.title,
+    note: null,
     arts: [job.artworkUrl],
     expandable: false,
     tapSongId: job.songId,

@@ -21,11 +21,14 @@ import { Typography } from '../../theme/typography';
 import { PillState } from './pillState';
 
 // component/AnalyzingPill (Pencil XjTJZ). 접힌 pill 과 펼친 곡별 pill 이 같은 컴포넌트를 쓴다.
-// 상태가 바뀌면 그 자리에서 변한다: 색은 tone 으로 보간, 글자는 새 글자가 페이드인, 아트 개수·폭 변화는 layout 전환.
+// 상태가 바뀌면 그 자리에서 변한다: 색은 tone 으로 보간, 글자는 새 글자가 페이드인, 아트 개수 변화는 layout 전환.
+// 폭은 고정이고 부제가 넘치면 곡명만 말줄임한다(뒤 문구는 항상 보인다). 실패 pill 만 사유를 담느라 더 넓다.
 // 아트 테두리는 두지 않는다.
 // 완료와 실패는 같은 흰 바탕이고 부제·아이콘 색만 초록/빨강으로 갈린다.
 
 export const PILL_HEIGHT = 56;
+const PILL_WIDTH = 248;
+const FAILED_PILL_WIDTH = 280;
 const ART_SIZE = 40;
 const ART_OVERLAP_OFFSET = 26;
 const PRESSED_SCALE = 0.96;
@@ -104,7 +107,7 @@ function AnalysisPill({ state, onPress }: Props) {
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
       layout={relayout}
-      style={[styles.pill, pillStyle]}
+      style={[styles.pill, { width: failed ? FAILED_PILL_WIDTH : PILL_WIDTH }, pillStyle]}
     >
       <Animated.View layout={relayout} style={[styles.arts, { width: artsWidth }]}>
         {state.arts.map((url, index) => (
@@ -128,14 +131,18 @@ function AnalysisPill({ state, onPress }: Props) {
         >
           {state.title}
         </Animated.Text>
-        <Animated.Text
-          key={state.subtitle}
-          entering={FadeIn.duration(TEXT_FADE_DURATION)}
-          style={[styles.subtitle, subtitleStyle]}
-          numberOfLines={1}
-        >
-          {state.subtitle}
-        </Animated.Text>
+        <Animated.View key={(state.song ?? '') + (state.note ?? '')} entering={FadeIn.duration(TEXT_FADE_DURATION)} style={styles.subtitleRow}>
+          {state.song != null && (
+            <Animated.Text style={[styles.subtitle, styles.song, subtitleStyle]} numberOfLines={1}>
+              {state.song}
+            </Animated.Text>
+          )}
+          {state.note != null && (
+            <Animated.Text style={[styles.subtitle, subtitleStyle]} numberOfLines={1}>
+              {state.note}
+            </Animated.Text>
+          )}
+        </Animated.View>
       </Animated.View>
       <Animated.View layout={relayout} style={styles.iconSlot}>
         <Animated.View style={[styles.icon, loaderStyle]}>
@@ -156,8 +163,8 @@ export default React.memo(AnalysisPill);
 
 const styles = StyleSheet.create({
   pill: {
-    height: PILL_HEIGHT,
     maxWidth: '100%',
+    height: PILL_HEIGHT,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
@@ -179,7 +186,7 @@ const styles = StyleSheet.create({
     height: ART_SIZE,
   },
   textBlock: {
-    flexShrink: 1,
+    flex: 1,
     gap: 3,
   },
   title: {
@@ -187,10 +194,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 17,
   },
+  subtitleRow: {
+    flexDirection: 'row',
+  },
   subtitle: {
     ...Typography.bodyMedium,
     fontSize: 11.5,
     lineHeight: 14,
+  },
+  song: {
+    flexShrink: 1,
   },
   iconSlot: {
     width: 20,

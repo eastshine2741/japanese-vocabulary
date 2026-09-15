@@ -24,11 +24,13 @@ import { pillDockAfterDrag, shouldStartDockPan } from './pillDockGesture';
 //    앵커 쪽 pill 은 그 자리에서 첫 곡 pill 로 바뀌고, 나머지는 그 pill 밑에서 빠져나와 제자리로 간다.
 //    접을 땐 반대로 앵커 pill 밑으로 들어가 겹쳐진다.
 //  - 분석이 실패하면 실패 pill 이 3초 보이고, 탭하면 바로 지워진다. 남은 곡이 있으면 그 상태로 돌아간다.
+//  - 펼친 pill 은 최대 MAX_STACK_PILLS 개까지만. 넘치는 곡은 앞 곡이 빠지면 올라온다.
 
 const BOTTOM_GAP = 16;
 const TOP_GAP = 16;
 const STACK_GAP = 8;
 const SIDE_PADDING = 16;
+const MAX_STACK_PILLS = 5;
 
 // mass 를 올려 무게감을 준다. 거의 임계 감쇠(임계값 2√(stiffness·mass) ≈ 42)라 넘치지도, 끝이 늘어지지도 않는다.
 const SETTLE_SPRING = { mass: 1.5, stiffness: 300, damping: 41 } as const;
@@ -270,6 +272,7 @@ export default function AnalysisPillOverlay() {
   }));
 
   const showStack = expanded && jobs.length > 1;
+  const stackJobs = useMemo(() => jobs.slice(0, MAX_STACK_PILLS), [jobs]);
 
   // 앵커 쪽 pill 은 접힘/펼침에 걸쳐 같은 key 를 유지해 그 자리에서 내용만 바뀐다.
   // 스택은 두 도킹 위치 사이 전체를 차지하는 고정 프레임이다(하단 도킹은 column-reverse 로 아래부터 쌓임).
@@ -283,7 +286,7 @@ export default function AnalysisPillOverlay() {
         pointerEvents="box-none"
       >
         {showStack
-          ? jobs.map((job, index) => (
+          ? stackJobs.map((job, index) => (
             <JobPill key={job.workId} job={job} dock={dock} index={index} panHandlers={pan.panHandlers} onOpen={handleJobOpen} />
           ))
           : pillState && (
