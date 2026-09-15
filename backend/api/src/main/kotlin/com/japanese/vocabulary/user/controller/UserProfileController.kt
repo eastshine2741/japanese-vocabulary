@@ -7,6 +7,7 @@ import com.japanese.vocabulary.user.service.UserProfileService
 import org.springframework.http.HttpStatus
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.bind.annotation.DeleteMapping
+import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -18,6 +19,12 @@ import org.springframework.web.bind.annotation.RestController
 class UserProfileController(
     private val userProfileService: UserProfileService,
 ) {
+    @GetMapping
+    fun getProfile(): UserProfileResponse {
+        val userId = SecurityContextHolder.getContext().authentication.principal as Long
+        return userProfileService.getProfile(userId).toResponse()
+    }
+
     @PatchMapping
     fun updateProfile(@RequestBody request: UpdateProfileRequest): UserProfileResponse {
         val userId = SecurityContextHolder.getContext().authentication.principal as Long
@@ -32,5 +39,5 @@ class UserProfileController(
         userProfileService.deleteSelf(userId)
     }
 
-    private fun UserDto.toResponse() = UserProfileResponse(username = username, name = name)
+    private fun UserDto.toResponse() = UserProfileResponse(username = username, name = name, email = email)
 }

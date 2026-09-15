@@ -15,6 +15,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.http.MediaType
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.delete
+import org.springframework.test.web.servlet.get
 import org.springframework.test.web.servlet.patch
 import java.time.Instant
 
@@ -32,6 +33,20 @@ class UserProfileControllerTest : ApiBaseIntegrationTest() {
     private fun bearer(user: UserEntity): String = "Bearer ${jwtUtil.generateToken(user.id!!, user.username)}"
 
     private inline fun <reified T> readBody(json: String): T = objectMapper.readValue(json, T::class.java)
+
+    @Test
+    fun `GET returns username, name and email`() {
+        val me = newUser { withUsername("reader"); withName("Reader"); withEmail("reader@example.com") }
+
+        val body = mockMvc.get("/api/users/me") {
+            header("Authorization", bearer(me))
+        }.andExpect { status { isOk() } }.andReturn().response.contentAsString
+
+        val resp = readBody<UserProfileResponse>(body)
+        assertThat(resp.username).isEqualTo("reader")
+        assertThat(resp.name).isEqualTo("Reader")
+        assertThat(resp.email).isEqualTo("reader@example.com")
+    }
 
     @Test
     fun `PATCH updates both name and username`() {

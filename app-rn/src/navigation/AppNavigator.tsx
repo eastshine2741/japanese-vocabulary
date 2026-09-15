@@ -20,6 +20,7 @@ import DeckWordListScreen from '../screens/DeckWordListScreen';
 import EditWordScreen from '../screens/EditWordScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import OssLicenseScreen from '../screens/OssLicenseScreen';
+import VocScreen from '../screens/VocScreen';
 import SongProgressListScreen from '../screens/SongProgressListScreen';
 import SongReviewScreen from '../screens/SongReviewScreen';
 
@@ -53,6 +54,7 @@ export type RootStackParamList = {
   SearchStack: undefined;
   Settings: undefined;
   OssLicense: undefined;
+  Voc: undefined;
   SongDetail: SongPlaybackEntryParams;
   /** 곡 진입 복습. 큐 순서는 서버 due 응답을 그대로 따른다. */
   SongReview: { source: StudySource; origin?: 'SongDetail' };
@@ -149,6 +151,7 @@ export default function AppNavigator({ initialRoute }: Props) {
       <Stack.Screen name="SearchStack" component={SearchScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="OssLicense" component={OssLicenseScreen} />
+      <Stack.Screen name="Voc" component={VocScreen} />
       <Stack.Screen name="SongDetail" component={SongDetailScreen} />
       <Stack.Screen name="SongReview" component={SongReviewScreen} />
       <Stack.Screen name="DeckList" component={DeckListScreen} />

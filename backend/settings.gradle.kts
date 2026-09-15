@@ -6,6 +6,7 @@ include(
     "integrations:lyric-search",
     "integrations:mv-search",
     "integrations:apple-music-rss",
+    "integrations:github",
 )
 include(
     "domains:song",

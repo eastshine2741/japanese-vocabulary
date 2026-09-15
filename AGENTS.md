@@ -90,6 +90,13 @@ one dictionary sense maps to one song-level `senseId`; token readings are
 katakana and line readings are assembled by clients. Details live in
 `docs/translation-pipeline.md`.
 
+**VOC (개발자 괴롭히기):** 설정 탭 `문의` 섹션 -> `Voc` 화면. `POST /api/voc`
+(`content` <= 1000자 + 앱이 채우는 os/osVersion/device/nativeVersion/jsVersion)가
+`integrations:github`로 `type:voc` GitHub issue를 만든다. 유저 id/username/email은 서버가
+DB에서 채우고, 제목은 첫 줄 80자, 환경은 `VOC_ENVIRONMENT`(dev|prod). 토큰은
+`GITHUB_VOC_TOKEN`; 비면 503. `GET /api/users/me`가 username/name/email을 돌려준다.
+앱은 `expo-device`/`expo-application`을 쓰므로 새 네이티브 빌드가 필요하다.
+
 **Admin surface:** `backend/admin-api` exposes `/admin/api/auth/login`, `/admin/api/songs`, `/admin/api/lyrics`, `/admin/api/song-analysis-works`, and `/admin/api/users`. `admin-web` is a Vite React TypeScript shadcn-style SPA. Dev 는 `/<namespace>/admin` 경로로, prod 는 `https://kotonoha.eastshine.dev/admin` (API 는 `/admin/api`) 한 호스트로 배포된다 — path 별 미들웨어가 필요해 Traefik `IngressRoute` 를 쓴다. See `docs/admin-service.md`.
 
 **Partial coverage:** Backend integration tests for new domains; broader e2e tests still pending.

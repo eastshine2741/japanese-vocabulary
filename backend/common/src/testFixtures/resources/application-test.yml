@@ -36,3 +36,10 @@ gemini:
   translation-model: gemini-test
   word-meaning-model: gemini-test
   segmentation-model: gemini-test
+
+github:
+  token: ""
+  repository: test-owner/test-repo
+
+voc:
+  environment: test

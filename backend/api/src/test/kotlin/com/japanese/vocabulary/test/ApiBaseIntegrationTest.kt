@@ -3,6 +3,7 @@ package com.japanese.vocabulary.test
 import com.google.firebase.messaging.FirebaseMessaging
 import com.japanese.vocabulary.auth.service.AppleOidcService
 import com.japanese.vocabulary.auth.service.GoogleOidcService
+import com.japanese.vocabulary.github.client.GithubIssueClient
 import com.japanese.vocabulary.songsearch.client.itunes.ItunesClient
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.clearMocks
@@ -25,6 +26,9 @@ abstract class ApiBaseIntegrationTest : BaseIntegrationTest() {
     @MockkBean
     protected lateinit var appleOidcService: AppleOidcService
 
+    @MockkBean
+    protected lateinit var githubIssueClient: GithubIssueClient
+
     /**
      * notification 도메인의 `PushNotificationService` 가 `FirebaseMessaging` 빈을 요구하지만
      * `FirebaseConfig` 는 `push.firebase.enabled=true` 게이트 뒤에 있어 테스트에선 안 뜬다.
@@ -36,7 +40,7 @@ abstract class ApiBaseIntegrationTest : BaseIntegrationTest() {
     @BeforeEach
     fun resetClientMocks() {
         clearMocks(
-            itunesClient, googleOidcService, appleOidcService, firebaseMessaging,
+            itunesClient, googleOidcService, appleOidcService, githubIssueClient, firebaseMessaging,
             answers = true,
             recordedCalls = true,
         )

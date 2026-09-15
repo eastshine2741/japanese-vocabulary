@@ -17,7 +17,7 @@ backend/
 │   ├── word/                — 사용자 학습 데이터 일체. `word`/`flashcard`/`deck` 세 package 가 한 모듈에 있다. WordService 가 세 수명주기를 한 트랜잭션에서 소유한다
 │   ├── studystats/          — DailyStudySummary, StreakCalculator. Spring Batch job 본체는 batch 모듈로 분리됨
 │   └── notification/        — FCM 전송 + FirebaseConfig + NotificationLogEntity. Scheduler/조회 로직 없음
-├── integrations/            — external music provider clients. `song-search`, `lyric-search`, `mv-search`, `apple-music-rss`
+├── integrations/            — external provider clients. `song-search`, `lyric-search`, `mv-search`, `apple-music-rss`, `github`
 ├── api/                     — REST bootstrap. 사용자 API 도메인 모듈 의존. @Scheduled 없음
 ├── admin-api/               — internal admin REST bootstrap. read-mostly inspection + workflow-specific Reels Factory render
 └── batch/                   — scheduled/background job bootstrap. 모든 @Scheduled는 여기

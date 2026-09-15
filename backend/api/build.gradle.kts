@@ -24,6 +24,7 @@ dependencies {
     implementation(project(":domains:studystats"))
     implementation(project(":domains:notification"))
     implementation(project(":integrations:song-search"))
+    implementation(project(":integrations:github"))
 
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")

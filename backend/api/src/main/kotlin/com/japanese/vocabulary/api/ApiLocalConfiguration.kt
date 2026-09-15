@@ -26,6 +26,8 @@ import com.japanese.vocabulary.studystats.controller.StudyStatsController
 import com.japanese.vocabulary.studystats.util.KstClock
 import com.japanese.vocabulary.user.controller.SettingsController
 import com.japanese.vocabulary.user.controller.UserProfileController
+import com.japanese.vocabulary.voc.controller.VocController
+import com.japanese.vocabulary.voc.service.VocService
 import com.japanese.vocabulary.word.controller.WordController
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Import
@@ -58,6 +60,8 @@ import org.springframework.context.annotation.Import
     KstClock::class,
     SettingsController::class,
     UserProfileController::class,
+    VocController::class,
+    VocService::class,
     WordController::class,
 )
 class ApiLocalConfiguration

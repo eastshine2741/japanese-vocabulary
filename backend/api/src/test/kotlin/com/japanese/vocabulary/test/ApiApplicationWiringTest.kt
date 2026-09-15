@@ -23,6 +23,7 @@ class ApiApplicationWiringTest {
             "com.japanese.autoconfigure.song.SongAutoConfiguration",
             "com.japanese.autoconfigure.songanalysis.SongAnalysisAutoConfiguration",
             "com.japanese.autoconfigure.songsearch.SongSearchAutoConfiguration",
+            "com.japanese.autoconfigure.github.GithubAutoConfiguration",
         )
     }
 

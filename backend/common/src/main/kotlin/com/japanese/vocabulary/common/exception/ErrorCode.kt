@@ -42,6 +42,11 @@ enum class ErrorCode(val status: HttpStatus, val message: String) {
     // Dictionary
     DEFINITION_NOT_FOUND(HttpStatus.NOT_FOUND, "No definition found"),
 
+    // VOC
+    VOC_CONTENT_REQUIRED(HttpStatus.BAD_REQUEST, "Content required"),
+    VOC_CONTENT_TOO_LONG(HttpStatus.BAD_REQUEST, "Content must be at most 1000 characters"),
+    VOC_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "VOC submission is unavailable"),
+
     // Common
     FORBIDDEN(HttpStatus.FORBIDDEN, "Access denied"),
 }

@@ -3,6 +3,7 @@ import client from './client';
 export interface UserProfile {
   username: string;
   name: string | null;
+  email: string | null;
 }
 
 export interface UpdateProfilePayload {
@@ -11,6 +12,11 @@ export interface UpdateProfilePayload {
 }
 
 export const userApi = {
+  async getProfile(): Promise<UserProfile> {
+    const { data } = await client.get<UserProfile>('/api/users/me');
+    return data;
+  },
+
   async updateProfile(payload: UpdateProfilePayload): Promise<UserProfile> {
     const { data } = await client.patch<UserProfile>('/api/users/me', payload);
     return data;

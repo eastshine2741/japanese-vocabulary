@@ -5,6 +5,7 @@ const TOKEN_KEY = 'jwt_token';
 const BASE_URL_KEY = 'base_url';
 const USER_NAME_KEY = 'user_name';
 const USERNAME_KEY = 'username';
+const EMAIL_KEY = 'email';
 
 export const tokenStorage = Platform.OS === 'web'
   ? {
@@ -18,6 +19,7 @@ export const tokenStorage = Platform.OS === 'web'
         localStorage.removeItem(TOKEN_KEY);
         localStorage.removeItem(USER_NAME_KEY);
         localStorage.removeItem(USERNAME_KEY);
+        localStorage.removeItem(EMAIL_KEY);
       },
       async getBaseURL(): Promise<string | null> {
         return localStorage.getItem(BASE_URL_KEY);
@@ -41,6 +43,13 @@ export const tokenStorage = Platform.OS === 'web'
       async saveUsername(username: string): Promise<void> {
         localStorage.setItem(USERNAME_KEY, username);
       },
+      async getEmail(): Promise<string | null> {
+        return localStorage.getItem(EMAIL_KEY);
+      },
+      async saveEmail(email: string | null): Promise<void> {
+        if (email == null) localStorage.removeItem(EMAIL_KEY);
+        else localStorage.setItem(EMAIL_KEY, email);
+      },
     }
   : {
       async getToken(): Promise<string | null> {
@@ -53,6 +62,7 @@ export const tokenStorage = Platform.OS === 'web'
         await SecureStore.deleteItemAsync(TOKEN_KEY);
         await SecureStore.deleteItemAsync(USER_NAME_KEY);
         await SecureStore.deleteItemAsync(USERNAME_KEY);
+        await SecureStore.deleteItemAsync(EMAIL_KEY);
       },
       async getBaseURL(): Promise<string | null> {
         return SecureStore.getItemAsync(BASE_URL_KEY);
@@ -75,5 +85,12 @@ export const tokenStorage = Platform.OS === 'web'
       },
       async saveUsername(username: string): Promise<void> {
         await SecureStore.setItemAsync(USERNAME_KEY, username);
+      },
+      async getEmail(): Promise<string | null> {
+        return SecureStore.getItemAsync(EMAIL_KEY);
+      },
+      async saveEmail(email: string | null): Promise<void> {
+        if (email == null) await SecureStore.deleteItemAsync(EMAIL_KEY);
+        else await SecureStore.setItemAsync(EMAIL_KEY, email);
       },
     };

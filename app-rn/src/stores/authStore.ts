@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { AuthProvider, authApi, VerifiedIdentity } from '../api/authApi';
 import { apiErrorMessage } from '../api/errors';
+import { userApi } from '../api/userApi';
 import { tokenStorage } from '../utils/tokenStorage';
 import { requestPermissionAndRegisterToken } from '../services/pushNotifications';
 
@@ -11,6 +12,7 @@ interface AuthState {
   error: string | null;
   username: string | null;
   userName: string | null;
+  email: string | null;
   pendingIdentity: VerifiedIdentity | null;
   pendingIdToken: string | null;
   pendingProvider: AuthProvider | null;
@@ -35,6 +37,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   error: null,
   username: null,
   userName: null,
+  email: null,
   pendingIdentity: null,
   pendingIdToken: null,
   pendingProvider: null,
@@ -145,12 +148,25 @@ export const useAuthStore = create<AuthState>((set) => ({
   // API ones, or the button just looks dead.
   setError: (message) => set({ status: message ? 'error' : 'idle', error: message }),
 
+  // Cached values show immediately; the server copy then wins so edits made
+  // elsewhere (or a cache wiped by reinstall) don't leave stale identity on screen.
   loadProfile: async () => {
-    const [username, name] = await Promise.all([
+    const [username, name, email] = await Promise.all([
       tokenStorage.getUsername(),
       tokenStorage.getUserName(),
+      tokenStorage.getEmail(),
     ]);
-    set({ username, userName: name });
+    set({ username, userName: name, email });
+    try {
+      const profile = await userApi.getProfile();
+      await Promise.all([
+        persistProfile(profile.username, profile.name),
+        tokenStorage.saveEmail(profile.email),
+      ]);
+      set({ username: profile.username, userName: profile.name, email: profile.email });
+    } catch {
+      // keep the cached copy; auth failures are handled by the API client
+    }
   },
 
   setUserName: async (name) => {
