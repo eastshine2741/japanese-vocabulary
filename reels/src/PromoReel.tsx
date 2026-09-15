@@ -949,7 +949,7 @@ const styles = {
     left: 72,
     position: 'absolute',
     right: 72,
-    top: 118,
+    top: 150,
     zIndex: 4,
   },
   songText: {
