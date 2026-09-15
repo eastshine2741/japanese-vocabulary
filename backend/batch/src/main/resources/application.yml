@@ -63,6 +63,14 @@ gemini:
     max-attempts: 3
     initial-backoff: 2s
 
+jisho:
+  # Same policy as gemini.retry (ExponentialBackoff: 5xx, 429, dropped connection). A 90-second
+  # jisho outage once turned 23 lookups in one song into "no dictionary entry"; four attempts at
+  # 2s, 4s, 8s ride out a blip, and what survives is logged as a PROVIDER_ERROR defect.
+  retry:
+    max-attempts: 4
+    initial-backoff: 2s
+
 youtube:
   api-key: ${YOUTUBE_API_KEY}
 

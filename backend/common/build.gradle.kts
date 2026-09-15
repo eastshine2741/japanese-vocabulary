@@ -21,6 +21,8 @@ dependencies {
     compileOnly("org.springframework:spring-webflux")
     compileOnly("org.springframework.boot:spring-boot-starter-data-redis")
     runtimeOnly("com.mysql:mysql-connector-j")
+    // ExponentialBackoffTest exercises TransientHttpErrors against real RestClient exceptions.
+    testImplementation("org.springframework:spring-web")
 
     testFixturesApi("org.springframework.boot:spring-boot-starter-test:3.4.3")
     testFixturesApi("org.springframework.boot:spring-boot-testcontainers:3.4.3")

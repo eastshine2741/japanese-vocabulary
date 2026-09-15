@@ -59,15 +59,25 @@ segment -> anchor/retry -> rules -> jisho entry-select
   being cut off.
 - `GeminiResponseGuard.verifyComplete` rejects non-`STOP` responses before they
   look like downstream data mismatches.
-- `GeminiRetryPolicy` replays a call on transport failures only — dropped
-  connection, 5xx, 429 (`gemini.retry.max-attempts`, `initial-backoff`, doubling
-  with jitter, `Retry-After` honored). 4xx, parse errors, and truncated responses
-  are not retried. Each attempt writes its own `gemini_call_log` row.
+- `ExponentialBackoff` + `TransientHttpErrors` (`common/retry`) replay a call on
+  transport failures only — dropped connection, 5xx, 429 — doubling with jitter,
+  capped, `Retry-After` honored. Gemini uses `gemini.retry.max-attempts` /
+  `initial-backoff`; 4xx, parse errors, and truncated responses are not retried,
+  and each attempt writes its own `gemini_call_log` row.
 - Segmentation retries raise temperature; retrying at temperature 0 reproduced
   identical invalid output.
+- `JishoClient` uses the same policy under `jisho.retry.*`. A lookup that errors
+  on every attempt is `FETCH_ERROR`, never cached, and never mistaken for "no
+  entry".
 - `MAX_DEFECT_RETRIES` covers incomplete anchored text and unresolved headwords.
-  Exhaustion warns and keeps the best anchored line instead of failing a whole
-  song for a missing word.
+  Exhaustion keeps the best anchored line instead of failing a whole song for a
+  missing word, and reports each word left without a meaning as one
+  `ANALYSIS_DEFECT {json}` warning (`AnalysisDefectReporter`; causes
+  `DICTIONARY_MISS`, `UNCOVERED`, `SENSE_REJECTED`, `PROVIDER_ERROR`). A headword
+  jisho never answered is resent without feedback — the model's headword was not
+  wrong — and if it still errors it ships like any other defect, tagged
+  `PROVIDER_ERROR` so it counts as an outage rather than a word to fix. The log
+  line is the input of `.github/scripts/analysis-feedback` (see its README).
 - Katakana-only surfaces are exempt from the dictionary headword check because
   many are loanwords, sounds, or lyric coinages that Jisho should not hold.
 

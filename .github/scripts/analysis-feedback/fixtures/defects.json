@@ -1,0 +1,10 @@
+[
+  {"eventId": "e1", "timestamp": "2026-08-30T18:38:10+00:00", "defect": {"songId": 70, "lyricId": 70, "lineIndex": 3, "cause": "DICTIONARY_MISS", "surface": "買えれ", "headword": "買える", "line": "金で買えれば 何でも", "detail": null}},
+  {"eventId": "e2", "timestamp": "2026-08-30T18:38:10+00:00", "defect": {"songId": 70, "lyricId": 70, "lineIndex": 11, "cause": "DICTIONARY_MISS", "surface": "殺せれ", "headword": "殺せる", "line": "君を殺せれば", "detail": null}},
+  {"eventId": "e3", "timestamp": "2026-09-14T15:00:27+00:00", "defect": {"songId": 84, "lyricId": 84, "lineIndex": 5, "cause": "DICTIONARY_MISS", "surface": "しなきゃ", "headword": "しなきゃ", "line": "早くしなきゃ 間に合わない", "detail": null}},
+  {"eventId": "e4", "timestamp": "2026-09-14T15:00:27+00:00", "defect": {"songId": 84, "lyricId": 84, "lineIndex": 9, "cause": "DICTIONARY_MISS", "surface": "あぁ", "headword": "あぁ", "line": "あぁ 夜が明ける", "detail": null}},
+  {"eventId": "e5", "timestamp": "2026-09-05T06:58:19+00:00", "defect": {"songId": 73, "lyricId": 73, "lineIndex": 0, "cause": "DICTIONARY_MISS", "surface": "あぁ", "headword": "あぁ", "line": "あぁ もう一度", "detail": null}},
+  {"eventId": "e6", "timestamp": "2026-09-14T14:12:15+00:00", "defect": {"songId": 82, "lyricId": 82, "lineIndex": 15, "cause": "UNCOVERED", "surface": "に", "headword": null, "line": "太陽が昇る前に 走り出す", "detail": null}},
+  {"eventId": "e7", "timestamp": "2026-09-14T15:36:00+00:00", "defect": {"songId": 82, "lyricId": 82, "lineIndex": 15, "cause": "PROVIDER_ERROR", "surface": "太陽", "headword": "太陽", "line": "太陽が昇る前に 走り出す", "detail": null}},
+  {"eventId": "e8", "timestamp": "2026-09-14T15:36:00+00:00", "defect": {"songId": 82, "lyricId": 82, "lineIndex": 2, "cause": "PROVIDER_ERROR", "surface": "花束", "headword": "花束", "line": "花束を抱えて", "detail": null}}
+]

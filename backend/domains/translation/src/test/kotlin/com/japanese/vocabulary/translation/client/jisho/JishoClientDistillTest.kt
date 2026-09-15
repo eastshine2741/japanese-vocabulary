@@ -8,13 +8,14 @@ import com.japanese.vocabulary.translation.client.jisho.dto.JishoSenseDto
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.springframework.web.client.RestClient
+import java.time.Duration
 
 /**
  * Covers [JishoClient.distill] / entry expansion only — no network. The client is constructed with a
  * plain builder because distillation never touches the RestClient.
  */
 class JishoClientDistillTest {
-    private val client = JishoClient(RestClient.builder())
+    private val client = JishoClient(RestClient.builder(), maxAttempts = 1, initialBackoff = Duration.ZERO)
 
     @Test
     fun `each spelling-reading pair of an entry becomes its own dictionary entry`() {
