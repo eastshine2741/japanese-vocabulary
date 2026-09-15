@@ -11,6 +11,7 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useShallow } from 'zustand/react/shallow';
 import { useAnalysisStore } from '../../stores/analysisStore';
+import { useKeyboardScreenY } from '../../hooks/useKeyboardScreenY';
 import { navigate } from '../../navigation/navigationRef';
 import { Layers } from '../../theme/layers';
 import AnalysisPill, { PILL_HEIGHT } from './AnalysisPill';
@@ -19,7 +20,9 @@ import { pillDockAfterDrag, shouldStartDockPan } from './pillDockGesture';
 
 // spec/AnalyzingPill (Pencil TN787): 모든 화면 위에 뜨는 분석 상태 pill.
 //  - 상단 도킹은 상태바 아래 16, 하단 도킹(기본)은 safe area 바로 위 8. 바텀 내비는 기준으로 삼지 않는다.
+//    소프트 키보드가 올라오면 하단 도킹은 키보드 바로 위로 올라간다.
 //  - 세로로 짧게 끌거나 가볍게 튕기면 반대쪽으로 도킹되고, 놓으면 튕김 없이 자리를 잡는다. 도킹 위치는 기기에 기억.
+//    끌던 pill 이 도중에 사라지면 드래그는 버리고, 다음 pill 은 도킹 위치에서 나타난다.
 //  - 2곡 이상이면 탭으로 곡별 pill 로 분해되고, 도킹된 쪽에서 반대 방향으로 자란다.
 //    앵커 쪽 pill 은 그 자리에서 첫 곡 pill 로 바뀌고, 나머지는 그 pill 밑에서 빠져나와 제자리로 간다.
 //    접을 땐 반대로 앵커 pill 밑으로 들어가 겹쳐진다.
@@ -150,21 +153,31 @@ function mergeExiting(distance: number, order: number) {
   };
 }
 
+/** 드래그 핸들러는 pill 마다 단다. 어느 pill 을 끌고 있는지 알아야 그 pill 이 사라졌을 때 드래그를 버릴 수 있다. */
+interface DockPan {
+  handlersFor: (slotKey: string) => GestureResponderHandlers;
+  /** 끌던 pill 이 사라졌을 때. 다른 pill 을 끌고 있었으면 아무 일도 없다. */
+  abandon: (slotKey: string) => void;
+}
+
 interface PillSlotProps {
+  slotKey: string;
   dock: 'top' | 'bottom';
   /** 스택 안 순서. 0 이 앵커 pill 이고, 나머지는 앵커에서 분리되어 나온다. */
   index: number;
-  panHandlers: GestureResponderHandlers;
+  pan: DockPan;
   children: React.ReactNode;
 }
 
-function PillSlot({ dock, index, panHandlers, children }: PillSlotProps) {
+function PillSlot({ slotKey, dock, index, pan, children }: PillSlotProps) {
   const motion = useMemo(() => {
     if (index === 0) return pillMotion[dock];
     // 앵커 pill 중심까지의 거리. 하단 도킹이면 위로 쌓이므로 출발점은 아래(+), 상단 도킹은 반대.
     const distance = index * (PILL_HEIGHT + STACK_GAP) * (dock === 'bottom' ? 1 : -1);
     return { entering: splitEntering(distance, index - 1), exiting: mergeExiting(distance, index - 1) };
   }, [dock, index]);
+  const panHandlers = useMemo(() => pan.handlersFor(slotKey), [pan, slotKey]);
+  useEffect(() => () => pan.abandon(slotKey), [pan, slotKey]);
   // 앵커 pill 이 항상 가장 위. exiting 중인 뷰는 마지막 props 를 유지하므로 count 에 따라 흔들리는 값을 쓰면 안 된다.
   return (
     <Animated.View
@@ -183,15 +196,15 @@ interface JobPillProps {
   job: AnalysisJob;
   dock: 'top' | 'bottom';
   index: number;
-  panHandlers: GestureResponderHandlers;
+  pan: DockPan;
   onOpen: (job: AnalysisJob) => void;
 }
 
-function JobPill({ job, dock, index, panHandlers, onOpen }: JobPillProps) {
+function JobPill({ job, dock, index, pan, onOpen }: JobPillProps) {
   const state = useMemo(() => deriveJobPillState(job), [job]);
   const handlePress = useCallback(() => onOpen(job), [job, onOpen]);
   return (
-    <PillSlot dock={dock} index={index} panHandlers={panHandlers}>
+    <PillSlot slotKey={String(job.workId)} dock={dock} index={index} pan={pan}>
       <AnalysisPill state={state} onPress={handlePress} />
     </PillSlot>
   );
@@ -209,6 +222,7 @@ export default function AnalysisPillOverlay() {
   })));
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
+  const keyboard = useKeyboardScreenY();
 
   useEffect(() => {
     loadDock();
@@ -219,34 +233,61 @@ export default function AnalysisPillOverlay() {
   const topY = insets.top + TOP_GAP;
   const bottomInset = insets.bottom + BOTTOM_GAP;
   const travel = Math.max(0, windowHeight - bottomInset - PILL_HEIGHT - topY);
+  // 키보드가 하단 도킹 위치를 덮는 만큼. 스택 프레임은 그대로 두고 하단 도킹일 때만 이만큼 올린다.
+  const keyboardLift = keyboard.screenY == null
+    ? 0
+    : Math.min(travel, Math.max(0, windowHeight - insets.bottom - keyboard.screenY));
+  // 지금 두 도킹 위치 사이 거리. 드래그로 반대쪽에 닿았는지는 이걸로 판정한다.
+  const dockTravel = travel - keyboardLift;
+
+  const lift = useSharedValue(keyboardLift);
+  useEffect(() => {
+    // iOS 는 키보드와 같은 시간에 맞춰 따라가고, Android 는 이미 올라온 뒤라 pill 만 짧게 움직인다.
+    const duration = keyboard.duration > 0 ? keyboard.duration : APPEAR_DURATION;
+    lift.value = withTiming(keyboardLift, { duration, easing: APPEAR_EASING });
+  }, [keyboard.duration, keyboardLift, lift]);
 
   const dockRef = useRef(dock);
   dockRef.current = dock;
-  const travelRef = useRef(travel);
-  travelRef.current = travel;
+  const dockTravelRef = useRef(dockTravel);
+  dockTravelRef.current = dockTravel;
 
   const dragY = useSharedValue(0);
   const settle = useCallback((nextDock: 'top' | 'bottom', dy: number) => {
     if (nextDock !== dockRef.current) {
       // 앵커가 반대쪽으로 바뀌므로 지금 손가락 위치를 새 앵커 기준 오프셋으로 옮겨 이어서 스냅한다.
-      dragY.value = nextDock === 'top' ? dy + travelRef.current : dy - travelRef.current;
+      dragY.value = nextDock === 'top' ? dy + dockTravelRef.current : dy - dockTravelRef.current;
       setDock(nextDock);
     }
     dragY.value = withSpring(0, SETTLE_SPRING);
   }, [dragY, setDock]);
 
-  const pan = useMemo(
-    () => PanResponder.create({
+  // 끌고 있는 pill. 그 pill 이 사라지면 놓는 이벤트가 안 오므로 dragY 가 손 놓은 자리에 남는다.
+  const activeSlot = useRef<string | null>(null);
+  const pan = useMemo<DockPan>(() => ({
+    handlersFor: slotKey => PanResponder.create({
       onMoveShouldSetPanResponder: (_, gesture) => shouldStartDockPan(gesture),
+      onPanResponderGrant: () => {
+        activeSlot.current = slotKey;
+      },
       onPanResponderMove: (_, gesture) => {
         dragY.value = gesture.dy;
       },
-      onPanResponderRelease: (_, gesture) =>
-        settle(pillDockAfterDrag(dockRef.current, gesture, travelRef.current), gesture.dy),
-      onPanResponderTerminate: () => settle(dockRef.current, 0),
-    }),
-    [dragY, settle],
-  );
+      onPanResponderRelease: (_, gesture) => {
+        activeSlot.current = null;
+        settle(pillDockAfterDrag(dockRef.current, gesture, dockTravelRef.current), gesture.dy);
+      },
+      onPanResponderTerminate: () => {
+        activeSlot.current = null;
+        settle(dockRef.current, 0);
+      },
+    }).panHandlers,
+    abandon: slotKey => {
+      if (activeSlot.current !== slotKey) return;
+      activeSlot.current = null;
+      dragY.value = 0;
+    },
+  }), [dragY, settle]);
 
   const openSong = useCallback((songId: number | null) => {
     if (songId == null) return;
@@ -267,9 +308,10 @@ export default function AnalysisPillOverlay() {
   }, [dismiss, openSong]);
   const collapse = useCallback(() => setExpanded(false), [setExpanded]);
 
+  // 도킹이 바뀌는 렌더에 맞춰 lift 가 붙고 떨어져야 하므로 dock 을 의존성으로 건다.
   const dragStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: dragY.value }],
-  }));
+    transform: [{ translateY: dragY.value - (dock === 'bottom' ? lift.value : 0) }],
+  }), [dock]);
 
   const showStack = expanded && jobs.length > 1;
   const stackJobs = useMemo(() => jobs.slice(0, MAX_STACK_PILLS), [jobs]);
@@ -287,10 +329,10 @@ export default function AnalysisPillOverlay() {
       >
         {showStack
           ? stackJobs.map((job, index) => (
-            <JobPill key={job.workId} job={job} dock={dock} index={index} panHandlers={pan.panHandlers} onOpen={handleJobOpen} />
+            <JobPill key={job.workId} job={job} dock={dock} index={index} pan={pan} onOpen={handleJobOpen} />
           ))
           : pillState && (
-            <PillSlot key={jobs[0].workId} dock={dock} index={0} panHandlers={pan.panHandlers}>
+            <PillSlot key={jobs[0].workId} slotKey={String(jobs[0].workId)} dock={dock} index={0} pan={pan}>
               <AnalysisPill state={pillState} onPress={handlePillPress} />
             </PillSlot>
           )}
