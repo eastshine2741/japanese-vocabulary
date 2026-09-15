@@ -30,7 +30,7 @@ export interface PillState {
   tapSongId: number | null;
   /** 실패 pill 일 때 탭이 즉시 지우는 작업. */
   dismissWorkId: number | null;
-  /** true 면 탭이 학습으로 이어진다는 걸 부제와 chevron 으로 드러낸다. 접힌 단일 완료 pill 만. */
+  /** true 면 탭이 학습으로 이어진다는 걸 부제와 chevron 으로 드러낸다. 접힌 단일 완료 pill 과 펼친 곡별 완료 pill. */
   studyHint: boolean;
 }
 
@@ -43,7 +43,7 @@ export const PILL_TITLE = {
   failed: '분석에 실패했어요',
 } as const;
 
-/** 접힌 단일 완료 pill 의 부제. 탭하면 songDetail 로 간다는 걸 곡명 뒤에 붙여 알린다. */
+/** 탭이 곧바로 songDetail 로 가는 완료 pill 의 부제. 곡명 뒤에 붙여 알린다. */
 export const STUDY_HINT_NOTE = ' · 탭해서 학습 시작';
 
 // 실패 pill 부제에 들어가는 짧은 사유. 전체 문장은 errorMessages 에 있지만 pill 한 줄엔 안 맞는다.
@@ -116,8 +116,8 @@ export function derivePillState(jobs: AnalysisJob[]): PillState | null {
   return {
     tone: 'done',
     title: PILL_TITLE.done,
-    song: null,
-    note: `${analyzing.length}곡 남음`,
+    song: latest.title,
+    note: ` · ${analyzing.length}곡 남음`,
     arts: [latest.artworkUrl, analyzing[0].artworkUrl],
     expandable: true,
     tapSongId: null,
@@ -129,15 +129,16 @@ export function derivePillState(jobs: AnalysisJob[]): PillState | null {
 /** 펼침 상태의 곡별 pill 하나. */
 export function deriveJobPillState(job: AnalysisJob): PillState {
   if (job.phase === 'failed') return failedState(job);
+  const done = job.phase === 'done';
   return {
     tone: job.phase,
     title: PILL_TITLE[job.phase],
     song: job.title,
-    note: null,
+    note: done ? STUDY_HINT_NOTE : null,
     arts: [job.artworkUrl],
     expandable: false,
     tapSongId: job.songId,
     dismissWorkId: null,
-    studyHint: false,
+    studyHint: done,
   };
 }

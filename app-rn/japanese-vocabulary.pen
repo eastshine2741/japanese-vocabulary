@@ -73712,11 +73712,11 @@
                   "fill": "$foreground.primary"
                 },
                 "Frk13": {
-                  "content": "Lemon",
+                  "content": "Lemon · 탭해서 학습 시작",
                   "fill": "$accent-primary"
                 },
                 "ai56D": {
-                  "icon": "circle-check",
+                  "icon": "chevron-right",
                   "fill": "$accent-primary"
                 }
               }
@@ -74013,7 +74013,7 @@
                           "fill": "$foreground.primary"
                         },
                         "Frk13": {
-                          "content": "1곡 남음",
+                          "content": "Lemon · 1곡 남음",
                           "fill": "$accent-primary"
                         },
                         "ai56D": {
