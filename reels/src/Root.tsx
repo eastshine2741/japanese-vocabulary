@@ -1,6 +1,6 @@
 import {Composition} from 'remotion';
 
-import {END_CARD_DURATION_IN_FRAMES, PROMO_FPS, PromoReel} from './PromoReel';
+import {END_CARD_DURATION_IN_FRAMES, PROMO_FPS, PROMO_HEIGHT, PROMO_WIDTH, PromoReel} from './PromoReel';
 import {samplePreviewPromo} from './data/samplePreview';
 import type {PromoReelData} from './types';
 
@@ -19,9 +19,9 @@ export const RemotionRoot = () => {
       defaultProps={{data: samplePreviewPromo} satisfies PromoReelProps}
       durationInFrames={samplePreviewPromo.lyricsEndFrame + END_CARD_DURATION_IN_FRAMES}
       fps={PROMO_FPS}
-      height={1920}
+      height={PROMO_HEIGHT}
       id="PromoReel"
-      width={1080}
+      width={PROMO_WIDTH}
     />
   );
 };

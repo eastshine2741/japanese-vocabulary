@@ -18,6 +18,13 @@ export const PROMO_FPS = 30;
 // 엔드카드 7초. 앱 목업이 시트 → 단어 탭 → 복습 → rating → 다음 단어까지 흐르고, 스토어 검색 큐를 읽을 시간이다.
 // 바꾸면 admin-web reelEditor.ts 의 END_CARD_MS 도 같이 바꾼다.
 export const END_CARD_DURATION_IN_FRAMES = 210;
+export const PROMO_WIDTH = 1080;
+export const PROMO_HEIGHT = 1920;
+// 인스타 릴스 UI 의 프로필 사진 바로 위. 가사·단어 블록은 이 위에서 끝나야 한다.
+const PROFILE_CUE_TOP = 1520;
+// 가사·단어 블록 좌우 여백과 그 안쪽 폭
+const CONTENT_SIDE = 160;
+const LYRIC_WIDTH = PROMO_WIDTH - CONTENT_SIDE * 2;
 
 // 릴스 팔레트 — japanese-vocabulary.pen 의 Reel v2 프레임 변수와 같은 값
 const night = '#111012';
@@ -148,10 +155,12 @@ export const PromoReel = ({data}: {data: PromoReelData}) => {
                 <p style={styles.korean}>{activeLine.koreanLyrics}</p>
               </div>
               {activeLine.vocabulary.length > 0 && (
-                <div style={entryStyle(wordsEntry)}>
+                <div style={{...styles.wordsEntry, ...entryStyle(wordsEntry)}}>
                   <Vocabulary words={topWords(activeLine.vocabulary)} />
                 </div>
               )}
+              {/* 남는 높이를 먹는 스페이서. 내용이 짧으면 위(927)에 붙고, 길면 0 으로 줄어 위로 넘친다. */}
+              <div style={styles.contentSpacer} />
             </section>
           )}
         </div>
@@ -815,12 +824,15 @@ const buildTextRuns = (line: PromoLine): TextRun[] => {
   return runs.filter((run) => run.text.length > 0);
 };
 
-// 760px 폭에 58px 이면 한 줄 13자다. 긴 줄은 세 줄을 넘지 않게 줄인다.
+// 760px 폭에 58px 이면 한 줄 13자다. 긴 줄은 세 줄을 넘지 않게 줄이고,
+// 줄바꿈은 어절(공백) 단위라 가장 긴 어절이 한 줄에 들어가는 크기까지 더 줄인다(CJK 1자 = 1em).
+const LYRIC_FONT_SIZES = [58, 48, 42, 36];
 const japaneseFontSize = (text: string) => {
   const length = text.replace(/\s+/g, '').length;
-  if (length <= 26) return 58;
-  if (length <= 40) return 48;
-  return 42;
+  const byLength = length <= 26 ? 58 : length <= 40 ? 48 : 42;
+  const longestSegment = Math.max(...text.split(/\s+/).map((segment) => segment.length));
+  const fits = LYRIC_FONT_SIZES.find((size) => size <= byLength && longestSegment * size <= LYRIC_WIDTH);
+  return fits ?? LYRIC_FONT_SIZES[LYRIC_FONT_SIZES.length - 1];
 };
 
 const topWords = (words: VocabularyWord[]) => words.slice(0, 2);
@@ -960,7 +972,8 @@ const styles = {
   header: {
     alignItems: 'center',
     display: 'flex',
-    height: 96,
+    // 제목이 여러 줄이면 아래로 늘어난다. 고정 높이면 위로 넘쳐 상단 스크림 밖으로 밀린다.
+    minHeight: 96,
     left: 72,
     position: 'absolute',
     right: 72,
@@ -971,12 +984,14 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     gap: 6,
+    minWidth: 0,
   },
   title: {
     color: ink,
     fontSize: 50,
     fontWeight: 800,
-    lineHeight: 1,
+    // 긴 제목(feat. 나열)은 두세 줄로 꺾인다. 1 이면 줄끼리 붙는다.
+    lineHeight: 1.2,
   },
   artist: {
     color: softInk,
@@ -988,6 +1003,7 @@ const styles = {
     color: 'rgba(250,250,246,0.35)',
     fontSize: 28,
     fontWeight: 500,
+    flexShrink: 0,
     marginLeft: 'auto',
   },
   profileCue: {
@@ -997,7 +1013,7 @@ const styles = {
     gap: 12,
     left: 74,
     position: 'absolute',
-    top: 1520,
+    top: PROFILE_CUE_TOP,
     zIndex: 4,
   },
   profileCueLabel: {
@@ -1008,16 +1024,27 @@ const styles = {
   },
   content: {
     alignItems: 'center',
+    // 아래쪽 경계는 Profile Cue(1520) 위 60px. 가사가 길어 내용이 이 띠보다 커지면
+    // flex-end 라 위로 넘치므로 Cue 와 겹치지 않는다(스페이서가 0 으로 줄어든다).
+    bottom: PROMO_HEIGHT - (PROFILE_CUE_TOP - 60),
     display: 'flex',
     flexDirection: 'column',
-    gap: 80,
-    left: 160,
+    justifyContent: 'flex-end',
+    left: CONTENT_SIDE,
     position: 'absolute',
-    right: 160,
+    right: CONTENT_SIDE,
     textAlign: 'center',
-    // 하단 Profile Cue(1520) 와 단어 목록 사이 여백을 두려고 Pen Reel v2 와 같이 927
+    // 내용이 짧을 때 위쪽 시작점. Pen Reel v2 와 같이 927
     top: 927,
     zIndex: 4,
+  },
+  contentSpacer: {
+    flex: '1 1 0',
+    minHeight: 0,
+    width: '100%',
+  },
+  wordsEntry: {
+    marginTop: 80,
   },
   lyricBlock: {
     alignItems: 'center',
