@@ -69,6 +69,9 @@ class SongAnalysisWorkService(
 
     /** Caller keeps the work lock until its subscription change has finished. */
     @Transactional(propagation = Propagation.MANDATORY)
+    fun getByIdForUpdate(workId: Long): SongAnalysisWorkDto = getEntityForUpdate(workId).toDto()
+
+    @Transactional(propagation = Propagation.MANDATORY)
     fun getLatestForLyricForUpdate(songId: Long, lyricId: Long): SongAnalysisWorkDto? {
         val id = songAnalysisWorkRepository.findLatestIdsForLyric(songId, lyricId, Pageable.ofSize(1))
             .firstOrNull() ?: return null

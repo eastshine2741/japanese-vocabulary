@@ -218,6 +218,29 @@ class SongControllerTest : ApiBaseIntegrationTest() {
         }
 
         @Test
+        fun `analyze subscribes the requester to the work completion notification`() {
+            val me = newUser()
+            val other = newUser()
+            val request = AnalyzeSongRequest(title = "알림곡", artist = "알림가수", durationSeconds = 200)
+            val analyze = { user: UserEntity ->
+                readBody<SongAnalysisWorkResponse>(
+                    mockMvc.post("/api/songs/analyze") {
+                        header("Authorization", bearer(user))
+                        contentType = MediaType.APPLICATION_JSON
+                        content = objectMapper.writeValueAsString(request)
+                    }.andExpect { status { isOk() } }.andReturn().response.contentAsString,
+                )
+            }
+
+            val created = analyze(me)
+            val reused = analyze(other)
+
+            assertThat(reused.workId).isEqualTo(created.workId)
+            assertThat(redis.opsForSet().members("analysis:notifications:${created.workId}"))
+                .containsExactlyInAnyOrder(me.id.toString(), other.id.toString())
+        }
+
+        @Test
         fun `already analyzed song returns its completed work instead of starting a new analysis`() {
             val me = newUser()
             val song = newSong(title = "分析済曲", artist = "分析済歌手")
