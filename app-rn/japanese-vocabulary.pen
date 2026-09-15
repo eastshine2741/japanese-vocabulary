@@ -67808,7 +67808,7 @@
           "type": "frame",
           "id": "VJJOD",
           "x": 0,
-          "y": 118,
+          "y": 150,
           "name": "Header",
           "width": 1080,
           "height": 96,
@@ -67884,10 +67884,44 @@
         },
         {
           "type": "frame",
+          "id": "SR9N5",
+          "x": 74,
+          "y": 1520,
+          "name": "Profile Cue",
+          "gap": 12,
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "icon",
+              "id": "WZSAq",
+              "name": "Arrow Down",
+              "width": 32,
+              "height": 32,
+              "icon": "arrow-down",
+              "library": "lucide",
+              "fill": "#FAFAF6BF"
+            },
+            {
+              "type": "text",
+              "id": "uIs8R",
+              "name": "App Note Label",
+              "fill": "#FAFAF6BF",
+              "content": "전체 단어는 프로필 링크의 '코토노하' 앱에 있어요",
+              "lineHeight": 1,
+              "fontFamily": "$fontKr",
+              "fontSize": 26,
+              "fontWeight": "500",
+              "letterSpacing": -0.3
+            }
+          ]
+        },
+        {
+          "type": "frame",
           "id": "BWWQq",
           "x": 0,
           "y": 0,
           "name": "Safe Area Guide (reference only)",
+          "enabled": false,
           "opacity": 0.55,
           "width": 1080,
           "height": 1920,
@@ -67948,7 +67982,7 @@
           "type": "frame",
           "id": "UbxoL",
           "x": 160,
-          "y": 1030,
+          "y": 927,
           "name": "Content",
           "width": 760,
           "layout": "vertical",

@@ -140,6 +140,7 @@ export const PromoReel = ({data}: {data: PromoReelData}) => {
       {frame < lyricsEndFrame + END_CARD_FADE_FRAMES && (
         <div style={styles.activeLayer}>
           <Header data={data} />
+          <ProfileCue />
           {activeIndex >= 0 && (
             <section style={styles.content}>
               <div style={{...styles.lyricBlock, ...entryStyle(lyricEntry)}}>
@@ -188,6 +189,15 @@ const Header = ({data}: {data: PromoReelData}) => {
     </header>
   );
 };
+
+// 인스타 릴스 UI 의 프로필 사진 바로 위. 화살표가 아바타(좌하단 x≈74~162)를 가리켜
+// 프로필 링크로 스토어 진입을 유도한다. 위치·문구는 Pen Reel v2 의 Profile Cue 와 같다.
+const ProfileCue = () => (
+  <div style={styles.profileCue}>
+    <ArrowDownIcon />
+    <span style={styles.profileCueLabel}>전체 단어는 프로필 링크의 '코토노하' 앱에 있어요</span>
+  </div>
+);
 
 const JapaneseLine = ({line}: {line: PromoLine}) => {
   return (
@@ -736,6 +746,11 @@ const ChevronRightIcon = ({color, size}: {color: string; size: number}) => (
     <path d="M9 6l6 6-6 6" />
   </svg>
 );
+const ArrowDownIcon = () => (
+  <svg height={32} style={{flexShrink: 0}} viewBox="0 0 24 24" width={32} {...svgProps} strokeWidth={2}>
+    <path d="M12 5v14" /><path d="M19 12l-7 7-7-7" />
+  </svg>
+);
 const ChevronUpIcon = () => (
   <svg height={18} viewBox="0 0 24 24" width={18} {...svgProps} strokeWidth={2.4}><path d="M18 15l-6-6-6 6" /></svg>
 );
@@ -975,6 +990,22 @@ const styles = {
     fontWeight: 500,
     marginLeft: 'auto',
   },
+  profileCue: {
+    alignItems: 'center',
+    color: 'rgba(250,250,246,0.75)',
+    display: 'flex',
+    gap: 12,
+    left: 74,
+    position: 'absolute',
+    top: 1520,
+    zIndex: 4,
+  },
+  profileCueLabel: {
+    fontSize: 26,
+    fontWeight: 500,
+    letterSpacing: -0.3,
+    lineHeight: 1,
+  },
   content: {
     alignItems: 'center',
     display: 'flex',
@@ -984,7 +1015,8 @@ const styles = {
     position: 'absolute',
     right: 160,
     textAlign: 'center',
-    top: 1030,
+    // 하단 Profile Cue(1520) 와 단어 목록 사이 여백을 두려고 Pen Reel v2 와 같이 927
+    top: 927,
     zIndex: 4,
   },
   lyricBlock: {
