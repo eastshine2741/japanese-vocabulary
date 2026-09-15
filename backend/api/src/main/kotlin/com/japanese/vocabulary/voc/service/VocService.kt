@@ -7,7 +7,8 @@ import com.japanese.vocabulary.user.dto.UserDto
 import com.japanese.vocabulary.user.service.UserProfileService
 import com.japanese.vocabulary.voc.dto.CreateVocRequest
 import com.japanese.vocabulary.voc.dto.CreateVocResponse
-import org.springframework.beans.factory.annotation.Value
+import org.springframework.core.env.Environment
+import org.springframework.core.env.Profiles
 import org.springframework.stereotype.Service
 import java.time.Clock
 import java.time.ZoneId
@@ -24,8 +25,11 @@ class VocService(
     private val userProfileService: UserProfileService,
     private val githubIssueClient: GithubIssueClient,
     private val clock: Clock,
-    @Value("\${voc.environment}") private val environment: String,
+    springEnvironment: Environment,
 ) {
+    /** Deploy target, read off the Spring profile k8s sets (`prod` for production, anything else counts as dev). */
+    private val environment: String = if (springEnvironment.acceptsProfiles(Profiles.of("prod"))) "prod" else "dev"
+
     fun submit(userId: Long, request: CreateVocRequest): CreateVocResponse {
         val content = request.content.trim()
         if (content.isEmpty()) throw BusinessException(ErrorCode.VOC_CONTENT_REQUIRED)

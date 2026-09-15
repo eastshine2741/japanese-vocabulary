@@ -8,6 +8,7 @@ import com.japanese.vocabulary.voc.service.VocService
 import io.mockk.mockk
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import org.springframework.mock.env.MockEnvironment
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
@@ -15,12 +16,13 @@ import java.time.ZoneOffset
 class VocServiceTest {
 
     private val clock = Clock.fixed(Instant.parse("2026-09-13T15:04:05Z"), ZoneOffset.UTC)
-    private val service = VocService(
+    private fun serviceWithProfiles(vararg profiles: String) = VocService(
         userProfileService = mockk<UserProfileService>(),
         githubIssueClient = mockk<GithubIssueClient>(),
         clock = clock,
-        environment = "dev",
+        springEnvironment = MockEnvironment().apply { setActiveProfiles(*profiles) },
     )
+    private val service = serviceWithProfiles("dev")
     private val user = UserDto(id = 7, provider = "google", providerSub = "sub", username = "eastshine", email = "e@x.com", name = "East")
 
     @Test
@@ -65,6 +67,15 @@ class VocServiceTest {
             "| Time (KST) | 2026-09-14 00:04:05 |",
             "| Environment | dev |",
         )
+    }
+
+    @Test
+    fun `prod profile stamps prod, anything else stamps dev`() {
+        val request = CreateVocRequest(content = "x")
+
+        assertThat(serviceWithProfiles("prod").buildBody("x", user, request)).contains("| Environment | prod |")
+        assertThat(serviceWithProfiles("test").buildBody("x", user, request)).contains("| Environment | dev |")
+        assertThat(serviceWithProfiles().buildBody("x", user, request)).contains("| Environment | dev |")
     }
 
     @Test

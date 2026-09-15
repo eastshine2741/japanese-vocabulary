@@ -45,10 +45,6 @@ github:
   token: ${GITHUB_VOC_TOKEN:}
   repository: ${GITHUB_VOC_REPOSITORY:eastshine2741/japanese-vocabulary}
 
-voc:
-  # Stamped into every VOC issue so dev-namespace reports are distinguishable from prod ones.
-  environment: ${VOC_ENVIRONMENT:dev}
-
 jwt:
   secret: ${JWT_SECRET:dev-secret-key-at-least-32-chars-long}
 

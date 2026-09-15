@@ -93,7 +93,7 @@ katakana and line readings are assembled by clients. Details live in
 **VOC (개발자 괴롭히기):** 설정 탭 `문의` 섹션 -> `Voc` 화면. `POST /api/voc`
 (`content` <= 1000자 + 앱이 채우는 os/osVersion/device/nativeVersion/jsVersion)가
 `integrations:github`로 `type:voc` GitHub issue를 만든다. 유저 id/username/email은 서버가
-DB에서 채우고, 제목은 첫 줄 80자, 환경은 `VOC_ENVIRONMENT`(dev|prod). 토큰은
+DB에서 채우고, 제목은 첫 줄 80자, 환경은 Spring profile(`prod`면 prod, 아니면 dev). 토큰은
 `GITHUB_VOC_TOKEN`; 비면 503. `GET /api/users/me`가 username/name/email을 돌려준다.
 앱은 `expo-device`/`expo-application`을 쓰므로 새 네이티브 빌드가 필요하다.
 
