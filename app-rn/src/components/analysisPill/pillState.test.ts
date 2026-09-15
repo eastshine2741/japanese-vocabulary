@@ -73,7 +73,7 @@ describe('derivePillState', () => {
     expect(state).toMatchObject({ song: '怪物', note: ' 외 1곡', expandable: true, studyHint: false });
   });
 
-  it('done + analyzing shows only the remaining count', () => {
+  it('done + analyzing names the latest done song and counts the rest', () => {
     const state = derivePillState([
       job({ workId: 1, title: '夜に駆ける' }),
       job({ workId: 2, title: 'Lemon', artworkUrl: 'l.jpg', songId: 3, phase: 'done', settledAt: 10 }),
@@ -82,8 +82,8 @@ describe('derivePillState', () => {
     expect(state).toMatchObject({
       tone: 'done',
       title: PILL_TITLE.done,
-      song: null,
-      note: '1곡 남음',
+      song: '怪物',
+      note: ' · 1곡 남음',
       expandable: true,
     });
     expect(state?.arts[1]).toBe('a.jpg');
@@ -95,8 +95,8 @@ describe('derivePillState', () => {
       job({ workId: 2, title: 'Lemon', phase: 'done', settledAt: 10 }),
     ]);
     expect(state?.title).toBe(PILL_TITLE.done);
-    expect(state?.song).toBeNull();
-    expect(state?.note).toBe('1곡 남음');
+    expect(state?.song).toBe('Lemon');
+    expect(state?.note).toBe(' · 1곡 남음');
   });
 
   it('a failed song shows the failure reason and dismisses on tap', () => {
@@ -139,14 +139,24 @@ describe('failureReason', () => {
 });
 
 describe('deriveJobPillState', () => {
-  it('maps a job to a single-song pill', () => {
+  it('maps a done job to a single-song pill with the study hint', () => {
     expect(deriveJobPillState(job({ songId: 9, phase: 'done', settledAt: 1 }))).toMatchObject({
       tone: 'done',
       title: PILL_TITLE.done,
       song: '夜に駆ける',
-      note: null,
+      note: STUDY_HINT_NOTE,
       expandable: false,
       tapSongId: 9,
+      studyHint: true,
+    });
+  });
+
+  it('maps an analyzing job to a single-song pill without the study hint', () => {
+    expect(deriveJobPillState(job({ phase: 'analyzing' }))).toMatchObject({
+      tone: 'analyzing',
+      song: '夜に駆ける',
+      note: null,
+      tapSongId: null,
       studyHint: false,
     });
   });
