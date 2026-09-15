@@ -69866,6 +69866,5140 @@
       "width": 940,
       "height": 0,
       "content": "[레이아웃 규칙]\n\n가사는 MV 위에 얹지 않는다.\n  MV : y 0 – 1010 (full-bleed)\n  가사·단어 : y 1040 이하, 배경은 solid #111012\n  경계는 y 640 – 1010 gradient(투명 → #111012)로 잇는다\n\n토큰 스트로크(1.5px)는 제거했다. 작은 글자의 속을 갉아먹어 오히려 안 읽힌다.\n대비는 스트로크가 아니라 solid 패널이 보장한다.\n\n인스타 릴스 UI 가림 영역 — 콘텐츠 금지\n  상단 100px / 하단 360px(y 1560 이상) / 우측 150px 중 y 900–1560 구간\n  각 화면의 \"Safe Area Guide\" 프레임은 참고용. 렌더 전 enabled:false 로 끌 것"
+    },
+    {
+      "type": "frame",
+      "id": "XjTJZ",
+      "x": 1859,
+      "y": 2195,
+      "name": "component/AnalyzingFab",
+      "reusable": true,
+      "fill": "$accent-primary",
+      "cornerRadius": 999,
+      "effect": {
+        "type": "shadow",
+        "shadowType": "outer",
+        "color": "#52B78859",
+        "offset": {
+          "x": 0,
+          "y": 6
+        },
+        "blur": 20
+      },
+      "gap": 10,
+      "padding": [
+        6,
+        16,
+        6,
+        6
+      ],
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "frame",
+          "id": "GbacN",
+          "name": "arts",
+          "width": 58,
+          "height": 36,
+          "layout": "none",
+          "children": [
+            {
+              "type": "frame",
+              "id": "r9rRYE",
+              "x": 22,
+              "y": 0,
+              "name": "art2",
+              "clip": true,
+              "width": 36,
+              "height": 36,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "https://images.unsplash.com/photo-1742697692735-8bc3f2cc32e6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzM5MjU2MzB8&ixlib=rb-4.1.0&q=80&w=1080",
+                "mode": "fill"
+              },
+              "cornerRadius": 999,
+              "stroke": "$accent-primary",
+              "strokeWidth": 2,
+              "strokeAlignment": "inner"
+            },
+            {
+              "type": "frame",
+              "id": "v3fpb",
+              "x": 0,
+              "y": 0,
+              "name": "art1",
+              "clip": true,
+              "width": 36,
+              "height": 36,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "https://images.unsplash.com/photo-1766511373844-1957a3e8de72?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzM5MjU2MzB8&ixlib=rb-4.1.0&q=80&w=1080",
+                "mode": "fill"
+              },
+              "cornerRadius": 999,
+              "stroke": "$accent-primary",
+              "strokeWidth": 2,
+              "strokeAlignment": "inner"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "p9Xq4z",
+          "name": "textBlock",
+          "layout": "vertical",
+          "gap": 1,
+          "children": [
+            {
+              "type": "text",
+              "id": "eX7LH",
+              "name": "label",
+              "fill": "$foreground.inverse",
+              "content": "2곡 분석 중",
+              "fontFamily": "$font.body",
+              "fontSize": 14,
+              "fontWeight": "700"
+            },
+            {
+              "type": "text",
+              "id": "Frk13",
+              "name": "sub",
+              "fill": "#FFFFFFCC",
+              "content": "夜に駆ける 외 1곡 · 단어 분석 중",
+              "fontFamily": "$font.body",
+              "fontSize": 11,
+              "fontWeight": "500"
+            }
+          ]
+        },
+        {
+          "type": "icon",
+          "id": "ai56D",
+          "name": "spinner",
+          "width": 20,
+          "height": 20,
+          "icon": "loader-circle",
+          "library": "lucide",
+          "fill": "$foreground.inverse"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "A0PYY9",
+      "x": 2820,
+      "y": 2355,
+      "name": "R3c. 검색 탭 — 분석 중 FAB",
+      "clip": true,
+      "width": 402,
+      "height": 874,
+      "fill": "$surface.secondary",
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "GayLy",
+          "name": "statusBar",
+          "width": "fill_container",
+          "height": 62,
+          "padding": [
+            0,
+            24
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "QoZ3z",
+              "name": "time",
+              "fill": "$foreground.primary",
+              "content": "9:41",
+              "fontFamily": "Inter",
+              "fontSize": 15,
+              "fontWeight": "600"
+            },
+            {
+              "type": "frame",
+              "id": "D5ZZF",
+              "name": "sbIcons",
+              "gap": 7,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "lQssi",
+                  "name": "signal-high",
+                  "width": 17,
+                  "height": 17,
+                  "icon": "signal-high",
+                  "library": "lucide",
+                  "fill": "$foreground.primary"
+                },
+                {
+                  "type": "icon",
+                  "id": "GVlA5",
+                  "name": "wifi",
+                  "width": 17,
+                  "height": 17,
+                  "icon": "wifi",
+                  "library": "lucide",
+                  "fill": "$foreground.primary"
+                },
+                {
+                  "type": "icon",
+                  "id": "Nfycj",
+                  "name": "battery-full",
+                  "width": 17,
+                  "height": 17,
+                  "icon": "battery-full",
+                  "library": "lucide",
+                  "fill": "$foreground.primary"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "E49TkG",
+          "name": "searchRow",
+          "width": "fill_container",
+          "height": 56,
+          "gap": 12,
+          "padding": [
+            0,
+            16
+          ],
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "PQ1Qz",
+              "name": "searchField",
+              "width": "fill_container",
+              "height": 44,
+              "fill": "$surface.primary",
+              "cornerRadius": 12,
+              "gap": 10,
+              "padding": [
+                0,
+                14
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "XAHgA",
+                  "name": "searchIco",
+                  "width": 18,
+                  "height": 18,
+                  "icon": "search",
+                  "library": "lucide",
+                  "fill": "$foreground.muted"
+                },
+                {
+                  "type": "text",
+                  "id": "laWRe",
+                  "name": "searchPlaceholder",
+                  "fill": "$foreground.muted",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "노래, 아티스트 검색",
+                  "fontFamily": "$font.body",
+                  "fontSize": 15,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "I6A5pu",
+          "name": "content",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "gap": 32,
+          "padding": [
+            4,
+            0,
+            8,
+            0
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "wiw19",
+              "name": "historyGroup",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 32,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "oW5PD",
+                  "name": "recentSongsSection",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "hjRgc",
+                      "name": "sectionLabelRow",
+                      "width": "fill_container",
+                      "padding": [
+                        0,
+                        16
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "R03sN",
+                          "name": "sectionLabel",
+                          "fill": "$foreground.primary",
+                          "content": "최근 본 곡",
+                          "fontFamily": "$font.body",
+                          "fontSize": 15,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "tdRzl",
+                      "name": "recentSongsStrip",
+                      "clip": true,
+                      "width": "fill_container",
+                      "height": 96,
+                      "gap": 16,
+                      "padding": [
+                        0,
+                        16
+                      ],
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "G6t81",
+                          "name": "recentSongItem",
+                          "clip": true,
+                          "width": 72,
+                          "height": 96,
+                          "layout": "vertical",
+                          "gap": 8,
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "cornerRadius": 12,
+                              "id": "QfCwX",
+                              "name": "cover",
+                              "fill": {
+                                "type": "image",
+                                "enabled": true,
+                                "url": "https://images.unsplash.com/photo-1615754890640-1b07ac20cdbc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3ODA0OTgwMzB8&ixlib=rb-4.1.0&q=80&w=1080",
+                                "mode": "fill"
+                              },
+                              "width": 72,
+                              "height": 72
+                            },
+                            {
+                              "type": "frame",
+                              "id": "o2cjEN",
+                              "name": "songTitleClip",
+                              "clip": true,
+                              "width": "fill_container",
+                              "height": 16,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "RkDZc",
+                                  "name": "songTitle",
+                                  "fill": "$foreground.secondary",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "アイドル",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "d1kYI",
+                          "name": "recentSongItem",
+                          "clip": true,
+                          "width": 72,
+                          "height": 96,
+                          "layout": "vertical",
+                          "gap": 8,
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "cornerRadius": 12,
+                              "id": "B1Tte",
+                              "name": "cover",
+                              "fill": {
+                                "type": "image",
+                                "enabled": true,
+                                "url": "https://images.unsplash.com/photo-1646753950523-19fb8a2a1457?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3ODA0OTgwMzB8&ixlib=rb-4.1.0&q=80&w=1080",
+                                "mode": "fill"
+                              },
+                              "width": 72,
+                              "height": 72
+                            },
+                            {
+                              "type": "frame",
+                              "id": "bwXhp",
+                              "name": "songTitleClip",
+                              "clip": true,
+                              "width": "fill_container",
+                              "height": 16,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "TmhHe",
+                                  "name": "songTitle",
+                                  "fill": "$foreground.secondary",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "第ゼロ感",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "wx0tu",
+                          "name": "recentSongItem",
+                          "clip": true,
+                          "width": 72,
+                          "height": 96,
+                          "layout": "vertical",
+                          "gap": 8,
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "cornerRadius": 12,
+                              "id": "Cmoda",
+                              "name": "cover",
+                              "fill": {
+                                "type": "image",
+                                "enabled": true,
+                                "url": "https://images.unsplash.com/photo-1574610758891-5b809b6e6e2e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3ODA0OTgwMzF8&ixlib=rb-4.1.0&q=80&w=1080",
+                                "mode": "fill"
+                              },
+                              "width": 72,
+                              "height": 72
+                            },
+                            {
+                              "type": "frame",
+                              "id": "CfI4u",
+                              "name": "songTitleClip",
+                              "clip": true,
+                              "width": "fill_container",
+                              "height": 16,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "nePtc",
+                                  "name": "songTitle",
+                                  "fill": "$foreground.secondary",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "ベテルギウス",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "g6Yak",
+                          "name": "recentSongItem",
+                          "clip": true,
+                          "width": 72,
+                          "height": 96,
+                          "layout": "vertical",
+                          "gap": 8,
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "cornerRadius": 12,
+                              "id": "XvfwR",
+                              "name": "cover",
+                              "fill": {
+                                "type": "image",
+                                "enabled": true,
+                                "url": "https://images.unsplash.com/photo-1535980347652-aff78daeebf0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3ODA0OTgwMzJ8&ixlib=rb-4.1.0&q=80&w=1080",
+                                "mode": "fill"
+                              },
+                              "width": 72,
+                              "height": 72
+                            },
+                            {
+                              "type": "frame",
+                              "id": "TSnID",
+                              "name": "songTitleClip",
+                              "clip": true,
+                              "width": "fill_container",
+                              "height": 16,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "OjUly",
+                                  "name": "songTitle",
+                                  "fill": "$foreground.secondary",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "サブタイトル",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "NAQ5S",
+                          "name": "recentSongItem",
+                          "clip": true,
+                          "width": 72,
+                          "height": 96,
+                          "layout": "vertical",
+                          "gap": 8,
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "cornerRadius": 12,
+                              "id": "fD4wq",
+                              "name": "cover",
+                              "fill": {
+                                "type": "image",
+                                "enabled": true,
+                                "url": "https://images.unsplash.com/photo-1615754890640-1b07ac20cdbc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3ODA0OTgwMzB8&ixlib=rb-4.1.0&q=80&w=1080",
+                                "mode": "fill"
+                              },
+                              "width": 72,
+                              "height": 72
+                            },
+                            {
+                              "type": "frame",
+                              "id": "E6E8y",
+                              "name": "songTitleClip",
+                              "clip": true,
+                              "width": "fill_container",
+                              "height": 16,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "p6681B",
+                                  "name": "songTitle",
+                                  "fill": "$foreground.secondary",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "怪物",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "bqtpG",
+                  "name": "recentSearchesSection",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "SULxL",
+                      "name": "sectionLabelRow",
+                      "width": "fill_container",
+                      "padding": [
+                        0,
+                        16
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "sds0e",
+                          "name": "sectionLabel",
+                          "fill": "$foreground.primary",
+                          "content": "최근 검색어",
+                          "fontFamily": "$font.body",
+                          "fontSize": 15,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "N81Tkx",
+                      "name": "recentSearchList",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "P9YdkD",
+                          "name": "recentSearchRow",
+                          "width": "fill_container",
+                          "height": 44,
+                          "gap": 12,
+                          "padding": [
+                            0,
+                            16
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "TWATm",
+                              "name": "historyIcon",
+                              "width": 20,
+                              "height": 20,
+                              "icon": "history",
+                              "library": "lucide",
+                              "fill": "$foreground.muted"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "p0QNf",
+                              "name": "termClip",
+                              "clip": true,
+                              "width": "fill_container",
+                              "height": 22,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "PS0QK",
+                                  "name": "term",
+                                  "fill": "$foreground.primary",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "YOASOBI",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 15,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "icon",
+                              "id": "y2Haj4",
+                              "name": "removeIcon",
+                              "width": 18,
+                              "height": 18,
+                              "icon": "x",
+                              "library": "lucide",
+                              "fill": "$foreground.muted"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "G7DzvP",
+                          "name": "recentSearchRow",
+                          "width": "fill_container",
+                          "height": 44,
+                          "gap": 12,
+                          "padding": [
+                            0,
+                            16
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "DOAdE",
+                              "name": "historyIcon",
+                              "width": 20,
+                              "height": 20,
+                              "icon": "history",
+                              "library": "lucide",
+                              "fill": "$foreground.muted"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "mSv1a",
+                              "name": "termClip",
+                              "clip": true,
+                              "width": "fill_container",
+                              "height": 22,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "QuYb0",
+                                  "name": "term",
+                                  "fill": "$foreground.primary",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "夜に駆ける",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 15,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "icon",
+                              "id": "m1PO6",
+                              "name": "removeIcon",
+                              "width": 18,
+                              "height": 18,
+                              "icon": "x",
+                              "library": "lucide",
+                              "fill": "$foreground.muted"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "m6rSO",
+                          "name": "recentSearchRow",
+                          "width": "fill_container",
+                          "height": 44,
+                          "gap": 12,
+                          "padding": [
+                            0,
+                            16
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "Coxsx",
+                              "name": "historyIcon",
+                              "width": 20,
+                              "height": 20,
+                              "icon": "history",
+                              "library": "lucide",
+                              "fill": "$foreground.muted"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "u9H9oA",
+                              "name": "termClip",
+                              "clip": true,
+                              "width": "fill_container",
+                              "height": 22,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "iXL50",
+                                  "name": "term",
+                                  "fill": "$foreground.primary",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "米津玄師",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 15,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "icon",
+                              "id": "BqT7e",
+                              "name": "removeIcon",
+                              "width": 18,
+                              "height": 18,
+                              "icon": "x",
+                              "library": "lucide",
+                              "fill": "$foreground.muted"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "YvpJn",
+                          "name": "recentSearchRow",
+                          "width": "fill_container",
+                          "height": 44,
+                          "gap": 12,
+                          "padding": [
+                            0,
+                            16
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "IJDhF",
+                              "name": "historyIcon",
+                              "width": 20,
+                              "height": 20,
+                              "icon": "history",
+                              "library": "lucide",
+                              "fill": "$foreground.muted"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "d2SJJ",
+                              "name": "termClip",
+                              "clip": true,
+                              "width": "fill_container",
+                              "height": 22,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "vWEF5",
+                                  "name": "term",
+                                  "fill": "$foreground.primary",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "紅蓮華",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 15,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "icon",
+                              "id": "c0Jim",
+                              "name": "removeIcon",
+                              "width": 18,
+                              "height": 18,
+                              "icon": "x",
+                              "library": "lucide",
+                              "fill": "$foreground.muted"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "u0AWe",
+                          "name": "recentSearchRow",
+                          "width": "fill_container",
+                          "height": 44,
+                          "gap": 12,
+                          "padding": [
+                            0,
+                            16
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "cKCzi",
+                              "name": "historyIcon",
+                              "width": 20,
+                              "height": 20,
+                              "icon": "history",
+                              "library": "lucide",
+                              "fill": "$foreground.muted"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "J070JU",
+                              "name": "termClip",
+                              "clip": true,
+                              "width": "fill_container",
+                              "height": 22,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "c01Uy",
+                                  "name": "term",
+                                  "fill": "$foreground.primary",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "Official髭男dism",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 15,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "icon",
+                              "id": "E77tY6",
+                              "name": "removeIcon",
+                              "width": 18,
+                              "height": 18,
+                              "icon": "x",
+                              "library": "lucide",
+                              "fill": "$foreground.muted"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "pugvB",
+              "name": "recommendedSection",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "padding": [
+                8,
+                0,
+                0,
+                0
+              ],
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "l21GyA",
+                  "name": "sectionLabelRow",
+                  "width": "fill_container",
+                  "padding": [
+                    0,
+                    16
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "IZ9aF",
+                      "name": "sectionLabel",
+                      "fill": "$foreground.primary",
+                      "content": "이런 곡은 어때요?",
+                      "fontFamily": "$font.body",
+                      "fontSize": 15,
+                      "fontWeight": "600"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "bFGyR",
+                  "name": "recCarousel",
+                  "clip": true,
+                  "width": "fill_container",
+                  "height": 200,
+                  "gap": 12,
+                  "padding": [
+                    0,
+                    16
+                  ],
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "O2weXh",
+                      "name": "recCard",
+                      "clip": true,
+                      "width": 152,
+                      "height": 200,
+                      "fill": {
+                        "type": "image",
+                        "enabled": true,
+                        "url": "https://images.unsplash.com/photo-1701762292571-2875f1e522b6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3ODY5NjAzOTd8&ixlib=rb-4.1.0&q=80&w=1080",
+                        "mode": "fill"
+                      },
+                      "cornerRadius": 12,
+                      "layout": "vertical",
+                      "padding": 12,
+                      "justifyContent": "end",
+                      "children": [
+                        {
+                          "type": "rectangle",
+                          "id": "v0ERx",
+                          "layoutPosition": "absolute",
+                          "x": 0,
+                          "y": 0,
+                          "name": "scrim",
+                          "fill": {
+                            "type": "gradient",
+                            "gradientType": "linear",
+                            "enabled": true,
+                            "rotation": 180,
+                            "size": {
+                              "height": 1
+                            },
+                            "colors": [
+                              {
+                                "color": "#00000000",
+                                "position": 0
+                              },
+                              {
+                                "color": "#00000000",
+                                "position": 0.34
+                              },
+                              {
+                                "color": "#000000A8",
+                                "position": 0.7
+                              },
+                              {
+                                "color": "#000000ED",
+                                "position": 1
+                              }
+                            ]
+                          },
+                          "width": 152,
+                          "height": 200
+                        },
+                        {
+                          "type": "frame",
+                          "id": "eMaKX",
+                          "name": "cardText",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 2,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "MVF5J",
+                              "name": "cardTitleClip",
+                              "clip": true,
+                              "width": "fill_container",
+                              "height": 20,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "tgk1p",
+                                  "name": "cardTitle",
+                                  "fill": "#FFFFFF",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "六本木クラブでゆらゆら揺れながら",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 14,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "gJqT5",
+                              "name": "cardArtistClip",
+                              "clip": true,
+                              "width": "fill_container",
+                              "height": 18,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "gKq2U",
+                                  "name": "cardArtist",
+                                  "fill": "#FFFFFFB8",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "back number",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "l6Zia",
+                      "name": "recCard",
+                      "clip": true,
+                      "width": 152,
+                      "height": 200,
+                      "fill": {
+                        "type": "image",
+                        "enabled": true,
+                        "url": "https://images.unsplash.com/photo-1769430724125-96853e0eadbb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3ODY5NjAzOTd8&ixlib=rb-4.1.0&q=80&w=1080",
+                        "mode": "fill"
+                      },
+                      "cornerRadius": 12,
+                      "layout": "vertical",
+                      "padding": 12,
+                      "justifyContent": "end",
+                      "children": [
+                        {
+                          "type": "rectangle",
+                          "id": "Z3WVnj",
+                          "layoutPosition": "absolute",
+                          "x": 0,
+                          "y": 0,
+                          "name": "scrim",
+                          "fill": {
+                            "type": "gradient",
+                            "gradientType": "linear",
+                            "enabled": true,
+                            "rotation": 180,
+                            "size": {
+                              "height": 1
+                            },
+                            "colors": [
+                              {
+                                "color": "#00000000",
+                                "position": 0
+                              },
+                              {
+                                "color": "#00000000",
+                                "position": 0.34
+                              },
+                              {
+                                "color": "#000000A8",
+                                "position": 0.7
+                              },
+                              {
+                                "color": "#000000ED",
+                                "position": 1
+                              }
+                            ]
+                          },
+                          "width": 152,
+                          "height": 200
+                        },
+                        {
+                          "type": "frame",
+                          "id": "guG5W",
+                          "name": "cardText",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 2,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "WjhQo",
+                              "name": "cardTitleClip",
+                              "clip": true,
+                              "width": "fill_container",
+                              "height": 20,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "vqeox",
+                                  "name": "cardTitle",
+                                  "fill": "#FFFFFF",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "マリーゴールド",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 14,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "fnYOz",
+                              "name": "cardArtistClip",
+                              "clip": true,
+                              "width": "fill_container",
+                              "height": 18,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "nOq2x",
+                                  "name": "cardArtist",
+                                  "fill": "#FFFFFFB8",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "あいみょん",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "nW871",
+                      "name": "recCard",
+                      "clip": true,
+                      "width": 152,
+                      "height": 200,
+                      "fill": {
+                        "type": "image",
+                        "enabled": true,
+                        "url": "https://images.unsplash.com/photo-1716809699704-209488bbac53?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3ODA1ODExNDR8&ixlib=rb-4.1.0&q=80&w=1080",
+                        "mode": "fill"
+                      },
+                      "cornerRadius": 12,
+                      "layout": "vertical",
+                      "padding": 12,
+                      "justifyContent": "end",
+                      "children": [
+                        {
+                          "type": "rectangle",
+                          "id": "XWSWd",
+                          "layoutPosition": "absolute",
+                          "x": 0,
+                          "y": 0,
+                          "name": "scrim",
+                          "fill": {
+                            "type": "gradient",
+                            "gradientType": "linear",
+                            "enabled": true,
+                            "rotation": 180,
+                            "size": {
+                              "height": 1
+                            },
+                            "colors": [
+                              {
+                                "color": "#00000000",
+                                "position": 0
+                              },
+                              {
+                                "color": "#00000000",
+                                "position": 0.34
+                              },
+                              {
+                                "color": "#000000A8",
+                                "position": 0.7
+                              },
+                              {
+                                "color": "#000000ED",
+                                "position": 1
+                              }
+                            ]
+                          },
+                          "width": 152,
+                          "height": 200
+                        },
+                        {
+                          "type": "frame",
+                          "id": "tzKSe",
+                          "name": "cardText",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 2,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "KKno9",
+                              "name": "cardTitleClip",
+                              "clip": true,
+                              "width": "fill_container",
+                              "height": 20,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "PMvQF",
+                                  "name": "cardTitle",
+                                  "fill": "#FFFFFF",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "第ゼロ感",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 14,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "GPoUR",
+                              "name": "cardArtistClip",
+                              "clip": true,
+                              "width": "fill_container",
+                              "height": 18,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "T4niX",
+                                  "name": "cardArtist",
+                                  "fill": "#FFFFFFB8",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "10-FEET",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Sqvio",
+                      "name": "recCard",
+                      "clip": true,
+                      "width": 152,
+                      "height": 200,
+                      "fill": {
+                        "type": "image",
+                        "enabled": true,
+                        "url": "https://images.unsplash.com/photo-1506105524407-94b39b1e7415?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3ODA1ODExNDV8&ixlib=rb-4.1.0&q=80&w=1080",
+                        "mode": "fill"
+                      },
+                      "cornerRadius": 12,
+                      "layout": "vertical",
+                      "padding": 12,
+                      "justifyContent": "end",
+                      "children": [
+                        {
+                          "type": "rectangle",
+                          "id": "p6aDj",
+                          "layoutPosition": "absolute",
+                          "x": 0,
+                          "y": 0,
+                          "name": "scrim",
+                          "fill": {
+                            "type": "gradient",
+                            "gradientType": "linear",
+                            "enabled": true,
+                            "rotation": 180,
+                            "size": {
+                              "height": 1
+                            },
+                            "colors": [
+                              {
+                                "color": "#00000000",
+                                "position": 0
+                              },
+                              {
+                                "color": "#00000000",
+                                "position": 0.34
+                              },
+                              {
+                                "color": "#000000A8",
+                                "position": 0.7
+                              },
+                              {
+                                "color": "#000000ED",
+                                "position": 1
+                              }
+                            ]
+                          },
+                          "width": 152,
+                          "height": 200
+                        },
+                        {
+                          "type": "frame",
+                          "id": "g8VvH9",
+                          "name": "cardText",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 2,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "CArR8",
+                              "name": "cardTitleClip",
+                              "clip": true,
+                              "width": "fill_container",
+                              "height": 20,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "V2fa9w",
+                                  "name": "cardTitle",
+                                  "fill": "#FFFFFF",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "ベテルギウス",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 14,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "nVOkw",
+                              "name": "cardArtistClip",
+                              "clip": true,
+                              "width": "fill_container",
+                              "height": 18,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "W4PmM5",
+                                  "name": "cardArtist",
+                                  "fill": "#FFFFFFB8",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "優里",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "VJzit",
+          "name": "navWrap",
+          "width": "fill_container",
+          "fill": "#FFFFFF00",
+          "children": [
+            {
+              "id": "VAZgx",
+              "type": "ref",
+              "ref": "anPPw",
+              "name": "BottomNavBar",
+              "width": "fill_container",
+              "theme": {
+                "selected-tab": "words"
+              },
+              "descendants": {
+                "4tzVt": {
+                  "icon": "$tab.words.iconName",
+                  "library": "phosphor"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "qDEKP",
+          "type": "ref",
+          "ref": "XjTJZ",
+          "name": "analyzingFab",
+          "layoutPosition": "absolute",
+          "x": 65,
+          "y": 757
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "t6A1lg",
+      "x": 3302,
+      "y": 2355,
+      "name": "R3d. Song Search — 분석 중 FAB",
+      "clip": true,
+      "width": 402,
+      "height": 874,
+      "fill": "$bg-primary",
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "P6tnhx",
+          "name": "statusBar",
+          "width": "fill_container",
+          "height": 62,
+          "padding": [
+            0,
+            24
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "vcFjc",
+              "name": "time",
+              "fill": "$text-primary",
+              "content": "9:41",
+              "fontFamily": "Inter",
+              "fontSize": 14,
+              "fontWeight": "600"
+            },
+            {
+              "type": "frame",
+              "id": "g4wyR",
+              "name": "icons",
+              "gap": 6,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "g2embH",
+                  "name": "sig",
+                  "width": 16,
+                  "height": 16,
+                  "icon": "signal",
+                  "library": "lucide",
+                  "fill": "$text-primary"
+                },
+                {
+                  "type": "icon",
+                  "id": "cgjp2",
+                  "name": "bat",
+                  "width": 16,
+                  "height": 16,
+                  "icon": "battery-full",
+                  "library": "lucide",
+                  "fill": "$text-primary"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "nRGMt",
+          "name": "searchRow",
+          "width": "fill_container",
+          "height": 48,
+          "gap": 12,
+          "padding": [
+            0,
+            20
+          ],
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "icon",
+              "id": "GQJ3X",
+              "name": "backBtn",
+              "width": 24,
+              "height": 24,
+              "icon": "arrow-left",
+              "library": "lucide",
+              "fill": "$text-primary"
+            },
+            {
+              "type": "frame",
+              "id": "bXzt8",
+              "name": "searchInput",
+              "width": "fill_container",
+              "height": 44,
+              "fill": "$bg-elevated",
+              "cornerRadius": 16,
+              "gap": 10,
+              "padding": [
+                0,
+                14
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "v6PTr",
+                  "name": "searchIco",
+                  "width": 18,
+                  "height": 18,
+                  "icon": "search",
+                  "library": "lucide",
+                  "fill": "$text-muted"
+                },
+                {
+                  "type": "text",
+                  "id": "yTvxh",
+                  "name": "searchVal",
+                  "fill": "$text-primary",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "YOASOBI",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "icon",
+                  "id": "R5Gm1f",
+                  "name": "clearBtn",
+                  "width": 16,
+                  "height": 16,
+                  "icon": "x",
+                  "library": "lucide",
+                  "fill": "$text-muted"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "HGLQO",
+          "name": "resultHeader",
+          "width": "fill_container",
+          "padding": [
+            8,
+            20,
+            0,
+            20
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "Ck21I",
+              "name": "resultText",
+              "fill": "$text-secondary",
+              "content": "검색 결과",
+              "fontFamily": "Inter",
+              "fontSize": 13,
+              "fontWeight": "600"
+            },
+            {
+              "type": "text",
+              "id": "z9PLzq",
+              "name": "resultCount",
+              "fill": "$text-muted",
+              "content": "24곡",
+              "fontFamily": "Inter",
+              "fontSize": 13,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "X7lGBp",
+          "name": "resultList",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "gap": 4,
+          "padding": [
+            8,
+            20,
+            24,
+            20
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "kHN6r",
+              "name": "songItem1",
+              "width": "fill_container",
+              "gap": 12,
+              "padding": [
+                10,
+                0
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "ThhMZ",
+                  "name": "art1",
+                  "metadata": {
+                    "type": "unsplash",
+                    "username": "katekasiutich",
+                    "link": "https://unsplash.com/@katekasiutich",
+                    "author": "Kate Kasiutich"
+                  },
+                  "width": 48,
+                  "height": 48,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "https://images.unsplash.com/photo-1766511373844-1957a3e8de72?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzM5MjcwNzZ8&ixlib=rb-4.1.0&q=80&w=1080",
+                    "mode": "fill"
+                  },
+                  "cornerRadius": 8
+                },
+                {
+                  "type": "frame",
+                  "id": "VXhAq",
+                  "name": "info1",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 2,
+                  "justifyContent": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "xuxM2",
+                      "name": "title1",
+                      "fill": "$text-primary",
+                      "content": "夜に駆ける",
+                      "fontFamily": "Inter",
+                      "fontSize": 15,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "UqNdz",
+                      "name": "sub1",
+                      "gap": 6,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "YHl2m",
+                          "name": "artist1",
+                          "fill": "$text-secondary",
+                          "content": "YOASOBI",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "L9PoO",
+                          "name": "dot1",
+                          "fill": "$text-muted",
+                          "content": "·",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "okn6E",
+                          "name": "dur1",
+                          "fill": "$text-muted",
+                          "content": "4:18",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "icon",
+                  "id": "i3pMC",
+                  "name": "chev1",
+                  "width": 18,
+                  "height": 18,
+                  "icon": "chevron-right",
+                  "library": "lucide",
+                  "fill": "$text-muted"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "pScHJ",
+              "name": "song2",
+              "width": "fill_container",
+              "gap": 12,
+              "padding": [
+                10,
+                0
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "v928d",
+                  "name": "art1",
+                  "metadata": {
+                    "type": "unsplash",
+                    "username": "dagerotip",
+                    "link": "https://unsplash.com/@dagerotip",
+                    "author": "George Dagerotip"
+                  },
+                  "width": 48,
+                  "height": 48,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "https://images.unsplash.com/photo-1742697692735-8bc3f2cc32e6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzM5MjcwODh8&ixlib=rb-4.1.0&q=80&w=1080",
+                    "mode": "fill"
+                  },
+                  "cornerRadius": 8
+                },
+                {
+                  "type": "frame",
+                  "id": "K5ZGJ",
+                  "name": "info1",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 2,
+                  "justifyContent": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "tBeeW",
+                      "name": "title1",
+                      "fill": "$text-primary",
+                      "content": "ハルジオン",
+                      "fontFamily": "Inter",
+                      "fontSize": 15,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "IExaI",
+                      "name": "sub1",
+                      "gap": 6,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "Bs8Uj",
+                          "name": "artist1",
+                          "fill": "$text-secondary",
+                          "content": "YOASOBI",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "SKYjB",
+                          "name": "dot1",
+                          "fill": "$text-muted",
+                          "content": "·",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "deRsg",
+                          "name": "dur1",
+                          "fill": "$text-muted",
+                          "content": "4:05",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "icon",
+                  "id": "LAoF5",
+                  "name": "chev1",
+                  "width": 18,
+                  "height": 18,
+                  "icon": "chevron-right",
+                  "library": "lucide",
+                  "fill": "$text-muted"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "JdfJs",
+              "name": "song3",
+              "width": "fill_container",
+              "gap": 12,
+              "padding": [
+                10,
+                0
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "B2YnO",
+                  "name": "art1",
+                  "metadata": {
+                    "type": "unsplash",
+                    "username": "skyler_tv",
+                    "link": "https://unsplash.com/@skyler_tv",
+                    "author": "Skyler Smith"
+                  },
+                  "width": 48,
+                  "height": 48,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "https://images.unsplash.com/photo-1769184615688-0017bcdefb31?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzM5MjcwODh8&ixlib=rb-4.1.0&q=80&w=1080",
+                    "mode": "fill"
+                  },
+                  "cornerRadius": 8
+                },
+                {
+                  "type": "frame",
+                  "id": "Va3xr",
+                  "name": "info1",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 2,
+                  "justifyContent": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "EWXYU",
+                      "name": "title1",
+                      "fill": "$text-primary",
+                      "content": "群青",
+                      "fontFamily": "Inter",
+                      "fontSize": 15,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "M3NRCO",
+                      "name": "sub1",
+                      "gap": 6,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "eMIaM",
+                          "name": "artist1",
+                          "fill": "$text-secondary",
+                          "content": "YOASOBI",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "F6wJTU",
+                          "name": "dot1",
+                          "fill": "$text-muted",
+                          "content": "·",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "OCzLs",
+                          "name": "dur1",
+                          "fill": "$text-muted",
+                          "content": "4:09",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "icon",
+                  "id": "aH1UU",
+                  "name": "chev1",
+                  "width": 18,
+                  "height": 18,
+                  "icon": "chevron-right",
+                  "library": "lucide",
+                  "fill": "$text-muted"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "dfUGp",
+              "name": "song4",
+              "width": "fill_container",
+              "gap": 12,
+              "padding": [
+                10,
+                0
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "WGshW",
+                  "name": "art1",
+                  "metadata": {
+                    "type": "unsplash",
+                    "username": "daniwithaniphotovideo",
+                    "link": "https://unsplash.com/@daniwithaniphotovideo",
+                    "author": "Daniela Sánchez"
+                  },
+                  "width": 48,
+                  "height": 48,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "https://images.unsplash.com/photo-1745104341504-f88399ac38bb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzM5MjcwODl8&ixlib=rb-4.1.0&q=80&w=1080",
+                    "mode": "fill"
+                  },
+                  "cornerRadius": 8
+                },
+                {
+                  "type": "frame",
+                  "id": "qJM1x",
+                  "name": "info1",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 2,
+                  "justifyContent": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "E2iElQ",
+                      "name": "title1",
+                      "fill": "$text-primary",
+                      "content": "怪物",
+                      "fontFamily": "Inter",
+                      "fontSize": 15,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "nc5Dl",
+                      "name": "sub1",
+                      "gap": 6,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "YZmJ5",
+                          "name": "artist1",
+                          "fill": "$text-secondary",
+                          "content": "YOASOBI",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "q7COo",
+                          "name": "dot1",
+                          "fill": "$text-muted",
+                          "content": "·",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "zsZX9",
+                          "name": "dur1",
+                          "fill": "$text-muted",
+                          "content": "3:25",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "icon",
+                  "id": "C9G2G",
+                  "name": "chev1",
+                  "width": 18,
+                  "height": 18,
+                  "icon": "chevron-right",
+                  "library": "lucide",
+                  "fill": "$text-muted"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "cWx8J",
+              "name": "song5",
+              "width": "fill_container",
+              "gap": 12,
+              "padding": [
+                10,
+                0
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "RP8U6",
+                  "name": "art1",
+                  "metadata": {
+                    "type": "unsplash",
+                    "username": "hunktwink123",
+                    "link": "https://unsplash.com/@hunktwink123",
+                    "author": "hunk twink"
+                  },
+                  "width": 48,
+                  "height": 48,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "https://images.unsplash.com/photo-1713575191384-77f68c63657c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzM5MjcwODl8&ixlib=rb-4.1.0&q=80&w=1080",
+                    "mode": "fill"
+                  },
+                  "cornerRadius": 8
+                },
+                {
+                  "type": "frame",
+                  "id": "PO9pv",
+                  "name": "info1",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 2,
+                  "justifyContent": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "nG7Ro",
+                      "name": "title1",
+                      "fill": "$text-primary",
+                      "content": "三原色",
+                      "fontFamily": "Inter",
+                      "fontSize": 15,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "oMEj1",
+                      "name": "sub1",
+                      "gap": 6,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "QiNr9",
+                          "name": "artist1",
+                          "fill": "$text-secondary",
+                          "content": "YOASOBI",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "j7BaZ",
+                          "name": "dot1",
+                          "fill": "$text-muted",
+                          "content": "·",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "iizI6",
+                          "name": "dur1",
+                          "fill": "$text-muted",
+                          "content": "3:54",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "icon",
+                  "id": "vbRH3",
+                  "name": "chev1",
+                  "width": 18,
+                  "height": 18,
+                  "icon": "chevron-right",
+                  "library": "lucide",
+                  "fill": "$text-muted"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "quZxG",
+              "name": "song6",
+              "width": "fill_container",
+              "gap": 12,
+              "padding": [
+                10,
+                0
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "WXY0T",
+                  "name": "art1",
+                  "metadata": {
+                    "type": "unsplash",
+                    "username": "leshatuman",
+                    "link": "https://unsplash.com/@leshatuman",
+                    "author": "lesha tuman"
+                  },
+                  "width": 48,
+                  "height": 48,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "https://images.unsplash.com/photo-1766592585915-855e1a66a3c6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzM5MjcwOTB8&ixlib=rb-4.1.0&q=80&w=1080",
+                    "mode": "fill"
+                  },
+                  "cornerRadius": 8
+                },
+                {
+                  "type": "frame",
+                  "id": "y462ka",
+                  "name": "info1",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 2,
+                  "justifyContent": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "eihLC",
+                      "name": "title1",
+                      "fill": "$text-primary",
+                      "content": "アンコール",
+                      "fontFamily": "Inter",
+                      "fontSize": 15,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "dzEpk",
+                      "name": "sub1",
+                      "gap": 6,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "aqfF8",
+                          "name": "artist1",
+                          "fill": "$text-secondary",
+                          "content": "YOASOBI",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "DqOHe",
+                          "name": "dot1",
+                          "fill": "$text-muted",
+                          "content": "·",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "ICbhl",
+                          "name": "dur1",
+                          "fill": "$text-muted",
+                          "content": "4:32",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "icon",
+                  "id": "Wv3vf",
+                  "name": "chev1",
+                  "width": 18,
+                  "height": 18,
+                  "icon": "chevron-right",
+                  "library": "lucide",
+                  "fill": "$text-muted"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "mdsnb",
+              "name": "song7",
+              "width": "fill_container",
+              "gap": 12,
+              "padding": [
+                10,
+                0
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "FjOVK",
+                  "name": "art1",
+                  "metadata": {
+                    "type": "unsplash",
+                    "username": "wolfgang_hasselmann",
+                    "link": "https://unsplash.com/@wolfgang_hasselmann",
+                    "author": "Wolfgang Hasselmann"
+                  },
+                  "width": 48,
+                  "height": 48,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "https://images.unsplash.com/photo-1768316100894-0881bffec4dd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzM5MjcwODl8&ixlib=rb-4.1.0&q=80&w=1080",
+                    "mode": "fill"
+                  },
+                  "cornerRadius": 8
+                },
+                {
+                  "type": "frame",
+                  "id": "yZSVv",
+                  "name": "info1",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 2,
+                  "justifyContent": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "fBc1W",
+                      "name": "title1",
+                      "fill": "$text-primary",
+                      "content": "もう少しだけ",
+                      "fontFamily": "Inter",
+                      "fontSize": 15,
+                      "fontWeight": "500"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "pafgb",
+                      "name": "sub1",
+                      "gap": 6,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "j8gvcI",
+                          "name": "artist1",
+                          "fill": "$text-secondary",
+                          "content": "YOASOBI",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "WMFC1",
+                          "name": "dot1",
+                          "fill": "$text-muted",
+                          "content": "·",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "Xp2AO",
+                          "name": "dur1",
+                          "fill": "$text-muted",
+                          "content": "4:48",
+                          "fontFamily": "Inter",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "icon",
+                  "id": "A7pHox",
+                  "name": "chev1",
+                  "width": 18,
+                  "height": 18,
+                  "icon": "chevron-right",
+                  "library": "lucide",
+                  "fill": "$text-muted"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "MI6dL",
+          "type": "ref",
+          "ref": "XjTJZ",
+          "name": "analyzingFab",
+          "layoutPosition": "absolute",
+          "x": 94,
+          "y": 757,
+          "descendants": {
+            "GbacN": {
+              "width": 36
+            },
+            "r9rRYE": {
+              "enabled": false
+            },
+            "eX7LH": {
+              "content": "夜に駆ける 분석 중"
+            },
+            "Frk13": {
+              "content": "YOASOBI · 가사 찾는 중"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "z6UnjJ",
+      "x": 3784,
+      "y": 2355,
+      "name": "H5b. 홈 — 분석 중 FAB",
+      "clip": true,
+      "width": 402,
+      "height": 874,
+      "fill": "$bg-primary",
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "imAzQ",
+          "name": "statusBar",
+          "width": "fill_container",
+          "height": 62,
+          "padding": [
+            0,
+            24
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "HwGjh",
+              "name": "time",
+              "fill": "$foreground.primary",
+              "content": "9:41",
+              "fontFamily": "Inter",
+              "fontSize": 15,
+              "fontWeight": "600"
+            },
+            {
+              "type": "frame",
+              "id": "QAcFa",
+              "name": "sbIcons",
+              "gap": 7,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "A3Him",
+                  "name": "signal-high",
+                  "width": 17,
+                  "height": 17,
+                  "icon": "signal-high",
+                  "library": "lucide",
+                  "fill": "$foreground.primary"
+                },
+                {
+                  "type": "icon",
+                  "id": "Mietg",
+                  "name": "wifi",
+                  "width": 17,
+                  "height": 17,
+                  "icon": "wifi",
+                  "library": "lucide",
+                  "fill": "$foreground.primary"
+                },
+                {
+                  "type": "icon",
+                  "id": "AS1s8",
+                  "name": "battery-full",
+                  "width": 17,
+                  "height": 17,
+                  "icon": "battery-full",
+                  "library": "lucide",
+                  "fill": "$foreground.primary"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "V7LRyY",
+          "name": "appBar",
+          "width": "fill_container",
+          "height": 52,
+          "padding": [
+            0,
+            20
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "jLbZl",
+              "name": "wordmark",
+              "fill": "$foreground.primary",
+              "content": "Kotonoha",
+              "fontFamily": "$font.headings",
+              "fontSize": 21,
+              "fontWeight": "700",
+              "letterSpacing": 0.2
+            },
+            {
+              "type": "frame",
+              "id": "j02Nzk",
+              "name": "streak",
+              "fill": "#FFFFFF00",
+              "cornerRadius": "$rounded.full",
+              "stroke": "#FFFFFF00",
+              "strokeAlignment": "inner",
+              "gap": 3,
+              "alignItems": "end",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "r7VHo4",
+                  "name": "flameIco",
+                  "width": 20,
+                  "height": 20,
+                  "icon": "flame-fill",
+                  "library": "phosphor",
+                  "fill": "#FF8A00"
+                },
+                {
+                  "type": "frame",
+                  "id": "zT82p",
+                  "name": "streakLabel",
+                  "gap": 3,
+                  "alignItems": "end",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "R5Ckk",
+                      "name": "streakNum",
+                      "fill": "$foreground.primary",
+                      "content": "7일",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "700",
+                      "letterSpacing": -0.2
+                    },
+                    {
+                      "type": "text",
+                      "id": "KdILQ",
+                      "name": "streakWord",
+                      "fill": "$foreground.secondary",
+                      "content": "연속",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "500"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "pwob5",
+          "name": "deckStrip",
+          "clip": true,
+          "width": "fill_container",
+          "gap": 8,
+          "padding": [
+            8,
+            16,
+            10,
+            16
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "TG2YY",
+              "name": "songSearchEntry",
+              "width": 72,
+              "fill": "#FFFFFF00",
+              "stroke": "#FFFFFF00",
+              "layout": "vertical",
+              "gap": 6,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "RfWrO",
+                  "name": "ring",
+                  "width": 72,
+                  "height": 72,
+                  "fill": "#FFFFFF00",
+                  "cornerRadius": 16,
+                  "stroke": "#FFFFFF00",
+                  "strokeWidth": 2,
+                  "strokeAlignment": "inner",
+                  "effect": {
+                    "type": "shadow",
+                    "shadowType": "outer",
+                    "enabled": false,
+                    "color": "#000000"
+                  },
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "BxBGS",
+                      "name": "tile",
+                      "width": 64,
+                      "height": 64,
+                      "fill": {
+                        "type": "gradient",
+                        "gradientType": "linear",
+                        "enabled": true,
+                        "rotation": 225,
+                        "size": {
+                          "height": 1
+                        },
+                        "colors": [
+                          {
+                            "color": "#6FCB9E",
+                            "position": 0
+                          },
+                          {
+                            "color": "$accent-primary",
+                            "position": 1
+                          }
+                        ]
+                      },
+                      "cornerRadius": "$rounded.xl",
+                      "stroke": "#FFFFFF00",
+                      "strokeAlignment": "inner",
+                      "layout": "none",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "YXnao",
+                          "x": 20,
+                          "y": 20,
+                          "name": "searchIco",
+                          "width": 24,
+                          "height": 24,
+                          "icon": "search",
+                          "library": "lucide",
+                          "fill": "$foreground.inverse"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "GoTYy",
+                  "name": "label",
+                  "fill": "$foreground.primary",
+                  "textGrowth": "fixed-width",
+                  "width": 72,
+                  "content": "좋아하는 곡",
+                  "lineHeight": 1.3,
+                  "textAlign": "center",
+                  "fontFamily": "$font.body",
+                  "fontSize": 12,
+                  "fontWeight": "600"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "Z9k5G",
+              "name": "deck_Lemon",
+              "width": 72,
+              "fill": "#FFFFFF00",
+              "stroke": "#FFFFFF00",
+              "strokeAlignment": "inner",
+              "layout": "vertical",
+              "gap": 6,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "hPr5i",
+                  "name": "ring",
+                  "width": 72,
+                  "height": 72,
+                  "fill": "#FFFFFF00",
+                  "cornerRadius": 16,
+                  "stroke": "$accent-primary",
+                  "strokeWidth": 2,
+                  "strokeAlignment": "inner",
+                  "effect": {
+                    "type": "shadow",
+                    "shadowType": "outer",
+                    "enabled": false,
+                    "color": "#000000"
+                  },
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "EOxA9",
+                      "name": "tile",
+                      "width": 64,
+                      "height": 64,
+                      "fill": {
+                        "type": "image",
+                        "enabled": true,
+                        "url": "images/generated-1788364380801.png",
+                        "mode": "fill"
+                      },
+                      "cornerRadius": "$rounded.xl",
+                      "stroke": "$border-default",
+                      "strokeWidth": 1,
+                      "strokeAlignment": "outer",
+                      "justifyContent": "center",
+                      "alignItems": "center"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "X8TBhQ",
+                  "name": "label",
+                  "fill": "$foreground.primary",
+                  "textGrowth": "fixed-width",
+                  "width": 72,
+                  "content": "Lemon",
+                  "lineHeight": 1.3,
+                  "textAlign": "center",
+                  "fontFamily": "$font.body",
+                  "fontSize": 12,
+                  "fontWeight": "700"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "eK2js",
+              "name": "deck_夜に駆ける",
+              "width": 72,
+              "fill": "#FFFFFF00",
+              "stroke": "#FFFFFF00",
+              "layout": "vertical",
+              "gap": 6,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "Xuas1",
+                  "name": "ring",
+                  "width": 72,
+                  "height": 72,
+                  "fill": "#FFFFFF00",
+                  "cornerRadius": 16,
+                  "stroke": "#FFFFFF00",
+                  "strokeWidth": 2,
+                  "strokeAlignment": "inner",
+                  "effect": {
+                    "type": "shadow",
+                    "shadowType": "outer",
+                    "enabled": false,
+                    "color": "#000000"
+                  },
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "h5D4G",
+                      "name": "tile",
+                      "opacity": 0.72,
+                      "width": 64,
+                      "height": 64,
+                      "fill": {
+                        "type": "image",
+                        "enabled": true,
+                        "url": "https://images.unsplash.com/photo-1693240817505-f59d02b89ef9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzM5MjU2MzB8&ixlib=rb-4.1.0&q=80&w=1080",
+                        "mode": "fill"
+                      },
+                      "cornerRadius": "$rounded.xl",
+                      "stroke": "$border-default",
+                      "strokeWidth": 1,
+                      "strokeAlignment": "outer",
+                      "justifyContent": "center",
+                      "alignItems": "center"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "B5NuW7",
+                  "name": "label",
+                  "fill": "$foreground.muted",
+                  "textGrowth": "fixed-width",
+                  "width": 72,
+                  "content": "夜に駆ける",
+                  "lineHeight": 1.3,
+                  "textAlign": "center",
+                  "fontFamily": "$font.body",
+                  "fontSize": 12,
+                  "fontWeight": "500"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "ccnRV",
+              "name": "deck_怪物",
+              "width": 72,
+              "fill": "#FFFFFF00",
+              "stroke": "#FFFFFF00",
+              "layout": "vertical",
+              "gap": 6,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "wFzwY",
+                  "name": "ring",
+                  "width": 72,
+                  "height": 72,
+                  "fill": "#FFFFFF00",
+                  "cornerRadius": 16,
+                  "stroke": "#FFFFFF00",
+                  "strokeWidth": 2,
+                  "strokeAlignment": "inner",
+                  "effect": {
+                    "type": "shadow",
+                    "shadowType": "outer",
+                    "enabled": false,
+                    "color": "#000000"
+                  },
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "n785sL",
+                      "name": "tile",
+                      "opacity": 0.72,
+                      "width": 64,
+                      "height": 64,
+                      "fill": {
+                        "type": "image",
+                        "enabled": true,
+                        "url": "https://images.unsplash.com/photo-1728734719929-2536485e280b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzM5MjU2MjV8&ixlib=rb-4.1.0&q=80&w=1080",
+                        "mode": "fill"
+                      },
+                      "cornerRadius": "$rounded.xl",
+                      "stroke": "$border-default",
+                      "strokeWidth": 1,
+                      "strokeAlignment": "outer",
+                      "justifyContent": "center",
+                      "alignItems": "center"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "AbwNK",
+                  "name": "label",
+                  "fill": "$foreground.muted",
+                  "textGrowth": "fixed-width",
+                  "width": 72,
+                  "content": "怪物",
+                  "lineHeight": 1.3,
+                  "textAlign": "center",
+                  "fontFamily": "$font.body",
+                  "fontSize": 12,
+                  "fontWeight": "500"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "g467u",
+              "name": "deck_アイドル",
+              "width": 72,
+              "fill": "#FFFFFF00",
+              "stroke": "#FFFFFF00",
+              "layout": "vertical",
+              "gap": 6,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "FFLe1",
+                  "name": "ring",
+                  "width": 72,
+                  "height": 72,
+                  "fill": "#FFFFFF00",
+                  "cornerRadius": 16,
+                  "stroke": "#FFFFFF00",
+                  "strokeWidth": 2,
+                  "strokeAlignment": "inner",
+                  "effect": {
+                    "type": "shadow",
+                    "shadowType": "outer",
+                    "enabled": false,
+                    "color": "#000000"
+                  },
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "LUsTl",
+                      "name": "tile",
+                      "opacity": 0.72,
+                      "width": 64,
+                      "height": 64,
+                      "fill": {
+                        "type": "image",
+                        "enabled": true,
+                        "url": "https://images.unsplash.com/photo-1766511373844-1957a3e8de72?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzM5MjcwNzZ8&ixlib=rb-4.1.0&q=80&w=1080",
+                        "mode": "fill"
+                      },
+                      "cornerRadius": "$rounded.xl",
+                      "stroke": "$border-default",
+                      "strokeWidth": 1,
+                      "strokeAlignment": "outer",
+                      "justifyContent": "center",
+                      "alignItems": "center"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "T4BVBp",
+                  "name": "label",
+                  "fill": "$foreground.muted",
+                  "textGrowth": "fixed-width",
+                  "width": 72,
+                  "content": "アイドル",
+                  "lineHeight": 1.3,
+                  "textAlign": "center",
+                  "fontFamily": "$font.body",
+                  "fontSize": 12,
+                  "fontWeight": "500"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "KHeoq",
+              "name": "deck_打上花火",
+              "width": 72,
+              "fill": "#FFFFFF00",
+              "stroke": "#FFFFFF00",
+              "layout": "vertical",
+              "gap": 6,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "g392Nr",
+                  "name": "ring",
+                  "width": 72,
+                  "height": 72,
+                  "fill": "#FFFFFF00",
+                  "cornerRadius": 16,
+                  "stroke": "#FFFFFF00",
+                  "strokeWidth": 2,
+                  "strokeAlignment": "inner",
+                  "effect": {
+                    "type": "shadow",
+                    "shadowType": "outer",
+                    "enabled": false,
+                    "color": "#000000"
+                  },
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "ejLnf",
+                      "name": "tile",
+                      "opacity": 0.72,
+                      "width": 64,
+                      "height": 64,
+                      "fill": {
+                        "type": "image",
+                        "enabled": true,
+                        "url": "https://images.unsplash.com/photo-1615754890640-1b07ac20cdbc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3ODA0OTgwMzB8&ixlib=rb-4.1.0&q=80&w=1080",
+                        "mode": "fill"
+                      },
+                      "cornerRadius": "$rounded.xl",
+                      "stroke": "$border-default",
+                      "strokeWidth": 1,
+                      "strokeAlignment": "outer",
+                      "justifyContent": "center",
+                      "alignItems": "center"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "PKhVf",
+                  "name": "label",
+                  "fill": "$foreground.muted",
+                  "textGrowth": "fixed-width",
+                  "width": 72,
+                  "content": "打上花火",
+                  "lineHeight": 1.3,
+                  "textAlign": "center",
+                  "fontFamily": "$font.body",
+                  "fontSize": 12,
+                  "fontWeight": "500"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "azlkR",
+              "name": "deck_マリーゴールド",
+              "width": 72,
+              "fill": "#FFFFFF00",
+              "stroke": "#FFFFFF00",
+              "layout": "vertical",
+              "gap": 6,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "O8Q3G",
+                  "name": "ring",
+                  "width": 72,
+                  "height": 72,
+                  "fill": "#FFFFFF00",
+                  "cornerRadius": 16,
+                  "stroke": "#FFFFFF00",
+                  "strokeWidth": 2,
+                  "strokeAlignment": "inner",
+                  "effect": {
+                    "type": "shadow",
+                    "shadowType": "outer",
+                    "enabled": false,
+                    "color": "#000000"
+                  },
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "mkaiY",
+                      "name": "tile",
+                      "opacity": 0.72,
+                      "width": 64,
+                      "height": 64,
+                      "fill": {
+                        "type": "image",
+                        "enabled": true,
+                        "url": "https://images.unsplash.com/photo-1742697692735-8bc3f2cc32e6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzM5MjcwODh8&ixlib=rb-4.1.0&q=80&w=1080",
+                        "mode": "fill"
+                      },
+                      "cornerRadius": "$rounded.xl",
+                      "stroke": "$border-default",
+                      "strokeWidth": 1,
+                      "strokeAlignment": "outer",
+                      "justifyContent": "center",
+                      "alignItems": "center"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "VSa2o",
+                  "name": "label",
+                  "fill": "$foreground.muted",
+                  "textGrowth": "fixed-width",
+                  "width": 72,
+                  "content": "マリーゴー…",
+                  "lineHeight": 1.3,
+                  "textAlign": "center",
+                  "fontFamily": "$font.body",
+                  "fontSize": 12,
+                  "fontWeight": "500"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "WWnzJ",
+          "type": "ref",
+          "ref": "T6NoGK",
+          "name": "wordCard",
+          "width": "fill_container",
+          "height": "fill_container",
+          "descendants": {
+            "MoWdI": {
+              "content": "떠올린 후 탭해서 뜻 보기"
+            }
+          }
+        },
+        {
+          "type": "frame",
+          "id": "IdjTy",
+          "name": "navWrap",
+          "width": "fill_container",
+          "fill": "#FFFFFF00",
+          "children": [
+            {
+              "id": "lb2tg",
+              "type": "ref",
+              "ref": "anPPw",
+              "name": "BottomNavBar",
+              "width": "fill_container",
+              "theme": {
+                "selected-tab": "home"
+              },
+              "descendants": {
+                "4tzVt": {
+                  "icon": "$tab.words.iconName",
+                  "library": "phosphor"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "jjnTO",
+          "type": "ref",
+          "ref": "XjTJZ",
+          "name": "analyzingFab",
+          "layoutPosition": "absolute",
+          "x": 75,
+          "y": 757,
+          "descendants": {
+            "GbacN": {
+              "width": 36
+            },
+            "r9rRYE": {
+              "enabled": false
+            },
+            "eX7LH": {
+              "content": "夜に駆ける 분석 중"
+            },
+            "Frk13": {
+              "content": "YOASOBI · 단어 분석 중 · 약 2분"
+            }
+          }
+        },
+        {
+          "type": "frame",
+          "id": "fysqA",
+          "layoutPosition": "absolute",
+          "x": 16,
+          "y": 56,
+          "name": "analysisDoneBanner",
+          "width": 370,
+          "fill": "$bg-primary",
+          "cornerRadius": 16,
+          "effect": {
+            "type": "shadow",
+            "shadowType": "outer",
+            "color": "#00000029",
+            "offset": {
+              "x": 0,
+              "y": 10
+            },
+            "blur": 30
+          },
+          "gap": 12,
+          "padding": [
+            12,
+            14,
+            12,
+            12
+          ],
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "rvlE6",
+              "name": "art",
+              "clip": true,
+              "width": 44,
+              "height": 44,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "images/generated-1788364380801.png",
+                "mode": "fill"
+              },
+              "cornerRadius": 10
+            },
+            {
+              "type": "frame",
+              "id": "XHiql",
+              "name": "text",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 2,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "QtZ3s",
+                  "name": "titleRow",
+                  "gap": 6,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "DIyVW",
+                      "name": "check",
+                      "width": 16,
+                      "height": 16,
+                      "icon": "circle-check",
+                      "library": "lucide",
+                      "fill": "$accent-primary"
+                    },
+                    {
+                      "type": "text",
+                      "id": "DPb63",
+                      "name": "title",
+                      "fill": "$foreground.primary",
+                      "content": "Lemon 분석이 끝났어요",
+                      "fontFamily": "$font.body",
+                      "fontSize": 15,
+                      "fontWeight": "700"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "UZoXI",
+                  "name": "meta",
+                  "fill": "$foreground.secondary",
+                  "content": "米津玄師 · 가사 42줄 · 단어 128개",
+                  "fontFamily": "$font.body",
+                  "fontSize": 12,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "IRiXQ",
+              "name": "studyBtn",
+              "fill": "$accent-primary",
+              "cornerRadius": 999,
+              "padding": [
+                8,
+                14
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "SGHdH",
+                  "name": "lbl",
+                  "fill": "$foreground.inverse",
+                  "content": "학습하기",
+                  "fontFamily": "$font.body",
+                  "fontSize": 13,
+                  "fontWeight": "700"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "Q8cgPO",
+      "x": 2820,
+      "y": 3583,
+      "name": "R3e. 검색 탭 — 분석 현황 시트 (FAB 탭)",
+      "clip": true,
+      "width": 402,
+      "height": 874,
+      "fill": "$surface.secondary",
+      "layout": "vertical",
+      "children": [
+        {
+          "type": "frame",
+          "id": "daIGU",
+          "name": "statusBar",
+          "width": "fill_container",
+          "height": 62,
+          "padding": [
+            0,
+            24
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "NpMne",
+              "name": "time",
+              "fill": "$foreground.primary",
+              "content": "9:41",
+              "fontFamily": "Inter",
+              "fontSize": 15,
+              "fontWeight": "600"
+            },
+            {
+              "type": "frame",
+              "id": "Zf4tJ",
+              "name": "sbIcons",
+              "gap": 7,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "LoCSL",
+                  "name": "signal-high",
+                  "width": 17,
+                  "height": 17,
+                  "icon": "signal-high",
+                  "library": "lucide",
+                  "fill": "$foreground.primary"
+                },
+                {
+                  "type": "icon",
+                  "id": "acmJl",
+                  "name": "wifi",
+                  "width": 17,
+                  "height": 17,
+                  "icon": "wifi",
+                  "library": "lucide",
+                  "fill": "$foreground.primary"
+                },
+                {
+                  "type": "icon",
+                  "id": "aKfsk",
+                  "name": "battery-full",
+                  "width": 17,
+                  "height": 17,
+                  "icon": "battery-full",
+                  "library": "lucide",
+                  "fill": "$foreground.primary"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "v16UHc",
+          "name": "searchRow",
+          "width": "fill_container",
+          "height": 56,
+          "gap": 12,
+          "padding": [
+            0,
+            16
+          ],
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "lpvBR",
+              "name": "searchField",
+              "width": "fill_container",
+              "height": 44,
+              "fill": "$surface.primary",
+              "cornerRadius": 12,
+              "gap": 10,
+              "padding": [
+                0,
+                14
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "A6WyN",
+                  "name": "searchIco",
+                  "width": 18,
+                  "height": 18,
+                  "icon": "search",
+                  "library": "lucide",
+                  "fill": "$foreground.muted"
+                },
+                {
+                  "type": "text",
+                  "id": "x17uYG",
+                  "name": "searchPlaceholder",
+                  "fill": "$foreground.muted",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "노래, 아티스트 검색",
+                  "fontFamily": "$font.body",
+                  "fontSize": 15,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "M32Det",
+          "name": "content",
+          "width": "fill_container",
+          "height": "fill_container",
+          "layout": "vertical",
+          "gap": 32,
+          "padding": [
+            4,
+            0,
+            8,
+            0
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "iZSAQ",
+              "name": "historyGroup",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 32,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "FMmJY",
+                  "name": "recentSongsSection",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "YP6Ko",
+                      "name": "sectionLabelRow",
+                      "width": "fill_container",
+                      "padding": [
+                        0,
+                        16
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "vIKKw",
+                          "name": "sectionLabel",
+                          "fill": "$foreground.primary",
+                          "content": "최근 본 곡",
+                          "fontFamily": "$font.body",
+                          "fontSize": 15,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Y86b2V",
+                      "name": "recentSongsStrip",
+                      "clip": true,
+                      "width": "fill_container",
+                      "height": 96,
+                      "gap": 16,
+                      "padding": [
+                        0,
+                        16
+                      ],
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "T80ycQ",
+                          "name": "recentSongItem",
+                          "clip": true,
+                          "width": 72,
+                          "height": 96,
+                          "layout": "vertical",
+                          "gap": 8,
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "cornerRadius": 12,
+                              "id": "qGbZv",
+                              "name": "cover",
+                              "fill": {
+                                "type": "image",
+                                "enabled": true,
+                                "url": "https://images.unsplash.com/photo-1615754890640-1b07ac20cdbc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3ODA0OTgwMzB8&ixlib=rb-4.1.0&q=80&w=1080",
+                                "mode": "fill"
+                              },
+                              "width": 72,
+                              "height": 72
+                            },
+                            {
+                              "type": "frame",
+                              "id": "epYPJ",
+                              "name": "songTitleClip",
+                              "clip": true,
+                              "width": "fill_container",
+                              "height": 16,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "uvARB",
+                                  "name": "songTitle",
+                                  "fill": "$foreground.secondary",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "アイドル",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "lQDVy",
+                          "name": "recentSongItem",
+                          "clip": true,
+                          "width": 72,
+                          "height": 96,
+                          "layout": "vertical",
+                          "gap": 8,
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "cornerRadius": 12,
+                              "id": "azRTI",
+                              "name": "cover",
+                              "fill": {
+                                "type": "image",
+                                "enabled": true,
+                                "url": "https://images.unsplash.com/photo-1646753950523-19fb8a2a1457?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3ODA0OTgwMzB8&ixlib=rb-4.1.0&q=80&w=1080",
+                                "mode": "fill"
+                              },
+                              "width": 72,
+                              "height": 72
+                            },
+                            {
+                              "type": "frame",
+                              "id": "G9KUY",
+                              "name": "songTitleClip",
+                              "clip": true,
+                              "width": "fill_container",
+                              "height": 16,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "sCaf6",
+                                  "name": "songTitle",
+                                  "fill": "$foreground.secondary",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "第ゼロ感",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "oBA1L",
+                          "name": "recentSongItem",
+                          "clip": true,
+                          "width": 72,
+                          "height": 96,
+                          "layout": "vertical",
+                          "gap": 8,
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "cornerRadius": 12,
+                              "id": "tgI4s",
+                              "name": "cover",
+                              "fill": {
+                                "type": "image",
+                                "enabled": true,
+                                "url": "https://images.unsplash.com/photo-1574610758891-5b809b6e6e2e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3ODA0OTgwMzF8&ixlib=rb-4.1.0&q=80&w=1080",
+                                "mode": "fill"
+                              },
+                              "width": 72,
+                              "height": 72
+                            },
+                            {
+                              "type": "frame",
+                              "id": "Z6G8OH",
+                              "name": "songTitleClip",
+                              "clip": true,
+                              "width": "fill_container",
+                              "height": 16,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "NWjnh",
+                                  "name": "songTitle",
+                                  "fill": "$foreground.secondary",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "ベテルギウス",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "hXe6z",
+                          "name": "recentSongItem",
+                          "clip": true,
+                          "width": 72,
+                          "height": 96,
+                          "layout": "vertical",
+                          "gap": 8,
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "cornerRadius": 12,
+                              "id": "NSNqX",
+                              "name": "cover",
+                              "fill": {
+                                "type": "image",
+                                "enabled": true,
+                                "url": "https://images.unsplash.com/photo-1535980347652-aff78daeebf0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3ODA0OTgwMzJ8&ixlib=rb-4.1.0&q=80&w=1080",
+                                "mode": "fill"
+                              },
+                              "width": 72,
+                              "height": 72
+                            },
+                            {
+                              "type": "frame",
+                              "id": "iRgM6",
+                              "name": "songTitleClip",
+                              "clip": true,
+                              "width": "fill_container",
+                              "height": 16,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "I0oDrV",
+                                  "name": "songTitle",
+                                  "fill": "$foreground.secondary",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "サブタイトル",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "MqWuq",
+                          "name": "recentSongItem",
+                          "clip": true,
+                          "width": 72,
+                          "height": 96,
+                          "layout": "vertical",
+                          "gap": 8,
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "cornerRadius": 12,
+                              "id": "Baco2",
+                              "name": "cover",
+                              "fill": {
+                                "type": "image",
+                                "enabled": true,
+                                "url": "https://images.unsplash.com/photo-1615754890640-1b07ac20cdbc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3ODA0OTgwMzB8&ixlib=rb-4.1.0&q=80&w=1080",
+                                "mode": "fill"
+                              },
+                              "width": 72,
+                              "height": 72
+                            },
+                            {
+                              "type": "frame",
+                              "id": "eRdb3",
+                              "name": "songTitleClip",
+                              "clip": true,
+                              "width": "fill_container",
+                              "height": 16,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "x8bvoX",
+                                  "name": "songTitle",
+                                  "fill": "$foreground.secondary",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "怪物",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 11,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "OD27j",
+                  "name": "recentSearchesSection",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "KJdb2",
+                      "name": "sectionLabelRow",
+                      "width": "fill_container",
+                      "padding": [
+                        0,
+                        16
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "g1BDF",
+                          "name": "sectionLabel",
+                          "fill": "$foreground.primary",
+                          "content": "최근 검색어",
+                          "fontFamily": "$font.body",
+                          "fontSize": 15,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "cYuel",
+                      "name": "recentSearchList",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "dpFRc",
+                          "name": "recentSearchRow",
+                          "width": "fill_container",
+                          "height": 44,
+                          "gap": 12,
+                          "padding": [
+                            0,
+                            16
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "SgsF0",
+                              "name": "historyIcon",
+                              "width": 20,
+                              "height": 20,
+                              "icon": "history",
+                              "library": "lucide",
+                              "fill": "$foreground.muted"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "F0ms5p",
+                              "name": "termClip",
+                              "clip": true,
+                              "width": "fill_container",
+                              "height": 22,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "rs7QH",
+                                  "name": "term",
+                                  "fill": "$foreground.primary",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "YOASOBI",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 15,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "icon",
+                              "id": "hcsYF",
+                              "name": "removeIcon",
+                              "width": 18,
+                              "height": 18,
+                              "icon": "x",
+                              "library": "lucide",
+                              "fill": "$foreground.muted"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "RK1S3",
+                          "name": "recentSearchRow",
+                          "width": "fill_container",
+                          "height": 44,
+                          "gap": 12,
+                          "padding": [
+                            0,
+                            16
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "zegMs",
+                              "name": "historyIcon",
+                              "width": 20,
+                              "height": 20,
+                              "icon": "history",
+                              "library": "lucide",
+                              "fill": "$foreground.muted"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "S0pvM",
+                              "name": "termClip",
+                              "clip": true,
+                              "width": "fill_container",
+                              "height": 22,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "UmICj",
+                                  "name": "term",
+                                  "fill": "$foreground.primary",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "夜に駆ける",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 15,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "icon",
+                              "id": "Z92FUT",
+                              "name": "removeIcon",
+                              "width": 18,
+                              "height": 18,
+                              "icon": "x",
+                              "library": "lucide",
+                              "fill": "$foreground.muted"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "VAsay",
+                          "name": "recentSearchRow",
+                          "width": "fill_container",
+                          "height": 44,
+                          "gap": 12,
+                          "padding": [
+                            0,
+                            16
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "BbpfI",
+                              "name": "historyIcon",
+                              "width": 20,
+                              "height": 20,
+                              "icon": "history",
+                              "library": "lucide",
+                              "fill": "$foreground.muted"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "tWe99",
+                              "name": "termClip",
+                              "clip": true,
+                              "width": "fill_container",
+                              "height": 22,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "gDUcX",
+                                  "name": "term",
+                                  "fill": "$foreground.primary",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "米津玄師",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 15,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "icon",
+                              "id": "j2Xs0C",
+                              "name": "removeIcon",
+                              "width": 18,
+                              "height": 18,
+                              "icon": "x",
+                              "library": "lucide",
+                              "fill": "$foreground.muted"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "oJhhr",
+                          "name": "recentSearchRow",
+                          "width": "fill_container",
+                          "height": 44,
+                          "gap": 12,
+                          "padding": [
+                            0,
+                            16
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "n4hH7",
+                              "name": "historyIcon",
+                              "width": 20,
+                              "height": 20,
+                              "icon": "history",
+                              "library": "lucide",
+                              "fill": "$foreground.muted"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "Bm2O3",
+                              "name": "termClip",
+                              "clip": true,
+                              "width": "fill_container",
+                              "height": 22,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "V2wNoV",
+                                  "name": "term",
+                                  "fill": "$foreground.primary",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "紅蓮華",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 15,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "icon",
+                              "id": "bn935",
+                              "name": "removeIcon",
+                              "width": 18,
+                              "height": 18,
+                              "icon": "x",
+                              "library": "lucide",
+                              "fill": "$foreground.muted"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "zRlaW",
+                          "name": "recentSearchRow",
+                          "width": "fill_container",
+                          "height": 44,
+                          "gap": 12,
+                          "padding": [
+                            0,
+                            16
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "YmxFv",
+                              "name": "historyIcon",
+                              "width": 20,
+                              "height": 20,
+                              "icon": "history",
+                              "library": "lucide",
+                              "fill": "$foreground.muted"
+                            },
+                            {
+                              "type": "frame",
+                              "id": "x1TQz",
+                              "name": "termClip",
+                              "clip": true,
+                              "width": "fill_container",
+                              "height": 22,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "zeFYC",
+                                  "name": "term",
+                                  "fill": "$foreground.primary",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "Official髭男dism",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 15,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "icon",
+                              "id": "E6LvqH",
+                              "name": "removeIcon",
+                              "width": 18,
+                              "height": 18,
+                              "icon": "x",
+                              "library": "lucide",
+                              "fill": "$foreground.muted"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "O8kDFH",
+              "name": "recommendedSection",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "padding": [
+                8,
+                0,
+                0,
+                0
+              ],
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "qwX9k",
+                  "name": "sectionLabelRow",
+                  "width": "fill_container",
+                  "padding": [
+                    0,
+                    16
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "m43lV",
+                      "name": "sectionLabel",
+                      "fill": "$foreground.primary",
+                      "content": "이런 곡은 어때요?",
+                      "fontFamily": "$font.body",
+                      "fontSize": 15,
+                      "fontWeight": "600"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "p381rH",
+                  "name": "recCarousel",
+                  "clip": true,
+                  "width": "fill_container",
+                  "height": 200,
+                  "gap": 12,
+                  "padding": [
+                    0,
+                    16
+                  ],
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "W6ORy",
+                      "name": "recCard",
+                      "clip": true,
+                      "width": 152,
+                      "height": 200,
+                      "fill": {
+                        "type": "image",
+                        "enabled": true,
+                        "url": "https://images.unsplash.com/photo-1701762292571-2875f1e522b6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3ODY5NjAzOTd8&ixlib=rb-4.1.0&q=80&w=1080",
+                        "mode": "fill"
+                      },
+                      "cornerRadius": 12,
+                      "layout": "vertical",
+                      "padding": 12,
+                      "justifyContent": "end",
+                      "children": [
+                        {
+                          "type": "rectangle",
+                          "id": "KhA1x",
+                          "layoutPosition": "absolute",
+                          "x": 0,
+                          "y": 0,
+                          "name": "scrim",
+                          "fill": {
+                            "type": "gradient",
+                            "gradientType": "linear",
+                            "enabled": true,
+                            "rotation": 180,
+                            "size": {
+                              "height": 1
+                            },
+                            "colors": [
+                              {
+                                "color": "#00000000",
+                                "position": 0
+                              },
+                              {
+                                "color": "#00000000",
+                                "position": 0.34
+                              },
+                              {
+                                "color": "#000000A8",
+                                "position": 0.7
+                              },
+                              {
+                                "color": "#000000ED",
+                                "position": 1
+                              }
+                            ]
+                          },
+                          "width": 152,
+                          "height": 200
+                        },
+                        {
+                          "type": "frame",
+                          "id": "oqiRv",
+                          "name": "cardText",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 2,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "PoJvC",
+                              "name": "cardTitleClip",
+                              "clip": true,
+                              "width": "fill_container",
+                              "height": 20,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "u57vZ",
+                                  "name": "cardTitle",
+                                  "fill": "#FFFFFF",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "六本木クラブでゆらゆら揺れながら",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 14,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "o1tgnO",
+                              "name": "cardArtistClip",
+                              "clip": true,
+                              "width": "fill_container",
+                              "height": 18,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "d3zJHJ",
+                                  "name": "cardArtist",
+                                  "fill": "#FFFFFFB8",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "back number",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "onkwG",
+                      "name": "recCard",
+                      "clip": true,
+                      "width": 152,
+                      "height": 200,
+                      "fill": {
+                        "type": "image",
+                        "enabled": true,
+                        "url": "https://images.unsplash.com/photo-1769430724125-96853e0eadbb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3ODY5NjAzOTd8&ixlib=rb-4.1.0&q=80&w=1080",
+                        "mode": "fill"
+                      },
+                      "cornerRadius": 12,
+                      "layout": "vertical",
+                      "padding": 12,
+                      "justifyContent": "end",
+                      "children": [
+                        {
+                          "type": "rectangle",
+                          "id": "FF1SK",
+                          "layoutPosition": "absolute",
+                          "x": 0,
+                          "y": 0,
+                          "name": "scrim",
+                          "fill": {
+                            "type": "gradient",
+                            "gradientType": "linear",
+                            "enabled": true,
+                            "rotation": 180,
+                            "size": {
+                              "height": 1
+                            },
+                            "colors": [
+                              {
+                                "color": "#00000000",
+                                "position": 0
+                              },
+                              {
+                                "color": "#00000000",
+                                "position": 0.34
+                              },
+                              {
+                                "color": "#000000A8",
+                                "position": 0.7
+                              },
+                              {
+                                "color": "#000000ED",
+                                "position": 1
+                              }
+                            ]
+                          },
+                          "width": 152,
+                          "height": 200
+                        },
+                        {
+                          "type": "frame",
+                          "id": "Zbwby",
+                          "name": "cardText",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 2,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "hVR1v",
+                              "name": "cardTitleClip",
+                              "clip": true,
+                              "width": "fill_container",
+                              "height": 20,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "V5G7V",
+                                  "name": "cardTitle",
+                                  "fill": "#FFFFFF",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "マリーゴールド",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 14,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "lj9Td",
+                              "name": "cardArtistClip",
+                              "clip": true,
+                              "width": "fill_container",
+                              "height": 18,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "lUC41",
+                                  "name": "cardArtist",
+                                  "fill": "#FFFFFFB8",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "あいみょん",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "av9Js",
+                      "name": "recCard",
+                      "clip": true,
+                      "width": 152,
+                      "height": 200,
+                      "fill": {
+                        "type": "image",
+                        "enabled": true,
+                        "url": "https://images.unsplash.com/photo-1716809699704-209488bbac53?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3ODA1ODExNDR8&ixlib=rb-4.1.0&q=80&w=1080",
+                        "mode": "fill"
+                      },
+                      "cornerRadius": 12,
+                      "layout": "vertical",
+                      "padding": 12,
+                      "justifyContent": "end",
+                      "children": [
+                        {
+                          "type": "rectangle",
+                          "id": "j5VN10",
+                          "layoutPosition": "absolute",
+                          "x": 0,
+                          "y": 0,
+                          "name": "scrim",
+                          "fill": {
+                            "type": "gradient",
+                            "gradientType": "linear",
+                            "enabled": true,
+                            "rotation": 180,
+                            "size": {
+                              "height": 1
+                            },
+                            "colors": [
+                              {
+                                "color": "#00000000",
+                                "position": 0
+                              },
+                              {
+                                "color": "#00000000",
+                                "position": 0.34
+                              },
+                              {
+                                "color": "#000000A8",
+                                "position": 0.7
+                              },
+                              {
+                                "color": "#000000ED",
+                                "position": 1
+                              }
+                            ]
+                          },
+                          "width": 152,
+                          "height": 200
+                        },
+                        {
+                          "type": "frame",
+                          "id": "t5f6eZ",
+                          "name": "cardText",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 2,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "tyV3y",
+                              "name": "cardTitleClip",
+                              "clip": true,
+                              "width": "fill_container",
+                              "height": 20,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "TJath",
+                                  "name": "cardTitle",
+                                  "fill": "#FFFFFF",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "第ゼロ感",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 14,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "OoiiE",
+                              "name": "cardArtistClip",
+                              "clip": true,
+                              "width": "fill_container",
+                              "height": 18,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "o9Ee2g",
+                                  "name": "cardArtist",
+                                  "fill": "#FFFFFFB8",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "10-FEET",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Xvg8k",
+                      "name": "recCard",
+                      "clip": true,
+                      "width": 152,
+                      "height": 200,
+                      "fill": {
+                        "type": "image",
+                        "enabled": true,
+                        "url": "https://images.unsplash.com/photo-1506105524407-94b39b1e7415?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3ODA1ODExNDV8&ixlib=rb-4.1.0&q=80&w=1080",
+                        "mode": "fill"
+                      },
+                      "cornerRadius": 12,
+                      "layout": "vertical",
+                      "padding": 12,
+                      "justifyContent": "end",
+                      "children": [
+                        {
+                          "type": "rectangle",
+                          "id": "eHbN2",
+                          "layoutPosition": "absolute",
+                          "x": 0,
+                          "y": 0,
+                          "name": "scrim",
+                          "fill": {
+                            "type": "gradient",
+                            "gradientType": "linear",
+                            "enabled": true,
+                            "rotation": 180,
+                            "size": {
+                              "height": 1
+                            },
+                            "colors": [
+                              {
+                                "color": "#00000000",
+                                "position": 0
+                              },
+                              {
+                                "color": "#00000000",
+                                "position": 0.34
+                              },
+                              {
+                                "color": "#000000A8",
+                                "position": 0.7
+                              },
+                              {
+                                "color": "#000000ED",
+                                "position": 1
+                              }
+                            ]
+                          },
+                          "width": 152,
+                          "height": 200
+                        },
+                        {
+                          "type": "frame",
+                          "id": "bXL0A",
+                          "name": "cardText",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 2,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "oji3n",
+                              "name": "cardTitleClip",
+                              "clip": true,
+                              "width": "fill_container",
+                              "height": 20,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "A5QMQ8",
+                                  "name": "cardTitle",
+                                  "fill": "#FFFFFF",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "ベテルギウス",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 14,
+                                  "fontWeight": "600"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "EsAYb",
+                              "name": "cardArtistClip",
+                              "clip": true,
+                              "width": "fill_container",
+                              "height": 18,
+                              "children": [
+                                {
+                                  "type": "text",
+                                  "id": "X7lSrj",
+                                  "name": "cardArtist",
+                                  "fill": "#FFFFFFB8",
+                                  "textGrowth": "fixed-width",
+                                  "width": "fill_container",
+                                  "content": "優里",
+                                  "fontFamily": "$font.body",
+                                  "fontSize": 12,
+                                  "fontWeight": "normal"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "Z32HU",
+          "name": "navWrap",
+          "width": "fill_container",
+          "fill": "#FFFFFF00",
+          "children": [
+            {
+              "id": "q61Xi",
+              "type": "ref",
+              "ref": "anPPw",
+              "name": "BottomNavBar",
+              "width": "fill_container",
+              "theme": {
+                "selected-tab": "words"
+              },
+              "descendants": {
+                "4tzVt": {
+                  "icon": "$tab.words.iconName",
+                  "library": "phosphor"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "ZvQPy",
+          "type": "ref",
+          "ref": "XjTJZ",
+          "name": "analyzingFab",
+          "layoutPosition": "absolute",
+          "x": 65,
+          "y": 757
+        },
+        {
+          "type": "rectangle",
+          "id": "m0Ll8B",
+          "layoutPosition": "absolute",
+          "x": 0,
+          "y": 0,
+          "name": "scrim",
+          "fill": "$bg-overlay",
+          "width": 402,
+          "height": 874
+        },
+        {
+          "type": "frame",
+          "id": "EM0rC",
+          "layoutPosition": "absolute",
+          "x": 0,
+          "y": 566,
+          "name": "analyzingSheet",
+          "width": 402,
+          "fill": "$bg-primary",
+          "cornerRadius": [
+            20,
+            20,
+            0,
+            0
+          ],
+          "effect": {
+            "type": "shadow",
+            "shadowType": "outer",
+            "color": "#0000001F",
+            "offset": {
+              "x": 0,
+              "y": -8
+            },
+            "blur": 32
+          },
+          "layout": "vertical",
+          "padding": [
+            10,
+            0,
+            28,
+            0
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "JyrrF",
+              "name": "grabberWrap",
+              "width": "fill_container",
+              "padding": [
+                0,
+                0,
+                14,
+                0
+              ],
+              "justifyContent": "center",
+              "children": [
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 2,
+                  "id": "gcPii",
+                  "name": "grabber",
+                  "fill": "$border-strong",
+                  "width": 36,
+                  "height": 4
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "OHmfn",
+              "name": "sheetHeader",
+              "width": "fill_container",
+              "padding": [
+                6,
+                20,
+                10,
+                20
+              ],
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "e4C3i",
+                  "name": "sheetTitle",
+                  "fill": "$foreground.primary",
+                  "content": "분석 현황",
+                  "fontFamily": "$font.headings",
+                  "fontSize": 18,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "ZOBeM",
+                  "name": "sheetCount",
+                  "fill": "$foreground.muted",
+                  "content": "분석 중 2 · 완료 1",
+                  "fontFamily": "$font.body",
+                  "fontSize": 13,
+                  "fontWeight": "500"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "z4HR3",
+              "name": "row_夜に駆ける",
+              "width": "fill_container",
+              "gap": 12,
+              "padding": [
+                10,
+                20
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "TO38d",
+                  "name": "art",
+                  "clip": true,
+                  "width": 48,
+                  "height": 48,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "https://images.unsplash.com/photo-1766511373844-1957a3e8de72?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzM5MjU2MzB8&ixlib=rb-4.1.0&q=80&w=1080",
+                    "mode": "fill"
+                  },
+                  "cornerRadius": 10
+                },
+                {
+                  "type": "frame",
+                  "id": "Plgni",
+                  "name": "info",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "uJNl5",
+                      "name": "titleLine",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 2,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "Sza7y",
+                          "name": "title",
+                          "fill": "$foreground.primary",
+                          "content": "夜に駆ける",
+                          "fontFamily": "$font.body",
+                          "fontSize": 15,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "k4HLe",
+                          "name": "meta",
+                          "fill": "$foreground.secondary",
+                          "content": "YOASOBI · 단어 분석 중 · 약 2분",
+                          "fontFamily": "$font.body",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "IWHiW",
+                      "name": "stages",
+                      "width": "fill_container",
+                      "gap": 4,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "B6mnrp",
+                          "name": "seg1",
+                          "clip": true,
+                          "width": "fill_container",
+                          "height": 4,
+                          "fill": "$border-default",
+                          "cornerRadius": 2,
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "id": "bsH0Z",
+                              "name": "fill",
+                              "fill": "$accent-primary",
+                              "width": "fill_container",
+                              "height": 4
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "VUWVS",
+                          "name": "seg2",
+                          "clip": true,
+                          "width": "fill_container",
+                          "height": 4,
+                          "fill": "$border-default",
+                          "cornerRadius": 2,
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "id": "sgw3a",
+                              "name": "fill",
+                              "fill": "$accent-primary",
+                              "width": 80,
+                              "height": 4
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "icon",
+                  "id": "ks6Ds",
+                  "name": "spinner",
+                  "width": 20,
+                  "height": 20,
+                  "icon": "loader-circle",
+                  "library": "lucide",
+                  "fill": "$accent-primary"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "mpIHT",
+              "name": "row_怪物",
+              "width": "fill_container",
+              "gap": 12,
+              "padding": [
+                10,
+                20
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "H9CLw",
+                  "name": "art",
+                  "clip": true,
+                  "width": 48,
+                  "height": 48,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "https://images.unsplash.com/photo-1742697692735-8bc3f2cc32e6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NDM0ODN8MHwxfHJhbmRvbXx8fHx8fHx8fDE3NzM5MjU2MzB8&ixlib=rb-4.1.0&q=80&w=1080",
+                    "mode": "fill"
+                  },
+                  "cornerRadius": 10
+                },
+                {
+                  "type": "frame",
+                  "id": "Z3AVNZ",
+                  "name": "info",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "H0EQo",
+                      "name": "titleLine",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 2,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "VOte0",
+                          "name": "title",
+                          "fill": "$foreground.primary",
+                          "content": "怪物",
+                          "fontFamily": "$font.body",
+                          "fontSize": 15,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "j1XaKk",
+                          "name": "meta",
+                          "fill": "$foreground.secondary",
+                          "content": "YOASOBI · 가사 찾는 중",
+                          "fontFamily": "$font.body",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "t20At",
+                      "name": "stages",
+                      "width": "fill_container",
+                      "gap": 4,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "VAic2",
+                          "name": "seg1",
+                          "clip": true,
+                          "width": "fill_container",
+                          "height": 4,
+                          "fill": "$border-default",
+                          "cornerRadius": 2,
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "id": "uYR1t",
+                              "name": "fill",
+                              "fill": "$accent-primary",
+                              "width": 80,
+                              "height": 4
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "kVuKW",
+                          "name": "seg2",
+                          "clip": true,
+                          "width": "fill_container",
+                          "height": 4,
+                          "fill": "$border-default",
+                          "cornerRadius": 2
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "icon",
+                  "id": "smXwS",
+                  "name": "spinner",
+                  "width": 20,
+                  "height": 20,
+                  "icon": "loader-circle",
+                  "library": "lucide",
+                  "fill": "$accent-primary"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "BEKlK",
+              "name": "row_Lemon",
+              "width": "fill_container",
+              "gap": 12,
+              "padding": [
+                10,
+                20
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "NIMeN",
+                  "name": "art",
+                  "clip": true,
+                  "width": 48,
+                  "height": 48,
+                  "fill": {
+                    "type": "image",
+                    "enabled": true,
+                    "url": "images/generated-1788364380801.png",
+                    "mode": "fill"
+                  },
+                  "cornerRadius": 10
+                },
+                {
+                  "type": "frame",
+                  "id": "HbIdg",
+                  "name": "info",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "jd2DE",
+                      "name": "titleLine",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 2,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "PcEvU",
+                          "name": "title",
+                          "fill": "$foreground.primary",
+                          "content": "Lemon",
+                          "fontFamily": "$font.body",
+                          "fontSize": 15,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "sb6uq",
+                          "name": "meta",
+                          "fill": "$accent-primary",
+                          "content": "米津玄師 · 준비 완료",
+                          "fontFamily": "$font.body",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "QAE5p",
+                      "name": "stages",
+                      "width": "fill_container",
+                      "gap": 4,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "ej47e",
+                          "name": "seg1",
+                          "clip": true,
+                          "width": "fill_container",
+                          "height": 4,
+                          "fill": "$border-default",
+                          "cornerRadius": 2,
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "id": "fT0jE",
+                              "name": "fill",
+                              "fill": "$accent-primary",
+                              "width": "fill_container",
+                              "height": 4
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "brrdi",
+                          "name": "seg2",
+                          "clip": true,
+                          "width": "fill_container",
+                          "height": 4,
+                          "fill": "$border-default",
+                          "cornerRadius": 2,
+                          "children": [
+                            {
+                              "type": "rectangle",
+                              "id": "A4CzVI",
+                              "name": "fill",
+                              "fill": "$accent-primary",
+                              "width": "fill_container",
+                              "height": 4
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "r57DqR",
+                  "name": "studyBtn",
+                  "fill": "$accent-primary",
+                  "cornerRadius": 999,
+                  "gap": 4,
+                  "padding": [
+                    8,
+                    14
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "dr8yW",
+                      "name": "lbl",
+                      "fill": "$foreground.inverse",
+                      "content": "학습하기",
+                      "fontFamily": "$font.body",
+                      "fontSize": 13,
+                      "fontWeight": "700"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "caum2",
+      "x": 2180,
+      "y": 2187,
+      "name": "spec/AnalyzingFab states",
+      "gap": 24,
+      "padding": 8,
+      "alignItems": "center",
+      "children": [
+        {
+          "id": "C1mxsD",
+          "type": "ref",
+          "ref": "XjTJZ",
+          "name": "state/multi"
+        },
+        {
+          "id": "DEpCb",
+          "type": "ref",
+          "ref": "XjTJZ",
+          "name": "state/single",
+          "descendants": {
+            "GbacN": {
+              "width": 36
+            },
+            "r9rRYE": {
+              "enabled": false
+            },
+            "eX7LH": {
+              "content": "夜に駆ける 분석 중"
+            },
+            "Frk13": {
+              "content": "YOASOBI · 가사 찾는 중"
+            }
+          }
+        },
+        {
+          "id": "c9Hvs",
+          "type": "ref",
+          "ref": "XjTJZ",
+          "name": "state/mixed",
+          "descendants": {
+            "v3fpb": {
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "images/generated-1788364380801.png",
+                "mode": "fill"
+              }
+            },
+            "eX7LH": {
+              "content": "1곡 완료 · 1곡 분석 중"
+            },
+            "Frk13": {
+              "content": "Lemon 준비 완료 · 夜に駆ける 분석 중"
+            }
+          }
+        },
+        {
+          "id": "uLt9q",
+          "type": "ref",
+          "ref": "XjTJZ",
+          "name": "state/done",
+          "fill": "$bg-primary",
+          "stroke": "$accent-primary",
+          "strokeWidth": 1.5,
+          "strokeAlignment": "inner",
+          "effect": {
+            "type": "shadow",
+            "shadowType": "outer",
+            "color": "#00000024",
+            "offset": {
+              "x": 0,
+              "y": 6
+            },
+            "blur": 20
+          },
+          "descendants": {
+            "GbacN": {
+              "width": 36
+            },
+            "r9rRYE": {
+              "enabled": false
+            },
+            "v3fpb": {
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "images/generated-1788364380801.png",
+                "mode": "fill"
+              },
+              "stroke": "$bg-primary"
+            },
+            "eX7LH": {
+              "content": "Lemon 준비 완료",
+              "fill": "$foreground.primary"
+            },
+            "Frk13": {
+              "content": "米津玄師 · 지금 학습하기",
+              "fill": "$accent-primary"
+            },
+            "ai56D": {
+              "icon": "circle-check",
+              "fill": "$accent-primary"
+            }
+          }
+        }
+      ]
     }
   ],
   "themes": {

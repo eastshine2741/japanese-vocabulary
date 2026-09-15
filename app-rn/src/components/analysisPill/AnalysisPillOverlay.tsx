@@ -23,6 +23,7 @@ import { pillDockAfterDrag, shouldStartDockPan } from './pillDockGesture';
 //  - 2곡 이상이면 탭으로 곡별 pill 로 분해되고, 도킹된 쪽에서 반대 방향으로 자란다.
 //    앵커 쪽 pill 은 그 자리에서 첫 곡 pill 로 바뀌고, 나머지는 그 pill 밑에서 빠져나와 제자리로 간다.
 //    접을 땐 반대로 앵커 pill 밑으로 들어가 겹쳐진다.
+//  - 분석이 실패하면 실패 pill 이 3초 보이고, 탭하면 바로 지워진다. 남은 곡이 있으면 그 상태로 돌아간다.
 
 const BOTTOM_GAP = 16;
 const TOP_GAP = 16;
@@ -195,10 +196,11 @@ function JobPill({ job, dock, index, panHandlers, onOpen }: JobPillProps) {
 }
 
 export default function AnalysisPillOverlay() {
-  const { jobs, dock, expanded, setDock, setExpanded, loadDock } = useAnalysisStore(useShallow(s => ({
+  const { jobs, dock, expanded, dismiss, setDock, setExpanded, loadDock } = useAnalysisStore(useShallow(s => ({
     jobs: s.jobs,
     dock: s.dock,
     expanded: s.expanded,
+    dismiss: s.dismiss,
     setDock: s.setDock,
     setExpanded: s.setExpanded,
     loadDock: s.loadDock,
@@ -252,11 +254,15 @@ export default function AnalysisPillOverlay() {
 
   const handlePillPress = useCallback(() => {
     if (!pillState) return;
-    if (pillState.expandable) setExpanded(!expanded);
+    if (pillState.dismissWorkId != null) dismiss(pillState.dismissWorkId);
+    else if (pillState.expandable) setExpanded(!expanded);
     else openSong(pillState.tapSongId);
-  }, [expanded, openSong, pillState, setExpanded]);
+  }, [dismiss, expanded, openSong, pillState, setExpanded]);
 
-  const handleJobOpen = useCallback((job: AnalysisJob) => openSong(job.songId), [openSong]);
+  const handleJobOpen = useCallback((job: AnalysisJob) => {
+    if (job.phase === 'failed') dismiss(job.workId);
+    else openSong(job.songId);
+  }, [dismiss, openSong]);
   const collapse = useCallback(() => setExpanded(false), [setExpanded]);
 
   const dragStyle = useAnimatedStyle(() => ({

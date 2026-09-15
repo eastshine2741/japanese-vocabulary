@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { AnalysisJob, derivePillState, deriveJobPillState, PILL_TITLE } from './pillState';
+import { AnalysisJob, derivePillState, deriveJobPillState, failureReason, PILL_TITLE } from './pillState';
 
 const job = (over: Partial<AnalysisJob>): AnalysisJob => ({
   workId: 1,
@@ -8,7 +8,8 @@ const job = (over: Partial<AnalysisJob>): AnalysisJob => ({
   artworkUrl: 'a.jpg',
   songId: null,
   phase: 'analyzing',
-  doneAt: null,
+  settledAt: null,
+  errorCode: null,
   ...over,
 });
 
@@ -41,15 +42,15 @@ describe('derivePillState', () => {
 
   it('all done with several songs names the latest and counts the rest', () => {
     const state = derivePillState([
-      job({ workId: 1, title: 'Lemon', songId: 3, phase: 'done', doneAt: 10 }),
-      job({ workId: 2, title: '怪物', songId: 4, phase: 'done', doneAt: 20 }),
-      job({ workId: 3, title: 'アイドル', songId: 5, phase: 'done', doneAt: 30 }),
+      job({ workId: 1, title: 'Lemon', songId: 3, phase: 'done', settledAt: 10 }),
+      job({ workId: 2, title: '怪物', songId: 4, phase: 'done', settledAt: 20 }),
+      job({ workId: 3, title: 'アイドル', songId: 5, phase: 'done', settledAt: 30 }),
     ]);
     expect(state?.subtitle).toBe('アイドル 외 2곡');
   });
 
   it('single done song shows the done tone and opens it', () => {
-    const state = derivePillState([job({ title: 'Lemon', songId: 3, phase: 'done', doneAt: 10 })]);
+    const state = derivePillState([job({ title: 'Lemon', songId: 3, phase: 'done', settledAt: 10 })]);
     expect(state).toMatchObject({
       tone: 'done',
       title: PILL_TITLE.done,
@@ -62,8 +63,8 @@ describe('derivePillState', () => {
   it('done + analyzing names the latest finished song and the remaining count', () => {
     const state = derivePillState([
       job({ workId: 1, title: '夜に駆ける' }),
-      job({ workId: 2, title: 'Lemon', artworkUrl: 'l.jpg', songId: 3, phase: 'done', doneAt: 10 }),
-      job({ workId: 3, title: '怪物', songId: 4, phase: 'done', doneAt: 20 }),
+      job({ workId: 2, title: 'Lemon', artworkUrl: 'l.jpg', songId: 3, phase: 'done', settledAt: 10 }),
+      job({ workId: 3, title: '怪物', songId: 4, phase: 'done', settledAt: 20 }),
     ]);
     expect(state).toMatchObject({
       tone: 'done',
@@ -77,21 +78,66 @@ describe('derivePillState', () => {
   it('one done + one analyzing uses the plain done title', () => {
     const state = derivePillState([
       job({ workId: 1 }),
-      job({ workId: 2, title: 'Lemon', phase: 'done', doneAt: 10 }),
+      job({ workId: 2, title: 'Lemon', phase: 'done', settledAt: 10 }),
     ]);
     expect(state?.title).toBe(PILL_TITLE.done);
     expect(state?.subtitle).toBe('Lemon · 1곡 남음');
+  });
+
+  it('a failed song shows the failure reason and dismisses on tap', () => {
+    const state = derivePillState([job({ title: 'Lemon', phase: 'failed', settledAt: 10, errorCode: 'LYRICS_NOT_FOUND' })]);
+    expect(state).toMatchObject({
+      tone: 'failed',
+      title: PILL_TITLE.failed,
+      subtitle: 'Lemon · 가사를 찾지 못했어요',
+      arts: ['a.jpg'],
+      expandable: false,
+      tapSongId: null,
+      dismissWorkId: 1,
+    });
+  });
+
+  it('the latest failure wins over done and analyzing songs', () => {
+    const state = derivePillState([
+      job({ workId: 1 }),
+      job({ workId: 2, title: 'Lemon', songId: 3, phase: 'done', settledAt: 10 }),
+      job({ workId: 3, title: '怪物', phase: 'failed', settledAt: 20, errorCode: 'SONG_ANALYSIS_WORK_TIMEOUT' }),
+      job({ workId: 4, title: 'アイドル', phase: 'failed', settledAt: 30 }),
+    ]);
+    expect(state).toMatchObject({
+      tone: 'failed',
+      subtitle: 'アイドル · 잠시 후 다시 시도해주세요',
+      dismissWorkId: 4,
+    });
+  });
+});
+
+describe('failureReason', () => {
+  it('maps known codes and falls back to retry-later', () => {
+    expect(failureReason('LYRICS_NOT_FOUND')).toBe('가사를 찾지 못했어요');
+    expect(failureReason('SONG_ANALYSIS_WORK_TIMEOUT')).toBe('시간이 너무 오래 걸렸어요');
+    expect(failureReason('SONG_ANALYSIS_WORK_FAILED')).toBe('잠시 후 다시 시도해주세요');
+    expect(failureReason(null)).toBe('잠시 후 다시 시도해주세요');
   });
 });
 
 describe('deriveJobPillState', () => {
   it('maps a job to a single-song pill', () => {
-    expect(deriveJobPillState(job({ songId: 9, phase: 'done', doneAt: 1 }))).toMatchObject({
+    expect(deriveJobPillState(job({ songId: 9, phase: 'done', settledAt: 1 }))).toMatchObject({
       tone: 'done',
       title: PILL_TITLE.done,
       subtitle: '夜に駆ける',
       expandable: false,
       tapSongId: 9,
+    });
+  });
+
+  it('maps a failed job to a dismissable failure pill', () => {
+    expect(deriveJobPillState(job({ workId: 5, phase: 'failed', settledAt: 1, errorCode: 'LYRICS_NOT_FOUND' }))).toMatchObject({
+      tone: 'failed',
+      subtitle: '夜に駆ける · 가사를 찾지 못했어요',
+      tapSongId: null,
+      dismissWorkId: 5,
     });
   });
 });

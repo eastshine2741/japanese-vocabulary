@@ -23,6 +23,7 @@ import { PillState } from './pillState';
 // component/AnalyzingPill (Pencil XjTJZ). 접힌 pill 과 펼친 곡별 pill 이 같은 컴포넌트를 쓴다.
 // 상태가 바뀌면 그 자리에서 변한다: 색은 tone 으로 보간, 글자는 새 글자가 페이드인, 아트 개수·폭 변화는 layout 전환.
 // 아트 테두리는 두지 않는다.
+// 완료와 실패는 같은 흰 바탕이고 부제·아이콘 색만 초록/빨강으로 갈린다.
 
 export const PILL_HEIGHT = 56;
 const ART_SIZE = 40;
@@ -41,21 +42,27 @@ interface Props {
 }
 
 function AnalysisPill({ state, onPress }: Props) {
-  const done = state.tone === 'done';
+  const settled = state.tone !== 'analyzing';
+  const failed = state.tone === 'failed';
 
   const spin = useSharedValue(0);
   useEffect(() => {
-    if (done) return;
+    if (settled) return;
     spin.value = 0;
     spin.value = withRepeat(withTiming(1, { duration: 1200, easing: Easing.linear }), -1);
     return () => cancelAnimation(spin);
-  }, [done, spin]);
+  }, [settled, spin]);
 
-  // 분석 중(0) ↔ 완료(1). 첫 렌더는 현재 톤에서 바로 시작한다.
-  const tone = useSharedValue(done ? 1 : 0);
+  // 분석 중(0) ↔ 완료·실패(1). 첫 렌더는 현재 톤에서 바로 시작한다.
+  const tone = useSharedValue(settled ? 1 : 0);
   useEffect(() => {
-    tone.value = withTiming(done ? 1 : 0, { duration: TONE_DURATION, easing: Easing.out(Easing.cubic) });
-  }, [done, tone]);
+    tone.value = withTiming(settled ? 1 : 0, { duration: TONE_DURATION, easing: Easing.out(Easing.cubic) });
+  }, [settled, tone]);
+  // 완료(0) ↔ 실패(1). 흰 바탕 위에서 부제·아이콘 색만 가른다.
+  const failure = useSharedValue(failed ? 1 : 0);
+  useEffect(() => {
+    failure.value = withTiming(failed ? 1 : 0, { duration: TONE_DURATION, easing: Easing.out(Easing.cubic) });
+  }, [failed, failure]);
 
   // 누르면 살짝 눌리고(0.96), 떼면 원래 크기로. 알파 대신 크기로 눌림을 표현한다.
   const pressScale = useSharedValue(1);
@@ -76,13 +83,18 @@ function AnalysisPill({ state, onPress }: Props) {
     color: interpolateColor(tone.value, [0, 1], ['#FFFFFF', Colors.textPrimary]),
   }));
   const subtitleStyle = useAnimatedStyle(() => ({
-    color: interpolateColor(tone.value, [0, 1], ['#FFFFFFCC', Colors.primary]),
+    color: interpolateColor(
+      tone.value,
+      [0, 1],
+      ['#FFFFFFCC', interpolateColor(failure.value, [0, 1], [Colors.primary, Colors.accentRed])],
+    ),
   }));
   const loaderStyle = useAnimatedStyle(() => ({
     opacity: 1 - tone.value,
     transform: [{ rotate: `${spin.value * 360}deg` }],
   }));
-  const checkStyle = useAnimatedStyle(() => ({ opacity: tone.value }));
+  const checkStyle = useAnimatedStyle(() => ({ opacity: tone.value * (1 - failure.value) }));
+  const alertStyle = useAnimatedStyle(() => ({ opacity: tone.value * failure.value }));
 
   const artsWidth = state.arts.length > 1 ? ART_SIZE + ART_OVERLAP_OFFSET : ART_SIZE;
 
@@ -131,6 +143,9 @@ function AnalysisPill({ state, onPress }: Props) {
         </Animated.View>
         <Animated.View style={[styles.icon, checkStyle]}>
           <Feather name="check-circle" size={20} color={Colors.primary} />
+        </Animated.View>
+        <Animated.View style={[styles.icon, alertStyle]}>
+          <Feather name="alert-circle" size={20} color={Colors.accentRed} />
         </Animated.View>
       </Animated.View>
     </AnimatedPressable>
