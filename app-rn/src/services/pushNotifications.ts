@@ -97,6 +97,14 @@ function handleData(data: RemoteMessage['data']): void {
     if (Number.isFinite(id)) {
       navigate('Main', { screen: 'Home' });
     }
+    return;
+  }
+  // AnalysisNotificationDispatcher(batch) 가 songId 를 문자열로 실어 보낸다.
+  if (data.type === 'song_analysis_completed' && data.songId != null) {
+    const songId = Number(data.songId);
+    if (Number.isFinite(songId)) {
+      navigate('SongDetail', { songId, origin: 'AnalysisPush' });
+    }
   }
 }
 

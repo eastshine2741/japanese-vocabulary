@@ -1,3 +1,4 @@
+import { useAnalysisStore } from '../stores/analysisStore';
 import { useAuthStore } from '../stores/authStore';
 import { useDeckDetailStore } from '../stores/deckDetailStore';
 import { useDeckListStore } from '../stores/deckListStore';
@@ -68,6 +69,7 @@ export function resetAllStores() {
     error: null,
   });
 
+  useAnalysisStore.getState().reset();
   usePlayerStore.setState({ status: 'idle', studyData: null, errorCode: null, currentMs: 0, durationMs: 0 });
   useSongDetailStore.setState({ status: 'idle', data: null, errorCode: null });
   useSearchHistoryStore.setState({ terms: [] });

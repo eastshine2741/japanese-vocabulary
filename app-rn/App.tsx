@@ -31,6 +31,7 @@ import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import AppNavigator, { RootStackParamList } from './src/navigation/AppNavigator';
+import { AnalysisPillOverlay } from './src/components/analysisPill';
 import { navigationRef, flushPending } from './src/navigation/navigationRef';
 import { tokenStorage } from './src/utils/tokenStorage';
 import { isJwtExpired } from './src/utils/jwt';
@@ -137,6 +138,7 @@ function App() {
             >
               <AndroidSystemBarController navigationState={navigationState} />
               <AppNavigator initialRoute={initialRoute} />
+              <AnalysisPillOverlay />
             </NavigationContainer>
           )}
         </BottomSheetModalProvider>

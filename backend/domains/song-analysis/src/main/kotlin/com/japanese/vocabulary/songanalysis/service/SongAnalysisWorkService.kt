@@ -53,6 +53,14 @@ class SongAnalysisWorkService(
         }
     }
 
+    /** 이 곡의 분석을 끝낸 가장 최근 작업. 이미 분석된 곡을 다시 요청받았을 때 새 작업 대신 돌려준다. */
+    @Transactional(readOnly = true)
+    fun findLatestCompletedForSong(songId: Long): SongAnalysisWorkDto? {
+        return songAnalysisWorkRepository.findBySongIdOrderByCreatedAtDesc(songId)
+            .firstOrNull { it.status == SongAnalysisWorkStatus.COMPLETED }
+            ?.toDto()
+    }
+
     @Transactional(readOnly = true)
     fun getById(id: Long): SongAnalysisWorkDto {
         return songAnalysisWorkRepository.findById(id).orElse(null)?.toDto()
@@ -60,6 +68,9 @@ class SongAnalysisWorkService(
     }
 
     /** Caller keeps the work lock until its subscription change has finished. */
+    @Transactional(propagation = Propagation.MANDATORY)
+    fun getByIdForUpdate(workId: Long): SongAnalysisWorkDto = getEntityForUpdate(workId).toDto()
+
     @Transactional(propagation = Propagation.MANDATORY)
     fun getLatestForLyricForUpdate(songId: Long, lyricId: Long): SongAnalysisWorkDto? {
         val id = songAnalysisWorkRepository.findLatestIdsForLyric(songId, lyricId, Pageable.ofSize(1))

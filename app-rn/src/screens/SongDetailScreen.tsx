@@ -97,20 +97,15 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     words: 0,
   });
   const [busyWordKey, setBusyWordKey] = useState<string | null>(null);
-  const [analysisNotificationSubscribed, setAnalysisNotificationSubscribed] = useState(false);
-  const notificationRequestRef = useRef(false);
-  const activeSongIdRef = useRef<number | undefined>(undefined);
-  const [notificationSaving, setNotificationSaving] = useState(false);
+  const notifiedSongIdRef = useRef<number | null>(null);
   const isPinnedTabsVisibleRef = useRef(false);
 
   const routeSongId = route.params?.songId;
   const fallbackSongId = preloadedStudyData?.song.id;
   const songId = routeSongId ?? fallbackSongId;
-  activeSongIdRef.current = songId;
 
   useEffect(() => {
     setBusyWordKey(null);
-    setAnalysisNotificationSubscribed(false);
   }, [songId]);
 
   useEffect(() => {
@@ -365,21 +360,6 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     load(songId);
   }, [load, songId]);
 
-  const handleToggleAnalysisNotification = useCallback(async () => {
-    if (songId == null || notificationRequestRef.current) return;
-    notificationRequestRef.current = true;
-    setNotificationSaving(true);
-    try {
-      const result = await songApi.setAnalysisNotification(songId, !analysisNotificationSubscribed);
-      if (activeSongIdRef.current === songId) setAnalysisNotificationSubscribed(result.enabled);
-    } catch {
-      if (activeSongIdRef.current === songId) setLearningError('알림 설정을 저장하지 못했어요. 다시 시도해 주세요.');
-    } finally {
-      notificationRequestRef.current = false;
-      setNotificationSaving(false);
-    }
-  }, [analysisNotificationSubscribed, songId]);
-
   const handleWordsChanged = useCallback(() => {
     if (songId == null) return;
     refreshWords(songId).catch(() => undefined);
@@ -447,6 +427,20 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     isActive: activeTab === 'words',
   });
 
+  const isSongAnalysisPending = data != null
+    && loadedSongId === songId
+    && data.words.words.length === 0
+    && data.words.wordSummary.totalCandidateCount === 0
+    && Object.keys(data.words.lineWordIndexes).length === 0
+    && !data.lyrics.lines.some(isAnalyzedLine);
+
+  useEffect(() => {
+    if (songId == null || !isSongAnalysisPending) return;
+    if (notifiedSongIdRef.current === songId) return;
+    notifiedSongIdRef.current = songId;
+    songApi.setAnalysisNotification(songId, true).catch(() => undefined);
+  }, [isSongAnalysisPending, songId]);
+
   if (songId == null) {
     return (
       <View style={[styles.stateScreen, { paddingTop: insets.top }]}>
@@ -476,10 +470,6 @@ export default function SongDetailScreen({ navigation, route }: Props) {
   }
 
   const { song, lyrics, words } = data;
-  const isSongAnalysisPending = words.words.length === 0
-    && words.wordSummary.totalCandidateCount === 0
-    && Object.keys(words.lineWordIndexes).length === 0
-    && !lyrics.lines.some(isAnalyzedLine);
   const actionMode: LearningActionMode = isSongAnalysisPending
     ? 'preparing'
     : (songDeckDetail?.dueCount ?? 0) > 0 ? 'review' : 'start';
@@ -539,12 +529,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
           />
 
           {isSongAnalysisPending ? (
-            <SongDetailAnalysisPendingPlaceholder
-              subscribed={analysisNotificationSubscribed}
-              saving={notificationSaving}
-              onToggleNotification={handleToggleAnalysisNotification}
-              onRefresh={handleRefreshAnalysisStatus}
-            />
+            <SongDetailAnalysisPendingPlaceholder onRefresh={handleRefreshAnalysisStatus} />
           ) : (
             <Animated.View style={[styles.tabContentViewport, tabViewportHeight > 0 && { height: tabViewportHeight }]}>
               <Animated.View
@@ -1031,14 +1016,8 @@ const LearningActionIcon = React.memo(function LearningActionIcon({
 });
 
 const SongDetailAnalysisPendingPlaceholder = React.memo(function SongDetailAnalysisPendingPlaceholder({
-  subscribed,
-  saving,
-  onToggleNotification,
   onRefresh,
 }: {
-  subscribed: boolean;
-  saving: boolean;
-  onToggleNotification: () => void;
   onRefresh: () => void;
 }) {
   return (
@@ -1054,20 +1033,6 @@ const SongDetailAnalysisPendingPlaceholder = React.memo(function SongDetailAnaly
           완료되면 알림으로 알려드릴게요.
         </Text>
       </View>
-
-      <Pressable
-        style={[styles.analysisPendingNotifyButton, subscribed && styles.analysisPendingNotifyButtonActive]}
-        onPress={onToggleNotification}
-        disabled={saving}
-        accessibilityState={{ disabled: saving, busy: saving }}
-        accessibilityRole="button"
-        accessibilityLabel={subscribed ? '분석 완료 알림 신청됨' : '분석 완료 알림 받기'}
-      >
-        <Feather name={subscribed ? 'check' : 'bell'} size={16} color={subscribed ? '#FFFFFF' : Colors.primary} />
-        <Text style={[styles.analysisPendingNotifyText, subscribed && styles.analysisPendingNotifyTextActive]}>
-          {subscribed ? '알림 받을게요' : '완료되면 알림 받기'}
-        </Text>
-      </Pressable>
 
       <Pressable
         style={styles.analysisPendingRefreshButton}
@@ -1422,30 +1387,6 @@ const styles = StyleSheet.create({
     lineHeight: 21,
     color: Colors.textSecondary,
     textAlign: 'center',
-  },
-  analysisPendingNotifyButton: {
-    minWidth: 178,
-    height: 46,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    borderRadius: 9999,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.primary,
-    backgroundColor: Colors.background,
-  },
-  analysisPendingNotifyButtonActive: {
-    backgroundColor: Colors.primary,
-  },
-  analysisPendingNotifyText: {
-    ...Typography.bodyBold,
-    fontSize: 14,
-    fontWeight: '700',
-    color: Colors.primary,
-  },
-  analysisPendingNotifyTextActive: {
-    color: '#FFFFFF',
   },
   analysisPendingRefreshButton: {
     minHeight: 32,

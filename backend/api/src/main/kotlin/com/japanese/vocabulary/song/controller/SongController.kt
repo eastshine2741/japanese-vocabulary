@@ -1,5 +1,6 @@
 package com.japanese.vocabulary.song.controller
 
+import com.japanese.vocabulary.notification.service.AnalysisNotificationService
 import com.japanese.vocabulary.song.dto.AnalyzeSongRequest
 import com.japanese.vocabulary.song.dto.RecentSongItemDto
 import com.japanese.vocabulary.song.dto.SongAnalysisWorkResponse
@@ -43,21 +44,39 @@ class SongController(
     private val lyricRepository: LyricRepository,
     private val songDetailQueryService: SongDetailQueryService,
     private val songStudyBootstrapService: SongStudyBootstrapService,
+    private val analysisNotificationService: AnalysisNotificationService,
 ) {
 
     private fun currentUserId(): Long =
         SecurityContextHolder.getContext().authentication.principal as Long
 
+    /**
+     * 멱등하다: 같은 곡을 몇 번 요청해도 분석은 한 번만 돈다. 이미 단어 분석까지 끝난 곡이면
+     * 그 분석 작업을 그대로 돌려주고, 진행 중인 작업이 있으면 서비스가 그것을 재사용한다.
+     * 새로 만들었든 재사용했든, 요청한 사용자는 그 작업의 완료 알림을 받는다.
+     */
     @PostMapping("/analyze")
     fun analyzeSong(@RequestBody request: AnalyzeSongRequest): ResponseEntity<SongAnalysisWorkResponse> {
+        findCompletedAnalysis(request.title, request.artist)?.let {
+            return ResponseEntity.ok(it.toResponse())
+        }
+        val userId = currentUserId()
         val work = songAnalysisWorkService.createOrReuse(
             title = request.title,
             artist = request.artist,
             durationSeconds = request.durationSeconds,
             artworkUrl = request.artworkUrl,
-            createdByUserId = currentUserId(),
+            createdByUserId = userId,
         )
+        analysisNotificationService.subscribeRequester(userId, work.workId)
         return ResponseEntity.ok(work.toResponse())
+    }
+
+    private fun findCompletedAnalysis(title: String, artist: String): SongAnalysisWorkDto? {
+        val song = songRepository.findByArtistAndTitle(artist, title) ?: return null
+        val lyric = lyricRepository.findActiveBySongId(song.id!!) ?: return null
+        if (lyric.analyzedContent == null) return null
+        return songAnalysisWorkService.findLatestCompletedForSong(song.id!!)
     }
 
     @GetMapping("/analysis-work/{workId}")
