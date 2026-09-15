@@ -8,18 +8,22 @@ import com.japanese.vocabulary.translation.client.jisho.dto.JishoLookupProvenanc
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoOptionDto
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoSearchResponse
 import com.japanese.vocabulary.translation.service.pipeline.JapaneseText
+import com.japanese.vocabulary.common.retry.ExponentialBackoff
+import com.japanese.vocabulary.common.retry.TransientHttpErrors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.web.client.RestClient
 import org.springframework.web.client.RestClientResponseException
+import java.time.Duration
 
 /**
  * jisho.org API client — network only. Caching, cache-aside orchestration, and bounded-concurrency
  * fan-out live in [com.japanese.vocabulary.translation.service.JishoService].
  *
- * A single [fetch] does one HTTP GET (with 429 backoff) and distills the response into a
+ * A single [fetch] does one HTTP GET (retrying transient failures) and distills the response into a
  * [JishoEntryDto] whose **entry boundaries are preserved**: one [JishoDictionaryEntryDto] per
  * `(headword, reading)` pair the query touched, each carrying only its own senses. Narrowing to one
  * entry is not done here — the query knows the headword but not the reading, and one headword lookup
@@ -31,8 +35,11 @@ import org.springframework.web.client.RestClientResponseException
 @Component
 class JishoClient(
     restClientBuilder: RestClient.Builder,
+    @Value("\${jisho.retry.max-attempts:4}") maxAttempts: Int,
+    @Value("\${jisho.retry.initial-backoff:2s}") initialBackoff: Duration,
 ) {
     private val logger = LoggerFactory.getLogger(JishoClient::class.java)
+    private val backoff = ExponentialBackoff(maxAttempts, initialBackoff)
 
     private val restClient = restClientBuilder
         .baseUrl("https://jisho.org")
@@ -41,31 +48,43 @@ class JishoClient(
 
     /**
      * One network fetch. Returns the distilled entry on HTTP 200 (found or genuine not-found),
-     * or null on an unrecovered error. Retries HTTP 429 with increasing delay.
+     * or null once every attempt has failed.
+     *
+     * Transient failures — a 5xx, a 429, a dropped connection ([TransientHttpErrors]) — are retried
+     * with [ExponentialBackoff], the same policy Gemini calls use. Only 429 used to be retried, so a
+     * jisho outage of ninety seconds turned every lookup it touched into a miss and one song shipped
+     * `太陽` and `花束` with no meaning. Anything else — a 4xx, a body that does not parse — is final
+     * and returns null at once.
+     *
+     * The warning is logged once, after the last attempt: a per-attempt warning multiplied one outage
+     * into eighty Sentry events.
      */
     suspend fun fetch(word: String): JishoEntryDto? {
-        repeat(MAX_ATTEMPTS) { attempt ->
-            try {
+        var attempts = 0
+        return try {
+            backoff.retry(
+                isTransient = TransientHttpErrors::isTransient,
+                atLeast = TransientHttpErrors::retryAfter,
+                sleep = { delay(it.toMillis()) },
+            ) { attempt ->
+                attempts = attempt
                 val response = withContext(Dispatchers.IO) {
                     restClient.get()
                         .uri { it.path("/api/v1/search/words").queryParam("keyword", word).build() }
                         .retrieve()
                         .body(JishoSearchResponse::class.java)
                 } ?: JishoSearchResponse()
-                return distill(word, response)
-            } catch (e: RestClientResponseException) {
-                if (e.statusCode.value() == 429 && attempt < MAX_ATTEMPTS - 1) {
-                    delay((1500L * (attempt + 1)))
-                } else {
-                    logger.warn("jisho lookup failed for '{}': HTTP {}", word, e.statusCode.value())
-                    return null
-                }
-            } catch (e: Exception) {
-                logger.warn("jisho lookup failed for '{}': {}", word, e.javaClass.simpleName)
-                return null
+                distill(word, response)
             }
+        } catch (e: Exception) {
+            logger.warn("jisho lookup failed for '{}' after {} attempt(s): {}", word, attempts, describe(e))
+            null
         }
-        return null
+    }
+
+    private fun describe(e: Exception): String = when (e) {
+        is RestClientResponseException -> "HTTP ${e.statusCode.value()}"
+        else -> e.javaClass.simpleName
     }
 
     /**
@@ -168,9 +187,5 @@ class JishoClient(
             )
         }
         return senses
-    }
-
-    private companion object {
-        const val MAX_ATTEMPTS = 4
     }
 }

@@ -2,6 +2,7 @@ package com.japanese.vocabulary.translation.client.gemini
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
+import com.japanese.vocabulary.common.retry.TransientHttpErrors
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import io.mockk.every
 import io.mockk.mockk
@@ -87,25 +88,11 @@ class GeminiClientRetryTest {
     }
 
     @Test
-    fun `retry policy treats transport and 5xx as transient and 4xx as final`() {
-        assertThat(GeminiRetryPolicy.isTransient(ResourceAccessException("io"))).isTrue()
-        assertThat(GeminiRetryPolicy.isTransient(HttpServerErrorException(HttpStatus.INTERNAL_SERVER_ERROR))).isTrue()
-        assertThat(GeminiRetryPolicy.isTransient(HttpClientErrorException(HttpStatus.TOO_MANY_REQUESTS))).isTrue()
-        assertThat(GeminiRetryPolicy.isTransient(HttpClientErrorException(HttpStatus.BAD_REQUEST))).isFalse()
-        assertThat(GeminiRetryPolicy.isTransient(GeminiIncompleteResponseException("cut"))).isFalse()
-        assertThat(GeminiRetryPolicy.isTransient(IllegalStateException("parse"))).isFalse()
-    }
-
-    @Test
-    fun `backoff doubles per attempt and is capped`() {
-        val base = Duration.ofSeconds(2)
-        val error = ResourceAccessException("io")
-        val first = GeminiRetryPolicy.backoff(1, error, base)
-        val second = GeminiRetryPolicy.backoff(2, error, base)
-
-        assertThat(first).isBetween(Duration.ofSeconds(2), Duration.ofMillis(2500))
-        assertThat(second).isBetween(Duration.ofSeconds(4), Duration.ofSeconds(5))
-        assertThat(GeminiRetryPolicy.backoff(20, error, base)).isEqualTo(Duration.ofSeconds(60))
+    fun `a truncated or unparseable answer is not transient`() {
+        // The shared policy covers HTTP; these two are Gemini's own verdicts on the answer and must
+        // never be replayed — the same input would be cut the same way.
+        assertThat(TransientHttpErrors.isTransient(GeminiIncompleteResponseException("cut"))).isFalse()
+        assertThat(TransientHttpErrors.isTransient(IllegalStateException("parse"))).isFalse()
     }
 
     private fun input() = listOf(mapOf("index" to 0, "text" to "恋"))
