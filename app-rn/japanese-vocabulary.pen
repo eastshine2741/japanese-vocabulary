@@ -73881,6 +73881,7 @@
                   "type": "frame",
                   "id": "KgovF",
                   "name": "col",
+                  "width": 248,
                   "layout": "vertical",
                   "gap": 10,
                   "children": [
@@ -73903,6 +73904,13 @@
                         },
                         "blur": 24
                       },
+                      "width": 248,
+                      "padding": [
+                        8,
+                        20,
+                        8,
+                        8
+                      ],
                       "descendants": {
                         "GbacN": {
                           "width": 40
@@ -73924,11 +73932,17 @@
                           "fill": "$foreground.primary"
                         },
                         "Frk13": {
-                          "content": "Lemon",
+                          "content": "Lemon · 탭해서 학습 시작",
                           "fill": "$accent-primary"
                         },
                         "ai56D": {
-                          "icon": "circle-check",
+                          "type": "icon",
+                          "id": "ThFyA",
+                          "name": "go",
+                          "width": 20,
+                          "height": 20,
+                          "icon": "chevron-right",
+                          "library": "lucide",
                           "fill": "$accent-primary"
                         }
                       }
@@ -74248,12 +74262,14 @@
                           }
                         },
                         {
-                          "id": "KSvqK",
+                          "id": "bGEOU",
                           "type": "ref",
                           "ref": "XjTJZ",
-                          "name": "pill/Lemon",
+                          "name": "state/done",
                           "fill": "$bg-primary",
+                          "stroke": "$accent-primary",
                           "strokeWidth": 0,
+                          "strokeAlignment": "inner",
                           "effect": {
                             "type": "shadow",
                             "shadowType": "outer",
@@ -74264,6 +74280,15 @@
                             },
                             "blur": 24
                           },
+                          "width": 248,
+                          "padding": [
+                            8,
+                            20,
+                            8,
+                            8
+                          ],
+                          "x": 0,
+                          "y": 64,
                           "descendants": {
                             "GbacN": {
                               "width": 40
@@ -74285,11 +74310,17 @@
                               "fill": "$foreground.primary"
                             },
                             "Frk13": {
-                              "content": "Lemon",
+                              "content": "Lemon · 탭해서 학습 시작",
                               "fill": "$accent-primary"
                             },
                             "ai56D": {
-                              "icon": "circle-check",
+                              "type": "icon",
+                              "id": "MzSwV",
+                              "name": "go",
+                              "width": 20,
+                              "height": 20,
+                              "icon": "chevron-right",
+                              "library": "lucide",
                               "fill": "$accent-primary"
                             }
                           }

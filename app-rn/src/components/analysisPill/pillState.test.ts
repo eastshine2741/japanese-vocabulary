@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { AnalysisJob, derivePillState, deriveJobPillState, failureReason, PILL_TITLE } from './pillState';
+import { AnalysisJob, derivePillState, deriveJobPillState, failureReason, PILL_TITLE, STUDY_HINT_NOTE } from './pillState';
 
 const job = (over: Partial<AnalysisJob>): AnalysisJob => ({
   workId: 1,
@@ -52,16 +52,25 @@ describe('derivePillState', () => {
     expect(state?.note).toBe(' 외 2곡');
   });
 
-  it('single done song shows the done tone and opens it', () => {
+  it('single done song hints that a tap starts studying and opens it', () => {
     const state = derivePillState([job({ title: 'Lemon', songId: 3, phase: 'done', settledAt: 10 })]);
     expect(state).toMatchObject({
       tone: 'done',
       title: PILL_TITLE.done,
       song: 'Lemon',
-      note: null,
+      note: STUDY_HINT_NOTE,
       expandable: false,
       tapSongId: 3,
+      studyHint: true,
     });
+  });
+
+  it('several done songs keep the count note and expand instead of hinting', () => {
+    const state = derivePillState([
+      job({ workId: 1, title: 'Lemon', songId: 3, phase: 'done', settledAt: 10 }),
+      job({ workId: 2, title: '怪物', songId: 4, phase: 'done', settledAt: 20 }),
+    ]);
+    expect(state).toMatchObject({ song: '怪物', note: ' 외 1곡', expandable: true, studyHint: false });
   });
 
   it('done + analyzing shows only the remaining count', () => {
@@ -138,6 +147,7 @@ describe('deriveJobPillState', () => {
       note: null,
       expandable: false,
       tapSongId: 9,
+      studyHint: false,
     });
   });
 

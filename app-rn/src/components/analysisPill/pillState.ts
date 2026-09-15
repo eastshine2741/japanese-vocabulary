@@ -30,6 +30,8 @@ export interface PillState {
   tapSongId: number | null;
   /** 실패 pill 일 때 탭이 즉시 지우는 작업. */
   dismissWorkId: number | null;
+  /** true 면 탭이 학습으로 이어진다는 걸 부제와 chevron 으로 드러낸다. 접힌 단일 완료 pill 만. */
+  studyHint: boolean;
 }
 
 /** 완료·실패 pill 을 유지하는 시간. 지나면 그 곡이 목록에서 빠진다. */
@@ -40,6 +42,9 @@ export const PILL_TITLE = {
   done: '분석이 끝났어요',
   failed: '분석에 실패했어요',
 } as const;
+
+/** 접힌 단일 완료 pill 의 부제. 탭하면 songDetail 로 간다는 걸 곡명 뒤에 붙여 알린다. */
+export const STUDY_HINT_NOTE = ' · 탭해서 학습 시작';
 
 // 실패 pill 부제에 들어가는 짧은 사유. 전체 문장은 errorMessages 에 있지만 pill 한 줄엔 안 맞는다.
 const FAILURE_REASON: Record<string, string> = {
@@ -65,6 +70,7 @@ const failedState = (job: AnalysisJob): PillState => ({
   expandable: false,
   tapSongId: null,
   dismissWorkId: job.workId,
+  studyHint: false,
 });
 
 /** spec/AnalyzingPill 의 상태 5개를 진행 중인 작업 목록에서 계산한다. */
@@ -88,6 +94,7 @@ export function derivePillState(jobs: AnalysisJob[]): PillState | null {
       expandable,
       tapSongId: expandable ? null : analyzing[0].songId,
       dismissWorkId: null,
+      studyHint: false,
     };
   }
 
@@ -97,11 +104,12 @@ export function derivePillState(jobs: AnalysisJob[]): PillState | null {
       tone: 'done',
       title: PILL_TITLE.done,
       song: done[0].title,
-      note: restNote(done),
+      note: expandable ? restNote(done) : STUDY_HINT_NOTE,
       arts: done.slice(0, 2).map(j => j.artworkUrl),
       expandable,
       tapSongId: expandable ? null : latest.songId,
       dismissWorkId: null,
+      studyHint: !expandable,
     };
   }
 
@@ -114,6 +122,7 @@ export function derivePillState(jobs: AnalysisJob[]): PillState | null {
     expandable: true,
     tapSongId: null,
     dismissWorkId: null,
+    studyHint: false,
   };
 }
 
@@ -129,5 +138,6 @@ export function deriveJobPillState(job: AnalysisJob): PillState {
     expandable: false,
     tapSongId: job.songId,
     dismissWorkId: null,
+    studyHint: false,
   };
 }

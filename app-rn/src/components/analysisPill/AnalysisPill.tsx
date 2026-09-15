@@ -25,6 +25,7 @@ import { PillState } from './pillState';
 // 폭은 고정이고 부제가 넘치면 곡명만 말줄임한다(뒤 문구는 항상 보인다). 실패 pill 만 사유를 담느라 더 넓다.
 // 아트 테두리는 두지 않는다.
 // 완료와 실패는 같은 흰 바탕이고 부제·아이콘 색만 초록/빨강으로 갈린다.
+// 접힌 단일 완료 pill 은 탭이 곧 학습이라, 체크 대신 chevron 으로 이동을 드러낸다(state/done).
 
 export const PILL_HEIGHT = 56;
 const PILL_WIDTH = 248;
@@ -149,7 +150,7 @@ function AnalysisPill({ state, onPress }: Props) {
           <Feather name="loader" size={20} color="#FFFFFF" />
         </Animated.View>
         <Animated.View style={[styles.icon, checkStyle]}>
-          <Feather name="check-circle" size={20} color={Colors.primary} />
+          <Feather name={state.studyHint ? 'chevron-right' : 'check-circle'} size={20} color={Colors.primary} />
         </Animated.View>
         <Animated.View style={[styles.icon, alertStyle]}>
           <Feather name="alert-circle" size={20} color={Colors.accentRed} />
