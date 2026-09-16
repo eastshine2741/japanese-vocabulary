@@ -67710,7 +67710,7 @@
             },
             "colors": [
               {
-                "color": "#111012F2",
+                "color": "#111012B3",
                 "position": 0
               },
               {
@@ -67742,19 +67742,19 @@
                 "position": 0
               },
               {
-                "color": "#111012B8",
+                "color": "#11101266",
                 "position": 0.2
               },
               {
-                "color": "#111012E8",
+                "color": "#1110128C",
                 "position": 0.32
               },
               {
-                "color": "#111012F2",
+                "color": "#111012A6",
                 "position": 0.55
               },
               {
-                "color": "#111012F2",
+                "color": "#111012BF",
                 "position": 1
               }
             ]
@@ -68276,7 +68276,7 @@
           "x": -100,
           "y": -100,
           "name": "Album Cover Backdrop (blurred)",
-          "opacity": 0.22,
+          "opacity": 0.6,
           "fill": {
             "type": "image",
             "enabled": true,
@@ -68292,9 +68292,37 @@
         },
         {
           "type": "rectangle",
+          "id": "dvcsG",
+          "x": 0,
+          "y": 0,
+          "name": "Backdrop Top Scrim",
+          "fill": {
+            "type": "gradient",
+            "gradientType": "linear",
+            "enabled": true,
+            "rotation": 180,
+            "size": {
+              "height": 1
+            },
+            "colors": [
+              {
+                "color": "#111012B3",
+                "position": 0
+              },
+              {
+                "color": "#11101200",
+                "position": 1
+              }
+            ]
+          },
+          "width": 1080,
+          "height": 300
+        },
+        {
+          "type": "rectangle",
           "id": "j7aHx",
           "x": 0,
-          "y": 500,
+          "y": 620,
           "name": "Backdrop Bottom Scrim",
           "fill": {
             "type": "gradient",
@@ -68310,13 +68338,25 @@
                 "position": 0
               },
               {
-                "color": "#111012",
-                "position": 0.75
+                "color": "#11101266",
+                "position": 0.2
+              },
+              {
+                "color": "#1110128C",
+                "position": 0.32
+              },
+              {
+                "color": "#111012A6",
+                "position": 0.55
+              },
+              {
+                "color": "#111012BF",
+                "position": 1
               }
             ]
           },
           "width": 1080,
-          "height": 1420
+          "height": 1300
         },
         {
           "type": "rectangle",
@@ -69580,11 +69620,11 @@
           "type": "frame",
           "id": "wo65E",
           "x": 60,
-          "y": 1320,
+          "y": 1350,
           "name": "CTA Block",
           "width": 960,
           "layout": "vertical",
-          "gap": 20,
+          "gap": 28,
           "alignItems": "center",
           "children": [
             {
@@ -69792,7 +69832,7 @@
         {
           "type": "rectangle",
           "id": "XM9Q9",
-          "x": 290,
+          "x": 310,
           "y": 1040,
           "name": "Mockup Bottom Fade",
           "fill": {
@@ -69814,7 +69854,7 @@
               }
             ]
           },
-          "width": 500,
+          "width": 460,
           "height": 270
         }
       ]

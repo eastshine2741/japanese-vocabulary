@@ -141,8 +141,8 @@ export const PromoReel = ({data}: {data: PromoReelData}) => {
           })}
         />
       </AbsoluteFill>
-      <div style={styles.videoBottomScrim} />
-      <div style={styles.videoTopScrim} />
+      <div style={styles.bottomScrim} />
+      <div style={styles.topScrim} />
 
       {frame < lyricsEndFrame + END_CARD_FADE_FRAMES && (
         <div style={styles.activeLayer}>
@@ -267,7 +267,9 @@ const EndCard = ({
   return (
     <AbsoluteFill style={{...styles.endCardLayer, opacity: enter}}>
       {artwork && <div style={{...styles.endBackdropArt, backgroundImage: `url("${artwork}")`}} />}
-      <div style={styles.endBackdropScrim} />
+      {/* 가사 화면과 같은 스크림. 엔드카드로 넘어가도 배경 밝기가 튀지 않는다. */}
+      <div style={styles.bottomScrim} />
+      <div style={styles.topScrim} />
       <div style={styles.ambientGlow} />
       <div style={{...styles.endTitleBlock, transform: `translateY(${interpolate(enter, [0, 1], [20, 0])}px)`}}>
         <div style={styles.endTitle}>전체 단어는</div>
@@ -947,17 +949,18 @@ const styles = {
     objectFit: 'cover',
     width: '100%',
   },
-  videoTopScrim: {
-    background: 'linear-gradient(180deg, rgba(17,16,18,0.95) 0%, rgba(17,16,18,0) 100%)',
+  // 가사 화면과 엔드카드가 같은 스크림을 쓴다 — Pen Reel v2 의 MV/Backdrop Top·Bottom Scrim 과 같은 값
+  topScrim: {
+    background: 'linear-gradient(180deg, rgba(17,16,18,0.70) 0%, rgba(17,16,18,0) 100%)',
     height: 300,
     left: 0,
     position: 'absolute',
     right: 0,
     top: 0,
   },
-  videoBottomScrim: {
+  bottomScrim: {
     background:
-      'linear-gradient(180deg, rgba(17,16,18,0) 0%, rgba(17,16,18,0.72) 20%, rgba(17,16,18,0.91) 32%, rgba(17,16,18,0.95) 55%, rgba(17,16,18,0.95) 100%)',
+      'linear-gradient(180deg, rgba(17,16,18,0) 0%, rgba(17,16,18,0.40) 20%, rgba(17,16,18,0.55) 32%, rgba(17,16,18,0.65) 55%, rgba(17,16,18,0.75) 100%)',
     bottom: 0,
     height: 1300,
     left: 0,
@@ -1129,18 +1132,10 @@ const styles = {
     filter: 'blur(48px)',
     height: 2120,
     left: -100,
-    opacity: 0.22,
+    opacity: 0.6,
     position: 'absolute',
     top: -100,
     width: 1280,
-  },
-  endBackdropScrim: {
-    background: 'linear-gradient(180deg, rgba(17,16,18,0) 0%, #111012 75%)',
-    height: 1420,
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: 500,
   },
   ambientGlow: {
     background: `radial-gradient(circle, ${glow}2E 0%, ${glow}00 62%)`,
@@ -1173,11 +1168,11 @@ const styles = {
     alignItems: 'center',
     display: 'flex',
     flexDirection: 'column',
-    gap: 20,
+    gap: 28,
     left: 60,
     position: 'absolute',
     right: 60,
-    top: 1320,
+    top: 1350,
   },
   searchCue: {
     alignItems: 'center',
