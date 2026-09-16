@@ -21,7 +21,7 @@ export const END_CARD_DURATION_IN_FRAMES = 210;
 export const PROMO_WIDTH = 1080;
 export const PROMO_HEIGHT = 1920;
 // 인스타 릴스 UI 의 프로필 사진 바로 위. 가사·단어 블록은 이 위에서 끝나야 한다.
-const PROFILE_CUE_TOP = 1520;
+const PROFILE_CUE_TOP = 1576;
 // 가사·단어 블록 좌우 여백과 그 안쪽 폭
 const CONTENT_SIDE = 160;
 const LYRIC_WIDTH = PROMO_WIDTH - CONTENT_SIDE * 2;
@@ -204,7 +204,7 @@ const Header = ({data}: {data: PromoReelData}) => {
 const ProfileCue = () => (
   <div style={styles.profileCue}>
     <ArrowDownIcon />
-    <span style={styles.profileCueLabel}>전체 단어는 프로필 링크의 '코토노하' 앱에 있어요</span>
+    <span style={styles.profileCueLabel}>일본어 단어장 앱 '코토노하'에서 전체 단어를 확인하세요!</span>
   </div>
 );
 
@@ -1024,7 +1024,7 @@ const styles = {
   },
   content: {
     alignItems: 'center',
-    // 아래쪽 경계는 Profile Cue(1520) 위 60px. 가사가 길어 내용이 이 띠보다 커지면
+    // 아래쪽 경계는 Profile Cue(1576) 위 60px. 가사가 길어 내용이 이 띠보다 커지면
     // flex-end 라 위로 넘치므로 Cue 와 겹치지 않는다(스페이서가 0 으로 줄어든다).
     bottom: PROMO_HEIGHT - (PROFILE_CUE_TOP - 60),
     display: 'flex',
