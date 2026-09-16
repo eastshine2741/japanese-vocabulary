@@ -194,6 +194,8 @@ class RuleMeaningProvider {
             "てる" to auxiliary("てる", "~하고 있다"),
             "た" to auxiliary("た", "~했다"),
             "だ" to auxiliary("だ", "~이다"),
+            // Conditional ending; segmentation also normalizes the colloquial りゃ to this headword.
+            "れば" to auxiliary("れば", "~하면"),
         )
 
         // Every surface in the particle/auxiliary tables is kana, so its reading is the surface —
