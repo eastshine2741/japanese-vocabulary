@@ -117,14 +117,18 @@ class SelectSensesStage(
                 val selectedSenseId = selected?.senseId ?: -1
                 // tokenId is lineIndex:charStart:charEnd:surface, so matching it pins the token
                 // identity — no surface/headword echo needed.
-                val valid = selected != null &&
-                    selected.tokenId == token.key.tokenId &&
+                val tokenMatched = selected != null && selected.tokenId == token.key.tokenId
+                val valid = tokenMatched &&
                     resolved != null &&
                     resolved.options.any { it.senseId == selectedSenseId }
+                // The prompt tells the model to answer -1 when none of the offered senses fits the
+                // line. That is the designed answer, not a rejected one: チク in 「チクタクチク」 is
+                // a clock's tick, and none of 竹/築/地区 is, so the model saying so is not a defect.
+                val explicitNoMatch = tokenMatched && selectedSenseId == NO_SENSE
                 // A rejected choice leaves the token with no sense at all, so it is a shipped defect
                 // and reported as one — the word had candidates, the model just named one it was
                 // never offered.
-                if (!valid && selected != null) {
+                if (!valid && selected != null && !explicitNoMatch) {
                     defectReporter.report(
                         AnalysisDefect(
                             songId = input.source.callContext.songId,
@@ -165,5 +169,8 @@ class SelectSensesStage(
     companion object {
         /** Lines per sense-select call. Bounds response length so long songs cannot stop mid-array. */
         const val SELECT_CHUNK_LINES = 20
+
+        /** The senseId the prompt reserves for "no offered sense fits this line". */
+        const val NO_SENSE = -1
     }
 }
