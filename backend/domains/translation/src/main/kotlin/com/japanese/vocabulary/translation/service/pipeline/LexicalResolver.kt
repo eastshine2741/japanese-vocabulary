@@ -52,6 +52,7 @@ class LexicalResolver(
         for (token in tokens) {
             val resolved = narrowed[token.key]
                 ?: resolveIAdjective(token, probeLookups)
+                ?: resolveSuruDesiderative(token, probeLookups)
                 ?: resolveHiraganaQuery(token, probeLookups)
 
             if (resolved == null) {
@@ -125,11 +126,13 @@ class LexicalResolver(
         return missed
             .filter {
                 resolveIAdjective(it, probeLookups, logRescue = false) == null &&
+                    resolveSuruDesiderative(it, probeLookups, logRescue = false) == null &&
                     resolveHiraganaQuery(it, probeLookups, logRescue = false) == null
             }
             .map { token ->
                 val lookups = listOfNotNull(firstPass[token.headword]) +
-                    listOfNotNull(iAdjectiveProbe(token), hiraganaProbe(token)).mapNotNull(probeLookups::get)
+                    listOfNotNull(iAdjectiveProbe(token), suruDesiderativeProbe(token), hiraganaProbe(token))
+                        .mapNotNull(probeLookups::get)
                 Unresolved(token, providerError = lookups.any { it.provenance == JishoLookupProvenance.FETCH_ERROR })
             }
     }
@@ -139,7 +142,7 @@ class LexicalResolver(
 
     /** Every alternate lookup key the rescues below might ask for, in one batch. */
     private fun probeKeys(missed: List<PipelineToken>): List<String> =
-        missed.flatMap { listOfNotNull(iAdjectiveProbe(it), hiraganaProbe(it)) }.distinct()
+        missed.flatMap { listOfNotNull(iAdjectiveProbe(it), suruDesiderativeProbe(it), hiraganaProbe(it)) }.distinct()
 
     /**
      * Grades how well [lookup] pins down the entry [token] means, using the `(headword, reading)` pair.
@@ -226,6 +229,43 @@ class LexicalResolver(
     }
 
     /**
+     * Safety net for when the segmentation LLM hands back a suru-verb's desiderative — 愛したくない,
+     * 愛したい — as the headword instead of 愛する. Tried only after the pair match has already failed.
+     *
+     * The probe is a guess at the conjugation: 話したい is 話す, not 話する, and it stays unresolved
+     * because no entry carries the probed headword. The rescue only ever adds an entry jisho actually
+     * indexes under `stem + する`.
+     */
+    private fun resolveSuruDesiderative(
+        token: PipelineToken,
+        lookups: Map<String, JishoEntryDto>,
+        logRescue: Boolean = true,
+    ): AcceptedLexicalEntry? {
+        val base = suruDesiderativeProbe(token) ?: return null
+        // Same reasoning as the i-adjective probe: the token's reading is アイシタクナイ, the wrong
+        // headword's, so it is inflected back to アイスル alongside the base form.
+        val accepted = narrow(token, lookups[base], base, suruDesiderativeProbeReading(token), logRescue)
+            ?: return null
+        if (logRescue) logger.info("Normalized suru-verb desiderative '{}' to '{}'", token.surface, base)
+        return accepted
+    }
+
+    /** The probed base form's reading: `アイシタクナイ` → `アイスル`, mirroring [suruDesiderativeProbe]. */
+    private fun suruDesiderativeProbeReading(token: PipelineToken): String? {
+        val suffix = SURU_DESIDERATIVE_READING_SUFFIXES.firstOrNull { token.baseFormReading.endsWith(it) }
+            ?: return null
+        val stem = token.baseFormReading.dropLast(suffix.length)
+        return if (stem.isEmpty()) null else stem + "スル"
+    }
+
+    /** `愛したくない` / `愛したい` → `愛する`. Null when nothing precedes the suffix: したい alone is する. */
+    private fun suruDesiderativeProbe(token: PipelineToken): String? {
+        val suffix = SURU_DESIDERATIVE_SUFFIXES.firstOrNull { token.headword.endsWith(it) } ?: return null
+        val stem = token.headword.dropLast(suffix.length)
+        return if (stem.isEmpty()) null else stem + "する"
+    }
+
+    /**
      * Safety net for a word the lyric writes in katakana and the dictionary indexes in hiragana.
      *
      * `アタシ`, `アンタ`, `アナタ` are dictionary words — 私, 貴方 — but jisho's *search* answers a
@@ -289,4 +329,10 @@ class LexicalResolver(
         val entries: List<JishoDictionaryEntryDto>,
         val provenance: JishoLookupProvenance,
     )
+
+    private companion object {
+        /** Longest first, so したくない is not read as したい with a stem ending in く. */
+        val SURU_DESIDERATIVE_SUFFIXES = listOf("したくない", "したい")
+        val SURU_DESIDERATIVE_READING_SUFFIXES = listOf("シタクナイ", "シタイ")
+    }
 }
