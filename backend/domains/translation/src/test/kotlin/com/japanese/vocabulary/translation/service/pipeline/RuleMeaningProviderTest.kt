@@ -15,6 +15,18 @@ class RuleMeaningProviderTest {
     }
 
     @Test
+    fun `resolves teshimau headword behind a colloquial contracted surface`() {
+        // 当然の報いにクラっちゃった — segmentation already normalises っちゃった to the headword
+        // てしまう, so the rule must key on the headword and not require the surface to match.
+        val resolved = provider.resolve(PipelineToken(40, "っちゃった", "てしまう", 8, 13))!!
+
+        assertThat(resolved.partOfSpeech).isEqualTo(PartOfSpeech.AUXILIARY_VERB)
+        assertThat(resolved.baseForm).isEqualTo("てしまう")
+        assertThat(resolved.baseFormReading).isEqualTo("テシマウ")
+        assertThat(resolved.koreanText).isEqualTo("~해 버리다")
+    }
+
+    @Test
     fun `resolves particles`() {
         val resolved = provider.resolve(token("も"))!!
 
