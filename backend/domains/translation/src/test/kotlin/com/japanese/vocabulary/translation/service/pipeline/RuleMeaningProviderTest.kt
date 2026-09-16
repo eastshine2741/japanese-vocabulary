@@ -15,6 +15,19 @@ class RuleMeaningProviderTest {
     }
 
     @Test
+    fun `resolves conditional reba including its colloquial rya contraction`() {
+        // 「無意味を集めりゃ意味になる」: segmentation splits 集めりゃ into 集め + りゃ(headword れば).
+        // れば is a conjugation ending, not a dictionary headword, so jisho cannot answer it.
+        val contracted = provider.resolve(PipelineToken(24, "りゃ", "れば", 7, 9, usedReading = "リャ"))!!
+
+        assertThat(contracted.partOfSpeech).isEqualTo(PartOfSpeech.AUXILIARY_VERB)
+        assertThat(contracted.baseForm).isEqualTo("れば")
+        assertThat(contracted.koreanText).isNotBlank()
+
+        assertThat(provider.resolve(token("れば"))!!.koreanText).isEqualTo(contracted.koreanText)
+    }
+
+    @Test
     fun `resolves particles`() {
         val resolved = provider.resolve(token("も"))!!
 
