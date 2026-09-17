@@ -265,6 +265,68 @@ class SegmentAnchoringValidatorTest {
     }
 
     @Test
+    fun `absorbs a small vowel kana the model left off the word in front of it`() {
+        // The song-115 defect: `あぁ` came back as the single surface `あ` on every attempt. The small
+        // `ぁ` is not a word — it stretches the `あ` in front of it — so asking the model to segment it
+        // separately never converged, and it shipped as an UNCOVERED defect for `ぁ`.
+        val result = validator.anchor(
+            mapOf(0 to "あぁ 夏を今もう一回 あぁ"),
+            listOf(
+                SegLineDto(
+                    0,
+                    listOf(
+                        word("あ", "あ", "ア", "ア"),
+                        word("夏", "夏", "ナツ", "ナツ"),
+                        word("を", "を", "ヲ", "ヲ"),
+                        word("今", "今", "イマ", "イマ"),
+                        word("もう", "もう", "モウ", "モウ"),
+                        word("一回", "一回", "イッカイ", "イッカイ"),
+                        word("あ", "あ", "ア", "ア"),
+                    ),
+                ),
+            ),
+        )
+
+        assertThat(result.failuresByIndex).isEmpty()
+        assertThat(result.incompleteByIndex).isEmpty()
+        assertThat(result.anchoredByIndex[0]!!.map { Triple(it.surface, it.charStart, it.charEnd) }).containsExactly(
+            Triple("あぁ", 0, 2),
+            Triple("夏", 3, 4),
+            Triple("を", 4, 5),
+            Triple("今", 5, 6),
+            Triple("もう", 6, 8),
+            Triple("一回", 8, 10),
+            Triple("あぁ", 11, 13),
+        )
+        assertThat(result.anchoredByIndex[0]!!.first().usedReading).isEqualTo("アァ")
+        assertThat(result.anchoredByIndex[0]!!.first().headword).isEqualTo("あ")
+    }
+
+    @Test
+    fun `keeps a small kana the model did segment as its own token`() {
+        // Absorption only claims text no surface did; a model that emits `ぁ` itself must still anchor.
+        val result = validator.anchor(
+            mapOf(0 to "あぁ"),
+            listOf(SegLineDto(0, listOf(word("あ", "あ", "ア", "ア"), word("ぁ", "ぁ", "ァ", "ァ")))),
+        )
+
+        assertThat(result.failuresByIndex).isEmpty()
+        assertThat(result.anchoredByIndex[0]!!.map { Triple(it.surface, it.charStart, it.charEnd) })
+            .containsExactly(Triple("あ", 0, 1), Triple("ぁ", 1, 2))
+    }
+
+    @Test
+    fun `a small kana with no covered text in front of it stays uncovered`() {
+        // Nothing to stretch: the model skipped the word before it, and that word is what is missing.
+        val result = validator.anchor(
+            mapOf(0 to "猫あぁ"),
+            listOf(SegLineDto(0, listOf(word("猫", "猫", "ネコ", "ネコ")))),
+        )
+
+        assertThat(result.incompleteByIndex[0]?.text).isEqualTo("あぁ")
+    }
+
+    @Test
     fun `reports duplicate line index as a line failure`() {
         val result = validator.anchor(
             mapOf(0 to "猫", 1 to "犬"),
