@@ -10,7 +10,10 @@ import org.springframework.stereotype.Component
 class SegmentationValidationException(message: String) : RuntimeException(message)
 
 @Component
-class SegmentAnchoringValidator {
+class SegmentAnchoringValidator(
+    // The rule table is stateless, so tests may construct the validator without wiring it.
+    private val ruleMeaningProvider: RuleMeaningProvider = RuleMeaningProvider(),
+) {
 
     /**
      * Anchors each requested line in [rawByIndex] against the segmentation response. Never throws for
@@ -70,12 +73,19 @@ class SegmentAnchoringValidator {
      * uncovered case is a model that skipped part of the line — `晴れ舞台（イェイ）` came back as
      * `晴れ舞台` four attempts running, because a parenthesized ad-lib does not read as a lyric word —
      * and losing one ad-lib is not worth losing the song.
+     *
+     * One kind of gap is **filled here instead of reported**: a run that is exactly a particle from
+     * [RuleMeaningProvider]'s table. `140と30字の` came back without the `と` between the digits — a
+     * one-character particle wedged between two numbers does not read as a word to the model — and
+     * the retry reproduced the omission. The particle's meaning and reading are fixed by the rule
+     * table, so the token is synthesized from the raw text and the line is complete without a
+     * resample. Anything longer or not in the table is still a missing word the model has to supply.
      */
     private fun anchorLine(index: Int, rawText: String, line: SegLineDto): AnchoredLine {
         val covered = BooleanArray(rawText.length)
         var cursor = 0
         var previousSurface: String? = null
-        val tokens = line.words.mapNotNull { word ->
+        val anchored = line.words.mapNotNull { word ->
             if (!JapaneseText.containsJapanese(word.surface)) return@mapNotNull null
             val start = rawText.indexOf(word.surface, cursor)
             if (start < 0) {
@@ -99,10 +109,33 @@ class SegmentAnchoringValidator {
             )
         }
 
-        val uncovered = uncoveredJapaneseRun(rawText, covered)?.let { (offset, text) ->
+        val rescued = uncoveredJapaneseRuns(rawText, covered)
+            .filter { (_, text) -> ruleMeaningProvider.isParticle(text) }
+            .map { (offset, text) ->
+                for (i in offset until offset + text.length) covered[i] = true
+                particleToken(index, offset, text)
+            }
+        val tokens = if (rescued.isEmpty()) anchored else (anchored + rescued).sortedBy { it.charStart }
+
+        val uncovered = uncoveredJapaneseRuns(rawText, covered).firstOrNull()?.let { (offset, text) ->
             UncoveredRun(lineIndex = index, offset = offset, text = text)
         }
         return AnchoredLine(tokens = tokens, uncovered = uncovered)
+    }
+
+    /** A particle the model left out, cut from the raw line. Readings are its kana, as in the rule table. */
+    private fun particleToken(index: Int, offset: Int, surface: String): PipelineToken {
+        val reading = JapaneseText.toKatakana(surface)
+        return PipelineToken(
+            lineIndex = index,
+            surface = surface,
+            headword = surface,
+            charStart = offset,
+            charEnd = offset + surface.length,
+            usedReading = reading,
+            baseFormReading = reading,
+            contextGloss = PARTICLE_GLOSS,
+        )
     }
 
     /** One anchored line: its tokens, and why it is incomplete if Japanese text carries no token. */
@@ -128,20 +161,27 @@ class SegmentAnchoringValidator {
     }
 
     /**
-     * The first run of consecutive Japanese characters no surface claimed, as `(offset, text)`.
+     * Every run of consecutive Japanese characters no surface claimed, as `(offset, text)`, in line
+     * order.
      *
      * The run rather than its first character: `風吹く` left behind by a mis-anchored line is a
      * segmentation the model can look at, where `Character '風'` invites it to fix one character.
      */
-    private fun uncoveredJapaneseRun(rawText: String, covered: BooleanArray): Pair<Int, String>? {
-        val start = rawText.indices.firstOrNull { i ->
-            !covered[i] && JapaneseText.containsJapanese(rawText[i].toString())
-        } ?: return null
-        var end = start
-        while (end < rawText.length && !covered[end] && JapaneseText.containsJapanese(rawText[end].toString())) {
-            end++
+    private fun uncoveredJapaneseRuns(rawText: String, covered: BooleanArray): List<Pair<Int, String>> {
+        val runs = mutableListOf<Pair<Int, String>>()
+        var i = 0
+        while (i < rawText.length) {
+            if (covered[i] || !JapaneseText.containsJapanese(rawText[i].toString())) {
+                i++
+                continue
+            }
+            val start = i
+            while (i < rawText.length && !covered[i] && JapaneseText.containsJapanese(rawText[i].toString())) {
+                i++
+            }
+            runs += start to rawText.substring(start, i)
         }
-        return start to rawText.substring(start, end)
+        return runs
     }
 
     /**
@@ -161,5 +201,10 @@ class SegmentAnchoringValidator {
             )
         }
         return JapaneseText.toKatakana(reading)
+    }
+
+    private companion object {
+        /** Same gloss [GluedParticleSplitter] gives a particle it cuts off a word: the rule table supplies the meaning. */
+        const val PARTICLE_GLOSS = "grammatical particle"
     }
 }
