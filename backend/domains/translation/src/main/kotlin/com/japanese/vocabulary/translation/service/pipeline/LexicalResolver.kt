@@ -1,5 +1,6 @@
 package com.japanese.vocabulary.translation.service.pipeline
 
+import com.japanese.vocabulary.song.model.PartOfSpeech
 import com.japanese.vocabulary.translation.client.jisho.JishoPartOfSpeechMapper
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoDictionaryEntryDto
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoEntryDto
@@ -53,6 +54,7 @@ class LexicalResolver(
             val resolved = narrowed[token.key]
                 ?: resolveIAdjective(token, probeLookups)
                 ?: resolveHiraganaQuery(token, probeLookups)
+                ?: resolveIntensifierPrefix(token, probeLookups)
 
             if (resolved == null) {
                 if (firstPass[token.headword]?.provenance == JishoLookupProvenance.REJECTED_FALLBACK) {
@@ -125,11 +127,13 @@ class LexicalResolver(
         return missed
             .filter {
                 resolveIAdjective(it, probeLookups, logRescue = false) == null &&
-                    resolveHiraganaQuery(it, probeLookups, logRescue = false) == null
+                    resolveHiraganaQuery(it, probeLookups, logRescue = false) == null &&
+                    resolveIntensifierPrefix(it, probeLookups, logRescue = false) == null
             }
             .map { token ->
                 val lookups = listOfNotNull(firstPass[token.headword]) +
-                    listOfNotNull(iAdjectiveProbe(token), hiraganaProbe(token)).mapNotNull(probeLookups::get)
+                    listOfNotNull(iAdjectiveProbe(token), hiraganaProbe(token), intensifierPrefixProbe(token))
+                        .mapNotNull(probeLookups::get)
                 Unresolved(token, providerError = lookups.any { it.provenance == JishoLookupProvenance.FETCH_ERROR })
             }
     }
@@ -139,7 +143,7 @@ class LexicalResolver(
 
     /** Every alternate lookup key the rescues below might ask for, in one batch. */
     private fun probeKeys(missed: List<PipelineToken>): List<String> =
-        missed.flatMap { listOfNotNull(iAdjectiveProbe(it), hiraganaProbe(it)) }.distinct()
+        missed.flatMap { listOfNotNull(iAdjectiveProbe(it), hiraganaProbe(it), intensifierPrefixProbe(it)) }.distinct()
 
     /**
      * Grades how well [lookup] pins down the entry [token] means, using the `(headword, reading)` pair.
@@ -249,6 +253,43 @@ class LexicalResolver(
     }
 
     /**
+     * Safety net for a verb the lyric intensifies with colloquial ぶち / ぶっ (ぶち壊れる, ぶっ飛ぶ).
+     *
+     * jisho indexes only a handful of these compounds, but the verb underneath is ordinary, so the
+     * prefix is dropped and the remainder asked for. Only verb senses are accepted: the prefix
+     * attaches to verbs alone, and a stripped remainder that answers with a noun is a different word.
+     */
+    private fun resolveIntensifierPrefix(
+        token: PipelineToken,
+        lookups: Map<String, JishoEntryDto>,
+        logRescue: Boolean = true,
+    ): AcceptedLexicalEntry? {
+        val base = intensifierPrefixProbe(token) ?: return null
+        val accepted = narrow(token, lookups[base], base, intensifierPrefixProbeReading(token), logRescue)
+            ?: return null
+        val verbEntries = accepted.entries.mapNotNull { entry ->
+            val verbSenses = entry.senses.filter { JishoPartOfSpeechMapper.map(it.pos) == PartOfSpeech.VERB }
+            if (verbSenses.isEmpty()) null else entry.copy(senses = verbSenses)
+        }
+        if (verbEntries.isEmpty()) return null
+        if (logRescue) logger.info("Stripped intensifier prefix from '{}' to '{}'", token.headword, base)
+        return AcceptedLexicalEntry(base, verbEntries, accepted.provenance)
+    }
+
+    /** The headword without its ぶち / ぶっ prefix. Null when there is no prefix or nothing follows it. */
+    private fun intensifierPrefixProbe(token: PipelineToken): String? {
+        val prefix = INTENSIFIER_PREFIXES.firstOrNull { token.headword.startsWith(it) } ?: return null
+        return token.headword.removePrefix(prefix).takeIf { it.isNotEmpty() }
+    }
+
+    /** The probed base form's reading: `ブチコワレル` → `コワレル`, mirroring [intensifierPrefixProbe]. */
+    private fun intensifierPrefixProbeReading(token: PipelineToken): String? {
+        val prefix = INTENSIFIER_PREFIXES.map(JapaneseText::toKatakana)
+            .firstOrNull { token.baseFormReading.startsWith(it) } ?: return null
+        return token.baseFormReading.removePrefix(prefix).takeIf { it.isNotEmpty() }
+    }
+
+    /**
      * The hiragana spelling of a katakana-only headword. Null for anything else: a kanji or hiragana
      * headword already queried the script the dictionary indexes.
      */
@@ -289,4 +330,8 @@ class LexicalResolver(
         val entries: List<JishoDictionaryEntryDto>,
         val provenance: JishoLookupProvenance,
     )
+
+    private companion object {
+        val INTENSIFIER_PREFIXES = listOf("ぶち", "ぶっ")
+    }
 }

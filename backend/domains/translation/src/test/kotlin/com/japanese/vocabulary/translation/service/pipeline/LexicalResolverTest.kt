@@ -233,6 +233,64 @@ class LexicalResolverTest {
     }
 
     @Test
+    fun `an intensifier-prefixed verb is looked up without its prefix`(): Unit = runBlocking {
+        // songId=10, "ぶちこわれた 計測機器が": ぶち壊れる is colloquial ぶち + 壊れる and jisho has no entry
+        // for the compound, but the verb underneath is ordinary. The word must not lose its meaning
+        // over a prefix the dictionary does not index.
+        stub(
+            "壊れる" to found(
+                JishoDictionaryEntryDto(
+                    headword = "壊れる",
+                    reading = "コワレル",
+                    senses = listOf(
+                        JishoOptionDto(
+                            pos = listOf("Ichidan verb", "Intransitive verb"),
+                            english = "to be broken",
+                            englishDefinitions = listOf("to be broken", "to break"),
+                        ),
+                        JishoOptionDto(
+                            pos = listOf("Noun"),
+                            english = "irrelevant noun sense",
+                            englishDefinitions = listOf("irrelevant noun sense"),
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        val resolved = resolver.resolve(
+            listOf(token("ぶちこわれた", "ぶち壊れる", "ブチコワレル")),
+        ).byTokenKey.values.single()
+
+        assertThat(resolved.baseForm).isEqualTo("壊れる")
+        assertThat(resolved.options.map { it.english }).containsExactly("to be broken")
+        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+    }
+
+    @Test
+    fun `the prefix-stripped verb is not reported as unresolved`(): Unit = runBlocking {
+        stub(
+            "壊れる" to found(
+                JishoDictionaryEntryDto(
+                    headword = "壊れる",
+                    reading = "コワレル",
+                    senses = listOf(
+                        JishoOptionDto(
+                            pos = listOf("Ichidan verb"),
+                            english = "to be broken",
+                            englishDefinitions = listOf("to be broken"),
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        val missed = resolver.unresolvedTokens(listOf(token("ぶちこわれた", "ぶち壊れる", "ブチコワレル")))
+
+        assertThat(missed).isEmpty()
+    }
+
+    @Test
     fun `a lookup jisho never answered is reported as a provider error, not a miss`(): Unit = runBlocking {
         // songId=82: jisho returned 502 for ninety seconds and 太陽 went out with no meaning, logged
         // as if no entry existed. The segmentation stage must be able to tell the two apart — one
