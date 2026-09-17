@@ -29,6 +29,8 @@ MAX_CANDIDATES="${ANALYSIS_FEEDBACK_MAX_CANDIDATES:-20}"
 PROVIDER_ERROR_ALERT="${ANALYSIS_FEEDBACK_PROVIDER_ERROR_ALERT:-10}"
 # A fix pass that fails is retried on a later run this many times, then the key is held.
 MAX_FIX_ATTEMPTS="${ANALYSIS_FEEDBACK_MAX_FIX_ATTEMPTS:-2}"
+# One gradle test run may take this long before it is killed and counted as a failed fix attempt.
+TEST_TIMEOUT="${ANALYSIS_FEEDBACK_TEST_TIMEOUT:-15m}"
 CLASSIFY_MODEL="${ANALYSIS_FEEDBACK_CLASSIFY_MODEL:-sonnet}"
 FIX_MODEL="${ANALYSIS_FEEDBACK_FIX_MODEL:-opus}"
 CLAUDE_MAX_BUDGET_USD="${ANALYSIS_FEEDBACK_MAX_BUDGET_USD:-5}"
@@ -348,7 +350,10 @@ run_test() {
   local gradle_log
   gradle_log="$(tmp)"
   local exit_code=0
-  (cd "$wt/backend" && ./gradlew "$task" --tests "$test_class" -q > "$gradle_log" 2>&1) || exit_code=$?
+  # </dev/null: the caller loops over groups via stdin, and gradle forwards whatever stdin it
+  # inherits to the daemon. Nothing reads it there, the daemon's pipe fills, and the build never
+  # returns (hung the 2026-09-16 run for 18h). timeout is the backstop so the timer keeps going.
+  (cd "$wt/backend" && timeout "$TEST_TIMEOUT" ./gradlew "$task" --tests "$test_class" -q </dev/null > "$gradle_log" 2>&1) || exit_code=$?
   local results_dir="$wt/backend/$module_dir/build/test-results/test"
   local summary
   summary="$(python3 - "$results_dir" "$test_class" <<'PY' 2>/dev/null || true
