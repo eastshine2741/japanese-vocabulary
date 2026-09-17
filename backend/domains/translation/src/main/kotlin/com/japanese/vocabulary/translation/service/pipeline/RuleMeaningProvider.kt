@@ -192,6 +192,10 @@ class RuleMeaningProvider {
         val auxiliaries = mapOf(
             "ている" to auxiliary("ている", "~하고 있다"),
             "てる" to auxiliary("てる", "~하고 있다"),
+            // Keyed on the headword: segmentation normalises colloquial contractions (っちゃった,
+            // じゃった, ちゃう) to てしまう, and resolve() falls back to the headword when the surface
+            // has no entry.
+            "てしまう" to auxiliary("てしまう", "~해 버리다"),
             "た" to auxiliary("た", "~했다"),
             "だ" to auxiliary("だ", "~이다"),
         )
