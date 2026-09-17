@@ -70,12 +70,17 @@ class SegmentAnchoringValidator {
      * uncovered case is a model that skipped part of the line — `晴れ舞台（イェイ）` came back as
      * `晴れ舞台` four attempts running, because a parenthesized ad-lib does not read as a lyric word —
      * and losing one ad-lib is not worth losing the song.
+     *
+     * One kind of leftover is not a missing word: a small vowel kana or `ー` the model left off the
+     * word in front of it. `あぁ` came back as `あ` on every attempt, and a retry asked to segment `ぁ`
+     * cannot, because it is not a word — it stretches the `あ`. Those are [absorbed][absorbTrailingKana]
+     * into the token they follow instead of being reported.
      */
     private fun anchorLine(index: Int, rawText: String, line: SegLineDto): AnchoredLine {
         val covered = BooleanArray(rawText.length)
         var cursor = 0
         var previousSurface: String? = null
-        val tokens = line.words.mapNotNull { word ->
+        val anchored = line.words.mapNotNull { word ->
             if (!JapaneseText.containsJapanese(word.surface)) return@mapNotNull null
             val start = rawText.indexOf(word.surface, cursor)
             if (start < 0) {
@@ -98,6 +103,7 @@ class SegmentAnchoringValidator {
                 contextGloss = word.contextGloss,
             )
         }
+        val tokens = anchored.map { absorbTrailingKana(it, rawText, covered) }
 
         val uncovered = uncoveredJapaneseRun(rawText, covered)?.let { (offset, text) ->
             UncoveredRun(lineIndex = index, offset = offset, text = text)
@@ -107,6 +113,27 @@ class SegmentAnchoringValidator {
 
     /** One anchored line: its tokens, and why it is incomplete if Japanese text carries no token. */
     private data class AnchoredLine(val tokens: List<PipelineToken>, val uncovered: UncoveredRun?)
+
+    /**
+     * Extends [token] over the small vowel kana and `ー` right after it that no surface claimed, and
+     * marks them [covered]. Runs after every surface is anchored, so a model that did emit `ぁ` as its
+     * own token keeps it. The sung reading grows by the same kana; the headword does not.
+     */
+    private fun absorbTrailingKana(token: PipelineToken, rawText: String, covered: BooleanArray): PipelineToken {
+        var end = token.charEnd
+        while (end < rawText.length && !covered[end] && rawText[end] in TRAILING_KANA) end++
+        if (end == token.charEnd) return token
+        for (i in token.charEnd until end) covered[i] = true
+        val tail = rawText.substring(token.charEnd, end)
+        return token.copy(
+            surface = token.surface + tail,
+            charEnd = end,
+            usedReading = token.usedReading + JapaneseText.toKatakana(tail),
+        )
+    }
+
+    /** Kana that only stretch the sound in front of them and never open a word of their own. */
+    private val TRAILING_KANA = setOf('ぁ', 'ぃ', 'ぅ', 'ぇ', 'ぉ', 'ァ', 'ィ', 'ゥ', 'ェ', 'ォ', 'ー')
 
     /**
      * Says where the search actually stood when it gave up. Naming only the missing surface reads as
