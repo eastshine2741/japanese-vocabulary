@@ -200,6 +200,58 @@ class LexicalResolverTest {
     }
 
     @Test
+    fun `a suru-verb desiderative handed back as the headword is rescued as stem plus suru`(): Unit = runBlocking {
+        // songId=109, "不甲斐ない 愛を愛したくないの": the model gave 愛したくない as the headword, jisho has
+        // no such entry, and the word shipped without a meaning. The reading アイシタクナイ belongs to
+        // that wrong headword, so it is inflected back to アイスル alongside the base form.
+        stub(
+            "愛する" to found(
+                JishoDictionaryEntryDto(
+                    headword = "愛する",
+                    reading = "アイスル",
+                    senses = listOf(
+                        JishoOptionDto(
+                            pos = listOf("Suru verb - special class", "Transitive verb"),
+                            english = "to love",
+                            englishDefinitions = listOf("to love"),
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        val resolved = resolver.resolve(
+            listOf(token("愛したくない", "愛したくない", "アイシタクナイ", lineIndex = 30)),
+        ).byTokenKey.values.single()
+
+        assertThat(resolved.baseForm).isEqualTo("愛する")
+        assertThat(resolved.options.map { it.english }).containsExactly("to love")
+        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+    }
+
+    @Test
+    fun `the suru-verb probe reports the same token as unresolved as the full resolve does`(): Unit = runBlocking {
+        stub("愛する" to found(entry(headword = "愛する", reading = "アイスル", english = "to love")))
+
+        val missed = resolver.unresolvedTokens(
+            listOf(token("愛したくない", "愛したくない", "アイシタクナイ", lineIndex = 49)),
+        )
+
+        assertThat(missed).isEmpty()
+    }
+
+    @Test
+    fun `a godan verb's desiderative is not mistaken for a suru-verb`(): Unit = runBlocking {
+        // 話したい is 話す. The probe asks for 話する, and since no entry carries that headword the
+        // token stays unresolved instead of gaining an invented meaning.
+        stub("話する" to found(entry(headword = "話", reading = "ハナシ", english = "talk")))
+
+        val resolved = resolver.resolve(listOf(token("話したい", "話したい", "ハナシタイ"))).byTokenKey.values.single()
+
+        assertThat(resolved.options).isEmpty()
+    }
+
+    @Test
     fun `a katakana headword the dictionary indexes in hiragana is queried again in hiragana`(): Unit = runBlocking {
         // jisho's search is script-sensitive: アンタ answers with アンタレス and アンタナナリボ, never 貴方.
         // Only the script of the query is wrong, and the lyric writing 貴方 as アンタ is ordinary J-pop,
