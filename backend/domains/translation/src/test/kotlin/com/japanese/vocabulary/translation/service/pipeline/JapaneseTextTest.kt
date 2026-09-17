@@ -68,6 +68,8 @@ class JapaneseTextTest {
         assertThat(JapaneseText.containsJapanese("ﾟ")).isFalse
         assertThat(JapaneseText.containsJapanese("「」 yay 123")).isFalse
         assertThat(JapaneseText.containsJapanese("、。")).isFalse
+        // An English phrase the model hands back as a headword: nothing here is a dictionary key.
+        assertThat(JapaneseText.containsJapanese("I want you")).isFalse
     }
 
     @Test
