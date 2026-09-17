@@ -141,7 +141,8 @@ export default function VocScreen({ navigation }: Props) {
 
       <AppDialog
         visible={submitted}
-        title="개발자에게 전달했어요"
+        title="의견을 주셔서 감사합니다"
+        body={'개발자에게 잘 전달했어요.\n꼼꼼히 읽고 더 나은 앱으로 보답할게요.'}
         buttons={[{ label: '확인', onPress: handleDone }]}
       />
       <ErrorDialog message={error} onDismiss={handleDismissError} />
