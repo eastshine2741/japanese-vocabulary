@@ -28,10 +28,12 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Voc'>;
 const CONTENT_MAX = 1000;
 
 export default function VocScreen({ navigation }: Props) {
-  const { username, email, loadProfile } = useAuthStore(
-    useShallow((s) => ({ username: s.username, email: s.email, loadProfile: s.loadProfile })),
+  const { username, profileEmail, loadProfile } = useAuthStore(
+    useShallow((s) => ({ username: s.username, profileEmail: s.email, loadProfile: s.loadProfile })),
   );
 
+  const [email, setEmail] = useState('');
+  const [emailFocused, setEmailFocused] = useState(false);
   const [content, setContent] = useState('');
   const [contentFocused, setContentFocused] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -39,6 +41,7 @@ export default function VocScreen({ navigation }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => { loadProfile(); }, [loadProfile]);
+  useEffect(() => { if (profileEmail) setEmail(profileEmail); }, [profileEmail]);
 
   const trimmed = content.trim();
   const canSubmit = trimmed.length > 0 && !submitting;
@@ -48,14 +51,14 @@ export default function VocScreen({ navigation }: Props) {
     Keyboard.dismiss();
     setSubmitting(true);
     try {
-      await vocApi.create({ content: trimmed, ...collectDeviceInfo() });
+      await vocApi.create({ content: trimmed, email: email.trim() || undefined, ...collectDeviceInfo() });
       setSubmitted(true);
     } catch (e) {
       setError(apiErrorMessage(e, '전송에 실패했어요'));
     } finally {
       setSubmitting(false);
     }
-  }, [canSubmit, trimmed]);
+  }, [canSubmit, trimmed, email]);
 
   const handleDone = useCallback(() => {
     setSubmitted(false);
@@ -83,8 +86,19 @@ export default function VocScreen({ navigation }: Props) {
 
             <View style={styles.field}>
               <Text style={styles.fieldLabel}>이메일</Text>
-              <View style={[styles.inputBox, styles.inputBoxReadonly]}>
-                <TextInput value={email ?? ''} editable={false} style={[styles.inputText, styles.inputTextReadonly]} />
+              <View style={[styles.inputBox, emailFocused && styles.inputBoxFocused]}>
+                <TextInput
+                  value={email}
+                  onChangeText={setEmail}
+                  onFocus={() => setEmailFocused(true)}
+                  onBlur={() => setEmailFocused(false)}
+                  placeholder="답변 받을 이메일을 적어 주세요"
+                  placeholderTextColor={Colors.textMuted}
+                  style={styles.inputText}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
               </View>
             </View>
 
@@ -102,7 +116,7 @@ export default function VocScreen({ navigation }: Props) {
                   onChangeText={setContent}
                   onFocus={() => setContentFocused(true)}
                   onBlur={() => setContentFocused(false)}
-                  placeholder="불편한 점, 바라는 점, 버그 무엇이든"
+                  placeholder="불편했던 점이나 바라는 점, 발견한 버그를 편하게 적어 주세요"
                   placeholderTextColor={Colors.textMuted}
                   style={[styles.inputText, styles.contentText]}
                   multiline

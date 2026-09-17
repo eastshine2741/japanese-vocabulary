@@ -3,6 +3,7 @@ import { DeviceInfo } from '../utils/deviceInfo';
 
 export interface CreateVocPayload extends DeviceInfo {
   content: string;
+  email?: string;
 }
 
 export interface CreateVocResponse {

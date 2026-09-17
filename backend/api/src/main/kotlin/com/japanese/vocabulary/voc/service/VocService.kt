@@ -18,7 +18,8 @@ import java.time.format.DateTimeFormatter
 /**
  * Turns a user's free-text report into a GitHub issue on the app repository.
  * Identity fields come from the DB, never from the request; the client only
- * supplies what the server cannot know (device, OS, bundle versions).
+ * supplies what the server cannot know (device, OS, bundle versions) plus an
+ * editable contact email that overrides the account email when given.
  */
 @Service
 class VocService(
@@ -58,7 +59,7 @@ class VocService(
         val rows = listOf(
             "User ID" to user.id.toString(),
             "Username" to user.username,
-            "Email" to user.email,
+            "Email" to (request.email?.trim()?.ifEmpty { null } ?: user.email),
             "OS" to os,
             "Device" to request.device,
             "Native version" to request.nativeVersion,

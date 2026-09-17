@@ -79,6 +79,14 @@ class VocServiceTest {
     }
 
     @Test
+    fun `request email overrides the account email, blank falls back`() {
+        assertThat(service.buildBody("x", user, CreateVocRequest(content = "x", email = " other@y.com ")))
+            .contains("| Email | other@y.com |")
+        assertThat(service.buildBody("x", user, CreateVocRequest(content = "x", email = "  ")))
+            .contains("| Email | e@x.com |")
+    }
+
+    @Test
     fun `missing optional fields render as a dash`() {
         val body = service.buildBody("x", user.copy(email = null), CreateVocRequest(content = "x"))
 
