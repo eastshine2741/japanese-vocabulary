@@ -3,10 +3,13 @@ package com.japanese.vocabulary.translation.service.pipeline.stage
 import com.japanese.vocabulary.translation.client.gemini.GeminiClient
 import com.japanese.vocabulary.translation.client.gemini.dto.SelectLineDto
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoLookupProvenance
+import com.japanese.vocabulary.translation.model.AnalysisDefect
+import com.japanese.vocabulary.translation.model.AnalysisDefectCause
 import com.japanese.vocabulary.translation.model.PipelineSenseOption
 import com.japanese.vocabulary.translation.model.PipelineToken
 import com.japanese.vocabulary.translation.model.PipelineTokenKey
 import com.japanese.vocabulary.translation.model.SenseSelectionStageInput
+import com.japanese.vocabulary.translation.service.pipeline.AnalysisDefectReporter
 import com.japanese.vocabulary.translation.service.pipeline.ChunkedGeminiCall
 import com.japanese.vocabulary.translation.service.pipeline.JapaneseText
 import org.slf4j.LoggerFactory
@@ -15,6 +18,7 @@ import org.springframework.stereotype.Component
 @Component
 class SelectSensesStage(
     private val geminiClient: GeminiClient,
+    private val defectReporter: AnalysisDefectReporter,
 ) : PipelineStage<SenseSelectionStageInput, Map<PipelineTokenKey, Int>> {
     private val logger = LoggerFactory.getLogger(SelectSensesStage::class.java)
 
@@ -117,12 +121,22 @@ class SelectSensesStage(
                     selected.tokenId == token.key.tokenId &&
                     resolved != null &&
                     resolved.options.any { it.senseId == selectedSenseId }
+                // A rejected choice leaves the token with no sense at all, so it is a shipped defect
+                // and reported as one — the word had candidates, the model just named one it was
+                // never offered.
                 if (!valid && selected != null) {
-                    logger.warn(
-                        "Rejected invalid sense-select result at line index={}, tokenId={}, selectedSenseId={}",
-                        index,
-                        token.key.tokenId,
-                        selectedSenseId,
+                    defectReporter.report(
+                        AnalysisDefect(
+                            songId = input.source.callContext.songId,
+                            lyricId = input.source.callContext.lyricId,
+                            lineIndex = index,
+                            cause = AnalysisDefectCause.SENSE_REJECTED,
+                            surface = token.surface,
+                            headword = token.headword,
+                            line = input.source.rawByIndex[index].orEmpty(),
+                            detail = "tokenId=${token.key.tokenId}, selectedSenseId=$selectedSenseId, " +
+                                "offered=${resolved?.options?.map { it.senseId }.orEmpty()}",
+                        ),
                     )
                 }
                 token.key to if (valid) selectedSenseId else -1

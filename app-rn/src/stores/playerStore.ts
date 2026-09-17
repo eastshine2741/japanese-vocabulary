@@ -1,10 +1,12 @@
 import { create } from 'zustand';
 import { songApi } from '../api/songApi';
-import { SongAnalysisWorkResponse, SongSearchItem, SongStudyData } from '../types/song';
+import { SongSearchItem, SongStudyData } from '../types/song';
+import { useAnalysisStore } from './analysisStore';
 
 // 'loading' covers the cheap existing-song lookup (usually well under a second).
-// 'analyzing' means a brand-new analysis was actually requested from the server
-// and is worth showing the full-screen "가사를 분석하는 중..." graphic for.
+// 'analyzing' means a brand-new analysis was actually requested from the server;
+// the global analysis pill shows it while this store waits for the lyrics so
+// the search screen can auto-open the song.
 type Status = 'idle' | 'loading' | 'analyzing' | 'success' | 'error';
 
 interface PlayerState {
@@ -27,8 +29,6 @@ interface PlayerState {
 
 let analysisRunId = 0;
 
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
 export const usePlayerStore = create<PlayerState>((set, get) => ({
   status: 'idle',
   studyData: null,
@@ -43,27 +43,47 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     const runId = ++analysisRunId;
     set({ status: 'loading', errorCode: null });
     try {
-      const existing = await songApi.getByTitleArtist(item.title, item.artistName);
-      if (analysisRunId !== runId) return;
-      if (existing) {
-        set({ status: 'success', studyData: existing, currentMs: 0, durationMs: 0 });
-        return;
-      }
-
-      const accepted = await songApi.analyze({
-        title: item.title,
-        artist: item.artistName,
-        durationSeconds: item.durationSeconds,
-        artworkUrl: item.thumbnail,
-      });
-      if (analysisRunId !== runId) return;
-      if (!accepted.canOpenPlayer && accepted.status !== 'FAILED') {
+      // 이미 분석 중인 곡을 다시 탭한 경우: 서버에 또 묻지 않고 진행 중인 추적에 올라탄다.
+      // 폴링은 analysisStore 가 곡당 하나만 돌린다.
+      let readyPromise = useAnalysisStore.getState().readyFor(item.title, item.artistName);
+      if (readyPromise) {
         set({ status: 'analyzing' });
+      } else {
+        const existing = await songApi.getByTitleArtist(item.title, item.artistName);
+        if (analysisRunId !== runId) return;
+        if (existing) {
+          set({ status: 'success', studyData: existing, currentMs: 0, durationMs: 0 });
+          return;
+        }
+
+        const accepted = await songApi.analyze({
+          title: item.title,
+          artist: item.artistName,
+          durationSeconds: item.durationSeconds,
+          artworkUrl: item.thumbnail,
+        });
+        if (analysisRunId !== runId) return;
+        // 요청 자체가 거절된 경우엔 pill 이 뜨지 않으므로 여기서 error 로 알린다.
+        if (accepted.status === 'FAILED') {
+          set({ status: 'error', errorCode: accepted.errorCode ?? 'SONG_ANALYSIS_WORK_FAILED' });
+          return;
+        }
+        if (!accepted.canOpenPlayer) {
+          set({ status: 'analyzing' });
+        }
+        // 단어 분석까지의 추적은 analysisStore 가 맡는다. 여기서는 가사가 준비돼
+        // songDetail 을 열 수 있는 시점까지만 기다린다.
+        readyPromise = useAnalysisStore.getState().track(accepted, {
+          title: item.title,
+          artist: item.artistName,
+          artworkUrl: item.thumbnail,
+        });
       }
-      const ready = await waitForPlayerReady(accepted, runId);
+      const ready = await readyPromise;
       if (analysisRunId !== runId) return;
       if (!ready.songId) {
-        set({ status: 'error', errorCode: ready.errorCode ?? 'SONG_ANALYSIS_WORK_FAILED' });
+        // 폴링 중 실패는 분석 pill 이 이미 보여준다. error 로 두면 검색 화면이 dialog 까지 띄우므로 idle 로 돌린다.
+        set({ status: 'idle' });
         return;
       }
       const data = await songApi.getStudyDataById(ready.songId);
@@ -101,26 +121,3 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     set({ status: 'idle', studyData: null, errorCode: null, currentMs: 0, durationMs: 0 });
   },
 }));
-
-async function waitForPlayerReady(
-  initial: SongAnalysisWorkResponse,
-  runId: number,
-): Promise<SongAnalysisWorkResponse> {
-  let current = initial;
-  while (analysisRunId === runId) {
-    if (current.canOpenPlayer && current.songId != null) {
-      return current;
-    }
-    if (current.status === 'FAILED') {
-      return current;
-    }
-    await sleep(ANALYSIS_POLL_INTERVAL_MS);
-    if (analysisRunId !== runId) {
-      return current;
-    }
-    current = await songApi.getAnalysisWork(current.workId);
-  }
-  return current;
-}
-
-const ANALYSIS_POLL_INTERVAL_MS = 3000;

@@ -4,6 +4,7 @@ import com.japanese.vocabulary.translation.client.gemini.dto.SegLineDto
 import com.japanese.vocabulary.translation.client.gemini.dto.SegWordDto
 import com.japanese.vocabulary.translation.model.PipelineToken
 import com.japanese.vocabulary.translation.model.SegmentAnchoringResult
+import com.japanese.vocabulary.translation.model.UncoveredRun
 import org.springframework.stereotype.Component
 
 class SegmentationValidationException(message: String) : RuntimeException(message)
@@ -19,7 +20,7 @@ class SegmentAnchoringValidator {
     fun anchor(rawByIndex: Map<Int, String>, segmentedLines: List<SegLineDto>): SegmentAnchoringResult {
         val anchoredByIndex = mutableMapOf<Int, List<PipelineToken>>()
         val failuresByIndex = mutableMapOf<Int, String>()
-        val incompleteByIndex = mutableMapOf<Int, String>()
+        val incompleteByIndex = mutableMapOf<Int, UncoveredRun>()
         val seenIndices = mutableSetOf<Int>()
 
         segmentedLines.forEach { line ->
@@ -99,13 +100,13 @@ class SegmentAnchoringValidator {
         }
 
         val uncovered = uncoveredJapaneseRun(rawText, covered)?.let { (offset, text) ->
-            "Japanese text '$text' at offset=$offset is not covered by segmentation at line index=$index"
+            UncoveredRun(lineIndex = index, offset = offset, text = text)
         }
         return AnchoredLine(tokens = tokens, uncovered = uncovered)
     }
 
     /** One anchored line: its tokens, and why it is incomplete if Japanese text carries no token. */
-    private data class AnchoredLine(val tokens: List<PipelineToken>, val uncovered: String?)
+    private data class AnchoredLine(val tokens: List<PipelineToken>, val uncovered: UncoveredRun?)
 
     /**
      * Says where the search actually stood when it gave up. Naming only the missing surface reads as

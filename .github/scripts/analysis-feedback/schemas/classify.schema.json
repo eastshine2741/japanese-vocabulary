@@ -1,0 +1,86 @@
+{
+  "title": "Analysis defect classification",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "groups"
+  ],
+  "properties": {
+    "groups": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "title",
+          "keys",
+          "verdict",
+          "reason",
+          "fixPlan"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "keys": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "verdict": {
+            "type": "string",
+            "enum": [
+              "fix",
+              "expected_no_meaning",
+              "hold"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          },
+          "fixPlan": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": false,
+            "required": [
+              "branchSlug",
+              "files",
+              "approach",
+              "testHint"
+            ],
+            "properties": {
+              "branchSlug": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9-]{2,50}$"
+              },
+              "files": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "approach": {
+                "type": "string",
+                "minLength": 1
+              },
+              "testHint": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -105,11 +105,16 @@ class LexicalResolver(
      * word reaches the app with no meaning and nothing in the pipeline objects. Answering the question
      * here lets the segmentation stage retry the line while it still can.
      *
+     * Each miss says whether the dictionary actually answered. A lookup that errored on every attempt
+     * ([JishoLookupProvenance.FETCH_ERROR]) is not a miss the segmentation model can fix, and telling
+     * it "no entry exists for 太陽" would make it change a headword that was right.
+     *
      * Repeating the lookups costs nothing: [com.japanese.vocabulary.translation.service.JishoService]
-     * caches, so [resolve] serves the same keys from Redis afterwards. Grading is silent here so a
-     * probe does not log every narrowing decision twice.
+     * caches, so [resolve] serves the same keys from Redis afterwards — and an error is never cached,
+     * so a retry asks jisho again. Grading is silent here so a probe does not log every narrowing
+     * decision twice.
      */
-    suspend fun unresolvedTokens(tokens: List<PipelineToken>): List<PipelineToken> {
+    suspend fun unresolvedTokens(tokens: List<PipelineToken>): List<Unresolved> {
         if (tokens.isEmpty()) return emptyList()
 
         val firstPass = jishoService.lookupAll(tokens.map { it.headword }.distinct())
@@ -117,11 +122,20 @@ class LexicalResolver(
         if (missed.isEmpty()) return emptyList()
 
         val probeLookups = jishoService.lookupAll(probeKeys(missed))
-        return missed.filter {
-            resolveIAdjective(it, probeLookups, logRescue = false) == null &&
-                resolveHiraganaQuery(it, probeLookups, logRescue = false) == null
-        }
+        return missed
+            .filter {
+                resolveIAdjective(it, probeLookups, logRescue = false) == null &&
+                    resolveHiraganaQuery(it, probeLookups, logRescue = false) == null
+            }
+            .map { token ->
+                val lookups = listOfNotNull(firstPass[token.headword]) +
+                    listOfNotNull(iAdjectiveProbe(token), hiraganaProbe(token)).mapNotNull(probeLookups::get)
+                Unresolved(token, providerError = lookups.any { it.provenance == JishoLookupProvenance.FETCH_ERROR })
+            }
     }
+
+    /** A token [unresolvedTokens] could not answer, and whether that is jisho's silence or its verdict. */
+    data class Unresolved(val token: PipelineToken, val providerError: Boolean)
 
     /** Every alternate lookup key the rescues below might ask for, in one batch. */
     private fun probeKeys(missed: List<PipelineToken>): List<String> =

@@ -15,6 +15,8 @@ Admin song detail can trigger existing-song reanalysis with `POST /admin/api/son
 1. **Trigger** (`api`/`admin-api` + `song-analysis`): analyze request or approved recommendation candidate -> `SongAnalysisWorkService.createOrReuse()` -> returns existing active raw `title|artist` workId or creates `song_analysis_work(PENDING)`.
 2. **Batch claim** (`batch`, `SongAnalysisWorkScheduler`, `@Scheduled fixedRate=30s`): claims `PENDING` work, changes it to `RUNNING`, and records lock owner/until.
 3. **Pre-analysis pipeline** (`batch` + `song`): stage changes through `FETCH_LYRICS` -> `FETCH_YOUTUBE` -> `CREATE_SONG_AND_LYRIC`, running LRCLIB/VocaDB lyric lookup, YouTube MV lookup, and songs+lyrics creation. A search with no acceptable MV candidate fails the work.
+
+Lyric providers run in order; the first hit wins. LrcLib matches a candidate by artist name first (`ArtistNameNormalizer` folds width, case, spacing, and punctuation). Its duration fallback exists for cross-script spellings (`あいみょん` vs `Aimyon`) but duration alone is not evidence — 『恋』 has dozens of same-titled songs within a few seconds of each other, and one of them once landed on Sohbana's song — so a duration candidate is accepted only when `ItunesArtistAliasVerifier` confirms the artist: it searches iTunes JP for the candidate's artist spelling and accepts it when any returned track names the query artist; a failed lookup rejects the candidate. When nothing verifies, the work fails with `LYRICS_NOT_FOUND` rather than attaching a stranger's lyrics.
 4. **Player-ready milestone**: once song and lyric are created, `song_id`, `lyric_id`, and `player_ready_at` are set. `PLAYER_READY` is not a status.
 5. **Lyric analysis** (`batch` + `translation`): stage `ANALYZE_LYRICS` runs `KoreanLyricTranslationService.runPipeline()`. A batch-local completion service saves `lyrics.analyzed_content` and marks work `COMPLETED` in the same transaction. For admin reanalysis of an existing song, completion is also the active-result switch boundary: the old active lyric/MV remains visible until completion atomically moves the song to the candidate lyric and work-produced MV.
 
@@ -67,7 +69,7 @@ The prompt's few-shot pairs live on as `readingConverter.test.ts`. One divergenc
 a long vowel as a hyphen (`ドウ` → `도-`), where the prompt asked for `도우`. It runs **per token** —
 its long-vowel state would otherwise cross a word boundary and swallow the next word's leading ウ/イ.
 
-Failures end as `song_analysis_work.status=FAILED` without automatic retry in the first pass. If the user requests the same song again, a new work is created.
+Failures end as `song_analysis_work.status=FAILED` without work-level retry. Only individual Gemini calls retry, and only on transport failures (see `docs/translation-pipeline.md`). If the user requests the same song again, a new work is created.
 
 ### How the numbers below were measured
 

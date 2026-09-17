@@ -31,6 +31,8 @@
     "src",
     "../reels/src/PromoReel.tsx",
     "../reels/src/types.ts",
+    "../reels/src/fonts/scoreDream.ts",
+    "../reels/src/fonts/assets.d.ts",
     "../app-rn/src/utils/readingConverter.ts"
   ]
 }

@@ -16,6 +16,7 @@ import com.japanese.vocabulary.song.cache.ArtistChannelCache
 import com.japanese.vocabulary.song.cache.ArtistChannelCacheEntry
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 
@@ -222,6 +223,99 @@ class YoutubeMvSearchServiceTest {
             .isEqualTo("https://www.youtube.com/watch?v=mv-id")
     }
 
+    @Test
+    fun `cached publisher channel rejects an upload of the song by another unit`() {
+        // Prod song 78: the Project SEKAI channel's recent uploads held only the April Fools
+        // swap "熱異常 / ロボピース", and the real "熱異常 / 25時、ナイトコードで。 × KAITO" was
+        // older than the scanned pages; the swap must not win by title alone.
+        every { artistChannelCache.get(NIIGO) } returns ArtistChannelCacheEntry(
+            artistName = NIIGO,
+            channelId = "channel-id",
+            uploadsPlaylistId = "uploads-id",
+            channelTitle = PUBLISHER_CHANNEL,
+        )
+        every { youtubeClient.listPlaylistItems(any(), any(), any()) } returns
+            YoutubePlaylistItemsResponse(
+                nextPageToken = null,
+                items = listOf(playlistItem("swap-id", "熱異常 / ロボピース", PUBLISHER_CHANNEL)),
+            )
+        stubSearch(searchItem("mv-id", "熱異常 / $NIIGO × KAITO", PUBLISHER_CHANNEL))
+        stubDurations("swap-id" to "PT2M5S", "mv-id" to "PT4M1S")
+
+        assertThat(service.searchMvUrl(NIIGO_TITLE, NIIGO, 241))
+            .isEqualTo("https://www.youtube.com/watch?v=mv-id")
+    }
+
+    @Test
+    fun `cached publisher channel picks the upload that names the artist`() {
+        every { artistChannelCache.get(NIIGO) } returns ArtistChannelCacheEntry(
+            artistName = NIIGO,
+            channelId = "channel-id",
+            uploadsPlaylistId = "uploads-id",
+            channelTitle = PUBLISHER_CHANNEL,
+        )
+        every { youtubeClient.listPlaylistItems(any(), any(), any()) } returns
+            YoutubePlaylistItemsResponse(
+                nextPageToken = null,
+                items = listOf(
+                    playlistItem("swap-id", "熱異常 / ロボピース", PUBLISHER_CHANNEL),
+                    playlistItem("mv-id", "熱異常 / $NIIGO × KAITO", PUBLISHER_CHANNEL),
+                ),
+            )
+        stubDurations("swap-id" to "PT2M5S", "mv-id" to "PT4M1S")
+
+        assertThat(service.searchMvUrl(NIIGO_TITLE, NIIGO, 241))
+            .isEqualTo("https://www.youtube.com/watch?v=mv-id")
+    }
+
+    @Test
+    fun `cached artist channel does not require the artist name in the title`() {
+        every { artistChannelCache.get(ARTIST) } returns ArtistChannelCacheEntry(
+            artistName = ARTIST,
+            channelId = "channel-id",
+            uploadsPlaylistId = "uploads-id",
+            channelTitle = "$ARTIST Official YouTube Channel",
+        )
+        every { youtubeClient.listPlaylistItems(any(), any(), any()) } returns
+            YoutubePlaylistItemsResponse(
+                nextPageToken = null,
+                items = listOf(playlistItem("mv-id", "$TITLE Music Video")),
+            )
+        stubDurations("mv-id" to "PT4M1S")
+
+        assertThat(service.searchMvUrl(TITLE, ARTIST, TRACK_SECONDS))
+            .isEqualTo("https://www.youtube.com/watch?v=mv-id")
+    }
+
+    @Test
+    fun `search penalizes an April Fools version below the original`() {
+        every { artistChannelCache.get(NIIGO) } returns null
+        stubSearch(
+            searchItem("swap-id", "【エイプリルフールver.】熱異常 / ロボピース", PUBLISHER_CHANNEL),
+            searchItem("mv-id", "熱異常 / $NIIGO × KAITO", PUBLISHER_CHANNEL),
+        )
+        stubDurations("swap-id" to "PT2M5S", "mv-id" to "PT4M1S")
+
+        assertThat(service.searchMvUrl(NIIGO_TITLE, NIIGO, 241))
+            .isEqualTo("https://www.youtube.com/watch?v=mv-id")
+    }
+
+    @Test
+    fun `search rejects an unofficial fan MV and falls back to the Topic channel`() {
+        // Prod song 79: "【非公式MV】エンゼルケア / いよわ様" scored as official because "非公式"
+        // contains "公式", won over the Topic upload, and cached its channel for the artist.
+        every { artistChannelCache.get("いよわ") } returns null
+        stubSearch(
+            searchItem("fan-id", "【非公式MV】エンゼルケア / いよわ様", "ふわふわ擬"),
+            searchItem("topic-id", "エンゼルケア", "Iyowa - Topic"),
+        )
+        stubDurations("fan-id" to "PT3M45S", "topic-id" to "PT3M50S")
+
+        assertThat(service.searchMvUrl("エンゼルケア", "いよわ", 229))
+            .isEqualTo("https://www.youtube.com/watch?v=topic-id")
+        verify(exactly = 0) { artistChannelCache.put(any<String>(), any<ArtistChannelCacheEntry>()) }
+    }
+
     private fun stubSearch(vararg items: YoutubeSearchItemDto) {
         every {
             youtubeClient.searchVideos(query = any(), pageToken = any(), maxResults = any(), videoCategoryId = any())
@@ -237,20 +331,20 @@ class YoutubeMvSearchServiceTest {
         }
     }
 
-    private fun searchItem(videoId: String, title: String) = YoutubeSearchItemDto(
+    private fun searchItem(videoId: String, title: String, channelTitle: String = ARTIST) = YoutubeSearchItemDto(
         id = YoutubeVideoIdDto(videoId = videoId),
         snippet = YoutubeSnippetDto(
             title = title,
             thumbnails = YoutubeThumbnailsDto(medium = null, default = null),
-            channelTitle = ARTIST,
+            channelTitle = channelTitle,
             channelId = null,
         ),
     )
 
-    private fun playlistItem(videoId: String, title: String) = YoutubePlaylistItemDto(
+    private fun playlistItem(videoId: String, title: String, channelTitle: String = ARTIST) = YoutubePlaylistItemDto(
         snippet = YoutubePlaylistItemSnippetDto(
             title = title,
-            channelTitle = ARTIST,
+            channelTitle = channelTitle,
             resourceId = YoutubeResourceIdDto(videoId = videoId),
         ),
     )
@@ -259,5 +353,8 @@ class YoutubeMvSearchServiceTest {
         private const val TITLE = "ももいろの鍵"
         private const val ARTIST = "テストアーティスト"
         private const val TRACK_SECONDS = 240
+        private const val NIIGO = "25時、ナイトコードで。"
+        private const val NIIGO_TITLE = "熱異常 (feat. 宵崎奏, 朝比奈まふゆ, 東雲絵名, 暁山瑞希 & KAITO)"
+        private const val PUBLISHER_CHANNEL = "プロジェクトセカイ カラフルステージ! feat. 初音ミク"
     }
 }

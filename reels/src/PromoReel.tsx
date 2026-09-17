@@ -11,12 +11,20 @@ import {
 import type {CSSProperties} from 'react';
 
 import {convertLineReading, convertReading} from '../../app-rn/src/utils/readingConverter';
+import {SCORE_DREAM_FAMILY, useScoreDream} from './fonts/scoreDream';
 import type {LyricToken, PartOfSpeech, PromoLine, PromoReelData, VocabularyWord} from './types';
 
 export const PROMO_FPS = 30;
 // 엔드카드 7초. 앱 목업이 시트 → 단어 탭 → 복습 → rating → 다음 단어까지 흐르고, 스토어 검색 큐를 읽을 시간이다.
 // 바꾸면 admin-web reelEditor.ts 의 END_CARD_MS 도 같이 바꾼다.
 export const END_CARD_DURATION_IN_FRAMES = 210;
+export const PROMO_WIDTH = 1080;
+export const PROMO_HEIGHT = 1920;
+// 인스타 릴스 UI 의 프로필 사진 바로 위. 가사·단어 블록은 이 위에서 끝나야 한다.
+const PROFILE_CUE_TOP = 1576;
+// 가사·단어 블록 좌우 여백과 그 안쪽 폭
+const CONTENT_SIDE = 160;
+const LYRIC_WIDTH = PROMO_WIDTH - CONTENT_SIDE * 2;
 
 // 릴스 팔레트 — japanese-vocabulary.pen 의 Reel v2 프레임 변수와 같은 값
 const night = '#111012';
@@ -104,6 +112,7 @@ type TextRun = {
 };
 
 export const PromoReel = ({data}: {data: PromoReelData}) => {
+  useScoreDream();
   const frame = useCurrentFrame();
   const {durationInFrames} = useVideoConfig();
   const lines = data.lyricLines.length > 0 ? data.lyricLines : [emptyLine];
@@ -132,12 +141,13 @@ export const PromoReel = ({data}: {data: PromoReelData}) => {
           })}
         />
       </AbsoluteFill>
-      <div style={styles.videoBottomScrim} />
-      <div style={styles.videoTopScrim} />
+      <div style={styles.bottomScrim} />
+      <div style={styles.topScrim} />
 
       {frame < lyricsEndFrame + END_CARD_FADE_FRAMES && (
         <div style={styles.activeLayer}>
           <Header data={data} />
+          <ProfileCue />
           {activeIndex >= 0 && (
             <section style={styles.content}>
               <div style={{...styles.lyricBlock, ...entryStyle(lyricEntry)}}>
@@ -145,10 +155,12 @@ export const PromoReel = ({data}: {data: PromoReelData}) => {
                 <p style={styles.korean}>{activeLine.koreanLyrics}</p>
               </div>
               {activeLine.vocabulary.length > 0 && (
-                <div style={entryStyle(wordsEntry)}>
+                <div style={{...styles.wordsEntry, ...entryStyle(wordsEntry)}}>
                   <Vocabulary words={topWords(activeLine.vocabulary)} />
                 </div>
               )}
+              {/* 남는 높이를 먹는 스페이서. 내용이 짧으면 위(927)에 붙고, 길면 0 으로 줄어 위로 넘친다. */}
+              <div style={styles.contentSpacer} />
             </section>
           )}
         </div>
@@ -186,6 +198,15 @@ const Header = ({data}: {data: PromoReelData}) => {
     </header>
   );
 };
+
+// 인스타 릴스 UI 의 프로필 사진 바로 위. 화살표가 아바타(좌하단 x≈74~162)를 가리켜
+// 프로필 링크로 스토어 진입을 유도한다. 위치·문구는 Pen Reel v2 의 Profile Cue 와 같다.
+const ProfileCue = () => (
+  <div style={styles.profileCue}>
+    <ArrowDownIcon />
+    <span style={styles.profileCueLabel}>일본어 단어장 앱 '코토노하'에서 전체 단어를 확인하세요!</span>
+  </div>
+);
 
 const JapaneseLine = ({line}: {line: PromoLine}) => {
   return (
@@ -246,7 +267,9 @@ const EndCard = ({
   return (
     <AbsoluteFill style={{...styles.endCardLayer, opacity: enter}}>
       {artwork && <div style={{...styles.endBackdropArt, backgroundImage: `url("${artwork}")`}} />}
-      <div style={styles.endBackdropScrim} />
+      {/* 가사 화면과 같은 스크림. 엔드카드로 넘어가도 배경 밝기가 튀지 않는다. */}
+      <div style={styles.bottomScrim} />
+      <div style={styles.topScrim} />
       <div style={styles.ambientGlow} />
       <div style={{...styles.endTitleBlock, transform: `translateY(${interpolate(enter, [0, 1], [20, 0])}px)`}}>
         <div style={styles.endTitle}>전체 단어는</div>
@@ -734,6 +757,11 @@ const ChevronRightIcon = ({color, size}: {color: string; size: number}) => (
     <path d="M9 6l6 6-6 6" />
   </svg>
 );
+const ArrowDownIcon = () => (
+  <svg height={32} style={{flexShrink: 0}} viewBox="0 0 24 24" width={32} {...svgProps} strokeWidth={2}>
+    <path d="M12 5v14" /><path d="M19 12l-7 7-7-7" />
+  </svg>
+);
 const ChevronUpIcon = () => (
   <svg height={18} viewBox="0 0 24 24" width={18} {...svgProps} strokeWidth={2.4}><path d="M18 15l-6-6-6 6" /></svg>
 );
@@ -798,12 +826,15 @@ const buildTextRuns = (line: PromoLine): TextRun[] => {
   return runs.filter((run) => run.text.length > 0);
 };
 
-// 760px 폭에 58px 이면 한 줄 13자다. 긴 줄은 세 줄을 넘지 않게 줄인다.
+// 760px 폭에 58px 이면 한 줄 13자다. 긴 줄은 세 줄을 넘지 않게 줄이고,
+// 줄바꿈은 어절(공백) 단위라 가장 긴 어절이 한 줄에 들어가는 크기까지 더 줄인다(CJK 1자 = 1em).
+const LYRIC_FONT_SIZES = [58, 48, 42, 36];
 const japaneseFontSize = (text: string) => {
   const length = text.replace(/\s+/g, '').length;
-  if (length <= 26) return 58;
-  if (length <= 40) return 48;
-  return 42;
+  const byLength = length <= 26 ? 58 : length <= 40 ? 48 : 42;
+  const longestSegment = Math.max(...text.split(/\s+/).map((segment) => segment.length));
+  const fits = LYRIC_FONT_SIZES.find((size) => size <= byLength && longestSegment * size <= LYRIC_WIDTH);
+  return fits ?? LYRIC_FONT_SIZES[LYRIC_FONT_SIZES.length - 1];
 };
 
 const topWords = (words: VocabularyWord[]) => words.slice(0, 2);
@@ -900,14 +931,17 @@ const emptyLine: PromoLine = {
   vocabulary: [],
 };
 
-const fontStack =
+// 앱 목업이 쓰는 폰트 — 실제 앱 화면과 같아야 해서 릴스 폰트를 따르지 않는다.
+const appFontStack =
   '"Noto Sans CJK KR", "Noto Sans CJK JP", "Noto Sans KR", "Noto Sans JP", "Apple SD Gothic Neo", "Hiragino Sans", sans-serif';
+// 릴스 폰트. 에스코어 드림에 없는 일본어는 뒤의 Noto CJK 가 맡는다.
+const reelFontStack = `"${SCORE_DREAM_FAMILY}", ${appFontStack}`;
 
 const styles = {
   canvas: {
     backgroundColor: night,
     color: ink,
-    fontFamily: fontStack,
+    fontFamily: reelFontStack,
     overflow: 'hidden',
   },
   fullVideo: {
@@ -915,17 +949,18 @@ const styles = {
     objectFit: 'cover',
     width: '100%',
   },
-  videoTopScrim: {
-    background: 'linear-gradient(180deg, rgba(17,16,18,0.95) 0%, rgba(17,16,18,0) 100%)',
+  // 가사 화면과 엔드카드가 같은 스크림을 쓴다 — Pen Reel v2 의 MV/Backdrop Top·Bottom Scrim 과 같은 값
+  topScrim: {
+    background: 'linear-gradient(180deg, rgba(17,16,18,0.70) 0%, rgba(17,16,18,0) 100%)',
     height: 300,
     left: 0,
     position: 'absolute',
     right: 0,
     top: 0,
   },
-  videoBottomScrim: {
+  bottomScrim: {
     background:
-      'linear-gradient(180deg, rgba(17,16,18,0) 0%, rgba(17,16,18,0.72) 20%, rgba(17,16,18,0.91) 32%, rgba(17,16,18,0.95) 55%, rgba(17,16,18,0.95) 100%)',
+      'linear-gradient(180deg, rgba(17,16,18,0) 0%, rgba(17,16,18,0.40) 20%, rgba(17,16,18,0.55) 32%, rgba(17,16,18,0.65) 55%, rgba(17,16,18,0.75) 100%)',
     bottom: 0,
     height: 1300,
     left: 0,
@@ -940,23 +975,26 @@ const styles = {
   header: {
     alignItems: 'center',
     display: 'flex',
-    height: 96,
+    // 제목이 여러 줄이면 아래로 늘어난다. 고정 높이면 위로 넘쳐 상단 스크림 밖으로 밀린다.
+    minHeight: 96,
     left: 72,
     position: 'absolute',
     right: 72,
-    top: 118,
+    top: 150,
     zIndex: 4,
   },
   songText: {
     display: 'flex',
     flexDirection: 'column',
     gap: 6,
+    minWidth: 0,
   },
   title: {
     color: ink,
     fontSize: 50,
     fontWeight: 800,
-    lineHeight: 1,
+    // 긴 제목(feat. 나열)은 두세 줄로 꺾인다. 1 이면 줄끼리 붙는다.
+    lineHeight: 1.2,
   },
   artist: {
     color: softInk,
@@ -968,19 +1006,48 @@ const styles = {
     color: 'rgba(250,250,246,0.35)',
     fontSize: 28,
     fontWeight: 500,
+    flexShrink: 0,
     marginLeft: 'auto',
+  },
+  profileCue: {
+    alignItems: 'center',
+    color: 'rgba(250,250,246,0.75)',
+    display: 'flex',
+    gap: 12,
+    left: 74,
+    position: 'absolute',
+    top: PROFILE_CUE_TOP,
+    zIndex: 4,
+  },
+  profileCueLabel: {
+    fontSize: 26,
+    fontWeight: 500,
+    letterSpacing: -0.3,
+    lineHeight: 1,
   },
   content: {
     alignItems: 'center',
+    // 아래쪽 경계는 Profile Cue(1576) 위 60px. 가사가 길어 내용이 이 띠보다 커지면
+    // flex-end 라 위로 넘치므로 Cue 와 겹치지 않는다(스페이서가 0 으로 줄어든다).
+    bottom: PROMO_HEIGHT - (PROFILE_CUE_TOP - 60),
     display: 'flex',
     flexDirection: 'column',
-    gap: 80,
-    left: 160,
+    justifyContent: 'flex-end',
+    left: CONTENT_SIDE,
     position: 'absolute',
-    right: 160,
+    right: CONTENT_SIDE,
     textAlign: 'center',
-    top: 1030,
+    // 내용이 짧을 때 위쪽 시작점. Pen Reel v2 와 같이 927
+    top: 927,
     zIndex: 4,
+  },
+  contentSpacer: {
+    flex: '1 1 0',
+    minHeight: 0,
+    width: '100%',
+  },
+  wordsEntry: {
+    marginTop: 80,
   },
   lyricBlock: {
     alignItems: 'center',
@@ -992,7 +1059,8 @@ const styles = {
   japanese: {
     color: ink,
     fontWeight: 700,
-    lineHeight: 1.16,
+    // 2줄 이상일 때 답답하지 않게 — Pen Reel v2 의 줄 박스(1.16) + gap 20 과 같은 1.5 배
+    lineHeight: 1.5,
     margin: 0,
     // 어절(공백) 단위로만 줄을 바꾼다. 단어 한가운데서 꺾이면 안 읽힌다.
     overflowWrap: 'anywhere',
@@ -1064,18 +1132,10 @@ const styles = {
     filter: 'blur(48px)',
     height: 2120,
     left: -100,
-    opacity: 0.22,
+    opacity: 0.6,
     position: 'absolute',
     top: -100,
     width: 1280,
-  },
-  endBackdropScrim: {
-    background: 'linear-gradient(180deg, rgba(17,16,18,0) 0%, #111012 75%)',
-    height: 1420,
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: 500,
   },
   ambientGlow: {
     background: `radial-gradient(circle, ${glow}2E 0%, ${glow}00 62%)`,
@@ -1108,11 +1168,11 @@ const styles = {
     alignItems: 'center',
     display: 'flex',
     flexDirection: 'column',
-    gap: 20,
+    gap: 28,
     left: 60,
     position: 'absolute',
     right: 60,
-    top: 1320,
+    top: 1350,
   },
   searchCue: {
     alignItems: 'center',
@@ -1171,6 +1231,7 @@ const styles = {
     borderRadius: 46,
     boxShadow: '0 28px 80px rgba(0,0,0,0.6)',
     color: app.textPrimary,
+    fontFamily: appFontStack,
     height: PHONE_HEIGHT,
     left: 310,
     // 폰 아래쪽은 배경으로 녹아든다. 테두리·그림자까지 같이 사라져야 해서 별도 fade 사각형이 아니라 mask 다.

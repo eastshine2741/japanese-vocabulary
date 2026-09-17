@@ -6,4 +6,5 @@ object MetricNames {
     const val SONG_ANALYSIS_WORK_DURATION = "kotonoha.song.analysis.work.duration"
     const val GEMINI_CALL_DURATION = "kotonoha.gemini.call.duration"
     const val GEMINI_TOKENS = "kotonoha.gemini.tokens"
+    const val GEMINI_CALL_RETRIES = "kotonoha.gemini.call.retries"
 }

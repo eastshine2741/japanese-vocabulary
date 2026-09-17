@@ -21,6 +21,17 @@ export type EditorState = {
   lines: EditorLine[]
 }
 
+/** 릴스에 찍히는 곡 표기. DB 의 일본어 제목·아티스트 대신 어드민이 고쳐 쓴다. */
+export type SongCredit = {
+  title: string
+  artist: string
+}
+
+export const defaultSongCredit = (detail: ReelsSongDetail): SongCredit => ({
+  title: detail.song.title,
+  artist: detail.song.artist,
+})
+
 /** 연속한 줄 시작 사이 최소 간격. 드래그로 줄이 겹치는 걸 막는다. */
 export const MIN_GAP_MS = 200
 /** 타임스탬프 없는 줄을 넣을 때 앞 줄에서 띄우는 기본 간격. */
@@ -98,6 +109,18 @@ export function toggleLine(state: EditorState, detail: ReelsSongDetail, index: n
   return appended ? { ...fitted, endMs: Math.max(fitted.endMs, defaultEndMs(detail, fitted.lines[at])) } : fitted
 }
 
+/**
+ * 여러 줄을 한 번에 넣거나 뺀다. 줄 목록에서 드래그로 범위를 고를 때 쓴다.
+ * 곡 순서로 하나씩 [toggleLine] 을 접어 타이밍 불변식을 그대로 지키고, 이미 그 상태인 줄은 건너뛴다.
+ */
+export function setLinesIncluded(state: EditorState, detail: ReelsSongDetail, indexes: number[], included: boolean): EditorState {
+  const sorted = [...new Set(indexes)].sort((a, b) => a - b)
+  return sorted.reduce((current, index) => {
+    const has = current.lines.some((line) => line.index === index)
+    return has === included ? current : toggleLine(current, detail, index)
+  }, state)
+}
+
 /** 줄 시작을 옮긴다. 이웃 줄 사이로 clamp 하고, 첫 줄·마지막 줄이면 클립 범위를 넓힌다. */
 export function setLineStart(state: EditorState, detail: ReelsSongDetail, index: number, startMs: number): EditorState {
   const at = state.lines.findIndex((line) => line.index === index)
@@ -152,8 +175,10 @@ export function toggleToken(state: EditorState, index: number, tokenIndex: numbe
   }
 }
 
-export function validate(state: EditorState, detail: ReelsSongDetail): string[] {
+export function validate(state: EditorState, detail: ReelsSongDetail, credit: SongCredit = defaultSongCredit(detail)): string[] {
   const errors: string[] = []
+  if (credit.title.trim() === "") errors.push("곡 제목을 입력해야 합니다")
+  if (credit.artist.trim() === "") errors.push("아티스트를 입력해야 합니다")
   if (state.lines.length < detail.minLineCount) {
     errors.push(`줄을 ${detail.minLineCount}개 이상 골라야 합니다 (${state.lines.length}/${detail.minLineCount})`)
   }
@@ -179,7 +204,12 @@ export const msToFrame = (ms: number, fps: number) => Math.round((ms / 1000) * f
 export const frameToMs = (frame: number, fps: number) => (frame / fps) * 1000
 
 /** 서버 렌더와 브라우저 Player 가 같이 쓰는 Remotion props. */
-export function buildPromoData(detail: ReelsSongDetail, state: EditorState, mvAsset: string): PromoReelData {
+export function buildPromoData(
+  detail: ReelsSongDetail,
+  state: EditorState,
+  mvAsset: string,
+  credit: SongCredit = defaultSongCredit(detail),
+): PromoReelData {
   const fps = detail.fps
   const relative = (ms: number) => msToFrame(ms - state.sourceStartMs, fps)
   const lyricLines = state.lines.flatMap((selected) => {
@@ -202,8 +232,8 @@ export function buildPromoData(detail: ReelsSongDetail, state: EditorState, mvAs
   const wordCount = new Set(lyricLines.flatMap((line) => line.vocabulary.map((word) => word.japanese))).size
   return {
     song: {
-      title: detail.song.title,
-      artist: detail.song.artist,
+      title: credit.title.trim(),
+      artist: credit.artist.trim(),
       artworkAsset: detail.song.artworkUrl ?? "",
       mvAsset,
     },

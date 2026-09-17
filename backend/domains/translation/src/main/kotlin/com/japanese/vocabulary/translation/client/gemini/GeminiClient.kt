@@ -2,6 +2,8 @@ package com.japanese.vocabulary.translation.client.gemini
 
 import org.springframework.stereotype.Component
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.japanese.vocabulary.common.retry.ExponentialBackoff
+import com.japanese.vocabulary.common.retry.TransientHttpErrors
 import com.japanese.vocabulary.observability.MetricNames
 import com.japanese.vocabulary.translation.client.gemini.dto.SegLineDto
 import com.japanese.vocabulary.translation.client.gemini.dto.SelectLineDto
@@ -10,8 +12,10 @@ import com.japanese.vocabulary.translation.client.gemini.dto.TranslationResultDt
 import io.micrometer.core.instrument.Counter
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Timer
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.web.client.RestClient
+import java.time.Duration
 
 @Component
 class GeminiClient(
@@ -34,10 +38,21 @@ class GeminiClient(
      * `minimal` outright.
      */
     @Value("\${gemini.segmentation-thinking-level:}") private val segmentationThinkingLevel: String,
+    /**
+     * How many times one call is attempted before its failure propagates, and the wait before the
+     * second attempt (doubling after that). Only [TransientHttpErrors.isTransient] failures are
+     * retried; the request has no side effects and runs at a fixed temperature, so replaying the
+     * POST is safe.
+     */
+    @Value("\${gemini.retry.max-attempts:3}") maxAttempts: Int,
+    @Value("\${gemini.retry.initial-backoff:2s}") initialBackoff: Duration,
     private val objectMapper: ObjectMapper,
     private val meterRegistry: MeterRegistry,
     private val geminiCallLogger: GeminiCallLogger,
 ) {
+    private val logger = LoggerFactory.getLogger(GeminiClient::class.java)
+    private val backoff = ExponentialBackoff(maxAttempts, initialBackoff)
+
     private val restClient = restClientBuilder
         .baseUrl("https://generativelanguage.googleapis.com")
         .build()
@@ -151,6 +166,39 @@ class GeminiClient(
         thinkingLevel: String? = null
     ): List<T> {
         val inputJson = objectMapper.writeValueAsString(input)
+        return backoff.retry(
+            isTransient = TransientHttpErrors::isTransient,
+            atLeast = TransientHttpErrors::retryAfter,
+            onRetry = { attempt, e, delay ->
+                logger.warn(
+                    "[songId={}] Gemini call={} model={} attempt {}/{} failed, retrying in {}ms: {}: {}",
+                    context.songId, call, model, attempt, backoff.maxAttempts, delay.toMillis(), e::class.simpleName, e.message,
+                )
+                Counter.builder(MetricNames.GEMINI_CALL_RETRIES)
+                    .tag("call", call)
+                    .tag("model", model)
+                    .tag("reason", e::class.simpleName ?: "unknown")
+                    .register(meterRegistry)
+                    .increment()
+            },
+            sleep = { Thread.sleep(it.toMillis()) },
+        ) {
+            attemptGemini(call, context, model, systemPrompt, inputJson, responseType, temperature, responseSchema, thinkingLevel)
+        }
+    }
+
+    /** One HTTP round trip. Every attempt gets its own call-log row and duration sample. */
+    private fun <T> attemptGemini(
+        call: String,
+        context: GeminiCallContext,
+        model: String,
+        systemPrompt: String,
+        inputJson: String,
+        responseType: Class<T>,
+        temperature: Double,
+        responseSchema: Map<String, Any>?,
+        thinkingLevel: String?
+    ): List<T> {
 
         val generationConfig = mutableMapOf<String, Any>(
             "responseMimeType" to "application/json",

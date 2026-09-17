@@ -19,6 +19,21 @@ class AnalysisNotificationService(
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
+    /**
+     * 분석을 요청한 사용자는 따로 켜지 않아도 완료 알림을 받는다. 이미 끝났거나 실패한 작업이면
+     * 조용히 건너뛰고, Redis 장애도 분석 요청 자체를 실패시키지는 않는다.
+     */
+    @Transactional
+    fun subscribeRequester(userId: Long, workId: Long) {
+        val work = workService.getByIdForUpdate(workId)
+        if (work.status !in setOf(SongAnalysisWorkStatus.PENDING, SongAnalysisWorkStatus.RUNNING)) return
+        try {
+            subscriptions.subscribe(work.workId, userId)
+        } catch (e: DataAccessException) {
+            logger.warn("Analysis notification auto-subscription failed workId={} userId={}", work.workId, userId, e)
+        }
+    }
+
     @Transactional
     fun update(userId: Long, songId: Long, enabled: Boolean): AnalysisNotificationResponse {
         val song = songRepository.findById(songId).orElseThrow { BusinessException(ErrorCode.SONG_NOT_FOUND) }

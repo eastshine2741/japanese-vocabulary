@@ -15,5 +15,16 @@ package com.japanese.vocabulary.translation.model
 data class SegmentAnchoringResult(
     val anchoredByIndex: Map<Int, List<PipelineToken>>,
     val failuresByIndex: Map<Int, String>,
-    val incompleteByIndex: Map<Int, String> = emptyMap(),
+    val incompleteByIndex: Map<Int, UncoveredRun> = emptyMap(),
 )
+
+/**
+ * The first run of consecutive Japanese characters on a line that no surface claimed.
+ *
+ * Kept as data rather than a sentence so the defect report can name [text] on its own; [message] is
+ * the sentence the model is shown on retry.
+ */
+data class UncoveredRun(val lineIndex: Int, val offset: Int, val text: String) {
+    val message: String
+        get() = "Japanese text '$text' at offset=$offset is not covered by segmentation at line index=$lineIndex"
+}
