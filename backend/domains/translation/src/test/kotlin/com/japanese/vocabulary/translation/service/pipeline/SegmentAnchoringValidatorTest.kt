@@ -222,17 +222,68 @@ class SegmentAnchoringValidatorTest {
     @Test
     fun `reports uncovered Japanese as incomplete, and keeps the tokens that did anchor`() {
         // Uncovered text is a missing word, not a wrong position: every surface here was found where
-        // it really is, so throwing the line away would cost 猫 and 寝る to save nothing.
+        // it really is, so throwing the line away would cost 猫 and が to save nothing.
         val result = validator.anchor(
             mapOf(0 to "猫が寝る"),
-            listOf(SegLineDto(0, listOf(word("猫", "猫", "ネコ", "ネコ"), word("寝る", "寝る", "ネル", "ネル")))),
+            listOf(SegLineDto(0, listOf(word("猫", "猫", "ネコ", "ネコ"), word("が", "が", "ガ", "ガ")))),
         )
 
         assertThat(result.failuresByIndex).isEmpty()
         assertThat(result.incompleteByIndex[0]?.message)
-            .isEqualTo("Japanese text 'が' at offset=1 is not covered by segmentation at line index=0")
-        assertThat(result.anchoredByIndex.getValue(0).map { it.surface }).containsExactly("猫", "寝る")
-        assertThat(result.anchoredByIndex.getValue(0).map { it.charStart }).containsExactly(0, 2)
+            .isEqualTo("Japanese text '寝る' at offset=2 is not covered by segmentation at line index=0")
+        assertThat(result.anchoredByIndex.getValue(0).map { it.surface }).containsExactly("猫", "が")
+        assertThat(result.anchoredByIndex.getValue(0).map { it.charStart }).containsExactly(0, 1)
+    }
+
+    @Test
+    fun `fills a skipped particle from the rule table instead of reporting it uncovered`() {
+        // Song 120, line 0: the model returned 字, の, 一言一句, が, 憎らしい and left out the と wedged
+        // between 140 and 30 — a one-character particle between two numbers does not read as a word
+        // to it, and the resample repeated the omission. と is in the rule table, so the token is cut
+        // from the raw line and the line is complete without a retry.
+        val result = validator.anchor(
+            mapOf(0 to "140と30字の 一言一句が 憎らしい"),
+            listOf(
+                SegLineDto(
+                    0,
+                    listOf(
+                        word("字", "字", "ジ", "ジ"),
+                        word("の", "の", "ノ", "ノ"),
+                        word("一言一句", "一言一句", "イチゴンイック", "イチゴンイック"),
+                        word("が", "が", "ガ", "ガ"),
+                        word("憎らしい", "憎らしい", "ニクラシイ", "ニクラシイ"),
+                    ),
+                ),
+            ),
+        )
+
+        assertThat(result.failuresByIndex).isEmpty()
+        assertThat(result.incompleteByIndex).isEmpty()
+        assertThat(result.anchoredByIndex.getValue(0).map { Triple(it.surface, it.charStart, it.charEnd) }).containsExactly(
+            Triple("と", 3, 4),
+            Triple("字", 6, 7),
+            Triple("の", 7, 8),
+            Triple("一言一句", 9, 13),
+            Triple("が", 13, 14),
+            Triple("憎らしい", 15, 19),
+        )
+        val particle = result.anchoredByIndex.getValue(0).first()
+        assertThat(particle.headword).isEqualTo("と")
+        assertThat(particle.usedReading).isEqualTo("ト")
+        assertThat(RuleMeaningProvider().resolve(particle)!!.koreanText).isEqualTo("~와/과, ~라고")
+    }
+
+    @Test
+    fun `a gap longer than a particle is still reported, even when it starts with one`() {
+        // The rescue is exact-match only: `と共に` is a missing word, not a missing particle, and
+        // handing the model と would leave 共に with no token and no report.
+        val result = validator.anchor(
+            mapOf(0 to "君と共に"),
+            listOf(SegLineDto(0, listOf(word("君", "君", "キミ", "キミ")))),
+        )
+
+        assertThat(result.incompleteByIndex[0]?.text).isEqualTo("と共に")
+        assertThat(result.anchoredByIndex.getValue(0).map { it.surface }).containsExactly("君")
     }
 
     @Test

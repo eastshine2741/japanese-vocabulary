@@ -25,6 +25,9 @@ class RuleMeaningProvider {
         return rewritten
     }
 
+    /** True when [surface] is exactly one entry of the particle table, so a token for it needs no dictionary. */
+    fun isParticle(surface: String): Boolean = surface in particles
+
     fun resolve(token: PipelineToken): RuleResolvedToken? {
         val key = token.headword.ifBlank { token.surface }
         return fixedExpressions[token.surface]
