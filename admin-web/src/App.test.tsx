@@ -137,14 +137,14 @@ describe("admin web", () => {
     await user.click(screen.getByRole("link", { name: "adminread" }))
 
     // 상세: 학습 요약, 단어장, 단어
-    expect(await screen.findByRole("heading", { name: "Learning" })).toBeInTheDocument()
-    expect(screen.getByText("Review days (30d)").nextElementSibling).toHaveTextContent("3")
+    expect(await screen.findByRole("heading", { name: "학습" })).toBeInTheDocument()
+    expect(screen.getByText("최근 30일 복습한 날").nextElementSibling).toHaveTextContent("3일")
     expect(screen.getByText("전체 단어장")).toBeInTheDocument()
     expect(screen.getByRole("link", { name: /夜に駆ける · YOASOBI/ })).toHaveAttribute("href", "/songs/1")
     expect(await screen.findByText("駆ける")).toBeInTheDocument()
     expect(screen.getByText("夜")).toBeInTheDocument()
-    expect(screen.getByText("MASTERED")).toBeInTheDocument()
-    expect(screen.getByText("NEW")).toBeInTheDocument()
+    expect(screen.getByText("외운 단어", { selector: "span" })).toBeInTheDocument()
+    expect(screen.getByText("새 단어", { selector: "span" })).toBeInTheDocument()
 
     // 단어 행 펼치면 뜻 전체와 예문
     await user.click(screen.getByText("駆ける"))
@@ -152,9 +152,9 @@ describe("admin web", () => {
     expect(screen.getByText("夜に駆ける", { selector: "li span" })).toBeInTheDocument()
 
     // 단어장 행 클릭 → 그 단어장으로 필터
-    await user.click(screen.getByText("SONG").closest("tr")!)
+    await user.click(screen.getByText("곡", { selector: "span" }).closest("tr")!)
     await waitFor(() => expect(screen.queryByText("夜")).not.toBeInTheDocument())
-    expect(screen.getByLabelText("Deck filter")).toHaveValue("11")
+    expect(screen.getByLabelText("단어장 필터")).toHaveValue("11")
     expect(screen.getByText("駆ける")).toBeInTheDocument()
   })
 

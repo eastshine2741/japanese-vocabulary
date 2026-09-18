@@ -6,6 +6,7 @@ import type { AdminUser, PageResponse } from "@/api/types"
 import { EmptyState, ErrorState, LoadingState } from "@/components/StateViews"
 import { PageHeader } from "@/components/PageHeader"
 import { PaginationBar } from "@/components/PaginationBar"
+import { Count, Recency } from "@/components/LearningStatus"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -72,10 +73,10 @@ export function UsersPage() {
                 <Th>Provider</Th>
                 <Th>Email</Th>
                 <Th>Status</Th>
-                <Th className="text-right">Words</Th>
-                <Th className="text-right">Decks</Th>
-                <Th>Last saved</Th>
-                <Th>Last review</Th>
+                <Th className="text-right">단어</Th>
+                <Th className="text-right">단어장</Th>
+                <Th>마지막 저장</Th>
+                <Th>마지막 복습</Th>
                 <Th>Created</Th>
               </tr>
             </thead>
@@ -93,12 +94,18 @@ export function UsersPage() {
                   <Td>
                     <Badge tone={user.deletedAt ? "danger" : "success"}>{user.deletedAt ? "DELETED" : "ACTIVE"}</Badge>
                   </Td>
-                  <Td className="text-right tabular-nums">{formatNumber(user.wordCount)}</Td>
-                  <Td className="text-right tabular-nums" title="Song decks + custom decks">
+                  <Td className="text-right">
+                    <Count value={user.wordCount} />
+                  </Td>
+                  <Td className="text-right tabular-nums" title="곡 단어장 + 일반 단어장">
                     {formatDeckCounts(user.songDeckCount, user.customDeckCount)}
                   </Td>
-                  <Td>{formatDateTime(user.lastWordSavedAt)}</Td>
-                  <Td>{formatDateTime(user.lastReviewedAt)}</Td>
+                  <Td>
+                    <Recency value={user.lastWordSavedAt} />
+                  </Td>
+                  <Td>
+                    <Recency value={user.lastReviewedAt} />
+                  </Td>
                   <Td>{formatDateTime(user.createdAt)}</Td>
                 </tr>
               ))}

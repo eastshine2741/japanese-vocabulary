@@ -12,6 +12,7 @@ import type {
   PageResponse,
 } from "@/api/types"
 import { DetailGrid, DetailItem } from "@/components/DetailGrid"
+import { Count, MasteryBar, Recency, toneText } from "@/components/LearningStatus"
 import { EmptyState, ErrorState, LoadingState } from "@/components/StateViews"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -20,18 +21,20 @@ import { Table, Td, Th } from "@/components/ui/table"
 import { PageHeader } from "@/components/PageHeader"
 import { PaginationBar } from "@/components/PaginationBar"
 import { useAuth } from "@/features/auth"
-import { cn, formatDateTime, formatNumber } from "@/lib/utils"
+import { cn, formatDateTime, formatNumber, formatRelativeDays } from "@/lib/utils"
 
-const deckKindTone: Record<AdminUserDeckKind, "neutral" | "success" | "warning"> = {
-  DEFAULT: "neutral",
-  SONG: "success",
-  CUSTOM: "warning",
+/** 앱 문구 그대로: 전체 단어장 / 곡 단어장 / 일반(직접 만든) 단어장 */
+const deckKind: Record<AdminUserDeckKind, { label: string; tone: "neutral" | "success" | "warning" }> = {
+  DEFAULT: { label: "전체", tone: "neutral" },
+  SONG: { label: "곡", tone: "success" },
+  CUSTOM: { label: "일반", tone: "warning" },
 }
 
-const flashcardTone: Record<AdminWordFlashcardStatus, "neutral" | "warning" | "success"> = {
-  NEW: "neutral",
-  STUDYING: "warning",
-  MASTERED: "success",
+/** 앱 진행도 범례와 같은 문구·색 */
+const flashcardStatus: Record<AdminWordFlashcardStatus, { label: string; tone: "neutral" | "warning" | "success" }> = {
+  NEW: { label: "새 단어", tone: "neutral" },
+  STUDYING: { label: "외우는 중", tone: "warning" },
+  MASTERED: { label: "외운 단어", tone: "success" },
 }
 
 export function UserDetailPage() {
@@ -77,13 +80,13 @@ export function UserDetailPage() {
         <DetailItem label="Deleted" value={formatDateTime(user.deletedAt)} />
       </DetailGrid>
 
-      <SectionTitle>Learning</SectionTitle>
+      <SectionTitle>학습</SectionTitle>
       <LearningStats learning={learning} />
 
-      <SectionTitle>Decks</SectionTitle>
+      <SectionTitle>단어장</SectionTitle>
       <DecksTable decks={decks} selectedDeckId={deckId} onSelect={setDeckId} />
 
-      <SectionTitle>Words</SectionTitle>
+      <SectionTitle>단어</SectionTitle>
       <WordsTable userId={userId} decks={decks} deckId={deckId} onDeckChange={setDeckId} />
     </>
   )
@@ -93,28 +96,67 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   return <h2 className="mb-2 mt-6 text-base font-semibold text-[#18212f]">{children}</h2>
 }
 
+/**
+ * 한눈에 답해야 하는 질문 순서대로: 단어를 저장하긴 했나 → 복습을 하고 있나 → 최근에도 하나.
+ * 큰 숫자가 그 답이고, 나머지는 보조 정보라 작게 둔다.
+ */
 function LearningStats({ learning }: { learning: AdminUserLearning }) {
-  const stats: { label: string; value: React.ReactNode }[] = [
-    { label: "Words", value: formatNumber(learning.wordCount) },
-    { label: "Due now", value: formatNumber(learning.dueCount) },
-    { label: "New", value: formatNumber(learning.newCount) },
-    { label: "Studying", value: formatNumber(learning.studyingCount) },
-    { label: "Mastered", value: formatNumber(learning.masteredCount) },
-    { label: "Review days (30d)", value: formatNumber(learning.reviewDaysLast30) },
-    { label: "Reviews (30d)", value: formatNumber(learning.reviewCountLast30) },
-    { label: "Last saved", value: formatDateTime(learning.lastWordSavedAt) },
-    { label: "Last review", value: formatDateTime(learning.lastReviewedAt) },
-  ]
+  if (learning.wordCount === 0) return <EmptyState label="저장한 단어가 없어요" />
+  const dueTone = learning.dueCount > 0 ? toneText.warning : toneText.muted
+  const reviewDaysTone = learning.reviewDaysLast30 > 0 ? toneText.success : toneText.muted
   return (
-    <dl className="grid grid-cols-2 gap-px border border-[#d9e1ea] bg-[#d9e1ea] sm:grid-cols-3 lg:grid-cols-5">
-      {stats.map((stat) => (
-        <div key={stat.label} className="bg-white px-4 py-3">
-          <dt className="text-xs font-semibold uppercase text-[#637083]">{stat.label}</dt>
-          <dd className="mt-1 text-lg font-semibold tabular-nums text-[#18212f]">{stat.value}</dd>
-        </div>
-      ))}
-    </dl>
+    <div className="grid grid-cols-1 gap-px border border-[#d9e1ea] bg-[#d9e1ea] sm:grid-cols-2 lg:grid-cols-4">
+      <StatCard label="단어">
+        <StatValue>{formatNumber(learning.wordCount)}</StatValue>
+        <MasteryBar
+          className="mt-3"
+          legend
+          total={learning.wordCount}
+          mastered={learning.masteredCount}
+          studying={learning.studyingCount}
+          newCount={learning.newCount}
+        />
+      </StatCard>
+      <StatCard label="복습할 단어">
+        <StatValue className={dueTone}>{formatNumber(learning.dueCount)}</StatValue>
+        <StatSub>
+          마지막 복습 <Recency value={learning.lastReviewedAt} />
+        </StatSub>
+      </StatCard>
+      <StatCard label="최근 30일 복습한 날">
+        <StatValue className={reviewDaysTone}>
+          {formatNumber(learning.reviewDaysLast30)}
+          <span className="ml-0.5 text-sm font-medium text-[#637083]">일</span>
+        </StatValue>
+        <StatSub>
+          복습 <Count value={learning.reviewCountLast30} />회
+        </StatSub>
+      </StatCard>
+      <StatCard label="마지막 저장">
+        <StatValue>
+          <Recency value={learning.lastWordSavedAt} />
+        </StatValue>
+        <StatSub>{formatDateTime(learning.lastWordSavedAt)}</StatSub>
+      </StatCard>
+    </div>
   )
+}
+
+function StatCard({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="bg-white px-4 py-3">
+      <div className="text-xs font-semibold text-[#637083]">{label}</div>
+      {children}
+    </div>
+  )
+}
+
+function StatValue({ className, children }: { className?: string; children: React.ReactNode }) {
+  return <div className={cn("mt-1 text-2xl font-semibold tabular-nums text-[#18212f]", className)}>{children}</div>
+}
+
+function StatSub({ children }: { children: React.ReactNode }) {
+  return <div className="mt-1 text-xs text-[#637083]">{children}</div>
 }
 
 function DecksTable({
@@ -126,26 +168,24 @@ function DecksTable({
   selectedDeckId: number | null
   onSelect(deckId: number | null): void
 }) {
-  if (decks.length === 0) return <EmptyState label="No decks." />
+  if (decks.length === 0) return <EmptyState label="단어장이 없어요" />
   return (
     <Table>
       <thead>
         <tr>
           <Th>ID</Th>
-          <Th>Kind</Th>
-          <Th>Title</Th>
-          <Th>Song</Th>
-          <Th className="text-right">Words</Th>
-          <Th className="text-right">Due</Th>
-          <Th className="text-right">New</Th>
-          <Th className="text-right">Studying</Th>
-          <Th className="text-right">Mastered</Th>
-          <Th>Created</Th>
+          <Th>종류</Th>
+          <Th>단어장</Th>
+          <Th className="text-right">단어</Th>
+          <Th className="text-right">복습할 단어</Th>
+          <Th className="w-64">진행도</Th>
+          <Th>만든 날짜</Th>
         </tr>
       </thead>
       <tbody>
         {decks.map((deck) => {
           const selected = deck.id === selectedDeckId
+          const kind = deckKind[deck.kind]
           return (
             <tr
               key={deck.id}
@@ -153,31 +193,51 @@ function DecksTable({
               aria-selected={selected}
               onClick={() => onSelect(selected ? null : deck.id)}
             >
-              <Td className="w-24 font-mono text-xs text-[#637083]">{deck.id}</Td>
-              <Td>
-                <Badge tone={deckKindTone[deck.kind]}>{deck.kind}</Badge>
+              <Td className="w-20 font-mono text-xs text-[#9aa5b3]">{deck.id}</Td>
+              <Td className="w-20">
+                <Badge tone={kind.tone}>{kind.label}</Badge>
               </Td>
-              <Td className="font-medium">{deck.title}</Td>
               <Td>
                 {deck.songId ? (
                   <Link
-                    className="text-[#0f766e] hover:underline"
+                    className="font-medium text-[#0f766e] hover:underline"
                     to={`/songs/${deck.songId}`}
                     onClick={(event) => event.stopPropagation()}
                   >
                     {deck.songTitle ?? `Song #${deck.songId}`}
-                    {deck.songArtist ? <span className="text-[#637083]"> · {deck.songArtist}</span> : null}
+                    {deck.songArtist ? <span className="font-normal text-[#637083]"> · {deck.songArtist}</span> : null}
                   </Link>
                 ) : (
-                  "-"
+                  <span className="font-medium">{deck.title}</span>
                 )}
               </Td>
-              <Td className="text-right tabular-nums">{formatNumber(deck.wordCount)}</Td>
-              <Td className="text-right tabular-nums">{formatNumber(deck.dueCount)}</Td>
-              <Td className="text-right tabular-nums">{formatNumber(deck.newCount)}</Td>
-              <Td className="text-right tabular-nums">{formatNumber(deck.studyingCount)}</Td>
-              <Td className="text-right tabular-nums">{formatNumber(deck.masteredCount)}</Td>
-              <Td>{formatDateTime(deck.createdAt)}</Td>
+              <Td className="text-right">
+                <Count value={deck.wordCount} />
+              </Td>
+              <Td className="text-right">
+                <Count value={deck.dueCount} accent="warning" />
+              </Td>
+              <Td>
+                {deck.wordCount > 0 ? (
+                  <div className="flex items-center gap-3">
+                    <MasteryBar
+                      className="w-24 shrink-0"
+                      total={deck.wordCount}
+                      mastered={deck.masteredCount}
+                      studying={deck.studyingCount}
+                      newCount={deck.newCount}
+                    />
+                    <span className="text-xs text-[#9aa5b3]">
+                      <Count value={deck.masteredCount} accent="success" className="text-xs" /> ·{" "}
+                      <Count value={deck.studyingCount} accent="warning" className="text-xs" /> ·{" "}
+                      <Count value={deck.newCount} className="text-xs" />
+                    </span>
+                  </div>
+                ) : (
+                  <span className="text-xs text-[#9aa5b3]">-</span>
+                )}
+              </Td>
+              <Td className="text-xs text-[#637083]">{formatDateTime(deck.createdAt)}</Td>
             </tr>
           )
         })}
@@ -236,40 +296,39 @@ function WordsTable({
         }}
       >
         <select
-          aria-label="Deck filter"
+          aria-label="단어장 필터"
           className="focus-ring h-9 rounded-md border border-[#cbd5e1] bg-white px-3 text-sm"
           value={deckId ?? ""}
           onChange={(event) => onDeckChange(event.target.value ? Number(event.target.value) : null)}
         >
-          <option value="">All words</option>
+          <option value="">전체 단어</option>
           {decks.map((deck) => (
             <option key={deck.id} value={deck.id}>
-              {deck.kind} · {deck.title}
+              {deckKind[deck.kind].label} · {deck.title}
             </option>
           ))}
         </select>
-        <Input placeholder="Japanese text or reading" value={query} onChange={(event) => setQuery(event.target.value)} />
-        <Button type="submit" aria-label="Search words" title="Search words" size="icon">
+        <Input placeholder="일본어 또는 읽기" value={query} onChange={(event) => setQuery(event.target.value)} />
+        <Button type="submit" aria-label="단어 검색" title="단어 검색" size="icon">
           <Search className="h-4 w-4" />
         </Button>
       </form>
       {state === "loading" ? <LoadingState /> : null}
       {state === "error" ? <ErrorState label="Could not load words." /> : null}
-      {state === "ready" && data?.content.length === 0 ? <EmptyState label="No words found." /> : null}
+      {state === "ready" && data?.content.length === 0 ? <EmptyState label="단어가 없어요" /> : null}
       {state === "ready" && data && data.content.length > 0 ? (
         <>
           <Table>
             <thead>
               <tr>
                 <Th className="w-8" />
-                <Th>Word</Th>
-                <Th>Meaning</Th>
-                <Th>JLPT</Th>
-                <Th className="text-right">Examples</Th>
-                <Th>Songs</Th>
-                <Th>Review</Th>
-                <Th>Due</Th>
-                <Th>Saved</Th>
+                <Th>단어</Th>
+                <Th>뜻</Th>
+                <Th>상태</Th>
+                <Th>다음 복습</Th>
+                <Th>곡</Th>
+                <Th className="text-right">예문</Th>
+                <Th>저장</Th>
               </tr>
             </thead>
             <tbody>
@@ -294,46 +353,55 @@ function WordRow({ word, expanded, onToggle }: { word: AdminUserWord; expanded: 
   const [first, ...rest] = word.senses
   const exampleCount = word.senses.reduce((sum, sense) => sum + sense.examples.length, 0)
   const Chevron = expanded ? ChevronDown : ChevronRight
+  const status = word.flashcard ? flashcardStatus[word.flashcard.status] : null
   return (
     <>
       <tr className="cursor-pointer hover:bg-[#f9fbfc]" onClick={onToggle} aria-expanded={expanded}>
-        <Td className="w-8 pr-0 text-[#637083]">
+        <Td className="w-8 pr-0 text-[#9aa5b3]">
           <Chevron className="h-4 w-4" />
         </Td>
         <Td>
-          <div className="font-medium">{word.japaneseText}</div>
+          <div className="text-base font-semibold text-[#18212f]">{word.japaneseText}</div>
           {word.reading ? <div className="text-xs text-[#637083]">{word.reading}</div> : null}
         </Td>
         <Td>
-          {first?.meaning ?? "-"}
-          {rest.length > 0 ? <span className="ml-1 text-xs text-[#637083]">+{rest.length}</span> : null}
+          <span className="text-[#18212f]">{first?.meaning ?? "-"}</span>
+          {rest.length > 0 ? <span className="ml-1 text-xs text-[#9aa5b3]">+{rest.length}</span> : null}
+          {first?.jlpt ? <span className="ml-2 text-xs text-[#9aa5b3]">{first.jlpt}</span> : null}
         </Td>
-        <Td>{first?.jlpt ?? "-"}</Td>
-        <Td className="text-right tabular-nums">{exampleCount}</Td>
+        <Td>{status ? <Badge tone={status.tone}>{status.label}</Badge> : <span className="text-[#9aa5b3]">-</span>}</Td>
         <Td>
-          {word.sourceSongs.length === 0
-            ? "-"
-            : word.sourceSongs.map((song, index) => (
-                <React.Fragment key={song.id}>
-                  {index > 0 ? ", " : null}
-                  <Link
-                    className="text-[#0f766e] hover:underline"
-                    to={`/songs/${song.id}`}
-                    onClick={(event) => event.stopPropagation()}
-                  >
-                    {song.title}
-                  </Link>
-                </React.Fragment>
-              ))}
+          <DueCell due={word.flashcard?.due} />
         </Td>
-        <Td>{word.flashcard ? <Badge tone={flashcardTone[word.flashcard.status]}>{word.flashcard.status}</Badge> : "-"}</Td>
-        <Td>{formatDateTime(word.flashcard?.due)}</Td>
-        <Td>{formatDateTime(word.createdAt)}</Td>
+        <Td>
+          {word.sourceSongs.length === 0 ? (
+            <span className="text-[#9aa5b3]">-</span>
+          ) : (
+            word.sourceSongs.map((song, index) => (
+              <React.Fragment key={song.id}>
+                {index > 0 ? ", " : null}
+                <Link
+                  className="text-[#0f766e] hover:underline"
+                  to={`/songs/${song.id}`}
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  {song.title}
+                </Link>
+              </React.Fragment>
+            ))
+          )}
+        </Td>
+        <Td className="text-right">
+          <Count value={exampleCount} className="text-xs" />
+        </Td>
+        <Td>
+          <Recency value={word.createdAt} className="text-xs text-[#637083]" />
+        </Td>
       </tr>
       {expanded ? (
         <tr className="bg-[#f9fbfc]">
           <Td />
-          <Td colSpan={8} className="h-auto py-3 align-top">
+          <Td colSpan={7} className="h-auto py-3 align-top">
             <ol className="flex flex-col gap-3">
               {word.senses.map((sense, index) => (
                 <li key={`${sense.meaning}-${index}`}>
@@ -349,7 +417,7 @@ function WordRow({ word, expanded, onToggle }: { word: AdminUserWord; expanded: 
                           <span>{example.text}</span>
                           {example.translation ? <span className="text-[#637083]"> — {example.translation}</span> : null}
                           {example.songId != null ? (
-                            <span className="ml-2 font-mono text-xs text-[#637083]">
+                            <span className="ml-2 font-mono text-xs text-[#9aa5b3]">
                               song {example.songId}
                               {example.lineIndex != null ? ` · line ${example.lineIndex}` : null}
                             </span>
@@ -363,12 +431,27 @@ function WordRow({ word, expanded, onToggle }: { word: AdminUserWord; expanded: 
             </ol>
             {word.flashcard ? (
               <div className="mt-3 text-xs text-[#637083]">
-                FSRS state {word.flashcard.fsrsState} · last review {formatDateTime(word.flashcard.lastReview)}
+                FSRS state {word.flashcard.fsrsState} · 다음 복습 {formatDateTime(word.flashcard.due)} · 마지막 복습{" "}
+                {formatDateTime(word.flashcard.lastReview)} · 저장 {formatDateTime(word.createdAt)}
               </div>
             ) : null}
           </Td>
         </tr>
       ) : null}
     </>
+  )
+}
+
+/** 복습 시점이 지났으면 "지금" 으로 강조, 아직이면 남은 기간을 흐리게. */
+function DueCell({ due }: { due?: string | null }) {
+  if (!due) return <span className="text-[#9aa5b3]">-</span>
+  const overdue = new Date(due).getTime() <= Date.now()
+  return (
+    <span
+      className={cn("text-xs tabular-nums", overdue ? cn("font-semibold", toneText.warning) : "text-[#637083]")}
+      title={formatDateTime(due)}
+    >
+      {overdue ? "지금" : formatRelativeDays(due)}
+    </span>
   )
 }
