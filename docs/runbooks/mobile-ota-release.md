@@ -14,7 +14,9 @@
 - `eas build --platform ios ...`는 iOS EAS build 한도를 쓴다.
 - Android CD는 로컬 Gradle 빌드라 EAS Build 한도를 쓰지 않는다.
 - `eas update --channel ...`는 EAS Build 한도를 쓰지 않는다.
-- 새 native runtime을 출시하기 전에는 해당 runtime의 production JS OTA를 먼저 배포한다.
+- 새 native runtime은 rc 바이너리 -> production OTA(`update.N` 확인) -> 정식 바이너리 순서로
+  낸다. OTA를 바이너리보다 먼저 올리면 내장 번들 commitTime이 더 최신이라 그 OTA는
+  적용되지 않는다. 네이티브 태그와 JS 태그를 동시에 push하지 않는다.
 - 정식 바이너리를 새로 만들면 `production` OTA를 iOS/Android에서 다시 확인한다.
 
 ## GitHub Actions OTA deploy
