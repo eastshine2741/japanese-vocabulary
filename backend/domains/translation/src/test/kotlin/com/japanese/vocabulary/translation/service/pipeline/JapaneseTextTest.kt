@@ -68,6 +68,8 @@ class JapaneseTextTest {
         assertThat(JapaneseText.containsJapanese("ﾟ")).isFalse
         assertThat(JapaneseText.containsJapanese("「」 yay 123")).isFalse
         assertThat(JapaneseText.containsJapanese("、。")).isFalse
+        // A transliterated headword: あいうぉんちゅー spelled back out. Nothing here for jisho to look up.
+        assertThat(JapaneseText.containsJapanese("I want you")).isFalse
     }
 
     @Test
