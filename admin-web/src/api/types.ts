@@ -168,6 +168,87 @@ export type AdminUser = {
   name: string | null
   createdAt: string | null
   deletedAt: string | null
+  wordCount: number
+  /** 곡 단어장 수. 전체 단어장은 시스템이 만들어 주는 것이라 세지 않는다. */
+  songDeckCount: number
+  customDeckCount: number
+  lastWordSavedAt: string | null
+  lastReviewedAt: string | null
+}
+
+export type AdminUserDetail = {
+  user: AdminUser
+  learning: AdminUserLearning
+  decks: AdminUserDeck[]
+}
+
+export type AdminUserLearning = {
+  wordCount: number
+  dueCount: number
+  newCount: number
+  studyingCount: number
+  masteredCount: number
+  lastWordSavedAt: string | null
+  lastReviewedAt: string | null
+  reviewDaysLast30: number
+  reviewCountLast30: number
+}
+
+export type AdminUserDeckKind = "DEFAULT" | "SONG" | "CUSTOM"
+
+export type AdminUserDeck = {
+  id: number
+  kind: AdminUserDeckKind
+  title: string
+  description: string
+  songId: number | null
+  songTitle: string | null
+  songArtist: string | null
+  wordCount: number
+  dueCount: number
+  newCount: number
+  studyingCount: number
+  masteredCount: number
+  createdAt: string | null
+}
+
+export type AdminWordFlashcardStatus = "NEW" | "STUDYING" | "MASTERED"
+
+export type AdminUserWord = {
+  id: number
+  japaneseText: string
+  reading: string | null
+  senses: AdminWordSense[]
+  sourceSongs: AdminWordSongRef[]
+  flashcard: AdminWordFlashcard | null
+  createdAt: string | null
+}
+
+export type AdminWordSense = {
+  meaning: string
+  partOfSpeech: string
+  jlpt: string | null
+  examples: AdminWordExample[]
+}
+
+export type AdminWordExample = {
+  text: string
+  translation: string | null
+  songId: number | null
+  lineIndex: number | null
+}
+
+export type AdminWordSongRef = {
+  id: number
+  title: string
+  artist: string
+}
+
+export type AdminWordFlashcard = {
+  status: AdminWordFlashcardStatus
+  fsrsState: number
+  due: string
+  lastReview: string | null
 }
 
 export type ReelsSongCandidate = {

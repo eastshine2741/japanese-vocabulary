@@ -16,6 +16,7 @@ dependencies {
     implementation(project(":domains:song"))
     implementation(project(":domains:song-analysis"))
     implementation(project(":domains:user"))
+    implementation(project(":domains:word"))
 
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
@@ -34,6 +35,7 @@ dependencies {
     testImplementation(testFixtures(project(":common")))
     testImplementation(testFixtures(project(":domains:song")))
     testImplementation(testFixtures(project(":domains:user")))
+    testImplementation(testFixtures(project(":domains:word")))
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {

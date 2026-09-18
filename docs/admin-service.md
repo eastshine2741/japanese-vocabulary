@@ -56,8 +56,9 @@ Routes:
 - `PATCH /admin/api/recommendations/{recommendationId}`
 - `POST /admin/api/recommendations/prepare-approved`
 - `POST /admin/api/recommendations/request-analysis`
-- `GET /admin/api/users`
-- `GET /admin/api/users/{userId}`
+- `GET /admin/api/users` — 유저마다 `wordCount`, `songDeckCount`, `customDeckCount`, `lastWordSavedAt`, `lastReviewedAt` 포함
+- `GET /admin/api/users/{userId}` — `{ user, learning, decks }`
+- `GET /admin/api/users/{userId}/words?deckId=&q=` — 페이지 (최근 담은 순)
 - `GET /admin/api/reels-factory/songs`
 - `GET /admin/api/reels-factory/songs/{songId}`
 - `POST /admin/api/reels-factory/songs/{songId}/source` (multipart `file`)
@@ -81,6 +82,16 @@ Reels Factory:
 - No DB entity, migration, Object Storage object, or job history is created.
 - Normal tests use a fake renderer, a fake preview transcoder, and the real file cache on a temp directory. The subprocess renderer requires Node, npm dependencies under `/opt/reels`, and `ffmpeg`.
 - Uploaded MVs are copyrighted material. This workflow is admin-only and is not legal advice.
+
+User learning visibility:
+
+- 유저가 담기·단어장·복습을 실제로 쓰는지 보기 위한 read-only 화면. `admin-api` 가 `domains:word` 에 의존한다.
+- `learning` 의 복습 상태 분포(new/studying/mastered/due)와 deck 별 통계는 도메인 `DeckRepository` 의 집계 쿼리(`findAllDeckDetailStats`, `findDeckStats`)를 그대로 호출해 앱이 유저에게 보여 주는 숫자와 일치시킨다. 단어 행의 `flashcard.status` 도 같은 판정식이다.
+- `reviewDaysLast30` / `reviewCountLast30` 은 `daily_study_summary` 를 native query 로 직접 읽는다 (`AdminUserRepository.summarizeRecentStudy`). `studystats` 모듈을 끌어오면 `userinventory` 와 `KstClock` 배선까지 따라와서 테이블만 읽는다. 학습일 경계(04:00 KST)는 `KstClock` 과 같은 값을 admin 쪽에 상수로 둔다.
+- 목록의 deck 카운트는 전체 단어장(`is_default = 1`)을 제외한다 — 모든 유저가 자동으로 가져서 활동 신호가 아니다.
+- 단어의 `sourceSongs` 는 `senses[].examples[].songId` 논리 참조를 모아 `songs` 에서 찾은 것만 돌려준다. 곡 → 단어 역방향 조회는 여전히 없다 (`docs/architecture/word-schema.md`).
+- 복습 이력 로그는 없다. 보여 줄 수 있는 복습 신호는 flashcard 현재 상태, `last_review`, 일별 `review_count` 까지다.
+- `admin-web` 의 Users 목록에 Words / Decks(`곡 + 일반`) / Last saved / Last review 컬럼이 붙고, User 상세에 Learning 요약, Decks 표, Words 표(deck 필터·검색·행 펼침으로 sense 와 예문)가 붙는다. Decks 행을 클릭하면 Words 표가 그 단어장으로 필터된다.
 
 Auth:
 

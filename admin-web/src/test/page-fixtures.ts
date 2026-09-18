@@ -1,5 +1,7 @@
 import type {
   AdminUser,
+  AdminUserDetail,
+  AdminUserWord,
   LyricDetail,
   LyricSummary,
   PageResponse,
@@ -114,6 +116,76 @@ export const adminUser: AdminUser = {
   name: "Admin Read",
   createdAt: "2026-01-01T00:00:00Z",
   deletedAt: null,
+  wordCount: 2,
+  songDeckCount: 1,
+  customDeckCount: 0,
+  lastWordSavedAt: "2026-01-02T00:00:00Z",
+  lastReviewedAt: "2026-01-03T00:00:00Z",
+}
+
+export const adminUserDetail: AdminUserDetail = {
+  user: adminUser,
+  learning: {
+    wordCount: 2,
+    dueCount: 1,
+    newCount: 1,
+    studyingCount: 0,
+    masteredCount: 1,
+    lastWordSavedAt: "2026-01-02T00:00:00Z",
+    lastReviewedAt: "2026-01-03T00:00:00Z",
+    reviewDaysLast30: 3,
+    reviewCountLast30: 12,
+  },
+  decks: [
+    {
+      id: 10,
+      kind: "DEFAULT",
+      title: "전체 단어장",
+      description: "",
+      songId: null,
+      songTitle: null,
+      songArtist: null,
+      wordCount: 2,
+      dueCount: 1,
+      newCount: 1,
+      studyingCount: 0,
+      masteredCount: 1,
+      createdAt: "2026-01-01T00:00:00Z",
+    },
+    {
+      id: 11,
+      kind: "SONG",
+      title: "夜に駆ける",
+      description: "YOASOBI",
+      songId: 1,
+      songTitle: "夜に駆ける",
+      songArtist: "YOASOBI",
+      wordCount: 1,
+      dueCount: 0,
+      newCount: 0,
+      studyingCount: 0,
+      masteredCount: 1,
+      createdAt: "2026-01-02T00:00:00Z",
+    },
+  ],
+}
+
+export const adminUserWord: AdminUserWord = {
+  id: 20,
+  japaneseText: "駆ける",
+  reading: "カケル",
+  senses: [
+    {
+      meaning: "달리다",
+      partOfSpeech: "동사",
+      jlpt: "N3",
+      examples: [{ text: "夜に駆ける", translation: "밤을 달리다", songId: 1, lineIndex: 0 }],
+    },
+    { meaning: "뛰다", partOfSpeech: "동사", jlpt: "N3", examples: [] },
+  ],
+  sourceSongs: [{ id: 1, title: "夜に駆ける", artist: "YOASOBI" }],
+  flashcard: { status: "MASTERED", fsrsState: 1, due: "2026-02-01T00:00:00Z", lastReview: "2026-01-03T00:00:00Z" },
+  createdAt: "2026-01-02T00:00:00Z",
 }
 
 export const songAnalysisWorkSummary: SongAnalysisWorkSummary = {

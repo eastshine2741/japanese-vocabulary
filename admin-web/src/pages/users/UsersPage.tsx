@@ -13,6 +13,12 @@ import { Table, Td, Th } from "@/components/ui/table"
 import { useAuth } from "@/features/auth"
 import { formatDateTime, formatNumber } from "@/lib/utils"
 
+/** `곡 + 일반` 형태. 둘 다 0 이면 `-` 로 비워 활동 없는 유저가 한눈에 보이게 한다. */
+export function formatDeckCounts(songDeckCount: number, customDeckCount: number) {
+  if (songDeckCount === 0 && customDeckCount === 0) return "-"
+  return `${songDeckCount} + ${customDeckCount}`
+}
+
 export function UsersPage() {
   const { token } = useAuth()
   const [page, setPage] = React.useState(0)
@@ -66,6 +72,10 @@ export function UsersPage() {
                 <Th>Provider</Th>
                 <Th>Email</Th>
                 <Th>Status</Th>
+                <Th className="text-right">Words</Th>
+                <Th className="text-right">Decks</Th>
+                <Th>Last saved</Th>
+                <Th>Last review</Th>
                 <Th>Created</Th>
               </tr>
             </thead>
@@ -83,6 +93,12 @@ export function UsersPage() {
                   <Td>
                     <Badge tone={user.deletedAt ? "danger" : "success"}>{user.deletedAt ? "DELETED" : "ACTIVE"}</Badge>
                   </Td>
+                  <Td className="text-right tabular-nums">{formatNumber(user.wordCount)}</Td>
+                  <Td className="text-right tabular-nums" title="Song decks + custom decks">
+                    {formatDeckCounts(user.songDeckCount, user.customDeckCount)}
+                  </Td>
+                  <Td>{formatDateTime(user.lastWordSavedAt)}</Td>
+                  <Td>{formatDateTime(user.lastReviewedAt)}</Td>
                   <Td>{formatDateTime(user.createdAt)}</Td>
                 </tr>
               ))}

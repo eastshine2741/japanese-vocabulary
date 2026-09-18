@@ -1,5 +1,7 @@
 import type {
   AdminUser,
+  AdminUserDetail,
+  AdminUserWord,
   LoginResponse,
   LyricDetail,
   PageResponse,
@@ -160,7 +162,12 @@ export const adminApi = {
     return request<PageResponse<AdminUser>>(`/users?${pageParams(page, query)}`, token)
   },
   user(token: string, id: string) {
-    return request<AdminUser>(`/users/${id}`, token)
+    return request<AdminUserDetail>(`/users/${id}`, token)
+  },
+  userWords(token: string, id: string, page: number, filter: { deckId?: number | null; query?: string }) {
+    const params = pageParams(page, filter.query)
+    if (filter.deckId != null) params.set("deckId", String(filter.deckId))
+    return request<PageResponse<AdminUserWord>>(`/users/${id}/words?${params}`, token)
   },
   reelsSongs(token: string, page: number, query?: string) {
     return request<PageResponse<ReelsSongCandidate>>(`/reels-factory/songs?${pageParams(page, query)}`, token)

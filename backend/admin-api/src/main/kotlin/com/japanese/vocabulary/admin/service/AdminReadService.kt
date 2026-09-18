@@ -6,16 +6,13 @@ import com.japanese.vocabulary.admin.dto.AdminSongAnalysisWorkDetailResponse
 import com.japanese.vocabulary.admin.dto.AdminSongAnalysisWorkSummaryResponse
 import com.japanese.vocabulary.admin.dto.AdminSongDetailResponse
 import com.japanese.vocabulary.admin.dto.AdminSongSummaryResponse
-import com.japanese.vocabulary.admin.dto.AdminUserResponse
 import com.japanese.vocabulary.admin.repository.AdminLyricRepository
 import com.japanese.vocabulary.admin.repository.AdminSongRepository
 import com.japanese.vocabulary.admin.repository.AdminSongAnalysisWorkRepository
-import com.japanese.vocabulary.admin.repository.AdminUserRepository
 import com.japanese.vocabulary.song.entity.LyricEntity
 import com.japanese.vocabulary.song.entity.SongEntity
 import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkEntity
 import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStatus
-import com.japanese.vocabulary.user.entity.UserEntity
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
@@ -29,7 +26,6 @@ class AdminReadService(
     private val songRepository: AdminSongRepository,
     private val lyricRepository: AdminLyricRepository,
     private val songAnalysisWorkRepository: AdminSongAnalysisWorkRepository,
-    private val userRepository: AdminUserRepository,
 ) {
     fun listSongs(query: String?, pageable: Pageable): Page<AdminSongSummaryResponse> {
         val sorted = pageable.byIdDesc()
@@ -77,25 +73,6 @@ class AdminReadService(
             NoSuchElementException("Song analysis work not found")
         }
         return work.toDetailResponse()
-    }
-
-    fun listUsers(query: String?, pageable: Pageable): Page<AdminUserResponse> {
-        val sorted = pageable.byIdDesc()
-        val page = query?.trim()?.takeIf { it.isNotEmpty() }
-            ?.let {
-                userRepository.findByUsernameContainingIgnoreCaseOrEmailContainingIgnoreCaseOrNameContainingIgnoreCase(
-                    it,
-                    it,
-                    it,
-                    sorted,
-                )
-            }
-            ?: userRepository.findAll(sorted)
-        return page.map { it.toResponse() }
-    }
-
-    fun getUser(id: Long): AdminUserResponse {
-        return userRepository.findById(id).orElseThrow { NoSuchElementException("User not found") }.toResponse()
     }
 
     private fun Pageable.byIdDesc(): Pageable =
@@ -196,13 +173,3 @@ fun SongAnalysisWorkEntity.toDetailResponse(): AdminSongAnalysisWorkDetailRespon
         completedAt = completedAt,
         failedAt = failedAt,
     )
-
-fun UserEntity.toResponse(): AdminUserResponse = AdminUserResponse(
-    id = requireNotNull(id),
-    provider = provider,
-    username = username,
-    email = email,
-    name = name,
-    createdAt = createdAt,
-    deletedAt = deletedAt,
-)

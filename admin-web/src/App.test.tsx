@@ -5,6 +5,8 @@ import { beforeEach, describe, expect, test, vi } from "vitest"
 import { App } from "@/App"
 import {
   adminUser,
+  adminUserDetail,
+  adminUserWord,
   lyricDetail,
   page,
   recommendation,
@@ -42,7 +44,11 @@ function mockFetch() {
     if (url.includes("/recommendations?") || url.endsWith("/recommendations")) return json([recommendation])
     if (url.includes("/recommendations/request-analysis")) return json(recommendationOperationResult)
     if (url.includes("/lyrics/2")) return json(lyricDetail)
-    if (url.includes("/users/3")) return json(adminUser)
+    if (url.includes("/users/3/words")) {
+      const words = new URL(url).searchParams.get("deckId") === "11" ? [adminUserWord] : [adminUserWord, { ...adminUserWord, id: 21, japaneseText: "夜", reading: "ヨル", senses: [{ meaning: "밤", partOfSpeech: "명사", jlpt: "N5", examples: [] }], sourceSongs: [], flashcard: { status: "NEW", fsrsState: 0, due: "2026-01-01T00:00:00Z", lastReview: null } }]
+      return json(page(words))
+    }
+    if (url.includes("/users/3")) return json(adminUserDetail)
     if (url.includes("/users?")) return json(page([adminUser]))
     return json({}, 404)
   })
@@ -116,6 +122,40 @@ describe("admin web", () => {
     expect(screen.getByRole("link", { name: "Analysis Work" })).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "Reels Factory" })).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "Users" })).toBeInTheDocument()
+  })
+
+  test("shows user learning activity in list and detail", async () => {
+    const user = userEvent.setup()
+    sessionStorage.setItem("kotonoha.admin.token", "admin-token")
+    renderApp("/users")
+
+    // 목록: 단어 수와 단어장 수(곡 + 일반)
+    const row = (await screen.findByText("adminread")).closest("tr")!
+    expect(row).toHaveTextContent("2")
+    expect(row).toHaveTextContent("1 + 0")
+
+    await user.click(screen.getByRole("link", { name: "adminread" }))
+
+    // 상세: 학습 요약, 단어장, 단어
+    expect(await screen.findByRole("heading", { name: "Learning" })).toBeInTheDocument()
+    expect(screen.getByText("Review days (30d)").nextElementSibling).toHaveTextContent("3")
+    expect(screen.getByText("전체 단어장")).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: /夜に駆ける · YOASOBI/ })).toHaveAttribute("href", "/songs/1")
+    expect(await screen.findByText("駆ける")).toBeInTheDocument()
+    expect(screen.getByText("夜")).toBeInTheDocument()
+    expect(screen.getByText("MASTERED")).toBeInTheDocument()
+    expect(screen.getByText("NEW")).toBeInTheDocument()
+
+    // 단어 행 펼치면 뜻 전체와 예문
+    await user.click(screen.getByText("駆ける"))
+    expect(await screen.findByText("뛰다")).toBeInTheDocument()
+    expect(screen.getByText("夜に駆ける", { selector: "li span" })).toBeInTheDocument()
+
+    // 단어장 행 클릭 → 그 단어장으로 필터
+    await user.click(screen.getByText("SONG").closest("tr")!)
+    await waitFor(() => expect(screen.queryByText("夜")).not.toBeInTheDocument())
+    expect(screen.getByLabelText("Deck filter")).toHaveValue("11")
+    expect(screen.getByText("駆ける")).toBeInTheDocument()
   })
 
   test("runs recommendation workflow operations", async () => {
