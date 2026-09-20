@@ -526,7 +526,7 @@ const RatingButton = React.memo(function RatingButton({
     <Pressable style={styles.ratingButton} onPress={handlePress} disabled={disabled}>
       <Animated.View style={[styles.ratingButtonRest, restStyle]} />
       <Animated.View style={[styles.ratingButtonContent, contentStyle]}>
-        <Text style={styles.ratingLabel}>{label}</Text>
+        <Text style={[styles.ratingLabel, { color }]}>{label}</Text>
         {interval != null && <Text style={[styles.ratingInterval, { color }]}>{formatInterval(interval)}</Text>}
       </Animated.View>
     </Pressable>
@@ -748,7 +748,6 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   ratingLabel: {
-    color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '700',
   },
