@@ -68,6 +68,8 @@ class JapaneseTextTest {
         assertThat(JapaneseText.containsJapanese("ﾟ")).isFalse
         assertThat(JapaneseText.containsJapanese("「」 yay 123")).isFalse
         assertThat(JapaneseText.containsJapanese("、。")).isFalse
+        // An English headword the model wrote for a hiragana loanword: nothing here for jisho to hold.
+        assertThat(JapaneseText.containsJapanese("I want you")).isFalse
     }
 
     @Test
