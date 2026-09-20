@@ -4,12 +4,12 @@ import { streakToastContent, StreakToastContent, useStreakStore } from '../../st
 import { Typography } from '../../theme/typography';
 
 export interface StreakDebugPanelProps {
-  /** 완료 배너는 몰입 크롬 위에만 보이므로 배너 버튼이 먼저 몰입으로 들어간다. */
-  onRequestImmerse: () => void;
+  /** 홈: 완료 배너는 몰입 크롬 위에만 보이므로 배너 버튼이 먼저 몰입으로 들어간다. 곡 복습처럼 항상 크롬이 떠 있으면 생략. */
+  onRequestImmerse?: () => void;
 }
 
 /**
- * dev 빌드 전용 — 홈 오른쪽 아래에 떠서 '오늘 아직' 말풍선과 첫 rating 완료 배너를 서버 상태와
+ * dev 빌드 전용 — 화면 오른쪽 아래에 떠서 '오늘 아직' 말풍선과 첫 rating 완료 배너를 서버 상태와
  * 무관하게 띄운다. 홈을 다시 불러오면(홈탭 재탭) 서버 값으로 되돌아간다.
  */
 export const StreakDebugPanel = React.memo(function StreakDebugPanel({ onRequestImmerse }: StreakDebugPanelProps) {
@@ -22,7 +22,7 @@ export const StreakDebugPanel = React.memo(function StreakDebugPanel({ onRequest
   }, [showNudge]);
 
   const showToast = useCallback((toast: StreakToastContent) => {
-    onRequestImmerse();
+    onRequestImmerse?.();
     // 이미 떠 있는 배너가 있으면 내리고 새로 띄운다.
     useStreakStore.setState({ toast: null });
     requestAnimationFrame(() => useStreakStore.setState({ toast }));

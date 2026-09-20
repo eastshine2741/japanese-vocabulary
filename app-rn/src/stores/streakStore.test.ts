@@ -1,5 +1,8 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { streakToastContent, useStreakStore } from './streakStore';
+import { studyStatsApi } from '../api/studyStatsApi';
+
+vi.mock('../api/studyStatsApi', () => ({ studyStatsApi: { getHome: vi.fn() } }));
 
 const store = () => useStreakStore.getState();
 
@@ -18,6 +21,21 @@ describe('streakToastContent (A-2 문구표)', () => {
 
 describe('streakStore', () => {
   afterEach(() => store().reset());
+
+  it('ensureLoaded: 아직 없으면 홈 통계를 받고, 이미 있으면 다시 받지 않는다', async () => {
+    vi.mocked(studyStatsApi.getHome).mockResolvedValue({ currentStreak: 2, studiedToday: false, hasStudiedBefore: true } as any);
+    await store().ensureLoaded();
+    expect(store().loaded).toBe(true);
+    expect(store().currentStreak).toBe(2);
+    await store().ensureLoaded();
+    expect(studyStatsApi.getHome).toHaveBeenCalledTimes(1);
+  });
+
+  it('ensureLoaded: 실패하면 그대로 미로딩 상태', async () => {
+    vi.mocked(studyStatsApi.getHome).mockRejectedValueOnce(new Error('x'));
+    await store().ensureLoaded();
+    expect(store().loaded).toBe(false);
+  });
 
   it('홈 통계를 받기 전에는 rating 이 아무것도 바꾸지 않는다', () => {
     store().recordRating();

@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -9,7 +9,10 @@ import {
   useEditWordFromStack,
   useStudyStack,
 } from '../components/studyStack';
+import { StreakDebugPanel } from '../components/studyStack/StreakDebugPanel';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import { useStreakStore } from '../stores/streakStore';
+import { isDevBuild } from '../utils/buildEnv';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SongReview'>;
 
@@ -20,6 +23,8 @@ export default function SongReviewScreen({ navigation, route }: Props) {
 
   const stack = useStudyStack({ mode: 'source', source });
   const { isComplete, session, status } = stack;
+  // 홈 스택을 거치지 않고 곡 상세에서 바로 들어와도 첫 rating 완료 배너가 뜨도록 연속 학습 통계를 확보한다.
+  useEffect(() => { useStreakStore.getState().ensureLoaded(); }, []);
   const editWord = useEditWordFromStack(stack.refreshCurrentCard);
 
   const goBack = useCallback(() => navigation.goBack(), [navigation]);
@@ -57,6 +62,7 @@ export default function SongReviewScreen({ navigation, route }: Props) {
         contentInsetTop={insets.top + STACK_REVIEW_CHROME_HEIGHT}
         contentInsetBottom={insets.bottom}
       />
+      {isDevBuild && <StreakDebugPanel />}
     </View>
   );
 }

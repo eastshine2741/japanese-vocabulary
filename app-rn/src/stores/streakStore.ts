@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { studyStatsApi } from '../api/studyStatsApi';
 import { HomeStats } from '../types/studyStats';
 
 export interface StreakToastContent {
@@ -19,6 +20,8 @@ interface StreakState {
   toast: StreakToastContent | null;
 
   applyHomeStats: (stats: Pick<HomeStats, 'currentStreak' | 'studiedToday' | 'hasStudiedBefore'>) => void;
+  /** 홈을 거치지 않고 복습에 들어온 화면용 — 아직 홈 통계가 없으면 한 번 받아온다. 실패는 조용히 무시. */
+  ensureLoaded: () => Promise<void>;
   /** rating 이 서버에 기록된 직후 호출. 오늘 첫 rating 이면 숫자를 올리고 배너를 띄운다. */
   recordRating: () => void;
   dismissToast: () => void;
@@ -49,6 +52,15 @@ export const useStreakStore = create<StreakState>((set, get) => ({
 
   applyHomeStats: ({ currentStreak, studiedToday, hasStudiedBefore }) =>
     set({ loaded: true, currentStreak, studiedToday, hasStudiedBefore }),
+
+  ensureLoaded: async () => {
+    if (get().loaded) return;
+    try {
+      get().applyHomeStats(await studyStatsApi.getHome());
+    } catch {
+      // 통계가 없으면 배너를 안 띄울 뿐, 복습 자체는 막지 않는다.
+    }
+  },
 
   // 홈 통계를 다시 받기 전까지는 studiedToday 가 true 로 남는다 — 하루 경계(04:00)를 넘겨도
   // 한 세션에서는 배너를 한 번만 보이고, 다음 홈 진입 때 새 날짜 기준으로 갱신된다.
