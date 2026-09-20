@@ -5,13 +5,13 @@
 
 서버 반영 상태 (2026-09-20): 1번(`studiedToday`/`hasStudiedBefore`)과 3번(`StreakReminderScheduler`,
 20:00/23:00, `review_reminder` 폐기)은 구현됨. 2번(rating 응답 `streak` 블록)은 하지 않기로 결정.
-프론트 남은 일: `streakMock.ts` 와 `withStreakMock` 호출 제거, `pushNotifications.ts` 의 `review_reminder` 분기 제거.
+프론트도 목업(`streakMock.ts`)과 `review_reminder` 탭 분기를 제거해 서버 값을 그대로 쓴다.
 
 ## 프론트 목업 위치
 
 | 파일 | 역할 | 서버가 준비되면 |
 |---|---|---|
-| `app-rn/src/api/streakMock.ts` | `/api/study-stats/home` 응답에 `studiedToday` 가 없으면 시나리오 값으로 덮는다 (`EXPO_PUBLIC_MOCK_STREAK` = `pending`/`done`/`broken`/`first`/`off`, 기본 `pending`) | 파일과 `studyStatsApi.getHome` 의 `withStreakMock` 호출을 지운다 |
+| `app-rn/src/api/streakMock.ts` | (제거됨) 서버가 `studiedToday` 를 주기 전까지 시나리오 값으로 덮던 목업 | 제거 완료 |
 | `app-rn/src/stores/streakStore.ts` | 헤더 칩 숫자·넛지·완료 배너 상태. 오늘 첫 rating 을 클라이언트가 판정한다 | 그대로 둔다 (서버 필드가 들어오면 목업 없이 동작) |
 
 ## 1. `GET /api/study-stats/home` 에 필드 두 개 추가 (B·A 필수)
@@ -84,8 +84,7 @@
 
 - 끊긴 유저는 끊긴 다음날부터 3일간 20:00 만, 나흘째부터 멈춤. 다시 학습하면 처음부터.
 - 한 번도 학습 안 한 유저(`daily_study_summary` 없음)는 대상 아님.
-- 기존 09:00 / 18:00 `review_reminder`(단어 회상) 는 폐기. 앱의 `review_reminder` 탭 처리는 서버가
-  끊을 때까지 남겨 두었다.
+- 기존 09:00 / 18:00 `review_reminder`(단어 회상) 는 폐기. 앱의 `review_reminder` 탭 처리도 제거했다.
 - 곡 분석 완료 알림(`song_analysis_completed`)은 무관.
 
 ### 관련 문서 갱신

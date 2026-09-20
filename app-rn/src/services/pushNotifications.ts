@@ -98,14 +98,6 @@ function handleData(data: RemoteMessage['data']): void {
     navigate('Main', { screen: 'Home' });
     return;
   }
-  // 단어 회상 알림 — 260918 C 로 폐기 예정이지만 서버가 바뀌기 전까지 받을 수 있어 남겨 둔다.
-  if (data.type === 'review_reminder' && data.flashcardId != null) {
-    const id = Number(data.flashcardId);
-    if (Number.isFinite(id)) {
-      navigate('Main', { screen: 'Home' });
-    }
-    return;
-  }
   // AnalysisNotificationDispatcher(batch) 가 songId 를 문자열로 실어 보낸다.
   if (data.type === 'song_analysis_completed' && data.songId != null) {
     const songId = Number(data.songId);

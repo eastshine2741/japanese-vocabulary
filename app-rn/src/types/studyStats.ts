@@ -11,11 +11,7 @@ export interface HomeStats {
   freezeCount: number;
   freezeMax: number;
   weekDots: WeekDot[];
-  /**
-   * 아래 두 필드는 서버가 아직 주지 않는다 — `api/streakMock.ts` 가 채운다.
-   * 필요한 API 는 `docs/product-intents/260918-streak-commitment-api.md`.
-   */
-  /** 오늘(KST 04:00 경계) 리뷰 기록이 있는지. */
+  /** 오늘(KST 04:00 경계) 리뷰 기록이 있는지. freeze 로만 채워진 날은 false. */
   studiedToday: boolean;
   /** 오늘 이전에 하루라도 학습한 적 있는지 — 첫날과 끊긴 뒤 재시작을 가른다. */
   hasStudiedBefore: boolean;

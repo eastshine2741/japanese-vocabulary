@@ -1,11 +1,10 @@
 import client from './client';
 import { HeatmapResponse, HomeStats, ProfileStats } from '../types/studyStats';
-import { withStreakMock } from './streakMock';
 
 export const studyStatsApi = {
   async getHome(): Promise<HomeStats> {
     const { data } = await client.get<HomeStats>('/api/study-stats/home');
-    return withStreakMock(data);
+    return data;
   },
 
   async getProfile(): Promise<ProfileStats> {
