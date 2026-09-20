@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { Extrapolation, interpolate, SharedValue, useAnimatedStyle } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -24,6 +24,8 @@ export interface HomeExpandedHeaderProps {
   selectedSongId: number | null;
   onSelectDeckStripItem: (source: StudySource) => void;
   onSearch: () => void;
+  /** 연속 학습 칩을 눌렀을 때 — 프로필 탭으로 보낸다. */
+  onPressStreak: () => void;
   /** 0 = 펼침(H5), 1 = 몰입(H1). UI 스레드에서 굴러가는 값. */
   immerse: SharedValue<number>;
 }
@@ -38,6 +40,7 @@ export const HomeExpandedHeader = React.memo(function HomeExpandedHeader({
   selectedSongId,
   onSelectDeckStripItem,
   onSearch,
+  onPressStreak,
   immerse,
 }: HomeExpandedHeaderProps) {
   const insets = useSafeAreaInsets();
@@ -66,15 +69,15 @@ export const HomeExpandedHeader = React.memo(function HomeExpandedHeader({
   return (
     <Animated.View style={[styles.shell, { height }, shell]} pointerEvents="box-none">
       <View style={{ height: insets.top }} pointerEvents="none" />
-      <Animated.View style={[styles.appBar, appBar]} pointerEvents="none">
+      <Animated.View style={[styles.appBar, appBar]} pointerEvents="box-none">
         <Text style={styles.wordmark}>Kotonoha</Text>
-        <View style={styles.streak}>
+        <Pressable style={styles.streak} onPress={onPressStreak} hitSlop={8}>
           <Ionicons name="flame" size={20} color={Colors.streakFlame} />
           <View style={styles.streakLabel}>
             <Text style={styles.streakNum}>{streak}일</Text>
             <Text style={styles.streakWord}>연속</Text>
           </View>
-        </View>
+        </Pressable>
       </Animated.View>
       <Animated.View style={[styles.deckStripWrap, deckStripAnim]} pointerEvents="box-none">
         <DeckStrip

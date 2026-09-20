@@ -97,6 +97,7 @@ export default function HomeTab() {
   );
 
   const goSearch = useCallback(() => navigation.navigate('Search'), [navigation]);
+  const goMyPage = useCallback(() => navigation.navigate('MyPage'), [navigation]);
 
   const openSource = useCallback(() => {
     if (visibleSongId == null) return;
@@ -163,6 +164,7 @@ export default function HomeTab() {
         selectedSongId={selectedSongId}
         onSelectDeckStripItem={selectSource}
         onSearch={goSearch}
+        onPressStreak={goMyPage}
         immerse={immerse}
       />
       {isDevBuild && <StreakDebugPanel onRequestImmerse={enterImmerse} />}
