@@ -12,6 +12,11 @@ interface DailyStudySummaryRepository : JpaRepository<DailyStudySummaryEntity, L
 
     fun findByUserIdAndDateKst(userId: Long, dateKst: LocalDate): DailyStudySummaryEntity?
 
+    fun existsByUserIdAndDateKstLessThan(userId: Long, dateKst: LocalDate): Boolean
+
+    @Query("SELECT MAX(d.dateKst) FROM DailyStudySummaryEntity d WHERE d.userId = :userId")
+    fun findLastDateKst(@Param("userId") userId: Long): LocalDate?
+
     fun findByUserIdAndDateKstBetweenOrderByDateKstAsc(
         userId: Long,
         from: LocalDate,

@@ -27,7 +27,7 @@ import java.util.concurrent.atomic.AtomicLong
         "push.manual.secret=test-manual-push-secret",
     ]
 )
-class ReviewReminderDevControllerTest : BatchBaseIntegrationTest() {
+class PushDevControllerTest : BatchBaseIntegrationTest() {
 
     @MockkBean
     private lateinit var firebaseApp: FirebaseApp

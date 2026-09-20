@@ -3,8 +3,8 @@ package com.japanese.vocabulary.batch
 import com.japanese.vocabulary.config.ClockConfig
 import com.japanese.vocabulary.config.SentryConfig
 import com.japanese.vocabulary.notification.ManualPushNotificationService
-import com.japanese.vocabulary.notification.ReviewReminderDevController
-import com.japanese.vocabulary.notification.ReviewReminderScheduler
+import com.japanese.vocabulary.notification.PushDevController
+import com.japanese.vocabulary.notification.StreakReminderScheduler
 import com.japanese.vocabulary.notification.AnalysisNotificationDispatcher
 import com.japanese.vocabulary.notification.AnalysisNotificationListener
 import com.japanese.vocabulary.observability.HttpClientMetricsConfig
@@ -34,8 +34,8 @@ import org.springframework.context.annotation.Import
     HttpClientMetricsConfig::class,
     SentryConfig::class,
     ManualPushNotificationService::class,
-    ReviewReminderDevController::class,
-    ReviewReminderScheduler::class,
+    PushDevController::class,
+    StreakReminderScheduler::class,
     AnalysisNotificationDispatcher::class,
     AnalysisNotificationListener::class,
     AppleMusicRecommendationCollector::class,

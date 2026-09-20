@@ -98,6 +98,11 @@ katakana and line readings are assembled by clients. Details live in
 `GITHUB_VOC_TOKEN`; 비면 503. `GET /api/users/me`가 username/name/email을 돌려준다.
 앱은 `expo-device`/`expo-application`을 쓰므로 새 네이티브 빌드가 필요하다.
 
+**Streak commitment (260918):** `GET /api/study-stats/home`이 `studiedToday`/`hasStudiedBefore`를 내려주고,
+`batch`의 `StreakReminderScheduler`가 20:00/23:00 KST에 `streak_reminder` 알림을 보낸다 (단어 회상 알림은 폐기).
+앱 목업(`app-rn/src/api/streakMock.ts`)은 서버 값이 오면 자동으로 비활성 — 정리 예정. 스펙은
+`docs/product-intents/260918-streak-commitment-api.md`.
+
 **Admin surface:** `backend/admin-api` exposes `/admin/api/auth/login`, `/admin/api/songs`, `/admin/api/lyrics`, `/admin/api/song-analysis-works`, `/admin/api/users`, and `/admin/api/users/{id}/words` (per-user decks/words/review state, read-only). `admin-web` is a Vite React TypeScript shadcn-style SPA. Dev 는 `/<namespace>/admin` 경로로, prod 는 `https://kotonoha.eastshine.dev/admin` (API 는 `/admin/api`) 한 호스트로 배포된다 — path 별 미들웨어가 필요해 Traefik `IngressRoute` 를 쓴다. See `docs/admin-service.md`.
 
 **Partial coverage:** Backend integration tests for new domains; broader e2e tests still pending.
