@@ -1,9 +1,11 @@
 import React from 'react';
 import { StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { Colors } from '../../theme/theme';
+import type { SongWordStageDto } from '../../types/song';
 import WordMasteryProgressBar from '../WordMasteryProgressBar';
 import { SongDetailJlptChart } from './SongDetailJlptChart';
 import { SongDetailMajorWords } from './SongDetailMajorWords';
+import { SongDetailStageRoadmap } from './SongDetailStageRoadmap';
 import { SongDetailWordItem } from './types';
 
 export interface SongDetailLearningProgress {
@@ -16,8 +18,11 @@ export interface SongDetailLearningProgress {
 interface SongDetailHomeTabProps {
   words: readonly SongDetailWordItem[];
   progress: SongDetailLearningProgress;
+  stages: readonly SongWordStageDto[] | null;
   isLoadingWords?: boolean;
+  isStartingLearning?: boolean;
   onViewAllWordsPress?: () => void;
+  onStartStage: (stage: SongWordStageDto) => void;
   onStartWordLearning: (word: SongDetailWordItem) => void;
   busyWordKey?: string | null;
   style?: StyleProp<ViewStyle>;
@@ -26,15 +31,25 @@ interface SongDetailHomeTabProps {
 export const SongDetailHomeTab = React.memo(function SongDetailHomeTab({
   words,
   progress,
+  stages,
   isLoadingWords = false,
+  isStartingLearning = false,
   onViewAllWordsPress,
   busyWordKey,
+  onStartStage,
   onStartWordLearning,
   style,
 }: SongDetailHomeTabProps) {
   return (
     <View style={[styles.container, style]}>
       <SongDetailProgressSummary progress={progress} />
+      {stages != null && (
+        <SongDetailStageRoadmap
+          stages={stages}
+          isStartingLearning={isStartingLearning}
+          onStartStage={onStartStage}
+        />
+      )}
       <SongDetailMajorWords
         words={words}
         isLoading={isLoadingWords}
@@ -55,13 +70,13 @@ const SongDetailProgressSummary = React.memo(function SongDetailProgressSummary(
   const safeTotal = Math.max(progress.total, 0);
   const mastered = Math.max(progress.mastered, 0);
   const studying = Math.max(progress.studying, 0);
-  const learnedCount = Math.min(safeTotal, mastered + studying);
+  const knownCount = Math.min(safeTotal, mastered);
 
   return (
     <View style={styles.progressSection}>
       <View style={styles.sectionHeaderRow}>
         <Text style={styles.title}>나의 진도</Text>
-        <Text style={styles.progressCount}>{safeTotal}개 중 {learnedCount}개</Text>
+        <Text style={styles.progressCount}>{knownCount}/{safeTotal}</Text>
       </View>
 
       <WordMasteryProgressBar
@@ -69,6 +84,9 @@ const SongDetailProgressSummary = React.memo(function SongDetailProgressSummary(
         masteredCount={mastered}
         studyingCount={studying}
         showLegend
+        masteredLabel="아는 단어"
+        studyingLabel="익히는 중"
+        newLabel="아직"
       />
     </View>
   );

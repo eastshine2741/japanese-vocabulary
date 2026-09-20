@@ -6,8 +6,7 @@
 
 서버는 `GET /api/songs/{id}/word-stages` 로 분류와 단계별 복습 상태를 준다.
 분류는 `SongWordStageClassifier`(api 모듈), 상태 집계는 `SongWordStageService`.
-앱은 아직 `app-rn/src/api/mocks/songWordStagesMock.ts` 로 mock 을 쓰고 있다 —
-전환 체크리스트는 문서 끝.
+앱은 `songApi.getWordStages` 로 이 API 를 호출하고 `songDetailStore.stages` 에 둔다.
 
 관련 Pencil 프레임: `iYaw3`(학습 시작 전), `IRFkV`(오늘 복습) — `Bundle Roadmap`.
 
@@ -98,14 +97,3 @@
 hero CTA(`학습 시작` / `오늘 복습 N개`)의 상태 판정은 기존 그대로다
 (`isAnalysisPending`, `decks.by-song.dueCount`). CTA 는 로드맵의 현재 단계를
 그대로 시작한다.
-
-## Mock → 실제 전환 체크리스트
-
-`app-rn` 에서 mock 을 걷어낼 때:
-
-1. `songApi.getWordStages` 를 `GET /api/songs/{id}/word-stages` 실제 호출로 교체.
-2. `src/api/mocks/songWordStagesMock.ts` 와 그 테스트 삭제.
-3. 응답 타입 `SongWordStagesDto` / `SongWordStageDto` (`src/types/song.ts`)는
-   그대로 유지 — 위 JSON 계약과 1:1이다.
-4. `src/stores/songDetailStore.ts` 의 `load` 병렬 호출과 `refreshStages` 는 변경
-   불필요.

@@ -11,6 +11,7 @@ import {
   SongStudyBootstrapResponse,
   WordsInSongDto,
   StudyUnit,
+  SongWordStagesDto,
 } from '../types/song';
 
 function toLegacyStudyUnits(lyrics: SongLyricsDto): StudyUnit[] {
@@ -98,6 +99,12 @@ export const songApi = {
 
   async getWords(id: number): Promise<WordsInSongDto> {
     const { data } = await client.get<WordsInSongDto>(`/api/songs/${id}/words`);
+    return data;
+  },
+
+  /** 곡 단어 4단계 학습 로드맵 */
+  async getWordStages(id: number): Promise<SongWordStagesDto> {
+    const { data } = await client.get<SongWordStagesDto>(`/api/songs/${id}/word-stages`);
     return data;
   },
 

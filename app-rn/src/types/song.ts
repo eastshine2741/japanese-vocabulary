@@ -173,3 +173,24 @@ export interface SongAnalysisWorkResponse {
   errorCode: string | null;
   errorMessage: string | null;
 }
+
+/** 곡 단어 4단계 분류. 순서대로 핵심 -> 입문 -> 기초 -> 심화. */
+export type SongWordStageKey = 'CORE' | 'STARTER' | 'BASIC' | 'ADVANCED';
+
+export interface SongWordStageDto {
+  key: SongWordStageKey;
+  /** 1부터 시작하는 로드맵 순서 */
+  order: number;
+  name: string;
+  description: string;
+  /** 이 단계에 속한 단어의 `WordInSongItemDto.japanese` */
+  wordJapanese: string[];
+  totalCount: number;
+  knownCount: number;
+  learningCount: number;
+}
+
+export interface SongWordStagesDto {
+  songId: number;
+  stages: SongWordStageDto[];
+}

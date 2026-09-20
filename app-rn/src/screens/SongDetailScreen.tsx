@@ -29,6 +29,7 @@ import ErrorDialog from '../components/ErrorDialog';
 import { AppBottomSheet, AppBottomSheetRef, AppBottomSheetView } from '../components/bottomSheet';
 import {
   CurrentPlayingWordsSheet,
+  selectCurrentStage,
   SongDetailHomeTab,
   SONG_DETAIL_MV_BAR_HEIGHT,
   SongDetailMvBar,
@@ -44,6 +45,7 @@ import { Layers } from '../theme/layers';
 import { Typography } from '../theme/typography';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import type { DeckDetailResponse } from '../types/deck';
+import type { SongWordStageDto } from '../types/song';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SongDetail'>;
 type DetailTab = 'home' | 'words';
@@ -83,6 +85,8 @@ export default function SongDetailScreen({ navigation, route }: Props) {
   const errorCode = useSongDetailStore(s => s.errorCode);
   const load = useSongDetailStore(s => s.load);
   const refreshWords = useSongDetailStore(s => s.refreshWords);
+  const stages = useSongDetailStore(s => s.stages);
+  const refreshStages = useSongDetailStore(s => s.refreshStages);
   const preloadedStudyData = usePlayerStore(s => s.studyData);
   const setCurrentMs = usePlayerStore(s => s.setCurrentMs);
   const setDurationMs = usePlayerStore(s => s.setDurationMs);
@@ -227,6 +231,12 @@ export default function SongDetailScreen({ navigation, route }: Props) {
       .map(word => word.addRequest);
   }, [data]);
 
+  const songStages = stages != null && stages.songId === songId ? stages.stages : null;
+  const currentStage = useMemo(
+    () => (songStages != null ? selectCurrentStage(songStages) : null),
+    [songStages],
+  );
+
   const handleBack = useCallback(() => {
     navigation.goBack();
   }, [navigation]);
@@ -250,6 +260,30 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     await refreshWords(songId).catch(() => undefined);
     return deck;
   }, [defaultDeckWords, refreshWords, songDeckDetail, songId]);
+
+  /**
+   * 단계 학습: 그 단계에서 아직 안 담긴 단어만 담고 곡 단어장을 연다.
+   * 곡 전체를 한 번에 담지 않는 것이 로드맵의 목적이다.
+   */
+  const ensureStageDeck = useCallback(async (stage: SongWordStageDto): Promise<DeckDetailResponse | null> => {
+    if (songId == null || data == null) return null;
+    const stageWords = new Set(stage.wordJapanese);
+    const toAdd = data.words.words
+      .filter(word => stageWords.has(word.japanese) && !word.isSavedForSong)
+      .map(word => word.addRequest);
+    if (toAdd.length === 0 && songDeckDetail?.deckId != null) return songDeckDetail;
+
+    if (toAdd.length > 0) {
+      await wordApi.batchAddWords({ words: toAdd });
+    }
+    const deck = await deckApi.getDeckBySongId(songId);
+    setSongDeckDetail(deck);
+    await Promise.all([
+      refreshWords(songId).catch(() => undefined),
+      refreshStages(songId).catch(() => undefined),
+    ]);
+    return deck;
+  }, [data, refreshStages, refreshWords, songDeckDetail, songId]);
 
   /** 이미 담긴 단어로 여는 경로라 덱이 있어야 정상이다 — 없으면 "학습 시작"과 같은 기본 담기로 만든다. */
   const resolveSongDeck = useCallback(async (): Promise<DeckDetailResponse | null> => {
@@ -281,8 +315,28 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     return true;
   }, [data?.song, navigation, songId]);
 
+  const handleStartStage = useCallback(async (stage: SongWordStageDto) => {
+    if (songId == null || isStartingLearning) return;
+    setIsStartingLearning(true);
+    try {
+      const deck = await ensureStageDeck(stage);
+      if (deck == null || !openSongReview(deck)) {
+        setLearningError('학습할 단어를 준비하지 못했어요. 잠시 후 다시 시도해 주세요.');
+      }
+    } catch (e: any) {
+      setLearningError(e?.message ?? '학습을 시작하지 못했어요. 잠시 후 다시 시도해 주세요.');
+    } finally {
+      setIsStartingLearning(false);
+    }
+  }, [ensureStageDeck, isStartingLearning, openSongReview, songId]);
+
+  /** 로드맵이 있으면 현재 단계만 담는다. 로드맵을 못 받았거나 모두 끝났으면 예전처럼 곡 단어장을 그대로 연다. */
   const handleStartLearning = useCallback(async () => {
     if (songId == null || isStartingLearning) return;
+    if (currentStage != null) {
+      handleStartStage(currentStage);
+      return;
+    }
     setIsStartingLearning(true);
     try {
       const deck = await ensureSongDeck();
@@ -294,7 +348,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     } finally {
       setIsStartingLearning(false);
     }
-  }, [ensureSongDeck, isStartingLearning, openSongReview, songId]);
+  }, [currentStage, ensureSongDeck, handleStartStage, isStartingLearning, openSongReview, songId]);
 
   /**
    * 단어를 누르면 그 곡 복습을 연다. 이미 담긴 단어는 그 덱을 열어 첫 카드로 강제한다.
@@ -363,10 +417,11 @@ export default function SongDetailScreen({ navigation, route }: Props) {
   const handleWordsChanged = useCallback(() => {
     if (songId == null) return;
     refreshWords(songId).catch(() => undefined);
+    refreshStages(songId).catch(() => undefined);
     deckApi.getDeckBySongId(songId)
       .then(deck => setSongDeckDetail(deck))
       .catch(() => setSongDeckDetail(null));
-  }, [refreshWords, songId]);
+  }, [refreshStages, refreshWords, songId]);
 
   const handleHomePageLayout = useCallback((event: LayoutChangeEvent) => {
     const height = Math.ceil(event.nativeEvent.layout.height);
@@ -479,7 +534,9 @@ export default function SongDetailScreen({ navigation, route }: Props) {
   const learningActionIcon: keyof typeof Feather.glyphMap = actionMode === 'review'
     ? 'rotate-ccw'
     : actionMode === 'preparing' ? 'info' : 'layers';
-  const isLearningActionDisabled = isStartingLearning || actionMode === 'preparing' || (songDeckDetail?.deckId == null && defaultDeckWords.length === 0);
+  const isLearningActionDisabled = isStartingLearning
+    || actionMode === 'preparing'
+    || (songDeckDetail?.deckId == null && currentStage == null && defaultDeckWords.length === 0);
   const totalWords = words.wordSummary.totalCandidateCount ?? words.words.length;
   const masteredWords = songDeckDetail?.masteredCount ?? 0;
   const studyingWords = songDeckDetail?.studyingCount ?? 0;
@@ -549,8 +606,11 @@ export default function SongDetailScreen({ navigation, route }: Props) {
                   <SongDetailHomeTab
                     words={words.words}
                     progress={learningProgress}
+                    stages={songStages}
+                    isStartingLearning={isStartingLearning}
                     onViewAllWordsPress={handleSelectWords}
                     busyWordKey={busyWordKey}
+                    onStartStage={handleStartStage}
                     onStartWordLearning={handleStartWordReview}
                   />
                 </View>

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { songApi } from '../api/songApi';
-import { SongDetailData } from '../types/song';
+import { SongDetailData, SongWordStagesDto } from '../types/song';
 
 type Status = 'idle' | 'loading' | 'success' | 'error';
 
@@ -8,9 +8,12 @@ interface SongDetailState {
   status: Status;
   songId: number | null;
   data: SongDetailData | null;
+  /** 학습 로드맵. 실패해도 화면은 열리므로 data 와 분리해 둔다. */
+  stages: SongWordStagesDto | null;
   errorCode: string | null;
   load: (songId: number) => Promise<void>;
   refreshWords: (songId: number) => Promise<void>;
+  refreshStages: (songId: number) => Promise<void>;
   reset: () => void;
 }
 
@@ -20,6 +23,7 @@ export const useSongDetailStore = create<SongDetailState>((set) => ({
   status: 'idle',
   songId: null,
   data: null,
+  stages: null,
   errorCode: null,
 
   load: async (songId: number) => {
@@ -29,15 +33,17 @@ export const useSongDetailStore = create<SongDetailState>((set) => ({
       songId,
       errorCode: null,
       data: state.data?.song.id === songId ? state.data : null,
+      stages: state.stages?.songId === songId ? state.stages : null,
     }));
     try {
-      const [song, lyrics, words] = await Promise.all([
+      const [song, lyrics, words, stages] = await Promise.all([
         songApi.getById(songId),
         songApi.getLyrics(songId),
         songApi.getWords(songId),
+        songApi.getWordStages(songId).catch(() => null),
       ]);
       if (loadRunId !== runId) return;
-      set({ status: 'success', data: { song, lyrics, words } });
+      set({ status: 'success', data: { song, lyrics, words }, stages });
     } catch (e: any) {
       if (loadRunId !== runId) return;
       set({ status: 'error', errorCode: e.response?.data?.error ?? 'SONG_DETAIL_LOAD_FAILED' });
@@ -58,8 +64,13 @@ export const useSongDetailStore = create<SongDetailState>((set) => ({
     });
   },
 
+  refreshStages: async (songId: number) => {
+    const stages = await songApi.getWordStages(songId);
+    set(state => (state.songId === songId ? { stages } : state));
+  },
+
   reset: () => {
     loadRunId++;
-    set({ status: 'idle', songId: null, data: null, errorCode: null });
+    set({ status: 'idle', songId: null, data: null, stages: null, errorCode: null });
   },
 }));
