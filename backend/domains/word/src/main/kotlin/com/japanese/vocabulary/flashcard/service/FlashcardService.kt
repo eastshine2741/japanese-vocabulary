@@ -11,7 +11,6 @@ import com.japanese.vocabulary.flashcard.dto.FlashcardStatsDto
 import com.japanese.vocabulary.flashcard.dto.ReviewResultDto
 import com.japanese.vocabulary.flashcard.repository.FlashcardRepository
 import com.japanese.vocabulary.song.repository.SongRepository
-import com.japanese.vocabulary.user.repository.UserSettingsRepository
 import com.japanese.vocabulary.word.repository.WordRepository
 import com.japanese.vocabulary.word.service.SenseEnricher
 import com.japanese.vocabulary.word.service.SenseEnricher.toDtos
@@ -30,7 +29,6 @@ class FlashcardService(
     private val flashcardRepository: FlashcardRepository,
     private val wordRepository: WordRepository,
     private val songRepository: SongRepository,
-    private val userSettingsRepository: UserSettingsRepository,
     private val eventPublisher: ApplicationEventPublisher,
     private val clock: Clock,
 ) {
@@ -138,25 +136,23 @@ class FlashcardService(
         val words = wordRepository.findAllById(wordIds).associateBy { it.id }
         val songMap = SenseEnricher.loadSongs(words.values.flatMap { it.senses }, songRepository)
 
-        val settingsData = userSettingsRepository.findByUserId(userId)?.settings
-        val showIntervals = settingsData?.showIntervals ?: true
         val desiredRetention = 0.9
 
+        // showIntervals 설정과 무관하게 항상 내려준다 — 설정은 앱이 rating 버튼에서만 숨기는 데 쓰고,
+        // rating 선택 후 "N일 뒤에 다시 만나요" 문구에는 여전히 필요하다.
         val cards = dueEntities.mapNotNull { entity ->
             val word = words[entity.wordId] ?: return@mapNotNull null
 
-            val intervals = if (showIntervals) {
-                val scheduler = Scheduler.builder()
-                    .desiredRetention(desiredRetention)
-                    .build()
-                val card = Card.fromJson(entity.fsrsCardJson)
-                mapOf(
-                    1 to formatInterval(now, scheduler.reviewCard(card, Rating.AGAIN).card().due ?: now),
-                    2 to formatInterval(now, scheduler.reviewCard(card, Rating.HARD).card().due ?: now),
-                    3 to formatInterval(now, scheduler.reviewCard(card, Rating.GOOD).card().due ?: now),
-                    4 to formatInterval(now, scheduler.reviewCard(card, Rating.EASY).card().due ?: now)
-                )
-            } else null
+            val scheduler = Scheduler.builder()
+                .desiredRetention(desiredRetention)
+                .build()
+            val card = Card.fromJson(entity.fsrsCardJson)
+            val intervals = mapOf(
+                1 to formatInterval(now, scheduler.reviewCard(card, Rating.AGAIN).card().due ?: now),
+                2 to formatInterval(now, scheduler.reviewCard(card, Rating.HARD).card().due ?: now),
+                3 to formatInterval(now, scheduler.reviewCard(card, Rating.GOOD).card().due ?: now),
+                4 to formatInterval(now, scheduler.reviewCard(card, Rating.EASY).card().due ?: now)
+            )
 
             FlashcardDto(
                 id = entity.id!!,
