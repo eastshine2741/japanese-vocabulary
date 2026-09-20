@@ -16,6 +16,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useStreakStore } from '../../stores/streakStore';
 import { Typography } from '../../theme/typography';
 
@@ -23,6 +24,8 @@ const FADE_MS = 200;
 const HOLD_MS = 2600;
 const EXIT_MS = 220;
 const ENTER_OFFSET_Y = -16;
+/** 화면 위 끝(safe area 아래)에서 배너까지의 여백. */
+const TOP_MARGIN = 8;
 /** 배너가 자리잡은 뒤 불꽃이 켜지고, 그 직후 불티가 튀고, 빛줄기가 훑고 지나간다. */
 const FLAME_DELAY_MS = 90;
 const BURST_DELAY_MS = 150;
@@ -81,6 +84,7 @@ function dismissToast() {
  * 떠 있는 동안 불꽃은 계속 일렁이고 뒤의 빛무리가 숨쉰다. 퇴장은 짧게 위로 사라진다.
  */
 const StreakToast = React.memo(function StreakToast({ eyebrow, label }: StreakToastProps) {
+  const insets = useSafeAreaInsets();
   const fade = useSharedValue(0);
   const enter = useSharedValue(0);
   const exit = useSharedValue(0);
@@ -189,7 +193,7 @@ const StreakToast = React.memo(function StreakToast({ eyebrow, label }: StreakTo
   }));
 
   return (
-    <Animated.View style={[styles.wrap, bannerStyle]} pointerEvents="none">
+    <Animated.View style={[styles.wrap, { top: insets.top + TOP_MARGIN }, bannerStyle]} pointerEvents="none">
       <View style={styles.shadow}>
         <LinearGradient
           colors={['#FF5A1F', '#FF9500', '#FFB300']}
@@ -268,9 +272,12 @@ const Spark = React.memo(function Spark({ burst, dx, dy, size, start }: SparkPro
 });
 
 const styles = StyleSheet.create({
+  // 앱바 아래 흐름이 아니라 화면 위 끝 기준으로 띄운다.
   wrap: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
     paddingHorizontal: 16,
-    paddingTop: 12,
   },
   // overflow:hidden 인 배너에는 그림자가 잘리므로 바깥 뷰가 든다.
   shadow: {
