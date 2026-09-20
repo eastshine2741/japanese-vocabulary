@@ -4,11 +4,13 @@ import { deckApi } from '../../api/deckApi';
 import { flashcardApi } from '../../api/flashcardApi';
 import { songApi } from '../../api/songApi';
 import { studyStatsApi } from '../../api/studyStatsApi';
+import { wordApi } from '../../api/wordApi';
 import { useStudyStatsStore } from '../../stores/studyStatsStore';
 import { SongDeckSummary } from '../../types/deck';
 import { WordInSongItemDto, WordsInSongDto } from '../../types/song';
 import { sourceFromDeck, sourceFromRecommendation } from './studySource';
 import {
+  PREVIEW_FLASHCARD_ID,
   StudyCard,
   StudyPreviewWord,
   StudySessionProgress,
@@ -19,13 +21,15 @@ import {
 /** 카드가 완전히 사라지는(=다음 카드가 완전히 드러나는) 지점. 드래그도 이 지점까지 막힘없이 따라간다. */
 export const SWIPE_OUT_DISTANCE = -420;
 const SWIPE_COMMIT_DISTANCE = -72;
+/**
+ * rating 을 고른 뒤 선택을 강조한 채 머무는 시간. 이 안에 같은 버튼을 다시 누르면 취소된다.
+ * pill 이 합쳐지는 데 160ms 가 들어가므로 '1분 뒤에 다시 만나요' 문구가 읽힐 만큼 남겨 둔다.
+ */
+export const RATING_HOLD_MS = 900;
 
 const DUE_PAGE_SIZE = 20;
 /** 로컬 버퍼에 이 개수 이하로 남으면 다음 페이지를 미리 불러온다. */
 const PREFETCH_REMAINING_THRESHOLD = 5;
-
-/** 미리보기 카드에 부여하는 자리표시자 id — 실제 flashcard 가 아니라는 신호로만 쓴다. */
-const PREVIEW_FLASHCARD_ID = -1;
 
 // 서버 WordFilterDefaultsDto 기본값과 동일 기준 — 홈 미리보기가 서버가 실제로 부트스트랩할
 // lead 단어와 다른 단어를 보여주면 안 되므로 정렬·필터 기준을 여기서도 그대로 맞춘다.
@@ -103,6 +107,8 @@ export interface StudyStackState {
   reveal: () => void;
   selectRating: (rating: number) => void;
   reload: () => void;
+  /** 단어 편집 화면에서 돌아왔을 때 현재 카드의 읽기·뜻만 다시 받는다. 큐·진행도는 건드리지 않는다. */
+  refreshCurrentCard: () => Promise<void>;
   continueDue: () => void;
   /** 덱 스트립에서 곡을 골랐을 때. 덱이 있으면 그 덱을 열고, 없으면(추천곡) 미리보기 카드를 띄운다. */
   selectSource: (target: StudySource) => void;
@@ -161,6 +167,16 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
   dueCountRef.current = dueCount;
   const selectedSourceRef = useRef(selectedSource);
   selectedSourceRef.current = selectedSource;
+  const selectedRatingRef = useRef(selectedRating);
+  selectedRatingRef.current = selectedRating;
+  /** rating 선택 뒤 자동으로 다음 카드로 넘어가는 홀드 타이머. 취소·스와이프·카드 교체 때 지운다. */
+  const ratingHoldTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const clearRatingHold = useCallback(() => {
+    if (ratingHoldTimerRef.current == null) return;
+    clearTimeout(ratingHoldTimerRef.current);
+    ratingHoldTimerRef.current = null;
+  }, []);
+  useEffect(() => clearRatingHold, [clearRatingHold]);
   const reviewedCountRef = useRef(reviewedCount);
   reviewedCountRef.current = reviewedCount;
   const prefetchingRef = useRef(false);
@@ -193,11 +209,12 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     setCurrentIndex(0);
     setRevealed(false);
     setRevealProgress(new Animated.Value(0));
+    clearRatingHold();
     setSelectedRating(null);
     setCompletedSource(completed);
     setNextDueSource(nextDeck ? sourceFromDeck(nextDeck) : null);
     setStatus('ready');
-  }, []);
+  }, [clearRatingHold]);
 
   // 완료 화면에 들어갈 때마다 덱 목록을 다시 읽어 다음 due 덱을 고른다 — 진입 시 잡아둔
   // nextDueSource 는 리뷰가 진행되면 낡는다. 실패하면 마지막으로 알던 값을 그대로 둔다.
@@ -231,6 +248,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     setSessionDueTotal(0);
     reviewedIdsRef.current = new Set();
     setDistinctReviewedCount(0);
+    clearRatingHold();
     setSelectedRating(null);
     setRevealed(false);
     isPreviewRef.current = false;
@@ -276,7 +294,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
       setCompletedSource(null);
       setStatus('error');
     }
-  }, [refreshNextDue]);
+  }, [clearRatingHold, refreshNextDue]);
 
   // 서버 큐의 맨 앞을 다시 읽는다. 이미 평가한 카드도 다시 due 가 될 수 있다.
   // 로컬 버퍼가 바닥났을 때의 폴백으로만 쓰인다 — 매 리뷰마다 부르지 않는다.
@@ -296,6 +314,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
       if (currentCardRef.current?.id !== due.cards[0]?.id) {
         setRevealed(false);
         setRevealProgress(new Animated.Value(0));
+        clearRatingHold();
         setSelectedRating(null);
         setTranslateY(new Animated.Value(0));
       }
@@ -309,7 +328,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
       setCards([]);
       setStatus('error');
     }
-  }, [refreshNextDue]);
+  }, [clearRatingHold, refreshNextDue]);
 
   // 무한스크롤처럼 로컬 버퍼가 얼마 안 남았을 때 다음 페이지를 미리 불러와 이어붙인다.
   // 스와이프 시점엔 네트워크를 타지 않도록 하는 게 목적이라 실패해도 조용히 넘어간다 —
@@ -360,6 +379,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
       setCompletedSource(null);
       setRevealed(false);
       setRevealProgress(new Animated.Value(0));
+      clearRatingHold();
       setSelectedRating(null);
       setTranslateY(new Animated.Value(0));
       setStatus('ready');
@@ -368,7 +388,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
       // 추천곡 분석이 아직 없거나 조회에 실패하면 조용히 폴백(완료+추천곡 넛지)으로 넘긴다.
       return false;
     }
-  }, []);
+  }, [clearRatingHold]);
 
   const loadHomeStack = useCallback(async () => {
     const version = ++requestVersion.current;
@@ -446,6 +466,18 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     loadCardsForSource(target);
   }, [loadCardsForSource, loadHomeStack, mode]);
 
+  const refreshCurrentCard = useCallback(async () => {
+    const card = currentCard;
+    if (!card || card.id === PREVIEW_FLASHCARD_ID) return;
+    try {
+      const word = await wordApi.getById(card.wordId);
+      if (!word) return;
+      setCards(prev => prev.map(c => (c.id === card.id ? { ...c, reading: word.reading, senses: word.senses } : c)));
+    } catch {
+      // 편집 결과가 잠시 안 보일 뿐이다 — 다음 로드에서 맞춰진다.
+    }
+  }, [currentCard]);
+
   useEffect(() => {
     reload();
     return () => {
@@ -512,6 +544,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     const songId = currentCard.source.songId;
     const rating = selectedRating;
     try {
+      clearRatingHold();
       setSelectedRating(null);
       await new Promise<void>(resolve => {
         Animated.timing(translateY, {
@@ -560,7 +593,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
       busyRef.current = false;
       setSaving(false);
     }
-  }, [currentCard, selectedRating, translateY]);
+  }, [clearRatingHold, currentCard, selectedRating, translateY]);
 
   const advanceRealReview = useCallback(async () => {
     if (!currentCard || selectedRating == null || busyRef.current) return;
@@ -569,6 +602,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     const version = ++requestVersion.current;
     const reviewedCard = currentCard;
     const rating = selectedRating;
+    clearRatingHold();
     setSelectedRating(null);
     // review API 호출과 스와이프 애니메이션을 동시에 시작한다 — 이전엔 API 응답을 먼저 기다린
     // 뒤에야 애니메이션을 시작해서 스와이프가 네트워크 왕복만큼 멈춰 보였다.
@@ -617,7 +651,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
       busyRef.current = false;
       setSaving(false);
     }
-  }, [currentCard, refreshDue, selectedRating, translateY]);
+  }, [clearRatingHold, currentCard, refreshDue, selectedRating, translateY]);
 
   const advanceAfterReview = useCallback(async () => {
     if (isPreviewRef.current) {
@@ -627,6 +661,34 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     await advanceRealReview();
   }, [advancePreviewReview, advanceRealReview]);
 
+  const advanceAfterReviewRef = useRef(advanceAfterReview);
+  advanceAfterReviewRef.current = advanceAfterReview;
+
+  const startRatingHold = useCallback(() => {
+    clearRatingHold();
+    ratingHoldTimerRef.current = setTimeout(() => {
+      ratingHoldTimerRef.current = null;
+      void advanceAfterReviewRef.current();
+    }, RATING_HOLD_MS);
+  }, [clearRatingHold]);
+
+  /**
+   * rating 탭. 선택을 강조한 채 RATING_HOLD_MS 만큼 머문 뒤 자동으로 다음 카드로 넘어간다.
+   * 홀드 중 같은 버튼을 다시 누르면 취소되고, 다른 버튼을 누르면 그쪽으로 바꿔 홀드를 다시 센다.
+   */
+  const selectRating = useCallback((rating: number) => {
+    if (busyRef.current) return;
+    if (selectedRatingRef.current === rating) {
+      clearRatingHold();
+      setSelectedRating(null);
+      return;
+    }
+    setSelectedRating(rating);
+    startRatingHold();
+  }, [clearRatingHold, startRatingHold]);
+
+  // 뒷면 위로 스와이프는 홀드를 기다리지 않고 바로 넘기는 단축키다. 드래그 중엔 타이머를
+  // 멈추고, 놓았는데 임계값에 못 미치면 제자리로 돌아오면서 홀드를 다시 센다.
   const panResponder = useMemo(
     () => PanResponder.create({
       onMoveShouldSetPanResponder: (_, gesture) =>
@@ -634,6 +696,9 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
         && selectedRating != null
         && gesture.dy < -8
         && Math.abs(gesture.dy) > Math.abs(gesture.dx) * 1.2,
+      onPanResponderGrant: () => {
+        clearRatingHold();
+      },
       onPanResponderMove: (_, gesture) => {
         if (gesture.dy < 0) {
           translateY.setValue(Math.max(gesture.dy, SWIPE_OUT_DISTANCE));
@@ -641,12 +706,14 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
       },
       onPanResponderRelease: (_, gesture) => {
         if (gesture.dy < SWIPE_COMMIT_DISTANCE) {
+          clearRatingHold();
           advanceAfterReview();
         } else {
           Animated.spring(translateY, {
             toValue: 0,
             useNativeDriver: true,
           }).start();
+          startRatingHold();
         }
       },
       onPanResponderTerminate: () => {
@@ -654,9 +721,10 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
           toValue: 0,
           useNativeDriver: true,
         }).start();
+        startRatingHold();
       },
     }),
-    [advanceAfterReview, revealed, selectedRating, translateY],
+    [advanceAfterReview, clearRatingHold, revealed, selectedRating, startRatingHold, translateY],
   );
 
   const continueDue = useCallback(() => {
@@ -732,8 +800,9 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     revealProgress,
     panHandlers,
     reveal,
-    selectRating: setSelectedRating,
+    selectRating,
     reload,
+    refreshCurrentCard,
     continueDue,
     selectSource,
     startRecommended,
@@ -761,7 +830,9 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     revealProgress,
     panHandlers,
     reveal,
+    selectRating,
     reload,
+    refreshCurrentCard,
     continueDue,
     selectSource,
     startRecommended,

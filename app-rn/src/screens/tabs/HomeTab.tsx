@@ -20,6 +20,7 @@ import {
   StackReviewOverlay,
   STACK_REVIEW_CHROME_HEIGHT,
   StudyStack,
+  useEditWordFromStack,
   useStudyStack,
 } from '../../components/studyStack';
 import { useHomeChromeStore } from '../../stores/homeChromeStore';
@@ -104,6 +105,8 @@ export default function HomeTab() {
     navigation.navigate('SongDetail', { songId, origin: 'Home' });
   }, [navigation]);
 
+  const editWord = useEditWordFromStack(stack.refreshCurrentCard);
+
   // 세션 시작 시점에 due 가 없었는데 도중에 새로 due 된 카드를 리뷰하면 queueTotal 이 0으로 남는다.
   const counterTotal = session.queueTotal > 0 ? session.queueTotal : session.reviewedCount;
   const counterPosition = session.queueTotal > 0 ? session.position : session.reviewedCount;
@@ -145,6 +148,7 @@ export default function HomeTab() {
           stack={stack}
           onOpenSource={openSource}
           onOpenExampleSource={openExampleSource}
+          onEditWord={editWord}
           onSearch={goSearch}
           overlay={overlay}
           contentInsetTop={contentInsetTop}
