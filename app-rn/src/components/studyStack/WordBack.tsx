@@ -19,6 +19,7 @@ import { getJlptColor } from '../Badges';
 import { getPosColor, getPosLabel } from '../../types/pos';
 import { flattenExamples, joinMeanings, SenseExample } from '../../types/word';
 import ReadingText from '../ReadingText';
+import { formatInterval, holdLabel } from './intervalLabel';
 import { StudyCard } from './types';
 
 export const RATINGS = [
@@ -65,13 +66,6 @@ const SPLIT_NECK_TRAVEL = 0.5;
 const SPLIT_BREAK_AT = 0.7;
 /** 끊어진 뒤 조각이 제자리 버튼(채움·윤곽·그림자)으로 crossfade 되는 구간의 시작. */
 const SPLIT_SETTLE_FROM = 0.78;
-
-/** 선택한 rating 의 홀드 pill 문구 — 서버 interval 문자열을 그대로 붙인다. */
-function holdLabel(label: string, interval?: string): string {
-  if (!interval) return label;
-  if (interval.startsWith('<')) return '잠시 후 다시 만나요';
-  return `${interval} 뒤에 다시 만나요`;
-}
 
 export interface WordBackProps {
   card: StudyCard;
@@ -499,7 +493,7 @@ const RatingButton = React.memo(function RatingButton({
       <Animated.View style={[styles.ratingButtonRest, restStyle]} />
       <Animated.View style={[styles.ratingButtonContent, contentStyle]}>
         <Text style={styles.ratingLabel}>{label}</Text>
-        {interval != null && <Text style={[styles.ratingInterval, { color }]}>{interval}</Text>}
+        {interval != null && <Text style={[styles.ratingInterval, { color }]}>{formatInterval(interval)}</Text>}
       </Animated.View>
     </Pressable>
   );

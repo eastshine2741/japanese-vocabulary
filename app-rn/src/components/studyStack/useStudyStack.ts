@@ -19,8 +19,11 @@ import {
 /** 카드가 완전히 사라지는(=다음 카드가 완전히 드러나는) 지점. 드래그도 이 지점까지 막힘없이 따라간다. */
 export const SWIPE_OUT_DISTANCE = -420;
 const SWIPE_COMMIT_DISTANCE = -72;
-/** rating 을 고른 뒤 선택을 강조한 채 머무는 시간. 이 안에 같은 버튼을 다시 누르면 취소된다. */
-export const RATING_HOLD_MS = 250;
+/**
+ * rating 을 고른 뒤 선택을 강조한 채 머무는 시간. 이 안에 같은 버튼을 다시 누르면 취소된다.
+ * pill 이 합쳐지는 데 160ms 가 들어가므로 '1분 뒤에 다시 만나요' 문구가 읽힐 만큼 남겨 둔다.
+ */
+export const RATING_HOLD_MS = 900;
 
 const DUE_PAGE_SIZE = 20;
 /** 로컬 버퍼에 이 개수 이하로 남으면 다음 페이지를 미리 불러온다. */
