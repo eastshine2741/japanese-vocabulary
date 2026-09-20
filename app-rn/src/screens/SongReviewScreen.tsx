@@ -9,10 +9,8 @@ import {
   useEditWordFromStack,
   useStudyStack,
 } from '../components/studyStack';
-import { StreakDebugPanel } from '../components/studyStack/StreakDebugPanel';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useStreakStore } from '../stores/streakStore';
-import { isDevBuild } from '../utils/buildEnv';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SongReview'>;
 
@@ -62,7 +60,6 @@ export default function SongReviewScreen({ navigation, route }: Props) {
         contentInsetTop={insets.top + STACK_REVIEW_CHROME_HEIGHT}
         contentInsetBottom={insets.bottom}
       />
-      {isDevBuild && <StreakDebugPanel />}
     </View>
   );
 }
