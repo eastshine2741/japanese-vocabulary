@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { LayoutChangeEvent, Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { Feather } from '@expo/vector-icons';
 import { Colors } from '../../theme/theme';
 import { Typography } from '../../theme/typography';
@@ -21,14 +22,22 @@ export const SongDetailTierRoadmap = React.memo(function SongDetailTierRoadmap({
 }: SongDetailTierRoadmapProps) {
   const statuses = useMemo(() => resolveTierStatuses(tiers), [tiers]);
   const currentKey = useMemo(() => selectCurrentTier(tiers)?.key ?? null, [tiers]);
-  const [expandedKey, setExpandedKey] = useState<SongWordTierKey | null>(currentKey);
+  const [expandedKeys, setExpandedKeys] = useState<ReadonlySet<SongWordTierKey>>(
+    () => new Set(currentKey != null ? [currentKey] : []),
+  );
 
+  // 현재 단계가 바뀌면(이전 단계를 끝냈을 때) 새 현재 단계를 펼쳐 둔다. 이미 펼친 다른 단계는 그대로.
   useEffect(() => {
-    setExpandedKey(currentKey);
+    if (currentKey == null) return;
+    setExpandedKeys(prev => (prev.has(currentKey) ? prev : new Set(prev).add(currentKey)));
   }, [currentKey]);
 
   const handleToggle = useCallback((key: SongWordTierKey) => {
-    setExpandedKey(prev => (prev === key ? null : key));
+    setExpandedKeys(prev => {
+      const next = new Set(prev);
+      if (!next.delete(key)) next.add(key);
+      return next;
+    });
   }, []);
 
   if (tiers.length === 0) return null;
@@ -44,7 +53,7 @@ export const SongDetailTierRoadmap = React.memo(function SongDetailTierRoadmap({
             key={tier.key}
             tier={tier}
             status={statuses[index]}
-            isExpanded={expandedKey === tier.key}
+            isExpanded={expandedKeys.has(tier.key)}
             isLast={index === tiers.length - 1}
             isStartingLearning={isStartingLearning}
             onToggle={handleToggle}
@@ -87,6 +96,25 @@ const TierRow = React.memo(function TierRow({
   const nameColor = isCurrent ? Colors.textPrimary : Colors.textSecondary;
   const metaColor = isCurrent ? Colors.textSecondary : Colors.textMuted;
 
+  const progress = useSharedValue(isExpanded ? 1 : 0);
+  const contentHeight = useSharedValue(0);
+
+  useEffect(() => {
+    progress.value = withTiming(isExpanded ? 1 : 0, EXPAND_TIMING);
+  }, [isExpanded, progress]);
+
+  const handleContentLayout = useCallback((e: LayoutChangeEvent) => {
+    contentHeight.value = e.nativeEvent.layout.height;
+  }, [contentHeight]);
+
+  const detailsStyle = useAnimatedStyle(() => ({
+    height: contentHeight.value * progress.value,
+    opacity: progress.value,
+  }));
+  const chevronStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${progress.value * 180}deg` }],
+  }));
+
   return (
     <View style={styles.tierRow}>
       <View style={styles.rail}>
@@ -117,30 +145,32 @@ const TierRow = React.memo(function TierRow({
           <Text style={[styles.tierCount, { color: metaColor }]}>
             {tier.knownCount}/{tier.totalCount}
           </Text>
-          <Feather name={isExpanded ? 'chevron-up' : 'chevron-down'} size={20} color={metaColor} />
+          <Animated.View style={chevronStyle}>
+            <Feather name="chevron-down" size={20} color={metaColor} />
+          </Animated.View>
         </Pressable>
 
-        {isExpanded && (
-          <>
+        <Animated.View style={[styles.details, detailsStyle]} pointerEvents={isExpanded ? 'auto' : 'none'}>
+          <View style={styles.detailsContent} onLayout={handleContentLayout}>
             <WordMasteryProgressBar
               totalCount={tier.totalCount}
               masteredCount={tier.knownCount}
               studyingCount={tier.learningCount}
             />
-            {!isDone && (
-              <PrimaryButton
-                label={`${tier.name} 학습하기`}
-                onPress={handleStart}
-                disabled={isStartingLearning || tier.totalCount === 0}
-                style={styles.learnButton}
-              />
-            )}
-          </>
-        )}
+            <PrimaryButton
+              label={`${tier.name} 학습하기`}
+              onPress={handleStart}
+              disabled={isStartingLearning || tier.totalCount === 0}
+              style={styles.learnButton}
+            />
+          </View>
+        </Animated.View>
       </View>
     </View>
   );
 });
+
+const EXPAND_TIMING = { duration: 220, easing: Easing.out(Easing.cubic) };
 
 const styles = StyleSheet.create({
   section: {
@@ -194,7 +224,6 @@ const styles = StyleSheet.create({
   },
   body: {
     flex: 1,
-    gap: 12,
     paddingTop: 4,
     paddingBottom: 26,
   },
@@ -225,6 +254,18 @@ const styles = StyleSheet.create({
   tierCount: {
     ...Typography.bodySemiBold,
     fontSize: 12,
+  },
+  details: {
+    overflow: 'hidden',
+  },
+  // 절대 배치로 컨테이너 높이와 무관하게 본래 높이를 측정한다. 접힌 상태의 gap 이 남지 않도록 여백은 안쪽에 둔다.
+  detailsContent: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    gap: 12,
+    paddingTop: 12,
   },
   learnButton: {
     height: 40,
