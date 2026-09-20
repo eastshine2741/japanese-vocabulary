@@ -184,7 +184,10 @@ class SegmentLyricsStage(
      * whatever this stage returns — and jisho caches, so asking early costs one Redis hit.
      *
      * Katakana-only surfaces are exempt: `ステンバイミー` and `チリン` have no dictionary entry to find, so
-     * retrying them would spend the budget on the one case a retry cannot fix.
+     * retrying them would spend the budget on the one case a retry cannot fix. So is a headword with
+     * no Japanese in it: an English ad-lib sung in hiragana (`あいうぉんちゅー`) has no Japanese
+     * dictionary form for the model to give, so it answers with the English phrase (`I want you`),
+     * which a Japanese dictionary can never hold.
      */
     private suspend fun headwordMisses(
         tokensByIndex: Map<Int, List<PipelineToken>>,
@@ -193,6 +196,7 @@ class SegmentLyricsStage(
             .flatMap { tokens -> ruleMeaningProvider.rewrite(tokens) }
             .filter { JapaneseText.containsJapanese(it.surface) }
             .filterNot { JapaneseText.isKatakanaOnly(it.surface) }
+            .filter { JapaneseText.containsJapanese(it.headword) }
             .filter { ruleMeaningProvider.resolve(it) == null }
         if (checkable.isEmpty()) return emptyMap()
         return lexicalResolver.unresolvedTokens(checkable).groupBy { it.token.lineIndex }
