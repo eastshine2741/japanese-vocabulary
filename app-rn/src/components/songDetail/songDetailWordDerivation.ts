@@ -1,5 +1,5 @@
 import { Colors } from '../../theme/theme';
-import type { SongWordStageDto } from '../../types/song';
+import type { SongWordTierDto } from '../../types/song';
 import {
   SongDetailJlptBucket,
   SongDetailJlptLevel,
@@ -74,22 +74,22 @@ export function buildJlptDistribution(words: readonly SongDetailWordItem[]): Son
   }));
 }
 
-export type SongWordStageStatus = 'done' | 'current' | 'upcoming';
+export type SongWordTierStatus = 'done' | 'current' | 'upcoming';
 
 /** 단어가 없는 단계도 끝난 것으로 본다 — 현재 단계로 걸려 학습 버튼이 영원히 잠기지 않게. */
-export function isStageDone(stage: SongWordStageDto): boolean {
-  return stage.knownCount >= stage.totalCount;
+export function isTierDone(tier: SongWordTierDto): boolean {
+  return tier.knownCount >= tier.totalCount;
 }
 
 /** 앞에서부터 처음 만나는 미완료 단계가 현재 단계다. 모두 끝났으면 null. */
-export function selectCurrentStage(stages: readonly SongWordStageDto[]): SongWordStageDto | null {
-  return stages.find(stage => !isStageDone(stage)) ?? null;
+export function selectCurrentTier(tiers: readonly SongWordTierDto[]): SongWordTierDto | null {
+  return tiers.find(tier => !isTierDone(tier)) ?? null;
 }
 
-export function resolveStageStatuses(stages: readonly SongWordStageDto[]): SongWordStageStatus[] {
-  const current = selectCurrentStage(stages);
-  return stages.map(stage => {
-    if (isStageDone(stage)) return 'done';
-    return stage === current ? 'current' : 'upcoming';
+export function resolveTierStatuses(tiers: readonly SongWordTierDto[]): SongWordTierStatus[] {
+  const current = selectCurrentTier(tiers);
+  return tiers.map(tier => {
+    if (isTierDone(tier)) return 'done';
+    return tier === current ? 'current' : 'upcoming';
   });
 }

@@ -10,7 +10,7 @@ import com.japanese.vocabulary.song.dto.AnalyzedSongDto
 import com.japanese.vocabulary.song.dto.songdetail.SongLyricsDto
 import com.japanese.vocabulary.song.dto.songdetail.SongStudyBootstrapRequest
 import com.japanese.vocabulary.song.dto.songdetail.SongStudyBootstrapResponse
-import com.japanese.vocabulary.song.dto.songdetail.SongWordStagesDto
+import com.japanese.vocabulary.song.dto.songdetail.SongWordTiersDto
 import com.japanese.vocabulary.song.dto.songdetail.WordsInSongDto
 import com.japanese.vocabulary.songsearch.dto.SongSearchResponse
 import com.japanese.vocabulary.songanalysis.dto.SongAnalysisWorkDto
@@ -23,7 +23,7 @@ import com.japanese.vocabulary.song.service.SongSearchService
 import com.japanese.vocabulary.song.service.SongStudyViewService
 import com.japanese.vocabulary.song.service.songdetail.SongDetailQueryService
 import com.japanese.vocabulary.song.service.songdetail.SongStudyBootstrapService
-import com.japanese.vocabulary.song.service.songdetail.SongWordStageService
+import com.japanese.vocabulary.song.service.songdetail.SongWordTierService
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.bind.annotation.GetMapping
@@ -46,7 +46,7 @@ class SongController(
     private val lyricRepository: LyricRepository,
     private val songDetailQueryService: SongDetailQueryService,
     private val songStudyBootstrapService: SongStudyBootstrapService,
-    private val songWordStageService: SongWordStageService,
+    private val songWordTierService: SongWordTierService,
     private val analysisNotificationService: AnalysisNotificationService,
 ) {
 
@@ -160,10 +160,10 @@ class SongController(
     }
 
     /** 곡 상세 홈의 학습 로드맵. 곡 단어를 4단계로 나누고 단계별 복습 상태를 함께 준다. */
-    @GetMapping("/{id}/word-stages")
-    fun getSongWordStages(@PathVariable id: Long): ResponseEntity<SongWordStagesDto> {
+    @GetMapping("/{id}/word-tiers")
+    fun getSongWordTiers(@PathVariable id: Long): ResponseEntity<SongWordTiersDto> {
         val response = try {
-            songWordStageService.stages(id, currentUserId())
+            songWordTierService.tiers(id, currentUserId())
         } catch (e: com.japanese.vocabulary.common.exception.BusinessException) {
             return ResponseEntity.status(e.errorCode.status).build()
         }

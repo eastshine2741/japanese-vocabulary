@@ -1,14 +1,14 @@
 export { SongDetailHomeTab } from './SongDetailHomeTab';
 export { SongDetailMajorWords } from './SongDetailMajorWords';
 export { SongDetailJlptChart } from './SongDetailJlptChart';
-export { SongDetailStageRoadmap } from './SongDetailStageRoadmap';
+export { SongDetailTierRoadmap } from './SongDetailTierRoadmap';
 export {
   buildJlptDistribution,
-  isStageDone,
-  resolveStageStatuses,
-  selectCurrentStage,
+  isTierDone,
+  resolveTierStatuses,
+  selectCurrentTier,
   selectMajorWords,
-  type SongWordStageStatus,
+  type SongWordTierStatus,
   JLPT_COLORS,
   JLPT_LEGEND_ORDER,
   JLPT_LEVELS,

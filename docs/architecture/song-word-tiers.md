@@ -1,12 +1,12 @@
-# Song Word Stages (학습 로드맵)
+# Song Word Tiers (학습 로드맵)
 
 곡 상세 홈 탭의 **학습 로드맵**은 곡의 단어를 4단계(핵심 → 입문 → 기초 → 심화)로
 나눠 유저의 학습 부담을 줄이는 기획이다. 원래 "학습 시작" 이 곡 단어 100개 이상을
 한 번에 담던 것을 단계 단위로 바꾼다.
 
-서버는 `GET /api/songs/{id}/word-stages` 로 분류와 단계별 복습 상태를 준다.
-분류는 `SongWordStageClassifier`(api 모듈), 상태 집계는 `SongWordStageService`.
-앱은 `songApi.getWordStages` 로 이 API 를 호출하고 `songDetailStore.stages` 에 둔다.
+서버는 `GET /api/songs/{id}/word-tiers` 로 분류와 단계별 복습 상태를 준다.
+분류는 `SongWordTierClassifier`(api 모듈), 상태 집계는 `SongWordTierService`.
+앱은 `songApi.getWordTiers` 로 이 API 를 호출하고 `songDetailStore.tiers` 에 둔다.
 
 관련 Pencil 프레임: `iYaw3`(학습 시작 전), `IRFkV`(오늘 복습) — `Bundle Roadmap`.
 
@@ -18,14 +18,14 @@
 
 ## API
 
-### `GET /api/songs/{id}/word-stages`
+### `GET /api/songs/{id}/word-tiers`
 
 곡의 단어를 4단계로 분류하고 단계별 학습 상태를 함께 준다.
 
 ```jsonc
 {
   "songId": 123,
-  "stages": [
+  "tiers": [
     {
       "key": "CORE",        // CORE | STARTER | BASIC | ADVANCED
       "order": 1,            // 1..4 로드맵 순서
@@ -41,7 +41,7 @@
 }
 ```
 
-- `stages` 는 항상 4개, `order` 오름차순.
+- `tiers` 는 항상 4개, `order` 오름차순.
 - `wordJapanese` 는 `GET /api/songs/{id}/words` 의 `words[].japanese` 와 같은
   키여야 한다. 앱이 이 키로 "이 단계에서 아직 안 담긴 단어"를 골라 담는다.
 - 단어가 없는 곡도 4단계를 빈 배열로 반환한다(분석 준비 중 곡은 홈 탭 자체가
@@ -68,7 +68,7 @@
   "후렴에 나온다" 가 변별력이 없어 등장 줄 수 → 중요도 순으로 뽑는다.
 - jisho JLPT 는 쉬운 단어를 N1·미분류로 찍는 쪽으로만 틀리고(잔여 버킷) 어려운 단어를
   N5·N4 로 찍지는 않는다. 그래서 "N5·N4 면 기초" 는 안전하고, 새는 방향은 심화뿐이다.
-  난이도 출처를 바꾸면(JEV 등) `SongWordStageClassifier` 의 기초 판정 한 곳만 바꾼다.
+  난이도 출처를 바꾸면(JEV 등) `SongWordTierClassifier` 의 기초 판정 한 곳만 바꾼다.
 - prod 79곡 시뮬레이션(2026-09) 곡당 중앙값: 핵심 10 / 입문 12 / 기초 21 / 심화 39.
   심화는 p90 79, 최대 98 로 크다 — 사실상 "나머지 전부" 이며 학습 단위가 아니라 탐색용에
   가깝다.
@@ -91,7 +91,7 @@
 - `AddWordRequest` (japanese/reading/senses/songId) 그대로 사용, 신규 필드 없음.
 - 서버는 이미 담긴 단어를 skip 하므로(batch 응답의 `skippedCount`) 단계가
   겹쳐도 안전하다.
-- `GET /api/songs/{id}/word-stages` 의 `knownCount`/`learningCount` 는 담기·복습
+- `GET /api/songs/{id}/word-tiers` 의 `knownCount`/`learningCount` 는 담기·복습
   이후 갱신되어야 한다(앱은 화면 복귀 시 재요청한다).
 
 hero CTA(`학습 시작` / `오늘 복습 N개`)의 상태 판정은 기존 그대로다

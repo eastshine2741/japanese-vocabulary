@@ -1,11 +1,11 @@
 import React from 'react';
 import { StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { Colors } from '../../theme/theme';
-import type { SongWordStageDto } from '../../types/song';
+import type { SongWordTierDto } from '../../types/song';
 import WordMasteryProgressBar from '../WordMasteryProgressBar';
 import { SongDetailJlptChart } from './SongDetailJlptChart';
 import { SongDetailMajorWords } from './SongDetailMajorWords';
-import { SongDetailStageRoadmap } from './SongDetailStageRoadmap';
+import { SongDetailTierRoadmap } from './SongDetailTierRoadmap';
 import { SongDetailWordItem } from './types';
 
 export interface SongDetailLearningProgress {
@@ -18,11 +18,11 @@ export interface SongDetailLearningProgress {
 interface SongDetailHomeTabProps {
   words: readonly SongDetailWordItem[];
   progress: SongDetailLearningProgress;
-  stages: readonly SongWordStageDto[] | null;
+  tiers: readonly SongWordTierDto[] | null;
   isLoadingWords?: boolean;
   isStartingLearning?: boolean;
   onViewAllWordsPress?: () => void;
-  onStartStage: (stage: SongWordStageDto) => void;
+  onStartTier: (tier: SongWordTierDto) => void;
   onStartWordLearning: (word: SongDetailWordItem) => void;
   busyWordKey?: string | null;
   style?: StyleProp<ViewStyle>;
@@ -31,23 +31,23 @@ interface SongDetailHomeTabProps {
 export const SongDetailHomeTab = React.memo(function SongDetailHomeTab({
   words,
   progress,
-  stages,
+  tiers,
   isLoadingWords = false,
   isStartingLearning = false,
   onViewAllWordsPress,
   busyWordKey,
-  onStartStage,
+  onStartTier,
   onStartWordLearning,
   style,
 }: SongDetailHomeTabProps) {
   return (
     <View style={[styles.container, style]}>
       <SongDetailProgressSummary progress={progress} />
-      {stages != null && (
-        <SongDetailStageRoadmap
-          stages={stages}
+      {tiers != null && (
+        <SongDetailTierRoadmap
+          tiers={tiers}
           isStartingLearning={isStartingLearning}
-          onStartStage={onStartStage}
+          onStartTier={onStartTier}
         />
       )}
       <SongDetailMajorWords

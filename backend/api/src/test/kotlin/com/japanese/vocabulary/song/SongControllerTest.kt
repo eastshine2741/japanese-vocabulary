@@ -17,8 +17,8 @@ import com.japanese.vocabulary.flashcard.dto.DueFlashcardsResponse
 import com.japanese.vocabulary.song.dto.songdetail.SongLyricsDto
 import com.japanese.vocabulary.song.dto.songdetail.SongStudyBootstrapRequest
 import com.japanese.vocabulary.song.dto.songdetail.SongStudyBootstrapResponse
-import com.japanese.vocabulary.song.dto.songdetail.SongWordStageKey
-import com.japanese.vocabulary.song.dto.songdetail.SongWordStagesDto
+import com.japanese.vocabulary.song.dto.songdetail.SongWordTierKey
+import com.japanese.vocabulary.song.dto.songdetail.SongWordTiersDto
 import com.japanese.vocabulary.song.dto.songdetail.WordsInSongDto
 import com.japanese.vocabulary.songsearch.dto.SongSearchItemDto
 import com.japanese.vocabulary.songsearch.dto.SongSearchResponse
@@ -924,7 +924,7 @@ class SongControllerTest : ApiBaseIntegrationTest() {
     }
 
     @Nested
-    inner class WordStages {
+    inner class WordTiers {
 
         private fun candidate(
             japanese: String,
@@ -950,13 +950,13 @@ class SongControllerTest : ApiBaseIntegrationTest() {
             scoreComponents = WordScoreComponents(0.0, 0.0, 0.0, 0.0, 1.0),
         )
 
-        private fun stages(user: UserEntity, songId: Long): SongWordStagesDto =
-            readBody(mockMvc.get("/api/songs/$songId/word-stages") {
+        private fun tiers(user: UserEntity, songId: Long): SongWordTiersDto =
+            readBody(mockMvc.get("/api/songs/$songId/word-tiers") {
                 header("Authorization", bearer(user))
             }.andExpect { status { isOk() } }.andReturn().response.contentAsString)
 
         @Test
-        fun `classifies default-filter words into four ordered stages and counts per-word review state`() {
+        fun `classifies default-filter words into four ordered tiers and counts per-word review state`() {
             val me = newUser()
             val song = newSong()
             newLyric(
@@ -987,56 +987,56 @@ class SongControllerTest : ApiBaseIntegrationTest() {
             TestFlashcardBuilder(entityManager, clock).forUser(me).ofWord(fresh).withState(0).build()
             entityManager.flush()
 
-            val dto = stages(me, song.id!!)
+            val dto = tiers(me, song.id!!)
 
             assertThat(dto.songId).isEqualTo(song.id)
-            assertThat(dto.stages.map { it.key }).containsExactly(
-                SongWordStageKey.CORE, SongWordStageKey.STARTER, SongWordStageKey.BASIC, SongWordStageKey.ADVANCED,
+            assertThat(dto.tiers.map { it.key }).containsExactly(
+                SongWordTierKey.CORE, SongWordTierKey.STARTER, SongWordTierKey.BASIC, SongWordTierKey.ADVANCED,
             )
-            assertThat(dto.stages.map { it.order }).containsExactly(1, 2, 3, 4)
-            val byKey = dto.stages.associateBy { it.key }
-            assertThat(byKey.getValue(SongWordStageKey.CORE).wordJapanese).containsExactly("胸")
-            assertThat(byKey.getValue(SongWordStageKey.STARTER).wordJapanese).containsExactly("する")
-            assertThat(byKey.getValue(SongWordStageKey.BASIC).wordJapanese).containsExactly("雨")
-            assertThat(byKey.getValue(SongWordStageKey.ADVANCED).wordJapanese).containsExactly("輪郭")
-            assertThat(dto.stages.flatMap { it.wordJapanese }).doesNotContain("君")
+            assertThat(dto.tiers.map { it.order }).containsExactly(1, 2, 3, 4)
+            val byKey = dto.tiers.associateBy { it.key }
+            assertThat(byKey.getValue(SongWordTierKey.CORE).wordJapanese).containsExactly("胸")
+            assertThat(byKey.getValue(SongWordTierKey.STARTER).wordJapanese).containsExactly("する")
+            assertThat(byKey.getValue(SongWordTierKey.BASIC).wordJapanese).containsExactly("雨")
+            assertThat(byKey.getValue(SongWordTierKey.ADVANCED).wordJapanese).containsExactly("輪郭")
+            assertThat(dto.tiers.flatMap { it.wordJapanese }).doesNotContain("君")
 
-            assertThat(byKey.getValue(SongWordStageKey.CORE)).satisfies({
+            assertThat(byKey.getValue(SongWordTierKey.CORE)).satisfies({
                 assertThat(it.totalCount).isEqualTo(1); assertThat(it.knownCount).isEqualTo(1); assertThat(it.learningCount).isEqualTo(0)
             })
-            assertThat(byKey.getValue(SongWordStageKey.STARTER)).satisfies({
+            assertThat(byKey.getValue(SongWordTierKey.STARTER)).satisfies({
                 assertThat(it.totalCount).isEqualTo(1); assertThat(it.knownCount).isEqualTo(0); assertThat(it.learningCount).isEqualTo(0)
             })
-            assertThat(byKey.getValue(SongWordStageKey.BASIC)).satisfies({
+            assertThat(byKey.getValue(SongWordTierKey.BASIC)).satisfies({
                 assertThat(it.totalCount).isEqualTo(1); assertThat(it.knownCount).isEqualTo(0); assertThat(it.learningCount).isEqualTo(1)
             })
-            assertThat(byKey.getValue(SongWordStageKey.ADVANCED)).satisfies({
+            assertThat(byKey.getValue(SongWordTierKey.ADVANCED)).satisfies({
                 assertThat(it.totalCount).isEqualTo(1); assertThat(it.knownCount).isEqualTo(0); assertThat(it.learningCount).isEqualTo(0)
             })
         }
 
         @Test
-        fun `song without word candidates returns four empty stages`() {
+        fun `song without word candidates returns four empty tiers`() {
             val me = newUser()
             val song = newSong()
             newLyric(song, raw = listOf(LyricLineData(index = 0, startTimeMs = null, text = "待機中")))
 
-            val dto = stages(me, song.id!!)
+            val dto = tiers(me, song.id!!)
 
-            assertThat(dto.stages).hasSize(4)
-            assertThat(dto.stages).allSatisfy { assertThat(it.wordJapanese).isEmpty(); assertThat(it.totalCount).isZero() }
+            assertThat(dto.tiers).hasSize(4)
+            assertThat(dto.tiers).allSatisfy { assertThat(it.wordJapanese).isEmpty(); assertThat(it.totalCount).isZero() }
         }
 
         @Test
         fun `unknown song returns 404`() {
             val me = newUser()
-            mockMvc.get("/api/songs/999999/word-stages") {
+            mockMvc.get("/api/songs/999999/word-tiers") {
                 header("Authorization", bearer(me))
             }.andExpect { status { isNotFound() } }
         }
 
         @Test
-        fun `words with unknown jlpt are part of the default filter and count toward stages`() {
+        fun `words with unknown jlpt are part of the default filter and count toward tiers`() {
             val me = newUser()
             val song = newSong()
             newLyric(
@@ -1047,8 +1047,8 @@ class SongControllerTest : ApiBaseIntegrationTest() {
                     lineCandidates = mapOf("0" to listOf(0)),
                 ),
             )
-            val dto = stages(me, song.id!!)
-            assertThat(dto.stages.first { it.key == SongWordStageKey.ADVANCED }.wordJapanese).containsExactly("미분류")
+            val dto = tiers(me, song.id!!)
+            assertThat(dto.tiers.first { it.key == SongWordTierKey.ADVANCED }.wordJapanese).containsExactly("미분류")
         }
     }
 

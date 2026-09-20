@@ -3,35 +3,35 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Colors } from '../../theme/theme';
 import { Typography } from '../../theme/typography';
-import type { SongWordStageDto, SongWordStageKey } from '../../types/song';
+import type { SongWordTierDto, SongWordTierKey } from '../../types/song';
 import { PrimaryButton } from '../PrimaryButton';
 import WordMasteryProgressBar from '../WordMasteryProgressBar';
-import { resolveStageStatuses, selectCurrentStage, SongWordStageStatus } from './songDetailWordDerivation';
+import { resolveTierStatuses, selectCurrentTier, SongWordTierStatus } from './songDetailWordDerivation';
 
-interface SongDetailStageRoadmapProps {
-  stages: readonly SongWordStageDto[];
+interface SongDetailTierRoadmapProps {
+  tiers: readonly SongWordTierDto[];
   isStartingLearning?: boolean;
-  onStartStage: (stage: SongWordStageDto) => void;
+  onStartTier: (tier: SongWordTierDto) => void;
 }
 
-export const SongDetailStageRoadmap = React.memo(function SongDetailStageRoadmap({
-  stages,
+export const SongDetailTierRoadmap = React.memo(function SongDetailTierRoadmap({
+  tiers,
   isStartingLearning = false,
-  onStartStage,
-}: SongDetailStageRoadmapProps) {
-  const statuses = useMemo(() => resolveStageStatuses(stages), [stages]);
-  const currentKey = useMemo(() => selectCurrentStage(stages)?.key ?? null, [stages]);
-  const [expandedKey, setExpandedKey] = useState<SongWordStageKey | null>(currentKey);
+  onStartTier,
+}: SongDetailTierRoadmapProps) {
+  const statuses = useMemo(() => resolveTierStatuses(tiers), [tiers]);
+  const currentKey = useMemo(() => selectCurrentTier(tiers)?.key ?? null, [tiers]);
+  const [expandedKey, setExpandedKey] = useState<SongWordTierKey | null>(currentKey);
 
   useEffect(() => {
     setExpandedKey(currentKey);
   }, [currentKey]);
 
-  const handleToggle = useCallback((key: SongWordStageKey) => {
+  const handleToggle = useCallback((key: SongWordTierKey) => {
     setExpandedKey(prev => (prev === key ? null : key));
   }, []);
 
-  if (stages.length === 0) return null;
+  if (tiers.length === 0) return null;
 
   return (
     <View style={styles.section}>
@@ -39,16 +39,16 @@ export const SongDetailStageRoadmap = React.memo(function SongDetailStageRoadmap
         <Text style={styles.title}>학습 로드맵</Text>
       </View>
       <View style={styles.roadmap}>
-        {stages.map((stage, index) => (
-          <StageRow
-            key={stage.key}
-            stage={stage}
+        {tiers.map((tier, index) => (
+          <TierRow
+            key={tier.key}
+            tier={tier}
             status={statuses[index]}
-            isExpanded={expandedKey === stage.key}
-            isLast={index === stages.length - 1}
+            isExpanded={expandedKey === tier.key}
+            isLast={index === tiers.length - 1}
             isStartingLearning={isStartingLearning}
             onToggle={handleToggle}
-            onStartStage={onStartStage}
+            onStartTier={onStartTier}
           />
         ))}
       </View>
@@ -56,31 +56,31 @@ export const SongDetailStageRoadmap = React.memo(function SongDetailStageRoadmap
   );
 });
 
-interface StageRowProps {
-  stage: SongWordStageDto;
-  status: SongWordStageStatus;
+interface TierRowProps {
+  tier: SongWordTierDto;
+  status: SongWordTierStatus;
   isExpanded: boolean;
   isLast: boolean;
   isStartingLearning: boolean;
-  onToggle: (key: SongWordStageKey) => void;
-  onStartStage: (stage: SongWordStageDto) => void;
+  onToggle: (key: SongWordTierKey) => void;
+  onStartTier: (tier: SongWordTierDto) => void;
 }
 
-const StageRow = React.memo(function StageRow({
-  stage,
+const TierRow = React.memo(function TierRow({
+  tier,
   status,
   isExpanded,
   isLast,
   isStartingLearning,
   onToggle,
-  onStartStage,
-}: StageRowProps) {
+  onStartTier,
+}: TierRowProps) {
   const handleToggle = useCallback(() => {
-    onToggle(stage.key);
-  }, [onToggle, stage.key]);
+    onToggle(tier.key);
+  }, [onToggle, tier.key]);
   const handleStart = useCallback(() => {
-    onStartStage(stage);
-  }, [onStartStage, stage]);
+    onStartTier(tier);
+  }, [onStartTier, tier]);
 
   const isCurrent = status === 'current';
   const isDone = status === 'done';
@@ -88,13 +88,13 @@ const StageRow = React.memo(function StageRow({
   const metaColor = isCurrent ? Colors.textSecondary : Colors.textMuted;
 
   return (
-    <View style={styles.stageRow}>
+    <View style={styles.tierRow}>
       <View style={styles.rail}>
         <View style={[styles.badge, isCurrent && styles.badgeCurrent]}>
           {isDone ? (
             <Feather name="check" size={18} color={Colors.textMuted} />
           ) : (
-            <Text style={[styles.badgeNumber, isCurrent && styles.badgeNumberCurrent]}>{stage.order}</Text>
+            <Text style={[styles.badgeNumber, isCurrent && styles.badgeNumberCurrent]}>{tier.order}</Text>
           )}
         </View>
         {!isLast && <View style={styles.railLine} />}
@@ -102,20 +102,20 @@ const StageRow = React.memo(function StageRow({
 
       <View style={[styles.body, isLast && styles.bodyLast]}>
         <Pressable
-          style={styles.stageHeader}
+          style={styles.tierHeader}
           onPress={handleToggle}
           accessibilityRole="button"
           accessibilityState={{ expanded: isExpanded }}
-          accessibilityLabel={`${stage.name} 단계, ${stage.knownCount}/${stage.totalCount}`}
+          accessibilityLabel={`${tier.name} 단계, ${tier.knownCount}/${tier.totalCount}`}
         >
           <View style={styles.titleGroup}>
-            <Text style={[styles.stageName, { color: nameColor }]}>{stage.name}</Text>
-            <Text style={[styles.stageDesc, { color: metaColor }]} numberOfLines={1}>
-              {stage.description}
+            <Text style={[styles.tierName, { color: nameColor }]}>{tier.name}</Text>
+            <Text style={[styles.tierDesc, { color: metaColor }]} numberOfLines={1}>
+              {tier.description}
             </Text>
           </View>
-          <Text style={[styles.stageCount, { color: metaColor }]}>
-            {stage.knownCount}/{stage.totalCount}
+          <Text style={[styles.tierCount, { color: metaColor }]}>
+            {tier.knownCount}/{tier.totalCount}
           </Text>
           <Feather name={isExpanded ? 'chevron-up' : 'chevron-down'} size={20} color={metaColor} />
         </Pressable>
@@ -123,15 +123,15 @@ const StageRow = React.memo(function StageRow({
         {isExpanded && (
           <>
             <WordMasteryProgressBar
-              totalCount={stage.totalCount}
-              masteredCount={stage.knownCount}
-              studyingCount={stage.learningCount}
+              totalCount={tier.totalCount}
+              masteredCount={tier.knownCount}
+              studyingCount={tier.learningCount}
             />
             {!isDone && (
               <PrimaryButton
-                label={`${stage.name} 학습하기`}
+                label={`${tier.name} 학습하기`}
                 onPress={handleStart}
-                disabled={isStartingLearning || stage.totalCount === 0}
+                disabled={isStartingLearning || tier.totalCount === 0}
                 style={styles.learnButton}
               />
             )}
@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
   roadmap: {
     paddingTop: 4,
   },
-  stageRow: {
+  tierRow: {
     flexDirection: 'row',
     gap: 14,
   },
@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
   bodyLast: {
     paddingBottom: 4,
   },
-  stageHeader: {
+  tierHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
@@ -213,16 +213,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  stageName: {
+  tierName: {
     ...Typography.headingBold,
     fontSize: 15,
   },
-  stageDesc: {
+  tierDesc: {
     ...Typography.body,
     flexShrink: 1,
     fontSize: 12,
   },
-  stageCount: {
+  tierCount: {
     ...Typography.bodySemiBold,
     fontSize: 12,
   },

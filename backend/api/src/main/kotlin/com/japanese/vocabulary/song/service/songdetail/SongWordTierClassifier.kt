@@ -1,6 +1,6 @@
 package com.japanese.vocabulary.song.service.songdetail
 
-import com.japanese.vocabulary.song.dto.songdetail.SongWordStageKey
+import com.japanese.vocabulary.song.dto.songdetail.SongWordTierKey
 import com.japanese.vocabulary.song.dto.songdetail.WordInSongItemDto
 import com.japanese.vocabulary.song.model.CommonWords
 import com.japanese.vocabulary.song.model.LyricLineData
@@ -15,7 +15,7 @@ import com.japanese.vocabulary.song.model.LyricLineData
  * 순서: 핵심을 먼저 뽑고 남은 것을 입문 → 기초 → 심화로 나눈다. prod 79곡 시뮬레이션 기준
  * 곡당 핵심 10 / 입문 12 / 기초 21 / 심화 39 (중앙값).
  */
-object SongWordStageClassifier {
+object SongWordTierClassifier {
     /** 핵심 단어 수. 홈의 핵심 단어 카드 5개는 이 안에 들어간다. */
     const val CORE_SIZE = 10
 
@@ -24,7 +24,7 @@ object SongWordStageClassifier {
 
     private val BASIC_JLPT = setOf("N5", "N4")
 
-    fun classify(words: List<WordInSongItemDto>, rawLines: List<LyricLineData>): Map<SongWordStageKey, List<WordInSongItemDto>> {
+    fun classify(words: List<WordInSongItemDto>, rawLines: List<LyricLineData>): Map<SongWordTierKey, List<WordInSongItemDto>> {
         val chorusLines = chorusLineIndexes(rawLines)
         val chorusRatio = if (rawLines.isEmpty()) 0.0 else chorusLines.size.toDouble() / rawLines.size
         val remaining = words.toMutableList()
@@ -49,10 +49,10 @@ object SongWordStageClassifier {
         val advanced = take(BY_APPEARANCE) { true }
 
         return mapOf(
-            SongWordStageKey.CORE to core,
-            SongWordStageKey.STARTER to starter,
-            SongWordStageKey.BASIC to basic,
-            SongWordStageKey.ADVANCED to advanced,
+            SongWordTierKey.CORE to core,
+            SongWordTierKey.STARTER to starter,
+            SongWordTierKey.BASIC to basic,
+            SongWordTierKey.ADVANCED to advanced,
         )
     }
 

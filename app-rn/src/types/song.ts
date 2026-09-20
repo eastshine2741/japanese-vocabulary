@@ -175,10 +175,10 @@ export interface SongAnalysisWorkResponse {
 }
 
 /** 곡 단어 4단계 분류. 순서대로 핵심 -> 입문 -> 기초 -> 심화. */
-export type SongWordStageKey = 'CORE' | 'STARTER' | 'BASIC' | 'ADVANCED';
+export type SongWordTierKey = 'CORE' | 'STARTER' | 'BASIC' | 'ADVANCED';
 
-export interface SongWordStageDto {
-  key: SongWordStageKey;
+export interface SongWordTierDto {
+  key: SongWordTierKey;
   /** 1부터 시작하는 로드맵 순서 */
   order: number;
   name: string;
@@ -190,7 +190,7 @@ export interface SongWordStageDto {
   learningCount: number;
 }
 
-export interface SongWordStagesDto {
+export interface SongWordTiersDto {
   songId: number;
-  stages: SongWordStageDto[];
+  tiers: SongWordTierDto[];
 }

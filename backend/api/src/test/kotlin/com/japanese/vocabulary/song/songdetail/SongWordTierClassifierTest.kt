@@ -1,14 +1,14 @@
 package com.japanese.vocabulary.song.songdetail
 
-import com.japanese.vocabulary.song.dto.songdetail.SongWordStageKey
+import com.japanese.vocabulary.song.dto.songdetail.SongWordTierKey
 import com.japanese.vocabulary.song.dto.songdetail.WordInSongItemDto
 import com.japanese.vocabulary.song.model.LyricLineData
-import com.japanese.vocabulary.song.service.songdetail.SongWordStageClassifier
+import com.japanese.vocabulary.song.service.songdetail.SongWordTierClassifier
 import com.japanese.vocabulary.word.dto.AddWordRequest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 
-class SongWordStageClassifierTest {
+class SongWordTierClassifierTest {
 
     private fun word(
         japanese: String,
@@ -38,23 +38,23 @@ class SongWordStageClassifierTest {
 
     private fun lines(vararg texts: String) = texts.mapIndexed { i, t -> LyricLineData(index = i, startTimeMs = null, text = t) }
 
-    private fun Map<SongWordStageKey, List<WordInSongItemDto>>.names(key: SongWordStageKey) = getValue(key).map { it.japanese }
+    private fun Map<SongWordTierKey, List<WordInSongItemDto>>.names(key: SongWordTierKey) = getValue(key).map { it.japanese }
 
     @Test
-    fun `every word lands in exactly one stage`() {
+    fun `every word lands in exactly one tier`() {
         val words = listOf(
             word("胸", 90.0, 0, listOf(0, 2)),
             word("する", 80.0, 1, listOf(0, 1), pos = "VERB"),
             word("雨", 50.0, 2, listOf(1), jlpt = "N5"),
             word("輪郭", 40.0, 3, listOf(3), jlpt = null),
         )
-        val stages = SongWordStageClassifier.classify(words, lines("胸する", "する雨", "胸", "輪郭"))
+        val tiers = SongWordTierClassifier.classify(words, lines("胸する", "する雨", "胸", "輪郭"))
 
-        assertThat(stages.values.flatten().map { it.japanese }).containsExactlyInAnyOrder("胸", "する", "雨", "輪郭")
-        assertThat(stages.names(SongWordStageKey.CORE)).containsExactly("胸")
-        assertThat(stages.names(SongWordStageKey.STARTER)).containsExactly("する")
-        assertThat(stages.names(SongWordStageKey.BASIC)).containsExactly("雨")
-        assertThat(stages.names(SongWordStageKey.ADVANCED)).containsExactly("輪郭")
+        assertThat(tiers.values.flatten().map { it.japanese }).containsExactlyInAnyOrder("胸", "する", "雨", "輪郭")
+        assertThat(tiers.names(SongWordTierKey.CORE)).containsExactly("胸")
+        assertThat(tiers.names(SongWordTierKey.STARTER)).containsExactly("する")
+        assertThat(tiers.names(SongWordTierKey.BASIC)).containsExactly("雨")
+        assertThat(tiers.names(SongWordTierKey.ADVANCED)).containsExactly("輪郭")
     }
 
     @Test
@@ -67,16 +67,16 @@ class SongWordStageClassifierTest {
             word("한번", 300.0, 21, listOf(1)) +
             word("いる", 500.0, 22, listOf(0, 2), pos = "VERB")
 
-        val stages = SongWordStageClassifier.classify(words, raw)
+        val tiers = SongWordTierClassifier.classify(words, raw)
 
-        val core = stages.names(SongWordStageKey.CORE)
-        assertThat(core).hasSize(SongWordStageClassifier.CORE_SIZE)
+        val core = tiers.names(SongWordTierKey.CORE)
+        assertThat(core).hasSize(SongWordTierClassifier.CORE_SIZE)
         // 중요도 순: 두 줄에 나오는 "반복" 이 맨 앞, 이어서 후렴 단어 상위 9개.
         assertThat(core).startsWith("반복", "후렴1")
         assertThat(core).doesNotContain("한번", "いる")
-        assertThat(stages.names(SongWordStageKey.STARTER)).containsExactly("いる")
+        assertThat(tiers.names(SongWordTierKey.STARTER)).containsExactly("いる")
         // 한 줄에만 나오는 단어는 아무리 중요도가 높아도 핵심이 아니다.
-        assertThat(stages.names(SongWordStageKey.ADVANCED)).contains("한번")
+        assertThat(tiers.names(SongWordTierKey.ADVANCED)).contains("한번")
     }
 
     @Test
@@ -88,7 +88,7 @@ class SongWordStageClassifierTest {
             word("여러번", 10.0, 1, listOf(0, 1, 2)),
             word("두번", 50.0, 2, listOf(1, 3)),
         )
-        val core = SongWordStageClassifier.classify(words, raw).names(SongWordStageKey.CORE)
+        val core = SongWordTierClassifier.classify(words, raw).names(SongWordTierKey.CORE)
         assertThat(core).containsExactly("여러번", "두번", "점수높음")
     }
 
@@ -101,26 +101,26 @@ class SongWordStageClassifierTest {
             word("N1어", 10.0, 3, listOf(0), jlpt = "N1"),
             word("미분류", 10.0, 4, listOf(0), jlpt = null),
         )
-        val stages = SongWordStageClassifier.classify(words, lines("한줄"))
-        assertThat(stages.names(SongWordStageKey.CORE)).isEmpty()
-        assertThat(stages.names(SongWordStageKey.BASIC)).containsExactly("N5어", "N4어")
-        assertThat(stages.names(SongWordStageKey.ADVANCED)).containsExactly("N3어", "N1어", "미분류")
+        val tiers = SongWordTierClassifier.classify(words, lines("한줄"))
+        assertThat(tiers.names(SongWordTierKey.CORE)).isEmpty()
+        assertThat(tiers.names(SongWordTierKey.BASIC)).containsExactly("N5어", "N4어")
+        assertThat(tiers.names(SongWordTierKey.ADVANCED)).containsExactly("N3어", "N1어", "미분류")
     }
 
     @Test
-    fun `non-core stages keep appearance order`() {
+    fun `non-core tiers keep appearance order`() {
         val words = listOf(
             word("늦게", 99.0, 5, listOf(0), jlpt = "N5"),
             word("먼저", 1.0, 0, listOf(0), jlpt = "N5"),
         )
-        assertThat(SongWordStageClassifier.classify(words, lines("x")).names(SongWordStageKey.BASIC))
+        assertThat(SongWordTierClassifier.classify(words, lines("x")).names(SongWordTierKey.BASIC))
             .containsExactly("먼저", "늦게")
     }
 
     @Test
-    fun `empty input yields four empty stages`() {
-        val stages = SongWordStageClassifier.classify(emptyList(), emptyList())
-        assertThat(stages.keys).containsExactlyInAnyOrder(*SongWordStageKey.entries.toTypedArray())
-        assertThat(stages.values).allSatisfy { assertThat(it).isEmpty() }
+    fun `empty input yields four empty tiers`() {
+        val tiers = SongWordTierClassifier.classify(emptyList(), emptyList())
+        assertThat(tiers.keys).containsExactlyInAnyOrder(*SongWordTierKey.entries.toTypedArray())
+        assertThat(tiers.values).allSatisfy { assertThat(it).isEmpty() }
     }
 }

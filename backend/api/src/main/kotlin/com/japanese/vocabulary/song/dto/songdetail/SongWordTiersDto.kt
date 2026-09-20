@@ -1,13 +1,13 @@
 package com.japanese.vocabulary.song.dto.songdetail
 
-data class SongWordStagesDto(
+data class SongWordTiersDto(
     val songId: Long,
     /** 항상 4개, `order` 오름차순. 단어가 없는 곡도 빈 단계 4개를 준다. */
-    val stages: List<SongWordStageDto>,
+    val tiers: List<SongWordTierDto>,
 )
 
-data class SongWordStageDto(
-    val key: SongWordStageKey,
+data class SongWordTierDto(
+    val key: SongWordTierKey,
     val order: Int,
     val name: String,
     val description: String,
@@ -20,7 +20,7 @@ data class SongWordStageDto(
     val learningCount: Int,
 )
 
-enum class SongWordStageKey(val order: Int, val displayName: String, val description: String) {
+enum class SongWordTierKey(val order: Int, val displayName: String, val description: String) {
     CORE(1, "핵심", "이 곡의 후렴·반복 단어"),
     STARTER(2, "입문", "어떤 노래에도 나오는 뼈대 단어"),
     BASIC(3, "기초", "초보자에게 필요한 쉬운 단어"),

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import type { SongWordStageDto } from '../../types/song';
-import { resolveStageStatuses, selectCurrentStage } from './songDetailWordDerivation';
+import type { SongWordTierDto } from '../../types/song';
+import { resolveTierStatuses, selectCurrentTier } from './songDetailWordDerivation';
 
-function stage(order: number, totalCount: number, knownCount: number): SongWordStageDto {
+function tier(order: number, totalCount: number, knownCount: number): SongWordTierDto {
   return {
     key: (['CORE', 'STARTER', 'BASIC', 'ADVANCED'] as const)[order - 1],
     order,
@@ -15,21 +15,21 @@ function stage(order: number, totalCount: number, knownCount: number): SongWordS
   };
 }
 
-describe('stage statuses', () => {
-  it('marks the first unfinished stage as current', () => {
-    const stages = [stage(1, 10, 10), stage(2, 17, 10), stage(3, 19, 0), stage(4, 58, 0)];
-    expect(resolveStageStatuses(stages)).toEqual(['done', 'current', 'upcoming', 'upcoming']);
-    expect(selectCurrentStage(stages)?.order).toBe(2);
+describe('tier statuses', () => {
+  it('marks the first unfinished tier as current', () => {
+    const tiers = [tier(1, 10, 10), tier(2, 17, 10), tier(3, 19, 0), tier(4, 58, 0)];
+    expect(resolveTierStatuses(tiers)).toEqual(['done', 'current', 'upcoming', 'upcoming']);
+    expect(selectCurrentTier(tiers)?.order).toBe(2);
   });
 
-  it('has no current stage when everything is known', () => {
-    const stages = [stage(1, 10, 10), stage(2, 5, 5)];
-    expect(resolveStageStatuses(stages)).toEqual(['done', 'done']);
-    expect(selectCurrentStage(stages)).toBeNull();
+  it('has no current tier when everything is known', () => {
+    const tiers = [tier(1, 10, 10), tier(2, 5, 5)];
+    expect(resolveTierStatuses(tiers)).toEqual(['done', 'done']);
+    expect(selectCurrentTier(tiers)).toBeNull();
   });
 
-  it('skips an empty stage so the next one becomes current', () => {
-    const stages = [stage(1, 0, 0), stage(2, 3, 0)];
-    expect(resolveStageStatuses(stages)).toEqual(['done', 'current']);
+  it('skips an empty tier so the next one becomes current', () => {
+    const tiers = [tier(1, 0, 0), tier(2, 3, 0)];
+    expect(resolveTierStatuses(tiers)).toEqual(['done', 'current']);
   });
 });
