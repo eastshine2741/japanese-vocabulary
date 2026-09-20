@@ -76,8 +76,11 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => {
   const finishJob = (workId: number, songId: number) => {
     patchJob(workId, { phase: 'done', songId, settledAt: Date.now() });
     // 완료 곡의 songDetail 을 이미 보고 있으면 "단어 분석 중" placeholder 를 바로 걷는다.
-    if (useSongDetailStore.getState().data?.song.id === songId) {
-      useSongDetailStore.getState().refreshWords(songId).catch(() => undefined);
+    // 로드맵(tiers)은 분석 전에 빈 4단계로 받아 둔 상태라 함께 다시 가져와야 0개짜리 티어가 안 남는다.
+    const songDetail = useSongDetailStore.getState();
+    if (songDetail.data?.song.id === songId) {
+      songDetail.refreshWords(songId).catch(() => undefined);
+      songDetail.refreshTiers(songId).catch(() => undefined);
     }
     holdThenRemove(workId);
   };

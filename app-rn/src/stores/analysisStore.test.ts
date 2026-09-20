@@ -7,8 +7,11 @@ vi.mock('../api/songApi', () => ({ songApi: { getAnalysisWork: (id: number) => g
 vi.mock('../utils/preferenceStorage', () => ({
   preferenceStorage: { getAnalysisPillDock: async () => null, saveAnalysisPillDock: async () => undefined },
 }));
+const refreshWords = vi.fn(async (_songId: number) => undefined);
+const refreshTiers = vi.fn(async (_songId: number) => undefined);
+let songDetailData: { song: { id: number } } | null = null;
 vi.mock('./songDetailStore', () => ({
-  useSongDetailStore: { getState: () => ({ data: null, refreshWords: async () => undefined }) },
+  useSongDetailStore: { getState: () => ({ data: songDetailData, refreshWords, refreshTiers }) },
 }));
 
 const { useAnalysisStore, isAnalyzingSong } = await import('./analysisStore');
@@ -32,6 +35,9 @@ describe('analysisStore polling', () => {
     vi.useFakeTimers();
     getAnalysisWork.mockReset();
     getAnalysisWork.mockImplementation(async id => work({ workId: id }));
+    refreshWords.mockClear();
+    refreshTiers.mockClear();
+    songDetailData = null;
   });
   afterEach(() => {
     useAnalysisStore.getState().reset();
@@ -62,6 +68,24 @@ describe('analysisStore polling', () => {
     getAnalysisWork.mockResolvedValue(work({ songId: 7, canOpenPlayer: true }));
     await vi.advanceTimersByTimeAsync(3000);
     await expect(joined).resolves.toMatchObject({ songId: 7 });
+  });
+
+  it('refreshes both words and tiers of the song detail already open when analysis completes', async () => {
+    songDetailData = { song: { id: 7 } };
+    useAnalysisStore.getState().track(work({ songId: 7, canOpenPlayer: true, isAnalysisComplete: true }), song);
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(refreshWords).toHaveBeenCalledWith(7);
+    expect(refreshTiers).toHaveBeenCalledWith(7);
+  });
+
+  it('leaves the song detail alone when it shows a different song', async () => {
+    songDetailData = { song: { id: 8 } };
+    useAnalysisStore.getState().track(work({ songId: 7, canOpenPlayer: true, isAnalysisComplete: true }), song);
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(refreshWords).not.toHaveBeenCalled();
+    expect(refreshTiers).not.toHaveBeenCalled();
   });
 
   it('stops matching once the song is done', async () => {
