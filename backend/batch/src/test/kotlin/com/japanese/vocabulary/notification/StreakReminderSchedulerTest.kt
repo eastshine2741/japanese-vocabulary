@@ -114,14 +114,26 @@ class StreakReminderSchedulerTest : BatchBaseIntegrationTest() {
     }
 
     @Test
-    fun `freeze-filled yesterday keeps the streak number`() {
+    fun `freeze-filled yesterday keeps the run alive but does not add a day`() {
         val user = newUser().also { studied(it, 2, 3) }
         entityManager.persist(DailyStudySummaryEntity(userId = user.id!!, dateKst = today.minusDays(1), reviewCount = 0, freezeUsed = true))
         entityManager.flush()
 
         val result = candidatesFor(Slot.EVENING, user)
 
-        assertThat(result[user.id]!!.title).isEqualTo("🔥 3일 연속 학습 중! 오늘은 아직이에요")
+        assertThat(result[user.id]!!.title).isEqualTo("🔥 2일 연속 학습 중! 오늘은 아직이에요")
+    }
+
+    @Test
+    fun `lapsed gap is measured from the last review day, not a freeze day`() {
+        // studied 3 days ago, freeze bridged 2 days ago, nothing yesterday → lapsed, gap 3
+        val user = newUser().also { studied(it, 3) }
+        entityManager.persist(DailyStudySummaryEntity(userId = user.id!!, dateKst = today.minusDays(2), reviewCount = 0, freezeUsed = true))
+        entityManager.flush()
+
+        val result = candidatesFor(Slot.EVENING, user)
+
+        assertThat(result[user.id]!!.title).isEqualTo("오늘 다시 시작해볼까요?")
     }
 
     @Test

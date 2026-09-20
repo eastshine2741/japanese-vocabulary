@@ -220,6 +220,30 @@ class StudyStatsControllerTest : ApiBaseIntegrationTest() {
             assertThat(resp.longestStreak).isEqualTo(4)
             assertThat(resp.totalStudyDays).isEqualTo(7)
         }
+
+        @Test
+        fun `freeze days keep runs unbroken but are excluded from every count`() {
+            val me = newUser()
+            val today = kstClock.todayStudyDate()
+            // Current run: today, freeze yesterday, studied 2 days ago → streak 2
+            seedDay(me, today)
+            seedDay(me, today.minusDays(1), reviewCount = 0, freezeUsed = true)
+            seedDay(me, today.minusDays(2))
+            // Older run: 3 studied + 1 freeze in the middle → length 3, not 4
+            seedDay(me, today.minusDays(5))
+            seedDay(me, today.minusDays(6), reviewCount = 0, freezeUsed = true)
+            seedDay(me, today.minusDays(7))
+            seedDay(me, today.minusDays(8))
+
+            val body = mockMvc.get("/api/study-stats/profile") {
+                header("Authorization", bearer(me))
+            }.andReturn().response.contentAsString
+
+            val resp = readBody<ProfileStatsResponse>(body)
+            assertThat(resp.currentStreak).isEqualTo(2)
+            assertThat(resp.longestStreak).isEqualTo(3)
+            assertThat(resp.totalStudyDays).isEqualTo(5)
+        }
     }
 
     @Nested

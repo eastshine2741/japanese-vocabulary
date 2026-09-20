@@ -30,7 +30,8 @@
 | `hasStudiedBefore` | boolean | 오늘 이전 날짜에 `daily_study_summary` 행이 하나라도 있는지. A-2 의 `첫날` 과 `끊긴 뒤 재시작` 을 가른다 |
 
 `currentStreak` 은 현재 `StreakCalculator.currentStreak` 의미 그대로 쓴다 — 오늘 기록이 있으면 오늘
-포함, 없으면 어제까지 이어진 일수, 끊겼으면 0. B-1 표의 숫자와 정확히 같다.
+포함, 없으면 어제까지 이어진 일수, 끊겼으면 0. freeze 로 채워진 날은 연속을 잇기만 하고 일수에는
+들어가지 않는다 (`longestStreak`·`totalStudyDays` 도 동일). B-1 표의 숫자와 정확히 같다.
 
 프론트 사용처:
 
