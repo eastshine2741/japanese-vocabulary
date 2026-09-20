@@ -1,5 +1,5 @@
-import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Colors } from '../../theme/theme';
 import { Typography } from '../../theme/typography';
 
@@ -10,15 +10,18 @@ const TAIL_RIGHT_OFFSET = 32;
 const TAIL_WIDTH = 14;
 const TAIL_HEIGHT = 7;
 
-/** B-1 말풍선 — 헤더 칩 아래에 붙어 오늘 아직임을 말한다. 사용자가 닫을 수 없다. */
+/** B-1 말풍선 — 헤더 칩 아래에 붙어 오늘 아직임을 말한다. 한 번 누르면 사라지고, 다시 마운트되면 다시 보인다. */
 export const StreakNudge = React.memo(function StreakNudge() {
+  const [dismissed, setDismissed] = useState(false);
+  const dismiss = useCallback(() => setDismissed(true), []);
+  if (dismissed) return null;
   return (
-    <View style={styles.wrap} pointerEvents="none">
+    <Pressable style={styles.wrap} onPress={dismiss} hitSlop={8}>
       <View style={styles.tail} />
       <View style={styles.bubble}>
         <Text style={styles.text}>{STREAK_NUDGE_TEXT}</Text>
       </View>
-    </View>
+    </Pressable>
   );
 });
 
@@ -42,6 +45,11 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingVertical: 9,
     paddingHorizontal: 14,
+    shadowColor: Colors.streakFlame,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.45,
+    shadowRadius: 6,
+    elevation: 10,
   },
   text: {
     ...Typography.bodySemiBold,

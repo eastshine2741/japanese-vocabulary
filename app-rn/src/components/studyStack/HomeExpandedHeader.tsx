@@ -87,7 +87,7 @@ export const HomeExpandedHeader = React.memo(function HomeExpandedHeader({
       {showNudge && (
         <Animated.View
           style={[styles.nudge, { top: insets.top + APP_BAR_HEIGHT - NUDGE_OVERLAP }, appBar]}
-          pointerEvents="none"
+          pointerEvents="box-none"
         >
           <StreakNudge />
         </Animated.View>
