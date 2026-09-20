@@ -5,7 +5,7 @@ import { deckApi } from '../../api/deckApi';
 import { flashcardApi } from '../../api/flashcardApi';
 import { songApi } from '../../api/songApi';
 import { studyStatsApi } from '../../api/studyStatsApi';
-import { useStudyStack, StudyStackState } from './useStudyStack';
+import { RATING_HOLD_MS, useStudyStack, StudyStackState } from './useStudyStack';
 import { StudySource } from './types';
 import { FlashcardDTO } from '../../types/flashcard';
 import { RecommendedSongItem, WordInSongItemDto, WordsInSongDto } from '../../types/song';
@@ -132,6 +132,56 @@ it('reviews the next card as a real flashcard after the preview bootstrap', asyn
   await rate(2);
   expect(flashcardApi.review).toHaveBeenCalledWith(2, { rating: 2 });
   expect(songApi.studyBootstrap).toHaveBeenCalledTimes(1);
+});
+
+it('holds the selected rating briefly, then advances on its own', async () => {
+  vi.mocked(flashcardApi.getDueCards)
+    .mockResolvedValueOnce({ cards: [card(9), card(1)], totalCount: 2, nextDueAt: null });
+  await mount();
+  await act(async () => { stack.reveal(); stack.selectRating(3); });
+  expect(stack.selectedRating).toBe(3);
+  expect(flashcardApi.review).not.toHaveBeenCalled();
+  await act(async () => { await vi.advanceTimersByTimeAsync(RATING_HOLD_MS); });
+  expect(flashcardApi.review).toHaveBeenCalledWith(9, { rating: 3 });
+  expect(stack.currentCard?.id).toBe(1);
+  expect(stack.selectedRating).toBeNull();
+});
+
+it('cancels the hold when the same rating is tapped again', async () => {
+  vi.mocked(flashcardApi.getDueCards)
+    .mockResolvedValueOnce({ cards: [card(9), card(1)], totalCount: 2, nextDueAt: null });
+  await mount();
+  await act(async () => { stack.reveal(); stack.selectRating(3); });
+  await act(async () => { stack.selectRating(3); });
+  expect(stack.selectedRating).toBeNull();
+  await act(async () => { await vi.advanceTimersByTimeAsync(RATING_HOLD_MS * 2); });
+  expect(flashcardApi.review).not.toHaveBeenCalled();
+  expect(stack.currentCard?.id).toBe(9);
+});
+
+it('switches to another rating during the hold and restarts the timer', async () => {
+  vi.mocked(flashcardApi.getDueCards)
+    .mockResolvedValueOnce({ cards: [card(9), card(1)], totalCount: 2, nextDueAt: null });
+  await mount();
+  await act(async () => { stack.reveal(); stack.selectRating(1); });
+  await act(async () => { await vi.advanceTimersByTimeAsync(RATING_HOLD_MS - 50); });
+  await act(async () => { stack.selectRating(4); });
+  await act(async () => { await vi.advanceTimersByTimeAsync(RATING_HOLD_MS - 50); });
+  expect(flashcardApi.review).not.toHaveBeenCalled();
+  await act(async () => { await vi.advanceTimersByTimeAsync(50); });
+  expect(flashcardApi.review).toHaveBeenCalledWith(9, { rating: 4 });
+  expect(flashcardApi.review).toHaveBeenCalledTimes(1);
+});
+
+it('swiping up during the hold commits immediately, without a second review', async () => {
+  vi.mocked(flashcardApi.getDueCards)
+    .mockResolvedValueOnce({ cards: [card(9), card(1)], totalCount: 2, nextDueAt: null });
+  await mount();
+  await rate(2);
+  expect(flashcardApi.review).toHaveBeenCalledWith(9, { rating: 2 });
+  await act(async () => { await vi.advanceTimersByTimeAsync(RATING_HOLD_MS * 2); });
+  expect(flashcardApi.review).toHaveBeenCalledTimes(1);
+  expect(stack.currentCard?.id).toBe(1);
 });
 
 it('lets horizontal example carousel swipes pass through after rating is selected', async () => {

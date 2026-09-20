@@ -1,10 +1,16 @@
 import React from 'react';
-import { Animated, GestureResponderHandlers, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, GestureResponderHandlers, Pressable, StyleSheet, Text, View } from 'react-native';
 import { CardStage, SourceHeader, StageInset } from './CardStage';
 import { SWIPE_OUT_DISTANCE } from './useStudyStack';
 import { WordBack } from './WordBack';
 import { WordFront } from './WordFront';
 import { StudyCard } from './types';
+
+/**
+ * 앞면 '뜻 확인하기' pill 이 rating 버튼 넷으로 갈라지는 시간. reveal(320ms) 과 별개로 돌린다 —
+ * reveal 값에 얹으면 out-cubic 이라 움직임이 앞쪽 100ms 안에 끝나버린다.
+ */
+const SPLIT_MS = 720;
 
 /** 앞면 headword 자리에서 뒷면 자리로 가는 변환. faceStack 기준 측정값의 차. */
 interface HeadwordMorph {
@@ -32,7 +38,7 @@ export interface WordLayerProps {
   onRequestImmerse?: () => void;
   /** 무대 위에 얹힌 크롬 높이 — 무대 안쪽 내용만 그만큼 내려간다. */
   contentInsetTop?: StageInset;
-  /** 시스템 하단 영역 높이 — rating/스와이프 affordance 를 그만큼 올린다. */
+  /** 시스템 하단 영역 높이 — 하단 버튼 블록을 그만큼 올린다. */
   contentInsetBottom?: number;
 }
 
@@ -66,12 +72,29 @@ export const WordLayer = React.memo(function WordLayer({
   const faceStackRef = React.useRef<View>(null);
   const frontHeadwordRef = React.useRef<View>(null);
   const backHeadwordRef = React.useRef<View>(null);
-  const affordanceProgress = React.useRef(new Animated.Value(0)).current;
   // 공유 headword 는 앞면 앵커 안에 그린다. 절대 좌표로 놓으면 몰입 드래그로 카드 안쪽
   // 여백이 매 프레임 바뀔 때 측정(onLayout → rAF → measureLayout → setState)이 한 박자
   // 늦게 따라와 headword 가 튄다. 앵커 안에 있으면 레이아웃과 같은 프레임에 움직이고,
   // 측정에서 필요한 건 앞→뒤 morph(둘 다 세로 중앙 정렬이라 여백이 바뀌어도 일정하다)뿐이다.
   const [headwordMorph, setHeadwordMorph] = React.useState<HeadwordMorph | null>(null);
+  // 분열은 reveal 과 같은 순간 시작하지만 자기 속도로 간다. 앞면(pill 윤곽 녹음)과
+  // 뒷면(버튼 갈라짐)이 같은 값을 보므로 여기서 돌린다. 카드가 바뀌면 revealed 가 false 로
+  // 돌아오고 아래 faceStack 은 key 로 다시 마운트된다.
+  const splitProgress = React.useRef(new Animated.Value(0)).current;
+  React.useEffect(() => {
+    if (!revealed) {
+      splitProgress.setValue(0);
+      return;
+    }
+    // 허리가 생기는 초반은 빠르게, 끊어져 안착하는 후반은 길게 감속한다. 허리 깊이는 끝이 물러난
+    // 거리에 제곱으로 깊어져 같은 속도여도 후반이 빨라 보이므로 곡선은 더 앞쪽에 몰아둔다.
+    Animated.timing(splitProgress, {
+      toValue: 1,
+      duration: SPLIT_MS,
+      easing: Easing.bezier(0.1, 0.7, 0.2, 1),
+      useNativeDriver: true,
+    }).start();
+  }, [revealed, splitProgress]);
 
   React.useEffect(() => {
     setHeadwordMorph(null);
@@ -100,11 +123,6 @@ export const WordLayer = React.memo(function WordLayer({
   // interpolate 는 렌더마다 새로 만들면 네이티브 Animated 노드를 떼고 다시 붙인다 — 값이 바뀔 때만.
   const sharedHeadwordStyle = React.useMemo(() => {
     if (!headwordMorph) return null;
-    const backHeadwordAffordanceShift = affordanceProgress.interpolate({
-      inputRange: [0, 1],
-      outputRange: [0, -24.5],
-      extrapolate: 'clamp',
-    });
     return {
       transform: [
         {
@@ -115,14 +133,11 @@ export const WordLayer = React.memo(function WordLayer({
           }),
         },
         {
-          translateY: Animated.add(
-            revealProgress.interpolate({
-              inputRange: [0, 1],
-              outputRange: [0, headwordMorph.dy],
-              extrapolate: 'clamp',
-            }),
-            backHeadwordAffordanceShift,
-          ),
+          translateY: revealProgress.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0, headwordMorph.dy],
+            extrapolate: 'clamp',
+          }),
         },
         {
           scale: revealProgress.interpolate({
@@ -133,7 +148,7 @@ export const WordLayer = React.memo(function WordLayer({
         },
       ],
     };
-  }, [affordanceProgress, headwordMorph, revealProgress]);
+  }, [headwordMorph, revealProgress]);
   const sharedHeadword = React.useMemo(() => sharedHeadwordStyle && (
     <Animated.View pointerEvents="none" style={[styles.sharedHeadwordLayer, sharedHeadwordStyle]}>
       <Text adjustsFontSizeToFit numberOfLines={1} style={styles.sharedHeadword}>
@@ -168,7 +183,7 @@ export const WordLayer = React.memo(function WordLayer({
           saving={saving}
           onRating={onRating}
           revealProgress={revealProgress}
-          affordanceProgress={affordanceProgress}
+          splitProgress={splitProgress}
           hideHeadword={sharedHeadwordReady}
           headwordRef={backHeadwordRef}
           onHeadwordLayout={measureHeadwords}
@@ -179,6 +194,7 @@ export const WordLayer = React.memo(function WordLayer({
         <WordFront
           card={card}
           revealProgress={revealProgress}
+          splitProgress={splitProgress}
           hideHeadword={sharedHeadwordReady}
           headwordRef={frontHeadwordRef}
           onHeadwordLayout={measureHeadwords}

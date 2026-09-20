@@ -169,7 +169,6 @@ export const StudyStack = React.memo(function StudyStack({
 });
 
 const REVIEW_ERROR_BOTTOM_OFFSET = 24;
-const SKELETON_RATING_BUTTONS = [0, 1, 2, 3];
 
 interface StudyStackLoadingSkeletonProps {
   contentInsetTop?: StageInset;
@@ -199,19 +198,14 @@ const StudyStackLoadingSkeleton = React.memo(function StudyStackLoadingSkeleton(
       <View pointerEvents="none" style={styles.skeletonStack}>
         <View style={styles.skeletonWordGroup}>
           <SkeletonBox width="68%" height={64} borderRadius={10} color="rgba(255,255,255,0.24)" />
-          <View style={styles.skeletonHintRow}>
-            <SkeletonBox width={16} height={16} borderRadius={8} color="rgba(255,255,255,0.18)" />
-            <SkeletonBox width={132} height={12} borderRadius={4} color="rgba(255,255,255,0.16)" />
-          </View>
         </View>
 
-        <View style={styles.skeletonRatingRow}>
-          {SKELETON_RATING_BUTTONS.map((rating) => (
-            <View key={rating} style={styles.skeletonRatingButton}>
-              <SkeletonBox width="54%" height={12} borderRadius={4} color="rgba(255,255,255,0.20)" />
-              <SkeletonBox width="42%" height={10} borderRadius={4} color="rgba(255,255,255,0.13)" />
-            </View>
-          ))}
+        <View style={styles.skeletonRevealBlock}>
+          <SkeletonBox width={180} height={14} borderRadius={4} color="rgba(255,255,255,0.16)" />
+          <View style={styles.skeletonRevealPill}>
+            <SkeletonBox width={20} height={20} borderRadius={10} color="rgba(255,255,255,0.18)" />
+            <SkeletonBox width={72} height={14} borderRadius={4} color="rgba(255,255,255,0.20)" />
+          </View>
         </View>
       </View>
     </CardStage>
@@ -266,27 +260,22 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'flex-start',
-    gap: 18,
   },
-  skeletonHintRow: {
+  skeletonRevealBlock: {
+    alignItems: 'center',
+    gap: 12,
+    paddingBottom: 4,
+  },
+  skeletonRevealPill: {
+    width: '100%',
+    height: 56,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-  },
-  skeletonRatingRow: {
-    height: 48,
-    flexDirection: 'row',
+    justifyContent: 'center',
     gap: 8,
-  },
-  skeletonRatingButton: {
-    flex: 1,
-    height: 48,
-    borderRadius: 16,
+    borderRadius: 9999,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.16)',
     backgroundColor: 'rgba(255,255,255,0.05)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 5,
   },
 });
