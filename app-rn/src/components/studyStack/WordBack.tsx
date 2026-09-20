@@ -749,7 +749,7 @@ const styles = StyleSheet.create({
   },
   ratingLabel: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   ratingInterval: {
     fontSize: 11,
