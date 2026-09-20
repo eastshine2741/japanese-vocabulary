@@ -26,6 +26,8 @@ import {
 import { useHomeChromeStore } from '../../stores/homeChromeStore';
 import { RootStackParamList, TabParamList } from '../../navigation/AppNavigator';
 import { immerseProgress, shouldStartImmersePan } from './homeImmerseGesture';
+import { StreakDebugPanel } from '../../components/studyStack/StreakDebugPanel';
+import { isDevBuild } from '../../utils/buildEnv';
 
 type Nav = CompositeNavigationProp<
   BottomTabNavigationProp<TabParamList, 'Home'>,
@@ -163,6 +165,7 @@ export default function HomeTab() {
         onSearch={goSearch}
         immerse={immerse}
       />
+      {isDevBuild && <StreakDebugPanel onRequestImmerse={enterImmerse} />}
     </View>
   );
 }
