@@ -15,6 +15,7 @@ interface FlashcardRepository : JpaRepository<FlashcardEntity, Long> {
     fun findByUserIdAndDueBetweenAndLastReviewIsNotNull(userId: Long, since: Instant, now: Instant): List<FlashcardEntity>
     fun findByUserId(userId: Long): List<FlashcardEntity>
     fun findByWordId(wordId: Long): FlashcardEntity?
+    fun findByUserIdAndWordIdIn(userId: Long, wordIds: Collection<Long>): List<FlashcardEntity>
     fun countByUserId(userId: Long): Long
     fun countByUserIdAndState(userId: Long, state: Int): Long
     fun countByUserIdAndDueLessThanEqual(userId: Long, due: Instant): Long

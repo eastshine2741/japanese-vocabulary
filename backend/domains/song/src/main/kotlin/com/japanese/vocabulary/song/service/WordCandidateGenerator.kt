@@ -1,6 +1,7 @@
 package com.japanese.vocabulary.song.service
 
 import com.japanese.vocabulary.song.model.AnalyzedLine
+import com.japanese.vocabulary.song.model.CommonWords
 import com.japanese.vocabulary.song.model.LyricWordCandidates
 import com.japanese.vocabulary.song.model.PartOfSpeech
 import com.japanese.vocabulary.song.model.WordCandidate
@@ -51,7 +52,7 @@ class WordCandidateGenerator {
             // 곡 안 분포만 보면 ない·する·君 같은 단어가 어느 곡에서든 여러 줄에 고르게 나와 만점 근처가 된다.
             // 곡 밖 신호(범용 단어 목록)로 곱셈 감점한다. 후보에서 빼지는 않으니 단어 탭·저장은 그대로다.
             val japanese = first.baseForm ?: first.surface
-            val commonPenalty = if (first.partOfSpeech in COMMON_POS || (japanese to first.partOfSpeech) in COMMON_WORDS) COMMON_WORD_PENALTY else 1.0
+            val commonPenalty = if (first.partOfSpeech in COMMON_POS || CommonWords.contains(japanese, first.partOfSpeech)) COMMON_WORD_PENALTY else 1.0
             val importance = ((lineCoverage * 35.0) + (logFrequency * 20.0) + (dispersion * 10.0) + (titleBoost * 12.0) + (posWeight * 10.0)) * commonPenalty
             WordCandidate(
                 japanese = japanese,
@@ -136,20 +137,5 @@ class WordCandidateGenerator {
             PartOfSpeech.PREFIX,
             PartOfSpeech.SUFFIX,
         )
-
-        // prod 가사 77곡의 등장 곡 비율과 상위 5개 진입 횟수를 보고 고른 목록 (2026-09). 내용어(忘れる·笑う·夢)는 흔해도 남긴다.
-        private val COMMON_WORDS: Set<Pair<String, PartOfSpeech>> = buildSet {
-            listOf("ない", "無い", "いい", "良い", "よい")
-                .forEach { add(it to PartOfSpeech.ADJECTIVE) }
-            listOf(
-                "する", "いる", "居る", "ある", "有る", "なる", "言う", "見る", "思う", "知る", "行く", "いく", "来る", "くる",
-                "できる", "出来る", "わかる", "分かる", "しまう", "くれる", "あげる", "もらう",
-            ).forEach { add(it to PartOfSpeech.VERB) }
-            listOf("こと", "もの", "よう", "の", "ため", "とき", "時", "今", "中", "前", "日", "まま", "方")
-                .forEach { add(it to PartOfSpeech.NOUN) }
-            add("よう" to PartOfSpeech.NA_ADJECTIVE)
-            listOf("もう", "そう", "こう", "どう", "また", "まだ", "ずっと", "ただ")
-                .forEach { add(it to PartOfSpeech.ADVERB) }
-        }
     }
 }

@@ -190,9 +190,15 @@ class SongDetailQueryService(
 
     private fun emptyJlptDistribution() = linkedMapOf("N1" to 0, "N2" to 0, "N3" to 0, "N4" to 0, "N5" to 0, "UNKNOWN" to 0)
 
-    /** "전체 담기" 대상 판정. 홈 부트스트랩의 lead 후보 선정도 이 기준을 그대로 쓴다. */
-    internal fun WordInSongItemDto.matchesDefaultFilters(): Boolean =
-        partOfSpeech in WordFilterDefaultsDto().pos && jlpt in WordFilterDefaultsDto().jlpt
+    /**
+     * "전체 담기" 대상 판정. 홈 부트스트랩의 lead 후보 선정과 4단계 분류도 이 기준을 그대로 쓴다.
+     * 앱의 `defaultDeckWords` 와 같은 규칙 — JLPT 미분류는 `includeUnknownJlpt` 가 결정한다.
+     */
+    internal fun WordInSongItemDto.matchesDefaultFilters(): Boolean {
+        val defaults = WordFilterDefaultsDto()
+        val matchesJlpt = if (jlpt == null) defaults.includeUnknownJlpt else jlpt in defaults.jlpt
+        return partOfSpeech in defaults.pos && matchesJlpt
+    }
 
     companion object {
         private const val TOP_WORD_COUNT = 5

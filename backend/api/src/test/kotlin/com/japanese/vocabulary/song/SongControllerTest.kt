@@ -17,6 +17,8 @@ import com.japanese.vocabulary.flashcard.dto.DueFlashcardsResponse
 import com.japanese.vocabulary.song.dto.songdetail.SongLyricsDto
 import com.japanese.vocabulary.song.dto.songdetail.SongStudyBootstrapRequest
 import com.japanese.vocabulary.song.dto.songdetail.SongStudyBootstrapResponse
+import com.japanese.vocabulary.song.dto.songdetail.SongWordStageKey
+import com.japanese.vocabulary.song.dto.songdetail.SongWordStagesDto
 import com.japanese.vocabulary.song.dto.songdetail.WordsInSongDto
 import com.japanese.vocabulary.songsearch.dto.SongSearchItemDto
 import com.japanese.vocabulary.songsearch.dto.SongSearchResponse
@@ -34,6 +36,7 @@ import com.japanese.vocabulary.song.model.WordCandidate
 import com.japanese.vocabulary.song.model.WordScoreComponents
 import com.japanese.vocabulary.songanalysis.service.SongAnalysisWorkService
 import com.japanese.vocabulary.test.ApiBaseIntegrationTest
+import com.japanese.vocabulary.test.fixtures.TestFlashcardBuilder
 import com.japanese.vocabulary.test.fixtures.TestSongBuilder
 import com.japanese.vocabulary.test.fixtures.TestUserBuilder
 import com.japanese.vocabulary.user.entity.UserEntity
@@ -918,6 +921,135 @@ class SongControllerTest : ApiBaseIntegrationTest() {
             lineIndexes = lineIndexes,
             scoreComponents = WordScoreComponents(0.0, 0.0, 0.0, 0.0, 1.0),
         )
+    }
+
+    @Nested
+    inner class WordStages {
+
+        private fun candidate(
+            japanese: String,
+            score: Double,
+            order: Int,
+            lineIndexes: List<Int>,
+            jlpt: String? = "N3",
+            pos: String = "NOUN",
+        ) = WordCandidate(
+            japanese = japanese,
+            surface = japanese,
+            baseForm = japanese,
+            reading = null,
+            baseFormReading = null,
+            koreanText = "$japanese-ko",
+            partOfSpeech = pos,
+            partOfSpeechLabel = pos,
+            jlpt = jlpt,
+            importanceScore = score,
+            appearanceOrder = order,
+            frequency = lineIndexes.size,
+            lineIndexes = lineIndexes,
+            scoreComponents = WordScoreComponents(0.0, 0.0, 0.0, 0.0, 1.0),
+        )
+
+        private fun stages(user: UserEntity, songId: Long): SongWordStagesDto =
+            readBody(mockMvc.get("/api/songs/$songId/word-stages") {
+                header("Authorization", bearer(user))
+            }.andExpect { status { isOk() } }.andReturn().response.contentAsString)
+
+        @Test
+        fun `classifies default-filter words into four ordered stages and counts per-word review state`() {
+            val me = newUser()
+            val song = newSong()
+            newLyric(
+                song,
+                raw = listOf(
+                    LyricLineData(index = 0, startTimeMs = null, text = "후렴"),
+                    LyricLineData(index = 1, startTimeMs = null, text = "절"),
+                    LyricLineData(index = 2, startTimeMs = null, text = "후렴"),
+                ),
+                wordCandidates = LyricWordCandidates(
+                    candidates = listOf(
+                        candidate("胸", 90.0, 0, listOf(0, 2)),
+                        candidate("する", 80.0, 1, listOf(0, 2), pos = "VERB"),
+                        candidate("雨", 50.0, 2, listOf(1), jlpt = "N5"),
+                        candidate("輪郭", 40.0, 3, listOf(1), jlpt = null),
+                        // 기본 필터 밖 — 어느 단계에도 없다.
+                        candidate("君", 30.0, 4, listOf(1), pos = "PRONOUN"),
+                    ),
+                    lineCandidates = mapOf("0" to listOf(0, 1), "1" to listOf(2, 3, 4), "2" to listOf(0, 1)),
+                ),
+            )
+            // 胸: 익힘(REVIEW) / 雨: 복습 중(LEARNING + 리뷰 이력) / 輪郭: 담기만 함(new) / する: 안 담음
+            val mastered = TestWordBuilder(entityManager).forUser(me).withJapaneseText("胸").build()
+            TestFlashcardBuilder(entityManager, clock).forUser(me).ofWord(mastered).withState(1).lastReviewedAt(clock.instant()).build()
+            val studying = TestWordBuilder(entityManager).forUser(me).withJapaneseText("雨").build()
+            TestFlashcardBuilder(entityManager, clock).forUser(me).ofWord(studying).withState(0).lastReviewedAt(clock.instant()).build()
+            val fresh = TestWordBuilder(entityManager).forUser(me).withJapaneseText("輪郭").build()
+            TestFlashcardBuilder(entityManager, clock).forUser(me).ofWord(fresh).withState(0).build()
+            entityManager.flush()
+
+            val dto = stages(me, song.id!!)
+
+            assertThat(dto.songId).isEqualTo(song.id)
+            assertThat(dto.stages.map { it.key }).containsExactly(
+                SongWordStageKey.CORE, SongWordStageKey.STARTER, SongWordStageKey.BASIC, SongWordStageKey.ADVANCED,
+            )
+            assertThat(dto.stages.map { it.order }).containsExactly(1, 2, 3, 4)
+            val byKey = dto.stages.associateBy { it.key }
+            assertThat(byKey.getValue(SongWordStageKey.CORE).wordJapanese).containsExactly("胸")
+            assertThat(byKey.getValue(SongWordStageKey.STARTER).wordJapanese).containsExactly("する")
+            assertThat(byKey.getValue(SongWordStageKey.BASIC).wordJapanese).containsExactly("雨")
+            assertThat(byKey.getValue(SongWordStageKey.ADVANCED).wordJapanese).containsExactly("輪郭")
+            assertThat(dto.stages.flatMap { it.wordJapanese }).doesNotContain("君")
+
+            assertThat(byKey.getValue(SongWordStageKey.CORE)).satisfies({
+                assertThat(it.totalCount).isEqualTo(1); assertThat(it.knownCount).isEqualTo(1); assertThat(it.learningCount).isEqualTo(0)
+            })
+            assertThat(byKey.getValue(SongWordStageKey.STARTER)).satisfies({
+                assertThat(it.totalCount).isEqualTo(1); assertThat(it.knownCount).isEqualTo(0); assertThat(it.learningCount).isEqualTo(0)
+            })
+            assertThat(byKey.getValue(SongWordStageKey.BASIC)).satisfies({
+                assertThat(it.totalCount).isEqualTo(1); assertThat(it.knownCount).isEqualTo(0); assertThat(it.learningCount).isEqualTo(1)
+            })
+            assertThat(byKey.getValue(SongWordStageKey.ADVANCED)).satisfies({
+                assertThat(it.totalCount).isEqualTo(1); assertThat(it.knownCount).isEqualTo(0); assertThat(it.learningCount).isEqualTo(0)
+            })
+        }
+
+        @Test
+        fun `song without word candidates returns four empty stages`() {
+            val me = newUser()
+            val song = newSong()
+            newLyric(song, raw = listOf(LyricLineData(index = 0, startTimeMs = null, text = "待機中")))
+
+            val dto = stages(me, song.id!!)
+
+            assertThat(dto.stages).hasSize(4)
+            assertThat(dto.stages).allSatisfy { assertThat(it.wordJapanese).isEmpty(); assertThat(it.totalCount).isZero() }
+        }
+
+        @Test
+        fun `unknown song returns 404`() {
+            val me = newUser()
+            mockMvc.get("/api/songs/999999/word-stages") {
+                header("Authorization", bearer(me))
+            }.andExpect { status { isNotFound() } }
+        }
+
+        @Test
+        fun `words with unknown jlpt are part of the default filter and count toward stages`() {
+            val me = newUser()
+            val song = newSong()
+            newLyric(
+                song,
+                raw = listOf(LyricLineData(index = 0, startTimeMs = null, text = "미분류")),
+                wordCandidates = LyricWordCandidates(
+                    candidates = listOf(candidate("미분류", 10.0, 0, listOf(0), jlpt = null)),
+                    lineCandidates = mapOf("0" to listOf(0)),
+                ),
+            )
+            val dto = stages(me, song.id!!)
+            assertThat(dto.stages.first { it.key == SongWordStageKey.ADVANCED }.wordJapanese).containsExactly("미분류")
+        }
     }
 
     @Nested

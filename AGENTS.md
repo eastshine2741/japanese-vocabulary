@@ -27,6 +27,7 @@ cd app-rn && npx expo start --web             # App - Web (dev)
 - Backend module boundaries: `docs/architecture/backend-modules.md`
 - Word 스키마와 song 결합 해제: `docs/architecture/word-schema.md`
 - Song analysis and word-meaning pipeline: `docs/architecture/song-analysis.md`
+- 곡 단어 4단계 학습 로드맵(`GET /api/songs/{id}/word-stages` 분류 규칙, 앱은 아직 mock): `docs/architecture/song-word-stages.md`
 - Translation pipeline guardrails: `docs/translation-pipeline.md`
 - Push notification architecture: `docs/architecture/push-notification.md`
 - Admin service: `docs/admin-service.md`

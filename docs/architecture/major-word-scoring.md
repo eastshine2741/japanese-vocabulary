@@ -35,8 +35,8 @@ importanceScore =
 ```
 
 `COMMON_POS` is pronoun / adnominal / conjunction / prefix / suffix.
-`COMMON_WORDS` is a static list in the generator (ない, する, いる, なる, こと,
-もう, ...) picked from prod lyrics by document frequency and how often each word
+`COMMON_WORDS` is the static list in `song/model/CommonWords.kt` (ない, する, いる,
+なる, こと, もう, ...) — shared with the song word stages as the 입문 stage — picked from prod lyrics by document frequency and how often each word
 landed in a song's top 5. Content words that are merely frequent (忘れる, 笑う,
 夢) stay unpenalized.
 

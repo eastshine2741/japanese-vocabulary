@@ -60,6 +60,7 @@ interface DeckRepository : JpaRepository<DeckEntity, Long> {
         @Param("now") now: Instant,
     ): Instant?
 
+    // mastered/studying/new 판정은 FlashcardStudyState 와 같아야 한다.
     // COALESCE: SUM over zero rows returns NULL, which fails projection mapping to non-null Int.
     // words JOIN 은 소유자 스코프용 — 이게 없으면 목록의 wordCount 가 상세(findDeckDetailStats,
     // user_id 로 거르는)와 어긋난다. flashcard 는 불변식상 항상 있지만, 깨졌을 때 word 가 통째로
