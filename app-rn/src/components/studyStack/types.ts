@@ -31,6 +31,9 @@ export interface StudyCard extends FlashcardDTO {
   source: StudySource;
 }
 
+/** 미리보기 카드에 부여하는 자리표시자 flashcard/word id — 실제 flashcard 가 아니라는 신호로만 쓴다. */
+export const PREVIEW_FLASHCARD_ID = -1;
+
 /** 크롬이 그리는 세션 진행 정보. 공용 스택은 이 값만 노출하고 크롬은 그리지 않는다. */
 export interface StudySessionProgress {
   /** 이번 세션에서 저장까지 끝난 카드 수 (같은 카드를 다시 봐도 매번 센다) */

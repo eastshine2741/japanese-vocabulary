@@ -33,6 +33,7 @@ export interface WordLayerProps {
   onRating: (rating: number) => void;
   onSourcePress: () => void;
   onOpenExampleSource?: (songId: number) => void;
+  onEditWord?: (card: StudyCard) => void;
   /** 카드 전체를 잠근다 — 탭이면 onRequestImmerse 만 부르고, 나머지 터치는 카드에 닿지 않는다. */
   requireImmersedInteraction?: boolean;
   onRequestImmerse?: () => void;
@@ -64,6 +65,7 @@ export const WordLayer = React.memo(function WordLayer({
   onRating,
   onSourcePress,
   onOpenExampleSource,
+  onEditWord,
   requireImmersedInteraction = false,
   onRequestImmerse,
   contentInsetTop,
@@ -188,6 +190,7 @@ export const WordLayer = React.memo(function WordLayer({
           headwordRef={backHeadwordRef}
           onHeadwordLayout={measureHeadwords}
           onOpenExampleSource={onOpenExampleSource}
+          onEditWord={onEditWord}
         />
       </View>
       <View style={StyleSheet.absoluteFill} pointerEvents="none">

@@ -4,11 +4,13 @@ import { deckApi } from '../../api/deckApi';
 import { flashcardApi } from '../../api/flashcardApi';
 import { songApi } from '../../api/songApi';
 import { studyStatsApi } from '../../api/studyStatsApi';
+import { wordApi } from '../../api/wordApi';
 import { useStudyStatsStore } from '../../stores/studyStatsStore';
 import { SongDeckSummary } from '../../types/deck';
 import { WordInSongItemDto, WordsInSongDto } from '../../types/song';
 import { sourceFromDeck, sourceFromRecommendation } from './studySource';
 import {
+  PREVIEW_FLASHCARD_ID,
   StudyCard,
   StudyPreviewWord,
   StudySessionProgress,
@@ -28,9 +30,6 @@ export const RATING_HOLD_MS = 900;
 const DUE_PAGE_SIZE = 20;
 /** 로컬 버퍼에 이 개수 이하로 남으면 다음 페이지를 미리 불러온다. */
 const PREFETCH_REMAINING_THRESHOLD = 5;
-
-/** 미리보기 카드에 부여하는 자리표시자 id — 실제 flashcard 가 아니라는 신호로만 쓴다. */
-const PREVIEW_FLASHCARD_ID = -1;
 
 // 서버 WordFilterDefaultsDto 기본값과 동일 기준 — 홈 미리보기가 서버가 실제로 부트스트랩할
 // lead 단어와 다른 단어를 보여주면 안 되므로 정렬·필터 기준을 여기서도 그대로 맞춘다.
@@ -108,6 +107,8 @@ export interface StudyStackState {
   reveal: () => void;
   selectRating: (rating: number) => void;
   reload: () => void;
+  /** 단어 편집 화면에서 돌아왔을 때 현재 카드의 읽기·뜻만 다시 받는다. 큐·진행도는 건드리지 않는다. */
+  refreshCurrentCard: () => Promise<void>;
   continueDue: () => void;
   /** 덱 스트립에서 곡을 골랐을 때. 덱이 있으면 그 덱을 열고, 없으면(추천곡) 미리보기 카드를 띄운다. */
   selectSource: (target: StudySource) => void;
@@ -465,6 +466,18 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     loadCardsForSource(target);
   }, [loadCardsForSource, loadHomeStack, mode]);
 
+  const refreshCurrentCard = useCallback(async () => {
+    const card = currentCard;
+    if (!card || card.id === PREVIEW_FLASHCARD_ID) return;
+    try {
+      const word = await wordApi.getById(card.wordId);
+      if (!word) return;
+      setCards(prev => prev.map(c => (c.id === card.id ? { ...c, reading: word.reading, senses: word.senses } : c)));
+    } catch {
+      // 편집 결과가 잠시 안 보일 뿐이다 — 다음 로드에서 맞춰진다.
+    }
+  }, [currentCard]);
+
   useEffect(() => {
     reload();
     return () => {
@@ -789,6 +802,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     reveal,
     selectRating,
     reload,
+    refreshCurrentCard,
     continueDue,
     selectSource,
     startRecommended,
@@ -818,6 +832,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     reveal,
     selectRating,
     reload,
+    refreshCurrentCard,
     continueDue,
     selectSource,
     startRecommended,

@@ -5,6 +5,7 @@ import SkeletonBox from '../SkeletonLoading';
 import { CardStage, StageInset } from './CardStage';
 import { CompletionStage, ErrorStage } from './CompletionStage';
 import { WordLayer } from './WordLayer';
+import { StudyCard } from './types';
 import { StudyStackState } from './useStudyStack';
 
 export interface StudyStackProps {
@@ -13,6 +14,8 @@ export interface StudyStackProps {
   onOpenSource: () => void;
   /** 예문 캐러셀에서 그 예문이 나온 곡(카드 자체 source 와 다를 수 있다)으로 이동할 때. */
   onOpenExampleSource?: (songId: number) => void;
+  /** 뒷면 뜻 옆 연필 버튼. 없으면 버튼을 그리지 않는다. */
+  onEditWord?: (card: StudyCard) => void;
   onSearch: () => void;
   /**
    * 무대 위에 겹쳐 그릴 크롬(곡 진입 오버레이 등). 홈처럼 스택 밖에 놓는 크롬은
@@ -33,6 +36,7 @@ export const StudyStack = React.memo(function StudyStack({
   stack,
   onOpenSource,
   onOpenExampleSource,
+  onEditWord,
   onSearch,
   overlay,
   contentInsetTop,
@@ -124,6 +128,7 @@ export const StudyStack = React.memo(function StudyStack({
           onRating={selectRating}
           onSourcePress={onOpenSource}
           onOpenExampleSource={onOpenExampleSource}
+          onEditWord={onEditWord}
           requireImmersedInteraction={requireImmersedInteraction}
           onRequestImmerse={onRequestImmerse}
           contentInsetTop={contentInsetTop}

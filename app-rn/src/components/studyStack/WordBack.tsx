@@ -5,6 +5,7 @@ import {
   NativeSyntheticEvent,
   Animated,
   Easing,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -20,7 +21,7 @@ import { getPosColor, getPosLabel } from '../../types/pos';
 import { flattenExamples, joinMeanings, SenseExample } from '../../types/word';
 import ReadingText from '../ReadingText';
 import { formatInterval, holdLabel } from './intervalLabel';
-import { StudyCard } from './types';
+import { PREVIEW_FLASHCARD_ID, StudyCard } from './types';
 
 export const RATINGS = [
   { rating: 1, label: '다시', color: Colors.ratingAgain },
@@ -79,6 +80,8 @@ export interface WordBackProps {
   headwordRef?: React.Ref<View>;
   onHeadwordLayout?: () => void;
   onOpenExampleSource?: (songId: number) => void;
+  /** 뜻 옆 연필 버튼 — 단어 편집 화면으로. 미리보기 카드(아직 안 담긴 단어)에는 버튼이 없다. */
+  onEditWord?: (card: StudyCard) => void;
 }
 
 /** 뒷면 wordLayer — 뜻·품사/JLPT·예문 + 질문 한 줄 + rating pill 4개. */
@@ -93,8 +96,12 @@ export const WordBack = React.memo(function WordBack({
   headwordRef,
   onHeadwordLayout,
   onOpenExampleSource,
+  onEditWord,
 }: WordBackProps) {
   const meaning = joinMeanings(card.senses);
+  const canEdit = onEditWord != null && card.id !== PREVIEW_FLASHCARD_ID;
+  const handleEditPress = useCallback(() => onEditWord?.(card), [card, onEditWord]);
+  const handleDictionaryPress = useCallback(() => openDictionary(card.japanese), [card.japanese]);
   const firstSense = card.senses[0];
   const pos = firstSense?.partOfSpeech;
   const jlpt = firstSense?.jlpt;
@@ -313,7 +320,21 @@ export const WordBack = React.memo(function WordBack({
         </Animated.View>
 
         <Animated.View style={[styles.answerGroup, answerStyle]}>
-          <Text numberOfLines={2} adjustsFontSizeToFit style={styles.meaning}>{meaning || '뜻 정보 없음'}</Text>
+          <View style={styles.meaningRow}>
+            <Text numberOfLines={2} adjustsFontSizeToFit style={styles.meaning}>{meaning || '뜻 정보 없음'}</Text>
+            {/* 아이콘은 뜻 글자의 baseline 에 맞춘다. 아이콘 글리프(Text)의 baseline 은 폰트마다
+                제멋대로라, 고정 크기 상자 안에 절대 배치해 상자 아래변이 baseline 이 되게 한다. */}
+            <View style={styles.wordActions}>
+              {canEdit && (
+                <Pressable style={styles.wordAction} onPress={handleEditPress} hitSlop={10} disabled={saving}>
+                  <Feather name="edit-2" size={WORD_ACTION_SIZE} color={WORD_ACTION_COLOR} style={styles.wordActionIcon} />
+                </Pressable>
+              )}
+              <Pressable style={styles.wordAction} onPress={handleDictionaryPress} hitSlop={10} disabled={saving}>
+                <Feather name="external-link" size={WORD_ACTION_SIZE} color={WORD_ACTION_COLOR} style={styles.wordActionIcon} />
+              </Pressable>
+            </View>
+          </View>
           {examples.length === 1 && (
             <ExamplePage example={examples[0]} japanese={card.japanese} onOpenSource={onOpenExampleSource} />
           )}
@@ -401,6 +422,16 @@ export const WordBack = React.memo(function WordBack({
     </View>
   );
 });
+
+const WORD_ACTION_COLOR = 'rgba(255,255,255,0.40)';
+const WORD_ACTION_SIZE = 15;
+/** Feather 글리프는 24 그리드에서 위아래 1칸씩 비어 있다 — 그만큼 내려야 선이 baseline 에 닿는다. */
+const WORD_ACTION_INK_INSET = Math.round(WORD_ACTION_SIZE / 24);
+
+/** 네이버 일본어사전에서 표제어를 검색한다 — 리뉴얼 전 복습 화면과 같은 목적지. */
+function openDictionary(word: string) {
+  Linking.openURL(`https://ja.dict.naver.com/#/search?query=${encodeURIComponent(word)}`);
+}
 
 interface ExamplePageProps {
   example: SenseExample;
@@ -555,7 +586,26 @@ const styles = StyleSheet.create({
     gap: 16,
     width: '100%',
   },
+  meaningRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 12,
+  },
+  wordActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  wordAction: {
+    width: WORD_ACTION_SIZE,
+    height: WORD_ACTION_SIZE,
+  },
+  wordActionIcon: {
+    position: 'absolute',
+    left: 0,
+    bottom: -WORD_ACTION_INK_INSET,
+  },
   meaning: {
+    flexShrink: 1,
     color: '#FFFFFF',
     fontSize: 26,
     fontWeight: '700',

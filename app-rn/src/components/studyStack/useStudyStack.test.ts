@@ -5,6 +5,7 @@ import { deckApi } from '../../api/deckApi';
 import { flashcardApi } from '../../api/flashcardApi';
 import { songApi } from '../../api/songApi';
 import { studyStatsApi } from '../../api/studyStatsApi';
+import { wordApi } from '../../api/wordApi';
 import { RATING_HOLD_MS, useStudyStack, StudyStackState } from './useStudyStack';
 import { StudySource } from './types';
 import { FlashcardDTO } from '../../types/flashcard';
@@ -37,6 +38,7 @@ vi.mock('../../api/songApi', () => ({
   songApi: { getRecommendations: vi.fn(), getWords: vi.fn(), studyBootstrap: vi.fn() },
 }));
 vi.mock('../../api/studyStatsApi', () => ({ studyStatsApi: { getHome: vi.fn() } }));
+vi.mock('../../api/wordApi', () => ({ wordApi: { getById: vi.fn() } }));
 vi.mock('../../stores/studyStatsStore', () => ({ useStudyStatsStore: { getState: () => ({ invalidate: vi.fn() }) } }));
 
 const source: StudySource = {
@@ -132,6 +134,27 @@ it('reviews the next card as a real flashcard after the preview bootstrap', asyn
   await rate(2);
   expect(flashcardApi.review).toHaveBeenCalledWith(2, { rating: 2 });
   expect(songApi.studyBootstrap).toHaveBeenCalledTimes(1);
+});
+
+it('refreshCurrentCard refetches only the current word and keeps the queue in place', async () => {
+  vi.mocked(flashcardApi.getDueCards)
+    .mockResolvedValueOnce({ cards: [card(9), card(1)], totalCount: 2, nextDueAt: null });
+  vi.mocked(wordApi.getById).mockResolvedValue({
+    id: 900, japanese: '歌', reading: 'ウタ', senses: [{ meaning: '노래', partOfSpeech: 'NOUN' }],
+  });
+  await mount();
+  await act(async () => { await stack.refreshCurrentCard(); });
+  expect(wordApi.getById).toHaveBeenCalledWith(stack.cards[0].wordId);
+  expect(stack.cards.map(c => c.id)).toEqual([9, 1]);
+  expect(stack.currentCard?.reading).toBe('ウタ');
+  expect(stack.currentCard?.senses[0].meaning).toBe('노래');
+  expect(flashcardApi.getDueCards).toHaveBeenCalledTimes(1);
+});
+
+it('refreshCurrentCard does not call the server for a preview card', async () => {
+  await mount(previewSource);
+  await act(async () => { await stack.refreshCurrentCard(); });
+  expect(wordApi.getById).not.toHaveBeenCalled();
 });
 
 it('holds the selected rating briefly, then advances on its own', async () => {
