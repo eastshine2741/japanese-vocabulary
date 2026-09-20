@@ -6,6 +6,7 @@ import {
   StackReviewOverlay,
   STACK_REVIEW_CHROME_HEIGHT,
   StudyStack,
+  useEditWordFromStack,
   useStudyStack,
 } from '../components/studyStack';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -19,6 +20,7 @@ export default function SongReviewScreen({ navigation, route }: Props) {
 
   const stack = useStudyStack({ mode: 'source', source });
   const { isComplete, session, status } = stack;
+  const editWord = useEditWordFromStack(stack.refreshCurrentCard);
 
   const goBack = useCallback(() => navigation.goBack(), [navigation]);
   // 탭 안(Main)까지 내려가면 바텀탭·다른 탭 화면이 같이 뜬다 — 검색탭 UI만 새 스택으로 띄운다.
@@ -49,6 +51,7 @@ export default function SongReviewScreen({ navigation, route }: Props) {
         stack={stack}
         onOpenSource={goBack}
         onOpenExampleSource={openExampleSource}
+        onEditWord={editWord}
         onSearch={goSearch}
         overlay={overlay}
         contentInsetTop={insets.top + STACK_REVIEW_CHROME_HEIGHT}

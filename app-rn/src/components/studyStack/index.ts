@@ -1,5 +1,6 @@
 export { StudyStack, type StudyStackProps } from './StudyStack';
 export { useStudyStack, type StudyStackState, type UseStudyStackOptions } from './useStudyStack';
+export { useEditWordFromStack } from './useEditWordFromStack';
 export { CardStage, SourceHeader, ArtworkThumb } from './CardStage';
 export type { CardStageProps, SourceHeaderProps, ArtworkThumbProps } from './CardStage';
 export { WordLayer, type WordLayerProps } from './WordLayer';
