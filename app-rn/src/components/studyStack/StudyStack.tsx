@@ -9,7 +9,7 @@ import { StudyCard } from './types';
 import { StudyStackState } from './useStudyStack';
 
 export interface StudyStackProps {
-  /** useStudyStack 반환값 전체. 크롬은 여기서 session/streak 를 읽는다. */
+  /** useStudyStack 반환값 전체. 크롬은 여기서 session 을 읽는다. */
   stack: StudyStackState;
   onOpenSource: () => void;
   /** 예문 캐러셀에서 그 예문이 나온 곡(카드 자체 source 와 다를 수 있다)으로 이동할 때. */

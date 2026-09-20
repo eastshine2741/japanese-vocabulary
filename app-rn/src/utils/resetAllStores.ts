@@ -8,6 +8,7 @@ import { usePlayerStore } from '../stores/playerStore';
 import { useRecommendationStore } from '../stores/recommendationStore';
 import { useSearchHistoryStore } from '../stores/searchHistoryStore';
 import { useSongDetailStore } from '../stores/songDetailStore';
+import { useStreakStore } from '../stores/streakStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useStudyStatsStore } from '../stores/studyStatsStore';
 import { useVocabularyStore } from '../stores/vocabularyStore';
@@ -70,6 +71,7 @@ export function resetAllStores() {
   });
 
   useAnalysisStore.getState().reset();
+  useStreakStore.getState().reset();
   usePlayerStore.setState({ status: 'idle', studyData: null, errorCode: null, currentMs: 0, durationMs: 0 });
   useSongDetailStore.setState({ status: 'idle', data: null, errorCode: null });
   useSearchHistoryStore.setState({ terms: [] });

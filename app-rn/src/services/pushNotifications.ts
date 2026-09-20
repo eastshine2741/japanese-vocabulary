@@ -92,6 +92,13 @@ export async function unregisterCurrentToken(): Promise<void> {
 
 function handleData(data: RemoteMessage['data']): void {
   if (!data) return;
+  // 연속 학습 알림(260918 C) — 탭하면 홈 첫 카드. 알림에서 왔다는 별도 화면·배너는 없다.
+  // 서버 payload 는 docs/product-intents/260918-streak-commitment-api.md 참고.
+  if (data.type === 'streak_reminder') {
+    navigate('Main', { screen: 'Home' });
+    return;
+  }
+  // 단어 회상 알림 — 260918 C 로 폐기 예정이지만 서버가 바뀌기 전까지 받을 수 있어 남겨 둔다.
   if (data.type === 'review_reminder' && data.flashcardId != null) {
     const id = Number(data.flashcardId);
     if (Number.isFinite(id)) {

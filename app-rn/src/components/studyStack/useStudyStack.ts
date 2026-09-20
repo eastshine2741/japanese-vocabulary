@@ -5,6 +5,7 @@ import { flashcardApi } from '../../api/flashcardApi';
 import { songApi } from '../../api/songApi';
 import { studyStatsApi } from '../../api/studyStatsApi';
 import { wordApi } from '../../api/wordApi';
+import { useStreakStore } from '../../stores/streakStore';
 import { useStudyStatsStore } from '../../stores/studyStatsStore';
 import { SongDeckSummary } from '../../types/deck';
 import { WordInSongItemDto, WordsInSongDto } from '../../types/song';
@@ -98,8 +99,6 @@ export interface StudyStackState {
   selectedSource: StudySource | null;
   /** 무대(아트워크)가 그려야 할 곡. 아무 것도 없으면 null. */
   visibleSource: StudySource | null;
-  /** mode 'home' 에서만 채워진다. 실패 시 임의값으로 메우지 않는다. */
-  streak: number;
   session: StudySessionProgress;
   translateY: Animated.Value;
   revealProgress: Animated.Value;
@@ -133,7 +132,6 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
   const [recommendedSource, setRecommendedSource] = useState<StudySource | null>(null);
   const [deckStripItems, setDeckStripItems] = useState<StudySource[]>([]);
   const [selectedSource, setSelectedSource] = useState<StudySource | null>(null);
-  const [streak, setStreak] = useState(0);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [reviewError, setReviewError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -411,7 +409,8 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
       const recommendedItems = recommendations.map(sourceFromRecommendation);
       const recommended = recommendedItems[0] ?? null;
       setRecommendedSource(recommended);
-      setStreak(homeStats.currentStreak);
+      // 헤더 칩·넛지·완료 배너는 streakStore 가 든다. 실패 시 임의값으로 메우지 않는다.
+      useStreakStore.getState().applyHomeStats(homeStats);
 
       // 곡에 매핑되지 않은 일반 단어장(songId == null)은 덱 스트립의 곡 선택 대상이 아니다.
       const songDecks = deckRes.songDecks.filter(deck => deck.songId != null);
@@ -440,7 +439,6 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
       }
     } catch (e: any) {
       if (version !== requestVersion.current) return;
-      // streak 은 실제 API 가 있는 값이라 실패 시 임의 숫자를 채우지 않는다.
       setLoadError(e.message ?? '홈 데이터를 불러오지 못했어요');
       setCards([]);
       setCompletedSource(null);
@@ -558,6 +556,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
       const result = await songApi.studyBootstrap(songId, rating, currentCard.source.previewWord?.japanese);
       if (version !== requestVersion.current) return;
       useStudyStatsStore.getState().invalidate();
+      useStreakStore.getState().recordRating();
       isPreviewRef.current = false;
       const newSource: StudySource = {
         ...currentCard.source,
@@ -618,6 +617,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
       await Promise.all([animationPromise, reviewPromise]);
       if (version !== requestVersion.current) return;
       useStudyStatsStore.getState().invalidate();
+      useStreakStore.getState().recordRating();
       setReviewError(null);
       setReviewedCount(count => count + 1);
       if (!reviewedIdsRef.current.has(reviewedCard.id)) {
@@ -794,7 +794,6 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     deckStripItems,
     selectedSource,
     visibleSource,
-    streak,
     session,
     translateY,
     revealProgress,
@@ -824,7 +823,6 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     deckStripItems,
     selectedSource,
     visibleSource,
-    streak,
     session,
     translateY,
     revealProgress,

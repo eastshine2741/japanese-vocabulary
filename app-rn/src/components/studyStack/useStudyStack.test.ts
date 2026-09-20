@@ -377,7 +377,7 @@ async function mountHome() {
   await act(async () => { renderer = create(React.createElement(HomeHarness)); });
 }
 beforeEach(() => {
-  vi.mocked(studyStatsApi.getHome).mockResolvedValue({ currentStreak: 0, freezeCount: 0, freezeMax: 0, weekDots: [] });
+  vi.mocked(studyStatsApi.getHome).mockResolvedValue({ currentStreak: 0, freezeCount: 0, freezeMax: 0, weekDots: [], studiedToday: false, hasStudiedBefore: true });
 });
 
 it('shows a preview card for the most important eligible word of the recommended song when nothing is due', async () => {

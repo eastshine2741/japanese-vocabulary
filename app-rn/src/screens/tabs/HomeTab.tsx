@@ -41,7 +41,7 @@ export default function HomeTab() {
   const insets = useSafeAreaInsets();
   const focused = useIsFocused();
   const stack = useStudyStack({ mode: 'home' });
-  const { deckStripItems, isComplete, reload, selectSource, session, status, streak } = stack;
+  const { deckStripItems, isComplete, reload, selectSource, session, status } = stack;
   const visibleSongId = stack.visibleSource?.songId ?? null;
   const selectedSongId = stack.selectedSource?.songId ?? null;
 
@@ -157,7 +157,6 @@ export default function HomeTab() {
         />
       </View>
       <HomeExpandedHeader
-        streak={streak}
         deckStripItems={deckStripItems}
         selectedSongId={selectedSongId}
         onSelectDeckStripItem={selectSource}

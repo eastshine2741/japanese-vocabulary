@@ -3,18 +3,21 @@ import { StyleSheet, Text, View } from 'react-native';
 import Animated, { Extrapolation, interpolate, SharedValue, useAnimatedStyle } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useStreakStore } from '../../stores/streakStore';
 import { Colors } from '../../theme/theme';
 import { Typography } from '../../theme/typography';
 import { DeckStrip, DECK_STRIP_HEIGHT } from './DeckStrip';
+import { StreakNudge } from './StreakNudge';
 import { StudySource } from './types';
 
 const APP_BAR_HEIGHT = 52;
+/** 말풍선 꼬리 끝이 칩 아래 4px 에 오도록 앱바 바닥에서 끌어올리는 값. */
+const NUDGE_OVERLAP = 12;
 
 /** 곡 진입 복습과 다르게 홈 최초 진입은 덱 스트립까지 펼친다. */
 export const HOME_HEADER_CONTENT_HEIGHT = APP_BAR_HEIGHT + DECK_STRIP_HEIGHT;
 
 export interface HomeExpandedHeaderProps {
-  streak: number;
   /** 덱 스트립에 그릴 목록 — 곡 덱이 있으면 due 많은 순 덱, 없으면 추천곡. */
   deckStripItems: StudySource[];
   /** 덱 스트립에서 현재 강조돼야 할 곡. */
@@ -25,9 +28,12 @@ export interface HomeExpandedHeaderProps {
   immerse: SharedValue<number>;
 }
 
-/** H5 헤더 — 상태바 여백 + 워드마크·스트릭 칩 앱바 + 덱 스트립. 위쪽 블록부터 먼저 빠진다. */
+/**
+ * H5 헤더 — 상태바 여백 + 워드마크·연속 학습 칩 앱바 + 덱 스트립. 위쪽 블록부터 먼저 빠진다.
+ * 칩 숫자와 '오늘 아직' 말풍선은 streakStore 에서 읽는다 — 첫 rating 뒤 헤더가 다시
+ * 펼쳐질 때 말풍선은 없고 숫자만 +1 돼 있다.
+ */
 export const HomeExpandedHeader = React.memo(function HomeExpandedHeader({
-  streak,
   deckStripItems,
   selectedSongId,
   onSelectDeckStripItem,
@@ -36,6 +42,8 @@ export const HomeExpandedHeader = React.memo(function HomeExpandedHeader({
 }: HomeExpandedHeaderProps) {
   const insets = useSafeAreaInsets();
   const height = insets.top + HOME_HEADER_CONTENT_HEIGHT;
+  const streak = useStreakStore(s => s.currentStreak);
+  const showNudge = useStreakStore(s => s.loaded && !s.studiedToday);
 
   const shell = useAnimatedStyle(() => ({
     transform: [{
@@ -76,6 +84,14 @@ export const HomeExpandedHeader = React.memo(function HomeExpandedHeader({
           onSearch={onSearch}
         />
       </Animated.View>
+      {showNudge && (
+        <Animated.View
+          style={[styles.nudge, { top: insets.top + APP_BAR_HEIGHT - NUDGE_OVERLAP }, appBar]}
+          pointerEvents="none"
+        >
+          <StreakNudge />
+        </Animated.View>
+      )}
     </Animated.View>
   );
 });
@@ -124,5 +140,10 @@ const styles = StyleSheet.create({
   },
   deckStripWrap: {
     height: DECK_STRIP_HEIGHT,
+  },
+  // 덱 스트립 위에 떠 있다 — 스트립 자리를 차지하지 않는다.
+  nudge: {
+    position: 'absolute',
+    right: 20,
   },
 });
