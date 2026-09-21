@@ -111,14 +111,15 @@ class SelectSensesStage(
                     selectedWords.size,
                 )
             }
-            tokens.mapIndexed { i, token ->
-                val selected = selectedWords.getOrNull(i)
+            // tokenId is lineIndex:charStart:charEnd:surface, so looking a token up by it pins the
+            // token identity — no surface/headword echo needed. The model does not keep request
+            // order reliably, so the position of an answer in the array says nothing.
+            val selectedByTokenId = selectedWords.associateBy { it.tokenId }
+            tokens.map { token ->
+                val selected = selectedByTokenId[token.key.tokenId]
                 val resolved = lexical.byTokenKey[token.key]
                 val selectedSenseId = selected?.senseId ?: -1
-                // tokenId is lineIndex:charStart:charEnd:surface, so matching it pins the token
-                // identity — no surface/headword echo needed.
                 val valid = selected != null &&
-                    selected.tokenId == token.key.tokenId &&
                     resolved != null &&
                     resolved.options.any { it.senseId == selectedSenseId }
                 // A rejected choice leaves the token with no sense at all, so it is a shipped defect
