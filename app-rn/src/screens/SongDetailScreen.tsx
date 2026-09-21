@@ -609,9 +609,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
                     tiers={songTiers}
                     isStartingLearning={isStartingLearning}
                     onViewAllWordsPress={handleSelectWords}
-                    busyWordKey={busyWordKey}
                     onStartTier={handleStartTier}
-                    onStartWordLearning={handleStartWordReview}
                   />
                 </View>
                 <View

@@ -1,16 +1,13 @@
 export { SongDetailHomeTab } from './SongDetailHomeTab';
-export { SongDetailMajorWords } from './SongDetailMajorWords';
 export { SongDetailJlptChart } from './SongDetailJlptChart';
 export { SongDetailWordTierCards } from './SongDetailWordTierCards';
 export {
   buildJlptDistribution,
   isTierDone,
   selectCurrentTier,
-  selectMajorWords,
   JLPT_COLORS,
   JLPT_LEGEND_ORDER,
   JLPT_LEVELS,
-  MAJOR_WORD_LIMIT,
 } from './songDetailWordDerivation';
 export {
   default as SongDetailWordsTab,

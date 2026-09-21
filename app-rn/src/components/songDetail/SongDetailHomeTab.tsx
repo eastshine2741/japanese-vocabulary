@@ -4,7 +4,6 @@ import { Colors } from '../../theme/theme';
 import type { SongWordTierDto } from '../../types/song';
 import WordMasteryProgressBar from '../WordMasteryProgressBar';
 import { SongDetailJlptChart } from './SongDetailJlptChart';
-import { SongDetailMajorWords } from './SongDetailMajorWords';
 import { SongDetailWordTierCards } from './SongDetailWordTierCards';
 import { SongDetailWordItem } from './types';
 
@@ -23,8 +22,6 @@ interface SongDetailHomeTabProps {
   isStartingLearning?: boolean;
   onViewAllWordsPress?: () => void;
   onStartTier: (tier: SongWordTierDto) => void;
-  onStartWordLearning: (word: SongDetailWordItem) => void;
-  busyWordKey?: string | null;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -35,9 +32,7 @@ export const SongDetailHomeTab = React.memo(function SongDetailHomeTab({
   isLoadingWords = false,
   isStartingLearning = false,
   onViewAllWordsPress,
-  busyWordKey,
   onStartTier,
-  onStartWordLearning,
   style,
 }: SongDetailHomeTabProps) {
   return (
@@ -51,13 +46,6 @@ export const SongDetailHomeTab = React.memo(function SongDetailHomeTab({
           onViewAllWordsPress={onViewAllWordsPress}
         />
       )}
-      <SongDetailMajorWords
-        words={words}
-        isLoading={isLoadingWords}
-        onViewAllWordsPress={onViewAllWordsPress}
-        busyWordKey={busyWordKey}
-        onStartWordLearning={onStartWordLearning}
-      />
       <SongDetailJlptChart words={words} isLoading={isLoadingWords} />
     </View>
   );
