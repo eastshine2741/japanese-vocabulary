@@ -70,6 +70,14 @@ class SegmentAnchoringValidator {
      * uncovered case is a model that skipped part of the line — `晴れ舞台（イェイ）` came back as
      * `晴れ舞台` four attempts running, because a parenthesized ad-lib does not read as a lyric word —
      * and losing one ad-lib is not worth losing the song.
+     *
+     * A word's reading written in parentheses right after it is **covered by that word**. Lyrics
+     * annotate the sung reading that way — `解答(こたえ)`, `暗闇(クロ)`, `×点(ばってん)` — and the kana
+     * is how the word before it is pronounced, not a word of its own. The model rightly leaves it out
+     * of the segmentation and puts it in `usedReading` instead, and there is no dictionary meaning to
+     * look up for it, so reporting it as uncovered only produced a defect no retry could fix. The
+     * kana has to match the reading the token carries: `晴れ舞台（イェイ）` is still an ad-lib the
+     * model skipped, and stays reported.
      */
     private fun anchorLine(index: Int, rawText: String, line: SegLineDto): AnchoredLine {
         val covered = BooleanArray(rawText.length)
@@ -83,8 +91,11 @@ class SegmentAnchoringValidator {
                     notInOrderMessage(index, word.surface, rawText, cursor, previousSurface),
                 )
             }
+            val usedReading = readingOf(index, word, word.usedReading, "usedReading")
             val end = start + word.surface.length
             for (i in start until end) covered[i] = true
+            val annotationEnd = readingAnnotationEnd(rawText, end, usedReading)
+            for (i in end until annotationEnd) covered[i] = true
             cursor = end
             previousSurface = word.surface
             PipelineToken(
@@ -93,7 +104,7 @@ class SegmentAnchoringValidator {
                 headword = word.headword,
                 charStart = start,
                 charEnd = end,
-                usedReading = readingOf(index, word, word.usedReading, "usedReading"),
+                usedReading = usedReading,
                 baseFormReading = readingOf(index, word, word.baseFormReading, "baseFormReading"),
                 contextGloss = word.contextGloss,
             )
@@ -107,6 +118,27 @@ class SegmentAnchoringValidator {
 
     /** One anchored line: its tokens, and why it is incomplete if Japanese text carries no token. */
     private data class AnchoredLine(val tokens: List<PipelineToken>, val uncovered: UncoveredRun?)
+
+    /**
+     * End (exclusive) of a `(kana)` / `（kana）` span starting exactly at [from] that spells
+     * [usedReading], or [from] itself when there is none. Kana that reads differently from the word
+     * is a word of its own and stays for the model to segment; so does anything with kanji in it. The
+     * cursor is not moved past the span, so a model that does emit the kana as its own token still
+     * anchors it normally.
+     */
+    private fun readingAnnotationEnd(rawText: String, from: Int, usedReading: String): Int {
+        if (from >= rawText.length) return from
+        val close = when (rawText[from]) {
+            '(' -> ')'
+            '（' -> '）'
+            else -> return from
+        }
+        val closeAt = rawText.indexOf(close, from + 1)
+        if (closeAt < 0) return from
+        val inside = rawText.substring(from + 1, closeAt)
+        val isAnnotation = JapaneseText.isKanaOnly(inside) && JapaneseText.toKatakana(inside) == usedReading
+        return if (isAnnotation) closeAt + 1 else from
+    }
 
     /**
      * Says where the search actually stood when it gave up. Naming only the missing surface reads as
