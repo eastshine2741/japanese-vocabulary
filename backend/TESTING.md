@@ -359,7 +359,7 @@ class SongAnalysisPreparationServiceTest : BatchBaseIntegrationTest() {
 - 오늘 없고 어제 있음 → today not yet recorded — streak 1 (어제부터 카운트)
 - 연속 5일 → streak 5
 - 중간 갭 → 갭에서 끊김
-- freezeUsed=true인 날 → 연속 유지
+- freezeUsed=true인 날 → 연속은 유지하되 카운트에서 제외 (currentStreak·longestStreak·totalStudyDays 모두)
 
 **`DailyStudySummaryRepository.longestStreak`** (통합): SQL window 함수 검증. 다양한 날짜 시퀀스 + 갭 패턴.
 

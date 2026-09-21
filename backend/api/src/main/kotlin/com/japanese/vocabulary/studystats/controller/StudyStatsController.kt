@@ -26,6 +26,8 @@ class StudyStatsController(
         val userId = currentUserId()
         return HomeStatsResponse(
             currentStreak = studyStatsService.currentStreak(userId),
+            studiedToday = studyStatsService.studiedToday(userId),
+            hasStudiedBefore = studyStatsService.hasStudiedBefore(userId),
             freezeCount = studyStatsService.freezeCount(userId),
             freezeMax = StudyStatsService.FREEZE_CAP,
             weekDots = studyStatsService.weekDots(userId).map { it.toWeekDot() },

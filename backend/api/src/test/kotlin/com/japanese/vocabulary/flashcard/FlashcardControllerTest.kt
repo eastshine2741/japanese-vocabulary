@@ -330,7 +330,7 @@ class FlashcardControllerTest : ApiBaseIntegrationTest() {
         }
 
         @Test
-        fun `omits intervals when user disabled showIntervals`() {
+        fun `still includes intervals when user disabled showIntervals - app hides them only on rating buttons`() {
             val me = newUser()
             saveSettings(me, showIntervals = false)
             newCard(me, dueAt = clock.instant().minus(Duration.ofMinutes(1)))
@@ -340,7 +340,7 @@ class FlashcardControllerTest : ApiBaseIntegrationTest() {
             }.andReturn().response.contentAsString
 
             val card = readBody<DueFlashcardsResponse>(body).cards.single()
-            assertThat(card.intervals).isNull()
+            assertThat(card.intervals?.keys).containsExactlyInAnyOrder(1, 2, 3, 4)
         }
 
         @Test

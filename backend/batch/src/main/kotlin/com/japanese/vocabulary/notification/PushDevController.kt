@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.server.ResponseStatusException
 import com.japanese.vocabulary.notification.dto.ManualPushRequest
@@ -22,19 +23,20 @@ import java.security.MessageDigest
 @RestController
 @RequestMapping("/dev/push")
 @ConditionalOnProperty(name = ["push.firebase.enabled"], havingValue = "true")
-class ReviewReminderDevController(
-    private val pushNotificationScheduler: ReviewReminderScheduler,
+class PushDevController(
+    private val streakReminderScheduler: StreakReminderScheduler,
     private val manualPushNotificationService: ManualPushNotificationService,
     @Value("\${push.manual.secret:}") private val manualPushSecret: String,
 ) {
-    private val logger = LoggerFactory.getLogger(ReviewReminderDevController::class.java)
+    private val logger = LoggerFactory.getLogger(PushDevController::class.java)
 
     data class TriggerResponse(val sent: Int, val failed: Int)
 
+    /** 연속 학습 알림을 지금 슬롯 기준으로 즉시 발송한다. `slot` 은 EVENING(20:00) / NIGHT(23:00). */
     @PostMapping("/trigger")
-    fun trigger(): TriggerResponse {
-        val result = pushNotificationScheduler.dispatch()
-        logger.info("pushNotification manual trigger result={}", result)
+    fun trigger(@RequestParam(defaultValue = "EVENING") slot: StreakReminderMessage.Slot): TriggerResponse {
+        val result = streakReminderScheduler.dispatch(slot)
+        logger.info("streakReminder manual trigger slot={} result={}", slot, result)
         return TriggerResponse(sent = result.sent, failed = result.failed)
     }
 

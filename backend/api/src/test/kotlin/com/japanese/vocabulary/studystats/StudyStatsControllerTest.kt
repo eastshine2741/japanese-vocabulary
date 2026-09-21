@@ -87,6 +87,80 @@ class StudyStatsControllerTest : ApiBaseIntegrationTest() {
         }
 
         @Test
+        fun `never studied - studiedToday and hasStudiedBefore are false`() {
+            val me = newUser()
+
+            val resp = readBody<HomeStatsResponse>(home(me))
+            assertThat(resp.currentStreak).isZero
+            assertThat(resp.studiedToday).isFalse
+            assertThat(resp.hasStudiedBefore).isFalse
+        }
+
+        @Test
+        fun `studied yesterday but not today - pending with hasStudiedBefore`() {
+            val me = newUser()
+            val today = kstClock.todayStudyDate()
+            seedDay(me, today.minusDays(1))
+            seedDay(me, today.minusDays(2))
+            seedDay(me, today.minusDays(3))
+
+            val resp = readBody<HomeStatsResponse>(home(me))
+            assertThat(resp.currentStreak).isEqualTo(3)
+            assertThat(resp.studiedToday).isFalse
+            assertThat(resp.hasStudiedBefore).isTrue
+        }
+
+        @Test
+        fun `studied today - streak includes today and studiedToday is true`() {
+            val me = newUser()
+            val today = kstClock.todayStudyDate()
+            seedDay(me, today)
+            seedDay(me, today.minusDays(1))
+
+            val resp = readBody<HomeStatsResponse>(home(me))
+            assertThat(resp.currentStreak).isEqualTo(2)
+            assertThat(resp.studiedToday).isTrue
+            assertThat(resp.hasStudiedBefore).isTrue
+        }
+
+        @Test
+        fun `broken streak - zero streak but hasStudiedBefore stays true`() {
+            val me = newUser()
+            val today = kstClock.todayStudyDate()
+            seedDay(me, today.minusDays(3))
+
+            val resp = readBody<HomeStatsResponse>(home(me))
+            assertThat(resp.currentStreak).isZero
+            assertThat(resp.studiedToday).isFalse
+            assertThat(resp.hasStudiedBefore).isTrue
+        }
+
+        @Test
+        fun `only-today first study - studiedToday true and hasStudiedBefore false`() {
+            val me = newUser()
+            seedDay(me, kstClock.todayStudyDate())
+
+            val resp = readBody<HomeStatsResponse>(home(me))
+            assertThat(resp.currentStreak).isEqualTo(1)
+            assertThat(resp.studiedToday).isTrue
+            assertThat(resp.hasStudiedBefore).isFalse
+        }
+
+        @Test
+        fun `freeze-only row today does not count as studiedToday`() {
+            val me = newUser()
+            seedDay(me, kstClock.todayStudyDate(), reviewCount = 0, freezeUsed = true)
+
+            val resp = readBody<HomeStatsResponse>(home(me))
+            assertThat(resp.studiedToday).isFalse
+        }
+
+        private fun home(user: UserEntity): String =
+            mockMvc.get("/api/study-stats/home") {
+                header("Authorization", bearer(user))
+            }.andExpect { status { isOk() } }.andReturn().response.contentAsString
+
+        @Test
         fun `freezeUsed row shows as freeze dot`() {
             val me = newUser()
             val today = kstClock.todayStudyDate()
@@ -145,6 +219,30 @@ class StudyStatsControllerTest : ApiBaseIntegrationTest() {
             assertThat(resp.currentStreak).isEqualTo(2)
             assertThat(resp.longestStreak).isEqualTo(4)
             assertThat(resp.totalStudyDays).isEqualTo(7)
+        }
+
+        @Test
+        fun `freeze days keep runs unbroken but are excluded from every count`() {
+            val me = newUser()
+            val today = kstClock.todayStudyDate()
+            // Current run: today, freeze yesterday, studied 2 days ago → streak 2
+            seedDay(me, today)
+            seedDay(me, today.minusDays(1), reviewCount = 0, freezeUsed = true)
+            seedDay(me, today.minusDays(2))
+            // Older run: 3 studied + 1 freeze in the middle → length 3, not 4
+            seedDay(me, today.minusDays(5))
+            seedDay(me, today.minusDays(6), reviewCount = 0, freezeUsed = true)
+            seedDay(me, today.minusDays(7))
+            seedDay(me, today.minusDays(8))
+
+            val body = mockMvc.get("/api/study-stats/profile") {
+                header("Authorization", bearer(me))
+            }.andReturn().response.contentAsString
+
+            val resp = readBody<ProfileStatsResponse>(body)
+            assertThat(resp.currentStreak).isEqualTo(2)
+            assertThat(resp.longestStreak).isEqualTo(3)
+            assertThat(resp.totalStudyDays).isEqualTo(5)
         }
     }
 

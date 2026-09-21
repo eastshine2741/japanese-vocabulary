@@ -92,11 +92,10 @@ export async function unregisterCurrentToken(): Promise<void> {
 
 function handleData(data: RemoteMessage['data']): void {
   if (!data) return;
-  if (data.type === 'review_reminder' && data.flashcardId != null) {
-    const id = Number(data.flashcardId);
-    if (Number.isFinite(id)) {
-      navigate('Main', { screen: 'Home' });
-    }
+  // 연속 학습 알림(260918 C) — 탭하면 홈 첫 카드. 알림에서 왔다는 별도 화면·배너는 없다.
+  // 서버 payload 는 docs/product-intents/260918-streak-commitment-api.md 참고.
+  if (data.type === 'streak_reminder') {
+    navigate('Main', { screen: 'Home' });
     return;
   }
   // AnalysisNotificationDispatcher(batch) 가 songId 를 문자열로 실어 보낸다.

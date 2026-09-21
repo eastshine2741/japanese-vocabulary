@@ -6,41 +6,36 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
 
+/**
+ * Streak semantics: a `daily_study_summary` row keeps the run unbroken (review or
+ * freeze_used), but only review days (`freeze_used = FALSE`) add to the count.
+ * A freeze bridges a gap without earning a day.
+ */
 @Service
 class StreakCalculator(
     private val repo: DailyStudySummaryRepository,
 ) {
     @Transactional(readOnly = true)
-    fun totalStudyDays(userId: Long): Int = repo.countByUserId(userId).toInt()
+    fun totalStudyDays(userId: Long): Int = repo.countStudyDays(userId).toInt()
 
     /**
-     * Walks daily_study_summary backward from `today` inclusive, counting consecutive
-     * dates (a row's existence — review or freeze_used — counts as a study day).
-     * Stops at the first gap. If `today` itself has no row, the streak is the
-     * consecutive run ending at the most recent past day before `today`.
+     * Walks daily_study_summary backward from `today` inclusive and counts review days
+     * in the consecutive run. Stops at the first gap. If `today` itself has no row,
+     * the run ending yesterday is still alive and is what gets counted.
      */
     @Transactional(readOnly = true)
     fun currentStreak(userId: Long, today: LocalDate): Int {
-        val rows = repo.findRecentDatesDesc(userId, today, PageRequest.of(0, RECENT_LIMIT))
+        val rows = repo.findByUserIdAndDateKstLessThanEqualOrderByDateKstDesc(
+            userId, today, PageRequest.of(0, RECENT_LIMIT),
+        )
         if (rows.isEmpty()) return 0
 
+        var expected = if (rows.first().dateKst == today) today else today.minusDays(1)
         var streak = 0
-        var expected = today
-        for (date in rows) {
-            if (date.isAfter(expected)) continue // safety; shouldn't happen given the WHERE clause
-            if (date == expected) {
-                streak++
-                expected = expected.minusDays(1)
-                continue
-            }
-            // date < expected
-            if (streak == 0 && date == today.minusDays(1)) {
-                // Today not yet recorded — streak is the run ending yesterday.
-                streak = 1
-                expected = date.minusDays(1)
-                continue
-            }
-            break
+        for (row in rows) {
+            if (row.dateKst != expected) break
+            if (!row.freezeUsed) streak++
+            expected = expected.minusDays(1)
         }
         return streak
     }

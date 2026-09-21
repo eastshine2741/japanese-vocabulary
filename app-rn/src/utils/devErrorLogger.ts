@@ -1,5 +1,5 @@
-import parseErrorStack from 'react-native/Libraries/Core/Devtools/parseErrorStack';
-import symbolicateStackTrace from 'react-native/Libraries/Core/Devtools/symbolicateStackTrace';
+import { NativeModules } from 'react-native';
+import { parse as parseStack } from 'stacktrace-parser';
 
 /**
  * 개발 빌드 전용 에러 로거.
@@ -16,6 +16,44 @@ interface Frame {
   methodName?: string | null;
   lineNumber?: number | null;
   column?: number | null;
+}
+
+interface CodeFrame {
+  content: string;
+  location?: { row: number; column: number } | null;
+  fileName: string;
+}
+
+interface SymbolicatedStackTrace {
+  stack?: Frame[];
+  codeFrame?: CodeFrame | null;
+}
+
+// RN 내부 getDevServer 와 같은 방식. 번들을 받아온 URL 의 origin 이 곧 Metro 주소다.
+function getMetroUrl(): string | null {
+  const scriptURL: unknown = NativeModules.SourceCode?.scriptURL;
+  const match = typeof scriptURL === 'string' ? scriptURL.match(/^https?:\/\/.*?\//) : null;
+  return match ? match[0] : null;
+}
+
+// Metro 의 /symbolicate 는 0-based column 을 받는다. stacktrace-parser 는 1-based.
+function parseErrorStack(stack?: string): Frame[] {
+  if (!stack) return [];
+  return parseStack(stack).map((f) => ({
+    ...f,
+    column: f.column != null ? f.column - 1 : null,
+  }));
+}
+
+async function symbolicateStackTrace(stack: Frame[]): Promise<SymbolicatedStackTrace> {
+  const metroUrl = getMetroUrl();
+  if (!metroUrl) throw new Error('Bundle was not loaded from Metro.');
+  const response = await fetch(`${metroUrl}symbolicate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ stack }),
+  });
+  return (await response.json()) as SymbolicatedStackTrace;
 }
 
 function shortenPath(file?: string | null): string {

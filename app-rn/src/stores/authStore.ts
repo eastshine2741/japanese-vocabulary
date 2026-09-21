@@ -4,6 +4,7 @@ import { apiErrorMessage } from '../api/errors';
 import { userApi } from '../api/userApi';
 import { tokenStorage } from '../utils/tokenStorage';
 import { requestPermissionAndRegisterToken } from '../services/pushNotifications';
+import { useSettingsStore } from './settingsStore';
 
 type AuthStatus = 'idle' | 'loading' | 'success' | 'needs_signup' | 'error';
 
@@ -66,6 +67,8 @@ export const useAuthStore = create<AuthState>((set) => ({
         pendingProvider: null,
       });
       requestPermissionAndRegisterToken();
+      // 기존 유저는 저장된 설정(복습 주기 표시 등)이 있다 — 앱 재시작 전에도 반영되게 바로 불러온다.
+      useSettingsStore.getState().loadSettings();
     } catch (e: any) {
       set({ status: 'error', error: apiErrorMessage(e, 'Google sign-in failed') });
     }
@@ -98,6 +101,8 @@ export const useAuthStore = create<AuthState>((set) => ({
         pendingProvider: null,
       });
       requestPermissionAndRegisterToken();
+      // 기존 유저는 저장된 설정(복습 주기 표시 등)이 있다 — 앱 재시작 전에도 반영되게 바로 불러온다.
+      useSettingsStore.getState().loadSettings();
     } catch (e: any) {
       set({ status: 'error', error: apiErrorMessage(e, 'Apple sign-in failed') });
     }

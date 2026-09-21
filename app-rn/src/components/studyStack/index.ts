@@ -1,5 +1,6 @@
 export { StudyStack, type StudyStackProps } from './StudyStack';
 export { useStudyStack, type StudyStackState, type UseStudyStackOptions } from './useStudyStack';
+export { useEditWordFromStack } from './useEditWordFromStack';
 export { CardStage, SourceHeader, ArtworkThumb } from './CardStage';
 export type { CardStageProps, SourceHeaderProps, ArtworkThumbProps } from './CardStage';
 export { WordLayer, type WordLayerProps } from './WordLayer';
@@ -16,6 +17,8 @@ export {
   HOME_HEADER_CONTENT_HEIGHT,
   type HomeExpandedHeaderProps,
 } from './HomeExpandedHeader';
+export { StreakNudge, STREAK_NUDGE_TEXT } from './StreakNudge';
+export { StreakToastHost } from './StreakToast';
 export {
   StackReviewOverlay,
   STACK_REVIEW_CHROME_HEIGHT,

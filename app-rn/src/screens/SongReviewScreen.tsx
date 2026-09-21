@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -6,9 +6,11 @@ import {
   StackReviewOverlay,
   STACK_REVIEW_CHROME_HEIGHT,
   StudyStack,
+  useEditWordFromStack,
   useStudyStack,
 } from '../components/studyStack';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import { useStreakStore } from '../stores/streakStore';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SongReview'>;
 
@@ -19,6 +21,9 @@ export default function SongReviewScreen({ navigation, route }: Props) {
 
   const stack = useStudyStack({ mode: 'source', source });
   const { isComplete, session, status } = stack;
+  // 홈 스택을 거치지 않고 곡 상세에서 바로 들어와도 첫 rating 완료 배너가 뜨도록 연속 학습 통계를 확보한다.
+  useEffect(() => { useStreakStore.getState().ensureLoaded(); }, []);
+  const editWord = useEditWordFromStack(stack.refreshCurrentCard);
 
   const goBack = useCallback(() => navigation.goBack(), [navigation]);
   // 탭 안(Main)까지 내려가면 바텀탭·다른 탭 화면이 같이 뜬다 — 검색탭 UI만 새 스택으로 띄운다.
@@ -49,6 +54,7 @@ export default function SongReviewScreen({ navigation, route }: Props) {
         stack={stack}
         onOpenSource={goBack}
         onOpenExampleSource={openExampleSource}
+        onEditWord={editWord}
         onSearch={goSearch}
         overlay={overlay}
         contentInsetTop={insets.top + STACK_REVIEW_CHROME_HEIGHT}

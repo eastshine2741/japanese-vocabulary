@@ -26,6 +26,20 @@ class StudyStatsService(
     fun currentStreak(userId: Long): Int =
         streakCalculator.currentStreak(userId, kstClock.todayStudyDate())
 
+    /** 오늘(KST 04:00 경계) 리뷰가 1건 이상 있는지. freeze 로만 채워진 날은 false. */
+    @Transactional(readOnly = true)
+    fun studiedToday(userId: Long): Boolean =
+        studiedOn(userId, kstClock.todayStudyDate())
+
+    @Transactional(readOnly = true)
+    fun studiedOn(userId: Long, date: LocalDate): Boolean =
+        (repo.findByUserIdAndDateKst(userId, date)?.reviewCount ?: 0) > 0
+
+    /** 오늘 이전 날짜에 학습 기록이 하나라도 있는지. "첫날"과 "끊긴 뒤 재시작"을 가른다. */
+    @Transactional(readOnly = true)
+    fun hasStudiedBefore(userId: Long): Boolean =
+        repo.existsByUserIdAndDateKstLessThan(userId, kstClock.todayStudyDate())
+
     @Transactional(readOnly = true)
     fun longestStreak(userId: Long): Int = streakCalculator.longestStreak(userId)
 

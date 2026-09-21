@@ -2,6 +2,7 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { StreakToastHost } from './StreakToast';
 
 /** statusBar 아래 크롬 높이 — appBar 52 + sessionProgress 14. */
 export const STACK_REVIEW_CHROME_HEIGHT = 66;
@@ -51,6 +52,7 @@ export const StackReviewOverlay = React.memo(function StackReviewOverlay({
           </View>
         </View>
       )}
+      <StreakToastHost />
     </View>
   );
 });

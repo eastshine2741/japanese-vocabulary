@@ -5,14 +5,17 @@ import SkeletonBox from '../SkeletonLoading';
 import { CardStage, StageInset } from './CardStage';
 import { CompletionStage, ErrorStage } from './CompletionStage';
 import { WordLayer } from './WordLayer';
+import { StudyCard } from './types';
 import { StudyStackState } from './useStudyStack';
 
 export interface StudyStackProps {
-  /** useStudyStack 반환값 전체. 크롬은 여기서 session/streak 를 읽는다. */
+  /** useStudyStack 반환값 전체. 크롬은 여기서 session 을 읽는다. */
   stack: StudyStackState;
   onOpenSource: () => void;
   /** 예문 캐러셀에서 그 예문이 나온 곡(카드 자체 source 와 다를 수 있다)으로 이동할 때. */
   onOpenExampleSource?: (songId: number) => void;
+  /** 뒷면 뜻 옆 연필 버튼. 없으면 버튼을 그리지 않는다. */
+  onEditWord?: (card: StudyCard) => void;
   onSearch: () => void;
   /**
    * 무대 위에 겹쳐 그릴 크롬(곡 진입 오버레이 등). 홈처럼 스택 밖에 놓는 크롬은
@@ -33,6 +36,7 @@ export const StudyStack = React.memo(function StudyStack({
   stack,
   onOpenSource,
   onOpenExampleSource,
+  onEditWord,
   onSearch,
   overlay,
   contentInsetTop,
@@ -124,6 +128,7 @@ export const StudyStack = React.memo(function StudyStack({
           onRating={selectRating}
           onSourcePress={onOpenSource}
           onOpenExampleSource={onOpenExampleSource}
+          onEditWord={onEditWord}
           requireImmersedInteraction={requireImmersedInteraction}
           onRequestImmerse={onRequestImmerse}
           contentInsetTop={contentInsetTop}
@@ -169,7 +174,6 @@ export const StudyStack = React.memo(function StudyStack({
 });
 
 const REVIEW_ERROR_BOTTOM_OFFSET = 24;
-const SKELETON_RATING_BUTTONS = [0, 1, 2, 3];
 
 interface StudyStackLoadingSkeletonProps {
   contentInsetTop?: StageInset;
@@ -199,19 +203,14 @@ const StudyStackLoadingSkeleton = React.memo(function StudyStackLoadingSkeleton(
       <View pointerEvents="none" style={styles.skeletonStack}>
         <View style={styles.skeletonWordGroup}>
           <SkeletonBox width="68%" height={64} borderRadius={10} color="rgba(255,255,255,0.24)" />
-          <View style={styles.skeletonHintRow}>
-            <SkeletonBox width={16} height={16} borderRadius={8} color="rgba(255,255,255,0.18)" />
-            <SkeletonBox width={132} height={12} borderRadius={4} color="rgba(255,255,255,0.16)" />
-          </View>
         </View>
 
-        <View style={styles.skeletonRatingRow}>
-          {SKELETON_RATING_BUTTONS.map((rating) => (
-            <View key={rating} style={styles.skeletonRatingButton}>
-              <SkeletonBox width="54%" height={12} borderRadius={4} color="rgba(255,255,255,0.20)" />
-              <SkeletonBox width="42%" height={10} borderRadius={4} color="rgba(255,255,255,0.13)" />
-            </View>
-          ))}
+        <View style={styles.skeletonRevealBlock}>
+          <SkeletonBox width={180} height={14} borderRadius={4} color="rgba(255,255,255,0.16)" />
+          <View style={styles.skeletonRevealPill}>
+            <SkeletonBox width={20} height={20} borderRadius={10} color="rgba(255,255,255,0.18)" />
+            <SkeletonBox width={72} height={14} borderRadius={4} color="rgba(255,255,255,0.20)" />
+          </View>
         </View>
       </View>
     </CardStage>
@@ -266,27 +265,22 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'flex-start',
-    gap: 18,
   },
-  skeletonHintRow: {
+  skeletonRevealBlock: {
+    alignItems: 'center',
+    gap: 12,
+    paddingBottom: 4,
+  },
+  skeletonRevealPill: {
+    width: '100%',
+    height: 56,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-  },
-  skeletonRatingRow: {
-    height: 48,
-    flexDirection: 'row',
+    justifyContent: 'center',
     gap: 8,
-  },
-  skeletonRatingButton: {
-    flex: 1,
-    height: 48,
-    borderRadius: 16,
+    borderRadius: 9999,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.16)',
     backgroundColor: 'rgba(255,255,255,0.05)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 5,
   },
 });

@@ -12,6 +12,12 @@ interface DailyStudySummaryRepository : JpaRepository<DailyStudySummaryEntity, L
 
     fun findByUserIdAndDateKst(userId: Long, dateKst: LocalDate): DailyStudySummaryEntity?
 
+    fun existsByUserIdAndDateKstLessThan(userId: Long, dateKst: LocalDate): Boolean
+
+    /** 마지막으로 실제 복습한 날. freeze 로만 채워진 날은 제외. */
+    @Query("SELECT MAX(d.dateKst) FROM DailyStudySummaryEntity d WHERE d.userId = :userId AND d.freezeUsed = false")
+    fun findLastDateKst(@Param("userId") userId: Long): LocalDate?
+
     fun findByUserIdAndDateKstBetweenOrderByDateKstAsc(
         userId: Long,
         from: LocalDate,
@@ -27,24 +33,24 @@ interface DailyStudySummaryRepository : JpaRepository<DailyStudySummaryEntity, L
     )
     fun upsertIncrement(@Param("userId") userId: Long, @Param("dateKst") dateKst: LocalDate): Int
 
-    @Query("SELECT COUNT(d) FROM DailyStudySummaryEntity d WHERE d.userId = :userId")
-    fun countByUserId(@Param("userId") userId: Long): Long
+    /** 실제 복습한 날 수. freeze 로만 채워진 날은 제외. */
+    @Query("SELECT COUNT(d) FROM DailyStudySummaryEntity d WHERE d.userId = :userId AND d.freezeUsed = false")
+    fun countStudyDays(@Param("userId") userId: Long): Long
 
-    @Query(
-        "SELECT d.dateKst FROM DailyStudySummaryEntity d " +
-            "WHERE d.userId = :userId AND d.dateKst <= :today " +
-            "ORDER BY d.dateKst DESC"
-    )
-    fun findRecentDatesDesc(
-        @Param("userId") userId: Long,
-        @Param("today") today: LocalDate,
+    fun findByUserIdAndDateKstLessThanEqualOrderByDateKstDesc(
+        userId: Long,
+        today: LocalDate,
         pageable: Pageable,
-    ): List<LocalDate>
+    ): List<DailyStudySummaryEntity>
 
+    /**
+     * 행 존재로 연속 구간(island)을 잡고, 구간 길이는 freeze 가 아닌 날만 센다.
+     * freeze 행은 구간을 잇기만 하고 길이에 들어가지 않는다.
+     */
     @Query(
         value = "SELECT COALESCE(MAX(run_len), 0) FROM (" +
-            "  SELECT COUNT(*) AS run_len FROM (" +
-            "    SELECT DATEDIFF(date_kst, '1970-01-01') " +
+            "  SELECT CAST(SUM(freeze_used = FALSE) AS SIGNED) AS run_len FROM (" +
+            "    SELECT freeze_used, DATEDIFF(date_kst, '1970-01-01') " +
             "      - ROW_NUMBER() OVER (ORDER BY date_kst) AS island_id " +
             "    FROM daily_study_summary WHERE user_id = :userId" +
             "  ) t GROUP BY island_id" +
