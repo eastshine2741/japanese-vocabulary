@@ -5,7 +5,7 @@ import type { SongWordTierDto } from '../../types/song';
 import WordMasteryProgressBar from '../WordMasteryProgressBar';
 import { SongDetailJlptChart } from './SongDetailJlptChart';
 import { SongDetailMajorWords } from './SongDetailMajorWords';
-import { SongDetailTierRoadmap } from './SongDetailTierRoadmap';
+import { SongDetailWordTierCards } from './SongDetailWordTierCards';
 import { SongDetailWordItem } from './types';
 
 export interface SongDetailLearningProgress {
@@ -44,10 +44,11 @@ export const SongDetailHomeTab = React.memo(function SongDetailHomeTab({
     <View style={[styles.container, style]}>
       <SongDetailProgressSummary progress={progress} />
       {tiers != null && (
-        <SongDetailTierRoadmap
+        <SongDetailWordTierCards
           tiers={tiers}
           isStartingLearning={isStartingLearning}
           onStartTier={onStartTier}
+          onViewAllWordsPress={onViewAllWordsPress}
         />
       )}
       <SongDetailMajorWords

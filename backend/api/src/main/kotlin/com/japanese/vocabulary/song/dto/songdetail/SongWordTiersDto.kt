@@ -21,8 +21,8 @@ data class SongWordTierDto(
 )
 
 enum class SongWordTierKey(val order: Int, val displayName: String, val description: String) {
-    CORE(1, "핵심", "이 곡의 후렴·반복 단어"),
-    STARTER(2, "입문", "어떤 노래에도 나오는 뼈대 단어"),
-    BASIC(3, "기초", "초보자에게 필요한 쉬운 단어"),
-    ADVANCED(4, "심화", "알면 더 깊이 이해되는 이 곡의 단어"),
+    CORE(1, "핵심", "이 곡 후렴에서 계속 나와요"),
+    STARTER(2, "입문", "일본 노래면 어디서나 나와요"),
+    BASIC(3, "기초", "이 곡의 쉬운 단어들이에요"),
+    ADVANCED(4, "심화", "알면 더 깊이 들려요"),
 }

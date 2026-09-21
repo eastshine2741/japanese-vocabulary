@@ -30,7 +30,7 @@
       "key": "CORE",        // CORE | STARTER | BASIC | ADVANCED
       "order": 1,            // 1..4 로드맵 순서
       "name": "핵심",
-      "description": "이 곡의 후렴·반복 단어",
+      "description": "이 곡 후렴에서 계속 나와요",
       "wordJapanese": ["胸", "戻る", "..."], // WordInSongItemDto.japanese 와 동일 키
       "totalCount": 10,
       "knownCount": 0,       // 이 단계 단어 중 mastered

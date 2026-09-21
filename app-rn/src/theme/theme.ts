@@ -55,6 +55,17 @@ export const Colors = {
   wordMasteryStudying: '#FABD23',
   wordMasteryNewIndicator: '#D2D2D2',
 
+  // Word tier cards (song detail — 단어 학습)
+  tierCoreBg: '#F0FBF5',
+  tierCoreTrackBg: '#D6EFE1',
+  tierCoreChipBorder: '#CDEBDB',
+  tierLearnButtonText: '#107A45',
+  tierAdvancedBg: '#FFFBF2',
+  tierAdvancedBorder: '#F7E4B5',
+  tierAdvancedAccent: '#F0A81C',
+  tierAdvancedText: '#9A6A08',
+  tierAdvancedButtonBg: '#FDEBB8',
+
   // Legacy aliases
   textTertiary: '#A1A1AA',
   cardBorder: '#E5E5E5',
