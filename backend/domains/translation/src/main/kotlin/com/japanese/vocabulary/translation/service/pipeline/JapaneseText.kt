@@ -108,6 +108,20 @@ object JapaneseText {
     fun isKatakanaOnly(text: String): Boolean =
         text.isNotEmpty() && text.all { ch -> ch in KATAKANA_START..KATAKANA_END || ch == PROLONGED_SOUND_MARK }
 
+    /**
+     * True when [text] is spelled as a *sound* rather than a word: [isKatakanaOnly], or kana of either
+     * script carrying the prolonged sound mark.
+     *
+     * The headword exemption used to be [isKatakanaOnly] alone, and a lyric that wrote its ad-lib in
+     * hiragana slipped past it: `あいうぉんちゅー` (I want you) has no dictionary entry any more than
+     * `ステンバイミー` does, but it was reported as a missing headword. Orthography tells the two kana
+     * scripts apart here — hiragana writes a long vowel by repeating it (`おかあさん`, `とおい`), never
+     * with `ー` — so a hiragana surface holding `ー` is a transcription of a sound, while `までは` and
+     * `帰れない` stay subject to the check.
+     */
+    fun isSoundSpelling(text: String): Boolean =
+        isKatakanaOnly(text) || (isKanaOnly(text) && PROLONGED_SOUND_MARK in text)
+
     private fun Char.hasReading(): Boolean =
         this in HIRAGANA_START..HIRAGANA_END ||
             this in KATAKANA_START..KATAKANA_END ||

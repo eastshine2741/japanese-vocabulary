@@ -109,6 +109,23 @@ class JapaneseTextTest {
         assertThat(JapaneseText.isKatakanaOnly("Hip hop")).isFalse
     }
 
+    /**
+     * A hiragana ad-lib is as far outside the dictionary as a katakana one. Song 118 wrote
+     * `あいうぉんちゅー` (I want you) and the katakana-only exemption let it through as a DICTIONARY_MISS.
+     * The prolonged sound mark is what gives it away: hiragana spells a long vowel by repeating it.
+     */
+    @Test
+    fun `sound spelling exempts hiragana carrying the prolonged sound mark`() {
+        assertThat(JapaneseText.isSoundSpelling("あいうぉんちゅー")).isTrue
+        assertThat(JapaneseText.isSoundSpelling("ステンバイミー")).isTrue
+        assertThat(JapaneseText.isSoundSpelling("チリン")).isTrue
+        assertThat(JapaneseText.isSoundSpelling("までは")).isFalse
+        assertThat(JapaneseText.isSoundSpelling("帰れない")).isFalse
+        assertThat(JapaneseText.isSoundSpelling("おかあさん")).isFalse // long vowel spelled the hiragana way
+        assertThat(JapaneseText.isSoundSpelling("")).isFalse
+        assertThat(JapaneseText.isSoundSpelling("Hip hop")).isFalse
+    }
+
     /** は is written ハ and sung ワ — the one place transliterating the surface is not enough. */
     @Test
     fun `reads a particle as it is sung`() {
