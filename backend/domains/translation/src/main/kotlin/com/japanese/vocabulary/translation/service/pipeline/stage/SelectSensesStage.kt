@@ -114,17 +114,22 @@ class SelectSensesStage(
             tokens.mapIndexed { i, token ->
                 val selected = selectedWords.getOrNull(i)
                 val resolved = lexical.byTokenKey[token.key]
-                val selectedSenseId = selected?.senseId ?: -1
+                val selectedSenseId = selected?.senseId ?: NO_SENSE
                 // tokenId is lineIndex:charStart:charEnd:surface, so matching it pins the token
                 // identity — no surface/headword echo needed.
                 val valid = selected != null &&
                     selected.tokenId == token.key.tokenId &&
                     resolved != null &&
                     resolved.options.any { it.senseId == selectedSenseId }
+                // The prompt asks for -1 when none of the offered senses fits this line, so -1 on the
+                // right token is the answer the pipeline requested, not a rejected choice.
+                val explicitNoMatch = selected != null &&
+                    selected.tokenId == token.key.tokenId &&
+                    selected.senseId == NO_SENSE
                 // A rejected choice leaves the token with no sense at all, so it is a shipped defect
                 // and reported as one — the word had candidates, the model just named one it was
                 // never offered.
-                if (!valid && selected != null) {
+                if (!valid && !explicitNoMatch && selected != null) {
                     defectReporter.report(
                         AnalysisDefect(
                             songId = input.source.callContext.songId,
@@ -139,7 +144,7 @@ class SelectSensesStage(
                         ),
                     )
                 }
-                token.key to if (valid) selectedSenseId else -1
+                token.key to if (valid) selectedSenseId else NO_SENSE
             }
         }.toMap()
     }
@@ -165,5 +170,8 @@ class SelectSensesStage(
     companion object {
         /** Lines per sense-select call. Bounds response length so long songs cannot stop mid-array. */
         const val SELECT_CHUNK_LINES = 20
+
+        /** The prompt's "none of these senses fits", and what a token with no sense carries downstream. */
+        const val NO_SENSE = -1
     }
 }
