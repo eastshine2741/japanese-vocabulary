@@ -198,6 +198,11 @@ class RuleMeaningProvider {
             "てしまう" to auxiliary("てしまう", "~해 버리다"),
             "た" to auxiliary("た", "~했다"),
             "だ" to auxiliary("だ", "~이다"),
+            // た/だ + conditional ら. Segmentation splits 掴んだら into 掴ん + だら, and jisho has no
+            // entry for the combined suffix, so without this row it reaches the dictionary lookup and
+            // is reported as a miss. だら is the voiced form after ん/ぶ/ぐ stems.
+            "たら" to auxiliary("たら", "~하면, ~했더니"),
+            "だら" to auxiliary("だら", "~하면, ~했더니"),
         )
 
         // Every surface in the particle/auxiliary tables is kana, so its reading is the surface —

@@ -35,6 +35,18 @@ class RuleMeaningProviderTest {
     }
 
     @Test
+    fun `resolves conditional tara and its voiced dara form`() {
+        // 声聞かせて その手掴んだら離さないから — segmentation emits だら on its own, and jisho has no
+        // entry for the た+ら suffix, so it has to be settled by rule like た and だ are.
+        val dara = provider.resolve(PipelineToken(1, "だら", "だら", 9, 11))!!
+
+        assertThat(dara.partOfSpeech).isEqualTo(PartOfSpeech.AUXILIARY_VERB)
+        assertThat(dara.baseFormReading).isEqualTo("ダラ")
+        assertThat(dara.koreanText).isEqualTo("~하면, ~했더니")
+        assertThat(provider.resolve(token("たら"))!!.koreanText).isEqualTo("~하면, ~했더니")
+    }
+
+    @Test
     fun `does not rule-resolve ambiguous grammar-like words`() {
         assertThat(provider.resolve(token("ない"))).isNull()
         assertThat(provider.resolve(token("から"))).isNull()
