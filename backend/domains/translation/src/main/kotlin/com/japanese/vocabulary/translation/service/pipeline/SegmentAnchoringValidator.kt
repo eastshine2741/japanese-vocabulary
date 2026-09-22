@@ -75,25 +75,28 @@ class SegmentAnchoringValidator {
         val covered = BooleanArray(rawText.length)
         var cursor = 0
         var previousSurface: String? = null
-        val tokens = line.words.mapNotNull { word ->
-            if (!JapaneseText.containsJapanese(word.surface)) return@mapNotNull null
+        val words = line.words.filter { JapaneseText.containsJapanese(it.surface) }
+        val tokens = words.mapIndexed { position, word ->
             val start = rawText.indexOf(word.surface, cursor)
             if (start < 0) {
                 throw SegmentationValidationException(
                     notInOrderMessage(index, word.surface, rawText, cursor, previousSurface),
                 )
             }
-            val end = start + word.surface.length
+            val surfaceEnd = start + word.surface.length
+            val held = heldProlongedMarks(rawText, surfaceEnd, words.getOrNull(position + 1)?.surface)
+            val end = surfaceEnd + held.length
             for (i in start until end) covered[i] = true
             cursor = end
             previousSurface = word.surface
+            val usedReading = readingOf(index, word, word.usedReading, "usedReading")
             PipelineToken(
                 lineIndex = index,
                 surface = word.surface,
                 headword = word.headword,
                 charStart = start,
                 charEnd = end,
-                usedReading = readingOf(index, word, word.usedReading, "usedReading"),
+                usedReading = if (usedReading.endsWith(held)) usedReading else usedReading + held,
                 baseFormReading = readingOf(index, word, word.baseFormReading, "baseFormReading"),
                 contextGloss = word.contextGloss,
             )
@@ -107,6 +110,30 @@ class SegmentAnchoringValidator {
 
     /** One anchored line: its tokens, and why it is incomplete if Japanese text carries no token. */
     private data class AnchoredLine(val tokens: List<PipelineToken>, val uncovered: UncoveredRun?)
+
+    /**
+     * The `ー` run sitting right after a surface, which belongs to the word in front of it.
+     *
+     * `ー` has no word of its own — it lengthens the vowel already sung — so the model never lists it,
+     * and `いちーにーさんはい！` anchored as `いち` + `に` reported both marks as uncovered Japanese and
+     * burned every retry on a segmentation that was already right. Giving them to the preceding token
+     * covers the line and makes the reading the sung one (`イチー`).
+     *
+     * Not taken when the next surface starts with `ー` there: that mark is already somebody's, and
+     * swallowing it would push the cursor past the next word and fail the whole line instead.
+     */
+    private fun heldProlongedMarks(rawText: String, end: Int, nextSurface: String?): String {
+        var stop = end
+        while (stop < rawText.length && rawText[stop] == PROLONGED_SOUND_MARK) stop++
+        if (stop == end) return ""
+        if (nextSurface != null &&
+            nextSurface.startsWith(PROLONGED_SOUND_MARK) &&
+            rawText.startsWith(nextSurface, end)
+        ) {
+            return ""
+        }
+        return rawText.substring(end, stop)
+    }
 
     /**
      * Says where the search actually stood when it gave up. Naming only the missing surface reads as
@@ -161,5 +188,9 @@ class SegmentAnchoringValidator {
             )
         }
         return JapaneseText.toKatakana(reading)
+    }
+
+    private companion object {
+        const val PROLONGED_SOUND_MARK = 'ー' // U+30FC
     }
 }

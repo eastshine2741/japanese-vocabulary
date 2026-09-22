@@ -195,6 +195,67 @@ class SegmentAnchoringValidatorTest {
     }
 
     @Test
+    fun `gives a prolonged sound mark to the word it lengthens instead of leaving it uncovered`() {
+        // Song 160. The count-in `いちーにーさんはい！` is segmented as いち / に / さん / はい every time,
+        // because ー is not a word — it lengthens the vowel already sung. Reporting it as uncovered
+        // Japanese spent the line's retries on a segmentation that was already right.
+        val result = validator.anchor(
+            mapOf(0 to "いちーにーさんはい！"),
+            listOf(
+                SegLineDto(
+                    0,
+                    listOf(
+                        word("いち", "一", "イチ", "イチ"),
+                        word("に", "二", "ニ", "ニ"),
+                        word("さん", "三", "サン", "サン"),
+                        word("はい", "はい", "ハイ", "ハイ"),
+                    ),
+                ),
+            ),
+        )
+
+        assertThat(result.failuresByIndex).isEmpty()
+        assertThat(result.incompleteByIndex).isEmpty()
+        assertThat(result.anchoredByIndex[0]!!.map { Triple(it.surface, it.charStart, it.charEnd) }).containsExactly(
+            Triple("いち", 0, 3),
+            Triple("に", 3, 5),
+            Triple("さん", 5, 7),
+            Triple("はい", 7, 9),
+        )
+        // The mark is sung, so it belongs to the reading too.
+        assertThat(result.anchoredByIndex[0]!!.map { it.usedReading })
+            .containsExactly("イチー", "ニー", "サン", "ハイ")
+    }
+
+    @Test
+    fun `does not repeat a prolonged sound mark the model already put in the reading`() {
+        val result = validator.anchor(
+            mapOf(0 to "いちーにー"),
+            listOf(SegLineDto(0, listOf(word("いち", "一", "イチー", "イチ"), word("に", "二", "ニー", "ニ")))),
+        )
+
+        assertThat(result.incompleteByIndex).isEmpty()
+        assertThat(result.anchoredByIndex[0]!!.map { it.usedReading }).containsExactly("イチー", "ニー")
+        assertThat(result.anchoredByIndex[0]!!.map { it.charEnd }).containsExactly(3, 5)
+    }
+
+    @Test
+    fun `leaves a prolonged sound mark the next surface already claims`() {
+        // When the model does hand the marks back as a word of their own, taking them anyway would
+        // drag the cursor past that word and fail a line that anchors fine.
+        val result = validator.anchor(
+            mapOf(0 to "あーー"),
+            listOf(SegLineDto(0, listOf(word("あ", "あ", "ア", "ア"), word("ーー", "ー", "ーー", "ーー")))),
+        )
+
+        assertThat(result.failuresByIndex).isEmpty()
+        assertThat(result.anchoredByIndex[0]!!.map { Triple(it.surface, it.charStart, it.charEnd) }).containsExactly(
+            Triple("あ", 0, 1),
+            Triple("ーー", 1, 3),
+        )
+    }
+
+    @Test
     fun `reports mutated surface as a line failure`() {
         val result = validator.anchor(
             mapOf(0 to "目を開けたなら yay"),
