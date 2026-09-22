@@ -77,6 +77,29 @@ class RuleMeaningProvider {
                     ),
                 ),
             ),
+            // GluedParticleSplitter only splits a glued particle off when the surface and the
+            // headword disagree; when the model writes こんなにも as both, it has nothing to catch.
+            TokenRewriteRule(
+                surfaces = listOf("こんなにも"),
+                replacements = listOf(
+                    TokenReplacement(
+                        "こんなに",
+                        "こんなに",
+                        sourceIndex = 0,
+                        startOffset = 0,
+                        endOffset = 4,
+                        contextGloss = "to this extent, so much",
+                    ),
+                    TokenReplacement(
+                        "も",
+                        "も",
+                        sourceIndex = 0,
+                        startOffset = 4,
+                        endOffset = 5,
+                        contextGloss = "also, too",
+                    ),
+                ),
+            ),
             TokenRewriteRule(
                 surfaces = listOf("ここまで"),
                 replacements = listOf(
