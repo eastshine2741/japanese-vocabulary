@@ -1,5 +1,5 @@
 {
-  "version": "2.17",
+  "version": "2.18",
   "children": [
     {
       "type": "context",
@@ -4950,11 +4950,11 @@
                     },
                     "colors": [
                       {
-                        "color": "#EAB308",
+                        "color": "#AD861D",
                         "position": 0
                       },
                       {
-                        "color": "#EAB308",
+                        "color": "#AD861D",
                         "position": 1
                       }
                     ]
@@ -4973,7 +4973,7 @@
                       "type": "text",
                       "id": "YtXmd",
                       "name": "w2l",
-                      "fill": "#EAB308",
+                      "fill": "#AD861D",
                       "content": "N2",
                       "fontFamily": "$font.captions",
                       "fontSize": 10,
@@ -5343,11 +5343,11 @@
                         },
                         "colors": [
                           {
-                            "color": "#14B8A6",
+                            "color": "#2A9B8D",
                             "position": 0
                           },
                           {
-                            "color": "#14B8A6",
+                            "color": "#2A9B8D",
                             "position": 1
                           }
                         ]
@@ -5366,7 +5366,7 @@
                           "type": "text",
                           "id": "JRkwQ",
                           "name": "w3l",
-                          "fill": "#14B8A6",
+                          "fill": "#2A9B8D",
                           "content": "N4",
                           "fontFamily": "$font.captions",
                           "fontSize": 10,
@@ -14096,7 +14096,7 @@
                       "name": "대명사 Option",
                       "width": "fit_content",
                       "height": 38,
-                      "fill": "#3B8EE633",
+                      "fill": "#368EE833",
                       "x": 0,
                       "y": 0,
                       "stroke": "$pos-noun",
@@ -14125,7 +14125,7 @@
                       "name": "대명사 Option",
                       "width": "fit_content",
                       "height": 38,
-                      "fill": "#2EA76E33",
+                      "fill": "#299E6733",
                       "x": 71,
                       "y": 0,
                       "stroke": "$pos-verb",
@@ -14154,7 +14154,7 @@
                       "name": "형용사 Option",
                       "width": "fit_content",
                       "height": 38,
-                      "fill": "#F0961E33",
+                      "fill": "#C47B1D33",
                       "stroke": "$pos-adjective",
                       "strokeLinecap": "butt",
                       "strokeLinejoin": "miter",
@@ -14179,7 +14179,7 @@
                       "name": "형용사 Option",
                       "width": "fit_content",
                       "height": 38,
-                      "fill": "#F0961E33",
+                      "fill": "#C47B1D33",
                       "stroke": "$pos-adjective",
                       "strokeLinecap": "butt",
                       "strokeLinejoin": "miter",
@@ -14215,7 +14215,7 @@
                       "name": "부사 Option",
                       "width": "fit_content",
                       "height": 38,
-                      "fill": "#9B6BE033",
+                      "fill": "#A276E033",
                       "stroke": "$pos-adverb",
                       "strokeLinecap": "butt",
                       "strokeLinejoin": "miter",
@@ -14398,7 +14398,7 @@
                       "name": "N5 Option",
                       "width": "fit_content",
                       "height": 38,
-                      "fill": "#3B82F633",
+                      "fill": "#5388F333",
                       "stroke": "$jlpt-n5",
                       "strokeWidth": 1,
                       "strokeLinecap": "butt",
@@ -14419,7 +14419,7 @@
                       "name": "N4 Option",
                       "width": "fit_content",
                       "height": 38,
-                      "fill": "#14B8A633",
+                      "fill": "#2A9B8D33",
                       "stroke": "$jlpt-n4",
                       "strokeWidth": 1,
                       "strokeLinecap": "butt",
@@ -14440,7 +14440,7 @@
                       "name": "N3 Option",
                       "width": "fit_content",
                       "height": 38,
-                      "fill": "#EAB30833",
+                      "fill": "#AD861D33",
                       "stroke": "$jlpt-n3",
                       "strokeWidth": 1,
                       "strokeLinecap": "butt",
@@ -14461,7 +14461,7 @@
                       "name": "N2 Option",
                       "width": "fit_content",
                       "height": 38,
-                      "fill": "#F9731633",
+                      "fill": "#D5703133",
                       "stroke": "$jlpt-n2",
                       "strokeWidth": 1,
                       "strokeLinecap": "butt",
@@ -14484,7 +14484,7 @@
                       "name": "N1 Option",
                       "width": "fit_content",
                       "height": 38,
-                      "fill": "#EF444433",
+                      "fill": "#E85E5633",
                       "stroke": "$jlpt-n1",
                       "strokeWidth": 1,
                       "strokeLinecap": "butt",
@@ -16130,7 +16130,7 @@
                                           "type": "text",
                                           "id": "xEJ2B",
                                           "name": "posLabel",
-                                          "fill": "#F0961E",
+                                          "fill": "#C47B1D",
                                           "content": "명사",
                                           "fontFamily": "Inter",
                                           "fontSize": 14.3,
@@ -16151,7 +16151,7 @@
                                           "type": "text",
                                           "id": "SXzKq",
                                           "name": "jlptLabel",
-                                          "fill": "#EAB308",
+                                          "fill": "#AD861D",
                                           "content": "N3",
                                           "fontFamily": "Inter",
                                           "fontSize": 14.3,
@@ -18487,7 +18487,7 @@
                                           "type": "text",
                                           "id": "pav8b",
                                           "name": "lvl",
-                                          "fill": "#EAB308",
+                                          "fill": "#AD861D",
                                           "content": "N4",
                                           "fontFamily": "Inter",
                                           "fontSize": 11.14,
@@ -18603,7 +18603,7 @@
                                           "type": "text",
                                           "id": "pFHBF",
                                           "name": "lvl",
-                                          "fill": "#EAB308",
+                                          "fill": "#AD861D",
                                           "content": "N3",
                                           "fontFamily": "Inter",
                                           "fontSize": 11.14,
@@ -18719,7 +18719,7 @@
                                           "type": "text",
                                           "id": "eo2Re",
                                           "name": "lvl",
-                                          "fill": "#14B8A6",
+                                          "fill": "#2A9B8D",
                                           "content": "N4",
                                           "fontFamily": "Inter",
                                           "fontSize": 11.14,
@@ -18835,7 +18835,7 @@
                                           "type": "text",
                                           "id": "U8HvDh",
                                           "name": "lvl",
-                                          "fill": "#EF4444",
+                                          "fill": "#E85E56",
                                           "content": "N1",
                                           "fontFamily": "Inter",
                                           "fontSize": 11.14,
@@ -18962,7 +18962,7 @@
                                           "type": "text",
                                           "id": "VvOg4",
                                           "name": "lvl",
-                                          "fill": "#3B82F6",
+                                          "fill": "#5388F3",
                                           "content": "N3",
                                           "fontFamily": "Inter",
                                           "fontSize": 11.14,
@@ -19167,7 +19167,7 @@
                                   "type": "rectangle",
                                   "id": "WQaE5",
                                   "name": "Seg N5",
-                                  "fill": "#3B82F6",
+                                  "fill": "#5388F3",
                                   "width": 39,
                                   "height": 11.14
                                 },
@@ -19175,7 +19175,7 @@
                                   "type": "rectangle",
                                   "id": "fLGIO",
                                   "name": "Seg N4",
-                                  "fill": "#14B8A6",
+                                  "fill": "#2A9B8D",
                                   "width": 57.95,
                                   "height": 11.14
                                 },
@@ -19183,7 +19183,7 @@
                                   "type": "rectangle",
                                   "id": "UuqAS",
                                   "name": "Seg N3",
-                                  "fill": "#EAB308",
+                                  "fill": "#AD861D",
                                   "width": 157.13,
                                   "height": 11.14
                                 },
@@ -19191,7 +19191,7 @@
                                   "type": "rectangle",
                                   "id": "X2XZG",
                                   "name": "Seg N2",
-                                  "fill": "#F97316",
+                                  "fill": "#D57031",
                                   "width": 78.01,
                                   "height": 11.14
                                 },
@@ -19199,7 +19199,7 @@
                                   "type": "rectangle",
                                   "id": "f89HGN",
                                   "name": "Seg N1",
-                                  "fill": "#EF4444",
+                                  "fill": "#E85E56",
                                   "width": 39,
                                   "height": 11.14
                                 },
@@ -19240,7 +19240,7 @@
                                           "cornerRadius": 11143.16,
                                           "id": "h0w6OD",
                                           "name": "Dot",
-                                          "fill": "#3B82F6",
+                                          "fill": "#5388F3",
                                           "width": 7.8,
                                           "height": 7.8
                                         },
@@ -19269,7 +19269,7 @@
                                           "cornerRadius": 11143.16,
                                           "id": "nsE4k",
                                           "name": "Dot",
-                                          "fill": "#14B8A6",
+                                          "fill": "#2A9B8D",
                                           "width": 7.8,
                                           "height": 7.8
                                         },
@@ -19298,7 +19298,7 @@
                                           "cornerRadius": 11143.16,
                                           "id": "k8yVan",
                                           "name": "Dot",
-                                          "fill": "#EAB308",
+                                          "fill": "#AD861D",
                                           "width": 7.8,
                                           "height": 7.8
                                         },
@@ -19335,7 +19335,7 @@
                                           "cornerRadius": 11143.16,
                                           "id": "hqz7J",
                                           "name": "Dot",
-                                          "fill": "#F97316",
+                                          "fill": "#D57031",
                                           "width": 7.8,
                                           "height": 7.8
                                         },
@@ -19364,7 +19364,7 @@
                                           "cornerRadius": 11143.16,
                                           "id": "tQ9xN",
                                           "name": "Dot",
-                                          "fill": "#EF4444",
+                                          "fill": "#E85E56",
                                           "width": 7.8,
                                           "height": 7.8
                                         },
@@ -19809,7 +19809,7 @@
                                             {
                                               "type": "rectangle",
                                               "id": "MeM50",
-                                              "fill": "#3B8EE6",
+                                              "fill": "#368EE8",
                                               "width": "fill_container",
                                               "height": 2.23
                                             }
@@ -19846,7 +19846,7 @@
                                               "type": "rectangle",
                                               "id": "SLgL4",
                                               "opacity": 0,
-                                              "fill": "#3B8EE6",
+                                              "fill": "#368EE8",
                                               "width": "fill_container",
                                               "height": 2.23
                                             }
@@ -19882,7 +19882,7 @@
                                             {
                                               "type": "rectangle",
                                               "id": "Q6LUTX",
-                                              "fill": "#3B8EE6",
+                                              "fill": "#368EE8",
                                               "width": "fill_container",
                                               "height": 2.23
                                             }
@@ -19919,7 +19919,7 @@
                                               "type": "rectangle",
                                               "id": "cpvuH",
                                               "opacity": 0,
-                                              "fill": "#3B8EE6",
+                                              "fill": "#368EE8",
                                               "width": "fill_container",
                                               "height": 2.23
                                             }
@@ -19955,7 +19955,7 @@
                                             {
                                               "type": "rectangle",
                                               "id": "N4VUi",
-                                              "fill": "#9B6BE0",
+                                              "fill": "#A276E0",
                                               "width": "fill_container",
                                               "height": 2.23
                                             }
@@ -19992,7 +19992,7 @@
                                               "type": "rectangle",
                                               "id": "jQV9k",
                                               "opacity": 0,
-                                              "fill": "#3B8EE6",
+                                              "fill": "#368EE8",
                                               "width": "fill_container",
                                               "height": 2.23
                                             }
@@ -20028,7 +20028,7 @@
                                             {
                                               "type": "rectangle",
                                               "id": "E6PW8W",
-                                              "fill": "#2EA76E",
+                                              "fill": "#299E67",
                                               "width": "fill_container",
                                               "height": 2.23
                                             }
@@ -20282,11 +20282,11 @@
                                                         },
                                                         "colors": [
                                                           {
-                                                            "color": "#EAB308",
+                                                            "color": "#AD861D",
                                                             "position": 0
                                                           },
                                                           {
-                                                            "color": "#EAB308",
+                                                            "color": "#AD861D",
                                                             "position": 1
                                                           }
                                                         ]
@@ -20305,7 +20305,7 @@
                                                           "type": "text",
                                                           "id": "Q9JJs",
                                                           "name": "w2l",
-                                                          "fill": "#EAB308",
+                                                          "fill": "#AD861D",
                                                           "content": "N2",
                                                           "fontFamily": "Inter",
                                                           "fontSize": 11.14,
@@ -20329,11 +20329,11 @@
                                                         },
                                                         "colors": [
                                                           {
-                                                            "color": "#2EA76E",
+                                                            "color": "#299E67",
                                                             "position": 0
                                                           },
                                                           {
-                                                            "color": "#2EA76E",
+                                                            "color": "#299E67",
                                                             "position": 1
                                                           }
                                                         ]
@@ -20350,7 +20350,7 @@
                                                           "type": "text",
                                                           "id": "Nby3e",
                                                           "name": "posText",
-                                                          "fill": "#2EA76E",
+                                                          "fill": "#299E67",
                                                           "content": "동사",
                                                           "fontFamily": "Inter",
                                                           "fontSize": 11.14,
@@ -23132,11 +23132,11 @@
                                 },
                                 "colors": [
                                   {
-                                    "color": "#EAB308",
+                                    "color": "#AD861D",
                                     "position": 0
                                   },
                                   {
-                                    "color": "#EAB308",
+                                    "color": "#AD861D",
                                     "position": 1
                                   }
                                 ]
@@ -23155,7 +23155,7 @@
                                   "type": "text",
                                   "id": "c24DB",
                                   "name": "w2l",
-                                  "fill": "#EAB308",
+                                  "fill": "#AD861D",
                                   "content": "N2",
                                   "fontFamily": "$font.captions",
                                   "fontSize": 20,
@@ -28457,11 +28457,11 @@
                                                     },
                                                     "colors": [
                                                       {
-                                                        "color": "#EAB308",
+                                                        "color": "#AD861D",
                                                         "position": 0
                                                       },
                                                       {
-                                                        "color": "#EAB308",
+                                                        "color": "#AD861D",
                                                         "position": 1
                                                       }
                                                     ]
@@ -28480,7 +28480,7 @@
                                                       "type": "text",
                                                       "id": "nF1Sc",
                                                       "name": "w2l",
-                                                      "fill": "#EAB308",
+                                                      "fill": "#AD861D",
                                                       "content": "N2",
                                                       "fontFamily": "$font.captions",
                                                       "fontSize": 10,
@@ -28699,11 +28699,11 @@
                                                     },
                                                     "colors": [
                                                       {
-                                                        "color": "#EAB308",
+                                                        "color": "#AD861D",
                                                         "position": 0
                                                       },
                                                       {
-                                                        "color": "#EAB308",
+                                                        "color": "#AD861D",
                                                         "position": 1
                                                       }
                                                     ]
@@ -28722,7 +28722,7 @@
                                                       "type": "text",
                                                       "id": "uaSg6",
                                                       "name": "w2l",
-                                                      "fill": "#EAB308",
+                                                      "fill": "#AD861D",
                                                       "content": "N2",
                                                       "fontFamily": "$font.captions",
                                                       "fontSize": 10,
@@ -28941,11 +28941,11 @@
                                                     },
                                                     "colors": [
                                                       {
-                                                        "color": "#EAB308",
+                                                        "color": "#AD861D",
                                                         "position": 0
                                                       },
                                                       {
-                                                        "color": "#EAB308",
+                                                        "color": "#AD861D",
                                                         "position": 1
                                                       }
                                                     ]
@@ -28964,7 +28964,7 @@
                                                       "type": "text",
                                                       "id": "XhMjR",
                                                       "name": "w2l",
-                                                      "fill": "#EAB308",
+                                                      "fill": "#AD861D",
                                                       "content": "N2",
                                                       "fontFamily": "$font.captions",
                                                       "fontSize": 10,
@@ -29183,11 +29183,11 @@
                                                     },
                                                     "colors": [
                                                       {
-                                                        "color": "#EAB308",
+                                                        "color": "#AD861D",
                                                         "position": 0
                                                       },
                                                       {
-                                                        "color": "#EAB308",
+                                                        "color": "#AD861D",
                                                         "position": 1
                                                       }
                                                     ]
@@ -29206,7 +29206,7 @@
                                                       "type": "text",
                                                       "id": "Bucnz",
                                                       "name": "w2l",
-                                                      "fill": "#EAB308",
+                                                      "fill": "#AD861D",
                                                       "content": "N2",
                                                       "fontFamily": "$font.captions",
                                                       "fontSize": 10,
@@ -29425,11 +29425,11 @@
                                                     },
                                                     "colors": [
                                                       {
-                                                        "color": "#EAB308",
+                                                        "color": "#AD861D",
                                                         "position": 0
                                                       },
                                                       {
-                                                        "color": "#EAB308",
+                                                        "color": "#AD861D",
                                                         "position": 1
                                                       }
                                                     ]
@@ -29448,7 +29448,7 @@
                                                       "type": "text",
                                                       "id": "kkemM",
                                                       "name": "w2l",
-                                                      "fill": "#EAB308",
+                                                      "fill": "#AD861D",
                                                       "content": "N2",
                                                       "fontFamily": "$font.captions",
                                                       "fontSize": 10,
@@ -30837,11 +30837,11 @@
                                                 },
                                                 "colors": [
                                                   {
-                                                    "color": "#EAB308",
+                                                    "color": "#AD861D",
                                                     "position": 0
                                                   },
                                                   {
-                                                    "color": "#EAB308",
+                                                    "color": "#AD861D",
                                                     "position": 1
                                                   }
                                                 ]
@@ -30860,7 +30860,7 @@
                                                   "type": "text",
                                                   "id": "l3tGu",
                                                   "name": "w2l",
-                                                  "fill": "#EAB308",
+                                                  "fill": "#AD861D",
                                                   "content": "N2",
                                                   "fontFamily": "$font.captions",
                                                   "fontSize": 10,
@@ -31644,11 +31644,11 @@
                                         },
                                         "colors": [
                                           {
-                                            "color": "#EAB308",
+                                            "color": "#AD861D",
                                             "position": 0
                                           },
                                           {
-                                            "color": "#EAB308",
+                                            "color": "#AD861D",
                                             "position": 1
                                           }
                                         ]
@@ -31667,7 +31667,7 @@
                                           "type": "text",
                                           "id": "bsgM4",
                                           "name": "w2l",
-                                          "fill": "#EAB308",
+                                          "fill": "#AD861D",
                                           "content": "N2",
                                           "fontFamily": "$font.captions",
                                           "fontSize": 10,
@@ -31886,11 +31886,11 @@
                                         },
                                         "colors": [
                                           {
-                                            "color": "#EAB308",
+                                            "color": "#AD861D",
                                             "position": 0
                                           },
                                           {
-                                            "color": "#EAB308",
+                                            "color": "#AD861D",
                                             "position": 1
                                           }
                                         ]
@@ -31909,7 +31909,7 @@
                                           "type": "text",
                                           "id": "I3Itbw",
                                           "name": "w2l",
-                                          "fill": "#EAB308",
+                                          "fill": "#AD861D",
                                           "content": "N2",
                                           "fontFamily": "$font.captions",
                                           "fontSize": 10,
@@ -32128,11 +32128,11 @@
                                         },
                                         "colors": [
                                           {
-                                            "color": "#EAB308",
+                                            "color": "#AD861D",
                                             "position": 0
                                           },
                                           {
-                                            "color": "#EAB308",
+                                            "color": "#AD861D",
                                             "position": 1
                                           }
                                         ]
@@ -32151,7 +32151,7 @@
                                           "type": "text",
                                           "id": "L4ERaU",
                                           "name": "w2l",
-                                          "fill": "#EAB308",
+                                          "fill": "#AD861D",
                                           "content": "N2",
                                           "fontFamily": "$font.captions",
                                           "fontSize": 10,
@@ -32370,11 +32370,11 @@
                                         },
                                         "colors": [
                                           {
-                                            "color": "#EAB308",
+                                            "color": "#AD861D",
                                             "position": 0
                                           },
                                           {
-                                            "color": "#EAB308",
+                                            "color": "#AD861D",
                                             "position": 1
                                           }
                                         ]
@@ -32393,7 +32393,7 @@
                                           "type": "text",
                                           "id": "jfGfB",
                                           "name": "w2l",
-                                          "fill": "#EAB308",
+                                          "fill": "#AD861D",
                                           "content": "N2",
                                           "fontFamily": "$font.captions",
                                           "fontSize": 10,
@@ -32612,11 +32612,11 @@
                                         },
                                         "colors": [
                                           {
-                                            "color": "#EAB308",
+                                            "color": "#AD861D",
                                             "position": 0
                                           },
                                           {
-                                            "color": "#EAB308",
+                                            "color": "#AD861D",
                                             "position": 1
                                           }
                                         ]
@@ -32635,7 +32635,7 @@
                                           "type": "text",
                                           "id": "olXa3",
                                           "name": "w2l",
-                                          "fill": "#EAB308",
+                                          "fill": "#AD861D",
                                           "content": "N2",
                                           "fontFamily": "$font.captions",
                                           "fontSize": 10,
@@ -33527,11 +33527,11 @@
                                             },
                                             "colors": [
                                               {
-                                                "color": "#EAB308",
+                                                "color": "#AD861D",
                                                 "position": 0
                                               },
                                               {
-                                                "color": "#EAB308",
+                                                "color": "#AD861D",
                                                 "position": 1
                                               }
                                             ]
@@ -33550,7 +33550,7 @@
                                               "type": "text",
                                               "id": "xZdIq",
                                               "name": "w2l",
-                                              "fill": "#EAB308",
+                                              "fill": "#AD861D",
                                               "content": "N2",
                                               "fontFamily": "$font.captions",
                                               "fontSize": 10,
@@ -36201,11 +36201,11 @@
                                                 },
                                                 "colors": [
                                                   {
-                                                    "color": "#EAB308",
+                                                    "color": "#AD861D",
                                                     "position": 0
                                                   },
                                                   {
-                                                    "color": "#EAB308",
+                                                    "color": "#AD861D",
                                                     "position": 1
                                                   }
                                                 ]
@@ -36224,7 +36224,7 @@
                                                   "type": "text",
                                                   "id": "i1W0S5",
                                                   "name": "w2l",
-                                                  "fill": "#EAB308",
+                                                  "fill": "#AD861D",
                                                   "content": "N2",
                                                   "fontFamily": "$font.captions",
                                                   "fontSize": 10,
@@ -36933,11 +36933,11 @@
                                         },
                                         "colors": [
                                           {
-                                            "color": "#EAB308",
+                                            "color": "#AD861D",
                                             "position": 0
                                           },
                                           {
-                                            "color": "#EAB308",
+                                            "color": "#AD861D",
                                             "position": 1
                                           }
                                         ]
@@ -36956,7 +36956,7 @@
                                           "type": "text",
                                           "id": "u0xwGV",
                                           "name": "w2l",
-                                          "fill": "#EAB308",
+                                          "fill": "#AD861D",
                                           "content": "N2",
                                           "fontFamily": "$font.captions",
                                           "fontSize": 10,
@@ -37175,11 +37175,11 @@
                                         },
                                         "colors": [
                                           {
-                                            "color": "#EAB308",
+                                            "color": "#AD861D",
                                             "position": 0
                                           },
                                           {
-                                            "color": "#EAB308",
+                                            "color": "#AD861D",
                                             "position": 1
                                           }
                                         ]
@@ -37198,7 +37198,7 @@
                                           "type": "text",
                                           "id": "u3s79v",
                                           "name": "w2l",
-                                          "fill": "#EAB308",
+                                          "fill": "#AD861D",
                                           "content": "N2",
                                           "fontFamily": "$font.captions",
                                           "fontSize": 10,
@@ -37417,11 +37417,11 @@
                                         },
                                         "colors": [
                                           {
-                                            "color": "#EAB308",
+                                            "color": "#AD861D",
                                             "position": 0
                                           },
                                           {
-                                            "color": "#EAB308",
+                                            "color": "#AD861D",
                                             "position": 1
                                           }
                                         ]
@@ -37440,7 +37440,7 @@
                                           "type": "text",
                                           "id": "h8SYN",
                                           "name": "w2l",
-                                          "fill": "#EAB308",
+                                          "fill": "#AD861D",
                                           "content": "N2",
                                           "fontFamily": "$font.captions",
                                           "fontSize": 10,
@@ -37659,11 +37659,11 @@
                                         },
                                         "colors": [
                                           {
-                                            "color": "#EAB308",
+                                            "color": "#AD861D",
                                             "position": 0
                                           },
                                           {
-                                            "color": "#EAB308",
+                                            "color": "#AD861D",
                                             "position": 1
                                           }
                                         ]
@@ -37682,7 +37682,7 @@
                                           "type": "text",
                                           "id": "OQETk",
                                           "name": "w2l",
-                                          "fill": "#EAB308",
+                                          "fill": "#AD861D",
                                           "content": "N2",
                                           "fontFamily": "$font.captions",
                                           "fontSize": 10,
@@ -37901,11 +37901,11 @@
                                         },
                                         "colors": [
                                           {
-                                            "color": "#EAB308",
+                                            "color": "#AD861D",
                                             "position": 0
                                           },
                                           {
-                                            "color": "#EAB308",
+                                            "color": "#AD861D",
                                             "position": 1
                                           }
                                         ]
@@ -37924,7 +37924,7 @@
                                           "type": "text",
                                           "id": "GJooe",
                                           "name": "w2l",
-                                          "fill": "#EAB308",
+                                          "fill": "#AD861D",
                                           "content": "N2",
                                           "fontFamily": "$font.captions",
                                           "fontSize": 10,
@@ -38816,11 +38816,11 @@
                                             },
                                             "colors": [
                                               {
-                                                "color": "#EAB308",
+                                                "color": "#AD861D",
                                                 "position": 0
                                               },
                                               {
-                                                "color": "#EAB308",
+                                                "color": "#AD861D",
                                                 "position": 1
                                               }
                                             ]
@@ -38839,7 +38839,7 @@
                                               "type": "text",
                                               "id": "B8H6L",
                                               "name": "w2l",
-                                              "fill": "#EAB308",
+                                              "fill": "#AD861D",
                                               "content": "N2",
                                               "fontFamily": "$font.captions",
                                               "fontSize": 10,
@@ -39571,11 +39571,11 @@
                                         },
                                         "colors": [
                                           {
-                                            "color": "#EAB308",
+                                            "color": "#AD861D",
                                             "position": 0
                                           },
                                           {
-                                            "color": "#EAB308",
+                                            "color": "#AD861D",
                                             "position": 1
                                           }
                                         ]
@@ -39594,7 +39594,7 @@
                                           "type": "text",
                                           "id": "L4JBZE",
                                           "name": "w2l",
-                                          "fill": "#EAB308",
+                                          "fill": "#AD861D",
                                           "content": "N2",
                                           "fontFamily": "$font.captions",
                                           "fontSize": 10,
@@ -39813,11 +39813,11 @@
                                         },
                                         "colors": [
                                           {
-                                            "color": "#EAB308",
+                                            "color": "#AD861D",
                                             "position": 0
                                           },
                                           {
-                                            "color": "#EAB308",
+                                            "color": "#AD861D",
                                             "position": 1
                                           }
                                         ]
@@ -39836,7 +39836,7 @@
                                           "type": "text",
                                           "id": "cujfj",
                                           "name": "w2l",
-                                          "fill": "#EAB308",
+                                          "fill": "#AD861D",
                                           "content": "N2",
                                           "fontFamily": "$font.captions",
                                           "fontSize": 10,
@@ -40055,11 +40055,11 @@
                                         },
                                         "colors": [
                                           {
-                                            "color": "#EAB308",
+                                            "color": "#AD861D",
                                             "position": 0
                                           },
                                           {
-                                            "color": "#EAB308",
+                                            "color": "#AD861D",
                                             "position": 1
                                           }
                                         ]
@@ -40078,7 +40078,7 @@
                                           "type": "text",
                                           "id": "JL6Mi",
                                           "name": "w2l",
-                                          "fill": "#EAB308",
+                                          "fill": "#AD861D",
                                           "content": "N2",
                                           "fontFamily": "$font.captions",
                                           "fontSize": 10,
@@ -40297,11 +40297,11 @@
                                         },
                                         "colors": [
                                           {
-                                            "color": "#EAB308",
+                                            "color": "#AD861D",
                                             "position": 0
                                           },
                                           {
-                                            "color": "#EAB308",
+                                            "color": "#AD861D",
                                             "position": 1
                                           }
                                         ]
@@ -40320,7 +40320,7 @@
                                           "type": "text",
                                           "id": "rmGVq",
                                           "name": "w2l",
-                                          "fill": "#EAB308",
+                                          "fill": "#AD861D",
                                           "content": "N2",
                                           "fontFamily": "$font.captions",
                                           "fontSize": 10,
@@ -40539,11 +40539,11 @@
                                         },
                                         "colors": [
                                           {
-                                            "color": "#EAB308",
+                                            "color": "#AD861D",
                                             "position": 0
                                           },
                                           {
-                                            "color": "#EAB308",
+                                            "color": "#AD861D",
                                             "position": 1
                                           }
                                         ]
@@ -40562,7 +40562,7 @@
                                           "type": "text",
                                           "id": "zjwJU",
                                           "name": "w2l",
-                                          "fill": "#EAB308",
+                                          "fill": "#AD861D",
                                           "content": "N2",
                                           "fontFamily": "$font.captions",
                                           "fontSize": 10,
@@ -41454,11 +41454,11 @@
                                             },
                                             "colors": [
                                               {
-                                                "color": "#EAB308",
+                                                "color": "#AD861D",
                                                 "position": 0
                                               },
                                               {
-                                                "color": "#EAB308",
+                                                "color": "#AD861D",
                                                 "position": 1
                                               }
                                             ]
@@ -41477,7 +41477,7 @@
                                               "type": "text",
                                               "id": "S4Z93c",
                                               "name": "w2l",
-                                              "fill": "#EAB308",
+                                              "fill": "#AD861D",
                                               "content": "N2",
                                               "fontFamily": "$font.captions",
                                               "fontSize": 10,
@@ -58180,7 +58180,7 @@
                                           "type": "text",
                                           "id": "DJrY1",
                                           "name": "posLabel",
-                                          "fill": "#F0961E",
+                                          "fill": "#C47B1D",
                                           "content": "명사",
                                           "fontFamily": "Inter",
                                           "fontSize": 17.5,
@@ -58201,7 +58201,7 @@
                                           "type": "text",
                                           "id": "e5afz",
                                           "name": "jlptLabel",
-                                          "fill": "#EAB308",
+                                          "fill": "#AD861D",
                                           "content": "N3",
                                           "fontFamily": "Inter",
                                           "fontSize": 17.5,
@@ -60537,7 +60537,7 @@
                                           "type": "text",
                                           "id": "CUBgM",
                                           "name": "lvl",
-                                          "fill": "#EAB308",
+                                          "fill": "#AD861D",
                                           "content": "N4",
                                           "fontFamily": "Inter",
                                           "fontSize": 11.14,
@@ -60653,7 +60653,7 @@
                                           "type": "text",
                                           "id": "tHhwo",
                                           "name": "lvl",
-                                          "fill": "#EAB308",
+                                          "fill": "#AD861D",
                                           "content": "N3",
                                           "fontFamily": "Inter",
                                           "fontSize": 11.14,
@@ -60769,7 +60769,7 @@
                                           "type": "text",
                                           "id": "ExGQQ",
                                           "name": "lvl",
-                                          "fill": "#14B8A6",
+                                          "fill": "#2A9B8D",
                                           "content": "N4",
                                           "fontFamily": "Inter",
                                           "fontSize": 11.14,
@@ -60885,7 +60885,7 @@
                                           "type": "text",
                                           "id": "G5clO",
                                           "name": "lvl",
-                                          "fill": "#EF4444",
+                                          "fill": "#E85E56",
                                           "content": "N1",
                                           "fontFamily": "Inter",
                                           "fontSize": 11.14,
@@ -61012,7 +61012,7 @@
                                           "type": "text",
                                           "id": "WL0Zx",
                                           "name": "lvl",
-                                          "fill": "#3B82F6",
+                                          "fill": "#5388F3",
                                           "content": "N3",
                                           "fontFamily": "Inter",
                                           "fontSize": 11.14,
@@ -61217,7 +61217,7 @@
                                   "type": "rectangle",
                                   "id": "B4IahF",
                                   "name": "Seg N5",
-                                  "fill": "#3B82F6",
+                                  "fill": "#5388F3",
                                   "width": 39,
                                   "height": 11.14
                                 },
@@ -61225,7 +61225,7 @@
                                   "type": "rectangle",
                                   "id": "o5ihW6",
                                   "name": "Seg N4",
-                                  "fill": "#14B8A6",
+                                  "fill": "#2A9B8D",
                                   "width": 57.95,
                                   "height": 11.14
                                 },
@@ -61233,7 +61233,7 @@
                                   "type": "rectangle",
                                   "id": "XR0xF",
                                   "name": "Seg N3",
-                                  "fill": "#EAB308",
+                                  "fill": "#AD861D",
                                   "width": 157.13,
                                   "height": 11.14
                                 },
@@ -61241,7 +61241,7 @@
                                   "type": "rectangle",
                                   "id": "u5oAQ",
                                   "name": "Seg N2",
-                                  "fill": "#F97316",
+                                  "fill": "#D57031",
                                   "width": 78.01,
                                   "height": 11.14
                                 },
@@ -61249,7 +61249,7 @@
                                   "type": "rectangle",
                                   "id": "ldifp",
                                   "name": "Seg N1",
-                                  "fill": "#EF4444",
+                                  "fill": "#E85E56",
                                   "width": 39,
                                   "height": 11.14
                                 },
@@ -61290,7 +61290,7 @@
                                           "cornerRadius": 11143.16,
                                           "id": "UT3UJ",
                                           "name": "Dot",
-                                          "fill": "#3B82F6",
+                                          "fill": "#5388F3",
                                           "width": 7.8,
                                           "height": 7.8
                                         },
@@ -61319,7 +61319,7 @@
                                           "cornerRadius": 11143.16,
                                           "id": "mo6Iu",
                                           "name": "Dot",
-                                          "fill": "#14B8A6",
+                                          "fill": "#2A9B8D",
                                           "width": 7.8,
                                           "height": 7.8
                                         },
@@ -61348,7 +61348,7 @@
                                           "cornerRadius": 11143.16,
                                           "id": "S6UtZS",
                                           "name": "Dot",
-                                          "fill": "#EAB308",
+                                          "fill": "#AD861D",
                                           "width": 7.8,
                                           "height": 7.8
                                         },
@@ -61385,7 +61385,7 @@
                                           "cornerRadius": 11143.16,
                                           "id": "zaw6n",
                                           "name": "Dot",
-                                          "fill": "#F97316",
+                                          "fill": "#D57031",
                                           "width": 7.8,
                                           "height": 7.8
                                         },
@@ -61414,7 +61414,7 @@
                                           "cornerRadius": 11143.16,
                                           "id": "gkmnt",
                                           "name": "Dot",
-                                          "fill": "#EF4444",
+                                          "fill": "#E85E56",
                                           "width": 7.8,
                                           "height": 7.8
                                         },
@@ -61859,7 +61859,7 @@
                                             {
                                               "type": "rectangle",
                                               "id": "GMLKd",
-                                              "fill": "#3B8EE6",
+                                              "fill": "#368EE8",
                                               "width": "fill_container",
                                               "height": 2.23
                                             }
@@ -61896,7 +61896,7 @@
                                               "type": "rectangle",
                                               "id": "UNQFI",
                                               "opacity": 0,
-                                              "fill": "#3B8EE6",
+                                              "fill": "#368EE8",
                                               "width": "fill_container",
                                               "height": 2.23
                                             }
@@ -61932,7 +61932,7 @@
                                             {
                                               "type": "rectangle",
                                               "id": "Kv7cN",
-                                              "fill": "#3B8EE6",
+                                              "fill": "#368EE8",
                                               "width": "fill_container",
                                               "height": 2.23
                                             }
@@ -61969,7 +61969,7 @@
                                               "type": "rectangle",
                                               "id": "fh3wK",
                                               "opacity": 0,
-                                              "fill": "#3B8EE6",
+                                              "fill": "#368EE8",
                                               "width": "fill_container",
                                               "height": 2.23
                                             }
@@ -62005,7 +62005,7 @@
                                             {
                                               "type": "rectangle",
                                               "id": "DuNqh",
-                                              "fill": "#9B6BE0",
+                                              "fill": "#A276E0",
                                               "width": "fill_container",
                                               "height": 2.23
                                             }
@@ -62042,7 +62042,7 @@
                                               "type": "rectangle",
                                               "id": "oNhQO",
                                               "opacity": 0,
-                                              "fill": "#3B8EE6",
+                                              "fill": "#368EE8",
                                               "width": "fill_container",
                                               "height": 2.23
                                             }
@@ -62078,7 +62078,7 @@
                                             {
                                               "type": "rectangle",
                                               "id": "pGn4X",
-                                              "fill": "#2EA76E",
+                                              "fill": "#299E67",
                                               "width": "fill_container",
                                               "height": 2.23
                                             }
@@ -62332,11 +62332,11 @@
                                                         },
                                                         "colors": [
                                                           {
-                                                            "color": "#EAB308",
+                                                            "color": "#AD861D",
                                                             "position": 0
                                                           },
                                                           {
-                                                            "color": "#EAB308",
+                                                            "color": "#AD861D",
                                                             "position": 1
                                                           }
                                                         ]
@@ -62355,7 +62355,7 @@
                                                           "type": "text",
                                                           "id": "waJzc",
                                                           "name": "w2l",
-                                                          "fill": "#EAB308",
+                                                          "fill": "#AD861D",
                                                           "content": "N2",
                                                           "fontFamily": "Inter",
                                                           "fontSize": 11.14,
@@ -62379,11 +62379,11 @@
                                                         },
                                                         "colors": [
                                                           {
-                                                            "color": "#2EA76E",
+                                                            "color": "#299E67",
                                                             "position": 0
                                                           },
                                                           {
-                                                            "color": "#2EA76E",
+                                                            "color": "#299E67",
                                                             "position": 1
                                                           }
                                                         ]
@@ -62400,7 +62400,7 @@
                                                           "type": "text",
                                                           "id": "ncb9b",
                                                           "name": "posText",
-                                                          "fill": "#2EA76E",
+                                                          "fill": "#299E67",
                                                           "content": "동사",
                                                           "fontFamily": "Inter",
                                                           "fontSize": 11.14,
@@ -63056,7 +63056,7 @@
                                       "type": "text",
                                       "id": "Ic258",
                                       "name": "posLabel",
-                                      "fill": "#F0961E",
+                                      "fill": "#C47B1D",
                                       "content": "명사",
                                       "fontFamily": "Inter",
                                       "fontSize": 13.75,
@@ -63077,7 +63077,7 @@
                                       "type": "text",
                                       "id": "EZahP",
                                       "name": "jlptLabel",
-                                      "fill": "#EAB308",
+                                      "fill": "#AD861D",
                                       "content": "N3",
                                       "fontFamily": "Inter",
                                       "fontSize": 13.75,
@@ -65455,7 +65455,7 @@
                               "cornerRadius": 999,
                               "id": "d94l8",
                               "name": "Mock Underline 胸",
-                              "fill": "#3B8EE6",
+                              "fill": "#368EE8",
                               "width": 23,
                               "height": 3
                             }
@@ -65537,7 +65537,7 @@
                               "cornerRadius": 999,
                               "id": "N9TvVl",
                               "name": "Mock Underline 残り",
-                              "fill": "#2EA76E",
+                              "fill": "#299E67",
                               "width": 46,
                               "height": 3
                             }
@@ -65578,7 +65578,7 @@
                               "cornerRadius": 999,
                               "id": "sX3SZ",
                               "name": "Mock Underline 離れ",
-                              "fill": "#2EA76E",
+                              "fill": "#299E67",
                               "width": 46,
                               "height": 3
                             }
@@ -65660,7 +65660,7 @@
                               "cornerRadius": 999,
                               "id": "mtREy",
                               "name": "Mock Underline 苦い",
-                              "fill": "#F0961E",
+                              "fill": "#C47B1D",
                               "width": 46,
                               "height": 3
                             }
@@ -65701,7 +65701,7 @@
                               "cornerRadius": 999,
                               "id": "HUfnE",
                               "name": "Mock Underline レモン",
-                              "fill": "#3B8EE6",
+                              "fill": "#368EE8",
                               "width": 69,
                               "height": 3
                             }
@@ -65783,7 +65783,7 @@
                               "cornerRadius": 999,
                               "id": "VgUoj",
                               "name": "Mock Underline 匂い",
-                              "fill": "#3B8EE6",
+                              "fill": "#368EE8",
                               "width": 46,
                               "height": 3
                             }
@@ -65898,7 +65898,7 @@
                                   "type": "frame",
                                   "id": "QuY6K",
                                   "name": "Mock Badge 苦い N3",
-                                  "fill": "#EAB30826",
+                                  "fill": "#AD861D26",
                                   "cornerRadius": 7,
                                   "padding": [
                                     5,
@@ -65910,7 +65910,7 @@
                                       "type": "text",
                                       "id": "b1YBd",
                                       "name": "Mock Badge Label 苦い N3",
-                                      "fill": "#EAB308",
+                                      "fill": "#AD861D",
                                       "content": "N3",
                                       "lineHeight": 1,
                                       "fontFamily": "$fontKr",
@@ -65923,7 +65923,7 @@
                                   "type": "frame",
                                   "id": "OzeNF",
                                   "name": "Mock Badge 苦い 형용사",
-                                  "fill": "#F0961E26",
+                                  "fill": "#C47B1D26",
                                   "cornerRadius": 7,
                                   "padding": [
                                     5,
@@ -65935,7 +65935,7 @@
                                       "type": "text",
                                       "id": "rTvsP",
                                       "name": "Mock Badge Label 苦い 형용사",
-                                      "fill": "#F0961E",
+                                      "fill": "#C47B1D",
                                       "content": "형용사",
                                       "lineHeight": 1,
                                       "fontFamily": "$fontKr",
@@ -66047,7 +66047,7 @@
                                   "type": "frame",
                                   "id": "ZnD4H",
                                   "name": "Mock Badge 匂い N4",
-                                  "fill": "#14B8A626",
+                                  "fill": "#2A9B8D26",
                                   "cornerRadius": 7,
                                   "padding": [
                                     5,
@@ -66059,7 +66059,7 @@
                                       "type": "text",
                                       "id": "Yf2Ew",
                                       "name": "Mock Badge Label 匂い N4",
-                                      "fill": "#14B8A6",
+                                      "fill": "#2A9B8D",
                                       "content": "N4",
                                       "lineHeight": 1,
                                       "fontFamily": "$fontKr",
@@ -66072,7 +66072,7 @@
                                   "type": "frame",
                                   "id": "Tx7HQ",
                                   "name": "Mock Badge 匂い 명사",
-                                  "fill": "#3B8EE626",
+                                  "fill": "#368EE826",
                                   "cornerRadius": 7,
                                   "padding": [
                                     5,
@@ -66084,7 +66084,7 @@
                                       "type": "text",
                                       "id": "nLt5x",
                                       "name": "Mock Badge Label 匂い 명사",
-                                      "fill": "#3B8EE6",
+                                      "fill": "#368EE8",
                                       "content": "명사",
                                       "lineHeight": 1,
                                       "fontFamily": "$fontKr",
@@ -66196,7 +66196,7 @@
                                   "type": "frame",
                                   "id": "wO90S",
                                   "name": "Mock Badge 残る N4",
-                                  "fill": "#14B8A626",
+                                  "fill": "#2A9B8D26",
                                   "cornerRadius": 7,
                                   "padding": [
                                     5,
@@ -66208,7 +66208,7 @@
                                       "type": "text",
                                       "id": "V8ZET",
                                       "name": "Mock Badge Label 残る N4",
-                                      "fill": "#14B8A6",
+                                      "fill": "#2A9B8D",
                                       "content": "N4",
                                       "lineHeight": 1,
                                       "fontFamily": "$fontKr",
@@ -66221,7 +66221,7 @@
                                   "type": "frame",
                                   "id": "j3ylP2",
                                   "name": "Mock Badge 残る 동사",
-                                  "fill": "#2EA76E26",
+                                  "fill": "#299E6726",
                                   "cornerRadius": 7,
                                   "padding": [
                                     5,
@@ -66233,7 +66233,7 @@
                                       "type": "text",
                                       "id": "tSQCT",
                                       "name": "Mock Badge Label 残る 동사",
-                                      "fill": "#2EA76E",
+                                      "fill": "#299E67",
                                       "content": "동사",
                                       "lineHeight": 1,
                                       "fontFamily": "$fontKr",
@@ -73956,11 +73956,11 @@
                                                     },
                                                     "colors": [
                                                       {
-                                                        "color": "#EAB308",
+                                                        "color": "#AD861D",
                                                         "position": 0
                                                       },
                                                       {
-                                                        "color": "#EAB308",
+                                                        "color": "#AD861D",
                                                         "position": 1
                                                       }
                                                     ]
@@ -73979,7 +73979,7 @@
                                                       "type": "text",
                                                       "id": "ubvHY",
                                                       "name": "w2l",
-                                                      "fill": "#EAB308",
+                                                      "fill": "#AD861D",
                                                       "content": "N2",
                                                       "fontFamily": "$font.captions",
                                                       "fontSize": 10,
@@ -74198,11 +74198,11 @@
                                                     },
                                                     "colors": [
                                                       {
-                                                        "color": "#EAB308",
+                                                        "color": "#AD861D",
                                                         "position": 0
                                                       },
                                                       {
-                                                        "color": "#EAB308",
+                                                        "color": "#AD861D",
                                                         "position": 1
                                                       }
                                                     ]
@@ -74221,7 +74221,7 @@
                                                       "type": "text",
                                                       "id": "yBnPz",
                                                       "name": "w2l",
-                                                      "fill": "#EAB308",
+                                                      "fill": "#AD861D",
                                                       "content": "N2",
                                                       "fontFamily": "$font.captions",
                                                       "fontSize": 10,
@@ -74440,11 +74440,11 @@
                                                     },
                                                     "colors": [
                                                       {
-                                                        "color": "#EAB308",
+                                                        "color": "#AD861D",
                                                         "position": 0
                                                       },
                                                       {
-                                                        "color": "#EAB308",
+                                                        "color": "#AD861D",
                                                         "position": 1
                                                       }
                                                     ]
@@ -74463,7 +74463,7 @@
                                                       "type": "text",
                                                       "id": "z8oqU1",
                                                       "name": "w2l",
-                                                      "fill": "#EAB308",
+                                                      "fill": "#AD861D",
                                                       "content": "N2",
                                                       "fontFamily": "$font.captions",
                                                       "fontSize": 10,
@@ -74682,11 +74682,11 @@
                                                     },
                                                     "colors": [
                                                       {
-                                                        "color": "#EAB308",
+                                                        "color": "#AD861D",
                                                         "position": 0
                                                       },
                                                       {
-                                                        "color": "#EAB308",
+                                                        "color": "#AD861D",
                                                         "position": 1
                                                       }
                                                     ]
@@ -74705,7 +74705,7 @@
                                                       "type": "text",
                                                       "id": "MZwG8",
                                                       "name": "w2l",
-                                                      "fill": "#EAB308",
+                                                      "fill": "#AD861D",
                                                       "content": "N2",
                                                       "fontFamily": "$font.captions",
                                                       "fontSize": 10,
@@ -74924,11 +74924,11 @@
                                                     },
                                                     "colors": [
                                                       {
-                                                        "color": "#EAB308",
+                                                        "color": "#AD861D",
                                                         "position": 0
                                                       },
                                                       {
-                                                        "color": "#EAB308",
+                                                        "color": "#AD861D",
                                                         "position": 1
                                                       }
                                                     ]
@@ -74947,7 +74947,7 @@
                                                       "type": "text",
                                                       "id": "D5P6W",
                                                       "name": "w2l",
-                                                      "fill": "#EAB308",
+                                                      "fill": "#AD861D",
                                                       "content": "N2",
                                                       "fontFamily": "$font.captions",
                                                       "fontSize": 10,
@@ -77606,11 +77606,11 @@
                                                         },
                                                         "colors": [
                                                           {
-                                                            "color": "#EAB308",
+                                                            "color": "#AD861D",
                                                             "position": 0
                                                           },
                                                           {
-                                                            "color": "#EAB308",
+                                                            "color": "#AD861D",
                                                             "position": 1
                                                           }
                                                         ]
@@ -77629,7 +77629,7 @@
                                                           "type": "text",
                                                           "id": "REX0Y",
                                                           "name": "w2l",
-                                                          "fill": "#EAB308",
+                                                          "fill": "#AD861D",
                                                           "content": "N2",
                                                           "fontFamily": "$font.captions",
                                                           "fontSize": 10,
@@ -77848,11 +77848,11 @@
                                                         },
                                                         "colors": [
                                                           {
-                                                            "color": "#EAB308",
+                                                            "color": "#AD861D",
                                                             "position": 0
                                                           },
                                                           {
-                                                            "color": "#EAB308",
+                                                            "color": "#AD861D",
                                                             "position": 1
                                                           }
                                                         ]
@@ -77871,7 +77871,7 @@
                                                           "type": "text",
                                                           "id": "qzjx4",
                                                           "name": "w2l",
-                                                          "fill": "#EAB308",
+                                                          "fill": "#AD861D",
                                                           "content": "N2",
                                                           "fontFamily": "$font.captions",
                                                           "fontSize": 10,
@@ -78090,11 +78090,11 @@
                                                         },
                                                         "colors": [
                                                           {
-                                                            "color": "#EAB308",
+                                                            "color": "#AD861D",
                                                             "position": 0
                                                           },
                                                           {
-                                                            "color": "#EAB308",
+                                                            "color": "#AD861D",
                                                             "position": 1
                                                           }
                                                         ]
@@ -78113,7 +78113,7 @@
                                                           "type": "text",
                                                           "id": "h9qWT",
                                                           "name": "w2l",
-                                                          "fill": "#EAB308",
+                                                          "fill": "#AD861D",
                                                           "content": "N2",
                                                           "fontFamily": "$font.captions",
                                                           "fontSize": 10,
@@ -78332,11 +78332,11 @@
                                                         },
                                                         "colors": [
                                                           {
-                                                            "color": "#EAB308",
+                                                            "color": "#AD861D",
                                                             "position": 0
                                                           },
                                                           {
-                                                            "color": "#EAB308",
+                                                            "color": "#AD861D",
                                                             "position": 1
                                                           }
                                                         ]
@@ -78355,7 +78355,7 @@
                                                           "type": "text",
                                                           "id": "iSnoD",
                                                           "name": "w2l",
-                                                          "fill": "#EAB308",
+                                                          "fill": "#AD861D",
                                                           "content": "N2",
                                                           "fontFamily": "$font.captions",
                                                           "fontSize": 10,
@@ -78574,11 +78574,11 @@
                                                         },
                                                         "colors": [
                                                           {
-                                                            "color": "#EAB308",
+                                                            "color": "#AD861D",
                                                             "position": 0
                                                           },
                                                           {
-                                                            "color": "#EAB308",
+                                                            "color": "#AD861D",
                                                             "position": 1
                                                           }
                                                         ]
@@ -78597,7 +78597,7 @@
                                                           "type": "text",
                                                           "id": "r0N66",
                                                           "name": "w2l",
-                                                          "fill": "#EAB308",
+                                                          "fill": "#AD861D",
                                                           "content": "N2",
                                                           "fontFamily": "$font.captions",
                                                           "fontSize": 10,
@@ -81891,11 +81891,11 @@
                                                     },
                                                     "colors": [
                                                       {
-                                                        "color": "#EAB308",
+                                                        "color": "#AD861D",
                                                         "position": 0
                                                       },
                                                       {
-                                                        "color": "#EAB308",
+                                                        "color": "#AD861D",
                                                         "position": 1
                                                       }
                                                     ]
@@ -81914,7 +81914,7 @@
                                                       "type": "text",
                                                       "id": "dtOrj",
                                                       "name": "w2l",
-                                                      "fill": "#EAB308",
+                                                      "fill": "#AD861D",
                                                       "content": "N2",
                                                       "fontFamily": "$font.captions",
                                                       "fontSize": 10,
@@ -82133,11 +82133,11 @@
                                                     },
                                                     "colors": [
                                                       {
-                                                        "color": "#EAB308",
+                                                        "color": "#AD861D",
                                                         "position": 0
                                                       },
                                                       {
-                                                        "color": "#EAB308",
+                                                        "color": "#AD861D",
                                                         "position": 1
                                                       }
                                                     ]
@@ -82156,7 +82156,7 @@
                                                       "type": "text",
                                                       "id": "d2y6i",
                                                       "name": "w2l",
-                                                      "fill": "#EAB308",
+                                                      "fill": "#AD861D",
                                                       "content": "N2",
                                                       "fontFamily": "$font.captions",
                                                       "fontSize": 10,
@@ -82375,11 +82375,11 @@
                                                     },
                                                     "colors": [
                                                       {
-                                                        "color": "#EAB308",
+                                                        "color": "#AD861D",
                                                         "position": 0
                                                       },
                                                       {
-                                                        "color": "#EAB308",
+                                                        "color": "#AD861D",
                                                         "position": 1
                                                       }
                                                     ]
@@ -82398,7 +82398,7 @@
                                                       "type": "text",
                                                       "id": "txjY7",
                                                       "name": "w2l",
-                                                      "fill": "#EAB308",
+                                                      "fill": "#AD861D",
                                                       "content": "N2",
                                                       "fontFamily": "$font.captions",
                                                       "fontSize": 10,
@@ -82617,11 +82617,11 @@
                                                     },
                                                     "colors": [
                                                       {
-                                                        "color": "#EAB308",
+                                                        "color": "#AD861D",
                                                         "position": 0
                                                       },
                                                       {
-                                                        "color": "#EAB308",
+                                                        "color": "#AD861D",
                                                         "position": 1
                                                       }
                                                     ]
@@ -82640,7 +82640,7 @@
                                                       "type": "text",
                                                       "id": "bBSHG",
                                                       "name": "w2l",
-                                                      "fill": "#EAB308",
+                                                      "fill": "#AD861D",
                                                       "content": "N2",
                                                       "fontFamily": "$font.captions",
                                                       "fontSize": 10,
@@ -82859,11 +82859,11 @@
                                                     },
                                                     "colors": [
                                                       {
-                                                        "color": "#EAB308",
+                                                        "color": "#AD861D",
                                                         "position": 0
                                                       },
                                                       {
-                                                        "color": "#EAB308",
+                                                        "color": "#AD861D",
                                                         "position": 1
                                                       }
                                                     ]
@@ -82882,7 +82882,7 @@
                                                       "type": "text",
                                                       "id": "HgtqF",
                                                       "name": "w2l",
-                                                      "fill": "#EAB308",
+                                                      "fill": "#AD861D",
                                                       "content": "N2",
                                                       "fontFamily": "$font.captions",
                                                       "fontSize": 10,
@@ -85761,11 +85761,11 @@
                                                 },
                                                 "colors": [
                                                   {
-                                                    "color": "#EAB308",
+                                                    "color": "#AD861D",
                                                     "position": 0
                                                   },
                                                   {
-                                                    "color": "#EAB308",
+                                                    "color": "#AD861D",
                                                     "position": 1
                                                   }
                                                 ]
@@ -85784,7 +85784,7 @@
                                                   "type": "text",
                                                   "id": "KG8zV",
                                                   "name": "w2l",
-                                                  "fill": "#EAB308",
+                                                  "fill": "#AD861D",
                                                   "content": "N2",
                                                   "fontFamily": "$font.captions",
                                                   "fontSize": 10,
@@ -90398,63 +90398,63 @@
     },
     "jlpt-n1": {
       "type": "color",
-      "value": "#EF4444"
+      "value": "#E85E56"
     },
     "jlpt-n2": {
       "type": "color",
-      "value": "#F97316"
+      "value": "#D57031"
     },
     "jlpt-n3": {
       "type": "color",
-      "value": "#EAB308"
+      "value": "#AD861D"
     },
     "jlpt-n4": {
       "type": "color",
-      "value": "#14B8A6"
+      "value": "#2A9B8D"
     },
     "jlpt-n5": {
       "type": "color",
-      "value": "#3B82F6"
+      "value": "#5388F3"
     },
     "pos-adjective": {
       "type": "color",
-      "value": "#F0961E"
+      "value": "#C47B1D"
     },
     "pos-adjective-spotlight": {
       "type": "color",
-      "value": "#FFB347"
+      "value": "#F4AE4E"
     },
     "pos-adverb": {
       "type": "color",
-      "value": "#9B6BE0"
+      "value": "#A276E0"
     },
     "pos-adverb-spotlight": {
       "type": "color",
-      "value": "#C49BFF"
+      "value": "#CDADF8"
     },
     "pos-na-adjective-spotlight": {
       "type": "color",
-      "value": "#FF8FB3"
+      "value": "#F9A3BD"
     },
     "pos-noun": {
       "type": "color",
-      "value": "#3B8EE6"
+      "value": "#368EE8"
     },
     "pos-noun-spotlight": {
       "type": "color",
-      "value": "#5BA9FF"
+      "value": "#96BDF8"
     },
     "pos-particle": {
       "type": "color",
-      "value": "#EC5C8A"
+      "value": "#EB5587"
     },
     "pos-verb": {
       "type": "color",
-      "value": "#2EA76E"
+      "value": "#299E67"
     },
     "pos-verb-spotlight": {
       "type": "color",
-      "value": "#3FE0A1"
+      "value": "#3AD398"
     },
     "rounded.2xl": {
       "type": "number",
@@ -90748,15 +90748,15 @@
     },
     "nounBlue": {
       "type": "color",
-      "value": "#5BA9FF"
+      "value": "#96BDF8"
     },
     "verbGreen": {
       "type": "color",
-      "value": "#3FE0A1"
+      "value": "#3AD398"
     },
     "adjectiveOrange": {
       "type": "color",
-      "value": "#FFB347"
+      "value": "#F4AE4E"
     },
     "chipFill": {
       "type": "color",
