@@ -18,6 +18,7 @@ import com.japanese.vocabulary.song.dto.songdetail.SongLyricsDto
 import com.japanese.vocabulary.song.dto.songdetail.SongStudyBootstrapRequest
 import com.japanese.vocabulary.song.dto.songdetail.SongStudyBootstrapResponse
 import com.japanese.vocabulary.song.dto.songdetail.SongWordTierKey
+import com.japanese.vocabulary.song.dto.songdetail.SongWordTierStudyResponse
 import com.japanese.vocabulary.song.dto.songdetail.SongWordTiersDto
 import com.japanese.vocabulary.song.dto.songdetail.WordsInSongDto
 import com.japanese.vocabulary.songsearch.dto.SongSearchItemDto
@@ -1049,6 +1050,61 @@ class SongControllerTest : ApiBaseIntegrationTest() {
             )
             val dto = tiers(me, song.id!!)
             assertThat(dto.tiers.first { it.key == SongWordTierKey.ADVANCED }.wordJapanese).containsExactly("미분류")
+        }
+
+        @Test
+        fun `study opens every word of the tier regardless of due and links them to the song deck`() {
+            val me = newUser()
+            val song = newSong()
+            newLyric(
+                song,
+                raw = listOf(
+                    LyricLineData(index = 0, startTimeMs = null, text = "雨"),
+                    LyricLineData(index = 1, startTimeMs = null, text = "空"),
+                    LyricLineData(index = 2, startTimeMs = null, text = "夢"),
+                ),
+                wordCandidates = LyricWordCandidates(
+                    candidates = listOf(
+                        candidate("雨", 50.0, 0, listOf(0), jlpt = "N5"),
+                        candidate("空", 40.0, 1, listOf(1), jlpt = "N5"),
+                        // 심화 단어 — 기초 단계 학습에 섞이면 안 된다.
+                        candidate("夢", 30.0, 2, listOf(2), jlpt = "N2"),
+                    ),
+                    lineCandidates = mapOf("0" to listOf(0), "1" to listOf(1), "2" to listOf(2)),
+                ),
+            )
+            // 空 은 다른 곡에서 이미 익혀서 한참 뒤에야 due 다 — 그래도 단계 학습엔 나와야 한다.
+            val known = TestWordBuilder(entityManager).forUser(me).withJapaneseText("空").build()
+            TestFlashcardBuilder(entityManager, clock).forUser(me).ofWord(known)
+                .withState(2).lastReviewedAt(clock.instant()).dueAt(clock.instant().plusSeconds(86_400 * 30)).build()
+            entityManager.flush()
+
+            val body = mockMvc.post("/api/songs/${song.id}/word-tiers/BASIC/study") {
+                header("Authorization", bearer(me))
+            }.andExpect { status { isOk() } }.andReturn().response.contentAsString
+            val result = readBody<SongWordTierStudyResponse>(body)
+
+            assertThat(result.cards.map { it.japanese }).containsExactly("雨", "空")
+            assertThat(result.totalCount).isEqualTo(2)
+
+            val deckBody = mockMvc.get("/api/decks/by-song/${song.id}") {
+                header("Authorization", bearer(me))
+            }.andExpect { status { isOk() } }.andReturn().response.contentAsString
+            val deck = readBody<DeckDetailResponse>(deckBody)
+            assertThat(deck.deckId).isEqualTo(result.deckId)
+            // 이미 익힌 空 도 이 곡 단어장에 연결된다. 심화의 夢 은 담기지 않는다.
+            assertThat(deck.wordCount).isEqualTo(2)
+        }
+
+        @Test
+        fun `study of an empty tier returns conflict`() {
+            val me = newUser()
+            val song = newSong()
+            newLyric(song, raw = listOf(LyricLineData(index = 0, startTimeMs = null, text = "待機中")))
+
+            mockMvc.post("/api/songs/${song.id}/word-tiers/CORE/study") {
+                header("Authorization", bearer(me))
+            }.andExpect { status { isEqualTo(409) } }
         }
     }
 

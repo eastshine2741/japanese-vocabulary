@@ -115,6 +115,17 @@ class FlashcardService(
     }
 
     /**
+     * [wordIds] 순서대로 그 단어들의 카드를 due 와 무관하게 준다. 곡 상세의 단계 학습이 쓴다 —
+     * 복습 일정이 아니라 "이 단계 단어 전부" 가 큐다.
+     */
+    @Transactional(readOnly = true)
+    fun getFlashcardsForWords(userId: Long, wordIds: List<Long>): DueFlashcardsDto {
+        val byWordId = flashcardRepository.findByUserIdAndWordIdIn(userId, wordIds).associateBy { it.wordId }
+        val entities = wordIds.distinct().mapNotNull { byWordId[it] }
+        return assembleDueFlashcards(userId, entities, Instant.now(clock), totalCount = entities.size, nextDueAt = null)
+    }
+
+    /**
      * The flashcard id for a word and whether it is currently due — used by the deck module to
      * splice a specific word to the head of its due queue without duplicating due-date logic.
      */

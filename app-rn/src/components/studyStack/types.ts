@@ -1,4 +1,5 @@
 import { FlashcardDTO } from '../../types/flashcard';
+import { SongWordTierKey } from '../../types/song';
 import { WordSense } from '../../types/word';
 
 export type StudyStackStatus = 'loading' | 'ready' | 'error';
@@ -19,6 +20,10 @@ export interface StudySource {
    * rating 을 확정하는 순간 곡을 통째로 담으면서 이 단어를 lead 로 리뷰한다.
    */
   previewWord?: StudyPreviewWord | null;
+  /**
+   * 곡 상세의 단계 학습으로 열었다면 그 단계. due 큐 대신 그 단계 단어 전부를 한 번 받아 끝까지 복습한다.
+   */
+  tierKey?: SongWordTierKey | null;
 }
 
 export interface StudyPreviewWord {
