@@ -200,6 +200,40 @@ class LexicalResolverTest {
     }
 
     @Test
+    fun `a suru verb rescued through the probe is graded exact`(): Unit = runBlocking {
+        // songId=171, line 0: "0と1が交差する地点". jisho indexes 交差 as a noun that takes する, never
+        // 交差する itself, so the headword as the model gave it misses and the word lost its meaning.
+        stub(
+            "交差" to found(
+                JishoDictionaryEntryDto(
+                    headword = "交差",
+                    reading = "コウサ",
+                    senses = listOf(
+                        JishoOptionDto(
+                            pos = listOf("Noun", "Suru verb", "Intransitive verb"),
+                            english = "to intersect, to cross",
+                            englishDefinitions = listOf("to intersect", "to cross"),
+                        ),
+                        JishoOptionDto(
+                            pos = listOf("Noun"),
+                            english = "crossing",
+                            englishDefinitions = listOf("crossing"),
+                        ),
+                    ),
+                ),
+            ),
+        )
+        val tokens = listOf(token("交差する", "交差する", "コウサスル"))
+
+        val resolved = resolver.resolve(tokens).byTokenKey.values.single()
+
+        assertThat(resolved.baseForm).isEqualTo("交差")
+        assertThat(resolved.options.map { it.english }).containsExactly("to intersect, to cross")
+        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
     fun `a katakana headword the dictionary indexes in hiragana is queried again in hiragana`(): Unit = runBlocking {
         // jisho's search is script-sensitive: アンタ answers with アンタレス and アンタナナリボ, never 貴方.
         // Only the script of the query is wrong, and the lyric writing 貴方 as アンタ is ordinary J-pop,

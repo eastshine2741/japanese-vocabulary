@@ -53,6 +53,7 @@ class LexicalResolver(
             val resolved = narrowed[token.key]
                 ?: resolveIAdjective(token, probeLookups)
                 ?: resolveHiraganaQuery(token, probeLookups)
+                ?: resolveSuruVerb(token, probeLookups)
 
             if (resolved == null) {
                 if (firstPass[token.headword]?.provenance == JishoLookupProvenance.REJECTED_FALLBACK) {
@@ -125,11 +126,12 @@ class LexicalResolver(
         return missed
             .filter {
                 resolveIAdjective(it, probeLookups, logRescue = false) == null &&
-                    resolveHiraganaQuery(it, probeLookups, logRescue = false) == null
+                    resolveHiraganaQuery(it, probeLookups, logRescue = false) == null &&
+                    resolveSuruVerb(it, probeLookups, logRescue = false) == null
             }
             .map { token ->
                 val lookups = listOfNotNull(firstPass[token.headword]) +
-                    listOfNotNull(iAdjectiveProbe(token), hiraganaProbe(token)).mapNotNull(probeLookups::get)
+                    probeKeysOf(token).mapNotNull(probeLookups::get)
                 Unresolved(token, providerError = lookups.any { it.provenance == JishoLookupProvenance.FETCH_ERROR })
             }
     }
@@ -139,7 +141,10 @@ class LexicalResolver(
 
     /** Every alternate lookup key the rescues below might ask for, in one batch. */
     private fun probeKeys(missed: List<PipelineToken>): List<String> =
-        missed.flatMap { listOfNotNull(iAdjectiveProbe(it), hiraganaProbe(it)) }.distinct()
+        missed.flatMap(::probeKeysOf).distinct()
+
+    private fun probeKeysOf(token: PipelineToken): List<String> =
+        listOfNotNull(iAdjectiveProbe(token), hiraganaProbe(token), suruVerbProbe(token))
 
     /**
      * Grades how well [lookup] pins down the entry [token] means, using the `(headword, reading)` pair.
@@ -247,6 +252,35 @@ class LexicalResolver(
         if (logRescue) logger.info("Looked up katakana headword '{}' as '{}'", token.headword, base)
         return accepted
     }
+
+    /**
+     * Safety net for a noun+する verb the dictionary indexes only as the noun.
+     *
+     * jisho has no entry for `交差する`; 交差 is a noun tagged "Suru verb", so the headword the
+     * segmentation stage correctly gave misses outright. The noun is asked instead, and only its
+     * suru-verb senses are kept so the verb does not pick up the bare noun's meanings.
+     */
+    private fun resolveSuruVerb(
+        token: PipelineToken,
+        lookups: Map<String, JishoEntryDto>,
+        logRescue: Boolean = true,
+    ): AcceptedLexicalEntry? {
+        val base = suruVerbProbe(token) ?: return null
+        // The token's reading covers する (コウサスル), so strip it the same way the headword was.
+        val reading = token.baseFormReading.takeIf { it.endsWith("スル") }?.dropLast(2)
+        val accepted = narrow(token, lookups[base], base, reading, logRescue) ?: return null
+        val verbEntries = accepted.entries.mapNotNull { entry ->
+            val verbSenses = entry.senses.filter { sense -> sense.pos.any { "suru verb" in it.lowercase() } }
+            if (verbSenses.isEmpty()) null else entry.copy(senses = verbSenses)
+        }
+        if (verbEntries.isEmpty()) return null
+        if (logRescue) logger.info("Looked up suru verb '{}' as noun '{}'", token.headword, base)
+        return AcceptedLexicalEntry(base, verbEntries, accepted.provenance)
+    }
+
+    /** `交差する` → `交差`. Null unless the headword is something followed by する. */
+    private fun suruVerbProbe(token: PipelineToken): String? =
+        token.headword.takeIf { it.length > 2 && it.endsWith("する") }?.dropLast(2)
 
     /**
      * The hiragana spelling of a katakana-only headword. Null for anything else: a kanji or hiragana
