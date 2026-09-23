@@ -75,6 +75,14 @@ class SegmentAnchoringValidator {
      * word in front of it. `あぁ` came back as `あ` on every attempt, and a retry asked to segment `ぁ`
      * cannot, because it is not a word — it stretches the `あ`. Those are [absorbed][absorbTrailingKana]
      * into the token they follow instead of being reported.
+     *
+     * A word's reading written in parentheses right after it is **covered by that word**. Lyrics
+     * annotate the sung reading that way — `解答(こたえ)`, `暗闇(クロ)`, `×点(ばってん)` — and the kana
+     * is how the word before it is pronounced, not a word of its own. The model rightly leaves it out
+     * of the segmentation and puts it in `usedReading` instead, and there is no dictionary meaning to
+     * look up for it, so reporting it as uncovered only produced a defect no retry could fix. The
+     * kana has to match the reading the token carries: `晴れ舞台（イェイ）` is still an ad-lib the
+     * model skipped, and stays reported.
      */
     private fun anchorLine(index: Int, rawText: String, line: SegLineDto): AnchoredLine {
         val covered = BooleanArray(rawText.length)
@@ -88,8 +96,11 @@ class SegmentAnchoringValidator {
                     notInOrderMessage(index, word.surface, rawText, cursor, previousSurface),
                 )
             }
+            val usedReading = readingOf(index, word, word.usedReading, "usedReading")
             val end = start + word.surface.length
             for (i in start until end) covered[i] = true
+            val annotationEnd = readingAnnotationEnd(rawText, end, usedReading)
+            for (i in end until annotationEnd) covered[i] = true
             cursor = end
             previousSurface = word.surface
             PipelineToken(
@@ -98,7 +109,7 @@ class SegmentAnchoringValidator {
                 headword = word.headword,
                 charStart = start,
                 charEnd = end,
-                usedReading = readingOf(index, word, word.usedReading, "usedReading"),
+                usedReading = usedReading,
                 baseFormReading = readingOf(index, word, word.baseFormReading, "baseFormReading"),
                 contextGloss = word.contextGloss,
             )
@@ -134,6 +145,27 @@ class SegmentAnchoringValidator {
 
     /** Kana that only stretch the sound in front of them and never open a word of their own. */
     private val TRAILING_KANA = setOf('ぁ', 'ぃ', 'ぅ', 'ぇ', 'ぉ', 'ァ', 'ィ', 'ゥ', 'ェ', 'ォ', 'ー')
+
+    /**
+     * End (exclusive) of a `(kana)` / `（kana）` span starting exactly at [from] that spells
+     * [usedReading], or [from] itself when there is none. Kana that reads differently from the word
+     * is a word of its own and stays for the model to segment; so does anything with kanji in it. The
+     * cursor is not moved past the span, so a model that does emit the kana as its own token still
+     * anchors it normally.
+     */
+    private fun readingAnnotationEnd(rawText: String, from: Int, usedReading: String): Int {
+        if (from >= rawText.length) return from
+        val close = when (rawText[from]) {
+            '(' -> ')'
+            '（' -> '）'
+            else -> return from
+        }
+        val closeAt = rawText.indexOf(close, from + 1)
+        if (closeAt < 0) return from
+        val inside = rawText.substring(from + 1, closeAt)
+        val isAnnotation = JapaneseText.isKanaOnly(inside) && JapaneseText.toKatakana(inside) == usedReading
+        return if (isAnnotation) closeAt + 1 else from
+    }
 
     /**
      * Says where the search actually stood when it gave up. Naming only the missing surface reads as

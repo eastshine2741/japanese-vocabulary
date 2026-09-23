@@ -250,6 +250,103 @@ class SegmentAnchoringValidatorTest {
     }
 
     @Test
+    fun `kana in parentheses right after a word is a reading annotation, not uncovered text`() {
+        // Song 131 writes the sung reading after the kanji, 解答(こたえ) — the parenthesized kana is how
+        // 解答 is pronounced here, not a word of its own, so there is no meaning to look up for it.
+        val result = validator.anchor(
+            mapOf(
+                0 to "解答(こたえ)絶え絶え 嫌嫌嫌 嫌嫌嫌",
+                1 to "イナイイナイ×点(ばってん)",
+                2 to "的(まと)ハズレズレ 慈愛 嫌嫌",
+                3 to "暗闇(クロ) マミレ理性 嫌嫌嫌",
+            ),
+            listOf(
+                SegLineDto(
+                    0,
+                    listOf(
+                        word("解答", "解答", "コタエ", "コタエ"),
+                        word("絶え絶え", "絶え絶え", "タエダエ", "タエダエ"),
+                        word("嫌嫌嫌", "嫌", "イヤイヤイヤ", "イヤ"),
+                        word("嫌嫌嫌", "嫌", "イヤイヤイヤ", "イヤ"),
+                    ),
+                ),
+                SegLineDto(
+                    1,
+                    listOf(
+                        word("イナイイナイ", "いない", "イナイイナイ", "イナイ"),
+                        word("点", "点", "バッテン", "テン"),
+                    ),
+                ),
+                SegLineDto(
+                    2,
+                    listOf(
+                        word("的", "的", "マト", "マト"),
+                        word("ハズレズレ", "外れる", "ハズレズレ", "ハズレル"),
+                        word("慈愛", "慈愛", "ジアイ", "ジアイ"),
+                        word("嫌嫌", "嫌", "イヤイヤ", "イヤ"),
+                    ),
+                ),
+                SegLineDto(
+                    3,
+                    listOf(
+                        word("暗闇", "暗闇", "クロ", "クラヤミ"),
+                        word("マミレ", "まみれ", "マミレ", "マミレ"),
+                        word("理性", "理性", "リセイ", "リセイ"),
+                        word("嫌嫌嫌", "嫌", "イヤイヤイヤ", "イヤ"),
+                    ),
+                ),
+            ),
+        )
+
+        assertThat(result.failuresByIndex).isEmpty()
+        assertThat(result.incompleteByIndex).isEmpty()
+        assertThat(result.anchoredByIndex.getValue(0).map { it.surface })
+            .containsExactly("解答", "絶え絶え", "嫌嫌嫌", "嫌嫌嫌")
+        assertThat(result.anchoredByIndex.getValue(1).map { it.surface }).containsExactly("イナイイナイ", "点")
+        assertThat(result.anchoredByIndex.getValue(2).map { it.surface })
+            .containsExactly("的", "ハズレズレ", "慈愛", "嫌嫌")
+        assertThat(result.anchoredByIndex.getValue(3).map { it.surface })
+            .containsExactly("暗闇", "マミレ", "理性", "嫌嫌嫌")
+    }
+
+    @Test
+    fun `a reading annotation in full-width parentheses is covered too`() {
+        val result = validator.anchor(
+            mapOf(0 to "解答（こたえ）"),
+            listOf(SegLineDto(0, listOf(word("解答", "解答", "コタエ", "コタエ")))),
+        )
+
+        assertThat(result.failuresByIndex).isEmpty()
+        assertThat(result.incompleteByIndex).isEmpty()
+        assertThat(result.anchoredByIndex.getValue(0).map { Triple(it.surface, it.charStart, it.charEnd) })
+            .containsExactly(Triple("解答", 0, 2))
+    }
+
+    @Test
+    fun `parenthesized kana that does not spell the word's reading is still uncovered`() {
+        // Only a restated reading is swallowed. Kana the model did not use as the reading is a word
+        // the segmentation skipped, standalone kana has nothing to annotate, and kanji in
+        // parentheses is never an annotation.
+        val mismatch = validator.anchor(
+            mapOf(0 to "暗闇(クロ)"),
+            listOf(SegLineDto(0, listOf(word("暗闇", "暗闇", "クラヤミ", "クラヤミ")))),
+        )
+        assertThat(mismatch.incompleteByIndex[0]?.text).isEqualTo("クロ")
+
+        val standalone = validator.anchor(
+            mapOf(0 to "(こたえ) 猫"),
+            listOf(SegLineDto(0, listOf(word("猫", "猫", "ネコ", "ネコ")))),
+        )
+        assertThat(standalone.incompleteByIndex[0]?.text).isEqualTo("こたえ")
+
+        val kanji = validator.anchor(
+            mapOf(0 to "猫(猫)"),
+            listOf(SegLineDto(0, listOf(word("猫", "猫", "ネコ", "ネコ")))),
+        )
+        assertThat(kanji.incompleteByIndex[0]?.text).isEqualTo("猫")
+    }
+
+    @Test
     fun `parenthesized text left out is incomplete, not a failure`() {
         // The song killer: 晴れ舞台（イェイ） came back as 晴れ舞台 on every attempt, because the ad-lib in
         // parentheses does not read as a lyric word to the model.
