@@ -88,6 +88,25 @@ class RuleMeaningProviderTest {
     }
 
     @Test
+    fun `rewrites konnanimo into adverb and particle`() {
+        // ただこんなにも君とリンクしてる — the model emits こんなにも as surface *and* headword, so
+        // GluedParticleSplitter sees no mismatch and jisho has no entry for the glued form.
+        val rewritten = provider.rewrite(
+            listOf(
+                PipelineToken(42, "ただ", "ただ", 0, 2),
+                PipelineToken(42, "こんなにも", "こんなにも", 2, 7),
+                PipelineToken(42, "君", "君", 7, 8),
+            ),
+        )
+
+        assertThat(rewritten.map { it.surface }).containsExactly("ただ", "こんなに", "も", "君")
+        assertThat(rewritten.map { it.headword }).containsExactly("ただ", "こんなに", "も", "君")
+        assertThat(rewritten.map { it.charStart to it.charEnd })
+            .containsExactly(0 to 2, 2 to 6, 6 to 7, 7 to 8)
+        assertThat(provider.resolve(rewritten[2])!!.partOfSpeech).isEqualTo(PartOfSpeech.PARTICLE)
+    }
+
+    @Test
     fun `rewrites locative made phrases into location and particle`() {
         val rewritten = provider.rewrite(
             listOf(
