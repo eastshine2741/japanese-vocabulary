@@ -36,4 +36,7 @@ enum class AnalysisDefectCause {
 
     /** The sense-select model named a sense the token was not offered, so the token keeps none. */
     SENSE_REJECTED,
+
+    /** The sense-select response had no answer for a token that had senses, so the token keeps none. */
+    SENSE_MISSING,
 }
