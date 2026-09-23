@@ -22,8 +22,9 @@ import org.junit.jupiter.api.Test
 
 /**
  * Pure-mock coverage of candidate filtering in [YoutubeMvSearchService]: an upload far
- * shorter or longer than the iTunes track, or titled as a live/tour clip, never wins over
- * the full MV, on both the broad-search and cached-uploads paths.
+ * shorter or longer than the iTunes track, by another artist, or titled as a live/tour clip
+ * never wins over the full MV, on both the broad-search and cached-uploads paths. A live clip
+ * by the artist is still taken when no MV exists at all.
  */
 class YoutubeMvSearchServiceTest {
 
@@ -143,7 +144,9 @@ class YoutubeMvSearchServiceTest {
     }
 
     @Test
-    fun `search returns nothing when the only candidate is a live clip`() {
+    fun `search returns a live clip from the artist channel when no MV exists`() {
+        // Prod song 93: "灯火 / Vaundy" has no MV, only live uploads. Failing the work there
+        // is worse than a live performance of the song by the artist.
         every { artistChannelCache.get(ARTIST) } returns null
         stubSearch(
             searchItem("live-id", "$TITLE LIVE映像"),
@@ -152,7 +155,77 @@ class YoutubeMvSearchServiceTest {
         )
         stubDurations("live-id" to "PT4M", "live-en-id" to "PT4M", "karaoke-id" to "PT4M")
 
+        assertThat(service.searchMvUrl(TITLE, ARTIST, TRACK_SECONDS))
+            .isEqualTo("https://www.youtube.com/watch?v=live-id")
+    }
+
+    @Test
+    fun `search rejects a Shorts-length live clip`() {
+        every { artistChannelCache.get(ARTIST) } returns null
+        stubSearch(searchItem("live-id", "$TITLE LIVE映像"))
+        stubDurations("live-id" to "PT57S")
+
         assertThat(service.searchMvUrl(TITLE, ARTIST, TRACK_SECONDS)).isNull()
+    }
+
+    @Test
+    fun `search returns nothing when every candidate is a cover or a karaoke track`() {
+        every { artistChannelCache.get(ARTIST) } returns null
+        stubSearch(
+            searchItem("karaoke-id", "【カラオケ】$TITLE / $ARTIST"),
+            searchItem("cover-id", "$TITLE / $ARTIST【歌ってみた】", "歌い手ちゃん"),
+            searchItem("live-cover-id", "$TITLE $ARTIST cover LIVE", "弾き語りチャンネル"),
+        )
+        stubDurations("karaoke-id" to "PT4M", "cover-id" to "PT4M", "live-cover-id" to "PT4M")
+
+        assertThat(service.searchMvUrl(TITLE, ARTIST, TRACK_SECONDS)).isNull()
+    }
+
+    @Test
+    fun `search rejects a same-titled song by another artist`() {
+        // Prod song 93: "優河 - 灯火（Official Music Video）" won the search for "灯火 / Vaundy"
+        // on the official marker alone, and cached 優河's channel under Vaundy.
+        every { artistChannelCache.get("Vaundy") } returns null
+        stubSearch(
+            searchItem("other-artist-id", "優河 -  灯火（Official Music Video）", "優河 Yuga", "yuga-channel"),
+            searchItem("short-id", "#灯火 / #Vaundy", "Vaundy"),
+        )
+        stubDurations("other-artist-id" to "PT5M12S", "short-id" to "PT40S")
+
+        assertThat(service.searchMvUrl("灯火", "Vaundy", 178)).isNull()
+        verify(exactly = 0) { artistChannelCache.put(any<String>(), any<ArtistChannelCacheEntry>()) }
+    }
+
+    @Test
+    fun `search prefers the artist's live over a reupload on a stranger's channel`() {
+        // The full "灯火 / Vaundy" search result: no MV exists, so behind 優河's same-titled MV
+        // sit a bootleg audio reupload, a cut-down official audio, and the Budokan live.
+        every { artistChannelCache.get("Vaundy") } returns null
+        stubSearch(
+            searchItem("other-artist-id", "優河 -  灯火（Official Music Video）", "優河 Yuga"),
+            searchItem("reupload-id", "Vaundy - 灯火", "音楽音楽"),
+            searchItem("short-ver-id", "灯火 / Vaundy ：Official Audio(Short Version)", "Vaundy"),
+            searchItem("live-id", "Vaundy LIVE \"灯火\" | 2022.09.09 one man live at BUDOKAN", "Vaundy"),
+        )
+        stubDurations(
+            "other-artist-id" to "PT3M40S",
+            "reupload-id" to "PT2M57S",
+            "short-ver-id" to "PT1M52S",
+            "live-id" to "PT3M9S",
+        )
+
+        assertThat(service.searchMvUrl("灯火", "Vaundy", 178))
+            .isEqualTo("https://www.youtube.com/watch?v=live-id")
+    }
+
+    @Test
+    fun `search accepts a reupload on a stranger's channel when nothing official is found`() {
+        every { artistChannelCache.get(ARTIST) } returns null
+        stubSearch(searchItem("reupload-id", "$ARTIST - $TITLE", "音楽音楽"))
+        stubDurations("reupload-id" to "PT3M58S")
+
+        assertThat(service.searchMvUrl(TITLE, ARTIST, TRACK_SECONDS))
+            .isEqualTo("https://www.youtube.com/watch?v=reupload-id")
     }
 
     @Test
@@ -221,6 +294,26 @@ class YoutubeMvSearchServiceTest {
 
         assertThat(service.searchMvUrl(TITLE, ARTIST, null))
             .isEqualTo("https://www.youtube.com/watch?v=mv-id")
+    }
+
+    @Test
+    fun `cached uploads path returns a live upload when the search finds no MV`() {
+        every { artistChannelCache.get(ARTIST) } returns ArtistChannelCacheEntry(
+            artistName = ARTIST,
+            channelId = "channel-id",
+            uploadsPlaylistId = "uploads-id",
+            channelTitle = ARTIST,
+        )
+        every { youtubeClient.listPlaylistItems(any(), any(), any()) } returns
+            YoutubePlaylistItemsResponse(
+                nextPageToken = null,
+                items = listOf(playlistItem("live-id", "$TITLE / $ARTIST (Live at Budokan)")),
+            )
+        stubSearch()
+        stubDurations("live-id" to "PT4M2S")
+
+        assertThat(service.searchMvUrl(TITLE, ARTIST, TRACK_SECONDS))
+            .isEqualTo("https://www.youtube.com/watch?v=live-id")
     }
 
     @Test
@@ -331,13 +424,18 @@ class YoutubeMvSearchServiceTest {
         }
     }
 
-    private fun searchItem(videoId: String, title: String, channelTitle: String = ARTIST) = YoutubeSearchItemDto(
+    private fun searchItem(
+        videoId: String,
+        title: String,
+        channelTitle: String = ARTIST,
+        channelId: String? = null,
+    ) = YoutubeSearchItemDto(
         id = YoutubeVideoIdDto(videoId = videoId),
         snippet = YoutubeSnippetDto(
             title = title,
             thumbnails = YoutubeThumbnailsDto(medium = null, default = null),
             channelTitle = channelTitle,
-            channelId = null,
+            channelId = channelId,
         ),
     )
 
