@@ -2,6 +2,11 @@ import { create } from 'zustand';
 import { songApi } from '../api/songApi';
 import { SongSearchItem, SongStudyData } from '../types/song';
 import { useAnalysisStore } from './analysisStore';
+import {
+  trackSongAnalyzeResult,
+  trackSongSelect,
+  type AnalyzeOutcome,
+} from '../services/analytics';
 
 // 'loading' covers the cheap existing-song lookup (usually well under a second).
 // 'analyzing' means a brand-new analysis was actually requested from the server;
@@ -29,6 +34,10 @@ interface PlayerState {
 
 let analysisRunId = 0;
 
+function analyzeOutcomeOf(errorCode: string | null | undefined): AnalyzeOutcome {
+  return errorCode === 'LYRICS_NOT_FOUND' ? 'lyrics_not_found' : 'failed';
+}
+
 export const usePlayerStore = create<PlayerState>((set, get) => ({
   status: 'idle',
   studyData: null,
@@ -47,14 +56,18 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       // 폴링은 analysisStore 가 곡당 하나만 돌린다.
       let readyPromise = useAnalysisStore.getState().readyFor(item.title, item.artistName);
       if (readyPromise) {
+        trackSongSelect(undefined, true);
         set({ status: 'analyzing' });
       } else {
         const existing = await songApi.getByTitleArtist(item.title, item.artistName);
         if (analysisRunId !== runId) return;
         if (existing) {
+          trackSongSelect(existing.song.id, false);
+          trackSongAnalyzeResult('success');
           set({ status: 'success', studyData: existing, currentMs: 0, durationMs: 0 });
           return;
         }
+        trackSongSelect(undefined, true);
 
         const accepted = await songApi.analyze({
           title: item.title,
@@ -65,7 +78,9 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         if (analysisRunId !== runId) return;
         // 요청 자체가 거절된 경우엔 pill 이 뜨지 않으므로 여기서 error 로 알린다.
         if (accepted.status === 'FAILED') {
-          set({ status: 'error', errorCode: accepted.errorCode ?? 'SONG_ANALYSIS_WORK_FAILED' });
+          const errorCode = accepted.errorCode ?? 'SONG_ANALYSIS_WORK_FAILED';
+          trackSongAnalyzeResult(analyzeOutcomeOf(errorCode));
+          set({ status: 'error', errorCode });
           return;
         }
         if (!accepted.canOpenPlayer) {
@@ -83,15 +98,19 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       if (analysisRunId !== runId) return;
       if (!ready.songId) {
         // 폴링 중 실패는 분석 pill 이 이미 보여준다. error 로 두면 검색 화면이 dialog 까지 띄우므로 idle 로 돌린다.
+        trackSongAnalyzeResult(analyzeOutcomeOf(ready.errorCode));
         set({ status: 'idle' });
         return;
       }
       const data = await songApi.getStudyDataById(ready.songId);
       if (analysisRunId !== runId) return;
+      trackSongAnalyzeResult('success');
       set({ status: 'success', studyData: data, currentMs: 0, durationMs: 0 });
     } catch (e: any) {
       if (analysisRunId !== runId) return;
-      set({ status: 'error', errorCode: e.response?.data?.error });
+      const errorCode = e.response?.data?.error;
+      trackSongAnalyzeResult(analyzeOutcomeOf(errorCode));
+      set({ status: 'error', errorCode });
     }
   },
 

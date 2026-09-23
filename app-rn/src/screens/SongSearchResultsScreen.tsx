@@ -21,6 +21,7 @@ import { usePlayerStore } from '../stores/playerStore';
 import { isAnalyzingSong, useAnalysisStore } from '../stores/analysisStore';
 import { useSearchHistoryStore } from '../stores/searchHistoryStore';
 import { songApi } from '../api/songApi';
+import { trackSearchSubmit } from '../services/analytics';
 import { Colors } from '../theme/theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { getErrorMessage } from '../utils/errorMessages';
@@ -150,6 +151,7 @@ export default function SongSearchResultsScreen() {
       .search(initialQuery)
       .then(res => {
         if (cancelled) return;
+        trackSearchSubmit(initialQuery, res.items.length);
         setItems(res.items);
         setStatus('success');
       })

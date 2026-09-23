@@ -33,6 +33,7 @@ cd app-rn && npx expo start --web             # App - Web (dev)
 - Translation pipeline guardrails: `docs/translation-pipeline.md`
 - Push notification architecture: `docs/architecture/push-notification.md`
 - Admin service: `docs/admin-service.md`
+- KPI 와 측정 방법 (GA4/BigQuery): `docs/analytics.md`
 - Recommended songs: `docs/recommended-songs.md`
 - k3s deploy and environment variables: `docs/runbooks/k3s-deploy.md`
 - Analysis defect log and auto-fix runner: `.github/scripts/analysis-feedback/README.md`

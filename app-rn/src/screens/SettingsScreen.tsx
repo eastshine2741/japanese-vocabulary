@@ -21,6 +21,7 @@ import { userApi } from '../api/userApi';
 import { tokenStorage } from '../utils/tokenStorage';
 import { resetAllStores } from '../utils/resetAllStores';
 import { unregisterCurrentToken } from '../services/pushNotifications';
+import { setAnalyticsUserId } from '../services/analytics';
 import { Colors } from '../theme/theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import ServerURLDialog from '../components/ServerURLDialog';
@@ -111,6 +112,7 @@ export default function SettingsScreen() {
       // ignore — proceed with local logout even if Google session clear fails
     }
     await tokenStorage.clearToken();
+    setAnalyticsUserId(null);
     navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'Login' }] }));
     requestAnimationFrame(() => resetAllStores());
   };
@@ -128,6 +130,7 @@ export default function SettingsScreen() {
       // ignore — local cleanup still proceeds even if Google session clear fails
     }
     await tokenStorage.clearToken();
+    setAnalyticsUserId(null);
     setShowDeleteDialog(false);
     navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'Login' }] }));
     requestAnimationFrame(() => resetAllStores());
