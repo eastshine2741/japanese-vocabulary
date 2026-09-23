@@ -12,7 +12,7 @@ import type {CSSProperties} from 'react';
 
 import {convertLineReading, convertReading} from '../../app-rn/src/utils/readingConverter';
 import {SCORE_DREAM_FAMILY, useScoreDream} from './fonts/scoreDream';
-import type {LyricToken, PartOfSpeech, PromoLine, PromoReelData, VocabularyWord} from './types';
+import type {LyricToken, MvCrop, MvFrame, PartOfSpeech, PromoLine, PromoReelData, VocabularyWord} from './types';
 
 export const PROMO_FPS = 30;
 // 엔드카드 7초. 앱 목업이 시트 → 단어 탭 → 복습 → rating → 다음 단어까지 흐르고, 스토어 검색 큐를 읽을 시간이다.
@@ -126,15 +126,25 @@ export const PromoReel = ({data}: {data: PromoReelData}) => {
   const entry = (delay: number) => linear(localFrame - delay, 0, ENTRY_FRAMES);
   const lyricEntry = entry(0);
   const wordsEntry = entry(4);
+  const mvFrame = data.mvFrame ?? null;
 
   return (
     <AbsoluteFill style={styles.canvas}>
       <AbsoluteFill>
+        {/* MV 를 줄이거나 옮겨 생긴 빈 곳은 같은 구간을 튼 같은 MV 를 블러해서 채운다 */}
+        {mvFrame && (
+          <OffthreadVideo
+            muted
+            src={assetSrc(data.song.mvAsset)}
+            startFrom={data.sourceStartFrame}
+            style={{...styles.backdropVideo, ...cropStyle(mvFrame.crop)}}
+          />
+        )}
         <OffthreadVideo
           muted={false}
           src={assetSrc(data.song.mvAsset)}
           startFrom={data.sourceStartFrame}
-          style={styles.fullVideo}
+          style={mvFrame ? framedVideoStyle(mvFrame) : styles.fullVideo}
           volume={(f) => interpolate(f, [durationInFrames - 36, durationInFrames - 1], [0.72, 0], {
             extrapolateLeft: 'clamp',
             extrapolateRight: 'clamp',
@@ -169,6 +179,26 @@ export const PromoReel = ({data}: {data: PromoReelData}) => {
       <EndCard data={data} line={lines[lines.length - 1]} lineCount={lines.length} startFrame={lyricsEndFrame} />
     </AbsoluteFill>
   );
+};
+
+// 폭만 정하고 높이는 MV 원래 비율을 따른다. objectFit 로 캔버스에 맞춰 자르지 않아야 MV 전체를 줄여 담을 수 있다.
+const framedVideoStyle = ({scale, x, y, crop}: MvFrame): CSSProperties => ({
+  ...cropStyle(crop),
+  height: 'auto',
+  left: '50%',
+  maxWidth: 'none',
+  position: 'absolute',
+  top: '50%',
+  transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`,
+  width: PROMO_WIDTH * scale,
+});
+
+// object-view-box 는 영상의 원래 크기 자체를 잘라낸 영역으로 바꾼다. 그래서 height:auto 와 objectFit:cover 가
+// 둘 다 잘라낸 영역 비율로 계산되고, 블러 배경에도 검은 여백이 섞이지 않는다. (Chromium 전용 — 렌더 크롬·어드민 크롬 기준)
+const cropStyle = (crop: MvCrop | null | undefined): CSSProperties => {
+  if (!crop || (crop.top === 0 && crop.right === 0 && crop.bottom === 0 && crop.left === 0)) return {};
+  const pct = (value: number) => `${(value * 100).toFixed(3)}%`;
+  return {objectViewBox: `inset(${pct(crop.top)} ${pct(crop.right)} ${pct(crop.bottom)} ${pct(crop.left)})`} as CSSProperties;
 };
 
 const ENTRY_FRAMES = 6;
@@ -947,6 +977,14 @@ const styles = {
   fullVideo: {
     height: '100%',
     objectFit: 'cover',
+    width: '100%',
+  },
+  // 블러 가장자리가 투명하게 빠지지 않도록 캔버스보다 크게 깔고 살짝 어둡게 눌러 전경 MV 와 구분한다
+  backdropVideo: {
+    filter: 'blur(48px) brightness(0.7)',
+    height: '100%',
+    objectFit: 'cover',
+    transform: 'scale(1.15)',
     width: '100%',
   },
   // 가사 화면과 엔드카드가 같은 스크림을 쓴다 — Pen Reel v2 의 MV/Backdrop Top·Bottom Scrim 과 같은 값

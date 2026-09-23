@@ -2,6 +2,9 @@ import { describe, expect, test } from "vitest"
 import type { ReelsLyricLine, ReelsSongDetail } from "@/api/types"
 import {
   buildPromoData,
+  clampMvFrame,
+  coverMvFrame,
+  croppedAspect,
   DEFAULT_LINE_GAP_MS,
   DEFAULT_TAIL_MS,
   emptyEditor,
@@ -223,6 +226,46 @@ describe("validate and buildPromoData", () => {
     const data = buildPromoData(synced, state, "http://mv", { title: " 레몬 ", artist: "요네즈 켄시" })
     expect(data.song).toMatchObject({ title: "레몬", artist: "요네즈 켄시" })
     expect(validate(state, synced, { title: " ", artist: "" })).toEqual(["곡 제목을 입력해야 합니다", "아티스트를 입력해야 합니다"])
+  })
+})
+
+describe("mv frame", () => {
+  test("defaults to cover and carries the admin frame into the props", () => {
+    const state = [0, 1, 2, 3].reduce((current, index) => toggleLine(current, synced, index), emptyEditor())
+    expect(buildPromoData(synced, state, "http://mv").mvFrame).toBeNull()
+    const frame = { scale: 1, x: -120, y: 300 }
+    expect(buildPromoData(synced, state, "http://mv", undefined, frame).mvFrame).toEqual(frame)
+  })
+
+  test("computes the cover scale from the MV aspect", () => {
+    // 16:9 는 높이 1920 에 맞추면 폭이 3413px → 릴스 폭의 약 3.16배
+    expect(coverMvFrame(16 / 9)).toMatchObject({ scale: 3.16, x: 0, y: 0 })
+    // 캔버스보다 세로로 긴 MV 는 폭에 맞추는 게 곧 cover 다
+    expect(coverMvFrame(9 / 20).scale).toBe(1)
+  })
+
+  test("uses the cropped area for aspect and cover", () => {
+    // 16:9 안에 2.35:1 레터박스(1920×816, 위아래 132px 씩)
+    const crop = { top: 132 / 1080, right: 0, bottom: 132 / 1080, left: 0 }
+    expect(croppedAspect(16 / 9, crop)).toBeCloseTo(1920 / 816)
+    expect(coverMvFrame(16 / 9, crop).scale).toBeCloseTo((1920 * (1920 / 816)) / 1080, 2)
+    // 좌우를 잘라내면 같은 높이에서 폭이 줄어든다
+    expect(coverMvFrame(16 / 9, { top: 0, right: 0.1, bottom: 0, left: 0.1 }).scale).toBeCloseTo(3.16 * 0.8, 2)
+  })
+
+  test("clamps scale, offsets and crop", () => {
+    expect(clampMvFrame({ scale: 0.01, x: 9_999, y: -9_999, crop: { top: 0.9, right: -1, bottom: 0.12345, left: 0 } })).toEqual({
+      scale: 0.3,
+      x: 2700,
+      y: -1920,
+      crop: { top: 0.4, right: 0, bottom: 0.1235, left: 0 },
+    })
+    expect(clampMvFrame({ scale: 1.23456, x: 10.4, y: -0.6 })).toEqual({
+      scale: 1.235,
+      x: 10,
+      y: -1,
+      crop: { top: 0, right: 0, bottom: 0, left: 0 },
+    })
   })
 })
 
