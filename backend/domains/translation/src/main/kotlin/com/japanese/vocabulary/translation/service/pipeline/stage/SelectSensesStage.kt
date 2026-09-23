@@ -118,7 +118,7 @@ class SelectSensesStage(
             tokens.map { token ->
                 val selected = selectedByTokenId[token.key.tokenId]
                 val resolved = lexical.byTokenKey[token.key]
-                val selectedSenseId = selected?.senseId ?: -1
+                val selectedSenseId = selected?.senseId ?: NO_SENSE
                 val valid = selected != null &&
                     resolved != null &&
                     resolved.options.any { it.senseId == selectedSenseId }
@@ -129,6 +129,10 @@ class SelectSensesStage(
                 val defect = when {
                     selected == null -> AnalysisDefectCause.SENSE_MISSING to
                         "tokenId=${token.key.tokenId}, offered=$offered"
+                    // The prompt tells the model to answer -1 when none of the offered senses fits the
+                    // line. That is the designed answer, not a rejected one: チク in 「チクタクチク」 is
+                    // a clock's tick, and none of 竹/築/地区 is, so the model saying so is not a defect.
+                    selectedSenseId == NO_SENSE -> null
                     !valid -> AnalysisDefectCause.SENSE_REJECTED to
                         "tokenId=${token.key.tokenId}, selectedSenseId=$selectedSenseId, offered=$offered"
                     else -> null
@@ -147,7 +151,7 @@ class SelectSensesStage(
                         ),
                     )
                 }
-                token.key to if (valid) selectedSenseId else -1
+                token.key to if (valid) selectedSenseId else NO_SENSE
             }
         }.toMap()
     }
@@ -173,5 +177,8 @@ class SelectSensesStage(
     companion object {
         /** Lines per sense-select call. Bounds response length so long songs cannot stop mid-array. */
         const val SELECT_CHUNK_LINES = 20
+
+        /** The senseId the prompt reserves for "no offered sense fits this line". */
+        const val NO_SENSE = -1
     }
 }
