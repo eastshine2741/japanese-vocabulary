@@ -48,7 +48,8 @@ segment -> anchor/retry -> rules -> jisho entry-select
 - `Token.reading` is the sung reading for that token. No line-level reading is
   stored; app and admin clients assemble display readings from tokens.
 - Japanese token surfaces must appear in the original line in order. Whitespace,
-  punctuation, latin text, and digits should not be emitted as word tokens.
+  punctuation, latin text, and digits should not be emitted as word tokens —
+  but kana or kanji between or after them still are (`140と30字の` → と / 字 / の).
 - Identical raw lyric lines are segmented once and copied to each occurrence.
 - Tokens without `koreanText` are not surfaced as word candidates.
 
