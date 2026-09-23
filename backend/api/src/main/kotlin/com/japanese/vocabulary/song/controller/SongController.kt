@@ -10,6 +10,8 @@ import com.japanese.vocabulary.song.dto.AnalyzedSongDto
 import com.japanese.vocabulary.song.dto.songdetail.SongLyricsDto
 import com.japanese.vocabulary.song.dto.songdetail.SongStudyBootstrapRequest
 import com.japanese.vocabulary.song.dto.songdetail.SongStudyBootstrapResponse
+import com.japanese.vocabulary.song.dto.songdetail.SongWordTierKey
+import com.japanese.vocabulary.song.dto.songdetail.SongWordTierStudyResponse
 import com.japanese.vocabulary.song.dto.songdetail.SongWordTiersDto
 import com.japanese.vocabulary.song.dto.songdetail.WordsInSongDto
 import com.japanese.vocabulary.songsearch.dto.SongSearchResponse
@@ -169,6 +171,11 @@ class SongController(
         }
         return ResponseEntity.ok().header("Cache-Control", "no-store").body(response)
     }
+
+    /** 단계 학습. 그 단계 단어를 곡 단어장에 담고, due 와 무관하게 단계 단어 전부를 카드로 준다. */
+    @PostMapping("/{id}/word-tiers/{key}/study")
+    fun studyWordTier(@PathVariable id: Long, @PathVariable key: SongWordTierKey): SongWordTierStudyResponse =
+        songWordTierService.study(currentUserId(), id, key)
 
     /**
      * 미리보기 카드(홈 콜드스타트의 추천곡 단어, 곡 상세에서 고른 아직 안 담긴 단어)에 rating 을

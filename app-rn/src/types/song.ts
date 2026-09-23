@@ -154,6 +154,13 @@ export interface SongStudyBootstrapResponse {
   nextDueAt: string | null;
 }
 
+/** `POST /api/songs/{id}/word-tiers/{key}/study`. due·복습 상태와 무관하게 그 단계 단어 전부. */
+export interface SongWordTierStudyResponse {
+  deckId: number;
+  cards: FlashcardDTO[];
+  totalCount: number;
+}
+
 export interface AnalyzeSongRequest {
   title: string;
   artist: string;

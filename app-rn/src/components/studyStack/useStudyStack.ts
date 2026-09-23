@@ -121,6 +121,8 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
   const busyRef = useRef(false);
   /** 현재 카드가 실제 flashcard 가 아니라 미리보기 카드(홈 콜드스타트 또는 곡 상세의 안 담긴 단어)인지. */
   const isPreviewRef = useRef(false);
+  /** 단계 학습처럼 처음 받은 카드가 전부인 세션인지. 이때는 서버 due 큐로 이어 붙이지 않는다. */
+  const fixedQueueRef = useRef(false);
   const [dueCount, setDueCount] = useState(0);
   const [status, setStatus] = useState<StudyStackStatus>('loading');
   const [cards, setCards] = useState<StudyCard[]>([]);
@@ -152,7 +154,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
 
   const sourceRef = useRef<StudySource | null>(source ?? null);
   sourceRef.current = source ?? null;
-  const sourceKey = source ? `${source.deckId}:${source.songId}` : null;
+  const sourceKey = source ? `${source.deckId}:${source.songId}:${source.tierKey ?? ''}` : null;
 
   const currentCard = cards[currentIndex] ?? null;
   const currentCardRef = useRef(currentCard);
@@ -250,7 +252,26 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     setSelectedRating(null);
     setRevealed(false);
     isPreviewRef.current = false;
+    fixedQueueRef.current = false;
     try {
+      if (target.tierKey != null && target.songId != null) {
+        // 단계 학습: 서버가 그 단계 단어를 담고 due 와 무관하게 전부 준다. 이 목록이 세션의 전부다.
+        const result = await songApi.studyWordTier(target.songId, target.tierKey);
+        if (version !== requestVersion.current) return;
+        const tierSource: StudySource = { ...target, deckId: result.deckId, totalCount: result.totalCount };
+        activeSourceRef.current = tierSource;
+        fixedQueueRef.current = true;
+        setDueCount(result.cards.length);
+        setSessionDueTotal(result.totalCount);
+        if (result.cards.length > 0) {
+          setCards(result.cards.map(card => ({ ...card, source: tierSource })));
+        } else {
+          setCards([]);
+          setCompletedSource(tierSource);
+        }
+        setStatus('ready');
+        return;
+      }
       if (target.previewWord) {
         // 곡 상세에서 아직 안 담긴 단어를 눌렀다 — 덱을 만들지 않고 그 단어를 미리보기 카드로 띄운다.
         // rating 확정 시 advancePreviewReview 가 곡을 통째로 담는다.
@@ -300,6 +321,21 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     const target = activeSourceRef.current;
     if (target?.deckId == null) return;
     const version = ++requestVersion.current;
+    if (fixedQueueRef.current) {
+      // 단계 학습은 처음 받은 카드가 전부다 — 서버 due 큐로 이어가지 않고 완료 화면으로 간다.
+      await refreshNextDue(target, version);
+      if (version !== requestVersion.current) return;
+      setCards([]);
+      setCurrentIndex(0);
+      setRevealed(false);
+      setRevealProgress(new Animated.Value(0));
+      clearRatingHold();
+      setSelectedRating(null);
+      setTranslateY(new Animated.Value(0));
+      setCompletedSource(target);
+      setStatus('ready');
+      return;
+    }
     try {
       const due = await flashcardApi.getDueCards(target.deckId, DUE_PAGE_SIZE);
       if (version !== requestVersion.current) return;
@@ -334,6 +370,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
   const prefetchMore = useCallback(async () => {
     const target = activeSourceRef.current;
     if (target?.deckId == null) return;
+    if (fixedQueueRef.current) return;
     if (prefetchingRef.current) return;
     const loaded = cardsRef.current.length;
     const remaining = loaded - currentIndexRef.current;
@@ -392,6 +429,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     const version = ++requestVersion.current;
     activeSourceRef.current = null;
     isPreviewRef.current = false;
+    fixedQueueRef.current = false;
     setDueCount(0);
     setReviewedCount(0);
     setSessionDueTotal(0);
@@ -558,6 +596,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
       useStudyStatsStore.getState().invalidate();
       useStreakStore.getState().recordRating();
       isPreviewRef.current = false;
+      fixedQueueRef.current = false;
       const newSource: StudySource = {
         ...currentCard.source,
         deckId: result.deckId,
@@ -737,6 +776,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     const version = ++requestVersion.current;
     activeSourceRef.current = null;
     isPreviewRef.current = false;
+    fixedQueueRef.current = false;
     setSelectedSource(target);
     setStatus('loading');
     setLoadError(null);

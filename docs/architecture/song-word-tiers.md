@@ -43,7 +43,7 @@
 
 - `tiers` 는 항상 4개, `order` 오름차순.
 - `wordJapanese` 는 `GET /api/songs/{id}/words` 의 `words[].japanese` 와 같은
-  키여야 한다. 앱이 이 키로 "이 단계에서 아직 안 담긴 단어"를 골라 담는다.
+  키여야 한다. 앱은 칩 표시에만 쓰고, 담기는 서버가 단계 키로 한다(아래 학습 진입).
 - 단어가 없는 곡도 4단계를 빈 배열로 반환한다(분석 준비 중 곡은 홈 탭 자체가
   안 뜨므로 호출되지 않아도 된다). 곡·가사가 없으면 404.
 - 실패해도 곡 상세는 열려야 한다 — 앱은 이 호출을 곡 로드와 분리해
@@ -82,17 +82,23 @@
 기준은 **유저의 단어**다 — 다른 곡에서 담아 익힌 단어도 이 곡에서 아는 단어로 센다.
 그래서 단계 합계가 `decks/by-song` 의 곡 단어장 합계와 다를 수 있다.
 
-## 학습 진입(담기) 계약 — 변경 없음
+## 학습 진입: `POST /api/songs/{id}/word-tiers/{key}/study`
 
-로드맵에서 단계 학습을 누르면 앱은 **그 단계에서 아직 안 담긴 단어만**
-`POST /api/words/batch` 로 담고 `GET /api/decks/by-song/{id}` 로 곡 덱을 연다.
-기존 "학습 시작"이 곡 전체를 한 번에 담던 것과 달리 단계 단위로 담는다.
+단계의 학습하기는 **due·복습 상태와 무관하게 그 단계 단어 전부**를 카드로 연다.
+곡 덱의 due 큐를 열면 다른 단계 단어가 섞이고, 이미 익힌 단어·아직 due 가 아닌 단어가 빠져
+진행 바(`knownCount / totalCount`)와 카드 수가 어긋나기 때문이다.
 
-- `AddWordRequest` (japanese/reading/senses/songId) 그대로 사용, 신규 필드 없음.
-- 서버는 이미 담긴 단어를 skip 하므로(batch 응답의 `skippedCount`) 단계가
-  겹쳐도 안전하다.
-- `GET /api/songs/{id}/word-tiers` 의 `knownCount`/`learningCount` 는 담기·복습
-  이후 갱신되어야 한다(앱은 화면 복귀 시 재요청한다).
+```jsonc
+{ "deckId": 45, "cards": [ /* FlashcardDto, 단계 순서 */ ], "totalCount": 12 }
+```
+
+- 서버가 그 단계 단어를 전부 `batchAddWords` 로 다시 담는다(upsert). 다른 곡에서 이미 담은
+  단어도 이 곡 단어장에 연결된다. 뜻이 없는 단어는 카드가 될 수 없어 뺀다.
+- 카드 순서는 단계 순서(핵심은 중요도, 나머지는 등장순). 빈 단계는 409 `NO_ELIGIBLE_WORDS`.
+- 앱은 `SongReview` 에 `source.tierKey` 를 넘기고, 복습 스택이 이 응답 목록을 세션의 전부로
+  쓴다 — 페이지 추가 로드나 due 재조회를 하지 않고 끝나면 완료 화면으로 간다.
+- due 가 아닌 카드도 rating 은 그대로 FSRS 에 기록된다(조기 복습).
+- `knownCount`/`learningCount` 는 곡 상세 복귀 시 재요청으로 갱신된다.
 
 hero CTA(`학습 시작` / `오늘 복습 N개`)의 상태 판정은 기존 그대로다
 (`isAnalysisPending`, `decks.by-song.dueCount`). CTA 는 로드맵의 현재 단계를

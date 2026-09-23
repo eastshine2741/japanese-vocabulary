@@ -12,6 +12,8 @@ import {
   WordsInSongDto,
   StudyUnit,
   SongWordTiersDto,
+  SongWordTierKey,
+  SongWordTierStudyResponse,
 } from '../types/song';
 
 function toLegacyStudyUnits(lyrics: SongLyricsDto): StudyUnit[] {
@@ -114,6 +116,12 @@ export const songApi = {
       `/api/songs/${songId}/study-bootstrap`,
       { rating, leadJapanese: leadJapanese ?? null },
     );
+    return data;
+  },
+
+  /** 단계 학습: 그 단계 단어를 곡 단어장에 담고, due 와 무관하게 단계 단어 전부를 카드로 받는다. */
+  async studyWordTier(songId: number, key: SongWordTierKey): Promise<SongWordTierStudyResponse> {
+    const { data } = await client.post<SongWordTierStudyResponse>(`/api/songs/${songId}/word-tiers/${key}/study`);
     return data;
   },
 
