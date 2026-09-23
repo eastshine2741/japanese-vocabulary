@@ -333,9 +333,13 @@ class SegmentLyricsStage(
                 "changing a character, and the surfaces must appear in the line's own order. " +
                 // The failure this feedback exists for: an invented space matches the next real space
                 // and drags the anchor past the words in between.
-                "Output Japanese words only — no whitespace, punctuation, quote or latin tokens, and " +
-                "never a separator that is not in the text. Gaps between surfaces are expected. " +
+                "Output Japanese words only — no whitespace, punctuation, quote, latin or digit tokens, " +
+                "and never a separator that is not in the text. Gaps between surfaces are expected. " +
                 "Every Japanese character of the line must fall inside some surface. " +
+                // Read as "skip the number", the rule above took the kana wedged in it along:
+                // `140と30字の` lost `と` on every attempt.
+                "Only the digits and latin letters themselves are left out: kana or kanji between or " +
+                "right after them is still a word (1と2の → と / の). " +
                 // The validator rejects readings too, so a retry that only talks about surfaces steers
                 // the model away from half the failures it is being asked to fix.
                 "usedReading and baseFormReading must be kana only — katakana preferred, no kanji, no " +

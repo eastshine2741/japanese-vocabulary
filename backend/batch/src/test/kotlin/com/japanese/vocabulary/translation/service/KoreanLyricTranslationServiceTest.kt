@@ -668,6 +668,37 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
     }
 
     @Test
+    fun `the retry for kana skipped between digits says only the digits are left out`(): Unit = runBlocking {
+        // Song 120: told not to output digits, the model skipped 140と30字の as one number, and on the
+        // retry still dropped the と wedged between 140 and 30 — every attempt ended UNCOVERED.
+        val lyric = seedLyric(listOf("140と30字の 一言一句が 憎らしい"))
+        val segmentInputs = mutableListOf<List<Map<String, Any?>>>()
+
+        every { geminiClient.translateLyrics(any(), any()) } returns listOf(TranslationResultDto(0, "140과 30자의 한마디 한마디가 얄밉다"))
+        every { geminiClient.segmentAndLemmatize(capture(segmentInputs), any(), any()) } returnsMany listOf(
+            listOf(SegLineDto(0, listOf(segWord("一言一句"), segWord("が"), segWord("憎らしい")))),
+            listOf(
+                SegLineDto(
+                    0,
+                    listOf("と", "字", "の", "一言一句", "が", "憎らしい").map { segWord(it) },
+                ),
+            ),
+        )
+        coEvery { jishoService.lookupAll(any()) } answers {
+            firstArg<List<String>>().associateWith { exactEntry(it) }
+        }
+        stubSenseSelectAndTranslate()
+
+        val tokens = translationService.runPipeline(lyric).single().tokens
+
+        assertThat(segmentInputs[1].single()["previousValidationError"] as String)
+            .isEqualTo("Japanese text 'と' at offset=3 is not covered by segmentation at line index=0")
+        assertThat(segmentInputs[1].single()["retryInstruction"] as String)
+            .contains("Only the digits and latin letters themselves are left out")
+        assertThat(tokens.map { it.surface }).containsExactly("と", "字", "の", "一言一句", "が", "憎らしい")
+    }
+
+    @Test
     fun `a glued particle is split out of the surface it was stuck to`(): Unit = runBlocking {
         // 幸せがある came back as 幸せ + がある: the headword was right, the surface carried the particle,
         // and the reading ガアル reached the app as one word — displayed 가아루.
