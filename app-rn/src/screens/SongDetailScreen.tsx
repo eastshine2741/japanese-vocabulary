@@ -313,9 +313,19 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     });
   }, [data?.song, isStartingLearning, navigation, songDeckDetail?.deckId, songId]);
 
-  /** 로드맵이 있으면 현재 단계만 담는다. 로드맵을 못 받았거나 모두 끝났으면 예전처럼 곡 단어장을 그대로 연다. */
+  /**
+   * CTA 라벨과 같은 기준으로 연다. `오늘 복습 N개`(due 있음)면 곡 단어장 due 복습을 연다 — 단계 학습은
+   * due 와 무관하게 단계 단어 전부라 카드 수가 N 과 어긋난다. due 가 없으면 로드맵의 현재 단계를 열고,
+   * 로드맵을 못 받았거나 모두 끝났으면 예전처럼 곡 단어장을 그대로 연다.
+   */
   const handleStartLearning = useCallback(async () => {
     if (songId == null || isStartingLearning) return;
+    if (songDeckDetail != null && songDeckDetail.dueCount > 0) {
+      if (!openSongReview(songDeckDetail)) {
+        setLearningError('학습할 단어를 준비하지 못했어요. 잠시 후 다시 시도해 주세요.');
+      }
+      return;
+    }
     if (currentTier != null) {
       handleStartTier(currentTier);
       return;
@@ -331,7 +341,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     } finally {
       setIsStartingLearning(false);
     }
-  }, [currentTier, ensureSongDeck, handleStartTier, isStartingLearning, openSongReview, songId]);
+  }, [currentTier, ensureSongDeck, handleStartTier, isStartingLearning, openSongReview, songDeckDetail, songId]);
 
   /**
    * 단어를 누르면 그 곡 복습을 연다. 이미 담긴 단어는 그 덱을 열어 첫 카드로 강제한다.

@@ -101,5 +101,5 @@
 - `knownCount`/`learningCount` 는 곡 상세 복귀 시 재요청으로 갱신된다.
 
 hero CTA(`학습 시작` / `오늘 복습 N개`)의 상태 판정은 기존 그대로다
-(`isAnalysisPending`, `decks.by-song.dueCount`). CTA 는 로드맵의 현재 단계를
-그대로 시작한다.
+(`isAnalysisPending`, `decks.by-song.dueCount`). CTA 동작은 라벨을 따른다 —
+`오늘 복습 N개` 면 곡 단어장 due 복습(카드 수 = N), `학습 시작` 이면 로드맵의 현재 단계 학습을 연다.
