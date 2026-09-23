@@ -122,21 +122,28 @@ class SelectSensesStage(
                 val valid = selected != null &&
                     resolved != null &&
                     resolved.options.any { it.senseId == selectedSenseId }
-                // A rejected choice leaves the token with no sense at all, so it is a shipped defect
-                // and reported as one — the word had candidates, the model just named one it was
-                // never offered.
-                if (!valid && selected != null) {
+                // Either way the token leaves with no sense at all, so it is a shipped defect and
+                // reported as one — the word had candidates, and the model named one it was never
+                // offered, or answered nothing for it.
+                val offered = resolved?.options?.map { it.senseId }.orEmpty()
+                val defect = when {
+                    selected == null -> AnalysisDefectCause.SENSE_MISSING to
+                        "tokenId=${token.key.tokenId}, offered=$offered"
+                    !valid -> AnalysisDefectCause.SENSE_REJECTED to
+                        "tokenId=${token.key.tokenId}, selectedSenseId=$selectedSenseId, offered=$offered"
+                    else -> null
+                }
+                defect?.let { (cause, detail) ->
                     defectReporter.report(
                         AnalysisDefect(
                             songId = input.source.callContext.songId,
                             lyricId = input.source.callContext.lyricId,
                             lineIndex = index,
-                            cause = AnalysisDefectCause.SENSE_REJECTED,
+                            cause = cause,
                             surface = token.surface,
                             headword = token.headword,
                             line = input.source.rawByIndex[index].orEmpty(),
-                            detail = "tokenId=${token.key.tokenId}, selectedSenseId=$selectedSenseId, " +
-                                "offered=${resolved?.options?.map { it.senseId }.orEmpty()}",
+                            detail = detail,
                         ),
                     )
                 }

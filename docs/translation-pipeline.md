@@ -73,7 +73,8 @@ segment -> anchor/retry -> rules -> jisho entry-select
   Exhaustion keeps the best anchored line instead of failing a whole song for a
   missing word, and reports each word left without a meaning as one
   `ANALYSIS_DEFECT {json}` warning (`AnalysisDefectReporter`; causes
-  `DICTIONARY_MISS`, `UNCOVERED`, `SENSE_REJECTED`, `PROVIDER_ERROR`). A headword
+  `DICTIONARY_MISS`, `UNCOVERED`, `SENSE_REJECTED`, `SENSE_MISSING`,
+  `PROVIDER_ERROR`). A headword
   jisho never answered is resent without feedback — the model's headword was not
   wrong — and if it still errors it ships like any other defect, tagged
   `PROVIDER_ERROR` so it counts as an outage rather than a word to fix. The log

@@ -13,6 +13,7 @@ Kotonoha 곡 분석 파이프라인이 단어를 뜻 없이 내보낸 기록(`AN
   사전에 정말 없는 말이다.
 - `cause=UNCOVERED`: 가사 줄의 일본어 일부가 어떤 surface에도 안 잡혔다. `surface`가 그 글자다.
 - `cause=SENSE_REJECTED`: sense-select 모델이 제시받지 않은 senseId를 골라 뜻이 버려졌다.
+- `cause=SENSE_MISSING`: sense-select 모델 응답에 이 토큰(tokenId)의 답이 아예 없어서, 후보 뜻이 있었는데도 뜻 없이 나갔다.
 - `PROVIDER_ERROR`는 여기 오지 않는다. 러너가 앞에서 걸러낸다.
 
 ## 판정 기준

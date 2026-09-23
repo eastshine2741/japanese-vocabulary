@@ -85,7 +85,57 @@ class SelectSensesStageTest {
         assertThat(reported.captured.surface).isEqualTo("です")
     }
 
-    private fun input() = SenseSelectionStageInput(
+    @Test
+    fun `reports a word the model left unanswered as missing, not as the next word rejected`(): Unit = runBlocking {
+        // No answer for 天気. By position, です's answer would have landed on 天気 and です on nothing.
+        every { geminiClient.selectSenses(any(), any()) } returns listOf(
+            SelectLineDto(
+                index = lineIndex,
+                words = listOf(
+                    SelectWordDto(senseId = 10, tokenId = ii.key.tokenId),
+                    SelectWordDto(senseId = 22, tokenId = desu.key.tokenId),
+                ),
+            ),
+        )
+        val reported = mutableListOf<AnalysisDefect>()
+        every { defectReporter.report(capture(reported)) } returns Unit
+
+        val selected = stage.execute(input())
+
+        assertThat(selected).containsExactlyInAnyOrderEntriesOf(
+            mapOf(ii.key to 10, tenki.key to -1, desu.key to 22),
+        )
+        assertThat(reported).singleElement().satisfies({
+            assertThat(it.cause).isEqualTo(AnalysisDefectCause.SENSE_MISSING)
+            assertThat(it.surface).isEqualTo("天気")
+            assertThat(it.detail).isEqualTo("tokenId=${tenki.key.tokenId}, offered=[15, 16]")
+        })
+    }
+
+    @Test
+    fun `reports a missing answer for the last word of the line`(): Unit = runBlocking {
+        every { geminiClient.selectSenses(any(), any()) } returns listOf(
+            SelectLineDto(
+                index = lineIndex,
+                words = listOf(
+                    SelectWordDto(senseId = 10, tokenId = ii.key.tokenId),
+                    SelectWordDto(senseId = 15, tokenId = tenki.key.tokenId),
+                ),
+            ),
+        )
+        val reported = mutableListOf<AnalysisDefect>()
+        every { defectReporter.report(capture(reported)) } returns Unit
+
+        val selected = stage.execute(input())
+
+        assertThat(selected).containsExactlyInAnyOrderEntriesOf(
+            mapOf(ii.key to 10, tenki.key to 15, desu.key to -1),
+        )
+        assertThat(reported.map { it.cause to it.surface })
+            .containsExactly(AnalysisDefectCause.SENSE_MISSING to "です")
+    }
+
+    private fun input() =SenseSelectionStageInput(
         source = TranslationPipelineSource.from(
             listOf(LyricLineData(index = lineIndex, startTimeMs = null, text = raw)),
             GeminiCallContext(songId = 130L, lyricId = 1L),
