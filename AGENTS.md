@@ -2,9 +2,12 @@
 
 ## Project Overview
 
-Japanese learning app based on songs. Users pick a song they like, study its lyrics with synced playback, tap unfamiliar words to save them, and review saved vocabulary with flashcards.
+Japanese learning app based on songs. Home is a flashcard stack; users review
+due cards from songs they like. Lyrics (`SongDetail`) are the source view, and
+tapping a word there starts a review from it. There is no explicit "save word"
+action — rating a card saves its song as a deck.
 
-**Core loop:** song -> lyric-based study -> vocabulary capture -> flashcard review -> better understanding
+**Core loop:** open home -> review flashcards -> come back tomorrow
 
 ## Quick Reference
 
@@ -71,7 +74,7 @@ For the V29 schema and sense-level word behavior, see
 
 ## Current State
 
-**Implemented:** Song search -> lyric fetch -> async batch word-meaning analysis -> study view, YouTube MV playback with synced lyrics, word save with meanings, flashcard review, decks, recent songs, user settings, push notifications, admin inspection surface.
+**Implemented:** Song search -> lyric fetch -> async batch word-meaning analysis -> study view, YouTube MV playback with synced lyrics, flashcard-first home stack, song auto-save via study bootstrap, flashcard review, decks, recent songs, user settings, push notifications, admin inspection surface.
 
 **Backend:** Multi-module Gradle split is complete. `@Scheduled` work lives in
 `batch`; public API, admin API, domain modules, and integrations stay separated.
