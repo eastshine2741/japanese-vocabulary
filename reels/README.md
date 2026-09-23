@@ -29,6 +29,7 @@ npm run render:request -- --input /tmp/render-input.json --output /tmp/reel.mp4
 - `PromoReel.tsx` 는 `remotion` 과 `react` 외의 의존성을 추가하면 안 됩니다. `../../app-rn/src/utils/readingConverter` 처럼 import 가 없는 순수 TS 파일만 가져오세요.
 - 릴스 폰트는 에스코어 드림(`src/fonts/SCDream{4..8}.woff2`, weight 400~800)이다. `src/fonts/scoreDream.ts` 가 `FontFace` 로 등록하고 `delayRender` 로 로드를 기다린다 — Remotion 번들러와 Vite 둘 다 `.woff2` import 를 URL 로 내보내서 렌더와 어드민 미리보기가 같은 파일을 쓴다. 에스코어 드림에 없는 일본어는 뒤의 Noto CJK 로 떨어지고, 엔드카드의 앱 목업(`styles.phone`)만 실제 앱과 같은 Noto 스택을 유지한다.
 - `song.mvAsset` / `song.artworkAsset` 은 `public/` 파일명 또는 URL(`http…`, `/…`) 둘 다 받습니다. 렌더는 파일명, 미리보기는 admin-api 스트리밍 URL 을 넘깁니다.
+- `mvFrame`(`{scale, x, y, crop?}`, 없으면 cover)이 있으면 MV 를 `crop`(각 변 비율, CSS `object-view-box` — Chromium 전용)만큼 잘라낸 뒤 폭 `1080 × scale` 로 줄이거나 키워 가운데에서 `x/y` px 옮기고, 빈 곳엔 같은 MV 를 같은 `sourceStartFrame` 부터 블러해서 깐다. 릴스 전체에 고정된 값이다.
 - props 는 어드민 에디터가 브라우저에서 만들고(`admin-web/src/pages/reels-factory/reelEditor.ts`) 렌더 요청에 그대로 실립니다. 첫 줄 `startFrame` 이 0 보다 크면 그 앞은 가사 없이 MV 만 흐르고, `vocabulary` 가 빈 줄은 단어 블록을 그리지 않습니다.
 
 sample 렌더 결과:

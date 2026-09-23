@@ -24,6 +24,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.multipart.MultipartFile
 import java.nio.file.Path
+import kotlin.math.abs
 
 @Service
 class AdminReelsFactoryService(
@@ -125,6 +126,19 @@ class AdminReelsFactoryService(
         }
         if (data.sourceStartFrame < 0) {
             throw IllegalArgumentException("sourceStartFrame must not be negative")
+        }
+        data.mvFrame?.let { frame ->
+            if (frame.scale !in MV_SCALE_RANGE) {
+                throw IllegalArgumentException("mvFrame.scale must be within $MV_SCALE_RANGE")
+            }
+            if (abs(frame.x) > MV_OFFSET_X_MAX || abs(frame.y) > MV_OFFSET_Y_MAX) {
+                throw IllegalArgumentException("mvFrame offset is out of range")
+            }
+            frame.crop?.let { crop ->
+                if (listOf(crop.top, crop.right, crop.bottom, crop.left).any { it !in MV_CROP_RANGE }) {
+                    throw IllegalArgumentException("mvFrame.crop sides must be within $MV_CROP_RANGE")
+                }
+            }
         }
         if (lines.first().startFrame < 0) {
             throw IllegalArgumentException("first line must not start before the clip")
@@ -252,6 +266,11 @@ class AdminReelsFactoryService(
         const val MAX_LYRICS_SPAN_MS = 60_000L
         /** PromoReel 단어 블록은 두 줄 레이아웃이다(Reel v2 디자인). */
         const val MAX_VOCABULARY_PER_LINE = 2
+        /** admin-web reelEditor.ts 의 MV_SCALE_MIN/MAX, MV_OFFSET_X/Y_MAX, MV_CROP_MAX 와 같다. */
+        val MV_SCALE_RANGE = 0.3..5.0
+        const val MV_OFFSET_X_MAX = 2700.0
+        const val MV_OFFSET_Y_MAX = 1920.0
+        val MV_CROP_RANGE = 0.0..0.4
         const val INSTAGRAM_HANDLE = "@kotonoha.music"
         const val CATCHPHRASE = "가사에서 바로 배우는 일본어"
     }

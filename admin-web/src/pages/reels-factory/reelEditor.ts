@@ -1,5 +1,5 @@
 import type { LyricToken, ReelsLyricLine, ReelsSongDetail } from "@/api/types"
-import type { PartOfSpeech, PromoReelData, VocabularyWord } from "@reels/types"
+import type { MvCrop, MvFrame, PartOfSpeech, PromoReelData, VocabularyWord } from "@reels/types"
 
 /**
  * 릴스 에디터 상태와 순수 함수. 시간은 전부 MV 기준 절대 ms 다.
@@ -31,6 +31,52 @@ export const defaultSongCredit = (detail: ReelsSongDetail): SongCredit => ({
   title: detail.song.title,
   artist: detail.song.artist,
 })
+
+/** MV 폭 ÷ 릴스 폭. 21:9 MV 를 cover 로 채우는 배율(약 4.2)까지 닿는다. */
+export const MV_SCALE_MIN = 0.3
+export const MV_SCALE_MAX = 5
+/** 1080×1920 캔버스 px. 가장 크게 키운 MV 의 절반 폭만큼 좌우로 민다. */
+export const MV_OFFSET_X_MAX = 2700
+export const MV_OFFSET_Y_MAX = 1920
+const REEL_WIDTH = 1080
+const REEL_HEIGHT = 1920
+
+/** 한 변에서 잘라낼 수 있는 최대 비율. MV 에 박힌 레터박스(2.39:1 이면 위아래 각 12%)는 넉넉히 덮는다. */
+export const MV_CROP_MAX = 0.4
+export const NO_CROP: MvCrop = { top: 0, right: 0, bottom: 0, left: 0 }
+
+export function clampMvFrame(frame: MvFrame): MvFrame {
+  const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
+  const side = (value: number) => Math.round(clamp(value, 0, MV_CROP_MAX) * 10_000) / 10_000
+  const crop = frame.crop ?? NO_CROP
+  return {
+    scale: Math.round(clamp(frame.scale, MV_SCALE_MIN, MV_SCALE_MAX) * 1000) / 1000,
+    x: Math.round(clamp(frame.x, -MV_OFFSET_X_MAX, MV_OFFSET_X_MAX)),
+    y: Math.round(clamp(frame.y, -MV_OFFSET_Y_MAX, MV_OFFSET_Y_MAX)),
+    crop: { top: side(crop.top), right: side(crop.right), bottom: side(crop.bottom), left: side(crop.left) },
+  }
+}
+
+export function hasCrop(crop: MvCrop | null | undefined): boolean {
+  return crop != null && (crop.top > 0 || crop.right > 0 || crop.bottom > 0 || crop.left > 0)
+}
+
+/** 잘라낸 뒤 MV 의 가로/세로 비율. */
+export function croppedAspect(aspect: number, crop: MvCrop = NO_CROP): number {
+  return (aspect * (1 - crop.left - crop.right)) / (1 - crop.top - crop.bottom)
+}
+
+/**
+ * 가운데 정렬로 캔버스를 꽉 채우는(cover) 배치. MV 비율(가로/세로)이 있어야 배율을 안다.
+ * 크롭이 없으면 `mvFrame` 이 null 일 때와 같은 화면이다.
+ */
+export function coverMvFrame(aspect: number, crop: MvCrop = NO_CROP): MvFrame {
+  const scale = Math.max(1, (REEL_HEIGHT * croppedAspect(aspect, crop)) / REEL_WIDTH)
+  return clampMvFrame({ scale, x: 0, y: 0, crop })
+}
+
+/** 폭을 릴스 폭에 맞추고 가운데 둔다. */
+export const FIT_WIDTH_MV_FRAME: MvFrame = { scale: 1, x: 0, y: 0, crop: NO_CROP }
 
 /** 연속한 줄 시작 사이 최소 간격. 드래그로 줄이 겹치는 걸 막는다. */
 export const MIN_GAP_MS = 200
@@ -209,6 +255,7 @@ export function buildPromoData(
   state: EditorState,
   mvAsset: string,
   credit: SongCredit = defaultSongCredit(detail),
+  mvFrame: MvFrame | null = null,
 ): PromoReelData {
   const fps = detail.fps
   const relative = (ms: number) => msToFrame(ms - state.sourceStartMs, fps)
@@ -241,6 +288,7 @@ export function buildPromoData(
     instagramHandle: detail.instagramHandle,
     catchphrase: detail.catchphrase,
     sourceStartFrame: msToFrame(state.sourceStartMs, fps),
+    mvFrame,
     lyricsEndFrame: relative(state.endMs),
     totalLineCount: detail.lines.length,
     wordCount,

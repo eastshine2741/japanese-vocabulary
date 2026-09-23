@@ -2,6 +2,7 @@ import * as React from "react"
 import { Download, Loader2 } from "lucide-react"
 import { adminApi, ApiError, apiUrl } from "@/api/client"
 import type { ReelsSongDetail } from "@/api/types"
+import type { MvFrame } from "@reels/types"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { LoadingState } from "@/components/StateViews"
@@ -41,6 +42,9 @@ export function ReelsFactoryPage() {
   const [selectedIndex, setSelectedIndex] = React.useState<number | null>(null)
   const [mvUrl, setMvUrl] = React.useState<string | null>(null)
   const [mvDurationMs, setMvDurationMs] = React.useState<number | null>(null)
+  const [mvAspect, setMvAspect] = React.useState<number | null>(null)
+  /** 릴스 전체에 고정되는 MV 배치. null 이면 꽉 채움(cover). 줄을 비워도 유지하고 곡을 바꾸면 되돌린다. */
+  const [mvFrame, setMvFrame] = React.useState<MvFrame | null>(null)
   /** 업로드 진행률 0..1. 올리는 중이 아니면 null. */
   const [uploadProgress, setUploadProgress] = React.useState<number | null>(null)
   const [rendering, setRendering] = React.useState(false)
@@ -61,6 +65,8 @@ export function ReelsFactoryPage() {
     setSelectedIndex(null)
     setMvUrl(null)
     setMvDurationMs(null)
+    setMvAspect(null)
+    setMvFrame(null)
     setMode("source")
     setPlayheadMs(0)
     setError(null)
@@ -85,8 +91,8 @@ export function ReelsFactoryPage() {
 
   const errors = React.useMemo(() => (detail ? validate(editor, detail, credit) : []), [credit, detail, editor])
   const data = React.useMemo(
-    () => (detail && editor.lines.length > 0 ? buildPromoData(detail, editor, mvUrl ?? "", credit) : null),
-    [credit, detail, editor, mvUrl],
+    () => (detail && editor.lines.length > 0 ? buildPromoData(detail, editor, mvUrl ?? "", credit, mvFrame) : null),
+    [credit, detail, editor, mvFrame, mvUrl],
   )
   const fps = detail?.fps ?? 30
   const inputReady = Boolean(detail?.song.renderEligible) && errors.length === 0
@@ -275,6 +281,7 @@ export function ReelsFactoryPage() {
               mode={mode}
               mvUrl={mvUrl}
               onDuration={setMvDurationMs}
+              onAspect={setMvAspect}
               onModeChange={setMode}
               onUploadSource={uploadSource}
               onPlayhead={setPlayheadMs}
@@ -290,6 +297,9 @@ export function ReelsFactoryPage() {
               editor={editor}
               errors={errors}
               onChangeCredit={setCredit}
+              onChangeMvFrame={setMvFrame}
+              mvAspect={mvAspect}
+              mvFrame={mvFrame}
               playheadMs={playheadMs}
               selectedIndex={selectedIndex}
               onSeekReel={seekReel}
