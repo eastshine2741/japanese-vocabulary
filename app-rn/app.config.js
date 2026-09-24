@@ -124,13 +124,14 @@ export default {
               },
             ],
             '@react-native-firebase/messaging',
+            '@react-native-firebase/analytics',
           ]),
       [
         'expo-build-properties',
         {
           ios: {
             useFrameworks: 'static',
-            forceStaticLinking: ['RNFBApp', 'RNFBMessaging'],
+            forceStaticLinking: ['RNFBApp', 'RNFBMessaging', 'RNFBAnalytics'],
           },
         },
       ],

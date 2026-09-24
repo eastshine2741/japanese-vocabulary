@@ -3,6 +3,8 @@ import { AuthProvider, authApi, VerifiedIdentity } from '../api/authApi';
 import { apiErrorMessage } from '../api/errors';
 import { userApi } from '../api/userApi';
 import { tokenStorage } from '../utils/tokenStorage';
+import { getJwtUserId } from '../utils/jwt';
+import { setAnalyticsUserId } from '../services/analytics';
 import { requestPermissionAndRegisterToken } from '../services/pushNotifications';
 import { useSettingsStore } from './settingsStore';
 
@@ -33,6 +35,13 @@ async function persistProfile(username: string, name: string | null) {
   await tokenStorage.saveUserName(name);
 }
 
+// 로그인/가입 공통 경로. 토큰 저장과 분석 유저 식별을 한 곳에서 묶는다.
+async function persistSession(token: string, username: string, name: string | null) {
+  await tokenStorage.saveToken(token);
+  await persistProfile(username, name);
+  setAnalyticsUserId(getJwtUserId(token));
+}
+
 export const useAuthStore = create<AuthState>((set) => ({
   status: 'idle',
   error: null,
@@ -56,8 +65,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         });
         return;
       }
-      await tokenStorage.saveToken(res.token);
-      await persistProfile(res.username, res.name);
+      await persistSession(res.token, res.username, res.name);
       set({
         status: 'success',
         username: res.username,
@@ -90,8 +98,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         });
         return;
       }
-      await tokenStorage.saveToken(res.token);
-      await persistProfile(res.username, res.name);
+      await persistSession(res.token, res.username, res.name);
       set({
         status: 'success',
         username: res.username,
@@ -112,8 +119,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ status: 'loading', error: null });
     try {
       const res = await authApi.googleSignup(idToken, username, displayName);
-      await tokenStorage.saveToken(res.token);
-      await persistProfile(res.username, res.name);
+      await persistSession(res.token, res.username, res.name);
       set({
         status: 'success',
         username: res.username,
@@ -132,8 +138,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ status: 'loading', error: null });
     try {
       const res = await authApi.appleSignup(idToken, username, displayName);
-      await tokenStorage.saveToken(res.token);
-      await persistProfile(res.username, res.name);
+      await persistSession(res.token, res.username, res.name);
       set({
         status: 'success',
         username: res.username,

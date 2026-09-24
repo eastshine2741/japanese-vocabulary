@@ -23,7 +23,7 @@ Sentry.init({
   tracesSampleRate: 0.1,
 });
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform, StyleSheet, StatusBar } from 'react-native';
 import { NavigationContainer, type NavigationState } from '@react-navigation/native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -34,7 +34,8 @@ import AppNavigator, { RootStackParamList } from './src/navigation/AppNavigator'
 import { AnalysisPillOverlay } from './src/components/analysisPill';
 import { navigationRef, flushPending } from './src/navigation/navigationRef';
 import { tokenStorage } from './src/utils/tokenStorage';
-import { isJwtExpired } from './src/utils/jwt';
+import { isJwtExpired, getJwtUserId } from './src/utils/jwt';
+import { setAnalyticsUserId, trackScreenView } from './src/services/analytics';
 import { initBaseURL } from './src/api/client';
 import { useSettingsStore } from './src/stores/settingsStore';
 import SplashScreen from './src/screens/SplashScreen';
@@ -49,6 +50,15 @@ GoogleSignin.configure({
 });
 
 type NavigationMode = 'default' | 'homeImmerse' | 'songReview';
+
+function getActiveRouteName(state: NavigationState): string {
+  let route = state.routes[state.index];
+  while (route.state) {
+    const child = route.state as NavigationState;
+    route = child.routes[child.index ?? 0];
+  }
+  return route.name;
+}
 
 function getAndroidNavigationMode(
   navigationState: NavigationState | null,
@@ -88,6 +98,17 @@ function AndroidSystemBarController({ navigationState }: { navigationState: Navi
 function App() {
   const [initialRoute, setInitialRoute] = useState<keyof RootStackParamList | null>(null);
   const [navigationState, setNavigationState] = useState<NavigationState | null>(null);
+  // RN 화면은 네이티브 Activity 하나를 공유해 GA4 자동 screen_view 가 화면 단위로
+  // 찍히지 않는다. 곡 상세 체류 계산의 기준선이라 여기서 직접 찍는다.
+  const lastScreenNameRef = useRef<string | null>(null);
+  const handleNavigationState = useCallback((state: NavigationState | null | undefined) => {
+    setNavigationState(state ?? null);
+    if (!state) return;
+    const screenName = getActiveRouteName(state);
+    if (screenName === lastScreenNameRef.current) return;
+    lastScreenNameRef.current = screenName;
+    trackScreenView(screenName);
+  }, []);
   const [interLoaded] = useInterFonts({
     Inter_400Regular,
     Inter_500Medium,
@@ -112,6 +133,7 @@ function App() {
     initBaseURL().then(() =>
       tokenStorage.getToken().then((token) => {
         const valid = !!token && !isJwtExpired(token);
+        setAnalyticsUserId(valid ? getJwtUserId(token!) : null);
         if (valid) {
           useSettingsStore.getState().loadSettings();
           requestPermissionAndRegisterToken();
@@ -132,9 +154,9 @@ function App() {
               ref={navigationRef}
               onReady={() => {
                 flushPending();
-                setNavigationState(navigationRef.getRootState());
+                handleNavigationState(navigationRef.getRootState());
               }}
-              onStateChange={(state) => setNavigationState(state ?? null)}
+              onStateChange={handleNavigationState}
             >
               <AndroidSystemBarController navigationState={navigationState} />
               <AppNavigator initialRoute={initialRoute} />

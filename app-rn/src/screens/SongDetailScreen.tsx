@@ -23,6 +23,7 @@ import { usePlayerStore } from '../stores/playerStore';
 import { deckApi } from '../api/deckApi';
 import { songApi } from '../api/songApi';
 import { wordApi } from '../api/wordApi';
+import { trackSongDetailOpen } from '../services/analytics';
 import SkeletonBox from '../components/SkeletonLoading';
 import SongInfoSheet from '../components/SongInfoSheet';
 import ErrorDialog from '../components/ErrorDialog';
@@ -425,6 +426,15 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     const height = Math.ceil(event.nativeEvent.layout.height);
     setTabPageHeights(prev => prev.words === height ? prev : { ...prev, words: height });
   }, []);
+
+  // 곡 탐색 퍼널의 마지막 단계. 체류 시간은 BigQuery 에서 이 이벤트와 다음
+  // screen_view 의 간격으로 계산하므로 앱은 진입만 찍는다.
+  useFocusEffect(
+    useCallback(() => {
+      if (songId == null) return;
+      trackSongDetailOpen(songId, route.params?.origin ?? 'unknown');
+    }, [route.params?.origin, songId]),
+  );
 
   useFocusEffect(
     useCallback(() => {
