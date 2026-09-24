@@ -46,6 +46,26 @@ class SelectSensesStage(
             .filterValues { it.isNotEmpty() }
         if (selectableTokensByIndex.isEmpty()) return settledSenseByKey
 
+        // A line that came back with a word unanswered or answered with a sense it was never offered
+        // is resent once, alone: the resampled answer is usually complete. Per line, the attempt with
+        // fewer defects is kept, and only what is still wrong after the budget is reported.
+        val accepted = select(input, selectableTokensByIndex).toMutableMap()
+        repeat(MAX_DEFECT_RETRIES) {
+            val retryTokensByIndex = selectableTokensByIndex.filterKeys { accepted.getValue(it).defects.isNotEmpty() }
+            if (retryTokensByIndex.isEmpty()) return@repeat
+            select(input, retryTokensByIndex).forEach { (index, retried) ->
+                if (retried.defects.size < accepted.getValue(index).defects.size) accepted[index] = retried
+            }
+        }
+        accepted.values.flatMap { it.defects }.forEach(defectReporter::report)
+        return settledSenseByKey + accepted.values.flatMap { it.senseByKey.toList() }
+    }
+
+    private suspend fun select(
+        input: SenseSelectionStageInput,
+        selectableTokensByIndex: Map<Int, List<PipelineToken>>,
+    ): Map<Int, LineSelection> {
+        val lexical = input.wordPreparation.lexical
         val selectInput = selectableTokensByIndex.map { (index, tokens) ->
             mapOf(
                 "index" to index,
@@ -70,7 +90,7 @@ class SelectSensesStage(
             geminiClient.selectSenses(it, input.source.callContext)
         }
         val selectByIndex = validateLineIndices(selectableTokensByIndex.keys, selectedLines)
-        return settledSenseByKey + selectedSenseByKey(selectableTokensByIndex, selectByIndex, input)
+        return selectedSenseByKey(selectableTokensByIndex, selectByIndex, input)
     }
 
     /**
@@ -99,9 +119,9 @@ class SelectSensesStage(
         selectableTokensByIndex: Map<Int, List<PipelineToken>>,
         selectByIndex: Map<Int, SelectLineDto>,
         input: SenseSelectionStageInput,
-    ): Map<PipelineTokenKey, Int> {
+    ): Map<Int, LineSelection> {
         val lexical = input.wordPreparation.lexical
-        return selectableTokensByIndex.flatMap { (index, tokens) ->
+        return selectableTokensByIndex.mapValues { (index, tokens) ->
             val selectedWords = selectByIndex[index]?.words ?: emptyList()
             if (selectedWords.size != tokens.size) {
                 logger.warn(
@@ -115,7 +135,8 @@ class SelectSensesStage(
             // token identity — no surface/headword echo needed. The model does not keep request
             // order reliably, so the position of an answer in the array says nothing.
             val selectedByTokenId = selectedWords.associateBy { it.tokenId }
-            tokens.map { token ->
+            val defects = mutableListOf<AnalysisDefect>()
+            val senseByKey = tokens.associate { token ->
                 val selected = selectedByTokenId[token.key.tokenId]
                 val resolved = lexical.byTokenKey[token.key]
                 val selectedSenseId = selected?.senseId ?: NO_SENSE
@@ -138,7 +159,7 @@ class SelectSensesStage(
                     else -> null
                 }
                 defect?.let { (cause, detail) ->
-                    defectReporter.report(
+                    defects.add(
                         AnalysisDefect(
                             songId = input.source.callContext.songId,
                             lyricId = input.source.callContext.lyricId,
@@ -153,8 +174,14 @@ class SelectSensesStage(
                 }
                 token.key to if (valid) selectedSenseId else NO_SENSE
             }
-        }.toMap()
+            LineSelection(senseByKey, defects)
+        }
     }
+
+    private data class LineSelection(
+        val senseByKey: Map<PipelineTokenKey, Int>,
+        val defects: List<AnalysisDefect>,
+    )
 
     private fun validateLineIndices(
         expectedIndices: Set<Int>,
@@ -177,6 +204,9 @@ class SelectSensesStage(
     companion object {
         /** Lines per sense-select call. Bounds response length so long songs cannot stop mid-array. */
         const val SELECT_CHUNK_LINES = 20
+
+        /** Resends a line with a missing or unoffered answer may cost, as in [SegmentLyricsStage]. */
+        const val MAX_DEFECT_RETRIES = 1
 
         /** The senseId the prompt reserves for "no offered sense fits this line". */
         const val NO_SENSE = -1

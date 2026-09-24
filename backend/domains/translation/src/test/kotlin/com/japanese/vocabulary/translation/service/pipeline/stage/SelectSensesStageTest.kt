@@ -185,6 +185,92 @@ class SelectSensesStageTest {
     }
 
     @Nested
+    inner class DefectRetry {
+        private val reported = mutableListOf<AnalysisDefect>()
+        private val defectReporter = mockk<AnalysisDefectReporter>().also {
+            val defect = slot<AnalysisDefect>()
+            every { it.report(capture(defect)) } answers { reported += defect.captured }
+        }
+        private val stage = SelectSensesStage(geminiClient, defectReporter)
+
+        @Test
+        fun `resends a line whose words went unanswered and keeps the retried answers`(): Unit = runBlocking {
+            // song 177, line 27: the model answered neither です on the first call.
+            val raw = "みんなが悪魔で異常です、悪魔で異常です"
+            val first = lineToken(27, raw, "です", 9)
+            val second = lineToken(27, raw, "です", 17)
+            val offered = options(590, 591, 592, 593, 594, 595, 596)
+            every { geminiClient.selectSenses(any(), any()) } returnsMany listOf(
+                listOf(SelectLineDto(index = 27, words = emptyList())),
+                listOf(
+                    SelectLineDto(
+                        index = 27,
+                        words = listOf(
+                            SelectWordDto(senseId = 590, tokenId = first.key.tokenId),
+                            SelectWordDto(senseId = 590, tokenId = second.key.tokenId),
+                        ),
+                    ),
+                ),
+            )
+
+            val selected = stage.execute(lineInput(27, raw, listOf(first to offered, second to offered)))
+
+            assertThat(selected).containsExactlyInAnyOrderEntriesOf(mapOf(first.key to 590, second.key to 590))
+            assertThat(reported).isEmpty()
+        }
+
+        @Test
+        fun `resends a line whose word got a sense it was never offered`(): Unit = runBlocking {
+            // song 178, line 24: 甘さ was offered 54..62 and the model named 168.
+            val raw = "吐きそうな甘さを　飲み込むけど"
+            val amasa = lineToken(24, raw, "甘さ", 5, headword = "甘い")
+            val offered = options(54, 55, 56, 57, 58, 59, 60, 61, 62)
+            every { geminiClient.selectSenses(any(), any()) } returnsMany listOf(
+                listOf(SelectLineDto(index = 24, words = listOf(SelectWordDto(senseId = 168, tokenId = amasa.key.tokenId)))),
+                listOf(SelectLineDto(index = 24, words = listOf(SelectWordDto(senseId = 54, tokenId = amasa.key.tokenId)))),
+            )
+
+            val selected = stage.execute(lineInput(24, raw, listOf(amasa to offered)))
+
+            assertThat(selected).containsEntry(amasa.key, 54)
+            assertThat(reported).isEmpty()
+        }
+
+        private fun lineToken(index: Int, raw: String, surface: String, start: Int, headword: String = surface) =
+            PipelineToken(
+                lineIndex = index,
+                surface = surface,
+                headword = headword,
+                charStart = start,
+                charEnd = start + surface.length,
+                contextGloss = "gloss",
+            ).also { check(raw.substring(start, start + surface.length) == surface) }
+
+        private fun lineInput(
+            index: Int,
+            raw: String,
+            tokens: List<Pair<PipelineToken, List<PipelineSenseOption>>>,
+        ) = SenseSelectionStageInput(
+            source = TranslationPipelineSource.from(
+                listOf(LyricLineData(index = index, startTimeMs = null, text = raw)),
+                GeminiCallContext(songId = 177L, lyricId = 1L),
+            ),
+            translationMap = mapOf(index to TranslationResultDto(index = index, koreanLyrics = "")),
+            wordPreparation = WordPreparationResult(
+                segLines = emptyList(),
+                tokensByIndex = mapOf(index to tokens.map { it.first }),
+                ruleResolvedByKey = emptyMap(),
+                lexical = LexicalResolution(
+                    byTokenKey = tokens.associate { (token, options) ->
+                        token.key to LexicalResolvedToken(token, token.headword, options)
+                    },
+                    optionsById = tokens.flatMap { it.second }.associateBy { it.senseId },
+                ),
+            ),
+        )
+    }
+
+    @Nested
     inner class ExplicitNoMatch {
         private val reported = mutableListOf<AnalysisDefect>()
         private val defectReporter = mockk<AnalysisDefectReporter>().also {
