@@ -22,15 +22,31 @@ export const PROMO_WIDTH = 1080;
 export const PROMO_HEIGHT = 1920;
 // 인스타 릴스 UI 의 프로필 사진 바로 위. 가사·단어 블록은 이 위에서 끝나야 한다.
 const PROFILE_CUE_TOP = 1576;
-// 가사·단어 블록 좌우 여백과 그 안쪽 폭
+// 가사 블록 좌우 여백과 그 안쪽 폭
 const CONTENT_SIDE = 160;
 const LYRIC_WIDTH = PROMO_WIDTH - CONTENT_SIDE * 2;
+
+// 가사 토큰 스택의 기본 치수 — pen Reel v2 의 Token 프레임과 같다. 긴 줄에서는 scale 로 같이 줄인다.
+const TOKEN_FONT_SIZE = 58;
+const FURIGANA_FONT_SIZE = 26;
+const MEANING_FONT_SIZE = 30;
+const POS_BAR_HEIGHT = 7;
+const POS_BAR_RADIUS = 4;
+const TOKEN_GAP = 14;
+const TOKEN_ROW_GAP = 32;
+const TOKEN_STACK_GAP = 8;
+const FURIGANA_GAP = 2;
+// 후리가나·뜻이 없는 칸도 높이를 지켜야 옆 칸과 줄이 맞는다.
+const BLANK = '\u00A0';
 
 // 릴스 팔레트 — japanese-vocabulary.pen 의 Reel v2 프레임 변수와 같은 값
 const night = '#111012';
 const paper = '#F4F1EA';
 const ink = '#FAFAF6';
 const softInk = '#FAFAF6C7';
+const meaningInk = '#FAFAF6CC';
+const meaningSoftInk = '#FAFAF67A';
+const furiganaInk = '#FAFAF68C';
 const green = '#52B788';
 const glow = '#EFD463';
 
@@ -50,13 +66,14 @@ const app = {
   furigana: '#777777',
 };
 
-// 가사 강조색. 내용어 다섯 품사만 색을 갖고 나머지는 흰색이다(앱 Spotlight 와 같은 규칙).
-const spotlightColors: Partial<Record<PartOfSpeech | string, string>> = {
-  NOUN: '#5BA9FF',
-  VERB: '#3FE0A1',
-  ADJECTIVE: '#FFB347',
-  NA_ADJECTIVE: '#FF8FB3',
-  ADVERB: '#C49BFF',
+// 가사 토큰 아래에 깔리는 품사 바. 내용어 다섯 품사만 색을 갖고 나머지는 자리만 지킨다(앱 Spotlight 와 같은 규칙).
+// pen 의 pos-*-spotlight 변수와 같은 값이다.
+const posBarColors: Partial<Record<PartOfSpeech | string, string>> = {
+  NOUN: '#96BDF8',
+  VERB: '#3AD398',
+  ADJECTIVE: '#F4AE4E',
+  NA_ADJECTIVE: '#F9A3BD',
+  ADVERB: '#CDADF8',
 };
 
 // 앱 안 품사색(types/pos.ts). 목업의 밑줄·배지에 쓴다.
@@ -106,9 +123,16 @@ const NO_UNDERLINE_POS = new Set(['SYMBOL', 'SUPPLEMENTARY_SYMBOL', 'WHITESPACE'
 const NON_WORD_POS = new Set(['PARTICLE', 'AUXILIARY_VERB', 'SYMBOL', 'SUPPLEMENTARY_SYMBOL', 'WHITESPACE']);
 const KANJI_RE = /[一-鿿]/;
 
-type TextRun = {
-  color: string;
+// 가사 토큰 한 칸. 후리가나(한글 독음) / 원문 / 품사 바 / 뜻을 세로로 쌓는다.
+type LyricStackToken = {
+  key: string;
   text: string;
+  /** 한자를 품은 토큰만 한글 독음을 얹는다. 빈 문자열이면 자리만 비운다. */
+  furigana: string;
+  meaning: string;
+  barColor: string | null;
+  /** 조사·조동사·기호. 글자와 뜻을 한 단계 흐리게 둔다. */
+  functionWord: boolean;
 };
 
 export const PromoReel = ({data}: {data: PromoReelData}) => {
@@ -125,7 +149,7 @@ export const PromoReel = ({data}: {data: PromoReelData}) => {
   // 줄 진입은 짧은 직선 이동이다 — 스프링처럼 감속하지 않고 6프레임에 끝난다. 첫 줄도 같다.
   const entry = (delay: number) => linear(localFrame - delay, 0, ENTRY_FRAMES);
   const lyricEntry = entry(0);
-  const wordsEntry = entry(4);
+  const meaningEntry = entry(4);
   const mvFrame = data.mvFrame ?? null;
 
   return (
@@ -160,15 +184,7 @@ export const PromoReel = ({data}: {data: PromoReelData}) => {
           <ProfileCue />
           {activeIndex >= 0 && (
             <section style={styles.content}>
-              <div style={{...styles.lyricBlock, ...entryStyle(lyricEntry)}}>
-                <JapaneseLine line={activeLine} />
-                <p style={styles.korean}>{activeLine.koreanLyrics}</p>
-              </div>
-              {activeLine.vocabulary.length > 0 && (
-                <div style={{...styles.wordsEntry, ...entryStyle(wordsEntry)}}>
-                  <Vocabulary words={topWords(activeLine.vocabulary)} />
-                </div>
-              )}
+              <LyricBlockView line={activeLine} lyricEntry={lyricEntry} meaningEntry={meaningEntry} />
               {/* 남는 높이를 먹는 스페이서. 내용이 짧으면 위(927)에 붙고, 길면 0 으로 줄어 위로 넘친다. */}
               <div style={styles.contentSpacer} />
             </section>
@@ -234,43 +250,81 @@ const Header = ({data}: {data: PromoReelData}) => {
 const ProfileCue = () => (
   <div style={styles.profileCue}>
     <ArrowDownIcon />
-    <span style={styles.profileCueLabel}>일본어 단어장 앱 '코토노하'에서 전체 단어를 확인하세요!</span>
+    <span style={styles.profileCueLabel}>노래로 배우는 일본어 앱 '코토노하'에서 전체 단어를 확인하세요!</span>
   </div>
 );
 
-const JapaneseLine = ({line}: {line: PromoLine}) => {
+// 한 줄 전체를 토큰 단위로 펼친다. 원문 공백에서 행을 끊고, 한 행이 760 을 넘으면 그 안에서 다시 접는다.
+// 아래에 그 줄의 한글 독음과 번역을 붙인다(가사보다 4프레임 늦게 들어온다).
+const LyricBlockView = ({
+  line,
+  lyricEntry,
+  meaningEntry,
+}: {
+  line: PromoLine;
+  lyricEntry: number;
+  meaningEntry: number;
+}) => {
+  const rows = buildLyricRows(line);
+  const scale = lyricScale(rows);
+  const reading = convertLineReading(line.originalText, readingTokens(line.tokens), 'KOREAN');
   return (
-    <p style={{...styles.japanese, fontSize: japaneseFontSize(line.originalText)}}>
-      {buildTextRuns(line).map((run, index) => (
-        <span key={`${run.text}-${index}`} style={{color: run.color}}>
-          {run.text}
-        </span>
-      ))}
-    </p>
-  );
-};
-
-const Vocabulary = ({words}: {words: VocabularyWord[]}) => {
-  return (
-    <div style={styles.wordsBlock}>
-      <div style={styles.sectionRule} />
-      <div style={styles.wordList}>
-        {words.map((word) => {
-          const color = spotlightColors[word.partOfSpeech ?? ''] ?? ink;
-          return (
-            <div key={`${word.japanese}-${word.reading}-${word.korean}`} style={styles.wordRow}>
-              <div style={styles.wordLeft}>
-                <span style={{...styles.wordJapanese, color}}>{word.japanese}</span>
-                {word.reading && <span style={styles.wordReading}>{convertReading(word.reading, 'KOREAN')}</span>}
-              </div>
-              <span style={styles.wordKorean}>{word.korean}</span>
-            </div>
-          );
-        })}
+    <div style={styles.lyricBlock}>
+      <div style={{...styles.lyricRows, gap: TOKEN_ROW_GAP * scale, ...entryStyle(lyricEntry)}}>
+        {rows.map((row, index) => (
+          <div key={`row-${index}`} style={{...styles.lyricRow, columnGap: TOKEN_GAP * scale, rowGap: TOKEN_ROW_GAP * scale}}>
+            {row.map((token) => (
+              <TokenStack key={token.key} scale={scale} token={token} />
+            ))}
+          </div>
+        ))}
       </div>
+      {(reading !== '' || line.koreanLyrics !== '') && (
+        <div style={{...styles.lineMeaning, ...entryStyle(meaningEntry)}}>
+          {reading !== '' && <span style={styles.lineReading}>{reading}</span>}
+          {line.koreanLyrics !== '' && <span style={styles.korean}>{line.koreanLyrics}</span>}
+        </div>
+      )}
     </div>
   );
 };
+
+// 품사 바는 원문 글자 폭에 맞춘다 — 후리가나·뜻이 더 길어도 늘어나면 안 되므로 원문과 같은 칸에 넣고 stretch 시킨다.
+const TokenStack = ({token, scale}: {token: LyricStackToken; scale: number}) => (
+  <div style={{...styles.tokenStack, gap: TOKEN_STACK_GAP * scale}}>
+    <div style={{...styles.tokenReading, gap: FURIGANA_GAP * scale}}>
+      <span style={{...styles.furigana, fontSize: FURIGANA_FONT_SIZE * scale}}>{token.furigana === '' ? BLANK : token.furigana}</span>
+      <div style={{...styles.tokenWithBar, gap: TOKEN_STACK_GAP * scale}}>
+        <span
+          style={{
+            ...styles.token,
+            color: token.functionWord ? softInk : ink,
+            fontSize: TOKEN_FONT_SIZE * scale,
+          }}
+        >
+          {token.text}
+        </span>
+        <div
+          style={{
+            ...styles.posBar,
+            backgroundColor: token.barColor ?? 'transparent',
+            borderRadius: POS_BAR_RADIUS * scale,
+            height: POS_BAR_HEIGHT * scale,
+          }}
+        />
+      </div>
+    </div>
+    <span
+      style={{
+        ...styles.tokenMeaning,
+        color: token.functionWord ? meaningSoftInk : meaningInk,
+        fontSize: MEANING_FONT_SIZE * scale,
+      }}
+    >
+      {token.meaning === '' ? BLANK : token.meaning}
+    </span>
+  </div>
+);
 
 const EndCard = ({
   data,
@@ -831,43 +885,70 @@ const AppleIcon = () => (
 
 // ─── 데이터 도우미 ───────────────────────────────────────────────────────────────
 
-// 강조 단어(vocabulary)만 품사색을 갖고 나머지 토큰은 흰색이다.
-const buildTextRuns = (line: PromoLine): TextRun[] => {
-  const keyWords = new Set(line.vocabulary.map((word) => word.japanese));
-  const runs: TextRun[] = [];
-  let cursor = 0;
-
-  for (const token of [...line.tokens].sort((a, b) => a.charStart - b.charStart)) {
-    if (token.charStart > cursor) {
-      runs.push({color: ink, text: line.originalText.slice(cursor, token.charStart)});
+// 원문 공백에서 행을 끊고 각 토큰을 스택 한 칸으로 만든다. 공백은 칸을 만들지 않고 행만 바꾼다.
+// 토큰 순회는 buildMockLyricTokens 와 같은 규칙이다 — 토큰 사이의 빈 구간도 원문 그대로 살린다.
+const buildLyricRows = (line: PromoLine): LyricStackToken[][] => {
+  const rows: LyricStackToken[][] = [[]];
+  const push = (text: string, key: string, token?: LyricToken) => {
+    if (text === '') return;
+    if (text.trim() === '') {
+      if (rows[rows.length - 1].length > 0) rows.push([]);
+      return;
     }
-    const isKeyWord = keyWords.has(token.baseForm) || keyWords.has(token.surface);
-    runs.push({
-      color: isKeyWord ? (spotlightColors[token.partOfSpeech] ?? ink) : ink,
-      text: line.originalText.slice(token.charStart, token.charEnd),
+    const pos = token?.partOfSpeech ?? 'OTHER';
+    const reading = token?.reading ?? token?.baseFormReading ?? '';
+    rows[rows.length - 1].push({
+      key,
+      text,
+      furigana: reading !== '' && KANJI_RE.test(text) ? convertReading(reading, 'KOREAN') : '',
+      meaning: (token?.koreanText ?? '').trim(),
+      barColor: posBarColors[pos] ?? null,
+      functionWord: NON_WORD_POS.has(pos),
     });
+  };
+
+  let cursor = 0;
+  [...line.tokens].sort((a, b) => a.charStart - b.charStart).forEach((token, index) => {
+    if (token.charStart > cursor) push(line.originalText.slice(cursor, token.charStart), `gap-${index}`);
+    push(line.originalText.slice(token.charStart, token.charEnd) || token.surface, `token-${index}`, token);
     cursor = Math.max(cursor, token.charEnd);
-  }
+  });
+  if (cursor < line.originalText.length) push(line.originalText.slice(cursor), 'tail');
+  if (rows.every((row) => row.length === 0)) push(line.originalText, 'fallback');
 
-  if (cursor < line.originalText.length) {
-    runs.push({color: ink, text: line.originalText.slice(cursor)});
-  }
-
-  return runs.filter((run) => run.text.length > 0);
+  return rows.filter((row) => row.length > 0);
 };
 
-// 760px 폭에 58px 이면 한 줄 13자다. 긴 줄은 세 줄을 넘지 않게 줄이고,
-// 줄바꿈은 어절(공백) 단위라 가장 긴 어절이 한 줄에 들어가는 크기까지 더 줄인다(CJK 1자 = 1em).
-const LYRIC_FONT_SIZES = [58, 48, 42, 36];
-const japaneseFontSize = (text: string) => {
-  const length = text.replace(/\s+/g, '').length;
-  const byLength = length <= 26 ? 58 : length <= 40 ? 48 : 42;
-  const longestSegment = Math.max(...text.split(/\s+/).map((segment) => segment.length));
-  const fits = LYRIC_FONT_SIZES.find((size) => size <= byLength && longestSegment * size <= LYRIC_WIDTH);
-  return fits ?? LYRIC_FONT_SIZES[LYRIC_FONT_SIZES.length - 1];
+// 토큰 스택은 한 칸이 폭도 높이도 크다. 기본 크기로 높이가 예산을 넘으면 한 단계씩 줄인다.
+const TOKEN_SCALES = [1, 0.86, 0.74, 0.64];
+// 후리가나 26 + 2 + 원문 58×1.16 + 8 + 바 7 + 8 + 뜻 30×1.3
+const TOKEN_STACK_HEIGHT = 158;
+// Content 띠(927–1516) 에서 줄 독음·번역(≈90)과 그 위 간격(72)을 뺀 높이보다 조금 넉넉하게.
+// 넘치면 위로 자라는데, 헤더(–246)까지는 여유가 있다.
+const LYRIC_HEIGHT_BUDGET = 600;
+
+const lyricScale = (rows: LyricStackToken[][]) =>
+  TOKEN_SCALES.find((scale) => lyricRowHeight(rows, scale) <= LYRIC_HEIGHT_BUDGET) ?? TOKEN_SCALES[TOKEN_SCALES.length - 1];
+
+const lyricRowHeight = (rows: LyricStackToken[][], scale: number) => {
+  const count = rows.reduce((sum, row) => sum + Math.max(1, Math.ceil(rowWidth(row, scale) / LYRIC_WIDTH)), 0);
+  return count * TOKEN_STACK_HEIGHT * scale + (count - 1) * TOKEN_ROW_GAP * scale;
 };
 
-const topWords = (words: VocabularyWord[]) => words.slice(0, 2);
+// 한 칸의 폭은 원문·후리가나·뜻 중 가장 넓은 것이다. CJK/한글 1자 = 1em 으로 어림한다.
+const rowWidth = (row: LyricStackToken[], scale: number) =>
+  row.reduce(
+    (sum, token) =>
+      sum +
+      scale *
+        Math.max(
+          textWeight(token.text) * TOKEN_FONT_SIZE,
+          textWeight(token.furigana) * FURIGANA_FONT_SIZE,
+          textWeight(token.meaning) * MEANING_FONT_SIZE,
+        ),
+    0,
+  ) +
+  Math.max(0, row.length - 1) * TOKEN_GAP * scale;
 
 const uniqueByJapanese = () => {
   const seen = new Set<string>();
@@ -1084,78 +1165,86 @@ const styles = {
     minHeight: 0,
     width: '100%',
   },
-  wordsEntry: {
-    marginTop: 80,
-  },
   lyricBlock: {
     alignItems: 'center',
     display: 'flex',
     flexDirection: 'column',
-    gap: 20,
+    // 토큰 스택과 줄 독음·번역 사이. Pen Reel v2 의 Lyric gap 과 같다.
+    gap: 72,
     width: '100%',
   },
-  japanese: {
-    color: ink,
+  lyricRows: {
+    alignItems: 'center',
+    display: 'flex',
+    flexDirection: 'column',
+    width: '100%',
+  },
+  // 한 행이 760 을 넘으면 접힌다. 접힌 줄 사이 간격은 원문 공백으로 끊긴 행 사이와 같다.
+  lyricRow: {
+    alignItems: 'flex-start',
+    display: 'flex',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+  },
+  tokenStack: {
+    alignItems: 'center',
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  tokenReading: {
+    alignItems: 'center',
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  // 폭이 원문 글자에 맞춰지고, 품사 바가 stretch 로 그 폭을 채운다.
+  tokenWithBar: {
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  furigana: {
+    color: furiganaInk,
+    fontWeight: 500,
+    letterSpacing: -0.2,
+    lineHeight: 1,
+    whiteSpace: 'nowrap',
+  },
+  token: {
     fontWeight: 700,
-    // 2줄 이상일 때 답답하지 않게 — Pen Reel v2 의 줄 박스(1.16) + gap 20 과 같은 1.5 배
-    lineHeight: 1.5,
-    margin: 0,
-    // 어절(공백) 단위로만 줄을 바꾼다. 단어 한가운데서 꺾이면 안 읽힌다.
-    overflowWrap: 'anywhere',
-    wordBreak: 'keep-all',
+    lineHeight: 1.16,
+    textAlign: 'center',
+    whiteSpace: 'nowrap',
+  },
+  posBar: {
+    flexShrink: 0,
+  },
+  tokenMeaning: {
+    fontWeight: 500,
+    letterSpacing: -0.4,
+    lineHeight: 1.3,
+    textAlign: 'center',
+    whiteSpace: 'nowrap',
+  },
+  lineMeaning: {
+    alignItems: 'center',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 6,
+    width: '100%',
+  },
+  lineReading: {
+    color: furiganaInk,
+    fontSize: 28,
+    fontWeight: 500,
+    letterSpacing: 0.2,
+    lineHeight: 1.3,
   },
   korean: {
     color: 'rgba(250,250,246,0.85)',
-    fontSize: 38,
+    fontSize: 36,
     fontWeight: 500,
     letterSpacing: -0.8,
     lineHeight: 1.3,
     margin: 0,
-  },
-  wordsBlock: {
-    width: 600,
-  },
-  sectionRule: {
-    backgroundColor: 'rgba(244,241,234,0.20)',
-    height: 2,
-    marginBottom: 40,
-    width: '100%',
-  },
-  wordList: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 36,
-  },
-  wordRow: {
-    alignItems: 'center',
-    display: 'flex',
-    justifyContent: 'space-between',
-    minHeight: 48,
-  },
-  wordLeft: {
-    alignItems: 'baseline',
-    display: 'flex',
-    gap: 12,
-    minWidth: 0,
-  },
-  wordJapanese: {
-    fontSize: 48,
-    fontWeight: 700,
-    lineHeight: 1,
-  },
-  wordReading: {
-    color: 'rgba(250,250,246,0.50)',
-    fontSize: 24,
-    fontWeight: 500,
-  },
-  wordKorean: {
-    color: 'rgba(250,250,246,0.90)',
-    fontSize: 36,
-    fontWeight: 600,
-    letterSpacing: -0.6,
-    lineHeight: 1.3,
-    maxWidth: 300,
-    textAlign: 'right',
   },
 
   // ─── 엔드카드 ───

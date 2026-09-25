@@ -30,7 +30,8 @@ npm run render:request -- --input /tmp/render-input.json --output /tmp/reel.mp4
 - 릴스 폰트는 에스코어 드림(`src/fonts/SCDream{4..8}.woff2`, weight 400~800)이다. `src/fonts/scoreDream.ts` 가 `FontFace` 로 등록하고 `delayRender` 로 로드를 기다린다 — Remotion 번들러와 Vite 둘 다 `.woff2` import 를 URL 로 내보내서 렌더와 어드민 미리보기가 같은 파일을 쓴다. 에스코어 드림에 없는 일본어는 뒤의 Noto CJK 로 떨어지고, 엔드카드의 앱 목업(`styles.phone`)만 실제 앱과 같은 Noto 스택을 유지한다.
 - `song.mvAsset` / `song.artworkAsset` 은 `public/` 파일명 또는 URL(`http…`, `/…`) 둘 다 받습니다. 렌더는 파일명, 미리보기는 admin-api 스트리밍 URL 을 넘깁니다.
 - `mvFrame`(`{scale, x, y, crop?}`, 없으면 cover)이 있으면 MV 를 `crop`(각 변 비율, CSS `object-view-box` — Chromium 전용)만큼 잘라낸 뒤 폭 `1080 × scale` 로 줄이거나 키워 가운데에서 `x/y` px 옮기고, 빈 곳엔 같은 MV 를 같은 `sourceStartFrame` 부터 블러해서 깐다. 릴스 전체에 고정된 값이다.
-- props 는 어드민 에디터가 브라우저에서 만들고(`admin-web/src/pages/reels-factory/reelEditor.ts`) 렌더 요청에 그대로 실립니다. 첫 줄 `startFrame` 이 0 보다 크면 그 앞은 가사 없이 MV 만 흐르고, `vocabulary` 가 빈 줄은 단어 블록을 그리지 않습니다.
+- props 는 어드민 에디터가 브라우저에서 만들고(`admin-web/src/pages/reels-factory/reelEditor.ts`) 렌더 요청에 그대로 실립니다. 첫 줄 `startFrame` 이 0 보다 크면 그 앞은 가사 없이 MV 만 흐릅니다.
+- 가사 화면은 그 줄의 토큰을 **전부** 펼친다. 한 토큰이 후리가나(한글 독음) · 원문 · 품사 바 · 뜻 한 칸이고, 원문 공백에서 행이 끊긴다. 그래서 `tokens[].reading` 과 `tokens[].koreanText` 가 있어야 화면이 채워진다 — 조사·조동사도 룰 기반 뜻(`~에`, `~의`)이 내려온다. `vocabulary` 는 이제 가사 화면이 아니라 엔드카드 목업(핵심 단어 · 단어 수)에만 쓰인다.
 
 sample 렌더 결과:
 
@@ -62,13 +63,15 @@ Remotion 컴포지션은 `PromoReelData` 하나를 받습니다. `lyricLines`가
 
 줄 전환은 `startFrame` 을 그대로 따른다 — 현재 프레임에 시작해 있는 마지막 줄이 화면에 보인다. 균등 분할이 아니다.
 
-가사 줄에서는 강조 단어(`vocabulary`)만 품사색을 갖고 나머지 토큰은 흰색이다(pen `Reel v2` 프레임).
+가사 토큰 아래 품사 바는 내용어 다섯 품사만 색을 갖고 나머지(조사·조동사·기호)는 투명한 자리로 남는다. 원문 글자와 뜻도 그 토큰만 한 단계 흐리다. 값은 pen `Reel v2` 프레임의 `pos-*-spotlight` 변수와 같다.
 
-- 명사 `#5BA9FF`
-- 동사 `#3FE0A1`
-- 형용사 `#FFB347`
-- な형용사 `#FF8FB3`
-- 부사 `#C49BFF`
+- 명사 `#96BDF8`
+- 동사 `#3AD398`
+- 형용사 `#F4AE4E`
+- な형용사 `#F9A3BD`
+- 부사 `#CDADF8`
+
+토큰 스택이 `Content` 띠(927–1516)보다 높아지면 `TOKEN_SCALES` 로 한 단계씩(1 → 0.86 → 0.74 → 0.64) 줄인다. 줄 아래에는 그 줄 전체의 한글 독음(`convertLineReading`)과 번역이 붙는다.
 
 엔드카드의 폰 목업은 실제 앱 화면(`SongDetailScreen` → `CurrentPlayingWordsSheet` → 단어 탭 → `SongReviewScreen` 앞면/뒷면/rating/스와이프)을 코드로 다시 그린 것이다. 앱 UI 가 바뀌면 `PromoReel.tsx` 의 목업도 같이 고친다. 전환은 자막처럼 하드컷이고 움직임은 시트 상승과 카드 스와이프 둘뿐이다(스프링·페이드 없음).
 

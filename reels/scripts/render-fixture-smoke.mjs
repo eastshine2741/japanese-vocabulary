@@ -54,8 +54,8 @@ const data = {
     originalText: `夢を見る${index}`,
     koreanLyrics: `꿈을 꾸다 ${index}`,
     tokens: [
-      {surface: '夢', baseForm: '夢', partOfSpeech: 'NOUN', charStart: 0, charEnd: 1},
-      {surface: '見る', baseForm: '見る', partOfSpeech: 'VERB', charStart: 2, charEnd: 4},
+      {surface: '夢', baseForm: '夢', reading: 'ユメ', partOfSpeech: 'NOUN', charStart: 0, charEnd: 1, koreanText: '꿈'},
+      {surface: '見る', baseForm: '見る', reading: 'ミル', partOfSpeech: 'VERB', charStart: 2, charEnd: 4, koreanText: '보다'},
     ],
     vocabulary: [{japanese: '夢', reading: 'ゆめ', korean: '꿈'}],
   })),
