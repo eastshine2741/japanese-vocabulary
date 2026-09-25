@@ -377,6 +377,49 @@ class LexicalResolverTest {
     }
 
     @Test
+    fun `a godan potential headword is looked up as its dictionary form`(): Unit = runBlocking {
+        // songId=194, "なんだっけ思い出せないのは": segmentation gave the potential 思い出せる as the
+        // headword, jisho has no entry for it, and the word reached the app with no meaning.
+        stub("思い出す" to found(godanEntry("思い出す", "オモイダス", "to recall")))
+
+        val resolved = resolver.resolve(
+            listOf(token("思い出せない", "思い出せる", "オモイダセル")),
+        ).byTokenKey.values.single()
+
+        assertThat(resolved.baseForm).isEqualTo("思い出す")
+        assertThat(resolved.options.map { it.english }).containsExactly("to recall")
+        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+    }
+
+    @Test
+    fun `every godan row of the potential is restored`(): Unit = runBlocking {
+        val cases = listOf(
+            Triple("買える", "カエル", godanEntry("買う", "カウ", "to buy")),
+            Triple("話せる", "ハナセル", godanEntry("話す", "ハナス", "to speak")),
+            Triple("帰れる", "カエレル", godanEntry("帰る", "カエル", "to return")),
+            Triple("飲める", "ノメル", godanEntry("飲む", "ノム", "to drink")),
+            Triple("待てる", "マテル", godanEntry("待つ", "マツ", "to wait")),
+        )
+        stub(*cases.map { (_, _, entry) -> entry.headword!! to found(entry) }.toTypedArray())
+
+        for ((headword, reading, entry) in cases) {
+            val resolved = resolver.resolve(listOf(token(headword, headword, reading))).byTokenKey.values.single()
+
+            assertThat(resolved.baseForm).isEqualTo(entry.headword)
+            assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+        }
+    }
+
+    @Test
+    fun `the restored potential verb is not reported as unresolved`(): Unit = runBlocking {
+        stub("思い出す" to found(godanEntry("思い出す", "オモイダス", "to recall")))
+
+        val missed = resolver.unresolvedTokens(listOf(token("思い出せない", "思い出せる", "オモイダセル")))
+
+        assertThat(missed).isEmpty()
+    }
+
+    @Test
     fun `a lookup jisho never answered is reported as a provider error, not a miss`(): Unit = runBlocking {
         // songId=82: jisho returned 502 for ninety seconds and 太陽 went out with no meaning, logged
         // as if no entry existed. The segmentation stage must be able to tell the two apart — one
@@ -470,6 +513,14 @@ class LexicalResolverTest {
         jlpt = jlpt,
         senses = listOf(
             JishoOptionDto(pos = listOf("Noun"), english = english, englishDefinitions = listOf(english)),
+        ),
+    )
+
+    private fun godanEntry(headword: String, reading: String, english: String) = JishoDictionaryEntryDto(
+        headword = headword,
+        reading = reading,
+        senses = listOf(
+            JishoOptionDto(pos = listOf("Godan verb", "Transitive verb"), english = english, englishDefinitions = listOf(english)),
         ),
     )
 
