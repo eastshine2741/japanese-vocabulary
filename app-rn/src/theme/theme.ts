@@ -11,6 +11,8 @@ export const Colors = {
   textSecondary: '#666666',
   textMuted: '#888888',
   border: '#E5E5E5',
+  /** 카드보다 한 단계 옅은 바탕 — 가사 다이얼의 포커스 띠 등. */
+  surfaceSubtle: '#F6F6F6',
   overlay: '#00000044',
   accentRed: '#EF4444',
 

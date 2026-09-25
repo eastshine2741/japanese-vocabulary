@@ -26,6 +26,11 @@ export {
   type CurrentPlayingWordsSheetProps,
 } from './CurrentPlayingWordsSheet';
 export {
+  default as SongLyricsDial,
+  type SongLyricsDialEntry,
+  type SongLyricsDialProps,
+} from './SongLyricsDial';
+export {
   SongDetailMvBar,
   SONG_DETAIL_MV_BAR_HEIGHT,
   type SongDetailMvBarProps,
