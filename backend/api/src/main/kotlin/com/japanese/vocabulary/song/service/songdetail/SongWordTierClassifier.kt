@@ -12,25 +12,35 @@ import com.japanese.vocabulary.song.model.LyricLineData
  * jisho JLPT 는 쉬운 단어를 N1·미분류로 찍는 쪽으로만 틀리고 어려운 단어를 N5·N4 로 찍지는 않으므로,
  * "N5·N4 면 기초" 는 안전하다. 새는 쪽은 심화이고 심화는 원래 나머지 전부다.
  *
- * 순서: 핵심을 먼저 뽑고 남은 것을 입문 → 기초 → 심화로 나눈다. prod 79곡 시뮬레이션 기준
- * 곡당 핵심 10 / 입문 12 / 기초 21 / 심화 39 (중앙값).
+ * 순서: 핵심을 먼저 뽑고 남은 것을 입문 → 기초 → 심화로 나눈다. 핵심은 개수 상한 없이 조건을 만족하는 단어 전부다.
  */
 object SongWordTierClassifier {
-    /** 핵심 단어 수. 홈의 핵심 단어 카드 5개는 이 안에 들어간다. */
-    const val CORE_SIZE = 10
-
     /** 후렴 줄이 가사의 이 비율을 넘으면 "후렴에 나온다" 는 기준이 무의미해져 등장 횟수 우선으로 뽑는다. */
     private const val CHORUS_DOMINANT_RATIO = 0.5
 
     private val BASIC_JLPT = setOf("N5", "N4")
 
+    /**
+     * 현재 3단계. 4단계를 그대로 묶는다 — 후렴 정복 = 핵심, 따라 부르기 = 입문 + 기초(등장순), 완곡 = 심화.
+     */
+    fun classifyCurrent(words: List<WordInSongItemDto>, rawLines: List<LyricLineData>): Map<SongWordTierKey, List<WordInSongItemDto>> {
+        val legacy = classify(words, rawLines)
+        return mapOf(
+            SongWordTierKey.CHORUS to legacy.getValue(SongWordTierKey.CORE),
+            SongWordTierKey.SINGALONG to (legacy.getValue(SongWordTierKey.STARTER) + legacy.getValue(SongWordTierKey.BASIC))
+                .sortedWith(BY_APPEARANCE),
+            SongWordTierKey.FULL to legacy.getValue(SongWordTierKey.ADVANCED),
+        )
+    }
+
+    /** 구버전 4단계(핵심·입문·기초·심화). */
     fun classify(words: List<WordInSongItemDto>, rawLines: List<LyricLineData>): Map<SongWordTierKey, List<WordInSongItemDto>> {
         val chorusLines = chorusLineIndexes(rawLines)
         val chorusRatio = if (rawLines.isEmpty()) 0.0 else chorusLines.size.toDouble() / rawLines.size
         val remaining = words.toMutableList()
 
-        fun take(order: Comparator<WordInSongItemDto>, limit: Int = Int.MAX_VALUE, predicate: (WordInSongItemDto) -> Boolean): List<WordInSongItemDto> {
-            val picked = remaining.filter(predicate).sortedWith(order).take(limit)
+        fun take(order: Comparator<WordInSongItemDto>, predicate: (WordInSongItemDto) -> Boolean): List<WordInSongItemDto> {
+            val picked = remaining.filter(predicate).sortedWith(order)
             remaining.removeAll(picked)
             return picked
         }
@@ -41,7 +51,7 @@ object SongWordTierClassifier {
         } else {
             SongDetailQueryService.IMPORTANCE_RANKING
         }
-        val core = take(coreOrder, CORE_SIZE) { word ->
+        val core = take(coreOrder) { word ->
             !isCommon(word) && (word.frequency >= 2 || word.lineIndexes.any { it in chorusLines })
         }
         val starter = take(BY_APPEARANCE) { isCommon(it) }

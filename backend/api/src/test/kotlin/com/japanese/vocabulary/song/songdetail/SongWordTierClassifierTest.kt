@@ -58,7 +58,7 @@ class SongWordTierClassifierTest {
     }
 
     @Test
-    fun `core takes chorus-line and repeated words by importance, capped at ten, and never common words`() {
+    fun `core takes every chorus-line and repeated word by importance, and never common words`() {
         // 0·2 번 줄이 후렴(같은 텍스트 두 번).
         val raw = lines("後렴", "절", "後렴", "절2")
         val chorusWords = (1..12).map { word("후렴$it", 100.0 - it, it, listOf(0)) }
@@ -70,9 +70,8 @@ class SongWordTierClassifierTest {
         val tiers = SongWordTierClassifier.classify(words, raw)
 
         val core = tiers.names(SongWordTierKey.CORE)
-        assertThat(core).hasSize(SongWordTierClassifier.CORE_SIZE)
-        // 중요도 순: 두 줄에 나오는 "반복" 이 맨 앞, 이어서 후렴 단어 상위 9개.
-        assertThat(core).startsWith("반복", "후렴1")
+        // 상한 없이 전부. 중요도 순: 두 줄에 나오는 "반복" 이 맨 앞, 이어서 후렴 단어.
+        assertThat(core).containsExactlyElementsOf(listOf("반복") + chorusWords.map { it.japanese })
         assertThat(core).doesNotContain("한번", "いる")
         assertThat(tiers.names(SongWordTierKey.STARTER)).containsExactly("いる")
         // 한 줄에만 나오는 단어는 아무리 중요도가 높아도 핵심이 아니다.
@@ -120,7 +119,24 @@ class SongWordTierClassifierTest {
     @Test
     fun `empty input yields four empty tiers`() {
         val tiers = SongWordTierClassifier.classify(emptyList(), emptyList())
-        assertThat(tiers.keys).containsExactlyInAnyOrder(*SongWordTierKey.entries.toTypedArray())
+        assertThat(tiers.keys).containsExactlyInAnyOrderElementsOf(SongWordTierKey.legacyKeys)
         assertThat(tiers.values).allSatisfy { assertThat(it).isEmpty() }
+    }
+
+    @Test
+    fun `current tiers group legacy tiers without overlap and singalong keeps appearance order`() {
+        val words = listOf(
+            word("胸", 90.0, 0, listOf(0, 2)),
+            word("雨", 50.0, 1, listOf(1), jlpt = "N5"),
+            word("する", 80.0, 2, listOf(0, 1), pos = "VERB"),
+            word("輪郭", 40.0, 3, listOf(3), jlpt = null),
+        )
+        val tiers = SongWordTierClassifier.classifyCurrent(words, lines("胸する", "する雨", "胸", "輪郭"))
+
+        assertThat(tiers.keys).containsExactlyElementsOf(SongWordTierKey.current)
+        assertThat(tiers.names(SongWordTierKey.CHORUS)).containsExactly("胸")
+        // 입문(する)·기초(雨)를 합쳐 등장순으로 다시 놓는다.
+        assertThat(tiers.names(SongWordTierKey.SINGALONG)).containsExactly("雨", "する")
+        assertThat(tiers.names(SongWordTierKey.FULL)).containsExactly("輪郭")
     }
 }

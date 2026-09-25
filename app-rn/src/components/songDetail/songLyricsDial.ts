@@ -5,10 +5,10 @@ import type { CurrentPlayingLyricLine, CurrentPlayingWord } from './CurrentPlayi
 
 /** 줄과 줄 사이. 포커스 띠는 이 간격을 덮지 않는다. */
 export const LINE_GAP = 22;
-/** 아직 재보지 않은 줄의 임시 높이. */
-export const DEFAULT_LINE_HEIGHT = 48;
-/** 한 줄을 넘기는 데 필요한 드래그 거리. 안 눌린 줄의 간격(≈48)에 맞춰 잡았다. */
-export const DRAG_STEP = 56;
+/** 아직 재보지 않은 줄의 임시 높이. 접힌 줄 하나(글자 26 + 위아래 여백 12씩)에 맞췄다. */
+export const DEFAULT_LINE_HEIGHT = 50;
+/** 한 줄을 넘기는 데 필요한 드래그 거리. 접힌 줄의 간격(높이 + LINE_GAP)과 같아서 손가락과 가사가 같이 움직인다. */
+export const DRAG_STEP = DEFAULT_LINE_HEIGHT + LINE_GAP;
 
 const KANJI_RE = /[一-鿿]/;
 /** 색 띠를 두르지 않는 품사 — 조사·기호는 학습 대상이 아니다. */

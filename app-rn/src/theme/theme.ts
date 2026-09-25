@@ -52,21 +52,17 @@ export const Colors = {
   freezeFill: '#E8F0F9',
   freezeStroke: '#5B9BF5',
 
-  // Word mastery progress bar (profile hero, song progress row, song detail progress)
-  wordMasteryTrackBackground: '#F6F6F6',
-  wordMasteryStudying: '#FABD23',
-  wordMasteryNewIndicator: '#D2D2D2',
+  // 이해도 (가사 줄 기준) / 기억 칸 진행 바 — 곡 상세·프로필·단어장이 같은 색을 쓴다
+  coverageAccent: '#E5A100',
+  coverageTrack: '#F4EEDF',
+  /** 장기기억 — 7일 뒤 90% 이상 회상. primary 와 같은 초록. */
+  memoryLongTerm: '#16B364',
+  /** 단기기억 — 한 번이라도 학습한 단어. */
+  memoryShortTerm: '#22B8CF',
+  /** 남음 — 한 번도 학습하지 않은 단어. */
+  memoryRemaining: '#D2D2D2',
+  tierTrack: '#EEEEEE',
 
-  // Word tier cards (song detail — 단어 학습)
-  tierCoreBg: '#F0FBF5',
-  tierCoreTrackBg: '#D6EFE1',
-  tierCoreChipBorder: '#CDEBDB',
-  tierLearnButtonText: '#107A45',
-  tierAdvancedBg: '#FFFBF2',
-  tierAdvancedBorder: '#F7E4B5',
-  tierAdvancedAccent: '#F0A81C',
-  tierAdvancedText: '#9A6A08',
-  tierAdvancedButtonBg: '#FDEBB8',
 
   // Legacy aliases
   textTertiary: '#A1A1AA',

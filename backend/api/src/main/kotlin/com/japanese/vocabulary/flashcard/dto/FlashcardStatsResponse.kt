@@ -6,4 +6,6 @@ data class FlashcardStatsResponse(
     val newCount: Long,
     val learning: Long,
     val review: Long,
+    val longTermCount: Long,
+    val shortTermCount: Long,
 )

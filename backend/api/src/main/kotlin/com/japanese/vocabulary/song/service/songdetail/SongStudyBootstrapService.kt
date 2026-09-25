@@ -54,7 +54,7 @@ class SongStudyBootstrapService(
             ?: throw BusinessException(ErrorCode.WORD_NOT_FOUND)
         val flashcardId = flashcardService.findLeadCandidate(userId, wordId)?.id
             ?: throw BusinessException(ErrorCode.FLASHCARD_NOT_FOUND)
-        flashcardService.reviewCard(userId, flashcardId, rating)
+        val reviewed = flashcardService.reviewCard(userId, flashcardId, rating)
 
         val deckId = deckService.findBySongId(userId, songId)?.id
             ?: throw BusinessException(ErrorCode.DECK_NOT_FOUND)
@@ -65,6 +65,7 @@ class SongStudyBootstrapService(
             cards = due.items,
             totalCount = due.totalCount,
             nextDueAt = due.nextDueAt,
+            reviewedMemory = reviewed.memory,
         )
     }
 

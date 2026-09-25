@@ -14,7 +14,7 @@ import HeatmapSection from '../../components/studyStats/HeatmapSection';
 import FreezeInfoSheet from '../../components/studyStats/FreezeInfoSheet';
 import SongProgressRow from '../../components/studyStats/SongProgressRow';
 import { SongProgressItem, toSongProgressItem } from '../../components/studyStats/songProgress';
-import WordMasteryProgressBar from '../../components/WordMasteryProgressBar';
+import MemoryProgressBar from '../../components/MemoryProgressBar';
 import { flashcardApi } from '../../api/flashcardApi';
 import { FlashcardStatsResponse } from '../../types/flashcard';
 
@@ -99,8 +99,8 @@ export default function MyPageTab() {
   const progressItems = useMemo(() => songDecks.map(toSongProgressItem), [songDecks]);
   const representativeSongs = useMemo(() => progressItems.slice(0, 5), [progressItems]);
   const totalWords = flashcardStats?.total ?? sumBy(progressItems, (item) => item.totalWords);
-  const masteredWords = flashcardStats?.review ?? sumBy(progressItems, (item) => item.masteredCount);
-  const learningWords = flashcardStats?.learning ?? sumBy(progressItems, (item) => item.learningCount);
+  const longTermWords = flashcardStats?.longTermCount ?? sumBy(progressItems, (item) => item.longTermCount);
+  const shortTermWords = flashcardStats?.shortTermCount ?? sumBy(progressItems, (item) => item.shortTermCount);
   const showStatsFallback = !flashcardStats && !!statsError;
 
   const handleSongProgressPress = useCallback((item: SongProgressItem) => {
@@ -152,8 +152,8 @@ export default function MyPageTab() {
 
         <LearningHero
           totalWords={totalWords}
-          masteredWords={masteredWords}
-          learningWords={learningWords}
+          longTermWords={longTermWords}
+          shortTermWords={shortTermWords}
           showFallback={showStatsFallback}
         />
         <HeatmapSection onPressFreeze={handleOpenFreeze} />
@@ -199,36 +199,34 @@ export default function MyPageTab() {
 
 function LearningHero({
   totalWords,
-  masteredWords,
-  learningWords,
+  longTermWords,
+  shortTermWords,
   showFallback,
 }: {
   totalWords: number;
-  masteredWords: number;
-  learningWords: number;
+  longTermWords: number;
+  shortTermWords: number;
   showFallback: boolean;
 }) {
   const safeTotal = Math.max(0, totalWords);
-  const safeMastered = Math.min(Math.max(0, masteredWords), safeTotal);
-  const safeLearning = Math.min(Math.max(0, learningWords), Math.max(0, safeTotal - safeMastered));
+  const safeLongTerm = Math.min(Math.max(0, longTermWords), safeTotal);
   const caption = safeTotal > 0
-    ? `${safeTotal}단어 중 ${safeMastered}개를 외웠어요`
+    ? `${safeTotal}단어 중 ${safeLongTerm}개를 외웠어요`
     : '저장한 단어가 아직 없어요';
   return (
     <View style={styles.heroBlock}>
       <View style={styles.heroLine}>
-        <Text style={styles.heroValue}>{safeMastered}</Text>
+        <Text style={styles.heroValue}>{safeLongTerm}</Text>
         <Text style={styles.heroTail}>/ {safeTotal} 단어</Text>
       </View>
       <Text style={styles.heroCaption}>
         {showFallback ? `${caption} · 일부 통계는 곡별 진도로 계산했어요` : caption}
       </Text>
-      <WordMasteryProgressBar
+      <MemoryProgressBar
         totalCount={safeTotal}
-        masteredCount={safeMastered}
-        studyingCount={safeLearning}
+        longTermCount={safeLongTerm}
+        shortTermCount={shortTermWords}
         showLegend
-        legendAlignment="space-between"
       />
     </View>
   );

@@ -11,8 +11,11 @@ import { SongDeckSummary } from '../../types/deck';
 import { WordInSongItemDto, WordsInSongDto } from '../../types/song';
 import { sourceFromDeck, sourceFromRecommendation } from './studySource';
 import {
+  accumulateMemoryDiff,
+  EMPTY_MEMORY_DIFF,
   PREVIEW_FLASHCARD_ID,
   StudyCard,
+  StudyMemoryDiff,
   StudyPreviewWord,
   StudySessionProgress,
   StudySource,
@@ -64,6 +67,9 @@ function toPreviewCard(lead: StudyPreviewWord, source: StudySource): StudyCard {
     state: 0,
     due: new Date().toISOString(),
     intervals: null,
+    // 아직 담기지 않은 단어라 flashcard 자체가 없다. rating 을 확정하는 순간 studyBootstrap 이
+    // 담으면서 바로 리뷰하고, 그 응답의 reviewedMemory 로 기억 이동을 센다.
+    memory: 'REMAINING',
     source: { ...source, totalCount: 1 },
   };
 }
@@ -100,6 +106,8 @@ export interface StudyStackState {
   /** 무대(아트워크)가 그려야 할 곡. 아무 것도 없으면 null. */
   visibleSource: StudySource | null;
   session: StudySessionProgress;
+  /** 이번 세션에서 기억 칸이 바뀐 단어 수. 완주 카드의 diff. */
+  memoryDiff: StudyMemoryDiff;
   translateY: Animated.Value;
   revealProgress: Animated.Value;
   panHandlers: GestureResponderHandlers;
@@ -143,6 +151,8 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
   /** n: 이번 세션에서 리뷰를 마친 distinct 카드 수. 페이지네이션으로 같은 카드를 다시 봐도 한 번만 센다. */
   const [distinctReviewedCount, setDistinctReviewedCount] = useState(0);
   const reviewedIdsRef = useRef<Set<number>>(new Set());
+  /** 이번 세션에서 기억 칸이 실제로 바뀐 단어 수. 완주 카드가 보여준다. */
+  const [memoryDiff, setMemoryDiff] = useState<StudyMemoryDiff>(EMPTY_MEMORY_DIFF);
   // 카드마다 새 인스턴스로 교체한다 — 하나를 계속 재사용해 setValue(0) 으로 리셋하면
   // "내용 교체(React 렌더)" 와 "위치/투명도 리셋(Animated 값)" 이 서로 다른 파이프라인이라
   // 완전히 같은 프레임에 반영된다는 보장이 없다: 늦게 반영되면 새 카드가 여전히
@@ -248,6 +258,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     setSessionDueTotal(0);
     reviewedIdsRef.current = new Set();
     setDistinctReviewedCount(0);
+    setMemoryDiff(EMPTY_MEMORY_DIFF);
     clearRatingHold();
     setSelectedRating(null);
     setRevealed(false);
@@ -255,7 +266,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     fixedQueueRef.current = false;
     try {
       if (target.tierKey != null && target.songId != null) {
-        // 단계 학습: 서버가 그 단계 단어를 담고 due 와 무관하게 전부 준다. 이 목록이 세션의 전부다.
+        // 단계 학습: 서버가 그 단계의 due 단어를 담고 한 번에 준다. 이 목록이 세션의 전부다.
         const result = await songApi.studyWordTier(target.songId, target.tierKey);
         if (version !== requestVersion.current) return;
         const tierSource: StudySource = { ...target, deckId: result.deckId, totalCount: result.totalCount };
@@ -435,6 +446,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     setSessionDueTotal(0);
     reviewedIdsRef.current = new Set();
     setDistinctReviewedCount(0);
+    setMemoryDiff(EMPTY_MEMORY_DIFF);
     setStatus('loading');
     setLoadError(null);
     try {
@@ -610,6 +622,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
       reviewedIdsRef.current = new Set([PREVIEW_FLASHCARD_ID]);
       setReviewedCount(1);
       setDistinctReviewedCount(1);
+      setMemoryDiff(accumulateMemoryDiff(EMPTY_MEMORY_DIFF, 'REMAINING', result.reviewedMemory));
       if (result.cards.length > 0) {
         setCards(result.cards.map(card => ({ ...card, source: newSource })));
         setCurrentIndex(0);
@@ -653,11 +666,12 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
       }).start(() => resolve());
     });
     try {
-      await Promise.all([animationPromise, reviewPromise]);
+      const [, reviewResult] = await Promise.all([animationPromise, reviewPromise]);
       if (version !== requestVersion.current) return;
       useStudyStatsStore.getState().invalidate();
       useStreakStore.getState().recordRating();
       setReviewError(null);
+      setMemoryDiff(diff => accumulateMemoryDiff(diff, reviewedCard.memory, reviewResult.memory));
       setReviewedCount(count => count + 1);
       if (!reviewedIdsRef.current.has(reviewedCard.id)) {
         reviewedIdsRef.current.add(reviewedCard.id);
@@ -786,6 +800,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     setSessionDueTotal(0);
     reviewedIdsRef.current = new Set();
     setDistinctReviewedCount(0);
+    setMemoryDiff(EMPTY_MEMORY_DIFF);
     setCompletedSource(null);
     void (async () => {
       const showed = await tryShowPreviewCard(target, version);
@@ -835,6 +850,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     selectedSource,
     visibleSource,
     session,
+    memoryDiff,
     translateY,
     revealProgress,
     panHandlers,
@@ -864,6 +880,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     selectedSource,
     visibleSource,
     session,
+    memoryDiff,
     translateY,
     revealProgress,
     panHandlers,

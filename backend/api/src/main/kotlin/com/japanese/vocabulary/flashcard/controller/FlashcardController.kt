@@ -65,6 +65,7 @@ class FlashcardController(
         due = due,
         stability = stability,
         difficulty = difficulty,
+        memory = memory,
     )
 
     private fun FlashcardStatsDto.toResponse() = FlashcardStatsResponse(
@@ -73,5 +74,7 @@ class FlashcardController(
         newCount = newCount,
         learning = learning,
         review = review,
+        longTermCount = longTermCount,
+        shortTermCount = shortTermCount,
     )
 }

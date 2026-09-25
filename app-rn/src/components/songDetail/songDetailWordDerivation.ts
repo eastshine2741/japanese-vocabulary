@@ -1,5 +1,4 @@
 import { Colors } from '../../theme/theme';
-import type { SongWordTierDto } from '../../types/song';
 import {
   SongDetailJlptBucket,
   SongDetailJlptLevel,
@@ -56,14 +55,4 @@ export function buildJlptDistribution(words: readonly SongDetailWordItem[]): Son
     percent: total > 0 ? Math.round((counts[key] / total) * 100) : 0,
     color: JLPT_COLORS[key],
   }));
-}
-
-/** 단어가 없는 단계도 끝난 것으로 본다 — 현재 단계로 걸려 학습 버튼이 영원히 잠기지 않게. */
-export function isTierDone(tier: SongWordTierDto): boolean {
-  return tier.knownCount >= tier.totalCount;
-}
-
-/** 앞에서부터 처음 만나는 미완료 단계가 현재 단계다. 모두 끝났으면 null. */
-export function selectCurrentTier(tiers: readonly SongWordTierDto[]): SongWordTierDto | null {
-  return tiers.find(tier => !isTierDone(tier)) ?? null;
 }

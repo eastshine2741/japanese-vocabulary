@@ -16,12 +16,14 @@ class TestFlashcardBuilder(
     private var due: Instant? = null
     private var state: Int = 0
     private var lastReview: Instant? = null
+    private var stability: Double = 0.0
 
     fun forUser(value: UserEntity) = apply { user = value }
     fun ofWord(value: WordEntity) = apply { word = value }
     fun dueAt(value: Instant) = apply { due = value }
     fun withState(value: Int) = apply { state = value }
     fun lastReviewedAt(value: Instant?) = apply { lastReview = value }
+    fun withStability(value: Double) = apply { stability = value }
 
     fun build(): FlashcardEntity {
         val owner = user ?: TestUserBuilder(em).build()
@@ -32,6 +34,7 @@ class TestFlashcardBuilder(
             due = due ?: Instant.now(clock),
             state = state,
             lastReview = lastReview,
+            stability = stability,
         ).also {
             em.persist(it)
             em.flush()

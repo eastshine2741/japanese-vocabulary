@@ -1,82 +1,50 @@
 import React from 'react';
-import { StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
-import { Colors } from '../../theme/theme';
-import type { SongWordTierDto } from '../../types/song';
-import WordMasteryProgressBar from '../WordMasteryProgressBar';
+import { StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
+import type { SongCoverageDto, SongWordTierDto } from '../../types/song';
+import { SongDetailCoverageSection } from './SongDetailCoverageSection';
 import { SongDetailJlptChart } from './SongDetailJlptChart';
-import { SongDetailWordTierCards } from './SongDetailWordTierCards';
+import { SongDetailTierJourney } from './SongDetailTierJourney';
 import { SongDetailWordItem } from './types';
 
-export interface SongDetailLearningProgress {
-  total: number;
-  mastered: number;
-  studying: number;
-  newWords: number;
-}
-
 interface SongDetailHomeTabProps {
+  songId: number;
   words: readonly SongDetailWordItem[];
-  progress: SongDetailLearningProgress;
+  /** 서버가 이해도를 못 주면 null 이고 그 섹션은 그리지 않는다. */
+  coverage: SongCoverageDto | null;
+  /** 서버가 단계를 못 주면 null 이고 그 섹션은 그리지 않는다. */
   tiers: readonly SongWordTierDto[] | null;
   isLoadingWords?: boolean;
   isStartingLearning?: boolean;
-  onViewAllWordsPress?: () => void;
+  onCoverageHelpPress: () => void;
   onStartTier: (tier: SongWordTierDto) => void;
   style?: StyleProp<ViewStyle>;
 }
 
 export const SongDetailHomeTab = React.memo(function SongDetailHomeTab({
+  songId,
   words,
-  progress,
+  coverage,
   tiers,
   isLoadingWords = false,
   isStartingLearning = false,
-  onViewAllWordsPress,
+  onCoverageHelpPress,
   onStartTier,
   style,
 }: SongDetailHomeTabProps) {
   return (
     <View style={[styles.container, style]}>
-      <SongDetailProgressSummary progress={progress} />
+      {coverage != null && (
+        <SongDetailCoverageSection coverage={coverage} onHelpPress={onCoverageHelpPress} />
+      )}
       {tiers != null && (
-        <SongDetailWordTierCards
+        <SongDetailTierJourney
+          key={songId}
           tiers={tiers}
           isStartingLearning={isStartingLearning}
           onStartTier={onStartTier}
-          onViewAllWordsPress={onViewAllWordsPress}
         />
       )}
       <SongDetailJlptChart words={words} isLoading={isLoadingWords} />
-    </View>
-  );
-});
-
-const SongDetailProgressSummary = React.memo(function SongDetailProgressSummary({
-  progress,
-}: {
-  progress: SongDetailLearningProgress;
-}) {
-  const safeTotal = Math.max(progress.total, 0);
-  const mastered = Math.max(progress.mastered, 0);
-  const studying = Math.max(progress.studying, 0);
-  const knownCount = Math.min(safeTotal, mastered);
-
-  return (
-    <View style={styles.progressSection}>
-      <View style={styles.sectionHeaderRow}>
-        <Text style={styles.title}>나의 진도</Text>
-        <Text style={styles.progressCount}>{knownCount}/{safeTotal}</Text>
-      </View>
-
-      <WordMasteryProgressBar
-        totalCount={safeTotal}
-        masteredCount={mastered}
-        studyingCount={studying}
-        showLegend
-        masteredLabel="아는 단어"
-        studyingLabel="익히는 중"
-        newLabel="아직"
-      />
     </View>
   );
 });
@@ -87,24 +55,5 @@ const styles = StyleSheet.create({
     paddingTop: 24,
     paddingHorizontal: 20,
     paddingBottom: 120,
-  },
-  progressSection: {
-    gap: 13,
-  },
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  title: {
-    color: Colors.textPrimary,
-    fontSize: 17,
-    fontWeight: '700',
-  },
-  progressCount: {
-    color: Colors.textMuted,
-    fontSize: 12,
-    fontWeight: '600',
   },
 });
