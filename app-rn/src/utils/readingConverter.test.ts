@@ -118,6 +118,19 @@ describe('convertLineReading — a long vowel belongs to one word, so conversion
   it('still marks a long vowel inside a single word', () => {
     expect(convertLineReading('東京', [token('東京', 'トウキョウ', 0)], 'KOREAN')).toBe('토-쿄-');
   });
+
+  it('reads て + いる in a verb\'s inflection as two syllables', () => {
+    // テイ is the long e of 丁寧, but in 探していたら it is て + いた: 사가시테-타라 was wrong.
+    expect(convertLineReading('探していたら', [token('探していたら', 'サガシテイタラ', 0, 'VERB')], 'KOREAN'))
+      .toBe('사가시테이타라');
+    expect(convertLineReading('ている', [token('ている', 'テイル', 0, 'AUXILIARY_VERB')], 'KOREAN'))
+      .toBe('테이루');
+  });
+
+  it('still marks the long vowel in the kanji part of a verb', () => {
+    expect(convertLineReading('制する', [token('制する', 'セイスル', 0, 'VERB')], 'KOREAN')).toBe('세-스루');
+    expect(convertLineReading('先生', [token('先生', 'センセイ', 0, 'NOUN')], 'KOREAN')).toBe('센세-');
+  });
 });
 
 describe('convertLineReading — a 받침 belongs to the syllable before it, even across tokens', () => {

@@ -180,8 +180,11 @@ function attachBatchim(buffer: SyllableBuffer, jongseongIndex: number): boolean 
  * One syllable per element so a 받침 can reach back across a token boundary (だ + って → 닷테). The
  * long vowel state starts fresh instead, or one word's vowel eats the next word's ウ/イ
  * (ボクノ + ウタ → 보쿠노-타).
+ *
+ * From [inflectionStart] on, an イ after an エ段 syllable is its own syllable: in inflection it is
+ * て + いる, not the long e of セイ (探していたら → 사가시테이타라, not 사가시테-타라).
  */
-function appendKorean(buffer: SyllableBuffer, text: string): void {
+function appendKorean(buffer: SyllableBuffer, text: string, inflectionStart = Infinity): void {
   let prevVowelRow: VowelRow | null = null;
   // Whether a vowel *kana* may lengthen what came before. ー is separate: it lengthens anything.
   let kanaLengthenable = false;
@@ -200,7 +203,8 @@ function appendKorean(buffer: SyllableBuffer, text: string): void {
 
     // Long vowel: vowel kana extending previous syllable's vowel row
     const extends_ = LONG_VOWEL_EXTENDS[ch];
-    if (extends_ && prevVowelRow && kanaLengthenable && extends_.includes(prevVowelRow)) {
+    const splitsFromE = ch === 'イ' && prevVowelRow === 'e' && i >= inflectionStart;
+    if (extends_ && prevVowelRow && kanaLengthenable && extends_.includes(prevVowelRow) && !splitsFromE) {
       pushLongVowel(buffer, KANA_MAP[ch]);
       // Spent: letting it stand let the next vowel kana extend it too (エイエン → 에--).
       prevVowelRow = null;
@@ -304,9 +308,27 @@ function separatorFor(text: string): string {
   return JAPANESE.test(text) ? ' ' : text;
 }
 
-function appendReading(buffer: SyllableBuffer, reading: string, display: ReadingDisplay): void {
+/** Parts of speech whose trailing kana is inflection. */
+const INFLECTING_POS = new Set(['VERB', 'AUXILIARY_VERB']);
+
+const TRAILING_HIRAGANA = /[ぁ-ゖ]+$/;
+
+/**
+ * Where [token]'s reading turns into the kana its surface spells out — the inflection of a verb
+ * (探していたら → サガ|シテイタラ). Infinity when there is none or the reading does not end in it.
+ */
+function inflectionStartOf(token: ReadingToken, reading: string): number {
+  if (token.partOfSpeech == null || !INFLECTING_POS.has(token.partOfSpeech)) return Infinity;
+  const tail = token.surface.match(TRAILING_HIRAGANA)?.[0];
+  if (tail == null) return Infinity;
+  const katakana = [...tail].map(ch => String.fromCharCode(ch.charCodeAt(0) + 0x60)).join('');
+  return reading.endsWith(katakana) ? reading.length - katakana.length : Infinity;
+}
+
+function appendReading(buffer: SyllableBuffer, token: ReadingToken, display: ReadingDisplay): void {
+  const reading = token.reading ?? token.surface;
   if (display === 'KOREAN') {
-    appendKorean(buffer, reading);
+    appendKorean(buffer, reading, inflectionStartOf(token, reading));
     return;
   }
   buffer.out.push(display === 'HIRAGANA' ? katakanaToHiragana(reading) : reading);
@@ -335,7 +357,7 @@ export function convertLineReading(
     } else if (startsNewWord(token, previous)) {
       buffer.out.push(' ');
     }
-    appendReading(buffer, token.reading ?? token.surface, display);
+    appendReading(buffer, token, display);
     cursor = Math.max(cursor, token.charEnd);
     previous = token;
   }

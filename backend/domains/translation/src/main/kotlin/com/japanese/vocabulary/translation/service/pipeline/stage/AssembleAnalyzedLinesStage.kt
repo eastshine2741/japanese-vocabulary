@@ -123,9 +123,14 @@ class AssembleAnalyzedLinesStage : PipelineStage<AssembleAnalyzedLinesInput, Lis
     /**
      * [reading], with a particle's spelling corrected to what is sung. The model answers ワ for は only
      * about three times in four, so deciding it here makes the reading the same whatever the source.
+     * には and とは are tagged expressions, and それでは a conjunction, so their は is corrected too.
      */
     private fun readingFor(surface: String, partOfSpeech: PartOfSpeech, reading: String?): String? =
-        if (partOfSpeech == PartOfSpeech.PARTICLE) JapaneseText.particleReading(surface) ?: reading else reading
+        when (partOfSpeech) {
+            PartOfSpeech.PARTICLE -> JapaneseText.particleReading(surface) ?: reading
+            PartOfSpeech.EXPRESSION, PartOfSpeech.CONJUNCTION -> JapaneseText.trailingTopicReading(surface) ?: reading
+            else -> reading
+        }
 
     /**
      * jisho jlpt is an entry-level array (e.g. ["jlpt-n1","jlpt-n5"]), not sense-scoped. Reduce to the

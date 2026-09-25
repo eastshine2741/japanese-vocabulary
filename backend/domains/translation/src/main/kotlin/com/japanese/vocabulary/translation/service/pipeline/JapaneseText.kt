@@ -98,6 +98,16 @@ object JapaneseText {
     }
 
     /**
+     * The reading of a kana expression or conjunction that ends in the topic particle (には, とは,
+     * それでは), or null when it does not. Only the last は is the particle: one further in belongs to
+     * the word (はじめまして, はんぱねえ), so [particleReading]'s every-は rewrite would misread it.
+     */
+    fun trailingTopicReading(surface: String): String? {
+        if (!isKanaOnly(surface) || !surface.endsWith('は')) return null
+        return toKatakana(surface.dropLast(1)) + 'ワ'
+    }
+
+    /**
      * True when [text] is non-empty and written only in katakana (plus the prolonged sound mark).
      *
      * Marks the words a Japanese dictionary is not expected to answer: loanwords the lyric coined

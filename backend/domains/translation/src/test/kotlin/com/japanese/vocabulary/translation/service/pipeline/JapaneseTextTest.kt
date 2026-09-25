@@ -129,6 +129,17 @@ class JapaneseTextTest {
         assertThat(JapaneseText.particleReading("")).isNull()
     }
 
+    /** には is tagged an expression, and only its last は is the particle: はじめまして keeps its ハ. */
+    @Test
+    fun `reads the topic particle at the end of an expression as it is sung`() {
+        assertThat(JapaneseText.trailingTopicReading("には")).isEqualTo("ニワ")
+        assertThat(JapaneseText.trailingTopicReading("とは")).isEqualTo("トワ")
+        assertThat(JapaneseText.trailingTopicReading("それでは")).isEqualTo("ソレデワ")
+        assertThat(JapaneseText.trailingTopicReading("はじめまして")).isNull()
+        assertThat(JapaneseText.trailingTopicReading("としても")).isNull()
+        assertThat(JapaneseText.trailingTopicReading("私は")).isNull()
+    }
+
     /** ハァ and ハア are one reading written two ways, so neither corrects the other. */
     @Test
     fun `tells a small-kana spelling apart from a different reading`() {
