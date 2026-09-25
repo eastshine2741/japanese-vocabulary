@@ -125,7 +125,7 @@ jobs:
           KEY_PW: ${{ matrix.target.env == 'prod' && secrets.PROD_ANDROID_KEY_PASSWORD || secrets.ANDROID_KEY_PASSWORD }}
         run: |
           cat >> gradle.properties <<EOF
-          org.gradle.jvmargs=-Xmx2g -XX:MaxMetaspaceSize=1g
+          org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g
           RELEASE_STORE_FILE=${{ runner.temp }}/release.keystore
           RELEASE_STORE_PASSWORD=${STORE_PW}
           RELEASE_KEY_ALIAS=${KEY_ALIAS}
