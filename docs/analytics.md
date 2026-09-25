@@ -48,28 +48,29 @@ ORDER BY iso_week;
 
 ## 체류 시간 (BigQuery)
 
-앱은 체류를 재지 않는다. `song_detail_open` 과 그 다음 `screen_view` 의 간격으로 계산한다.
+앱은 체류를 재지 않는다. `screen_name = 'SongDetail'` 인 `screen_view` 와 그 다음 `screen_view` 의 간격으로 계산한다.
+SongDetail `screen_view` 에는 `song_id`, `origin`(진입 경로) 파라미터가 붙는다.
 
 ```sql
 WITH events AS (
   SELECT
     user_id,
     (SELECT value.int_value FROM UNNEST(event_params) WHERE key = 'ga_session_id') AS session_id,
-    event_name,
+    (SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'screen_name') AS screen_name,
     event_timestamp
   FROM `<project>.analytics_<property_id>.events_*`
-  WHERE event_name IN ('song_detail_open', 'screen_view')
+  WHERE event_name = 'screen_view'
 ),
 spans AS (
   SELECT
-    event_name,
+    screen_name,
     LEAD(event_timestamp) OVER (PARTITION BY user_id, session_id ORDER BY event_timestamp)
       - event_timestamp AS dwell_us
   FROM events
 )
 SELECT APPROX_QUANTILES(dwell_us / 1e6, 10) AS dwell_seconds_deciles
 FROM spans
-WHERE event_name = 'song_detail_open'
+WHERE screen_name = 'SongDetail'
   AND dwell_us BETWEEN 0 AND 30 * 60 * 1e6;  -- 백그라운드 시간 상한
 ```
 
