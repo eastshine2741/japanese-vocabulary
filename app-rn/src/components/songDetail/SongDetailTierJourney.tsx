@@ -243,7 +243,7 @@ const ExpandedTierCard = React.memo(function ExpandedTierCard({
         activeOpacity={0.85}
         accessibilityRole="button"
         accessibilityState={{ disabled: isDisabled }}
-        accessibilityLabel={dueCount > 0 ? `지금 학습할 단어 ${dueCount}개` : '학습할 단어 없음'}
+        accessibilityLabel={dueCount > 0 ? `지금 학습할 단어 ${dueCount}개` : '오늘의 학습 완료!'}
       >
         {dueCount > 0 ? (
           <>
@@ -260,7 +260,7 @@ const ExpandedTierCard = React.memo(function ExpandedTierCard({
             </View>
           </>
         ) : (
-          <Text style={styles.ctaDisabledLabel}>학습할 단어 없음</Text>
+          <Text style={styles.ctaDisabledLabel}>오늘의 학습 완료!</Text>
         )}
       </TouchableOpacity>
     </View>
