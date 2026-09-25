@@ -255,7 +255,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     fixedQueueRef.current = false;
     try {
       if (target.tierKey != null && target.songId != null) {
-        // 단계 학습: 서버가 그 단계 단어를 담고 due 와 무관하게 전부 준다. 이 목록이 세션의 전부다.
+        // 단계 학습: 서버가 그 단계의 due 단어를 담고 한 번에 준다. 이 목록이 세션의 전부다.
         const result = await songApi.studyWordTier(target.songId, target.tierKey);
         if (version !== requestVersion.current) return;
         const tierSource: StudySource = { ...target, deckId: result.deckId, totalCount: result.totalCount };

@@ -1,10 +1,20 @@
 export { SongDetailHomeTab } from './SongDetailHomeTab';
 export { SongDetailJlptChart } from './SongDetailJlptChart';
-export { SongDetailWordTierCards } from './SongDetailWordTierCards';
+export { SongDetailCoverageSection } from './SongDetailCoverageSection';
+export { SongDetailCoverageHelpSheet } from './SongDetailCoverageHelpSheet';
+export { SongDetailTierJourney } from './SongDetailTierJourney';
+export { SongDetailDueWordRoller } from './SongDetailDueWordRoller';
 export {
-  buildJlptDistribution,
+  buildTierSegments,
+  estimateStudyMinutes,
+  getTierStatus,
   isTierDone,
   selectCurrentTier,
+  selectExpandedTierKey,
+  type SongWordTierStatus,
+} from './songDetailTier';
+export {
+  buildJlptDistribution,
   JLPT_COLORS,
   JLPT_LEGEND_ORDER,
   JLPT_LEVELS,

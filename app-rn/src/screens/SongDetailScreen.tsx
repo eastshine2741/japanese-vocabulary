@@ -30,6 +30,7 @@ import { AppBottomSheet, AppBottomSheetRef, AppBottomSheetView } from '../compon
 import {
   CurrentPlayingWordsSheet,
   selectCurrentTier,
+  SongDetailCoverageHelpSheet,
   SongDetailHomeTab,
   SONG_DETAIL_MV_BAR_HEIGHT,
   SongDetailMvBar,
@@ -77,6 +78,8 @@ export default function SongDetailScreen({ navigation, route }: Props) {
   const tabProgress = useRef(new Animated.Value(0)).current;
   const infoSheetRef = useRef<AppBottomSheetRef>(null);
   const infoSheetOpenRef = useRef(false);
+  const coverageHelpSheetRef = useRef<AppBottomSheetRef>(null);
+  const coverageHelpSheetOpenRef = useRef(false);
   const isInitialFocusRef = useRef(true);
 
   const status = useSongDetailStore(s => s.status);
@@ -87,6 +90,8 @@ export default function SongDetailScreen({ navigation, route }: Props) {
   const refreshWords = useSongDetailStore(s => s.refreshWords);
   const tiers = useSongDetailStore(s => s.tiers);
   const refreshTiers = useSongDetailStore(s => s.refreshTiers);
+  const coverage = useSongDetailStore(s => s.coverage);
+  const refreshCoverage = useSongDetailStore(s => s.refreshCoverage);
   const preloadedStudyData = usePlayerStore(s => s.studyData);
   const setCurrentMs = usePlayerStore(s => s.setCurrentMs);
   const setDurationMs = usePlayerStore(s => s.setDurationMs);
@@ -232,6 +237,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
   }, [data]);
 
   const songTiers = tiers != null && tiers.songId === songId ? tiers.tiers : null;
+  const songCoverage = coverage != null && coverage.songId === songId ? coverage : null;
   const currentTier = useMemo(
     () => (songTiers != null ? selectCurrentTier(songTiers) : null),
     [songTiers],
@@ -248,6 +254,20 @@ export default function SongDetailScreen({ navigation, route }: Props) {
 
   const handleInfoSheetChange = useCallback((index: number) => {
     infoSheetOpenRef.current = index >= 0;
+  }, []);
+
+  const handleOpenCoverageHelp = useCallback(() => {
+    coverageHelpSheetOpenRef.current = true;
+    coverageHelpSheetRef.current?.expand();
+  }, []);
+
+  const handleCloseCoverageHelp = useCallback(() => {
+    coverageHelpSheetOpenRef.current = false;
+    coverageHelpSheetRef.current?.close();
+  }, []);
+
+  const handleCoverageHelpSheetChange = useCallback((index: number) => {
+    coverageHelpSheetOpenRef.current = index >= 0;
   }, []);
 
   const ensureSongDeck = useCallback(async (): Promise<DeckDetailResponse | null> => {
@@ -292,9 +312,10 @@ export default function SongDetailScreen({ navigation, route }: Props) {
   }, [data?.song, navigation, songId]);
 
   /**
-   * 단계 학습: 그 단계 단어 전부를 due·복습 상태와 무관하게 연다. 담기와 카드 조회는 복습 화면이
+   * 단계 학습: 그 단계의 due 단어(한 번도 리뷰 안 했거나 due 가 지난 단어)만 연다 — CTA 가 보여 준
+   * `dueCount` 와 카드 수가 같다. 담기와 카드 조회는 복습 화면이
    * `POST /api/songs/{id}/word-tiers/{key}/study` 한 번으로 한다 — 곡 덱 due 큐를 열면 다른 단계
-   * 단어가 섞이고 이미 익힌 단어는 빠진다.
+   * 단어가 섞인다.
    */
   const handleStartTier = useCallback((tier: SongWordTierDto) => {
     if (songId == null || isStartingLearning) return;
@@ -306,7 +327,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
         title: data?.song.title ?? '',
         artist: data?.song.artist ?? '',
         artworkUrl: data?.song.artworkUrl ?? null,
-        dueCount: 0,
+        dueCount: tier.dueCount,
         totalCount: tier.totalCount,
         tierKey: tier.key,
       },
@@ -314,9 +335,9 @@ export default function SongDetailScreen({ navigation, route }: Props) {
   }, [data?.song, isStartingLearning, navigation, songDeckDetail?.deckId, songId]);
 
   /**
-   * CTA 라벨과 같은 기준으로 연다. `오늘 복습 N개`(due 있음)면 곡 단어장 due 복습을 연다 — 단계 학습은
-   * due 와 무관하게 단계 단어 전부라 카드 수가 N 과 어긋난다. due 가 없으면 로드맵의 현재 단계를 열고,
-   * 로드맵을 못 받았거나 모두 끝났으면 예전처럼 곡 단어장을 그대로 연다.
+   * CTA 라벨과 같은 기준으로 연다. `오늘 복습 N개`(due 있음)면 곡 단어장 due 복습을 연다 — 카드 수가
+   * N 과 같다. due 가 없으면 현재 단계의 due 단어를 열고, 단계를 못 받았거나 모두 끝났으면 예전처럼
+   * 곡 단어장을 그대로 연다.
    */
   const handleStartLearning = useCallback(async () => {
     if (songId == null || isStartingLearning) return;
@@ -411,10 +432,11 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     if (songId == null) return;
     refreshWords(songId).catch(() => undefined);
     refreshTiers(songId).catch(() => undefined);
+    refreshCoverage(songId).catch(() => undefined);
     deckApi.getDeckBySongId(songId)
       .then(deck => setSongDeckDetail(deck))
       .catch(() => setSongDeckDetail(null));
-  }, [refreshTiers, refreshWords, songId]);
+  }, [refreshCoverage, refreshTiers, refreshWords, songId]);
 
   const handleHomePageLayout = useCallback((event: LayoutChangeEvent) => {
     const height = Math.ceil(event.nativeEvent.layout.height);
@@ -429,6 +451,11 @@ export default function SongDetailScreen({ navigation, route }: Props) {
   useFocusEffect(
     useCallback(() => {
       const onBack = () => {
+        if (coverageHelpSheetOpenRef.current) {
+          coverageHelpSheetOpenRef.current = false;
+          coverageHelpSheetRef.current?.close();
+          return true;
+        }
         if (infoSheetOpenRef.current) {
           infoSheetOpenRef.current = false;
           infoSheetRef.current?.close();
@@ -530,16 +557,6 @@ export default function SongDetailScreen({ navigation, route }: Props) {
   const isLearningActionDisabled = isStartingLearning
     || actionMode === 'preparing'
     || (songDeckDetail?.deckId == null && currentTier == null && defaultDeckWords.length === 0);
-  const totalWords = words.wordSummary.totalCandidateCount ?? words.words.length;
-  const masteredWords = songDeckDetail?.masteredCount ?? 0;
-  const studyingWords = songDeckDetail?.studyingCount ?? 0;
-  const newWords = songDeckDetail?.newWordCount ?? Math.max(0, totalWords - masteredWords - studyingWords);
-  const learningProgress = {
-    total: totalWords,
-    mastered: masteredWords,
-    studying: studyingWords,
-    newWords,
-  };
 
   return (
     <View style={styles.container}>
@@ -597,11 +614,12 @@ export default function SongDetailScreen({ navigation, route }: Props) {
                   onLayout={handleHomePageLayout}
                 >
                   <SongDetailHomeTab
+                    songId={song.id}
                     words={words.words}
-                    progress={learningProgress}
+                    coverage={songCoverage}
                     tiers={songTiers}
                     isStartingLearning={isStartingLearning}
-                    onViewAllWordsPress={handleSelectWords}
+                    onCoverageHelpPress={handleOpenCoverageHelp}
                     onStartTier={handleStartTier}
                   />
                 </View>
@@ -781,6 +799,19 @@ export default function SongDetailScreen({ navigation, route }: Props) {
             lyricsSourceName={lyrics.lyricsSourceName}
             lyricsSourceUrl={lyrics.lyricsSourceUrl}
           />
+        </AppBottomSheetView>
+      </AppBottomSheet>
+
+      <AppBottomSheet
+        ref={coverageHelpSheetRef}
+        variant="floating"
+        index={-1}
+        enableDynamicSizing
+        enablePanDownToClose
+        onChange={handleCoverageHelpSheetChange}
+      >
+        <AppBottomSheetView>
+          <SongDetailCoverageHelpSheet onConfirm={handleCloseCoverageHelp} />
         </AppBottomSheetView>
       </AppBottomSheet>
 

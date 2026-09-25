@@ -7,6 +7,7 @@ import com.japanese.vocabulary.song.dto.SongAnalysisWorkResponse
 import com.japanese.vocabulary.song.dto.SongDto
 import com.japanese.vocabulary.song.dto.SongStudyDto
 import com.japanese.vocabulary.song.dto.AnalyzedSongDto
+import com.japanese.vocabulary.song.dto.songdetail.SongCoverageDto
 import com.japanese.vocabulary.song.dto.songdetail.SongLyricsDto
 import com.japanese.vocabulary.song.dto.songdetail.SongStudyBootstrapRequest
 import com.japanese.vocabulary.song.dto.songdetail.SongStudyBootstrapResponse
@@ -161,7 +162,7 @@ class SongController(
         return ResponseEntity.ok().header("Cache-Control", "no-store").body(response)
     }
 
-    /** 곡 상세 홈의 학습 로드맵. 곡 단어를 4단계로 나누고 단계별 복습 상태를 함께 준다. */
+    /** 곡 상세 홈의 `완곡까지 3단계`. 곡 단어를 3단계로 나누고 단계별 기억 상태·due 를 함께 준다. */
     @GetMapping("/{id}/word-tiers")
     fun getSongWordTiers(@PathVariable id: Long): ResponseEntity<SongWordTiersDto> {
         val response = try {
@@ -172,7 +173,21 @@ class SongController(
         return ResponseEntity.ok().header("Cache-Control", "no-store").body(response)
     }
 
-    /** 단계 학습. 그 단계 단어를 곡 단어장에 담고, due 와 무관하게 단계 단어 전부를 카드로 준다. */
+    /** 곡 상세 홈의 `이 곡 이해도`. 전체 가사 줄 중 이해하는 줄 수. */
+    @GetMapping("/{id}/coverage")
+    fun getSongCoverage(@PathVariable id: Long): ResponseEntity<SongCoverageDto> {
+        val response = try {
+            songWordTierService.coverage(id, currentUserId())
+        } catch (e: com.japanese.vocabulary.common.exception.BusinessException) {
+            return ResponseEntity.status(e.errorCode.status).build()
+        }
+        return ResponseEntity.ok().header("Cache-Control", "no-store").body(response)
+    }
+
+    /**
+     * 단계 학습. 그 단계 단어를 곡 단어장에 담고 카드로 준다. 현재 단계는 due 단어만, 구버전 단계
+     * (핵심·입문·기초·심화)는 due 와 무관하게 전부.
+     */
     @PostMapping("/{id}/word-tiers/{key}/study")
     fun studyWordTier(@PathVariable id: Long, @PathVariable key: SongWordTierKey): SongWordTierStudyResponse =
         songWordTierService.study(currentUserId(), id, key)

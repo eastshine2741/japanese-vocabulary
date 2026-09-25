@@ -14,6 +14,7 @@ import {
   SongWordTiersDto,
   SongWordTierKey,
   SongWordTierStudyResponse,
+  SongCoverageDto,
 } from '../types/song';
 
 function toLegacyStudyUnits(lyrics: SongLyricsDto): StudyUnit[] {
@@ -104,9 +105,15 @@ export const songApi = {
     return data;
   },
 
-  /** 곡 단어 4단계 학습 로드맵 */
+  /** 곡 단어 3단계 (완곡까지 3단계) */
   async getWordTiers(id: number): Promise<SongWordTiersDto> {
     const { data } = await client.get<SongWordTiersDto>(`/api/songs/${id}/word-tiers`);
+    return data;
+  },
+
+  /** 가사 줄 기준 이해도 */
+  async getCoverage(id: number): Promise<SongCoverageDto> {
+    const { data } = await client.get<SongCoverageDto>(`/api/songs/${id}/coverage`);
     return data;
   },
 
@@ -119,7 +126,7 @@ export const songApi = {
     return data;
   },
 
-  /** 단계 학습: 그 단계 단어를 곡 단어장에 담고, due 와 무관하게 단계 단어 전부를 카드로 받는다. */
+  /** 단계 학습: 그 단계의 due 단어를 곡 단어장에 담고 카드로 받는다. 카드 수 = `dueCount`. */
   async studyWordTier(songId: number, key: SongWordTierKey): Promise<SongWordTierStudyResponse> {
     const { data } = await client.post<SongWordTierStudyResponse>(`/api/songs/${songId}/word-tiers/${key}/study`);
     return data;

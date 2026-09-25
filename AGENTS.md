@@ -27,7 +27,8 @@ cd app-rn && npx expo start --web             # App - Web (dev)
 - Backend module boundaries: `docs/architecture/backend-modules.md`
 - Word 스키마와 song 결합 해제: `docs/architecture/word-schema.md`
 - Song analysis and word-meaning pipeline: `docs/architecture/song-analysis.md`
-- 곡 단어 4단계 학습 로드맵(`GET /api/songs/{id}/word-tiers` 분류 규칙): `docs/architecture/song-word-tiers.md`
+- 곡 상세 완곡까지 3단계·이해도(`GET /api/songs/{id}/word-tiers`, `/coverage`): `docs/architecture/song-word-tiers.md`
+- 곡 상세 이해도·word tier 3단계 개편 기획 배경: `docs/product-intents/260925-song-detail-study-status-api.md`
 - Translation pipeline guardrails: `docs/translation-pipeline.md`
 - Push notification architecture: `docs/architecture/push-notification.md`
 - Admin service: `docs/admin-service.md`

@@ -24,6 +24,20 @@ object SongWordTierClassifier {
 
     private val BASIC_JLPT = setOf("N5", "N4")
 
+    /**
+     * 현재 3단계. 4단계를 그대로 묶는다 — 후렴 정복 = 핵심, 따라 부르기 = 입문 + 기초(등장순), 완곡 = 심화.
+     */
+    fun classifyCurrent(words: List<WordInSongItemDto>, rawLines: List<LyricLineData>): Map<SongWordTierKey, List<WordInSongItemDto>> {
+        val legacy = classify(words, rawLines)
+        return mapOf(
+            SongWordTierKey.CHORUS to legacy.getValue(SongWordTierKey.CORE),
+            SongWordTierKey.SINGALONG to (legacy.getValue(SongWordTierKey.STARTER) + legacy.getValue(SongWordTierKey.BASIC))
+                .sortedWith(BY_APPEARANCE),
+            SongWordTierKey.FULL to legacy.getValue(SongWordTierKey.ADVANCED),
+        )
+    }
+
+    /** 구버전 4단계(핵심·입문·기초·심화). */
     fun classify(words: List<WordInSongItemDto>, rawLines: List<LyricLineData>): Map<SongWordTierKey, List<WordInSongItemDto>> {
         val chorusLines = chorusLineIndexes(rawLines)
         val chorusRatio = if (rawLines.isEmpty()) 0.0 else chorusLines.size.toDouble() / rawLines.size

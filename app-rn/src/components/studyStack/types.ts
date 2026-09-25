@@ -21,7 +21,8 @@ export interface StudySource {
    */
   previewWord?: StudyPreviewWord | null;
   /**
-   * 곡 상세의 단계 학습으로 열었다면 그 단계. due 큐 대신 그 단계 단어 전부를 한 번 받아 끝까지 복습한다.
+   * 곡 상세의 단계 학습으로 열었다면 그 단계. 곡 덱 due 큐 대신 그 단계의 due 단어를 한 번 받아
+   * 끝까지 복습한다 — CTA 가 보여 준 개수와 카드 수가 같다.
    */
   tierKey?: SongWordTierKey | null;
 }

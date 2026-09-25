@@ -57,16 +57,17 @@ export const Colors = {
   wordMasteryStudying: '#FABD23',
   wordMasteryNewIndicator: '#D2D2D2',
 
-  // Word tier cards (song detail — 단어 학습)
-  tierCoreBg: '#F0FBF5',
-  tierCoreTrackBg: '#D6EFE1',
-  tierCoreChipBorder: '#CDEBDB',
-  tierLearnButtonText: '#107A45',
-  tierAdvancedBg: '#FFFBF2',
-  tierAdvancedBorder: '#F7E4B5',
-  tierAdvancedAccent: '#F0A81C',
-  tierAdvancedText: '#9A6A08',
-  tierAdvancedButtonBg: '#FDEBB8',
+  // Song detail 이해도 (가사 줄 기준) / 완곡까지 3단계
+  coverageAccent: '#E5A100',
+  coverageTrack: '#F4EEDF',
+  /** 장기기억 — 7일 뒤 90% 이상 회상. primary 와 같은 초록. */
+  memoryLongTerm: '#16B364',
+  /** 단기기억 — 한 번이라도 학습한 단어. */
+  memoryShortTerm: '#22B8CF',
+  /** 남음 — 한 번도 학습하지 않은 단어. */
+  memoryRemaining: '#D2D2D2',
+  tierTrack: '#EEEEEE',
+
 
   // Legacy aliases
   textTertiary: '#A1A1AA',

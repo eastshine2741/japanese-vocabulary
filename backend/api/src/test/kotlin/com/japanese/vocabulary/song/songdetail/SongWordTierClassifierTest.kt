@@ -120,7 +120,24 @@ class SongWordTierClassifierTest {
     @Test
     fun `empty input yields four empty tiers`() {
         val tiers = SongWordTierClassifier.classify(emptyList(), emptyList())
-        assertThat(tiers.keys).containsExactlyInAnyOrder(*SongWordTierKey.entries.toTypedArray())
+        assertThat(tiers.keys).containsExactlyInAnyOrderElementsOf(SongWordTierKey.legacyKeys)
         assertThat(tiers.values).allSatisfy { assertThat(it).isEmpty() }
+    }
+
+    @Test
+    fun `current tiers group legacy tiers without overlap and singalong keeps appearance order`() {
+        val words = listOf(
+            word("胸", 90.0, 0, listOf(0, 2)),
+            word("雨", 50.0, 1, listOf(1), jlpt = "N5"),
+            word("する", 80.0, 2, listOf(0, 1), pos = "VERB"),
+            word("輪郭", 40.0, 3, listOf(3), jlpt = null),
+        )
+        val tiers = SongWordTierClassifier.classifyCurrent(words, lines("胸する", "する雨", "胸", "輪郭"))
+
+        assertThat(tiers.keys).containsExactlyElementsOf(SongWordTierKey.current)
+        assertThat(tiers.names(SongWordTierKey.CHORUS)).containsExactly("胸")
+        // 입문(する)·기초(雨)를 합쳐 등장순으로 다시 놓는다.
+        assertThat(tiers.names(SongWordTierKey.SINGALONG)).containsExactly("雨", "する")
+        assertThat(tiers.names(SongWordTierKey.FULL)).containsExactly("輪郭")
     }
 }
