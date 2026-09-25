@@ -1,5 +1,11 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import Animated, {
+  Easing,
+  FadeIn,
+  LayoutAnimationConfig,
+  LinearTransition,
+} from 'react-native-reanimated';
 import { Feather } from '@expo/vector-icons';
 import { Colors } from '../../theme/theme';
 import { Typography } from '../../theme/typography';
@@ -18,6 +24,14 @@ interface SongDetailTierJourneyProps {
   isStartingLearning?: boolean;
   onStartTier: (tier: SongWordTierDto) => void;
 }
+
+const SWITCH_DURATION = 300;
+const CONTENT_FADE_DURATION = 220;
+
+// 펼친 단계가 바뀌면 카드 틀은 그대로 둔 채 크기·위치만 옮겨 간다. 두 카드가 동시에 줄고 늘어서
+// 펼친 자리가 위아래로 미끄러지는 것처럼 보인다. 틀 안 내용만 새로 페이드인한다.
+const relayout = LinearTransition.duration(SWITCH_DURATION).easing(Easing.inOut(Easing.cubic));
+const contentFadeIn = FadeIn.duration(CONTENT_FADE_DURATION);
 
 /**
  * 완곡까지 3단계. 항상 한 장만 펼쳐져 있다 — 유저가 고르기 전에는 현재 단계(한 번도 리뷰 안 한
@@ -41,7 +55,7 @@ export const SongDetailTierJourney = React.memo(function SongDetailTierJourney({
   return (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>완곡까지 {tiers.length}단계</Text>
-      <View>
+      <LayoutAnimationConfig skipEntering>
         {tiers.map((tier, index) => (
           <TierStep
             key={tier.key}
@@ -54,7 +68,7 @@ export const SongDetailTierJourney = React.memo(function SongDetailTierJourney({
             onStartTier={onStartTier}
           />
         ))}
-      </View>
+      </LayoutAnimationConfig>
     </View>
   );
 });
@@ -87,25 +101,43 @@ const TierStep = React.memo(function TierStep({
   }, [tier, onStartTier]);
 
   return (
-    <View style={styles.step}>
+    <Animated.View layout={relayout} style={styles.step}>
       <View style={styles.rail}>
         <TierDot status={status} />
         {!isLast && (
-          <View style={[styles.connector, status === 'done' && styles.connectorDone]} />
+          <Animated.View
+            layout={relayout}
+            style={[styles.connector, status === 'done' && styles.connectorDone]}
+          />
         )}
       </View>
       <View style={[styles.stepBody, !isLast && styles.stepBodyGap]}>
-        {isExpanded ? (
-          <ExpandedTierCard
-            tier={tier}
-            isStartingLearning={isStartingLearning}
-            onStart={handleStart}
-          />
-        ) : (
-          <CollapsedTierCard tier={tier} onExpand={handleExpand} />
-        )}
+        {/* 그림자는 바깥, 잘라내기는 안쪽. iOS 는 overflow hidden 인 뷰의 그림자를 그리지 않는다. */}
+        <Animated.View
+          layout={relayout}
+          style={[styles.cardShadow, isExpanded && styles.cardShadowExpanded]}
+        >
+          <Animated.View
+            layout={relayout}
+            style={[styles.cardFrame, isExpanded && styles.cardFrameExpanded]}
+          >
+            {isExpanded ? (
+              <Animated.View key="expanded" entering={contentFadeIn}>
+                <ExpandedTierCard
+                  tier={tier}
+                  isStartingLearning={isStartingLearning}
+                  onStart={handleStart}
+                />
+              </Animated.View>
+            ) : (
+              <Animated.View key="collapsed" entering={contentFadeIn}>
+                <CollapsedTierCard tier={tier} onExpand={handleExpand} />
+              </Animated.View>
+            )}
+          </Animated.View>
+        </Animated.View>
       </View>
-    </View>
+    </Animated.View>
   );
 });
 
@@ -343,13 +375,31 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.memoryShortTerm,
   },
 
-  collapsedCard: {
-    gap: 9,
-    padding: 14,
+  cardShadow: {
+    borderRadius: 16,
+    backgroundColor: Colors.surface,
+  },
+  cardShadowExpanded: {
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 18,
+    elevation: 4,
+  },
+  cardFrame: {
+    overflow: 'hidden',
     borderRadius: 16,
     borderWidth: 1,
     borderColor: Colors.border,
-    backgroundColor: Colors.surface,
+  },
+  cardFrameExpanded: {
+    borderWidth: 1.5,
+    borderColor: Colors.primary,
+  },
+
+  collapsedCard: {
+    gap: 9,
+    padding: 14,
   },
   collapsedIntro: {
     gap: 9,
@@ -369,15 +419,6 @@ const styles = StyleSheet.create({
   expandedCard: {
     gap: 13,
     padding: 16,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: Colors.primary,
-    backgroundColor: Colors.surface,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.15,
-    shadowRadius: 18,
-    elevation: 4,
   },
   expandedIntro: {
     gap: 8,
