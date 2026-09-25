@@ -21,6 +21,9 @@ interface FlashcardRepository : JpaRepository<FlashcardEntity, Long> {
     fun countByUserIdAndDueLessThanEqual(userId: Long, due: Instant): Long
     fun countByUserIdAndLastReviewIsNull(userId: Long): Long
 
+    /** 장기기억 카드 수. 판정은 [com.japanese.vocabulary.flashcard.model.FlashcardMemory] 와 같아야 한다. */
+    fun countByUserIdAndLastReviewIsNotNullAndStabilityGreaterThanEqual(userId: Long, stability: Double): Long
+
     @Modifying(flushAutomatically = true)
     @Query(
         value = """

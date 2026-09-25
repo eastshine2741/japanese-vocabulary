@@ -7,7 +7,7 @@
 
 서버는 `GET /api/songs/{id}/word-tiers` 로 분류와 단계별 기억 상태를, `GET /api/songs/{id}/coverage`
 로 이해도를 준다. 분류는 `SongWordTierClassifier`(api 모듈), 집계는 `SongWordTierService`,
-기억 상태 판정은 `SongWordMemory`. 앱은 `songDetailStore.tiers` / `coverage` 에 둔다.
+기억 상태 판정은 `FlashcardMemory`(domains:word). 앱은 `songDetailStore.tiers` / `coverage` 에 둔다.
 
 관련 Pencil 프레임: `jBwuD`(17a 0%) · `uGG5c`(17b 진행 중) · `i7qEd`(17c 완곡 선택) ·
 `a71Emf`(17d 이해도 도움말). 기획 배경은 `docs/product-intents/260925-song-detail-study-status-api.md`.
@@ -15,7 +15,7 @@
 ## 앱이 직접 못 하는 이유
 
 앱이 아는 것은 단어별 `importanceScore`·`jlpt`·`isSavedForSong` 과 곡 단어장 합계뿐이다.
-후렴 줄 판정과 뼈대 단어 목록은 서버에만 있고, 단어별 복습 상태(stability·due)는 어느 API 도
+후렴 줄 판정과 뼈대 단어 목록은 서버에만 있고, 곡 단어 목록 API 는 단어별 복습 상태(stability)를
 노출하지 않는다.
 
 ## 기억 상태 — 장기기억 / 단기기억 / 남음
@@ -25,6 +25,17 @@
 | 장기기억 | 리뷰 이력이 있고 `stability >= 7.0` (`LONG_TERM_STABILITY_DAYS`) |
 | 단기기억 | 리뷰 이력이 있고 장기기억이 아님 (FSRS state 무관) |
 | 남음 | flashcard 가 없거나 리뷰 이력(`last_review`)이 없음 |
+
+같은 판정을 복습 스택도 쓴다 — `FlashcardDto.memory`(리뷰 전) 와 `ReviewResultDto.memory`(리뷰 후)
+차이가 완주 카드의 "장기기억으로 / 단기기억으로" 다. 임계값이 한 곳에 있어야 곡 상세 이해도와
+완주 카드가 같은 말을 한다.
+
+프로필·단어장의 진행 바도 같은 판정을 쓴다. `GET /api/decks`·`GET /api/decks/{id}`·
+`GET /api/decks/all` 은 `longTermCount`/`shortTermCount` 를, `GET /api/flashcards/stats` 는
+`longTermCount`/`shortTermCount` 를 함께 내려준다 (SQL `CASE` 식이 `FlashcardMemory` 와 같은
+판정이어야 한다). 같은 응답의 `masteredCount`/`studyingCount`/`newWordCount`·`review`/`learning` 은
+FSRS state 기준이라 판정이 다르다 — 구버전 앱용으로만 남아 있다. `남음` 은 어느 API 도 내려주지
+않고 앱이 `총합 - 장기 - 단기` 로 구한다.
 
 FSRS stability `S` 는 정의상 retrievability 가 0.9 로 떨어지는 경과일수라, "7일 뒤 떠올릴 확률
 90% 이상" 이 한 줄 비교가 된다. 기준은 **유저의 단어**다 — 다른 곡에서 담아 익힌 단어도 이 곡에서

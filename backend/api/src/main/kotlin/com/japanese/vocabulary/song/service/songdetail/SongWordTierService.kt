@@ -4,6 +4,7 @@ import com.japanese.vocabulary.common.exception.BusinessException
 import com.japanese.vocabulary.common.exception.ErrorCode
 import com.japanese.vocabulary.deck.service.DeckService
 import com.japanese.vocabulary.flashcard.entity.FlashcardEntity
+import com.japanese.vocabulary.flashcard.model.FlashcardMemory
 import com.japanese.vocabulary.flashcard.model.FlashcardStudyState
 import com.japanese.vocabulary.flashcard.repository.FlashcardRepository
 import com.japanese.vocabulary.flashcard.service.FlashcardService
@@ -45,9 +46,9 @@ class SongWordTierService(
             val tierWords = song.tiers[key].orEmpty()
             val cards = tierWords.map { song.cardOf(it) }
             val states = cards.filterNotNull().map { FlashcardStudyState.of(it) }
-            val memories = cards.map { SongWordMemory.of(it) }
+            val memories = cards.map { FlashcardMemory.of(it) }
             // 학습 진입과 같은 집합·순서다. 같은 저장 키로 모이는 단어는 카드 하나라 한 번만 센다.
-            val dueWords = tierWords.filter { SongWordMemory.isDue(song.cardOf(it), now) }.distinctBy { it.addRequest.japanese }
+            val dueWords = tierWords.filter { FlashcardMemory.isDue(song.cardOf(it), now) }.distinctBy { it.addRequest.japanese }
             SongWordTierDto(
                 key = key,
                 order = key.order,
@@ -57,8 +58,8 @@ class SongWordTierService(
                 totalCount = tierWords.size,
                 knownCount = states.count { it == FlashcardStudyState.MASTERED },
                 learningCount = states.count { it == FlashcardStudyState.STUDYING },
-                longTermCount = memories.count { it == SongWordMemory.LONG_TERM },
-                shortTermCount = memories.count { it == SongWordMemory.SHORT_TERM },
+                longTermCount = memories.count { it == FlashcardMemory.LONG_TERM },
+                shortTermCount = memories.count { it == FlashcardMemory.SHORT_TERM },
                 dueCount = dueWords.size,
                 duePreviewWords = dueWords.take(DUE_PREVIEW_SIZE).map { it.japanese },
             )
@@ -76,7 +77,7 @@ class SongWordTierService(
         val lines = song.words.lineWordIndexes.values
             .map { indexes -> indexes.map { song.words.words[it] }.filter { it.isTierWord() } }
             .filter { it.isNotEmpty() }
-        val knownLines = lines.count { line -> line.all { SongWordMemory.of(song.cardOf(it)) == SongWordMemory.LONG_TERM } }
+        val knownLines = lines.count { line -> line.all { FlashcardMemory.of(song.cardOf(it)) == FlashcardMemory.LONG_TERM } }
         return SongCoverageDto(songId = songId, totalLines = lines.size, knownLines = knownLines)
     }
 
@@ -95,7 +96,7 @@ class SongWordTierService(
         } else {
             val song = load(songId, userId)
             val now = Instant.now(clock)
-            song.tiers[key].orEmpty().filter { SongWordMemory.isDue(song.cardOf(it), now) }
+            song.tiers[key].orEmpty().filter { FlashcardMemory.isDue(song.cardOf(it), now) }
         }
         if (studyWords.isEmpty()) throw BusinessException(ErrorCode.NO_ELIGIBLE_WORDS)
 

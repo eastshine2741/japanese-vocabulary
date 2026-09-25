@@ -52,12 +52,7 @@ export const Colors = {
   freezeFill: '#E8F0F9',
   freezeStroke: '#5B9BF5',
 
-  // Word mastery progress bar (profile hero, song progress row, song detail progress)
-  wordMasteryTrackBackground: '#F6F6F6',
-  wordMasteryStudying: '#FABD23',
-  wordMasteryNewIndicator: '#D2D2D2',
-
-  // Song detail 이해도 (가사 줄 기준) / 완곡까지 3단계
+  // 이해도 (가사 줄 기준) / 기억 칸 진행 바 — 곡 상세·프로필·단어장이 같은 색을 쓴다
   coverageAccent: '#E5A100',
   coverageTrack: '#F4EEDF',
   /** 장기기억 — 7일 뒤 90% 이상 회상. primary 와 같은 초록. */

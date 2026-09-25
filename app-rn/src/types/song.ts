@@ -1,5 +1,5 @@
 import { AddWordRequest, WordSense } from './word';
-import { FlashcardDTO } from './flashcard';
+import { FlashcardDTO, FlashcardMemory } from './flashcard';
 
 export interface SongSearchItem {
   id: string;
@@ -152,6 +152,8 @@ export interface SongStudyBootstrapResponse {
   cards: FlashcardDTO[];
   totalCount: number;
   nextDueAt: string | null;
+  /** 이 호출이 담으면서 바로 리뷰한 lead 단어의 리뷰 **후** 기억 칸. 리뷰 전 칸은 항상 `REMAINING` 이다. */
+  reviewedMemory: FlashcardMemory;
 }
 
 /**

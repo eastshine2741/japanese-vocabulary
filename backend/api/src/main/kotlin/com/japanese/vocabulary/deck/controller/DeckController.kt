@@ -92,6 +92,8 @@ class DeckController(private val deckService: DeckService) {
         masteredCount = masteredCount,
         studyingCount = studyingCount,
         newWordCount = newWordCount,
+        longTermCount = longTermCount,
+        shortTermCount = shortTermCount,
     )
 
     private fun DeckDetailDto.toResponse() = DeckDetailResponse(
@@ -105,6 +107,8 @@ class DeckController(private val deckService: DeckService) {
         masteredCount = masteredCount,
         studyingCount = studyingCount,
         newWordCount = newWordCount,
+        longTermCount = longTermCount,
+        shortTermCount = shortTermCount,
     )
 
     private fun WordListDto.toResponse() = DeckWordListResponse(

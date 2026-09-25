@@ -5,6 +5,7 @@ import com.japanese.vocabulary.common.exception.BusinessException
 import com.japanese.vocabulary.common.exception.ErrorCode
 import com.japanese.vocabulary.flashcard.entity.FlashcardEntity
 import com.japanese.vocabulary.flashcard.event.FlashcardReviewedEvent
+import com.japanese.vocabulary.flashcard.model.FlashcardMemory
 import com.japanese.vocabulary.flashcard.dto.DueFlashcardsDto
 import com.japanese.vocabulary.flashcard.dto.FlashcardDto
 import com.japanese.vocabulary.flashcard.dto.FlashcardStatsDto
@@ -174,6 +175,7 @@ class FlashcardService(
                 state = entity.state,
                 due = entity.due.toString(),
                 intervals = intervals,
+                memory = FlashcardMemory.of(entity),
             )
         }
 
@@ -229,6 +231,7 @@ class FlashcardService(
             due = entity.due.toString(),
             stability = entity.stability,
             difficulty = entity.difficulty,
+            memory = FlashcardMemory.ofReviewed(entity.stability),
         )
     }
 
@@ -241,6 +244,10 @@ class FlashcardService(
         val learning = flashcardRepository.countByUserIdAndState(userId, 0) +
                 flashcardRepository.countByUserIdAndState(userId, 2) // LEARNING + RELEARNING
         val review = flashcardRepository.countByUserIdAndState(userId, 1) // REVIEW
+        val longTerm = flashcardRepository.countByUserIdAndLastReviewIsNotNullAndStabilityGreaterThanEqual(
+            userId,
+            FlashcardMemory.LONG_TERM_STABILITY_DAYS,
+        )
 
         return FlashcardStatsDto(
             total = total,
@@ -248,6 +255,8 @@ class FlashcardService(
             newCount = newCount,
             learning = learning - newCount, // subtract never-reviewed cards
             review = review,
+            longTermCount = longTerm,
+            shortTermCount = total - newCount - longTerm,
         )
     }
 

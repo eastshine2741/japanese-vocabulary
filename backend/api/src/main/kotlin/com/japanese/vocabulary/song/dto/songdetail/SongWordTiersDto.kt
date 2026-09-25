@@ -18,7 +18,7 @@ data class SongWordTierDto(
     val knownCount: Int,
     /** 구버전 앱용. studying 수. */
     val learningCount: Int,
-    /** 장기기억 — stability 가 [SongWordMemory.LONG_TERM_STABILITY_DAYS] 이상인 리뷰 경험 단어. */
+    /** 장기기억 — stability 가 [com.japanese.vocabulary.flashcard.model.FlashcardMemory.LONG_TERM_STABILITY_DAYS] 이상인 리뷰 경험 단어. */
     val longTermCount: Int,
     /** 단기기억 — 리뷰 경험은 있으나 장기기억이 아닌 단어. */
     val shortTermCount: Int,

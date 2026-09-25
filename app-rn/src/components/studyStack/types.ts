@@ -1,4 +1,4 @@
-import { FlashcardDTO } from '../../types/flashcard';
+import { FlashcardDTO, FlashcardMemory } from '../../types/flashcard';
 import { SongWordTierKey } from '../../types/song';
 import { WordSense } from '../../types/word';
 
@@ -25,6 +25,31 @@ export interface StudySource {
    * 끝까지 복습한다 — CTA 가 보여 준 개수와 카드 수가 같다.
    */
   tierKey?: SongWordTierKey | null;
+}
+
+/**
+ * 이번 세션에서 단어가 옮겨간 기억 칸. 리뷰 전후 칸이 **실제로 바뀐** 카드만 센다 — 이미 장기기억이던
+ * 단어를 한 번 더 복습해도 "장기기억으로" 에는 잡히지 않는다. 완주 카드가 이 값을 보여준다.
+ */
+export interface StudyMemoryDiff {
+  /** 장기기억이 아니었다가 장기기억이 된 단어 수 */
+  toLongTerm: number;
+  /** 단기기억이 아니었다가 단기기억이 된 단어 수 — 처음 배운 단어와 장기기억에서 잊은 단어 */
+  toShortTerm: number;
+}
+
+export const EMPTY_MEMORY_DIFF: StudyMemoryDiff = { toLongTerm: 0, toShortTerm: 0 };
+
+/** 리뷰 전후 기억 칸으로 이동 한 건을 누적한다. 칸이 그대로면 아무것도 세지 않는다. */
+export function accumulateMemoryDiff(
+  diff: StudyMemoryDiff,
+  before: FlashcardMemory,
+  after: FlashcardMemory,
+): StudyMemoryDiff {
+  if (before === after) return diff;
+  if (after === 'LONG_TERM') return { ...diff, toLongTerm: diff.toLongTerm + 1 };
+  if (after === 'SHORT_TERM') return { ...diff, toShortTerm: diff.toShortTerm + 1 };
+  return diff;
 }
 
 export interface StudyPreviewWord {
