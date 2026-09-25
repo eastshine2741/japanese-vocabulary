@@ -117,13 +117,18 @@ export const WordFront = React.memo(function WordFront({
       <View style={styles.frontCenterBlock}>
         <View style={styles.frontWordGroup}>
           <View ref={headwordRef} collapsable={false} onLayout={onHeadwordLayout}>
-            <Animated.Text
-              adjustsFontSizeToFit
-              numberOfLines={1}
-              style={[styles.frontHeadword, headwordStyle, hideHeadword && styles.hiddenHeadword]}
-            >
-              {card.japanese}
-            </Animated.Text>
+            {/* 숨김은 Animated 가 건드리지 않는 부모에 건다 — 같은 view 의 opacity 를 Animated 값과
+                고정값 사이로 바꾸면, iOS 는 native 가 한 번 쓴 opacity 에 대한 React 갱신을 무시한다
+                (docs/runbooks/ios-native-animated-pitfalls.md). */}
+            <View collapsable={false} style={hideHeadword && styles.hiddenHeadword}>
+              <Animated.Text
+                adjustsFontSizeToFit
+                numberOfLines={1}
+                style={[styles.frontHeadword, headwordStyle]}
+              >
+                {card.japanese}
+              </Animated.Text>
+            </View>
             {headwordOverlay}
           </View>
         </View>
