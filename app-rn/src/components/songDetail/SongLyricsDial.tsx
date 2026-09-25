@@ -448,6 +448,7 @@ const styles = StyleSheet.create({
   },
   restLineText: {
     paddingHorizontal: 20,
+    paddingVertical: 12,
     fontSize: 18,
     lineHeight: 26,
     color: Colors.textPrimary,
@@ -458,8 +459,8 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   focusPlainText: {
-    fontSize: 26,
-    lineHeight: 33,
+    fontSize: 22,
+    lineHeight: 28,
     fontWeight: '600',
     color: Colors.textPrimary,
   },
@@ -467,7 +468,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'flex-end',
-    gap: 2,
+    columnGap: 2,
+    rowGap: 12,
   },
   tokenCell: {
     alignItems: 'center',
@@ -477,19 +479,19 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   furiganaText: {
-    fontSize: 10.5,
-    lineHeight: 12,
+    fontSize: 9,
+    lineHeight: 10,
     color: Colors.textSecondary,
   },
   tokenText: {
-    fontSize: 26,
-    lineHeight: 33,
+    fontSize: 22,
+    lineHeight: 28,
     fontWeight: '600',
     color: Colors.textPrimary,
   },
   tokenTextMuted: {
-    fontSize: 26,
-    lineHeight: 33,
+    fontSize: 22,
+    lineHeight: 28,
     fontWeight: '600',
     color: Colors.textSecondary,
   },
@@ -501,14 +503,14 @@ const styles = StyleSheet.create({
   },
   tokenMeaningText: {
     marginTop: 2,
-    fontSize: 11.5,
-    lineHeight: 15,
+    fontSize: 11,
+    lineHeight: 14,
     color: Colors.textSecondary,
   },
   tokenMeaningTextMuted: {
     marginTop: 2,
-    fontSize: 11.5,
-    lineHeight: 15,
+    fontSize: 11,
+    lineHeight: 14,
     color: Colors.textMuted,
   },
   lineMeaning: {

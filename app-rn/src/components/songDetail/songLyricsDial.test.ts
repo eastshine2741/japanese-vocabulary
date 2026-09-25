@@ -3,6 +3,7 @@ import { Colors } from '../../theme/theme';
 import { Token } from '../../types/song';
 import {
   DEFAULT_LINE_HEIGHT,
+  DRAG_STEP,
   LINE_GAP,
   buildSlotLayouts,
   buildTokenCells,
@@ -113,9 +114,9 @@ describe('buildSlotLayouts', () => {
 
 describe('stepTargetIndex', () => {
   it('위로 끌면 다음 줄, 아래로 끌면 이전 줄', () => {
-    expect(stepTargetIndex(5, -56, 20)).toBe(6);
-    expect(stepTargetIndex(5, -168, 20)).toBe(8);
-    expect(stepTargetIndex(5, 56, 20)).toBe(4);
+    expect(stepTargetIndex(5, -DRAG_STEP, 20)).toBe(6);
+    expect(stepTargetIndex(5, -DRAG_STEP * 3, 20)).toBe(8);
+    expect(stepTargetIndex(5, DRAG_STEP, 20)).toBe(4);
   });
 
   it('한 칸에 못 미치는 드래그는 줄을 넘기지 않는다', () => {
