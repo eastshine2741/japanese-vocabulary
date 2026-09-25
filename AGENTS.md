@@ -40,6 +40,7 @@ cd app-rn && npx expo start --web             # App - Web (dev)
 - Analysis defect log and auto-fix runner: `.github/scripts/analysis-feedback/README.md`
 - Mobile OTA release flow: `docs/runbooks/mobile-ota-release.md`
 - Bottom sheet nested scroll: `docs/runbooks/bottom-sheet-nested-scroll.md`
+- iOS native Animated pitfalls: `docs/runbooks/ios-native-animated-pitfalls.md`
 - Pencil editing: `docs/runbooks/pencil-editing.md`
 
 Directory-specific instructions live in nested `AGENTS.md` files. Each has a sibling `CLAUDE.md` that links to it with `@AGENTS.md`.

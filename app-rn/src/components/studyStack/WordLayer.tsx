@@ -82,12 +82,12 @@ export const WordLayer = React.memo(function WordLayer({
   // 분열은 reveal 과 같은 순간 시작하지만 자기 속도로 간다. 앞면(pill 윤곽 녹음)과
   // 뒷면(버튼 갈라짐)이 같은 값을 보므로 여기서 돌린다. 카드가 바뀌면 revealed 가 false 로
   // 돌아오고 아래 faceStack 은 key 로 다시 마운트된다.
-  const splitProgress = React.useRef(new Animated.Value(0)).current;
+  // revealProgress 가 새 인스턴스로 바뀔 때(= 앞면으로 돌아올 때마다) 같이 새로 만든다 — 하나를
+  // setValue(0) 으로 되돌리면 새 카드 첫 렌더가 직전 값 1 로 커밋되고, iOS 에선 뒤따른 0 이
+  // 마운트 전 view 에 떨어져 사라진다 (docs/runbooks/ios-native-animated-pitfalls.md).
+  const splitProgress = React.useMemo(() => new Animated.Value(0), [revealProgress]);
   React.useEffect(() => {
-    if (!revealed) {
-      splitProgress.setValue(0);
-      return;
-    }
+    if (!revealed) return;
     // 허리가 생기는 초반은 빠르게, 끊어져 안착하는 후반은 길게 감속한다. 허리 깊이는 끝이 물러난
     // 거리에 제곱으로 깊어져 같은 속도여도 후반이 빨라 보이므로 곡선은 더 앞쪽에 몰아둔다.
     Animated.timing(splitProgress, {
