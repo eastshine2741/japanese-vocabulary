@@ -57,6 +57,7 @@ class LexicalResolver(
                 ?: resolveHiraganaQuery(token, probeLookups)
                 ?: resolveIntensifierPrefix(token, probeLookups)
                 ?: resolveSuruVerb(token, probeLookups)
+                ?: resolvePotentialVerb(token, probeLookups)
 
             if (resolved == null) {
                 if (firstPass[token.headword]?.provenance == JishoLookupProvenance.REJECTED_FALLBACK) {
@@ -132,7 +133,8 @@ class LexicalResolver(
                     resolveSuruDesiderative(it, probeLookups, logRescue = false) == null &&
                     resolveHiraganaQuery(it, probeLookups, logRescue = false) == null &&
                     resolveIntensifierPrefix(it, probeLookups, logRescue = false) == null &&
-                    resolveSuruVerb(it, probeLookups, logRescue = false) == null
+                    resolveSuruVerb(it, probeLookups, logRescue = false) == null &&
+                    resolvePotentialVerb(it, probeLookups, logRescue = false) == null
             }
             .map { token ->
                 val lookups = listOfNotNull(firstPass[token.headword]) +
@@ -155,6 +157,7 @@ class LexicalResolver(
             hiraganaProbe(token),
             intensifierPrefixProbe(token),
             suruVerbProbe(token),
+            potentialVerbProbe(token),
         )
 
     /**
@@ -363,6 +366,46 @@ class LexicalResolver(
         return AcceptedLexicalEntry(base, verbEntries, accepted.provenance)
     }
 
+    /**
+     * Safety net for when the segmentation LLM hands back a godan verb's potential form — 思い出せる for
+     * 思い出せない — as the headword instead of 思い出す. Tried only after the pair match has already failed.
+     *
+     * The e-row ending goes back to the u-row (せる → す, える → う, れる → る), and only godan senses are
+     * kept: an ichidan verb such as 食べる already answers the first lookup, and a probed remainder that
+     * is not a godan verb is a different word.
+     */
+    private fun resolvePotentialVerb(
+        token: PipelineToken,
+        lookups: Map<String, JishoEntryDto>,
+        logRescue: Boolean = true,
+    ): AcceptedLexicalEntry? {
+        val base = potentialVerbProbe(token) ?: return null
+        val accepted = narrow(token, lookups[base], base, potentialVerbProbeReading(token), logRescue)
+            ?: return null
+        val godanEntries = accepted.entries.mapNotNull { entry ->
+            val godanSenses = entry.senses.filter { sense -> sense.pos.any { "godan" in it.lowercase() } }
+            if (godanSenses.isEmpty()) null else entry.copy(senses = godanSenses)
+        }
+        if (godanEntries.isEmpty()) return null
+        if (logRescue) logger.info("Normalized potential verb '{}' to '{}'", token.headword, base)
+        return AcceptedLexicalEntry(base, godanEntries, accepted.provenance)
+    }
+
+    /** `思い出せる` → `思い出す`. Null unless the headword is a stem followed by an e-row kana and る. */
+    private fun potentialVerbProbe(token: PipelineToken): String? {
+        val headword = token.headword.takeIf { it.length > 2 && it.endsWith("る") } ?: return null
+        val godanEnding = POTENTIAL_TO_GODAN_ENDING[headword[headword.length - 2]] ?: return null
+        return headword.dropLast(2) + godanEnding
+    }
+
+    /** The probed base form's reading: `オモイダセル` → `オモイダス`, mirroring [potentialVerbProbe]. */
+    private fun potentialVerbProbeReading(token: PipelineToken): String? {
+        val reading = JapaneseText.toHiragana(token.baseFormReading)
+            .takeIf { it.length > 2 && it.endsWith("る") } ?: return null
+        val godanEnding = POTENTIAL_TO_GODAN_ENDING[reading[reading.length - 2]] ?: return null
+        return JapaneseText.toKatakana(reading.dropLast(2) + godanEnding)
+    }
+
     /** `交差する` → `交差`. Null unless the headword is something followed by する. */
     private fun suruVerbProbe(token: PipelineToken): String? =
         token.headword.takeIf { it.length > 2 && it.endsWith("する") }?.dropLast(2)
@@ -415,5 +458,11 @@ class LexicalResolver(
         /** Longest first, so したくない is not read as したい with a stem ending in く. */
         val SURU_DESIDERATIVE_SUFFIXES = listOf("したくない", "したい")
         val SURU_DESIDERATIVE_READING_SUFFIXES = listOf("シタクナイ", "シタイ")
+
+        /** The e-row kana a godan potential puts before る, mapped to the verb's dictionary ending. */
+        val POTENTIAL_TO_GODAN_ENDING = mapOf(
+            'え' to 'う', 'け' to 'く', 'げ' to 'ぐ', 'せ' to 'す', 'て' to 'つ',
+            'ね' to 'ぬ', 'べ' to 'ぶ', 'め' to 'む', 'れ' to 'る',
+        )
     }
 }
