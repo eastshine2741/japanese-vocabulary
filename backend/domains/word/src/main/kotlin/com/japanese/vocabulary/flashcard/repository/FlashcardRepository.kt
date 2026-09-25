@@ -9,10 +9,8 @@ import org.springframework.data.repository.query.Param
 import java.time.Instant
 
 interface FlashcardRepository : JpaRepository<FlashcardEntity, Long> {
-    fun findByUserIdAndDueLessThanEqual(userId: Long, due: Instant): List<FlashcardEntity>
     fun findByUserIdAndDueLessThanEqualOrderByDueAscIdAsc(userId: Long, due: Instant, pageable: Pageable): List<FlashcardEntity>
     fun findFirstByUserIdAndDueGreaterThanOrderByDueAscIdAsc(userId: Long, due: Instant): FlashcardEntity?
-    fun findByUserIdAndDueBetweenAndLastReviewIsNotNull(userId: Long, since: Instant, now: Instant): List<FlashcardEntity>
     fun findByUserId(userId: Long): List<FlashcardEntity>
     fun findByWordId(wordId: Long): FlashcardEntity?
     fun findByUserIdAndWordIdIn(userId: Long, wordIds: Collection<Long>): List<FlashcardEntity>

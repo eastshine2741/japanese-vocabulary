@@ -9,7 +9,8 @@ import java.time.Instant
 @Entity
 @Table(
     name = "words",
-    uniqueConstraints = [UniqueConstraint(columnNames = ["user_id", "japanese_text"])]
+    uniqueConstraints = [UniqueConstraint(columnNames = ["user_id", "japanese_text"])],
+    indexes = [Index(name = "idx_words_user", columnList = "user_id")],
 )
 @EntityListeners(AuditingEntityListener::class)
 class WordEntity(
