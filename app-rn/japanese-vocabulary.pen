@@ -90567,16 +90567,6 @@
                       "fontWeight": "600"
                     }
                   ]
-                },
-                {
-                  "type": "icon",
-                  "id": "M55w52",
-                  "name": "Arrow",
-                  "width": 17,
-                  "height": 17,
-                  "icon": "arrow-right",
-                  "library": "lucide",
-                  "fill": "#FFFFFF"
                 }
               ]
             }

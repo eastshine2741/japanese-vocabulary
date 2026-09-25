@@ -254,10 +254,7 @@ const ExpandedTierCard = React.memo(function ExpandedTierCard({
                 <Text style={styles.ctaTime}>약 {minutes}분</Text>
               </View>
             </View>
-            <View style={styles.ctaPreview}>
-              <SongDetailDueWordRoller words={tier.duePreviewWords} />
-              <Feather name="arrow-right" size={17} color="#FFFFFF" />
-            </View>
+            <SongDetailDueWordRoller words={tier.duePreviewWords} />
           </>
         ) : (
           <Text style={styles.ctaDisabledLabel}>모두 학습했어요!</Text>
@@ -505,11 +502,6 @@ const styles = StyleSheet.create({
     ...Typography.bodySemiBold,
     color: CTA_SUBTLE_COLOR,
     fontSize: 11.5,
-  },
-  ctaPreview: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
   },
   ctaDisabledLabel: {
     ...Typography.bodyBold,
