@@ -54,6 +54,7 @@ class LexicalResolver(
             val resolved = narrowed[token.key]
                 ?: resolveIAdjective(token, probeLookups)
                 ?: resolveSuruDesiderative(token, probeLookups)
+                ?: resolveSuruProgressive(token, probeLookups)
                 ?: resolveHiraganaQuery(token, probeLookups)
                 ?: resolveIntensifierPrefix(token, probeLookups)
                 ?: resolveSuruVerb(token, probeLookups)
@@ -130,6 +131,7 @@ class LexicalResolver(
             .filter {
                 resolveIAdjective(it, probeLookups, logRescue = false) == null &&
                     resolveSuruDesiderative(it, probeLookups, logRescue = false) == null &&
+                    resolveSuruProgressive(it, probeLookups, logRescue = false) == null &&
                     resolveHiraganaQuery(it, probeLookups, logRescue = false) == null &&
                     resolveIntensifierPrefix(it, probeLookups, logRescue = false) == null &&
                     resolveSuruVerb(it, probeLookups, logRescue = false) == null
@@ -152,6 +154,7 @@ class LexicalResolver(
         listOfNotNull(
             iAdjectiveProbe(token),
             suruDesiderativeProbe(token),
+            suruProgressiveProbe(token),
             hiraganaProbe(token),
             intensifierPrefixProbe(token),
             suruVerbProbe(token),
@@ -274,6 +277,38 @@ class LexicalResolver(
     /** `愛したくない` / `愛したい` → `愛する`. Null when nothing precedes the suffix: したい alone is する. */
     private fun suruDesiderativeProbe(token: PipelineToken): String? {
         val suffix = SURU_DESIDERATIVE_SUFFIXES.firstOrNull { token.headword.endsWith(it) } ?: return null
+        val stem = token.headword.dropLast(suffix.length)
+        return if (stem.isEmpty()) null else stem + "する"
+    }
+
+    /**
+     * Safety net for when the segmentation LLM hands back a suru-verb's progressive — 愛してる,
+     * 愛している — as the headword instead of 愛する. Same guess as [resolveSuruDesiderative]: 話してる
+     * probes 話する, which no entry carries, so it stays unresolved.
+     */
+    private fun resolveSuruProgressive(
+        token: PipelineToken,
+        lookups: Map<String, JishoEntryDto>,
+        logRescue: Boolean = true,
+    ): AcceptedLexicalEntry? {
+        val base = suruProgressiveProbe(token) ?: return null
+        val accepted = narrow(token, lookups[base], base, suruProgressiveProbeReading(token), logRescue)
+            ?: return null
+        if (logRescue) logger.info("Normalized suru-verb progressive '{}' to '{}'", token.surface, base)
+        return accepted
+    }
+
+    /** The probed base form's reading: `アイシテル` → `アイスル`, mirroring [suruProgressiveProbe]. */
+    private fun suruProgressiveProbeReading(token: PipelineToken): String? {
+        val suffix = SURU_PROGRESSIVE_READING_SUFFIXES.firstOrNull { token.baseFormReading.endsWith(it) }
+            ?: return null
+        val stem = token.baseFormReading.dropLast(suffix.length)
+        return if (stem.isEmpty()) null else stem + "スル"
+    }
+
+    /** `愛してる` / `愛している` → `愛する`. Null when nothing precedes the suffix: してる alone is する. */
+    private fun suruProgressiveProbe(token: PipelineToken): String? {
+        val suffix = SURU_PROGRESSIVE_SUFFIXES.firstOrNull { token.headword.endsWith(it) } ?: return null
         val stem = token.headword.dropLast(suffix.length)
         return if (stem.isEmpty()) null else stem + "する"
     }
@@ -415,5 +450,9 @@ class LexicalResolver(
         /** Longest first, so したくない is not read as したい with a stem ending in く. */
         val SURU_DESIDERATIVE_SUFFIXES = listOf("したくない", "したい")
         val SURU_DESIDERATIVE_READING_SUFFIXES = listOf("シタクナイ", "シタイ")
+
+        /** Longest first, like the desiderative suffixes. */
+        val SURU_PROGRESSIVE_SUFFIXES = listOf("していた", "している", "してた", "してる")
+        val SURU_PROGRESSIVE_READING_SUFFIXES = listOf("シテイタ", "シテイル", "シテタ", "シテル")
     }
 }
