@@ -252,6 +252,35 @@ class LexicalResolverTest {
     }
 
     @Test
+    fun `a passive handed back as the headword is rescued as its dictionary form`(): Unit = runBlocking {
+        // songId=246, line 6: "ただ過ぎる日々に呑み込まれたの". The model kept the passive 呑み込まれる as the
+        // headword, jisho has no such entry, and the word shipped without a meaning.
+        stub(
+            "呑み込む" to found(
+                JishoDictionaryEntryDto(
+                    headword = "呑み込む",
+                    reading = "ノミコム",
+                    senses = listOf(
+                        JishoOptionDto(
+                            pos = listOf("Godan verb with 'mu' ending", "Transitive verb"),
+                            english = "to swallow",
+                            englishDefinitions = listOf("to swallow"),
+                        ),
+                    ),
+                ),
+            ),
+        )
+        val tokens = listOf(token("呑み込まれた", "呑み込まれる", "ノミコマレル", lineIndex = 6))
+
+        val resolved = resolver.resolve(tokens).byTokenKey.values.single()
+
+        assertThat(resolved.baseForm).isEqualTo("呑み込む")
+        assertThat(resolved.options.map { it.english }).containsExactly("to swallow")
+        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
     fun `a suru verb rescued through the probe is graded exact`(): Unit = runBlocking {
         // songId=171, line 0: "0と1が交差する地点". jisho indexes 交差 as a noun that takes する, never
         // 交差する itself, so the headword as the model gave it misses and the word lost its meaning.
