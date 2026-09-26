@@ -57,6 +57,7 @@ class LexicalResolver(
                 ?: resolveHiraganaQuery(token, probeLookups)
                 ?: resolveIntensifierPrefix(token, probeLookups)
                 ?: resolveSuruVerb(token, probeLookups)
+                ?: resolveReadingQuery(token, probeLookups)
 
             if (resolved == null) {
                 if (firstPass[token.headword]?.provenance == JishoLookupProvenance.REJECTED_FALLBACK) {
@@ -132,7 +133,8 @@ class LexicalResolver(
                     resolveSuruDesiderative(it, probeLookups, logRescue = false) == null &&
                     resolveHiraganaQuery(it, probeLookups, logRescue = false) == null &&
                     resolveIntensifierPrefix(it, probeLookups, logRescue = false) == null &&
-                    resolveSuruVerb(it, probeLookups, logRescue = false) == null
+                    resolveSuruVerb(it, probeLookups, logRescue = false) == null &&
+                    resolveReadingQuery(it, probeLookups, logRescue = false) == null
             }
             .map { token ->
                 val lookups = listOfNotNull(firstPass[token.headword]) +
@@ -155,6 +157,7 @@ class LexicalResolver(
             hiraganaProbe(token),
             intensifierPrefixProbe(token),
             suruVerbProbe(token),
+            readingProbe(token),
         )
 
     /**
@@ -299,6 +302,35 @@ class LexicalResolver(
         val accepted = narrow(token, lookups[base], base, logGrading = logRescue) ?: return null
         if (logRescue) logger.info("Looked up katakana headword '{}' as '{}'", token.headword, base)
         return accepted
+    }
+
+    /**
+     * Safety net for a kanji spelling the dictionary does not index.
+     *
+     * Lyrics drop okurigana jisho keeps: `在り来り` misses because jisho indexes 在り来たり. The reading
+     * finds the entry, and only entries whose headword carries every kanji of the token's survive, so
+     * a homophone written with other kanji cannot answer in its place. The token's headword stays the
+     * base form — the lyric's spelling is still the word.
+     */
+    private fun resolveReadingQuery(
+        token: PipelineToken,
+        lookups: Map<String, JishoEntryDto>,
+        logRescue: Boolean = true,
+    ): AcceptedLexicalEntry? {
+        val base = readingProbe(token) ?: return null
+        val kanji = token.headword.filterNot { JapaneseText.isKanaOnly(it.toString()) }.toSet()
+        val lookup = lookups[base]?.let { found ->
+            found.copy(entries = found.entries.filter { it.headword?.toSet()?.containsAll(kanji) == true })
+        }
+        val accepted = narrow(token, lookup, base, logGrading = logRescue) ?: return null
+        if (logRescue) logger.info("Looked up kanji headword '{}' by its reading '{}'", token.headword, base)
+        return accepted.copy(baseForm = token.headword)
+    }
+
+    /** The hiragana reading of a headword that has kanji in it. Null for a kana headword. */
+    private fun readingProbe(token: PipelineToken): String? {
+        if (JapaneseText.isKanaOnly(token.headword) || !JapaneseText.containsJapanese(token.headword)) return null
+        return token.baseFormReading.takeIf { JapaneseText.isKanaOnly(it) }?.let(JapaneseText::toHiragana)
     }
 
     /**
