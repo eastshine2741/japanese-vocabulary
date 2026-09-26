@@ -252,6 +252,63 @@ class LexicalResolverTest {
     }
 
     @Test
+    fun `a verb stem with appearance sou is rescued as the verb's dictionary form`(): Unit = runBlocking {
+        // songId=219, line 18: "月が綺麗で 泣きそうになるのは". The model gave 泣きそう as the headword,
+        // jisho has no such entry, and the word shipped without a meaning. 泣き is 泣く's stem, so the
+        // probe turns the stem's last i-row kana back into its u-row kana.
+        stub(
+            "泣く" to found(
+                JishoDictionaryEntryDto(
+                    headword = "泣く",
+                    reading = "ナク",
+                    senses = listOf(
+                        JishoOptionDto(
+                            pos = listOf("Godan verb with 'ku' ending", "Intransitive verb"),
+                            english = "to cry",
+                            englishDefinitions = listOf("to cry", "to weep"),
+                        ),
+                    ),
+                ),
+            ),
+        )
+        val tokens = listOf(token("泣きそう", "泣きそう", "ナキソウ", lineIndex = 18))
+
+        val resolved = resolver.resolve(tokens).byTokenKey.values.single()
+
+        assertThat(resolved.baseForm).isEqualTo("泣く")
+        assertThat(resolved.options.map { it.english }).containsExactly("to cry")
+        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
+    fun `an i-adjective stem with appearance sou is rescued as the adjective`(): Unit = runBlocking {
+        stub(
+            "忙しい" to found(
+                JishoDictionaryEntryDto(
+                    headword = "忙しい",
+                    reading = "イソガシイ",
+                    senses = listOf(
+                        JishoOptionDto(
+                            pos = listOf("I-adjective (keiyoushi)"),
+                            english = "busy",
+                            englishDefinitions = listOf("busy"),
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        val resolved = resolver.resolve(
+            listOf(token("忙しそう", "忙しそう", "イソガシソウ")),
+        ).byTokenKey.values.single()
+
+        assertThat(resolved.baseForm).isEqualTo("忙しい")
+        assertThat(resolved.options.map { it.english }).containsExactly("busy")
+        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+    }
+
+    @Test
     fun `a suru verb rescued through the probe is graded exact`(): Unit = runBlocking {
         // songId=171, line 0: "0と1が交差する地点". jisho indexes 交差 as a noun that takes する, never
         // 交差する itself, so the headword as the model gave it misses and the word lost its meaning.
