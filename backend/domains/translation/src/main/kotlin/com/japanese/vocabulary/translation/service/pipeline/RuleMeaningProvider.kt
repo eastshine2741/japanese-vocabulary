@@ -210,6 +210,8 @@ class RuleMeaningProvider {
             "か" to particle("か", "~인가"),
             "ね" to particle("ね", "~네"),
             "よ" to particle("よ", "~야"),
+            // Connective て; SegmentAnchoringValidator synthesizes it when the model leaves it off the verb.
+            "て" to particle("て", "~하고, ~해서"),
         )
 
         val auxiliaries = mapOf(

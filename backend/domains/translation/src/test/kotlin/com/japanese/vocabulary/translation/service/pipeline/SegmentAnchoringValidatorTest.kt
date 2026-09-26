@@ -424,6 +424,48 @@ class SegmentAnchoringValidatorTest {
     }
 
     @Test
+    fun `a bare te the model left off the verb in front of it becomes its own token`() {
+        // The song-223 defect: `上げて` came back as `上げ` alone, and the connective `て` shipped as an
+        // UNCOVERED defect even though it is a known particle with nothing left to segment.
+        val result = validator.anchor(
+            mapOf(0 to "声を上げて さぁ出航だ 我ら 宝鐘海賊団"),
+            listOf(
+                SegLineDto(
+                    0,
+                    listOf(
+                        word("声", "声", "コエ", "コエ"),
+                        word("を", "を", "ヲ", "ヲ"),
+                        word("上げ", "上げる", "アゲ", "アゲル"),
+                        word("さぁ", "さぁ", "サァ", "サァ"),
+                        word("出航", "出航", "シュッコウ", "シュッコウ"),
+                        word("だ", "だ", "ダ", "ダ"),
+                        word("我ら", "我ら", "ワレラ", "ワレラ"),
+                        word("宝鐘海賊団", "宝鐘海賊団", "ホウショウカイゾクダン", "ホウショウカイゾクダン"),
+                    ),
+                ),
+            ),
+        )
+
+        assertThat(result.failuresByIndex).isEmpty()
+        assertThat(result.incompleteByIndex).isEmpty()
+        val te = result.anchoredByIndex[0]!!.single { it.surface == "て" }
+        assertThat(Triple(te.charStart, te.charEnd, te.usedReading)).isEqualTo(Triple(4, 5, "テ"))
+        assertThat(result.anchoredByIndex[0]!!.map { it.surface })
+            .containsExactly("声", "を", "上げ", "て", "さぁ", "出航", "だ", "我ら", "宝鐘海賊団")
+    }
+
+    @Test
+    fun `a te inside a longer uncovered run stays uncovered`() {
+        // Only a lone て is settled here; `てる` left out is a word the model skipped.
+        val result = validator.anchor(
+            mapOf(0 to "見てる"),
+            listOf(SegLineDto(0, listOf(word("見", "見る", "ミ", "ミル")))),
+        )
+
+        assertThat(result.incompleteByIndex[0]?.text).isEqualTo("てる")
+    }
+
+    @Test
     fun `reports duplicate line index as a line failure`() {
         val result = validator.anchor(
             mapOf(0 to "猫", 1 to "犬"),

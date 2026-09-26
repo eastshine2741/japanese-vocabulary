@@ -45,6 +45,7 @@ class RuleMeaningProviderTest {
 
         assertThat(resolved.partOfSpeech).isEqualTo(PartOfSpeech.PARTICLE)
         assertThat(resolved.koreanText).isEqualTo("~도")
+        assertThat(provider.resolve(token("て"))!!.partOfSpeech).isEqualTo(PartOfSpeech.PARTICLE)
     }
 
     @Test
