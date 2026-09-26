@@ -377,6 +377,34 @@ class LexicalResolverTest {
     }
 
     @Test
+    fun `an honorific-prefixed noun jisho does not index resolves to the bare noun`(): Unit = runBlocking {
+        // songId=258 line 24: 酒落になんないくらいのやつを お試しで — jisho has 試し, not お試し.
+        stub(
+            "試し" to found(
+                JishoDictionaryEntryDto(
+                    headword = "試し",
+                    reading = "タメシ",
+                    senses = listOf(
+                        JishoOptionDto(
+                            pos = listOf("Noun"),
+                            english = "trial, test",
+                            englishDefinitions = listOf("trial", "test"),
+                        ),
+                    ),
+                ),
+            ),
+        )
+        val tokens = listOf(token("お試し", "お試し", "オタメシ", lineIndex = 24))
+
+        val resolved = resolver.resolve(tokens).byTokenKey.values.single()
+
+        assertThat(resolved.baseForm).isEqualTo("試し")
+        assertThat(resolved.options.map { it.english }).containsExactly("trial, test")
+        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
     fun `a lookup jisho never answered is reported as a provider error, not a miss`(): Unit = runBlocking {
         // songId=82: jisho returned 502 for ninety seconds and 太陽 went out with no meaning, logged
         // as if no entry existed. The segmentation stage must be able to tell the two apart — one
