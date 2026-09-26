@@ -319,6 +319,27 @@ class LexicalResolverTest {
     }
 
     @Test
+    fun `a kanji spelling jisho does not index is looked up by its reading`(): Unit = runBlocking {
+        // songId=231, "(在り来りで悲劇的な秘密の恋の成れの果て)": jisho indexes the word as 在り来たり, so the
+        // lyric's 在り来り misses outright. The reading reaches the entry; the headword's kanji keep a
+        // homophone written with other kanji from answering in its place.
+        stub(
+            "ありきたり" to found(
+                entry(headword = "在り来たり", reading = "アリキタリ", english = "commonplace"),
+                entry(headword = "蟻来たり", reading = "アリキタリ", english = "unrelated homophone"),
+            ),
+        )
+
+        val tokens = listOf(token("在り来り", "在り来り", "アリキタリ", lineIndex = 18))
+        val resolved = resolver.resolve(tokens).byTokenKey.values.single()
+
+        assertThat(resolved.baseForm).isEqualTo("在り来り")
+        assertThat(resolved.options.map { it.english }).containsExactly("commonplace")
+        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
     fun `an intensifier-prefixed verb is looked up without its prefix`(): Unit = runBlocking {
         // songId=10, "ぶちこわれた 計測機器が": ぶち壊れる is colloquial ぶち + 壊れる and jisho has no entry
         // for the compound, but the verb underneath is ordinary. The word must not lose its meaning
