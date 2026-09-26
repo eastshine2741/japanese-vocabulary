@@ -46,7 +46,56 @@ class SelectSensesStage(
             .filterValues { it.isNotEmpty() }
         if (selectableTokensByIndex.isEmpty()) return settledSenseByKey
 
-        val selectInput = selectableTokensByIndex.map { (index, tokens) ->
+        val selectedLines = ChunkedGeminiCall.flatMap(selectInput(selectableTokensByIndex, input), SELECT_CHUNK_LINES) {
+            geminiClient.selectSenses(it, input.source.callContext)
+        }
+        val firstByIndex = validateLineIndices(selectableTokensByIndex.keys, selectedLines)
+        val selectByIndex = retryMissingTokens(selectableTokensByIndex, firstByIndex, input)
+        return settledSenseByKey + selectedSenseByKey(selectableTokensByIndex, selectByIndex, input)
+    }
+
+    /**
+     * Asks once more for the tokens the first response left unanswered. A response sometimes drops
+     * most of a line at once (song 223 lost 歌え/最高/波/音 in one answer); the same tokens asked on
+     * their own usually come back. Retry answers only fill tokens that were missing, and a retry that
+     * still leaves them out falls through to [selectedSenseByKey], which reports them.
+     */
+    private suspend fun retryMissingTokens(
+        selectableTokensByIndex: Map<Int, List<PipelineToken>>,
+        selectByIndex: Map<Int, SelectLineDto>,
+        input: SenseSelectionStageInput,
+    ): Map<Int, SelectLineDto> {
+        val missingTokensByIndex = selectableTokensByIndex.mapValues { (index, tokens) ->
+            val answered = selectByIndex[index]?.words.orEmpty().map { it.tokenId }.toSet()
+            tokens.filterNot { it.key.tokenId in answered }
+        }.filterValues { it.isNotEmpty() }
+        if (missingTokensByIndex.isEmpty()) return selectByIndex
+
+        logger.warn(
+            "[songId={}] Sense-select left tokens unanswered, retrying those only: {}",
+            input.source.callContext.songId,
+            missingTokensByIndex.mapValues { (_, tokens) -> tokens.map { it.key.tokenId } },
+        )
+        val retryLines = ChunkedGeminiCall.flatMap(selectInput(missingTokensByIndex, input), SELECT_CHUNK_LINES) {
+            geminiClient.selectSenses(it, input.source.callContext)
+        }
+        val retryWordsByIndex = retryLines.groupBy({ it.index }, { it.words })
+        return selectByIndex.mapValues { (index, line) ->
+            val missingIds = missingTokensByIndex[index].orEmpty().map { it.key.tokenId }.toSet()
+            if (missingIds.isEmpty()) return@mapValues line
+            val recovered = retryWordsByIndex[index].orEmpty().flatten()
+                .filter { it.tokenId in missingIds }
+                .distinctBy { it.tokenId }
+            line.copy(words = line.words + recovered)
+        }
+    }
+
+    private fun selectInput(
+        tokensByIndex: Map<Int, List<PipelineToken>>,
+        input: SenseSelectionStageInput,
+    ): List<Map<String, Any?>> {
+        val lexical = input.wordPreparation.lexical
+        return tokensByIndex.map { (index, tokens) ->
             mapOf(
                 "index" to index,
                 "japanese" to (input.source.rawByIndex[index] ?: ""),
@@ -65,12 +114,6 @@ class SelectSensesStage(
                 },
             )
         }
-
-        val selectedLines = ChunkedGeminiCall.flatMap(selectInput, SELECT_CHUNK_LINES) {
-            geminiClient.selectSenses(it, input.source.callContext)
-        }
-        val selectByIndex = validateLineIndices(selectableTokensByIndex.keys, selectedLines)
-        return settledSenseByKey + selectedSenseByKey(selectableTokensByIndex, selectByIndex, input)
     }
 
     /**
