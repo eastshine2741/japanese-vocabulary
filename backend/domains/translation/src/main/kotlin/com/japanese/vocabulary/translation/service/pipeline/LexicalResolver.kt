@@ -151,11 +151,10 @@ class LexicalResolver(
     private fun probeKeysOf(token: PipelineToken): List<String> =
         listOfNotNull(
             iAdjectiveProbe(token),
-            suruDesiderativeProbe(token),
             hiraganaProbe(token),
             intensifierPrefixProbe(token),
             suruVerbProbe(token),
-        )
+        ) + suruDesiderativeProbes(token)
 
     /**
      * Grades how well [lookup] pins down the entry [token] means, using the `(headword, reading)` pair.
@@ -245,37 +244,39 @@ class LexicalResolver(
      * Safety net for when the segmentation LLM hands back a suru-verb's desiderative — 愛したくない,
      * 愛したい — as the headword instead of 愛する. Tried only after the pair match has already failed.
      *
-     * The probe is a guess at the conjugation: 話したい is 話す, not 話する, and it stays unresolved
-     * because no entry carries the probed headword. The rescue only ever adds an entry jisho actually
-     * indexes under `stem + する`.
+     * The し before たい is ambiguous: 愛したい is 愛する, but 吐き出したい is the godan verb 吐き出す.
+     * Both are probed, `stem + する` first, and the rescue only ever adds an entry jisho actually
+     * indexes under the probed headword.
      */
     private fun resolveSuruDesiderative(
         token: PipelineToken,
         lookups: Map<String, JishoEntryDto>,
         logRescue: Boolean = true,
     ): AcceptedLexicalEntry? {
-        val base = suruDesiderativeProbe(token) ?: return null
         // Same reasoning as the i-adjective probe: the token's reading is アイシタクナイ, the wrong
         // headword's, so it is inflected back to アイスル alongside the base form.
-        val accepted = narrow(token, lookups[base], base, suruDesiderativeProbeReading(token), logRescue)
-            ?: return null
-        if (logRescue) logger.info("Normalized suru-verb desiderative '{}' to '{}'", token.surface, base)
-        return accepted
+        val readings = suruDesiderativeProbeReadings(token)
+        for ((index, base) in suruDesiderativeProbes(token).withIndex()) {
+            val accepted = narrow(token, lookups[base], base, readings.getOrNull(index), logRescue) ?: continue
+            if (logRescue) logger.info("Normalized suru-verb desiderative '{}' to '{}'", token.surface, base)
+            return accepted
+        }
+        return null
     }
 
-    /** The probed base form's reading: `アイシタクナイ` → `アイスル`, mirroring [suruDesiderativeProbe]. */
-    private fun suruDesiderativeProbeReading(token: PipelineToken): String? {
+    /** The probed base forms' readings: `アイシタクナイ` → `アイスル`, `アイス`, mirroring [suruDesiderativeProbes]. */
+    private fun suruDesiderativeProbeReadings(token: PipelineToken): List<String> {
         val suffix = SURU_DESIDERATIVE_READING_SUFFIXES.firstOrNull { token.baseFormReading.endsWith(it) }
-            ?: return null
+            ?: return emptyList()
         val stem = token.baseFormReading.dropLast(suffix.length)
-        return if (stem.isEmpty()) null else stem + "スル"
+        return if (stem.isEmpty()) emptyList() else listOf(stem + "スル", stem + "ス")
     }
 
-    /** `愛したくない` / `愛したい` → `愛する`. Null when nothing precedes the suffix: したい alone is する. */
-    private fun suruDesiderativeProbe(token: PipelineToken): String? {
-        val suffix = SURU_DESIDERATIVE_SUFFIXES.firstOrNull { token.headword.endsWith(it) } ?: return null
+    /** `愛したくない` / `愛したい` → `愛する`, `愛す`. Empty when nothing precedes the suffix: したい alone is する. */
+    private fun suruDesiderativeProbes(token: PipelineToken): List<String> {
+        val suffix = SURU_DESIDERATIVE_SUFFIXES.firstOrNull { token.headword.endsWith(it) } ?: return emptyList()
         val stem = token.headword.dropLast(suffix.length)
-        return if (stem.isEmpty()) null else stem + "する"
+        return if (stem.isEmpty()) emptyList() else listOf(stem + "する", stem + "す")
     }
 
     /**

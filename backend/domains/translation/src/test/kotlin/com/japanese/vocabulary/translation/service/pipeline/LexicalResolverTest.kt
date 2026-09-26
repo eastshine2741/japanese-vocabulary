@@ -241,9 +241,39 @@ class LexicalResolverTest {
     }
 
     @Test
+    fun `a godan su-verb desiderative is rescued as stem plus su`(): Unit = runBlocking {
+        // songId=226, line 0: "軋んだ想いを吐き出したいのは". 吐き出したい is 吐き出す, a godan verb whose masu
+        // stem ends in し. The probe asked only for 吐き出する, which no entry carries, so the word lost
+        // its meaning.
+        stub(
+            "吐き出す" to found(
+                JishoDictionaryEntryDto(
+                    headword = "吐き出す",
+                    reading = "ハキダス",
+                    senses = listOf(
+                        JishoOptionDto(
+                            pos = listOf("Godan verb with 'su' ending", "Transitive verb"),
+                            english = "to vomit, to spit out",
+                            englishDefinitions = listOf("to vomit", "to spit out"),
+                        ),
+                    ),
+                ),
+            ),
+        )
+        val tokens = listOf(token("吐き出したい", "吐き出したい", "ハキダシタイ"))
+
+        val resolved = resolver.resolve(tokens).byTokenKey.values.single()
+
+        assertThat(resolved.baseForm).isEqualTo("吐き出す")
+        assertThat(resolved.options.map { it.english }).containsExactly("to vomit, to spit out")
+        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
     fun `a godan verb's desiderative is not mistaken for a suru-verb`(): Unit = runBlocking {
         // 話したい is 話す. The probe asks for 話する, and since no entry carries that headword the
-        // token stays unresolved instead of gaining an invented meaning.
+        // suru-verb reading of the token stays unresolved instead of gaining an invented meaning.
         stub("話する" to found(entry(headword = "話", reading = "ハナシ", english = "talk")))
 
         val resolved = resolver.resolve(listOf(token("話したい", "話したい", "ハナシタイ"))).byTokenKey.values.single()
