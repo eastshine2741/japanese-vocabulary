@@ -55,6 +55,7 @@ class LexicalResolver(
                 ?: resolveIAdjective(token, probeLookups)
                 ?: resolveSuruDesiderative(token, probeLookups)
                 ?: resolveHiraganaQuery(token, probeLookups)
+                ?: resolveSmallVowelElongation(token, probeLookups)
                 ?: resolveIntensifierPrefix(token, probeLookups)
                 ?: resolveSuruVerb(token, probeLookups)
 
@@ -131,6 +132,7 @@ class LexicalResolver(
                 resolveIAdjective(it, probeLookups, logRescue = false) == null &&
                     resolveSuruDesiderative(it, probeLookups, logRescue = false) == null &&
                     resolveHiraganaQuery(it, probeLookups, logRescue = false) == null &&
+                    resolveSmallVowelElongation(it, probeLookups, logRescue = false) == null &&
                     resolveIntensifierPrefix(it, probeLookups, logRescue = false) == null &&
                     resolveSuruVerb(it, probeLookups, logRescue = false) == null
             }
@@ -153,6 +155,7 @@ class LexicalResolver(
             iAdjectiveProbe(token),
             suruDesiderativeProbe(token),
             hiraganaProbe(token),
+            smallVowelProbe(token),
             intensifierPrefixProbe(token),
             suruVerbProbe(token),
         )
@@ -300,6 +303,28 @@ class LexicalResolver(
         if (logRescue) logger.info("Looked up katakana headword '{}' as '{}'", token.headword, base)
         return accepted
     }
+
+    /**
+     * Safety net for a headword the lyric stretches with a small vowel kana: `さぁ` is the interjection
+     * さあ drawn out, and jisho indexes only `さあ`. The reading is written full size the same way, so
+     * the pair match still decides.
+     */
+    private fun resolveSmallVowelElongation(
+        token: PipelineToken,
+        lookups: Map<String, JishoEntryDto>,
+        logRescue: Boolean = true,
+    ): AcceptedLexicalEntry? {
+        val base = smallVowelProbe(token) ?: return null
+        val reading = JapaneseText.fullSizeTrailingVowel(token.baseFormReading) ?: token.baseFormReading
+        val accepted = narrow(token, lookups[base], base, reading, logRescue) ?: return null
+        if (logRescue) logger.info("Looked up small-vowel headword '{}' as '{}'", token.headword, base)
+        return accepted
+    }
+
+    /** `さぁ` → `さあ`. Null unless the headword ends in a small hiragana vowel. */
+    private fun smallVowelProbe(token: PipelineToken): String? =
+        token.headword.takeIf { it.length >= 2 && !JapaneseText.isKatakanaOnly(it) }
+            ?.let(JapaneseText::fullSizeTrailingVowel)
 
     /**
      * Safety net for a verb the lyric intensifies with colloquial ぶち / ぶっ (ぶち壊れる, ぶっ飛ぶ).

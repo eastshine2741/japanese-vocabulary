@@ -53,6 +53,9 @@ object JapaneseText {
     /** Small vowel kana and the full-size kana they are the same sound as. */
     private val SMALL_VOWEL_KANA = mapOf('ァ' to 'ア', 'ィ' to 'イ', 'ゥ' to 'ウ', 'ェ' to 'エ', 'ォ' to 'オ')
 
+    /** The hiragana counterpart of [SMALL_VOWEL_KANA]. */
+    private val SMALL_VOWEL_HIRAGANA = mapOf('ぁ' to 'あ', 'ぃ' to 'い', 'ぅ' to 'う', 'ぇ' to 'え', 'ぉ' to 'お')
+
     /**
      * True when two readings differ only in whether a vowel is written small: `ハァ` and `ハア` are the
      * same reading, so neither is a correction of the other.
@@ -61,6 +64,17 @@ object JapaneseText {
 
     private fun fullSizeVowels(text: String): String =
         text.map { ch -> SMALL_VOWEL_KANA[ch] ?: ch }.joinToString("")
+
+    /**
+     * [text] with a trailing small vowel kana written full size — `さぁ` → `さあ`, `ハァ` → `ハア` — or
+     * null when it does not end in one. Lyrics stretch a word with a small vowel; the dictionary
+     * indexes only the full-size spelling.
+     */
+    fun fullSizeTrailingVowel(text: String): String? {
+        val last = text.lastOrNull() ?: return null
+        val full = SMALL_VOWEL_HIRAGANA[last] ?: SMALL_VOWEL_KANA[last] ?: return null
+        return text.dropLast(1) + full
+    }
 
     /**
      * True when [text] is non-empty and made only of kana (either script) plus the prolonged sound
