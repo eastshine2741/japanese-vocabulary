@@ -377,6 +377,61 @@ class LexicalResolverTest {
     }
 
     @Test
+    fun `a te-form verb followed by motion auxiliary iku is looked up as the bare verb`(): Unit = runBlocking {
+        // songId=196, "痛い痛いのとんでけ": とんでけ is 飛んでいけ, and 飛んでいく is the right headword,
+        // but jisho has no entry for te-form + いく. The verb underneath is 飛ぶ.
+        stub(
+            "飛ぶ" to found(
+                JishoDictionaryEntryDto(
+                    headword = "飛ぶ",
+                    reading = "トブ",
+                    senses = listOf(
+                        JishoOptionDto(
+                            pos = listOf("Godan verb with 'bu' ending", "Intransitive verb"),
+                            english = "to fly",
+                            englishDefinitions = listOf("to fly", "to soar"),
+                        ),
+                    ),
+                ),
+            ),
+        )
+        val tokens = listOf(token("とんでけ", "飛んでいく", "トンデイク", lineIndex = 27))
+
+        val resolved = resolver.resolve(tokens).byTokenKey.values.single()
+
+        assertThat(resolved.baseForm).isEqualTo("飛ぶ")
+        assertThat(resolved.options.map { it.english }).containsExactly("to fly")
+        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
+    fun `an ichidan te-form followed by kuru is looked up as the ru verb`(): Unit = runBlocking {
+        stub(
+            "消える" to found(
+                JishoDictionaryEntryDto(
+                    headword = "消える",
+                    reading = "キエル",
+                    senses = listOf(
+                        JishoOptionDto(
+                            pos = listOf("Ichidan verb", "Intransitive verb"),
+                            english = "to disappear",
+                            englishDefinitions = listOf("to disappear"),
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        val resolved = resolver.resolve(
+            listOf(token("消えてきた", "消えてくる", "キエテクル")),
+        ).byTokenKey.values.single()
+
+        assertThat(resolved.baseForm).isEqualTo("消える")
+        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+    }
+
+    @Test
     fun `a lookup jisho never answered is reported as a provider error, not a miss`(): Unit = runBlocking {
         // songId=82: jisho returned 502 for ninety seconds and 太陽 went out with no meaning, logged
         // as if no entry existed. The segmentation stage must be able to tell the two apart — one
