@@ -56,6 +56,7 @@ class LexicalResolver(
                 ?: resolveSuruDesiderative(token, probeLookups)
                 ?: resolveHiraganaQuery(token, probeLookups)
                 ?: resolveIntensifierPrefix(token, probeLookups)
+                ?: resolveHonorificPrefix(token, probeLookups)
                 ?: resolveSuruVerb(token, probeLookups)
 
             if (resolved == null) {
@@ -132,6 +133,7 @@ class LexicalResolver(
                     resolveSuruDesiderative(it, probeLookups, logRescue = false) == null &&
                     resolveHiraganaQuery(it, probeLookups, logRescue = false) == null &&
                     resolveIntensifierPrefix(it, probeLookups, logRescue = false) == null &&
+                    resolveHonorificPrefix(it, probeLookups, logRescue = false) == null &&
                     resolveSuruVerb(it, probeLookups, logRescue = false) == null
             }
             .map { token ->
@@ -154,6 +156,7 @@ class LexicalResolver(
             suruDesiderativeProbe(token),
             hiraganaProbe(token),
             intensifierPrefixProbe(token),
+            honorificPrefixProbe(token),
             suruVerbProbe(token),
         )
 
@@ -339,6 +342,43 @@ class LexicalResolver(
     }
 
     /**
+     * Safety net for a noun the lyric dresses with honorific お / ご (お試し, ご褒美).
+     *
+     * jisho indexes only the common compounds (お茶, ご飯); the rest are the plain noun with a polite
+     * prefix, so the prefix is dropped and the remainder asked for. Only noun senses are accepted: a
+     * stripped remainder that answers with a verb or adjective is a different word.
+     */
+    private fun resolveHonorificPrefix(
+        token: PipelineToken,
+        lookups: Map<String, JishoEntryDto>,
+        logRescue: Boolean = true,
+    ): AcceptedLexicalEntry? {
+        val base = honorificPrefixProbe(token) ?: return null
+        val accepted = narrow(token, lookups[base], base, honorificPrefixProbeReading(token), logRescue)
+            ?: return null
+        val nounEntries = accepted.entries.mapNotNull { entry ->
+            val nounSenses = entry.senses.filter { JishoPartOfSpeechMapper.map(it.pos) == PartOfSpeech.NOUN }
+            if (nounSenses.isEmpty()) null else entry.copy(senses = nounSenses)
+        }
+        if (nounEntries.isEmpty()) return null
+        if (logRescue) logger.info("Stripped honorific prefix from '{}' to '{}'", token.headword, base)
+        return AcceptedLexicalEntry(base, nounEntries, accepted.provenance)
+    }
+
+    /** The headword without its お / ご prefix. Null when there is no prefix or nothing follows it. */
+    private fun honorificPrefixProbe(token: PipelineToken): String? {
+        val prefix = HONORIFIC_PREFIXES.firstOrNull { token.headword.startsWith(it) } ?: return null
+        return token.headword.removePrefix(prefix).takeIf { it.isNotEmpty() }
+    }
+
+    /** The probed base form's reading: `オタメシ` → `タメシ`, mirroring [honorificPrefixProbe]. */
+    private fun honorificPrefixProbeReading(token: PipelineToken): String? {
+        val prefix = HONORIFIC_PREFIXES.map(JapaneseText::toKatakana)
+            .firstOrNull { token.baseFormReading.startsWith(it) } ?: return null
+        return token.baseFormReading.removePrefix(prefix).takeIf { it.isNotEmpty() }
+    }
+
+    /**
      * Safety net for a noun+する verb the dictionary indexes only as the noun.
      *
      * jisho has no entry for `交差する`; 交差 is a noun tagged "Suru verb", so the headword the
@@ -411,6 +451,7 @@ class LexicalResolver(
 
     private companion object {
         val INTENSIFIER_PREFIXES = listOf("ぶち", "ぶっ")
+        val HONORIFIC_PREFIXES = listOf("お", "ご")
 
         /** Longest first, so したくない is not read as したい with a stem ending in く. */
         val SURU_DESIDERATIVE_SUFFIXES = listOf("したくない", "したい")
