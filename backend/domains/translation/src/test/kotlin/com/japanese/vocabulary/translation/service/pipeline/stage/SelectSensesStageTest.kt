@@ -185,6 +185,88 @@ class SelectSensesStageTest {
     }
 
     @Nested
+    inner class RetryMissingTokens {
+        private val reported = mutableListOf<AnalysisDefect>()
+        private val defectReporter = mockk<AnalysisDefectReporter>().also {
+            val defect = slot<AnalysisDefect>()
+            every { it.report(capture(defect)) } answers { reported += defect.captured }
+        }
+        private val stage = SelectSensesStage(geminiClient, defectReporter)
+
+        // Song 223, line 8: one sense-select answer dropped every word but the first 歌え.
+        private val raw = "歌え！（歌え！）最高のテンション 波の音に乗せて ドンブラコ"
+        private val line = 8
+        private val utae1 = lineToken("歌え", "歌う", 0)
+        private val utae2 = lineToken("歌え", "歌う", 4)
+        private val saikou = lineToken("最高", "最高", 8)
+        private val nami = lineToken("波", "波", 17)
+        private val oto = lineToken("音", "音", 19)
+        private val offeredByToken = mapOf(
+            utae1 to listOf(117, 118),
+            utae2 to listOf(117, 118),
+            saikou to listOf(119, 120),
+            nami to listOf(124, 125, 126, 127),
+            oto to listOf(128, 129, 130),
+        )
+
+        @Test
+        fun `asks again for the tokens the first answer left out`(): Unit = runBlocking {
+            every { geminiClient.selectSenses(any(), any()) } returnsMany listOf(
+                listOf(SelectLineDto(index = line, words = listOf(SelectWordDto(117, utae1.key.tokenId)))),
+                listOf(
+                    SelectLineDto(
+                        index = line,
+                        words = listOf(
+                            SelectWordDto(117, utae2.key.tokenId),
+                            SelectWordDto(119, saikou.key.tokenId),
+                            SelectWordDto(124, nami.key.tokenId),
+                            SelectWordDto(128, oto.key.tokenId),
+                        ),
+                    ),
+                ),
+            )
+
+            val selected = stage.execute(input())
+
+            assertThat(selected).containsExactlyInAnyOrderEntriesOf(
+                mapOf(utae1.key to 117, utae2.key to 117, saikou.key to 119, nami.key to 124, oto.key to 128),
+            )
+            assertThat(reported).isEmpty()
+        }
+
+        private fun lineToken(surface: String, headword: String, start: Int) = PipelineToken(
+            lineIndex = line,
+            surface = surface,
+            headword = headword,
+            charStart = start,
+            charEnd = start + surface.length,
+            contextGloss = "gloss",
+        )
+
+        private fun input(): SenseSelectionStageInput {
+            val optionsByToken = offeredByToken.mapValues { (_, ids) -> options(*ids.toIntArray()) }
+            return SenseSelectionStageInput(
+                source = TranslationPipelineSource.from(
+                    listOf(LyricLineData(index = line, startTimeMs = null, text = raw)),
+                    GeminiCallContext(songId = 223L, lyricId = 1L),
+                ),
+                translationMap = mapOf(line to TranslationResultDto(index = line, koreanLyrics = "노래해! 최고의 텐션")),
+                wordPreparation = WordPreparationResult(
+                    segLines = emptyList(),
+                    tokensByIndex = mapOf(line to offeredByToken.keys.toList()),
+                    ruleResolvedByKey = emptyMap(),
+                    lexical = LexicalResolution(
+                        byTokenKey = optionsByToken.entries.associate { (token, options) ->
+                            token.key to LexicalResolvedToken(token, token.headword, options)
+                        },
+                        optionsById = optionsByToken.values.flatten().associateBy { it.senseId },
+                    ),
+                ),
+            )
+        }
+    }
+
+    @Nested
     inner class ExplicitNoMatch {
         private val reported = mutableListOf<AnalysisDefect>()
         private val defectReporter = mockk<AnalysisDefectReporter>().also {
