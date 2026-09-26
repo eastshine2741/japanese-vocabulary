@@ -115,6 +115,7 @@ class SegmentAnchoringValidator {
             )
         }
         val tokens = anchored.map { absorbTrailingKana(it, rawText, covered) }
+            .flatMap { listOfNotNull(it, bareParticleAfter(it, rawText, covered)) }
 
         val uncovered = uncoveredJapaneseRun(rawText, covered)?.let { (offset, text) ->
             UncoveredRun(lineIndex = index, offset = offset, text = text)
@@ -145,6 +146,36 @@ class SegmentAnchoringValidator {
 
     /** Kana that only stretch the sound in front of them and never open a word of their own. */
     private val TRAILING_KANA = setOf('ぁ', 'ぃ', 'ぅ', 'ぇ', 'ぉ', 'ァ', 'ィ', 'ゥ', 'ェ', 'ォ', 'ー')
+
+    /**
+     * A lone particle right after [token] that no surface claimed, as its own token, marked [covered].
+     * `上げて` came back as `上げ` alone, and a retry asked to segment `て` has nothing to split — it
+     * is already one word, settled by [RuleMeaningProvider]. Only a run of exactly that one character
+     * qualifies; `てる` left out is a word the model skipped and stays reported.
+     */
+    private fun bareParticleAfter(token: PipelineToken, rawText: String, covered: BooleanArray): PipelineToken? {
+        val at = token.charEnd
+        if (at >= rawText.length || covered[at] || rawText[at] !in BARE_PARTICLES) return null
+        val next = at + 1
+        if (next < rawText.length && !covered[next] && JapaneseText.containsJapanese(rawText[next].toString())) {
+            return null
+        }
+        covered[at] = true
+        val surface = rawText[at].toString()
+        val reading = JapaneseText.toKatakana(surface)
+        return PipelineToken(
+            lineIndex = token.lineIndex,
+            surface = surface,
+            headword = surface,
+            charStart = at,
+            charEnd = next,
+            usedReading = reading,
+            baseFormReading = reading,
+        )
+    }
+
+    /** Particles that follow a word with nothing else to segment; each has a [RuleMeaningProvider] row. */
+    private val BARE_PARTICLES = setOf('て')
 
     /**
      * End (exclusive) of a `(kana)` / `（kana）` span starting exactly at [from] that spells
