@@ -319,6 +319,24 @@ class LexicalResolverTest {
     }
 
     @Test
+    fun `a kanji variant headword is queried again in its standard spelling`(): Unit = runBlocking {
+        // songId=209 lineIndex=49 "赦さないで赦さないで赦さないで赦さないで": 赦す is the right dictionary
+        // form of 許す in another spelling, but jisho never answers the query 赦す with an exact hit.
+        stub(
+            "赦す" to JishoEntryDto(found = false, word = "赦す", provenance = JishoLookupProvenance.NOT_FOUND),
+            "許す" to found(entry(headword = "許す", reading = "ユルス", english = "to forgive")),
+        )
+        val tokens = listOf(token("赦さない", "赦す", "ユルス", lineIndex = 49))
+
+        val resolved = resolver.resolve(tokens).byTokenKey.values.single()
+
+        assertThat(resolved.baseForm).isEqualTo("許す")
+        assertThat(resolved.options.map { it.english }).containsExactly("to forgive")
+        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
     fun `an intensifier-prefixed verb is looked up without its prefix`(): Unit = runBlocking {
         // songId=10, "ぶちこわれた 計測機器が": ぶち壊れる is colloquial ぶち + 壊れる and jisho has no entry
         // for the compound, but the verb underneath is ordinary. The word must not lose its meaning

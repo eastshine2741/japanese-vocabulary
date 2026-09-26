@@ -55,6 +55,7 @@ class LexicalResolver(
                 ?: resolveIAdjective(token, probeLookups)
                 ?: resolveSuruDesiderative(token, probeLookups)
                 ?: resolveHiraganaQuery(token, probeLookups)
+                ?: resolveKanjiVariant(token, probeLookups)
                 ?: resolveIntensifierPrefix(token, probeLookups)
                 ?: resolveSuruVerb(token, probeLookups)
 
@@ -131,6 +132,7 @@ class LexicalResolver(
                 resolveIAdjective(it, probeLookups, logRescue = false) == null &&
                     resolveSuruDesiderative(it, probeLookups, logRescue = false) == null &&
                     resolveHiraganaQuery(it, probeLookups, logRescue = false) == null &&
+                    resolveKanjiVariant(it, probeLookups, logRescue = false) == null &&
                     resolveIntensifierPrefix(it, probeLookups, logRescue = false) == null &&
                     resolveSuruVerb(it, probeLookups, logRescue = false) == null
             }
@@ -153,6 +155,7 @@ class LexicalResolver(
             iAdjectiveProbe(token),
             suruDesiderativeProbe(token),
             hiraganaProbe(token),
+            kanjiVariantProbe(token),
             intensifierPrefixProbe(token),
             suruVerbProbe(token),
         )
@@ -302,6 +305,27 @@ class LexicalResolver(
     }
 
     /**
+     * Safety net for a headword written in a kanji variant jisho's search does not index as a word.
+     *
+     * songId=209 sings 赦さないで: 赦す is the right dictionary form, and the same word as 許す, but a
+     * query for 赦す never comes back as an exact hit. The standard spelling is asked instead. The
+     * list holds only spellings of one and the same word, so the pair match on the token's own
+     * reading still decides whether the entry fits.
+     */
+    private fun resolveKanjiVariant(
+        token: PipelineToken,
+        lookups: Map<String, JishoEntryDto>,
+        logRescue: Boolean = true,
+    ): AcceptedLexicalEntry? {
+        val base = kanjiVariantProbe(token) ?: return null
+        val accepted = narrow(token, lookups[base], base, logGrading = logRescue) ?: return null
+        if (logRescue) logger.info("Looked up kanji variant '{}' as '{}'", token.headword, base)
+        return accepted
+    }
+
+    private fun kanjiVariantProbe(token: PipelineToken): String? = KANJI_VARIANTS[token.headword]
+
+    /**
      * Safety net for a verb the lyric intensifies with colloquial ぶち / ぶっ (ぶち壊れる, ぶっ飛ぶ).
      *
      * jisho indexes only a handful of these compounds, but the verb underneath is ordinary, so the
@@ -411,6 +435,9 @@ class LexicalResolver(
 
     private companion object {
         val INTENSIFIER_PREFIXES = listOf("ぶち", "ぶっ")
+
+        /** Variant spelling → the spelling jisho indexes, for the same word with the same reading. */
+        val KANJI_VARIANTS = mapOf("赦す" to "許す")
 
         /** Longest first, so したくない is not read as したい with a stem ending in く. */
         val SURU_DESIDERATIVE_SUFFIXES = listOf("したくない", "したい")
