@@ -15,6 +15,16 @@ class RuleMeaningProviderTest {
     }
 
     @Test
+    fun `resolves archaic manima in no-manima-ni`() {
+        // 浮世の随に — 随 comes out as its own token with に split off, and jisho has no entry for it.
+        val resolved = provider.resolve(PipelineToken(7, "随", "随", 3, 4))!!
+
+        assertThat(resolved.baseForm).isEqualTo("随")
+        assertThat(resolved.reading).isEqualTo("マニマ")
+        assertThat(resolved.koreanText).contains("대로")
+    }
+
+    @Test
     fun `resolves teshimau headword behind a colloquial contracted surface`() {
         // 当然の報いにクラっちゃった — segmentation already normalises っちゃった to the headword
         // てしまう, so the rule must key on the headword and not require the surface to match.
