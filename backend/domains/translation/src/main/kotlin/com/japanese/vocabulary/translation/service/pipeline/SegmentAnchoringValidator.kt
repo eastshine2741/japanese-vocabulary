@@ -143,8 +143,11 @@ class SegmentAnchoringValidator {
         )
     }
 
-    /** Kana that only stretch the sound in front of them and never open a word of their own. */
-    private val TRAILING_KANA = setOf('ぁ', 'ぃ', 'ぅ', 'ぇ', 'ぉ', 'ァ', 'ィ', 'ゥ', 'ェ', 'ォ', 'ー')
+    /**
+     * Kana that only stretch or cut off the sound in front of them and never open a word of their own.
+     * `っ` belongs here for the emphatic stop that closes `夢中っ`.
+     */
+    private val TRAILING_KANA = setOf('ぁ', 'ぃ', 'ぅ', 'ぇ', 'ぉ', 'ァ', 'ィ', 'ゥ', 'ェ', 'ォ', 'ー', 'っ', 'ッ')
 
     /**
      * End (exclusive) of a `(kana)` / `（kana）` span starting exactly at [from] that spells

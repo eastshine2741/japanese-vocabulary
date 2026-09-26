@@ -400,6 +400,33 @@ class SegmentAnchoringValidatorTest {
     }
 
     @Test
+    fun `absorbs a trailing sokuon the model left off the word in front of it`() {
+        // The song-231 defect: the `っ` closing `ずっと夢中っ` cuts the sound off for emphasis. It opens no
+        // word, so it shipped as an UNCOVERED defect for `っ` instead of joining `夢中`.
+        val result = validator.anchor(
+            mapOf(0 to "必中 げっちゅー ずっと夢中っ"),
+            listOf(
+                SegLineDto(
+                    0,
+                    listOf(
+                        word("必中", "必中", "ヒッチュウ", "ヒッチュウ"),
+                        word("げっちゅー", "げっちゅー", "ゲッチュー", "ゲッチュー"),
+                        word("ずっと", "ずっと", "ズット", "ズット"),
+                        word("夢中", "夢中", "ムチュウ", "ムチュウ"),
+                    ),
+                ),
+            ),
+        )
+
+        assertThat(result.failuresByIndex).isEmpty()
+        assertThat(result.incompleteByIndex).isEmpty()
+        val last = result.anchoredByIndex[0]!!.last()
+        assertThat(Triple(last.surface, last.charStart, last.charEnd)).isEqualTo(Triple("夢中っ", 12, 15))
+        assertThat(last.usedReading).isEqualTo("ムチュウッ")
+        assertThat(last.headword).isEqualTo("夢中")
+    }
+
+    @Test
     fun `keeps a small kana the model did segment as its own token`() {
         // Absorption only claims text no surface did; a model that emits `ぁ` itself must still anchor.
         val result = validator.anchor(
