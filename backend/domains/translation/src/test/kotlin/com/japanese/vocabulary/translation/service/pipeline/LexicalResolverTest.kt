@@ -241,6 +241,24 @@ class LexicalResolverTest {
     }
 
     @Test
+    fun `a suru-verb progressive handed back as the headword is rescued as stem plus suru`(): Unit = runBlocking {
+        // songId=197, "愛してるを並べてみて": the model gave 愛してる as the headword, jisho has no such
+        // entry, and the word shipped without a meaning. アイシテル is inflected back to アイスル.
+        stub("愛する" to found(entry(headword = "愛する", reading = "アイスル", english = "to love")))
+
+        val resolved = resolver.resolve(
+            listOf(token("愛してる", "愛してる", "アイシテル", lineIndex = 27)),
+        ).byTokenKey.values.single()
+
+        assertThat(resolved.baseForm).isEqualTo("愛する")
+        assertThat(resolved.options.map { it.english }).containsExactly("to love")
+        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+        assertThat(
+            resolver.unresolvedTokens(listOf(token("愛してる", "愛してる", "アイシテル", lineIndex = 12))),
+        ).isEmpty()
+    }
+
+    @Test
     fun `a godan verb's desiderative is not mistaken for a suru-verb`(): Unit = runBlocking {
         // 話したい is 話す. The probe asks for 話する, and since no entry carries that headword the
         // token stays unresolved instead of gaining an invented meaning.
