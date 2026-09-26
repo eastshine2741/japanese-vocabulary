@@ -54,6 +54,7 @@ class LexicalResolver(
             val resolved = narrowed[token.key]
                 ?: resolveIAdjective(token, probeLookups)
                 ?: resolveSuruDesiderative(token, probeLookups)
+                ?: resolveSuPassive(token, probeLookups)
                 ?: resolveHiraganaQuery(token, probeLookups)
                 ?: resolveIntensifierPrefix(token, probeLookups)
                 ?: resolveSuruVerb(token, probeLookups)
@@ -130,6 +131,7 @@ class LexicalResolver(
             .filter {
                 resolveIAdjective(it, probeLookups, logRescue = false) == null &&
                     resolveSuruDesiderative(it, probeLookups, logRescue = false) == null &&
+                    resolveSuPassive(it, probeLookups, logRescue = false) == null &&
                     resolveHiraganaQuery(it, probeLookups, logRescue = false) == null &&
                     resolveIntensifierPrefix(it, probeLookups, logRescue = false) == null &&
                     resolveSuruVerb(it, probeLookups, logRescue = false) == null
@@ -152,6 +154,7 @@ class LexicalResolver(
         listOfNotNull(
             iAdjectiveProbe(token),
             suruDesiderativeProbe(token),
+            suPassiveProbe(token),
             hiraganaProbe(token),
             intensifierPrefixProbe(token),
             suruVerbProbe(token),
@@ -277,6 +280,30 @@ class LexicalResolver(
         val stem = token.headword.dropLast(suffix.length)
         return if (stem.isEmpty()) null else stem + "する"
     }
+
+    /**
+     * Safety net for when the segmentation LLM strips the desiderative off 赦されたい but keeps the
+     * passive, handing back 赦される instead of 赦す. Tried only after the pair match has already failed.
+     *
+     * Like the suru-verb probe this is a guess at the conjugation, and the rescue only ever adds an
+     * entry jisho actually indexes under `stem + す`.
+     */
+    private fun resolveSuPassive(
+        token: PipelineToken,
+        lookups: Map<String, JishoEntryDto>,
+        logRescue: Boolean = true,
+    ): AcceptedLexicalEntry? {
+        val base = suPassiveProbe(token) ?: return null
+        // The token's reading ユルサレル is the wrong headword's, so it is inflected back to ユルス.
+        val reading = token.baseFormReading.takeIf { it.length > 3 && it.endsWith("サレル") }?.dropLast(3)?.plus("ス")
+        val accepted = narrow(token, lookups[base], base, reading, logRescue) ?: return null
+        if (logRescue) logger.info("Normalized su-verb passive '{}' to '{}'", token.headword, base)
+        return accepted
+    }
+
+    /** `赦される` → `赦す`. Null when nothing precedes the suffix: される alone is する's passive. */
+    private fun suPassiveProbe(token: PipelineToken): String? =
+        token.headword.takeIf { it.length > 3 && it.endsWith("される") }?.dropLast(3)?.plus("す")
 
     /**
      * Safety net for a word the lyric writes in katakana and the dictionary indexes in hiragana.
