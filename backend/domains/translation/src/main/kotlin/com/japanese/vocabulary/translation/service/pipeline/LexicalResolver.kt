@@ -213,7 +213,8 @@ class LexicalResolver(
 
     /**
      * Safety net for when the segmentation LLM hands back an adverbial 高く as the headword instead of
-     * 高い. Tried only after the pair match has already failed.
+     * 高い, or a classical terminal form such as 恙なし that jisho indexes only as 恙ない. Tried only
+     * after the pair match has already failed.
      */
     private fun resolveIAdjective(
         token: PipelineToken,
@@ -378,11 +379,12 @@ class LexicalResolver(
     private fun iAdjectiveProbeReading(token: PipelineToken): String? {
         val reading = token.baseFormReading.takeIf { it.length >= 2 } ?: return null
         if (reading.endsWith("イ")) return reading
-        if (!reading.endsWith("ク")) return null
+        if (!reading.endsWith("ク") && !reading.endsWith("シ")) return null
         return reading.dropLast(1) + "イ"
     }
 
     private fun iAdjectiveProbe(token: PipelineToken): String? {
+        if (token.headword.length >= 2 && token.headword.endsWith("し")) return token.headword.dropLast(1) + "い"
         if (!token.surface.endsWith("く") || token.surface.length < 2) return null
         if (token.headword.endsWith("い") && token.headword.length >= 2) return token.headword
         return token.surface.dropLast(1) + "い"
