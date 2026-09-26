@@ -319,6 +319,22 @@ class LexicalResolverTest {
     }
 
     @Test
+    fun `a headword stretched with a small vowel kana is queried again at full size`(): Unit = runBlocking {
+        // songId=203, "さぁ魂の浄化 死への調和": さぁ is the interjection さあ drawn out with a small ぁ,
+        // an ordinary lyric spelling. jisho indexes only さあ, so the word must not lose its meaning
+        // over the size of its last kana.
+        stub("さあ" to found(entry(headword = "さあ", reading = "サア", english = "come now")))
+
+        val tokens = listOf(token("さぁ", "さぁ", "サァ", lineIndex = 39))
+        val resolved = resolver.resolve(tokens).byTokenKey.values.single()
+
+        assertThat(resolved.baseForm).isEqualTo("さあ")
+        assertThat(resolved.options.map { it.english }).containsExactly("come now")
+        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
     fun `an intensifier-prefixed verb is looked up without its prefix`(): Unit = runBlocking {
         // songId=10, "ぶちこわれた 計測機器が": ぶち壊れる is colloquial ぶち + 壊れる and jisho has no entry
         // for the compound, but the verb underneath is ordinary. The word must not lose its meaning
