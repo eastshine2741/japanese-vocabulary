@@ -55,6 +55,7 @@ class LexicalResolver(
                 ?: resolveIAdjective(token, probeLookups)
                 ?: resolveSuruDesiderative(token, probeLookups)
                 ?: resolveHiraganaQuery(token, probeLookups)
+                ?: resolveKanjiReadingQuery(token, probeLookups)
                 ?: resolveIntensifierPrefix(token, probeLookups)
                 ?: resolveSuruVerb(token, probeLookups)
 
@@ -131,6 +132,7 @@ class LexicalResolver(
                 resolveIAdjective(it, probeLookups, logRescue = false) == null &&
                     resolveSuruDesiderative(it, probeLookups, logRescue = false) == null &&
                     resolveHiraganaQuery(it, probeLookups, logRescue = false) == null &&
+                    resolveKanjiReadingQuery(it, probeLookups, logRescue = false) == null &&
                     resolveIntensifierPrefix(it, probeLookups, logRescue = false) == null &&
                     resolveSuruVerb(it, probeLookups, logRescue = false) == null
             }
@@ -153,6 +155,7 @@ class LexicalResolver(
             iAdjectiveProbe(token),
             suruDesiderativeProbe(token),
             hiraganaProbe(token),
+            kanjiReadingProbe(token),
             intensifierPrefixProbe(token),
             suruVerbProbe(token),
         )
@@ -300,6 +303,31 @@ class LexicalResolver(
         if (logRescue) logger.info("Looked up katakana headword '{}' as '{}'", token.headword, base)
         return accepted
     }
+
+    /**
+     * Safety net for a rare kanji spelling jisho's search does not answer directly.
+     *
+     * songId=227, "蹴落として、墜として": 墜とす is a listed spelling of the 落とす entry, but searching
+     * 墜とす finds nothing. The reading finds the entry, and the spelling is still matched against the
+     * headword the token gave, so only an entry that lists 墜とす itself is accepted — a homophone
+     * spelled differently never is.
+     */
+    private fun resolveKanjiReadingQuery(
+        token: PipelineToken,
+        lookups: Map<String, JishoEntryDto>,
+        logRescue: Boolean = true,
+    ): AcceptedLexicalEntry? {
+        val query = kanjiReadingProbe(token) ?: return null
+        val accepted = narrow(token, lookups[query], token.headword, logGrading = logRescue) ?: return null
+        if (logRescue) logger.info("Looked up kanji headword '{}' by its reading '{}'", token.headword, query)
+        return accepted
+    }
+
+    /** The hiragana reading of a headword that is not kana-only. Null when there is no reading to ask. */
+    private fun kanjiReadingProbe(token: PipelineToken): String? =
+        token.baseFormReading
+            .takeIf { it.isNotBlank() && !JapaneseText.isKanaOnly(token.headword) }
+            ?.let { JapaneseText.toHiragana(it) }
 
     /**
      * Safety net for a verb the lyric intensifies with colloquial ぶち / ぶっ (ぶち壊れる, ぶっ飛ぶ).

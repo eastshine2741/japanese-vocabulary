@@ -319,6 +319,36 @@ class LexicalResolverTest {
     }
 
     @Test
+    fun `a rare kanji spelling jisho search misses is looked up by its reading`(): Unit = runBlocking {
+        // songId=227, line 29: "蹴落として、墜として". 墜とす is a listed spelling of the 落とす entry, but
+        // searching 墜とす answers nothing, so the word lost its meaning. The reading おとす finds the
+        // entry, and only the spelling the lyric used is kept.
+        stub(
+            "おとす" to found(
+                entry(headword = "落とす", reading = "オトス", english = "to drop"),
+                entry(headword = "墜とす", reading = "オトス", english = "to drop"),
+            ),
+        )
+        val tokens = listOf(token("墜とし", "墜とす", "オトス", lineIndex = 29))
+
+        val resolved = resolver.resolve(tokens).byTokenKey.values.single()
+
+        assertThat(resolved.baseForm).isEqualTo("墜とす")
+        assertThat(resolved.options.map { it.headword to it.english }).containsExactly("墜とす" to "to drop")
+        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
+    fun `a reading lookup never lends a kanji headword a homophone spelled differently`(): Unit = runBlocking {
+        stub("きる" to found(entry(headword = "切る", reading = "キル", english = "to cut")))
+
+        val resolved = resolver.resolve(listOf(token("着る", "着る", "キル"))).byTokenKey.values.single()
+
+        assertThat(resolved.options).isEmpty()
+    }
+
+    @Test
     fun `an intensifier-prefixed verb is looked up without its prefix`(): Unit = runBlocking {
         // songId=10, "ぶちこわれた 計測機器が": ぶち壊れる is colloquial ぶち + 壊れる and jisho has no entry
         // for the compound, but the verb underneath is ordinary. The word must not lose its meaning
