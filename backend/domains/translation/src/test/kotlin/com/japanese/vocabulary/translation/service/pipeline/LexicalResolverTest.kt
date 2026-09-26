@@ -252,6 +252,21 @@ class LexicalResolverTest {
     }
 
     @Test
+    fun `a godan su-verb passive handed back as the headword is rescued as its dictionary form`(): Unit = runBlocking {
+        // songId=204, line 7: "本当は罰を以って赦されたい". The model stripped たい but kept the passive,
+        // so 赦される reached jisho, which has no such entry, and the word shipped without a meaning.
+        stub("赦す" to found(entry(headword = "赦す", reading = "ユルス", english = "to forgive, to pardon")))
+        val tokens = listOf(token("赦されたい", "赦される", "ユルサレル", lineIndex = 7))
+
+        val resolved = resolver.resolve(tokens).byTokenKey.values.single()
+
+        assertThat(resolved.baseForm).isEqualTo("赦す")
+        assertThat(resolved.options.map { it.english }).containsExactly("to forgive, to pardon")
+        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
     fun `a suru verb rescued through the probe is graded exact`(): Unit = runBlocking {
         // songId=171, line 0: "0と1が交差する地点". jisho indexes 交差 as a noun that takes する, never
         // 交差する itself, so the headword as the model gave it misses and the word lost its meaning.
