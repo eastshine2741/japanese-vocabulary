@@ -377,6 +377,35 @@ class LexicalResolverTest {
     }
 
     @Test
+    fun `a verb completed with kireru is looked up as the verb underneath`(): Unit = runBlocking {
+        // songId=225, "伝えきれぬ愛しさは": the segmentation stage gave 伝えきる — 伝える + completion
+        // きる — and jisho has no entry for the compound, so the word went out with no meaning.
+        stub(
+            "伝える" to found(
+                JishoDictionaryEntryDto(
+                    headword = "伝える",
+                    reading = "ツタエル",
+                    senses = listOf(
+                        JishoOptionDto(
+                            pos = listOf("Ichidan verb", "Transitive verb"),
+                            english = "to convey",
+                            englishDefinitions = listOf("to convey", "to tell"),
+                        ),
+                    ),
+                ),
+            ),
+        )
+        val tokens = listOf(token("伝えきれぬ", "伝えきる", "ツタエキレヌ", lineIndex = 28))
+
+        val resolved = resolver.resolve(tokens).byTokenKey.values.single()
+
+        assertThat(resolved.baseForm).isEqualTo("伝える")
+        assertThat(resolved.options.map { it.english }).containsExactly("to convey")
+        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
     fun `a lookup jisho never answered is reported as a provider error, not a miss`(): Unit = runBlocking {
         // songId=82: jisho returned 502 for ninety seconds and 太陽 went out with no meaning, logged
         // as if no entry existed. The segmentation stage must be able to tell the two apart — one
