@@ -118,6 +118,14 @@ object JapaneseText {
     fun isKatakanaOnly(text: String): Boolean =
         text.isNotEmpty() && text.all { ch -> ch in KATAKANA_START..KATAKANA_END || ch == PROLONGED_SOUND_MARK }
 
+    /**
+     * [text] without the ASCII or full-width digits at either end. `80億` is a number and a counter;
+     * only the counter is a word, and the dictionary has no entry for the pair.
+     */
+    fun trimDigits(text: String): String = text.trim { it.isAsciiOrFullWidthDigit() }
+
+    private fun Char.isAsciiOrFullWidthDigit(): Boolean = this in '0'..'9' || this in '０'..'９'
+
     private fun Char.hasReading(): Boolean =
         this in HIRAGANA_START..HIRAGANA_END ||
             this in KATAKANA_START..KATAKANA_END ||

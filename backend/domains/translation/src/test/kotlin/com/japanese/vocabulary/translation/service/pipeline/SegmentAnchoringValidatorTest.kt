@@ -33,6 +33,32 @@ class SegmentAnchoringValidatorTest {
     }
 
     @Test
+    fun `trims digits glued to a counter so the headword is the counter alone`() {
+        // Song 257 line 43: `80億` as one word went to jisho as `80億`, which has no entry.
+        val result = validator.anchor(
+            mapOf(0 to "80億分の1の奇跡"),
+            listOf(
+                SegLineDto(
+                    0,
+                    listOf(
+                        word("80億", "80億", "ハチジュウオク", "ハチジュウオク"),
+                        word("分", "分", "ブン", "ブン"),
+                        word("の", "の", "ノ", "ノ"),
+                        word("の", "の", "ノ", "ノ"),
+                        word("奇跡", "奇跡", "キセキ", "キセキ"),
+                    ),
+                ),
+            ),
+        )
+
+        assertThat(result.failuresByIndex).isEmpty()
+        assertThat(result.incompleteByIndex).isEmpty()
+        val counter = result.anchoredByIndex[0]!!.first()
+        assertThat(Triple(counter.surface, counter.charStart, counter.charEnd)).isEqualTo(Triple("億", 2, 3))
+        assertThat(counter.headword).isEqualTo("億")
+    }
+
+    @Test
     fun `normalizes hiragana readings to katakana instead of failing the line`() {
         // The prompt asks for katakana, but converting the other script costs nothing and is cheaper
         // than a retry, so hiragana is absorbed rather than rejected.
