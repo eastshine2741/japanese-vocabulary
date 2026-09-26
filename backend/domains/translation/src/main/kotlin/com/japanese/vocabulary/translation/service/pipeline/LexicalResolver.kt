@@ -56,6 +56,7 @@ class LexicalResolver(
                 ?: resolveSuruDesiderative(token, probeLookups)
                 ?: resolveHiraganaQuery(token, probeLookups)
                 ?: resolveIntensifierPrefix(token, probeLookups)
+                ?: resolveCompletionSuffix(token, probeLookups)
                 ?: resolveSuruVerb(token, probeLookups)
 
             if (resolved == null) {
@@ -132,6 +133,7 @@ class LexicalResolver(
                     resolveSuruDesiderative(it, probeLookups, logRescue = false) == null &&
                     resolveHiraganaQuery(it, probeLookups, logRescue = false) == null &&
                     resolveIntensifierPrefix(it, probeLookups, logRescue = false) == null &&
+                    resolveCompletionSuffix(it, probeLookups, logRescue = false) == null &&
                     resolveSuruVerb(it, probeLookups, logRescue = false) == null
             }
             .map { token ->
@@ -155,7 +157,7 @@ class LexicalResolver(
             hiraganaProbe(token),
             intensifierPrefixProbe(token),
             suruVerbProbe(token),
-        )
+        ) + completionSuffixProbes(token).map { it.first }
 
     /**
      * Grades how well [lookup] pins down the entry [token] means, using the `(headword, reading)` pair.
@@ -339,6 +341,50 @@ class LexicalResolver(
     }
 
     /**
+     * Safety net for a verb the lyric completes with きる / きれる (伝えきれぬ, 言いきれない).
+     *
+     * The segmentation stage hands back the compound — 伝えきる — and jisho indexes only a handful of
+     * these, but the verb underneath is ordinary. The suffix is dropped and the stem restored to its
+     * dictionary form. A stem does not say its conjugation class — 生き is 生きる, 書き is 書く — so
+     * both guesses are asked and only one can match. Only verb senses are accepted, as with ぶち.
+     */
+    private fun resolveCompletionSuffix(
+        token: PipelineToken,
+        lookups: Map<String, JishoEntryDto>,
+        logRescue: Boolean = true,
+    ): AcceptedLexicalEntry? {
+        for ((base, reading) in completionSuffixProbes(token)) {
+            val accepted = narrow(token, lookups[base], base, reading, logRescue) ?: continue
+            val verbEntries = accepted.entries.mapNotNull { entry ->
+                val verbSenses = entry.senses.filter { JishoPartOfSpeechMapper.map(it.pos) == PartOfSpeech.VERB }
+                if (verbSenses.isEmpty()) null else entry.copy(senses = verbSenses)
+            }
+            if (verbEntries.isEmpty()) continue
+            if (logRescue) logger.info("Stripped completion suffix from '{}' to '{}'", token.headword, base)
+            return AcceptedLexicalEntry(base, verbEntries, accepted.provenance)
+        }
+        return null
+    }
+
+    /**
+     * `伝えきる` → `伝える` paired with its reading `ツタエル`; `書ききる` → `書きる` and `書く`. Empty
+     * when the headword carries no completion suffix or nothing precedes it.
+     */
+    private fun completionSuffixProbes(token: PipelineToken): List<Pair<String, String?>> {
+        val suffix = COMPLETION_SUFFIXES.firstOrNull { token.headword.endsWith(it) } ?: return emptyList()
+        val stem = token.headword.dropLast(suffix.length).takeIf { it.isNotEmpty() } ?: return emptyList()
+        val readingSuffix = COMPLETION_SUFFIXES.map(JapaneseText::toKatakana)
+            .firstOrNull { token.baseFormReading.endsWith(it) }
+        val readingStem = readingSuffix?.let { token.baseFormReading.dropLast(it.length) }?.takeIf { it.isNotEmpty() }
+
+        val ichidan = (stem + "る") to readingStem?.let { it + "ル" }
+        val godanEnding = GODAN_ENDING_BY_STEM_KANA[stem.last()] ?: return listOf(ichidan)
+        val godan = (stem.dropLast(1) + godanEnding) to
+            readingStem?.let { it.dropLast(1) + JapaneseText.toKatakana(godanEnding.toString()) }
+        return listOf(ichidan, godan)
+    }
+
+    /**
      * Safety net for a noun+する verb the dictionary indexes only as the noun.
      *
      * jisho has no entry for `交差する`; 交差 is a noun tagged "Suru verb", so the headword the
@@ -411,6 +457,15 @@ class LexicalResolver(
 
     private companion object {
         val INTENSIFIER_PREFIXES = listOf("ぶち", "ぶっ")
+
+        /** Longest first among overlapping spellings, so きれない is never cut as a shorter suffix. */
+        val COMPLETION_SUFFIXES = listOf("きれない", "きれる", "きれず", "きれぬ", "きる")
+
+        /** A godan verb's masu stem ends in the i-row kana of its dictionary ending: 書き → 書く. */
+        val GODAN_ENDING_BY_STEM_KANA = mapOf(
+            'い' to 'う', 'き' to 'く', 'ぎ' to 'ぐ', 'し' to 'す', 'ち' to 'つ',
+            'に' to 'ぬ', 'び' to 'ぶ', 'み' to 'む', 'り' to 'る',
+        )
 
         /** Longest first, so したくない is not read as したい with a stem ending in く. */
         val SURU_DESIDERATIVE_SUFFIXES = listOf("したくない", "したい")
