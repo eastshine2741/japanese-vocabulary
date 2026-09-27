@@ -377,6 +377,21 @@ class LexicalResolverTest {
     }
 
     @Test
+    fun `a variant kanji headword is looked up in its standard spelling`(): Unit = runBlocking {
+        // songId=287, "閧の声 ゴングを鳴らせ 次世代エンペラーはこの「俺だ!」「僕だ!」": 閧 is a variant of
+        // 鬨 (war cry), and jisho indexes only 鬨. The word must not lose its meaning over the spelling.
+        stub("鬨" to found(entry(headword = "鬨", reading = "トキ", english = "war cry")))
+        val tokens = listOf(token("閧", "閧", "トキ", lineIndex = 29))
+
+        val resolved = resolver.resolve(tokens).byTokenKey.values.single()
+
+        assertThat(resolved.baseForm).isEqualTo("鬨")
+        assertThat(resolved.options.map { it.english }).containsExactly("war cry")
+        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
     fun `a lookup jisho never answered is reported as a provider error, not a miss`(): Unit = runBlocking {
         // songId=82: jisho returned 502 for ninety seconds and 太陽 went out with no meaning, logged
         // as if no entry existed. The segmentation stage must be able to tell the two apart — one
