@@ -1,8 +1,10 @@
-# /etc/rancher/k3s/config.yaml (worker: hel1-2, hel1-3)
+# /etc/rancher/k3s/config.yaml (worker: hel1-2, hel1-3, hel1-4)
 # 파드 밖(OS, k3s-agent, containerd)이 쓰는 ~600MB를 allocatable에서 빼고,
 # k3s 기본 eviction-hard(disk만)에 빠진 memory.available을 되살린다.
 # allocatable = 3820Mi - 300 - 300 - 200 ≈ 3020Mi
+# kubelet-arg는 전부 여기에 둔다. 명령줄 --kubelet-arg가 있으면 이 목록을 통째로 덮어쓴다.
 kubelet-arg:
+  - "cloud-provider=external"
   - "system-reserved=memory=300Mi"
   - "kube-reserved=memory=300Mi"
   - "eviction-hard=memory.available<200Mi,imagefs.available<5%,nodefs.available<5%"

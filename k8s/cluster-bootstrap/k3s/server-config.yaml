@@ -1,7 +1,9 @@
 # /etc/rancher/k3s/config.yaml (control-plane: hel1-1, NoSchedule taint)
 # k3s-server 프로세스만 ~1.2GB를 쓰므로 kube-reserved를 크게 잡는다.
 # allocatable = 3820Mi - 300 - 1200 - 200 ≈ 2120Mi
+# kubelet-arg는 전부 여기에 둔다. 명령줄 --kubelet-arg가 있으면 이 목록을 통째로 덮어쓴다.
 kubelet-arg:
+  - "cloud-provider=external"
   - "system-reserved=memory=300Mi"
   - "kube-reserved=memory=1200Mi"
   - "eviction-hard=memory.available<200Mi,imagefs.available<5%,nodefs.available<5%"

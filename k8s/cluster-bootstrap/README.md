@@ -68,7 +68,20 @@ k3s 기본값은 `system-reserved`/`kube-reserved`가 비어 allocatable = RAM �
 `eviction-hard`를 disk 항목만으로 덮어써 `memory.available` eviction이 꺼져 있다.
 그 결과 스케줄러가 노드를 꽉 채우면 page cache thrashing으로 probe가 실패했다 (2026-09-27 hel1-3).
 
-`k3s/apply.sh [node...]`로 적용한다. 값을 바꾸면 노드별 allocatable 합이 워커 파드 request 합(+ rolling update surge)을 넘는지 확인할 것.
+`k3s/apply.sh [node...]`로 적용한다. kubelet 인자(`cloud-provider=external` 포함)는 전부 `config.yaml`에 둔다 —
+systemd 유닛의 명령줄 `--kubelet-arg`가 있으면 config.yaml의 `kubelet-arg` 목록을 통째로 덮어쓰므로 `apply.sh`가 유닛에서 지운다. 값을 바꾸면 노드별 allocatable 합이 워커 파드 request 합(+ rolling update surge)을 넘는지 확인할 것.
+
+## 노드 추가
+
+1. `infra/terraform`에서 `node_count`와 `private_ips`를 늘리고 apply. private IP는 CCM LoadBalancer가 쓰는 IP(현재 10.0.0.5)를 피한다.
+2. 새 노드에 config.yaml을 먼저 넣고 k3s agent 설치 (`--kubelet-arg`는 명령줄에 넣지 않는다):
+   ```bash
+   TOKEN=$(ssh root@37.27.220.52 cat /var/lib/rancher/k3s/server/node-token)
+   ssh root@<public-ip> "mkdir -p /etc/rancher/k3s && cat > /etc/rancher/k3s/config.yaml" < k3s/agent-config.yaml
+   ssh root@<public-ip> "curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION=v1.35.4+k3s1 \
+     K3S_URL=https://10.0.0.2:6443 K3S_TOKEN=$TOKEN sh -s - agent --node-ip=<private-ip> --flannel-iface=enp7s0"
+   ```
+3. `providerID`가 `hcloud://...`이고 uninitialized taint가 없어졌는지 확인, `k3s/apply.sh`의 `NODES`에 추가.
 
 ## 왜 CCM에 networking + route 비활성을 켜는가
 

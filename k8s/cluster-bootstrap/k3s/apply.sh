@@ -14,10 +14,11 @@ declare -A NODES=(
   [ubuntu-4gb-hel1-1]="37.27.220.52 k3s server-config.yaml"
   [ubuntu-4gb-hel1-2]="204.168.191.165 k3s-agent agent-config.yaml"
   [ubuntu-4gb-hel1-3]="204.168.190.22 k3s-agent agent-config.yaml"
+  [ubuntu-4gb-hel1-4]="89.167.52.180 k3s-agent agent-config.yaml"
 )
 
 TARGETS=("$@")
-[[ ${#TARGETS[@]} -eq 0 ]] && TARGETS=(ubuntu-4gb-hel1-2 ubuntu-4gb-hel1-3 ubuntu-4gb-hel1-1)
+[[ ${#TARGETS[@]} -eq 0 ]] && TARGETS=(ubuntu-4gb-hel1-2 ubuntu-4gb-hel1-3 ubuntu-4gb-hel1-4 ubuntu-4gb-hel1-1)
 
 for node in "${TARGETS[@]}"; do
   [[ -n "${NODES[$node]:-}" ]] || { echo "Unknown node: $node" >&2; exit 1; }
@@ -25,7 +26,8 @@ for node in "${TARGETS[@]}"; do
 
   echo "=== $node ($ip, $unit) ==="
   ssh "root@$ip" "mkdir -p /etc/rancher/k3s && cat > /etc/rancher/k3s/config.yaml" < "$DIR/$config"
-  ssh "root@$ip" "systemctl restart $unit"
+  # 명령줄 --kubelet-arg는 config.yaml의 kubelet-arg 목록을 통째로 덮어쓴다 → 유닛에서 지우고 config.yaml로 일원화
+  ssh "root@$ip" "sed -i '/--kubelet-arg=/d' /etc/systemd/system/$unit.service && systemctl daemon-reload && systemctl restart $unit"
 
   echo "  waiting for Ready..."
   sleep 10
