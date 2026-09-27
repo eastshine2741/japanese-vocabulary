@@ -6,7 +6,6 @@ import com.japanese.vocabulary.common.retry.ExponentialBackoff
 import com.japanese.vocabulary.common.retry.TransientHttpErrors
 import com.japanese.vocabulary.observability.MetricNames
 import com.japanese.vocabulary.translation.client.gemini.dto.SegLineDto
-import com.japanese.vocabulary.translation.client.gemini.dto.SelectLineDto
 import com.japanese.vocabulary.translation.client.gemini.dto.SenseTranslationDto
 import com.japanese.vocabulary.translation.client.gemini.dto.TranslationResultDto
 import io.micrometer.core.instrument.Counter
@@ -87,7 +86,7 @@ class GeminiClient(
      * short English `contextGloss` that sense-select later matches against the dictionary glosses.
      *
      * Runs on its own model property: this stage now carries the whole pipeline's disambiguation
-     * signal, so its tier is tuned separately from the cheaper downstream select/translate calls.
+     * signal, so its tier is tuned separately from the cheaper downstream translate-sense call.
      *
      * [temperature] is the caller's, not a constant, because retries need it: see
      * [com.japanese.vocabulary.translation.service.pipeline.stage.SegmentLyricsStage].
@@ -107,30 +106,6 @@ class GeminiClient(
             temperature = temperature,
             responseSchema = SEGMENTATION_SCHEMA,
             thinkingLevel = segmentationThinkingLevel.takeIf { it.isNotBlank() }
-        )
-    }
-
-    /**
-     * Redesign stage 3 — per-line sense selection.
-     * Input: [{index, japanese, korean, segments:[{tokenId,surface,headword,contextGloss,senses:[{senseId,english,pos}]}]}].
-     * contextGloss is the segmentation stage's short English hint at this line's meaning; the model
-     * matches it against the candidate glosses. Senses additionally carry headword/reading only when
-     * the lookup stayed ambiguous across dictionary entries — there English glosses alone cannot
-     * separate 前[マエ] from 前[ゼン].
-     * Output: [{index, words:[{tokenId, senseId}]}].
-     * The LLM uses the Korean translation as a context cue to pick the senseId that fits this line, or
-     * -1 when none fits. It does NOT generate Korean meanings (blocks the over-correction failure mode).
-     */
-    fun selectSenses(lyricLines: List<Map<String, Any?>>, context: GeminiCallContext): List<SelectLineDto> {
-        return callGemini(
-            call = "select",
-            context = context,
-            model = wordMeaningModel,
-            systemPrompt = SELECT_PROMPT,
-            input = lyricLines,
-            responseType = SelectLineDto::class.java,
-            temperature = 0.0,
-            responseSchema = SELECT_SCHEMA
         )
     }
 
@@ -433,30 +408,6 @@ class GeminiClient(
         """.trimIndent()
 
         /**
-         * Redesign stage 3 — per-line sense selection. Mirrors playground `run_redesign.py` SELECT_SYS verbatim.
-         */
-        private val SELECT_PROMPT = """
-            너는 일본어 가사 단어장(플래시카드)의 **뜻 선택기**다.
-            각 줄마다: 일본어 원문(japanese), 그 줄의 한국어 번역(korean), 분절된 단어들(segments)을 받는다.
-            각 segment에는 tokenId, contextGloss, 그리고 그 단어(headword)의 사전 뜻 후보
-            senses=[{senseId, english(영어 뜻), pos(품사)}]가 들어있다.
-            contextGloss는 그 단어가 이 줄에서 가지는 뜻의 짧은 영어 힌트다.
-            **contextGloss와 한국어 번역을 문맥 단서로** 삼아, 각 단어가 이 줄에서 실제로 가지는 뜻에 해당하는 senseId 하나를 고른다.
-            senses 중 contextGloss와 뜻이 가장 가까운 것 하나를 고르면 된다.
-            출력: 같은 배열, 각 줄을 {"index", "words":[{"tokenId","senseId"}]}로. JSON만.
-
-            ## 규칙
-            - senseId: 그 segment의 senses 중 이 문맥에 가장 맞는 것의 senseId. **반드시 주어진 senses에 있는 값**이어야 한다.
-            - 일부 sense에는 headword와 reading이 붙어 있다. 이는 그 뜻이 어느 사전 표제어의 것인지 나타낸다.
-              영어 뜻이 서로 비슷해 보여도 headword/reading이 다르면 **다른 단어**다. 문맥에 맞는 표제어 쪽을 골라라.
-            - senses가 비어있거나(사전에 없음) 어느 것도 문맥에 맞지 않으면 senseId = -1.
-            - 한국어 뜻을 직접 만들지 마라. **오직 senseId 선택만** 한다.
-            - words는 입력 segments와 1:1, 순서 동일. tokenId는 입력 그대로 복사한다.
-              surface와 headword는 출력하지 마라.
-            - 입력에 있는 줄을 그 index 그대로 **전부** 출력한다. 중간에 멈추지 마라.
-        """.trimIndent()
-
-        /**
          * Redesign stage 4 — translate chosen English senses. Mirrors playground `run_redesign.py` TRANSLATE_SYS verbatim.
          */
         private val TRANSLATE_PROMPT = """
@@ -512,28 +463,6 @@ class GeminiClient(
                                 "baseFormReading",
                                 "contextGloss"
                             )
-                        )
-                    )
-                ),
-                "required" to listOf("index", "words")
-            )
-        )
-
-        private val SELECT_SCHEMA = mapOf(
-            "type" to "ARRAY",
-            "items" to mapOf(
-                "type" to "OBJECT",
-                "properties" to mapOf(
-                    "index" to mapOf("type" to "INTEGER"),
-                    "words" to mapOf(
-                        "type" to "ARRAY",
-                        "items" to mapOf(
-                            "type" to "OBJECT",
-                            "properties" to mapOf(
-                                "tokenId" to mapOf("type" to "STRING"),
-                                "senseId" to mapOf("type" to "INTEGER")
-                            ),
-                            "required" to listOf("tokenId", "senseId")
                         )
                     )
                 ),
