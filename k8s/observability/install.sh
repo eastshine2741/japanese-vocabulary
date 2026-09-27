@@ -38,6 +38,11 @@ if [[ -z "${GRAFANA_ADMIN_PASSWORD:-}" ]]; then
   exit 1
 fi
 
+if [[ -z "${DISCORD_ALERT_WEBHOOK_URL:-}" ]]; then
+  echo "Error: DISCORD_ALERT_WEBHOOK_URL not set in $ENV_FILE" >&2
+  exit 1
+fi
+
 # --- helm repo ---
 echo "[helm] adding prometheus-community repo..."
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts >/dev/null 2>&1 || true
@@ -45,6 +50,14 @@ helm repo update prometheus-community >/dev/null
 
 # --- namespace ---
 kubectl create namespace "$NS" --dry-run=client -o yaml | kubectl apply -f -
+
+# --- Alertmanager Discord webhook (values.yaml의 alertmanagerSpec.secrets로 마운트) ---
+echo "[apply] alertmanager-discord Secret..."
+kubectl create secret generic alertmanager-discord \
+  --namespace "$NS" \
+  --from-literal=webhook-url="$DISCORD_ALERT_WEBHOOK_URL" \
+  --dry-run=client -o yaml \
+  | kubectl apply -f -
 
 # --- stack install/upgrade ---
 echo "[helm] upgrade/install kube-prometheus-stack..."

@@ -15,6 +15,7 @@ Prod 클러스터(Hetzner k3s)의 인프라 컴포넌트 매니페스트. 1회�
 | `traefik-config.yaml` | k3s 내장 traefik Service에 Hetzner LB annotation 주입 (HelmChartConfig) |
 | `hcloud-secret.template.yaml` | kube-system/hcloud Secret 템플릿 (token + network) |
 | `apply.sh` | 위 항목들을 순서대로 적용 (helm + kubectl 혼용) |
+| `k3s/*-config.yaml`, `k3s/apply.sh` | 노드 `/etc/rancher/k3s/config.yaml` — kubelet reserved 메모리 + memory eviction. SSH로 배포 후 한 대씩 재시작 |
 
 ## 사용법
 
@@ -59,6 +60,15 @@ CERT_MANAGER_VERSION="v1.20.2"
 - `--kubelet-arg=cloud-provider=external`
 
 apply.sh는 `local-path`가 남아있더라도 default flag만 제거하는 안전망을 가짐 (idempotent).
+
+## kubelet 메모리 예약과 eviction
+
+4GB 노드에서 파드 밖(OS, k3s, containerd)이 ~600MB(control-plane은 k3s-server만 ~1.2GB)를 쓴다.
+k3s 기본값은 `system-reserved`/`kube-reserved`가 비어 allocatable = RAM 전체이고,
+`eviction-hard`를 disk 항목만으로 덮어써 `memory.available` eviction이 꺼져 있다.
+그 결과 스케줄러가 노드를 꽉 채우면 page cache thrashing으로 probe가 실패했다 (2026-09-27 hel1-3).
+
+`k3s/apply.sh [node...]`로 적용한다. 값을 바꾸면 노드별 allocatable 합이 워커 파드 request 합(+ rolling update surge)을 넘는지 확인할 것.
 
 ## 왜 CCM에 networking + route 비활성을 켜는가
 
