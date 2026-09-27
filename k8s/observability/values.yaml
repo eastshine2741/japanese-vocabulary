@@ -34,6 +34,29 @@ prometheus:
               storage: 10Gi
 
 # ─────────────────────────────────────────────────────────────
+# Alert rules
+# 기본 TargetDown은 count by (job, namespace, service)로 묶은 비율이라 어떤 pod가 죽었는지 라벨이
+# 남지 않는다. 끄고 target(pod)별로 뜨는 규칙으로 대체한다. replica가 1개씩이라 비율 기준도 의미 없다.
+# ─────────────────────────────────────────────────────────────
+defaultRules:
+  disabled:
+    TargetDown: true
+
+additionalPrometheusRulesMap:
+  kotonoha-general:
+    groups:
+      - name: kotonoha.general
+        rules:
+          - alert: TargetDown
+            expr: up == 0
+            for: 10m
+            labels:
+              severity: warning
+            annotations:
+              summary: 'scrape 실패: {{ $labels.job }} {{ with $labels.pod }}{{ . }}{{ else }}{{ $labels.instance }}{{ end }}'
+              description: '{{ $labels.namespace }}/{{ $labels.job }} target {{ $labels.instance }}를 10분째 scrape하지 못했다.'
+
+# ─────────────────────────────────────────────────────────────
 # Alertmanager — warning/critical → Discord
 # 설정은 alertmanager.yaml → Secret(alertmanager-config) (install.sh가 webhook URL을 채워 생성)
 # ─────────────────────────────────────────────────────────────
