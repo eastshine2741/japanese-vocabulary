@@ -57,6 +57,7 @@ class LexicalResolver(
                 ?: resolveHiraganaQuery(token, probeLookups)
                 ?: resolveIntensifierPrefix(token, probeLookups)
                 ?: resolveSuruVerb(token, probeLookups)
+                ?: resolveNegativeVerb(token, probeLookups)
 
             if (resolved == null) {
                 if (firstPass[token.headword]?.provenance == JishoLookupProvenance.REJECTED_FALLBACK) {
@@ -132,7 +133,8 @@ class LexicalResolver(
                     resolveSuruDesiderative(it, probeLookups, logRescue = false) == null &&
                     resolveHiraganaQuery(it, probeLookups, logRescue = false) == null &&
                     resolveIntensifierPrefix(it, probeLookups, logRescue = false) == null &&
-                    resolveSuruVerb(it, probeLookups, logRescue = false) == null
+                    resolveSuruVerb(it, probeLookups, logRescue = false) == null &&
+                    resolveNegativeVerb(it, probeLookups, logRescue = false) == null
             }
             .map { token ->
                 val lookups = listOfNotNull(firstPass[token.headword]) +
@@ -155,6 +157,7 @@ class LexicalResolver(
             hiraganaProbe(token),
             intensifierPrefixProbe(token),
             suruVerbProbe(token),
+            negativeVerbProbe(token.headword),
         )
 
     /**
@@ -368,6 +371,41 @@ class LexicalResolver(
         token.headword.takeIf { it.length > 2 && it.endsWith("する") }?.dropLast(2)
 
     /**
+     * Safety net for when the segmentation LLM hands back a verb's negative — いらない for いらん —
+     * as the headword instead of 要る. Tried only after the pair match has already failed.
+     *
+     * The probe is a guess at the conjugation (少ない asks for 少る), so only verb senses are kept:
+     * a guess that lands on anything else is a different word.
+     */
+    private fun resolveNegativeVerb(
+        token: PipelineToken,
+        lookups: Map<String, JishoEntryDto>,
+        logRescue: Boolean = true,
+    ): AcceptedLexicalEntry? {
+        val base = negativeVerbProbe(token.headword) ?: return null
+        // The token's reading is イラナイ, the wrong headword's, so it is inflected back to イル too.
+        val reading = negativeVerbProbe(JapaneseText.toHiragana(token.baseFormReading))?.let(JapaneseText::toKatakana)
+        val accepted = narrow(token, lookups[base], base, reading, logRescue) ?: return null
+        val verbEntries = accepted.entries.mapNotNull { entry ->
+            val verbSenses = entry.senses.filter { JishoPartOfSpeechMapper.map(it.pos) == PartOfSpeech.VERB }
+            if (verbSenses.isEmpty()) null else entry.copy(senses = verbSenses)
+        }
+        if (verbEntries.isEmpty()) return null
+        if (logRescue) logger.info("Normalized negative verb '{}' to '{}'", token.headword, base)
+        return AcceptedLexicalEntry(base, verbEntries, accepted.provenance)
+    }
+
+    /**
+     * `いらない` → `いる`, `書かない` → `書く`, `見ない` → `見る`. A stem ending in an a-row kana is
+     * godan and shifts to the u-row; anything else is read as ichidan. Null when nothing precedes ない.
+     */
+    private fun negativeVerbProbe(form: String): String? {
+        val stem = form.takeIf { it.endsWith("ない") }?.dropLast(2)?.takeIf { it.isNotEmpty() } ?: return null
+        val godanEnding = NEGATIVE_GODAN_ENDINGS[stem.last()] ?: return stem + "る"
+        return stem.dropLast(1) + godanEnding
+    }
+
+    /**
      * The hiragana spelling of a katakana-only headword. Null for anything else: a kanji or hiragana
      * headword already queried the script the dictionary indexes.
      */
@@ -415,5 +453,11 @@ class LexicalResolver(
         /** Longest first, so したくない is not read as したい with a stem ending in く. */
         val SURU_DESIDERATIVE_SUFFIXES = listOf("したくない", "したい")
         val SURU_DESIDERATIVE_READING_SUFFIXES = listOf("シタクナイ", "シタイ")
+
+        /** Godan negative stem ending → dictionary-form ending: 要ら(ない) → 要る, 会わ(ない) → 会う. */
+        val NEGATIVE_GODAN_ENDINGS = mapOf(
+            'か' to "く", 'が' to "ぐ", 'さ' to "す", 'た' to "つ", 'な' to "ぬ",
+            'ば' to "ぶ", 'ま' to "む", 'ら' to "る", 'わ' to "う",
+        )
     }
 }
