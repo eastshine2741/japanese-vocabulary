@@ -319,6 +319,52 @@ class LexicalResolverTest {
     }
 
     @Test
+    fun `a kanji headword the dictionary does not answer is queried again by its reading`(): Unit = runBlocking {
+        // songId=295, "燻んでしまったの灰色に": 燻む is a dictionary word, but jisho's search answers the
+        // kanji query with nothing. The reading くすむ finds it, and the pair match keeps only the entry
+        // that reads クスム.
+        stub(
+            "くすむ" to found(
+                JishoDictionaryEntryDto(
+                    headword = "燻む",
+                    reading = "クスム",
+                    senses = listOf(
+                        JishoOptionDto(
+                            pos = listOf("Godan verb with 'mu' ending", "Intransitive verb"),
+                            english = "to be dull, to be somber",
+                            englishDefinitions = listOf("to be dull", "to be somber"),
+                        ),
+                    ),
+                ),
+            ),
+        )
+        val tokens = listOf(token("燻んで", "燻む", "クスム", lineIndex = 10))
+
+        val resolved = resolver.resolve(tokens).byTokenKey.values.single()
+
+        assertThat(resolved.baseForm).isEqualTo("燻む")
+        assertThat(resolved.options.map { it.english }).containsExactly("to be dull, to be somber")
+        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
+    fun `a kanji headword's reading query does not adopt an unrelated homophone`(): Unit = runBlocking {
+        // The reading alone names no word when several entries share it; taking them would hand a
+        // kanji headword the meanings of different words.
+        stub(
+            "かける" to found(
+                entry(headword = "掛ける", reading = "カケル", english = "to hang"),
+                entry(headword = "賭ける", reading = "カケル", english = "to bet"),
+            ),
+        )
+
+        val resolved = resolver.resolve(listOf(token("翔けて", "翔ける", "カケル"))).byTokenKey.values.single()
+
+        assertThat(resolved.options).isEmpty()
+    }
+
+    @Test
     fun `an intensifier-prefixed verb is looked up without its prefix`(): Unit = runBlocking {
         // songId=10, "ぶちこわれた 計測機器が": ぶち壊れる is colloquial ぶち + 壊れる and jisho has no entry
         // for the compound, but the verb underneath is ordinary. The word must not lose its meaning
