@@ -1,7 +1,8 @@
 package com.japanese.vocabulary.translation.service.pipeline.stage
 
-import com.japanese.vocabulary.translation.client.gemini.GeminiClient
-import com.japanese.vocabulary.translation.client.gemini.dto.SelectLineDto
+import com.japanese.vocabulary.translation.client.jev.JevClient
+import com.japanese.vocabulary.translation.client.jev.dto.JevAnswer
+import com.japanese.vocabulary.translation.client.jev.dto.JevChoiceQuestion
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoLookupProvenance
 import com.japanese.vocabulary.translation.model.AnalysisDefect
 import com.japanese.vocabulary.translation.model.AnalysisDefectCause
@@ -10,17 +11,21 @@ import com.japanese.vocabulary.translation.model.PipelineToken
 import com.japanese.vocabulary.translation.model.PipelineTokenKey
 import com.japanese.vocabulary.translation.model.SenseSelectionStageInput
 import com.japanese.vocabulary.translation.service.pipeline.AnalysisDefectReporter
-import com.japanese.vocabulary.translation.service.pipeline.ChunkedGeminiCall
 import com.japanese.vocabulary.translation.service.pipeline.JapaneseText
-import org.slf4j.LoggerFactory
+import com.japanese.vocabulary.translation.service.pipeline.SenseCandidateNarrowing
 import org.springframework.stereotype.Component
 
+/**
+ * Picks, for every word that still has more than one dictionary sense, the one this line means.
+ *
+ * Runs on Jev, one request per lyric line with one `choice` question per word. Jev answers only with
+ * an option it was offered plus a confidence, so the answer can never be an invented meaning.
+ */
 @Component
 class SelectSensesStage(
-    private val geminiClient: GeminiClient,
+    private val jevClient: JevClient,
     private val defectReporter: AnalysisDefectReporter,
 ) : PipelineStage<SenseSelectionStageInput, Map<PipelineTokenKey, Int>> {
-    private val logger = LoggerFactory.getLogger(SelectSensesStage::class.java)
 
     override suspend fun execute(input: SenseSelectionStageInput): Map<PipelineTokenKey, Int> {
         val wordPreparation = input.wordPreparation
@@ -44,141 +49,147 @@ class SelectSensesStage(
         val selectableTokensByIndex = candidateTokensByIndex
             .mapValues { (_, tokens) -> tokens.filterNot { it.key in settledSenseByKey } }
             .filterValues { it.isNotEmpty() }
-        if (selectableTokensByIndex.isEmpty()) return settledSenseByKey
 
-        val selectInput = selectableTokensByIndex.map { (index, tokens) ->
-            mapOf(
-                "index" to index,
-                "japanese" to (input.source.rawByIndex[index] ?: ""),
-                "korean" to (input.translationMap[index]?.koreanLyrics ?: ""),
-                "segments" to tokens.map { token ->
-                    val resolved = lexical.byTokenKey.getValue(token.key)
-                    buildMap {
-                        put("tokenId", token.key.tokenId)
-                        put("surface", token.surface)
-                        put("headword", resolved.baseForm)
-                        // An empty gloss is worse than none: the prompt tells the model to match
-                        // against it, and matching against "" is noise.
-                        token.contextGloss.takeIf { it.isNotBlank() }?.let { put("contextGloss", it) }
-                        put("senses", resolved.options.map(::senseCandidate))
-                    }
-                },
-            )
-        }
+        val selectedSenseByKey = selectableTokensByIndex.flatMap { (index, tokens) ->
+            selectLine(index, tokens, input)
+        }.toMap()
+        return settledSenseByKey + selectedSenseByKey
+    }
 
-        val selectedLines = ChunkedGeminiCall.flatMap(selectInput, SELECT_CHUNK_LINES) {
-            geminiClient.selectSenses(it, input.source.callContext)
+    private fun selectLine(
+        index: Int,
+        tokens: List<PipelineToken>,
+        input: SenseSelectionStageInput,
+    ): List<Pair<PipelineTokenKey, Int>> {
+        val lexical = input.wordPreparation.lexical
+        val line = input.source.rawByIndex[index].orEmpty()
+        val offeredByKey = tokens.associate { token ->
+            token.key to SenseCandidateNarrowing.narrow(token.contextGloss, lexical.byTokenKey.getValue(token.key).options)
         }
-        val selectByIndex = validateLineIndices(selectableTokensByIndex.keys, selectedLines)
-        return settledSenseByKey + selectedSenseByKey(selectableTokensByIndex, selectByIndex, input)
+        val answers = jevClient.choose(
+            call = CALL_NAME,
+            state = mapOf(
+                "japanese_line" to line,
+                "korean_translation" to input.translationMap[index]?.koreanLyrics.orEmpty(),
+            ),
+            questions = tokens.associate { token ->
+                token.key.tokenId to question(line, token, lexical.byTokenKey.getValue(token.key).baseForm, offeredByKey.getValue(token.key))
+            },
+            context = input.source.callContext,
+        )
+        return tokens.map { token ->
+            token.key to senseFor(token, answers[token.key.tokenId], offeredByKey.getValue(token.key), index, input)
+        }
     }
 
     /**
-     * One sense candidate as the LLM sees it.
-     *
-     * Headword and reading are sent only for [JishoLookupProvenance.AMBIGUOUS_HEADWORD], the one grade
-     * where senses from more than one dictionary entry share a request — there they are what makes
-     * 前[マエ]'s "before / earlier" distinguishable from 前[ゼン]'s. Every other grade has already been
-     * narrowed to a single entry, so repeating its headword and reading on each sense would restate a
-     * constant the model cannot act on.
-     *
-     * `englishDefinitions` is deliberately absent: [PipelineSenseOption.english] is that same list
-     * joined with " / ", so sending both duplicated every gloss in the request.
+     * The line itself carries a 【】 around the word being asked about. Without it, two identical
+     * surfaces in one line (the two て of 結婚して欲しい…なってみたい) got word-for-word identical
+     * questions and so the same answer, whatever each one meant.
      */
-    private fun senseCandidate(option: PipelineSenseOption): Map<String, Any?> = buildMap {
-        put("senseId", option.senseId)
-        if (option.provenance == JishoLookupProvenance.AMBIGUOUS_HEADWORD) {
-            option.headword?.let { put("headword", it) }
-            option.reading?.let { put("reading", it) }
+    private fun question(
+        line: String,
+        token: PipelineToken,
+        headword: String,
+        offered: List<PipelineSenseOption>,
+    ): JevChoiceQuestion {
+        val marked = if (token.charEnd <= line.length) {
+            line.substring(0, token.charStart) + "【" + line.substring(token.charStart, token.charEnd) + "】" +
+                line.substring(token.charEnd)
+        } else {
+            line
         }
-        put("english", option.english)
-        put("pos", option.rawPos.joinToString(" / "))
+        val gloss = token.contextGloss.takeIf { it.isNotBlank() }?.let { " Contextual gloss: $it." }.orEmpty()
+        val criteria = offered.take(MAX_SENSE_OPTIONS).associate { it.senseId.toString() to label(it) } +
+            (NO_SENSE.toString() to "None of the other options matches how this word is used in the line")
+        return JevChoiceQuestion(
+            instructions = "Which dictionary sense matches how 「${token.surface}」 (headword $headword) " +
+                "is used at the 【marked】 position in this Japanese lyric line: $marked$gloss",
+            criteria = criteria,
+        )
     }
 
-    private fun selectedSenseByKey(
-        selectableTokensByIndex: Map<Int, List<PipelineToken>>,
-        selectByIndex: Map<Int, SelectLineDto>,
+    /**
+     * Headword and reading lead the label only for [JishoLookupProvenance.AMBIGUOUS_HEADWORD], the one
+     * grade where senses from more than one dictionary entry share a question — there they are what
+     * makes 前[マエ]'s "before / earlier" distinguishable from 前[ゼン]'s.
+     */
+    private fun label(option: PipelineSenseOption): String {
+        val entry = if (option.provenance == JishoLookupProvenance.AMBIGUOUS_HEADWORD && option.headword != null) {
+            "${option.headword}[${option.reading.orEmpty()}] "
+        } else {
+            ""
+        }
+        return "$entry${option.english} (${option.rawPos.joinToString(" / ")})"
+    }
+
+    private fun senseFor(
+        token: PipelineToken,
+        answer: JevAnswer?,
+        offered: List<PipelineSenseOption>,
+        index: Int,
         input: SenseSelectionStageInput,
-    ): Map<PipelineTokenKey, Int> {
-        val lexical = input.wordPreparation.lexical
-        return selectableTokensByIndex.flatMap { (index, tokens) ->
-            val selectedWords = selectByIndex[index]?.words ?: emptyList()
-            if (selectedWords.size != tokens.size) {
-                logger.warn(
-                    "Sense-select word count mismatch at line index={}: expected={}, actual={}",
-                    index,
-                    tokens.size,
-                    selectedWords.size,
-                )
-            }
-            // tokenId is lineIndex:charStart:charEnd:surface, so looking a token up by it pins the
-            // token identity — no surface/headword echo needed. The model does not keep request
-            // order reliably, so the position of an answer in the array says nothing.
-            val selectedByTokenId = selectedWords.associateBy { it.tokenId }
-            tokens.map { token ->
-                val selected = selectedByTokenId[token.key.tokenId]
-                val resolved = lexical.byTokenKey[token.key]
-                val selectedSenseId = selected?.senseId ?: NO_SENSE
-                val valid = selected != null &&
-                    resolved != null &&
-                    resolved.options.any { it.senseId == selectedSenseId }
-                // Either way the token leaves with no sense at all, so it is a shipped defect and
-                // reported as one — the word had candidates, and the model named one it was never
-                // offered, or answered nothing for it.
-                val offered = resolved?.options?.map { it.senseId }.orEmpty()
-                val defect = when {
-                    selected == null -> AnalysisDefectCause.SENSE_MISSING to
-                        "tokenId=${token.key.tokenId}, offered=$offered"
-                    // The prompt tells the model to answer -1 when none of the offered senses fits the
-                    // line. That is the designed answer, not a rejected one: チク in 「チクタクチク」 is
-                    // a clock's tick, and none of 竹/築/地区 is, so the model saying so is not a defect.
-                    selectedSenseId == NO_SENSE -> null
-                    !valid -> AnalysisDefectCause.SENSE_REJECTED to
-                        "tokenId=${token.key.tokenId}, selectedSenseId=$selectedSenseId, offered=$offered"
-                    else -> null
-                }
-                defect?.let { (cause, detail) ->
-                    defectReporter.report(
-                        AnalysisDefect(
-                            songId = input.source.callContext.songId,
-                            lyricId = input.source.callContext.lyricId,
-                            lineIndex = index,
-                            cause = cause,
-                            surface = token.surface,
-                            headword = token.headword,
-                            line = input.source.rawByIndex[index].orEmpty(),
-                            detail = detail,
-                        ),
-                    )
-                }
-                token.key to if (valid) selectedSenseId else NO_SENSE
-            }
-        }.toMap()
+    ): Int {
+        val offeredIds = offered.map { it.senseId }
+        if (answer == null) {
+            report(token, index, input, AnalysisDefectCause.SENSE_MISSING, "tokenId=${token.key.tokenId}, offered=$offeredIds")
+            return NO_SENSE
+        }
+        val chosen = answer.choice.toIntOrNull()
+        // -1 is an offered option: チク in 「チクタクチク」 is a clock's tick, and none of 竹/築/地区 is,
+        // so the model saying so is the designed answer, not a defect.
+        if (chosen == NO_SENSE) return NO_SENSE
+        if (chosen == null || chosen !in offeredIds) {
+            report(
+                token, index, input, AnalysisDefectCause.SENSE_REJECTED,
+                "tokenId=${token.key.tokenId}, selectedSenseId=${answer.choice}, offered=$offeredIds",
+            )
+            return NO_SENSE
+        }
+        // Below the cut, a wrong meaning on the card is likelier than a right one, and no meaning
+        // beats a wrong one.
+        return if (answer.confidence < MIN_CONFIDENCE) NO_SENSE else chosen
     }
 
-    private fun validateLineIndices(
-        expectedIndices: Set<Int>,
-        selectedLines: List<SelectLineDto>,
-    ): Map<Int, SelectLineDto> {
-        val actualIndices = selectedLines.map { it.index }
-        val duplicated = actualIndices.groupingBy { it }.eachCount().filterValues { it > 1 }.keys
-        if (duplicated.isNotEmpty()) {
-            throw IllegalStateException("Sense-select returned duplicate line indices: $duplicated")
-        }
-        val actualSet = actualIndices.toSet()
-        if (actualSet != expectedIndices) {
-            throw IllegalStateException(
-                "Sense-select line indices mismatch: expected=$expectedIndices actual=$actualSet",
-            )
-        }
-        return selectedLines.associateBy { it.index }
+    private fun report(
+        token: PipelineToken,
+        index: Int,
+        input: SenseSelectionStageInput,
+        cause: AnalysisDefectCause,
+        detail: String,
+    ) {
+        defectReporter.report(
+            AnalysisDefect(
+                songId = input.source.callContext.songId,
+                lyricId = input.source.callContext.lyricId,
+                lineIndex = index,
+                cause = cause,
+                surface = token.surface,
+                headword = token.headword,
+                line = input.source.rawByIndex[index].orEmpty(),
+                detail = detail,
+            ),
+        )
     }
 
     companion object {
-        /** Lines per sense-select call. Bounds response length so long songs cannot stop mid-array. */
-        const val SELECT_CHUNK_LINES = 20
+        /** The call name in `gemini_call_log`, kept from the Gemini era so old and new rows line up. */
+        const val CALL_NAME = "select"
 
-        /** The senseId the prompt reserves for "no offered sense fits this line". */
+        /** The option id every question reserves for "no offered sense fits this line". */
         const val NO_SENSE = -1
+
+        /**
+         * Answers below this confidence are dropped as if Jev had said [NO_SENSE].
+         *
+         * Hand-graded on five prod songs: of the 8 answers under 0.25, 6 were plainly wrong (the
+         * quotative って read as "the said", 着せる as "pin a crime on") and one was right. Between
+         * 0.25 and 0.5 right answers outnumbered wrong ones about five to one, so a higher cut
+         * drops more right meanings than wrong ones.
+         */
+        const val MIN_CONFIDENCE = 0.25
+
+        /** Jev takes at most 255 options per question, and one of them is [NO_SENSE]. */
+        const val MAX_SENSE_OPTIONS = 254
     }
 }

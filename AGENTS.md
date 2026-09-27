@@ -96,7 +96,8 @@ appearance order. `lineWordIndexes[line]` is line-local appearance order. Use
 
 **Word meaning pipeline:** Dictionary entries are `(headword, reading)` pairs;
 one dictionary sense maps to one song-level `senseId`; token readings are
-katakana and line readings are assembled by clients. Details live in
+katakana and line readings are assembled by clients. Sense-select runs on
+TypeSafe Jev (`TYPESAFE_API_KEY`), the other LLM stages on Gemini. Details live in
 `docs/translation-pipeline.md`.
 
 **VOC (개발자 괴롭히기):** 설정 탭 `문의` 섹션 -> `Voc` 화면. `POST /api/voc`

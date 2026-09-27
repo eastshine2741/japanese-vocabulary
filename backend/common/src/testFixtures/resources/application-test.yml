@@ -37,6 +37,9 @@ gemini:
   word-meaning-model: gemini-test
   segmentation-model: gemini-test
 
+jev:
+  api-key: test-jev-key
+
 github:
   token: ""
   repository: test-owner/test-repo
