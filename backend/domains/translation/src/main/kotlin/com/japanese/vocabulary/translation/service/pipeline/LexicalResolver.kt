@@ -57,6 +57,7 @@ class LexicalResolver(
                 ?: resolveHiraganaQuery(token, probeLookups)
                 ?: resolveIntensifierPrefix(token, probeLookups)
                 ?: resolveSuruVerb(token, probeLookups)
+                ?: resolvePotential(token, probeLookups)
 
             if (resolved == null) {
                 if (firstPass[token.headword]?.provenance == JishoLookupProvenance.REJECTED_FALLBACK) {
@@ -132,7 +133,8 @@ class LexicalResolver(
                     resolveSuruDesiderative(it, probeLookups, logRescue = false) == null &&
                     resolveHiraganaQuery(it, probeLookups, logRescue = false) == null &&
                     resolveIntensifierPrefix(it, probeLookups, logRescue = false) == null &&
-                    resolveSuruVerb(it, probeLookups, logRescue = false) == null
+                    resolveSuruVerb(it, probeLookups, logRescue = false) == null &&
+                    resolvePotential(it, probeLookups, logRescue = false) == null
             }
             .map { token ->
                 val lookups = listOfNotNull(firstPass[token.headword]) +
@@ -155,6 +157,7 @@ class LexicalResolver(
             hiraganaProbe(token),
             intensifierPrefixProbe(token),
             suruVerbProbe(token),
+            potentialProbe(token),
         )
 
     /**
@@ -363,6 +366,40 @@ class LexicalResolver(
         return AcceptedLexicalEntry(base, verbEntries, accepted.provenance)
     }
 
+    /**
+     * Safety net for when the segmentation LLM hands back a godan verb's potential form — とべる,
+     * 帰れる — as the headword instead of とぶ / 帰る. Tried only after the pair match has already failed.
+     *
+     * The probe cannot tell a potential from an ichidan verb (食べる → 食ぶ), so only godan verb senses
+     * are accepted: an entry jisho indexes under the probed headword that is not a godan verb is a
+     * different word.
+     */
+    private fun resolvePotential(
+        token: PipelineToken,
+        lookups: Map<String, JishoEntryDto>,
+        logRescue: Boolean = true,
+    ): AcceptedLexicalEntry? {
+        val base = potentialProbe(token) ?: return null
+        // The token's reading is トベル, the wrong headword's, so it is inflected back to トブ as well.
+        val reading = potentialBase(token.baseFormReading, POTENTIAL_READING_ENDINGS)
+        val accepted = narrow(token, lookups[base], base, reading, logRescue) ?: return null
+        val godanEntries = accepted.entries.mapNotNull { entry ->
+            val godanSenses = entry.senses.filter { sense -> sense.pos.any { "godan verb" in it.lowercase() } }
+            if (godanSenses.isEmpty()) null else entry.copy(senses = godanSenses)
+        }
+        if (godanEntries.isEmpty()) return null
+        if (logRescue) logger.info("Normalized potential form '{}' to '{}'", token.headword, base)
+        return AcceptedLexicalEntry(base, godanEntries, accepted.provenance)
+    }
+
+    /** `とべる` → `とぶ`, `帰れる` → `帰る`. Null unless something precedes an e-row kana plus る. */
+    private fun potentialProbe(token: PipelineToken): String? = potentialBase(token.headword, POTENTIAL_ENDINGS)
+
+    private fun potentialBase(word: String, endings: Map<String, String>): String? {
+        val ending = endings.keys.firstOrNull { word.length > it.length && word.endsWith(it) } ?: return null
+        return word.dropLast(ending.length) + endings.getValue(ending)
+    }
+
     /** `交差する` → `交差`. Null unless the headword is something followed by する. */
     private fun suruVerbProbe(token: PipelineToken): String? =
         token.headword.takeIf { it.length > 2 && it.endsWith("する") }?.dropLast(2)
@@ -415,5 +452,15 @@ class LexicalResolver(
         /** Longest first, so したくない is not read as したい with a stem ending in く. */
         val SURU_DESIDERATIVE_SUFFIXES = listOf("したくない", "したい")
         val SURU_DESIDERATIVE_READING_SUFFIXES = listOf("シタクナイ", "シタイ")
+
+        /** A godan potential's ending mapped back to the dictionary form's: べる → ぶ. */
+        val POTENTIAL_ENDINGS = mapOf(
+            "える" to "う", "ける" to "く", "げる" to "ぐ", "せる" to "す", "てる" to "つ",
+            "ねる" to "ぬ", "べる" to "ぶ", "める" to "む", "れる" to "る",
+        )
+        val POTENTIAL_READING_ENDINGS = mapOf(
+            "エル" to "ウ", "ケル" to "ク", "ゲル" to "グ", "セル" to "ス", "テル" to "ツ",
+            "ネル" to "ヌ", "ベル" to "ブ", "メル" to "ム", "レル" to "ル",
+        )
     }
 }

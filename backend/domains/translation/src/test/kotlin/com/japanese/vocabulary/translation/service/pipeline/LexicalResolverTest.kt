@@ -252,6 +252,47 @@ class LexicalResolverTest {
     }
 
     @Test
+    fun `a godan verb's potential form handed back as the headword is rescued as its dictionary form`(): Unit =
+        runBlocking {
+            // songId=283, line 0: "鳥はなんで空をとべるの？". The model gave the potential とべる as the
+            // headword; jisho has no such entry, and the word shipped without a meaning.
+            stub(
+                "とぶ" to found(
+                    JishoDictionaryEntryDto(
+                        headword = "飛ぶ",
+                        reading = "トブ",
+                        senses = listOf(
+                            JishoOptionDto(
+                                pos = listOf("Godan verb with 'bu' ending", "Intransitive verb"),
+                                english = "to fly",
+                                englishDefinitions = listOf("to fly"),
+                            ),
+                        ),
+                    ),
+                ),
+            )
+            val tokens = listOf(token("とべる", "とべる", "トベル"))
+
+            val resolved = resolver.resolve(tokens).byTokenKey.values.single()
+
+            assertThat(resolved.baseForm).isEqualTo("とぶ")
+            assertThat(resolved.options.map { it.headword }).containsExactly("飛ぶ")
+            assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+            assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+        }
+
+    @Test
+    fun `an ichidan verb is not mistaken for a potential form`(): Unit = runBlocking {
+        // 食べる misses here only because the stub has no entry; the probe asks for 食ぶ, and without
+        // a godan verb sense the token stays unresolved instead of gaining an invented meaning.
+        stub("食ぶ" to found(entry(headword = "食ぶ", reading = "タブ", english = "food")))
+
+        val resolved = resolver.resolve(listOf(token("食べる", "食べる", "タベル"))).byTokenKey.values.single()
+
+        assertThat(resolved.options).isEmpty()
+    }
+
+    @Test
     fun `a suru verb rescued through the probe is graded exact`(): Unit = runBlocking {
         // songId=171, line 0: "0と1が交差する地点". jisho indexes 交差 as a noun that takes する, never
         // 交差する itself, so the headword as the model gave it misses and the word lost its meaning.
