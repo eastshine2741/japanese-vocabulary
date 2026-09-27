@@ -1,0 +1,32 @@
+# Local .terraform directories (provider cache)
+**/.terraform/*
+
+# .tfstate files (contain secrets, managed locally)
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+
+# Crash log files
+crash.log
+crash.*.log
+
+# Variable files with real values (may contain secrets)
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+!*.tfvars.json.example
+
+# Override files (typically local-only)
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# CLI configuration files
+.terraformrc
+terraform.rc
+
+# Local env files for variable injection
+.env
+.env.local
+.env.*.local

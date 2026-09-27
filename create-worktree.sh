@@ -32,6 +32,7 @@ IGNORED_FILES=(
   "app-rn/kotonoha-prod.jks"
   "app-rn/google-services.json"
   "local/mysql/dev-dump.sql"
+  "infra/terraform/environments/prod/terraform.tfvars"
 )
 
 echo ""

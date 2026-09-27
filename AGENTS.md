@@ -38,6 +38,7 @@ cd app-rn && npx expo start --web             # App - Web (dev)
 - KPI 와 측정 방법 (GA4/BigQuery): `docs/analytics.md`
 - Recommended songs: `docs/recommended-songs.md`
 - k3s deploy and environment variables: `docs/runbooks/k3s-deploy.md`
+- Prod infra as code (Hetzner servers/network, Cloudflare DNS; CSI/CCM-owned resources excluded): `infra/terraform/README.md`
 - Analysis defect log and auto-fix runner: `.github/scripts/analysis-feedback/README.md`
 - Mobile OTA release flow: `docs/runbooks/mobile-ota-release.md`
 - Bottom sheet nested scroll: `docs/runbooks/bottom-sheet-nested-scroll.md`
