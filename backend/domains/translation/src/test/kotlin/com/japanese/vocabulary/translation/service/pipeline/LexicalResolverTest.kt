@@ -241,6 +241,36 @@ class LexicalResolverTest {
     }
 
     @Test
+    fun `a suru-verb passive handed back as the headword is rescued as stem plus suru`(): Unit = runBlocking {
+        // songId=260, "シャガの花に毒されても": the model gave 毒される as the headword, jisho has no such
+        // entry, and the word shipped without a meaning. The reading ドクサレル is inflected back to
+        // ドクスル alongside the base form.
+        stub(
+            "毒する" to found(
+                JishoDictionaryEntryDto(
+                    headword = "毒する",
+                    reading = "ドクスル",
+                    senses = listOf(
+                        JishoOptionDto(
+                            pos = listOf("Suru verb - special class", "Transitive verb"),
+                            english = "to poison",
+                            englishDefinitions = listOf("to poison", "to corrupt"),
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        val tokens = listOf(token("毒されて", "毒される", "ドクサレル", lineIndex = 55))
+        val resolved = resolver.resolve(tokens).byTokenKey.values.single()
+
+        assertThat(resolved.baseForm).isEqualTo("毒する")
+        assertThat(resolved.options.map { it.english }).containsExactly("to poison")
+        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
     fun `a godan verb's desiderative is not mistaken for a suru-verb`(): Unit = runBlocking {
         // 話したい is 話す. The probe asks for 話する, and since no entry carries that headword the
         // token stays unresolved instead of gaining an invented meaning.
