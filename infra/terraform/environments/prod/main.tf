@@ -49,8 +49,9 @@ module "k3s_node_pool" {
   placement_group_name = "kotonoha-spread"
   ssh_keys             = ["eastshine-desktop"]
   network_id           = hcloud_network.main.id
-  # hel1-1(control-plane), hel1-2, hel1-3, hel1-4 순. 기존 노드는 실제 할당된 IP 그대로
-  private_ips = ["10.0.0.2", "10.0.0.4", "10.0.0.3", "10.0.0.5"]
+  # hel1-1(control-plane), hel1-2, hel1-3, hel1-4 순. 기존 노드는 실제 할당된 IP 그대로.
+  # 10.0.0.5는 CCM이 만든 LoadBalancer가 쓰고 있다
+  private_ips = ["10.0.0.2", "10.0.0.4", "10.0.0.3", "10.0.0.6"]
 
   depends_on = [hcloud_network_subnet.main]
 }
