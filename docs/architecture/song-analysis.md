@@ -52,7 +52,7 @@ Flow: `(translation || [segment -> surface/reading check + retry -> grammar rule
 3. **surface/reading check + retry** (code): validates that segmented surfaces cover the original Japanese text in order and that both readings are kana-only. Hiragana is normalized to katakana rather than retried; kanji left in a reading fails that line, which is retried on its own.
 4. **grammar rules** (code): deterministically handles only grammar tokens that lexical lookup cannot reliably recover, such as `ている/てる`, particles, and the `どうも こうも` rewrite. Ambiguous words such as `ない` and `から` stay out of the rule table.
 5. **jisho entry-select** (code): a lookup keyed by headword returns every dictionary entry it touched, boundaries intact — one entry per `(headword, reading)` pair. `LexicalResolver` narrows to the entry matching the segment's `(headword, baseFormReading)` pair and offers only that entry's senses — or, when the pair still matches several entries (a kana headword such as かける does this), offers them all with entry labels attached. See the grade table in `docs/translation-pipeline.md`. i-adjective adverbials such as `高く` can still be normalized through a `高い` probe.
-6. **sense-select** (LLM): chooses the matching sense ID for each word, using the lyric translation and the segment's `contextGloss` as context. It does not create meanings directly. **A word with only one candidate sense is settled in code without a request.** Sense candidates carry headword/reading only in the `AMBIGUOUS_HEADWORD` grade, where senses from several entries share one request.
+6. **sense-select** (Jev, `jev.model`): chooses the matching sense ID for each word, using the lyric translation and the segment's `contextGloss` as context. One request per line, one `choice` question per word; the word is marked with 【】 inside the line so two identical surfaces in one line get different questions. It can only answer with an offered option, so it never creates meanings. **A word with only one candidate sense is settled in code without a request.** `SenseCandidateNarrowing` first drops candidates no line could mean (repeated glosses of variant spellings; content-word homophones of a word the `contextGloss` calls a particle/auxiliary/suffix). An answer under confidence `0.25` is stored as "no sense" (`-1`). Sense candidates carry headword/reading only in the `AMBIGUOUS_HEADWORD` grade.
 7. **sense-translate** (LLM): translates each chosen Japanese sense to one Korean meaning. Multiple English glosses for one sense are treated as one sense description, not concatenated gloss translations.
 8. **assemble** (code): `Token.reading` is the segment's inflected `usedReading` and `Token.baseFormReading` is the chosen entry's dictionary reading, so 行って keeps イッテ while its headword 行く reads イク. POS, JLPT, and meaning come from the rule result or the selected sense. If no sense exists, leave it empty. Punctuation, English, and numbers normally get no token at all — segment anchoring drops them and the app rebuilds them from the gaps between tokens; a non-Japanese surface that reaches this stage anyway is marked `SYMBOL` rather than sent to the dictionary. No line-level reading is stored — the tokens carry it.
 
@@ -136,6 +136,31 @@ Cost: prompt 71.9k → 65.1k and output 14.9k → 20.1k tokens per song. Segment
 per word instead of two) and sense-select shrank (147.6k prompt vs 173.5k; single-candidate tokens
 never leave the process). The largest saving is on the expensive model: dropping the pronunciation
 from the translation schema cut `gemini-3.1-pro-preview` output 7,277 → 4,237 tokens per song.
+
+### Sense-select model: Jev replaced Gemini flash-lite
+
+Replayed the prod `select` requests of five songs (779 words; 丸ノ内サディスティック, 遺書, D/N/A,
+Bad Apple!!, 匿名M) against Jev and hand-graded the disagreements.
+
+| | Gemini flash-lite | Jev (final request format) |
+|---|---|---|
+| same gloss as Gemini | — | 623–631 / 779 |
+| answers `-1` when no sense fits (proper nouns, coinages) | never | yes (リッケン, ハツネ, やんなっちゃう) |
+| cost per song (sense-select only) | ~$0.024 | ~$0.003 |
+| confidence per word | no | yes |
+
+- **Position marker.** Without 【】, the two て of one line got identical questions and identical
+  answers; marking fixed て/する cases and cut low-confidence answers 126 → 105.
+- **Candidate narrowing.** Candidates per word 11.3 → 7.5, answers under 0.5 confidence
+  105 → 79, input tokens −15%; no sense Gemini had picked was removed. It did not fix Jev's
+  remaining errors — わ is still read as "emphasis" with four candidates left.
+- **Confidence cut at 0.25.** Of 8 answers under 0.25, 6 were plainly wrong and 1 right; between
+  0.25 and 0.5 right answers outnumbered wrong ones about five to one. Cutting at 0.5 would have
+  dropped ~52 right meanings to hide ~16 wrong ones.
+- **No Gemini fallback.** Re-asking Gemini for Jev's low-confidence words fixed about 17 and broke
+  about 10 — a net of ~1%, inside Jev's ~3% run-to-run answer flips.
+- **Known weak spots:** request て after a verb (殴って read as "and then"), auxiliary いく after
+  て (流れてく), sentence-final わ nuance, する in 〜にする.
 
 > The jisho Redis cache key carries a schema version (`jisho:v4:`). Bump it whenever the cached DTO
 > changes: unknown-field-tolerant deserialization turns an old cached value into an empty result,

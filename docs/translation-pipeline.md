@@ -21,8 +21,10 @@ rationales should live beside the code or in focused tests.
    `RuleMeaningProvider`.
 6. `ResolveLexicalSensesStage`: uses `LexicalResolver` and Jisho entries to find
    candidate dictionary senses.
-7. `SelectSensesStage`: Gemini chooses sense IDs when code cannot decide. A word
-   with one candidate sense is settled in code.
+7. `SelectSensesStage`: Jev (TypeSafe) chooses sense IDs when code cannot decide,
+   one request per line. A word with one candidate sense is settled in code;
+   `SenseCandidateNarrowing` drops impossible candidates first; an answer under
+   confidence 0.25 becomes "no sense". No Gemini fallback.
 8. `TranslateSensesStage`: Gemini translates each selected dictionary sense to one
    Korean meaning.
 9. `AssembleAnalyzedLinesStage`: creates final `AnalyzedLine` / `Token` data.
@@ -55,16 +57,18 @@ segment -> anchor/retry -> rules -> jisho entry-select
 
 ## Guardrails
 
-- LLM responses are chunked by stage (`SEGMENT_CHUNK_LINES`,
-  `SELECT_CHUNK_LINES`, `TRANSLATE_CHUNK_SENSES`) to avoid whole-song responses
-  being cut off.
+- Gemini responses are chunked by stage (`SEGMENT_CHUNK_LINES`,
+  `TRANSLATE_CHUNK_SENSES`) to avoid whole-song responses being cut off.
+  Sense-select is one Jev request per line, so it has no chunk size.
 - `GeminiResponseGuard.verifyComplete` rejects non-`STOP` responses before they
   look like downstream data mismatches.
 - `ExponentialBackoff` + `TransientHttpErrors` (`common/retry`) replay a call on
   transport failures only — dropped connection, 5xx, 429 — doubling with jitter,
   capped, `Retry-After` honored. Gemini uses `gemini.retry.max-attempts` /
   `initial-backoff`; 4xx, parse errors, and truncated responses are not retried,
-  and each attempt writes its own `gemini_call_log` row.
+  and each attempt writes its own `gemini_call_log` row. `JevClient` uses the
+  same policy under `jev.retry.*` (Jev's 529 overload is a 5xx) and logs to the
+  same table as `call_name = select`, `model` = the answering Jev version.
 - Segmentation retries raise temperature; retrying at temperature 0 reproduced
   identical invalid output.
 - `JishoClient` uses the same policy under `jisho.retry.*`. A lookup that errors
