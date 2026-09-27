@@ -319,6 +319,46 @@ class LexicalResolverTest {
     }
 
     @Test
+    fun `a headword with a kanji stem left in kana is queried again by its reading`(): Unit = runBlocking {
+        // songId=261, "ハート捨ててまで とけ込めない": the lyric writes 溶け込む as とけ込む, and jisho has
+        // no entry under that mixed spelling. The reading pins the word down, so it is asked instead.
+        stub(
+            "とけこむ" to found(
+                JishoDictionaryEntryDto(
+                    headword = "溶け込む",
+                    reading = "トケコム",
+                    senses = listOf(
+                        JishoOptionDto(
+                            pos = listOf("Godan verb with 'mu' ending", "Intransitive verb"),
+                            english = "to melt into",
+                            englishDefinitions = listOf("to melt into", "to blend into"),
+                        ),
+                    ),
+                ),
+            ),
+        )
+        val tokens = listOf(token("とけ込めない", "とけ込む", "トケコム"))
+
+        val resolved = resolver.resolve(tokens).byTokenKey.values.single()
+
+        assertThat(resolved.baseForm).isEqualTo("溶け込む")
+        assertThat(resolved.options.map { it.english }).containsExactly("to melt into")
+        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
+    fun `a reading query answered by an entry with other kanji is not adopted`(): Unit = runBlocking {
+        // The reading alone does not make a word: a homophone spelled without the token's kanji is a
+        // different word, so the token keeps no meaning rather than a wrong one.
+        stub("とけこむ" to found(entry(headword = "解け混む", reading = "トケコム", english = "wrong word")))
+
+        val resolved = resolver.resolve(listOf(token("とけ込めない", "とけ込む", "トケコム"))).byTokenKey.values.single()
+
+        assertThat(resolved.options).isEmpty()
+    }
+
+    @Test
     fun `an intensifier-prefixed verb is looked up without its prefix`(): Unit = runBlocking {
         // songId=10, "ぶちこわれた 計測機器が": ぶち壊れる is colloquial ぶち + 壊れる and jisho has no entry
         // for the compound, but the verb underneath is ordinary. The word must not lose its meaning
