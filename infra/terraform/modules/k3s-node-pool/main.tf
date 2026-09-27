@@ -11,4 +11,20 @@ resource "hcloud_server" "node" {
   image              = var.image
   location           = var.location
   placement_group_id = hcloud_placement_group.main.id
+  ssh_keys           = var.ssh_keys
+
+  lifecycle {
+    # ssh_keys는 생성 시에만 쓰이고 바뀌면 서버를 교체한다(ForceNew).
+    # import한 기존 노드는 state에 ssh_keys가 없으므로 무시해야 교체되지 않는다.
+    ignore_changes = [ssh_keys]
+  }
+}
+
+# 서버 생성 후 private network에 붙인다. Hetzner 이미지의 hc-utils가 새 NIC를 DHCP로 올린다.
+resource "hcloud_server_network" "node" {
+  count = var.node_count
+
+  server_id  = hcloud_server.node[count.index].id
+  network_id = var.network_id
+  ip         = var.private_ips[count.index]
 }

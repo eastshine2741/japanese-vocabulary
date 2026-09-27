@@ -12,3 +12,8 @@ output "placement_group_id" {
   value       = hcloud_placement_group.main.id
   description = "ID of Hetzner placement group used by nodes"
 }
+
+output "private_ips" {
+  value       = hcloud_server_network.node[*].ip
+  description = "Private IPs of Hetzner servers in the node network"
+}

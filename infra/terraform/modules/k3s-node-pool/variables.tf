@@ -28,3 +28,24 @@ variable "placement_group_name" {
   type        = string
   description = "Name of the spread placement group"
 }
+
+variable "ssh_keys" {
+  type        = list(string)
+  description = "Hetzner SSH key names installed on newly created nodes"
+  default     = []
+}
+
+variable "network_id" {
+  type        = string
+  description = "Hetzner private network ID the nodes attach to"
+}
+
+variable "private_ips" {
+  type        = list(string)
+  description = "Private IP per node, in node index order (k3s --node-ip)"
+
+  validation {
+    condition     = length(var.private_ips) == var.node_count
+    error_message = "private_ips must have exactly node_count entries."
+  }
+}

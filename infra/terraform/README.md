@@ -10,14 +10,14 @@ infra/terraform/
 │   └── prod/                # root module — 여기서 apply
 └── modules/
     ├── cloudflare-dns/      # DNS A records (for_each)
-    └── k3s-node-pool/       # k3s 노드 + placement group (count)
+    └── k3s-node-pool/       # k3s 노드 + private network 연결 + placement group (count)
 ```
 
 ## 관리 범위
 
 | | 리소스 |
 |---|---|
-| ✅ Terraform | hcloud_network, hcloud_network_subnet, hcloud_server (k3s 노드), hcloud_placement_group, cloudflare DNS records |
+| ✅ Terraform | hcloud_network, hcloud_network_subnet, hcloud_server (k3s 노드), hcloud_server_network (노드 private IP), hcloud_placement_group, cloudflare DNS records |
 | ❌ 제외 | CSI driver 가 만든 volume, CCM 이 만든 load balancer, Helm/cert-manager 등 cluster controller 가 lifecycle 관리하는 리소스 |
 
 **원칙**: 한 리소스는 한 도구만 manage. 외부 컨트롤러(CSI, CCM, Helm 등)가 동적으로 생성/삭제하는 리소스는 Terraform 에서 다루지 않는다.
