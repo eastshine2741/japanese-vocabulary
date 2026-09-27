@@ -42,7 +42,11 @@ receivers:
           {{ if eq .Status "firing" }}🔥{{ else }}✅{{ end }}
           [{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}]
           {{ .CommonLabels.alertname }}{{ with .CommonLabels.namespace }} ({{ . }}){{ end }}
+        # 무엇이 문제인지: pod·workload·node 라벨이 있으면 그것을, 없으면 service·job·instance를 보여준다.
+        # (kube-state-metrics 기반 알림의 service/job은 exporter 자신이라 대상이 아니다)
+        # 본문은 대상 이름이 들어 있는 description 우선
+        # (기본 규칙들의 summary는 "One or more targets are unreachable." 같은 일반 문장이다)
         message: |-
-          {{ range .Alerts }}**{{ .Labels.severity }}** {{ with .Labels.pod }}`{{ . }}` {{ end }}{{ with .Labels.node }}`{{ . }}` {{ end }}{{ with .Labels.instance }}`{{ . }}`{{ end }}
-          {{ with .Annotations.summary }}{{ . }}{{ else }}{{ .Annotations.description }}{{ end }}
+          {{ range .Alerts }}**{{ .Labels.severity }}**{{ if or .Labels.pod .Labels.deployment .Labels.statefulset .Labels.daemonset .Labels.job_name .Labels.persistentvolumeclaim .Labels.node }}{{ with .Labels.pod }} pod=`{{ . }}`{{ end }}{{ with .Labels.container }} container=`{{ . }}`{{ end }}{{ with .Labels.deployment }} deployment=`{{ . }}`{{ end }}{{ with .Labels.statefulset }} statefulset=`{{ . }}`{{ end }}{{ with .Labels.daemonset }} daemonset=`{{ . }}`{{ end }}{{ with .Labels.job_name }} job_name=`{{ . }}`{{ end }}{{ with .Labels.persistentvolumeclaim }} pvc=`{{ . }}`{{ end }}{{ with .Labels.node }} node=`{{ . }}`{{ end }}{{ else }}{{ with .Labels.service }} service=`{{ . }}`{{ end }}{{ with .Labels.job }} job=`{{ . }}`{{ end }}{{ with .Labels.instance }} instance=`{{ . }}`{{ end }}{{ end }}
+          {{ with .Annotations.description }}{{ . }}{{ else }}{{ .Annotations.summary }}{{ end }}
           {{ end }}
