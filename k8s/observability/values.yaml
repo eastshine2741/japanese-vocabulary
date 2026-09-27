@@ -35,60 +35,13 @@ prometheus:
 
 # ─────────────────────────────────────────────────────────────
 # Alertmanager — warning/critical → Discord
-# webhook URL은 Secret(alertmanager-discord)으로 마운트 (install.sh가 .env.prod에서 생성)
+# 설정은 alertmanager.yaml → Secret(alertmanager-config) (install.sh가 webhook URL을 채워 생성)
 # ─────────────────────────────────────────────────────────────
 alertmanager:
   enabled: true
-  config:
-    global:
-      resolve_timeout: 5m
-    route:
-      receiver: "null"
-      group_by: [namespace, alertname]
-      group_wait: 30s
-      group_interval: 5m
-      repeat_interval: 12h
-      routes:
-        # 항상 firing — repeat_interval(12h)마다 오는 heartbeat. 안 오면 알림 파이프라인이 죽은 것
-        - receiver: discord
-          matchers:
-            - alertname = "Watchdog"
-        - receiver: "null"
-          matchers:
-            - alertname = "InfoInhibitor"
-        - receiver: discord
-          matchers:
-            - severity =~ "critical|warning"
-    inhibit_rules:
-      - source_matchers: [severity = critical]
-        target_matchers: [severity =~ warning|info]
-        equal: [namespace, alertname]
-      - source_matchers: [severity = warning]
-        target_matchers: [severity = info]
-        equal: [namespace, alertname]
-      - source_matchers: [alertname = InfoInhibitor]
-        target_matchers: [severity = info]
-        equal: [namespace]
-      - target_matchers: [alertname = InfoInhibitor]
-    receivers:
-      - name: "null"
-      - name: discord
-        discord_configs:
-          - webhook_url_file: /etc/alertmanager/secrets/alertmanager-discord/webhook-url
-            send_resolved: true
-            title: >-
-              {{ if eq .Status "firing" }}🔥{{ else }}✅{{ end }}
-              [{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}]
-              {{ .CommonLabels.alertname }}{{ with .CommonLabels.namespace }} ({{ . }}){{ end }}
-            message: |-
-              {{ range .Alerts }}**{{ .Labels.severity }}** {{ with .Labels.pod }}`{{ . }}` {{ end }}{{ with .Labels.node }}`{{ . }}` {{ end }}{{ with .Labels.instance }}`{{ . }}`{{ end }}
-              {{ with .Annotations.summary }}{{ . }}{{ else }}{{ .Annotations.description }}{{ end }}
-              {{ end }}
-    templates:
-      - /etc/alertmanager/config/*.tmpl
   alertmanagerSpec:
-    secrets:
-      - alertmanager-discord
+    useExistingSecret: true
+    configSecret: alertmanager-config
     resources:
       requests:
         cpu: 20m

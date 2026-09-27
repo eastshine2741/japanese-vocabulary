@@ -51,12 +51,14 @@ helm repo update prometheus-community >/dev/null
 # --- namespace ---
 kubectl create namespace "$NS" --dry-run=client -o yaml | kubectl apply -f -
 
-# --- Alertmanager Discord webhook (values.yaml의 alertmanagerSpec.secrets로 마운트) ---
-echo "[apply] alertmanager-discord Secret..."
-kubectl create secret generic alertmanager-discord \
-  --namespace "$NS" \
-  --from-literal=webhook-url="$DISCORD_ALERT_WEBHOOK_URL" \
-  --dry-run=client -o yaml \
+# --- Alertmanager 설정 (values.yaml의 alertmanagerSpec.configSecret이 참조) ---
+# alertmanager.yaml의 ${DISCORD_ALERT_WEBHOOK_URL}만 치환 (알림 템플릿의 다른 $는 건드리지 않음)
+echo "[apply] alertmanager-config Secret..."
+envsubst '${DISCORD_ALERT_WEBHOOK_URL}' < "$OBS_DIR/alertmanager.yaml" \
+  | kubectl create secret generic alertmanager-config \
+      --namespace "$NS" \
+      --from-file=alertmanager.yaml=/dev/stdin \
+      --dry-run=client -o yaml \
   | kubectl apply -f -
 
 # --- stack install/upgrade ---
