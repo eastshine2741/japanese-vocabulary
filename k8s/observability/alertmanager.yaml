@@ -43,6 +43,6 @@ receivers:
           [{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}]
           {{ .CommonLabels.alertname }}{{ with .CommonLabels.namespace }} ({{ . }}){{ end }}
         message: |-
-          {{ range .Alerts }}**{{ .Labels.severity }}** {{ with .Labels.pod }}`{{ . }}` {{ end }}{{ with .Labels.node }}`{{ . }}` {{ end }}{{ with .Labels.instance }}`{{ . }}`{{ end }}
+          {{ range .Alerts }}**{{ .Labels.severity }}**{{ with .Labels.pod }} pod=`{{ . }}`{{ end }}{{ with .Labels.container }} container=`{{ . }}`{{ end }}{{ with .Labels.deployment }} deployment=`{{ . }}`{{ end }}{{ with .Labels.statefulset }} statefulset=`{{ . }}`{{ end }}{{ with .Labels.daemonset }} daemonset=`{{ . }}`{{ end }}{{ with .Labels.job_name }} job=`{{ . }}`{{ end }}{{ with .Labels.persistentvolumeclaim }} pvc=`{{ . }}`{{ end }}{{ with .Labels.node }} node=`{{ . }}`{{ end }}{{ if not .Labels.pod }}{{ with .Labels.service }} service=`{{ . }}`{{ end }}{{ with .Labels.instance }} instance=`{{ . }}`{{ end }}{{ end }}
           {{ with .Annotations.summary }}{{ . }}{{ else }}{{ .Annotations.description }}{{ end }}
           {{ end }}
