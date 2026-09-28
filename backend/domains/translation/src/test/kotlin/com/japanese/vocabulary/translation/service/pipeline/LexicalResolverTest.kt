@@ -377,6 +377,22 @@ class LexicalResolverTest {
     }
 
     @Test
+    fun `a hiragana word stretched with the prolonged sound mark is looked up in its standard spelling`(): Unit =
+        runBlocking {
+            // songId=307, line 30: "ぎゅーぎゅーにパツパツに最大限詰め込んだ音と感情と夢". jisho indexes the
+            // word as ぎゅうぎゅう; the lyric's ー spelling has no entry, so the word lost its meaning.
+            stub("ぎゅうぎゅう" to found(entry(headword = null, reading = "ギュウギュウ", english = "jam-packed")))
+            val tokens = listOf(token("ぎゅーぎゅー", "ぎゅーぎゅー", "ギューギュー", lineIndex = 30))
+
+            val resolved = resolver.resolve(tokens).byTokenKey.values.single()
+
+            assertThat(resolved.baseForm).isEqualTo("ぎゅうぎゅう")
+            assertThat(resolved.options.map { it.english }).containsExactly("jam-packed")
+            assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+            assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+        }
+
+    @Test
     fun `a lookup jisho never answered is reported as a provider error, not a miss`(): Unit = runBlocking {
         // songId=82: jisho returned 502 for ninety seconds and 太陽 went out with no meaning, logged
         // as if no entry existed. The segmentation stage must be able to tell the two apart — one

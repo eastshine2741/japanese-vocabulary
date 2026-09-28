@@ -57,6 +57,7 @@ class LexicalResolver(
                 ?: resolveHiraganaQuery(token, probeLookups)
                 ?: resolveIntensifierPrefix(token, probeLookups)
                 ?: resolveSuruVerb(token, probeLookups)
+                ?: resolveLongVowelSpelling(token, probeLookups)
 
             if (resolved == null) {
                 if (firstPass[token.headword]?.provenance == JishoLookupProvenance.REJECTED_FALLBACK) {
@@ -132,7 +133,8 @@ class LexicalResolver(
                     resolveSuruDesiderative(it, probeLookups, logRescue = false) == null &&
                     resolveHiraganaQuery(it, probeLookups, logRescue = false) == null &&
                     resolveIntensifierPrefix(it, probeLookups, logRescue = false) == null &&
-                    resolveSuruVerb(it, probeLookups, logRescue = false) == null
+                    resolveSuruVerb(it, probeLookups, logRescue = false) == null &&
+                    resolveLongVowelSpelling(it, probeLookups, logRescue = false) == null
             }
             .map { token ->
                 val lookups = listOfNotNull(firstPass[token.headword]) +
@@ -155,6 +157,7 @@ class LexicalResolver(
             hiraganaProbe(token),
             intensifierPrefixProbe(token),
             suruVerbProbe(token),
+            longVowelProbe(token),
         )
 
     /**
@@ -368,6 +371,45 @@ class LexicalResolver(
         token.headword.takeIf { it.length > 2 && it.endsWith("する") }?.dropLast(2)
 
     /**
+     * Safety net for a hiragana word the lyric stretches with ー instead of spelling the long vowel.
+     *
+     * Lyrics write ぎゅーぎゅー where the dictionary indexes ぎゅうぎゅう, and jisho has no entry for the
+     * ー spelling. Each ー is spelled out as the vowel of the kana before it — お-row as う, the usual
+     * hiragana spelling — and the result asked for.
+     */
+    private fun resolveLongVowelSpelling(
+        token: PipelineToken,
+        lookups: Map<String, JishoEntryDto>,
+        logRescue: Boolean = true,
+    ): AcceptedLexicalEntry? {
+        val base = longVowelProbe(token) ?: return null
+        // The reading stretches the same vowels (ギューギュー), so it is spelled out the same way.
+        val reading = spellOutLongVowels(JapaneseText.toHiragana(token.baseFormReading))?.let(JapaneseText::toKatakana)
+        val accepted = narrow(token, lookups[base], base, reading, logRescue) ?: return null
+        if (logRescue) logger.info("Spelled out long vowels of '{}' as '{}'", token.headword, base)
+        return accepted
+    }
+
+    /** `ぎゅーぎゅー` → `ぎゅうぎゅう`. Null for a katakana-only headword, where ー is the normal spelling. */
+    private fun longVowelProbe(token: PipelineToken): String? =
+        token.headword.takeUnless { JapaneseText.isKatakanaOnly(it) }?.let(::spellOutLongVowels)
+
+    /** Replaces every ー with the vowel of the kana before it. Null when there is no ー or no such vowel. */
+    private fun spellOutLongVowels(text: String): String? {
+        if ('ー' !in text) return null
+        val spelled = StringBuilder()
+        for (ch in text) {
+            if (ch != 'ー') {
+                spelled.append(ch)
+                continue
+            }
+            val previous = spelled.lastOrNull() ?: return null
+            spelled.append(LONG_VOWEL_BY_ROW.entries.firstOrNull { previous in it.key }?.value ?: return null)
+        }
+        return spelled.toString()
+    }
+
+    /**
      * The hiragana spelling of a katakana-only headword. Null for anything else: a kanji or hiragana
      * headword already queried the script the dictionary indexes.
      */
@@ -411,6 +453,15 @@ class LexicalResolver(
 
     private companion object {
         val INTENSIFIER_PREFIXES = listOf("ぶち", "ぶっ")
+
+        /** Hiragana grouped by vowel, and the kana a following ー is spelled as. */
+        val LONG_VOWEL_BY_ROW = mapOf(
+            "あぁかがさざただなはばぱまやゃらわ" to 'あ',
+            "いぃきぎしじちぢにひびぴみり" to 'い',
+            "うぅくぐすずつづぬふぶぷむゆゅる" to 'う',
+            "えぇけげせぜてでねへべぺめれ" to 'え',
+            "おぉこごそぞとどのほぼぽもよょろを" to 'う',
+        )
 
         /** Longest first, so したくない is not read as したい with a stem ending in く. */
         val SURU_DESIDERATIVE_SUFFIXES = listOf("したくない", "したい")
