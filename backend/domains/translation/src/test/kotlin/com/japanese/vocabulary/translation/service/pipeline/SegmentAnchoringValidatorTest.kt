@@ -224,15 +224,15 @@ class SegmentAnchoringValidatorTest {
         // Uncovered text is a missing word, not a wrong position: every surface here was found where
         // it really is, so throwing the line away would cost 猫 and 寝る to save nothing.
         val result = validator.anchor(
-            mapOf(0 to "猫が寝る"),
+            mapOf(0 to "猫たち寝る"),
             listOf(SegLineDto(0, listOf(word("猫", "猫", "ネコ", "ネコ"), word("寝る", "寝る", "ネル", "ネル")))),
         )
 
         assertThat(result.failuresByIndex).isEmpty()
         assertThat(result.incompleteByIndex[0]?.message)
-            .isEqualTo("Japanese text 'が' at offset=1 is not covered by segmentation at line index=0")
+            .isEqualTo("Japanese text 'たち' at offset=1 is not covered by segmentation at line index=0")
         assertThat(result.anchoredByIndex.getValue(0).map { it.surface }).containsExactly("猫", "寝る")
-        assertThat(result.anchoredByIndex.getValue(0).map { it.charStart }).containsExactly(0, 2)
+        assertThat(result.anchoredByIndex.getValue(0).map { it.charStart }).containsExactly(0, 3)
     }
 
     @Test
@@ -485,6 +485,41 @@ class SegmentAnchoringValidatorTest {
             Triple("た", 2, 3),
             Triple("なら", 3, 5),
         )
+    }
+
+    @Test
+    fun `fills in a known one-character particle the model left out`() {
+        // Song 329 came back without the line-final を on every retry.
+        val result = validator.anchor(
+            mapOf(7 to "見てろ　時代の転換点を"),
+            listOf(
+                SegLineDto(
+                    7,
+                    listOf(
+                        word("見てろ", "見る", "ミテロ", "ミル"),
+                        word("時代", "時代", "ジダイ", "ジダイ"),
+                        word("の", "の", "ノ", "ノ"),
+                        word("転換点", "転換点", "テンカンテン", "テンカンテン"),
+                    ),
+                ),
+            ),
+        )
+
+        assertThat(result.failuresByIndex).isEmpty()
+        assertThat(result.incompleteByIndex).isEmpty()
+        val particle = result.anchoredByIndex[7]!!.last()
+        assertThat(Triple(particle.surface, particle.charStart, particle.charEnd)).isEqualTo(Triple("を", 10, 11))
+        assertThat(particle.headword).isEqualTo("を")
+    }
+
+    @Test
+    fun `still reports a left-out run that is not a known particle`() {
+        val result = validator.anchor(
+            mapOf(0 to "転換点をさ"),
+            listOf(SegLineDto(0, listOf(word("転換点", "転換点", "テンカンテン", "テンカンテン")))),
+        )
+
+        assertThat(result.incompleteByIndex[0]!!.text).isEqualTo("をさ")
     }
 
     private fun word(surface: String, headword: String, usedReading: String, baseFormReading: String) =

@@ -114,7 +114,14 @@ class SegmentAnchoringValidator {
                 contextGloss = word.contextGloss,
             )
         }
-        val tokens = anchored.map { absorbTrailingKana(it, rawText, covered) }
+        val tokens = anchored.map { absorbTrailingKana(it, rawText, covered) }.toMutableList()
+        while (true) {
+            val (offset, text) = uncoveredJapaneseRun(rawText, covered) ?: break
+            if (text !in RuleMeaningProvider.KnownParticles.singleCharacter) break
+            covered[offset] = true
+            tokens += knownParticleToken(index, offset, text)
+        }
+        tokens.sortBy { it.charStart }
 
         val uncovered = uncoveredJapaneseRun(rawText, covered)?.let { (offset, text) ->
             UncoveredRun(lineIndex = index, offset = offset, text = text)
@@ -140,6 +147,24 @@ class SegmentAnchoringValidator {
             surface = token.surface + tail,
             charEnd = end,
             usedReading = token.usedReading + JapaneseText.toKatakana(tail),
+        )
+    }
+
+    /**
+     * Token for a one-character particle the model left out. `見てろ　時代の転換点を` lost its final
+     * `を` on every retry; [RuleMeaningProvider] already knows its meaning, so there is nothing for a
+     * retry to add. Longer or unknown runs are still reported.
+     */
+    private fun knownParticleToken(index: Int, offset: Int, particle: String): PipelineToken {
+        val reading = JapaneseText.toKatakana(particle)
+        return PipelineToken(
+            lineIndex = index,
+            surface = particle,
+            headword = particle,
+            charStart = offset,
+            charEnd = offset + 1,
+            usedReading = reading,
+            baseFormReading = reading,
         )
     }
 

@@ -35,6 +35,14 @@ class RuleMeaningProvider {
             ?: auxiliaries[key]
     }
 
+    /**
+     * One-character particles [resolve] settles without the dictionary. [SegmentAnchoringValidator]
+     * fills these in itself when segmentation leaves one out, so a retry is not spent on them.
+     */
+    object KnownParticles {
+        val singleCharacter: Set<String> = particles.keys.filter { it.length == 1 }.toSet()
+    }
+
     private companion object {
         // This table only handles deterministic grammar rewrites that Jisho/sense-select cannot
         // recover from once the LLM has segmented them too coarsely. Ambiguous lexical items stay
