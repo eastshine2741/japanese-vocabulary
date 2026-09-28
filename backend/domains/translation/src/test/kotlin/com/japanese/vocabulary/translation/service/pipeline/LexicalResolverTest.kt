@@ -286,6 +286,60 @@ class LexicalResolverTest {
     }
 
     @Test
+    fun `a noun written with a trailing り is looked up without it`(): Unit = runBlocking {
+        // songId=334, line 0: "暗闇沈む都市の光り". 光り after の is the noun 光, spelled with the
+        // okurigana of 光る's continuative form. jisho indexes only 光, so the headword missed.
+        stub(
+            "光" to found(
+                JishoDictionaryEntryDto(
+                    headword = "光",
+                    reading = "ヒカリ",
+                    senses = listOf(
+                        JishoOptionDto(
+                            pos = listOf("Noun"),
+                            english = "light, illumination",
+                            englishDefinitions = listOf("light", "illumination"),
+                        ),
+                    ),
+                ),
+            ),
+        )
+        val tokens = listOf(token("光り", "光り", "ヒカリ"))
+
+        val resolved = resolver.resolve(tokens).byTokenKey.values.single()
+
+        assertThat(resolved.baseForm).isEqualTo("光")
+        assertThat(resolved.options.map { it.english }).containsExactly("light, illumination")
+        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
+    fun `the trailing り rescue keeps only noun senses`(): Unit = runBlocking {
+        // A stripped headword that answers only as a verb is a different word, not the noun the
+        // lyric spelled with り.
+        stub(
+            "光" to found(
+                JishoDictionaryEntryDto(
+                    headword = "光",
+                    reading = "ヒカリ",
+                    senses = listOf(
+                        JishoOptionDto(
+                            pos = listOf("Godan verb with 'ru' ending", "Intransitive verb"),
+                            english = "to shine",
+                            englishDefinitions = listOf("to shine"),
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        val resolved = resolver.resolve(listOf(token("光り", "光り", "ヒカリ"))).byTokenKey.values.single()
+
+        assertThat(resolved.options).isEmpty()
+    }
+
+    @Test
     fun `a katakana headword the dictionary indexes in hiragana is queried again in hiragana`(): Unit = runBlocking {
         // jisho's search is script-sensitive: アンタ answers with アンタレス and アンタナナリボ, never 貴方.
         // Only the script of the query is wrong, and the lyric writing 貴方 as アンタ is ordinary J-pop,
