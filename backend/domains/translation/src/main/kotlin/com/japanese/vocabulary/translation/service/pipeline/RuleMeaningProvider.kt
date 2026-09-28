@@ -193,6 +193,8 @@ class RuleMeaningProvider {
             "如何して" to RuleResolvedToken("如何して", "どうして", "ドウシテ", "ドウシテ", PartOfSpeech.ADVERB, "왜, 어째서"),
             "どう" to RuleResolvedToken("どう", "どう", "ドウ", "ドウ", PartOfSpeech.ADVERB, "어떻게"),
             "こう" to RuleResolvedToken("こう", "こう", "コウ", "コウ", PartOfSpeech.ADVERB, "이렇게"),
+            // Second half of やたらめったら, a colloquial stretch of 滅多. Jisho has no headword for it.
+            "めったら" to RuleResolvedToken("めったら", "めったら", "メッタラ", "メッタラ", PartOfSpeech.ADVERB, "마구, 함부로"),
         )
 
         val particles = mapOf(

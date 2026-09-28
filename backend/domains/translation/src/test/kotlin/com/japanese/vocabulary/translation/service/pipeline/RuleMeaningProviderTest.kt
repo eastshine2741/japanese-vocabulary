@@ -75,6 +75,17 @@ class RuleMeaningProviderTest {
     }
 
     @Test
+    fun `resolves colloquial mettara from yatara mettara`() {
+        // なんでもかんでもやたらめったら性癖フェティシズム — めったら is a colloquial stretch of 滅多
+        // with no jisho headword, so it was reported as a dictionary miss.
+        val resolved = provider.resolve(PipelineToken(28, "めったら", "めったら", 11, 15))!!
+
+        assertThat(resolved.partOfSpeech).isEqualTo(PartOfSpeech.ADVERB)
+        assertThat(resolved.reading).isEqualTo("メッタラ")
+        assertThat(resolved.koreanText).isNotBlank()
+    }
+
+    @Test
     fun `rewrites doumo koumo pair into deterministic smaller tokens`() {
         val rewritten = provider.rewrite(
             listOf(
