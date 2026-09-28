@@ -57,6 +57,7 @@ class LexicalResolver(
                 ?: resolveHiraganaQuery(token, probeLookups)
                 ?: resolveIntensifierPrefix(token, probeLookups)
                 ?: resolveSuruVerb(token, probeLookups)
+                ?: resolveGodanRenyokei(token, probeLookups)
 
             if (resolved == null) {
                 if (firstPass[token.headword]?.provenance == JishoLookupProvenance.REJECTED_FALLBACK) {
@@ -132,7 +133,8 @@ class LexicalResolver(
                     resolveSuruDesiderative(it, probeLookups, logRescue = false) == null &&
                     resolveHiraganaQuery(it, probeLookups, logRescue = false) == null &&
                     resolveIntensifierPrefix(it, probeLookups, logRescue = false) == null &&
-                    resolveSuruVerb(it, probeLookups, logRescue = false) == null
+                    resolveSuruVerb(it, probeLookups, logRescue = false) == null &&
+                    resolveGodanRenyokei(it, probeLookups, logRescue = false) == null
             }
             .map { token ->
                 val lookups = listOfNotNull(firstPass[token.headword]) +
@@ -155,6 +157,7 @@ class LexicalResolver(
             hiraganaProbe(token),
             intensifierPrefixProbe(token),
             suruVerbProbe(token),
+            godanRenyokeiProbe(token),
         )
 
     /**
@@ -363,6 +366,38 @@ class LexicalResolver(
         return AcceptedLexicalEntry(base, verbEntries, accepted.provenance)
     }
 
+    /**
+     * Safety net for when the segmentation LLM hands back a godan verb's renyokei — 悼み — as the
+     * headword instead of 悼む. Tried last: a renyokei noun the dictionary indexes itself (悲しみ)
+     * already matched in the first pass. Only verb senses are accepted, because the probe is a guess
+     * at the conjugation and a non-verb answering under the guessed spelling is a different word.
+     */
+    private fun resolveGodanRenyokei(
+        token: PipelineToken,
+        lookups: Map<String, JishoEntryDto>,
+        logRescue: Boolean = true,
+    ): AcceptedLexicalEntry? {
+        val base = godanRenyokeiProbe(token) ?: return null
+        // The token's reading is the renyokei's (イタミ), so restore it the same way (イタム).
+        val reading = GODAN_I_TO_U_READING[token.baseFormReading.takeLast(1)]
+            ?.let { token.baseFormReading.dropLast(1) + it }
+        val accepted = narrow(token, lookups[base], base, reading, logRescue) ?: return null
+        val verbEntries = accepted.entries.mapNotNull { entry ->
+            val verbSenses = entry.senses.filter { JishoPartOfSpeechMapper.map(it.pos) == PartOfSpeech.VERB }
+            if (verbSenses.isEmpty()) null else entry.copy(senses = verbSenses)
+        }
+        if (verbEntries.isEmpty()) return null
+        if (logRescue) logger.info("Restored godan renyokei '{}' to '{}'", token.headword, base)
+        return AcceptedLexicalEntry(base, verbEntries, accepted.provenance)
+    }
+
+    /** `悼み` → `悼む`. Null unless the headword ends in an い-row kana with something before it. */
+    private fun godanRenyokeiProbe(token: PipelineToken): String? {
+        if (token.headword.length < 2) return null
+        val ending = GODAN_I_TO_U[token.headword.takeLast(1)] ?: return null
+        return token.headword.dropLast(1) + ending
+    }
+
     /** `交差する` → `交差`. Null unless the headword is something followed by する. */
     private fun suruVerbProbe(token: PipelineToken): String? =
         token.headword.takeIf { it.length > 2 && it.endsWith("する") }?.dropLast(2)
@@ -411,6 +446,15 @@ class LexicalResolver(
 
     private companion object {
         val INTENSIFIER_PREFIXES = listOf("ぶち", "ぶっ")
+
+        /** A godan verb's renyokei ending → its dictionary-form ending: 悼み → 悼む. */
+        val GODAN_I_TO_U = mapOf(
+            "き" to "く", "ぎ" to "ぐ", "し" to "す", "ち" to "つ", "に" to "ぬ",
+            "び" to "ぶ", "み" to "む", "り" to "る", "い" to "う",
+        )
+        val GODAN_I_TO_U_READING = GODAN_I_TO_U.entries.associate { (i, u) ->
+            JapaneseText.toKatakana(i) to JapaneseText.toKatakana(u)
+        }
 
         /** Longest first, so したくない is not read as したい with a stem ending in く. */
         val SURU_DESIDERATIVE_SUFFIXES = listOf("したくない", "したい")

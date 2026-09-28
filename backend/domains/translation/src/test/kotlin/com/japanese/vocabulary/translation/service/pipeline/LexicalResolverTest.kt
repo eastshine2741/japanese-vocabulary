@@ -377,6 +377,36 @@ class LexicalResolverTest {
     }
 
     @Test
+    fun `a godan verb's renyokei handed back as the headword is restored to its dictionary form`(): Unit =
+        runBlocking {
+            // songId=332, "傷跡は軈て和らいで悼みごと亡くすかな": 悼み is the renyokei of 悼む and jisho has no
+            // entry for it, so the word went out with no meaning.
+            stub(
+                "悼む" to found(
+                    JishoDictionaryEntryDto(
+                        headword = "悼む",
+                        reading = "イタム",
+                        senses = listOf(
+                            JishoOptionDto(
+                                pos = listOf("Godan verb with 'mu' ending", "Transitive verb"),
+                                english = "to grieve over",
+                                englishDefinitions = listOf("to grieve over", "to mourn", "to lament"),
+                            ),
+                        ),
+                    ),
+                ),
+            )
+            val tokens = listOf(token("悼み", "悼み", "イタミ"))
+
+            val resolved = resolver.resolve(tokens).byTokenKey.values.single()
+
+            assertThat(resolved.baseForm).isEqualTo("悼む")
+            assertThat(resolved.options.map { it.english }).containsExactly("to grieve over")
+            assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+            assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+        }
+
+    @Test
     fun `a lookup jisho never answered is reported as a provider error, not a miss`(): Unit = runBlocking {
         // songId=82: jisho returned 502 for ninety seconds and 太陽 went out with no meaning, logged
         // as if no entry existed. The segmentation stage must be able to tell the two apart — one
