@@ -60,6 +60,19 @@ class RuleMeaningProviderTest {
     }
 
     @Test
+    fun `resolves colloquial concessive ttatte behind a mistaken toittatte headword`() {
+        // 宙に舞ったったってその因果も — segmentation emits ったって with the headword といったって,
+        // which jisho has no entry for, so the concessive suffix must be settled by rule.
+        val resolved = provider.resolve(PipelineToken(71, "ったって", "といったって", 5, 9))
+
+        assertThat(resolved).isNotNull
+        assertThat(resolved!!.partOfSpeech).isEqualTo(PartOfSpeech.AUXILIARY_VERB)
+        assertThat(resolved.baseForm).isEqualTo("ったって")
+        assertThat(resolved.koreanText).isEqualTo("~해도, ~한들")
+        assertThat(provider.resolve(token("たって"))!!.koreanText).isEqualTo("~해도, ~한들")
+    }
+
+    @Test
     fun `does not rule-resolve ambiguous grammar-like words`() {
         assertThat(provider.resolve(token("ない"))).isNull()
         assertThat(provider.resolve(token("から"))).isNull()

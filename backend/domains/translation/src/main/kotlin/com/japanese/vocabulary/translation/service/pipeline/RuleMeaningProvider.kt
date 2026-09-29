@@ -228,6 +228,11 @@ class RuleMeaningProvider {
             // is reported as a miss. だら is the voiced form after ん/ぶ/ぐ stems.
             "たら" to auxiliary("たら", "~하면, ~했더니"),
             "だら" to auxiliary("だら", "~하면, ~했더니"),
+            // Colloquial concessive (even if).Segmentation splits 舞ったったって into 舞った + ったって
+            // and guesses the headword といったって, which jisho does not have; resolve() tries the
+            // surface first, so the surface rows settle it without claiming the といったって headword.
+            "たって" to auxiliary("たって", "~해도, ~한들"),
+            "ったって" to auxiliary("ったって", "~해도, ~한들"),
         )
 
         // Every surface in the particle/auxiliary tables is kana, so its reading is the surface —
