@@ -114,13 +114,33 @@ class SegmentAnchoringValidator {
                 contextGloss = word.contextGloss,
             )
         }
-        val tokens = anchored.map { absorbTrailingKana(it, rawText, covered) }
+        val tokens = anchored.map { absorbTrailingKana(it, rawText, covered) }.toMutableList()
 
-        val uncovered = uncoveredJapaneseRun(rawText, covered)?.let { (offset, text) ->
-            UncoveredRun(lineIndex = index, offset = offset, text = text)
+        var uncovered: UncoveredRun? = null
+        var from = 0
+        while (true) {
+            val (offset, text) = uncoveredJapaneseRun(rawText, covered, from) ?: break
+            val echoed = echoOf(tokens, offset, text)
+            if (echoed == null) {
+                uncovered = UncoveredRun(lineIndex = index, offset = offset, text = text)
+                break
+            }
+            tokens += echoed
+            for (i in offset until echoed.charEnd) covered[i] = true
+            from = echoed.charEnd
         }
-        return AnchoredLine(tokens = tokens, uncovered = uncovered)
+        return AnchoredLine(tokens = tokens.sortedBy { it.charStart }, uncovered = uncovered)
     }
+
+    /**
+     * A copy of the token whose surface is exactly [text], placed at [offset], or null when no token
+     * on the line spells it. Lyrics repeat a word as an echo — `君を探し見失う (見失う, Ah-ah-ah-ah)` —
+     * and the model emits the word once, leaving the repeat uncovered on every retry. The repeat is
+     * the same word sung the same way, so the token it echoes already carries its reading and meaning.
+     */
+    private fun echoOf(tokens: List<PipelineToken>, offset: Int, text: String): PipelineToken? =
+        tokens.firstOrNull { it.surface == text }
+            ?.copy(charStart = offset, charEnd = offset + text.length)
 
     /** One anchored line: its tokens, and why it is incomplete if Japanese text carries no token. */
     private data class AnchoredLine(val tokens: List<PipelineToken>, val uncovered: UncoveredRun?)
@@ -187,13 +207,14 @@ class SegmentAnchoringValidator {
     }
 
     /**
-     * The first run of consecutive Japanese characters no surface claimed, as `(offset, text)`.
+     * The first run of consecutive Japanese characters at or after [from] no surface claimed, as
+     * `(offset, text)`.
      *
      * The run rather than its first character: `風吹く` left behind by a mis-anchored line is a
      * segmentation the model can look at, where `Character '風'` invites it to fix one character.
      */
-    private fun uncoveredJapaneseRun(rawText: String, covered: BooleanArray): Pair<Int, String>? {
-        val start = rawText.indices.firstOrNull { i ->
+    private fun uncoveredJapaneseRun(rawText: String, covered: BooleanArray, from: Int): Pair<Int, String>? {
+        val start = (from until rawText.length).firstOrNull { i ->
             !covered[i] && JapaneseText.containsJapanese(rawText[i].toString())
         } ?: return null
         var end = start
