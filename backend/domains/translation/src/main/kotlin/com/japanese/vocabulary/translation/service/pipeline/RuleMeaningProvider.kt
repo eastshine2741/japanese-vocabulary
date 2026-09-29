@@ -219,6 +219,10 @@ class RuleMeaningProvider {
             // じゃった, ちゃう) to てしまう, and resolve() falls back to the headword when the surface
             // has no entry.
             "てしまう" to auxiliary("てしまう", "~해 버리다"),
+            // Segmentation glues する onto ていく after a する-noun (回転していく) and emits していく as
+            // the headword; jisho has no entry for either form.
+            "ていく" to auxiliary("ていく", "~해 가다"),
+            "していく" to auxiliary("していく", "~해 가다"),
             "た" to auxiliary("た", "~했다"),
             "だ" to auxiliary("だ", "~이다"),
             // Conditional ending; segmentation also normalizes the colloquial りゃ to this headword.
