@@ -27,6 +27,18 @@ class RuleMeaningProviderTest {
     }
 
     @Test
+    fun `resolves teoku headword behind a colloquial contracted surface`() {
+        // ただ泣きたくて 図っといて 集めちゃった感情参考書です — segmentation normalises といて to
+        // the headword ておく, which jisho has no entry for.
+        val resolved = provider.resolve(PipelineToken(34, "といて", "ておく", 10, 13))!!
+
+        assertThat(resolved.partOfSpeech).isEqualTo(PartOfSpeech.AUXILIARY_VERB)
+        assertThat(resolved.baseForm).isEqualTo("ておく")
+        assertThat(resolved.baseFormReading).isEqualTo("テオク")
+        assertThat(resolved.koreanText).isEqualTo("~해 두다")
+    }
+
+    @Test
     fun `resolves conditional reba including its colloquial rya contraction`() {
         // 「無意味を集めりゃ意味になる」: segmentation splits 集めりゃ into 集め + りゃ(headword れば).
         // れば is a conjugation ending, not a dictionary headword, so jisho cannot answer it.

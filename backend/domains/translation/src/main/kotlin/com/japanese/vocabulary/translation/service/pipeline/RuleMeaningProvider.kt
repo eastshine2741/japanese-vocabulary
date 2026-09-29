@@ -219,6 +219,8 @@ class RuleMeaningProvider {
             // じゃった, ちゃう) to てしまう, and resolve() falls back to the headword when the surface
             // has no entry.
             "てしまう" to auxiliary("てしまう", "~해 버리다"),
+            // Same headword fallback: segmentation normalises といて/とく to ておく.
+            "ておく" to auxiliary("ておく", "~해 두다"),
             "た" to auxiliary("た", "~했다"),
             "だ" to auxiliary("だ", "~이다"),
             // Conditional ending; segmentation also normalizes the colloquial りゃ to this headword.
