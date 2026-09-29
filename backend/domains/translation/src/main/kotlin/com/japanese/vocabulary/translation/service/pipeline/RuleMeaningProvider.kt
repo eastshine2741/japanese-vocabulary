@@ -193,6 +193,9 @@ class RuleMeaningProvider {
             "如何して" to RuleResolvedToken("如何して", "どうして", "ドウシテ", "ドウシテ", PartOfSpeech.ADVERB, "왜, 어째서"),
             "どう" to RuleResolvedToken("どう", "どう", "ドウ", "ドウ", PartOfSpeech.ADVERB, "어떻게"),
             "こう" to RuleResolvedToken("こう", "こう", "コウ", "コウ", PartOfSpeech.ADVERB, "이렇게"),
+            // Colloquial contraction of いやだ. Segmentation writes the headword as 嫌だ, which jisho
+            // has no entry for. Keyed on the surface only: いやだ shares that headword but not the reading.
+            "やだ" to RuleResolvedToken("やだ", "嫌だ", "ヤダ", "イヤダ", PartOfSpeech.NA_ADJECTIVE, "싫다, 싫어"),
         )
 
         val particles = mapOf(
