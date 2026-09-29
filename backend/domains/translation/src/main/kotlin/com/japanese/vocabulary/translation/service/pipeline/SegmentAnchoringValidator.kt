@@ -129,19 +129,29 @@ class SegmentAnchoringValidator {
      * Extends [token] over the small vowel kana and `ー` right after it that no surface claimed, and
      * marks them [covered]. Runs after every surface is anchored, so a model that did emit `ぁ` as its
      * own token keeps it. The sung reading grows by the same kana; the headword does not.
+     *
+     * An extra `々` after a surface that already ends in `々` is absorbed the same way — `悶々々` came
+     * back as `悶々` — but leaves the reading alone, since it repeats a sound rather than spelling one.
+     * A `々` after a plain kanji (`人々`) makes a different word and stays for the model to segment.
      */
     private fun absorbTrailingKana(token: PipelineToken, rawText: String, covered: BooleanArray): PipelineToken {
         var end = token.charEnd
+        if (token.surface.endsWith(ITERATION_MARK)) {
+            while (end < rawText.length && !covered[end] && rawText[end] == ITERATION_MARK) end++
+        }
+        val markEnd = end
         while (end < rawText.length && !covered[end] && rawText[end] in TRAILING_KANA) end++
         if (end == token.charEnd) return token
         for (i in token.charEnd until end) covered[i] = true
-        val tail = rawText.substring(token.charEnd, end)
+        val tail = rawText.substring(markEnd, end)
         return token.copy(
-            surface = token.surface + tail,
+            surface = token.surface + rawText.substring(token.charEnd, end),
             charEnd = end,
             usedReading = token.usedReading + JapaneseText.toKatakana(tail),
         )
     }
+
+    private val ITERATION_MARK = '々'
 
     /** Kana that only stretch the sound in front of them and never open a word of their own. */
     private val TRAILING_KANA = setOf('ぁ', 'ぃ', 'ぅ', 'ぇ', 'ぉ', 'ァ', 'ィ', 'ゥ', 'ェ', 'ォ', 'ー')
