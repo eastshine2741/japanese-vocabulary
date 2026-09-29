@@ -57,6 +57,7 @@ class LexicalResolver(
                 ?: resolveHiraganaQuery(token, probeLookups)
                 ?: resolveIntensifierPrefix(token, probeLookups)
                 ?: resolveSuruVerb(token, probeLookups)
+                ?: resolvePotentialForm(token, probeLookups)
 
             if (resolved == null) {
                 if (firstPass[token.headword]?.provenance == JishoLookupProvenance.REJECTED_FALLBACK) {
@@ -132,7 +133,8 @@ class LexicalResolver(
                     resolveSuruDesiderative(it, probeLookups, logRescue = false) == null &&
                     resolveHiraganaQuery(it, probeLookups, logRescue = false) == null &&
                     resolveIntensifierPrefix(it, probeLookups, logRescue = false) == null &&
-                    resolveSuruVerb(it, probeLookups, logRescue = false) == null
+                    resolveSuruVerb(it, probeLookups, logRescue = false) == null &&
+                    resolvePotentialForm(it, probeLookups, logRescue = false) == null
             }
             .map { token ->
                 val lookups = listOfNotNull(firstPass[token.headword]) +
@@ -155,6 +157,7 @@ class LexicalResolver(
             hiraganaProbe(token),
             intensifierPrefixProbe(token),
             suruVerbProbe(token),
+            potentialFormProbe(token),
         )
 
     /**
@@ -368,6 +371,47 @@ class LexicalResolver(
         token.headword.takeIf { it.length > 2 && it.endsWith("する") }?.dropLast(2)
 
     /**
+     * Safety net for a godan verb's potential form handed back as the headword — 掴める for 掴む.
+     *
+     * jisho indexes only a few potentials, so the え-row + る ending is turned back into the う-row
+     * dictionary form. Only godan verb senses are accepted: an ichidan verb that missed (見える) probes
+     * a non-word, and a stray non-verb entry under the probed spelling is a different word.
+     */
+    private fun resolvePotentialForm(
+        token: PipelineToken,
+        lookups: Map<String, JishoEntryDto>,
+        logRescue: Boolean = true,
+    ): AcceptedLexicalEntry? {
+        val base = potentialFormProbe(token) ?: return null
+        // The token's reading is the potential's (ツカメル), so it is inflected back the same way.
+        val reading = potentialFormReading(token.baseFormReading)
+        val accepted = narrow(token, lookups[base], base, reading, logRescue) ?: return null
+        val godanEntries = accepted.entries.mapNotNull { entry ->
+            val godanSenses = entry.senses.filter { sense -> sense.pos.any { "godan verb" in it.lowercase() } }
+            if (godanSenses.isEmpty()) null else entry.copy(senses = godanSenses)
+        }
+        if (godanEntries.isEmpty()) return null
+        if (logRescue) logger.info("Looked up potential form '{}' as '{}'", token.headword, base)
+        return AcceptedLexicalEntry(base, godanEntries, accepted.provenance)
+    }
+
+    /** `掴める` → `掴む`. Null unless the headword carries kanji and ends in an え-row kana + る. */
+    private fun potentialFormProbe(token: PipelineToken): String? {
+        val headword = token.headword
+        if (headword.length < 3 || JapaneseText.isKanaOnly(headword) || !headword.endsWith("る")) return null
+        val uRow = POTENTIAL_TO_DICTIONARY[headword[headword.length - 2]] ?: return null
+        return headword.dropLast(2) + uRow
+    }
+
+    /** `ツカメル` → `ツカム`, mirroring [potentialFormProbe]. */
+    private fun potentialFormReading(reading: String): String? {
+        if (reading.length < 3 || !reading.endsWith("ル")) return null
+        val eRow = JapaneseText.toHiragana(reading[reading.length - 2].toString()).single()
+        val uRow = POTENTIAL_TO_DICTIONARY[eRow] ?: return null
+        return reading.dropLast(2) + JapaneseText.toKatakana(uRow.toString())
+    }
+
+    /**
      * The hiragana spelling of a katakana-only headword. Null for anything else: a kanji or hiragana
      * headword already queried the script the dictionary indexes.
      */
@@ -411,6 +455,12 @@ class LexicalResolver(
 
     private companion object {
         val INTENSIFIER_PREFIXES = listOf("ぶち", "ぶっ")
+
+        /** The potential's え-row kana before る, mapped to the godan dictionary form's う-row ending. */
+        val POTENTIAL_TO_DICTIONARY = mapOf(
+            'え' to 'う', 'け' to 'く', 'げ' to 'ぐ', 'せ' to 'す', 'て' to 'つ',
+            'ね' to 'ぬ', 'べ' to 'ぶ', 'め' to 'む', 'れ' to 'る',
+        )
 
         /** Longest first, so したくない is not read as したい with a stem ending in く. */
         val SURU_DESIDERATIVE_SUFFIXES = listOf("したくない", "したい")

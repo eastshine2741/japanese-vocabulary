@@ -286,6 +286,46 @@ class LexicalResolverTest {
     }
 
     @Test
+    fun `a potential-form headword is looked up as its godan dictionary form`(): Unit = runBlocking {
+        // songId=344, line 16: "掴めなくて lost". The model gave the potential 掴める as the headword,
+        // jisho has no entry for it, and the word lost its meaning. 掴む is the verb underneath.
+        stub(
+            "掴む" to found(
+                JishoDictionaryEntryDto(
+                    headword = "掴む",
+                    reading = "ツカム",
+                    senses = listOf(
+                        JishoOptionDto(
+                            pos = listOf("Godan verb with 'mu' ending", "Transitive verb"),
+                            english = "to seize, to grasp",
+                            englishDefinitions = listOf("to seize", "to grasp"),
+                        ),
+                    ),
+                ),
+            ),
+        )
+        val tokens = listOf(token("掴めなくて", "掴める", "ツカメル", lineIndex = 16))
+
+        val resolved = resolver.resolve(tokens).byTokenKey.values.single()
+
+        assertThat(resolved.baseForm).isEqualTo("掴む")
+        assertThat(resolved.options.map { it.english }).containsExactly("to seize, to grasp")
+        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
+    fun `a potential-form headword with no godan verb underneath stays unresolved`(): Unit = runBlocking {
+        stub()
+        val tokens = listOf(token("掴めなくて", "掴める", "ツカメル", lineIndex = 16))
+
+        val resolved = resolver.resolve(tokens).byTokenKey.values.single()
+
+        assertThat(resolved.options).isEmpty()
+        assertThat(resolver.unresolvedTokens(tokens).map { it.token.headword }).containsExactly("掴める")
+    }
+
+    @Test
     fun `a katakana headword the dictionary indexes in hiragana is queried again in hiragana`(): Unit = runBlocking {
         // jisho's search is script-sensitive: アンタ answers with アンタレス and アンタナナリボ, never 貴方.
         // Only the script of the query is wrong, and the lyric writing 貴方 as アンタ is ordinary J-pop,
