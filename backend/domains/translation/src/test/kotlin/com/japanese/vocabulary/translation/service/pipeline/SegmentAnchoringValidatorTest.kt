@@ -513,6 +513,27 @@ class SegmentAnchoringValidatorTest {
     }
 
     @Test
+    fun `fills in a connective te the model left off the verb`() {
+        // Song 223 cut 上げて at 上げ, leaving the te uncovered on every retry.
+        val result = validator.anchor(
+            mapOf(59 to "声を上げて"),
+            listOf(
+                SegLineDto(
+                    59,
+                    listOf(
+                        word("声", "声", "コエ", "コエ"),
+                        word("を", "を", "ヲ", "ヲ"),
+                        word("上げ", "上げる", "アゲ", "アゲル"),
+                    ),
+                ),
+            ),
+        )
+
+        assertThat(result.incompleteByIndex).isEmpty()
+        assertThat(result.anchoredByIndex[59]!!.map { it.surface }).containsExactly("声", "を", "上げ", "て")
+    }
+
+    @Test
     fun `still reports a left-out run that is not a known particle`() {
         val result = validator.anchor(
             mapOf(0 to "転換点をさ"),
