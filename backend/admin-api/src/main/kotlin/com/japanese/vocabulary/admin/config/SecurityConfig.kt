@@ -36,6 +36,8 @@ class SecurityConfig(
                     // 릴스 미리보기 MV 스트림은 <video src> 라 헤더를 못 붙인다. 컨트롤러가 query 의 미디어 토큰을 검사한다.
                     .requestMatchers(HttpMethod.GET, "/admin/api/reels-factory/songs/*/mv").permitAll()
                     .requestMatchers("/actuator/health/**").permitAll()
+                    // Prometheus 스크레이프용
+                    .requestMatchers("/actuator/prometheus").permitAll()
                     .requestMatchers("/error").permitAll()
                     .requestMatchers("/admin/api/**").authenticated()
                     .anyRequest().denyAll()
