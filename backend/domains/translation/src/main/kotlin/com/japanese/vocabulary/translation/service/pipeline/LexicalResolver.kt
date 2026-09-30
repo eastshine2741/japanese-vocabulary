@@ -57,6 +57,7 @@ class LexicalResolver(
                 ?: resolveHiraganaQuery(token, probeLookups)
                 ?: resolveIntensifierPrefix(token, probeLookups)
                 ?: resolveSuruVerb(token, probeLookups)
+                ?: resolveNegativeVerb(token, probeLookups)
 
             if (resolved == null) {
                 if (firstPass[token.headword]?.provenance == JishoLookupProvenance.REJECTED_FALLBACK) {
@@ -132,7 +133,8 @@ class LexicalResolver(
                     resolveSuruDesiderative(it, probeLookups, logRescue = false) == null &&
                     resolveHiraganaQuery(it, probeLookups, logRescue = false) == null &&
                     resolveIntensifierPrefix(it, probeLookups, logRescue = false) == null &&
-                    resolveSuruVerb(it, probeLookups, logRescue = false) == null
+                    resolveSuruVerb(it, probeLookups, logRescue = false) == null &&
+                    resolveNegativeVerb(it, probeLookups, logRescue = false) == null
             }
             .map { token ->
                 val lookups = listOfNotNull(firstPass[token.headword]) +
@@ -155,6 +157,7 @@ class LexicalResolver(
             hiraganaProbe(token),
             intensifierPrefixProbe(token),
             suruVerbProbe(token),
+            negativeVerbProbe(token),
         )
 
     /**
@@ -363,6 +366,45 @@ class LexicalResolver(
         return AcceptedLexicalEntry(base, verbEntries, accepted.provenance)
     }
 
+    /**
+     * Safety net for when the segmentation LLM hands back a verb's negative — とまらない for the
+     * colloquial とまんない — as the headword instead of とまる. Tried only after the pair match has
+     * already failed, so an adjective jisho indexes as-is (つまらない) never reaches it.
+     *
+     * Only verb senses are accepted: the probed form is a guess at the conjugation, and a noun or
+     * adjective answering under it is a different word.
+     */
+    private fun resolveNegativeVerb(
+        token: PipelineToken,
+        lookups: Map<String, JishoEntryDto>,
+        logRescue: Boolean = true,
+    ): AcceptedLexicalEntry? {
+        val base = negativeVerbProbe(token) ?: return null
+        val reading = negativeVerbBaseForm(JapaneseText.toHiragana(token.baseFormReading))
+            ?.let(JapaneseText::toKatakana)
+        val accepted = narrow(token, lookups[base], base, reading, logRescue) ?: return null
+        val verbEntries = accepted.entries.mapNotNull { entry ->
+            val verbSenses = entry.senses.filter { JishoPartOfSpeechMapper.map(it.pos) == PartOfSpeech.VERB }
+            if (verbSenses.isEmpty()) null else entry.copy(senses = verbSenses)
+        }
+        if (verbEntries.isEmpty()) return null
+        if (logRescue) logger.info("Normalized negative verb '{}' to '{}'", token.headword, base)
+        return AcceptedLexicalEntry(base, verbEntries, accepted.provenance)
+    }
+
+    private fun negativeVerbProbe(token: PipelineToken): String? = negativeVerbBaseForm(token.headword)
+
+    /**
+     * `とまらない` → `とまる`, `食べない` → `食べる`. An a-row kana before ない marks a godan verb and
+     * shifts to the u-row; anything else is read as ichidan. Null unless something precedes ない.
+     */
+    private fun negativeVerbBaseForm(text: String): String? {
+        if (text.length < 3 || !text.endsWith("ない")) return null
+        val stem = text.dropLast(2)
+        val godanEnding = GODAN_NEGATIVE_TO_DICTIONARY[stem.last()]
+        return if (godanEnding != null) stem.dropLast(1) + godanEnding else stem + "る"
+    }
+
     /** `交差する` → `交差`. Null unless the headword is something followed by する. */
     private fun suruVerbProbe(token: PipelineToken): String? =
         token.headword.takeIf { it.length > 2 && it.endsWith("する") }?.dropLast(2)
@@ -411,6 +453,12 @@ class LexicalResolver(
 
     private companion object {
         val INTENSIFIER_PREFIXES = listOf("ぶち", "ぶっ")
+
+        /** The a-row kana a godan verb takes before ない, mapped back to its dictionary-form ending. */
+        val GODAN_NEGATIVE_TO_DICTIONARY = mapOf(
+            'わ' to "う", 'か' to "く", 'が' to "ぐ", 'さ' to "す", 'た' to "つ",
+            'な' to "ぬ", 'ば' to "ぶ", 'ま' to "む", 'ら' to "る",
+        )
 
         /** Longest first, so したくない is not read as したい with a stem ending in く. */
         val SURU_DESIDERATIVE_SUFFIXES = listOf("したくない", "したい")

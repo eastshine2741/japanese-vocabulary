@@ -377,6 +377,54 @@ class LexicalResolverTest {
     }
 
     @Test
+    fun `a verb's negative handed back as the headword is rescued as its dictionary form`(): Unit = runBlocking {
+        // songId=378, "とまんない つまんない": the segmentation stage gave とまらない for the colloquial
+        // とまんない, and jisho has no entry for a negative. つまらない is an adjective jisho indexes
+        // as-is, so it resolves on the first pass and never needs the probe.
+        stub(
+            "とまる" to found(
+                JishoDictionaryEntryDto(
+                    headword = "止まる",
+                    reading = "トマル",
+                    senses = listOf(
+                        JishoOptionDto(
+                            pos = listOf("Godan verb with 'ru' ending", "Intransitive verb"),
+                            english = "to stop",
+                            englishDefinitions = listOf("to stop", "to come to a halt"),
+                        ),
+                    ),
+                ),
+            ),
+            "つまらない" to found(
+                JishoDictionaryEntryDto(
+                    headword = "詰まらない",
+                    reading = "ツマラナイ",
+                    senses = listOf(
+                        JishoOptionDto(
+                            pos = listOf("I-adjective (keiyoushi)"),
+                            english = "dull",
+                            englishDefinitions = listOf("dull", "boring"),
+                        ),
+                    ),
+                ),
+            ),
+        )
+        val tokens = listOf(
+            token("とまんない", "とまらない", "トマラナイ", lineIndex = 14),
+            token("つまんない", "つまらない", "ツマラナイ", lineIndex = 14),
+        )
+
+        val resolved = resolver.resolve(tokens).byTokenKey.values.toList()
+
+        assertThat(resolved[0].baseForm).isEqualTo("とまる")
+        assertThat(resolved[0].options.map { it.english }).containsExactly("to stop")
+        assertThat(resolved[0].options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+        assertThat(resolved[1].baseForm).isEqualTo("つまらない")
+        assertThat(resolved[1].options.map { it.english }).containsExactly("dull")
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
     fun `a lookup jisho never answered is reported as a provider error, not a miss`(): Unit = runBlocking {
         // songId=82: jisho returned 502 for ninety seconds and 太陽 went out with no meaning, logged
         // as if no entry existed. The segmentation stage must be able to tell the two apart — one
