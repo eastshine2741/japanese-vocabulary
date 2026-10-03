@@ -146,12 +146,17 @@ BATCH_IMAGE="${IMAGE_PREFIX}-batch:${GIT_SHA}"
 MIGRATION_IMAGE="${IMAGE_PREFIX}-migration:${GIT_SHA}"
 ADMIN_API_IMAGE="${IMAGE_PREFIX}-admin-api:${GIT_SHA}"
 ADMIN_WEB_IMAGE="${IMAGE_PREFIX}-admin-web:${GIT_SHA}"
+WORKER_IMAGE="${IMAGE_PREFIX}-worker:${GIT_SHA}"
 ADMIN_PASSWORD="${ADMIN_PASSWORD:-}"
 ADMIN_PASSWORD_SHA256="${ADMIN_PASSWORD_SHA256:-}"
 if [[ "$DEPLOY_ENV" == "dev" ]]; then
   ADMIN_PASSWORD="${ADMIN_PASSWORD:-admin}"
   ADMIN_TOKEN_SECRET="${ADMIN_TOKEN_SECRET:-dev-admin-token-secret-must-be-at-least-32-bytes}"
 fi
+
+# 곡 분석 파이프라인이 batch 에서 worker 로 옮겨졌다. 전용 DSN 이 없으면 batch 가 쓰던 프로젝트로
+# 계속 보낸다 — .github/scripts/analysis-feedback 러너가 그 프로젝트(kotonoha-batch-prod)를 읽는다.
+SENTRY_DSN_WORKER="${SENTRY_DSN_WORKER:-${SENTRY_DSN_BATCH:-}}"
 
 # admin-web 은 asset base 와 router basename 을 빌드 시점에 굽는다.
 # dev 는 namespace 경로 아래, prod 는 kotonoha.eastshine.dev/admin 아래에 붙는다.
@@ -194,8 +199,9 @@ build_boot_image() {
     -t "$image" \
     -f "$module_dir/Dockerfile" "$ctx/"
 }
-export API_IMAGE BATCH_IMAGE MIGRATION_IMAGE ADMIN_API_IMAGE ADMIN_WEB_IMAGE NS SENTRY_ENVIRONMENT SENTRY_RELEASE
+export API_IMAGE BATCH_IMAGE WORKER_IMAGE MIGRATION_IMAGE ADMIN_API_IMAGE ADMIN_WEB_IMAGE NS SENTRY_ENVIRONMENT SENTRY_RELEASE
 export ADMIN_PASSWORD ADMIN_PASSWORD_SHA256 ADMIN_TOKEN_SECRET
+export SENTRY_DSN_WORKER
 
 echo "=== env: $DEPLOY_ENV | namespace: $NS | sha: $GIT_SHA ==="
 
@@ -218,8 +224,8 @@ fi
 STEP_START=$SECONDS
 echo "[gradle] test + bootJar..."
 cd "$PROJECT_ROOT/backend" && ./gradlew \
-  :api:test :batch:test :admin-api:test \
-  :api:bootJar :batch:bootJar :admin-api:bootJar --no-daemon
+  :api:test :batch:test :worker:test :admin-api:test \
+  :api:bootJar :batch:bootJar :worker:bootJar :admin-api:bootJar --no-daemon
 cd "$PROJECT_ROOT"
 echo "  → $((SECONDS - STEP_START))s"
 
@@ -232,6 +238,7 @@ if [[ "$DEPLOY_ENV" == "prod" ]]; then
   echo "[build] images..."
   build_boot_image api "$API_IMAGE"
   build_boot_image batch "$BATCH_IMAGE"
+  build_boot_image worker "$WORKER_IMAGE"
   docker build -t "$MIGRATION_IMAGE" -f "$PROJECT_ROOT/backend/migration/Dockerfile" "$PROJECT_ROOT/backend/migration/"
   build_boot_image admin-api "$ADMIN_API_IMAGE" "$PROJECT_ROOT"
   docker build \
@@ -243,6 +250,7 @@ if [[ "$DEPLOY_ENV" == "prod" ]]; then
   echo "[push] ghcr..."
   docker push "$API_IMAGE"
   docker push "$BATCH_IMAGE"
+  docker push "$WORKER_IMAGE"
   docker push "$MIGRATION_IMAGE"
   docker push "$ADMIN_API_IMAGE"
   docker push "$ADMIN_WEB_IMAGE"
@@ -250,6 +258,7 @@ else
   echo "[build] images..."
   build_boot_image api "$API_IMAGE"
   build_boot_image batch "$BATCH_IMAGE"
+  build_boot_image worker "$WORKER_IMAGE"
   docker build -t "$MIGRATION_IMAGE" -f "$PROJECT_ROOT/backend/migration/Dockerfile" "$PROJECT_ROOT/backend/migration/"
   build_boot_image admin-api "$ADMIN_API_IMAGE" "$PROJECT_ROOT"
   docker build \
@@ -259,7 +268,7 @@ else
     -f "$PROJECT_ROOT/admin-web/Dockerfile" "$PROJECT_ROOT"
 
   echo "[k3s] importing images..."
-  docker save "$API_IMAGE" "$BATCH_IMAGE" "$MIGRATION_IMAGE" "$ADMIN_API_IMAGE" "$ADMIN_WEB_IMAGE" | sudo k3s ctr images import -
+  docker save "$API_IMAGE" "$BATCH_IMAGE" "$WORKER_IMAGE" "$MIGRATION_IMAGE" "$ADMIN_API_IMAGE" "$ADMIN_WEB_IMAGE" | sudo k3s ctr images import -
 fi
 echo "  → $((SECONDS - STEP_START))s"
 
@@ -284,11 +293,31 @@ fi
 
 # --- 5. 매니페스트 적용 ---
 STEP_START=$SECONDS
-echo "[apply] infra (mysql + redis)..."
+echo "[apply] infra (mysql + redis + rabbitmq)..."
 envsubst < "$K8S_DIR/mysql/secret.template.yaml" | kubectl apply -n "$NS" -f -
 kubectl apply -n "$NS" -f "$K8S_DIR/mysql/statefulset.yaml"
 kubectl apply -n "$NS" -f "$K8S_DIR/mysql/service.yaml"
 kubectl apply -n "$NS" -f "$K8S_DIR/redis/"
+if ! kubectl get crd rabbitmqclusters.rabbitmq.com >/dev/null 2>&1; then
+  echo "Error: RabbitMQ operators are not installed on this cluster." >&2
+  echo "  run: $K8S_DIR/bootstrap/apply.sh" >&2
+  exit 1
+fi
+kubectl apply -n "$NS" -f "$K8S_DIR/rabbitmq/cluster.yaml"
+kubectl apply -n "$NS" -f "$K8S_DIR/rabbitmq/topology.yaml"
+# api/admin-api/worker 가 이 시크릿을 secretKeyRef 로 읽는다. 오퍼레이터가 만들기 전에 파드가 뜨면
+# CreateContainerConfigError 로 시작을 못 한다. 브로커 Ready 보다 훨씬 빨리 생긴다.
+echo "  waiting for operator-generated credentials..."
+for _ in $(seq 60); do
+  kubectl get secret rabbitmq-default-user -n "$NS" >/dev/null 2>&1 && break
+  sleep 2
+done
+if ! kubectl get secret rabbitmq-default-user -n "$NS" >/dev/null 2>&1; then
+  echo "Error: rabbitmq-default-user secret was not created within 120s." >&2
+  echo "  check: kubectl describe rabbitmqcluster/rabbitmq -n $NS" >&2
+  echo "         kubectl logs -n rabbitmq-system deployment/rabbitmq-cluster-operator" >&2
+  exit 1
+fi
 echo "  → $((SECONDS - STEP_START))s"
 
 # --- 6. DB 마이그레이션 ---
@@ -328,18 +357,27 @@ echo "  → $((SECONDS - STEP_START))s"
 
 # --- 7. API + Batch ---
 STEP_START=$SECONDS
-echo "[apply] api + batch..."
+echo "[apply] api + worker + batch cronjobs..."
 envsubst < "$K8S_DIR/api/secret.template.yaml" | kubectl apply -n "$NS" -f -
 envsubst < "$K8S_DIR/api/configmap.yaml" | kubectl apply -n "$NS" -f -
 envsubst < "$K8S_DIR/api/deployment.yaml" | kubectl apply -n "$NS" -f -
 kubectl apply -n "$NS" -f "$K8S_DIR/api/service.yaml"
 envsubst < "$K8S_DIR/api/ingress.yaml" | kubectl apply -n "$NS" -f -
 
-envsubst < "$K8S_DIR/batch/secret.template.yaml" | kubectl apply -n "$NS" -f -
+# firebase 자격증명은 worker(분석 완료 알림), batch(연속 학습 알림), admin-api(수동 푸시)가 같이 쓴다.
 envsubst < "$K8S_DIR/batch/firebase-secret.template.yaml" | kubectl apply -n "$NS" -f -
+
+envsubst < "$K8S_DIR/worker/secret.template.yaml" | kubectl apply -n "$NS" -f -
+envsubst < "$K8S_DIR/worker/configmap.yaml" | kubectl apply -n "$NS" -f -
+envsubst < "$K8S_DIR/worker/deployment.yaml" | kubectl apply -n "$NS" -f -
+[[ -f "$K8S_DIR/worker/service.yaml" ]] && kubectl apply -n "$NS" -f "$K8S_DIR/worker/service.yaml"
+
+# batch 는 더 이상 상주하지 않는다. 남아 있는 예전 Deployment 를 걷어낸다.
+kubectl delete deployment batch -n "$NS" --ignore-not-found
+kubectl delete service batch -n "$NS" --ignore-not-found
+envsubst < "$K8S_DIR/batch/secret.template.yaml" | kubectl apply -n "$NS" -f -
 envsubst < "$K8S_DIR/batch/configmap.yaml" | kubectl apply -n "$NS" -f -
-envsubst < "$K8S_DIR/batch/deployment.yaml" | kubectl apply -n "$NS" -f -
-[[ -f "$K8S_DIR/batch/service.yaml" ]] && kubectl apply -n "$NS" -f "$K8S_DIR/batch/service.yaml"
+envsubst < "$K8S_DIR/batch/cronjobs.yaml" | kubectl apply -n "$NS" -f -
 
 echo "[apply] admin-api + admin-web..."
 envsubst < "$K8S_DIR/admin-api/secret.template.yaml" | kubectl apply -n "$NS" -f -
@@ -359,7 +397,7 @@ else
   envsubst < "$K8S_DIR/admin-web/ingress.yaml" | kubectl apply -n "$NS" -f -
 fi
 
-for sm in "$K8S_DIR/api/servicemonitor.yaml" "$K8S_DIR/batch/servicemonitor.yaml" "$K8S_DIR/admin-api/servicemonitor.yaml"; do
+for sm in "$K8S_DIR/api/servicemonitor.yaml" "$K8S_DIR/worker/servicemonitor.yaml" "$K8S_DIR/admin-api/servicemonitor.yaml"; do
   [[ -f "$sm" ]] && kubectl apply -n "$NS" -f "$sm"
 done
 echo "  → $((SECONDS - STEP_START))s"
@@ -367,8 +405,13 @@ echo "  → $((SECONDS - STEP_START))s"
 # --- 8. 롤아웃 대기 ---
 STEP_START=$SECONDS
 echo "[rollout] waiting..."
+kubectl wait -n "$NS" --for=condition=AllReplicasReady --timeout=300s rabbitmqcluster/rabbitmq
+# 토폴로지 CR 은 브로커가 Ready 된 뒤에야 조정된다. 여기서 실패하면 worker 가 큐를 못 찾는다.
+kubectl wait -n "$NS" --for=condition=Ready --timeout=120s queues.rabbitmq.com --all
+kubectl wait -n "$NS" --for=condition=Ready --timeout=120s exchanges.rabbitmq.com --all
+kubectl wait -n "$NS" --for=condition=Ready --timeout=120s bindings.rabbitmq.com --all
 kubectl rollout status -n "$NS" deployment/api --timeout=120s
-kubectl rollout status -n "$NS" deployment/batch --timeout=120s
+kubectl rollout status -n "$NS" deployment/worker --timeout=180s
 kubectl rollout status -n "$NS" deployment/admin-api --timeout=120s
 kubectl rollout status -n "$NS" deployment/admin-web --timeout=120s
 echo "  → $((SECONDS - STEP_START))s"
@@ -383,5 +426,9 @@ if [[ "$DEPLOY_ENV" == "prod" ]]; then
 else
   echo "  kubectl port-forward -n $NS svc/api 8080:8080"
   echo "  kubectl port-forward -n $NS svc/admin-api 8081:8081"
+  echo "  rabbitmq ui: kubectl port-forward -n $NS svc/rabbitmq 15672:15672"
   echo "  admin web via ingress: http://localhost/$NS/admin"
+  echo ""
+  echo "  dev 의 CronJob 은 suspend 상태다. 수동 실행:"
+  echo "    kubectl create job --from=cronjob/freeze-consume fc-\$(date +%s) -n $NS"
 fi
