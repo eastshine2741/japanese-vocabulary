@@ -156,6 +156,10 @@ class SegmentAnchoringValidator {
      * is a word of its own and stays for the model to segment; so does anything with kanji in it. The
      * cursor is not moved past the span, so a model that does emit the kana as its own token still
      * anchors it normally.
+     *
+     * The kana may spell only the start of [usedReading] when the rest is okurigana written after the
+     * span: `愁(かな)しみ` read `カナシミ`, `怠(たる)すぎ` read `タルスギ`. The okurigana that spells the
+     * rest is covered with the span.
      */
     private fun readingAnnotationEnd(rawText: String, from: Int, usedReading: String): Int {
         if (from >= rawText.length) return from
@@ -167,8 +171,15 @@ class SegmentAnchoringValidator {
         val closeAt = rawText.indexOf(close, from + 1)
         if (closeAt < 0) return from
         val inside = rawText.substring(from + 1, closeAt)
-        val isAnnotation = JapaneseText.isKanaOnly(inside) && JapaneseText.toKatakana(inside) == usedReading
-        return if (isAnnotation) closeAt + 1 else from
+        if (!JapaneseText.isKanaOnly(inside)) return from
+        val annotated = JapaneseText.toKatakana(inside)
+        if (!usedReading.startsWith(annotated)) return from
+        val rest = usedReading.substring(annotated.length)
+        val afterSpan = closeAt + 1
+        val okurigana = rawText.substring(afterSpan, (afterSpan + rest.length).coerceAtMost(rawText.length))
+        val spellsRest = rest.isNotEmpty() && JapaneseText.isKanaOnly(okurigana) &&
+            JapaneseText.toKatakana(okurigana) == rest
+        return if (spellsRest) afterSpan + rest.length else afterSpan
     }
 
     /**

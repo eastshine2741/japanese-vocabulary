@@ -349,6 +349,49 @@ class SegmentAnchoringValidatorTest {
     }
 
     @Test
+    fun `a reading annotation that spells only the start of the reading covers the okurigana after it`() {
+        // Song 265 annotates only the kanji, 愁(かな)しみ and 怠(たる)すぎ — the kana in parentheses is
+        // the start of the word's reading and the okurigana after it is the rest.
+        val result = validator.anchor(
+            mapOf(
+                8 to "愁(かな)しみとは噛みすぎたガムの味さ",
+                37 to "怠(たる)すぎたり、疲れちゃったり",
+            ),
+            listOf(
+                SegLineDto(
+                    8,
+                    listOf(
+                        word("愁", "悲しみ", "カナシミ", "カナシミ"),
+                        word("とは", "とは", "トワ", "トワ"),
+                        word("噛み", "噛む", "カミ", "カム"),
+                        word("すぎ", "過ぎる", "スギ", "スギル"),
+                        word("た", "た", "タ", "タ"),
+                        word("ガム", "ガム", "ガム", "ガム"),
+                        word("の", "の", "ノ", "ノ"),
+                        word("味", "味", "アジ", "アジ"),
+                        word("さ", "さ", "サ", "サ"),
+                    ),
+                ),
+                SegLineDto(
+                    37,
+                    listOf(
+                        word("怠", "怠い", "タルスギ", "タルイ"),
+                        word("たり", "たり", "タリ", "タリ"),
+                        word("疲れ", "疲れる", "ツカレ", "ツカレル"),
+                        word("ちゃっ", "ちゃう", "チャッ", "チャウ"),
+                        word("たり", "たり", "タリ", "タリ"),
+                    ),
+                ),
+            ),
+        )
+
+        assertThat(result.failuresByIndex).isEmpty()
+        assertThat(result.incompleteByIndex).isEmpty()
+        assertThat(result.anchoredByIndex.getValue(8).first().let { it.charStart to it.charEnd }).isEqualTo(0 to 1)
+        assertThat(result.anchoredByIndex.getValue(37).first().let { it.charStart to it.charEnd }).isEqualTo(0 to 1)
+    }
+
+    @Test
     fun `parenthesized kana that does not spell the word's reading is still uncovered`() {
         // Only a restated reading is swallowed. Kana the model did not use as the reading is a word
         // the segmentation skipped, standalone kana has nothing to annotate, and kanji in
