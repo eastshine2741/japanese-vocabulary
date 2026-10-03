@@ -62,6 +62,7 @@ class LexicalResolver(
                 ?: resolveKanjiVariant(token, probeLookups)
                 ?: resolveReadingQuery(token, probeLookups)
                 ?: resolveHonorificPrefix(token, probeLookups)
+                ?: resolveContinuativeNoun(token, probeLookups)
 
             if (resolved == null) {
                 if (firstPass[token.headword]?.provenance == JishoLookupProvenance.REJECTED_FALLBACK) {
@@ -142,7 +143,8 @@ class LexicalResolver(
                     resolveLongVowelSpelling(it, probeLookups, logRescue = false) == null &&
                     resolveKanjiVariant(it, probeLookups, logRescue = false) == null &&
                     resolveReadingQuery(it, probeLookups, logRescue = false) == null &&
-                    resolveHonorificPrefix(it, probeLookups, logRescue = false) == null
+                    resolveHonorificPrefix(it, probeLookups, logRescue = false) == null &&
+                    resolveContinuativeNoun(it, probeLookups, logRescue = false) == null
             }
             .map { token ->
                 val lookups = listOfNotNull(firstPass[token.headword]) +
@@ -169,6 +171,7 @@ class LexicalResolver(
             kanjiVariantProbe(token),
             readingProbe(token),
             honorificPrefixProbe(token),
+            continuativeNounProbe(token),
         ) + suruDesiderativeProbes(token)
 
     /**
@@ -577,6 +580,33 @@ class LexicalResolver(
         val prefix = HONORIFIC_PREFIX_READINGS.firstOrNull { token.baseFormReading.startsWith(it) } ?: return null
         return token.baseFormReading.removePrefix(prefix).takeIf { it.isNotEmpty() }
     }
+
+    /**
+     * Safety net for a noun the lyric spells with its verb's continuative okurigana — 光り for 光.
+     *
+     * jisho indexes the noun 光 alone, so `光り` misses outright. The trailing り is dropped from the
+     * headword only: 光 itself reads ヒカリ, so the token's reading already names the noun. Only noun
+     * senses are kept, because a remainder that answers as a verb is not the noun the lyric wrote.
+     */
+    private fun resolveContinuativeNoun(
+        token: PipelineToken,
+        lookups: Map<String, JishoEntryDto>,
+        logRescue: Boolean = true,
+    ): AcceptedLexicalEntry? {
+        val base = continuativeNounProbe(token) ?: return null
+        val accepted = narrow(token, lookups[base], base, logGrading = logRescue) ?: return null
+        val nounEntries = accepted.entries.mapNotNull { entry ->
+            val nounSenses = entry.senses.filter { JishoPartOfSpeechMapper.map(it.pos) == PartOfSpeech.NOUN }
+            if (nounSenses.isEmpty()) null else entry.copy(senses = nounSenses)
+        }
+        if (nounEntries.isEmpty()) return null
+        if (logRescue) logger.info("Looked up continuative spelling '{}' as noun '{}'", token.headword, base)
+        return AcceptedLexicalEntry(base, nounEntries, accepted.provenance)
+    }
+
+    /** `光り` → `光`. Null unless the headword is something followed by り. */
+    private fun continuativeNounProbe(token: PipelineToken): String? =
+        token.headword.takeIf { it.length >= 2 && it.endsWith("り") }?.dropLast(1)
 
     private companion object {
         val INTENSIFIER_PREFIXES = listOf("ぶち", "ぶっ")
