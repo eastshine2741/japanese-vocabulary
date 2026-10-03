@@ -17,7 +17,7 @@ import com.japanese.vocabulary.translation.service.pipeline.AnalysisDefectReport
 import com.japanese.vocabulary.translation.service.pipeline.JapaneseText
 import com.japanese.vocabulary.translation.service.pipeline.stage.SegmentLyricsStage
 import com.japanese.vocabulary.translation.service.pipeline.stage.SelectSensesStage
-import com.japanese.vocabulary.song.batch.SongAnalysisWorkCompletionService
+import com.japanese.vocabulary.song.worker.SongAnalysisWorkCompletionService
 import com.japanese.vocabulary.song.entity.LyricEntity
 import com.japanese.vocabulary.song.entity.LyricType
 import com.japanese.vocabulary.song.entity.SongEntity
@@ -31,7 +31,7 @@ import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStatus
 import com.japanese.vocabulary.songanalysis.repository.SongAnalysisWorkRepository
 import com.japanese.vocabulary.song.repository.SongRepository
 import com.japanese.vocabulary.songanalysis.service.SongAnalysisWorkService
-import com.japanese.vocabulary.test.BatchBaseIntegrationTest
+import com.japanese.vocabulary.test.WorkerBaseIntegrationTest
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -45,7 +45,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import java.time.Duration
 import java.time.Instant
 
-class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
+class KoreanLyricTranslationServiceTest : WorkerBaseIntegrationTest() {
 
     @Autowired private lateinit var translationService: KoreanLyricTranslationService
     @Autowired private lateinit var workService: SongAnalysisWorkService
@@ -1174,33 +1174,46 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
     }
 
     @Test
-    fun `work claim marks oldest PENDING entries as RUNNING up to batch size`() {
-        val all = (1..7).map { seedWork("猫$it") }
+    fun `work claim marks the PENDING row as RUNNING`() {
+        val work = seedWork("猫")
 
-        val claimed = workService.claimPending(
-            limit = 5,
+        val claimed = workService.claim(
+            workId = work.id!!,
             workerId = "test-worker",
             lockUntil = Instant.now().plus(Duration.ofMinutes(30)),
         )
 
-        assertThat(claimed).hasSize(5)
-        val statuses = all.map { workRepository.findById(it.id!!).orElseThrow().status }
-        assertThat(statuses.count { it == SongAnalysisWorkStatus.RUNNING }).isEqualTo(5)
-        assertThat(statuses.count { it == SongAnalysisWorkStatus.PENDING }).isEqualTo(2)
-        assertThat(claimed.map { it.id }).containsExactlyElementsOf(all.take(5).map { it.id })
+        assertThat(claimed).isNotNull
+        assertThat(claimed!!.id).isEqualTo(work.id)
+        assertThat(workRepository.findById(work.id!!).orElseThrow().status)
+            .isEqualTo(SongAnalysisWorkStatus.RUNNING)
+    }
+
+    /** 큐는 at-least-once 라 같은 메시지가 두 번 올 수 있다. 두 번째 배달은 잡히면 안 된다. */
+    @Test
+    fun `duplicate delivery of the same work is not claimed twice`() {
+        val work = seedWork("重複")
+        val lockUntil = Instant.now().plus(Duration.ofMinutes(30))
+
+        val first = workService.claim(work.id!!, "worker-a", lockUntil)
+        val second = workService.claim(work.id!!, "worker-b", lockUntil)
+
+        assertThat(first).isNotNull
+        assertThat(second).isNull()
+        assertThat(workRepository.findById(work.id!!).orElseThrow().lockedBy).isEqualTo("worker-a")
     }
 
     @Test
     fun `work claim ignores terminal rows`() {
-        seedWork("失敗", status = SongAnalysisWorkStatus.FAILED)
+        val failed = seedWork("失敗", status = SongAnalysisWorkStatus.FAILED)
 
-        val claimed = workService.claimPending(
-            limit = 5,
+        val claimed = workService.claim(
+            workId = failed.id!!,
             workerId = "test-worker",
             lockUntil = Instant.now().plus(Duration.ofMinutes(30)),
         )
 
-        assertThat(claimed).isEmpty()
+        assertThat(claimed).isNull()
         verify(exactly = 0) { geminiClient.translateLyrics(any(), any()) }
         verify(exactly = 0) { geminiClient.segmentAndLemmatize(any(), any(), any()) }
     }
@@ -1213,14 +1226,14 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
         }
         workRepository.saveAndFlush(expired)
 
-        val claimed = workService.claimPending(
-            limit = 5,
+        val claimed = workService.claim(
+            workId = expired.id!!,
             workerId = "new-worker",
             lockUntil = Instant.now().plus(Duration.ofMinutes(30)),
         )
         val failedCount = workService.failExpiredRunning(limit = 5)
 
-        assertThat(claimed).isEmpty()
+        assertThat(claimed).isNull()
         assertThat(failedCount).isEqualTo(1)
         val refreshed = workRepository.findById(expired.id!!).orElseThrow()
         assertThat(refreshed.status).isEqualTo(SongAnalysisWorkStatus.FAILED)

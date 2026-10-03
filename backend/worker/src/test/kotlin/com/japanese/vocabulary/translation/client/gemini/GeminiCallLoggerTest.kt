@@ -1,12 +1,12 @@
 package com.japanese.vocabulary.translation.client.gemini
 
-import com.japanese.vocabulary.test.BatchBaseIntegrationTest
+import com.japanese.vocabulary.test.WorkerBaseIntegrationTest
 import com.japanese.vocabulary.translation.repository.GeminiCallLogRepository
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 
-class GeminiCallLoggerTest : BatchBaseIntegrationTest() {
+class GeminiCallLoggerTest : WorkerBaseIntegrationTest() {
 
     @Autowired private lateinit var geminiCallLogger: GeminiCallLogger
     @Autowired private lateinit var geminiCallLogRepository: GeminiCallLogRepository

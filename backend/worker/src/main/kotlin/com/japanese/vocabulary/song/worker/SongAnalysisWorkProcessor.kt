@@ -1,4 +1,4 @@
-package com.japanese.vocabulary.song.batch
+package com.japanese.vocabulary.song.worker
 
 import com.japanese.vocabulary.common.exception.BusinessException
 import com.japanese.vocabulary.common.exception.ErrorCode

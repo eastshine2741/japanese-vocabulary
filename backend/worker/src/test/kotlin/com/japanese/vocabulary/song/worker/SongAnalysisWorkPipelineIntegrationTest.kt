@@ -1,4 +1,4 @@
-package com.japanese.vocabulary.song.batch
+package com.japanese.vocabulary.song.worker
 
 import com.japanese.vocabulary.lyricsearch.LyricsResult
 import com.japanese.vocabulary.mvsearch.client.youtube.dto.YoutubeSearchItemDto
@@ -20,7 +20,7 @@ import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStage
 import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStatus
 import com.japanese.vocabulary.songanalysis.repository.SongAnalysisWorkRepository
 import com.japanese.vocabulary.songanalysis.service.SongAnalysisWorkService
-import com.japanese.vocabulary.test.BatchBaseIntegrationTest
+import com.japanese.vocabulary.test.WorkerBaseIntegrationTest
 import com.japanese.vocabulary.translation.client.gemini.dto.SegLineDto
 import com.japanese.vocabulary.translation.client.gemini.dto.SegWordDto
 import com.japanese.vocabulary.translation.client.gemini.dto.SelectLineDto
@@ -41,7 +41,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import java.time.Duration
 import java.time.Instant
 
-class SongAnalysisWorkPipelineIntegrationTest : BatchBaseIntegrationTest() {
+class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
 
     @Autowired private lateinit var processor: SongAnalysisWorkProcessor
     @Autowired private lateinit var workService: SongAnalysisWorkService
@@ -297,11 +297,13 @@ class SongAnalysisWorkPipelineIntegrationTest : BatchBaseIntegrationTest() {
     }
 
     private fun claimSingleWork(workId: Long) =
-        workService.claimPending(
-            limit = 1,
-            workerId = "pipeline-test-worker",
-            lockUntil = Instant.now().plus(Duration.ofMinutes(30)),
-        ).single { it.id == workId }
+        checkNotNull(
+            workService.claim(
+                workId = workId,
+                workerId = "pipeline-test-worker",
+                lockUntil = Instant.now().plus(Duration.ofMinutes(30)),
+            ),
+        ) { "work $workId was not claimable" }
 
     private fun stubLyricsFound() {
         every { lrclibClient.providerName } returns "LrcLib"
