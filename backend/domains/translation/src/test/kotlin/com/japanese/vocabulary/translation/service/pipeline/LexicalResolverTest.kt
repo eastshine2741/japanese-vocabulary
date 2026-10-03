@@ -200,6 +200,35 @@ class LexicalResolverTest {
     }
 
     @Test
+    fun `a classical adjective ending in shi is looked up as its modern i-adjective`(): Unit = runBlocking {
+        // songId=224, "憂いし空には朧月 囲い無き夢は恙なし": 恙なし is the classical terminal form of
+        // 恙ない. jisho indexes only the modern form, so the headword as the model gave it misses.
+        stub(
+            "恙ない" to found(
+                JishoDictionaryEntryDto(
+                    headword = "恙ない",
+                    reading = "ツツガナイ",
+                    senses = listOf(
+                        JishoOptionDto(
+                            pos = listOf("I-adjective (keiyoushi)"),
+                            english = "safe / well / healthy",
+                            englishDefinitions = listOf("safe", "well", "healthy"),
+                        ),
+                    ),
+                ),
+            ),
+        )
+        val tokens = listOf(token("恙なし", "恙なし", "ツツガナシ", lineIndex = 2))
+
+        val resolved = resolver.resolve(tokens).byTokenKey.values.single()
+
+        assertThat(resolved.baseForm).isEqualTo("恙ない")
+        assertThat(resolved.options.map { it.english }).containsExactly("safe / well / healthy")
+        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
     fun `a suru-verb desiderative handed back as the headword is rescued as stem plus suru`(): Unit = runBlocking {
         // songId=109, "不甲斐ない 愛を愛したくないの": the model gave 愛したくない as the headword, jisho has
         // no such entry, and the word shipped without a meaning. The reading アイシタクナイ belongs to
