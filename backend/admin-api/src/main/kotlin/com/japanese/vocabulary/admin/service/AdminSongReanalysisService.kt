@@ -6,7 +6,9 @@ import com.japanese.vocabulary.admin.repository.AdminSongRepository
 import com.japanese.vocabulary.songanalysis.entity.SongAnalysisTriggerSource
 import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkEntity
 import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStatus
+import com.japanese.vocabulary.songanalysis.event.SongAnalysisWorkQueuedEvent
 import com.japanese.vocabulary.songanalysis.service.SongAnalysisWorkService
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -15,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional
 class AdminSongReanalysisService(
     private val songRepository: AdminSongRepository,
     private val workRepository: AdminSongAnalysisWorkRepository,
+    private val eventPublisher: ApplicationEventPublisher,
 ) {
     @Transactional
     fun createOrReuse(songId: Long): AdminSongAnalysisWorkSummaryResponse {
@@ -34,12 +37,14 @@ class AdminSongReanalysisService(
             createdByUserId = null,
         )
 
-        return try {
-            workRepository.saveAndFlush(work).toSummaryResponse()
+        val saved = try {
+            workRepository.saveAndFlush(work)
         } catch (_: DataIntegrityViolationException) {
-            findActiveBlocker(songId, song.title, song.artist)?.toSummaryResponse()
+            return findActiveBlocker(songId, song.title, song.artist)?.toSummaryResponse()
                 ?: throw IllegalStateException("Admin song reanalysis work already exists but could not be loaded")
         }
+        eventPublisher.publishEvent(SongAnalysisWorkQueuedEvent(saved.id!!))
+        return saved.toSummaryResponse()
     }
 
     private fun findActiveBlocker(songId: Long, title: String, artist: String): SongAnalysisWorkEntity? {

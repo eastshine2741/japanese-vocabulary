@@ -37,6 +37,15 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: 6379
 
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    # 토폴로지는 Topology Operator CR(k8s/{dev,prod}/rabbitmq/topology.yaml)이 소유한다.
+    # RabbitAdmin 을 띄우지 않아야 선언의 진실 원천이 하나로 남는다.
+    dynamic: false
+
 youtube:
   api-key: ${YOUTUBE_API_KEY}
 
