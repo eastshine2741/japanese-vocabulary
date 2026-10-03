@@ -57,6 +57,7 @@ class LexicalResolver(
                 ?: resolveHiraganaQuery(token, probeLookups)
                 ?: resolveIntensifierPrefix(token, probeLookups)
                 ?: resolveSuruVerb(token, probeLookups)
+                ?: resolvePotentialNegative(token, probeLookups)
 
             if (resolved == null) {
                 if (firstPass[token.headword]?.provenance == JishoLookupProvenance.REJECTED_FALLBACK) {
@@ -132,7 +133,8 @@ class LexicalResolver(
                     resolveSuruDesiderative(it, probeLookups, logRescue = false) == null &&
                     resolveHiraganaQuery(it, probeLookups, logRescue = false) == null &&
                     resolveIntensifierPrefix(it, probeLookups, logRescue = false) == null &&
-                    resolveSuruVerb(it, probeLookups, logRescue = false) == null
+                    resolveSuruVerb(it, probeLookups, logRescue = false) == null &&
+                    resolvePotentialNegative(it, probeLookups, logRescue = false) == null
             }
             .map { token ->
                 val lookups = listOfNotNull(firstPass[token.headword]) +
@@ -155,6 +157,7 @@ class LexicalResolver(
             hiraganaProbe(token),
             intensifierPrefixProbe(token),
             suruVerbProbe(token),
+            potentialNegativeProbe(token),
         )
 
     /**
@@ -368,6 +371,41 @@ class LexicalResolver(
         token.headword.takeIf { it.length > 2 && it.endsWith("する") }?.dropLast(2)
 
     /**
+     * Safety net for a godan verb's potential negative handed back as the headword — `飛べない` for 飛ぶ.
+     *
+     * jisho indexes the verb, not its potential form, so the e-row stem is turned back into the u-row
+     * dictionary form and only verb senses are kept. A guess that lands on no such verb stays unresolved.
+     */
+    private fun resolvePotentialNegative(
+        token: PipelineToken,
+        lookups: Map<String, JishoEntryDto>,
+        logRescue: Boolean = true,
+    ): AcceptedLexicalEntry? {
+        val base = potentialNegativeProbe(token) ?: return null
+        // The token's reading is トベナイ, the wrong headword's, so it is inflected back to トブ too.
+        val reading = potentialNegativeBase(token.baseFormReading, "ナイ", POTENTIAL_E_TO_U_KATAKANA)
+        val accepted = narrow(token, lookups[base], base, reading, logRescue) ?: return null
+        val verbEntries = accepted.entries.mapNotNull { entry ->
+            val verbSenses = entry.senses.filter { JishoPartOfSpeechMapper.map(it.pos) == PartOfSpeech.VERB }
+            if (verbSenses.isEmpty()) null else entry.copy(senses = verbSenses)
+        }
+        if (verbEntries.isEmpty()) return null
+        if (logRescue) logger.info("Normalized potential negative '{}' to '{}'", token.headword, base)
+        return AcceptedLexicalEntry(base, verbEntries, accepted.provenance)
+    }
+
+    /** `飛べない` → `飛ぶ`. Null unless something ending in an e-row kana precedes ない. */
+    private fun potentialNegativeProbe(token: PipelineToken): String? =
+        potentialNegativeBase(token.headword, "ない", POTENTIAL_E_TO_U)
+
+    private fun potentialNegativeBase(text: String, negative: String, eToU: Map<Char, Char>): String? {
+        val stem = text.takeIf { it.endsWith(negative) }?.dropLast(negative.length) ?: return null
+        if (stem.length < 2) return null
+        val u = eToU[stem.last()] ?: return null
+        return stem.dropLast(1) + u
+    }
+
+    /**
      * The hiragana spelling of a katakana-only headword. Null for anything else: a kanji or hiragana
      * headword already queried the script the dictionary indexes.
      */
@@ -410,6 +448,15 @@ class LexicalResolver(
     )
 
     private companion object {
+        val POTENTIAL_E_TO_U = mapOf(
+            'え' to 'う', 'け' to 'く', 'げ' to 'ぐ', 'せ' to 'す', 'て' to 'つ',
+            'ね' to 'ぬ', 'べ' to 'ぶ', 'め' to 'む', 'れ' to 'る',
+        )
+        val POTENTIAL_E_TO_U_KATAKANA = mapOf(
+            'エ' to 'ウ', 'ケ' to 'ク', 'ゲ' to 'グ', 'セ' to 'ス', 'テ' to 'ツ',
+            'ネ' to 'ヌ', 'ベ' to 'ブ', 'メ' to 'ム', 'レ' to 'ル',
+        )
+
         val INTENSIFIER_PREFIXES = listOf("ぶち", "ぶっ")
 
         /** Longest first, so したくない is not read as したい with a stem ending in く. */
