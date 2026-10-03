@@ -61,6 +61,7 @@ class LexicalResolver(
                 ?: resolveLongVowelSpelling(token, probeLookups)
                 ?: resolveKanjiVariant(token, probeLookups)
                 ?: resolveReadingQuery(token, probeLookups)
+                ?: resolveHonorificPrefix(token, probeLookups)
 
             if (resolved == null) {
                 if (firstPass[token.headword]?.provenance == JishoLookupProvenance.REJECTED_FALLBACK) {
@@ -140,7 +141,8 @@ class LexicalResolver(
                     resolveSuruVerb(it, probeLookups, logRescue = false) == null &&
                     resolveLongVowelSpelling(it, probeLookups, logRescue = false) == null &&
                     resolveKanjiVariant(it, probeLookups, logRescue = false) == null &&
-                    resolveReadingQuery(it, probeLookups, logRescue = false) == null
+                    resolveReadingQuery(it, probeLookups, logRescue = false) == null &&
+                    resolveHonorificPrefix(it, probeLookups, logRescue = false) == null
             }
             .map { token ->
                 val lookups = listOfNotNull(firstPass[token.headword]) +
@@ -166,6 +168,7 @@ class LexicalResolver(
             longVowelProbe(token),
             kanjiVariantProbe(token),
             readingProbe(token),
+            honorificPrefixProbe(token),
         ) + suruDesiderativeProbes(token)
 
     /**
@@ -535,6 +538,46 @@ class LexicalResolver(
         return JapaneseText.toHiragana(reading)
     }
 
+    /**
+     * Safety net for a noun the lyric dresses with an honorific お / ご / 御 (御加減, おクスリ).
+     *
+     * jisho indexes only the common prefixed forms, but the noun underneath is ordinary, so the
+     * prefix is dropped and the remainder asked for — in hiragana when it is katakana, for the same
+     * reason as [resolveHiraganaQuery]. Only noun and na-adjective senses are accepted: the prefix
+     * attaches to those alone.
+     */
+    private fun resolveHonorificPrefix(
+        token: PipelineToken,
+        lookups: Map<String, JishoEntryDto>,
+        logRescue: Boolean = true,
+    ): AcceptedLexicalEntry? {
+        val base = honorificPrefixProbe(token) ?: return null
+        val accepted = narrow(token, lookups[base], base, honorificPrefixProbeReading(token), logRescue)
+            ?: return null
+        val nounEntries = accepted.entries.mapNotNull { entry ->
+            val nounSenses = entry.senses.filter {
+                JishoPartOfSpeechMapper.map(it.pos) in setOf(PartOfSpeech.NOUN, PartOfSpeech.NA_ADJECTIVE)
+            }
+            if (nounSenses.isEmpty()) null else entry.copy(senses = nounSenses)
+        }
+        if (nounEntries.isEmpty()) return null
+        if (logRescue) logger.info("Stripped honorific prefix from '{}' to '{}'", token.headword, base)
+        return AcceptedLexicalEntry(base, nounEntries, accepted.provenance)
+    }
+
+    /** `御加減` → `加減`, `おクスリ` → `くすり`. Null when there is no prefix or nothing follows it. */
+    private fun honorificPrefixProbe(token: PipelineToken): String? {
+        val prefix = HONORIFIC_PREFIXES.firstOrNull { token.headword.startsWith(it) } ?: return null
+        val rest = token.headword.removePrefix(prefix).takeIf { it.isNotEmpty() } ?: return null
+        return if (JapaneseText.isKatakanaOnly(rest)) JapaneseText.toHiragana(rest) else rest
+    }
+
+    /** The probed base form's reading: `ゴカゲン` → `カゲン`, mirroring [honorificPrefixProbe]. */
+    private fun honorificPrefixProbeReading(token: PipelineToken): String? {
+        val prefix = HONORIFIC_PREFIX_READINGS.firstOrNull { token.baseFormReading.startsWith(it) } ?: return null
+        return token.baseFormReading.removePrefix(prefix).takeIf { it.isNotEmpty() }
+    }
+
     private companion object {
         val INTENSIFIER_PREFIXES = listOf("ぶち", "ぶっ")
 
@@ -553,5 +596,8 @@ class LexicalResolver(
         /** Longest first, so したくない is not read as したい with a stem ending in く. */
         val SURU_DESIDERATIVE_SUFFIXES = listOf("したくない", "したい")
         val SURU_DESIDERATIVE_READING_SUFFIXES = listOf("シタクナイ", "シタイ")
+
+        val HONORIFIC_PREFIXES = listOf("お", "ご", "御")
+        val HONORIFIC_PREFIX_READINGS = listOf("オ", "ゴ")
     }
 }

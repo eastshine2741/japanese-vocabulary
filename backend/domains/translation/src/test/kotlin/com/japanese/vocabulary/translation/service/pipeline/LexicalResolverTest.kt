@@ -576,6 +576,50 @@ class LexicalResolverTest {
     }
 
     @Test
+    fun `a kanji honorific prefix is stripped before the lookup`(): Unit = runBlocking {
+        // songId=302, line 15: "ドクター=ファンクビート 御加減は lady?". jisho has no entry for 御加減, but
+        // 加減 under the honorific 御 is an ordinary noun, so the word must not lose its meaning.
+        stub(
+            "加減" to found(
+                JishoDictionaryEntryDto(
+                    headword = "加減",
+                    reading = "カゲン",
+                    senses = listOf(
+                        JishoOptionDto(
+                            pos = listOf("Noun", "Suru verb"),
+                            english = "condition, state of health",
+                            englishDefinitions = listOf("condition", "state of health"),
+                        ),
+                    ),
+                ),
+            ),
+        )
+        val tokens = listOf(token("御加減", "御加減", "ゴカゲン", lineIndex = 15))
+
+        val resolved = resolver.resolve(tokens).byTokenKey.values.single()
+
+        assertThat(resolved.baseForm).isEqualTo("加減")
+        assertThat(resolved.options.map { it.english }).containsExactly("condition, state of health")
+        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
+    fun `a kana honorific prefix on a katakana noun is stripped and queried in hiragana`(): Unit = runBlocking {
+        // songId=302, line 19: "そんな貴女にはおクスリを（dumb down）". お + katakana クスリ is 薬, which
+        // jisho answers only for a hiragana query.
+        stub("くすり" to found(entry(headword = "薬", reading = "クスリ", english = "medicine")))
+        val tokens = listOf(token("おクスリ", "おクスリ", "オクスリ", lineIndex = 19))
+
+        val resolved = resolver.resolve(tokens).byTokenKey.values.single()
+
+        assertThat(resolved.baseForm).isEqualTo("くすり")
+        assertThat(resolved.options.map { it.english }).containsExactly("medicine")
+        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
     fun `senses of different entries keep separate ids`(): Unit = runBlocking {
         stub("前" to maeAndZenAndSaki())
 
