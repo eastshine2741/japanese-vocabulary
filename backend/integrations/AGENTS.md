@@ -17,7 +17,7 @@ Applies to all modules under `backend/integrations/`.
 ## Current Modules
 
 - `song-search`: iTunes song search.
-- `lyric-search`: LRCLIB and VocaDB lyric/provider search.
+- `lyric-search`: LRCLIB, VocaDB, and UtaiteDB (same API as VocaDB; fallback when VocaDB is behind a Cloudflare 403) lyric search.
 - `mv-search`: YouTube MV search.
 - `apple-music-rss`: Apple Music RSS charts.
 - `github`: GitHub issue creation (`GithubIssueClient`), used by `api` for VOC. Token blank -> `enabled=false`.

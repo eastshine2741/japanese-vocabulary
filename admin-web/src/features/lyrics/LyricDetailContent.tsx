@@ -74,6 +74,7 @@ export function LyricDetailContent({ lyric }: { lyric: LyricDetail }) {
         <DetailItem label="Type" value={lyric.lyricType} />
         <DetailItem label="LRCLIB" value={lyric.lrclibId ?? "-"} />
         <DetailItem label="VocaDB" value={lyric.vocadbId ?? "-"} />
+        <DetailItem label="UtaiteDB" value={lyric.utaitedbId ?? "-"} />
         <DetailItem label="Created" value={formatDateTime(lyric.createdAt)} />
         <DetailItem label="Updated" value={formatDateTime(lyric.updatedAt)} />
       </DetailGrid>

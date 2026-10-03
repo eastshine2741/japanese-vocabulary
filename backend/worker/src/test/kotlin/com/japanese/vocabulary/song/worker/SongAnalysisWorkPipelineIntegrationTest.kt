@@ -148,9 +148,28 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
 
         verify(exactly = 1) { lrclibClient.search(any()) }
         verify(exactly = 1) { vocadbClient.search(any()) }
+        verify(exactly = 1) { utaitedbClient.search(any()) }
         verify(exactly = 0) { youtubeClient.searchVideos(any(), any(), any(), any()) }
         coVerify(exactly = 0) { geminiClient.translateLyrics(any(), any()) }
         coVerify(exactly = 0) { geminiClient.segmentAndLemmatize(any(), any(), any()) }
+    }
+
+    @Test
+    fun `lyrics fall back to UtaiteDB when lrclib and VocaDB miss`(): Unit = runBlocking {
+        stubLyricsMissing()
+        every { utaitedbClient.search(any()) } returns LyricsResult(utaitedbId = 38167, lyrics = "ももいろの鍵", isSynced = false)
+        stubYoutubeFound()
+        stubLyricAnalysis()
+        val created = workService.createOrReuse(title = TITLE, artist = ARTIST, durationSeconds = 210)
+
+        drive(created.workId)
+
+        val refreshedWork = workRepository.findById(created.workId).orElseThrow()
+        assertThat(refreshedWork.status).isEqualTo(SongAnalysisWorkStatus.COMPLETED)
+        val lyric = lyricRepository.findById(refreshedWork.lyricId!!).orElseThrow()
+        assertThat(lyric.utaitedbId).isEqualTo(38167)
+        assertThat(lyric.vocadbId).isNull()
+        assertThat(lyric.lyricType).isEqualTo(LyricType.PLAIN)
     }
 
     @Test
@@ -413,19 +432,23 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
     private fun stubLyricsFound() {
         every { lrclibClient.providerName } returns "LrcLib"
         every { vocadbClient.providerName } returns "VocaDB"
+        every { utaitedbClient.providerName } returns "UtaiteDB"
         every { lrclibClient.search(any()) } returns LyricsResult(
             lrclibId = 12345,
             lyrics = "[00:12.34]ももいろの鍵",
             isSynced = true,
         )
         every { vocadbClient.search(any()) } returns null
+        every { utaitedbClient.search(any()) } returns null
     }
 
     private fun stubLyricsMissing() {
         every { lrclibClient.providerName } returns "LrcLib"
         every { vocadbClient.providerName } returns "VocaDB"
+        every { utaitedbClient.providerName } returns "UtaiteDB"
         every { lrclibClient.search(any()) } returns null
         every { vocadbClient.search(any()) } returns null
+        every { utaitedbClient.search(any()) } returns null
     }
 
     private fun stubYoutubeFound() {

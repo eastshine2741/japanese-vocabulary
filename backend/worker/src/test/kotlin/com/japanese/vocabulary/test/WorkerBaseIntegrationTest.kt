@@ -2,6 +2,7 @@ package com.japanese.vocabulary.test
 
 import com.google.firebase.messaging.FirebaseMessaging
 import com.japanese.vocabulary.lyricsearch.lrclib.LrclibClient
+import com.japanese.vocabulary.lyricsearch.utaitedb.UtaitedbClient
 import com.japanese.vocabulary.lyricsearch.vocadb.VocadbClient
 import com.japanese.vocabulary.messagequeue.SongAnalysisWorkQueuePublisher
 import com.japanese.vocabulary.mvsearch.client.youtube.YoutubeClient
@@ -33,6 +34,9 @@ abstract class WorkerBaseIntegrationTest : BaseIntegrationTest() {
     protected lateinit var vocadbClient: VocadbClient
 
     @MockkBean
+    protected lateinit var utaitedbClient: UtaitedbClient
+
+    @MockkBean
     protected lateinit var youtubeClient: YoutubeClient
 
     /** 브로커 없이 컨텍스트를 띄운다. 발행 자체는 통합 테스트 대상이 아니다. */
@@ -56,6 +60,7 @@ abstract class WorkerBaseIntegrationTest : BaseIntegrationTest() {
             jishoService,
             lrclibClient,
             vocadbClient,
+            utaitedbClient,
             youtubeClient,
             answers = true,
             recordedCalls = true,

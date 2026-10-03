@@ -12,6 +12,7 @@ data class AdminLyricDetailResponse(
     val analyzedContent: List<AnalyzedLine>?,
     val lrclibId: Long?,
     val vocadbId: Long?,
+    val utaitedbId: Long?,
     val createdAt: Instant?,
     val updatedAt: Instant?,
 )
