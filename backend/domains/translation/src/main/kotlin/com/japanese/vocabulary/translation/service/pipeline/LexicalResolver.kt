@@ -60,6 +60,7 @@ class LexicalResolver(
                 ?: resolveSuruVerb(token, probeLookups)
                 ?: resolveLongVowelSpelling(token, probeLookups)
                 ?: resolveKanjiVariant(token, probeLookups)
+                ?: resolveReadingQuery(token, probeLookups)
 
             if (resolved == null) {
                 if (firstPass[token.headword]?.provenance == JishoLookupProvenance.REJECTED_FALLBACK) {
@@ -138,7 +139,8 @@ class LexicalResolver(
                     resolveIntensifierPrefix(it, probeLookups, logRescue = false) == null &&
                     resolveSuruVerb(it, probeLookups, logRescue = false) == null &&
                     resolveLongVowelSpelling(it, probeLookups, logRescue = false) == null &&
-                    resolveKanjiVariant(it, probeLookups, logRescue = false) == null
+                    resolveKanjiVariant(it, probeLookups, logRescue = false) == null &&
+                    resolveReadingQuery(it, probeLookups, logRescue = false) == null
             }
             .map { token ->
                 val lookups = listOfNotNull(firstPass[token.headword]) +
@@ -163,6 +165,7 @@ class LexicalResolver(
             suruVerbProbe(token),
             longVowelProbe(token),
             kanjiVariantProbe(token),
+            readingProbe(token),
         ) + suruDesiderativeProbes(token)
 
     /**
@@ -504,6 +507,33 @@ class LexicalResolver(
         val entries: List<JishoDictionaryEntryDto>,
         val provenance: JishoLookupProvenance,
     )
+
+    /**
+     * Safety net for a kanji headword jisho's search does not answer.
+     *
+     * `燻む` is a dictionary word, but the kanji query comes back empty while `くすむ` finds it. The
+     * reading is asked instead, and only an EXACT grade is kept: a reading alone matches every
+     * homophone, and a single entry carrying that reading is the only case that names one word. The
+     * base form stays the headword the lyric wrote.
+     */
+    private fun resolveReadingQuery(
+        token: PipelineToken,
+        lookups: Map<String, JishoEntryDto>,
+        logRescue: Boolean = true,
+    ): AcceptedLexicalEntry? {
+        val base = readingProbe(token) ?: return null
+        val accepted = narrow(token, lookups[base], base, logGrading = logRescue) ?: return null
+        if (accepted.provenance != JishoLookupProvenance.EXACT) return null
+        if (logRescue) logger.info("Looked up kanji headword '{}' by its reading '{}'", token.headword, base)
+        return accepted.copy(baseForm = token.headword)
+    }
+
+    /** The hiragana reading of a headword that is not kana-only. Null when there is no kana reading. */
+    private fun readingProbe(token: PipelineToken): String? {
+        if (JapaneseText.isKanaOnly(token.headword)) return null
+        val reading = token.baseFormReading.takeIf { it.isNotBlank() && JapaneseText.isKanaOnly(it) } ?: return null
+        return JapaneseText.toHiragana(reading)
+    }
 
     private companion object {
         val INTENSIFIER_PREFIXES = listOf("ぶち", "ぶっ")
