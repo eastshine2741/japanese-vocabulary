@@ -100,6 +100,7 @@ class SongAnalysisWorkListener(
                 .tag("stage", claimed.ref.stage.name)
                 .tag("outcome", outcome)
                 .publishPercentileHistogram()
+                .maximumExpectedValue(HISTOGRAM_MAX)
                 .register(meterRegistry),
         )
     }
@@ -109,11 +110,18 @@ class SongAnalysisWorkListener(
         Timer.builder(MetricNames.SONG_ANALYSIS_WORK_DURATION)
             .tag("outcome", outcome)
             .publishPercentileHistogram()
+            .maximumExpectedValue(HISTOGRAM_MAX)
             .register(meterRegistry)
             .record(Duration.between(claimed.startedAt, Instant.now()))
     }
 
     companion object {
+        /**
+         * 타이머 히스토그램의 기본 상한은 30초라 그보다 긴 값은 모두 +Inf 버킷에 떨어지고 백분위가 30초로
+         * 눌린다. 작업은 분 단위이고 시간 초과 판정이 10분이므로 그만큼 버킷을 연다.
+         */
+        private val HISTOGRAM_MAX: Duration = Duration.ofMinutes(10)
+
         /**
          * 유저에게 보이는 코드는 셋으로만 나눈다: 도메인이 판정한 결과(가사 없음 등), 외부 서비스
          * 장애가 재시도 뒤에도 남은 경우, 그 밖의 모든 것. 원인을 찾는 데 필요한 예외 클래스와 메시지

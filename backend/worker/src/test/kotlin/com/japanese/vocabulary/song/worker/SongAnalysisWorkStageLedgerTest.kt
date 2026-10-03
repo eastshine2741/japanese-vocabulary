@@ -1,5 +1,6 @@
 package com.japanese.vocabulary.song.worker
 
+import com.japanese.vocabulary.observability.MetricNames
 import com.japanese.vocabulary.song.entity.LyricEntity
 import com.japanese.vocabulary.song.entity.LyricType
 import com.japanese.vocabulary.song.entity.SongEntity
@@ -20,6 +21,7 @@ import com.japanese.vocabulary.songanalysis.service.SongAnalysisWorkService
 import com.japanese.vocabulary.test.WorkerBaseIntegrationTest
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
+import io.micrometer.core.instrument.MeterRegistry
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import java.time.Duration
@@ -37,6 +39,7 @@ class SongAnalysisWorkStageLedgerTest : WorkerBaseIntegrationTest() {
     @Autowired private lateinit var stageRepository: SongAnalysisWorkStageRepository
     @Autowired private lateinit var songRepository: SongRepository
     @Autowired private lateinit var lyricRepository: LyricRepository
+    @Autowired private lateinit var meterRegistry: MeterRegistry
 
     @Test
     fun `claiming the first stage starts the work and the stage`() {
@@ -51,6 +54,19 @@ class SongAnalysisWorkStageLedgerTest : WorkerBaseIntegrationTest() {
         assertThat(refreshed.currentStage).isEqualTo(SongAnalysisWorkStage.FIRST)
         assertThat(refreshed.startedAt).isNotNull
         assertThat(stage(work, SongAnalysisWorkStage.FIRST).status).isEqualTo(SongAnalysisStageStatus.RUNNING)
+    }
+
+    @Test
+    fun `the works gauge counts pending and running works from the ledger`() {
+        val pendingBefore = worksGauge(SongAnalysisWorkStatus.PENDING)
+        val runningBefore = worksGauge(SongAnalysisWorkStatus.RUNNING)
+        seedWork("待機")
+        val running = seedWork("実行")
+
+        workService.claimStage(running.id!!, SongAnalysisWorkStage.FIRST, redelivered = false)
+
+        assertThat(worksGauge(SongAnalysisWorkStatus.PENDING)).isEqualTo(pendingBefore + 1)
+        assertThat(worksGauge(SongAnalysisWorkStatus.RUNNING)).isEqualTo(runningBefore + 1)
     }
 
     /** 큐는 at-least-once 라 같은 메시지가 두 번 올 수 있다. 두 번째 배달은 잡히면 안 된다. */
@@ -295,4 +311,7 @@ class SongAnalysisWorkStageLedgerTest : WorkerBaseIntegrationTest() {
      * 테스트 clock 은 고정값이므로 기준선도 반드시 거기서 뽑아야 한다.
      */
     private fun staleThreshold(): Instant = Instant.now(clock).plus(Duration.ofMinutes(1))
+
+    private fun worksGauge(status: SongAnalysisWorkStatus): Double =
+        meterRegistry.get(MetricNames.SONG_ANALYSIS_WORKS).tag("status", status.name).gauge().value()
 }

@@ -243,6 +243,9 @@ class SongAnalysisWorkService(
     }
 
     @Transactional(readOnly = true)
+    fun countByStatus(status: SongAnalysisWorkStatus): Long = songAnalysisWorkRepository.countByStatus(status)
+
+    @Transactional(readOnly = true)
     fun stages(workId: Long): List<SongAnalysisWorkStageEntity> = stageRepository.findByWorkIdOrderByIdAsc(workId)
 
     /**
