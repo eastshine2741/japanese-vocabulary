@@ -67,6 +67,7 @@ class LexicalResolver(
                 ?: resolvePassive(token, probeLookups)
                 ?: resolveAppearanceSou(token, probeLookups)
                 ?: resolveCompletionSuffix(token, probeLookups)
+                ?: resolveTeAuxMotion(token, probeLookups)
 
             if (resolved == null) {
                 if (firstPass[token.headword]?.provenance == JishoLookupProvenance.REJECTED_FALLBACK) {
@@ -152,7 +153,8 @@ class LexicalResolver(
                     resolveSuruPassive(it, probeLookups, logRescue = false) == null &&
                     resolvePassive(it, probeLookups, logRescue = false) == null &&
                     resolveAppearanceSou(it, probeLookups, logRescue = false) == null &&
-                    resolveCompletionSuffix(it, probeLookups, logRescue = false) == null
+                    resolveCompletionSuffix(it, probeLookups, logRescue = false) == null &&
+                    resolveTeAuxMotion(it, probeLookups, logRescue = false) == null
             }
             .map { token ->
                 val lookups = listOfNotNull(firstPass[token.headword]) +
@@ -182,7 +184,7 @@ class LexicalResolver(
             continuativeNounProbe(token),
             suruPassiveProbe(token),
             passiveProbe(token),
-        ) + suruDesiderativeProbes(token) + appearanceSouProbes(token).map { it.baseForm } + completionSuffixProbes(token).map { it.first }
+        ) + suruDesiderativeProbes(token) + appearanceSouProbes(token).map { it.baseForm } + completionSuffixProbes(token).map { it.first } + teAuxMotionProbe(token).map { it.first }
 
     /**
      * Grades how well [lookup] pins down the entry [token] means, using the `(headword, reading)` pair.
@@ -783,6 +785,50 @@ class LexicalResolver(
         return listOf(ichidan, godan)
     }
 
+    /**
+     * Safety net for a verb the lyric follows with the motion auxiliary ていく / てくる (飛んでいく).
+     *
+     * jisho does not index the te-form + いく compound, so the auxiliary is dropped and the te-form
+     * conjugated back to a dictionary form. んで / って are ambiguous (飛ぶ, 読む, 死ぬ), so every
+     * candidate is asked and the first one jisho answers with a verb sense wins.
+     */
+    private fun resolveTeAuxMotion(
+        token: PipelineToken,
+        lookups: Map<String, JishoEntryDto>,
+        logRescue: Boolean = true,
+    ): AcceptedLexicalEntry? {
+        for ((base, reading) in teAuxMotionProbe(token)) {
+            val accepted = narrow(token, lookups[base], base, reading, logRescue) ?: continue
+            val verbEntries = accepted.entries.mapNotNull { entry ->
+                val verbSenses = entry.senses.filter { JishoPartOfSpeechMapper.map(it.pos) == PartOfSpeech.VERB }
+                if (verbSenses.isEmpty()) null else entry.copy(senses = verbSenses)
+            }
+            if (verbEntries.isEmpty()) continue
+            if (logRescue) logger.info("Stripped motion auxiliary from '{}' to '{}'", token.headword, base)
+            return AcceptedLexicalEntry(base, verbEntries, accepted.provenance)
+        }
+        return null
+    }
+
+    /**
+     * `飛んでいく` / `トンデイク` → (`飛む`, `トム`), (`飛ぶ`, `トブ`), (`飛ぬ`, `トヌ`): every dictionary form
+     * the te-form could come from, paired with its reading. Empty unless the headword is a te-form
+     * followed by いく / くる.
+     */
+    private fun teAuxMotionProbe(token: PipelineToken): List<Pair<String, String?>> {
+        val teForm = stripTeAuxMotion(token.headword) ?: return emptyList()
+        val readings = stripTeAuxMotion(JapaneseText.toHiragana(token.baseFormReading))
+            ?.let(::teFormToDictionaryForms)
+            ?.map(JapaneseText::toKatakana)
+        return teFormToDictionaryForms(teForm).mapIndexed { i, base -> base to readings?.getOrNull(i) }
+    }
+
+    /** `飛んでいく` → `飛んで`. Null unless what precedes いく / くる ends in て / で. */
+    private fun stripTeAuxMotion(text: String): String? {
+        val suffix = TE_AUX_MOTION_SUFFIXES.firstOrNull { text.endsWith(it) } ?: return null
+        return text.dropLast(suffix.length).takeIf { it.length >= 2 && (it.endsWith("て") || it.endsWith("で")) }
+    }
+
     private companion object {
         val INTENSIFIER_PREFIXES = listOf("ぶち", "ぶっ")
 
@@ -831,5 +877,28 @@ class LexicalResolver(
             'い' to 'う', 'き' to 'く', 'ぎ' to 'ぐ', 'し' to 'す', 'ち' to 'つ',
             'に' to 'ぬ', 'び' to 'ぶ', 'み' to 'む', 'り' to 'る',
         )
+
+        val TE_AUX_MOTION_SUFFIXES = listOf("いく", "行く", "くる", "来る")
+
+        /** Te-form ending → the dictionary-form endings it can come from. */
+        val TE_FORM_ENDINGS = listOf(
+            "んで" to listOf("む", "ぶ", "ぬ"),
+            "って" to listOf("う", "つ", "る"),
+            "いて" to listOf("く"),
+            "いで" to listOf("ぐ"),
+            "して" to listOf("す"),
+        )
+
+        /**
+         * `飛んで` → `飛む`, `飛ぶ`, `飛ぬ`; `消えて` → `消える`. Godan candidates first, the ichidan
+         * reading of て last. The order is fixed so a headword and its reading line up index by index.
+         */
+        fun teFormToDictionaryForms(teForm: String): List<String> {
+            val godan = TE_FORM_ENDINGS.firstOrNull { teForm.endsWith(it.first) }
+                ?.let { (ending, bases) -> bases.map { teForm.dropLast(ending.length) + it } }
+                ?: emptyList()
+            val ichidan = if (teForm.endsWith("て")) listOf(teForm.dropLast(1) + "る") else emptyList()
+            return (godan + ichidan).filter { it.length >= 2 }
+        }
     }
 }
