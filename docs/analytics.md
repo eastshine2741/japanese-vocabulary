@@ -48,29 +48,35 @@ ORDER BY iso_week;
 
 ## 체류 시간 (BigQuery)
 
-앱은 체류를 재지 않는다. `screen_name = 'SongDetail'` 인 `screen_view` 와 그 다음 `screen_view` 의 간격으로 계산한다.
+앱은 체류를 재지 않는다. SongDetail `screen_view` 와 그 다음 `screen_view` 의 간격으로 계산한다.
 SongDetail `screen_view` 에는 `song_id`, `origin`(진입 경로) 파라미터가 붙는다.
+
+- 화면 이름은 BigQuery 에 `screen_name` 이 아니라 `firebase_screen` / `firebase_screen_class` 로 들어온다.
+- SDK 가 네이티브 화면(`MainActivity`, `RNSScreen`, `UIViewController` 등)도 자동으로 찍는다. 이 이벤트에는 `firebase_screen` 이 없으니 `firebase_screen IS NOT NULL` 로 걸러 앱이 찍은 RN 화면만 남긴다.
+- `ga_session_id` 가 빠진 `screen_view` 가 있어(약 13%) 세션이 아니라 `user_pseudo_id` 로 묶고 30분 상한으로 자른다.
 
 ```sql
 WITH events AS (
   SELECT
-    user_id,
-    (SELECT value.int_value FROM UNNEST(event_params) WHERE key = 'ga_session_id') AS session_id,
-    (SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'screen_name') AS screen_name,
+    user_pseudo_id,
+    (SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'firebase_screen') AS screen,
     event_timestamp
-  FROM `<project>.analytics_<property_id>.events_*`
+  FROM `japanese-vocabulary-490916.analytics_539684755.events_*`
   WHERE event_name = 'screen_view'
+    AND app_info.id = 'dev.eastshine.kotonoha'
+    AND COALESCE(user_id, '') <> '1'
 ),
 spans AS (
   SELECT
-    screen_name,
-    LEAD(event_timestamp) OVER (PARTITION BY user_id, session_id ORDER BY event_timestamp)
+    screen,
+    LEAD(event_timestamp) OVER (PARTITION BY user_pseudo_id ORDER BY event_timestamp)
       - event_timestamp AS dwell_us
   FROM events
+  WHERE screen IS NOT NULL
 )
 SELECT APPROX_QUANTILES(dwell_us / 1e6, 10) AS dwell_seconds_deciles
 FROM spans
-WHERE screen_name = 'SongDetail'
+WHERE screen = 'SongDetail'
   AND dwell_us BETWEEN 0 AND 30 * 60 * 1e6;  -- 백그라운드 시간 상한
 ```
 
