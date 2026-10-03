@@ -153,7 +153,6 @@ fun SongAnalysisWorkEntity.toSummaryResponse(): AdminSongAnalysisWorkSummaryResp
         createdByUserId = createdByUserId,
         createdAt = createdAt,
         updatedAt = updatedAt,
-        playerReadyAt = playerReadyAt,
         completedAt = completedAt,
         failedAt = failedAt,
     )
@@ -176,7 +175,6 @@ fun SongAnalysisWorkEntity.toDetailResponse(stages: List<SongAnalysisWorkStageEn
         createdByUserId = createdByUserId,
         createdAt = createdAt,
         updatedAt = updatedAt,
-        playerReadyAt = playerReadyAt,
         completedAt = completedAt,
         failedAt = failedAt,
         startedAt = startedAt,

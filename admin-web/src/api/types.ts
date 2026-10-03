@@ -60,7 +60,6 @@ export type SongAnalysisWorkSummary = {
   createdByUserId: number | null
   createdAt: string | null
   updatedAt: string | null
-  playerReadyAt: string | null
   completedAt: string | null
   failedAt: string | null
 }

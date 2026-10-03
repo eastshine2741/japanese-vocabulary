@@ -81,7 +81,6 @@ export function SongAnalysisWorkDetailPage() {
         <h2 className="mb-3 text-sm font-semibold text-[#18212f]">Milestones</h2>
         <DetailGrid>
           <DetailItem label="Created" value={formatDateTime(work.createdAt)} />
-          <DetailItem label="Player ready" value={formatDateTime(work.playerReadyAt)} />
           <DetailItem label="Completed" value={formatDateTime(work.completedAt)} />
           <DetailItem label="Failed" value={formatDateTime(work.failedAt)} />
           <DetailItem label="Updated" value={formatDateTime(work.updatedAt)} />
@@ -115,8 +114,6 @@ export function SongAnalysisWorkDetailPage() {
       <section className="mt-6">
         <h2 className="mb-3 text-sm font-semibold text-[#18212f]">Elapsed time</h2>
         <DetailGrid>
-          <DetailItem label="Created to player ready" value={formatDurationBetween(work.createdAt, work.playerReadyAt)} />
-          <DetailItem label="Player ready to terminal" value={formatDurationBetween(work.playerReadyAt, terminalAt(work))} />
           <DetailItem label="Created to terminal" value={formatDurationBetween(work.createdAt, terminalAt(work))} />
           <DetailItem label="Last update from created" value={formatDurationBetween(work.createdAt, work.updatedAt)} />
         </DetailGrid>
