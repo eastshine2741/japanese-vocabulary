@@ -56,8 +56,10 @@ from `backend/`.
 - DB migrations live in `backend/migration/src/main/resources/db/migration/`.
 - Integration tests belong in bootstrap modules, not in domain modules with test
   `@SpringBootApplication` classes.
-- 곡 분석 작업은 메시지 큐로 즉시 실행된다. 메시지는 `workId` 만 싣고 원장
-  `song_analysis_work` 행이 진실 원천이다 — 중복 배달은 claim 이, 유실은 sweeper 가 흡수한다.
+- 곡 분석 작업은 메시지 큐로 즉시 실행된다. 단계 하나가 메시지 하나(`workId`, `stage`)이고 원장
+  `song_analysis_work` / `song_analysis_work_stage` 가 진실 원천이다 — 단계 산출물·실패 원인이 원장에
+  남고, 중복 배달은 claim 이, 유실은 sweeper 가, 죽은 worker 는 재배달이 흡수한다. 오류로 메시지를
+  다시 넣지 않는다(5분 예산 안의 HTTP 호출 단위 재시도만). 관리자는 실패한 단계부터 다시 돌릴 수 있다.
   한 곡에 활성 작업 하나는 `(raw_title, raw_artist)` 갭 락이 지키므로 REPEATABLE READ 가 전제다.
 - RabbitMQ 큐 토폴로지는 브로커가 부팅 때 읽는 `definitions.json` 이 소유한다
   (`k8s/{dev,prod}/rabbitmq/`). 앱은 이름만 참조하고 `spring.rabbitmq.dynamic` 은 false 다.

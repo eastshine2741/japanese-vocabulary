@@ -20,7 +20,7 @@ Architecture direction:
 - Active domain/integration modules provide Spring wiring through `AutoConfiguration.imports` and `com.japanese.autoconfigure.*` classes. AutoConfiguration component-scans the module-owned `com.japanese.vocabulary.<module>` package and registers JPA entities/repositories explicitly. Application bootstraps should not carry sibling module `@EntityScan` or repository scan knowledge, and broad root component scan should not be used as a backup wiring path.
 - Integration clients should use `RestClient` where behavior can stay equivalent. Applications avoid unused clients by depending only on the integration modules they need; the depended module's AutoConfiguration exposes its client beans.
 - Product/read-model cache belongs to the application module that owns the behavior. For this pass, song search cache belongs to `api` and artist-channel cache belongs to `worker`.
-- Admin mutations must call domain methods/services; raw field updates stay out of scope. Current mutation: song reanalysis creates or reuses a `song_analysis_work` and never edits song/lyric fields directly.
+- Admin mutations must call domain methods/services; raw field updates stay out of scope. Current mutations: song reanalysis creates or reuses a `song_analysis_work`, and resume reopens a failed work at its failed stage (`SongAnalysisWorkService.resume`); neither edits song/lyric fields directly.
 
 ## Backend
 
@@ -49,6 +49,10 @@ Routes:
 - `POST /admin/api/songs/{songId}/reanalysis`
 - `GET /admin/api/lyrics`
 - `GET /admin/api/lyrics/{lyricId}`
+- `GET /admin/api/song-analysis-works`
+- `GET /admin/api/song-analysis-works/{workId}` — 단계별 상태·시도 횟수·실패 원인(`stages`)과 `resumable` 포함
+- `GET /admin/api/song-analysis-works/{workId}/stages/{stage}/output` — 단계 산출물 JSON 원문
+- `POST /admin/api/song-analysis-works/{workId}/resume` — FAILED 작업을 실패한 단계부터 다시 돌린다 (활성 작업이 있거나 단계 원장 이전 작업이면 409)
 - `GET /admin/api/recommendations/weeks`
 - `GET /admin/api/recommendations/candidates`
 - `PATCH /admin/api/recommendations/candidates/{candidateId}/status`
@@ -139,6 +143,8 @@ VITE_ADMIN_API_BASE_URL=http://localhost:8081/admin/api npm run dev
 The browser token is stored in `sessionStorage`.
 
 Song detail exposes a reanalysis action. If a `PENDING` or `RUNNING` analysis work already blocks the song, the trigger is disabled and the active work is linked. Recent work history links to work and lyric details and shows the work-produced MV URL from `song_analysis_work.youtube_url` when present. The UI does not implement rollback or active-result selection.
+
+Song analysis work detail lists the stages with status, attempt, duration, and failure (code, exception class, message chain); each stage's output JSON opens inline. A `FAILED` work with a stage ledger shows "Resume from <stage>", which reruns only that stage onward.
 
 ## Local k3s
 

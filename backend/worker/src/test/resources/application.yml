@@ -12,3 +12,6 @@ spring:
 song-analysis:
   worker:
     sweep-enabled: false
+  # 공급자 재시도가 실제로 기다리지 않게 한다. 횟수는 운영과 같다.
+  provider-retry:
+    initial-backoff: 0s

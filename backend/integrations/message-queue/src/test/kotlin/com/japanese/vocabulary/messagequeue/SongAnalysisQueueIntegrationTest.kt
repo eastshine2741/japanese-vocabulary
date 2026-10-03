@@ -1,6 +1,7 @@
 package com.japanese.vocabulary.messagequeue
 
 import com.japanese.autoconfigure.messagequeue.MessageQueueAutoConfiguration
+import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStage
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.springframework.amqp.core.Binding
@@ -39,10 +40,10 @@ class SongAnalysisQueueIntegrationTest {
     @Autowired private lateinit var consumer: TestConsumer
 
     @Test
-    fun `published work id round-trips through the queue`() {
-        publisher.publish(4242L)
+    fun `published work id and stage round-trip through the queue`() {
+        publisher.publish(4242L, SongAnalysisWorkStage.SELECT_SENSES)
 
-        assertThat(consumer.take()).isEqualTo(SongAnalysisWorkMessage(4242L))
+        assertThat(consumer.take()).isEqualTo(SongAnalysisWorkMessage(4242L, SongAnalysisWorkStage.SELECT_SENSES))
     }
 
     @Configuration(proxyBeanMethods = false)

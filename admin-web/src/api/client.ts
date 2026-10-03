@@ -115,6 +115,14 @@ export const adminApi = {
   songAnalysisWork(token: string, id: string) {
     return request<SongAnalysisWorkDetail>(`/song-analysis-works/${id}`, token)
   },
+  songAnalysisStageOutput(token: string, id: string, stage: string) {
+    return request<unknown>(`/song-analysis-works/${id}/stages/${stage}/output`, token)
+  },
+  resumeSongAnalysisWork(token: string, id: string) {
+    return request<SongAnalysisWorkDetail>(`/song-analysis-works/${id}/resume`, token, {
+      method: "POST",
+    })
+  },
   recommendationWeeks(token: string) {
     return request<string[]>("/recommendations/weeks", token)
   },

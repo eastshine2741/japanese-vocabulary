@@ -78,11 +78,26 @@ export type SongAnalysisWorkOperation = {
   errorMessage: string | null
 }
 
+export type SongAnalysisStage = {
+  stage: string
+  status: string
+  attempt: number
+  errorCode: string | null
+  errorClass: string | null
+  errorMessage: string | null
+  outputLength: number | null
+  startedAt: string | null
+  finishedAt: string | null
+}
+
 export type SongAnalysisWorkDetail = SongAnalysisWorkSummary & {
   durationSeconds: number | null
   artworkUrl: string | null
   errorCode: string | null
   errorMessage: string | null
+  startedAt: string | null
+  stages: SongAnalysisStage[]
+  resumable: boolean
 }
 
 export type RecommendationOperationItem = {

@@ -10,6 +10,7 @@ import com.japanese.vocabulary.translation.client.jisho.dto.JishoSearchResponse
 import com.japanese.vocabulary.translation.service.pipeline.JapaneseText
 import com.japanese.vocabulary.common.retry.ExponentialBackoff
 import com.japanese.vocabulary.common.retry.TransientHttpErrors
+import com.japanese.vocabulary.common.retry.currentRetryDeadline
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -65,6 +66,7 @@ class JishoClient(
             backoff.retry(
                 isTransient = TransientHttpErrors::isTransient,
                 atLeast = TransientHttpErrors::retryAfter,
+                deadline = currentRetryDeadline(),
                 sleep = { delay(it.toMillis()) },
             ) { attempt ->
                 attempts = attempt

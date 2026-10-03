@@ -14,6 +14,7 @@ import {
   recommendationOperationResult,
   reelsSongCandidate,
   reelsSongDetail,
+  failedSongAnalysisWorkDetail,
   songAnalysisWorkDetail,
   songAnalysisWorkSummary,
   songDetail,
@@ -37,6 +38,11 @@ function mockFetch() {
     if (url.includes("/songs/1")) return json(songDetail)
     if (url.includes("/songs?")) return json(page([songSummary]))
     if (url.includes("/song-analysis-works/4")) return json(songAnalysisWorkDetail)
+    if (url.endsWith("/song-analysis-works/5/resume") && init?.method === "POST") {
+      return json({ ...failedSongAnalysisWorkDetail, status: "PENDING", resumable: false, errorCode: null, errorMessage: null })
+    }
+    if (url.endsWith("/song-analysis-works/5/stages/ANALYZE_LYRICS/output")) return json({ translation: { "0": { index: 0, koreanLyrics: "고양이" } } })
+    if (url.includes("/song-analysis-works/5")) return json(failedSongAnalysisWorkDetail)
     if (url.includes("/song-analysis-works?")) return json(page([songAnalysisWorkSummary]))
     if (url.includes("/recommendations/weeks")) return json([recommendationCandidate.weekStartDate])
     if (url.includes("/recommendations/candidates")) return json([recommendationCandidate])
@@ -307,6 +313,26 @@ describe("admin web", () => {
     expect(screen.getByText("Elapsed time")).toBeInTheDocument()
     expect(screen.getByText("Created to player ready")).toBeInTheDocument()
     expect(screen.getByText("2m 00s")).toBeInTheDocument()
+  })
+
+  test("shows stage failures, stage output, and resumes from the failed stage", async () => {
+    const user = userEvent.setup()
+    const fetchMock = mockFetch()
+    sessionStorage.setItem("kotonoha.admin.token", "admin-token")
+    renderApp("/song-analysis-works/5")
+
+    expect(await screen.findByRole("heading", { name: "Work #5" })).toBeInTheDocument()
+    expect(screen.getByText("IllegalStateException: bad answer")).toBeInTheDocument()
+
+    await user.click(screen.getByRole("button", { name: "View (80 chars)" }))
+    expect(await screen.findByText(/고양이/)).toBeInTheDocument()
+
+    await user.click(screen.getByRole("button", { name: /resume from ANALYZE_LYRICS/i }))
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("/song-analysis-works/5/resume"), expect.objectContaining({ method: "POST" })),
+    )
+    expect(await screen.findByText("PENDING")).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: /resume from/i })).not.toBeInTheDocument()
   })
 
   test("renders reels factory and enables render after line selection", async () => {

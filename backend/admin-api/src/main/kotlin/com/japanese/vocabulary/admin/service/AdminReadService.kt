@@ -1,6 +1,7 @@
 package com.japanese.vocabulary.admin.service
 
 import com.japanese.vocabulary.admin.dto.AdminLyricDetailResponse
+import com.japanese.vocabulary.admin.dto.AdminSongAnalysisStageResponse
 import com.japanese.vocabulary.admin.dto.AdminLyricSummaryResponse
 import com.japanese.vocabulary.admin.dto.AdminSongAnalysisWorkDetailResponse
 import com.japanese.vocabulary.admin.dto.AdminSongAnalysisWorkSummaryResponse
@@ -12,7 +13,10 @@ import com.japanese.vocabulary.admin.repository.AdminSongAnalysisWorkRepository
 import com.japanese.vocabulary.song.entity.LyricEntity
 import com.japanese.vocabulary.song.entity.SongEntity
 import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkEntity
+import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStage
+import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStageEntity
 import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStatus
+import com.japanese.vocabulary.songanalysis.service.SongAnalysisWorkService
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
@@ -26,6 +30,7 @@ class AdminReadService(
     private val songRepository: AdminSongRepository,
     private val lyricRepository: AdminLyricRepository,
     private val songAnalysisWorkRepository: AdminSongAnalysisWorkRepository,
+    private val songAnalysisWorkService: SongAnalysisWorkService,
 ) {
     fun listSongs(query: String?, pageable: Pageable): Page<AdminSongSummaryResponse> {
         val sorted = pageable.byIdDesc()
@@ -72,8 +77,13 @@ class AdminReadService(
         val work = songAnalysisWorkRepository.findById(id).orElseThrow {
             NoSuchElementException("Song analysis work not found")
         }
-        return work.toDetailResponse()
+        return work.toDetailResponse(songAnalysisWorkService.stages(id))
     }
+
+    /** 단계 산출물 원문(JSON). 다음 단계가 읽는 그대로라 디버깅 자료가 된다. */
+    fun getSongAnalysisStageOutput(id: Long, stage: SongAnalysisWorkStage): String =
+        songAnalysisWorkService.stages(id).firstOrNull { it.stage == stage }?.output
+            ?: throw NoSuchElementException("No output for $stage of work $id")
 
     private fun Pageable.byIdDesc(): Pageable =
         PageRequest.of(pageNumber, pageSize, Sort.by(Sort.Direction.DESC, "id"))
@@ -148,7 +158,7 @@ fun SongAnalysisWorkEntity.toSummaryResponse(): AdminSongAnalysisWorkSummaryResp
         failedAt = failedAt,
     )
 
-fun SongAnalysisWorkEntity.toDetailResponse(): AdminSongAnalysisWorkDetailResponse =
+fun SongAnalysisWorkEntity.toDetailResponse(stages: List<SongAnalysisWorkStageEntity>): AdminSongAnalysisWorkDetailResponse =
     AdminSongAnalysisWorkDetailResponse(
         id = requireNotNull(id),
         rawTitle = rawTitle,
@@ -169,4 +179,20 @@ fun SongAnalysisWorkEntity.toDetailResponse(): AdminSongAnalysisWorkDetailRespon
         playerReadyAt = playerReadyAt,
         completedAt = completedAt,
         failedAt = failedAt,
+        startedAt = startedAt,
+        stages = stages.map { it.toResponse() },
+        resumable = status == SongAnalysisWorkStatus.FAILED && currentStage != null && stages.isNotEmpty(),
+    )
+
+fun SongAnalysisWorkStageEntity.toResponse(): AdminSongAnalysisStageResponse =
+    AdminSongAnalysisStageResponse(
+        stage = stage.name,
+        status = status.name,
+        attempt = attempt,
+        errorCode = errorCode,
+        errorClass = errorClass,
+        errorMessage = errorMessage,
+        outputLength = output?.length,
+        startedAt = startedAt,
+        finishedAt = finishedAt,
     )

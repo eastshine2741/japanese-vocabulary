@@ -22,6 +22,14 @@ spring:
     password: ${MYSQL_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
+  # 명시하지 않으면 읽기 타임아웃이 없다. prod 에서 Gemini 가 응답 없이 180초씩 세 번 붙잡혀
+  # 한 작업이 9분 넘게 걸린 적이 있다. 정상 Gemini 번역은 30~40초, 부하가 몰릴 때 최대 약 113초라
+  # 그 위로 잡는다. 이 앱의 RestClient 는 모두 이 값을 쓴다.
+  http:
+    client:
+      connect-timeout: 5s
+      read-timeout: 120s
+
   jpa:
     hibernate:
       ddl-auto: validate
@@ -59,7 +67,15 @@ song-analysis:
   worker:
     # 한 파드가 동시에 분석하는 곡 수. 병목이 외부 API 대기라 스레드 수를 늘려도 메모리 부담은 작다.
     concurrency: ${SONG_ANALYSIS_CONCURRENCY:3}
-    sweep-interval-ms: 300000
+    # 요청부터 분석 완료까지 유저가 기다리는 상한. 이걸 넘겨 끝날 재시도는 기다리지 않는다 —
+    # 단계 실행 자체를 끊지는 않고, HTTP 호출의 재시도 대기만 이 마감 앞에서 멈춘다.
+    time-budget: 5m
+    # 유실된 메시지 재발행과 멈춘 작업 정리. 재발행 판정이 1분이라 주기도 1분이다.
+    sweep-interval-ms: 60000
+  # 가사(lrclib/VocaDB)·YouTube 검색 한 번 전체를 재시도하는 정책. 일시 장애만, 마감 안에서만.
+  provider-retry:
+    max-attempts: 3
+    initial-backoff: 1s
 
 gemini:
   api-key: ${GEMINI_API_KEY}

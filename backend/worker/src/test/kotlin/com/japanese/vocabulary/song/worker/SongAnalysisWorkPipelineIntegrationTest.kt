@@ -1,6 +1,7 @@
 package com.japanese.vocabulary.song.worker
 
 import com.japanese.vocabulary.lyricsearch.LyricsResult
+import com.japanese.vocabulary.messagequeue.SongAnalysisWorkMessage
 import com.japanese.vocabulary.mvsearch.client.youtube.dto.YoutubeSearchItemDto
 import com.japanese.vocabulary.mvsearch.client.youtube.dto.YoutubeSearchResponse
 import com.japanese.vocabulary.mvsearch.client.youtube.dto.YoutubeSnippetDto
@@ -18,7 +19,9 @@ import com.japanese.vocabulary.songanalysis.entity.SongAnalysisTriggerSource
 import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkEntity
 import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStage
 import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStatus
+import com.japanese.vocabulary.songanalysis.entity.SongAnalysisStageStatus
 import com.japanese.vocabulary.songanalysis.repository.SongAnalysisWorkRepository
+import com.japanese.vocabulary.songanalysis.repository.SongAnalysisWorkStageRepository
 import com.japanese.vocabulary.songanalysis.service.SongAnalysisWorkService
 import com.japanese.vocabulary.test.WorkerBaseIntegrationTest
 import com.japanese.vocabulary.translation.client.gemini.dto.SegLineDto
@@ -32,18 +35,21 @@ import com.japanese.vocabulary.translation.client.jisho.dto.JishoLookupProvenanc
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoDictionaryEntryDto
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoOptionDto
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.verify
 import kotlinx.coroutines.runBlocking
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import java.time.Duration
-import java.time.Instant
+import org.springframework.http.HttpStatus
+import org.springframework.web.client.HttpServerErrorException
+import kotlin.coroutines.EmptyCoroutineContext
 
 class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
 
-    @Autowired private lateinit var processor: SongAnalysisWorkProcessor
+    @Autowired private lateinit var listener: SongAnalysisWorkListener
+    @Autowired private lateinit var stageRepository: SongAnalysisWorkStageRepository
     @Autowired private lateinit var workService: SongAnalysisWorkService
     @Autowired private lateinit var workRepository: SongAnalysisWorkRepository
     @Autowired private lateinit var songRepository: SongRepository
@@ -61,14 +67,10 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
             artworkUrl = "https://img.example/momoiro.jpg",
             triggerSource = SongAnalysisTriggerSource.USER_APP,
         )
-        val work = claimSingleWork(created.workId)
-
-        val processed = processor.process(work)
-
-        assertThat(processed).isTrue
+        drive(created.workId)
         val refreshedWork = workRepository.findById(created.workId).orElseThrow()
         assertThat(refreshedWork.status).isEqualTo(SongAnalysisWorkStatus.COMPLETED)
-        assertThat(refreshedWork.currentStage).isEqualTo(SongAnalysisWorkStage.ANALYZE_LYRICS)
+        assertThat(refreshedWork.currentStage).isEqualTo(SongAnalysisWorkStage.COMPLETE)
         assertThat(refreshedWork.playerReadyAt).isNotNull
         assertThat(refreshedWork.songId).isNotNull
         assertThat(refreshedWork.lyricId).isNotNull
@@ -92,8 +94,8 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
         verify(exactly = 1) { lrclibClient.search(any()) }
         verify(exactly = 0) { vocadbClient.search(any()) }
         verify(exactly = 1) { youtubeClient.searchVideos(any(), any(), any(), any()) }
-        verify(exactly = 1) { geminiClient.translateLyrics(any(), any()) }
-        verify(exactly = 1) { geminiClient.segmentAndLemmatize(any(), any(), any()) }
+        coVerify(exactly = 1) { geminiClient.translateLyrics(any(), any()) }
+        coVerify(exactly = 1) { geminiClient.segmentAndLemmatize(any(), any(), any()) }
     }
 
     @Test
@@ -109,11 +111,7 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
             durationSeconds = 210,
             triggerSource = SongAnalysisTriggerSource.USER_APP,
         )
-        val work = claimSingleWork(created.workId)
-
-        val processed = processor.process(work)
-
-        assertThat(processed).isFalse
+        drive(created.workId)
         val refreshedWork = workRepository.findById(created.workId).orElseThrow()
         assertThat(refreshedWork.status).isEqualTo(SongAnalysisWorkStatus.FAILED)
         assertThat(refreshedWork.currentStage).isEqualTo(SongAnalysisWorkStage.FETCH_YOUTUBE)
@@ -125,8 +123,8 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
 
         verify(exactly = 1) { lrclibClient.search(any()) }
         verify(exactly = 1) { youtubeClient.searchVideos(any(), any(), any(), any()) }
-        verify(exactly = 0) { geminiClient.translateLyrics(any(), any()) }
-        verify(exactly = 0) { geminiClient.segmentAndLemmatize(any(), any(), any()) }
+        coVerify(exactly = 0) { geminiClient.translateLyrics(any(), any()) }
+        coVerify(exactly = 0) { geminiClient.segmentAndLemmatize(any(), any(), any()) }
     }
 
     @Test
@@ -140,11 +138,7 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
             durationSeconds = 210,
             triggerSource = SongAnalysisTriggerSource.USER_APP,
         )
-        val work = claimSingleWork(created.workId)
-
-        val processed = processor.process(work)
-
-        assertThat(processed).isFalse
+        drive(created.workId)
         val refreshedWork = workRepository.findById(created.workId).orElseThrow()
         assertThat(refreshedWork.status).isEqualTo(SongAnalysisWorkStatus.FAILED)
         assertThat(refreshedWork.currentStage).isEqualTo(SongAnalysisWorkStage.FETCH_LYRICS)
@@ -157,8 +151,8 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
         verify(exactly = 1) { lrclibClient.search(any()) }
         verify(exactly = 1) { vocadbClient.search(any()) }
         verify(exactly = 0) { youtubeClient.searchVideos(any(), any(), any(), any()) }
-        verify(exactly = 0) { geminiClient.translateLyrics(any(), any()) }
-        verify(exactly = 0) { geminiClient.segmentAndLemmatize(any(), any(), any()) }
+        coVerify(exactly = 0) { geminiClient.translateLyrics(any(), any()) }
+        coVerify(exactly = 0) { geminiClient.segmentAndLemmatize(any(), any(), any()) }
     }
 
     @Test
@@ -172,11 +166,7 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
             durationSeconds = 210,
             triggerSource = SongAnalysisTriggerSource.USER_APP,
         )
-        val work = claimSingleWork(created.workId)
-
-        val processed = processor.process(work)
-
-        assertThat(processed).isFalse
+        drive(created.workId)
         val refreshedWork = workRepository.findById(created.workId).orElseThrow()
         assertThat(refreshedWork.status).isEqualTo(SongAnalysisWorkStatus.FAILED)
         assertThat(refreshedWork.currentStage).isEqualTo(SongAnalysisWorkStage.ANALYZE_LYRICS)
@@ -192,9 +182,9 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
 
         verify(exactly = 1) { lrclibClient.search(any()) }
         verify(exactly = 1) { youtubeClient.searchVideos(any(), any(), any(), any()) }
-        verify(exactly = 1) { geminiClient.translateLyrics(any(), any()) }
-        verify(exactly = 0) { geminiClient.selectSenses(any(), any()) }
-        verify(exactly = 0) { geminiClient.translateSenses(any(), any()) }
+        coVerify(exactly = 1) { geminiClient.translateLyrics(any(), any()) }
+        coVerify(exactly = 0) { geminiClient.selectSenses(any(), any()) }
+        coVerify(exactly = 0) { geminiClient.translateSenses(any(), any()) }
     }
 
     @Test
@@ -205,11 +195,7 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
         val song = persistSongWithOldMv()
         val oldLyric = persistActiveLyric(song.id!!, "古い歌詞")
         val work = persistAdminWork(song.id!!, status = SongAnalysisWorkStatus.PENDING)
-        val claimed = claimSingleWork(work.id!!)
-
-        val processed = processor.process(claimed)
-
-        assertThat(processed).isTrue
+        drive(work.id!!)
         entityManager.flush()
         entityManager.clear()
 
@@ -234,11 +220,7 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
         val song = persistSongWithOldMv()
         val oldLyric = persistActiveLyric(song.id!!, "古い歌詞")
         val work = persistAdminWork(song.id!!, status = SongAnalysisWorkStatus.PENDING)
-        val claimed = claimSingleWork(work.id!!)
-
-        val processed = processor.process(claimed)
-
-        assertThat(processed).isFalse
+        drive(work.id!!)
         entityManager.flush()
         entityManager.clear()
 
@@ -253,6 +235,79 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
         assertThat(refreshedSong.activeLyricId).isEqualTo(oldLyric.id)
         assertThat(refreshedSong.youtubeUrl).isEqualTo("https://youtu.be/old-mv")
         assertThat(lyrics.map { it.id }).contains(oldLyric.id, refreshedWork.lyricId)
+    }
+
+    /**
+     * 실패한 단계부터 이어서 돌린다. 앞 단계(가사·MV 검색, 곡 생성)는 다시 하지 않고, 가사 분석
+     * 단계 안에서도 이미 끝난 번역 갈래는 다시 부르지 않는다.
+     */
+    @Test
+    fun `resume reruns only the failed stage and keeps finished branches`(): Unit = runBlocking {
+        stubLyricsFound()
+        stubYoutubeFound()
+        stubLyricAnalysis()
+        coEvery { geminiClient.segmentAndLemmatize(any(), any(), any()) } throws RuntimeException("segmentation broke")
+        val created = workService.createOrReuse(title = TITLE, artist = ARTIST, durationSeconds = 210)
+
+        drive(created.workId)
+
+        val failed = workRepository.findById(created.workId).orElseThrow()
+        assertThat(failed.status).isEqualTo(SongAnalysisWorkStatus.FAILED)
+        assertThat(failed.currentStage).isEqualTo(SongAnalysisWorkStage.ANALYZE_LYRICS)
+        val failedStage = stage(created.workId, SongAnalysisWorkStage.ANALYZE_LYRICS)
+        assertThat(failedStage.status).isEqualTo(SongAnalysisStageStatus.FAILED)
+        assertThat(failedStage.errorClass).isEqualTo("java.lang.RuntimeException")
+        assertThat(failedStage.errorMessage).contains("segmentation broke")
+        assertThat(failedStage.output).contains("복숭아빛 열쇠")
+        assertThat(stage(created.workId, SongAnalysisWorkStage.FETCH_LYRICS).status).isEqualTo(SongAnalysisStageStatus.COMPLETED)
+
+        stubLyricAnalysis()
+        workService.resume(created.workId)
+        drive(created.workId)
+
+        val resumed = workRepository.findById(created.workId).orElseThrow()
+        assertThat(resumed.status).isEqualTo(SongAnalysisWorkStatus.COMPLETED)
+        assertThat(stage(created.workId, SongAnalysisWorkStage.ANALYZE_LYRICS).attempt).isEqualTo(2)
+        assertThat(lyricRepository.findById(resumed.lyricId!!).orElseThrow().analyzedContent!![0].koreanLyrics)
+            .isEqualTo("복숭아빛 열쇠")
+        verify(exactly = 1) { lrclibClient.search(any()) }
+        verify(exactly = 1) { youtubeClient.searchVideos(any(), any(), any(), any()) }
+        coVerify(exactly = 1) { geminiClient.translateLyrics(any(), any()) }
+        assertThat(songRepository.findByArtistAndTitle(ARTIST, TITLE)!!.id).isEqualTo(resumed.songId)
+    }
+
+    /** 공급자가 끝내 답하지 못한 것은 "가사 없음" 이 아니다. 재시도한 뒤 장애로 기록한다. */
+    @Test
+    fun `lyric provider outage is retried and reported as an outage, not a miss`(): Unit = runBlocking {
+        stubLyricsFound()
+        every { lrclibClient.search(any()) } throws HttpServerErrorException(HttpStatus.SERVICE_UNAVAILABLE)
+        val created = workService.createOrReuse(title = TITLE, artist = ARTIST, durationSeconds = 210)
+
+        drive(created.workId)
+
+        val refreshed = workRepository.findById(created.workId).orElseThrow()
+        assertThat(refreshed.status).isEqualTo(SongAnalysisWorkStatus.FAILED)
+        assertThat(refreshed.currentStage).isEqualTo(SongAnalysisWorkStage.FETCH_LYRICS)
+        assertThat(refreshed.errorCode).isEqualTo("SONG_ANALYSIS_PROVIDER_UNAVAILABLE")
+        verify(exactly = 3) { lrclibClient.search(any()) }
+        verify(exactly = 1) { vocadbClient.search(any()) }
+    }
+
+    @Test
+    fun `a stage message that is not the one the work waits for is ignored`(): Unit = runBlocking {
+        stubLyricsFound()
+        val created = workService.createOrReuse(title = TITLE, artist = ARTIST, durationSeconds = 210)
+
+        listener.handle(
+            SongAnalysisWorkMessage(created.workId, SongAnalysisWorkStage.SELECT_SENSES),
+            redelivered = false,
+            EmptyCoroutineContext,
+        )
+
+        val refreshed = workRepository.findById(created.workId).orElseThrow()
+        assertThat(refreshed.status).isEqualTo(SongAnalysisWorkStatus.PENDING)
+        assertThat(stageRepository.findByWorkIdOrderByIdAsc(created.workId)).isEmpty()
+        verify(exactly = 0) { lrclibClient.search(any()) }
     }
 
     private fun persistActiveLyric(songId: Long, text: String): LyricEntity {
@@ -294,8 +349,21 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
         return work
     }
 
-    private fun claimSingleWork(workId: Long) =
-        checkNotNull(workService.claim(workId)) { "work $workId was not claimable" }
+    /**
+     * 큐 대신 원장이 기다리는 단계를 차례로 배달한다. 리스너는 테스트 스레드에서 돌린다 — 테스트
+     * 트랜잭션의 데이터를 보려면 같은 스레드여야 한다.
+     */
+    private fun drive(workId: Long) {
+        repeat(SongAnalysisWorkStage.entries.size + 1) {
+            val work = workRepository.findById(workId).orElseThrow()
+            if (work.status == SongAnalysisWorkStatus.COMPLETED || work.status == SongAnalysisWorkStatus.FAILED) return
+            listener.handle(SongAnalysisWorkMessage(workId, work.currentStage), redelivered = false, EmptyCoroutineContext)
+        }
+        error("work $workId did not reach a terminal state")
+    }
+
+    private fun stage(workId: Long, stage: SongAnalysisWorkStage) =
+        checkNotNull(stageRepository.findByWorkIdAndStage(workId, stage)) { "no $stage row for work $workId" }
 
     private fun stubLyricsFound() {
         every { lrclibClient.providerName } returns "LrcLib"
@@ -341,10 +409,10 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
     }
 
     private fun stubLyricAnalysis() {
-        every { geminiClient.translateLyrics(any(), any()) } returns listOf(
+        coEvery { geminiClient.translateLyrics(any(), any()) } returns listOf(
             TranslationResultDto(0, "복숭아빛 열쇠"),
         )
-        every { geminiClient.segmentAndLemmatize(any(), any(), any()) } returns listOf(
+        coEvery { geminiClient.segmentAndLemmatize(any(), any(), any()) } returns listOf(
             SegLineDto(
                 0,
                 listOf(
@@ -358,7 +426,7 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
             "ももいろ" to exactEntry("ももいろ", "モモイロ", "pink"),
             "鍵" to exactEntry("鍵", "カギ", "key"),
         )
-        every { geminiClient.selectSenses(any(), any()) } answers {
+        coEvery { geminiClient.selectSenses(any(), any()) } answers {
             @Suppress("UNCHECKED_CAST")
             firstArg<List<Map<String, Any?>>>().map { line ->
                 @Suppress("UNCHECKED_CAST")
@@ -376,7 +444,7 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
                 )
             }
         }
-        every { geminiClient.translateSenses(any(), any()) } answers {
+        coEvery { geminiClient.translateSenses(any(), any()) } answers {
             @Suppress("UNCHECKED_CAST")
             firstArg<List<Map<String, Any?>>>().map {
                 val senseId = it["senseId"] as Int
@@ -409,8 +477,8 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
     )
 
     private fun stubLyricAnalysisFailure() {
-        every { geminiClient.translateLyrics(any(), any()) } throws RuntimeException("Gemini unavailable")
-        every { geminiClient.segmentAndLemmatize(any(), any(), any()) } returns listOf(
+        coEvery { geminiClient.translateLyrics(any(), any()) } throws RuntimeException("Gemini unavailable")
+        coEvery { geminiClient.segmentAndLemmatize(any(), any(), any()) } returns listOf(
             SegLineDto(0, listOf(segWord("ももいろ", "モモイロ"))),
         )
         coEvery { jishoService.lookupAll(any()) } returns emptyMap()

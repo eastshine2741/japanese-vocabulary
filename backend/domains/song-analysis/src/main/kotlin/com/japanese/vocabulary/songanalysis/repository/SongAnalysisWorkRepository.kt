@@ -67,18 +67,28 @@ interface SongAnalysisWorkRepository : JpaRepository<SongAnalysisWorkEntity, Lon
     @Query("SELECT w FROM SongAnalysisWorkEntity w WHERE w.id = :id")
     fun findByIdForUpdate(@Param("id") id: Long): SongAnalysisWorkEntity?
 
-    // Sweeper only. A queue message normally carries the id, so this finds rows whose message was
-    // lost (broker restart, publish crash between commit and send) and republishes them.
+    // Sweeper only. updatedAt 은 생성·재개·단계 전이·진행 기록마다 갱신되므로 "마지막으로 움직인 시각" 이다.
     @Query(
-        "SELECT w.id FROM SongAnalysisWorkEntity w " +
+        "SELECT w FROM SongAnalysisWorkEntity w " +
             "WHERE w.status = com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStatus.PENDING " +
-            "AND w.createdAt < :threshold " +
-            "ORDER BY w.createdAt ASC"
+            "AND w.updatedAt < :threshold " +
+            "ORDER BY w.updatedAt ASC"
     )
-    fun findStalePendingIds(
+    fun findStalePending(
         @Param("threshold") threshold: Instant,
         pageable: Pageable,
-    ): List<Long>
+    ): List<SongAnalysisWorkEntity>
+
+    @Query(
+        "SELECT w FROM SongAnalysisWorkEntity w " +
+            "WHERE w.status = com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStatus.RUNNING " +
+            "AND w.updatedAt < :threshold " +
+            "ORDER BY w.updatedAt ASC"
+    )
+    fun findStaleRunning(
+        @Param("threshold") threshold: Instant,
+        pageable: Pageable,
+    ): List<SongAnalysisWorkEntity>
 
     // Sweeper only. updatedAt 은 claim 과 단계 기록마다 갱신되므로 "진행이 멈춘 시간" 을 뜻한다.
     // 총 실행 시간이 아니라서 느린 분석을 죽이지 않고, 멈춘 worker 는 다음 sweep 에 걸린다.

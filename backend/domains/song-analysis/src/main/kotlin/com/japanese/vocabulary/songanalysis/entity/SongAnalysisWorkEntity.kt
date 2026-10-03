@@ -72,6 +72,10 @@ class SongAnalysisWorkEntity(
     @Column(name = "updated_at", nullable = false)
     var updatedAt: Instant? = null,
 
+    /** 이번 실행이 시작된 시각. 재시도 마감이 여기서 잰다. 실패한 단계부터 다시 돌리면 새로 찍힌다. */
+    @Column(name = "started_at")
+    var startedAt: Instant? = null,
+
     @Column(name = "player_ready_at")
     var playerReadyAt: Instant? = null,
 
@@ -98,7 +102,6 @@ class SongAnalysisWorkEntity(
 
     fun markCompleted(now: Instant) {
         status = SongAnalysisWorkStatus.COMPLETED
-        currentStage = SongAnalysisWorkStage.ANALYZE_LYRICS
         completedAt = now
         clearFailure()
     }
