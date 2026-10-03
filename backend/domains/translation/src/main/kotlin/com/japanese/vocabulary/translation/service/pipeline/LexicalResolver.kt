@@ -63,6 +63,7 @@ class LexicalResolver(
                 ?: resolveReadingQuery(token, probeLookups)
                 ?: resolveHonorificPrefix(token, probeLookups)
                 ?: resolveContinuativeNoun(token, probeLookups)
+                ?: resolveSuruPassive(token, probeLookups)
 
             if (resolved == null) {
                 if (firstPass[token.headword]?.provenance == JishoLookupProvenance.REJECTED_FALLBACK) {
@@ -144,7 +145,8 @@ class LexicalResolver(
                     resolveKanjiVariant(it, probeLookups, logRescue = false) == null &&
                     resolveReadingQuery(it, probeLookups, logRescue = false) == null &&
                     resolveHonorificPrefix(it, probeLookups, logRescue = false) == null &&
-                    resolveContinuativeNoun(it, probeLookups, logRescue = false) == null
+                    resolveContinuativeNoun(it, probeLookups, logRescue = false) == null &&
+                    resolveSuruPassive(it, probeLookups, logRescue = false) == null
             }
             .map { token ->
                 val lookups = listOfNotNull(firstPass[token.headword]) +
@@ -172,6 +174,7 @@ class LexicalResolver(
             readingProbe(token),
             honorificPrefixProbe(token),
             continuativeNounProbe(token),
+            suruPassiveProbe(token),
         ) + suruDesiderativeProbes(token)
 
     /**
@@ -608,6 +611,38 @@ class LexicalResolver(
     private fun continuativeNounProbe(token: PipelineToken): String? =
         token.headword.takeIf { it.length >= 2 && it.endsWith("り") }?.dropLast(1)
 
+    /**
+     * Safety net for when the segmentation LLM hands back a suru-verb's passive — 毒される,
+     * 影響されない — as the headword instead of 毒する. Same guess as [resolveSuruDesiderative]:
+     * 話される probes 話する, which no entry carries, so a godan passive stays unresolved.
+     */
+    private fun resolveSuruPassive(
+        token: PipelineToken,
+        lookups: Map<String, JishoEntryDto>,
+        logRescue: Boolean = true,
+    ): AcceptedLexicalEntry? {
+        val base = suruPassiveProbe(token) ?: return null
+        val accepted = narrow(token, lookups[base], base, suruPassiveProbeReading(token), logRescue)
+            ?: return null
+        if (logRescue) logger.info("Normalized suru-verb passive '{}' to '{}'", token.surface, base)
+        return accepted
+    }
+
+    /** The probed base form's reading: `ドクサレル` → `ドクスル`, mirroring [suruPassiveProbe]. */
+    private fun suruPassiveProbeReading(token: PipelineToken): String? {
+        val suffix = SURU_PASSIVE_READING_SUFFIXES.firstOrNull { token.baseFormReading.endsWith(it) }
+            ?: return null
+        val stem = token.baseFormReading.dropLast(suffix.length)
+        return if (stem.isEmpty()) null else stem + "スル"
+    }
+
+    /** `毒される` / `毒されない` → `毒する`. Null when nothing precedes the suffix: される alone is する. */
+    private fun suruPassiveProbe(token: PipelineToken): String? {
+        val suffix = SURU_PASSIVE_SUFFIXES.firstOrNull { token.headword.endsWith(it) } ?: return null
+        val stem = token.headword.dropLast(suffix.length)
+        return if (stem.isEmpty()) null else stem + "する"
+    }
+
     private companion object {
         val INTENSIFIER_PREFIXES = listOf("ぶち", "ぶっ")
 
@@ -629,5 +664,8 @@ class LexicalResolver(
 
         val HONORIFIC_PREFIXES = listOf("お", "ご", "御")
         val HONORIFIC_PREFIX_READINGS = listOf("オ", "ゴ")
+
+        val SURU_PASSIVE_SUFFIXES = listOf("されない", "される")
+        val SURU_PASSIVE_READING_SUFFIXES = listOf("サレナイ", "サレル")
     }
 }
