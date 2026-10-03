@@ -193,7 +193,10 @@ class LexicalResolver(
             negativeVerbProbe(token.headword),
             potentialFormProbe(token),
             godanRenyokeiProbe(token),
-        ) + suruDesiderativeProbes(token) + appearanceSouProbes(token).map { it.baseForm } + completionSuffixProbes(token).map { it.first } + teAuxMotionProbe(token).map { it.first }
+        ) + suruDesiderativeProbes(token) +
+            appearanceSouProbes(token).map { it.baseForm } +
+            completionSuffixProbes(token).map { it.first } +
+            teAuxMotionProbe(token).map { it.first }
 
     /**
      * Grades how well [lookup] pins down the entry [token] means, using the `(headword, reading)` pair.
@@ -788,7 +791,7 @@ class LexicalResolver(
         val readingStem = readingSuffix?.let { token.baseFormReading.dropLast(it.length) }?.takeIf { it.isNotEmpty() }
 
         val ichidan = (stem + "る") to readingStem?.let { it + "ル" }
-        val godanEnding = GODAN_ENDING_BY_STEM_KANA[stem.last()] ?: return listOf(ichidan)
+        val godanEnding = GODAN_I_TO_U[stem.last()] ?: return listOf(ichidan)
         val godan = (stem.dropLast(1) + godanEnding) to
             readingStem?.let { it.dropLast(1) + JapaneseText.toKatakana(godanEnding.toString()) }
         return listOf(ichidan, godan)
@@ -927,8 +930,9 @@ class LexicalResolver(
     ): AcceptedLexicalEntry? {
         val base = godanRenyokeiProbe(token) ?: return null
         // The token's reading is the renyokei's (イタミ), so restore it the same way (イタム).
-        val reading = GODAN_I_TO_U_READING[token.baseFormReading.takeLast(1)]
-            ?.let { token.baseFormReading.dropLast(1) + it }
+        val reading = token.baseFormReading.lastOrNull()
+            ?.let { GODAN_I_TO_U[JapaneseText.toHiragana(it.toString()).single()] }
+            ?.let { token.baseFormReading.dropLast(1) + JapaneseText.toKatakana(it.toString()) }
         val accepted = narrow(token, lookups[base], base, reading, logRescue) ?: return null
         val verbEntries = accepted.entries.mapNotNull { entry ->
             val verbSenses = entry.senses.filter { JishoPartOfSpeechMapper.map(it.pos) == PartOfSpeech.VERB }
@@ -942,7 +946,7 @@ class LexicalResolver(
     /** `悼み` → `悼む`. Null unless the headword ends in an い-row kana with something before it. */
     private fun godanRenyokeiProbe(token: PipelineToken): String? {
         if (token.headword.length < 2) return null
-        val ending = GODAN_I_TO_U[token.headword.takeLast(1)] ?: return null
+        val ending = GODAN_I_TO_U[token.headword.last()] ?: return null
         return token.headword.dropLast(1) + ending
     }
 
@@ -980,7 +984,7 @@ class LexicalResolver(
             JapaneseText.toKatakana(ending) to JapaneseText.toKatakana(base)
         }
 
-        /** A godan verb's stem kana (泣き) to its dictionary-form kana (泣く). */
+        /** A godan verb's masu-stem / renyokei kana (泣き) to its dictionary-form kana (泣く). */
         val GODAN_I_TO_U = mapOf(
             'い' to 'う', 'き' to 'く', 'ぎ' to 'ぐ', 'し' to 'す', 'ち' to 'つ',
             'に' to 'ぬ', 'び' to 'ぶ', 'み' to 'む', 'り' to 'る',
@@ -988,12 +992,6 @@ class LexicalResolver(
 
         /** Longest first among overlapping spellings, so きれない is never cut as a shorter suffix. */
         val COMPLETION_SUFFIXES = listOf("きれない", "きれる", "きれず", "きれぬ", "きる")
-
-        /** A godan verb's masu stem ends in the i-row kana of its dictionary ending: 書き → 書く. */
-        val GODAN_ENDING_BY_STEM_KANA = mapOf(
-            'い' to 'う', 'き' to 'く', 'ぎ' to 'ぐ', 'し' to 'す', 'ち' to 'つ',
-            'に' to 'ぬ', 'び' to 'ぶ', 'み' to 'む', 'り' to 'る',
-        )
 
         val TE_AUX_MOTION_SUFFIXES = listOf("いく", "行く", "くる", "来る")
 
@@ -1029,14 +1027,5 @@ class LexicalResolver(
             'え' to 'う', 'け' to 'く', 'げ' to 'ぐ', 'せ' to 'す', 'て' to 'つ',
             'ね' to 'ぬ', 'べ' to 'ぶ', 'め' to 'む', 'れ' to 'る',
         )
-
-        /** A godan verb's renyokei ending → its dictionary-form ending: 悼み → 悼む. */
-        val GODAN_I_TO_U = mapOf(
-            "き" to "く", "ぎ" to "ぐ", "し" to "す", "ち" to "つ", "に" to "ぬ",
-            "び" to "ぶ", "み" to "む", "り" to "る", "い" to "う",
-        )
-        val GODAN_I_TO_U_READING = GODAN_I_TO_U.entries.associate { (i, u) ->
-            JapaneseText.toKatakana(i) to JapaneseText.toKatakana(u)
-        }
     }
 }
