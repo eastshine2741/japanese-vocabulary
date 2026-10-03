@@ -212,6 +212,9 @@ class RuleMeaningProvider {
             "か" to particle("か", "~인가"),
             "ね" to particle("ね", "~네"),
             "よ" to particle("よ", "~야"),
+            // だけ + で. The model emits だけで as both surface and headword, so GluedParticleSplitter
+            // sees no mismatch and jisho has no entry for the combined form.
+            "だけで" to particle("だけで", "~만으로, ~하기만 해도"),
         )
 
         val auxiliaries = mapOf(

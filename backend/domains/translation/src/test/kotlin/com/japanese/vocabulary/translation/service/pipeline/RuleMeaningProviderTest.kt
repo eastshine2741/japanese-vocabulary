@@ -58,6 +58,17 @@ class RuleMeaningProviderTest {
     }
 
     @Test
+    fun `resolves glued dakede as a single particle`() {
+        // 嫌になんだよ お前を見ただけで — segmentation emits だけで as surface and headword, so
+        // GluedParticleSplitter has nothing to split and jisho has no entry for the glued form.
+        val resolved = provider.resolve(PipelineToken(33, "だけで", "だけで", 11, 14))!!
+
+        assertThat(resolved.partOfSpeech).isEqualTo(PartOfSpeech.PARTICLE)
+        assertThat(resolved.baseFormReading).isEqualTo("ダケデ")
+        assertThat(resolved.koreanText).isNotBlank()
+    }
+
+    @Test
     fun `resolves conditional tara and its voiced dara form`() {
         // 声聞かせて その手掴んだら離さないから — segmentation emits だら on its own, and jisho has no
         // entry for the た+ら suffix, so it has to be settled by rule like た and だ are.
