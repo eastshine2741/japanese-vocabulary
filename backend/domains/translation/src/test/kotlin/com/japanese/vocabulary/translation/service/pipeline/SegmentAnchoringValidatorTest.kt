@@ -409,10 +409,10 @@ class SegmentAnchoringValidatorTest {
         assertThat(standalone.incompleteByIndex[0]?.text).isEqualTo("こたえ")
 
         val kanji = validator.anchor(
-            mapOf(0 to "猫(猫)"),
+            mapOf(0 to "猫(犬)"),
             listOf(SegLineDto(0, listOf(word("猫", "猫", "ネコ", "ネコ")))),
         )
-        assertThat(kanji.incompleteByIndex[0]?.text).isEqualTo("猫")
+        assertThat(kanji.incompleteByIndex[0]?.text).isEqualTo("犬")
     }
 
     @Test
@@ -428,6 +428,50 @@ class SegmentAnchoringValidatorTest {
         assertThat(result.incompleteByIndex[0]?.message)
             .isEqualTo("Japanese text 'イェイ' at offset=5 is not covered by segmentation at line index=0")
         assertThat(result.anchoredByIndex.getValue(0).map { it.surface }).containsExactly("晴れ舞台")
+    }
+
+    @Test
+    fun `an echo of a word already anchored on the line is copied from that word`() {
+        // The song-365 defect: the echo in parentheses came back once, as the first 見失う only, and the
+        // repeat shipped as an UNCOVERED defect for 見失う.
+        val result = validator.anchor(
+            mapOf(0 to "君を探し見失う (見失う, Ah-ah-ah-ah)"),
+            listOf(
+                SegLineDto(
+                    0,
+                    listOf(
+                        word("君", "君", "キミ", "キミ"),
+                        word("を", "を", "ヲ", "ヲ"),
+                        word("探し", "探す", "サガシ", "サガス"),
+                        word("見失う", "見失う", "ミウシナウ", "ミウシナウ"),
+                    ),
+                ),
+            ),
+        )
+
+        assertThat(result.failuresByIndex).isEmpty()
+        assertThat(result.incompleteByIndex).isEmpty()
+        val tokens = result.anchoredByIndex.getValue(0)
+        assertThat(tokens.map { Triple(it.surface, it.charStart, it.charEnd) }).containsExactly(
+            Triple("君", 0, 1),
+            Triple("を", 1, 2),
+            Triple("探し", 2, 4),
+            Triple("見失う", 4, 7),
+            Triple("見失う", 9, 12),
+        )
+        assertThat(tokens.last().headword).isEqualTo("見失う")
+        assertThat(tokens.last().usedReading).isEqualTo("ミウシナウ")
+    }
+
+    @Test
+    fun `left-out text that is not an anchored surface stays uncovered after an echo`() {
+        val result = validator.anchor(
+            mapOf(0 to "猫 (猫) 犬"),
+            listOf(SegLineDto(0, listOf(word("猫", "猫", "ネコ", "ネコ")))),
+        )
+
+        assertThat(result.incompleteByIndex[0]?.text).isEqualTo("犬")
+        assertThat(result.anchoredByIndex.getValue(0).map { it.charStart }).containsExactly(0, 3)
     }
 
     @Test
