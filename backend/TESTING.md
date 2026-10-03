@@ -100,7 +100,7 @@ abstract class BaseIntegrationTest {
 }
 ```
 
-api 모듈은 `ApiBaseIntegrationTest` 가 `BaseIntegrationTest` 를 상속하며 api가 직접 의존하는 외부 클라이언트(`ItunesClient`)를 `@MockkBean` (relaxed 미지정 = `false`) 로 선언한다. batch 모듈은 `BatchBaseIntegrationTest` 에서 LRCLIB/VocaDB/YouTube/Gemini/Jisho 의존을 stub한다.
+api 모듈은 `ApiBaseIntegrationTest` 가 `BaseIntegrationTest` 를 상속하며 api가 직접 의존하는 외부 클라이언트(`ItunesClient`)를 `@MockkBean` (relaxed 미지정 = `false`) 로 선언한다. worker 모듈은 `WorkerBaseIntegrationTest` 에서 LRCLIB/VocaDB/YouTube/Gemini/Jisho 와 큐 publisher 를 stub한다. batch 모듈의 `BatchBaseIntegrationTest` 는 곡 분석 의존이 빠져 FCM 목만 남는다.
 
 **왜 이렇게:**
 - `@Transactional` 롤백으로 각 테스트 격리. 빌더는 단순 `em.persist()` 만 — 별도 commit 안 함.
@@ -306,7 +306,7 @@ fun `flashcard 복습 시 FSRS 갱신 + StudyStatsEvent`() {
 ### 4.3 song analysis (Phase 2 예정)
 **`SongAnalysisPreparationService`:**
 - `LyricProvider` chain (LRCLIB → VocaDB) fallback이 첫 provider null 시 다음으로 넘어가는지.
-- batch의 `@MockkBean(LrclibClient::class, VocadbClient::class, YoutubeClient::class)`로 stub.
+- worker의 `@MockkBean(LrclibClient::class, VocadbClient::class, YoutubeClient::class)`로 stub.
 - 가사 found → SongEntity + LyricEntity 저장 검증.
 
 **`SongQueryNormalizer`** (단위): 일본어/영어 혼합, 다중 아티스트 (`feat.`, `&`), 특수문자 처리.
@@ -365,27 +365,38 @@ class SongAnalysisPreparationServiceTest : BatchBaseIntegrationTest() {
 
 **`StudyStatsService.getHeatmap`**: 잘 정의된 기간 내 날짜별 reviewCount 정확성.
 
-### 4.8 batch — SongAnalysisWorkScheduler / KoreanLyricTranslationService
+### 4.8 worker — 곡 분석 큐 / KoreanLyricTranslationService
 
 **가장 까다로운 도메인.** work claim + 코루틴 + 외부 API 3중 의존.
 
 **전략:**
-- `@Scheduled`는 테스트에서 끔: `spring.task.scheduling.enabled=false`.
-- `song-analysis` 모듈의 `SongAnalysisWorkService.claimPending()` / `failExpiredRunning()`과 `KoreanLyricTranslationService.runPipeline()`을 직접 검증.
+- 리스너와 sweeper는 테스트에서 끔: `spring.rabbitmq.listener.simple.auto-startup=false`,
+  `song-analysis.worker.sweep-enabled=false` (worker 테스트 yml 에 이미 들어 있다).
+- `song-analysis` 모듈의 `SongAnalysisWorkService.claim()` / `failExpiredRunning()`과 `KoreanLyricTranslationService.runPipeline()`을 직접 검증.
 - `@MockkBean(GeminiClient::class)`로 translateLyrics, lookupWordMeanings stub.
 - 실제 KuromojiMorphologicalAnalyzer는 그대로 실행 (사전 동봉 — 외부 의존 없음).
 
 **시나리오:**
 - PENDING work claim → RUNNING, lock owner/until 기록.
+- 같은 work 두 번 claim → 두 번째는 `null` (at-least-once 중복 배달 흡수).
+- terminal(FAILED) work claim → `null`.
 - expired RUNNING work → reclaim 없이 FAILED, activeDedupKey 해제.
 - lyric 1개 → 정상 분석 → analyzedContent JSON 검증.
 - Gemini 실패 → lyric analyzedContent를 저장하지 않고 예외 전파. work processor가 terminal FAILED를 담당.
-- BATCH_SIZE(5) work claim 순서 검증.
 - 토큰 1:1 매칭 — 토큰 수와 LLM meaning 수가 다를 때 처리.
 
-**`FreezeConsumeScheduler`** (cron 04:00 KST):
-- `processFreeze()` 직접 호출.
+브로커 토폴로지와 JSON 왕복은 `integrations:message-queue` 의 `SongAnalysisQueueIntegrationTest`
+(Testcontainers RabbitMQ)가 맡는다. 여기가 깨지면 worker 는 메시지를 영영 못 받으므로,
+exchange/queue/binding 이름이나 메시지 타입을 바꾸면 이 테스트부터 본다.
+
+### 4.9 batch — CronTask
+
+**`FreezeConsumeService`** (`freeze-consume` CronJob, 04:00 KST):
+- `consumeFor()` 직접 호출.
 - 어제 freeze 사용 → DailyStudySummary에 freezeUsed=true 기록 검증.
+
+**`CronTaskRunner`**: `@SpringBootTest` 도 `ApplicationRunner` 를 실행하므로 테스트 yml 이
+`batch.task-runner.enabled=false` 로 꺼 둔다. 새 `CronTask` 를 추가할 때 이 플래그를 건드리지 말 것.
 
 ---
 
@@ -469,6 +480,8 @@ cd backend                                                 # gradlew는 backend/
 ./gradlew :api:test --tests "*FlashcardServiceTest.reviewCard publishes*"  # 단일 테스트 메서드
 
 ./gradlew :batch:test                                      # batch 모듈
+./gradlew :worker:test                                     # worker 모듈 (곡 분석 파이프라인)
+./gradlew :integrations:message-queue:test                 # 큐 토폴로지 왕복
 ./gradlew test                                             # 전체 모듈
 
 ./gradlew :api:test --rerun-tasks                          # gradle 캐시 무시

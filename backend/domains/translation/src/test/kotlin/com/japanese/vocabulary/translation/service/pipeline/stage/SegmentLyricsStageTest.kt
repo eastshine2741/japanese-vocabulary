@@ -14,6 +14,7 @@ import com.japanese.vocabulary.translation.service.pipeline.LexicalResolver
 import com.japanese.vocabulary.translation.service.pipeline.RuleMeaningProvider
 import com.japanese.vocabulary.translation.service.pipeline.SegmentAnchoringValidator
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
@@ -53,7 +54,7 @@ class SegmentLyricsStageTest {
                 SegWordDto("伝わんない", "伝わる", "ツタワンナイ", "ツタワル", "to get across"),
             ),
         )
-        every { geminiClient.segmentAndLemmatize(any(), any(), any()) } returns listOf(segmented)
+        coEvery { geminiClient.segmentAndLemmatize(any(), any(), any()) } returns listOf(segmented)
         coEvery { gluedParticleSplitter.split(any()) } answers { firstArg() }
         coEvery { lexicalResolver.unresolvedTokens(any()) } answers {
             firstArg<List<PipelineToken>>()
@@ -69,7 +70,7 @@ class SegmentLyricsStageTest {
         verify { defectReporter.reportAll(capture(reported)) }
         assertThat(reported.captured).isEmpty()
         // No defect means no resampled retry either: one segmentation call for the song.
-        verify(exactly = 1) { geminiClient.segmentAndLemmatize(any(), any(), any()) }
+        coVerify(exactly = 1) { geminiClient.segmentAndLemmatize(any(), any(), any()) }
     }
 
     private fun source(vararg lines: Pair<Int, String>): TranslationPipelineSource = TranslationPipelineSource.from(

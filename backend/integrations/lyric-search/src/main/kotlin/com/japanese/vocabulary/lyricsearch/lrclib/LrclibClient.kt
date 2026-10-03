@@ -1,6 +1,7 @@
 package com.japanese.vocabulary.lyricsearch.lrclib
 
 import org.springframework.stereotype.Component
+import com.japanese.vocabulary.common.retry.TransientHttpErrors
 import com.japanese.vocabulary.lyricsearch.JapaneseLyricValidator
 import com.japanese.vocabulary.lyricsearch.ArtistNameNormalizer
 import com.japanese.vocabulary.lyricsearch.ItunesArtistAliasVerifier
@@ -49,6 +50,8 @@ class LrclibClient(
 
             null
         } catch (e: Exception) {
+            // An outage is not a miss: the caller retries it and must not report "no lyrics".
+            if (TransientHttpErrors.isTransient(e)) throw e
             logger.warn("LrcLib lyrics search failed for: ${query.originalArtist} - ${query.originalTitle}", e)
             null
         }
@@ -131,6 +134,7 @@ class LrclibClient(
                 .body(Array<LrclibResponse>::class.java)
                 ?.toList()
         } catch (e: RestClientResponseException) {
+            if (TransientHttpErrors.isTransient(e)) throw e
             null
         }
     }

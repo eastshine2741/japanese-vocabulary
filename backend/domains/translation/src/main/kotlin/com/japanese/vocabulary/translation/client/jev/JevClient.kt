@@ -2,6 +2,7 @@ package com.japanese.vocabulary.translation.client.jev
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.japanese.vocabulary.common.retry.ExponentialBackoff
+import com.japanese.vocabulary.common.retry.currentRetryDeadline
 import com.japanese.vocabulary.common.retry.TransientHttpErrors
 import com.japanese.vocabulary.observability.MetricNames
 import com.japanese.vocabulary.translation.client.gemini.GeminiCallContext
@@ -12,6 +13,9 @@ import com.japanese.vocabulary.translation.client.jev.dto.JevResponse
 import io.micrometer.core.instrument.Counter
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Timer
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
@@ -48,7 +52,7 @@ class JevClient(
      * Asks every question in one request and returns the answers keyed like [questions]. A question
      * Jev left unanswered is simply absent; the caller decides what that means.
      */
-    fun choose(
+    suspend fun choose(
         call: String,
         state: Map<String, Any?>,
         questions: Map<String, JevChoiceQuestion>,
@@ -71,9 +75,10 @@ class JevClient(
                     .register(meterRegistry)
                     .increment()
             },
-            sleep = { Thread.sleep(it.toMillis()) },
+            deadline = currentRetryDeadline(),
+            sleep = { delay(it.toMillis()) },
         ) {
-            attempt(call, requestJson, context)
+            withContext(Dispatchers.IO) { attempt(call, requestJson, context) }
         }
     }
 

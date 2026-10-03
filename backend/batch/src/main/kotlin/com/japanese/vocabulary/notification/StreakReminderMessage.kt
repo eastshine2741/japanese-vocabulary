@@ -4,7 +4,7 @@ import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 
 /**
- * 연속 학습 알림 문구. 발송 대상 판정은 [StreakReminderScheduler]가 하고, 보내지 않는 조합은 null.
+ * 연속 학습 알림 문구. 발송 대상 판정은 [StreakReminderTask]가 하고, 보내지 않는 조합은 null.
  */
 data class StreakReminderMessage(val title: String, val body: String) {
 

@@ -4,6 +4,7 @@ import org.springframework.stereotype.Component
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.japanese.vocabulary.common.retry.ExponentialBackoff
 import com.japanese.vocabulary.common.retry.TransientHttpErrors
+import com.japanese.vocabulary.common.retry.currentRetryDeadline
 import com.japanese.vocabulary.observability.MetricNames
 import com.japanese.vocabulary.translation.client.gemini.dto.SegLineDto
 import com.japanese.vocabulary.translation.client.gemini.dto.SenseTranslationDto
@@ -11,6 +12,9 @@ import com.japanese.vocabulary.translation.client.gemini.dto.TranslationResultDt
 import io.micrometer.core.instrument.Counter
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Timer
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.web.client.RestClient
@@ -51,7 +55,7 @@ class GeminiClient(
     /**
      * Translate lyrics to Korean (no pronunciation; see [TranslationResultDto]) on the higher-quality model.
      */
-    fun translateLyrics(lyricLines: List<Map<String, Any?>>, context: GeminiCallContext): List<TranslationResultDto> {
+    suspend fun translateLyrics(lyricLines: List<Map<String, Any?>>, context: GeminiCallContext): List<TranslationResultDto> {
         return callGemini(
             call = "translation",
             context = context,
@@ -71,7 +75,7 @@ class GeminiClient(
      * [temperature] is the caller's because retries raise it:
      * [com.japanese.vocabulary.translation.service.pipeline.stage.SegmentLyricsStage].
      */
-    fun segmentAndLemmatize(
+    suspend fun segmentAndLemmatize(
         lyricLines: List<Map<String, Any?>>,
         context: GeminiCallContext,
         temperature: Double,
@@ -93,7 +97,7 @@ class GeminiClient(
      * Translate the chosen English senses to Korean: POS-consistent, 1–2 comma-separated meanings;
      * particles render as Korean particles (は→"~은/는").
      */
-    fun translateSenses(senses: List<Map<String, Any?>>, context: GeminiCallContext): List<SenseTranslationDto> {
+    suspend fun translateSenses(senses: List<Map<String, Any?>>, context: GeminiCallContext): List<SenseTranslationDto> {
         if (senses.isEmpty()) return emptyList()
         return callGemini(
             call = "translate-sense",
@@ -107,7 +111,7 @@ class GeminiClient(
         )
     }
 
-    private fun <T> callGemini(
+    private suspend fun <T> callGemini(
         call: String,
         context: GeminiCallContext,
         model: String,
@@ -134,9 +138,13 @@ class GeminiClient(
                     .register(meterRegistry)
                     .increment()
             },
-            sleep = { Thread.sleep(it.toMillis()) },
+            deadline = currentRetryDeadline(),
+            sleep = { delay(it.toMillis()) },
         ) {
-            attemptGemini(call, context, model, systemPrompt, inputJson, responseType, temperature, responseSchema, thinkingLevel)
+            // RestClient blocks; keep it off the caller's dispatcher so sibling chunks run in parallel.
+            withContext(Dispatchers.IO) {
+                attemptGemini(call, context, model, systemPrompt, inputJson, responseType, temperature, responseSchema, thinkingLevel)
+            }
         }
     }
 

@@ -1,15 +1,16 @@
 package com.japanese.vocabulary.common.retry
 
 import java.time.Duration
+import java.time.Instant
 
 /**
  * Exponential backoff with jitter and a cap: attempt 1 waits [initialDelay], attempt 2 double that,
  * and so on, each plus up to [jitter] of itself so parallel workers hitting the same outage do not
  * retry in lockstep, never longer than [maxDelay].
  *
- * [retry] is `inline` so the same policy serves a blocking caller (`Thread.sleep`) and a coroutine
- * (`delay`): the caller passes [sleep], and the lambda may suspend. What is retryable is the
- * caller's call; HTTP callers pass [TransientHttpErrors.isTransient].
+ * [retry] is `inline` so a coroutine caller can pass `delay` as [sleep] and suspend inside the lambda.
+ * Do not pass `Thread.sleep`: a sleeping thread is a worker slot no other song can use. What is
+ * retryable is the caller's call; HTTP callers pass [TransientHttpErrors.isTransient].
  */
 class ExponentialBackoff(
     val maxAttempts: Int,
@@ -36,11 +37,15 @@ class ExponentialBackoff(
     /**
      * Runs [block] until it returns, or throws its last error once [maxAttempts] are spent or the
      * error is not one [isTransient] accepts. [onRetry] sees every wait before it happens.
+     *
+     * [deadline] stops the loop early: a wait that would end past it is not taken and the error
+     * propagates instead. A retry that lands after the caller has stopped caring only adds latency.
      */
     inline fun <T> retry(
         isTransient: (Throwable) -> Boolean,
         atLeast: (Throwable) -> Duration? = { null },
         onRetry: (attempt: Int, error: Throwable, delay: Duration) -> Unit = { _, _, _ -> },
+        deadline: Instant? = null,
         sleep: (Duration) -> Unit,
         block: (attempt: Int) -> T,
     ): T {
@@ -51,6 +56,7 @@ class ExponentialBackoff(
             } catch (e: Throwable) {
                 if (attempt >= maxAttempts || !isTransient(e)) throw e
                 val delay = delayFor(attempt, atLeast(e))
+                if (deadline != null && Instant.now().plus(delay) >= deadline) throw e
                 onRetry(attempt, e, delay)
                 sleep(delay)
                 attempt++

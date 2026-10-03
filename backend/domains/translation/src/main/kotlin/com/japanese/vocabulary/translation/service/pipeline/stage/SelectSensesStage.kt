@@ -52,7 +52,7 @@ class SelectSensesStage(
         return settledSenseByKey + selectedSenseByKey
     }
 
-    private fun selectLine(
+    private suspend fun selectLine(
         index: Int,
         tokens: List<PipelineToken>,
         input: SenseSelectionStageInput,

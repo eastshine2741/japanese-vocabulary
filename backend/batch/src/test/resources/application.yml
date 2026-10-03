@@ -1,3 +1,15 @@
 sentry:
   enabled: false
   dsn: ""
+
+spring:
+  main:
+    web-application-type: none
+  batch:
+    job:
+      enabled: false
+
+batch:
+  task-runner:
+    # @SpringBootTest 도 ApplicationRunner 를 실행한다. 테스트가 --task 없이 떠서 죽지 않게 꺼 둔다.
+    enabled: false

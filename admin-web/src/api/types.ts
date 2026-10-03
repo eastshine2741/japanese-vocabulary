@@ -78,14 +78,26 @@ export type SongAnalysisWorkOperation = {
   errorMessage: string | null
 }
 
+export type SongAnalysisStage = {
+  stage: string
+  status: string
+  attempt: number
+  errorCode: string | null
+  errorClass: string | null
+  errorMessage: string | null
+  outputLength: number | null
+  startedAt: string | null
+  finishedAt: string | null
+}
+
 export type SongAnalysisWorkDetail = SongAnalysisWorkSummary & {
   durationSeconds: number | null
   artworkUrl: string | null
-  activeDedupKey: string | null
-  lockedBy: string | null
-  lockedUntil: string | null
   errorCode: string | null
   errorMessage: string | null
+  startedAt: string | null
+  stages: SongAnalysisStage[]
+  resumable: boolean
 }
 
 export type RecommendationOperationItem = {
@@ -180,6 +192,13 @@ export type AdminUserDetail = {
   user: AdminUser
   learning: AdminUserLearning
   decks: AdminUserDeck[]
+}
+
+export type ManualPushResult = {
+  userId: number
+  targetTokens: number
+  sent: number
+  failed: number
 }
 
 export type AdminUserLearning = {

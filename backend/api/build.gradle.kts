@@ -25,7 +25,9 @@ dependencies {
     implementation(project(":domains:notification"))
     implementation(project(":integrations:song-search"))
     implementation(project(":integrations:github"))
+    implementation(project(":integrations:message-queue"))
 
+    implementation("org.springframework.boot:spring-boot-starter-amqp")
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-webflux")

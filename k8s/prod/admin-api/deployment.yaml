@@ -20,11 +20,29 @@ spec:
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8081
+          env:
+            - name: RABBITMQ_USER
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-default-user
+                  key: username
+            - name: RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-default-user
+                  key: password
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: /var/secrets/firebase/service-account.json
           envFrom:
             - configMapRef:
                 name: admin-api-config
             - secretRef:
                 name: admin-api-secret
+          volumeMounts:
+            # 운영자 수동 푸시(/admin/api/push/send)가 FCM 자격증명을 쓴다.
+            - name: firebase-credentials
+              mountPath: /var/secrets/firebase
+              readOnly: true
           startupProbe:
             httpGet:
               path: /actuator/health/liveness
@@ -48,3 +66,7 @@ spec:
               memory: 1Gi
             limits:
               memory: 3Gi
+      volumes:
+        - name: firebase-credentials
+          secret:
+            secretName: firebase-credentials

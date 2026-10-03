@@ -13,7 +13,7 @@ import kotlinx.coroutines.coroutineScope
  */
 object ChunkedGeminiCall {
 
-    suspend fun <I, O> flatMap(items: List<I>, chunkSize: Int, call: (List<I>) -> List<O>): List<O> {
+    suspend fun <I, O> flatMap(items: List<I>, chunkSize: Int, call: suspend (List<I>) -> List<O>): List<O> {
         require(chunkSize > 0) { "chunkSize must be positive, was $chunkSize" }
         if (items.isEmpty()) return emptyList()
         if (items.size <= chunkSize) return call(items)

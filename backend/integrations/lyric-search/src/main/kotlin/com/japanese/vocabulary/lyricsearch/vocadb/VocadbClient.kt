@@ -1,6 +1,7 @@
 package com.japanese.vocabulary.lyricsearch.vocadb
 
 import org.springframework.stereotype.Component
+import com.japanese.vocabulary.common.retry.TransientHttpErrors
 import com.japanese.vocabulary.lyricsearch.LyricProvider
 import com.japanese.vocabulary.lyricsearch.LyricsResult
 import com.japanese.vocabulary.lyricsearch.NormalizedSongQuery
@@ -39,6 +40,8 @@ class VocadbClient(restClientBuilder: RestClient.Builder) : LyricProvider {
             }
             searchByKeyword(query)
         } catch (e: Exception) {
+            // An outage is not a miss: the caller retries it and must not report "no lyrics".
+            if (TransientHttpErrors.isTransient(e)) throw e
             logger.warn("VocaDB lyrics search failed for: ${query.originalArtist} - ${query.originalTitle}", e)
             null
         }

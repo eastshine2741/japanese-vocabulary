@@ -208,13 +208,50 @@ export const songAnalysisWorkSummary: SongAnalysisWorkSummary = {
 
 export const songAnalysisWorkDetail: SongAnalysisWorkDetail = {
   ...songAnalysisWorkSummary,
+  currentStage: "COMPLETE",
   durationSeconds: 261,
   artworkUrl: null,
-  activeDedupKey: null,
-  lockedBy: null,
-  lockedUntil: null,
   errorCode: null,
   errorMessage: null,
+  startedAt: "2026-01-01T00:00:00Z",
+  stages: [],
+  resumable: false,
+}
+
+export const failedSongAnalysisWorkDetail: SongAnalysisWorkDetail = {
+  ...songAnalysisWorkDetail,
+  id: 5,
+  status: "FAILED",
+  currentStage: "ANALYZE_LYRICS",
+  completedAt: null,
+  failedAt: "2026-01-01T00:02:00Z",
+  errorCode: "SONG_ANALYSIS_WORK_FAILED",
+  errorMessage: "Song analysis failed",
+  resumable: true,
+  stages: [
+    {
+      stage: "FETCH_LYRICS",
+      status: "COMPLETED",
+      attempt: 1,
+      errorCode: null,
+      errorClass: null,
+      errorMessage: null,
+      outputLength: 120,
+      startedAt: "2026-01-01T00:00:00Z",
+      finishedAt: "2026-01-01T00:00:02Z",
+    },
+    {
+      stage: "ANALYZE_LYRICS",
+      status: "FAILED",
+      attempt: 1,
+      errorCode: "SONG_ANALYSIS_WORK_FAILED",
+      errorClass: "java.lang.IllegalStateException",
+      errorMessage: "IllegalStateException: bad answer",
+      outputLength: 80,
+      startedAt: "2026-01-01T00:00:10Z",
+      finishedAt: "2026-01-01T00:02:00Z",
+    },
+  ],
 }
 
 export const reelsSongCandidate: ReelsSongCandidate = {

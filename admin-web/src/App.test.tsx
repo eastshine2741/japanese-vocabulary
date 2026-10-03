@@ -14,6 +14,7 @@ import {
   recommendationOperationResult,
   reelsSongCandidate,
   reelsSongDetail,
+  failedSongAnalysisWorkDetail,
   songAnalysisWorkDetail,
   songAnalysisWorkSummary,
   songDetail,
@@ -37,6 +38,11 @@ function mockFetch() {
     if (url.includes("/songs/1")) return json(songDetail)
     if (url.includes("/songs?")) return json(page([songSummary]))
     if (url.includes("/song-analysis-works/4")) return json(songAnalysisWorkDetail)
+    if (url.endsWith("/song-analysis-works/5/resume") && init?.method === "POST") {
+      return json({ ...failedSongAnalysisWorkDetail, status: "PENDING", resumable: false, errorCode: null, errorMessage: null })
+    }
+    if (url.endsWith("/song-analysis-works/5/stages/ANALYZE_LYRICS/output")) return json({ translation: { "0": { index: 0, koreanLyrics: "고양이" } } })
+    if (url.includes("/song-analysis-works/5")) return json(failedSongAnalysisWorkDetail)
     if (url.includes("/song-analysis-works?")) return json(page([songAnalysisWorkSummary]))
     if (url.includes("/recommendations/weeks")) return json([recommendationCandidate.weekStartDate])
     if (url.includes("/recommendations/candidates")) return json([recommendationCandidate])
@@ -48,6 +54,7 @@ function mockFetch() {
       const words = new URL(url).searchParams.get("deckId") === "11" ? [adminUserWord] : [adminUserWord, { ...adminUserWord, id: 21, japaneseText: "夜", reading: "ヨル", senses: [{ meaning: "밤", partOfSpeech: "명사", jlpt: "N5", examples: [] }], sourceSongs: [], flashcard: { status: "NEW", fsrsState: 0, due: "2026-01-01T00:00:00Z", lastReview: null } }]
       return json(page(words))
     }
+    if (url.endsWith("/push/send") && init?.method === "POST") return json({ userId: 3, targetTokens: 2, sent: 1, failed: 1 })
     if (url.includes("/users/3")) return json(adminUserDetail)
     if (url.includes("/users?")) return json(page([adminUser]))
     return json({}, 404)
@@ -156,6 +163,23 @@ describe("admin web", () => {
     await waitFor(() => expect(screen.queryByText("夜")).not.toBeInTheDocument())
     expect(screen.getByLabelText("단어장 필터")).toHaveValue("11")
     expect(screen.getByText("駆ける")).toBeInTheDocument()
+  })
+
+  test("sends a manual push from user detail", async () => {
+    const user = userEvent.setup()
+    const fetchMock = vi.mocked(fetch)
+    sessionStorage.setItem("kotonoha.admin.token", "admin-token")
+    renderApp("/users/3")
+
+    const send = await screen.findByRole("button", { name: "보내기" })
+    expect(send).toBeDisabled()
+    await user.type(screen.getByLabelText("푸시 제목"), "공지")
+    await user.type(screen.getByLabelText("푸시 내용"), "오늘도 복습해요")
+    await user.click(send)
+
+    expect(await screen.findByText(/기기 2대 중/)).toHaveTextContent("기기 2대 중 1 성공 · 1 실패")
+    const call = fetchMock.mock.calls.find(([input]) => String(input).endsWith("/push/send"))!
+    expect(JSON.parse(String(call[1]?.body))).toEqual({ userId: 3, title: "공지", body: "오늘도 복습해요" })
   })
 
   test("runs recommendation workflow operations", async () => {
@@ -289,6 +313,26 @@ describe("admin web", () => {
     expect(screen.getByText("Elapsed time")).toBeInTheDocument()
     expect(screen.getByText("Created to player ready")).toBeInTheDocument()
     expect(screen.getByText("2m 00s")).toBeInTheDocument()
+  })
+
+  test("shows stage failures, stage output, and resumes from the failed stage", async () => {
+    const user = userEvent.setup()
+    const fetchMock = mockFetch()
+    sessionStorage.setItem("kotonoha.admin.token", "admin-token")
+    renderApp("/song-analysis-works/5")
+
+    expect(await screen.findByRole("heading", { name: "Work #5" })).toBeInTheDocument()
+    expect(screen.getByText("IllegalStateException: bad answer")).toBeInTheDocument()
+
+    await user.click(screen.getByRole("button", { name: "View (80 chars)" }))
+    expect(await screen.findByText(/고양이/)).toBeInTheDocument()
+
+    await user.click(screen.getByRole("button", { name: /resume from ANALYZE_LYRICS/i }))
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("/song-analysis-works/5/resume"), expect.objectContaining({ method: "POST" })),
+    )
+    expect(await screen.findByText("PENDING")).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: /resume from/i })).not.toBeInTheDocument()
   })
 
   test("renders reels factory and enables render after line selection", async () => {
