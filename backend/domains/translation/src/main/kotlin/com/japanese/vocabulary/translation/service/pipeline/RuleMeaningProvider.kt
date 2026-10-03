@@ -197,6 +197,9 @@ class RuleMeaningProvider {
             "随" to RuleResolvedToken("随", "随", "マニマ", "マニマ", PartOfSpeech.NOUN, "~대로, ~에 맡겨"),
             // Second half of やたらめったら, a colloquial stretch of 滅多. Jisho has no headword for it.
             "めったら" to RuleResolvedToken("めったら", "めったら", "メッタラ", "メッタラ", PartOfSpeech.ADVERB, "마구, 함부로"),
+            // Colloquial contraction of いやだ. Segmentation writes the headword as 嫌だ, which jisho
+            // has no entry for. Keyed on the surface only: いやだ shares that headword but not the reading.
+            "やだ" to RuleResolvedToken("やだ", "嫌だ", "ヤダ", "イヤダ", PartOfSpeech.NA_ADJECTIVE, "싫다, 싫어"),
         )
 
         val particles = mapOf(

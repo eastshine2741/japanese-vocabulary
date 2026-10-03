@@ -106,6 +106,19 @@ class RuleMeaningProviderTest {
     }
 
     @Test
+    fun `resolves colloquial yada contraction of iyada`() {
+        // ああもうやだ 間違えたら正しさの先まで — segmentation writes the headword as 嫌だ, which jisho
+        // has no entry for, and the やだ surface is the contraction itself.
+        val resolved = provider.resolve(PipelineToken(4, "やだ", "嫌だ", 4, 6))!!
+
+        assertThat(resolved.partOfSpeech).isEqualTo(PartOfSpeech.NA_ADJECTIVE)
+        assertThat(resolved.baseForm).isEqualTo("嫌だ")
+        assertThat(resolved.reading).isEqualTo("ヤダ")
+        assertThat(resolved.baseFormReading).isEqualTo("イヤダ")
+        assertThat(resolved.koreanText).isNotBlank()
+    }
+
+    @Test
     fun `does not rule-resolve ambiguous grammar-like words`() {
         assertThat(provider.resolve(token("ない"))).isNull()
         assertThat(provider.resolve(token("から"))).isNull()
