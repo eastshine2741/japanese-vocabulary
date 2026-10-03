@@ -12,6 +12,8 @@ spec:
       labels:
         app: worker
     spec:
+      # 켜 두면 `rabbitmq` 서비스가 RABBITMQ_PORT=tcp://... 를 주입하고, 앱이 그걸 포트로 읽어 기동에 실패한다.
+      enableServiceLinks: false
       containers:
         - name: worker
           image: ${WORKER_IMAGE}
