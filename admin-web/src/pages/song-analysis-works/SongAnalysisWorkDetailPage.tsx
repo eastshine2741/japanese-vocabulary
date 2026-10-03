@@ -56,7 +56,6 @@ export function SongAnalysisWorkDetailPage() {
           <DetailItem label="Completed" value={formatDateTime(work.completedAt)} />
           <DetailItem label="Failed" value={formatDateTime(work.failedAt)} />
           <DetailItem label="Updated" value={formatDateTime(work.updatedAt)} />
-          <DetailItem label="Active dedup key" value={work.activeDedupKey ?? "-"} />
         </DetailGrid>
       </section>
 

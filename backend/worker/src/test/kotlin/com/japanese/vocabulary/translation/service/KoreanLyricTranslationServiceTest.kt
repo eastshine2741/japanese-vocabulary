@@ -79,11 +79,6 @@ class KoreanLyricTranslationServiceTest : WorkerBaseIntegrationTest() {
             SongAnalysisWorkEntity(
                 rawTitle = title,
                 rawArtist = artist,
-                activeDedupKey = if (status == SongAnalysisWorkStatus.PENDING) {
-                    SongAnalysisWorkService.buildActiveDedupKey(title, artist)
-                } else {
-                    null
-                },
                 status = status,
                 triggerSource = SongAnalysisTriggerSource.USER_APP,
             ),

@@ -59,6 +59,7 @@ from `backend/`.
   `@SpringBootApplication` classes.
 - 곡 분석 작업은 메시지 큐로 즉시 실행된다. 메시지는 `workId` 만 싣고 원장
   `song_analysis_work` 행이 진실 원천이다 — 중복 배달은 claim 이, 유실은 sweeper 가 흡수한다.
+  한 곡에 활성 작업 하나는 `(raw_title, raw_artist)` 갭 락이 지키므로 REPEATABLE READ 가 전제다.
 - RabbitMQ 브로커와 큐 토폴로지는 RabbitMQ 오퍼레이터의 CR 이 소유한다 (`k8s/{dev,prod}/rabbitmq/`).
   앱은 이름만 참조하고 `spring.rabbitmq.dynamic` 은 false 다.
 

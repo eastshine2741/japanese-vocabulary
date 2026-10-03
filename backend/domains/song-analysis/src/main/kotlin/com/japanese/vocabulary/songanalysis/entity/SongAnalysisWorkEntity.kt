@@ -34,9 +34,6 @@ class SongAnalysisWorkEntity(
     @Column(name = "artwork_url")
     val artworkUrl: String? = null,
 
-    @Column(name = "active_dedup_key", unique = true, length = 512)
-    var activeDedupKey: String? = null,
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     var status: SongAnalysisWorkStatus = SongAnalysisWorkStatus.PENDING,
@@ -102,14 +99,12 @@ class SongAnalysisWorkEntity(
     fun markCompleted(now: Instant) {
         status = SongAnalysisWorkStatus.COMPLETED
         currentStage = SongAnalysisWorkStage.ANALYZE_LYRICS
-        activeDedupKey = null
         completedAt = now
         clearFailure()
     }
 
     fun markFailed(code: String, message: String?, now: Instant) {
         status = SongAnalysisWorkStatus.FAILED
-        activeDedupKey = null
         errorCode = code
         errorMessage = message?.take(MAX_ERROR_MESSAGE_LENGTH)
         failedAt = now

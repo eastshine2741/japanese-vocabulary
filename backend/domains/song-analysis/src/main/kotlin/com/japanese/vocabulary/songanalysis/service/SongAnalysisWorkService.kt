@@ -12,7 +12,7 @@ import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStatus
 import com.japanese.vocabulary.songanalysis.event.SongAnalysisWorkQueuedEvent
 import com.japanese.vocabulary.songanalysis.repository.SongAnalysisWorkRepository
 import org.springframework.context.ApplicationEventPublisher
-import org.springframework.dao.DataIntegrityViolationException
+import org.springframework.dao.ConcurrencyFailureException
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.annotation.Propagation
 import org.springframework.data.domain.Pageable
@@ -33,9 +33,8 @@ class SongAnalysisWorkService(
         triggerSource: SongAnalysisTriggerSource = SongAnalysisTriggerSource.USER_APP,
         createdByUserId: Long? = null,
     ): SongAnalysisWorkDto {
-        val activeDedupKey = buildActiveDedupKey(title, artist)
-
-        songAnalysisWorkRepository.findByActiveDedupKey(activeDedupKey)?.let {
+        // 조회이면서 동시에 중복 차단이다 — 활성 행이 없으면 그 키가 들어갈 틈에 갭 락이 걸린다.
+        songAnalysisWorkRepository.findActiveByRawSongForUpdate(title, artist).firstOrNull()?.let {
             return it.toDto()
         }
 
@@ -44,14 +43,17 @@ class SongAnalysisWorkService(
             rawArtist = artist,
             durationSeconds = durationSeconds,
             artworkUrl = artworkUrl,
-            activeDedupKey = activeDedupKey,
             triggerSource = triggerSource,
             createdByUserId = createdByUserId,
         )
 
         val saved = try {
             songAnalysisWorkRepository.saveAndFlush(work)
-        } catch (_: DataIntegrityViolationException) {
+        } catch (_: ConcurrencyFailureException) {
+            // 갭 락끼리는 충돌하지 않아서, 같은 곡을 동시에 요청하면 양쪽 모두 위 조회를 통과해
+            // 여기까지 온다. 한쪽의 insert 는 상대 갭 락에 걸려 데드락이나 락 대기 만료로 죽는다.
+            // 그때는 트랜잭션이 통째로 롤백되므로 상대가 만든 행을 다시 읽어 돌려줄 수 없다.
+            // 호출자가 다시 요청하면 그 땐 위 조회가 그 행을 찾아 돌려준다.
             throw BusinessException(ErrorCode.SONG_ANALYSIS_WORK_ALREADY_EXISTS)
         }
         eventPublisher.publishEvent(SongAnalysisWorkQueuedEvent(saved.id!!))
@@ -106,7 +108,7 @@ class SongAnalysisWorkService(
 
     /**
      * 진행이 멈춘 RUNNING 행을 FAILED 로 넘긴다. 재시도가 아니라 포기 처리다 — 이걸 하지 않으면
-     * 죽은 worker 가 남긴 행이 `activeDedupKey` 를 들고 있어서 그 곡은 새 요청을 받지 못한다.
+     * 죽은 worker 가 남긴 행이 계속 활성으로 잡혀서 그 곡은 새 요청을 받지 못한다.
      */
     @Transactional
     fun failStaleRunning(olderThan: Instant, limit: Int): Int {
@@ -175,14 +177,4 @@ class SongAnalysisWorkService(
      */
     private fun SongAnalysisWorkEntity.isRunning(): Boolean =
         status == SongAnalysisWorkStatus.RUNNING
-
-    companion object {
-        fun buildActiveDedupKey(title: String, artist: String): String {
-            return "$title|$artist"
-        }
-
-        fun buildAdminReanalysisDedupKey(songId: Long): String {
-            return "ADMIN_SONG_REANALYSIS|$songId"
-        }
-    }
 }

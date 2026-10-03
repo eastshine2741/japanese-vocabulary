@@ -73,7 +73,6 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
         assertThat(refreshedWork.songId).isNotNull
         assertThat(refreshedWork.lyricId).isNotNull
         assertThat(refreshedWork.completedAt).isNotNull
-        assertThat(refreshedWork.activeDedupKey).isNull()
 
         val song = songRepository.findById(refreshedWork.songId!!).orElseThrow()
         assertThat(song.title).isEqualTo(TITLE)
@@ -286,7 +285,6 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
         val work = SongAnalysisWorkEntity(
             rawTitle = TITLE,
             rawArtist = ARTIST,
-            activeDedupKey = SongAnalysisWorkService.buildAdminReanalysisDedupKey(songId),
             status = status,
             songId = songId,
             triggerSource = SongAnalysisTriggerSource.ADMIN,

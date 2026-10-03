@@ -13,7 +13,7 @@ Admin song detail can trigger existing-song reanalysis with `POST /admin/api/son
 ## Flow
 
 1. **Trigger** (`api`/`admin-api` + `song-analysis`): analyze request or approved recommendation candidate -> `SongAnalysisWorkService.createOrReuse()` -> returns existing active raw `title|artist` workId or creates `song_analysis_work(PENDING)`.
-2. **Enqueue + claim** (`integrations:message-queue` + `worker`): `createOrReuse` publishes `SongAnalysisWorkQueuedEvent`; the queue adapter turns it into a RabbitMQ message carrying only `workId` on `AFTER_COMMIT`. `SongAnalysisWorkListener` claims that work by moving the row from `PENDING` to `RUNNING`; that state transition is the whole of the mutual exclusion, so there is no lock owner or lease column. The row is the source of truth: a duplicate delivery finds the row non-`PENDING` and is skipped, and a lost message is republished by `SongAnalysisWorkSweeper` (every 5 minutes, for `PENDING` rows older than 5 minutes). The same sweep fails `RUNNING` rows whose `updated_at` has not moved for 30 minutes — it is how a dead worker's row releases its `active_dedup_key`, not a retry. There is no 30-second polling loop any more.
+2. **Enqueue + claim** (`integrations:message-queue` + `worker`): `createOrReuse` publishes `SongAnalysisWorkQueuedEvent`; the queue adapter turns it into a RabbitMQ message carrying only `workId` on `AFTER_COMMIT`. `SongAnalysisWorkListener` claims that work by moving the row from `PENDING` to `RUNNING`; that state transition is the whole of the mutual exclusion, so there is no lock owner or lease column. The row is the source of truth: a duplicate delivery finds the row non-`PENDING` and is skipped, and a lost message is republished by `SongAnalysisWorkSweeper` (every 5 minutes, for `PENDING` rows older than 5 minutes). The same sweep fails `RUNNING` rows whose `updated_at` has not moved for 30 minutes — it is how a dead worker's row stops counting as active, not a retry. There is no 30-second polling loop any more.
 3. **Pre-analysis pipeline** (`worker` + `song`): stage changes through `FETCH_LYRICS` -> `FETCH_YOUTUBE` -> `CREATE_SONG_AND_LYRIC`, running LRCLIB/VocaDB lyric lookup, YouTube MV lookup, and songs+lyrics creation. A search with no acceptable MV candidate fails the work.
 
 Lyric providers run in order; the first hit wins. LrcLib matches a candidate by artist name first (`ArtistNameNormalizer` folds width, case, spacing, and punctuation). Its duration fallback exists for cross-script spellings (`あいみょん` vs `Aimyon`) but duration alone is not evidence — 『恋』 has dozens of same-titled songs within a few seconds of each other, and one of them once landed on Sohbana's song — so a duration candidate is accepted only when `ItunesArtistAliasVerifier` confirms the artist: it searches iTunes JP for the candidate's artist spelling and accepts it when any returned track names the query artist; a failed lookup rejects the candidate. When nothing verifies, the work fails with `LYRICS_NOT_FOUND` rather than attaching a stranger's lyrics.
@@ -22,7 +22,7 @@ Lyric providers run in order; the first hit wins. LrcLib matches a candidate by 
 
 `YoutubeMvSearchService` picks the MV from the cached artist uploads playlist first, then broad video search. A candidate must contain the track title (or, for bilingual iTunes titles like `ピースサイン - Peace Sign`, either separator-delimited half), and is filtered by length against `duration_seconds`: at most half the track (Shorts, teasers, clips) or more than twice the track (concerts, full albums) is rejected; without a track length only the fixed 60s floor applies. Title keywords for covers, lyric videos, karaoke, and live/tour clips score below the acceptance floor on both paths, so a same-length live upload from the artist's own channel loses to the MV or falls through to broad search.
 
-Work status uses only `PENDING`, `RUNNING`, `COMPLETED`, and `FAILED`. There is no request table, attempt table, or automatic retry. Delivery is at-least-once through RabbitMQ; idempotency comes from the claim, not from the broker. A pipeline failure is recorded as `FAILED` on the row and the message is acked, so `song-analysis.work.dlq` only collects infrastructure failures (e.g. the worker cannot reach MySQL). On failure, work becomes `FAILED` and `active_dedup_key` is cleared so the same song can create a new work later. `lyrics` stores original/analyzed content only; `song_analysis_work` owns the state machine.
+Work status uses only `PENDING`, `RUNNING`, `COMPLETED`, and `FAILED`. There is no request table, attempt table, or automatic retry. Delivery is at-least-once through RabbitMQ; idempotency comes from the claim, not from the broker. A pipeline failure is recorded as `FAILED` on the row and the message is acked, so `song-analysis.work.dlq` only collects infrastructure failures (e.g. the worker cannot reach MySQL). On failure, work becomes `FAILED`, which drops the row out of the active set so the same song can create a new work later. `lyrics` stores original/analyzed content only; `song_analysis_work` owns the state machine.
 
 `trigger_source` values:
 
@@ -31,9 +31,42 @@ Work status uses only `PENDING`, `RUNNING`, `COMPLETED`, and `FAILED`. There is 
 - `RECOMMENDATION`: admin recommendation dispatch after candidate approval
 
 
+## One Active Work Per Song
+
+`createOrReuse` reads `(raw_title, raw_artist)` with `FOR UPDATE` before inserting. When no active row
+matches, InnoDB takes a gap lock on the slot that key would occupy, so a concurrent request for the same
+song blocks on the insert instead of creating a second work. A terminal row drops out of the
+`status IN (PENDING, RUNNING)` filter, so nothing has to be cleared when work finishes. This replaced an
+`active_dedup_key` UNIQUE column, which emulated a partial unique index and had to be nulled on every
+terminal transition.
+
+**The replaced columns are still in the table.** `deploy.sh` runs the Flyway Job to completion *before*
+`kubectl rollout status`, so between those two steps the previous pods are still serving and their entity
+still maps `active_dedup_key`, `locked_by` and `locked_until`. Dropping a column there makes every
+statement touching `song_analysis_work` fail with `Unknown column` until the rollout finishes. So V33/V34
+only change indexes, and the three `DROP COLUMN`s wait for a follow-up migration in a later deploy, once
+no running pod maps them. During the rollout window new pods leave `active_dedup_key` NULL (MySQL UNIQUE
+permits many NULLs) while old pods still fill it, so an old pod's `findByActiveDedupKey` cannot see a new
+pod's row and one song can get two active works. That is bounded by the window and costs one duplicate
+analysis.
+
+Two preconditions, both silent if broken:
+
+- **`idx_song_analysis_work_raw_song`** must exist. Without it the locking read scans the table and locks
+  every row it touches, serializing analysis requests for unrelated songs.
+- **REPEATABLE READ.** InnoDB does not take gap locks under READ COMMITTED, so setting the datasource or a
+  single transaction to READ COMMITTED removes the protection with no error. Nothing configures isolation
+  today, which leaves MySQL's REPEATABLE READ default in place.
+
+The tradeoff accepted here: two simultaneous requests for one song end in a deadlock (error 1213) rather
+than a duplicate-key error, and a deadlock rolls back the whole transaction, so the loser cannot re-read
+and return the winner's row. Both call sites map it to `409 SONG_ANALYSIS_WORK_ALREADY_EXISTS`; retrying
+the request finds the existing work. This is accepted because concurrent requests for the same song are
+not expected in practice.
+
 ## Admin Song Reanalysis
 
-Admin song detail can trigger `POST /admin/api/songs/{songId}/reanalysis`. The endpoint creates or returns a `song_analysis_work` with `trigger_source=ADMIN`, `song_id` set to the target song, and an admin-scoped active dedupe key. Any active `PENDING` or `RUNNING` work for the song blocks a new admin work, regardless of trigger source. A raw `title|artist` active work without a `song_id` also blocks conservatively.
+Admin song detail can trigger `POST /admin/api/songs/{songId}/reanalysis`. The endpoint creates or returns a `song_analysis_work` with `trigger_source=ADMIN` and `song_id` set to the target song. Any active `PENDING` or `RUNNING` work for the song blocks a new admin work, regardless of trigger source: it first looks for an active work already bound to `song_id` (which catches a work whose raw strings no longer match because an admin edited the title), then takes the same `(raw_title, raw_artist)` lock a user request takes.
 
 Admin reanalysis reruns lyric lookup, YouTube lookup, lyric creation, and analysis for the existing song. It creates a new lyric row rather than reusing the current active lyric. The candidate lyric and the newly produced MV are attached to `song_analysis_work.lyric_id` and `song_analysis_work.youtube_url` at the player-ready milestone, but the public/admin active read paths continue to use `songs.active_lyric_id` until completion.
 

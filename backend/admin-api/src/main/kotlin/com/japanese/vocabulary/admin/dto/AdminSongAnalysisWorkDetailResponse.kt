@@ -8,7 +8,6 @@ data class AdminSongAnalysisWorkDetailResponse(
     val rawArtist: String,
     val durationSeconds: Int?,
     val artworkUrl: String?,
-    val activeDedupKey: String?,
     val status: String,
     val currentStage: String?,
     val songId: Long?,

@@ -155,7 +155,6 @@ fun SongAnalysisWorkEntity.toDetailResponse(): AdminSongAnalysisWorkDetailRespon
         rawArtist = rawArtist,
         durationSeconds = durationSeconds,
         artworkUrl = artworkUrl,
-        activeDedupKey = activeDedupKey,
         status = status.name,
         currentStage = currentStage?.name,
         songId = songId,
