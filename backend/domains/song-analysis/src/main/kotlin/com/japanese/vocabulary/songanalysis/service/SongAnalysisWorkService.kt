@@ -9,7 +9,9 @@ import com.japanese.vocabulary.songanalysis.entity.SongAnalysisTriggerSource
 import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkEntity
 import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStage
 import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStatus
+import com.japanese.vocabulary.songanalysis.event.SongAnalysisWorkQueuedEvent
 import com.japanese.vocabulary.songanalysis.repository.SongAnalysisWorkRepository
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.annotation.Propagation
@@ -19,6 +21,7 @@ import java.time.Instant
 @Service
 class SongAnalysisWorkService(
     private val songAnalysisWorkRepository: SongAnalysisWorkRepository,
+    private val eventPublisher: ApplicationEventPublisher,
 ) {
 
     @Transactional
@@ -46,11 +49,13 @@ class SongAnalysisWorkService(
             createdByUserId = createdByUserId,
         )
 
-        return try {
-            songAnalysisWorkRepository.saveAndFlush(work).toDto()
+        val saved = try {
+            songAnalysisWorkRepository.saveAndFlush(work)
         } catch (_: DataIntegrityViolationException) {
             throw BusinessException(ErrorCode.SONG_ANALYSIS_WORK_ALREADY_EXISTS)
         }
+        eventPublisher.publishEvent(SongAnalysisWorkQueuedEvent(saved.id!!))
+        return saved.toDto()
     }
 
     /** 이 곡의 분석을 끝낸 가장 최근 작업. 이미 분석된 곡을 다시 요청받았을 때 새 작업 대신 돌려준다. */
@@ -78,20 +83,27 @@ class SongAnalysisWorkService(
         return songAnalysisWorkRepository.findByIdForUpdate(id)?.toDto()
     }
 
+    /**
+     * 큐 메시지 하나가 가리키는 작업을 잡는다. 같은 메시지가 두 번 와도 PENDING 인 행만 잡히므로
+     * 두 번째 배달은 null 을 받고 조용히 ack 된다.
+     */
     @Transactional
-    fun claimPending(limit: Int, workerId: String, lockUntil: Instant): List<SongAnalysisWorkEntity> {
-        val works = songAnalysisWorkRepository.findClaimableForUpdate(
-            org.springframework.data.domain.Pageable.ofSize(limit),
-        )
-        works.forEach { work ->
-            work.status = SongAnalysisWorkStatus.RUNNING
-            work.lockedBy = workerId
-            work.lockedUntil = lockUntil
-            work.currentStage = null
-            work.clearFailure()
-        }
-        return songAnalysisWorkRepository.saveAllAndFlush(works)
+    fun claim(workId: Long, workerId: String, lockUntil: Instant): SongAnalysisWorkEntity? {
+        val work = songAnalysisWorkRepository.findByIdForUpdate(workId) ?: return null
+        if (work.status != SongAnalysisWorkStatus.PENDING) return null
+        work.status = SongAnalysisWorkStatus.RUNNING
+        work.lockedBy = workerId
+        work.lockedUntil = lockUntil
+        work.currentStage = null
+        work.clearFailure()
+        return songAnalysisWorkRepository.saveAndFlush(work)
     }
+
+    /** 메시지가 유실돼 PENDING 으로 남은 작업. sweeper 가 다시 큐에 넣는다. */
+    @Transactional(readOnly = true)
+    fun findStalePendingIds(olderThan: Instant, limit: Int): List<Long> =
+        songAnalysisWorkRepository.findStalePendingIds(olderThan, Pageable.ofSize(limit))
+
 
     @Transactional
     fun failExpiredRunning(limit: Int): Int {

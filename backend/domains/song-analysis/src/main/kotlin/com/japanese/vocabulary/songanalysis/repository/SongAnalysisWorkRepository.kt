@@ -39,15 +39,18 @@ interface SongAnalysisWorkRepository : JpaRepository<SongAnalysisWorkEntity, Lon
     @Query("SELECT w FROM SongAnalysisWorkEntity w WHERE w.id = :id")
     fun findByIdForUpdate(@Param("id") id: Long): SongAnalysisWorkEntity?
 
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    // Sweeper only. A queue message normally carries the id, so this finds rows whose message was
+    // lost (broker restart, publish crash between commit and send) and republishes them.
     @Query(
-        "SELECT w FROM SongAnalysisWorkEntity w " +
+        "SELECT w.id FROM SongAnalysisWorkEntity w " +
             "WHERE w.status = com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStatus.PENDING " +
+            "AND w.createdAt < :threshold " +
             "ORDER BY w.createdAt ASC"
     )
-    fun findClaimableForUpdate(
+    fun findStalePendingIds(
+        @Param("threshold") threshold: Instant,
         pageable: Pageable,
-    ): List<SongAnalysisWorkEntity>
+    ): List<Long>
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query(
