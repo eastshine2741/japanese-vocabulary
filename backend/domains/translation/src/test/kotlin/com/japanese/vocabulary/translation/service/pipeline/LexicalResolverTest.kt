@@ -983,6 +983,35 @@ class LexicalResolverTest {
         }
 
     @Test
+    fun `a godan verb's potential negative handed back as the headword is rescued as the verb`(): Unit = runBlocking {
+        // songId=438, "飛べない bird みたいな bad feeling": the segmentation stage gave 飛べない as the
+        // headword. jisho has no entry for it, but 飛べ is the potential stem of 飛ぶ.
+        stub(
+            "飛ぶ" to found(
+                JishoDictionaryEntryDto(
+                    headword = "飛ぶ",
+                    reading = "トブ",
+                    senses = listOf(
+                        JishoOptionDto(
+                            pos = listOf("Godan verb with 'bu' ending", "Intransitive verb"),
+                            english = "to fly",
+                            englishDefinitions = listOf("to fly", "to soar"),
+                        ),
+                    ),
+                ),
+            ),
+        )
+        val tokens = listOf(token("飛べない", "飛べない", "トベナイ", lineIndex = 31))
+
+        val resolved = resolver.resolve(tokens).byTokenKey.values.single()
+
+        assertThat(resolved.baseForm).isEqualTo("飛ぶ")
+        assertThat(resolved.options.map { it.english }).containsExactly("to fly")
+        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
     fun `senses of different entries keep separate ids`(): Unit = runBlocking {
         stub("前" to maeAndZenAndSaki())
 
