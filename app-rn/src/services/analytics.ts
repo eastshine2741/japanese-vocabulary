@@ -43,6 +43,9 @@ export function trackSongSelect(songId: number | undefined, isNew: boolean): voi
   track({ name: 'song_select', params: { song_id: songId, is_new: isNew } });
 }
 
+export const analyzeOutcomeOf = (errorCode: string | null | undefined): AnalyzeOutcome =>
+  errorCode === 'LYRICS_NOT_FOUND' ? 'lyrics_not_found' : 'failed';
+
 export function trackSongAnalyzeResult(outcome: AnalyzeOutcome): void {
   track({ name: 'song_analyze_result', params: { outcome } });
 }

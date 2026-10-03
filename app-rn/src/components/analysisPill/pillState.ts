@@ -5,7 +5,7 @@ export interface AnalysisJob {
   title: string;
   artist: string;
   artworkUrl: string | null;
-  /** 가사가 준비되면 채워진다. 그 전엔 songDetail 로 못 간다. */
+  /** 분석이 끝나면 채워진다. 그 전엔 곡이 없어 songDetail 로 못 간다. */
   songId: number | null;
   phase: AnalysisJobPhase;
   /** 완료·실패 시각. 유지 시간이 지나면 목록에서 빠진다. */
@@ -26,7 +26,7 @@ export interface PillState {
   arts: (string | null)[];
   /** true 면 탭이 곡별 pill 로 분해, false 면 탭이 곧바로 songDetail. */
   expandable: boolean;
-  /** expandable 이 false 일 때 탭이 여는 곡. 가사 준비 전엔 null. */
+  /** expandable 이 false 일 때 탭이 여는 곡. 분석이 끝나기 전엔 null. */
   tapSongId: number | null;
   /** 실패 pill 일 때 탭이 즉시 지우는 작업. */
   dismissWorkId: number | null;
@@ -34,7 +34,7 @@ export interface PillState {
   studyHint: boolean;
 }
 
-/** 완료·실패 pill 을 유지하는 시간. 지나면 그 곡이 목록에서 빠진다. */
+/** 실패 pill 을 유지하는 시간. 지나면 그 곡이 목록에서 빠진다. 완료 pill 은 탭할 때까지 남는다. */
 export const SETTLED_HOLD_MS = 3000;
 
 export const PILL_TITLE = {

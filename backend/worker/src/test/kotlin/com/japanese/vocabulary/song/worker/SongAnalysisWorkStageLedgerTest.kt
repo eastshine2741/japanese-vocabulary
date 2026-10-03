@@ -8,6 +8,7 @@ import com.japanese.vocabulary.song.model.AnalyzedLine
 import com.japanese.vocabulary.song.model.LyricLineData
 import com.japanese.vocabulary.song.repository.LyricRepository
 import com.japanese.vocabulary.song.repository.SongRepository
+import com.japanese.vocabulary.song.service.SongAnalysisPreparationService.PreparedLyric
 import com.japanese.vocabulary.songanalysis.dto.SongAnalysisStageRef
 import com.japanese.vocabulary.songanalysis.dto.SongAnalysisStageTarget
 import com.japanese.vocabulary.songanalysis.entity.SongAnalysisStageStatus
@@ -170,7 +171,8 @@ class SongAnalysisWorkStageLedgerTest : WorkerBaseIntegrationTest() {
         assertThatThrownBy {
             completionService.completeWithAnalyzedContent(
                 ref = claimed,
-                lyricId = lyric.id!!,
+                preparedLyric = PreparedLyric(LyricType.PLAIN, lyric.rawContent, lrclibId = null, vocadbId = null),
+                youtubeUrl = "https://youtu.be/cat",
                 analyzedLines = listOf(AnalyzedLine(index = 0, koreanLyrics = "고양이", tokens = emptyList())),
                 output = null,
             )

@@ -154,7 +154,7 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
     }
 
     @Test
-    fun `analyze lyrics failure fails work after player-ready milestone without analyzed content`(): Unit = runBlocking {
+    fun `analyze lyrics failure fails work without creating the song`(): Unit = runBlocking {
         stubLyricsFound()
         stubYoutubeFound()
         stubLyricAnalysisFailure()
@@ -168,15 +168,11 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
         val refreshedWork = workRepository.findById(created.workId).orElseThrow()
         assertThat(refreshedWork.status).isEqualTo(SongAnalysisWorkStatus.FAILED)
         assertThat(refreshedWork.currentStage).isEqualTo(SongAnalysisWorkStage.ANALYZE_LYRICS)
-        assertThat(refreshedWork.playerReadyAt).isNotNull
-        assertThat(refreshedWork.songId).isNotNull
-        assertThat(refreshedWork.lyricId).isNotNull
+        assertThat(refreshedWork.playerReadyAt).isNull()
+        assertThat(refreshedWork.songId).isNull()
+        assertThat(refreshedWork.lyricId).isNull()
         assertThat(refreshedWork.errorCode).isEqualTo("SONG_ANALYSIS_WORK_FAILED")
-
-        val song = songRepository.findById(refreshedWork.songId!!).orElseThrow()
-        assertThat(song.youtubeUrl).isEqualTo("https://www.youtube.com/watch?v=official-video-id")
-        val lyric = lyricRepository.findById(refreshedWork.lyricId!!).orElseThrow()
-        assertThat(lyric.analyzedContent).isNull()
+        assertThat(songRepository.findByArtistAndTitle(ARTIST, TITLE)).isNull()
 
         verify(exactly = 1) { lrclibClient.search(any()) }
         verify(exactly = 1) { youtubeClient.searchVideos(any(), any(), any(), any()) }
@@ -211,7 +207,7 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
     }
 
     @Test
-    fun `failed admin reanalysis keeps old active lyric and mv while retaining inactive candidate lyric`(): Unit = runBlocking {
+    fun `failed admin reanalysis keeps old active lyric and mv without a candidate lyric`(): Unit = runBlocking {
         stubLyricsFound()
         stubYoutubeFound()
         stubLyricAnalysisFailure()
@@ -227,16 +223,64 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
         val lyrics = lyricRepository.findAllBySongIdOrderByCreatedAtDesc(song.id!!)
 
         assertThat(refreshedWork.status).isEqualTo(SongAnalysisWorkStatus.FAILED)
-        assertThat(refreshedWork.youtubeUrl).isEqualTo("https://www.youtube.com/watch?v=official-video-id")
-        assertThat(refreshedWork.lyricId).isNotNull
-        assertThat(refreshedWork.lyricId).isNotEqualTo(oldLyric.id)
+        assertThat(refreshedWork.lyricId).isNull()
         assertThat(refreshedSong.activeLyricId).isEqualTo(oldLyric.id)
         assertThat(refreshedSong.youtubeUrl).isEqualTo("https://youtu.be/old-mv")
-        assertThat(lyrics.map { it.id }).contains(oldLyric.id, refreshedWork.lyricId)
+        assertThat(lyrics.map { it.id }).containsExactly(oldLyric.id)
+    }
+
+    /** 이전 파이프라인에서 곡만 만들어지고 분석이 실패한 곡. 다시 요청하면 새 가사로 분석을 채운다. */
+    @Test
+    fun `a new request for a song left unanalyzed gives it a fresh analyzed active lyric`(): Unit = runBlocking {
+        stubLyricsFound()
+        stubYoutubeFound()
+        stubLyricAnalysis()
+        val song = persistSongWithOldMv()
+        val staleLyric = persistActiveLyric(song.id!!, "古い歌詞")
+        val created = workService.createOrReuse(title = TITLE, artist = ARTIST, durationSeconds = 210)
+
+        drive(created.workId)
+
+        val refreshedWork = workRepository.findById(created.workId).orElseThrow()
+        val refreshedSong = songRepository.findById(song.id!!).orElseThrow()
+        assertThat(refreshedWork.status).isEqualTo(SongAnalysisWorkStatus.COMPLETED)
+        assertThat(refreshedWork.songId).isEqualTo(song.id)
+        assertThat(refreshedWork.lyricId).isNotEqualTo(staleLyric.id)
+        assertThat(refreshedSong.activeLyricId).isEqualTo(refreshedWork.lyricId)
+        assertThat(refreshedSong.youtubeUrl).isEqualTo("https://youtu.be/old-mv")
+        val lyric = lyricRepository.findById(refreshedWork.lyricId!!).orElseThrow()
+        assertThat(lyric.rawContent.map { it.text }).containsExactly("ももいろの鍵")
+        assertThat(lyric.analyzedContent!![0].koreanLyrics).isEqualTo("복숭아빛 열쇠")
+    }
+
+    /** 배포 전에 CREATE_SONG_AND_LYRIC 을 기다리던 작업은 그 단계에서 곡을 만들고 그 가사로 끝난다. */
+    @Test
+    fun `work waiting for the old create stage still finishes on the lyric it created`(): Unit = runBlocking {
+        stubLyricsFound()
+        stubYoutubeFound()
+        stubLyricAnalysis()
+        val created = workService.createOrReuse(title = TITLE, artist = ARTIST, durationSeconds = 210)
+        deliver(created.workId, SongAnalysisWorkStage.FETCH_LYRICS)
+        deliver(created.workId, SongAnalysisWorkStage.FETCH_YOUTUBE)
+        val waiting = workRepository.findById(created.workId).orElseThrow()
+        waiting.currentStage = SongAnalysisWorkStage.CREATE_SONG_AND_LYRIC
+        workRepository.saveAndFlush(waiting)
+
+        deliver(created.workId, SongAnalysisWorkStage.CREATE_SONG_AND_LYRIC)
+        val songId = workRepository.findById(created.workId).orElseThrow().songId!!
+        val legacyLyricId = workRepository.findById(created.workId).orElseThrow().lyricId!!
+        drive(created.workId)
+
+        val refreshedWork = workRepository.findById(created.workId).orElseThrow()
+        assertThat(refreshedWork.status).isEqualTo(SongAnalysisWorkStatus.COMPLETED)
+        assertThat(refreshedWork.lyricId).isEqualTo(legacyLyricId)
+        assertThat(songRepository.findById(songId).orElseThrow().activeLyricId).isEqualTo(legacyLyricId)
+        assertThat(lyricRepository.findAllBySongIdOrderByCreatedAtDesc(songId)).hasSize(1)
+        assertThat(lyricRepository.findById(legacyLyricId).orElseThrow().analyzedContent).hasSize(1)
     }
 
     /**
-     * 실패한 단계부터 이어서 돌린다. 앞 단계(가사·MV 검색, 곡 생성)는 다시 하지 않고, 가사 분석
+     * 실패한 단계부터 이어서 돌린다. 앞 단계(가사·MV 검색)는 다시 하지 않고, 가사 분석
      * 단계 안에서도 이미 끝난 번역 갈래는 다시 부르지 않는다.
      */
     @Test
@@ -359,6 +403,9 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
         }
         error("work $workId did not reach a terminal state")
     }
+
+    private fun deliver(workId: Long, stage: SongAnalysisWorkStage) =
+        listener.handle(SongAnalysisWorkMessage(workId, stage), redelivered = false, EmptyCoroutineContext)
 
     private fun stage(workId: Long, stage: SongAnalysisWorkStage) =
         checkNotNull(stageRepository.findByWorkIdAndStage(workId, stage)) { "no $stage row for work $workId" }

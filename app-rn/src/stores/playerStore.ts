@@ -1,16 +1,12 @@
 import { create } from 'zustand';
 import { songApi } from '../api/songApi';
 import { SongSearchItem, SongStudyData } from '../types/song';
-import { useAnalysisStore } from './analysisStore';
-import {
-  trackSongAnalyzeResult,
-  trackSongSelect,
-  type AnalyzeOutcome,
-} from '../services/analytics';
+import { isAnalyzingSong, useAnalysisStore } from './analysisStore';
+import { analyzeOutcomeOf, trackSongAnalyzeResult, trackSongSelect } from '../services/analytics';
 
-// 'loading' is the cheap existing-song lookup; 'analyzing' means a new analysis was requested
-// (the global pill shows it while this store waits for lyrics to auto-open the song).
-type Status = 'idle' | 'loading' | 'analyzing' | 'success' | 'error';
+// 'loading' covers the existing-song lookup and the analysis request. Once accepted, the global pill
+// owns the analysis and this store goes back to 'idle' — the song opens only from the pill.
+type Status = 'idle' | 'loading' | 'success' | 'error';
 
 interface PlayerState {
   status: Status;
@@ -31,10 +27,6 @@ interface PlayerState {
 
 let analysisRunId = 0;
 
-function analyzeOutcomeOf(errorCode: string | null | undefined): AnalyzeOutcome {
-  return errorCode === 'LYRICS_NOT_FOUND' ? 'lyrics_not_found' : 'failed';
-}
-
 export const usePlayerStore = create<PlayerState>((set, get) => ({
   status: 'idle',
   studyData: null,
@@ -49,58 +41,41 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     const runId = ++analysisRunId;
     set({ status: 'loading', errorCode: null });
     try {
-      // 이미 분석 중인 곡을 다시 탭하면 서버에 또 묻지 않고 진행 중인 추적에 올라탄다.
-      let readyPromise = useAnalysisStore.getState().readyFor(item.title, item.artistName);
-      if (readyPromise) {
-        trackSongSelect(undefined, true);
-        set({ status: 'analyzing' });
-      } else {
-        const existing = await songApi.getByTitleArtist(item.title, item.artistName);
-        if (analysisRunId !== runId) return;
-        if (existing) {
-          trackSongSelect(existing.song.id, false);
-          trackSongAnalyzeResult('success');
-          set({ status: 'success', studyData: existing, currentMs: 0, durationMs: 0 });
-          return;
-        }
-        trackSongSelect(undefined, true);
-
-        const accepted = await songApi.analyze({
-          title: item.title,
-          artist: item.artistName,
-          durationSeconds: item.durationSeconds,
-          artworkUrl: item.thumbnail,
-        });
-        if (analysisRunId !== runId) return;
-        // 요청 자체가 거절된 경우엔 pill 이 뜨지 않으므로 여기서 error 로 알린다.
-        if (accepted.status === 'FAILED') {
-          const errorCode = accepted.errorCode ?? 'SONG_ANALYSIS_WORK_FAILED';
-          trackSongAnalyzeResult(analyzeOutcomeOf(errorCode));
-          set({ status: 'error', errorCode });
-          return;
-        }
-        if (!accepted.canOpenPlayer) {
-          set({ status: 'analyzing' });
-        }
-        // 여기서는 가사가 준비되는 시점까지만 기다린다. 단어 분석 추적은 analysisStore 몫.
-        readyPromise = useAnalysisStore.getState().track(accepted, {
-          title: item.title,
-          artist: item.artistName,
-          artworkUrl: item.thumbnail,
-        });
-      }
-      const ready = await readyPromise;
-      if (analysisRunId !== runId) return;
-      if (!ready.songId) {
-        // 폴링 중 실패는 pill 이 보여준다. error 면 검색 화면 dialog 까지 뜨므로 idle 로 돌린다.
-        trackSongAnalyzeResult(analyzeOutcomeOf(ready.errorCode));
+      // 이미 분석 중인 곡이면 pill 이 이미 보여주고 있다.
+      if (isAnalyzingSong(useAnalysisStore.getState().jobs, item.title, item.artistName)) {
         set({ status: 'idle' });
         return;
       }
-      const data = await songApi.getStudyDataById(ready.songId);
+      const existing = await songApi.getByTitleArtist(item.title, item.artistName);
       if (analysisRunId !== runId) return;
-      trackSongAnalyzeResult('success');
-      set({ status: 'success', studyData: data, currentMs: 0, durationMs: 0 });
+      if (existing) {
+        trackSongSelect(existing.song.id, false);
+        trackSongAnalyzeResult('success');
+        set({ status: 'success', studyData: existing, currentMs: 0, durationMs: 0 });
+        return;
+      }
+      trackSongSelect(undefined, true);
+
+      const accepted = await songApi.analyze({
+        title: item.title,
+        artist: item.artistName,
+        durationSeconds: item.durationSeconds,
+        artworkUrl: item.thumbnail,
+      });
+      if (analysisRunId !== runId) return;
+      // 요청 자체가 거절된 경우엔 pill 이 뜨지 않으므로 여기서 error 로 알린다.
+      if (accepted.status === 'FAILED') {
+        const errorCode = accepted.errorCode ?? 'SONG_ANALYSIS_WORK_FAILED';
+        trackSongAnalyzeResult(analyzeOutcomeOf(errorCode));
+        set({ status: 'error', errorCode });
+        return;
+      }
+      useAnalysisStore.getState().track(accepted, {
+        title: item.title,
+        artist: item.artistName,
+        artworkUrl: item.thumbnail,
+      });
+      set({ status: 'idle' });
     } catch (e: any) {
       if (analysisRunId !== runId) return;
       const errorCode = e.response?.data?.error;

@@ -7,6 +7,9 @@ package com.japanese.vocabulary.songanalysis.entity
  * [ANALYZE_LYRICS] 는 가사 번역과 단어 준비(분절 → 규칙 → 사전) 두 갈래를 한 메시지 안에서 동시에
  * 돌린다. 나눠서 합류시키는 비용에 비해 얻는 게 없고, 갈래별 산출물은 행 안에 따로 남는다.
  *
+ * 곡·가사 행은 [COMPLETE] 가 분석 결과와 함께 만든다. 분석이 끝나지 않은 곡이 앱에 보이지 않게 하려는 것이다.
+ * [CREATE_SONG_AND_LYRIC] 는 그 전 파이프라인의 단계로, 이미 그 단계에 와 있는 작업만 돈다.
+ *
  * 이름은 저장값이므로 바꾸지 않는다. 구 파이프라인이 남긴 행이 [ANALYZE_LYRICS] 를 쓴다.
  */
 enum class SongAnalysisWorkStage {
@@ -19,7 +22,7 @@ enum class SongAnalysisWorkStage {
     COMPLETE;
 
     val next: SongAnalysisWorkStage?
-        get() = entries.getOrNull(ordinal + 1)
+        get() = entries.drop(ordinal + 1).firstOrNull { it != CREATE_SONG_AND_LYRIC }
 
     companion object {
         val FIRST = FETCH_LYRICS

@@ -68,6 +68,7 @@ from `backend/`.
   `song_analysis_work` / `song_analysis_work_stage` 가 진실 원천이다 — 단계 산출물·실패 원인이 원장에
   남고, 중복 배달은 claim 이, 유실은 sweeper 가, 죽은 worker 는 재배달이 흡수한다. 오류로 메시지를
   다시 넣지 않는다(5분 예산 안의 HTTP 호출 단위 재시도만). 관리자는 실패한 단계부터 다시 돌릴 수 있다.
+  곡·가사 행은 마지막 단계(`COMPLETE`)가 분석 결과와 함께 만들므로, 실패한 작업은 곡을 남기지 않는다.
   한 곡에 활성 작업 하나는 `(raw_title, raw_artist)` 갭 락이 지키므로 REPEATABLE READ 가 전제다.
 - RabbitMQ 큐 토폴로지는 브로커가 부팅 때 읽는 `definitions.json` 이 소유한다
   (`k8s/{dev,prod}/rabbitmq/`). 앱은 이름만 참조하고 `spring.rabbitmq.dynamic` 은 false 다.
