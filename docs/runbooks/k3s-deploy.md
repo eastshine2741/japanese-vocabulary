@@ -19,15 +19,43 @@ Rules:
 - Port-forward `svc/admin-api 8081:8081` only for direct Admin API checks.
 - Prod admin runs at `https://kotonoha.eastshine.dev/admin`; it needs a `kotonoha.eastshine.dev` A record pointing at the same LB IP as `api.kotonoha.eastshine.dev`. See `docs/admin-service.md`.
 - Prod requires `ADMIN_PASSWORD_SHA256` and `ADMIN_TOKEN_SECRET` in `.env.prod`; `deploy.sh` refuses to deploy without them.
-- Both clusters need a one-time bootstrap before the first deploy: `k8s/dev/bootstrap/apply.sh` (local k3s) and `k8s/prod/bootstrap/apply.sh` (Hetzner). They install the RabbitMQ operators; `deploy.sh` stops with a pointer if the CRDs are missing.
+- Prod needs a one-time bootstrap before the first deploy (`k8s/prod/bootstrap/apply.sh`): CCM, CSI, cert-manager, the Traefik LB annotation. Local k3s needs none — `./deploy.sh <ns>` is enough.
 
 ## Worker and Batch CronJobs
 
 `worker` is the resident pod that consumes the song-analysis queue. `batch` no longer runs as a
 Deployment — its image runs one task and exits (`--task=<name>`), and k8s CronJobs own the schedule.
 
-RabbitMQ 는 오퍼레이터가 소유한다. `RabbitmqCluster` CR 하나가 브로커를, `Queue`/`Exchange`/`Binding`
-CR 이 토폴로지를 선언하고, 앱은 이름만 참조한다 (`spring.rabbitmq.dynamic: false`).
+RabbitMQ 는 네임스페이스마다 단일 노드 StatefulSet 이고, 큐 토폴로지는 오퍼레이터가 아니라
+브로커가 부팅 때 읽는 definitions 파일이 소유한다. 앱은 이름만 참조한다
+(`spring.rabbitmq.dynamic: false`).
+
+| | |
+|---|---|
+| `rabbitmq/configmap.yaml` | `rabbitmq.conf`, `enabled_plugins`, `00-topology.json` (exchange/queue/binding) |
+| `rabbitmq/secret.template.yaml` | `username`/`password` + `10-users.json` (계정 선언) |
+| `rabbitmq/statefulset.template.yaml` | 브로커와 Service 둘 |
+
+두 definitions 파일은 `/etc/rabbitmq/definitions.d/` 에 각각 `subPath` 로 마운트되고 파일 이름
+순서대로 import 된다 — vhost 를 만드는 `00` 이 계정 `10` 보다 먼저여야 한다. 디렉터리째로 마운트하면
+ConfigMap 볼륨이 만드는 `..data` 링크와 타임스탬프 디렉터리를 RabbitMQ 가 파일로 읽으려다
+`eisdir` 로 부팅에 실패한다. 계정이 ConfigMap 이
+아니라 Secret 에 있는 이유는, definitions 가 있으면 RabbitMQ 가 기본 계정 시딩을 건너뛰어
+(`Will not seed default virtual host and user`) `RABBITMQ_DEFAULT_USER` 가 무시되기 때문이다.
+계정도 definitions 로 선언해야 하고 그러면 비밀번호가 import 파일에 들어간다.
+
+알아야 할 세 가지:
+
+- **import 는 부팅 때만 돈다.** ConfigMap 을 고쳐도 파드가 그대로면 아무 일도 없다. `deploy.sh` 가
+  두 선언의 해시를 파드 템플릿 annotation 에 넣어 롤아웃을 트리거한다.
+- **기존 큐의 `arguments` 변경은 조용히 무시된다.** 에러도 경고도 없이 기존 값이 남는다.
+  `x-dead-letter-*` 같은 인자를 바꾸려면 큐를 지우고 재시작해야 한다.
+- **선언에 구조적 오류가 있으면 브로커가 부팅에서 죽는다.** (예: vhost 보다 계정이 먼저 오면
+  `Please create virtual host "/" prior to importing definitions.`) `deploy.sh` 의
+  `rollout status` 가 여기서 멈춘다.
+
+재시작마다 재import 되므로 누가 손으로 지운 큐는 다음 재시작에 돌아온다. 돌아올 때까지는 없는
+상태로 남는다 — 오퍼레이터의 상시 reconcile 과 다른 점이다.
 
 ```bash
 kubectl get cronjob -n <ns>
@@ -42,16 +70,23 @@ kubectl create job --from=cronjob/apple-music-recommendation amr-$(date +%s) -n 
 kubectl create job --from=cronjob/lyric-word-candidate-backfill backfill-$(date +%s) -n <ns>
 
 # 큐 상태
-kubectl get rabbitmqcluster,queues,exchanges,bindings -n <ns>   # CR 조정 결과
+kubectl exec -n <ns> statefulset/rabbitmq -- rabbitmqctl list_queues name messages
+kubectl exec -n <ns> statefulset/rabbitmq -- rabbitmqctl list_bindings
 kubectl port-forward -n <ns> svc/rabbitmq 15672:15672           # 관리 UI
-kubectl exec -n <ns> statefulset/rabbitmq-server -- rabbitmqctl list_queues name messages
 
-# 브로커 자격증명 (오퍼레이터가 생성)
+# 토폴로지 import 결과
+kubectl logs -n <ns> statefulset/rabbitmq | grep -i 'definitions\|Importing'
+
+# 브로커 자격증명 (deploy.sh 가 생성, 재배포 시 재사용)
 kubectl get secret rabbitmq-default-user -n <ns> -o jsonpath='{.data.password}' | base64 -d
+
+# 토폴로지만 다시 넣기 (ConfigMap 을 고친 뒤 deploy.sh 없이)
+kubectl rollout restart -n <ns> statefulset/rabbitmq
 ```
 
-토폴로지 CR 이 `Ready` 가 아니면 worker 가 큐를 찾지 못한다. `kubectl describe queue song-analysis-work -n <ns>`
-로 조정 실패 사유를 본다. `deploy.sh` 는 배포 끝에 이 조건들을 기다린다.
+브로커가 `CrashLoopBackOff` 면 거의 항상 definitions import 실패다. 위 `kubectl logs` 로
+`failed_to_import_definitions` 를 찾는다. AMQP listener 는 import 가 끝난 뒤에 열리므로,
+파드가 Ready 라면 큐는 있다.
 
 DLQ(`song-analysis.work.dlq`)에 메시지가 쌓이면 브로커가 아니라 worker 환경(주로 DB 접근)을 본다.
 분석 자체의 실패는 `song_analysis_work` 행이 `FAILED` 로 남고 DLQ 에는 오지 않는다.

@@ -298,26 +298,29 @@ envsubst < "$K8S_DIR/mysql/secret.template.yaml" | kubectl apply -n "$NS" -f -
 kubectl apply -n "$NS" -f "$K8S_DIR/mysql/statefulset.yaml"
 kubectl apply -n "$NS" -f "$K8S_DIR/mysql/service.yaml"
 kubectl apply -n "$NS" -f "$K8S_DIR/redis/"
-if ! kubectl get crd rabbitmqclusters.rabbitmq.com >/dev/null 2>&1; then
-  echo "Error: RabbitMQ operators are not installed on this cluster." >&2
-  echo "  run: $K8S_DIR/bootstrap/apply.sh" >&2
-  exit 1
+# 브로커 계정. 오퍼레이터가 네임스페이스마다 만들어 주던 것을 여기서 만든다.
+# api/admin-api/worker 가 secretKeyRef 로 읽으므로 파드보다 먼저 있어야 한다.
+# 이미 있으면 비밀번호를 재사용한다 — 배포마다 바뀌면 재시작하지 않은 파드가 옛 자격증명으로 남는다.
+RABBITMQ_PASSWORD="$(
+  kubectl get secret rabbitmq-default-user -n "$NS" -o jsonpath='{.data.password}' 2>/dev/null \
+    | base64 -d 2>/dev/null || true
+)"
+if [[ -z "$RABBITMQ_PASSWORD" ]]; then
+  RABBITMQ_PASSWORD="$(openssl rand -hex 24)"
 fi
-kubectl apply -n "$NS" -f "$K8S_DIR/rabbitmq/cluster.yaml"
-kubectl apply -n "$NS" -f "$K8S_DIR/rabbitmq/topology.yaml"
-# api/admin-api/worker 가 이 시크릿을 secretKeyRef 로 읽는다. 오퍼레이터가 만들기 전에 파드가 뜨면
-# CreateContainerConfigError 로 시작을 못 한다. 브로커 Ready 보다 훨씬 빨리 생긴다.
-echo "  waiting for operator-generated credentials..."
-for _ in $(seq 60); do
-  kubectl get secret rabbitmq-default-user -n "$NS" >/dev/null 2>&1 && break
-  sleep 2
-done
-if ! kubectl get secret rabbitmq-default-user -n "$NS" >/dev/null 2>&1; then
-  echo "Error: rabbitmq-default-user secret was not created within 120s." >&2
-  echo "  check: kubectl describe rabbitmqcluster/rabbitmq -n $NS" >&2
-  echo "         kubectl logs -n rabbitmq-system deployment/rabbitmq-cluster-operator" >&2
-  exit 1
-fi
+export RABBITMQ_PASSWORD
+envsubst < "$K8S_DIR/rabbitmq/secret.template.yaml" | kubectl apply -n "$NS" -f -
+kubectl apply -n "$NS" -f "$K8S_DIR/rabbitmq/configmap.yaml"
+# 토폴로지 import 는 브로커 부팅 때만 돈다. ConfigMap/Secret 만 바뀌면 파드가 그대로 남아
+# 변경이 조용히 묻히므로, 두 선언의 해시를 파드 템플릿에 넣어 롤아웃을 트리거한다.
+RABBITMQ_DEFINITIONS_HASH="$(
+  {
+    cat "$K8S_DIR/rabbitmq/configmap.yaml"
+    envsubst < "$K8S_DIR/rabbitmq/secret.template.yaml"
+  } | sha256sum | cut -c1-16
+)"
+export RABBITMQ_DEFINITIONS_HASH
+envsubst < "$K8S_DIR/rabbitmq/statefulset.template.yaml" | kubectl apply -n "$NS" -f -
 echo "  → $((SECONDS - STEP_START))s"
 
 # --- 6. DB 마이그레이션 ---
@@ -405,11 +408,10 @@ echo "  → $((SECONDS - STEP_START))s"
 # --- 8. 롤아웃 대기 ---
 STEP_START=$SECONDS
 echo "[rollout] waiting..."
-kubectl wait -n "$NS" --for=condition=AllReplicasReady --timeout=300s rabbitmqcluster/rabbitmq
-# 토폴로지 CR 은 브로커가 Ready 된 뒤에야 조정된다. 여기서 실패하면 worker 가 큐를 못 찾는다.
-kubectl wait -n "$NS" --for=condition=Ready --timeout=120s queues.rabbitmq.com --all
-kubectl wait -n "$NS" --for=condition=Ready --timeout=120s exchanges.rabbitmq.com --all
-kubectl wait -n "$NS" --for=condition=Ready --timeout=120s bindings.rabbitmq.com --all
+# 토폴로지를 따로 기다릴 필요가 없다. AMQP listener 는 definitions import 가 끝난 뒤에 열리고
+# readinessProbe 가 그 포트를 보므로, Ready 는 곧 큐가 있다는 뜻이다. 선언에 구조적 오류가 있으면
+# 브로커가 부팅에서 죽어 여기서 멈춘다.
+kubectl rollout status -n "$NS" statefulset/rabbitmq --timeout=300s
 kubectl rollout status -n "$NS" deployment/api --timeout=120s
 kubectl rollout status -n "$NS" deployment/worker --timeout=180s
 kubectl rollout status -n "$NS" deployment/admin-api --timeout=120s

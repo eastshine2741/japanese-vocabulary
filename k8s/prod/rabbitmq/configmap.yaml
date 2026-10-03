@@ -1,0 +1,103 @@
+# 브로커 설정과 큐 토폴로지. 오퍼레이터 CR 을 대신한다.
+#
+# 토폴로지는 `definitions.local.path` 디렉터리로 들어가고, 파일은 알파벳 순으로 import 된다.
+# 계정은 비밀번호를 담아야 하므로 ConfigMap 이 아니라 Secret 쪽 `10-users.json` 이다
+# (secret.template.yaml). vhost 를 만드는 이 파일이 먼저 와야 한다 — 계정이 먼저 import 되면
+# `Please create virtual host "/" prior to importing definitions.` 로 부팅이 죽는다.
+#
+# import 는 부팅 때만 돈다. 이 파일을 고쳤으면 브로커가 재시작해야 반영되므로, deploy.sh 가
+# 내용 해시를 파드 템플릿 annotation 에 넣어 롤아웃을 트리거한다.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rabbitmq-config
+data:
+  rabbitmq.conf: |
+    definitions.import_backend = local_filesystem
+    definitions.local.path = /etc/rabbitmq/definitions.d
+
+    # 곡 하나를 분석하는 데 수 분이 걸린다. 외부 API 가 느려진 날에도 채널이 끊기지 않도록
+    # 1시간으로 둔다. sweeper 의 멈춤 판정(30분)보다 길어야 한다.
+    consumer_timeout = 3600000
+
+    # 컨테이너 메모리 한도 기준으로 잡힌다.
+    vm_memory_high_watermark.relative = 0.6
+
+    disk_free_limit.absolute = 1GB
+
+  # 이미지에 들어 있는 enabled_plugins 를 덮어쓴다. management 를 빼면 관리 UI 가 사라지므로
+  # prometheus 만 적으면 안 된다.
+  enabled_plugins: |
+    [rabbitmq_management,rabbitmq_prometheus].
+
+  # 이름은 backend 의 SongAnalysisQueue 상수와 일치해야 한다. 선언은 여기가 소유하고
+  # (앱의 spring.rabbitmq.dynamic 은 false), backend 는 이름만 참조한다.
+  #
+  # 주의: 이미 있는 큐의 arguments 변경은 조용히 무시된다 — 에러도 경고도 없이 기존 값이 남는다.
+  # x-dead-letter-* 같은 인자를 바꾸려면 큐를 지우고 재시작해야 한다.
+  00-topology.json: |
+    {
+      "vhosts": [
+        { "name": "/" }
+      ],
+      "exchanges": [
+        {
+          "name": "kotonoha.song-analysis",
+          "vhost": "/",
+          "type": "direct",
+          "durable": true,
+          "auto_delete": false,
+          "internal": false,
+          "arguments": {}
+        },
+        {
+          "name": "kotonoha.song-analysis.dlx",
+          "vhost": "/",
+          "type": "direct",
+          "durable": true,
+          "auto_delete": false,
+          "internal": false,
+          "arguments": {}
+        }
+      ],
+      "queues": [
+        {
+          "name": "song-analysis.work",
+          "vhost": "/",
+          "durable": true,
+          "auto_delete": false,
+          "arguments": {
+            "x-queue-type": "classic",
+            "x-dead-letter-exchange": "kotonoha.song-analysis.dlx",
+            "x-dead-letter-routing-key": "song-analysis.work"
+          }
+        },
+        {
+          "name": "song-analysis.work.dlq",
+          "vhost": "/",
+          "durable": true,
+          "auto_delete": false,
+          "arguments": {
+            "x-queue-type": "classic"
+          }
+        }
+      ],
+      "bindings": [
+        {
+          "source": "kotonoha.song-analysis",
+          "vhost": "/",
+          "destination": "song-analysis.work",
+          "destination_type": "queue",
+          "routing_key": "song-analysis.work",
+          "arguments": {}
+        },
+        {
+          "source": "kotonoha.song-analysis.dlx",
+          "vhost": "/",
+          "destination": "song-analysis.work.dlq",
+          "destination_type": "queue",
+          "routing_key": "song-analysis.work",
+          "arguments": {}
+        }
+      ]
+    }

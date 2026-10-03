@@ -13,7 +13,6 @@ Japanese learning app based on songs. Users pick a song they like, study its lyr
 `gradlew`는 `backend/` 디렉토리에 위치. 반드시 `backend/`에서 실행할 것.
 
 ```bash
-k8s/dev/bootstrap/apply.sh                    # 클러스터당 1회: cert-manager + RabbitMQ operator
 ./deploy.sh                                   # k3s에 backend(api+worker+batch cronjob+admin-api+admin-web) + mysql + redis + rabbitmq 배포
 cd backend && ./gradlew :admin-api:test       # Admin API tests
 cd backend && ./gradlew :worker:test          # 곡 분석 파이프라인 tests
@@ -60,8 +59,9 @@ from `backend/`.
 - 곡 분석 작업은 메시지 큐로 즉시 실행된다. 메시지는 `workId` 만 싣고 원장
   `song_analysis_work` 행이 진실 원천이다 — 중복 배달은 claim 이, 유실은 sweeper 가 흡수한다.
   한 곡에 활성 작업 하나는 `(raw_title, raw_artist)` 갭 락이 지키므로 REPEATABLE READ 가 전제다.
-- RabbitMQ 브로커와 큐 토폴로지는 RabbitMQ 오퍼레이터의 CR 이 소유한다 (`k8s/{dev,prod}/rabbitmq/`).
-  앱은 이름만 참조하고 `spring.rabbitmq.dynamic` 은 false 다.
+- RabbitMQ 큐 토폴로지는 브로커가 부팅 때 읽는 `definitions.json` 이 소유한다
+  (`k8s/{dev,prod}/rabbitmq/`). 앱은 이름만 참조하고 `spring.rabbitmq.dynamic` 은 false 다.
+  고치면 브로커가 재시작해야 반영되고, 기존 큐의 arguments 변경은 조용히 무시된다.
 
 For full module boundaries, naming rules, cache placement, and Spring event
 rules, see `docs/architecture/backend-modules.md`.
