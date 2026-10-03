@@ -85,15 +85,14 @@ class SongAnalysisWorkService(
 
     /**
      * 큐 메시지 하나가 가리키는 작업을 잡는다. 같은 메시지가 두 번 와도 PENDING 인 행만 잡히므로
-     * 두 번째 배달은 null 을 받고 조용히 ack 된다.
+     * 두 번째 배달은 null 을 받고 조용히 ack 된다. 상호배제는 이 상태 전이가 전부이고,
+     * 행 잠금은 검사-후-쓰기를 원자적으로 만드는 용도다.
      */
     @Transactional
-    fun claim(workId: Long, workerId: String, lockUntil: Instant): SongAnalysisWorkEntity? {
+    fun claim(workId: Long): SongAnalysisWorkEntity? {
         val work = songAnalysisWorkRepository.findByIdForUpdate(workId) ?: return null
         if (work.status != SongAnalysisWorkStatus.PENDING) return null
         work.status = SongAnalysisWorkStatus.RUNNING
-        work.lockedBy = workerId
-        work.lockedUntil = lockUntil
         work.currentStage = null
         work.clearFailure()
         return songAnalysisWorkRepository.saveAndFlush(work)
@@ -105,11 +104,15 @@ class SongAnalysisWorkService(
         songAnalysisWorkRepository.findStalePendingIds(olderThan, Pageable.ofSize(limit))
 
 
+    /**
+     * 진행이 멈춘 RUNNING 행을 FAILED 로 넘긴다. 재시도가 아니라 포기 처리다 — 이걸 하지 않으면
+     * 죽은 worker 가 남긴 행이 `activeDedupKey` 를 들고 있어서 그 곡은 새 요청을 받지 못한다.
+     */
     @Transactional
-    fun failExpiredRunning(limit: Int): Int {
-        val expired = songAnalysisWorkRepository.findExpiredRunningForUpdate(
-            Instant.now(),
-            org.springframework.data.domain.Pageable.ofSize(limit),
+    fun failStaleRunning(olderThan: Instant, limit: Int): Int {
+        val expired = songAnalysisWorkRepository.findStaleRunningForUpdate(
+            olderThan,
+            Pageable.ofSize(limit),
         )
         val now = Instant.now()
         expired.forEach { work ->
@@ -124,41 +127,35 @@ class SongAnalysisWorkService(
     }
 
     @Transactional
-    fun markStage(workId: Long, workerId: String, stage: SongAnalysisWorkStage): Boolean {
+    fun markStage(workId: Long, stage: SongAnalysisWorkStage): Boolean {
         val work = getEntityForUpdate(workId)
-        val now = Instant.now()
-        if (!work.isOwnedRunningBy(workerId, now)) return false
+        if (!work.isRunning()) return false
         work.currentStage = stage
         return true
     }
 
     @Transactional
-    fun markPlayerReady(workId: Long, workerId: String, songId: Long, lyricId: Long, youtubeUrl: String?): Boolean {
+    fun markPlayerReady(workId: Long, songId: Long, lyricId: Long, youtubeUrl: String?): Boolean {
         val work = getEntityForUpdate(workId)
-        if (!work.isOwnedRunningBy(workerId, Instant.now())) return false
+        if (!work.isRunning()) return false
         work.attachPlayerReady(songId, lyricId, youtubeUrl, Instant.now())
         return true
     }
 
     @Transactional
-    fun markCompleted(workId: Long, workerId: String): Boolean {
+    fun markCompleted(workId: Long): Boolean {
         val work = getEntityForUpdate(workId)
-        if (!work.isOwnedRunningBy(workerId, Instant.now())) return false
+        if (!work.isRunning()) return false
         work.markCompleted(Instant.now())
         return true
     }
 
     @Transactional
-    fun markFailed(workId: Long, workerId: String, code: String, message: String?): Boolean {
+    fun markFailed(workId: Long, code: String, message: String?): Boolean {
         val work = getEntityForUpdate(workId)
-        if (!work.isOwnedRunningBy(workerId, Instant.now())) return false
+        if (!work.isRunning()) return false
         work.markFailed(code, message, Instant.now())
         return true
-    }
-
-    @Transactional(readOnly = true)
-    fun isOwnedRunning(workId: Long, workerId: String): Boolean {
-        return getEntity(workId).isOwnedRunningBy(workerId, Instant.now())
     }
 
     private fun getEntity(workId: Long): SongAnalysisWorkEntity {
@@ -172,11 +169,12 @@ class SongAnalysisWorkService(
             ?: throw BusinessException(ErrorCode.SONG_ANALYSIS_WORK_NOT_FOUND)
     }
 
-    private fun SongAnalysisWorkEntity.isOwnedRunningBy(workerId: String, now: Instant): Boolean {
-        return status == SongAnalysisWorkStatus.RUNNING &&
-            lockedBy == workerId &&
-            lockedUntil?.isAfter(now) == true
-    }
+    /**
+     * 한 행이 RUNNING 을 거치는 건 claim 한 번뿐이고 종료 상태는 다시 claim 되지 않는다. 그래서
+     * 이 검사만으로 "이미 종료된 행에 뒤늦게 쓰는" 경우가 막힌다 — 소유자 비교가 따로 필요 없다.
+     */
+    private fun SongAnalysisWorkEntity.isRunning(): Boolean =
+        status == SongAnalysisWorkStatus.RUNNING
 
     companion object {
         fun buildActiveDedupKey(title: String, artist: String): String {

@@ -161,8 +161,6 @@ fun SongAnalysisWorkEntity.toDetailResponse(): AdminSongAnalysisWorkDetailRespon
         songId = songId,
         lyricId = lyricId,
         youtubeUrl = youtubeUrl,
-        lockedBy = lockedBy,
-        lockedUntil = lockedUntil,
         errorCode = errorCode,
         errorMessage = errorMessage,
         triggerSource = triggerSource.name,

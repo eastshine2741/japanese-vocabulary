@@ -297,13 +297,7 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
     }
 
     private fun claimSingleWork(workId: Long) =
-        checkNotNull(
-            workService.claim(
-                workId = workId,
-                workerId = "pipeline-test-worker",
-                lockUntil = Instant.now().plus(Duration.ofMinutes(30)),
-            ),
-        ) { "work $workId was not claimable" }
+        checkNotNull(workService.claim(workId)) { "work $workId was not claimable" }
 
     private fun stubLyricsFound() {
         every { lrclibClient.providerName } returns "LrcLib"

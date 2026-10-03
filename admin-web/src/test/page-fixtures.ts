@@ -211,8 +211,6 @@ export const songAnalysisWorkDetail: SongAnalysisWorkDetail = {
   durationSeconds: 261,
   artworkUrl: null,
   activeDedupKey: null,
-  lockedBy: null,
-  lockedUntil: null,
   errorCode: null,
   errorMessage: null,
 }

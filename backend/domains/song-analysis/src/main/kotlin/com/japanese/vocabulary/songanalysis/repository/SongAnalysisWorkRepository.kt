@@ -52,15 +52,17 @@ interface SongAnalysisWorkRepository : JpaRepository<SongAnalysisWorkEntity, Lon
         pageable: Pageable,
     ): List<Long>
 
+    // Sweeper only. updatedAt 은 claim 과 단계 기록마다 갱신되므로 "진행이 멈춘 시간" 을 뜻한다.
+    // 총 실행 시간이 아니라서 느린 분석을 죽이지 않고, 멈춘 worker 는 다음 sweep 에 걸린다.
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query(
         "SELECT w FROM SongAnalysisWorkEntity w " +
             "WHERE w.status = com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStatus.RUNNING " +
-            "AND w.lockedUntil < :now " +
-            "ORDER BY w.lockedUntil ASC"
+            "AND w.updatedAt < :threshold " +
+            "ORDER BY w.updatedAt ASC"
     )
-    fun findExpiredRunningForUpdate(
-        @Param("now") now: Instant,
+    fun findStaleRunningForUpdate(
+        @Param("threshold") threshold: Instant,
         pageable: Pageable,
     ): List<SongAnalysisWorkEntity>
 }

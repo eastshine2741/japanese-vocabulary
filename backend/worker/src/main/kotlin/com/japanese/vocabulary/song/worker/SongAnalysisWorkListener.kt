@@ -12,8 +12,6 @@ import org.slf4j.LoggerFactory
 import org.springframework.amqp.rabbit.annotation.RabbitListener
 import org.springframework.stereotype.Component
 import java.net.InetAddress
-import java.time.Duration
-import java.time.Instant
 
 /**
  * 곡 분석 작업 하나를 처리한다. 메시지는 workId 만 싣고, 처리 여부는 원장 행이 정한다.
@@ -37,15 +35,13 @@ class SongAnalysisWorkListener(
         concurrency = "\${song-analysis.worker.concurrency:3}",
     )
     fun onMessage(message: SongAnalysisWorkMessage) {
-        val work = workService.claim(
-            workId = message.workId,
-            workerId = workerId,
-            lockUntil = Instant.now().plus(LOCK_DURATION),
-        )
+        val work = workService.claim(message.workId)
         if (work == null) {
             logger.info("Song analysis work workId={} is not claimable, skipping", message.workId)
             return
         }
+        // 원장에 처리자를 적지 않으므로, 어느 파드가 잡았는지는 이 로그가 유일한 단서다.
+        logger.info("[workId={}] claimed by {}", message.workId, workerId)
         process(work)
     }
 
@@ -67,7 +63,4 @@ class SongAnalysisWorkListener(
         }
     }
 
-    private companion object {
-        val LOCK_DURATION: Duration = Duration.ofMinutes(30)
-    }
 }

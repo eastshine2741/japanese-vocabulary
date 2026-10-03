@@ -82,8 +82,6 @@ export type SongAnalysisWorkDetail = SongAnalysisWorkSummary & {
   durationSeconds: number | null
   artworkUrl: string | null
   activeDedupKey: string | null
-  lockedBy: string | null
-  lockedUntil: string | null
   errorCode: string | null
   errorMessage: string | null
 }

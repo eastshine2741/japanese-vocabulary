@@ -14,8 +14,6 @@ data class AdminSongAnalysisWorkDetailResponse(
     val songId: Long?,
     val lyricId: Long?,
     val youtubeUrl: String?,
-    val lockedBy: String?,
-    val lockedUntil: Instant?,
     val errorCode: String?,
     val errorMessage: String?,
     val triggerSource: String,

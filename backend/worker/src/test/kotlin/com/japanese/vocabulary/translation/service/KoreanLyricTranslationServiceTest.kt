@@ -1177,11 +1177,7 @@ class KoreanLyricTranslationServiceTest : WorkerBaseIntegrationTest() {
     fun `work claim marks the PENDING row as RUNNING`() {
         val work = seedWork("猫")
 
-        val claimed = workService.claim(
-            workId = work.id!!,
-            workerId = "test-worker",
-            lockUntil = Instant.now().plus(Duration.ofMinutes(30)),
-        )
+        val claimed = workService.claim(work.id!!)
 
         assertThat(claimed).isNotNull
         assertThat(claimed!!.id).isEqualTo(work.id)
@@ -1193,74 +1189,73 @@ class KoreanLyricTranslationServiceTest : WorkerBaseIntegrationTest() {
     @Test
     fun `duplicate delivery of the same work is not claimed twice`() {
         val work = seedWork("重複")
-        val lockUntil = Instant.now().plus(Duration.ofMinutes(30))
 
-        val first = workService.claim(work.id!!, "worker-a", lockUntil)
-        val second = workService.claim(work.id!!, "worker-b", lockUntil)
+        val first = workService.claim(work.id!!)
+        val second = workService.claim(work.id!!)
 
         assertThat(first).isNotNull
         assertThat(second).isNull()
-        assertThat(workRepository.findById(work.id!!).orElseThrow().lockedBy).isEqualTo("worker-a")
+        assertThat(workRepository.findById(work.id!!).orElseThrow().status)
+            .isEqualTo(SongAnalysisWorkStatus.RUNNING)
     }
 
     @Test
     fun `work claim ignores terminal rows`() {
         val failed = seedWork("失敗", status = SongAnalysisWorkStatus.FAILED)
 
-        val claimed = workService.claim(
-            workId = failed.id!!,
-            workerId = "test-worker",
-            lockUntil = Instant.now().plus(Duration.ofMinutes(30)),
-        )
+        val claimed = workService.claim(failed.id!!)
 
         assertThat(claimed).isNull()
         verify(exactly = 0) { geminiClient.translateLyrics(any(), any()) }
         verify(exactly = 0) { geminiClient.segmentAndLemmatize(any(), any(), any()) }
     }
 
+    /** 진행이 멈춘 RUNNING 행은 다시 잡히지 않고 FAILED 로 넘어간다. 재시도가 아니라 포기 처리다. */
     @Test
-    fun `expired RUNNING work is failed instead of reclaimed`() {
-        val expired = seedWork("期限切れ", status = SongAnalysisWorkStatus.RUNNING).apply {
-            lockedBy = "dead-worker"
-            lockedUntil = Instant.now().minus(Duration.ofMinutes(1))
-        }
-        workRepository.saveAndFlush(expired)
+    fun `stale RUNNING work is failed instead of reclaimed`() {
+        val stale = seedWork("停止", status = SongAnalysisWorkStatus.RUNNING)
 
-        val claimed = workService.claim(
-            workId = expired.id!!,
-            workerId = "new-worker",
-            lockUntil = Instant.now().plus(Duration.ofMinutes(30)),
-        )
-        val failedCount = workService.failExpiredRunning(limit = 5)
+        val claimed = workService.claim(stale.id!!)
+        val failedCount = workService.failStaleRunning(olderThan = staleThreshold(), limit = 5)
 
         assertThat(claimed).isNull()
         assertThat(failedCount).isEqualTo(1)
-        val refreshed = workRepository.findById(expired.id!!).orElseThrow()
+        val refreshed = workRepository.findById(stale.id!!).orElseThrow()
         assertThat(refreshed.status).isEqualTo(SongAnalysisWorkStatus.FAILED)
-        assertThat(refreshed.activeDedupKey).isNull()
         assertThat(refreshed.errorCode).isEqualTo("SONG_ANALYSIS_WORK_TIMEOUT")
+    }
+
+    /** 멈춤 판정이 updated_at 기준이므로, 방금 진행된 행은 같은 sweep 에 걸리면 안 된다. */
+    @Test
+    fun `fresh RUNNING work is left alone by the sweep`() {
+        val fresh = seedWork("進行中", status = SongAnalysisWorkStatus.RUNNING)
+        workService.claim(fresh.id!!)
+
+        val failedCount = workService.failStaleRunning(
+            olderThan = Instant.now(clock).minus(Duration.ofMinutes(30)),
+            limit = 5,
+        )
+
+        assertThat(failedCount).isZero
+        assertThat(workRepository.findById(fresh.id!!).orElseThrow().status)
+            .isEqualTo(SongAnalysisWorkStatus.RUNNING)
     }
 
     @Test
     fun `stale worker cannot complete work after timeout failure`() {
-        val expired = seedWork("復活禁止", status = SongAnalysisWorkStatus.RUNNING).apply {
-            lockedBy = "dead-worker"
-            lockedUntil = Instant.now().minus(Duration.ofMinutes(1))
-        }
-        workRepository.saveAndFlush(expired)
+        val stale = seedWork("復活禁止", status = SongAnalysisWorkStatus.RUNNING)
 
-        workService.failExpiredRunning(limit = 5)
-        val completed = workService.markCompleted(expired.id!!, "dead-worker")
+        workService.failStaleRunning(olderThan = staleThreshold(), limit = 5)
+        val completed = workService.markCompleted(stale.id!!)
         val failedAgain = workService.markFailed(
-            expired.id!!,
-            "dead-worker",
+            stale.id!!,
             "SONG_ANALYSIS_WORK_FAILED",
             "unsafe overwrite",
         )
 
         assertThat(completed).isFalse
         assertThat(failedAgain).isFalse
-        val refreshed = workRepository.findById(expired.id!!).orElseThrow()
+        val refreshed = workRepository.findById(stale.id!!).orElseThrow()
         assertThat(refreshed.status).isEqualTo(SongAnalysisWorkStatus.FAILED)
         assertThat(refreshed.errorCode).isEqualTo("SONG_ANALYSIS_WORK_TIMEOUT")
         assertThat(refreshed.errorMessage).isEqualTo("Song analysis timed out")
@@ -1269,26 +1264,31 @@ class KoreanLyricTranslationServiceTest : WorkerBaseIntegrationTest() {
     @Test
     fun `stale worker cannot save analyzed content after timeout failure`() {
         val lyric = seedLyric(listOf("猫"))
-        val expired = seedWork("副作用禁止", status = SongAnalysisWorkStatus.RUNNING).apply {
+        val stale = seedWork("副作用禁止", status = SongAnalysisWorkStatus.RUNNING).apply {
             lyricId = lyric.id
-            lockedBy = "dead-worker"
-            lockedUntil = Instant.now().minus(Duration.ofMinutes(1))
         }
-        workRepository.saveAndFlush(expired)
+        workRepository.saveAndFlush(stale)
 
-        workService.failExpiredRunning(limit = 5)
+        workService.failStaleRunning(olderThan = staleThreshold(), limit = 5)
         val completed = completionService.completeWithAnalyzedContent(
-            workId = expired.id!!,
-            workerId = "dead-worker",
+            workId = stale.id!!,
             lyricId = lyric.id!!,
             analyzedLines = listOf(AnalyzedLine(index = 0, koreanLyrics = "고양이", tokens = emptyList())),
         )
 
         assertThat(completed).isFalse
-        val refreshedWork = workRepository.findById(expired.id!!).orElseThrow()
+        val refreshedWork = workRepository.findById(stale.id!!).orElseThrow()
         assertThat(refreshedWork.status).isEqualTo(SongAnalysisWorkStatus.FAILED)
         assertThat(refreshedWork.errorCode).isEqualTo("SONG_ANALYSIS_WORK_TIMEOUT")
         val refreshedLyric = lyricRepository.findById(lyric.id!!).orElseThrow()
         assertThat(refreshedLyric.analyzedContent).isNull()
     }
+
+    /**
+     * `updated_at` 은 JPA auditing 이 [clock] 으로 쓰고 DB 의 ON UPDATE 도 걸려 있어 과거로 미룰 수
+     * 없다. 그래서 행을 낡게 만드는 대신 기준선을 테스트 시각보다 앞으로 올려 전부 멈춘 것으로 본다.
+     * 테스트 clock 은 고정값이므로 기준선도 반드시 거기서 뽑아야 한다 — `Instant.now()` 를 쓰면
+     * 실제 시각과 9개월 차이가 나서 멈춘 행과 진행 중인 행을 구별하지 못한다.
+     */
+    private fun staleThreshold(): Instant = Instant.now(clock).plus(Duration.ofMinutes(1))
 }

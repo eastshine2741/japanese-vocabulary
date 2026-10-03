@@ -54,12 +54,6 @@ class SongAnalysisWorkEntity(
     @Column(name = "youtube_url", length = 500)
     var youtubeUrl: String? = null,
 
-    @Column(name = "locked_by")
-    var lockedBy: String? = null,
-
-    @Column(name = "locked_until")
-    var lockedUntil: Instant? = null,
-
     @Column(name = "error_code")
     var errorCode: String? = null,
 
@@ -109,8 +103,6 @@ class SongAnalysisWorkEntity(
         status = SongAnalysisWorkStatus.COMPLETED
         currentStage = SongAnalysisWorkStage.ANALYZE_LYRICS
         activeDedupKey = null
-        lockedBy = null
-        lockedUntil = null
         completedAt = now
         clearFailure()
     }
@@ -118,8 +110,6 @@ class SongAnalysisWorkEntity(
     fun markFailed(code: String, message: String?, now: Instant) {
         status = SongAnalysisWorkStatus.FAILED
         activeDedupKey = null
-        lockedBy = null
-        lockedUntil = null
         errorCode = code
         errorMessage = message?.take(MAX_ERROR_MESSAGE_LENGTH)
         failedAt = now

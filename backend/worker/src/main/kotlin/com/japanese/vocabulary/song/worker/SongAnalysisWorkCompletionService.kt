@@ -26,7 +26,6 @@ class SongAnalysisWorkCompletionService(
     @Transactional
     fun completeWithAnalyzedContent(
         workId: Long,
-        workerId: String,
         lyricId: Long,
         analyzedLines: List<AnalyzedLine>,
     ): Boolean {
@@ -34,12 +33,8 @@ class SongAnalysisWorkCompletionService(
         val work = workRepository.findByIdForUpdate(workId)
             ?: throw BusinessException(ErrorCode.SONG_ANALYSIS_WORK_NOT_FOUND)
 
-        if (work.status != SongAnalysisWorkStatus.RUNNING ||
-            work.lockedBy != workerId ||
-            work.lockedUntil?.isAfter(now) != true
-        ) {
-            return false
-        }
+        // sweeper 가 이미 FAILED 로 넘긴 행에 뒤늦게 결과를 쓰는 것을 막는다.
+        if (work.status != SongAnalysisWorkStatus.RUNNING) return false
 
         val lyric = lyricRepository.findById(lyricId).orElseThrow {
             BusinessException(ErrorCode.LYRIC_NOT_FOUND)

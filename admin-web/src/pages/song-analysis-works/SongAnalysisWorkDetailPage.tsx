@@ -46,8 +46,6 @@ export function SongAnalysisWorkDetailPage() {
         <DetailItem label="Lyric" value={work.lyricId ? <Link className="text-[#0f766e] hover:underline" to={`/lyrics/${work.lyricId}`}>{work.lyricId}</Link> : "-"} />
         <DetailItem label="Duration" value={work.durationSeconds ? `${work.durationSeconds}s` : "-"} />
         <DetailItem label="Created by user" value={work.createdByUserId ?? "-"} />
-        <DetailItem label="Locked by" value={work.lockedBy ?? "-"} />
-        <DetailItem label="Locked until" value={formatDateTime(work.lockedUntil)} />
       </DetailGrid>
 
       <section className="mt-6">
