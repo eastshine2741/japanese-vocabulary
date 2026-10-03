@@ -790,6 +790,35 @@ class LexicalResolverTest {
     }
 
     @Test
+    fun `a verb completed with kireru is looked up as the verb underneath`(): Unit = runBlocking {
+        // songId=225, "伝えきれぬ愛しさは": the segmentation stage gave 伝えきる — 伝える + completion
+        // きる — and jisho has no entry for the compound, so the word went out with no meaning.
+        stub(
+            "伝える" to found(
+                JishoDictionaryEntryDto(
+                    headword = "伝える",
+                    reading = "ツタエル",
+                    senses = listOf(
+                        JishoOptionDto(
+                            pos = listOf("Ichidan verb", "Transitive verb"),
+                            english = "to convey",
+                            englishDefinitions = listOf("to convey", "to tell"),
+                        ),
+                    ),
+                ),
+            ),
+        )
+        val tokens = listOf(token("伝えきれぬ", "伝えきる", "ツタエキレヌ", lineIndex = 28))
+
+        val resolved = resolver.resolve(tokens).byTokenKey.values.single()
+
+        assertThat(resolved.baseForm).isEqualTo("伝える")
+        assertThat(resolved.options.map { it.english }).containsExactly("to convey")
+        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
     fun `senses of different entries keep separate ids`(): Unit = runBlocking {
         stub("前" to maeAndZenAndSaki())
 
