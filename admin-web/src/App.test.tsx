@@ -311,8 +311,8 @@ describe("admin web", () => {
 
     expect(await screen.findByRole("heading", { name: "Work #4" })).toBeInTheDocument()
     expect(screen.getByText("Elapsed time")).toBeInTheDocument()
-    expect(screen.getByText("Created to player ready")).toBeInTheDocument()
-    expect(screen.getByText("2m 00s")).toBeInTheDocument()
+    expect(screen.getByText("Created to terminal")).toBeInTheDocument()
+    expect(screen.getAllByText("3m 00s").length).toBeGreaterThan(0)
   })
 
   test("shows stage failures, stage output, and resumes from the failed stage", async () => {

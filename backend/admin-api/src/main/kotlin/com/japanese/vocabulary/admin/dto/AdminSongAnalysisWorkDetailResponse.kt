@@ -19,7 +19,6 @@ data class AdminSongAnalysisWorkDetailResponse(
     val createdByUserId: Long?,
     val createdAt: Instant?,
     val updatedAt: Instant?,
-    val playerReadyAt: Instant?,
     val completedAt: Instant?,
     val failedAt: Instant?,
     /** 이번 실행이 시작된 시각. 실패한 단계부터 다시 돌리면 새로 찍힌다. */
