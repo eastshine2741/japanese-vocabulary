@@ -123,6 +123,7 @@ fun LyricEntity.toSummaryResponse(): AdminLyricSummaryResponse = AdminLyricSumma
     lyricType = lyricType.name,
     lrclibId = lrclibId,
     vocadbId = vocadbId,
+    utaitedbId = utaitedbId,
     createdAt = createdAt,
     updatedAt = updatedAt,
 )
@@ -135,6 +136,7 @@ fun LyricEntity.toDetailResponse(): AdminLyricDetailResponse = AdminLyricDetailR
     analyzedContent = analyzedContent,
     lrclibId = lrclibId,
     vocadbId = vocadbId,
+    utaitedbId = utaitedbId,
     createdAt = createdAt,
     updatedAt = updatedAt,
 )

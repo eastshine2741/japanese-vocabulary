@@ -47,6 +47,7 @@ class SongAnalysisPreparationService(
         val lines: List<LyricLineData>,
         val lrclibId: Long?,
         val vocadbId: Long?,
+        val utaitedbId: Long? = null,
     )
 
     data class SongLyricCreationResult(
@@ -70,6 +71,7 @@ class SongAnalysisPreparationService(
             lines = lyricLineData,
             lrclibId = lyricsResult.lrclibId,
             vocadbId = lyricsResult.vocadbId,
+            utaitedbId = lyricsResult.utaitedbId,
         )
     }
 
@@ -98,6 +100,7 @@ class SongAnalysisPreparationService(
                     rawContent = preparedLyric.lines,
                     lrclibId = preparedLyric.lrclibId,
                     vocadbId = preparedLyric.vocadbId,
+                    utaitedbId = preparedLyric.utaitedbId,
                 )
             )
             existingSong.activeLyricId = lyric.id
@@ -121,7 +124,8 @@ class SongAnalysisPreparationService(
                     lyricType = preparedLyric.lyricType,
                     rawContent = preparedLyric.lines,
                     lrclibId = preparedLyric.lrclibId,
-                    vocadbId = preparedLyric.vocadbId
+                    vocadbId = preparedLyric.vocadbId,
+                    utaitedbId = preparedLyric.utaitedbId,
                 )
         )
         savedSong.activeLyricId = lyric.id
@@ -169,6 +173,7 @@ class SongAnalysisPreparationService(
                 rawContent = preparedLyric.lines,
                 lrclibId = preparedLyric.lrclibId,
                 vocadbId = preparedLyric.vocadbId,
+                utaitedbId = preparedLyric.utaitedbId,
             )
         )
         return SongLyricCreationResult(song, lyric)
@@ -196,8 +201,8 @@ class SongAnalysisPreparationService(
             }
             if (result != null) {
                 logger.info(
-                    "Lyrics found via {} (synced={}, lrclibId={}, vocadbId={})",
-                    provider.providerName, result.isSynced, result.lrclibId, result.vocadbId
+                    "Lyrics found via {} (synced={}, lrclibId={}, vocadbId={}, utaitedbId={})",
+                    provider.providerName, result.isSynced, result.lrclibId, result.vocadbId, result.utaitedbId
                 )
                 return result
             }

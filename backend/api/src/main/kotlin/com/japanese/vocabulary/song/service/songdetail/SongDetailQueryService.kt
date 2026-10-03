@@ -213,6 +213,7 @@ class SongDetailQueryService(
     private data class LyricsSource(val name: String?, val url: String?)
     private fun LyricEntity.source() = when {
         vocadbId != null -> LyricsSource("VocaDB", "https://vocadb.net/S/$vocadbId")
+        utaitedbId != null -> LyricsSource("UtaiteDB", "https://utaitedb.net/S/$utaitedbId")
         lrclibId != null -> LyricsSource("LRCLIB", "https://lrclib.net")
         else -> LyricsSource(null, null)
     }

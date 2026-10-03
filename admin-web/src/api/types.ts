@@ -38,6 +38,7 @@ export type LyricSummary = {
   lyricType: string
   lrclibId: number | null
   vocadbId: number | null
+  utaitedbId: number | null
   createdAt: string | null
   updatedAt: string | null
 }

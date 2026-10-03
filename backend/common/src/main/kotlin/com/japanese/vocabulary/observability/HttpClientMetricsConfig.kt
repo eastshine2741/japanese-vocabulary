@@ -41,6 +41,7 @@ class HttpClientMetricsConfig {
             host == "generativelanguage.googleapis.com" -> "gemini"
             host == "lrclib.net" -> "lrclib"
             host == "vocadb.net" -> "vocadb"
+            host == "utaitedb.net" -> "utaitedb"
             else -> "other"
         }
     }

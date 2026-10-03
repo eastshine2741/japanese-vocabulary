@@ -3,6 +3,7 @@ package com.japanese.vocabulary.song.service
 import com.japanese.vocabulary.song.dto.AnalyzedSongDto
 import com.japanese.vocabulary.song.dto.SongInfoDto
 import com.japanese.vocabulary.song.dto.StudyUnitDto
+import com.japanese.vocabulary.song.entity.LyricEntity
 import com.japanese.vocabulary.song.entity.SongEntity
 import com.japanese.vocabulary.song.model.LyricLineData
 import com.japanese.vocabulary.song.repository.LyricRepository
@@ -45,7 +46,7 @@ class SongStudyViewService(
             lyricLines.map { it.toStudyUnit() }
         }
 
-        val source = resolveLyricsSource(lyricEntity.vocadbId, lyricEntity.lrclibId)
+        val source = resolveLyricsSource(lyricEntity)
         return AnalyzedSongDto(
             song = SongInfoDto(id = songId, title = entity.title, artist = entity.artist, lyricType = lyricEntity.lyricType.name, artworkUrl = entity.artworkUrl),
             studyUnits = studyUnits,
@@ -55,9 +56,10 @@ class SongStudyViewService(
         )
     }
 
-    private fun resolveLyricsSource(vocadbId: Long?, lrclibId: Long?): LyricsSource = when {
-        vocadbId != null -> LyricsSource("VocaDB", "https://vocadb.net/S/$vocadbId")
-        lrclibId != null -> LyricsSource("LRCLIB", "https://lrclib.net")
+    private fun resolveLyricsSource(lyric: LyricEntity): LyricsSource = when {
+        lyric.vocadbId != null -> LyricsSource("VocaDB", "https://vocadb.net/S/${lyric.vocadbId}")
+        lyric.utaitedbId != null -> LyricsSource("UtaiteDB", "https://utaitedb.net/S/${lyric.utaitedbId}")
+        lyric.lrclibId != null -> LyricsSource("LRCLIB", "https://lrclib.net")
         else -> LyricsSource(null, null)
     }
 
