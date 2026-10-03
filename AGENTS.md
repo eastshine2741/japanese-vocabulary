@@ -121,6 +121,7 @@ freeze 행은 연속을 잇기만 하고 streak/총 학습일 카운트에는 �
 - Backend package root: `com.japanese.vocabulary.<domain>`. Music provider clients live in function-specific `integrations:*` modules and use `RestClient` where behavior is equivalent.
 - DB migrations: `backend/migration/src/main/resources/db/migration/`. 새 테이블은 여기에 `V_숫자` SQL로 추가. 도메인 모듈의 JPA `@Entity`와 migration이 일치해야 함.
 - App: Zustand stores by domain, Axios with auth interceptor, `StyleSheet.create()` co-located with components.
+- 주석: 코드가 이미 말하는 내용은 쓰지 않는다. 왜/제약/함정만 1줄(최대 2줄), 이슈 번호·경위·단계 설명 금지. 상세 규칙은 `.claude/skills/antislop-code/SKILL.md`.
 
 ### Frontend Performance Rules
 
