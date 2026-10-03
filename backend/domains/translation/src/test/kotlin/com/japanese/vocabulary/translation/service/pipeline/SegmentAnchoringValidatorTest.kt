@@ -323,6 +323,47 @@ class SegmentAnchoringValidatorTest {
     }
 
     @Test
+    fun `a reading annotation after a space is covered too`() {
+        // Song 414 echoes the last word after a space, 変わるため (ため) — the same restated reading,
+        // only set apart by whitespace.
+        val result = validator.anchor(
+            mapOf(
+                41 to "一つだけあるなら (なら)",
+                43 to "僕に変わるため (ため)",
+            ),
+            listOf(
+                SegLineDto(
+                    41,
+                    listOf(
+                        word("一つ", "一つ", "ヒトツ", "ヒトツ"),
+                        word("だけ", "だけ", "ダケ", "ダケ"),
+                        word("ある", "ある", "アル", "アル"),
+                        word("なら", "なら", "ナラ", "ナラ"),
+                    ),
+                ),
+                SegLineDto(
+                    43,
+                    listOf(
+                        word("僕", "僕", "ボク", "ボク"),
+                        word("に", "に", "ニ", "ニ"),
+                        word("変わる", "変わる", "カワル", "カワル"),
+                        word("ため", "ため", "タメ", "タメ"),
+                    ),
+                ),
+            ),
+        )
+
+        assertThat(result.failuresByIndex).isEmpty()
+        assertThat(result.incompleteByIndex).isEmpty()
+
+        val adLib = validator.anchor(
+            mapOf(0 to "晴れ舞台 (イェイ)"),
+            listOf(SegLineDto(0, listOf(word("晴れ舞台", "晴れ舞台", "ハレブタイ", "ハレブタイ")))),
+        )
+        assertThat(adLib.incompleteByIndex[0]?.text).isEqualTo("イェイ")
+    }
+
+    @Test
     fun `parenthesized kana that does not spell the word's reading is still uncovered`() {
         // Only a restated reading is swallowed. Kana the model did not use as the reading is a word
         // the segmentation skipped, standalone kana has nothing to annotate, and kanji in

@@ -146,23 +146,28 @@ class SegmentAnchoringValidator {
     /** Kana that only stretch the sound in front of them and never open a word of their own. */
     private val TRAILING_KANA = setOf('ぁ', 'ぃ', 'ぅ', 'ぇ', 'ぉ', 'ァ', 'ィ', 'ゥ', 'ェ', 'ォ', 'ー')
 
+    /** Whitespace allowed between a word and its reading annotation, as in `変わるため (ため)`. */
+    private val ANNOTATION_GAP = setOf(' ', '　')
+
     /**
-     * End (exclusive) of a `(kana)` / `（kana）` span starting exactly at [from] that spells
+     * End (exclusive) of a `(kana)` / `（kana）` span starting at [from], after any spaces, that spells
      * [usedReading], or [from] itself when there is none. Kana that reads differently from the word
      * is a word of its own and stays for the model to segment; so does anything with kanji in it. The
      * cursor is not moved past the span, so a model that does emit the kana as its own token still
      * anchors it normally.
      */
     private fun readingAnnotationEnd(rawText: String, from: Int, usedReading: String): Int {
-        if (from >= rawText.length) return from
-        val close = when (rawText[from]) {
+        var open = from
+        while (open < rawText.length && rawText[open] in ANNOTATION_GAP) open++
+        if (open >= rawText.length) return from
+        val close = when (rawText[open]) {
             '(' -> ')'
             '（' -> '）'
             else -> return from
         }
-        val closeAt = rawText.indexOf(close, from + 1)
+        val closeAt = rawText.indexOf(close, open + 1)
         if (closeAt < 0) return from
-        val inside = rawText.substring(from + 1, closeAt)
+        val inside = rawText.substring(open + 1, closeAt)
         val isAnnotation = JapaneseText.isKanaOnly(inside) && JapaneseText.toKatakana(inside) == usedReading
         return if (isAnnotation) closeAt + 1 else from
     }
