@@ -195,6 +195,8 @@ class RuleMeaningProvider {
             "こう" to RuleResolvedToken("こう", "こう", "コウ", "コウ", PartOfSpeech.ADVERB, "이렇게"),
             // Archaic 〜の随(まにま)に: segmentation splits off に, so the token reads マニマ, not マニマニ.
             "随" to RuleResolvedToken("随", "随", "マニマ", "マニマ", PartOfSpeech.NOUN, "~대로, ~에 맡겨"),
+            // Second half of やたらめったら, a colloquial stretch of 滅多. Jisho has no headword for it.
+            "めったら" to RuleResolvedToken("めったら", "めったら", "メッタラ", "メッタラ", PartOfSpeech.ADVERB, "마구, 함부로"),
         )
 
         val particles = mapOf(
