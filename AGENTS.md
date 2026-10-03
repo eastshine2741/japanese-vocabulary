@@ -81,8 +81,8 @@ For the V29 schema and sense-level word behavior, see
 
 **Implemented:** Song search -> lyric fetch -> async batch word-meaning analysis -> study view, YouTube MV playback with synced lyrics, flashcard-first home stack, song auto-save via study bootstrap, flashcard review, decks, recent songs, user settings, push notifications, admin inspection surface.
 
-**Backend:** Multi-module Gradle split is complete. `@Scheduled` work lives in
-`batch`; public API, admin API, domain modules, and integrations stay separated.
+**Backend:** `@Scheduled` work lives in `batch`; public API, admin API, domain
+modules, and integrations stay separated.
 Module details live in `docs/architecture/backend-modules.md`.
 
 **Word schema:** Words are stored as sense-level data in `words.senses`; deck
@@ -108,7 +108,7 @@ TypeSafe Jev (`TYPESAFE_API_KEY`), the other LLM stages on Gemini. Details live 
 앱은 `expo-device`/`expo-application`을 쓰므로 새 네이티브 빌드가 필요하다.
 
 **Streak commitment (260918):** `GET /api/study-stats/home`이 `studiedToday`/`hasStudiedBefore`를 내려주고,
-`batch`의 `StreakReminderScheduler`가 20:00/23:00 KST에 `streak_reminder` 알림을 보낸다 (단어 회상 알림은 폐기).
+`batch`의 `StreakReminderScheduler`가 20:00/23:00 KST에 `streak_reminder` 알림을 보낸다.
 freeze 행은 연속을 잇기만 하고 streak/총 학습일 카운트에는 들어가지 않는다.
 스펙은 `docs/product-intents/260918-streak-commitment-api.md`.
 

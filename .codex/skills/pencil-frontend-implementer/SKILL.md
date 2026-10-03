@@ -22,7 +22,7 @@ Use this as the implementation workflow for a frontend subagent that receives a 
 
 1. Read the capsule completely.
 2. Read repository instructions that apply to the target frontend area.
-3. Use Pencil MCP to inspect every referenced frame and relevant frame prompt. If this fails, stop immediately and report the Pencil MCP failure without additional attempts.
+3. Use Pencil MCP to inspect every referenced frame and relevant frame prompt.
 4. Inspect the referenced existing code paths before editing.
 5. Build a small implementation plan from the capsule mappings:
    - component/file targets
