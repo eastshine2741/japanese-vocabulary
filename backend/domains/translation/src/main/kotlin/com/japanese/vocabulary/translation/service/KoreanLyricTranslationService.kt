@@ -74,10 +74,10 @@ class KoreanLyricTranslationService(
         return assemble(source, translationMap, wordPreparation, selectedSenseByKey, koreanBySenseId)
     }
 
-    fun sourceOf(entity: LyricEntity): TranslationPipelineSource =
+    fun sourceOf(entity: LyricEntity, workId: Long? = null): TranslationPipelineSource =
         TranslationPipelineSource.from(
             entity.rawContent,
-            GeminiCallContext(songId = entity.songId, lyricId = entity.id),
+            GeminiCallContext(songId = entity.songId, lyricId = entity.id, workId = workId),
         )
 
     suspend fun translateLyrics(source: TranslationPipelineSource): Map<Int, TranslationResultDto> =

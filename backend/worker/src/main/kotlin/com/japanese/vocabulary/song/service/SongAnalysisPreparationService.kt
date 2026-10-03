@@ -129,6 +129,35 @@ class SongAnalysisPreparationService(
         return SongLyricCreationResult(savedSong, lyric)
     }
 
+    /**
+     * 분석이 끝난 가사를 곡의 활성 가사로 저장한다. 곡이 이미 있어도 새 가사를 만든다 — 분석한 것이
+     * 이 가사이므로, 분석이 안 된 채 남은 기존 활성 가사를 재사용하면 줄이 어긋날 수 있다.
+     */
+    fun saveSongWithNewActiveLyric(
+        title: String,
+        artist: String,
+        durationSeconds: Int?,
+        artworkUrl: String?,
+        youtubeUrl: String?,
+        preparedLyric: PreparedLyric,
+    ): SongLyricCreationResult {
+        val song = songRepository.findByArtistAndTitle(artist, title)
+            ?: songRepository.save(
+                SongEntity(
+                    title = title,
+                    artist = artist,
+                    durationSeconds = durationSeconds,
+                    youtubeUrl = youtubeUrl,
+                    artworkUrl = artworkUrl,
+                )
+            )
+        val lyric = createReplacementLyricForSong(song.id!!, preparedLyric).lyric
+        song.activeLyricId = lyric.id
+        if (song.youtubeUrl == null) song.youtubeUrl = youtubeUrl
+        songRepository.save(song)
+        return SongLyricCreationResult(song, lyric)
+    }
+
     fun createReplacementLyricForSong(songId: Long, preparedLyric: PreparedLyric): SongLyricCreationResult {
         val song = songRepository.findById(songId).orElseThrow {
             BusinessException(ErrorCode.SONG_NOT_FOUND)

@@ -284,8 +284,9 @@ export default function AnalysisPillOverlay() {
   const openSong = useCallback((songId: number | null) => {
     if (songId == null) return;
     setExpanded(false);
+    jobs.filter(j => j.phase === 'done' && j.songId === songId).forEach(j => dismiss(j.workId));
     navigate('SongDetail', { songId, origin: 'AnalysisPill' });
-  }, [setExpanded]);
+  }, [dismiss, jobs, setExpanded]);
 
   const handlePillPress = useCallback(() => {
     if (!pillState) return;

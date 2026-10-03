@@ -5,6 +5,7 @@ package com.japanese.vocabulary.translation.model
  * `ANALYSIS_DEFECT {json}`; the runner in `.github/scripts/analysis-feedback` reads exactly this shape.
  */
 data class AnalysisDefect(
+    val workId: Long?,
     val songId: Long?,
     val lyricId: Long?,
     val lineIndex: Int,

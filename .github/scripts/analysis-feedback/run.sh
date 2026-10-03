@@ -133,7 +133,7 @@ sentry_get() {
 }
 
 # Every ANALYSIS_DEFECT event in the window, one JSON object per line:
-#   {eventId, timestamp, defect:{songId,lyricId,lineIndex,cause,surface,headword,line,detail}}
+#   {eventId, timestamp, defect:{workId,songId,lyricId,lineIndex,cause,surface,headword,line,detail}}
 fetch_defects() {
   if [[ -n "$FIXTURE_FILE" ]]; then
     jq -c '.[]' "$FIXTURE_FILE"
@@ -160,7 +160,7 @@ fetch_defects() {
 }
 
 # {"version":1,"defects":{"<cause>:<headword>":{cause,headword,status,firstSeen,lastSeen,
-#   occurrences:[{songId,lineIndex,surface,line,timestamp}], fixAttempts, prUrl, reason}}}
+#   occurrences:[{workId,songId,lineIndex,surface,line,timestamp}], fixAttempts, prUrl, reason}}}
 #
 # status: new | provider_error | ignored | held | fixing
 #   new            never shown to the classifier
@@ -198,7 +198,7 @@ merge_into_ledger() {
           | .firstSeen = ([.firstSeen, $e.timestamp] | min)
           | .occurrences = (
               (.occurrences + [{
-                songId: $e.defect.songId, lineIndex: $e.defect.lineIndex,
+                workId: $e.defect.workId, songId: $e.defect.songId, lineIndex: $e.defect.lineIndex,
                 surface: $e.defect.surface, line: $e.defect.line, detail: $e.defect.detail,
                 timestamp: $e.timestamp, eventId: $e.eventId
               }])
@@ -388,7 +388,7 @@ pr_body() {
     jq -r --arg key "$key" '
       .defects[$key] as $d
       | $d.occurrences[]
-      | "- songId=\(.songId) \(.lineIndex + 1)번째 줄 「\(.line)」 → `\(.surface)`" + (if $d.headword != .surface then " (원형 \($d.headword))" else "" end) + " — \($d.cause)"
+      | "- \(if .songId != null then "songId=\(.songId)" else "workId=\(.workId)" end) \(.lineIndex + 1)번째 줄 「\(.line)」 → `\(.surface)`" + (if $d.headword != .surface then " (원형 \($d.headword))" else "" end) + " — \($d.cause)"
     ' "$LEDGER_FILE"
   done <<<"$keys_list"
   local first last
@@ -443,7 +443,7 @@ fix_group() {
     cat "$PROMPTS_DIR/fix.md"
     printf '\n분류 결과:\n```json\n%s\n```\n' "$(jq '{title, reason, fixPlan}' <<<"$group")"
     printf '\n결손 상세:\n```json\n%s\n```\n' "$(jq --argjson keys "$(jq -c '.keys' <<<"$group")" \
-      '[$keys[] as $k | .defects[$k] | {key: $k, cause, headword, occurrences: [.occurrences[] | {songId, lineIndex, surface, line, detail}]}]' \
+      '[$keys[] as $k | .defects[$k] | {key: $k, cause, headword, occurrences: [.occurrences[] | {workId, songId, lineIndex, surface, line, detail}]}]' \
       "$LEDGER_FILE")"
   } > "$prompt"
 
@@ -530,7 +530,7 @@ main() {
   candidates="$(jq -c --argjson max "$MAX_CANDIDATES" '
     [.defects | to_entries[] | select(.value.status == "new")
      | {key: .key, cause: .value.cause, headword: .value.headword,
-        occurrences: [.value.occurrences[] | {songId, lineIndex, surface, line, detail}]}]
+        occurrences: [.value.occurrences[] | {workId, songId, lineIndex, surface, line, detail}]}]
     | sort_by(.key) | .[:$max]
   ' "$LEDGER_FILE")"
   local n_candidates

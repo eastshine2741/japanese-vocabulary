@@ -5,7 +5,7 @@
 
 ```
 worker: SegmentLyricsStage / SelectSensesStage
-  └─ 결손 1건 = 로그 1줄  →  ANALYSIS_DEFECT {"songId":70,"lineIndex":3,"cause":"DICTIONARY_MISS","surface":"買えれ","headword":"買える","line":"金で買えれば 何でも"}
+  └─ 결손 1건 = 로그 1줄  →  ANALYSIS_DEFECT {"workId":69,"songId":70,"lineIndex":3,"cause":"DICTIONARY_MISS","surface":"買えれ","headword":"買える","line":"金で買えれば 何でも"}
         ↓  (sentry-logback, warn)
 Sentry kotonoha-batch-prod — 이벤트만 읽는다, 이슈는 안 본다
         ↓

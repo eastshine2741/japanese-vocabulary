@@ -2,12 +2,13 @@ package com.japanese.vocabulary.song.worker
 
 import com.japanese.vocabulary.common.exception.BusinessException
 import com.japanese.vocabulary.common.exception.ErrorCode
-import com.japanese.vocabulary.song.entity.LyricEntity
 import com.japanese.vocabulary.song.repository.LyricRepository
 import com.japanese.vocabulary.song.service.SongAnalysisPreparationService
 import com.japanese.vocabulary.songanalysis.dto.ClaimedSongAnalysisStage
 import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStage
 import com.japanese.vocabulary.songanalysis.service.SongAnalysisWorkService
+import com.japanese.vocabulary.translation.client.gemini.GeminiCallContext
+import com.japanese.vocabulary.translation.model.TranslationPipelineSource
 import com.japanese.vocabulary.translation.service.KoreanLyricTranslationService
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
@@ -75,7 +76,7 @@ class SongAnalysisStageExecutor(
      * 다른 갈래가 실패해도 끝난 갈래는 다음 시도가 다시 하지 않는다.
      */
     private suspend fun analyzeLyrics(claimed: ClaimedSongAnalysisStage) {
-        val source = translationService.sourceOf(lyricOf(claimed))
+        val source = sourceOf(claimed)
         var state = claimed.previousOutput?.let { codec.read(it, AnalyzeLyricsOutput::class.java) } ?: AnalyzeLyricsOutput()
         if (claimed.previousOutput != null) {
             logger.info(
@@ -112,14 +113,14 @@ class SongAnalysisStageExecutor(
     }
 
     private suspend fun selectSenses(claimed: ClaimedSongAnalysisStage) {
-        val source = translationService.sourceOf(lyricOf(claimed))
+        val source = sourceOf(claimed)
         val analyzed = Outputs(claimed).analyzed()
         val selected = translationService.selectSenses(source, analyzed.translation!!, analyzed.words!!)
         finish(claimed, SelectSensesOutput(selected))
     }
 
     private suspend fun translateSenses(claimed: ClaimedSongAnalysisStage) {
-        val source = translationService.sourceOf(lyricOf(claimed))
+        val source = sourceOf(claimed)
         val outputs = Outputs(claimed)
         val selected = outputs.read(SongAnalysisWorkStage.SELECT_SENSES, SelectSensesOutput::class.java)
         val korean = translationService.translateSenses(selected.selectedSenseByKey, outputs.analyzed().words!!, source.callContext)
@@ -127,8 +128,7 @@ class SongAnalysisStageExecutor(
     }
 
     private suspend fun complete(claimed: ClaimedSongAnalysisStage) {
-        val lyric = lyricOf(claimed)
-        val source = translationService.sourceOf(lyric)
+        val source = sourceOf(claimed)
         val outputs = Outputs(claimed)
         val analyzed = outputs.analyzed()
         val lines = translationService.assemble(
@@ -140,7 +140,8 @@ class SongAnalysisStageExecutor(
         )
         completionService.completeWithAnalyzedContent(
             ref = claimed.ref,
-            lyricId = requireNotNull(lyric.id),
+            preparedLyric = outputs.read(SongAnalysisWorkStage.FETCH_LYRICS, FetchLyricsOutput::class.java),
+            youtubeUrl = outputs.read(SongAnalysisWorkStage.FETCH_YOUTUBE, FetchYoutubeOutput::class.java).youtubeUrl,
             analyzedLines = lines,
             output = codec.write(CompleteOutput(analyzedLines = lines.size)),
         )
@@ -153,9 +154,18 @@ class SongAnalysisStageExecutor(
         }
     }
 
-    private fun lyricOf(claimed: ClaimedSongAnalysisStage): LyricEntity {
-        val lyricId = checkNotNull(claimed.work.lyricId) { "Work ${claimed.ref.workId} reached ${claimed.ref.stage} without a lyric" }
-        return lyricRepository.findById(lyricId).orElseThrow { BusinessException(ErrorCode.LYRIC_NOT_FOUND) }
+    /**
+     * 분석할 가사. 곡·가사 행은 [SongAnalysisWorkStage.COMPLETE] 에서야 생기므로 FETCH_LYRICS 산출물을
+     * 읽는다. CREATE_SONG_AND_LYRIC 을 거친 옛 작업은 기존 가사를 재사용했을 수 있어, 그 가사를 읽는다.
+     */
+    private fun sourceOf(claimed: ClaimedSongAnalysisStage): TranslationPipelineSource {
+        claimed.work.lyricId?.let { lyricId ->
+            val lyric = lyricRepository.findById(lyricId).orElseThrow { BusinessException(ErrorCode.LYRIC_NOT_FOUND) }
+            return translationService.sourceOf(lyric, claimed.ref.workId)
+        }
+        val prepared = Outputs(claimed).read(SongAnalysisWorkStage.FETCH_LYRICS, FetchLyricsOutput::class.java)
+        val context = GeminiCallContext(songId = claimed.work.songId, lyricId = null, workId = claimed.ref.workId)
+        return TranslationPipelineSource.from(prepared.lines, context)
     }
 
     /** 앞 단계 산출물. 없으면 원장이 깨진 것이라 이 단계는 실패로 기록된다. */

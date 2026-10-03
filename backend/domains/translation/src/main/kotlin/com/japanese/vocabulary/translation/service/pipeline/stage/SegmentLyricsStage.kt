@@ -227,6 +227,7 @@ class SegmentLyricsStage(
             val line = input.rawByIndex[lineIndex].orEmpty()
             val headwords = unresolvedHeadwords.map { (token, providerError) ->
                 AnalysisDefect(
+                    workId = input.callContext.workId,
                     songId = input.callContext.songId,
                     lyricId = input.callContext.lyricId,
                     lineIndex = lineIndex,
@@ -238,6 +239,7 @@ class SegmentLyricsStage(
             }
             val uncoveredText = uncovered?.let {
                 AnalysisDefect(
+                    workId = input.callContext.workId,
                     songId = input.callContext.songId,
                     lyricId = input.callContext.lyricId,
                     lineIndex = lineIndex,

@@ -126,7 +126,7 @@ export default function SongSearchResultsScreen() {
   const resetPlayer = usePlayerStore(s => s.reset);
   const recordSearchLocally = useSearchHistoryStore(s => s.recordLocally);
 
-  // Only the existence check ('loading') blocks rows; once 'analyzing', the global pill takes over.
+  // Only the lookup and the analysis request ('loading') block rows; after that the global pill takes over.
   const isChecking = playerStatus === 'loading';
 
   // Each executed search lives on its own stack entry, so it runs once per mount.
@@ -154,7 +154,7 @@ export default function SongSearchResultsScreen() {
   useEffect(() => {
     return () => {
       const currentStatus = usePlayerStore.getState().status;
-      if (currentStatus === 'loading' || currentStatus === 'analyzing') {
+      if (currentStatus === 'loading') {
         resetPlayer();
       }
     };
@@ -168,7 +168,6 @@ export default function SongSearchResultsScreen() {
     analyze(item).then(() => {
       const state = usePlayerStore.getState();
       if (state.status === 'success') {
-        // Analysis can take a while; if the user moved on, the pill is the way back in.
         if (!navigation.isFocused()) return;
         navigation.navigate('SongDetail', { songId: state.studyData?.song.id, origin: 'Home' });
       } else if (state.status === 'error') {

@@ -30,6 +30,7 @@ class GeminiCallLogger(
         try {
             geminiCallLogRepository.save(
                 GeminiCallLogEntity(
+                    workId = context.workId,
                     songId = context.songId,
                     lyricId = context.lyricId,
                     callName = call,
@@ -40,7 +41,7 @@ class GeminiCallLogger(
                 ),
             )
         } catch (e: Exception) {
-            logger.warn("Failed to persist gemini call log (call={}, songId={})", call, context.songId, e)
+            logger.warn("Failed to persist gemini call log (call={}, workId={})", call, context.workId, e)
         }
     }
 
