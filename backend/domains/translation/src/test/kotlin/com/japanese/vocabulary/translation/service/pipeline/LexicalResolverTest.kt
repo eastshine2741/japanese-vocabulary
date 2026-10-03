@@ -874,6 +874,45 @@ class LexicalResolverTest {
     }
 
     @Test
+    fun `a negative verb handed back as the headword is rescued as its dictionary form`(): Unit = runBlocking {
+        // songId=298, line 25: "いらんもんなんて捨てさって". The model gave the negative いらない as the
+        // headword for いらん, jisho indexes only 要る, and the word shipped without a meaning.
+        stub(
+            "いる" to found(
+                JishoDictionaryEntryDto(
+                    headword = "要る",
+                    reading = "イル",
+                    senses = listOf(
+                        JishoOptionDto(
+                            pos = listOf("Godan verb with 'ru' ending", "Intransitive verb"),
+                            english = "to be needed",
+                            englishDefinitions = listOf("to be needed"),
+                        ),
+                    ),
+                ),
+            ),
+        )
+        val tokens = listOf(token("いらん", "いらない", "イラナイ", lineIndex = 25))
+
+        val resolved = resolver.resolve(tokens).byTokenKey.values.single()
+
+        assertThat(resolved.baseForm).isEqualTo("いる")
+        assertThat(resolved.options.map { it.headword }).containsExactly("要る")
+        assertThat(resolved.options.map { it.english }).containsExactly("to be needed")
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
+    fun `a negative-form probe that lands on a non-verb is not accepted`(): Unit = runBlocking {
+        // 少ない is an adjective; the probe asks for 少る, and a noun answering it must not be taken.
+        stub("少る" to found(entry(headword = "少る", reading = "スクル", english = "noun")))
+
+        val resolved = resolver.resolve(listOf(token("少ない", "少ない", "スクナイ"))).byTokenKey.values.single()
+
+        assertThat(resolved.options).isEmpty()
+    }
+
+    @Test
     fun `senses of different entries keep separate ids`(): Unit = runBlocking {
         stub("前" to maeAndZenAndSaki())
 
