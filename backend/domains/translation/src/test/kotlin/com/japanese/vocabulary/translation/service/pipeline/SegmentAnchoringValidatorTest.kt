@@ -496,6 +496,35 @@ class SegmentAnchoringValidatorTest {
     }
 
     @Test
+    fun `absorbs an extra iteration mark the model left off a word that already repeats`() {
+        // The song-366 defect: `悶々々` came back as `悶々`, and the last `々` shipped as UNCOVERED. It only
+        // stretches the repetition in front of it, so there is no word for a retry to segment.
+        val result = validator.anchor(
+            mapOf(1 to "誰の成れの果て？（なんだっての悶々々...）"),
+            listOf(
+                SegLineDto(
+                    1,
+                    listOf(
+                        word("誰", "誰", "ダレ", "ダレ"),
+                        word("の", "の", "ノ", "ノ"),
+                        word("成れの果て", "成れの果て", "ナレノハテ", "ナレノハテ"),
+                        word("なんだって", "なんだって", "ナンダッテ", "ナンダッテ"),
+                        word("の", "の", "ノ", "ノ"),
+                        word("悶々", "悶々", "モンモン", "モンモン"),
+                    ),
+                ),
+            ),
+        )
+
+        assertThat(result.failuresByIndex).isEmpty()
+        assertThat(result.incompleteByIndex).isEmpty()
+        val last = result.anchoredByIndex.getValue(1).last()
+        assertThat(Triple(last.surface, last.charStart, last.charEnd)).isEqualTo(Triple("悶々々", 15, 18))
+        assertThat(last.headword).isEqualTo("悶々")
+        assertThat(last.usedReading).isEqualTo("モンモン")
+    }
+
+    @Test
     fun `keeps a small kana the model did segment as its own token`() {
         // Absorption only claims text no surface did; a model that emits `ぁ` itself must still anchor.
         val result = validator.anchor(
