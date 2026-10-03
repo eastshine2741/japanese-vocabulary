@@ -65,6 +65,7 @@ class LexicalResolver(
                 ?: resolveContinuativeNoun(token, probeLookups)
                 ?: resolveSuruPassive(token, probeLookups)
                 ?: resolvePassive(token, probeLookups)
+                ?: resolveAppearanceSou(token, probeLookups)
 
             if (resolved == null) {
                 if (firstPass[token.headword]?.provenance == JishoLookupProvenance.REJECTED_FALLBACK) {
@@ -148,7 +149,8 @@ class LexicalResolver(
                     resolveHonorificPrefix(it, probeLookups, logRescue = false) == null &&
                     resolveContinuativeNoun(it, probeLookups, logRescue = false) == null &&
                     resolveSuruPassive(it, probeLookups, logRescue = false) == null &&
-                    resolvePassive(it, probeLookups, logRescue = false) == null
+                    resolvePassive(it, probeLookups, logRescue = false) == null &&
+                    resolveAppearanceSou(it, probeLookups, logRescue = false) == null
             }
             .map { token ->
                 val lookups = listOfNotNull(firstPass[token.headword]) +
@@ -178,7 +180,7 @@ class LexicalResolver(
             continuativeNounProbe(token),
             suruPassiveProbe(token),
             passiveProbe(token),
-        ) + suruDesiderativeProbes(token)
+        ) + suruDesiderativeProbes(token) + appearanceSouProbes(token).map { it.baseForm }
 
     /**
      * Grades how well [lookup] pins down the entry [token] means, using the `(headword, reading)` pair.
@@ -681,6 +683,60 @@ class LexicalResolver(
         return if (stem.isEmpty()) null else stem + base
     }
 
+    /**
+     * Safety net for when the segmentation LLM hands back a stem with appearance そう — 泣きそう,
+     * 忙しそう — as the headword instead of 泣く / 忙しい. Tried only after the pair match has already failed.
+     *
+     * The stem does not say which word class it came from, so every restoration is asked for: stem + い
+     * as an i-adjective, the last i-row kana moved to the u-row as a godan verb, stem + る as an ichidan
+     * verb. Each keeps only the senses of the class it guessed, so a guess jisho happens to answer with
+     * a noun adds nothing.
+     */
+    private fun resolveAppearanceSou(
+        token: PipelineToken,
+        lookups: Map<String, JishoEntryDto>,
+        logRescue: Boolean = true,
+    ): AcceptedLexicalEntry? {
+        for (probe in appearanceSouProbes(token)) {
+            val accepted = narrow(token, lookups[probe.baseForm], probe.baseForm, probe.reading, logRescue)
+                ?: continue
+            val matchingEntries = accepted.entries.mapNotNull { entry ->
+                val senses = entry.senses.filter { JishoPartOfSpeechMapper.map(it.pos) == probe.partOfSpeech }
+                if (senses.isEmpty()) null else entry.copy(senses = senses)
+            }
+            if (matchingEntries.isEmpty()) continue
+            if (logRescue) logger.info("Normalized appearance sou '{}' to '{}'", token.headword, probe.baseForm)
+            return AcceptedLexicalEntry(probe.baseForm, matchingEntries, accepted.provenance)
+        }
+        return null
+    }
+
+    /** `泣きそう` → `泣く`, `忙しそう` → `忙しい`, `食べそう` → `食べる`, with readings inflected alike. */
+    private fun appearanceSouProbes(token: PipelineToken): List<AppearanceSouProbe> {
+        if (!token.headword.endsWith("そう")) return emptyList()
+        val stem = token.headword.dropLast(2).takeIf { it.isNotEmpty() } ?: return emptyList()
+        val readingStem = token.baseFormReading.takeIf { it.endsWith("ソウ") }?.dropLast(2)?.takeIf { it.isNotEmpty() }
+
+        val probes = mutableListOf(
+            AppearanceSouProbe(stem + "い", readingStem?.plus("イ"), PartOfSpeech.ADJECTIVE),
+        )
+        GODAN_I_TO_U[stem.last()]?.let { u ->
+            val reading = readingStem?.let { r ->
+                GODAN_I_TO_U[JapaneseText.toHiragana(r.takeLast(1)).single()]
+                    ?.let { r.dropLast(1) + JapaneseText.toKatakana(it.toString()) }
+            }
+            probes += AppearanceSouProbe(stem.dropLast(1) + u, reading, PartOfSpeech.VERB)
+        }
+        probes += AppearanceSouProbe(stem + "る", readingStem?.plus("ル"), PartOfSpeech.VERB)
+        return probes
+    }
+
+    private data class AppearanceSouProbe(
+        val baseForm: String,
+        val reading: String?,
+        val partOfSpeech: PartOfSpeech,
+    )
+
     private companion object {
         val INTENSIFIER_PREFIXES = listOf("ぶち", "ぶっ")
 
@@ -714,5 +770,11 @@ class LexicalResolver(
         val PASSIVE_READING_ENDINGS = PASSIVE_ENDINGS.map { (ending, base) ->
             JapaneseText.toKatakana(ending) to JapaneseText.toKatakana(base)
         }
+
+        /** A godan verb's stem kana (泣き) to its dictionary-form kana (泣く). */
+        val GODAN_I_TO_U = mapOf(
+            'い' to 'う', 'き' to 'く', 'ぎ' to 'ぐ', 'し' to 'す', 'ち' to 'つ',
+            'に' to 'ぬ', 'び' to 'ぶ', 'み' to 'む', 'り' to 'る',
+        )
     }
 }
