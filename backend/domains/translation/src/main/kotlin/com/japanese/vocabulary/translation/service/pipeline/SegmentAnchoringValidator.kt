@@ -90,14 +90,18 @@ class SegmentAnchoringValidator {
         var previousSurface: String? = null
         val anchored = line.words.mapNotNull { word ->
             if (!JapaneseText.containsJapanese(word.surface)) return@mapNotNull null
-            val start = rawText.indexOf(word.surface, cursor)
+            // Digits glued to a counter (`80億`) are left to the raw text like any other digit; only the
+            // Japanese part is a word the dictionary knows. The model's reading still spells the number,
+            // and the dictionary reading replaces it once the counter resolves.
+            val surface = JapaneseText.trimDigits(word.surface)
+            val start = rawText.indexOf(surface, cursor)
             if (start < 0) {
                 throw SegmentationValidationException(
                     notInOrderMessage(index, word.surface, rawText, cursor, previousSurface),
                 )
             }
             val usedReading = readingOf(index, word, word.usedReading, "usedReading")
-            val end = start + word.surface.length
+            val end = start + surface.length
             for (i in start until end) covered[i] = true
             val annotationEnd = readingAnnotationEnd(rawText, end, usedReading)
             for (i in end until annotationEnd) covered[i] = true
@@ -105,8 +109,8 @@ class SegmentAnchoringValidator {
             previousSurface = word.surface
             PipelineToken(
                 lineIndex = index,
-                surface = word.surface,
-                headword = word.headword,
+                surface = surface,
+                headword = JapaneseText.trimDigits(word.headword).ifEmpty { surface },
                 charStart = start,
                 charEnd = end,
                 usedReading = usedReading,
