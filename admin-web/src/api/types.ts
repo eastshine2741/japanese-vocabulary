@@ -182,6 +182,13 @@ export type AdminUserDetail = {
   decks: AdminUserDeck[]
 }
 
+export type ManualPushResult = {
+  userId: number
+  targetTokens: number
+  sent: number
+  failed: number
+}
+
 export type AdminUserLearning = {
   wordCount: number
   dueCount: number

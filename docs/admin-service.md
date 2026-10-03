@@ -59,6 +59,7 @@ Routes:
 - `GET /admin/api/users` — 유저마다 `wordCount`, `songDeckCount`, `customDeckCount`, `lastWordSavedAt`, `lastReviewedAt` 포함
 - `GET /admin/api/users/{userId}` — `{ user, learning, decks }`
 - `GET /admin/api/users/{userId}/words?deckId=&q=` — 페이지 (최근 담은 순)
+- `POST /admin/api/push/send` — `{ userId, title, body }` 를 그 유저의 모든 기기로 보낸다. `push.firebase.enabled` 가 아니면 404. `admin-web` 은 User 상세의 푸시 칸에서 부른다.
 - `GET /admin/api/reels-factory/songs`
 - `GET /admin/api/reels-factory/songs/{songId}`
 - `POST /admin/api/reels-factory/songs/{songId}/source` (multipart `file`)

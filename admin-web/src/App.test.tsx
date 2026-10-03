@@ -48,6 +48,7 @@ function mockFetch() {
       const words = new URL(url).searchParams.get("deckId") === "11" ? [adminUserWord] : [adminUserWord, { ...adminUserWord, id: 21, japaneseText: "夜", reading: "ヨル", senses: [{ meaning: "밤", partOfSpeech: "명사", jlpt: "N5", examples: [] }], sourceSongs: [], flashcard: { status: "NEW", fsrsState: 0, due: "2026-01-01T00:00:00Z", lastReview: null } }]
       return json(page(words))
     }
+    if (url.endsWith("/push/send") && init?.method === "POST") return json({ userId: 3, targetTokens: 2, sent: 1, failed: 1 })
     if (url.includes("/users/3")) return json(adminUserDetail)
     if (url.includes("/users?")) return json(page([adminUser]))
     return json({}, 404)
@@ -156,6 +157,23 @@ describe("admin web", () => {
     await waitFor(() => expect(screen.queryByText("夜")).not.toBeInTheDocument())
     expect(screen.getByLabelText("단어장 필터")).toHaveValue("11")
     expect(screen.getByText("駆ける")).toBeInTheDocument()
+  })
+
+  test("sends a manual push from user detail", async () => {
+    const user = userEvent.setup()
+    const fetchMock = vi.mocked(fetch)
+    sessionStorage.setItem("kotonoha.admin.token", "admin-token")
+    renderApp("/users/3")
+
+    const send = await screen.findByRole("button", { name: "보내기" })
+    expect(send).toBeDisabled()
+    await user.type(screen.getByLabelText("푸시 제목"), "공지")
+    await user.type(screen.getByLabelText("푸시 내용"), "오늘도 복습해요")
+    await user.click(send)
+
+    expect(await screen.findByText(/기기 2대 중/)).toHaveTextContent("기기 2대 중 1 성공 · 1 실패")
+    const call = fetchMock.mock.calls.find(([input]) => String(input).endsWith("/push/send"))!
+    expect(JSON.parse(String(call[1]?.body))).toEqual({ userId: 3, title: "공지", body: "오늘도 복습해요" })
   })
 
   test("runs recommendation workflow operations", async () => {

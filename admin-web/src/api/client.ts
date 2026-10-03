@@ -4,6 +4,7 @@ import type {
   AdminUserWord,
   LoginResponse,
   LyricDetail,
+  ManualPushResult,
   PageResponse,
   Recommendation,
   RecommendationCandidate,
@@ -168,6 +169,12 @@ export const adminApi = {
     const params = pageParams(page, filter.query)
     if (filter.deckId != null) params.set("deckId", String(filter.deckId))
     return request<PageResponse<AdminUserWord>>(`/users/${id}/words?${params}`, token)
+  },
+  sendPush(token: string, userId: number, payload: { title: string; body: string }) {
+    return request<ManualPushResult>("/push/send", token, {
+      method: "POST",
+      body: JSON.stringify({ userId, ...payload }),
+    })
   },
   reelsSongs(token: string, page: number, query?: string) {
     return request<PageResponse<ReelsSongCandidate>>(`/reels-factory/songs?${pageParams(page, query)}`, token)

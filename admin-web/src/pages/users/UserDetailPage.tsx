@@ -1,7 +1,7 @@
 import * as React from "react"
 import { ChevronDown, ChevronRight, Search } from "lucide-react"
 import { Link, useParams } from "react-router-dom"
-import { adminApi } from "@/api/client"
+import { adminApi, ApiError } from "@/api/client"
 import type {
   AdminUserDeck,
   AdminUserDeckKind,
@@ -9,6 +9,7 @@ import type {
   AdminUserLearning,
   AdminUserWord,
   AdminWordFlashcardStatus,
+  ManualPushResult,
   PageResponse,
 } from "@/api/types"
 import { DetailGrid, DetailItem } from "@/components/DetailGrid"
@@ -80,6 +81,9 @@ export function UserDetailPage() {
         <DetailItem label="Deleted" value={formatDateTime(user.deletedAt)} />
       </DetailGrid>
 
+      <SectionTitle>푸시</SectionTitle>
+      <PushForm userId={user.id} />
+
       <SectionTitle>학습</SectionTitle>
       <LearningStats learning={learning} />
 
@@ -94,6 +98,66 @@ export function UserDetailPage() {
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return <h2 className="mb-2 mt-6 text-base font-semibold text-[#18212f]">{children}</h2>
+}
+
+/** 이 유저의 등록된 기기 전부로 보낸다. 백엔드에서 Firebase 가 꺼져 있으면 엔드포인트가 없어 404 가 온다. */
+function PushForm({ userId }: { userId: number }) {
+  const { token } = useAuth()
+  const [title, setTitle] = React.useState("")
+  const [body, setBody] = React.useState("")
+  const [sending, setSending] = React.useState(false)
+  const [result, setResult] = React.useState<ManualPushResult | null>(null)
+  const [error, setError] = React.useState<string | null>(null)
+  const canSend = !sending && title.trim() !== "" && body.trim() !== ""
+
+  async function send(event: React.FormEvent) {
+    event.preventDefault()
+    if (!canSend) return
+    setSending(true)
+    setResult(null)
+    setError(null)
+    try {
+      setResult(await adminApi.sendPush(token!, userId, { title: title.trim(), body: body.trim() }))
+    } catch (cause) {
+      setError(cause instanceof ApiError && cause.status === 404 ? "푸시가 꺼져 있어요" : (cause as Error).message)
+    } finally {
+      setSending(false)
+    }
+  }
+
+  return (
+    <form className="flex max-w-3xl flex-wrap items-center gap-2" onSubmit={send}>
+      <Input
+        aria-label="푸시 제목"
+        placeholder="제목"
+        className="w-48"
+        value={title}
+        onChange={(event) => setTitle(event.target.value)}
+      />
+      <Input
+        aria-label="푸시 내용"
+        placeholder="내용"
+        className="min-w-64 flex-1"
+        value={body}
+        onChange={(event) => setBody(event.target.value)}
+      />
+      <Button type="submit" disabled={!canSend}>
+        {sending ? "보내는 중" : "보내기"}
+      </Button>
+      {result ? <PushResultText result={result} /> : null}
+      {error ? <span className={cn("text-xs", toneText.danger)}>{error}</span> : null}
+    </form>
+  )
+}
+
+function PushResultText({ result }: { result: ManualPushResult }) {
+  if (result.targetTokens === 0) return <span className="text-xs text-[#637083]">등록된 기기가 없어요</span>
+  return (
+    <span className="text-xs text-[#637083]">
+      기기 {result.targetTokens}대 중 <span className={toneText.success}>{result.sent}</span> 성공
+      {result.failed > 0 ? <span className={toneText.warning}> · {result.failed} 실패</span> : null}
+    </span>
+  )
 }
 
 /**
