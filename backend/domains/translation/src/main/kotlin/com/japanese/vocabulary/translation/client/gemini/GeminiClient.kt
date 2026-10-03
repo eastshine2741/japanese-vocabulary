@@ -128,8 +128,8 @@ class GeminiClient(
             atLeast = TransientHttpErrors::retryAfter,
             onRetry = { attempt, e, delay ->
                 logger.warn(
-                    "[songId={}] Gemini call={} model={} attempt {}/{} failed, retrying in {}ms: {}: {}",
-                    context.songId, call, model, attempt, backoff.maxAttempts, delay.toMillis(), e::class.simpleName, e.message,
+                    "[workId={}] Gemini call={} model={} attempt {}/{} failed, retrying in {}ms: {}: {}",
+                    context.workId, call, model, attempt, backoff.maxAttempts, delay.toMillis(), e::class.simpleName, e.message,
                 )
                 Counter.builder(MetricNames.GEMINI_CALL_RETRIES)
                     .tag("call", call)
