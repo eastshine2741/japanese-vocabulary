@@ -81,6 +81,18 @@ class RuleMeaningProviderTest {
     }
 
     @Test
+    fun `resolves shiteiku glued after a suru-noun as auxiliary teiku`() {
+        // 頭ん中ぎゅるんぎゅるん回転していく — segmentation emits していく as surface and headword
+        // after 回転, and jisho has no entry for the する + ていく chain.
+        val resolved = provider.resolve(PipelineToken(5, "していく", "していく", 13, 17))!!
+
+        assertThat(resolved.partOfSpeech).isEqualTo(PartOfSpeech.AUXILIARY_VERB)
+        assertThat(resolved.baseFormReading).isEqualTo("シテイク")
+        assertThat(resolved.koreanText).isEqualTo("~해 가다")
+        assertThat(provider.resolve(token("ていく"))!!.koreanText).isEqualTo("~해 가다")
+    }
+
+    @Test
     fun `does not rule-resolve ambiguous grammar-like words`() {
         assertThat(provider.resolve(token("ない"))).isNull()
         assertThat(provider.resolve(token("から"))).isNull()
