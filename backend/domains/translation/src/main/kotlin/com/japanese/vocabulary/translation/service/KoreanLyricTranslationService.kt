@@ -22,9 +22,8 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 /**
- * Domain-level lyric translation operations. Exposes pure compute and analyzed-content persistence
- * over a single [LyricEntity]. Work polling, stage transitions, and terminal failure handling live
- * in the batch module's song-analysis work scheduler/processor.
+ * Pure compute and analyzed-content persistence over a single [LyricEntity]. Work polling, stage
+ * transitions, and terminal failure handling live in the batch module's song-analysis scheduler/processor.
  */
 @Service
 class KoreanLyricTranslationService(

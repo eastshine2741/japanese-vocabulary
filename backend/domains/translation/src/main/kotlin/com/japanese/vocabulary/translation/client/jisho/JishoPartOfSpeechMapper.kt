@@ -5,23 +5,15 @@ import com.japanese.vocabulary.song.model.PartOfSpeech
 /**
  * Maps jisho.org English part-of-speech labels onto the app's [PartOfSpeech] enum.
  *
- * Per the morphological-analysis decisions, reliable POS comes from jisho (dictionary grounding),
- * not from Kuromoji. jisho labels are free-form strings (e.g. "Godan verb with 'ku' ending",
- * "Na-adjective (keiyodoshi)"), and a sense carries an ordered list of them where the FIRST entry is
- * the primary reading of the word — so label order is preserved rather than re-ranked.
+ * jisho labels are free-form strings ("Godan verb with 'ku' ending"); the FIRST label of a sense is
+ * the primary one, so order is preserved rather than re-ranked.
  *
- * Two things make naive substring matching wrong:
+ * Naive substring matching is wrong for two reasons:
  *
- * 1. **Descriptive labels embed other POS names.** `"Noun which may take the genitive case particle
- *    'no'"` contains "particle" and `"Noun or verb acting prenominally"` contains "verb". Matching on
- *    bare substrings classified 当たり前 / 最低 / 最初 / 隣 as [PartOfSpeech.PARTICLE]. Each label is now
- *    classified by its leading token, so anything starting with "noun" is a noun.
- * 2. **Usage markers are not primary POS.** The same two labels (JMdict `adj-no` / `adj-f`) describe how
- *    a noun may be used, and jisho often lists them first — 当たり前 arrives as
- *    ["Noun which may take …", "Na-adjective (keiyodoshi)", "Noun"]. They are treated as weak: they only
- *    decide the POS when no other label in the sense classifies, so 当たり前 resolves to
- *    [PartOfSpeech.NA_ADJECTIVE] while a sense tagged only `adj-no` (日々) still resolves to
- *    [PartOfSpeech.NOUN].
+ * 1. **Descriptive labels embed other POS names** ("Noun which may take the genitive case particle
+ *    'no'" contains "particle"). Each label is classified by its leading token instead.
+ * 2. **Usage markers are not primary POS.** `adj-no` / `adj-f` labels are weak: they decide the POS
+ *    only when no other label in the sense classifies (当たり前 → NA_ADJECTIVE, 日々 → NOUN).
  *
  * Unknown / empty input falls back to [PartOfSpeech.OTHER].
  */

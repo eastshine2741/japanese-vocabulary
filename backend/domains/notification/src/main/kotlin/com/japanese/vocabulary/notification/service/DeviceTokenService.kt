@@ -10,8 +10,7 @@ class DeviceTokenService(
     private val deviceTokenRepository: DeviceTokenRepository,
 ) {
     /**
-     * Idempotent register: single-statement upsert keyed on `token` unique constraint.
-     * On conflict the row is reassigned to [userId] (covers same-device re-login: user A → user B).
+     * Idempotent upsert; on token conflict the row is reassigned to [userId] (same-device re-login).
      */
     @Transactional
     fun register(userId: Long, token: String, platform: String) {
@@ -39,7 +38,6 @@ class DeviceTokenService(
         const val MIN_TOKEN_LEN = 8
         const val MAX_TOKEN_LEN = 512
         // Accepts FCM (base64url-ish), Expo (ExponentPushToken[...]) and dash/colon variants.
-        // Strict enough to reject `<script>`-style garbage; permissive enough to track real tokens.
         private val TOKEN_REGEX = Regex("^[A-Za-z0-9_:./\\-\\[\\]]+$")
     }
 }

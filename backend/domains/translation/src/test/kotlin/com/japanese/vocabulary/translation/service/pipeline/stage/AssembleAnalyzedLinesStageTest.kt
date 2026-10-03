@@ -22,9 +22,8 @@ class AssembleAnalyzedLinesStageTest {
 
     @Test
     fun `anchors every token with the reading sung in this line so a client can assemble it`(): Unit = runBlocking {
-        // 「行って」 yay — no line reading is stored, so what a client needs is on the tokens: the
-        // reading, and the char range that says where it sits. The quotes, the space and the latin run
-        // have no reading of their own, and a client falls back to their surface.
+        // No line reading is stored: clients use each token's reading and char range, and fall back to
+        // the surface for quotes, spaces and latin runs.
         val raw = "「行って」 yay"
         val tokens = listOf(
             token(raw, "「", "「", "「", "「"),

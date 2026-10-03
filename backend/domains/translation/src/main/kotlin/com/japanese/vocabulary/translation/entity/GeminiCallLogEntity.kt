@@ -9,8 +9,7 @@ import jakarta.persistence.Table
 import java.time.Instant
 
 /**
- * One Gemini call's input payload and raw response, kept only so pipeline output can be traced back
- * to what the model actually saw (which sense candidates a homograph got, which lines a chunk held).
+ * One Gemini call's input payload and raw response, kept to trace pipeline output back to model input.
  *
  * TODO: 임시다. Loki 같은 로그 수집 스택이 들어오면 이 엔티티와 `gemini_call_log` 테이블을 지우고
  *  stdout 구조화 로그로 이관한다.

@@ -30,7 +30,7 @@ export interface PillState {
   tapSongId: number | null;
   /** 실패 pill 일 때 탭이 즉시 지우는 작업. */
   dismissWorkId: number | null;
-  /** true 면 탭이 학습으로 이어진다는 걸 부제와 chevron 으로 드러낸다. 접힌 단일 완료 pill 과 펼친 곡별 완료 pill. */
+  /** true 면 탭이 학습으로 이어진다는 걸 부제와 chevron 으로 드러낸다. */
   studyHint: boolean;
 }
 

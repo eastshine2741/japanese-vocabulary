@@ -5,7 +5,7 @@ package com.japanese.vocabulary.song.model
  * - [com.japanese.vocabulary.song.service.WordCandidateGenerator] 는 중요도 점수를 깎아 핵심 단어에서 밀어낸다.
  * - 곡 단어 4단계 분류는 이 단어들을 "입문" 단계로 묶는다.
  *
- * prod 가사 77곡의 등장 곡 비율과 상위 5개 진입 횟수를 보고 고른 목록 (2026-09). 내용어(忘れる·笑う·夢)는 흔해도 남긴다.
+ * 내용어(忘れる·笑う·夢)는 흔해도 목록에 넣지 않는다.
  */
 object CommonWords {
     private val WORDS: Set<Pair<String, PartOfSpeech>> = buildSet {

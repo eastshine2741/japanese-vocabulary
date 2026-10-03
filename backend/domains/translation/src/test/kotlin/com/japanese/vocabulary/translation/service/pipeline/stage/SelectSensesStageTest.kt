@@ -240,8 +240,7 @@ class SelectSensesStageTest {
         }
         private val stage = SelectSensesStage(jevClient, defectReporter)
 
-        // 君のチクタクチクも僕の元に (song 94, line 39): jisho offered チク the 竹/築/地区 entries, and the
-        // model answered -1 because a clock's tick is none of them — exactly what the prompt tells it to do.
+        // 君のチクタクチクも僕の元に: jisho offered チク the 竹/築/地区 entries and the model rightly answered -1 (a clock's tick).
         private val raw = "君のチクタクチクも僕の元に"
         private val token = PipelineToken(
             lineIndex = 39,

@@ -20,7 +20,7 @@ class JishoClientRetryTest {
 
     @Test
     fun `retries a 5xx and returns the later answer`(): Unit = runBlocking {
-        // songId=82 shipped 太陽 and 花束 with no meaning because one 502 was taken as the final word.
+        // One 502 must not be taken as the final word.
         val (client, server) = clientWith { server ->
             server.expect(anything()).andRespond(withStatus(HttpStatus.BAD_GATEWAY))
             server.expect(anything()).andRespond(withSuccess(found("太陽", "たいよう"), MediaType.APPLICATION_JSON))

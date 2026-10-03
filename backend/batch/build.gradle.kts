@@ -37,11 +37,9 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
 
-    // Sentry
     implementation("io.sentry:sentry-spring-boot-starter-jakarta:7.18.0")
     implementation("io.sentry:sentry-logback:7.18.0")
 
-    // MySQL
     runtimeOnly("com.mysql:mysql-connector-j")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")

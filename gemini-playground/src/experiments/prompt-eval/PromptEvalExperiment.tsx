@@ -23,8 +23,6 @@ import {
 import { buildGraderPrompt, buildAdditionsPrompt } from "./graderPrompt";
 import "./PromptEvalExperiment.css";
 
-// --- Load files from filesystem via import.meta.glob ---
-
 const translationPromptFiles = import.meta.glob<string>(
   "./translation/prompt/*.txt",
   { eager: true, query: "?raw", import: "default" }
@@ -84,8 +82,6 @@ function modeToDir(mode: EvalMode): string {
       return "word-meaning-with-translation";
   }
 }
-
-// --- Helpers ---
 
 function getFirstFileContent(files: Record<string, string>): string {
   const values = Object.values(files);
@@ -150,8 +146,6 @@ async function saveResultToServer(
   const json = await res.json();
   return json.path;
 }
-
-// --- Chunked execution for word-meaning ---
 
 interface ChunkedExecResult {
   text: string | null;
@@ -219,7 +213,6 @@ async function executeWordMeaningChunked(
     };
   }
 
-  // Merge: parse each chunk, concat, sort by index
   let merged: { index: number }[] = [];
   for (const r of chunkResults) {
     try {
@@ -247,8 +240,6 @@ async function executeWordMeaningChunked(
     cost,
   };
 }
-
-// --- Sub-components ---
 
 function TestCaseDialog({
   mode,
@@ -294,8 +285,7 @@ function TestCaseDialog({
 
     let finalInput: TestCase["input"];
     if (mode === "wordMeaning") {
-      // If every line already has a words array, trust the input as-is
-      // (allows manual editing). Otherwise call the dev API to analyze.
+      // If every line already has a words array, trust the input as-is (manual editing).
       const allHaveWords = parsed.every(
         (line) => Array.isArray((line as { words?: unknown }).words)
       );
@@ -327,9 +317,7 @@ function TestCaseDialog({
         setAnalyzing(false);
       }
     } else if (mode === "wordMeaningWithTranslation") {
-      // Strict: each line must already have `words` AND `sentenceKo`. We do
-      // not auto-fetch either — sentenceKo requires running the translation
-      // LLM, which is out of scope for this dialog.
+      // Each line must already have `words` AND `sentenceKo`; sentenceKo needs the translation LLM, so nothing is auto-fetched.
       const bad = parsed.find((line) => {
         const l = line as { words?: unknown; sentenceKo?: unknown };
         return !Array.isArray(l.words) || typeof l.sentenceKo !== "string";
@@ -449,8 +437,6 @@ function EditablePanel({
   );
 }
 
-// --- Mode Panel (independent per sub-tab) ---
-
 function ModePanel({
   mode,
   apiKey,
@@ -465,7 +451,6 @@ function ModePanel({
       : "gemini-3.1-flash-lite";
   const defaultTemp = "0";
 
-  // --- Test cases (per-mode) ---
   const initialTestCases = useMemo(() => {
     const files =
       mode === "translation"
@@ -517,7 +502,6 @@ function ModePanel({
     [testCases, saveTestCases]
   );
 
-  // --- Prompt / Guidelines state ---
   const initialPrompt = useMemo(
     () =>
       getFirstFileContent(
@@ -564,7 +548,6 @@ function ModePanel({
   const [savingAdditions, setSavingAdditions] = useState(false);
   const [savedAdditions, setSavedAdditions] = useState(false);
 
-  // --- Config state (localStorage) ---
   const [execModel, setExecModel] = useLocalState(
     `pe-${mode}-exec-model`,
     defaultExecModel
@@ -593,12 +576,9 @@ function ModePanel({
     mode === "translation"
       ? TRANSLATION_RESPONSE_SCHEMA
       : WORD_MEANING_RESPONSE_SCHEMA;
-  // Chunked execution path is only meaningful for plain word-meaning. The
-  // with-translation mode keeps text + sentenceKo per line and is small
-  // enough at 5 TCs to ignore chunking.
+  // Chunking applies only to plain word-meaning; the with-translation mode is small enough to skip it.
   const supportsChunking = mode === "wordMeaning";
 
-  // --- Run state (independent per panel) ---
   const [results, setResults] = useState<TestCaseResult[]>([]);
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState("");
@@ -617,7 +597,6 @@ function ModePanel({
   // Checked deductions: key = "resultIdx-deductionIdx"
   const [checkedDeductions, setCheckedDeductions] = useState<Set<string>>(new Set());
 
-  // --- Save handlers ---
   const handleSavePrompt = useCallback(async () => {
     setSavingPrompt(true);
     setSavedPrompt(false);
@@ -654,7 +633,6 @@ function ModePanel({
     }
   }, [dir, additionsText]);
 
-  // Compose system prompt = base prompt + additions section (if any)
   const composedPrompt = useMemo(() => {
     if (!additionsText.trim()) return promptText;
     return (
@@ -664,7 +642,6 @@ function ModePanel({
     );
   }, [promptText, additionsText]);
 
-  // --- Toggle helpers ---
   const toggleCard = useCallback((idx: number) => {
     setExpandedCards((prev) => {
       const next = new Set(prev);
@@ -716,10 +693,8 @@ function ModePanel({
         );
         return JSON.stringify(stripped);
       }
-      // Word meaning: send only the minimum fields the LLM needs (index +
-      // baseForm). `text`, `surface`, and `pos` are upstream metadata that
-      // were observed to mislead the LLM (English token hallucinations,
-      // POS-driven mood leaks). Keep the input surface area small.
+      // Word meaning: send only index + baseForm. `text`, `surface`, and `pos` were observed to mislead the LLM
+      // (English token hallucinations, POS-driven mood leaks).
       const stripped = (tc.input as WordMeaningInput[]).map((line) => ({
         index: line.index,
         words: line.words.map(({ baseForm }) => ({ baseForm })),
@@ -729,7 +704,6 @@ function ModePanel({
     [mode]
   );
 
-  // --- Run evaluation ---
   const runEvaluation = useCallback(async () => {
     if (!apiKey.trim() || testCases.length === 0 || running) return;
     setRunning(true);
@@ -745,7 +719,6 @@ function ModePanel({
     const temp = parseFloat(temperature) || 0;
     const totalTests = testCases.length;
 
-    // Step 1: Execute prompts in parallel
     setProgress(`Executing... 0/${totalTests}`);
     let executionDone = 0;
 
@@ -802,7 +775,6 @@ function ModePanel({
       })
     );
 
-    // Step 2: Grade results in parallel
     setProgress(`Grading... 0/${totalTests}`);
     let gradingDone = 0;
 
@@ -822,9 +794,7 @@ function ModePanel({
 
         const criteriaText = tc.criteria || "채점기준 없음 (guidelines만 적용)";
 
-        // For word-meaning grader: strip to the same minimum fields the LLM
-        // saw, so the grader cannot hallucinate "missing English token"
-        // deductions from the lyric `text` or POS-form deductions from `pos`.
+        // Word-meaning grader sees only the fields the LLM saw, so it cannot invent deductions from `text` or `pos`.
         let originalInputForGrader: string;
         if (mode === "wordMeaning") {
           const view = (tc.input as WordMeaningInput[]).map((line) => ({
@@ -866,7 +836,6 @@ function ModePanel({
       })
     );
 
-    // Build results
     const newResults: TestCaseResult[] = [];
     for (let i = 0; i < totalTests; i++) {
       const exec = executionResults[i];
@@ -906,7 +875,6 @@ function ModePanel({
     setResults(newResults);
     setExpandedCards(new Set(newResults.map((_, i) => i)));
 
-    // Initialize all deductions as checked
     const allDeductionKeys = new Set<string>();
     newResults.forEach((r, ri) => {
       r.graderResult?.deductions.forEach((_, di) => {
@@ -918,7 +886,6 @@ function ModePanel({
     setProgress("");
     setRunning(false);
 
-    // Auto-save to output directory
     const scored = newResults.filter((r) => r.graderResult?.score != null);
     const avgScore =
       scored.length > 0
@@ -970,7 +937,6 @@ function ModePanel({
     includeContextPrefix,
   ]);
 
-  // --- Toggle deduction checkbox ---
   const toggleDeduction = useCallback((key: string) => {
     setCheckedDeductions((prev) => {
       const next = new Set(prev);
@@ -980,7 +946,6 @@ function ModePanel({
     });
   }, []);
 
-  // --- Generate atomic additions from checked deductions ---
   const runGenerateAdditions = useCallback(async () => {
     if (generatingAdditions) return;
     setGeneratingAdditions(true);
@@ -988,7 +953,6 @@ function ModePanel({
     setAdditionsError(null);
     setAcceptedAdditions(new Set());
 
-    // Build grading results with only checked deductions
     const gradedResults: { testCaseName: string; score: number; deductions: { reason: string; points: number }[]; comment: string }[] = [];
     results.forEach((r, ri) => {
       if (!r.graderResult) return;
@@ -1024,7 +988,6 @@ function ModePanel({
       try {
         const parsed: AdditionsResult = JSON.parse(res.text);
         setAdditionsResult(parsed);
-        // Default: accept all proposals
         setAcceptedAdditions(new Set(parsed.additions.map((_, i) => i)));
       } catch {
         setAdditionsError("Failed to parse additions response");
@@ -1073,7 +1036,6 @@ function ModePanel({
       blocks.join("\n\n") +
       "\n";
     setAdditionsText(newAdditions);
-    // Clear the proposal panel after applying
     setAdditionsResult(null);
     setAcceptedAdditions(new Set());
   }, [additionsResult, acceptedAdditions, additionsText]);
@@ -1099,7 +1061,6 @@ function ModePanel({
 
   return (
     <div className="pe-subtab-content">
-      {/* Test Cases (per-mode) */}
       <div className="pe-test-data">
         <div className="pe-test-data-header">
           <label>
@@ -1153,7 +1114,6 @@ function ModePanel({
         )}
       </div>
 
-      {/* Prompt */}
       <EditablePanel
         label="System Prompt"
         value={promptText}
@@ -1163,7 +1123,6 @@ function ModePanel({
         saved={savedPrompt}
       />
 
-      {/* Guidelines */}
       <EditablePanel
         label="Grading Guidelines"
         value={guidelinesText}
@@ -1183,7 +1142,6 @@ function ModePanel({
         saved={savedAdditions}
       />
 
-      {/* Model config */}
       <div className="pe-config-bar">
         <div className="pe-config-field">
           <label>Execution Model</label>
@@ -1251,7 +1209,6 @@ function ModePanel({
         )}
       </div>
 
-      {/* Run bar */}
       <div className="pe-run-bar">
         <button
           className="pe-run-btn"
@@ -1266,7 +1223,6 @@ function ModePanel({
         )}
       </div>
 
-      {/* Results */}
       {results.length > 0 && (
         <div className="pe-results">
           <div className="pe-summary">
@@ -1421,7 +1377,6 @@ function ModePanel({
         </div>
       )}
 
-      {/* Deduction Review + Prompt Improvement */}
       {results.some((r) => r.graderResult && r.graderResult.deductions.length > 0) && (
         <div className="pe-improver-panel">
           <div className="pe-improver-header">
@@ -1489,7 +1444,6 @@ function ModePanel({
         </div>
       )}
 
-      {/* Additions Generator Result */}
       {additionsError && (
         <div className="pe-improver-panel">
           <div className="pe-improver-header">Additions</div>
@@ -1564,7 +1518,6 @@ function ModePanel({
         </div>
       )}
 
-      {/* Add / Edit Test Case Dialog */}
       {showAddDialog && (
         <TestCaseDialog
           mode={mode}
@@ -1584,17 +1537,13 @@ function ModePanel({
   );
 }
 
-// --- Main Component ---
-
 export default function PromptEvalExperiment() {
   const [activeSubTab, setActiveSubTab] = useState<EvalMode>("translation");
 
-  // --- Shared: API key ---
   const [apiKey, setApiKey] = useLocalState("pe-api-key", "");
 
   return (
     <div className="prompt-eval">
-      {/* API Key */}
       <div className="pe-config-bar">
         <div className="pe-config-field">
           <label>API Key</label>
@@ -1608,7 +1557,6 @@ export default function PromptEvalExperiment() {
         </div>
       </div>
 
-      {/* Sub-tabs */}
       <div className="pe-subtab-bar">
         <button
           className={`pe-subtab${activeSubTab === "translation" ? " active" : ""}`}

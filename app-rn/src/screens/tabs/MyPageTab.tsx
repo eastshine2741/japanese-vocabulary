@@ -121,7 +121,6 @@ export default function MyPageTab() {
         style={styles.scrollView}
         contentContainerStyle={[styles.content, { paddingBottom: Dimens.bottomBarHeight + insets.bottom + 24 }]}
       >
-        {/* profHeader */}
         <View style={styles.profHeader}>
           <Text style={styles.handle}>{handle}</Text>
           <TouchableOpacity
@@ -133,7 +132,6 @@ export default function MyPageTab() {
           </TouchableOpacity>
         </View>
 
-        {/* profileCard */}
         <View style={styles.profileCard}>
           <View style={styles.avatar}>
             <Ionicons name="person" size={28} color={Colors.textMuted} />

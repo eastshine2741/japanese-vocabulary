@@ -110,9 +110,8 @@ class SongRecommendationService(
     }
 
     /**
-     * Prepares approved candidates of a single week. The week is scoped because the admin candidate
-     * list shows one week at a time; without scoping, approved candidates of other weeks that the
-     * operator cannot see would join the batch and block it through the all-or-nothing gate below.
+     * Prepares approved candidates of a single week. Scoped because other weeks' candidates the
+     * operator cannot see would otherwise join the batch and trip the all-or-nothing gate below.
      */
     @Transactional
     fun prepareApprovedCandidates(weekStartDate: LocalDate?): RecommendationOperationResultDto {

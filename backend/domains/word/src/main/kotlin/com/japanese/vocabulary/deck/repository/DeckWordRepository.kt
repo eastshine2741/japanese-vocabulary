@@ -22,12 +22,9 @@ interface DeckWordRepository : JpaRepository<DeckWordEntity, Long> {
     fun insertIfAbsent(@Param("deckId") deckId: Long, @Param("wordId") wordId: Long): Int
 
     /*
-     * flushAutomatically 는 필수다. 두 삭제 모두 `words` / `decks` 행을 지우기 직전에 불리는데,
-     * Hibernate 의 AUTO flush 는 질의 대상 테이블과 겹치는 변경만 내보내므로 이게 없으면
-     * 앞서 예약된 flashcard 삭제가 남아 있는 채로 bulk delete 가 나가고 FK 순서가 깨진다.
-     *
-     * clearAutomatically 는 일부러 켜지 않는다. 영속성 컨텍스트를 통째로 비우면 호출자가 들고
-     * 있던 word/deck 엔티티까지 detach 돼서 바로 뒤의 delete 가 merge 를 거치게 된다.
+     * flushAutomatically 필수: AUTO flush 는 겹치는 테이블만 내보내므로 없으면 예약된 flashcard 삭제 전에
+     * bulk delete 가 나가 FK 순서가 깨진다.
+     * clearAutomatically 는 끈다: 호출자의 word/deck 엔티티가 detach 되어 뒤따르는 delete 가 merge 를 거친다.
      */
     @Modifying(flushAutomatically = true)
     @Query("DELETE FROM DeckWordEntity dw WHERE dw.wordId = :wordId")

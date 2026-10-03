@@ -116,16 +116,14 @@ class SongDetailQueryService(
                         )
                     }
             }
-            // 분석이 준 뜻은 "사랑, 애정" 처럼 쉼표로 이어진 문자열 하나다. 조각마다 별개의 sense 로
-            // 쪼개야 담을 때도, 담겼는지 판정할 때도 뜻 단위가 된다. 예문은 첫 조각만 갖는다.
-            // 같은 뜻이 여러 candidate 에서 나오면 하나로 합친다 — 예문을 가진 쪽이 버려지면 안 된다.
+            // 분석의 뜻은 "사랑, 애정" 처럼 쉼표로 이어진 문자열 하나라 조각마다 별개 sense 로 쪼갠다. 예문은 첫 조각만 갖는다.
+            // 같은 뜻이 여러 candidate 에서 나오면 합친다 — 예문을 가진 쪽이 버려지면 안 된다.
             val mergedSenses = candidateSenses.splitMeanings()
                 .groupBy { it.meaning }
                 .map { (_, sameMeaning) ->
                     sameMeaning.first().copy(examples = sameMeaning.flatMap { it.examples }.distinct())
                 }
-            // 한 가사 줄은 뜻 하나에만 붙는다. 그 줄이 어느 뜻으로 쓰였는지 모르는 채 여러 뜻에
-            // 복제하면 예문 목록에 같은 줄이 뜻 수만큼 반복되고, sense 당 예문 상한도 그 중복이 먹는다.
+            // 한 가사 줄은 뜻 하나에만 붙는다 — 여러 뜻에 복제하면 같은 줄이 반복되고 sense 당 예문 상한을 먹는다.
             val claimedLines = mutableSetOf<Int?>()
             val senses = mergedSenses.map { sense ->
                 sense.copy(examples = sense.examples.filter { claimedLines.add(it.lineIndex) })

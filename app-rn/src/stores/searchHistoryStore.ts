@@ -7,8 +7,7 @@ interface SearchHistoryState {
   terms: string[];
   load: () => Promise<void>;
   remove: (term: string) => Promise<void>;
-  // Optimistically reflect a just-executed search (server records it too):
-  // move the term to the top, keeping a single deduped entry.
+  // Optimistic: the server records the search too.
   recordLocally: (term: string) => void;
   clear: () => void;
 }

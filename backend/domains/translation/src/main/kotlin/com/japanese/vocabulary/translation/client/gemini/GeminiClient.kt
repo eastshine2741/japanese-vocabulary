@@ -25,23 +25,15 @@ class GeminiClient(
     @Value("\${gemini.segmentation-model}") private val segmentationModel: String,
     @Value("\${gemini.max-output-tokens:0}") private val maxOutputTokens: Int,
     /**
-     * Thinking level for the segmentation call only — `minimal` / `low` / `high`, or blank to leave
-     * the model's own default alone.
-     *
-     * Blank is the default and sends no `thinkingConfig`, so the request body is unchanged for the
-     * models this pipeline runs on today. It exists because the flash tiers above
-     * `gemini-3.1-flash-lite` think by default and charge those thoughts to the same output budget as
-     * the answer: a 20-line segmentation chunk stops at `finishReason=MAX_TOKENS` with the JSON array
-     * barely started, even at `maxOutputTokens=32768`. It is scoped to segmentation because the
-     * levels are not portable — `gemini-3.1-pro-preview`, which translates the lyrics, rejects
-     * `minimal` outright.
+     * Thinking level for the segmentation call only (`minimal` / `low` / `high`); blank sends no
+     * `thinkingConfig`. Flash tiers above `gemini-3.1-flash-lite` think by default and bill thoughts
+     * to the output budget, so a chunk can hit `MAX_TOKENS` with the array barely started. Scoped to
+     * segmentation because levels are not portable (`gemini-3.1-pro-preview` rejects `minimal`).
      */
     @Value("\${gemini.segmentation-thinking-level:}") private val segmentationThinkingLevel: String,
     /**
-     * How many times one call is attempted before its failure propagates, and the wait before the
-     * second attempt (doubling after that). Only [TransientHttpErrors.isTransient] failures are
-     * retried; the request has no side effects and runs at a fixed temperature, so replaying the
-     * POST is safe.
+     * Max attempts per call and the wait before the second (doubling after). Only
+     * [TransientHttpErrors.isTransient] failures are retried; the POST is side-effect free, so replay is safe.
      */
     @Value("\${gemini.retry.max-attempts:3}") maxAttempts: Int,
     @Value("\${gemini.retry.initial-backoff:2s}") initialBackoff: Duration,
@@ -57,9 +49,7 @@ class GeminiClient(
         .build()
 
     /**
-     * Translate lyrics to Korean with pronunciation.
-     * Input: [{index, text}] — no morphological data needed.
-     * Uses the higher-quality model for natural translation.
+     * Translate lyrics to Korean (no pronunciation; see [TranslationResultDto]) on the higher-quality model.
      */
     fun translateLyrics(lyricLines: List<Map<String, Any?>>, context: GeminiCallContext): List<TranslationResultDto> {
         return callGemini(
@@ -75,20 +65,10 @@ class GeminiClient(
     }
 
     /**
-     * Segmentation + lemmatization + readings + a context gloss.
-     * Input: [{index, text}] (raw lyric lines).
-     * Output: [{index, words:[{surface,headword,usedReading,baseFormReading,contextGloss}]}].
+     * Segmentation + lemmatization + readings + a context gloss. See [SegWordDto] for the output shape.
      *
-     * The LLM segments by meaning units (keeping fixed adverbs/compounds whole) and reduces each word
-     * to its dictionary headword (collapsing potential/causative/passive forms), so no derived lemma
-     * reaches the dictionary. It also supplies both readings in katakana — `baseFormReading` is half
-     * of the `(headword, reading)` key that pins down which jisho entry a homograph belongs to — and a
-     * short English `contextGloss` that sense-select later matches against the dictionary glosses.
-     *
-     * Runs on its own model property: this stage now carries the whole pipeline's disambiguation
-     * signal, so its tier is tuned separately from the cheaper downstream translate-sense call.
-     *
-     * [temperature] is the caller's, not a constant, because retries need it: see
+     * Runs on its own model property because this stage carries the pipeline's disambiguation signal.
+     * [temperature] is the caller's because retries raise it:
      * [com.japanese.vocabulary.translation.service.pipeline.stage.SegmentLyricsStage].
      */
     fun segmentAndLemmatize(
@@ -110,10 +90,8 @@ class GeminiClient(
     }
 
     /**
-     * Redesign stage 4 — translate the chosen English senses to Korean.
-     * Input: [{senseId, surface, baseForm, reading, pos, english, englishDefinitions}].
-     * Output: [{senseId, koreanText}].
-     * POS-consistent, 1–2 comma-separated meanings; particles render as Korean particles (は→"~은/는").
+     * Translate the chosen English senses to Korean: POS-consistent, 1–2 comma-separated meanings;
+     * particles render as Korean particles (は→"~은/는").
      */
     fun translateSenses(senses: List<Map<String, Any?>>, context: GeminiCallContext): List<SenseTranslationDto> {
         if (senses.isEmpty()) return emptyList()
@@ -325,7 +303,6 @@ class GeminiClient(
 
         """.trimIndent()
 
-        /** Redesign stage 1 — segmentation + lemmatization for dictionary-grounded lookup. */
         private val SEGMENTATION_PROMPT = """
             너는 일본어 가사를 형태소 분석(분절 + 표제형 환원)하는 전문가다.
             입력: JSON 배열, 각 원소는 {"index": N, "text": "일본어 가사 한 줄"}.
@@ -409,9 +386,6 @@ class GeminiClient(
               - 上手い(솜씨가 좋다) → "skillful, good at"
         """.trimIndent()
 
-        /**
-         * Redesign stage 4 — translate chosen English senses. Mirrors playground `run_redesign.py` TRANSLATE_SYS verbatim.
-         */
         private val TRANSLATE_PROMPT = """
             일본어 단어의 **영어 사전 뜻(englishDefinitions)** 을 한국어 단어장(플래시카드)용으로 번역한다.
             입력: [{"senseId","baseForm","reading","pos"(품사),"english","englishDefinitions"}]. 출력: [{"senseId","koreanText"}] (입력과 1:1, 순서 동일). JSON만.

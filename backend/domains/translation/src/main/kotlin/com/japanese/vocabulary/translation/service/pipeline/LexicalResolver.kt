@@ -17,14 +17,10 @@ import org.springframework.stereotype.Component
 /**
  * Narrows a jisho lookup to the dictionary entry the token actually means.
  *
- * The lookup key is the headword alone, and one headword can answer with several entries — 前 returns
- * 前[マエ] and, because the `先` entry lists 前 as an alternate spelling, 先[サキ] too. The segmentation
- * stage supplies the other half of the key, `baseFormReading`, and the pair `(headword, reading)`
- * picks one entry. Only that entry's senses reach sense-select, so the model is never asked to choose
- * between meanings belonging to different words.
- *
- * The reading comes from an LLM and can be wrong, which is why a miss is graded rather than dropped:
- * see [JishoLookupProvenance].
+ * The lookup key is the headword alone, and one headword can answer with several entries (前 returns
+ * 前[マエ] and 先[サキ]). The pair `(headword, baseFormReading)` picks one entry, so sense-select
+ * never chooses between different words' meanings. The LLM's reading can be wrong, so a miss is
+ * graded rather than dropped: see [JishoLookupProvenance].
  */
 @Component
 class LexicalResolver(
@@ -36,17 +32,14 @@ class LexicalResolver(
         if (tokens.isEmpty()) return LexicalResolution(emptyMap(), emptyMap())
 
         val firstPass = jishoService.lookupAll(tokens.map { it.headword }.distinct())
-        // Narrow once per token and reuse: deciding which tokens need a probe asks the same question
-        // the main loop asks, and grading twice would also emit every log line twice.
+        // Narrow once per token and reuse; grading twice would emit every log line twice.
         val narrowed = tokens.associate { it.key to narrow(it, firstPass[it.headword], it.headword) }
         val probeLookups = jishoService.lookupAll(probeKeys(tokens.filter { narrowed[it.key] == null }))
 
         val byToken = linkedMapOf<PipelineTokenKey, LexicalResolvedToken>()
         val optionsById = linkedMapOf<Int, PipelineSenseOption>()
-        // One dictionary sense is one senseId for the whole song. The id used to be minted per token
-        // occurrence, so a word sung on six lines reached sense-translate six times and the model
-        // wrote a different Korean gloss for each: シャイ — a single-sense entry, "shy" — came back as
-        // 수줍음이 많은 / 수줍은 / 수줍어하다, and the app stored one word with three near-identical senses.
+        // One dictionary sense is one senseId for the whole song; per-occurrence ids made
+        // sense-translate write a different Korean gloss for each repeat of the same word.
         val senseIdByIdentity = hashMapOf<SenseIdentity, Int>()
         var nextSenseId = 0
 
@@ -117,21 +110,15 @@ class LexicalResolver(
     }
 
     /**
-     * The tokens no dictionary entry answers — the same verdict [resolve] would reach, asked early.
+     * The tokens no dictionary entry answers: the verdict [resolve] would reach, asked early so the
+     * segmentation stage can retry the line. A non-dictionary headword (`帰れない` for `帰る`) would
+     * otherwise ship with no meaning and nothing downstream objecting.
      *
-     * A headword that is not a dictionary form (`帰れない` instead of `帰る`) leaves the token with no
-     * candidate sense at all, and every stage downstream treats that as "nothing to choose", so the
-     * word reaches the app with no meaning and nothing in the pipeline objects. Answering the question
-     * here lets the segmentation stage retry the line while it still can.
+     * Each miss says whether the dictionary actually answered: a [JishoLookupProvenance.FETCH_ERROR]
+     * is not fixable by the segmentation model, and "no entry exists" would make it change a right headword.
      *
-     * Each miss says whether the dictionary actually answered. A lookup that errored on every attempt
-     * ([JishoLookupProvenance.FETCH_ERROR]) is not a miss the segmentation model can fix, and telling
-     * it "no entry exists for 太陽" would make it change a headword that was right.
-     *
-     * Repeating the lookups costs nothing: [com.japanese.vocabulary.translation.service.JishoService]
-     * caches, so [resolve] serves the same keys from Redis afterwards — and an error is never cached,
-     * so a retry asks jisho again. Grading is silent here so a probe does not log every narrowing
-     * decision twice.
+     * Repeated lookups are served from [com.japanese.vocabulary.translation.service.JishoService]'s
+     * cache (errors are never cached). Grading is silent here to avoid duplicate logs.
      */
     suspend fun unresolvedTokens(tokens: List<PipelineToken>): List<Unresolved> {
         if (tokens.isEmpty()) return emptyList()
@@ -204,12 +191,11 @@ class LexicalResolver(
     /**
      * Grades how well [lookup] pins down the entry [token] means, using the `(headword, reading)` pair.
      *
-     * Returns null when nothing usable is left — a rejected fallback, a genuine miss, or a fetch
-     * error. Readings are compared as katakana on both sides; the client already normalized jisho's,
-     * and the anchoring validator already normalized the segmentation stage's.
+     * Returns null when nothing usable is left (rejected fallback, genuine miss, fetch error).
+     * Readings are compared as katakana on both sides (both already normalized).
      *
-     * [expectedReading] overrides the token's own reading, for the i-adjective probe: the probe fires
-     * precisely because the token's reading belongs to the wrong headword.
+     * [expectedReading] overrides the token's own reading for probes, whose token reading belongs to
+     * the wrong headword.
      */
     private fun narrow(
         token: PipelineToken,
@@ -222,8 +208,7 @@ class LexicalResolver(
         if (lookup.provenance != JishoLookupProvenance.EXACT) return null
 
         val baseFormAsKana = JapaneseText.toKatakana(baseForm)
-        // The reading clause is what lets a kana headword match at all — かける is written in kana, so
-        // かける is the headword and every candidate entry is spelled in kanji.
+        // The reading clause lets a kana headword match at all (かける vs kanji-spelled entries).
         val headwordMatches = lookup.entries.filter { it.headword == baseForm || it.reading == baseFormAsKana }
         val reading = (expectedReading ?: token.baseFormReading).takeIf { it.isNotBlank() }
 
@@ -232,14 +217,11 @@ class LexicalResolver(
         if (candidates.isEmpty()) return null
 
         val provenance = when {
-            // More than one entry survives, so the word is not pinned down whichever way it got here.
-            // A kana headword reaches this through `exact`: lyrics write かける in kana, so かける IS
-            // the headword, and 掛ける / 賭ける / 欠ける all read カケル. Calling that EXACT would hand the
-            // model "to hang" / "to bet" / "to be chipped" with no sign they are different words — the
-            // very failure entry boundaries exist to prevent.
+            // More than one entry survives, so the word is not pinned down. A kana headword (かける)
+            // reaches this through `exact`; calling it EXACT would offer 掛ける / 賭ける / 欠ける senses
+            // with no sign they are different words.
             candidates.size > 1 -> JishoLookupProvenance.AMBIGUOUS_HEADWORD
-            // The reading missed, but only one entry carries the headword, so there is nothing to
-            // confuse it with. Absorbs a wrong reading instead of dropping the word's meaning.
+            // The reading missed but only one entry carries the headword; absorbs a wrong reading.
             exact.isEmpty() -> JishoLookupProvenance.APPROVED_FALLBACK
             else -> JishoLookupProvenance.EXACT
         }
@@ -266,10 +248,8 @@ class LexicalResolver(
         logRescue: Boolean = true,
     ): AcceptedLexicalEntry? {
         val base = iAdjectiveProbe(token) ?: return null
-        // The probe only fires when the model gave the wrong headword (高く for 高い), so the token's
-        // own reading is that wrong headword's — タカク, which can never equal the probed entry's
-        // タカイ. Comparing against it would classify every rescue as a fallback. Inflect the reading
-        // the same way the base form was inflected.
+        // The token's reading is the wrong headword's (タカク, never the probed タカイ), so inflect it the
+        // same way as the base form.
         val accepted = narrow(token, iAdjectiveLookups[base], base, iAdjectiveProbeReading(token), logRescue)
             ?: return null
         val adjectiveEntries = accepted.entries.mapNotNull { entry ->
@@ -299,8 +279,7 @@ class LexicalResolver(
         lookups: Map<String, JishoEntryDto>,
         logRescue: Boolean = true,
     ): AcceptedLexicalEntry? {
-        // Same reasoning as the i-adjective probe: the token's reading is アイシタクナイ, the wrong
-        // headword's, so it is inflected back to アイスル alongside the base form.
+        // As in the i-adjective probe, the reading (アイシタクナイ) is inflected back to アイスル with the base form.
         val readings = suruDesiderativeProbeReadings(token)
         for ((index, base) in suruDesiderativeProbes(token).withIndex()) {
             val accepted = narrow(token, lookups[base], base, readings.getOrNull(index), logRescue) ?: continue
@@ -328,12 +307,10 @@ class LexicalResolver(
     /**
      * Safety net for a word the lyric writes in katakana and the dictionary indexes in hiragana.
      *
-     * `アタシ`, `アンタ`, `アナタ` are dictionary words — 私, 貴方 — but jisho's *search* answers a
-     * katakana query with katakana headwords only: `アンタ` returns アンタレス and アンタナナリボ, never
-     * 貴方. Nothing about the token is wrong here, only the script of the query, so it is asked again
-     * in hiragana. The accepted entry then reports `あたし` as the base form, which also merges the
-     * word with the lines where the segmentation stage happened to normalize the script itself — the
-     * same lyric had `アタシ` with a meaning on one line and without on the next.
+     * `アタシ`, `アンタ`, `アナタ` are dictionary words (私, 貴方), but jisho's *search* answers a
+     * katakana query with katakana headwords only (`アンタ` → アンタレス, never 貴方), so it is asked
+     * again in hiragana. The accepted entry reports `あたし` as the base form, merging the word with
+     * lines where segmentation normalized the script itself.
      */
     private fun resolveHiraganaQuery(
         token: PipelineToken,
@@ -341,8 +318,7 @@ class LexicalResolver(
         logRescue: Boolean = true,
     ): AcceptedLexicalEntry? {
         val base = hiraganaProbe(token) ?: return null
-        // The reading survives the script switch untouched — アタシ is what the line says either way —
-        // so the pair match still applies and a katakana-only coinage simply misses again.
+        // The reading survives the script switch, so the pair match still applies.
         val accepted = narrow(token, lookups[base], base, logGrading = logRescue) ?: return null
         if (logRescue) logger.info("Looked up katakana headword '{}' as '{}'", token.headword, base)
         return accepted
@@ -373,9 +349,8 @@ class LexicalResolver(
     /**
      * Safety net for a verb the lyric intensifies with colloquial ぶち / ぶっ (ぶち壊れる, ぶっ飛ぶ).
      *
-     * jisho indexes only a handful of these compounds, but the verb underneath is ordinary, so the
-     * prefix is dropped and the remainder asked for. Only verb senses are accepted: the prefix
-     * attaches to verbs alone, and a stripped remainder that answers with a noun is a different word.
+     * jisho indexes only a few of these compounds, so the prefix is dropped and the remainder asked
+     * for. Only verb senses are accepted; a noun answer is a different word.
      */
     private fun resolveIntensifierPrefix(
         token: PipelineToken,
@@ -410,9 +385,8 @@ class LexicalResolver(
     /**
      * Safety net for a noun+する verb the dictionary indexes only as the noun.
      *
-     * jisho has no entry for `交差する`; 交差 is a noun tagged "Suru verb", so the headword the
-     * segmentation stage correctly gave misses outright. The noun is asked instead, and only its
-     * suru-verb senses are kept so the verb does not pick up the bare noun's meanings.
+     * jisho has no entry for `交差する`; 交差 is a noun tagged "Suru verb". The noun is asked instead
+     * and only its suru-verb senses are kept.
      */
     private fun resolveSuruVerb(
         token: PipelineToken,
@@ -462,9 +436,8 @@ class LexicalResolver(
     /**
      * Safety net for a hiragana word the lyric stretches with ー instead of spelling the long vowel.
      *
-     * Lyrics write ぎゅーぎゅー where the dictionary indexes ぎゅうぎゅう, and jisho has no entry for the
-     * ー spelling. Each ー is spelled out as the vowel of the kana before it — お-row as う, the usual
-     * hiragana spelling — and the result asked for.
+     * Lyrics write ぎゅーぎゅー where the dictionary indexes ぎゅうぎゅう. Each ー becomes the vowel of
+     * the kana before it (お-row as う) and the result is asked for.
      */
     private fun resolveLongVowelSpelling(
         token: PipelineToken,
@@ -472,7 +445,7 @@ class LexicalResolver(
         logRescue: Boolean = true,
     ): AcceptedLexicalEntry? {
         val base = longVowelProbe(token) ?: return null
-        // The reading stretches the same vowels (ギューギュー), so it is spelled out the same way.
+        // The reading (ギューギュー) is spelled out the same way.
         val reading = spellOutLongVowels(JapaneseText.toHiragana(token.baseFormReading))?.let(JapaneseText::toKatakana)
         val accepted = narrow(token, lookups[base], base, reading, logRescue) ?: return null
         if (logRescue) logger.info("Spelled out long vowels of '{}' as '{}'", token.headword, base)
@@ -521,10 +494,9 @@ class LexicalResolver(
     }
 
     /**
-     * What makes two candidate senses the same sense. Everything a [PipelineSenseOption] carries
-     * except the id itself — [provenance] included, because it decides whether sense-select is told
-     * the entry's headword and reading, so an EXACT hit and an AMBIGUOUS_HEADWORD hit on the same
-     * sense are not interchangeable in the prompt.
+     * What makes two candidate senses the same sense: everything a [PipelineSenseOption] carries
+     * except the id. [provenance] is included because it decides whether sense-select is told the
+     * entry's headword and reading.
      */
     private data class SenseIdentity(
         val baseForm: String,
@@ -544,10 +516,8 @@ class LexicalResolver(
     /**
      * Safety net for a kanji headword jisho's search does not answer.
      *
-     * `燻む` is a dictionary word, but the kanji query comes back empty while `くすむ` finds it. The
-     * reading is asked instead, and only an EXACT grade is kept: a reading alone matches every
-     * homophone, and a single entry carrying that reading is the only case that names one word. The
-     * base form stays the headword the lyric wrote.
+     * `燻む` comes back empty while `くすむ` finds it. The reading is asked instead and only an EXACT
+     * grade is kept (a reading alone matches every homophone). The base form stays the lyric's headword.
      */
     private fun resolveReadingQuery(
         token: PipelineToken,
@@ -571,10 +541,8 @@ class LexicalResolver(
     /**
      * Safety net for a noun the lyric dresses with an honorific お / ご / 御 (御加減, おクスリ).
      *
-     * jisho indexes only the common prefixed forms, but the noun underneath is ordinary, so the
-     * prefix is dropped and the remainder asked for — in hiragana when it is katakana, for the same
-     * reason as [resolveHiraganaQuery]. Only noun and na-adjective senses are accepted: the prefix
-     * attaches to those alone.
+     * jisho indexes only common prefixed forms, so the prefix is dropped and the remainder asked for
+     * (in hiragana when katakana, as in [resolveHiraganaQuery]). Only noun and na-adjective senses are accepted.
      */
     private fun resolveHonorificPrefix(
         token: PipelineToken,
@@ -611,9 +579,8 @@ class LexicalResolver(
     /**
      * Safety net for a noun the lyric spells with its verb's continuative okurigana — 光り for 光.
      *
-     * jisho indexes the noun 光 alone, so `光り` misses outright. The trailing り is dropped from the
-     * headword only: 光 itself reads ヒカリ, so the token's reading already names the noun. Only noun
-     * senses are kept, because a remainder that answers as a verb is not the noun the lyric wrote.
+     * The trailing り is dropped from the headword only (光 itself reads ヒカリ, so the token's reading
+     * already names the noun). Only noun senses are kept.
      */
     private fun resolveContinuativeNoun(
         token: PipelineToken,
@@ -669,11 +636,8 @@ class LexicalResolver(
 
     /**
      * Safety net for when the segmentation LLM hands back a passive — 呑み込まれる — as the headword
-     * instead of 呑み込む. Tried only after the pair match has already failed, so a verb jisho indexes
-     * in its own right (生まれる, 忘れる) never reaches it.
-     *
-     * The probe undoes the passive ending as a guess; only verb senses are accepted, so a guess that
-     * lands on a noun or on nothing at all leaves the token unresolved.
+     * instead of 呑み込む. Tried only after the pair match has failed, so verbs jisho indexes itself
+     * (生まれる, 忘れる) never reach it. The undone ending is a guess; only verb senses are accepted.
      */
     private fun resolvePassive(
         token: PipelineToken,
@@ -706,10 +670,8 @@ class LexicalResolver(
      * Safety net for when the segmentation LLM hands back a stem with appearance そう — 泣きそう,
      * 忙しそう — as the headword instead of 泣く / 忙しい. Tried only after the pair match has already failed.
      *
-     * The stem does not say which word class it came from, so every restoration is asked for: stem + い
-     * as an i-adjective, the last i-row kana moved to the u-row as a godan verb, stem + る as an ichidan
-     * verb. Each keeps only the senses of the class it guessed, so a guess jisho happens to answer with
-     * a noun adds nothing.
+     * The stem does not say its word class, so every restoration is asked for (stem + い, godan
+     * u-row, stem + る); each keeps only the senses of the class it guessed.
      */
     private fun resolveAppearanceSou(
         token: PipelineToken,
@@ -759,10 +721,8 @@ class LexicalResolver(
     /**
      * Safety net for a verb the lyric completes with きる / きれる (伝えきれぬ, 言いきれない).
      *
-     * The segmentation stage hands back the compound — 伝えきる — and jisho indexes only a handful of
-     * these, but the verb underneath is ordinary. The suffix is dropped and the stem restored to its
-     * dictionary form. A stem does not say its conjugation class — 生き is 生きる, 書き is 書く — so
-     * both guesses are asked and only one can match. Only verb senses are accepted, as with ぶち.
+     * The suffix is dropped and the stem restored to its dictionary form. A stem does not say its
+     * conjugation class (生き is 生きる, 書き is 書く), so both guesses are asked. Only verb senses are accepted.
      */
     private fun resolveCompletionSuffix(
         token: PipelineToken,
@@ -803,9 +763,8 @@ class LexicalResolver(
     /**
      * Safety net for a verb the lyric follows with the motion auxiliary ていく / てくる (飛んでいく).
      *
-     * jisho does not index the te-form + いく compound, so the auxiliary is dropped and the te-form
-     * conjugated back to a dictionary form. んで / って are ambiguous (飛ぶ, 読む, 死ぬ), so every
-     * candidate is asked and the first one jisho answers with a verb sense wins.
+     * The auxiliary is dropped and the te-form conjugated back. んで / って are ambiguous (飛ぶ, 読む,
+     * 死ぬ), so every candidate is asked and the first with a verb sense wins.
      */
     private fun resolveTeAuxMotion(
         token: PipelineToken,
@@ -848,8 +807,7 @@ class LexicalResolver(
      * Safety net for when the segmentation LLM hands back a verb's negative — いらない for いらん —
      * as the headword instead of 要る. Tried only after the pair match has already failed.
      *
-     * The probe is a guess at the conjugation (少ない asks for 少る), so only verb senses are kept:
-     * a guess that lands on anything else is a different word.
+     * The probe guesses the conjugation (少ない asks for 少る), so only verb senses are kept.
      */
     private fun resolveNegativeVerb(
         token: PipelineToken,
@@ -882,9 +840,8 @@ class LexicalResolver(
     /**
      * Safety net for a godan verb's potential form handed back as the headword — 掴める for 掴む.
      *
-     * jisho indexes only a few potentials, so the え-row + る ending is turned back into the う-row
-     * dictionary form. Only godan verb senses are accepted: an ichidan verb that missed (見える) probes
-     * a non-word, and a stray non-verb entry under the probed spelling is a different word.
+     * The え-row + る ending is turned back into the う-row dictionary form. Only godan verb senses
+     * are accepted: a missed ichidan verb (見える) probes a non-word.
      */
     private fun resolvePotentialForm(
         token: PipelineToken,
@@ -923,8 +880,7 @@ class LexicalResolver(
     /**
      * Safety net for when the segmentation LLM hands back a godan verb's renyokei — 悼み — as the
      * headword instead of 悼む. Tried last: a renyokei noun the dictionary indexes itself (悲しみ)
-     * already matched in the first pass. Only verb senses are accepted, because the probe is a guess
-     * at the conjugation and a non-verb answering under the guessed spelling is a different word.
+     * already matched in the first pass. Only verb senses are accepted (the probe is a guess).
      */
     private fun resolveGodanRenyokei(
         token: PipelineToken,
@@ -956,8 +912,7 @@ class LexicalResolver(
     /**
      * Safety net for a godan verb's potential negative handed back as the headword — `飛べない` for 飛ぶ.
      *
-     * jisho indexes the verb, not its potential form, so the e-row stem is turned back into the u-row
-     * dictionary form and only verb senses are kept. A guess that lands on no such verb stays unresolved.
+     * The e-row stem is turned back into the u-row dictionary form and only verb senses are kept.
      */
     private fun resolvePotentialNegative(
         token: PipelineToken,

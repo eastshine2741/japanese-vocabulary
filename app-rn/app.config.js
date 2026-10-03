@@ -28,9 +28,8 @@ const versionName = process.env.BUILD_VERSION_NAME ?? nativeBuildConfig.versionN
 const buildNumber = process.env.BUILD_NUMBER ?? nativeBuildConfig.buildNumber ?? '1';
 const versionCodeEnv = process.env.BUILD_VERSION_CODE;
 const versionCode = versionCodeEnv ? parseInt(versionCodeEnv, 10) : undefined;
-// OTA compatibility is keyed by the native release's major.minor.patch. A JS
-// tag such as js-v1.2.1-update.3.prod therefore targets native runtime 1.2.1,
-// regardless of its OTA iteration and target environment suffix.
+// OTA compatibility is keyed by the native release's major.minor.patch;
+// js-v1.2.1-update.3.prod targets native runtime 1.2.1.
 const nativeRuntimeVersion =
   process.env.NATIVE_RUNTIME_VERSION ??
   nativeBuildConfig.nativeRuntimeVersion ??
@@ -40,11 +39,8 @@ const namespace = resolveNamespace();
 const suffix = `.${namespace.replace(/[^a-z0-9]/g, '')}`;
 const label = isProd ? '' : namespace !== 'main' ? ` (${namespace})` : '-dev';
 
-// Worktrees use per-namespace package names (dev.eastshine.kotonoha.<ns>) that
-// aren't registered in google-services.json, which makes the google-services
-// Gradle plugin fail the build. Set EXPO_PUBLIC_FIREBASE_DISABLED=1 to drop the
-// Firebase plugin + config so worktree builds succeed without registering a
-// client. Push notifications are inert in that mode (guarded in pushNotifications.ts).
+// Worktree package names (dev.eastshine.kotonoha.<ns>) aren't in google-services.json and
+// break the Gradle build. EXPO_PUBLIC_FIREBASE_DISABLED=1 drops Firebase; push is inert then.
 const firebaseDisabled = process.env.EXPO_PUBLIC_FIREBASE_DISABLED === '1';
 
 const packageName = isProd

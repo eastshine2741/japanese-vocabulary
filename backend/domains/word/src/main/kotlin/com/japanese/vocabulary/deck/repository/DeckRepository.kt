@@ -23,8 +23,7 @@ interface DeckRepository : JpaRepository<DeckEntity, Long> {
         pageable: Pageable,
     ): List<DeckEntity>
 
-    // Returns ids (not FlashcardEntity) — entities stay inside their own module (see CLAUDE.md);
-    // the flashcard module re-loads them when assembling the response.
+    // Returns ids, not FlashcardEntity: entities stay inside their own module.
     @Query("""
         SELECT f.id FROM DeckWordEntity dw, FlashcardEntity f
         WHERE dw.wordId = f.wordId AND dw.deckId = :deckId
@@ -63,9 +62,8 @@ interface DeckRepository : JpaRepository<DeckEntity, Long> {
     // mastered/studying/new 판정은 FlashcardStudyState 와 같아야 한다.
     // longTerm/shortTerm 은 FSRS state 가 아니라 stability 기준이다 — 판정은 FlashcardMemory 와 같아야 한다.
     // COALESCE: SUM over zero rows returns NULL, which fails projection mapping to non-null Int.
-    // words JOIN 은 소유자 스코프용 — 이게 없으면 목록의 wordCount 가 상세(findDeckDetailStats,
-    // user_id 로 거르는)와 어긋난다. flashcard 는 불변식상 항상 있지만, 깨졌을 때 word 가 통째로
-    // 안 보이는 것보다 통계만 0 으로 나오는 게 나으므로 LEFT JOIN 을 유지한다.
+    // words JOIN 은 소유자 스코프용이라 없으면 wordCount 가 상세와 어긋난다. flashcard 는 LEFT JOIN 을 유지해
+    // 불변식이 깨져도 word 는 보이고 통계만 0 이 된다.
     @Query(nativeQuery = true, value = """
         SELECT dw.deck_id AS deckId,
                COUNT(DISTINCT dw.word_id) AS wordCount,

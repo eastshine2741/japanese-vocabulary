@@ -8,10 +8,8 @@ import {
   type AnalyzeOutcome,
 } from '../services/analytics';
 
-// 'loading' covers the cheap existing-song lookup (usually well under a second).
-// 'analyzing' means a brand-new analysis was actually requested from the server;
-// the global analysis pill shows it while this store waits for the lyrics so
-// the search screen can auto-open the song.
+// 'loading' is the cheap existing-song lookup; 'analyzing' means a new analysis was requested
+// (the global pill shows it while this store waits for lyrics to auto-open the song).
 type Status = 'idle' | 'loading' | 'analyzing' | 'success' | 'error';
 
 interface PlayerState {
@@ -19,8 +17,7 @@ interface PlayerState {
   studyData: SongStudyData | null;
   errorCode: string | null;
 
-  // Playback progress lives in the store so YouTubePlayer's ~100ms time ticks
-  // are shared by the focused song detail components without local prop chains.
+  // Playback progress lives here so YouTubePlayer's ~100ms ticks are shared without prop chains.
   currentMs: number;
   durationMs: number;
   setCurrentMs: (ms: number) => void;
@@ -52,8 +49,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     const runId = ++analysisRunId;
     set({ status: 'loading', errorCode: null });
     try {
-      // 이미 분석 중인 곡을 다시 탭한 경우: 서버에 또 묻지 않고 진행 중인 추적에 올라탄다.
-      // 폴링은 analysisStore 가 곡당 하나만 돌린다.
+      // 이미 분석 중인 곡을 다시 탭하면 서버에 또 묻지 않고 진행 중인 추적에 올라탄다.
       let readyPromise = useAnalysisStore.getState().readyFor(item.title, item.artistName);
       if (readyPromise) {
         trackSongSelect(undefined, true);
@@ -86,8 +82,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         if (!accepted.canOpenPlayer) {
           set({ status: 'analyzing' });
         }
-        // 단어 분석까지의 추적은 analysisStore 가 맡는다. 여기서는 가사가 준비돼
-        // songDetail 을 열 수 있는 시점까지만 기다린다.
+        // 여기서는 가사가 준비되는 시점까지만 기다린다. 단어 분석 추적은 analysisStore 몫.
         readyPromise = useAnalysisStore.getState().track(accepted, {
           title: item.title,
           artist: item.artistName,
@@ -97,7 +92,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       const ready = await readyPromise;
       if (analysisRunId !== runId) return;
       if (!ready.songId) {
-        // 폴링 중 실패는 분석 pill 이 이미 보여준다. error 로 두면 검색 화면이 dialog 까지 띄우므로 idle 로 돌린다.
+        // 폴링 중 실패는 pill 이 보여준다. error 면 검색 화면 dialog 까지 뜨므로 idle 로 돌린다.
         trackSongAnalyzeResult(analyzeOutcomeOf(ready.errorCode));
         set({ status: 'idle' });
         return;

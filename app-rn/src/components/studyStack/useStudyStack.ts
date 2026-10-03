@@ -25,18 +25,14 @@ import {
 /** 카드가 완전히 사라지는(=다음 카드가 완전히 드러나는) 지점. 드래그도 이 지점까지 막힘없이 따라간다. */
 export const SWIPE_OUT_DISTANCE = -420;
 const SWIPE_COMMIT_DISTANCE = -72;
-/**
- * rating 을 고른 뒤 선택을 강조한 채 머무는 시간. 이 안에 같은 버튼을 다시 누르면 취소된다.
- * pill 이 합쳐지는 데 160ms 가 들어가므로 '1분 뒤에 다시 만나요' 문구가 읽힐 만큼 남겨 둔다.
- */
+/** rating 선택 후 머무는 시간. 이 안에 같은 버튼을 다시 누르면 취소된다. pill 합침 160ms 를 빼고도 문구가 읽히도록 남겨 둔다. */
 export const RATING_HOLD_MS = 900;
 
 const DUE_PAGE_SIZE = 20;
 /** 로컬 버퍼에 이 개수 이하로 남으면 다음 페이지를 미리 불러온다. */
 const PREFETCH_REMAINING_THRESHOLD = 5;
 
-// 서버 WordFilterDefaultsDto 기본값과 동일 기준 — 홈 미리보기가 서버가 실제로 부트스트랩할
-// lead 단어와 다른 단어를 보여주면 안 되므로 정렬·필터 기준을 여기서도 그대로 맞춘다.
+// 서버 WordFilterDefaultsDto 기본값과 같아야 홈 미리보기가 서버가 부트스트랩할 lead 단어와 일치한다.
 const DEFAULT_ELIGIBLE_POS = new Set(['NOUN', 'VERB', 'ADJECTIVE', 'NA_ADJECTIVE', 'ADVERB']);
 const DEFAULT_ELIGIBLE_JLPT = new Set(['N1', 'N2', 'N3', 'N4', 'N5']);
 
@@ -153,12 +149,8 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
   const reviewedIdsRef = useRef<Set<number>>(new Set());
   /** 이번 세션에서 기억 칸이 실제로 바뀐 단어 수. 완주 카드가 보여준다. */
   const [memoryDiff, setMemoryDiff] = useState<StudyMemoryDiff>(EMPTY_MEMORY_DIFF);
-  // 카드마다 새 인스턴스로 교체한다 — 하나를 계속 재사용해 setValue(0) 으로 리셋하면
-  // "내용 교체(React 렌더)" 와 "위치/투명도 리셋(Animated 값)" 이 서로 다른 파이프라인이라
-  // 완전히 같은 프레임에 반영된다는 보장이 없다: 늦게 반영되면 새 카드가 여전히
-  // translateY=SWIPE_OUT_DISTANCE 인 채로 화면 밖에 밀려 탭이 안 먹히고, 일찍 반영되면
-  // 아직 안 바뀐 레이어 내용이 fully opaque 로 잠깐 노출된다. 새 값은 항상 0에서
-  // 시작하므로 이런 경합 자체가 생기지 않는다.
+  // 카드마다 새 인스턴스로 교체한다. setValue(0) 리셋은 React 렌더와 같은 프레임에 반영된다는 보장이 없어
+  // 새 카드가 화면 밖에 남거나 옛 레이어가 잠깐 불투명하게 노출된다.
   const [translateY, setTranslateY] = useState<Animated.Value>(() => new Animated.Value(0));
   const [revealProgress, setRevealProgress] = useState<Animated.Value>(() => new Animated.Value(0));
 
@@ -226,8 +218,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     setStatus('ready');
   }, [clearRatingHold]);
 
-  // 완료 화면에 들어갈 때마다 덱 목록을 다시 읽어 다음 due 덱을 고른다 — 진입 시 잡아둔
-  // nextDueSource 는 리뷰가 진행되면 낡는다. 실패하면 마지막으로 알던 값을 그대로 둔다.
+  // 완료 화면에 들어갈 때마다 다음 due 덱을 다시 고른다(리뷰가 진행되면 진입 시 값이 낡는다). 실패하면 이전 값을 둔다.
   const refreshNextDue = useCallback(async (completed: StudySource | null, version: number) => {
     try {
       const res = await deckApi.getDecks();
@@ -375,9 +366,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     }
   }, [clearRatingHold, refreshNextDue]);
 
-  // 무한스크롤처럼 로컬 버퍼가 얼마 안 남았을 때 다음 페이지를 미리 불러와 이어붙인다.
-  // 스와이프 시점엔 네트워크를 타지 않도록 하는 게 목적이라 실패해도 조용히 넘어간다 —
-  // 다음 임계값 체크에서 다시 시도한다.
+  // 스와이프 시점에 네트워크를 타지 않도록 미리 불러온다. 실패해도 조용히 넘어가고 다음 임계값 체크에서 다시 시도한다.
   const prefetchMore = useCallback(async () => {
     const target = activeSourceRef.current;
     if (target?.deckId == null) return;
@@ -401,7 +390,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
       });
       setDueCount(due.totalCount);
     } catch {
-      // 조용히 실패 — 다음 임계값 체크에서 재시도한다.
+      // 다음 임계값 체크에서 재시도한다.
     } finally {
       prefetchingRef.current = false;
     }
@@ -558,7 +547,6 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, sourceKey]);
 
-  // 로컬 버퍼가 임계값 이하로 남을 때마다 다음 페이지를 미리 불러온다 (무한스크롤과 동일한 패턴).
   useEffect(() => {
     if (status !== 'ready') return;
     if (activeSourceRef.current?.deckId == null) return;
@@ -576,13 +564,9 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
   }, [revealProgress]);
 
   /**
-   * 미리보기 카드의 rating 확정. 이 순간에만 서버에 그 곡을 통째로 담고(SongDetailScreen 의
-   * "학습 시작"과 동일 기준) lead 단어를 곧바로 리뷰한다 — 응답의 남은 due 카드로 곧장 이어서
-   * 복습한다. 홈 콜드스타트는 서버가 중요도 1위를 lead 로 고르고, 곡 상세에서 온 미리보기는
-   * 유저가 고른 단어(`previewWord`)가 lead 다.
-   *
-   * 실패해도 이미 스와이프 아웃된 카드를 되돌리지 않는다 — 부분 실패(단어는 담겼는데 리뷰만
-   * 실패)여도 다음 홈 진입에서 정상적으로 다시 due 로 잡히므로 스스로 복구된다.
+   * 미리보기 카드의 rating 확정. 이 순간에만 서버에 곡을 통째로 담고 lead 단어를 리뷰한 뒤 응답의 남은 due 카드로 이어간다.
+   * lead 는 홈 콜드스타트에선 서버가 고른 중요도 1위, 곡 상세에서 온 미리보기에선 `previewWord` 다.
+   * 실패해도 스와이프 아웃된 카드는 되돌리지 않는다 — 부분 실패도 다음 홈 진입에서 due 로 잡힌다.
    */
   const advancePreviewReview = useCallback(async () => {
     if (!currentCard || selectedRating == null || busyRef.current) return;
@@ -655,8 +639,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     const rating = selectedRating;
     clearRatingHold();
     setSelectedRating(null);
-    // review API 호출과 스와이프 애니메이션을 동시에 시작한다 — 이전엔 API 응답을 먼저 기다린
-    // 뒤에야 애니메이션을 시작해서 스와이프가 네트워크 왕복만큼 멈춰 보였다.
+    // API 응답을 기다리지 않고 스와이프 애니메이션을 동시에 시작한다.
     const reviewPromise = flashcardApi.review(reviewedCard.id, { rating });
     const animationPromise = new Promise<void>(resolve => {
       Animated.timing(translateY, {
@@ -681,20 +664,17 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
       setDueCount(count => Math.max(0, count - 1));
       const nextIndex = currentIndexRef.current + 1;
       if (nextIndex < cardsRef.current.length) {
-        // 다음 카드는 이미 미리 불러와져 있다 — 스와이프 도중 네트워크를 기다리지 않는다.
-        // 새 Animated.Value 로 교체해 다음 카드가 처음부터 정지 상태(0)로 렌더되게 한다.
+        // 새 Animated.Value 로 교체해 다음 카드가 정지 상태(0)로 렌더되게 한다.
         setCurrentIndex(nextIndex);
         setTranslateY(new Animated.Value(0));
         setRevealProgress(new Animated.Value(0));
         setRevealed(false);
       } else {
-        // 버퍼가 바닥났을 때만 서버를 다시 확인한다. 저장 성공 뒤 조회만 실패한 경우
-        // 평가를 중복 제출하지 않도록 이 폴백에서도 review 를 다시 부르지 않는다.
+        // 저장 성공 뒤 조회만 실패해도 평가를 중복 제출하지 않도록 이 폴백은 review 를 다시 부르지 않는다.
         await refreshDue();
       }
     } catch (e: any) {
-      // 애니메이션 자체는 실패하지 않으니 이 catch 는 review 실패다 — 카드가 이미 화면 밖으로
-      // 나가 있을 수 있어 되돌린다.
+      // 애니메이션은 실패하지 않으니 review 실패다. 카드가 이미 화면 밖에 있을 수 있어 되돌린다.
       await animationPromise;
       if (version === requestVersion.current) {
         setReviewError(e.message ?? '복습 저장에 실패했어요. 다시 시도해 주세요');
@@ -809,8 +789,6 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     })();
   }, [showCompletion, tryShowPreviewCard]);
 
-  // 덱 스트립에서 곡을 고른다. 이미 덱이 있으면 그 덱을 열고, 아직 없으면(콜드스타트 추천곡)
-  // 미리보기 카드 플로우로 들어간다.
   const selectSource = useCallback((target: StudySource) => {
     if (selectedSourceRef.current?.songId === target.songId) return;
     if (target.deckId != null) {
@@ -820,8 +798,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     startPreview(target);
   }, [loadCardsForSource, startPreview]);
 
-  // 완주 카드에서 추천곡을 고른다. 콜드스타트에선 loadHomeStack 이 추천곡을 이미 selectedSource 로
-  // 잡아 두므로 selectSource 의 같은 곡 가드를 타면 안 된다.
+  // 콜드스타트에선 추천곡이 이미 selectedSource 라 selectSource 의 같은 곡 가드를 타면 안 된다.
   const startRecommended = useCallback(() => {
     if (!recommendedSource) return;
     startPreview(recommendedSource);
@@ -829,8 +806,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
 
   const panHandlers = panResponder.panHandlers;
 
-  // 반환 객체를 고정한다 — 매 렌더 새 객체를 주면 이걸 prop 으로 받는 StudyStack 의 React.memo 가
-  // 항상 miss 나서 호출한 화면의 state 하나에 카드 서브트리 전체가 같이 그려진다.
+  // 반환 객체를 고정한다 — 매 렌더 새 객체면 StudyStack 의 React.memo 가 항상 miss 난다.
   return useMemo(() => ({
     status,
     cards,

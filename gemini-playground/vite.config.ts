@@ -5,7 +5,6 @@ import path from 'path'
 
 const EVAL_BASE = 'src/experiments/prompt-eval'
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [
     react(),
@@ -41,7 +40,6 @@ export default defineConfig({
           })
         })
 
-        // Save evaluation result
         server.middlewares.use('/api/prompt-eval/save-result', (req, res) => {
           if (req.method !== 'POST') {
             res.statusCode = 405

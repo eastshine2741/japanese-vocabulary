@@ -19,15 +19,13 @@ class TranslateSensesStage(
             .sorted()
         val translateInput = senseTranslationPreparer.buildInput(chosenIds, input.lexical.optionsById)
         if (translateInput.isEmpty()) return emptyMap()
-        // Same output-length exposure as sense-select: one song can choose hundreds of senses. Here a
-        // short response loses meanings silently (unlisted senseId → null koreanText), so bound it too.
+        // A short response silently loses meanings (unlisted senseId → null koreanText), so bound it.
         return ChunkedGeminiCall.flatMap(translateInput, TRANSLATE_CHUNK_SENSES) {
             geminiClient.translateSenses(it, input.callContext)
         }.associate { it.senseId to it.koreanText }
     }
 
     companion object {
-        /** Senses per sense-translation call. */
         const val TRANSLATE_CHUNK_SENSES = 100
     }
 }

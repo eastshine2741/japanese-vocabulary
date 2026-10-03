@@ -247,8 +247,7 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
 
     @Test
     fun `a word sung on several lines is translated once and reads the same everywhere`(): Unit = runBlocking {
-        // 뜻 하나에 senseId 하나. 예전에는 occurrence 마다 id 를 새로 발급해서 같은 sense 가 줄마다
-        // 따로 번역됐고, 모델이 줄마다 다른 한국어를 써서 한 단어에 비슷한 뜻이 여러 개 저장됐다.
+        // 뜻 하나에 senseId 하나. occurrence 마다 id 를 발급하면 같은 sense 가 줄마다 다르게 번역된다.
         val lyric = seedLyric(listOf("シャイ", "シャイ", "シャイ"))
         val translateInputs = mutableListOf<List<Map<String, Any?>>>()
 
@@ -296,8 +295,7 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
 
         processLyric(lyric)
 
-        // The comma stays in the line — the app renders the gap between tokens from the raw text — it
-        // just no longer occupies a token of its own.
+        // The comma stays in the line (the app renders gaps from the raw text) but is no longer a token.
         val tokens = lyricRepository.findById(lyric.id!!).orElseThrow().analyzedContent!![0].tokens
         assertThat(tokens.map { it.surface }).containsExactly("猫")
         assertThat(tokens.single().partOfSpeech).isNotEqualTo(PartOfSpeech.SYMBOL)
@@ -376,8 +374,7 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
             .startsWith("Surface '明け' is not present in order at line index=0")
         assertThat(segmentInputs[1].single()["retryInstruction"] as String)
             .contains("previous segmentation output failed validator checks")
-        // The retry has to sample. At temperature 0 the model reproduced the rejected array verbatim
-        // and every attempt was spent on an output that could not change.
+        // The retry has to sample; at temperature 0 the model reproduces the rejected array verbatim.
         assertThat(temperatures).containsExactly(0.0, SegmentLyricsStage.SEGMENT_TEMPERATURE_STEP)
     }
 
@@ -426,9 +423,7 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
 
     @Test
     fun `a line repeated in the song is segmented once and both copies agree`(): Unit = runBlocking {
-        // A chorus repeats whole lines. Asking per occurrence let the same text come back segmented two
-        // different ways — one copy of 雨が降り止むまでは帰れない resolved while the other gave までは and
-        // 帰れない as their own headwords and lost both meanings.
+        // A chorus repeats whole lines; asking per occurrence can segment the same text two different ways.
         val lyric = seedLyric(listOf("猫が寝る", "犬が寝る", "猫が寝る"))
         val segmentInputs = mutableListOf<List<Map<String, Any?>>>()
 
@@ -459,8 +454,8 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
 
     @Test
     fun `a headword the dictionary cannot answer is retried once and then resolves`(): Unit = runBlocking {
-        // 帰れない as its own headword has no dictionary entry, so the token would reach the app with no
-        // meaning and nothing in the pipeline would object. The retry says which headword failed.
+        // 帰れない as its own headword has no dictionary entry, so the token would reach the app without
+        // a meaning unless the retry names the failed headword.
         val lyric = seedLyric(listOf("帰れない"))
         val segmentInputs = mutableListOf<List<Map<String, Any?>>>()
 
@@ -513,10 +508,8 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
 
     @Test
     fun `a headword jisho never answered is resent without feedback and reported as a provider error`(): Unit = runBlocking {
-        // songId=82: jisho returned 502 for ninety seconds, 23 everyday words went out with no
-        // meaning, and the log said "no dictionary entry exists" for 太陽. The line is kept — a
-        // song is not failed over an outage — but the record must say it was the provider, and the
-        // model must not be told its headword was wrong.
+        // A jisho outage must not fail the song or be logged as "no dictionary entry"; the line is kept
+        // and the model must not be told its headword was wrong.
         val lyric = seedLyric(listOf("太陽"))
         val segmentInputs = mutableListOf<List<Map<String, Any?>>>()
         val appender = ListAppender<ILoggingEvent>().also { it.start() }
@@ -596,9 +589,8 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
 
     @Test
     fun `text the segmentation skips keeps the line instead of failing the song`(): Unit = runBlocking {
-        // 晴れ舞台（イェイ） came back as 晴れ舞台 four attempts running: a parenthesized ad-lib does not read
-        // as a lyric word to the model. Every surface it did return anchors correctly, so the line is
-        // usable — the ad-lib just carries no word card, which is not worth losing the song over.
+        // The model drops a parenthesized ad-lib (イェイ) on every attempt; the line is still usable, the
+        // ad-lib just carries no word card.
         val lyric = seedLyric(listOf("晴れ舞台（イェイ）"))
 
         every { geminiClient.translateLyrics(any(), any()) } returns listOf(TranslationResultDto(0, "화려한 무대"))
@@ -655,8 +647,7 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
 
     @Test
     fun `the retry for kana skipped between digits says only the digits are left out`(): Unit = runBlocking {
-        // Song 120: told not to output digits, the model skipped 140と30字の as one number, and on the
-        // retry still dropped the と wedged between 140 and 30 — every attempt ended UNCOVERED.
+        // The model drops the と wedged between digits (140と30字の) even on retry, so every attempt is UNCOVERED.
         val lyric = seedLyric(listOf("140と30字の 一言一句が 憎らしい"))
         val segmentInputs = mutableListOf<List<Map<String, Any?>>>()
 
@@ -686,8 +677,7 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
 
     @Test
     fun `a glued particle is split out of the surface it was stuck to`(): Unit = runBlocking {
-        // 幸せがある came back as 幸せ + がある: the headword was right, the surface carried the particle,
-        // and the reading ガアル reached the app as one word — displayed 가아루.
+        // 幸せがある segmented as 幸せ + がある: the surface carried the particle, so the app got ガアル as one word.
         val lyric = seedLyric(listOf("幸せがある"))
 
         every { geminiClient.translateLyrics(any(), any()) } returns listOf(TranslationResultDto(0, "행복이 있다"))
@@ -774,9 +764,8 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
 
         val tokens = translationService.runPipeline(lyric).single().tokens
 
-        // も is rule-resolved, so it must never be asked about. 猫 is asked twice — once by the
-        // segmentation stage's headword check and once by the lexical stage — and in production the
-        // second one is a Redis hit.
+        // も is rule-resolved, so it must never be asked about. 猫 is asked twice (segmentation headword
+        // check and lexical stage); in production the second is a Redis hit.
         assertThat(lookupArgs.flatten().distinct()).containsExactly("猫")
         assertThat(selectInputs.single().keys.map(::surfaceOf)).containsExactly("猫")
         assertThat(tokens.map { it.surface to it.koreanText }).containsExactly("猫" to "고양이", "も" to "~도")
@@ -816,8 +805,7 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
 
     @Test
     fun `a settled word still reaches sense-translate so it gets a meaning`(): Unit = runBlocking {
-        // The whole line is unambiguous, so sense-select is skipped entirely — but the senses the code
-        // settled on must still be translated, or every token would come back with a null meaning.
+        // Sense-select is skipped for an unambiguous line, but the senses the code settled on must still be translated.
         val lyric = seedLyric(listOf("猫"))
 
         every { geminiClient.translateLyrics(any(), any()) } returns listOf(TranslationResultDto(0, "고양이"))
@@ -982,8 +970,7 @@ class KoreanLyricTranslationServiceTest : BatchBaseIntegrationTest() {
         val dog = tokens.single { it.surface == "犬" }
         assertThat(cat.koreanText).isEqualTo("고양이")
         assertThat(dog.koreanText).isNull()
-        // Nothing dictionary-derived may leak onto the rejected token. Its readings still come from
-        // segmentation, which never depended on the lookup.
+        // Nothing dictionary-derived may leak onto the rejected token; its readings come from segmentation.
         assertThat(dog.partOfSpeech).isEqualTo(PartOfSpeech.OTHER)
         assertThat(dog.jlpt).isNull()
         assertThat(dog.reading).isEqualTo("イヌ")

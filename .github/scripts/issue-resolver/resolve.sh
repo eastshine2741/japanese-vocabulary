@@ -11,7 +11,6 @@ LOCK_FILE="/tmp/issue-resolver.lock"
 mkdir -p "$LOG_DIR"
 echo "=== $(date '+%Y-%m-%d %H:%M:%S') ===" >> "$LOG_FILE"
 
-# Prevent duplicate runs
 if [ -f "$LOCK_FILE" ]; then
     LOCK_PID=$(cat "$LOCK_FILE")
     if kill -0 "$LOCK_PID" 2>/dev/null; then
@@ -25,7 +24,6 @@ trap 'rm -f "$LOCK_FILE"' EXIT
 
 cd "$REPO_DIR"
 
-# Check if any issues need processing
 NEW_ISSUES=$(gh issue list --label "status:new" --json number -q '.[].number' 2>/dev/null || true)
 FEEDBACK_ISSUES=$(gh issue list --label "status:feedback" --json number -q '.[].number' 2>/dev/null || true)
 APPROVED_ISSUES=$(gh issue list --label "status:approved" --json number -q '.[].number' 2>/dev/null || true)
@@ -37,7 +35,6 @@ fi
 
 echo "Found issues - new:[$NEW_ISSUES] feedback:[$FEEDBACK_ISSUES] approved:[$APPROVED_ISSUES]" >> "$LOG_FILE"
 
-# Run a single phase for a single issue
 run_phase() {
     local phase_prompt="$1"
     local issue_number="$2"
@@ -62,17 +59,14 @@ Process issue #$issue_number"
     echo "--- Done issue #$issue_number ($phase_name) ---" >> "$LOG_FILE"
 }
 
-# Phase A: Analyze new issues
 for issue in $NEW_ISSUES; do
     run_phase "phase-a-analyze.md" "$issue" "Phase A: Analyze"
 done
 
-# Phase B: Revise plans based on feedback
 for issue in $FEEDBACK_ISSUES; do
     run_phase "phase-b-revise.md" "$issue" "Phase B: Revise"
 done
 
-# Phase C: Implement approved issues
 for issue in $APPROVED_ISSUES; do
     run_phase "phase-c-implement.md" "$issue" "Phase C: Implement"
 done

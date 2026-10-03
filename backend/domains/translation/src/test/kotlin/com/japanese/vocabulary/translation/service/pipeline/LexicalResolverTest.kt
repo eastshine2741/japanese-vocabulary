@@ -110,10 +110,8 @@ class LexicalResolverTest {
 
     @Test
     fun `a reading that matches several entries is ambiguous, not exact`(): Unit = runBlocking {
-        // Lyrics write かける in kana, so かける IS the headword — and 掛ける / 賭ける / 欠ける all read
-        // カケル. The pair matches three times, which names no single word. Calling that EXACT would
-        // send three unrelated glosses with nothing marking them as different words, which is the
-        // failure entry boundaries exist to prevent.
+        // かける is the headword and 掛ける / 賭ける / 欠ける all read カケル: three matches name no single
+        // word, so EXACT would send unrelated glosses unmarked.
         stub(
             "かける" to found(
                 entry(headword = "掛ける", reading = "カケル", english = "to hang"),
@@ -133,10 +131,8 @@ class LexicalResolverTest {
 
     @Test
     fun `a kana headword whose homophones all carry kanji spellings stays ambiguous`(): Unit = runBlocking {
-        // Real jisho shape for もう: six entries, only one of them kana-headed. Matching purely on
-        // headword would drop the correct meaning; grading the whole set EXACT would send
-        // "already / greatly energetic / one-thousandth / network / ignorance / blindness" with no way
-        // to tell them apart. Neither is acceptable, so they go out labelled.
+        // Real jisho shape for もう: six entries, only one kana-headed. Matching on headword alone would
+        // drop the correct meaning and grading all EXACT would send unlabelled homophones, so they go out labelled.
         stub(
             "もう" to found(
                 entry(headword = null, reading = "モウ", english = "already, yet"),
@@ -174,9 +170,8 @@ class LexicalResolverTest {
 
     @Test
     fun `an i-adjective rescued through the probe is graded exact, not a fallback`(): Unit = runBlocking {
-        // The probe fires because the model gave 高く as the headword. Its reading タカク belongs to
-        // that wrong headword, so comparing the probed entry against it would call every rescue a
-        // fallback and understate the EXACT ratio for the population the probe exists to save.
+        // The reading タカク belongs to the wrong headword 高く; comparing the probed entry against it
+        // would call every rescue a fallback.
         stub(
             "高い" to found(
                 JishoDictionaryEntryDto(
@@ -201,8 +196,7 @@ class LexicalResolverTest {
 
     @Test
     fun `a classical adjective ending in shi is looked up as its modern i-adjective`(): Unit = runBlocking {
-        // songId=224, "憂いし空には朧月 囲い無き夢は恙なし": 恙なし is the classical terminal form of
-        // 恙ない. jisho indexes only the modern form, so the headword as the model gave it misses.
+        // 恙なし is the classical terminal form of 恙ない; jisho indexes only the modern form.
         stub(
             "恙ない" to found(
                 JishoDictionaryEntryDto(
@@ -230,9 +224,8 @@ class LexicalResolverTest {
 
     @Test
     fun `a suru-verb desiderative handed back as the headword is rescued as stem plus suru`(): Unit = runBlocking {
-        // songId=109, "不甲斐ない 愛を愛したくないの": the model gave 愛したくない as the headword, jisho has
-        // no such entry, and the word shipped without a meaning. The reading アイシタクナイ belongs to
-        // that wrong headword, so it is inflected back to アイスル alongside the base form.
+        // 愛したくない has no jisho entry. The reading アイシタクナイ belongs to that wrong headword, so it
+        // is inflected back to アイスル alongside the base form.
         stub(
             "愛する" to found(
                 JishoDictionaryEntryDto(
@@ -271,9 +264,7 @@ class LexicalResolverTest {
 
     @Test
     fun `a godan su-verb desiderative is rescued as stem plus su`(): Unit = runBlocking {
-        // songId=226, line 0: "軋んだ想いを吐き出したいのは". 吐き出したい is 吐き出す, a godan verb whose masu
-        // stem ends in し. The probe asked only for 吐き出する, which no entry carries, so the word lost
-        // its meaning.
+        // 吐き出したい is 吐き出す, a godan verb whose masu stem ends in し; probing only 吐き出する finds nothing.
         stub(
             "吐き出す" to found(
                 JishoDictionaryEntryDto(
@@ -301,8 +292,7 @@ class LexicalResolverTest {
 
     @Test
     fun `a godan verb's desiderative is not mistaken for a suru-verb`(): Unit = runBlocking {
-        // 話したい is 話す. The probe asks for 話する, and since no entry carries that headword the
-        // suru-verb reading of the token stays unresolved instead of gaining an invented meaning.
+        // 話したい is 話す; no entry carries 話する, so the token stays unresolved rather than gaining an invented meaning.
         stub("話する" to found(entry(headword = "話", reading = "ハナシ", english = "talk")))
 
         val resolved = resolver.resolve(listOf(token("話したい", "話したい", "ハナシタイ"))).byTokenKey.values.single()
@@ -312,8 +302,7 @@ class LexicalResolverTest {
 
     @Test
     fun `a passive handed back as the headword is rescued as its dictionary form`(): Unit = runBlocking {
-        // songId=246, line 6: "ただ過ぎる日々に呑み込まれたの". The model kept the passive 呑み込まれる as the
-        // headword, jisho has no such entry, and the word shipped without a meaning.
+        // The model kept the passive 呑み込まれる as the headword; jisho has no such entry.
         stub(
             "呑み込む" to found(
                 JishoDictionaryEntryDto(
@@ -341,8 +330,7 @@ class LexicalResolverTest {
 
     @Test
     fun `a suru verb rescued through the probe is graded exact`(): Unit = runBlocking {
-        // songId=171, line 0: "0と1が交差する地点". jisho indexes 交差 as a noun that takes する, never
-        // 交差する itself, so the headword as the model gave it misses and the word lost its meaning.
+        // jisho indexes 交差 as a noun that takes する, never 交差する itself.
         stub(
             "交差" to found(
                 JishoDictionaryEntryDto(
@@ -375,8 +363,7 @@ class LexicalResolverTest {
 
     @Test
     fun `a noun written with a trailing り is looked up without it`(): Unit = runBlocking {
-        // songId=334, line 0: "暗闇沈む都市の光り". 光り after の is the noun 光, spelled with the
-        // okurigana of 光る's continuative form. jisho indexes only 光, so the headword missed.
+        // 光り is the noun 光 spelled with 光る's continuative okurigana; jisho indexes only 光.
         stub(
             "光" to found(
                 JishoDictionaryEntryDto(
@@ -430,8 +417,6 @@ class LexicalResolverTest {
     @Test
     fun `a katakana headword the dictionary indexes in hiragana is queried again in hiragana`(): Unit = runBlocking {
         // jisho's search is script-sensitive: アンタ answers with アンタレス and アンタナナリボ, never 貴方.
-        // Only the script of the query is wrong, and the lyric writing 貴方 as アンタ is ordinary J-pop,
-        // so the word must not lose its meaning over it.
         stub(
             "アンタ" to JishoEntryDto(
                 found = false,
@@ -451,8 +436,7 @@ class LexicalResolverTest {
 
     @Test
     fun `the hiragana query reports the same token as unresolved as the full resolve does`(): Unit = runBlocking {
-        // The early probe exists to let segmentation retry a line, so a word the rescue saves must not
-        // be reported as a miss — it would burn a retry on a line that is already correct.
+        // A word the rescue saves must not be reported as a miss, or it burns a retry on a correct line.
         stub("あんた" to found(entry(headword = "貴方", reading = "アンタ", english = "you")))
 
         val missed = resolver.unresolvedTokens(listOf(token("アンタ", "アンタ", "アンタ")))
@@ -462,9 +446,7 @@ class LexicalResolverTest {
 
     @Test
     fun `a headword stretched with a small vowel kana is queried again at full size`(): Unit = runBlocking {
-        // songId=203, "さぁ魂の浄化 死への調和": さぁ is the interjection さあ drawn out with a small ぁ,
-        // an ordinary lyric spelling. jisho indexes only さあ, so the word must not lose its meaning
-        // over the size of its last kana.
+        // さぁ is the interjection さあ drawn out with a small ぁ; jisho indexes only さあ.
         stub("さあ" to found(entry(headword = "さあ", reading = "サア", english = "come now")))
 
         val tokens = listOf(token("さぁ", "さぁ", "サァ", lineIndex = 39))
@@ -478,9 +460,7 @@ class LexicalResolverTest {
 
     @Test
     fun `an intensifier-prefixed verb is looked up without its prefix`(): Unit = runBlocking {
-        // songId=10, "ぶちこわれた 計測機器が": ぶち壊れる is colloquial ぶち + 壊れる and jisho has no entry
-        // for the compound, but the verb underneath is ordinary. The word must not lose its meaning
-        // over a prefix the dictionary does not index.
+        // ぶち壊れる is colloquial ぶち + 壊れる; jisho has no entry for the compound.
         stub(
             "壊れる" to found(
                 JishoDictionaryEntryDto(
@@ -537,8 +517,7 @@ class LexicalResolverTest {
     @Test
     fun `a hiragana word stretched with the prolonged sound mark is looked up in its standard spelling`(): Unit =
         runBlocking {
-            // songId=307, line 30: "ぎゅーぎゅーにパツパツに最大限詰め込んだ音と感情と夢". jisho indexes the
-            // word as ぎゅうぎゅう; the lyric's ー spelling has no entry, so the word lost its meaning.
+            // jisho indexes ぎゅうぎゅう; the lyric's ー spelling has no entry.
             stub("ぎゅうぎゅう" to found(entry(headword = null, reading = "ギュウギュウ", english = "jam-packed")))
             val tokens = listOf(token("ぎゅーぎゅー", "ぎゅーぎゅー", "ギューギュー", lineIndex = 30))
 
@@ -552,8 +531,7 @@ class LexicalResolverTest {
 
     @Test
     fun `a variant kanji headword is looked up in its standard spelling`(): Unit = runBlocking {
-        // songId=287, "閧の声 ゴングを鳴らせ 次世代エンペラーはこの「俺だ!」「僕だ!」": 閧 is a variant of
-        // 鬨 (war cry), and jisho indexes only 鬨. The word must not lose its meaning over the spelling.
+        // 閧 is a variant of 鬨 (war cry); jisho indexes only 鬨.
         stub("鬨" to found(entry(headword = "鬨", reading = "トキ", english = "war cry")))
         val tokens = listOf(token("閧", "閧", "トキ", lineIndex = 29))
 
@@ -567,9 +545,8 @@ class LexicalResolverTest {
 
     @Test
     fun `a lookup jisho never answered is reported as a provider error, not a miss`(): Unit = runBlocking {
-        // songId=82: jisho returned 502 for ninety seconds and 太陽 went out with no meaning, logged
-        // as if no entry existed. The segmentation stage must be able to tell the two apart — one
-        // is worth a retry against jisho, the other is worth a retry against the model.
+        // A jisho outage must be distinguishable from a missing entry: one is retried against jisho,
+        // the other against the model.
         stub("太陽" to JishoEntryDto(found = false, provenance = JishoLookupProvenance.FETCH_ERROR))
 
         val missed = resolver.unresolvedTokens(
@@ -582,8 +559,7 @@ class LexicalResolverTest {
 
     @Test
     fun `a katakana word no dictionary answers in either script stays without candidates`(): Unit = runBlocking {
-        // The rescue switches the script, it does not invent an entry: a coinage the lyric made up
-        // misses in hiragana too, and it is exempt from the headword check for exactly that reason.
+        // The rescue switches the script, it does not invent an entry: a coinage misses in hiragana too.
         stub()
 
         val resolved = resolver.resolve(
@@ -596,8 +572,7 @@ class LexicalResolverTest {
 
     @Test
     fun `the same word on several lines shares one senseId per dictionary sense`(): Unit = runBlocking {
-        // A minted-per-occurrence id sent the same sense to sense-translate once per line, and the
-        // model wrote a different Korean gloss each time — one word, three near-identical senses.
+        // A per-occurrence id sent the same sense to sense-translate once per line, yielding a different gloss each time.
         stub("シャイ" to found(entry(headword = null, reading = "シャイ", english = "shy")))
 
         val resolution = resolver.resolve(
@@ -614,9 +589,7 @@ class LexicalResolverTest {
 
     @Test
     fun `a kanji headword the dictionary does not answer is queried again by its reading`(): Unit = runBlocking {
-        // songId=295, "燻んでしまったの灰色に": 燻む is a dictionary word, but jisho's search answers the
-        // kanji query with nothing. The reading くすむ finds it, and the pair match keeps only the entry
-        // that reads クスム.
+        // 燻む answers nothing as a kanji query; the reading くすむ finds it and the pair match keeps the クスム entry.
         stub(
             "くすむ" to found(
                 JishoDictionaryEntryDto(
@@ -660,8 +633,7 @@ class LexicalResolverTest {
 
     @Test
     fun `a kanji honorific prefix is stripped before the lookup`(): Unit = runBlocking {
-        // songId=302, line 15: "ドクター=ファンクビート 御加減は lady?". jisho has no entry for 御加減, but
-        // 加減 under the honorific 御 is an ordinary noun, so the word must not lose its meaning.
+        // jisho has no entry for 御加減, but 加減 under the honorific 御 is an ordinary noun.
         stub(
             "加減" to found(
                 JishoDictionaryEntryDto(
@@ -689,8 +661,7 @@ class LexicalResolverTest {
 
     @Test
     fun `a kana honorific prefix on a katakana noun is stripped and queried in hiragana`(): Unit = runBlocking {
-        // songId=302, line 19: "そんな貴女にはおクスリを（dumb down）". お + katakana クスリ is 薬, which
-        // jisho answers only for a hiragana query.
+        // お + katakana クスリ is 薬, which jisho answers only for a hiragana query.
         stub("くすり" to found(entry(headword = "薬", reading = "クスリ", english = "medicine")))
         val tokens = listOf(token("おクスリ", "おクスリ", "オクスリ", lineIndex = 19))
 
@@ -704,9 +675,7 @@ class LexicalResolverTest {
 
     @Test
     fun `a suru-verb passive handed back as the headword is rescued as stem plus suru`(): Unit = runBlocking {
-        // songId=260, "シャガの花に毒されても": the model gave 毒される as the headword, jisho has no such
-        // entry, and the word shipped without a meaning. The reading ドクサレル is inflected back to
-        // ドクスル alongside the base form.
+        // 毒される has no jisho entry; the reading ドクサレル is inflected back to ドクスル with the base form.
         stub(
             "毒する" to found(
                 JishoDictionaryEntryDto(
@@ -734,9 +703,7 @@ class LexicalResolverTest {
 
     @Test
     fun `a verb stem with appearance sou is rescued as the verb's dictionary form`(): Unit = runBlocking {
-        // songId=219, line 18: "月が綺麗で 泣きそうになるのは". The model gave 泣きそう as the headword,
-        // jisho has no such entry, and the word shipped without a meaning. 泣き is 泣く's stem, so the
-        // probe turns the stem's last i-row kana back into its u-row kana.
+        // 泣きそう has no jisho entry; 泣き is 泣く's stem, so the probe turns its last i-row kana back to u-row.
         stub(
             "泣く" to found(
                 JishoDictionaryEntryDto(
@@ -791,8 +758,7 @@ class LexicalResolverTest {
 
     @Test
     fun `a verb completed with kireru is looked up as the verb underneath`(): Unit = runBlocking {
-        // songId=225, "伝えきれぬ愛しさは": the segmentation stage gave 伝えきる — 伝える + completion
-        // きる — and jisho has no entry for the compound, so the word went out with no meaning.
+        // 伝えきる is 伝える + completion きる; jisho has no entry for the compound.
         stub(
             "伝える" to found(
                 JishoDictionaryEntryDto(
@@ -820,8 +786,7 @@ class LexicalResolverTest {
 
     @Test
     fun `a te-form verb followed by motion auxiliary iku is looked up as the bare verb`(): Unit = runBlocking {
-        // songId=196, "痛い痛いのとんでけ": とんでけ is 飛んでいけ, and 飛んでいく is the right headword,
-        // but jisho has no entry for te-form + いく. The verb underneath is 飛ぶ.
+        // 飛んでいく is the right headword but jisho has no entry for te-form + いく; the verb underneath is 飛ぶ.
         stub(
             "飛ぶ" to found(
                 JishoDictionaryEntryDto(
@@ -875,8 +840,7 @@ class LexicalResolverTest {
 
     @Test
     fun `a negative verb handed back as the headword is rescued as its dictionary form`(): Unit = runBlocking {
-        // songId=298, line 25: "いらんもんなんて捨てさって". The model gave the negative いらない as the
-        // headword for いらん, jisho indexes only 要る, and the word shipped without a meaning.
+        // The negative いらない was given as the headword for いらん; jisho indexes only 要る.
         stub(
             "いる" to found(
                 JishoDictionaryEntryDto(
@@ -914,8 +878,7 @@ class LexicalResolverTest {
 
     @Test
     fun `a potential-form headword is looked up as its godan dictionary form`(): Unit = runBlocking {
-        // songId=344, line 16: "掴めなくて lost". The model gave the potential 掴める as the headword,
-        // jisho has no entry for it, and the word lost its meaning. 掴む is the verb underneath.
+        // The potential 掴める was given as the headword; jisho has no entry for it. 掴む is the verb underneath.
         stub(
             "掴む" to found(
                 JishoDictionaryEntryDto(
@@ -955,8 +918,7 @@ class LexicalResolverTest {
     @Test
     fun `a godan verb's renyokei handed back as the headword is restored to its dictionary form`(): Unit =
         runBlocking {
-            // songId=332, "傷跡は軈て和らいで悼みごと亡くすかな": 悼み is the renyokei of 悼む and jisho has no
-            // entry for it, so the word went out with no meaning.
+            // 悼み is the renyokei of 悼む and jisho has no entry for it.
             stub(
                 "悼む" to found(
                     JishoDictionaryEntryDto(
@@ -984,8 +946,7 @@ class LexicalResolverTest {
 
     @Test
     fun `a godan verb's potential negative handed back as the headword is rescued as the verb`(): Unit = runBlocking {
-        // songId=438, "飛べない bird みたいな bad feeling": the segmentation stage gave 飛べない as the
-        // headword. jisho has no entry for it, but 飛べ is the potential stem of 飛ぶ.
+        // jisho has no entry for 飛べない, but 飛べ is the potential stem of 飛ぶ.
         stub(
             "飛ぶ" to found(
                 JishoDictionaryEntryDto(

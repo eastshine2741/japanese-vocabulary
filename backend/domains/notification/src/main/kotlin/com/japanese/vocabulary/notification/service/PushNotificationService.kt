@@ -19,11 +19,7 @@ import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 
 /**
- * Pure FCM dispatch. Caller-agnostic: knows nothing about review reminders, candidates, users,
- * flashcards. Responsibilities:
- *   - Send a single visible push to one device token via firebase-admin
- *   - Persist accepted sends to `notification_logs`
- *   - Auto-delete tokens that FCM reports as UNREGISTERED (stale install)
+ * Caller-agnostic FCM dispatch: sends one push to one token and logs accepted sends to `notification_logs`.
  *
  * Invalid-token policy:
  *   - UNREGISTERED → delete token (FCM confirms it is dead)
