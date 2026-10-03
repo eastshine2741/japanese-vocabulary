@@ -13,13 +13,13 @@ Admin v1 is an internal inspection surface for `song`, `lyric`, and `user`, plus
 Architecture direction:
 
 - Domain modules should expose entity/model/enum plus domain methods/services that enforce invariants.
-- Application modules (`api`, `admin-api`, `batch`) own their own read/write workflows and page/search/projection repositories.
+- Application modules (`api`, `admin-api`, `worker`, `batch`) own their own read/write workflows and page/search/projection repositories.
 - `SongRepository` and `LyricRepository` stay externally visible for this pass; repository-wide internalization is out of scope.
 - External music clients should live outside domain core in function-specific integration modules (`integrations:song-search`, `integrations:lyric-search`, `integrations:mv-search`), with direct class usage rather than a hexagonal port layer unless complexity later justifies it.
 - Integration Kotlin packages should also stay outside the domain package tree: `songsearch`, `lyricsearch`, and `mvsearch`, not `song.client`.
 - Active domain/integration modules provide Spring wiring through `AutoConfiguration.imports` and `com.japanese.autoconfigure.*` classes. AutoConfiguration component-scans the module-owned `com.japanese.vocabulary.<module>` package and registers JPA entities/repositories explicitly. Application bootstraps should not carry sibling module `@EntityScan` or repository scan knowledge, and broad root component scan should not be used as a backup wiring path.
 - Integration clients should use `RestClient` where behavior can stay equivalent. Applications avoid unused clients by depending only on the integration modules they need; the depended module's AutoConfiguration exposes its client beans.
-- Product/read-model cache belongs to the application module that owns the behavior. For this pass, song search cache belongs to `api` and artist-channel cache belongs to `batch`.
+- Product/read-model cache belongs to the application module that owns the behavior. For this pass, song search cache belongs to `api` and artist-channel cache belongs to `worker`.
 - Admin mutations must call domain methods/services; raw field updates stay out of scope. Current mutation: song reanalysis creates or reuses a `song_analysis_work` and never edits song/lyric fields directly.
 
 ## Backend
@@ -217,4 +217,4 @@ DNS:
 Prod 모니터링:
 
 - admin-api actuator 는 `health,info,prometheus` 를 노출하고 `k8s/prod/admin-api/servicemonitor.yaml` 이 `/actuator/prometheus` 를 30초 간격으로 긁는다.
-- probe 는 api/batch 와 같은 `/actuator/health/{liveness,readiness}` 를 쓴다.
+- probe 는 api/worker 와 같은 `/actuator/health/{liveness,readiness}` 를 쓴다.

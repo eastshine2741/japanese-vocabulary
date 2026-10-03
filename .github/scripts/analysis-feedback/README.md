@@ -4,7 +4,7 @@
 로컬 러너.
 
 ```
-batch: SegmentLyricsStage / SelectSensesStage
+worker: SegmentLyricsStage / SelectSensesStage
   └─ 결손 1건 = 로그 1줄  →  ANALYSIS_DEFECT {"songId":70,"lineIndex":3,"cause":"DICTIONARY_MISS","surface":"買えれ","headword":"買える","line":"金で買えれば 何でも"}
         ↓  (sentry-logback, warn)
 Sentry kotonoha-batch-prod — 이벤트만 읽는다, 이슈는 안 본다
@@ -12,6 +12,10 @@ Sentry kotonoha-batch-prod — 이벤트만 읽는다, 이슈는 안 본다
 run.sh  fetch → ledger(cause:headword) → 새 키만 → classify(sonnet, 읽기 전용)
         → fix(opus, origin/main 워크트리, translation 모듈만) → 테스트 main:실패/브랜치:통과 → PR
 ```
+
+> 곡 분석 파이프라인은 `batch` 에서 `worker` 로 옮겨졌지만, 이 러너가 읽는 Sentry 프로젝트는
+> `kotonoha-batch-prod` 그대로다. `.env.prod` 의 `SENTRY_DSN_WORKER` 가 그 프로젝트를 가리켜야
+> 결손 로그가 계속 여기로 들어온다. 새 Sentry 프로젝트를 만들면 이 문서의 프로젝트 id 도 같이 바꿀 것.
 
 ## Files
 
