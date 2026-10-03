@@ -169,16 +169,20 @@ class JishoClient(
         return JapaneseText.toKatakana(raw).takeIf { JapaneseText.isKanaOnly(it) }
     }
 
-    /** Entry senses in order, dropping meta senses and carrying POS forward the way jisho reports it. */
+    /**
+     * Entry senses in order, dropping meta senses and carrying POS forward the way jisho reports it.
+     *
+     * Wikipedia senses are noise next to real ones, but proper nouns such as 楊貴妃 or 牛若丸 have
+     * nothing else — dropping them there would turn jisho's answer into a not-found.
+     */
     private fun flattenSenses(entry: JishoEntryRawDto): List<JishoOptionDto> {
-        val senses = mutableListOf<JishoOptionDto>()
+        val all = mutableListOf<JishoOptionDto>()
         var carryPos: List<String> = emptyList() // jisho repeats POS only when it changes; carry forward
         for (sense in entry.senses) {
             if (sense.englishDefinitions.isEmpty()) continue
             val pos = sense.partsOfSpeech.ifEmpty { carryPos }
             carryPos = pos
-            if (pos.any { it.contains("Wikipedia") }) continue // drop meta senses
-            senses.add(
+            all.add(
                 JishoOptionDto(
                     pos = pos,
                     english = sense.englishDefinitions.joinToString(" / "),
@@ -186,6 +190,7 @@ class JishoClient(
                 ),
             )
         }
-        return senses
+        val real = all.filterNot { option -> option.pos.any { it.contains("Wikipedia") } } // drop meta senses
+        return real.ifEmpty { all }
     }
 }

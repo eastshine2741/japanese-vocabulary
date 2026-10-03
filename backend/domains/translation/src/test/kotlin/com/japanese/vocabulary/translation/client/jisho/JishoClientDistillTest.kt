@@ -163,6 +163,34 @@ class JishoClientDistillTest {
     }
 
     @Test
+    fun `proper nouns whose only senses come from Wikipedia keep them`() {
+        // Lyric line "牛若丸 楊貴妃" (song 257): jisho answers both names with Wikipedia senses only.
+        // Dropping those as noise emptied the entry and the lookup came back not-found.
+        val words = mapOf(
+            "牛若丸" to Triple("うしわかまる", "Minamoto no Yoshitsune", listOf("Wikipedia definition")),
+            "楊貴妃" to Triple("ようきひ", "Yang Guifei", listOf("Full name", "Wikipedia definition")),
+        )
+
+        for ((word, spec) in words) {
+            val (reading, english, pos) = spec
+            val response = JishoSearchResponse(
+                data = listOf(
+                    JishoEntryRawDto(
+                        japanese = listOf(JishoJapaneseDto(word = word, reading = reading)),
+                        senses = listOf(JishoSenseDto(englishDefinitions = listOf(english), partsOfSpeech = pos)),
+                    ),
+                ),
+            )
+
+            val entry = client.distill(word, response)
+
+            assertThat(entry.found).isTrue()
+            assertThat(entry.provenance).isEqualTo(JishoLookupProvenance.EXACT)
+            assertThat(entry.entries.single().senses.map { it.english }).containsExactly(english)
+        }
+    }
+
+    @Test
     fun `an element with no kana reading keeps its headword but reports no reading`() {
         // Falling back to the written form would put kanji in a reading field, which then reaches the
         // app's katakana-to-Hangul conversion. Better to have no reading and match on headword alone.
