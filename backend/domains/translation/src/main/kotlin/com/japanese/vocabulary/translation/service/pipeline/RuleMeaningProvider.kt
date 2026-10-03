@@ -35,6 +35,14 @@ class RuleMeaningProvider {
             ?: auxiliaries[key]
     }
 
+    /**
+     * One-character particles [resolve] settles without the dictionary. [SegmentAnchoringValidator]
+     * fills these in itself when segmentation leaves one out, so a retry is not spent on them.
+     */
+    object KnownParticles {
+        val singleCharacter: Set<String> = particles.keys.filter { it.length == 1 }.toSet()
+    }
+
     private companion object {
         // This table only handles deterministic grammar rewrites that Jisho/sense-select cannot
         // recover from once the LLM has segmented them too coarsely. Ambiguous lexical items stay
@@ -220,6 +228,8 @@ class RuleMeaningProvider {
             // だけ + で. The model emits だけで as both surface and headword, so GluedParticleSplitter
             // sees no mismatch and jisho has no entry for the combined form.
             "だけで" to particle("だけで", "~만으로, ~하기만 해도"),
+            // Connective て; SegmentAnchoringValidator fills it in when the model leaves it off the verb.
+            "て" to particle("て", "~하고, ~해서"),
         )
 
         val auxiliaries = mapOf(

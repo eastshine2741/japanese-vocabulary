@@ -124,14 +124,14 @@ class SegmentAnchoringValidator {
         var from = 0
         while (true) {
             val (offset, text) = uncoveredJapaneseRun(rawText, covered, from) ?: break
-            val echoed = echoOf(tokens, offset, text)
-            if (echoed == null) {
+            val filled = echoOf(tokens, offset, text) ?: knownParticleToken(index, offset, text)
+            if (filled == null) {
                 uncovered = UncoveredRun(lineIndex = index, offset = offset, text = text)
                 break
             }
-            tokens += echoed
-            for (i in offset until echoed.charEnd) covered[i] = true
-            from = echoed.charEnd
+            tokens += filled
+            for (i in offset until filled.charEnd) covered[i] = true
+            from = filled.charEnd
         }
         return AnchoredLine(tokens = tokens.sortedBy { it.charStart }, uncovered = uncovered)
     }
@@ -172,6 +172,25 @@ class SegmentAnchoringValidator {
             surface = token.surface + rawText.substring(token.charEnd, end),
             charEnd = end,
             usedReading = token.usedReading + JapaneseText.toKatakana(tail),
+        )
+    }
+
+    /**
+     * Token for a one-character particle the model left out, or null when [text] is not one.
+     * `見てろ　時代の転換点を` lost its final `を` on every retry; [RuleMeaningProvider] already knows
+     * its meaning, so there is nothing for a retry to add. Longer or unknown runs are still reported.
+     */
+    private fun knownParticleToken(index: Int, offset: Int, text: String): PipelineToken? {
+        val particle = text.takeIf { it in RuleMeaningProvider.KnownParticles.singleCharacter } ?: return null
+        val reading = JapaneseText.toKatakana(particle)
+        return PipelineToken(
+            lineIndex = index,
+            surface = particle,
+            headword = particle,
+            charStart = offset,
+            charEnd = offset + 1,
+            usedReading = reading,
+            baseFormReading = reading,
         )
     }
 
