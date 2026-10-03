@@ -953,6 +953,36 @@ class LexicalResolverTest {
     }
 
     @Test
+    fun `a godan verb's renyokei handed back as the headword is restored to its dictionary form`(): Unit =
+        runBlocking {
+            // songId=332, "傷跡は軈て和らいで悼みごと亡くすかな": 悼み is the renyokei of 悼む and jisho has no
+            // entry for it, so the word went out with no meaning.
+            stub(
+                "悼む" to found(
+                    JishoDictionaryEntryDto(
+                        headword = "悼む",
+                        reading = "イタム",
+                        senses = listOf(
+                            JishoOptionDto(
+                                pos = listOf("Godan verb with 'mu' ending", "Transitive verb"),
+                                english = "to grieve over",
+                                englishDefinitions = listOf("to grieve over", "to mourn", "to lament"),
+                            ),
+                        ),
+                    ),
+                ),
+            )
+            val tokens = listOf(token("悼み", "悼み", "イタミ"))
+
+            val resolved = resolver.resolve(tokens).byTokenKey.values.single()
+
+            assertThat(resolved.baseForm).isEqualTo("悼む")
+            assertThat(resolved.options.map { it.english }).containsExactly("to grieve over")
+            assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+            assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+        }
+
+    @Test
     fun `senses of different entries keep separate ids`(): Unit = runBlocking {
         stub("前" to maeAndZenAndSaki())
 
