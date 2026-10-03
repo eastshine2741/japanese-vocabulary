@@ -8,7 +8,12 @@ import java.text.Normalizer
 
 /**
  * Wraps [ItunesClient] with a search-result cache (see [SongSearchCache]).
- * iTunes enforces ~20 calls/min/IP; on cache failure the cache returns null and we call iTunes directly.
+ *
+ * iTunes Search API enforces ~20 calls/min/IP. The cache absorbs the burst of
+ * duplicate queries that arrive within an hour — typically the same popular
+ * songs queried by many users in a short window. On cache failure the cache
+ * returns null and we fall through to a direct iTunes call so the search
+ * endpoint never goes dark.
  */
 @Service
 class SongSearchService(
@@ -27,8 +32,10 @@ class SongSearchService(
     }
 
     /**
-     * Cache-key normalization: whitespace and unicode width only.
-     * Kana/kanji stay untouched because katakana↔hiragana changes the iTunes result.
+     * Cache-key normalization. Only safe transforms — these unify whitespace and
+     * unicode width but never alter the user's intended query semantically.
+     * Kana/kanji are left untouched: katakana↔hiragana conversion yields a
+     * different iTunes result and would surface as a wrong-search UX bug.
      */
     private fun normalize(q: String): String =
         Normalizer.normalize(q.trim(), Normalizer.Form.NFKC)
