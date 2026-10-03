@@ -1,13 +1,8 @@
 package com.japanese.vocabulary.translation.model
 
 /**
- * One word the pipeline is about to ship without a meaning, and why.
- *
- * The pipeline retries what it can; this is what is left when the budget is spent. Nothing
- * downstream can tell a token with no meaning from one that legitimately has none, so the stage that
- * gives up is the only place that can say so — and it says so one defect per line, as
- * `ANALYSIS_DEFECT {json}`, so a log search can group by [cause] and [headword] instead of by song.
- * The runner in `.github/scripts/analysis-feedback` reads exactly this shape.
+ * One word the pipeline is about to ship without a meaning, and why. Logged one per line as
+ * `ANALYSIS_DEFECT {json}`; the runner in `.github/scripts/analysis-feedback` reads exactly this shape.
  */
 data class AnalysisDefect(
     val songId: Long?,
@@ -36,4 +31,7 @@ enum class AnalysisDefectCause {
 
     /** The sense-select model named a sense the token was not offered, so the token keeps none. */
     SENSE_REJECTED,
+
+    /** The sense-select response had no answer for a token that had senses, so the token keeps none. */
+    SENSE_MISSING,
 }

@@ -82,7 +82,7 @@ gemini:
   translation-model: gemini-3.1-pro-preview
   word-meaning-model: gemini-3.1-flash-lite
   # Segmentation now carries the whole pipeline's disambiguation signal — both readings and the
-  # context gloss. Its tier is tuned separately from the cheaper select/translate calls.
+  # context gloss. Its tier is tuned separately from the cheaper translate-sense call.
   #
   # Measured against gemini-3-flash-preview on three golden songs: the higher tier matches flash-lite
   # inside run-to-run noise, needs its thinking bounded to answer at all, and hallucinated the Korean
@@ -95,6 +95,16 @@ gemini:
   # Transport-level failures only (dropped connection, 5xx, 429). One prod work died on a single
   # "generativelanguage.googleapis.com:443 failed to respond" that the same input passed four
   # minutes later. Backoff doubles per attempt: 2s, 4s.
+  retry:
+    max-attempts: 3
+    initial-backoff: 2s
+
+# Sense-select (SelectSensesStage). TypeSafe's Jev answers each word with one offered sense plus a
+# confidence; there is no Gemini fallback.
+jev:
+  api-key: ${TYPESAFE_API_KEY}
+  model: jev-latest
+  # Same policy as gemini.retry. Jev's overload status 529 is a 5xx, so it is retried too.
   retry:
     max-attempts: 3
     initial-backoff: 2s

@@ -7,12 +7,9 @@ import kotlinx.coroutines.coroutineScope
 /**
  * Splits one big Gemini request into fixed-size chunks and concatenates the responses.
  *
- * A whole-song request makes the response length scale with the song, and past a point the model
- * stops mid-array — it returns valid JSON holding only the first N items. Chunking bounds each
- * response instead of hoping one call survives a 96-line song.
- *
- * Chunks are dispatched with [async], so how many actually run at once is the caller's dispatcher's
- * business; correctness does not depend on it. Order is preserved.
+ * Past a point the model stops mid-array and returns valid JSON with only the first N items;
+ * chunking bounds each response. Chunks run via [async] (concurrency is the caller's dispatcher's
+ * business); order is preserved.
  */
 object ChunkedGeminiCall {
 

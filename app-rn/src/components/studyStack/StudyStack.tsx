@@ -62,6 +62,8 @@ export const StudyStack = React.memo(function StudyStack({
     completedSource,
     nextDueSource,
     recommendedSource,
+    session,
+    memoryDiff,
     reveal,
     selectRating,
     reload,
@@ -85,7 +87,7 @@ export const StudyStack = React.memo(function StudyStack({
       completionEntranceProgress.setValue(0);
       Animated.timing(completionEntranceProgress, {
         toValue: 1,
-        duration: 520,
+        duration: COMPLETION_ENTRANCE_MS,
         easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
       }).start();
@@ -143,6 +145,8 @@ export const StudyStack = React.memo(function StudyStack({
           recommendedSource={recommendedSource}
           previousArtworkUrl={lastCardArtworkUrlRef.current}
           entranceProgress={completionEntranceProgress}
+          memoryDiff={memoryDiff}
+          sessionReviewedCount={session.reviewedCount}
           onContinueDue={continueDue}
           onRecommended={startRecommended}
           onSearch={onSearch}
@@ -174,6 +178,12 @@ export const StudyStack = React.memo(function StudyStack({
 });
 
 const REVIEW_ERROR_BOTTOM_OFFSET = 24;
+
+/**
+ * 완주 카드가 자리를 잡는 데 걸리는 시간. 커버 -> 문구 -> 기억 이동 -> CTA 순으로 층이 올라오고,
+ * 숫자 카운트는 이 뒤에 이어 붙는다(`MEMORY_COUNT_START_MS`).
+ */
+const COMPLETION_ENTRANCE_MS = 900;
 
 interface StudyStackLoadingSkeletonProps {
   contentInsetTop?: StageInset;

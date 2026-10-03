@@ -14,9 +14,13 @@ import com.japanese.vocabulary.song.dto.SongDto
 import com.japanese.vocabulary.song.dto.SongStudyDto
 import com.japanese.vocabulary.deck.dto.DeckDetailResponse
 import com.japanese.vocabulary.flashcard.dto.DueFlashcardsResponse
+import com.japanese.vocabulary.song.dto.songdetail.SongCoverageDto
 import com.japanese.vocabulary.song.dto.songdetail.SongLyricsDto
 import com.japanese.vocabulary.song.dto.songdetail.SongStudyBootstrapRequest
 import com.japanese.vocabulary.song.dto.songdetail.SongStudyBootstrapResponse
+import com.japanese.vocabulary.song.dto.songdetail.SongWordTierKey
+import com.japanese.vocabulary.song.dto.songdetail.SongWordTierStudyResponse
+import com.japanese.vocabulary.song.dto.songdetail.SongWordTiersDto
 import com.japanese.vocabulary.song.dto.songdetail.WordsInSongDto
 import com.japanese.vocabulary.songsearch.dto.SongSearchItemDto
 import com.japanese.vocabulary.songsearch.dto.SongSearchResponse
@@ -35,6 +39,7 @@ import com.japanese.vocabulary.song.model.WordCandidate
 import com.japanese.vocabulary.song.model.WordScoreComponents
 import com.japanese.vocabulary.songanalysis.service.SongAnalysisWorkService
 import com.japanese.vocabulary.test.ApiBaseIntegrationTest
+import com.japanese.vocabulary.test.fixtures.TestFlashcardBuilder
 import com.japanese.vocabulary.test.fixtures.TestSongBuilder
 import com.japanese.vocabulary.test.fixtures.TestUserBuilder
 import com.japanese.vocabulary.user.entity.UserEntity
@@ -928,6 +933,287 @@ class SongControllerTest : ApiBaseIntegrationTest() {
     }
 
     @Nested
+    inner class WordTiers {
+
+        private fun candidate(
+            japanese: String,
+            score: Double,
+            order: Int,
+            lineIndexes: List<Int>,
+            jlpt: String? = "N3",
+            pos: String = "NOUN",
+            meaning: String? = "$japanese-ko",
+        ) = WordCandidate(
+            japanese = japanese,
+            surface = japanese,
+            baseForm = japanese,
+            reading = null,
+            baseFormReading = null,
+            koreanText = meaning,
+            partOfSpeech = pos,
+            partOfSpeechLabel = pos,
+            jlpt = jlpt,
+            importanceScore = score,
+            appearanceOrder = order,
+            frequency = lineIndexes.size,
+            lineIndexes = lineIndexes,
+            scoreComponents = WordScoreComponents(0.0, 0.0, 0.0, 0.0, 1.0),
+        )
+
+        private fun tiers(user: UserEntity, songId: Long): SongWordTiersDto =
+            readBody(mockMvc.get("/api/songs/$songId/word-tiers") {
+                header("Authorization", bearer(user))
+            }.andExpect { status { isOk() } }.andReturn().response.contentAsString)
+
+        private fun coverage(user: UserEntity, songId: Long): SongCoverageDto =
+            readBody(mockMvc.get("/api/songs/$songId/coverage") {
+                header("Authorization", bearer(user))
+            }.andExpect { status { isOk() } }.andReturn().response.contentAsString)
+
+        private fun study(user: UserEntity, songId: Long, key: SongWordTierKey): SongWordTierStudyResponse =
+            readBody(mockMvc.post("/api/songs/$songId/word-tiers/$key/study") {
+                header("Authorization", bearer(user))
+            }.andExpect { status { isOk() } }.andReturn().response.contentAsString)
+
+        private val later get() = clock.instant().plusSeconds(86_400 * 30)
+        private val earlier get() = clock.instant().minusSeconds(86_400)
+
+        @Test
+        fun `classifies tier words into three ordered tiers and counts memory state and due`() {
+            val me = newUser()
+            val song = newSong()
+            newLyric(
+                song,
+                raw = listOf(
+                    LyricLineData(index = 0, startTimeMs = null, text = "후렴"),
+                    LyricLineData(index = 1, startTimeMs = null, text = "절"),
+                    LyricLineData(index = 2, startTimeMs = null, text = "후렴"),
+                ),
+                wordCandidates = LyricWordCandidates(
+                    candidates = listOf(
+                        candidate("胸", 90.0, 0, listOf(0, 2)),
+                        candidate("する", 80.0, 1, listOf(0, 2), pos = "VERB"),
+                        candidate("雨", 50.0, 2, listOf(1), jlpt = "N5"),
+                        candidate("輪郭", 40.0, 3, listOf(1), jlpt = null),
+                        // 기본 필터 밖 — 어느 단계에도 없다.
+                        candidate("君", 30.0, 4, listOf(1), pos = "PRONOUN"),
+                        // 뜻이 없어 카드가 될 수 없다 — 어느 단계에도 없다.
+                        candidate("無意味", 20.0, 5, listOf(1), meaning = null),
+                    ),
+                    lineCandidates = mapOf("0" to listOf(0, 1), "1" to listOf(2, 3, 4, 5), "2" to listOf(0, 1)),
+                ),
+            )
+            // 胸: 장기기억(REVIEW) / 雨: 단기기억, 아직 due 아님 / 輪郭: 담기만 함 / する: 안 담음
+            val longTerm = TestWordBuilder(entityManager).forUser(me).withJapaneseText("胸").build()
+            TestFlashcardBuilder(entityManager, clock).forUser(me).ofWord(longTerm)
+                .withState(1).withStability(10.0).lastReviewedAt(clock.instant()).dueAt(later).build()
+            val shortTerm = TestWordBuilder(entityManager).forUser(me).withJapaneseText("雨").build()
+            TestFlashcardBuilder(entityManager, clock).forUser(me).ofWord(shortTerm)
+                .withState(1).withStability(2.0).lastReviewedAt(clock.instant()).dueAt(later).build()
+            val fresh = TestWordBuilder(entityManager).forUser(me).withJapaneseText("輪郭").build()
+            TestFlashcardBuilder(entityManager, clock).forUser(me).ofWord(fresh).withState(0).build()
+            entityManager.flush()
+
+            val dto = tiers(me, song.id!!)
+
+            assertThat(dto.songId).isEqualTo(song.id)
+            assertThat(dto.tiers.map { it.key }).containsExactly(SongWordTierKey.CHORUS, SongWordTierKey.SINGALONG, SongWordTierKey.FULL)
+            assertThat(dto.tiers.map { it.order }).containsExactly(1, 2, 3)
+            assertThat(dto.tiers.flatMap { it.wordJapanese }).doesNotContain("君", "無意味")
+            val byKey = dto.tiers.associateBy { it.key }
+
+            val chorus = byKey.getValue(SongWordTierKey.CHORUS)
+            assertThat(chorus.wordJapanese).containsExactly("胸")
+            assertThat(chorus.description).isEqualTo("후렴에 나오는 핵심 단어 1개부터 공부해요")
+            assertThat(chorus.longTermCount).isEqualTo(1)
+            assertThat(chorus.shortTermCount).isZero()
+            assertThat(chorus.knownCount).isEqualTo(1)
+            assertThat(chorus.dueCount).isZero()
+            assertThat(chorus.duePreviewWords).isEmpty()
+
+            // REVIEW 라도 stability 가 7일 미만이면 단기기억이다.
+            val singalong = byKey.getValue(SongWordTierKey.SINGALONG)
+            assertThat(singalong.wordJapanese).containsExactly("する", "雨")
+            assertThat(singalong.longTermCount).isZero()
+            assertThat(singalong.shortTermCount).isEqualTo(1)
+            assertThat(singalong.knownCount).isEqualTo(1)
+            assertThat(singalong.dueCount).isEqualTo(1)
+            assertThat(singalong.duePreviewWords).containsExactly("する")
+
+            val full = byKey.getValue(SongWordTierKey.FULL)
+            assertThat(full.wordJapanese).containsExactly("輪郭")
+            assertThat(full.longTermCount + full.shortTermCount).isZero()
+            assertThat(full.dueCount).isEqualTo(1)
+            assertThat(full.duePreviewWords).containsExactly("輪郭")
+        }
+
+        @Test
+        fun `song without word candidates returns three empty tiers`() {
+            val me = newUser()
+            val song = newSong()
+            newLyric(song, raw = listOf(LyricLineData(index = 0, startTimeMs = null, text = "待機中")))
+
+            val dto = tiers(me, song.id!!)
+
+            assertThat(dto.tiers).hasSize(3)
+            assertThat(dto.tiers).allSatisfy {
+                assertThat(it.wordJapanese).isEmpty(); assertThat(it.totalCount).isZero(); assertThat(it.dueCount).isZero()
+            }
+        }
+
+        @Test
+        fun `unknown song returns 404`() {
+            val me = newUser()
+            mockMvc.get("/api/songs/999999/word-tiers") {
+                header("Authorization", bearer(me))
+            }.andExpect { status { isNotFound() } }
+            mockMvc.get("/api/songs/999999/coverage") {
+                header("Authorization", bearer(me))
+            }.andExpect { status { isNotFound() } }
+        }
+
+        @Test
+        fun `words with unknown jlpt are part of the default filter and count toward tiers`() {
+            val me = newUser()
+            val song = newSong()
+            newLyric(
+                song,
+                raw = listOf(LyricLineData(index = 0, startTimeMs = null, text = "미분류")),
+                wordCandidates = LyricWordCandidates(
+                    candidates = listOf(candidate("미분류", 10.0, 0, listOf(0), jlpt = null)),
+                    lineCandidates = mapOf("0" to listOf(0)),
+                ),
+            )
+            val dto = tiers(me, song.id!!)
+            assertThat(dto.tiers.first { it.key == SongWordTierKey.FULL }.wordJapanese).containsExactly("미분류")
+        }
+
+        @Test
+        fun `coverage counts lines whose tier words are all long-term and skips lines without tier words`() {
+            val me = newUser()
+            val song = newSong()
+            newLyric(
+                song,
+                raw = listOf(
+                    LyricLineData(index = 0, startTimeMs = null, text = "胸君"),
+                    LyricLineData(index = 1, startTimeMs = null, text = "雨胸"),
+                    LyricLineData(index = 2, startTimeMs = null, text = "君"),
+                    LyricLineData(index = 3, startTimeMs = null, text = "胸"),
+                ),
+                wordCandidates = LyricWordCandidates(
+                    candidates = listOf(
+                        candidate("胸", 90.0, 0, listOf(0, 1, 3)),
+                        candidate("君", 30.0, 1, listOf(0, 2), pos = "PRONOUN"),
+                        candidate("雨", 50.0, 2, listOf(1), jlpt = "N5"),
+                    ),
+                    lineCandidates = mapOf("0" to listOf(0, 1), "1" to listOf(2, 0), "2" to listOf(1), "3" to listOf(0)),
+                ),
+            )
+            val longTerm = TestWordBuilder(entityManager).forUser(me).withJapaneseText("胸").build()
+            TestFlashcardBuilder(entityManager, clock).forUser(me).ofWord(longTerm)
+                .withState(1).withStability(7.0).lastReviewedAt(clock.instant()).dueAt(later).build()
+            val shortTerm = TestWordBuilder(entityManager).forUser(me).withJapaneseText("雨").build()
+            TestFlashcardBuilder(entityManager, clock).forUser(me).ofWord(shortTerm)
+                .withState(1).withStability(6.9).lastReviewedAt(clock.instant()).dueAt(later).build()
+            entityManager.flush()
+
+            val dto = coverage(me, song.id!!)
+
+            // 0번 줄: 胸 만 센다(君 은 tier 밖) → 이해. 1번 줄: 雨 단기기억 → 아직. 2번 줄: tier 단어 없음 → 제외.
+            assertThat(dto.songId).isEqualTo(song.id)
+            assertThat(dto.totalLines).isEqualTo(3)
+            assertThat(dto.knownLines).isEqualTo(2)
+        }
+
+        @Test
+        fun `study of a current tier opens only due words and matches dueCount`() {
+            val me = newUser()
+            val song = newSong()
+            newLyric(
+                song,
+                raw = listOf(
+                    LyricLineData(index = 0, startTimeMs = null, text = "雨"),
+                    LyricLineData(index = 1, startTimeMs = null, text = "空"),
+                    LyricLineData(index = 2, startTimeMs = null, text = "星"),
+                    LyricLineData(index = 3, startTimeMs = null, text = "夢"),
+                ),
+                wordCandidates = LyricWordCandidates(
+                    candidates = listOf(
+                        candidate("雨", 50.0, 0, listOf(0), jlpt = "N5"),
+                        candidate("空", 40.0, 1, listOf(1), jlpt = "N5"),
+                        candidate("星", 35.0, 2, listOf(2), jlpt = "N4"),
+                        // 완곡 단어 — 따라 부르기 학습에 섞이면 안 된다.
+                        candidate("夢", 30.0, 3, listOf(3), jlpt = "N2"),
+                    ),
+                    lineCandidates = mapOf("0" to listOf(0), "1" to listOf(1), "2" to listOf(2), "3" to listOf(3)),
+                ),
+            )
+            // 雨: 안 담음 → due. 空: 리뷰했고 due 지남 → due. 星: 리뷰했고 아직 due 아님 → 빠진다.
+            val overdue = TestWordBuilder(entityManager).forUser(me).withJapaneseText("空").build()
+            TestFlashcardBuilder(entityManager, clock).forUser(me).ofWord(overdue)
+                .withState(1).withStability(3.0).lastReviewedAt(earlier).dueAt(earlier).build()
+            val notDue = TestWordBuilder(entityManager).forUser(me).withJapaneseText("星").build()
+            TestFlashcardBuilder(entityManager, clock).forUser(me).ofWord(notDue)
+                .withState(1).withStability(3.0).lastReviewedAt(clock.instant()).dueAt(later).build()
+            entityManager.flush()
+
+            val tier = tiers(me, song.id!!).tiers.first { it.key == SongWordTierKey.SINGALONG }
+            val result = study(me, song.id!!, SongWordTierKey.SINGALONG)
+
+            assertThat(result.cards.map { it.japanese }).containsExactly("雨", "空")
+            assertThat(result.totalCount).isEqualTo(tier.dueCount)
+            assertThat(tier.duePreviewWords).containsExactly("雨", "空")
+
+            val deck = readBody<DeckDetailResponse>(mockMvc.get("/api/decks/by-song/${song.id}") {
+                header("Authorization", bearer(me))
+            }.andExpect { status { isOk() } }.andReturn().response.contentAsString)
+            assertThat(deck.deckId).isEqualTo(result.deckId)
+        }
+
+        @Test
+        fun `study of a legacy tier still opens every word of the tier regardless of due`() {
+            val me = newUser()
+            val song = newSong()
+            newLyric(
+                song,
+                raw = listOf(
+                    LyricLineData(index = 0, startTimeMs = null, text = "雨"),
+                    LyricLineData(index = 1, startTimeMs = null, text = "空"),
+                    LyricLineData(index = 2, startTimeMs = null, text = "夢"),
+                ),
+                wordCandidates = LyricWordCandidates(
+                    candidates = listOf(
+                        candidate("雨", 50.0, 0, listOf(0), jlpt = "N5"),
+                        candidate("空", 40.0, 1, listOf(1), jlpt = "N5"),
+                        candidate("夢", 30.0, 2, listOf(2), jlpt = "N2"),
+                    ),
+                    lineCandidates = mapOf("0" to listOf(0), "1" to listOf(1), "2" to listOf(2)),
+                ),
+            )
+            val known = TestWordBuilder(entityManager).forUser(me).withJapaneseText("空").build()
+            TestFlashcardBuilder(entityManager, clock).forUser(me).ofWord(known)
+                .withState(2).lastReviewedAt(clock.instant()).dueAt(later).build()
+            entityManager.flush()
+
+            val result = study(me, song.id!!, SongWordTierKey.BASIC)
+
+            assertThat(result.cards.map { it.japanese }).containsExactly("雨", "空")
+            assertThat(result.totalCount).isEqualTo(2)
+        }
+
+        @Test
+        fun `study of a tier without due words returns conflict`() {
+            val me = newUser()
+            val song = newSong()
+            newLyric(song, raw = listOf(LyricLineData(index = 0, startTimeMs = null, text = "待機中")))
+
+            mockMvc.post("/api/songs/${song.id}/word-tiers/CHORUS/study") {
+                header("Authorization", bearer(me))
+            }.andExpect { status { isEqualTo(409) } }
+        }
+    }
+
+    @Nested
     inner class Recent {
 
         @Test
@@ -1080,11 +1366,8 @@ class SongControllerTest : ApiBaseIntegrationTest() {
                 wordCandidates = wordCandidates,
             )
 
-            // FSRS 라이브러리는 새 카드의 due 를 (주입 가능한 clock 이 아니라) 진짜 벽시계
-            // Instant.now() 로 못박는다 — 고정 테스트 clock(2026-01-01) 이 실제 지금보다
-            // 한참 과거라 그대로 두면 방금 만든 카드조차 due 로 안 잡힌다. 요청 처리 지연을
-            // 흡수할 만큼만 살짝 앞서 두면, lead 를 리뷰해서 생기는 새 due(며칠 뒤)는 여전히
-            // 이 시점보다 한참 미래라 제외된다.
+            // FSRS 라이브러리는 새 카드의 due 를 주입 clock 이 아닌 Instant.now() 로 못박는다.
+            // 고정 clock 이 과거면 새 카드가 due 로 안 잡히므로 요청 지연만큼 살짝 앞서 둔다.
             clock.setTo(Instant.now().plusSeconds(5))
 
             val body = bootstrap(me, song.id!!, rating = 3)

@@ -2,9 +2,12 @@
 
 ## Project Overview
 
-Japanese learning app based on songs. Users pick a song they like, study its lyrics with synced playback, tap unfamiliar words to save them, and review saved vocabulary with flashcards.
+Japanese learning app based on songs. Home is a flashcard stack; users review
+due cards from songs they like. Lyrics (`SongDetail`) are the source view, and
+tapping a word there starts a review from it. There is no explicit "save word"
+action — rating a card saves its song as a deck.
 
-**Core loop:** song -> lyric-based study -> vocabulary capture -> flashcard review -> better understanding
+**Core loop:** open home -> review flashcards -> come back tomorrow
 
 ## Quick Reference
 
@@ -28,14 +31,19 @@ cd app-rn && npx expo start --web             # App - Web (dev)
 - Backend module boundaries: `docs/architecture/backend-modules.md`
 - Word 스키마와 song 결합 해제: `docs/architecture/word-schema.md`
 - Song analysis and word-meaning pipeline: `docs/architecture/song-analysis.md`
+- 곡 상세 완곡까지 3단계·이해도(`GET /api/songs/{id}/word-tiers`, `/coverage`): `docs/architecture/song-word-tiers.md`
+- 곡 상세 이해도·word tier 3단계 개편 기획 배경: `docs/product-intents/260925-song-detail-study-status-api.md`
 - Translation pipeline guardrails: `docs/translation-pipeline.md`
 - Push notification architecture: `docs/architecture/push-notification.md`
 - Admin service: `docs/admin-service.md`
+- KPI 와 측정 방법 (GA4/BigQuery): `docs/analytics.md`
 - Recommended songs: `docs/recommended-songs.md`
 - k3s deploy and environment variables: `docs/runbooks/k3s-deploy.md`
+- Prod infra as code (Hetzner servers/network, Cloudflare DNS; CSI/CCM-owned resources excluded): `infra/terraform/README.md`
 - Analysis defect log and auto-fix runner: `.github/scripts/analysis-feedback/README.md`
 - Mobile OTA release flow: `docs/runbooks/mobile-ota-release.md`
 - Bottom sheet nested scroll: `docs/runbooks/bottom-sheet-nested-scroll.md`
+- iOS native Animated pitfalls: `docs/runbooks/ios-native-animated-pitfalls.md`
 - Pencil editing: `docs/runbooks/pencil-editing.md`
 
 Directory-specific instructions live in nested `AGENTS.md` files. Each has a sibling `CLAUDE.md` that links to it with `@AGENTS.md`.
@@ -82,7 +90,7 @@ For the V29 schema and sense-level word behavior, see
 
 ## Current State
 
-**Implemented:** Song search -> lyric fetch -> async batch word-meaning analysis -> study view, YouTube MV playback with synced lyrics, word save with meanings, flashcard review, decks, recent songs, user settings, push notifications, admin inspection surface.
+**Implemented:** Song search -> lyric fetch -> async batch word-meaning analysis -> study view, YouTube MV playback with synced lyrics, flashcard-first home stack, song auto-save via study bootstrap, flashcard review, decks, recent songs, user settings, push notifications, admin inspection surface.
 
 **Backend:** Multi-module Gradle split is complete. 곡 분석은 `worker` 가 RabbitMQ 메시지를
 받아 즉시 처리하고, 시간 기반 정기 작업은 `batch` 이미지를 도는 k8s CronJob 이 맡는다. public API,
@@ -100,7 +108,8 @@ appearance order. `lineWordIndexes[line]` is line-local appearance order. Use
 
 **Word meaning pipeline:** Dictionary entries are `(headword, reading)` pairs;
 one dictionary sense maps to one song-level `senseId`; token readings are
-katakana and line readings are assembled by clients. Details live in
+katakana and line readings are assembled by clients. Sense-select runs on
+TypeSafe Jev (`TYPESAFE_API_KEY`), the other LLM stages on Gemini. Details live in
 `docs/translation-pipeline.md`.
 
 **VOC (개발자 괴롭히기):** 설정 탭 `문의` 섹션 -> `Voc` 화면. `POST /api/voc`
@@ -124,6 +133,7 @@ freeze 행은 연속을 잇기만 하고 streak/총 학습일 카운트에는 �
 - Backend package root: `com.japanese.vocabulary.<domain>`. Music provider clients live in function-specific `integrations:*` modules and use `RestClient` where behavior is equivalent.
 - DB migrations: `backend/migration/src/main/resources/db/migration/`. 새 테이블은 여기에 `V_숫자` SQL로 추가. 도메인 모듈의 JPA `@Entity`와 migration이 일치해야 함.
 - App: Zustand stores by domain, Axios with auth interceptor, `StyleSheet.create()` co-located with components.
+- 주석: 코드가 이미 말하는 내용은 쓰지 않는다. 왜/제약/함정만 1줄(최대 2줄), 이슈 번호·경위·단계 설명 금지. 상세 규칙은 `.claude/skills/antislop-code/SKILL.md`.
 
 ### Frontend Performance Rules
 

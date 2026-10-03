@@ -4,7 +4,6 @@ export function katakanaToHiragana(text: string): string {
   let result = '';
   for (let i = 0; i < text.length; i++) {
     const code = text.charCodeAt(i);
-    // カタカナ range: U+30A1 (ァ) ~ U+30F6 (ヶ)
     if (code >= 0x30a1 && code <= 0x30f6) {
       result += String.fromCharCode(code - 0x60);
     } else {
@@ -36,41 +35,26 @@ const YOON_MAP: Record<string, string> = {
   'ツァ': '차', 'ツェ': '체', 'ツォ': '초',
 };
 
-// Single-char kana mapping
 const KANA_MAP: Record<string, string> = {
-  // vowels
   'ア': '아', 'イ': '이', 'ウ': '우', 'エ': '에', 'オ': '오',
-  // ka row
   'カ': '카', 'キ': '키', 'ク': '쿠', 'ケ': '케', 'コ': '코',
-  // sa row
   'サ': '사', 'シ': '시', 'ス': '스', 'セ': '세', 'ソ': '소',
-  // ta row
   'タ': '타', 'チ': '치', 'ツ': '츠', 'テ': '테', 'ト': '토',
-  // na row
   'ナ': '나', 'ニ': '니', 'ヌ': '누', 'ネ': '네', 'ノ': '노',
-  // ha row
   'ハ': '하', 'ヒ': '히', 'フ': '후', 'ヘ': '헤', 'ホ': '호',
-  // ma row
   'マ': '마', 'ミ': '미', 'ム': '무', 'メ': '메', 'モ': '모',
-  // ya row
   'ヤ': '야', 'ユ': '유', 'ヨ': '요',
-  // ra row
   'ラ': '라', 'リ': '리', 'ル': '루', 'レ': '레', 'ロ': '로',
-  // wa row
   'ワ': '와', 'ヲ': '오',
-  // dakuten (ga, za, da, ba)
   'ガ': '가', 'ギ': '기', 'グ': '구', 'ゲ': '게', 'ゴ': '고',
   'ザ': '자', 'ジ': '지', 'ズ': '즈', 'ゼ': '제', 'ゾ': '조',
   'ダ': '다', 'ヂ': '지', 'ヅ': '즈', 'デ': '데', 'ド': '도',
   'バ': '바', 'ビ': '비', 'ブ': '부', 'ベ': '베', 'ボ': '보',
-  // handakuten (pa)
   'パ': '파', 'ピ': '피', 'プ': '푸', 'ペ': '페', 'ポ': '포',
-  // small kana
   'ァ': '아', 'ィ': '이', 'ゥ': '우', 'ェ': '에', 'ォ': '오',
   'ャ': '야', 'ュ': '유', 'ョ': '요',
 };
 
-// Vowel row for each kana (used for long vowel detection)
 type VowelRow = 'a' | 'i' | 'u' | 'e' | 'o';
 
 const VOWEL_ROW: Record<string, VowelRow> = {
@@ -86,7 +70,6 @@ const VOWEL_ROW: Record<string, VowelRow> = {
   'ゴ': 'o', 'ゾ': 'o', 'ド': 'o', 'ボ': 'o', 'ポ': 'o', 'ヲ': 'o', 'ォ': 'o', 'ョ': 'o',
 };
 
-// Yōon vowel rows (the combination's vowel is determined by the small kana)
 const YOON_VOWEL: Record<string, VowelRow> = {
   'キャ': 'a', 'キュ': 'u', 'キョ': 'o',
   'シャ': 'a', 'シュ': 'u', 'ショ': 'o',
@@ -134,7 +117,6 @@ const LONG_VOWEL_SIGN = '-';
 /** The syllable a long vowel repeats, per vowel row. */
 const PLAIN_VOWEL: Record<VowelRow, string> = { a: '아', i: '이', u: '우', e: '에', o: '오' };
 
-// 종성 (받침) indices in Korean Unicode block
 const JONGSEONG_NIEUN = 4;  // ㄴ
 const JONGSEONG_SIOT = 19;  // ㅅ
 
@@ -180,8 +162,11 @@ function attachBatchim(buffer: SyllableBuffer, jongseongIndex: number): boolean 
  * One syllable per element so a 받침 can reach back across a token boundary (だ + って → 닷테). The
  * long vowel state starts fresh instead, or one word's vowel eats the next word's ウ/イ
  * (ボクノ + ウタ → 보쿠노-타).
+ *
+ * From [inflectionStart] on, an イ after an エ段 syllable is its own syllable: in inflection it is
+ * て + いる, not the long e of セイ (探していたら → 사가시테이타라, not 사가시테-타라).
  */
-function appendKorean(buffer: SyllableBuffer, text: string): void {
+function appendKorean(buffer: SyllableBuffer, text: string, inflectionStart = Infinity): void {
   let prevVowelRow: VowelRow | null = null;
   // Whether a vowel *kana* may lengthen what came before. ー is separate: it lengthens anything.
   let kanaLengthenable = false;
@@ -200,7 +185,8 @@ function appendKorean(buffer: SyllableBuffer, text: string): void {
 
     // Long vowel: vowel kana extending previous syllable's vowel row
     const extends_ = LONG_VOWEL_EXTENDS[ch];
-    if (extends_ && prevVowelRow && kanaLengthenable && extends_.includes(prevVowelRow)) {
+    const splitsFromE = ch === 'イ' && prevVowelRow === 'e' && i >= inflectionStart;
+    if (extends_ && prevVowelRow && kanaLengthenable && extends_.includes(prevVowelRow) && !splitsFromE) {
       pushLongVowel(buffer, KANA_MAP[ch]);
       // Spent: letting it stand let the next vowel kana extend it too (エイエン → 에--).
       prevVowelRow = null;
@@ -304,9 +290,27 @@ function separatorFor(text: string): string {
   return JAPANESE.test(text) ? ' ' : text;
 }
 
-function appendReading(buffer: SyllableBuffer, reading: string, display: ReadingDisplay): void {
+/** Parts of speech whose trailing kana is inflection. */
+const INFLECTING_POS = new Set(['VERB', 'AUXILIARY_VERB']);
+
+const TRAILING_HIRAGANA = /[ぁ-ゖ]+$/;
+
+/**
+ * Where [token]'s reading turns into the kana its surface spells out — the inflection of a verb
+ * (探していたら → サガ|シテイタラ). Infinity when there is none or the reading does not end in it.
+ */
+function inflectionStartOf(token: ReadingToken, reading: string): number {
+  if (token.partOfSpeech == null || !INFLECTING_POS.has(token.partOfSpeech)) return Infinity;
+  const tail = token.surface.match(TRAILING_HIRAGANA)?.[0];
+  if (tail == null) return Infinity;
+  const katakana = [...tail].map(ch => String.fromCharCode(ch.charCodeAt(0) + 0x60)).join('');
+  return reading.endsWith(katakana) ? reading.length - katakana.length : Infinity;
+}
+
+function appendReading(buffer: SyllableBuffer, token: ReadingToken, display: ReadingDisplay): void {
+  const reading = token.reading ?? token.surface;
   if (display === 'KOREAN') {
-    appendKorean(buffer, reading);
+    appendKorean(buffer, reading, inflectionStartOf(token, reading));
     return;
   }
   buffer.out.push(display === 'HIRAGANA' ? katakanaToHiragana(reading) : reading);
@@ -335,7 +339,7 @@ export function convertLineReading(
     } else if (startsNewWord(token, previous)) {
       buffer.out.push(' ');
     }
-    appendReading(buffer, token.reading ?? token.surface, display);
+    appendReading(buffer, token, display);
     cursor = Math.max(cursor, token.charEnd);
     previous = token;
   }

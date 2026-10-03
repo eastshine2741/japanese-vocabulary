@@ -48,12 +48,14 @@ class DeckControllerTest : ApiBaseIntegrationTest() {
         dueAt: Instant = clock.instant(),
         state: Int = 0,
         lastReviewedAt: Instant? = null,
+        stability: Double = 0.0,
     ): FlashcardEntity = TestFlashcardBuilder(entityManager, clock)
         .forUser(user)
         .ofWord(word)
         .dueAt(dueAt)
         .withState(state)
         .lastReviewedAt(lastReviewedAt)
+        .withStability(stability)
         .build()
 
     private fun newDeck(user: UserEntity, song: SongEntity): DeckEntity {
@@ -157,6 +159,41 @@ class DeckControllerTest : ApiBaseIntegrationTest() {
             assertThat(summary.newWordCount).isEqualTo(1)
             assertThat(summary.studyingCount).isEqualTo(detail.studyingCount)
             assertThat(summary.newWordCount).isEqualTo(detail.newWordCount)
+        }
+
+        @Test
+        fun `longTerm and shortTerm counts follow stability, not FSRS state`() {
+            val me = newUser()
+            val song = newSong()
+            val deck = newDeck(me, song)
+            val now = clock.instant()
+            val longTermWord = newWord(me)
+            val shortTermWord = newWord(me)
+            val remainingWord = newWord(me)
+            // 둘 다 FSRS REVIEW 지만 stability 7일이 경계다 — 6.9 는 단기기억이다.
+            newCard(me, longTermWord, dueAt = now.plus(Duration.ofDays(9)), state = 1, lastReviewedAt = now, stability = 7.0)
+            newCard(me, shortTermWord, dueAt = now.plus(Duration.ofDays(2)), state = 1, lastReviewedAt = now, stability = 6.9)
+            // 리뷰 이력이 없으면 stability 가 얼마든 남음이다.
+            newCard(me, remainingWord, dueAt = now, state = 0, lastReviewedAt = null, stability = 30.0)
+            link(deck, longTermWord); link(deck, shortTermWord); link(deck, remainingWord)
+
+            val listBody = mockMvc.get("/api/decks") {
+                header("Authorization", bearer(me))
+            }.andReturn().response.contentAsString
+            val detailBody = mockMvc.get("/api/decks/${deck.id}") {
+                header("Authorization", bearer(me))
+            }.andReturn().response.contentAsString
+
+            val summary = readBody<DeckListResponse>(listBody).songDecks.single()
+            val detail = readBody<DeckDetailResponse>(detailBody)
+            assertThat(summary.longTermCount).isEqualTo(1)
+            assertThat(summary.shortTermCount).isEqualTo(1)
+            // 앱은 남음을 뺄셈으로 구한다.
+            assertThat(summary.wordCount - summary.longTermCount - summary.shortTermCount).isEqualTo(1)
+            // FSRS state 기준 masteredCount 와는 판정이 다르다.
+            assertThat(summary.masteredCount).isEqualTo(2)
+            assertThat(detail.longTermCount).isEqualTo(summary.longTermCount)
+            assertThat(detail.shortTermCount).isEqualTo(summary.shortTermCount)
         }
 
         @Test

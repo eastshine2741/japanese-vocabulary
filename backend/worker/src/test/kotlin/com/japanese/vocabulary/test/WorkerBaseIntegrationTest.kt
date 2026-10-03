@@ -6,15 +6,22 @@ import com.japanese.vocabulary.lyricsearch.vocadb.VocadbClient
 import com.japanese.vocabulary.messagequeue.SongAnalysisWorkQueuePublisher
 import com.japanese.vocabulary.mvsearch.client.youtube.YoutubeClient
 import com.japanese.vocabulary.translation.client.gemini.GeminiClient
+import com.japanese.vocabulary.translation.client.jev.JevClient
+import com.japanese.vocabulary.translation.client.jev.dto.JevAnswer
+import com.japanese.vocabulary.translation.client.jev.dto.JevChoiceQuestion
 import com.japanese.vocabulary.translation.service.JishoService
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.clearMocks
+import io.mockk.coEvery
 import org.junit.jupiter.api.BeforeEach
 
 abstract class WorkerBaseIntegrationTest : BaseIntegrationTest() {
 
     @MockkBean
     protected lateinit var geminiClient: GeminiClient
+
+    @MockkBean
+    protected lateinit var jevClient: JevClient
 
     @MockkBean
     protected lateinit var jishoService: JishoService
@@ -45,6 +52,7 @@ abstract class WorkerBaseIntegrationTest : BaseIntegrationTest() {
     fun resetExternalApiMocks() {
         clearMocks(
             geminiClient,
+            jevClient,
             jishoService,
             lrclibClient,
             vocadbClient,
@@ -52,5 +60,17 @@ abstract class WorkerBaseIntegrationTest : BaseIntegrationTest() {
             answers = true,
             recordedCalls = true,
         )
+    }
+
+    /**
+     * Sense-select answers every question with its first offered sense at full confidence. Each
+     * request's questions (tokenId -> question) are appended to [requests] when given.
+     */
+    protected fun stubJevPicksFirstOffered(requests: MutableList<Map<String, JevChoiceQuestion>>? = null) {
+        coEvery { jevClient.choose(any(), any(), any(), any()) } answers {
+            val questions = thirdArg<Map<String, JevChoiceQuestion>>()
+            requests?.add(questions)
+            questions.mapValues { (_, question) -> JevAnswer(question.criteria.keys.first(), 1.0) }
+        }
     }
 }

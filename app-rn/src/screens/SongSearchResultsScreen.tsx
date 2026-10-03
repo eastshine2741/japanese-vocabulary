@@ -21,6 +21,7 @@ import { usePlayerStore } from '../stores/playerStore';
 import { isAnalyzingSong, useAnalysisStore } from '../stores/analysisStore';
 import { useSearchHistoryStore } from '../stores/searchHistoryStore';
 import { songApi } from '../api/songApi';
+import { trackSearchSubmit } from '../services/analytics';
 import { Colors } from '../theme/theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { getErrorMessage } from '../utils/errorMessages';
@@ -37,9 +38,7 @@ function formatDuration(seconds: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
-// Replaces the chevron while a row is busy. Owns its own loop so it only
-// runs while mounted — several rows can spin at once when several songs
-// are being analyzed.
+// Replaces the chevron while a row is busy; several rows can spin at once.
 function RowSpinner() {
   const spinAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -65,16 +64,10 @@ function RowSpinner() {
 interface SearchResultRowProps {
   item: SongSearchItem;
   onPress: (item: SongSearchItem) => void;
-  // Whether an existence check is in flight screen-wide. Every row must be
-  // untappable while this is true, or a second tap can race the first
-  // request's callback and navigate to the wrong song (see handleAnalyze).
-  // A running analysis does not block rows: it lives in the global
-  // analysis pill, and tapping another song simply adds a second one.
-  // Re-tapping a song already being analyzed just rejoins that analysis.
+  // Existence check in flight screen-wide: every row is untappable, or a second tap
+  // can race the first callback and navigate to the wrong song. Running analyses don't block rows.
   disabled: boolean;
-  // Whether THIS row is the one being checked, so only it shows the
-  // spinner in place of the chevron. Derived from the store status, so a
-  // stale checkingItemId can't leave a row spinning.
+  // This row is the one being checked. Derived from store status so a stale checkingItemId can't leave it spinning.
   isActiveRow: boolean;
 }
 
@@ -84,8 +77,7 @@ const SearchResultRow = React.memo(function SearchResultRow({
   const handlePress = useCallback(() => {
     onPress(item);
   }, [item, onPress]);
-  // A song whose analysis is still running (lyrics or words) keeps spinning
-  // even after the existence check ended, so the list mirrors the pill.
+  // Keeps spinning after the existence check ends while analysis runs, mirroring the pill.
   const isAnalyzing = useAnalysisStore(s => isAnalyzingSong(s.jobs, item.title, item.artistName));
 
   return (
@@ -134,14 +126,10 @@ export default function SongSearchResultsScreen() {
   const resetPlayer = usePlayerStore(s => s.reset);
   const recordSearchLocally = useSearchHistoryStore(s => s.recordLocally);
 
-  // Existence check ('loading') shows a row spinner and blocks other rows.
-  // Once a brand-new analysis is accepted ('analyzing') the global analysis
-  // pill takes over; the list stays usable and the song opens by itself
-  // when its lyrics are ready.
+  // Only the existence check ('loading') blocks rows; once 'analyzing', the global pill takes over.
   const isChecking = playerStatus === 'loading';
 
-  // Run the search for this screen's query once on mount. Each executed search
-  // lives on its own stack entry, so a fresh screen == a fresh search.
+  // Each executed search lives on its own stack entry, so it runs once per mount.
   useEffect(() => {
     recordSearchLocally(initialQuery);
     let cancelled = false;
@@ -150,6 +138,7 @@ export default function SongSearchResultsScreen() {
       .search(initialQuery)
       .then(res => {
         if (cancelled) return;
+        trackSearchSubmit(initialQuery, res.items.length);
         setItems(res.items);
         setStatus('success');
       })
@@ -172,17 +161,14 @@ export default function SongSearchResultsScreen() {
   }, [resetPlayer]);
 
   const handleAnalyze = useCallback((item: SongSearchItem) => {
-    // Row taps are disabled screen-wide while a check is in flight, but
-    // guard re-entry here too in case a tap is already queued before
-    // disabled propagates.
+    // Guards a tap queued before `disabled` propagates.
     if (isChecking) return;
     Keyboard.dismiss();
     setCheckingItemId(item.id);
     analyze(item).then(() => {
       const state = usePlayerStore.getState();
       if (state.status === 'success') {
-        // The lyrics of a new analysis can take a while; if the user has
-        // moved on, the pill is the way back in — don't yank them here.
+        // Analysis can take a while; if the user moved on, the pill is the way back in.
         if (!navigation.isFocused()) return;
         navigation.navigate('SongDetail', { songId: state.studyData?.song.id, origin: 'Home' });
       } else if (state.status === 'error') {
@@ -195,8 +181,7 @@ export default function SongSearchResultsScreen() {
     });
   }, [analyze, navigation, isChecking]);
 
-  // Refining the search pushes a new stack entry so each query keeps its own
-  // results and the back button steps through them.
+  // Refining pushes a new stack entry so back steps through past queries.
   const runSearch = useCallback(
     (raw: string) => {
       const trimmed = raw.trim();
@@ -207,9 +192,6 @@ export default function SongSearchResultsScreen() {
     [navigation],
   );
 
-  // Screen-wide busy flag: an existence check in flight must disable every
-  // row, not just the one being checked — otherwise a second tap can race
-  // the first request's callback and navigate to the wrong song.
   const renderResultItem = useCallback(
     ({ item }: { item: SongSearchItem }) => (
       <SearchResultRow

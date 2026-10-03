@@ -22,8 +22,9 @@ import org.junit.jupiter.api.Test
 
 /**
  * Pure-mock coverage of candidate filtering in [YoutubeMvSearchService]: an upload far
- * shorter or longer than the iTunes track, or titled as a live/tour clip, never wins over
- * the full MV, on both the broad-search and cached-uploads paths.
+ * shorter or longer than the iTunes track, by another artist, or titled as a live/tour clip
+ * never wins over the full MV, on both the broad-search and cached-uploads paths. A live clip
+ * by the artist is still taken when no MV exists at all.
  */
 class YoutubeMvSearchServiceTest {
 
@@ -143,7 +144,8 @@ class YoutubeMvSearchServiceTest {
     }
 
     @Test
-    fun `search returns nothing when the only candidate is a live clip`() {
+    fun `search returns a live clip from the artist channel when no MV exists`() {
+        // No MV, only live uploads: the artist's live beats failing the work.
         every { artistChannelCache.get(ARTIST) } returns null
         stubSearch(
             searchItem("live-id", "$TITLE LIVE映像"),
@@ -152,7 +154,75 @@ class YoutubeMvSearchServiceTest {
         )
         stubDurations("live-id" to "PT4M", "live-en-id" to "PT4M", "karaoke-id" to "PT4M")
 
+        assertThat(service.searchMvUrl(TITLE, ARTIST, TRACK_SECONDS))
+            .isEqualTo("https://www.youtube.com/watch?v=live-id")
+    }
+
+    @Test
+    fun `search rejects a Shorts-length live clip`() {
+        every { artistChannelCache.get(ARTIST) } returns null
+        stubSearch(searchItem("live-id", "$TITLE LIVE映像"))
+        stubDurations("live-id" to "PT57S")
+
         assertThat(service.searchMvUrl(TITLE, ARTIST, TRACK_SECONDS)).isNull()
+    }
+
+    @Test
+    fun `search returns nothing when every candidate is a cover or a karaoke track`() {
+        every { artistChannelCache.get(ARTIST) } returns null
+        stubSearch(
+            searchItem("karaoke-id", "【カラオケ】$TITLE / $ARTIST"),
+            searchItem("cover-id", "$TITLE / $ARTIST【歌ってみた】", "歌い手ちゃん"),
+            searchItem("live-cover-id", "$TITLE $ARTIST cover LIVE", "弾き語りチャンネル"),
+        )
+        stubDurations("karaoke-id" to "PT4M", "cover-id" to "PT4M", "live-cover-id" to "PT4M")
+
+        assertThat(service.searchMvUrl(TITLE, ARTIST, TRACK_SECONDS)).isNull()
+    }
+
+    @Test
+    fun `search rejects a same-titled song by another artist`() {
+        // The official marker alone must not let another artist's same-titled MV win or be cached.
+        every { artistChannelCache.get("Vaundy") } returns null
+        stubSearch(
+            searchItem("other-artist-id", "優河 -  灯火（Official Music Video）", "優河 Yuga", "yuga-channel"),
+            searchItem("short-id", "#灯火 / #Vaundy", "Vaundy"),
+        )
+        stubDurations("other-artist-id" to "PT5M12S", "short-id" to "PT40S")
+
+        assertThat(service.searchMvUrl("灯火", "Vaundy", 178)).isNull()
+        verify(exactly = 0) { artistChannelCache.put(any<String>(), any<ArtistChannelCacheEntry>()) }
+    }
+
+    @Test
+    fun `search prefers the artist's live over a reupload on a stranger's channel`() {
+        // No MV exists: behind the other artist's same-titled MV sit a reupload, a cut-down audio, and the live.
+        every { artistChannelCache.get("Vaundy") } returns null
+        stubSearch(
+            searchItem("other-artist-id", "優河 -  灯火（Official Music Video）", "優河 Yuga"),
+            searchItem("reupload-id", "Vaundy - 灯火", "音楽音楽"),
+            searchItem("short-ver-id", "灯火 / Vaundy ：Official Audio(Short Version)", "Vaundy"),
+            searchItem("live-id", "Vaundy LIVE \"灯火\" | 2022.09.09 one man live at BUDOKAN", "Vaundy"),
+        )
+        stubDurations(
+            "other-artist-id" to "PT3M40S",
+            "reupload-id" to "PT2M57S",
+            "short-ver-id" to "PT1M52S",
+            "live-id" to "PT3M9S",
+        )
+
+        assertThat(service.searchMvUrl("灯火", "Vaundy", 178))
+            .isEqualTo("https://www.youtube.com/watch?v=live-id")
+    }
+
+    @Test
+    fun `search accepts a reupload on a stranger's channel when nothing official is found`() {
+        every { artistChannelCache.get(ARTIST) } returns null
+        stubSearch(searchItem("reupload-id", "$ARTIST - $TITLE", "音楽音楽"))
+        stubDurations("reupload-id" to "PT3M58S")
+
+        assertThat(service.searchMvUrl(TITLE, ARTIST, TRACK_SECONDS))
+            .isEqualTo("https://www.youtube.com/watch?v=reupload-id")
     }
 
     @Test
@@ -224,10 +294,28 @@ class YoutubeMvSearchServiceTest {
     }
 
     @Test
+    fun `cached uploads path returns a live upload when the search finds no MV`() {
+        every { artistChannelCache.get(ARTIST) } returns ArtistChannelCacheEntry(
+            artistName = ARTIST,
+            channelId = "channel-id",
+            uploadsPlaylistId = "uploads-id",
+            channelTitle = ARTIST,
+        )
+        every { youtubeClient.listPlaylistItems(any(), any(), any()) } returns
+            YoutubePlaylistItemsResponse(
+                nextPageToken = null,
+                items = listOf(playlistItem("live-id", "$TITLE / $ARTIST (Live at Budokan)")),
+            )
+        stubSearch()
+        stubDurations("live-id" to "PT4M2S")
+
+        assertThat(service.searchMvUrl(TITLE, ARTIST, TRACK_SECONDS))
+            .isEqualTo("https://www.youtube.com/watch?v=live-id")
+    }
+
+    @Test
     fun `cached publisher channel rejects an upload of the song by another unit`() {
-        // Prod song 78: the Project SEKAI channel's recent uploads held only the April Fools
-        // swap "熱異常 / ロボピース", and the real "熱異常 / 25時、ナイトコードで。 × KAITO" was
-        // older than the scanned pages; the swap must not win by title alone.
+        // The real MV is older than the scanned pages; the April Fools swap must not win by title alone.
         every { artistChannelCache.get(NIIGO) } returns ArtistChannelCacheEntry(
             artistName = NIIGO,
             channelId = "channel-id",
@@ -302,8 +390,7 @@ class YoutubeMvSearchServiceTest {
 
     @Test
     fun `search rejects an unofficial fan MV and falls back to the Topic channel`() {
-        // Prod song 79: "【非公式MV】エンゼルケア / いよわ様" scored as official because "非公式"
-        // contains "公式", won over the Topic upload, and cached its channel for the artist.
+        // "非公式" contains "公式" and must not score as official over the Topic upload.
         every { artistChannelCache.get("いよわ") } returns null
         stubSearch(
             searchItem("fan-id", "【非公式MV】エンゼルケア / いよわ様", "ふわふわ擬"),
@@ -331,13 +418,18 @@ class YoutubeMvSearchServiceTest {
         }
     }
 
-    private fun searchItem(videoId: String, title: String, channelTitle: String = ARTIST) = YoutubeSearchItemDto(
+    private fun searchItem(
+        videoId: String,
+        title: String,
+        channelTitle: String = ARTIST,
+        channelId: String? = null,
+    ) = YoutubeSearchItemDto(
         id = YoutubeVideoIdDto(videoId = videoId),
         snippet = YoutubeSnippetDto(
             title = title,
             thumbnails = YoutubeThumbnailsDto(medium = null, default = null),
             channelTitle = channelTitle,
-            channelId = null,
+            channelId = channelId,
         ),
     )
 

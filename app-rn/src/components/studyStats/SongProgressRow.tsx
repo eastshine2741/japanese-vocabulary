@@ -2,7 +2,7 @@ import React, { useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import ArtworkImage from '../ArtworkImage';
-import WordMasteryProgressBar from '../WordMasteryProgressBar';
+import MemoryProgressBar from '../MemoryProgressBar';
 import { Colors } from '../../theme/theme';
 import { SongProgressItem } from './songProgress';
 
@@ -24,10 +24,10 @@ function SongProgressRow({ item, onPress }: Props) {
           <Text style={styles.title} numberOfLines={1}>{item.title}</Text>
           <Text style={styles.count}>{item.totalWords}단어</Text>
         </View>
-        <WordMasteryProgressBar
+        <MemoryProgressBar
           totalCount={item.totalWords}
-          masteredCount={item.masteredCount}
-          studyingCount={item.learningCount}
+          longTermCount={item.longTermCount}
+          shortTermCount={item.shortTermCount}
         />
       </View>
       <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />

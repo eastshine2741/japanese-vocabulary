@@ -40,8 +40,8 @@ class AdminTokenService(
     }
 
     /**
-     * 릴스 미리보기 `<video src>` 용 토큰. 브라우저 video 태그는 Authorization 헤더를 못 붙여서 query 로 넘긴다.
-     * 어드민 토큰이 URL·접근 로그에 남지 않도록 곡 하나의 MV 스트림에만 쓰이는 짧은 토큰을 따로 발급한다.
+     * 릴스 미리보기 `<video src>` 용 토큰. video 태그는 Authorization 헤더를 못 붙여 query 로 넘기므로,
+     * 어드민 토큰이 URL 에 남지 않게 곡 하나의 MV 스트림 전용 짧은 토큰을 따로 발급한다.
      */
     fun issueMediaToken(songId: Long): String {
         val now = Instant.now(clock)

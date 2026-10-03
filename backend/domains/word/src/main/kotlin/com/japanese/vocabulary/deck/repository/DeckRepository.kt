@@ -23,8 +23,7 @@ interface DeckRepository : JpaRepository<DeckEntity, Long> {
         pageable: Pageable,
     ): List<DeckEntity>
 
-    // Returns ids (not FlashcardEntity) — entities stay inside their own module (see CLAUDE.md);
-    // the flashcard module re-loads them when assembling the response.
+    // Returns ids, not FlashcardEntity: entities stay inside their own module.
     @Query("""
         SELECT f.id FROM DeckWordEntity dw, FlashcardEntity f
         WHERE dw.wordId = f.wordId AND dw.deckId = :deckId
@@ -60,17 +59,20 @@ interface DeckRepository : JpaRepository<DeckEntity, Long> {
         @Param("now") now: Instant,
     ): Instant?
 
+    // mastered/studying/new 판정은 FlashcardStudyState 와 같아야 한다.
+    // longTerm/shortTerm 은 FSRS state 가 아니라 stability 기준이다 — 판정은 FlashcardMemory 와 같아야 한다.
     // COALESCE: SUM over zero rows returns NULL, which fails projection mapping to non-null Int.
-    // words JOIN 은 소유자 스코프용 — 이게 없으면 목록의 wordCount 가 상세(findDeckDetailStats,
-    // user_id 로 거르는)와 어긋난다. flashcard 는 불변식상 항상 있지만, 깨졌을 때 word 가 통째로
-    // 안 보이는 것보다 통계만 0 으로 나오는 게 나으므로 LEFT JOIN 을 유지한다.
+    // words JOIN 은 소유자 스코프용이라 없으면 wordCount 가 상세와 어긋난다. flashcard 는 LEFT JOIN 을 유지해
+    // 불변식이 깨져도 word 는 보이고 통계만 0 이 된다.
     @Query(nativeQuery = true, value = """
         SELECT dw.deck_id AS deckId,
                COUNT(DISTINCT dw.word_id) AS wordCount,
                COALESCE(SUM(CASE WHEN f.due <= :now THEN 1 ELSE 0 END), 0) AS dueCount,
                COALESCE(SUM(CASE WHEN f.state = 1 THEN 1 ELSE 0 END), 0) AS masteredCount,
                COALESCE(SUM(CASE WHEN (f.state = 0 AND f.last_review IS NOT NULL) OR f.state = 2 THEN 1 ELSE 0 END), 0) AS studyingCount,
-               COALESCE(SUM(CASE WHEN f.state = 0 AND f.last_review IS NULL THEN 1 ELSE 0 END), 0) AS newWordCount
+               COALESCE(SUM(CASE WHEN f.state = 0 AND f.last_review IS NULL THEN 1 ELSE 0 END), 0) AS newWordCount,
+               COALESCE(SUM(CASE WHEN f.last_review IS NOT NULL AND f.stability >= :longTermStabilityDays THEN 1 ELSE 0 END), 0) AS longTermCount,
+               COALESCE(SUM(CASE WHEN f.last_review IS NOT NULL AND f.stability < :longTermStabilityDays THEN 1 ELSE 0 END), 0) AS shortTermCount
         FROM deck_word dw
         JOIN words w ON w.id = dw.word_id AND w.user_id = :userId
         LEFT JOIN flashcards f ON f.word_id = dw.word_id
@@ -81,6 +83,7 @@ interface DeckRepository : JpaRepository<DeckEntity, Long> {
         @Param("userId") userId: Long,
         @Param("deckIds") deckIds: List<Long>,
         @Param("now") now: Instant,
+        @Param("longTermStabilityDays") longTermStabilityDays: Double,
     ): List<DeckStatsProjection>
 
     @Query(nativeQuery = true, value = """
@@ -88,11 +91,17 @@ interface DeckRepository : JpaRepository<DeckEntity, Long> {
                COALESCE(SUM(CASE WHEN f.due <= :now THEN 1 ELSE 0 END), 0) AS dueCount,
                COALESCE(SUM(CASE WHEN f.state = 1 THEN 1 ELSE 0 END), 0) AS masteredCount,
                COALESCE(SUM(CASE WHEN (f.state = 0 AND f.last_review IS NOT NULL) OR f.state = 2 THEN 1 ELSE 0 END), 0) AS studyingCount,
-               COALESCE(SUM(CASE WHEN f.state = 0 AND f.last_review IS NULL THEN 1 ELSE 0 END), 0) AS newWordCount
+               COALESCE(SUM(CASE WHEN f.state = 0 AND f.last_review IS NULL THEN 1 ELSE 0 END), 0) AS newWordCount,
+               COALESCE(SUM(CASE WHEN f.last_review IS NOT NULL AND f.stability >= :longTermStabilityDays THEN 1 ELSE 0 END), 0) AS longTermCount,
+               COALESCE(SUM(CASE WHEN f.last_review IS NOT NULL AND f.stability < :longTermStabilityDays THEN 1 ELSE 0 END), 0) AS shortTermCount
         FROM flashcards f
         WHERE f.user_id = :userId
     """)
-    fun findAllDeckDetailStats(@Param("userId") userId: Long, @Param("now") now: Instant): DeckDetailStatsProjection
+    fun findAllDeckDetailStats(
+        @Param("userId") userId: Long,
+        @Param("now") now: Instant,
+        @Param("longTermStabilityDays") longTermStabilityDays: Double,
+    ): DeckDetailStatsProjection
 
     // deck_word 를 기준으로 세야 목록(findDeckStats)과 같은 wordCount 가 나온다.
     // flashcards 를 기준으로 세면 flashcard 가 아직 없는 word 가 상세에서만 누락된다.
@@ -101,7 +110,9 @@ interface DeckRepository : JpaRepository<DeckEntity, Long> {
                COALESCE(SUM(CASE WHEN f.due <= :now THEN 1 ELSE 0 END), 0) AS dueCount,
                COALESCE(SUM(CASE WHEN f.state = 1 THEN 1 ELSE 0 END), 0) AS masteredCount,
                COALESCE(SUM(CASE WHEN (f.state = 0 AND f.last_review IS NOT NULL) OR f.state = 2 THEN 1 ELSE 0 END), 0) AS studyingCount,
-               COALESCE(SUM(CASE WHEN f.state = 0 AND f.last_review IS NULL THEN 1 ELSE 0 END), 0) AS newWordCount
+               COALESCE(SUM(CASE WHEN f.state = 0 AND f.last_review IS NULL THEN 1 ELSE 0 END), 0) AS newWordCount,
+               COALESCE(SUM(CASE WHEN f.last_review IS NOT NULL AND f.stability >= :longTermStabilityDays THEN 1 ELSE 0 END), 0) AS longTermCount,
+               COALESCE(SUM(CASE WHEN f.last_review IS NOT NULL AND f.stability < :longTermStabilityDays THEN 1 ELSE 0 END), 0) AS shortTermCount
         FROM deck_word dw
         JOIN words w ON w.id = dw.word_id AND w.user_id = :userId
         LEFT JOIN flashcards f ON f.word_id = dw.word_id
@@ -111,6 +122,7 @@ interface DeckRepository : JpaRepository<DeckEntity, Long> {
         @Param("deckId") deckId: Long,
         @Param("userId") userId: Long,
         @Param("now") now: Instant,
+        @Param("longTermStabilityDays") longTermStabilityDays: Double,
     ): DeckDetailStatsProjection
 }
 
@@ -121,6 +133,8 @@ interface DeckStatsProjection {
     fun getMasteredCount(): Int
     fun getStudyingCount(): Int
     fun getNewWordCount(): Int
+    fun getLongTermCount(): Int
+    fun getShortTermCount(): Int
 }
 
 interface DeckDetailStatsProjection {
@@ -129,4 +143,6 @@ interface DeckDetailStatsProjection {
     fun getMasteredCount(): Int
     fun getStudyingCount(): Int
     fun getNewWordCount(): Int
+    fun getLongTermCount(): Int
+    fun getShortTermCount(): Int
 }

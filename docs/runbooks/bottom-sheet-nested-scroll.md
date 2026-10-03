@@ -49,6 +49,11 @@ height = contentHeightMax + paddingBottom
   1. 시트가 **최상단 스냅포인트에 정확히 있을 때만** 스크롤이 풀린다. 벗어나면 `useScrollEventsHandlersDefault` 가 `scrollTo(ref, 0, 0)` 으로 목록을 맨 위로 되감는다.
   2. 시트는 스크롤을 하나만 기억한다. 스크롤이 마운트될 때마다 `useScrollableSetter` 가 기준값을 0 으로 덮으므로, **본문에 목록이 여러 개면**(페이저 안의 카드마다 하나 등) 엉뚱한 기준값을 읽어 시트가 드래그를 훔친다. 이 경우는 `Owned` 를 쓴다.
 
+본문이 스크롤이 아니라 **직접 만든 Pan 제스처**를 쓴다면 둘 다 답이 아니다. 시트 pan 은
+`activeOffsetY` 문턱(기본 10)을 먼저 넘는 쪽이 이기므로, 안쪽 제스처의 문턱을 아무리 조절해도
+경쟁이 남는다. `enableContentPanningGesture={false}` 로 본문 pan 을 아예 끄고 핸들로만 시트를
+끌게 한다. `CurrentPlayingWordsSheet` 의 가사 다이얼이 이 경우다.
+
 ## 함정 4 — 가로 스크롤을 시트가 훔친다
 
 본문에 페이저 같은 가로 스크롤이 있으면 시트 pan 이 가로 스와이프까지 잡아서 페이지가 넘어가지 않는다. `AppBottomSheet` 에 `hasHorizontalContent` 를 켜면 `activeOffsetY`/`failOffsetX` 로 세로 의도가 분명할 때만 시트가 잡는다.
@@ -57,4 +62,6 @@ height = contentHeightMax + paddingBottom
 
 ## 참고 구현
 
-`app-rn/src/components/songDetail/CurrentPlayingWordsSheet.tsx` — 네 함정 전부에 해당한다(가로 페이저 + 페이지마다 세로 목록, over-drag off, fill 본문).
+`app-rn/src/components/songDetail/CurrentPlayingWordsSheet.tsx` — `fill` 본문, over-drag off,
+그리고 본문 pan 을 끈 채 핸들(MV 바)로만 끄는 시트. 세로 드래그는 안에 든 가사 다이얼이
+줄을 넘기는 데 쓴다.

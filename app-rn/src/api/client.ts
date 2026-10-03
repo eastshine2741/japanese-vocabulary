@@ -14,11 +14,8 @@ export function getBaseURL(): string {
 }
 
 export async function initBaseURL(): Promise<void> {
-  // The stored override is a dev-only affordance. Release builds stay pinned to
-  // EXPO_PUBLIC_BACKEND_URL: iOS keeps SecureStore (Keychain) entries across app
-  // uninstalls, so a dev URL left behind by an earlier install would otherwise
-  // redirect the released app to an unreachable host — and the dialog that could
-  // undo it is compiled out of release builds.
+  // Release builds stay pinned to EXPO_PUBLIC_BACKEND_URL: iOS Keychain survives uninstall,
+  // so a leftover dev URL would redirect the released app and it can't be undone there.
   if (!isDevBuild) return;
   const stored = await tokenStorage.getBaseURL();
   if (stored) {

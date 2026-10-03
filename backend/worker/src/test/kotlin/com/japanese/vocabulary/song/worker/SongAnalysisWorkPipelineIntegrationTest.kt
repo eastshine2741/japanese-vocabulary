@@ -26,8 +26,6 @@ import com.japanese.vocabulary.songanalysis.service.SongAnalysisWorkService
 import com.japanese.vocabulary.test.WorkerBaseIntegrationTest
 import com.japanese.vocabulary.translation.client.gemini.dto.SegLineDto
 import com.japanese.vocabulary.translation.client.gemini.dto.SegWordDto
-import com.japanese.vocabulary.translation.client.gemini.dto.SelectLineDto
-import com.japanese.vocabulary.translation.client.gemini.dto.SelectWordDto
 import com.japanese.vocabulary.translation.client.gemini.dto.SenseTranslationDto
 import com.japanese.vocabulary.translation.client.gemini.dto.TranslationResultDto
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoEntryDto
@@ -183,7 +181,7 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
         verify(exactly = 1) { lrclibClient.search(any()) }
         verify(exactly = 1) { youtubeClient.searchVideos(any(), any(), any(), any()) }
         coVerify(exactly = 1) { geminiClient.translateLyrics(any(), any()) }
-        coVerify(exactly = 0) { geminiClient.selectSenses(any(), any()) }
+        coVerify(exactly = 0) { jevClient.choose(any(), any(), any(), any()) }
         coVerify(exactly = 0) { geminiClient.translateSenses(any(), any()) }
     }
 
@@ -426,24 +424,7 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
             "ももいろ" to exactEntry("ももいろ", "モモイロ", "pink"),
             "鍵" to exactEntry("鍵", "カギ", "key"),
         )
-        coEvery { geminiClient.selectSenses(any(), any()) } answers {
-            @Suppress("UNCHECKED_CAST")
-            firstArg<List<Map<String, Any?>>>().map { line ->
-                @Suppress("UNCHECKED_CAST")
-                val segments = line["segments"] as List<Map<String, Any?>>
-                SelectLineDto(
-                    index = line["index"] as Int,
-                    words = segments.map { segment ->
-                        @Suppress("UNCHECKED_CAST")
-                        val senses = segment["senses"] as List<Map<String, Any?>>
-                        SelectWordDto(
-                            senseId = senses.first()["senseId"] as Int,
-                            tokenId = segment["tokenId"] as String,
-                        )
-                    },
-                )
-            }
-        }
+        stubJevPicksFirstOffered()
         coEvery { geminiClient.translateSenses(any(), any()) } answers {
             @Suppress("UNCHECKED_CAST")
             firstArg<List<Map<String, Any?>>>().map {

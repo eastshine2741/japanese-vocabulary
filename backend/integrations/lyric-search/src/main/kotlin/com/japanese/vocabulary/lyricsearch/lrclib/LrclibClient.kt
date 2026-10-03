@@ -159,10 +159,8 @@ class LrclibClient(
             }
         }
 
-        // Tier 2: duration match for cross-script artist names (あいみょん vs Aimyon). Duration alone
-        // is not evidence — a one-character title like 『恋』 has dozens of same-titled songs within a
-        // few seconds of each other — so the candidate's artist must resolve to ours through an alias
-        // lookup before it is accepted.
+        // Tier 2: duration match for cross-script artist names (あいみょん vs Aimyon). Duration alone is not
+        // evidence (short titles like 『恋』 have many same-length songs), so the artist must also resolve via alias lookup.
         val durationSeconds = query.durationSeconds ?: return null
         val verifiedArtists = mutableMapOf<String, Boolean>()
         for (response in results) {

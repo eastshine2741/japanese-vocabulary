@@ -116,16 +116,14 @@ class SongDetailQueryService(
                         )
                     }
             }
-            // 분석이 준 뜻은 "사랑, 애정" 처럼 쉼표로 이어진 문자열 하나다. 조각마다 별개의 sense 로
-            // 쪼개야 담을 때도, 담겼는지 판정할 때도 뜻 단위가 된다. 예문은 첫 조각만 갖는다.
-            // 같은 뜻이 여러 candidate 에서 나오면 하나로 합친다 — 예문을 가진 쪽이 버려지면 안 된다.
+            // 분석의 뜻은 "사랑, 애정" 처럼 쉼표로 이어진 문자열 하나라 조각마다 별개 sense 로 쪼갠다. 예문은 첫 조각만 갖는다.
+            // 같은 뜻이 여러 candidate 에서 나오면 합친다 — 예문을 가진 쪽이 버려지면 안 된다.
             val mergedSenses = candidateSenses.splitMeanings()
                 .groupBy { it.meaning }
                 .map { (_, sameMeaning) ->
                     sameMeaning.first().copy(examples = sameMeaning.flatMap { it.examples }.distinct())
                 }
-            // 한 가사 줄은 뜻 하나에만 붙는다. 그 줄이 어느 뜻으로 쓰였는지 모르는 채 여러 뜻에
-            // 복제하면 예문 목록에 같은 줄이 뜻 수만큼 반복되고, sense 당 예문 상한도 그 중복이 먹는다.
+            // 한 가사 줄은 뜻 하나에만 붙는다 — 여러 뜻에 복제하면 같은 줄이 반복되고 sense 당 예문 상한을 먹는다.
             val claimedLines = mutableSetOf<Int?>()
             val senses = mergedSenses.map { sense ->
                 sense.copy(examples = sense.examples.filter { claimedLines.add(it.lineIndex) })
@@ -190,9 +188,15 @@ class SongDetailQueryService(
 
     private fun emptyJlptDistribution() = linkedMapOf("N1" to 0, "N2" to 0, "N3" to 0, "N4" to 0, "N5" to 0, "UNKNOWN" to 0)
 
-    /** "전체 담기" 대상 판정. 홈 부트스트랩의 lead 후보 선정도 이 기준을 그대로 쓴다. */
-    internal fun WordInSongItemDto.matchesDefaultFilters(): Boolean =
-        partOfSpeech in WordFilterDefaultsDto().pos && jlpt in WordFilterDefaultsDto().jlpt
+    /**
+     * "전체 담기" 대상 판정. 홈 부트스트랩의 lead 후보 선정과 4단계 분류도 이 기준을 그대로 쓴다.
+     * 앱의 `defaultDeckWords` 와 같은 규칙 — JLPT 미분류는 `includeUnknownJlpt` 가 결정한다.
+     */
+    internal fun WordInSongItemDto.matchesDefaultFilters(): Boolean {
+        val defaults = WordFilterDefaultsDto()
+        val matchesJlpt = if (jlpt == null) defaults.includeUnknownJlpt else jlpt in defaults.jlpt
+        return partOfSpeech in defaults.pos && matchesJlpt
+    }
 
     companion object {
         private const val TOP_WORD_COUNT = 5

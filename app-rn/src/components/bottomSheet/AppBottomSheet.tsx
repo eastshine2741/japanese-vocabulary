@@ -90,9 +90,7 @@ function useAppSheetChrome({
 
   return {
     detached: isFloating ? (detached ?? true) : detached,
-    // over-drag 을 끈 시트에서 기본값 2.5 는 본문 아래에 쓸데없는 여유 패딩(약 70dp)을
-    // 만든다. 그 패딩은 시트 밖에 걸려서 본문 마지막 줄을 가리고, 시트 위치에 따라 매
-    // 프레임 본문 높이가 다시 계산돼 드래그를 무겁게 한다.
+    // over-drag 을 끄면 기본값 2.5 가 만드는 여분 패딩(약 70dp)이 본문 마지막 줄을 가리고 드래그를 무겁게 한다.
     overDragResistanceFactor: enableOverDrag === false ? 0 : undefined,
     activeOffsetY: hasHorizontalContent ? VERTICAL_DRAG_ACTIVE_OFFSET_Y : undefined,
     failOffsetX: hasHorizontalContent ? HORIZONTAL_DRAG_FAIL_OFFSET_X : undefined,

@@ -56,12 +56,14 @@ class FlashcardControllerTest : ApiBaseIntegrationTest() {
         dueAt: Instant = clock.instant(),
         state: Int = 0,
         lastReviewedAt: Instant? = null,
+        stability: Double = 0.0,
     ): FlashcardEntity = TestFlashcardBuilder(entityManager, clock)
         .forUser(user)
         .ofWord(word)
         .dueAt(dueAt)
         .withState(state)
         .lastReviewedAt(lastReviewedAt)
+        .withStability(stability)
         .build()
 
     private fun newSong(): SongEntity = TestSongBuilder(entityManager).build()
@@ -448,6 +450,8 @@ class FlashcardControllerTest : ApiBaseIntegrationTest() {
             assertThat(resp.newCount).isZero
             assertThat(resp.learning).isZero
             assertThat(resp.review).isZero
+            assertThat(resp.longTermCount).isZero
+            assertThat(resp.shortTermCount).isZero
         }
 
         @Test
@@ -474,6 +478,29 @@ class FlashcardControllerTest : ApiBaseIntegrationTest() {
             // learning = (state=0 count + state=2 count) - newCount = (2 + 1) - 1 = 2
             assertThat(resp.learning).isEqualTo(2)
             assertThat(resp.review).isEqualTo(1)
+        }
+
+        @Test
+        fun `longTerm and shortTerm counts follow stability, not FSRS state`() {
+            val me = newUser()
+            val now = clock.instant()
+            // REVIEW + stability 7일 이상 → 장기기억
+            newCard(me, dueAt = now.plus(Duration.ofDays(9)), state = 1, lastReviewedAt = now, stability = 7.0)
+            // REVIEW 지만 stability 가 7일 미만 → 단기기억
+            newCard(me, dueAt = now.plus(Duration.ofDays(2)), state = 1, lastReviewedAt = now, stability = 6.9)
+            // 리뷰 이력이 없으면 stability 가 얼마든 남음
+            newCard(me, dueAt = now, state = 0, lastReviewedAt = null, stability = 30.0)
+
+            val body = mockMvc.get("/api/flashcards/stats") {
+                header("Authorization", bearer(me))
+            }.andReturn().response.contentAsString
+
+            val resp = readBody<FlashcardStatsResponse>(body)
+            assertThat(resp.longTermCount).isEqualTo(1)
+            assertThat(resp.shortTermCount).isEqualTo(1)
+            // 남음 = total - long - short. FSRS state 기준 review 와는 판정이 다르다.
+            assertThat(resp.total - resp.longTermCount - resp.shortTermCount).isEqualTo(1)
+            assertThat(resp.review).isEqualTo(2)
         }
 
         @Test

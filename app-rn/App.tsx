@@ -23,7 +23,7 @@ Sentry.init({
   tracesSampleRate: 0.1,
 });
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform, StyleSheet, StatusBar } from 'react-native';
 import { NavigationContainer, type NavigationState } from '@react-navigation/native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -34,7 +34,8 @@ import AppNavigator, { RootStackParamList } from './src/navigation/AppNavigator'
 import { AnalysisPillOverlay } from './src/components/analysisPill';
 import { navigationRef, flushPending } from './src/navigation/navigationRef';
 import { tokenStorage } from './src/utils/tokenStorage';
-import { isJwtExpired } from './src/utils/jwt';
+import { isJwtExpired, getJwtUserId } from './src/utils/jwt';
+import { ScreenViewParams, setAnalyticsUserId, trackScreenView } from './src/services/analytics';
 import { initBaseURL } from './src/api/client';
 import { useSettingsStore } from './src/stores/settingsStore';
 import SplashScreen from './src/screens/SplashScreen';
@@ -49,6 +50,27 @@ GoogleSignin.configure({
 });
 
 type NavigationMode = 'default' | 'homeImmerse' | 'songReview';
+
+type ActiveRoute = NavigationState['routes'][number];
+
+function getActiveRoute(state: NavigationState): ActiveRoute {
+  let route = state.routes[state.index];
+  while (route.state) {
+    const child = route.state as NavigationState;
+    route = child.routes[child.index ?? 0];
+  }
+  return route;
+}
+
+// 곡 탐색 퍼널의 마지막 단계(가사 열람)를 SongDetail screen_view 로 본다.
+function getScreenViewParams(route: ActiveRoute): ScreenViewParams | undefined {
+  if (route.name !== 'SongDetail') return undefined;
+  const params = route.params as RootStackParamList['SongDetail'] | undefined;
+  return {
+    ...(params?.songId != null && { song_id: params.songId }),
+    origin: params?.origin ?? 'unknown',
+  };
+}
 
 function getAndroidNavigationMode(
   navigationState: NavigationState | null,
@@ -88,6 +110,17 @@ function AndroidSystemBarController({ navigationState }: { navigationState: Navi
 function App() {
   const [initialRoute, setInitialRoute] = useState<keyof RootStackParamList | null>(null);
   const [navigationState, setNavigationState] = useState<NavigationState | null>(null);
+  // RN 은 Activity 하나를 공유해 GA4 자동 screen_view 가 안 찍히므로 직접 찍는다.
+  // 이름이 아니라 route key 로 거른다. SongDetail -> SongDetail 이동도 찍혀야 한다.
+  const lastRouteKeyRef = useRef<string | null>(null);
+  const handleNavigationState = useCallback((state: NavigationState | null | undefined) => {
+    setNavigationState(state ?? null);
+    if (!state) return;
+    const route = getActiveRoute(state);
+    if (route.key === lastRouteKeyRef.current) return;
+    lastRouteKeyRef.current = route.key;
+    trackScreenView(route.name, getScreenViewParams(route));
+  }, []);
   const [interLoaded] = useInterFonts({
     Inter_400Regular,
     Inter_500Medium,
@@ -112,6 +145,7 @@ function App() {
     initBaseURL().then(() =>
       tokenStorage.getToken().then((token) => {
         const valid = !!token && !isJwtExpired(token);
+        setAnalyticsUserId(valid ? getJwtUserId(token!) : null);
         if (valid) {
           useSettingsStore.getState().loadSettings();
           requestPermissionAndRegisterToken();
@@ -132,9 +166,9 @@ function App() {
               ref={navigationRef}
               onReady={() => {
                 flushPending();
-                setNavigationState(navigationRef.getRootState());
+                handleNavigationState(navigationRef.getRootState());
               }}
-              onStateChange={(state) => setNavigationState(state ?? null)}
+              onStateChange={handleNavigationState}
             >
               <AndroidSystemBarController navigationState={navigationState} />
               <AppNavigator initialRoute={initialRoute} />

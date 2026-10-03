@@ -80,8 +80,7 @@ function dismissToast() {
 }
 
 /**
- * 등장: 배너가 튀어오르듯 자리잡고 → 앞불꽃이 켜지며 파문이 퍼지고 불티가 튀고 → 빛줄기가 훑고 지나간다.
- * 떠 있는 동안 불꽃은 계속 일렁이고 뒤의 빛무리가 숨쉰다. 퇴장은 짧게 위로 사라진다.
+ * 등장: 배너 안착 → 앞불꽃·파문·불티 → 빛줄기. 떠 있는 동안 불꽃이 일렁이고, 퇴장은 짧게 위로 사라진다.
  */
 const StreakToast = React.memo(function StreakToast({ eyebrow, label }: StreakToastProps) {
   const insets = useSafeAreaInsets();

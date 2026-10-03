@@ -12,7 +12,7 @@ import type {CSSProperties} from 'react';
 
 import {convertLineReading, convertReading} from '../../app-rn/src/utils/readingConverter';
 import {SCORE_DREAM_FAMILY, useScoreDream} from './fonts/scoreDream';
-import type {LyricToken, PartOfSpeech, PromoLine, PromoReelData, VocabularyWord} from './types';
+import type {LyricToken, MvCrop, MvFrame, PartOfSpeech, PromoLine, PromoReelData, VocabularyWord} from './types';
 
 export const PROMO_FPS = 30;
 // 엔드카드 7초. 앱 목업이 시트 → 단어 탭 → 복습 → rating → 다음 단어까지 흐르고, 스토어 검색 큐를 읽을 시간이다.
@@ -126,15 +126,25 @@ export const PromoReel = ({data}: {data: PromoReelData}) => {
   const entry = (delay: number) => linear(localFrame - delay, 0, ENTRY_FRAMES);
   const lyricEntry = entry(0);
   const wordsEntry = entry(4);
+  const mvFrame = data.mvFrame ?? null;
 
   return (
     <AbsoluteFill style={styles.canvas}>
       <AbsoluteFill>
+        {/* MV 를 줄이거나 옮겨 생긴 빈 곳은 같은 구간을 튼 같은 MV 를 블러해서 채운다 */}
+        {mvFrame && (
+          <OffthreadVideo
+            muted
+            src={assetSrc(data.song.mvAsset)}
+            startFrom={data.sourceStartFrame}
+            style={{...styles.backdropVideo, ...cropStyle(mvFrame.crop)}}
+          />
+        )}
         <OffthreadVideo
           muted={false}
           src={assetSrc(data.song.mvAsset)}
           startFrom={data.sourceStartFrame}
-          style={styles.fullVideo}
+          style={mvFrame ? framedVideoStyle(mvFrame) : styles.fullVideo}
           volume={(f) => interpolate(f, [durationInFrames - 36, durationInFrames - 1], [0.72, 0], {
             extrapolateLeft: 'clamp',
             extrapolateRight: 'clamp',
@@ -169,6 +179,26 @@ export const PromoReel = ({data}: {data: PromoReelData}) => {
       <EndCard data={data} line={lines[lines.length - 1]} lineCount={lines.length} startFrame={lyricsEndFrame} />
     </AbsoluteFill>
   );
+};
+
+// 폭만 정하고 높이는 MV 원래 비율을 따른다. objectFit 로 캔버스에 맞춰 자르지 않아야 MV 전체를 줄여 담을 수 있다.
+const framedVideoStyle = ({scale, x, y, crop}: MvFrame): CSSProperties => ({
+  ...cropStyle(crop),
+  height: 'auto',
+  left: '50%',
+  maxWidth: 'none',
+  position: 'absolute',
+  top: '50%',
+  transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`,
+  width: PROMO_WIDTH * scale,
+});
+
+// object-view-box 는 영상의 원래 크기 자체를 잘라낸 영역으로 바꾼다. 그래서 height:auto 와 objectFit:cover 가
+// 둘 다 잘라낸 영역 비율로 계산되고, 블러 배경에도 검은 여백이 섞이지 않는다. (Chromium 전용 — 렌더 크롬·어드민 크롬 기준)
+const cropStyle = (crop: MvCrop | null | undefined): CSSProperties => {
+  if (!crop || (crop.top === 0 && crop.right === 0 && crop.bottom === 0 && crop.left === 0)) return {};
+  const pct = (value: number) => `${(value * 100).toFixed(3)}%`;
+  return {objectViewBox: `inset(${pct(crop.top)} ${pct(crop.right)} ${pct(crop.bottom)} ${pct(crop.left)})`} as CSSProperties;
 };
 
 const ENTRY_FRAMES = 6;
@@ -300,7 +330,6 @@ const SEARCH_QUERY = '코토노하';
 const TYPING_START = 30;
 const TYPING_FRAMES_PER_CHAR = 9;
 
-// ─── 앱 목업 ───────────────────────────────────────────────────────────────────
 // SongDetailScreen(hero 360 · 홈/단어 탭 · 홈 탭 본문 · MV 바)을 460×860 폰 안에 그리고,
 // CurrentPlayingWordsSheet 가 MV 바를 핸들 삼아 올라온다. 첫 단어를 누르면 SongReviewScreen 이
 // 폰을 덮고, 앞면 탭 → rating → 위로 스와이프 → 다음 단어까지 이어진다. 타이포는 실제 비율보다
@@ -514,7 +543,6 @@ const TapDot = ({x, y, dark}: {x: number; y: number; dark?: boolean}) => (
   <div style={{...styles.tapDot, left: x - 24, top: y - 24, backgroundColor: dark ? 'rgba(0,0,0,0.16)' : 'rgba(255,255,255,0.38)'}} />
 );
 
-// ─── 복습 화면 목업 ───────────────────────────────────────────────────────────
 // SongReviewScreen = CardStage(아트워크 + 틴트 + 스크림 2겹) + StackReviewOverlay(뒤로 · n/N · 진행 바)
 // + SourceHeader + WordFront/WordBack. rating 줄은 프로덕션처럼 화면 맨 아래(paddingBottom 22 + 하단 inset)에
 // 붙고, 어포던스가 뜨면 그만큼 위로 밀린다. 폰 마스크는 그 아래 60px 만 녹인다.
@@ -745,8 +773,6 @@ const ReviewBack = ({
   );
 };
 
-// ─── 아이콘 ────────────────────────────────────────────────────────────────────
-
 const svgProps = {fill: 'none', stroke: 'currentColor', strokeLinecap: 'round', strokeLinejoin: 'round'} as const;
 
 const ChevronLeftIcon = () => (
@@ -798,8 +824,6 @@ const AppleIcon = () => (
     <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701" />
   </svg>
 );
-
-// ─── 데이터 도우미 ───────────────────────────────────────────────────────────────
 
 // 강조 단어(vocabulary)만 품사색을 갖고 나머지 토큰은 흰색이다.
 const buildTextRuns = (line: PromoLine): TextRun[] => {
@@ -947,6 +971,14 @@ const styles = {
   fullVideo: {
     height: '100%',
     objectFit: 'cover',
+    width: '100%',
+  },
+  // 블러 가장자리가 투명하게 빠지지 않도록 캔버스보다 크게 깔고 살짝 어둡게 눌러 전경 MV 와 구분한다
+  backdropVideo: {
+    filter: 'blur(48px) brightness(0.7)',
+    height: '100%',
+    objectFit: 'cover',
+    transform: 'scale(1.15)',
     width: '100%',
   },
   // 가사 화면과 엔드카드가 같은 스크림을 쓴다 — Pen Reel v2 의 MV/Backdrop Top·Bottom Scrim 과 같은 값
@@ -1120,7 +1152,6 @@ const styles = {
     textAlign: 'right',
   },
 
-  // ─── 엔드카드 ───
   endCardLayer: {
     backgroundColor: night,
     overflow: 'hidden',
@@ -1224,7 +1255,6 @@ const styles = {
     fontWeight: 500,
   },
 
-  // ─── 앱 목업 ───
   phone: {
     backgroundColor: app.background,
     border: '3px solid rgba(244,241,234,0.24)',
@@ -1663,7 +1693,6 @@ const styles = {
     zIndex: 5,
   },
 
-  // ─── 복습 화면 목업 ───
   review: {
     backgroundColor: '#14181C',
     color: '#FFFFFF',

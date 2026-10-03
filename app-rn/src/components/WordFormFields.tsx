@@ -38,12 +38,10 @@ export default function WordFormFields({
 }: Props) {
   return (
     <>
-      {/* Japanese */}
       <View style={styles.jpArea}>
         <Text style={styles.jpText}>{japaneseText}</Text>
       </View>
 
-      {/* Reading */}
       <View style={styles.section}>
         <Text style={styles.sectionLabel}>읽기</Text>
         <TextInput
@@ -53,7 +51,6 @@ export default function WordFormFields({
         />
       </View>
 
-      {/* Meanings — 뜻마다 번호 배지를 달고, 그 뜻의 예문을 바로 아래에 들여쓴다. */}
       <View style={styles.meanSection}>
         <Text style={styles.sectionLabel}>뜻</Text>
         {senses.map((m, i) => {

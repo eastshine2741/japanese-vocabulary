@@ -142,3 +142,4 @@ DEPLOY_NS=issue-21 npx expo run:android
 | `FIREBASE_SERVICE_ACCOUNT_JSON_BASE64` | Base64-encoded Firebase service account JSON. worker / batch cron / admin-api 가 함께 마운트한다 |
 | `ADMIN_PASSWORD` / `ADMIN_PASSWORD_SHA256` | Admin API password source. Local dev defaults `ADMIN_PASSWORD` to `admin` in `deploy.sh` if unset |
 | `ADMIN_TOKEN_SECRET` | Admin-only bearer token signing key. Separate from public `JWT_SECRET` |
+| `DISCORD_ALERT_WEBHOOK_URL` | `.env.prod` only. Discord webhook for prod Alertmanager (warning/critical); `k8s/observability/install.sh` fills it into `k8s/observability/alertmanager.yaml` and stores the result as the `monitoring/alertmanager-config` Secret |

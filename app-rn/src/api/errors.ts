@@ -1,11 +1,6 @@
 /**
- * Collapses an Axios failure into a user-facing message.
- *
- * A request that never got a response (DNS, TLS, ATS block, server down) carries no
- * `response`, so reading `response.data.message` yields the caller's generic fallback
- * and every unrelated failure ends up wearing the same label. Naming the transport
- * failure separately keeps "the server said no" distinguishable from "we never
- * reached the server".
+ * A request with no `response` (DNS, TLS, ATS block, server down) gets its own
+ * message so it stays distinguishable from a server-side error.
  */
 export function apiErrorMessage(e: any, fallback: string): string {
   const serverMessage = e?.response?.data?.message;

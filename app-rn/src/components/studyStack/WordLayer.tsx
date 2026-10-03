@@ -6,10 +6,7 @@ import { WordBack } from './WordBack';
 import { WordFront } from './WordFront';
 import { StudyCard } from './types';
 
-/**
- * 앞면 '뜻 확인하기' pill 이 rating 버튼 넷으로 갈라지는 시간. reveal(320ms) 과 별개로 돌린다 —
- * reveal 값에 얹으면 out-cubic 이라 움직임이 앞쪽 100ms 안에 끝나버린다.
- */
+/** pill 이 rating 버튼 넷으로 갈라지는 시간. reveal 값에 얹으면 out-cubic 이라 앞쪽 100ms 안에 끝나서 따로 돌린다. */
 const SPLIT_MS = 720;
 
 /** 앞면 headword 자리에서 뒷면 자리로 가는 변환. faceStack 기준 측정값의 차. */
@@ -46,11 +43,8 @@ export interface WordLayerProps {
 /**
  * 무대는 고정, wordLayer 한 덩어리만 강체로 위로 이동한다.
  * rating 줄을 layer 안에 두어야 다음 단어에서 선택 상태가 초기화된다.
- * 다음 카드는 현재 카드 아래 깔려 있지만 평소엔 완전히 투명하다 — 두 카드 모두
- * 텍스트 뒤 배경이 비어 있어서(아트워크가 그 아래 한 장뿐), 그냥 겹쳐두면 글자가
- * 항상 그대로 겹쳐 보인다. 드래그는 SWIPE_OUT_DISTANCE까지 손가락을 그대로 따라가고,
- * opacity 는 같은 구간을 1:1로 crossfade 해서 현재 카드가 완전히 사라지는 지점에서
- * 다음 카드가 정확히 완전히 드러나도록 맞춘다.
+ * 다음 카드는 아래 깔려 있지만 평소엔 투명하다 — 두 카드 모두 텍스트 뒤 배경이 비어 있어 그냥 겹치면 글자가 겹쳐 보인다.
+ * opacity 는 SWIPE_OUT_DISTANCE 까지 드래그와 1:1 로 crossfade 한다.
  */
 export const WordLayer = React.memo(function WordLayer({
   card,
@@ -74,22 +68,14 @@ export const WordLayer = React.memo(function WordLayer({
   const faceStackRef = React.useRef<View>(null);
   const frontHeadwordRef = React.useRef<View>(null);
   const backHeadwordRef = React.useRef<View>(null);
-  // 공유 headword 는 앞면 앵커 안에 그린다. 절대 좌표로 놓으면 몰입 드래그로 카드 안쪽
-  // 여백이 매 프레임 바뀔 때 측정(onLayout → rAF → measureLayout → setState)이 한 박자
-  // 늦게 따라와 headword 가 튄다. 앵커 안에 있으면 레이아웃과 같은 프레임에 움직이고,
-  // 측정에서 필요한 건 앞→뒤 morph(둘 다 세로 중앙 정렬이라 여백이 바뀌어도 일정하다)뿐이다.
+  // 공유 headword 는 앞면 앵커 안에 그린다. 절대 좌표로 놓으면 몰입 드래그 중 여백이 바뀔 때 측정이 한 박자 늦어 튄다.
   const [headwordMorph, setHeadwordMorph] = React.useState<HeadwordMorph | null>(null);
-  // 분열은 reveal 과 같은 순간 시작하지만 자기 속도로 간다. 앞면(pill 윤곽 녹음)과
-  // 뒷면(버튼 갈라짐)이 같은 값을 보므로 여기서 돌린다. 카드가 바뀌면 revealed 가 false 로
-  // 돌아오고 아래 faceStack 은 key 로 다시 마운트된다.
-  const splitProgress = React.useRef(new Animated.Value(0)).current;
+  // 앞면과 뒷면이 같은 값을 보므로 여기서 돌린다. revealProgress 가 새 인스턴스가 될 때 같이 새로 만든다 —
+  // setValue(0) 으로 되돌리면 iOS 에선 마운트 전 view 에 0 이 떨어져 사라진다 (docs/runbooks/ios-native-animated-pitfalls.md).
+  const splitProgress = React.useMemo(() => new Animated.Value(0), [revealProgress]);
   React.useEffect(() => {
-    if (!revealed) {
-      splitProgress.setValue(0);
-      return;
-    }
-    // 허리가 생기는 초반은 빠르게, 끊어져 안착하는 후반은 길게 감속한다. 허리 깊이는 끝이 물러난
-    // 거리에 제곱으로 깊어져 같은 속도여도 후반이 빨라 보이므로 곡선은 더 앞쪽에 몰아둔다.
+    if (!revealed) return;
+    // 허리 깊이가 거리 제곱으로 깊어져 후반이 빨라 보이므로 곡선을 앞쪽에 몰아둔다.
     Animated.timing(splitProgress, {
       toValue: 1,
       duration: SPLIT_MS,
@@ -158,9 +144,7 @@ export const WordLayer = React.memo(function WordLayer({
       </Text>
     </Animated.View>
   ), [card.japanese, sharedHeadwordStyle]);
-  // 크로스페이드는 전체 드래그의 80% 지점에서 끝난다 — 나머지 20%는 이미 완전히
-  // 전환된 상태로 화면을 빠져나간다.
-  // 평소엔 다음 카드를 완전히 숨겨두고, 현재 카드가 사라지는 만큼 정확히 같은 비율로 드러낸다.
+  // 크로스페이드는 전체 드래그의 80% 지점에서 끝난다.
   const { opacity, nextOpacity } = React.useMemo(() => {
     const crossfadeStart = SWIPE_OUT_DISTANCE * 0.8;
     return {
@@ -227,9 +211,7 @@ export const WordLayer = React.memo(function WordLayer({
           ]}
           {...panHandlers}
         >
-          {/* 뒤집힌 뒤에도 같은 Pressable 을 유지한다 — View 로 바꿔 끼우면 부모 타입이 달라져
-              faceStack(예문 ScrollView·rating 버튼 전부)이 reveal 애니메이션 시작과 동시에
-              언마운트/재마운트된다. disabled 면 responder 를 잡지 않아 안쪽 터치는 그대로 통한다. */}
+          {/* 뒤집힌 뒤에도 같은 Pressable 을 유지한다 — View 로 바꾸면 faceStack 이 reveal 시작과 동시에 재마운트된다. */}
           <Pressable style={styles.wordPressable} onPress={onReveal} disabled={revealed}>
             {faceStack}
           </Pressable>

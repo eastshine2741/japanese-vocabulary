@@ -9,16 +9,18 @@ import org.springframework.data.repository.query.Param
 import java.time.Instant
 
 interface FlashcardRepository : JpaRepository<FlashcardEntity, Long> {
-    fun findByUserIdAndDueLessThanEqual(userId: Long, due: Instant): List<FlashcardEntity>
     fun findByUserIdAndDueLessThanEqualOrderByDueAscIdAsc(userId: Long, due: Instant, pageable: Pageable): List<FlashcardEntity>
     fun findFirstByUserIdAndDueGreaterThanOrderByDueAscIdAsc(userId: Long, due: Instant): FlashcardEntity?
-    fun findByUserIdAndDueBetweenAndLastReviewIsNotNull(userId: Long, since: Instant, now: Instant): List<FlashcardEntity>
     fun findByUserId(userId: Long): List<FlashcardEntity>
     fun findByWordId(wordId: Long): FlashcardEntity?
+    fun findByUserIdAndWordIdIn(userId: Long, wordIds: Collection<Long>): List<FlashcardEntity>
     fun countByUserId(userId: Long): Long
     fun countByUserIdAndState(userId: Long, state: Int): Long
     fun countByUserIdAndDueLessThanEqual(userId: Long, due: Instant): Long
     fun countByUserIdAndLastReviewIsNull(userId: Long): Long
+
+    /** 장기기억 카드 수. 판정은 [com.japanese.vocabulary.flashcard.model.FlashcardMemory] 와 같아야 한다. */
+    fun countByUserIdAndLastReviewIsNotNullAndStabilityGreaterThanEqual(userId: Long, stability: Double): Long
 
     @Modifying(flushAutomatically = true)
     @Query(

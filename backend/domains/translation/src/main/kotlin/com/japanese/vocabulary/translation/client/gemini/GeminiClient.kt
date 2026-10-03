@@ -7,7 +7,6 @@ import com.japanese.vocabulary.common.retry.TransientHttpErrors
 import com.japanese.vocabulary.common.retry.currentRetryDeadline
 import com.japanese.vocabulary.observability.MetricNames
 import com.japanese.vocabulary.translation.client.gemini.dto.SegLineDto
-import com.japanese.vocabulary.translation.client.gemini.dto.SelectLineDto
 import com.japanese.vocabulary.translation.client.gemini.dto.SenseTranslationDto
 import com.japanese.vocabulary.translation.client.gemini.dto.TranslationResultDto
 import io.micrometer.core.instrument.Counter
@@ -30,23 +29,15 @@ class GeminiClient(
     @Value("\${gemini.segmentation-model}") private val segmentationModel: String,
     @Value("\${gemini.max-output-tokens:0}") private val maxOutputTokens: Int,
     /**
-     * Thinking level for the segmentation call only — `minimal` / `low` / `high`, or blank to leave
-     * the model's own default alone.
-     *
-     * Blank is the default and sends no `thinkingConfig`, so the request body is unchanged for the
-     * models this pipeline runs on today. It exists because the flash tiers above
-     * `gemini-3.1-flash-lite` think by default and charge those thoughts to the same output budget as
-     * the answer: a 20-line segmentation chunk stops at `finishReason=MAX_TOKENS` with the JSON array
-     * barely started, even at `maxOutputTokens=32768`. It is scoped to segmentation because the
-     * levels are not portable — `gemini-3.1-pro-preview`, which translates the lyrics, rejects
-     * `minimal` outright.
+     * Thinking level for the segmentation call only (`minimal` / `low` / `high`); blank sends no
+     * `thinkingConfig`. Flash tiers above `gemini-3.1-flash-lite` think by default and bill thoughts
+     * to the output budget, so a chunk can hit `MAX_TOKENS` with the array barely started. Scoped to
+     * segmentation because levels are not portable (`gemini-3.1-pro-preview` rejects `minimal`).
      */
     @Value("\${gemini.segmentation-thinking-level:}") private val segmentationThinkingLevel: String,
     /**
-     * How many times one call is attempted before its failure propagates, and the wait before the
-     * second attempt (doubling after that). Only [TransientHttpErrors.isTransient] failures are
-     * retried; the request has no side effects and runs at a fixed temperature, so replaying the
-     * POST is safe.
+     * Max attempts per call and the wait before the second (doubling after). Only
+     * [TransientHttpErrors.isTransient] failures are retried; the POST is side-effect free, so replay is safe.
      */
     @Value("\${gemini.retry.max-attempts:3}") maxAttempts: Int,
     @Value("\${gemini.retry.initial-backoff:2s}") initialBackoff: Duration,
@@ -62,9 +53,7 @@ class GeminiClient(
         .build()
 
     /**
-     * Translate lyrics to Korean with pronunciation.
-     * Input: [{index, text}] — no morphological data needed.
-     * Uses the higher-quality model for natural translation.
+     * Translate lyrics to Korean (no pronunciation; see [TranslationResultDto]) on the higher-quality model.
      */
     suspend fun translateLyrics(lyricLines: List<Map<String, Any?>>, context: GeminiCallContext): List<TranslationResultDto> {
         return callGemini(
@@ -80,20 +69,10 @@ class GeminiClient(
     }
 
     /**
-     * Segmentation + lemmatization + readings + a context gloss.
-     * Input: [{index, text}] (raw lyric lines).
-     * Output: [{index, words:[{surface,headword,usedReading,baseFormReading,contextGloss}]}].
+     * Segmentation + lemmatization + readings + a context gloss. See [SegWordDto] for the output shape.
      *
-     * The LLM segments by meaning units (keeping fixed adverbs/compounds whole) and reduces each word
-     * to its dictionary headword (collapsing potential/causative/passive forms), so no derived lemma
-     * reaches the dictionary. It also supplies both readings in katakana — `baseFormReading` is half
-     * of the `(headword, reading)` key that pins down which jisho entry a homograph belongs to — and a
-     * short English `contextGloss` that sense-select later matches against the dictionary glosses.
-     *
-     * Runs on its own model property: this stage now carries the whole pipeline's disambiguation
-     * signal, so its tier is tuned separately from the cheaper downstream select/translate calls.
-     *
-     * [temperature] is the caller's, not a constant, because retries need it: see
+     * Runs on its own model property because this stage carries the pipeline's disambiguation signal.
+     * [temperature] is the caller's because retries raise it:
      * [com.japanese.vocabulary.translation.service.pipeline.stage.SegmentLyricsStage].
      */
     suspend fun segmentAndLemmatize(
@@ -115,34 +94,8 @@ class GeminiClient(
     }
 
     /**
-     * Redesign stage 3 — per-line sense selection.
-     * Input: [{index, japanese, korean, segments:[{tokenId,surface,headword,contextGloss,senses:[{senseId,english,pos}]}]}].
-     * contextGloss is the segmentation stage's short English hint at this line's meaning; the model
-     * matches it against the candidate glosses. Senses additionally carry headword/reading only when
-     * the lookup stayed ambiguous across dictionary entries — there English glosses alone cannot
-     * separate 前[マエ] from 前[ゼン].
-     * Output: [{index, words:[{tokenId, senseId}]}].
-     * The LLM uses the Korean translation as a context cue to pick the senseId that fits this line, or
-     * -1 when none fits. It does NOT generate Korean meanings (blocks the over-correction failure mode).
-     */
-    suspend fun selectSenses(lyricLines: List<Map<String, Any?>>, context: GeminiCallContext): List<SelectLineDto> {
-        return callGemini(
-            call = "select",
-            context = context,
-            model = wordMeaningModel,
-            systemPrompt = SELECT_PROMPT,
-            input = lyricLines,
-            responseType = SelectLineDto::class.java,
-            temperature = 0.0,
-            responseSchema = SELECT_SCHEMA
-        )
-    }
-
-    /**
-     * Redesign stage 4 — translate the chosen English senses to Korean.
-     * Input: [{senseId, surface, baseForm, reading, pos, english, englishDefinitions}].
-     * Output: [{senseId, koreanText}].
-     * POS-consistent, 1–2 comma-separated meanings; particles render as Korean particles (は→"~은/는").
+     * Translate the chosen English senses to Korean: POS-consistent, 1–2 comma-separated meanings;
+     * particles render as Korean particles (は→"~은/는").
      */
     suspend fun translateSenses(senses: List<Map<String, Any?>>, context: GeminiCallContext): List<SenseTranslationDto> {
         if (senses.isEmpty()) return emptyList()
@@ -358,7 +311,6 @@ class GeminiClient(
 
         """.trimIndent()
 
-        /** Redesign stage 1 — segmentation + lemmatization for dictionary-grounded lookup. */
         private val SEGMENTATION_PROMPT = """
             너는 일본어 가사를 형태소 분석(분절 + 표제형 환원)하는 전문가다.
             입력: JSON 배열, 각 원소는 {"index": N, "text": "일본어 가사 한 줄"}.
@@ -383,9 +335,10 @@ class GeminiClient(
               - 부정의 ない/なくて/なすぎ: 長くない → 長く / ない, わからない → わから / ない, そうでもない → そう / でも / ない
               - 조사가 붙은 형태: までは → まで / は, 何を → 何 / を, こんなにも → こんな / に / も, 今は → 今 / は
               - 보조동사 ていく·てくる·てしまう·てみる와 그 축약형(~てった, ~てって): 置いてった → 置いて / った, 飛んでった → 飛んで / った
+              - 진행의 ている와 그 축약형(~てる, ~てた, ~ていた, ~でる): 동사 부분과 て 이하를 쪼갠다. 愛してる → 愛し / てる, 泣いてた → 泣い / てた, 読んでる → 読ん / でる
               - 정도·희망 등의 접미 성분: わからなすぎ → わから / なすぎ, 見たい → 見 / たい
               - 사전 표제어가 아닌 복합명사: 納豆巻き → 納豆 / 巻き
-              보조 성분의 headword는 그 보조어의 사전형이다: った → いく, なすぎ → ない, たい → たい.
+              보조 성분의 headword는 그 보조어의 사전형이다: った → いく, なすぎ → ない, たい → たい, てる/てた/でる → ている.
             - **일본어 단어만 출력한다.** 공백·구두점·따옴표·라틴 문자·숫자는 word로 만들지 마라.
               서버가 원문에서 위치로 되읽으므로 출력할 필요가 없다.
               특히 원문에 없는 공백을 단어 구분자로 끼워 넣지 마라. 그러면 뒤에 있는 진짜 공백과 어긋나
@@ -398,6 +351,7 @@ class GeminiClient(
             - 長くない → 長く(長い) / ない(ない)
             - わからない → わから(わかる) / ない(ない)
             - 置いてった → 置いて(置く) / った(いく)
+            - 愛してる → 愛し(愛する) / てる(ている)
             - 打たれ弱い → 打たれ(打つ) / 弱い(弱い)
             - 何の為 → 何 / の / 為
             - どこかで → どこか / で
@@ -407,6 +361,7 @@ class GeminiClient(
             - 晴れ舞台（イェイ） → 晴れ舞台 / イェイ  (괄호는 출력하지 않고, 안의 단어는 출력한다)
             - こんなにも → こんな / に / も
             - 涼しい風吹く 青空の匂い → 涼しい / 風 / 吹く / 青空 / の / 匂い  (공백은 출력하지 않는다)
+            - 1と2の間で → と / の / 間 / で  (숫자는 출력하지 않고, 숫자 사이·뒤의 일본어는 출력한다)
             - 「　　　　」 → words: []  (일본어 단어가 없는 줄은 빈 배열)
 
             ## 출력 규칙
@@ -421,7 +376,7 @@ class GeminiClient(
               - **~さ·~み 명사화는 그 형용사를 headword로 쓴다**: 淋しさ→淋しい, 眠さ→眠い.
                 단 悲しみ·苦しみ처럼 그 자체가 사전 표제어인 것은 그대로 둔다.
               - 가능동사·가능형 → 원동사: 消せる→消す, 出会える→出会う, 飛び立てる→飛び立つ, 愛せる→愛す, なれる→なる, 言える→言う.
-              - 사역/수동/~てしまう/~ている 등 보조성분 → 본동사 기본형: 紛らわせる→紛らわす, 見られる→見る.
+              - 사역/수동/~てしまう 등 보조성분 → 본동사 기본형: 紛らわせる→紛らわす, 見られる→見る.
               - しよう→する, いって/行って→行く, 上手く→上手い 또는 上手, ろ(〜たろ)→だろう.
               - 단, 진짜 下一段/上一段 동사(考える·捧げる·越える 등)는 가능형이 아니므로 그대로 둔다.
               - **결과에 "가능/사역/수동" 뉘앙스가 박힌 표제어가 있으면 안 된다.**
@@ -439,33 +394,6 @@ class GeminiClient(
               - 上手い(솜씨가 좋다) → "skillful, good at"
         """.trimIndent()
 
-        /**
-         * Redesign stage 3 — per-line sense selection. Mirrors playground `run_redesign.py` SELECT_SYS verbatim.
-         */
-        private val SELECT_PROMPT = """
-            너는 일본어 가사 단어장(플래시카드)의 **뜻 선택기**다.
-            각 줄마다: 일본어 원문(japanese), 그 줄의 한국어 번역(korean), 분절된 단어들(segments)을 받는다.
-            각 segment에는 tokenId, contextGloss, 그리고 그 단어(headword)의 사전 뜻 후보
-            senses=[{senseId, english(영어 뜻), pos(품사)}]가 들어있다.
-            contextGloss는 그 단어가 이 줄에서 가지는 뜻의 짧은 영어 힌트다.
-            **contextGloss와 한국어 번역을 문맥 단서로** 삼아, 각 단어가 이 줄에서 실제로 가지는 뜻에 해당하는 senseId 하나를 고른다.
-            senses 중 contextGloss와 뜻이 가장 가까운 것 하나를 고르면 된다.
-            출력: 같은 배열, 각 줄을 {"index", "words":[{"tokenId","senseId"}]}로. JSON만.
-
-            ## 규칙
-            - senseId: 그 segment의 senses 중 이 문맥에 가장 맞는 것의 senseId. **반드시 주어진 senses에 있는 값**이어야 한다.
-            - 일부 sense에는 headword와 reading이 붙어 있다. 이는 그 뜻이 어느 사전 표제어의 것인지 나타낸다.
-              영어 뜻이 서로 비슷해 보여도 headword/reading이 다르면 **다른 단어**다. 문맥에 맞는 표제어 쪽을 골라라.
-            - senses가 비어있거나(사전에 없음) 어느 것도 문맥에 맞지 않으면 senseId = -1.
-            - 한국어 뜻을 직접 만들지 마라. **오직 senseId 선택만** 한다.
-            - words는 입력 segments와 1:1, 순서 동일. tokenId는 입력 그대로 복사한다.
-              surface와 headword는 출력하지 마라.
-            - 입력에 있는 줄을 그 index 그대로 **전부** 출력한다. 중간에 멈추지 마라.
-        """.trimIndent()
-
-        /**
-         * Redesign stage 4 — translate chosen English senses. Mirrors playground `run_redesign.py` TRANSLATE_SYS verbatim.
-         */
         private val TRANSLATE_PROMPT = """
             일본어 단어의 **영어 사전 뜻(englishDefinitions)** 을 한국어 단어장(플래시카드)용으로 번역한다.
             입력: [{"senseId","baseForm","reading","pos"(품사),"english","englishDefinitions"}]. 출력: [{"senseId","koreanText"}] (입력과 1:1, 순서 동일). JSON만.
@@ -519,28 +447,6 @@ class GeminiClient(
                                 "baseFormReading",
                                 "contextGloss"
                             )
-                        )
-                    )
-                ),
-                "required" to listOf("index", "words")
-            )
-        )
-
-        private val SELECT_SCHEMA = mapOf(
-            "type" to "ARRAY",
-            "items" to mapOf(
-                "type" to "OBJECT",
-                "properties" to mapOf(
-                    "index" to mapOf("type" to "INTEGER"),
-                    "words" to mapOf(
-                        "type" to "ARRAY",
-                        "items" to mapOf(
-                            "type" to "OBJECT",
-                            "properties" to mapOf(
-                                "tokenId" to mapOf("type" to "STRING"),
-                                "senseId" to mapOf("type" to "INTEGER")
-                            ),
-                            "required" to listOf("tokenId", "senseId")
                         )
                     )
                 ),

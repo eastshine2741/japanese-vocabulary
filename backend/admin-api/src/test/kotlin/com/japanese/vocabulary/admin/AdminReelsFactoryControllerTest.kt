@@ -9,6 +9,8 @@ import com.japanese.vocabulary.admin.reels.AdminReelsPreviewTranscoder
 import com.japanese.vocabulary.admin.reels.AdminReelsSourceCache
 import com.japanese.vocabulary.admin.reels.AdminReelsSourceProperties
 import com.japanese.vocabulary.admin.reels.FileAdminReelsSourceCache
+import com.japanese.vocabulary.admin.reels.model.AdminReelsMvCrop
+import com.japanese.vocabulary.admin.reels.model.AdminReelsMvFrame
 import com.japanese.vocabulary.admin.reels.model.AdminReelsPromoData
 import com.japanese.vocabulary.admin.reels.model.AdminReelsPromoLine
 import com.japanese.vocabulary.admin.reels.model.AdminReelsPromoSong
@@ -125,7 +127,10 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
             lyricsEndFrame = 520,
             sourceStartFrame = 900,
             vocabulary = listOf(AdminReelsVocabularyResponse(japanese = "夢", reading = "ユメ", korean = "꿈", partOfSpeech = "NOUN", jlpt = "N5")),
-        ).copy(song = AdminReelsPromoSong(title = "레몬 (Lemon)", artist = "요네즈 켄시", artworkAsset = "", mvAsset = "http://localhost/mv?token=x"))
+        ).copy(
+            song = AdminReelsPromoSong(title = "레몬 (Lemon)", artist = "요네즈 켄시", artworkAsset = "", mvAsset = "http://localhost/mv?token=x"),
+            mvFrame = AdminReelsMvFrame(scale = 1.0, x = -120.0, y = 240.0, crop = AdminReelsMvCrop(top = 0.12, right = 0.0, bottom = 0.12, left = 0.0)),
+        )
         mockMvc.post("/admin/api/reels-factory/render") {
             header("Authorization", "Bearer $token")
             contentType = MediaType.APPLICATION_JSON
@@ -150,6 +155,8 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
         // 곡 제목·아티스트도 DB 값이 아니라 어드민이 고쳐 쓴 표기를 쓴다
         assertThat(rendered.song.title).isEqualTo("레몬 (Lemon)")
         assertThat(rendered.song.artist).isEqualTo("요네즈 켄시")
+        // 어드민이 잡은 MV 배치를 렌더 스크립트까지 그대로 넘긴다
+        assertThat(rendered.mvFrame).isEqualTo(AdminReelsMvFrame(scale = 1.0, x = -120.0, y = 240.0, crop = AdminReelsMvCrop(top = 0.12, right = 0.0, bottom = 0.12, left = 0.0)))
         // 클라이언트의 스트리밍 URL 은 버리고 렌더 스크립트가 mvAsset 을 채운다
         assertThat(rendered.song.mvAsset).isEmpty()
     }
@@ -218,6 +225,14 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
         // 어드민이 고쳐 쓰는 곡 제목·아티스트가 비어 있음
         renderExpectingBadRequest(token, song.id!!, valid.copy(song = valid.song.copy(title = " ")))
         renderExpectingBadRequest(token, song.id!!, valid.copy(song = valid.song.copy(artist = "")))
+        // MV 배치 범위 밖
+        renderExpectingBadRequest(token, song.id!!, valid.copy(mvFrame = AdminReelsMvFrame(scale = 0.0, x = 0.0, y = 0.0)))
+        renderExpectingBadRequest(token, song.id!!, valid.copy(mvFrame = AdminReelsMvFrame(scale = 1.0, x = 3000.0, y = 0.0)))
+        renderExpectingBadRequest(
+            token,
+            song.id!!,
+            valid.copy(mvFrame = AdminReelsMvFrame(scale = 1.0, x = 0.0, y = 0.0, crop = AdminReelsMvCrop(top = 0.5, right = 0.0, bottom = 0.0, left = 0.0))),
+        )
         assertThat(fakeRenderer.lastInput).isNull()
     }
 

@@ -3,6 +3,8 @@ import { AuthProvider, authApi, VerifiedIdentity } from '../api/authApi';
 import { apiErrorMessage } from '../api/errors';
 import { userApi } from '../api/userApi';
 import { tokenStorage } from '../utils/tokenStorage';
+import { getJwtUserId } from '../utils/jwt';
+import { setAnalyticsUserId } from '../services/analytics';
 import { requestPermissionAndRegisterToken } from '../services/pushNotifications';
 import { useSettingsStore } from './settingsStore';
 
@@ -33,6 +35,12 @@ async function persistProfile(username: string, name: string | null) {
   await tokenStorage.saveUserName(name);
 }
 
+async function persistSession(token: string, username: string, name: string | null) {
+  await tokenStorage.saveToken(token);
+  await persistProfile(username, name);
+  setAnalyticsUserId(getJwtUserId(token));
+}
+
 export const useAuthStore = create<AuthState>((set) => ({
   status: 'idle',
   error: null,
@@ -56,8 +64,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         });
         return;
       }
-      await tokenStorage.saveToken(res.token);
-      await persistProfile(res.username, res.name);
+      await persistSession(res.token, res.username, res.name);
       set({
         status: 'success',
         username: res.username,
@@ -67,7 +74,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         pendingProvider: null,
       });
       requestPermissionAndRegisterToken();
-      // 기존 유저는 저장된 설정(복습 주기 표시 등)이 있다 — 앱 재시작 전에도 반영되게 바로 불러온다.
+      // 기존 유저의 저장된 설정을 앱 재시작 없이 바로 반영한다.
       useSettingsStore.getState().loadSettings();
     } catch (e: any) {
       set({ status: 'error', error: apiErrorMessage(e, 'Google sign-in failed') });
@@ -90,8 +97,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         });
         return;
       }
-      await tokenStorage.saveToken(res.token);
-      await persistProfile(res.username, res.name);
+      await persistSession(res.token, res.username, res.name);
       set({
         status: 'success',
         username: res.username,
@@ -101,7 +107,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         pendingProvider: null,
       });
       requestPermissionAndRegisterToken();
-      // 기존 유저는 저장된 설정(복습 주기 표시 등)이 있다 — 앱 재시작 전에도 반영되게 바로 불러온다.
+      // 기존 유저의 저장된 설정을 앱 재시작 없이 바로 반영한다.
       useSettingsStore.getState().loadSettings();
     } catch (e: any) {
       set({ status: 'error', error: apiErrorMessage(e, 'Apple sign-in failed') });
@@ -112,8 +118,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ status: 'loading', error: null });
     try {
       const res = await authApi.googleSignup(idToken, username, displayName);
-      await tokenStorage.saveToken(res.token);
-      await persistProfile(res.username, res.name);
+      await persistSession(res.token, res.username, res.name);
       set({
         status: 'success',
         username: res.username,
@@ -132,8 +137,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ status: 'loading', error: null });
     try {
       const res = await authApi.appleSignup(idToken, username, displayName);
-      await tokenStorage.saveToken(res.token);
-      await persistProfile(res.username, res.name);
+      await persistSession(res.token, res.username, res.name);
       set({
         status: 'success',
         username: res.username,
@@ -148,13 +152,10 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
   },
 
-  // Sign-in can fail natively, before any store action runs (no Apple account on the
-  // device, Play Services missing). Those failures need the same error slot as the
-  // API ones, or the button just looks dead.
+  // Native sign-in can fail before any store action runs (no Apple account, Play Services missing); it needs the same error slot.
   setError: (message) => set({ status: message ? 'error' : 'idle', error: message }),
 
-  // Cached values show immediately; the server copy then wins so edits made
-  // elsewhere (or a cache wiped by reinstall) don't leave stale identity on screen.
+  // Cached values show immediately; the server copy then wins over stale identity.
   loadProfile: async () => {
     const [username, name, email] = await Promise.all([
       tokenStorage.getUsername(),

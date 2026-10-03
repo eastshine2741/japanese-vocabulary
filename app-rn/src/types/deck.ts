@@ -9,9 +9,14 @@ export interface SongDeckSummary {
   artworkUrl: string | null;
   wordCount: number;
   dueCount: number;
+  /** 구버전 앱용 FSRS state 기준 값. 진행 바는 longTermCount/shortTermCount 를 쓴다. */
   masteredCount: number;
   studyingCount: number;
   newWordCount: number;
+  /** 장기기억 — 7일 뒤 90% 이상 회상. */
+  longTermCount: number;
+  /** 단기기억 — 리뷰 이력이 있으나 장기기억이 아닌 단어. */
+  shortTermCount: number;
 }
 
 export interface DeckListResponse {
@@ -27,9 +32,14 @@ export interface DeckDetailResponse {
   artworkUrl: string | null;
   wordCount: number;
   dueCount: number;
+  /** 구버전 앱용 FSRS state 기준 값. 진행 바는 longTermCount/shortTermCount 를 쓴다. */
   masteredCount: number;
   studyingCount: number;
   newWordCount: number;
+  /** 장기기억 — 7일 뒤 90% 이상 회상. */
+  longTermCount: number;
+  /** 단기기억 — 리뷰 이력이 있으나 장기기억이 아닌 단어. */
+  shortTermCount: number;
 }
 
 export interface DeckWordItem {

@@ -21,10 +21,7 @@ import { Typography } from '../../theme/typography';
 import { PillState } from './pillState';
 
 // component/AnalyzingPill (Pencil XjTJZ). 접힌 pill 과 펼친 곡별 pill 이 같은 컴포넌트를 쓴다.
-// 상태가 바뀌면 그 자리에서 변한다: 색은 tone 으로 보간, 글자는 새 글자가 페이드인, 아트 개수 변화는 layout 전환.
 // 폭은 고정이고 부제가 넘치면 곡명만 말줄임한다(뒤 문구는 항상 보인다). 실패 pill 만 사유를 담느라 더 넓다.
-// 아트 테두리는 두지 않는다.
-// 완료와 실패는 같은 흰 바탕이고 부제·아이콘 색만 초록/빨강으로 갈린다.
 // 접힌 단일 완료 pill 은 탭이 곧 학습이라, 체크 대신 chevron 으로 이동을 드러낸다(state/done).
 
 export const PILL_HEIGHT = 56;
@@ -68,7 +65,7 @@ function AnalysisPill({ state, onPress }: Props) {
     failure.value = withTiming(failed ? 1 : 0, { duration: TONE_DURATION, easing: Easing.out(Easing.cubic) });
   }, [failed, failure]);
 
-  // 누르면 살짝 눌리고(0.96), 떼면 원래 크기로. 알파 대신 크기로 눌림을 표현한다.
+  // 눌림은 알파 대신 크기로 표현한다.
   const pressScale = useSharedValue(1);
   const handlePressIn = useCallback(() => {
     pressScale.value = withSpring(PRESSED_SCALE, { damping: 30, stiffness: 600 });

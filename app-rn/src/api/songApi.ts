@@ -11,6 +11,10 @@ import {
   SongStudyBootstrapResponse,
   WordsInSongDto,
   StudyUnit,
+  SongWordTiersDto,
+  SongWordTierKey,
+  SongWordTierStudyResponse,
+  SongCoverageDto,
 } from '../types/song';
 
 function toLegacyStudyUnits(lyrics: SongLyricsDto): StudyUnit[] {
@@ -101,12 +105,30 @@ export const songApi = {
     return data;
   },
 
+  /** 곡 단어 3단계 (완곡까지 3단계) */
+  async getWordTiers(id: number): Promise<SongWordTiersDto> {
+    const { data } = await client.get<SongWordTiersDto>(`/api/songs/${id}/word-tiers`);
+    return data;
+  },
+
+  /** 가사 줄 기준 이해도 */
+  async getCoverage(id: number): Promise<SongCoverageDto> {
+    const { data } = await client.get<SongCoverageDto>(`/api/songs/${id}/coverage`);
+    return data;
+  },
+
   /** 홈 콜드스타트 부트스트랩: 이 곡을 통째로 담고 rating 을 준 단어를 곧바로 리뷰한다. */
   async studyBootstrap(songId: number, rating: number, leadJapanese?: string | null): Promise<SongStudyBootstrapResponse> {
     const { data } = await client.post<SongStudyBootstrapResponse>(
       `/api/songs/${songId}/study-bootstrap`,
       { rating, leadJapanese: leadJapanese ?? null },
     );
+    return data;
+  },
+
+  /** 단계 학습: 그 단계의 due 단어를 곡 단어장에 담고 카드로 받는다. 카드 수 = `dueCount`. */
+  async studyWordTier(songId: number, key: SongWordTierKey): Promise<SongWordTierStudyResponse> {
+    const { data } = await client.post<SongWordTierStudyResponse>(`/api/songs/${songId}/word-tiers/${key}/study`);
     return data;
   },
 

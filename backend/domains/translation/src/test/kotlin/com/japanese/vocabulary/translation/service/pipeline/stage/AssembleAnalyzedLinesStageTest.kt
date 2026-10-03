@@ -22,9 +22,8 @@ class AssembleAnalyzedLinesStageTest {
 
     @Test
     fun `anchors every token with the reading sung in this line so a client can assemble it`(): Unit = runBlocking {
-        // 「行って」 yay — no line reading is stored, so what a client needs is on the tokens: the
-        // reading, and the char range that says where it sits. The quotes, the space and the latin run
-        // have no reading of their own, and a client falls back to their surface.
+        // No line reading is stored: clients use each token's reading and char range, and fall back to
+        // the surface for quotes, spaces and latin runs.
         val raw = "「行って」 yay"
         val tokens = listOf(
             token(raw, "「", "「", "「", "「"),
@@ -150,6 +149,21 @@ class AssembleAnalyzedLinesStageTest {
         assertThat(line.tokens.map { it.reading }).containsExactly("ナツ", "マデワ")
     }
 
+
+    @Test
+    fun `reads the は of an expression as it is sung`(): Unit = runBlocking {
+        // には is tagged an expression, not a particle, and kept its spelling: 와타시니하.
+        val raw = "私には"
+        val tokens = listOf(
+            token(raw, "私", "私", "ワタシ", "ワタシ"),
+            token(raw, "には", "には", "ニハ", "ニハ"),
+        )
+        val rule = RuleResolvedToken("には", "には", "ニハ", "ニハ", PartOfSpeech.EXPRESSION, "~에는")
+
+        val line = assemble(raw, tokens, ruleResolvedByKey = mapOf(tokens[1].key to rule)).single()
+
+        assertThat(line.tokens.map { it.reading }).containsExactly("ワタシ", "ニワ")
+    }
 
     @Test
     fun `takes the dictionary reading when the surface is the dictionary form`(): Unit = runBlocking {

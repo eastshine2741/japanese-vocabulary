@@ -13,6 +13,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { useDeckDetailStore } from '../stores/deckDetailStore';
 import { usePlayerStore } from '../stores/playerStore';
 import ArtworkImage from '../components/ArtworkImage';
+import MemoryProgressBar from '../components/MemoryProgressBar';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { SecondaryButton } from '../components/SecondaryButton';
 import { AppBar } from '../components/AppBar';
@@ -88,7 +89,6 @@ export default function DeckDetailScreen({ route, navigation }: Props) {
         {status === 'error' && <Text style={styles.errorText}>{error}</Text>}
         {status === 'success' && data && (
           <View style={styles.content}>
-            {/* Artwork */}
             {isAllDeck ? (
               <AllWordsArtwork />
             ) : (
@@ -104,53 +104,28 @@ export default function DeckDetailScreen({ route, navigation }: Props) {
               </View>
             ) : (
               <>
-                {/* Song title */}
                 {data.title && <Text style={styles.title}>{data.title}</Text>}
 
-                {/* Artist */}
                 {data.artist && <Text style={styles.artist}>{data.artist}</Text>}
               </>
             )}
 
-            {/* Hero: due count */}
             <View style={styles.heroSection}>
               <Text style={styles.heroLabel}>복습할 단어</Text>
               <Text style={styles.heroValue}>{data.dueCount}</Text>
             </View>
 
-            {/* Pipeline bar */}
-            {data.wordCount > 0 && (() => {
-              const total = data.wordCount;
-              const masteredPct = (data.masteredCount / total) * 100;
-              const studyingPct = (data.studyingCount / total) * 100;
-              const newPct = (data.newWordCount / total) * 100;
+            {data.wordCount > 0 && (
+              <MemoryProgressBar
+                style={styles.pipelineSection}
+                totalCount={data.wordCount}
+                longTermCount={data.longTermCount}
+                shortTermCount={data.shortTermCount}
+                showLegend
+                legendAlign="center"
+              />
+            )}
 
-              return (
-                <View style={styles.pipelineSection}>
-                  <View style={styles.segBar}>
-                    {masteredPct > 0 && <View style={[styles.segment, { width: `${masteredPct}%`, backgroundColor: Colors.stateReview }]} />}
-                    {studyingPct > 0 && <View style={[styles.segment, { width: `${studyingPct}%`, backgroundColor: Colors.stateRetrievability }]} />}
-                    {newPct > 0 && <View style={[styles.segment, { width: `${newPct}%`, backgroundColor: Colors.stateRelearning }]} />}
-                  </View>
-                  <View style={styles.legend}>
-                    <View style={styles.legendItem}>
-                      <View style={[styles.legendDot, { backgroundColor: Colors.stateReview }]} />
-                      <Text style={styles.legendText}>외운 단어 {data.masteredCount}</Text>
-                    </View>
-                    <View style={styles.legendItem}>
-                      <View style={[styles.legendDot, { backgroundColor: Colors.stateRetrievability }]} />
-                      <Text style={styles.legendText}>외우는 중 {data.studyingCount}</Text>
-                    </View>
-                    <View style={styles.legendItem}>
-                      <View style={[styles.legendDot, { backgroundColor: Colors.stateRelearning }]} />
-                      <Text style={styles.legendText}>새 단어 {data.newWordCount}</Text>
-                    </View>
-                  </View>
-                </View>
-              );
-            })()}
-
-            {/* Study button */}
             <PrimaryButton
               icon="layers-outline"
               label="학습하기"
@@ -159,7 +134,6 @@ export default function DeckDetailScreen({ route, navigation }: Props) {
               style={styles.primaryBtn}
             />
 
-            {/* View words button */}
             <SecondaryButton
               icon="list-outline"
               label="단어 보기"
@@ -167,7 +141,6 @@ export default function DeckDetailScreen({ route, navigation }: Props) {
               style={styles.secondaryBtn}
             />
 
-            {/* Listen song button — only for per-song decks */}
             {songId !== null && (
               <SecondaryButton
                 icon="play-circle-outline"
@@ -329,37 +302,6 @@ const styles = StyleSheet.create({
   },
   pipelineSection: {
     width: '100%',
-    gap: 6,
-  },
-  segBar: {
-    flexDirection: 'row',
-    height: 8,
-    borderRadius: 4,
-    overflow: 'hidden',
-    gap: 2,
-  },
-  segment: {
-    height: 8,
-  },
-  legend: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 12,
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  legendDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  legendText: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: Colors.textSecondary,
   },
   primaryBtn: {
     width: '100%',

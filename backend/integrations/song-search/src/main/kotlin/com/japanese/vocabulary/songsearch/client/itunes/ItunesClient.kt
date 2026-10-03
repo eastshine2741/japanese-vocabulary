@@ -74,8 +74,7 @@ class ItunesClient(restClientBuilder: RestClient.Builder, objectMapper: ObjectMa
             id to millis / 1000
         }.toMap()
 
-    // The mzstatic URL templates the size in the path, so swap 100x100 → 600x600.
-    // 100x100 from artworkUrl100 looks blurry on deck cover screens at 3x density.
+    // The mzstatic URL templates the size in the path; 100x100 is blurry on deck covers at 3x density.
     private fun upsizeArtwork(url: String?): String? = url?.let {
         when {
             it.endsWith("/100x100bb.jpg") -> it.replace("/100x100bb.jpg", "/600x600bb.jpg")

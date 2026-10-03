@@ -83,8 +83,7 @@ export default function SignupScreen({ navigation, route }: Props) {
       // ignore
     }
     reset();
-    // Login navigated here with `replace`, so there's nothing to pop back to —
-    // route to Login explicitly instead of `goBack()`.
+    // Login arrived via `replace`, so there is nothing to pop back to.
     navigation.replace('Login');
   }, [navigation, provider, reset]);
 
@@ -154,8 +153,7 @@ export default function SignupScreen({ navigation, route }: Props) {
   const usernameHasError =
     usernameState.kind === 'invalid' || usernameState.kind === 'unavailable';
   const usernameFocused = focusedField === 'username';
-  // 'available' is signalled by the checkmark — don't paint the border when unfocused,
-  // otherwise both fields look selected once focus moves to 이름.
+  // 'available' shows a checkmark; an unfocused border would make both fields look selected.
   const usernameBorder = usernameHasError
     ? Colors.ratingAgain
     : usernameFocused

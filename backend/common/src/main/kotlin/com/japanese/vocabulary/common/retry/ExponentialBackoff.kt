@@ -8,10 +8,9 @@ import java.time.Instant
  * and so on, each plus up to [jitter] of itself so parallel workers hitting the same outage do not
  * retry in lockstep, never longer than [maxDelay].
  *
- * The loop is [retry]. It is `inline` so a coroutine caller can hand in `delay` as [sleep] and
- * suspend inside the lambda, which is inlined into the caller's own body. Callers pass `delay`, not
- * `Thread.sleep`: a sleeping thread is a worker slot no other song can use. What counts as worth retrying is the caller's too, since only
- * it knows its client: HTTP callers pass [TransientHttpErrors.isTransient].
+ * [retry] is `inline` so a coroutine caller can pass `delay` as [sleep] and suspend inside the lambda.
+ * Do not pass `Thread.sleep`: a sleeping thread is a worker slot no other song can use. What is
+ * retryable is the caller's call; HTTP callers pass [TransientHttpErrors.isTransient].
  */
 class ExponentialBackoff(
     val maxAttempts: Int,

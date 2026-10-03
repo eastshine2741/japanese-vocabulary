@@ -50,7 +50,7 @@ const SearchEntry = React.memo(function SearchEntry({ onPress }: { onPress: () =
     <Pressable onPress={onPress} style={styles.item} hitSlop={4}>
       <View style={styles.ring}>
         <LinearGradient
-          colors={['#6FCB9E', '#52B788']}
+          colors={['#3FD08A', '#16B364']}
           start={{ x: 1, y: 0 }}
           end={{ x: 0, y: 1 }}
           style={styles.searchTile}

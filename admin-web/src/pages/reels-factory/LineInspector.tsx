@@ -1,12 +1,23 @@
 import * as React from "react"
 import { AlertTriangle, Crosshair, LocateFixed } from "lucide-react"
 import type { ReelsSongDetail } from "@/api/types"
+import type { MvCrop, MvFrame } from "@reels/types"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import {
+  clampMvFrame,
+  coverMvFrame,
   END_CARD_MS,
+  FIT_WIDTH_MV_FRAME,
   formatMs,
+  hasCrop,
   lineByIndex,
+  MV_CROP_MAX,
+  MV_OFFSET_X_MAX,
+  MV_OFFSET_Y_MAX,
+  MV_SCALE_MAX,
+  MV_SCALE_MIN,
+  NO_CROP,
   parseTimecode,
   tokenSelectable,
   type EditorState,
@@ -17,10 +28,15 @@ type Props = {
   detail: ReelsSongDetail
   editor: EditorState
   credit: SongCredit
+  /** null 이면 캔버스를 꽉 채운다(cover). */
+  mvFrame: MvFrame | null
+  /** 올린 MV 의 가로/세로 비율. 메타데이터를 읽기 전엔 null. */
+  mvAspect: number | null
   selectedIndex: number | null
   playheadMs: number
   errors: string[]
   onChangeCredit(credit: SongCredit): void
+  onChangeMvFrame(frame: MvFrame | null): void
   onSetSourceStart(ms: number): void
   onSetEnd(ms: number): void
   onSetLineStart(index: number, ms: number): void
@@ -29,15 +45,18 @@ type Props = {
   onSeekReel(ms: number): void
 }
 
-/** 오른쪽 패널. 위부터 곡 표기, 클립 시작·끝, 고른 줄의 타이밍과 단어. */
+/** 오른쪽 패널. 위부터 곡 표기, MV 배치, 클립 시작·끝, 고른 줄의 타이밍과 단어. */
 export function LineInspector({
   detail,
   editor,
   credit,
+  mvFrame,
+  mvAspect,
   selectedIndex,
   playheadMs,
   errors,
   onChangeCredit,
+  onChangeMvFrame,
   onSetSourceStart,
   onSetEnd,
   onSetLineStart,
@@ -49,6 +68,19 @@ export function LineInspector({
   const included = selectedIndex == null ? undefined : editor.lines.find((current) => current.index === selectedIndex)
   const hasClip = editor.lines.length > 0
   const spanMs = editor.endMs - editor.sourceStartMs
+  // cover 상태에서 슬라이더를 움직이면 cover 와 같은 배치에서 출발한다. 비율을 모르면 그 값을 알 수 없어 막는다.
+  const shownFrame = mvFrame ?? (mvAspect != null ? coverMvFrame(mvAspect) : null)
+  const changeFrame = (patch: Partial<MvFrame>) => {
+    if (shownFrame) onChangeMvFrame(clampMvFrame({ ...shownFrame, ...patch }))
+  }
+  const crop = shownFrame?.crop ?? NO_CROP
+  // 꽉 채운 상태에서 자르면 잘라낸 영역으로 다시 꽉 채운다. 배치를 손본 뒤라면 배율·위치는 그대로 둔다.
+  const changeCrop = (patch: Partial<MvCrop>) => {
+    if (!shownFrame || mvAspect == null) return
+    const next = { ...crop, ...patch }
+    onChangeMvFrame(mvFrame == null ? coverMvFrame(mvAspect, next) : clampMvFrame({ ...shownFrame, crop: next }))
+  }
+  const fill = () => onChangeMvFrame(hasCrop(crop) && mvAspect != null ? coverMvFrame(mvAspect, crop) : null)
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-auto rounded-lg border border-[#d9e1ea] bg-white text-sm">
@@ -64,6 +96,72 @@ export function LineInspector({
           <TextInput ariaLabel="Song title" value={credit.title} onChange={(title) => onChangeCredit({ ...credit, title })} />
           <span className="font-mono text-xs text-[#637083]">ARTIST</span>
           <TextInput ariaLabel="Song artist" value={credit.artist} onChange={(artist) => onChangeCredit({ ...credit, artist })} />
+        </div>
+      </section>
+
+      <section className="border-b border-[#e2e8f0] p-3">
+        <div className="mb-2 flex items-center justify-between">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-[#637083]">Frame</span>
+          <div className="flex gap-1">
+            <Button className="h-7 px-2 text-xs" onClick={() => onChangeMvFrame({ ...FIT_WIDTH_MV_FRAME, crop })} type="button" variant="ghost">
+              가로 맞춤
+            </Button>
+            <Button
+              className="h-7 px-2 text-xs"
+              disabled={mvFrame == null}
+              onClick={fill}
+              type="button"
+              variant="ghost"
+            >
+              꽉 채움
+            </Button>
+          </div>
+        </div>
+        <div className="grid grid-cols-[48px_1fr_48px] items-center gap-x-2 gap-y-1.5">
+          <FrameSlider
+            disabled={shownFrame == null}
+            format={(value) => `${Math.round(value * 100)}%`}
+            label="SCALE"
+            max={MV_SCALE_MAX}
+            min={MV_SCALE_MIN}
+            step={0.01}
+            value={shownFrame?.scale ?? 1}
+            onChange={(scale) => changeFrame({ scale })}
+          />
+          <FrameSlider
+            disabled={shownFrame == null}
+            label="X"
+            max={MV_OFFSET_X_MAX}
+            min={-MV_OFFSET_X_MAX}
+            step={1}
+            value={shownFrame?.x ?? 0}
+            onChange={(x) => changeFrame({ x })}
+          />
+          <FrameSlider
+            disabled={shownFrame == null}
+            label="Y"
+            max={MV_OFFSET_Y_MAX}
+            min={-MV_OFFSET_Y_MAX}
+            step={1}
+            value={shownFrame?.y ?? 0}
+            onChange={(y) => changeFrame({ y })}
+          />
+        </div>
+        <div className="mt-3 mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-[#637083]">Crop</div>
+        <div className="grid grid-cols-[48px_1fr_48px] items-center gap-x-2 gap-y-1.5">
+          {CROP_SIDES.map(([side, label]) => (
+            <FrameSlider
+              disabled={shownFrame == null}
+              format={(value) => `${(value * 100).toFixed(1)}%`}
+              key={side}
+              label={label}
+              max={MV_CROP_MAX}
+              min={0}
+              step={0.001}
+              value={crop[side]}
+              onChange={(value) => changeCrop({ [side]: value })}
+            />
+          ))}
         </div>
       </section>
 
@@ -203,6 +301,52 @@ function PlayheadButton({ label, disabled, onClick }: { label: string; disabled?
     >
       <Crosshair className="h-4 w-4" />
     </Button>
+  )
+}
+
+const CROP_SIDES: [keyof MvCrop, string][] = [
+  ["top", "TOP"],
+  ["bottom", "BOTTOM"],
+  ["left", "LEFT"],
+  ["right", "RIGHT"],
+]
+
+/** 슬라이더 한 줄. 라벨 · range · 값 순의 3칸을 부모 grid 에 그대로 깐다. */
+function FrameSlider({
+  label,
+  min,
+  max,
+  step,
+  value,
+  disabled,
+  format = (current) => String(current),
+  onChange,
+}: {
+  label: string
+  min: number
+  max: number
+  step: number
+  value: number
+  disabled?: boolean
+  format?(value: number): string
+  onChange(value: number): void
+}) {
+  return (
+    <>
+      <span className="font-mono text-xs text-[#637083]">{label}</span>
+      <input
+        aria-label={`MV ${label.toLowerCase()}`}
+        className="h-2 w-full cursor-pointer accent-[#0f766e] disabled:cursor-not-allowed"
+        disabled={disabled}
+        max={max}
+        min={min}
+        onChange={(event) => onChange(Number(event.target.value))}
+        step={step}
+        type="range"
+        value={value}
+      />
+      <span className="text-right font-mono text-xs tabular-nums text-[#18212f]">{format(value)}</span>
+    </>
   )
 }
 

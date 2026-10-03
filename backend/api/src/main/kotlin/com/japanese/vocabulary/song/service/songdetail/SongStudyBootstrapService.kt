@@ -18,10 +18,8 @@ import org.springframework.stereotype.Service
  * 고른 단어가 기본 필터 밖이어도 그 단어는 함께 담는다 — 안 그러면 방금 매긴 rating 을 붙일
  * flashcard 가 없다.
  *
- * [WordService.batchAddWords] 는 트랜잭션 밖에서 재시도한다(그 클래스 주석 참고 — 이미 열린
- * 트랜잭션 안에서 부르면 rollback-only 상태라 재시도가 깨진다). 그래서 이 메서드는 전체를
- * 하나의 `@Transactional` 로 감싸지 않는다 — 각 단계가 자기 트랜잭션을 그대로 쓴다. 중간에
- * 실패해도 이미 담긴 단어는 다음 홈 진입에서 정상적으로 due 로 잡히므로 스스로 복구된다.
+ * [WordService.batchAddWords] 는 트랜잭션 밖에서 재시도하므로 이 메서드는 `@Transactional` 로
+ * 감싸지 않는다. 중간에 실패해도 이미 담긴 단어는 다음 홈 진입에서 due 로 잡힌다.
  */
 @Service
 class SongStudyBootstrapService(
@@ -54,7 +52,7 @@ class SongStudyBootstrapService(
             ?: throw BusinessException(ErrorCode.WORD_NOT_FOUND)
         val flashcardId = flashcardService.findLeadCandidate(userId, wordId)?.id
             ?: throw BusinessException(ErrorCode.FLASHCARD_NOT_FOUND)
-        flashcardService.reviewCard(userId, flashcardId, rating)
+        val reviewed = flashcardService.reviewCard(userId, flashcardId, rating)
 
         val deckId = deckService.findBySongId(userId, songId)?.id
             ?: throw BusinessException(ErrorCode.DECK_NOT_FOUND)
@@ -65,6 +63,7 @@ class SongStudyBootstrapService(
             cards = due.items,
             totalCount = due.totalCount,
             nextDueAt = due.nextDueAt,
+            reviewedMemory = reviewed.memory,
         )
     }
 

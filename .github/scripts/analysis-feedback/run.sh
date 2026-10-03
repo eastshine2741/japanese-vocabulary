@@ -92,10 +92,6 @@ trap cleanup EXIT
 
 urlencode() { jq -rn --arg s "$1" '$s|@uri'; }
 
-# ---------------------------------------------------------------------------------------------
-# Preflight
-# ---------------------------------------------------------------------------------------------
-
 preflight() {
   local tool
   for tool in jq curl git gh claude; do
@@ -117,10 +113,6 @@ preflight() {
   fi
   jq -e '.version==1 and (.defects|type=="object")' "$LEDGER_FILE" >/dev/null || die "Ledger is not readable: $LEDGER_FILE"
 }
-
-# ---------------------------------------------------------------------------------------------
-# Sentry
-# ---------------------------------------------------------------------------------------------
 
 SENTRY_BASE="${SENTRY_API_BASE:-https://sentry.io/api/0}"
 SENTRY_NEXT_CURSOR=""
@@ -167,10 +159,6 @@ fetch_defects() {
   done
 }
 
-# ---------------------------------------------------------------------------------------------
-# Ledger
-# ---------------------------------------------------------------------------------------------
-#
 # {"version":1,"defects":{"<cause>:<headword>":{cause,headword,status,firstSeen,lastSeen,
 #   occurrences:[{songId,lineIndex,surface,line,timestamp}], fixAttempts, prUrl, reason}}}
 #
@@ -233,10 +221,6 @@ ledger_set() {
   mv "$out" "$LEDGER_FILE"
 }
 
-# ---------------------------------------------------------------------------------------------
-# Claude
-# ---------------------------------------------------------------------------------------------
-
 # Runs one headless pass. Prints the structured output JSON.
 #   claude_pass <cwd> <model> <prompt-file> <schema-file> <tools> <allowed-rules> <permission-mode>
 # <tools> is the built-in tool set the pass may see at all; <allowed-rules> pre-approves calls
@@ -274,10 +258,6 @@ claude_pass() {
   jq -c '.structured_output' "$out"
 }
 
-# ---------------------------------------------------------------------------------------------
-# Classification
-# ---------------------------------------------------------------------------------------------
-
 classify() {
   local candidates_json="$1"
   local prompt result
@@ -307,10 +287,6 @@ classify() {
   fi
   printf '%s\n' "$result"
 }
-
-# ---------------------------------------------------------------------------------------------
-# Fix pass
-# ---------------------------------------------------------------------------------------------
 
 # Changed paths in the worktree relative to origin/main (tracked + untracked).
 changed_paths() {
@@ -350,9 +326,8 @@ run_test() {
   local gradle_log
   gradle_log="$(tmp)"
   local exit_code=0
-  # </dev/null: the caller loops over groups via stdin, and gradle forwards whatever stdin it
-  # inherits to the daemon. Nothing reads it there, the daemon's pipe fills, and the build never
-  # returns (hung the 2026-09-16 run for 18h). timeout is the backstop so the timer keeps going.
+  # </dev/null: gradle forwards inherited stdin (the caller's group loop) to the daemon and hangs.
+  # timeout is the backstop so the timer keeps going.
   (cd "$wt/backend" && timeout "$TEST_TIMEOUT" ./gradlew "$task" --tests "$test_class" -q </dev/null > "$gradle_log" 2>&1) || exit_code=$?
   local results_dir="$wt/backend/$module_dir/build/test-results/test"
   local summary
@@ -457,8 +432,7 @@ fix_group() {
   [[ ! -e "$wt" ]] || git -C "$REPO_DIR" worktree remove --force "$wt" >/dev/null 2>&1 || rm -rf "$wt"
   mkdir -p "$WORKTREE_ROOT"
   git -C "$REPO_DIR" fetch -q origin main
-  # Branch from origin/main, never from whatever the local checkout happens to be on: the old
-  # triage runner branched from HEAD and shipped a +18,000-line PR of unrelated local commits.
+  # Branch from origin/main, never from the local checkout's HEAD.
   git -C "$REPO_DIR" worktree add -q -b "$branch" "$wt" origin/main
   local base_sha
   base_sha="$(git -C "$wt" rev-parse HEAD)"
@@ -529,10 +503,6 @@ fix_group() {
   git -C "$REPO_DIR" worktree remove --force "$wt" >/dev/null 2>&1 || true
   printf '%s\n' "$pr_url"
 }
-
-# ---------------------------------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------------------------------
 
 main() {
   preflight

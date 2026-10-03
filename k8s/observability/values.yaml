@@ -3,9 +3,6 @@ fullnameOverride: kps
 crds:
   enabled: true
 
-# ─────────────────────────────────────────────────────────────
-# Prometheus
-# ─────────────────────────────────────────────────────────────
 prometheus:
   prometheusSpec:
     retention: 15d
@@ -21,7 +18,7 @@ prometheus:
     resources:
       requests:
         cpu: 100m
-        memory: 512Mi
+        memory: 704Mi
       limits:
         memory: 1Gi
     storageSpec:
@@ -33,12 +30,12 @@ prometheus:
             requests:
               storage: 10Gi
 
-# ─────────────────────────────────────────────────────────────
-# Alertmanager — enabled, no routing yet (룰 모음용)
-# ─────────────────────────────────────────────────────────────
+# 설정은 alertmanager.yaml → Secret(alertmanager-config) (install.sh가 webhook URL을 채워 생성)
 alertmanager:
   enabled: true
   alertmanagerSpec:
+    useExistingSecret: true
+    configSecret: alertmanager-config
     resources:
       requests:
         cpu: 20m
@@ -46,9 +43,7 @@ alertmanager:
       limits:
         memory: 128Mi
 
-# ─────────────────────────────────────────────────────────────
-# Grafana — internal only (port-forward 접근)
-# ─────────────────────────────────────────────────────────────
+# Grafana는 내부 전용 (port-forward 접근)
 grafana:
   # adminPassword는 install.sh의 --set-string으로 주입
   defaultDashboardsTimezone: Asia/Seoul
@@ -90,12 +85,8 @@ grafana:
         gnetId: 4701
         revision: 10
         datasource: Prometheus
-  # spring-boot-3 (#19004): grafana.com 다운로드는 ${DS_PROMETHEUS} 치환 안 됨 →
-  # 직접 치환한 JSON을 dashboards/ 에 두고 ConfigMap으로 sidecar에 먹임 (install.sh 참조).
+  # spring-boot-3: grafana.com 다운로드는 ${DS_PROMETHEUS}가 치환되지 않아 dashboards/ 의 치환된 JSON을 ConfigMap으로 sidecar에 먹임 (install.sh 참조).
 
-# ─────────────────────────────────────────────────────────────
-# 끄거나 가벼운 컴포넌트
-# ─────────────────────────────────────────────────────────────
 kubeEtcd:
   enabled: false           # k3s는 sqlite/embedded etcd 기본 — 스크랩 불가
 kubeControllerManager:

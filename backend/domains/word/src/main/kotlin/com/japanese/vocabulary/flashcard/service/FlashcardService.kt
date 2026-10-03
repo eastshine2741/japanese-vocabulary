@@ -5,6 +5,7 @@ import com.japanese.vocabulary.common.exception.BusinessException
 import com.japanese.vocabulary.common.exception.ErrorCode
 import com.japanese.vocabulary.flashcard.entity.FlashcardEntity
 import com.japanese.vocabulary.flashcard.event.FlashcardReviewedEvent
+import com.japanese.vocabulary.flashcard.model.FlashcardMemory
 import com.japanese.vocabulary.flashcard.dto.DueFlashcardsDto
 import com.japanese.vocabulary.flashcard.dto.FlashcardDto
 import com.japanese.vocabulary.flashcard.dto.FlashcardStatsDto
@@ -34,9 +35,7 @@ class FlashcardService(
 ) {
 
     /**
-     * flashcard 는 word 와 수명주기가 같다 — flashcard 없는 word 는 존재할 수 없다.
-     * 그래서 [com.japanese.vocabulary.word.service.WordService] 의 저장 트랜잭션이 매번 이걸
-     * 부르고, 이미 있으면 그대로 재사용해서 FSRS 진행 상태를 보존한다.
+     * word 저장 트랜잭션이 매번 부른다. 이미 있으면 재사용해 FSRS 진행 상태를 보존한다.
      */
     @Transactional
     fun createFlashcard(userId: Long, wordId: Long): Long {
@@ -93,11 +92,8 @@ class FlashcardService(
     }
 
     /**
-     * Builds the due-flashcards view for a pre-selected id set — used by the deck module, which
-     * owns the deck-scoped due query but must not assemble flashcard internals itself.
-     *
-     * [leadId] bypasses the due-date filter for one card — the deck module uses this to force a
-     * word the user just tapped into the response even if FSRS hasn't made it due yet.
+     * Due-flashcards view for ids the deck module pre-selected. [leadId] bypasses the due-date filter
+     * for one card so a just-tapped word is included even if FSRS hasn't made it due.
      */
     @Transactional(readOnly = true)
     fun getDueFlashcardsByIds(
@@ -115,8 +111,18 @@ class FlashcardService(
     }
 
     /**
-     * The flashcard id for a word and whether it is currently due — used by the deck module to
-     * splice a specific word to the head of its due queue without duplicating due-date logic.
+     * [wordIds] 순서대로 due 와 무관하게 카드를 준다. 곡 상세 단계 학습은 복습 일정이 아니라 단계 단어 전부가 큐다.
+     */
+    @Transactional(readOnly = true)
+    fun getFlashcardsForWords(userId: Long, wordIds: List<Long>): DueFlashcardsDto {
+        val byWordId = flashcardRepository.findByUserIdAndWordIdIn(userId, wordIds).associateBy { it.wordId }
+        val entities = wordIds.distinct().mapNotNull { byWordId[it] }
+        return assembleDueFlashcards(userId, entities, Instant.now(clock), totalCount = entities.size, nextDueAt = null)
+    }
+
+    /**
+     * Flashcard id and due flag for a word, so the deck module can move it to the head of its due
+     * queue without duplicating due-date logic.
      */
     @Transactional(readOnly = true)
     fun findLeadCandidate(userId: Long, wordId: Long): LeadFlashcardCandidate? {
@@ -138,8 +144,7 @@ class FlashcardService(
 
         val desiredRetention = 0.9
 
-        // showIntervals 설정과 무관하게 항상 내려준다 — 설정은 앱이 rating 버튼에서만 숨기는 데 쓰고,
-        // rating 선택 후 "N일 뒤에 다시 만나요" 문구에는 여전히 필요하다.
+        // showIntervals 설정과 무관하게 항상 내려준다 — rating 선택 후 "N일 뒤에 다시 만나요" 문구에 필요하다.
         val cards = dueEntities.mapNotNull { entity ->
             val word = words[entity.wordId] ?: return@mapNotNull null
 
@@ -163,6 +168,7 @@ class FlashcardService(
                 state = entity.state,
                 due = entity.due.toString(),
                 intervals = intervals,
+                memory = FlashcardMemory.of(entity),
             )
         }
 
@@ -218,6 +224,7 @@ class FlashcardService(
             due = entity.due.toString(),
             stability = entity.stability,
             difficulty = entity.difficulty,
+            memory = FlashcardMemory.ofReviewed(entity.stability),
         )
     }
 
@@ -230,6 +237,10 @@ class FlashcardService(
         val learning = flashcardRepository.countByUserIdAndState(userId, 0) +
                 flashcardRepository.countByUserIdAndState(userId, 2) // LEARNING + RELEARNING
         val review = flashcardRepository.countByUserIdAndState(userId, 1) // REVIEW
+        val longTerm = flashcardRepository.countByUserIdAndLastReviewIsNotNullAndStabilityGreaterThanEqual(
+            userId,
+            FlashcardMemory.LONG_TERM_STABILITY_DAYS,
+        )
 
         return FlashcardStatsDto(
             total = total,
@@ -237,6 +248,8 @@ class FlashcardService(
             newCount = newCount,
             learning = learning - newCount, // subtract never-reviewed cards
             review = review,
+            longTermCount = longTerm,
+            shortTermCount = total - newCount - longTerm,
         )
     }
 

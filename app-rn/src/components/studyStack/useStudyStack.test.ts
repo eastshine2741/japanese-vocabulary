@@ -8,7 +8,7 @@ import { studyStatsApi } from '../../api/studyStatsApi';
 import { wordApi } from '../../api/wordApi';
 import { RATING_HOLD_MS, useStudyStack, StudyStackState } from './useStudyStack';
 import { StudySource } from './types';
-import { FlashcardDTO } from '../../types/flashcard';
+import { FlashcardDTO, FlashcardMemory } from '../../types/flashcard';
 import { RecommendedSongItem, WordInSongItemDto, WordsInSongDto } from '../../types/song';
 
 const native = vi.hoisted(() => ({ listeners: new Set<(state: string) => void>(), focused: true }));
@@ -44,9 +44,9 @@ vi.mock('../../stores/studyStatsStore', () => ({ useStudyStatsStore: { getState:
 const source: StudySource = {
   deckId: 7, songId: 3, title: 'Song', artist: 'Artist', artworkUrl: null, dueCount: 30, totalCount: 40,
 };
-const card = (id: number): FlashcardDTO => ({
+const card = (id: number, memory: FlashcardMemory = 'SHORT_TERM'): FlashcardDTO => ({
   id, wordId: id, japanese: '歌', reading: 'ウタ', senses: [], state: 0,
-  due: '2026-09-05T00:00:00Z', intervals: null,
+  due: '2026-09-05T00:00:00Z', intervals: null, memory,
 });
 let stack: StudyStackState;
 let renderer: ReactTestRenderer;
@@ -76,7 +76,7 @@ beforeEach(() => {
   native.focused = true;
   vi.mocked(deckApi.getDecks).mockResolvedValue({ songDecks: [], nextCursor: null });
   vi.mocked(flashcardApi.review).mockResolvedValue({
-    id: 1, state: 1, due: '2026-09-05T01:00:10Z', stability: 1, difficulty: 1,
+    id: 1, state: 1, due: '2026-09-05T01:00:10Z', stability: 1, difficulty: 1, memory: 'SHORT_TERM',
   });
 });
 afterEach(async () => {
@@ -115,7 +115,7 @@ it('shows the chosen word as a preview card without touching the deck', async ()
 });
 
 it('bootstraps the song with the chosen word as lead on rating confirm and continues with the returned cards', async () => {
-  vi.mocked(songApi.studyBootstrap).mockResolvedValue({ deckId: 42, cards: [card(2)], totalCount: 2, nextDueAt: null });
+  vi.mocked(songApi.studyBootstrap).mockResolvedValue({ deckId: 42, cards: [card(2)], totalCount: 2, nextDueAt: null, reviewedMemory: 'SHORT_TERM' });
   await mount(previewSource);
   await rate(3);
   expect(songApi.studyBootstrap).toHaveBeenCalledWith(3, 3, '歌');
@@ -124,10 +124,12 @@ it('bootstraps the song with the chosen word as lead on rating confirm and conti
   expect(stack.currentCard?.source.deckId).toBe(42);
   expect(stack.currentCard?.source.previewWord).toBeNull();
   expect(stack.session.reviewedCount).toBe(1);
+  // lead 단어는 이 호출에서 처음 담겼다 — 리뷰 전 칸은 REMAINING 이라 단기기억으로 한 칸 옮겨간다.
+  expect(stack.memoryDiff).toEqual({ toLongTerm: 0, toShortTerm: 1 });
 });
 
 it('reviews the next card as a real flashcard after the preview bootstrap', async () => {
-  vi.mocked(songApi.studyBootstrap).mockResolvedValue({ deckId: 42, cards: [card(2)], totalCount: 2, nextDueAt: null });
+  vi.mocked(songApi.studyBootstrap).mockResolvedValue({ deckId: 42, cards: [card(2)], totalCount: 2, nextDueAt: null, reviewedMemory: 'SHORT_TERM' });
   vi.mocked(flashcardApi.getDueCards).mockResolvedValue({ cards: [], totalCount: 0, nextDueAt: null });
   await mount(previewSource);
   await rate(3);
@@ -207,6 +209,44 @@ it('swiping up during the hold commits immediately, without a second review', as
   expect(stack.currentCard?.id).toBe(1);
 });
 
+it('counts only the cards whose memory bucket actually changed', async () => {
+  vi.mocked(flashcardApi.getDueCards).mockResolvedValue({
+    cards: [card(1, 'REMAINING'), card(2, 'SHORT_TERM'), card(3, 'LONG_TERM'), card(4, 'LONG_TERM')],
+    totalCount: 4,
+    nextDueAt: null,
+  });
+  const review = (id: number, memory: FlashcardMemory) =>
+    ({ id, state: 1, due: '2026-09-05T01:00:10Z', stability: 1, difficulty: 1, memory });
+  vi.mocked(flashcardApi.review)
+    .mockResolvedValueOnce(review(1, 'SHORT_TERM'))   // 처음 배운 단어 -> 단기기억
+    .mockResolvedValueOnce(review(2, 'LONG_TERM'))    // 단기 -> 장기
+    .mockResolvedValueOnce(review(3, 'LONG_TERM'))    // 이미 장기기억, 제자리라 안 센다
+    .mockResolvedValueOnce(review(4, 'SHORT_TERM'));  // 잊어버려 장기 -> 단기
+  await mount();
+  await rate(3);
+  await rate(3);
+  await rate(3);
+  await rate(3);
+  expect(stack.memoryDiff).toEqual({ toLongTerm: 1, toShortTerm: 2 });
+  expect(stack.session.reviewedCount).toBe(4);
+});
+
+it('resets the memory diff when the stack reloads', async () => {
+  vi.mocked(flashcardApi.getDueCards).mockResolvedValue({
+    cards: [card(1, 'SHORT_TERM')],
+    totalCount: 1,
+    nextDueAt: null,
+  });
+  vi.mocked(flashcardApi.review).mockResolvedValue({
+    id: 1, state: 1, due: '2026-09-05T01:00:10Z', stability: 9, difficulty: 1, memory: 'LONG_TERM',
+  });
+  await mount();
+  await rate(3);
+  expect(stack.memoryDiff).toEqual({ toLongTerm: 1, toShortTerm: 0 });
+  await act(async () => { stack.reload(); });
+  expect(stack.memoryDiff).toEqual({ toLongTerm: 0, toShortTerm: 0 });
+});
+
 it('lets horizontal example carousel swipes pass through after rating is selected', async () => {
   vi.mocked(flashcardApi.getDueCards)
     .mockResolvedValueOnce({ cards: [card(9), card(1)], totalCount: 2, nextDueAt: null });
@@ -218,11 +258,11 @@ it('lets horizontal example carousel swipes pass through after rating is selecte
 });
 
 it('prefetches the next page once the local buffer drops to the threshold, deduping already-buffered cards', async () => {
-  const initialCards = [1, 2, 3, 4, 5, 6].map(card);
+  const initialCards = [1, 2, 3, 4, 5, 6].map(id => card(id));
   vi.mocked(flashcardApi.getDueCards)
     .mockResolvedValueOnce({ cards: initialCards, totalCount: 10, nextDueAt: null })
     .mockResolvedValueOnce({
-      cards: [2, 3, 4, 5, 6, 7, 8, 9, 10].map(card),
+      cards: [2, 3, 4, 5, 6, 7, 8, 9, 10].map(id => card(id)),
       totalCount: 9,
       nextDueAt: null,
     });
@@ -398,6 +438,7 @@ it('bootstraps the song and continues the session with the returned due cards on
   vi.mocked(songApi.studyBootstrap).mockResolvedValue({
     deckId: 42,
     cards: [card(2)],
+    reviewedMemory: 'SHORT_TERM',
     totalCount: 2,
     nextDueAt: null,
   });
@@ -430,7 +471,8 @@ it('surfaces an error and leaves the card swiped away when bootstrap fails', asy
 
 // 덱 스트립: due 많은 순 정렬 + 첫 곡 자동 선택 + 선택 전환.
 const deck = (deckId: number, songId: number, title: string, dueCount: number) => ({
-  deckId, songId, title, artist: '', artworkUrl: null, wordCount: 10, dueCount, masteredCount: 0, studyingCount: 0, newWordCount: 0,
+  deckId, songId, title, artist: '', artworkUrl: null, wordCount: 10, dueCount,
+  masteredCount: 0, studyingCount: 0, newWordCount: 0, longTermCount: 0, shortTermCount: 0,
 });
 
 it('sorts song decks by due count for the deck strip and auto-loads the top one', async () => {

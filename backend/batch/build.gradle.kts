@@ -29,11 +29,9 @@ dependencies {
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
 
-    // Sentry
     implementation("io.sentry:sentry-spring-boot-starter-jakarta:7.18.0")
     implementation("io.sentry:sentry-logback:7.18.0")
 
-    // MySQL
     runtimeOnly("com.mysql:mysql-connector-j")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")

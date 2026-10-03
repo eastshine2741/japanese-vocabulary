@@ -38,6 +38,8 @@ type Props = {
   playheadMs: number
   onPlayhead(ms: number): void
   onDuration(ms: number): void
+  /** MV 가로/세로 비율. Frame 의 "가로 맞춤" 이 쓴다. */
+  onAspect(aspect: number): void
 }
 
 /**
@@ -45,7 +47,7 @@ type Props = {
  * 둘 다 같은 플레이헤드(MV 절대 시각)를 공유하고 모드를 바꾸면 그 시각으로 따라간다.
  */
 export const ReelMonitor = React.forwardRef<MonitorHandle, Props>(function ReelMonitor(
-  { mode, onModeChange, mvUrl, uploadProgress, canUploadSource, onUploadSource, youtubeUrl, data, sourceStartMs, fps, playheadMs, onPlayhead, onDuration },
+  { mode, onModeChange, mvUrl, uploadProgress, canUploadSource, onUploadSource, youtubeUrl, data, sourceStartMs, fps, playheadMs, onPlayhead, onDuration, onAspect },
   ref,
 ) {
   const videoRef = React.useRef<HTMLVideoElement>(null)
@@ -204,7 +206,11 @@ export const ReelMonitor = React.forwardRef<MonitorHandle, Props>(function ReelM
           <video
             aria-label="Source MV"
             className={cn("max-h-full max-w-full rounded", mode !== "source" && "hidden")}
-            onLoadedMetadata={(event) => onDuration(event.currentTarget.duration * 1000)}
+            onLoadedMetadata={(event) => {
+              const video = event.currentTarget
+              onDuration(video.duration * 1000)
+              if (video.videoWidth > 0 && video.videoHeight > 0) onAspect(video.videoWidth / video.videoHeight)
+            }}
             onPause={() => setPlaying(false)}
             onPlay={() => setPlaying(true)}
             onSeeked={(event) => {

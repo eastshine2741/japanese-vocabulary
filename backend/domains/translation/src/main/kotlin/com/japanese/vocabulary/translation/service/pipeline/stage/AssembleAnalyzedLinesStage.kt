@@ -63,9 +63,8 @@ class AssembleAnalyzedLinesStage : PipelineStage<AssembleAnalyzedLinesInput, Lis
                 return@map Token(
                     surface = token.surface,
                     baseForm = rule.baseForm,
-                    // The reading this line sings, not the table's: the table is keyed by headword, so
-                    // a longer surface resolving through it lost morae (なんだ read ダ, だった read ダ).
-                    // The table value is the fallback for a rewrite's token, which has no reading.
+                    // Prefer the reading sung on this line: the table is keyed by headword, so a longer
+                    // surface lost morae (なんだ read ダ). The table is the fallback for rewritten tokens.
                     reading = readingFor(token.surface, rule.partOfSpeech, token.usedReading.ifBlank { rule.reading }),
                     baseFormReading = rule.baseFormReading,
                     partOfSpeech = rule.partOfSpeech,
@@ -84,9 +83,8 @@ class AssembleAnalyzedLinesStage : PipelineStage<AssembleAnalyzedLinesInput, Lis
             Token(
                 surface = token.surface,
                 baseForm = baseForm,
-                // The inflected reading comes from segmentation and the dictionary reading from the
-                // chosen entry, so 行って now keeps イッテ while its headword 行く reads イク. They used
-                // to be the same jisho value, which made furigana show the dictionary form.
+                // Inflected reading from segmentation, dictionary reading from the chosen entry
+                // (行って keeps イッテ while 行く reads イク).
                 reading = readingFor(
                     token.surface,
                     partOfSpeech,
@@ -103,14 +101,11 @@ class AssembleAnalyzedLinesStage : PipelineStage<AssembleAnalyzedLinesInput, Lis
     }
 
     /**
-     * The dictionary's reading, when the surface *is* the dictionary form and so has no reading of its
-     * own to keep. The model misreads a word the dictionary spells out on the same token
-     * (痛々しい → イタタマシイ where jisho says イタイタシイ, 腹立たしい → ハラタタシイ for ハラダタシイ).
+     * The dictionary's reading, when the surface *is* the dictionary form. The model misreads some
+     * (痛々しい → イタタマシイ where jisho says イタイタシイ).
      *
-     * Only for an unambiguous entry: with several entries in play the reading follows whichever entry
-     * sense-select picked, and a wrong pick would then corrupt the reading too (前 as マエ or ゼン).
-     * A lyric that glosses a word with a ruby reading loses it here — rare, and the model was already
-     * answering the dictionary reading for those.
+     * Only for an unambiguous entry: otherwise a wrong sense-select pick would corrupt the reading
+     * too (前 as マエ or ゼン). A lyric's ruby reading is lost here; rare.
      */
     private fun dictionaryReading(token: PipelineToken, option: PipelineSenseOption?, baseForm: String): String? {
         if (option == null || token.surface != baseForm) return null
@@ -121,15 +116,19 @@ class AssembleAnalyzedLinesStage : PipelineStage<AssembleAnalyzedLinesInput, Lis
     }
 
     /**
-     * [reading], with a particle's spelling corrected to what is sung. The model answers ワ for は only
-     * about three times in four, so deciding it here makes the reading the same whatever the source.
+     * [reading], with a particle's spelling corrected to what is sung (the model answers ワ for は
+     * only ~3 times in 4). には and とは (expressions) and それでは (conjunction) are corrected too.
      */
     private fun readingFor(surface: String, partOfSpeech: PartOfSpeech, reading: String?): String? =
-        if (partOfSpeech == PartOfSpeech.PARTICLE) JapaneseText.particleReading(surface) ?: reading else reading
+        when (partOfSpeech) {
+            PartOfSpeech.PARTICLE -> JapaneseText.particleReading(surface) ?: reading
+            PartOfSpeech.EXPRESSION, PartOfSpeech.CONJUNCTION -> JapaneseText.trailingTopicReading(surface) ?: reading
+            else -> reading
+        }
 
     /**
-     * jisho jlpt is an entry-level array (e.g. ["jlpt-n1","jlpt-n5"]), not sense-scoped. Reduce to the
-     * single EASIEST level (largest N = N5) — when the learner first meets the word. Mirrors `easiest_jlpt`.
+     * jisho jlpt is an entry-level array (e.g. ["jlpt-n1","jlpt-n5"]); reduce to the EASIEST level
+     * (largest N). Mirrors `easiest_jlpt`.
      */
     private fun easiestJlpt(jlpt: List<String>): String? {
         val levels = jlpt.mapNotNull { it.substringAfterLast("-n", "").toIntOrNull() }

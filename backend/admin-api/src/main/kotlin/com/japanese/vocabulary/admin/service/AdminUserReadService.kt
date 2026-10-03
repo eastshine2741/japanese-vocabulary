@@ -17,6 +17,7 @@ import com.japanese.vocabulary.admin.repository.AdminWordRepository
 import com.japanese.vocabulary.deck.entity.DeckEntity
 import com.japanese.vocabulary.deck.repository.DeckRepository
 import com.japanese.vocabulary.flashcard.entity.FlashcardEntity
+import com.japanese.vocabulary.flashcard.model.FlashcardMemory
 import com.japanese.vocabulary.song.entity.SongEntity
 import com.japanese.vocabulary.user.entity.UserEntity
 import com.japanese.vocabulary.word.entity.WordEntity
@@ -32,10 +33,8 @@ import java.time.LocalDate
 import java.time.ZoneId
 
 /**
- * 유저 단위 학습 가시성. 유저가 담은 단어·단어장·복습 상태를 읽기만 한다.
- *
- * 복습 상태 분포와 단어장 통계는 도메인 [DeckRepository] 의 집계 쿼리를 그대로 써서
- * 앱이 유저에게 보여 주는 숫자와 어긋나지 않게 한다.
+ * 유저가 담은 단어·단어장·복습 상태를 읽기만 한다.
+ * 통계는 도메인 [DeckRepository] 의 집계 쿼리를 그대로 써서 앱에 보이는 숫자와 맞춘다.
  */
 @Service
 @Transactional(readOnly = true)
@@ -69,7 +68,7 @@ class AdminUserReadService(
         val activity = activitiesFor(listOf(id))[id] ?: UserActivity.EMPTY
         val now = Instant.now(clock)
 
-        val stats = deckStatsRepository.findAllDeckDetailStats(id, now)
+        val stats = deckStatsRepository.findAllDeckDetailStats(id, now, FlashcardMemory.LONG_TERM_STABILITY_DAYS)
         val recent = userRepository.summarizeRecentStudy(id, studyDate(now).minusDays(RECENT_STUDY_DAYS - 1))
         val learning = AdminUserLearningResponse(
             wordCount = activity.wordCount,
@@ -108,7 +107,7 @@ class AdminUserReadService(
     private fun decksOf(userId: Long, now: Instant): List<AdminUserDeckResponse> {
         val decks = deckRepository.findByUserIdOrderByIdDesc(userId)
         if (decks.isEmpty()) return emptyList()
-        val stats = deckStatsRepository.findDeckStats(userId, decks.mapNotNull { it.id }, now).associateBy { it.getDeckId() }
+        val stats = deckStatsRepository.findDeckStats(userId, decks.mapNotNull { it.id }, now, FlashcardMemory.LONG_TERM_STABILITY_DAYS).associateBy { it.getDeckId() }
         val songs = songsById(decks.mapNotNull { it.songId }.toSet())
         return decks.map { deck ->
             val stat = stats[deck.id]

@@ -54,10 +54,7 @@ export const WordFront = React.memo(function WordFront({
         ],
       }
     : null, [revealProgress]);
-  // 하단 블록은 넷으로 나뉘어 사라진다 — 안내 문구는 바로, pill 안 아이콘·글자는 그 다음,
-  // pill 채움은 뒷면 rating 버튼이 같은 모양으로 덮어 온 뒤에야 빠진다(같은 자리·같은 색이라
-  // 이 crossfade 는 보이지 않는다). pill 윤곽만은 분열 초반까지 남았다가 녹아 없어지고,
-  // 뒷면 버튼이 거의 다 갈라진 뒤 버튼마다 윤곽이 다시 떠오른다.
+  // 안내 문구 → pill 아이콘·글자 → pill 채움 순으로 사라진다. 채움은 뒷면 rating 버튼이 같은 자리·같은 색으로 덮은 뒤에 빠진다.
   const revealStyles = React.useMemo(() => revealProgress
     ? {
         hint: {
@@ -117,13 +114,17 @@ export const WordFront = React.memo(function WordFront({
       <View style={styles.frontCenterBlock}>
         <View style={styles.frontWordGroup}>
           <View ref={headwordRef} collapsable={false} onLayout={onHeadwordLayout}>
-            <Animated.Text
-              adjustsFontSizeToFit
-              numberOfLines={1}
-              style={[styles.frontHeadword, headwordStyle, hideHeadword && styles.hiddenHeadword]}
-            >
-              {card.japanese}
-            </Animated.Text>
+            {/* 숨김은 Animated 가 건드리지 않는 부모에 건다 — iOS 는 native 가 쓴 opacity 에 대한 React 갱신을 무시한다
+                (docs/runbooks/ios-native-animated-pitfalls.md). */}
+            <View collapsable={false} style={hideHeadword && styles.hiddenHeadword}>
+              <Animated.Text
+                adjustsFontSizeToFit
+                numberOfLines={1}
+                style={[styles.frontHeadword, headwordStyle]}
+              >
+                {card.japanese}
+              </Animated.Text>
+            </View>
             {headwordOverlay}
           </View>
         </View>

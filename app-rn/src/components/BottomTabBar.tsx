@@ -15,13 +15,10 @@ const DarkPalette = {
   iconInactive: '#FFFFFF80',
 };
 
-// Icon glyph is always the brand green; the active tab is distinguished by the
-// filled glyph alone (inactive uses the outline glyph). This mirrors the Pencil
-// design where tab.*.iconFill is fixed to the accent regardless of selection.
+// Icon color is always the brand green; the active tab differs by filled glyph only (Pencil tab.*.iconFill).
 const TAB_CONFIG: Record<TabKey, { active: keyof typeof Ionicons.glyphMap; inactive: keyof typeof Ionicons.glyphMap }> = {
   Home: { active: 'home', inactive: 'home-outline' },
-  // Ionicons `search` is the same outline as `search-outline`; the active
-  // glyph is drawn by SearchFilledIcon instead (see below).
+  // Active glyph is drawn by SearchFilledIcon; Ionicons `search` equals `search-outline`.
   Search: { active: 'search', inactive: 'search-outline' },
   MyPage: { active: 'person', inactive: 'person-outline' },
 };
