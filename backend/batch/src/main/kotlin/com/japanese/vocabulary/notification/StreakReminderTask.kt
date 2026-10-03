@@ -1,5 +1,6 @@
 package com.japanese.vocabulary.notification
 
+import com.japanese.vocabulary.batch.CronTask
 import com.japanese.vocabulary.notification.StreakReminderMessage.Slot
 import com.japanese.vocabulary.notification.repository.DeviceTokenRepository
 import com.japanese.vocabulary.notification.service.PushNotificationService
@@ -8,8 +9,8 @@ import com.japanese.vocabulary.studystats.service.StreakCalculator
 import com.japanese.vocabulary.studystats.util.KstClock
 import com.japanese.vocabulary.user.repository.UserSettingsRepository
 import org.slf4j.LoggerFactory
+import org.springframework.boot.ApplicationArguments
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
-import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
@@ -28,23 +29,28 @@ import java.time.LocalDate
  */
 @Component
 @ConditionalOnProperty(name = ["push.firebase.enabled"], havingValue = "true")
-class StreakReminderScheduler(
+class StreakReminderTask(
     private val pushNotificationService: PushNotificationService,
     private val deviceTokenRepository: DeviceTokenRepository,
     private val userSettingsRepository: UserSettingsRepository,
     private val dailyStudySummaryRepository: DailyStudySummaryRepository,
     private val streakCalculator: StreakCalculator,
     private val kstClock: KstClock,
-) {
-    private val logger = LoggerFactory.getLogger(StreakReminderScheduler::class.java)
+) : CronTask {
+    private val logger = LoggerFactory.getLogger(StreakReminderTask::class.java)
+
+    override val name = NAME
 
     data class Result(val sent: Int, val failed: Int)
 
-    @Scheduled(cron = "0 0 20 * * *", zone = "Asia/Seoul")
-    fun runEvening() = run(Slot.EVENING)
-
-    @Scheduled(cron = "0 0 23 * * *", zone = "Asia/Seoul")
-    fun runNight() = run(Slot.NIGHT)
+    /** `--slot=EVENING` 은 20:00, `--slot=NIGHT` 은 23:00 CronJob 이 넘긴다. */
+    override fun run(args: ApplicationArguments) {
+        val raw = args.getOptionValues(SLOT_OPTION)?.firstOrNull()
+            ?: throw IllegalArgumentException("--$SLOT_OPTION=${Slot.entries.joinToString("|")} is required")
+        val slot = Slot.valueOf(raw.uppercase())
+        val result = dispatch(slot)
+        logger.info("streakReminder {} run result={}", slot, result)
+    }
 
     fun dispatch(slot: Slot, today: LocalDate = kstClock.todayStudyDate()): Result {
         val candidates = findCandidates(slot, today)
@@ -63,15 +69,6 @@ class StreakReminderScheduler(
             slot, today, candidates.size, sent, failed,
         )
         return Result(sent, failed)
-    }
-
-    private fun run(slot: Slot) {
-        try {
-            val result = dispatch(slot)
-            logger.info("streakReminder {} run result={}", slot, result)
-        } catch (e: Exception) {
-            logger.error("streakReminder {} run failed", slot, e)
-        }
     }
 
     @Transactional(readOnly = true)
@@ -98,6 +95,11 @@ class StreakReminderScheduler(
             }
         }
         return out
+    }
+
+    companion object {
+        const val NAME = "streak-reminder"
+        const val SLOT_OPTION = "slot"
     }
 }
 

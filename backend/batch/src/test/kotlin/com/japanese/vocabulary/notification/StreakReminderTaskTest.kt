@@ -24,12 +24,12 @@ import java.util.concurrent.atomic.AtomicLong
  * 다른 테스트가 남긴 토큰이 섞이지 않도록 결과는 이 테스트가 만든 userId 로만 거른다.
  */
 @TestPropertySource(properties = ["push.firebase.enabled=true"])
-class StreakReminderSchedulerTest : BatchBaseIntegrationTest() {
+class StreakReminderTaskTest : BatchBaseIntegrationTest() {
 
     @MockkBean
     private lateinit var firebaseApp: FirebaseApp
 
-    @Autowired private lateinit var scheduler: StreakReminderScheduler
+    @Autowired private lateinit var task: StreakReminderTask
 
     private val today: LocalDate = LocalDate.of(2026, 9, 20)
 
@@ -61,7 +61,7 @@ class StreakReminderSchedulerTest : BatchBaseIntegrationTest() {
 
     private fun candidatesFor(slot: Slot, vararg users: UserEntity): Map<Long, StreakReminderMessage> {
         val ids = users.map { it.id!! }.toSet()
-        return scheduler.findCandidates(slot, today)
+        return task.findCandidates(slot, today)
             .filter { it.userId in ids }
             .associate { it.userId to it.message }
     }
@@ -143,8 +143,8 @@ class StreakReminderSchedulerTest : BatchBaseIntegrationTest() {
         entityManager.flush()
         every { firebaseMessaging.send(any<Message>()) } returns "fcm-message-id"
 
-        val expected = scheduler.findCandidates(Slot.EVENING, today).size
-        val result = scheduler.dispatch(Slot.EVENING, today)
+        val expected = task.findCandidates(Slot.EVENING, today).size
+        val result = task.dispatch(Slot.EVENING, today)
 
         assertThat(expected).isGreaterThanOrEqualTo(2)
         assertThat(result.sent).isEqualTo(expected)

@@ -1,31 +1,13 @@
 package com.japanese.vocabulary.test
 
 import com.google.firebase.messaging.FirebaseMessaging
-import com.japanese.vocabulary.lyricsearch.lrclib.LrclibClient
-import com.japanese.vocabulary.lyricsearch.vocadb.VocadbClient
-import com.japanese.vocabulary.mvsearch.client.youtube.YoutubeClient
-import com.japanese.vocabulary.translation.client.gemini.GeminiClient
-import com.japanese.vocabulary.translation.service.JishoService
 import com.ninjasquad.springmockk.MockkBean
-import io.mockk.clearMocks
-import org.junit.jupiter.api.BeforeEach
 
+/**
+ * 곡 분석 파이프라인이 `worker` 로 간 뒤로, batch 가 쓰는 외부 의존은 각 테스트가 직접 `@MockkBean`
+ * 으로 잡는 apple-music-rss / itunes 정도다. 여기 남는 건 DI 를 채우기 위한 FCM 목뿐이다.
+ */
 abstract class BatchBaseIntegrationTest : BaseIntegrationTest() {
-
-    @MockkBean
-    protected lateinit var geminiClient: GeminiClient
-
-    @MockkBean
-    protected lateinit var jishoService: JishoService
-
-    @MockkBean
-    protected lateinit var lrclibClient: LrclibClient
-
-    @MockkBean
-    protected lateinit var vocadbClient: VocadbClient
-
-    @MockkBean
-    protected lateinit var youtubeClient: YoutubeClient
 
     /**
      * `PushNotificationService` requires a `FirebaseMessaging` bean, but tests don't load
@@ -35,17 +17,4 @@ abstract class BatchBaseIntegrationTest : BaseIntegrationTest() {
      */
     @MockkBean
     protected lateinit var firebaseMessaging: FirebaseMessaging
-
-    @BeforeEach
-    fun resetExternalApiMocks() {
-        clearMocks(
-            geminiClient,
-            jishoService,
-            lrclibClient,
-            vocadbClient,
-            youtubeClient,
-            answers = true,
-            recordedCalls = true,
-        )
-    }
 }
