@@ -233,6 +233,8 @@ class RuleMeaningProvider {
             // the headword; jisho has no entry for either form.
             "ていく" to auxiliary("ていく", "~해 가다"),
             "していく" to auxiliary("していく", "~해 가다"),
+            // Same headword fallback: segmentation normalises といて/とく to ておく.
+            "ておく" to auxiliary("ておく", "~해 두다"),
             "た" to auxiliary("た", "~했다"),
             "だ" to auxiliary("だ", "~이다"),
             // Conditional ending; segmentation also normalizes the colloquial りゃ to this headword.
