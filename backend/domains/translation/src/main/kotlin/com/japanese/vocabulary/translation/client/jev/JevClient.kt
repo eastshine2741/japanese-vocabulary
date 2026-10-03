@@ -66,8 +66,8 @@ class JevClient(
             atLeast = TransientHttpErrors::retryAfter,
             onRetry = { attempt, e, delay ->
                 logger.warn(
-                    "[songId={}] Jev call={} attempt {}/{} failed, retrying in {}ms: {}: {}",
-                    context.songId, call, attempt, backoff.maxAttempts, delay.toMillis(), e::class.simpleName, e.message,
+                    "[workId={}] Jev call={} attempt {}/{} failed, retrying in {}ms: {}: {}",
+                    context.workId, call, attempt, backoff.maxAttempts, delay.toMillis(), e::class.simpleName, e.message,
                 )
                 Counter.builder(MetricNames.JEV_CALL_RETRIES)
                     .tag("call", call)
