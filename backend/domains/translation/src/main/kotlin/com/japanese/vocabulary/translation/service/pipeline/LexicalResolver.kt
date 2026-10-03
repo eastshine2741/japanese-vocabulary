@@ -59,6 +59,7 @@ class LexicalResolver(
                 ?: resolveIntensifierPrefix(token, probeLookups)
                 ?: resolveSuruVerb(token, probeLookups)
                 ?: resolveLongVowelSpelling(token, probeLookups)
+                ?: resolveKanjiVariant(token, probeLookups)
 
             if (resolved == null) {
                 if (firstPass[token.headword]?.provenance == JishoLookupProvenance.REJECTED_FALLBACK) {
@@ -136,7 +137,8 @@ class LexicalResolver(
                     resolveSmallVowelElongation(it, probeLookups, logRescue = false) == null &&
                     resolveIntensifierPrefix(it, probeLookups, logRescue = false) == null &&
                     resolveSuruVerb(it, probeLookups, logRescue = false) == null &&
-                    resolveLongVowelSpelling(it, probeLookups, logRescue = false) == null
+                    resolveLongVowelSpelling(it, probeLookups, logRescue = false) == null &&
+                    resolveKanjiVariant(it, probeLookups, logRescue = false) == null
             }
             .map { token ->
                 val lookups = listOfNotNull(firstPass[token.headword]) +
@@ -160,6 +162,7 @@ class LexicalResolver(
             intensifierPrefixProbe(token),
             suruVerbProbe(token),
             longVowelProbe(token),
+            kanjiVariantProbe(token),
         ) + suruDesiderativeProbes(token)
 
     /**
@@ -393,6 +396,29 @@ class LexicalResolver(
         return AcceptedLexicalEntry(base, verbEntries, accepted.provenance)
     }
 
+    /**
+     * Safety net for a word the lyric writes with a variant kanji (異体字) the dictionary does not index.
+     *
+     * `閧の声` is 鬨の声, but jisho has no entry under 閧. The headword is asked again in its standard
+     * spelling from [KANJI_VARIANTS], and the accepted entry reports that spelling as the base form.
+     */
+    private fun resolveKanjiVariant(
+        token: PipelineToken,
+        lookups: Map<String, JishoEntryDto>,
+        logRescue: Boolean = true,
+    ): AcceptedLexicalEntry? {
+        val base = kanjiVariantProbe(token) ?: return null
+        val accepted = narrow(token, lookups[base], base, logGrading = logRescue) ?: return null
+        if (logRescue) logger.info("Looked up variant kanji headword '{}' as '{}'", token.headword, base)
+        return accepted
+    }
+
+    /** `閧` → `鬨`. Null when the headword has no variant kanji listed in [KANJI_VARIANTS]. */
+    private fun kanjiVariantProbe(token: PipelineToken): String? {
+        val variant = token.headword.map { KANJI_VARIANTS[it] ?: it }.joinToString("")
+        return variant.takeIf { it != token.headword }
+    }
+
     /** `交差する` → `交差`. Null unless the headword is something followed by する. */
     private fun suruVerbProbe(token: PipelineToken): String? =
         token.headword.takeIf { it.length > 2 && it.endsWith("する") }?.dropLast(2)
@@ -490,6 +516,9 @@ class LexicalResolver(
             "えぇけげせぜてでねへべぺめれ" to 'え',
             "おぉこごそぞとどのほぼぽもよょろを" to 'う',
         )
+
+        /** Variant kanji jisho does not index → the standard spelling it does. Add pairs as misses appear. */
+        val KANJI_VARIANTS = mapOf('閧' to '鬨', '赦' to '許')
 
         /** Longest first, so したくない is not read as したい with a stem ending in く. */
         val SURU_DESIDERATIVE_SUFFIXES = listOf("したくない", "したい")
