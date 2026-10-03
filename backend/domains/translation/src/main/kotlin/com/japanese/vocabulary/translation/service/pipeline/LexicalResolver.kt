@@ -64,6 +64,7 @@ class LexicalResolver(
                 ?: resolveHonorificPrefix(token, probeLookups)
                 ?: resolveContinuativeNoun(token, probeLookups)
                 ?: resolveSuruPassive(token, probeLookups)
+                ?: resolvePassive(token, probeLookups)
 
             if (resolved == null) {
                 if (firstPass[token.headword]?.provenance == JishoLookupProvenance.REJECTED_FALLBACK) {
@@ -146,7 +147,8 @@ class LexicalResolver(
                     resolveReadingQuery(it, probeLookups, logRescue = false) == null &&
                     resolveHonorificPrefix(it, probeLookups, logRescue = false) == null &&
                     resolveContinuativeNoun(it, probeLookups, logRescue = false) == null &&
-                    resolveSuruPassive(it, probeLookups, logRescue = false) == null
+                    resolveSuruPassive(it, probeLookups, logRescue = false) == null &&
+                    resolvePassive(it, probeLookups, logRescue = false) == null
             }
             .map { token ->
                 val lookups = listOfNotNull(firstPass[token.headword]) +
@@ -175,6 +177,7 @@ class LexicalResolver(
             honorificPrefixProbe(token),
             continuativeNounProbe(token),
             suruPassiveProbe(token),
+            passiveProbe(token),
         ) + suruDesiderativeProbes(token)
 
     /**
@@ -643,6 +646,41 @@ class LexicalResolver(
         return if (stem.isEmpty()) null else stem + "する"
     }
 
+    /**
+     * Safety net for when the segmentation LLM hands back a passive — 呑み込まれる — as the headword
+     * instead of 呑み込む. Tried only after the pair match has already failed, so a verb jisho indexes
+     * in its own right (生まれる, 忘れる) never reaches it.
+     *
+     * The probe undoes the passive ending as a guess; only verb senses are accepted, so a guess that
+     * lands on a noun or on nothing at all leaves the token unresolved.
+     */
+    private fun resolvePassive(
+        token: PipelineToken,
+        lookups: Map<String, JishoEntryDto>,
+        logRescue: Boolean = true,
+    ): AcceptedLexicalEntry? {
+        val base = passiveProbe(token) ?: return null
+        // The token's reading is the passive's (ノミコマレル), so undo it the same way as the headword.
+        val reading = undoPassive(token.baseFormReading, PASSIVE_READING_ENDINGS)
+        val accepted = narrow(token, lookups[base], base, reading, logRescue) ?: return null
+        val verbEntries = accepted.entries.mapNotNull { entry ->
+            val verbSenses = entry.senses.filter { JishoPartOfSpeechMapper.map(it.pos) == PartOfSpeech.VERB }
+            if (verbSenses.isEmpty()) null else entry.copy(senses = verbSenses)
+        }
+        if (verbEntries.isEmpty()) return null
+        if (logRescue) logger.info("Normalized passive '{}' to '{}'", token.headword, base)
+        return AcceptedLexicalEntry(base, verbEntries, accepted.provenance)
+    }
+
+    /** `呑み込まれる` → `呑み込む`, `見られる` → `見る`. Null unless something precedes the ending. */
+    private fun passiveProbe(token: PipelineToken): String? = undoPassive(token.headword, PASSIVE_ENDINGS)
+
+    private fun undoPassive(text: String, endings: List<Pair<String, String>>): String? {
+        val (ending, base) = endings.firstOrNull { text.endsWith(it.first) } ?: return null
+        val stem = text.dropLast(ending.length)
+        return if (stem.isEmpty()) null else stem + base
+    }
+
     private companion object {
         val INTENSIFIER_PREFIXES = listOf("ぶち", "ぶっ")
 
@@ -667,5 +705,14 @@ class LexicalResolver(
 
         val SURU_PASSIVE_SUFFIXES = listOf("されない", "される")
         val SURU_PASSIVE_READING_SUFFIXES = listOf("サレナイ", "サレル")
+
+        /** Passive ending → dictionary-form ending: godan `〜あれる` → `〜う`, ichidan `〜られる` → `〜る`. */
+        val PASSIVE_ENDINGS = listOf(
+            "われる" to "う", "かれる" to "く", "がれる" to "ぐ", "される" to "す", "たれる" to "つ",
+            "なれる" to "ぬ", "ばれる" to "ぶ", "まれる" to "む", "られる" to "る",
+        )
+        val PASSIVE_READING_ENDINGS = PASSIVE_ENDINGS.map { (ending, base) ->
+            JapaneseText.toKatakana(ending) to JapaneseText.toKatakana(base)
+        }
     }
 }
