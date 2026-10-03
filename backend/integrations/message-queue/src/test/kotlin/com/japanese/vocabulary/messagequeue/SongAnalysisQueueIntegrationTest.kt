@@ -26,10 +26,10 @@ import java.util.concurrent.TimeUnit
 /**
  * 발행한 메시지가 JSON 으로 왕복하는지 본다. 여기서 깨지면 worker 는 영영 메시지를 못 받는다.
  *
- * 운영 토폴로지는 Topology Operator CR 이 소유하므로 이 테스트가 검증하지 못한다. 여기서는
- * [Topology] 가 같은 모양을 테스트 전용으로 선언한다 — 이름은 [SongAnalysisQueue] 상수를 공유하지만,
- * durable/DLX 같은 속성이 CR 과 어긋나는 것은 잡히지 않는다. CR 쪽 검증은 배포 후
- * `kubectl get queues.rabbitmq.com` 의 Ready 조건으로 한다.
+ * 운영 토폴로지는 브로커가 부팅 때 읽는 definitions 가 소유하므로 이 테스트가 검증하지 못한다.
+ * 여기서는 [Topology] 가 같은 모양을 테스트 전용으로 선언한다 — 이름은 [SongAnalysisQueue] 상수를
+ * 공유하지만, durable/DLX 같은 속성이 운영 선언과 어긋나는 것은 잡히지 않는다. 운영 쪽은 import 가
+ * 끝나야 AMQP 포트가 열리므로, 브로커 파드가 Ready 라는 것이 곧 선언이 들어갔다는 뜻이다.
  */
 @SpringBootTest(classes = [SongAnalysisQueueIntegrationTest.TestApp::class])
 @Import(SongAnalysisQueueIntegrationTest.Containers::class, SongAnalysisQueueIntegrationTest.Topology::class)

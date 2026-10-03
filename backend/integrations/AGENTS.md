@@ -23,7 +23,7 @@ Applies to all modules under `backend/integrations/`.
 - `github`: GitHub issue creation (`GithubIssueClient`), used by `api` for VOC. Token blank -> `enabled=false`.
 - `message-queue`: song analysis work queue names plus the publisher that turns
   `SongAnalysisWorkQueuedEvent` into a message on `AFTER_COMMIT`. Producers are `api`/`admin-api`;
-  the consumer lives in `worker`. Broker topology is owned by the Topology Operator CRs in
-  `k8s/{dev,prod}/rabbitmq/topology.yaml`, not by this module — renaming an exchange or queue means
-  changing both the constants here and those CRs. `SongAnalysisQueueIntegrationTest` (Testcontainers)
-  guards the round trip with a test-local topology.
+  the consumer lives in `worker`. Broker topology is owned by the definitions the broker imports at
+  boot (`k8s/{dev,prod}/rabbitmq/configmap.yaml`), not by this module — renaming an exchange or queue
+  means changing both the constants here and that file. `SongAnalysisQueueIntegrationTest`
+  (Testcontainers) guards the round trip with a test-local topology.
