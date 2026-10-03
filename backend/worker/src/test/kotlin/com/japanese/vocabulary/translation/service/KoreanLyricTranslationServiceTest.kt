@@ -627,7 +627,7 @@ class KoreanLyricTranslationServiceTest : WorkerBaseIntegrationTest() {
 
     @Test
     fun `the retry for kana skipped between digits says only the digits are left out`(): Unit = runBlocking {
-        // The model drops the と wedged between digits (140と30字の) even on retry, so every attempt is UNCOVERED.
+        // The model drops the kana around the digits of 140と30字の; と is filled as a known particle, 字の is not.
         val lyric = seedLyric(listOf("140と30字の 一言一句が 憎らしい"))
         val segmentInputs = mutableListOf<List<Map<String, Any?>>>()
 
@@ -649,7 +649,7 @@ class KoreanLyricTranslationServiceTest : WorkerBaseIntegrationTest() {
         val tokens = translationService.runPipeline(lyric).single().tokens
 
         assertThat(segmentInputs[1].single()["previousValidationError"] as String)
-            .isEqualTo("Japanese text 'と' at offset=3 is not covered by segmentation at line index=0")
+            .isEqualTo("Japanese text '字の' at offset=6 is not covered by segmentation at line index=0")
         assertThat(segmentInputs[1].single()["retryInstruction"] as String)
             .contains("Only the digits and latin letters themselves are left out")
         assertThat(tokens.map { it.surface }).containsExactly("と", "字", "の", "一言一句", "が", "憎らしい")
@@ -958,8 +958,10 @@ class KoreanLyricTranslationServiceTest : WorkerBaseIntegrationTest() {
 
     @Test
     fun `sense-select asks Jev once per line`(): Unit = runBlocking {
-        val lineCount = 3
-        val lyric = seedLyric((0 until lineCount).map { "猫$it" })
+        // Not 猫0..猫2: digits at a surface's edge are trimmed, so the three questions would look alike.
+        val lineTexts = listOf("猫", "犬", "鳥")
+        val lineCount = lineTexts.size
+        val lyric = seedLyric(lineTexts)
         val selectInputs = mutableListOf<Map<String, JevChoiceQuestion>>()
 
         coEvery { geminiClient.translateLyrics(any(), any()) } returns (0 until lineCount).map {
@@ -971,7 +973,7 @@ class KoreanLyricTranslationServiceTest : WorkerBaseIntegrationTest() {
         val lines = translationService.runPipeline(lyric)
 
         assertThat(selectInputs.map { questions -> questions.keys.map(::surfaceOf) })
-            .containsExactlyInAnyOrder(listOf("猫0"), listOf("猫1"), listOf("猫2"))
+            .containsExactlyInAnyOrder(listOf("猫"), listOf("犬"), listOf("鳥"))
         assertThat(lines).allSatisfy { line ->
             assertThat(line.tokens.single().koreanText).startsWith("뜻:")
         }
