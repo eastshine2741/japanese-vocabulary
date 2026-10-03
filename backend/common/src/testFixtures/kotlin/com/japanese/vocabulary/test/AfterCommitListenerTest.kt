@@ -11,13 +11,11 @@ import org.springframework.transaction.support.TransactionTemplate
 /**
  * Base for direct-call tests of @TransactionalEventListener(AFTER_COMMIT) listeners.
  *
- * Those listeners must be annotated @Transactional(REQUIRES_NEW) in production (see CLAUDE.md),
- * which conflicts with the default test rollback: the outer test tx holds row locks the inner
- * connection cannot bypass, producing PessimisticLockingFailureException.
+ * Those listeners run @Transactional(REQUIRES_NEW), which conflicts with the default test rollback:
+ * the outer test tx holds row locks the inner connection cannot bypass (PessimisticLockingFailureException).
  *
- * This base opts out of the test-managed transaction (NOT_SUPPORTED is the officially supported
- * propagation for that). Setup data must therefore be committed explicitly via inTx { ... },
- * and TRUNCATE in @AfterEach replaces rollback as the cleanup mechanism.
+ * This base opts out of the test-managed transaction, so setup data must be committed explicitly
+ * via inTx { ... } and TRUNCATE in @AfterEach replaces rollback as cleanup.
  */
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 abstract class AfterCommitListenerTest : BaseIntegrationTest() {

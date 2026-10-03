@@ -41,17 +41,14 @@ const RATING_GAP = 8;
 const BUTTON_HEIGHT = 56;
 const BUTTON_CAP = BUTTON_HEIGHT / 2;
 /**
- * 캡과 몸통이 겹치는 폭. 반투명 조각을 맞대면 Yoga 의 픽셀 반올림으로 틈이나 겹침이 세로 선으로
- * 보인다. 그래서 조각은 불투명 흰색으로 겹쳐 그리고, 그룹에 opacity + 오프스크린 합성을 걸어
- * 한 장으로 만든 뒤 알파를 입힌다 — 겹친 곳이 균일해진다. 버튼 네 개의 채움을 한 그룹에
- * 넣으므로 갈라지는 동안 서로 겹쳐도 알파가 쌓이지 않고 합집합 실루엣 하나로 보인다.
+ * 캡과 몸통이 겹치는 폭. 반투명 조각을 맞대면 Yoga 의 픽셀 반올림으로 세로 선이 보인다.
+ * 그래서 조각은 불투명 흰색으로 겹쳐 그리고, 버튼 넷의 채움을 한 그룹에 넣어 오프스크린 합성 후 알파를 입힌다.
  */
 const PIECE_OVERLAP = 2;
 const GLASS_FILL_OPACITY = 0.14;
 /**
  * 이웃한 버튼 사이 경계(최종 gap 의 중앙)에서 각 버튼의 끝이 시작할 때 뻗어 있는 거리.
- * 캡 하나만큼 서로 파고들어 있어 시작 상태의 합집합은 매끈한 pill 하나가 되고, 끝이 안쪽으로
- * 물러나는 동안 두 반원이 맞물린 자리에 잘록한 허리가 생겼다가 끊어진다.
+ * 캡 하나만큼 파고들어 시작 상태는 매끈한 pill 하나이고, 끝이 물러나면 맞물린 자리에 허리가 생겼다가 끊어진다.
  */
 const JUNCTION_REACH = BUTTON_CAP + RATING_GAP / 2;
 /** 끝이 물러난 거리 중 두 반원이 떨어지는 지점의 비율 — 그 뒤로는 gap 이 벌어지는 구간. */
@@ -59,9 +56,8 @@ const SPLIT_BREAK_TRAVEL = (BUTTON_CAP * 2) / (BUTTON_CAP * 2 + RATING_GAP);
 /** 앞면 pill 과 겹친 채 머무는 splitProgress 구간 — 이 동안 앞면 pill 과 crossfade 가 끝난다. */
 const SPLIT_START = 0.06;
 /**
- * 허리가 눈에 띄기 시작할 때까지의 이동은 거의 보이지 않으므로 이 지점까지 빠르게 지나가고,
- * 그 뒤 허리가 깊어져 끊어지는 구간에 시간을 쓴다. 허리 깊이는 물러난 거리에 제곱으로
- * 깊어지므로 구간마다 이동 속도를 줄여 가야 보기에 일정하거나 느려진다.
+ * 허리가 눈에 띄기 전의 이동은 거의 안 보이므로 빠르게 지나가고, 허리 깊이가 물러난 거리의 제곱으로
+ * 깊어지는 뒷구간에 시간을 쓴다.
  */
 const SPLIT_NECK_AT = 0.2;
 const SPLIT_NECK_TRAVEL = 0.5;
@@ -120,10 +116,8 @@ export const WordBack = React.memo(function WordBack({
     const w = e.nativeEvent.layout.width;
     if (w > 0) setSlotWidth(prev => (prev === w ? prev : w));
   }, []);
-  // rating 을 고른 순간 버튼 4개가 사라지고 선택 색 pill 하나가 그 자리에 떠오른다. 홀드 중
-  // 같은 버튼(=pill)을 다시 누르면 취소되어 되감긴다. 마지막으로 고른 rating 을 기억해 두어
-  // 되감기는 동안에도 pill 이 같은 색·문구를 유지한다. 저장이 시작되면 selectedRating 은
-  // 먼저 비워지지만 카드가 밀려나가는 동안 pill 은 그대로 둔다 — 실패로 돌아올 때만 되감긴다.
+  // 마지막으로 고른 rating 을 기억해 되감기는 동안에도 pill 이 같은 색·문구를 유지한다.
+  // 저장이 시작되면 selectedRating 은 먼저 비워지지만 카드가 밀려나가는 동안 pill 은 그대로 둔다 — 실패로 돌아올 때만 되감긴다.
   const holdProgress = useRef(new Animated.Value(0)).current;
   const [heldRating, setHeldRating] = useState<number | null>(null);
   const holding = selectedRating != null || saving;
@@ -150,8 +144,7 @@ export const WordBack = React.memo(function WordBack({
     setActiveExampleIndex(Math.round(e.nativeEvent.contentOffset.x / pageWidth));
   }, [pageWidth]);
 
-  // 뒤집기 인터폴레이션은 revealProgress 가 바뀔 때만 다시 만든다 — 렌더마다 만들면
-  // 네이티브 Animated 노드를 떼고 다시 붙인다.
+  // 렌더마다 interpolate 를 새로 만들면 네이티브 Animated 노드를 떼고 다시 붙인다.
   const revealStyles = useMemo(() => {
     if (!revealProgress) return null;
     const fade = (from: number, dy: number) => ({
@@ -179,15 +172,10 @@ export const WordBack = React.memo(function WordBack({
   const questionStyle = revealStyles?.question ?? null;
   const answerStyle = revealStyles?.answer ?? null;
   const controlsStyle = revealStyles?.controls ?? null;
-  // 앞면 '뜻 확인하기' pill 이 rating 버튼 넷으로 갈라지는 transform. 버튼은 처음부터 제 열에
-  // 있고, 이웃과 맞닿는 끝만 경계 너머로 JUNCTION_REACH 만큼 뻗어 있다(채움은 한 그룹이라
-  // 겹쳐도 pill 하나로 보인다). 그 상태로 앞면 pill 과 crossfade 한 뒤 끝이 안쪽으로 물러나며
-  // 경계마다 허리가 생겨 끊어진다 — 버튼이 통째로 줄어드는 게 아니라 경계만 갈라진다.
-  // 늘어남은 버튼 전체 scaleX 가 아니라 몸통 scaleX + 양끝 캡 translateX 로 만든다 — 통째로
-  // 늘리면 끝 반원이 타원으로 찌그러진 채 오래 보인다.
-  // 갈라지는 동안 조각에는 윤곽선도 그림자도 없다 — 반투명 채움 뒤로 다른 조각의 윤곽·그림자가
-  // 비쳐 요란하다. 앞면 pill 의 윤곽이 분열 초반에 녹아 없어지고, 끊어진 뒤 제자리 버튼
-  // (채움·윤곽·그림자)이 조각과 crossfade 로 바뀐다.
+  // 앞면 pill 이 rating 버튼 넷으로 갈라지는 transform. 이웃과 맞닿는 끝만 JUNCTION_REACH 만큼 뻗은 채
+  // 앞면 pill 과 crossfade 한 뒤, 끝이 물러나며 경계마다 끊어진다.
+  // 몸통 scaleX + 양끝 캡 translateX 로 만든다 — 버튼 전체를 scaleX 하면 끝 반원이 타원으로 찌그러진다.
+  // 갈라지는 동안 조각에는 윤곽선·그림자가 없다(반투명 채움 뒤로 다른 조각의 윤곽이 비친다). 끊어진 뒤 제자리 버튼과 crossfade 한다.
   const splitStyles = useMemo(() => {
     if (!revealProgress || !splitProgress) return null;
     const buttonWidth = (slotWidth - RATING_GAP * (RATINGS.length - 1)) / RATINGS.length;
@@ -241,8 +229,7 @@ export const WordBack = React.memo(function WordBack({
     });
     return {
       buttons,
-      // 채움 그룹은 앞면 pill 채움과 같은 구간에 떠오르고(같은 자리·같은 색이라 보이지 않는다),
-      // 끊어진 뒤 제자리 버튼에 자리를 내주며 사라진다.
+      // 앞면 pill 채움과 같은 구간에 떠올랐다가(같은 자리·같은 색이라 안 보인다) 끊어진 뒤 사라진다.
       fillGroup: {
         opacity: Animated.multiply(
           revealProgress.interpolate({
@@ -325,8 +312,7 @@ export const WordBack = React.memo(function WordBack({
         <Animated.View style={[styles.answerGroup, answerStyle]}>
           <View style={styles.meaningRow}>
             <Text numberOfLines={2} adjustsFontSizeToFit style={styles.meaning}>{meaning || '뜻 정보 없음'}</Text>
-            {/* 아이콘은 뜻 글자의 baseline 에 맞춘다. 아이콘 글리프(Text)의 baseline 은 폰트마다
-                제멋대로라, 고정 크기 상자 안에 절대 배치해 상자 아래변이 baseline 이 되게 한다. */}
+            {/* 아이콘 글리프의 baseline 은 폰트마다 달라, 고정 크기 상자 안에 절대 배치해 상자 아래변을 baseline 으로 쓴다. */}
             <View style={styles.wordActions}>
               {canEdit && (
                 <Pressable style={styles.wordAction} onPress={handleEditPress} hitSlop={10} disabled={saving}>
@@ -377,8 +363,7 @@ export const WordBack = React.memo(function WordBack({
             style={[styles.ratingRowLayer, holdStyles.row]}
             pointerEvents={holding ? 'none' : 'auto'}
           >
-            {/* 갈라지는 조각과 버튼(제자리 모양+터치+글자)을 같은 4열 그리드에 두 겹으로 깐다.
-                조각은 한 그룹으로 오프스크린 합성해 알파를 입히므로, 겹쳐도 실루엣 하나로 보인다. */}
+            {/* 갈라지는 조각과 버튼(제자리 모양+터치+글자)을 같은 4열 그리드에 두 겹으로 깐다. */}
             {splitStyles && (
               <Animated.View
                 style={[styles.ratingShapeRow, splitStyles.fillGroup]}
@@ -738,8 +723,7 @@ const styles = StyleSheet.create({
     flex: 1,
     marginHorizontal: -PIECE_OVERLAP,
   },
-  // 조각에는 그림자를 두지 않는다 — 조각마다 그림자를 드리우면 겹친 이웃 조각 위에 그림자가
-  // 떨어져 반투명 실루엣 안에서 조각 윤곽이 드러난다.
+  // 조각에는 그림자를 두지 않는다 — 겹친 이웃 조각 위에 그림자가 떨어져 조각 윤곽이 드러난다.
   ratingFill: {
     backgroundColor: '#FFFFFF',
   },

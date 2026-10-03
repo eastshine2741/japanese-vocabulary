@@ -1,9 +1,8 @@
 package com.japanese.vocabulary.translation.client.gemini
 
 /**
- * Rejects Gemini responses that stopped early. A `MAX_TOKENS` (or SAFETY/RECITATION) stop can still
- * yield parseable JSON holding only the first N requested lines, which used to surface downstream as
- * a confusing "line indices mismatch" instead of "the model was cut off".
+ * Rejects Gemini responses that stopped early: a `MAX_TOKENS` (or SAFETY/RECITATION) stop can still
+ * yield parseable JSON holding only the first N requested lines.
  */
 internal object GeminiResponseGuard {
     private const val FINISH_REASON_STOP = "STOP"

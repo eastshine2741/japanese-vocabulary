@@ -31,8 +31,7 @@ class YoutubeMvSearchService(
             return youtubeUrl(it.videoId)
         }
 
-        // Neither path found an MV. Both paths' leftovers are ranked together from here, so a
-        // cached-channel live clip cannot pre-empt an MV the broad search would have found.
+        // Leftovers of both paths are ranked together so a cached-channel live clip cannot pre-empt a broad-search MV.
         val leftovers = cachedCandidates + fallbackCandidates
         val runnerUp = pickArtistLive(leftovers) ?: pickUnofficialUpload(leftovers) ?: return null
         maybeCacheArtistChannel(artist, runnerUp)
@@ -56,8 +55,7 @@ class YoutubeMvSearchService(
             ) ?: return emptyList()
             pagesRead += 1
 
-            // An artist's uploads playlist mixes Shorts and live clips in with MVs, so the
-            // title-matched items are collected first and filtered by duration in one batch below.
+            // Uploads mix Shorts and live clips with MVs; duration is filtered once after all pages.
             matches += response.items.mapNotNull { it.toCandidate(title, artist) }
 
             pageToken = response.nextPageToken ?: break
@@ -66,11 +64,7 @@ class YoutubeMvSearchService(
     }
 
     private fun searchFallback(title: String, artist: String, durationBounds: DurationBounds): List<MvCandidate> {
-        // MV lookup intentionally uses broad video search, then local ranking:
-        // 1. Strip iTunes-style trailing descriptors from the query, e.g. "(feat. ...)".
-        // 2. Do not restrict videoCategoryId to Music. Publisher uploads such as
-        //    Project SEKAI MVs are categorized as Gaming and would disappear.
-        // 3. Keep only title-matching candidates; [pickMv] does the ranking.
+        // No videoCategoryId filter: publisher uploads such as Project SEKAI MVs are categorized as Gaming.
         val queryTitle = title.replace(TRAILING_DESCRIPTOR_RE, "").trim().ifBlank { title }
         return youtubeClient.searchVideos(
             query = "$queryTitle $artist",
@@ -84,22 +78,19 @@ class YoutubeMvSearchService(
     }
 
     /**
-     * The MV of this song by this artist. A same-titled song by another artist is the failure
-     * this guards against ("灯火" by 優河 outranking Vaundy on "Official Music Video" alone),
-     * so a candidate must be attributable to the artist; see [MvCandidate.artistVerified].
+     * The MV of this song by this artist; a candidate must be attributable to the artist so a
+     * same-titled song by another artist cannot win (see [MvCandidate.artistVerified]).
      *
-     * A Topic channel is YouTube's auto-generated upload of the distributed studio track. Its
-     * title carries neither the artist nor an official marker, so it is exempt from both the
-     * artist check and the score floor and stands in when no MV candidate survives.
+     * A Topic channel (auto-generated studio-track upload) is exempt from the artist check and
+     * the score floor and stands in when no MV candidate survives.
      */
     private fun pickMv(candidates: List<MvCandidate>): MvCandidate? =
         candidates.bestEligible { it.officialSource && !it.isLive }
             ?: candidates.firstOrNull { isTopicChannel(it.channelTitle) }
 
     /**
-     * Some songs never got an MV and exist on YouTube only as the artist performing them live,
-     * so the artist's own live beats failing the work. It stays below the MV and the Topic
-     * upload because a live take does not follow the studio timings the synced lyrics use.
+     * Fallback to the artist's own live when no MV exists. Ranks below the MV and the Topic
+     * upload because a live take does not follow the studio timings of the synced lyrics.
      */
     private fun pickArtistLive(candidates: List<MvCandidate>): MvCandidate? =
         candidates.bestEligible { it.officialSource && it.isLive }
@@ -110,20 +101,17 @@ class YoutubeMvSearchService(
 
     private fun List<MvCandidate>.bestEligible(tier: (MvCandidate) -> Boolean): MvCandidate? = this
         .filter { it.artistVerified && !isTopicChannel(it.channelTitle) }
-        // Only the live penalty is ever forgiven, so a cover, a karaoke track, or a Hangul
-        // reupload stays rejected even when it is also a live clip.
+        // Only the live penalty is forgiven; a live cover or karaoke clip stays rejected.
         .filter { it.scoreWithoutLivePenalty >= MIN_ACCEPTABLE_SCORE }
         .filter(tier)
         .maxByOrNull { it.score }
 
     /**
-     * The Data API exposes no "is this a Short" or "is this a live clip" flag, so length is
-     * the usable proxy: a video far shorter than the track is a Short, a teaser, or a clipped
-     * excerpt; one far longer is a full concert, a compilation, or a full album. The iTunes
-     * track length drives both bounds; see [DurationBounds.forTrack].
+     * The Data API has no Short/live flag, so length against the iTunes track length is the
+     * proxy; see [DurationBounds.forTrack].
      *
-     * Videos whose duration is missing or unparsable are kept — a flaky secondary lookup
-     * must not drop a legitimate MV. `P0D` (live/premiere) has no length and is dropped.
+     * Videos with a missing or unparsable duration are kept so a flaky lookup does not drop a
+     * legitimate MV. `P0D` (live/premiere) has no length and is dropped.
      */
     private fun filterByDuration(candidates: List<MvCandidate>, bounds: DurationBounds): List<MvCandidate> {
         if (candidates.isEmpty()) return candidates
@@ -149,12 +137,10 @@ class YoutubeMvSearchService(
 
     /**
      * Acceptable video length for a track.
-     * - A video worth half the track's length or less cannot be carrying the whole song. The
-     *   floor never drops below [MIN_SHORTS_CUTOFF_SECONDS], so a two-minute song still
-     *   rejects a 45s Short.
-     * - A video longer than twice the track is not an MV of it. Story MVs run a minute or two
-     *   over the track; concerts and full albums run far past 2x. Unknown when the track
-     *   length is unknown.
+     * - At most half the track's length cannot carry the whole song; the floor never drops
+     *   below [MIN_SHORTS_CUTOFF_SECONDS].
+     * - Over twice the track is a concert or album, not the MV (story MVs run only a minute or
+     *   two over). No upper bound when the track length is unknown.
      */
     private data class DurationBounds(val minExclusiveSeconds: Long, val maxInclusiveSeconds: Long?) {
         fun rejectionReason(seconds: Long): String? = when {
@@ -209,9 +195,8 @@ class YoutubeMvSearchService(
         channelTitle = channelTitle,
         score = scoreMvCandidate(title, channelTitle, artist),
         isLive = LIVE_TITLE_RE.containsMatchIn(title),
-        // A publisher channel (Project SEKAI, a label) hosts many artists and re-uploads the
-        // same song sung by another unit (April Fools swaps, covers), so there the upload must
-        // name the artist. An artist's own channel rarely repeats its name in the title.
+        // A publisher channel hosts many artists and same-titled swaps, so its upload must name the
+        // artist; an artist's own channel rarely repeats its name in the title.
         artistVerified = channelMatchesArtist(artist, channelTitle) || titleNamesArtist(title, artist),
         officialSource = channelMatchesArtist(artist, channelTitle) ||
             KNOWN_PUBLISHER_CHANNEL_RE.containsMatchIn(channelTitle) ||
@@ -248,10 +233,8 @@ class YoutubeMvSearchService(
     }
 
     /**
-     * The cache answers "which channel uploads this artist", so only a channel that is the
-     * artist's or a known publisher may be cached. An "Official Music Video" title is not
-     * enough: 優河's channel was cached under Vaundy that way and then owned every later
-     * lookup for the artist.
+     * Only the artist's own or a known publisher channel may be cached; an "Official Music Video"
+     * title is not enough, or another artist's channel would own every later lookup.
      */
     private fun isCacheableChannel(artist: String, candidate: MvCandidate): Boolean =
         channelMatchesArtist(artist, candidate.channelTitle) ||
@@ -270,9 +253,8 @@ class YoutubeMvSearchService(
     }
 
     /**
-     * iTunes titles are often bilingual, e.g. "ピースサイン - Peace Sign", while an upload
-     * carries only one half or both halves apart, so each separator-delimited part is a
-     * variant of its own. Single-character parts are too ambiguous to match on.
+     * iTunes titles are often bilingual ("ピースサイン - Peace Sign") while an upload carries one half,
+     * so each separator-delimited part is its own variant. Single-character parts are too ambiguous.
      */
     private fun targetTitleVariants(title: String): List<String> {
         val withoutTrailingDescriptor = title.replace(TRAILING_DESCRIPTOR_RE, "")
@@ -313,13 +295,11 @@ class YoutubeMvSearchService(
             .replace(WHITESPACE_RE, "")
 
     /**
-     * @param isLive the title marks it as a live/tour/concert performance, which loses to an MV
-     *   but is accepted by [pickArtistLive] when no MV exists.
-     * @param artistVerified the channel is the artist's own, or the title names the artist, so
-     *   the upload is this artist's and not another artist's song of the same name.
-     * @param officialSource the upload comes from the artist, a known publisher, or presents
-     *   itself as the official one. A title-verified upload without this is a reupload on a
-     *   stranger's channel, which ranks below the artist's own live.
+     * @param isLive the title marks a live/tour/concert performance; loses to an MV, accepted by
+     *   [pickArtistLive] when no MV exists.
+     * @param artistVerified the channel is the artist's own or the title names the artist.
+     * @param officialSource from the artist, a known publisher, or titled as official. Without
+     *   it the upload is a stranger's reupload, which ranks below the artist's own live.
      */
     private data class MvCandidate(
         val videoId: String,
@@ -345,26 +325,20 @@ class YoutubeMvSearchService(
         private const val MIN_SHORTS_CUTOFF_SECONDS = 60L
         private const val MIN_TITLE_PART_LENGTH = 2
 
-        // Keep this narrower than plain "MV": AMV/MAD/original-MV covers often
-        // contain the target title but are not the official/publisher upload.
-        // "非公式" (unofficial) contains "公式" and must not count as official.
+        // Narrower than plain "MV" (AMV/MAD/original-MV covers). "非公式" contains "公式" and must not match.
         private val OFFICIAL_TITLE_RE = Regex(
             "Music Video|Official Video|Official MV|オフィシャル|(?<!非)公式",
             RegexOption.IGNORE_CASE
         )
-        // Not the song as recorded: another performer, another arrangement, no vocals, or only
-        // part of the track. No fallback rescues these. A cut-down upload ("Official Audio
-        // (Short Version)" on the artist's own channel) can sit inside the duration bounds, so
-        // the title has to catch it or the synced lyrics run past the end of the video.
+        // Not the song as recorded (other performer, arrangement, no vocals, partial). A cut-down
+        // upload can pass the duration bounds, so the title must catch it.
         private val BAD_TITLE_RE = Regex(
             "弾いてみた|歌ってみた|cover|covered by|ピアノ|ギター|drum|アレンジ|off vocal|ニコカラ|字幕|한글자막|中文字幕|ローマ字|lyrics|lyric video|the first take|game size|アナザーボーカル|AMV|MAD|非公式|unofficial|エイプリルフール|april fool" +
                 "|カラオケ|karaoke|instrumental|short ver|ショートver|ショートバージョン|tv size|tvサイズ",
             RegexOption.IGNORE_CASE
         )
-        // Live/tour clips are the artist's own uploads and often run exactly the track
-        // length, so only the title tells them apart from the MV. English words are bounded
-        // by explicit lookarounds rather than \b, whose Unicode handling differs across JDKs
-        // ("LIVE映像" must still match).
+        // Live clips often run exactly the track length, so only the title tells them from the MV.
+        // Lookarounds instead of \b: its Unicode handling differs across JDKs ("LIVE映像" must match).
         private val LIVE_TITLE_RE = Regex(
             "(?<![a-z])(?:live|tour|concert)(?![a-z])|ライブ|ライヴ|ツアー|コンサート|フェス",
             RegexOption.IGNORE_CASE

@@ -32,31 +32,22 @@ class SegmentLyricsStage(
 
     /**
      * Segments every lyric line, splits glued particles out of the result, and retries **only the
-     * lines that failed a check**. Lines that came back clean are kept across attempts, so one bad
-     * line cannot discard the rest or make an already-correct line regress on a later attempt.
+     * lines that failed a check**; clean lines are kept across attempts so they cannot regress.
      *
-     * Each attempt is itself split into [SEGMENT_CHUNK_LINES]-line calls. The per-word payload grew
-     * from two fields to five (two readings and a gloss), so a whole-song response is now long enough
-     * to stop mid-array; chunking bounds each response instead. The order stays
-     * *chunked call → anchor the whole attempt → collect the failing lines → retry those, also
-     * chunked*, which keeps the retry set line-scoped rather than chunk-scoped.
+     * Each attempt is split into [SEGMENT_CHUNK_LINES]-line calls to bound response length. The
+     * order is *chunked call → anchor the whole attempt → collect failing lines → retry those,
+     * also chunked*, so the retry set is line-scoped.
      *
-     * Two checks decide a line, and they are not equally severe:
-     *
-     * - **Anchoring** ([SegmentAnchoringValidator]) is structural, but only its *position* failures
-     *   are fatal. A surface the line does not hold, or one out of order, makes every offset in the
-     *   line meaningless, so those are retried to exhaustion and then throw.
-     * - **Completeness and headword resolvability** are both "the model gave us less than the line
-     *   holds", and neither is worth failing the song over. Text no surface claimed
-     *   (`晴れ舞台（イェイ）` → `晴れ舞台`) still renders from the raw line, just without a word card; a
-     *   headword the dictionary cannot answer (`帰れない` for `帰る`) reaches the app with no meaning.
-     *   Both get one resampled retry — the same line often comes back right, since it was segmented
-     *   correctly elsewhere in the same song — and after [MAX_DEFECT_RETRIES] the best attempt is kept
-     *   and each defect is reported through [AnalysisDefectReporter].
-     * - A headword the dictionary **never answered** is kept the same way, but reported apart
-     *   ([AnalysisDefectCause.PROVIDER_ERROR]): jisho was down, not wrong, so the retry resends the
-     *   line without feedback — errors are not cached, so that asks jisho again — and what survives
-     *   is an outage to count, not a word for anyone to fix.
+     * - **Anchoring** ([SegmentAnchoringValidator]) *position* failures are fatal (every offset in
+     *   the line is meaningless): retried to exhaustion, then thrown.
+     * - **Completeness and headword resolvability** are not worth failing the song over: text no
+     *   surface claimed (`晴れ舞台（イェイ）` → `晴れ舞台`) renders without a word card, and an
+     *   unanswerable headword (`帰れない` for `帰る`) ships with no meaning. Both get one resampled
+     *   retry; after [MAX_DEFECT_RETRIES] the best attempt is kept and each defect is reported
+     *   through [AnalysisDefectReporter].
+     * - A headword the dictionary **never answered** is kept the same way but reported as
+     *   [AnalysisDefectCause.PROVIDER_ERROR] (jisho was down): the retry resends the line without
+     *   feedback, which asks jisho again since errors are not cached.
      */
     override suspend fun execute(input: TranslationPipelineSource): SegmentationStageResult {
         val acceptedTokens = mutableMapOf<Int, List<PipelineToken>>()
@@ -64,8 +55,7 @@ class SegmentLyricsStage(
         val acceptedDefects = mutableMapOf<Int, LineDefects>()
         var pendingByIndex = input.rawByIndex
         var anchorFailures: Map<Int, String> = emptyMap()
-        // Null feedback still resends the line: a headword jisho never answered gets a plain resend,
-        // which is what makes the lookup happen again, without telling the model anything was wrong.
+        // Null feedback still resends the line, which makes the jisho lookup happen again.
         var defectFeedback: Map<Int, String?> = emptyMap()
         var defectRetriesLeft = MAX_DEFECT_RETRIES
 
@@ -82,8 +72,7 @@ class SegmentLyricsStage(
                     uncovered = anchored.incompleteByIndex[index],
                 )
                 val accepted = acceptedDefects[index]
-                // A resampled retry is not automatically better. Keep the attempt with fewer defects,
-                // or a line retried for one bad token could come back with three.
+                // Keep the attempt with fewer defects; a resample is not automatically better.
                 if (accepted == null || defects.count < accepted.count) {
                     acceptedTokens[index] = tokens
                     acceptedDefects[index] = defects
@@ -91,9 +80,7 @@ class SegmentLyricsStage(
                 }
             }
 
-            // A line retried for a defect can come back unanchorable. That is not fatal — the earlier
-            // attempt is still held — so only a line with no accepted version at all counts as an
-            // anchoring failure.
+            // A defect retry can come back unanchorable; that is fatal only if no earlier version was accepted.
             anchorFailures = anchored.failuresByIndex.filterKeys { it !in acceptedTokens }
             val defectiveByIndex = acceptedDefects.filterValues { !it.isClean }
             val retryDefects = defectiveByIndex.isNotEmpty() && defectRetriesLeft > 0
@@ -119,8 +106,7 @@ class SegmentLyricsStage(
             )
         }
 
-        // Position failures are the only check that gets here: a defect stops asking once its retry
-        // budget is spent, which is inside the loop.
+        // Only position failures reach here; defects stop retrying inside the loop.
         if (anchorFailures.isEmpty() && acceptedTokens.keys.containsAll(input.rawByIndex.keys)) {
             return finish(input, acceptedSegLines, acceptedTokens, acceptedDefects.filterValues { !it.isClean })
         }
@@ -133,14 +119,11 @@ class SegmentLyricsStage(
     /**
      * One segmentation call per attempt, with **duplicate lines asked about once**.
      *
-     * A chorus repeats whole lines, and asking for each occurrence separately let the same text come
-     * back segmented two different ways: `雨が降り止むまでは帰れない` resolved on one line while the other
-     * gave `までは` and `帰れない` as their own headwords and lost both meanings. Sending the distinct
-     * texts and copying each answer onto every index that holds it makes repeats consistent by
-     * construction, and shortens the request.
+     * Asking for each repeated chorus line separately let the same text come back segmented two ways
+     * (`雨が降り止むまでは帰れない`); sending distinct texts and copying each answer onto every index
+     * keeps repeats consistent.
      *
-     * Retries send only the lines that failed, each carrying its own feedback so it cannot leak into
-     * an unrelated line.
+     * Retries send only the failed lines, each with its own feedback.
      */
     private suspend fun segment(
         input: TranslationPipelineSource,
@@ -179,14 +162,12 @@ class SegmentLyricsStage(
      * The tokens per line whose headword the dictionary cannot answer.
      *
      * Grammar comes first: [RuleMeaningProvider] settles particles and auxiliaries without a
-     * dictionary, so checking before it runs would report `は` and `ている` as missing words. The rewrite
-     * is applied here only to decide what to check — [ApplyRuleMeaningsStage] applies it for real to
-     * whatever this stage returns — and jisho caches, so asking early costs one Redis hit.
+     * dictionary, so `は` and `ている` would otherwise be reported. The rewrite is applied here only
+     * to decide what to check ([ApplyRuleMeaningsStage] applies it for real); jisho caches.
      *
-     * Katakana-only surfaces are exempt: `ステンバイミー` and `チリン` have no dictionary entry to find, so
-     * retrying them would spend the budget on the one case a retry cannot fix. So is a headword with
-     * no Japanese in it at all: `あいうぉんちゅー` is "I want you" sung in hiragana, and the model naming
-     * the English phrase as its headword is the right answer, not one a Japanese dictionary can confirm.
+     * Exempt: katakana-only surfaces (`ステンバイミー`, `チリン`), where a retry cannot help, and a
+     * headword with no Japanese in it (`あいうぉんちゅー` → "I want you"), which a Japanese
+     * dictionary cannot confirm.
      */
     private suspend fun headwordMisses(
         tokensByIndex: Map<Int, List<PipelineToken>>,
@@ -202,11 +183,9 @@ class SegmentLyricsStage(
     }
 
     /**
-     * What the lines still hold after the retry budget is spent, said out loud, then the result.
-     *
-     * Nothing downstream can tell a token with no meaning from one that legitimately has none, or a
-     * line that lost a word from one that never had it, so this is the only place the pipeline says
-     * either — one [AnalysisDefect] per token, so a log search can group them by cause and headword.
+     * Reports what the lines still hold after the retry budget is spent, then returns the result.
+     * Nothing downstream can tell a missing meaning or word from a legitimate absence, so this is
+     * the only place that says so: one [AnalysisDefect] per token.
      */
     private fun finish(
         input: TranslationPipelineSource,
@@ -225,10 +204,9 @@ class SegmentLyricsStage(
     }
 
     /**
-     * The two ways a kept line can be short of what the raw line holds — a headword the dictionary
-     * cannot answer, and Japanese text no surface claimed. Both cost the reader a word rather than the
-     * whole song, so they share one retry budget and one comparison: [count] is what decides whether a
-     * resample was an improvement.
+     * The two ways a kept line can fall short of the raw line: a headword the dictionary cannot
+     * answer, and Japanese text no surface claimed. They share one retry budget; [count] decides
+     * whether a resample was an improvement.
      */
     private data class LineDefects(
         val unresolvedHeadwords: List<LexicalResolver.Unresolved>,
@@ -239,9 +217,8 @@ class SegmentLyricsStage(
         val isClean: Boolean get() = count == 0
 
         /**
-         * Feedback for the model. A headword jisho never answered is left out: the model's headword
-         * may well be right, and "no entry exists for 太陽" would push it to invent another. The line
-         * is still resent, which is what makes the lookup happen again.
+         * Feedback for the model. A headword jisho never answered is left out (it may be right, and
+         * the feedback would push the model to invent another); the line is still resent.
          */
         fun retryMessage(): String? =
             listOfNotNull(unresolvedHeadwordMessage(), uncovered?.message).joinToString(". ").ifEmpty { null }
@@ -287,11 +264,8 @@ class SegmentLyricsStage(
     /**
      * Retries sample; the first attempt does not.
      *
-     * At temperature 0 the model is deterministic, so a retry whose only difference is two extra
-     * fields reproduces the rejected output verbatim — three retries on `涼しい風吹く 青空の匂い` came
-     * back byte-identical and burned every attempt. Sampling is what makes a second attempt a second
-     * attempt. It stays low: this stage carries the pipeline's disambiguation signal and a hot model
-     * invents readings.
+     * At temperature 0 a retry reproduces the rejected output verbatim, so retries sample. It stays
+     * low: a hot model invents readings.
      */
     private fun temperatureFor(attempt: Int): Double =
         minOf(SEGMENT_MAX_TEMPERATURE, attempt * SEGMENT_TEMPERATURE_STEP)
@@ -308,14 +282,12 @@ class SegmentLyricsStage(
         const val MAX_SEGMENTATION_ATTEMPTS = 4
 
         /**
-         * How many attempts an incomplete line may cost. One: a resampled line does sometimes come
-         * back with the dictionary form, or with the word it skipped, but text the model will never
-         * treat as a word — a parenthesized ad-lib, a name no dictionary holds — would otherwise spend
-         * the whole budget and take the song's analysis down with it.
+         * How many attempts an incomplete line may cost. One: text the model will never treat as a
+         * word (an ad-lib, a name) would otherwise spend the whole budget.
          */
         const val MAX_DEFECT_RETRIES = 1
 
-        /** Lines per segmentation call. Bounds response length so long songs cannot stop mid-array. */
+        /** Lines per segmentation call; bounds response length so long songs cannot stop mid-array. */
         const val SEGMENT_CHUNK_LINES = 20
 
         /** Temperature added per retry: attempt 0 is deterministic, attempt 1 is 0.3, and so on. */
@@ -329,32 +301,25 @@ class SegmentLyricsStage(
         private const val RETRY_INSTRUCTION_FIELD = "retryInstruction"
         private const val RETRY_INSTRUCTION =
             "The previous segmentation output failed validator checks for this line. " +
-                // Naming the rules the validator actually enforces, in the order it enforces them.
-                // A retry that only repeats "appears in order" leaves the model guessing which of its
-                // words moved the anchor, and it answers by re-sending the same array.
+                // Names the rules the validator enforces, in its order; a vague retry gets the same array back.
                 "Every surface must be an exact substring of this line's text, cut from it without " +
                 "changing a character, and the surfaces must appear in the line's own order. " +
-                // The failure this feedback exists for: an invented space matches the next real space
-                // and drags the anchor past the words in between.
+                // An invented space matches the next real space and drags the anchor past the words between.
                 "Output Japanese words only — no whitespace, punctuation, quote, latin or digit tokens, " +
                 "and never a separator that is not in the text. Gaps between surfaces are expected. " +
                 "Every Japanese character of the line must fall inside some surface. " +
-                // Read as "skip the number", the rule above took the kana wedged in it along:
-                // `140と30字の` lost `と` on every attempt.
+                // Without this, the rule above dropped kana wedged between digits (`140と30字の` lost `と`).
                 "Only the digits and latin letters themselves are left out: kana or kanji between or " +
                 "right after them is still a word (1と2の → と / の). " +
-                // The validator rejects readings too, so a retry that only talks about surfaces steers
-                // the model away from half the failures it is being asked to fix.
+                // The validator rejects readings too.
                 "usedReading and baseFormReading must be kana only — katakana preferred, no kanji, no " +
                 "spaces, no punctuation, never empty. " +
-                // The dictionary check's feedback names the headword it could not find; this is the
-                // rule that fixes it.
+                // Fixes the headword the dictionary check could not find.
                 "Every headword must be the plain dictionary form of ONE word: not an inflected form " +
                 "(帰れない → 帰る, 離れない → 離れる, できない → できる), not a form carrying a particle " +
                 "(までは, 何を, こんなにも), and not two words joined (長くない → 長く / ない). Split such a " +
                 "token into separate surfaces, each with its own headword: までは → まで + は. " +
-                // How the previous prompt was misread: headword split, surface left glued, particle
-                // emitted a second time — so its kana was claimed twice and the line could not anchor.
+                // Guards against a split headword with a glued surface, which claims the particle's kana twice.
                 "Every character of the line belongs to exactly one surface. " +
                 // Uncovered-text feedback arrives through this same instruction.
                 "Japanese inside brackets is lyric too: drop the brackets, keep the words. " +

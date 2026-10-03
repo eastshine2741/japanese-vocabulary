@@ -16,9 +16,8 @@ import com.japanese.vocabulary.notification.dto.ManualPushResponse
 import java.security.MessageDigest
 
 /**
- * Manual push operations. Active in every environment (dev + prod) for now. Safe in prod only
- * because the batch `Service` has no Ingress/LB — the endpoint is reachable from inside the
- * cluster only. To be moved to a dedicated admin service with proper auth in a follow-up.
+ * Manual push operations, active in dev and prod. Safe only because the batch `Service` has no
+ * Ingress/LB, so the endpoint is reachable from inside the cluster only.
  */
 @RestController
 @RequestMapping("/dev/push")

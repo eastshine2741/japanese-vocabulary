@@ -145,8 +145,7 @@ class YoutubeMvSearchServiceTest {
 
     @Test
     fun `search returns a live clip from the artist channel when no MV exists`() {
-        // Prod song 93: "灯火 / Vaundy" has no MV, only live uploads. Failing the work there
-        // is worse than a live performance of the song by the artist.
+        // No MV, only live uploads: the artist's live beats failing the work.
         every { artistChannelCache.get(ARTIST) } returns null
         stubSearch(
             searchItem("live-id", "$TITLE LIVE映像"),
@@ -183,8 +182,7 @@ class YoutubeMvSearchServiceTest {
 
     @Test
     fun `search rejects a same-titled song by another artist`() {
-        // Prod song 93: "優河 - 灯火（Official Music Video）" won the search for "灯火 / Vaundy"
-        // on the official marker alone, and cached 優河's channel under Vaundy.
+        // The official marker alone must not let another artist's same-titled MV win or be cached.
         every { artistChannelCache.get("Vaundy") } returns null
         stubSearch(
             searchItem("other-artist-id", "優河 -  灯火（Official Music Video）", "優河 Yuga", "yuga-channel"),
@@ -198,8 +196,7 @@ class YoutubeMvSearchServiceTest {
 
     @Test
     fun `search prefers the artist's live over a reupload on a stranger's channel`() {
-        // The full "灯火 / Vaundy" search result: no MV exists, so behind 優河's same-titled MV
-        // sit a bootleg audio reupload, a cut-down official audio, and the Budokan live.
+        // No MV exists: behind the other artist's same-titled MV sit a reupload, a cut-down audio, and the live.
         every { artistChannelCache.get("Vaundy") } returns null
         stubSearch(
             searchItem("other-artist-id", "優河 -  灯火（Official Music Video）", "優河 Yuga"),
@@ -318,9 +315,7 @@ class YoutubeMvSearchServiceTest {
 
     @Test
     fun `cached publisher channel rejects an upload of the song by another unit`() {
-        // Prod song 78: the Project SEKAI channel's recent uploads held only the April Fools
-        // swap "熱異常 / ロボピース", and the real "熱異常 / 25時、ナイトコードで。 × KAITO" was
-        // older than the scanned pages; the swap must not win by title alone.
+        // The real MV is older than the scanned pages; the April Fools swap must not win by title alone.
         every { artistChannelCache.get(NIIGO) } returns ArtistChannelCacheEntry(
             artistName = NIIGO,
             channelId = "channel-id",
@@ -395,8 +390,7 @@ class YoutubeMvSearchServiceTest {
 
     @Test
     fun `search rejects an unofficial fan MV and falls back to the Topic channel`() {
-        // Prod song 79: "【非公式MV】エンゼルケア / いよわ様" scored as official because "非公式"
-        // contains "公式", won over the Topic upload, and cached its channel for the artist.
+        // "非公式" contains "公式" and must not score as official over the Topic upload.
         every { artistChannelCache.get("いよわ") } returns null
         stubSearch(
             searchItem("fan-id", "【非公式MV】エンゼルケア / いよわ様", "ふわふわ擬"),

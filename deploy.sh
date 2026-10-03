@@ -52,7 +52,7 @@ for arg in "$@"; do
   esac
 done
 
-# --- 환경별 설정 (IMAGE_PREFIX는 prod에서 env 로드 후 GHCR_USERNAME으로 조립) ---
+# prod의 IMAGE_PREFIX는 env 로드 후 GHCR_USERNAME으로 조립한다.
 if [[ "$DEPLOY_ENV" == "prod" ]]; then
   KUBE_CONTEXT="kotonoha-prod"
   NS="kotonoha"
@@ -68,19 +68,16 @@ else
   exit 1
 fi
 
-# --- kube context: 명시된 환경의 context를 kubectl에 직접 지정 ---
-# 현재 활성 context와 무관하게 항상 DEPLOY_ENV에 맞는 context로 배포한다.
+# 활성 context와 무관하게 DEPLOY_ENV의 context로 배포한다.
 kubectl() {
   command kubectl --context "$KUBE_CONTEXT" "$@"
 }
 
-# --- namespace 결정 (dev만 동적, prod는 고정) ---
 if [[ "$DEPLOY_ENV" == "dev" ]]; then
   if [[ -n "$DEPLOY_NS_ARG" ]]; then
     NS="$DEPLOY_NS_ARG"
   else
     BRANCH="$(git rev-parse --abbrev-ref HEAD)"
-    # feature/foo-bar → foo-bar, main → main
     NS="${BRANCH##*/}"
     NS="$(echo "$NS" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g')"
   fi
@@ -95,18 +92,15 @@ if [[ "$RESTORE_DEV_DUMP" == "true" && "$DEPLOY_ENV" != "dev" ]]; then
   exit 1
 fi
 
-# --- env 파일 확인 ---
 if [[ ! -f "$ENV_FILE" ]]; then
   echo "Error: env file not found: $ENV_FILE" >&2
   exit 1
 fi
 
-# --- env 로드 ---
 set -a
 source "$ENV_FILE"
 set +a
 
-# --- prod-only: GHCR 검증 + IMAGE_PREFIX 조립 + 가드 prompt ---
 if [[ "$DEPLOY_ENV" == "prod" ]]; then
   if [[ -z "${GHCR_USERNAME:-}" || -z "${GHCR_TOKEN:-}" ]]; then
     echo "Error: GHCR_USERNAME / GHCR_TOKEN not set in $ENV_FILE" >&2
@@ -114,7 +108,7 @@ if [[ "$DEPLOY_ENV" == "prod" ]]; then
   fi
   IMAGE_PREFIX="ghcr.io/${GHCR_USERNAME}/kotonoha"
 
-  # admin-api 는 prod 에서 평문 비밀번호를 받지 않는다. sha256 해시와 토큰 시크릿이 필수다.
+  # prod admin-api 는 평문 비밀번호 대신 sha256 해시와 토큰 시크릿을 요구한다.
   ADMIN_TOKEN_SECRET="${ADMIN_TOKEN_SECRET:-}"
   if [[ ! "${ADMIN_PASSWORD_SHA256:-}" =~ ^[0-9a-f]{64}$ ]]; then
     echo "Error: ADMIN_PASSWORD_SHA256 must be a 64-char lowercase hex sha256 in $ENV_FILE" >&2
@@ -154,7 +148,6 @@ if [[ "$DEPLOY_ENV" == "dev" ]]; then
 fi
 
 # admin-web 은 asset base 와 router basename 을 빌드 시점에 굽는다.
-# dev 는 namespace 경로 아래, prod 는 kotonoha.eastshine.dev/admin 아래에 붙는다.
 if [[ "$DEPLOY_ENV" == "prod" ]]; then
   ADMIN_WEB_BASE_PATH="/admin"
 else
@@ -169,10 +162,8 @@ else
 fi
 SENTRY_RELEASE="${GIT_SHA}"
 
-# build/libs 안에는 bootJar 말고 -plain.jar 도 같이 생긴다.
-# Dockerfile 의 COPY 가 여러 파일을 잡지 않도록 boot jar 하나를 정확히 골라 전달한다.
-# admin-api 는 이미지에 reels/ 를 담아야 해서 build context 가 repo root 다 (3번째 인자).
-# admin-web 도 릴스 미리보기가 reels/src 를 가져와서 repo root 에서 빌드한다.
+# build/libs 의 -plain.jar 를 제외한 boot jar 하나만 Dockerfile 에 넘긴다.
+# admin-api 는 reels/ 가 필요해 build context 가 repo root 다 (3번째 인자).
 build_boot_image() {
   local module="$1" image="$2" ctx="${3:-$PROJECT_ROOT/backend/$1}"
   local module_dir="$PROJECT_ROOT/backend/$module"
@@ -214,7 +205,6 @@ if [[ "$RESTORE_DEV_DUMP" == "true" ]]; then
   fi
 fi
 
-# --- 1. Gradle 테스트 + 빌드 (test 실패 시 배포 중단) ---
 STEP_START=$SECONDS
 echo "[gradle] test + bootJar..."
 cd "$PROJECT_ROOT/backend" && ./gradlew \
@@ -223,7 +213,6 @@ cd "$PROJECT_ROOT/backend" && ./gradlew \
 cd "$PROJECT_ROOT"
 echo "  → $((SECONDS - STEP_START))s"
 
-# --- 2. Docker 이미지 빌드 + 배포 ---
 STEP_START=$SECONDS
 if [[ "$DEPLOY_ENV" == "prod" ]]; then
   echo "[ghcr] login..."
@@ -263,13 +252,11 @@ else
 fi
 echo "  → $((SECONDS - STEP_START))s"
 
-# --- 3. Namespace ---
 STEP_START=$SECONDS
 echo "[ns] ensuring namespace '$NS'..."
 kubectl create namespace "$NS" --dry-run=client -o yaml | kubectl apply -f -
 echo "  → $((SECONDS - STEP_START))s"
 
-# --- 4. ImagePullSecret (prod only) ---
 if [[ "$DEPLOY_ENV" == "prod" ]]; then
   STEP_START=$SECONDS
   echo "[secret] ghcr ImagePullSecret..."
@@ -282,7 +269,6 @@ if [[ "$DEPLOY_ENV" == "prod" ]]; then
   echo "  → $((SECONDS - STEP_START))s"
 fi
 
-# --- 5. 매니페스트 적용 ---
 STEP_START=$SECONDS
 echo "[apply] infra (mysql + redis)..."
 envsubst < "$K8S_DIR/mysql/secret.template.yaml" | kubectl apply -n "$NS" -f -
@@ -291,7 +277,6 @@ kubectl apply -n "$NS" -f "$K8S_DIR/mysql/service.yaml"
 kubectl apply -n "$NS" -f "$K8S_DIR/redis/"
 echo "  → $((SECONDS - STEP_START))s"
 
-# --- 6. DB 마이그레이션 ---
 STEP_START=$SECONDS
 echo "[migration] running..."
 kubectl rollout status -n "$NS" statefulset/mysql --timeout=120s
@@ -326,7 +311,6 @@ envsubst < "$K8S_DIR/migration/job.yaml" | kubectl apply -n "$NS" -f -
 kubectl wait --for=condition=complete -n "$NS" job/migration --timeout=120s
 echo "  → $((SECONDS - STEP_START))s"
 
-# --- 7. API + Batch ---
 STEP_START=$SECONDS
 echo "[apply] api + batch..."
 envsubst < "$K8S_DIR/api/secret.template.yaml" | kubectl apply -n "$NS" -f -
@@ -351,7 +335,7 @@ envsubst < "$K8S_DIR/admin-web/deployment.yaml" | kubectl apply -n "$NS" -f -
 kubectl apply -n "$NS" -f "$K8S_DIR/admin-web/service.yaml"
 
 if [[ "$DEPLOY_ENV" == "prod" ]]; then
-  # prod 는 kotonoha.eastshine.dev 한 호스트를 path 로 나눠 쓴다 (admin/ 아래 cert + IngressRoute).
+  # prod 는 한 호스트를 path 로 나눠 쓴다 (admin/ 아래 cert + IngressRoute).
   kubectl apply -n "$NS" -f "$K8S_DIR/admin/certificate.yaml"
   kubectl apply -n "$NS" -f "$K8S_DIR/admin/ingress.yaml"
 else
@@ -364,7 +348,6 @@ for sm in "$K8S_DIR/api/servicemonitor.yaml" "$K8S_DIR/batch/servicemonitor.yaml
 done
 echo "  → $((SECONDS - STEP_START))s"
 
-# --- 8. 롤아웃 대기 ---
 STEP_START=$SECONDS
 echo "[rollout] waiting..."
 kubectl rollout status -n "$NS" deployment/api --timeout=120s

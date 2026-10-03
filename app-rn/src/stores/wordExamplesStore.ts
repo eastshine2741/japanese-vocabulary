@@ -10,9 +10,7 @@ interface State {
   reset: () => void;
 }
 
-// Per-word example cache. Lifted out of DeckWordListScreen so each row can
-// subscribe to its own id via a selector — when one row's fetch completes,
-// only that row re-renders, not every row in the list.
+// Per-word example cache; rows select their own id so only that row re-renders on fetch.
 export const useWordExamplesStore = create<State>((set, get) => ({
   byId: {},
 

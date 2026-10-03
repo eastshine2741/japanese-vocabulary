@@ -6,10 +6,6 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import java.time.Duration
 
-/**
- * Phase 1 인프라 스모크: Spring 컨텍스트 부팅 + Flyway 마이그레이션 적용 + Testcontainers MySQL 연결 +
- * 빌더 영속화 + MutableClock 주입을 한 번에 검증한다.
- */
 class InfrastructureSmokeTest : ApiBaseIntegrationTest() {
 
     @Test

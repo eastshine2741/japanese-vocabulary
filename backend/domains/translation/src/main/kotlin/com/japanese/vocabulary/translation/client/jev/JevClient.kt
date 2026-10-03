@@ -19,11 +19,8 @@ import org.springframework.web.client.RestClient
 import java.time.Duration
 
 /**
- * TypeSafe's Jev ("System One") decision model: given some [state] and a set of `choice` questions,
- * it answers each with one of the offered option ids plus a confidence. It never writes free text,
- * which is the whole contract sense-select wants — the answer can only be a sense that was offered.
- *
- * Input tokens are billed ($0.042 / 1M at adoption); output is free.
+ * TypeSafe's Jev ("System One") decision model: given [state] and `choice` questions, it answers each
+ * with one offered option id plus a confidence, never free text. Input tokens are billed; output is free.
  */
 @Component
 class JevClient(
@@ -31,8 +28,8 @@ class JevClient(
     @Value("\${jev.api-key}") private val apiKey: String,
     @Value("\${jev.model:jev-latest}") private val model: String,
     /**
-     * Same policy as the Gemini client: only [TransientHttpErrors.isTransient] failures are
-     * retried. Jev's own overload status is 529, a 5xx, so it is covered.
+     * Same policy as the Gemini client: only [TransientHttpErrors.isTransient] failures are retried
+     * (Jev's overload status 529 is covered).
      */
     @Value("\${jev.retry.max-attempts:3}") maxAttempts: Int,
     @Value("\${jev.retry.initial-backoff:2s}") initialBackoff: Duration,
@@ -105,8 +102,7 @@ class JevClient(
             errorMessage = "${e::class.simpleName}: ${e.message}"
             throw e
         } finally {
-            // `jev-latest` resolves to a concrete version per response; log that one, so a row can be
-            // read back against the model that actually answered it.
+            // `jev-latest` resolves to a concrete version per response; log that one.
             callLogger.record(context, call, answeredBy, requestJson, responseJson, errorMessage)
             sample.stop(
                 Timer.builder(MetricNames.JEV_CALL_DURATION)

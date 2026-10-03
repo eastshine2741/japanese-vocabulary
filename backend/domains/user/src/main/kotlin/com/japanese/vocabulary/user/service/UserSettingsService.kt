@@ -30,9 +30,8 @@ class UserSettingsService(
     }
 
     /**
-     * Returns the notifications-enabled flag for [userId]. Missing key (legacy rows that pre-date
-     * the field) is treated as TRUE so existing users opt-in by default. Reads via raw JsonNode so
-     * NOTIFICATIONS_ENABLED_KEY is the single source of truth shared with batch raw-SQL queries.
+     * A missing key (legacy rows) counts as TRUE. Reads via raw JsonNode so NOTIFICATIONS_ENABLED_KEY
+     * stays the single source of truth shared with batch raw-SQL queries.
      */
     @Transactional(readOnly = true)
     fun getNotificationsEnabled(userId: Long): Boolean {

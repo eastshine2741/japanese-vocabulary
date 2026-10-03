@@ -13,8 +13,8 @@ import org.springframework.test.web.client.response.MockRestResponseCreators.wit
 import org.springframework.web.client.RestClient
 
 /**
- * Modeled on prod work 61: Sohbana's 『恋』 (VocaDB 1021616, 205s) ranks 18th among 2,428 songs
- * whose title starts with 恋, so a popularity-sorted top-10 keyword search never sees it.
+ * Sohbana's 『恋』 ranks 18th among 2,428 songs whose title starts with 恋, so a popularity-sorted
+ * top-10 keyword search never sees it.
  */
 class VocadbClientTest {
 

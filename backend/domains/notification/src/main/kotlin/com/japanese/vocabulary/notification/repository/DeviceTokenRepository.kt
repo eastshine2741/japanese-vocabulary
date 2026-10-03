@@ -19,9 +19,8 @@ interface DeviceTokenRepository : JpaRepository<DeviceTokenEntity, Long> {
     fun countByUserId(userId: Long): Long
 
     /**
-     * Single-statement upsert keyed on the unique `token` column.
-     * Prevents SELECT-then-UPDATE races when the same device token migrates between users
-     * (e.g. user A logs out, user B logs in on the same device).
+     * Single-statement upsert on the unique `token` column; avoids SELECT-then-UPDATE races
+     * when a device token migrates between users.
      */
     @Modifying
     @Transactional

@@ -44,9 +44,8 @@ class RuleMeaningProvider {
     }
 
     private companion object {
-        // This table only handles deterministic grammar rewrites that Jisho/sense-select cannot
-        // recover from once the LLM has segmented them too coarsely. Ambiguous lexical items stay
-        // out of this table so context-aware sense selection can still choose the meaning.
+        // Only deterministic grammar rewrites that Jisho/sense-select cannot recover from; ambiguous
+        // lexical items stay out so sense selection can choose.
         val rewriteRules = listOf(
             TokenRewriteRule(
                 surfaces = listOf("どうも", "こうも"),
@@ -194,8 +193,7 @@ class RuleMeaningProvider {
             ),
         )
 
-        // Surfaces stay as written; readings are katakana because that is the one script the whole
-        // pipeline stores readings in — the app converts from katakana for display.
+        // Surfaces stay as written; readings are katakana, the pipeline's storage script.
         val fixedExpressions = mapOf(
             "どうして" to RuleResolvedToken("どうして", "どうして", "ドウシテ", "ドウシテ", PartOfSpeech.ADVERB, "왜, 어째서"),
             "如何して" to RuleResolvedToken("如何して", "どうして", "ドウシテ", "ドウシテ", PartOfSpeech.ADVERB, "왜, 어째서"),
@@ -235,9 +233,7 @@ class RuleMeaningProvider {
         val auxiliaries = mapOf(
             "ている" to auxiliary("ている", "~하고 있다"),
             "てる" to auxiliary("てる", "~하고 있다"),
-            // Keyed on the headword: segmentation normalises colloquial contractions (っちゃった,
-            // じゃった, ちゃう) to てしまう, and resolve() falls back to the headword when the surface
-            // has no entry.
+            // Keyed on the headword: segmentation normalises っちゃった/じゃった/ちゃう to てしまう.
             "てしまう" to auxiliary("てしまう", "~해 버리다"),
             // Segmentation glues する onto ていく after a する-noun (回転していく) and emits していく as
             // the headword; jisho has no entry for either form.
@@ -249,20 +245,17 @@ class RuleMeaningProvider {
             "だ" to auxiliary("だ", "~이다"),
             // Conditional ending; segmentation also normalizes the colloquial りゃ to this headword.
             "れば" to auxiliary("れば", "~하면"),
-            // た/だ + conditional ら. Segmentation splits 掴んだら into 掴ん + だら, and jisho has no
-            // entry for the combined suffix, so without this row it reaches the dictionary lookup and
-            // is reported as a miss. だら is the voiced form after ん/ぶ/ぐ stems.
+            // た/だ + conditional ら. Segmentation splits 掴んだら into 掴ん + だら; jisho has no entry for
+            // the suffix. だら is the voiced form after ん/ぶ/ぐ stems.
             "たら" to auxiliary("たら", "~하면, ~했더니"),
             "だら" to auxiliary("だら", "~하면, ~했더니"),
-            // Colloquial concessive (even if).Segmentation splits 舞ったったって into 舞った + ったって
-            // and guesses the headword といったって, which jisho does not have; resolve() tries the
-            // surface first, so the surface rows settle it without claiming the といったって headword.
+            // Colloquial concessive (even if). Segmentation splits 舞ったったって into 舞った + ったって and
+            // guesses the headword といったって, which jisho lacks; resolve() tries the surface first.
             "たって" to auxiliary("たって", "~해도, ~한들"),
             "ったって" to auxiliary("ったって", "~해도, ~한들"),
         )
 
-        // Every surface in the particle/auxiliary tables is kana, so its reading is the surface —
-        // transliterated to katakana, which is the script readings are stored in.
+        // Every surface in the particle/auxiliary tables is kana, so its reading is the surface in katakana.
         fun particle(surface: String, koreanText: String) =
             RuleResolvedToken(
                 surface,
@@ -309,11 +302,9 @@ class RuleMeaningProvider {
         }
 
         /**
-         * A rewrite discards the LLM's segmentation for this span, readings included, so the
-         * replacement has to supply its own. It does that by transliterating [surface] and [headword]
-         * — which only works because **every replacement here is a kana surface whose reading is
-         * itself** (どう, も, ここ, まで). A rule whose replacement contains kanji would produce a kanji
-         * "reading"; such a rule must carry explicit readings instead of relying on this.
+         * A rewrite discards the LLM's readings, so the replacement's are transliterated from [surface]
+         * and [headword]. That only works while **every replacement is a kana surface whose reading is
+         * itself** (どう, も, ここ); a kanji replacement must carry explicit readings.
          */
         data class TokenReplacement(
             val surface: String,
@@ -322,9 +313,8 @@ class RuleMeaningProvider {
             val startOffset: Int,
             val endOffset: Int,
             /**
-             * Replaces the gloss the segmentation model would have written for this span. Without it
-             * the rewritten token reaches sense-select with an empty hint, which is worse than not
-             * rewriting: `ここ` is a kana headword and jisho answers it with five homophones.
+             * Replaces the gloss the segmentation model would have written for this span; without it the
+             * token reaches sense-select with an empty hint (`ここ` gets five homophones from jisho).
              */
             val contextGloss: String = "",
         )

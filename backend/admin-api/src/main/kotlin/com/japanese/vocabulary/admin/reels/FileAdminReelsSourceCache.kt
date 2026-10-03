@@ -70,8 +70,7 @@ class FileAdminReelsSourceCache(
     }
 
     /**
-     * 최근에 쓴 곡 순서로 [AdminReelsSourceProperties.maxFiles] 곡만 남긴다. 원본과 미리보기는 한 곡으로 세고 같이 지운다.
-     * 스트리밍 중인 파일은 지워도 열린 핸들은 살아 있다.
+     * 최근에 쓴 곡 순서로 [AdminReelsSourceProperties.maxFiles] 곡만 남긴다. 원본과 미리보기는 한 곡으로 센다.
      */
     private fun evictOldest(keep: Long) {
         val files = Files.list(properties.directory).use { stream ->

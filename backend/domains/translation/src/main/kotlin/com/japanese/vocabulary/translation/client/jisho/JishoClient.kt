@@ -24,13 +24,11 @@ import java.time.Duration
  * fan-out live in [com.japanese.vocabulary.translation.service.JishoService].
  *
  * A single [fetch] does one HTTP GET (retrying transient failures) and distills the response into a
- * [JishoEntryDto] whose **entry boundaries are preserved**: one [JishoDictionaryEntryDto] per
- * `(headword, reading)` pair the query touched, each carrying only its own senses. Narrowing to one
- * entry is not done here — the query knows the headword but not the reading, and one headword lookup
- * is shared by tokens that read it differently, so the cached value must hold every entry and
- * [com.japanese.vocabulary.translation.service.pipeline.LexicalResolver] picks.
+ * [JishoEntryDto] with one [JishoDictionaryEntryDto] per `(headword, reading)` pair the query
+ * touched. Narrowing is left to [com.japanese.vocabulary.translation.service.pipeline.LexicalResolver]
+ * because one headword lookup is shared by tokens with different readings.
  *
- * Returns null on an unrecovered network/HTTP error so the caller skips caching (retries next run).
+ * Returns null on an unrecovered network/HTTP error so the caller skips caching.
  */
 @Component
 class JishoClient(
@@ -50,14 +48,11 @@ class JishoClient(
      * One network fetch. Returns the distilled entry on HTTP 200 (found or genuine not-found),
      * or null once every attempt has failed.
      *
-     * Transient failures — a 5xx, a 429, a dropped connection ([TransientHttpErrors]) — are retried
-     * with [ExponentialBackoff], the same policy Gemini calls use. Only 429 used to be retried, so a
-     * jisho outage of ninety seconds turned every lookup it touched into a miss and one song shipped
-     * `太陽` and `花束` with no meaning. Anything else — a 4xx, a body that does not parse — is final
+     * Transient failures (5xx, 429, dropped connection; [TransientHttpErrors]) are retried with
+     * [ExponentialBackoff], like Gemini calls. Anything else (a 4xx, an unparseable body) is final
      * and returns null at once.
      *
-     * The warning is logged once, after the last attempt: a per-attempt warning multiplied one outage
-     * into eighty Sentry events.
+     * The warning is logged once, after the last attempt, to avoid one outage becoming many Sentry events.
      */
     suspend fun fetch(word: String): JishoEntryDto? {
         var attempts = 0
@@ -90,15 +85,12 @@ class JishoClient(
     /**
      * Expands the response into dictionary entries, one per `(headword, reading)` pair.
      *
-     * A jisho entry's `japanese[]` block lists every spelling/reading pair the entry owns, and the
-     * senses belong to all of them. Each pair becomes its own [JishoDictionaryEntryDto] so a later
-     * pair match can name exactly one word. Entries that touch the query at all are kept: if none
-     * does, jisho's top hit is retained as rejected-fallback evidence rather than being made usable.
+     * Each spelling/reading pair in an entry's `japanese[]` block becomes its own
+     * [JishoDictionaryEntryDto]. Entries touching the query are kept; if none does, jisho's top hit
+     * is retained only as rejected-fallback evidence.
      *
-     * A reading is compared as katakana, the way [expandEntry] already stores it. jisho writes its
-     * readings in hiragana and lyrics write plenty of native words in katakana, so a literal
-     * comparison threw away hits jisho had answered correctly: `アタシ` returns 私[あたし] as its top
-     * result, and `あたし != アタシ` turned that into a rejected fallback with no meaning at all.
+     * Readings are compared as katakana, as [expandEntry] stores them: jisho answers in hiragana but
+     * lyrics write native words in katakana (`アタシ` vs 私[あたし]).
      */
     internal fun distill(word: String, response: JishoSearchResponse): JishoEntryDto {
         val queryAsKana = JapaneseText.toKatakana(word)
@@ -133,19 +125,15 @@ class JishoClient(
     /**
      * One raw jisho entry → one [JishoDictionaryEntryDto] per spelling/reading pair it lists.
      *
-     * The senses are shared across those pairs — that is how jisho models it, and splitting them is
-     * what makes 前[マエ] addressable without dragging in 先[サキ]'s meanings from the same raw entry.
-     * Readings are converted to katakana here so every downstream comparison and every cached value
-     * speaks one script.
+     * The senses are shared across those pairs; splitting the pairs makes 前[マエ] addressable without
+     * 先[サキ]'s meanings. Readings are converted to katakana here.
      */
     private fun expandEntry(entry: JishoEntryRawDto): List<JishoDictionaryEntryDto> {
         val senses = flattenSenses(entry)
         if (senses.isEmpty()) return emptyList()
         return entry.japanese.mapNotNull { japanese ->
             val reading = readingOf(japanese.reading ?: japanese.word)
-            // Nothing to address the entry by. jisho really does ship these — `ソフト・クリーム` and
-            // `いすゞ` have readings that are not kana — and a null/null entry can match nothing, so it
-            // would only take up room in the cached payload.
+            // Nothing to address the entry by (jisho ships these, e.g. `ソフト・クリーム` with non-kana readings).
             if (japanese.word == null && reading == null) return@mapNotNull null
             JishoDictionaryEntryDto(
                 headword = japanese.word,
@@ -159,10 +147,9 @@ class JishoClient(
     /**
      * A reading, or null when jisho gave something that is not one.
      *
-     * An element normally carries its own kana reading, but a few carry only a written form — and
-     * falling back to that would put kanji in a reading field, which then reaches the app's
-     * katakana-to-Hangul conversion. A null reading simply cannot match a pair, which downgrades the
-     * lookup to a headword match instead of poisoning the entry.
+     * A few elements carry only a written form; falling back to it would put kanji in a reading field
+     * that reaches the app's katakana-to-Hangul conversion. A null reading downgrades the lookup to a
+     * headword match.
      */
     private fun readingOf(raw: String?): String? {
         if (raw == null) return null
@@ -172,8 +159,7 @@ class JishoClient(
     /**
      * Entry senses in order, dropping meta senses and carrying POS forward the way jisho reports it.
      *
-     * Wikipedia senses are noise next to real ones, but proper nouns such as 楊貴妃 or 牛若丸 have
-     * nothing else — dropping them there would turn jisho's answer into a not-found.
+     * Wikipedia senses are dropped unless nothing else remains (proper nouns such as 楊貴妃).
      */
     private fun flattenSenses(entry: JishoEntryRawDto): List<JishoOptionDto> {
         val all = mutableListOf<JishoOptionDto>()

@@ -1359,11 +1359,8 @@ class SongControllerTest : ApiBaseIntegrationTest() {
                 wordCandidates = wordCandidates,
             )
 
-            // FSRS 라이브러리는 새 카드의 due 를 (주입 가능한 clock 이 아니라) 진짜 벽시계
-            // Instant.now() 로 못박는다 — 고정 테스트 clock(2026-01-01) 이 실제 지금보다
-            // 한참 과거라 그대로 두면 방금 만든 카드조차 due 로 안 잡힌다. 요청 처리 지연을
-            // 흡수할 만큼만 살짝 앞서 두면, lead 를 리뷰해서 생기는 새 due(며칠 뒤)는 여전히
-            // 이 시점보다 한참 미래라 제외된다.
+            // FSRS 라이브러리는 새 카드의 due 를 주입 clock 이 아닌 Instant.now() 로 못박는다.
+            // 고정 clock 이 과거면 새 카드가 due 로 안 잡히므로 요청 지연만큼 살짝 앞서 둔다.
             clock.setTo(Instant.now().plusSeconds(5))
 
             val body = bootstrap(me, song.id!!, rating = 3)

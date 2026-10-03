@@ -5,8 +5,7 @@ import { AnalysisJob, SETTLED_HOLD_MS } from '../components/analysisPill/pillSta
 import { AnalysisPillDock, preferenceStorage } from '../utils/preferenceStorage';
 import { useSongDetailStore } from './songDetailStore';
 
-// 분석 pill 이 보여주는 작업 목록. 검색 화면을 떠나도 분석은 계속 추적돼야 하므로
-// 폴링이 화면이 아니라 여기 산다. playerStore 는 가사 준비 시점(자동 이동)까지만 기다린다.
+// 분석 pill 의 작업 목록. 화면을 떠나도 추적돼야 하므로 폴링이 여기 산다.
 
 interface AnalysisSongInfo {
   title: string;
@@ -19,14 +18,12 @@ interface AnalysisState {
   dock: AnalysisPillDock;
   expanded: boolean;
   /**
-   * 수락된 분석 작업을 추적한다. 가사가 준비되거나(songId 확보) 실패하면 resolve 된다.
-   * 단어 분석까지는 pill 이 이어서 지켜본다.
-   * 같은 작업을 다시 넘기면 새 폴링을 띄우지 않고 진행 중인 추적의 promise 를 돌려준다.
+   * 가사가 준비되거나(songId 확보) 실패하면 resolve 된다. 단어 분석은 pill 이 이어서 지켜본다.
+   * 같은 작업을 다시 넘기면 진행 중인 추적의 promise 를 돌려준다.
    */
   track: (accepted: SongAnalysisWorkResponse, song: AnalysisSongInfo) => Promise<SongAnalysisWorkResponse>;
   /**
    * 이미 분석 중인 곡이면 그 추적의 promise 를, 아니면 null 을 돌려준다.
-   * 검색 결과를 다시 탭했을 때 서버에 또 묻지 않고 진행 중인 추적에 올라타기 위한 것.
    */
   readyFor: (title: string, artist: string) => Promise<SongAnalysisWorkResponse> | null;
   /** 실패 pill 을 탭했을 때. 유지 시간을 기다리지 않고 바로 지운다. */
@@ -75,8 +72,7 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => {
 
   const finishJob = (workId: number, songId: number) => {
     patchJob(workId, { phase: 'done', songId, settledAt: Date.now() });
-    // 완료 곡의 songDetail 을 이미 보고 있으면 "단어 분석 중" placeholder 를 바로 걷는다.
-    // 단계(tiers)·이해도(coverage)는 분석 전에 빈 값으로 받아 둔 상태라 함께 다시 가져와야 0개짜리가 안 남는다.
+    // 이미 보고 있는 곡이면 placeholder 를 걷는다. tiers·coverage 는 분석 전에 빈 값으로 받았으므로 함께 갱신한다.
     const songDetail = useSongDetailStore.getState();
     if (songDetail.data?.song.id === songId) {
       songDetail.refreshWords(songId).catch(() => undefined);

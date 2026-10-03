@@ -4,7 +4,6 @@ export function katakanaToHiragana(text: string): string {
   let result = '';
   for (let i = 0; i < text.length; i++) {
     const code = text.charCodeAt(i);
-    // カタカナ range: U+30A1 (ァ) ~ U+30F6 (ヶ)
     if (code >= 0x30a1 && code <= 0x30f6) {
       result += String.fromCharCode(code - 0x60);
     } else {
@@ -36,41 +35,26 @@ const YOON_MAP: Record<string, string> = {
   'ツァ': '차', 'ツェ': '체', 'ツォ': '초',
 };
 
-// Single-char kana mapping
 const KANA_MAP: Record<string, string> = {
-  // vowels
   'ア': '아', 'イ': '이', 'ウ': '우', 'エ': '에', 'オ': '오',
-  // ka row
   'カ': '카', 'キ': '키', 'ク': '쿠', 'ケ': '케', 'コ': '코',
-  // sa row
   'サ': '사', 'シ': '시', 'ス': '스', 'セ': '세', 'ソ': '소',
-  // ta row
   'タ': '타', 'チ': '치', 'ツ': '츠', 'テ': '테', 'ト': '토',
-  // na row
   'ナ': '나', 'ニ': '니', 'ヌ': '누', 'ネ': '네', 'ノ': '노',
-  // ha row
   'ハ': '하', 'ヒ': '히', 'フ': '후', 'ヘ': '헤', 'ホ': '호',
-  // ma row
   'マ': '마', 'ミ': '미', 'ム': '무', 'メ': '메', 'モ': '모',
-  // ya row
   'ヤ': '야', 'ユ': '유', 'ヨ': '요',
-  // ra row
   'ラ': '라', 'リ': '리', 'ル': '루', 'レ': '레', 'ロ': '로',
-  // wa row
   'ワ': '와', 'ヲ': '오',
-  // dakuten (ga, za, da, ba)
   'ガ': '가', 'ギ': '기', 'グ': '구', 'ゲ': '게', 'ゴ': '고',
   'ザ': '자', 'ジ': '지', 'ズ': '즈', 'ゼ': '제', 'ゾ': '조',
   'ダ': '다', 'ヂ': '지', 'ヅ': '즈', 'デ': '데', 'ド': '도',
   'バ': '바', 'ビ': '비', 'ブ': '부', 'ベ': '베', 'ボ': '보',
-  // handakuten (pa)
   'パ': '파', 'ピ': '피', 'プ': '푸', 'ペ': '페', 'ポ': '포',
-  // small kana
   'ァ': '아', 'ィ': '이', 'ゥ': '우', 'ェ': '에', 'ォ': '오',
   'ャ': '야', 'ュ': '유', 'ョ': '요',
 };
 
-// Vowel row for each kana (used for long vowel detection)
 type VowelRow = 'a' | 'i' | 'u' | 'e' | 'o';
 
 const VOWEL_ROW: Record<string, VowelRow> = {
@@ -86,7 +70,6 @@ const VOWEL_ROW: Record<string, VowelRow> = {
   'ゴ': 'o', 'ゾ': 'o', 'ド': 'o', 'ボ': 'o', 'ポ': 'o', 'ヲ': 'o', 'ォ': 'o', 'ョ': 'o',
 };
 
-// Yōon vowel rows (the combination's vowel is determined by the small kana)
 const YOON_VOWEL: Record<string, VowelRow> = {
   'キャ': 'a', 'キュ': 'u', 'キョ': 'o',
   'シャ': 'a', 'シュ': 'u', 'ショ': 'o',
@@ -134,7 +117,6 @@ const LONG_VOWEL_SIGN = '-';
 /** The syllable a long vowel repeats, per vowel row. */
 const PLAIN_VOWEL: Record<VowelRow, string> = { a: '아', i: '이', u: '우', e: '에', o: '오' };
 
-// 종성 (받침) indices in Korean Unicode block
 const JONGSEONG_NIEUN = 4;  // ㄴ
 const JONGSEONG_SIOT = 19;  // ㅅ
 

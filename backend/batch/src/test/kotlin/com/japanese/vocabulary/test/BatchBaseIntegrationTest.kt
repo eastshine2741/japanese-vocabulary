@@ -35,10 +35,8 @@ abstract class BatchBaseIntegrationTest : BaseIntegrationTest() {
     protected lateinit var youtubeClient: YoutubeClient
 
     /**
-     * `PushNotificationService` requires a `FirebaseMessaging` bean, but tests don't load
-     * `FirebaseConfig` (it's gated on `push.firebase.enabled=true` and would need real credentials).
-     * The mock exists only to satisfy DI; no integration test currently invokes `send()`. Kept
-     * strict so an accidental future invocation surfaces loudly rather than silently no-op'ing.
+     * Satisfies `PushNotificationService`'s DI: `FirebaseConfig` is gated on
+     * `push.firebase.enabled=true` and not loaded in tests. Kept strict so an unexpected `send()` fails loudly.
      */
     @MockkBean
     protected lateinit var firebaseMessaging: FirebaseMessaging

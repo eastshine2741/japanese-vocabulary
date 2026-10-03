@@ -17,14 +17,12 @@ NS="monitoring"
 RELEASE="kube-prometheus-stack"
 ENV_FILE="$PROJECT_ROOT/.env.prod"
 
-# --- context guard ---
 CURRENT_CONTEXT="$(kubectl config current-context)"
 if [[ "$CURRENT_CONTEXT" != "$EXPECTED_CONTEXT" ]]; then
   echo "Error: expected kubectl context '$EXPECTED_CONTEXT', got '$CURRENT_CONTEXT'" >&2
   exit 1
 fi
 
-# --- env load ---
 if [[ ! -f "$ENV_FILE" ]]; then
   echo "Error: env file not found: $ENV_FILE" >&2
   exit 1
@@ -43,16 +41,13 @@ if [[ -z "${DISCORD_ALERT_WEBHOOK_URL:-}" ]]; then
   exit 1
 fi
 
-# --- helm repo ---
 echo "[helm] adding prometheus-community repo..."
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts >/dev/null 2>&1 || true
 helm repo update prometheus-community >/dev/null
 
-# --- namespace ---
 kubectl create namespace "$NS" --dry-run=client -o yaml | kubectl apply -f -
 
-# --- Alertmanager 설정 (values.yaml의 alertmanagerSpec.configSecret이 참조) ---
-# alertmanager.yaml의 ${DISCORD_ALERT_WEBHOOK_URL}만 치환 (알림 템플릿의 다른 $는 건드리지 않음)
+# alertmanager.yaml의 ${DISCORD_ALERT_WEBHOOK_URL}만 치환한다 (알림 템플릿의 다른 $는 유지).
 echo "[apply] alertmanager-config Secret..."
 envsubst '${DISCORD_ALERT_WEBHOOK_URL}' < "$OBS_DIR/alertmanager.yaml" \
   | kubectl create secret generic alertmanager-config \
@@ -61,7 +56,6 @@ envsubst '${DISCORD_ALERT_WEBHOOK_URL}' < "$OBS_DIR/alertmanager.yaml" \
       --dry-run=client -o yaml \
   | kubectl apply -f -
 
-# --- stack install/upgrade ---
 echo "[helm] upgrade/install kube-prometheus-stack..."
 helm upgrade --install "$RELEASE" prometheus-community/kube-prometheus-stack \
   --namespace "$NS" \
@@ -70,7 +64,7 @@ helm upgrade --install "$RELEASE" prometheus-community/kube-prometheus-stack \
   --set-string grafana.adminPassword="$GRAFANA_ADMIN_PASSWORD" \
   --wait --timeout 10m
 
-# --- Pre-substituted dashboards (sidecar pickup via grafana_dashboard=1 label) ---
+# 치환된 dashboards는 grafana_dashboard=1 라벨 ConfigMap으로 sidecar가 집어 간다.
 echo "[apply] dashboards ConfigMap..."
 kubectl create configmap kotonoha-dashboards \
   --namespace "$NS" \

@@ -89,8 +89,7 @@ class GeminiClientRetryTest {
 
     @Test
     fun `a truncated or unparseable answer is not transient`() {
-        // The shared policy covers HTTP; these two are Gemini's own verdicts on the answer and must
-        // never be replayed — the same input would be cut the same way.
+        // These are Gemini's own verdicts on the answer and must never be replayed: the same input is cut the same way.
         assertThat(TransientHttpErrors.isTransient(GeminiIncompleteResponseException("cut"))).isFalse()
         assertThat(TransientHttpErrors.isTransient(IllegalStateException("parse"))).isFalse()
     }

@@ -89,7 +89,6 @@ export default function DeckDetailScreen({ route, navigation }: Props) {
         {status === 'error' && <Text style={styles.errorText}>{error}</Text>}
         {status === 'success' && data && (
           <View style={styles.content}>
-            {/* Artwork */}
             {isAllDeck ? (
               <AllWordsArtwork />
             ) : (
@@ -105,21 +104,17 @@ export default function DeckDetailScreen({ route, navigation }: Props) {
               </View>
             ) : (
               <>
-                {/* Song title */}
                 {data.title && <Text style={styles.title}>{data.title}</Text>}
 
-                {/* Artist */}
                 {data.artist && <Text style={styles.artist}>{data.artist}</Text>}
               </>
             )}
 
-            {/* Hero: due count */}
             <View style={styles.heroSection}>
               <Text style={styles.heroLabel}>복습할 단어</Text>
               <Text style={styles.heroValue}>{data.dueCount}</Text>
             </View>
 
-            {/* Pipeline bar */}
             {data.wordCount > 0 && (
               <MemoryProgressBar
                 style={styles.pipelineSection}
@@ -131,7 +126,6 @@ export default function DeckDetailScreen({ route, navigation }: Props) {
               />
             )}
 
-            {/* Study button */}
             <PrimaryButton
               icon="layers-outline"
               label="학습하기"
@@ -140,7 +134,6 @@ export default function DeckDetailScreen({ route, navigation }: Props) {
               style={styles.primaryBtn}
             />
 
-            {/* View words button */}
             <SecondaryButton
               icon="list-outline"
               label="단어 보기"
@@ -148,7 +141,6 @@ export default function DeckDetailScreen({ route, navigation }: Props) {
               style={styles.secondaryBtn}
             />
 
-            {/* Listen song button — only for per-song decks */}
             {songId !== null && (
               <SecondaryButton
                 icon="play-circle-outline"

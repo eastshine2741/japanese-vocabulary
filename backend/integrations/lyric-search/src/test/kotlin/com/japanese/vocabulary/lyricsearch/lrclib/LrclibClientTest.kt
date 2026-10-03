@@ -17,9 +17,8 @@ import org.springframework.test.web.client.response.MockRestResponseCreators.wit
 import org.springframework.web.client.RestClient
 
 /**
- * The duration fallback in LrcLib search. Modeled on prod work 61: Sohbana's 『恋』 (206s) is not on
- * LrcLib, and the title-only search returned Conton Candy's 『恋』 (203s) among twenty same-titled
- * songs — a duration coincidence that used to be taken as a hit.
+ * The duration fallback in LrcLib search: a same-titled song by another artist with a near duration
+ * (Conton Candy's 『恋』 vs Sohbana's) must not be taken as a hit.
  */
 class LrclibClientTest {
 

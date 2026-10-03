@@ -1,8 +1,6 @@
 import { useState, useCallback, useRef } from "react";
 import "./WordMeaningExperiment.css";
 
-// --- Types ---
-
 interface PanelConfig {
   id: string;
   name: string;
@@ -31,8 +29,6 @@ interface MorphLine {
   text: string;
   words: { surface: string; baseForm: string; pos: string }[];
 }
-
-// --- Constants ---
 
 const GEMINI_MODELS = [
   "gemini-3.1-pro-preview",
@@ -156,8 +152,6 @@ function calcCost(model: string, promptTokens: number, candidateTokens: number):
   return (promptTokens / 1_000_000) * p.input + (candidateTokens / 1_000_000) * p.output;
 }
 
-// --- Component ---
-
 export default function WordMeaningExperiment() {
   const [apiKey, setApiKey] = useState(() => localStorage.getItem(STORAGE_KEY_API) ?? "");
   const [input, setInput] = useState(() => localStorage.getItem(STORAGE_KEY_INPUT) ?? "");
@@ -171,7 +165,6 @@ export default function WordMeaningExperiment() {
   const [morphError, setMorphError] = useState<string | null>(null);
   const panelCounter = useRef(panels.length);
 
-  // --- Persistence helpers ---
   const saveApiKey = useCallback((v: string) => { setApiKey(v); localStorage.setItem(STORAGE_KEY_API, v); }, []);
   const saveInput = useCallback((v: string) => { setInput(v); localStorage.setItem(STORAGE_KEY_INPUT, v); }, []);
   const savePromptOn = useCallback((v: string) => { setPromptOn(v); localStorage.setItem(STORAGE_KEY_PROMPT_ON, v); }, []);
@@ -191,7 +184,7 @@ export default function WordMeaningExperiment() {
     savePanels(panels.map((p) => (p.id === id ? { ...p, ...patch } : p)));
   }, [panels, savePanels]);
 
-  // --- Morphological analysis (kuromoji via compare endpoint) ---
+  // kuromoji via the compare endpoint
   const runMorphAnalysis = useCallback(async () => {
     if (!input.trim() || analyzing) return;
     setAnalyzing(true);
@@ -229,7 +222,6 @@ export default function WordMeaningExperiment() {
     }
   }, [input, analyzing]);
 
-  // --- Send single panel to Gemini ---
   const sendPanel = useCallback(async (panel: PanelConfig) => {
     if (!apiKey.trim() || morphLines.length === 0) return;
 
@@ -308,7 +300,6 @@ export default function WordMeaningExperiment() {
     }
   }, [apiKey, morphLines, promptOn, promptOff]);
 
-  // --- Send all panels ---
   const sendAll = useCallback(async () => {
     if (!apiKey.trim() || morphLines.length === 0 || sending) return;
     setSending(true);
@@ -316,7 +307,6 @@ export default function WordMeaningExperiment() {
     setSending(false);
   }, [apiKey, morphLines, panels, sending, sendPanel]);
 
-  // --- Build word list for result table (from morphological analysis) ---
   const morphWordsByLine: Record<number, { baseForm: string; pos: string }[]> = {};
   for (const line of morphLines) {
     morphWordsByLine[line.index] = line.words;
@@ -324,7 +314,6 @@ export default function WordMeaningExperiment() {
 
   return (
     <div className="wm-experiment">
-      {/* API Key */}
       <div className="wm-header">
         <div className="wm-api-row">
           <label>API Key</label>
@@ -332,7 +321,6 @@ export default function WordMeaningExperiment() {
         </div>
       </div>
 
-      {/* System prompts side by side */}
       <div className="wm-prompts">
         <div className="wm-prompt-box">
           <label>System Prompt A (morph ON)</label>
@@ -344,7 +332,6 @@ export default function WordMeaningExperiment() {
         </div>
       </div>
 
-      {/* Input pipeline */}
       <div className="wm-pipeline">
         <div className="wm-pipe-step">
           <label>Input (JSON)</label>
@@ -368,14 +355,12 @@ export default function WordMeaningExperiment() {
         </div>
       </div>
 
-      {/* Panel toolbar */}
       <div className="wm-panel-toolbar">
         <button className="wm-add-btn" onClick={() => addPanel(true)}>+ Morph ON</button>
         <button className="wm-add-btn" onClick={() => addPanel(false)}>+ Morph OFF</button>
         <span className="wm-panel-count">{panels.length} panel{panels.length !== 1 ? "s" : ""}</span>
       </div>
 
-      {/* Panels */}
       <div className="wm-panels">
         {panels.map((panel) => (
           <div className="wm-panel" key={panel.id}>
@@ -411,7 +396,6 @@ export default function WordMeaningExperiment() {
                 <input type="number" min={1} max={65536} step={256} value={panel.maxOutputTokens} onChange={(e) => updatePanel(panel.id, { maxOutputTokens: parseInt(e.target.value) || 1 })} />
               </div>
             </div>
-            {/* Panel stats + raw JSON */}
             {(() => {
               const r = results[panel.id];
               if (!r || (!r.latencyMs && !r.loading && !r.error)) return null;
@@ -443,7 +427,6 @@ export default function WordMeaningExperiment() {
         ))}
       </div>
 
-      {/* Results table */}
       {morphLines.length > 0 && Object.keys(results).length > 0 && (
         <div className="wm-results">
           {morphLines.map((line) => (
