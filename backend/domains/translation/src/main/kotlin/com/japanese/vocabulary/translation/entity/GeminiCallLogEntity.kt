@@ -21,6 +21,9 @@ class GeminiCallLogEntity(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long? = null,
 
+    @Column(name = "work_id")
+    val workId: Long? = null,
+
     @Column(name = "song_id")
     val songId: Long? = null,
 

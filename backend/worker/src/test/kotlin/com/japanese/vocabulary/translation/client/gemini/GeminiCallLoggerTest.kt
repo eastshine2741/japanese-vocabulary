@@ -14,7 +14,7 @@ class GeminiCallLoggerTest : WorkerBaseIntegrationTest() {
     @Test
     fun `records a call payload against its lyric`() {
         geminiCallLogger.record(
-            context = GeminiCallContext(songId = 7L, lyricId = 11L),
+            context = GeminiCallContext(songId = 7L, lyricId = 11L, workId = 3L),
             call = "select",
             model = "gemini-test",
             requestJson = """[{"index":0,"segments":[{"surface":"前"}]}]""",
@@ -23,6 +23,7 @@ class GeminiCallLoggerTest : WorkerBaseIntegrationTest() {
         )
 
         val saved = geminiCallLogRepository.findAll().single()
+        assertThat(saved.workId).isEqualTo(3L)
         assertThat(saved.songId).isEqualTo(7L)
         assertThat(saved.lyricId).isEqualTo(11L)
         assertThat(saved.callName).isEqualTo("select")

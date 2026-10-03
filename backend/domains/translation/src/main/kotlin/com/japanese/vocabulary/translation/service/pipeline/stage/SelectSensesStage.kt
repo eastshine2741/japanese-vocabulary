@@ -153,6 +153,7 @@ class SelectSensesStage(
     ) {
         defectReporter.report(
             AnalysisDefect(
+                workId = input.source.callContext.workId,
                 songId = input.source.callContext.songId,
                 lyricId = input.source.callContext.lyricId,
                 lineIndex = index,

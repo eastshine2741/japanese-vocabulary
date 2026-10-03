@@ -161,10 +161,11 @@ class SongAnalysisStageExecutor(
     private fun sourceOf(claimed: ClaimedSongAnalysisStage): TranslationPipelineSource {
         claimed.work.lyricId?.let { lyricId ->
             val lyric = lyricRepository.findById(lyricId).orElseThrow { BusinessException(ErrorCode.LYRIC_NOT_FOUND) }
-            return translationService.sourceOf(lyric)
+            return translationService.sourceOf(lyric, claimed.ref.workId)
         }
         val prepared = Outputs(claimed).read(SongAnalysisWorkStage.FETCH_LYRICS, FetchLyricsOutput::class.java)
-        return TranslationPipelineSource.from(prepared.lines, GeminiCallContext(songId = claimed.work.songId, lyricId = null))
+        val context = GeminiCallContext(songId = claimed.work.songId, lyricId = null, workId = claimed.ref.workId)
+        return TranslationPipelineSource.from(prepared.lines, context)
     }
 
     /** 앞 단계 산출물. 없으면 원장이 깨진 것이라 이 단계는 실패로 기록된다. */

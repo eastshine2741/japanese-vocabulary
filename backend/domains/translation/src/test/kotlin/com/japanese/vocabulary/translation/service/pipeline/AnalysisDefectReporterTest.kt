@@ -39,6 +39,7 @@ class AnalysisDefectReporterTest {
     @Test
     fun `writes one warning per defect with the marker and a JSON body the runner can read back`() {
         val defect = AnalysisDefect(
+            workId = 69,
             songId = 70,
             lyricId = 71,
             lineIndex = 3,

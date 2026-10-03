@@ -125,7 +125,7 @@ class SongAnalysisWorkListenerTest {
         every { workService.recordProgress(any(), any()) } returns true
         every { workService.completeStage(any(), any()) } returns true
         every { lyricRepository.findById(LYRIC_ID) } returns Optional.of(lyric)
-        every { translationService.sourceOf(lyric) } returns
+        every { translationService.sourceOf(lyric, WORK_ID) } returns
             TranslationPipelineSource.from(lyric.rawContent, GeminiCallContext(songId = 1, lyricId = LYRIC_ID))
         coEvery { translationService.resolveWords(any()) } returns
             WordPreparationResult(emptyList(), emptyMap(), emptyMap(), LexicalResolution(emptyMap(), emptyMap()))
