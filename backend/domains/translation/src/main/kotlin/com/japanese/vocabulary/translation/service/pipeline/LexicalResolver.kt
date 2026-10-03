@@ -966,7 +966,8 @@ class LexicalResolver(
     ): AcceptedLexicalEntry? {
         val base = potentialNegativeProbe(token) ?: return null
         // The token's reading is トベナイ, the wrong headword's, so it is inflected back to トブ too.
-        val reading = potentialNegativeBase(token.baseFormReading, "ナイ", POTENTIAL_E_TO_U_KATAKANA)
+        val reading = potentialNegativeBase(JapaneseText.toHiragana(token.baseFormReading))
+            ?.let(JapaneseText::toKatakana)
         val accepted = narrow(token, lookups[base], base, reading, logRescue) ?: return null
         val verbEntries = accepted.entries.mapNotNull { entry ->
             val verbSenses = entry.senses.filter { JishoPartOfSpeechMapper.map(it.pos) == PartOfSpeech.VERB }
@@ -978,13 +979,12 @@ class LexicalResolver(
     }
 
     /** `飛べない` → `飛ぶ`. Null unless something ending in an e-row kana precedes ない. */
-    private fun potentialNegativeProbe(token: PipelineToken): String? =
-        potentialNegativeBase(token.headword, "ない", POTENTIAL_E_TO_U)
+    private fun potentialNegativeProbe(token: PipelineToken): String? = potentialNegativeBase(token.headword)
 
-    private fun potentialNegativeBase(text: String, negative: String, eToU: Map<Char, Char>): String? {
-        val stem = text.takeIf { it.endsWith(negative) }?.dropLast(negative.length) ?: return null
+    private fun potentialNegativeBase(text: String): String? {
+        val stem = text.takeIf { it.endsWith("ない") }?.dropLast(2) ?: return null
         if (stem.length < 2) return null
-        val u = eToU[stem.last()] ?: return null
+        val u = POTENTIAL_TO_DICTIONARY[stem.last()] ?: return null
         return stem.dropLast(1) + u
     }
 
@@ -1064,15 +1064,6 @@ class LexicalResolver(
         val POTENTIAL_TO_DICTIONARY = mapOf(
             'え' to 'う', 'け' to 'く', 'げ' to 'ぐ', 'せ' to 'す', 'て' to 'つ',
             'ね' to 'ぬ', 'べ' to 'ぶ', 'め' to 'む', 'れ' to 'る',
-        )
-
-        val POTENTIAL_E_TO_U = mapOf(
-            'え' to 'う', 'け' to 'く', 'げ' to 'ぐ', 'せ' to 'す', 'て' to 'つ',
-            'ね' to 'ぬ', 'べ' to 'ぶ', 'め' to 'む', 'れ' to 'る',
-        )
-        val POTENTIAL_E_TO_U_KATAKANA = mapOf(
-            'エ' to 'ウ', 'ケ' to 'ク', 'ゲ' to 'グ', 'セ' to 'ス', 'テ' to 'ツ',
-            'ネ' to 'ヌ', 'ベ' to 'ブ', 'メ' to 'ム', 'レ' to 'ル',
         )
     }
 }
