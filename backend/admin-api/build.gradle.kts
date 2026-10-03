@@ -17,6 +17,8 @@ dependencies {
     implementation(project(":domains:song-analysis"))
     implementation(project(":domains:user"))
     implementation(project(":domains:word"))
+    // 운영자용 수동 푸시가 기기 토큰과 FCM 전송을 쓴다.
+    implementation(project(":domains:notification"))
     implementation(project(":integrations:message-queue"))
 
     implementation("org.springframework.boot:spring-boot-starter-amqp")

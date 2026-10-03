@@ -1,6 +1,6 @@
-package com.japanese.vocabulary.notification
+package com.japanese.vocabulary.admin.push
 
-import com.japanese.vocabulary.notification.dto.ManualPushRequest
+import com.japanese.vocabulary.admin.push.dto.ManualPushRequest
 import com.japanese.vocabulary.notification.entity.DeviceTokenEntity
 import com.japanese.vocabulary.notification.repository.DeviceTokenRepository
 import com.japanese.vocabulary.notification.service.PushNotificationService

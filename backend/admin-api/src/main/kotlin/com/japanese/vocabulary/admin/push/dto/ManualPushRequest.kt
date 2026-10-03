@@ -1,4 +1,4 @@
-package com.japanese.vocabulary.notification.dto
+package com.japanese.vocabulary.admin.push.dto
 
 data class ManualPushRequest(
     val userId: Long,

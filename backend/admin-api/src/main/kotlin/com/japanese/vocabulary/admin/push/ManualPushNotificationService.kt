@@ -1,7 +1,7 @@
-package com.japanese.vocabulary.notification
+package com.japanese.vocabulary.admin.push
 
-import com.japanese.vocabulary.notification.dto.ManualPushRequest
-import com.japanese.vocabulary.notification.dto.ManualPushResponse
+import com.japanese.vocabulary.admin.push.dto.ManualPushRequest
+import com.japanese.vocabulary.admin.push.dto.ManualPushResponse
 import com.japanese.vocabulary.notification.repository.DeviceTokenRepository
 import com.japanese.vocabulary.notification.service.PushNotificationService
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
