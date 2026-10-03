@@ -358,15 +358,9 @@ envsubst < "$K8S_DIR/migration/job.yaml" | kubectl apply -n "$NS" -f -
 kubectl wait --for=condition=complete -n "$NS" job/migration --timeout=120s
 echo "  → $((SECONDS - STEP_START))s"
 
-# --- 7. API + Batch ---
+# --- 7. Worker → API + Batch ---
 STEP_START=$SECONDS
-echo "[apply] api + worker + batch cronjobs..."
-envsubst < "$K8S_DIR/api/secret.template.yaml" | kubectl apply -n "$NS" -f -
-envsubst < "$K8S_DIR/api/configmap.yaml" | kubectl apply -n "$NS" -f -
-envsubst < "$K8S_DIR/api/deployment.yaml" | kubectl apply -n "$NS" -f -
-kubectl apply -n "$NS" -f "$K8S_DIR/api/service.yaml"
-envsubst < "$K8S_DIR/api/ingress.yaml" | kubectl apply -n "$NS" -f -
-
+echo "[apply] worker..."
 # firebase 자격증명은 worker(분석 완료 알림), batch(연속 학습 알림), admin-api(수동 푸시)가 같이 쓴다.
 envsubst < "$K8S_DIR/batch/firebase-secret.template.yaml" | kubectl apply -n "$NS" -f -
 
@@ -374,6 +368,19 @@ envsubst < "$K8S_DIR/worker/secret.template.yaml" | kubectl apply -n "$NS" -f -
 envsubst < "$K8S_DIR/worker/configmap.yaml" | kubectl apply -n "$NS" -f -
 envsubst < "$K8S_DIR/worker/deployment.yaml" | kubectl apply -n "$NS" -f -
 [[ -f "$K8S_DIR/worker/service.yaml" ]] && kubectl apply -n "$NS" -f "$K8S_DIR/worker/service.yaml"
+# worker 가 롤아웃을 마친 뒤에 api 를 올린다. 순서를 지키려고 여기서 기다린다.
+# 토폴로지를 따로 기다릴 필요가 없다. AMQP listener 는 definitions import 가 끝난 뒤에 열리고
+# readinessProbe 가 그 포트를 보므로, Ready 는 곧 큐가 있다는 뜻이다. 선언에 구조적 오류가 있으면
+# 브로커가 부팅에서 죽어 여기서 멈춘다.
+kubectl rollout status -n "$NS" statefulset/rabbitmq --timeout=300s
+kubectl rollout status -n "$NS" deployment/worker --timeout=180s
+
+echo "[apply] api + batch cronjobs..."
+envsubst < "$K8S_DIR/api/secret.template.yaml" | kubectl apply -n "$NS" -f -
+envsubst < "$K8S_DIR/api/configmap.yaml" | kubectl apply -n "$NS" -f -
+envsubst < "$K8S_DIR/api/deployment.yaml" | kubectl apply -n "$NS" -f -
+kubectl apply -n "$NS" -f "$K8S_DIR/api/service.yaml"
+envsubst < "$K8S_DIR/api/ingress.yaml" | kubectl apply -n "$NS" -f -
 
 # batch 는 더 이상 상주하지 않는다. 남아 있는 예전 Deployment 를 걷어낸다.
 kubectl delete deployment batch -n "$NS" --ignore-not-found
@@ -408,12 +415,7 @@ echo "  → $((SECONDS - STEP_START))s"
 # --- 8. 롤아웃 대기 ---
 STEP_START=$SECONDS
 echo "[rollout] waiting..."
-# 토폴로지를 따로 기다릴 필요가 없다. AMQP listener 는 definitions import 가 끝난 뒤에 열리고
-# readinessProbe 가 그 포트를 보므로, Ready 는 곧 큐가 있다는 뜻이다. 선언에 구조적 오류가 있으면
-# 브로커가 부팅에서 죽어 여기서 멈춘다.
-kubectl rollout status -n "$NS" statefulset/rabbitmq --timeout=300s
 kubectl rollout status -n "$NS" deployment/api --timeout=120s
-kubectl rollout status -n "$NS" deployment/worker --timeout=180s
 kubectl rollout status -n "$NS" deployment/admin-api --timeout=120s
 kubectl rollout status -n "$NS" deployment/admin-web --timeout=120s
 echo "  → $((SECONDS - STEP_START))s"
