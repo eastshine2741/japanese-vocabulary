@@ -1012,6 +1012,33 @@ class LexicalResolverTest {
     }
 
     @Test
+    fun `a numeral plus 年 is rescued as the noun 年`(): Unit = runBlocking {
+        // songId=442, "二年後には加算も困難": the segmentation stage gave 二年 as the headword. jisho has no
+        // entry for a numeral-counter compound, but 年 itself carries the meaning.
+        stub(
+            "年" to found(
+                entry(headword = "年", reading = "トシ", english = "year; age"),
+                JishoDictionaryEntryDto(
+                    headword = "年",
+                    reading = "ネン",
+                    senses = listOf(
+                        JishoOptionDto(pos = listOf("Noun", "Counter"), english = "year", englishDefinitions = listOf("year")),
+                        JishoOptionDto(pos = listOf("Suffix"), english = "for (a number of) years"),
+                    ),
+                ),
+            ),
+        )
+        val tokens = listOf(token("二年", "二年", "ニネン", lineIndex = 6))
+
+        val resolved = resolver.resolve(tokens).byTokenKey.values.single()
+
+        assertThat(resolved.baseForm).isEqualTo("年")
+        assertThat(resolved.options.map { it.reading to it.english }).containsExactly("ネン" to "year")
+        assertThat(resolved.options.single().provenance).isEqualTo(JishoLookupProvenance.EXACT)
+        assertThat(resolver.unresolvedTokens(tokens)).isEmpty()
+    }
+
+    @Test
     fun `senses of different entries keep separate ids`(): Unit = runBlocking {
         stub("前" to maeAndZenAndSaki())
 

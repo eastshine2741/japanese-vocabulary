@@ -72,6 +72,7 @@ class LexicalResolver(
                 ?: resolvePotentialForm(token, probeLookups)
                 ?: resolveGodanRenyokei(token, probeLookups)
                 ?: resolvePotentialNegative(token, probeLookups)
+                ?: resolveNumeralCounter(token, probeLookups)
 
             if (resolved == null) {
                 if (firstPass[token.headword]?.provenance == JishoLookupProvenance.REJECTED_FALLBACK) {
@@ -162,7 +163,8 @@ class LexicalResolver(
                     resolveNegativeVerb(it, probeLookups, logRescue = false) == null &&
                     resolvePotentialForm(it, probeLookups, logRescue = false) == null &&
                     resolveGodanRenyokei(it, probeLookups, logRescue = false) == null &&
-                    resolvePotentialNegative(it, probeLookups, logRescue = false) == null
+                    resolvePotentialNegative(it, probeLookups, logRescue = false) == null &&
+                    resolveNumeralCounter(it, probeLookups, logRescue = false) == null
             }
             .map { token ->
                 val lookups = listOfNotNull(firstPass[token.headword]) +
@@ -196,6 +198,7 @@ class LexicalResolver(
             potentialFormProbe(token),
             godanRenyokeiProbe(token),
             potentialNegativeProbe(token),
+            numeralCounterProbe(token),
         ) + suruDesiderativeProbes(token) +
             appearanceSouProbes(token).map { it.baseForm } +
             completionSuffixProbes(token).map { it.first } +
@@ -988,8 +991,41 @@ class LexicalResolver(
         return stem.dropLast(1) + u
     }
 
+    /**
+     * Safety net for a kanji numeral fused with the counter 年 — `二年`, `三年`.
+     *
+     * jisho does not index numeral-counter compounds, but the counter carries the meaning, so the
+     * numeral is dropped and 年 asked for. The reading is trimmed to its trailing ネン / トシ so the pair
+     * match picks the right 年 entry, and only noun senses are kept.
+     */
+    private fun resolveNumeralCounter(
+        token: PipelineToken,
+        lookups: Map<String, JishoEntryDto>,
+        logRescue: Boolean = true,
+    ): AcceptedLexicalEntry? {
+        val base = numeralCounterProbe(token) ?: return null
+        val reading = NUMERAL_COUNTER_READINGS.firstOrNull { token.baseFormReading.endsWith(it) }
+        val accepted = narrow(token, lookups[base], base, reading, logRescue) ?: return null
+        val nounEntries = accepted.entries.mapNotNull { entry ->
+            val nounSenses = entry.senses.filter { JishoPartOfSpeechMapper.map(it.pos) == PartOfSpeech.NOUN }
+            if (nounSenses.isEmpty()) null else entry.copy(senses = nounSenses)
+        }
+        if (nounEntries.isEmpty()) return null
+        if (logRescue) logger.info("Stripped numeral from counter compound '{}' to '{}'", token.headword, base)
+        return AcceptedLexicalEntry(base, nounEntries, accepted.provenance)
+    }
+
+    /** `二年` → `年`. Null unless the headword is one or more kanji numerals followed by 年. */
+    private fun numeralCounterProbe(token: PipelineToken): String? {
+        val numeral = token.headword.takeIf { it.length >= 2 && it.endsWith("年") }?.dropLast(1) ?: return null
+        return "年".takeIf { numeral.all { it in KANJI_NUMERALS } }
+    }
+
     private companion object {
         val INTENSIFIER_PREFIXES = listOf("ぶち", "ぶっ")
+
+        const val KANJI_NUMERALS = "〇一二三四五六七八九十百千"
+        val NUMERAL_COUNTER_READINGS = listOf("ネン", "トシ")
 
         /** Hiragana grouped by vowel, and the kana a following ー is spelled as. */
         val LONG_VOWEL_BY_ROW = mapOf(
