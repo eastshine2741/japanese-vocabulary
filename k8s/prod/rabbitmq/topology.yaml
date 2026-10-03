@@ -1,0 +1,80 @@
+# 곡 분석 작업 큐 토폴로지.
+#
+# 이름은 backend 의 SongAnalysisQueue 상수와 일치해야 한다. 선언은 여기가 소유하고
+# (app 의 spring.rabbitmq.dynamic 은 false), backend 는 이름만 참조한다.
+#
+# deletionPolicy: retain — CR 을 지워도 브로커의 큐는 남긴다. 네임스페이스를 통째로 지우면
+# RabbitmqCluster 와 PVC 가 함께 사라지므로 어차피 정리된다.
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: Exchange
+metadata:
+  name: song-analysis
+spec:
+  name: kotonoha.song-analysis
+  type: direct
+  durable: true
+  rabbitmqClusterReference:
+    name: rabbitmq
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: Exchange
+metadata:
+  name: song-analysis-dlx
+spec:
+  name: kotonoha.song-analysis.dlx
+  type: direct
+  durable: true
+  rabbitmqClusterReference:
+    name: rabbitmq
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: Queue
+metadata:
+  name: song-analysis-work
+spec:
+  name: song-analysis.work
+  type: classic
+  durable: true
+  deletionPolicy: retain
+  arguments:
+    x-dead-letter-exchange: kotonoha.song-analysis.dlx
+    x-dead-letter-routing-key: song-analysis.work
+  rabbitmqClusterReference:
+    name: rabbitmq
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: Queue
+metadata:
+  name: song-analysis-work-dlq
+spec:
+  name: song-analysis.work.dlq
+  type: classic
+  durable: true
+  deletionPolicy: retain
+  rabbitmqClusterReference:
+    name: rabbitmq
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: Binding
+metadata:
+  name: song-analysis-work
+spec:
+  source: kotonoha.song-analysis
+  destination: song-analysis.work
+  destinationType: queue
+  routingKey: song-analysis.work
+  rabbitmqClusterReference:
+    name: rabbitmq
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: Binding
+metadata:
+  name: song-analysis-work-dlq
+spec:
+  source: kotonoha.song-analysis.dlx
+  destination: song-analysis.work.dlq
+  destinationType: queue
+  routingKey: song-analysis.work
+  rabbitmqClusterReference:
+    name: rabbitmq

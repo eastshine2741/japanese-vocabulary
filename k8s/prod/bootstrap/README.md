@@ -1,9 +1,13 @@
-# cluster-bootstrap
+# prod/bootstrap
 
 Prod 클러스터(Hetzner k3s)의 인프라 컴포넌트 매니페스트. 1회성 부트스트랩 용도.
 
 외부 OSS 컴포넌트(CCM/CSI/cert-manager)는 **Helm**으로 설치하고, 차트 values만 git에 둠.
+RabbitMQ 오퍼레이터는 업스트림이 raw manifest로 배포하므로 `kubectl apply`.
 나머지(traefik HelmChartConfig, hcloud Secret)는 raw YAML.
+
+dev 쪽 대응물은 `k8s/dev/bootstrap/`. RabbitMQ 오퍼레이터 버전은 양쪽이 같아야 하므로
+`k8s/bootstrap-lib.sh` 한 곳에서 핀한다.
 
 ## 구성
 
@@ -11,10 +15,10 @@ Prod 클러스터(Hetzner k3s)의 인프라 컴포넌트 매니페스트. 1회�
 |---|---|
 | `values/ccm.yaml` | Hetzner CCM (chart 1.31.0) — Service type=LoadBalancer 구현, 노드 초기화. `HCLOUD_NETWORK` 주입 + route controller 비활성 |
 | `values/csi.yaml` | Hetzner CSI Driver (chart 2.21.0) — PVC ↔ Hetzner Volume 자동 연동 |
-| `values/cert-manager.yaml` | cert-manager (chart v1.20.2) — Let's Encrypt TLS 자동 발급/갱신, CRD 포함 |
+| `values/cert-manager.yaml` | cert-manager (chart v1.20.2) — Let's Encrypt TLS 자동 발급/갱신, CRD 포함. messaging-topology-operator의 webhook 인증서도 여기서 나온다 |
 | `traefik-config.yaml` | k3s 내장 traefik Service에 Hetzner LB annotation 주입 (HelmChartConfig) |
 | `hcloud-secret.template.yaml` | kube-system/hcloud Secret 템플릿 (token + network) |
-| `apply.sh` | 위 항목들을 순서대로 적용 (helm + kubectl 혼용) |
+| `apply.sh` | 위 항목들과 RabbitMQ 오퍼레이터를 순서대로 적용 (helm + kubectl 혼용) |
 
 ## 사용법
 
@@ -32,7 +36,8 @@ kubectl config use-context kotonoha-prod
 ./apply.sh
 ```
 
-`apply.sh`는 idempotent — `helm upgrade --install` 사용. 여러 번 돌려도 안전.
+`apply.sh`는 idempotent — helm은 `upgrade --install`, 오퍼레이터는 `apply --server-side`.
+여러 번 돌려도 안전.
 
 ## 업그레이드
 
@@ -48,6 +53,12 @@ CCM_VERSION="1.31.0"
 CSI_VERSION="2.21.0"
 CERT_MANAGER_VERSION="v1.20.2"
 ```
+
+RabbitMQ 오퍼레이터는 `k8s/bootstrap-lib.sh`에서 핀한다. dev와 같은 버전을 써야 CRD 스키마가
+어긋나지 않으므로, 올릴 때는 양쪽 클러스터에 같이 적용한다.
+
+- Cluster Operator: https://github.com/rabbitmq/cluster-operator/releases
+- Messaging Topology Operator: https://github.com/rabbitmq/messaging-topology-operator/releases
 
 ## k3s install 시 권장 옵션
 
@@ -72,5 +83,7 @@ Hetzner CCM의 route controller는 노드 간 통신을 위해 Hetzner private n
 ## 왜 helm + raw YAML 혼용인가
 
 - **외부 컴포넌트 (CCM/CSI/cert-manager)**: 업스트림이 Helm chart로 배포·유지. 차트 사용이 정공법.
+- **RabbitMQ 오퍼레이터**: 업스트림 릴리스가 raw manifest. helm은 CRD를 갱신하지 않지만
+  `kubectl apply`는 갱신하므로 오히려 이쪽이 안전하다.
 - **traefik-config**: k3s 내장 traefik의 values를 덮어쓰는 `HelmChartConfig` — k3s 네이티브 CRD라 raw YAML 그대로.
 - **hcloud Secret**: 단순 Secret + envsubst 템플릿. 차트화할 가치 없음.

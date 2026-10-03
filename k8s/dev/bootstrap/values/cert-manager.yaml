@@ -1,0 +1,17 @@
+# cert-manager (chart v1.20.2)
+#
+# dev 에서는 TLS 발급이 아니라 messaging-topology-operator 의 webhook 인증서 때문에 깐다.
+# ClusterIssuer 는 두지 않는다 (prod 전용).
+crds:
+  enabled: true
+  keep: true
+
+# 로컬 k3s 라 컨트롤러 셋 다 최소로 잡는다.
+resources:
+  requests: { cpu: 10m, memory: 64Mi }
+webhook:
+  resources:
+    requests: { cpu: 10m, memory: 32Mi }
+cainjector:
+  resources:
+    requests: { cpu: 10m, memory: 64Mi }
