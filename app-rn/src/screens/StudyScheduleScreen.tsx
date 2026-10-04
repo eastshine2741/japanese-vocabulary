@@ -1,6 +1,6 @@
 import React, { useCallback, useRef } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { useShallow } from 'zustand/react/shallow';
@@ -24,6 +24,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'StudySchedule'>;
 const FORECAST_CAPTION = '잊어버리기 직전에 다시 보여 드려요. 매일 복습하면 외운 단어를 계속 기억할 수 있어요.';
 
 export default function StudyScheduleScreen({ navigation }: Props) {
+  const insets = useSafeAreaInsets();
   const ruleSheetRef = useRef<AppBottomSheetModalRef>(null);
   const { status, data, load } = useStudyScheduleStore(
     useShallow(s => ({ status: s.status, data: s.data, load: s.load })),
@@ -57,7 +58,7 @@ export default function StudyScheduleScreen({ navigation }: Props) {
         </View>
       ) : (
         <>
-          <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
             <ScheduleSummary
               dueToday={data.dueToday}
               totalCards={data.totalCards}
@@ -71,17 +72,17 @@ export default function StudyScheduleScreen({ navigation }: Props) {
               <Text style={styles.forecastCaption}>{FORECAST_CAPTION}</Text>
               <ForecastChart days={data.days} totalCards={data.totalCards} />
             </View>
-
-            {data.dueToday > 0 && (
-              <View style={styles.ctaWrap}>
-                <PrimaryButton
-                  label={`${data.dueToday}개 복습 시작`}
-                  icon="play"
-                  onPress={startReview}
-                />
-              </View>
-            )}
           </ScrollView>
+
+          {data.dueToday > 0 && (
+            <View style={[styles.cta, { paddingBottom: insets.bottom + 12 }]}>
+              <PrimaryButton
+                label={`${data.dueToday}개 복습 시작`}
+                icon="play"
+                onPress={startReview}
+              />
+            </View>
+          )}
 
           <AppBottomSheetModal ref={ruleSheetRef} enableDynamicSizing enablePanDownToClose>
             <AppBottomSheetView>
@@ -108,6 +109,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.textSecondary,
   },
+  scroll: {
+    flex: 1,
+  },
   content: {
     gap: 24,
     paddingTop: 4,
@@ -129,7 +133,9 @@ const styles = StyleSheet.create({
     lineHeight: 19,
     color: Colors.textSecondary,
   },
-  ctaWrap: {
-    paddingTop: 8,
+  cta: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    backgroundColor: Colors.background,
   },
 });

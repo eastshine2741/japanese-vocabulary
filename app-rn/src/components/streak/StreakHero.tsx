@@ -19,22 +19,19 @@ const CHIP_TEXT: Record<StreakMode, string> = {
 interface Props {
   streak: number;
   mode: StreakMode;
-  /** 밴드 색이 상태바·앱바 뒤까지 이어지도록 밴드 안 맨 위에 얹는다. */
-  header?: React.ReactNode;
-  topInset?: number;
 }
 
 /**
  * 크림(또는 프리즈 상태의 파랑) 히어로 밴드. 왼쪽 상태 칩 + 큰 숫자, 오른쪽 불꽃/눈송이의
  * 비대칭 배치가 이 화면의 첫인상이다.
  */
-export const StreakHero = React.memo(function StreakHero({ streak, mode, header, topInset = 0 }: Props) {
+export const StreakHero = React.memo(function StreakHero({ streak, mode }: Props) {
   const frozen = mode === 'frozen';
   const bg = frozen ? FrozenPalette.heroBg : StreakPalette.heroBg;
   const glow = frozen ? FrozenPalette.heroGlow : StreakPalette.heroGlow;
 
   return (
-    <View style={[styles.band, { backgroundColor: bg, paddingTop: topInset }]}>
+    <View style={[styles.band, { backgroundColor: bg }]}>
       <View style={StyleSheet.absoluteFill} pointerEvents="none">
         <Svg width="100%" height="100%">
           <Defs>
@@ -48,8 +45,6 @@ export const StreakHero = React.memo(function StreakHero({ streak, mode, header,
           <Rect x="0" y="0" width="100%" height="100%" fill="url(#streakHeroGlow)" />
         </Svg>
       </View>
-
-      {header && <View style={styles.header}>{header}</View>}
 
       <View style={styles.row}>
         <View style={styles.col}>
@@ -116,9 +111,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 20,
     overflow: 'hidden',
-  },
-  header: {
-    marginHorizontal: -20,
   },
   row: {
     marginTop: 14,

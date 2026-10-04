@@ -9,6 +9,7 @@ import { AppBottomSheetModal, AppBottomSheetModalRef, AppBottomSheetView } from 
 import FreezeInfoSheet from '../components/studyStats/FreezeInfoSheet';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { StreakCalendar, StreakHero, StreakStatsRow, buildStreakCalendar, streakMode } from '../components/streak';
+import { FrozenPalette, StreakPalette } from '../components/streak/palette';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useStudyStatsStore } from '../stores/studyStatsStore';
 import { Colors } from '../theme/theme';
@@ -47,6 +48,8 @@ export default function StreakScreen({ navigation }: Props) {
   const days = heatmap.data?.days;
   const months = useMemo(() => buildStreakCalendar(days ?? []), [days]);
   const mode = useMemo(() => streakMode(home.data?.studiedToday ?? false, days ?? []), [home.data, days]);
+
+  const heroBg = mode === 'frozen' ? FrozenPalette.heroBg : StreakPalette.heroBg;
 
   const handleBack = useCallback(() => {
     navigation.goBack();
@@ -97,35 +100,34 @@ export default function StreakScreen({ navigation }: Props) {
           <ActivityIndicator color={Colors.primary} style={styles.loading} />
         </>
       ) : (
-        <ScrollView
-          contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 12 }]}
-          showsVerticalScrollIndicator={false}
-        >
-          <StreakHero
-            streak={profile.data!.currentStreak}
-            mode={mode}
-            topInset={insets.top}
-            header={appBar}
-          />
+        <>
+          {/* 히어로 밴드 색을 상태바·앱바까지 이어 칠해 고정 앱바와 밴드가 한 덩어리로 보이게 한다. */}
+          <View style={{ paddingTop: insets.top, backgroundColor: heroBg }}>{appBar}</View>
 
-          <View style={styles.body}>
-            <StreakStatsRow
-              longestStreak={profile.data!.longestStreak}
-              totalStudyDays={profile.data!.totalStudyDays}
-              freezeCount={profile.data!.freezeCount}
-              freezeMax={profile.data!.freezeMax}
-              onPressFreeze={handleOpenFreeze}
-            />
+          <ScrollView
+            style={styles.scroll}
+            contentContainerStyle={styles.content}
+            showsVerticalScrollIndicator={false}
+          >
+            <StreakHero streak={profile.data!.currentStreak} mode={mode} />
 
-            <StreakCalendar months={months} mode={mode} />
+            <View style={styles.body}>
+              <StreakStatsRow
+                longestStreak={profile.data!.longestStreak}
+                totalStudyDays={profile.data!.totalStudyDays}
+                freezeCount={profile.data!.freezeCount}
+                freezeMax={profile.data!.freezeMax}
+                onPressFreeze={handleOpenFreeze}
+              />
 
-            {mode !== 'done' && (
-              <View style={styles.cta}>
-                <PrimaryButton label="복습 시작하기" icon="play" onPress={handleStart} />
-              </View>
-            )}
+              <StreakCalendar months={months} mode={mode} />
+            </View>
+          </ScrollView>
+
+          <View style={[styles.cta, { paddingBottom: insets.bottom + 12 }]}>
+            <PrimaryButton label="복습 시작하기" icon="play" onPress={handleStart} />
           </View>
-        </ScrollView>
+        </>
       )}
 
       <AppBottomSheetModal
@@ -150,8 +152,11 @@ const styles = StyleSheet.create({
   loading: {
     marginTop: 64,
   },
+  scroll: {
+    flex: 1,
+  },
   content: {
-    flexGrow: 1,
+    paddingBottom: 20,
   },
   body: {
     paddingTop: 20,
@@ -159,5 +164,7 @@ const styles = StyleSheet.create({
   },
   cta: {
     paddingHorizontal: 20,
+    paddingTop: 12,
+    backgroundColor: Colors.background,
   },
 });
