@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
-import { PanResponder, StyleSheet, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, PanResponder, PixelRatio, StyleSheet, View } from 'react-native';
 import Animated, {
   Easing,
   Extrapolation,
@@ -24,8 +24,16 @@ import {
   useStudyStack,
 } from '../../components/studyStack';
 import { useHomeChromeStore } from '../../stores/homeChromeStore';
+import { Colors } from '../../theme/theme';
 import { RootStackParamList, TabParamList } from '../../navigation/AppNavigator';
-import { immerseProgress, shouldStartImmersePan } from './homeImmerseGesture';
+import {
+  immerseProgress,
+  pullRefreshDistance,
+  pullRefreshThreshold,
+  shouldStartImmersePan,
+  PULL_REFRESH_SLOT,
+  shouldStartPullRefresh,
+} from './homeImmerseGesture';
 
 type Nav = CompositeNavigationProp<
   BottomTabNavigationProp<TabParamList, 'Home'>,
@@ -35,6 +43,7 @@ type Nav = CompositeNavigationProp<
 /** 손을 뗀 뒤 남은 구간을 마저 접거나 되돌리는 시간. */
 const IMMERSE_SETTLE_MS = 320;
 const IMMERSE_REVERT_MS = 220;
+const PULL_SETTLE_MS = 220;
 
 export default function HomeTab() {
   const navigation = useNavigation<Nav>();
@@ -53,6 +62,13 @@ export default function HomeTab() {
   const immersedRef = useRef(immersed);
   immersedRef.current = immersed;
   const immerse = useSharedValue(immersed ? 1 : 0);
+  const pull = useSharedValue(0);
+  const [refreshing, setRefreshing] = useState(false);
+  const pullingRef = useRef(false);
+  const canPullRef = useRef(false);
+  canPullRef.current = status !== 'loading' && !refreshing;
+  const insetTopRef = useRef(insets.top);
+  insetTopRef.current = insets.top;
 
   useEffect(() => navigation.addListener('tabPress', () => {
     if (!focusedRef.current) return;
@@ -77,20 +93,59 @@ export default function HomeTab() {
 
   const enterImmerse = useCallback(() => setImmersed(true), [setImmersed]);
 
+  const startRefresh = useCallback(() => {
+    setRefreshing(true);
+    pull.value = withTiming(pullRefreshThreshold(insetTopRef.current), { duration: PULL_SETTLE_MS });
+    reload();
+  }, [pull, reload]);
+
+  // reload 가 같은 배치에서 status 를 loading 으로 바꾸므로, loading 을 벗어나면 끝난 것이다.
+  useEffect(() => {
+    if (!refreshing || status === 'loading') return;
+    setRefreshing(false);
+    pull.value = withTiming(0, { duration: PULL_SETTLE_MS });
+  }, [pull, refreshing, status]);
+
   const immersePan = useMemo(
     () => PanResponder.create({
       // capture 단계에서 잡아야 카드 안쪽 ScrollView/Pressable 보다 먼저 온다.
       // 몰입 중 뒷면 rating 스와이프(위)와는 방향이 반대라 겹치지 않는다.
-      onMoveShouldSetPanResponderCapture: (_, gesture) =>
-        shouldStartImmersePan(immersedRef.current, gesture),
+      onMoveShouldSetPanResponderCapture: (_, gesture) => {
+        if (shouldStartImmersePan(immersedRef.current, gesture)) {
+          pullingRef.current = false;
+          return true;
+        }
+        if (canPullRef.current && shouldStartPullRefresh(immersedRef.current, gesture)) {
+          pullingRef.current = true;
+          return true;
+        }
+        return false;
+      },
       onPanResponderMove: (_, gesture) => {
+        if (pullingRef.current) {
+          pull.value = pullRefreshDistance(gesture.dy, insetTopRef.current);
+          return;
+        }
         immerse.value = immerseProgress(immersedRef.current, gesture.dy);
       },
-      onPanResponderRelease: (_, gesture) =>
-        setImmersed(immerseProgress(immersedRef.current, gesture.dy) >= 0.5),
-      onPanResponderTerminate: () => setImmersed(immersedRef.current),
+      onPanResponderRelease: (_, gesture) => {
+        if (pullingRef.current) {
+          const inset = insetTopRef.current;
+          if (pullRefreshDistance(gesture.dy, inset) >= pullRefreshThreshold(inset)) startRefresh();
+          else pull.value = withTiming(0, { duration: PULL_SETTLE_MS });
+          return;
+        }
+        setImmersed(immerseProgress(immersedRef.current, gesture.dy) >= 0.5);
+      },
+      onPanResponderTerminate: () => {
+        if (pullingRef.current) {
+          pull.value = withTiming(0, { duration: PULL_SETTLE_MS });
+          return;
+        }
+        setImmersed(immersedRef.current);
+      },
     }),
-    [immerse, setImmersed],
+    [immerse, pull, setImmersed, startRefresh],
   );
 
   // 오늘의 복습 스케줄에서 '복습 시작'을 누르고 돌아오면 그대로 몰입으로 이어 간다.
@@ -125,6 +180,16 @@ export default function HomeTab() {
     [immerse, expandedInset, immersedInset],
   );
 
+  const pullThreshold = pullRefreshThreshold(insets.top);
+  // 소수 픽셀로 내려가면 헤더 윗변 아래로 어두운 카드 무대가 번져 선처럼 보인다.
+  const pixelRatio = PixelRatio.get();
+  const pulledStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: Math.round(pull.value * pixelRatio) / pixelRatio }],
+  }), [pull, pixelRatio]);
+  const pullIndicatorStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(pull.value, [insets.top + 8, pullThreshold], [0, 1], Extrapolation.CLAMP),
+  }), [pull, insets.top, pullThreshold]);
+
   // 헤더가 다 걷힌 뒤 뒤늦게 켜지면 튀어 보여서 같이 딸려 올라오며 드러나게 한다.
   const overlayStyle = useAnimatedStyle(() => ({
     opacity: interpolate(immerse.value, [0.2, 0.8], [0, 1], Extrapolation.CLAMP),
@@ -146,40 +211,59 @@ export default function HomeTab() {
   ), [overlayStyle, counterPosition, counterTotal, session.queueProgress, showProgress]);
 
   return (
-    <View style={styles.screen}>
-      <View style={styles.stackWrap} {...immersePan.panHandlers}>
-        <StudyStack
-          stack={stack}
-          onOpenSource={openSource}
-          onOpenExampleSource={openExampleSource}
-          onEditWord={editWord}
+    <View style={styles.screen} {...immersePan.panHandlers}>
+      <Animated.View
+        pointerEvents="none"
+        style={[styles.pullIndicator, { top: insets.top, height: PULL_REFRESH_SLOT }, pullIndicatorStyle]}
+      >
+        <ActivityIndicator size="small" color={Colors.textMuted} />
+      </Animated.View>
+      <Animated.View style={[styles.pulled, pulledStyle]}>
+        <View style={styles.stackWrap}>
+          <StudyStack
+            stack={stack}
+            onOpenSource={openSource}
+            onOpenExampleSource={openExampleSource}
+            onEditWord={editWord}
+            onSearch={goSearch}
+            overlay={overlay}
+            contentInsetTop={contentInsetTop}
+            requireImmersedInteraction={!immersed}
+            onRequestImmerse={enterImmerse}
+          />
+        </View>
+        <HomeExpandedHeader
+          deckStripItems={deckStripItems}
+          selectedSongId={selectedSongId}
+          onSelectDeckStripItem={selectSource}
           onSearch={goSearch}
-          overlay={overlay}
-          contentInsetTop={contentInsetTop}
-          requireImmersedInteraction={!immersed}
-          onRequestImmerse={enterImmerse}
+          onPressStreak={goStreak}
+          dueRemaining={dueTodayCount}
+          onPressSchedule={goSchedule}
+          immerse={immerse}
         />
-      </View>
-      <HomeExpandedHeader
-        deckStripItems={deckStripItems}
-        selectedSongId={selectedSongId}
-        onSelectDeckStripItem={selectSource}
-        onSearch={goSearch}
-        onPressStreak={goStreak}
-        dueRemaining={dueTodayCount}
-        onPressSchedule={goSchedule}
-        immerse={immerse}
-      />
+      </Animated.View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  // 당겼을 때 드러나는 상단이 헤더와 이어지게 앱 배경색을 쓴다. 카드 무대는 자체 배경이 있다.
   screen: {
     flex: 1,
-    backgroundColor: '#14181C',
+    backgroundColor: Colors.background,
   },
   stackWrap: {
     flex: 1,
+  },
+  pulled: {
+    flex: 1,
+  },
+  pullIndicator: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
