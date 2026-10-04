@@ -82,9 +82,9 @@ export const HomeExpandedHeader = React.memo(function HomeExpandedHeader({
               <View style={styles.countPhrase}>
                 <Text style={styles.todayNum}>{dueRemaining}</Text>
                 <Text style={styles.todayUnit}>개 남았어요</Text>
+                <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} style={styles.todayChevron} />
               </View>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} />
           </Pressable>
         ) : (
           <Text style={styles.wordmark}>Kotonoha</Text>
@@ -140,9 +140,6 @@ const styles = StyleSheet.create({
   },
   todayBlock: {
     flexShrink: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
   },
   todayLead: {
     ...Typography.bodySemiBold,
@@ -168,6 +165,10 @@ const styles = StyleSheet.create({
     fontSize: 17,
     letterSpacing: -0.2,
     color: Colors.textPrimary,
+  },
+  todayChevron: {
+    alignSelf: 'center',
+    marginLeft: 4,
   },
   streak: {
     flexDirection: 'row',
