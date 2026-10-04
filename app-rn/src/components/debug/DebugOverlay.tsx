@@ -2,7 +2,14 @@ import React, { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { studyStatsApi } from '../../api/studyStatsApi';
+import {
+  StreakDebugState,
+  getStreakDebugState,
+  setStreakDebugState,
+} from '../../api/debug/streakDebugOverride';
 import { streakCelebrationCopy, useStreakStore } from '../../stores/streakStore';
+import { useStudyStatsStore } from '../../stores/studyStatsStore';
 import { Typography } from '../../theme/typography';
 import type { WeekDot, WeekDotStatus } from '../../types/studyStats';
 
@@ -36,6 +43,26 @@ const CELEBRATION_PRESETS: Preset[] = [
   { label: '30일', streak: 30, hasStudiedBefore: true, past: ['studied', 'studied', 'studied', 'studied', 'studied', 'studied'] },
 ];
 
+const STREAK_STATES: { state: StreakDebugState; label: string }[] = [
+  { state: 'off', label: '서버 값 그대로' },
+  { state: 'pending', label: '오늘 아직' },
+  { state: 'done', label: '오늘 완료' },
+  { state: 'frozen', label: '어제 프리즈로 이어짐' },
+];
+
+/** 덮어쓴 상황으로 홈 헤더(streakStore)와 연속 학습 화면(studyStatsStore)을 다시 받는다. */
+async function reloadStreak() {
+  useStreakStore.getState().dismissCelebration();
+  const stats = useStudyStatsStore.getState();
+  stats.invalidate();
+  await Promise.all([
+    studyStatsApi.getHome().then(home => useStreakStore.getState().applyHomeStats(home)).catch(() => {}),
+    stats.loadHome(true),
+    stats.loadProfile(true),
+    stats.loadHeatmap(true),
+  ]);
+}
+
 /**
  * 개발 빌드 전용 디버그 패널. 실제 학습 기록 없이 상태 화면을 띄워 보기 위한 것이라
  * __DEV__ 가 아니면 아무것도 그리지 않는다.
@@ -44,7 +71,15 @@ export const DebugOverlay = React.memo(function DebugOverlay() {
   const insets = useSafeAreaInsets();
   const [open, setOpen] = useState(false);
 
+  const [streakState, setStreakState] = useState<StreakDebugState>(getStreakDebugState);
+
   const toggle = useCallback(() => setOpen(v => !v), []);
+
+  const selectStreakState = useCallback((state: StreakDebugState) => {
+    setStreakDebugState(state);
+    setStreakState(state);
+    reloadStreak();
+  }, []);
 
   const runPreset = useCallback((preset: Preset) => {
     setOpen(false);
@@ -61,6 +96,17 @@ export const DebugOverlay = React.memo(function DebugOverlay() {
     <View style={[styles.root, { bottom: insets.bottom + 92 }]} pointerEvents="box-none">
       {open && (
         <View style={styles.panel}>
+          <Text style={styles.sectionTitle}>오늘 연속 학습 상황</Text>
+          {STREAK_STATES.map(item => (
+            <StreakStateRow
+              key={item.state}
+              state={item.state}
+              label={item.label}
+              selected={item.state === streakState}
+              onPress={selectStreakState}
+            />
+          ))}
+          <View style={styles.divider} />
           <Text style={styles.sectionTitle}>연속 학습 축하</Text>
           {CELEBRATION_PRESETS.map(preset => (
             <PresetRow key={preset.label} preset={preset} onPress={runPreset} />
@@ -84,6 +130,27 @@ const PresetRow = React.memo(function PresetRow({ preset, onPress }: PresetRowPr
   return (
     <Pressable style={({ pressed }) => [styles.row, pressed && styles.rowPressed]} onPress={handlePress}>
       <Text style={styles.rowLabel}>{preset.label}</Text>
+    </Pressable>
+  );
+});
+
+interface StreakStateRowProps {
+  state: StreakDebugState;
+  label: string;
+  selected: boolean;
+  onPress: (state: StreakDebugState) => void;
+}
+
+const StreakStateRow = React.memo(function StreakStateRow({ state, label, selected, onPress }: StreakStateRowProps) {
+  const handlePress = useCallback(() => onPress(state), [onPress, state]);
+  return (
+    <Pressable style={({ pressed }) => [styles.row, styles.radioRow, pressed && styles.rowPressed]} onPress={handlePress}>
+      <Ionicons
+        name={selected ? 'radio-button-on' : 'radio-button-off'}
+        size={15}
+        color={selected ? '#FFFFFF' : 'rgba(255,255,255,0.45)'}
+      />
+      <Text style={styles.rowLabel}>{label}</Text>
     </Pressable>
   );
 });
@@ -116,6 +183,16 @@ const styles = StyleSheet.create({
   row: {
     paddingHorizontal: 14,
     paddingVertical: 9,
+  },
+  radioRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    marginVertical: 6,
+    backgroundColor: 'rgba(255,255,255,0.14)',
   },
   rowPressed: {
     backgroundColor: 'rgba(255,255,255,0.08)',
