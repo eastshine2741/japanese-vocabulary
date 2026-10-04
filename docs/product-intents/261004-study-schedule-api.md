@@ -9,61 +9,57 @@ Pencil 프레임 `RQaUQ`(H6 오늘의 복습 스케줄) · `RUvac`(H6a 선정 �
 ## `GET /api/study-schedule` (신규)
 
 ```
-GET /api/study-schedule?dailyTarget=30
+GET /api/study-schedule
 ```
-
-`dailyTarget` 은 0~100 정수, 슬라이더 값이다. 상한 100 은 앱 고정 상수다.
 
 ```jsonc
 {
   "dueToday": 17,        // 지금 due 인 카드 수 (= /api/flashcards/stats 의 due)
+  "dueTomorrow": 6,      // 오늘 남은 시간 ~ 내일 학습일 끝까지 새로 due 가 되는 카드 수
   "totalCards": 664,     // 보유 카드 수 (= stats 의 total)
   "previewWords": [      // 오늘 큐 앞쪽 단어, 최대 3개
     { "wordId": 101, "japanese": "手放す" }
   ],
-  "dailyTarget": 30,     // 이 응답이 시뮬레이션에 쓴 값 (요청값 그대로 echo)
-  "days": [              // 오늘부터 30개 고정
-    { "date": "2026-10-04", "scheduledDue": 17, "simulatedReview": 17 },
-    { "date": "2026-10-05", "scheduledDue": 6,  "simulatedReview": 6 }
-    // ... 총 30개
+  "days": [              // 오늘부터 365개 고정
+    { "date": "2026-10-04", "rememberedIfReviewed": 641, "rememberedIfSkipped": 641 },
+    { "date": "2026-10-05", "rememberedIfReviewed": 652, "rememberedIfSkipped": 638 }
+    // ... 총 365개
   ]
 }
 ```
 
-### `scheduledDue` — 아무것도 복습하지 않을 때 그날 due 가 되는 카드 수
+### 그래프가 전하는 것
 
-- 0일차는 이미 밀린 것까지 전부 포함한다 (`dueToday` 와 같은 값).
-- 1일차부터는 그 학습일(KST 04:00 경계, `KstClock`)에 `flashcards.due` 가 걸린 카드 수다.
-  오늘 남은 시간에 due 가 되는 카드는 1일차로 센다. 복습을 안 한다는 가정이므로
-  재스케줄은 일어나지 않는다.
-- 그래프의 주황 막대(`매일 미루면 쌓이는 양`)는 이 값을 앱에서 **누적**한 것이다. 서버가
-  누적값을 따로 내려 줄 필요는 없다.
+"이 앱은 망각곡선에 맞춰 잊기 직전에 다시 보여 주니, 매일 복습하면 외운 단어를 계속 기억한다."
+그래서 y축은 **그 시점에 기억하고 있을 단어 수**이고, 두 시나리오를 1년 동안 비교한다.
+처음 버전(하루 N장 슬라이더 + 미루면 쌓이는 누적 due)은 N 을 올릴수록 초록 막대가 커져 "많이 할수록
+할 게 많다"로 읽혀서 버렸다. 30일로는 오래 공부한 유저의 차이가 10~20% 라 기간은 1년이다.
 
-### `simulatedReview` — 매일 N장씩 했을 때 그날 실제로 복습하는 카드 수
+### `remembered*` — 기억하고 있을 단어 수의 기대값
 
-서버가 30일을 하루씩 돌리는 시뮬레이션 결과다. 규칙은 이것뿐이다.
+각 학습일(KST 04:00 경계, `KstClock`)이 **시작하는 순간**, 카드마다 FSRS 기억 확률
+(`Scheduler.getCardRetrievability`)을 구해 더하고 반올림한 값이다. 0일차는 지금 시각 기준이라 두 값이 같다.
+한 번도 복습하지 않은 카드는 확률 0 이다.
 
-1. 하루마다, 그 시점에 due 인 카드를 **실제 큐 순서(`due ASC, id ASC`)** 로 앞에서부터
-   최대 `dailyTarget` 장 집는다.
-2. 집은 카드는 전부 **`알고 있음`(GOOD)** 으로 평가한다. 다른 rating 은 쓰지 않는다.
-3. FSRS 로 다음 `due` 를 계산해 넣고 다음 날로 넘어간다.
+- `rememberedIfSkipped`: 오늘부터 복습하지 않는다. 카드 상태는 그대로이고 시간만 흐른다.
+- `rememberedIfReviewed`: 하루를 잰 뒤, 그날 학습일이 끝나기 전에 due 인 카드를 **전부** `알고 있음`(GOOD)
+  으로 평가하고 다음 날로 넘어간다. learning 단계 카드는 같은 날 다시 due 가 되면 또 넘긴다.
+  하루 장수 제한, 몬테카를로, 실패 확률, 새 카드 추가는 넣지 않는다. 전부 맞혔다고 보므로 밀린 카드가 많은
+  유저는 첫날 복습 뒤 값이 실제보다 조금 높게 나온다.
 
-몬테카를로, 확률적 실패 모델, 새 카드 추가 같은 가정은 넣지 않는다. 그날 집은 장수가
-`simulatedReview` 다.
-
-- `dailyTarget = 0` 이면 모든 날이 0 이다.
-- 시뮬레이션은 **읽기 전용**이다. 실제 flashcard 를 건드리지 않는다.
+시뮬레이션은 **읽기 전용**이다. 실제 flashcard 를 건드리지 않는다.
 
 ## 화면이 이 값을 쓰는 방식 (서버가 계산하지 않아도 되는 것들)
 
 | 화면 문구 | 계산 |
 |---|---|
 | `오늘 미루면 내일 17장을 더 공부해야 해요!` | `dueToday` |
-| `오늘 하면 → 23장` | `days[1].scheduledDue` |
-| `미루면 → 40장` | `days[1].scheduledDue + dueToday` |
+| `오늘 하면 → 6장` | `dueTomorrow` |
+| `미루면 → 23장` | `dueTomorrow + dueToday` |
 | `약 N분` | `round(장수 × 25초 / 60)`, 최소 1분 |
-| 주황 막대 | `scheduledDue` 누적 |
-| 초록 막대 | `simulatedReview` |
+| 초록 선 `매일 복습하면` | `rememberedIfReviewed`, 범례 값은 마지막 날 |
+| 주황 선 `오늘부터 쉬면` | `rememberedIfSkipped`, 범례 값은 마지막 날 |
+| 점선 `보유 N개` | `totalCards` |
 
 ## 홈 헤더(H5-B7) 가 쓰는 값
 
@@ -98,5 +94,5 @@ GET /api/study-schedule?dailyTarget=30
   돌아가서 진입점 자체가 사라지고, 화면에 직접 들어오면 경고 카드와 CTA 가 빠진다.
 - **덱 배지 상한**: 99 를 넘으면 `99+` 로 줄인다. 디자인에 두 자리 이상 상태가 없어서
   앱이 정한 값이다.
-- **슬라이더 기본값**: 30 고정 상수다. 설정의 `dailyGoal` 과는 연결하지 않았다 —
-  디자인에서 `목표로 설정` 버튼이 빠졌기 때문에 저장 경로가 없다.
+- **예보 카드 디자인**: Pencil `RQaUQ` 는 아직 30일 막대 + 슬라이더다. 1년 선 그래프 · 제목
+  `1년 뒤 기억하고 있을 단어` · 캡션은 앱이 먼저 바꿨다.

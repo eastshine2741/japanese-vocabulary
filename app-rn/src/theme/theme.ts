@@ -66,11 +66,11 @@ export const Colors = {
   memoryRemaining: '#D2D2D2',
   tierTrack: '#EEEEEE',
 
-  // 오늘의 복습 스케줄 (FSRS 예보)
-  /** 목표대로 매일 복습했을 때 그날 보는 양. */
-  forecastDaily: '#A8E3C4',
-  /** 미루면 쌓이는 양. */
-  forecastPile: '#F2A58F',
+  // 오늘의 복습 스케줄 (1년 기억 예보)
+  /** 매일 복습했을 때 기억하는 단어 수. */
+  forecastReviewed: '#16B364',
+  /** 오늘부터 쉬었을 때 기억하는 단어 수. '미루면' 비교 막대와 같은 주황. */
+  forecastSkipped: '#F97316',
   /** '오늘 미루면' 경고 카드의 테두리와 글자 — 바탕은 ratingHardBg 를 쓴다. */
   warnBorder: '#FDBA74',
   warnText: '#C2410C',

@@ -2,10 +2,12 @@ package com.japanese.vocabulary.flashcard.dto
 
 data class StudyScheduleDto(
     val dueToday: Long,
+    /** 오늘 복습을 끝내도 내일 새로 due 가 되는 카드 수. 오늘 남은 시간에 due 가 되는 카드도 포함한다. */
+    val dueTomorrow: Long,
     val totalCards: Long,
     val previewWords: List<SchedulePreviewWordDto>,
     /** 호출자가 넘긴 학습일 순서 그대로. */
-    val days: List<StudyScheduleDayDto>,
+    val days: List<MemoryForecastDayDto>,
 )
 
 data class SchedulePreviewWordDto(
@@ -13,9 +15,10 @@ data class SchedulePreviewWordDto(
     val japanese: String,
 )
 
-data class StudyScheduleDayDto(
-    /** 아무것도 복습하지 않을 때 그날 due 가 되는 카드 수. 0일차는 이미 밀린 것까지 포함한다. */
-    val scheduledDue: Int,
-    /** 매일 dailyTarget 장씩 '알고 있음'으로만 평가했을 때 그날 복습하는 카드 수. */
-    val simulatedReview: Int,
+/** 그 학습일이 시작하는 순간 기억하고 있을 단어 수의 기대값 (카드별 FSRS 기억 확률의 합). */
+data class MemoryForecastDayDto(
+    /** 매일 그날 due 를 전부 '알고 있음'으로 복습했을 때. */
+    val rememberedIfReviewed: Int,
+    /** 오늘부터 복습하지 않을 때. */
+    val rememberedIfSkipped: Int,
 )

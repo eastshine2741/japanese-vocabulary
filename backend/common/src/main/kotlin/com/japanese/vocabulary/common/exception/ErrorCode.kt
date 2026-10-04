@@ -33,7 +33,6 @@ enum class ErrorCode(val status: HttpStatus, val message: String) {
     // Flashcard
     FLASHCARD_NOT_FOUND(HttpStatus.NOT_FOUND, "Flashcard not found"),
     INVALID_LIMIT(HttpStatus.BAD_REQUEST, "limit must be between 1 and 100"),
-    INVALID_DAILY_TARGET(HttpStatus.BAD_REQUEST, "dailyTarget must be between 0 and 100"),
 
     // Deck
     DECK_NOT_FOUND(HttpStatus.NOT_FOUND, "Deck not found"),

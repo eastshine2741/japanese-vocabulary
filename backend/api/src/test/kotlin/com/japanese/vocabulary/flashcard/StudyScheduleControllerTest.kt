@@ -31,19 +31,32 @@ class StudyScheduleControllerTest : ApiBaseIntegrationTest() {
 
     private fun newUser(): UserEntity = TestUserBuilder(entityManager).build()
 
-    private fun newCard(user: UserEntity, dueAt: Instant = clock.instant(), japanese: String? = null): FlashcardEntity {
+    private fun newCard(
+        user: UserEntity,
+        dueAt: Instant = clock.instant(),
+        japanese: String? = null,
+        fsrsCardJson: String = "{}",
+    ): FlashcardEntity {
         val word = TestWordBuilder(entityManager).forUser(user).let {
             if (japanese != null) it.withJapaneseText(japanese) else it
         }.build()
-        return TestFlashcardBuilder(entityManager, clock).forUser(user).ofWord(word).dueAt(dueAt).build()
+        return TestFlashcardBuilder(entityManager, clock).forUser(user).ofWord(word).dueAt(dueAt)
+            .withFsrsCardJson(fsrsCardJson).build()
+    }
+
+    /** 열흘 전에 복습해 안정도 10일로 오늘 due 가 된, 기억 확률 약 90% 인 카드. */
+    private fun newMatureCard(user: UserEntity): FlashcardEntity {
+        val now = clock.instant()
+        val json = """{"due":"$now","step":null,"state":"REVIEW","cardId":1,"stability":10.0,""" +
+            """"difficulty":5.0,"lastReview":"${now.minus(Duration.ofDays(10))}"}"""
+        return newCard(user, dueAt = now, fsrsCardJson = json)
     }
 
     private fun bearer(user: UserEntity): String = "Bearer ${jwtUtil.generateToken(user.id!!, user.username)}"
 
-    private fun schedule(user: UserEntity, dailyTarget: Int): StudyScheduleResponse {
+    private fun schedule(user: UserEntity): StudyScheduleResponse {
         val body = mockMvc.get("/api/study-schedule") {
             header("Authorization", bearer(user))
-            param("dailyTarget", dailyTarget.toString())
         }.andExpect { status { isOk() } }.andReturn().response.contentAsString
         return objectMapper.readValue(body, StudyScheduleResponse::class.java)
     }
@@ -53,7 +66,7 @@ class StudyScheduleControllerTest : ApiBaseIntegrationTest() {
         kstClock.endOf(kstClock.todayStudyDate().plusDays(day)).minus(before)
 
     @Test
-    fun `summary previews the due queue head and days start today`() {
+    fun `summary previews the due queue head and the forecast covers a year from today`() {
         val me = newUser()
         val second = newCard(me, dueAt = clock.instant().minusSeconds(60), japanese = "眩しい")
         val first = newCard(me, dueAt = clock.instant().minusSeconds(120), japanese = "手放す")
@@ -62,90 +75,68 @@ class StudyScheduleControllerTest : ApiBaseIntegrationTest() {
         newCard(me, dueAt = clock.instant().plusSeconds(60))
         newCard(newUser())
 
-        val response = schedule(me, dailyTarget = 30)
+        val response = schedule(me)
 
         assertThat(response.dueToday).isEqualTo(4)
         assertThat(response.totalCards).isEqualTo(5)
         assertThat(response.previewWords.map { it.wordId })
             .containsExactly(first.wordId, second.wordId, third.wordId)
         assertThat(response.previewWords.map { it.japanese }).containsExactly("手放す", "眩しい", "確かめる")
-        assertThat(response.dailyTarget).isEqualTo(30)
-        assertThat(response.days).hasSize(30)
+        assertThat(response.days).hasSize(365)
         assertThat(response.days.first().date).isEqualTo(kstClock.todayStudyDate().toString())
-        assertThat(response.days.last().date).isEqualTo(kstClock.todayStudyDate().plusDays(29).toString())
+        assertThat(response.days.last().date).isEqualTo(kstClock.todayStudyDate().plusDays(364).toString())
     }
 
     @Test
-    fun `scheduledDue buckets cards by study day and counts later today as tomorrow`() {
+    fun `dueTomorrow counts cards due later today or tomorrow`() {
         val me = newUser()
-        repeat(2) { newCard(me, dueAt = clock.instant().minus(Duration.ofDays(3))) }
+        newCard(me, dueAt = clock.instant().minus(Duration.ofDays(3)))
         newCard(me, dueAt = clock.instant())
         newCard(me, dueAt = clock.instant().plusSeconds(60))
         newCard(me, dueAt = beforeEndOf(1))
         newCard(me, dueAt = beforeEndOf(1, before = Duration.ZERO))
-        newCard(me, dueAt = beforeEndOf(29))
-        newCard(me, dueAt = beforeEndOf(30))
 
-        val days = schedule(me, dailyTarget = 0).days
-
-        assertThat(days[0].scheduledDue).isEqualTo(3)
-        assertThat(days[1].scheduledDue).isEqualTo(2)
-        assertThat(days[2].scheduledDue).isEqualTo(1)
-        assertThat(days[29].scheduledDue).isEqualTo(1)
-        assertThat(days.sumOf { it.scheduledDue }).isEqualTo(7)
-        assertThat(days.map { it.simulatedReview }).containsOnly(0)
+        assertThat(schedule(me).dueTomorrow).isEqualTo(2)
     }
 
     @Test
-    fun `simulation reviews at most dailyTarget cards and carries the rest over`() {
+    fun `reviewing daily keeps words remembered while skipping lets them fade`() {
         val me = newUser()
-        repeat(5) { newCard(me, dueAt = clock.instant().minusSeconds(60)) }
+        repeat(10) { newMatureCard(me) }
 
-        val days = schedule(me, dailyTarget = 2).days
+        val days = schedule(me).days
+        val reviewed = days.map { it.rememberedIfReviewed }
+        val skipped = days.map { it.rememberedIfSkipped }
 
-        assertThat(days[0].simulatedReview).isEqualTo(2)
-        assertThat(days[1].simulatedReview).isEqualTo(2)
-        assertThat(days.map { it.simulatedReview }).allMatch { it <= 2 }
+        assertThat(reviewed.first()).isEqualTo(skipped.first()).isEqualTo(9)
+        assertThat(reviewed.drop(1)).allMatch { it >= 9 }
+        assertThat(skipped.zipWithNext()).allMatch { (today, tomorrow) -> tomorrow <= today }
+        assertThat(skipped.last()).isLessThan(reviewed.last() - 2)
     }
 
     @Test
-    fun `cards rated good come back later in the forecast`() {
+    fun `cards never reviewed count as remembered only once the simulation reviews them`() {
         val me = newUser()
         newCard(me, dueAt = clock.instant())
 
-        val days = schedule(me, dailyTarget = 10).days
+        val days = schedule(me).days
 
-        // 새 카드: 오늘 GOOD 이면 learning 단계(10분)라 내일 다시 나오고, 그다음은 며칠 뒤다.
-        assertThat(days[0].simulatedReview).isEqualTo(1)
-        assertThat(days[1].simulatedReview).isEqualTo(1)
-        assertThat(days.subList(2, 5).map { it.simulatedReview }).containsOnly(0)
-        assertThat(days.sumOf { it.simulatedReview }).isGreaterThan(2)
+        assertThat(days.map { it.rememberedIfSkipped }).containsOnly(0)
+        assertThat(days[0].rememberedIfReviewed).isEqualTo(0)
+        assertThat(days[1].rememberedIfReviewed).isEqualTo(1)
     }
 
     @Test
     fun `simulation does not touch stored flashcards`() {
         val me = newUser()
-        val card = newCard(me, dueAt = clock.instant())
+        val card = newMatureCard(me)
+        entityManager.clear()
         val before = flashcardRepository.findById(card.id!!).get().let { it.due to it.fsrsCardJson }
 
-        schedule(me, dailyTarget = 100)
+        schedule(me)
         entityManager.clear()
 
         val after = flashcardRepository.findById(card.id!!).get().let { it.due to it.fsrsCardJson }
         assertThat(after).isEqualTo(before)
-    }
-
-    @Test
-    fun `rejects dailyTarget outside 0 to 100`() {
-        val me = newUser()
-        for (value in listOf("-1", "101", "invalid")) {
-            mockMvc.get("/api/study-schedule") {
-                header("Authorization", bearer(me))
-                param("dailyTarget", value)
-            }.andExpect { status { isBadRequest() } }
-        }
-        mockMvc.get("/api/study-schedule") {
-            header("Authorization", bearer(me))
-        }.andExpect { status { isBadRequest() } }
     }
 }

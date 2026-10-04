@@ -11,12 +11,7 @@ import {
   AppBottomSheetModalRef,
   AppBottomSheetView,
 } from '../components/bottomSheet';
-import {
-  DailyTargetSlider,
-  ForecastChart,
-  ScheduleSummary,
-  SelectionRuleSheet,
-} from '../components/studySchedule';
+import { ForecastChart, ScheduleSummary, SelectionRuleSheet } from '../components/studySchedule';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useHomeChromeStore } from '../stores/homeChromeStore';
 import { useStudyScheduleStore } from '../stores/studyScheduleStore';
@@ -26,18 +21,12 @@ import { Typography } from '../theme/typography';
 type Props = NativeStackScreenProps<RootStackParamList, 'StudySchedule'>;
 
 /** 시뮬레이션 결과와 무관한 고정 문구다. */
-const FORECAST_CAPTION = '매일 꾸준히 복습해야 쉽게 오래 공부할 수 있어요.';
+const FORECAST_CAPTION = '잊어버리기 직전에 다시 보여 드려요. 매일 복습하면 외운 단어를 계속 기억할 수 있어요.';
 
 export default function StudyScheduleScreen({ navigation }: Props) {
   const ruleSheetRef = useRef<AppBottomSheetModalRef>(null);
-  const { status, data, dailyTarget, load, setDailyTarget } = useStudyScheduleStore(
-    useShallow(s => ({
-      status: s.status,
-      data: s.data,
-      dailyTarget: s.dailyTarget,
-      load: s.load,
-      setDailyTarget: s.setDailyTarget,
-    })),
+  const { status, data, load } = useStudyScheduleStore(
+    useShallow(s => ({ status: s.status, data: s.data, load: s.load })),
   );
   const requestImmerse = useHomeChromeStore(s => s.requestImmerse);
 
@@ -73,15 +62,14 @@ export default function StudyScheduleScreen({ navigation }: Props) {
               dueToday={data.dueToday}
               totalCards={data.totalCards}
               previewWords={data.previewWords}
-              tomorrowIfStudied={data.days[1]?.scheduledDue ?? 0}
+              tomorrowIfStudied={data.dueTomorrow}
               onPressRule={openRule}
             />
 
             <View style={styles.forecastCard}>
-              <Text style={styles.forecastTitle}>복습 스케줄 시뮬레이션</Text>
+              <Text style={styles.forecastTitle}>1년 뒤 기억하고 있을 단어</Text>
               <Text style={styles.forecastCaption}>{FORECAST_CAPTION}</Text>
-              <ForecastChart days={data.days} dailyTarget={data.dailyTarget} />
-              <DailyTargetSlider value={dailyTarget} onCommit={setDailyTarget} />
+              <ForecastChart days={data.days} totalCards={data.totalCards} />
             </View>
 
             {data.dueToday > 0 && (

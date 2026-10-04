@@ -1,162 +1,127 @@
-import React, { useMemo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useMemo, useState } from 'react';
+import { LayoutChangeEvent, StyleSheet, Text, View } from 'react-native';
+import Svg, { Line, Path } from 'react-native-svg';
 import { Colors } from '../../theme/theme';
 import { Typography } from '../../theme/typography';
-import { ScheduleForecastDay } from '../../types/studySchedule';
-import { cumulativeBacklog } from './scheduleMath';
+import { MemoryForecastDay } from '../../types/studySchedule';
 
-const CHART_HEIGHT = 142;
-const VALUE_LABEL_HEIGHT = 15;
-const BAR_AREA = CHART_HEIGHT - VALUE_LABEL_HEIGHT - 1;
-/** 0 이 아닌 값은 최소 이만큼은 보이게 둔다. */
-const MIN_BAR = 2;
-/** 주 단위 눈금. 인덱스 -> 라벨. */
-const WEEK_TICKS: Record<number, string> = { 0: '오늘', 7: '1주', 14: '2주', 21: '3주', 28: '4주' };
+const CHART_HEIGHT = 150;
+const STROKE = 2;
+/** 분기 눈금. 인덱스 -> 라벨. 365일 예보를 전제한다. */
+const QUARTER_TICKS: [number, string][] = [[0, '오늘'], [91, '3개월'], [182, '6개월'], [273, '9개월'], [364, '1년']];
 
 interface Props {
-  days: ScheduleForecastDay[];
-  dailyTarget: number;
+  days: MemoryForecastDay[];
+  totalCards: number;
 }
 
-/**
- * 30일 예보. 날짜마다 막대 두 개를 쌓는다 — 위는 미루면 쌓이는 누적량, 아래는 목표대로
- * 했을 때 그날 보는 양. 오늘(0일차)만 둘이 같아서 accent 막대 하나로 합친다.
- */
-export const ForecastChart = React.memo(function ForecastChart({ days, dailyTarget }: Props) {
-  const { backlog, max } = useMemo(() => {
-    const acc = cumulativeBacklog(days);
-    return { backlog: acc, max: Math.max(1, ...acc) };
-  }, [days]);
+/** 1년 동안 기억하고 있을 단어 수 — 매일 복습할 때와 오늘부터 쉴 때. 점선은 보유 카드 수. */
+export const ForecastChart = React.memo(function ForecastChart({ days, totalCards }: Props) {
+  const [width, setWidth] = useState(0);
+  const onLayout = useCallback((e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width), []);
 
-  const scale = (value: number) =>
-    value <= 0 ? 0 : Math.max(MIN_BAR, Math.round((value / max) * BAR_AREA));
+  const paths = useMemo(() => {
+    if (width === 0 || days.length < 2) return null;
+    const max = Math.max(1, totalCards);
+    const plotTop = STROKE;
+    const plotHeight = CHART_HEIGHT - STROKE * 2;
+    const x = (i: number) => (i / (days.length - 1)) * width;
+    const y = (v: number) => plotTop + plotHeight - (Math.min(v, max) / max) * plotHeight;
+    const line = (pick: (d: MemoryForecastDay) => number) =>
+      days.map((d, i) => `${i === 0 ? 'M' : 'L'}${x(i).toFixed(1)},${y(pick(d)).toFixed(1)}`).join('');
+    const area = (l: string) => `${l}L${width},${CHART_HEIGHT}L0,${CHART_HEIGHT}Z`;
+    const reviewed = line(d => d.rememberedIfReviewed);
+    const skipped = line(d => d.rememberedIfSkipped);
+    return {
+      reviewed,
+      skipped,
+      reviewedArea: area(reviewed),
+      skippedArea: area(skipped),
+      totalY: y(max),
+    };
+  }, [days, totalCards, width]);
 
-  const lastIndex = days.length - 1;
+  const last = days[days.length - 1];
 
   return (
     <View style={styles.wrap}>
-      <View style={styles.chartBox}>
-        {days.map((day, i) => {
-          const isFirst = i === 0;
-          const isLast = i === lastIndex;
-          return (
-            <View
-              key={day.date}
-              style={[styles.col, isLast && styles.colEnd, isFirst && styles.colStart]}
-            >
-              {isFirst && <Text style={[styles.value, styles.valueToday]}>{day.scheduledDue}</Text>}
-              {isLast && <Text style={[styles.value, styles.valuePile]}>{backlog[i]}</Text>}
-              {isFirst ? (
-                <View style={[styles.today, { height: scale(backlog[i]) }]} />
-              ) : (
-                <>
-                  <View style={[styles.pile, { height: scale(backlog[i]) }]} />
-                  <View style={[styles.daily, { height: scale(day.simulatedReview) }]} />
-                </>
-              )}
-            </View>
-          );
-        })}
+      <View style={styles.chartBox} onLayout={onLayout}>
+        {paths && (
+          <Svg width={width} height={CHART_HEIGHT}>
+            <Line
+              x1={0}
+              x2={width}
+              y1={paths.totalY}
+              y2={paths.totalY}
+              stroke={Colors.border}
+              strokeWidth={1}
+              strokeDasharray="4 4"
+            />
+            <Path d={paths.reviewedArea} fill={Colors.forecastReviewed} fillOpacity={0.1} />
+            <Path d={paths.skippedArea} fill={Colors.forecastSkipped} fillOpacity={0.12} />
+            <Path d={paths.reviewed} fill="none" stroke={Colors.forecastReviewed} strokeWidth={STROKE} strokeLinejoin="round" />
+            <Path d={paths.skipped} fill="none" stroke={Colors.forecastSkipped} strokeWidth={STROKE} strokeLinejoin="round" />
+          </Svg>
+        )}
+        <Text style={styles.totalLabel}>보유 {totalCards}개</Text>
       </View>
 
-      <View style={styles.dayRow}>
-        {days.map((day, i) => (
-          <View key={day.date} style={styles.dayCell}>
-            {WEEK_TICKS[i] != null && (
-              <Text style={[styles.dayLabel, i === 0 && styles.dayLabelToday]}>{WEEK_TICKS[i]}</Text>
-            )}
-          </View>
+      <View style={styles.tickRow}>
+        {QUARTER_TICKS.map(([index, label]) => (
+          <Text key={index} style={[styles.tick, index === 0 && styles.tickToday]}>{label}</Text>
         ))}
       </View>
 
-      <View style={styles.legend}>
-        <LegendItem color={Colors.forecastDaily} label={`매일 ${dailyTarget}장씩 하면`} />
-        <LegendItem color={Colors.forecastPile} label="매일 미루면 쌓이는 양" />
-      </View>
+      {last && (
+        <View style={styles.legend}>
+          <LegendItem color={Colors.forecastReviewed} label="매일 복습하면" value={last.rememberedIfReviewed} />
+          <LegendItem color={Colors.forecastSkipped} label="오늘부터 쉬면" value={last.rememberedIfSkipped} />
+        </View>
+      )}
     </View>
   );
 });
 
-function LegendItem({ color, label }: { color: string; label: string }) {
+function LegendItem({ color, label, value }: { color: string; label: string; value: number }) {
   return (
     <View style={styles.legendItem}>
       <View style={[styles.swatch, { backgroundColor: color }]} />
       <Text style={styles.legendLabel}>{label}</Text>
+      <Text style={styles.legendValue}>{value}개</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   wrap: {
-    gap: 12,
+    gap: 8,
   },
   chartBox: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 2,
     height: CHART_HEIGHT,
   },
-  col: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: 1,
+  totalLabel: {
+    ...Typography.bodySemiBold,
+    position: 'absolute',
+    top: 4,
+    left: 0,
+    fontSize: 10,
+    color: Colors.textMuted,
   },
-  colStart: {
-    alignItems: 'flex-start',
-  },
-  colEnd: {
-    alignItems: 'flex-end',
-  },
-  value: {
-    ...Typography.bodyBold,
-    height: VALUE_LABEL_HEIGHT,
-    fontSize: 11,
-  },
-  valueToday: {
-    color: Colors.primary,
-  },
-  valuePile: {
-    color: Colors.forecastPile,
-  },
-  today: {
-    alignSelf: 'stretch',
-    borderRadius: 1,
-    backgroundColor: Colors.primary,
-  },
-  pile: {
-    alignSelf: 'stretch',
-    borderTopLeftRadius: 2,
-    borderTopRightRadius: 2,
-    borderBottomLeftRadius: 1,
-    borderBottomRightRadius: 1,
-    backgroundColor: Colors.forecastPile,
-  },
-  daily: {
-    alignSelf: 'stretch',
-    borderRadius: 1,
-    backgroundColor: Colors.forecastDaily,
-  },
-  dayRow: {
+  tickRow: {
     flexDirection: 'row',
-    gap: 2,
+    justifyContent: 'space-between',
   },
-  dayCell: {
-    flex: 1,
-    height: 14,
-  },
-  dayLabel: {
+  tick: {
     ...Typography.bodyBold,
     fontSize: 10,
     color: Colors.textMuted,
   },
-  dayLabelToday: {
+  tickToday: {
     color: Colors.primary,
   },
   legend: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
+    gap: 6,
+    paddingTop: 4,
   },
   legendItem: {
     flexDirection: 'row',
@@ -170,7 +135,13 @@ const styles = StyleSheet.create({
   },
   legendLabel: {
     ...Typography.bodyMedium,
-    fontSize: 11,
+    flex: 1,
+    fontSize: 12,
     color: Colors.textSecondary,
+  },
+  legendValue: {
+    ...Typography.bodyBold,
+    fontSize: 13,
+    color: Colors.textPrimary,
   },
 });
