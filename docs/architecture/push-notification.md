@@ -11,6 +11,10 @@ Push notification is split between the `notification` domain module and the `bat
   `23:00` KST. Copy lives in `StreakReminderMessage`; rules are in
   `docs/product-intents/260918-streak-commitment.md` section C. Payload `data.type` is
   `streak_reminder`. The former 09:00 / 18:00 word-recall reminder (`review_reminder`) is gone.
+  The 23:00 slot also carries `data.expiresAt` (epoch ms of the next 04:00 KST) for the client
+  countdown and is sent with `androidDataOnly = true`: no notification block on Android, so the
+  app renders it from `data.title` / `data.body`; iOS still gets a visible APNs alert. Payload and
+  copy: `docs/product-intents/260918-streak-commitment-api.md` section 3.
 - Manual trigger: `POST /dev/push/trigger?slot=EVENING|NIGHT` runs one slot immediately.
 - Manual single-user dispatch: `POST /dev/push/send` in the `batch` service. It requires
   `X-Manual-Push-Secret: $MANUAL_PUSH_SECRET`, accepts `{userId,title,body,data}`, and sends the

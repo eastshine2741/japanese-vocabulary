@@ -48,15 +48,24 @@ class StreakReminderScheduler(
 
     fun dispatch(slot: Slot, today: LocalDate = kstClock.todayStudyDate()): Result {
         val candidates = findCandidates(slot, today)
+        // 23:00 알림(NIGHT는 연속이 살아 있는 유저만 받는다)에만 오늘 학습일이 끝나는 시각을 싣는다.
+        // 새 클라는 이걸로 카운트다운을 띄우고, 구버전 클라는 모르는 키라 무시한다.
+        // Android 에서 앱이 직접 그려야 하므로 data-only 로 보낸다.
+        val timer = slot == Slot.NIGHT
+        val expiresAt = kstClock.endOf(today).toEpochMilli().toString()
         var sent = 0
         var failed = 0
         for (c in candidates) {
-            val data = mapOf(
-                "type" to "streak_reminder",
-                "title" to c.message.title,
-                "body" to c.message.body,
+            val data = buildMap {
+                put("type", "streak_reminder")
+                put("title", c.message.title)
+                put("body", c.message.body)
+                if (timer) put("expiresAt", expiresAt)
+            }
+            val ok = pushNotificationService.send(
+                c.userId, c.token, c.message.title, c.message.body, data, androidDataOnly = timer,
             )
-            if (pushNotificationService.send(c.userId, c.token, c.message.title, c.message.body, data)) sent++ else failed++
+            if (ok) sent++ else failed++
         }
         logger.info(
             "streakReminder dispatch slot={} today={} candidates={} sent={} failed={}",
