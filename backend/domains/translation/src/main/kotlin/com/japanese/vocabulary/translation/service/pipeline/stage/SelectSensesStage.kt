@@ -16,10 +16,8 @@ import com.japanese.vocabulary.translation.service.pipeline.SenseCandidateNarrow
 import org.springframework.stereotype.Component
 
 /**
- * Picks, for every word that still has more than one dictionary sense, the one this line means.
- *
- * Runs on Jev, one request per lyric line with one `choice` question per word. Jev answers only with
- * an option it was offered plus a confidence, so the answer can never be an invented meaning.
+ * Picks, for every word with more than one dictionary sense, the one this line means. Runs on Jev:
+ * one request per lyric line, one `choice` question per word.
  */
 @Component
 class SelectSensesStage(
@@ -38,9 +36,7 @@ class SelectSensesStage(
             }
         }.filterValues { it.isNotEmpty() }
 
-        // A word with one candidate sense has nothing to choose between. Now that entry narrowing
-        // usually leaves a single entry, this is the common case, and asking the model to confirm it
-        // would be paying for an answer that is already determined.
+        // A single candidate needs no model call.
         val settledSenseByKey = candidateTokensByIndex.values.flatten()
             .mapNotNull { token ->
                 lexical.byTokenKey.getValue(token.key).options.singleOrNull()?.let { token.key to it.senseId }
@@ -56,7 +52,7 @@ class SelectSensesStage(
         return settledSenseByKey + selectedSenseByKey
     }
 
-    private fun selectLine(
+    private suspend fun selectLine(
         index: Int,
         tokens: List<PipelineToken>,
         input: SenseSelectionStageInput,
@@ -83,9 +79,8 @@ class SelectSensesStage(
     }
 
     /**
-     * The line itself carries a 【】 around the word being asked about. Without it, two identical
-     * surfaces in one line (the two て of 結婚して欲しい…なってみたい) got word-for-word identical
-     * questions and so the same answer, whatever each one meant.
+     * Wraps the asked word in 【】; without it, identical surfaces in one line (two て) got identical
+     * questions and so the same answer.
      */
     private fun question(
         line: String,
@@ -110,9 +105,8 @@ class SelectSensesStage(
     }
 
     /**
-     * Headword and reading lead the label only for [JishoLookupProvenance.AMBIGUOUS_HEADWORD], the one
-     * grade where senses from more than one dictionary entry share a question — there they are what
-     * makes 前[マエ]'s "before / earlier" distinguishable from 前[ゼン]'s.
+     * Headword and reading lead the label only for [JishoLookupProvenance.AMBIGUOUS_HEADWORD], where
+     * senses from several entries share a question (前[マエ] vs 前[ゼン]).
      */
     private fun label(option: PipelineSenseOption): String {
         val entry = if (option.provenance == JishoLookupProvenance.AMBIGUOUS_HEADWORD && option.headword != null) {
@@ -136,8 +130,7 @@ class SelectSensesStage(
             return NO_SENSE
         }
         val chosen = answer.choice.toIntOrNull()
-        // -1 is an offered option: チク in 「チクタクチク」 is a clock's tick, and none of 竹/築/地区 is,
-        // so the model saying so is the designed answer, not a defect.
+        // -1 is an offered option (チク in 「チクタクチク」 is a clock's tick), not a defect.
         if (chosen == NO_SENSE) return NO_SENSE
         if (chosen == null || chosen !in offeredIds) {
             report(
@@ -160,6 +153,7 @@ class SelectSensesStage(
     ) {
         defectReporter.report(
             AnalysisDefect(
+                workId = input.source.callContext.workId,
                 songId = input.source.callContext.songId,
                 lyricId = input.source.callContext.lyricId,
                 lineIndex = index,
@@ -180,12 +174,8 @@ class SelectSensesStage(
         const val NO_SENSE = -1
 
         /**
-         * Answers below this confidence are dropped as if Jev had said [NO_SENSE].
-         *
-         * Hand-graded on five prod songs: of the 8 answers under 0.25, 6 were plainly wrong (the
-         * quotative って read as "the said", 着せる as "pin a crime on") and one was right. Between
-         * 0.25 and 0.5 right answers outnumbered wrong ones about five to one, so a higher cut
-         * drops more right meanings than wrong ones.
+         * Answers below this confidence are dropped as if Jev had said [NO_SENSE]. Hand-graded: below
+         * 0.25 mostly wrong; between 0.25 and 0.5 right outnumbered wrong ~5:1, so a higher cut costs more than it saves.
          */
         const val MIN_CONFIDENCE = 0.25
 

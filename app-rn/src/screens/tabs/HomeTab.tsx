@@ -54,7 +54,6 @@ export default function HomeTab() {
   immersedRef.current = immersed;
   const immerse = useSharedValue(immersed ? 1 : 0);
 
-  // 이미 홈탭에 있는 상태에서 홈탭을 다시 누르면 몰입 모드를 풀고 스택을 새로고침한다.
   useEffect(() => navigation.addListener('tabPress', () => {
     if (!focusedRef.current) return;
     immerse.value = 0;
@@ -66,9 +65,8 @@ export default function HomeTab() {
   //  ① 몰입 밖에서는 카드를 못 만진다 — 탭이든 드래그든 몰입 진입이다 (WordLayer 잠금 오버레이).
   //  ② 세로 드래그가 몰입 값을 끈다 — 몰입 중엔 아래로, 아니면 위로. 카드 앞뒤면은 무관하다.
   //  ③ 놓으면 가까운 쪽(0.5 기준)으로 붙는다.
-  // immerse 는 헤더 transform 뿐 아니라 카드 안쪽 여백(레이아웃 값)까지 끌기 때문에
-  // RN Animated 네이티브 드라이버로는 못 돌린다 — Reanimated shared value 로 두 층이 같은 값을
-  // UI 스레드에서 읽는다. setDark 가 일으키는 JS 리렌더가 애니메이션 프레임을 못 뺏는다.
+  // immerse 는 레이아웃 값(카드 안쪽 여백)도 끌어서 RN Animated 네이티브 드라이버를 못 쓴다.
+  // Reanimated shared value 로 UI 스레드에서 읽어 setDark 의 JS 리렌더가 프레임을 못 뺏게 한다.
   const setImmersed = useCallback((next: boolean) => {
     setDark(next);
     immerse.value = withTiming(next ? 1 : 0, {
@@ -119,8 +117,7 @@ export default function HomeTab() {
   const counterTotal = session.queueTotal > 0 ? session.queueTotal : session.reviewedCount;
   const counterPosition = session.queueTotal > 0 ? session.position : session.reviewedCount;
 
-  // 카드 안쪽 내용은 헤더가 올라가는 만큼 같이 따라 올라간다 — 헤더는 자기 높이 전체를,
-  // 카드는 두 크롬의 차이만큼만 움직여서 시차가 생긴다.
+  // 카드는 두 크롬의 높이 차만큼만 움직여 헤더와 시차가 생긴다.
   const expandedInset = insets.top + HOME_HEADER_CONTENT_HEIGHT;
   const immersedInset = insets.top + STACK_REVIEW_CHROME_HEIGHT;
   const contentInsetTop = useDerivedValue(
@@ -128,8 +125,7 @@ export default function HomeTab() {
     [immerse, expandedInset, immersedInset],
   );
 
-  // 진행 바·카운터는 헤더 아래에서 같이 딸려 올라오며 드러난다. 헤더가 다 걷힌 뒤
-  // 뒤늦게 켜지면 튀어 보인다.
+  // 헤더가 다 걷힌 뒤 뒤늦게 켜지면 튀어 보여서 같이 딸려 올라오며 드러나게 한다.
   const overlayStyle = useAnimatedStyle(() => ({
     opacity: interpolate(immerse.value, [0.2, 0.8], [0, 1], Extrapolation.CLAMP),
     transform: [{

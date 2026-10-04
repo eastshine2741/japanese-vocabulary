@@ -6,15 +6,13 @@ import {
   setUserId,
 } from '@react-native-firebase/analytics';
 
-// Mirrors pushNotifications.ts: without a registered google-services client the
-// native default FirebaseApp doesn't exist, so every analytics() call throws.
+// Without a registered google-services client the default FirebaseApp doesn't exist and analytics calls throw.
 const FIREBASE_ENABLED = process.env.EXPO_PUBLIC_FIREBASE_DISABLED !== '1';
 
 /**
- * 곡 탐색 퍼널(검색 -> 곡 선택 -> 분석 결과 -> 가사 열람)과, 가사에서 복습으로 넘어가는
- * 구간(학습 진입 -> 카드 뒤집기 -> 평가 -> 이탈)을 남긴다.
- * 가사 열람은 별도 이벤트 없이 SongDetail screen_view 로 본다. 체류 시간은
- * 앱에서 재지 않고, BigQuery 에서 다음 screen_view 까지의 차이로 계산한다.
+ * 곡 탐색 퍼널(검색 -> 곡 선택 -> 분석 결과)과 가사에서 복습으로 넘어가는 구간(학습 진입 -> 카드
+ * 뒤집기 -> 평가 -> 이탈)을 남긴다. 가사 열람은 SongDetail screen_view 로, 체류 시간은 BigQuery 에서
+ * 다음 screen_view 까지의 차이로 계산한다.
  */
 type AnalyticsEvent =
   | { name: 'search_submit'; params: { query: string; result_count: number } }
@@ -71,6 +69,9 @@ export function trackSongSelect(songId: number | undefined, isNew: boolean): voi
   track({ name: 'song_select', params: { song_id: songId, is_new: isNew } });
 }
 
+export const analyzeOutcomeOf = (errorCode: string | null | undefined): AnalyzeOutcome =>
+  errorCode === 'LYRICS_NOT_FOUND' ? 'lyrics_not_found' : 'failed';
+
 export function trackSongAnalyzeResult(outcome: AnalyzeOutcome): void {
   track({ name: 'song_analyze_result', params: { outcome } });
 }
@@ -89,10 +90,7 @@ export function trackReviewExit(params: ReviewExitParams): void {
 
 export type ScreenViewParams = Record<string, string | number>;
 
-/**
- * RN 은 화면이 전부 한 Activity 안에 있어 GA4 자동 screen_view 가 RN 화면 단위로
- * 찍히지 않는다. 체류 계산의 기준선이므로 네비게이션에서 직접 찍는다.
- */
+/** RN 은 Activity 하나를 공유해 GA4 자동 screen_view 가 안 찍히므로 직접 찍는다. */
 export function trackScreenView(screenName: string, params?: ScreenViewParams): void {
   send(analytics =>
     logScreenView(analytics, { ...params, screen_name: screenName, screen_class: screenName }),

@@ -17,27 +17,16 @@ export interface YouTubePlayerRef {
 interface Props {
   videoId: string;
   height?: number;
-  // Start playback automatically once the player is ready. Defaults to true,
-  // matching the prior behavior (onReady → loadVideoById, which auto-plays).
   autoplay?: boolean;
-  // Start muted. Defaults to false. Muted autoplay is always permitted by the
-  // platform.
+  // Muted autoplay is always permitted by the platform.
   muted?: boolean;
-  // Force the lowest video resolution to save data. Defaults to false.
   lowestQuality?: boolean;
   onTimeChange?: (seconds: number) => void;
   onDurationChange?: (seconds: number) => void;
   onStateChange?: (state: string) => void;
 }
 
-/**
- * HTML template matching the KMP library (pierfrancescosoffritti/android-youtube-player).
- * Key details replicated from ayp_youtube_player.html:
- * - <script defer> for IFrame API (avoids race condition)
- * - playerVars match IFramePlayerOptions defaults + controls:1, rel:0
- * - origin set to app package name (not youtube.com)
- * - loadVideoById called from a JS function invoked after ready
- */
+/** HTML template mirroring android-youtube-player's ayp_youtube_player.html: deferred IFrame API script, origin set to the app package name. */
 function buildPlayerHTML(videoId: string, autoplay: boolean, muted: boolean, lowestQuality: boolean): string {
   return `<!DOCTYPE html>
 <html>
@@ -146,10 +135,7 @@ const YouTubePlayer = forwardRef<YouTubePlayerRef, Props>(({
   onStateChange,
 }, ref) => {
   const webViewRef = useRef<WebView>(null);
-  // Freeze autoplay/muted/lowestQuality to their mount-time values: the WebView's
-  // source (html) must NOT change when `muted` is toggled later, or the WebView
-  // reloads and the video restarts. Post-mount mute changes go through the
-  // imperative mute()/unMute() handles instead.
+  // Frozen at mount: changing the html source reloads the WebView and restarts the video. Use mute()/unMute() afterwards.
   const initialAutoplay = useRef(autoplay).current;
   const initialMuted = useRef(muted).current;
   const initialLowestQuality = useRef(lowestQuality).current;

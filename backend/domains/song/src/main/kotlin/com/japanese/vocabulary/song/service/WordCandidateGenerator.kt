@@ -18,8 +18,7 @@ class WordCandidateGenerator {
         for (line in analyzedLines.sortedBy { it.index }) {
             for (token in line.tokens) {
                 if (token.partOfSpeech in EXCLUDED_POS) continue
-                // 뜻 없는 토큰은 단어 후보가 아니다. 분절이 사전에 없는 표제형(`帰れない`)을 내면 후보 sense 가
-                // 0개라 뜻이 비는데, 그대로 실으면 앱 단어 목록에 뜻 없는 카드가 뜬다.
+                // 뜻 없는 토큰은 후보가 아니다. 사전에 없는 표제형(`帰れない`)은 sense 가 0개라 뜻 없는 카드가 된다.
                 if (token.koreanText.isNullOrBlank()) continue
                 val japanese = token.baseForm.takeUnless { it.isBlank() } ?: token.surface
                 if (japanese.isBlank()) continue
@@ -49,8 +48,7 @@ class WordCandidateGenerator {
             val dispersion = if (lineIndexes.size <= 1) 0.0 else (lineIndexes.last() - lineIndexes.first()).toDouble() / totalLines
             val titleBoost = if (title.contains(first.baseForm ?: first.surface) || title.contains(first.surface)) 1.0 else 0.0
             val posWeight = POS_WEIGHTS[first.partOfSpeech] ?: 0.6
-            // 곡 안 분포만 보면 ない·する·君 같은 단어가 어느 곡에서든 여러 줄에 고르게 나와 만점 근처가 된다.
-            // 곡 밖 신호(범용 단어 목록)로 곱셈 감점한다. 후보에서 빼지는 않으니 단어 탭·저장은 그대로다.
+            // ない·する·君 은 곡 안 분포로는 만점 근처라 범용 단어 목록으로 곱셈 감점한다. 후보에서는 빼지 않는다.
             val japanese = first.baseForm ?: first.surface
             val commonPenalty = if (first.partOfSpeech in COMMON_POS || CommonWords.contains(japanese, first.partOfSpeech)) COMMON_WORD_PENALTY else 1.0
             val importance = ((lineCoverage * 35.0) + (logFrequency * 20.0) + (dispersion * 10.0) + (titleBoost * 12.0) + (posWeight * 10.0)) * commonPenalty
@@ -72,9 +70,8 @@ class WordCandidateGenerator {
             )
         }
 
-        // candidates 배열 순서는 곡 전체 등장순이다 — occurrences 가 LinkedHashMap 이라 첫 등장 시점에 자리가 잡힌다.
-        // 중요도 순위는 배열 순서가 아니라 importanceScore 로 따로 매긴다. 배열 순서를 중요도로 잡으면
-        // 이 인덱스를 참조하는 lineCandidates 까지 중요도순으로 끌려간다.
+        // candidates 배열 순서는 곡 전체 등장순이다. 중요도순으로 바꾸면 이 인덱스를 참조하는 lineCandidates 가 깨지므로
+        // 중요도 순위는 importanceScore 로 따로 매긴다.
         val candidateIndexByKey = occurrences.keys.withIndex().associate { (index, key) -> key to index }
         // 가사 줄별 단어는 그 줄 안에서 나온 순서다. order 는 줄 단위로 증가하므로 줄 안에서는 토큰 위치와 같다.
         val lineCandidates = occurrences.entries

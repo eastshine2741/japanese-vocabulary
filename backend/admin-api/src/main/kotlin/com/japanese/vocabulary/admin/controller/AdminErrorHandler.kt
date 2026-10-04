@@ -1,6 +1,7 @@
 package com.japanese.vocabulary.admin.controller
 
 import com.japanese.vocabulary.admin.reels.AdminReelsMediaTokenException
+import com.japanese.vocabulary.common.exception.BusinessException
 import com.japanese.vocabulary.admin.reels.AdminReelsPreviewTranscodeException
 import com.japanese.vocabulary.admin.reels.AdminReelsRenderBusyException
 import com.japanese.vocabulary.admin.reels.AdminReelsRenderFailedException
@@ -17,6 +18,11 @@ class AdminErrorHandler {
     @ExceptionHandler(NoSuchElementException::class)
     fun notFound(): ResponseEntity<Map<String, String>> =
         json(HttpStatus.NOT_FOUND, mapOf("error" to "not_found"))
+
+    /** 도메인이 판정한 거절(이미 활성 작업이 있음, 이어 돌릴 수 없음 등)은 그 코드의 상태로 돌려준다. */
+    @ExceptionHandler(BusinessException::class)
+    fun business(exception: BusinessException): ResponseEntity<Map<String, String>> =
+        json(exception.errorCode.status, mapOf("error" to exception.errorCode.name, "message" to exception.errorCode.message))
 
     @ExceptionHandler(IllegalArgumentException::class)
     fun badRequest(exception: IllegalArgumentException): ResponseEntity<Map<String, String>> =

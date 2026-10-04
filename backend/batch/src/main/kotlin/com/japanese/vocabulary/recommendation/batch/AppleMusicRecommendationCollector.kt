@@ -61,8 +61,7 @@ class AppleMusicRecommendationCollector(
         )
     }
 
-    // The RSS feed carries no track length, but the downstream MV search needs it to reject
-    // Shorts and live clips, so it is filled from the iTunes lookup by the feed's track id.
+    // The RSS feed has no track length, which the MV search needs to reject Shorts and live clips.
     // A lookup failure must not lose the week's chart; the candidate just stays without it.
     private fun lookupDurations(songIds: List<String>): Map<String, Int> =
         runCatching { itunesClient.lookupTrackDurations(songIds) }

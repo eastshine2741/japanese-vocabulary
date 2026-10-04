@@ -6,9 +6,8 @@ import { transformWithOxc, type Plugin } from "vite"
 
 const basePath = process.env.VITE_ADMIN_BASE_PATH?.replace(/\/$/, "")
 
-// PromoReel 이 app-rn/src/utils/readingConverter.ts 를 가져온다. app-rn/tsconfig.json 은 expo 패키지를
-// extends 해서 app-rn 에 node_modules 가 없으면(워크트리, Docker) oxc 의 tsconfig 탐색이 깨진다.
-// 이 파일만 tsconfig 없이 변환하고 vite:oxc 에서는 뺀다.
+// app-rn 에 node_modules 가 없으면(워크트리, Docker) app-rn/tsconfig.json 의 expo extends 때문에 oxc 의 tsconfig 탐색이 깨진다.
+// PromoReel 이 가져오는 readingConverter.ts 만 tsconfig 없이 변환하고 vite:oxc 에서는 뺀다.
 const appRnSharedFile = /\/app-rn\/src\/utils\/[^/]+\.ts$/
 
 const appRnSharedTs: Plugin = {

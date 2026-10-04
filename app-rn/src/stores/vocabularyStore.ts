@@ -9,20 +9,16 @@ type WordListStatus = 'idle' | 'loading' | 'success' | 'error';
 type BatchAddStatus = 'idle' | 'loading' | 'success' | 'error';
 
 interface VocabularyState {
-  // Add
   addStatus: AddStatus;
   addedId: number | null;
 
-  // Batch add
   batchAddStatus: BatchAddStatus;
   batchSavedCount: number;
   batchSkippedCount: number;
 
-  // Get existing word
   getWordStatus: GetWordStatus;
   existingWord: WordDetailResponse | null;
 
-  // Word list
   wordListStatus: WordListStatus;
   words: WordListItem[];
   nextCursor: number | null;

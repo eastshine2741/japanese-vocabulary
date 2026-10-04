@@ -36,8 +36,7 @@ export interface HomeExpandedHeaderProps {
 
 /**
  * H5 헤더 — 상태바 여백 + 워드마크·연속 학습 칩 앱바 + 덱 스트립. 위쪽 블록부터 먼저 빠진다.
- * 칩 숫자와 '오늘 아직' 말풍선은 streakStore 에서 읽는다 — 첫 rating 뒤 헤더가 다시
- * 펼쳐질 때 말풍선은 없고 숫자만 +1 돼 있다.
+ * 칩 숫자와 '오늘 아직' 말풍선은 streakStore 에서 읽는다.
  */
 export const HomeExpandedHeader = React.memo(function HomeExpandedHeader({
   deckStripItems,

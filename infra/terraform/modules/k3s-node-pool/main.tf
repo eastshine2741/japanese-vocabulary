@@ -14,8 +14,7 @@ resource "hcloud_server" "node" {
   ssh_keys           = var.ssh_keys
 
   lifecycle {
-    # ssh_keys는 생성 시에만 쓰이고 바뀌면 서버를 교체한다(ForceNew).
-    # import한 기존 노드는 state에 ssh_keys가 없으므로 무시해야 교체되지 않는다.
+    # ssh_keys 변경은 서버를 교체(ForceNew)하는데 import한 노드는 state에 값이 없어 무시해야 한다.
     ignore_changes = [ssh_keys]
   }
 }

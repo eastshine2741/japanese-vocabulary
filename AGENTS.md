@@ -16,8 +16,9 @@ action — rating a card saves its song as a deck.
 `gradlew`는 `backend/` 디렉토리에 위치. 반드시 `backend/`에서 실행할 것.
 
 ```bash
-./deploy.sh                                   # k3s에 backend(api+batch+admin-api+admin-web) + mysql + redis 배포
+./deploy.sh                                   # k3s에 backend(api+worker+batch cronjob+admin-api+admin-web) + mysql + redis + rabbitmq 배포
 cd backend && ./gradlew :admin-api:test       # Admin API tests
+cd backend && ./gradlew :worker:test          # 곡 분석 파이프라인 tests
 cd admin-web && npm run dev                   # Admin Web (local, http://localhost:5174)
 cd app-rn && npm test                         # App unit tests (vitest)
 cd app-rn && npx expo run:android             # App - Android
@@ -54,14 +55,25 @@ Multi-module Gradle (Kotlin DSL) lives at `backend/`. Always run `./gradlew`
 from `backend/`.
 
 - Application bootstraps stay split: `api` for user REST, `admin-api` for admin
-  REST, `batch` for scheduled/background work.
+  REST, `worker` for queue-driven work, `batch` for time-based CronJobs.
+- `worker` 는 상주하며 RabbitMQ 를 듣는다. `batch` 는 상주하지 않고 `--task=<name>`
+  하나를 실행하고 종료하며, 스케줄은 k8s CronJob 이 소유한다 (`@Scheduled` 금지).
 - Domain and integration modules that provide beans own their AutoConfiguration.
 - Put external provider clients in `integrations/*`; keep domain modules focused on
   persistence-aware domain state and invariants.
-- `translation` is batch-only.
+- `translation` is worker-only.
 - DB migrations live in `backend/migration/src/main/resources/db/migration/`.
 - Integration tests belong in bootstrap modules, not in domain modules with test
   `@SpringBootApplication` classes.
+- 곡 분석 작업은 메시지 큐로 즉시 실행된다. 단계 하나가 메시지 하나(`workId`, `stage`)이고 원장
+  `song_analysis_work` / `song_analysis_work_stage` 가 진실 원천이다 — 단계 산출물·실패 원인이 원장에
+  남고, 중복 배달은 claim 이, 유실은 sweeper 가, 죽은 worker 는 재배달이 흡수한다. 오류로 메시지를
+  다시 넣지 않는다(5분 예산 안의 HTTP 호출 단위 재시도만). 관리자는 실패한 단계부터 다시 돌릴 수 있다.
+  곡·가사 행은 마지막 단계(`COMPLETE`)가 분석 결과와 함께 만들므로, 실패한 작업은 곡을 남기지 않는다.
+  한 곡에 활성 작업 하나는 `(raw_title, raw_artist)` 갭 락이 지키므로 REPEATABLE READ 가 전제다.
+- RabbitMQ 큐 토폴로지는 브로커가 부팅 때 읽는 `definitions.json` 이 소유한다
+  (`k8s/{dev,prod}/rabbitmq/`). 앱은 이름만 참조하고 `spring.rabbitmq.dynamic` 은 false 다.
+  고치면 브로커가 재시작해야 반영되고, 기존 큐의 arguments 변경은 조용히 무시된다.
 
 For full module boundaries, naming rules, cache placement, and Spring event
 rules, see `docs/architecture/backend-modules.md`.
@@ -82,8 +94,9 @@ For the V29 schema and sense-level word behavior, see
 
 **Implemented:** Song search -> lyric fetch -> async batch word-meaning analysis -> study view, YouTube MV playback with synced lyrics, flashcard-first home stack, song auto-save via study bootstrap, flashcard review, decks, recent songs, user settings, push notifications, admin inspection surface.
 
-**Backend:** Multi-module Gradle split is complete. `@Scheduled` work lives in
-`batch`; public API, admin API, domain modules, and integrations stay separated.
+**Backend:** Multi-module Gradle split is complete. 곡 분석은 `worker` 가 RabbitMQ 메시지를
+받아 즉시 처리하고, 시간 기반 정기 작업은 `batch` 이미지를 도는 k8s CronJob 이 맡는다. public API,
+admin API, domain modules, integrations 는 분리 유지.
 Module details live in `docs/architecture/backend-modules.md`.
 
 **Word schema:** Words are stored as sense-level data in `words.senses`; deck
@@ -109,7 +122,7 @@ TypeSafe Jev (`TYPESAFE_API_KEY`), the other LLM stages on Gemini. Details live 
 앱은 `expo-device`/`expo-application`을 쓰므로 새 네이티브 빌드가 필요하다.
 
 **Streak commitment (260918):** `GET /api/study-stats/home`이 `studiedToday`/`hasStudiedBefore`를 내려주고,
-`batch`의 `StreakReminderScheduler`가 20:00/23:00 KST에 `streak_reminder` 알림을 보낸다 (단어 회상 알림은 폐기). 23:00은 카운트다운용 `expiresAt`을 싣고 Android data-only.
+`batch`의 `StreakReminderTask`가 20:00/23:00 KST CronJob 으로 `streak_reminder` 알림을 보낸다 (단어 회상 알림은 폐기). 23:00은 카운트다운용 `expiresAt`을 싣고 Android data-only.
 freeze 행은 연속을 잇기만 하고 streak/총 학습일 카운트에는 들어가지 않는다.
 스펙은 `docs/product-intents/260918-streak-commitment-api.md`.
 홈 헤더 연속 학습 칩 -> `Streak` 화면(히어로·통계·학습 달력)은 기존 study-stats API 3개로만 그린다:
@@ -117,7 +130,7 @@ freeze 행은 연속을 잇기만 하고 streak/총 학습일 카운트에는 �
 오늘 첫 rating 직후의 플로팅 배너는 폐기되고 전체 화면 축하로 바뀌었다:
 `docs/product-intents/261004-streak-celebration-screen.md`.
 
-**Admin surface:** `backend/admin-api` exposes `/admin/api/auth/login`, `/admin/api/songs`, `/admin/api/lyrics`, `/admin/api/song-analysis-works`, `/admin/api/users`, and `/admin/api/users/{id}/words` (per-user decks/words/review state, read-only). `admin-web` is a Vite React TypeScript shadcn-style SPA. Dev 는 `/<namespace>/admin` 경로로, prod 는 `https://kotonoha.eastshine.dev/admin` (API 는 `/admin/api`) 한 호스트로 배포된다 — path 별 미들웨어가 필요해 Traefik `IngressRoute` 를 쓴다. See `docs/admin-service.md`.
+**Admin surface:** `backend/admin-api` exposes `/admin/api/auth/login`, `/admin/api/songs`, `/admin/api/lyrics`, `/admin/api/song-analysis-works`, `/admin/api/users`, `/admin/api/users/{id}/words` (per-user decks/words/review state, read-only), and `/admin/api/push/send` (운영자 수동 푸시; 구 batch `/dev/push/send` 대체). `admin-web` is a Vite React TypeScript shadcn-style SPA. Dev 는 `/<namespace>/admin` 경로로, prod 는 `https://kotonoha.eastshine.dev/admin` (API 는 `/admin/api`) 한 호스트로 배포된다 — path 별 미들웨어가 필요해 Traefik `IngressRoute` 를 쓴다. See `docs/admin-service.md`.
 
 **Partial coverage:** Backend integration tests for new domains; broader e2e tests still pending.
 
@@ -126,6 +139,7 @@ freeze 행은 연속을 잇기만 하고 streak/총 학습일 카운트에는 �
 - Backend package root: `com.japanese.vocabulary.<domain>`. Music provider clients live in function-specific `integrations:*` modules and use `RestClient` where behavior is equivalent.
 - DB migrations: `backend/migration/src/main/resources/db/migration/`. 새 테이블은 여기에 `V_숫자` SQL로 추가. 도메인 모듈의 JPA `@Entity`와 migration이 일치해야 함.
 - App: Zustand stores by domain, Axios with auth interceptor, `StyleSheet.create()` co-located with components.
+- 주석: 코드가 이미 말하는 내용은 쓰지 않는다. 왜/제약/함정만 1줄(최대 2줄), 이슈 번호·경위·단계 설명 금지. 상세 규칙은 `.claude/skills/antislop-code/SKILL.md`.
 
 ### Frontend Performance Rules
 

@@ -1,11 +1,11 @@
 package com.japanese.vocabulary.translation.client.gemini
 
 /**
- * Which lyric a Gemini call belongs to. Only used to label the payload log — the scheduler analyzes
- * a batch of works concurrently, so calls from different songs interleave and a bare timestamp is
- * not enough to tell them apart.
+ * Which analysis a Gemini call belongs to; labels the payload log because concurrent analyses interleave.
+ * The song and lyric rows are only created when analysis completes, so a new song's calls carry only [workId].
  */
 data class GeminiCallContext(
     val songId: Long?,
     val lyricId: Long?,
+    val workId: Long? = null,
 )

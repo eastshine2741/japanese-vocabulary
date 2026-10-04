@@ -1,0 +1,214 @@
+# batch 이미지는 --task=<name> 하나를 실행하고 종료한다 (CronTaskRunner).
+# 즉시 실행: kubectl create job --from=cronjob/<name> <name>-manual-$(date +%s) -n <ns>
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: streak-reminder-evening
+spec:
+  # 연속 학습 알림 20:00 KST
+  schedule: "0 20 * * *"
+  timeZone: "Asia/Seoul"
+  suspend: true
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: batch
+              image: ${BATCH_IMAGE}
+              imagePullPolicy: Never
+              args:
+                - "--task=streak-reminder"
+                - "--slot=EVENING"
+              env:
+                - name: GOOGLE_APPLICATION_CREDENTIALS
+                  value: /var/secrets/firebase/service-account.json
+              envFrom:
+                - configMapRef:
+                    name: batch-config
+                - secretRef:
+                    name: batch-secret
+              volumeMounts:
+                - name: firebase-credentials
+                  mountPath: /var/secrets/firebase
+                  readOnly: true
+          volumes:
+            - name: firebase-credentials
+              secret:
+                secretName: firebase-credentials
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: streak-reminder-night
+spec:
+  # 연속 학습 알림 23:00 KST
+  schedule: "0 23 * * *"
+  timeZone: "Asia/Seoul"
+  suspend: true
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: batch
+              image: ${BATCH_IMAGE}
+              imagePullPolicy: Never
+              args:
+                - "--task=streak-reminder"
+                - "--slot=NIGHT"
+              env:
+                - name: GOOGLE_APPLICATION_CREDENTIALS
+                  value: /var/secrets/firebase/service-account.json
+              envFrom:
+                - configMapRef:
+                    name: batch-config
+                - secretRef:
+                    name: batch-secret
+              volumeMounts:
+                - name: firebase-credentials
+                  mountPath: /var/secrets/firebase
+                  readOnly: true
+          volumes:
+            - name: firebase-credentials
+              secret:
+                secretName: firebase-credentials
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: freeze-consume
+spec:
+  # 전날 미학습분을 freeze 로 메운다
+  schedule: "0 4 * * *"
+  timeZone: "Asia/Seoul"
+  suspend: true
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: batch
+              image: ${BATCH_IMAGE}
+              imagePullPolicy: Never
+              args:
+                - "--task=freeze-consume"
+              env:
+                - name: GOOGLE_APPLICATION_CREDENTIALS
+                  value: /var/secrets/firebase/service-account.json
+              envFrom:
+                - configMapRef:
+                    name: batch-config
+                - secretRef:
+                    name: batch-secret
+              volumeMounts:
+                - name: firebase-credentials
+                  mountPath: /var/secrets/firebase
+                  readOnly: true
+          volumes:
+            - name: firebase-credentials
+              secret:
+                secretName: firebase-credentials
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: apple-music-recommendation
+spec:
+  # 주간 Apple Music 차트 수집
+  schedule: "0 3 * * 1"
+  timeZone: "Asia/Tokyo"
+  suspend: true
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: batch
+              image: ${BATCH_IMAGE}
+              imagePullPolicy: Never
+              args:
+                - "--task=apple-music-recommendation"
+              env:
+                - name: GOOGLE_APPLICATION_CREDENTIALS
+                  value: /var/secrets/firebase/service-account.json
+              envFrom:
+                - configMapRef:
+                    name: batch-config
+                - secretRef:
+                    name: batch-secret
+              volumeMounts:
+                - name: firebase-credentials
+                  mountPath: /var/secrets/firebase
+                  readOnly: true
+          volumes:
+            - name: firebase-credentials
+              secret:
+                secretName: firebase-credentials
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: lyric-word-candidate-backfill
+spec:
+  # 수동 백필 전용. 스케줄은 절대 오지 않는 날짜로 두고 suspend 한다
+  schedule: "0 0 31 2 *"
+  timeZone: "Asia/Seoul"
+  suspend: true
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: batch
+              image: ${BATCH_IMAGE}
+              imagePullPolicy: Never
+              args:
+                - "--task=lyric-word-candidate-backfill"
+              env:
+                - name: GOOGLE_APPLICATION_CREDENTIALS
+                  value: /var/secrets/firebase/service-account.json
+              envFrom:
+                - configMapRef:
+                    name: batch-config
+                - secretRef:
+                    name: batch-secret
+              volumeMounts:
+                - name: firebase-credentials
+                  mountPath: /var/secrets/firebase
+                  readOnly: true
+          volumes:
+            - name: firebase-credentials
+              secret:
+                secretName: firebase-credentials

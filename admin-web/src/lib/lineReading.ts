@@ -8,17 +8,15 @@ const HIRAGANA_ONLY = /^[ぁ-ゖー]+$/
 const JAPANESE = /[぀-ヿ㐀-鿿]/
 
 /**
- * The katakana reading of a lyric line, assembled from its tokens in position order — the analysis
- * stores no line-level reading, only each token's reading plus `charStart`/`charEnd`.
+ * The katakana reading of a lyric line, assembled from its tokens in position order (the analysis
+ * stores only per-token readings plus `charStart`/`charEnd`).
  *
- * Japanese writes no spaces, so words are separated here: grammar stays attached to the word in
- * front of it (particles/auxiliaries/suffixes, a reading opening with ッ/ン, an all-hiragana surface
- * after one that is not — 揺ら + せば). Text between tokens is copied through, except Japanese no
- * token claimed: an ad-lib or ruby gloss anchoring left uncovered has no reading, so it reads as a
- * word break.
+ * Words are separated here: grammar stays attached to the word in front of it (particles/auxiliaries/
+ * suffixes, a reading opening with ッ/ン, an all-hiragana surface after one that is not — 揺ら + せば).
+ * Text between tokens is copied through, except Japanese no token claimed (ad-lib, ruby gloss), which
+ * reads as a word break.
  *
- * The app assembles the same way (`convertLineReading` in app-rn) and converts each token to Hangul
- * on the way, so the two are separate short functions rather than a shared package.
+ * Mirrors `convertLineReading` in app-rn, which also converts to Hangul, so it is not a shared package.
  */
 export function buildLineReading(rawText: string, tokens: LyricToken[]): string {
   if (tokens.length === 0) return ""

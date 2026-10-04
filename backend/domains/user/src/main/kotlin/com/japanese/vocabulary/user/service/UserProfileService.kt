@@ -42,11 +42,9 @@ class UserProfileService(
     }
 
     /**
-     * Soft delete the user. Mutates provider_sub and username so the same Google
-     * identity can sign up again as a fresh account. Email and display name are
-     * cleared to minimize stored PII after deletion. Child rows (decks, words,
-     * flashcards, etc.) are intentionally left intact; they become unreachable
-     * because every read path resolves users via findByIdAndDeletedAtIsNull.
+     * Soft delete. provider_sub and username are mutated so the same identity can sign up again;
+     * email and display name are cleared to minimize PII. Child rows stay, unreachable because
+     * every read path resolves users via findByIdAndDeletedAtIsNull.
      */
     @Transactional
     fun deleteSelf(userId: Long) {

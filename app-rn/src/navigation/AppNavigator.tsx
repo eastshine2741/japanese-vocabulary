@@ -92,11 +92,8 @@ export type TabParamList = {
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
 
-// 탭 전환 애니메이션. 옆 탭으로 갈 때 이전 화면은 반대쪽으로 밀리며 사라지고 새 화면은
-// 그쪽에서 밀려 들어오며 나타난다. 탭바 탭이든 `navigation.navigate('Search')` 같은
-// 코드 호출이든 navigator state 의 index 변화가 구동하므로 진입 경로와 무관하게 같다.
-// 내장 `forShift` 는 50px 을 밀어서 두 화면이 겹치는 동안 옆 경계가 드러난다 — 이동은
-// 방향만 느껴질 만큼 줄이고, 겹침 구간은 페이드가 대부분 가리게 둔다.
+// 내장 `forShift` 는 50px 을 밀어서 겹치는 동안 옆 경계가 드러난다.
+// 이동은 방향만 느껴질 만큼 줄이고 겹침은 페이드로 가린다.
 const TAB_SHIFT_PX = 12;
 
 const forSubtleShift: NonNullable<BottomTabNavigationOptions['sceneStyleInterpolator']> = ({ current }) => {

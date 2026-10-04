@@ -92,10 +92,6 @@ trap cleanup EXIT
 
 urlencode() { jq -rn --arg s "$1" '$s|@uri'; }
 
-# ---------------------------------------------------------------------------------------------
-# Preflight
-# ---------------------------------------------------------------------------------------------
-
 preflight() {
   local tool
   for tool in jq curl git gh claude; do
@@ -118,10 +114,6 @@ preflight() {
   jq -e '.version==1 and (.defects|type=="object")' "$LEDGER_FILE" >/dev/null || die "Ledger is not readable: $LEDGER_FILE"
 }
 
-# ---------------------------------------------------------------------------------------------
-# Sentry
-# ---------------------------------------------------------------------------------------------
-
 SENTRY_BASE="${SENTRY_API_BASE:-https://sentry.io/api/0}"
 SENTRY_NEXT_CURSOR=""
 
@@ -141,7 +133,7 @@ sentry_get() {
 }
 
 # Every ANALYSIS_DEFECT event in the window, one JSON object per line:
-#   {eventId, timestamp, defect:{songId,lyricId,lineIndex,cause,surface,headword,line,detail}}
+#   {eventId, timestamp, defect:{workId,songId,lyricId,lineIndex,cause,surface,headword,line,detail}}
 fetch_defects() {
   if [[ -n "$FIXTURE_FILE" ]]; then
     jq -c '.[]' "$FIXTURE_FILE"
@@ -167,12 +159,8 @@ fetch_defects() {
   done
 }
 
-# ---------------------------------------------------------------------------------------------
-# Ledger
-# ---------------------------------------------------------------------------------------------
-#
 # {"version":1,"defects":{"<cause>:<headword>":{cause,headword,status,firstSeen,lastSeen,
-#   occurrences:[{songId,lineIndex,surface,line,timestamp}], fixAttempts, prUrl, reason}}}
+#   occurrences:[{workId,songId,lineIndex,surface,line,timestamp}], fixAttempts, prUrl, reason}}}
 #
 # status: new | provider_error | ignored | held | fixing
 #   new            never shown to the classifier
@@ -210,7 +198,7 @@ merge_into_ledger() {
           | .firstSeen = ([.firstSeen, $e.timestamp] | min)
           | .occurrences = (
               (.occurrences + [{
-                songId: $e.defect.songId, lineIndex: $e.defect.lineIndex,
+                workId: $e.defect.workId, songId: $e.defect.songId, lineIndex: $e.defect.lineIndex,
                 surface: $e.defect.surface, line: $e.defect.line, detail: $e.defect.detail,
                 timestamp: $e.timestamp, eventId: $e.eventId
               }])
@@ -232,10 +220,6 @@ ledger_set() {
     '.defects[$key][$field] = $value' "$LEDGER_FILE" > "$out"
   mv "$out" "$LEDGER_FILE"
 }
-
-# ---------------------------------------------------------------------------------------------
-# Claude
-# ---------------------------------------------------------------------------------------------
 
 # Runs one headless pass. Prints the structured output JSON.
 #   claude_pass <cwd> <model> <prompt-file> <schema-file> <tools> <allowed-rules> <permission-mode>
@@ -274,10 +258,6 @@ claude_pass() {
   jq -c '.structured_output' "$out"
 }
 
-# ---------------------------------------------------------------------------------------------
-# Classification
-# ---------------------------------------------------------------------------------------------
-
 classify() {
   local candidates_json="$1"
   local prompt result
@@ -307,10 +287,6 @@ classify() {
   fi
   printf '%s\n' "$result"
 }
-
-# ---------------------------------------------------------------------------------------------
-# Fix pass
-# ---------------------------------------------------------------------------------------------
 
 # Changed paths in the worktree relative to origin/main (tracked + untracked).
 changed_paths() {
@@ -350,9 +326,8 @@ run_test() {
   local gradle_log
   gradle_log="$(tmp)"
   local exit_code=0
-  # </dev/null: the caller loops over groups via stdin, and gradle forwards whatever stdin it
-  # inherits to the daemon. Nothing reads it there, the daemon's pipe fills, and the build never
-  # returns (hung the 2026-09-16 run for 18h). timeout is the backstop so the timer keeps going.
+  # </dev/null: gradle forwards inherited stdin (the caller's group loop) to the daemon and hangs.
+  # timeout is the backstop so the timer keeps going.
   (cd "$wt/backend" && timeout "$TEST_TIMEOUT" ./gradlew "$task" --tests "$test_class" -q </dev/null > "$gradle_log" 2>&1) || exit_code=$?
   local results_dir="$wt/backend/$module_dir/build/test-results/test"
   local summary
@@ -413,7 +388,7 @@ pr_body() {
     jq -r --arg key "$key" '
       .defects[$key] as $d
       | $d.occurrences[]
-      | "- songId=\(.songId) \(.lineIndex + 1)번째 줄 「\(.line)」 → `\(.surface)`" + (if $d.headword != .surface then " (원형 \($d.headword))" else "" end) + " — \($d.cause)"
+      | "- \(if .songId != null then "songId=\(.songId)" else "workId=\(.workId)" end) \(.lineIndex + 1)번째 줄 「\(.line)」 → `\(.surface)`" + (if $d.headword != .surface then " (원형 \($d.headword))" else "" end) + " — \($d.cause)"
     ' "$LEDGER_FILE"
   done <<<"$keys_list"
   local first last
@@ -457,8 +432,7 @@ fix_group() {
   [[ ! -e "$wt" ]] || git -C "$REPO_DIR" worktree remove --force "$wt" >/dev/null 2>&1 || rm -rf "$wt"
   mkdir -p "$WORKTREE_ROOT"
   git -C "$REPO_DIR" fetch -q origin main
-  # Branch from origin/main, never from whatever the local checkout happens to be on: the old
-  # triage runner branched from HEAD and shipped a +18,000-line PR of unrelated local commits.
+  # Branch from origin/main, never from the local checkout's HEAD.
   git -C "$REPO_DIR" worktree add -q -b "$branch" "$wt" origin/main
   local base_sha
   base_sha="$(git -C "$wt" rev-parse HEAD)"
@@ -469,7 +443,7 @@ fix_group() {
     cat "$PROMPTS_DIR/fix.md"
     printf '\n분류 결과:\n```json\n%s\n```\n' "$(jq '{title, reason, fixPlan}' <<<"$group")"
     printf '\n결손 상세:\n```json\n%s\n```\n' "$(jq --argjson keys "$(jq -c '.keys' <<<"$group")" \
-      '[$keys[] as $k | .defects[$k] | {key: $k, cause, headword, occurrences: [.occurrences[] | {songId, lineIndex, surface, line, detail}]}]' \
+      '[$keys[] as $k | .defects[$k] | {key: $k, cause, headword, occurrences: [.occurrences[] | {workId, songId, lineIndex, surface, line, detail}]}]' \
       "$LEDGER_FILE")"
   } > "$prompt"
 
@@ -530,10 +504,6 @@ fix_group() {
   printf '%s\n' "$pr_url"
 }
 
-# ---------------------------------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------------------------------
-
 main() {
   preflight
   if [[ $CHECK_PREFLIGHT -eq 1 ]]; then log "INFO" "Preflight OK"; exit 0; fi
@@ -560,7 +530,7 @@ main() {
   candidates="$(jq -c --argjson max "$MAX_CANDIDATES" '
     [.defects | to_entries[] | select(.value.status == "new")
      | {key: .key, cause: .value.cause, headword: .value.headword,
-        occurrences: [.value.occurrences[] | {songId, lineIndex, surface, line, detail}]}]
+        occurrences: [.value.occurrences[] | {workId, songId, lineIndex, surface, line, detail}]}]
     | sort_by(.key) | .[:$max]
   ' "$LEDGER_FILE")"
   local n_candidates

@@ -11,10 +11,8 @@ import org.springframework.context.annotation.Configuration
 import java.io.FileInputStream
 
 /**
- * Initialises a [FirebaseApp] from a service-account JSON pointed at by
- * `GOOGLE_APPLICATION_CREDENTIALS`. Disabled by default; flip
- * `push.firebase.enabled=true` (production) to wire FCM up. Tests / local dev leave it off so the
- * app boots without a Firebase secret on disk.
+ * Initialises a [FirebaseApp] from the service-account JSON at `GOOGLE_APPLICATION_CREDENTIALS`.
+ * Off by default so tests and local dev boot without a Firebase secret.
  */
 @Configuration
 @ConditionalOnProperty(name = ["push.firebase.enabled"], havingValue = "true")

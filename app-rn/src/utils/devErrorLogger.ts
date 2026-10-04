@@ -2,11 +2,8 @@ import { NativeModules } from 'react-native';
 import { parse as parseStack } from 'stacktrace-parser';
 
 /**
- * 개발 빌드 전용 에러 로거.
- *
- * RN 기본 로그는 `ERROR [TypeError: ...]` 한 줄만 남기고 스택을 버린다. 여기서는
- * 번들 좌표를 Metro 의 /symbolicate 에 태워 원본 파일:줄 로 되돌린 뒤 터미널에 찍는다.
- * 그래서 `npx expo run:android` 로그만 보고도 어디서 터졌는지 알 수 있다.
+ * 개발 빌드 전용 에러 로거. RN 기본 로그는 스택을 버리므로 번들 좌표를 Metro 의
+ * /symbolicate 로 원본 파일:줄 로 되돌려 터미널에 찍는다.
  */
 
 const MAX_FRAMES = 30;

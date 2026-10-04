@@ -25,7 +25,9 @@ dependencies {
     implementation(project(":domains:notification"))
     implementation(project(":integrations:song-search"))
     implementation(project(":integrations:github"))
+    implementation(project(":integrations:message-queue"))
 
+    implementation("org.springframework.boot:spring-boot-starter-amqp")
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-webflux")
@@ -34,17 +36,14 @@ dependencies {
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
 
-    // Sentry
     implementation("io.sentry:sentry-spring-boot-starter-jakarta:7.18.0")
     implementation("io.sentry:sentry-logback:7.18.0")
 
     // Spring Security (api wires the SecurityFilterChain across all domains)
     implementation("org.springframework.boot:spring-boot-starter-security")
 
-    // Redis
     implementation("org.springframework.boot:spring-boot-starter-data-redis")
 
-    // MySQL
     runtimeOnly("com.mysql:mysql-connector-j")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")

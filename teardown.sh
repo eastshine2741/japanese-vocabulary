@@ -5,7 +5,6 @@
 
 set -euo pipefail
 
-# --- context 확인 ---
 EXPECTED_CONTEXT="default"
 CURRENT_CONTEXT="$(kubectl config current-context)"
 if [[ "$CURRENT_CONTEXT" != "$EXPECTED_CONTEXT" ]]; then
@@ -13,7 +12,6 @@ if [[ "$CURRENT_CONTEXT" != "$EXPECTED_CONTEXT" ]]; then
   exit 1
 fi
 
-# --- namespace 결정 ---
 if [[ -n "${1:-}" ]]; then
   NS="$1"
 else
@@ -27,7 +25,6 @@ if [[ ! "$NS" =~ ^[a-z][a-z0-9-]*$ ]]; then
   exit 1
 fi
 
-# main은 실수 방지
 if [[ "$NS" == "main" ]]; then
   echo "Error: refusing to delete namespace 'main'" >&2
   exit 1

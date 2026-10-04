@@ -14,6 +14,7 @@ import com.japanese.vocabulary.translation.service.pipeline.LexicalResolver
 import com.japanese.vocabulary.translation.service.pipeline.RuleMeaningProvider
 import com.japanese.vocabulary.translation.service.pipeline.SegmentAnchoringValidator
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
@@ -23,9 +24,8 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 
 /**
- * The headword check decides which tokens are worth a dictionary lookup, a retry, and a defect
- * report. These tests pin the exemptions: a token no Japanese dictionary can answer must not spend
- * the retry budget or be reported as a miss.
+ * Pins the headword-check exemptions: a token no Japanese dictionary can answer must not spend the
+ * retry budget or be reported as a miss.
  */
 class SegmentLyricsStageTest {
     private val geminiClient = mockk<GeminiClient>()
@@ -43,9 +43,8 @@ class SegmentLyricsStageTest {
 
     @Test
     fun `a hiragana transliteration of an english phrase is exempt from the headword check`(): Unit = runBlocking {
-        // Song 118 line 47: あいうぉんちゅー is "I want you" sung in hiragana. The model kept the English
-        // phrase as the headword, which is right — but no Japanese dictionary holds it, so asking jisho,
-        // retrying, and reporting DICTIONARY_MISS can only ever waste the budget.
+        // あいうぉんちゅー is "I want you" sung in hiragana; the English headword is right but no Japanese
+        // dictionary holds it, so retrying and reporting DICTIONARY_MISS only wastes the budget.
         val raw = "あいうぉんちゅーコール伝わんない"
         val segmented = SegLineDto(
             index = 47,
@@ -55,7 +54,7 @@ class SegmentLyricsStageTest {
                 SegWordDto("伝わんない", "伝わる", "ツタワンナイ", "ツタワル", "to get across"),
             ),
         )
-        every { geminiClient.segmentAndLemmatize(any(), any(), any()) } returns listOf(segmented)
+        coEvery { geminiClient.segmentAndLemmatize(any(), any(), any()) } returns listOf(segmented)
         coEvery { gluedParticleSplitter.split(any()) } answers { firstArg() }
         coEvery { lexicalResolver.unresolvedTokens(any()) } answers {
             firstArg<List<PipelineToken>>()
@@ -71,7 +70,7 @@ class SegmentLyricsStageTest {
         verify { defectReporter.reportAll(capture(reported)) }
         assertThat(reported.captured).isEmpty()
         // No defect means no resampled retry either: one segmentation call for the song.
-        verify(exactly = 1) { geminiClient.segmentAndLemmatize(any(), any(), any()) }
+        coVerify(exactly = 1) { geminiClient.segmentAndLemmatize(any(), any(), any()) }
     }
 
     private fun source(vararg lines: Pair<Int, String>): TranslationPipelineSource = TranslationPipelineSource.from(

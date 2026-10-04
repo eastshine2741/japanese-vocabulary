@@ -330,7 +330,6 @@ const SEARCH_QUERY = '코토노하';
 const TYPING_START = 30;
 const TYPING_FRAMES_PER_CHAR = 9;
 
-// ─── 앱 목업 ───────────────────────────────────────────────────────────────────
 // SongDetailScreen(hero 360 · 홈/단어 탭 · 홈 탭 본문 · MV 바)을 460×860 폰 안에 그리고,
 // CurrentPlayingWordsSheet 가 MV 바를 핸들 삼아 올라온다. 첫 단어를 누르면 SongReviewScreen 이
 // 폰을 덮고, 앞면 탭 → rating → 위로 스와이프 → 다음 단어까지 이어진다. 타이포는 실제 비율보다
@@ -544,7 +543,6 @@ const TapDot = ({x, y, dark}: {x: number; y: number; dark?: boolean}) => (
   <div style={{...styles.tapDot, left: x - 24, top: y - 24, backgroundColor: dark ? 'rgba(0,0,0,0.16)' : 'rgba(255,255,255,0.38)'}} />
 );
 
-// ─── 복습 화면 목업 ───────────────────────────────────────────────────────────
 // SongReviewScreen = CardStage(아트워크 + 틴트 + 스크림 2겹) + StackReviewOverlay(뒤로 · n/N · 진행 바)
 // + SourceHeader + WordFront/WordBack. rating 줄은 프로덕션처럼 화면 맨 아래(paddingBottom 22 + 하단 inset)에
 // 붙고, 어포던스가 뜨면 그만큼 위로 밀린다. 폰 마스크는 그 아래 60px 만 녹인다.
@@ -775,8 +773,6 @@ const ReviewBack = ({
   );
 };
 
-// ─── 아이콘 ────────────────────────────────────────────────────────────────────
-
 const svgProps = {fill: 'none', stroke: 'currentColor', strokeLinecap: 'round', strokeLinejoin: 'round'} as const;
 
 const ChevronLeftIcon = () => (
@@ -828,8 +824,6 @@ const AppleIcon = () => (
     <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701" />
   </svg>
 );
-
-// ─── 데이터 도우미 ───────────────────────────────────────────────────────────────
 
 // 강조 단어(vocabulary)만 품사색을 갖고 나머지 토큰은 흰색이다.
 const buildTextRuns = (line: PromoLine): TextRun[] => {
@@ -1158,7 +1152,6 @@ const styles = {
     textAlign: 'right',
   },
 
-  // ─── 엔드카드 ───
   endCardLayer: {
     backgroundColor: night,
     overflow: 'hidden',
@@ -1262,7 +1255,6 @@ const styles = {
     fontWeight: 500,
   },
 
-  // ─── 앱 목업 ───
   phone: {
     backgroundColor: app.background,
     border: '3px solid rgba(244,241,234,0.24)',
@@ -1701,7 +1693,6 @@ const styles = {
     zIndex: 5,
   },
 
-  // ─── 복습 화면 목업 ───
   review: {
     backgroundColor: '#14181C',
     color: '#FFFFFF',

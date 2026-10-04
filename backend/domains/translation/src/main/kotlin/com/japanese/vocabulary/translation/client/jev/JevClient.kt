@@ -2,6 +2,7 @@ package com.japanese.vocabulary.translation.client.jev
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.japanese.vocabulary.common.retry.ExponentialBackoff
+import com.japanese.vocabulary.common.retry.currentRetryDeadline
 import com.japanese.vocabulary.common.retry.TransientHttpErrors
 import com.japanese.vocabulary.observability.MetricNames
 import com.japanese.vocabulary.translation.client.gemini.GeminiCallContext
@@ -12,6 +13,9 @@ import com.japanese.vocabulary.translation.client.jev.dto.JevResponse
 import io.micrometer.core.instrument.Counter
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Timer
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
@@ -19,11 +23,8 @@ import org.springframework.web.client.RestClient
 import java.time.Duration
 
 /**
- * TypeSafe's Jev ("System One") decision model: given some [state] and a set of `choice` questions,
- * it answers each with one of the offered option ids plus a confidence. It never writes free text,
- * which is the whole contract sense-select wants — the answer can only be a sense that was offered.
- *
- * Input tokens are billed ($0.042 / 1M at adoption); output is free.
+ * TypeSafe's Jev ("System One") decision model: given [state] and `choice` questions, it answers each
+ * with one offered option id plus a confidence, never free text. Input tokens are billed; output is free.
  */
 @Component
 class JevClient(
@@ -31,8 +32,8 @@ class JevClient(
     @Value("\${jev.api-key}") private val apiKey: String,
     @Value("\${jev.model:jev-latest}") private val model: String,
     /**
-     * Same policy as the Gemini client: only [TransientHttpErrors.isTransient] failures are
-     * retried. Jev's own overload status is 529, a 5xx, so it is covered.
+     * Same policy as the Gemini client: only [TransientHttpErrors.isTransient] failures are retried
+     * (Jev's overload status 529 is covered).
      */
     @Value("\${jev.retry.max-attempts:3}") maxAttempts: Int,
     @Value("\${jev.retry.initial-backoff:2s}") initialBackoff: Duration,
@@ -51,7 +52,7 @@ class JevClient(
      * Asks every question in one request and returns the answers keyed like [questions]. A question
      * Jev left unanswered is simply absent; the caller decides what that means.
      */
-    fun choose(
+    suspend fun choose(
         call: String,
         state: Map<String, Any?>,
         questions: Map<String, JevChoiceQuestion>,
@@ -65,8 +66,8 @@ class JevClient(
             atLeast = TransientHttpErrors::retryAfter,
             onRetry = { attempt, e, delay ->
                 logger.warn(
-                    "[songId={}] Jev call={} attempt {}/{} failed, retrying in {}ms: {}: {}",
-                    context.songId, call, attempt, backoff.maxAttempts, delay.toMillis(), e::class.simpleName, e.message,
+                    "[workId={}] Jev call={} attempt {}/{} failed, retrying in {}ms: {}: {}",
+                    context.workId, call, attempt, backoff.maxAttempts, delay.toMillis(), e::class.simpleName, e.message,
                 )
                 Counter.builder(MetricNames.JEV_CALL_RETRIES)
                     .tag("call", call)
@@ -74,9 +75,10 @@ class JevClient(
                     .register(meterRegistry)
                     .increment()
             },
-            sleep = { Thread.sleep(it.toMillis()) },
+            deadline = currentRetryDeadline(),
+            sleep = { delay(it.toMillis()) },
         ) {
-            attempt(call, requestJson, context)
+            withContext(Dispatchers.IO) { attempt(call, requestJson, context) }
         }
     }
 
@@ -105,8 +107,7 @@ class JevClient(
             errorMessage = "${e::class.simpleName}: ${e.message}"
             throw e
         } finally {
-            // `jev-latest` resolves to a concrete version per response; log that one, so a row can be
-            // read back against the model that actually answered it.
+            // `jev-latest` resolves to a concrete version per response; log that one.
             callLogger.record(context, call, answeredBy, requestJson, responseJson, errorMessage)
             sample.stop(
                 Timer.builder(MetricNames.JEV_CALL_DURATION)

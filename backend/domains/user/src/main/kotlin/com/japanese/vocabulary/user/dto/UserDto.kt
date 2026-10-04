@@ -2,11 +2,7 @@ package com.japanese.vocabulary.user.dto
 
 import com.japanese.vocabulary.user.entity.UserEntity
 
-/**
- * Entity-mirror data class for [UserEntity]. Use this as the cross-module return type
- * instead of the JPA entity so domain modules and bootstrap modules don't pass managed
- * entities across their boundaries.
- */
+/** Cross-module return type; managed [UserEntity] instances do not leave this module. */
 data class UserDto(
     val id: Long,
     val provider: String,

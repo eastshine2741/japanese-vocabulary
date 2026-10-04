@@ -1,14 +1,9 @@
 package com.japanese.vocabulary.translation.service.pipeline
 
 /**
- * The single kana-normalization entry point for the pipeline.
- *
- * Readings enter the pipeline from three sources that disagree on script: the segmentation LLM
- * (asked for katakana, sometimes answers in hiragana), jisho (always hiragana), and
- * [RuleMeaningProvider]'s hand-written table (hiragana surfaces). The app's
- * `readingConverter.convertReading` assumes **katakana** input — its `KANA_MAP` keys are katakana, so
- * a hiragana reading silently breaks both the katakana and the Korean display modes. Everything that
- * produces a reading therefore normalizes through [toKatakana] here, and nowhere else.
+ * The single kana-normalization entry point for the pipeline. Readings arrive in mixed scripts (LLM,
+ * jisho, [RuleMeaningProvider]) but the app's `readingConverter.convertReading` assumes **katakana**;
+ * a hiragana reading silently breaks its display modes. Every reading normalizes through [toKatakana].
  */
 object JapaneseText {
 
@@ -25,12 +20,9 @@ object JapaneseText {
      * True when [text] contains a character that is *pronounced* — kana, kanji, or the marks that
      * stand in for one (`々`, `ー`, the kana iteration marks).
      *
-     * The exclusions matter as much as the inclusions. `・` (U+30FB), `゠` (U+30A0), `ヿ` (U+30FF) and
-     * the combining dakuten all sit inside the katakana Unicode block but are punctuation: they have
-     * no reading. Counting them as Japanese would demand a reading no model can supply and no
-     * [isKanaOnly] check can accept, deadlocking segmentation retries for a line like `ロックン・ロール`.
-     * Conversely `々` sits outside every kana and kanji block yet is read aloud, so leaving it out let
-     * `人々` pass segmentation with `々` uncovered and leak a raw glyph into the assembled reading.
+     * `・` (U+30FB), `゠` (U+30A0), `ヿ` (U+30FF) and the combining dakuten sit inside the katakana
+     * block but are punctuation; counting them would deadlock segmentation retries on a line like
+     * `ロックン・ロール`. Conversely `々` is outside every kana/kanji block yet read aloud.
      */
     fun containsJapanese(text: String): Boolean = text.any { it.hasReading() }
 
@@ -40,11 +32,8 @@ object JapaneseText {
     }.joinToString("")
 
     /**
-     * Katakana → hiragana, for a **dictionary lookup key** — never for a reading.
-     *
-     * Readings are stored in katakana and only [toKatakana] produces them. This is the other
-     * direction, and it exists because jisho's *search* is script-sensitive: a lyric that writes 私 as
-     * `アタシ` needs the query `あたし` to reach the entry at all.
+     * Katakana → hiragana, for a **dictionary lookup key** only, never a reading: jisho's search is
+     * script-sensitive (`アタシ` needs the query `あたし`).
      */
     fun toHiragana(text: String): String = text.map { ch ->
         if (ch in KATAKANA_START..KATAKANA_END) ch - KATAKANA_OFFSET else ch
@@ -78,8 +67,7 @@ object JapaneseText {
 
     /**
      * True when [text] is non-empty and made only of kana (either script) plus the prolonged sound
-     * mark. Kanji, latin, digits, and punctuation all make it false — this is the check that keeps an
-     * unnormalized surface from being stored as if it were a reading.
+     * mark. Keeps an unnormalized surface from being stored as a reading.
      */
     fun isKanaOnly(text: String): Boolean =
         text.isNotEmpty() && text.all { ch ->
@@ -101,9 +89,8 @@ object JapaneseText {
     /**
      * The reading of a particle [surface], or null when transliterating it is already right.
      *
-     * [toKatakana] alone cannot produce it: 夕暮れは is sung ユウグレワ, and the app derives the Hangul
-     * from this field, so a spelled reading showed 유-구레하. Positional, so compounds work too
-     * (には → ニワ, までは → マデワ).
+     * [toKatakana] alone cannot produce it (夕暮れは is sung ユウグレワ and the app derives Hangul
+     * from this field). Positional, so compounds work (には → ニワ, までは → マデワ).
      */
     fun particleReading(surface: String): String? {
         if (!isKanaOnly(surface)) return null
@@ -124,9 +111,7 @@ object JapaneseText {
     /**
      * True when [text] is non-empty and written only in katakana (plus the prolonged sound mark).
      *
-     * Marks the words a Japanese dictionary is not expected to answer: loanwords the lyric coined
-     * (`ステンバイミー`), onomatopoeia (`チリン`, `ダラッ`), and names. A missing dictionary entry is
-     * evidence of bad segmentation for everything else, but for these it is simply the truth, so they
+     * Marks words a dictionary is not expected to know (coined loanwords, onomatopoeia, names); they
      * are exempt from the headword check instead of burning segmentation retries.
      */
     fun isKatakanaOnly(text: String): Boolean =

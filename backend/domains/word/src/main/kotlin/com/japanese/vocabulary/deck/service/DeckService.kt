@@ -30,9 +30,8 @@ import java.time.Clock
 import java.time.Instant
 
 /**
- * 단어장은 word 의 부수 개념이지만 **word 보다 오래 산다**. 단어를 담을 때 [linkSavedWord] 로
- * 만들어지고 연결되지만, 안의 단어가 모두 지워져도 단어장은 남고 단어장을 지워도 단어는 남는다.
- * 쓰기 경로는 word 저장 트랜잭션에 합류하므로 여기서 새 트랜잭션을 열지 않는다.
+ * 단어장은 **word 보다 오래 산다**: 단어가 모두 지워져도 남고, 단어장을 지워도 단어는 남는다.
+ * 쓰기 경로는 word 저장 트랜잭션에 합류하므로 새 트랜잭션을 열지 않는다.
  */
 @Service
 class DeckService(
@@ -45,12 +44,8 @@ class DeckService(
 ) {
 
     /**
-     * Due cards scoped to one deck. The deck-membership query lives here (outer layer owns the
-     * join); response assembly is delegated to the flashcard module.
-     *
-     * [leadWordId] is the word the user just tapped in SongDetail — it must lead the returned
-     * queue even if FSRS hasn't made it due yet, so it is spliced to the front here and only
-     * added to [totalCount] when it wasn't already counted as due.
+     * Due cards scoped to one deck. [leadWordId] (the word just tapped in SongDetail) leads the queue
+     * even if not due, and is added to [totalCount] only when it wasn't already counted as due.
      */
     @Transactional(readOnly = true)
     fun getDueFlashcards(userId: Long, deckId: Long, limit: Int? = null, leadWordId: Long? = null): DueFlashcardsDto {
@@ -141,10 +136,7 @@ class DeckService(
 
     /**
      * 단어를 담을 단어장들을 확보한다. word 저장 트랜잭션 **안에서, 요청당 한 번** 부른다.
-     *
-     * deck 이 이미 있으면 락 없는 SELECT 라 word 저장과 같은 트랜잭션에 넣어도 잠금 시간이
-     * 늘지 않는다 — INSERT 락이 걸리는 건 그 유저가 그 deck 을 처음 만드는 순간뿐이고, 그마저도
-     * word 저장 자체가 재시도되는 경합 상황이라 별 트랜잭션으로 쪼개서 얻는 이득이 크지 않다.
+     * deck 이 이미 있으면 락 없는 SELECT 라 같은 트랜잭션에 넣어도 잠금 시간이 늘지 않는다.
      */
     @Transactional
     fun resolveDeckTargets(userId: Long, songIds: Collection<Long>): DeckTargets = DeckTargets(
@@ -153,8 +145,8 @@ class DeckService(
     )
 
     /**
-     * 방금 저장된 단어를 단어장에 연결한다. **word 저장과 같은 트랜잭션에서만** 호출된다 —
-     * "모든 단어는 전체 단어장에 속한다"는 불변식이 커밋 단위로 지켜져야 하기 때문이다.
+     * 저장된 단어를 단어장에 연결한다. "모든 단어는 전체 단어장에 속한다"는 불변식 때문에
+     * **word 저장과 같은 트랜잭션에서만** 호출한다.
      */
     @Transactional
     fun linkSavedWord(targets: DeckTargets, wordId: Long, songId: Long?) {
@@ -182,16 +174,11 @@ class DeckService(
     }
 
     /**
-     * 전체 단어장은 마이그레이션으로 실체화되지만, 이후 가입한 유저를 위해 없으면 만든다.
-     *
-     * 같은 유저가 동시에 담으면 여기서 `UNIQUE(user_id, is_default)` 에 걸릴 수 있다. 이 예외는
-     * 삼키지 않고 트랜잭션을 통째로 롤백시킨 뒤 [com.japanese.vocabulary.word.service.WordService]
-     * 가 새 트랜잭션으로 재시도한다 — 재시도의 새 스냅샷에서는 이긴 쪽이 만든 deck 이 보인다.
-     *
-     * `INSERT ... ON DUPLICATE KEY UPDATE` 로는 대체하지 않는다 — 값이 안 바뀌는 UPDATE 는
-     * MySQL 이 실제 쓰기로 치지 않아(affected rows 0) 이 트랜잭션이 그 행을 소유하지 못하고,
-     * REPEATABLE READ 에서 재조회가 트랜잭션 시작 시점 스냅샷에 갇혀 방금 커밋된 행을 영영
-     * 못 볼 수 있다.
+     * 전체 단어장은 마이그레이션으로 만들어지지만, 이후 가입한 유저를 위해 없으면 만든다.
+     * 동시 저장 시 `UNIQUE(user_id, is_default)` 예외는 삼키지 않는다: 롤백 후 [com.japanese.vocabulary.word.service.WordService]
+     * 가 새 스냅샷에서 재시도해 이긴 쪽의 deck 을 본다.
+     * `INSERT ... ON DUPLICATE KEY UPDATE` 로 대체하지 않는다 — 값이 안 바뀌면 affected rows 0 이라 REPEATABLE READ
+     * 스냅샷에서 방금 커밋된 행을 영영 못 볼 수 있다.
      */
     private fun ensureDefaultDeckId(userId: Long): Long =
         deckRepository.findByUserIdAndIsDefaultTrue(userId)?.id

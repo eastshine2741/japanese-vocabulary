@@ -18,6 +18,7 @@ import com.japanese.vocabulary.translation.model.SenseSelectionStageInput
 import com.japanese.vocabulary.translation.model.TranslationPipelineSource
 import com.japanese.vocabulary.translation.model.WordPreparationResult
 import com.japanese.vocabulary.translation.service.pipeline.AnalysisDefectReporter
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
@@ -47,7 +48,7 @@ class SelectSensesStageTest {
     fun `asks one question per word, keyed by tokenId, with the word marked in the line`(): Unit = runBlocking {
         val questions = slot<Map<String, JevChoiceQuestion>>()
         val state = slot<Map<String, Any?>>()
-        every { jevClient.choose(any(), capture(state), capture(questions), any()) } returns answers(10, 15, 22)
+        coEvery { jevClient.choose(any(), capture(state), capture(questions), any()) } returns answers(10, 15, 22)
 
         stage.execute(input())
 
@@ -70,7 +71,7 @@ class SelectSensesStageTest {
         val second = PipelineToken(lineIndex, "て", "て", charStart = 4, charEnd = 5, contextGloss = "connective particle")
         val options = options(30, 31)
         val questions = slot<Map<String, JevChoiceQuestion>>()
-        every { jevClient.choose(any(), any(), capture(questions), any()) } answers {
+        coEvery { jevClient.choose(any(), any(), capture(questions), any()) } answers {
             thirdArg<Map<String, JevChoiceQuestion>>().mapValues { JevAnswer("30", 0.9) }
         }
 
@@ -89,7 +90,7 @@ class SelectSensesStageTest {
         val please = option(84, "please (do)", "Particle")
         val and = option(77, "and", "Particle / Conjunction")
         val questions = slot<Map<String, JevChoiceQuestion>>()
-        every { jevClient.choose(any(), any(), capture(questions), any()) } returns mapOf(te.key.tokenId to JevAnswer("84", 0.8))
+        coEvery { jevClient.choose(any(), any(), capture(questions), any()) } returns mapOf(te.key.tokenId to JevAnswer("84", 0.8))
 
         val selected = stage.execute(input(line, listOf(te to listOf(hand, please, and))))
 
@@ -99,7 +100,7 @@ class SelectSensesStageTest {
 
     @Test
     fun `treats an answer below the confidence cut as no sense, without a defect`(): Unit = runBlocking {
-        every { jevClient.choose(any(), any(), any(), any()) } returns mapOf(
+        coEvery { jevClient.choose(any(), any(), any(), any()) } returns mapOf(
             ii.key.tokenId to JevAnswer("10", SelectSensesStage.MIN_CONFIDENCE),
             tenki.key.tokenId to JevAnswer("15", SelectSensesStage.MIN_CONFIDENCE - 0.01),
             desu.key.tokenId to JevAnswer("22", 0.99),
@@ -115,7 +116,7 @@ class SelectSensesStageTest {
 
     @Test
     fun `still rejects a sense the word was never offered`(): Unit = runBlocking {
-        every { jevClient.choose(any(), any(), any(), any()) } returns answers(10, 15, 10)
+        coEvery { jevClient.choose(any(), any(), any(), any()) } returns answers(10, 15, 10)
         val reported = slot<AnalysisDefect>()
         every { defectReporter.report(capture(reported)) } returns Unit
 
@@ -128,7 +129,7 @@ class SelectSensesStageTest {
 
     @Test
     fun `reports a word the model left unanswered as missing`(): Unit = runBlocking {
-        every { jevClient.choose(any(), any(), any(), any()) } returns mapOf(
+        coEvery { jevClient.choose(any(), any(), any(), any()) } returns mapOf(
             ii.key.tokenId to JevAnswer("10", 0.9),
             desu.key.tokenId to JevAnswer("22", 0.9),
         )
@@ -240,8 +241,7 @@ class SelectSensesStageTest {
         }
         private val stage = SelectSensesStage(jevClient, defectReporter)
 
-        // 君のチクタクチクも僕の元に (song 94, line 39): jisho offered チク the 竹/築/地区 entries, and the
-        // model answered -1 because a clock's tick is none of them — exactly what the prompt tells it to do.
+        // 君のチクタクチクも僕の元に: jisho offered チク the 竹/築/地区 entries and the model rightly answered -1 (a clock's tick).
         private val raw = "君のチクタクチクも僕の元に"
         private val token = PipelineToken(
             lineIndex = 39,
@@ -258,7 +258,7 @@ class SelectSensesStageTest {
         @Test
         fun `takes an explicit -1 as the model saying no offered sense fits, not as a rejected choice`(): Unit =
             runBlocking {
-                every { jevClient.choose(any(), any(), any(), any()) } returns mapOf(
+                coEvery { jevClient.choose(any(), any(), any(), any()) } returns mapOf(
                     token.key.tokenId to JevAnswer("-1", 0.9),
                 )
 
@@ -271,7 +271,7 @@ class SelectSensesStageTest {
         @Test
         fun `still reports a -1 that names a token other than the one asked about`(): Unit = runBlocking {
             // The answer belongs to no token that was asked about, so チク itself went unanswered.
-            every { jevClient.choose(any(), any(), any(), any()) } returns mapOf("39:0:1:君" to JevAnswer("-1", 0.9))
+            coEvery { jevClient.choose(any(), any(), any(), any()) } returns mapOf("39:0:1:君" to JevAnswer("-1", 0.9))
 
             val selected = stage.execute(input())
 

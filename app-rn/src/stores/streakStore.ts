@@ -77,8 +77,7 @@ export const useStreakStore = create<StreakState>((set, get) => ({
     }
   },
 
-  // 홈 통계를 다시 받기 전까지는 studiedToday 가 true 로 남는다 — 하루 경계(04:00)를 넘겨도
-  // 한 세션에서는 축하 화면을 한 번만 보이고, 다음 홈 진입 때 새 날짜 기준으로 갱신된다.
+  // 홈 통계를 다시 받기 전까지 studiedToday 가 true 로 남아, 04:00 경계를 넘겨도 한 세션에 축하 화면은 한 번만 뜬다.
   recordRating: () => {
     const { loaded, studiedToday, currentStreak, hasStudiedBefore, weekDots } = get();
     if (!loaded || studiedToday) return;

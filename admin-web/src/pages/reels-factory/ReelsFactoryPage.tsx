@@ -99,8 +99,6 @@ export function ReelsFactoryPage() {
   // 서버는 올려 둔 MV 로만 렌더한다.
   const canRender = inputReady && mvUrl != null && !rendering
 
-  // ── 편집 ──────────────────────────────────────────────────────────────────
-
   const handleToggleLine = React.useCallback(
     (index: number) => {
       if (!detail) return
@@ -137,8 +135,6 @@ export function ReelsFactoryPage() {
     (sourceStartMs: number) => setEditor((current) => shiftAll(current, sourceStartMs - current.sourceStartMs)),
     [],
   )
-
-  // ── 트랜스포트 ─────────────────────────────────────────────────────────────
 
   // 모드가 바뀌면 모니터의 모드 효과가 새 플레이헤드로 따라가고, 같은 모드면 여기서 바로 seek 한다.
   const seekSource = React.useCallback((ms: number) => {
@@ -202,8 +198,6 @@ export function ReelsFactoryPage() {
     window.addEventListener("keydown", onKeyDown)
     return () => window.removeEventListener("keydown", onKeyDown)
   }, [fps, handleSetEnd, handleSetSourceStart, markSelectedLine, seekCurrent])
-
-  // ── 서버 ───────────────────────────────────────────────────────────────────
 
   async function uploadSource(file: File) {
     if (!token || !detail) return

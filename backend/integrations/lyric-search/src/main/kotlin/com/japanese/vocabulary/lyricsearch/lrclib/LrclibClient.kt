@@ -1,6 +1,7 @@
 package com.japanese.vocabulary.lyricsearch.lrclib
 
 import org.springframework.stereotype.Component
+import com.japanese.vocabulary.common.retry.TransientHttpErrors
 import com.japanese.vocabulary.lyricsearch.JapaneseLyricValidator
 import com.japanese.vocabulary.lyricsearch.ArtistNameNormalizer
 import com.japanese.vocabulary.lyricsearch.ItunesArtistAliasVerifier
@@ -49,6 +50,8 @@ class LrclibClient(
 
             null
         } catch (e: Exception) {
+            // An outage is not a miss: the caller retries it and must not report "no lyrics".
+            if (TransientHttpErrors.isTransient(e)) throw e
             logger.warn("LrcLib lyrics search failed for: ${query.originalArtist} - ${query.originalTitle}", e)
             null
         }
@@ -131,6 +134,7 @@ class LrclibClient(
                 .body(Array<LrclibResponse>::class.java)
                 ?.toList()
         } catch (e: RestClientResponseException) {
+            if (TransientHttpErrors.isTransient(e)) throw e
             null
         }
     }
@@ -155,10 +159,8 @@ class LrclibClient(
             }
         }
 
-        // Tier 2: duration match for cross-script artist names (あいみょん vs Aimyon). Duration alone
-        // is not evidence — a one-character title like 『恋』 has dozens of same-titled songs within a
-        // few seconds of each other — so the candidate's artist must resolve to ours through an alias
-        // lookup before it is accepted.
+        // Tier 2: duration match for cross-script artist names (あいみょん vs Aimyon). Duration alone is not
+        // evidence (short titles like 『恋』 have many same-length songs), so the artist must also resolve via alias lookup.
         val durationSeconds = query.durationSeconds ?: return null
         val verifiedArtists = mutableMapOf<String, Boolean>()
         for (response in results) {

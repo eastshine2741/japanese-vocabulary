@@ -14,11 +14,8 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 
 /**
- * The reason this class exists: the segmentation prompt asks for particles as their own words but
- * nothing enforced it, so `幸せがある` arrived as one token whose reading `ガアル` reached the app as a
- * single word (rendered 가아루). The split fires on the model contradicting itself — surface = headword
- * plus a particle — and every uncertain case is left whole, because a wrong split destroys a real word
- * while leaving one glued only mis-renders a meaning that is already correct.
+ * The split fires on the model contradicting itself (surface = headword plus a particle) and every
+ * uncertain case is left whole: a wrong split destroys a real word, a glued one only mis-renders.
  */
 class GluedParticleSplitterTest {
     private val jishoService = mockk<JishoService>()
@@ -50,8 +47,7 @@ class GluedParticleSplitterTest {
 
     @Test
     fun `a reading that leaves the particle out keeps the word's reading whole`(): Unit = runBlocking {
-        // までは came back with reading マデ, not マデハ: the particle's kana is simply absent, so there
-        // is nothing to take off. Dropping a character here would have produced マデ → マ.
+        // までは came back with reading マデ: the particle's kana is absent, so nothing is dropped (else マデ → マ).
         stubMissing("までは")
 
         val tokens = split(token(surface = "までは", headword = "まで", used = "マデ", base = "マデ", start = 6))
@@ -120,8 +116,8 @@ class GluedParticleSplitterTest {
 
     @Test
     fun `an inflected form whose headword differs by more than the particle is not split`(): Unit = runBlocking {
-        // 帰れない ends in a character that is not a particle at all, and 離れない's headword is not the
-        // surface minus one particle — neither shape matches, so no dictionary call is even made.
+        // Neither shape matches (帰れない does not end in a particle; 離れない's headword is not the
+        // surface minus one), so no dictionary call is made.
         val tokens = split(
             token(surface = "離れない", headword = "離れる", used = "ハナレナイ", base = "ハナレル", start = 4),
         )

@@ -12,13 +12,11 @@ import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 
 /**
- * Cache-aside orchestration over [JishoClient]: serves jisho lookups from [JishoCache] first and
- * fetches misses under a global concurrency limit. The [JishoClient] only talks to the API.
+ * Cache-aside over [JishoClient]: [JishoCache] first, misses fetched under a global concurrency limit.
  *
- * - **Bounded concurrency**: a process-global [Semaphore] caps concurrent outbound requests at
- *   [MAX_CONCURRENCY]; 3 stays under jisho's rate limit (6 was observed to trigger HTTP 429).
- * - **Never cache failures**: a fetch error yields a not-found result that is NOT cached, so it
- *   retries on the next run. Successful fetches (found or genuine not-found) are cached.
+ * - A process-global [Semaphore] caps outbound requests at [MAX_CONCURRENCY]; 6 triggered HTTP 429.
+ * - A fetch error yields a not-found result that is NOT cached. Successful fetches (found or
+ *   genuine not-found) are cached.
  */
 @Service
 class JishoService(
@@ -27,10 +25,6 @@ class JishoService(
 ) {
     private val semaphore = Semaphore(MAX_CONCURRENCY)
 
-    /**
-     * Look up many dictionary forms. Cache-first; uncached forms are fetched under the global
-     * concurrency limit. Successful fetches (including genuine not-found) are cached; errors are not.
-     */
     suspend fun lookupAll(words: List<String>): Map<String, JishoEntryDto> = coroutineScope {
         words.distinct()
             .map { word -> async { word to lookup(word) } }

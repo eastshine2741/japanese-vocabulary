@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: worker-config
+data:
+  MYSQL_HOST: mysql
+  REDIS_HOST: redis
+  RABBITMQ_HOST: rabbitmq
+  MYSQL_DATABASE: "${MYSQL_DATABASE}"
+  PUSH_FIREBASE_ENABLED: "true"
+  SPRING_PROFILES_ACTIVE: "prod"
