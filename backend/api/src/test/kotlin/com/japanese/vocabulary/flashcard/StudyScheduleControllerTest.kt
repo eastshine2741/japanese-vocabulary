@@ -61,10 +61,6 @@ class StudyScheduleControllerTest : ApiBaseIntegrationTest() {
         return objectMapper.readValue(body, StudyScheduleResponse::class.java)
     }
 
-    /** [day] 일차 학습일이 끝나기 [before] 전 순간. */
-    private fun beforeEndOf(day: Long, before: Duration = Duration.ofMinutes(1)): Instant =
-        kstClock.endOf(kstClock.todayStudyDate().plusDays(day)).minus(before)
-
     @Test
     fun `summary previews the due queue head and the forecast covers a year from today`() {
         val me = newUser()
@@ -78,7 +74,6 @@ class StudyScheduleControllerTest : ApiBaseIntegrationTest() {
         val response = schedule(me)
 
         assertThat(response.dueToday).isEqualTo(4)
-        assertThat(response.totalCards).isEqualTo(5)
         assertThat(response.previewWords.map { it.wordId })
             .containsExactly(first.wordId, second.wordId, third.wordId)
         assertThat(response.previewWords.map { it.japanese }).containsExactly("手放す", "眩しい", "確かめる")
@@ -88,15 +83,17 @@ class StudyScheduleControllerTest : ApiBaseIntegrationTest() {
     }
 
     @Test
-    fun `dueTomorrow counts cards due later today or tomorrow`() {
+    fun `due cards split into new ones and ones studied before`() {
         val me = newUser()
-        newCard(me, dueAt = clock.instant().minus(Duration.ofDays(3)))
-        newCard(me, dueAt = clock.instant())
+        repeat(2) { newMatureCard(me) }
+        repeat(3) { newCard(me, dueAt = clock.instant()) }
         newCard(me, dueAt = clock.instant().plusSeconds(60))
-        newCard(me, dueAt = beforeEndOf(1))
-        newCard(me, dueAt = beforeEndOf(1, before = Duration.ZERO))
 
-        assertThat(schedule(me).dueTomorrow).isEqualTo(2)
+        val response = schedule(me)
+
+        assertThat(response.dueToday).isEqualTo(5)
+        assertThat(response.newToday).isEqualTo(3)
+        assertThat(response.studiedCards).isEqualTo(2)
     }
 
     @Test
@@ -115,15 +112,15 @@ class StudyScheduleControllerTest : ApiBaseIntegrationTest() {
     }
 
     @Test
-    fun `cards never reviewed count as remembered only once the simulation reviews them`() {
+    fun `new cards stay out of the forecast`() {
         val me = newUser()
-        newCard(me, dueAt = clock.instant())
+        repeat(10) { newMatureCard(me) }
+        repeat(5) { newCard(me, dueAt = clock.instant()) }
 
         val days = schedule(me).days
 
-        assertThat(days.map { it.rememberedIfSkipped }).containsOnly(0)
-        assertThat(days[0].rememberedIfReviewed).isEqualTo(0)
-        assertThat(days[1].rememberedIfReviewed).isEqualTo(1)
+        assertThat(days.map { it.rememberedIfReviewed }).allMatch { it <= 10 }
+        assertThat(days[1].rememberedIfReviewed).isEqualTo(10)
     }
 
     @Test

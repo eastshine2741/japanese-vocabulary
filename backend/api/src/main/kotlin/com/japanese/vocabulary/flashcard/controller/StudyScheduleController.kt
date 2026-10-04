@@ -24,8 +24,8 @@ class StudyScheduleController(
         val schedule = studyScheduleService.getSchedule(currentUserId(), dates.map(kstClock::endOf))
         return StudyScheduleResponse(
             dueToday = schedule.dueToday,
-            dueTomorrow = schedule.dueTomorrow,
-            totalCards = schedule.totalCards,
+            newToday = schedule.newToday,
+            studiedCards = schedule.studiedCards,
             previewWords = schedule.previewWords,
             days = dates.zip(schedule.days) { date, day ->
                 MemoryForecastDayResponse(

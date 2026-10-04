@@ -3,8 +3,8 @@ package com.japanese.vocabulary.flashcard.dto
 /** 앱 `app-rn/src/types/studySchedule.ts` 와 1:1. */
 data class StudyScheduleResponse(
     val dueToday: Long,
-    val dueTomorrow: Long,
-    val totalCards: Long,
+    val newToday: Long,
+    val studiedCards: Long,
     val previewWords: List<SchedulePreviewWordDto>,
     val days: List<MemoryForecastDayResponse>,
 )

@@ -61,17 +61,19 @@ export default function StudyScheduleScreen({ navigation }: Props) {
           <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
             <ScheduleSummary
               dueToday={data.dueToday}
-              totalCards={data.totalCards}
+              newToday={data.newToday}
+              studiedCards={data.studiedCards}
               previewWords={data.previewWords}
-              tomorrowIfStudied={data.dueTomorrow}
               onPressRule={openRule}
             />
 
-            <View style={styles.forecastCard}>
-              <Text style={styles.forecastTitle}>1년 뒤 기억하고 있을 단어</Text>
-              <Text style={styles.forecastCaption}>{FORECAST_CAPTION}</Text>
-              <ForecastChart days={data.days} totalCards={data.totalCards} />
-            </View>
+            {data.studiedCards > 0 && (
+              <View style={styles.forecastCard}>
+                <Text style={styles.forecastTitle}>1년 뒤 기억하고 있을 단어</Text>
+                <Text style={styles.forecastCaption}>{FORECAST_CAPTION}</Text>
+                <ForecastChart days={data.days} studiedCards={data.studiedCards} />
+              </View>
+            )}
           </ScrollView>
 
           {data.dueToday > 0 && (

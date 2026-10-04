@@ -27,23 +27,24 @@ class StudyScheduleService(
 
     /**
      * [dayEnds] 는 오늘부터 각 학습일이 끝나는 순간(다음 학습일의 시작, 미포함)이다. 학습일 경계(KST 04:00)는
-     * 호출자가 정하며, 내일 due 집계를 위해 최소 2개가 필요하다.
+     * 호출자가 정한다.
      */
     @Transactional(readOnly = true)
     fun getSchedule(userId: Long, dayEnds: List<Instant>): StudyScheduleDto {
-        require(dayEnds.size >= 2) { "dayEnds must cover today and tomorrow" }
         val now = Instant.now(clock)
         val cards = flashcardRepository.findByUserId(userId)
             .map { SimCard(id = it.id!!, wordId = it.wordId, due = it.due, card = Card.fromJson(it.fsrsCardJson)) }
             .sortedWith(QUEUE_ORDER)
         val dueNow = cards.filter { it.due <= now }
+        // 새 카드는 아직 외운 적이 없으니 '지켜 줄 기억'에 넣지 않는다 — 넣으면 하루 만에 다 외운 것처럼 뛴다.
+        val studied = cards.filter { it.card.lastReview != null }
 
         return StudyScheduleDto(
             dueToday = dueNow.size.toLong(),
-            dueTomorrow = cards.count { it.due > now && it.due < dayEnds[1] }.toLong(),
-            totalCards = cards.size.toLong(),
+            newToday = dueNow.count { it.card.lastReview == null }.toLong(),
+            studiedCards = studied.size.toLong(),
             previewWords = previewWords(dueNow.take(PREVIEW_WORD_LIMIT)),
-            days = memoryForecast(cards, now, dayEnds),
+            days = memoryForecast(studied, now, dayEnds),
         )
     }
 

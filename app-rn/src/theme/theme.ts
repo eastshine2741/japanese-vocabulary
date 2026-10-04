@@ -69,11 +69,8 @@ export const Colors = {
   // 오늘의 복습 스케줄 (1년 기억 예보)
   /** 매일 복습했을 때 기억하는 단어 수. */
   forecastReviewed: '#16B364',
-  /** 오늘부터 쉬었을 때 기억하는 단어 수. '미루면' 비교 막대와 같은 주황. */
+  /** 오늘부터 쉬었을 때 기억하는 단어 수. */
   forecastSkipped: '#F97316',
-  /** '오늘 미루면' 경고 카드의 테두리와 글자 — 바탕은 ratingHardBg 를 쓴다. */
-  warnBorder: '#FDBA74',
-  warnText: '#C2410C',
 
 
   // Legacy aliases

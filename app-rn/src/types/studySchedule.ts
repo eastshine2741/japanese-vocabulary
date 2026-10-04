@@ -4,7 +4,7 @@ export interface SchedulePreviewWord {
   japanese: string;
 }
 
-/** 그 학습일이 시작하는 순간 기억하고 있을 단어 수의 기대값 (카드별 FSRS 기억 확률의 합). */
+/** 그 학습일이 시작하는 순간 기억하고 있을 단어 수의 기대값 (한 번 이상 평가한 카드의 FSRS 기억 확률 합). */
 export interface MemoryForecastDay {
   /** yyyy-MM-dd (KST 학습일 경계). */
   date: string;
@@ -17,10 +17,10 @@ export interface MemoryForecastDay {
 export interface StudyScheduleResponse {
   /** 지금 due 인 카드 수. */
   dueToday: number;
-  /** 오늘 복습을 끝내도 내일 새로 due 가 되는 카드 수. */
-  dueTomorrow: number;
-  /** 보유한 전체 카드 수. */
-  totalCards: number;
+  /** dueToday 중 한 번도 평가하지 않은 새 카드 수. */
+  newToday: number;
+  /** 한 번 이상 평가한 카드 수. 예보는 이 카드들만 대상으로 한다. */
+  studiedCards: number;
   /** 오늘 목록 앞쪽 단어 (최대 3개). */
   previewWords: SchedulePreviewWord[];
   /** 오늘부터 365일. */
