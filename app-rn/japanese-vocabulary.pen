@@ -77533,190 +77533,6 @@
     },
     {
       "type": "frame",
-      "id": "VzBfy",
-      "x": 4840,
-      "y": 693,
-      "name": "component/streakToast",
-      "reusable": true,
-      "clip": true,
-      "width": 370,
-      "fill": {
-        "type": "gradient",
-        "gradientType": "linear",
-        "enabled": true,
-        "rotation": 270,
-        "size": {
-          "height": 1
-        },
-        "colors": [
-          {
-            "color": "#FF5A1F",
-            "position": 0
-          },
-          {
-            "color": "#FF9500",
-            "position": 0.62
-          },
-          {
-            "color": "#FFB300",
-            "position": 1
-          }
-        ]
-      },
-      "cornerRadius": 20,
-      "stroke": "#FFFFFF4D",
-      "strokeWidth": 1,
-      "strokeAlignment": "inner",
-      "effect": [
-        {
-          "type": "shadow",
-          "shadowType": "outer",
-          "color": "#FF7A0080",
-          "offset": {
-            "x": 0,
-            "y": 10
-          },
-          "blur": 28
-        },
-        {
-          "type": "shadow",
-          "shadowType": "outer",
-          "color": "#FF950040",
-          "offset": {
-            "x": 0,
-            "y": 2
-          },
-          "blur": 6
-        }
-      ],
-      "gap": 14,
-      "padding": [
-        14,
-        18,
-        14,
-        16
-      ],
-      "alignItems": "center",
-      "children": [
-        {
-          "type": "icon",
-          "id": "yTlhL",
-          "layoutPosition": "absolute",
-          "x": 286,
-          "y": -22,
-          "name": "bgFlame",
-          "rotation": -14,
-          "width": 112,
-          "height": 112,
-          "icon": "flame-fill",
-          "library": "phosphor",
-          "fill": "#FFFFFF24"
-        },
-        {
-          "type": "ellipse",
-          "id": "EyyiF",
-          "layoutPosition": "absolute",
-          "x": -30,
-          "y": -40,
-          "name": "glow",
-          "fill": "#FFE08A66",
-          "width": 150,
-          "height": 150,
-          "effect": {
-            "type": "blur",
-            "radius": 30
-          }
-        },
-        {
-          "type": "ellipse",
-          "id": "lCI2R",
-          "layoutPosition": "absolute",
-          "x": 246,
-          "y": 12,
-          "name": "spark1",
-          "fill": "#FFFFFFE6",
-          "width": 6,
-          "height": 6
-        },
-        {
-          "type": "ellipse",
-          "id": "cE3ni",
-          "layoutPosition": "absolute",
-          "x": 264,
-          "y": 50,
-          "name": "spark2",
-          "fill": "#FFF3C4",
-          "width": 4,
-          "height": 4
-        },
-        {
-          "type": "ellipse",
-          "id": "zQ5tM",
-          "layoutPosition": "absolute",
-          "x": 240,
-          "y": 36,
-          "name": "spark3",
-          "fill": "#FFFFFFE6",
-          "width": 3,
-          "height": 3
-        },
-        {
-          "type": "ellipse",
-          "id": "IxiF1",
-          "layoutPosition": "absolute",
-          "x": 346,
-          "y": 12,
-          "name": "spark4",
-          "fill": "#FFF3C4",
-          "width": 5,
-          "height": 5
-        },
-        {
-          "type": "frame",
-          "id": "hdEAP",
-          "name": "textCol",
-          "width": "fill_container",
-          "layout": "vertical",
-          "gap": 3,
-          "children": [
-            {
-              "type": "text",
-              "id": "FabgZ",
-              "name": "eyebrow",
-              "fill": "#FFF4D6E0",
-              "content": "연속 학습 시작",
-              "fontFamily": "Inter",
-              "fontSize": 13,
-              "fontWeight": "600",
-              "letterSpacing": 0.2
-            },
-            {
-              "type": "text",
-              "id": "XeaNx",
-              "name": "toastLabel",
-              "fill": "#FFFFFF",
-              "effect": {
-                "type": "shadow",
-                "shadowType": "outer",
-                "color": "#B4400040",
-                "offset": {
-                  "x": 0,
-                  "y": 1
-                },
-                "blur": 2
-              },
-              "content": "오늘부터 함께 힘내요!",
-              "fontFamily": "$font.headings",
-              "fontSize": 22,
-              "fontWeight": "700",
-              "letterSpacing": -0.3
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "type": "frame",
       "id": "zGjvs",
       "x": 908,
       "y": 8000,
@@ -79162,130 +78978,6 @@
     },
     {
       "type": "frame",
-      "id": "wGKqA",
-      "x": 2354,
-      "y": 9021,
-      "name": "H1-A1. 홈 — 오늘 첫 rating 직후 · 연속 학습 시작!",
-      "clip": true,
-      "width": 402,
-      "height": 874,
-      "fill": "$ig-ink",
-      "layout": "vertical",
-      "children": [
-        {
-          "id": "OAKuv",
-          "type": "ref",
-          "ref": "T6NoGK",
-          "name": "wordCard",
-          "width": "fill_container",
-          "height": "fill_container",
-          "padding": [
-            142,
-            20,
-            26,
-            20
-          ],
-          "descendants": {
-            "AmvO6": {
-              "width": 482,
-              "height": 890
-            },
-            "kfEEc": {
-              "height": 826
-            },
-            "VP8if": {
-              "height": 826
-            },
-            "KJ2Rb": {
-              "height": 826
-            },
-            "Wdi2B": {
-              "content": "米津玄師"
-            },
-            "MoWdI": {
-              "content": "떠올린 후 탭해서 뜻 보기"
-            }
-          }
-        },
-        {
-          "id": "T48Uv",
-          "type": "ref",
-          "ref": "xBxWk",
-          "name": "chrome",
-          "width": 402,
-          "layoutPosition": "absolute",
-          "x": 0,
-          "y": 0,
-          "descendants": {
-            "t98d8": {
-              "justifyContent": "end"
-            },
-            "lDLQ2": {
-              "enabled": false
-            },
-            "LuvyJ": {
-              "content": "4 / 12"
-            }
-          }
-        },
-        {
-          "type": "frame",
-          "id": "d4OBN",
-          "name": "navWrap",
-          "width": "fill_container",
-          "fill": "#FFFFFF00",
-          "children": [
-            {
-              "id": "K22IiV",
-              "type": "ref",
-              "ref": "anPPw",
-              "name": "BottomNavBar",
-              "width": "fill_container",
-              "theme": {
-                "selected-tab": "home"
-              },
-              "fill": "$ig-ink",
-              "stroke": "#FFFFFF1F",
-              "strokeWidth": {
-                "top": 1
-              },
-              "descendants": {
-                "JWWYd": {
-                  "fill": "#FFFFFF"
-                },
-                "4tzVt": {
-                  "icon": "$tab.words.iconName",
-                  "library": "phosphor",
-                  "fill": "#FFFFFF80"
-                },
-                "wOA4W": {
-                  "fill": "#FFFFFF80"
-                }
-              }
-            }
-          ]
-        },
-        {
-          "id": "pbjet",
-          "type": "ref",
-          "ref": "VzBfy",
-          "name": "streakToast",
-          "x": 16,
-          "y": 138,
-          "layoutPosition": "absolute",
-          "descendants": {
-            "FabgZ": {
-              "content": "연속 학습 시작"
-            },
-            "XeaNx": {
-              "content": "오늘부터 함께 힘내요!"
-            }
-          }
-        }
-      ]
-    },
-    {
-      "type": "frame",
       "id": "ewCg7",
       "x": 908,
       "y": 8960,
@@ -79752,133 +79444,10 @@
               "id": "cCSOM",
               "name": "h",
               "fill": "$foreground.primary",
-              "content": "A. 완료 표시 (후보 1 · 플로팅 배너) — 오늘 첫 rating 직후, 몰입 크롬 진행바 아래(양옆 16 여백, 폭 370)에 떠오름. 카드 조작 영역(탭·스와이프·rating)을 덮지 않음",
+              "content": "A. 완료 표시 — 플로팅 배너는 폐기. 오늘 첫 rating 직후 전체 화면 축하로 대체한다 (spec/StreakCelebration · S1 / S2 프레임 참고)",
               "fontFamily": "Inter",
               "fontSize": 15,
               "fontWeight": "700"
-            },
-            {
-              "type": "frame",
-              "id": "hWuXQ",
-              "name": "darkStrip",
-              "fill": "$ig-ink",
-              "cornerRadius": 12,
-              "gap": 36,
-              "padding": 20,
-              "children": [
-                {
-                  "type": "frame",
-                  "id": "A5Df1",
-                  "name": "toast1",
-                  "layout": "vertical",
-                  "gap": 10,
-                  "children": [
-                    {
-                      "id": "rfzF6",
-                      "type": "ref",
-                      "ref": "VzBfy",
-                      "name": "toast",
-                      "descendants": {
-                        "FabgZ": {
-                          "content": "연속 학습 시작"
-                        },
-                        "XeaNx": {
-                          "content": "오늘부터 함께 힘내요!"
-                        }
-                      }
-                    },
-                    {
-                      "type": "text",
-                      "id": "jFEPr",
-                      "name": "cap",
-                      "fill": "#FFFFFFB3",
-                      "content": "첫날 (N=1, 이전 기록 없음)",
-                      "fontFamily": "Inter",
-                      "fontSize": 12,
-                      "fontWeight": "normal"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "HskFf",
-                  "name": "toast2",
-                  "layout": "vertical",
-                  "gap": 10,
-                  "children": [
-                    {
-                      "id": "I6XuZX",
-                      "type": "ref",
-                      "ref": "VzBfy",
-                      "name": "toast",
-                      "descendants": {
-                        "FabgZ": {
-                          "content": "연속 학습 4일째"
-                        },
-                        "XeaNx": {
-                          "content": "4일째 이어가고 있어요!"
-                        }
-                      }
-                    },
-                    {
-                      "type": "text",
-                      "id": "S7ud4",
-                      "name": "cap",
-                      "fill": "#FFFFFFB3",
-                      "content": "이어감 (N≥2) · 어제 freeze여도 동일",
-                      "fontFamily": "Inter",
-                      "fontSize": 12,
-                      "fontWeight": "normal"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "HVLag",
-                  "name": "toast3",
-                  "layout": "vertical",
-                  "gap": 10,
-                  "children": [
-                    {
-                      "id": "outJy",
-                      "type": "ref",
-                      "ref": "VzBfy",
-                      "name": "toast",
-                      "descendants": {
-                        "FabgZ": {
-                          "content": "연속 학습 다시 시작"
-                        },
-                        "XeaNx": {
-                          "content": "돌아오신 걸 환영해요!"
-                        }
-                      }
-                    },
-                    {
-                      "type": "text",
-                      "id": "J8v3IC",
-                      "name": "cap",
-                      "fill": "#FFFFFFB3",
-                      "content": "끊긴 뒤 재시작 (N=1, 이전 기록 있음)",
-                      "fontFamily": "Inter",
-                      "fontSize": 12,
-                      "fontWeight": "normal"
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              "type": "text",
-              "id": "tI2ij",
-              "name": "note",
-              "fill": "$foreground.secondary",
-              "textGrowth": "fixed-width",
-              "width": 1100,
-              "content": "모션: 위에서 8px 내려오며 페이드 인 220ms → 2.4s 머무름 → 페이드 아웃 200ms. 사용자 조작 없음, 탭 동작 없음(B-3 미결과 동일하게 맞춤). 같은 날 두 번째 rating부터는 뜨지 않음. 하루 경계(04:00)를 넘겨도 한 세션에 한 번. 후보 2(불꽃이 헤더 칩으로 날아감)는 현재 홈에서 rating이 항상 몰입 상태(헤더 접힘)에서만 일어나 도착점이 없어 제외 — 아래 보고 참고.",
-              "lineHeight": 1.5,
-              "fontFamily": "Inter",
-              "fontSize": 12,
-              "fontWeight": "normal"
             }
           ]
         },
@@ -80690,130 +80259,6 @@
               "fontWeight": "normal"
             }
           ]
-        }
-      ]
-    },
-    {
-      "type": "frame",
-      "id": "NfOFD",
-      "x": 2824,
-      "y": 9021,
-      "name": "H1-A2. 홈 — 오늘 첫 rating 직후 · 연속 학습 4일째",
-      "clip": true,
-      "width": 402,
-      "height": 874,
-      "fill": "$ig-ink",
-      "layout": "vertical",
-      "children": [
-        {
-          "id": "Gdd6i",
-          "type": "ref",
-          "ref": "T6NoGK",
-          "name": "wordCard",
-          "width": "fill_container",
-          "height": "fill_container",
-          "padding": [
-            142,
-            20,
-            26,
-            20
-          ],
-          "descendants": {
-            "AmvO6": {
-              "width": 482,
-              "height": 890
-            },
-            "kfEEc": {
-              "height": 826
-            },
-            "VP8if": {
-              "height": 826
-            },
-            "KJ2Rb": {
-              "height": 826
-            },
-            "Wdi2B": {
-              "content": "米津玄師"
-            },
-            "MoWdI": {
-              "content": "떠올린 후 탭해서 뜻 보기"
-            }
-          }
-        },
-        {
-          "id": "hmv9h",
-          "type": "ref",
-          "ref": "xBxWk",
-          "name": "chrome",
-          "width": 402,
-          "layoutPosition": "absolute",
-          "x": 0,
-          "y": 0,
-          "descendants": {
-            "t98d8": {
-              "justifyContent": "end"
-            },
-            "lDLQ2": {
-              "enabled": false
-            },
-            "LuvyJ": {
-              "content": "4 / 12"
-            }
-          }
-        },
-        {
-          "type": "frame",
-          "id": "uAimc",
-          "name": "navWrap",
-          "width": "fill_container",
-          "fill": "#FFFFFF00",
-          "children": [
-            {
-              "id": "G1LQP",
-              "type": "ref",
-              "ref": "anPPw",
-              "name": "BottomNavBar",
-              "width": "fill_container",
-              "theme": {
-                "selected-tab": "home"
-              },
-              "fill": "$ig-ink",
-              "stroke": "#FFFFFF1F",
-              "strokeWidth": {
-                "top": 1
-              },
-              "descendants": {
-                "JWWYd": {
-                  "fill": "#FFFFFF"
-                },
-                "4tzVt": {
-                  "icon": "$tab.words.iconName",
-                  "library": "phosphor",
-                  "fill": "#FFFFFF80"
-                },
-                "wOA4W": {
-                  "fill": "#FFFFFF80"
-                }
-              }
-            }
-          ]
-        },
-        {
-          "id": "N9fCA",
-          "type": "ref",
-          "ref": "VzBfy",
-          "name": "streakToast",
-          "x": 16,
-          "y": 138,
-          "layoutPosition": "absolute",
-          "descendants": {
-            "FabgZ": {
-              "content": "연속 학습 4일째"
-            },
-            "XeaNx": {
-              "content": "4일째 이어가고 있어요!"
-            }
-          }
         }
       ]
     },
@@ -100018,14 +99463,11 @@
                   ]
                 },
                 {
-                  "type": "icon",
-                  "id": "z4KVXP",
+                  "type": "frame",
+                  "id": "AzdrQ",
                   "name": "heroFlame",
                   "width": 124,
                   "height": 124,
-                  "icon": "flame-fill",
-                  "library": "phosphor",
-                  "fill": "$ig-flame",
                   "effect": {
                     "type": "shadow",
                     "shadowType": "outer",
@@ -100035,7 +99477,46 @@
                       "y": 6
                     },
                     "blur": 26
-                  }
+                  },
+                  "layout": "none",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "l6O0I",
+                      "x": 0,
+                      "y": 0,
+                      "name": "flameOuter",
+                      "width": 124,
+                      "height": 124,
+                      "icon": "fire-fill",
+                      "library": "phosphor",
+                      "fill": "#FF4D12"
+                    },
+                    {
+                      "type": "icon",
+                      "id": "nrqDn",
+                      "x": 9.92,
+                      "y": 24.8,
+                      "name": "flameMid",
+                      "width": 104.16,
+                      "height": 104.16,
+                      "icon": "fire-fill",
+                      "library": "phosphor",
+                      "fill": "#FF9500"
+                    },
+                    {
+                      "type": "icon",
+                      "id": "ctEf0",
+                      "x": 34.720000000000006,
+                      "y": 62,
+                      "name": "flameCore",
+                      "width": 54.56,
+                      "height": 54.56,
+                      "icon": "fire-fill",
+                      "library": "phosphor",
+                      "fill": "#FFE08A"
+                    }
+                  ]
                 }
               ]
             }
