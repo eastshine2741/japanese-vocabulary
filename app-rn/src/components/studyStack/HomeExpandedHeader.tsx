@@ -10,9 +10,9 @@ import { DeckStrip, DECK_STRIP_HEIGHT } from './DeckStrip';
 import { StreakNudge } from './StreakNudge';
 import { StudySource } from './types';
 
-const APP_BAR_HEIGHT = 52;
+const APP_BAR_HEIGHT = 62;
 /** 말풍선 꼬리 끝이 칩 아래 4px 에 오도록 앱바 바닥에서 끌어올리는 값. */
-const NUDGE_OVERLAP = 12;
+const NUDGE_OVERLAP = 14;
 
 /** 곡 진입 복습과 다르게 홈 최초 진입은 덱 스트립까지 펼친다. */
 export const HOME_HEADER_CONTENT_HEIGHT = APP_BAR_HEIGHT + DECK_STRIP_HEIGHT;
@@ -26,6 +26,10 @@ export interface HomeExpandedHeaderProps {
   onSearch: () => void;
   /** 연속 학습 칩을 눌렀을 때 — 프로필 탭으로 보낸다. */
   onPressStreak: () => void;
+  /** 오늘 아직 남은 due 장수. 0이면 숫자 블록 대신 워드마크를 띄운다. */
+  dueRemaining: number;
+  /** '오늘 복습할 단어가 N개' 블록을 눌렀을 때 — 오늘의 복습 스케줄로 보낸다. */
+  onPressSchedule: () => void;
   /** 0 = 펼침(H5), 1 = 몰입(H1). UI 스레드에서 굴러가는 값. */
   immerse: SharedValue<number>;
 }
@@ -41,6 +45,8 @@ export const HomeExpandedHeader = React.memo(function HomeExpandedHeader({
   onSelectDeckStripItem,
   onSearch,
   onPressStreak,
+  dueRemaining,
+  onPressSchedule,
   immerse,
 }: HomeExpandedHeaderProps) {
   const insets = useSafeAreaInsets();
@@ -70,9 +76,22 @@ export const HomeExpandedHeader = React.memo(function HomeExpandedHeader({
     <Animated.View style={[styles.shell, { height }, shell]} pointerEvents="box-none">
       <View style={{ height: insets.top }} pointerEvents="none" />
       <Animated.View style={[styles.appBar, appBar]} pointerEvents="box-none">
-        <Text style={styles.wordmark}>Kotonoha</Text>
+        {dueRemaining > 0 ? (
+          <Pressable style={styles.todayBlock} onPress={onPressSchedule} hitSlop={8}>
+            <View>
+              <Text style={styles.todayLead}>오늘 복습할 단어가</Text>
+              <View style={styles.countPhrase}>
+                <Text style={styles.todayNum}>{dueRemaining}</Text>
+                <Text style={styles.todayUnit}>개 남았어요</Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} />
+          </Pressable>
+        ) : (
+          <Text style={styles.wordmark}>Kotonoha</Text>
+        )}
         <Pressable style={styles.streak} onPress={onPressStreak} hitSlop={8}>
-          <Ionicons name="flame" size={20} color={Colors.streakFlame} />
+          <Ionicons name="flame" size={16} color={Colors.streakFlame} />
           <View style={styles.streakLabel}>
             <Text style={styles.streakNum}>{streak}일</Text>
             <Text style={styles.streakWord}>연속</Text>
@@ -120,26 +139,61 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
     color: Colors.textPrimary,
   },
-  streak: {
+  todayBlock: {
+    flexShrink: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  todayLead: {
+    ...Typography.bodySemiBold,
+    fontSize: 11,
+    lineHeight: 13,
+    letterSpacing: -0.2,
+    color: Colors.textSecondary,
+  },
+  countPhrase: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    gap: 3,
+    marginTop: 2,
+  },
+  todayNum: {
+    ...Typography.headingBold,
+    fontSize: 26,
+    lineHeight: 26,
+    letterSpacing: -0.8,
+    color: Colors.primary,
+  },
+  todayUnit: {
+    ...Typography.bodySemiBold,
+    fontSize: 17,
+    letterSpacing: -0.2,
+    color: Colors.textPrimary,
+  },
+  streak: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    backgroundColor: Colors.streakPillBg,
   },
   streakLabel: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    gap: 3,
+    gap: 2,
   },
   streakNum: {
     ...Typography.bodyBold,
     fontSize: 14,
     letterSpacing: -0.2,
-    color: Colors.textPrimary,
+    color: Colors.streakPillText,
   },
   streakWord: {
     ...Typography.bodyMedium,
-    fontSize: 14,
-    color: Colors.textSecondary,
+    fontSize: 13,
+    color: Colors.streakPillText,
   },
   deckStripWrap: {
     height: DECK_STRIP_HEIGHT,

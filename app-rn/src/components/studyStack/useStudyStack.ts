@@ -102,6 +102,11 @@ export interface StudyStackState {
   recommendedSource: StudySource | null;
   /** mode 'home' 에서만 채워진다. 덱 스트립에 그릴 목록 — 곡 덱이 있으면 due 많은 순 덱 목록, 없으면 추천곡 목록. */
   deckStripItems: StudySource[];
+  /**
+   * mode 'home' 에서만 채워진다. 지금 고른 곡이 아니라 **전체** 덱에서 오늘 아직 남은 due 장수.
+   * 홈 헤더와 오늘의 복습 스케줄 화면이 같은 숫자를 보여야 해서 세션 큐가 아니라 이 값을 쓴다.
+   */
+  dueTodayCount: number;
   /** 덱 스트립에서 현재 강조돼야 할 항목. `selectSource` 로 바뀐다. */
   selectedSource: StudySource | null;
   /** 무대(아트워크)가 그려야 할 곡. 아무 것도 없으면 null. */
@@ -142,6 +147,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
   const [nextDueSource, setNextDueSource] = useState<StudySource | null>(null);
   const [recommendedSource, setRecommendedSource] = useState<StudySource | null>(null);
   const [deckStripItems, setDeckStripItems] = useState<StudySource[]>([]);
+  const [dueTodayCount, setDueTodayCount] = useState(0);
   const [selectedSource, setSelectedSource] = useState<StudySource | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [reviewError, setReviewError] = useState<string | null>(null);
@@ -443,6 +449,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     isPreviewRef.current = false;
     fixedQueueRef.current = false;
     setDueCount(0);
+    setDueTodayCount(0);
     setReviewedCount(0);
     setSessionDueTotal(0);
     reviewedIdsRef.current = new Set();
@@ -451,16 +458,18 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     setStatus('loading');
     setLoadError(null);
     try {
-      const [deckRes, homeStats, recommendations] = await Promise.all([
+      const [deckRes, homeStats, recommendations, stats] = await Promise.all([
         deckApi.getDecks(),
         studyStatsApi.getHome(),
         songApi.getRecommendations(),
+        flashcardApi.getStats(),
       ]);
       if (version !== requestVersion.current) return;
+      setDueTodayCount(stats.due);
       const recommendedItems = recommendations.map(sourceFromRecommendation);
       const recommended = recommendedItems[0] ?? null;
       setRecommendedSource(recommended);
-      // 헤더 칩·넛지·완료 배너는 streakStore 가 든다. 실패 시 임의값으로 메우지 않는다.
+      // 헤더 칩·넛지·축하 화면은 streakStore 가 든다. 실패 시 임의값으로 메우지 않는다.
       useStreakStore.getState().applyHomeStats(homeStats);
 
       // 곡에 매핑되지 않은 일반 단어장(songId == null)은 덱 스트립의 곡 선택 대상이 아니다.
@@ -491,6 +500,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     } catch (e: any) {
       if (version !== requestVersion.current) return;
       setLoadError(e.message ?? '홈 데이터를 불러오지 못했어요');
+      setDueTodayCount(0);
       setCards([]);
       setCompletedSource(null);
       setNextDueSource(null);
@@ -687,6 +697,17 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
       }
       // FSRS 는 리뷰 직후 due 를 항상 미래로 미룬다 — 서버 왕복 없이 큐 카운터를 맞춰둔다.
       setDueCount(count => Math.max(0, count - 1));
+      setDueTodayCount(count => Math.max(0, count - 1));
+      // 덱 스트립 due 배지도 같이 줄인다 — 다시 불러오기 전까지 로드 시점 값으로 멈춰 있으면
+      // 다 푼 곡에 남은 장수가 그대로 붙어 있다.
+      const reviewedDeckId = reviewedCard.source.deckId;
+      if (reviewedDeckId != null) {
+        setDeckStripItems(items => items.map(item => (
+          item.deckId === reviewedDeckId
+            ? { ...item, dueCount: Math.max(0, item.dueCount - 1) }
+            : item
+        )));
+      }
       const nextIndex = currentIndexRef.current + 1;
       if (nextIndex < cardsRef.current.length) {
         // 다음 카드는 이미 미리 불러와져 있다 — 스와이프 도중 네트워크를 기다리지 않는다.
@@ -855,6 +876,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     nextDueSource,
     recommendedSource,
     deckStripItems,
+    dueTodayCount,
     selectedSource,
     visibleSource,
     session,
@@ -885,6 +907,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     nextDueSource,
     recommendedSource,
     deckStripItems,
+    dueTodayCount,
     selectedSource,
     visibleSource,
     session,

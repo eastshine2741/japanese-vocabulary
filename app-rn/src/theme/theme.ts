@@ -48,6 +48,9 @@ export const Colors = {
 
   // Streak / study stats
   streakFlame: '#FF9500',
+  /** 홈 헤더 연속 학습 칩 — 불꽃 배경과 글자. */
+  streakPillBg: '#FFF4E5',
+  streakPillText: '#B45309',
   heatmapIntensities: ['#EEEEEE', '#C9F0DB', '#8CE1B4', '#3CC784', '#107A45'] as const,
   freezeFill: '#E8F0F9',
   freezeStroke: '#5B9BF5',
@@ -62,6 +65,15 @@ export const Colors = {
   /** 남음 — 한 번도 학습하지 않은 단어. */
   memoryRemaining: '#D2D2D2',
   tierTrack: '#EEEEEE',
+
+  // 오늘의 복습 스케줄 (FSRS 예보)
+  /** 목표대로 매일 복습했을 때 그날 보는 양. */
+  forecastDaily: '#A8E3C4',
+  /** 미루면 쌓이는 양. */
+  forecastPile: '#F2A58F',
+  /** '오늘 미루면' 경고 카드의 테두리와 글자 — 바탕은 ratingHardBg 를 쓴다. */
+  warnBorder: '#FDBA74',
+  warnText: '#C2410C',
 
 
   // Legacy aliases

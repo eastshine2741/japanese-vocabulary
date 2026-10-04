@@ -18,7 +18,6 @@ export {
   type HomeExpandedHeaderProps,
 } from './HomeExpandedHeader';
 export { StreakNudge, STREAK_NUDGE_TEXT } from './StreakNudge';
-export { StreakToastHost } from './StreakToast';
 export {
   StackReviewOverlay,
   STACK_REVIEW_CHROME_HEIGHT,

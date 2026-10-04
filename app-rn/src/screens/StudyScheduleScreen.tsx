@@ -1,0 +1,147 @@
+import React, { useCallback, useRef } from 'react';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useFocusEffect } from '@react-navigation/native';
+import { useShallow } from 'zustand/react/shallow';
+import { AppBar } from '../components/AppBar';
+import { PrimaryButton } from '../components/PrimaryButton';
+import {
+  AppBottomSheetModal,
+  AppBottomSheetModalRef,
+  AppBottomSheetView,
+} from '../components/bottomSheet';
+import {
+  DailyTargetSlider,
+  ForecastChart,
+  ScheduleSummary,
+  SelectionRuleSheet,
+} from '../components/studySchedule';
+import { RootStackParamList } from '../navigation/AppNavigator';
+import { useHomeChromeStore } from '../stores/homeChromeStore';
+import { useStudyScheduleStore } from '../stores/studyScheduleStore';
+import { Colors } from '../theme/theme';
+import { Typography } from '../theme/typography';
+
+type Props = NativeStackScreenProps<RootStackParamList, 'StudySchedule'>;
+
+/** 시뮬레이션 결과와 무관한 고정 문구다. */
+const FORECAST_CAPTION = '매일 꾸준히 복습해야 쉽게 오래 공부할 수 있어요.';
+
+export default function StudyScheduleScreen({ navigation }: Props) {
+  const ruleSheetRef = useRef<AppBottomSheetModalRef>(null);
+  const { status, data, dailyTarget, load, setDailyTarget } = useStudyScheduleStore(
+    useShallow(s => ({
+      status: s.status,
+      data: s.data,
+      dailyTarget: s.dailyTarget,
+      load: s.load,
+      setDailyTarget: s.setDailyTarget,
+    })),
+  );
+  const requestImmerse = useHomeChromeStore(s => s.requestImmerse);
+
+  useFocusEffect(useCallback(() => { void load(true); }, [load]));
+
+  const openRule = useCallback(() => ruleSheetRef.current?.present(), []);
+  const closeRule = useCallback(() => ruleSheetRef.current?.dismiss(), []);
+
+  // 복습은 홈 카드 스택에서 한다 — 홈으로 돌아가면서 바로 몰입 상태로 들어가게 한다.
+  const startReview = useCallback(() => {
+    requestImmerse();
+    navigation.goBack();
+  }, [navigation, requestImmerse]);
+
+  const goBack = useCallback(() => navigation.goBack(), [navigation]);
+
+  return (
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <AppBar title="오늘의 복습 스케줄" onBack={goBack} />
+
+      {data == null ? (
+        <View style={styles.center}>
+          {status === 'error' ? (
+            <Text style={styles.error}>스케줄을 불러오지 못했어요</Text>
+          ) : (
+            <ActivityIndicator color={Colors.primary} />
+          )}
+        </View>
+      ) : (
+        <>
+          <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+            <ScheduleSummary
+              dueToday={data.dueToday}
+              totalCards={data.totalCards}
+              previewWords={data.previewWords}
+              tomorrowIfStudied={data.days[1]?.scheduledDue ?? 0}
+              onPressRule={openRule}
+            />
+
+            <View style={styles.forecastCard}>
+              <Text style={styles.forecastTitle}>복습 스케줄 시뮬레이션</Text>
+              <Text style={styles.forecastCaption}>{FORECAST_CAPTION}</Text>
+              <ForecastChart days={data.days} dailyTarget={data.dailyTarget} />
+              <DailyTargetSlider value={dailyTarget} onCommit={setDailyTarget} />
+            </View>
+
+            {data.dueToday > 0 && (
+              <View style={styles.ctaWrap}>
+                <PrimaryButton
+                  label={`${data.dueToday}개 복습 시작`}
+                  icon="play"
+                  onPress={startReview}
+                />
+              </View>
+            )}
+          </ScrollView>
+
+          <AppBottomSheetModal ref={ruleSheetRef} enableDynamicSizing enablePanDownToClose>
+            <AppBottomSheetView>
+              <SelectionRuleSheet onConfirm={closeRule} />
+            </AppBottomSheetView>
+          </AppBottomSheetModal>
+        </>
+      )}
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  error: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+  },
+  content: {
+    gap: 24,
+    paddingTop: 4,
+    paddingHorizontal: 20,
+    paddingBottom: 24,
+  },
+  forecastCard: {
+    gap: 12,
+  },
+  forecastTitle: {
+    ...Typography.headingBold,
+    fontSize: 17,
+    letterSpacing: -0.3,
+    color: Colors.textPrimary,
+  },
+  forecastCaption: {
+    ...Typography.bodyMedium,
+    fontSize: 13,
+    lineHeight: 19,
+    color: Colors.textSecondary,
+  },
+  ctaWrap: {
+    paddingTop: 8,
+  },
+});

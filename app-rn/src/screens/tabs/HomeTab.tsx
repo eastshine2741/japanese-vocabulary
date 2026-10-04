@@ -41,12 +41,13 @@ export default function HomeTab() {
   const insets = useSafeAreaInsets();
   const focused = useIsFocused();
   const stack = useStudyStack({ mode: 'home' });
-  const { deckStripItems, isComplete, reload, selectSource, session, status } = stack;
+  const { deckStripItems, dueTodayCount, isComplete, reload, selectSource, session, status } = stack;
   const visibleSongId = stack.visibleSource?.songId ?? null;
   const selectedSongId = stack.selectedSource?.songId ?? null;
 
   const immersed = useHomeChromeStore(s => s.isDark);
   const setDark = useHomeChromeStore(s => s.setDark);
+  const consumeImmerse = useHomeChromeStore(s => s.consumeImmerse);
   const focusedRef = useRef(focused);
   focusedRef.current = focused;
   const immersedRef = useRef(immersed);
@@ -94,8 +95,14 @@ export default function HomeTab() {
     [immerse, setImmersed],
   );
 
+  // 오늘의 복습 스케줄에서 '복습 시작'을 누르고 돌아오면 그대로 몰입으로 이어 간다.
+  useEffect(() => {
+    if (focused && consumeImmerse()) enterImmerse();
+  }, [consumeImmerse, enterImmerse, focused]);
+
   const goSearch = useCallback(() => navigation.navigate('Search'), [navigation]);
-  const goMyPage = useCallback(() => navigation.navigate('MyPage'), [navigation]);
+  const goSchedule = useCallback(() => navigation.navigate('StudySchedule'), [navigation]);
+  const goStreak = useCallback(() => navigation.navigate('Streak'), [navigation]);
 
   const openSource = useCallback(() => {
     if (visibleSongId == null) return;
@@ -162,7 +169,9 @@ export default function HomeTab() {
         selectedSongId={selectedSongId}
         onSelectDeckStripItem={selectSource}
         onSearch={goSearch}
-        onPressStreak={goMyPage}
+        onPressStreak={goStreak}
+        dueRemaining={dueTodayCount}
+        onPressSchedule={goSchedule}
         immerse={immerse}
       />
     </View>

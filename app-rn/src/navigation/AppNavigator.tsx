@@ -24,6 +24,8 @@ import OssLicenseScreen from '../screens/OssLicenseScreen';
 import VocScreen from '../screens/VocScreen';
 import SongProgressListScreen from '../screens/SongProgressListScreen';
 import SongReviewScreen from '../screens/SongReviewScreen';
+import StreakScreen from '../screens/StreakScreen';
+import StudyScheduleScreen from '../screens/StudyScheduleScreen';
 
 import HomeTab from '../screens/tabs/HomeTab';
 import MyPageTab from '../screens/tabs/MyPageTab';
@@ -61,6 +63,10 @@ export type RootStackParamList = {
   SongReview: { source: StudySource; origin?: 'SongDetail'; trigger?: StudyEntryTrigger };
   DeckList: undefined;
   SongProgressList: undefined;
+  /** 홈 헤더의 연속 학습 칩에서 들어오는 상세. */
+  Streak: undefined;
+  /** 홈 헤더의 '오늘 복습할 단어' 블록에서 들어오는 FSRS 스케줄 상세. */
+  StudySchedule: undefined;
   DeckDetail: { deckId: number | null };
   DeckWordList: { deckId: number | null };
   EditWord: {
@@ -157,6 +163,8 @@ export default function AppNavigator({ initialRoute }: Props) {
       <Stack.Screen name="SongReview" component={SongReviewScreen} />
       <Stack.Screen name="DeckList" component={DeckListScreen} />
       <Stack.Screen name="SongProgressList" component={SongProgressListScreen} />
+      <Stack.Screen name="Streak" component={StreakScreen} />
+      <Stack.Screen name="StudySchedule" component={StudyScheduleScreen} />
       <Stack.Screen name="DeckDetail" component={DeckDetailScreen} />
       <Stack.Screen name="DeckWordList" component={DeckWordListScreen} />
       <Stack.Screen name="EditWord" component={EditWordScreen} />
