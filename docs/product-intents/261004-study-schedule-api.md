@@ -1,9 +1,10 @@
 # 오늘의 복습 스케줄 (261004) — 프론트가 필요로 하는 API
 
 Pencil 프레임 `RQaUQ`(H6 오늘의 복습 스케줄) · `RUvac`(H6a 선정 기준 시트) ·
-`lTxfw`(H5-B7 홈 헤더) 를 앱에 반영했다. 화면은 이미 동작하지만 **30일 예보만은 서버가
-없어서 앱이 임시로 꾸며 내고 있다.** 이 문서는 그 자리를 진짜 값으로 바꾸기 위해 서버에
-필요한 것을 적는다.
+`lTxfw`(H5-B7 홈 헤더) 를 앱에 반영했다. 30일 예보는 처음엔 앱이 임시로 꾸며 냈고, 이
+문서가 요청한 `GET /api/study-schedule` 이 이제 서버에 있다
+(`StudyScheduleController` → `domains:word` 의 `StudyScheduleService`). 앱은 아직
+`USE_MOCK_FORECAST = true` 다 — 서버 배포 뒤 끄면 된다.
 
 - 앱 쪽 임시 구현: `app-rn/src/api/studyScheduleApi.ts` 의 `USE_MOCK_FORECAST`,
   `app-rn/src/api/mock/studyScheduleMock.ts`
@@ -49,7 +50,8 @@ GET /api/study-schedule?dailyTarget=30
 ### `scheduledDue` — 아무것도 복습하지 않을 때 그날 due 가 되는 카드 수
 
 - 0일차는 이미 밀린 것까지 전부 포함한다 (`dueToday` 와 같은 값).
-- 1일차부터는 그 날짜에 `flashcards.due` 가 걸린 카드 수다. 복습을 안 한다는 가정이므로
+- 1일차부터는 그 학습일(KST 04:00 경계, `KstClock`)에 `flashcards.due` 가 걸린 카드 수다.
+  오늘 남은 시간에 due 가 되는 카드는 1일차로 센다. 복습을 안 한다는 가정이므로
   재스케줄은 일어나지 않는다.
 - 그래프의 주황 막대(`매일 미루면 쌓이는 양`)는 이 값을 앱에서 **누적**한 것이다. 서버가
   누적값을 따로 내려 줄 필요는 없다.

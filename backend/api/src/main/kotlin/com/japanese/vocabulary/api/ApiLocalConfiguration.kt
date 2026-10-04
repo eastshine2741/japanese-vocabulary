@@ -8,6 +8,7 @@ import com.japanese.vocabulary.config.SecurityConfig
 import com.japanese.vocabulary.config.SentryConfig
 import com.japanese.vocabulary.deck.controller.DeckController
 import com.japanese.vocabulary.flashcard.controller.FlashcardController
+import com.japanese.vocabulary.flashcard.controller.StudyScheduleController
 import com.japanese.vocabulary.notification.controller.DeviceTokenController
 import com.japanese.vocabulary.notification.controller.AnalysisNotificationController
 import com.japanese.vocabulary.notification.service.AnalysisNotificationService
@@ -43,6 +44,7 @@ import org.springframework.context.annotation.Import
     AuthController::class,
     DeckController::class,
     FlashcardController::class,
+    StudyScheduleController::class,
     DeviceTokenController::class,
     AnalysisNotificationController::class,
     AnalysisNotificationService::class,
