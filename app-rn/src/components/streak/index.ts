@@ -6,6 +6,7 @@ export { StreakCalendar } from './StreakCalendar';
 export {
   buildStreakCalendar,
   computeLevel,
+  formatDayLabel,
   streakMode,
   todayOf,
   MONTH_PAGE_COUNT,

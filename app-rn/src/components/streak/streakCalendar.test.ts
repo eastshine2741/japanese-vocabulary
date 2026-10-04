@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { HeatmapDay } from '../../types/studyStats';
-import { buildStreakCalendar, computeLevel, streakMode } from './streakCalendar';
+import { buildStreakCalendar, computeLevel, formatDayLabel, streakMode } from './streakCalendar';
 
 const DAY_MS = 86400000;
 
@@ -152,5 +152,12 @@ describe('buildStreakCalendar', () => {
 
   it('히트맵이 비면 달력도 비운다', () => {
     expect(buildStreakCalendar([])).toEqual([]);
+  });
+});
+
+describe('formatDayLabel', () => {
+  it('월/일과 요일을 붙인다', () => {
+    expect(formatDayLabel('2026-10-02')).toBe('10월 2일 (금)');
+    expect(formatDayLabel('2026-10-04')).toBe('10월 4일 (일)');
   });
 });

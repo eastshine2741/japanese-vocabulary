@@ -13,7 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../theme/theme';
 import { Typography } from '../../theme/typography';
 import { StreakPalette } from './palette';
-import { CalendarCell, CalendarMonth, StreakMode } from './streakCalendar';
+import { CalendarCell, CalendarMonth, StreakMode, formatDayLabel } from './streakCalendar';
 
 const WEEKDAYS = ['월', '화', '수', '목', '금', '토', '일'];
 const CELL_HEIGHT = 46;
@@ -35,6 +35,11 @@ export const StreakCalendar = React.memo(function StreakCalendar({ months, mode 
   const scrollRef = useRef<ScrollView>(null);
   const [pageWidth, setPageWidth] = useState(0);
   const [page, setPage] = useState(Math.max(months.length - 1, 0));
+  const [selected, setSelected] = useState<CalendarCell | null>(null);
+
+  const handleSelect = useCallback((cell: CalendarCell) => {
+    setSelected((prev) => (prev?.date === cell.date ? null : cell));
+  }, []);
 
   const handleLayout = useCallback((e: LayoutChangeEvent) => {
     setPageWidth(e.nativeEvent.layout.width);
@@ -85,12 +90,15 @@ export const StreakCalendar = React.memo(function StreakCalendar({ months, mode 
           </View>
         </View>
 
-        <View style={styles.legend}>
-          <Text style={styles.legendText}>적음</Text>
-          {Colors.heatmapIntensities.map((color, i) => (
-            <View key={i} style={[styles.legendCell, { backgroundColor: color }]} />
-          ))}
-          <Text style={styles.legendText}>많음</Text>
+        <View style={styles.legendRow}>
+          {selected?.date ? <DayReadout cell={selected} /> : <View />}
+          <View style={styles.legend}>
+            <Text style={styles.legendText}>적음</Text>
+            {Colors.heatmapIntensities.map((color, i) => (
+              <View key={i} style={[styles.legendCell, { backgroundColor: color }]} />
+            ))}
+            <Text style={styles.legendText}>많음</Text>
+          </View>
         </View>
 
         <View style={styles.weekdayRow}>
@@ -116,7 +124,13 @@ export const StreakCalendar = React.memo(function StreakCalendar({ months, mode 
             {month.weeks.map((week, i) => (
               <View key={i} style={styles.week}>
                 {week.map((cell, j) => (
-                  <DayCell key={cell.date ?? `pad-${i}-${j}`} cell={cell} mode={mode} />
+                  <DayCell
+                    key={cell.date ?? `pad-${i}-${j}`}
+                    cell={cell}
+                    mode={mode}
+                    selected={cell.date != null && cell.date === selected?.date}
+                    onSelect={handleSelect}
+                  />
                 ))}
               </View>
             ))}
@@ -148,7 +162,29 @@ function NavButton({
   );
 }
 
-const DayCell = React.memo(function DayCell({ cell, mode }: { cell: CalendarCell; mode: StreakMode }) {
+function DayReadout({ cell }: { cell: CalendarCell }) {
+  return (
+    <Text style={styles.readout}>
+      {formatDayLabel(cell.date!)}
+      {' · '}
+      <Text style={styles.readoutCount}>
+        {cell.kind === 'freeze' ? '프리즈' : `${cell.reviewCount}장`}
+      </Text>
+    </Text>
+  );
+}
+
+const DayCell = React.memo(function DayCell({
+  cell,
+  mode,
+  selected,
+  onSelect,
+}: {
+  cell: CalendarCell;
+  mode: StreakMode;
+  selected: boolean;
+  onSelect: (cell: CalendarCell) => void;
+}) {
   if (cell.kind === 'pad') return <View style={styles.cell} />;
 
   const band = cell.inRun
@@ -160,18 +196,26 @@ const DayCell = React.memo(function DayCell({ cell, mode }: { cell: CalendarCell
     : null;
 
   return (
-    <View style={[styles.cell, band]}>
-      <Chip cell={cell} mode={mode} />
-    </View>
+    <Pressable
+      style={({ pressed }) => [styles.cell, band, pressed && styles.cellPressed]}
+      onPress={() => onSelect(cell)}
+      disabled={cell.kind === 'future'}
+    >
+      <Chip cell={cell} mode={mode} selected={selected} />
+    </Pressable>
   );
 });
 
-function Chip({ cell, mode }: { cell: CalendarCell; mode: StreakMode }) {
+function Chip({ cell, mode, selected }: { cell: CalendarCell; mode: StreakMode; selected: boolean }) {
   const chip = <ChipBody cell={cell} />;
+  if (selected) {
+    // 선택 링은 오늘 링을 덮는다 — 오늘 칩이 선택돼도 어느 칸인지 분명해야 한다.
+    return <View style={[styles.ring, styles.selectedRing]}>{chip}</View>;
+  }
   if (!cell.isToday) return chip;
   // 오늘 칩만 링을 두른다 — 프리즈로 이어진 날은 링도 파랑으로 간다.
   const ringColor = mode === 'frozen' ? Colors.freezeStroke : Colors.streakFlame;
-  return <View style={[styles.todayRing, { borderColor: ringColor, shadowColor: ringColor }]}>{chip}</View>;
+  return <View style={[styles.ring, styles.todayRing, { borderColor: ringColor, shadowColor: ringColor }]}>{chip}</View>;
 }
 
 function ChipBody({ cell }: { cell: CalendarCell }) {
@@ -258,11 +302,24 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: Colors.textPrimary,
   },
+  legendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   legend: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-end',
     gap: 4,
+  },
+  readout: {
+    ...Typography.bodySemiBold,
+    fontSize: 12,
+    color: Colors.textSecondary,
+  },
+  readoutCount: {
+    ...Typography.bodyBold,
+    color: Colors.textPrimary,
   },
   legendText: {
     ...Typography.bodySemiBold,
@@ -328,10 +385,24 @@ const styles = StyleSheet.create({
     position: 'absolute',
     opacity: 0.3,
   },
-  todayRing: {
+  cellPressed: {
+    opacity: 0.6,
+  },
+  ring: {
     padding: RING,
     borderRadius: 12 + RING,
     borderWidth: RING,
+  },
+  selectedRing: {
+    borderColor: StreakPalette.selectRing,
+    shadowColor: StreakPalette.selectRing,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.5,
+    shadowRadius: 5,
+    elevation: 2,
+    transform: [{ scale: 1.04 }],
+  },
+  todayRing: {
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.35,
     shadowRadius: 5,

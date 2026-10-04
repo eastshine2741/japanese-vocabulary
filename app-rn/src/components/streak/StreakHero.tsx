@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { Colors } from '../../theme/theme';
 import { Typography } from '../../theme/typography';
+import { FlameMark, GLOW_FALLOFF, IceMark } from './FlameMark';
 import { FrozenPalette, StreakPalette } from './palette';
 import { StreakMode } from './streakCalendar';
 
@@ -18,28 +19,37 @@ const CHIP_TEXT: Record<StreakMode, string> = {
 interface Props {
   streak: number;
   mode: StreakMode;
+  /** 밴드 색이 상태바·앱바 뒤까지 이어지도록 밴드 안 맨 위에 얹는다. */
+  header?: React.ReactNode;
+  topInset?: number;
 }
 
 /**
  * 크림(또는 프리즈 상태의 파랑) 히어로 밴드. 왼쪽 상태 칩 + 큰 숫자, 오른쪽 불꽃/눈송이의
  * 비대칭 배치가 이 화면의 첫인상이다.
  */
-export const StreakHero = React.memo(function StreakHero({ streak, mode }: Props) {
+export const StreakHero = React.memo(function StreakHero({ streak, mode, header, topInset = 0 }: Props) {
   const frozen = mode === 'frozen';
   const bg = frozen ? FrozenPalette.heroBg : StreakPalette.heroBg;
   const glow = frozen ? FrozenPalette.heroGlow : StreakPalette.heroGlow;
 
   return (
-    <View style={[styles.band, { backgroundColor: bg }]}>
-      <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" pointerEvents="none">
-        <Defs>
-          <RadialGradient id="streakHeroGlow" cx="82%" cy="30%" rx="45%" ry="55%">
-            <Stop offset="0" stopColor={glow} stopOpacity={frozen ? 0.36 : 0.4} />
-            <Stop offset="1" stopColor={glow} stopOpacity={0} />
-          </RadialGradient>
-        </Defs>
-        <Rect x="0" y="0" width="100%" height="100%" fill="url(#streakHeroGlow)" />
-      </Svg>
+    <View style={[styles.band, { backgroundColor: bg, paddingTop: topInset }]}>
+      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+        <Svg width="100%" height="100%">
+          <Defs>
+            {/* 밴드보다 크게 잡아 감쇠 꼬리가 화면 밖에서 끝나게 둔다. */}
+            <RadialGradient id="streakHeroGlow" cx="82%" cy="30%" rx="62%" ry="95%">
+              {GLOW_FALLOFF.map(([at, a]) => (
+                <Stop key={at} offset={at} stopColor={glow} stopOpacity={(frozen ? 0.42 : 0.46) * a} />
+              ))}
+            </RadialGradient>
+          </Defs>
+          <Rect x="0" y="0" width="100%" height="100%" fill="url(#streakHeroGlow)" />
+        </Svg>
+      </View>
+
+      {header && <View style={styles.header}>{header}</View>}
 
       <View style={styles.row}>
         <View style={styles.col}>
@@ -90,33 +100,28 @@ function StatusChip({ mode }: { mode: StreakMode }) {
 
 function HeroIcon({ mode }: { mode: StreakMode }) {
   if (mode === 'frozen') {
-    return (
-      <View style={[styles.iconGlow, { shadowColor: FrozenPalette.heroIconShadow }]}>
-        <Ionicons name="snow" size={ICON_SIZE} color={FrozenPalette.heroIcon} />
-      </View>
-    );
+    return <IceMark size={ICON_SIZE} color={FrozenPalette.heroIcon} />;
   }
   if (mode === 'pending') {
-    // 기록은 살아 있지만 오늘은 아직 — 숫자는 주황 그대로 두고 불꽃만 회색으로 식힌다.
-    return <Ionicons name="flame" size={ICON_SIZE} color={StreakPalette.heroIconDim} />;
+    // 기록은 살아 있지만 오늘은 아직 — 숫자는 주황 그대로 두고 불꽃만 식혀 멈춰 세운다.
+    return <FlameMark size={ICON_SIZE} colors={StreakPalette.heroFlameDim} animated={false} />;
   }
-  return (
-    <View style={[styles.iconGlow, { shadowColor: StreakPalette.heroIconShadow }]}>
-      <Ionicons name="flame" size={ICON_SIZE} color={StreakPalette.heroIcon} />
-    </View>
-  );
+  return <FlameMark size={ICON_SIZE} ember={StreakPalette.heroEmber} />;
 }
 
 const styles = StyleSheet.create({
   band: {
     borderBottomLeftRadius: 28,
     borderBottomRightRadius: 28,
-    paddingTop: 14,
     paddingHorizontal: 20,
     paddingBottom: 20,
     overflow: 'hidden',
   },
+  header: {
+    marginHorizontal: -20,
+  },
   row: {
+    marginTop: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -153,11 +158,5 @@ const styles = StyleSheet.create({
     fontSize: 21,
     lineHeight: 25,
     letterSpacing: -0.4,
-  },
-  iconGlow: {
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.22,
-    shadowRadius: 13,
-    elevation: 0,
   },
 });

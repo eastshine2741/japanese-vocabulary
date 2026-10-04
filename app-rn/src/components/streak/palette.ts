@@ -9,9 +9,10 @@ export const StreakPalette = {
   heroGlow: '#FFCF8F',
   heroNum: '#EF6C00',
   heroNumLabel: '#C2410C',
-  heroIcon: Colors.streakFlame,
-  heroIconDim: '#D2C3B0',
-  heroIconShadow: '#FF8A00',
+  /** 솟는 불씨 — 크림 배경 위라 축하 화면보다 묽게 쓴다. */
+  heroEmber: '#F59E0B',
+  /** ST2 의 식은 불꽃. 3겹 형태는 그대로 두고 색만 식힌다. */
+  heroFlameDim: ['#CFC0AC', '#DCD0BF', '#EFE7DA'] as const,
 
   chipBorder: '#F2DCC0',
   chipIcon: '#EA6C00',
@@ -30,6 +31,8 @@ export const StreakPalette = {
   grassInkOn: '#FFFFFF',
   freezeInk: '#1D4ED8',
   futureInk: '#D9D9D9',
+  /** 탭한 칸 링 — 오늘 링(주황)과 겹치지 않는 크림 계열 갈색. */
+  selectRing: '#D4AE82',
 } as const;
 
 /** ST3 — 주황을 전부 파랑으로 치환한 히어로. 달력(기록)은 주황 그대로 둔다. */
@@ -39,7 +42,6 @@ export const FrozenPalette = {
   heroNum: '#1D4ED8',
   heroNumLabel: '#1E40AF',
   heroIcon: '#5B9BF8',
-  heroIconShadow: '#3D8BFF',
 
   chipBorder: '#C7DCFA',
   chipIcon: Colors.freezeStroke,

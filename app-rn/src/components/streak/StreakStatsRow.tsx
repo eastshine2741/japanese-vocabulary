@@ -1,5 +1,6 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../theme/theme';
 import { Typography } from '../../theme/typography';
 
@@ -8,6 +9,7 @@ interface Props {
   totalStudyDays: number;
   freezeCount: number;
   freezeMax: number;
+  onPressFreeze: () => void;
 }
 
 /** 구분선만 있는 통계 줄 — 카드로 감싸지 않는다. */
@@ -16,6 +18,7 @@ export const StreakStatsRow = React.memo(function StreakStatsRow({
   totalStudyDays,
   freezeCount,
   freezeMax,
+  onPressFreeze,
 }: Props) {
   return (
     <View style={styles.row}>
@@ -23,20 +26,39 @@ export const StreakStatsRow = React.memo(function StreakStatsRow({
       <View style={styles.sep} />
       <Stat value={String(totalStudyDays)} unit="일" label="총 학습일" />
       <View style={styles.sep} />
-      <Stat value={String(freezeCount)} unit={`/ ${freezeMax}`} label="프리즈" />
+      <Stat value={String(freezeCount)} unit={`/ ${freezeMax}`} label="보유 프리즈" onPress={onPressFreeze} />
     </View>
   );
 });
 
-function Stat({ value, unit, label }: { value: string; unit: string; label: string }) {
-  return (
-    <View style={styles.stat}>
+function Stat({
+  value,
+  unit,
+  label,
+  onPress,
+}: {
+  value: string;
+  unit: string;
+  label: string;
+  onPress?: () => void;
+}) {
+  const body = (
+    <>
       <View style={styles.valueRow}>
         <Text style={styles.value}>{value}</Text>
         <Text style={styles.unit}>{unit}</Text>
       </View>
-      <Text style={styles.label}>{label}</Text>
-    </View>
+      <View style={styles.labelRow}>
+        <Text style={styles.label}>{label}</Text>
+        {onPress && <Ionicons name="information-circle-outline" size={12} color={Colors.textSecondary} />}
+      </View>
+    </>
+  );
+  if (!onPress) return <View style={styles.stat}>{body}</View>;
+  return (
+    <Pressable style={({ pressed }) => [styles.stat, pressed && styles.statPressed]} onPress={onPress} hitSlop={8}>
+      {body}
+    </Pressable>
   );
 }
 
@@ -67,6 +89,14 @@ const styles = StyleSheet.create({
     ...Typography.bodyBold,
     fontSize: 12,
     color: Colors.textSecondary,
+  },
+  statPressed: {
+    opacity: 0.5,
+  },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
   },
   label: {
     ...Typography.bodySemiBold,

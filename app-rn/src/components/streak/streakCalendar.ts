@@ -21,6 +21,8 @@ export interface CalendarCell {
   kind: DayKind;
   /** studied 일 때만 1~4. 보이는 기간의 최대 복습 수 대비 강도. */
   level: HeatLevel;
+  /** 그날 복습한 카드 수. */
+  reviewCount: number;
   /** 현재 연속 구간(띠)에 속하는 날. */
   inRun: boolean;
   /** 띠의 왼쪽/오른쪽 끝 — 주 경계에서도 끊긴다. */
@@ -102,11 +104,21 @@ export function streakMode(studiedToday: boolean, days: HeatmapDay[]): StreakMod
   return yesterday?.freezeUsed ? 'frozen' : 'pending';
 }
 
+const WEEKDAY_LABELS = ['월', '화', '수', '목', '금', '토', '일'];
+
+/** '2026-10-02' -> '10월 2일 (금)' */
+export function formatDayLabel(iso: string): string {
+  const ms = parse(iso);
+  const d = new Date(ms);
+  return `${d.getUTCMonth() + 1}월 ${d.getUTCDate()}일 (${WEEKDAY_LABELS[mondayIndex(ms)]})`;
+}
+
 const padCell: CalendarCell = {
   date: null,
   dayNumber: 0,
   kind: 'pad',
   level: 0,
+  reviewCount: 0,
   inRun: false,
   runStart: false,
   runEnd: false,
@@ -180,6 +192,7 @@ function buildCell(ms: number, dayNumber: number, { byDate, max, run, todayMs }:
     dayNumber,
     kind,
     level: kind === 'studied' ? computeLevel(row!.reviewCount, max) : 0,
+    reviewCount: row?.reviewCount ?? 0,
     inRun: run.has(date),
     runStart: false,
     runEnd: false,

@@ -1,10 +1,12 @@
-import React, { useCallback, useMemo } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
+import React, { useCallback, useMemo, useRef } from 'react';
+import { ActivityIndicator, BackHandler, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { useShallow } from 'zustand/react/shallow';
 import { AppBar } from '../components/AppBar';
+import { AppBottomSheetModal, AppBottomSheetModalRef, AppBottomSheetView } from '../components/bottomSheet';
+import FreezeInfoSheet from '../components/studyStats/FreezeInfoSheet';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { StreakCalendar, StreakHero, StreakStatsRow, buildStreakCalendar, streakMode } from '../components/streak';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -46,25 +48,65 @@ export default function StreakScreen({ navigation }: Props) {
   const months = useMemo(() => buildStreakCalendar(days ?? []), [days]);
   const mode = useMemo(() => streakMode(home.data?.studiedToday ?? false, days ?? []), [home.data, days]);
 
+  const handleBack = useCallback(() => {
+    navigation.goBack();
+  }, [navigation]);
+
+  const appBar = useMemo(() => <AppBar title="연속 학습" onBack={handleBack} />, [handleBack]);
+
   const handleStart = useCallback(() => {
     // 홈 스택이 곧 복습이다 — 뒤로 가면 바로 오늘의 카드로 돌아간다.
     navigation.goBack();
   }, [navigation]);
 
+  const freezeSheetRef = useRef<AppBottomSheetModalRef>(null);
+  const freezeOpenRef = useRef(false);
+
+  const handleOpenFreeze = useCallback(() => {
+    freezeOpenRef.current = true;
+    freezeSheetRef.current?.present();
+  }, []);
+
+  const handleCloseFreeze = useCallback(() => {
+    freezeOpenRef.current = false;
+    freezeSheetRef.current?.dismiss();
+  }, []);
+
+  const handleFreezeSheetChange = useCallback((index: number) => {
+    freezeOpenRef.current = index >= 0;
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+        if (!freezeOpenRef.current) return false;
+        handleCloseFreeze();
+        return true;
+      });
+      return () => sub.remove();
+    }, [handleCloseFreeze]),
+  );
+
   const ready = profile.data != null && heatmap.data != null;
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <AppBar title="연속 학습" onBack={() => navigation.goBack()} />
-
+    <SafeAreaView style={styles.safeArea} edges={ready ? [] : ['top']}>
       {!ready ? (
-        <ActivityIndicator color={Colors.primary} style={styles.loading} />
+        <>
+          {appBar}
+          <ActivityIndicator color={Colors.primary} style={styles.loading} />
+        </>
       ) : (
         <ScrollView
           contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 12 }]}
           showsVerticalScrollIndicator={false}
         >
-          <StreakHero streak={profile.data!.currentStreak} mode={mode} />
+          <StreakHero
+            streak={profile.data!.currentStreak}
+            mode={mode}
+            topInset={insets.top}
+            header={appBar}
+          />
 
           <View style={styles.body}>
             <StreakStatsRow
@@ -72,6 +114,7 @@ export default function StreakScreen({ navigation }: Props) {
               totalStudyDays={profile.data!.totalStudyDays}
               freezeCount={profile.data!.freezeCount}
               freezeMax={profile.data!.freezeMax}
+              onPressFreeze={handleOpenFreeze}
             />
 
             <StreakCalendar months={months} mode={mode} />
@@ -84,6 +127,17 @@ export default function StreakScreen({ navigation }: Props) {
           </View>
         </ScrollView>
       )}
+
+      <AppBottomSheetModal
+        ref={freezeSheetRef}
+        enableDynamicSizing
+        enablePanDownToClose
+        onChange={handleFreezeSheetChange}
+      >
+        <AppBottomSheetView>
+          <FreezeInfoSheet onConfirm={handleCloseFreeze} />
+        </AppBottomSheetView>
+      </AppBottomSheetModal>
     </SafeAreaView>
   );
 }
