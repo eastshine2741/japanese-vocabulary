@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   LayoutChangeEvent,
   NativeScrollEvent,
@@ -45,13 +45,17 @@ export const StreakCalendar = React.memo(function StreakCalendar({ months, mode 
     setPageWidth(e.nativeEvent.layout.width);
   }, []);
 
-  // 처음에는 이번 달(마지막 페이지)을 보여준다.
-  useEffect(() => {
-    if (pageWidth <= 0) return;
-    scrollRef.current?.scrollTo({ x: pageWidth * page, animated: false });
-    // 페이지 폭이 정해질 때 한 번만 맞춘다 — 이후 이동은 onMomentumScrollEnd 가 따라간다.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pageWidth]);
+  // 처음에는 이번 달(마지막 페이지)을 보여준다. 페이지 폭이 반영된 콘텐츠가 깔린 뒤에 옮겨야 한다 —
+  // 그 전의 scrollTo 는 폭 0 콘텐츠에 막혀 첫 달에 머문다.
+  const positionedRef = useRef(false);
+  const handleContentSizeChange = useCallback(
+    (width: number) => {
+      if (positionedRef.current || pageWidth <= 0 || width < pageWidth * (page + 1)) return;
+      positionedRef.current = true;
+      scrollRef.current?.scrollTo({ x: pageWidth * page, animated: false });
+    },
+    [pageWidth, page],
+  );
 
   const handleMomentumEnd = useCallback(
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -117,9 +121,10 @@ export const StreakCalendar = React.memo(function StreakCalendar({ months, mode 
         showsHorizontalScrollIndicator={false}
         onLayout={handleLayout}
         onMomentumScrollEnd={handleMomentumEnd}
-        style={styles.pager}
+        onContentSizeChange={handleContentSizeChange}
+        style={[styles.pager, { height: gridHeight }]}
       >
-        {months.map((month) => (
+        {pageWidth > 0 && months.map((month) => (
           <View key={month.key} style={[styles.month, { width: pageWidth, height: gridHeight }]}>
             {month.weeks.map((week, i) => (
               <View key={i} style={styles.week}>
