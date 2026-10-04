@@ -15,6 +15,11 @@ import {
 import * as Notifications from 'expo-notifications';
 import { flashcardApi } from '../api/flashcardApi';
 import { navigate } from '../navigation/navigationRef';
+import {
+  addStreakPressListener,
+  consumeInitialStreakPress,
+  showStreakCountdown,
+} from '../../modules/streak-notification';
 
 const REVIEW_CHANNEL_ID = 'review-reminders';
 
@@ -111,6 +116,33 @@ function handleRemoteMessage(remoteMessage: RemoteMessage | null): void {
   handleData(remoteMessage?.data);
 }
 
+// 23:00 연속 학습 알림의 expiresAt(다음 04:00 KST epoch ms)까지 줄어드는 카운트다운.
+// Android 전용 네이티브 모듈이 있을 때만 쓰고, 없거나 실패하면 일반 알림으로 되돌아간다.
+async function tryShowStreakCountdown(
+  title: string,
+  body: string,
+  data: NonNullable<RemoteMessage['data']>,
+): Promise<boolean> {
+  if (Platform.OS !== 'android' || data.type !== 'streak_reminder') return false;
+  const expiresAt = Number(data.expiresAt);
+  if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) return false;
+  const stringData: Record<string, string> = {};
+  for (const [k, v] of Object.entries(data)) {
+    if (typeof v === 'string') stringData[k] = v;
+  }
+  try {
+    return await showStreakCountdown({
+      title,
+      body,
+      channelId: REVIEW_CHANNEL_ID,
+      expiresAt,
+      data: stringData,
+    });
+  } catch {
+    return false;
+  }
+}
+
 async function displayLocalNotification(
   remoteMessage: RemoteMessage,
 ): Promise<void> {
@@ -119,6 +151,7 @@ async function displayLocalNotification(
     typeof data.title === 'string' ? data.title : remoteMessage.notification?.title ?? '';
   const body =
     typeof data.body === 'string' ? data.body : remoteMessage.notification?.body ?? '';
+  if (await tryShowStreakCountdown(title, body, data)) return;
   await Notifications.scheduleNotificationAsync({
     content: {
       title,
@@ -177,6 +210,11 @@ export function registerNotificationHandlers(): void {
     onNotificationOpenedApp(getFirebaseMessaging(), handleRemoteMessage);
     getInitialNotification(getFirebaseMessaging()).then(handleRemoteMessage);
   }
+
+  // 카운트다운 알림은 expo-notifications 밖에서 그려서 탭도 따로 받는다.
+  addStreakPressListener(handleData);
+  const initialStreakPress = consumeInitialStreakPress();
+  if (initialStreakPress) handleData(initialStreakPress);
 
   // Tap handler. Covers both foreground onMessage path and background
   // setBackgroundMessageHandler path; expo-notifications also fires this for cold-start taps on a

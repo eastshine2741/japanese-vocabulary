@@ -15,6 +15,12 @@ Push notification is split between the `notification` domain module and the `bat
   countdown and is sent with `androidDataOnly = true`: no notification block on Android, so the
   app renders it from `data.title` / `data.body`; iOS still gets a visible APNs alert. Payload and
   copy: `docs/product-intents/260918-streak-commitment-api.md` section 3.
+- Client countdown: `app-rn/modules/streak-notification` (local Expo module, Android only) draws the
+  23:00 streak reminder with a count-down chronometer until `expiresAt` and removes it then.
+  `pushNotifications.ts` uses it from the data-only path and falls back to a plain
+  expo-notifications alert when the module is missing (older native build, iOS) or fails. Taps on
+  it come back through the module's `onPress` event / `consumeInitialPress()`, not
+  expo-notifications. The module is native code, so it ships only with a new native build.
 - Manual trigger: `POST /dev/push/trigger?slot=EVENING|NIGHT` runs one slot immediately.
 - Manual single-user dispatch: `POST /dev/push/send` in the `batch` service. It requires
   `X-Manual-Push-Secret: $MANUAL_PUSH_SECRET`, accepts `{userId,title,body,data}`, and sends the
