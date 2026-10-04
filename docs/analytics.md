@@ -82,6 +82,19 @@ WHERE screen = 'SongDetail'
 
 다음 `screen_view` 가 없으면 그 화면에서 앱을 껐다는 뜻이다.
 
+## 가사 → 복습 이벤트
+
+가사만 보고 복습하지 않는 유저가 어디서 멈추는지 보려고 남긴다.
+
+| 이벤트 | 시점 | 파라미터 |
+|---|---|---|
+| `screen_view` (SongReview) | 곡 진입 복습 화면이 열림 | `song_id`, `trigger`(`cta` 상단 학습 버튼 / `tier` 단계 카드 / `word` 단어 탭 / `unknown` 곡 상세 밖에서 염) |
+| `card_reveal` | 카드 뒷면을 처음 펼침 | `mode`(`home`/`source`), `position`(이 카드 앞에 평가한 장 수), `is_preview` |
+| `card_rate` | 평가가 저장됨 | 위와 같음 + `rating` |
+| `review_exit` | 곡 진입 복습 화면을 떠나거나 앱이 백그라운드로 감 | `song_id`, `how`(`leave`/`background`), `reviewed`, `revealed`, `completed`, `status`, `dwell_sec` |
+
+- `review_exit` 는 앱을 끄면 언마운트가 오지 않아 백그라운드 전환 때도 남긴다. 한 번 열린 화면에 여러 건이 생길 수 있으니 열림마다 마지막 건을 본다.
+
 ## 해석 주의
 
 - `song_analyze_result` 는 **앱이 본 결과**다. 유저가 기다리지 않고 나가면 유실되므로 `song_analysis_work` 와 수가 다르다. 그 차이가 이 이벤트를 남기는 이유다.

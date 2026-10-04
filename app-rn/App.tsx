@@ -62,14 +62,24 @@ function getActiveRoute(state: NavigationState): ActiveRoute {
   return route;
 }
 
-// 곡 탐색 퍼널의 마지막 단계(가사 열람)를 SongDetail screen_view 로 본다.
+// 곡 탐색 퍼널의 마지막 단계(가사 열람)를 SongDetail screen_view 로, 가사에서 복습으로 넘어간
+// 경로를 SongReview screen_view 의 trigger 로 본다.
 function getScreenViewParams(route: ActiveRoute): ScreenViewParams | undefined {
-  if (route.name !== 'SongDetail') return undefined;
-  const params = route.params as RootStackParamList['SongDetail'] | undefined;
-  return {
-    ...(params?.songId != null && { song_id: params.songId }),
-    origin: params?.origin ?? 'unknown',
-  };
+  if (route.name === 'SongDetail') {
+    const params = route.params as RootStackParamList['SongDetail'] | undefined;
+    return {
+      ...(params?.songId != null && { song_id: params.songId }),
+      origin: params?.origin ?? 'unknown',
+    };
+  }
+  if (route.name === 'SongReview') {
+    const params = route.params as RootStackParamList['SongReview'] | undefined;
+    return {
+      ...(params?.source.songId != null && { song_id: params.source.songId }),
+      trigger: params?.trigger ?? 'unknown',
+    };
+  }
+  return undefined;
 }
 
 function getAndroidNavigationMode(

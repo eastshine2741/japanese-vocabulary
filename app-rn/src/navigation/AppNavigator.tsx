@@ -7,6 +7,7 @@ import {
   type BottomTabNavigationOptions,
 } from '@react-navigation/bottom-tabs';
 import BottomTabBar from '../components/BottomTabBar';
+import type { StudyEntryTrigger } from '../services/analytics';
 
 import LoginScreen from '../screens/LoginScreen';
 import SignupScreen from '../screens/SignupScreen';
@@ -56,8 +57,8 @@ export type RootStackParamList = {
   OssLicense: undefined;
   Voc: undefined;
   SongDetail: SongPlaybackEntryParams;
-  /** 곡 진입 복습. 큐 순서는 서버 due 응답을 그대로 따른다. */
-  SongReview: { source: StudySource; origin?: 'SongDetail' };
+  /** 곡 진입 복습. 큐 순서는 서버 due 응답을 그대로 따른다. trigger 는 곡 상세에서 누른 버튼(screen_view 파라미터). */
+  SongReview: { source: StudySource; origin?: 'SongDetail'; trigger?: StudyEntryTrigger };
   DeckList: undefined;
   SongProgressList: undefined;
   DeckDetail: { deckId: number | null };

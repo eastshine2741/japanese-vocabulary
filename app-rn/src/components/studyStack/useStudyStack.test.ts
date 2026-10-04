@@ -39,6 +39,7 @@ vi.mock('../../api/songApi', () => ({
 }));
 vi.mock('../../api/studyStatsApi', () => ({ studyStatsApi: { getHome: vi.fn() } }));
 vi.mock('../../api/wordApi', () => ({ wordApi: { getById: vi.fn() } }));
+vi.mock('../../services/analytics', () => ({ trackCardReveal: vi.fn(), trackCardRate: vi.fn() }));
 vi.mock('../../stores/studyStatsStore', () => ({ useStudyStatsStore: { getState: () => ({ invalidate: vi.fn() }) } }));
 
 const source: StudySource = {

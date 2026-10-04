@@ -3,6 +3,7 @@ import { Animated, Easing, GestureResponderHandlers, PanResponder } from 'react-
 import { deckApi } from '../../api/deckApi';
 import { flashcardApi } from '../../api/flashcardApi';
 import { songApi } from '../../api/songApi';
+import { trackCardRate, trackCardReveal } from '../../services/analytics';
 import { studyStatsApi } from '../../api/studyStatsApi';
 import { wordApi } from '../../api/wordApi';
 import { useStreakStore } from '../../stores/streakStore';
@@ -566,6 +567,9 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
   }, [cards.length, currentIndex, status, prefetchMore]);
 
   const reveal = useCallback(() => {
+    if (!revealed && currentCardRef.current) {
+      trackCardReveal({ mode, position: reviewedCountRef.current, is_preview: isPreviewRef.current });
+    }
     setRevealed(true);
     Animated.timing(revealProgress, {
       toValue: 1,
@@ -573,7 +577,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
       easing: Easing.out(Easing.cubic),
       useNativeDriver: true,
     }).start();
-  }, [revealProgress]);
+  }, [mode, revealProgress, revealed]);
 
   /**
    * 미리보기 카드의 rating 확정. 이 순간에만 서버에 그 곡을 통째로 담고(SongDetailScreen 의
@@ -591,6 +595,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     const version = ++requestVersion.current;
     const songId = currentCard.source.songId;
     const rating = selectedRating;
+    const position = reviewedCountRef.current;
     try {
       clearRatingHold();
       setSelectedRating(null);
@@ -605,6 +610,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
       if (songId == null) throw new Error('추천곡 정보를 확인하지 못했어요');
       const result = await songApi.studyBootstrap(songId, rating, currentCard.source.previewWord?.japanese);
       if (version !== requestVersion.current) return;
+      trackCardRate({ mode, position, is_preview: true }, rating);
       useStudyStatsStore.getState().invalidate();
       useStreakStore.getState().recordRating();
       isPreviewRef.current = false;
@@ -644,7 +650,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
       busyRef.current = false;
       setSaving(false);
     }
-  }, [clearRatingHold, currentCard, selectedRating, translateY]);
+  }, [clearRatingHold, currentCard, mode, selectedRating, translateY]);
 
   const advanceRealReview = useCallback(async () => {
     if (!currentCard || selectedRating == null || busyRef.current) return;
@@ -653,6 +659,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     const version = ++requestVersion.current;
     const reviewedCard = currentCard;
     const rating = selectedRating;
+    const position = reviewedCountRef.current;
     clearRatingHold();
     setSelectedRating(null);
     // review API 호출과 스와이프 애니메이션을 동시에 시작한다 — 이전엔 API 응답을 먼저 기다린
@@ -668,6 +675,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     try {
       const [, reviewResult] = await Promise.all([animationPromise, reviewPromise]);
       if (version !== requestVersion.current) return;
+      trackCardRate({ mode, position, is_preview: false }, rating);
       useStudyStatsStore.getState().invalidate();
       useStreakStore.getState().recordRating();
       setReviewError(null);
@@ -704,7 +712,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
       busyRef.current = false;
       setSaving(false);
     }
-  }, [clearRatingHold, currentCard, refreshDue, selectedRating, translateY]);
+  }, [clearRatingHold, currentCard, mode, refreshDue, selectedRating, translateY]);
 
   const advanceAfterReview = useCallback(async () => {
     if (isPreviewRef.current) {
