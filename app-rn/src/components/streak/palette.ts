@@ -31,8 +31,6 @@ export const StreakPalette = {
   grassInkOn: '#FFFFFF',
   freezeInk: '#1D4ED8',
   futureInk: '#D9D9D9',
-  /** 탭한 칸 링 — 오늘 링(주황)과 겹치지 않는 크림 계열 갈색. */
-  selectRing: '#D4AE82',
 } as const;
 
 /** ST3 — 주황을 전부 파랑으로 치환한 히어로. 달력(기록)은 주황 그대로 둔다. */

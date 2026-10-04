@@ -210,12 +210,20 @@ function Chip({ cell, mode, selected }: { cell: CalendarCell; mode: StreakMode; 
   const chip = <ChipBody cell={cell} />;
   if (selected) {
     // 선택 링은 오늘 링을 덮는다 — 오늘 칩이 선택돼도 어느 칸인지 분명해야 한다.
-    return <View style={[styles.ring, styles.selectedRing]}>{chip}</View>;
+    const ringColor = selectRingColor(cell);
+    return <View style={[styles.ring, styles.selectedRing, { borderColor: ringColor, shadowColor: ringColor }]}>{chip}</View>;
   }
   if (!cell.isToday) return chip;
   // 오늘 칩만 링을 두른다 — 프리즈로 이어진 날은 링도 파랑으로 간다.
   const ringColor = mode === 'frozen' ? Colors.freezeStroke : Colors.streakFlame;
   return <View style={[styles.ring, styles.todayRing, { borderColor: ringColor, shadowColor: ringColor }]}>{chip}</View>;
+}
+
+/** 선택 링은 칩 색을 따른다. 빈 날 칩은 바탕과 거의 같아 회색으로 대신한다. */
+function selectRingColor(cell: CalendarCell): string {
+  if (cell.kind === 'freeze') return Colors.freezeStroke;
+  if (cell.kind !== 'studied') return Colors.textMuted;
+  return cell.inRun ? StreakPalette.runRamp[cell.level - 1] : Colors.heatmapIntensities[cell.level];
 }
 
 function ChipBody({ cell }: { cell: CalendarCell }) {
@@ -394,8 +402,6 @@ const styles = StyleSheet.create({
     borderWidth: RING,
   },
   selectedRing: {
-    borderColor: StreakPalette.selectRing,
-    shadowColor: StreakPalette.selectRing,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.5,
     shadowRadius: 5,
