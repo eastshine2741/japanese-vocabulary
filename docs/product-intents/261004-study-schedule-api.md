@@ -1,27 +1,10 @@
 # 오늘의 복습 스케줄 (261004) — 프론트가 필요로 하는 API
 
 Pencil 프레임 `RQaUQ`(H6 오늘의 복습 스케줄) · `RUvac`(H6a 선정 기준 시트) ·
-`lTxfw`(H5-B7 홈 헤더) 를 앱에 반영했다. 30일 예보는 처음엔 앱이 임시로 꾸며 냈고, 이
-문서가 요청한 `GET /api/study-schedule` 이 이제 서버에 있다
-(`StudyScheduleController` → `domains:word` 의 `StudyScheduleService`). 앱은 아직
-`USE_MOCK_FORECAST = true` 다 — 서버 배포 뒤 끄면 된다.
-
-- 앱 쪽 임시 구현: `app-rn/src/api/studyScheduleApi.ts` 의 `USE_MOCK_FORECAST`,
-  `app-rn/src/api/mock/studyScheduleMock.ts`
-- 서버가 `GET /api/study-schedule` 를 내려 주면 `USE_MOCK_FORECAST = false` 하나만 바꾸면
-  된다. 응답 타입은 `app-rn/src/types/studySchedule.ts` 와 1:1 이다.
-
-## 지금 진짜 값인 것 / 가짜인 것
-
-| 화면 요소 | 출처 | 상태 |
-|---|---|---|
-| `17개 복습 대기` | `GET /api/flashcards/stats` → `due` | 진짜 |
-| `단어 664장 중` | `GET /api/flashcards/stats` → `total` | 진짜 |
-| 단어 칩 3개 + `외 N개` | `GET /api/flashcards/due?limit=3` | 진짜 |
-| `약 7분` 류 소요 시간 | 앱 상수 `SECONDS_PER_CARD = 25` | 앱 계산 (서버 불필요) |
-| 내일 `오늘 하면 / 미루면` 비교 | 예보 1일차 | **가짜** |
-| 30일 막대 그래프 | 예보 전체 | **가짜** |
-| 슬라이더(하루 N장) 반영 | 예보 재요청 | **가짜** |
+`lTxfw`(H5-B7 홈 헤더) 를 앱에 반영했다. 화면 데이터는 전부 `GET /api/study-schedule`
+하나에서 온다 (`StudyScheduleController` → `domains:word` 의 `StudyScheduleService`).
+앱 클라이언트는 `app-rn/src/api/studyScheduleApi.ts`, 응답 타입은
+`app-rn/src/types/studySchedule.ts` 와 1:1 이다. 소요 시간(`약 N분`)만 앱이 장당 25초로 계산한다.
 
 ## `GET /api/study-schedule` (신규)
 
