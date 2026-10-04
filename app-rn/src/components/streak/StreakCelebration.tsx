@@ -34,38 +34,39 @@ import { Typography } from '../../theme/typography';
 import { toDaySlots, type DaySlot } from './celebrationWeek';
 import { CelebrationPalette as P } from './palette';
 
-/** 1막 — 화면을 꽉 채운 꺼진 불이 떨며 힘을 모았다가 터지듯 점화된다. */
+/** 1막 — 화면을 꽉 채운 꺼진 불이 떨며 힘을 모았다가, 밑동부터 불이 옮겨붙어 확 타오른다. */
 const FADE_IN_MS = 260;
 const CHARGE_AT_MS = 120;
 const CHARGE_MS = 560;
 const IGNITE_AT_MS = 720;
-const IGNITE_MS = 720;
-const FLASH_MS = 560;
-const SHAKE_MS = 520;
-const RING_MS = 900;
-const RING_GAP_MS = 150;
-const BURST_MS = 1150;
+const IGNITE_MS = 700;
+/** 불이 옮겨붙고 한 박자 뒤 확 치솟는 순간. 섬광·불티·울림이 여기에 몰린다. */
+const WHOOSH_AT_MS = IGNITE_AT_MS + 220;
+const FLARE_UP_MS = 180;
+const FLARE_DOWN_MS = 850;
+const SHAKE_MS = 450;
+const BURST_MS = 1300;
 /** 2막 — 불꽃이 디자인 자리·크기로 날아가 앉는다. */
 const TRAVEL_AT_MS = 1950;
 const TRAVEL_MS = 640;
 const LAND_MS = 560;
-/** 3막 — 숫자가 내리꽂히고 N-1 에서 N 으로 넘어간 뒤 문구가 올라온다. */
+/** 3막 — 어제까지의 N-1 이 조용히 떠오른 뒤, N 이 크게 내리꽂히며 자리를 뺏고 문구가 올라온다. */
 const COUNT_AT_MS = 2450;
-const COUNT_MS = 480;
-const COUNT_TICK_AT_MS = 2850;
-const COUNT_POP_MS = 420;
-const HEADLINE_AT_MS = 3050;
-const SUB_AT_MS = 3230;
+const COUNT_MS = 420;
+const COUNT_SLAM_AT_MS = 3000;
+const COUNT_SLAM_MS = 500;
+const HEADLINE_AT_MS = 3400;
+const SUB_AT_MS = 3580;
 const COPY_MS = 440;
 /** 4막 — 지난 7일 카드가 올라오고 슬롯이 왼쪽부터, 오늘 칸은 한 박자 늦게 크게 점화된다. */
-const WEEK_AT_MS = 3650;
+const WEEK_AT_MS = 3950;
 const WEEK_MS = 400;
-const SLOT_AT_MS = 3800;
+const SLOT_AT_MS = 4100;
 const SLOT_STAGGER_MS = 90;
 const SLOT_MS = 380;
 const TODAY_LAG_MS = 240;
 const TODAY_MS = 560;
-const CTA_AT_MS = 4900;
+const CTA_AT_MS = 5200;
 const CTA_MS = 480;
 const EXIT_MS = 260;
 
@@ -76,7 +77,6 @@ const SWOOP = Easing.bezier(0.55, 0, 0.2, 1.12);
 
 const FLAME_SIZE = 168;
 const STAGE_SIZE = 236;
-const RING_SIZE = 120;
 /** 작은 화면에서는 히어로가 CTA 를 밀어내므로 불꽃·숫자를 같은 비율로 줄인다. */
 const COMPACT_HEIGHT = 720;
 const COMPACT_SCALE = 0.74;
@@ -84,25 +84,64 @@ const COMPACT_SCALE = 0.74;
 const BIG_FLAME_WIDTH = 1.25;
 const BIG_FLAME_HEIGHT = 0.7;
 
-/** 불꽃 중심에서 튀어 흩어지는 불티. 좌표는 디자인 크기 기준이고 1막 배율만큼 커진다. */
+/** 점화 순간 불꽃 위로 솟구치는 불티. 좌표는 디자인 크기 기준이고 1막 배율만큼 커진다. */
+/** 불꽃 몸통 위쪽에서 출발한다. */
+const SPARK_ORIGIN_Y = -30;
 const SPARKS = [
-  { dx: -78, dy: -58, size: 7, start: 0 },
-  { dx: 66, dy: -74, size: 6, start: 0.04 },
-  { dx: -96, dy: 10, size: 5, start: 0.08 },
-  { dx: 88, dy: -16, size: 5, start: 0.06 },
-  { dx: -52, dy: -92, size: 4, start: 0.12 },
-  { dx: 26, dy: -98, size: 5, start: 0.1 },
-  { dx: -88, dy: 54, size: 4, start: 0.16 },
-  { dx: 80, dy: 48, size: 4, start: 0.14 },
-  { dx: 0, dy: -110, size: 3, start: 0.18 },
-  { dx: 104, dy: 14, size: 3, start: 0.2 },
-  { dx: -112, dy: -30, size: 4, start: 0.22 },
-  { dx: 44, dy: 92, size: 3, start: 0.24 },
-  { dx: -30, dy: 100, size: 3, start: 0.26 },
-  { dx: 116, dy: -50, size: 4, start: 0.28 },
-  { dx: -64, dy: -112, size: 3, start: 0.3 },
-  { dx: 58, dy: -118, size: 3, start: 0.32 },
+  { dx: -34, dy: -190, size: 7, start: 0.02 },
+  { dx: 22, dy: -230, size: 6, start: 0 },
+  { dx: -12, dy: -260, size: 5, start: 0.08 },
+  { dx: 58, dy: -170, size: 6, start: 0.05 },
+  { dx: -70, dy: -150, size: 5, start: 0.1 },
+  { dx: 8, dy: -210, size: 7, start: 0.12 },
+  { dx: 44, dy: -270, size: 4, start: 0.16 },
+  { dx: -40, dy: -250, size: 4, start: 0.18 },
+  { dx: 86, dy: -200, size: 4, start: 0.2 },
+  { dx: -90, dy: -220, size: 4, start: 0.22 },
+  { dx: 110, dy: -130, size: 3, start: 0.06 },
+  { dx: -116, dy: -120, size: 3, start: 0.09 },
+  { dx: 30, dy: -150, size: 5, start: 0.26 },
+  { dx: -22, dy: -180, size: 5, start: 0.3 },
+  { dx: 66, dy: -240, size: 3, start: 0.34 },
+  { dx: -60, dy: -280, size: 3, start: 0.38 },
+  { dx: 0, dy: -300, size: 4, start: 0.42 },
+  { dx: 96, dy: -260, size: 3, start: 0.46 },
 ] as const;
+
+/** 불꽃이 살아 있게 하는 시계. 모든 주파수가 이 길이 안에서 정수 바퀴를 돌아야 반복 경계에서 튀지 않는다. */
+const FIRE_LOOP_MS = 12000;
+
+/**
+ * 바깥에서 안으로 갈수록 뜨거운 3겹. 셋이 같은 일렁임을 타되 안쪽이 조금 늦게 따라와,
+ * 밑동은 붙어 있고 끝만 너울거리는 한 덩어리 불로 보이게 한다.
+ * 점화는 catchAt(ignite 구간) 순서로 속불부터 밑동에서 위로 솟으며 바깥으로 번진다.
+ */
+const FLAME_LAYERS = [
+  { color: P.flameOuter, ratio: 1, top: 0, stretch: 0.05, sway: 1.5, lag: 0, catchAt: [0.2, 0.6] },
+  { color: P.flameMid, ratio: 0.84, top: 0.2, stretch: 0.07, sway: 2, lag: 0.012, catchAt: [0.1, 0.45] },
+  { color: P.flameCore, ratio: 0.44, top: 0.5, stretch: 0.09, sway: 2.5, lag: 0.024, catchAt: [0, 0.3] },
+] as const;
+
+/** 불꽃 속에서 천천히 솟아오르는 불씨. cycles 는 FIRE_LOOP 당 횟수. */
+const EMBERS = [
+  { cycles: 4, offset: 0, dx: -0.12, size: 0.022 },
+  { cycles: 5, offset: 0.45, dx: 0.1, size: 0.018 },
+  { cycles: 6, offset: 0.2, dx: -0.02, size: 0.025 },
+  { cycles: 5, offset: 0.75, dx: 0.16, size: 0.016 },
+] as const;
+
+/** 느린 너울(약 1Hz)에 잔떨림(약 2.6Hz)을 조금 얹은 -1~1. */
+function lift(t: number, lag: number): number {
+  'worklet';
+  const u = t - lag;
+  return Math.sin(2 * Math.PI * u * 13) * 0.75 + Math.sin(2 * Math.PI * (u * 31 + 0.3)) * 0.25;
+}
+
+/** 좌우 기울기는 더 느리게(약 0.6Hz) 돈다. */
+function lean(t: number, lag: number): number {
+  'worklet';
+  return Math.sin(2 * Math.PI * ((t - lag) * 7 + 0.15));
+}
 
 /**
  * 연속 학습 축하 — 오늘 첫 rating 직후 전체 화면으로 올라온다.
@@ -136,6 +175,8 @@ const StreakCelebration = React.memo(function StreakCelebration({
   const { height } = useWindowDimensions();
   const fit = height < COMPACT_HEIGHT ? COMPACT_SCALE : 1;
   const slots = useMemo(() => toDaySlots(weekDots), [weekDots]);
+  // 어제가 프리즈였으면 꺼진 불 대신 얼어붙은 눈 결정이 깨지며 불이 붙는다.
+  const frozen = slots.length >= 2 && slots[slots.length - 2].status === 'freeze';
 
   // 불꽃은 루트 위에 따로 떠 있다가 히어로의 빈 stage 자리로 날아간다 — 그 거리를 레이아웃에서 잰다.
   const [rootBox, setRootBox] = useState<Box | null>(null);
@@ -168,62 +209,50 @@ const StreakCelebration = React.memo(function StreakCelebration({
   const exit = useSharedValue(0);
   const charge = useSharedValue(0);
   const ignite = useSharedValue(0);
-  const flash = useSharedValue(0);
+  const flare = useSharedValue(0);
   const shake = useSharedValue(0);
-  const flicker = useSharedValue(0);
+  const fire = useSharedValue(0);
   const burst = useSharedValue(0);
-  const ring = useSharedValue(0);
-  const ring2 = useSharedValue(0);
   const travel = useSharedValue(0);
   const land = useSharedValue(0);
   const countIn = useSharedValue(0);
-  const countPop = useSharedValue(0);
+  const countSlam = useSharedValue(0);
   const headlineIn = useSharedValue(0);
   const subIn = useSharedValue(0);
   const weekIn = useSharedValue(0);
   const ctaIn = useSharedValue(0);
 
-  // 점화 직전까지는 어제까지의 숫자를 들고 있다가 숫자가 꽂힌 뒤 넘어간다.
-  const [shownStreak, setShownStreak] = useState(() => Math.max(0, streak - 1));
   const ready = geometry !== null;
 
   useEffect(() => {
     if (!ready) return;
-    const timer = setTimeout(() => setShownStreak(streak), COUNT_TICK_AT_MS);
-
     enter.value = withTiming(1, { duration: FADE_IN_MS, easing: SETTLE });
     charge.value = withDelay(CHARGE_AT_MS, withTiming(1, { duration: CHARGE_MS, easing: Easing.in(Easing.quad) }));
-    ignite.value = withDelay(IGNITE_AT_MS, withTiming(1, { duration: IGNITE_MS, easing: SETTLE }));
-    flash.value = withDelay(IGNITE_AT_MS, withTiming(1, { duration: FLASH_MS, easing: Easing.out(Easing.quad) }));
-    shake.value = withDelay(IGNITE_AT_MS, withTiming(1, { duration: SHAKE_MS, easing: Easing.linear }));
-    ring.value = withDelay(IGNITE_AT_MS, withTiming(1, { duration: RING_MS, easing: Easing.out(Easing.cubic) }));
-    ring2.value = withDelay(IGNITE_AT_MS + RING_GAP_MS, withTiming(1, { duration: RING_MS, easing: Easing.out(Easing.cubic) }));
-    burst.value = withDelay(IGNITE_AT_MS + 40, withTiming(1, { duration: BURST_MS, easing: Easing.out(Easing.quad) }));
-    flicker.value = withDelay(
-      IGNITE_AT_MS + IGNITE_MS,
-      withRepeat(
-        withSequence(
-          withTiming(1, { duration: 420, easing: Easing.inOut(Easing.sin) }),
-          withTiming(0, { duration: 520, easing: Easing.inOut(Easing.sin) }),
-        ),
-        -1,
+    ignite.value = withDelay(IGNITE_AT_MS, withTiming(1, { duration: IGNITE_MS, easing: Easing.out(Easing.quad) }));
+    flare.value = withDelay(
+      WHOOSH_AT_MS,
+      withSequence(
+        withTiming(1, { duration: FLARE_UP_MS, easing: Easing.out(Easing.quad) }),
+        withTiming(0, { duration: FLARE_DOWN_MS, easing: Easing.out(Easing.cubic) }),
       ),
     );
+    shake.value = withDelay(WHOOSH_AT_MS, withTiming(1, { duration: SHAKE_MS, easing: Easing.linear }));
+    burst.value = withDelay(WHOOSH_AT_MS, withTiming(1, { duration: BURST_MS, easing: Easing.out(Easing.quad) }));
+    fire.value = withRepeat(withTiming(1, { duration: FIRE_LOOP_MS, easing: Easing.linear }), -1);
     travel.value = withDelay(TRAVEL_AT_MS, withTiming(1, { duration: TRAVEL_MS, easing: SWOOP }));
     land.value = withDelay(TRAVEL_AT_MS + TRAVEL_MS * 0.8, withTiming(1, { duration: LAND_MS, easing: Easing.out(Easing.cubic) }));
-    countIn.value = withDelay(COUNT_AT_MS, withTiming(1, { duration: COUNT_MS, easing: SLAM }));
-    countPop.value = withDelay(COUNT_TICK_AT_MS, withTiming(1, { duration: COUNT_POP_MS, easing: SETTLE }));
+    countIn.value = withDelay(COUNT_AT_MS, withTiming(1, { duration: COUNT_MS, easing: SETTLE }));
+    countSlam.value = withDelay(COUNT_SLAM_AT_MS, withTiming(1, { duration: COUNT_SLAM_MS, easing: SLAM }));
     headlineIn.value = withDelay(HEADLINE_AT_MS, withTiming(1, { duration: COPY_MS, easing: SETTLE }));
     subIn.value = withDelay(SUB_AT_MS, withTiming(1, { duration: COPY_MS, easing: SETTLE }));
     weekIn.value = withDelay(WEEK_AT_MS, withTiming(1, { duration: WEEK_MS, easing: SETTLE }));
     ctaIn.value = withDelay(CTA_AT_MS, withTiming(1, { duration: CTA_MS, easing: SLAM }));
 
-    const all = [enter, exit, charge, ignite, flash, shake, flicker, burst, ring, ring2, travel, land, countIn, countPop, headlineIn, subIn, weekIn, ctaIn];
+    const all = [enter, exit, charge, ignite, flare, shake, fire, burst, travel, land, countIn, countSlam, headlineIn, subIn, weekIn, ctaIn];
     return () => {
-      clearTimeout(timer);
       all.forEach(v => cancelAnimation(v));
     };
-  }, [ready, streak, enter, exit, charge, ignite, flash, shake, flicker, burst, ring, ring2, travel, land, countIn, countPop, headlineIn, subIn, weekIn, ctaIn]);
+  }, [ready, enter, exit, charge, ignite, flare, shake, fire, burst, travel, land, countIn, countSlam, headlineIn, subIn, weekIn, ctaIn]);
 
   const close = useCallback(() => {
     exit.value = withTiming(1, { duration: EXIT_MS, easing: Easing.in(Easing.quad) }, finished => {
@@ -244,14 +273,14 @@ const StreakCelebration = React.memo(function StreakCelebration({
     opacity: enter.value * (1 - exit.value),
   }));
 
-  // 감쇠하는 사인파 — 점화 순간 화면 전체가 흔들린다.
+  // 불길이 확 일 때 화면이 낮게 울린다 — 세게 흔들면 폭발처럼 읽힌다.
   const shakeStyle = useAnimatedStyle(() => {
     const t = shake.value;
-    const amp = t >= 1 ? 0 : 14 * (1 - t) * (1 - t);
+    const amp = t >= 1 ? 0 : 7 * (1 - t) * (1 - t);
     return {
       transform: [
-        { translateX: Math.sin(t * Math.PI * 11) * amp },
-        { translateY: Math.cos(t * Math.PI * 9) * amp * 0.6 },
+        { translateX: Math.sin(t * Math.PI * 7) * amp },
+        { translateY: Math.cos(t * Math.PI * 5) * amp * 0.6 },
       ],
     };
   });
@@ -260,8 +289,13 @@ const StreakCelebration = React.memo(function StreakCelebration({
     opacity: interpolate(ignite.value, [0, 1], [0.2, 1]),
   }));
 
+  // 불이 바깥 겹까지 번지는 동안 얼어 있던 푸른 배경이 걷힌다.
+  const coldStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(ignite.value, [0.1, 0.6], [1, 0], Extrapolation.CLAMP),
+  }));
+
   const flashStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(flash.value, [0, 0.12, 1], [0, 0.6, 0], Extrapolation.CLAMP),
+    opacity: 0.45 * flare.value,
   }));
 
   return (
@@ -282,20 +316,36 @@ const StreakCelebration = React.memo(function StreakCelebration({
           <Rect x="0" y="0" width="100%" height="100%" fill="url(#streakCelebrationGlow)" />
         </Svg>
       </Animated.View>
+      {frozen && (
+        <Animated.View style={[StyleSheet.absoluteFill, coldStyle]} pointerEvents="none">
+          <LinearGradient colors={[P.coldTop, P.coldMid, P.coldBottom]} locations={[0, 0.5, 1]} style={StyleSheet.absoluteFill} />
+          <Svg width="100%" height="100%">
+            <Defs>
+              <RadialGradient id="streakCelebrationCold" cx="50%" cy="50%" rx="70%" ry="45%">
+                <Stop offset="0" stopColor={P.coldGlow} stopOpacity={0.3} />
+                <Stop offset="1" stopColor={P.coldGlow} stopOpacity={0} />
+              </RadialGradient>
+            </Defs>
+            <Rect x="0" y="0" width="100%" height="100%" fill="url(#streakCelebrationCold)" />
+          </Svg>
+        </Animated.View>
+      )}
 
       <Animated.View style={[StyleSheet.absoluteFill, shakeStyle]}>
         <View style={[styles.content, { paddingTop: insets.top + 8, paddingBottom: insets.bottom + 20 }]}>
           <View style={[styles.hero, { gap: 34 * fit }]} onLayout={onHeroLayout}>
             <View style={{ width: STAGE_SIZE * fit, height: STAGE_SIZE * fit }} onLayout={onStageLayout} />
 
-            <Rise progress={countIn} from={0} scaleFrom={2.4}>
-              <CountPop pop={countPop}>
-                <View style={styles.countRow}>
-                  <Text style={[styles.count, { fontSize: 78 * fit, lineHeight: 84 * fit }]}>{shownStreak}</Text>
-                  <Text style={[styles.unit, { fontSize: 26 * fit, lineHeight: 42 * fit }]}>일 연속</Text>
-                </View>
-              </CountPop>
-            </Rise>
+            <View>
+              <Rise progress={countSlam} from={0} scaleFrom={2.4}>
+                <CountRow count={streak} fit={fit} />
+              </Rise>
+              <FadeOut progress={countSlam} style={styles.countBefore}>
+                <Rise progress={countIn} from={10}>
+                  <CountRow count={Math.max(0, streak - 1)} fit={fit} />
+                </Rise>
+              </FadeOut>
+            </View>
 
             <View style={styles.copy}>
               <Rise progress={headlineIn} from={18}>
@@ -336,12 +386,12 @@ const StreakCelebration = React.memo(function StreakCelebration({
         {geometry && (
           <FlameActor
             geometry={geometry}
+            frozen={frozen}
             charge={charge}
             ignite={ignite}
-            flicker={flicker}
+            fire={fire}
             burst={burst}
-            ring={ring}
-            ring2={ring2}
+            flare={flare}
             travel={travel}
             land={land}
           />
@@ -374,11 +424,29 @@ const Rise = React.memo(function Rise({ progress, from, scaleFrom = 1, style, ch
   return <Animated.View style={[style, animated]}>{children}</Animated.View>;
 });
 
-const CountPop = React.memo(function CountPop({ pop, children }: { pop: SharedValue<number>; children: React.ReactNode }) {
-  const style = useAnimatedStyle(() => ({
-    transform: [{ scale: interpolate(pop.value, [0, 0.35, 1], [1, 1.28, 1], Extrapolation.CLAMP) }],
+/** progress 가 시작되자마자 빠르게 사라진다 — 내리꽂히는 N 에게 자리를 내준다. */
+const FadeOut = React.memo(function FadeOut({
+  progress,
+  style,
+  children,
+}: {
+  progress: SharedValue<number>;
+  style?: StyleProp<ViewStyle>;
+  children: React.ReactNode;
+}) {
+  const animated = useAnimatedStyle(() => ({
+    opacity: interpolate(progress.value, [0, 0.25], [1, 0], Extrapolation.CLAMP),
   }));
-  return <Animated.View style={style}>{children}</Animated.View>;
+  return <Animated.View style={[style, animated]}>{children}</Animated.View>;
+});
+
+const CountRow = React.memo(function CountRow({ count, fit }: { count: number; fit: number }) {
+  return (
+    <View style={styles.countRow}>
+      <Text style={[styles.count, { fontSize: 78 * fit, lineHeight: 84 * fit }]}>{count}</Text>
+      <Text style={[styles.unit, { fontSize: 26 * fit, lineHeight: 42 * fit }]}>일 연속</Text>
+    </View>
+  );
 });
 
 interface FlameGeometry {
@@ -393,12 +461,12 @@ interface FlameGeometry {
 
 interface FlameActorProps {
   geometry: FlameGeometry;
+  frozen: boolean;
   charge: SharedValue<number>;
   ignite: SharedValue<number>;
-  flicker: SharedValue<number>;
+  fire: SharedValue<number>;
   burst: SharedValue<number>;
-  ring: SharedValue<number>;
-  ring2: SharedValue<number>;
+  flare: SharedValue<number>;
   travel: SharedValue<number>;
   land: SharedValue<number>;
 }
@@ -406,18 +474,17 @@ interface FlameActorProps {
 /** 화면 한가운데 거대하게 점화된 뒤, travel 에 맞춰 stage 자리로 날아가며 1/zoom 로 줄어드는 불꽃. */
 const FlameActor = React.memo(function FlameActor({
   geometry,
+  frozen,
   charge,
   ignite,
-  flicker,
+  fire,
   burst,
-  ring,
-  ring2,
+  flare,
   travel,
   land,
 }: FlameActorProps) {
   const { unit, zoom, actorSize, left, top, dx, dy } = geometry;
   const flameSize = FLAME_SIZE * unit;
-  const ringSize = RING_SIZE * unit;
 
   const actorStyle = useAnimatedStyle(() => ({
     transform: [
@@ -428,13 +495,14 @@ const FlameActor = React.memo(function FlameActor({
   }));
 
   const glowStyle = useAnimatedStyle(() => ({
-    opacity: ignite.value * interpolate(flicker.value, [0, 1], [0.82, 1]),
+    opacity: Math.min(1, ignite.value * (0.9 + 0.1 * lift(fire.value, 0)) + 0.3 * flare.value),
     transform: [
       {
         scale:
-          interpolate(ignite.value, [0, 0.4, 1], [0.3, 1.25, 1], Extrapolation.CLAMP) *
-          interpolate(flicker.value, [0, 1], [1, 1.06]) *
-          interpolate(land.value, [0, 0.3, 1], [1, 1.3, 1], Extrapolation.CLAMP),
+          interpolate(ignite.value, [0, 0.6, 1], [0.4, 1.12, 1], Extrapolation.CLAMP) *
+          (1 + 0.55 * flare.value) *
+          (1 + 0.03 * lift(fire.value, 0)) *
+          interpolate(land.value, [0, 0.3, 1], [1, 1.2, 1], Extrapolation.CLAMP),
       },
     ],
   }));
@@ -443,7 +511,10 @@ const FlameActor = React.memo(function FlameActor({
   const dimFlameStyle = useAnimatedStyle(() => {
     const c = charge.value;
     return {
-      opacity: interpolate(c, [0, 0.3], [0, 1], Extrapolation.CLAMP) * interpolate(ignite.value, [0, 0.2], [1, 0], Extrapolation.CLAMP),
+      // 눈 결정은 Thaw 가 스스로 녹여 없앤다.
+      opacity:
+        interpolate(c, [0, 0.3], [0, 1], Extrapolation.CLAMP) *
+        (frozen ? 1 : interpolate(ignite.value, [0.15, 0.5], [1, 0], Extrapolation.CLAMP)),
       transform: [
         { translateX: Math.sin(c * Math.PI * 22) * 6 * c * c },
         { scale: interpolate(c, [0, 1], [1, 0.88]) },
@@ -452,18 +523,22 @@ const FlameActor = React.memo(function FlameActor({
   });
 
   const litFlameStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(ignite.value, [0, 0.12], [0, 1], Extrapolation.CLAMP),
-    transform: [
-      {
-        scale:
-          interpolate(ignite.value, [0, 0.4, 1], [0.5, 1.2, 1], Extrapolation.CLAMP) *
-          interpolate(flicker.value, [0, 1], [1, 1.03]) *
-          interpolate(land.value, [0, 0.25, 1], [1, 1.14, 1], Extrapolation.CLAMP),
-      },
-      { translateY: interpolate(flicker.value, [0, 1], [0, -2 * unit]) },
-      { rotate: `${interpolate(flicker.value, [0, 1], [-1.2, 1.2])}deg` },
-    ],
+    transform: [{ scale: interpolate(land.value, [0, 0.25, 1], [1, 1.08, 1], Extrapolation.CLAMP) }],
   }));
+
+  // 확 치솟을 때 밑동을 축으로 키가 훌쩍 커졌다가 내려앉는다.
+  const flareStyle = useAnimatedStyle(() => ({
+    transform: [{ scaleY: 1 + 0.42 * flare.value }, { scaleX: 1 + 0.1 * flare.value }],
+  }));
+
+  // 치솟는 순간 불꽃 아래쪽에서 뜨거운 빛 덩어리가 부풀며 흩어진다.
+  const puffStyle = useAnimatedStyle(() => {
+    const t = interpolate(burst.value, [0, 0.45], [0, 1], Extrapolation.CLAMP);
+    return {
+      opacity: interpolate(t, [0, 0.12, 1], [0, 0.95, 0], Extrapolation.CLAMP),
+      transform: [{ translateY: flameSize * 0.12 - t * flameSize * 0.2 }, { scale: interpolate(t, [0, 1], [0.3, 2.1]) }],
+    };
+  });
 
   return (
     <Animated.View
@@ -483,30 +558,36 @@ const FlameActor = React.memo(function FlameActor({
         </Svg>
       </Animated.View>
 
-      <Shockwave progress={ring} size={ringSize} border={2.5 * unit} spread={2.8} />
-      <Shockwave progress={ring2} size={ringSize} border={1.5 * unit} spread={3.4} />
-      <Shockwave progress={land} size={ringSize} border={2 * unit} spread={1.9} />
-
       <Animated.View style={[styles.stageCenter, dimFlameStyle]}>
-        <Ionicons name="flame" size={flameSize} color={P.flameOff} />
+        {frozen ? (
+          <Thaw ignite={ignite} size={flameSize * 0.92} />
+        ) : (
+          <Ionicons name="flame" size={flameSize} color={P.flameOff} />
+        )}
       </Animated.View>
 
       <Animated.View style={[styles.stageCenter, litFlameStyle]}>
-        <View style={[styles.flameBox, { width: flameSize, height: flameSize }]}>
-          <Ionicons name="flame" size={flameSize} color={P.flameOuter} />
-          <Ionicons
-            name="flame"
-            size={flameSize * 0.84}
-            color={P.flameMid}
-            style={[styles.flameLayer, { top: flameSize * 0.2 }]}
-          />
-          <Ionicons
-            name="flame"
-            size={flameSize * 0.44}
-            color={P.flameCore}
-            style={[styles.flameLayer, { top: flameSize * 0.5 }]}
-          />
-        </View>
+        <Animated.View style={[styles.flameBox, styles.flameOrigin, { width: flameSize, height: flameSize }, flareStyle]}>
+          {EMBERS.map((ember, i) => (
+            <Ember key={i} fire={fire} ignite={ignite} flameSize={flameSize} {...ember} />
+          ))}
+          {FLAME_LAYERS.map((layer, i) => (
+            <FlameLayer key={i} fire={fire} ignite={ignite} flameSize={flameSize} {...layer} />
+          ))}
+        </Animated.View>
+      </Animated.View>
+
+      <Animated.View style={[styles.stageCenter, puffStyle]}>
+        <Svg width={flameSize} height={flameSize}>
+          <Defs>
+            <RadialGradient id="streakFlamePuff" cx="50%" cy="50%" rx="50%" ry="50%">
+              <Stop offset="0" stopColor={P.flameCore} stopOpacity={0.95} />
+              <Stop offset="0.35" stopColor={P.flameMid} stopOpacity={0.55} />
+              <Stop offset="1" stopColor={P.flameOuter} stopOpacity={0} />
+            </RadialGradient>
+          </Defs>
+          <Rect x="0" y="0" width="100%" height="100%" fill="url(#streakFlamePuff)" />
+        </Svg>
       </Animated.View>
 
       {SPARKS.map((spark, i) => (
@@ -516,22 +597,109 @@ const FlameActor = React.memo(function FlameActor({
   );
 });
 
-interface ShockwaveProps {
-  progress: SharedValue<number>;
-  size: number;
-  border: number;
-  /** 다 퍼졌을 때의 배율. */
-  spread: number;
+interface FlameLayerProps {
+  fire: SharedValue<number>;
+  ignite: SharedValue<number>;
+  flameSize: number;
+  color: string;
+  ratio: number;
+  top: number;
+  stretch: number;
+  sway: number;
+  lag: number;
+  catchAt: readonly [number, number];
 }
 
-const Shockwave = React.memo(function Shockwave({ progress, size, border, spread }: ShockwaveProps) {
-  const style = useAnimatedStyle(() => ({
-    opacity: interpolate(progress.value, [0, 0.1, 1], [0, 0.75, 0], Extrapolation.CLAMP),
-    transform: [{ scale: interpolate(progress.value, [0, 1], [0.3, spread]) }],
+const FlameLayer = React.memo(function FlameLayer({
+  fire,
+  ignite,
+  flameSize,
+  color,
+  ratio,
+  top,
+  stretch,
+  sway,
+  lag,
+  catchAt,
+}: FlameLayerProps) {
+  const [from, to] = catchAt;
+  const style = useAnimatedStyle(() => {
+    const up = lift(fire.value, lag);
+    const c = interpolate(ignite.value, [from, to], [0, 1], Extrapolation.CLAMP);
+    return {
+      opacity: interpolate(c, [0, 0.25], [0, 1], Extrapolation.CLAMP),
+      transform: [
+        // 밑동에서 가늘고 길게 솟았다가 제 폭으로 퍼진다.
+        { scaleY: interpolate(c, [0, 0.6, 1], [0.05, 1.12, 1]) * (1 + stretch * up) },
+        { scaleX: interpolate(c, [0, 0.6, 1], [0.3, 0.92, 1]) * (1 - stretch * 0.4 * up) },
+        { skewX: `${sway * lean(fire.value, lag)}deg` },
+      ],
+    };
+  });
+  return (
+    <Animated.View style={[styles.flameLayer, styles.flameOrigin, { top: flameSize * top }, style]}>
+      <Ionicons name="flame" size={flameSize * ratio} color={color} />
+    </Animated.View>
+  );
+});
+
+interface LoopParticleProps {
+  fire: SharedValue<number>;
+  flameSize: number;
+  cycles: number;
+  offset: number;
+  /** 불꽃 폭 대비 가로 출발점. */
+  dx: number;
+  /** 불꽃 크기 대비. */
+  size: number;
+}
+
+const Ember = React.memo(function Ember({
+  fire,
+  ignite,
+  flameSize,
+  cycles,
+  offset,
+  dx,
+  size,
+}: LoopParticleProps & { ignite: SharedValue<number> }) {
+  const s = flameSize * size;
+  const style = useAnimatedStyle(() => {
+    const p = (fire.value * cycles + offset) % 1;
+    return {
+      opacity: interpolate(ignite.value, [0.5, 1], [0, 1], Extrapolation.CLAMP) * interpolate(p, [0, 0.2, 0.7, 1], [0, 0.9, 0.6, 0]),
+      transform: [
+        { translateX: flameSize * dx * (1 - p * 0.4) + Math.sin(2 * Math.PI * (p + offset)) * flameSize * 0.025 },
+        { translateY: -p * flameSize * 0.85 },
+        { scale: 1 - p * 0.6 },
+      ],
+    };
+  });
+  return (
+    <Animated.View
+      style={[styles.ember, { width: s, height: s, top: flameSize * 0.45, marginLeft: -s / 2 }, style]}
+    />
+  );
+});
+
+/** 눈 결정이 불빛에 달아오르듯 주황으로 물든 뒤, 밑동 쪽으로 녹아 주저앉으며 불 속으로 사라진다. */
+const Thaw = React.memo(function Thaw({ ignite, size }: { ignite: SharedValue<number>; size: number }) {
+  const wrapStyle = useAnimatedStyle(() => {
+    const t = interpolate(ignite.value, [0.1, 0.5], [0, 1], Extrapolation.CLAMP);
+    return {
+      opacity: 1 - t,
+      transform: [{ scaleY: 1 - 0.55 * t }, { scaleX: 1 + 0.08 * t }],
+    };
+  });
+  const warmStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(ignite.value, [0, 0.2], [0, 1], Extrapolation.CLAMP),
   }));
   return (
-    <Animated.View style={[styles.stageCenter, style]}>
-      <View style={[styles.ring, { width: size, height: size, borderRadius: size / 2, borderWidth: border }]} />
+    <Animated.View style={[styles.flameOrigin, wrapStyle]}>
+      <Ionicons name="snow" size={size} color={P.iceInk} />
+      <Animated.View style={[StyleSheet.absoluteFill, warmStyle]}>
+        <Ionicons name="snow" size={size} color={P.flameMid} />
+      </Animated.View>
     </Animated.View>
   );
 });
@@ -552,10 +720,10 @@ const Spark = React.memo(function Spark({ burst, dx, dy, size, start, unit }: Sp
     return {
       opacity: interpolate(t, [0, 0.1, 0.7, 1], [0, 1, 0.9, 0], Extrapolation.CLAMP),
       transform: [
-        { translateX: dx * unit * t },
-        // 후반에 중력 대신 부력을 줘 살짝 떠오르게 한다.
-        { translateY: (dy * t - 10 * t * t) * unit },
-        { scale: interpolate(t, [0, 0.2, 1], [0.4, 1, 0.2], Extrapolation.CLAMP) },
+        // 불길을 타고 오르며 좌우로 흔들린다.
+        { translateX: (dx * t + Math.sin((t * 2 + start) * Math.PI * 2) * 6) * unit },
+        { translateY: (SPARK_ORIGIN_Y + dy * t) * unit },
+        { scale: interpolate(t, [0, 0.15, 1], [0.4, 1, 0.3], Extrapolation.CLAMP) },
       ],
     };
   });
@@ -648,15 +816,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  ring: {
-    position: 'absolute',
-    borderColor: P.ring,
-  },
   flameBox: {
     alignItems: 'center',
   },
   flameLayer: {
     position: 'absolute',
+  },
+  flameOrigin: {
+    transformOrigin: 'bottom',
+  },
+  ember: {
+    position: 'absolute',
+    left: '50%',
+    borderRadius: 999,
+    backgroundColor: P.spark,
   },
   spark: {
     position: 'absolute',
@@ -664,6 +837,14 @@ const styles = StyleSheet.create({
     top: '50%',
     borderRadius: 999,
     backgroundColor: P.spark,
+  },
+  // N-1 과 N 은 자리수가 다를 수 있어 가운데를 맞춰 겹친다.
+  countBefore: {
+    position: 'absolute',
+    left: -100,
+    right: -100,
+    top: 0,
+    alignItems: 'center',
   },
   countRow: {
     flexDirection: 'row',

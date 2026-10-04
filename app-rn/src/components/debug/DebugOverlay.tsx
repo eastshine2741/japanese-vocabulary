@@ -40,6 +40,7 @@ const CELEBRATION_PRESETS: Preset[] = [
   { label: '첫날 1일', streak: 1, hasStudiedBefore: false, past: ['none', 'none', 'none', 'none', 'none', 'none'] },
   { label: '재시작 1일', streak: 1, hasStudiedBefore: true, past: ['studied', 'studied', 'none', 'none', 'none', 'none'] },
   { label: '5일 · 프리즈 포함', streak: 5, hasStudiedBefore: true, past: ['none', 'studied', 'studied', 'studied', 'freeze', 'studied'] },
+  { label: '6일 · 어제 프리즈', streak: 6, hasStudiedBefore: true, past: ['studied', 'studied', 'studied', 'studied', 'studied', 'freeze'] },
   { label: '30일', streak: 30, hasStudiedBefore: true, past: ['studied', 'studied', 'studied', 'studied', 'studied', 'studied'] },
 ];
 

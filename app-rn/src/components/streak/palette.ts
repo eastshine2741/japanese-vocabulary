@@ -55,18 +55,24 @@ export const CelebrationPalette = {
   bgMid: '#1A0C09',
   bgBottom: '#0B0708',
   bgGlow: '#FF7A00',
+  /** 어제가 프리즈였을 때 점화 전까지 덮여 있는 얼어붙은 배경. */
+  coldTop: '#0E2A4F',
+  coldMid: '#0A1628',
+  coldBottom: '#05080F',
+  coldGlow: '#3D8BFF',
 
   /** 아직 꺼진 불. */
   flameOff: 'rgba(255,255,255,0.18)',
+  /** 어제 프리즈였을 때 꺼진 불 대신 나오는 눈 결정. */
+  iceInk: '#A9D3FF',
   /** 바깥에서 안으로 갈수록 뜨거워지는 3겹. */
   flameOuter: '#FF4D12',
   flameMid: '#FF9500',
   flameCore: '#FFF0B8',
-  /** 불꽃 주변 빛무리와 점화 파문. */
+  /** 불꽃 주변 빛무리. */
   glowCore: '#FFA42A',
-  ring: 'rgba(255,255,255,0.75)',
   spark: '#FFE9A3',
-  /** 점화 순간 화면 전체를 덮는 섬광. */
+  /** 불길이 치솟는 순간 화면 전체를 덮는 섬광. */
   flash: '#FFE3B3',
 
   countShadow: 'rgba(255,138,0,0.45)',
