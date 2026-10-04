@@ -66,6 +66,8 @@ export const CelebrationPalette = {
   glowCore: '#FFA42A',
   ring: 'rgba(255,255,255,0.75)',
   spark: '#FFE9A3',
+  /** 점화 순간 화면 전체를 덮는 섬광. */
+  flash: '#FFE3B3',
 
   countShadow: 'rgba(255,138,0,0.45)',
   unit: '#FFC489',
