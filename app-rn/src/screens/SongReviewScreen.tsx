@@ -32,11 +32,12 @@ export default function SongReviewScreen({ navigation, route }: Props) {
   exitStateRef.current = { reviewed: session.reviewedCount, revealed: stack.revealed, completed: isComplete, status };
   useEffect(() => {
     const openedAt = Date.now();
-    const songId = source.songId;
+    const { songId, deckId } = source;
     const log = (how: 'leave' | 'background') => {
-      if (songId == null) return;
+      if (songId == null && deckId == null) return;
       trackReviewExit({
-        song_id: songId,
+        ...(songId != null && { song_id: songId }),
+        ...(deckId != null && { deck_id: deckId }),
         how,
         ...exitStateRef.current,
         dwell_sec: Math.round((Date.now() - openedAt) / 1000),

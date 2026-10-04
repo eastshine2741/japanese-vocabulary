@@ -10,6 +10,7 @@ import FreezeInfoSheet from '../components/studyStats/FreezeInfoSheet';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { StreakCalendar, StreakHero, StreakStatsRow, buildStreakCalendar, streakMode } from '../components/streak';
 import { FrozenPalette, StreakPalette } from '../components/streak/palette';
+import { useOpenAllDeckReview } from '../hooks/useOpenAllDeckReview';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useStudyStatsStore } from '../stores/studyStatsStore';
 import { Colors } from '../theme/theme';
@@ -57,10 +58,7 @@ export default function StreakScreen({ navigation }: Props) {
 
   const appBar = useMemo(() => <AppBar title="연속 학습" onBack={handleBack} />, [handleBack]);
 
-  const handleStart = useCallback(() => {
-    // 홈 스택이 곧 복습이다 — 뒤로 가면 바로 오늘의 카드로 돌아간다.
-    navigation.goBack();
-  }, [navigation]);
+  const handleStart = useOpenAllDeckReview('streak', handleBack);
 
   const freezeSheetRef = useRef<AppBottomSheetModalRef>(null);
   const freezeOpenRef = useRef(false);

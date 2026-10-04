@@ -17,6 +17,7 @@ import MemoryProgressBar from '../components/MemoryProgressBar';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { SecondaryButton } from '../components/SecondaryButton';
 import { AppBar } from '../components/AppBar';
+import { sourceFromDeckDetail } from '../components/studyStack';
 import { Colors, Dimens } from '../theme/theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
@@ -65,17 +66,7 @@ export default function DeckDetailScreen({ route, navigation }: Props) {
 
   const handleStartStudy = useCallback(() => {
     if (!data?.deckId) return;
-    navigation.navigate('SongReview', {
-      source: {
-        deckId: data.deckId,
-        songId: data.songId,
-        title: data.title ?? '전체 단어장',
-        artist: data.artist ?? '저장한 단어',
-        artworkUrl: data.artworkUrl,
-        dueCount: data.dueCount,
-        totalCount: data.wordCount,
-      },
-    });
+    navigation.navigate('SongReview', { source: sourceFromDeckDetail(data) });
   }, [data, navigation]);
 
   return (

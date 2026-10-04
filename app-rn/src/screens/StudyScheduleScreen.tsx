@@ -12,6 +12,7 @@ import {
   AppBottomSheetView,
 } from '../components/bottomSheet';
 import { ForecastChart, ScheduleSummary, SelectionRuleSheet } from '../components/studySchedule';
+import { useOpenAllDeckReview } from '../hooks/useOpenAllDeckReview';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useHomeChromeStore } from '../stores/homeChromeStore';
 import { useStudyScheduleStore } from '../stores/studyScheduleStore';
@@ -36,11 +37,12 @@ export default function StudyScheduleScreen({ navigation }: Props) {
   const openRule = useCallback(() => ruleSheetRef.current?.present(), []);
   const closeRule = useCallback(() => ruleSheetRef.current?.dismiss(), []);
 
-  // 복습은 홈 카드 스택에서 한다 — 홈으로 돌아가면서 바로 몰입 상태로 들어가게 한다.
-  const startReview = useCallback(() => {
+  // 전체 단어장을 못 열면 홈 카드 스택으로 돌아가 몰입 상태로 복습한다.
+  const reviewOnHome = useCallback(() => {
     requestImmerse();
     navigation.goBack();
   }, [navigation, requestImmerse]);
+  const startReview = useOpenAllDeckReview('schedule', reviewOnHome);
 
   const goBack = useCallback(() => navigation.goBack(), [navigation]);
 

@@ -59,7 +59,7 @@ export type RootStackParamList = {
   OssLicense: undefined;
   Voc: undefined;
   SongDetail: SongPlaybackEntryParams;
-  /** 곡 진입 복습. 큐 순서는 서버 due 응답을 그대로 따른다. trigger 는 곡 상세에서 누른 버튼(screen_view 파라미터). */
+  /** 곡·덱 진입 복습. 큐 순서는 서버 due 응답을 그대로 따른다. trigger 는 복습을 연 버튼(screen_view 파라미터). */
   SongReview: { source: StudySource; origin?: 'SongDetail'; trigger?: StudyEntryTrigger };
   DeckList: undefined;
   SongProgressList: undefined;

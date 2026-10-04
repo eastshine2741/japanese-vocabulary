@@ -24,8 +24,11 @@ type AnalyticsEvent =
 
 export type AnalyzeOutcome = 'success' | 'lyrics_not_found' | 'failed';
 
-/** 곡 상세에서 복습 화면을 연 버튼. cta: 상단 학습 버튼, tier: 단계 학습 카드, word: 단어 탭. SongReview screen_view 파라미터. */
-export type StudyEntryTrigger = 'cta' | 'tier' | 'word';
+/**
+ * 복습 화면을 연 버튼. 곡 상세의 cta: 상단 학습 버튼, tier: 단계 학습 카드, word: 단어 탭.
+ * streak/schedule: 연속 학습·복습 스케줄 화면의 CTA(전체 단어장). SongReview screen_view 파라미터.
+ */
+export type StudyEntryTrigger = 'cta' | 'tier' | 'word' | 'streak' | 'schedule';
 
 /** position: 이번 세션에서 이 카드 앞에 평가를 마친 카드 수 (첫 카드면 0). */
 export interface StudyCardParams {
@@ -36,7 +39,9 @@ export interface StudyCardParams {
 
 /** 곡 진입 복습 화면을 떠날 때의 상태. 몇 장째에서, 뒷면을 본 채로 나갔는지 본다. */
 export interface ReviewExitParams {
-  song_id: number;
+  /** 전체 단어장 복습이면 없다 */
+  song_id?: number;
+  deck_id?: number;
   /** leave: 화면을 떠남, background: 앱이 백그라운드로 감(앱 종료 포함) */
   how: 'leave' | 'background';
   reviewed: number;

@@ -25,6 +25,7 @@ export {
 } from './StackReviewOverlay';
 export {
   sourceFromDeck,
+  sourceFromDeckDetail,
   sourceFromRecommendation,
 } from './studySource';
 export type {
