@@ -3,6 +3,7 @@ package com.japanese.vocabulary.song.worker
 import com.japanese.vocabulary.common.exception.BusinessException
 import com.japanese.vocabulary.common.exception.ErrorCode
 import com.japanese.vocabulary.song.repository.LyricRepository
+import com.japanese.vocabulary.song.service.MvSearchDefectReporter
 import com.japanese.vocabulary.song.service.SongAnalysisPreparationService
 import com.japanese.vocabulary.songanalysis.dto.ClaimedSongAnalysisStage
 import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStage
@@ -33,6 +34,7 @@ class SongAnalysisStageExecutor(
     private val translationService: KoreanLyricTranslationService,
     private val lyricRepository: LyricRepository,
     private val codec: SongAnalysisStageCodec,
+    private val mvSearchDefectReporter: MvSearchDefectReporter,
 ) {
     private val logger = LoggerFactory.getLogger(SongAnalysisStageExecutor::class.java)
 
@@ -56,10 +58,12 @@ class SongAnalysisStageExecutor(
 
     private suspend fun fetchYoutube(claimed: ClaimedSongAnalysisStage) {
         val work = claimed.work
-        // YouTube 가 답했고 후보가 없었다는 뜻이다. 오류는 이미 위로 던져졌다.
-        val url = preparationService.searchYoutubeUrl(work.rawTitle, work.rawArtist, work.durationSeconds)
-            ?: throw BusinessException(ErrorCode.SONG_ANALYSIS_WORK_FAILED)
-        finish(claimed, FetchYoutubeOutput(url))
+        val result = preparationService.searchYoutube(work.rawTitle, work.rawArtist, work.durationSeconds)
+        // MV 가 없어도 가사 학습은 되므로 작업을 실패시키지 않는다. YouTube 오류는 이미 위로 던져졌다.
+        if (result.url == null) {
+            mvSearchDefectReporter.report(claimed.ref.workId, work.rawTitle, work.rawArtist, work.durationSeconds, result)
+        }
+        finish(claimed, FetchYoutubeOutput(result.url))
     }
 
     private fun createSongAndLyric(claimed: ClaimedSongAnalysisStage) {
