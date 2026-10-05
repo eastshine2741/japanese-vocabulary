@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { Extrapolation, interpolate, SharedValue, useAnimatedStyle } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { HomeChipPalette } from '../streak/palette';
+import { streakModeFromWeek } from '../streak/streakCalendar';
 import { useStreakStore } from '../../stores/streakStore';
 import { Colors } from '../../theme/theme';
 import { Typography } from '../../theme/typography';
@@ -51,7 +53,18 @@ export const HomeExpandedHeader = React.memo(function HomeExpandedHeader({
   const insets = useSafeAreaInsets();
   const height = insets.top + HOME_HEADER_CONTENT_HEIGHT;
   const streak = useStreakStore(s => s.currentStreak);
-  const showNudge = useStreakStore(s => s.loaded && !s.studiedToday);
+  const loaded = useStreakStore(s => s.loaded);
+  const studiedToday = useStreakStore(s => s.studiedToday);
+  const weekDots = useStreakStore(s => s.weekDots);
+  const showNudge = loaded && !studiedToday;
+  // 통계가 오기 전에 식은 칩을 한 번 보여주고 주황으로 바뀌는 깜빡임을 피한다.
+  const chipMode = loaded ? streakModeFromWeek(studiedToday, weekDots) : 'done';
+  const chip = HomeChipPalette[chipMode];
+  const chipStyles = useMemo(() => ({
+    pill: [styles.streak, { backgroundColor: chip.bg }],
+    num: [styles.streakNum, { color: chip.ink }],
+    word: [styles.streakWord, { color: chip.ink }],
+  }), [chip]);
 
   const shell = useAnimatedStyle(() => ({
     transform: [{
@@ -89,11 +102,11 @@ export const HomeExpandedHeader = React.memo(function HomeExpandedHeader({
         ) : (
           <Text style={styles.wordmark}>Kotonoha</Text>
         )}
-        <Pressable style={styles.streak} onPress={onPressStreak} hitSlop={8}>
-          <Ionicons name="flame" size={16} color={Colors.streakFlame} />
+        <Pressable style={chipStyles.pill} onPress={onPressStreak} hitSlop={8}>
+          <Ionicons name={chipMode === 'frozen' ? 'snow' : 'flame'} size={16} color={chip.icon} />
           <View style={styles.streakLabel}>
-            <Text style={styles.streakNum}>{streak}일</Text>
-            <Text style={styles.streakWord}>연속</Text>
+            <Text style={chipStyles.num}>{streak}일</Text>
+            <Text style={chipStyles.word}>연속</Text>
           </View>
         </Pressable>
       </Animated.View>
@@ -177,7 +190,6 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     paddingHorizontal: 12,
     borderRadius: 999,
-    backgroundColor: Colors.streakPillBg,
   },
   streakLabel: {
     flexDirection: 'row',
@@ -188,12 +200,10 @@ const styles = StyleSheet.create({
     ...Typography.bodyBold,
     fontSize: 14,
     letterSpacing: -0.2,
-    color: Colors.streakPillText,
   },
   streakWord: {
     ...Typography.bodyMedium,
     fontSize: 13,
-    color: Colors.streakPillText,
   },
   deckStripWrap: {
     height: DECK_STRIP_HEIGHT,

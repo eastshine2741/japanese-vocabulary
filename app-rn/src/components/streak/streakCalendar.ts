@@ -1,4 +1,4 @@
-import { HeatmapDay } from '../../types/studyStats';
+import { HeatmapDay, WeekDot } from '../../types/studyStats';
 
 export type DayKind =
   /** 달 시작/끝을 메우는 빈 칸. */
@@ -99,6 +99,12 @@ export function streakMode(studiedToday: boolean, days: HeatmapDay[]): StreakMod
   if (!todayIso) return 'pending';
   const yesterday = days.find((d) => d.date === format(parse(todayIso) - DAY_MS));
   return yesterday?.freezeUsed ? 'frozen' : 'pending';
+}
+
+/** 홈 헤더용 — 히트맵 없이 weekDots(마지막 칸이 오늘)만으로 같은 상태를 가린다. */
+export function streakModeFromWeek(studiedToday: boolean, weekDots: WeekDot[]): StreakMode {
+  if (studiedToday) return 'done';
+  return weekDots[weekDots.length - 2]?.status === 'freeze' ? 'frozen' : 'pending';
 }
 
 const WEEKDAY_LABELS = ['월', '화', '수', '목', '금', '토', '일'];

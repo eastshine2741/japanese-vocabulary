@@ -25,6 +25,15 @@ Pencil `japanese-vocabulary.pen` 의 `TsAfi` / `K3EjF6` / `M1JTh` 프레임과
 
 달력은 세 상태 모두 주황 그대로다. 잔디(학습량)와 띠는 "기록"이라 연속 상태색을 따르지 않는다.
 
+이 화면으로 들어오는 입구인 홈 헤더 칩도 같은 세 상태를 쓴다. 홈에는 히트맵이 없으므로
+`weekDots` 의 어제 칸(`status === 'freeze'`)으로 가린다 — `streakModeFromWeek`.
+
+| 상태 | 칩 | 아이콘 | 글자 |
+| --- | --- | --- | --- |
+| done | `streakPillBg` | 불꽃 `streakFlame` | `streakPillText` |
+| pending | `Colors.card` | 불꽃 `#ADA7A0` | `streakPillText` 유지 |
+| frozen | `FrozenPalette.heroBg` | 눈송이 `freezeStroke` | `#1D4ED8` |
+
 ## 서버 지원
 
 | 엔드포인트 | 쓰는 값 |
@@ -67,6 +76,8 @@ Pencil `japanese-vocabulary.pen` 의 `TsAfi` / `K3EjF6` / `M1JTh` 프레임과
 - **가장 진한 칸 글자**: 디자인은 띠 안 l4 칩에도 `$streak-ink` 를 쓰는데, 대비가 부족해
   l4 에서는 흰 글자(`$streak-ink-on`)로 간다. 잔디 l4 와 같은 규칙이다.
 - **달 페이지 간격**: 디자인의 6px gap 없이 화면 폭 단위로 페이징한다.
+- **홈 칩 pending**: 디자인은 불꽃만 식히지만(크림 칩 유지), 16px 에서는 베이지 불꽃이
+  크림 바탕에 묻혀서 칩 배경까지 회색으로 내리고 불꽃도 중립 회색으로 맞췄다.
 - **미구현(디자인 노트의 "열린 것")**: 홈 칩의 chevron 어포던스.
 - **칸 탭 읽기**: 노트의 "N회 · 10월 2일 (금)" 대신 범례 줄 왼쪽에 "10월 2일 (금) · N장"(프리즈 날은 "프리즈")을 띄운다.
   같은 칸을 다시 누르면 지워지고, 미래 칸은 눌리지 않는다.

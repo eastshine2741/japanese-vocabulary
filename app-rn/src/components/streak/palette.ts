@@ -46,6 +46,14 @@ export const FrozenPalette = {
   chipText: '#1D4ED8',
 } as const;
 
+/** 홈 헤더 칩 — ST 히어로와 같은 상태 3종을 16px 칩 크기에 맞춘 값. */
+export const HomeChipPalette = {
+  done: { bg: Colors.streakPillBg, icon: Colors.streakFlame, ink: Colors.streakPillText },
+  /** 칩도 불꽃도 같이 식히고 글자만 주황으로 남긴다 — 기록은 살아 있다. */
+  pending: { bg: Colors.card, icon: '#ADA7A0', ink: Colors.streakPillText },
+  frozen: { bg: FrozenPalette.heroBg, icon: FrozenPalette.chipIcon, ink: FrozenPalette.chipText },
+} as const;
+
 /**
  * 연속 학습 축하 전체 화면. 리뷰 몰입 화면 위에 덮이는 어두운 ember 톤이라 Streak 화면의
  * 크림 팔레트와는 반대편이다 — 불꽃만 밝고 나머지는 전부 가라앉힌다.

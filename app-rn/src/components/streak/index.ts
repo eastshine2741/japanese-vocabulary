@@ -8,6 +8,7 @@ export {
   computeLevel,
   formatDayLabel,
   streakMode,
+  streakModeFromWeek,
   todayOf,
 } from './streakCalendar';
 export type { CalendarCell, CalendarMonth, DayKind, HeatLevel, StreakMode } from './streakCalendar';

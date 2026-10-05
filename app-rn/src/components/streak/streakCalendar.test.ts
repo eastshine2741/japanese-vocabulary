@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { HeatmapDay } from '../../types/studyStats';
-import { buildStreakCalendar, computeLevel, formatDayLabel, streakMode } from './streakCalendar';
+import { HeatmapDay, WeekDot } from '../../types/studyStats';
+import { buildStreakCalendar, computeLevel, formatDayLabel, streakMode, streakModeFromWeek } from './streakCalendar';
 
 const DAY_MS = 86400000;
 
@@ -55,6 +55,32 @@ describe('streakMode', () => {
 
   it('데이터가 없으면 pending', () => {
     expect(streakMode(false, [])).toBe('pending');
+  });
+});
+
+describe('streakModeFromWeek', () => {
+  /** 마지막 칸이 오늘인 7칸. */
+  function week(yesterday: WeekDot['status']): WeekDot[] {
+    return Array.from({ length: 7 }, (_, i) => ({
+      date: iso(Date.UTC(2026, 9, 4) - (6 - i) * DAY_MS),
+      status: i === 5 ? yesterday : ('studied' as const),
+    }));
+  }
+
+  it('오늘 학습했으면 done', () => {
+    expect(streakModeFromWeek(true, week('freeze'))).toBe('done');
+  });
+
+  it('오늘 아직이고 어제도 평범하면 pending', () => {
+    expect(streakModeFromWeek(false, week('studied'))).toBe('pending');
+  });
+
+  it('오늘 아직인데 어제가 프리즈면 frozen', () => {
+    expect(streakModeFromWeek(false, week('freeze'))).toBe('frozen');
+  });
+
+  it('데이터가 없으면 pending', () => {
+    expect(streakModeFromWeek(false, [])).toBe('pending');
   });
 });
 
