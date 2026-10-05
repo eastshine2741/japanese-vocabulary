@@ -12,7 +12,6 @@ import com.japanese.vocabulary.studystats.util.KstClock
 import com.japanese.vocabulary.userinventory.entity.InventoryItemType
 import com.japanese.vocabulary.userinventory.service.UserInventoryService
 import org.springframework.transaction.annotation.Transactional
-import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
 
@@ -52,14 +51,15 @@ class StudyStatsService(
     fun freezeCount(userId: Long): Int =
         userInventoryService.quantityOf(userId, InventoryItemType.STREAK_FREEZE)
 
+    /** 오늘로 끝나는 최근 7일. 마지막 칸이 오늘이다. */
     @Transactional(readOnly = true)
     fun weekDots(userId: Long): List<DailyDotDto> {
         val today = kstClock.todayStudyDate()
-        val (weekStart, weekEnd) = currentWeekBounds(today)
-        val rowsByDate = repo.findByUserIdAndDateKstBetweenOrderByDateKstAsc(userId, weekStart, weekEnd)
+        val from = today.minusDays(6)
+        val rowsByDate = repo.findByUserIdAndDateKstBetweenOrderByDateKstAsc(userId, from, today)
             .associateBy { it.dateKst }
         return (0..6).map { offset ->
-            val d = weekStart.plusDays(offset.toLong())
+            val d = from.plusDays(offset.toLong())
             DailyDotDto(date = d, status = dotStatus(d, today, rowsByDate[d]))
         }
     }
@@ -112,11 +112,6 @@ class StudyStatsService(
         return DotStatusDto.NONE
     }
 
-    private fun currentWeekBounds(today: LocalDate): Pair<LocalDate, LocalDate> {
-        val daysFromMonday = (today.dayOfWeek.value - DayOfWeek.MONDAY.value + 7) % 7
-        val start = today.minusDays(daysFromMonday.toLong())
-        return start to start.plusDays(6)
-    }
 
     companion object {
         const val FREEZE_CAP = 2

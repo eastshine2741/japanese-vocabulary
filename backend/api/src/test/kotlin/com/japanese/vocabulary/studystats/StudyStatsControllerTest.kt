@@ -61,11 +61,10 @@ class StudyStatsControllerTest : ApiBaseIntegrationTest() {
             val resp = readBody<HomeStatsResponse>(body)
             assertThat(resp.currentStreak).isZero
             assertThat(resp.freezeCount).isZero
-            assertThat(resp.weekDots).hasSize(7)
-            val todayDot = resp.weekDots.single { it.date == today.toString() }
-            assertThat(todayDot.status).isEqualTo("today")
-            resp.weekDots.filter { it.date != today.toString() }
-                .forEach { assertThat(it.status).isEqualTo("none") }
+            assertThat(resp.weekDots.map { it.date })
+                .containsExactlyElementsOf((6L downTo 0L).map { today.minusDays(it).toString() })
+            assertThat(resp.weekDots.last().status).isEqualTo("today")
+            assertThat(resp.weekDots.dropLast(1)).allSatisfy { assertThat(it.status).isEqualTo("none") }
         }
 
         @Test
@@ -81,11 +80,8 @@ class StudyStatsControllerTest : ApiBaseIntegrationTest() {
 
             val resp = readBody<HomeStatsResponse>(body)
             assertThat(resp.currentStreak).isEqualTo(1)
-            val yDot = resp.weekDots.firstOrNull { it.date == yesterday.toString() }
-            if (yDot != null) {
-                // Only assert when yesterday falls in this calendar week
-                assertThat(yDot.status).isEqualTo("studied")
-            }
+            val yDot = resp.weekDots.single { it.date == yesterday.toString() }
+            assertThat(yDot.status).isEqualTo("studied")
         }
 
         @Test
@@ -167,18 +163,15 @@ class StudyStatsControllerTest : ApiBaseIntegrationTest() {
             val me = newUser()
             val today = kstClock.todayStudyDate()
             val target = today.minusDays(2)
-            // Make sure the target date is within this week to assert the dot.
-            if (target.isAfter(today.with(java.time.DayOfWeek.MONDAY).minusDays(1))) {
-                seedDay(me, target, reviewCount = 0, freezeUsed = true)
+            seedDay(me, target, reviewCount = 0, freezeUsed = true)
 
-                val body = mockMvc.get("/api/study-stats/home") {
-                    header("Authorization", bearer(me))
-                }.andReturn().response.contentAsString
+            val body = mockMvc.get("/api/study-stats/home") {
+                header("Authorization", bearer(me))
+            }.andReturn().response.contentAsString
 
-                val resp = readBody<HomeStatsResponse>(body)
-                val dot = resp.weekDots.single { it.date == target.toString() }
-                assertThat(dot.status).isEqualTo("freeze")
-            }
+            val resp = readBody<HomeStatsResponse>(body)
+            val dot = resp.weekDots.single { it.date == target.toString() }
+            assertThat(dot.status).isEqualTo("freeze")
         }
     }
 
