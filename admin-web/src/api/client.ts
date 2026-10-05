@@ -7,8 +7,6 @@ import type {
   ManualPushResult,
   PageResponse,
   Recommendation,
-  RecommendationCandidate,
-  RecommendationOperationResult,
   ReelsRenderRequest,
   ReelsSongCandidate,
   ReelsSongDetail,
@@ -47,6 +45,7 @@ async function request<T>(path: string, token?: string | null, init: RequestInit
   if (!response.ok) {
     throw await apiError(response)
   }
+  if (response.status === 204) return undefined as T
   return response.json() as Promise<T>
 }
 
@@ -123,48 +122,22 @@ export const adminApi = {
       method: "POST",
     })
   },
-  recommendationWeeks(token: string) {
-    return request<string[]>("/recommendations/weeks", token)
+  recommendations(token: string) {
+    return request<Recommendation[]>("/recommendations", token)
   },
-  recommendationCandidates(token: string, weekStartDate?: string, status?: string) {
-    const params = new URLSearchParams()
-    if (weekStartDate) params.set("weekStartDate", weekStartDate)
-    if (status) params.set("status", status)
-    const query = params.toString()
-    return request<RecommendationCandidate[]>(`/recommendations/candidates${query ? `?${query}` : ""}`, token)
-  },
-  updateRecommendationCandidateStatus(token: string, candidateId: number, status: string) {
-    return request<RecommendationCandidate>(`/recommendations/candidates/${candidateId}/status`, token, {
-      method: "PATCH",
-      body: JSON.stringify({ status }),
-    })
-  },
-  recommendations(token: string, weekStartDate?: string) {
-    const params = new URLSearchParams()
-    if (weekStartDate) params.set("weekStartDate", weekStartDate)
-    const query = params.toString()
-    return request<Recommendation[]>(`/recommendations${query ? `?${query}` : ""}`, token)
-  },
-  updateRecommendation(token: string, recommendationId: number, payload: { status?: string; orderIndex?: number }) {
-    return request<Recommendation>(`/recommendations/${recommendationId}`, token, {
-      method: "PATCH",
-      body: JSON.stringify(payload),
-    })
-  },
-  prepareApprovedRecommendations(token: string, weekStartDate?: string) {
-    const params = new URLSearchParams()
-    if (weekStartDate) params.set("weekStartDate", weekStartDate)
-    const query = params.toString()
-    return request<RecommendationOperationResult>(
-      `/recommendations/prepare-approved${query ? `?${query}` : ""}`,
-      token,
-      { method: "POST" },
-    )
-  },
-  requestRecommendationAnalysis(token: string, candidateIds: number[]) {
-    return request<RecommendationOperationResult>("/recommendations/request-analysis", token, {
+  addRecommendation(token: string, songId: number) {
+    return request<Recommendation>("/recommendations", token, {
       method: "POST",
-      body: JSON.stringify({ candidateIds }),
+      body: JSON.stringify({ songId }),
+    })
+  },
+  removeRecommendation(token: string, id: number) {
+    return request<void>(`/recommendations/${id}`, token, { method: "DELETE" })
+  },
+  reorderRecommendations(token: string, ids: number[]) {
+    return request<Recommendation[]>("/recommendations/order", token, {
+      method: "PUT",
+      body: JSON.stringify({ ids }),
     })
   },
   users(token: string, page: number, query?: string) {

@@ -3,10 +3,6 @@ package com.japanese.vocabulary.batch
 import com.japanese.vocabulary.config.ClockConfig
 import com.japanese.vocabulary.config.SentryConfig
 import com.japanese.vocabulary.notification.StreakReminderTask
-import com.japanese.vocabulary.recommendation.batch.AppleMusicRecommendationCollector
-import com.japanese.vocabulary.recommendation.batch.AppleMusicRecommendationJobConfig
-import com.japanese.vocabulary.recommendation.batch.AppleMusicRecommendationTask
-import com.japanese.vocabulary.recommendation.batch.RecommendationWeekCalculator
 import com.japanese.vocabulary.song.batch.LyricWordCandidateBackfillService
 import com.japanese.vocabulary.song.batch.LyricWordCandidateBackfillTask
 import com.japanese.vocabulary.studystats.batch.FreezeConsumeJobConfig
@@ -27,10 +23,6 @@ import org.springframework.context.annotation.Import
     SentryConfig::class,
     CronTaskRunner::class,
     StreakReminderTask::class,
-    AppleMusicRecommendationCollector::class,
-    AppleMusicRecommendationJobConfig::class,
-    AppleMusicRecommendationTask::class,
-    RecommendationWeekCalculator::class,
     LyricWordCandidateBackfillService::class,
     LyricWordCandidateBackfillTask::class,
     FreezeConsumeJobConfig::class,

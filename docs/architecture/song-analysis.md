@@ -4,15 +4,13 @@ Song analysis is an asynchronous work pipeline.
 
 When a search result is selected, the user app first calls `GET /api/songs?title=...&artistName=...` to exact-match an existing song+lyric. If it returns `200`, the app immediately uses player data. If it returns `204`, the app calls `/api/songs/analyze` to create or reuse `song_analysis_work`.
 
-Recommendation analysis also reuses `song_analysis_work`, but only after an operator approves a collected candidate. The admin recommendation operation creates or reuses work with `trigger_source=RECOMMENDATION`; the generic song-analysis worker does not import or know about recommendation tables.
-
 Admin song detail can trigger existing-song reanalysis with `POST /admin/api/songs/{songId}/reanalysis`. The endpoint creates or reuses a song-scoped `song_analysis_work` with `trigger_source=ADMIN`, returns an active blocker when one exists, and preserves the product constraint that this feature stores only the newly produced MV URL on `song_analysis_work.youtube_url`; it does not add `previous_youtube_url`.
 
 `/api/songs/analyze` does not synchronously fetch lyrics, YouTube data, or provider data. It immediately returns work status. The user app shows the work in the analysis pill and polls `/api/songs/analysis-work/{workId}`; the song only exists once the work is `COMPLETED`, and the app opens it when the user taps the finished pill, never on its own.
 
 ## Flow
 
-1. **Trigger** (`api`/`admin-api` + `song-analysis`): analyze request or approved recommendation candidate -> `SongAnalysisWorkService.createOrReuse()` -> returns existing active raw `title|artist` workId or creates `song_analysis_work(PENDING)`.
+1. **Trigger** (`api`/`admin-api` + `song-analysis`): analyze request -> `SongAnalysisWorkService.createOrReuse()` -> returns existing active raw `title|artist` workId or creates `song_analysis_work(PENDING)`.
 2. **Stage messages** (`integrations:message-queue` + `worker`): the pipeline is a chain of stages, one queue message each. `createOrReuse` publishes `SongAnalysisWorkQueuedEvent(workId, FETCH_LYRICS)`; the queue adapter turns it into a RabbitMQ message carrying `workId` and `stage` on `AFTER_COMMIT`. Finishing a stage publishes the next one the same way. See [Stage ledger](#stage-ledger).
 3. **Pre-analysis stages** (`worker` + `song`): `FETCH_LYRICS` -> `FETCH_YOUTUBE`, running LRCLIB -> VocaDB -> UtaiteDB lyric lookup and YouTube MV lookup. Their outputs stay on the ledger; no `songs`/`lyrics` row exists yet. A search with no acceptable MV candidate does not fail the work: the song is analyzed without an MV (`youtube_url` null) and the miss is logged as one `MV_SEARCH_DEFECT {json}` warning carrying every candidate and why it was dropped, which the analysis feedback runner (`.github/scripts/analysis-feedback`) classifies and turns into fix PRs. A YouTube error that survives retry still fails the stage. `CREATE_SONG_AND_LYRIC` is the old pipeline's stage that created the rows here; `next` skips it and it only runs for work that was already waiting for it.
 
@@ -50,7 +48,7 @@ The listener runs each stage with `runBlocking(Dispatchers.IO)`: the listener th
 
 - `USER_APP`: user app `/api/songs/analyze`
 - `ADMIN`: reserved for admin-triggered analysis
-- `RECOMMENDATION`: admin recommendation dispatch after candidate approval
+- `RECOMMENDATION`: no longer created; kept because existing rows store it
 
 
 ## One Active Work Per Song

@@ -1,8 +1,8 @@
-package com.japanese.vocabulary.admin.dto
+package com.japanese.vocabulary.recommendation.dto
 
 import java.time.Instant
 
-data class AdminRecommendationResponse(
+data class RecommendedSongDto(
     val id: Long,
     val songId: Long,
     val title: String,

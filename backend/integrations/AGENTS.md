@@ -19,7 +19,6 @@ Applies to all modules under `backend/integrations/`.
 - `song-search`: iTunes song search.
 - `lyric-search`: LRCLIB, VocaDB, and UtaiteDB (same API as VocaDB; fallback when VocaDB is behind a Cloudflare 403) lyric search.
 - `mv-search`: YouTube MV search.
-- `apple-music-rss`: Apple Music RSS charts.
 - `github`: GitHub issue creation (`GithubIssueClient`), used by `api` for VOC. Token blank -> `enabled=false`.
 - `message-queue`: song analysis work queue names plus the publisher that turns
   `SongAnalysisWorkQueuedEvent` into a `(workId, stage)` message on `AFTER_COMMIT`. Producers are

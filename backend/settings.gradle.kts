@@ -5,7 +5,6 @@ include(
     "integrations:song-search",
     "integrations:lyric-search",
     "integrations:mv-search",
-    "integrations:apple-music-rss",
     "integrations:github",
     "integrations:message-queue",
 )
