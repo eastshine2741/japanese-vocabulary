@@ -57677,7 +57677,7 @@
           "type": "rectangle",
           "id": "VcC6T",
           "x": 0,
-          "y": 0,
+          "y": 458,
           "name": "MV Frame",
           "fill": {
             "type": "image",
@@ -57686,42 +57686,15 @@
             "mode": "cover"
           },
           "width": 1080,
-          "height": 1920
-        },
-        {
-          "type": "rectangle",
-          "id": "Yb4AI",
-          "x": 0,
-          "y": 0,
-          "name": "MV Top Scrim",
-          "fill": {
-            "type": "gradient",
-            "gradientType": "linear",
-            "enabled": true,
-            "rotation": 180,
-            "size": {
-              "height": 1
-            },
-            "colors": [
-              {
-                "color": "#111012B3",
-                "position": 0
-              },
-              {
-                "color": "#11101200",
-                "position": 1
-              }
-            ]
-          },
-          "width": 1080,
-          "height": 300
+          "height": 1102
         },
         {
           "type": "rectangle",
           "id": "HAFUZ",
           "x": 0,
-          "y": 620,
+          "y": 860,
           "name": "MV Bottom Scrim",
+          "enabled": false,
           "fill": {
             "type": "gradient",
             "gradientType": "linear",
@@ -57754,85 +57727,7 @@
             ]
           },
           "width": 1080,
-          "height": 1300
-        },
-        {
-          "type": "frame",
-          "id": "VJJOD",
-          "x": 0,
-          "y": 150,
-          "name": "Header",
-          "width": 1080,
-          "height": 96,
-          "padding": [
-            0,
-            72
-          ],
-          "justifyContent": "space_between",
-          "alignItems": "center",
-          "children": [
-            {
-              "type": "frame",
-              "id": "QnUCz",
-              "name": "Brand And Song",
-              "gap": 22,
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "frame",
-                  "id": "eM7CA",
-                  "name": "Song Text",
-                  "layout": "vertical",
-                  "gap": 6,
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "O1Otp",
-                      "name": "Song Title",
-                      "fill": "$ink",
-                      "content": "Lemon",
-                      "lineHeight": 1,
-                      "fontFamily": "$fontKr",
-                      "fontSize": 50,
-                      "fontWeight": "800"
-                    },
-                    {
-                      "type": "text",
-                      "id": "wh4QB",
-                      "name": "Song Artist",
-                      "fill": "$softInk",
-                      "content": "米津玄師 ",
-                      "lineHeight": 1,
-                      "fontFamily": "$fontJp",
-                      "fontSize": 29,
-                      "fontWeight": "500"
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "pYgdd",
-              "name": "Watermark",
-              "gap": 12,
-              "justifyContent": "center",
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "text",
-                  "id": "XIOz3",
-                  "name": "Watermark Label",
-                  "fill": "#FAFAF659",
-                  "content": "@kotonoha.app",
-                  "lineHeight": 1,
-                  "fontFamily": "$fontKr",
-                  "fontSize": 28,
-                  "fontWeight": "500"
-                }
-              ]
-            }
-          ]
+          "height": 700
         },
         {
           "type": "frame",
@@ -57851,19 +57746,817 @@
               "height": 32,
               "icon": "arrow-down",
               "library": "lucide",
-              "fill": "#FAFAF6BF"
+              "fill": "#FAFAF6",
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "#111012",
+                "offset": {
+                  "x": 2,
+                  "y": 2
+                }
+              }
             },
             {
               "type": "text",
               "id": "uIs8R",
               "name": "App Note Label",
-              "fill": "#FAFAF6BF",
-              "content": "일본어 단어장 앱 '코토노하'에서 전체 단어를 확인하세요!",
+              "fill": "#FAFAF6",
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "#111012",
+                "offset": {
+                  "x": 2,
+                  "y": 2
+                }
+              },
+              "content": "노래로 배우는 일본어 앱 '코토노하'에서 전체 단어를 확인하세요!",
               "lineHeight": 1,
               "fontFamily": "$fontKr",
               "fontSize": 26,
               "fontWeight": "500",
               "letterSpacing": -0.3
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "UbxoL",
+          "x": 140,
+          "y": 1010,
+          "name": "Content",
+          "width": 800,
+          "layout": "vertical",
+          "gap": 40,
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "RAj0f",
+              "name": "Lyric",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 28,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "JZ9LC",
+                  "name": "Line 1",
+                  "gap": 14,
+                  "alignItems": "end",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "WmxbK",
+                      "name": "Token 胸",
+                      "layout": "vertical",
+                      "gap": 10,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "KAOra",
+                          "name": "Token",
+                          "fill": "#FAFAF6",
+                          "effect": {
+                            "type": "shadow",
+                            "shadowType": "outer",
+                            "color": "#111012",
+                            "offset": {
+                              "x": 5,
+                              "y": 5
+                            }
+                          },
+                          "content": "胸",
+                          "lineHeight": 1.16,
+                          "fontFamily": "$fontJp",
+                          "fontSize": 53,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "rectangle",
+                          "cornerRadius": 4,
+                          "id": "hRdO1",
+                          "name": "POS Bar",
+                          "fill": "$nounBlue",
+                          "width": 41,
+                          "height": 7
+                        },
+                        {
+                          "type": "text",
+                          "id": "q3cRz",
+                          "name": "Meaning",
+                          "fill": "#FAFAF6",
+                          "effect": {
+                            "type": "shadow",
+                            "shadowType": "outer",
+                            "color": "#111012",
+                            "offset": {
+                              "x": 2,
+                              "y": 2
+                            }
+                          },
+                          "content": "가슴",
+                          "lineHeight": 1,
+                          "fontFamily": "$fontKr",
+                          "fontSize": 20,
+                          "fontWeight": "500",
+                          "letterSpacing": -0.4
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "k1EjMT",
+                      "name": "Token に",
+                      "layout": "vertical",
+                      "gap": 10,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "b7Qko",
+                          "name": "Token",
+                          "fill": "#DCD7CE",
+                          "effect": {
+                            "type": "shadow",
+                            "shadowType": "outer",
+                            "color": "#111012",
+                            "offset": {
+                              "x": 5,
+                              "y": 5
+                            }
+                          },
+                          "content": "に",
+                          "lineHeight": 1.16,
+                          "fontFamily": "$fontJp",
+                          "fontSize": 53,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "rectangle",
+                          "cornerRadius": 4,
+                          "id": "hWSRG",
+                          "name": "POS Bar",
+                          "fill": "#FFFFFF00",
+                          "width": 41,
+                          "height": 7
+                        },
+                        {
+                          "type": "text",
+                          "id": "Wz9BI",
+                          "name": "Meaning",
+                          "fill": "#FAFAF6",
+                          "effect": {
+                            "type": "shadow",
+                            "shadowType": "outer",
+                            "color": "#111012",
+                            "offset": {
+                              "x": 2,
+                              "y": 2
+                            }
+                          },
+                          "content": " ",
+                          "lineHeight": 1,
+                          "fontFamily": "$fontJp",
+                          "fontSize": 20,
+                          "fontWeight": "500",
+                          "letterSpacing": -0.4
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "j4cS6b",
+                      "name": "Token 残り",
+                      "layout": "vertical",
+                      "gap": 10,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "h2G0Qy",
+                          "name": "Token",
+                          "fill": "#FAFAF6",
+                          "effect": {
+                            "type": "shadow",
+                            "shadowType": "outer",
+                            "color": "#111012",
+                            "offset": {
+                              "x": 5,
+                              "y": 5
+                            }
+                          },
+                          "content": "残り",
+                          "lineHeight": 1.16,
+                          "fontFamily": "$fontJp",
+                          "fontSize": 53,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "rectangle",
+                          "cornerRadius": 4,
+                          "id": "D0Mx5s",
+                          "name": "POS Bar",
+                          "fill": "$verbGreen",
+                          "width": 94,
+                          "height": 7
+                        },
+                        {
+                          "type": "text",
+                          "id": "W4gyY",
+                          "name": "Meaning",
+                          "fill": "#FAFAF6",
+                          "effect": {
+                            "type": "shadow",
+                            "shadowType": "outer",
+                            "color": "#111012",
+                            "offset": {
+                              "x": 2,
+                              "y": 2
+                            }
+                          },
+                          "content": "남다",
+                          "lineHeight": 1,
+                          "fontFamily": "$fontKr",
+                          "fontSize": 20,
+                          "fontWeight": "500",
+                          "letterSpacing": -0.4
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "d5tjKV",
+                      "name": "Token 離れ",
+                      "layout": "vertical",
+                      "gap": 10,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "T6zFjF",
+                          "name": "Token",
+                          "fill": "#FAFAF6",
+                          "effect": {
+                            "type": "shadow",
+                            "shadowType": "outer",
+                            "color": "#111012",
+                            "offset": {
+                              "x": 5,
+                              "y": 5
+                            }
+                          },
+                          "content": "離れ",
+                          "lineHeight": 1.16,
+                          "fontFamily": "$fontJp",
+                          "fontSize": 53,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "rectangle",
+                          "cornerRadius": 4,
+                          "id": "HlHwZ",
+                          "name": "POS Bar",
+                          "fill": "$verbGreen",
+                          "width": 94,
+                          "height": 7
+                        },
+                        {
+                          "type": "text",
+                          "id": "y6yhfi",
+                          "name": "Meaning",
+                          "fill": "#FAFAF6",
+                          "effect": {
+                            "type": "shadow",
+                            "shadowType": "outer",
+                            "color": "#111012",
+                            "offset": {
+                              "x": 2,
+                              "y": 2
+                            }
+                          },
+                          "content": "떠나다",
+                          "lineHeight": 1,
+                          "fontFamily": "$fontKr",
+                          "fontSize": 20,
+                          "fontWeight": "500",
+                          "letterSpacing": -0.4
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "cjIsB",
+                      "name": "Token ない",
+                      "layout": "vertical",
+                      "gap": 10,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "w4SsPr",
+                          "name": "Token",
+                          "fill": "#DCD7CE",
+                          "effect": {
+                            "type": "shadow",
+                            "shadowType": "outer",
+                            "color": "#111012",
+                            "offset": {
+                              "x": 5,
+                              "y": 5
+                            }
+                          },
+                          "content": "ない",
+                          "lineHeight": 1.16,
+                          "fontFamily": "$fontJp",
+                          "fontSize": 53,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "rectangle",
+                          "cornerRadius": 4,
+                          "id": "Iqm1h",
+                          "name": "POS Bar",
+                          "fill": "#FFFFFF00",
+                          "width": 94,
+                          "height": 7
+                        },
+                        {
+                          "type": "text",
+                          "id": "JANlD",
+                          "name": "Meaning",
+                          "fill": "#FAFAF6",
+                          "effect": {
+                            "type": "shadow",
+                            "shadowType": "outer",
+                            "color": "#111012",
+                            "offset": {
+                              "x": 2,
+                              "y": 2
+                            }
+                          },
+                          "content": " ",
+                          "lineHeight": 1,
+                          "fontFamily": "$fontJp",
+                          "fontSize": 20,
+                          "fontWeight": "500",
+                          "letterSpacing": -0.4
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "JoxaW",
+                  "name": "Line 2",
+                  "gap": 14,
+                  "alignItems": "end",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "rAyhj",
+                      "name": "Token 苦い",
+                      "layout": "vertical",
+                      "gap": 10,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "pF3w6",
+                          "name": "Token",
+                          "fill": "#FAFAF6",
+                          "effect": {
+                            "type": "shadow",
+                            "shadowType": "outer",
+                            "color": "#111012",
+                            "offset": {
+                              "x": 5,
+                              "y": 5
+                            }
+                          },
+                          "content": "苦い",
+                          "lineHeight": 1.16,
+                          "fontFamily": "$fontJp",
+                          "fontSize": 53,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "rectangle",
+                          "cornerRadius": 4,
+                          "id": "kxVdU",
+                          "name": "POS Bar",
+                          "fill": "$adjectiveOrange",
+                          "width": 94,
+                          "height": 7
+                        },
+                        {
+                          "type": "text",
+                          "id": "o8VRVq",
+                          "name": "Meaning",
+                          "fill": "#FAFAF6",
+                          "effect": {
+                            "type": "shadow",
+                            "shadowType": "outer",
+                            "color": "#111012",
+                            "offset": {
+                              "x": 2,
+                              "y": 2
+                            }
+                          },
+                          "content": "씁쓸한",
+                          "lineHeight": 1,
+                          "fontFamily": "$fontKr",
+                          "fontSize": 20,
+                          "fontWeight": "500",
+                          "letterSpacing": -0.4
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "IBc8w",
+                      "name": "Token レモン",
+                      "layout": "vertical",
+                      "gap": 10,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "oFEQn",
+                          "name": "Token",
+                          "fill": "#FAFAF6",
+                          "effect": {
+                            "type": "shadow",
+                            "shadowType": "outer",
+                            "color": "#111012",
+                            "offset": {
+                              "x": 5,
+                              "y": 5
+                            }
+                          },
+                          "content": "レモン",
+                          "lineHeight": 1.16,
+                          "fontFamily": "$fontJp",
+                          "fontSize": 53,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "rectangle",
+                          "cornerRadius": 4,
+                          "id": "sZ6az",
+                          "name": "POS Bar",
+                          "fill": "$nounBlue",
+                          "width": 147,
+                          "height": 7
+                        },
+                        {
+                          "type": "text",
+                          "id": "ROPRO",
+                          "name": "Meaning",
+                          "fill": "#FAFAF6",
+                          "effect": {
+                            "type": "shadow",
+                            "shadowType": "outer",
+                            "color": "#111012",
+                            "offset": {
+                              "x": 2,
+                              "y": 2
+                            }
+                          },
+                          "content": "레몬",
+                          "lineHeight": 1,
+                          "fontFamily": "$fontJp",
+                          "fontSize": 20,
+                          "fontWeight": "500",
+                          "letterSpacing": -0.4
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "P3ruvq",
+                      "name": "Token の",
+                      "layout": "vertical",
+                      "gap": 10,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "b1CF1",
+                          "name": "Token",
+                          "fill": "#DCD7CE",
+                          "effect": {
+                            "type": "shadow",
+                            "shadowType": "outer",
+                            "color": "#111012",
+                            "offset": {
+                              "x": 5,
+                              "y": 5
+                            }
+                          },
+                          "content": "の",
+                          "lineHeight": 1.16,
+                          "fontFamily": "$fontJp",
+                          "fontSize": 53,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "rectangle",
+                          "cornerRadius": 4,
+                          "id": "TgLiZ",
+                          "name": "POS Bar",
+                          "fill": "#FFFFFF00",
+                          "width": 41,
+                          "height": 7
+                        },
+                        {
+                          "type": "text",
+                          "id": "NzMpE",
+                          "name": "Meaning",
+                          "fill": "#FAFAF6",
+                          "effect": {
+                            "type": "shadow",
+                            "shadowType": "outer",
+                            "color": "#111012",
+                            "offset": {
+                              "x": 2,
+                              "y": 2
+                            }
+                          },
+                          "content": " ",
+                          "lineHeight": 1,
+                          "fontFamily": "$fontJp",
+                          "fontSize": 20,
+                          "fontWeight": "500",
+                          "letterSpacing": -0.4
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "cGDR3",
+                      "name": "Token 匂い",
+                      "layout": "vertical",
+                      "gap": 10,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "p6LyY3",
+                          "name": "Token",
+                          "fill": "#FAFAF6",
+                          "effect": {
+                            "type": "shadow",
+                            "shadowType": "outer",
+                            "color": "#111012",
+                            "offset": {
+                              "x": 5,
+                              "y": 5
+                            }
+                          },
+                          "content": "匂い",
+                          "lineHeight": 1.16,
+                          "fontFamily": "$fontJp",
+                          "fontSize": 53,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "rectangle",
+                          "cornerRadius": 4,
+                          "id": "Mke41",
+                          "name": "POS Bar",
+                          "fill": "$nounBlue",
+                          "width": 94,
+                          "height": 7
+                        },
+                        {
+                          "type": "text",
+                          "id": "OWbdU",
+                          "name": "Meaning",
+                          "fill": "#FAFAF6",
+                          "effect": {
+                            "type": "shadow",
+                            "shadowType": "outer",
+                            "color": "#111012",
+                            "offset": {
+                              "x": 2,
+                              "y": 2
+                            }
+                          },
+                          "content": "향기",
+                          "lineHeight": 1,
+                          "fontFamily": "$fontKr",
+                          "fontSize": 20,
+                          "fontWeight": "500",
+                          "letterSpacing": -0.4
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "dhggg",
+              "name": "Translation Block",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 12,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "A5IPS6",
+                  "name": "Pronunciation",
+                  "fill": "#FAFAF6",
+                  "effect": {
+                    "type": "shadow",
+                    "shadowType": "outer",
+                    "color": "#111012",
+                    "offset": {
+                      "x": 2,
+                      "y": 2
+                    }
+                  },
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "무네니 노코리 하나레나이 니가이 레몬노 니오이",
+                  "lineHeight": 1.3,
+                  "textAlign": "center",
+                  "fontFamily": "$fontKr",
+                  "fontSize": 22,
+                  "fontWeight": "normal",
+                  "letterSpacing": -0.4
+                },
+                {
+                  "type": "text",
+                  "id": "Q9ZNSC",
+                  "name": "Korean Subtitle",
+                  "fill": "#FAFAF6",
+                  "effect": {
+                    "type": "shadow",
+                    "shadowType": "outer",
+                    "color": "#111012",
+                    "offset": {
+                      "x": 3,
+                      "y": 3
+                    }
+                  },
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "가슴에 남아 떠나지 않는 씁쓸한 레몬 향기",
+                  "lineHeight": 1.35,
+                  "textAlign": "center",
+                  "fontFamily": "$fontKr",
+                  "fontSize": 31,
+                  "fontWeight": "500",
+                  "letterSpacing": -0.8
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "pghQ8",
+          "x": 0,
+          "y": 0,
+          "name": "Headline Band",
+          "clip": true,
+          "width": 1080,
+          "fill": "$night",
+          "layout": "vertical",
+          "gap": 28,
+          "padding": [
+            104,
+            72,
+            40,
+            72
+          ],
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "sSF1x",
+              "name": "Header",
+              "width": "fill_container",
+              "height": 70,
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "Pv6pm",
+                  "name": "Brand And Song",
+                  "gap": 22,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "vBE5c",
+                      "name": "Song Text",
+                      "layout": "vertical",
+                      "gap": 6,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "FALsK",
+                          "name": "Song Title",
+                          "fill": "$ink",
+                          "content": "Lemon",
+                          "lineHeight": 1,
+                          "fontFamily": "$fontKr",
+                          "fontSize": 40,
+                          "fontWeight": "800"
+                        },
+                        {
+                          "type": "text",
+                          "id": "p4rZIg",
+                          "name": "Song Artist",
+                          "fill": "$softInk",
+                          "content": "米津玄師 ",
+                          "lineHeight": 1,
+                          "fontFamily": "$fontJp",
+                          "fontSize": 24,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "JNQKh",
+                  "name": "Watermark",
+                  "gap": 12,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "HcHTy",
+                      "name": "Watermark Label",
+                      "fill": "#FAFAF659",
+                      "content": "@kotonoha.app",
+                      "lineHeight": 1,
+                      "fontFamily": "$fontKr",
+                      "fontSize": 28,
+                      "fontWeight": "500"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "z0Z4U9",
+              "name": "Headline",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 12,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "aPhdD",
+                  "name": "Headline Line 1",
+                  "fill": "$ink",
+                  "content": "가사 한 줄에",
+                  "lineHeight": 1.15,
+                  "fontFamily": "$fontKr",
+                  "fontSize": 76,
+                  "fontWeight": "800"
+                },
+                {
+                  "type": "frame",
+                  "id": "d95Hga",
+                  "name": "Headline Highlight",
+                  "fill": "$ig-mint-pale",
+                  "cornerRadius": 6,
+                  "padding": [
+                    8,
+                    22
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "YY4da",
+                      "name": "Headline Line 2",
+                      "fill": "$night",
+                      "content": "일본어 단어 6개",
+                      "lineHeight": 1.15,
+                      "fontFamily": "$fontKr",
+                      "fontSize": 76,
+                      "fontWeight": "800"
+                    }
+                  ]
+                }
+              ]
             }
           ]
         },
@@ -57929,326 +58622,6 @@
               "fontWeight": "600"
             }
           ]
-        },
-        {
-          "type": "frame",
-          "id": "UbxoL",
-          "x": 160,
-          "y": 927,
-          "name": "Content",
-          "width": 760,
-          "layout": "vertical",
-          "gap": 80,
-          "alignItems": "center",
-          "children": [
-            {
-              "type": "frame",
-              "id": "gwhz4",
-              "name": "Lyric",
-              "width": "fill_container",
-              "layout": "vertical",
-              "gap": 20,
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "frame",
-                  "id": "V3I9j",
-                  "name": "Japanese",
-                  "layout": "vertical",
-                  "gap": 20,
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "E6VnVq",
-                      "name": "Line 1",
-                      "gap": 6,
-                      "alignItems": "end",
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "OABWv",
-                          "name": "T 胸",
-                          "fill": "$ink",
-                          "content": "胸",
-                          "lineHeight": 1.16,
-                          "fontFamily": "$fontJp",
-                          "fontSize": 58,
-                          "fontWeight": "700"
-                        },
-                        {
-                          "type": "text",
-                          "id": "bE5gu",
-                          "name": "T に",
-                          "fill": "$ink",
-                          "content": "に",
-                          "lineHeight": 1.16,
-                          "fontFamily": "$fontJp",
-                          "fontSize": 58,
-                          "fontWeight": "700"
-                        },
-                        {
-                          "type": "text",
-                          "id": "iO0v2",
-                          "name": "T 残り",
-                          "fill": "$ink",
-                          "content": "残り",
-                          "lineHeight": 1.16,
-                          "fontFamily": "$fontJp",
-                          "fontSize": 58,
-                          "fontWeight": "700"
-                        },
-                        {
-                          "type": "text",
-                          "id": "ksc1K",
-                          "name": "T 離れ",
-                          "fill": "$ink",
-                          "content": "離れ",
-                          "lineHeight": 1.16,
-                          "fontFamily": "$fontJp",
-                          "fontSize": 58,
-                          "fontWeight": "700"
-                        },
-                        {
-                          "type": "text",
-                          "id": "rlNu6",
-                          "name": "T ない",
-                          "fill": "$ink",
-                          "content": "ない",
-                          "lineHeight": 1.16,
-                          "fontFamily": "$fontJp",
-                          "fontSize": 58,
-                          "fontWeight": "700"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "r59Ddt",
-                      "name": "Line 2",
-                      "gap": 6,
-                      "alignItems": "end",
-                      "children": [
-                        {
-                          "type": "frame",
-                          "id": "E2qfG",
-                          "name": "Key 苦い",
-                          "layout": "vertical",
-                          "gap": 2,
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "P3fqt",
-                              "name": "T 苦い",
-                              "fill": "$pos-adjective-spotlight",
-                              "content": "苦い",
-                              "lineHeight": 1.16,
-                              "fontFamily": "$fontJp",
-                              "fontSize": 58,
-                              "fontWeight": "700"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "text",
-                          "id": "xIygg",
-                          "name": "T レモン",
-                          "fill": "$ink",
-                          "content": "レモン",
-                          "lineHeight": 1.16,
-                          "fontFamily": "$fontJp",
-                          "fontSize": 58,
-                          "fontWeight": "700"
-                        },
-                        {
-                          "type": "text",
-                          "id": "TLFPN",
-                          "name": "T の",
-                          "fill": "$ink",
-                          "content": "の",
-                          "lineHeight": 1.16,
-                          "fontFamily": "$fontJp",
-                          "fontSize": 58,
-                          "fontWeight": "700"
-                        },
-                        {
-                          "type": "frame",
-                          "id": "g0IbZ",
-                          "name": "Key 匂い",
-                          "layout": "vertical",
-                          "gap": 2,
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "WiXq0",
-                              "name": "T 匂い",
-                              "fill": "$pos-noun-spotlight",
-                              "content": "匂い",
-                              "lineHeight": 1.16,
-                              "fontFamily": "$fontJp",
-                              "fontSize": 58,
-                              "fontWeight": "700"
-                            }
-                          ]
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "type": "text",
-                  "id": "Vwrq1",
-                  "name": "Korean Subtitle",
-                  "fill": "#FAFAF6D9",
-                  "content": "가슴에 남아 떠나지 않는 씁쓸한 레몬 향기",
-                  "lineHeight": 1.3,
-                  "fontFamily": "$fontKr",
-                  "fontSize": 38,
-                  "fontWeight": "500",
-                  "letterSpacing": -0.8
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "XCzlI",
-              "name": "Words",
-              "width": 600,
-              "layout": "vertical",
-              "gap": 40,
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "rectangle",
-                  "id": "Ghnc3",
-                  "name": "Section Rule",
-                  "fill": "#F4F1EA33",
-                  "width": "fill_container",
-                  "height": 2
-                },
-                {
-                  "type": "frame",
-                  "id": "yrEm1",
-                  "name": "Word List",
-                  "width": "fill_container",
-                  "layout": "vertical",
-                  "gap": 36,
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "yVQ7c",
-                      "name": "Word 苦い",
-                      "width": "fill_container",
-                      "gap": 24,
-                      "justifyContent": "space_between",
-                      "alignItems": "end",
-                      "children": [
-                        {
-                          "type": "frame",
-                          "id": "v2z8KD",
-                          "name": "Jp",
-                          "gap": 12,
-                          "alignItems": "end",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "A2nabH",
-                              "name": "Word Japanese",
-                              "fill": "$pos-adjective-spotlight",
-                              "content": "苦い",
-                              "lineHeight": 1,
-                              "fontFamily": "$fontJp",
-                              "fontSize": 48,
-                              "fontWeight": "700"
-                            },
-                            {
-                              "type": "text",
-                              "id": "xy8Lw",
-                              "name": "Word Reading",
-                              "fill": "#FAFAF680",
-                              "content": "니가이",
-                              "lineHeight": 1.5,
-                              "fontFamily": "$fontKr",
-                              "fontSize": 24,
-                              "fontWeight": "500"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "text",
-                          "id": "P8HHnd",
-                          "name": "Word Meaning",
-                          "fill": "#FAFAF6E6",
-                          "content": "쓰다",
-                          "lineHeight": 1.3,
-                          "fontFamily": "$fontKr",
-                          "fontSize": 36,
-                          "fontWeight": "600",
-                          "letterSpacing": -0.6
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "DyYRm",
-                      "name": "Word 匂い",
-                      "width": "fill_container",
-                      "gap": 24,
-                      "justifyContent": "space_between",
-                      "alignItems": "end",
-                      "children": [
-                        {
-                          "type": "frame",
-                          "id": "p6sjG",
-                          "name": "Jp",
-                          "gap": 12,
-                          "alignItems": "end",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "PpiBz",
-                              "name": "Word Japanese",
-                              "fill": "$pos-noun-spotlight",
-                              "content": "匂い",
-                              "lineHeight": 1,
-                              "fontFamily": "$fontJp",
-                              "fontSize": 48,
-                              "fontWeight": "700"
-                            },
-                            {
-                              "type": "text",
-                              "id": "lBXeZ",
-                              "name": "Word Reading",
-                              "fill": "#FAFAF680",
-                              "content": "니오이",
-                              "lineHeight": 1.5,
-                              "fontFamily": "$fontKr",
-                              "fontSize": 24,
-                              "fontWeight": "500"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "text",
-                          "id": "SdFQP",
-                          "name": "Word Meaning",
-                          "fill": "#FAFAF6E6",
-                          "content": "냄새, 향기",
-                          "lineHeight": 1.3,
-                          "fontFamily": "$fontKr",
-                          "fontSize": 36,
-                          "fontWeight": "600",
-                          "letterSpacing": -0.6
-                        }
-                      ]
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
         }
       ]
     },
@@ -58265,171 +58638,1063 @@
       "layout": "none",
       "children": [
         {
+          "type": "frame",
+          "id": "h1iHbb",
+          "x": 0,
+          "y": 0,
+          "name": "Prev Frame (frozen)",
+          "clip": true,
+          "width": 1080,
+          "height": 1920,
+          "fill": "$night",
+          "layout": "none",
+          "children": [
+            {
+              "type": "rectangle",
+              "id": "gygSV",
+              "x": 0,
+              "y": 0,
+              "name": "MV Backdrop (blurred)",
+              "fill": [
+                {
+                  "type": "image",
+                  "enabled": true,
+                  "url": "images/lemon-cover.jpg",
+                  "mode": "cover"
+                },
+                "#1110124D"
+              ],
+              "width": 1080,
+              "height": 1920,
+              "effect": {
+                "type": "blur",
+                "radius": 48
+              }
+            },
+            {
+              "type": "rectangle",
+              "id": "wI67m",
+              "x": 0,
+              "y": 458,
+              "name": "MV Frame",
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "images/lemon-cover.jpg",
+                "mode": "cover"
+              },
+              "width": 1080,
+              "height": 1102
+            },
+            {
+              "type": "rectangle",
+              "id": "l64cUt",
+              "x": 0,
+              "y": 860,
+              "name": "MV Bottom Scrim",
+              "enabled": false,
+              "fill": {
+                "type": "gradient",
+                "gradientType": "linear",
+                "enabled": true,
+                "rotation": 180,
+                "size": {
+                  "height": 1
+                },
+                "colors": [
+                  {
+                    "color": "#11101200",
+                    "position": 0
+                  },
+                  {
+                    "color": "#11101266",
+                    "position": 0.2
+                  },
+                  {
+                    "color": "#1110128C",
+                    "position": 0.32
+                  },
+                  {
+                    "color": "#111012A6",
+                    "position": 0.55
+                  },
+                  {
+                    "color": "#111012BF",
+                    "position": 1
+                  }
+                ]
+              },
+              "width": 1080,
+              "height": 700
+            },
+            {
+              "type": "frame",
+              "id": "x3gVF",
+              "x": 74,
+              "y": 1576,
+              "name": "Profile Cue",
+              "gap": 12,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "Z3lo9",
+                  "name": "Arrow Down",
+                  "width": 32,
+                  "height": 32,
+                  "icon": "arrow-down",
+                  "library": "lucide",
+                  "fill": "#FAFAF6",
+                  "effect": {
+                    "type": "shadow",
+                    "shadowType": "outer",
+                    "color": "#111012",
+                    "offset": {
+                      "x": 2,
+                      "y": 2
+                    }
+                  }
+                },
+                {
+                  "type": "text",
+                  "id": "j6L5q",
+                  "name": "App Note Label",
+                  "fill": "#FAFAF6",
+                  "effect": {
+                    "type": "shadow",
+                    "shadowType": "outer",
+                    "color": "#111012",
+                    "offset": {
+                      "x": 2,
+                      "y": 2
+                    }
+                  },
+                  "content": "노래로 배우는 일본어 앱 '코토노하'에서 전체 단어를 확인하세요!",
+                  "lineHeight": 1,
+                  "fontFamily": "$fontKr",
+                  "fontSize": 26,
+                  "fontWeight": "500",
+                  "letterSpacing": -0.3
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "bbMMT",
+              "x": 140,
+              "y": 1010,
+              "name": "Content",
+              "width": 800,
+              "layout": "vertical",
+              "gap": 40,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "EKLzc",
+                  "name": "Lyric",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 28,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "kxw1u",
+                      "name": "Line 1",
+                      "gap": 14,
+                      "alignItems": "end",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "lJMbK",
+                          "name": "Token 胸",
+                          "layout": "vertical",
+                          "gap": 10,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "OPNQS",
+                              "name": "Token",
+                              "fill": "#FAFAF6",
+                              "effect": {
+                                "type": "shadow",
+                                "shadowType": "outer",
+                                "color": "#111012",
+                                "offset": {
+                                  "x": 5,
+                                  "y": 5
+                                }
+                              },
+                              "content": "胸",
+                              "lineHeight": 1.16,
+                              "fontFamily": "$fontJp",
+                              "fontSize": 53,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "rectangle",
+                              "cornerRadius": 4,
+                              "id": "qXPDr",
+                              "name": "POS Bar",
+                              "fill": "$nounBlue",
+                              "width": 41,
+                              "height": 7
+                            },
+                            {
+                              "type": "text",
+                              "id": "E7tUB",
+                              "name": "Meaning",
+                              "fill": "#FAFAF6",
+                              "effect": {
+                                "type": "shadow",
+                                "shadowType": "outer",
+                                "color": "#111012",
+                                "offset": {
+                                  "x": 2,
+                                  "y": 2
+                                }
+                              },
+                              "content": "가슴",
+                              "lineHeight": 1,
+                              "fontFamily": "$fontKr",
+                              "fontSize": 20,
+                              "fontWeight": "500",
+                              "letterSpacing": -0.4
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "v1z7X",
+                          "name": "Token に",
+                          "layout": "vertical",
+                          "gap": 10,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "IrKOT",
+                              "name": "Token",
+                              "fill": "#DCD7CE",
+                              "effect": {
+                                "type": "shadow",
+                                "shadowType": "outer",
+                                "color": "#111012",
+                                "offset": {
+                                  "x": 5,
+                                  "y": 5
+                                }
+                              },
+                              "content": "に",
+                              "lineHeight": 1.16,
+                              "fontFamily": "$fontJp",
+                              "fontSize": 53,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "rectangle",
+                              "cornerRadius": 4,
+                              "id": "sfvvP",
+                              "name": "POS Bar",
+                              "fill": "#FFFFFF00",
+                              "width": 41,
+                              "height": 7
+                            },
+                            {
+                              "type": "text",
+                              "id": "fmXms",
+                              "name": "Meaning",
+                              "fill": "#FAFAF6",
+                              "effect": {
+                                "type": "shadow",
+                                "shadowType": "outer",
+                                "color": "#111012",
+                                "offset": {
+                                  "x": 2,
+                                  "y": 2
+                                }
+                              },
+                              "content": " ",
+                              "lineHeight": 1,
+                              "fontFamily": "$fontJp",
+                              "fontSize": 20,
+                              "fontWeight": "500",
+                              "letterSpacing": -0.4
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "v0Nw0p",
+                          "name": "Token 残り",
+                          "layout": "vertical",
+                          "gap": 10,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "l3XNr",
+                              "name": "Token",
+                              "fill": "#FAFAF6",
+                              "effect": {
+                                "type": "shadow",
+                                "shadowType": "outer",
+                                "color": "#111012",
+                                "offset": {
+                                  "x": 5,
+                                  "y": 5
+                                }
+                              },
+                              "content": "残り",
+                              "lineHeight": 1.16,
+                              "fontFamily": "$fontJp",
+                              "fontSize": 53,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "rectangle",
+                              "cornerRadius": 4,
+                              "id": "pPSOS",
+                              "name": "POS Bar",
+                              "fill": "$verbGreen",
+                              "width": 96,
+                              "height": 7
+                            },
+                            {
+                              "type": "text",
+                              "id": "WoBPl",
+                              "name": "Meaning",
+                              "fill": "#FAFAF6",
+                              "effect": {
+                                "type": "shadow",
+                                "shadowType": "outer",
+                                "color": "#111012",
+                                "offset": {
+                                  "x": 2,
+                                  "y": 2
+                                }
+                              },
+                              "content": "남다",
+                              "lineHeight": 1,
+                              "fontFamily": "$fontKr",
+                              "fontSize": 20,
+                              "fontWeight": "500",
+                              "letterSpacing": -0.4
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "Ji72b",
+                          "name": "Token 離れ",
+                          "layout": "vertical",
+                          "gap": 10,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "eiXJB",
+                              "name": "Token",
+                              "fill": "#FAFAF6",
+                              "effect": {
+                                "type": "shadow",
+                                "shadowType": "outer",
+                                "color": "#111012",
+                                "offset": {
+                                  "x": 5,
+                                  "y": 5
+                                }
+                              },
+                              "content": "離れ",
+                              "lineHeight": 1.16,
+                              "fontFamily": "$fontJp",
+                              "fontSize": 53,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "rectangle",
+                              "cornerRadius": 4,
+                              "id": "s8qGOY",
+                              "name": "POS Bar",
+                              "fill": "$verbGreen",
+                              "width": 96,
+                              "height": 7
+                            },
+                            {
+                              "type": "text",
+                              "id": "B6h5li",
+                              "name": "Meaning",
+                              "fill": "#FAFAF6",
+                              "effect": {
+                                "type": "shadow",
+                                "shadowType": "outer",
+                                "color": "#111012",
+                                "offset": {
+                                  "x": 2,
+                                  "y": 2
+                                }
+                              },
+                              "content": "떠나다",
+                              "lineHeight": 1,
+                              "fontFamily": "$fontKr",
+                              "fontSize": 20,
+                              "fontWeight": "500",
+                              "letterSpacing": -0.4
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "qLr8u",
+                          "name": "Token ない",
+                          "layout": "vertical",
+                          "gap": 10,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "dfjSi",
+                              "name": "Token",
+                              "fill": "#DCD7CE",
+                              "effect": {
+                                "type": "shadow",
+                                "shadowType": "outer",
+                                "color": "#111012",
+                                "offset": {
+                                  "x": 5,
+                                  "y": 5
+                                }
+                              },
+                              "content": "ない",
+                              "lineHeight": 1.16,
+                              "fontFamily": "$fontJp",
+                              "fontSize": 53,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "rectangle",
+                              "cornerRadius": 4,
+                              "id": "HSnXS",
+                              "name": "POS Bar",
+                              "fill": "#FFFFFF00",
+                              "width": 96,
+                              "height": 7
+                            },
+                            {
+                              "type": "text",
+                              "id": "SHIQh",
+                              "name": "Meaning",
+                              "fill": "#FAFAF6",
+                              "effect": {
+                                "type": "shadow",
+                                "shadowType": "outer",
+                                "color": "#111012",
+                                "offset": {
+                                  "x": 2,
+                                  "y": 2
+                                }
+                              },
+                              "content": " ",
+                              "lineHeight": 1,
+                              "fontFamily": "$fontJp",
+                              "fontSize": 20,
+                              "fontWeight": "500",
+                              "letterSpacing": -0.4
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "u5e7QP",
+                      "name": "Line 2",
+                      "gap": 14,
+                      "alignItems": "end",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "qP8al",
+                          "name": "Token 苦い",
+                          "layout": "vertical",
+                          "gap": 10,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "QJayl",
+                              "name": "Token",
+                              "fill": "#FAFAF6",
+                              "effect": {
+                                "type": "shadow",
+                                "shadowType": "outer",
+                                "color": "#111012",
+                                "offset": {
+                                  "x": 5,
+                                  "y": 5
+                                }
+                              },
+                              "content": "苦い",
+                              "lineHeight": 1.16,
+                              "fontFamily": "$fontJp",
+                              "fontSize": 53,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "rectangle",
+                              "cornerRadius": 4,
+                              "id": "tWKTu",
+                              "name": "POS Bar",
+                              "fill": "$adjectiveOrange",
+                              "width": 96,
+                              "height": 7
+                            },
+                            {
+                              "type": "text",
+                              "id": "TBGS1",
+                              "name": "Meaning",
+                              "fill": "#FAFAF6",
+                              "effect": {
+                                "type": "shadow",
+                                "shadowType": "outer",
+                                "color": "#111012",
+                                "offset": {
+                                  "x": 2,
+                                  "y": 2
+                                }
+                              },
+                              "content": "씁쓸한",
+                              "lineHeight": 1,
+                              "fontFamily": "$fontKr",
+                              "fontSize": 20,
+                              "fontWeight": "500",
+                              "letterSpacing": -0.4
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "OLA3H",
+                          "name": "Token レモン",
+                          "layout": "vertical",
+                          "gap": 10,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "f4NWT",
+                              "name": "Token",
+                              "fill": "#FAFAF6",
+                              "effect": {
+                                "type": "shadow",
+                                "shadowType": "outer",
+                                "color": "#111012",
+                                "offset": {
+                                  "x": 5,
+                                  "y": 5
+                                }
+                              },
+                              "content": "レモン",
+                              "lineHeight": 1.16,
+                              "fontFamily": "$fontJp",
+                              "fontSize": 53,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "rectangle",
+                              "cornerRadius": 4,
+                              "id": "rUjDi",
+                              "name": "POS Bar",
+                              "fill": "$nounBlue",
+                              "width": 156,
+                              "height": 7
+                            },
+                            {
+                              "type": "text",
+                              "id": "M5xhH8",
+                              "name": "Meaning",
+                              "fill": "#FAFAF6",
+                              "effect": {
+                                "type": "shadow",
+                                "shadowType": "outer",
+                                "color": "#111012",
+                                "offset": {
+                                  "x": 2,
+                                  "y": 2
+                                }
+                              },
+                              "content": "레몬",
+                              "lineHeight": 1,
+                              "fontFamily": "$fontJp",
+                              "fontSize": 20,
+                              "fontWeight": "500",
+                              "letterSpacing": -0.4
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "H7XkUI",
+                          "name": "Token の",
+                          "layout": "vertical",
+                          "gap": 10,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "ZHQhb",
+                              "name": "Token",
+                              "fill": "#DCD7CE",
+                              "effect": {
+                                "type": "shadow",
+                                "shadowType": "outer",
+                                "color": "#111012",
+                                "offset": {
+                                  "x": 5,
+                                  "y": 5
+                                }
+                              },
+                              "content": "の",
+                              "lineHeight": 1.16,
+                              "fontFamily": "$fontJp",
+                              "fontSize": 53,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "rectangle",
+                              "cornerRadius": 4,
+                              "id": "CGfFj",
+                              "name": "POS Bar",
+                              "fill": "#FFFFFF00",
+                              "width": 41,
+                              "height": 7
+                            },
+                            {
+                              "type": "text",
+                              "id": "jEdG9",
+                              "name": "Meaning",
+                              "fill": "#FAFAF6",
+                              "effect": {
+                                "type": "shadow",
+                                "shadowType": "outer",
+                                "color": "#111012",
+                                "offset": {
+                                  "x": 2,
+                                  "y": 2
+                                }
+                              },
+                              "content": " ",
+                              "lineHeight": 1,
+                              "fontFamily": "$fontJp",
+                              "fontSize": 20,
+                              "fontWeight": "500",
+                              "letterSpacing": -0.4
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "L7L2r7",
+                          "name": "Token 匂い",
+                          "layout": "vertical",
+                          "gap": 10,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "iGEtR",
+                              "name": "Token",
+                              "fill": "#FAFAF6",
+                              "effect": {
+                                "type": "shadow",
+                                "shadowType": "outer",
+                                "color": "#111012",
+                                "offset": {
+                                  "x": 5,
+                                  "y": 5
+                                }
+                              },
+                              "content": "匂い",
+                              "lineHeight": 1.16,
+                              "fontFamily": "$fontJp",
+                              "fontSize": 53,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "rectangle",
+                              "cornerRadius": 4,
+                              "id": "msO6Y",
+                              "name": "POS Bar",
+                              "fill": "$nounBlue",
+                              "width": 96,
+                              "height": 7
+                            },
+                            {
+                              "type": "text",
+                              "id": "A3r3bA",
+                              "name": "Meaning",
+                              "fill": "#FAFAF6",
+                              "effect": {
+                                "type": "shadow",
+                                "shadowType": "outer",
+                                "color": "#111012",
+                                "offset": {
+                                  "x": 2,
+                                  "y": 2
+                                }
+                              },
+                              "content": "향기",
+                              "lineHeight": 1,
+                              "fontFamily": "$fontKr",
+                              "fontSize": 20,
+                              "fontWeight": "500",
+                              "letterSpacing": -0.4
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "ffgvs",
+                  "name": "Translation Block",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 12,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "Icxdd",
+                      "name": "Pronunciation",
+                      "fill": "#FAFAF6",
+                      "effect": {
+                        "type": "shadow",
+                        "shadowType": "outer",
+                        "color": "#111012",
+                        "offset": {
+                          "x": 2,
+                          "y": 2
+                        }
+                      },
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "무네니 노코리 하나레나이 니가이 레몬노 니오이",
+                      "lineHeight": 1.3,
+                      "textAlign": "center",
+                      "fontFamily": "$fontKr",
+                      "fontSize": 22,
+                      "fontWeight": "normal",
+                      "letterSpacing": -0.4
+                    },
+                    {
+                      "type": "text",
+                      "id": "k9k2IV",
+                      "name": "Korean Subtitle",
+                      "fill": "#FAFAF6",
+                      "effect": {
+                        "type": "shadow",
+                        "shadowType": "outer",
+                        "color": "#111012",
+                        "offset": {
+                          "x": 3,
+                          "y": 3
+                        }
+                      },
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "가슴에 남아 떠나지 않는 씁쓸한 레몬 향기",
+                      "lineHeight": 1.35,
+                      "textAlign": "center",
+                      "fontFamily": "$fontKr",
+                      "fontSize": 31,
+                      "fontWeight": "500",
+                      "letterSpacing": -0.8
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "f0C8qm",
+              "x": 0,
+              "y": 0,
+              "name": "Headline Band",
+              "clip": true,
+              "width": 1080,
+              "fill": "#00000000",
+              "layout": "vertical",
+              "gap": 28,
+              "padding": [
+                104,
+                72,
+                40,
+                72
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "gNted",
+                  "name": "Header",
+                  "width": "fill_container",
+                  "height": 70,
+                  "justifyContent": "space_between",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "Uetu1",
+                      "name": "Brand And Song",
+                      "gap": 22,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "E6p1B",
+                          "name": "Song Text",
+                          "layout": "vertical",
+                          "gap": 6,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "V4fH6",
+                              "name": "Song Title",
+                              "fill": "$ink",
+                              "content": "Lemon",
+                              "lineHeight": 1,
+                              "fontFamily": "$fontKr",
+                              "fontSize": 40,
+                              "fontWeight": "800"
+                            },
+                            {
+                              "type": "text",
+                              "id": "UnLVw",
+                              "name": "Song Artist",
+                              "fill": "$softInk",
+                              "content": "米津玄師 ",
+                              "lineHeight": 1,
+                              "fontFamily": "$fontJp",
+                              "fontSize": 24,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "e88A6",
+                      "name": "Watermark",
+                      "gap": 12,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "Ibj2d",
+                          "name": "Watermark Label",
+                          "fill": "#FAFAF659",
+                          "content": "@kotonoha.app",
+                          "lineHeight": 1,
+                          "fontFamily": "$fontKr",
+                          "fontSize": 28,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "bFgE4",
+                  "name": "Headline",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 12,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "E6GfZ",
+                      "name": "Headline Line 1",
+                      "fill": "$ink",
+                      "content": "가사 한 줄에",
+                      "lineHeight": 1.15,
+                      "fontFamily": "$fontKr",
+                      "fontSize": 76,
+                      "fontWeight": "800"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "lXc3h",
+                      "name": "Headline Highlight",
+                      "fill": "$ig-mint-pale",
+                      "cornerRadius": 6,
+                      "padding": [
+                        8,
+                        22
+                      ],
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "WkGPy",
+                          "name": "Headline Line 2",
+                          "fill": "$night",
+                          "content": "일본어 단어 6개",
+                          "lineHeight": 1.15,
+                          "fontFamily": "$fontKr",
+                          "fontSize": 76,
+                          "fontWeight": "800"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "rr72e",
+              "x": 0,
+              "y": 0,
+              "name": "Safe Area Guide (reference only)",
+              "enabled": false,
+              "opacity": 0.55,
+              "width": 1080,
+              "height": 1920,
+              "layout": "none",
+              "children": [
+                {
+                  "type": "rectangle",
+                  "id": "qSy0h",
+                  "x": 0,
+                  "y": 1560,
+                  "name": "Guide Bottom Unsafe",
+                  "width": 1080,
+                  "height": 360,
+                  "stroke": "#FF4D4D",
+                  "strokeWidth": 3,
+                  "strokeAlignment": "inner"
+                },
+                {
+                  "type": "rectangle",
+                  "id": "S4PGU",
+                  "x": 930,
+                  "y": 900,
+                  "name": "Guide Right Unsafe",
+                  "width": 150,
+                  "height": 660,
+                  "stroke": "#FF4D4D",
+                  "strokeWidth": 3,
+                  "strokeAlignment": "inner"
+                },
+                {
+                  "type": "rectangle",
+                  "id": "pNUEn",
+                  "x": 0,
+                  "y": 0,
+                  "name": "Guide Top Unsafe",
+                  "width": 930,
+                  "height": 100,
+                  "stroke": "#FF4D4D",
+                  "strokeWidth": 3,
+                  "strokeAlignment": "inner"
+                },
+                {
+                  "type": "text",
+                  "id": "VtJcc",
+                  "x": 36,
+                  "y": 1590,
+                  "name": "Guide Label",
+                  "fill": "#FF4D4D",
+                  "content": "인스타 릴스 UI 가림 영역 — 콘텐츠 금지 (렌더 전 숨김)",
+                  "lineHeight": 1,
+                  "fontFamily": "$fontKr",
+                  "fontSize": 26,
+                  "fontWeight": "600"
+                }
+              ]
+            }
+          ]
+        },
+        {
           "type": "rectangle",
-          "id": "iuTTX",
-          "x": -100,
-          "y": -100,
-          "name": "Album Cover Backdrop (blurred)",
-          "opacity": 0.6,
-          "fill": {
-            "type": "image",
-            "enabled": true,
-            "url": "images/lemon-cover.jpg",
-            "mode": "cover"
-          },
-          "width": 1280,
-          "height": 2120,
+          "id": "nCj2q",
+          "x": 0,
+          "y": 0,
+          "name": "Blur Layer",
+          "fill": "#11101266",
+          "width": 1080,
+          "height": 1920,
           "effect": {
-            "type": "blur",
+            "type": "background_blur",
             "radius": 56
           }
         },
         {
-          "type": "rectangle",
-          "id": "dvcsG",
-          "x": 0,
-          "y": 0,
-          "name": "Backdrop Top Scrim",
-          "fill": {
-            "type": "gradient",
-            "gradientType": "linear",
-            "enabled": true,
-            "rotation": 180,
-            "size": {
-              "height": 1
-            },
-            "colors": [
-              {
-                "color": "#111012B3",
-                "position": 0
-              },
-              {
-                "color": "#11101200",
-                "position": 1
-              }
-            ]
-          },
-          "width": 1080,
-          "height": 300
-        },
-        {
-          "type": "rectangle",
-          "id": "j7aHx",
-          "x": 0,
-          "y": 620,
-          "name": "Backdrop Bottom Scrim",
-          "fill": {
-            "type": "gradient",
-            "gradientType": "linear",
-            "enabled": true,
-            "rotation": 180,
-            "size": {
-              "height": 1
-            },
-            "colors": [
-              {
-                "color": "#11101200",
-                "position": 0
-              },
-              {
-                "color": "#11101266",
-                "position": 0.2
-              },
-              {
-                "color": "#1110128C",
-                "position": 0.32
-              },
-              {
-                "color": "#111012A6",
-                "position": 0.55
-              },
-              {
-                "color": "#111012BF",
-                "position": 1
-              }
-            ]
-          },
-          "width": 1080,
-          "height": 1300
-        },
-        {
-          "type": "rectangle",
-          "cornerRadius": 999,
-          "id": "p4t2Bm",
-          "x": 90,
-          "y": 250,
-          "name": "Ambient Glow",
-          "fill": {
-            "type": "gradient",
-            "gradientType": "radial",
-            "enabled": true,
-            "rotation": 0,
-            "size": {
-              "width": 1,
-              "height": 1
-            },
-            "colors": [
-              {
-                "color": "#EFD4632E",
-                "position": 0
-              },
-              {
-                "color": "#EFD46300",
-                "position": 1
-              }
-            ]
-          },
-          "width": 900,
-          "height": 900
-        },
-        {
           "type": "frame",
           "id": "akq9M",
-          "x": 60,
-          "y": 150,
-          "name": "CTA Title Block",
-          "width": 960,
+          "x": 0,
+          "y": 0,
+          "name": "End Headline (overlay)",
+          "width": 1080,
+          "fill": "#00000000",
           "layout": "vertical",
-          "gap": 4,
+          "gap": 12,
+          "padding": [
+            140,
+            72,
+            0,
+            72
+          ],
           "alignItems": "center",
           "children": [
             {
               "type": "text",
               "id": "m8xERZ",
               "name": "Title Line 1",
-              "fill": "$paper",
+              "fill": "$ink",
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "#111012",
+                "offset": {
+                  "x": 4,
+                  "y": 4
+                }
+              },
               "content": "전체 단어는",
-              "lineHeight": 1.1,
+              "lineHeight": 1.15,
               "fontFamily": "$fontKr",
-              "fontSize": 92,
+              "fontSize": 76,
               "fontWeight": "800"
             },
             {
               "type": "frame",
-              "id": "cKih0",
-              "name": "Title Line 2",
-              "alignItems": "end",
+              "id": "W3nea",
+              "name": "Headline Highlight",
+              "fill": "$ig-mint-pale",
+              "cornerRadius": 6,
+              "padding": [
+                8,
+                22
+              ],
               "children": [
                 {
                   "type": "text",
-                  "id": "n2Rz1",
-                  "name": "Title Brand",
-                  "fill": "$ctaGreen",
-                  "content": "코토노하",
-                  "lineHeight": 1.1,
+                  "id": "LFRKB",
+                  "name": "Headline Line 2",
+                  "fill": "$night",
+                  "content": "코토노하 앱에서",
+                  "lineHeight": 1.15,
                   "fontFamily": "$fontKr",
-                  "fontSize": 92,
-                  "fontWeight": "800"
-                },
-                {
-                  "type": "text",
-                  "id": "Y0akzU",
-                  "name": "Title Rest",
-                  "fill": "$paper",
-                  "content": " 앱에서",
-                  "lineHeight": 1.1,
-                  "fontFamily": "$fontKr",
-                  "fontSize": 92,
+                  "fontSize": 76,
                   "fontWeight": "800"
                 }
               ]
@@ -58440,24 +59705,23 @@
           "type": "frame",
           "id": "dgJ0v",
           "x": 310,
-          "y": 400,
+          "y": 410,
           "name": "App Mockup (SongDetail + Lyric Sheet)",
           "clip": true,
           "width": 460,
           "height": 860,
           "fill": "$appWhite",
-          "cornerRadius": 46,
-          "stroke": "#F4F1EA3D",
-          "strokeWidth": 3,
+          "cornerRadius": 40,
+          "stroke": "$night",
+          "strokeWidth": 4,
           "effect": {
             "type": "shadow",
             "shadowType": "outer",
-            "color": "#000000",
+            "color": "#111012",
             "offset": {
-              "x": 0,
-              "y": 28
-            },
-            "blur": 80
+              "x": 18,
+              "y": 18
+            }
           },
           "layout": "none",
           "children": [
@@ -59611,6 +60875,42 @@
           ]
         },
         {
+          "type": "rectangle",
+          "id": "HGcqU",
+          "x": 0,
+          "y": 1270,
+          "name": "Bottom Scrim",
+          "fill": {
+            "type": "gradient",
+            "gradientType": "linear",
+            "enabled": true,
+            "rotation": 180,
+            "size": {
+              "height": 1
+            },
+            "colors": [
+              {
+                "color": "#11101200",
+                "position": 0
+              },
+              {
+                "color": "#11101299",
+                "position": 0.28
+              },
+              {
+                "color": "#111012D9",
+                "position": 0.6
+              },
+              {
+                "color": "#111012F2",
+                "position": 1
+              }
+            ]
+          },
+          "width": 1080,
+          "height": 650
+        },
+        {
           "type": "frame",
           "id": "wo65E",
           "x": 60,
@@ -59618,7 +60918,7 @@
           "name": "CTA Block",
           "width": 960,
           "layout": "vertical",
-          "gap": 28,
+          "gap": 22,
           "alignItems": "center",
           "children": [
             {
@@ -59626,7 +60926,7 @@
               "id": "d1Kp7",
               "name": "Store Search Cue",
               "fill": "$paper",
-              "cornerRadius": 34,
+              "cornerRadius": 10,
               "stroke": "#00000000",
               "gap": 22,
               "padding": [
@@ -59659,10 +60959,10 @@
                 },
                 {
                   "type": "rectangle",
-                  "cornerRadius": 3,
+                  "cornerRadius": 2,
                   "id": "t19mNM",
                   "name": "Search Caret",
-                  "fill": "$night",
+                  "fill": "$ctaGreen",
                   "width": 5,
                   "height": 48
                 }
@@ -59691,13 +60991,31 @@
                       "icon": "google-play-logo",
                       "library": "phosphor",
                       "weight": 700,
-                      "fill": "$softInk"
+                      "fill": "$ink",
+                      "effect": {
+                        "type": "shadow",
+                        "shadowType": "outer",
+                        "color": "#111012",
+                        "offset": {
+                          "x": 2,
+                          "y": 2
+                        }
+                      }
                     },
                     {
                       "type": "text",
                       "id": "fOjSj",
                       "name": "Google Play Label",
-                      "fill": "$softInk",
+                      "fill": "$ink",
+                      "effect": {
+                        "type": "shadow",
+                        "shadowType": "outer",
+                        "color": "#111012",
+                        "offset": {
+                          "x": 2,
+                          "y": 2
+                        }
+                      },
                       "content": "Google Play",
                       "lineHeight": 1,
                       "fontFamily": "$fontReel",
@@ -59722,13 +61040,31 @@
                       "icon": "app-store-logo",
                       "library": "phosphor",
                       "weight": 700,
-                      "fill": "$softInk"
+                      "fill": "$ink",
+                      "effect": {
+                        "type": "shadow",
+                        "shadowType": "outer",
+                        "color": "#111012",
+                        "offset": {
+                          "x": 2,
+                          "y": 2
+                        }
+                      }
                     },
                     {
                       "type": "text",
                       "id": "b2xTI",
                       "name": "App Store Label",
-                      "fill": "$softInk",
+                      "fill": "$ink",
+                      "effect": {
+                        "type": "shadow",
+                        "shadowType": "outer",
+                        "color": "#111012",
+                        "offset": {
+                          "x": 2,
+                          "y": 2
+                        }
+                      },
                       "content": "App Store",
                       "lineHeight": 1,
                       "fontFamily": "$fontReel",
@@ -59740,23 +61076,24 @@
               ]
             },
             {
-              "type": "frame",
-              "id": "OG227",
-              "name": "Profile Link Note",
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "text",
-                  "id": "DOUK7",
-                  "name": "Profile Link Label",
-                  "fill": "$softInk",
-                  "content": "프로필 링크에서 설치",
-                  "lineHeight": 1,
-                  "fontFamily": "$fontKr",
-                  "fontSize": 28,
-                  "fontWeight": "500"
+              "type": "text",
+              "id": "EurOW",
+              "name": "Profile Link Label",
+              "fill": "$ink",
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "#111012",
+                "offset": {
+                  "x": 2,
+                  "y": 2
                 }
-              ]
+              },
+              "content": "프로필 링크에서 설치",
+              "lineHeight": 1,
+              "fontFamily": "$fontKr",
+              "fontSize": 28,
+              "fontWeight": "500"
             }
           ]
         },
@@ -59824,32 +61161,20 @@
           ]
         },
         {
-          "type": "rectangle",
-          "id": "XM9Q9",
-          "x": 310,
-          "y": 1040,
-          "name": "Mockup Bottom Fade",
-          "fill": {
-            "type": "gradient",
-            "gradientType": "linear",
-            "enabled": true,
-            "rotation": 180,
-            "size": {
-              "height": 1
-            },
-            "colors": [
-              {
-                "color": "#11101200",
-                "position": 0
-              },
-              {
-                "color": "#111012",
-                "position": 0.8
-              }
-            ]
-          },
-          "width": 460,
-          "height": 270
+          "type": "text",
+          "id": "I7xSoe",
+          "x": 708,
+          "y": 110,
+          "name": "Watermark Label",
+          "fill": "#FAFAF659",
+          "textGrowth": "fixed-width",
+          "width": 300,
+          "content": "@kotonoha.app",
+          "lineHeight": 1,
+          "textAlign": "right",
+          "fontFamily": "$fontKr",
+          "fontSize": 28,
+          "fontWeight": "500"
         }
       ]
     },
@@ -110480,6 +111805,1395 @@
           ]
         }
       ]
+    },
+    {
+      "type": "frame",
+      "id": "AOKzd",
+      "x": 6080,
+      "y": 16400,
+      "name": "Reel v2 · 1a Active (원안 · 강조 단어 2개)",
+      "clip": true,
+      "width": 1080,
+      "height": 1920,
+      "fill": "$night",
+      "layout": "none",
+      "children": [
+        {
+          "type": "rectangle",
+          "id": "tKf9m",
+          "x": 0,
+          "y": 0,
+          "name": "MV Frame",
+          "fill": {
+            "type": "image",
+            "enabled": true,
+            "url": "images/lemon-cover.jpg",
+            "mode": "cover"
+          },
+          "width": 1080,
+          "height": 1920
+        },
+        {
+          "type": "rectangle",
+          "id": "uN3Gj",
+          "x": 0,
+          "y": 0,
+          "name": "MV Top Scrim",
+          "fill": {
+            "type": "gradient",
+            "gradientType": "linear",
+            "enabled": true,
+            "rotation": 180,
+            "size": {
+              "height": 1
+            },
+            "colors": [
+              {
+                "color": "#111012B3",
+                "position": 0
+              },
+              {
+                "color": "#11101200",
+                "position": 1
+              }
+            ]
+          },
+          "width": 1080,
+          "height": 300
+        },
+        {
+          "type": "rectangle",
+          "id": "FrvIY",
+          "x": 0,
+          "y": 620,
+          "name": "MV Bottom Scrim",
+          "fill": {
+            "type": "gradient",
+            "gradientType": "linear",
+            "enabled": true,
+            "rotation": 180,
+            "size": {
+              "height": 1
+            },
+            "colors": [
+              {
+                "color": "#11101200",
+                "position": 0
+              },
+              {
+                "color": "#11101266",
+                "position": 0.2
+              },
+              {
+                "color": "#1110128C",
+                "position": 0.32
+              },
+              {
+                "color": "#111012A6",
+                "position": 0.55
+              },
+              {
+                "color": "#111012BF",
+                "position": 1
+              }
+            ]
+          },
+          "width": 1080,
+          "height": 1300
+        },
+        {
+          "type": "frame",
+          "id": "P7S93",
+          "x": 0,
+          "y": 150,
+          "name": "Header",
+          "width": 1080,
+          "height": 96,
+          "padding": [
+            0,
+            72
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "tjjcp",
+              "name": "Brand And Song",
+              "gap": 22,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "FGbtQ",
+                  "name": "Song Text",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "i9TMjk",
+                      "name": "Song Title",
+                      "fill": "$ink",
+                      "content": "Lemon",
+                      "lineHeight": 1,
+                      "fontFamily": "$fontKr",
+                      "fontSize": 50,
+                      "fontWeight": "800"
+                    },
+                    {
+                      "type": "text",
+                      "id": "zUmfJ",
+                      "name": "Song Artist",
+                      "fill": "$softInk",
+                      "content": "米津玄師 ",
+                      "lineHeight": 1,
+                      "fontFamily": "$fontJp",
+                      "fontSize": 29,
+                      "fontWeight": "500"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "gpaLs",
+              "name": "Watermark",
+              "gap": 12,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "FgLRF",
+                  "name": "Watermark Label",
+                  "fill": "#FAFAF659",
+                  "content": "@kotonoha.app",
+                  "lineHeight": 1,
+                  "fontFamily": "$fontKr",
+                  "fontSize": 28,
+                  "fontWeight": "500"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "FMwWj",
+          "x": 74,
+          "y": 1576,
+          "name": "Profile Cue",
+          "gap": 12,
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "icon",
+              "id": "l5bvk",
+              "name": "Arrow Down",
+              "width": 32,
+              "height": 32,
+              "icon": "arrow-down",
+              "library": "lucide",
+              "fill": "#FAFAF6BF"
+            },
+            {
+              "type": "text",
+              "id": "AegAa",
+              "name": "App Note Label",
+              "fill": "#FAFAF6BF",
+              "content": "노래로 배우는 일본어 앱 '코토노하'에서 전체 단어를 확인하세요!",
+              "lineHeight": 1,
+              "fontFamily": "$fontKr",
+              "fontSize": 26,
+              "fontWeight": "500",
+              "letterSpacing": -0.3
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "vAVrZ",
+          "x": 0,
+          "y": 0,
+          "name": "Safe Area Guide (reference only)",
+          "enabled": false,
+          "opacity": 0.55,
+          "width": 1080,
+          "height": 1920,
+          "layout": "none",
+          "children": [
+            {
+              "type": "rectangle",
+              "id": "gw58R",
+              "x": 0,
+              "y": 1560,
+              "name": "Guide Bottom Unsafe",
+              "width": 1080,
+              "height": 360,
+              "stroke": "#FF4D4D",
+              "strokeWidth": 3,
+              "strokeAlignment": "inner"
+            },
+            {
+              "type": "rectangle",
+              "id": "ZwtXk",
+              "x": 930,
+              "y": 900,
+              "name": "Guide Right Unsafe",
+              "width": 150,
+              "height": 660,
+              "stroke": "#FF4D4D",
+              "strokeWidth": 3,
+              "strokeAlignment": "inner"
+            },
+            {
+              "type": "rectangle",
+              "id": "pwyo3",
+              "x": 0,
+              "y": 0,
+              "name": "Guide Top Unsafe",
+              "width": 930,
+              "height": 100,
+              "stroke": "#FF4D4D",
+              "strokeWidth": 3,
+              "strokeAlignment": "inner"
+            },
+            {
+              "type": "text",
+              "id": "k0mys",
+              "x": 36,
+              "y": 1590,
+              "name": "Guide Label",
+              "fill": "#FF4D4D",
+              "content": "인스타 릴스 UI 가림 영역 — 콘텐츠 금지 (렌더 전 숨김)",
+              "lineHeight": 1,
+              "fontFamily": "$fontKr",
+              "fontSize": 26,
+              "fontWeight": "600"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "OfIiJ",
+          "x": 160,
+          "y": 927,
+          "name": "Content",
+          "width": 760,
+          "layout": "vertical",
+          "gap": 80,
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "R8oAV3",
+              "name": "Lyric",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 20,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "pGaI8",
+                  "name": "Japanese",
+                  "layout": "vertical",
+                  "gap": 20,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "HL8VB",
+                      "name": "Line 1",
+                      "gap": 6,
+                      "alignItems": "end",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "TG1uZ",
+                          "name": "T 胸",
+                          "fill": "$ink",
+                          "content": "胸",
+                          "lineHeight": 1.16,
+                          "fontFamily": "$fontJp",
+                          "fontSize": 58,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "text",
+                          "id": "uRRd7",
+                          "name": "T に",
+                          "fill": "$ink",
+                          "content": "に",
+                          "lineHeight": 1.16,
+                          "fontFamily": "$fontJp",
+                          "fontSize": 58,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "text",
+                          "id": "X8jOCh",
+                          "name": "T 残り",
+                          "fill": "$ink",
+                          "content": "残り",
+                          "lineHeight": 1.16,
+                          "fontFamily": "$fontJp",
+                          "fontSize": 58,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "text",
+                          "id": "kQJkV",
+                          "name": "T 離れ",
+                          "fill": "$ink",
+                          "content": "離れ",
+                          "lineHeight": 1.16,
+                          "fontFamily": "$fontJp",
+                          "fontSize": 58,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "text",
+                          "id": "JkKbh",
+                          "name": "T ない",
+                          "fill": "$ink",
+                          "content": "ない",
+                          "lineHeight": 1.16,
+                          "fontFamily": "$fontJp",
+                          "fontSize": 58,
+                          "fontWeight": "700"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "AmlIf",
+                      "name": "Line 2",
+                      "gap": 6,
+                      "alignItems": "end",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "Adekk",
+                          "name": "Key 苦い",
+                          "layout": "vertical",
+                          "gap": 2,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "CJ0p7",
+                              "name": "T 苦い",
+                              "fill": "$pos-adjective-spotlight",
+                              "content": "苦い",
+                              "lineHeight": 1.16,
+                              "fontFamily": "$fontJp",
+                              "fontSize": 58,
+                              "fontWeight": "700"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "Z3gbN",
+                          "name": "T レモン",
+                          "fill": "$ink",
+                          "content": "レモン",
+                          "lineHeight": 1.16,
+                          "fontFamily": "$fontJp",
+                          "fontSize": 58,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "text",
+                          "id": "OS2Ze",
+                          "name": "T の",
+                          "fill": "$ink",
+                          "content": "の",
+                          "lineHeight": 1.16,
+                          "fontFamily": "$fontJp",
+                          "fontSize": 58,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "kA5D2",
+                          "name": "Key 匂い",
+                          "layout": "vertical",
+                          "gap": 2,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "XJvIK",
+                              "name": "T 匂い",
+                              "fill": "$pos-noun-spotlight",
+                              "content": "匂い",
+                              "lineHeight": 1.16,
+                              "fontFamily": "$fontJp",
+                              "fontSize": 58,
+                              "fontWeight": "700"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "L2rKvA",
+                  "name": "Korean Subtitle",
+                  "fill": "#FAFAF6D9",
+                  "content": "가슴에 남아 떠나지 않는 씁쓸한 레몬 향기",
+                  "lineHeight": 1.3,
+                  "fontFamily": "$fontKr",
+                  "fontSize": 38,
+                  "fontWeight": "500",
+                  "letterSpacing": -0.8
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "v6yRM",
+              "name": "Words",
+              "width": 600,
+              "layout": "vertical",
+              "gap": 40,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "rectangle",
+                  "id": "J1jRs",
+                  "name": "Section Rule",
+                  "fill": "#F4F1EA33",
+                  "width": "fill_container",
+                  "height": 2
+                },
+                {
+                  "type": "frame",
+                  "id": "YIzwq",
+                  "name": "Word List",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 36,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "gHjeX",
+                      "name": "Word 苦い",
+                      "width": "fill_container",
+                      "gap": 24,
+                      "justifyContent": "space_between",
+                      "alignItems": "end",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "orun0",
+                          "name": "Jp",
+                          "gap": 12,
+                          "alignItems": "end",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "OJ5zb",
+                              "name": "Word Japanese",
+                              "fill": "$pos-adjective-spotlight",
+                              "content": "苦い",
+                              "lineHeight": 1,
+                              "fontFamily": "$fontJp",
+                              "fontSize": 48,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "text",
+                              "id": "qeOWX",
+                              "name": "Word Reading",
+                              "fill": "#FAFAF680",
+                              "content": "니가이",
+                              "lineHeight": 1.5,
+                              "fontFamily": "$fontKr",
+                              "fontSize": 24,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "iNbez",
+                          "name": "Word Meaning",
+                          "fill": "#FAFAF6E6",
+                          "content": "쓰다",
+                          "lineHeight": 1.3,
+                          "fontFamily": "$fontKr",
+                          "fontSize": 36,
+                          "fontWeight": "600",
+                          "letterSpacing": -0.6
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "z1Bjw4",
+                      "name": "Word 匂い",
+                      "width": "fill_container",
+                      "gap": 24,
+                      "justifyContent": "space_between",
+                      "alignItems": "end",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "nJCOw",
+                          "name": "Jp",
+                          "gap": 12,
+                          "alignItems": "end",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "RUbRq",
+                              "name": "Word Japanese",
+                              "fill": "$pos-noun-spotlight",
+                              "content": "匂い",
+                              "lineHeight": 1,
+                              "fontFamily": "$fontJp",
+                              "fontSize": 48,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "text",
+                              "id": "HBVK1",
+                              "name": "Word Reading",
+                              "fill": "#FAFAF680",
+                              "content": "니오이",
+                              "lineHeight": 1.5,
+                              "fontFamily": "$fontKr",
+                              "fontSize": 24,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "WQvcO",
+                          "name": "Word Meaning",
+                          "fill": "#FAFAF6E6",
+                          "content": "냄새, 향기",
+                          "lineHeight": 1.3,
+                          "fontFamily": "$fontKr",
+                          "fontSize": 36,
+                          "fontWeight": "600",
+                          "letterSpacing": -0.6
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "rectangle",
+      "id": "HwFKa",
+      "x": 3680,
+      "y": 18405,
+      "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "image.png",
+        "mode": "cover"
+      },
+      "width": 1080,
+      "height": 1891
+    },
+    {
+      "type": "frame",
+      "id": "C2o0bI",
+      "x": 6080,
+      "y": 19271,
+      "name": "Reel v3 · 단어 컷 1 (苦い)",
+      "clip": true,
+      "width": 1080,
+      "height": 1920,
+      "fill": "$night",
+      "layout": "none",
+      "children": [
+        {
+          "type": "rectangle",
+          "id": "s6iNB",
+          "x": 0,
+          "y": 0,
+          "name": "bgArt",
+          "fill": {
+            "type": "image",
+            "enabled": true,
+            "url": "images/lemon-cover.jpg",
+            "mode": "cover"
+          },
+          "width": 1080,
+          "height": 1920
+        },
+        {
+          "type": "rectangle",
+          "id": "o1RRk",
+          "x": 0,
+          "y": 0,
+          "name": "MV Top Scrim",
+          "fill": {
+            "type": "gradient",
+            "gradientType": "linear",
+            "enabled": true,
+            "rotation": 180,
+            "size": {
+              "height": 1
+            },
+            "colors": [
+              {
+                "color": "#111012B3",
+                "position": 0
+              },
+              {
+                "color": "#11101200",
+                "position": 1
+              }
+            ]
+          },
+          "width": 1080,
+          "height": 300
+        },
+        {
+          "type": "rectangle",
+          "id": "HQ9Yh",
+          "x": 0,
+          "y": 620,
+          "name": "MV Bottom Scrim",
+          "fill": {
+            "type": "gradient",
+            "gradientType": "linear",
+            "enabled": true,
+            "rotation": 180,
+            "size": {
+              "height": 1
+            },
+            "colors": [
+              {
+                "color": "#11101200",
+                "position": 0
+              },
+              {
+                "color": "#11101266",
+                "position": 0.2
+              },
+              {
+                "color": "#1110128C",
+                "position": 0.32
+              },
+              {
+                "color": "#111012A6",
+                "position": 0.55
+              },
+              {
+                "color": "#111012BF",
+                "position": 1
+              }
+            ]
+          },
+          "width": 1080,
+          "height": 1300
+        },
+        {
+          "type": "frame",
+          "id": "kfETY",
+          "x": 72,
+          "y": 1460,
+          "name": "Profile Cue",
+          "gap": 12,
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "icon",
+              "id": "oFtLb",
+              "name": "Arrow Down",
+              "width": 30,
+              "height": 30,
+              "icon": "arrow-down",
+              "library": "lucide",
+              "fill": "#FAFAF6BF"
+            },
+            {
+              "type": "text",
+              "id": "F6Peso",
+              "name": "App Note Label",
+              "fill": "#FAFAF6BF",
+              "content": "노래로 배우는 일본어 앱 '코토노하'",
+              "lineHeight": 1.2,
+              "fontFamily": "$fontKr",
+              "fontSize": 27,
+              "fontWeight": "500",
+              "letterSpacing": -0.3
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "lWPZr",
+          "x": 72,
+          "y": 700,
+          "name": "wordBlock",
+          "width": 936,
+          "layout": "vertical",
+          "gap": 14,
+          "children": [
+            {
+              "type": "text",
+              "id": "elsZC",
+              "name": "headword",
+              "fill": "$ink",
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "#00000080",
+                "offset": {
+                  "x": 0,
+                  "y": 6
+                },
+                "blur": 36
+              },
+              "content": "苦い",
+              "lineHeight": 1.15,
+              "fontFamily": "$fontJp",
+              "fontSize": 120,
+              "fontWeight": "700"
+            },
+            {
+              "type": "frame",
+              "id": "zZm16",
+              "name": "subRow",
+              "gap": 24,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "ctlFQ",
+                  "name": "reading",
+                  "fill": "#FAFAF6CC",
+                  "content": "にがい",
+                  "lineHeight": 1.2,
+                  "fontFamily": "$fontJp",
+                  "fontSize": 42,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "E2NMM",
+          "x": 72,
+          "y": 1190,
+          "name": "lyricFootnote",
+          "width": 848,
+          "layout": "vertical",
+          "gap": 18,
+          "children": [
+            {
+              "type": "frame",
+              "id": "SV7jP",
+              "name": "footLabel",
+              "gap": 12,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "zptzt",
+                  "name": "musicIcon",
+                  "width": 30,
+                  "height": 30,
+                  "icon": "music",
+                  "library": "lucide",
+                  "fill": "#FAFAF680"
+                },
+                {
+                  "type": "text",
+                  "id": "V72sCJ",
+                  "name": "footLabelText",
+                  "fill": "#FAFAF680",
+                  "content": "이 단어가 나온 가사",
+                  "lineHeight": 1.2,
+                  "fontFamily": "$fontKr",
+                  "fontSize": 30,
+                  "fontWeight": "600",
+                  "letterSpacing": -0.3
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "q7CSqA",
+              "name": "jpRow",
+              "width": "fill_container",
+              "alignItems": "end",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "h3apGu",
+                  "name": "jpPre",
+                  "fill": "#FAFAF6B3",
+                  "content": "胸に残り離れない",
+                  "lineHeight": 1.3,
+                  "fontFamily": "$fontJp",
+                  "fontSize": 50,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "Klv66",
+                  "name": "jpHit",
+                  "fill": "$ink",
+                  "content": "苦い",
+                  "lineHeight": 1.3,
+                  "fontFamily": "$fontJp",
+                  "fontSize": 50,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "MV4R1",
+                  "name": "jpPost",
+                  "fill": "#FAFAF6B3",
+                  "content": "レモンの匂い",
+                  "lineHeight": 1.3,
+                  "fontFamily": "$fontJp",
+                  "fontSize": 50,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "H7dju",
+              "name": "krLine",
+              "fill": "#FAFAF6BF",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "가슴에 남아 떠나지 않는 씁쓸한 레몬 향기",
+              "lineHeight": 1.3,
+              "fontFamily": "$fontKr",
+              "fontSize": 38,
+              "fontWeight": "normal",
+              "letterSpacing": -0.6
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "q1kbiY",
+          "x": 72,
+          "y": 950,
+          "name": "meaning",
+          "fill": "$ink",
+          "effect": {
+            "type": "shadow",
+            "shadowType": "outer",
+            "color": "#00000080",
+            "offset": {
+              "x": 0,
+              "y": 6
+            },
+            "blur": 36
+          },
+          "textGrowth": "fixed-width",
+          "width": 848,
+          "content": "쓰다, 씁쓸하다",
+          "lineHeight": 1.2,
+          "fontFamily": "$fontKr",
+          "fontSize": 72,
+          "fontWeight": "700",
+          "letterSpacing": -1.2
+        },
+        {
+          "type": "frame",
+          "id": "mYKxy",
+          "x": 0,
+          "y": 150,
+          "name": "Header",
+          "width": 1080,
+          "height": 96,
+          "padding": [
+            0,
+            72
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "s3YEX",
+              "name": "Brand And Song",
+              "gap": 22,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "rbnuh",
+                  "name": "Song Text",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "d5gQvr",
+                      "name": "Song Title",
+                      "fill": "$ink",
+                      "content": "Lemon",
+                      "lineHeight": 1,
+                      "fontFamily": "$fontKr",
+                      "fontSize": 50,
+                      "fontWeight": "800"
+                    },
+                    {
+                      "type": "text",
+                      "id": "sndru",
+                      "name": "Song Artist",
+                      "fill": "$softInk",
+                      "content": "米津玄師 ",
+                      "lineHeight": 1,
+                      "fontFamily": "$fontJp",
+                      "fontSize": 29,
+                      "fontWeight": "500"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "gXwg6",
+              "name": "Watermark",
+              "gap": 12,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "orIWn",
+                  "name": "Watermark Label",
+                  "fill": "#FAFAF659",
+                  "content": "@kotonoha.app",
+                  "lineHeight": 1,
+                  "fontFamily": "$fontKr",
+                  "fontSize": 28,
+                  "fontWeight": "500"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "DvEkT",
+      "x": 7320,
+      "y": 19271,
+      "name": "Reel v3 · 단어 컷 2 (匂い)",
+      "clip": true,
+      "width": 1080,
+      "height": 1920,
+      "fill": "$night",
+      "layout": "none",
+      "children": [
+        {
+          "type": "rectangle",
+          "id": "g2OIAL",
+          "x": 0,
+          "y": 0,
+          "name": "bgArt",
+          "fill": {
+            "type": "image",
+            "enabled": true,
+            "url": "images/lemon-cover.jpg",
+            "mode": "cover"
+          },
+          "width": 1080,
+          "height": 1920
+        },
+        {
+          "type": "rectangle",
+          "id": "wwEWS",
+          "x": 0,
+          "y": 0,
+          "name": "MV Top Scrim",
+          "fill": {
+            "type": "gradient",
+            "gradientType": "linear",
+            "enabled": true,
+            "rotation": 180,
+            "size": {
+              "height": 1
+            },
+            "colors": [
+              {
+                "color": "#111012B3",
+                "position": 0
+              },
+              {
+                "color": "#11101200",
+                "position": 1
+              }
+            ]
+          },
+          "width": 1080,
+          "height": 300
+        },
+        {
+          "type": "rectangle",
+          "id": "XjGG2",
+          "x": 0,
+          "y": 620,
+          "name": "MV Bottom Scrim",
+          "fill": {
+            "type": "gradient",
+            "gradientType": "linear",
+            "enabled": true,
+            "rotation": 180,
+            "size": {
+              "height": 1
+            },
+            "colors": [
+              {
+                "color": "#11101200",
+                "position": 0
+              },
+              {
+                "color": "#11101266",
+                "position": 0.2
+              },
+              {
+                "color": "#1110128C",
+                "position": 0.32
+              },
+              {
+                "color": "#111012A6",
+                "position": 0.55
+              },
+              {
+                "color": "#111012BF",
+                "position": 1
+              }
+            ]
+          },
+          "width": 1080,
+          "height": 1300
+        },
+        {
+          "type": "frame",
+          "id": "e9X6X",
+          "x": 72,
+          "y": 1460,
+          "name": "Profile Cue",
+          "gap": 12,
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "icon",
+              "id": "g2IZmH",
+              "name": "Arrow Down",
+              "width": 30,
+              "height": 30,
+              "icon": "arrow-down",
+              "library": "lucide",
+              "fill": "#FAFAF6BF"
+            },
+            {
+              "type": "text",
+              "id": "bz0Us",
+              "name": "App Note Label",
+              "fill": "#FAFAF6BF",
+              "content": "노래로 배우는 일본어 앱 '코토노하'",
+              "lineHeight": 1.2,
+              "fontFamily": "$fontKr",
+              "fontSize": 27,
+              "fontWeight": "500",
+              "letterSpacing": -0.3
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "FdXxu",
+          "x": 72,
+          "y": 700,
+          "name": "wordBlock",
+          "width": 936,
+          "layout": "vertical",
+          "gap": 14,
+          "children": [
+            {
+              "type": "text",
+              "id": "o1ckL",
+              "name": "headword",
+              "fill": "$ink",
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "#00000080",
+                "offset": {
+                  "x": 0,
+                  "y": 6
+                },
+                "blur": 36
+              },
+              "content": "匂い",
+              "lineHeight": 1.15,
+              "fontFamily": "$fontJp",
+              "fontSize": 120,
+              "fontWeight": "700"
+            },
+            {
+              "type": "frame",
+              "id": "LIJ3b",
+              "name": "subRow",
+              "gap": 24,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "X9SBr",
+                  "name": "reading",
+                  "fill": "#FAFAF6CC",
+                  "content": "におい",
+                  "lineHeight": 1.2,
+                  "fontFamily": "$fontJp",
+                  "fontSize": 42,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "Z1bHPD",
+          "x": 72,
+          "y": 950,
+          "name": "meaning",
+          "fill": "$ink",
+          "effect": {
+            "type": "shadow",
+            "shadowType": "outer",
+            "color": "#00000080",
+            "offset": {
+              "x": 0,
+              "y": 6
+            },
+            "blur": 36
+          },
+          "textGrowth": "fixed-width",
+          "width": 848,
+          "content": "냄새, 향기",
+          "lineHeight": 1.2,
+          "fontFamily": "$fontKr",
+          "fontSize": 72,
+          "fontWeight": "700",
+          "letterSpacing": -1.2
+        },
+        {
+          "type": "frame",
+          "id": "JuPa9",
+          "x": 72,
+          "y": 1190,
+          "name": "lyricFootnote",
+          "width": 848,
+          "layout": "vertical",
+          "gap": 18,
+          "children": [
+            {
+              "type": "frame",
+              "id": "am8nO",
+              "name": "footLabel",
+              "gap": 12,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "ipevf",
+                  "name": "musicIcon",
+                  "width": 30,
+                  "height": 30,
+                  "icon": "music",
+                  "library": "lucide",
+                  "fill": "#FAFAF680"
+                },
+                {
+                  "type": "text",
+                  "id": "MhqQT",
+                  "name": "footLabelText",
+                  "fill": "#FAFAF680",
+                  "content": "이 단어가 나온 가사",
+                  "lineHeight": 1.2,
+                  "fontFamily": "$fontKr",
+                  "fontSize": 30,
+                  "fontWeight": "600",
+                  "letterSpacing": -0.3
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "jOZu6",
+              "name": "jpRow",
+              "width": "fill_container",
+              "alignItems": "end",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "u3zXTy",
+                  "name": "jpPre",
+                  "fill": "#FAFAF6B3",
+                  "content": "胸に残り離れない苦いレモンの",
+                  "lineHeight": 1.3,
+                  "fontFamily": "$fontJp",
+                  "fontSize": 50,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "KUB7h",
+                  "name": "jpHit",
+                  "fill": "$ink",
+                  "content": "匂い",
+                  "lineHeight": 1.3,
+                  "fontFamily": "$fontJp",
+                  "fontSize": 50,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "xqO7j",
+                  "x": 704,
+                  "y": 0,
+                  "name": "jpPost",
+                  "enabled": false,
+                  "fill": "#FAFAF6B3",
+                  "content": "レモンの匂い",
+                  "lineHeight": 1.3,
+                  "fontFamily": "$fontJp",
+                  "fontSize": 50,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "yWhu9",
+              "name": "krLine",
+              "fill": "#FAFAF6BF",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "가슴에 남아 떠나지 않는 씁쓸한 레몬 향기",
+              "lineHeight": 1.3,
+              "fontFamily": "$fontKr",
+              "fontSize": 38,
+              "fontWeight": "normal",
+              "letterSpacing": -0.6
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "UlQR9",
+          "x": 0,
+          "y": 150,
+          "name": "Header",
+          "width": 1080,
+          "height": 96,
+          "padding": [
+            0,
+            72
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "V7gixt",
+              "name": "Brand And Song",
+              "gap": 22,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "c3Ub8",
+                  "name": "Song Text",
+                  "layout": "vertical",
+                  "gap": 6,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "SGEoZ",
+                      "name": "Song Title",
+                      "fill": "$ink",
+                      "content": "Lemon",
+                      "lineHeight": 1,
+                      "fontFamily": "$fontKr",
+                      "fontSize": 50,
+                      "fontWeight": "800"
+                    },
+                    {
+                      "type": "text",
+                      "id": "aJ0AR",
+                      "name": "Song Artist",
+                      "fill": "$softInk",
+                      "content": "米津玄師 ",
+                      "lineHeight": 1,
+                      "fontFamily": "$fontJp",
+                      "fontSize": 29,
+                      "fontWeight": "500"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "N0T9D",
+              "name": "Watermark",
+              "gap": 12,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "ocaA9",
+                  "name": "Watermark Label",
+                  "fill": "#FAFAF659",
+                  "content": "@kotonoha.app",
+                  "lineHeight": 1,
+                  "fontFamily": "$fontKr",
+                  "fontSize": 28,
+                  "fontWeight": "500"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "context",
+      "id": "V5Jkc",
+      "x": 8640,
+      "y": 19271,
+      "name": "Reel v3 · 단어 카드 중심 — 구성·타이밍",
+      "width": 940,
+      "height": 600,
+      "content": "[방향 전환]\n\n가사 한 줄이 주인공이던 v2 를 뒤집는다. 주인공은 단어, 가사는 그 단어가\n어디서 나왔는지 보여주는 문맥이다. 앱 홈 플래시카드(component/homeWordFront\n· homeWordBack)의 화면 언어 — MV 배경 위 좌측 정렬 단어 — 를 가져오되,\n헤더와 상·하 스크림은 v2 원안(AOKzd)을 그대로 쓴다.\n\n[화면에 남은 것 / 뺀 것]\n\n남은 것 : MV + 원안 스크림 2겹, 원안 헤더(곡·아티스트 + 워터마크),\n  단어 · 독음 · 뜻, 가사 한 줄(일본어 + 한국어), 하단 프로필 유도\n뺀 것 : \"뜻 확인하기\" 버튼, rating 4버튼, 세션 진행 바, 카운터, chevron,\n  페이지 dots, 상태바, 탭바, 품사 라벨, JLPT 라벨\n  → 릴스는 탭이 안 되므로 누를 수 있어 보이는 요소를 두지 않는다.\n  품사·JLPT 는 학습 화면의 메타데이터지 홍보 영상이 전달할 정보가 아니다.\n\n[위계]\n\n단어 120 / 독음 42 / 뜻 72 / 가사 일본어 50 / 가사 한국어 38\n단어를 168 → 120 으로 낮췄다. 단어가 화면을 덮으면 MV 가 안 보이고,\nMV 가 안 보이면 \"이 노래\" 라는 맥락이 사라진다.\n가사는 크기와 밝기를 올려 뜻 바로 다음 무게로 둔다. 가사 안에서 해당 단어만\n$ink + bold, 나머지는 #FAFAF6B3 — 색을 쓰지 않고 밝기 차만으로 구분한다.\n\n[컷 구성 — 단어 1개 = 1컷]\n\n뜻은 숨기지 않는다. 퀴즈가 아니라 노출이 목적이다.\n캔버스의 두 프레임은 연속한 두 단어 예시다(苦い → 匂い).\n같은 가사 줄에서 뽑힌 단어라 가사 문장은 그대로 두고 하이라이트만 옮긴다.\n\n[타이밍 제안 — 30fps]\n\n단어 1개당 약 2.2s (66f). 전환은 단어 블록(단어·독음·뜻)만 위로 빠지고\n새 단어가 아래에서 올라온다 — 이 \"슉\" 하는 교체가 릴스의 리듬이다.\n배경 MV · 헤더 · 워터마크는 끊기지 않고 계속 재생/고정.\n가사는 줄이 바뀔 때만 교체되고, 한 줄에서 단어를 2개 뽑으면 같은 가사가\n두 컷 동안 유지되며 하이라이트만 이동한다.\n\n단어 9개 × 66f = 594f (19.8s) + 엔드카드 150f (5s) = 744f (24.8s)\n\n[데이터]\n\n줄 단위가 아니라 단어 단위로 읽는다. 단어마다 필요한 값:\n  japanese · reading · korean\n  + 그 단어가 나온 줄의 originalText / koreanLyrics / 단어의 char 범위\nlyricLines[].vocabulary 를 평탄화하고 각 항목에 lineIndex 를 달면 그대로 쓸 수 있다.\npartOfSpeech · jlpt 는 이 디자인에서 쓰지 않는다.\n\n[안전 영역]\n\n콘텐츠는 y 150 – 1500, x 72 – 920 안에만 둔다.\n하단 y 1560 이상 · 우측 x 930 이상(y 900–1560)은 인스타 UI 가 덮는다."
     }
   ],
   "themes": {
@@ -111038,15 +113752,15 @@
     },
     "nounBlue": {
       "type": "color",
-      "value": "#96BDF8"
+      "value": "#1F7AFF"
     },
     "verbGreen": {
       "type": "color",
-      "value": "#3AD398"
+      "value": "#00C56B"
     },
     "adjectiveOrange": {
       "type": "color",
-      "value": "#F4AE4E"
+      "value": "#FF8A00"
     },
     "chipFill": {
       "type": "color",
@@ -111131,6 +113845,14 @@
     "sheet-glass-line": {
       "type": "color",
       "value": "#FFFFFF24"
+    },
+    "jlpt-n3-spotlight": {
+      "type": "color",
+      "value": "#E0B93E"
+    },
+    "jlpt-n4-spotlight": {
+      "type": "color",
+      "value": "#5BD6C4"
     },
     "forecast-daily": {
       "type": "color",

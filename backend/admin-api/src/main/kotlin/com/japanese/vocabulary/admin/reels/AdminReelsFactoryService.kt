@@ -139,6 +139,16 @@ class AdminReelsFactoryService(
                 }
             }
         }
+        data.headlineFontSize?.let { size ->
+            if (size !in HEADLINE_FONT_SIZE_RANGE) {
+                throw IllegalArgumentException("headlineFontSize must be within $HEADLINE_FONT_SIZE_RANGE")
+            }
+        }
+        data.lyricScale?.let { scale ->
+            if (scale !in LYRIC_SCALE_RANGE) {
+                throw IllegalArgumentException("lyricScale must be within $LYRIC_SCALE_RANGE")
+            }
+        }
         if (lines.first().startFrame < 0) {
             throw IllegalArgumentException("first line must not start before the clip")
         }
@@ -174,7 +184,7 @@ class AdminReelsFactoryService(
         return AdminReelsSongDetailResponse(
             song = song.toCandidateResponse(lyric),
             lyricType = lyric.lyricType.name,
-            headline = headlineFor(song, lyric),
+            headline = DEFAULT_HEADLINE,
             instagramHandle = INSTAGRAM_HANDLE,
             catchphrase = CATCHPHRASE,
             fps = FPS,
@@ -249,15 +259,6 @@ class AdminReelsFactoryService(
             .toList()
     }
 
-    private fun headlineFor(song: SongEntity, lyric: LyricEntity): String {
-        val firstKorean = lyric.analyzedContent
-            ?.firstOrNull { !it.koreanLyrics.isNullOrBlank() }
-            ?.koreanLyrics
-            ?.replace(Regex("\\s+"), " ")
-            ?.take(28)
-        return firstKorean ?: "${song.title}에서 배우는 일본어 가사"
-    }
-
     companion object {
         const val MIN_LINE_COUNT = 4
         const val FPS = 30
@@ -270,7 +271,15 @@ class AdminReelsFactoryService(
         const val MV_OFFSET_X_MAX = 2700.0
         const val MV_OFFSET_Y_MAX = 1920.0
         val MV_CROP_RANGE = 0.0..0.4
-        const val INSTAGRAM_HANDLE = "@kotonoha.music"
+        val LYRIC_SCALE_RANGE = 0.6..1.4
+        val HEADLINE_FONT_SIZE_RANGE = 48..110
+        const val INSTAGRAM_HANDLE = "@kotonoha.app"
+
+        /**
+         * 에디터 헤드라인의 초기값. 줄바꿈이 줄을 나누고 `<b>…</b>` 구간에 초록 배경이 깔린다(PromoReel 의 Headline).
+         * 단어 수는 고른 줄에 따라 달라지므로 어드민이 그 자리에서 고쳐 쓴다.
+         */
+        const val DEFAULT_HEADLINE = "가사 한 줄에\n<b>일본어 단어 6개</b>"
         const val CATCHPHRASE = "가사에서 바로 배우는 일본어"
     }
 }
