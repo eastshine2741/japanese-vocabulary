@@ -45,12 +45,12 @@ interface StreakState {
 /** 문구표. N = 오늘 포함 연속 일수. freeze 로 이어진 경우도 이어감과 같다. */
 export function streakCelebrationCopy(streakToday: number, hasStudiedBefore: boolean): StreakCelebrationCopy {
   if (streakToday >= 2) {
-    return { headline: '불꽃이 점점 커지고 있어요!', sub: '오늘도 해냈어요. 내일 이 자리에서 또 만나요' };
+    return { headline: '연속 학습 기록을 이어 갔어요!', sub: `내일도 학습하면 ${streakToday + 1}일 연속이에요` };
   }
   if (hasStudiedBefore) {
-    return { headline: '불꽃을 다시 켰어요!', sub: '내일 한 번만 더 오면 2일 연속이에요' };
+    return { headline: '연속 학습을 다시 시작했어요!', sub: '내일도 학습하면 2일 연속이에요' };
   }
-  return { headline: '첫 불꽃을 켰어요!', sub: '내일 한 번만 더 오면 2일 연속이에요' };
+  return { headline: '연속 학습을 시작했어요!', sub: '내일도 학습하면 2일 연속이에요' };
 }
 
 const initial = {

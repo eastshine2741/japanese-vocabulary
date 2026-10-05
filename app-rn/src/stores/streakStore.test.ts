@@ -19,20 +19,20 @@ const WEEK = [
 describe('streakCelebrationCopy (문구표)', () => {
   it('첫날: N=1, 이전 기록 없음', () => {
     expect(streakCelebrationCopy(1, false)).toEqual({
-      headline: '첫 불꽃을 켰어요!',
-      sub: '내일 한 번만 더 오면 2일 연속이에요',
+      headline: '연속 학습을 시작했어요!',
+      sub: '내일도 학습하면 2일 연속이에요',
     });
   });
   it('끊긴 뒤 재시작: N=1, 이전 기록 있음', () => {
     expect(streakCelebrationCopy(1, true)).toEqual({
-      headline: '불꽃을 다시 켰어요!',
-      sub: '내일 한 번만 더 오면 2일 연속이에요',
+      headline: '연속 학습을 다시 시작했어요!',
+      sub: '내일도 학습하면 2일 연속이에요',
     });
   });
   it('이어감: N>=2 는 이전 기록과 무관', () => {
-    const expected = { headline: '불꽃이 점점 커지고 있어요!', sub: '오늘도 해냈어요. 내일 이 자리에서 또 만나요' };
-    expect(streakCelebrationCopy(4, true)).toEqual(expected);
-    expect(streakCelebrationCopy(2, false)).toEqual(expected);
+    const headline = '연속 학습 기록을 이어 갔어요!';
+    expect(streakCelebrationCopy(4, true)).toEqual({ headline, sub: '내일도 학습하면 5일 연속이에요' });
+    expect(streakCelebrationCopy(2, false)).toEqual({ headline, sub: '내일도 학습하면 3일 연속이에요' });
   });
 });
 
@@ -94,14 +94,14 @@ describe('streakStore', () => {
     store().applyHomeStats({ currentStreak: 0, studiedToday: false, hasStudiedBefore: true });
     store().recordRating();
     expect(store().currentStreak).toBe(1);
-    expect(store().celebration?.headline).toBe('불꽃을 다시 켰어요!');
+    expect(store().celebration?.headline).toBe('연속 학습을 다시 시작했어요!');
   });
 
   it('한 번도 학습 안 한 유저의 첫 rating 은 1일 + 첫날 문구', () => {
     store().applyHomeStats({ currentStreak: 0, studiedToday: false, hasStudiedBefore: false });
     store().recordRating();
     expect(store().currentStreak).toBe(1);
-    expect(store().celebration?.headline).toBe('첫 불꽃을 켰어요!');
+    expect(store().celebration?.headline).toBe('연속 학습을 시작했어요!');
   });
 
   it('홈 통계를 다시 받으면 서버 값이 이긴다 (다음 날 진입)', () => {
