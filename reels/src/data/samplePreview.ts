@@ -10,7 +10,7 @@ export const samplePreviewPromo: PromoReelData = {
     artworkAsset: 'lemon-cover.jpg',
     mvAsset: 'lemon-chorus.mp4',
   },
-  headline: '가사 한 줄에\n<b>일본어 단어 6개</b>',
+  headline: '가사 한 줄에\n<b>일본어 단어 3개</b>',
   instagramHandle: '@kotonoha.app',
   catchphrase: '좋아하는 노래가, 나의 일본어가 되도록.',
   sourceStartFrame: 0,
@@ -76,6 +76,7 @@ export const samplePreviewPromo: PromoReelData = {
         {surface: '匂い', baseForm: '匂い', reading: 'ニオイ', partOfSpeech: 'NOUN', charStart: 15, charEnd: 17, koreanText: '향기'},
       ],
       vocabulary: [
+        {japanese: '残る', reading: 'ノコル', korean: '남다', partOfSpeech: 'VERB', partOfSpeechLabel: '동사', jlpt: 'N4'},
         {japanese: '苦い', reading: 'ニガイ', korean: '쓰다', partOfSpeech: 'ADJECTIVE', partOfSpeechLabel: '형용사', jlpt: 'N3'},
         {japanese: '匂い', reading: 'ニオイ', korean: '냄새, 향기', partOfSpeech: 'NOUN', partOfSpeechLabel: '명사', jlpt: 'N4'},
       ],

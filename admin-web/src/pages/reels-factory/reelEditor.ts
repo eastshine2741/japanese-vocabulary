@@ -85,7 +85,7 @@ export const FIT_WIDTH_MV_FRAME: MvFrame = { scale: 1, x: 0, y: 0, crop: NO_CROP
 
 /** 가사 원문 글자 배율. 1 이 기본이고, 긴 줄을 맞추는 자동 축소 위에 곱해진다. */
 /** 헤드라인 글자 크기(px). 기본값은 PromoReel 의 DEFAULT_HEADLINE_FONT_SIZE, 범위는 서버 HEADLINE_FONT_SIZE_RANGE 와 같다. */
-export const DEFAULT_HEADLINE_FONT_SIZE = 76
+export const DEFAULT_HEADLINE_FONT_SIZE = 58
 export const HEADLINE_FONT_SIZE_MIN = 48
 export const HEADLINE_FONT_SIZE_MAX = 110
 

@@ -91,7 +91,7 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
             jsonPath("$.minLineCount") { value(4) }
             jsonPath("$.maxLineCount") { doesNotExist() }
             jsonPath("$.maxLyricsSpanMs") { value(60000) }
-            jsonPath("$.maxVocabularyPerLine") { value(2) }
+            jsonPath("$.maxVocabularyPerLine") { value(3) }
         }
     }
 
@@ -226,8 +226,8 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
         // 60초 상한
         renderExpectingBadRequest(token, song.id!!, promoData(startFrames = listOf(0, 60, 120, 180), lyricsEndFrame = 1801))
         // 줄당 단어 상한
-        val threeWords = List(3) { AdminReelsVocabularyResponse(japanese = "夢$it", reading = "ユメ", korean = "꿈") }
-        renderExpectingBadRequest(token, song.id!!, promoData(startFrames = listOf(0, 60, 120, 180), lyricsEndFrame = 240, vocabulary = threeWords))
+        val fourWords = List(4) { AdminReelsVocabularyResponse(japanese = "夢$it", reading = "ユメ", korean = "꿈") }
+        renderExpectingBadRequest(token, song.id!!, promoData(startFrames = listOf(0, 60, 120, 180), lyricsEndFrame = 240, vocabulary = fourWords))
         // 어드민이 고쳐 쓰는 곡 제목·아티스트가 비어 있음
         renderExpectingBadRequest(token, song.id!!, valid.copy(song = valid.song.copy(title = " ")))
         renderExpectingBadRequest(token, song.id!!, valid.copy(song = valid.song.copy(artist = "")))
