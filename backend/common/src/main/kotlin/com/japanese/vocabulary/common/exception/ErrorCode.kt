@@ -49,6 +49,9 @@ enum class ErrorCode(val status: HttpStatus, val message: String) {
     VOC_CONTENT_TOO_LONG(HttpStatus.BAD_REQUEST, "Content must be at most 1000 characters"),
     VOC_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "VOC submission is unavailable"),
 
+    // Recommendation
+    SONG_ALREADY_RECOMMENDED(HttpStatus.CONFLICT, "Song is already recommended"),
+
     // Common
     FORBIDDEN(HttpStatus.FORBIDDEN, "Access denied"),
 }

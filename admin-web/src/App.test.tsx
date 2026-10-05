@@ -10,8 +10,6 @@ import {
   lyricDetail,
   page,
   recommendation,
-  recommendationCandidate,
-  recommendationOperationResult,
   reelsSongCandidate,
   reelsSongDetail,
   failedSongAnalysisWorkDetail,
@@ -44,11 +42,10 @@ function mockFetch() {
     if (url.endsWith("/song-analysis-works/5/stages/ANALYZE_LYRICS/output")) return json({ translation: { "0": { index: 0, koreanLyrics: "고양이" } } })
     if (url.includes("/song-analysis-works/5")) return json(failedSongAnalysisWorkDetail)
     if (url.includes("/song-analysis-works?")) return json(page([songAnalysisWorkSummary]))
-    if (url.includes("/recommendations/weeks")) return json([recommendationCandidate.weekStartDate])
-    if (url.includes("/recommendations/candidates")) return json([recommendationCandidate])
-    if (url.includes("/recommendations/prepare-approved")) return json(recommendationOperationResult)
-    if (url.includes("/recommendations?") || url.endsWith("/recommendations")) return json([recommendation])
-    if (url.includes("/recommendations/request-analysis")) return json(recommendationOperationResult)
+    if (url.endsWith("/recommendations/order") && init?.method === "PUT") return json(JSON.parse(String(init.body)).ids.map((id: number) => ({ ...recommendation, id })))
+    if (url.endsWith("/recommendations/11") && init?.method === "DELETE") return new Response(null, { status: 204 })
+    if (url.endsWith("/recommendations") && init?.method === "POST") return json({ error: "already recommended" }, 409)
+    if (url.endsWith("/recommendations")) return json([recommendation])
     if (url.includes("/lyrics/2")) return json(lyricDetail)
     if (url.includes("/users/3/words")) {
       const words = new URL(url).searchParams.get("deckId") === "11" ? [adminUserWord] : [adminUserWord, { ...adminUserWord, id: 21, japaneseText: "夜", reading: "ヨル", senses: [{ meaning: "밤", partOfSpeech: "명사", jlpt: "N5", examples: [] }], sourceSongs: [], flashcard: { status: "NEW", fsrsState: 0, due: "2026-01-01T00:00:00Z", lastReview: null } }]
@@ -182,55 +179,21 @@ describe("admin web", () => {
     expect(JSON.parse(String(call[1]?.body))).toEqual({ userId: 3, title: "공지", body: "오늘도 복습해요" })
   })
 
-  test("runs recommendation workflow operations", async () => {
-    const user = userEvent.setup()
-    sessionStorage.setItem("kotonoha.admin.token", "admin-token")
-    renderApp("/recommendations")
-
-    expect(await screen.findByRole("heading", { name: "Recommendations" })).toBeInTheDocument()
-    expect((await screen.findAllByText("Plazma")).length).toBeGreaterThan(0)
-    expect(screen.getByText("Kenshi Yonezu")).toBeInTheDocument()
-    await user.click(screen.getByRole("button", { name: "Process approved" }))
-
-    expect(await screen.findByText("Processed")).toBeInTheDocument()
-    expect(screen.getByText(/SUCCEEDED/)).toBeInTheDocument()
-    expect(screen.getAllByRole("tab")).toHaveLength(2)
-  })
-
-  test("scopes recommendation lists and operations to the selected week", async () => {
+  test("lists recommendations, blocks duplicate adds, and removes", async () => {
     const user = userEvent.setup()
     const fetchMock = mockFetch()
     sessionStorage.setItem("kotonoha.admin.token", "admin-token")
     renderApp("/recommendations")
 
-    expect((await screen.findAllByText("Plazma")).length).toBeGreaterThan(0)
+    expect(await screen.findByRole("heading", { name: "Recommendations" })).toBeInTheDocument()
+    expect(await screen.findByRole("button", { name: "Remove 夜に駆ける" })).toBeInTheDocument()
 
-    const weekSelect = screen.getByLabelText("Week")
-    await user.selectOptions(weekSelect, recommendationCandidate.weekStartDate)
+    await user.type(screen.getByLabelText("Song search"), "夜")
+    expect(await screen.findByRole("button", { name: "Added 夜に駆ける" })).toBeDisabled()
 
+    await user.click(screen.getByRole("button", { name: "Remove 夜に駆ける" }))
     await waitFor(() =>
-      expect(
-        fetchMock.mock.calls.some(([input]) =>
-          String(input).includes(`/recommendations/candidates?weekStartDate=${recommendationCandidate.weekStartDate}`),
-        ),
-      ).toBe(true),
-    )
-    expect(
-      fetchMock.mock.calls.some(([input]) =>
-        String(input).includes(`/recommendations?weekStartDate=${recommendationCandidate.weekStartDate}`),
-      ),
-    ).toBe(true)
-
-    await user.click(screen.getByRole("button", { name: "Process approved" }))
-
-    await waitFor(() =>
-      expect(
-        fetchMock.mock.calls.some(([input]) =>
-          String(input).includes(
-            `/recommendations/prepare-approved?weekStartDate=${recommendationCandidate.weekStartDate}`,
-          ),
-        ),
-      ).toBe(true),
+      expect(fetchMock.mock.calls.some(([input, init]) => String(input).endsWith("/recommendations/11") && init?.method === "DELETE")).toBe(true),
     )
   })
 

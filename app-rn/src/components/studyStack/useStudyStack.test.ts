@@ -386,7 +386,7 @@ it('keeps failed reviews available for retry', async () => {
 
 // 홈 콜드스타트: due 덱이 하나도 없을 때 추천곡 미리보기 카드 → rating 확정 시 부트스트랩.
 const recommendation: RecommendedSongItem = {
-  id: 1, songId: 9, title: 'Rec Song', artist: 'Rec Artist', artworkUrl: null, weekStartDate: '2026-09-01',
+  id: 1, songId: 9, title: 'Rec Song', artist: 'Rec Artist', artworkUrl: null,
 };
 const wordItem = (japanese: string, importanceScore: number, appearanceOrder = 0, overrides: Partial<WordInSongItemDto> = {}): WordInSongItemDto => ({
   japanese,
@@ -501,7 +501,7 @@ it('sorts song decks by due count for the deck strip and auto-loads the top one'
 });
 
 it('auto-selects the first recommendation deterministically for a brand-new user with no song decks', async () => {
-  const rec2: RecommendedSongItem = { id: 2, songId: 99, title: 'Second', artist: 'B', artworkUrl: null, weekStartDate: '2026-09-01' };
+  const rec2: RecommendedSongItem = { id: 2, songId: 99, title: 'Second', artist: 'B', artworkUrl: null };
   vi.mocked(songApi.getRecommendations).mockResolvedValue([recommendation, rec2]);
   vi.mocked(songApi.getWords).mockResolvedValue(wordsInSong([wordItem('高い', 99, 0)]));
   await mountHome();
@@ -633,7 +633,7 @@ it('counts today\'s remaining due across all decks and decrements it with the de
 });
 
 it('selectSource on another recommendation loads a fresh preview card', async () => {
-  const rec2: RecommendedSongItem = { id: 2, songId: 99, title: 'Second', artist: 'B', artworkUrl: null, weekStartDate: '2026-09-01' };
+  const rec2: RecommendedSongItem = { id: 2, songId: 99, title: 'Second', artist: 'B', artworkUrl: null };
   vi.mocked(songApi.getRecommendations).mockResolvedValue([recommendation, rec2]);
   vi.mocked(songApi.getWords)
     .mockResolvedValueOnce(wordsInSong([wordItem('高い', 99, 0)]))

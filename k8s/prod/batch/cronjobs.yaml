@@ -156,56 +156,6 @@ spec:
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: apple-music-recommendation
-spec:
-  # 주간 Apple Music 차트 수집
-  schedule: "0 3 * * 1"
-  timeZone: "Asia/Tokyo"
-  suspend: false
-  concurrencyPolicy: Forbid
-  startingDeadlineSeconds: 600
-  successfulJobsHistoryLimit: 3
-  failedJobsHistoryLimit: 3
-  jobTemplate:
-    spec:
-      backoffLimit: 2
-      template:
-        spec:
-          restartPolicy: Never
-          imagePullSecrets:
-            - name: ghcr-pull
-          containers:
-            - name: batch
-              image: ${BATCH_IMAGE}
-              imagePullPolicy: IfNotPresent
-              args:
-                - "--task=apple-music-recommendation"
-              env:
-                - name: GOOGLE_APPLICATION_CREDENTIALS
-                  value: /var/secrets/firebase/service-account.json
-              envFrom:
-                - configMapRef:
-                    name: batch-config
-                - secretRef:
-                    name: batch-secret
-              volumeMounts:
-                - name: firebase-credentials
-                  mountPath: /var/secrets/firebase
-                  readOnly: true
-              resources:
-                requests:
-                  cpu: 200m
-                  memory: 512Mi
-                limits:
-                  memory: 1Gi
-          volumes:
-            - name: firebase-credentials
-              secret:
-                secretName: firebase-credentials
----
-apiVersion: batch/v1
-kind: CronJob
-metadata:
   name: lyric-word-candidate-backfill
 spec:
   # 수동 백필 전용. 스케줄은 절대 오지 않는 날짜로 두고 suspend 한다

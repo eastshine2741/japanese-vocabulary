@@ -143,7 +143,6 @@ export interface RecommendedSongItem {
   title: string;
   artist: string;
   artworkUrl: string | null;
-  weekStartDate: string;
 }
 
 /** 홈 콜드스타트 부트스트랩 응답 — 방금 담은 곡의 남은 due 카드까지 한 번에 담겨 온다. */

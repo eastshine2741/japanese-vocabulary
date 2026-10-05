@@ -15,17 +15,16 @@ dependencies {
 
     // Domains the cron tasks actually load. 곡 분석 파이프라인은 worker 로 갔다.
     implementation(project(":domains:song"))
-    implementation(project(":domains:recommendation"))
     implementation(project(":domains:studystats"))
     implementation(project(":domains:notification"))
     implementation(project(":domains:user"))
-    implementation(project(":integrations:apple-music-rss"))
-    implementation(project(":integrations:song-search"))
 
     // 상주 서버가 아니라 한 번 실행하고 끝나는 컨테이너라 web/actuator 는 싣지 않는다.
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-data-redis")
     implementation("org.springframework.boot:spring-boot-starter-batch")
+    // ObjectMapper 빈(UserSettingsService 등)은 JacksonAutoConfiguration 이 만들고, 그 조건 클래스가 spring-web 에 있다.
+    implementation("org.springframework.boot:spring-boot-starter-json")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
 
