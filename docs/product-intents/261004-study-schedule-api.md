@@ -1,7 +1,7 @@
 # 오늘의 복습 스케줄 (261004) — 프론트가 필요로 하는 API
 
-Pencil 프레임 `RQaUQ`(H6 오늘의 복습 스케줄) · `RUvac`(H6a 선정 기준 시트) ·
-`lTxfw`(H5-B7 홈 헤더) 를 앱에 반영했다. 화면 데이터는 전부 `GET /api/study-schedule`
+Pencil 프레임 `RQaUQ`(H6 오늘의 복습 스케줄) · `lTxfw`(H5-B7 홈 헤더) 를 앱에 반영했다.
+선정 기준 설명은 시트가 아니라 H6 맨 아래 가이드 카드로 들어간다. 화면 데이터는 전부 `GET /api/study-schedule`
 하나에서 온다 (`StudyScheduleController` → `domains:word` 의 `StudyScheduleService`).
 앱 클라이언트는 `app-rn/src/api/studyScheduleApi.ts`, 응답 타입은
 `app-rn/src/types/studySchedule.ts` 와 1:1 이다. 소요 시간(`약 N분`)만 앱이 장당 25초로 계산한다.

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../theme/theme';
 import { Typography } from '../../theme/typography';
@@ -11,7 +11,6 @@ interface Props {
   newToday: number;
   studiedCards: number;
   previewWords: SchedulePreviewWord[];
-  onPressRule: () => void;
 }
 
 /** 오늘 목록 요약 — 몇 장인지, 어떻게 골랐는지. */
@@ -20,10 +19,10 @@ export const ScheduleSummary = React.memo(function ScheduleSummary({
   newToday,
   studiedCards,
   previewWords,
-  onPressRule,
 }: Props) {
   const restCount = Math.max(0, dueToday - previewWords.length);
   const pickLine = selectionLine(dueToday, newToday, studiedCards);
+  const previewLine = previewWords.map(word => word.japanese).join(' · ');
 
   return (
     <View style={styles.hero}>
@@ -38,32 +37,22 @@ export const ScheduleSummary = React.memo(function ScheduleSummary({
         </View>
       </View>
 
-      {pickLine != null && (
-        <Pressable style={styles.pickRow} onPress={onPressRule} hitSlop={6}>
-          <Text style={styles.pickLine}>{pickLine}</Text>
-          <View style={styles.infoBtn}>
-            <Ionicons name="information-circle-outline" size={16} color={Colors.textMuted} />
-          </View>
-        </Pressable>
-      )}
-
-      {previewWords.length > 0 && (
-        <View style={styles.wordPreview}>
-          {previewWords.map(word => (
-            <View key={word.wordId} style={styles.chip}>
-              <Text style={styles.chipText}>{word.japanese}</Text>
-            </View>
-          ))}
-          {restCount > 0 && <Text style={styles.more}>외 {restCount}개</Text>}
-        </View>
-      )}
+      <View style={styles.sub}>
+        {pickLine != null && <Text style={styles.pickLine}>{pickLine}</Text>}
+        {previewWords.length > 0 && (
+          <Text style={styles.previewLine} numberOfLines={1}>
+            {previewLine}
+            {restCount > 0 ? ` 외 ${restCount}개` : ''}
+          </Text>
+        )}
+      </View>
     </View>
   );
 });
 
 const styles = StyleSheet.create({
   hero: {
-    gap: 12,
+    gap: 10,
   },
   numRow: {
     flexDirection: 'row',
@@ -102,42 +91,17 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.textSecondary,
   },
-  pickRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
+  sub: {
+    gap: 3,
   },
   pickLine: {
     ...Typography.bodyMedium,
-    flexShrink: 1,
     fontSize: 13,
     color: Colors.textSecondary,
   },
-  infoBtn: {
-    width: 24,
-    height: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  wordPreview: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  chip: {
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 999,
-    backgroundColor: Colors.surfaceSubtle,
-  },
-  chipText: {
-    ...Typography.bodySemiBold,
-    fontSize: 13,
-    color: Colors.textPrimary,
-  },
-  more: {
+  previewLine: {
     ...Typography.bodyMedium,
-    fontSize: 12,
+    fontSize: 13,
     color: Colors.textMuted,
   },
 });
