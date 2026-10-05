@@ -26,6 +26,7 @@ export {
 export {
   sourceFromDeck,
   sourceFromDeckDetail,
+  sourceFromRecent,
   sourceFromRecommendation,
 } from './studySource';
 export type {

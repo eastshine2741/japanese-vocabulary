@@ -37,7 +37,7 @@ vi.mock('../../api/flashcardApi', () => ({
 }));
 vi.mock('../../api/deckApi', () => ({ deckApi: { getDecks: vi.fn().mockResolvedValue({ songDecks: [] }) } }));
 vi.mock('../../api/songApi', () => ({
-  songApi: { getRecommendations: vi.fn(), getWords: vi.fn(), studyBootstrap: vi.fn() },
+  songApi: { getRecommendations: vi.fn(), getRecent: vi.fn(), getWords: vi.fn(), studyBootstrap: vi.fn() },
 }));
 vi.mock('../../api/studyStatsApi', () => ({ studyStatsApi: { getHome: vi.fn() } }));
 vi.mock('../../api/wordApi', () => ({ wordApi: { getById: vi.fn() } }));
@@ -424,6 +424,7 @@ async function mountHome() {
 }
 beforeEach(() => {
   vi.mocked(studyStatsApi.getHome).mockResolvedValue({ currentStreak: 0, freezeCount: 0, freezeMax: 0, weekDots: [], studiedToday: false, hasStudiedBefore: true });
+  vi.mocked(songApi.getRecent).mockResolvedValue([]);
 });
 
 it('shows a preview card for the most important eligible word of the recommended song when nothing is due', async () => {
@@ -507,6 +508,30 @@ it('auto-selects the first recommendation deterministically for a brand-new user
   expect(stack.deckStripItems.map(s => s.songId)).toEqual([9, 99]);
   expect(stack.selectedSource?.songId).toBe(9);
   expect(stack.recommendedSource?.songId).toBe(9);
+});
+
+it('shows recently opened songs instead of recommendations when no song is saved yet', async () => {
+  vi.mocked(songApi.getRecommendations).mockResolvedValue([recommendation]);
+  vi.mocked(songApi.getRecent).mockResolvedValue([
+    { id: 50, title: 'Recent', artist: 'R', artworkUrl: null },
+    { id: 51, title: 'Older', artist: 'R', artworkUrl: null },
+  ]);
+  vi.mocked(songApi.getWords).mockResolvedValue(wordsInSong([wordItem('高い', 99, 0)]));
+  await mountHome();
+  expect(songApi.getWords).toHaveBeenCalledWith(50);
+  expect(stack.deckStripItems.map(s => s.songId)).toEqual([50, 51]);
+  expect(stack.selectedSource?.songId).toBe(50);
+  expect(stack.recommendedSource?.songId).toBe(50);
+  expect(stack.currentCard?.japanese).toBe('高い');
+});
+
+it('falls back to recommendations when loading recent songs fails', async () => {
+  vi.mocked(songApi.getRecommendations).mockResolvedValue([recommendation]);
+  vi.mocked(songApi.getRecent).mockRejectedValue(new Error('redis down'));
+  vi.mocked(songApi.getWords).mockResolvedValue(wordsInSong([wordItem('高い', 99, 0)]));
+  await mountHome();
+  expect(stack.status).not.toBe('error');
+  expect(stack.selectedSource?.songId).toBe(9);
 });
 
 it('recomputes the next due deck from a fresh deck list whenever a deck completes', async () => {

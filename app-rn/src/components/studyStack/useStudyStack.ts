@@ -10,7 +10,7 @@ import { useStreakStore } from '../../stores/streakStore';
 import { useStudyStatsStore } from '../../stores/studyStatsStore';
 import { SongDeckSummary } from '../../types/deck';
 import { WordInSongItemDto, WordsInSongDto } from '../../types/song';
-import { sourceFromDeck, sourceFromRecommendation } from './studySource';
+import { sourceFromDeck, sourceFromRecent, sourceFromRecommendation } from './studySource';
 import {
   accumulateMemoryDiff,
   EMPTY_MEMORY_DIFF,
@@ -404,7 +404,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
   }, []);
 
   /**
-   * due 덱이 하나도 없을 때 추천곡에서 lead 후보를 찾아 미리보기 카드로 띄운다.
+   * due 덱이 하나도 없을 때 최근 곡·추천곡에서 lead 후보를 찾아 미리보기 카드로 띄운다.
    * 성공(진짜 카드를 세팅했든, 후보가 없어 폴백이 필요하다고 판단했든)하면 true.
    */
   const tryShowPreviewCard = useCallback(async (source: StudySource, version: number): Promise<boolean> => {
@@ -447,10 +447,12 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     setStatus('loading');
     setLoadError(null);
     try {
-      const [deckRes, homeStats, recommendations, stats] = await Promise.all([
+      const [deckRes, homeStats, recommendations, recentSongs, stats] = await Promise.all([
         deckApi.getDecks(),
         studyStatsApi.getHome(),
         songApi.getRecommendations(),
+        // 최근 곡은 추천곡을 대신할 뿐이라, 실패해도 홈을 깨지 않고 추천곡으로 넘어간다.
+        songApi.getRecent().catch(() => []),
         flashcardApi.getStats(),
       ]);
       if (version !== requestVersion.current) return;
@@ -477,11 +479,14 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
         return;
       }
 
-      // 곡을 하나도 담지 않은 신규유저 — 덱 스트립에 추천곡을 대신 보여준다.
-      setDeckStripItems(recommendedItems);
-      setSelectedSource(recommended);
+      // 곡을 하나도 담지 않은 유저 — 최근 연 곡이 있으면 그 곡들을, 없으면 추천곡을 덱 스트립에 보여준다.
+      const fallbackItems = recentSongs.length > 0 ? recentSongs.map(sourceFromRecent) : recommendedItems;
+      const fallback = fallbackItems[0] ?? null;
+      setRecommendedSource(fallback);
+      setDeckStripItems(fallbackItems);
+      setSelectedSource(fallback);
       setNextDueSource(null);
-      const showedPreview = recommended != null && await tryShowPreviewCard(recommended, version);
+      const showedPreview = fallback != null && await tryShowPreviewCard(fallback, version);
       if (version !== requestVersion.current) return;
       if (!showedPreview) {
         showCompletion(null, []);
