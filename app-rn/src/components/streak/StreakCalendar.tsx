@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   LayoutChangeEvent,
   NativeScrollEvent,
@@ -16,6 +16,7 @@ import { StreakPalette } from './palette';
 import { CalendarCell, CalendarMonth, StreakMode, formatDayLabel } from './streakCalendar';
 
 const WEEKDAYS = ['월', '화', '수', '목', '금', '토', '일'];
+const MAINTAIN_POSITION = { minIndexForVisible: 0 };
 const CELL_HEIGHT = 46;
 const ROW_GAP = 2;
 const CHIP = 36;
@@ -25,13 +26,19 @@ const SIDE_PADDING = 20;
 interface Props {
   months: CalendarMonth[];
   mode: StreakMode;
+  /** 더 이전 달을 서버에서 받을 수 있는지. */
+  hasOlder: boolean;
+  onLoadOlder: () => void;
 }
+
+/** 첫 달에서 이만큼 남았을 때 이전 페이지를 미리 받는다. */
+const PREFETCH_PAGES = 1;
 
 /**
  * 학습 달력 — 고정 헤더(달 이동 + 범례 + 요일) 아래에 달 단위로 가로 페이징되는 격자.
  * 칩 색은 그날 복습 카드 수, 셀 배경 띠는 현재 연속 구간이다.
  */
-export const StreakCalendar = React.memo(function StreakCalendar({ months, mode }: Props) {
+export const StreakCalendar = React.memo(function StreakCalendar({ months, mode, hasOlder, onLoadOlder }: Props) {
   const scrollRef = useRef<ScrollView>(null);
   const [pageWidth, setPageWidth] = useState(0);
   const [page, setPage] = useState(Math.max(months.length - 1, 0));
@@ -45,17 +52,34 @@ export const StreakCalendar = React.memo(function StreakCalendar({ months, mode 
     setPageWidth(e.nativeEvent.layout.width);
   }, []);
 
-  // 처음에는 이번 달(마지막 페이지)을 보여준다. 페이지 폭이 반영된 콘텐츠가 깔린 뒤에 옮겨야 한다 —
-  // 그 전의 scrollTo 는 폭 0 콘텐츠에 막혀 첫 달에 머문다.
-  const positionedRef = useRef(false);
+  // 처음엔 이번 달(마지막 페이지), 앞에 달이 붙은 뒤엔 보던 달로 옮긴다. 페이지 폭이 반영된 콘텐츠가
+  // 깔린 뒤에 옮겨야 한다 — 그 전의 scrollTo 는 짧은 콘텐츠에 막혀 엉뚱한 달에 머문다.
+  const targetPageRef = useRef<number | null>(page);
   const handleContentSizeChange = useCallback(
     (width: number) => {
-      if (positionedRef.current || pageWidth <= 0 || width < pageWidth * (page + 1)) return;
-      positionedRef.current = true;
-      scrollRef.current?.scrollTo({ x: pageWidth * page, animated: false });
+      const target = targetPageRef.current;
+      if (target == null || pageWidth <= 0 || width < pageWidth * (target + 1)) return;
+      targetPageRef.current = null;
+      scrollRef.current?.scrollTo({ x: pageWidth * target, animated: false });
     },
-    [pageWidth, page],
+    [pageWidth],
   );
+
+  // 앞에 과거 달이 붙으면 같은 달을 계속 보도록 페이지 번호를 그만큼 민다.
+  const firstKeyRef = useRef(months[0]?.key);
+  useLayoutEffect(() => {
+    const prepended = months.findIndex((m) => m.key === firstKeyRef.current);
+    firstKeyRef.current = months[0]?.key;
+    if (prepended <= 0) return;
+    setPage((p) => {
+      targetPageRef.current = p + prepended;
+      return p + prepended;
+    });
+  }, [months]);
+
+  useEffect(() => {
+    if (hasOlder && page <= PREFETCH_PAGES) onLoadOlder();
+  }, [hasOlder, page, onLoadOlder]);
 
   const handleMomentumEnd = useCallback(
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -122,6 +146,7 @@ export const StreakCalendar = React.memo(function StreakCalendar({ months, mode 
         onLayout={handleLayout}
         onMomentumScrollEnd={handleMomentumEnd}
         onContentSizeChange={handleContentSizeChange}
+        maintainVisibleContentPosition={MAINTAIN_POSITION}
         style={[styles.pager, { height: gridHeight }]}
       >
         {pageWidth > 0 && months.map((month) => (
@@ -310,7 +335,7 @@ const styles = StyleSheet.create({
   },
   monthLabel: {
     ...Typography.headingBold,
-    width: 52,
+    minWidth: 52,
     fontSize: 15,
     textAlign: 'center',
     color: Colors.textPrimary,

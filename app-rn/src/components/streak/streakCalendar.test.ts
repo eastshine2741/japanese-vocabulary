@@ -59,13 +59,14 @@ describe('streakMode', () => {
 });
 
 describe('buildStreakCalendar', () => {
-  it('지난 달과 이번 달 두 장을 월요일 시작으로 만든다', () => {
+  it('받은 첫 날의 달부터 이번 달까지 월요일 시작으로 만든다', () => {
     const months = buildStreakCalendar(days('2026-10-04', 112));
-    expect(months.map((m) => m.key)).toEqual(['2026-09', '2026-10']);
-    expect(months[1].label).toBe('10월');
+    expect(months.map((m) => m.key)).toEqual(['2026-06', '2026-07', '2026-08', '2026-09', '2026-10']);
+    const october = months[months.length - 1];
+    expect(october.label).toBe('10월');
     // 2026-10-01 은 목요일 -> 앞에 월·화·수 세 칸이 비어 있다.
-    expect(months[1].weeks[0].slice(0, 3).map((c) => c.kind)).toEqual(['pad', 'pad', 'pad']);
-    expect(months[1].weeks[0][3].date).toBe('2026-10-01');
+    expect(october.weeks[0].slice(0, 3).map((c) => c.kind)).toEqual(['pad', 'pad', 'pad']);
+    expect(october.weeks[0][3].date).toBe('2026-10-01');
   });
 
   it('칸 상태를 미래/미학습/학습/프리즈로 가른다', () => {
@@ -159,5 +160,23 @@ describe('formatDayLabel', () => {
   it('월/일과 요일을 붙인다', () => {
     expect(formatDayLabel('2026-10-02')).toBe('10월 2일 (금)');
     expect(formatDayLabel('2026-10-04')).toBe('10월 4일 (일)');
+  });
+});
+
+describe('buildStreakCalendar 여러 달', () => {
+  it('올해가 아닌 달은 연도를 붙인다', () => {
+    const months = buildStreakCalendar(days('2026-01-10', 20));
+    expect(months.map((m) => m.label)).toEqual(['2025년 12월', '1월']);
+  });
+
+  it('강도는 그 달 안의 최대 복습 수가 기준이다', () => {
+    const months = buildStreakCalendar(
+      days('2026-10-04', 40, {
+        '2026-09-10': { reviewCount: 100 },
+        '2026-10-02': { reviewCount: 10 },
+      }),
+    );
+    expect(cellOf(months, '2026-09-10')!.level).toBe(4);
+    expect(cellOf(months, '2026-10-02')!.level).toBe(4);
   });
 });

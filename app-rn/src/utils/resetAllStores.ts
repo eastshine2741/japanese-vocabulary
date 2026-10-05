@@ -27,6 +27,8 @@ export function resetAllStores() {
     home: emptyStatsSlice(),
     profile: emptyStatsSlice(),
     heatmap: emptyStatsSlice(),
+    calendar: emptyStatsSlice(),
+    calendarLoadingMore: false,
   });
 
   useVocabularyStore.setState({

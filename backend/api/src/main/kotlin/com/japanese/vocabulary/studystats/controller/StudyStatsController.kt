@@ -8,12 +8,15 @@ import com.japanese.vocabulary.studystats.dto.WeekDotDto
 import com.japanese.vocabulary.studystats.dto.DailyDotDto
 import com.japanese.vocabulary.studystats.dto.DailyStudySummaryDto
 import com.japanese.vocabulary.studystats.dto.DotStatusDto
+import com.japanese.vocabulary.studystats.dto.StudyCalendarResponse
 import com.japanese.vocabulary.studystats.service.StudyStatsService
 import com.japanese.vocabulary.user.service.UserSettingsService
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import java.time.YearMonth
 
 @RestController
 @RequestMapping("/api/study-stats")
@@ -51,6 +54,19 @@ class StudyStatsController(
     fun getHeatmap(): HeatmapResponse {
         val userId = currentUserId()
         return HeatmapResponse(days = studyStatsService.heatmap(userId).map { it.toHeatmapDay() })
+    }
+
+    /** 연속 학습 달력. before(yyyy-MM, 그 달 제외) 를 커서로 과거로 넘긴다. /heatmap 은 구클라·마이페이지용으로 둔다. */
+    @GetMapping("/calendar")
+    fun getCalendar(
+        @RequestParam(required = false) before: YearMonth?,
+        @RequestParam(defaultValue = "${StudyStatsService.CALENDAR_DEFAULT_MONTHS}") months: Int,
+    ): StudyCalendarResponse {
+        val page = studyStatsService.calendarPage(currentUserId(), before, months)
+        return StudyCalendarResponse(
+            days = page.days.map { it.toHeatmapDay() },
+            nextBefore = page.nextBefore?.toString(),
+        )
     }
 
     private fun currentUserId(): Long =

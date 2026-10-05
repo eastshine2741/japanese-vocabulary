@@ -27,26 +27,32 @@ Pencil `japanese-vocabulary.pen` 의 `TsAfi` / `K3EjF6` / `M1JTh` 프레임과
 
 ## 서버 지원
 
-**이번 작업에 필요한 서버 변경은 없다. mocking 한 데이터도 없다.**
-화면 전체가 기존 엔드포인트 3개로 그려진다.
-
 | 엔드포인트 | 쓰는 값 |
 | --- | --- |
 | `GET /api/study-stats/profile` | `currentStreak`, `longestStreak`, `totalStudyDays`, `freezeCount`, `freezeMax` |
 | `GET /api/study-stats/home` | `studiedToday` |
-| `GET /api/study-stats/heatmap` | 최근 112일 `[{date, reviewCount, freezeUsed}]` |
+| `GET /api/study-stats/calendar?before=yyyy-MM&months=3` | `days[{date, reviewCount, freezeUsed}]`, `nextBefore` |
 
-달력 칸 상태 · 강도 레벨 · 연속 구간 띠 · ST1/ST2/ST3 판정은 전부 heatmap 응답에서
-클라이언트가 만든다 (`app-rn/src/components/streak/streakCalendar.ts`).
-히트맵이 오늘까지 112일을 조밀하게 내려주므로 "오늘"도 응답의 마지막 날로 잡는다 —
-클라이언트가 KST 04:00 경계를 다시 계산하지 않는다.
+달력은 첫 기록이 있는 달까지 거슬러 넘길 수 있다. `calendar` 는 달 단위 커서 페이지다.
+
+- `before` 없음 → 이번 달 포함 직전 `months`(기본 3, 최대 12) 개월. `before` 가 있으면 그 달은 빼고 그 앞 개월.
+- `days` 는 첫 달 1일부터 (끝 달 말일, 오늘) 중 이른 날까지 빈 날 없이 채운다. 첫 페이지의 마지막 날이 오늘(KST 04:00 경계)이다.
+- `nextBefore` 는 이 페이지보다 이전 기록이 있을 때만 페이지 첫 달(`yyyy-MM`)을 주고, 없으면 null.
+
+앱은 첫 달에서 한 장 남으면 다음 페이지를 미리 받아 앞에 붙이고, 보던 달을 유지한다.
+화면을 다시 열어 갱신할 때는 첫 페이지만 다시 받고 이미 넘겨 본 과거 달은 남긴다.
+칸 강도는 그 달의 최대 복습 수 기준이라 과거 달을 더 받아도 색이 바뀌지 않는다. 올해가 아닌 달은 `2025년 12월` 로 표시한다.
+
+`GET /api/study-stats/heatmap`(최근 112일 고정)은 그대로 둔다. 2개월 달력을 그리는 구버전 앱과
+마이페이지 16주 잔디가 쓴다.
+
+달력 칸 상태 · 강도 레벨 · 연속 구간 띠 · ST1/ST2/ST3 판정은 클라이언트가 만든다
+(`app-rn/src/components/streak/streakCalendar.ts`).
 
 ### 나중에 필요해질 수 있는 것
 
-- **달력을 2개월보다 더 과거로 넘기기**: `heatmap` 은 112일 고정 창이라 기간을 지정할 수 없다.
-  `from`/`to` (또는 `months`) 파라미터가 생기면 페이지를 늘릴 수 있다. 지금 디자인은 2개월까지다.
-- **요청 수**: 화면 진입마다 profile/home/heatmap 3회를 친다. 기존 store 캐시를 그대로 타므로
-  홈/마이페이지를 거쳤다면 추가 호출이 없다. 묶은 엔드포인트는 지금은 필요 없다.
+- **요청 수**: 화면 진입마다 profile/home/calendar 3회를 친다. 기존 store 캐시를 그대로 타므로
+  홈/마이페이지를 거쳤다면 profile/home 은 추가 호출이 없다.
 - **프리즈 지급 주기(7일)**: context 노트의 "7칸 게이지"를 넣게 되면 `FREEZE_MILESTONE_INTERVAL`
   이 클라이언트 하드코딩이 된다. 그때는 `profile` 에 주기를 실어주는 편이 낫다.
 
@@ -67,7 +73,7 @@ Pencil `japanese-vocabulary.pen` 의 `TsAfi` / `K3EjF6` / `M1JTh` 프레임과
 
 ## 코드
 
-- `app-rn/src/screens/StreakScreen.tsx` — 화면 조립, 세 store slice 로딩
+- `app-rn/src/screens/StreakScreen.tsx` — 화면 조립, 세 store slice 로딩 (`calendar` 는 페이지를 이어 붙인다)
 - `app-rn/src/components/streak/streakCalendar.ts` — 달력 격자 · 띠 · 상태 판정 (유닛 테스트 있음)
 - `app-rn/src/components/streak/StreakHero.tsx` / `StreakStatsRow.tsx` / `StreakCalendar.tsx`
 - 라우트: `RootStackParamList.Streak`, 진입은 `HomeTab` 의 `onPressStreak`

@@ -1,8 +1,5 @@
 import { HeatmapDay } from '../../types/studyStats';
 
-/** 달력에 그릴 월 수. 히트맵이 112일을 주므로 이번 달 + 지난 달은 항상 채워진다. */
-export const MONTH_PAGE_COUNT = 2;
-
 export type DayKind =
   /** 달 시작/끝을 메우는 빈 칸. */
   | 'pad'
@@ -19,7 +16,7 @@ export interface CalendarCell {
   date: string | null;
   dayNumber: number;
   kind: DayKind;
-  /** studied 일 때만 1~4. 보이는 기간의 최대 복습 수 대비 강도. */
+  /** studied 일 때만 1~4. 그 달의 최대 복습 수 대비 강도 — 과거 달을 더 받아도 색이 바뀌지 않는다. */
   level: HeatLevel;
   /** 그날 복습한 카드 수. */
   reviewCount: number;
@@ -33,7 +30,7 @@ export interface CalendarCell {
 
 export interface CalendarMonth {
   key: string;
-  /** '10월' */
+  /** '10월', 올해가 아니면 '2025년 10월' */
   label: string;
   weeks: CalendarCell[][];
 }
@@ -125,29 +122,28 @@ const padCell: CalendarCell = {
   isToday: false,
 };
 
-/** 오래된 달 -> 이번 달 순. days 가 비면 빈 배열. */
-export function buildStreakCalendar(days: HeatmapDay[], monthCount = MONTH_PAGE_COUNT): CalendarMonth[] {
+/** days 의 첫 날이 든 달부터 이번 달까지, 오래된 달 -> 이번 달 순. days 가 비면 빈 배열. */
+export function buildStreakCalendar(days: HeatmapDay[]): CalendarMonth[] {
   const todayIso = todayOf(days);
   if (!todayIso) return [];
 
   const byDate = new Map(days.map((d) => [d.date, d]));
-  const max = days.reduce((acc, d) => (d.reviewCount > acc ? d.reviewCount : acc), 0);
   const run = currentRunDates(byDate, todayIso);
   const todayMs = parse(todayIso);
   const today = new Date(todayMs);
+  const first = new Date(parse(days[0].date));
+  const monthCount =
+    (today.getUTCFullYear() - first.getUTCFullYear()) * 12 + today.getUTCMonth() - first.getUTCMonth() + 1;
 
   const months: CalendarMonth[] = [];
   for (let back = monthCount - 1; back >= 0; back--) {
-    const year = today.getUTCFullYear();
-    const month = today.getUTCMonth() - back;
-    months.push(buildMonth(year, month, { byDate, max, run, todayMs }));
+    months.push(buildMonth(today.getUTCFullYear(), today.getUTCMonth() - back, { byDate, run, todayMs }));
   }
   return months;
 }
 
 interface MonthContext {
   byDate: Map<string, HeatmapDay>;
-  max: number;
   run: Set<string>;
   todayMs: number;
 }
@@ -159,10 +155,16 @@ function buildMonth(year: number, month: number, ctx: MonthContext): CalendarMon
   const m = first.getUTCMonth();
   const dayCount = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
 
+  let max = 0;
+  for (let day = 1; day <= dayCount; day++) {
+    const count = ctx.byDate.get(format(Date.UTC(y, m, day)))?.reviewCount ?? 0;
+    if (count > max) max = count;
+  }
+
   const cells: CalendarCell[] = [];
   for (let i = mondayIndex(firstMs); i > 0; i--) cells.push(padCell);
   for (let day = 1; day <= dayCount; day++) {
-    cells.push(buildCell(Date.UTC(y, m, day), day, ctx));
+    cells.push(buildCell(Date.UTC(y, m, day), day, max, ctx));
   }
   while (cells.length % 7 !== 0) cells.push(padCell);
 
@@ -173,12 +175,12 @@ function buildMonth(year: number, month: number, ctx: MonthContext): CalendarMon
 
   return {
     key: `${y}-${String(m + 1).padStart(2, '0')}`,
-    label: `${m + 1}월`,
+    label: y === new Date(ctx.todayMs).getUTCFullYear() ? `${m + 1}월` : `${y}년 ${m + 1}월`,
     weeks,
   };
 }
 
-function buildCell(ms: number, dayNumber: number, { byDate, max, run, todayMs }: MonthContext): CalendarCell {
+function buildCell(ms: number, dayNumber: number, max: number, { byDate, run, todayMs }: MonthContext): CalendarCell {
   const date = format(ms);
   const row = byDate.get(date);
   let kind: DayKind;

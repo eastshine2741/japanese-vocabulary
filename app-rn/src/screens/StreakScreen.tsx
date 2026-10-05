@@ -18,19 +18,20 @@ import { Colors } from '../theme/theme';
 type Props = NativeStackScreenProps<RootStackParamList, 'Streak'>;
 
 /**
- * 홈 헤더의 연속 학습 칩에서 들어오는 상세. 기존 study-stats API 세 개(profile/home/heatmap)만
- * 쓰고, 달력 칸 상태·강도·연속 구간 띠는 heatmap 에서 클라이언트가 만든다.
+ * 홈 헤더의 연속 학습 칩에서 들어오는 상세. study-stats profile/home/calendar 를 쓰고,
+ * 달력 칸 상태·강도·연속 구간 띠는 calendar 의 날짜별 기록에서 클라이언트가 만든다.
  */
 export default function StreakScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
-  const { profile, home, heatmap, loadProfile, loadHome, loadHeatmap } = useStudyStatsStore(
+  const { profile, home, calendar, loadProfile, loadHome, loadCalendar, loadOlderCalendar } = useStudyStatsStore(
     useShallow((s) => ({
       profile: s.profile,
       home: s.home,
-      heatmap: s.heatmap,
+      calendar: s.calendar,
       loadProfile: s.loadProfile,
       loadHome: s.loadHome,
-      loadHeatmap: s.loadHeatmap,
+      loadCalendar: s.loadCalendar,
+      loadOlderCalendar: s.loadOlderCalendar,
     })),
   );
 
@@ -38,15 +39,15 @@ export default function StreakScreen({ navigation }: Props) {
     useCallback(() => {
       if (profile.status === 'idle' || profile.staleAt > 0) loadProfile(profile.staleAt > 0);
       if (home.status === 'idle' || home.staleAt > 0) loadHome(home.staleAt > 0);
-      if (heatmap.status === 'idle' || heatmap.staleAt > 0) loadHeatmap(heatmap.staleAt > 0);
+      if (calendar.status === 'idle' || calendar.staleAt > 0) loadCalendar(calendar.staleAt > 0);
     }, [
       profile.status, profile.staleAt, loadProfile,
       home.status, home.staleAt, loadHome,
-      heatmap.status, heatmap.staleAt, loadHeatmap,
+      calendar.status, calendar.staleAt, loadCalendar,
     ]),
   );
 
-  const days = heatmap.data?.days;
+  const days = calendar.data?.days;
   const months = useMemo(() => buildStreakCalendar(days ?? []), [days]);
   const mode = useMemo(() => streakMode(home.data?.studiedToday ?? false, days ?? []), [home.data, days]);
 
@@ -88,7 +89,7 @@ export default function StreakScreen({ navigation }: Props) {
     }, [handleCloseFreeze]),
   );
 
-  const ready = profile.data != null && heatmap.data != null;
+  const ready = profile.data != null && calendar.data != null;
 
   return (
     <SafeAreaView style={styles.safeArea} edges={ready ? [] : ['top']}>
@@ -118,7 +119,12 @@ export default function StreakScreen({ navigation }: Props) {
                 onPressFreeze={handleOpenFreeze}
               />
 
-              <StreakCalendar months={months} mode={mode} />
+              <StreakCalendar
+                months={months}
+                mode={mode}
+                hasOlder={calendar.data!.nextBefore != null}
+                onLoadOlder={loadOlderCalendar}
+              />
             </View>
           </ScrollView>
 

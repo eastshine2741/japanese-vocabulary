@@ -125,7 +125,7 @@ TypeSafe Jev (`TYPESAFE_API_KEY`), the other LLM stages on Gemini. Details live 
 `batch`의 `StreakReminderTask`가 20:00/23:00 KST CronJob 으로 `streak_reminder` 알림을 보낸다 (단어 회상 알림은 폐기). 23:00은 카운트다운용 `expiresAt`을 싣고 Android data-only.
 freeze 행은 연속을 잇기만 하고 streak/총 학습일 카운트에는 들어가지 않는다.
 스펙은 `docs/product-intents/260918-streak-commitment-api.md`.
-홈 헤더 연속 학습 칩 -> `Streak` 화면(히어로·통계·학습 달력)은 기존 study-stats API 3개로만 그린다:
+홈 헤더 연속 학습 칩 -> `Streak` 화면(히어로·통계·학습 달력). 달력은 `GET /api/study-stats/calendar`(달 단위 커서 페이지)로 첫 기록 달까지 넘긴다 (`/heatmap` 은 구클라·마이페이지용으로 유지):
 `docs/product-intents/261004-streak-detail-screen.md`.
 오늘 첫 rating 직후의 플로팅 배너는 폐기되고 전체 화면 축하로 바뀌었다:
 `docs/product-intents/261004-streak-celebration-screen.md`.

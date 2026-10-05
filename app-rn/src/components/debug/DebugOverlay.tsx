@@ -61,6 +61,7 @@ async function reloadStreak() {
     stats.loadHome(true),
     stats.loadProfile(true),
     stats.loadHeatmap(true),
+    stats.loadCalendar(true),
   ]);
 }
 

@@ -5,7 +5,7 @@ import {
   applyProfileOverride,
   getStreakDebugState,
 } from './debug/streakDebugOverride';
-import { HeatmapResponse, HomeStats, ProfileStats } from '../types/studyStats';
+import { HeatmapResponse, HomeStats, ProfileStats, StudyCalendarPage } from '../types/studyStats';
 
 async function fetchHome(): Promise<HomeStats> {
   const { data } = await client.get<HomeStats>('/api/study-stats/home');
@@ -28,5 +28,14 @@ export const studyStatsApi = {
   async getHeatmap(): Promise<HeatmapResponse> {
     const { data } = await client.get<HeatmapResponse>('/api/study-stats/heatmap');
     return applyHeatmapOverride(data);
+  },
+
+  /** before 없이 부르면 이번 달까지의 첫 페이지. 디버그 덮어쓰기는 오늘이 든 첫 페이지에만 건다. */
+  async getCalendar(before?: string): Promise<StudyCalendarPage> {
+    const { data } = await client.get<StudyCalendarPage>('/api/study-stats/calendar', {
+      params: before ? { before } : undefined,
+    });
+    if (before) return data;
+    return { ...data, days: applyHeatmapOverride({ days: data.days }).days };
   },
 };
