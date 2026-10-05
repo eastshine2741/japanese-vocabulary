@@ -232,8 +232,8 @@ export const reelsSongCandidate: ReelsSongCandidate = {
 export const reelsSongDetail: ReelsSongDetail = {
   song: reelsSongCandidate,
   lyricType: "SYNCED",
-  headline: "밤을 달리는 마음",
-  instagramHandle: "@kotonoha.music",
+  headline: "가사 한 줄에\n<b>일본어 단어 6개</b>",
+  instagramHandle: "@kotonoha.app",
   catchphrase: "가사에서 바로 배우는 일본어",
   fps: 30,
   minLineCount: 4,
