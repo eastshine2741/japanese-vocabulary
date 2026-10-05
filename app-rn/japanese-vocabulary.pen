@@ -113238,12 +113238,8 @@
             },
             "colors": [
               {
-                "color": "#111012C7",
-                "position": 0
-              },
-              {
                 "color": "#111012B3",
-                "position": 0.55
+                "position": 0
               },
               {
                 "color": "#11101200",
@@ -113252,13 +113248,13 @@
             ]
           },
           "width": 1080,
-          "height": 480
+          "height": 300
         },
         {
           "type": "rectangle",
           "id": "g0puE",
           "x": 0,
-          "y": 820,
+          "y": 620,
           "name": "Content Scrim",
           "fill": {
             "type": "gradient",
@@ -113274,25 +113270,25 @@
                 "position": 0
               },
               {
-                "color": "#11101294",
+                "color": "#11101266",
                 "position": 0.2
               },
               {
-                "color": "#111012C7",
-                "position": 0.42
+                "color": "#1110128C",
+                "position": 0.32
               },
               {
-                "color": "#111012DB",
-                "position": 0.6
+                "color": "#111012A6",
+                "position": 0.55
               },
               {
-                "color": "#111012E6",
+                "color": "#111012BF",
                 "position": 1
               }
             ]
           },
           "width": 1080,
-          "height": 1100
+          "height": 1300
         },
         {
           "type": "frame",
@@ -113367,15 +113363,6 @@
                           "id": "wv9dZ",
                           "name": "T 胸",
                           "fill": "$ink",
-                          "effect": {
-                            "type": "shadow",
-                            "shadowType": "outer",
-                            "color": "#111012",
-                            "offset": {
-                              "x": 2,
-                              "y": 2
-                            }
-                          },
                           "content": "胸",
                           "lineHeight": 1.16,
                           "fontFamily": "$fontJp",
@@ -113387,15 +113374,6 @@
                           "id": "vi1xu",
                           "name": "T に",
                           "fill": "$ink",
-                          "effect": {
-                            "type": "shadow",
-                            "shadowType": "outer",
-                            "color": "#111012",
-                            "offset": {
-                              "x": 2,
-                              "y": 2
-                            }
-                          },
                           "content": "に",
                           "lineHeight": 1.16,
                           "fontFamily": "$fontJp",
@@ -113407,15 +113385,6 @@
                           "id": "sMtFp",
                           "name": "T 残り",
                           "fill": "$verbGreen",
-                          "effect": {
-                            "type": "shadow",
-                            "shadowType": "outer",
-                            "color": "#111012",
-                            "offset": {
-                              "x": 2,
-                              "y": 2
-                            }
-                          },
                           "content": "残り",
                           "lineHeight": 1.16,
                           "fontFamily": "$fontJp",
@@ -113427,15 +113396,6 @@
                           "id": "kA4ZL",
                           "name": "T 離れ",
                           "fill": "$ink",
-                          "effect": {
-                            "type": "shadow",
-                            "shadowType": "outer",
-                            "color": "#111012",
-                            "offset": {
-                              "x": 2,
-                              "y": 2
-                            }
-                          },
                           "content": "離れ",
                           "lineHeight": 1.16,
                           "fontFamily": "$fontJp",
@@ -113447,15 +113407,6 @@
                           "id": "Cw4Sg",
                           "name": "T ない",
                           "fill": "$ink",
-                          "effect": {
-                            "type": "shadow",
-                            "shadowType": "outer",
-                            "color": "#111012",
-                            "offset": {
-                              "x": 2,
-                              "y": 2
-                            }
-                          },
                           "content": "ない",
                           "lineHeight": 1.16,
                           "fontFamily": "$fontJp",
@@ -113476,15 +113427,6 @@
                           "id": "Vkjm0",
                           "name": "T 苦い",
                           "fill": "$adjectiveOrange",
-                          "effect": {
-                            "type": "shadow",
-                            "shadowType": "outer",
-                            "color": "#111012",
-                            "offset": {
-                              "x": 2,
-                              "y": 2
-                            }
-                          },
                           "content": "苦い",
                           "lineHeight": 1.16,
                           "fontFamily": "$fontJp",
@@ -113496,15 +113438,6 @@
                           "id": "XcqPV",
                           "name": "T レモン",
                           "fill": "$ink",
-                          "effect": {
-                            "type": "shadow",
-                            "shadowType": "outer",
-                            "color": "#111012",
-                            "offset": {
-                              "x": 2,
-                              "y": 2
-                            }
-                          },
                           "content": "レモン",
                           "lineHeight": 1.16,
                           "fontFamily": "$fontJp",
@@ -113516,15 +113449,6 @@
                           "id": "F3AJk0",
                           "name": "T の",
                           "fill": "$ink",
-                          "effect": {
-                            "type": "shadow",
-                            "shadowType": "outer",
-                            "color": "#111012",
-                            "offset": {
-                              "x": 2,
-                              "y": 2
-                            }
-                          },
                           "content": "の",
                           "lineHeight": 1.16,
                           "fontFamily": "$fontJp",
@@ -113536,15 +113460,6 @@
                           "id": "zUJ0t",
                           "name": "T 匂い",
                           "fill": "#4D9DFF",
-                          "effect": {
-                            "type": "shadow",
-                            "shadowType": "outer",
-                            "color": "#111012",
-                            "offset": {
-                              "x": 2,
-                              "y": 2
-                            }
-                          },
                           "content": "匂い",
                           "lineHeight": 1.16,
                           "fontFamily": "$fontJp",
@@ -113869,6 +113784,10 @@
                   "id": "jkp5c",
                   "name": "Headline Line 1",
                   "fill": "$ink",
+                  "stroke": "#111012",
+                  "strokeWidth": 1.5,
+                  "strokeAlignment": "outer",
+                  "strokeLinejoin": "round",
                   "content": "가사 한 줄에",
                   "lineHeight": 1.15,
                   "fontFamily": "$fontKr",
