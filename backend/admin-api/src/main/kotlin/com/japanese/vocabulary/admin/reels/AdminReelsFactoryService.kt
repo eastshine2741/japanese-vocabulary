@@ -264,8 +264,8 @@ class AdminReelsFactoryService(
         const val FPS = 30
         /** 릴스 가사 구간 상한. 이 위로는 렌더 시간·메모리가 컨테이너 한도를 넘긴다. */
         const val MAX_LYRICS_SPAN_MS = 60_000L
-        /** PromoReel 단어 블록은 두 줄 레이아웃이다(Reel v2 디자인). */
-        const val MAX_VOCABULARY_PER_LINE = 2
+        /** PromoReel 단어 블록은 세 줄 레이아웃이다(Reel v2 1b 디자인). */
+        const val MAX_VOCABULARY_PER_LINE = 3
         /** admin-web reelEditor.ts 의 MV_SCALE_MIN/MAX, MV_OFFSET_X/Y_MAX, MV_CROP_MAX 와 같다. */
         val MV_SCALE_RANGE = 0.3..5.0
         const val MV_OFFSET_X_MAX = 2700.0

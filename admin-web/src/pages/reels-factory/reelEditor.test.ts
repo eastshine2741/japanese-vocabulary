@@ -65,7 +65,7 @@ function detailWith(lines: Array<Partial<ReelsLyricLine> & { index: number }>): 
     minLineCount: 4,
     maxLineCount: null,
     maxLyricsSpanMs: 60_000,
-    maxVocabularyPerLine: 2,
+    maxVocabularyPerLine: 3,
     lines: lines.map((line) => ({
       startTimeMs: null,
       originalText: `歌詞${line.index}`,

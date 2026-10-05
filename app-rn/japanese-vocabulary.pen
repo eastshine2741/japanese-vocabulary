@@ -113194,6 +113194,752 @@
       "width": 940,
       "height": 600,
       "content": "[방향 전환]\n\n가사 한 줄이 주인공이던 v2 를 뒤집는다. 주인공은 단어, 가사는 그 단어가\n어디서 나왔는지 보여주는 문맥이다. 앱 홈 플래시카드(component/homeWordFront\n· homeWordBack)의 화면 언어 — MV 배경 위 좌측 정렬 단어 — 를 가져오되,\n헤더와 상·하 스크림은 v2 원안(AOKzd)을 그대로 쓴다.\n\n[화면에 남은 것 / 뺀 것]\n\n남은 것 : MV + 원안 스크림 2겹, 원안 헤더(곡·아티스트 + 워터마크),\n  단어 · 독음 · 뜻, 가사 한 줄(일본어 + 한국어), 하단 프로필 유도\n뺀 것 : \"뜻 확인하기\" 버튼, rating 4버튼, 세션 진행 바, 카운터, chevron,\n  페이지 dots, 상태바, 탭바, 품사 라벨, JLPT 라벨\n  → 릴스는 탭이 안 되므로 누를 수 있어 보이는 요소를 두지 않는다.\n  품사·JLPT 는 학습 화면의 메타데이터지 홍보 영상이 전달할 정보가 아니다.\n\n[위계]\n\n단어 120 / 독음 42 / 뜻 72 / 가사 일본어 50 / 가사 한국어 38\n단어를 168 → 120 으로 낮췄다. 단어가 화면을 덮으면 MV 가 안 보이고,\nMV 가 안 보이면 \"이 노래\" 라는 맥락이 사라진다.\n가사는 크기와 밝기를 올려 뜻 바로 다음 무게로 둔다. 가사 안에서 해당 단어만\n$ink + bold, 나머지는 #FAFAF6B3 — 색을 쓰지 않고 밝기 차만으로 구분한다.\n\n[컷 구성 — 단어 1개 = 1컷]\n\n뜻은 숨기지 않는다. 퀴즈가 아니라 노출이 목적이다.\n캔버스의 두 프레임은 연속한 두 단어 예시다(苦い → 匂い).\n같은 가사 줄에서 뽑힌 단어라 가사 문장은 그대로 두고 하이라이트만 옮긴다.\n\n[타이밍 제안 — 30fps]\n\n단어 1개당 약 2.2s (66f). 전환은 단어 블록(단어·독음·뜻)만 위로 빠지고\n새 단어가 아래에서 올라온다 — 이 \"슉\" 하는 교체가 릴스의 리듬이다.\n배경 MV · 헤더 · 워터마크는 끊기지 않고 계속 재생/고정.\n가사는 줄이 바뀔 때만 교체되고, 한 줄에서 단어를 2개 뽑으면 같은 가사가\n두 컷 동안 유지되며 하이라이트만 이동한다.\n\n단어 9개 × 66f = 594f (19.8s) + 엔드카드 150f (5s) = 744f (24.8s)\n\n[데이터]\n\n줄 단위가 아니라 단어 단위로 읽는다. 단어마다 필요한 값:\n  japanese · reading · korean\n  + 그 단어가 나온 줄의 originalText / koreanLyrics / 단어의 char 범위\nlyricLines[].vocabulary 를 평탄화하고 각 항목에 lineIndex 를 달면 그대로 쓸 수 있다.\npartOfSpeech · jlpt 는 이 디자인에서 쓰지 않는다.\n\n[안전 영역]\n\n콘텐츠는 y 150 – 1500, x 72 – 920 안에만 둔다.\n하단 y 1560 이상 · 우측 x 930 이상(y 900–1560)은 인스타 UI 가 덮는다."
+    },
+    {
+      "type": "frame",
+      "id": "qjGmu",
+      "x": 8740,
+      "y": 16400,
+      "name": "Reel v2 · 1b Active (MV + 강조 단어 3개)",
+      "clip": true,
+      "width": 1080,
+      "height": 1920,
+      "fill": "$night",
+      "layout": "none",
+      "children": [
+        {
+          "type": "rectangle",
+          "id": "N6o05",
+          "x": 0,
+          "y": 370,
+          "name": "MV Frame",
+          "fill": {
+            "type": "image",
+            "enabled": true,
+            "url": "images/lemon-cover.jpg",
+            "mode": "cover"
+          },
+          "width": 1080,
+          "height": 1190
+        },
+        {
+          "type": "frame",
+          "id": "kVfFm",
+          "x": 74,
+          "y": 1576,
+          "name": "Profile Cue",
+          "gap": 12,
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "icon",
+              "id": "wrxrE",
+              "name": "Arrow Down",
+              "width": 26,
+              "height": 26,
+              "icon": "arrow-down",
+              "library": "lucide",
+              "fill": "#FAFAF6"
+            },
+            {
+              "type": "text",
+              "id": "YPT7K",
+              "name": "App Note Label",
+              "fill": "#FAFAF6",
+              "stroke": "#111012",
+              "strokeWidth": 1.5,
+              "strokeAlignment": "outer",
+              "strokeLinejoin": "round",
+              "content": "노래로 배우는 일본어 앱 '코토노하'에서 전체 단어를 확인하세요!",
+              "lineHeight": 1,
+              "fontFamily": "$fontKr",
+              "fontSize": 22,
+              "fontWeight": "500",
+              "letterSpacing": -0.3
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "oHjSE",
+          "x": 140,
+          "y": 1058,
+          "name": "Content",
+          "width": 760,
+          "layout": "vertical",
+          "gap": 56,
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "VvxwM",
+              "name": "Lyric",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 20,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "t4lrX",
+                  "name": "Japanese",
+                  "layout": "vertical",
+                  "gap": 14,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "GJE3V",
+                      "name": "Line 1",
+                      "gap": 6,
+                      "alignItems": "end",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "wv9dZ",
+                          "name": "T 胸",
+                          "fill": "$ink",
+                          "effect": {
+                            "type": "shadow",
+                            "shadowType": "outer",
+                            "color": "#111012",
+                            "offset": {
+                              "x": 2,
+                              "y": 2
+                            }
+                          },
+                          "content": "胸",
+                          "lineHeight": 1.16,
+                          "fontFamily": "$fontJp",
+                          "fontSize": 44,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "text",
+                          "id": "vi1xu",
+                          "name": "T に",
+                          "fill": "$ink",
+                          "effect": {
+                            "type": "shadow",
+                            "shadowType": "outer",
+                            "color": "#111012",
+                            "offset": {
+                              "x": 2,
+                              "y": 2
+                            }
+                          },
+                          "content": "に",
+                          "lineHeight": 1.16,
+                          "fontFamily": "$fontJp",
+                          "fontSize": 44,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "text",
+                          "id": "sMtFp",
+                          "name": "T 残り",
+                          "fill": "$verbGreen",
+                          "effect": {
+                            "type": "shadow",
+                            "shadowType": "outer",
+                            "color": "#111012",
+                            "offset": {
+                              "x": 2,
+                              "y": 2
+                            }
+                          },
+                          "content": "残り",
+                          "lineHeight": 1.16,
+                          "fontFamily": "$fontJp",
+                          "fontSize": 44,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "text",
+                          "id": "kA4ZL",
+                          "name": "T 離れ",
+                          "fill": "$ink",
+                          "effect": {
+                            "type": "shadow",
+                            "shadowType": "outer",
+                            "color": "#111012",
+                            "offset": {
+                              "x": 2,
+                              "y": 2
+                            }
+                          },
+                          "content": "離れ",
+                          "lineHeight": 1.16,
+                          "fontFamily": "$fontJp",
+                          "fontSize": 44,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "text",
+                          "id": "Cw4Sg",
+                          "name": "T ない",
+                          "fill": "$ink",
+                          "effect": {
+                            "type": "shadow",
+                            "shadowType": "outer",
+                            "color": "#111012",
+                            "offset": {
+                              "x": 2,
+                              "y": 2
+                            }
+                          },
+                          "content": "ない",
+                          "lineHeight": 1.16,
+                          "fontFamily": "$fontJp",
+                          "fontSize": 44,
+                          "fontWeight": "700"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "XKr2K",
+                      "name": "Line 2",
+                      "gap": 6,
+                      "alignItems": "end",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "Vkjm0",
+                          "name": "T 苦い",
+                          "fill": "$adjectiveOrange",
+                          "effect": {
+                            "type": "shadow",
+                            "shadowType": "outer",
+                            "color": "#111012",
+                            "offset": {
+                              "x": 2,
+                              "y": 2
+                            }
+                          },
+                          "content": "苦い",
+                          "lineHeight": 1.16,
+                          "fontFamily": "$fontJp",
+                          "fontSize": 44,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "text",
+                          "id": "XcqPV",
+                          "name": "T レモン",
+                          "fill": "$ink",
+                          "effect": {
+                            "type": "shadow",
+                            "shadowType": "outer",
+                            "color": "#111012",
+                            "offset": {
+                              "x": 2,
+                              "y": 2
+                            }
+                          },
+                          "content": "レモン",
+                          "lineHeight": 1.16,
+                          "fontFamily": "$fontJp",
+                          "fontSize": 44,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "text",
+                          "id": "F3AJk0",
+                          "name": "T の",
+                          "fill": "$ink",
+                          "effect": {
+                            "type": "shadow",
+                            "shadowType": "outer",
+                            "color": "#111012",
+                            "offset": {
+                              "x": 2,
+                              "y": 2
+                            }
+                          },
+                          "content": "の",
+                          "lineHeight": 1.16,
+                          "fontFamily": "$fontJp",
+                          "fontSize": 44,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "text",
+                          "id": "zUJ0t",
+                          "name": "T 匂い",
+                          "fill": "$nounBlue",
+                          "effect": {
+                            "type": "shadow",
+                            "shadowType": "outer",
+                            "color": "#111012",
+                            "offset": {
+                              "x": 2,
+                              "y": 2
+                            }
+                          },
+                          "content": "匂い",
+                          "lineHeight": 1.16,
+                          "fontFamily": "$fontJp",
+                          "fontSize": 44,
+                          "fontWeight": "700"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "lJ6DV",
+                  "name": "Korean Subtitle",
+                  "fill": "#FAFAF6",
+                  "stroke": "#111012",
+                  "strokeWidth": 2,
+                  "strokeAlignment": "outer",
+                  "strokeLinejoin": "round",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "가슴에 남아 떠나지 않는 씁쓸한 레몬 향기",
+                  "lineHeight": 1.3,
+                  "textAlign": "center",
+                  "fontFamily": "$fontKr",
+                  "fontSize": 28,
+                  "fontWeight": "500",
+                  "letterSpacing": -0.8
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "OZYHD",
+              "name": "Words",
+              "width": 620,
+              "layout": "vertical",
+              "gap": 30,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "rectangle",
+                  "id": "nCpOl",
+                  "name": "Section Rule",
+                  "fill": "#F4F1EA59",
+                  "width": "fill_container",
+                  "height": 2
+                },
+                {
+                  "type": "frame",
+                  "id": "pXNYO",
+                  "name": "Word List",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 26,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "SPa3f",
+                      "name": "Word 残る",
+                      "width": "fill_container",
+                      "gap": 24,
+                      "justifyContent": "space_between",
+                      "alignItems": "end",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "VGxWQ",
+                          "name": "Jp",
+                          "gap": 12,
+                          "alignItems": "end",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "w3Z2M",
+                              "name": "Word Japanese",
+                              "fill": "$verbGreen",
+                              "stroke": "#111012",
+                              "strokeWidth": 2.5,
+                              "strokeAlignment": "outer",
+                              "strokeLinejoin": "round",
+                              "content": "残る",
+                              "lineHeight": 1,
+                              "fontFamily": "$fontJp",
+                              "fontSize": 36,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "text",
+                              "id": "B01ue",
+                              "name": "Word Reading",
+                              "fill": "#FAFAF6A6",
+                              "stroke": "#111012",
+                              "strokeWidth": 1.5,
+                              "strokeAlignment": "outer",
+                              "strokeLinejoin": "round",
+                              "content": "노코루",
+                              "lineHeight": 1.5,
+                              "fontFamily": "$fontKr",
+                              "fontSize": 19,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "h7smT",
+                          "name": "Word Meaning",
+                          "fill": "#FAFAF6",
+                          "stroke": "#111012",
+                          "strokeWidth": 2,
+                          "strokeAlignment": "outer",
+                          "strokeLinejoin": "round",
+                          "content": "남다",
+                          "lineHeight": 1.3,
+                          "fontFamily": "$fontKr",
+                          "fontSize": 27,
+                          "fontWeight": "600",
+                          "letterSpacing": -0.6
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "xji0p",
+                      "name": "Word 苦い",
+                      "width": "fill_container",
+                      "gap": 24,
+                      "justifyContent": "space_between",
+                      "alignItems": "end",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "Q3ElB",
+                          "name": "Jp",
+                          "gap": 12,
+                          "alignItems": "end",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "kDFnS",
+                              "name": "Word Japanese",
+                              "fill": "$adjectiveOrange",
+                              "stroke": "#111012",
+                              "strokeWidth": 2.5,
+                              "strokeAlignment": "outer",
+                              "strokeLinejoin": "round",
+                              "content": "苦い",
+                              "lineHeight": 1,
+                              "fontFamily": "$fontJp",
+                              "fontSize": 36,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "text",
+                              "id": "oaSME",
+                              "name": "Word Reading",
+                              "fill": "#FAFAF6A6",
+                              "stroke": "#111012",
+                              "strokeWidth": 1.5,
+                              "strokeAlignment": "outer",
+                              "strokeLinejoin": "round",
+                              "content": "니가이",
+                              "lineHeight": 1.5,
+                              "fontFamily": "$fontKr",
+                              "fontSize": 19,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "S1qufs",
+                          "name": "Word Meaning",
+                          "fill": "#FAFAF6",
+                          "stroke": "#111012",
+                          "strokeWidth": 2,
+                          "strokeAlignment": "outer",
+                          "strokeLinejoin": "round",
+                          "content": "쓰다",
+                          "lineHeight": 1.3,
+                          "fontFamily": "$fontKr",
+                          "fontSize": 27,
+                          "fontWeight": "600",
+                          "letterSpacing": -0.6
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "oprJo",
+                      "name": "Word 匂い",
+                      "width": "fill_container",
+                      "gap": 24,
+                      "justifyContent": "space_between",
+                      "alignItems": "end",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "BWweq",
+                          "name": "Jp",
+                          "gap": 12,
+                          "alignItems": "end",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "kyEql",
+                              "name": "Word Japanese",
+                              "fill": "$nounBlue",
+                              "stroke": "#111012",
+                              "strokeWidth": 2.5,
+                              "strokeAlignment": "outer",
+                              "strokeLinejoin": "round",
+                              "content": "匂い",
+                              "lineHeight": 1,
+                              "fontFamily": "$fontJp",
+                              "fontSize": 36,
+                              "fontWeight": "700"
+                            },
+                            {
+                              "type": "text",
+                              "id": "c8cpEg",
+                              "name": "Word Reading",
+                              "fill": "#FAFAF6A6",
+                              "stroke": "#111012",
+                              "strokeWidth": 1.5,
+                              "strokeAlignment": "outer",
+                              "strokeLinejoin": "round",
+                              "content": "니오이",
+                              "lineHeight": 1.5,
+                              "fontFamily": "$fontKr",
+                              "fontSize": 19,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "ccR7U",
+                          "name": "Word Meaning",
+                          "fill": "#FAFAF6",
+                          "stroke": "#111012",
+                          "strokeWidth": 2,
+                          "strokeAlignment": "outer",
+                          "strokeLinejoin": "round",
+                          "content": "냄새, 향기",
+                          "lineHeight": 1.3,
+                          "fontFamily": "$fontKr",
+                          "fontSize": 27,
+                          "fontWeight": "600",
+                          "letterSpacing": -0.6
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "g2sf0",
+          "x": 0,
+          "y": 0,
+          "name": "Headline Band",
+          "clip": true,
+          "width": 1080,
+          "fill": "$night",
+          "layout": "vertical",
+          "gap": 22,
+          "padding": [
+            92,
+            72,
+            36,
+            72
+          ],
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "K9tQV",
+              "name": "Header",
+              "width": "fill_container",
+              "height": 60,
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "o74PT8",
+                  "name": "Brand And Song",
+                  "gap": 22,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "uPz7W",
+                      "name": "Song Text",
+                      "layout": "vertical",
+                      "gap": 6,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "A0Rhu2",
+                          "name": "Song Title",
+                          "fill": "$ink",
+                          "content": "Lemon",
+                          "lineHeight": 1,
+                          "fontFamily": "$fontKr",
+                          "fontSize": 34,
+                          "fontWeight": "800"
+                        },
+                        {
+                          "type": "text",
+                          "id": "NskBK",
+                          "name": "Song Artist",
+                          "fill": "$softInk",
+                          "content": "米津玄師 ",
+                          "lineHeight": 1,
+                          "fontFamily": "$fontJp",
+                          "fontSize": 21,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "TQdvl",
+                  "name": "Watermark",
+                  "gap": 12,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "f4xYD",
+                      "name": "Watermark Label",
+                      "fill": "#FAFAF659",
+                      "content": "@kotonoha.app",
+                      "lineHeight": 1,
+                      "fontFamily": "$fontKr",
+                      "fontSize": 24,
+                      "fontWeight": "500"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "Zlou3",
+              "name": "Headline",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 10,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "jkp5c",
+                  "name": "Headline Line 1",
+                  "fill": "$ink",
+                  "content": "가사 한 줄에",
+                  "lineHeight": 1.15,
+                  "fontFamily": "$fontKr",
+                  "fontSize": 58,
+                  "fontWeight": "800"
+                },
+                {
+                  "type": "frame",
+                  "id": "VSL0e",
+                  "name": "Headline Highlight",
+                  "fill": "$ig-mint-pale",
+                  "cornerRadius": 6,
+                  "padding": [
+                    8,
+                    22
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "wbqmp",
+                      "name": "Headline Line 2",
+                      "fill": "$night",
+                      "content": "일본어 단어 3개",
+                      "lineHeight": 1.15,
+                      "fontFamily": "$fontKr",
+                      "fontSize": 58,
+                      "fontWeight": "800"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "EIVBd",
+          "x": 0,
+          "y": 0,
+          "name": "Safe Area Guide (reference only)",
+          "enabled": false,
+          "opacity": 0.55,
+          "width": 1080,
+          "height": 1920,
+          "layout": "none",
+          "children": [
+            {
+              "type": "rectangle",
+              "id": "Q3qWT",
+              "x": 0,
+              "y": 1560,
+              "name": "Guide Bottom Unsafe",
+              "width": 1080,
+              "height": 360,
+              "stroke": "#FF4D4D",
+              "strokeWidth": 3,
+              "strokeAlignment": "inner"
+            },
+            {
+              "type": "rectangle",
+              "id": "CdUYw",
+              "x": 930,
+              "y": 900,
+              "name": "Guide Right Unsafe",
+              "width": 150,
+              "height": 660,
+              "stroke": "#FF4D4D",
+              "strokeWidth": 3,
+              "strokeAlignment": "inner"
+            },
+            {
+              "type": "rectangle",
+              "id": "q6ZQme",
+              "x": 0,
+              "y": 0,
+              "name": "Guide Top Unsafe",
+              "width": 930,
+              "height": 100,
+              "stroke": "#FF4D4D",
+              "strokeWidth": 3,
+              "strokeAlignment": "inner"
+            },
+            {
+              "type": "text",
+              "id": "Maq9n",
+              "x": 36,
+              "y": 1590,
+              "name": "Guide Label",
+              "fill": "#FF4D4D",
+              "content": "인스타 릴스 UI 가림 영역 — 콘텐츠 금지 (렌더 전 숨김)",
+              "lineHeight": 1,
+              "fontFamily": "$fontKr",
+              "fontSize": 26,
+              "fontWeight": "600"
+            }
+          ]
+        }
+      ]
     }
   ],
   "themes": {
