@@ -12,10 +12,7 @@ import java.util.concurrent.TimeUnit
 
 /**
  * ffmpeg 로 closed-GOP H.264 미리보기를 만든다.
- *
- * YouTube 에서 받은 MV 는 대개 open GOP(키프레임 대부분이 non-IDR I-frame)라, 그 키프레임으로 seek 하면
- * 뒤따르는 B-frame 이 키프레임 앞 프레임을 참조해 Chrome 소프트웨어 디코더가 `PIPELINE_ERROR_DECODE` 로 죽는다.
- * 1초마다 IDR 을 박아 어디로 seek 해도 디코딩이 시작되게 하고, 미리보기 전용이라 720p 이하·superfast 로 빨리 끝낸다(720p 4분 기준 로컬 4스레드 10초, 56MB).
+ * YouTube MV 는 open GOP 라 키프레임으로 seek 하면 Chrome 소프트웨어 디코더가 `PIPELINE_ERROR_DECODE` 로 죽어서, 1초마다 IDR 을 박는다.
  * 오디오는 그대로 복사해 타임스탬프가 원본과 같다.
  */
 @Service

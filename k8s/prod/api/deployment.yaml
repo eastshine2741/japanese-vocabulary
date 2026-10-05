@@ -12,6 +12,8 @@ spec:
       labels:
         app: api
     spec:
+      # 켜 두면 `rabbitmq` 서비스가 RABBITMQ_PORT=tcp://... 를 주입하고, 앱이 그걸 포트로 읽어 기동에 실패한다.
+      enableServiceLinks: false
       imagePullSecrets:
         - name: ghcr-pull
       containers:
@@ -20,6 +22,17 @@ spec:
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
+          env:
+            - name: RABBITMQ_USER
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-default-user
+                  key: username
+            - name: RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-default-user
+                  key: password
           envFrom:
             - configMapRef:
                 name: api-config
@@ -45,6 +58,6 @@ spec:
           resources:
             requests:
               cpu: 200m
-              memory: 384Mi
+              memory: 576Mi
             limits:
               memory: 768Mi

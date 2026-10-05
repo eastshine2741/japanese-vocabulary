@@ -9,6 +9,7 @@ import org.springframework.web.client.HttpClientErrorException
 import org.springframework.web.client.HttpServerErrorException
 import org.springframework.web.client.ResourceAccessException
 import java.time.Duration
+import java.time.Instant
 
 class ExponentialBackoffTest {
 
@@ -68,6 +69,21 @@ class ExponentialBackoffTest {
         assertThatThrownBy {
             backoff.retry(isTransient = { false }, sleep = {}) { calls++; throw IllegalArgumentException("bad request") }
         }.isInstanceOf(IllegalArgumentException::class.java)
+        assertThat(calls).isEqualTo(1)
+    }
+
+    @Test
+    fun `does not wait past the deadline`() {
+        val backoff = ExponentialBackoff(maxAttempts = 5, initialDelay = Duration.ofSeconds(10))
+        var calls = 0
+
+        assertThatThrownBy {
+            backoff.retry(
+                isTransient = { true },
+                deadline = Instant.now().plusSeconds(5),
+                sleep = { throw AssertionError("must not sleep past the deadline") },
+            ) { calls++; throw IllegalStateException("still down") }
+        }.hasMessage("still down")
         assertThat(calls).isEqualTo(1)
     }
 

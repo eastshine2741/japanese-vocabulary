@@ -56,33 +56,18 @@ class SegmentAnchoringValidator {
     /**
      * Anchors the line's Japanese words to positions in [rawText], left to right.
      *
-     * Words with no Japanese in them — whitespace, punctuation, latin runs — are **dropped instead of
-     * anchored**. They carry no reading and no meaning, and both the assembled pronunciation and the
-     * app read them straight back out of the raw text by position, so nothing needs a token for them.
-     * Searching for them was actively harmful: a space the model invented matches whichever *real*
-     * space comes next, which drags the cursor past every word in between and then blames the first of
-     * those for not being present. `涼しい風吹く 青空の匂い` failed four identical retries over a `風`
-     * sitting right there at offset 3, because a bogus space after `涼しい` had already consumed the
-     * one at offset 6.
+     * Words with no Japanese in them (whitespace, punctuation, latin) are **dropped, not anchored**:
+     * they need no token, and searching for an invented space matches the next *real* one, dragging
+     * the cursor past every word in between (`涼しい風吹く 青空の匂い` failed retries over a `風`).
      *
-     * Japanese text the words left out is **reported, not thrown**. Every surface was found at a real
-     * position, so the tokens are usable as they are; what is missing is a word, not a position. The
-     * uncovered case is a model that skipped part of the line — `晴れ舞台（イェイ）` came back as
-     * `晴れ舞台` four attempts running, because a parenthesized ad-lib does not read as a lyric word —
-     * and losing one ad-lib is not worth losing the song.
+     * Japanese text the words left out is **reported, not thrown**: every surface sits at a real
+     * position, so the tokens are usable (`晴れ舞台（イェイ）` returned as `晴れ舞台` on every retry).
      *
-     * One kind of leftover is not a missing word: a small vowel kana or `ー` the model left off the
-     * word in front of it. `あぁ` came back as `あ` on every attempt, and a retry asked to segment `ぁ`
-     * cannot, because it is not a word — it stretches the `あ`. Those are [absorbed][absorbTrailingKana]
-     * into the token they follow instead of being reported.
+     * A small vowel kana or `ー` the model left off the preceding word (`あぁ` as `あ`) is not a
+     * missing word; it is [absorbed][absorbTrailingKana] into the token it follows.
      *
-     * A word's reading written in parentheses right after it is **covered by that word**. Lyrics
-     * annotate the sung reading that way — `解答(こたえ)`, `暗闇(クロ)`, `×点(ばってん)` — and the kana
-     * is how the word before it is pronounced, not a word of its own. The model rightly leaves it out
-     * of the segmentation and puts it in `usedReading` instead, and there is no dictionary meaning to
-     * look up for it, so reporting it as uncovered only produced a defect no retry could fix. The
-     * kana has to match the reading the token carries: `晴れ舞台（イェイ）` is still an ad-lib the
-     * model skipped, and stays reported.
+     * A reading in parentheses right after a word (`解答(こたえ)`, `暗闇(クロ)`) is **covered by that
+     * word**; it must match the token's reading, so the ad-lib `晴れ舞台（イェイ）` stays reported.
      */
     private fun anchorLine(index: Int, rawText: String, line: SegLineDto): AnchoredLine {
         val covered = BooleanArray(rawText.length)
@@ -90,14 +75,17 @@ class SegmentAnchoringValidator {
         var previousSurface: String? = null
         val anchored = line.words.mapNotNull { word ->
             if (!JapaneseText.containsJapanese(word.surface)) return@mapNotNull null
-            val start = rawText.indexOf(word.surface, cursor)
+            // Digits glued to a counter (`80億`) stay in the raw text; only the Japanese part is a word.
+            // The model's reading still spells the number until the dictionary reading replaces it.
+            val surface = JapaneseText.trimDigits(word.surface)
+            val start = rawText.indexOf(surface, cursor)
             if (start < 0) {
                 throw SegmentationValidationException(
                     notInOrderMessage(index, word.surface, rawText, cursor, previousSurface),
                 )
             }
             val usedReading = readingOf(index, word, word.usedReading, "usedReading")
-            val end = start + word.surface.length
+            val end = start + surface.length
             for (i in start until end) covered[i] = true
             val annotationEnd = readingAnnotationEnd(rawText, end, usedReading)
             for (i in end until annotationEnd) covered[i] = true
@@ -105,8 +93,8 @@ class SegmentAnchoringValidator {
             previousSurface = word.surface
             PipelineToken(
                 lineIndex = index,
-                surface = word.surface,
-                headword = word.headword,
+                surface = surface,
+                headword = JapaneseText.trimDigits(word.headword).ifEmpty { surface },
                 charStart = start,
                 charEnd = end,
                 usedReading = usedReading,
@@ -114,44 +102,95 @@ class SegmentAnchoringValidator {
                 contextGloss = word.contextGloss,
             )
         }
-        val tokens = anchored.map { absorbTrailingKana(it, rawText, covered) }
+        val tokens = anchored.map { absorbTrailingKana(it, rawText, covered) }.toMutableList()
 
-        val uncovered = uncoveredJapaneseRun(rawText, covered)?.let { (offset, text) ->
-            UncoveredRun(lineIndex = index, offset = offset, text = text)
+        var uncovered: UncoveredRun? = null
+        var from = 0
+        while (true) {
+            val (offset, text) = uncoveredJapaneseRun(rawText, covered, from) ?: break
+            val filled = echoOf(tokens, offset, text) ?: knownParticleToken(index, offset, text)
+            if (filled == null) {
+                uncovered = UncoveredRun(lineIndex = index, offset = offset, text = text)
+                break
+            }
+            tokens += filled
+            for (i in offset until filled.charEnd) covered[i] = true
+            from = filled.charEnd
         }
-        return AnchoredLine(tokens = tokens, uncovered = uncovered)
+        return AnchoredLine(tokens = tokens.sortedBy { it.charStart }, uncovered = uncovered)
     }
+
+    /**
+     * A copy of the token whose surface is exactly [text], placed at [offset], or null when no token
+     * on the line spells it. Lyrics echo a word (`君を探し見失う (見失う, Ah-ah-ah-ah)`) and the model
+     * emits it once; the echo is the same word sung the same way, so it reuses that token.
+     */
+    private fun echoOf(tokens: List<PipelineToken>, offset: Int, text: String): PipelineToken? =
+        tokens.firstOrNull { it.surface == text }
+            ?.copy(charStart = offset, charEnd = offset + text.length)
 
     /** One anchored line: its tokens, and why it is incomplete if Japanese text carries no token. */
     private data class AnchoredLine(val tokens: List<PipelineToken>, val uncovered: UncoveredRun?)
 
     /**
      * Extends [token] over the small vowel kana and `ー` right after it that no surface claimed, and
-     * marks them [covered]. Runs after every surface is anchored, so a model that did emit `ぁ` as its
-     * own token keeps it. The sung reading grows by the same kana; the headword does not.
+     * marks them [covered]. Runs after every surface is anchored, so a model-emitted `ぁ` token is
+     * kept. The sung reading grows by the same kana; the headword does not.
+     *
+     * An extra `々` after a surface already ending in `々` (`悶々々`) is absorbed too, leaving the
+     * reading alone. A `々` after a plain kanji (`人々`) is a different word and stays.
      */
     private fun absorbTrailingKana(token: PipelineToken, rawText: String, covered: BooleanArray): PipelineToken {
         var end = token.charEnd
+        if (token.surface.endsWith(ITERATION_MARK)) {
+            while (end < rawText.length && !covered[end] && rawText[end] == ITERATION_MARK) end++
+        }
+        val markEnd = end
         while (end < rawText.length && !covered[end] && rawText[end] in TRAILING_KANA) end++
         if (end == token.charEnd) return token
         for (i in token.charEnd until end) covered[i] = true
-        val tail = rawText.substring(token.charEnd, end)
+        val tail = rawText.substring(markEnd, end)
         return token.copy(
-            surface = token.surface + tail,
+            surface = token.surface + rawText.substring(token.charEnd, end),
             charEnd = end,
             usedReading = token.usedReading + JapaneseText.toKatakana(tail),
         )
     }
 
-    /** Kana that only stretch the sound in front of them and never open a word of their own. */
-    private val TRAILING_KANA = setOf('ぁ', 'ぃ', 'ぅ', 'ぇ', 'ぉ', 'ァ', 'ィ', 'ゥ', 'ェ', 'ォ', 'ー')
+    /**
+     * Token for a one-character particle the model left out, or null when [text] is not one.
+     * [RuleMeaningProvider] already knows its meaning, so no retry is spent on it. Longer or unknown
+     * runs are still reported.
+     */
+    private fun knownParticleToken(index: Int, offset: Int, text: String): PipelineToken? {
+        val particle = text.takeIf { it in RuleMeaningProvider.KnownParticles.singleCharacter } ?: return null
+        val reading = JapaneseText.toKatakana(particle)
+        return PipelineToken(
+            lineIndex = index,
+            surface = particle,
+            headword = particle,
+            charStart = offset,
+            charEnd = offset + 1,
+            usedReading = reading,
+            baseFormReading = reading,
+        )
+    }
+
+    private val ITERATION_MARK = '々'
+
+    /**
+     * Kana that only stretch or cut off the sound in front of them and never open a word of their own.
+     * `っ` belongs here for the emphatic stop that closes `夢中っ`.
+     */
+    private val TRAILING_KANA = setOf('ぁ', 'ぃ', 'ぅ', 'ぇ', 'ぉ', 'ァ', 'ィ', 'ゥ', 'ェ', 'ォ', 'ー', 'っ', 'ッ')
 
     /**
      * End (exclusive) of a `(kana)` / `（kana）` span starting exactly at [from] that spells
-     * [usedReading], or [from] itself when there is none. Kana that reads differently from the word
-     * is a word of its own and stays for the model to segment; so does anything with kanji in it. The
-     * cursor is not moved past the span, so a model that does emit the kana as its own token still
-     * anchors it normally.
+     * [usedReading], or [from] itself when there is none. Kana that reads differently, or contains
+     * kanji, is a word of its own. The cursor is not moved past the span.
+     *
+     * The kana may spell only the start of [usedReading] when okurigana follows the span
+     * (`愁(かな)しみ` read `カナシミ`); that okurigana is covered with the span.
      */
     private fun readingAnnotationEnd(rawText: String, from: Int, usedReading: String): Int {
         if (from >= rawText.length) return from
@@ -163,15 +202,21 @@ class SegmentAnchoringValidator {
         val closeAt = rawText.indexOf(close, from + 1)
         if (closeAt < 0) return from
         val inside = rawText.substring(from + 1, closeAt)
-        val isAnnotation = JapaneseText.isKanaOnly(inside) && JapaneseText.toKatakana(inside) == usedReading
-        return if (isAnnotation) closeAt + 1 else from
+        if (!JapaneseText.isKanaOnly(inside)) return from
+        val annotated = JapaneseText.toKatakana(inside)
+        if (!usedReading.startsWith(annotated)) return from
+        val rest = usedReading.substring(annotated.length)
+        val afterSpan = closeAt + 1
+        val okurigana = rawText.substring(afterSpan, (afterSpan + rest.length).coerceAtMost(rawText.length))
+        val spellsRest = rest.isNotEmpty() && JapaneseText.isKanaOnly(okurigana) &&
+            JapaneseText.toKatakana(okurigana) == rest
+        return if (spellsRest) afterSpan + rest.length else afterSpan
     }
 
     /**
-     * Says where the search actually stood when it gave up. Naming only the missing surface reads as
-     * "this word is not in the line" even when it plainly is, and a retry told to fix a word that is
-     * already right cannot converge. Quoting the text still ahead of the cursor — and the surface that
-     * put it there — is the part the model can act on.
+     * Says where the search stood when it gave up: naming only the missing surface reads as "not in
+     * the line" even when it is, and the retry cannot converge. Quotes the text ahead of the cursor
+     * and the surface that put it there.
      */
     private fun notInOrderMessage(
         index: Int,
@@ -187,13 +232,13 @@ class SegmentAnchoringValidator {
     }
 
     /**
-     * The first run of consecutive Japanese characters no surface claimed, as `(offset, text)`.
+     * The first run of consecutive Japanese characters at or after [from] no surface claimed, as
+     * `(offset, text)`.
      *
-     * The run rather than its first character: `風吹く` left behind by a mis-anchored line is a
-     * segmentation the model can look at, where `Character '風'` invites it to fix one character.
+     * The run rather than its first character, so the model sees a segmentation (`風吹く`) to fix.
      */
-    private fun uncoveredJapaneseRun(rawText: String, covered: BooleanArray): Pair<Int, String>? {
-        val start = rawText.indices.firstOrNull { i ->
+    private fun uncoveredJapaneseRun(rawText: String, covered: BooleanArray, from: Int): Pair<Int, String>? {
+        val start = (from until rawText.length).firstOrNull { i ->
             !covered[i] && JapaneseText.containsJapanese(rawText[i].toString())
         } ?: return null
         var end = start
@@ -204,14 +249,11 @@ class SegmentAnchoringValidator {
     }
 
     /**
-     * Normalizes one reading field, or fails the line. Only Japanese surfaces reach here — the rest
-     * were dropped by [anchorLine], so whatever the model invented as their reading is discarded with
-     * them.
+     * Normalizes one reading field, or fails the line. Only Japanese surfaces reach here ([anchorLine]
+     * dropped the rest).
      *
-     * The reading must be kana; anything else (kanji left in, empty string) means the model did not do
-     * the job and only this line is retried. Hiragana is not a failure: the prompt asks for katakana
-     * but [JapaneseText.toKatakana] absorbs the other script, which is a cheaper correction than a
-     * round trip.
+     * The reading must be kana (otherwise only this line is retried). Hiragana is not a failure:
+     * [JapaneseText.toKatakana] absorbs it, cheaper than a retry.
      */
     private fun readingOf(index: Int, word: SegWordDto, reading: String, field: String): String {
         if (!JapaneseText.isKanaOnly(reading)) {

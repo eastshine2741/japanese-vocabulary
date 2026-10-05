@@ -51,8 +51,7 @@ class AdminReelsFactoryService(
     }
 
     /**
-     * 어드민이 올린 source mp4 를 캐시에 넣고(미리보기 사본 재인코딩 포함) 에디터가 스크럽할 스트리밍 경로를 돌려준다.
-     * 여기서 받은 원본은 본 렌더가 그대로 쓴다.
+     * 어드민이 올린 source mp4 를 캐시에 넣고 스트리밍 경로를 돌려준다. 본 렌더는 이 원본을 그대로 쓴다.
      */
     @Transactional(readOnly = true)
     fun uploadSource(songId: Long, file: MultipartFile): AdminReelsSourceResponse {

@@ -8,6 +8,7 @@ data class AdminLyricSummaryResponse(
     val lyricType: String,
     val lrclibId: Long?,
     val vocadbId: Long?,
+    val utaitedbId: Long?,
     val createdAt: Instant?,
     val updatedAt: Instant?,
 )

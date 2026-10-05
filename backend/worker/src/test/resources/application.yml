@@ -1,0 +1,17 @@
+sentry:
+  enabled: false
+  dsn: ""
+
+spring:
+  rabbitmq:
+    listener:
+      simple:
+        # 테스트에는 브로커가 없다. 리스너가 붙으려 하지 않게 한다.
+        auto-startup: false
+
+song-analysis:
+  worker:
+    sweep-enabled: false
+  # 공급자 재시도가 실제로 기다리지 않게 한다. 횟수는 운영과 같다.
+  provider-retry:
+    initial-backoff: 0s

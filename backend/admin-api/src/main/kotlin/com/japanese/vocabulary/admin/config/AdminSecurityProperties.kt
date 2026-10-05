@@ -7,5 +7,5 @@ data class AdminSecurityProperties(
     val password: String = "",
     val passwordSha256: String = "",
     val tokenSecret: String = "",
-    val tokenTtlMinutes: Long = 60,
+    val tokenTtlMinutes: Long = 180,
 )

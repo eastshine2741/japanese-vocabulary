@@ -49,8 +49,7 @@ const WordRow = React.memo(function WordRow({
   onToggleExpand,
   onLongPress,
 }: WordRowProps) {
-  // Subscribe only to this row's examples — when one row's fetch resolves,
-  // other rows' selectors return the same reference and skip re-render.
+  // Per-row selector: other rows keep the same reference and skip re-render.
   const examples = useWordExamplesStore(s => s.byId[item.id]);
   const pos = item.senses[0]?.partOfSpeech;
   const handleToggle = useCallback(() => onToggleExpand(item), [onToggleExpand, item]);
@@ -108,9 +107,7 @@ export default function DeckWordListScreen({ route, navigation }: Props) {
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const actionSheetRef = useRef<AppBottomSheetRef>(null);
-  // Imperative open-state tracking for the hardware back handler. A ref can be
-  // set synchronously at expand()/close() call sites, closing the race window
-  // before gorhom's onChange settles.
+  // Ref set synchronously at expand()/close() so the back handler doesn't race gorhom's onChange.
   const actionOpenRef = useRef(false);
 
   useFocusEffect(
@@ -119,8 +116,7 @@ export default function DeckWordListScreen({ route, navigation }: Props) {
     }, [deckId]),
   );
 
-  // Android hardware back: close the action sheet first if it's open,
-  // otherwise fall through to default (pop screen).
+  // Android back closes the open action sheet first.
   useFocusEffect(
     useCallback(() => {
       const onBack = () => {
@@ -140,8 +136,7 @@ export default function DeckWordListScreen({ route, navigation }: Props) {
     setExpandedId(prev => (prev === item.id ? null : item.id));
   }, []);
 
-  // Fetch examples when a new id is expanded. Store handles dedup so this
-  // is safe to call without checking the cache first.
+  // The store dedups, so no cache check is needed.
   useEffect(() => {
     if (expandedId != null) fetchExamples(expandedId);
   }, [expandedId, fetchExamples]);

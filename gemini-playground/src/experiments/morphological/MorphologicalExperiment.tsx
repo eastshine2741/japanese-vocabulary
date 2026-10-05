@@ -87,7 +87,6 @@ export default function MorphologicalExperiment() {
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch available analyzers on mount
   useEffect(() => {
     fetch("/api/dev/analyzers")
       .then((res) => res.json())
@@ -173,7 +172,6 @@ export default function MorphologicalExperiment() {
 
   return (
     <div className="morph-experiment">
-      {/* Analyzer selection */}
       <div className="analyzer-selector">
         <label>Analyzers</label>
         <div className="analyzer-checkboxes">
@@ -190,7 +188,6 @@ export default function MorphologicalExperiment() {
         </div>
       </div>
 
-      {/* Input */}
       <div className="morph-input-section">
         <label>Input (JSON array)</label>
         <textarea
@@ -211,7 +208,6 @@ export default function MorphologicalExperiment() {
         </div>
       </div>
 
-      {/* Results */}
       {results && (
         <div className="morph-results">
           {parsedLines.map((line) => (

@@ -30,6 +30,8 @@ class LyricEntity(
     val lrclibId: Long? = null,
     @Column(name = "vocadb_id")
     val vocadbId: Long? = null,
+    @Column(name = "utaitedb_id")
+    val utaitedbId: Long? = null,
     @Convert(converter = LyricWordCandidatesConverter::class)
     @Column(name = "word_candidates_json", columnDefinition = "JSON")
     var wordCandidates: LyricWordCandidates? = null,

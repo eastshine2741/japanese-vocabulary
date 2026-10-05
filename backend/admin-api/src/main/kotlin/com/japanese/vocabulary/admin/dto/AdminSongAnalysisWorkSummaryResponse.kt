@@ -15,7 +15,6 @@ data class AdminSongAnalysisWorkSummaryResponse(
     val createdByUserId: Long?,
     val createdAt: Instant?,
     val updatedAt: Instant?,
-    val playerReadyAt: Instant?,
     val completedAt: Instant?,
     val failedAt: Instant?,
 )

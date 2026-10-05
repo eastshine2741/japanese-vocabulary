@@ -5,14 +5,15 @@ import com.japanese.vocabulary.studystats.entity.DailyStudySummaryEntity
 import com.japanese.vocabulary.studystats.dto.DailyDotDto
 import com.japanese.vocabulary.studystats.dto.DailyStudySummaryDto
 import com.japanese.vocabulary.studystats.dto.DotStatusDto
+import com.japanese.vocabulary.studystats.dto.StudyCalendarPageDto
 import com.japanese.vocabulary.studystats.dto.toDto
 import com.japanese.vocabulary.studystats.repository.DailyStudySummaryRepository
 import com.japanese.vocabulary.studystats.util.KstClock
 import com.japanese.vocabulary.userinventory.entity.InventoryItemType
 import com.japanese.vocabulary.userinventory.service.UserInventoryService
 import org.springframework.transaction.annotation.Transactional
-import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.YearMonth
 
 @Service
 class StudyStatsService(
@@ -50,14 +51,15 @@ class StudyStatsService(
     fun freezeCount(userId: Long): Int =
         userInventoryService.quantityOf(userId, InventoryItemType.STREAK_FREEZE)
 
+    /** 오늘로 끝나는 최근 7일. 마지막 칸이 오늘이다. */
     @Transactional(readOnly = true)
     fun weekDots(userId: Long): List<DailyDotDto> {
         val today = kstClock.todayStudyDate()
-        val (weekStart, weekEnd) = currentWeekBounds(today)
-        val rowsByDate = repo.findByUserIdAndDateKstBetweenOrderByDateKstAsc(userId, weekStart, weekEnd)
+        val from = today.minusDays(6)
+        val rowsByDate = repo.findByUserIdAndDateKstBetweenOrderByDateKstAsc(userId, from, today)
             .associateBy { it.dateKst }
         return (0..6).map { offset ->
-            val d = weekStart.plusDays(offset.toLong())
+            val d = from.plusDays(offset.toLong())
             DailyDotDto(date = d, status = dotStatus(d, today, rowsByDate[d]))
         }
     }
@@ -65,19 +67,41 @@ class StudyStatsService(
     @Transactional(readOnly = true)
     fun heatmap(userId: Long): List<DailyStudySummaryDto> {
         val today = kstClock.todayStudyDate()
-        val from = today.minusDays((HEATMAP_RANGE - 1).toLong())
-        val rows = repo.findByUserIdAndDateKstBetweenOrderByDateKstAsc(userId, from, today)
-        val rowsByDate = rows.associateBy { it.dateKst }
+        return denseDays(userId, today.minusDays((HEATMAP_RANGE - 1).toLong()), today)
+    }
 
-        return (0 until HEATMAP_RANGE).map { offset ->
-            val d = from.plusDays(offset.toLong())
-            rowsByDate[d]?.toDto() ?: DailyStudySummaryDto(
-                userId = userId,
-                dateKst = d,
-                reviewCount = 0,
-                freezeUsed = false,
-            )
-        }
+    /**
+     * 달력 한 페이지 = [before] 직전 [months] 개월. [before] 가 없으면 이번 달까지.
+     * 미래 달을 요청해도 이번 달에서 끊는다.
+     */
+    @Transactional(readOnly = true)
+    fun calendarPage(userId: Long, before: YearMonth?, months: Int): StudyCalendarPageDto {
+        val today = kstClock.todayStudyDate()
+        val afterThisMonth = YearMonth.from(today).plusMonths(1)
+        val end = before?.takeIf { it < afterThisMonth } ?: afterThisMonth
+        val start = end.minusMonths(months.coerceIn(1, CALENDAR_MAX_MONTHS).toLong())
+        val from = start.atDay(1)
+        val to = minOf(end.atDay(1).minusDays(1), today)
+        return StudyCalendarPageDto(
+            days = denseDays(userId, from, to),
+            nextBefore = start.takeIf { repo.existsByUserIdAndDateKstLessThan(userId, from) },
+        )
+    }
+
+    private fun denseDays(userId: Long, from: LocalDate, to: LocalDate): List<DailyStudySummaryDto> {
+        val rowsByDate = repo.findByUserIdAndDateKstBetweenOrderByDateKstAsc(userId, from, to)
+            .associateBy { it.dateKst }
+        return generateSequence(from) { it.plusDays(1) }
+            .takeWhile { !it.isAfter(to) }
+            .map { d ->
+                rowsByDate[d]?.toDto() ?: DailyStudySummaryDto(
+                    userId = userId,
+                    dateKst = d,
+                    reviewCount = 0,
+                    freezeUsed = false,
+                )
+            }
+            .toList()
     }
 
     private fun dotStatus(d: LocalDate, today: LocalDate, row: DailyStudySummaryEntity?): DotStatusDto {
@@ -88,14 +112,11 @@ class StudyStatsService(
         return DotStatusDto.NONE
     }
 
-    private fun currentWeekBounds(today: LocalDate): Pair<LocalDate, LocalDate> {
-        val daysFromMonday = (today.dayOfWeek.value - DayOfWeek.MONDAY.value + 7) % 7
-        val start = today.minusDays(daysFromMonday.toLong())
-        return start to start.plusDays(6)
-    }
 
     companion object {
         const val FREEZE_CAP = 2
         const val HEATMAP_RANGE = 112 // 16 weeks, matches Pencil heatmap grid (16 cols × 7 rows)
+        const val CALENDAR_DEFAULT_MONTHS = 3
+        const val CALENDAR_MAX_MONTHS = 12
     }
 }

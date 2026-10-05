@@ -43,8 +43,7 @@ class JishoClientDistillTest {
 
     @Test
     fun `homograph entries stay separate and keep their own jlpt`() {
-        // This is the bug the redesign fixes: 前[ぜん] and 前[まえ] used to arrive as one flat list of
-        // senses with no boundary, so nothing downstream could tell which meaning was whose.
+        // 前[ぜん] and 前[まえ] must keep an entry boundary so downstream can tell which meaning is whose.
         val entries = client.distill("前", maeAndZen()).entries
 
         assertThat(entries).hasSize(2)
@@ -58,8 +57,7 @@ class JishoClientDistillTest {
 
     @Test
     fun `an alternate spelling on another entry does not merge into the queried word`() {
-        // jisho's 先 entry lists 前 as an alternate spelling, which is how 先[さき]'s meanings used to
-        // leak into a lookup for 前. They must remain a separately addressable entry.
+        // jisho's 先 entry lists 前 as an alternate spelling; it must stay a separately addressable entry.
         val response = JishoSearchResponse(
             data = maeAndZen().data + JishoEntryRawDto(
                 japanese = listOf(
@@ -88,8 +86,7 @@ class JishoClientDistillTest {
 
     @Test
     fun `hiragana readings from jisho are stored as katakana`() {
-        // jisho always answers in hiragana; the pipeline stores readings in katakana so the app can
-        // convert for display without guessing the script.
+        // jisho answers in hiragana; the pipeline stores readings in katakana.
         val entries = client.distill("前", maeAndZen()).entries
 
         assertThat(entries.map { it.reading }).allSatisfy { assertThat(it).matches("[ァ-ヺー]+") }
@@ -116,9 +113,7 @@ class JishoClientDistillTest {
 
     @Test
     fun `a katakana query matches an entry whose reading jisho writes in hiragana`() {
-        // Real shape of jisho's answer to アタシ: it returns 私[あたし] as the top hit. Comparing the
-        // scripts literally rejected it, and the lyric's アタシ reached the app with no meaning while
-        // the same word on the next line — spelled あたし by the segmentation stage — had one.
+        // Real shape of jisho's answer to アタシ: 私[あたし] as the top hit; a literal script comparison rejected it.
         val response = JishoSearchResponse(
             data = listOf(
                 JishoEntryRawDto(
@@ -163,9 +158,35 @@ class JishoClientDistillTest {
     }
 
     @Test
+    fun `proper nouns whose only senses come from Wikipedia keep them`() {
+        // jisho answers 牛若丸 / 楊貴妃 with Wikipedia senses only; dropping them would empty the entry.
+        val words = mapOf(
+            "牛若丸" to Triple("うしわかまる", "Minamoto no Yoshitsune", listOf("Wikipedia definition")),
+            "楊貴妃" to Triple("ようきひ", "Yang Guifei", listOf("Full name", "Wikipedia definition")),
+        )
+
+        for ((word, spec) in words) {
+            val (reading, english, pos) = spec
+            val response = JishoSearchResponse(
+                data = listOf(
+                    JishoEntryRawDto(
+                        japanese = listOf(JishoJapaneseDto(word = word, reading = reading)),
+                        senses = listOf(JishoSenseDto(englishDefinitions = listOf(english), partsOfSpeech = pos)),
+                    ),
+                ),
+            )
+
+            val entry = client.distill(word, response)
+
+            assertThat(entry.found).isTrue()
+            assertThat(entry.provenance).isEqualTo(JishoLookupProvenance.EXACT)
+            assertThat(entry.entries.single().senses.map { it.english }).containsExactly(english)
+        }
+    }
+
+    @Test
     fun `an element with no kana reading keeps its headword but reports no reading`() {
-        // Falling back to the written form would put kanji in a reading field, which then reaches the
-        // app's katakana-to-Hangul conversion. Better to have no reading and match on headword alone.
+        // Falling back to the written form would put kanji in a reading field; match on headword alone instead.
         val response = JishoSearchResponse(
             data = listOf(
                 JishoEntryRawDto(

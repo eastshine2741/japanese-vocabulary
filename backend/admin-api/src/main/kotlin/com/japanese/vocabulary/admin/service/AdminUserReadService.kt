@@ -33,10 +33,8 @@ import java.time.LocalDate
 import java.time.ZoneId
 
 /**
- * 유저 단위 학습 가시성. 유저가 담은 단어·단어장·복습 상태를 읽기만 한다.
- *
- * 복습 상태 분포와 단어장 통계는 도메인 [DeckRepository] 의 집계 쿼리를 그대로 써서
- * 앱이 유저에게 보여 주는 숫자와 어긋나지 않게 한다.
+ * 유저가 담은 단어·단어장·복습 상태를 읽기만 한다.
+ * 통계는 도메인 [DeckRepository] 의 집계 쿼리를 그대로 써서 앱에 보이는 숫자와 맞춘다.
  */
 @Service
 @Transactional(readOnly = true)

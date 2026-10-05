@@ -32,6 +32,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import AppNavigator, { RootStackParamList } from './src/navigation/AppNavigator';
 import { AnalysisPillOverlay } from './src/components/analysisPill';
+import { StreakCelebrationHost } from './src/components/streak';
 import { navigationRef, flushPending } from './src/navigation/navigationRef';
 import { tokenStorage } from './src/utils/tokenStorage';
 import { isJwtExpired, getJwtUserId } from './src/utils/jwt';
@@ -62,14 +63,24 @@ function getActiveRoute(state: NavigationState): ActiveRoute {
   return route;
 }
 
-// 곡 탐색 퍼널의 마지막 단계(가사 열람)를 SongDetail screen_view 로 본다.
+// 곡 탐색 퍼널의 마지막 단계(가사 열람)를 SongDetail screen_view 로, 가사에서 복습으로 넘어간
+// 경로를 SongReview screen_view 의 trigger 로 본다.
 function getScreenViewParams(route: ActiveRoute): ScreenViewParams | undefined {
-  if (route.name !== 'SongDetail') return undefined;
-  const params = route.params as RootStackParamList['SongDetail'] | undefined;
-  return {
-    ...(params?.songId != null && { song_id: params.songId }),
-    origin: params?.origin ?? 'unknown',
-  };
+  if (route.name === 'SongDetail') {
+    const params = route.params as RootStackParamList['SongDetail'] | undefined;
+    return {
+      ...(params?.songId != null && { song_id: params.songId }),
+      origin: params?.origin ?? 'unknown',
+    };
+  }
+  if (route.name === 'SongReview') {
+    const params = route.params as RootStackParamList['SongReview'] | undefined;
+    return {
+      ...(params?.source.songId != null && { song_id: params.source.songId }),
+      trigger: params?.trigger ?? 'unknown',
+    };
+  }
+  return undefined;
 }
 
 function getAndroidNavigationMode(
@@ -110,9 +121,8 @@ function AndroidSystemBarController({ navigationState }: { navigationState: Navi
 function App() {
   const [initialRoute, setInitialRoute] = useState<keyof RootStackParamList | null>(null);
   const [navigationState, setNavigationState] = useState<NavigationState | null>(null);
-  // RN 화면은 네이티브 Activity 하나를 공유해 GA4 자동 screen_view 가 화면 단위로
-  // 찍히지 않는다. 곡 상세 체류 계산의 기준선이라 여기서 직접 찍는다.
-  // 이름이 아니라 route key 로 거른다. SongDetail 에서 다른 곡 SongDetail 로 가도 찍혀야 한다.
+  // RN 은 Activity 하나를 공유해 GA4 자동 screen_view 가 안 찍히므로 직접 찍는다.
+  // 이름이 아니라 route key 로 거른다. SongDetail -> SongDetail 이동도 찍혀야 한다.
   const lastRouteKeyRef = useRef<string | null>(null);
   const handleNavigationState = useCallback((state: NavigationState | null | undefined) => {
     setNavigationState(state ?? null);
@@ -174,6 +184,7 @@ function App() {
               <AndroidSystemBarController navigationState={navigationState} />
               <AppNavigator initialRoute={initialRoute} />
               <AnalysisPillOverlay />
+              <StreakCelebrationHost />
             </NavigationContainer>
           )}
         </BottomSheetModalProvider>

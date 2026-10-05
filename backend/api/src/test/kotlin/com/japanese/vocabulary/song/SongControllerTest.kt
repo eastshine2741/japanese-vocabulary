@@ -32,6 +32,7 @@ import com.japanese.vocabulary.song.repository.LyricRepository
 import com.japanese.vocabulary.song.model.LyricWordCandidates
 import com.japanese.vocabulary.songanalysis.entity.SongAnalysisTriggerSource
 import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkEntity
+import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStatus
 import com.japanese.vocabulary.songanalysis.repository.SongAnalysisWorkRepository
 import com.japanese.vocabulary.song.repository.SongRepository
 import com.japanese.vocabulary.song.model.WordCandidate
@@ -288,8 +289,7 @@ class SongControllerTest : ApiBaseIntegrationTest() {
         fun `concurrent analyze requests create only one active work for same title and artist`() {
             val title = "同時作成"
             val artist = "同時歌手"
-            val activeDedupKey = SongAnalysisWorkService.buildActiveDedupKey(title, artist)
-            workRepository.findByActiveDedupKey(activeDedupKey)?.let { workRepository.delete(it) }
+            workRepository.findAll().filter { it.rawTitle == title }.forEach { workRepository.delete(it) }
 
             val threadCount = 8
             val ready = CountDownLatch(threadCount)
@@ -330,13 +330,20 @@ class SongControllerTest : ApiBaseIntegrationTest() {
                 assertThat(successfulWorkIds.size + conflictCount.get()).isEqualTo(threadCount)
                 assertThat(successfulWorkIds).isNotEmpty
 
-                val activeWork = workRepository.findByActiveDedupKey(activeDedupKey)
-                assertThat(activeWork).isNotNull
-                assertThat(successfulWorkIds.toSet()).containsExactly(activeWork!!.id)
-                assertThat(workRepository.findAll().filter { it.activeDedupKey == activeDedupKey }).hasSize(1)
+                // 갭 락이 실제로 중복을 막았는지. 이게 깨지면 같은 곡에 활성 작업이 둘 생긴다.
+                // 단정은 평범한 조회로 센다 — findActiveByRawSongForUpdate 는 PESSIMISTIC_WRITE 라
+                // 트랜잭션을 요구하고, 이 테스트는 NOT_SUPPORTED 로 돌아서 트랜잭션이 없다.
+                val activeWorks = workRepository.findAll().filter {
+                    it.rawTitle == title && it.status in setOf(
+                        SongAnalysisWorkStatus.PENDING,
+                        SongAnalysisWorkStatus.RUNNING,
+                    )
+                }
+                assertThat(activeWorks).hasSize(1)
+                assertThat(successfulWorkIds.toSet()).containsExactly(activeWorks.single().id)
             } finally {
                 executor.shutdownNow()
-                workRepository.findByActiveDedupKey(activeDedupKey)?.let { workRepository.delete(it) }
+                workRepository.findAll().filter { it.rawTitle == title }.forEach { workRepository.delete(it) }
             }
         }
     }
@@ -1359,11 +1366,8 @@ class SongControllerTest : ApiBaseIntegrationTest() {
                 wordCandidates = wordCandidates,
             )
 
-            // FSRS 라이브러리는 새 카드의 due 를 (주입 가능한 clock 이 아니라) 진짜 벽시계
-            // Instant.now() 로 못박는다 — 고정 테스트 clock(2026-01-01) 이 실제 지금보다
-            // 한참 과거라 그대로 두면 방금 만든 카드조차 due 로 안 잡힌다. 요청 처리 지연을
-            // 흡수할 만큼만 살짝 앞서 두면, lead 를 리뷰해서 생기는 새 due(며칠 뒤)는 여전히
-            // 이 시점보다 한참 미래라 제외된다.
+            // FSRS 라이브러리는 새 카드의 due 를 주입 clock 이 아닌 Instant.now() 로 못박는다.
+            // 고정 clock 이 과거면 새 카드가 due 로 안 잡히므로 요청 지연만큼 살짝 앞서 둔다.
             clock.setTo(Instant.now().plusSeconds(5))
 
             val body = bootstrap(me, song.id!!, rating = 3)

@@ -67,7 +67,6 @@ export default function EditWordScreen({ route, navigation }: Props) {
     [windowHeight, insets.top],
   );
 
-  // Initial snapshot for change detection
   const initialSnapshot = useRef(
     JSON.stringify({
       reading: initialReadingValue,
@@ -90,7 +89,6 @@ export default function EditWordScreen({ route, navigation }: Props) {
 
   const canSave = !form.hasEmptyMeaning && form.senses.length > 0 && !saving;
 
-  // Back guard
   const confirmGoBack = useCallback(() => {
     if (!hasChanges) {
       navigation.goBack();
@@ -171,7 +169,6 @@ export default function EditWordScreen({ route, navigation }: Props) {
           onBack={confirmGoBack}
         />
 
-        {/* Content */}
         <KeyboardAwareScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" extraScrollHeight={80} enableOnAndroid>
           <WordFormFields
             japaneseText={japaneseText}
@@ -189,7 +186,6 @@ export default function EditWordScreen({ route, navigation }: Props) {
           />
         </KeyboardAwareScrollView>
 
-        {/* Save button — 스크롤과 분리된 하단 고정 영역 */}
         <View style={styles.saveArea}>
           <TouchableOpacity
             style={[styles.saveBtn, !canSave && styles.saveBtnDisabled]}
@@ -206,8 +202,7 @@ export default function EditWordScreen({ route, navigation }: Props) {
         </View>
       </View>
 
-      {/* POS Picker — 다른 picker 들과 같이 modal 로 띄운다. non-modal sheet 는 닫혀 있어도
-          화면 위에 backdrop 이 상주해서 폼 터치를 먹는다. topInset 으로 status bar 는 비워 둔다. */}
+      {/* modal 이어야 한다: non-modal sheet 는 닫혀 있어도 backdrop 이 상주해 폼 터치를 먹는다. */}
       <AppBottomSheetModal
         ref={posSheetRef}
         topInset={insets.top}
@@ -256,11 +251,9 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: Colors.background },
   container: { flex: 1 },
 
-  // Scroll content
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 24, paddingBottom: 20, gap: 32 },
 
-  // Save
   saveArea: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 20 },
   saveBtn: {
     height: 48,
@@ -278,6 +271,5 @@ const styles = StyleSheet.create({
   saveBtnText: { fontSize: 14, fontWeight: '600', color: '#FFFFFF' },
   saveBtnTextDisabled: { fontSize: 14, fontWeight: '600', color: Colors.textMuted },
 
-  // POS Picker — sheet chrome(배경·radius·drag bar)은 AppBottomSheetModal 이 갖는다.
   pickerContent: { paddingBottom: 8 },
 });

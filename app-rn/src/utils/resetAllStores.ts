@@ -10,6 +10,7 @@ import { useSearchHistoryStore } from '../stores/searchHistoryStore';
 import { useSongDetailStore } from '../stores/songDetailStore';
 import { useStreakStore } from '../stores/streakStore';
 import { useSettingsStore } from '../stores/settingsStore';
+import { useStudyScheduleStore } from '../stores/studyScheduleStore';
 import { useStudyStatsStore } from '../stores/studyStatsStore';
 import { useVocabularyStore } from '../stores/vocabularyStore';
 import { useWordExamplesStore } from '../stores/wordExamplesStore';
@@ -26,6 +27,8 @@ export function resetAllStores() {
     home: emptyStatsSlice(),
     profile: emptyStatsSlice(),
     heatmap: emptyStatsSlice(),
+    calendar: emptyStatsSlice(),
+    calendarLoadingMore: false,
   });
 
   useVocabularyStore.setState({
@@ -71,6 +74,7 @@ export function resetAllStores() {
   });
 
   useAnalysisStore.getState().reset();
+  useStudyScheduleStore.getState().reset();
   useStreakStore.getState().reset();
   usePlayerStore.setState({ status: 'idle', studyData: null, errorCode: null, currentMs: 0, durationMs: 0 });
   useSongDetailStore.setState({ status: 'idle', data: null, errorCode: null });

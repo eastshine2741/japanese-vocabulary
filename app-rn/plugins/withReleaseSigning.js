@@ -1,7 +1,6 @@
 const { withAppBuildGradle, withAndroidManifest } = require('expo/config-plugins');
 
 module.exports = function withReleaseConfig(config) {
-  // Allow cleartext HTTP traffic
   config = withAndroidManifest(config, (config) => {
     const app = config.modResults.manifest.application[0];
     app.$['android:usesCleartextTraffic'] = 'true';
@@ -11,7 +10,6 @@ module.exports = function withReleaseConfig(config) {
   return withAppBuildGradle(config, (config) => {
     let buildGradle = config.modResults.contents;
 
-    // Add release signing config block after signingConfigs {
     buildGradle = buildGradle.replace(
       /signingConfigs\s*\{/,
       `signingConfigs {
@@ -23,7 +21,6 @@ module.exports = function withReleaseConfig(config) {
         }`,
     );
 
-    // Point release buildType to release signingConfig
     buildGradle = buildGradle.replace(
       /(buildTypes\s*\{[\s\S]*?release\s*\{[\s\S]*?)signingConfig\s+signingConfigs\.debug/,
       '$1signingConfig signingConfigs.release',

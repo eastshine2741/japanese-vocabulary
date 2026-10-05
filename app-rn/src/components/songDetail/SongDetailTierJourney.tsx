@@ -28,8 +28,7 @@ interface SongDetailTierJourneyProps {
 const SWITCH_DURATION = 300;
 const CONTENT_FADE_DURATION = 220;
 
-// 펼친 단계가 바뀌면 카드 틀은 그대로 둔 채 크기·위치만 옮겨 간다. 두 카드가 동시에 줄고 늘어서
-// 펼친 자리가 위아래로 미끄러지는 것처럼 보인다. 틀 안 내용만 새로 페이드인한다.
+// 펼친 단계가 바뀌면 카드 틀은 크기·위치만 옮기고 틀 안 내용만 새로 페이드인한다.
 const relayout = LinearTransition.duration(SWITCH_DURATION).easing(Easing.inOut(Easing.cubic));
 const contentFadeIn = FadeIn.duration(CONTENT_FADE_DURATION);
 

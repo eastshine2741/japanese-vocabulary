@@ -8,6 +8,7 @@ import io.mockk.every
 import io.mockk.mockk
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
+import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Test
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -35,7 +36,7 @@ class GeminiClientRetryTest {
             server.expect(anything()).andRespond(success())
         }
 
-        val lines = client.translateLyrics(input(), context)
+        val lines = runBlocking { client.translateLyrics(input(), context) }
 
         assertThat(lines.single().koreanLyrics).isEqualTo("사랑")
         server.verify()
@@ -48,7 +49,7 @@ class GeminiClientRetryTest {
             server.expect(anything()).andRespond(success())
         }
 
-        client.translateLyrics(input(), context)
+        runBlocking { client.translateLyrics(input(), context) }
 
         server.verify()
     }
@@ -59,7 +60,7 @@ class GeminiClientRetryTest {
             server.expect(ExpectedCount.times(3), anything()).andRespond(withStatus(HttpStatus.BAD_GATEWAY))
         }
 
-        assertThatThrownBy { client.translateLyrics(input(), context) }
+        assertThatThrownBy { runBlocking { client.translateLyrics(input(), context) } }
             .isInstanceOf(HttpServerErrorException::class.java)
         server.verify()
     }
@@ -70,7 +71,7 @@ class GeminiClientRetryTest {
             server.expect(ExpectedCount.once(), anything()).andRespond(withStatus(HttpStatus.BAD_REQUEST))
         }
 
-        assertThatThrownBy { client.translateLyrics(input(), context) }
+        assertThatThrownBy { runBlocking { client.translateLyrics(input(), context) } }
             .isInstanceOf(HttpClientErrorException::class.java)
         server.verify()
     }
@@ -82,15 +83,14 @@ class GeminiClientRetryTest {
                 .andRespond(withSuccess(response(finishReason = "MAX_TOKENS"), MediaType.APPLICATION_JSON))
         }
 
-        assertThatThrownBy { client.translateLyrics(input(), context) }
+        assertThatThrownBy { runBlocking { client.translateLyrics(input(), context) } }
             .isInstanceOf(GeminiIncompleteResponseException::class.java)
         server.verify()
     }
 
     @Test
     fun `a truncated or unparseable answer is not transient`() {
-        // The shared policy covers HTTP; these two are Gemini's own verdicts on the answer and must
-        // never be replayed — the same input would be cut the same way.
+        // These are Gemini's own verdicts on the answer and must never be replayed: the same input is cut the same way.
         assertThat(TransientHttpErrors.isTransient(GeminiIncompleteResponseException("cut"))).isFalse()
         assertThat(TransientHttpErrors.isTransient(IllegalStateException("parse"))).isFalse()
     }

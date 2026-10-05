@@ -1,8 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import "./EnsembleExperiment.css";
 
-// --- Types ---
-
 interface Token {
   surface: string;
   baseForm: string;
@@ -51,8 +49,6 @@ interface LlmLineResult {
 
 type Strategy = "majority" | "least-split" | "no-fragment" | "llm-pick";
 
-// --- Constants ---
-
 const STRATEGIES: { value: Strategy; label: string; description: string }[] = [
   { value: "majority", label: "다수결", description: "같은 분절에 동의하는 분석기가 많으면 채택" },
   { value: "least-split", label: "Least Split", description: "같은 구간에서 토큰 수가 적은 쪽 채택" },
@@ -76,7 +72,6 @@ const MODEL_PRICING: Record<string, { input: number; output: number }> = {
 
 /** Check if a token is a pure symbol/whitespace that should be skipped for LLM/display */
 function isSkippableToken(token: { surface: string; partOfSpeech?: string }): boolean {
-  // Always skip whitespace
   if (token.partOfSpeech === "WHITESPACE") return true;
   // If POS says symbol, check if surface is actually a meaningful character (kana/kanji)
   if (token.partOfSpeech === "SYMBOL" || token.partOfSpeech === "SUPPLEMENTARY_SYMBOL") {
@@ -127,8 +122,6 @@ const SK_API = "ens-pg-api-key";
 const SK_MODEL = "ens-pg-model";
 const SK_PROMPT = "ens-pg-prompt";
 
-// --- Position normalization ---
-
 /** Re-calculate charStart/charEnd by finding each token's surface in the original text sequentially */
 function normalizePositions(tokens: Token[], text: string): Token[] {
   let searchFrom = 0;
@@ -141,7 +134,6 @@ function normalizePositions(tokens: Token[], text: string): Token[] {
   });
 }
 
-/** Normalize all analyzer results for a line */
 function normalizeAllPositions(
   analyzerResults: Record<string, Token[]>,
   text: string
@@ -150,8 +142,6 @@ function normalizeAllPositions(
     Object.entries(analyzerResults).map(([name, tokens]) => [name, normalizePositions(tokens, text)])
   );
 }
-
-// --- Ensemble logic ---
 
 function buildSegmentKey(tokens: Token[]): string {
   return tokens.map((t) => `${t.charStart}-${t.charEnd}`).join("|");
@@ -168,13 +158,11 @@ function ensembleMajority(
     return analyzerResults[name].map((t) => ({ ...t, source: name }));
   }
 
-  // Find the full char range
   let maxEnd = 0;
   for (const tokens of Object.values(analyzerResults)) {
     for (const t of tokens) if (t.charEnd > maxEnd) maxEnd = t.charEnd;
   }
 
-  // For each analyzer, build a map: charStart -> token
   const tokenMaps = Object.fromEntries(
     analyzerNames.map((name) => [
       name,
@@ -186,7 +174,6 @@ function ensembleMajority(
   let pos = 0;
 
   while (pos < maxEnd) {
-    // Collect what each analyzer has at this position
     const candidates: { name: string; token: Token }[] = [];
     for (const name of analyzerNames) {
       const token = tokenMaps[name].get(pos);
@@ -198,7 +185,6 @@ function ensembleMajority(
       continue;
     }
 
-    // Group by charEnd (same segmentation boundary)
     const groups: Record<number, { name: string; token: Token }[]> = {};
     for (const c of candidates) {
       const key = c.token.charEnd;
@@ -206,7 +192,6 @@ function ensembleMajority(
       groups[key].push(c);
     }
 
-    // Pick group with most votes
     let bestGroup: { name: string; token: Token }[] = [];
     let bestCount = 0;
     for (const group of Object.values(groups)) {
@@ -287,7 +272,6 @@ function ensembleNoFragment(
   const analyzerNames = Object.keys(analyzerResults);
   if (analyzerNames.length === 0) return [];
 
-  // Start with fallback analyzer
   const primary = analyzerResults[fallback] ?? Object.values(analyzerResults)[0];
   const primaryName = analyzerResults[fallback] ? fallback : analyzerNames[0];
   if (!primary) return [];
@@ -306,7 +290,6 @@ function ensembleNoFragment(
       continue;
     }
 
-    // Found a single-char token. Check if there are consecutive ones.
     let fragEnd = i;
     while (fragEnd < primary.length && (primary[fragEnd].charEnd - primary[fragEnd].charStart) === 1) {
       fragEnd++;
@@ -330,7 +313,6 @@ function ensembleNoFragment(
       const altTokens = analyzerResults[altName];
       if (!altTokens) continue;
 
-      // Find tokens that cover this fragment range
       const covering = altTokens.filter(
         (t) => t.charStart >= fragCharStart && t.charEnd <= fragCharEnd
       );
@@ -340,7 +322,6 @@ function ensembleNoFragment(
         covering[covering.length - 1].charEnd === fragCharEnd;
 
       if (coversFullRange && covering.length < consecutiveFrags) {
-        // Alternative has fewer tokens for same range - use it
         for (const t of covering) {
           result.push({ ...t, source: altName });
         }
@@ -350,7 +331,6 @@ function ensembleNoFragment(
     }
 
     if (!replaced) {
-      // No better alternative - keep original fragments
       for (let j = i; j < fragEnd; j++) {
         result.push({ ...primary[j], source: primaryName });
       }
@@ -361,8 +341,6 @@ function ensembleNoFragment(
 
   return result;
 }
-
-// --- Find conflicts between analyzers for a line ---
 
 interface Conflict {
   charStart: number;
@@ -397,19 +375,15 @@ function findConflicts(analyzerResults: Record<string, Token[]>): Conflict[] {
     }
     if (candidates.length === 0) { pos++; continue; }
 
-    // Check if all agree on charEnd
     const charEnds = new Set(candidates.map((c) => c.token.charEnd));
     if (charEnds.size === 1) {
-      // All agree on this boundary
       pos = candidates[0].token.charEnd;
       continue;
     }
 
-    // Conflict found - determine the full conflict range
     const conflictStart = pos;
     const conflictEnd = Math.max(...candidates.map((c) => c.token.charEnd));
 
-    // Collect each analyzer's tokens covering this range
     const options: Record<string, Token[]> = {};
     for (const name of analyzerNames) {
       const tokens: Token[] = [];
@@ -421,7 +395,6 @@ function findConflicts(analyzerResults: Record<string, Token[]>): Conflict[] {
       if (tokens.length > 0) options[name] = tokens;
     }
 
-    // Deduplicate options by segmentation pattern
     const seen = new Set<string>();
     const dedupedOptions: Record<string, Token[]> = {};
     for (const [name, tokens] of Object.entries(options)) {
@@ -572,8 +545,6 @@ function runEnsemble(
   }
 }
 
-// --- Component ---
-
 export default function EnsembleExperiment() {
   const [input, setInput] = useState(() => localStorage.getItem(SK_INPUT) ?? "");
   const [availableAnalyzers, setAvailableAnalyzers] = useState<string[]>([]);
@@ -615,7 +586,6 @@ export default function EnsembleExperiment() {
     });
   }, [save]);
 
-  // --- Run morphological analysis + ensemble ---
   const runAnalysis = useCallback(async () => {
     if (!input.trim() || analyzing) return;
     setAnalyzing(true);
@@ -642,7 +612,6 @@ export default function EnsembleExperiment() {
       const data: CompareResponse = await res.json();
       setMorphResults(data);
 
-      // Run ensemble for each line
       const ensemble: Record<number, EnsembleToken[]> = {};
       let totalStats: LlmPickStats = { latencyMs: 0, promptTokens: 0, candidateTokens: 0, cost: 0, conflicts: 0 };
       setEnsembleStats(null);
@@ -673,7 +642,6 @@ export default function EnsembleExperiment() {
     }
   }, [input, selectedAnalyzers, strategy, fallback, analyzing, apiKey, model]);
 
-  // --- Re-run ensemble when strategy/fallback changes ---
   const rerunEnsemble = useCallback(async () => {
     if (!morphResults) return;
     setAnalyzing(true);
@@ -703,7 +671,6 @@ export default function EnsembleExperiment() {
     setAnalyzing(false);
   }, [morphResults, parsedLines, strategy, fallback, apiKey, model]);
 
-  // --- Send ensemble to LLM ---
   const sendToLlm = useCallback(async () => {
     if (!apiKey.trim() || Object.keys(ensembleResults).length === 0 || sendingLlm) return;
     setSendingLlm(true);
@@ -781,7 +748,6 @@ export default function EnsembleExperiment() {
 
   return (
     <div className="ens-experiment">
-      {/* Config bar */}
       <div className="ens-config">
         <div className="ens-config-row">
           <label>Analyzers</label>
@@ -818,13 +784,11 @@ export default function EnsembleExperiment() {
         </div>
       </div>
 
-      {/* Prompt */}
       <details className="ens-prompt-section">
         <summary>System Prompt</summary>
         <textarea value={prompt} onChange={(e) => { setPrompt(e.target.value); save(SK_PROMPT, e.target.value); }} rows={10} />
       </details>
 
-      {/* Input + actions */}
       <div className="ens-input-section">
         <label>Input (JSON)</label>
         <textarea value={input} onChange={(e) => { setInput(e.target.value); save(SK_INPUT, e.target.value); }} rows={5}
@@ -844,7 +808,6 @@ export default function EnsembleExperiment() {
         </div>
       </div>
 
-      {/* Ensemble stats (LLM Pick) */}
       {ensembleStats && (
         <div className="ens-ensemble-stats">
           <span className="ens-ensemble-stats-label">LLM Pick</span>
@@ -856,7 +819,6 @@ export default function EnsembleExperiment() {
         </div>
       )}
 
-      {/* Results */}
       {parsedLines.length > 0 && morphResults && (
         <div className="ens-results">
           {parsedLines.map((line) => {
@@ -867,7 +829,6 @@ export default function EnsembleExperiment() {
               <div key={line.index} className="ens-line-block">
                 <div className="ens-line-header">Line {line.index}: {line.text}</div>
 
-                {/* Individual analyzers */}
                 {analyzerNames.map((name) => {
                   const result = morphResults.results[name];
                   if (!result?.lines) return <div key={name} className="ens-analyzer-row"><span className="ens-analyzer-name">{result?.displayName ?? name}</span><span className="ens-error">{result?.error}</span></div>;
@@ -887,7 +848,6 @@ export default function EnsembleExperiment() {
                   );
                 })}
 
-                {/* Ensemble result */}
                 <div className="ens-analyzer-row ens-ensemble-row">
                   <span className="ens-analyzer-name ens-ensemble-label">Ensemble</span>
                   <div className="ens-tokens">
@@ -901,7 +861,6 @@ export default function EnsembleExperiment() {
                   </div>
                 </div>
 
-                {/* LLM meanings */}
                 {llmLine && (
                   <div className="ens-llm-row">
                     <span className="ens-analyzer-name ens-llm-label">LLM</span>
@@ -921,7 +880,6 @@ export default function EnsembleExperiment() {
         </div>
       )}
 
-      {/* LLM stats */}
       {(llmStats || llmError) && (
         <div className="ens-llm-stats">
           {llmError && <span className="ens-error">{llmError}</span>}

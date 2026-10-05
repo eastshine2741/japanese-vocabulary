@@ -196,11 +196,7 @@ function computeLevel(count: number, max: number): number {
   return 1;
 }
 
-/**
- * Lays out `days` (chronological, oldest→today) into a 16×7 column-major grid
- * where row 0 = Monday … row 6 = Sunday. Anchors the LAST cell to today's
- * weekday, walking backward to place earlier days.
- */
+/** Column-major 16×7 grid, row 0 = Monday. The last day is anchored to its weekday and earlier days fill backward. */
 function computeGrid(days: HeatmapDay[]): CellState[] {
   const grid: CellState[] = Array.from({ length: COLS * ROWS }, () => ({ kind: 'empty' }));
   if (days.length === 0) return grid;

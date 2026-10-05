@@ -34,9 +34,6 @@ class SongAnalysisWorkEntity(
     @Column(name = "artwork_url")
     val artworkUrl: String? = null,
 
-    @Column(name = "active_dedup_key", unique = true, length = 512)
-    var activeDedupKey: String? = null,
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     var status: SongAnalysisWorkStatus = SongAnalysisWorkStatus.PENDING,
@@ -53,12 +50,6 @@ class SongAnalysisWorkEntity(
 
     @Column(name = "youtube_url", length = 500)
     var youtubeUrl: String? = null,
-
-    @Column(name = "locked_by")
-    var lockedBy: String? = null,
-
-    @Column(name = "locked_until")
-    var lockedUntil: Instant? = null,
 
     @Column(name = "error_code")
     var errorCode: String? = null,
@@ -80,6 +71,10 @@ class SongAnalysisWorkEntity(
     @LastModifiedDate
     @Column(name = "updated_at", nullable = false)
     var updatedAt: Instant? = null,
+
+    /** 이번 실행이 시작된 시각. 재시도 마감이 여기서 잰다. 실패한 단계부터 다시 돌리면 새로 찍힌다. */
+    @Column(name = "started_at")
+    var startedAt: Instant? = null,
 
     @Column(name = "player_ready_at")
     var playerReadyAt: Instant? = null,
@@ -107,19 +102,12 @@ class SongAnalysisWorkEntity(
 
     fun markCompleted(now: Instant) {
         status = SongAnalysisWorkStatus.COMPLETED
-        currentStage = SongAnalysisWorkStage.ANALYZE_LYRICS
-        activeDedupKey = null
-        lockedBy = null
-        lockedUntil = null
         completedAt = now
         clearFailure()
     }
 
     fun markFailed(code: String, message: String?, now: Instant) {
         status = SongAnalysisWorkStatus.FAILED
-        activeDedupKey = null
-        lockedBy = null
-        lockedUntil = null
         errorCode = code
         errorMessage = message?.take(MAX_ERROR_MESSAGE_LENGTH)
         failedAt = now

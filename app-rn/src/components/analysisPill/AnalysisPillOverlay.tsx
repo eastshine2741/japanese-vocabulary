@@ -19,14 +19,9 @@ import { AnalysisJob, deriveJobPillState, derivePillState } from './pillState';
 import { pillDockAfterDrag, shouldStartDockPan } from './pillDockGesture';
 
 // spec/AnalyzingPill (Pencil TN787): 모든 화면 위에 뜨는 분석 상태 pill.
-//  - 상단 도킹은 상태바 아래 16, 하단 도킹(기본)은 safe area 바로 위 8. 바텀 내비는 기준으로 삼지 않는다.
-//    소프트 키보드가 올라오면 하단 도킹은 키보드 바로 위로 올라간다.
-//  - 세로로 짧게 끌거나 가볍게 튕기면 반대쪽으로 도킹되고, 놓으면 튕김 없이 자리를 잡는다. 도킹 위치는 기기에 기억.
-//    끌던 pill 이 도중에 사라지면 드래그는 버리고, 다음 pill 은 도킹 위치에서 나타난다.
-//  - 2곡 이상이면 탭으로 곡별 pill 로 분해되고, 도킹된 쪽에서 반대 방향으로 자란다.
-//    앵커 쪽 pill 은 그 자리에서 첫 곡 pill 로 바뀌고, 나머지는 그 pill 밑에서 빠져나와 제자리로 간다.
-//    접을 땐 반대로 앵커 pill 밑으로 들어가 겹쳐진다.
-//  - 분석이 실패하면 실패 pill 이 3초 보이고, 탭하면 바로 지워진다. 남은 곡이 있으면 그 상태로 돌아간다.
+//  - 하단 도킹(기본)은 safe area 바로 위 8, 바텀 내비는 기준이 아니다. 키보드가 올라오면 키보드 바로 위로 올라간다.
+//  - 끌던 pill 이 도중에 사라지면 드래그는 버리고, 다음 pill 은 도킹 위치에서 나타난다. 도킹 위치는 기기에 기억.
+//  - 2곡 이상이면 탭으로 곡별 pill 로 분해된다. 앵커 pill 이 첫 곡 pill 이 되고 나머지는 그 밑에서 빠져나온다.
 //  - 펼친 pill 은 최대 MAX_STACK_PILLS 개까지만. 넘치는 곡은 앞 곡이 빠지면 올라온다.
 
 const BOTTOM_GAP = 16;
@@ -41,8 +36,7 @@ const SETTLE_SPRING = { mass: 1.5, stiffness: 300, damping: 41 } as const;
 const APPEAR_DURATION = 220;
 const APPEAR_EASING = Easing.out(Easing.cubic);
 const APPEAR_OFFSET = 16;
-// pill 슬롯의 layout 전환. 도킹이 바뀌면 슬롯이 스택 반대 끝으로 점프하는데, 그건 dragY 가 손 놓은 위치에서
-// 이어서 스냅하므로 여기서 또 움직이면 원래 자리에서 다시 출발하는 것처럼 보인다. 그 경우만 즉시 적용한다.
+// 도킹이 바뀌어 슬롯이 스택 반대 끝으로 점프할 때는 dragY 가 이어서 스냅하므로 layout 전환 없이 즉시 적용한다.
 const DOCK_JUMP_THRESHOLD = PILL_HEIGHT * 2;
 function slotLayout(values: {
   currentOriginX: number; currentOriginY: number; currentWidth: number; currentHeight: number;
@@ -75,7 +69,6 @@ function slotLayout(values: {
   };
 }
 
-// 나타날 때는 앵커 쪽에서 살짝 밀려나오며 커지고, 사라질 때는 그 반대. offset 부호가 방향이다.
 function pillEntering(offset: number) {
   return () => {
     'worklet';
@@ -118,8 +111,7 @@ const SPLIT_EASING = Easing.out(Easing.cubic);
 const SPLIT_SCALE = 0.94;
 const ANCHOR_Z = 100;
 
-// 분리/합체: 앵커 pill 위치(제자리에서 distance 만큼 앵커 쪽)에서 출발해 제자리로 간다. 앵커 pill 이 위에 겹치므로
-// 나오는 동안은 그 밑에서 빠져나오는 것처럼 보인다. 페이드는 없고 살짝 작은 크기에서 시작한다.
+// 분리: 앵커 pill 위치에서 출발해 제자리로 간다. 앵커 pill 이 위에 겹쳐 그 밑에서 빠져나오는 것처럼 보인다.
 function splitEntering(distance: number, order: number) {
   return () => {
     'worklet';
@@ -135,7 +127,7 @@ function splitEntering(distance: number, order: number) {
     };
   };
 }
-// 합체는 앵커 pill 밑으로 미끄러져 들어간다. 폭이 다른 pill 이 삐져나오지 않게 끝에서 흐려진다.
+// 합체: 폭이 다른 pill 이 삐져나오지 않게 끝에서 흐려진다.
 function mergeExiting(distance: number, order: number) {
   return () => {
     'worklet';
@@ -178,7 +170,7 @@ function PillSlot({ slotKey, dock, index, pan, children }: PillSlotProps) {
   }, [dock, index]);
   const panHandlers = useMemo(() => pan.handlersFor(slotKey), [pan, slotKey]);
   useEffect(() => () => pan.abandon(slotKey), [pan, slotKey]);
-  // 앵커 pill 이 항상 가장 위. exiting 중인 뷰는 마지막 props 를 유지하므로 count 에 따라 흔들리는 값을 쓰면 안 된다.
+  // exiting 중인 뷰는 마지막 props 를 유지하므로 count 에 따라 흔들리는 값을 쓰면 안 된다.
   return (
     <Animated.View
       layout={slotLayout}
@@ -292,8 +284,9 @@ export default function AnalysisPillOverlay() {
   const openSong = useCallback((songId: number | null) => {
     if (songId == null) return;
     setExpanded(false);
+    jobs.filter(j => j.phase === 'done' && j.songId === songId).forEach(j => dismiss(j.workId));
     navigate('SongDetail', { songId, origin: 'AnalysisPill' });
-  }, [setExpanded]);
+  }, [dismiss, jobs, setExpanded]);
 
   const handlePillPress = useCallback(() => {
     if (!pillState) return;
@@ -316,10 +309,8 @@ export default function AnalysisPillOverlay() {
   const showStack = expanded && jobs.length > 1;
   const stackJobs = useMemo(() => jobs.slice(0, MAX_STACK_PILLS), [jobs]);
 
-  // 앵커 쪽 pill 은 접힘/펼침에 걸쳐 같은 key 를 유지해 그 자리에서 내용만 바뀐다.
-  // 스택은 두 도킹 위치 사이 전체를 차지하는 고정 프레임이다(하단 도킹은 column-reverse 로 아래부터 쌓임).
   // exiting 중인 뷰는 부모 프레임 기준으로 그려지므로, 부모가 내용에 맞춰 줄어들면 엉뚱한 곳으로 튄다.
-  // 그래서 스택 크기를 고정하고 드래그 핸들러는 pill 마다 단다.
+  // 그래서 스택은 두 도킹 위치 사이 전체를 차지하는 고정 프레임이고, 드래그 핸들러는 pill 마다 단다.
   return (
     <View style={styles.overlay} pointerEvents="box-none">
       {showStack && <Pressable style={StyleSheet.absoluteFill} onPress={collapse} />}

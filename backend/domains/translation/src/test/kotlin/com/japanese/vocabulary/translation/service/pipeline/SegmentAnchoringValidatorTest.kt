@@ -33,9 +33,34 @@ class SegmentAnchoringValidatorTest {
     }
 
     @Test
+    fun `trims digits glued to a counter so the headword is the counter alone`() {
+        // `80億` as one word went to jisho as `80億`, which has no entry.
+        val result = validator.anchor(
+            mapOf(0 to "80億分の1の奇跡"),
+            listOf(
+                SegLineDto(
+                    0,
+                    listOf(
+                        word("80億", "80億", "ハチジュウオク", "ハチジュウオク"),
+                        word("分", "分", "ブン", "ブン"),
+                        word("の", "の", "ノ", "ノ"),
+                        word("の", "の", "ノ", "ノ"),
+                        word("奇跡", "奇跡", "キセキ", "キセキ"),
+                    ),
+                ),
+            ),
+        )
+
+        assertThat(result.failuresByIndex).isEmpty()
+        assertThat(result.incompleteByIndex).isEmpty()
+        val counter = result.anchoredByIndex[0]!!.first()
+        assertThat(Triple(counter.surface, counter.charStart, counter.charEnd)).isEqualTo(Triple("億", 2, 3))
+        assertThat(counter.headword).isEqualTo("億")
+    }
+
+    @Test
     fun `normalizes hiragana readings to katakana instead of failing the line`() {
-        // The prompt asks for katakana, but converting the other script costs nothing and is cheaper
-        // than a retry, so hiragana is absorbed rather than rejected.
+        // Hiragana is absorbed rather than rejected: converting is cheaper than a retry.
         val result = validator.anchor(
             mapOf(0 to "行って"),
             listOf(SegLineDto(0, listOf(word("行って", "行く", "いって", "いく")))),
@@ -86,8 +111,7 @@ class SegmentAnchoringValidatorTest {
 
     @Test
     fun `drops non-Japanese tokens instead of anchoring them`() {
-        // Symbols, spaces and latin have no reading and no meaning; the assembled pronunciation and
-        // the app both read them back out of the raw text by position, so they need no token.
+        // Symbols, spaces and latin need no token: they are read back out of the raw text by position.
         val result = validator.anchor(
             mapOf(0 to "「猫」 yay"),
             listOf(
@@ -111,10 +135,8 @@ class SegmentAnchoringValidatorTest {
 
     @Test
     fun `an invented space does not consume the real space later in the line`() {
-        // The song-77 failure. The model put a separator space after 涼しい that the line does not
-        // have; anchoring it matched the real space at offset 6, dragged the cursor past 風吹く, and
-        // then reported the `風` sitting at offset 3 as "not present in order" — an unfixable
-        // instruction the model answered with the same array three retries running.
+        // The model put a separator space after 涼しい that the line lacks; anchoring it matched the real
+        // space at offset 6, dragged the cursor past 風吹く, and reported `風` (offset 3) as missing.
         val result = validator.anchor(
             mapOf(0 to "涼しい風吹く 青空の匂い"),
             listOf(
@@ -147,9 +169,7 @@ class SegmentAnchoringValidatorTest {
 
     @Test
     fun `accepts a line whose punctuation lives inside the katakana Unicode block`() {
-        // `・` is U+30FB — inside the katakana block, but it has no reading. It must be dropped like
-        // any other symbol; treating it as Japanese demanded a reading nothing could supply, so the
-        // line failed every retry and took the whole song's analysis down with it.
+        // `・` is U+30FB, inside the katakana block but readingless; it must be dropped like any symbol.
         val result = validator.anchor(
             mapOf(0 to "ロックン・ロール"),
             listOf(
@@ -221,24 +241,22 @@ class SegmentAnchoringValidatorTest {
 
     @Test
     fun `reports uncovered Japanese as incomplete, and keeps the tokens that did anchor`() {
-        // Uncovered text is a missing word, not a wrong position: every surface here was found where
-        // it really is, so throwing the line away would cost 猫 and 寝る to save nothing.
+        // Uncovered text is a missing word, not a wrong position: every surface was found where it is.
         val result = validator.anchor(
-            mapOf(0 to "猫が寝る"),
+            mapOf(0 to "猫たち寝る"),
             listOf(SegLineDto(0, listOf(word("猫", "猫", "ネコ", "ネコ"), word("寝る", "寝る", "ネル", "ネル")))),
         )
 
         assertThat(result.failuresByIndex).isEmpty()
         assertThat(result.incompleteByIndex[0]?.message)
-            .isEqualTo("Japanese text 'が' at offset=1 is not covered by segmentation at line index=0")
+            .isEqualTo("Japanese text 'たち' at offset=1 is not covered by segmentation at line index=0")
         assertThat(result.anchoredByIndex.getValue(0).map { it.surface }).containsExactly("猫", "寝る")
-        assertThat(result.anchoredByIndex.getValue(0).map { it.charStart }).containsExactly(0, 2)
+        assertThat(result.anchoredByIndex.getValue(0).map { it.charStart }).containsExactly(0, 3)
     }
 
     @Test
     fun `a line with a surface out of order fails outright rather than counting as incomplete`() {
-        // The opposite case, so the two severities stay distinguishable: 寝る is searched for after the
-        // cursor has already passed it, and no offset in the line can be trusted afterwards.
+        // The opposite case: 寝る is searched for after the cursor passed it, so no offset can be trusted.
         val result = validator.anchor(
             mapOf(0 to "猫が寝る"),
             listOf(SegLineDto(0, listOf(word("寝る", "寝る", "ネル", "ネル"), word("猫", "猫", "ネコ", "ネコ")))),
@@ -251,8 +269,7 @@ class SegmentAnchoringValidatorTest {
 
     @Test
     fun `kana in parentheses right after a word is a reading annotation, not uncovered text`() {
-        // Song 131 writes the sung reading after the kanji, 解答(こたえ) — the parenthesized kana is how
-        // 解答 is pronounced here, not a word of its own, so there is no meaning to look up for it.
+        // 解答(こたえ): the parenthesized kana is how 解答 is pronounced, not a word of its own.
         val result = validator.anchor(
             mapOf(
                 0 to "解答(こたえ)絶え絶え 嫌嫌嫌 嫌嫌嫌",
@@ -323,9 +340,50 @@ class SegmentAnchoringValidatorTest {
     }
 
     @Test
+    fun `a reading annotation that spells only the start of the reading covers the okurigana after it`() {
+        // 愁(かな)しみ / 怠(たる)すぎ: the parenthesized kana starts the reading, the okurigana is the rest.
+        val result = validator.anchor(
+            mapOf(
+                8 to "愁(かな)しみとは噛みすぎたガムの味さ",
+                37 to "怠(たる)すぎたり、疲れちゃったり",
+            ),
+            listOf(
+                SegLineDto(
+                    8,
+                    listOf(
+                        word("愁", "悲しみ", "カナシミ", "カナシミ"),
+                        word("とは", "とは", "トワ", "トワ"),
+                        word("噛み", "噛む", "カミ", "カム"),
+                        word("すぎ", "過ぎる", "スギ", "スギル"),
+                        word("た", "た", "タ", "タ"),
+                        word("ガム", "ガム", "ガム", "ガム"),
+                        word("の", "の", "ノ", "ノ"),
+                        word("味", "味", "アジ", "アジ"),
+                        word("さ", "さ", "サ", "サ"),
+                    ),
+                ),
+                SegLineDto(
+                    37,
+                    listOf(
+                        word("怠", "怠い", "タルスギ", "タルイ"),
+                        word("たり", "たり", "タリ", "タリ"),
+                        word("疲れ", "疲れる", "ツカレ", "ツカレル"),
+                        word("ちゃっ", "ちゃう", "チャッ", "チャウ"),
+                        word("たり", "たり", "タリ", "タリ"),
+                    ),
+                ),
+            ),
+        )
+
+        assertThat(result.failuresByIndex).isEmpty()
+        assertThat(result.incompleteByIndex).isEmpty()
+        assertThat(result.anchoredByIndex.getValue(8).first().let { it.charStart to it.charEnd }).isEqualTo(0 to 1)
+        assertThat(result.anchoredByIndex.getValue(37).first().let { it.charStart to it.charEnd }).isEqualTo(0 to 1)
+    }
+
+    @Test
     fun `parenthesized kana that does not spell the word's reading is still uncovered`() {
-        // Only a restated reading is swallowed. Kana the model did not use as the reading is a word
-        // the segmentation skipped, standalone kana has nothing to annotate, and kanji in
+        // Only a restated reading is swallowed; other kana is a skipped word, and kanji in
         // parentheses is never an annotation.
         val mismatch = validator.anchor(
             mapOf(0 to "暗闇(クロ)"),
@@ -340,16 +398,15 @@ class SegmentAnchoringValidatorTest {
         assertThat(standalone.incompleteByIndex[0]?.text).isEqualTo("こたえ")
 
         val kanji = validator.anchor(
-            mapOf(0 to "猫(猫)"),
+            mapOf(0 to "猫(犬)"),
             listOf(SegLineDto(0, listOf(word("猫", "猫", "ネコ", "ネコ")))),
         )
-        assertThat(kanji.incompleteByIndex[0]?.text).isEqualTo("猫")
+        assertThat(kanji.incompleteByIndex[0]?.text).isEqualTo("犬")
     }
 
     @Test
     fun `parenthesized text left out is incomplete, not a failure`() {
-        // The song killer: 晴れ舞台（イェイ） came back as 晴れ舞台 on every attempt, because the ad-lib in
-        // parentheses does not read as a lyric word to the model.
+        // 晴れ舞台（イェイ） came back as 晴れ舞台 on every attempt: the parenthesized ad-lib does not read as a lyric word.
         val result = validator.anchor(
             mapOf(0 to "晴れ舞台（イェイ）"),
             listOf(SegLineDto(0, listOf(word("晴れ舞台", "晴れ舞台", "ハレブタイ", "ハレブタイ")))),
@@ -362,10 +419,52 @@ class SegmentAnchoringValidatorTest {
     }
 
     @Test
+    fun `an echo of a word already anchored on the line is copied from that word`() {
+        // The echo in parentheses came back once, as the first 見失う only; the repeat was UNCOVERED.
+        val result = validator.anchor(
+            mapOf(0 to "君を探し見失う (見失う, Ah-ah-ah-ah)"),
+            listOf(
+                SegLineDto(
+                    0,
+                    listOf(
+                        word("君", "君", "キミ", "キミ"),
+                        word("を", "を", "ヲ", "ヲ"),
+                        word("探し", "探す", "サガシ", "サガス"),
+                        word("見失う", "見失う", "ミウシナウ", "ミウシナウ"),
+                    ),
+                ),
+            ),
+        )
+
+        assertThat(result.failuresByIndex).isEmpty()
+        assertThat(result.incompleteByIndex).isEmpty()
+        val tokens = result.anchoredByIndex.getValue(0)
+        assertThat(tokens.map { Triple(it.surface, it.charStart, it.charEnd) }).containsExactly(
+            Triple("君", 0, 1),
+            Triple("を", 1, 2),
+            Triple("探し", 2, 4),
+            Triple("見失う", 4, 7),
+            Triple("見失う", 9, 12),
+        )
+        assertThat(tokens.last().headword).isEqualTo("見失う")
+        assertThat(tokens.last().usedReading).isEqualTo("ミウシナウ")
+    }
+
+    @Test
+    fun `left-out text that is not an anchored surface stays uncovered after an echo`() {
+        val result = validator.anchor(
+            mapOf(0 to "猫 (猫) 犬"),
+            listOf(SegLineDto(0, listOf(word("猫", "猫", "ネコ", "ネコ")))),
+        )
+
+        assertThat(result.incompleteByIndex[0]?.text).isEqualTo("犬")
+        assertThat(result.anchoredByIndex.getValue(0).map { it.charStart }).containsExactly(0, 3)
+    }
+
+    @Test
     fun `absorbs a small vowel kana the model left off the word in front of it`() {
-        // The song-115 defect: `あぁ` came back as the single surface `あ` on every attempt. The small
-        // `ぁ` is not a word — it stretches the `あ` in front of it — so asking the model to segment it
-        // separately never converged, and it shipped as an UNCOVERED defect for `ぁ`.
+        // `あぁ` came back as the single surface `あ`. The small `ぁ` stretches the `あ` and is not a
+        // word, so retrying never converged.
         val result = validator.anchor(
             mapOf(0 to "あぁ 夏を今もう一回 あぁ"),
             listOf(
@@ -397,6 +496,60 @@ class SegmentAnchoringValidatorTest {
         )
         assertThat(result.anchoredByIndex[0]!!.first().usedReading).isEqualTo("アァ")
         assertThat(result.anchoredByIndex[0]!!.first().headword).isEqualTo("あ")
+    }
+
+    @Test
+    fun `absorbs a trailing sokuon the model left off the word in front of it`() {
+        // The `っ` closing `ずっと夢中っ` cuts the sound off for emphasis; it opens no word, so it joins `夢中`.
+        val result = validator.anchor(
+            mapOf(0 to "必中 げっちゅー ずっと夢中っ"),
+            listOf(
+                SegLineDto(
+                    0,
+                    listOf(
+                        word("必中", "必中", "ヒッチュウ", "ヒッチュウ"),
+                        word("げっちゅー", "げっちゅー", "ゲッチュー", "ゲッチュー"),
+                        word("ずっと", "ずっと", "ズット", "ズット"),
+                        word("夢中", "夢中", "ムチュウ", "ムチュウ"),
+                    ),
+                ),
+            ),
+        )
+
+        assertThat(result.failuresByIndex).isEmpty()
+        assertThat(result.incompleteByIndex).isEmpty()
+        val last = result.anchoredByIndex[0]!!.last()
+        assertThat(Triple(last.surface, last.charStart, last.charEnd)).isEqualTo(Triple("夢中っ", 12, 15))
+        assertThat(last.usedReading).isEqualTo("ムチュウッ")
+        assertThat(last.headword).isEqualTo("夢中")
+    }
+
+    @Test
+    fun `absorbs an extra iteration mark the model left off a word that already repeats`() {
+        // `悶々々` came back as `悶々`; the last `々` only stretches the repetition, so there is no word to segment.
+        val result = validator.anchor(
+            mapOf(1 to "誰の成れの果て？（なんだっての悶々々...）"),
+            listOf(
+                SegLineDto(
+                    1,
+                    listOf(
+                        word("誰", "誰", "ダレ", "ダレ"),
+                        word("の", "の", "ノ", "ノ"),
+                        word("成れの果て", "成れの果て", "ナレノハテ", "ナレノハテ"),
+                        word("なんだって", "なんだって", "ナンダッテ", "ナンダッテ"),
+                        word("の", "の", "ノ", "ノ"),
+                        word("悶々", "悶々", "モンモン", "モンモン"),
+                    ),
+                ),
+            ),
+        )
+
+        assertThat(result.failuresByIndex).isEmpty()
+        assertThat(result.incompleteByIndex).isEmpty()
+        val last = result.anchoredByIndex.getValue(1).last()
+        assertThat(Triple(last.surface, last.charStart, last.charEnd)).isEqualTo(Triple("悶々々", 15, 18))
+        assertThat(last.headword).isEqualTo("悶々")
+        assertThat(last.usedReading).isEqualTo("モンモン")
     }
 
     @Test
@@ -485,6 +638,62 @@ class SegmentAnchoringValidatorTest {
             Triple("た", 2, 3),
             Triple("なら", 3, 5),
         )
+    }
+
+    @Test
+    fun `fills in a known one-character particle the model left out`() {
+        // The line-final を was left out on every retry.
+        val result = validator.anchor(
+            mapOf(7 to "見てろ　時代の転換点を"),
+            listOf(
+                SegLineDto(
+                    7,
+                    listOf(
+                        word("見てろ", "見る", "ミテロ", "ミル"),
+                        word("時代", "時代", "ジダイ", "ジダイ"),
+                        word("の", "の", "ノ", "ノ"),
+                        word("転換点", "転換点", "テンカンテン", "テンカンテン"),
+                    ),
+                ),
+            ),
+        )
+
+        assertThat(result.failuresByIndex).isEmpty()
+        assertThat(result.incompleteByIndex).isEmpty()
+        val particle = result.anchoredByIndex[7]!!.last()
+        assertThat(Triple(particle.surface, particle.charStart, particle.charEnd)).isEqualTo(Triple("を", 10, 11))
+        assertThat(particle.headword).isEqualTo("を")
+    }
+
+    @Test
+    fun `fills in a connective te the model left off the verb`() {
+        // 上げて was cut at 上げ, leaving the te uncovered on every retry.
+        val result = validator.anchor(
+            mapOf(59 to "声を上げて"),
+            listOf(
+                SegLineDto(
+                    59,
+                    listOf(
+                        word("声", "声", "コエ", "コエ"),
+                        word("を", "を", "ヲ", "ヲ"),
+                        word("上げ", "上げる", "アゲ", "アゲル"),
+                    ),
+                ),
+            ),
+        )
+
+        assertThat(result.incompleteByIndex).isEmpty()
+        assertThat(result.anchoredByIndex[59]!!.map { it.surface }).containsExactly("声", "を", "上げ", "て")
+    }
+
+    @Test
+    fun `still reports a left-out run that is not a known particle`() {
+        val result = validator.anchor(
+            mapOf(0 to "転換点をさ"),
+            listOf(SegLineDto(0, listOf(word("転換点", "転換点", "テンカンテン", "テンカンテン")))),
+        )
+
+        assertThat(result.incompleteByIndex[0]!!.text).isEqualTo("をさ")
     }
 
     private fun word(surface: String, headword: String, usedReading: String, baseFormReading: String) =

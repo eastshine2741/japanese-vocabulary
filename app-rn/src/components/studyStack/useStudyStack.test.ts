@@ -32,13 +32,16 @@ vi.mock('react-native', () => ({
   PanResponder: { create: (handlers: unknown) => ({ panHandlers: handlers }) },
 }));
 vi.mock('@react-navigation/native', () => ({ useIsFocused: () => native.focused }));
-vi.mock('../../api/flashcardApi', () => ({ flashcardApi: { getDueCards: vi.fn(), review: vi.fn() } }));
+vi.mock('../../api/flashcardApi', () => ({
+  flashcardApi: { getDueCards: vi.fn(), review: vi.fn(), getStats: vi.fn() },
+}));
 vi.mock('../../api/deckApi', () => ({ deckApi: { getDecks: vi.fn().mockResolvedValue({ songDecks: [] }) } }));
 vi.mock('../../api/songApi', () => ({
   songApi: { getRecommendations: vi.fn(), getWords: vi.fn(), studyBootstrap: vi.fn() },
 }));
 vi.mock('../../api/studyStatsApi', () => ({ studyStatsApi: { getHome: vi.fn() } }));
 vi.mock('../../api/wordApi', () => ({ wordApi: { getById: vi.fn() } }));
+vi.mock('../../services/analytics', () => ({ trackCardReveal: vi.fn(), trackCardRate: vi.fn() }));
 vi.mock('../../stores/studyStatsStore', () => ({ useStudyStatsStore: { getState: () => ({ invalidate: vi.fn() }) } }));
 
 const source: StudySource = {
@@ -75,6 +78,9 @@ beforeEach(() => {
   vi.resetAllMocks();
   native.focused = true;
   vi.mocked(deckApi.getDecks).mockResolvedValue({ songDecks: [], nextCursor: null });
+  vi.mocked(flashcardApi.getStats).mockResolvedValue({
+    total: 0, due: 0, newCount: 0, learning: 0, review: 0, longTermCount: 0, shortTermCount: 0,
+  });
   vi.mocked(flashcardApi.review).mockResolvedValue({
     id: 1, state: 1, due: '2026-09-05T01:00:10Z', stability: 1, difficulty: 1, memory: 'SHORT_TERM',
   });
@@ -575,6 +581,30 @@ it('startRecommended opens the recommended preview card even when it is already 
   expect(songApi.getWords).toHaveBeenCalledTimes(2);
   expect(stack.isComplete).toBe(false);
   expect(stack.currentCard?.japanese).toBe('高い');
+});
+
+it('counts today\'s remaining due across all decks and decrements it with the deck badge on review', async () => {
+  vi.mocked(deckApi.getDecks).mockResolvedValue({
+    songDecks: [
+      { deckId: 7, songId: 3, title: 'Song', artist: 'A', artworkUrl: null, wordCount: 40, dueCount: 6, masteredCount: 0, studyingCount: 0, newWordCount: 0, longTermCount: 0, shortTermCount: 0 },
+      { deckId: 8, songId: 4, title: 'Other', artist: 'B', artworkUrl: null, wordCount: 10, dueCount: 4, masteredCount: 0, studyingCount: 0, newWordCount: 0, longTermCount: 0, shortTermCount: 0 },
+    ],
+    nextCursor: null,
+  });
+  // 전체 due 는 고른 곡의 큐가 아니라 stats 가 정한다 — 헤더와 복습 스케줄 화면이 같은 숫자를 쓴다.
+  vi.mocked(flashcardApi.getStats).mockResolvedValue({
+    total: 50, due: 10, newCount: 0, learning: 0, review: 0, longTermCount: 0, shortTermCount: 0,
+  });
+  vi.mocked(songApi.getRecommendations).mockResolvedValue([]);
+  vi.mocked(flashcardApi.getDueCards)
+    .mockResolvedValue({ cards: [card(9), card(1)], totalCount: 2, nextDueAt: null });
+  await mountHome();
+  expect(stack.dueTodayCount).toBe(10);
+  expect(stack.deckStripItems.map(i => i.dueCount)).toEqual([6, 4]);
+
+  await rate();
+  expect(stack.dueTodayCount).toBe(9);
+  expect(stack.deckStripItems.map(i => i.dueCount)).toEqual([5, 4]);
 });
 
 it('selectSource on another recommendation loads a fresh preview card', async () => {

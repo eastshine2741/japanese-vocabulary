@@ -63,8 +63,6 @@ export function ReelTimeline({
   )
 }
 
-// ─── 오버뷰 ────────────────────────────────────────────────────────────────────
-
 function Overview({
   editor,
   mvDurationMs,
@@ -143,8 +141,6 @@ function Overview({
     </div>
   )
 }
-
-// ─── 상세 타임라인 ───────────────────────────────────────────────────────────────
 
 function Detail({
   detail,
@@ -280,8 +276,6 @@ function Detail({
   )
 }
 
-// ─── 조각 ──────────────────────────────────────────────────────────────────────
-
 function Handle({
   ariaLabel,
   side,
@@ -326,8 +320,7 @@ function Playhead({ percent }: { percent: number }) {
 }
 
 /**
- * 포인터 드래그. 창 단위 리스너라 트랙 밖으로 나가도 계속 잡힌다.
- * 3px 이내 움직임은 클릭으로 본다(onEnd 의 moved=false).
+ * 포인터 드래그. 창 단위 리스너라 트랙 밖으로 나가도 계속 잡히고, 3px 이내 움직임은 클릭이다(onEnd 의 moved=false).
  * 기본 동작을 막고 포인터를 잡아 두지 않으면 브라우저가 텍스트 선택·네이티브 드래그로 가져간다.
  */
 function startDrag(

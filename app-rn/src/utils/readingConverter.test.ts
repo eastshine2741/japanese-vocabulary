@@ -2,12 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { ReadingToken, convertLineReading, convertReading, katakanaToHiragana } from './readingConverter';
 
 /**
- * These cases moved here from the lyric-translation prompt's `[PRONUNCIATION_OVERRIDE]` section.
- *
- * The pipeline used to ask the LLM for a Hangul transcription and spent a long prompt block forcing
- * voiceless K/T rows to aspirated Korean against 외래어 표기법's word-initial rule. The pipeline now
- * stores katakana and this function derives the Hangul, so that rule is code, and these are the cases
- * that pin it down.
+ * Pins the 외래어 표기법 rule that voiceless K/T rows stay aspirated, which the pipeline
+ * used to force through the LLM prompt.
  */
 describe('convertReading KOREAN — voiceless K/T rows stay aspirated in any position', () => {
   const cases: [string, string][] = [
@@ -117,6 +113,19 @@ describe('convertLineReading — a long vowel belongs to one word, so conversion
 
   it('still marks a long vowel inside a single word', () => {
     expect(convertLineReading('東京', [token('東京', 'トウキョウ', 0)], 'KOREAN')).toBe('토-쿄-');
+  });
+
+  it('reads て + いる in a verb\'s inflection as two syllables', () => {
+    // テイ is the long e of 丁寧, but in 探していたら it is て + いた: 사가시테-타라 was wrong.
+    expect(convertLineReading('探していたら', [token('探していたら', 'サガシテイタラ', 0, 'VERB')], 'KOREAN'))
+      .toBe('사가시테이타라');
+    expect(convertLineReading('ている', [token('ている', 'テイル', 0, 'AUXILIARY_VERB')], 'KOREAN'))
+      .toBe('테이루');
+  });
+
+  it('still marks the long vowel in the kanji part of a verb', () => {
+    expect(convertLineReading('制する', [token('制する', 'セイスル', 0, 'VERB')], 'KOREAN')).toBe('세-스루');
+    expect(convertLineReading('先生', [token('先生', 'センセイ', 0, 'NOUN')], 'KOREAN')).toBe('센세-');
   });
 });
 

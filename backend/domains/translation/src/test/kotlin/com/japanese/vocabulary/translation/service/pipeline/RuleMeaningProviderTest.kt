@@ -15,6 +15,16 @@ class RuleMeaningProviderTest {
     }
 
     @Test
+    fun `resolves archaic manima in no-manima-ni`() {
+        // 浮世の随に — 随 comes out as its own token with に split off, and jisho has no entry for it.
+        val resolved = provider.resolve(PipelineToken(7, "随", "随", 3, 4))!!
+
+        assertThat(resolved.baseForm).isEqualTo("随")
+        assertThat(resolved.reading).isEqualTo("マニマ")
+        assertThat(resolved.koreanText).contains("대로")
+    }
+
+    @Test
     fun `resolves teshimau headword behind a colloquial contracted surface`() {
         // 当然の報いにクラっちゃった — segmentation already normalises っちゃった to the headword
         // てしまう, so the rule must key on the headword and not require the surface to match.
@@ -24,6 +34,18 @@ class RuleMeaningProviderTest {
         assertThat(resolved.baseForm).isEqualTo("てしまう")
         assertThat(resolved.baseFormReading).isEqualTo("テシマウ")
         assertThat(resolved.koreanText).isEqualTo("~해 버리다")
+    }
+
+    @Test
+    fun `resolves teoku headword behind a colloquial contracted surface`() {
+        // ただ泣きたくて 図っといて 集めちゃった感情参考書です — segmentation normalises といて to
+        // the headword ておく, which jisho has no entry for.
+        val resolved = provider.resolve(PipelineToken(34, "といて", "ておく", 10, 13))!!
+
+        assertThat(resolved.partOfSpeech).isEqualTo(PartOfSpeech.AUXILIARY_VERB)
+        assertThat(resolved.baseForm).isEqualTo("ておく")
+        assertThat(resolved.baseFormReading).isEqualTo("テオク")
+        assertThat(resolved.koreanText).isEqualTo("~해 두다")
     }
 
     @Test
@@ -48,6 +70,17 @@ class RuleMeaningProviderTest {
     }
 
     @Test
+    fun `resolves glued dakede as a single particle`() {
+        // 嫌になんだよ お前を見ただけで — segmentation emits だけで as surface and headword, so
+        // GluedParticleSplitter has nothing to split and jisho has no entry for the glued form.
+        val resolved = provider.resolve(PipelineToken(33, "だけで", "だけで", 11, 14))!!
+
+        assertThat(resolved.partOfSpeech).isEqualTo(PartOfSpeech.PARTICLE)
+        assertThat(resolved.baseFormReading).isEqualTo("ダケデ")
+        assertThat(resolved.koreanText).isNotBlank()
+    }
+
+    @Test
     fun `resolves conditional tara and its voiced dara form`() {
         // 声聞かせて その手掴んだら離さないから — segmentation emits だら on its own, and jisho has no
         // entry for the た+ら suffix, so it has to be settled by rule like た and だ are.
@@ -57,6 +90,44 @@ class RuleMeaningProviderTest {
         assertThat(dara.baseFormReading).isEqualTo("ダラ")
         assertThat(dara.koreanText).isEqualTo("~하면, ~했더니")
         assertThat(provider.resolve(token("たら"))!!.koreanText).isEqualTo("~하면, ~했더니")
+    }
+
+    @Test
+    fun `resolves shiteiku glued after a suru-noun as auxiliary teiku`() {
+        // 頭ん中ぎゅるんぎゅるん回転していく — segmentation emits していく as surface and headword
+        // after 回転, and jisho has no entry for the する + ていく chain.
+        val resolved = provider.resolve(PipelineToken(5, "していく", "していく", 13, 17))!!
+
+        assertThat(resolved.partOfSpeech).isEqualTo(PartOfSpeech.AUXILIARY_VERB)
+        assertThat(resolved.baseFormReading).isEqualTo("シテイク")
+        assertThat(resolved.koreanText).isEqualTo("~해 가다")
+        assertThat(provider.resolve(token("ていく"))!!.koreanText).isEqualTo("~해 가다")
+    }
+
+    @Test
+    fun `resolves colloquial concessive ttatte behind a mistaken toittatte headword`() {
+        // 宙に舞ったったってその因果も — segmentation emits ったって with the headword といったって,
+        // which jisho has no entry for, so the concessive suffix must be settled by rule.
+        val resolved = provider.resolve(PipelineToken(71, "ったって", "といったって", 5, 9))
+
+        assertThat(resolved).isNotNull
+        assertThat(resolved!!.partOfSpeech).isEqualTo(PartOfSpeech.AUXILIARY_VERB)
+        assertThat(resolved.baseForm).isEqualTo("ったって")
+        assertThat(resolved.koreanText).isEqualTo("~해도, ~한들")
+        assertThat(provider.resolve(token("たって"))!!.koreanText).isEqualTo("~해도, ~한들")
+    }
+
+    @Test
+    fun `resolves colloquial yada contraction of iyada`() {
+        // ああもうやだ 間違えたら正しさの先まで — segmentation writes the headword as 嫌だ, which jisho
+        // has no entry for, and the やだ surface is the contraction itself.
+        val resolved = provider.resolve(PipelineToken(4, "やだ", "嫌だ", 4, 6))!!
+
+        assertThat(resolved.partOfSpeech).isEqualTo(PartOfSpeech.NA_ADJECTIVE)
+        assertThat(resolved.baseForm).isEqualTo("嫌だ")
+        assertThat(resolved.reading).isEqualTo("ヤダ")
+        assertThat(resolved.baseFormReading).isEqualTo("イヤダ")
+        assertThat(resolved.koreanText).isNotBlank()
     }
 
     @Test
@@ -72,6 +143,17 @@ class RuleMeaningProviderTest {
         assertThat(resolved.baseForm).isEqualTo("どうして")
         assertThat(resolved.partOfSpeech).isEqualTo(PartOfSpeech.ADVERB)
         assertThat(resolved.koreanText).contains("왜")
+    }
+
+    @Test
+    fun `resolves colloquial mettara from yatara mettara`() {
+        // なんでもかんでもやたらめったら性癖フェティシズム — めったら is a colloquial stretch of 滅多
+        // with no jisho headword, so it was reported as a dictionary miss.
+        val resolved = provider.resolve(PipelineToken(28, "めったら", "めったら", 11, 15))!!
+
+        assertThat(resolved.partOfSpeech).isEqualTo(PartOfSpeech.ADVERB)
+        assertThat(resolved.reading).isEqualTo("メッタラ")
+        assertThat(resolved.koreanText).isNotBlank()
     }
 
     @Test
@@ -151,8 +233,7 @@ class RuleMeaningProviderTest {
 
     @Test
     fun `gives rule-resolved grammar tokens katakana readings`() {
-        // Everything else in the pipeline stores readings in katakana; a hiragana reading here would
-        // leave particles and auxiliaries as the odd ones out in an assembled line.
+        // Readings are stored in katakana pipeline-wide.
         assertThat(provider.resolve(token("は"))!!.reading).isEqualTo("ハ")
         assertThat(provider.resolve(token("ている"))!!.baseFormReading).isEqualTo("テイル")
         assertThat(provider.resolve(token("どうして"))!!.reading).isEqualTo("ドウシテ")
@@ -172,9 +253,7 @@ class RuleMeaningProviderTest {
 
     @Test
     fun `gives rewritten tokens a context gloss`() {
-        // ここ is a kana headword, so jisho answers it with several homophones. Sending it to
-        // sense-select with an empty gloss would strip the one hint that tells them apart — and the
-        // rewrite rules are what produce these tokens in the first place.
+        // ここ is a kana headword answered with several homophones; an empty gloss would strip the hint that tells them apart.
         val rewritten = provider.rewrite(listOf(PipelineToken(0, "ここまで", "ここまで", 0, 4)))
 
         assertThat(rewritten.map { it.contextGloss }).allSatisfy { assertThat(it).isNotBlank() }

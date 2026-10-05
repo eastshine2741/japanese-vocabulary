@@ -1,0 +1,162 @@
+# 단일 노드 RabbitMQ 브로커.
+#
+# StatefulSet 인 이유는 복제가 아니라 노드 이름이다. RabbitMQ 의 데이터 디렉터리는 노드 이름에서
+# 나오고 노드 이름은 호스트명에서 나오므로, 호스트명이 바뀌면 빈 mnesia 로 올라와 durable 큐를
+# 잃는다. StatefulSet 의 파드 이름(`rabbitmq-0`)은 재시작 사이에 고정이다.
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq
+  labels:
+    app: rabbitmq
+spec:
+  selector:
+    app: rabbitmq
+  ports:
+    - name: amqp
+      port: 5672
+      targetPort: amqp
+    - name: management
+      port: 15672
+      targetPort: management
+    - name: prometheus
+      port: 15692
+      targetPort: prometheus
+---
+# 파드 호스트명을 DNS 로 풀 수 있게 하는 headless service. erlang 노드 이름 해석에 쓰인다.
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq-nodes
+  labels:
+    app: rabbitmq
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: true
+  selector:
+    app: rabbitmq
+  ports:
+    - name: epmd
+      port: 4369
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: rabbitmq
+spec:
+  serviceName: rabbitmq-nodes
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rabbitmq
+  template:
+    metadata:
+      labels:
+        app: rabbitmq
+      annotations:
+        # 토폴로지 import 는 부팅 때만 돈다. ConfigMap/Secret 만 바뀌면 파드는 그대로 남아
+        # 변경이 조용히 묻히므로, deploy.sh 가 두 파일의 해시를 여기 넣어 롤아웃을 트리거한다.
+        kotonoha.dev/definitions-hash: "${RABBITMQ_DEFINITIONS_HASH}"
+    spec:
+      # 이미지 entrypoint 는 .erlang.cookie 를 실행 유저 소유로 만든다. root 로 띄우면 쿠키가
+      # root:root 0400 이 되고 브로커는 999 로 돌아 eacces 로 부팅에 실패한다.
+      # fsGroup 은 PVC 를 999 가 쓸 수 있게 한다 — hcloud-volumes 가 주는 마운트 루트는
+      # root:root 0755 라 이게 없으면 브로커가 데이터 디렉터리에 쓰지 못한다.
+      #
+      # fsGroupChangePolicy 는 필수다. 기본값(Always)은 마운트마다 볼륨 전체에 g+rw 를 덧붙여
+      # .erlang.cookie 를 0660 으로 만들고, Erlang 은 쿠키가 소유자 전용이 아니면
+      # `Cookie file ... must be accessible by owner only` 로 거부한다. 첫 부팅만 되고
+      # 재시작부터 깨지는 형태라 눈에 잘 띄지 않는다. OnRootMismatch 는 볼륨 루트의 소유자가
+      # 이미 맞으면 재귀 변경을 건너뛴다.
+      securityContext:
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+        fsGroupChangePolicy: OnRootMismatch
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: rabbitmq
+          image: rabbitmq:4.1-management
+          ports:
+            - name: amqp
+              containerPort: 5672
+            - name: management
+              containerPort: 15672
+            - name: prometheus
+              containerPort: 15692
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 512Mi
+          volumeMounts:
+            - name: config
+              mountPath: /etc/rabbitmq/rabbitmq.conf
+              subPath: rabbitmq.conf
+              readOnly: true
+            - name: config
+              mountPath: /etc/rabbitmq/enabled_plugins
+              subPath: enabled_plugins
+              readOnly: true
+            # 디렉터리째로 마운트하면 안 된다. ConfigMap/Secret 볼륨은 마운트 지점에 `..data`
+            # 심볼릭 링크와 `..2026_10_03_...` 타임스탬프 디렉터리를 함께 만들고, RabbitMQ 의
+            # 디렉터리 import 는 그 디렉터리까지 파일로 읽으려다 eisdir 로 부팅에 실패한다.
+            # subPath 는 파일 하나만 bind mount 하므로 그 숨은 항목들이 생기지 않는다.
+            - name: config
+              mountPath: /etc/rabbitmq/definitions.d/00-topology.json
+              subPath: 00-topology.json
+              readOnly: true
+            - name: users
+              mountPath: /etc/rabbitmq/definitions.d/10-users.json
+              subPath: 10-users.json
+              readOnly: true
+            - name: data
+              mountPath: /var/lib/rabbitmq
+          # AMQP listener 는 definitions import 가 끝난 뒤에 열린다. 그래서 포트가 열렸다는 것이
+          # 곧 토폴로지가 들어갔다는 뜻이고, 앱이 큐 없는 브로커에 붙는 창이 없다.
+          startupProbe:
+            tcpSocket:
+              port: amqp
+            periodSeconds: 3
+            failureThreshold: 60
+          readinessProbe:
+            tcpSocket:
+              port: amqp
+            periodSeconds: 10
+          # 포트만 보는 검사는 멈춘 브로커를 못 잡는다. 주기를 느슨하게 둬서 BEAM 한 번 띄우는
+          # 비용(100m 요청 대비)을 분당 1회로 제한한다.
+          livenessProbe:
+            exec:
+              command: ["rabbitmq-diagnostics", "-q", "ping"]
+            periodSeconds: 60
+            timeoutSeconds: 15
+            failureThreshold: 3
+      volumes:
+        - name: config
+          configMap:
+            name: rabbitmq-config
+            items:
+              - key: rabbitmq.conf
+                path: rabbitmq.conf
+              - key: enabled_plugins
+                path: enabled_plugins
+              - key: 00-topology.json
+                path: 00-topology.json
+        # 계정 선언. 토폴로지와 같은 디렉터리에 들어가고, 파일 이름의 숫자 접두사가 import 순서다 —
+        # vhost 를 만드는 00 이 계정 10 보다 먼저여야 한다.
+        - name: users
+          secret:
+            secretName: rabbitmq-default-user
+            items:
+              - key: 10-users.json
+                path: 10-users.json
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi

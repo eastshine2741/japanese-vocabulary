@@ -12,6 +12,7 @@ class AdminApplicationWiringTest : AdminBaseIntegrationTest() {
             "youtubeClient",
             "lrclibClient",
             "vocadbClient",
+            "utaitedbClient",
             "songSearchCache",
             "recentSongService",
         ).forEach { beanName ->

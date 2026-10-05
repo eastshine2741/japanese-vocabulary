@@ -38,9 +38,8 @@ export interface GeminiCallResult {
   cost: number;
 }
 
-// --- Per-model rate limiter (sliding window, RPM) ---
-// Some preview models have very tight quotas (e.g. gemini-3.1-pro-preview = 25 RPM).
-// We use values slightly below the documented limit for safety.
+// Per-model sliding-window RPM limiter. Limits sit slightly below the documented quota
+// (e.g. gemini-3.1-pro-preview = 25 RPM).
 const RATE_LIMITS_RPM: Record<string, number> = {
   "gemini-3.1-pro-preview": 22,
 };

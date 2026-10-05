@@ -52,8 +52,7 @@ class ChunkedGeminiCallTest {
 
     @Test
     fun `chunks a segmentation retry by the lines it was actually given, not the whole song`(): Unit = runBlocking {
-        // A retry sends only the failing lines. Chunking must bound the request without widening the
-        // retry set back to the full song — 25 failing lines out of a 96-line song still make 2 calls.
+        // Chunking must bound a retry without widening it to the full song: 25 failing of 96 lines is 2 calls.
         val failingLines = listOf(3, 9, 14, 20, 31, 47, 52, 60, 61, 62, 70, 71, 72, 80, 81, 82, 83, 84, 90, 91, 92, 93, 94, 95, 96)
         val calls = mutableListOf<List<Int>>()
 

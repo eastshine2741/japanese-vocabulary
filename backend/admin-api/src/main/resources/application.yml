@@ -12,6 +12,22 @@ spring:
     hibernate:
       ddl-auto: validate
     open-in-view: false
+
+  # domains:notification 이 Redis 를 런타임 classpath 로 끌고 온다. admin-api 자신은 Redis 를 쓰지
+  # 않으므로 연결은 지연 생성되고 health 체크도 꺼져 있다.
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: 6379
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    # 토폴로지는 브로커가 부팅 때 읽는 definitions(k8s/{dev,prod}/rabbitmq/configmap.yaml)가 소유한다.
+    # RabbitAdmin 을 띄우지 않아야 선언의 진실 원천이 하나로 남는다.
+    dynamic: false
   servlet:
     multipart:
       # reels factory MV 업로드. 1080p MV 가 100~200MB 라 여유를 둔다.
@@ -23,7 +39,7 @@ admin:
     password: ${ADMIN_PASSWORD:}
     password-sha256: ${ADMIN_PASSWORD_SHA256:}
     token-secret: ${ADMIN_TOKEN_SECRET:dev-admin-token-secret-must-be-at-least-32-bytes}
-    token-ttl-minutes: ${ADMIN_TOKEN_TTL_MINUTES:60}
+    token-ttl-minutes: ${ADMIN_TOKEN_TTL_MINUTES:180}
 
 management:
   endpoints:

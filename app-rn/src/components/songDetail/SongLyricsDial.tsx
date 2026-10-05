@@ -274,9 +274,7 @@ function SongLyricsDial({
     return measuredCallbacks.current[index];
   }, []);
 
-  // 줄 수가 달라졌으면 이전 가사의 높이를 그대로 쓰면 안 된다. 같은 가사에 단어만
-  // 다시 내려온 경우는 줄마다 onLayout 이 알아서 고쳐 주므로 지우지 않는다 — 지우면
-  // 단어 하나 담을 때마다 다이얼이 다시 자리를 잡느라 흔들린다.
+  // 줄 수가 바뀔 때만 지운다. 단어만 다시 내려온 경우 지우면 다이얼이 흔들린다.
   useEffect(() => {
     setLineHeights({});
   }, [lineCount]);
@@ -288,8 +286,7 @@ function SongLyricsDial({
     });
   }, [dynamicProgress, isDragging]);
 
-  // 포커스 줄의 중심이 focusCenterY 에 오도록 더미를 민다. 다이얼 높이를 재기 전에는
-  // 목표를 모르니, 첫 자리잡기만 애니메이션 없이 바로 앉힌다.
+  // 첫 자리잡기만 애니메이션 없이 바로 앉힌다.
   const hasPositionedRef = useRef(false);
   useEffect(() => {
     if (dialHeight === 0) return;
@@ -338,8 +335,7 @@ function SongLyricsDial({
         lastTarget.value = startIndex;
         runOnJS(updatePreview)(null);
         if (target !== startIndex) {
-          // 드래그 값을 stackY 에 흡수시켜, 손을 뗀 자리에서 이어서 움직이게 한다.
-          // 안 그러면 드래그는 0 으로 돌아가고 stackY 는 따로 새 줄로 가서 다이얼이 흔들린다.
+          // 드래그 값을 stackY 에 흡수시켜 손을 뗀 자리에서 이어 움직인다. 안 그러면 다이얼이 흔들린다.
           stackY.value = stackY.value + dragOffset.value;
           dragOffset.value = 0;
           runOnJS(commitLine)(target);
@@ -364,8 +360,7 @@ function SongLyricsDial({
     transform: [{ translateY: stackY.value + dragOffset.value }],
   }));
 
-  // 띠도 슬롯과 같은 축으로 줄어든다. 위치와 크기는 top/height 로 직접 넣는다 —
-  // transform 안의 translateY 는 transformOrigin 에 같이 말려 들어가 어긋난다.
+  // 위치와 크기는 top/height 로 넣는다 — transform 의 translateY 는 transformOrigin 에 말려 어긋난다.
   const highlightStyle = useAnimatedStyle(() => ({
     top: highlightTop.value,
     height: highlightHeight.value,

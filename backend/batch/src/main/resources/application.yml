@@ -1,22 +1,14 @@
-server:
-  port: 8081
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,prometheus
-  endpoint:
-    health:
-      probes:
-        enabled: true
-
 spring:
   application:
     name: japanese-vocabulary-batch
 
+  main:
+    # CronJob 컨테이너. 웹 서버를 띄우지 않고 CronTaskRunner 가 끝나면 종료한다.
+    web-application-type: none
+
   batch:
     job:
+      # 기동만으로 모든 Job 이 돌면 안 된다. 실행할 작업은 --task 가 고른다.
       enabled: false
 
   datasource:
@@ -41,48 +33,10 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: 6379
 
-gemini:
-  api-key: ${GEMINI_API_KEY}
-  translation-model: gemini-3.1-pro-preview
-  word-meaning-model: gemini-3.1-flash-lite
-  # Segmentation now carries the whole pipeline's disambiguation signal — both readings and the
-  # context gloss. Its tier is tuned separately from the cheaper select/translate calls.
-  #
-  # Measured against gemini-3-flash-preview on three golden songs: the higher tier matches flash-lite
-  # inside run-to-run noise, needs its thinking bounded to answer at all, and hallucinated the Korean
-  # translation into the segmentation output at thinking level `low`. See the table in
-  # docs/architecture/song-analysis.md. Keep flash-lite until that comparison says otherwise.
-  segmentation-model: gemini-3.1-flash-lite
-  # Blank sends no thinkingConfig, which is what flash-lite wants. Set to minimal/low/high only when
-  # moving segmentation to a model that thinks by default, or its answer runs out of output budget.
-  segmentation-thinking-level: ""
-  # Transport-level failures only (dropped connection, 5xx, 429). One prod work died on a single
-  # "generativelanguage.googleapis.com:443 failed to respond" that the same input passed four
-  # minutes later. Backoff doubles per attempt: 2s, 4s.
-  retry:
-    max-attempts: 3
-    initial-backoff: 2s
-
-jisho:
-  # Same policy as gemini.retry (ExponentialBackoff: 5xx, 429, dropped connection). A 90-second
-  # jisho outage once turned 23 lookups in one song into "no dictionary entry"; four attempts at
-  # 2s, 4s, 8s ride out a blip, and what survives is logged as a PROVIDER_ERROR defect.
-  retry:
-    max-attempts: 4
-    initial-backoff: 2s
-
-youtube:
-  api-key: ${YOUTUBE_API_KEY}
-
-push:
-  manual:
-    secret: ${MANUAL_PUSH_SECRET:}
-
 recommendation:
   apple-rss:
     storefront: jp
     limit: 100
-    collect-cron: "0 0 3 ? * MON"
 
 sentry:
   dsn: ${SENTRY_DSN_BATCH:}
@@ -90,7 +44,6 @@ sentry:
   release: ${SENTRY_RELEASE:}
   send-default-pii: false
   traces-sample-rate: 0.1
-  exception-resolver-order: -2147483647
   logging:
     minimum-event-level: warn
     minimum-breadcrumb-level: info

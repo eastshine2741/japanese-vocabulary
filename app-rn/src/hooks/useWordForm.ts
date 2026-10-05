@@ -2,9 +2,8 @@ import { useState, useMemo, useCallback } from 'react';
 import { WordSense } from '../types/word';
 
 /**
- * 뜻 단위 편집 폼. 폼이 직접 다루는 건 meaning 과 partOfSpeech 뿐이고,
- * jlpt·examples 는 그 뜻에 붙은 채로 그대로 실려 나간다 — 저장이 senses 전체 replace 라서
- * 폼이 들고 있지 않은 필드는 그대로 사라지기 때문이다.
+ * 폼이 다루는 건 meaning 과 partOfSpeech 뿐이다. 저장이 senses 전체 replace 라서
+ * jlpt·examples 는 뜻에 붙은 채로 그대로 실어 보내야 한다.
  */
 export function useWordForm(initialReading: string, initialSenses: WordSense[]) {
   const [reading, setReading] = useState(initialReading);

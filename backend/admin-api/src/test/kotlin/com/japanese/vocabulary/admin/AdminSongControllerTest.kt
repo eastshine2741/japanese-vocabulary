@@ -124,7 +124,6 @@ class AdminSongControllerTest : AdminBaseIntegrationTest() {
         val blocker = SongAnalysisWorkEntity(
             rawTitle = song.title,
             rawArtist = song.artist,
-            activeDedupKey = "existing-blocker",
             status = SongAnalysisWorkStatus.RUNNING,
             songId = song.id,
             triggerSource = SongAnalysisTriggerSource.USER_APP,

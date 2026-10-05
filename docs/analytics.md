@@ -48,33 +48,52 @@ ORDER BY iso_week;
 
 ## 체류 시간 (BigQuery)
 
-앱은 체류를 재지 않는다. `screen_name = 'SongDetail'` 인 `screen_view` 와 그 다음 `screen_view` 의 간격으로 계산한다.
+앱은 체류를 재지 않는다. SongDetail `screen_view` 와 그 다음 `screen_view` 의 간격으로 계산한다.
 SongDetail `screen_view` 에는 `song_id`, `origin`(진입 경로) 파라미터가 붙는다.
+
+- 화면 이름은 BigQuery 에 `screen_name` 이 아니라 `firebase_screen` / `firebase_screen_class` 로 들어온다.
+- SDK 가 네이티브 화면(`MainActivity`, `RNSScreen`, `UIViewController` 등)도 자동으로 찍는다. 이 이벤트에는 `firebase_screen` 이 없으니 `firebase_screen IS NOT NULL` 로 걸러 앱이 찍은 RN 화면만 남긴다.
+- `ga_session_id` 가 빠진 `screen_view` 가 있어(약 13%) 세션이 아니라 `user_pseudo_id` 로 묶고 30분 상한으로 자른다.
 
 ```sql
 WITH events AS (
   SELECT
-    user_id,
-    (SELECT value.int_value FROM UNNEST(event_params) WHERE key = 'ga_session_id') AS session_id,
-    (SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'screen_name') AS screen_name,
+    user_pseudo_id,
+    (SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'firebase_screen') AS screen,
     event_timestamp
-  FROM `<project>.analytics_<property_id>.events_*`
+  FROM `japanese-vocabulary-490916.analytics_539684755.events_*`
   WHERE event_name = 'screen_view'
+    AND app_info.id = 'dev.eastshine.kotonoha'
+    AND COALESCE(user_id, '') <> '1'
 ),
 spans AS (
   SELECT
-    screen_name,
-    LEAD(event_timestamp) OVER (PARTITION BY user_id, session_id ORDER BY event_timestamp)
+    screen,
+    LEAD(event_timestamp) OVER (PARTITION BY user_pseudo_id ORDER BY event_timestamp)
       - event_timestamp AS dwell_us
   FROM events
+  WHERE screen IS NOT NULL
 )
 SELECT APPROX_QUANTILES(dwell_us / 1e6, 10) AS dwell_seconds_deciles
 FROM spans
-WHERE screen_name = 'SongDetail'
+WHERE screen = 'SongDetail'
   AND dwell_us BETWEEN 0 AND 30 * 60 * 1e6;  -- 백그라운드 시간 상한
 ```
 
 다음 `screen_view` 가 없으면 그 화면에서 앱을 껐다는 뜻이다.
+
+## 가사 → 복습 이벤트
+
+가사만 보고 복습하지 않는 유저가 어디서 멈추는지 보려고 남긴다.
+
+| 이벤트 | 시점 | 파라미터 |
+|---|---|---|
+| `screen_view` (SongReview) | 곡 진입 복습 화면이 열림 | `song_id`(전체 단어장이면 없음), `trigger`(곡 상세의 `cta` 상단 학습 버튼 / `tier` 단계 카드 / `word` 단어 탭, 전체 단어장의 `streak` 연속 학습 / `schedule` 복습 스케줄, `unknown` 그 밖) |
+| `card_reveal` | 카드 뒷면을 처음 펼침 | `mode`(`home`/`source`), `position`(이 카드 앞에 평가한 장 수), `is_preview` |
+| `card_rate` | 평가가 저장됨 | 위와 같음 + `rating` |
+| `review_exit` | 곡 진입 복습 화면을 떠나거나 앱이 백그라운드로 감 | `song_id`(전체 단어장이면 없음), `deck_id`, `how`(`leave`/`background`), `reviewed`, `revealed`, `completed`, `status`, `dwell_sec` |
+
+- `review_exit` 는 앱을 끄면 언마운트가 오지 않아 백그라운드 전환 때도 남긴다. 한 번 열린 화면에 여러 건이 생길 수 있으니 열림마다 마지막 건을 본다.
 
 ## 해석 주의
 

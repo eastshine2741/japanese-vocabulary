@@ -24,7 +24,8 @@ Gradle은 반드시 `backend/`에서 실행한다: `cd backend && ./gradlew :dom
 
 ## 답의 각 필드
 
-- `commitTitle`: 영어, 명령형, 소문자 시작, 72자 이내. 저장소 컨벤션 예: `retry Gemini calls on transport failures`.
+- `commitTitle`: 한국어, 72자 이내. 커밋과 PR 제목에 그대로 쓰인다. 저장소 컨벤션 예:
+  `전송 실패 시 Gemini 호출을 재시도`.
 - `why`: 한국어 3문장 이내. 왜 이 단어가 뜻을 잃었는지 — 파이프라인의 어느 지점이 어떻게 판단했는지.
   결손 목록을 반복하지 않는다(PR 본문에 러너가 따로 넣는다).
 - `how`: 한국어 3문장 이내. 무엇을 바꿨는지. 파일 이름을 하나쯤 짚는 건 좋다.

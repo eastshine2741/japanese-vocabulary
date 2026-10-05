@@ -8,10 +8,8 @@ import org.springframework.stereotype.Component
 /**
  * Writes each [AnalysisDefect] as one `ANALYSIS_DEFECT {json}` warning.
  *
- * The message template is constant, so Sentry folds every defect into a single issue and the
- * per-defect content lives in the event message, where an events search can read it. The old
- * per-song summary line did the opposite: seventeen songs' worth of unrelated misses shared one
- * issue, the first PR "resolved" it, and the other sixteen were never looked at.
+ * The message template is constant so Sentry folds defects into a single issue; per-defect content
+ * lives in the event message.
  */
 @Component
 class AnalysisDefectReporter(

@@ -16,9 +16,7 @@ import { isDevBuild } from '../utils/buildEnv';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
-// The native sign-in sheet can fail before any request is made. Codes are surfaced
-// because the same generic wording across every cause is what makes these
-// undiagnosable from a user report.
+// The native sign-in sheet can fail before any request is made; surface codes so user reports are diagnosable.
 function nativeSignInError(provider: 'Apple' | 'Google', e: any): string {
   if (provider === 'Apple' && e?.code === 'ERR_REQUEST_UNKNOWN') {
     return 'Apple 로그인을 시작할 수 없습니다. 기기에 Apple 계정이 로그인되어 있는지 확인해주세요.';

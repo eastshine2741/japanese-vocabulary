@@ -10,10 +10,8 @@ const STAGE_PADDING_TOP = 14;
 const STAGE_PADDING_BOTTOM = 22;
 
 /**
- * 크롬 높이는 홈처럼 접히는 화면에서 애니메이션 값으로 들어온다 — 크롬이 올라가는
- * 동안 카드 안쪽 내용이 같이 따라 올라가야 두 층이 끊기지 않는다. 레이아웃 값(padding)이라
- * RN Animated 네이티브 드라이버로는 못 끌고, Reanimated shared value 로 받아 UI 스레드에서
- * 레이아웃까지 돌린다 — JS 스레드가 바빠도 프레임이 안 빠진다.
+ * 홈처럼 접히는 크롬은 높이가 애니메이션 값으로 들어온다. padding 은 RN Animated 네이티브 드라이버로
+ * 못 끌어서 Reanimated shared value 로 받아 UI 스레드에서 돌린다.
  */
 export type StageInset = number | SharedValue<number>;
 

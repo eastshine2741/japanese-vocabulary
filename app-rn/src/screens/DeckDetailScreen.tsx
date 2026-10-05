@@ -17,6 +17,7 @@ import MemoryProgressBar from '../components/MemoryProgressBar';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { SecondaryButton } from '../components/SecondaryButton';
 import { AppBar } from '../components/AppBar';
+import { sourceFromDeckDetail } from '../components/studyStack';
 import { Colors, Dimens } from '../theme/theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
@@ -65,17 +66,7 @@ export default function DeckDetailScreen({ route, navigation }: Props) {
 
   const handleStartStudy = useCallback(() => {
     if (!data?.deckId) return;
-    navigation.navigate('SongReview', {
-      source: {
-        deckId: data.deckId,
-        songId: data.songId,
-        title: data.title ?? '전체 단어장',
-        artist: data.artist ?? '저장한 단어',
-        artworkUrl: data.artworkUrl,
-        dueCount: data.dueCount,
-        totalCount: data.wordCount,
-      },
-    });
+    navigation.navigate('SongReview', { source: sourceFromDeckDetail(data) });
   }, [data, navigation]);
 
   return (
@@ -89,7 +80,6 @@ export default function DeckDetailScreen({ route, navigation }: Props) {
         {status === 'error' && <Text style={styles.errorText}>{error}</Text>}
         {status === 'success' && data && (
           <View style={styles.content}>
-            {/* Artwork */}
             {isAllDeck ? (
               <AllWordsArtwork />
             ) : (
@@ -105,21 +95,17 @@ export default function DeckDetailScreen({ route, navigation }: Props) {
               </View>
             ) : (
               <>
-                {/* Song title */}
                 {data.title && <Text style={styles.title}>{data.title}</Text>}
 
-                {/* Artist */}
                 {data.artist && <Text style={styles.artist}>{data.artist}</Text>}
               </>
             )}
 
-            {/* Hero: due count */}
             <View style={styles.heroSection}>
               <Text style={styles.heroLabel}>복습할 단어</Text>
               <Text style={styles.heroValue}>{data.dueCount}</Text>
             </View>
 
-            {/* Pipeline bar */}
             {data.wordCount > 0 && (
               <MemoryProgressBar
                 style={styles.pipelineSection}
@@ -131,7 +117,6 @@ export default function DeckDetailScreen({ route, navigation }: Props) {
               />
             )}
 
-            {/* Study button */}
             <PrimaryButton
               icon="layers-outline"
               label="학습하기"
@@ -140,7 +125,6 @@ export default function DeckDetailScreen({ route, navigation }: Props) {
               style={styles.primaryBtn}
             />
 
-            {/* View words button */}
             <SecondaryButton
               icon="list-outline"
               label="단어 보기"
@@ -148,7 +132,6 @@ export default function DeckDetailScreen({ route, navigation }: Props) {
               style={styles.secondaryBtn}
             />
 
-            {/* Listen song button — only for per-song decks */}
             {songId !== null && (
               <SecondaryButton
                 icon="play-circle-outline"
