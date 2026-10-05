@@ -1196,10 +1196,14 @@ const styles = {
     flexWrap: 'wrap',
     justifyContent: 'center',
   },
+  // 상단 스크림이 다 빠지는 자리까지 내려오는 유일한 흰 글자라 테두리를 남긴다.
+  // text-stroke 는 글자 윤곽 가운데 정렬이라 두 배를 주고 paint-order 로 획을 글자 뒤에 깐다.
   headlinePlain: {
     color: ink,
     fontWeight: 800,
     lineHeight: 1.15,
+    paintOrder: 'stroke fill',
+    WebkitTextStroke: `3px ${night}`,
   },
   headlineHighlight: {
     backgroundColor: highlight,
