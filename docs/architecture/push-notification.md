@@ -19,7 +19,7 @@ decide who gets what: `batch` (streak reminder CronJob), `worker` (analysis-comp
   app renders it from `data.title` / `data.body`; iOS still gets a visible APNs alert. Payload and
   copy: `docs/product-intents/260918-streak-commitment-api.md` section 3.
 - Karaoke new songs: `KaraokeNewSongNotifier` in `batch`, run by the `karaoke-collect` CronJob at
-  `18:00` KST right after collection. One push per run to users with `karaokeNewSongAlerts` (opt-in,
+  `18:00` KST right after collection. One push per run to users with `karaokeNewSongNotifications` (opt-in,
   default false) and `notificationsEnabled`. Payload `data.type` is `karaoke_new_songs`. Rules:
   `docs/karaoke-new-songs.md`.
 - Manual trigger of a slot: create a Job from the CronJob —

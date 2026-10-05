@@ -56,7 +56,7 @@ class KaraokeNewSongNotifier(
     @Transactional(readOnly = true)
     fun findTargets(): List<Target> {
         val subscriberIds = userSettingsRepository.findAll()
-            .filter { it.settings.notificationsEnabled && it.settings.karaokeNewSongAlerts }
+            .filter { it.settings.notificationsEnabled && it.settings.karaokeNewSongNotifications }
             .map { it.userId }
         if (subscriberIds.isEmpty()) return emptyList()
         val activeIds = userRepository.findAllById(subscriberIds).filter { it.deletedAt == null }.mapNotNull { it.id }

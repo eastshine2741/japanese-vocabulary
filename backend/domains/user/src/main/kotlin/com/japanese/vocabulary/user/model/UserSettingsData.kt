@@ -10,5 +10,5 @@ data class UserSettingsData(
     val showFurigana: Boolean = true,
     val dailyGoal: Int = 100,
     val notificationsEnabled: Boolean = true,
-    val karaokeNewSongAlerts: Boolean = false,
+    val karaokeNewSongNotifications: Boolean = false,
 )

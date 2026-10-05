@@ -79,8 +79,8 @@ class KaraokeCollectTaskTest : BatchBaseIntegrationTest() {
     @Test
     fun `registers new Japanese songs, links analyzed ones, requests analysis for the rest, and notifies subscribers`() {
         val analyzed = analyzedSong("唱", "Ado")
-        val subscriber = newUser(alerts = true)
-        newUser(alerts = false)
+        val subscriber = newUser(notifications = true)
+        newUser(notifications = false)
 
         task.run(DefaultApplicationArguments())
 
@@ -110,7 +110,7 @@ class KaraokeCollectTaskTest : BatchBaseIntegrationTest() {
 
     @Test
     fun `second run adds nothing and sends nothing`() {
-        newUser(alerts = true)
+        newUser(notifications = true)
         task.run(DefaultApplicationArguments())
         sentMessages.clear()
 
@@ -122,7 +122,7 @@ class KaraokeCollectTaskTest : BatchBaseIntegrationTest() {
 
     @Test
     fun `backfill takes the whole TJ list and marks rows notified without sending`() {
-        newUser(alerts = true)
+        newUser(notifications = true)
 
         task.run(DefaultApplicationArguments("--backfill"))
 
@@ -154,12 +154,12 @@ class KaraokeCollectTaskTest : BatchBaseIntegrationTest() {
         return song
     }
 
-    private fun newUser(alerts: Boolean): UserEntity {
+    private fun newUser(notifications: Boolean): UserEntity {
         val seq = USER_SEQUENCE.incrementAndGet()
         val user = UserEntity(provider = "google", providerSub = "karaoke-sub-$seq", username = "karaoke$seq")
             .also { entityManager.persist(it) }
         entityManager.persist(DeviceTokenEntity(userId = user.id!!, token = "karaoke-token-$seq", platform = "ANDROID"))
-        entityManager.persist(UserSettingsEntity(userId = user.id!!, settings = UserSettingsData(karaokeNewSongAlerts = alerts)))
+        entityManager.persist(UserSettingsEntity(userId = user.id!!, settings = UserSettingsData(karaokeNewSongNotifications = notifications)))
         entityManager.flush()
         return user
     }
