@@ -20,7 +20,7 @@ const NUDGE_OVERLAP = 14;
 export const HOME_HEADER_CONTENT_HEIGHT = APP_BAR_HEIGHT + DECK_STRIP_HEIGHT;
 
 export interface HomeExpandedHeaderProps {
-  /** 덱 스트립에 그릴 목록 — 곡 덱이 있으면 due 많은 순 덱, 없으면 추천곡. */
+  /** 덱 스트립에 그릴 목록 — 곡 덱이 있으면 due 많은 순 덱, 없으면 최근 연 곡(없으면 추천곡). */
   deckStripItems: StudySource[];
   /** 덱 스트립에서 현재 강조돼야 할 곡. */
   selectedSongId: number | null;

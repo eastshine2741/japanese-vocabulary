@@ -1,5 +1,5 @@
 import { DeckDetailResponse, SongDeckSummary } from '../../types/deck';
-import { RecommendedSongItem } from '../../types/song';
+import { RecentSongItem, RecommendedSongItem } from '../../types/song';
 import { flattenExamples } from '../../types/word';
 import { StudyCard, StudySource } from './types';
 
@@ -32,6 +32,18 @@ export function sourceFromRecommendation(item: RecommendedSongItem): StudySource
   return {
     deckId: null,
     songId: item.songId,
+    title: item.title,
+    artist: item.artist,
+    artworkUrl: item.artworkUrl,
+    dueCount: 0,
+    totalCount: 0,
+  };
+}
+
+export function sourceFromRecent(item: RecentSongItem): StudySource {
+  return {
+    deckId: null,
+    songId: item.id,
     title: item.title,
     artist: item.artist,
     artworkUrl: item.artworkUrl,
