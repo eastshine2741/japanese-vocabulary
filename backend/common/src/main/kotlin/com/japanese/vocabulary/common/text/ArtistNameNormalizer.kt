@@ -1,4 +1,4 @@
-package com.japanese.vocabulary.lyricsearch
+package com.japanese.vocabulary.common.text
 
 import java.text.Normalizer
 

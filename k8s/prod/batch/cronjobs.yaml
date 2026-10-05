@@ -252,3 +252,65 @@ spec:
             - name: firebase-credentials
               secret:
                 secretName: firebase-credentials
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: karaoke-collect
+spec:
+  # 노래방(TJ·금영) 일본 신곡 수집 → 분석 요청 → 구독자 알림. 첫 배포는 args 에 --backfill 을 붙여 한 번 돌린다
+  schedule: "0 18 * * *"
+  timeZone: "Asia/Seoul"
+  suspend: false
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          restartPolicy: Never
+          # 켜 두면 `rabbitmq` 서비스가 RABBITMQ_PORT=tcp://... 를 주입하고, 앱이 그걸 포트로 읽어 기동에 실패한다.
+          enableServiceLinks: false
+          imagePullSecrets:
+            - name: ghcr-pull
+          containers:
+            - name: batch
+              image: ${BATCH_IMAGE}
+              imagePullPolicy: IfNotPresent
+              args:
+                - "--task=karaoke-collect"
+              env:
+                - name: GOOGLE_APPLICATION_CREDENTIALS
+                  value: /var/secrets/firebase/service-account.json
+                - name: RABBITMQ_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: rabbitmq-default-user
+                      key: username
+                - name: RABBITMQ_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: rabbitmq-default-user
+                      key: password
+              envFrom:
+                - configMapRef:
+                    name: batch-config
+                - secretRef:
+                    name: batch-secret
+              resources:
+                requests:
+                  cpu: 200m
+                  memory: 512Mi
+                limits:
+                  memory: 1Gi
+              volumeMounts:
+                - name: firebase-credentials
+                  mountPath: /var/secrets/firebase
+                  readOnly: true
+          volumes:
+            - name: firebase-credentials
+              secret:
+                secretName: firebase-credentials

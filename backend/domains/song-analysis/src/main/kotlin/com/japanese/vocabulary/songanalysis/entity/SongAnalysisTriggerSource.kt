@@ -4,4 +4,5 @@ enum class SongAnalysisTriggerSource {
     USER_APP,
     ADMIN,
     RECOMMENDATION,
+    KARAOKE,
 }

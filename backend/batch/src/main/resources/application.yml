@@ -33,6 +33,14 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: 6379
 
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    # 토폴로지는 브로커의 definitions 가 소유한다. 이름만 참조하고 선언하지 않는다.
+    dynamic: false
+
 recommendation:
   apple-rss:
     storefront: jp

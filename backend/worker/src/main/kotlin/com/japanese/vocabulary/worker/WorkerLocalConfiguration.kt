@@ -2,6 +2,7 @@ package com.japanese.vocabulary.worker
 
 import com.japanese.vocabulary.config.ClockConfig
 import com.japanese.vocabulary.config.SentryConfig
+import com.japanese.vocabulary.karaoke.KaraokeSongLinkListener
 import com.japanese.vocabulary.notification.AnalysisNotificationDispatcher
 import com.japanese.vocabulary.notification.AnalysisNotificationListener
 import com.japanese.vocabulary.observability.HttpClientMetricsConfig
@@ -25,6 +26,7 @@ import org.springframework.context.annotation.Import
     SentryConfig::class,
     AnalysisNotificationDispatcher::class,
     AnalysisNotificationListener::class,
+    KaraokeSongLinkListener::class,
     ArtistChannelCache::class,
     SongAnalysisPreparationService::class,
     YoutubeMvSearchService::class,

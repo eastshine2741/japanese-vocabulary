@@ -17,6 +17,7 @@ dependencies {
     implementation(project(":domains:song"))
     implementation(project(":domains:song-analysis"))
     implementation(project(":domains:recommendation"))
+    implementation(project(":domains:karaoke"))
     implementation(project(":domains:auth"))
     implementation(project(":domains:user"))
     implementation(project(":domains:userinventory"))
