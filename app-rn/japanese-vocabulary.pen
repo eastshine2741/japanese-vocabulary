@@ -113211,7 +113211,7 @@
           "type": "rectangle",
           "id": "N6o05",
           "x": 0,
-          "y": 370,
+          "y": 0,
           "name": "MV Frame",
           "fill": {
             "type": "image",
@@ -113220,7 +113220,79 @@
             "mode": "cover"
           },
           "width": 1080,
-          "height": 1190
+          "height": 1920
+        },
+        {
+          "type": "rectangle",
+          "id": "RJ56S",
+          "x": 0,
+          "y": 0,
+          "name": "Headline Scrim",
+          "fill": {
+            "type": "gradient",
+            "gradientType": "linear",
+            "enabled": true,
+            "rotation": 180,
+            "size": {
+              "height": 1
+            },
+            "colors": [
+              {
+                "color": "#111012C7",
+                "position": 0
+              },
+              {
+                "color": "#111012B3",
+                "position": 0.55
+              },
+              {
+                "color": "#11101200",
+                "position": 1
+              }
+            ]
+          },
+          "width": 1080,
+          "height": 480
+        },
+        {
+          "type": "rectangle",
+          "id": "g0puE",
+          "x": 0,
+          "y": 820,
+          "name": "Content Scrim",
+          "fill": {
+            "type": "gradient",
+            "gradientType": "linear",
+            "enabled": true,
+            "rotation": 180,
+            "size": {
+              "height": 1
+            },
+            "colors": [
+              {
+                "color": "#11101200",
+                "position": 0
+              },
+              {
+                "color": "#11101294",
+                "position": 0.2
+              },
+              {
+                "color": "#111012C7",
+                "position": 0.42
+              },
+              {
+                "color": "#111012DB",
+                "position": 0.6
+              },
+              {
+                "color": "#111012E6",
+                "position": 1
+              }
+            ]
+          },
+          "width": 1080,
+          "height": 1100
         },
         {
           "type": "frame",
@@ -113246,10 +113318,6 @@
               "id": "YPT7K",
               "name": "App Note Label",
               "fill": "#FAFAF6",
-              "stroke": "#111012",
-              "strokeWidth": 1.5,
-              "strokeAlignment": "outer",
-              "strokeLinejoin": "round",
               "content": "노래로 배우는 일본어 앱 '코토노하'에서 전체 단어를 확인하세요!",
               "lineHeight": 1,
               "fontFamily": "$fontKr",
@@ -113467,7 +113535,7 @@
                           "type": "text",
                           "id": "zUJ0t",
                           "name": "T 匂い",
-                          "fill": "$nounBlue",
+                          "fill": "#4D9DFF",
                           "effect": {
                             "type": "shadow",
                             "shadowType": "outer",
@@ -113492,10 +113560,6 @@
                   "id": "lJ6DV",
                   "name": "Korean Subtitle",
                   "fill": "#FAFAF6",
-                  "stroke": "#111012",
-                  "strokeWidth": 2,
-                  "strokeAlignment": "outer",
-                  "strokeLinejoin": "round",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
                   "content": "가슴에 남아 떠나지 않는 씁쓸한 레몬 향기",
@@ -113512,7 +113576,7 @@
               "type": "frame",
               "id": "OZYHD",
               "name": "Words",
-              "width": 620,
+              "width": 520,
               "layout": "vertical",
               "gap": 30,
               "alignItems": "center",
@@ -113554,10 +113618,6 @@
                               "id": "w3Z2M",
                               "name": "Word Japanese",
                               "fill": "$verbGreen",
-                              "stroke": "#111012",
-                              "strokeWidth": 2.5,
-                              "strokeAlignment": "outer",
-                              "strokeLinejoin": "round",
                               "content": "残る",
                               "lineHeight": 1,
                               "fontFamily": "$fontJp",
@@ -113568,15 +113628,11 @@
                               "type": "text",
                               "id": "B01ue",
                               "name": "Word Reading",
-                              "fill": "#FAFAF6A6",
-                              "stroke": "#111012",
-                              "strokeWidth": 1.5,
-                              "strokeAlignment": "outer",
-                              "strokeLinejoin": "round",
+                              "fill": "#FAFAF6D9",
                               "content": "노코루",
                               "lineHeight": 1.5,
                               "fontFamily": "$fontKr",
-                              "fontSize": 19,
+                              "fontSize": 21,
                               "fontWeight": "500"
                             }
                           ]
@@ -113586,10 +113642,6 @@
                           "id": "h7smT",
                           "name": "Word Meaning",
                           "fill": "#FAFAF6",
-                          "stroke": "#111012",
-                          "strokeWidth": 2,
-                          "strokeAlignment": "outer",
-                          "strokeLinejoin": "round",
                           "content": "남다",
                           "lineHeight": 1.3,
                           "fontFamily": "$fontKr",
@@ -113620,10 +113672,6 @@
                               "id": "kDFnS",
                               "name": "Word Japanese",
                               "fill": "$adjectiveOrange",
-                              "stroke": "#111012",
-                              "strokeWidth": 2.5,
-                              "strokeAlignment": "outer",
-                              "strokeLinejoin": "round",
                               "content": "苦い",
                               "lineHeight": 1,
                               "fontFamily": "$fontJp",
@@ -113634,15 +113682,11 @@
                               "type": "text",
                               "id": "oaSME",
                               "name": "Word Reading",
-                              "fill": "#FAFAF6A6",
-                              "stroke": "#111012",
-                              "strokeWidth": 1.5,
-                              "strokeAlignment": "outer",
-                              "strokeLinejoin": "round",
+                              "fill": "#FAFAF6D9",
                               "content": "니가이",
                               "lineHeight": 1.5,
                               "fontFamily": "$fontKr",
-                              "fontSize": 19,
+                              "fontSize": 21,
                               "fontWeight": "500"
                             }
                           ]
@@ -113652,10 +113696,6 @@
                           "id": "S1qufs",
                           "name": "Word Meaning",
                           "fill": "#FAFAF6",
-                          "stroke": "#111012",
-                          "strokeWidth": 2,
-                          "strokeAlignment": "outer",
-                          "strokeLinejoin": "round",
                           "content": "쓰다",
                           "lineHeight": 1.3,
                           "fontFamily": "$fontKr",
@@ -113685,11 +113725,7 @@
                               "type": "text",
                               "id": "kyEql",
                               "name": "Word Japanese",
-                              "fill": "$nounBlue",
-                              "stroke": "#111012",
-                              "strokeWidth": 2.5,
-                              "strokeAlignment": "outer",
-                              "strokeLinejoin": "round",
+                              "fill": "#4D9DFF",
                               "content": "匂い",
                               "lineHeight": 1,
                               "fontFamily": "$fontJp",
@@ -113700,15 +113736,11 @@
                               "type": "text",
                               "id": "c8cpEg",
                               "name": "Word Reading",
-                              "fill": "#FAFAF6A6",
-                              "stroke": "#111012",
-                              "strokeWidth": 1.5,
-                              "strokeAlignment": "outer",
-                              "strokeLinejoin": "round",
+                              "fill": "#FAFAF6D9",
                               "content": "니오이",
                               "lineHeight": 1.5,
                               "fontFamily": "$fontKr",
-                              "fontSize": 19,
+                              "fontSize": 21,
                               "fontWeight": "500"
                             }
                           ]
@@ -113718,10 +113750,6 @@
                           "id": "ccR7U",
                           "name": "Word Meaning",
                           "fill": "#FAFAF6",
-                          "stroke": "#111012",
-                          "strokeWidth": 2,
-                          "strokeAlignment": "outer",
-                          "strokeLinejoin": "round",
                           "content": "냄새, 향기",
                           "lineHeight": 1.3,
                           "fontFamily": "$fontKr",
@@ -113745,11 +113773,10 @@
           "name": "Headline Band",
           "clip": true,
           "width": 1080,
-          "fill": "$night",
           "layout": "vertical",
           "gap": 22,
           "padding": [
-            92,
+            104,
             72,
             36,
             72
@@ -113817,7 +113844,7 @@
                       "type": "text",
                       "id": "f4xYD",
                       "name": "Watermark Label",
-                      "fill": "#FAFAF659",
+                      "fill": "#FAFAF68F",
                       "content": "@kotonoha.app",
                       "lineHeight": 1,
                       "fontFamily": "$fontKr",
@@ -113882,7 +113909,6 @@
           "x": 0,
           "y": 0,
           "name": "Safe Area Guide (reference only)",
-          "enabled": false,
           "opacity": 0.55,
           "width": 1080,
           "height": 1920,
@@ -113940,6 +113966,20 @@
           ]
         }
       ]
+    },
+    {
+      "type": "rectangle",
+      "id": "Eq1J3",
+      "x": 9972,
+      "y": 16400,
+      "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "image-1.png",
+        "mode": "cover"
+      },
+      "width": 1081,
+      "height": 1906
     }
   ],
   "themes": {
