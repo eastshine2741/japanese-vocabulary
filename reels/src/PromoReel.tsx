@@ -171,16 +171,8 @@ export const PromoReel = ({data}: {data: PromoReelData}) => {
 
   return (
     <AbsoluteFill style={styles.canvas}>
-      <AbsoluteFill>
-        {/* MV 를 줄이거나 옮겨 생긴 빈 곳은 같은 구간을 튼 같은 MV 를 블러해서 채운다 */}
-        {mvFrame && (
-          <OffthreadVideo
-            muted
-            src={assetSrc(data.song.mvAsset)}
-            startFrom={data.sourceStartFrame}
-            style={{...styles.backdropVideo, ...cropStyle(mvFrame.crop)}}
-          />
-        )}
+      {/* MV 를 줄이거나 옮겨 생긴 빈 곳은 검은색 — MV 블러 배경은 헤드리스 Chrome 소프트웨어 렌더에서 너무 비싸다 */}
+      <AbsoluteFill style={styles.mvLayer}>
         <OffthreadVideo
           muted={false}
           src={assetSrc(data.song.mvAsset)}
@@ -1103,13 +1095,8 @@ const styles = {
     objectFit: 'cover',
     width: '100%',
   },
-  // 블러 가장자리가 투명하게 빠지지 않도록 캔버스보다 크게 깔고 살짝 어둡게 눌러 전경 MV 와 구분한다
-  backdropVideo: {
-    filter: 'blur(48px) brightness(0.7)',
-    height: '100%',
-    objectFit: 'cover',
-    transform: 'scale(1.15)',
-    width: '100%',
+  mvLayer: {
+    backgroundColor: '#000000',
   },
   activeLayer: {
     inset: 0,
