@@ -29,9 +29,9 @@ const LYRIC_WIDTH = PROMO_WIDTH - CONTENT_SIDE * 2;
 // 내용이 짧을 때 가사 블록이 앉는 자리
 const CONTENT_TOP = 1058;
 // 하단 스크림이 시작하는 자리. 가사가 길어 블록이 CONTENT_TOP 위로 자라도 덮이도록 넉넉히 위에서 연다.
-const CONTENT_SCRIM_TOP = 820;
+const CONTENT_SCRIM_TOP = 620;
 // 상단 스크림이 끝나는 자리. 헤드라인 아래에서 완전히 투명해져 MV 로 녹는다.
-const HEADLINE_SCRIM_BOTTOM = 480;
+const HEADLINE_SCRIM_BOTTOM = 300;
 
 // 가사 원문 한 행의 기본 치수 — pen Reel v2 1b 의 Lyric 프레임과 같다. 긴 줄에서는 scale 로 같이 줄인다.
 const TOKEN_FONT_SIZE = 44;
@@ -56,9 +56,6 @@ const softInk = '#FAFAF6C7';
 const readingInk = '#FAFAF6D9';
 // 헤드라인에서 <b> 로 감싼 구간 뒤에 깔리는 초록
 const highlight = '#A5EBC7';
-
-// 블러 0 의 단단한 그림자. 큰 글자(가사 원문·강조 단어)만 쓴다 — 작은 글자는 스크림 위에 그대로 얹는다.
-const hardShadow = (offset: number) => `${offset}px ${offset}px 0 ${night}`;
 
 // 앱 테마(app-rn/src/theme/theme.ts, 라이트). 엔드카드 목업은 실제 앱 화면을 그린다.
 const app = {
@@ -342,7 +339,6 @@ const LyricBlockView = ({
               color: token.spotlightColor ?? ink,
               fontSize: TOKEN_FONT_SIZE * scale,
               marginLeft: token.spaceBefore ? SPACE_GAP * scale : 0,
-              textShadow: hardShadow(Math.max(1, Math.round(2 * scale))),
             }}
           >
             {token.text}
@@ -1122,7 +1118,7 @@ const styles = {
   // MV 밝기와 무관하게 글자 바닥을 고정한다. 글자에 테두리를 두르는 대신 여기서 대비를 만든다.
   // MV 프레이밍(scale/x/y)과 무관하게 캔버스 좌표에 고정이라, MV 를 줄여 깔아도 결과가 같다.
   headlineScrim: {
-    backgroundImage: `linear-gradient(180deg, ${night}C7 0%, ${night}B3 55%, ${night}00 100%)`,
+    backgroundImage: `linear-gradient(180deg, ${night}B3 0%, ${night}00 100%)`,
     height: HEADLINE_SCRIM_BOTTOM,
     left: 0,
     position: 'absolute',
@@ -1131,7 +1127,7 @@ const styles = {
   },
   // 아래 끝까지 끌고 간다 — 1560 아래는 어차피 인스타 UI 가 덮고, 1576 의 Profile Cue 가 이 띠 위에 앉는다.
   contentScrim: {
-    backgroundImage: `linear-gradient(180deg, ${night}00 0%, ${night}94 20%, ${night}C7 42%, ${night}DB 60%, ${night}E6 100%)`,
+    backgroundImage: `linear-gradient(180deg, ${night}00 0%, ${night}66 20%, ${night}8C 32%, ${night}A6 55%, ${night}BF 100%)`,
     bottom: 0,
     left: 0,
     position: 'absolute',
@@ -1324,7 +1320,6 @@ const styles = {
     fontSize: WORD_JAPANESE_SIZE,
     fontWeight: 700,
     lineHeight: 1,
-    textShadow: hardShadow(2),
     whiteSpace: 'nowrap',
   },
   wordReading: {
@@ -1358,7 +1353,6 @@ const styles = {
     fontWeight: 500,
     position: 'absolute',
     right: 72,
-    textShadow: hardShadow(2),
     top: 110,
   },
   endTitleBlock: {
@@ -1424,7 +1418,6 @@ const styles = {
     fontSize: 30,
     fontWeight: 600,
     gap: 44,
-    textShadow: hardShadow(2),
   },
   storeItem: {
     alignItems: 'center',
@@ -1436,7 +1429,6 @@ const styles = {
     color: softInk,
     fontSize: 28,
     fontWeight: 500,
-    textShadow: hardShadow(2),
   },
 
   phone: {
