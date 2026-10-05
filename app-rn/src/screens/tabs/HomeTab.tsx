@@ -77,6 +77,16 @@ export default function HomeTab() {
     reload();
   }), [immerse, navigation, reload, setDark]);
 
+  // 담은 곡이 없고 아직 rating 도 안 한 상태는 잃을 세션이 없다 — 돌아올 때마다 다시 불러 방금 연 곡을 반영한다.
+  const coldStartRef = useRef(false);
+  coldStartRef.current = deckStripItems.every(s => s.deckId == null) && session.reviewedCount === 0;
+  const wasFocusedRef = useRef(focused);
+  useEffect(() => {
+    const regained = focused && !wasFocusedRef.current;
+    wasFocusedRef.current = focused;
+    if (regained && coldStartRef.current) reload();
+  }, [focused, reload]);
+
   // 몰입 규칙:
   //  ① 몰입 밖에서는 카드를 못 만진다 — 탭이든 드래그든 몰입 진입이다 (WordLayer 잠금 오버레이).
   //  ② 세로 드래그가 몰입 값을 끈다 — 몰입 중엔 아래로, 아니면 위로. 카드 앞뒤면은 무관하다.
