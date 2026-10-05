@@ -12,6 +12,7 @@ import type {CSSProperties} from 'react';
 
 import {convertLineReading, convertReading} from '../../app-rn/src/utils/readingConverter';
 import {SCORE_DREAM_FAMILY, useScoreDream} from './fonts/scoreDream';
+import {parseHeadline} from './headline';
 import type {LyricToken, MvCrop, MvFrame, PartOfSpeech, PromoLine, PromoReelData, VocabularyWord} from './types';
 
 export const PROMO_FPS = 30;
@@ -22,17 +23,39 @@ export const PROMO_WIDTH = 1080;
 export const PROMO_HEIGHT = 1920;
 // 인스타 릴스 UI 의 프로필 사진 바로 위. 가사·단어 블록은 이 위에서 끝나야 한다.
 const PROFILE_CUE_TOP = 1576;
-// 가사·단어 블록 좌우 여백과 그 안쪽 폭
+// 가사 블록 좌우 여백과 그 안쪽 폭
 const CONTENT_SIDE = 160;
 const LYRIC_WIDTH = PROMO_WIDTH - CONTENT_SIDE * 2;
+// 내용이 짧을 때 가사 블록이 앉는 자리
+const CONTENT_TOP = 1058;
+
+// 가사 원문 한 행의 기본 치수 — pen Reel v2 1b 의 Lyric 프레임과 같다. 긴 줄에서는 scale 로 같이 줄인다.
+const TOKEN_FONT_SIZE = 44;
+const TOKEN_GAP = 6;
+// 원문 공백 자리. 행을 끊는 대신 이만큼 벌려 구(句)를 읽히게 한다.
+const SPACE_GAP = 26;
+const TOKEN_ROW_GAP = 14;
+
+// 가사 아래 강조 단어 블록 — pen Reel v2 1b 의 Words 프레임과 같다.
+const WORD_BLOCK_WIDTH = 620;
+const WORD_JAPANESE_SIZE = 36;
+const WORD_READING_SIZE = 19;
+const WORD_MEANING_SIZE = 27;
+const WORD_ROW_GAP = 26;
 
 // 릴스 팔레트 — japanese-vocabulary.pen 의 Reel v2 프레임 변수와 같은 값
 const night = '#111012';
 const paper = '#F4F1EA';
 const ink = '#FAFAF6';
 const softInk = '#FAFAF6C7';
-const green = '#52B788';
-const glow = '#EFD463';
+// 강조 단어의 한글 발음
+const readingInk = '#FAFAF6A6';
+// 헤드라인에서 <b> 로 감싼 구간 뒤에 깔리는 초록
+const highlight = '#A5EBC7';
+
+// MV 위에 스크림 없이 바로 얹는 글자. Reel v2 는 띠 바깥을 가리지 않는 대신 블러 0 의 단단한 그림자로 글자를 띄운다.
+// 그림자는 가사 원문(일본어)만 쓴다 — 나머지 글자는 아래 outline 하나로만 띄운다.
+const hardShadow = (offset: number) => `${offset}px ${offset}px 0 ${night}`;
 
 // 앱 테마(app-rn/src/theme/theme.ts, 라이트). 엔드카드 목업은 실제 앱 화면을 그린다.
 const app = {
@@ -50,14 +73,25 @@ const app = {
   furigana: '#777777',
 };
 
-// 가사 강조색. 내용어 다섯 품사만 색을 갖고 나머지는 흰색이다(앱 Spotlight 와 같은 규칙).
-const spotlightColors: Partial<Record<PartOfSpeech | string, string>> = {
-  NOUN: '#5BA9FF',
-  VERB: '#3FE0A1',
-  ADJECTIVE: '#FFB347',
-  NA_ADJECTIVE: '#FF8FB3',
-  ADVERB: '#C49BFF',
+// 강조 단어의 글자색. 가사 원문의 그 토큰과 아래 단어 목록이 같은 색으로 묶인다.
+// 릴스는 앱의 파스텔 Spotlight 색 대신 pen Reel v2 가 쓴 진한 색이다 — MV 위에서 묻히면 안 된다.
+// 형용동사·부사는 pen 에 샘플이 없어 앱 색을 같은 채도로 올려 맞췄고, 나머지 품사는 posAppColors 와 같은 묶음을 따른다.
+const posSpotlightColors: Partial<Record<PartOfSpeech | string, string>> = {
+  NOUN: '#1F7AFF',
+  VERB: '#00C56B',
+  ADJECTIVE: '#FF8A00',
+  NA_ADJECTIVE: '#FF5C9E',
+  ADVERB: '#A86BFF',
+  PRONOUN: '#1F7AFF',
+  ADNOMINAL: '#1F7AFF',
+  CONJUNCTION: '#1F7AFF',
+  INTERJECTION: '#1F7AFF',
+  PREFIX: '#1F7AFF',
+  SUFFIX: '#1F7AFF',
+  EXPRESSION: '#1F7AFF',
 };
+
+const spotlightColor = (pos: PartOfSpeech | string | null | undefined) => posSpotlightColors[pos ?? 'OTHER'] ?? posSpotlightColors.NOUN!;
 
 // 앱 안 품사색(types/pos.ts). 목업의 밑줄·배지에 쓴다.
 const posAppColors: Record<string, string> = {
@@ -106,9 +140,14 @@ const NO_UNDERLINE_POS = new Set(['SYMBOL', 'SUPPLEMENTARY_SYMBOL', 'WHITESPACE'
 const NON_WORD_POS = new Set(['PARTICLE', 'AUXILIARY_VERB', 'SYMBOL', 'SUPPLEMENTARY_SYMBOL', 'WHITESPACE']);
 const KANJI_RE = /[一-鿿]/;
 
-type TextRun = {
-  color: string;
+// 가사 원문 한 칸. 뜻은 칸마다 얹지 않고 아래 단어 블록에만 모인다.
+type LyricRowToken = {
+  key: string;
   text: string;
+  /** 어드민이 고른 강조 단어면 그 품사색, 아니면 null(그냥 흰 글자). */
+  spotlightColor: string | null;
+  /** 원문에서 앞에 공백이 있던 칸. 행을 끊지 않고 앞쪽 여백만 넓힌다. */
+  spaceBefore: boolean;
 };
 
 export const PromoReel = ({data}: {data: PromoReelData}) => {
@@ -125,7 +164,8 @@ export const PromoReel = ({data}: {data: PromoReelData}) => {
   // 줄 진입은 짧은 직선 이동이다 — 스프링처럼 감속하지 않고 6프레임에 끝난다. 첫 줄도 같다.
   const entry = (delay: number) => linear(localFrame - delay, 0, ENTRY_FRAMES);
   const lyricEntry = entry(0);
-  const wordsEntry = entry(4);
+  const meaningEntry = entry(4);
+  const wordEntry = entry(8);
   const mvFrame = data.mvFrame ?? null;
 
   return (
@@ -151,30 +191,27 @@ export const PromoReel = ({data}: {data: PromoReelData}) => {
           })}
         />
       </AbsoluteFill>
-      <div style={styles.bottomScrim} />
-      <div style={styles.topScrim} />
 
-      {frame < lyricsEndFrame + END_CARD_FADE_FRAMES && (
-        <div style={styles.activeLayer}>
-          <Header data={data} />
-          <ProfileCue />
-          {activeIndex >= 0 && (
-            <section style={styles.content}>
-              <div style={{...styles.lyricBlock, ...entryStyle(lyricEntry)}}>
-                <JapaneseLine line={activeLine} />
-                <p style={styles.korean}>{activeLine.koreanLyrics}</p>
-              </div>
-              {activeLine.vocabulary.length > 0 && (
-                <div style={{...styles.wordsEntry, ...entryStyle(wordsEntry)}}>
-                  <Vocabulary words={topWords(activeLine.vocabulary)} />
-                </div>
-              )}
-              {/* 남는 높이를 먹는 스페이서. 내용이 짧으면 위(927)에 붙고, 길면 0 으로 줄어 위로 넘친다. */}
-              <div style={styles.contentSpacer} />
-            </section>
-          )}
-        </div>
-      )}
+      {/* 엔드카드가 덮은 뒤에도 그대로 둔다 — 엔드카드가 이 화면을 블러해 배경으로 쓴다(pen 의 Prev Frame + Blur Layer). */}
+      <div style={styles.activeLayer}>
+        <HeadlineBlock data={data} />
+        <ProfileCue />
+        {activeIndex >= 0 && (
+          <section style={styles.content}>
+            <div style={styles.contentStack}>
+              <LyricBlockView
+                line={activeLine}
+                lyricEntry={lyricEntry}
+                meaningEntry={meaningEntry}
+                userScale={data.lyricScale ?? 1}
+              />
+              <WordBlock entry={wordEntry} line={activeLine} />
+            </div>
+            {/* 남는 높이를 먹는 스페이서. 내용이 짧으면 CONTENT_TOP 에 붙고, 길면 0 으로 줄어 위로 넘친다. */}
+            <div style={styles.contentSpacer} />
+          </section>
+        )}
+      </div>
 
       <EndCard data={data} line={lines[lines.length - 1]} lineCount={lines.length} startFrame={lyricsEndFrame} />
     </AbsoluteFill>
@@ -212,20 +249,57 @@ const linear = (frame: number, from: number, to: number) =>
 const eased = (frame: number, from: number, to: number) =>
   interpolate(frame, [from, to], [0, 1], {easing: Easing.out(Easing.cubic), extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
 
+/**
+ * 글자의 검은 테두리. 인자는 pen 의 `outer` 두께다.
+ * CSS `-webkit-text-stroke` 는 글자 윤곽 가운데 정렬이라 두 배를 주고 `paint-order` 로 획을 글자 뒤에 깔아,
+ * 안쪽 절반은 글자 색이 덮게 한다. 가사 축소 배율과 무관하게 늘 같은 두께다.
+ */
+const outline = (penWidth: number): CSSProperties => ({
+  paintOrder: 'stroke fill',
+  WebkitTextStroke: `${penWidth * 2}px ${night}`,
+});
+
 const entryStyle = (progress: number): CSSProperties => ({
   opacity: progress,
   transform: `translateY(${interpolate(progress, [0, 1], [14, 0])}px)`,
 });
 
-const Header = ({data}: {data: PromoReelData}) => {
-  return (
+// 화면 맨 위. 곡 표기·워터마크와 어드민이 쓴 헤드라인이 MV 위에 바로 얹힌다.
+const HeadlineBlock = ({data}: {data: PromoReelData}) => (
+  <div style={styles.headlineBlock}>
     <header style={styles.header}>
       <div style={styles.songText}>
         <span style={styles.title}>{data.song.title}</span>
         <span style={styles.artist}>{data.song.artist}</span>
       </div>
-      <div style={styles.watermark}>{normalizeHandle(data.instagramHandle)}</div>
+      <div style={styles.watermark}>{data.instagramHandle}</div>
     </header>
+    <Headline text={data.headline} fontSize={data.headlineFontSize ?? DEFAULT_HEADLINE_FONT_SIZE} />
+  </div>
+);
+
+/** 어드민이 크기를 정하지 않았을 때의 헤드라인 글자 크기(px). Pen Reel v2 1b 기준. */
+export const DEFAULT_HEADLINE_FONT_SIZE = 58;
+
+/** 헤드라인 한 덩어리. 줄바꿈이 줄을 나누고 `<b>…</b>` 로 감싼 구간에만 초록 배경이 깔린다. */
+const Headline = ({text, fontSize = DEFAULT_HEADLINE_FONT_SIZE}: {text: string; fontSize?: number}) => {
+  const lines = parseHeadline(text);
+  if (lines.length === 0) return null;
+  return (
+    <div style={styles.headline}>
+      {lines.map((segments, line) => (
+        <div key={line} style={styles.headlineLine}>
+          {segments.map((segment, at) => (
+            <span
+              key={at}
+              style={{...(segment.highlight ? styles.headlineHighlight : styles.headlinePlain), fontSize}}
+            >
+              {segment.text}
+            </span>
+          ))}
+        </div>
+      ))}
+    </div>
   );
 };
 
@@ -234,39 +308,74 @@ const Header = ({data}: {data: PromoReelData}) => {
 const ProfileCue = () => (
   <div style={styles.profileCue}>
     <ArrowDownIcon />
-    <span style={styles.profileCueLabel}>일본어 단어장 앱 '코토노하'에서 전체 단어를 확인하세요!</span>
+    <span style={styles.profileCueLabel}>노래로 배우는 일본어 앱 '코토노하'에서 전체 단어를 확인하세요!</span>
   </div>
 );
 
-const JapaneseLine = ({line}: {line: PromoLine}) => {
+// 한 줄 전체를 토큰 단위로 펼친다. 개행은 폭(760)이 넘칠 때만 생긴다 — 원문 공백은 칸 사이 여백으로만 남으므로
+// 어드민이 글자 크기를 줄이면 접히는 자리가 실제로 바뀐다. 아래에 그 줄의 번역을 붙인다(가사보다 4프레임 늦게 들어온다).
+const LyricBlockView = ({
+  line,
+  lyricEntry,
+  meaningEntry,
+  userScale,
+}: {
+  line: PromoLine;
+  lyricEntry: number;
+  meaningEntry: number;
+  /** 어드민이 정한 가사 배율. 자동 축소 위에 곱해진다. */
+  userScale: number;
+}) => {
+  const tokens = buildLyricTokens(line);
+  const scale = lyricScale(tokens, userScale);
   return (
-    <p style={{...styles.japanese, fontSize: japaneseFontSize(line.originalText)}}>
-      {buildTextRuns(line).map((run, index) => (
-        <span key={`${run.text}-${index}`} style={{color: run.color}}>
-          {run.text}
-        </span>
-      ))}
-    </p>
+    <div style={styles.lyricBlock}>
+      <div
+        style={{
+          ...styles.lyricRow,
+          columnGap: TOKEN_GAP * scale,
+          rowGap: TOKEN_ROW_GAP * scale,
+          ...entryStyle(lyricEntry),
+        }}
+      >
+        {tokens.map((token) => (
+          <span
+            key={token.key}
+            style={{
+              ...styles.token,
+              color: token.spotlightColor ?? ink,
+              fontSize: TOKEN_FONT_SIZE * scale,
+              marginLeft: token.spaceBefore ? SPACE_GAP * scale : 0,
+              textShadow: hardShadow(Math.max(1, Math.round(2 * scale))),
+              ...outline(1),
+            }}
+          >
+            {token.text}
+          </span>
+        ))}
+      </div>
+      {line.koreanLyrics !== '' && <p style={{...styles.korean, ...entryStyle(meaningEntry)}}>{line.koreanLyrics}</p>}
+    </div>
   );
 };
 
-const Vocabulary = ({words}: {words: VocabularyWord[]}) => {
+// 어드민이 고른 강조 단어. 가사 원문에서 색으로 짚은 그 단어를 기본형 · 한글 발음 · 뜻으로 다시 적는다.
+const WordBlock = ({line, entry}: {line: PromoLine; entry: number}) => {
+  const words = line.vocabulary.filter((word) => word.japanese !== '' && word.korean !== '');
+  if (words.length === 0) return null;
   return (
-    <div style={styles.wordsBlock}>
-      <div style={styles.sectionRule} />
+    <div style={{...styles.wordBlock, ...entryStyle(entry)}}>
+      <div style={styles.wordRule} />
       <div style={styles.wordList}>
-        {words.map((word) => {
-          const color = spotlightColors[word.partOfSpeech ?? ''] ?? ink;
-          return (
-            <div key={`${word.japanese}-${word.reading}-${word.korean}`} style={styles.wordRow}>
-              <div style={styles.wordLeft}>
-                <span style={{...styles.wordJapanese, color}}>{word.japanese}</span>
-                {word.reading && <span style={styles.wordReading}>{convertReading(word.reading, 'KOREAN')}</span>}
-              </div>
-              <span style={styles.wordKorean}>{word.korean}</span>
+        {words.map((word) => (
+          <div key={word.japanese} style={styles.wordRow}>
+            <div style={styles.wordJapaneseGroup}>
+              <span style={{...styles.wordJapanese, color: spotlightColor(word.partOfSpeech)}}>{word.japanese}</span>
+              {word.reading !== '' && <span style={styles.wordReading}>{convertReading(word.reading, 'KOREAN')}</span>}
             </div>
-          );
-        })}
+            <span style={styles.wordMeaning}>{word.korean}</span>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -296,18 +405,13 @@ const EndCard = ({
 
   return (
     <AbsoluteFill style={{...styles.endCardLayer, opacity: enter}}>
-      {artwork && <div style={{...styles.endBackdropArt, backgroundImage: `url("${artwork}")`}} />}
-      {/* 가사 화면과 같은 스크림. 엔드카드로 넘어가도 배경 밝기가 튀지 않는다. */}
-      <div style={styles.bottomScrim} />
-      <div style={styles.topScrim} />
-      <div style={styles.ambientGlow} />
+      <div style={styles.endWatermark}>{data.instagramHandle}</div>
       <div style={{...styles.endTitleBlock, transform: `translateY(${interpolate(enter, [0, 1], [20, 0])}px)`}}>
-        <div style={styles.endTitle}>전체 단어는</div>
-        <div style={styles.endTitle}>
-          <span style={styles.endTitleBrand}>코토노하</span> 앱에서
-        </div>
+        <Headline text={END_CARD_HEADLINE} />
       </div>
       <AppMockup data={data} line={line} lineCount={lineCount} artwork={artwork} frame={localFrame} />
+      {/* 스토어 큐가 앉는 바닥. 불투명한 띠 대신 블러 배경으로 녹아드는 그라데이션이다. */}
+      <div style={styles.bottomScrim} />
       <div style={styles.ctaBlock}>
         <div style={styles.searchCue}>
           <SearchIcon />
@@ -326,6 +430,8 @@ const EndCard = ({
   );
 };
 
+// 엔드카드 헤드라인은 브랜드 CTA 라 어드민 입력이 아니라 여기 고정이다. 표기 규칙은 상단 헤드라인과 같다.
+const END_CARD_HEADLINE = '전체 단어는\n<b>코토노하 앱에서</b>';
 const SEARCH_QUERY = '코토노하';
 const TYPING_START = 30;
 const TYPING_FRAMES_PER_CHAR = 9;
@@ -337,6 +443,8 @@ const TYPING_FRAMES_PER_CHAR = 9;
 
 const PHONE_WIDTH = 460;
 const PHONE_HEIGHT = 860;
+// 폰 바닥. 스토어 큐(top 1350)와 80px 떨어뜨려 검색창이 폰에 붙어 보이지 않게 하고, 바닥 스크림도 여기서 시작한다.
+const MOCKUP_BOTTOM = 1270;
 const SHEET_PEEK_HEIGHT = 80;
 const SHEET_EXPANDED_TOP = 64;
 
@@ -825,43 +933,76 @@ const AppleIcon = () => (
   </svg>
 );
 
-// 강조 단어(vocabulary)만 품사색을 갖고 나머지 토큰은 흰색이다.
-const buildTextRuns = (line: PromoLine): TextRun[] => {
-  const keyWords = new Set(line.vocabulary.map((word) => word.japanese));
-  const runs: TextRun[] = [];
-  let cursor = 0;
+// 어드민이 고른 강조 단어를 가사 원문의 토큰 자리로 되돌린다. vocabulary 는 기본형만 들고 오므로
+// admin-web 의 defaultTokenIndexes 와 같은 규칙으로, 줄 앞에서부터 아직 안 쓰인 토큰에 하나씩 맞춘다.
+const spotlightByTokenIndex = (line: PromoLine, ordered: LyricToken[]): Map<number, string> => {
+  const picked = new Map<number, string>();
+  for (const word of line.vocabulary) {
+    const found = ordered.findIndex(
+      (token, index) => !picked.has(index) && (token.baseForm || token.surface) === word.japanese,
+    );
+    if (found >= 0) picked.set(found, spotlightColor(word.partOfSpeech ?? ordered[found].partOfSpeech));
+  }
+  return picked;
+};
 
-  for (const token of [...line.tokens].sort((a, b) => a.charStart - b.charStart)) {
-    if (token.charStart > cursor) {
-      runs.push({color: ink, text: line.originalText.slice(cursor, token.charStart)});
+// 각 토큰을 한 칸으로 만든다. 원문 공백은 칸이 되지 않고 다음 칸의 앞 여백으로만 남는다 — 행은 폭으로만 끊긴다.
+// 토큰 순회는 buildMockLyricTokens 와 같은 규칙이다 — 토큰 사이의 빈 구간도 원문 그대로 살린다.
+const buildLyricTokens = (line: PromoLine): LyricRowToken[] => {
+  const row: LyricRowToken[] = [];
+  let pendingSpace = false;
+  const push = (text: string, key: string, spotlightColor: string | null = null) => {
+    if (text === '') return;
+    if (text.trim() === '') {
+      if (row.length > 0) pendingSpace = true;
+      return;
     }
-    const isKeyWord = keyWords.has(token.baseForm) || keyWords.has(token.surface);
-    runs.push({
-      color: isKeyWord ? (spotlightColors[token.partOfSpeech] ?? ink) : ink,
-      text: line.originalText.slice(token.charStart, token.charEnd),
-    });
+    row.push({key, text, spotlightColor, spaceBefore: pendingSpace});
+    pendingSpace = false;
+  };
+
+  const ordered = [...line.tokens].sort((a, b) => a.charStart - b.charStart);
+  const spotlights = spotlightByTokenIndex(line, ordered);
+  let cursor = 0;
+  ordered.forEach((token, index) => {
+    if (token.charStart > cursor) push(line.originalText.slice(cursor, token.charStart), `gap-${index}`);
+    push(line.originalText.slice(token.charStart, token.charEnd) || token.surface, `token-${index}`, spotlights.get(index) ?? null);
     cursor = Math.max(cursor, token.charEnd);
-  }
+  });
+  if (cursor < line.originalText.length) push(line.originalText.slice(cursor), 'tail');
+  if (row.length === 0) push(line.originalText, 'fallback');
 
-  if (cursor < line.originalText.length) {
-    runs.push({color: ink, text: line.originalText.slice(cursor)});
-  }
-
-  return runs.filter((run) => run.text.length > 0);
+  return row;
 };
 
-// 760px 폭에 58px 이면 한 줄 13자다. 긴 줄은 세 줄을 넘지 않게 줄이고,
-// 줄바꿈은 어절(공백) 단위라 가장 긴 어절이 한 줄에 들어가는 크기까지 더 줄인다(CJK 1자 = 1em).
-const LYRIC_FONT_SIZES = [58, 48, 42, 36];
-const japaneseFontSize = (text: string) => {
-  const length = text.replace(/\s+/g, '').length;
-  const byLength = length <= 26 ? 58 : length <= 40 ? 48 : 42;
-  const longestSegment = Math.max(...text.split(/\s+/).map((segment) => segment.length));
-  const fits = LYRIC_FONT_SIZES.find((size) => size <= byLength && longestSegment * size <= LYRIC_WIDTH);
-  return fits ?? LYRIC_FONT_SIZES[LYRIC_FONT_SIZES.length - 1];
+// 긴 줄은 기본 크기로 높이 예산을 넘으면 한 단계씩 줄인다.
+const TOKEN_SCALES = [1, 0.86, 0.74, 0.64];
+// 원문 44×1.16
+const TOKEN_ROW_HEIGHT = 52;
+// Content 띠(1058–1516) 에서 번역(≈47)·단어 블록(3줄 192)과 그 사이 간격(20+56)을 뺀 높이보다 조금 넉넉하게 — 기본 크기로 세 행까지.
+// 넘치면 위로 자라는데, 헤드라인 아래(370)까지는 여유가 있다.
+const LYRIC_HEIGHT_BUDGET = 180;
+
+// 어드민 배율을 먼저 곱하고, 그래도 높이 예산을 넘으면 자동 축소 단계를 한 칸씩 내린다.
+const lyricScale = (tokens: LyricRowToken[], userScale = 1) => {
+  const step =
+    TOKEN_SCALES.find((scale) => lyricRowHeight(tokens, scale * userScale) <= LYRIC_HEIGHT_BUDGET) ??
+    TOKEN_SCALES[TOKEN_SCALES.length - 1];
+  return step * userScale;
 };
 
-const topWords = (words: VocabularyWord[]) => words.slice(0, 2);
+const lyricRowHeight = (tokens: LyricRowToken[], scale: number) => {
+  const count = Math.max(1, Math.ceil(rowWidth(tokens, scale) / LYRIC_WIDTH));
+  return count * TOKEN_ROW_HEIGHT * scale + (count - 1) * TOKEN_ROW_GAP * scale;
+};
+
+// CJK/한글 1자 = 1em 으로 어림한다. 원문 공백 자리의 여백도 같이 센다.
+const rowWidth = (tokens: LyricRowToken[], scale: number) =>
+  tokens.reduce(
+    (sum, token) => sum + scale * (textWeight(token.text) * TOKEN_FONT_SIZE + (token.spaceBefore ? SPACE_GAP : 0)),
+    0,
+  ) +
+  Math.max(0, tokens.length - 1) * TOKEN_GAP * scale;
 
 const uniqueByJapanese = () => {
   const seen = new Set<string>();
@@ -941,8 +1082,6 @@ const readingTokens = (tokens: LyricToken[]) => tokens.flatMap((token) => {
   }];
 });
 
-const normalizeHandle = (handle: string) => handle === '@kotonoha.music' ? '@kotonoha.app' : handle;
-
 // 렌더는 public/ 아래 파일명을, 어드민 미리보기는 admin-api 가 스트리밍하는 URL 을 넘긴다.
 const assetSrc = (asset: string): string =>
   (asset.startsWith('http') || asset.startsWith('/') ? asset : staticFile(asset));
@@ -981,39 +1120,30 @@ const styles = {
     transform: 'scale(1.15)',
     width: '100%',
   },
-  // 가사 화면과 엔드카드가 같은 스크림을 쓴다 — Pen Reel v2 의 MV/Backdrop Top·Bottom Scrim 과 같은 값
-  topScrim: {
-    background: 'linear-gradient(180deg, rgba(17,16,18,0.70) 0%, rgba(17,16,18,0) 100%)',
-    height: 300,
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: 0,
-  },
-  bottomScrim: {
-    background:
-      'linear-gradient(180deg, rgba(17,16,18,0) 0%, rgba(17,16,18,0.40) 20%, rgba(17,16,18,0.55) 32%, rgba(17,16,18,0.65) 55%, rgba(17,16,18,0.75) 100%)',
-    bottom: 0,
-    height: 1300,
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: 620,
-  },
   activeLayer: {
     inset: 0,
     position: 'absolute',
   },
+  // 스크림도 띠도 없이 MV 위에 바로 얹는다. 캔버스 바탕이 검정이라 MV 가 닿지 않는 자리는 알아서 검게 남는다.
+  headlineBlock: {
+    alignItems: 'center',
+    boxSizing: 'border-box',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 22,
+    left: 0,
+    padding: '92px 72px 0',
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    zIndex: 4,
+  },
   header: {
     alignItems: 'center',
     display: 'flex',
-    // 제목이 여러 줄이면 아래로 늘어난다. 고정 높이면 위로 넘쳐 상단 스크림 밖으로 밀린다.
-    minHeight: 96,
-    left: 72,
-    position: 'absolute',
-    right: 72,
-    top: 150,
-    zIndex: 4,
+    // 제목이 여러 줄이면 아래로 늘어난다. 고정 높이면 헤드라인 위로 넘친다.
+    minHeight: 60,
+    width: '100%',
   },
   songText: {
     display: 'flex',
@@ -1023,27 +1153,60 @@ const styles = {
   },
   title: {
     color: ink,
-    fontSize: 50,
+    fontSize: 34,
     fontWeight: 800,
     // 긴 제목(feat. 나열)은 두세 줄로 꺾인다. 1 이면 줄끼리 붙는다.
     lineHeight: 1.2,
+    ...outline(1),
   },
   artist: {
     color: softInk,
-    fontSize: 29,
+    fontSize: 21,
     fontWeight: 500,
     lineHeight: 1,
+    ...outline(0.75),
   },
   watermark: {
-    color: 'rgba(250,250,246,0.35)',
-    fontSize: 28,
+    color: '#FAFAF659',
+    fontSize: 24,
     fontWeight: 500,
     flexShrink: 0,
     marginLeft: 'auto',
+    ...outline(0.75),
+  },
+  headline: {
+    alignItems: 'center',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 10,
+    textAlign: 'center',
+    width: '100%',
+    // 한글은 기본 줄바꿈이 글자 단위다. 어절 경계에서만 접는다.
+    wordBreak: 'keep-all',
+  },
+  headlineLine: {
+    alignItems: 'center',
+    display: 'flex',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+  },
+  headlinePlain: {
+    color: ink,
+    fontWeight: 800,
+    lineHeight: 1.15,
+    ...outline(1.5),
+  },
+  headlineHighlight: {
+    backgroundColor: highlight,
+    borderRadius: 6,
+    color: night,
+    fontWeight: 800,
+    lineHeight: 1.15,
+    padding: '8px 22px',
   },
   profileCue: {
     alignItems: 'center',
-    color: 'rgba(250,250,246,0.75)',
+    color: ink,
     display: 'flex',
     gap: 12,
     left: 74,
@@ -1052,10 +1215,11 @@ const styles = {
     zIndex: 4,
   },
   profileCueLabel: {
-    fontSize: 26,
+    fontSize: 22,
     fontWeight: 500,
     letterSpacing: -0.3,
     lineHeight: 1,
+    ...outline(0.75),
   },
   content: {
     alignItems: 'center',
@@ -1069,8 +1233,7 @@ const styles = {
     position: 'absolute',
     right: CONTENT_SIDE,
     textAlign: 'center',
-    // 내용이 짧을 때 위쪽 시작점. Pen Reel v2 와 같이 927
-    top: 927,
+    top: CONTENT_TOP,
     zIndex: 4,
   },
   contentSpacer: {
@@ -1078,128 +1241,142 @@ const styles = {
     minHeight: 0,
     width: '100%',
   },
-  wordsEntry: {
-    marginTop: 80,
+  // 가사 줄과 강조 단어 블록 사이. Pen Reel v2 1b 의 Content gap 과 같다.
+  contentStack: {
+    alignItems: 'center',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 56,
+    width: '100%',
   },
   lyricBlock: {
     alignItems: 'center',
     display: 'flex',
     flexDirection: 'column',
+    // 원문과 번역 사이. Pen Reel v2 1b 의 Lyric gap 과 같다.
     gap: 20,
     width: '100%',
   },
-  japanese: {
-    color: ink,
+  // 토큰 칸을 한 줄로 깔고 760 을 넘을 때만 접는다.
+  lyricRow: {
+    alignItems: 'flex-end',
+    display: 'flex',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    width: '100%',
+  },
+  token: {
     fontWeight: 700,
-    // 2줄 이상일 때 답답하지 않게 — Pen Reel v2 의 줄 박스(1.16) + gap 20 과 같은 1.5 배
-    lineHeight: 1.5,
-    margin: 0,
-    // 어절(공백) 단위로만 줄을 바꾼다. 단어 한가운데서 꺾이면 안 읽힌다.
-    overflowWrap: 'anywhere',
-    wordBreak: 'keep-all',
+    lineHeight: 1.16,
+    textAlign: 'center',
+    whiteSpace: 'nowrap',
   },
   korean: {
-    color: 'rgba(250,250,246,0.85)',
-    fontSize: 38,
+    color: ink,
+    fontSize: 28,
     fontWeight: 500,
     letterSpacing: -0.8,
     lineHeight: 1.3,
     margin: 0,
+    // 한글은 기본 줄바꿈이 글자 단위라 단어가 쪼개진다. 어절(공백) 경계에서만 접는다.
+    wordBreak: 'keep-all',
+    ...outline(1),
   },
-  wordsBlock: {
-    width: 600,
+  wordBlock: {
+    alignItems: 'center',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 30,
+    width: WORD_BLOCK_WIDTH,
   },
-  sectionRule: {
-    backgroundColor: 'rgba(244,241,234,0.20)',
+  wordRule: {
+    backgroundColor: '#F4F1EA59',
     height: 2,
-    marginBottom: 40,
     width: '100%',
   },
   wordList: {
     display: 'flex',
     flexDirection: 'column',
-    gap: 36,
+    gap: WORD_ROW_GAP,
+    width: '100%',
   },
+  // 왼쪽은 기본형 + 한글 발음, 오른쪽 끝에 뜻. 밑선을 맞춰야 크기가 다른 세 글자가 한 줄로 읽힌다.
   wordRow: {
-    alignItems: 'center',
+    alignItems: 'flex-end',
     display: 'flex',
+    gap: 24,
     justifyContent: 'space-between',
-    minHeight: 48,
+    width: '100%',
   },
-  wordLeft: {
-    alignItems: 'baseline',
+  wordJapaneseGroup: {
+    alignItems: 'flex-end',
     display: 'flex',
     gap: 12,
-    minWidth: 0,
   },
   wordJapanese: {
-    fontSize: 48,
+    fontSize: WORD_JAPANESE_SIZE,
     fontWeight: 700,
     lineHeight: 1,
+    whiteSpace: 'nowrap',
+    ...outline(1.25),
   },
   wordReading: {
-    color: 'rgba(250,250,246,0.50)',
-    fontSize: 24,
+    color: readingInk,
+    fontSize: WORD_READING_SIZE,
     fontWeight: 500,
+    lineHeight: 1.5,
+    whiteSpace: 'nowrap',
+    ...outline(0.75),
   },
-  wordKorean: {
-    color: 'rgba(250,250,246,0.90)',
-    fontSize: 36,
+  wordMeaning: {
+    color: ink,
+    fontSize: WORD_MEANING_SIZE,
     fontWeight: 600,
     letterSpacing: -0.6,
     lineHeight: 1.3,
-    maxWidth: 300,
     textAlign: 'right',
+    wordBreak: 'keep-all',
+    ...outline(1),
   },
 
+  // 아래 깔린 가사 화면(마지막 줄에서 멈춘 그림)을 그대로 블러해 배경으로 쓴다 — pen 의 Prev Frame + Blur Layer
   endCardLayer: {
-    backgroundColor: night,
+    backdropFilter: 'blur(56px)',
+    backgroundColor: '#11101266',
     overflow: 'hidden',
+    WebkitBackdropFilter: 'blur(56px)',
     zIndex: 10,
   },
-  endBackdropArt: {
-    backgroundPosition: 'center',
-    backgroundSize: 'cover',
-    filter: 'blur(48px)',
-    height: 2120,
-    left: -100,
-    opacity: 0.6,
+  endWatermark: {
+    color: '#FAFAF659',
+    fontSize: 28,
+    fontWeight: 500,
     position: 'absolute',
-    top: -100,
-    width: 1280,
-  },
-  ambientGlow: {
-    background: `radial-gradient(circle, ${glow}2E 0%, ${glow}00 62%)`,
-    height: 900,
-    left: 90,
-    position: 'absolute',
-    top: 250,
-    width: 900,
+    right: 72,
+    textShadow: hardShadow(2),
+    top: 110,
   },
   endTitleBlock: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 4,
-    left: 60,
+    left: 72,
     position: 'absolute',
-    right: 60,
-    textAlign: 'center',
-    top: 150,
+    right: 72,
+    top: 140,
   },
-  endTitle: {
-    color: paper,
-    fontSize: 92,
-    fontWeight: 800,
-    lineHeight: 1.1,
-  },
-  endTitleBrand: {
-    color: green,
+  // 예전엔 night 단색 블록이라 화면 아래에 검은 띠가 생겼다. 스토어 큐 가독성만 남기고 띠는 없앤다.
+  // 폰 목업이 끝나는 1270 에서 시작한다 — 더 위에서 시작하면 폰 바닥이 그라데이션에 먹힌다.
+  bottomScrim: {
+    backgroundImage: `linear-gradient(180deg, ${night}00 0%, ${night}99 28%, ${night}D9 60%, ${night}F2 100%)`,
+    bottom: 0,
+    height: PROMO_HEIGHT - MOCKUP_BOTTOM,
+    left: 0,
+    position: 'absolute',
+    right: 0,
   },
   ctaBlock: {
     alignItems: 'center',
     display: 'flex',
     flexDirection: 'column',
-    gap: 28,
+    gap: 22,
     left: 60,
     position: 'absolute',
     right: 60,
@@ -1208,7 +1385,7 @@ const styles = {
   searchCue: {
     alignItems: 'center',
     backgroundColor: paper,
-    borderRadius: 34,
+    borderRadius: 10,
     boxSizing: 'border-box',
     display: 'flex',
     gap: 22,
@@ -1242,6 +1419,7 @@ const styles = {
     fontSize: 30,
     fontWeight: 600,
     gap: 44,
+    textShadow: hardShadow(2),
   },
   storeItem: {
     alignItems: 'center',
@@ -1253,24 +1431,21 @@ const styles = {
     color: softInk,
     fontSize: 28,
     fontWeight: 500,
+    textShadow: hardShadow(2),
   },
 
   phone: {
     backgroundColor: app.background,
-    border: '3px solid rgba(244,241,234,0.24)',
-    borderRadius: 46,
-    boxShadow: '0 28px 80px rgba(0,0,0,0.6)',
+    border: `4px solid ${night}`,
+    borderRadius: 40,
+    boxShadow: `18px 18px 0 ${night}`,
     color: app.textPrimary,
     fontFamily: appFontStack,
     height: PHONE_HEIGHT,
     left: 310,
-    // 폰 아래쪽은 배경으로 녹아든다. 테두리·그림자까지 같이 사라져야 해서 별도 fade 사각형이 아니라 mask 다.
-    // 복습 화면의 rating 줄이 아래 60px 위에 오므로 그보다 아래만 녹인다.
-    maskImage: 'linear-gradient(180deg, #000 0%, #000 93%, transparent 100%)',
     overflow: 'hidden',
     position: 'absolute',
-    top: 400,
-    WebkitMaskImage: 'linear-gradient(180deg, #000 0%, #000 93%, transparent 100%)',
+    top: MOCKUP_BOTTOM - PHONE_HEIGHT,
     width: PHONE_WIDTH,
   },
   phonePage: {

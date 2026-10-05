@@ -1,22 +1,33 @@
 import { describe, expect, test } from "vitest"
+import { parseHeadline } from "@reels/headline"
 import type { ReelsLyricLine, ReelsSongDetail } from "@/api/types"
 import {
   buildPromoData,
+  clampHeadlineFontSize,
+  clampLyricScale,
   clampMvFrame,
   coverMvFrame,
   croppedAspect,
+  DEFAULT_HEADLINE_FONT_SIZE,
   DEFAULT_LINE_GAP_MS,
   DEFAULT_TAIL_MS,
   emptyEditor,
   formatMs,
+  HEADLINE_FONT_SIZE_MAX,
+  HEADLINE_FONT_SIZE_MIN,
+  LYRIC_SCALE_MAX,
+  LYRIC_SCALE_MIN,
   MIN_GAP_MS,
   parseTimecode,
   setEnd,
   setLineStart,
   setLinesIncluded,
   setSourceStart,
+  setTokenMeaning,
   shiftAll,
   toggleLine,
+  tokenMeaning,
+  tokenTakesMeaning,
   toggleToken,
   validate,
 } from "./reelEditor"
@@ -48,13 +59,13 @@ function detailWith(lines: Array<Partial<ReelsLyricLine> & { index: number }>): 
     },
     lyricType: "SYNCED",
     headline: "머리말",
-    instagramHandle: "@kotonoha.music",
+    instagramHandle: "@kotonoha.app",
     catchphrase: "가사에서 바로 배우는 일본어",
     fps: 30,
     minLineCount: 4,
     maxLineCount: null,
     maxLyricsSpanMs: 60_000,
-    maxVocabularyPerLine: 2,
+    maxVocabularyPerLine: 3,
     lines: lines.map((line) => ({
       startTimeMs: null,
       originalText: `歌詞${line.index}`,
@@ -74,7 +85,7 @@ const plain = detailWith([0, 1, 2, 3, 4].map((index) => ({ index })))
 describe("toggleLine", () => {
   test("synced lyrics seed timing from timestamps and fit the clip around the first pick", () => {
     let state = toggleLine(emptyEditor(), synced, 2)
-    expect(state.lines).toEqual([{ index: 2, startMs: 14_000, tokenIndexes: [0] }])
+    expect(state.lines).toEqual([{ index: 2, startMs: 14_000, tokenIndexes: [0], meanings: {} }])
     expect(state.sourceStartMs).toBe(14_000)
     // 끝은 곡의 다음 줄(index 3, 16초)이 시작하는 곳
     expect(state.endMs).toBe(16_000)
@@ -193,7 +204,46 @@ describe("vocabulary", () => {
   })
 })
 
-describe("validate and buildPromoData", () => {
+describe("token meanings", () => {
+  test("particles and auxiliaries never take a meaning", () => {
+    const [noun, particle] = synced.lines[0].tokens
+    expect(tokenTakesMeaning(noun)).toBe(true)
+    expect(tokenTakesMeaning(particle)).toBe(false)
+    const state = setTokenMeaning(toggleLine(emptyEditor(), synced, 0), 0, 1, "~을")
+    expect(tokenMeaning(particle, state.lines[0], 1)).toBe("")
+  })
+
+  test("carries the admin-written meaning into the reel tokens and the chosen words", () => {
+    let state = [0, 1, 2, 3].reduce((current, index) => toggleLine(current, synced, index), emptyEditor())
+    state = setTokenMeaning(state, 0, 0, "가슴")
+    // 조사는 뜻을 써 넣어도 릴스에 나가지 않는다
+    state = setTokenMeaning(state, 0, 1, "~을")
+    const data = buildPromoData(synced, state, "http://mv")
+    expect(data.lyricLines[0].tokens.map((token) => token.koreanText)).toEqual(["가슴", null, "보다"])
+    expect(data.lyricLines[0].vocabulary[0]).toMatchObject({ japanese: "夢", korean: "가슴" })
+    // 다른 줄은 그대로다
+    expect(data.lyricLines[1].tokens.map((token) => token.koreanText)).toEqual(["꿈", null, "보다"])
+  })
+
+  test("null restores the analyzed meaning", () => {
+    const line = synced.lines[0]
+    let state = toggleLine(emptyEditor(), synced, 0)
+    state = setTokenMeaning(state, 0, 0, "가슴")
+    expect(tokenMeaning(line.tokens[0], state.lines[0], 0)).toBe("가슴")
+    state = setTokenMeaning(state, 0, 0, null)
+    expect(state.lines[0].meanings).toEqual({})
+    expect(tokenMeaning(line.tokens[0], state.lines[0], 0)).toBe("꿈")
+  })
+
+  test("a chosen word with the meaning cleared blocks the render", () => {
+    let state = [0, 1, 2, 3].reduce((current, index) => toggleLine(current, synced, index), emptyEditor())
+    expect(validate(state, synced)).toEqual([])
+    state = setTokenMeaning(state, 0, 0, "  ")
+    expect(validate(state, synced)).toEqual(["#1 줄에 뜻 없는 단어가 있습니다"])
+  })
+})
+
+describe("validate and buildPromoData",  () => {
   test("reports too few lines and an overlong span", () => {
     let state = [0, 1, 2].reduce((current, index) => toggleLine(current, synced, index), emptyEditor())
     expect(validate(state, synced)).toEqual(["줄을 4개 이상 골라야 합니다 (3/4)"])
@@ -219,13 +269,53 @@ describe("validate and buildPromoData", () => {
     expect(data.totalLineCount).toBe(5)
   })
 
-  test("uses the admin-entered song credit and rejects blank ones", () => {
+  test("uses the admin-entered caption and rejects blank ones", () => {
     const state = [0, 1, 2, 3].reduce((current, index) => toggleLine(current, synced, index), emptyEditor())
     const defaults = buildPromoData(synced, state, "http://mv")
     expect(defaults.song).toMatchObject({ title: synced.song.title, artist: synced.song.artist })
-    const data = buildPromoData(synced, state, "http://mv", { title: " 레몬 ", artist: "요네즈 켄시" })
+    expect(defaults.headline).toBe(synced.headline)
+    const data = buildPromoData(synced, state, "http://mv", {
+      title: " 레몬 ",
+      artist: "요네즈 켄시",
+      headline: " 가사 한 줄에\n<b>단어 6개</b> ",
+    })
     expect(data.song).toMatchObject({ title: "레몬", artist: "요네즈 켄시" })
-    expect(validate(state, synced, { title: " ", artist: "" })).toEqual(["곡 제목을 입력해야 합니다", "아티스트를 입력해야 합니다"])
+    expect(data.headline).toBe("가사 한 줄에\n<b>단어 6개</b>")
+    expect(validate(state, synced, { title: " ", artist: "", headline: "" })).toEqual([
+      "곡 제목을 입력해야 합니다",
+      "아티스트를 입력해야 합니다",
+      "헤드라인을 입력해야 합니다",
+    ])
+  })
+})
+
+describe("headline font size", () => {
+  const state = [0, 1, 2, 3].reduce((current, index) => toggleLine(current, synced, index), emptyEditor())
+
+  test("defaults to the design size and carries the admin value into the props", () => {
+    expect(buildPromoData(synced, state, "http://mv").headlineFontSize).toBe(DEFAULT_HEADLINE_FONT_SIZE)
+    expect(buildPromoData(synced, state, "http://mv", undefined, null, 1, 92).headlineFontSize).toBe(92)
+  })
+
+  test("clamps out-of-range values", () => {
+    expect(buildPromoData(synced, state, "http://mv", undefined, null, 1, 400).headlineFontSize).toBe(HEADLINE_FONT_SIZE_MAX)
+    expect(clampHeadlineFontSize(10)).toBe(HEADLINE_FONT_SIZE_MIN)
+    expect(clampHeadlineFontSize(76.6)).toBe(77)
+  })
+})
+
+describe("lyric scale", () => {
+  const state = [0, 1, 2, 3].reduce((current, index) => toggleLine(current, synced, index), emptyEditor())
+
+  test("defaults to the base size and carries the admin value into the props", () => {
+    expect(buildPromoData(synced, state, "http://mv").lyricScale).toBe(1)
+    expect(buildPromoData(synced, state, "http://mv", undefined, null, 1.25).lyricScale).toBe(1.25)
+  })
+
+  test("clamps out-of-range values", () => {
+    expect(buildPromoData(synced, state, "http://mv", undefined, null, 9).lyricScale).toBe(LYRIC_SCALE_MAX)
+    expect(clampLyricScale(0.1)).toBe(LYRIC_SCALE_MIN)
+    expect(clampLyricScale(1.234)).toBe(1.23)
   })
 })
 
@@ -281,3 +371,27 @@ describe("timecode", () => {
 })
 
 const msToFrame = (ms: number) => Math.round((ms / 1000) * 30)
+
+describe("headline markup", () => {
+  test("splits lines and marks only the <b> spans", () => {
+    expect(parseHeadline("가사 한 줄에\n<b>일본어 단어 6개</b>")).toEqual([
+      [{ text: "가사 한 줄에", highlight: false }],
+      [{ text: "일본어 단어 6개", highlight: true }],
+    ])
+  })
+
+  test("keeps the plain text around a span and drops blank lines", () => {
+    expect(parseHeadline("  \n오늘 <b>한 줄</b>만\n\n")).toEqual([
+      [
+        { text: "오늘 ", highlight: false },
+        { text: "한 줄", highlight: true },
+        { text: "만", highlight: false },
+      ],
+    ])
+  })
+
+  test("leaves unclosed or empty tags as plain text", () => {
+    expect(parseHeadline("<b>닫지 않음")).toEqual([[{ text: "<b>닫지 않음", highlight: false }]])
+    expect(parseHeadline("<b></b>비었음")).toEqual([[{ text: "비었음", highlight: false }]])
+  })
+})

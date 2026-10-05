@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react"
+import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter } from "react-router-dom"
 import { beforeEach, describe, expect, test, vi } from "vitest"
@@ -362,6 +362,25 @@ describe("admin web", () => {
 
     expect(screen.getByRole("button", { name: /Render and download MP4/ })).toBeEnabled()
 
+    // 뜻은 분석 결과가 기본이고 어드민이 그 자리에서 고쳐 쓴다. 되돌리기는 분석 결과로 돌아간다.
+    expect(screen.getByLabelText("Meaning for 沈む")).toHaveValue("가라앉다")
+    await user.clear(screen.getByLabelText("Meaning for 沈む"))
+    await user.type(screen.getByLabelText("Meaning for 沈む"), "잠기다")
+    expect(screen.getByLabelText("Toggle word 沈む")).toHaveTextContent("잠기다")
+    await user.click(screen.getByLabelText("Reset meaning for 沈む"))
+    expect(screen.getByLabelText("Meaning for 沈む")).toHaveValue("가라앉다")
+    // 조동사·조사는 릴스에서 뜻이 비므로 고쳐 쓸 칸도 없다
+    expect(screen.queryByLabelText("Meaning for ように")).toBeNull()
+
+    // 일본어 글자 크기는 릴스 전체에 고정이고 기본 크기로 되돌릴 수 있다
+    expect(screen.getByLabelText("Lyric size")).toHaveValue("1")
+    expect(screen.getByRole("button", { name: "기본 크기" })).toBeDisabled()
+    fireEvent.change(screen.getByLabelText("Lyric size"), { target: { value: "1.2" } })
+    expect(screen.getByLabelText("Lyric size")).toHaveValue("1.2")
+    await user.click(screen.getByRole("button", { name: "기본 크기" }))
+    expect(screen.getByLabelText("Lyric size")).toHaveValue("1")
+    expect(screen.getByLabelText("Toggle word 沈む")).toHaveTextContent("가라앉다")
+
     // 곡 제목·아티스트는 DB 값으로 채워지고 어드민이 고쳐 쓴다. 비우면 렌더할 수 없다.
     expect(screen.getByLabelText("Song title")).toHaveValue(reelsSongCandidate.title)
     expect(screen.getByLabelText("Song artist")).toHaveValue(reelsSongCandidate.artist)
@@ -369,6 +388,14 @@ describe("admin web", () => {
     expect(screen.getByText("곡 제목을 입력해야 합니다")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: /Render and download MP4/ })).toBeDisabled()
     await user.type(screen.getByLabelText("Song title"), "레몬")
+    expect(screen.getByRole("button", { name: /Render and download MP4/ })).toBeEnabled()
+
+    // 헤드라인도 서버 기본값으로 채워지고 어드민이 고쳐 쓴다. <b> 로 감싼 자리에 초록 배경이 깔린다.
+    expect(screen.getByLabelText("Headline")).toHaveValue(reelsSongDetail.headline)
+    await user.clear(screen.getByLabelText("Headline"))
+    expect(screen.getByText("헤드라인을 입력해야 합니다")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /Render and download MP4/ })).toBeDisabled()
+    await user.type(screen.getByLabelText("Headline"), "가사 한 줄에 <b>단어 6개</b>")
     expect(screen.getByRole("button", { name: /Render and download MP4/ })).toBeEnabled()
 
     // 든 줄에서 끌기 시작하면 빼기, 체크 한 번은 그 줄만 토글, Shift+클릭은 마지막 줄부터 범위

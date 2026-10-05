@@ -1,42 +1,56 @@
 import { create } from 'zustand';
 import { studyStatsApi } from '../api/studyStatsApi';
-import { HomeStats } from '../types/studyStats';
+import { HomeStats, WeekDot } from '../types/studyStats';
 
-export interface StreakToastContent {
-  /** 윗줄(작은 글자) — 연속 학습 상태. */
-  eyebrow: string;
-  /** 아랫줄(큰 글자) — 그 상태에 붙이는 한마디. */
-  label: string;
+export interface StreakCelebrationCopy {
+  /** 큰 글자 — 감탄. */
+  headline: string;
+  /** 아랫줄 — 격려. */
+  sub: string;
 }
 
+export interface StreakCelebrationContent extends StreakCelebrationCopy {
+  /** 오늘 포함 연속 일수. */
+  streak: number;
+  /** 오늘 포함 지난 7일. 마지막 칸이 오늘이고 축하 화면에서 점화된다. */
+  weekDots: WeekDot[];
+}
+
+type HomeStatsInput = Pick<HomeStats, 'currentStreak' | 'studiedToday' | 'hasStudiedBefore'> &
+  Partial<Pick<HomeStats, 'weekDots'>>;
+
 interface StreakState {
-  /** 홈 통계를 한 번이라도 받았는지. 모르면 넛지도 토스트도 내지 않는다. */
+  /** 홈 통계를 한 번이라도 받았는지. 모르면 넛지도 축하 화면도 내지 않는다. */
   loaded: boolean;
   /** 오늘 학습했으면 오늘 포함, 아니면 어제까지의 연속 일수(끊겼으면 0) — 헤더 칩 숫자. */
   currentStreak: number;
   studiedToday: boolean;
   hasStudiedBefore: boolean;
-  /** 오늘 첫 rating 직후 한 번 채워지고, 배너가 스스로 사라지면 비운다. */
-  toast: StreakToastContent | null;
+  /** 오늘 포함 지난 7일. 마지막 칸이 오늘. */
+  weekDots: WeekDot[];
+  /** 오늘 첫 rating 직후 한 번 채워지고, 축하 화면을 닫으면 비운다. */
+  celebration: StreakCelebrationContent | null;
 
-  applyHomeStats: (stats: Pick<HomeStats, 'currentStreak' | 'studiedToday' | 'hasStudiedBefore'>) => void;
+  applyHomeStats: (stats: HomeStatsInput) => void;
   /** 홈을 거치지 않고 복습에 들어온 화면용 — 아직 홈 통계가 없으면 한 번 받아온다. 실패는 조용히 무시. */
   ensureLoaded: () => Promise<void>;
-  /** rating 이 서버에 기록된 직후 호출. 오늘 첫 rating 이면 숫자를 올리고 배너를 띄운다. */
+  /** rating 이 서버에 기록된 직후 호출. 오늘 첫 rating 이면 숫자를 올리고 축하 화면을 띄운다. */
   recordRating: () => void;
-  dismissToast: () => void;
+  /** 디버그용 — 실제 학습 기록과 무관하게 축하 화면만 띄운다. */
+  showCelebration: (celebration: StreakCelebrationContent) => void;
+  dismissCelebration: () => void;
   reset: () => void;
 }
 
-/** A-2 문구표. N = 오늘 포함 연속 일수. freeze 로 이어진 경우도 이어감과 같다. */
-export function streakToastContent(streakToday: number, hasStudiedBefore: boolean): StreakToastContent {
+/** 문구표. N = 오늘 포함 연속 일수. freeze 로 이어진 경우도 이어감과 같다. */
+export function streakCelebrationCopy(streakToday: number, hasStudiedBefore: boolean): StreakCelebrationCopy {
   if (streakToday >= 2) {
-    return { eyebrow: `연속 학습 ${streakToday}일째`, label: `${streakToday}일째 이어가고 있어요!` };
+    return { headline: '연속 학습 기록을 이어 갔어요!', sub: `내일도 학습하면 ${streakToday + 1}일 연속이에요` };
   }
   if (hasStudiedBefore) {
-    return { eyebrow: '연속 학습 다시 시작', label: '돌아오신 걸 환영해요!' };
+    return { headline: '연속 학습을 다시 시작했어요!', sub: '내일도 학습하면 2일 연속이에요' };
   }
-  return { eyebrow: '연속 학습 시작', label: '오늘부터 함께 힘내요!' };
+  return { headline: '연속 학습을 시작했어요!', sub: '내일도 학습하면 2일 연속이에요' };
 }
 
 const initial = {
@@ -44,37 +58,40 @@ const initial = {
   currentStreak: 0,
   studiedToday: false,
   hasStudiedBefore: false,
-  toast: null,
+  weekDots: [] as WeekDot[],
+  celebration: null,
 };
 
 export const useStreakStore = create<StreakState>((set, get) => ({
   ...initial,
 
-  applyHomeStats: ({ currentStreak, studiedToday, hasStudiedBefore }) =>
-    set({ loaded: true, currentStreak, studiedToday, hasStudiedBefore }),
+  applyHomeStats: ({ currentStreak, studiedToday, hasStudiedBefore, weekDots }) =>
+    set({ loaded: true, currentStreak, studiedToday, hasStudiedBefore, weekDots: weekDots ?? [] }),
 
   ensureLoaded: async () => {
     if (get().loaded) return;
     try {
       get().applyHomeStats(await studyStatsApi.getHome());
     } catch {
-      // 통계가 없으면 배너를 안 띄울 뿐, 복습 자체는 막지 않는다.
+      // 통계가 없으면 축하 화면을 안 띄울 뿐, 복습 자체는 막지 않는다.
     }
   },
 
-  // 홈 통계를 다시 받기 전까지 studiedToday 가 true 로 남아, 04:00 경계를 넘겨도 한 세션에 배너는 한 번만 뜬다.
+  // 홈 통계를 다시 받기 전까지 studiedToday 가 true 로 남아, 04:00 경계를 넘겨도 한 세션에 축하 화면은 한 번만 뜬다.
   recordRating: () => {
-    const { loaded, studiedToday, currentStreak, hasStudiedBefore } = get();
+    const { loaded, studiedToday, currentStreak, hasStudiedBefore, weekDots } = get();
     if (!loaded || studiedToday) return;
     const streakToday = currentStreak + 1;
     set({
       studiedToday: true,
       currentStreak: streakToday,
-      toast: streakToastContent(streakToday, hasStudiedBefore),
+      celebration: { ...streakCelebrationCopy(streakToday, hasStudiedBefore), streak: streakToday, weekDots },
     });
   },
 
-  dismissToast: () => set({ toast: null }),
+  showCelebration: (celebration) => set({ celebration }),
+
+  dismissCelebration: () => set({ celebration: null }),
 
   reset: () => set(initial),
 }));

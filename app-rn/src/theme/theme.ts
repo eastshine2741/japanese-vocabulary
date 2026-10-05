@@ -48,6 +48,9 @@ export const Colors = {
 
   // Streak / study stats
   streakFlame: '#FF9500',
+  /** 홈 헤더 연속 학습 칩 — 불꽃 배경과 글자. */
+  streakPillBg: '#FFF4E5',
+  streakPillText: '#B45309',
   heatmapIntensities: ['#EEEEEE', '#C9F0DB', '#8CE1B4', '#3CC784', '#107A45'] as const,
   freezeFill: '#E8F0F9',
   freezeStroke: '#5B9BF5',
@@ -62,6 +65,12 @@ export const Colors = {
   /** 남음 — 한 번도 학습하지 않은 단어. */
   memoryRemaining: '#D2D2D2',
   tierTrack: '#EEEEEE',
+
+  // 오늘의 복습 스케줄 (1년 기억 예보)
+  /** 매일 복습했을 때 기억하는 단어 수. */
+  forecastReviewed: '#16B364',
+  /** 오늘부터 쉬었을 때 기억하는 단어 수. */
+  forecastSkipped: '#F97316',
 
 
   // Legacy aliases

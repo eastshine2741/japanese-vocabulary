@@ -5,6 +5,7 @@ import com.google.firebase.messaging.AndroidConfig
 import com.google.firebase.messaging.AndroidNotification
 import com.google.firebase.messaging.ApnsConfig
 import com.google.firebase.messaging.Aps
+import com.google.firebase.messaging.ApsAlert
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.FirebaseMessagingException
 import com.google.firebase.messaging.Message
@@ -35,42 +36,42 @@ class PushNotificationService(
 ) {
     private val logger = LoggerFactory.getLogger(PushNotificationService::class.java)
 
-    /** Returns true if FCM accepted the message (does not guarantee end-user delivery). */
+    /**
+     * Returns true if FCM accepted the message (does not guarantee end-user delivery).
+     *
+     * [androidDataOnly] drops the notification block on Android so the OS hands the message to the
+     * app's background handler, which renders it locally from `data.title` / `data.body`. iOS still
+     * gets a visible APNs alert. Callers that set it must put `title` and `body` in [data].
+     */
     fun send(
         userId: Long,
         token: String,
         title: String,
         body: String,
         data: Map<String, String> = emptyMap(),
+        androidDataOnly: Boolean = false,
     ): Boolean {
-        val message = Message.builder()
-            .setToken(token)
-            .setNotification(
-                Notification.builder()
-                    .setTitle(title)
-                    .setBody(body)
+        val android = AndroidConfig.builder().setPriority(AndroidConfig.Priority.HIGH)
+        val aps = Aps.builder().setSound("default")
+        val builder = Message.builder().setToken(token)
+        if (androidDataOnly) {
+            aps.setAlert(ApsAlert.builder().setTitle(title).setBody(body).build())
+        } else {
+            builder.setNotification(Notification.builder().setTitle(title).setBody(body).build())
+            android.setNotification(
+                AndroidNotification.builder()
+                    .setChannelId(REVIEW_CHANNEL_ID)
+                    .setPriority(AndroidNotification.Priority.HIGH)
                     .build()
             )
-            .setAndroidConfig(
-                AndroidConfig.builder()
-                    .setPriority(AndroidConfig.Priority.HIGH)
-                    .setNotification(
-                        AndroidNotification.builder()
-                            .setChannelId(REVIEW_CHANNEL_ID)
-                            .setPriority(AndroidNotification.Priority.HIGH)
-                            .build()
-                    )
-                    .build()
-            )
+        }
+        val message = builder
+            .setAndroidConfig(android.build())
             .setApnsConfig(
                 ApnsConfig.builder()
                     .putHeader("apns-push-type", "alert")
                     .putHeader("apns-priority", "10")
-                    .setAps(
-                        Aps.builder()
-                            .setSound("default")
-                            .build()
-                    )
+                    .setAps(aps.build())
                     .build()
             )
             .putAllData(data)

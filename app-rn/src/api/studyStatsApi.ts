@@ -1,5 +1,5 @@
 import client from './client';
-import { HeatmapResponse, HomeStats, ProfileStats } from '../types/studyStats';
+import { HeatmapResponse, HomeStats, ProfileStats, StudyCalendarPage } from '../types/studyStats';
 
 export const studyStatsApi = {
   async getHome(): Promise<HomeStats> {
@@ -14,6 +14,14 @@ export const studyStatsApi = {
 
   async getHeatmap(): Promise<HeatmapResponse> {
     const { data } = await client.get<HeatmapResponse>('/api/study-stats/heatmap');
+    return data;
+  },
+
+  /** before 없이 부르면 이번 달까지의 첫 페이지. */
+  async getCalendar(before?: string): Promise<StudyCalendarPage> {
+    const { data } = await client.get<StudyCalendarPage>('/api/study-stats/calendar', {
+      params: before ? { before } : undefined,
+    });
     return data;
   },
 };

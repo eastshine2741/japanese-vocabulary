@@ -14,6 +14,10 @@ decide who gets what: `batch` (streak reminder CronJob), `worker` (analysis-comp
   (`--task=streak-reminder --slot=EVENING|NIGHT`). Copy lives in `StreakReminderMessage`; rules are in
   `docs/product-intents/260918-streak-commitment.md` section C. Payload `data.type` is
   `streak_reminder`. The former 09:00 / 18:00 word-recall reminder (`review_reminder`) is gone.
+  The 23:00 slot also carries `data.expiresAt` (epoch ms of the next 04:00 KST) for the client
+  countdown and is sent with `androidDataOnly = true`: no notification block on Android, so the
+  app renders it from `data.title` / `data.body`; iOS still gets a visible APNs alert. Payload and
+  copy: `docs/product-intents/260918-streak-commitment-api.md` section 3.
 - Manual trigger of a slot: create a Job from the CronJob —
   `kubectl create job --from=cronjob/streak-reminder-evening sr-$(date +%s) -n <ns>`.
 - Manual single-user dispatch: `POST /admin/api/push/send` in `admin-api`, behind the normal admin

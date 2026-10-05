@@ -54,7 +54,6 @@ export const FRONTEND_OSS: OssEntry[] = [
   { name: '@expo/vector-icons', license: 'MIT', url: 'https://github.com/expo/vector-icons' },
   { name: 'react-native-webview', license: 'MIT', url: 'https://github.com/react-native-webview/react-native-webview' },
   { name: 'react-native-safe-area-context', license: 'MIT', url: 'https://github.com/th3rdwave/react-native-safe-area-context' },
-  { name: '@react-native-community/slider', license: 'MIT', url: 'https://github.com/callstack/react-native-slider' },
   { name: 'expo-secure-store', license: 'MIT', url: 'https://github.com/expo/expo' },
   { name: 'expo-linear-gradient', license: 'MIT', url: 'https://github.com/expo/expo' },
 ];

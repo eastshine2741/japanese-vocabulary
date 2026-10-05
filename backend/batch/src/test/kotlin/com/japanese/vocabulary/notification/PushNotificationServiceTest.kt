@@ -88,6 +88,36 @@ class PushNotificationServiceTest {
     }
 
     @Test
+    fun `androidDataOnly drops the Android notification but keeps a visible APNs alert`() {
+        val captured = slot<Message>()
+        every { firebaseMessaging.send(capture(captured)) } returns "fcm-msg-id"
+        every { notificationLogRepository.save(any()) } answers { firstArg() }
+
+        val ok = service.send(
+            userId = 7L,
+            token = "tok-7",
+            title = "t",
+            body = "b",
+            data = mapOf("type" to "streak_reminder", "title" to "t", "body" to "b"),
+            androidDataOnly = true,
+        )
+
+        assertThat(ok).isTrue()
+        val message = captured.captured
+        assertThat(message.fieldValue<Any?>("notification")).isNull()
+        val android = message.fieldValue<Any>("androidConfig")
+        assertThat(android.fieldValue<String>("priority")).isEqualTo("high")
+        assertThat(android.fieldValue<Any?>("notification")).isNull()
+
+        val apns = message.fieldValue<Any>("apnsConfig")
+        assertThat(apns.fieldValue<Map<*, *>>("headers")["apns-push-type"]).isEqualTo("alert")
+        val aps = apns.fieldValue<Map<*, *>>("payload")["aps"] as Map<*, *>
+        val alert = aps["alert"]!!
+        assertThat(alert.fieldValue<String>("title")).isEqualTo("t")
+        assertThat(alert.fieldValue<String>("body")).isEqualTo("b")
+    }
+
+    @Test
     fun `UNREGISTERED FCM error deletes token and writes no log row`() {
         every { firebaseMessaging.send(any<Message>()) } throws fcmError(MessagingErrorCode.UNREGISTERED)
 

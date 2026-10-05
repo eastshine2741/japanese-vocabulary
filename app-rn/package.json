@@ -19,7 +19,6 @@
     "@expo/metro-runtime": "~55.0.11",
     "@expo/vector-icons": "^15.1.1",
     "@gorhom/bottom-sheet": "^5.2.8",
-    "@react-native-community/slider": "^5.1.2",
     "@react-native-firebase/analytics": "26.3.2",
     "@react-native-firebase/app": "26.3.2",
     "@react-native-firebase/messaging": "26.3.2",

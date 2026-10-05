@@ -16,6 +16,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.test.context.TestPropertySource
+import java.time.Instant
 import java.time.LocalDate
 import java.util.concurrent.atomic.AtomicLong
 
@@ -75,7 +76,7 @@ class StreakReminderTaskTest : BatchBaseIntegrationTest() {
         val result = candidatesFor(Slot.EVENING, pending, doneToday, neverStudied)
 
         assertThat(result.keys).containsExactly(pending.id)
-        assertThat(result[pending.id]!!.title).isEqualTo("🔥 3일 연속 학습 중! 오늘은 아직이에요")
+        assertThat(result[pending.id]!!.body).startsWith("3일이나")
     }
 
     @Test
@@ -97,20 +98,21 @@ class StreakReminderTaskTest : BatchBaseIntegrationTest() {
         val result = candidatesFor(Slot.NIGHT, startedYesterday, lapsed)
 
         assertThat(result.keys).containsExactly(startedYesterday.id)
-        assertThat(result[startedYesterday.id]!!.title).isEqualTo("⚠️ 어제 시작한 연속 학습이 끊기기 직전")
+        assertThat(result[startedYesterday.id]!!.title).isEqualTo("정말 공부 안 하실 건가요...?")
     }
 
     @Test
-    fun `lapsed users get evening reminder for three days then stop`() {
+    fun `lapsed users get evening reminder the day after and a farewell on the third day`() {
         val dayAfter = newUser().also { studied(it, 2) }
+        val secondDay = newUser().also { studied(it, 3) }
         val thirdDay = newUser().also { studied(it, 4) }
         val fourthDay = newUser().also { studied(it, 5) }
 
-        val result = candidatesFor(Slot.EVENING, dayAfter, thirdDay, fourthDay)
+        val result = candidatesFor(Slot.EVENING, dayAfter, secondDay, thirdDay, fourthDay)
 
         assertThat(result.keys).containsExactlyInAnyOrder(dayAfter.id, thirdDay.id)
-        assertThat(result[dayAfter.id]!!.title).isEqualTo("오늘 카드 한 장으로 다시 시작해요")
-        assertThat(result[thirdDay.id]!!.title).isEqualTo("오늘 다시 시작해볼까요?")
+        assertThat(result[dayAfter.id]!!.title).isEqualTo("어제는 좀 피곤했잖아요. 오늘은 다르죠?")
+        assertThat(result[thirdDay.id]!!.title).isEqualTo("마지막으로 한 번만 부를게요")
     }
 
     @Test
@@ -121,19 +123,19 @@ class StreakReminderTaskTest : BatchBaseIntegrationTest() {
 
         val result = candidatesFor(Slot.EVENING, user)
 
-        assertThat(result[user.id]!!.title).isEqualTo("🔥 2일 연속 학습 중! 오늘은 아직이에요")
+        assertThat(result[user.id]!!.body).startsWith("2일이나")
     }
 
     @Test
     fun `lapsed gap is measured from the last review day, not a freeze day`() {
-        // studied 3 days ago, freeze bridged 2 days ago, nothing yesterday → lapsed, gap 3
-        val user = newUser().also { studied(it, 3) }
-        entityManager.persist(DailyStudySummaryEntity(userId = user.id!!, dateKst = today.minusDays(2), reviewCount = 0, freezeUsed = true))
+        // studied 4 days ago, freeze bridged 3 days ago, nothing since → lapsed, gap 4
+        val user = newUser().also { studied(it, 4) }
+        entityManager.persist(DailyStudySummaryEntity(userId = user.id!!, dateKst = today.minusDays(3), reviewCount = 0, freezeUsed = true))
         entityManager.flush()
 
         val result = candidatesFor(Slot.EVENING, user)
 
-        assertThat(result[user.id]!!.title).isEqualTo("오늘 다시 시작해볼까요?")
+        assertThat(result[user.id]!!.title).isEqualTo("마지막으로 한 번만 부를게요")
     }
 
     @Test
@@ -150,6 +152,43 @@ class StreakReminderTaskTest : BatchBaseIntegrationTest() {
         assertThat(result.sent).isEqualTo(expected)
         assertThat(result.failed).isZero
         verify(exactly = expected) { firebaseMessaging.send(any<Message>()) }
+    }
+
+    @Test
+    fun `night dispatch carries expiresAt and is data-only on Android`() {
+        val user = newUser().also { studied(it, 1) }
+        val messages = mutableListOf<Message>()
+        every { firebaseMessaging.send(capture(messages)) } returns "fcm-message-id"
+
+        task.dispatch(Slot.NIGHT, today)
+
+        val mine = messages.single { it.fieldValue<String>("token") == "streak-token-${user.username.removePrefix("streak")}" }
+        val data = mine.fieldValue<Map<String, String>>("data")
+        assertThat(data["type"]).isEqualTo("streak_reminder")
+        assertThat(data["expiresAt"]).isEqualTo(Instant.parse("2026-09-20T19:00:00Z").toEpochMilli().toString())
+        assertThat(data["title"]).isEqualTo("정말 공부 안 하실 건가요...?")
+        assertThat(mine.fieldValue<Any?>("notification")).isNull()
+        assertThat(mine.fieldValue<Any>("androidConfig").fieldValue<Any?>("notification")).isNull()
+    }
+
+    @Test
+    fun `evening dispatch has no expiresAt and keeps the notification block`() {
+        val user = newUser().also { studied(it, 1) }
+        val messages = mutableListOf<Message>()
+        every { firebaseMessaging.send(capture(messages)) } returns "fcm-message-id"
+
+        task.dispatch(Slot.EVENING, today)
+
+        val mine = messages.single { it.fieldValue<String>("token") == "streak-token-${user.username.removePrefix("streak")}" }
+        assertThat(mine.fieldValue<Map<String, String>>("data")).doesNotContainKey("expiresAt")
+        assertThat(mine.fieldValue<Any?>("notification")).isNotNull
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun <T> Any.fieldValue(name: String): T {
+        val field = javaClass.getDeclaredField(name)
+        field.isAccessible = true
+        return field.get(this) as T
     }
 
     companion object {

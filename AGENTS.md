@@ -33,6 +33,7 @@ cd app-rn && npx expo start --web             # App - Web (dev)
 - Song analysis and word-meaning pipeline: `docs/architecture/song-analysis.md`
 - 곡 상세 완곡까지 3단계·이해도(`GET /api/songs/{id}/word-tiers`, `/coverage`): `docs/architecture/song-word-tiers.md`
 - 곡 상세 이해도·word tier 3단계 개편 기획 배경: `docs/product-intents/260925-song-detail-study-status-api.md`
+- 오늘의 복습 스케줄(H6) `GET /api/study-schedule` — 1년 기억 단어 수 예보(매일 GOOD 복습 vs 쉼, FSRS 기억 확률 합): `docs/product-intents/261004-study-schedule-api.md`
 - Translation pipeline guardrails: `docs/translation-pipeline.md`
 - Push notification architecture: `docs/architecture/push-notification.md`
 - Admin service: `docs/admin-service.md`
@@ -121,9 +122,13 @@ TypeSafe Jev (`TYPESAFE_API_KEY`), the other LLM stages on Gemini. Details live 
 앱은 `expo-device`/`expo-application`을 쓰므로 새 네이티브 빌드가 필요하다.
 
 **Streak commitment (260918):** `GET /api/study-stats/home`이 `studiedToday`/`hasStudiedBefore`를 내려주고,
-`batch`의 `StreakReminderTask`가 20:00/23:00 KST CronJob 으로 `streak_reminder` 알림을 보낸다 (단어 회상 알림은 폐기).
+`batch`의 `StreakReminderTask`가 20:00/23:00 KST CronJob 으로 `streak_reminder` 알림을 보낸다 (단어 회상 알림은 폐기). 23:00은 카운트다운용 `expiresAt`을 싣고 Android data-only.
 freeze 행은 연속을 잇기만 하고 streak/총 학습일 카운트에는 들어가지 않는다.
 스펙은 `docs/product-intents/260918-streak-commitment-api.md`.
+홈 헤더 연속 학습 칩 -> `Streak` 화면(히어로·통계·학습 달력). 달력은 `GET /api/study-stats/calendar`(달 단위 커서 페이지)로 첫 기록 달까지 넘긴다 (`/heatmap` 은 구클라·마이페이지용으로 유지):
+`docs/product-intents/261004-streak-detail-screen.md`.
+오늘 첫 rating 직후의 플로팅 배너는 폐기되고 전체 화면 축하로 바뀌었다:
+`docs/product-intents/261004-streak-celebration-screen.md`.
 
 **Admin surface:** `backend/admin-api` exposes `/admin/api/auth/login`, `/admin/api/songs`, `/admin/api/lyrics`, `/admin/api/song-analysis-works`, `/admin/api/users`, `/admin/api/users/{id}/words` (per-user decks/words/review state, read-only), and `/admin/api/push/send` (운영자 수동 푸시; 구 batch `/dev/push/send` 대체). `admin-web` is a Vite React TypeScript shadcn-style SPA. Dev 는 `/<namespace>/admin` 경로로, prod 는 `https://kotonoha.eastshine.dev/admin` (API 는 `/admin/api`) 한 호스트로 배포된다 — path 별 미들웨어가 필요해 Traefik `IngressRoute` 를 쓴다. See `docs/admin-service.md`.
 
