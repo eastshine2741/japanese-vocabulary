@@ -28,8 +28,8 @@ const CONTENT_SIDE = 160;
 const LYRIC_WIDTH = PROMO_WIDTH - CONTENT_SIDE * 2;
 // 내용이 짧을 때 가사 블록이 앉는 자리
 const CONTENT_TOP = 1058;
-// 하단 스크림이 시작하는 자리. 가사가 길어 블록이 CONTENT_TOP 위로 자라도 덮이도록 넉넉히 위에서 연다.
-const CONTENT_SCRIM_TOP = 620;
+// 하단 스크림이 시작하는 자리 — pen Reel v2 1b 의 Content Scrim 과 같다.
+const CONTENT_SCRIM_TOP = 983;
 // 상단 스크림이 끝나는 자리. 헤드라인 아래에서 완전히 투명해져 MV 로 녹는다.
 const HEADLINE_SCRIM_BOTTOM = 300;
 
@@ -1127,7 +1127,7 @@ const styles = {
   },
   // 아래 끝까지 끌고 간다 — 1560 아래는 어차피 인스타 UI 가 덮고, 1576 의 Profile Cue 가 이 띠 위에 앉는다.
   contentScrim: {
-    backgroundImage: `linear-gradient(180deg, ${night}00 0%, ${night}66 20%, ${night}8C 32%, ${night}A6 55%, ${night}BF 100%)`,
+    backgroundImage: `linear-gradient(180deg, ${night}00 0%, ${night}4D 20%, ${night}6B 32%, ${night}80 55%, ${night}94 100%)`,
     bottom: 0,
     left: 0,
     position: 'absolute',
