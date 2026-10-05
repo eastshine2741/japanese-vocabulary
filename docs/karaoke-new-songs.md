@@ -56,3 +56,14 @@ AFTER_COMMIT 에 받아 같은 제목·가수의 빈 행을 잇는다. 놓친 �
 `UserSettingsData.karaokeNewSongNotifications` (기본 false, opt-in). `PUT /api/settings` 는 설정 전체를 덮어쓰므로
 클라는 설정을 읽어 온 뒤에만 토글을 저장해야 한다. 푸시 대상은 탈퇴하지 않았고 `notificationsEnabled` 도 켜진 유저.
 푸시: 제목 `노래방에 새 일본곡 N곡`, 본문 `唱 - Ado 외 2곡`, `data = { type: "karaoke_new_songs", title, body }`.
+
+## 앱
+
+검색 탭 디스커버리의 `노래방 신곡` 섹션이 가장 최근 등재일 3곡을 보여주고, 누르면 `KaraokeNewSongs`
+화면(날짜별·월별 탭)이 열린다. 푸시(`type: karaoke_new_songs`)도 같은 화면으로 들어온다.
+`songId` 가 없는 줄은 곡 상세로 갈 수 없어 눌리지 않는다.
+
+날짜별 응답이 달 단위라 목록 끝에 닿으면 클라가 이전 달을 당겨 이어 붙인다. 빈 달이 세 번 이어지면 멈춘다.
+
+앱바의 알림 토글은 `karaokeNewSongNotifications` 하나를 바꾸지만 `PUT /api/settings` 는 설정 전체를 덮어쓰므로,
+설정을 읽어 오기 전에는 저장하지 않는다.

@@ -13,6 +13,8 @@ import LoginScreen from '../screens/LoginScreen';
 import SignupScreen from '../screens/SignupScreen';
 import ProfileEditScreen from '../screens/ProfileEditScreen';
 import SearchScreen from '../screens/SearchScreen';
+import SearchInputScreen from '../screens/SearchInputScreen';
+import KaraokeNewSongsScreen from '../screens/KaraokeNewSongsScreen';
 import SongSearchResultsScreen from '../screens/SongSearchResultsScreen';
 import SongDetailScreen from '../screens/SongDetailScreen';
 import DeckListScreen from '../screens/DeckListScreen';
@@ -55,6 +57,10 @@ export type RootStackParamList = {
   SongSearch: { query: string };
   /** 탭 밖(SongDetail 등)에서 검색탭 UI로 진입할 때 쓰는 스택 화면. 바텀탭 없이 뜬다. */
   SearchStack: undefined;
+  /** 검색어 입력과 최근 검색어. 디스커버리의 검색창을 누르면 열린다. */
+  SearchInput: undefined;
+  /** 노래방(TJ·금영) 일본 신곡 — 날짜별·월별. 신곡 푸시도 여기로 온다. */
+  KaraokeNewSongs: undefined;
   Settings: undefined;
   OssLicense: undefined;
   Voc: undefined;
@@ -153,6 +159,8 @@ export default function AppNavigator({ initialRoute }: Props) {
       <Stack.Screen name="Main" component={MainTabs} />
       <Stack.Screen name="SongSearch" component={SongSearchResultsScreen} />
       <Stack.Screen name="SearchStack" component={SearchScreen} />
+      <Stack.Screen name="SearchInput" component={SearchInputScreen} />
+      <Stack.Screen name="KaraokeNewSongs" component={KaraokeNewSongsScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="OssLicense" component={OssLicenseScreen} />
       <Stack.Screen name="Voc" component={VocScreen} />
