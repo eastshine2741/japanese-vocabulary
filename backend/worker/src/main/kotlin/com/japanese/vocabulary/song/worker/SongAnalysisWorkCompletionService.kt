@@ -39,7 +39,7 @@ class SongAnalysisWorkCompletionService(
     fun completeWithAnalyzedContent(
         ref: SongAnalysisStageRef,
         preparedLyric: PreparedLyric,
-        youtubeUrl: String,
+        youtubeUrl: String?,
         analyzedLines: List<AnalyzedLine>,
         output: String?,
     ) {
@@ -79,7 +79,8 @@ class SongAnalysisWorkCompletionService(
                 throw BusinessException(ErrorCode.SONG_ANALYSIS_WORK_ALREADY_EXISTS)
             }
             song.activeLyricId = lyric.id
-            song.youtubeUrl = work.youtubeUrl
+            // 재분석에서 MV 를 못 찾았으면 지금 MV 를 지우지 않는다.
+            work.youtubeUrl?.let { song.youtubeUrl = it }
             song.updatedAt = now
             songRepository.save(song)
         }
@@ -93,7 +94,7 @@ class SongAnalysisWorkCompletionService(
         ref: SongAnalysisStageRef,
         work: SongAnalysisWorkEntity,
         preparedLyric: PreparedLyric,
-        youtubeUrl: String,
+        youtubeUrl: String?,
     ): LyricEntity {
         val created = if (work.triggerSource == SongAnalysisTriggerSource.ADMIN && work.songId != null) {
             preparationService.createReplacementLyricForSong(work.songId!!, preparedLyric)

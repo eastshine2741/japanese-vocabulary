@@ -20,7 +20,7 @@ class SongAnalysisSongCreator(
     private val codec: SongAnalysisStageCodec,
 ) {
     @Transactional
-    fun create(claimed: ClaimedSongAnalysisStage, preparedLyric: PreparedLyric, youtubeUrl: String) {
+    fun create(claimed: ClaimedSongAnalysisStage, preparedLyric: PreparedLyric, youtubeUrl: String?) {
         val work = claimed.work
         val created = if (work.triggerSource == SongAnalysisTriggerSource.ADMIN && work.songId != null) {
             preparationService.createReplacementLyricForSong(work.songId!!, preparedLyric)

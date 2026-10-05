@@ -60,7 +60,8 @@ class SongAnalysisStageCodec(objectMapper: ObjectMapper) {
 
 // 단계별 산출물. 각 단계가 끝날 때 쓰고 뒤 단계가 읽는다. FETCH_LYRICS 는 PreparedLyric 을 그대로 쓴다.
 
-data class FetchYoutubeOutput(val youtubeUrl: String)
+/** null 은 MV 를 못 찾았다는 뜻이다. 곡은 MV 없이 분석된다. */
+data class FetchYoutubeOutput(val youtubeUrl: String?)
 
 data class CreateSongAndLyricOutput(val songId: Long, val lyricId: Long)
 
