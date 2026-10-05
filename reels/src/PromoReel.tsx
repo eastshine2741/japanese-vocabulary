@@ -28,6 +28,10 @@ const CONTENT_SIDE = 160;
 const LYRIC_WIDTH = PROMO_WIDTH - CONTENT_SIDE * 2;
 // 내용이 짧을 때 가사 블록이 앉는 자리
 const CONTENT_TOP = 1058;
+// 하단 스크림이 시작하는 자리. 가사가 길어 블록이 CONTENT_TOP 위로 자라도 덮이도록 넉넉히 위에서 연다.
+const CONTENT_SCRIM_TOP = 820;
+// 상단 스크림이 끝나는 자리. 헤드라인 아래에서 완전히 투명해져 MV 로 녹는다.
+const HEADLINE_SCRIM_BOTTOM = 480;
 
 // 가사 원문 한 행의 기본 치수 — pen Reel v2 1b 의 Lyric 프레임과 같다. 긴 줄에서는 scale 로 같이 줄인다.
 const TOKEN_FONT_SIZE = 44;
@@ -37,9 +41,9 @@ const SPACE_GAP = 26;
 const TOKEN_ROW_GAP = 14;
 
 // 가사 아래 강조 단어 블록 — pen Reel v2 1b 의 Words 프레임과 같다.
-const WORD_BLOCK_WIDTH = 620;
+const WORD_BLOCK_WIDTH = 520;
 const WORD_JAPANESE_SIZE = 36;
-const WORD_READING_SIZE = 19;
+const WORD_READING_SIZE = 21;
 const WORD_MEANING_SIZE = 27;
 const WORD_ROW_GAP = 26;
 
@@ -49,12 +53,11 @@ const paper = '#F4F1EA';
 const ink = '#FAFAF6';
 const softInk = '#FAFAF6C7';
 // 강조 단어의 한글 발음
-const readingInk = '#FAFAF6A6';
+const readingInk = '#FAFAF6D9';
 // 헤드라인에서 <b> 로 감싼 구간 뒤에 깔리는 초록
 const highlight = '#A5EBC7';
 
-// MV 위에 스크림 없이 바로 얹는 글자. Reel v2 는 띠 바깥을 가리지 않는 대신 블러 0 의 단단한 그림자로 글자를 띄운다.
-// 그림자는 가사 원문(일본어)만 쓴다 — 나머지 글자는 아래 outline 하나로만 띄운다.
+// 블러 0 의 단단한 그림자. 큰 글자(가사 원문·강조 단어)만 쓴다 — 작은 글자는 스크림 위에 그대로 얹는다.
 const hardShadow = (offset: number) => `${offset}px ${offset}px 0 ${night}`;
 
 // 앱 테마(app-rn/src/theme/theme.ts, 라이트). 엔드카드 목업은 실제 앱 화면을 그린다.
@@ -74,21 +77,22 @@ const app = {
 };
 
 // 강조 단어의 글자색. 가사 원문의 그 토큰과 아래 단어 목록이 같은 색으로 묶인다.
-// 릴스는 앱의 파스텔 Spotlight 색 대신 pen Reel v2 가 쓴 진한 색이다 — MV 위에서 묻히면 안 된다.
+// 릴스는 앱의 파스텔 Spotlight 색 대신 진한 색을 쓴다 — MV 위에서 묻히면 안 된다.
+// 파랑·보라는 어두운 스크림 위에서 가장 먼저 사라져 pen 값보다 한 단계 밝다.
 // 형용동사·부사는 pen 에 샘플이 없어 앱 색을 같은 채도로 올려 맞췄고, 나머지 품사는 posAppColors 와 같은 묶음을 따른다.
 const posSpotlightColors: Partial<Record<PartOfSpeech | string, string>> = {
-  NOUN: '#1F7AFF',
+  NOUN: '#4D9DFF',
   VERB: '#00C56B',
   ADJECTIVE: '#FF8A00',
   NA_ADJECTIVE: '#FF5C9E',
-  ADVERB: '#A86BFF',
-  PRONOUN: '#1F7AFF',
-  ADNOMINAL: '#1F7AFF',
-  CONJUNCTION: '#1F7AFF',
-  INTERJECTION: '#1F7AFF',
-  PREFIX: '#1F7AFF',
-  SUFFIX: '#1F7AFF',
-  EXPRESSION: '#1F7AFF',
+  ADVERB: '#B98CFF',
+  PRONOUN: '#4D9DFF',
+  ADNOMINAL: '#4D9DFF',
+  CONJUNCTION: '#4D9DFF',
+  INTERJECTION: '#4D9DFF',
+  PREFIX: '#4D9DFF',
+  SUFFIX: '#4D9DFF',
+  EXPRESSION: '#4D9DFF',
 };
 
 const spotlightColor = (pos: PartOfSpeech | string | null | undefined) => posSpotlightColors[pos ?? 'OTHER'] ?? posSpotlightColors.NOUN!;
@@ -194,6 +198,8 @@ export const PromoReel = ({data}: {data: PromoReelData}) => {
 
       {/* 엔드카드가 덮은 뒤에도 그대로 둔다 — 엔드카드가 이 화면을 블러해 배경으로 쓴다(pen 의 Prev Frame + Blur Layer). */}
       <div style={styles.activeLayer}>
+        <div style={styles.headlineScrim} />
+        <div style={styles.contentScrim} />
         <HeadlineBlock data={data} />
         <ProfileCue />
         {activeIndex >= 0 && (
@@ -248,16 +254,6 @@ const linear = (frame: number, from: number, to: number) =>
 // 목업 안 화면 전환용 — 앱처럼 감속(ease-out)한다. 가사·엔드카드 전환은 linear 를 쓴다.
 const eased = (frame: number, from: number, to: number) =>
   interpolate(frame, [from, to], [0, 1], {easing: Easing.out(Easing.cubic), extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-
-/**
- * 글자의 검은 테두리. 인자는 pen 의 `outer` 두께다.
- * CSS `-webkit-text-stroke` 는 글자 윤곽 가운데 정렬이라 두 배를 주고 `paint-order` 로 획을 글자 뒤에 깔아,
- * 안쪽 절반은 글자 색이 덮게 한다. 가사 축소 배율과 무관하게 늘 같은 두께다.
- */
-const outline = (penWidth: number): CSSProperties => ({
-  paintOrder: 'stroke fill',
-  WebkitTextStroke: `${penWidth * 2}px ${night}`,
-});
 
 const entryStyle = (progress: number): CSSProperties => ({
   opacity: progress,
@@ -347,7 +343,6 @@ const LyricBlockView = ({
               fontSize: TOKEN_FONT_SIZE * scale,
               marginLeft: token.spaceBefore ? SPACE_GAP * scale : 0,
               textShadow: hardShadow(Math.max(1, Math.round(2 * scale))),
-              ...outline(1),
             }}
           >
             {token.text}
@@ -1124,7 +1119,25 @@ const styles = {
     inset: 0,
     position: 'absolute',
   },
-  // 스크림도 띠도 없이 MV 위에 바로 얹는다. 캔버스 바탕이 검정이라 MV 가 닿지 않는 자리는 알아서 검게 남는다.
+  // MV 밝기와 무관하게 글자 바닥을 고정한다. 글자에 테두리를 두르는 대신 여기서 대비를 만든다.
+  // MV 프레이밍(scale/x/y)과 무관하게 캔버스 좌표에 고정이라, MV 를 줄여 깔아도 결과가 같다.
+  headlineScrim: {
+    backgroundImage: `linear-gradient(180deg, ${night}C7 0%, ${night}B3 55%, ${night}00 100%)`,
+    height: HEADLINE_SCRIM_BOTTOM,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+  },
+  // 아래 끝까지 끌고 간다 — 1560 아래는 어차피 인스타 UI 가 덮고, 1576 의 Profile Cue 가 이 띠 위에 앉는다.
+  contentScrim: {
+    backgroundImage: `linear-gradient(180deg, ${night}00 0%, ${night}94 20%, ${night}C7 42%, ${night}DB 60%, ${night}E6 100%)`,
+    bottom: 0,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: CONTENT_SCRIM_TOP,
+  },
   headlineBlock: {
     alignItems: 'center',
     boxSizing: 'border-box',
@@ -1132,7 +1145,7 @@ const styles = {
     flexDirection: 'column',
     gap: 22,
     left: 0,
-    padding: '92px 72px 0',
+    padding: '104px 72px 0',
     position: 'absolute',
     right: 0,
     top: 0,
@@ -1157,22 +1170,19 @@ const styles = {
     fontWeight: 800,
     // 긴 제목(feat. 나열)은 두세 줄로 꺾인다. 1 이면 줄끼리 붙는다.
     lineHeight: 1.2,
-    ...outline(1),
   },
   artist: {
     color: softInk,
     fontSize: 21,
     fontWeight: 500,
     lineHeight: 1,
-    ...outline(0.75),
   },
   watermark: {
-    color: '#FAFAF659',
+    color: '#FAFAF68F',
     fontSize: 24,
     fontWeight: 500,
     flexShrink: 0,
     marginLeft: 'auto',
-    ...outline(0.75),
   },
   headline: {
     alignItems: 'center',
@@ -1194,7 +1204,6 @@ const styles = {
     color: ink,
     fontWeight: 800,
     lineHeight: 1.15,
-    ...outline(1.5),
   },
   headlineHighlight: {
     backgroundColor: highlight,
@@ -1219,7 +1228,6 @@ const styles = {
     fontWeight: 500,
     letterSpacing: -0.3,
     lineHeight: 1,
-    ...outline(0.75),
   },
   content: {
     alignItems: 'center',
@@ -1280,7 +1288,6 @@ const styles = {
     margin: 0,
     // 한글은 기본 줄바꿈이 글자 단위라 단어가 쪼개진다. 어절(공백) 경계에서만 접는다.
     wordBreak: 'keep-all',
-    ...outline(1),
   },
   wordBlock: {
     alignItems: 'center',
@@ -1317,8 +1324,8 @@ const styles = {
     fontSize: WORD_JAPANESE_SIZE,
     fontWeight: 700,
     lineHeight: 1,
+    textShadow: hardShadow(2),
     whiteSpace: 'nowrap',
-    ...outline(1.25),
   },
   wordReading: {
     color: readingInk,
@@ -1326,7 +1333,6 @@ const styles = {
     fontWeight: 500,
     lineHeight: 1.5,
     whiteSpace: 'nowrap',
-    ...outline(0.75),
   },
   wordMeaning: {
     color: ink,
@@ -1336,7 +1342,6 @@ const styles = {
     lineHeight: 1.3,
     textAlign: 'right',
     wordBreak: 'keep-all',
-    ...outline(1),
   },
 
   // 아래 깔린 가사 화면(마지막 줄에서 멈춘 그림)을 그대로 블러해 배경으로 쓴다 — pen 의 Prev Frame + Blur Layer
