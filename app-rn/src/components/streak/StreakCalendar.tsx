@@ -1,10 +1,11 @@
-import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  FlatList,
   LayoutChangeEvent,
+  ListRenderItem,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -16,7 +17,6 @@ import { StreakPalette } from './palette';
 import { CalendarCell, CalendarMonth, StreakMode, formatDayLabel } from './streakCalendar';
 
 const WEEKDAYS = ['월', '화', '수', '목', '금', '토', '일'];
-const MAINTAIN_POSITION = { minIndexForVisible: 0 };
 const CELL_HEIGHT = 46;
 const ROW_GAP = 2;
 const CHIP = 36;
@@ -24,6 +24,7 @@ const RING = 2;
 const SIDE_PADDING = 20;
 
 interface Props {
+  /** 오래된 달 → 이번 달 순. */
   months: CalendarMonth[];
   mode: StreakMode;
   /** 더 이전 달을 서버에서 받을 수 있는지. */
@@ -31,17 +32,22 @@ interface Props {
   onLoadOlder: () => void;
 }
 
-/** 첫 달에서 이만큼 남았을 때 이전 페이지를 미리 받는다. */
+/** 가장 오래된 달에서 이만큼 남았을 때 이전 페이지를 미리 받는다. */
 const PREFETCH_PAGES = 1;
+
+const monthKey = (month: CalendarMonth) => month.key;
 
 /**
  * 학습 달력 — 고정 헤더(달 이동 + 범례 + 요일) 아래에 달 단위로 가로 페이징되는 격자.
  * 칩 색은 그날 복습 카드 수, 셀 배경 띠는 현재 연속 구간이다.
  */
 export const StreakCalendar = React.memo(function StreakCalendar({ months, mode, hasOlder, onLoadOlder }: Props) {
-  const scrollRef = useRef<ScrollView>(null);
+  const listRef = useRef<FlatList<CalendarMonth>>(null);
   const [pageWidth, setPageWidth] = useState(0);
-  const [page, setPage] = useState(Math.max(months.length - 1, 0));
+  // 이번 달을 0 번에 두고 뒤집어 그린다 — 처음 위치가 offset 0 이라 스크롤을 맞출 일이 없고,
+  // 과거 달은 뒤에 붙어 보던 위치가 밀리지 않는다.
+  const newestFirst = useMemo(() => [...months].reverse(), [months]);
+  const [page, setPage] = useState(0);
   const [selected, setSelected] = useState<CalendarCell | null>(null);
 
   const handleSelect = useCallback((cell: CalendarCell) => {
@@ -52,34 +58,9 @@ export const StreakCalendar = React.memo(function StreakCalendar({ months, mode,
     setPageWidth(e.nativeEvent.layout.width);
   }, []);
 
-  // 처음엔 이번 달(마지막 페이지), 앞에 달이 붙은 뒤엔 보던 달로 옮긴다. 페이지 폭이 반영된 콘텐츠가
-  // 깔린 뒤에 옮겨야 한다 — 그 전의 scrollTo 는 짧은 콘텐츠에 막혀 엉뚱한 달에 머문다.
-  const targetPageRef = useRef<number | null>(page);
-  const handleContentSizeChange = useCallback(
-    (width: number) => {
-      const target = targetPageRef.current;
-      if (target == null || pageWidth <= 0 || width < pageWidth * (target + 1)) return;
-      targetPageRef.current = null;
-      scrollRef.current?.scrollTo({ x: pageWidth * target, animated: false });
-    },
-    [pageWidth],
-  );
-
-  // 앞에 과거 달이 붙으면 같은 달을 계속 보도록 페이지 번호를 그만큼 민다.
-  const firstKeyRef = useRef(months[0]?.key);
-  useLayoutEffect(() => {
-    const prepended = months.findIndex((m) => m.key === firstKeyRef.current);
-    firstKeyRef.current = months[0]?.key;
-    if (prepended <= 0) return;
-    setPage((p) => {
-      targetPageRef.current = p + prepended;
-      return p + prepended;
-    });
-  }, [months]);
-
   useEffect(() => {
-    if (hasOlder && page <= PREFETCH_PAGES) onLoadOlder();
-  }, [hasOlder, page, onLoadOlder]);
+    if (hasOlder && page >= newestFirst.length - 1 - PREFETCH_PAGES) onLoadOlder();
+  }, [hasOlder, page, newestFirst.length, onLoadOlder]);
 
   const handleMomentumEnd = useCallback(
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -89,22 +70,43 @@ export const StreakCalendar = React.memo(function StreakCalendar({ months, mode,
     [pageWidth],
   );
 
-  const goPrev = useCallback(() => {
-    if (page <= 0) return;
-    const next = page - 1;
-    setPage(next);
-    scrollRef.current?.scrollTo({ x: pageWidth * next, animated: true });
-  }, [page, pageWidth]);
+  const goTo = useCallback(
+    (next: number) => {
+      setPage(next);
+      listRef.current?.scrollToOffset({ offset: pageWidth * next, animated: true });
+    },
+    [pageWidth],
+  );
 
-  const goNext = useCallback(() => {
-    if (page >= months.length - 1) return;
-    const next = page + 1;
-    setPage(next);
-    scrollRef.current?.scrollTo({ x: pageWidth * next, animated: true });
-  }, [page, pageWidth, months.length]);
+  const goOlder = useCallback(() => {
+    if (page < newestFirst.length - 1) goTo(page + 1);
+  }, [page, newestFirst.length, goTo]);
+
+  const goNewer = useCallback(() => {
+    if (page > 0) goTo(page - 1);
+  }, [page, goTo]);
 
   const rowCount = months.reduce((acc, m) => Math.max(acc, m.weeks.length), 0);
   const gridHeight = rowCount * CELL_HEIGHT + Math.max(rowCount - 1, 0) * ROW_GAP;
+
+  const getItemLayout = useCallback(
+    (_: unknown, index: number) => ({ length: pageWidth, offset: pageWidth * index, index }),
+    [pageWidth],
+  );
+
+  const renderMonth = useCallback<ListRenderItem<CalendarMonth>>(
+    ({ item }) => (
+      <MonthPage
+        month={item}
+        mode={mode}
+        selectedDate={selected?.date ?? null}
+        width={pageWidth}
+        height={gridHeight}
+        onSelect={handleSelect}
+      />
+    ),
+    [mode, selected, pageWidth, gridHeight, handleSelect],
+  );
 
   return (
     <View>
@@ -112,9 +114,9 @@ export const StreakCalendar = React.memo(function StreakCalendar({ months, mode,
         <View style={styles.headerRow}>
           <Text style={styles.title}>학습 달력</Text>
           <View style={styles.monthNav}>
-            <NavButton icon="chevron-back" disabled={page <= 0} onPress={goPrev} />
-            <Text style={styles.monthLabel}>{months[page]?.label ?? ''}</Text>
-            <NavButton icon="chevron-forward" disabled={page >= months.length - 1} onPress={goNext} />
+            <NavButton icon="chevron-back" disabled={page >= newestFirst.length - 1} onPress={goOlder} />
+            <Text style={styles.monthLabel}>{newestFirst[page]?.label ?? ''}</Text>
+            <NavButton icon="chevron-forward" disabled={page <= 0} onPress={goNewer} />
           </View>
         </View>
 
@@ -138,35 +140,58 @@ export const StreakCalendar = React.memo(function StreakCalendar({ months, mode,
         </View>
       </View>
 
-      <ScrollView
-        ref={scrollRef}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        onLayout={handleLayout}
-        onMomentumScrollEnd={handleMomentumEnd}
-        onContentSizeChange={handleContentSizeChange}
-        maintainVisibleContentPosition={MAINTAIN_POSITION}
-        style={[styles.pager, { height: gridHeight }]}
-      >
-        {pageWidth > 0 && months.map((month) => (
-          <View key={month.key} style={[styles.month, { width: pageWidth, height: gridHeight }]}>
-            {month.weeks.map((week, i) => (
-              <View key={i} style={styles.week}>
-                {week.map((cell, j) => (
-                  <DayCell
-                    key={cell.date ?? `pad-${i}-${j}`}
-                    cell={cell}
-                    mode={mode}
-                    selected={cell.date != null && cell.date === selected?.date}
-                    onSelect={handleSelect}
-                  />
-                ))}
-              </View>
-            ))}
-          </View>
-        ))}
-      </ScrollView>
+      <View style={[styles.pager, { height: gridHeight }]} onLayout={handleLayout}>
+        {pageWidth > 0 && (
+          <FlatList
+            ref={listRef}
+            data={newestFirst}
+            keyExtractor={monthKey}
+            renderItem={renderMonth}
+            getItemLayout={getItemLayout}
+            horizontal
+            inverted
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            initialNumToRender={2}
+            windowSize={3}
+            onMomentumScrollEnd={handleMomentumEnd}
+          />
+        )}
+      </View>
+    </View>
+  );
+});
+
+const MonthPage = React.memo(function MonthPage({
+  month,
+  mode,
+  selectedDate,
+  width,
+  height,
+  onSelect,
+}: {
+  month: CalendarMonth;
+  mode: StreakMode;
+  selectedDate: string | null;
+  width: number;
+  height: number;
+  onSelect: (cell: CalendarCell) => void;
+}) {
+  return (
+    <View style={[styles.month, { width, height }]}>
+      {month.weeks.map((week, i) => (
+        <View key={i} style={styles.week}>
+          {week.map((cell, j) => (
+            <DayCell
+              key={cell.date ?? `pad-${i}-${j}`}
+              cell={cell}
+              mode={mode}
+              selected={cell.date != null && cell.date === selectedDate}
+              onSelect={onSelect}
+            />
+          ))}
+        </View>
+      ))}
     </View>
   );
 });
