@@ -70,13 +70,19 @@ describe('daily', () => {
     expect(store().daily.oldestMonth).toBe('2026-11');
   });
 
-  it('이미 읽었으면 다시 요청하지 않는다', async () => {
-    vi.mocked(karaokeApi.getDaily).mockResolvedValueOnce([group('2026-12-03')]);
+  it('다시 읽으면 새 목록으로 바꾸고, 실패하면 기존 목록을 둔다', async () => {
+    vi.mocked(karaokeApi.getDaily)
+      .mockResolvedValueOnce([group('2026-12-03')])
+      .mockResolvedValueOnce([group('2026-12-04')])
+      .mockRejectedValueOnce(new Error('boom'));
 
     await store().loadDaily();
     await store().loadDaily();
+    expect(store().daily.groups.map(g => g.listedOn)).toEqual(['2026-12-04']);
 
-    expect(karaokeApi.getDaily).toHaveBeenCalledTimes(1);
+    await store().loadDaily();
+    expect(store().daily).toMatchObject({ status: 'success', error: 'boom' });
+    expect(store().daily.groups.map(g => g.listedOn)).toEqual(['2026-12-04']);
   });
 });
 

@@ -30,7 +30,7 @@ interface MonthlyState {
 interface KaraokeState {
   daily: DailyState;
   monthly: MonthlyState;
-  loadDaily: (force?: boolean) => Promise<void>;
+  loadDaily: () => Promise<void>;
   loadOlderDaily: () => Promise<void>;
   loadMonthly: (month: string) => Promise<void>;
   stepMonth: (delta: number) => Promise<void>;
@@ -67,12 +67,11 @@ export const useKaraokeStore = create<KaraokeState>((set, get) => ({
   daily: initialDaily(),
   monthly: initialMonthly(),
 
-  loadDaily: async (force = false) => {
-    const { daily } = get();
-    if (!force && (daily.status === 'loading' || daily.status === 'success')) return;
+  loadDaily: async () => {
+    const hasData = get().daily.groups.length > 0;
+    if (!hasData) set((s) => ({ daily: { ...s.daily, status: 'loading', error: null } }));
 
     const month = currentYearMonth();
-    set({ daily: { ...daily, status: 'loading', error: null } });
     try {
       const groups = await karaokeApi.getDaily(month);
       const seed = groups.length > 0 ? { month, groups } : await fetchOlder(month);
@@ -87,7 +86,8 @@ export const useKaraokeStore = create<KaraokeState>((set, get) => ({
         },
       });
     } catch (e: any) {
-      set({ daily: { ...get().daily, status: 'error', error: e?.message ?? LOAD_ERROR } });
+      const error = e?.message ?? LOAD_ERROR;
+      set((s) => ({ daily: hasData ? { ...s.daily, error } : { ...s.daily, status: 'error', error } }));
     }
   },
 
