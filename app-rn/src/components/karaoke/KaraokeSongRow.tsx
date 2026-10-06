@@ -54,10 +54,8 @@ export const KaraokeSongRow = React.memo(function KaraokeSongRow({
         {item.kyNumber != null ? <KaraokeNumberTag brand="KY" number={item.kyNumber} /> : null}
       </View>
       {compact ? null : (
-        <View style={styles.chevronSlot}>
-          {navigable ? (
-            <Ionicons name="chevron-forward" size={CHEVRON_SIZE} color={Colors.textMuted} />
-          ) : null}
+        <View style={[styles.chevronSlot, !navigable && styles.chevronDisabled]}>
+          <Ionicons name="chevron-forward" size={CHEVRON_SIZE} color={Colors.textMuted} />
         </View>
       )}
     </>
@@ -123,5 +121,8 @@ const styles = StyleSheet.create({
   chevronSlot: {
     width: CHEVRON_SIZE,
     alignItems: 'center',
+  },
+  chevronDisabled: {
+    opacity: 0.4,
   },
 });

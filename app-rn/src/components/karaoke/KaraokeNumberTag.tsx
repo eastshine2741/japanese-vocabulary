@@ -27,7 +27,7 @@ export const KaraokeNumberTag = React.memo(function KaraokeNumberTag({ brand, nu
   );
 });
 
-export const KARAOKE_NUMBERS_WIDTH = 84;
+export const KARAOKE_NUMBERS_WIDTH = 74;
 
 const styles = StyleSheet.create({
   row: {
@@ -37,7 +37,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   chip: {
-    width: 30,
+    width: 28,
     height: 18,
     borderRadius: 5,
     alignItems: 'center',
@@ -51,8 +51,8 @@ const styles = StyleSheet.create({
   },
   number: {
     flex: 1,
-    fontSize: 13,
-    lineHeight: 17,
+    fontSize: 12,
+    lineHeight: 16,
     letterSpacing: 0.2,
     textAlign: 'right',
     color: Colors.textPrimary,
