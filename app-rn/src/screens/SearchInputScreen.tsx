@@ -106,9 +106,7 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingHorizontal: 14,
     borderRadius: 16,
-    borderWidth: 1,
-    borderColor: Colors.primary,
-    backgroundColor: Colors.elevated,
+    backgroundColor: Colors.card,
   },
   input: {
     flex: 1,
