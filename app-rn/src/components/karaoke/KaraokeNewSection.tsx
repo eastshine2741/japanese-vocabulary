@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { KaraokeSongRow } from './KaraokeSongRow';
@@ -7,7 +7,9 @@ import { fontStyle } from '../../theme/typography';
 import { KaraokeDailyGroup } from '../../types/karaoke';
 import { formatMonthDay } from '../../utils/yearMonth';
 
-const MAX_PREVIEW_SONGS = 3;
+const COLLAPSED_SONGS = 3;
+const EXPANDED_SONGS = 9;
+const EXPAND_CHEVRON_SIZE = 20;
 
 interface Props {
   group: KaraokeDailyGroup;
@@ -16,7 +18,14 @@ interface Props {
 }
 
 export default React.memo(function KaraokeNewSection({ group, onPressMore, onSelectSong }: Props) {
-  const songs = useMemo(() => group.songs.slice(0, MAX_PREVIEW_SONGS), [group.songs]);
+  const [expanded, setExpanded] = useState(false);
+  const songs = useMemo(
+    () => group.songs.slice(0, expanded ? EXPANDED_SONGS : COLLAPSED_SONGS),
+    [group.songs, expanded],
+  );
+  const canExpand = group.songs.length > COLLAPSED_SONGS;
+
+  const toggleExpanded = useCallback(() => setExpanded((prev) => !prev), []);
 
   return (
     <View style={styles.section}>
@@ -40,6 +49,19 @@ export default React.memo(function KaraokeNewSection({ group, onPressMore, onSel
             compact
           />
         ))}
+        {canExpand ? (
+          <TouchableOpacity
+            style={styles.expandRow}
+            onPress={toggleExpanded}
+            activeOpacity={0.72}
+          >
+            <Ionicons
+              name={expanded ? 'chevron-up' : 'chevron-down'}
+              size={EXPAND_CHEVRON_SIZE}
+              color={Colors.textMuted}
+            />
+          </TouchableOpacity>
+        ) : null}
       </View>
     </View>
   );
@@ -48,6 +70,11 @@ export default React.memo(function KaraokeNewSection({ group, onPressMore, onSel
 const styles = StyleSheet.create({
   section: {
     gap: 8,
+  },
+  expandRow: {
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerRow: {
     flexDirection: 'row',
