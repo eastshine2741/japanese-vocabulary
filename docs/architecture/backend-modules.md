@@ -13,11 +13,12 @@ backend/
 │   ├── song/                — Song/Lyric entity + repository + lyric 저장 모델(AnalyzedLine/Token/PartOfSpeech/LyricLineData) + LRC parser. Redis/external music client/use case 없음
 │   ├── song-analysis/       — song_analysis_work 상태머신 + trigger/polling DTO. song 모듈을 의존하지 않으며 song_id/lyric_id는 Long projection으로만 보관
 │   ├── recommendation/      — 홈 추천곡 전역 목록(`recommended_song`). 운영자가 기존 곡을 넣고 순서를 정한다
+│   ├── karaoke/             — 노래방 일본 신곡 원장(karaoke_song, 노래방별 행)과 song 연결·응답 합치기
 │   ├── translation/         — KoreanLyricTranslationService + GeminiClient + JishoService(cache-aside+동시성) + JishoClient + JishoCache. worker만 의존
 │   ├── word/                — 사용자 학습 데이터 일체. `word`/`flashcard`/`deck` 세 package 가 한 모듈에 있다. WordService 가 세 수명주기를 한 트랜잭션에서 소유한다
 │   ├── studystats/          — DailyStudySummary, StreakCalculator. Spring Batch job 본체는 batch 모듈로 분리됨
 │   └── notification/        — FCM 전송 + FirebaseConfig + NotificationLogEntity. Scheduler/조회 로직 없음
-├── integrations/            — external provider clients + infra adapters. `song-search`, `lyric-search`, `mv-search`, `github`, `message-queue`
+├── integrations/            — external provider clients + infra adapters. `song-search`, `lyric-search`, `mv-search`, `github`, `message-queue`, `karaoke-listing`(TJ·금영 신곡 HTML/JSON)
 ├── api/                     — REST bootstrap. 사용자 API 도메인 모듈 의존. @Scheduled 없음
 ├── admin-api/               — internal admin REST bootstrap. read-mostly inspection + workflow-specific Reels Factory render + 운영자 수동 푸시
 ├── worker/                  — 큐 consumer bootstrap. 곡 분석 파이프라인 전용. 상주하며 RabbitMQ 를 듣는다
@@ -93,7 +94,7 @@ Outer:  Word, Flashcard, Deck    — 사용자 학습 데이터 (domains:word)
 ```
 
 - 같은 모듈 내: 서비스 간 직접 호출.
-- 모듈 경계를 넘을 때만 Spring Event 사용. `FlashcardReviewedEvent` → `studystats`, `SongAnalysisWorkQueuedEvent` → `integrations:message-queue`(AFTER_COMMIT 에 브로커로 발행), `SongAnalysisCompletedEvent` → worker 의 푸시 알림.
+- 모듈 경계를 넘을 때만 Spring Event 사용. `FlashcardReviewedEvent` → `studystats`, `SongAnalysisWorkQueuedEvent` → `integrations:message-queue`(AFTER_COMMIT 에 브로커로 발행), `SongAnalysisCompletedEvent` → worker 의 푸시 알림과 노래방 원장 연결(`KaraokeSongLinkListener`).
 - 안쪽 계층이 바깥쪽 계층을 참조하면 안 됨. `word` 는 `song` 을 읽지만 `song` 은 `word` 를 모른다.
 
 ### word / flashcard / deck 수명주기

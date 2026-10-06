@@ -4,6 +4,7 @@ import { useDeckDetailStore } from '../stores/deckDetailStore';
 import { useDeckListStore } from '../stores/deckListStore';
 import { useDeckWordListStore } from '../stores/deckWordListStore';
 import { useHomeStore } from '../stores/homeStore';
+import { useKaraokeStore } from '../stores/karaokeStore';
 import { usePlayerStore } from '../stores/playerStore';
 import { useRecommendationStore } from '../stores/recommendationStore';
 import { useSearchHistoryStore } from '../stores/searchHistoryStore';
@@ -68,12 +69,14 @@ export function resetAllStores() {
     showKoreanPronunciation: true,
     showFurigana: true,
     dailyGoal: 10,
+    karaokeNewSongNotifications: false,
     isSaving: false,
     saveSuccess: false,
     error: null,
   });
 
   useAnalysisStore.getState().reset();
+  useKaraokeStore.getState().reset();
   useStudyScheduleStore.getState().reset();
   useStreakStore.getState().reset();
   usePlayerStore.setState({ status: 'idle', studyData: null, errorCode: null, currentMs: 0, durationMs: 0 });

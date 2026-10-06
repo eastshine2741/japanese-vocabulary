@@ -2,6 +2,9 @@ package com.japanese.vocabulary.batch
 
 import com.japanese.vocabulary.config.ClockConfig
 import com.japanese.vocabulary.config.SentryConfig
+import com.japanese.vocabulary.karaoke.batch.KaraokeCollectTask
+import com.japanese.vocabulary.karaoke.batch.KaraokeListingCollector
+import com.japanese.vocabulary.karaoke.batch.KaraokeNewSongNotifier
 import com.japanese.vocabulary.notification.StreakReminderTask
 import com.japanese.vocabulary.song.batch.LyricWordCandidateBackfillService
 import com.japanese.vocabulary.song.batch.LyricWordCandidateBackfillTask
@@ -23,6 +26,9 @@ import org.springframework.context.annotation.Import
     SentryConfig::class,
     CronTaskRunner::class,
     StreakReminderTask::class,
+    KaraokeCollectTask::class,
+    KaraokeListingCollector::class,
+    KaraokeNewSongNotifier::class,
     LyricWordCandidateBackfillService::class,
     LyricWordCandidateBackfillTask::class,
     FreezeConsumeJobConfig::class,

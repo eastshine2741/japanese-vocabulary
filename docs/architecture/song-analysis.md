@@ -49,6 +49,7 @@ The listener runs each stage with `runBlocking(Dispatchers.IO)`: the listener th
 - `USER_APP`: user app `/api/songs/analyze`
 - `ADMIN`: reserved for admin-triggered analysis
 - `RECOMMENDATION`: no longer created; kept because existing rows store it
+- `KARAOKE`: batch `karaoke-collect` for a newly listed karaoke song without an analyzed song (`docs/karaoke-new-songs.md`)
 
 
 ## One Active Work Per Song

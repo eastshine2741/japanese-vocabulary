@@ -20,6 +20,7 @@ dependencies {
     implementation(project(":domains:notification"))
     implementation(project(":domains:user"))
     implementation(project(":domains:word"))
+    implementation(project(":domains:karaoke"))
     implementation(project(":integrations:lyric-search"))
     implementation(project(":integrations:mv-search"))
     implementation(project(":integrations:message-queue"))

@@ -1,6 +1,6 @@
 package com.japanese.vocabulary.lyricsearch.vocadb
 
-import com.japanese.vocabulary.lyricsearch.ArtistNameNormalizer
+import com.japanese.vocabulary.common.text.ArtistNameNormalizer
 import com.japanese.vocabulary.lyricsearch.NormalizedSongQuery
 import com.japanese.vocabulary.lyricsearch.vocadb.dto.VocadbArtistSearchItemDto
 import com.japanese.vocabulary.lyricsearch.vocadb.dto.VocadbSongDto
