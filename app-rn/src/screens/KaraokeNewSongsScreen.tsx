@@ -33,8 +33,14 @@ const ROUTES: TabRoute[] = [
 ];
 
 const TAB_OPTIONS: TabDescriptor<TabRoute> = {
+  // TabBarItem 은 비활성 라벨로 크기를 잡고 활성 라벨을 그 위에 겹친다. 굵은 글씨 폭으로 자리를 잡아야 활성 라벨이 잘리지 않는다.
   label: ({ route, focused }) => (
-    <Text style={focused ? styles.tabLabelActive : styles.tabLabel}>{route.title}</Text>
+    <View>
+      <Text style={[styles.tabLabelActive, styles.tabLabelSizer]}>{route.title}</Text>
+      <Text style={[focused ? styles.tabLabelActive : styles.tabLabel, styles.tabLabelOverlay]}>
+        {route.title}
+      </Text>
+    </View>
   ),
 };
 
@@ -180,6 +186,13 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: Colors.textPrimary,
     ...fontStyle('body', '600'),
+  },
+  tabLabelSizer: {
+    opacity: 0,
+  },
+  tabLabelOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    textAlign: 'center',
   },
   indicator: {
     height: 2,
