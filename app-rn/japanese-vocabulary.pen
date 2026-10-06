@@ -12775,6 +12775,16 @@
                                   }
                                 }
                               ]
+                            },
+                            {
+                              "type": "icon",
+                              "id": "uxAFk",
+                              "name": "chevron",
+                              "width": 18,
+                              "height": 18,
+                              "icon": "chevron-right",
+                              "library": "lucide",
+                              "fill": "$foreground.muted"
                             }
                           ]
                         },
@@ -12868,6 +12878,16 @@
                                   }
                                 }
                               ]
+                            },
+                            {
+                              "type": "icon",
+                              "id": "XV8HQ",
+                              "name": "chevron",
+                              "width": 18,
+                              "height": 18,
+                              "icon": "chevron-right",
+                              "library": "lucide",
+                              "fill": "$foreground.muted"
                             }
                           ]
                         },
@@ -12961,6 +12981,41 @@
                                   }
                                 }
                               ]
+                            },
+                            {
+                              "type": "icon",
+                              "id": "Bf0xy",
+                              "name": "chevron",
+                              "width": 18,
+                              "height": 18,
+                              "icon": "chevron-right",
+                              "library": "lucide",
+                              "fill": "$foreground.muted"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "lt24c",
+                          "name": "expandRow",
+                          "width": "fill_container",
+                          "height": 44,
+                          "padding": [
+                            0,
+                            16
+                          ],
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "e8Ms4o",
+                              "name": "chevron",
+                              "width": 20,
+                              "height": 20,
+                              "icon": "chevron-down",
+                              "library": "lucide",
+                              "fill": "$foreground.muted"
                             }
                           ]
                         }
