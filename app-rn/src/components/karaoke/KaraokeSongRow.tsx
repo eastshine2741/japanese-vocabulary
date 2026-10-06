@@ -12,7 +12,7 @@ const CHEVRON_SIZE = 18;
 interface Props {
   item: KaraokeSongItem;
   onPress?: (songId: number) => void;
-  /** 디스커버리 카드용 — 작은 아트와 제목, 셰브런 없음. */
+  /** 디스커버리 카드용 — 작은 아트와 제목. */
   compact?: boolean;
   /** 월별은 아티스트로 묶여 있어 줄에서 뺀다. */
   showArtist?: boolean;
@@ -53,11 +53,9 @@ export const KaraokeSongRow = React.memo(function KaraokeSongRow({
         {item.tjNumber != null ? <KaraokeNumberTag brand="TJ" number={item.tjNumber} /> : null}
         {item.kyNumber != null ? <KaraokeNumberTag brand="KY" number={item.kyNumber} /> : null}
       </View>
-      {compact ? null : (
-        <View style={[styles.chevronSlot, !navigable && styles.chevronDisabled]}>
-          <Ionicons name="chevron-forward" size={CHEVRON_SIZE} color={Colors.textMuted} />
-        </View>
-      )}
+      <View style={[styles.chevronSlot, !navigable && styles.chevronDisabled]}>
+        <Ionicons name="chevron-forward" size={CHEVRON_SIZE} color={Colors.textMuted} />
+      </View>
     </>
   );
 
