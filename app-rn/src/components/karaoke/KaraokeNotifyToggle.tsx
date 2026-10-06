@@ -15,7 +15,7 @@ export const KaraokeNotifyToggle = React.memo(function KaraokeNotifyToggle({
   onPress,
   disabled = false,
 }: Props) {
-  const tint = enabled ? Colors.textSecondary : Colors.primary;
+  const tint = enabled ? '#FFFFFF' : Colors.textSecondary;
   return (
     <TouchableOpacity
       style={[styles.pill, enabled ? styles.pillOn : styles.pillOff]}
@@ -45,10 +45,10 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   pillOff: {
-    backgroundColor: Colors.primaryBg,
+    backgroundColor: Colors.surfaceSubtle,
   },
   pillOn: {
-    backgroundColor: Colors.surfaceSubtle,
+    backgroundColor: Colors.primary,
   },
   label: {
     fontSize: 12,
