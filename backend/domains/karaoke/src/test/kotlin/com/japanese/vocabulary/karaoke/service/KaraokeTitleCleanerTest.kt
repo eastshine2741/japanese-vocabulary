@@ -11,7 +11,7 @@ class KaraokeTitleCleanerTest {
         assertThat(KaraokeTitleCleaner.cleanTitle("なんもねえ (\"ヤニねこ\"OP)")).isEqualTo("なんもねえ")
         assertThat(KaraokeTitleCleaner.cleanTitle("オールドファッション(ドラマ '大恋愛～僕を忘れる君と' OST)")).isEqualTo("オールドファッション")
         assertThat(KaraokeTitleCleaner.cleanArtist("ピノキオピー(Feat.初音ミク)")).isEqualTo("ピノキオピー")
-        assertThat(KaraokeTitleCleaner.cleanArtist("椎名もた feat.鏡音リン")).isEqualTo("椎名もた feat.鏡音リン")
+        assertThat(KaraokeTitleCleaner.cleanArtist("椎名もた feat.鏡音リン")).isEqualTo("椎名もた")
         assertThat(KaraokeTitleCleaner.cleanArtist("椎名もた feat. 鏡音リン")).isEqualTo("椎名もた")
     }
 
@@ -40,5 +40,13 @@ class KaraokeTitleCleanerTest {
         assertThat(KaraokeTitleCleaner.sameSong("光", "RADWIMPS", "光", "宇多田ヒカル")).isFalse()
         assertThat(KaraokeTitleCleaner.sameSong("とても長いタイトル..", "Ado", "とても長いタイトルの歌", "Ado")).isTrue()
         assertThat(KaraokeTitleCleaner.sameSong("唱", "Ado", "唱 (Remix)", "Ado")).isTrue()
+    }
+
+    @Test
+    fun `matches on the main artist however guests are credited`() {
+        assertThat(KaraokeTitleCleaner.sameSong("少女A", "椎名もた feat.鏡音リン", "少女A", "椎名もた & 鏡音リン")).isTrue()
+        assertThat(KaraokeTitleCleaner.sameSong("少女A", "椎名もた feat.鏡音リン", "少女A", "椎名もた")).isTrue()
+        assertThat(KaraokeTitleCleaner.sameSong("少女A", "椎名もた feat.鏡音リン", "少女A", "中森明菜")).isFalse()
+        assertThat(KaraokeTitleCleaner.sameSong("曲", "長い名前のアーティ..", "曲", "長い名前のアーティスト & ゲスト")).isTrue()
     }
 }

@@ -1,5 +1,6 @@
 package com.japanese.vocabulary.song.service
 
+import com.japanese.vocabulary.common.text.ArtistCredit
 import com.japanese.vocabulary.song.cache.ArtistChannelCache
 import com.japanese.vocabulary.song.cache.ArtistChannelCacheEntry
 import com.japanese.vocabulary.mvsearch.client.youtube.YoutubeClient
@@ -265,7 +266,7 @@ class YoutubeMvSearchService(
             .fold(videoTitle) { remaining, part -> remaining.replace(part, " ", ignoreCase = true) }
 
     private fun titleNamesArtist(title: String, artist: String): Boolean {
-        val normalizedArtist = normalizeForMatch(withoutFeaturing(artist))
+        val normalizedArtist = normalizeForMatch(ArtistCredit.withoutFeaturing(artist))
         return normalizedArtist.isNotBlank() && normalizeForMatch(title).contains(normalizedArtist)
     }
 
@@ -302,7 +303,7 @@ class YoutubeMvSearchService(
             KNOWN_PUBLISHER_CHANNEL_RE.containsMatchIn(candidate.channelTitle)
 
     private fun channelMatchesArtist(artist: String, channelTitle: String): Boolean =
-        nameMatchesChannel(normalizeForMatch(withoutFeaturing(artist)), channelTitle)
+        nameMatchesChannel(normalizeForMatch(ArtistCredit.withoutFeaturing(artist)), channelTitle)
 
     /**
      * A collaboration ("niki & リリィ") is uploaded on one member's channel, so each member counts. Not
@@ -310,16 +311,12 @@ class YoutubeMvSearchService(
      */
     private fun channelMatchesArtistOrMember(artist: String, channelTitle: String): Boolean {
         if (channelMatchesArtist(artist, channelTitle)) return true
-        return withoutFeaturing(artist)
+        return ArtistCredit.withoutFeaturing(artist)
             .split(ARTIST_SEPARATOR_RE)
             .map { normalizeForMatch(it) }
             .filter { it.length >= MIN_TITLE_PART_LENGTH }
             .any { nameMatchesChannel(it, channelTitle) }
     }
-
-    /** A `feat.` guest is not the artist: a virtual singer's channel would pass as every producer's. */
-    private fun withoutFeaturing(artist: String): String =
-        artist.split(FEATURING_RE, limit = 2).first().trim().ifBlank { artist }
 
     private fun nameMatchesChannel(normalizedName: String, channelTitle: String): Boolean {
         val normalizedChannel = normalizeForMatch(channelTitle)
@@ -349,7 +346,7 @@ class YoutubeMvSearchService(
     private fun scoreMvCandidate(title: String, channelTitle: String, artist: String): Int {
         val normalizedTitle = normalizeForMatch(title)
         val normalizedChannel = normalizeForMatch(channelTitle)
-        val normalizedArtist = normalizeForMatch(withoutFeaturing(artist))
+        val normalizedArtist = normalizeForMatch(ArtistCredit.withoutFeaturing(artist))
 
         var score = 0
         if (OFFICIAL_TITLE_RE.containsMatchIn(title)) score += 5
@@ -457,7 +454,6 @@ class YoutubeMvSearchService(
         private val TITLE_SEPARATOR_RE = Regex("""\s+[-–—/／|｜]\s+""")
         // No "×": unit names use it ("ワンダーランズ×ショウタイム").
         private val ARTIST_SEPARATOR_RE = Regex("""\s*(?:&|＆|,|、)\s*""")
-        private val FEATURING_RE = Regex("""\s*(?:\bfeat\b|\bft\b)\.?\s*""", RegexOption.IGNORE_CASE)
         private val HTML_ENTITY_RE = Regex("""&(?:amp|quot|#39|apos);""", RegexOption.IGNORE_CASE)
         private val PUNCTUATION_RE = Regex("""[\p{P}\p{S}]""")
         private val WHITESPACE_RE = Regex("""\s+""")

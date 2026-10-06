@@ -1,5 +1,6 @@
 package com.japanese.vocabulary.karaoke.service
 
+import com.japanese.vocabulary.common.text.ArtistCredit
 import com.japanese.vocabulary.common.text.ArtistNameNormalizer
 
 /**
@@ -10,7 +11,6 @@ object KaraokeTitleCleaner {
     private val PAREN_GROUP = Regex("""[(（][^()（）]*[)）]""")
     private val UNCLOSED_PAREN = Regex("""\s*[(（].*$""")
     private val LATIN_SUBTITLE = Regex("""\s+-\s+[\p{ASCII}]+$""")
-    private val FEAT_SUFFIX = Regex("""\s+(feat|ft)\.?\s.*$""", RegexOption.IGNORE_CASE)
     private val SPACES = Regex("""\s+""")
     private const val TRUNCATION = ".."
 
@@ -23,15 +23,20 @@ object KaraokeTitleCleaner {
     }
 
     fun cleanArtist(raw: String): String =
-        stripParens(raw.trim().removeSuffix(TRUNCATION)).replace(FEAT_SUFFIX, "").collapse().ifEmpty { raw.trim() }
+        ArtistCredit.withoutFeaturing(stripParens(raw.trim().removeSuffix(TRUNCATION))).collapse().ifEmpty { raw.trim() }
 
     /** 응답에서 같은 곡을 한 줄로 합칠 때 쓰는 키. */
     fun mergeKey(title: String, artist: String): String =
         ArtistNameNormalizer.normalize(title) + "\u0000" + ArtistNameNormalizer.normalize(artist)
 
-    /** 노래방 원문과 iTunes 결과가 같은 곡인지. 잘린 표기는 앞부분만 맞으면 된다. */
+    /**
+     * 노래방 원문과 iTunes 결과가 같은 곡인지. 가수는 메인 가수만 본다: 금영 `椎名もた feat.鏡音リン` 과
+     * iTunes `椎名もた & 鏡音リン` 처럼 함께 적는 방식이 서로 다르다. 잘린 표기는 앞부분만 맞으면 된다.
+     */
     fun sameSong(rawTitle: String, rawArtist: String, candidateTitle: String, candidateArtist: String): Boolean =
-        matches(rawTitle, candidateTitle, ::cleanTitle) && matches(rawArtist, candidateArtist, ::cleanArtist)
+        matches(rawTitle, candidateTitle, ::cleanTitle) && matches(rawArtist, candidateArtist, ::mainArtist)
+
+    private fun mainArtist(raw: String): String = cleanArtist(raw).let { ArtistCredit.names(it).firstOrNull() ?: it }
 
     private fun matches(raw: String, candidate: String, clean: (String) -> String): Boolean {
         val wanted = ArtistNameNormalizer.normalize(clean(raw))
