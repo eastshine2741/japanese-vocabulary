@@ -1,7 +1,9 @@
 package com.japanese.vocabulary
 
+import org.springframework.boot.SpringApplication
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
+import kotlin.system.exitProcess
 
 /**
  * 시간 기반 정기 작업 전용. 상주하지 않고 `--task=<name>` 하나를 실행한 뒤 종료하며, 스케줄은
@@ -13,5 +15,6 @@ import org.springframework.boot.runApplication
 class BatchApplication
 
 fun main(args: Array<String>) {
-    runApplication<BatchApplication>(*args)
+    // RabbitMQ 연결이 non-daemon 스레드를 남기므로 컨텍스트를 직접 닫고 끝낸다.
+    exitProcess(SpringApplication.exit(runApplication<BatchApplication>(*args)))
 }
