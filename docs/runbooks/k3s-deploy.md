@@ -61,7 +61,7 @@ ConfigMap 볼륨이 만드는 `..data` 링크와 타임스탬프 디렉터리를
 kubectl get cronjob -n <ns>
 kubectl logs -n <ns> -l app=worker -f
 
-# 즉시 한 번 실행 (dev 의 CronJob 은 전부 suspend 되어 있다)
+# 즉시 한 번 실행
 kubectl create job --from=cronjob/freeze-consume fc-$(date +%s) -n <ns>
 kubectl create job --from=cronjob/streak-reminder-evening sr-$(date +%s) -n <ns>
 

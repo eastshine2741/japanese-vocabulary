@@ -418,6 +418,6 @@ else
   echo "  rabbitmq ui: kubectl port-forward -n $NS svc/rabbitmq 15672:15672"
   echo "  admin web via ingress: http://localhost/$NS/admin"
   echo ""
-  echo "  dev 의 CronJob 은 suspend 상태다. 수동 실행:"
+  echo "  CronJob 수동 실행:"
   echo "    kubectl create job --from=cronjob/freeze-consume fc-\$(date +%s) -n $NS"
 fi
