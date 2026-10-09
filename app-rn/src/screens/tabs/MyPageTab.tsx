@@ -1,5 +1,6 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, BackHandler, ActivityIndicator } from 'react-native';
+import React, { useCallback, useMemo, useState } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, useWindowDimensions } from 'react-native';
+import { NavigationState, SceneRendererProps, TabBar, TabDescriptor, TabView } from 'react-native-tab-view';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -7,19 +8,55 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useShallow } from 'zustand/react/shallow';
 import { useAuthStore } from '../../stores/authStore';
 import { useDeckListStore } from '../../stores/deckListStore';
-import { AppBottomSheetModal, AppBottomSheetModalRef, AppBottomSheetView } from '../../components/bottomSheet';
 import { Colors, Dimens } from '../../theme/theme';
+import { Typography } from '../../theme/typography';
 import { RootStackParamList } from '../../navigation/AppNavigator';
 import HeatmapSection from '../../components/studyStats/HeatmapSection';
-import FreezeInfoSheet from '../../components/studyStats/FreezeInfoSheet';
 import SongProgressRow from '../../components/studyStats/SongProgressRow';
 import { SongProgressItem, toSongProgressItem } from '../../components/studyStats/songProgress';
 import MemoryProgressBar from '../../components/MemoryProgressBar';
 import ProfileAvatar from '../../components/ProfileAvatar';
 import { flashcardApi } from '../../api/flashcardApi';
 import { FlashcardStatsResponse } from '../../types/flashcard';
+import CardCollection from '../../components/rewardCards/CardCollection';
+import { DUMMY_ARTIST_CARDS, DUMMY_SONG_CARDS } from '../../components/rewardCards/dummyRewardCards';
+import { SongRewardCard } from '../../components/rewardCards/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
+interface ProfileTabRoute {
+  key: 'cards' | 'study';
+  title: string;
+}
+
+const PROFILE_TABS: ProfileTabRoute[] = [
+  { key: 'cards', title: '카드' },
+  { key: 'study', title: '학습' },
+];
+
+const TAB_OPTIONS: TabDescriptor<ProfileTabRoute> = {
+  label: ({ route, focused }) => (
+    <Text style={focused ? styles.tabLabelActive : styles.tabLabel}>{route.title}</Text>
+  ),
+};
+
+function renderTabBar(
+  props: SceneRendererProps & {
+    navigationState: NavigationState<ProfileTabRoute>;
+    options: Record<string, TabDescriptor<ProfileTabRoute>> | undefined;
+  },
+) {
+  return (
+    <TabBar
+      {...props}
+      style={styles.tabBar}
+      indicatorStyle={styles.tabIndicator}
+      pressColor="transparent"
+      pressOpacity={0.72}
+    />
+  );
+}
+
+const SIDE_PADDING = 24;
 
 export default function MyPageTab() {
   const navigation = useNavigation<Nav>();
@@ -64,37 +101,8 @@ export default function MyPageTab() {
     }, []),
   );
 
-  const freezeSheetRef = useRef<AppBottomSheetModalRef>(null);
-  const freezeOpenRef = useRef(false);
-
-  const handleOpenFreeze = useCallback(() => {
-    freezeOpenRef.current = true;
-    freezeSheetRef.current?.present();
-  }, []);
-
-  const handleCloseFreeze = useCallback(() => {
-    freezeOpenRef.current = false;
-    freezeSheetRef.current?.dismiss();
-  }, []);
-
-  const handleFreezeSheetChange = useCallback((index: number) => {
-    freezeOpenRef.current = index >= 0;
-  }, []);
-
-  useFocusEffect(
-    useCallback(() => {
-      const onBack = () => {
-        if (freezeOpenRef.current) {
-          freezeOpenRef.current = false;
-          freezeSheetRef.current?.dismiss();
-          return true;
-        }
-        return false;
-      };
-      const sub = BackHandler.addEventListener('hardwareBackPress', onBack);
-      return () => sub.remove();
-    }, []),
-  );
+  const { width: screenWidth } = useWindowDimensions();
+  const [tabIndex, setTabIndex] = useState(0);
 
   const handle = username ? `@${username}` : '@user';
   const displayName = userName?.trim() || '학습자';
@@ -117,12 +125,79 @@ export default function MyPageTab() {
     navigation.navigate('SongProgressList');
   }, [navigation]);
 
-  return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
+  const handleOpenStreak = useCallback(() => {
+    navigation.navigate('Streak');
+  }, [navigation]);
+
+  const handlePressCard = useCallback((card: SongRewardCard) => {
+    navigation.navigate('RewardCardDetail', { cardId: card.id });
+  }, [navigation]);
+
+  const contentPadding = Dimens.bottomBarHeight + insets.bottom + 24;
+  const navigationState = useMemo(() => ({ index: tabIndex, routes: PROFILE_TABS }), [tabIndex]);
+  const initialLayout = useMemo(() => ({ width: screenWidth }), [screenWidth]);
+
+  const renderScene = useCallback(
+    ({ route }: { route: ProfileTabRoute }) => (
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={[styles.content, { paddingBottom: Dimens.bottomBarHeight + insets.bottom + 24 }]}
+        contentContainerStyle={[styles.sceneContent, { paddingBottom: contentPadding }]}
+        showsVerticalScrollIndicator={false}
       >
+        {route.key === 'cards' ? (
+          <CardCollection
+            songCards={DUMMY_SONG_CARDS}
+            artistCards={DUMMY_ARTIST_CARDS}
+            contentWidth={screenWidth - SIDE_PADDING * 2}
+            sidePadding={SIDE_PADDING}
+            onPressCard={handlePressCard}
+          />
+        ) : (
+          <View style={styles.studyTab}>
+            <LearningHero
+              totalWords={totalWords}
+              longTermWords={longTermWords}
+              shortTermWords={shortTermWords}
+              showFallback={showStatsFallback}
+            />
+            <View style={styles.songSection}>
+              <TouchableOpacity
+                style={styles.songHead}
+                onPress={handleOpenSongProgress}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.sectionTitle}>곡별 진도</Text>
+                <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
+              </TouchableOpacity>
+              {deckStatus === 'loading' && progressItems.length === 0 ? (
+                <ActivityIndicator color={Colors.primary} style={styles.songLoading} />
+              ) : representativeSongs.length === 0 ? (
+                <View style={styles.emptySongs}>
+                  <Text style={styles.emptyTitle}>곡별 진도가 아직 없어요</Text>
+                  <Text style={styles.emptyText}>노래에서 단어를 저장하면 여기에 진행률이 보여요</Text>
+                </View>
+            ) : (
+                <View>
+                  {representativeSongs.map((item) => (
+                    <SongProgressRow key={item.deckId} item={item} onPress={handleSongProgressPress} />
+                  ))}
+                </View>
+              )}
+            </View>
+            <HeatmapSection onPressMore={handleOpenStreak} />
+          </View>
+        )}
+      </ScrollView>
+    ),
+    [
+      contentPadding, screenWidth, handlePressCard, totalWords, longTermWords, shortTermWords, showStatsFallback,
+      handleOpenSongProgress, deckStatus, progressItems.length, representativeSongs, handleSongProgressPress, handleOpenStreak,
+    ],
+  );
+
+  return (
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <View style={styles.header}>
         <View style={styles.profHeader}>
           <Text style={styles.handle}>{handle}</Text>
           <TouchableOpacity
@@ -138,6 +213,9 @@ export default function MyPageTab() {
           <ProfileAvatar url={profileImageUrl} size={56} />
           <View style={styles.nameRow}>
             <Text style={styles.profName}>{displayName}</Text>
+            <Text style={styles.collectionSummary}>
+              곡 카드 {DUMMY_SONG_CARDS.length} · 아티스트 카드 {DUMMY_ARTIST_CARDS.length}
+            </Text>
           </View>
           <TouchableOpacity
             style={styles.editBtn}
@@ -147,50 +225,16 @@ export default function MyPageTab() {
             <Feather name="edit-2" size={16} color={Colors.textSecondary} />
           </TouchableOpacity>
         </View>
+      </View>
 
-        <LearningHero
-          totalWords={totalWords}
-          longTermWords={longTermWords}
-          shortTermWords={shortTermWords}
-          showFallback={showStatsFallback}
-        />
-        <HeatmapSection onPressFreeze={handleOpenFreeze} />
-        <View style={styles.songSection}>
-          <TouchableOpacity
-            style={styles.songHead}
-            onPress={handleOpenSongProgress}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.sectionTitle}>곡별 진도</Text>
-            <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
-          </TouchableOpacity>
-          {deckStatus === 'loading' && progressItems.length === 0 ? (
-            <ActivityIndicator color={Colors.primary} style={styles.songLoading} />
-          ) : representativeSongs.length === 0 ? (
-            <View style={styles.emptySongs}>
-              <Text style={styles.emptyTitle}>곡별 진도가 아직 없어요</Text>
-              <Text style={styles.emptyText}>노래에서 단어를 저장하면 여기에 진행률이 보여요</Text>
-            </View>
-          ) : (
-            <View>
-              {representativeSongs.map((item) => (
-                <SongProgressRow key={item.deckId} item={item} onPress={handleSongProgressPress} />
-              ))}
-            </View>
-          )}
-        </View>
-      </ScrollView>
-
-      <AppBottomSheetModal
-        ref={freezeSheetRef}
-        enableDynamicSizing
-        enablePanDownToClose
-        onChange={handleFreezeSheetChange}
-      >
-        <AppBottomSheetView>
-          <FreezeInfoSheet onConfirm={handleCloseFreeze} />
-        </AppBottomSheetView>
-      </AppBottomSheetModal>
+      <TabView
+        navigationState={navigationState}
+        renderScene={renderScene}
+        renderTabBar={renderTabBar}
+        commonOptions={TAB_OPTIONS}
+        onIndexChange={setTabIndex}
+        initialLayout={initialLayout}
+      />
     </SafeAreaView>
   );
 }
@@ -237,8 +281,40 @@ function sumBy(items: SongProgressItem[], pick: (item: SongProgressItem) => numb
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: Colors.surface },
   scrollView: { flex: 1 },
-  content: {
-    paddingHorizontal: 24,
+  header: {
+    paddingHorizontal: SIDE_PADDING,
+  },
+  sceneContent: {
+    paddingHorizontal: SIDE_PADDING,
+    paddingTop: 24,
+  },
+  collectionSummary: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: Colors.textMuted,
+  },
+  tabBar: {
+    backgroundColor: Colors.surface,
+    elevation: 0,
+    shadowOpacity: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  tabLabel: {
+    ...Typography.headingSemiBold,
+    fontSize: 15,
+    color: Colors.textMuted,
+  },
+  tabLabelActive: {
+    ...Typography.headingBold,
+    fontSize: 15,
+    color: Colors.textPrimary,
+  },
+  tabIndicator: {
+    height: 2,
+    backgroundColor: Colors.textPrimary,
+  },
+  studyTab: {
     gap: 30,
   },
 

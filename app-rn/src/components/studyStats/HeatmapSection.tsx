@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -6,8 +6,6 @@ import { useShallow } from 'zustand/react/shallow';
 import { useStudyStatsStore } from '../../stores/studyStatsStore';
 import { Colors } from '../../theme/theme';
 import { HeatmapDay } from '../../types/studyStats';
-
-const WEEKDAY_KO = ['일', '월', '화', '수', '목', '금', '토'];
 
 const CELL = 14;
 const GAP = 3;
@@ -18,16 +16,15 @@ const ROW_LABEL_GAP = 6;
 const ROW_LABELS: Record<number, string> = { 1: '월', 3: '수', 5: '금' };
 
 interface HeatmapSectionProps {
-  onPressFreeze: () => void;
+  /** 연속·최장 기록과 날짜별 수치는 연속 학습 상세가 보여준다. */
+  onPressMore: () => void;
 }
 
-export default React.memo(function HeatmapSection({ onPressFreeze }: HeatmapSectionProps) {
-  const { heatmap, profile, loadHeatmap, loadProfile } = useStudyStatsStore(
+export default React.memo(function HeatmapSection({ onPressMore }: HeatmapSectionProps) {
+  const { heatmap, loadHeatmap } = useStudyStatsStore(
     useShallow((s) => ({
       heatmap: s.heatmap,
-      profile: s.profile,
       loadHeatmap: s.loadHeatmap,
-      loadProfile: s.loadProfile,
     })),
   );
 
@@ -36,10 +33,7 @@ export default React.memo(function HeatmapSection({ onPressFreeze }: HeatmapSect
       if (heatmap.status === 'idle' || heatmap.staleAt > 0) {
         loadHeatmap(heatmap.staleAt > 0);
       }
-      if (profile.status === 'idle' || profile.staleAt > 0) {
-        loadProfile(profile.staleAt > 0);
-      }
-    }, [heatmap.status, heatmap.staleAt, profile.status, profile.staleAt, loadHeatmap, loadProfile]),
+    }, [heatmap.status, heatmap.staleAt, loadHeatmap]),
   );
 
   const cells = useMemo(() => {
@@ -51,44 +45,16 @@ export default React.memo(function HeatmapSection({ onPressFreeze }: HeatmapSect
     return heatmap.data.days.reduce((acc, d) => (d.reviewCount > acc ? d.reviewCount : acc), 0);
   }, [heatmap.data]);
 
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const handleSelect = useCallback((date: string) => {
-    setSelectedDate((prev) => (prev === date ? null : date));
-  }, []);
-
-  const selectedDay = useMemo(() => {
-    if (!selectedDate || !heatmap.data) return null;
-    return heatmap.data.days.find((d) => d.date === selectedDate) ?? null;
-  }, [selectedDate, heatmap.data]);
-
-  const totalDays = profile.data?.totalStudyDays ?? 0;
-  const currentStreak = profile.data?.currentStreak ?? 0;
-  const longestStreak = profile.data?.longestStreak ?? 0;
-  const freezeCount = profile.data?.freezeCount ?? 0;
-  const freezeMax = profile.data?.freezeMax ?? 2;
-
   return (
     <View style={styles.section}>
-      <View style={styles.header}>
+      <Pressable
+        style={({ pressed }) => [styles.header, pressed && styles.headerPressed]}
+        onPress={onPressMore}
+        hitSlop={8}
+      >
         <Text style={styles.title}>학습 기록</Text>
-        <Pressable
-          style={({ pressed }) => [styles.right, pressed && styles.rightPressed]}
-          onPress={onPressFreeze}
-          hitSlop={8}
-        >
-          <Ionicons name="snow" size={11} color={Colors.freezeStroke} />
-          <Text style={styles.freezeText}>{freezeCount}/{freezeMax}</Text>
-        </Pressable>
-      </View>
-
-      <View style={styles.statsLine}>
-        <Ionicons name="flame" size={13} color={Colors.streakFlame} />
-        <Text style={styles.streakText}>연속 {currentStreak}일</Text>
-        <Text style={styles.dotSep}>·</Text>
-        <Text style={styles.statText}>최장 {longestStreak}일</Text>
-        <Text style={styles.dotSep}>·</Text>
-        <Text style={styles.statText}>총 {totalDays}일</Text>
-      </View>
+        <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
+      </Pressable>
 
       <View style={styles.grid}>
         <View style={styles.labelCol}>
@@ -101,90 +67,34 @@ export default React.memo(function HeatmapSection({ onPressFreeze }: HeatmapSect
         <View>
           {Array.from({ length: ROWS }).map((_, r) => (
             <View key={r} style={styles.gridRow}>
-              {Array.from({ length: COLS }).map((_, c) => {
-                const cell = cells[c * ROWS + r];
-                const date = cell.kind === 'day' ? cell.day.date : null;
-                return (
-                  <Cell
-                    key={c}
-                    cell={cell}
-                    max={visibleMax}
-                    selected={!!date && date === selectedDate}
-                    onSelect={handleSelect}
-                  />
-                );
-              })}
+              {Array.from({ length: COLS }).map((_, c) => (
+                <Cell key={c} cell={cells[c * ROWS + r]} max={visibleMax} />
+              ))}
             </View>
           ))}
         </View>
       </View>
-
-      <View style={styles.footer}>
-        <View style={styles.selection}>
-          {selectedDay ? (
-            <>
-              <Text style={styles.selCount}>
-                {selectedDay.freezeUsed && selectedDay.reviewCount === 0
-                  ? '프리즈'
-                  : `${selectedDay.reviewCount}회`}
-              </Text>
-              <Text style={styles.selDate}>{formatKoreanDate(selectedDay.date)}</Text>
-            </>
-          ) : null}
-        </View>
-        <View style={styles.legend}>
-          <Text style={styles.legendText}>적음</Text>
-          {Colors.heatmapIntensities.map((color, i) => (
-            <View key={i} style={[styles.legendCell, { backgroundColor: color }]} />
-          ))}
-          <Text style={styles.legendText}>많음</Text>
-        </View>
-      </View>
-
     </View>
   );
 });
-
-function formatKoreanDate(iso: string): string {
-  const d = parseISODate(iso);
-  return `${d.getMonth() + 1}월 ${d.getDate()}일 (${WEEKDAY_KO[d.getDay()]})`;
-}
 
 type CellState =
   | { kind: 'empty' }
   | { kind: 'day'; day: HeatmapDay };
 
-function Cell({
-  cell,
-  max,
-  selected,
-  onSelect,
-}: {
-  cell: CellState;
-  max: number;
-  selected: boolean;
-  onSelect: (date: string) => void;
-}) {
+function Cell({ cell, max }: { cell: CellState; max: number }) {
   if (cell.kind === 'empty') {
     return <View style={[styles.cell, { backgroundColor: Colors.heatmapIntensities[0] }]} />;
   }
-  const date = cell.day.date;
-  const handlePress = () => onSelect(date);
-  const ringStyle = selected ? styles.cellSelected : null;
   if (cell.day.freezeUsed && cell.day.reviewCount === 0) {
     return (
-      <Pressable onPress={handlePress} style={[styles.cell, styles.cellFreeze, ringStyle]}>
+      <View style={[styles.cell, styles.cellFreeze]}>
         <Ionicons name="snow" size={10} color={Colors.freezeStroke} />
-      </Pressable>
+      </View>
     );
   }
   const level = computeLevel(cell.day.reviewCount, max);
-  return (
-    <Pressable
-      onPress={handlePress}
-      style={[styles.cell, { backgroundColor: Colors.heatmapIntensities[level] }, ringStyle]}
-    />
-  );
+  return <View style={[styles.cell, { backgroundColor: Colors.heatmapIntensities[level] }]} />;
 }
 
 function computeLevel(count: number, max: number): number {
@@ -227,44 +137,16 @@ function mondayBasedRow(date: Date): number {
 const styles = StyleSheet.create({
   section: { gap: 14 },
   header: {
+    alignSelf: 'flex-start',
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 3,
   },
+  headerPressed: { opacity: 0.5 },
   title: {
     fontSize: 17,
     fontWeight: '700',
     color: Colors.textPrimary,
-  },
-  right: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  rightPressed: { opacity: 0.5 },
-  freezeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: Colors.freezeStroke,
-    fontVariant: ['tabular-nums'],
-  },
-  dotSep: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: Colors.textMuted,
-  },
-  statsLine: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 7,
-  },
-  streakText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-    fontVariant: ['tabular-nums'],
-  },
-  statText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: Colors.textSecondary,
-    fontVariant: ['tabular-nums'],
   },
 
   grid: {
@@ -299,47 +181,5 @@ const styles = StyleSheet.create({
     borderColor: Colors.freezeStroke,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  cellSelected: {
-    borderWidth: 1.5,
-    borderColor: Colors.textPrimary,
-  },
-
-  footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingLeft: ROW_LABEL_WIDTH + ROW_LABEL_GAP,
-  },
-  selection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  selCount: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-    fontVariant: ['tabular-nums'],
-  },
-  selDate: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: Colors.textMuted,
-  },
-  legend: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: 4,
-  },
-  legendText: {
-    fontSize: 10,
-    color: Colors.textMuted,
-  },
-  legendCell: {
-    width: 10,
-    height: 10,
-    borderRadius: 2,
   },
 });

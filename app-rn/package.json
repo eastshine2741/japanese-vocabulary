@@ -16,6 +16,7 @@
     "@animatereactnative/marquee": "^0.5.2",
     "@expo-google-fonts/funnel-sans": "^0.4.2",
     "@expo-google-fonts/inter": "^0.4.2",
+    "@expo-google-fonts/shippori-mincho-b1": "^0.4.1",
     "@expo/metro-runtime": "~55.0.11",
     "@expo/vector-icons": "^15.1.1",
     "@gorhom/bottom-sheet": "^5.2.8",
