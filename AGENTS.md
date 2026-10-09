@@ -128,7 +128,7 @@ TypeSafe Jev (`TYPESAFE_API_KEY`), the other LLM stages on Gemini. Details live 
 `OBJECT_STORAGE_*` 가 하나라도 비면 업로드 API 가 503.
 
 **Streak commitment (260918):** `GET /api/study-stats/home`이 `studiedToday`/`hasStudiedBefore`를 내려주고,
-`batch`의 `StreakReminderTask`가 20:00/23:00 KST CronJob 으로 `streak_reminder` 알림을 보낸다 (단어 회상 알림은 폐기). 23:00은 카운트다운용 `expiresAt`을 싣고 Android data-only.
+`batch`의 `StreakReminderTask`가 20:00/23:00 KST CronJob 으로 `streak_reminder` 알림을 보낸다 (단어 회상 알림은 폐기). 두 슬롯 모두 Android data-only라 앱이 로컬 모듈 `modules/streak-notification`으로 제목·본문을 강조색으로 그리고, 23:00은 `expiresAt`까지 카운트다운을 붙인다(새 네이티브 빌드 필요). 제목은 `users.name`(NOT NULL, 기본 `사용자`)으로 부른다.
 freeze 행은 연속을 잇기만 하고 streak/총 학습일 카운트에는 들어가지 않는다.
 스펙은 `docs/product-intents/260918-streak-commitment-api.md`.
 홈 헤더 연속 학습 칩 -> `Streak` 화면(히어로·통계·학습 달력). 달력은 `GET /api/study-stats/calendar`(달 단위 커서 페이지)로 첫 기록 달까지 넘긴다 (`/heatmap` 은 구클라·마이페이지용으로 유지):

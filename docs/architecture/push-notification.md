@@ -14,10 +14,18 @@ decide who gets what: `batch` (streak reminder CronJob), `worker` (analysis-comp
   (`--task=streak-reminder --slot=EVENING|NIGHT`). Copy lives in `StreakReminderMessage`; rules are in
   `docs/product-intents/260918-streak-commitment.md` section C. Payload `data.type` is
   `streak_reminder`. The former 09:00 / 18:00 word-recall reminder (`review_reminder`) is gone.
-  The 23:00 slot also carries `data.expiresAt` (epoch ms of the next 04:00 KST) for the client
-  countdown and is sent with `androidDataOnly = true`: no notification block on Android, so the
-  app renders it from `data.title` / `data.body`; iOS still gets a visible APNs alert. Payload and
+  Both slots are sent with `androidDataOnly = true`: no notification block on Android, so the
+  app renders it from `data.title` / `data.body`; iOS still gets a visible APNs alert. The 23:00 slot
+  also carries `data.expiresAt` (epoch ms of the next 04:00 KST) for the client countdown. Titles
+  call the user by `users.name` (NOT NULL, `사용자` when left blank). Payload and
   copy: `docs/product-intents/260918-streak-commitment-api.md` section 3.
+- Client rendering: `app-rn/modules/streak-notification` (local Expo module, Android only) draws every
+  streak reminder with colored title and body (red with a countdown, green without — dark green on a light shade, bright green in system dark mode). With
+  `expiresAt` it adds a count-down chronometer until then and removes the notification at that point.
+  `pushNotifications.ts` uses it from the data-only path and falls back to a plain
+  expo-notifications alert when the module is missing (older native build, iOS) or fails. Taps on
+  it come back through the module's `onPress` event / `consumeInitialPress()`, not
+  expo-notifications. The module is native code, so it ships only with a new native build.
 - Karaoke new songs: `KaraokeNewSongNotifier` in `batch`, run by the `karaoke-collect` CronJob at
   `18:00` KST right after collection. One push per run to users with `karaokeNewSongNotifications` (opt-in,
   default false), the only user-gated push. Payload `data.type` is `karaoke_new_songs`. Rules:
