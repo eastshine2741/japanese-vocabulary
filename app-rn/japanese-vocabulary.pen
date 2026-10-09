@@ -117739,8 +117739,8 @@
     {
       "type": "frame",
       "id": "J9wBR",
-      "x": 5246,
-      "y": -2314,
+      "x": 6314,
+      "y": -787,
       "name": "A1. Artist Detail",
       "context": "SongDetail 히어로의 아티스트명을 탭하면 들어오는 화면. 이해도 높은 곡이 위, 분석 전 인기곡은 Apple Music top-songs 중 DB에 없는 곡",
       "clip": true,
