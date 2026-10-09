@@ -6,6 +6,7 @@ import com.japanese.vocabulary.auth.jwt.JwtUtil
 import com.japanese.vocabulary.studystats.dto.HeatmapResponse
 import com.japanese.vocabulary.studystats.dto.HomeStatsResponse
 import com.japanese.vocabulary.studystats.dto.ProfileStatsResponse
+import com.japanese.vocabulary.studystats.dto.StudyCalendarResponse
 import com.japanese.vocabulary.studystats.entity.DailyStudySummaryEntity
 import com.japanese.vocabulary.studystats.util.KstClock
 import com.japanese.vocabulary.test.ApiBaseIntegrationTest
@@ -19,6 +20,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.get
 import java.time.LocalDate
+import java.time.YearMonth
 
 @AutoConfigureMockMvc
 class StudyStatsControllerTest : ApiBaseIntegrationTest() {
@@ -59,11 +61,10 @@ class StudyStatsControllerTest : ApiBaseIntegrationTest() {
             val resp = readBody<HomeStatsResponse>(body)
             assertThat(resp.currentStreak).isZero
             assertThat(resp.freezeCount).isZero
-            assertThat(resp.weekDots).hasSize(7)
-            val todayDot = resp.weekDots.single { it.date == today.toString() }
-            assertThat(todayDot.status).isEqualTo("today")
-            resp.weekDots.filter { it.date != today.toString() }
-                .forEach { assertThat(it.status).isEqualTo("none") }
+            assertThat(resp.weekDots.map { it.date })
+                .containsExactlyElementsOf((6L downTo 0L).map { today.minusDays(it).toString() })
+            assertThat(resp.weekDots.last().status).isEqualTo("today")
+            assertThat(resp.weekDots.dropLast(1)).allSatisfy { assertThat(it.status).isEqualTo("none") }
         }
 
         @Test
@@ -79,11 +80,8 @@ class StudyStatsControllerTest : ApiBaseIntegrationTest() {
 
             val resp = readBody<HomeStatsResponse>(body)
             assertThat(resp.currentStreak).isEqualTo(1)
-            val yDot = resp.weekDots.firstOrNull { it.date == yesterday.toString() }
-            if (yDot != null) {
-                // Only assert when yesterday falls in this calendar week
-                assertThat(yDot.status).isEqualTo("studied")
-            }
+            val yDot = resp.weekDots.single { it.date == yesterday.toString() }
+            assertThat(yDot.status).isEqualTo("studied")
         }
 
         @Test
@@ -165,18 +163,15 @@ class StudyStatsControllerTest : ApiBaseIntegrationTest() {
             val me = newUser()
             val today = kstClock.todayStudyDate()
             val target = today.minusDays(2)
-            // Make sure the target date is within this week to assert the dot.
-            if (target.isAfter(today.with(java.time.DayOfWeek.MONDAY).minusDays(1))) {
-                seedDay(me, target, reviewCount = 0, freezeUsed = true)
+            seedDay(me, target, reviewCount = 0, freezeUsed = true)
 
-                val body = mockMvc.get("/api/study-stats/home") {
-                    header("Authorization", bearer(me))
-                }.andReturn().response.contentAsString
+            val body = mockMvc.get("/api/study-stats/home") {
+                header("Authorization", bearer(me))
+            }.andReturn().response.contentAsString
 
-                val resp = readBody<HomeStatsResponse>(body)
-                val dot = resp.weekDots.single { it.date == target.toString() }
-                assertThat(dot.status).isEqualTo("freeze")
-            }
+            val resp = readBody<HomeStatsResponse>(body)
+            val dot = resp.weekDots.single { it.date == target.toString() }
+            assertThat(dot.status).isEqualTo("freeze")
         }
     }
 
@@ -271,6 +266,65 @@ class StudyStatsControllerTest : ApiBaseIntegrationTest() {
             val emptyDay = resp.days.single { it.date == today.minusDays(5).toString() }
             assertThat(emptyDay.reviewCount).isZero
             assertThat(emptyDay.freezeUsed).isFalse
+        }
+    }
+
+    @Nested
+    inner class Calendar {
+
+        private fun calendar(user: UserEntity, query: String = ""): StudyCalendarResponse =
+            readBody(
+                mockMvc.get("/api/study-stats/calendar$query") {
+                    header("Authorization", bearer(user))
+                }.andExpect { status { isOk() } }.andReturn().response.contentAsString,
+            )
+
+        @Test
+        fun `first page covers three months up to today, densely`() {
+            val me = newUser()
+            val today = kstClock.todayStudyDate()
+            seedDay(me, today, reviewCount = 4)
+
+            val resp = calendar(me)
+            val from = YearMonth.from(today).minusMonths(2).atDay(1)
+            assertThat(resp.days.first().date).isEqualTo(from.toString())
+            assertThat(resp.days.last().date).isEqualTo(today.toString())
+            assertThat(resp.days).hasSize((today.toEpochDay() - from.toEpochDay() + 1).toInt())
+            assertThat(resp.days.last().reviewCount).isEqualTo(4)
+            assertThat(resp.nextBefore).isNull()
+        }
+
+        @Test
+        fun `nextBefore pages back until the oldest record`() {
+            val me = newUser()
+            val thisMonth = YearMonth.from(kstClock.todayStudyDate())
+            val old = thisMonth.minusMonths(7).atDay(15)
+            seedDay(me, old, reviewCount = 9)
+
+            val first = calendar(me)
+            assertThat(first.nextBefore).isEqualTo(thisMonth.minusMonths(2).toString())
+
+            val second = calendar(me, "?before=${first.nextBefore}")
+            assertThat(second.days.first().date).isEqualTo(thisMonth.minusMonths(5).atDay(1).toString())
+            assertThat(second.days.last().date).isEqualTo(thisMonth.minusMonths(2).atDay(1).minusDays(1).toString())
+            assertThat(second.nextBefore).isEqualTo(thisMonth.minusMonths(5).toString())
+
+            val third = calendar(me, "?before=${second.nextBefore}")
+            assertThat(third.days.single { it.date == old.toString() }.reviewCount).isEqualTo(9)
+            assertThat(third.nextBefore).isNull()
+        }
+
+        @Test
+        fun `months is clamped and a future cursor stops at this month`() {
+            val me = newUser()
+            val today = kstClock.todayStudyDate()
+
+            val resp = calendar(me, "?before=${YearMonth.from(today).plusMonths(5)}&months=1")
+            assertThat(resp.days.first().date).isEqualTo(YearMonth.from(today).atDay(1).toString())
+            assertThat(resp.days.last().date).isEqualTo(today.toString())
+
+            val wide = calendar(me, "?months=100")
+            assertThat(wide.days.first().date).isEqualTo(YearMonth.from(today).minusMonths(11).atDay(1).toString())
         }
     }
 }

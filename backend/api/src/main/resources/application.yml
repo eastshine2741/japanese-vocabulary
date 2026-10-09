@@ -54,6 +54,14 @@ github:
   token: ${GITHUB_VOC_TOKEN:}
   repository: ${GITHUB_VOC_REPOSITORY:eastshine2741/japanese-vocabulary}
 
+object-storage:
+  # S3-compatible bucket (Cloudflare R2) for profile images. Any blank value disables uploads (503).
+  endpoint: ${OBJECT_STORAGE_ENDPOINT:}
+  access-key: ${OBJECT_STORAGE_ACCESS_KEY:}
+  secret-key: ${OBJECT_STORAGE_SECRET_KEY:}
+  bucket: ${OBJECT_STORAGE_BUCKET:}
+  public-base-url: ${OBJECT_STORAGE_PUBLIC_BASE_URL:}
+
 jwt:
   secret: ${JWT_SECRET:dev-secret-key-at-least-32-chars-long}
 

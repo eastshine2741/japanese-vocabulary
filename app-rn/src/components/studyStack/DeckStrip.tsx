@@ -9,6 +9,9 @@ import { StudySource } from './types';
 const RING_SIZE = 72;
 const TILE_SIZE = 64;
 const ITEM_WIDTH = 72;
+/** due 배지 바깥 지름 — 디자인의 22px 원 + 2px 배경 테두리. */
+const BADGE_BORDER = 2;
+const BADGE_SIZE = 22 + BADGE_BORDER * 2;
 
 export const DECK_STRIP_HEIGHT = 8 + RING_SIZE + 6 + 16 + 10;
 
@@ -58,7 +61,7 @@ const SearchEntry = React.memo(function SearchEntry({ onPress }: { onPress: () =
           <Feather name="search" size={24} color="#FFFFFF" />
         </LinearGradient>
       </View>
-      <Text numberOfLines={1} ellipsizeMode="tail" style={styles.labelSelected}>좋아하는 곡</Text>
+      <Text numberOfLines={1} ellipsizeMode="tail" style={styles.labelSearch}>좋아하는 곡</Text>
     </Pressable>
   );
 });
@@ -82,6 +85,11 @@ const DeckStripTile = React.memo(function DeckStripTile({ item, selected, onSele
           />
         ) : (
           <View style={[styles.tile, styles.tilePlaceholder, !selected && styles.tileDim]} />
+        )}
+        {item.dueCount > 0 && (
+          <View style={styles.dueBadge}>
+            <Text style={styles.dueCount}>{item.dueCount > 99 ? '99+' : item.dueCount}</Text>
+          </View>
         )}
       </View>
       <Text numberOfLines={1} ellipsizeMode="tail" style={selected ? styles.labelSelected : styles.labelUnselected}>
@@ -129,12 +137,42 @@ const styles = StyleSheet.create({
   tilePlaceholder: {
     backgroundColor: Colors.elevated,
   },
+  // 아트워크 오른쪽 아래에 걸친다 — 배경색 테두리로 타일과 분리한다.
+  // 링의 2px 테두리 안쪽을 기준으로 잡히므로, 디자인 좌표(링 바깥으로 2px 삐져나옴)에
+  // 맞추려면 그만큼 더 빼준다.
+  dueBadge: {
+    position: 'absolute',
+    right: -(BADGE_BORDER * 2 + 2),
+    bottom: -(BADGE_BORDER * 2 + 1),
+    minWidth: BADGE_SIZE,
+    height: BADGE_SIZE,
+    paddingHorizontal: 5,
+    borderRadius: BADGE_SIZE / 2,
+    borderWidth: BADGE_BORDER,
+    borderColor: Colors.background,
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dueCount: {
+    ...Typography.bodyBold,
+    fontSize: 12,
+    lineHeight: 14,
+    color: '#FFFFFF',
+  },
   searchTile: {
     width: TILE_SIZE,
     height: TILE_SIZE,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  labelSearch: {
+    ...Typography.bodySemiBold,
+    fontSize: 12,
+    lineHeight: 16,
+    textAlign: 'center',
+    color: Colors.textPrimary,
   },
   labelSelected: {
     ...Typography.bodyBold,

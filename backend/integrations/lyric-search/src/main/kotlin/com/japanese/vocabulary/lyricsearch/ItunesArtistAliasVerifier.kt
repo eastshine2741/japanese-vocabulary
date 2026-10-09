@@ -1,5 +1,6 @@
 package com.japanese.vocabulary.lyricsearch
 
+import com.japanese.vocabulary.common.text.ArtistNameNormalizer
 import com.japanese.vocabulary.songsearch.client.itunes.ItunesClient
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component

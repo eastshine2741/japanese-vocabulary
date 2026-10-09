@@ -202,8 +202,29 @@ jobs:
             }" \
             ${{ secrets.DISCORD_WEBHOOK_URL }}
 
+  # rc 는 내부 테스트 트랙, 정식은 프로덕션 트랙. completed 로 올리면 프로덕션은 바로 심사에 들어간다.
+  play:
+    needs: [parse, build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download AAB
+        uses: actions/download-artifact@v4
+        with:
+          name: prod-aab
+          path: artifacts
+
+      - name: Upload to Google Play
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: dev.eastshine.kotonoha
+          releaseFiles: artifacts/*.aab
+          releaseName: ${{ needs.parse.outputs.version_name }}
+          track: ${{ needs.parse.outputs.is_rc == 'true' && 'internal' || 'production' }}
+          status: completed
+
   notify-failure:
-    needs: [parse, build, release]
+    needs: [parse, build, release, play]
     if: failure()
     runs-on: ubuntu-latest
     steps:

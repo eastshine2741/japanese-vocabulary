@@ -4,6 +4,7 @@ import com.google.firebase.messaging.FirebaseMessaging
 import com.japanese.vocabulary.auth.service.AppleOidcService
 import com.japanese.vocabulary.auth.service.GoogleOidcService
 import com.japanese.vocabulary.github.client.GithubIssueClient
+import com.japanese.vocabulary.objectstorage.client.ObjectStorageClient
 import com.japanese.vocabulary.songsearch.client.itunes.ItunesClient
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.clearMocks
@@ -27,6 +28,9 @@ abstract class ApiBaseIntegrationTest : BaseIntegrationTest() {
     @MockkBean
     protected lateinit var githubIssueClient: GithubIssueClient
 
+    @MockkBean
+    protected lateinit var objectStorageClient: ObjectStorageClient
+
     /**
      * `PushNotificationService` 가 요구하는 `FirebaseMessaging` 빈은 `push.firebase.enabled=true` 게이트 뒤라
      * 테스트에선 안 뜬다. DI 만족용 strict mock.
@@ -37,7 +41,7 @@ abstract class ApiBaseIntegrationTest : BaseIntegrationTest() {
     @BeforeEach
     fun resetClientMocks() {
         clearMocks(
-            itunesClient, googleOidcService, appleOidcService, githubIssueClient, firebaseMessaging,
+            itunesClient, googleOidcService, appleOidcService, githubIssueClient, objectStorageClient, firebaseMessaging,
             answers = true,
             recordedCalls = true,
         )

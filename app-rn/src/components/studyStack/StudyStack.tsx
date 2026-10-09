@@ -4,6 +4,7 @@ import { Feather } from '@expo/vector-icons';
 import SkeletonBox from '../SkeletonLoading';
 import { CardStage, StageInset } from './CardStage';
 import { CompletionStage, ErrorStage } from './CompletionStage';
+import { stageArtworkUrl } from './studySource';
 import { WordLayer } from './WordLayer';
 import { StudyCard } from './types';
 import { StudyStackState } from './useStudyStack';
@@ -72,13 +73,13 @@ export const StudyStack = React.memo(function StudyStack({
   } = stack;
 
   const nextCard = cards[currentIndex + 1] ?? null;
-  const lastCardArtworkUrlRef = useRef<string | null>(currentCard?.source.artworkUrl ?? null);
+  const lastCardArtworkUrlRef = useRef<string | null>(currentCard ? stageArtworkUrl(currentCard) : null);
   const wasCompleteRef = useRef(false);
   const completionEntranceProgress = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (currentCard) {
-      lastCardArtworkUrlRef.current = currentCard.source.artworkUrl;
+      lastCardArtworkUrlRef.current = stageArtworkUrl(currentCard);
     }
   }, [currentCard]);
 

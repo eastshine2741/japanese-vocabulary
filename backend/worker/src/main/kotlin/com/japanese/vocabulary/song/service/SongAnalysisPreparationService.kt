@@ -75,9 +75,9 @@ class SongAnalysisPreparationService(
         )
     }
 
-    /** null means YouTube answered and no candidate passed; an error that survives retry propagates. */
-    suspend fun searchYoutubeUrl(title: String, artist: String, durationSeconds: Int?): String? =
-        withProviderRetry("YouTube") { youtubeMvSearchService.searchMvUrl(title, artist, durationSeconds) }
+    /** A null url means YouTube answered and no candidate passed; an error that survives retry propagates. */
+    suspend fun searchYoutube(title: String, artist: String, durationSeconds: Int?): MvSearchResult =
+        withProviderRetry("YouTube") { youtubeMvSearchService.search(title, artist, durationSeconds) }
 
     fun saveSongAndLyric(
         title: String,

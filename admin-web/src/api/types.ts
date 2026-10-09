@@ -100,51 +100,14 @@ export type SongAnalysisWorkDetail = SongAnalysisWorkSummary & {
   resumable: boolean
 }
 
-export type RecommendationOperationItem = {
-  candidateId: number
-  status: string
-  songId: number | null
-  lyricId: number | null
-  workId: number | null
-  recommendationId: number | null
-  message: string | null
-}
-
-export type RecommendationOperationResult = {
-  processed: number
-  succeeded: number
-  skipped: number
-  failed: number
-  items: RecommendationOperationItem[]
-}
-
 export type Recommendation = {
   id: number
-  candidateId: number
-  weekStartDate: string
-  status: string
   songId: number
-  lyricId: number
-  orderIndex: number
-  publishedAt: string | null
-  createdAt: string | null
-  updatedAt: string | null
-}
-
-export type RecommendationCandidate = {
-  id: number
-  source: string
-  sourceSongId: string
-  weekStartDate: string
-  sourceRank: number
-  status: string
   title: string
-  artistName: string
+  artist: string
   artworkUrl: string | null
-  sourceUrl: string | null
-  releaseDate: string | null
-  createdAt: string | null
-  updatedAt: string | null
+  orderIndex: number
+  createdAt: string
 }
 
 export type RawLyricLine = {

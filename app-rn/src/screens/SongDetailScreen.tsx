@@ -45,6 +45,7 @@ import { Colors, Dimens } from '../theme/theme';
 import { Layers } from '../theme/layers';
 import { Typography } from '../theme/typography';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import type { StudyEntryTrigger } from '../services/analytics';
 import type { DeckDetailResponse } from '../types/deck';
 import type { SongWordTierDto } from '../types/song';
 
@@ -293,10 +294,15 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     return ensureSongDeck();
   }, [ensureSongDeck, songDeckDetail, songId]);
 
-  const openSongReview = useCallback((deck: DeckDetailResponse, leadWordId?: number | null) => {
+  const openSongReview = useCallback((
+    deck: DeckDetailResponse,
+    trigger: StudyEntryTrigger,
+    leadWordId?: number | null,
+  ) => {
     if (songId == null || deck.deckId == null) return false;
     navigation.navigate('SongReview', {
       origin: 'SongDetail',
+      trigger,
       source: {
         deckId: deck.deckId,
         songId,
@@ -315,10 +321,11 @@ export default function SongDetailScreen({ navigation, route }: Props) {
    * 그 단계의 due 단어만 연다(카드 수 = CTA 의 `dueCount`). 곡 덱 due 큐를 열면 다른 단계 단어가 섞인다.
    * 담기와 카드 조회는 복습 화면이 `POST /api/songs/{id}/word-tiers/{key}/study` 로 한다.
    */
-  const handleStartTier = useCallback((tier: SongWordTierDto) => {
+  const handleStartTier = useCallback((tier: SongWordTierDto, trigger: StudyEntryTrigger = 'tier') => {
     if (songId == null || isStartingLearning) return;
     navigation.navigate('SongReview', {
       origin: 'SongDetail',
+      trigger,
       source: {
         deckId: songDeckDetail?.deckId ?? null,
         songId,
@@ -336,19 +343,19 @@ export default function SongDetailScreen({ navigation, route }: Props) {
   const handleStartLearning = useCallback(async () => {
     if (songId == null || isStartingLearning) return;
     if (songDeckDetail != null && songDeckDetail.dueCount > 0) {
-      if (!openSongReview(songDeckDetail)) {
+      if (!openSongReview(songDeckDetail, 'cta')) {
         setLearningError('학습할 단어를 준비하지 못했어요. 잠시 후 다시 시도해 주세요.');
       }
       return;
     }
     if (currentTier != null) {
-      handleStartTier(currentTier);
+      handleStartTier(currentTier, 'cta');
       return;
     }
     setIsStartingLearning(true);
     try {
       const deck = await ensureSongDeck();
-      if (deck == null || !openSongReview(deck)) {
+      if (deck == null || !openSongReview(deck, 'cta')) {
         setLearningError('학습할 단어를 준비하지 못했어요. 잠시 후 다시 시도해 주세요.');
       }
     } catch (e: any) {
@@ -367,6 +374,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     if (word.savedWordId == null) {
       navigation.navigate('SongReview', {
         origin: 'SongDetail',
+        trigger: 'word',
         source: {
           deckId: songDeckDetail?.deckId ?? null,
           songId,
@@ -388,7 +396,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     setIsStartingLearning(true);
     try {
       const deck = await resolveSongDeck();
-      if (deck == null || !openSongReview(deck, word.savedWordId)) {
+      if (deck == null || !openSongReview(deck, 'word', word.savedWordId)) {
         setLearningError('학습할 단어를 준비하지 못했어요. 잠시 후 다시 시도해 주세요.');
       }
     } catch (e: any) {

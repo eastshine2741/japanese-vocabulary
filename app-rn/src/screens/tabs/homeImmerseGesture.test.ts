@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { immerseProgress, shouldStartImmersePan } from './homeImmerseGesture';
+import {
+  immerseProgress,
+  pullRefreshDistance,
+  pullRefreshThreshold,
+  shouldStartImmersePan,
+  shouldStartPullRefresh,
+} from './homeImmerseGesture';
 
 describe('shouldStartImmersePan', () => {
   it('starts only in the direction that changes the current state', () => {
@@ -30,5 +36,34 @@ describe('immerseProgress', () => {
     expect(immerseProgress(false, 40)).toBe(0);
     expect(immerseProgress(true, 300)).toBe(0);
     expect(immerseProgress(true, -40)).toBe(1);
+  });
+});
+
+describe('shouldStartPullRefresh', () => {
+  it('starts only on a downward drag outside immersion', () => {
+    expect(shouldStartPullRefresh(false, { dx: 2, dy: 18 })).toBe(true);
+    expect(shouldStartPullRefresh(false, { dx: 2, dy: -18 })).toBe(false);
+    expect(shouldStartPullRefresh(true, { dx: 2, dy: 18 })).toBe(false);
+  });
+
+  it('ignores horizontal and sub-slop movement', () => {
+    expect(shouldStartPullRefresh(false, { dx: 40, dy: 16 })).toBe(false);
+    expect(shouldStartPullRefresh(false, { dx: 0, dy: 8 })).toBe(false);
+  });
+});
+
+describe('pullRefreshDistance', () => {
+  it('resists the finger and never goes negative', () => {
+    expect(pullRefreshDistance(-40, 0)).toBe(0);
+    expect(pullRefreshDistance(100, 0)).toBeLessThan(100);
+    expect(pullRefreshDistance(1000, 0)).toBeLessThan(pullRefreshThreshold(0) * 1.5);
+  });
+
+  it('needs a longer pull under a taller status bar', () => {
+    for (const inset of [0, 24, 59]) {
+      const threshold = pullRefreshThreshold(inset);
+      expect(pullRefreshDistance(threshold, inset)).toBeLessThan(threshold);
+      expect(pullRefreshDistance(threshold * 1.7, inset)).toBeGreaterThanOrEqual(threshold);
+    }
   });
 });

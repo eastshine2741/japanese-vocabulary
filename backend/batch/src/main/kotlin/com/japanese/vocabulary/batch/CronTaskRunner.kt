@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component
 
 /**
  * `--task=<name>` 하나를 실행하고 끝난다. 예외를 그대로 던지므로 프로세스는 exit code 1 로 나가고
- * k8s Job 이 실패로 남는다. 성공하면 남은 스레드가 없어 컨텍스트가 닫히며 자연히 종료된다.
+ * k8s Job 이 실패로 남는다. 성공하면 `main` 이 컨텍스트를 닫고 exit code 0 으로 끝낸다.
  *
  * `@SpringBootTest` 도 ApplicationRunner 를 실행하므로, 테스트에서는
  * `batch.task-runner.enabled=false` 로 꺼 둔다.

@@ -34,6 +34,9 @@ class UserEntity(
     @Column(nullable = true, length = 100)
     var name: String? = null,
 
+    @Column(name = "profile_image_key", nullable = true, length = 255)
+    var profileImageKey: String? = null,
+
     @CreatedDate
     @Column(name = "created_at", updatable = false)
     var createdAt: Instant? = null,

@@ -11,6 +11,8 @@ export type EditorLine = {
   startMs: number
   /** 이 줄에서 릴스에 띄울 단어. `ReelsLyricLine.tokens` 의 index 다. */
   tokenIndexes: number[]
+  /** 토큰 index → 어드민이 고쳐 쓴 뜻. 키가 없으면 분석 결과의 뜻을 쓰고, 빈 문자열이면 그 칸을 비운다. */
+  meanings: Record<number, string>
 }
 
 export type EditorState = {
@@ -21,15 +23,18 @@ export type EditorState = {
   lines: EditorLine[]
 }
 
-/** 릴스에 찍히는 곡 표기. DB 의 일본어 제목·아티스트 대신 어드민이 고쳐 쓴다. */
-export type SongCredit = {
+/** 릴스에 찍히는 글. DB 값 대신 어드민이 고쳐 쓴다. */
+export type ReelCaption = {
   title: string
   artist: string
+  /** 상단 띠 헤드라인. 줄바꿈이 줄을 나누고 `<b>…</b>` 구간에 초록 배경이 깔린다. */
+  headline: string
 }
 
-export const defaultSongCredit = (detail: ReelsSongDetail): SongCredit => ({
+export const defaultCaption = (detail: ReelsSongDetail): ReelCaption => ({
   title: detail.song.title,
   artist: detail.song.artist,
+  headline: detail.headline,
 })
 
 /** MV 폭 ÷ 릴스 폭. 21:9 MV 를 cover 로 채우는 배율(약 4.2)까지 닿는다. */
@@ -78,6 +83,24 @@ export function coverMvFrame(aspect: number, crop: MvCrop = NO_CROP): MvFrame {
 /** 폭을 릴스 폭에 맞추고 가운데 둔다. */
 export const FIT_WIDTH_MV_FRAME: MvFrame = { scale: 1, x: 0, y: 0, crop: NO_CROP }
 
+/** 가사 원문 글자 배율. 1 이 기본이고, 긴 줄을 맞추는 자동 축소 위에 곱해진다. */
+/** 헤드라인 글자 크기(px). 기본값은 PromoReel 의 DEFAULT_HEADLINE_FONT_SIZE, 범위는 서버 HEADLINE_FONT_SIZE_RANGE 와 같다. */
+export const DEFAULT_HEADLINE_FONT_SIZE = 58
+export const HEADLINE_FONT_SIZE_MIN = 48
+export const HEADLINE_FONT_SIZE_MAX = 110
+
+export function clampHeadlineFontSize(size: number): number {
+  return Math.round(Math.min(HEADLINE_FONT_SIZE_MAX, Math.max(HEADLINE_FONT_SIZE_MIN, size)))
+}
+
+export const DEFAULT_LYRIC_SCALE = 1
+export const LYRIC_SCALE_MIN = 0.6
+export const LYRIC_SCALE_MAX = 1.4
+
+export function clampLyricScale(scale: number): number {
+  return Math.round(Math.min(LYRIC_SCALE_MAX, Math.max(LYRIC_SCALE_MIN, scale)) * 100) / 100
+}
+
 /** 연속한 줄 시작 사이 최소 간격. 드래그로 줄이 겹치는 걸 막는다. */
 export const MIN_GAP_MS = 200
 /** 타임스탬프 없는 줄을 넣을 때 앞 줄에서 띄우는 기본 간격. */
@@ -89,7 +112,7 @@ export const MAX_TAIL_MS = 8000
 /** PromoReel END_CARD_DURATION_IN_FRAMES(210) / 30fps. */
 export const END_CARD_MS = 7000
 
-/** 릴스 단어로 고를 수 없는 품사. PromoReel 의 NON_WORD_POS 와 같다. */
+/** 릴스에서 뜻을 비우는 품사 — 외울 단어가 아니다. PromoReel 의 NON_WORD_POS 와 같다. */
 const NON_WORD_POS = new Set(["PARTICLE", "AUXILIARY_VERB", "SYMBOL", "SUPPLEMENTARY_SYMBOL", "WHITESPACE"])
 
 export const emptyEditor = (): EditorState => ({ sourceStartMs: 0, endMs: 0, lines: [] })
@@ -98,15 +121,26 @@ export function lineByIndex(detail: ReelsSongDetail, index: number): ReelsLyricL
   return detail.lines.find((line) => line.index === index)
 }
 
-export function tokenSelectable(token: LyricToken): boolean {
-  return !NON_WORD_POS.has(token.partOfSpeech) && (token.koreanText ?? "").trim() !== ""
+/** 릴스에 뜻 칸을 갖는 토큰. 조사·조동사·기호는 뜻 없이 원문만 나간다. */
+export function tokenTakesMeaning(token: LyricToken): boolean {
+  return !NON_WORD_POS.has(token.partOfSpeech)
 }
 
-export function tokenToVocabulary(token: LyricToken): VocabularyWord {
+export function tokenSelectable(token: LyricToken, meaning: string = token.koreanText ?? ""): boolean {
+  return tokenTakesMeaning(token) && meaning.trim() !== ""
+}
+
+/** 릴스에 찍히는 뜻. 어드민이 고쳐 썼으면 그 값, 아니면 분석 결과의 뜻이다. 조사·조동사·기호는 늘 빈 칸이다. */
+export function tokenMeaning(token: LyricToken | undefined, line: EditorLine | undefined, tokenIndex: number): string {
+  if (token && !tokenTakesMeaning(token)) return ""
+  return (line?.meanings[tokenIndex] ?? token?.koreanText ?? "").trim()
+}
+
+export function tokenToVocabulary(token: LyricToken, meaning: string = token.koreanText ?? ""): VocabularyWord {
   return {
     japanese: token.baseForm || token.surface,
     reading: token.baseFormReading ?? token.reading ?? "",
-    korean: token.koreanText ?? "",
+    korean: meaning,
     partOfSpeech: token.partOfSpeech,
     jlpt: token.jlpt ?? null,
   }
@@ -146,7 +180,12 @@ export function toggleLine(state: EditorState, detail: ReelsSongDetail, index: n
   if (prev) startMs = Math.max(startMs, prev.startMs + MIN_GAP_MS)
   if (next) startMs = Math.min(startMs, Math.max(prev ? prev.startMs + MIN_GAP_MS : 0, next.startMs - MIN_GAP_MS))
 
-  const inserted: EditorLine = { index, startMs, tokenIndexes: defaultTokenIndexes(line, detail.maxVocabularyPerLine) }
+  const inserted: EditorLine = {
+    index,
+    startMs,
+    tokenIndexes: defaultTokenIndexes(line, detail.maxVocabularyPerLine),
+    meanings: {},
+  }
   const lines = normalizeMonotonic([...state.lines.slice(0, at), inserted, ...state.lines.slice(at)])
   const reset = state.lines.length === 0
   const fitted = fitRange({ ...state, lines }, detail, reset)
@@ -221,10 +260,27 @@ export function toggleToken(state: EditorState, index: number, tokenIndex: numbe
   }
 }
 
-export function validate(state: EditorState, detail: ReelsSongDetail, credit: SongCredit = defaultSongCredit(detail)): string[] {
+/** 토큰 한 칸의 뜻을 고쳐 쓴다. `meaning` 이 null 이면 분석 결과의 뜻으로 되돌린다. */
+export function setTokenMeaning(state: EditorState, index: number, tokenIndex: number, meaning: string | null): EditorState {
+  return {
+    ...state,
+    lines: state.lines.map((line) => {
+      if (line.index !== index) return line
+      if (meaning == null) {
+        if (!(tokenIndex in line.meanings)) return line
+        const { [tokenIndex]: _removed, ...rest } = line.meanings
+        return { ...line, meanings: rest }
+      }
+      return { ...line, meanings: { ...line.meanings, [tokenIndex]: meaning } }
+    }),
+  }
+}
+
+export function validate(state: EditorState, detail: ReelsSongDetail, caption: ReelCaption = defaultCaption(detail)): string[] {
   const errors: string[] = []
-  if (credit.title.trim() === "") errors.push("곡 제목을 입력해야 합니다")
-  if (credit.artist.trim() === "") errors.push("아티스트를 입력해야 합니다")
+  if (caption.title.trim() === "") errors.push("곡 제목을 입력해야 합니다")
+  if (caption.artist.trim() === "") errors.push("아티스트를 입력해야 합니다")
+  if (caption.headline.trim() === "") errors.push("헤드라인을 입력해야 합니다")
   if (state.lines.length < detail.minLineCount) {
     errors.push(`줄을 ${detail.minLineCount}개 이상 골라야 합니다 (${state.lines.length}/${detail.minLineCount})`)
   }
@@ -239,6 +295,16 @@ export function validate(state: EditorState, detail: ReelsSongDetail, credit: So
     }
   }
   if (state.endMs <= last.startMs) errors.push("클립 끝이 마지막 줄보다 앞에 있습니다")
+  // 뜻 없는 단어는 서버가 렌더를 거절한다 — 뜻을 지운 토큰을 단어로 골라 둔 경우를 여기서 잡는다.
+  for (const selected of state.lines) {
+    const line = lineByIndex(detail, selected.index)
+    if (!line) continue
+    const blank = selected.tokenIndexes.find((tokenIndex) => tokenMeaning(line.tokens[tokenIndex], selected, tokenIndex) === "")
+    if (blank != null) {
+      errors.push(`#${selected.index + 1} 줄에 뜻 없는 단어가 있습니다`)
+      break
+    }
+  }
   const span = state.endMs - state.sourceStartMs
   if (span > detail.maxLyricsSpanMs) {
     errors.push(`가사 구간이 ${detail.maxLyricsSpanMs / 1000}초를 넘습니다 (${(span / 1000).toFixed(1)}초)`)
@@ -254,8 +320,10 @@ export function buildPromoData(
   detail: ReelsSongDetail,
   state: EditorState,
   mvAsset: string,
-  credit: SongCredit = defaultSongCredit(detail),
+  caption: ReelCaption = defaultCaption(detail),
   mvFrame: MvFrame | null = null,
+  lyricScale: number = DEFAULT_LYRIC_SCALE,
+  headlineFontSize: number = DEFAULT_HEADLINE_FONT_SIZE,
 ): PromoReelData {
   const fps = detail.fps
   const relative = (ms: number) => msToFrame(ms - state.sourceStartMs, fps)
@@ -268,10 +336,14 @@ export function buildPromoData(
         lineNumber: line.index + 1,
         originalText: line.originalText,
         koreanLyrics: line.koreanLyrics ?? "",
-        tokens: line.tokens.map((token) => ({ ...token, partOfSpeech: token.partOfSpeech as PartOfSpeech })),
+        tokens: line.tokens.map((token, tokenIndex) => ({
+          ...token,
+          partOfSpeech: token.partOfSpeech as PartOfSpeech,
+          koreanText: tokenTakesMeaning(token) ? (selected.meanings[tokenIndex] ?? token.koreanText ?? null) : null,
+        })),
         vocabulary: selected.tokenIndexes.flatMap((tokenIndex) => {
           const token = line.tokens[tokenIndex]
-          return token ? [tokenToVocabulary(token)] : []
+          return token ? [tokenToVocabulary(token, tokenMeaning(token, selected, tokenIndex))] : []
         }),
       },
     ]
@@ -279,16 +351,18 @@ export function buildPromoData(
   const wordCount = new Set(lyricLines.flatMap((line) => line.vocabulary.map((word) => word.japanese))).size
   return {
     song: {
-      title: credit.title.trim(),
-      artist: credit.artist.trim(),
+      title: caption.title.trim(),
+      artist: caption.artist.trim(),
       artworkAsset: detail.song.artworkUrl ?? "",
       mvAsset,
     },
-    headline: detail.headline,
+    headline: caption.headline.trim(),
+    headlineFontSize: clampHeadlineFontSize(headlineFontSize),
     instagramHandle: detail.instagramHandle,
     catchphrase: detail.catchphrase,
     sourceStartFrame: msToFrame(state.sourceStartMs, fps),
     mvFrame,
+    lyricScale: clampLyricScale(lyricScale),
     lyricsEndFrame: relative(state.endMs),
     totalLineCount: detail.lines.length,
     wordCount,

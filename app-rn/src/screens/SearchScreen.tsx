@@ -1,38 +1,22 @@
-import React, { useState, useCallback } from 'react';
-import {
-  View,
-  TextInput,
-  ScrollView,
-  TouchableOpacity,
-  StyleSheet,
-  Keyboard,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import React, { useCallback } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import SearchDiscoverySections from '../components/searchDiscovery/SearchDiscoverySections';
-import { Colors } from '../theme/theme';
+import { Colors, Dimens } from '../theme/theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export default function SearchScreen() {
   const navigation = useNavigation<Nav>();
-  const [query, setQuery] = useState('');
   const insets = useSafeAreaInsets();
 
-  // Each search opens its own results screen; back steps through past searches.
-  const runSearch = useCallback(
-    (raw: string) => {
-      const trimmed = raw.trim();
-      if (!trimmed) return;
-      Keyboard.dismiss();
-      navigation.navigate('SongSearch', { query: trimmed });
-    },
-    [navigation],
-  );
+  const openSearchInput = useCallback(() => {
+    navigation.navigate('SearchInput');
+  }, [navigation]);
 
   const openSong = useCallback(
     (songId: number) => {
@@ -41,50 +25,44 @@ export default function SearchScreen() {
     [navigation],
   );
 
+  const openKaraokeNewSongs = useCallback(() => {
+    navigation.navigate('KaraokeNewSongs');
+  }, [navigation]);
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.searchRow}>
-        <View style={styles.inputWrapper}>
-          <Svg
-            width={18}
-            height={18}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke={Colors.textMuted}
-            strokeWidth={2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <Circle cx={11} cy={11} r={8} />
-            <Path d="m21 21-4.3-4.3" />
-          </Svg>
-          <TextInput
-            style={styles.input}
-            placeholder="노래, 아티스트 검색"
-            placeholderTextColor={Colors.textMuted}
-            value={query}
-            onChangeText={setQuery}
-            onSubmitEditing={() => runSearch(query)}
-            returnKeyType="search"
-          />
-          {query.length > 0 && (
-            <TouchableOpacity
-              style={styles.clearButton}
-              onPress={() => setQuery('')}
-              hitSlop={8}
-            >
-              <Ionicons name="close-circle" size={18} color={Colors.textMuted} />
-            </TouchableOpacity>
-          )}
-        </View>
+        <TouchableOpacity style={styles.searchField} onPress={openSearchInput} activeOpacity={0.72}>
+          <SearchIcon />
+          <Text style={styles.placeholder}>노래, 아티스트 검색</Text>
+        </TouchableOpacity>
       </View>
 
-      <ScrollView
-        keyboardShouldPersistTaps="handled"
-      >
-        <SearchDiscoverySections onSelectTerm={runSearch} onSelectSong={openSong} />
+      <ScrollView keyboardShouldPersistTaps="handled">
+        <SearchDiscoverySections
+          onSelectSong={openSong}
+          onPressKaraokeNewSongs={openKaraokeNewSongs}
+        />
       </ScrollView>
     </View>
+  );
+}
+
+function SearchIcon() {
+  return (
+    <Svg
+      width={18}
+      height={18}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={Colors.textMuted}
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <Circle cx={11} cy={11} r={8} />
+      <Path d="m21 21-4.3-4.3" />
+    </Svg>
   );
 }
 
@@ -97,10 +75,10 @@ const styles = StyleSheet.create({
     height: 56,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: Dimens.screenPadding,
     gap: 12,
   },
-  inputWrapper: {
+  searchField: {
     flex: 1,
     height: 44,
     flexDirection: 'row',
@@ -110,13 +88,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     gap: 10,
   },
-  input: {
+  placeholder: {
     flex: 1,
     fontSize: 15,
-    color: Colors.textPrimary,
-    paddingVertical: 0,
-  },
-  clearButton: {
-    marginLeft: 0,
+    color: Colors.textMuted,
   },
 });

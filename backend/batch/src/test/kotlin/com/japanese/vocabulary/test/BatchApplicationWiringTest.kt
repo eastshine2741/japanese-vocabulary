@@ -20,9 +20,7 @@ class BatchApplicationWiringTest {
 
         assertThat(imports).contains(
             "com.japanese.autoconfigure.song.SongAutoConfiguration",
-            "com.japanese.autoconfigure.recommendation.RecommendationAutoConfiguration",
             "com.japanese.autoconfigure.notification.NotificationAutoConfiguration",
-            "com.japanese.autoconfigure.applemusicrss.AppleMusicRssAutoConfiguration",
         )
     }
 

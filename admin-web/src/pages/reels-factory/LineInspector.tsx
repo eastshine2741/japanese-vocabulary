@@ -1,17 +1,24 @@
 import * as React from "react"
-import { AlertTriangle, Crosshair, LocateFixed } from "lucide-react"
+import { AlertTriangle, Crosshair, LocateFixed, RotateCcw } from "lucide-react"
 import type { ReelsSongDetail } from "@/api/types"
 import type { MvCrop, MvFrame } from "@reels/types"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import {
+  clampHeadlineFontSize,
+  clampLyricScale,
   clampMvFrame,
   coverMvFrame,
+  DEFAULT_LYRIC_SCALE,
   END_CARD_MS,
   FIT_WIDTH_MV_FRAME,
   formatMs,
   hasCrop,
+  HEADLINE_FONT_SIZE_MAX,
+  HEADLINE_FONT_SIZE_MIN,
   lineByIndex,
+  LYRIC_SCALE_MAX,
+  LYRIC_SCALE_MIN,
   MV_CROP_MAX,
   MV_OFFSET_X_MAX,
   MV_OFFSET_Y_MAX,
@@ -19,49 +26,64 @@ import {
   MV_SCALE_MIN,
   NO_CROP,
   parseTimecode,
+  tokenMeaning,
   tokenSelectable,
+  tokenTakesMeaning,
   type EditorState,
-  type SongCredit,
+  type ReelCaption,
 } from "./reelEditor"
 
 type Props = {
   detail: ReelsSongDetail
   editor: EditorState
-  credit: SongCredit
+  caption: ReelCaption
   /** null 이면 캔버스를 꽉 채운다(cover). */
   mvFrame: MvFrame | null
   /** 올린 MV 의 가로/세로 비율. 메타데이터를 읽기 전엔 null. */
   mvAspect: number | null
+  /** 상단 헤드라인 글자 크기(px). 릴스 전체에 고정이다. */
+  headlineFontSize: number
+  /** 가사 원문 글자 배율. 릴스 전체에 고정이다. */
+  lyricScale: number
   selectedIndex: number | null
   playheadMs: number
   errors: string[]
-  onChangeCredit(credit: SongCredit): void
+  onChangeCaption(caption: ReelCaption): void
   onChangeMvFrame(frame: MvFrame | null): void
+  onChangeHeadlineFontSize(size: number): void
+  onChangeLyricScale(scale: number): void
   onSetSourceStart(ms: number): void
   onSetEnd(ms: number): void
   onSetLineStart(index: number, ms: number): void
   onToggleLine(index: number): void
   onToggleToken(index: number, tokenIndex: number): void
+  /** `meaning` 이 null 이면 분석 결과의 뜻으로 되돌린다. */
+  onSetTokenMeaning(index: number, tokenIndex: number, meaning: string | null): void
   onSeekReel(ms: number): void
 }
 
-/** 오른쪽 패널. 위부터 곡 표기, MV 배치, 클립 시작·끝, 고른 줄의 타이밍과 단어. */
+/** 오른쪽 패널. 위부터 곡 표기·헤드라인, MV 배치, 가사 크기, 클립 시작·끝, 고른 줄의 타이밍·단어·뜻. */
 export function LineInspector({
   detail,
   editor,
-  credit,
+  caption,
   mvFrame,
   mvAspect,
+  headlineFontSize,
+  lyricScale,
   selectedIndex,
   playheadMs,
   errors,
-  onChangeCredit,
+  onChangeCaption,
   onChangeMvFrame,
+  onChangeHeadlineFontSize,
+  onChangeLyricScale,
   onSetSourceStart,
   onSetEnd,
   onSetLineStart,
   onToggleLine,
   onToggleToken,
+  onSetTokenMeaning,
   onSeekReel,
 }: Props) {
   const line = selectedIndex == null ? undefined : lineByIndex(detail, selectedIndex)
@@ -93,9 +115,23 @@ export function LineInspector({
         </div>
         <div className="grid grid-cols-[48px_1fr] items-center gap-x-2 gap-y-1.5">
           <span className="font-mono text-xs text-[#637083]">TITLE</span>
-          <TextInput ariaLabel="Song title" value={credit.title} onChange={(title) => onChangeCredit({ ...credit, title })} />
+          <TextInput ariaLabel="Song title" value={caption.title} onChange={(title) => onChangeCaption({ ...caption, title })} />
           <span className="font-mono text-xs text-[#637083]">ARTIST</span>
-          <TextInput ariaLabel="Song artist" value={credit.artist} onChange={(artist) => onChangeCredit({ ...credit, artist })} />
+          <TextInput ariaLabel="Song artist" value={caption.artist} onChange={(artist) => onChangeCaption({ ...caption, artist })} />
+          <span className="mt-1 self-start font-mono text-xs text-[#637083]">HEAD</span>
+          <HeadlineInput value={caption.headline} onChange={(headline) => onChangeCaption({ ...caption, headline })} />
+        </div>
+        <div className="mt-1.5 grid grid-cols-[48px_1fr_48px] items-center gap-x-2">
+          <FrameSlider
+            ariaLabel="Headline size"
+            format={(value) => `${value}px`}
+            label="SIZE"
+            max={HEADLINE_FONT_SIZE_MAX}
+            min={HEADLINE_FONT_SIZE_MIN}
+            step={1}
+            value={headlineFontSize}
+            onChange={(size) => onChangeHeadlineFontSize(clampHeadlineFontSize(size))}
+          />
         </div>
       </section>
 
@@ -162,6 +198,33 @@ export function LineInspector({
               onChange={(value) => changeCrop({ [side]: value })}
             />
           ))}
+        </div>
+      </section>
+
+      <section className="border-b border-[#e2e8f0] p-3">
+        <div className="mb-2 flex items-center justify-between">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-[#637083]">Lyric</span>
+          <Button
+            className="h-7 px-2 text-xs"
+            disabled={lyricScale === DEFAULT_LYRIC_SCALE}
+            onClick={() => onChangeLyricScale(DEFAULT_LYRIC_SCALE)}
+            type="button"
+            variant="ghost"
+          >
+            기본 크기
+          </Button>
+        </div>
+        <div className="grid grid-cols-[48px_1fr_48px] items-center gap-x-2">
+          <FrameSlider
+            ariaLabel="Lyric size"
+            format={(value) => `${Math.round(value * 100)}%`}
+            label="SIZE"
+            max={LYRIC_SCALE_MAX}
+            min={LYRIC_SCALE_MIN}
+            step={0.01}
+            value={lyricScale}
+            onChange={(scale) => onChangeLyricScale(clampLyricScale(scale))}
+          />
         </div>
       </section>
 
@@ -248,7 +311,8 @@ export function LineInspector({
           </div>
           <div className="flex flex-wrap gap-1.5">
             {line.tokens.map((token, tokenIndex) => {
-              const selectable = tokenSelectable(token)
+              const meaning = tokenMeaning(token, included, tokenIndex)
+              const selectable = tokenSelectable(token, meaning)
               const picked = included?.tokenIndexes.includes(tokenIndex) ?? false
               const full = (included?.tokenIndexes.length ?? 0) >= detail.maxVocabularyPerLine
               return (
@@ -272,7 +336,7 @@ export function LineInspector({
                   {selectable ? (
                     <span className={cn("block text-[10px]", picked ? "text-white/80" : "text-[#637083]")}>
                       {token.baseForm && token.baseForm !== token.surface ? `${token.baseForm} · ` : ""}
-                      {token.koreanText}
+                      {meaning}
                       {token.jlpt ? ` · ${token.jlpt}` : ""}
                     </span>
                   ) : null}
@@ -280,6 +344,50 @@ export function LineInspector({
               )
             })}
           </div>
+
+          {included ? (
+            <>
+              <div className="mt-3 mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-[#637083]">Meanings</div>
+              <div className="space-y-1">
+                {line.tokens.map((token, tokenIndex) => {
+                  if (token.surface.trim() === "" || !tokenTakesMeaning(token)) return null
+                  const custom = included.meanings[tokenIndex]
+                  return (
+                    <div className="grid grid-cols-[72px_1fr_28px] items-center gap-x-2" key={tokenIndex}>
+                      <span className="truncate text-sm font-semibold text-[#18212f]" title={token.surface}>
+                        {token.surface}
+                      </span>
+                      <input
+                        aria-label={`Meaning for ${token.surface}`}
+                        className={cn(
+                          "focus-ring h-7 w-full rounded-md border bg-white px-2 text-xs text-[#18212f]",
+                          custom == null ? "border-[#cbd5e1]" : "border-[#0f766e]",
+                        )}
+                        onChange={(event) => onSetTokenMeaning(line.index, tokenIndex, event.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") event.currentTarget.blur()
+                        }}
+                        placeholder={token.koreanText ?? ""}
+                        value={custom ?? token.koreanText ?? ""}
+                      />
+                      <Button
+                        aria-label={`Reset meaning for ${token.surface}`}
+                        className="h-7 w-7"
+                        disabled={custom == null}
+                        onClick={() => onSetTokenMeaning(line.index, tokenIndex, null)}
+                        size="icon"
+                        title="분석 결과의 뜻으로"
+                        type="button"
+                        variant="ghost"
+                      >
+                        <RotateCcw className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  )
+                })}
+              </div>
+            </>
+          ) : null}
         </section>
       ) : (
         <div className="p-3 text-xs text-[#637083]">왼쪽 목록에서 줄을 누르면 타이밍과 단어를 고칠 수 있습니다.</div>
@@ -314,6 +422,7 @@ const CROP_SIDES: [keyof MvCrop, string][] = [
 /** 슬라이더 한 줄. 라벨 · range · 값 순의 3칸을 부모 grid 에 그대로 깐다. */
 function FrameSlider({
   label,
+  ariaLabel = `MV ${label.toLowerCase()}`,
   min,
   max,
   step,
@@ -323,6 +432,7 @@ function FrameSlider({
   onChange,
 }: {
   label: string
+  ariaLabel?: string
   min: number
   max: number
   step: number
@@ -335,7 +445,7 @@ function FrameSlider({
     <>
       <span className="font-mono text-xs text-[#637083]">{label}</span>
       <input
-        aria-label={`MV ${label.toLowerCase()}`}
+        aria-label={ariaLabel}
         className="h-2 w-full cursor-pointer accent-[#0f766e] disabled:cursor-not-allowed"
         disabled={disabled}
         max={max}
@@ -347,6 +457,20 @@ function FrameSlider({
       />
       <span className="text-right font-mono text-xs tabular-nums text-[#18212f]">{format(value)}</span>
     </>
+  )
+}
+
+/** 상단 띠 헤드라인. 줄바꿈이 줄을 나누고 `<b>…</b>` 구간에 초록 배경이 깔린다 — 규칙은 placeholder 로만 보여 준다. */
+function HeadlineInput({ value, onChange }: { value: string; onChange(value: string): void }) {
+  return (
+    <textarea
+      aria-label="Headline"
+      className="focus-ring min-h-[56px] w-full resize-y rounded-md border border-[#cbd5e1] bg-white px-2 py-1.5 text-sm leading-snug text-[#18212f]"
+      onChange={(event) => onChange(event.target.value)}
+      placeholder={"가사 한 줄에\n<b>일본어 단어 6개</b>"}
+      rows={2}
+      value={value}
+    />
   )
 }
 

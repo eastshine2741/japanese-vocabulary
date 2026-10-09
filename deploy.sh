@@ -369,6 +369,8 @@ envsubst < "$K8S_DIR/api/ingress.yaml" | kubectl apply -n "$NS" -f -
 # batch 는 더 이상 상주하지 않는다. 남아 있는 예전 Deployment 를 걷어낸다.
 kubectl delete deployment batch -n "$NS" --ignore-not-found
 kubectl delete service batch -n "$NS" --ignore-not-found
+# apply 는 매니페스트에서 빠진 CronJob 을 지우지 않는다.
+kubectl delete cronjob apple-music-recommendation -n "$NS" --ignore-not-found
 envsubst < "$K8S_DIR/batch/secret.template.yaml" | kubectl apply -n "$NS" -f -
 envsubst < "$K8S_DIR/batch/configmap.yaml" | kubectl apply -n "$NS" -f -
 envsubst < "$K8S_DIR/batch/cronjobs.yaml" | kubectl apply -n "$NS" -f -
@@ -416,6 +418,6 @@ else
   echo "  rabbitmq ui: kubectl port-forward -n $NS svc/rabbitmq 15672:15672"
   echo "  admin web via ingress: http://localhost/$NS/admin"
   echo ""
-  echo "  dev 의 CronJob 은 suspend 상태다. 수동 실행:"
+  echo "  CronJob 수동 실행:"
   echo "    kubectl create job --from=cronjob/freeze-consume fc-\$(date +%s) -n $NS"
 fi

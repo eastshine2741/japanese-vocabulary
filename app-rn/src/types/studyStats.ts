@@ -44,3 +44,10 @@ export interface HeatmapDay {
 export interface HeatmapResponse {
   days: HeatmapDay[];
 }
+
+/** 연속 학습 달력 한 페이지. days 는 첫 달 1일부터 빈 날 없이, 첫 페이지는 오늘로 끝난다. */
+export interface StudyCalendarPage {
+  days: HeatmapDay[];
+  /** 'yyyy-MM'. null 이면 더 이전 기록이 없다. */
+  nextBefore: string | null;
+}

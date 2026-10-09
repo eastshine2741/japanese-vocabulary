@@ -1,112 +1,30 @@
 # Recommended Songs
 
-Recommended songs v1 exposes recent popular songs on the user home screen after review and personal recent songs.
+홈 추천곡은 운영자가 admin 에서 이미 DB 에 있는 곡을 검색해 하나의 전역 목록에 직접 넣고 순서를 정한다.
+주차·발행 상태·후보·가사/분석 검사·개수 제한은 없다.
 
-Scope is intentionally narrow:
+## Table
 
-- Apple Music Japan RSS `most-played` songs only
-- no personalization
-- no metrics
-- no blacklist
-- admin trigger UI/API only for approved-candidate processing and missing-song analysis requests
-- no UI visual-design decisions beyond a basic carousel section
+`recommended_song` (V38): `song_id` (FK `songs`, UNIQUE), `order_index`, `created_at`, `updated_at`.
+목록 순서는 `order_index ASC, id ASC`.
 
-## Data source
+## Admin API
 
-`batch` calls Apple Music RSS through `integrations:apple-music-rss` from the Spring Batch job
-`appleMusicRecommendationCollectJob`:
+- `GET /admin/api/recommendations` — `[{id, songId, title, artist, artworkUrl, orderIndex, createdAt}]`
+- `POST /admin/api/recommendations` `{songId}` — 목록 끝에 추가, `201`. 없는 곡 `404`, 이미 추천된 곡 `409 SONG_ALREADY_RECOMMENDED`
+- `DELETE /admin/api/recommendations/{id}` — `204`, 없으면 `404`
+- `PUT /admin/api/recommendations/order` `{ids}` — 현재 목록 전체를 정확히 한 번씩 담아야 한다(아니면 `400`). `order_index` 를 0..n-1 로 다시 쓰고 전체 목록을 돌려준다.
 
-```text
-https://rss.marketingtools.apple.com/api/v2/jp/music/most-played/100/songs.json
-```
+곡 검색은 기존 `GET /admin/api/songs?q=` 를 쓴다.
 
-The job derives `week_start_date` from the run timestamp as the Monday start date in Japan timezone unless
-`weekStartDate` is supplied as a job parameter.
+## User API
 
-Manual one-off execution:
+`GET /api/songs/recommendations` → `[{id, songId, title, artist, artworkUrl}]`, 위 순서 그대로.
+최근 들은 곡을 기록하지 않는다. 탭하면 앱이 `GET /api/songs/{id}` 로 열면서 기록된다.
 
-```bash
-cd backend
-./gradlew :batch:bootRun --args='--spring.batch.job.enabled=true --spring.batch.job.name=appleMusicRecommendationCollectJob weekStartDate=2026-06-22'
-```
+## Rollout
 
-`spring.batch.job.enabled` stays `false` by default so the long-running batch application does not run all
-Spring Batch jobs on normal startup. `:batch:bootRun` is still a long-running batch application process, so
-for one-off testing, confirm the job completion log and stop the process manually.
-
-## Tables
-
-`song_recommendation_candidate` stores collected candidates before expensive analysis. It keeps only Apple source metadata and operator status; analysis work and final song/lyric results live in `song_analysis_work` and `song_recommendation`.
-
-Important statuses:
-
-- `PENDING`: collected, not reviewed
-- `APPROVED`: operator decided it is eligible for analysis
-- `REJECTED`: operator rejected it
-
-`song_recommendation` stores home-exposable recommendation entries after analysis has completed.
-
-Important statuses:
-
-- `PENDING`: analyzed and ready for final operator ordering/publish decision
-- `PUBLISHED`: eligible for home API exposure, subject to read-time safety gates
-
-## Flow
-
-1. Weekly `appleMusicRecommendationCollectJob` upserts up to 100 Apple RSS rows into `song_recommendation_candidate`.
-   `AppleMusicRssClient` upsizes the feed's `artworkUrl100` to `600x600` before it becomes the candidate's `artworkUrl`, because that URL ends up as `songs.artwork_url` and the home recommendation card renders it at roughly half the screen width. `ItunesClient` does the same for the search path.
-   The feed carries no track length, so the collector fills `duration_seconds` from `ItunesClient.lookupTrackDurations()` (iTunes `/lookup` by the feed's track id). The MV search needs it to reject Shorts and live clips; a failed lookup leaves the candidate's existing value untouched.
-2. Existing candidates keep operator status; source rank/metadata can be refreshed.
-3. Operator reviews candidates in admin-web and updates status through `PATCH /admin/api/recommendations/candidates/{id}/status`.
-4. Operator clicks `Process approved` in admin-web, which calls `POST /admin/api/recommendations/prepare-approved`.
-5. Admin API finds `APPROVED` candidates without a recommendation **within one week** and exact-matches `songs.artist + songs.title`. The week comes from the `weekStartDate` query parameter, and falls back to the latest candidate week when the parameter is absent. Admin-web sends the week it is currently listing, so the operation can never touch approved candidates of a week the operator cannot see.
-6. If any candidate is missing a song or active analyzed lyric, the API returns `422 Unprocessable Entity` with one result item per candidate, including discovered `songId`/`lyricId` when present and `null` when absent. No recommendations are created in this case.
-7. Admin-web can request analysis for the missing candidate ids through `POST /admin/api/recommendations/request-analysis`, which calls `SongAnalysisWorkService.createOrReuse()` with `trigger_source=RECOMMENDATION`.
-8. The generic song-analysis worker performs lyric lookup, YouTube lookup, song/lyric creation, and lyric analysis. It does not import recommendation classes.
-9. After analysis completes, the operator clicks `Process approved` again. When every approved candidate has a matching active analyzed lyric, Admin API creates `PENDING` `song_recommendation` rows.
-10. Operator orders and publishes recommendations in admin-web through `PATCH /admin/api/recommendations/{id}`.
-11. User API returns recommendations from the latest published week only.
-
-## Home API safety gate
-
-`GET /api/songs/recommendations` returns a compact list:
-
-- `id`
-- `songId`
-- `title`
-- `artist`
-- `artworkUrl`
-- `weekStartDate`
-
-The API:
-
-- reads the latest `week_start_date` that has `PUBLISHED` recommendation rows
-- orders by `order_index ASC, created_at ASC`
-- filters out missing song/lyric rows
-- filters out lyrics whose `analyzed_content` is null
-- does not record recent listens
-
-The app tap path calls the existing `GET /api/songs/{id}` through `usePlayerStore.loadById(songId)`, so tapping a recommendation records recent listen before opening `SongDetail`.
-
-## Retry notes
-
-If analysis failed or has not completed, leave the candidate as `APPROVED`, request analysis for the missing candidate again, and rerun `Process approved` after the song analysis worker has produced an active analyzed lyric.
-
-Bad publishes are blocked by both the admin publish API and the home API safety gate when lyrics are missing analyzed content.
-
-## Admin operation API
-
-- `GET /admin/api/recommendations/weeks`
-- `GET /admin/api/recommendations/candidates`
-- `PATCH /admin/api/recommendations/candidates/{candidateId}/status`
-- `GET /admin/api/recommendations`
-- `PATCH /admin/api/recommendations/{recommendationId}`
-- `POST /admin/api/recommendations/prepare-approved` (optional `weekStartDate`; defaults to the latest candidate week)
-- `POST /admin/api/recommendations/request-analysis`
-
-Admin-web has a week selector that defaults to the week containing today. Candidate list, recommendation
-list, and `prepare-approved` all run against the selected week. `GET /admin/api/recommendations/weeks`
-returns the weeks that have collected candidates; the current week stays selectable even before its
-candidates exist.
-
-All endpoints are authenticated admin-only operations. Admin list and operation endpoints use an internal 100-row cap, matching the Apple RSS v1 source size.
+V38 은 테이블을 추가만 한다. 이전 버전 pod 는 `ddl-auto: validate` 로 구 테이블을 검증하므로
+`song_recommendation`, `song_recommendation_candidate` 는 남겨 두었다. 이 릴리스가 전부 배포된 뒤
+다음 릴리스의 migration 에서 두 테이블을 지운다. `song_analysis_work.trigger_source` 의
+`RECOMMENDATION` 값은 기존 행이 쓰고 있어 enum 에 남긴다.

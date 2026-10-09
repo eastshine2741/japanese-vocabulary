@@ -4,12 +4,14 @@ import { useDeckDetailStore } from '../stores/deckDetailStore';
 import { useDeckListStore } from '../stores/deckListStore';
 import { useDeckWordListStore } from '../stores/deckWordListStore';
 import { useHomeStore } from '../stores/homeStore';
+import { useKaraokeStore } from '../stores/karaokeStore';
 import { usePlayerStore } from '../stores/playerStore';
 import { useRecommendationStore } from '../stores/recommendationStore';
 import { useSearchHistoryStore } from '../stores/searchHistoryStore';
 import { useSongDetailStore } from '../stores/songDetailStore';
 import { useStreakStore } from '../stores/streakStore';
 import { useSettingsStore } from '../stores/settingsStore';
+import { useStudyScheduleStore } from '../stores/studyScheduleStore';
 import { useStudyStatsStore } from '../stores/studyStatsStore';
 import { useVocabularyStore } from '../stores/vocabularyStore';
 import { useWordExamplesStore } from '../stores/wordExamplesStore';
@@ -17,7 +19,7 @@ import { useWordExamplesStore } from '../stores/wordExamplesStore';
 const emptyStatsSlice = () => ({ status: 'idle' as const, data: null, error: null, staleAt: 0 });
 
 export function resetAllStores() {
-  useAuthStore.setState({ status: 'idle', error: null, username: null, userName: null });
+  useAuthStore.setState({ status: 'idle', error: null, username: null, userName: null, profileImageUrl: null });
 
   useHomeStore.setState({ status: 'loading', songs: [], error: null });
   useRecommendationStore.setState({ status: 'loading', songs: [], error: null });
@@ -26,6 +28,8 @@ export function resetAllStores() {
     home: emptyStatsSlice(),
     profile: emptyStatsSlice(),
     heatmap: emptyStatsSlice(),
+    calendar: emptyStatsSlice(),
+    calendarLoadingMore: false,
   });
 
   useVocabularyStore.setState({
@@ -65,12 +69,15 @@ export function resetAllStores() {
     showKoreanPronunciation: true,
     showFurigana: true,
     dailyGoal: 10,
+    karaokeNewSongNotifications: false,
     isSaving: false,
     saveSuccess: false,
     error: null,
   });
 
   useAnalysisStore.getState().reset();
+  useKaraokeStore.getState().reset();
+  useStudyScheduleStore.getState().reset();
   useStreakStore.getState().reset();
   usePlayerStore.setState({ status: 'idle', studyData: null, errorCode: null, currentMs: 0, durationMs: 0 });
   useSongDetailStore.setState({ status: 'idle', data: null, errorCode: null });

@@ -3,7 +3,7 @@ package com.japanese.vocabulary.lyricsearch.lrclib
 import org.springframework.stereotype.Component
 import com.japanese.vocabulary.common.retry.TransientHttpErrors
 import com.japanese.vocabulary.lyricsearch.JapaneseLyricValidator
-import com.japanese.vocabulary.lyricsearch.ArtistNameNormalizer
+import com.japanese.vocabulary.common.text.ArtistNameNormalizer
 import com.japanese.vocabulary.lyricsearch.ItunesArtistAliasVerifier
 import com.japanese.vocabulary.lyricsearch.LyricProvider
 import com.japanese.vocabulary.lyricsearch.LyricsResult

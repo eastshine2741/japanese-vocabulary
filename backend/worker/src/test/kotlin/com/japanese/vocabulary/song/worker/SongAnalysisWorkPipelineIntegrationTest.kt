@@ -1,5 +1,8 @@
 package com.japanese.vocabulary.song.worker
 
+import ch.qos.logback.classic.Logger
+import ch.qos.logback.classic.spi.ILoggingEvent
+import ch.qos.logback.core.read.ListAppender
 import com.japanese.vocabulary.lyricsearch.LyricsResult
 import com.japanese.vocabulary.messagequeue.SongAnalysisWorkMessage
 import com.japanese.vocabulary.mvsearch.client.youtube.dto.YoutubeSearchItemDto
@@ -32,6 +35,7 @@ import com.japanese.vocabulary.translation.client.jisho.dto.JishoEntryDto
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoLookupProvenance
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoDictionaryEntryDto
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoOptionDto
+import com.japanese.vocabulary.song.service.MvSearchDefectReporter
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -39,6 +43,7 @@ import io.mockk.verify
 import kotlinx.coroutines.runBlocking
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
 import org.springframework.web.client.HttpServerErrorException
@@ -91,7 +96,7 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
 
         verify(exactly = 1) { lrclibClient.search(any()) }
         verify(exactly = 0) { vocadbClient.search(any()) }
-        verify(exactly = 1) { youtubeClient.searchVideos(any(), any(), any(), any()) }
+        verify(exactly = 1) { youtubeClient.searchVideos(any(), any(), any(), any(), any()) }
         coVerify(exactly = 1) { geminiClient.translateLyrics(any(), any()) }
         coVerify(exactly = 1) { geminiClient.segmentAndLemmatize(any(), any(), any()) }
     }
@@ -100,7 +105,7 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
     fun `youtube search failure fails work without player-ready milestone or song row`(): Unit = runBlocking {
         stubLyricsFound()
         every {
-            youtubeClient.searchVideos(query = any(), pageToken = any(), maxResults = any(), videoCategoryId = any())
+            youtubeClient.searchVideos(query = any(), pageToken = any(), maxResults = any(), videoCategoryId = any(), order = any())
         } throws RuntimeException("403 Forbidden: unregistered callers must use API Key")
         stubLyricAnalysis()
         val created = workService.createOrReuse(
@@ -120,9 +125,56 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
         assertThat(songRepository.findByArtistAndTitle(ARTIST, TITLE)).isNull()
 
         verify(exactly = 1) { lrclibClient.search(any()) }
-        verify(exactly = 1) { youtubeClient.searchVideos(any(), any(), any(), any()) }
+        verify(exactly = 1) { youtubeClient.searchVideos(any(), any(), any(), any(), any()) }
         coVerify(exactly = 0) { geminiClient.translateLyrics(any(), any()) }
         coVerify(exactly = 0) { geminiClient.segmentAndLemmatize(any(), any(), any()) }
+    }
+
+    @Test
+    fun `a song with no acceptable MV is still analyzed, without an MV, and the miss is logged`(): Unit = runBlocking {
+        stubLyricsFound()
+        stubYoutubeMissing()
+        stubLyricAnalysis()
+        val appender = ListAppender<ILoggingEvent>().also { it.start() }
+        val defectLogger = LoggerFactory.getLogger(MvSearchDefectReporter::class.java) as Logger
+        defectLogger.addAppender(appender)
+        try {
+            val created = workService.createOrReuse(title = TITLE, artist = ARTIST, durationSeconds = 210)
+            drive(created.workId)
+
+            val refreshedWork = workRepository.findById(created.workId).orElseThrow()
+            assertThat(refreshedWork.status).isEqualTo(SongAnalysisWorkStatus.COMPLETED)
+            assertThat(refreshedWork.youtubeUrl).isNull()
+            val song = songRepository.findById(refreshedWork.songId!!).orElseThrow()
+            assertThat(song.youtubeUrl).isNull()
+            assertThat(lyricRepository.findById(refreshedWork.lyricId!!).orElseThrow().analyzedContent).hasSize(1)
+
+            assertThat(appender.list.map { it.formattedMessage }).singleElement().asString()
+                .startsWith("MV_SEARCH_DEFECT {")
+                .contains("\"workId\":${created.workId}")
+                .contains("\"title\":\"$TITLE\"")
+        } finally {
+            defectLogger.detachAppender(appender)
+        }
+    }
+
+    @Test
+    fun `admin reanalysis that finds no MV keeps the song's current MV`(): Unit = runBlocking {
+        stubLyricsFound()
+        stubYoutubeMissing()
+        stubLyricAnalysis()
+        val song = persistSongWithOldMv()
+        persistActiveLyric(song.id!!, "古い歌詞")
+        val work = persistAdminWork(song.id!!, status = SongAnalysisWorkStatus.PENDING)
+        drive(work.id!!)
+        entityManager.flush()
+        entityManager.clear()
+
+        val refreshedWork = workRepository.findById(work.id!!).orElseThrow()
+        val refreshedSong = songRepository.findById(song.id!!).orElseThrow()
+        assertThat(refreshedWork.status).isEqualTo(SongAnalysisWorkStatus.COMPLETED)
+        assertThat(refreshedSong.activeLyricId).isEqualTo(refreshedWork.lyricId)
+        assertThat(refreshedSong.youtubeUrl).isEqualTo("https://youtu.be/old-mv")
     }
 
     @Test
@@ -149,7 +201,7 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
         verify(exactly = 1) { lrclibClient.search(any()) }
         verify(exactly = 1) { vocadbClient.search(any()) }
         verify(exactly = 1) { utaitedbClient.search(any()) }
-        verify(exactly = 0) { youtubeClient.searchVideos(any(), any(), any(), any()) }
+        verify(exactly = 0) { youtubeClient.searchVideos(any(), any(), any(), any(), any()) }
         coVerify(exactly = 0) { geminiClient.translateLyrics(any(), any()) }
         coVerify(exactly = 0) { geminiClient.segmentAndLemmatize(any(), any(), any()) }
     }
@@ -194,7 +246,7 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
         assertThat(songRepository.findByArtistAndTitle(ARTIST, TITLE)).isNull()
 
         verify(exactly = 1) { lrclibClient.search(any()) }
-        verify(exactly = 1) { youtubeClient.searchVideos(any(), any(), any(), any()) }
+        verify(exactly = 1) { youtubeClient.searchVideos(any(), any(), any(), any(), any()) }
         coVerify(exactly = 1) { geminiClient.translateLyrics(any(), any()) }
         coVerify(exactly = 0) { jevClient.choose(any(), any(), any(), any()) }
         coVerify(exactly = 0) { geminiClient.translateSenses(any(), any()) }
@@ -332,7 +384,7 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
         assertThat(lyricRepository.findById(resumed.lyricId!!).orElseThrow().analyzedContent!![0].koreanLyrics)
             .isEqualTo("복숭아빛 열쇠")
         verify(exactly = 1) { lrclibClient.search(any()) }
-        verify(exactly = 1) { youtubeClient.searchVideos(any(), any(), any(), any()) }
+        verify(exactly = 1) { youtubeClient.searchVideos(any(), any(), any(), any(), any()) }
         coVerify(exactly = 1) { geminiClient.translateLyrics(any(), any()) }
         assertThat(songRepository.findByArtistAndTitle(ARTIST, TITLE)!!.id).isEqualTo(resumed.songId)
     }
@@ -453,7 +505,7 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
 
     private fun stubYoutubeFound() {
         every {
-            youtubeClient.searchVideos(query = any(), pageToken = any(), maxResults = any(), videoCategoryId = any())
+            youtubeClient.searchVideos(query = any(), pageToken = any(), maxResults = any(), videoCategoryId = any(), order = any())
         } returns YoutubeSearchResponse(
             nextPageToken = null,
             items = listOf(
@@ -474,6 +526,12 @@ class SongAnalysisWorkPipelineIntegrationTest : WorkerBaseIntegrationTest() {
                 contentDetails = YoutubeContentDetailsDto(duration = "PT4M13S"),
             ),
         )
+    }
+
+    private fun stubYoutubeMissing() {
+        every {
+            youtubeClient.searchVideos(query = any(), pageToken = any(), maxResults = any(), videoCategoryId = any(), order = any())
+        } returns YoutubeSearchResponse(nextPageToken = null, items = emptyList())
     }
 
     private fun stubLyricAnalysis() {

@@ -403,9 +403,125 @@ class YoutubeMvSearchServiceTest {
         verify(exactly = 0) { artistChannelCache.put(any<String>(), any<ArtistChannelCacheEntry>()) }
     }
 
+    @Test
+    fun `search retries by view count when the relevance search returns nothing`() {
+        // YouTube's relevance search returns zero results for "少女レイ みきとP"; the view-count ranking does not.
+        every { artistChannelCache.get("みきとP") } returns null
+        every {
+            youtubeClient.searchVideos(query = any(), pageToken = any(), maxResults = any(), videoCategoryId = any(), order = null)
+        } returns YoutubeSearchResponse(nextPageToken = null, items = emptyList())
+        every {
+            youtubeClient.searchVideos(query = any(), pageToken = any(), maxResults = any(), videoCategoryId = any(), order = "viewCount")
+        } returns YoutubeSearchResponse(
+            nextPageToken = null,
+            items = listOf(searchItem("mv-id", "みきとP 『 少女レイ 』 MV", "みきとP mikitoP OFFICIAL")),
+        )
+        stubDurations("mv-id" to "PT4M50S")
+
+        assertThat(service.searchMvUrl("少女レイ", "みきとP", 289))
+            .isEqualTo("https://www.youtube.com/watch?v=mv-id")
+    }
+
+    @Test
+    fun `search accepts a collaboration's upload on one member's channel`() {
+        every { artistChannelCache.get("niki & リリィ") } returns null
+        stubSearch(searchItem("mv-id", "ERROR / niki feat.Lily", "niki official"))
+        stubDurations("mv-id" to "PT3M55S")
+
+        assertThat(service.searchMvUrl("ERROR", "niki & リリィ", 238))
+            .isEqualTo("https://www.youtube.com/watch?v=mv-id")
+    }
+
+    @Test
+    fun `search takes the artist's official lyric video when the song has no MV`() {
+        every { artistChannelCache.get("Mrs. GREEN APPLE") } returns null
+        stubSearch(
+            searchItem("fan-lyrics-id", "Mrs. GREEN APPLE-ProPose(Lyrics kanji,romaji,eng)", "BlackCloud"),
+            searchItem("live-id", "Mrs. GREEN APPLE - ProPose 【LIVE from M-ON!】", "ミセス好き"),
+            searchItem("lyric-id", "Mrs. GREEN APPLE「ProPose」Official Lyric Video", "Mrs. GREEN APPLE"),
+        )
+        stubDurations("fan-lyrics-id" to "PT3M16S", "live-id" to "PT3M41S", "lyric-id" to "PT3M20S")
+
+        assertThat(service.searchMvUrl("ProPose", "Mrs. GREEN APPLE", 197))
+            .isEqualTo("https://www.youtube.com/watch?v=lyric-id")
+    }
+
+    @Test
+    fun `search rejects a fan video captioned with lyrics`() {
+        every { artistChannelCache.get("なとり") } returns null
+        stubSearch(searchItem("fan-id", "【なとり - 絶対零度】TVアニメWIND BREAKER OP / 歌詞", "tsu ki"))
+        stubDurations("fan-id" to "PT3M19S")
+
+        assertThat(service.searchMvUrl("絶対零度", "なとり", 198)).isNull()
+    }
+
+    @Test
+    fun `search skips an off-vocal Topic upload for the vocal one`() {
+        every { artistChannelCache.get("みらくらぱーく!") } returns null
+        stubSearch(
+            searchItem("off-vocal-id", "ファンファーレ！！！ (Off Vocal)", "Mira-Cra Park！ - Topic"),
+            searchItem("topic-id", "ファンファーレ！！！", "Release - Topic"),
+        )
+        stubDurations("off-vocal-id" to "PT3M23S", "topic-id" to "PT3M22S")
+
+        assertThat(service.searchMvUrl("ファンファーレ!!!", "みらくらぱーく!", 202))
+            .isEqualTo("https://www.youtube.com/watch?v=topic-id")
+    }
+
+    @Test
+    fun `search takes the Topic upload of a song whose own title holds a bad-title word`() {
+        every { artistChannelCache.get("結束バンド") } returns null
+        stubSearch(searchItem("topic-id", "ギターと孤独と蒼い惑星", "kessoku band - Topic"))
+        stubDurations("topic-id" to "PT3M48S")
+
+        assertThat(service.searchMvUrl("ギターと孤独と蒼い惑星", "結束バンド", 228))
+            .isEqualTo("https://www.youtube.com/watch?v=topic-id")
+    }
+
+    @Test
+    fun `a one-character artist still matches its own channel`() {
+        every { artistChannelCache.get("嵐") } returns null
+        stubSearch(searchItem("mv-id", TITLE, "嵐 ARASHI"))
+        stubDurations("mv-id" to "PT4M")
+
+        assertThat(service.searchMvUrl(TITLE, "嵐", TRACK_SECONDS))
+            .isEqualTo("https://www.youtube.com/watch?v=mv-id")
+    }
+
+    @Test
+    fun `a featured singer's channel is not the producer's own channel`() {
+        every { artistChannelCache.get("DECO*27 feat. 初音ミク") } returns null
+        stubSearch(searchItem("other-id", "$TITLE / 初音ミク", "初音ミク"))
+        stubDurations("other-id" to "PT4M")
+
+        assertThat(service.searchMvUrl(TITLE, "DECO*27 feat. 初音ミク", TRACK_SECONDS)).isNull()
+        verify(exactly = 0) { artistChannelCache.put(any<String>(), any<ArtistChannelCacheEntry>()) }
+    }
+
+    @Test
+    fun `a miss reports every candidate and why it was dropped`() {
+        every { artistChannelCache.get(ARTIST) } returns null
+        stubSearch(
+            searchItem("other-id", "別の曲 Official MV"),
+            searchItem("short-id", "$TITLE Official MV"),
+            searchItem("cover-id", "$TITLE 歌ってみた", "歌い手"),
+        )
+        stubDurations("short-id" to "PT30S", "cover-id" to "PT4M")
+
+        val result = service.search(TITLE, ARTIST, TRACK_SECONDS)
+
+        assertThat(result.url).isNull()
+        assertThat(result.candidates.map { it.videoId to it.rejection }).containsExactlyInAnyOrder(
+            "other-id" to "title-mismatch",
+            "short-id" to "Shorts-length",
+            "cover-id" to null,
+        )
+        assertThat(result.candidates.single { it.videoId == "cover-id" }.score).isNegative()
+    }
+
     private fun stubSearch(vararg items: YoutubeSearchItemDto) {
         every {
-            youtubeClient.searchVideos(query = any(), pageToken = any(), maxResults = any(), videoCategoryId = any())
+            youtubeClient.searchVideos(query = any(), pageToken = any(), maxResults = any(), videoCategoryId = any(), order = any())
         } returns YoutubeSearchResponse(nextPageToken = null, items = items.toList())
     }
 

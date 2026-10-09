@@ -16,6 +16,7 @@ interface AuthState {
   username: string | null;
   userName: string | null;
   email: string | null;
+  profileImageUrl: string | null;
   pendingIdentity: VerifiedIdentity | null;
   pendingIdToken: string | null;
   pendingProvider: AuthProvider | null;
@@ -27,6 +28,7 @@ interface AuthState {
   loadProfile: () => Promise<void>;
   setUserName: (name: string | null) => Promise<void>;
   setUsername: (username: string) => Promise<void>;
+  setProfileImageUrl: (url: string | null) => void;
   reset: () => void;
 }
 
@@ -47,6 +49,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   username: null,
   userName: null,
   email: null,
+  profileImageUrl: null,
   pendingIdentity: null,
   pendingIdToken: null,
   pendingProvider: null,
@@ -169,7 +172,12 @@ export const useAuthStore = create<AuthState>((set) => ({
         persistProfile(profile.username, profile.name),
         tokenStorage.saveEmail(profile.email),
       ]);
-      set({ username: profile.username, userName: profile.name, email: profile.email });
+      set({
+        username: profile.username,
+        userName: profile.name,
+        email: profile.email,
+        profileImageUrl: profile.profileImageUrl,
+      });
     } catch {
       // keep the cached copy; auth failures are handled by the API client
     }
@@ -184,6 +192,8 @@ export const useAuthStore = create<AuthState>((set) => ({
     await tokenStorage.saveUsername(username);
     set({ username });
   },
+
+  setProfileImageUrl: (url) => set({ profileImageUrl: url }),
 
   reset: () =>
     set({

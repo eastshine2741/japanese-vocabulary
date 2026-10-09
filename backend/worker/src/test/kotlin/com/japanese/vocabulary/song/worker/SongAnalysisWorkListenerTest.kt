@@ -46,6 +46,7 @@ class SongAnalysisWorkListenerTest {
         translationService = translationService,
         lyricRepository = lyricRepository,
         codec = SongAnalysisStageCodec(ObjectMapper().registerKotlinModule()),
+        mvSearchDefectReporter = mockk(),
     )
     private val listener = SongAnalysisWorkListener(workService, executor, SimpleMeterRegistry(), Duration.ofMinutes(5))
 

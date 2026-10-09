@@ -17,6 +17,7 @@ class TestFlashcardBuilder(
     private var state: Int = 0
     private var lastReview: Instant? = null
     private var stability: Double = 0.0
+    private var fsrsCardJson: String = "{}"
 
     fun forUser(value: UserEntity) = apply { user = value }
     fun ofWord(value: WordEntity) = apply { word = value }
@@ -24,6 +25,7 @@ class TestFlashcardBuilder(
     fun withState(value: Int) = apply { state = value }
     fun lastReviewedAt(value: Instant?) = apply { lastReview = value }
     fun withStability(value: Double) = apply { stability = value }
+    fun withFsrsCardJson(value: String) = apply { fsrsCardJson = value }
 
     fun build(): FlashcardEntity {
         val owner = user ?: TestUserBuilder(em).build()
@@ -35,6 +37,7 @@ class TestFlashcardBuilder(
             state = state,
             lastReview = lastReview,
             stability = stability,
+            fsrsCardJson = fsrsCardJson,
         ).also {
             em.persist(it)
             em.flush()

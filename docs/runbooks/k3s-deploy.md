@@ -61,10 +61,9 @@ ConfigMap 볼륨이 만드는 `..data` 링크와 타임스탬프 디렉터리를
 kubectl get cronjob -n <ns>
 kubectl logs -n <ns> -l app=worker -f
 
-# 즉시 한 번 실행 (dev 의 CronJob 은 전부 suspend 되어 있다)
+# 즉시 한 번 실행
 kubectl create job --from=cronjob/freeze-consume fc-$(date +%s) -n <ns>
 kubectl create job --from=cronjob/streak-reminder-evening sr-$(date +%s) -n <ns>
-kubectl create job --from=cronjob/apple-music-recommendation amr-$(date +%s) -n <ns>
 
 # 가사 단어 후보 백필은 스케줄이 없는 수동 전용 CronJob 이다. 인자를 바꾸려면 Job 을 직접 편집한다.
 kubectl create job --from=cronjob/lyric-word-candidate-backfill backfill-$(date +%s) -n <ns>

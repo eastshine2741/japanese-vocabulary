@@ -1,14 +1,11 @@
 package com.japanese.vocabulary.lyricsearch
 
+import com.japanese.vocabulary.common.text.ArtistCredit
+
 object SongQueryNormalizer {
 
     private val FEAT_PATTERN = Regex(
         """\s*[(\[（](?:feat\.?|ft\.?|featuring)\s+[^)\]）]+[)\]）]""",
-        RegexOption.IGNORE_CASE
-    )
-
-    private val ARTIST_SEPARATORS = Regex(
-        """\s*(?:&|＆|feat\.?|ft\.?|featuring|×|,|、)\s*""",
         RegexOption.IGNORE_CASE
     )
 
@@ -17,18 +14,12 @@ object SongQueryNormalizer {
             originalTitle = title,
             originalArtist = artist,
             normalizedTitle = stripFeatFromTitle(title),
-            artistParts = splitArtist(artist),
+            artistParts = ArtistCredit.names(artist),
             durationSeconds = durationSeconds
         )
     }
 
     private fun stripFeatFromTitle(title: String): String {
         return FEAT_PATTERN.replace(title, "").trim()
-    }
-
-    private fun splitArtist(artist: String): List<String> {
-        return artist.split(ARTIST_SEPARATORS)
-            .map { it.trim() }
-            .filter { it.isNotBlank() }
     }
 }

@@ -1,13 +1,38 @@
 import React from 'react';
-import { Animated, Easing, GestureResponderHandlers, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, GestureResponderHandlers, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { CardStage, SourceHeader, StageInset } from './CardStage';
 import { SWIPE_OUT_DISTANCE } from './useStudyStack';
 import { WordBack } from './WordBack';
 import { WordFront } from './WordFront';
+import { stageArtworkUrl } from './studySource';
 import { StudyCard } from './types';
 
 /** pill 이 rating 버튼 넷으로 갈라지는 시간. reveal 값에 얹으면 out-cubic 이라 앞쪽 100ms 안에 끝나서 따로 돌린다. */
 const SPLIT_MS = 720;
+
+const ARTWORK_CROSSFADE_MS = 360;
+
+/** 카드마다 무대 커버가 바뀌면 이전 커버를 겹쳐 서서히 걷어낸다 — 바로 바꾸면 배경이 번쩍인다. */
+function useArtworkCrossfade(artworkUrl: string | null) {
+  const [fade, setFade] = React.useState<{ previous: string | null; progress: Animated.Value }>(
+    () => ({ previous: null, progress: new Animated.Value(1) }),
+  );
+  const currentRef = React.useRef(artworkUrl);
+  React.useEffect(() => {
+    const previous = currentRef.current;
+    currentRef.current = artworkUrl;
+    if (previous === artworkUrl) return;
+    const progress = new Animated.Value(0);
+    setFade({ previous, progress });
+    Animated.timing(progress, {
+      toValue: 1,
+      duration: ARTWORK_CROSSFADE_MS,
+      easing: Easing.out(Easing.quad),
+      useNativeDriver: true,
+    }).start();
+  }, [artworkUrl]);
+  return fade;
+}
 
 /** 앞면 headword 자리에서 뒷면 자리로 가는 변환. faceStack 기준 측정값의 차. */
 interface HeadwordMorph {
@@ -65,6 +90,12 @@ export const WordLayer = React.memo(function WordLayer({
   contentInsetTop,
   contentInsetBottom,
 }: WordLayerProps) {
+  const artworkUrl = stageArtworkUrl(card);
+  const artworkFade = useArtworkCrossfade(artworkUrl);
+  const nextArtworkUrl = nextCard ? stageArtworkUrl(nextCard) : null;
+  React.useEffect(() => {
+    if (nextArtworkUrl) Image.prefetch(nextArtworkUrl).catch(() => undefined);
+  }, [nextArtworkUrl]);
   const faceStackRef = React.useRef<View>(null);
   const frontHeadwordRef = React.useRef<View>(null);
   const backHeadwordRef = React.useRef<View>(null);
@@ -193,7 +224,9 @@ export const WordLayer = React.memo(function WordLayer({
 
   return (
     <CardStage
-      artworkUrl={card.source.artworkUrl}
+      artworkUrl={artworkUrl}
+      previousArtworkUrl={artworkFade.previous}
+      artworkTransitionProgress={artworkFade.progress}
       contentInsetTop={contentInsetTop}
       contentInsetBottom={contentInsetBottom}
     >

@@ -95,6 +95,11 @@ function handleData(data: RemoteMessage['data']): void {
     navigate('Main', { screen: 'Home' });
     return;
   }
+  // 노래방 신곡 알림 — 그날 올라온 곡 목록.
+  if (data.type === 'karaoke_new_songs') {
+    navigate('KaraokeNewSongs');
+    return;
+  }
   // AnalysisNotificationDispatcher(batch) 가 songId 를 문자열로 실어 보낸다.
   if (data.type === 'song_analysis_completed' && data.songId != null) {
     const songId = Number(data.songId);

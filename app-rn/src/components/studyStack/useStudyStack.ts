@@ -3,13 +3,14 @@ import { Animated, Easing, GestureResponderHandlers, PanResponder } from 'react-
 import { deckApi } from '../../api/deckApi';
 import { flashcardApi } from '../../api/flashcardApi';
 import { songApi } from '../../api/songApi';
+import { trackCardRate, trackCardReveal } from '../../services/analytics';
 import { studyStatsApi } from '../../api/studyStatsApi';
 import { wordApi } from '../../api/wordApi';
 import { useStreakStore } from '../../stores/streakStore';
 import { useStudyStatsStore } from '../../stores/studyStatsStore';
 import { SongDeckSummary } from '../../types/deck';
 import { WordInSongItemDto, WordsInSongDto } from '../../types/song';
-import { sourceFromDeck, sourceFromRecommendation } from './studySource';
+import { sourceFromDeck, sourceFromRecent, sourceFromRecommendation } from './studySource';
 import {
   accumulateMemoryDiff,
   EMPTY_MEMORY_DIFF,
@@ -97,6 +98,11 @@ export interface StudyStackState {
   recommendedSource: StudySource | null;
   /** mode 'home' 에서만 채워진다. 덱 스트립에 그릴 목록 — 곡 덱이 있으면 due 많은 순 덱 목록, 없으면 추천곡 목록. */
   deckStripItems: StudySource[];
+  /**
+   * mode 'home' 에서만 채워진다. 지금 고른 곡이 아니라 **전체** 덱에서 오늘 아직 남은 due 장수.
+   * 홈 헤더와 오늘의 복습 스케줄 화면이 같은 숫자를 보여야 해서 세션 큐가 아니라 이 값을 쓴다.
+   */
+  dueTodayCount: number;
   /** 덱 스트립에서 현재 강조돼야 할 항목. `selectSource` 로 바뀐다. */
   selectedSource: StudySource | null;
   /** 무대(아트워크)가 그려야 할 곡. 아무 것도 없으면 null. */
@@ -137,6 +143,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
   const [nextDueSource, setNextDueSource] = useState<StudySource | null>(null);
   const [recommendedSource, setRecommendedSource] = useState<StudySource | null>(null);
   const [deckStripItems, setDeckStripItems] = useState<StudySource[]>([]);
+  const [dueTodayCount, setDueTodayCount] = useState(0);
   const [selectedSource, setSelectedSource] = useState<StudySource | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [reviewError, setReviewError] = useState<string | null>(null);
@@ -397,7 +404,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
   }, []);
 
   /**
-   * due 덱이 하나도 없을 때 추천곡에서 lead 후보를 찾아 미리보기 카드로 띄운다.
+   * due 덱이 하나도 없을 때 최근 곡·추천곡에서 lead 후보를 찾아 미리보기 카드로 띄운다.
    * 성공(진짜 카드를 세팅했든, 후보가 없어 폴백이 필요하다고 판단했든)하면 true.
    */
   const tryShowPreviewCard = useCallback(async (source: StudySource, version: number): Promise<boolean> => {
@@ -431,6 +438,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     isPreviewRef.current = false;
     fixedQueueRef.current = false;
     setDueCount(0);
+    setDueTodayCount(0);
     setReviewedCount(0);
     setSessionDueTotal(0);
     reviewedIdsRef.current = new Set();
@@ -439,16 +447,20 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     setStatus('loading');
     setLoadError(null);
     try {
-      const [deckRes, homeStats, recommendations] = await Promise.all([
+      const [deckRes, homeStats, recommendations, recentSongs, stats] = await Promise.all([
         deckApi.getDecks(),
         studyStatsApi.getHome(),
         songApi.getRecommendations(),
+        // 최근 곡은 추천곡을 대신할 뿐이라, 실패해도 홈을 깨지 않고 추천곡으로 넘어간다.
+        songApi.getRecent().catch(() => []),
+        flashcardApi.getStats(),
       ]);
       if (version !== requestVersion.current) return;
+      setDueTodayCount(stats.due);
       const recommendedItems = recommendations.map(sourceFromRecommendation);
       const recommended = recommendedItems[0] ?? null;
       setRecommendedSource(recommended);
-      // 헤더 칩·넛지·완료 배너는 streakStore 가 든다. 실패 시 임의값으로 메우지 않는다.
+      // 헤더 칩·넛지·축하 화면은 streakStore 가 든다. 실패 시 임의값으로 메우지 않는다.
       useStreakStore.getState().applyHomeStats(homeStats);
 
       // 곡에 매핑되지 않은 일반 단어장(songId == null)은 덱 스트립의 곡 선택 대상이 아니다.
@@ -467,11 +479,14 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
         return;
       }
 
-      // 곡을 하나도 담지 않은 신규유저 — 덱 스트립에 추천곡을 대신 보여준다.
-      setDeckStripItems(recommendedItems);
-      setSelectedSource(recommended);
+      // 곡을 하나도 담지 않은 유저 — 최근 연 곡이 있으면 그 곡들을, 없으면 추천곡을 덱 스트립에 보여준다.
+      const fallbackItems = recentSongs.length > 0 ? recentSongs.map(sourceFromRecent) : recommendedItems;
+      const fallback = fallbackItems[0] ?? null;
+      setRecommendedSource(fallback);
+      setDeckStripItems(fallbackItems);
+      setSelectedSource(fallback);
       setNextDueSource(null);
-      const showedPreview = recommended != null && await tryShowPreviewCard(recommended, version);
+      const showedPreview = fallback != null && await tryShowPreviewCard(fallback, version);
       if (version !== requestVersion.current) return;
       if (!showedPreview) {
         showCompletion(null, []);
@@ -479,6 +494,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     } catch (e: any) {
       if (version !== requestVersion.current) return;
       setLoadError(e.message ?? '홈 데이터를 불러오지 못했어요');
+      setDueTodayCount(0);
       setCards([]);
       setCompletedSource(null);
       setNextDueSource(null);
@@ -554,6 +570,9 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
   }, [cards.length, currentIndex, status, prefetchMore]);
 
   const reveal = useCallback(() => {
+    if (!revealed && currentCardRef.current) {
+      trackCardReveal({ mode, position: reviewedCountRef.current, is_preview: isPreviewRef.current });
+    }
     setRevealed(true);
     Animated.timing(revealProgress, {
       toValue: 1,
@@ -561,7 +580,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
       easing: Easing.out(Easing.cubic),
       useNativeDriver: true,
     }).start();
-  }, [revealProgress]);
+  }, [mode, revealProgress, revealed]);
 
   /**
    * 미리보기 카드의 rating 확정. 이 순간에만 서버에 곡을 통째로 담고 lead 단어를 리뷰한 뒤 응답의 남은 due 카드로 이어간다.
@@ -575,6 +594,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     const version = ++requestVersion.current;
     const songId = currentCard.source.songId;
     const rating = selectedRating;
+    const position = reviewedCountRef.current;
     try {
       clearRatingHold();
       setSelectedRating(null);
@@ -589,6 +609,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
       if (songId == null) throw new Error('추천곡 정보를 확인하지 못했어요');
       const result = await songApi.studyBootstrap(songId, rating, currentCard.source.previewWord?.japanese);
       if (version !== requestVersion.current) return;
+      trackCardRate({ mode, position, is_preview: true }, rating);
       useStudyStatsStore.getState().invalidate();
       useStreakStore.getState().recordRating();
       isPreviewRef.current = false;
@@ -628,7 +649,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
       busyRef.current = false;
       setSaving(false);
     }
-  }, [clearRatingHold, currentCard, selectedRating, translateY]);
+  }, [clearRatingHold, currentCard, mode, selectedRating, translateY]);
 
   const advanceRealReview = useCallback(async () => {
     if (!currentCard || selectedRating == null || busyRef.current) return;
@@ -637,6 +658,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     const version = ++requestVersion.current;
     const reviewedCard = currentCard;
     const rating = selectedRating;
+    const position = reviewedCountRef.current;
     clearRatingHold();
     setSelectedRating(null);
     // API 응답을 기다리지 않고 스와이프 애니메이션을 동시에 시작한다.
@@ -651,6 +673,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     try {
       const [, reviewResult] = await Promise.all([animationPromise, reviewPromise]);
       if (version !== requestVersion.current) return;
+      trackCardRate({ mode, position, is_preview: false }, rating);
       useStudyStatsStore.getState().invalidate();
       useStreakStore.getState().recordRating();
       setReviewError(null);
@@ -662,6 +685,17 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
       }
       // FSRS 는 리뷰 직후 due 를 항상 미래로 미룬다 — 서버 왕복 없이 큐 카운터를 맞춰둔다.
       setDueCount(count => Math.max(0, count - 1));
+      setDueTodayCount(count => Math.max(0, count - 1));
+      // 덱 스트립 due 배지도 같이 줄인다 — 다시 불러오기 전까지 로드 시점 값으로 멈춰 있으면
+      // 다 푼 곡에 남은 장수가 그대로 붙어 있다.
+      const reviewedDeckId = reviewedCard.source.deckId;
+      if (reviewedDeckId != null) {
+        setDeckStripItems(items => items.map(item => (
+          item.deckId === reviewedDeckId
+            ? { ...item, dueCount: Math.max(0, item.dueCount - 1) }
+            : item
+        )));
+      }
       const nextIndex = currentIndexRef.current + 1;
       if (nextIndex < cardsRef.current.length) {
         // 새 Animated.Value 로 교체해 다음 카드가 정지 상태(0)로 렌더되게 한다.
@@ -684,7 +718,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
       busyRef.current = false;
       setSaving(false);
     }
-  }, [clearRatingHold, currentCard, refreshDue, selectedRating, translateY]);
+  }, [clearRatingHold, currentCard, mode, refreshDue, selectedRating, translateY]);
 
   const advanceAfterReview = useCallback(async () => {
     if (isPreviewRef.current) {
@@ -823,6 +857,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     nextDueSource,
     recommendedSource,
     deckStripItems,
+    dueTodayCount,
     selectedSource,
     visibleSource,
     session,
@@ -853,6 +888,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     nextDueSource,
     recommendedSource,
     deckStripItems,
+    dueTodayCount,
     selectedSource,
     visibleSource,
     session,

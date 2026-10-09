@@ -7,7 +7,7 @@ Applies to `backend/admin-api/`.
 ## Rules
 
 - Keep admin API separate from public user API behavior.
-- Admin v1 is inspection-oriented: songs, lyrics, song analysis works, and users. Operator actions are workflow-specific: song reanalysis, recommendation status, manual push.
+- Admin v1 is inspection-oriented: songs, lyrics, song analysis works, and users. Operator actions are workflow-specific: song reanalysis, recommendation list edits, manual push.
 - Do not add generic raw table editors.
 - Future mutations must be entity-specific workflows that call domain methods/services and preserve invariants.
 - Do not depend on music integration modules unless a specific admin workflow explicitly needs provider access.

@@ -17,6 +17,7 @@ dependencies {
     implementation(project(":domains:song"))
     implementation(project(":domains:song-analysis"))
     implementation(project(":domains:recommendation"))
+    implementation(project(":domains:karaoke"))
     implementation(project(":domains:auth"))
     implementation(project(":domains:user"))
     implementation(project(":domains:userinventory"))
@@ -26,6 +27,7 @@ dependencies {
     implementation(project(":integrations:song-search"))
     implementation(project(":integrations:github"))
     implementation(project(":integrations:message-queue"))
+    implementation(project(":integrations:object-storage"))
 
     implementation("org.springframework.boot:spring-boot-starter-amqp")
     implementation("org.springframework.boot:spring-boot-starter-web")
