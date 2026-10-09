@@ -43,7 +43,7 @@ cd app-rn && npx expo start --web             # App - Web (dev)
 - k3s deploy and environment variables: `docs/runbooks/k3s-deploy.md`
 - Prod infra as code (Hetzner servers/network, Cloudflare DNS; CSI/CCM-owned resources excluded): `infra/terraform/README.md`
 - Analysis defect log and auto-fix runner: `.github/scripts/analysis-feedback/README.md`
-- Mobile OTA release flow: `docs/runbooks/mobile-ota-release.md`
+- Mobile release (release/X.Y.Z 브랜치, OTA 가드, 스토어 심사 자동 제출): `docs/runbooks/mobile-ota-release.md`
 - Bottom sheet nested scroll: `docs/runbooks/bottom-sheet-nested-scroll.md`
 - iOS native Animated pitfalls: `docs/runbooks/ios-native-animated-pitfalls.md`
 - Pencil editing: `docs/runbooks/pencil-editing.md`

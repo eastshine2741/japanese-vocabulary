@@ -27,7 +27,8 @@ JS-only 변경은 `eas update`로 배포한다. 네이티브 변경은 새 빌�
 push하면 JS tag와 커밋 SHA를 메시지로 사용해 OTA와 Sentry 소스맵을 차례로 업로드한다.
 `js-vM.m.p-update.N.dev`는 `development`, `js-vM.m.p-update.N.prod`는 `production`
 채널에 배포한다. 설정 화면은 이 `N`을 `update.N`으로 표시한다. 네이티브 `vM.m.p` tag는
-OTA를 배포하지 않는다. 아래 명령은 GitHub Actions를 쓸 수 없을 때의 수동 fallback이다.
+OTA를 배포하지 않는다. prod OTA tag는 `release/M.m.p` 브랜치에 찍고, 워크플로가 네이티브
+fingerprint·typecheck를 확인한 뒤 배포한다. 아래 명령은 GitHub Actions를 쓸 수 없을 때의 수동 fallback이다.
 
 JS tag의 `M.m.p`는 대상 native runtime version이다. `runtimeVersion`은 이 값으로
 고정되므로 native build와 OTA가 같은 `NATIVE_RUNTIME_VERSION`을 써야 한다. Android CD는

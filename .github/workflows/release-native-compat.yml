@@ -1,0 +1,36 @@
+name: Release Native Compat
+
+# main -> release/X.Y.Z 머지가 출시된 vX.Y.Z 바이너리의 네이티브를 바꾸지 않는지 본다.
+# ruleset 으로 release/** 의 필수 체크로 걸어 둔다.
+on:
+  pull_request:
+    branches:
+      - 'release/**'
+
+jobs:
+  native-compat:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: app-rn/package-lock.json
+
+      # 정식 태그 전(rc 기간)에는 다음 rc 에 네이티브가 같이 실리므로 막지 않는다.
+      - name: Check fingerprint against released binary
+        env:
+          BASE_BRANCH: ${{ github.base_ref }}
+        run: |
+          RUNTIME="${BASE_BRANCH#release/}"
+          if ! git rev-parse -q --verify "refs/tags/v$RUNTIME" >/dev/null; then
+            echo "v$RUNTIME 미출시(rc 기간) — 네이티브 변경 허용"
+            exit 0
+          fi
+          .github/scripts/native-compat/check.sh "v$RUNTIME"

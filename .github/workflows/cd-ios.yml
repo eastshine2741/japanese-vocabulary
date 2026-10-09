@@ -1,0 +1,110 @@
+name: CD - iOS
+
+# rc 는 EAS iOS 빌드 한도를 아끼려고 만들지 않는다. 정식 태그만 빌드 -> TestFlight -> 심사 제출.
+on:
+  push:
+    tags:
+      - 'v*'
+      - '!v*-rc.*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Parse tag
+        id: parse
+        run: |
+          if [[ "$GITHUB_REF_NAME" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            echo "version=${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.${BASH_REMATCH[3]}" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::Invalid tag format: $GITHUB_REF_NAME (expected vM.m.p)"
+            exit 1
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: app-rn/package-lock.json
+
+      - name: Install dependencies
+        working-directory: app-rn
+        run: npm ci
+
+      # buildNumber 는 eas.json autoIncrement(remote)가 덮어쓴다. 여기 값은 자리만 채운다.
+      - name: Write native build config
+        working-directory: app-rn
+        run: node scripts/write-native-build-config.js "${{ steps.parse.outputs.version }}" 1 "${{ steps.parse.outputs.version }}"
+
+      - name: Write App Store Connect API key
+        env:
+          ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
+        run: echo "$ASC_KEY_P8_BASE64" | base64 -d > "$RUNNER_TEMP/asc-api-key.p8"
+
+      - name: EAS build
+        id: build
+        working-directory: app-rn
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          BUILD_ENV: prod
+          EAS_UPDATE_CHANNEL: production
+        run: |
+          npx eas-cli@latest build --platform ios --profile production \
+            --non-interactive --wait --json > "$RUNNER_TEMP/build.json"
+          echo "id=$(jq -r '.[0].id' "$RUNNER_TEMP/build.json")" >> "$GITHUB_OUTPUT"
+
+      - name: EAS submit to App Store Connect
+        working-directory: app-rn
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EXPO_ASC_API_KEY_PATH: ${{ runner.temp }}/asc-api-key.p8
+          EXPO_ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          EXPO_ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          npx eas-cli@latest submit --platform ios --profile production \
+            --id "${{ steps.build.outputs.id }}" --non-interactive --wait
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+
+      - name: Install fastlane
+        run: gem install fastlane -N
+
+      # annotated 태그면 그 메시지를 "이번 버전의 새로운 기능"으로 쓴다.
+      - name: Submit for review
+        working-directory: app-rn
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_PATH: ${{ runner.temp }}/asc-api-key.p8
+        run: |
+          NOTES="버그 수정 및 안정성 개선"
+          git fetch --quiet origin "refs/tags/$GITHUB_REF_NAME:refs/tags/$GITHUB_REF_NAME" --force
+          if [[ "$(git cat-file -t "$GITHUB_REF_NAME")" == "tag" ]]; then
+            NOTES="$(git tag -l --format='%(contents:body)' "$GITHUB_REF_NAME")"
+            [[ -n "$NOTES" ]] || NOTES="$(git tag -l --format='%(contents:subject)' "$GITHUB_REF_NAME")"
+          fi
+          fastlane ios submit_review version:"${{ steps.parse.outputs.version }}" release_notes:"$NOTES"
+
+      - name: Notify Discord
+        if: always()
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          STATUS: ${{ job.status }}
+        run: |
+          if [[ "$STATUS" == "success" ]]; then
+            TITLE="iOS 심사 제출 완료"; COLOR=5763719
+          else
+            TITLE="iOS CD 실패"; COLOR=15548997
+          fi
+          jq -n --arg t "$TITLE" --arg d "**${{ github.repository }}** $GITHUB_REF_NAME" --argjson c "$COLOR" \
+            --arg u "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            '{embeds: [{title: $t, description: $d, color: $c, fields: [{name: "Actions", value: "[View logs](\($u))"}]}]}' \
+            | curl -sS -H "Content-Type: application/json" -d @- "$DISCORD_WEBHOOK_URL"
