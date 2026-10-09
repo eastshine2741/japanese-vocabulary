@@ -118,12 +118,16 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     setBusyWordKey(null);
   }, [songId]);
 
-  useEffect(() => {
+  const loadSong = useCallback(() => {
     if (songId == null) return;
     setCurrentMs(route.params?.initialSeekMs ?? 0);
     setDurationMs(0);
     load(songId);
   }, [load, route.params?.initialSeekMs, setCurrentMs, setDurationMs, songId]);
+
+  useEffect(() => {
+    loadSong();
+  }, [loadSong]);
 
   useEffect(() => {
     if (songId == null) {
@@ -480,8 +484,16 @@ export default function SongDetailScreen({ navigation, route }: Props) {
         isInitialFocusRef.current = false;
         return;
       }
+      // 스토어는 곡 하나만 담으므로 위에 쌓였던 다른 곡 상세가 덮어썼으면 처음부터 다시 읽는다.
+      if (songId != null && useSongDetailStore.getState().songId !== songId) {
+        loadSong();
+        deckApi.getDeckBySongId(songId)
+          .then(deck => setSongDeckDetail(deck))
+          .catch(() => setSongDeckDetail(null));
+        return;
+      }
       handleWordsChanged();
-    }, [handleWordsChanged]),
+    }, [handleWordsChanged, loadSong, songId]),
   );
 
   const handleScroll = useMemo(
