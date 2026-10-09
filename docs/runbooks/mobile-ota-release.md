@@ -11,7 +11,7 @@
 
 - 네이티브 출시를 시작할 때 main 에서 `release/X.Y.Z` 를 딴다.
 - 수정은 release 브랜치에 바로 커밋하고, OTA·정식 태그를 찍은 뒤 release 를 main 으로 머지한다.
-  main → release 는 PR 로만 머지한다 (아래 Native compat 체크).
+- main 의 변경을 OTA 로 내려면 release 브랜치에서 `git merge main` 한다. PR 은 쓰지 않는다.
 - 다음 네이티브 버전이 두 스토어에 출시되면 이전 release 브랜치는 지운다.
 
 ## Tags (모두 사람이 찍는다)
@@ -40,16 +40,13 @@
 
 ## Native compat (fingerprint)
 
-`.github/scripts/native-compat/check.sh <base-ref> [head-ref]` 가 두 커밋의 `@expo/fingerprint`
-(네이티브 모듈 목록·버전, Expo config, config plugin, patches)를 깨끗한 worktree 에서 비교한다.
-설정은 `app-rn/fingerprint.config.js` 이고, version·runtimeVersion·`eas.json` 등은 제외한다.
+OTA 가드 4번은 `.github/scripts/native-compat/check.sh <base-ref> [head-ref]` 가 맡는다. 두 커밋의
+`@expo/fingerprint`(네이티브 모듈 목록·버전, Expo config, config plugin, patches)를 깨끗한 worktree 에서
+비교한다. 설정은 `app-rn/fingerprint.config.js` 이고, version·runtimeVersion·`eas.json` 등은 제외한다.
 
-- **Release Native Compat** 워크플로가 `release/**` 로 가는 PR 에서 돈다. `vX.Y.Z` 가 출시된 뒤면
-  네이티브가 바뀌는 머지를 막는다 (rc 기간엔 허용). ruleset 으로 `release/**` 의 필수 체크로 걸어 둔다.
-- 실패하면 바뀐 입력이 출력된다. 원하는 PR 만 cherry-pick 한다: `git cherry-pick -m 1 <merge commit>`.
+- 실패하면 워크플로 로그에 바뀐 입력이 찍힌다. 머지를 되돌리고 원하는 PR 만 cherry-pick 한다.
 - 네이티브 의존을 추가하는 PR 에는 그 기능만 넣는다. 다른 수정이 섞이면 cherry-pick 으로 떼어낼 수 없다.
 - 네이티브 모듈 제거나 config plugin 주석 수정도 fingerprint 를 바꾼다 (보수적으로 막힌다).
-- 로컬 확인: `.github/scripts/native-compat/check.sh v1.2.5` (커밋된 HEAD 기준).
 
 ## Flow
 
@@ -61,10 +58,15 @@ git tag v1.2.5-rc.1 && git push origin v1.2.5-rc.1
 git tag v1.2.5 && git push origin v1.2.5          # 스토어 심사 제출까지 자동
 git switch main && git merge release/1.2.5
 
-# 출시 후 OTA: main 의 변경을 PR(main → release/1.2.5)로 머지하거나, 막히면 cherry-pick
-git switch release/1.2.5
+# 출시 후 OTA
+git switch release/1.2.5 && git merge main && git push
 git tag js-v1.2.5-update.1.prod && git push origin js-v1.2.5-update.1.prod
 git switch main && git merge release/1.2.5
+
+# OTA 가드가 fingerprint 로 실패하면: 태그와 머지를 되돌리고 필요한 PR 만 가져온다
+git push --delete origin js-v1.2.5-update.1.prod && git tag -d js-v1.2.5-update.1.prod
+git switch release/1.2.5 && git reset --hard <머지 전 커밋> && git push --force
+git cherry-pick -m 1 <PR 의 merge commit>      # 이후 다시 태그
 ```
 
 iOS 심사는 통과해도 자동 출시하지 않는다 (`automatic_release: false`). App Store Connect 에서 출시를 누른다.

@@ -49,5 +49,5 @@ FP_MODULE="$(cd "$WORK/head/app-rn" && node -p "require.resolve(\"@expo/fingerpr
     const src = d.addedSource ?? d.removedSource ?? d.afterSource;
     console.log(`  ${d.op.padEnd(7)} ${src.filePath ?? src.id}`);
   }' "$WORK/base.json" "$WORK/head.json"
-echo "새 네이티브 의존 없이 내보내려면 해당 PR 을 release 브랜치로 cherry-pick 할 것 (merge commit 은 -m 1)."
+echo "release 브랜치의 main 머지를 되돌리고 필요한 PR 만 cherry-pick 할 것 (merge commit 은 -m 1)."
 exit 1
