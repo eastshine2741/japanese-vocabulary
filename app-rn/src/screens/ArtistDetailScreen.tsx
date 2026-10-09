@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   Animated,
   Image,
   Linking,
@@ -18,6 +17,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import ArtworkImage from '../components/ArtworkImage';
 import ErrorDialog from '../components/ErrorDialog';
+import SkeletonBox from '../components/SkeletonLoading';
 import RowSpinner from '../components/RowSpinner';
 import { artistApi } from '../api/artistApi';
 import { isAnalyzingSong, useAnalysisStore } from '../stores/analysisStore';
@@ -36,6 +36,7 @@ const HERO_HEIGHT = 300;
 const COLLAPSED_BAR_HEIGHT = 56;
 const PARALLAX_RATIO = 0.4;
 const CHEVRON_SIZE = 18;
+const SKELETON_ROWS = [0, 1, 2, 3, 4, 5];
 
 type ArtistRow =
   | { kind: 'studying'; song: ArtistStudyingSong }
@@ -343,14 +344,11 @@ export default function ArtistDetailScreen({ navigation, route }: Props) {
 
   if (status === 'loading') {
     return (
-      <View style={styles.container}>
-        <ActivityIndicator color={Colors.primary} style={styles.center} />
-        <View style={[styles.floatingBackBar, { paddingTop: insets.top + 6 }]}>
-          <Pressable style={styles.backButtonOnLight} onPress={handleBack} hitSlop={8}>
-            <Ionicons name="chevron-back" size={24} color={Colors.textPrimary} />
-          </Pressable>
-        </View>
-      </View>
+      <ArtistDetailSkeleton
+        topInset={insets.top}
+        collapsedBarFullHeight={collapsedBarFullHeight}
+        onBack={handleBack}
+      />
     );
   }
 
@@ -429,6 +427,45 @@ export default function ArtistDetailScreen({ navigation, route }: Props) {
 const keyExtractor = (item: ArtistRow) =>
   item.kind === 'studying' ? `studying-${item.song.songId}` : `popular-${item.song.id}`;
 
+const ArtistDetailSkeleton = React.memo(function ArtistDetailSkeleton({
+  topInset,
+  collapsedBarFullHeight,
+  onBack,
+}: {
+  topInset: number;
+  collapsedBarFullHeight: number;
+  onBack: () => void;
+}) {
+  return (
+    <View style={styles.container}>
+      <View style={[styles.hero, styles.skeletonHero]}>
+        <View style={styles.heroInfo}>
+          <SkeletonBox width="56%" height={32} borderRadius={8} style={styles.skeletonOnDark} />
+        </View>
+      </View>
+      <View style={[styles.sectionHeader, styles.firstSectionHeader]}>
+        <SkeletonBox width={64} height={17} borderRadius={5} />
+      </View>
+      {SKELETON_ROWS.map(index => (
+        <View key={index} style={styles.row}>
+          <SkeletonBox width={48} height={48} borderRadius={8} />
+          <View style={styles.rowInfo}>
+            <SkeletonBox width="62%" height={15} borderRadius={5} />
+          </View>
+        </View>
+      ))}
+      <View
+        pointerEvents="box-none"
+        style={[styles.appBar, { height: collapsedBarFullHeight, paddingTop: topInset }]}
+      >
+        <Pressable style={styles.backButton} onPress={onBack} hitSlop={8}>
+          <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
+        </Pressable>
+      </View>
+    </View>
+  );
+});
+
 const EmptyState = React.memo(function EmptyState() {
   return (
     <View style={styles.empty}>
@@ -467,6 +504,12 @@ const styles = StyleSheet.create({
     height: 40,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  skeletonHero: {
+    backgroundColor: '#C8C8C8',
+  },
+  skeletonOnDark: {
+    backgroundColor: '#FFFFFF4D',
   },
   heroBackdrop: {
     position: 'absolute',
