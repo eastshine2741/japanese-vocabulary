@@ -228,3 +228,47 @@ spec:
             - name: firebase-credentials
               secret:
                 secretName: firebase-credentials
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: artist-link
+spec:
+  # 분석 완료 때 아티스트를 잇지 못한 곡을 Apple Music 에서 다시 찾아 잇는다
+  schedule: "0 5 * * *"
+  timeZone: "Asia/Seoul"
+  suspend: false
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      # 못 이은 곡은 다음 날 실행이 다시 찾는다. 바로 재시도하면 카탈로그에 없는 곡까지 전부 다시 검색한다.
+      backoffLimit: 0
+      template:
+        spec:
+          restartPolicy: Never
+          enableServiceLinks: false
+          containers:
+            - name: batch
+              image: ${BATCH_IMAGE}
+              imagePullPolicy: Never
+              args:
+                - "--task=artist-link"
+              env:
+                - name: GOOGLE_APPLICATION_CREDENTIALS
+                  value: /var/secrets/firebase/service-account.json
+              envFrom:
+                - configMapRef:
+                    name: batch-config
+                - secretRef:
+                    name: batch-secret
+              volumeMounts:
+                - name: firebase-credentials
+                  mountPath: /var/secrets/firebase
+                  readOnly: true
+          volumes:
+            - name: firebase-credentials
+              secret:
+                secretName: firebase-credentials

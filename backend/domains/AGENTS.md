@@ -17,7 +17,7 @@ Applies to all modules under `backend/domains/`.
 - REST controllers and HTTP-specific DTOs.
 - Schedulers, Spring Batch jobs/steps, and batch workflow workers.
 - App-specific page/search/projection/read-model workflows.
-- External music provider clients such as iTunes, YouTube, LRCLIB, or VocaDB.
+- External music provider clients such as Apple Music, YouTube, LRCLIB, or VocaDB.
 - Test `@SpringBootApplication` classes.
 
 ## Spring Wiring

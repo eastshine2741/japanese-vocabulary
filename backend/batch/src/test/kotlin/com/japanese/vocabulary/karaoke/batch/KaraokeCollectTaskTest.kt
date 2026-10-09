@@ -15,7 +15,7 @@ import com.japanese.vocabulary.song.entity.LyricType
 import com.japanese.vocabulary.song.entity.SongEntity
 import com.japanese.vocabulary.songanalysis.entity.SongAnalysisTriggerSource
 import com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkEntity
-import com.japanese.vocabulary.songsearch.client.itunes.ItunesClient
+import com.japanese.vocabulary.songsearch.client.applemusic.AppleMusicClient
 import com.japanese.vocabulary.songsearch.dto.SongSearchItemDto
 import com.japanese.vocabulary.songsearch.dto.SongSearchResponse
 import com.japanese.vocabulary.studystats.util.KstClock
@@ -41,7 +41,7 @@ class KaraokeCollectTaskTest : BatchBaseIntegrationTest() {
     @MockkBean private lateinit var firebaseApp: FirebaseApp
     @MockkBean private lateinit var tjClient: TjClient
     @MockkBean private lateinit var kyClient: KyClient
-    @MockkBean private lateinit var itunesClient: ItunesClient
+    @MockkBean private lateinit var appleMusicClient: AppleMusicClient
     @MockkBean(relaxed = true) private lateinit var queuePublisher: SongAnalysisWorkQueuePublisher
 
     @Autowired private lateinit var task: KaraokeCollectTask
@@ -55,8 +55,8 @@ class KaraokeCollectTaskTest : BatchBaseIntegrationTest() {
         today = kstClock.nowKst().toLocalDate()
         sentMessages.clear()
         every { firebaseMessaging.send(capture(sentMessages)) } returns "fcm-message-id"
-        every { itunesClient.search(any()) } returns SongSearchResponse(emptyList())
-        every { itunesClient.search("唱 Ado") } returns SongSearchResponse(
+        every { appleMusicClient.search(any()) } returns SongSearchResponse(emptyList())
+        every { appleMusicClient.search("唱 Ado") } returns SongSearchResponse(
             listOf(
                 SongSearchItemDto("1", "唱 (Remix)", "https://art/remix.jpg", "Ado", 200),
                 SongSearchItemDto("2", "唱", "https://art/sho.jpg", "Ado", 189),

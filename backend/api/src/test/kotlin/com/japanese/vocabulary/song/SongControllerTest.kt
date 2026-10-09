@@ -1260,7 +1260,7 @@ class SongControllerTest : ApiBaseIntegrationTest() {
     inner class Search {
 
         @Test
-        fun `blank query returns empty without calling iTunes`() {
+        fun `blank query returns empty without calling Apple Music`() {
             val me = newUser()
 
             val body = mockMvc.get("/api/songs/search") {
@@ -1269,13 +1269,13 @@ class SongControllerTest : ApiBaseIntegrationTest() {
             }.andExpect { status { isOk() } }.andReturn().response.contentAsString
 
             assertThat(readBody<SongSearchResponse>(body).items).isEmpty()
-            io.mockk.verify(exactly = 0) { itunesClient.search(any()) }
+            io.mockk.verify(exactly = 0) { appleMusicClient.search(any()) }
         }
 
         @Test
         fun `same query within TTL is served from Redis cache`() {
             val me = newUser()
-            every { itunesClient.search("query") } returns SongSearchResponse(
+            every { appleMusicClient.search("query") } returns SongSearchResponse(
                 items = listOf(
                     SongSearchItemDto(id = "1", title = "曲", thumbnail = "thumb", artistName = "歌手", durationSeconds = 200),
                 ),
@@ -1294,13 +1294,13 @@ class SongControllerTest : ApiBaseIntegrationTest() {
             val second = readBody<SongSearchResponse>(secondBody)
 
             assertThat(first).isEqualTo(second)
-            io.mockk.verify(exactly = 1) { itunesClient.search("query") }
+            io.mockk.verify(exactly = 1) { appleMusicClient.search("query") }
         }
 
         @Test
         fun `cache key normalization treats whitespace and case as equivalent`() {
             val me = newUser()
-            every { itunesClient.search(any()) } returns SongSearchResponse(items = emptyList())
+            every { appleMusicClient.search(any()) } returns SongSearchResponse(items = emptyList())
 
             mockMvc.get("/api/songs/search") {
                 header("Authorization", bearer(me))
@@ -1311,7 +1311,7 @@ class SongControllerTest : ApiBaseIntegrationTest() {
                 param("q", "  mysong  ")
             }
 
-            io.mockk.verify(exactly = 1) { itunesClient.search(any()) }
+            io.mockk.verify(exactly = 1) { appleMusicClient.search(any()) }
         }
     }
 

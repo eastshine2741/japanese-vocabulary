@@ -10,6 +10,8 @@ import java.time.Instant
 interface DeckRepository : JpaRepository<DeckEntity, Long> {
     fun findByUserIdAndSongId(userId: Long, songId: Long): DeckEntity?
 
+    fun findByUserIdAndSongIdIn(userId: Long, songIds: Collection<Long>): List<DeckEntity>
+
     fun findByUserIdAndIsDefaultTrue(userId: Long): DeckEntity?
 
     fun findByUserIdOrderByCreatedAtDesc(userId: Long, pageable: Pageable): List<DeckEntity>

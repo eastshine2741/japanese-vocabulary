@@ -22,7 +22,7 @@ import org.junit.jupiter.api.Test
 
 /**
  * Pure-mock coverage of candidate filtering in [YoutubeMvSearchService]: an upload far
- * shorter or longer than the iTunes track, by another artist, or titled as a live/tour clip
+ * shorter or longer than the catalog track, by another artist, or titled as a live/tour clip
  * never wins over the full MV, on both the broad-search and cached-uploads paths. A live clip
  * by the artist is still taken when no MV exists at all.
  */
@@ -226,7 +226,7 @@ class YoutubeMvSearchServiceTest {
     }
 
     @Test
-    fun `search matches either half of a bilingual iTunes title`() {
+    fun `search matches either half of a bilingual catalog title`() {
         every { artistChannelCache.get(ARTIST) } returns null
         stubSearch(
             searchItem("jp-id", "米津玄師 - ピースサイン , Kenshi Yonezu - Peace Sign"),

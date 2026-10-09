@@ -34,7 +34,7 @@ class KaraokeTitleCleanerTest {
     }
 
     @Test
-    fun `matches itunes results only on both title and artist`() {
+    fun `matches catalog results only on both title and artist`() {
         assertThat(KaraokeTitleCleaner.sameSong("風のゆくえ(映画 'ONE PIECE FILM RED' OST)", "Ado", "風のゆくえ", "Ado")).isTrue()
         assertThat(KaraokeTitleCleaner.sameSong("歌姫失格", "ピノキオピー(Feat.初音ミク)", "歌姫失格", "ピノキオピー feat. 初音ミク")).isTrue()
         assertThat(KaraokeTitleCleaner.sameSong("光", "RADWIMPS", "光", "宇多田ヒカル")).isFalse()

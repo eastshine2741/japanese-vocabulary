@@ -35,6 +35,7 @@ class SongDetailQueryService(
             artworkUrl = song.artworkUrl,
             youtubeUrl = song.youtubeUrl,
             lyricType = lyric?.lyricType ?: LyricType.PLAIN,
+            artistId = song.artistId,
         )
     }
 

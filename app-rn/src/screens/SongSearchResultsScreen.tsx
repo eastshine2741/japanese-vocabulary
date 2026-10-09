@@ -263,7 +263,7 @@ export default function SongSearchResultsScreen() {
           keyExtractor={keyExtractor}
           renderItem={renderResultItem}
           ListFooterComponent={
-            <Text style={styles.attribution}>Music search powered by iTunes</Text>
+            <Text style={styles.attribution}>Music search powered by Apple Music</Text>
           }
           contentContainerStyle={styles.list}
           ItemSeparatorComponent={ResultSeparator}

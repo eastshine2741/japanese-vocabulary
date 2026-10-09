@@ -9,7 +9,7 @@ import com.japanese.vocabulary.karaokelisting.KaraokeListing
 import com.japanese.vocabulary.karaokelisting.KaraokeListingVendor
 import com.japanese.vocabulary.karaokelisting.KyClient
 import com.japanese.vocabulary.karaokelisting.TjClient
-import com.japanese.vocabulary.songsearch.client.itunes.ItunesClient
+import com.japanese.vocabulary.songsearch.client.applemusic.AppleMusicClient
 import com.japanese.vocabulary.songsearch.dto.SongSearchItemDto
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
@@ -24,7 +24,7 @@ import java.time.YearMonth
 class KaraokeListingCollector(
     private val tjClient: TjClient,
     private val kyClient: KyClient,
-    private val itunesClient: ItunesClient,
+    private val appleMusicClient: AppleMusicClient,
     private val karaokeSongService: KaraokeSongService,
 ) {
     private val logger = LoggerFactory.getLogger(KaraokeListingCollector::class.java)
@@ -61,7 +61,7 @@ class KaraokeListingCollector(
     }
 
     private fun toRegistration(listing: KaraokeListing, today: LocalDate): KaraokeSongRegistration {
-        val match = findItunesMatch(listing)
+        val match = findCatalogMatch(listing)
         return KaraokeSongRegistration(
             vendor = KaraokeVendor.valueOf(listing.vendor.name),
             number = listing.number,
@@ -73,13 +73,13 @@ class KaraokeListingCollector(
         )
     }
 
-    // iTunes 표기가 곡의 이름이 된다: 유저가 검색으로 만든 곡과 같은 키로 만나고, 금영의 잘린 표기도 복원된다.
-    private fun findItunesMatch(listing: KaraokeListing): SongSearchItemDto? {
+    // Apple Music 표기가 곡의 이름이 된다: 유저가 검색으로 만든 곡과 같은 키로 만나고, 금영의 잘린 표기도 복원된다.
+    private fun findCatalogMatch(listing: KaraokeListing): SongSearchItemDto? {
         val title = KaraokeTitleCleaner.cleanTitle(listing.title)
         val items = try {
-            itunesClient.search("$title ${KaraokeTitleCleaner.cleanArtist(listing.artist)}").items
+            appleMusicClient.search("$title ${KaraokeTitleCleaner.cleanArtist(listing.artist)}").items
         } catch (e: Exception) {
-            logger.warn("karaokeCollect iTunes search failed vendor={} number={}", listing.vendor, listing.number, e)
+            logger.warn("karaokeCollect Apple Music search failed vendor={} number={}", listing.vendor, listing.number, e)
             return null
         }
         val matches = items.filter { KaraokeTitleCleaner.sameSong(listing.title, listing.artist, it.title, it.artistName) }
