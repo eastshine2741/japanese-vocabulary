@@ -20,6 +20,7 @@ spec:
       template:
         spec:
           restartPolicy: Never
+          enableServiceLinks: false
           imagePullSecrets:
             - name: ghcr-pull
           containers:
@@ -71,6 +72,7 @@ spec:
       template:
         spec:
           restartPolicy: Never
+          enableServiceLinks: false
           imagePullSecrets:
             - name: ghcr-pull
           containers:
@@ -122,6 +124,7 @@ spec:
       template:
         spec:
           restartPolicy: Never
+          enableServiceLinks: false
           imagePullSecrets:
             - name: ghcr-pull
           containers:
@@ -172,6 +175,7 @@ spec:
       template:
         spec:
           restartPolicy: Never
+          enableServiceLinks: false
           imagePullSecrets:
             - name: ghcr-pull
           containers:
