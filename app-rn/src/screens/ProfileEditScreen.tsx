@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  BackHandler,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -21,6 +22,10 @@ import { authApi, UsernameAvailabilityReason } from '../api/authApi';
 import { Colors } from '../theme/theme';
 import { AppBar } from '../components/AppBar';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import ProfileAvatar from '../components/ProfileAvatar';
+import ProfileImageActionSheet from '../components/ProfileImageActionSheet';
+import { AppBottomSheetModal, AppBottomSheetModalRef, AppBottomSheetView } from '../components/bottomSheet';
+import { pickProfileImage, uploadProfileImage } from '../services/profileImage';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ProfileEdit'>;
 
@@ -28,6 +33,7 @@ const USERNAME_REGEX = /^[a-z0-9_]{3,20}$/;
 const NAME_MAX = 20;
 const USERNAME_MAX = 20;
 const CHECK_DEBOUNCE_MS = 300;
+const AVATAR_SIZE = 88;
 
 type UsernameState =
   | { kind: 'unchanged' }
@@ -43,12 +49,14 @@ const REASON_HINT: Record<UsernameAvailabilityReason, string> = {
 };
 
 export default function ProfileEditScreen({ navigation }: Props) {
-  const { username, userName, setUserName, setUsername } = useAuthStore(
+  const { username, userName, profileImageUrl, setUserName, setUsername, setProfileImageUrl } = useAuthStore(
     useShallow((s) => ({
       username: s.username,
       userName: s.userName,
+      profileImageUrl: s.profileImageUrl,
       setUserName: s.setUserName,
       setUsername: s.setUsername,
+      setProfileImageUrl: s.setProfileImageUrl,
     })),
   );
 
@@ -61,6 +69,10 @@ export default function ProfileEditScreen({ navigation }: Props) {
   const [focusedField, setFocusedField] = useState<'name' | 'username' | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [imageBusy, setImageBusy] = useState(false);
+
+  const imageSheetRef = useRef<AppBottomSheetModalRef>(null);
+  const imageSheetOpenRef = useRef(false);
 
   const checkSeqRef = useRef(0);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -71,6 +83,69 @@ export default function ProfileEditScreen({ navigation }: Props) {
     },
     [],
   );
+
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (!imageSheetOpenRef.current) return false;
+      imageSheetOpenRef.current = false;
+      imageSheetRef.current?.dismiss();
+      return true;
+    });
+    return () => sub.remove();
+  }, []);
+
+  const closeImageSheet = useCallback(() => {
+    imageSheetOpenRef.current = false;
+    imageSheetRef.current?.dismiss();
+  }, []);
+
+  const handleImageSheetChange = useCallback((index: number) => {
+    imageSheetOpenRef.current = index >= 0;
+  }, []);
+
+  const pickAndUpload = useCallback(async () => {
+    const uri = await pickProfileImage();
+    if (!uri) return;
+    setImageBusy(true);
+    setError(null);
+    try {
+      const profile = await uploadProfileImage(uri);
+      setProfileImageUrl(profile.profileImageUrl);
+    } catch (e: any) {
+      setError(e.response?.data?.message || '사진을 올리지 못했어요');
+    } finally {
+      setImageBusy(false);
+    }
+  }, [setProfileImageUrl]);
+
+  const handlePressAvatar = useCallback(() => {
+    if (imageBusy) return;
+    if (profileImageUrl) {
+      imageSheetOpenRef.current = true;
+      imageSheetRef.current?.present();
+    } else {
+      pickAndUpload();
+    }
+  }, [imageBusy, profileImageUrl, pickAndUpload]);
+
+  const handlePickFromSheet = useCallback(() => {
+    closeImageSheet();
+    pickAndUpload();
+  }, [closeImageSheet, pickAndUpload]);
+
+  const handleRemoveImage = useCallback(async () => {
+    closeImageSheet();
+    setImageBusy(true);
+    setError(null);
+    try {
+      const profile = await userApi.removeProfileImage();
+      setProfileImageUrl(profile.profileImageUrl);
+    } catch (e: any) {
+      setError(e.response?.data?.message || '사진을 삭제하지 못했어요');
+    } finally {
+      setImageBusy(false);
+    }
+  }, [closeImageSheet, setProfileImageUrl]);
 
   const handleUsernameChange = (raw: string) => {
     const next = raw.toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, USERNAME_MAX);
@@ -190,6 +265,23 @@ export default function ProfileEditScreen({ navigation }: Props) {
 
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <View style={styles.form}>
+            <Pressable
+              style={styles.avatarWrap}
+              onPress={handlePressAvatar}
+              disabled={imageBusy}
+              hitSlop={8}
+            >
+              <ProfileAvatar url={profileImageUrl} size={AVATAR_SIZE} />
+              {imageBusy && (
+                <View style={styles.avatarBusy}>
+                  <ActivityIndicator color={Colors.background} />
+                </View>
+              )}
+              <View style={styles.avatarBadge}>
+                <Ionicons name="camera" size={14} color={Colors.textSecondary} />
+              </View>
+            </Pressable>
+
             <View style={styles.field}>
               <Text style={styles.fieldLabel}>유저네임</Text>
               <View
@@ -262,6 +354,17 @@ export default function ProfileEditScreen({ navigation }: Props) {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <AppBottomSheetModal
+        ref={imageSheetRef}
+        enableDynamicSizing
+        enablePanDownToClose
+        onChange={handleImageSheetChange}
+      >
+        <AppBottomSheetView>
+          <ProfileImageActionSheet onPick={handlePickFromSheet} onRemove={handleRemoveImage} />
+        </AppBottomSheetView>
+      </AppBottomSheetModal>
     </SafeAreaView>
   );
 }
@@ -281,6 +384,28 @@ const styles = StyleSheet.create({
 
   scroll: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 8, paddingBottom: 24 },
   form: { gap: 24 },
+
+  avatarWrap: { alignSelf: 'center', width: AVATAR_SIZE, height: AVATAR_SIZE },
+  avatarBusy: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: AVATAR_SIZE / 2,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarBadge: {
+    position: 'absolute',
+    right: 0,
+    bottom: 0,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: Colors.elevated,
+    borderWidth: 2,
+    borderColor: Colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 
   field: { gap: 8 },
   fieldLabel: { fontSize: 13, fontWeight: '600', color: Colors.textSecondary },

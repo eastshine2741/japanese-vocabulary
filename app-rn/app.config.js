@@ -134,6 +134,14 @@ export default {
       ],
       'expo-notifications',
       [
+        'expo-image-picker',
+        {
+          photosPermission: '프로필 사진을 고르기 위해 사진 보관함에 접근해요.',
+          cameraPermission: false,
+          microphonePermission: false,
+        },
+      ],
+      [
         'expo-splash-screen',
         {
           image: './assets/splash-icon.png',

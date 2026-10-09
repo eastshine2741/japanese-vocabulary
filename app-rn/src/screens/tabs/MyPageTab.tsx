@@ -15,6 +15,7 @@ import FreezeInfoSheet from '../../components/studyStats/FreezeInfoSheet';
 import SongProgressRow from '../../components/studyStats/SongProgressRow';
 import { SongProgressItem, toSongProgressItem } from '../../components/studyStats/songProgress';
 import MemoryProgressBar from '../../components/MemoryProgressBar';
+import ProfileAvatar from '../../components/ProfileAvatar';
 import { flashcardApi } from '../../api/flashcardApi';
 import { FlashcardStatsResponse } from '../../types/flashcard';
 
@@ -25,6 +26,7 @@ export default function MyPageTab() {
   const insets = useSafeAreaInsets();
   const username = useAuthStore((s) => s.username);
   const userName = useAuthStore((s) => s.userName);
+  const profileImageUrl = useAuthStore((s) => s.profileImageUrl);
   const loadProfile = useAuthStore((s) => s.loadProfile);
   const { deckStatus, songDecks, loadDecks } = useDeckListStore(
     useShallow((s) => ({
@@ -133,9 +135,7 @@ export default function MyPageTab() {
         </View>
 
         <View style={styles.profileCard}>
-          <View style={styles.avatar}>
-            <Ionicons name="person" size={28} color={Colors.textMuted} />
-          </View>
+          <ProfileAvatar url={profileImageUrl} size={56} />
           <View style={styles.nameRow}>
             <Text style={styles.profName}>{displayName}</Text>
           </View>
@@ -267,14 +267,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 14,
     paddingVertical: 12,
-  },
-  avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: Colors.card,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   nameRow: {
     flex: 1,

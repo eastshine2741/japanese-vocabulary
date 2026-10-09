@@ -19,7 +19,7 @@ import { useWordExamplesStore } from '../stores/wordExamplesStore';
 const emptyStatsSlice = () => ({ status: 'idle' as const, data: null, error: null, staleAt: 0 });
 
 export function resetAllStores() {
-  useAuthStore.setState({ status: 'idle', error: null, username: null, userName: null });
+  useAuthStore.setState({ status: 'idle', error: null, username: null, userName: null, profileImageUrl: null });
 
   useHomeStore.setState({ status: 'loading', songs: [], error: null });
   useRecommendationStore.setState({ status: 'loading', songs: [], error: null });

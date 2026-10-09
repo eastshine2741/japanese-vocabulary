@@ -8,6 +8,7 @@ include(
     "integrations:github",
     "integrations:message-queue",
     "integrations:karaoke-listing",
+    "integrations:object-storage",
 )
 include(
     "domains:song",

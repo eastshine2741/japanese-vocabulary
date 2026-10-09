@@ -27,6 +27,7 @@ dependencies {
     implementation(project(":integrations:song-search"))
     implementation(project(":integrations:github"))
     implementation(project(":integrations:message-queue"))
+    implementation(project(":integrations:object-storage"))
 
     implementation("org.springframework.boot:spring-boot-starter-amqp")
     implementation("org.springframework.boot:spring-boot-starter-web")

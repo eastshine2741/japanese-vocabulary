@@ -122,6 +122,11 @@ TypeSafe Jev (`TYPESAFE_API_KEY`), the other LLM stages on Gemini. Details live 
 `GITHUB_VOC_TOKEN`; 비면 503. `GET /api/users/me`가 username/name/email을 돌려준다.
 앱은 `expo-device`/`expo-application`을 쓰므로 새 네이티브 빌드가 필요하다.
 
+**Profile image:** 앱이 `POST /api/users/me/profile-image/upload-url` 로 받은 presigned URL 에 R2 로 직접 PUT 하고
+`PUT /api/users/me/profile-image {key}` 로 확정한다. key 는 `avatars/{userId}/{uuid}.{ext}`, 확정 때 HEAD 로 5MB·타입을 검사하고
+이전 객체는 지운다. 버킷은 `kotonoha-prod`/`kotonoha-dev`(dev 네임스페이스 공유) 이고 `infra/terraform` 이 만든다.
+`OBJECT_STORAGE_*` 가 하나라도 비면 업로드 API 가 503.
+
 **Streak commitment (260918):** `GET /api/study-stats/home`이 `studiedToday`/`hasStudiedBefore`를 내려주고,
 `batch`의 `StreakReminderTask`가 20:00/23:00 KST CronJob 으로 `streak_reminder` 알림을 보낸다 (단어 회상 알림은 폐기). 23:00은 카운트다운용 `expiresAt`을 싣고 Android data-only.
 freeze 행은 연속을 잇기만 하고 streak/총 학습일 카운트에는 들어가지 않는다.

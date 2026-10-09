@@ -20,6 +20,7 @@ Applies to all modules under `backend/integrations/`.
 - `lyric-search`: LRCLIB, VocaDB, and UtaiteDB (same API as VocaDB; fallback when VocaDB is behind a Cloudflare 403) lyric search.
 - `mv-search`: YouTube MV search.
 - `github`: GitHub issue creation (`GithubIssueClient`), used by `api` for VOC. Token blank -> `enabled=false`.
+- `object-storage`: S3-compatible bucket (Cloudflare R2) client — presigned PUT, HEAD, DELETE, public URL. Used by `api` for profile images. Any blank setting -> `enabled=false`.
 - `message-queue`: song analysis work queue names plus the publisher that turns
   `SongAnalysisWorkQueuedEvent` into a `(workId, stage)` message on `AFTER_COMMIT`. Producers are
   `api`/`admin-api` (first stage, resume) and `worker` (each next stage); the consumer lives in `worker`. Broker topology is owned by the definitions the broker imports at

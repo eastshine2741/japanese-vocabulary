@@ -11,12 +11,14 @@ class TestUserBuilder(private val em: EntityManager) {
     private var username: String = "user$seq"
     private var email: String? = null
     private var name: String? = null
+    private var profileImageKey: String? = null
 
     fun withProvider(value: String) = apply { provider = value }
     fun withProviderSub(value: String) = apply { providerSub = value }
     fun withUsername(value: String) = apply { username = value }
     fun withEmail(value: String?) = apply { email = value }
     fun withName(value: String?) = apply { name = value }
+    fun withProfileImageKey(value: String?) = apply { profileImageKey = value }
 
     fun build(): UserEntity = UserEntity(
         provider = provider,
@@ -24,6 +26,7 @@ class TestUserBuilder(private val em: EntityManager) {
         username = username,
         email = email,
         name = name,
+        profileImageKey = profileImageKey,
     ).also {
         em.persist(it)
         em.flush()
