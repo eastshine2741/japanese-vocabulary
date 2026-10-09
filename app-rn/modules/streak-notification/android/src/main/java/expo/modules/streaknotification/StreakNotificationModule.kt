@@ -5,6 +5,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.os.SystemClock
+import android.widget.RemoteViews
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import expo.modules.kotlin.exception.Exceptions
@@ -12,8 +14,8 @@ import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 
 /**
- * 연속 학습 23:00 알림을 만료 시각까지 줄어드는 카운트다운(크로노미터)으로 그린다.
- * expo-notifications 로는 크로노미터를 켤 수 없어서 이 알림만 직접 만든다.
+ * 연속 학습 23:00 알림을 오른쪽에 큰 빨간 카운트다운이 붙은 커스텀 레이아웃으로 그린다.
+ * expo-notifications 로는 커스텀 뷰를 쓸 수 없어서 이 알림만 직접 만든다.
  * 탭은 앱을 열고 알림의 data 를 `onPress` 이벤트(또는 콜드 스타트면 [consumeInitialPress])로 넘긴다.
  */
 class StreakNotificationModule : Module() {
@@ -44,15 +46,15 @@ class StreakNotificationModule : Module() {
 
       val builder = NotificationCompat.Builder(context, channelId)
         .setSmallIcon(smallIcon())
+        // 커스텀 뷰를 못 그리는 곳(잠금화면 공개 버전, 웨어러블)은 제목/본문을 쓴다.
         .setContentTitle(title)
         .setContentText(body)
-        .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+        .setStyle(NotificationCompat.DecoratedCustomViewStyle())
+        .setCustomContentView(countdownView(title, body, remaining, collapsed = true))
+        .setCustomBigContentView(countdownView(title, body, remaining, collapsed = false))
         .setPriority(NotificationCompat.PRIORITY_HIGH)
         .setCategory(NotificationCompat.CATEGORY_REMINDER)
-        .setWhen(expiresAtMs)
-        .setShowWhen(true)
-        .setUsesChronometer(true)
-        .setChronometerCountDown(true)
+        .setShowWhen(false)
         .setTimeoutAfter(remaining)
         .setAutoCancel(true)
         .setContentIntent(contentIntent)
@@ -77,6 +79,16 @@ class StreakNotificationModule : Module() {
       takeData(intent)?.let { sendEvent("onPress", it) }
     }
   }
+
+  private fun countdownView(title: String, body: String, remaining: Long, collapsed: Boolean): RemoteViews =
+    RemoteViews(context.packageName, R.layout.streak_countdown_notification).apply {
+      setTextViewText(R.id.streak_title, title)
+      setTextViewText(R.id.streak_body, body)
+      setInt(R.id.streak_body, "setMaxLines", if (collapsed) 1 else 4)
+      // Chronometer base 는 elapsedRealtime 기준이라 벽시계 만료 시각을 남은 시간으로 옮긴다.
+      setChronometer(R.id.streak_timer, SystemClock.elapsedRealtime() + remaining, null, true)
+      setChronometerCountDown(R.id.streak_timer, true)
+    }
 
   /** 탭으로 들어온 intent 에서 data 를 꺼내고, 같은 intent 로 두 번 처리하지 않도록 지운다. */
   private fun takeData(intent: Intent): Map<String, String>? {

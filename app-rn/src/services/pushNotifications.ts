@@ -145,15 +145,16 @@ async function tryShowStreakCountdown(
   }
 }
 
+/** 카운트다운으로 그렸으면 'countdown', expo-notifications 일반 알림이면 'plain'. */
 async function displayLocalNotification(
   remoteMessage: RemoteMessage,
-): Promise<void> {
+): Promise<'countdown' | 'plain'> {
   const data = remoteMessage.data ?? {};
   const title =
     typeof data.title === 'string' ? data.title : remoteMessage.notification?.title ?? '';
   const body =
     typeof data.body === 'string' ? data.body : remoteMessage.notification?.body ?? '';
-  if (await tryShowStreakCountdown(title, body, data)) return;
+  if (await tryShowStreakCountdown(title, body, data)) return 'countdown';
   await Notifications.scheduleNotificationAsync({
     content: {
       title,
@@ -163,6 +164,27 @@ async function displayLocalNotification(
     },
     trigger: null,
   });
+  return 'plain';
+}
+
+/** 디버그 오버레이용: 23:00 streak_reminder data-only 푸시가 도착한 것처럼 같은 경로로 그린다. */
+export async function debugShowStreakReminder(input: {
+  title: string;
+  body: string;
+  expiresAt: number;
+}): Promise<'countdown' | 'plain' | 'no-permission'> {
+  // 워크트리 빌드는 Firebase 가 꺼져 있어 로그인 때 권한 요청을 건너뛴다.
+  const { status } = await Notifications.requestPermissionsAsync();
+  if (status !== 'granted') return 'no-permission';
+  await ensureAndroidChannel();
+  return displayLocalNotification({
+    data: {
+      type: 'streak_reminder',
+      title: input.title,
+      body: input.body,
+      expiresAt: String(input.expiresAt),
+    },
+  } as unknown as RemoteMessage);
 }
 
 // Module-scope: must be registered before a data-only push reaches a killed or backgrounded app.
