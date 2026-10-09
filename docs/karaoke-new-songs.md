@@ -54,8 +54,9 @@ AFTER_COMMIT 에 받아 같은 제목·가수의 빈 행을 잇는다. 놓친 �
 ## 구독
 
 `UserSettingsData.karaokeNewSongNotifications` (기본 false, opt-in). `PUT /api/settings` 는 설정 전체를 덮어쓰므로
-클라는 설정을 읽어 온 뒤에만 토글을 저장해야 한다. 푸시 대상은 탈퇴하지 않았고 `notificationsEnabled` 도 켜진 유저.
-푸시: 제목 `노래방에 새 일본곡 N곡`, 본문 `唱 - Ado 외 2곡`, `data = { type: "karaoke_new_songs", title, body }`.
+클라는 설정을 읽어 온 뒤에만 토글을 저장해야 한다. 푸시 대상은 이 값이 켜진, 탈퇴하지 않은 유저. 알림 중 끌 수 있는 것은 이것 하나다.
+푸시: 제목 `🎤 노래방 신곡이 업데이트되었어요!`, 본문 `唱, 夜明けの歌 외 1곡을 확인해보세요`(곡명 2개까지,
+조사는 한글 받침·`ん` 만 보고 나머지는 `를`), `data = { type: "karaoke_new_songs", title, body }`.
 
 ## 앱
 
@@ -65,5 +66,6 @@ AFTER_COMMIT 에 받아 같은 제목·가수의 빈 행을 잇는다. 놓친 �
 
 날짜별 응답이 달 단위라 목록 끝에 닿으면 클라가 이전 달을 당겨 이어 붙인다. 빈 달이 세 번 이어지면 멈춘다.
 
-앱바의 알림 토글은 `karaokeNewSongNotifications` 하나를 바꾸지만 `PUT /api/settings` 는 설정 전체를 덮어쓰므로,
+설정 탭 `알림` 섹션, 디스커버리 섹션 헤더, 노래방 신곡 화면 앱바의 알림 토글은 모두 `karaokeNewSongNotifications` 하나를 바꾸지만 `PUT /api/settings` 는 설정 전체를 덮어쓰므로,
 설정을 읽어 오기 전에는 저장하지 않는다.
+켜는 쪽으로 바꿀 때는 OS 알림 권한을 요청하고 기기 토큰을 다시 등록한다. OS 가 더는 묻지 않는 상태(거부 고정)면 설정 앱으로 가는 안내를 띄운다.

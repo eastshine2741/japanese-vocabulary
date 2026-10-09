@@ -59,6 +59,5 @@ export interface UserSettingsDTO {
   showKoreanPronunciation: boolean;
   showFurigana: boolean;
   dailyGoal: number;
-  notificationsEnabled: boolean;
   karaokeNewSongNotifications: boolean;
 }

@@ -1,4 +1,4 @@
-import { Platform } from 'react-native';
+import { Alert, Linking, Platform } from 'react-native';
 import { getApp } from '@react-native-firebase/app';
 import {
   AuthorizationStatus,
@@ -69,9 +69,10 @@ async function requestPermission(): Promise<boolean> {
 
 export async function requestPermissionAndRegisterToken(): Promise<void> {
   if (!FIREBASE_ENABLED) return;
-  const granted = await requestPermission();
-  if (!granted) return;
+  if (await requestPermission()) await registerToken();
+}
 
+async function registerToken(): Promise<void> {
   try {
     const token = await getToken(getFirebaseMessaging());
     if (!token) return;
@@ -80,6 +81,24 @@ export async function requestPermissionAndRegisterToken(): Promise<void> {
   } catch {
     // ignore — token registration is best-effort
   }
+}
+
+/** 알림 토글을 켤 때. OS 가 더 이상 다이얼로그를 띄우지 않으면 설정 앱으로 안내한다. */
+export async function requestPermissionForOptIn(): Promise<void> {
+  if (!FIREBASE_ENABLED) return;
+  try {
+    const { status, canAskAgain } = await Notifications.getPermissionsAsync();
+    if (status !== 'granted' && !canAskAgain) {
+      Alert.alert('알림이 꺼져 있어요', '휴대폰 설정에서 Kotonoha 알림을 허용해 주세요.', [
+        { text: '닫기', style: 'cancel' },
+        { text: '설정 열기', onPress: () => Linking.openSettings() },
+      ]);
+      return;
+    }
+  } catch {
+    return;
+  }
+  if (await requestPermission()) await registerToken();
 }
 
 export async function unregisterCurrentToken(): Promise<void> {

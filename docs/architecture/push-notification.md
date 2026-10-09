@@ -26,7 +26,7 @@ decide who gets what: `batch` (streak reminder CronJob), `worker` (analysis-comp
   expo-notifications. The module is native code, so it ships only with a new native build.
 - Karaoke new songs: `KaraokeNewSongNotifier` in `batch`, run by the `karaoke-collect` CronJob at
   `18:00` KST right after collection. One push per run to users with `karaokeNewSongNotifications` (opt-in,
-  default false) and `notificationsEnabled`. Payload `data.type` is `karaoke_new_songs`. Rules:
+  default false), the only user-gated push. Payload `data.type` is `karaoke_new_songs`. Rules:
   `docs/karaoke-new-songs.md`.
 - Manual trigger of a slot: create a Job from the CronJob —
   `kubectl create job --from=cronjob/streak-reminder-evening sr-$(date +%s) -n <ns>`.

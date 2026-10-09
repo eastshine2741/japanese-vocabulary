@@ -7,7 +7,6 @@ import com.japanese.vocabulary.notification.service.PushNotificationService
 import com.japanese.vocabulary.studystats.repository.DailyStudySummaryRepository
 import com.japanese.vocabulary.studystats.service.StreakCalculator
 import com.japanese.vocabulary.studystats.util.KstClock
-import com.japanese.vocabulary.user.repository.UserSettingsRepository
 import org.slf4j.LoggerFactory
 import org.springframework.boot.ApplicationArguments
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
@@ -21,7 +20,7 @@ import java.time.LocalDate
  * 여기서 정하고, notification 모듈은 토큰·제목·본문·data 만 받는다.
  *
  * 공통 대상:
- *  - 기기 토큰이 있고 notificationsEnabled (설정 행이 없으면 켜진 것으로 본다)
+ *  - 기기 토큰이 있다
  *  - 학습 이력이 있다 (daily_study_summary 행 1개 이상). 한 번도 안 한 유저는 대상이 아니다.
  *  - 발송 시점 오늘(KST 04:00 경계) 리뷰가 없다
  *
@@ -32,7 +31,6 @@ import java.time.LocalDate
 class StreakReminderTask(
     private val pushNotificationService: PushNotificationService,
     private val deviceTokenRepository: DeviceTokenRepository,
-    private val userSettingsRepository: UserSettingsRepository,
     private val dailyStudySummaryRepository: DailyStudySummaryRepository,
     private val streakCalculator: StreakCalculator,
     private val kstClock: KstClock,
@@ -85,13 +83,8 @@ class StreakReminderTask(
         val tokensByUserId = deviceTokenRepository.findAll().groupBy { it.userId }
         if (tokensByUserId.isEmpty()) return emptyList()
 
-        val settingsByUserId = userSettingsRepository.findAll().associateBy { it.userId }
-
         val out = mutableListOf<StreakReminderCandidate>()
         for ((userId, tokens) in tokensByUserId) {
-            val settings = settingsByUserId[userId]
-            if (settings != null && !settings.settings.notificationsEnabled) continue
-
             val lastStudyDate = dailyStudySummaryRepository.findLastDateKst(userId) ?: continue
             val todayRow = dailyStudySummaryRepository.findByUserIdAndDateKst(userId, today)
             if (todayRow != null && todayRow.reviewCount > 0) continue

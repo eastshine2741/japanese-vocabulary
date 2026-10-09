@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { flashcardApi } from '../api/flashcardApi';
+import { requestPermissionForOptIn } from '../services/pushNotifications';
 import type { UserSettingsDTO } from '../types/flashcard';
 import type { ReadingDisplay } from '../utils/readingConverter';
 
@@ -12,7 +13,6 @@ interface SettingsState {
   showKoreanPronunciation: boolean;
   showFurigana: boolean;
   dailyGoal: number;
-  notificationsEnabled: boolean;
   karaokeNewSongNotifications: boolean;
   isSaving: boolean;
   saveSuccess: boolean;
@@ -24,14 +24,13 @@ interface SettingsState {
   setShowKoreanPronunciation: (value: boolean) => void;
   setShowFurigana: (value: boolean) => void;
   setDailyGoal: (value: number) => void;
-  setNotificationsEnabled: (value: boolean) => void;
   toggleKaraokeNewSongNotifications: () => Promise<void>;
   save: () => Promise<void>;
 }
 
 function settingsPayload(state: SettingsState): UserSettingsDTO {
-  const { showIntervals, readingDisplay, showKoreanPronunciation, showFurigana, dailyGoal, notificationsEnabled, karaokeNewSongNotifications } = state;
-  return { showIntervals, readingDisplay, showKoreanPronunciation, showFurigana, dailyGoal, notificationsEnabled, karaokeNewSongNotifications };
+  const { showIntervals, readingDisplay, showKoreanPronunciation, showFurigana, dailyGoal, karaokeNewSongNotifications } = state;
+  return { showIntervals, readingDisplay, showKoreanPronunciation, showFurigana, dailyGoal, karaokeNewSongNotifications };
 }
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
@@ -41,7 +40,6 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   showKoreanPronunciation: true,
   showFurigana: true,
   dailyGoal: 100,
-  notificationsEnabled: true,
   karaokeNewSongNotifications: false,
   isSaving: false,
   saveSuccess: false,
@@ -58,7 +56,6 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         showKoreanPronunciation: settings.showKoreanPronunciation,
         showFurigana: settings.showFurigana,
         dailyGoal: settings.dailyGoal,
-        notificationsEnabled: settings.notificationsEnabled,
         karaokeNewSongNotifications: settings.karaokeNewSongNotifications,
       });
     } catch (e: any) {
@@ -71,7 +68,6 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   setShowKoreanPronunciation: (value) => set({ showKoreanPronunciation: value, saveSuccess: false }),
   setShowFurigana: (value) => set({ showFurigana: value, saveSuccess: false }),
   setDailyGoal: (value) => set({ dailyGoal: Math.max(1, Math.min(50000, Math.round(value))), saveSuccess: false }),
-  setNotificationsEnabled: (value) => set({ notificationsEnabled: value, saveSuccess: false }),
 
   // PUT /api/settings 는 설정 전체를 덮어쓴다. 읽어 오기 전에는 저장하지 않는다.
   toggleKaraokeNewSongNotifications: async () => {
@@ -80,6 +76,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
     const next = !get().karaokeNewSongNotifications;
     set({ karaokeNewSongNotifications: next });
+    if (next) requestPermissionForOptIn();
     try {
       await flashcardApi.updateSettings(settingsPayload(get()));
     } catch {

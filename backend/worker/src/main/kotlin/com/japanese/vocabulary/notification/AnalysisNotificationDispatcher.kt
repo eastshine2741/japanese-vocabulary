@@ -6,7 +6,6 @@ import com.japanese.vocabulary.notification.service.PushNotificationService
 import com.japanese.vocabulary.song.repository.SongRepository
 import com.japanese.vocabulary.songanalysis.event.SongAnalysisCompletedEvent
 import com.japanese.vocabulary.user.repository.UserRepository
-import com.japanese.vocabulary.user.repository.UserSettingsRepository
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.ObjectProvider
 import org.springframework.stereotype.Service
@@ -17,7 +16,6 @@ import org.springframework.transaction.annotation.Transactional
 class AnalysisNotificationDispatcher(
     private val subscriptions: AnalysisNotificationSubscriptions,
     private val userRepository: UserRepository,
-    private val settingsRepository: UserSettingsRepository,
     private val tokenRepository: DeviceTokenRepository,
     private val songRepository: SongRepository,
     private val pushProvider: ObjectProvider<PushNotificationService>,
@@ -40,7 +38,6 @@ class AnalysisNotificationDispatcher(
         for (userId in userIds) {
             try {
                 if (userRepository.findByIdAndDeletedAtIsNull(userId) == null) continue
-                if (settingsRepository.findByUserId(userId)?.settings?.notificationsEnabled == false) continue
                 for (device in tokenRepository.findAllByUserId(userId)) {
                     push.send(userId, device.token, "곡 분석이 완료됐어요", "${song.title}의 가사와 단어를 확인해 보세요.", data)
                 }
