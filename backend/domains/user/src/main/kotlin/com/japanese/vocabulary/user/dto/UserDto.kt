@@ -10,6 +10,7 @@ data class UserDto(
     val username: String,
     val email: String?,
     val name: String?,
+    val profileImageKey: String? = null,
 )
 
 fun UserEntity.toDto(): UserDto = UserDto(
@@ -19,4 +20,5 @@ fun UserEntity.toDto(): UserDto = UserDto(
     username = username,
     email = email,
     name = name,
+    profileImageKey = profileImageKey,
 )

@@ -49,6 +49,13 @@ enum class ErrorCode(val status: HttpStatus, val message: String) {
     VOC_CONTENT_TOO_LONG(HttpStatus.BAD_REQUEST, "Content must be at most 1000 characters"),
     VOC_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "VOC submission is unavailable"),
 
+    // Profile image
+    PROFILE_IMAGE_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "Profile image upload is unavailable"),
+    INVALID_PROFILE_IMAGE_TYPE(HttpStatus.BAD_REQUEST, "contentType must be image/jpeg, image/png, or image/webp"),
+    INVALID_PROFILE_IMAGE_KEY(HttpStatus.BAD_REQUEST, "Key was not issued for this user"),
+    PROFILE_IMAGE_NOT_UPLOADED(HttpStatus.BAD_REQUEST, "No uploaded image found for this key"),
+    PROFILE_IMAGE_TOO_LARGE(HttpStatus.BAD_REQUEST, "Profile image must be at most 5MB"),
+
     // Recommendation
     SONG_ALREADY_RECOMMENDED(HttpStatus.CONFLICT, "Song is already recommended"),
 

@@ -7,6 +7,7 @@ include(
     "integrations:mv-search",
     "integrations:github",
     "integrations:message-queue",
+    "integrations:object-storage",
 )
 include(
     "domains:song",

@@ -15,3 +15,8 @@ variable "hcloud_token" {
   description = "Hetzner Cloud API token"
   sensitive   = true
 }
+
+variable "cloudflare_account_id" {
+  type        = string
+  description = "Cloudflare account ID that owns the R2 buckets"
+}
