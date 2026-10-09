@@ -66,5 +66,5 @@ AFTER_COMMIT 에 받아 같은 제목·가수의 빈 행을 잇는다. 놓친 �
 
 날짜별 응답이 달 단위라 목록 끝에 닿으면 클라가 이전 달을 당겨 이어 붙인다. 빈 달이 세 번 이어지면 멈춘다.
 
-설정 탭 `알림` 섹션과 앱바의 알림 토글은 `karaokeNewSongNotifications` 하나를 바꾸지만 `PUT /api/settings` 는 설정 전체를 덮어쓰므로,
+설정 탭 `알림` 섹션, 디스커버리 섹션 헤더, 노래방 신곡 화면 앱바의 알림 토글은 모두 `karaokeNewSongNotifications` 하나를 바꾸지만 `PUT /api/settings` 는 설정 전체를 덮어쓰므로,
 설정을 읽어 오기 전에는 저장하지 않는다.

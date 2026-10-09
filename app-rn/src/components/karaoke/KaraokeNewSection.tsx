@@ -1,11 +1,13 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useShallow } from 'zustand/react/shallow';
+import { KaraokeNotifyToggle } from './KaraokeNotifyToggle';
 import { KaraokeSongRow } from './KaraokeSongRow';
+import { useSettingsStore } from '../../stores/settingsStore';
 import { Colors, Dimens } from '../../theme/theme';
 import { fontStyle } from '../../theme/typography';
 import { KaraokeDailyGroup } from '../../types/karaoke';
-import { formatMonthDay } from '../../utils/yearMonth';
 
 const COLLAPSED_SONGS = 3;
 const EXPANDED_SONGS = 9;
@@ -27,18 +29,36 @@ export default React.memo(function KaraokeNewSection({ group, onPressMore, onSel
 
   const toggleExpanded = useCallback(() => setExpanded((prev) => !prev), []);
 
+  const { notificationsEnabled, settingsStatus, loadSettings, toggleNotifications } = useSettingsStore(
+    useShallow((s) => ({
+      notificationsEnabled: s.karaokeNewSongNotifications,
+      settingsStatus: s.status,
+      loadSettings: s.loadSettings,
+      toggleNotifications: s.toggleKaraokeNewSongNotifications,
+    })),
+  );
+
+  // status 를 의존성에 두면 실패할 때마다 다시 불러 무한히 재시도한다. 마운트 때 한 번만 읽는다.
+  useEffect(() => {
+    if (useSettingsStore.getState().status !== 'loaded') loadSettings();
+  }, [loadSettings]);
+
   return (
     <View style={styles.section}>
-      <TouchableOpacity style={styles.headerRow} onPress={onPressMore} activeOpacity={0.72}>
-        <View style={styles.titleGroup}>
+      <View style={styles.headerRow}>
+        <TouchableOpacity style={styles.titleGroup} onPress={onPressMore} activeOpacity={0.72}>
           <Text style={styles.sectionLabel}>노래방 신곡</Text>
           <View style={styles.newPill}>
             <Text style={styles.newPillLabel}>NEW</Text>
           </View>
           <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
-        </View>
-        <Text style={styles.updatedAt}>{formatMonthDay(group.listedOn)} 업데이트</Text>
-      </TouchableOpacity>
+        </TouchableOpacity>
+        <KaraokeNotifyToggle
+          enabled={notificationsEnabled}
+          onPress={toggleNotifications}
+          disabled={settingsStatus === 'loading'}
+        />
+      </View>
 
       <View>
         {songs.map((song) => (
@@ -107,10 +127,5 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
     color: '#FFFFFF',
     ...fontStyle('body', '700'),
-  },
-  updatedAt: {
-    fontSize: 12,
-    lineHeight: 17,
-    color: Colors.textMuted,
   },
 });
