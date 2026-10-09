@@ -9,7 +9,7 @@ data class UserDto(
     val providerSub: String,
     val username: String,
     val email: String?,
-    val name: String?,
+    val name: String,
     val profileImageKey: String? = null,
 )
 

@@ -31,8 +31,8 @@ class UserEntity(
     @Column(nullable = true, length = 255)
     var email: String? = null,
 
-    @Column(nullable = true, length = 100)
-    var name: String? = null,
+    @Column(nullable = false, length = 100)
+    var name: String = DEFAULT_NAME,
 
     @Column(name = "profile_image_key", nullable = true, length = 255)
     var profileImageKey: String? = null,
@@ -43,4 +43,9 @@ class UserEntity(
 
     @Column(name = "deleted_at")
     var deletedAt: Instant? = null,
-)
+) {
+    companion object {
+        /** 표시 이름을 비우면 대신 들어가는 값. 알림 문구가 이름을 부르므로 비워 둘 수 없다. */
+        const val DEFAULT_NAME = "사용자"
+    }
+}
