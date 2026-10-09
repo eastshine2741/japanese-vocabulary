@@ -34,6 +34,7 @@ export {
   type SongReportSheetProps,
   type SongReportSheetTarget,
 } from './SongReportSheet';
+export { default as SongReportThanksSheet } from './SongReportThanksSheet';
 export {
   CurrentPlayingWordsSheet,
   CURRENT_PLAYING_WORDS_PEEK_HEIGHT,

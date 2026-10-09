@@ -28,7 +28,6 @@ import { wordApi } from '../api/wordApi';
 import SkeletonBox from '../components/SkeletonLoading';
 import SongInfoSheet from '../components/SongInfoSheet';
 import ErrorDialog from '../components/ErrorDialog';
-import Snackbar from '../components/Snackbar';
 import {
   AppBottomSheet,
   AppBottomSheetModal,
@@ -46,6 +45,7 @@ import {
   SongDetailWordsActionBar,
   SongDetailWordsTab,
   SongReportSheet,
+  SongReportThanksSheet,
   type SongDetailMvBarRef,
   type SongReportSheetTarget,
   type SongDetailWordItem,
@@ -77,7 +77,6 @@ const WORDS_TAB_BOTTOM_CLEARANCE = SONG_DETAIL_MV_BAR_HEIGHT + 24;
 const HERO_SCROLL_COLLAPSE_START = HERO_HEIGHT - COLLAPSED_BAR_HEIGHT - TAB_BAR_HEIGHT - 34;
 const HERO_SCROLL_COLLAPSE_END = HERO_SCROLL_COLLAPSE_START + 56;
 const ARTWORK_COLLAPSED_OFFSET = HERO_HEIGHT * 0.4;
-const REPORT_SENT_MESSAGE = '제보를 보냈어요. 확인 후 고칠게요';
 const SKELETON_WORD_ROWS = [0, 1, 2, 3];
 const SKELETON_LEGEND_ROWS = [0, 1, 2, 3, 4];
 
@@ -875,7 +874,7 @@ const PlaybackOverlays = React.memo(function PlaybackOverlays({
   const reportSheetRef = useRef<AppBottomSheetModalRef>(null);
   const [reportTarget, setReportTarget] = useState<SongReportSheetTarget | null>(null);
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
-  const [reportSentMessage, setReportSentMessage] = useState<string | null>(null);
+  const [reportSent, setReportSent] = useState(false);
   const [reportError, setReportError] = useState<string | null>(null);
   const currentMs = usePlayerStore(s => s.currentMs);
   const durationMs = usePlayerStore(s => s.durationMs);
@@ -908,9 +907,7 @@ const PlaybackOverlays = React.memo(function PlaybackOverlays({
   }, []);
   const handleReportDismissed = useCallback(() => {
     setReportTarget(null);
-  }, []);
-  const handleHideReportSent = useCallback(() => {
-    setReportSentMessage(null);
+    setReportSent(false);
   }, []);
   const handleDismissReportError = useCallback(() => {
     setReportError(null);
@@ -919,8 +916,7 @@ const PlaybackOverlays = React.memo(function PlaybackOverlays({
     setIsSubmittingReport(true);
     try {
       await songReportApi.submit(songId, request);
-      reportSheetRef.current?.dismiss();
-      setReportSentMessage(REPORT_SENT_MESSAGE);
+      setReportSent(true);
     } catch (e) {
       setReportError(apiErrorMessage(e, '제보를 보내지 못했어요'));
     } finally {
@@ -984,7 +980,9 @@ const PlaybackOverlays = React.memo(function PlaybackOverlays({
         onDismiss={handleReportDismissed}
       >
         <AppBottomSheetView>
-          {reportTarget ? (
+          {reportSent ? (
+            <SongReportThanksSheet onClose={handleCloseReport} />
+          ) : reportTarget ? (
             <SongReportSheet
               target={reportTarget}
               songTitle={title}
@@ -997,12 +995,6 @@ const PlaybackOverlays = React.memo(function PlaybackOverlays({
           ) : null}
         </AppBottomSheetView>
       </AppBottomSheetModal>
-
-      <Snackbar
-        message={reportSentMessage}
-        bottomOffset={bottomInset + SONG_DETAIL_MV_BAR_HEIGHT + 24}
-        onHide={handleHideReportSent}
-      />
 
       <ErrorDialog message={reportError} onDismiss={handleDismissReportError} />
     </>

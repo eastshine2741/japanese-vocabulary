@@ -164,7 +164,7 @@ function SongReportSheet({
           </Pressable>
         ) : null}
         <Text style={styles.title} numberOfLines={1}>
-          {detailType?.label ?? (target.group === 'MV' ? '이 영상, 뭐가 잘못됐나요?' : '어디가 잘못됐나요?')}
+          {detailType?.label ?? '어디가 잘못됐나요?'}
         </Text>
         <Pressable
           style={styles.headerButton}

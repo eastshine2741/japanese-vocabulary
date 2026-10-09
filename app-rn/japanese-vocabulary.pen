@@ -66566,7 +66566,7 @@
     {
       "type": "frame",
       "id": "DwIIp",
-      "x": 2538,
+      "x": 2056,
       "y": -4788,
       "name": "17. Song Detail — 가사 바텀시트 (분석 제보 진입점) (미구현)",
       "clip": true,
@@ -72582,7 +72582,7 @@
       "id": "nhBW6",
       "x": 2538,
       "y": -3898,
-      "name": "17. Song Detail — 분석 제보 완료 (미구현)",
+      "name": "17. Song Detail — 분석 제보 완료 · 감사 시트 (미구현)",
       "clip": true,
       "width": 402,
       "height": 818,
@@ -75348,55 +75348,155 @@
           ]
         },
         {
-          "type": "frame",
-          "id": "p5RCur",
+          "type": "rectangle",
+          "id": "C5jlH",
           "layoutPosition": "absolute",
-          "x": 16,
-          "y": 690,
-          "name": "Snackbar",
-          "width": 370,
-          "height": 48,
-          "fill": "$surface.inverse",
-          "cornerRadius": "$rounded.xl",
+          "x": 0,
+          "y": 0,
+          "name": "Scrim",
+          "fill": "$bg-overlay",
+          "width": 402,
+          "height": 818
+        },
+        {
+          "type": "frame",
+          "id": "I80Ti1",
+          "layoutPosition": "absolute",
+          "x": 0,
+          "y": 522,
+          "name": "Report Thanks Sheet",
+          "width": 402,
+          "fill": "$bg-primary",
+          "cornerRadius": [
+            20,
+            20,
+            0,
+            0
+          ],
           "effect": {
             "type": "shadow",
             "shadowType": "outer",
-            "color": "#00000033",
+            "color": "#0000001A",
             "offset": {
               "x": 0,
-              "y": 6
+              "y": -4
             },
-            "blur": 20
+            "blur": 16
           },
-          "gap": 12,
-          "padding": [
-            0,
-            16
-          ],
-          "justifyContent": "space_between",
-          "alignItems": "center",
+          "layout": "vertical",
           "children": [
             {
-              "type": "icon",
-              "id": "q9HTyp",
-              "name": "Check Icon",
-              "width": 16,
-              "height": 16,
-              "icon": "check",
-              "library": "lucide",
-              "fill": "$accent.primary"
+              "type": "frame",
+              "id": "o7fHeS",
+              "name": "Handle Area",
+              "width": "fill_container",
+              "padding": [
+                12,
+                0
+              ],
+              "justifyContent": "center",
+              "children": [
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 2,
+                  "id": "nhORf",
+                  "name": "Drag Handle",
+                  "fill": "$border-strong",
+                  "width": 40,
+                  "height": 4
+                }
+              ]
             },
             {
-              "type": "text",
-              "id": "zmnSt",
-              "name": "Snackbar Message",
-              "fill": "$foreground.inverse",
-              "textGrowth": "fixed-width",
+              "type": "frame",
+              "id": "nRSBx",
+              "name": "Report Thanks Content",
               "width": "fill_container",
-              "content": "제보를 보냈어요. 확인 후 고칠게요",
-              "fontFamily": "$font.body",
-              "fontSize": 13,
-              "fontWeight": "normal"
+              "layout": "vertical",
+              "gap": 20,
+              "padding": [
+                12,
+                20,
+                28,
+                20
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "U5BQq",
+                  "name": "Thanks Mark",
+                  "width": 64,
+                  "height": 64,
+                  "fill": "$accent-primary-bg",
+                  "cornerRadius": "$rounded.full",
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "hGD4L",
+                      "name": "Heart Icon",
+                      "width": 26,
+                      "height": 26,
+                      "icon": "heart",
+                      "library": "lucide",
+                      "fill": "$accent-primary"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "fcNlC",
+                  "name": "Thanks Copy",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "ALuM3",
+                      "name": "Thanks Title",
+                      "fill": "$foreground.primary",
+                      "content": "제보해주셔서 감사합니다",
+                      "textAlign": "center",
+                      "fontFamily": "$font.headings",
+                      "fontSize": 19,
+                      "fontWeight": "800"
+                    },
+                    {
+                      "type": "text",
+                      "id": "XlrC6",
+                      "name": "Thanks Body",
+                      "fill": "$foreground.secondary",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "보내주신 제보 덕분에 모든 분이 더 정확하게 배울 수 있어요.\n검토 후 반영까지 약간의 시간이 소요됩니다.",
+                      "lineHeight": 1.5,
+                      "textAlign": "center",
+                      "fontFamily": "$font.body",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "id": "Mm1CE",
+                  "type": "ref",
+                  "ref": "Qilli",
+                  "name": "Confirm Button",
+                  "width": "fill_container",
+                  "height": 44,
+                  "descendants": {
+                    "tRfPc": {
+                      "content": "확인",
+                      "fontSize": 14,
+                      "fontWeight": "800"
+                    }
+                  }
+                }
+              ]
             }
           ]
         }
@@ -131053,7 +131153,7 @@
                       "id": "gZwI5",
                       "name": "Report Title",
                       "fill": "$foreground.primary",
-                      "content": "이 영상, 뭐가 잘못됐나요?",
+                      "content": "어디가 잘못됐나요?",
                       "fontFamily": "$font.headings",
                       "fontSize": 19,
                       "fontWeight": "800"
@@ -131337,7 +131437,7 @@
     {
       "type": "frame",
       "id": "svV2M",
-      "x": 2056,
+      "x": 2538,
       "y": -4788,
       "name": "17. Song Detail — 분석 제보 시트 · 1단계 유형 고르기 (미구현)",
       "clip": true,
@@ -134481,7 +134581,7 @@
     {
       "type": "frame",
       "id": "z4aHU5",
-      "x": 2056,
+      "x": 3037,
       "y": -5754,
       "name": "17. Song Detail — MV 제보 시트 · 2단계 · 다른 곡의 영상이에요 (미구현)",
       "clip": true,
