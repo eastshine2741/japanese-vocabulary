@@ -18,7 +18,7 @@ import { navigate } from '../navigation/navigationRef';
 import {
   addStreakPressListener,
   consumeInitialStreakPress,
-  showStreakCountdown,
+  showStreakNotification,
 } from '../../modules/streak-notification';
 
 const REVIEW_CHANNEL_ID = 'review-reminders';
@@ -137,26 +137,34 @@ function handleRemoteMessage(remoteMessage: RemoteMessage | null): void {
   handleData(remoteMessage?.data);
 }
 
-// 23:00 연속 학습 알림의 expiresAt(다음 04:00 KST epoch ms)까지 줄어드는 카운트다운.
+// 카운트다운 숫자(네이티브 레이아웃)와 같은 빨강.
+const STREAK_URGENT_COLOR = '#FF4B4B';
+// Colors.primary(#16B364)는 흰 셰이드에서 대비가 2.6:1 이라 흐리다. 밝은 배경엔 짙은 초록(5:1), 다크엔 밝은 초록.
+const STREAK_GREEN = '#0B8043';
+const STREAK_GREEN_NIGHT = '#4ADE80';
+
+// 연속 학습 알림은 제목·본문을 강조색으로 칠하고, 23:00 은 expiresAt(다음 04:00 KST epoch ms)까지 카운트다운을 붙인다.
 // Android 전용 네이티브 모듈이 있을 때만 쓰고, 없거나 실패하면 일반 알림으로 되돌아간다.
-async function tryShowStreakCountdown(
+async function tryShowStreakNotification(
   title: string,
   body: string,
   data: NonNullable<RemoteMessage['data']>,
 ): Promise<boolean> {
   if (Platform.OS !== 'android' || data.type !== 'streak_reminder') return false;
   const expiresAt = Number(data.expiresAt);
-  if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) return false;
+  const hasTimer = Number.isFinite(expiresAt) && expiresAt > Date.now();
   const stringData: Record<string, string> = {};
   for (const [k, v] of Object.entries(data)) {
     if (typeof v === 'string') stringData[k] = v;
   }
   try {
-    return await showStreakCountdown({
+    return await showStreakNotification({
       title,
       body,
       channelId: REVIEW_CHANNEL_ID,
-      expiresAt,
+      expiresAt: hasTimer ? expiresAt : null,
+      accentColor: hasTimer ? STREAK_URGENT_COLOR : STREAK_GREEN,
+      accentColorNight: hasTimer ? STREAK_URGENT_COLOR : STREAK_GREEN_NIGHT,
       data: stringData,
     });
   } catch {
@@ -164,16 +172,16 @@ async function tryShowStreakCountdown(
   }
 }
 
-/** 카운트다운으로 그렸으면 'countdown', expo-notifications 일반 알림이면 'plain'. */
+/** 네이티브 연속 학습 레이아웃으로 그렸으면 'custom', expo-notifications 일반 알림이면 'plain'. */
 async function displayLocalNotification(
   remoteMessage: RemoteMessage,
-): Promise<'countdown' | 'plain'> {
+): Promise<'custom' | 'plain'> {
   const data = remoteMessage.data ?? {};
   const title =
     typeof data.title === 'string' ? data.title : remoteMessage.notification?.title ?? '';
   const body =
     typeof data.body === 'string' ? data.body : remoteMessage.notification?.body ?? '';
-  if (await tryShowStreakCountdown(title, body, data)) return 'countdown';
+  if (await tryShowStreakNotification(title, body, data)) return 'custom';
   await Notifications.scheduleNotificationAsync({
     content: {
       title,
@@ -184,26 +192,6 @@ async function displayLocalNotification(
     trigger: null,
   });
   return 'plain';
-}
-
-/** 디버그 오버레이용: 23:00 streak_reminder data-only 푸시가 도착한 것처럼 같은 경로로 그린다. */
-export async function debugShowStreakReminder(input: {
-  title: string;
-  body: string;
-  expiresAt: number;
-}): Promise<'countdown' | 'plain' | 'no-permission'> {
-  // 워크트리 빌드는 Firebase 가 꺼져 있어 로그인 때 권한 요청을 건너뛴다.
-  const { status } = await Notifications.requestPermissionsAsync();
-  if (status !== 'granted') return 'no-permission';
-  await ensureAndroidChannel();
-  return displayLocalNotification({
-    data: {
-      type: 'streak_reminder',
-      title: input.title,
-      body: input.body,
-      expiresAt: String(input.expiresAt),
-    },
-  } as unknown as RemoteMessage);
 }
 
 // Module-scope: must be registered before a data-only push reaches a killed or backgrounded app.

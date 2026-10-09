@@ -33,7 +33,6 @@ import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import AppNavigator, { RootStackParamList } from './src/navigation/AppNavigator';
 import { AnalysisPillOverlay } from './src/components/analysisPill';
 import { StreakCelebrationHost } from './src/components/streak';
-import StreakNotificationDebugOverlay from './src/components/debug/StreakNotificationDebugOverlay';
 import { navigationRef, flushPending } from './src/navigation/navigationRef';
 import { tokenStorage } from './src/utils/tokenStorage';
 import { isJwtExpired, getJwtUserId } from './src/utils/jwt';
@@ -186,7 +185,6 @@ function App() {
               <AppNavigator initialRoute={initialRoute} />
               <AnalysisPillOverlay />
               <StreakCelebrationHost />
-              {__DEV__ && Platform.OS === 'android' && <StreakNotificationDebugOverlay />}
             </NavigationContainer>
           )}
         </BottomSheetModalProvider>

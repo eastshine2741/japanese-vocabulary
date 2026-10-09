@@ -5,11 +5,13 @@ type PressData = Record<string, string>;
 type EventSubscription = { remove(): void };
 
 type StreakNotificationNative = {
-  showCountdown(
+  show(
     title: string,
     body: string,
     channelId: string,
-    expiresAt: number,
+    expiresAt: number | null,
+    accentColor: string,
+    accentColorNight: string,
     data: PressData,
   ): Promise<boolean>;
   consumeInitialPress(): PressData | null;
@@ -22,16 +24,28 @@ const native =
     ? requireOptionalNativeModule<StreakNotificationNative>('StreakNotification')
     : null;
 
-/** 카운트다운 알림을 띄우면 true. 모듈이 없거나 이미 만료됐거나 권한이 없으면 false. */
-export async function showStreakCountdown(input: {
+/** 띄우면 true. 모듈이 없거나 권한이 없으면 false. expiresAt 이 있고 아직 안 지났으면 카운트다운을 붙인다. */
+export async function showStreakNotification(input: {
   title: string;
   body: string;
   channelId: string;
-  expiresAt: number;
+  expiresAt: number | null;
+  /** 알림 셰이드 배경이 밝을 때. */
+  accentColor: string;
+  /** 시스템 다크 모드일 때. */
+  accentColorNight: string;
   data: PressData;
 }): Promise<boolean> {
   if (!native) return false;
-  return native.showCountdown(input.title, input.body, input.channelId, input.expiresAt, input.data);
+  return native.show(
+    input.title,
+    input.body,
+    input.channelId,
+    input.expiresAt,
+    input.accentColor,
+    input.accentColorNight,
+    input.data,
+  );
 }
 
 export function consumeInitialStreakPress(): PressData | null {
