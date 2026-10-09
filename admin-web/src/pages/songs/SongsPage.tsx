@@ -8,7 +8,7 @@ import { PageHeader } from "@/components/PageHeader"
 import { PaginationBar } from "@/components/PaginationBar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Table, Td, Th } from "@/components/ui/table"
+import { LinkRow, Table, Td, Th } from "@/components/ui/table"
 import { useAuth } from "@/features/auth"
 import { formatDateTime, formatNumber } from "@/lib/utils"
 
@@ -69,7 +69,7 @@ export function SongsPage() {
             </thead>
             <tbody>
               {data.content.map((song) => (
-                <tr key={song.id} className="hover:bg-[#f9fbfc]">
+                <LinkRow key={song.id} to={`/songs/${song.id}`}>
                   <Td className="w-24 font-mono text-xs text-[#637083]">{song.id}</Td>
                   <Td>
                     <Link className="font-medium text-[#0f766e] hover:underline" to={`/songs/${song.id}`}>
@@ -79,7 +79,7 @@ export function SongsPage() {
                   <Td>{song.artist}</Td>
                   <Td>{song.durationSeconds ? `${song.durationSeconds}s` : "-"}</Td>
                   <Td>{formatDateTime(song.createdAt)}</Td>
-                </tr>
+                </LinkRow>
               ))}
             </tbody>
           </Table>

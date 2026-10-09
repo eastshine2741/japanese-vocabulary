@@ -149,9 +149,10 @@ describe("admin web", () => {
 
     expect(await screen.findByText("단어 뜻이 틀려요")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "PENDING" })).toHaveAttribute("aria-pressed", "true")
-    await user.click(screen.getByRole("link", { name: "9" }))
+    await user.click(screen.getByText("단어 뜻이 틀려요"))
 
     const input = (await screen.findByLabelText("단어 뜻 value")) as HTMLInputElement
+    expect(screen.getByLabelText("Change type")).toHaveValue("SET_TOKEN_MEANING")
     expect(input.value).toBe("가라앉다")
     await user.clear(input)
     await user.type(input, "bad")

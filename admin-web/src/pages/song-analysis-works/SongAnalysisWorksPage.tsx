@@ -8,7 +8,7 @@ import { PageHeader } from "@/components/PageHeader"
 import { PaginationBar } from "@/components/PaginationBar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Table, Td, Th } from "@/components/ui/table"
+import { LinkRow, Table, Td, Th } from "@/components/ui/table"
 import { useAuth } from "@/features/auth"
 import { formatDateTime, formatNumber } from "@/lib/utils"
 
@@ -84,7 +84,7 @@ export function SongAnalysisWorksPage() {
             </thead>
             <tbody>
               {data.content.map((work) => (
-                <tr key={work.id} className="hover:bg-[#f9fbfc]">
+                <LinkRow key={work.id} to={`/song-analysis-works/${work.id}`}>
                   <Td className="w-24 font-mono text-xs text-[#637083]">
                     <Link className="text-[#0f766e] hover:underline" to={`/song-analysis-works/${work.id}`}>
                       {work.id}
@@ -103,7 +103,7 @@ export function SongAnalysisWorksPage() {
                   <Td>{work.songId ? <Link className="text-[#0f766e] hover:underline" to={`/songs/${work.songId}`}>{work.songId}</Link> : "-"}</Td>
                   <Td>{work.lyricId ? <Link className="text-[#0f766e] hover:underline" to={`/lyrics/${work.lyricId}`}>{work.lyricId}</Link> : "-"}</Td>
                   <Td>{formatDateTime(work.updatedAt)}</Td>
-                </tr>
+                </LinkRow>
               ))}
             </tbody>
           </Table>

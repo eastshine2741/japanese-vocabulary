@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/PageHeader"
 import { PaginationBar } from "@/components/PaginationBar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Table, Td, Th } from "@/components/ui/table"
+import { LinkRow, Table, Td, Th } from "@/components/ui/table"
 import { useAuth } from "@/features/auth"
 import { formatDateTime, formatNumber } from "@/lib/utils"
 
@@ -72,7 +72,7 @@ export function SongReportsPage() {
             </thead>
             <tbody>
               {data.content.map((report) => (
-                <tr key={report.id} className="hover:bg-[#f9fbfc]">
+                <LinkRow key={report.id} to={`/song-reports/${report.id}`}>
                   <Td className="w-20 font-mono text-xs">
                     <Link className="text-[#0f766e] hover:underline" to={`/song-reports/${report.id}`}>
                       {report.id}
@@ -94,7 +94,7 @@ export function SongReportsPage() {
                   <Td>
                     <Badge tone={statusTone(report.status)}>{report.status}</Badge>
                   </Td>
-                </tr>
+                </LinkRow>
               ))}
             </tbody>
           </Table>

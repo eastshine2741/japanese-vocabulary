@@ -105,11 +105,9 @@ export function ReviewForm({
 }) {
   const { context } = report
   const choices = availableOps(context)
-  const [ops, setOps] = React.useState<DraftOp[]>(() => {
-    const suggested = defaultOpByType[report.type]
-    return suggested && choices.includes(suggested) ? [createOp(suggested, report)] : []
-  })
-  const [adding, setAdding] = React.useState<OpKind>(choices[0])
+  const suggested = choices.find((kind) => kind === defaultOpByType[report.type])
+  const [ops, setOps] = React.useState<DraftOp[]>(() => (suggested ? [createOp(suggested, report)] : []))
+  const [adding, setAdding] = React.useState<OpKind>(suggested ?? choices[0])
   const [note, setNote] = React.useState("")
   const [submitting, setSubmitting] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
