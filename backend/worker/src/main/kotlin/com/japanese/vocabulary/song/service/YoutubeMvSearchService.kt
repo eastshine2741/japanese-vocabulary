@@ -157,7 +157,7 @@ class YoutubeMvSearchService(
         .maxByOrNull { it.score }
 
     /**
-     * The Data API has no Short/live flag, so length against the iTunes track length is the
+     * The Data API has no Short/live flag, so length against the catalog track length is the
      * proxy; see [DurationBounds.forTrack].
      *
      * Videos with a missing or unparsable duration are kept so a flaky lookup does not drop a
@@ -330,7 +330,7 @@ class YoutubeMvSearchService(
     }
 
     /**
-     * iTunes titles are often bilingual ("ピースサイン - Peace Sign") while an upload carries one half,
+     * Catalog titles are often bilingual ("ピースサイン - Peace Sign") while an upload carries one half,
      * so each separator-delimited part is its own variant. Single-character parts are too ambiguous.
      */
     private fun targetTitleVariants(title: String): List<String> {

@@ -1,5 +1,8 @@
 package com.japanese.vocabulary.api
 
+import com.japanese.vocabulary.artist.cache.ArtistTopSongsCache
+import com.japanese.vocabulary.artist.controller.ArtistController
+import com.japanese.vocabulary.artist.service.ArtistDetailService
 import com.japanese.vocabulary.auth.controller.AuthController
 import com.japanese.vocabulary.common.exception.GlobalExceptionHandler
 import com.japanese.vocabulary.config.ClockConfig
@@ -42,6 +45,9 @@ import org.springframework.context.annotation.Import
     SecurityConfig::class,
     SentryConfig::class,
     GlobalExceptionHandler::class,
+    ArtistController::class,
+    ArtistDetailService::class,
+    ArtistTopSongsCache::class,
     AuthController::class,
     DeckController::class,
     FlashcardController::class,

@@ -134,6 +134,7 @@ DEPLOY_NS=issue-21 npx expo run:android
 |---|---|
 | `MYSQL_USER` / `MYSQL_PASSWORD` | MySQL credentials |
 | `YOUTUBE_API_KEY` | YouTube Data API v3 |
+| `APPLE_MUSIC_TEAM_ID` / `APPLE_MUSIC_KEY_ID` / `APPLE_MUSIC_PRIVATE_KEY_BASE64` | MusicKit key (`base64 -w0 AuthKey_<KEY_ID>.p8`) that signs the Apple Music API developer token. api(검색) / worker(아티스트 별칭 확인) / batch(노래방 신곡 매칭) 가 쓴다 |
 | `GITHUB_VOC_TOKEN` | Fine-grained PAT (Issues: write on `eastshine2741/japanese-vocabulary`) used by `POST /api/voc` to file `type:voc` issues; blank makes the endpoint return 503 |
 | `JWT_SECRET` | JWT signing key; defaults to dev key |
 | `GOOGLE_OAUTH_CLIENT_ID` | Google Web OAuth Client ID, same audience as `EXPO_PUBLIC_GOOGLE_OAUTH_WEB_CLIENT_ID` |

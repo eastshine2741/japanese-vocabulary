@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,13 +6,12 @@ import {
   FlatList,
   TouchableOpacity,
   StyleSheet,
-  Animated,
-  Easing,
   Keyboard,
   ActivityIndicator,
 } from 'react-native';
 import ArtworkImage from '../components/ArtworkImage';
 import ErrorDialog from '../components/ErrorDialog';
+import RowSpinner from '../components/RowSpinner';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -36,29 +35,6 @@ function formatDuration(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
   return `${m}:${s.toString().padStart(2, '0')}`;
-}
-
-// Replaces the chevron while a row is busy; several rows can spin at once.
-function RowSpinner() {
-  const spinAnim = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    const spin = Animated.loop(
-      Animated.timing(spinAnim, {
-        toValue: 1,
-        duration: 1200,
-        easing: Easing.linear,
-        useNativeDriver: true,
-      }),
-    );
-    spin.start();
-    return () => spin.stop();
-  }, [spinAnim]);
-  const rotate = spinAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
-  return (
-    <Animated.View style={{ transform: [{ rotate }] }}>
-      <Feather name="loader" size={18} color={Colors.primary} />
-    </Animated.View>
-  );
 }
 
 interface SearchResultRowProps {
@@ -263,7 +239,7 @@ export default function SongSearchResultsScreen() {
           keyExtractor={keyExtractor}
           renderItem={renderResultItem}
           ListFooterComponent={
-            <Text style={styles.attribution}>Music search powered by iTunes</Text>
+            <Text style={styles.attribution}>Music search powered by Apple Music</Text>
           }
           contentContainerStyle={styles.list}
           ItemSeparatorComponent={ResultSeparator}

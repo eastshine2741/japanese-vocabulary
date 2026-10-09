@@ -17,6 +17,7 @@ import SearchInputScreen from '../screens/SearchInputScreen';
 import KaraokeNewSongsScreen from '../screens/KaraokeNewSongsScreen';
 import SongSearchResultsScreen from '../screens/SongSearchResultsScreen';
 import SongDetailScreen from '../screens/SongDetailScreen';
+import ArtistDetailScreen from '../screens/ArtistDetailScreen';
 import DeckListScreen from '../screens/DeckListScreen';
 import DeckDetailScreen from '../screens/DeckDetailScreen';
 import DeckWordListScreen from '../screens/DeckWordListScreen';
@@ -65,6 +66,8 @@ export type RootStackParamList = {
   OssLicense: undefined;
   Voc: undefined;
   SongDetail: SongPlaybackEntryParams;
+  /** 곡 상세 히어로의 아티스트명에서 들어오는 상세. 곡이 Apple Music 아티스트에 이어져 있을 때만 열린다. */
+  ArtistDetail: { artistId: number };
   /** 곡·덱 진입 복습. 큐 순서는 서버 due 응답을 그대로 따른다. trigger 는 복습을 연 버튼(screen_view 파라미터). */
   SongReview: { source: StudySource; origin?: 'SongDetail'; trigger?: StudyEntryTrigger };
   DeckList: undefined;
@@ -165,6 +168,7 @@ export default function AppNavigator({ initialRoute }: Props) {
       <Stack.Screen name="OssLicense" component={OssLicenseScreen} />
       <Stack.Screen name="Voc" component={VocScreen} />
       <Stack.Screen name="SongDetail" component={SongDetailScreen} />
+      <Stack.Screen name="ArtistDetail" component={ArtistDetailScreen} />
       <Stack.Screen name="SongReview" component={SongReviewScreen} />
       <Stack.Screen name="DeckList" component={DeckListScreen} />
       <Stack.Screen name="SongProgressList" component={SongProgressListScreen} />

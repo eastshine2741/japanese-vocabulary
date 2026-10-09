@@ -120,6 +120,12 @@ jisho:
 youtube:
   api-key: ${YOUTUBE_API_KEY}
 
+apple-music:
+  # MusicKit key that signs the catalog developer token. Blank boots but fails the first catalog call.
+  team-id: ${APPLE_MUSIC_TEAM_ID:}
+  key-id: ${APPLE_MUSIC_KEY_ID:}
+  private-key-base64: ${APPLE_MUSIC_PRIVATE_KEY_BASE64:}
+
 sentry:
   dsn: ${SENTRY_DSN_WORKER:}
   environment: ${SENTRY_ENVIRONMENT:local}

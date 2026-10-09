@@ -22,6 +22,7 @@ dependencies {
     implementation(project(":domains:word"))
     implementation(project(":domains:karaoke"))
     implementation(project(":integrations:lyric-search"))
+    implementation(project(":integrations:song-search"))
     implementation(project(":integrations:mv-search"))
     implementation(project(":integrations:message-queue"))
 

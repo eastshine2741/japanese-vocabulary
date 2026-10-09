@@ -5,7 +5,7 @@ import com.japanese.vocabulary.auth.service.AppleOidcService
 import com.japanese.vocabulary.auth.service.GoogleOidcService
 import com.japanese.vocabulary.github.client.GithubIssueClient
 import com.japanese.vocabulary.objectstorage.client.ObjectStorageClient
-import com.japanese.vocabulary.songsearch.client.itunes.ItunesClient
+import com.japanese.vocabulary.songsearch.client.applemusic.AppleMusicClient
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.clearMocks
 import org.junit.jupiter.api.BeforeEach
@@ -17,7 +17,7 @@ import org.junit.jupiter.api.BeforeEach
 abstract class ApiBaseIntegrationTest : BaseIntegrationTest() {
 
     @MockkBean
-    protected lateinit var itunesClient: ItunesClient
+    protected lateinit var appleMusicClient: AppleMusicClient
 
     @MockkBean
     protected lateinit var googleOidcService: GoogleOidcService
@@ -41,7 +41,7 @@ abstract class ApiBaseIntegrationTest : BaseIntegrationTest() {
     @BeforeEach
     fun resetClientMocks() {
         clearMocks(
-            itunesClient, googleOidcService, appleOidcService, githubIssueClient, objectStorageClient, firebaseMessaging,
+            appleMusicClient, googleOidcService, appleOidcService, githubIssueClient, objectStorageClient, firebaseMessaging,
             answers = true,
             recordedCalls = true,
         )

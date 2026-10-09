@@ -29,7 +29,7 @@ batch `KaraokeCollectTask` (`--task=karaoke-collect`, CronJob `karaoke-collect`,
 
 ## 곡 이름
 
-iTunes(`country=jp`)에서 제목·가수가 모두 맞는 결과가 있으면 그 표기(`trackName`/`artistName`)와 600px 아트,
+Apple Music(`jp` 스토어프런트)에서 제목·가수가 모두 맞는 결과가 있으면 그 표기(`name`/`artistName`)와 600px 아트,
 곡 길이를 쓴다. 없으면 노래방 표기에서 괄호(타이업·피처링)와 일본어 제목 뒤 ` - 로마자` 를 뗀 값을 쓴다
 (`KaraokeTitleCleaner`). 금영은 긴 표기를 `..` 로 자르므로 그때는 앞부분만 맞으면 된다.
 이 이름 하나가 화면 표시, 분석 요청, song 연결 키를 겸한다. 노래방 원문은 저장하지 않는다.

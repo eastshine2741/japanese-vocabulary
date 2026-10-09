@@ -1,5 +1,6 @@
 package com.japanese.vocabulary.batch
 
+import com.japanese.vocabulary.artist.batch.ArtistLinkTask
 import com.japanese.vocabulary.config.ClockConfig
 import com.japanese.vocabulary.config.SentryConfig
 import com.japanese.vocabulary.karaoke.batch.KaraokeCollectTask
@@ -27,6 +28,7 @@ import org.springframework.context.annotation.Import
     CronTaskRunner::class,
     StreakReminderTask::class,
     KaraokeCollectTask::class,
+    ArtistLinkTask::class,
     KaraokeListingCollector::class,
     KaraokeNewSongNotifier::class,
     LyricWordCandidateBackfillService::class,

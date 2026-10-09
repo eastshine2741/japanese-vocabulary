@@ -15,6 +15,7 @@ enum class ErrorCode(val status: HttpStatus, val message: String) {
     LYRICS_NOT_FOUND(HttpStatus.NOT_FOUND, "Could not find lyrics for this song"),
     LYRIC_NOT_FOUND(HttpStatus.NOT_FOUND, "Lyric not found"),
     SONG_NOT_FOUND(HttpStatus.NOT_FOUND, "Song not found"),
+    ARTIST_NOT_FOUND(HttpStatus.NOT_FOUND, "Artist not found"),
     SONG_ANALYSIS_WORK_NOT_FOUND(HttpStatus.NOT_FOUND, "Song analysis work not found"),
     SONG_ANALYSIS_WORK_ALREADY_EXISTS(HttpStatus.CONFLICT, "Song analysis work already exists"),
     SONG_ANALYSIS_WORK_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "Song analysis failed"),

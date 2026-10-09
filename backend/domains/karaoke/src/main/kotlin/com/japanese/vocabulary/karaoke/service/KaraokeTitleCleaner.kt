@@ -30,8 +30,8 @@ object KaraokeTitleCleaner {
         ArtistNameNormalizer.normalize(title) + "\u0000" + ArtistNameNormalizer.normalize(artist)
 
     /**
-     * 노래방 원문과 iTunes 결과가 같은 곡인지. 가수는 메인 가수만 본다: 금영 `椎名もた feat.鏡音リン` 과
-     * iTunes `椎名もた & 鏡音リン` 처럼 함께 적는 방식이 서로 다르다. 잘린 표기는 앞부분만 맞으면 된다.
+     * 노래방 원문과 Apple Music 결과가 같은 곡인지. 가수는 메인 가수만 본다: 금영 `椎名もた feat.鏡音リン` 과
+     * Apple Music `椎名もた & 鏡音リン` 처럼 함께 적는 방식이 서로 다르다. 잘린 표기는 앞부분만 맞으면 된다.
      */
     fun sameSong(rawTitle: String, rawArtist: String, candidateTitle: String, candidateArtist: String): Boolean =
         matches(rawTitle, candidateTitle, ::cleanTitle) && matches(rawArtist, candidateArtist, ::mainArtist)
