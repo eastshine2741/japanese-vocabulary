@@ -981,7 +981,6 @@ const PlaybackOverlays = React.memo(function PlaybackOverlays({
         enablePanDownToClose
         keyboardBehavior="interactive"
         keyboardBlurBehavior="restore"
-        android_keyboardInputMode="adjustResize"
         onDismiss={handleReportDismissed}
       >
         <AppBottomSheetView>
