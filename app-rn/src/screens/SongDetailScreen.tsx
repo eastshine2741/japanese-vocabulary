@@ -415,6 +415,11 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     setLearningError(null);
   }, []);
 
+  const artistId = data?.song.artistId ?? null;
+  const handleArtistPress = useCallback(() => {
+    if (artistId != null) navigation.navigate('ArtistDetail', { artistId });
+  }, [artistId, navigation]);
+
   const handleSelectHome = useCallback(() => {
     setActiveTab('home');
   }, []);
@@ -654,7 +659,14 @@ export default function SongDetailScreen({ navigation, route }: Props) {
       >
         <View style={styles.heroInfo}>
           <Text style={styles.heroTitle} numberOfLines={2}>{song.title}</Text>
-          <Text style={styles.heroArtist} numberOfLines={1}>{song.artist}</Text>
+          {song.artistId != null ? (
+            <Pressable style={styles.heroArtistLink} onPress={handleArtistPress} hitSlop={6}>
+              <Text style={[styles.heroArtist, styles.heroArtistLinkText]} numberOfLines={1}>{song.artist}</Text>
+              <Feather name="chevron-right" size={16} color="#FFFFFFCC" />
+            </Pressable>
+          ) : (
+            <Text style={styles.heroArtist} numberOfLines={1}>{song.artist}</Text>
+          )}
           <Pressable
             style={[styles.deckButton, isLearningActionDisabled && styles.disabledButton]}
             onPress={handlePrimaryLearningPress}
@@ -1379,6 +1391,18 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFFCC',
     marginBottom: 10,
+  },
+  heroArtistLink: {
+    alignSelf: 'flex-start',
+    maxWidth: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    marginBottom: 10,
+  },
+  heroArtistLinkText: {
+    flexShrink: 1,
+    marginBottom: 0,
   },
   deckButton: {
     height: 48,

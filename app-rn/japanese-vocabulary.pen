@@ -118030,7 +118030,7 @@
               "id": "c0z0s1",
               "name": "title",
               "fill": "$foreground.primary",
-              "content": "학습 중",
+              "content": "곡별 진도",
               "fontFamily": "$font.body",
               "fontSize": 15,
               "fontWeight": "600"

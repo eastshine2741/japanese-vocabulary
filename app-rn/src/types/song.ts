@@ -25,6 +25,8 @@ export interface SongDto {
   id: number;
   title: string;
   artist: string;
+  /** Apple Music 카탈로그에서 아직 못 이은 곡은 null 이라 아티스트 상세로 갈 수 없다. */
+  artistId: number | null;
   durationSeconds: number | null;
   artworkUrl: string | null;
   youtubeUrl: string | null;
