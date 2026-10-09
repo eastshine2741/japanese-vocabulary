@@ -27,9 +27,8 @@ infra/terraform/
 `environments/prod/terraform.tfvars` 생성 (gitignored):
 
 ```hcl
-cloudflare_api_token  = "..."   # Zone:DNS:Edit + Zone:Zone:Read + Account:Workers R2 Storage:Edit
-cloudflare_account_id = "..."   # 대시보드 우측 사이드바의 Account ID
-hcloud_token          = "..."   # Read & Write
+cloudflare_api_token = "..."   # Zone:DNS:Edit + Zone:Zone:Read + Account:Workers R2 Storage:Edit
+hcloud_token         = "..."   # Read & Write
 ```
 
 토큰 발급:

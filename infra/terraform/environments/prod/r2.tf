@@ -2,7 +2,7 @@
 resource "cloudflare_r2_bucket" "images" {
   for_each = toset(["kotonoha-prod", "kotonoha-dev"])
 
-  account_id = var.cloudflare_account_id
+  account_id = data.cloudflare_zone.main.account.id
   name       = each.key
   location   = "weur"
 }
@@ -14,7 +14,7 @@ resource "cloudflare_r2_custom_domain" "images" {
     "kotonoha-dev"  = "img-dev.kotonoha.eastshine.dev"
   }
 
-  account_id  = var.cloudflare_account_id
+  account_id  = data.cloudflare_zone.main.account.id
   bucket_name = cloudflare_r2_bucket.images[each.key].name
   domain      = each.value
   zone_id     = data.cloudflare_zone.main.zone_id
