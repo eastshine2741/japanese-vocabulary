@@ -29,3 +29,14 @@ export interface SubmitSongReportResponse {
   id: number;
   status: string;
 }
+
+export interface SongContributor {
+  userId: number;
+  username: string;
+  name: string | null;
+}
+
+export interface SongContributorsDto {
+  count: number;
+  contributors: SongContributor[];
+}

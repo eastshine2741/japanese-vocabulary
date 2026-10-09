@@ -1,6 +1,8 @@
 import React from 'react';
 import { StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import type { SongCoverageDto, SongWordTierDto } from '../../types/song';
+import type { SongContributorsDto } from '../../types/songReport';
+import { SongDetailContributors } from './SongDetailContributors';
 import { SongDetailCoverageSection } from './SongDetailCoverageSection';
 import { SongDetailJlptChart } from './SongDetailJlptChart';
 import { SongDetailTierJourney } from './SongDetailTierJourney';
@@ -13,6 +15,8 @@ interface SongDetailHomeTabProps {
   coverage: SongCoverageDto | null;
   /** 서버가 단계를 못 주면 null 이고 그 섹션은 그리지 않는다. */
   tiers: readonly SongWordTierDto[] | null;
+  /** 승인된 제보를 낸 사람들. null 이면 그 섹션은 그리지 않는다. */
+  contributors: SongContributorsDto | null;
   isLoadingWords?: boolean;
   isStartingLearning?: boolean;
   onCoverageHelpPress: () => void;
@@ -25,6 +29,7 @@ export const SongDetailHomeTab = React.memo(function SongDetailHomeTab({
   words,
   coverage,
   tiers,
+  contributors,
   isLoadingWords = false,
   isStartingLearning = false,
   onCoverageHelpPress,
@@ -45,6 +50,7 @@ export const SongDetailHomeTab = React.memo(function SongDetailHomeTab({
         />
       )}
       <SongDetailJlptChart words={words} isLoading={isLoadingWords} />
+      {contributors != null && <SongDetailContributors contributors={contributors} />}
     </View>
   );
 });

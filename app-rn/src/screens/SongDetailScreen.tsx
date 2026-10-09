@@ -105,6 +105,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
   const tiers = useSongDetailStore(s => s.tiers);
   const refreshTiers = useSongDetailStore(s => s.refreshTiers);
   const coverage = useSongDetailStore(s => s.coverage);
+  const contributors = useSongDetailStore(s => s.contributors);
   const refreshCoverage = useSongDetailStore(s => s.refreshCoverage);
   const preloadedStudyData = usePlayerStore(s => s.studyData);
   const setCurrentMs = usePlayerStore(s => s.setCurrentMs);
@@ -252,6 +253,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
 
   const songTiers = tiers != null && tiers.songId === songId ? tiers.tiers : null;
   const songCoverage = coverage != null && coverage.songId === songId ? coverage : null;
+  const songContributors = loadedSongId === songId ? contributors : null;
   const currentTier = useMemo(
     () => (songTiers != null ? selectCurrentTier(songTiers) : null),
     [songTiers],
@@ -631,6 +633,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
                     words={words.words}
                     coverage={songCoverage}
                     tiers={songTiers}
+                    contributors={songContributors}
                     isStartingLearning={isStartingLearning}
                     onCoverageHelpPress={handleOpenCoverageHelp}
                     onStartTier={handleStartTier}
