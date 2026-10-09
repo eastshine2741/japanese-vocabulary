@@ -10,14 +10,11 @@ import org.springframework.web.reactive.function.client.ClientRequestObservation
 import org.springframework.web.reactive.function.client.DefaultClientRequestObservationConvention as WebClientConv
 
 /**
- * Adds an `api` tag to `http.client.requests` by classifying (host, path) for
- * every outbound HTTP call. Match is strict — broad suffixes like
- * `*.apple.com` or `*.googleapis.com` would over-match (those hosts serve many
- * unrelated APIs). Unknown destinations get `other` so dashboard queries don't
- * accidentally claim coverage we don't have.
+ * Adds an `api` tag to `http.client.requests` by classifying (host, path). Match is strict:
+ * broad suffixes like `*.apple.com` or `*.googleapis.com` would over-match. Unknown
+ * destinations get `other`.
  *
- * Two beans because RestClient and WebClient have separate convention types in
- * different packages.
+ * Two beans because RestClient and WebClient use separate convention types.
  */
 @Configuration
 class HttpClientMetricsConfig {
@@ -44,6 +41,7 @@ class HttpClientMetricsConfig {
             host == "generativelanguage.googleapis.com" -> "gemini"
             host == "lrclib.net" -> "lrclib"
             host == "vocadb.net" -> "vocadb"
+            host == "utaitedb.net" -> "utaitedb"
             else -> "other"
         }
     }

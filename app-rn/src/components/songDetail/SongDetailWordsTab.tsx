@@ -186,10 +186,7 @@ export function useSongDetailWordsTab({
     });
   }, [includeUnknownJlpt, words, selectedPos, selectedJlpt, sort]);
 
-  // 배열 identity 가 아니라 목록에 담긴 단어가 바뀔 때만 렌더 개수를 처음으로 되돌린다.
-  // 단어를 담으면 곡 단어 목록을 다시 받아오므로 visibleWords 는 내용이 같아도 매번 새 배열이다.
-  // 그때 렌더 개수를 18개로 줄이면 목록 높이가 순간 줄어들어, 화면 전체를 감싼 ScrollView 의
-  // 스크롤 위치가 위로 튄다.
+  // visibleWords 는 내용이 같아도 매번 새 배열이라 key 로 비교한다. 렌더 개수를 불필요하게 줄이면 바깥 ScrollView 의 스크롤이 위로 튄다.
   const visibleWordsKey = useMemo(
     () => visibleWords.map(getSongDetailWordKey).join('|'),
     [visibleWords],

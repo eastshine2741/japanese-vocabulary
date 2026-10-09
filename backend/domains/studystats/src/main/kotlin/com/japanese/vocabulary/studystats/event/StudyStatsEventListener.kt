@@ -20,9 +20,8 @@ class StudyStatsEventListener(
     private val userInventoryService: UserInventoryService,
     private val kstClock: KstClock,
 ) {
-    // REQUIRES_NEW is mandatory: AFTER_COMMIT runs after the publisher's tx ends, leaving a
-    // closed-but-still-thread-bound EntityManager. REQUIRED would reuse it and DML throws
-    // TransactionRequiredException. See CLAUDE.md "Spring Event Listeners" section.
+    // REQUIRES_NEW is mandatory: after AFTER_COMMIT the publisher's EntityManager is closed but still
+    // thread-bound, so REQUIRED would reuse it and DML throws TransactionRequiredException.
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     fun onFlashcardReviewed(event: FlashcardReviewedEvent) {

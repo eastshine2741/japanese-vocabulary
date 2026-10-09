@@ -78,12 +78,26 @@ export type PromoReelData = {
     artworkAsset: string;
     mvAsset: string;
   };
+  /**
+   * 화면 맨 위에 찍히는 헤드라인. 어드민이 직접 쓴다.
+   * 줄바꿈이 줄을 나누고 `<b>…</b>` 로 감싼 구간에만 초록 배경이 깔린다.
+   */
   headline: string;
   instagramHandle: string;
   catchphrase: string;
   sourceStartFrame: number;
   /** 없으면 캔버스를 꽉 채운다(cover). */
   mvFrame?: MvFrame | null;
+  /**
+   * 헤드라인 글자 크기(px). 없으면 기본 크기다.
+   * 상단 헤드라인에만 적용된다 — 엔드카드 헤드라인은 고정 문구라 기본 크기를 쓴다.
+   */
+  headlineFontSize?: number | null;
+  /**
+   * 가사 원문 글자 배율. 1 이 기본이고 없으면 1 이다.
+   * 긴 줄을 화면에 맞추는 자동 축소 위에 곱해지므로, 키워도 줄이 넘치지는 않는다.
+   */
+  lyricScale?: number | null;
   /** 마지막 선택 줄이 끝나는 프레임. 이 프레임부터 엔드카드가 뜬다. */
   lyricsEndFrame: number;
   /** 곡 전체 가사 줄 수. 엔드카드 앱 목업의 "n/전체" 표시용. */

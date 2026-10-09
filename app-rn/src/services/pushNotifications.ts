@@ -23,9 +23,7 @@ import {
 
 const REVIEW_CHANNEL_ID = 'review-reminders';
 
-// Mirrors app.config.js: when Firebase is disabled (worktree builds without a
-// registered google-services client), the native default FirebaseApp doesn't
-// exist, so any messaging() call throws. Guard every messaging() use behind this.
+// Without a registered google-services client (worktree builds) messaging() throws; guard every use.
 const FIREBASE_ENABLED = process.env.EXPO_PUBLIC_FIREBASE_DISABLED !== '1';
 
 function getFirebaseMessaging() {
@@ -97,10 +95,14 @@ export async function unregisterCurrentToken(): Promise<void> {
 
 function handleData(data: RemoteMessage['data']): void {
   if (!data) return;
-  // 연속 학습 알림(260918 C) — 탭하면 홈 첫 카드. 알림에서 왔다는 별도 화면·배너는 없다.
-  // 서버 payload 는 docs/product-intents/260918-streak-commitment-api.md 참고.
+  // 연속 학습 알림 — 탭하면 홈 첫 카드.
   if (data.type === 'streak_reminder') {
     navigate('Main', { screen: 'Home' });
+    return;
+  }
+  // 노래방 신곡 알림 — 그날 올라온 곡 목록.
+  if (data.type === 'karaoke_new_songs') {
+    navigate('KaraokeNewSongs');
     return;
   }
   // AnalysisNotificationDispatcher(batch) 가 songId 를 문자열로 실어 보낸다.
@@ -163,8 +165,7 @@ async function displayLocalNotification(
   });
 }
 
-// Module-scope: must be registered BEFORE the runtime delivers a data-only push to a killed or
-// backgrounded app. Importing this module from App.tsx ensures the handler is set during JS init.
+// Module-scope: must be registered before a data-only push reaches a killed or backgrounded app.
 if (FIREBASE_ENABLED) {
   setBackgroundMessageHandler(getFirebaseMessaging(), async (remoteMessage) => {
     if (remoteMessage.notification) return;
@@ -178,7 +179,6 @@ export function registerNotificationHandlers(): void {
 
   ensureAndroidChannel();
 
-  // Foreground display behaviour for expo-notifications local alerts
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldShowAlert: true,
@@ -216,9 +216,7 @@ export function registerNotificationHandlers(): void {
   const initialStreakPress = consumeInitialStreakPress();
   if (initialStreakPress) handleData(initialStreakPress);
 
-  // Tap handler. Covers both foreground onMessage path and background
-  // setBackgroundMessageHandler path; expo-notifications also fires this for cold-start taps on a
-  // locally-displayed notification.
+  // Tap handler for locally displayed notifications, including cold-start taps.
   Notifications.addNotificationResponseReceivedListener((response) => {
     const data = response.notification.request.content.data as
       | RemoteMessage['data']

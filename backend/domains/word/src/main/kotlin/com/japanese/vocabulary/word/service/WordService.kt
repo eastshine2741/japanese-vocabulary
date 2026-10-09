@@ -29,16 +29,14 @@ import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionTemplate
 
 /**
- * 이 모듈의 주인. flashcard 와 deck 은 단어에 딸린 개념이라 수명주기를 여기서 통째로 잡는다.
+ * word 와 딸린 flashcard·deck 의 수명주기 소유자.
  *
- * - flashcard 는 word 와 수명주기가 같다: 저장할 때 만들고 삭제할 때 지운다. flashcard 없는
- *   word 는 존재할 수 없다.
- * - deck 은 word 보다 오래 산다: 담을 때 만들어지고 연결되지만, 단어가 지워져도 남는다.
+ * - flashcard 는 word 와 수명주기가 같다. flashcard 없는 word 는 없다.
+ * - deck 은 word 보다 오래 산다: 단어가 지워져도 남는다.
  * - 모든 word 는 전체 단어장에 연결된다.
  *
- * 셋 다 **한 트랜잭션 안에서** 처리한다. 커밋 뒤에 도는 이벤트로 미루면 단어만 저장되고 단어장
- * 연결이 유실된 상태가 남을 수 있는데, `deck_word` 는 단어장 구성의 유일한 기록이라 그 상태는
- * 복구할 방법이 없다.
+ * 셋 다 **한 트랜잭션 안에서** 처리한다. 이벤트로 미루면 단어만 저장되고 연결이 유실될 수 있고,
+ * `deck_word` 가 유일한 기록이라 복구할 수 없다.
  */
 @Service
 class WordService(
@@ -49,8 +47,7 @@ class WordService(
     transactionManager: PlatformTransactionManager,
 ) {
     /**
-     * 저장 경로만 `@Transactional` 대신 템플릿으로 트랜잭션을 직접 연다 — [retryingSave] 가
-     * 트랜잭션 **밖**에서 감싸야 하기 때문이다. 나머지 메서드는 그대로 `@Transactional` 이다.
+     * 저장 경로만 템플릿으로 트랜잭션을 연다 — [retryingSave] 가 트랜잭션 **밖**에서 감싸야 한다.
      */
     private val saveTx = TransactionTemplate(transactionManager)
 
@@ -74,9 +71,7 @@ class WordService(
     }
 
     /**
-     * 검증과 단어장 확보를 저장 트랜잭션 **안에서, 요청당 한 번** 끝낸다. 단어마다 반복하지
-     * 않는 건 순전히 낭비를 피하기 위해서다 — deck 이 이미 있으면 매번 락 없는 SELECT 라
-     * 반복해도 안전하지만, 배치 크기만큼 같은 조회를 반복할 이유는 없다.
+     * 검증과 단어장 확보를 저장 트랜잭션 **안에서, 요청당 한 번** 끝낸다. 단어마다 반복해도 안전하지만 낭비다.
      */
     private fun validateAndResolveDecks(userId: Long, words: List<AddWordDto>): DeckTargets {
         val senses = words.map { it.senses.forSave() }
@@ -86,12 +81,9 @@ class WordService(
     }
 
     /**
-     * 단어장 생성과 word 저장이 한 트랜잭션 안에 있어서, 같은 유저가 동시에 담으면 `decks` 나
-     * `words` 의 UNIQUE 에 걸리거나 데드락이 난다. 롤백된 뒤 통째로 다시 돌리면 이긴 쪽이 만든
-     * 단어장을 찾아 쓴다. 저장 경로가 전부 upsert 라 재실행이 안전하다.
-     *
-     * 재시도는 트랜잭션 **밖**이어야 한다 — 안에서는 이미 rollback-only 이고, REPEATABLE READ
-     * 스냅샷도 그대로라 방금 커밋된 단어장이 보이지 않는다.
+     * 같은 유저의 동시 저장은 `decks`/`words` UNIQUE 충돌이나 데드락을 낸다. 롤백 후 재실행하면 이긴 쪽의
+     * 단어장을 쓰고, 저장 경로가 전부 upsert 라 재실행이 안전하다.
+     * 재시도는 트랜잭션 **밖**이어야 한다 — 안은 rollback-only 에 REPEATABLE READ 스냅샷이라 방금 커밋된 단어장이 안 보인다.
      */
     private fun <T> retryingSave(block: () -> T): T {
         repeat(MAX_SAVE_ATTEMPTS - 1) { attempt ->
@@ -106,7 +98,6 @@ class WordService(
         return block()
     }
 
-    // 이 경로가 조용히 재시도만 반복하고 있으면 알 수 있어야 한다.
     private fun logRetry(attempt: Int, cause: Exception) {
         log.info("word save conflict, retrying ({}/{}): {}", attempt + 1, MAX_SAVE_ATTEMPTS, cause.message)
     }
@@ -200,7 +191,7 @@ class WordService(
         return words.toListDto(limit)
     }
 
-    /** 여러 word 의 sense 를 곡 메타데이터와 함께 조립한다 — 곡 조회는 페이지당 1회로 묶인다. */
+    /** 곡 조회는 페이지당 1회로 묶는다. */
     private fun List<WordEntity>.toListDto(limit: Int): WordListDto {
         val songMap = SenseEnricher.loadSongs(flatMap { it.senses }, songRepository)
         val items = map { word ->
@@ -221,9 +212,8 @@ class WordService(
     }
 
     /**
-     * 담기 경로의 정규화. 곡이 주는 뜻은 "사랑, 애정" 같은 한 문자열이라 조각마다 sense 를 만든다.
-     * 쪼갠 뒤 [merge] 가 문자열 일치로 판정하므로, 이미 담은 조각에는 예문만 붙고 처음 보는
-     * 조각만 새 sense 로 들어간다.
+     * 담기 경로의 정규화. 뜻을 조각으로 쪼갠 뒤 [merge] 가 문자열 일치로 판정하므로, 이미 담은 조각에는 예문만
+     * 붙고 처음 보는 조각만 새 sense 가 된다.
      */
     private fun List<WordSense>.forSave(): List<WordSense> = splitMeanings().normalized()
 
@@ -252,11 +242,8 @@ class WordService(
     }
 
     /**
-     * 예문 중복 제거는 **단어 전체** 기준이다. 후렴처럼 같은 가사 줄이 곡 안에서 반복되면 줄
-     * 번호만 다른 같은 문장이 sense 마다·여러 번 담기는데, 예문으로서는 완전히 같은 것이라
-     * 처음 하나만 남긴다. sense 를 가로지르는 것도 같다 — 한 가사 줄은 뜻 하나에만 붙는다.
-     *
-     * 이미 중복이 저장된 단어도 다시 담길 때 이 경로를 타면서 정리된다.
+     * 예문 중복 제거는 **단어 전체**(sense 가로질러) 기준이다. 후렴처럼 줄 번호만 다른 같은 문장은 처음 하나만
+     * 남기고, 이미 중복 저장된 단어도 다시 담길 때 정리된다.
      */
     private fun List<WordSense>.dedupExamples(): List<WordSense> {
         val seen = mutableSetOf<String>()
@@ -285,16 +272,13 @@ class WordService(
     companion object {
         const val MAX_EXAMPLES_PER_SENSE = 5
 
-        // 한 저장에 독립적인 충돌 지점이 최대 셋이다 — 전체 단어장, 곡 단어장, 겹치는 단어 하나.
-        // 재시도 한 번은 그중 하나만 해소하므로(첫 예외에서 트랜잭션 전체가 롤백된다), 운 나쁜
-        // 스레드는 셋을 순서대로 다 만날 수 있어 예산은 그 수보다 커야 한다.
+        // 충돌 지점이 최대 셋(전체 단어장, 곡 단어장, 겹치는 단어)이고 재시도 한 번은 하나만 해소하므로 3보다 커야 한다.
         private const val MAX_SAVE_ATTEMPTS = 5
 
         private val log = LoggerFactory.getLogger(WordService::class.java)
 
         /**
-         * 예문의 동일성은 **문장 텍스트**다. 같은 줄이 곡 안에서 반복되면 `lineIndex` 는
-         * 다르지만 예문으로는 구별되지 않으므로, 줄 번호나 곡을 키에 넣지 않는다.
+         * 예문의 동일성은 **문장 텍스트**다. 반복되는 줄은 `lineIndex` 만 다르므로 줄 번호나 곡을 키에 넣지 않는다.
          */
         private fun exampleKey(example: SenseExample) = example.text.trim().replace(WHITESPACE, " ")
 

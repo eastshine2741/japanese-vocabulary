@@ -38,6 +38,7 @@ export type LyricSummary = {
   lyricType: string
   lrclibId: number | null
   vocadbId: number | null
+  utaitedbId: number | null
   createdAt: string | null
   updatedAt: string | null
 }
@@ -60,7 +61,6 @@ export type SongAnalysisWorkSummary = {
   createdByUserId: number | null
   createdAt: string | null
   updatedAt: string | null
-  playerReadyAt: string | null
   completedAt: string | null
   failedAt: string | null
 }
@@ -78,61 +78,36 @@ export type SongAnalysisWorkOperation = {
   errorMessage: string | null
 }
 
+export type SongAnalysisStage = {
+  stage: string
+  status: string
+  attempt: number
+  errorCode: string | null
+  errorClass: string | null
+  errorMessage: string | null
+  outputLength: number | null
+  startedAt: string | null
+  finishedAt: string | null
+}
+
 export type SongAnalysisWorkDetail = SongAnalysisWorkSummary & {
   durationSeconds: number | null
   artworkUrl: string | null
-  activeDedupKey: string | null
-  lockedBy: string | null
-  lockedUntil: string | null
   errorCode: string | null
   errorMessage: string | null
-}
-
-export type RecommendationOperationItem = {
-  candidateId: number
-  status: string
-  songId: number | null
-  lyricId: number | null
-  workId: number | null
-  recommendationId: number | null
-  message: string | null
-}
-
-export type RecommendationOperationResult = {
-  processed: number
-  succeeded: number
-  skipped: number
-  failed: number
-  items: RecommendationOperationItem[]
+  startedAt: string | null
+  stages: SongAnalysisStage[]
+  resumable: boolean
 }
 
 export type Recommendation = {
   id: number
-  candidateId: number
-  weekStartDate: string
-  status: string
   songId: number
-  lyricId: number
-  orderIndex: number
-  publishedAt: string | null
-  createdAt: string | null
-  updatedAt: string | null
-}
-
-export type RecommendationCandidate = {
-  id: number
-  source: string
-  sourceSongId: string
-  weekStartDate: string
-  sourceRank: number
-  status: string
   title: string
-  artistName: string
+  artist: string
   artworkUrl: string | null
-  sourceUrl: string | null
-  releaseDate: string | null
-  createdAt: string | null
-  updatedAt: string | null
+  orderIndex: number
+  createdAt: string
 }
 
 export type RawLyricLine = {
@@ -180,6 +155,13 @@ export type AdminUserDetail = {
   user: AdminUser
   learning: AdminUserLearning
   decks: AdminUserDeck[]
+}
+
+export type ManualPushResult = {
+  userId: number
+  targetTokens: number
+  sent: number
+  failed: number
 }
 
 export type AdminUserLearning = {

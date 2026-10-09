@@ -7,11 +7,8 @@ import jakarta.persistence.AttributeConverter
 abstract class JsonListConverter<T>(private val elementType: Class<T>) : AttributeConverter<List<T>, String> {
     companion object {
         /**
-         * Unknown keys are ignored so a field can be dropped from a model without breaking the rows
-         * already written with it. Jackson fails on them by default, which would turn every removal
-         * into a data migration: rows keep the old key until something rewrites them, and reading one
-         * would throw. New keys were always safe (they read back as the Kotlin default); this makes
-         * removals safe too.
+         * Unknown keys are ignored so a field can be dropped from a model without a data migration;
+         * rows keep the old key until rewritten, and Jackson would throw on reading them.
          */
         private val objectMapper = jacksonObjectMapper()
             .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)

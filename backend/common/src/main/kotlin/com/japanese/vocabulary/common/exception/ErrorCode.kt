@@ -19,6 +19,8 @@ enum class ErrorCode(val status: HttpStatus, val message: String) {
     SONG_ANALYSIS_WORK_ALREADY_EXISTS(HttpStatus.CONFLICT, "Song analysis work already exists"),
     SONG_ANALYSIS_WORK_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "Song analysis failed"),
     SONG_ANALYSIS_WORK_TIMEOUT(HttpStatus.INTERNAL_SERVER_ERROR, "Song analysis timed out"),
+    SONG_ANALYSIS_PROVIDER_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "An external service was unavailable during song analysis"),
+    SONG_ANALYSIS_WORK_NOT_RESUMABLE(HttpStatus.CONFLICT, "Song analysis work cannot be resumed"),
     SONG_ANALYSIS_NOT_PENDING(HttpStatus.CONFLICT, "No pending analysis for this song"),
     ANALYSIS_NOTIFICATION_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "Analysis notification subscription is unavailable"),
     INVALID_NOTIFICATION_REQUEST(HttpStatus.BAD_REQUEST, "enabled must be a boolean"),
@@ -46,6 +48,16 @@ enum class ErrorCode(val status: HttpStatus, val message: String) {
     VOC_CONTENT_REQUIRED(HttpStatus.BAD_REQUEST, "Content required"),
     VOC_CONTENT_TOO_LONG(HttpStatus.BAD_REQUEST, "Content must be at most 1000 characters"),
     VOC_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "VOC submission is unavailable"),
+
+    // Profile image
+    PROFILE_IMAGE_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "Profile image upload is unavailable"),
+    INVALID_PROFILE_IMAGE_TYPE(HttpStatus.BAD_REQUEST, "contentType must be image/jpeg, image/png, or image/webp"),
+    INVALID_PROFILE_IMAGE_KEY(HttpStatus.BAD_REQUEST, "Key was not issued for this user"),
+    PROFILE_IMAGE_NOT_UPLOADED(HttpStatus.BAD_REQUEST, "No uploaded image found for this key"),
+    PROFILE_IMAGE_TOO_LARGE(HttpStatus.BAD_REQUEST, "Profile image must be at most 5MB"),
+
+    // Recommendation
+    SONG_ALREADY_RECOMMENDED(HttpStatus.CONFLICT, "Song is already recommended"),
 
     // Common
     FORBIDDEN(HttpStatus.FORBIDDEN, "Access denied"),

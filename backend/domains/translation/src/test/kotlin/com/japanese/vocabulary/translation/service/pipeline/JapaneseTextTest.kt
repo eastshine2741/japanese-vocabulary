@@ -24,8 +24,7 @@ class JapaneseTextTest {
     fun `converts katakana to hiragana for a lookup key`() {
         assertThat(JapaneseText.toHiragana("アタシ")).isEqualTo("あたし")
         assertThat(JapaneseText.toHiragana("アンタ")).isEqualTo("あんた")
-        // Not kana, so not the script switch's business: the prolonged sound mark, kanji and latin all
-        // pass through, and a query built from them stays exactly as unhelpful as it was.
+        // Not kana: the prolonged sound mark, kanji and latin pass through unchanged.
         assertThat(JapaneseText.toHiragana("ステンバイミー")).isEqualTo("すてんばいみー")
         assertThat(JapaneseText.toHiragana("あたし")).isEqualTo("あたし")
         assertThat(JapaneseText.toHiragana("前 Lucky")).isEqualTo("前 Lucky")
@@ -57,10 +56,8 @@ class JapaneseTextTest {
 
     @Test
     fun `does not treat katakana-block punctuation as Japanese`() {
-        // These sit inside the katakana Unicode block but have no reading. Calling them Japanese makes
-        // the anchoring validator demand a reading that nothing can supply and no kana check can
-        // accept, which deadlocks the retry loop and fails the whole song — `ロックン・ロール` did exactly
-        // that.
+        // These sit inside the katakana block but have no reading; counting them deadlocks the retry
+        // loop (`ロックン・ロール`).
         assertThat(JapaneseText.containsJapanese("・")).isFalse
         assertThat(JapaneseText.containsJapanese("゠")).isFalse
         assertThat(JapaneseText.containsJapanese("ヿ")).isFalse
@@ -93,9 +90,8 @@ class JapaneseTextTest {
     }
 
     /**
-     * Katakana-only marks the words a dictionary is not expected to hold, which exempts them from the
-     * headword check. Hiragana must not qualify: `までは` is kana too, and it is exactly the kind of
-     * missing headword the check exists to catch.
+     * Katakana-only words are exempt from the headword check. Hiragana must not qualify: `までは` is
+     * exactly the kind of missing headword the check exists to catch.
      */
     @Test
     fun `katakana-only separates loanwords from kana grammar`() {

@@ -6,25 +6,16 @@ package com.japanese.vocabulary.translation.client.jisho.dto
  * The first three are usable; the last three yield no sense candidates at all.
  */
 enum class JishoLookupProvenance {
-    /** Headword and reading matched exactly one entry. The senses are that word's, and only that word's. */
+    /** Headword and reading matched exactly one entry. */
     EXACT,
 
-    /**
-     * Reading did not match, but exactly one entry carries the headword — so there is nothing to
-     * confuse it with. Absorbs a wrong `baseFormReading` from the segmentation LLM instead of dropping
-     * the word's meaning entirely.
-     */
+    /** Reading missed but exactly one entry carries the headword; absorbs a wrong `baseFormReading` from the segmentation LLM. */
     APPROVED_FALLBACK,
 
     /**
-     * Several entries remain in play, so the word stays genuinely ambiguous. Either the reading missed
-     * and more than one entry carries the headword, or the reading matched more than one entry — a
-     * kana headword does the latter, since lyrics write かける in kana and 掛ける / 賭ける / 欠ける all
-     * read カケル.
-     *
-     * Every candidate entry's senses are offered, each labelled with its own headword/reading so
-     * sense-select can tell them apart — the one case where the flat list of the old design is still
-     * the right shape, now with the boundary made visible.
+     * Several entries remain: the reading missed and more than one carries the headword, or a kana
+     * headword (かける) matched several (掛ける / 賭ける / 欠ける). All candidates' senses are offered,
+     * each labelled with its own headword/reading.
      */
     AMBIGUOUS_HEADWORD,
 

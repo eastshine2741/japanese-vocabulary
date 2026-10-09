@@ -91,7 +91,7 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
             jsonPath("$.minLineCount") { value(4) }
             jsonPath("$.maxLineCount") { doesNotExist() }
             jsonPath("$.maxLyricsSpanMs") { value(60000) }
-            jsonPath("$.maxVocabularyPerLine") { value(2) }
+            jsonPath("$.maxVocabularyPerLine") { value(3) }
         }
     }
 
@@ -130,6 +130,8 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
         ).copy(
             song = AdminReelsPromoSong(title = "레몬 (Lemon)", artist = "요네즈 켄시", artworkAsset = "", mvAsset = "http://localhost/mv?token=x"),
             mvFrame = AdminReelsMvFrame(scale = 1.0, x = -120.0, y = 240.0, crop = AdminReelsMvCrop(top = 0.12, right = 0.0, bottom = 0.12, left = 0.0)),
+            lyricScale = 1.2,
+            headlineFontSize = 92,
         )
         mockMvc.post("/admin/api/reels-factory/render") {
             header("Authorization", "Bearer $token")
@@ -157,6 +159,10 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
         assertThat(rendered.song.artist).isEqualTo("요네즈 켄시")
         // 어드민이 잡은 MV 배치를 렌더 스크립트까지 그대로 넘긴다
         assertThat(rendered.mvFrame).isEqualTo(AdminReelsMvFrame(scale = 1.0, x = -120.0, y = 240.0, crop = AdminReelsMvCrop(top = 0.12, right = 0.0, bottom = 0.12, left = 0.0)))
+        // 어드민이 정한 가사 글자 배율도 그대로 간다
+        assertThat(rendered.lyricScale).isEqualTo(1.2)
+        // 헤드라인 글자 크기도 어드민이 정한 값을 쓴다
+        assertThat(rendered.headlineFontSize).isEqualTo(92)
         // 클라이언트의 스트리밍 URL 은 버리고 렌더 스크립트가 mvAsset 을 채운다
         assertThat(rendered.song.mvAsset).isEmpty()
     }
@@ -220,8 +226,8 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
         // 60초 상한
         renderExpectingBadRequest(token, song.id!!, promoData(startFrames = listOf(0, 60, 120, 180), lyricsEndFrame = 1801))
         // 줄당 단어 상한
-        val threeWords = List(3) { AdminReelsVocabularyResponse(japanese = "夢$it", reading = "ユメ", korean = "꿈") }
-        renderExpectingBadRequest(token, song.id!!, promoData(startFrames = listOf(0, 60, 120, 180), lyricsEndFrame = 240, vocabulary = threeWords))
+        val fourWords = List(4) { AdminReelsVocabularyResponse(japanese = "夢$it", reading = "ユメ", korean = "꿈") }
+        renderExpectingBadRequest(token, song.id!!, promoData(startFrames = listOf(0, 60, 120, 180), lyricsEndFrame = 240, vocabulary = fourWords))
         // 어드민이 고쳐 쓰는 곡 제목·아티스트가 비어 있음
         renderExpectingBadRequest(token, song.id!!, valid.copy(song = valid.song.copy(title = " ")))
         renderExpectingBadRequest(token, song.id!!, valid.copy(song = valid.song.copy(artist = "")))
@@ -233,6 +239,12 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
             song.id!!,
             valid.copy(mvFrame = AdminReelsMvFrame(scale = 1.0, x = 0.0, y = 0.0, crop = AdminReelsMvCrop(top = 0.5, right = 0.0, bottom = 0.0, left = 0.0))),
         )
+        // 가사 글자 배율 범위 밖
+        renderExpectingBadRequest(token, song.id!!, valid.copy(lyricScale = 0.4))
+        renderExpectingBadRequest(token, song.id!!, valid.copy(lyricScale = 2.0))
+        // 헤드라인 글자 크기 범위 밖
+        renderExpectingBadRequest(token, song.id!!, valid.copy(headlineFontSize = 20))
+        renderExpectingBadRequest(token, song.id!!, valid.copy(headlineFontSize = 200))
         assertThat(fakeRenderer.lastInput).isNull()
     }
 
@@ -390,8 +402,8 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
         vocabulary: List<AdminReelsVocabularyResponse> = emptyList(),
     ): AdminReelsPromoData = AdminReelsPromoData(
         song = AdminReelsPromoSong(title = "Lemon", artist = "米津玄師", artworkAsset = "", mvAsset = ""),
-        headline = "가사0",
-        instagramHandle = "@kotonoha.music",
+        headline = "가사 한 줄에\n<b>일본어 단어 6개</b>",
+        instagramHandle = "@kotonoha.app",
         catchphrase = "가사에서 바로 배우는 일본어",
         sourceStartFrame = sourceStartFrame,
         lyricsEndFrame = lyricsEndFrame,

@@ -8,11 +8,13 @@ import com.japanese.vocabulary.config.SecurityConfig
 import com.japanese.vocabulary.config.SentryConfig
 import com.japanese.vocabulary.deck.controller.DeckController
 import com.japanese.vocabulary.flashcard.controller.FlashcardController
+import com.japanese.vocabulary.flashcard.controller.StudyScheduleController
 import com.japanese.vocabulary.notification.controller.DeviceTokenController
 import com.japanese.vocabulary.notification.controller.AnalysisNotificationController
 import com.japanese.vocabulary.notification.service.AnalysisNotificationService
 import com.japanese.vocabulary.observability.HttpClientMetricsConfig
 import com.japanese.vocabulary.api.recommendation.service.SongRecommendationHomeService
+import com.japanese.vocabulary.karaoke.controller.KaraokeSongController
 import com.japanese.vocabulary.recommendation.controller.SongRecommendationController
 import com.japanese.vocabulary.song.cache.SongSearchCache
 import com.japanese.vocabulary.song.controller.SearchHistoryController
@@ -43,10 +45,12 @@ import org.springframework.context.annotation.Import
     AuthController::class,
     DeckController::class,
     FlashcardController::class,
+    StudyScheduleController::class,
     DeviceTokenController::class,
     AnalysisNotificationController::class,
     AnalysisNotificationService::class,
     SongRecommendationController::class,
+    KaraokeSongController::class,
     SongRecommendationHomeService::class,
     SearchHistoryController::class,
     SongController::class,

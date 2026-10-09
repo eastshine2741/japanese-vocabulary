@@ -52,7 +52,7 @@ for arg in "$@"; do
   esac
 done
 
-# --- 환경별 설정 (IMAGE_PREFIX는 prod에서 env 로드 후 GHCR_USERNAME으로 조립) ---
+# prod의 IMAGE_PREFIX는 env 로드 후 GHCR_USERNAME으로 조립한다.
 if [[ "$DEPLOY_ENV" == "prod" ]]; then
   KUBE_CONTEXT="kotonoha-prod"
   NS="kotonoha"
@@ -68,19 +68,16 @@ else
   exit 1
 fi
 
-# --- kube context: 명시된 환경의 context를 kubectl에 직접 지정 ---
-# 현재 활성 context와 무관하게 항상 DEPLOY_ENV에 맞는 context로 배포한다.
+# 활성 context와 무관하게 DEPLOY_ENV의 context로 배포한다.
 kubectl() {
   command kubectl --context "$KUBE_CONTEXT" "$@"
 }
 
-# --- namespace 결정 (dev만 동적, prod는 고정) ---
 if [[ "$DEPLOY_ENV" == "dev" ]]; then
   if [[ -n "$DEPLOY_NS_ARG" ]]; then
     NS="$DEPLOY_NS_ARG"
   else
     BRANCH="$(git rev-parse --abbrev-ref HEAD)"
-    # feature/foo-bar → foo-bar, main → main
     NS="${BRANCH##*/}"
     NS="$(echo "$NS" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g')"
   fi
@@ -95,18 +92,15 @@ if [[ "$RESTORE_DEV_DUMP" == "true" && "$DEPLOY_ENV" != "dev" ]]; then
   exit 1
 fi
 
-# --- env 파일 확인 ---
 if [[ ! -f "$ENV_FILE" ]]; then
   echo "Error: env file not found: $ENV_FILE" >&2
   exit 1
 fi
 
-# --- env 로드 ---
 set -a
 source "$ENV_FILE"
 set +a
 
-# --- prod-only: GHCR 검증 + IMAGE_PREFIX 조립 + 가드 prompt ---
 if [[ "$DEPLOY_ENV" == "prod" ]]; then
   if [[ -z "${GHCR_USERNAME:-}" || -z "${GHCR_TOKEN:-}" ]]; then
     echo "Error: GHCR_USERNAME / GHCR_TOKEN not set in $ENV_FILE" >&2
@@ -114,7 +108,7 @@ if [[ "$DEPLOY_ENV" == "prod" ]]; then
   fi
   IMAGE_PREFIX="ghcr.io/${GHCR_USERNAME}/kotonoha"
 
-  # admin-api 는 prod 에서 평문 비밀번호를 받지 않는다. sha256 해시와 토큰 시크릿이 필수다.
+  # prod admin-api 는 평문 비밀번호 대신 sha256 해시와 토큰 시크릿을 요구한다.
   ADMIN_TOKEN_SECRET="${ADMIN_TOKEN_SECRET:-}"
   if [[ ! "${ADMIN_PASSWORD_SHA256:-}" =~ ^[0-9a-f]{64}$ ]]; then
     echo "Error: ADMIN_PASSWORD_SHA256 must be a 64-char lowercase hex sha256 in $ENV_FILE" >&2
@@ -146,6 +140,7 @@ BATCH_IMAGE="${IMAGE_PREFIX}-batch:${GIT_SHA}"
 MIGRATION_IMAGE="${IMAGE_PREFIX}-migration:${GIT_SHA}"
 ADMIN_API_IMAGE="${IMAGE_PREFIX}-admin-api:${GIT_SHA}"
 ADMIN_WEB_IMAGE="${IMAGE_PREFIX}-admin-web:${GIT_SHA}"
+WORKER_IMAGE="${IMAGE_PREFIX}-worker:${GIT_SHA}"
 ADMIN_PASSWORD="${ADMIN_PASSWORD:-}"
 ADMIN_PASSWORD_SHA256="${ADMIN_PASSWORD_SHA256:-}"
 if [[ "$DEPLOY_ENV" == "dev" ]]; then
@@ -153,8 +148,11 @@ if [[ "$DEPLOY_ENV" == "dev" ]]; then
   ADMIN_TOKEN_SECRET="${ADMIN_TOKEN_SECRET:-dev-admin-token-secret-must-be-at-least-32-bytes}"
 fi
 
+# 곡 분석 파이프라인이 batch 에서 worker 로 옮겨졌다. 전용 DSN 이 없으면 batch 가 쓰던 프로젝트로
+# 계속 보낸다 — .github/scripts/analysis-feedback 러너가 그 프로젝트(kotonoha-batch-prod)를 읽는다.
+SENTRY_DSN_WORKER="${SENTRY_DSN_WORKER:-${SENTRY_DSN_BATCH:-}}"
+
 # admin-web 은 asset base 와 router basename 을 빌드 시점에 굽는다.
-# dev 는 namespace 경로 아래, prod 는 kotonoha.eastshine.dev/admin 아래에 붙는다.
 if [[ "$DEPLOY_ENV" == "prod" ]]; then
   ADMIN_WEB_BASE_PATH="/admin"
 else
@@ -169,10 +167,8 @@ else
 fi
 SENTRY_RELEASE="${GIT_SHA}"
 
-# build/libs 안에는 bootJar 말고 -plain.jar 도 같이 생긴다.
-# Dockerfile 의 COPY 가 여러 파일을 잡지 않도록 boot jar 하나를 정확히 골라 전달한다.
-# admin-api 는 이미지에 reels/ 를 담아야 해서 build context 가 repo root 다 (3번째 인자).
-# admin-web 도 릴스 미리보기가 reels/src 를 가져와서 repo root 에서 빌드한다.
+# build/libs 의 -plain.jar 를 제외한 boot jar 하나만 Dockerfile 에 넘긴다.
+# admin-api 는 reels/ 가 필요해 build context 가 repo root 다 (3번째 인자).
 build_boot_image() {
   local module="$1" image="$2" ctx="${3:-$PROJECT_ROOT/backend/$1}"
   local module_dir="$PROJECT_ROOT/backend/$module"
@@ -194,8 +190,9 @@ build_boot_image() {
     -t "$image" \
     -f "$module_dir/Dockerfile" "$ctx/"
 }
-export API_IMAGE BATCH_IMAGE MIGRATION_IMAGE ADMIN_API_IMAGE ADMIN_WEB_IMAGE NS SENTRY_ENVIRONMENT SENTRY_RELEASE
+export API_IMAGE BATCH_IMAGE WORKER_IMAGE MIGRATION_IMAGE ADMIN_API_IMAGE ADMIN_WEB_IMAGE NS SENTRY_ENVIRONMENT SENTRY_RELEASE
 export ADMIN_PASSWORD ADMIN_PASSWORD_SHA256 ADMIN_TOKEN_SECRET
+export SENTRY_DSN_WORKER
 
 echo "=== env: $DEPLOY_ENV | namespace: $NS | sha: $GIT_SHA ==="
 
@@ -214,16 +211,14 @@ if [[ "$RESTORE_DEV_DUMP" == "true" ]]; then
   fi
 fi
 
-# --- 1. Gradle 테스트 + 빌드 (test 실패 시 배포 중단) ---
 STEP_START=$SECONDS
 echo "[gradle] test + bootJar..."
 cd "$PROJECT_ROOT/backend" && ./gradlew \
-  :api:test :batch:test :admin-api:test \
-  :api:bootJar :batch:bootJar :admin-api:bootJar --no-daemon
+  :api:test :batch:test :worker:test :admin-api:test \
+  :api:bootJar :batch:bootJar :worker:bootJar :admin-api:bootJar --no-daemon
 cd "$PROJECT_ROOT"
 echo "  → $((SECONDS - STEP_START))s"
 
-# --- 2. Docker 이미지 빌드 + 배포 ---
 STEP_START=$SECONDS
 if [[ "$DEPLOY_ENV" == "prod" ]]; then
   echo "[ghcr] login..."
@@ -232,6 +227,7 @@ if [[ "$DEPLOY_ENV" == "prod" ]]; then
   echo "[build] images..."
   build_boot_image api "$API_IMAGE"
   build_boot_image batch "$BATCH_IMAGE"
+  build_boot_image worker "$WORKER_IMAGE"
   docker build -t "$MIGRATION_IMAGE" -f "$PROJECT_ROOT/backend/migration/Dockerfile" "$PROJECT_ROOT/backend/migration/"
   build_boot_image admin-api "$ADMIN_API_IMAGE" "$PROJECT_ROOT"
   docker build \
@@ -243,6 +239,7 @@ if [[ "$DEPLOY_ENV" == "prod" ]]; then
   echo "[push] ghcr..."
   docker push "$API_IMAGE"
   docker push "$BATCH_IMAGE"
+  docker push "$WORKER_IMAGE"
   docker push "$MIGRATION_IMAGE"
   docker push "$ADMIN_API_IMAGE"
   docker push "$ADMIN_WEB_IMAGE"
@@ -250,6 +247,7 @@ else
   echo "[build] images..."
   build_boot_image api "$API_IMAGE"
   build_boot_image batch "$BATCH_IMAGE"
+  build_boot_image worker "$WORKER_IMAGE"
   docker build -t "$MIGRATION_IMAGE" -f "$PROJECT_ROOT/backend/migration/Dockerfile" "$PROJECT_ROOT/backend/migration/"
   build_boot_image admin-api "$ADMIN_API_IMAGE" "$PROJECT_ROOT"
   docker build \
@@ -259,17 +257,15 @@ else
     -f "$PROJECT_ROOT/admin-web/Dockerfile" "$PROJECT_ROOT"
 
   echo "[k3s] importing images..."
-  docker save "$API_IMAGE" "$BATCH_IMAGE" "$MIGRATION_IMAGE" "$ADMIN_API_IMAGE" "$ADMIN_WEB_IMAGE" | sudo k3s ctr images import -
+  docker save "$API_IMAGE" "$BATCH_IMAGE" "$WORKER_IMAGE" "$MIGRATION_IMAGE" "$ADMIN_API_IMAGE" "$ADMIN_WEB_IMAGE" | sudo k3s ctr images import -
 fi
 echo "  → $((SECONDS - STEP_START))s"
 
-# --- 3. Namespace ---
 STEP_START=$SECONDS
 echo "[ns] ensuring namespace '$NS'..."
 kubectl create namespace "$NS" --dry-run=client -o yaml | kubectl apply -f -
 echo "  → $((SECONDS - STEP_START))s"
 
-# --- 4. ImagePullSecret (prod only) ---
 if [[ "$DEPLOY_ENV" == "prod" ]]; then
   STEP_START=$SECONDS
   echo "[secret] ghcr ImagePullSecret..."
@@ -282,16 +278,37 @@ if [[ "$DEPLOY_ENV" == "prod" ]]; then
   echo "  → $((SECONDS - STEP_START))s"
 fi
 
-# --- 5. 매니페스트 적용 ---
 STEP_START=$SECONDS
-echo "[apply] infra (mysql + redis)..."
+echo "[apply] infra (mysql + redis + rabbitmq)..."
 envsubst < "$K8S_DIR/mysql/secret.template.yaml" | kubectl apply -n "$NS" -f -
 kubectl apply -n "$NS" -f "$K8S_DIR/mysql/statefulset.yaml"
 kubectl apply -n "$NS" -f "$K8S_DIR/mysql/service.yaml"
 kubectl apply -n "$NS" -f "$K8S_DIR/redis/"
+# 브로커 계정. 오퍼레이터가 네임스페이스마다 만들어 주던 것을 여기서 만든다.
+# api/admin-api/worker 가 secretKeyRef 로 읽으므로 파드보다 먼저 있어야 한다.
+# 이미 있으면 비밀번호를 재사용한다 — 배포마다 바뀌면 재시작하지 않은 파드가 옛 자격증명으로 남는다.
+RABBITMQ_PASSWORD="$(
+  kubectl get secret rabbitmq-default-user -n "$NS" -o jsonpath='{.data.password}' 2>/dev/null \
+    | base64 -d 2>/dev/null || true
+)"
+if [[ -z "$RABBITMQ_PASSWORD" ]]; then
+  RABBITMQ_PASSWORD="$(openssl rand -hex 24)"
+fi
+export RABBITMQ_PASSWORD
+envsubst < "$K8S_DIR/rabbitmq/secret.template.yaml" | kubectl apply -n "$NS" -f -
+kubectl apply -n "$NS" -f "$K8S_DIR/rabbitmq/configmap.yaml"
+# 토폴로지 import 는 브로커 부팅 때만 돈다. ConfigMap/Secret 만 바뀌면 파드가 그대로 남아
+# 변경이 조용히 묻히므로, 두 선언의 해시를 파드 템플릿에 넣어 롤아웃을 트리거한다.
+RABBITMQ_DEFINITIONS_HASH="$(
+  {
+    cat "$K8S_DIR/rabbitmq/configmap.yaml"
+    envsubst < "$K8S_DIR/rabbitmq/secret.template.yaml"
+  } | sha256sum | cut -c1-16
+)"
+export RABBITMQ_DEFINITIONS_HASH
+envsubst < "$K8S_DIR/rabbitmq/statefulset.template.yaml" | kubectl apply -n "$NS" -f -
 echo "  → $((SECONDS - STEP_START))s"
 
-# --- 6. DB 마이그레이션 ---
 STEP_START=$SECONDS
 echo "[migration] running..."
 kubectl rollout status -n "$NS" statefulset/mysql --timeout=120s
@@ -326,20 +343,37 @@ envsubst < "$K8S_DIR/migration/job.yaml" | kubectl apply -n "$NS" -f -
 kubectl wait --for=condition=complete -n "$NS" job/migration --timeout=120s
 echo "  → $((SECONDS - STEP_START))s"
 
-# --- 7. API + Batch ---
 STEP_START=$SECONDS
-echo "[apply] api + batch..."
+echo "[apply] worker..."
+# firebase 자격증명은 worker(분석 완료 알림), batch(연속 학습 알림), admin-api(수동 푸시)가 같이 쓴다.
+envsubst < "$K8S_DIR/batch/firebase-secret.template.yaml" | kubectl apply -n "$NS" -f -
+
+envsubst < "$K8S_DIR/worker/secret.template.yaml" | kubectl apply -n "$NS" -f -
+envsubst < "$K8S_DIR/worker/configmap.yaml" | kubectl apply -n "$NS" -f -
+envsubst < "$K8S_DIR/worker/deployment.yaml" | kubectl apply -n "$NS" -f -
+[[ -f "$K8S_DIR/worker/service.yaml" ]] && kubectl apply -n "$NS" -f "$K8S_DIR/worker/service.yaml"
+# worker 가 롤아웃을 마친 뒤에 api 를 올린다. 순서를 지키려고 여기서 기다린다.
+# 토폴로지를 따로 기다릴 필요가 없다. AMQP listener 는 definitions import 가 끝난 뒤에 열리고
+# readinessProbe 가 그 포트를 보므로, Ready 는 곧 큐가 있다는 뜻이다. 선언에 구조적 오류가 있으면
+# 브로커가 부팅에서 죽어 여기서 멈춘다.
+kubectl rollout status -n "$NS" statefulset/rabbitmq --timeout=300s
+kubectl rollout status -n "$NS" deployment/worker --timeout=180s
+
+echo "[apply] api + batch cronjobs..."
 envsubst < "$K8S_DIR/api/secret.template.yaml" | kubectl apply -n "$NS" -f -
 envsubst < "$K8S_DIR/api/configmap.yaml" | kubectl apply -n "$NS" -f -
 envsubst < "$K8S_DIR/api/deployment.yaml" | kubectl apply -n "$NS" -f -
 kubectl apply -n "$NS" -f "$K8S_DIR/api/service.yaml"
 envsubst < "$K8S_DIR/api/ingress.yaml" | kubectl apply -n "$NS" -f -
 
+# batch 는 더 이상 상주하지 않는다. 남아 있는 예전 Deployment 를 걷어낸다.
+kubectl delete deployment batch -n "$NS" --ignore-not-found
+kubectl delete service batch -n "$NS" --ignore-not-found
+# apply 는 매니페스트에서 빠진 CronJob 을 지우지 않는다.
+kubectl delete cronjob apple-music-recommendation -n "$NS" --ignore-not-found
 envsubst < "$K8S_DIR/batch/secret.template.yaml" | kubectl apply -n "$NS" -f -
-envsubst < "$K8S_DIR/batch/firebase-secret.template.yaml" | kubectl apply -n "$NS" -f -
 envsubst < "$K8S_DIR/batch/configmap.yaml" | kubectl apply -n "$NS" -f -
-envsubst < "$K8S_DIR/batch/deployment.yaml" | kubectl apply -n "$NS" -f -
-[[ -f "$K8S_DIR/batch/service.yaml" ]] && kubectl apply -n "$NS" -f "$K8S_DIR/batch/service.yaml"
+envsubst < "$K8S_DIR/batch/cronjobs.yaml" | kubectl apply -n "$NS" -f -
 
 echo "[apply] admin-api + admin-web..."
 envsubst < "$K8S_DIR/admin-api/secret.template.yaml" | kubectl apply -n "$NS" -f -
@@ -351,7 +385,7 @@ envsubst < "$K8S_DIR/admin-web/deployment.yaml" | kubectl apply -n "$NS" -f -
 kubectl apply -n "$NS" -f "$K8S_DIR/admin-web/service.yaml"
 
 if [[ "$DEPLOY_ENV" == "prod" ]]; then
-  # prod 는 kotonoha.eastshine.dev 한 호스트를 path 로 나눠 쓴다 (admin/ 아래 cert + IngressRoute).
+  # prod 는 한 호스트를 path 로 나눠 쓴다 (admin/ 아래 cert + IngressRoute).
   kubectl apply -n "$NS" -f "$K8S_DIR/admin/certificate.yaml"
   kubectl apply -n "$NS" -f "$K8S_DIR/admin/ingress.yaml"
 else
@@ -359,16 +393,14 @@ else
   envsubst < "$K8S_DIR/admin-web/ingress.yaml" | kubectl apply -n "$NS" -f -
 fi
 
-for sm in "$K8S_DIR/api/servicemonitor.yaml" "$K8S_DIR/batch/servicemonitor.yaml" "$K8S_DIR/admin-api/servicemonitor.yaml"; do
+for sm in "$K8S_DIR/api/servicemonitor.yaml" "$K8S_DIR/worker/servicemonitor.yaml" "$K8S_DIR/admin-api/servicemonitor.yaml"; do
   [[ -f "$sm" ]] && kubectl apply -n "$NS" -f "$sm"
 done
 echo "  → $((SECONDS - STEP_START))s"
 
-# --- 8. 롤아웃 대기 ---
 STEP_START=$SECONDS
 echo "[rollout] waiting..."
 kubectl rollout status -n "$NS" deployment/api --timeout=120s
-kubectl rollout status -n "$NS" deployment/batch --timeout=120s
 kubectl rollout status -n "$NS" deployment/admin-api --timeout=120s
 kubectl rollout status -n "$NS" deployment/admin-web --timeout=120s
 echo "  → $((SECONDS - STEP_START))s"
@@ -383,5 +415,9 @@ if [[ "$DEPLOY_ENV" == "prod" ]]; then
 else
   echo "  kubectl port-forward -n $NS svc/api 8080:8080"
   echo "  kubectl port-forward -n $NS svc/admin-api 8081:8081"
+  echo "  rabbitmq ui: kubectl port-forward -n $NS svc/rabbitmq 15672:15672"
   echo "  admin web via ingress: http://localhost/$NS/admin"
+  echo ""
+  echo "  CronJob 수동 실행:"
+  echo "    kubectl create job --from=cronjob/freeze-consume fc-\$(date +%s) -n $NS"
 fi

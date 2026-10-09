@@ -1,0 +1,32 @@
+default_platform(:ios)
+
+platform :ios do
+  # EAS Submit 이 TestFlight 까지 올린 빌드를 심사에 낸다. 출시 버튼은 심사 통과 뒤 사람이 누른다.
+  lane :submit_review do |options|
+    api_key = app_store_connect_api_key(
+      key_id: ENV.fetch("ASC_KEY_ID"),
+      issuer_id: ENV.fetch("ASC_ISSUER_ID"),
+      key_filepath: ENV.fetch("ASC_KEY_PATH"),
+    )
+
+    # metadata_path 를 빈 디렉터리로 두어 release_notes 외 메타데이터는 건드리지 않는다.
+    empty_metadata = File.expand_path("metadata-empty", __dir__)
+    FileUtils.mkdir_p(empty_metadata)
+
+    # build_number 를 주면 처리 대기 없이 바로 찾다가 실패한다 — app_version 의 최신 빌드를 기다리게 둔다.
+    deliver(
+      api_key: api_key,
+      app_identifier: "dev.eastshine.kotonoha",
+      app_version: options.fetch(:version),
+      skip_binary_upload: true,
+      skip_screenshots: true,
+      metadata_path: empty_metadata,
+      release_notes: { "ko" => options.fetch(:release_notes) },
+      submit_for_review: true,
+      automatic_release: false,
+      submission_information: { add_id_info_uses_idfa: false },
+      run_precheck_before_submit: false,
+      force: true,
+    )
+  end
+end

@@ -25,4 +25,4 @@ Applies to all modules under `backend/domains/`.
 - If the module provides beans, add `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`.
 - The AutoConfiguration should component-scan only the module-owned `com.japanese.vocabulary.<module>` package.
 - Register entities and repositories explicitly with `@EntityScan` and `@EnableJpaRepositories`.
-- Repository interfaces remain externally visible for this pass; do not make them `internal` without a separate test migration plan.
+- Keep repository interfaces public; making them `internal` requires a test migration plan first.

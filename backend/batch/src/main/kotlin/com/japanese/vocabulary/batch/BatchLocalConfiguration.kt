@@ -2,58 +2,38 @@ package com.japanese.vocabulary.batch
 
 import com.japanese.vocabulary.config.ClockConfig
 import com.japanese.vocabulary.config.SentryConfig
-import com.japanese.vocabulary.notification.ManualPushNotificationService
-import com.japanese.vocabulary.notification.PushDevController
-import com.japanese.vocabulary.notification.StreakReminderScheduler
-import com.japanese.vocabulary.notification.AnalysisNotificationDispatcher
-import com.japanese.vocabulary.notification.AnalysisNotificationListener
-import com.japanese.vocabulary.observability.HttpClientMetricsConfig
-import com.japanese.vocabulary.recommendation.batch.AppleMusicRecommendationCollector
-import com.japanese.vocabulary.recommendation.batch.AppleMusicRecommendationJobConfig
-import com.japanese.vocabulary.recommendation.batch.AppleMusicRecommendationScheduler
-import com.japanese.vocabulary.recommendation.batch.RecommendationWeekCalculator
-import com.japanese.vocabulary.song.batch.SongAnalysisWorkCompletionService
-import com.japanese.vocabulary.song.batch.SongAnalysisWorkProcessor
-import com.japanese.vocabulary.song.batch.SongAnalysisWorkScheduler
-import com.japanese.vocabulary.song.batch.LyricWordCandidateBackfillDevController
+import com.japanese.vocabulary.karaoke.batch.KaraokeCollectTask
+import com.japanese.vocabulary.karaoke.batch.KaraokeListingCollector
+import com.japanese.vocabulary.karaoke.batch.KaraokeNewSongNotifier
+import com.japanese.vocabulary.notification.StreakReminderTask
 import com.japanese.vocabulary.song.batch.LyricWordCandidateBackfillService
-import com.japanese.vocabulary.song.cache.ArtistChannelCache
-import com.japanese.vocabulary.song.service.SongAnalysisPreparationService
-import com.japanese.vocabulary.song.service.YoutubeMvSearchService
-import com.japanese.vocabulary.studystats.batch.FreezeConsumeDevController
+import com.japanese.vocabulary.song.batch.LyricWordCandidateBackfillTask
 import com.japanese.vocabulary.studystats.batch.FreezeConsumeJobConfig
-import com.japanese.vocabulary.studystats.batch.FreezeConsumeScheduler
 import com.japanese.vocabulary.studystats.batch.FreezeConsumeService
+import com.japanese.vocabulary.studystats.batch.FreezeConsumeTask
 import com.japanese.vocabulary.studystats.util.KstClock
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Import
 
+/**
+ * `http.client.requests` 태깅([com.japanese.vocabulary.observability.HttpClientMetricsConfig])은
+ * 싣지 않는다. batch 는 actuator 없이 몇 분 살다 끝나는 CronJob 이라 스크레이프 대상이 아니고,
+ * 그 설정은 WebClient 타입 때문에 spring-webflux 를 요구한다.
+ */
 @Configuration
 @Import(
     ClockConfig::class,
-    HttpClientMetricsConfig::class,
     SentryConfig::class,
-    ManualPushNotificationService::class,
-    PushDevController::class,
-    StreakReminderScheduler::class,
-    AnalysisNotificationDispatcher::class,
-    AnalysisNotificationListener::class,
-    AppleMusicRecommendationCollector::class,
-    AppleMusicRecommendationJobConfig::class,
-    AppleMusicRecommendationScheduler::class,
-    RecommendationWeekCalculator::class,
-    SongAnalysisWorkCompletionService::class,
-    SongAnalysisWorkProcessor::class,
-    SongAnalysisWorkScheduler::class,
-    LyricWordCandidateBackfillDevController::class,
+    CronTaskRunner::class,
+    StreakReminderTask::class,
+    KaraokeCollectTask::class,
+    KaraokeListingCollector::class,
+    KaraokeNewSongNotifier::class,
     LyricWordCandidateBackfillService::class,
-    ArtistChannelCache::class,
-    SongAnalysisPreparationService::class,
-    YoutubeMvSearchService::class,
-    FreezeConsumeDevController::class,
+    LyricWordCandidateBackfillTask::class,
     FreezeConsumeJobConfig::class,
-    FreezeConsumeScheduler::class,
     FreezeConsumeService::class,
+    FreezeConsumeTask::class,
     KstClock::class,
 )
 class BatchLocalConfiguration

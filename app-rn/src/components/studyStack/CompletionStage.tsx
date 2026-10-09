@@ -45,8 +45,7 @@ export const CompletionStage = React.memo(function CompletionStage({
   const hasRecommended = recommendedSource != null;
   const primaryLabel = hasNextDue ? '이어서 복습' : hasRecommended ? '이어서 학습' : '새 곡 검색';
   const handlePrimary = hasNextDue ? onContinueDue : hasRecommended ? onRecommended : onSearch;
-  // 완주(다음 due 곡이 남음)가 아니면 추천곡 넛지 유무와 무관하게 같은 문구다 — 한 장도
-  // 복습하지 않은 사용자에게도 이 화면이 뜨므로 '오늘 다 했다'고 단정하지 않는다.
+  // 한 장도 복습하지 않은 사용자에게도 이 화면이 뜨므로 '오늘 다 했다'고 단정하지 않는다.
   const completeTitle = hasNextDue && completedSource
     ? `${completedSource.title} 완주!`
     : '복습할 단어가 없어요';
@@ -284,9 +283,7 @@ interface MemoryStatProps {
 
 /**
  * 기억 이동 한 칸. 0 에서 `value` 까지 숫자를 굴려 올린 뒤 한 번 튕긴다.
- *
- * 숫자는 텍스트라 Animated 로 직접 못 그린다 — Animated.Value 를 듣다가 반올림 값이 **바뀔 때만**
- * setState 해서, 프레임마다가 아니라 숫자가 실제로 넘어갈 때만 렌더한다.
+ * 숫자는 텍스트라 Animated 로 직접 못 그린다 — 반올림 값이 바뀔 때만 setState 한다.
  */
 const MemoryStat = React.memo(function MemoryStat({
   value,

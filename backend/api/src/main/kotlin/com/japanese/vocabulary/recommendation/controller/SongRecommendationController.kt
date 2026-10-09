@@ -14,5 +14,5 @@ class SongRecommendationController(
 ) {
     @GetMapping
     fun getRecommendations(): ResponseEntity<List<SongRecommendationResponse>> =
-        ResponseEntity.ok(songRecommendationHomeService.getLatestPublishedRecommendations())
+        ResponseEntity.ok(songRecommendationHomeService.getRecommendations())
 }

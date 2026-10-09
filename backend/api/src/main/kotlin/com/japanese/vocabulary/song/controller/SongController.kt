@@ -116,7 +116,6 @@ class SongController(
 
         val songsById = songRepository.findAllById(songIds).associateBy { it.id }
 
-        // Maintain Redis order
         val recentSongs = songIds.mapNotNull { id ->
             songsById[id]?.let { entity ->
                 RecentSongItemDto(

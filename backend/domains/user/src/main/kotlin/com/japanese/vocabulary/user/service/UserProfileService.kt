@@ -41,15 +41,25 @@ class UserProfileService(
         return userRepository.save(user).toDto()
     }
 
+    /** Returns the key it replaced so the caller can drop that object once this commits. */
+    @Transactional
+    fun replaceProfileImageKey(userId: Long, key: String?): String? {
+        val user = userRepository.findByIdAndDeletedAtIsNull(userId)
+            ?: throw BusinessException(ErrorCode.INVALID_CREDENTIALS)
+        val previous = user.profileImageKey
+        user.profileImageKey = key
+        userRepository.save(user)
+        return previous
+    }
+
     /**
-     * Soft delete the user. Mutates provider_sub and username so the same Google
-     * identity can sign up again as a fresh account. Email and display name are
-     * cleared to minimize stored PII after deletion. Child rows (decks, words,
-     * flashcards, etc.) are intentionally left intact; they become unreachable
-     * because every read path resolves users via findByIdAndDeletedAtIsNull.
+     * Soft delete. provider_sub and username are mutated so the same identity can sign up again;
+     * email, display name and profile image are cleared to minimize PII; the returned image key is
+     * the caller's to delete from storage. Child rows stay, unreachable because
+     * every read path resolves users via findByIdAndDeletedAtIsNull.
      */
     @Transactional
-    fun deleteSelf(userId: Long) {
+    fun deleteSelf(userId: Long): String? {
         val user = userRepository.findByIdAndDeletedAtIsNull(userId)
             ?: throw BusinessException(ErrorCode.INVALID_CREDENTIALS)
         val id = user.id ?: throw IllegalStateException("Persisted user is missing an id")
@@ -58,6 +68,9 @@ class UserProfileService(
         user.username = "deleted:$id:${user.username}"
         user.email = null
         user.name = null
+        val profileImageKey = user.profileImageKey
+        user.profileImageKey = null
         userRepository.save(user)
+        return profileImageKey
     }
 }

@@ -1,0 +1,132 @@
+server:
+  # batch 가 쓰던 8081 은 admin-api 와 겹쳐서, 로컬에서 셋을 같이 띄울 수 있도록 8082 를 쓴다.
+  port: 8082
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+spring:
+  application:
+    name: japanese-vocabulary-worker
+
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:3306/${MYSQL_DATABASE:japanese_vocabulary}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: ${MYSQL_USER}
+    password: ${MYSQL_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  # 명시하지 않으면 읽기 타임아웃이 없다. prod 에서 Gemini 가 응답 없이 180초씩 세 번 붙잡혀
+  # 한 작업이 9분 넘게 걸린 적이 있다. 정상 Gemini 번역은 30~40초, 부하가 몰릴 때 최대 약 113초라
+  # 그 위로 잡는다. 이 앱의 RestClient 는 모두 이 값을 쓴다.
+  http:
+    client:
+      connect-timeout: 5s
+      read-timeout: 120s
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+
+  flyway:
+    enabled: false
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: 6379
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    # 토폴로지는 브로커가 부팅 때 읽는 definitions(k8s/{dev,prod}/rabbitmq/configmap.yaml)가 소유한다.
+    # RabbitAdmin 을 띄우지 않아야 선언의 진실 원천이 하나로 남는다.
+    dynamic: false
+    listener:
+      simple:
+        # 한 스레드가 한 작업만 들고 있게 한다. 분석이 수 분 걸려서, 미리 받아둔 메시지는
+        # 놀고 있는 다른 파드로 가지 못하고 그냥 대기하게 된다.
+        prefetch: 1
+        # 리스너가 예외를 던지면 무한 재배달 대신 DLQ 로 보낸다. 파이프라인 실패는 예외가 아니라
+        # 원장 행의 FAILED 로 기록되므로, 여기로 오는 건 인프라 장애뿐이다.
+        default-requeue-rejected: false
+
+song-analysis:
+  worker:
+    # 한 파드가 동시에 분석하는 곡 수. 병목이 외부 API 대기라 스레드 수를 늘려도 메모리 부담은 작다.
+    concurrency: ${SONG_ANALYSIS_CONCURRENCY:3}
+    # 요청부터 분석 완료까지 유저가 기다리는 상한. 이걸 넘겨 끝날 재시도는 기다리지 않는다 —
+    # 단계 실행 자체를 끊지는 않고, HTTP 호출의 재시도 대기만 이 마감 앞에서 멈춘다.
+    time-budget: 5m
+    # 유실된 메시지 재발행과 멈춘 작업 정리. 재발행 판정이 1분이라 주기도 1분이다.
+    sweep-interval-ms: 60000
+  # 가사(lrclib/VocaDB)·YouTube 검색 한 번 전체를 재시도하는 정책. 일시 장애만, 마감 안에서만.
+  provider-retry:
+    max-attempts: 3
+    initial-backoff: 1s
+
+gemini:
+  api-key: ${GEMINI_API_KEY}
+  translation-model: gemini-3.1-pro-preview
+  word-meaning-model: gemini-3.1-flash-lite
+  # Segmentation now carries the whole pipeline's disambiguation signal — both readings and the
+  # context gloss. Its tier is tuned separately from the cheaper translate-sense call.
+  #
+  # Measured against gemini-3-flash-preview on three golden songs: the higher tier matches flash-lite
+  # inside run-to-run noise, needs its thinking bounded to answer at all, and hallucinated the Korean
+  # translation into the segmentation output at thinking level `low`. See the table in
+  # docs/architecture/song-analysis.md. Keep flash-lite until that comparison says otherwise.
+  segmentation-model: gemini-3.1-flash-lite
+  # Blank sends no thinkingConfig, which is what flash-lite wants. Set to minimal/low/high only when
+  # moving segmentation to a model that thinks by default, or its answer runs out of output budget.
+  segmentation-thinking-level: ""
+  # Transport-level failures only (dropped connection, 5xx, 429). One prod work died on a single
+  # "generativelanguage.googleapis.com:443 failed to respond" that the same input passed four
+  # minutes later. Backoff doubles per attempt: 2s, 4s.
+  retry:
+    max-attempts: 3
+    initial-backoff: 2s
+
+# Sense-select (SelectSensesStage). TypeSafe's Jev answers each word with one offered sense plus a
+# confidence; there is no Gemini fallback.
+jev:
+  api-key: ${TYPESAFE_API_KEY}
+  model: jev-latest
+  # Same policy as gemini.retry. Jev's overload status 529 is a 5xx, so it is retried too.
+  retry:
+    max-attempts: 3
+    initial-backoff: 2s
+
+jisho:
+  # Same policy as gemini.retry (ExponentialBackoff: 5xx, 429, dropped connection). A 90-second
+  # jisho outage once turned 23 lookups in one song into "no dictionary entry"; four attempts at
+  # 2s, 4s, 8s ride out a blip, and what survives is logged as a PROVIDER_ERROR defect.
+  retry:
+    max-attempts: 4
+    initial-backoff: 2s
+
+youtube:
+  api-key: ${YOUTUBE_API_KEY}
+
+sentry:
+  dsn: ${SENTRY_DSN_WORKER:}
+  environment: ${SENTRY_ENVIRONMENT:local}
+  release: ${SENTRY_RELEASE:}
+  send-default-pii: false
+  traces-sample-rate: 0.1
+  exception-resolver-order: -2147483647
+  logging:
+    minimum-event-level: warn
+    minimum-breadcrumb-level: info

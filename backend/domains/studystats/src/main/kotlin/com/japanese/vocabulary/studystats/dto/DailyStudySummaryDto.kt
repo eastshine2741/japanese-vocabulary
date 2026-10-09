@@ -3,10 +3,7 @@ package com.japanese.vocabulary.studystats.dto
 import com.japanese.vocabulary.studystats.entity.DailyStudySummaryEntity
 import java.time.LocalDate
 
-/**
- * Entity-mirror data class for [DailyStudySummaryEntity]. Use this as the cross-module
- * return type instead of the JPA entity.
- */
+/** Cross-module return type; the JPA entity does not leave this module. */
 data class DailyStudySummaryDto(
     val userId: Long,
     val dateKst: LocalDate,

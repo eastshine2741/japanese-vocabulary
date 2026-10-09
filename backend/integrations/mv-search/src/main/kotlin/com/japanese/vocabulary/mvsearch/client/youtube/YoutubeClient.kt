@@ -22,6 +22,7 @@ class YoutubeClient(
         pageToken: String? = null,
         maxResults: Int = 15,
         videoCategoryId: String? = null,
+        order: String? = null,
     ): YoutubeSearchResponse? =
         restClient.get()
             .uri { builder ->
@@ -33,6 +34,7 @@ class YoutubeClient(
                     .queryParam("key", apiKey)
                     .apply { if (pageToken != null) queryParam("pageToken", pageToken) }
                     .apply { if (videoCategoryId != null) queryParam("videoCategoryId", videoCategoryId) }
+                    .apply { if (order != null) queryParam("order", order) }
                     .build()
             }
             .retrieve()

@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # Analysis feedback runner.
 #
-# Reads ANALYSIS_DEFECT events (words the song analysis pipeline shipped without a meaning) from
-# Sentry, groups them by cause + headword, asks Claude to sort the new ones into root causes, and
-# opens one PR per root cause that is fixable in code. Everything that decides whether a PR is
+# Reads ANALYSIS_DEFECT events (words the song analysis pipeline shipped without a meaning) and
+# MV_SEARCH_DEFECT events (songs analyzed without an MV) from Sentry, groups them by cause + headword
+# (artist / title for MVs), asks Claude to sort the new ones into root causes, and opens one PR per
+# root cause that is fixable in code. Words and MVs are classified and fixed as separate tracks. Everything that decides whether a PR is
 # opened — what counts as new, which paths may change, whether the reproduction test fails on
 # main and passes on the branch — is done here, not by the model.
 #
@@ -35,10 +36,11 @@ CLASSIFY_MODEL="${ANALYSIS_FEEDBACK_CLASSIFY_MODEL:-sonnet}"
 FIX_MODEL="${ANALYSIS_FEEDBACK_FIX_MODEL:-opus}"
 CLAUDE_MAX_BUDGET_USD="${ANALYSIS_FEEDBACK_MAX_BUDGET_USD:-5}"
 
-MARKER="ANALYSIS_DEFECT"
+MARKERS=("ANALYSIS_DEFECT" "MV_SEARCH_DEFECT")
 BRANCH_PREFIX="fix/analysis-"
-# The only tree the fix pass may touch. Everything the pipeline decides with lives here.
-ALLOWED_PATH_REGEX='^backend/domains/translation/'
+# The only tree each track's fix pass may touch. Everything that track decides with lives here.
+WORD_ALLOWED_PATH_REGEX='^backend/domains/translation/'
+MV_ALLOWED_PATH_REGEX='^backend/(worker/src/(main|test)/kotlin/com/japanese/vocabulary/song/service/(YoutubeMvSearch[^/]*|MvSearchResult)\.kt$|integrations/mv-search/)'
 # Files whose change means the signal was silenced rather than the defect fixed.
 FORBIDDEN_PATH_REGEX='(SentryConfig|application\.ya?ml|logback)'
 
@@ -92,10 +94,6 @@ trap cleanup EXIT
 
 urlencode() { jq -rn --arg s "$1" '$s|@uri'; }
 
-# ---------------------------------------------------------------------------------------------
-# Preflight
-# ---------------------------------------------------------------------------------------------
-
 preflight() {
   local tool
   for tool in jq curl git gh claude; do
@@ -118,10 +116,6 @@ preflight() {
   jq -e '.version==1 and (.defects|type=="object")' "$LEDGER_FILE" >/dev/null || die "Ledger is not readable: $LEDGER_FILE"
 }
 
-# ---------------------------------------------------------------------------------------------
-# Sentry
-# ---------------------------------------------------------------------------------------------
-
 SENTRY_BASE="${SENTRY_API_BASE:-https://sentry.io/api/0}"
 SENTRY_NEXT_CURSOR=""
 
@@ -140,44 +134,66 @@ sentry_get() {
   cat "$body"
 }
 
-# Every ANALYSIS_DEFECT event in the window, one JSON object per line:
-#   {eventId, timestamp, defect:{songId,lyricId,lineIndex,cause,surface,headword,line,detail}}
+# An MV miss is folded into the word-defect shape so the ledger, dedupe and PR flow stay one:
+# cause MV_NOT_FOUND, keyed by "artist / title", with the searched candidates in detail.
+NORMALIZE_EVENT='
+  if .marker == "MV_SEARCH_DEFECT" then
+    {eventId, timestamp, defect: {
+      workId: .defect.workId, songId: null, lyricId: null, lineIndex: null, cause: "MV_NOT_FOUND",
+      surface: .defect.title, headword: "\(.defect.artist) / \(.defect.title)", line: .defect.artist,
+      detail: (.defect | {durationSeconds, candidates})}}
+  else {eventId, timestamp, defect} end'
+
+# Every defect event in the window, one JSON object per line:
+#   {eventId, timestamp, defect:{workId,songId,lyricId,lineIndex,cause,surface,headword,line,detail}}
 fetch_defects() {
   if [[ -n "$FIXTURE_FILE" ]]; then
-    jq -c '.[]' "$FIXTURE_FILE"
+    jq -c ".[] | $NORMALIZE_EVENT" "$FIXTURE_FILE"
     return
   fi
+  local marker
+  for marker in "${MARKERS[@]}"; do
+    fetch_marker "$marker"
+  done
+}
+
+fetch_marker() {
+  local marker="$1"
   local org query base path page=1 body
   org="$(urlencode "$SENTRY_ORG")"
-  query="$(urlencode "message:${MARKER}")"
+  query="$(urlencode "message:${marker}")"
   base="/organizations/${org}/events/?dataset=errors&field=id&field=timestamp&field=message&per_page=100&sort=-timestamp&statsPeriod=${WINDOW}&project=${SENTRY_PROJECT}&query=${query}"
   path="$base"
   while :; do
-    body="$(sentry_get "$path")" || die "Sentry events fetch failed on page $page"
-    jq -c --arg marker "$MARKER " '
+    body="$(sentry_get "$path")" || die "Sentry events fetch failed on page $page ($marker)"
+    local unparsed
+    unparsed="$(jq --arg marker "$marker" '[.data[] | select(.message | startswith($marker + " ")) | select((.message | ltrimstr($marker + " ") | fromjson?) == null)] | length' <<<"$body")"
+    [[ "$unparsed" -eq 0 ]] || log "WARN" "$unparsed $marker event(s) on page $page are not valid JSON (cut by Sentry?) and are skipped"
+    jq -c --arg marker "$marker" '
       .data[]
-      | select(.message | startswith($marker))
-      | {eventId: .id, timestamp: .timestamp, defect: (.message | ltrimstr($marker) | fromjson? // empty)}
+      | select(.message | startswith($marker + " "))
+      | {marker: $marker, eventId: .id, timestamp: .timestamp, defect: (.message | ltrimstr($marker + " ") | fromjson? // empty)}
       | select(.defect != null)
+      | '"$NORMALIZE_EVENT"'
     ' <<<"$body"
     [[ -n "$SENTRY_NEXT_CURSOR" ]] || break
     page=$((page + 1))
-    [[ $page -le 10 ]] || { log "WARN" "Stopping after 10 pages; the rest waits for the next run"; break; }
+    [[ $page -le 10 ]] || { log "WARN" "Stopping after 10 pages of $marker; the rest waits for the next run"; break; }
     path="${base}&cursor=$(urlencode "$SENTRY_NEXT_CURSOR")"
   done
 }
 
-# ---------------------------------------------------------------------------------------------
-# Ledger
-# ---------------------------------------------------------------------------------------------
-#
+# Per-track settings. A track is "word" (ANALYSIS_DEFECT) or "mv" (MV_NOT_FOUND).
+track_allowed_regex() { [[ "$1" == mv ]] && echo "$MV_ALLOWED_PATH_REGEX" || echo "$WORD_ALLOWED_PATH_REGEX"; }
+track_prompt() { [[ "$1" == mv ]] && echo "$PROMPTS_DIR/$2-mv.md" || echo "$PROMPTS_DIR/$2.md"; }
+
 # {"version":1,"defects":{"<cause>:<headword>":{cause,headword,status,firstSeen,lastSeen,
-#   occurrences:[{songId,lineIndex,surface,line,timestamp}], fixAttempts, prUrl, reason}}}
+#   occurrences:[{workId,songId,lineIndex,surface,line,timestamp}], fixAttempts, prUrl, reason}}}
 #
 # status: new | provider_error | ignored | held | fixing
 #   new            never shown to the classifier
 #   provider_error jisho outage — recorded, never classified
-#   ignored        classifier said the word legitimately has no meaning
+#   ignored        classifier said the word legitimately has no meaning, or the song has no usable video
 #   held           classifier or fix pass could not act; a person looks
 #   fixing         a PR exists (prUrl)
 
@@ -210,7 +226,7 @@ merge_into_ledger() {
           | .firstSeen = ([.firstSeen, $e.timestamp] | min)
           | .occurrences = (
               (.occurrences + [{
-                songId: $e.defect.songId, lineIndex: $e.defect.lineIndex,
+                workId: $e.defect.workId, songId: $e.defect.songId, lineIndex: $e.defect.lineIndex,
                 surface: $e.defect.surface, line: $e.defect.line, detail: $e.defect.detail,
                 timestamp: $e.timestamp, eventId: $e.eventId
               }])
@@ -232,10 +248,6 @@ ledger_set() {
     '.defects[$key][$field] = $value' "$LEDGER_FILE" > "$out"
   mv "$out" "$LEDGER_FILE"
 }
-
-# ---------------------------------------------------------------------------------------------
-# Claude
-# ---------------------------------------------------------------------------------------------
 
 # Runs one headless pass. Prints the structured output JSON.
 #   claude_pass <cwd> <model> <prompt-file> <schema-file> <tools> <allowed-rules> <permission-mode>
@@ -274,16 +286,13 @@ claude_pass() {
   jq -c '.structured_output' "$out"
 }
 
-# ---------------------------------------------------------------------------------------------
-# Classification
-# ---------------------------------------------------------------------------------------------
-
 classify() {
-  local candidates_json="$1"
-  local prompt result
+  local candidates_json="$1" track="$2"
+  local allowed_regex prompt result
+  allowed_regex="$(track_allowed_regex "$track")"
   prompt="$(tmp)"
   {
-    cat "$PROMPTS_DIR/classify.md"
+    cat "$(track_prompt "$track" classify)"
     printf '\n```json\n%s\n```\n' "$(jq '.' <<<"$candidates_json")"
   } > "$prompt"
   result="$(claude_pass "$REPO_DIR" "$CLASSIFY_MODEL" "$prompt" "$SCHEMAS_DIR/classify.schema.json" \
@@ -301,16 +310,12 @@ classify() {
     log "ERROR" "Classifier returned a fix group without a plan"
     return 1
   fi
-  if jq -e '.groups[] | select(.fixPlan != null) | .fixPlan.files[] | select(test("'"$ALLOWED_PATH_REGEX"'") | not)' <<<"$result" >/dev/null; then
+  if jq -e --arg re "$allowed_regex" '.groups[] | select(.fixPlan != null) | .fixPlan.files[] | select(test($re) | not)' <<<"$result" >/dev/null; then
     log "ERROR" "Classifier planned files outside the allowed tree"
     return 1
   fi
   printf '%s\n' "$result"
 }
-
-# ---------------------------------------------------------------------------------------------
-# Fix pass
-# ---------------------------------------------------------------------------------------------
 
 # Changed paths in the worktree relative to origin/main (tracked + untracked).
 changed_paths() {
@@ -320,12 +325,12 @@ changed_paths() {
 # Refuses a diff that reaches outside the allowed tree, touches a forbidden file, or removes a
 # warn/error log call (the way four of the old triage PRs "fixed" their Sentry issue).
 verify_diff() {
-  local wt="$1"
+  local wt="$1" allowed_regex="$2"
   local paths
   paths="$(changed_paths "$wt")"
   [[ -n "$paths" ]] || { log "WARN" "Fix pass changed nothing"; return 1; }
   local bad
-  bad="$(grep -Ev "$ALLOWED_PATH_REGEX" <<<"$paths" || true)"
+  bad="$(grep -Ev "$allowed_regex" <<<"$paths" || true)"
   [[ -z "$bad" ]] || { log "WARN" "Fix pass touched files outside the allowed tree: $(tr '\n' ' ' <<<"$bad")"; return 1; }
   bad="$(grep -E "$FORBIDDEN_PATH_REGEX" <<<"$paths" || true)"
   [[ -z "$bad" ]] || { log "WARN" "Fix pass touched a forbidden file: $(tr '\n' ' ' <<<"$bad")"; return 1; }
@@ -350,9 +355,8 @@ run_test() {
   local gradle_log
   gradle_log="$(tmp)"
   local exit_code=0
-  # </dev/null: the caller loops over groups via stdin, and gradle forwards whatever stdin it
-  # inherits to the daemon. Nothing reads it there, the daemon's pipe fills, and the build never
-  # returns (hung the 2026-09-16 run for 18h). timeout is the backstop so the timer keeps going.
+  # </dev/null: gradle forwards inherited stdin (the caller's group loop) to the daemon and hangs.
+  # timeout is the backstop so the timer keeps going.
   (cd "$wt/backend" && timeout "$TEST_TIMEOUT" ./gradlew "$task" --tests "$test_class" -q </dev/null > "$gradle_log" 2>&1) || exit_code=$?
   local results_dir="$wt/backend/$module_dir/build/test-results/test"
   local summary
@@ -401,19 +405,23 @@ test_on_base() {
 }
 
 # Builds the PR body from data. The model's two paragraphs are the only prose it wrote.
-#   pr_body <group-json> <fix-json> <base-sha> <base-summary> <branch-summary>
+#   pr_body <group-json> <fix-json> <base-sha> <base-summary> <branch-summary> <track>
 pr_body() {
-  local group="$1" fix="$2" base_sha="$3" base_summary="$4" branch_summary="$5"
+  local group="$1" fix="$2" base_sha="$3" base_summary="$4" branch_summary="$5" track="$6"
   local keys_list
   keys_list="$(jq -r '.keys[]' <<<"$group")"
-  echo "## 어느 가사의 어느 단어"
+  if [[ "$track" == mv ]]; then echo "## MV 없이 분석된 곡"; else echo "## 어느 가사의 어느 단어"; fi
   echo
   local key
-  while read -r key; do
+  while IFS= read -r key; do
     jq -r --arg key "$key" '
       .defects[$key] as $d
       | $d.occurrences[]
-      | "- songId=\(.songId) \(.lineIndex + 1)번째 줄 「\(.line)」 → `\(.surface)`" + (if $d.headword != .surface then " (원형 \($d.headword))" else "" end) + " — \($d.cause)"
+      | if $d.cause == "MV_NOT_FOUND" then
+          "- workId=\(.workId) 「\(.surface)」 / \(.line)" + (if .detail.durationSeconds != null then " (\(.detail.durationSeconds)초)" else "" end) + " — 후보 \(.detail.candidates | length)개"
+        else
+          "- \(if .songId != null then "songId=\(.songId)" else "workId=\(.workId)" end) \(.lineIndex + 1)번째 줄 「\(.line)」 → `\(.surface)`" + (if $d.headword != .surface then " (원형 \($d.headword))" else "" end) + " — \($d.cause)"
+        end
     ' "$LEDGER_FILE"
   done <<<"$keys_list"
   local first last
@@ -444,7 +452,7 @@ pr_body() {
 
 # One classifier group with verdict=fix → one PR, or a reason why not (printed, non-zero exit).
 fix_group() {
-  local group="$1"
+  local group="$1" track="$2"
   local slug branch wt
   slug="$(jq -r '.fixPlan.branchSlug' <<<"$group")"
   branch="${BRANCH_PREFIX}${slug}"
@@ -457,8 +465,7 @@ fix_group() {
   [[ ! -e "$wt" ]] || git -C "$REPO_DIR" worktree remove --force "$wt" >/dev/null 2>&1 || rm -rf "$wt"
   mkdir -p "$WORKTREE_ROOT"
   git -C "$REPO_DIR" fetch -q origin main
-  # Branch from origin/main, never from whatever the local checkout happens to be on: the old
-  # triage runner branched from HEAD and shipped a +18,000-line PR of unrelated local commits.
+  # Branch from origin/main, never from the local checkout's HEAD.
   git -C "$REPO_DIR" worktree add -q -b "$branch" "$wt" origin/main
   local base_sha
   base_sha="$(git -C "$wt" rev-parse HEAD)"
@@ -466,10 +473,10 @@ fix_group() {
   local prompt fix
   prompt="$(tmp)"
   {
-    cat "$PROMPTS_DIR/fix.md"
+    cat "$(track_prompt "$track" fix)"
     printf '\n분류 결과:\n```json\n%s\n```\n' "$(jq '{title, reason, fixPlan}' <<<"$group")"
     printf '\n결손 상세:\n```json\n%s\n```\n' "$(jq --argjson keys "$(jq -c '.keys' <<<"$group")" \
-      '[$keys[] as $k | .defects[$k] | {key: $k, cause, headword, occurrences: [.occurrences[] | {songId, lineIndex, surface, line, detail}]}]' \
+      '[$keys[] as $k | .defects[$k] | {key: $k, cause, headword, occurrences: [.occurrences[] | {workId, songId, lineIndex, surface, line, detail}]}]' \
       "$LEDGER_FILE")"
   } > "$prompt"
 
@@ -483,7 +490,7 @@ fix_group() {
     log "INFO" "Fix pass gave up on '$slug': $(jq -r '.reason' <<<"$fix")"
     ok=0
   fi
-  if [[ $ok -eq 1 ]] && ! verify_diff "$wt"; then ok=0; fi
+  if [[ $ok -eq 1 ]] && ! verify_diff "$wt" "$(track_allowed_regex "$track")"; then ok=0; fi
 
   local task test_class branch_summary base_summary
   if [[ $ok -eq 1 ]]; then
@@ -517,7 +524,7 @@ fix_group() {
 
   local body_file pr_url
   body_file="$(tmp)"
-  pr_body "$group" "$fix" "$base_sha" "$base_summary" "$branch_summary" > "$body_file"
+  pr_body "$group" "$fix" "$base_sha" "$base_summary" "$branch_summary" "$track" > "$body_file"
   if [[ $NO_PUSH -eq 1 ]]; then
     log "INFO" "[no-push] branch $branch is ready in $wt; PR body follows"
     cat "$body_file" >&2
@@ -530,9 +537,75 @@ fix_group() {
   printf '%s\n' "$pr_url"
 }
 
-# ---------------------------------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------------------------------
+# Classifies one track's new keys and acts on each group.
+process_track() {
+  local track="$1"
+  local candidates
+  candidates="$(jq -c --argjson max "$MAX_CANDIDATES" --arg track "$track" '
+    [.defects | to_entries[] | select(.value.status == "new")
+     | select((.value.cause == "MV_NOT_FOUND") == ($track == "mv"))
+     | {key: .key, cause: .value.cause, headword: .value.headword,
+        occurrences: [.value.occurrences[] | {workId, songId, lineIndex, surface, line, detail}]}]
+    | sort_by(.key) | .[:$max]
+  ' "$LEDGER_FILE")"
+  local n_candidates
+  n_candidates="$(jq 'length' <<<"$candidates")"
+  if [[ "$n_candidates" -eq 0 ]]; then
+    log "INFO" "No new $track defects to classify"
+    return 0
+  fi
+  log "INFO" "Classifying $n_candidates new $track key(s): $(jq -r '[.[].key] | join(", ")' <<<"$candidates")"
+
+  local classification
+  if ! classification="$(classify "$candidates" "$track")"; then
+    log "ERROR" "Classification of $track defects failed; keys stay 'new' for the next run"
+    return 0
+  fi
+  log "INFO" "Classifier: $(jq -r '[.groups[] | "\(.verdict) [\(.keys | join(", "))]"] | join(" | ")' <<<"$classification")"
+
+  local group verdict key
+  while read -r group; do
+    verdict="$(jq -r '.verdict' <<<"$group")"
+    case "$verdict" in
+      expected_no_meaning|expected_no_mv)
+        while IFS= read -r key; do
+          ledger_set "$key" status '"ignored"'
+          ledger_set "$key" reason "$(jq -c '.reason' <<<"$group")"
+        done < <(jq -r '.keys[]' <<<"$group")
+        ;;
+      hold)
+        while IFS= read -r key; do
+          ledger_set "$key" status '"held"'
+          ledger_set "$key" reason "$(jq -c '.reason' <<<"$group")"
+        done < <(jq -r '.keys[]' <<<"$group")
+        ;;
+      fix)
+        if [[ $DRY_RUN -eq 1 ]]; then
+          log "INFO" "[dry-run] would open a PR for '$(jq -r '.title' <<<"$group")' plan=$(jq -c '.fixPlan' <<<"$group")"
+          continue
+        fi
+        local pr_url=""
+        if pr_url="$(fix_group "$group" "$track")"; then
+          log "INFO" "PR created: $pr_url"
+          while IFS= read -r key; do
+            ledger_set "$key" status '"fixing"'
+            ledger_set "$key" prUrl "$(jq -cn --arg u "$pr_url" '$u')"
+          done < <(jq -r '.keys[]' <<<"$group")
+        else
+          while IFS= read -r key; do
+            local attempts
+            attempts="$(jq -r --arg k "$key" '.defects[$k].fixAttempts + 1' "$LEDGER_FILE")"
+            ledger_set "$key" fixAttempts "$attempts"
+            if [[ "$attempts" -ge "$MAX_FIX_ATTEMPTS" ]]; then
+              ledger_set "$key" status '"held"'
+              ledger_set "$key" reason "\"fix pass failed $attempts time(s)\""
+            fi
+          done < <(jq -r '.keys[]' <<<"$group")
+        fi
+        ;;
+    esac
+  done < <(jq -c '.groups[]' <<<"$classification")
+}
 
 main() {
   preflight
@@ -556,67 +629,10 @@ main() {
     log "WARN" "jisho outage: $provider_errors PROVIDER_ERROR defect(s) in the window — nothing to fix in code; the affected songs shipped those words without a meaning and can be re-analysed"
   fi
 
-  local candidates
-  candidates="$(jq -c --argjson max "$MAX_CANDIDATES" '
-    [.defects | to_entries[] | select(.value.status == "new")
-     | {key: .key, cause: .value.cause, headword: .value.headword,
-        occurrences: [.value.occurrences[] | {songId, lineIndex, surface, line, detail}]}]
-    | sort_by(.key) | .[:$max]
-  ' "$LEDGER_FILE")"
-  local n_candidates
-  n_candidates="$(jq 'length' <<<"$candidates")"
-  if [[ "$n_candidates" -eq 0 ]]; then
-    log "INFO" "No new defects to classify"
-    exit 0
-  fi
-  log "INFO" "Classifying $n_candidates new key(s): $(jq -r '[.[].key] | join(", ")' <<<"$candidates")"
-
-  local classification
-  classification="$(classify "$candidates")" || die "Classification failed; keys stay 'new' for the next run"
-  log "INFO" "Classifier: $(jq -r '[.groups[] | "\(.verdict) [\(.keys | join(", "))]"] | join(" | ")' <<<"$classification")"
-
-  local group verdict key
-  while read -r group; do
-    verdict="$(jq -r '.verdict' <<<"$group")"
-    case "$verdict" in
-      expected_no_meaning)
-        for key in $(jq -r '.keys[]' <<<"$group"); do
-          ledger_set "$key" status '"ignored"'
-          ledger_set "$key" reason "$(jq -c '.reason' <<<"$group")"
-        done
-        ;;
-      hold)
-        for key in $(jq -r '.keys[]' <<<"$group"); do
-          ledger_set "$key" status '"held"'
-          ledger_set "$key" reason "$(jq -c '.reason' <<<"$group")"
-        done
-        ;;
-      fix)
-        if [[ $DRY_RUN -eq 1 ]]; then
-          log "INFO" "[dry-run] would open a PR for '$(jq -r '.title' <<<"$group")' plan=$(jq -c '.fixPlan' <<<"$group")"
-          continue
-        fi
-        local pr_url=""
-        if pr_url="$(fix_group "$group")"; then
-          log "INFO" "PR created: $pr_url"
-          for key in $(jq -r '.keys[]' <<<"$group"); do
-            ledger_set "$key" status '"fixing"'
-            ledger_set "$key" prUrl "$(jq -cn --arg u "$pr_url" '$u')"
-          done
-        else
-          for key in $(jq -r '.keys[]' <<<"$group"); do
-            local attempts
-            attempts="$(jq -r --arg k "$key" '.defects[$k].fixAttempts + 1' "$LEDGER_FILE")"
-            ledger_set "$key" fixAttempts "$attempts"
-            if [[ "$attempts" -ge "$MAX_FIX_ATTEMPTS" ]]; then
-              ledger_set "$key" status '"held"'
-              ledger_set "$key" reason "\"fix pass failed $attempts time(s)\""
-            fi
-          done
-        fi
-        ;;
-    esac
-  done < <(jq -c '.groups[]' <<<"$classification")
+  local track
+  for track in word mv; do
+    process_track "$track"
+  done
 
   log "INFO" "Analysis feedback done"
 }

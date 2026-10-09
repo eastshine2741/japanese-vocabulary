@@ -4,11 +4,8 @@ import com.japanese.vocabulary.song.model.PartOfSpeech
 import com.japanese.vocabulary.translation.client.jisho.dto.JishoLookupProvenance
 
 /**
- * One sense candidate offered to sense-select, already attributed to the dictionary entry it came
- * from. [headword]/[reading] name that entry; [reading] is katakana.
- *
- * One instance is shared by every token that means this sense, so it holds nothing occurrence-scoped
- * — the surface as sung lives on the token, not here.
+ * One sense candidate offered to sense-select; [headword]/[reading] (katakana) name its source entry.
+ * Shared by every token with this sense, so it holds nothing occurrence-scoped.
  */
 data class PipelineSenseOption(
     val senseId: Int,

@@ -13,14 +13,14 @@ Admin v1 is an internal inspection surface for `song`, `lyric`, and `user`, plus
 Architecture direction:
 
 - Domain modules should expose entity/model/enum plus domain methods/services that enforce invariants.
-- Application modules (`api`, `admin-api`, `batch`) own their own read/write workflows and page/search/projection repositories.
+- Application modules (`api`, `admin-api`, `worker`, `batch`) own their own read/write workflows and page/search/projection repositories.
 - `SongRepository` and `LyricRepository` stay externally visible for this pass; repository-wide internalization is out of scope.
 - External music clients should live outside domain core in function-specific integration modules (`integrations:song-search`, `integrations:lyric-search`, `integrations:mv-search`), with direct class usage rather than a hexagonal port layer unless complexity later justifies it.
 - Integration Kotlin packages should also stay outside the domain package tree: `songsearch`, `lyricsearch`, and `mvsearch`, not `song.client`.
 - Active domain/integration modules provide Spring wiring through `AutoConfiguration.imports` and `com.japanese.autoconfigure.*` classes. AutoConfiguration component-scans the module-owned `com.japanese.vocabulary.<module>` package and registers JPA entities/repositories explicitly. Application bootstraps should not carry sibling module `@EntityScan` or repository scan knowledge, and broad root component scan should not be used as a backup wiring path.
 - Integration clients should use `RestClient` where behavior can stay equivalent. Applications avoid unused clients by depending only on the integration modules they need; the depended module's AutoConfiguration exposes its client beans.
-- Product/read-model cache belongs to the application module that owns the behavior. For this pass, song search cache belongs to `api` and artist-channel cache belongs to `batch`.
-- Admin mutations must call domain methods/services; raw field updates stay out of scope. Current mutation: song reanalysis creates or reuses a `song_analysis_work` and never edits song/lyric fields directly.
+- Product/read-model cache belongs to the application module that owns the behavior. For this pass, song search cache belongs to `api` and artist-channel cache belongs to `worker`.
+- Admin mutations must call domain methods/services; raw field updates stay out of scope. Current mutations: song reanalysis creates or reuses a `song_analysis_work`, and resume reopens a failed work at its failed stage (`SongAnalysisWorkService.resume`); neither edits song/lyric fields directly.
 
 ## Backend
 
@@ -49,16 +49,15 @@ Routes:
 - `POST /admin/api/songs/{songId}/reanalysis`
 - `GET /admin/api/lyrics`
 - `GET /admin/api/lyrics/{lyricId}`
-- `GET /admin/api/recommendations/weeks`
-- `GET /admin/api/recommendations/candidates`
-- `PATCH /admin/api/recommendations/candidates/{candidateId}/status`
-- `GET /admin/api/recommendations`
-- `PATCH /admin/api/recommendations/{recommendationId}`
-- `POST /admin/api/recommendations/prepare-approved`
-- `POST /admin/api/recommendations/request-analysis`
+- `GET /admin/api/song-analysis-works`
+- `GET /admin/api/song-analysis-works/{workId}` — 단계별 상태·시도 횟수·실패 원인(`stages`)과 `resumable` 포함
+- `GET /admin/api/song-analysis-works/{workId}/stages/{stage}/output` — 단계 산출물 JSON 원문
+- `POST /admin/api/song-analysis-works/{workId}/resume` — FAILED 작업을 실패한 단계부터 다시 돌린다 (활성 작업이 있거나 단계 원장 이전 작업이면 409)
+- `GET /admin/api/recommendations` / `POST` `{songId}` / `DELETE /{id}` / `PUT /order` `{ids}` — 홈 추천곡 전역 목록 편집 (`docs/recommended-songs.md`)
 - `GET /admin/api/users` — 유저마다 `wordCount`, `songDeckCount`, `customDeckCount`, `lastWordSavedAt`, `lastReviewedAt` 포함
 - `GET /admin/api/users/{userId}` — `{ user, learning, decks }`
 - `GET /admin/api/users/{userId}/words?deckId=&q=` — 페이지 (최근 담은 순)
+- `POST /admin/api/push/send` — `{ userId, title, body }` 를 그 유저의 모든 기기로 보낸다. `push.firebase.enabled` 가 아니면 404. `admin-web` 은 User 상세의 푸시 칸에서 부른다.
 - `GET /admin/api/reels-factory/songs`
 - `GET /admin/api/reels-factory/songs/{songId}`
 - `POST /admin/api/reels-factory/songs/{songId}/source` (multipart `file`)
@@ -71,11 +70,12 @@ Reels Factory:
 - `admin-web` is a small NLE-style editor: toolbar (song picker, acknowledgement, render) / line bin · monitor · inspector / timeline. The edit state (clip in/out, per-line start time, per-line words) lives only in the browser; nothing is persisted.
 - The admin picks an analyzed song and at least 4 analyzed lyric lines. Lines always play in song order. Timing is not taken from the DB at render time: `SYNCED` timestamps only seed the editor, and `PLAIN` lyrics (no timestamps) are laid out 3s apart and then marked by hand. So wrong or missing timestamps do not matter.
 - Timing tools: drag the clip range on the MV overview, drag line blocks or the end handle on the reel timeline, type `m:ss.t` in the inspector, or use the playhead: `Space` play/pause, `M` stamp the selected line's start at the playhead and move to the next line, `I`/`O` set clip start/end, `←`/`→` nudge one frame (`Shift` one second). The monitor has a Source tab (raw MV `<video>`, for finding the section) and a Reel tab (`PromoReel` in `@remotion/player`); both share one playhead in MV time.
-- Frame: one MV placement for the whole reel, `data.mvFrame = { scale, x, y, crop? }` (`crop = { top, right, bottom, left }` fractions 0–0.4 of the source, for trimming letterbox bars baked into the MV; scale = cropped MV width ÷ 1080, x/y = px offset of the MV centre from the canvas centre; bounds 0.3–5, ±2700, ±1920 checked on both sides). Crop is CSS `object-view-box`, so it is Chromium-only (render Chrome and the admin's Chrome); it also crops the blurred backdrop. `null` keeps the full-bleed cover. When set, `PromoReel` lays a muted, blurred copy of the same MV at the same `sourceStartFrame` behind it to fill the gaps. The inspector has scale/X/Y and crop sliders plus `가로 맞춤` (scale 1) and `꽉 채움` (back to `null`).
-- Words: each line's `recommendedVocabulary` (N5/N4 content words) is the default selection; the inspector lets the admin toggle any content-word token with a Korean meaning, up to `maxVocabularyPerLine` (2, the PromoReel word block layout). Particles, auxiliaries and symbols cannot be picked.
+- Frame: one MV placement for the whole reel, `data.mvFrame = { scale, x, y, crop? }` (`crop = { top, right, bottom, left }` fractions 0–0.4 of the source, for trimming letterbox bars baked into the MV; scale = cropped MV width ÷ 1080, x/y = px offset of the MV centre from the canvas centre; bounds 0.3–5, ±2700, ±1920 checked on both sides). Crop is CSS `object-view-box`, so it is Chromium-only (render Chrome and the admin's Chrome). `null` keeps the full-bleed cover. When set, the gaps around the MV are plain black — a blurred MV backdrop was dropped because the extra decode plus a full-canvas blur per frame pushed headless renders past the timeout. The inspector has scale/X/Y and crop sliders plus `가로 맞춤` (scale 1) and `꽉 채움` (back to `null`).
+- Caption: the reel's own text layer — song title, artist and the headline at the top — is `ReelCaption` in the editor, seeded from the DB song and `GET /songs/{songId}`'s `headline`, and the admin rewrites all three in the inspector. The headline is free text: a newline starts a new line and `<b>…</b>` is the only markup — those spans get the green background. Blank title, artist or headline blocks the render.
+- Words: each line's `recommendedVocabulary` (N5/N4 content words) is the default selection; the inspector lets the admin toggle any content-word token with a Korean meaning, up to `maxVocabularyPerLine` (3, the PromoReel word block layout). Particles, auxiliaries and symbols cannot be picked.
 - `GET /songs/{songId}` returns `lyricType`, `fps`, `minLineCount`, `maxLyricsSpanMs`, `maxVocabularyPerLine` and every raw line with its analysis; a line is `selectable` when it is analyzed (missing timing no longer blocks it).
 - The MV is not fetched by the server. The admin downloads the MV mp4 themselves (the monitor's empty state links to `song.youtubeUrl`) and uploads it with `POST /songs/{songId}/source` (multipart `file`, up to `ADMIN_REELS_SOURCE_MAX_UPLOAD`, default 1GB). The server checks the `ftyp` signature, stores it in the source cache (`AdminReelsSourceCache`), transcodes a preview copy (below) and returns `mvPath`; the response waits for the transcode (422 `source_transcode_failed` if ffmpeg cannot read the file or exceeds `ADMIN_REELS_PREVIEW_TIMEOUT`). `GET /songs/{songId}/source` returns the same `mvPath` (with a fresh media token) when a previous upload is still cached, or 404 — the editor calls it when a song is picked so a reload does not force a re-upload. yt-dlp was removed: the prod egress IP (Hetzner) is flagged by YouTube as a bot regardless of player client, so server-side extraction is not an option there.
-- `POST /render` takes `{ songId, data: PromoReelData, acknowledgeSourceRightsAndPlatformRisk }` (the flag is still validated server-side; `admin-web` always sends `true` and shows no checkbox) — the same Remotion props the browser preview used, built by `admin-web/src/pages/reels-factory/reelEditor.ts` (`buildPromoData`). The server checks the song is eligible (analyzed lyrics), that a source mp4 is cached for the song (400 otherwise), and the timeline (≥ 4 lines, song order, strictly increasing `startFrame`, `lyricsEndFrame` after the last line and ≤ 60s, ≤ 2 words per line with text and meaning, `mvFrame` within bounds), blanks `song.mvAsset`, and renders. Preview and MP4 therefore share exactly one data path; the reel font (S-Core Dream) is bundled as woff2 from `reels/src/fonts/` so it is identical in both, while Japanese fallback fonts (browser Noto Sans KR/JP vs container Noto Sans CJK) and colour space (final MP4 is yuv420p/bt709) can differ slightly.
+- `POST /render` takes `{ songId, data: PromoReelData, acknowledgeSourceRightsAndPlatformRisk }` (the flag is still validated server-side; `admin-web` always sends `true` and shows no checkbox) — the same Remotion props the browser preview used, built by `admin-web/src/pages/reels-factory/reelEditor.ts` (`buildPromoData`). Per-token Korean meanings are the analyzed values unless the admin overrides them in the inspector; overrides live only in the browser editor state and reach the server as `lyricLines[].tokens[].koreanText`. Particles, auxiliaries and symbols carry no meaning at all — they are not editable and are sent as `null`. The server checks the song is eligible (analyzed lyrics), that a source mp4 is cached for the song (400 otherwise), and the timeline (≥ 4 lines, song order, strictly increasing `startFrame`, `lyricsEndFrame` after the last line and ≤ 60s, ≤ 3 words per line with text and meaning, `mvFrame` within bounds, `lyricScale` within 0.6–1.4, `headlineFontSize` within 48–110), blanks `song.mvAsset`, and renders. Preview and MP4 therefore share exactly one data path; the reel font (S-Core Dream) is bundled as woff2 from `reels/src/fonts/` so it is identical in both, while Japanese fallback fonts (browser Noto Sans KR/JP vs container Noto Sans CJK) and colour space (final MP4 is yuv420p/bt709) can differ slightly.
 - Preview copy: YouTube MVs are usually open-GOP H.264 (most sync samples are non-IDR I-frames). Seeking to such a keyframe leaves following B-frames referencing frames before it, and Chrome's software decoder (`AV_EF_EXPLODE`) fails with `PIPELINE_ERROR_DECODE` — the Remotion `<Video>` in the Reel tab seeks on every line change, so some lines simply broke. `FfmpegAdminReelsPreviewTranscoder` therefore re-encodes each upload to `song-{id}-preview.mp4` (libx264 superfast, crf 25, IDR every 30 frames, ≤ 720p, audio copied so timestamps match) and `/mv` streams only that copy. Render still uses the untouched original. `cached()` requires both files.
 - MV streaming: `<video>` cannot send an `Authorization` header, so the source response embeds a 30-minute media token scoped to `reels-mv` + `songId` in `mvPath`. The `/mv` endpoint is `permitAll` in `SecurityConfig` and validates that token itself; it only serves files already in the cache. Media tokens are rejected by the normal admin bearer filter.
 - Source cache: `ADMIN_REELS_SOURCE_DIRECTORY` (default `${java.io.tmpdir}/kotonoha-reels-sources`), `song-{id}.mp4` + `song-{id}-preview.mp4` per song, LRU-trimmed to `ADMIN_REELS_SOURCE_MAX_FILES` songs (default 4). Render passes the cached file to the render script as `source.localPath`; the script never downloads anything.
@@ -139,6 +139,8 @@ VITE_ADMIN_API_BASE_URL=http://localhost:8081/admin/api npm run dev
 The browser token is stored in `sessionStorage`.
 
 Song detail exposes a reanalysis action. If a `PENDING` or `RUNNING` analysis work already blocks the song, the trigger is disabled and the active work is linked. Recent work history links to work and lyric details and shows the work-produced MV URL from `song_analysis_work.youtube_url` when present. The UI does not implement rollback or active-result selection.
+
+Song analysis work detail lists the stages with status, attempt, duration, and failure (code, exception class, message chain); each stage's output JSON opens inline. A `FAILED` work with a stage ledger shows "Resume from <stage>", which reruns only that stage onward.
 
 ## Local k3s
 
@@ -218,4 +220,4 @@ DNS:
 Prod 모니터링:
 
 - admin-api actuator 는 `health,info,prometheus` 를 노출하고 `k8s/prod/admin-api/servicemonitor.yaml` 이 `/actuator/prometheus` 를 30초 간격으로 긁는다.
-- probe 는 api/batch 와 같은 `/actuator/health/{liveness,readiness}` 를 쓴다.
+- probe 는 api/worker 와 같은 `/actuator/health/{liveness,readiness}` 를 쓴다.

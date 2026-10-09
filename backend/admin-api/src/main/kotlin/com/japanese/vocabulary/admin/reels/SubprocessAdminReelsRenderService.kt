@@ -61,6 +61,13 @@ class SubprocessAdminReelsRenderService(
             val finished = process.waitFor(properties.timeout.seconds, TimeUnit.SECONDS)
             if (!finished) {
                 killProcessTree(process)
+                outputThread.join(Duration.ofSeconds(2).toMillis())
+                logger.warn(
+                    "Admin reel render timed out after {} songTitle={} output={}",
+                    properties.timeout,
+                    input.data.song.title,
+                    outputBuffer.text().takeLast(2000).ifBlank { "(no renderer output)" },
+                )
                 throw AdminReelsRenderTimeoutException()
             }
             outputThread.join(Duration.ofSeconds(2).toMillis())

@@ -37,6 +37,15 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: 6379
 
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    # 토폴로지는 브로커가 부팅 때 읽는 definitions(k8s/{dev,prod}/rabbitmq/configmap.yaml)가 소유한다.
+    # RabbitAdmin 을 띄우지 않아야 선언의 진실 원천이 하나로 남는다.
+    dynamic: false
+
 youtube:
   api-key: ${YOUTUBE_API_KEY}
 
@@ -44,6 +53,14 @@ github:
   # Fine-grained PAT with Issues: write on the repository below. Blank disables VOC submission.
   token: ${GITHUB_VOC_TOKEN:}
   repository: ${GITHUB_VOC_REPOSITORY:eastshine2741/japanese-vocabulary}
+
+object-storage:
+  # S3-compatible bucket (Cloudflare R2) for profile images. Any blank value disables uploads (503).
+  endpoint: ${OBJECT_STORAGE_ENDPOINT:}
+  access-key: ${OBJECT_STORAGE_ACCESS_KEY:}
+  secret-key: ${OBJECT_STORAGE_SECRET_KEY:}
+  bucket: ${OBJECT_STORAGE_BUCKET:}
+  public-base-url: ${OBJECT_STORAGE_PUBLIC_BASE_URL:}
 
 jwt:
   secret: ${JWT_SECRET:dev-secret-key-at-least-32-chars-long}

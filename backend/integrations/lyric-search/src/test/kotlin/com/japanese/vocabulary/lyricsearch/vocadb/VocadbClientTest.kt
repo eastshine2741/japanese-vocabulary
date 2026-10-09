@@ -4,17 +4,19 @@ import com.japanese.vocabulary.lyricsearch.SongQueryNormalizer
 import org.assertj.core.api.Assertions.assertThat
 import org.hamcrest.Matchers.startsWith
 import org.junit.jupiter.api.Test
+import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.test.web.client.ExpectedCount
 import org.springframework.test.web.client.MockRestServiceServer
 import org.springframework.test.web.client.match.MockRestRequestMatchers.queryParam
 import org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo
+import org.springframework.test.web.client.response.MockRestResponseCreators.withStatus
 import org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess
 import org.springframework.web.client.RestClient
 
 /**
- * Modeled on prod work 61: Sohbana's 『恋』 (VocaDB 1021616, 205s) ranks 18th among 2,428 songs
- * whose title starts with 恋, so a popularity-sorted top-10 keyword search never sees it.
+ * Sohbana's 『恋』 ranks 18th among 2,428 songs whose title starts with 恋, so a popularity-sorted
+ * top-10 keyword search never sees it.
  */
 class VocadbClientTest {
 
@@ -66,6 +68,16 @@ class VocadbClientTest {
                 .andRespond(withSuccess(artists(artist(67369, "Sohbana", null)), MediaType.APPLICATION_JSON))
             server.expect(ExpectedCount.times(2), requestTo(startsWithPath("/api/songs")))
                 .andRespond(withSuccess(songs(), MediaType.APPLICATION_JSON))
+        }
+
+        assertThat(client.search(query("恋", "Sohbana", 206))).isNull()
+    }
+
+    /** A Cloudflare bot challenge is a 403: not an outage to retry, so the next provider gets a turn. */
+    @Test
+    fun `a 403 reads as no lyrics`() {
+        val client = clientWith { server ->
+            server.expect(requestTo(startsWithPath("/api/artists"))).andRespond(withStatus(HttpStatus.FORBIDDEN))
         }
 
         assertThat(client.search(query("恋", "Sohbana", 206))).isNull()

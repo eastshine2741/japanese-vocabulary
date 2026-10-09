@@ -11,7 +11,35 @@ import org.springframework.data.repository.query.Param
 import java.time.Instant
 
 interface SongAnalysisWorkRepository : JpaRepository<SongAnalysisWorkEntity, Long> {
-    fun findByActiveDedupKey(activeDedupKey: String): SongAnalysisWorkEntity?
+
+    /**
+     * 활성 작업 조회와 중복 차단을 겸한다. 한 곡에 활성 작업이 하나라는 불변식이 이 쿼리에 달려 있다.
+     *
+     * 활성 행이 없으면 InnoDB 가 `(raw_title, raw_artist)` 인덱스에서 그 키가 들어갈 틈에 갭 락을
+     * 잡고, 같은 곡을 동시에 요청한 쪽의 insert 가 그 락에 걸린다. 종료된 행은 status 조건에서
+     * 빠지므로 키를 따로 비우는 단계가 없다.
+     *
+     * 두 가지 전제가 깨지면 보호가 조용히 사라진다:
+     * - `idx_song_analysis_work_raw_song` (V33). 없으면 풀스캔하며 스캔한 행을 다 잠가서 무관한
+     *   곡까지 직렬화된다.
+     * - REPEATABLE READ. READ COMMITTED 에서는 InnoDB 가 갭 락을 걸지 않아 중복이 그냥 통과한다.
+     *
+     * 반환이 List 인 건, 관리자가 곡 제목을 수정한 뒤 생긴 행처럼 이 키로 막히지 않는 경우에도
+     * 예외로 터지지 않게 하려는 것이다.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query(
+        "SELECT w FROM SongAnalysisWorkEntity w " +
+            "WHERE w.rawTitle = :title AND w.rawArtist = :artist " +
+            "AND w.status IN (" +
+            "com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStatus.PENDING, " +
+            "com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStatus.RUNNING) " +
+            "ORDER BY w.createdAt ASC"
+    )
+    fun findActiveByRawSongForUpdate(
+        @Param("title") title: String,
+        @Param("artist") artist: String,
+    ): List<SongAnalysisWorkEntity>
 
     fun countByStatus(status: SongAnalysisWorkStatus): Long
 
@@ -39,25 +67,40 @@ interface SongAnalysisWorkRepository : JpaRepository<SongAnalysisWorkEntity, Lon
     @Query("SELECT w FROM SongAnalysisWorkEntity w WHERE w.id = :id")
     fun findByIdForUpdate(@Param("id") id: Long): SongAnalysisWorkEntity?
 
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    // Sweeper only. updatedAt 은 생성·재개·단계 전이·진행 기록마다 갱신되므로 "마지막으로 움직인 시각" 이다.
     @Query(
         "SELECT w FROM SongAnalysisWorkEntity w " +
             "WHERE w.status = com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStatus.PENDING " +
-            "ORDER BY w.createdAt ASC"
+            "AND w.updatedAt < :threshold " +
+            "ORDER BY w.updatedAt ASC"
     )
-    fun findClaimableForUpdate(
+    fun findStalePending(
+        @Param("threshold") threshold: Instant,
         pageable: Pageable,
     ): List<SongAnalysisWorkEntity>
 
+    @Query(
+        "SELECT w FROM SongAnalysisWorkEntity w " +
+            "WHERE w.status = com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStatus.RUNNING " +
+            "AND w.updatedAt < :threshold " +
+            "ORDER BY w.updatedAt ASC"
+    )
+    fun findStaleRunning(
+        @Param("threshold") threshold: Instant,
+        pageable: Pageable,
+    ): List<SongAnalysisWorkEntity>
+
+    // Sweeper only. updatedAt 은 claim 과 단계 기록마다 갱신되므로 "진행이 멈춘 시간" 을 뜻한다.
+    // 총 실행 시간이 아니라서 느린 분석을 죽이지 않고, 멈춘 worker 는 다음 sweep 에 걸린다.
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query(
         "SELECT w FROM SongAnalysisWorkEntity w " +
             "WHERE w.status = com.japanese.vocabulary.songanalysis.entity.SongAnalysisWorkStatus.RUNNING " +
-            "AND w.lockedUntil < :now " +
-            "ORDER BY w.lockedUntil ASC"
+            "AND w.updatedAt < :threshold " +
+            "ORDER BY w.updatedAt ASC"
     )
-    fun findExpiredRunningForUpdate(
-        @Param("now") now: Instant,
+    fun findStaleRunningForUpdate(
+        @Param("threshold") threshold: Instant,
         pageable: Pageable,
     ): List<SongAnalysisWorkEntity>
 }

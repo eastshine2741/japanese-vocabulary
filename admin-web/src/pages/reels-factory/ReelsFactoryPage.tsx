@@ -14,18 +14,21 @@ import { ReelTimeline } from "./ReelTimeline"
 import { SongPicker } from "./SongPicker"
 import {
   buildPromoData,
-  defaultSongCredit,
+  DEFAULT_HEADLINE_FONT_SIZE,
+  DEFAULT_LYRIC_SCALE,
+  defaultCaption,
   emptyEditor,
   frameToMs,
   setEnd,
   setLineStart,
   setLinesIncluded,
   setSourceStart,
+  setTokenMeaning,
   shiftAll,
   toggleLine,
   toggleToken,
   validate,
-  type SongCredit,
+  type ReelCaption,
 } from "./reelEditor"
 
 /**
@@ -38,13 +41,17 @@ export function ReelsFactoryPage() {
   const [detail, setDetail] = React.useState<ReelsSongDetail | null>(null)
   const [loadingDetail, setLoadingDetail] = React.useState(false)
   const [editor, setEditor] = React.useState(emptyEditor)
-  const [credit, setCredit] = React.useState<SongCredit>({ title: "", artist: "" })
+  const [caption, setCaption] = React.useState<ReelCaption>({ title: "", artist: "", headline: "" })
   const [selectedIndex, setSelectedIndex] = React.useState<number | null>(null)
   const [mvUrl, setMvUrl] = React.useState<string | null>(null)
   const [mvDurationMs, setMvDurationMs] = React.useState<number | null>(null)
   const [mvAspect, setMvAspect] = React.useState<number | null>(null)
   /** 릴스 전체에 고정되는 MV 배치. null 이면 꽉 채움(cover). 줄을 비워도 유지하고 곡을 바꾸면 되돌린다. */
   const [mvFrame, setMvFrame] = React.useState<MvFrame | null>(null)
+  /** 상단 헤드라인 글자 크기(px). 가사 배율처럼 릴스 전체에 고정이고 곡을 바꾸면 되돌린다. */
+  const [headlineFontSize, setHeadlineFontSize] = React.useState(DEFAULT_HEADLINE_FONT_SIZE)
+  /** 가사 원문 글자 배율. MV 배치처럼 릴스 전체에 고정이고 곡을 바꾸면 되돌린다. */
+  const [lyricScale, setLyricScale] = React.useState(DEFAULT_LYRIC_SCALE)
   /** 업로드 진행률 0..1. 올리는 중이 아니면 null. */
   const [uploadProgress, setUploadProgress] = React.useState<number | null>(null)
   const [rendering, setRendering] = React.useState(false)
@@ -67,6 +74,8 @@ export function ReelsFactoryPage() {
     setMvDurationMs(null)
     setMvAspect(null)
     setMvFrame(null)
+    setLyricScale(DEFAULT_LYRIC_SCALE)
+    setHeadlineFontSize(DEFAULT_HEADLINE_FONT_SIZE)
     setMode("source")
     setPlayheadMs(0)
     setError(null)
@@ -75,7 +84,7 @@ export function ReelsFactoryPage() {
       .then(([nextDetail, source]) => {
         if (cancelled) return
         setDetail(nextDetail)
-        setCredit(defaultSongCredit(nextDetail))
+        setCaption(defaultCaption(nextDetail))
         if (source) setMvUrl(apiUrl(source.mvPath))
       })
       .catch((cause) => {
@@ -89,17 +98,18 @@ export function ReelsFactoryPage() {
     }
   }, [selectedSongId, token])
 
-  const errors = React.useMemo(() => (detail ? validate(editor, detail, credit) : []), [credit, detail, editor])
+  const errors = React.useMemo(() => (detail ? validate(editor, detail, caption) : []), [caption, detail, editor])
   const data = React.useMemo(
-    () => (detail && editor.lines.length > 0 ? buildPromoData(detail, editor, mvUrl ?? "", credit, mvFrame) : null),
-    [credit, detail, editor, mvFrame, mvUrl],
+    () =>
+      detail && editor.lines.length > 0
+        ? buildPromoData(detail, editor, mvUrl ?? "", caption, mvFrame, lyricScale, headlineFontSize)
+        : null,
+    [caption, detail, editor, headlineFontSize, lyricScale, mvFrame, mvUrl],
   )
   const fps = detail?.fps ?? 30
   const inputReady = Boolean(detail?.song.renderEligible) && errors.length === 0
   // 서버는 올려 둔 MV 로만 렌더한다.
   const canRender = inputReady && mvUrl != null && !rendering
-
-  // ── 편집 ──────────────────────────────────────────────────────────────────
 
   const handleToggleLine = React.useCallback(
     (index: number) => {
@@ -131,14 +141,17 @@ export function ReelsFactoryPage() {
     },
     [detail],
   )
+  const handleSetTokenMeaning = React.useCallback(
+    (index: number, tokenIndex: number, meaning: string | null) =>
+      setEditor((current) => setTokenMeaning(current, index, tokenIndex, meaning)),
+    [],
+  )
   const handleSetSourceStart = React.useCallback((ms: number) => setEditor((current) => setSourceStart(current, ms)), [])
   const handleSetEnd = React.useCallback((ms: number) => setEditor((current) => setEnd(current, ms)), [])
   const handleMoveClip = React.useCallback(
     (sourceStartMs: number) => setEditor((current) => shiftAll(current, sourceStartMs - current.sourceStartMs)),
     [],
   )
-
-  // ── 트랜스포트 ─────────────────────────────────────────────────────────────
 
   // 모드가 바뀌면 모니터의 모드 효과가 새 플레이헤드로 따라가고, 같은 모드면 여기서 바로 seek 한다.
   const seekSource = React.useCallback((ms: number) => {
@@ -202,8 +215,6 @@ export function ReelsFactoryPage() {
     window.addEventListener("keydown", onKeyDown)
     return () => window.removeEventListener("keydown", onKeyDown)
   }, [fps, handleSetEnd, handleSetSourceStart, markSelectedLine, seekCurrent])
-
-  // ── 서버 ───────────────────────────────────────────────────────────────────
 
   async function uploadSource(file: File) {
     if (!token || !detail) return
@@ -292,12 +303,16 @@ export function ReelsFactoryPage() {
               youtubeUrl={detail.song.youtubeUrl}
             />
             <LineInspector
-              credit={credit}
+              caption={caption}
               detail={detail}
               editor={editor}
               errors={errors}
-              onChangeCredit={setCredit}
+              onChangeCaption={setCaption}
+              onChangeHeadlineFontSize={setHeadlineFontSize}
+              onChangeLyricScale={setLyricScale}
               onChangeMvFrame={setMvFrame}
+              headlineFontSize={headlineFontSize}
+              lyricScale={lyricScale}
               mvAspect={mvAspect}
               mvFrame={mvFrame}
               playheadMs={playheadMs}
@@ -306,6 +321,7 @@ export function ReelsFactoryPage() {
               onSetEnd={handleSetEnd}
               onSetLineStart={handleSetLineStart}
               onSetSourceStart={handleSetSourceStart}
+              onSetTokenMeaning={handleSetTokenMeaning}
               onToggleLine={handleToggleLine}
               onToggleToken={handleToggleToken}
             />

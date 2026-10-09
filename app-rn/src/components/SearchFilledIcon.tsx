@@ -6,9 +6,7 @@ interface Props {
   color: string;
 }
 
-// Ionicons `search` geometry (512 viewBox) with the lens filled. Ionicons ships
-// no filled magnifier — `search` and `search-outline` are the same outline — so
-// the bottom tab draws this one for the selected state.
+// Ionicons ships no filled magnifier (`search` equals `search-outline`), so the selected tab draws this one.
 export default function SearchFilledIcon({ size = 20, color }: Props) {
   return (
     <Svg width={size} height={size} viewBox="0 0 512 512">

@@ -37,6 +37,7 @@
             "enum": [
               "fix",
               "expected_no_meaning",
+              "expected_no_mv",
               "hold"
             ]
           },

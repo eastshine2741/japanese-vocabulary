@@ -3,4 +3,6 @@ FROM eclipse-temurin:17-jre
 ARG JAR_FILE
 COPY build/libs/${JAR_FILE} app.jar
 RUN test -f app.jar || (echo "JAR_FILE build-arg 가 필요합니다. ./deploy.sh 로 빌드하세요." && exit 1)
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
+# CronJob 이 넘기는 --task=<name> 을 java 까지 전달해야 한다. `sh -c '<cmd> "$@"' --` 형태라야
+# 컨테이너 args 가 $@ 로 들어온다 (그냥 두면 $0 으로 먹히고 사라진다).
+ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar app.jar \"$@\"", "--"]

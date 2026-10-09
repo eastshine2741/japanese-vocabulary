@@ -233,8 +233,7 @@ class RuleMeaningProviderTest {
 
     @Test
     fun `gives rule-resolved grammar tokens katakana readings`() {
-        // Everything else in the pipeline stores readings in katakana; a hiragana reading here would
-        // leave particles and auxiliaries as the odd ones out in an assembled line.
+        // Readings are stored in katakana pipeline-wide.
         assertThat(provider.resolve(token("は"))!!.reading).isEqualTo("ハ")
         assertThat(provider.resolve(token("ている"))!!.baseFormReading).isEqualTo("テイル")
         assertThat(provider.resolve(token("どうして"))!!.reading).isEqualTo("ドウシテ")
@@ -254,9 +253,7 @@ class RuleMeaningProviderTest {
 
     @Test
     fun `gives rewritten tokens a context gloss`() {
-        // ここ is a kana headword, so jisho answers it with several homophones. Sending it to
-        // sense-select with an empty gloss would strip the one hint that tells them apart — and the
-        // rewrite rules are what produce these tokens in the first place.
+        // ここ is a kana headword answered with several homophones; an empty gloss would strip the hint that tells them apart.
         val rewritten = provider.rewrite(listOf(PipelineToken(0, "ここまで", "ここまで", 0, 4)))
 
         assertThat(rewritten.map { it.contextGloss }).allSatisfy { assertThat(it).isNotBlank() }

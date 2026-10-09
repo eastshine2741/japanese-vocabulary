@@ -11,26 +11,18 @@ import org.springframework.stereotype.Component
 /**
  * Splits a particle the segmentation model glued onto the word in front of it.
  *
- * The prompt already asks for particles as their own words, but nothing enforced it, so `幸せがある`
- * came back as `幸せ` + `がある`: the headword (`ある`) was right, the *surface* carried the particle,
- * and the reading `ガアル` reached the app as one word — displayed as 가아루.
+ * `幸せがある` can come back as `幸せ` + `がある` (headword `ある`, surface carrying the particle).
  *
- * **The evidence is the model's own output, not a guess.** A split only fires when the two fields it
- * returned contradict each other: the surface is the headword plus one particle character (`何を`
- * with headword `何`), or the surface opens with a particle the headword does not (`がある` with
- * headword `ある`). Both mean the model said "this word's dictionary form is the surface minus this
- * particle" — so the particle does not belong to the word.
+ * A split only fires when surface and headword contradict each other: the surface is the headword
+ * plus one particle character (`何を` / `何`), or opens with a particle the headword does not
+ * (`がある` / `ある`).
  *
- * Everything else is left alone, because the two failures are not worth the same. Leaving a glued
- * token whole keeps the meaning the headword already earned and only mis-renders the surface and its
- * reading; splitting a word that was never glued destroys a real dictionary entry. So the checks below
- * are all "leave it alone unless": the dictionary knows the glued form, the reading does not line up,
- * or jisho could not be reached — any of those and the token passes through untouched.
+ * Wrongly splitting destroys a real dictionary entry, while leaving a glued token only mis-renders
+ * it, so the token passes through untouched when the dictionary knows the glued form, the reading
+ * does not line up, or jisho could not be reached.
  *
- * Only case-marking particles are in the sets, and only where the check cannot fire on a normal
- * inflection. `で` and `ね` are excluded because `です` (headword `だ`) and `ねばった` (headword `粘る`)
- * would match the leading-particle shape; `に` is excluded because its hits are mostly `ように`, which
- * reads better as one word than as `よう` + `に`.
+ * Only case-marking particles are in the sets. `で` and `ね` are excluded because `です` (headword
+ * `だ`) and `ねばった` (`粘る`) would match the leading shape; `に` because its hits are mostly `ように`.
  */
 @Component
 class GluedParticleSplitter(
@@ -44,8 +36,7 @@ class GluedParticleSplitter(
         }
         if (candidates.isEmpty()) return tokensByIndex
 
-        // The gate: is the glued form itself a dictionary word? いつも, ように and 何を are, and splitting
-        // them would break a real entry into two grammar fragments.
+        // If the glued form itself is a dictionary word (いつも, ように), splitting would break a real entry.
         val lookups = jishoService.lookupAll(candidates.map { it.first.surface }.distinct())
         val splitByKey = mutableMapOf<PipelineTokenKey, List<PipelineToken>>()
         for ((token, glued) in candidates) {
@@ -68,11 +59,10 @@ class GluedParticleSplitter(
     }
 
     /**
-     * Which particle the model glued on, or null when the surface and headword do not contradict
-     * each other. The trailing shape demands exact equality — `surface` minus its last character *is*
-     * the headword — so an inflected form whose headword differs by more than that particle cannot
-     * match. The leading shape has no such anchor (`がいなきゃ`'s headword is `いる`, not `いなきゃ`), so it
-     * rests on the headword not starting with the particle at all.
+     * Which particle the model glued on, or null when surface and headword do not contradict. The
+     * trailing shape needs `surface` minus its last character to equal the headword; the leading
+     * shape has no such anchor (`がいなきゃ` → `いる`), so it rests on the headword not starting with
+     * the particle.
      */
     private fun gluedParticle(token: PipelineToken): GluedParticle? {
         val surface = token.surface
@@ -89,9 +79,8 @@ class GluedParticleSplitter(
 
     /**
      * True only when jisho answered and had no entry for this exact form. A fetch error is not an
-     * answer — treating it as "not a word" would let a network blip split real words — and
-     * [JishoLookupProvenance.REJECTED_FALLBACK] means jisho returned neighbours but nothing spelled or
-     * read like the query, which is the same as having no entry.
+     * answer (a network blip must not split real words); [JishoLookupProvenance.REJECTED_FALLBACK]
+     * counts as no entry.
      */
     private fun isMissingFromDictionary(lookup: JishoEntryDto?): Boolean =
         lookup != null &&
@@ -135,21 +124,16 @@ class GluedParticleSplitter(
     /**
      * The word's own reading once the particle's is taken off, or null when it cannot be told.
      *
-     * The model writes the glued reading two ways and both are safe to divide: it either includes the
-     * particle (`がある` → `ガアル`, so drop the particle's kana) or leaves it out and gives only the
-     * word's reading (`までは` → `マデ`, so there is nothing to drop).
+     * The model's glued reading either includes the particle (`がある` → `ガアル`, drop its kana) or
+     * omits it (`までは` → `マデ`, nothing to drop).
      *
-     * In the trailing shape the word half is not inflected — its surface *is* the headword — so
-     * `baseFormReading` says outright which of the two shapes this is, and that beats inspecting the
-     * last character: `母は` with reading `ハハ` is 母 read ハハ, not 母 read ハ plus a particle, and only
-     * the headword's reading can tell those apart.
+     * In the trailing shape the word half is not inflected, so `baseFormReading` says which shape it
+     * is (`母は` / `ハハ` is 母 read ハハ, not ハ plus a particle).
      *
      * The leading shape has no such anchor (`がいなきゃ` is `いる` inflected), so it falls back to
-     * [spokenReadings] — which also covers a particle *sung* differently from how it is spelled: 僕は
-     * reads ボクワ, and leaving `ワ` on 僕 would hand the app a word pronounced wrong.
+     * [spokenReadings], which also covers a particle sung differently from its spelling (僕は → ボクワ).
      *
-     * Null is returned when nothing would be left for the word, because inventing a reading is
-     * precisely what this class must not do.
+     * Null when nothing would be left for the word; a reading is never invented.
      */
     private fun wordReading(token: PipelineToken, glued: GluedParticle): String? {
         val reading = token.usedReading
@@ -168,8 +152,8 @@ class GluedParticleSplitter(
     }
 
     /**
-     * Every katakana the particle can appear as — spelled or sung — because the model writes either.
-     * Which one gets *stored* is [JapaneseText.particleReading]'s call, not this one's.
+     * Every katakana the particle can appear as, spelled or sung, because the model writes either.
+     * Which one is stored is [JapaneseText.particleReading]'s call.
      */
     private fun spokenReadings(particle: Char): Set<Char> =
         setOfNotNull(
@@ -181,9 +165,8 @@ class GluedParticleSplitter(
 
     private companion object {
         /**
-         * Particles that can be glued to the end of the word before them. Every one of these is in
-         * [RuleMeaningProvider]'s particle table, so the token split off here gets its meaning from
-         * the rule table and never reaches jisho or sense-select.
+         * Particles that can be glued to the end of the word before them. Each must be in
+         * [RuleMeaningProvider]'s particle table so the split-off token never reaches jisho.
          */
         val TRAILING_PARTICLES = setOf('は', 'を', 'が', 'も')
 

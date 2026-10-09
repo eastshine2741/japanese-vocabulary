@@ -3,7 +3,7 @@
 `260918-streak-commitment.md` 의 A·B·C 를 프론트에 먼저 반영하면서, 서버가 아직 주지 않는
 것을 목업으로 채웠다. 이 문서는 그 목업을 걷어내기 위해 서버에 필요한 변경 목록이다.
 
-서버 반영 상태 (2026-09-20): 1번(`studiedToday`/`hasStudiedBefore`)과 3번(`StreakReminderScheduler`,
+서버 반영 상태 (2026-09-20): 1번(`studiedToday`/`hasStudiedBefore`)과 3번(`StreakReminderTask`,
 20:00/23:00, `review_reminder` 폐기)은 구현됨. 2번(rating 응답 `streak` 블록)은 하지 않기로 결정.
 프론트도 목업(`streakMock.ts`)과 `review_reminder` 탭 분기를 제거해 서버 값을 그대로 쓴다.
 

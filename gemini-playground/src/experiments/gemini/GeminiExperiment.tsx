@@ -233,7 +233,6 @@ export default function GeminiExperiment() {
 
   return (
     <div className="gemini-experiment">
-      {/* Header */}
       <div className="header">
         <div className="api-key-row">
           <label>API Key</label>
@@ -247,7 +246,6 @@ export default function GeminiExperiment() {
         </div>
       </div>
 
-      {/* System instruction */}
       <div className="shared-section">
         <label>System Instruction (all panels)</label>
         <textarea
@@ -258,7 +256,6 @@ export default function GeminiExperiment() {
         />
       </div>
 
-      {/* Input */}
       <div className="shared-section">
         <label>Input (lyrics JSON)</label>
         <textarea
@@ -278,7 +275,6 @@ export default function GeminiExperiment() {
         </div>
       </div>
 
-      {/* Panel toolbar */}
       <div className="panel-toolbar">
         <button className="add-panel-btn" onClick={addPanel}>+ Add Panel</button>
         <span style={{ color: "var(--text-dim)", fontSize: 12 }}>
@@ -286,7 +282,6 @@ export default function GeminiExperiment() {
         </span>
       </div>
 
-      {/* Panels */}
       <div className="panels">
         {panels.map((panel) => {
           const result = results[panel.id] ?? EMPTY_RESULT;

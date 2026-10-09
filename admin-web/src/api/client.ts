@@ -4,10 +4,9 @@ import type {
   AdminUserWord,
   LoginResponse,
   LyricDetail,
+  ManualPushResult,
   PageResponse,
   Recommendation,
-  RecommendationCandidate,
-  RecommendationOperationResult,
   ReelsRenderRequest,
   ReelsSongCandidate,
   ReelsSongDetail,
@@ -46,6 +45,7 @@ async function request<T>(path: string, token?: string | null, init: RequestInit
   if (!response.ok) {
     throw await apiError(response)
   }
+  if (response.status === 204) return undefined as T
   return response.json() as Promise<T>
 }
 
@@ -114,48 +114,30 @@ export const adminApi = {
   songAnalysisWork(token: string, id: string) {
     return request<SongAnalysisWorkDetail>(`/song-analysis-works/${id}`, token)
   },
-  recommendationWeeks(token: string) {
-    return request<string[]>("/recommendations/weeks", token)
+  songAnalysisStageOutput(token: string, id: string, stage: string) {
+    return request<unknown>(`/song-analysis-works/${id}/stages/${stage}/output`, token)
   },
-  recommendationCandidates(token: string, weekStartDate?: string, status?: string) {
-    const params = new URLSearchParams()
-    if (weekStartDate) params.set("weekStartDate", weekStartDate)
-    if (status) params.set("status", status)
-    const query = params.toString()
-    return request<RecommendationCandidate[]>(`/recommendations/candidates${query ? `?${query}` : ""}`, token)
-  },
-  updateRecommendationCandidateStatus(token: string, candidateId: number, status: string) {
-    return request<RecommendationCandidate>(`/recommendations/candidates/${candidateId}/status`, token, {
-      method: "PATCH",
-      body: JSON.stringify({ status }),
-    })
-  },
-  recommendations(token: string, weekStartDate?: string) {
-    const params = new URLSearchParams()
-    if (weekStartDate) params.set("weekStartDate", weekStartDate)
-    const query = params.toString()
-    return request<Recommendation[]>(`/recommendations${query ? `?${query}` : ""}`, token)
-  },
-  updateRecommendation(token: string, recommendationId: number, payload: { status?: string; orderIndex?: number }) {
-    return request<Recommendation>(`/recommendations/${recommendationId}`, token, {
-      method: "PATCH",
-      body: JSON.stringify(payload),
-    })
-  },
-  prepareApprovedRecommendations(token: string, weekStartDate?: string) {
-    const params = new URLSearchParams()
-    if (weekStartDate) params.set("weekStartDate", weekStartDate)
-    const query = params.toString()
-    return request<RecommendationOperationResult>(
-      `/recommendations/prepare-approved${query ? `?${query}` : ""}`,
-      token,
-      { method: "POST" },
-    )
-  },
-  requestRecommendationAnalysis(token: string, candidateIds: number[]) {
-    return request<RecommendationOperationResult>("/recommendations/request-analysis", token, {
+  resumeSongAnalysisWork(token: string, id: string) {
+    return request<SongAnalysisWorkDetail>(`/song-analysis-works/${id}/resume`, token, {
       method: "POST",
-      body: JSON.stringify({ candidateIds }),
+    })
+  },
+  recommendations(token: string) {
+    return request<Recommendation[]>("/recommendations", token)
+  },
+  addRecommendation(token: string, songId: number) {
+    return request<Recommendation>("/recommendations", token, {
+      method: "POST",
+      body: JSON.stringify({ songId }),
+    })
+  },
+  removeRecommendation(token: string, id: number) {
+    return request<void>(`/recommendations/${id}`, token, { method: "DELETE" })
+  },
+  reorderRecommendations(token: string, ids: number[]) {
+    return request<Recommendation[]>("/recommendations/order", token, {
+      method: "PUT",
+      body: JSON.stringify({ ids }),
     })
   },
   users(token: string, page: number, query?: string) {
@@ -168,6 +150,12 @@ export const adminApi = {
     const params = pageParams(page, filter.query)
     if (filter.deckId != null) params.set("deckId", String(filter.deckId))
     return request<PageResponse<AdminUserWord>>(`/users/${id}/words?${params}`, token)
+  },
+  sendPush(token: string, userId: number, payload: { title: string; body: string }) {
+    return request<ManualPushResult>("/push/send", token, {
+      method: "POST",
+      body: JSON.stringify({ userId, ...payload }),
+    })
   },
   reelsSongs(token: string, page: number, query?: string) {
     return request<PageResponse<ReelsSongCandidate>>(`/reels-factory/songs?${pageParams(page, query)}`, token)

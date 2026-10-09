@@ -20,10 +20,7 @@ class BatchApplicationWiringTest {
 
         assertThat(imports).contains(
             "com.japanese.autoconfigure.song.SongAutoConfiguration",
-            "com.japanese.autoconfigure.songanalysis.SongAnalysisAutoConfiguration",
-            "com.japanese.autoconfigure.translation.TranslationAutoConfiguration",
-            "com.japanese.autoconfigure.lyricsearch.LyricSearchAutoConfiguration",
-            "com.japanese.autoconfigure.mvsearch.MvSearchAutoConfiguration",
+            "com.japanese.autoconfigure.notification.NotificationAutoConfiguration",
         )
     }
 

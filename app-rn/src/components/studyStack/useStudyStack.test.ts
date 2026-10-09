@@ -32,10 +32,12 @@ vi.mock('react-native', () => ({
   PanResponder: { create: (handlers: unknown) => ({ panHandlers: handlers }) },
 }));
 vi.mock('@react-navigation/native', () => ({ useIsFocused: () => native.focused }));
-vi.mock('../../api/flashcardApi', () => ({ flashcardApi: { getDueCards: vi.fn(), review: vi.fn() } }));
+vi.mock('../../api/flashcardApi', () => ({
+  flashcardApi: { getDueCards: vi.fn(), review: vi.fn(), getStats: vi.fn() },
+}));
 vi.mock('../../api/deckApi', () => ({ deckApi: { getDecks: vi.fn().mockResolvedValue({ songDecks: [] }) } }));
 vi.mock('../../api/songApi', () => ({
-  songApi: { getRecommendations: vi.fn(), getWords: vi.fn(), studyBootstrap: vi.fn() },
+  songApi: { getRecommendations: vi.fn(), getRecent: vi.fn(), getWords: vi.fn(), studyBootstrap: vi.fn() },
 }));
 vi.mock('../../api/studyStatsApi', () => ({ studyStatsApi: { getHome: vi.fn() } }));
 vi.mock('../../api/wordApi', () => ({ wordApi: { getById: vi.fn() } }));
@@ -76,6 +78,9 @@ beforeEach(() => {
   vi.resetAllMocks();
   native.focused = true;
   vi.mocked(deckApi.getDecks).mockResolvedValue({ songDecks: [], nextCursor: null });
+  vi.mocked(flashcardApi.getStats).mockResolvedValue({
+    total: 0, due: 0, newCount: 0, learning: 0, review: 0, longTermCount: 0, shortTermCount: 0,
+  });
   vi.mocked(flashcardApi.review).mockResolvedValue({
     id: 1, state: 1, due: '2026-09-05T01:00:10Z', stability: 1, difficulty: 1, memory: 'SHORT_TERM',
   });
@@ -381,7 +386,7 @@ it('keeps failed reviews available for retry', async () => {
 
 // 홈 콜드스타트: due 덱이 하나도 없을 때 추천곡 미리보기 카드 → rating 확정 시 부트스트랩.
 const recommendation: RecommendedSongItem = {
-  id: 1, songId: 9, title: 'Rec Song', artist: 'Rec Artist', artworkUrl: null, weekStartDate: '2026-09-01',
+  id: 1, songId: 9, title: 'Rec Song', artist: 'Rec Artist', artworkUrl: null,
 };
 const wordItem = (japanese: string, importanceScore: number, appearanceOrder = 0, overrides: Partial<WordInSongItemDto> = {}): WordInSongItemDto => ({
   japanese,
@@ -419,6 +424,7 @@ async function mountHome() {
 }
 beforeEach(() => {
   vi.mocked(studyStatsApi.getHome).mockResolvedValue({ currentStreak: 0, freezeCount: 0, freezeMax: 0, weekDots: [], studiedToday: false, hasStudiedBefore: true });
+  vi.mocked(songApi.getRecent).mockResolvedValue([]);
 });
 
 it('shows a preview card for the most important eligible word of the recommended song when nothing is due', async () => {
@@ -495,13 +501,37 @@ it('sorts song decks by due count for the deck strip and auto-loads the top one'
 });
 
 it('auto-selects the first recommendation deterministically for a brand-new user with no song decks', async () => {
-  const rec2: RecommendedSongItem = { id: 2, songId: 99, title: 'Second', artist: 'B', artworkUrl: null, weekStartDate: '2026-09-01' };
+  const rec2: RecommendedSongItem = { id: 2, songId: 99, title: 'Second', artist: 'B', artworkUrl: null };
   vi.mocked(songApi.getRecommendations).mockResolvedValue([recommendation, rec2]);
   vi.mocked(songApi.getWords).mockResolvedValue(wordsInSong([wordItem('高い', 99, 0)]));
   await mountHome();
   expect(stack.deckStripItems.map(s => s.songId)).toEqual([9, 99]);
   expect(stack.selectedSource?.songId).toBe(9);
   expect(stack.recommendedSource?.songId).toBe(9);
+});
+
+it('shows recently opened songs instead of recommendations when no song is saved yet', async () => {
+  vi.mocked(songApi.getRecommendations).mockResolvedValue([recommendation]);
+  vi.mocked(songApi.getRecent).mockResolvedValue([
+    { id: 50, title: 'Recent', artist: 'R', artworkUrl: null },
+    { id: 51, title: 'Older', artist: 'R', artworkUrl: null },
+  ]);
+  vi.mocked(songApi.getWords).mockResolvedValue(wordsInSong([wordItem('高い', 99, 0)]));
+  await mountHome();
+  expect(songApi.getWords).toHaveBeenCalledWith(50);
+  expect(stack.deckStripItems.map(s => s.songId)).toEqual([50, 51]);
+  expect(stack.selectedSource?.songId).toBe(50);
+  expect(stack.recommendedSource?.songId).toBe(50);
+  expect(stack.currentCard?.japanese).toBe('高い');
+});
+
+it('falls back to recommendations when loading recent songs fails', async () => {
+  vi.mocked(songApi.getRecommendations).mockResolvedValue([recommendation]);
+  vi.mocked(songApi.getRecent).mockRejectedValue(new Error('redis down'));
+  vi.mocked(songApi.getWords).mockResolvedValue(wordsInSong([wordItem('高い', 99, 0)]));
+  await mountHome();
+  expect(stack.status).not.toBe('error');
+  expect(stack.selectedSource?.songId).toBe(9);
 });
 
 it('recomputes the next due deck from a fresh deck list whenever a deck completes', async () => {
@@ -578,8 +608,32 @@ it('startRecommended opens the recommended preview card even when it is already 
   expect(stack.currentCard?.japanese).toBe('高い');
 });
 
+it('counts today\'s remaining due across all decks and decrements it with the deck badge on review', async () => {
+  vi.mocked(deckApi.getDecks).mockResolvedValue({
+    songDecks: [
+      { deckId: 7, songId: 3, title: 'Song', artist: 'A', artworkUrl: null, wordCount: 40, dueCount: 6, masteredCount: 0, studyingCount: 0, newWordCount: 0, longTermCount: 0, shortTermCount: 0 },
+      { deckId: 8, songId: 4, title: 'Other', artist: 'B', artworkUrl: null, wordCount: 10, dueCount: 4, masteredCount: 0, studyingCount: 0, newWordCount: 0, longTermCount: 0, shortTermCount: 0 },
+    ],
+    nextCursor: null,
+  });
+  // 전체 due 는 고른 곡의 큐가 아니라 stats 가 정한다 — 헤더와 복습 스케줄 화면이 같은 숫자를 쓴다.
+  vi.mocked(flashcardApi.getStats).mockResolvedValue({
+    total: 50, due: 10, newCount: 0, learning: 0, review: 0, longTermCount: 0, shortTermCount: 0,
+  });
+  vi.mocked(songApi.getRecommendations).mockResolvedValue([]);
+  vi.mocked(flashcardApi.getDueCards)
+    .mockResolvedValue({ cards: [card(9), card(1)], totalCount: 2, nextDueAt: null });
+  await mountHome();
+  expect(stack.dueTodayCount).toBe(10);
+  expect(stack.deckStripItems.map(i => i.dueCount)).toEqual([6, 4]);
+
+  await rate();
+  expect(stack.dueTodayCount).toBe(9);
+  expect(stack.deckStripItems.map(i => i.dueCount)).toEqual([5, 4]);
+});
+
 it('selectSource on another recommendation loads a fresh preview card', async () => {
-  const rec2: RecommendedSongItem = { id: 2, songId: 99, title: 'Second', artist: 'B', artworkUrl: null, weekStartDate: '2026-09-01' };
+  const rec2: RecommendedSongItem = { id: 2, songId: 99, title: 'Second', artist: 'B', artworkUrl: null };
   vi.mocked(songApi.getRecommendations).mockResolvedValue([recommendation, rec2]);
   vi.mocked(songApi.getWords)
     .mockResolvedValueOnce(wordsInSong([wordItem('高い', 99, 0)]))

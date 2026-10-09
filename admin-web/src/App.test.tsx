@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react"
+import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter } from "react-router-dom"
 import { beforeEach, describe, expect, test, vi } from "vitest"
@@ -10,10 +10,9 @@ import {
   lyricDetail,
   page,
   recommendation,
-  recommendationCandidate,
-  recommendationOperationResult,
   reelsSongCandidate,
   reelsSongDetail,
+  failedSongAnalysisWorkDetail,
   songAnalysisWorkDetail,
   songAnalysisWorkSummary,
   songDetail,
@@ -37,17 +36,22 @@ function mockFetch() {
     if (url.includes("/songs/1")) return json(songDetail)
     if (url.includes("/songs?")) return json(page([songSummary]))
     if (url.includes("/song-analysis-works/4")) return json(songAnalysisWorkDetail)
+    if (url.endsWith("/song-analysis-works/5/resume") && init?.method === "POST") {
+      return json({ ...failedSongAnalysisWorkDetail, status: "PENDING", resumable: false, errorCode: null, errorMessage: null })
+    }
+    if (url.endsWith("/song-analysis-works/5/stages/ANALYZE_LYRICS/output")) return json({ translation: { "0": { index: 0, koreanLyrics: "고양이" } } })
+    if (url.includes("/song-analysis-works/5")) return json(failedSongAnalysisWorkDetail)
     if (url.includes("/song-analysis-works?")) return json(page([songAnalysisWorkSummary]))
-    if (url.includes("/recommendations/weeks")) return json([recommendationCandidate.weekStartDate])
-    if (url.includes("/recommendations/candidates")) return json([recommendationCandidate])
-    if (url.includes("/recommendations/prepare-approved")) return json(recommendationOperationResult)
-    if (url.includes("/recommendations?") || url.endsWith("/recommendations")) return json([recommendation])
-    if (url.includes("/recommendations/request-analysis")) return json(recommendationOperationResult)
+    if (url.endsWith("/recommendations/order") && init?.method === "PUT") return json(JSON.parse(String(init.body)).ids.map((id: number) => ({ ...recommendation, id })))
+    if (url.endsWith("/recommendations/11") && init?.method === "DELETE") return new Response(null, { status: 204 })
+    if (url.endsWith("/recommendations") && init?.method === "POST") return json({ error: "already recommended" }, 409)
+    if (url.endsWith("/recommendations")) return json([recommendation])
     if (url.includes("/lyrics/2")) return json(lyricDetail)
     if (url.includes("/users/3/words")) {
       const words = new URL(url).searchParams.get("deckId") === "11" ? [adminUserWord] : [adminUserWord, { ...adminUserWord, id: 21, japaneseText: "夜", reading: "ヨル", senses: [{ meaning: "밤", partOfSpeech: "명사", jlpt: "N5", examples: [] }], sourceSongs: [], flashcard: { status: "NEW", fsrsState: 0, due: "2026-01-01T00:00:00Z", lastReview: null } }]
       return json(page(words))
     }
+    if (url.endsWith("/push/send") && init?.method === "POST") return json({ userId: 3, targetTokens: 2, sent: 1, failed: 1 })
     if (url.includes("/users/3")) return json(adminUserDetail)
     if (url.includes("/users?")) return json(page([adminUser]))
     return json({}, 404)
@@ -158,55 +162,38 @@ describe("admin web", () => {
     expect(screen.getByText("駆ける")).toBeInTheDocument()
   })
 
-  test("runs recommendation workflow operations", async () => {
+  test("sends a manual push from user detail", async () => {
     const user = userEvent.setup()
+    const fetchMock = vi.mocked(fetch)
     sessionStorage.setItem("kotonoha.admin.token", "admin-token")
-    renderApp("/recommendations")
+    renderApp("/users/3")
 
-    expect(await screen.findByRole("heading", { name: "Recommendations" })).toBeInTheDocument()
-    expect((await screen.findAllByText("Plazma")).length).toBeGreaterThan(0)
-    expect(screen.getByText("Kenshi Yonezu")).toBeInTheDocument()
-    await user.click(screen.getByRole("button", { name: "Process approved" }))
+    const send = await screen.findByRole("button", { name: "보내기" })
+    expect(send).toBeDisabled()
+    await user.type(screen.getByLabelText("푸시 제목"), "공지")
+    await user.type(screen.getByLabelText("푸시 내용"), "오늘도 복습해요")
+    await user.click(send)
 
-    expect(await screen.findByText("Processed")).toBeInTheDocument()
-    expect(screen.getByText(/SUCCEEDED/)).toBeInTheDocument()
-    expect(screen.getAllByRole("tab")).toHaveLength(2)
+    expect(await screen.findByText(/기기 2대 중/)).toHaveTextContent("기기 2대 중 1 성공 · 1 실패")
+    const call = fetchMock.mock.calls.find(([input]) => String(input).endsWith("/push/send"))!
+    expect(JSON.parse(String(call[1]?.body))).toEqual({ userId: 3, title: "공지", body: "오늘도 복습해요" })
   })
 
-  test("scopes recommendation lists and operations to the selected week", async () => {
+  test("lists recommendations, blocks duplicate adds, and removes", async () => {
     const user = userEvent.setup()
     const fetchMock = mockFetch()
     sessionStorage.setItem("kotonoha.admin.token", "admin-token")
     renderApp("/recommendations")
 
-    expect((await screen.findAllByText("Plazma")).length).toBeGreaterThan(0)
+    expect(await screen.findByRole("heading", { name: "Recommendations" })).toBeInTheDocument()
+    expect(await screen.findByRole("button", { name: "Remove 夜に駆ける" })).toBeInTheDocument()
 
-    const weekSelect = screen.getByLabelText("Week")
-    await user.selectOptions(weekSelect, recommendationCandidate.weekStartDate)
+    await user.type(screen.getByLabelText("Song search"), "夜")
+    expect(await screen.findByRole("button", { name: "Added 夜に駆ける" })).toBeDisabled()
 
+    await user.click(screen.getByRole("button", { name: "Remove 夜に駆ける" }))
     await waitFor(() =>
-      expect(
-        fetchMock.mock.calls.some(([input]) =>
-          String(input).includes(`/recommendations/candidates?weekStartDate=${recommendationCandidate.weekStartDate}`),
-        ),
-      ).toBe(true),
-    )
-    expect(
-      fetchMock.mock.calls.some(([input]) =>
-        String(input).includes(`/recommendations?weekStartDate=${recommendationCandidate.weekStartDate}`),
-      ),
-    ).toBe(true)
-
-    await user.click(screen.getByRole("button", { name: "Process approved" }))
-
-    await waitFor(() =>
-      expect(
-        fetchMock.mock.calls.some(([input]) =>
-          String(input).includes(
-            `/recommendations/prepare-approved?weekStartDate=${recommendationCandidate.weekStartDate}`,
-          ),
-        ),
-      ).toBe(true),
+      expect(fetchMock.mock.calls.some(([input, init]) => String(input).endsWith("/recommendations/11") && init?.method === "DELETE")).toBe(true),
     )
   })
 
@@ -287,8 +274,28 @@ describe("admin web", () => {
 
     expect(await screen.findByRole("heading", { name: "Work #4" })).toBeInTheDocument()
     expect(screen.getByText("Elapsed time")).toBeInTheDocument()
-    expect(screen.getByText("Created to player ready")).toBeInTheDocument()
-    expect(screen.getByText("2m 00s")).toBeInTheDocument()
+    expect(screen.getByText("Created to terminal")).toBeInTheDocument()
+    expect(screen.getAllByText("3m 00s").length).toBeGreaterThan(0)
+  })
+
+  test("shows stage failures, stage output, and resumes from the failed stage", async () => {
+    const user = userEvent.setup()
+    const fetchMock = mockFetch()
+    sessionStorage.setItem("kotonoha.admin.token", "admin-token")
+    renderApp("/song-analysis-works/5")
+
+    expect(await screen.findByRole("heading", { name: "Work #5" })).toBeInTheDocument()
+    expect(screen.getByText("IllegalStateException: bad answer")).toBeInTheDocument()
+
+    await user.click(screen.getByRole("button", { name: "View (80 chars)" }))
+    expect(await screen.findByText(/고양이/)).toBeInTheDocument()
+
+    await user.click(screen.getByRole("button", { name: /resume from ANALYZE_LYRICS/i }))
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("/song-analysis-works/5/resume"), expect.objectContaining({ method: "POST" })),
+    )
+    expect(await screen.findByText("PENDING")).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: /resume from/i })).not.toBeInTheDocument()
   })
 
   test("renders reels factory and enables render after line selection", async () => {
@@ -318,6 +325,25 @@ describe("admin web", () => {
 
     expect(screen.getByRole("button", { name: /Render and download MP4/ })).toBeEnabled()
 
+    // 뜻은 분석 결과가 기본이고 어드민이 그 자리에서 고쳐 쓴다. 되돌리기는 분석 결과로 돌아간다.
+    expect(screen.getByLabelText("Meaning for 沈む")).toHaveValue("가라앉다")
+    await user.clear(screen.getByLabelText("Meaning for 沈む"))
+    await user.type(screen.getByLabelText("Meaning for 沈む"), "잠기다")
+    expect(screen.getByLabelText("Toggle word 沈む")).toHaveTextContent("잠기다")
+    await user.click(screen.getByLabelText("Reset meaning for 沈む"))
+    expect(screen.getByLabelText("Meaning for 沈む")).toHaveValue("가라앉다")
+    // 조동사·조사는 릴스에서 뜻이 비므로 고쳐 쓸 칸도 없다
+    expect(screen.queryByLabelText("Meaning for ように")).toBeNull()
+
+    // 일본어 글자 크기는 릴스 전체에 고정이고 기본 크기로 되돌릴 수 있다
+    expect(screen.getByLabelText("Lyric size")).toHaveValue("1")
+    expect(screen.getByRole("button", { name: "기본 크기" })).toBeDisabled()
+    fireEvent.change(screen.getByLabelText("Lyric size"), { target: { value: "1.2" } })
+    expect(screen.getByLabelText("Lyric size")).toHaveValue("1.2")
+    await user.click(screen.getByRole("button", { name: "기본 크기" }))
+    expect(screen.getByLabelText("Lyric size")).toHaveValue("1")
+    expect(screen.getByLabelText("Toggle word 沈む")).toHaveTextContent("가라앉다")
+
     // 곡 제목·아티스트는 DB 값으로 채워지고 어드민이 고쳐 쓴다. 비우면 렌더할 수 없다.
     expect(screen.getByLabelText("Song title")).toHaveValue(reelsSongCandidate.title)
     expect(screen.getByLabelText("Song artist")).toHaveValue(reelsSongCandidate.artist)
@@ -325,6 +351,14 @@ describe("admin web", () => {
     expect(screen.getByText("곡 제목을 입력해야 합니다")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: /Render and download MP4/ })).toBeDisabled()
     await user.type(screen.getByLabelText("Song title"), "레몬")
+    expect(screen.getByRole("button", { name: /Render and download MP4/ })).toBeEnabled()
+
+    // 헤드라인도 서버 기본값으로 채워지고 어드민이 고쳐 쓴다. <b> 로 감싼 자리에 초록 배경이 깔린다.
+    expect(screen.getByLabelText("Headline")).toHaveValue(reelsSongDetail.headline)
+    await user.clear(screen.getByLabelText("Headline"))
+    expect(screen.getByText("헤드라인을 입력해야 합니다")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /Render and download MP4/ })).toBeDisabled()
+    await user.type(screen.getByLabelText("Headline"), "가사 한 줄에 <b>단어 6개</b>")
     expect(screen.getByRole("button", { name: /Render and download MP4/ })).toBeEnabled()
 
     // 든 줄에서 끌기 시작하면 빼기, 체크 한 번은 그 줄만 토글, Shift+클릭은 마지막 줄부터 범위

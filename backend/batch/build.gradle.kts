@@ -13,35 +13,31 @@ java {
 dependencies {
     implementation(project(":common"))
 
-    // Domains the batch process actually loads
+    // Domains the cron tasks actually load. 곡 분석 파이프라인은 worker 로 갔다.
     implementation(project(":domains:song"))
+    implementation(project(":domains:karaoke"))
     implementation(project(":domains:song-analysis"))
-    implementation(project(":domains:recommendation"))
-    implementation(project(":domains:translation"))
     implementation(project(":domains:studystats"))
     implementation(project(":domains:notification"))
     implementation(project(":domains:user"))
-    implementation(project(":domains:word"))
-    implementation(project(":integrations:lyric-search"))
-    implementation(project(":integrations:mv-search"))
-    implementation(project(":integrations:apple-music-rss"))
     implementation(project(":integrations:song-search"))
+    implementation(project(":integrations:karaoke-listing"))
+    // 노래방 신곡의 분석 요청을 worker 큐로 넘긴다.
+    implementation(project(":integrations:message-queue"))
+    implementation("org.springframework.boot:spring-boot-starter-amqp")
 
-    implementation("org.springframework.boot:spring-boot-starter-web")
+    // 상주 서버가 아니라 한 번 실행하고 끝나는 컨테이너라 web/actuator 는 싣지 않는다.
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-data-redis")
     implementation("org.springframework.boot:spring-boot-starter-batch")
-    implementation("org.springframework.boot:spring-boot-starter-actuator")
-    runtimeOnly("io.micrometer:micrometer-registry-prometheus")
+    // ObjectMapper 빈(UserSettingsService 등)은 JacksonAutoConfiguration 이 만들고, 그 조건 클래스가 spring-web 에 있다.
+    implementation("org.springframework.boot:spring-boot-starter-json")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
 
-    // Sentry
     implementation("io.sentry:sentry-spring-boot-starter-jakarta:7.18.0")
     implementation("io.sentry:sentry-logback:7.18.0")
 
-    // MySQL
     runtimeOnly("com.mysql:mysql-connector-j")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")

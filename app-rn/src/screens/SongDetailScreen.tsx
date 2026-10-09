@@ -318,10 +318,8 @@ export default function SongDetailScreen({ navigation, route }: Props) {
   }, [data?.song, navigation, songId]);
 
   /**
-   * 단계 학습: 그 단계의 due 단어(한 번도 리뷰 안 했거나 due 가 지난 단어)만 연다 — CTA 가 보여 준
-   * `dueCount` 와 카드 수가 같다. 담기와 카드 조회는 복습 화면이
-   * `POST /api/songs/{id}/word-tiers/{key}/study` 한 번으로 한다 — 곡 덱 due 큐를 열면 다른 단계
-   * 단어가 섞인다.
+   * 그 단계의 due 단어만 연다(카드 수 = CTA 의 `dueCount`). 곡 덱 due 큐를 열면 다른 단계 단어가 섞인다.
+   * 담기와 카드 조회는 복습 화면이 `POST /api/songs/{id}/word-tiers/{key}/study` 로 한다.
    */
   const handleStartTier = useCallback((tier: SongWordTierDto, trigger: StudyEntryTrigger = 'tier') => {
     if (songId == null || isStartingLearning) return;
@@ -341,11 +339,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     });
   }, [data?.song, isStartingLearning, navigation, songDeckDetail?.deckId, songId]);
 
-  /**
-   * CTA 라벨과 같은 기준으로 연다. `오늘 복습 N개`(due 있음)면 곡 단어장 due 복습을 연다 — 카드 수가
-   * N 과 같다. due 가 없으면 현재 단계의 due 단어를 열고, 단계를 못 받았거나 모두 끝났으면 예전처럼
-   * 곡 단어장을 그대로 연다.
-   */
+  /** CTA 라벨 기준: due 가 있으면 곡 단어장 due 복습, 없으면 현재 단계, 단계가 없으면 곡 단어장을 연다. */
   const handleStartLearning = useCallback(async () => {
     if (songId == null || isStartingLearning) return;
     if (songDeckDetail != null && songDeckDetail.dueCount > 0) {
@@ -372,10 +366,8 @@ export default function SongDetailScreen({ navigation, route }: Props) {
   }, [currentTier, ensureSongDeck, handleStartTier, isStartingLearning, openSongReview, songDeckDetail, songId]);
 
   /**
-   * 단어를 누르면 그 곡 복습을 연다. 이미 담긴 단어는 그 덱을 열어 첫 카드로 강제한다.
-   * 아직 안 담긴 단어는 여기서 담지 않는다 — 덱 없이 미리보기 카드로 먼저 보여주고, rating 을
-   * 확정하는 순간 서버가 "학습 시작"과 같은 기준으로 곡을 통째로 담는다(`study-bootstrap`).
-   * 단어 하나만 먼저 담으면 단어 하나짜리 곡 덱이 생기고 이후 기본 담기가 건너뛰어진다.
+   * 이미 담긴 단어는 그 덱을 열어 첫 카드로 강제한다. 안 담긴 단어는 미리보기 카드로 보여주고,
+   * rating 확정 시 서버가 곡을 통째로 담는다(`study-bootstrap`). 단어만 먼저 담으면 이후 기본 담기가 건너뛰어진다.
    */
   const handleStartWordReview = useCallback(async (word: SongDetailWordItem) => {
     if (songId == null || isStartingLearning) return;

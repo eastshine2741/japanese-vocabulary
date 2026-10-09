@@ -9,6 +9,7 @@ import com.japanese.vocabulary.translation.client.jev.dto.JevChoiceQuestion
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import io.mockk.mockk
 import io.mockk.verify
+import kotlinx.coroutines.runBlocking
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
@@ -50,7 +51,7 @@ class JevClientTest {
                 .andRespond(withSuccess(RESPONSE, MediaType.APPLICATION_JSON))
         }
 
-        val answers = client.choose("select", mapOf("japanese_line" to "殴って"), questions, context)
+        val answers = runBlocking { client.choose("select", mapOf("japanese_line" to "殴って"), questions, context) }
 
         assertThat(answers).containsExactlyEntriesOf(mapOf("0:2:3:て" to JevAnswer("84", 0.82)))
         server.verify()
@@ -64,7 +65,7 @@ class JevClientTest {
             server.expect(anything()).andRespond(withSuccess(RESPONSE, MediaType.APPLICATION_JSON))
         }
 
-        client.choose("select", emptyMap(), questions, context)
+        runBlocking { client.choose("select", emptyMap(), questions, context) }
 
         server.verify()
     }
@@ -75,7 +76,7 @@ class JevClientTest {
             server.expect(ExpectedCount.once(), anything()).andRespond(withStatus(HttpStatus.UNAUTHORIZED))
         }
 
-        assertThatThrownBy { client.choose("select", emptyMap(), questions, context) }
+        assertThatThrownBy { runBlocking { client.choose("select", emptyMap(), questions, context) } }
             .isInstanceOf(HttpClientErrorException::class.java)
         server.verify()
     }

@@ -59,6 +59,8 @@ yarn-error.*
 *.tsbuildinfo
 app-rn/google-services.json
 app-rn/GoogleService-Info.plist
+app-rn/fastlane/metadata-empty/
+app-rn/fastlane/report.xml
 
 # --- gemini-playground/.gitignore ---
 logs

@@ -14,7 +14,7 @@ Applies to `app-rn/`.
 - Use `useMemo` for expensive render-path calculations.
 - Keep `StyleSheet.create()` co-located with components.
 - App typography is loaded in `App.tsx` and centralized in `src/theme/typography.ts`: default text/input font is Inter, and heading/title styles should use the Funnel Sans helpers when matching Pencil typography.
-- 바텀시트는 `components/bottomSheet` 의 `AppBottomSheet`/`AppBottomSheetView`/`AppSheet*ScrollView` 를 쓴다. `@gorhom/bottom-sheet` 직접 import 는 그 디렉토리 안에서만. 중첩 스크롤 함정은 `../docs/runbooks/bottom-sheet-nested-scroll.md`.
+- 바텀시트는 `src/components/bottomSheet` 의 `AppBottomSheet`/`AppBottomSheetView`/`AppSheet*ScrollView` 를 쓴다. `@gorhom/bottom-sheet` 직접 import 는 그 디렉토리 안에서만. 중첩 스크롤 함정은 `../docs/runbooks/bottom-sheet-nested-scroll.md`.
 - native driver `Animated` 는 같은 view 의 prop 을 Animated 값 ↔ 고정값으로 바꾸지 말고, 재사용 값을 `setValue(0)` 으로 리셋하지 말 것(카드마다 새 인스턴스). iOS prod 에서만 깨진다: `../docs/runbooks/ios-native-animated-pitfalls.md`.
 
 ## OTA (EAS Update)
@@ -27,7 +27,8 @@ JS-only 변경은 `eas update`로 배포한다. 네이티브 변경은 새 빌�
 push하면 JS tag와 커밋 SHA를 메시지로 사용해 OTA와 Sentry 소스맵을 차례로 업로드한다.
 `js-vM.m.p-update.N.dev`는 `development`, `js-vM.m.p-update.N.prod`는 `production`
 채널에 배포한다. 설정 화면은 이 `N`을 `update.N`으로 표시한다. 네이티브 `vM.m.p` tag는
-OTA를 배포하지 않는다. 아래 명령은 GitHub Actions를 쓸 수 없을 때의 수동 fallback이다.
+OTA를 배포하지 않는다. prod OTA tag는 `release/M.m.p` 브랜치에 찍고, 워크플로가 네이티브
+fingerprint·typecheck를 확인한 뒤 배포한다. 아래 명령은 GitHub Actions를 쓸 수 없을 때의 수동 fallback이다.
 
 JS tag의 `M.m.p`는 대상 native runtime version이다. `runtimeVersion`은 이 값으로
 고정되므로 native build와 OTA가 같은 `NATIVE_RUNTIME_VERSION`을 써야 한다. Android CD는

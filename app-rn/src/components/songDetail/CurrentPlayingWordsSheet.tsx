@@ -73,10 +73,7 @@ const SheetHandleContext = React.createContext<SheetHandleContextValue>({
 
 /**
  * MV 바가 시트의 핸들이다. 본문 pan 은 가사 다이얼이 가져가므로, 시트는 이 핸들로만 끈다.
- *
- * 모듈 레벨 컴포넌트여야 한다 — handleComponent 로 매 렌더 새 함수를 넘기면 React 가
- * 다른 타입으로 보고 핸들을 새로 마운트해서, 안에 든 MV WebView 가 계속 초기화된다.
- * 바뀌는 값은 context 로 넘겨 리렌더만 시킨다.
+ * 모듈 레벨 컴포넌트여야 한다 — 매 렌더 새 함수를 handleComponent 로 넘기면 핸들이 다시 마운트돼 MV WebView 가 초기화된다.
  */
 function SheetHandle() {
   const { header, headerHeight } = React.useContext(SheetHandleContext);
@@ -105,10 +102,8 @@ const CurrentPlayingWordsSheetComponent = React.forwardRef<AppBottomSheetRef, Cu
   const inferredLyricType = lyricType ?? (lines.some(line => line.startTimeMs != null) ? 'SYNCED' : 'PLAIN');
   const canAutoSync = inferredLyricType === 'SYNCED';
   const [autoSyncEnabled, setAutoSyncEnabled] = React.useState(canAutoSync);
-  // 싱크를 끄면 재생과 무관하게 사용자가 고른 줄을 붙잡아 둔다.
   const [manualLineIndex, setManualLineIndex] = React.useState(() => Math.max(fallbackLineIndex, 0));
-  // 싱크가 켜진 채로 줄을 고르면 seek 이 플레이어에 닿을 때까지 몇 틱은 옛 시각이 온다.
-  // 그동안 고른 줄을 붙잡아 둬야 포커스가 왔다 갔다 하지 않는다.
+  // 싱크 중 줄을 고르면 seek 이 닿을 때까지 옛 시각이 오므로, 그동안 고른 줄을 붙잡아 포커스 흔들림을 막는다.
   const [pendingSync, setPendingSync] = React.useState<{ index: number; seekMs: number } | null>(null);
 
   const sheetBottomInset = bottomInset ?? insets.bottom;
@@ -122,8 +117,7 @@ const CurrentPlayingWordsSheetComponent = React.forwardRef<AppBottomSheetRef, Cu
   );
 
   const entries = useMemo<SongLyricsDialEntry[]>(() => lines.map((line) => {
-    // lineWordIndexes 는 서버가 그 줄에 나온 순서로 내려준다. 여기서 다시 정렬하면
-    // 줄 안 어순이 곡 전체 등장순으로 덮인다 — 후렴에서 먼저 나온 단어가 앞으로 끌려온다.
+    // lineWordIndexes 는 이미 줄 안 등장순이다. 다시 정렬하면 곡 전체 등장순으로 덮인다.
     const wordIndexes = getLineWordIndexes(lineWordIndexes, line.index);
     return {
       key: String(line.index),
@@ -154,9 +148,7 @@ const CurrentPlayingWordsSheetComponent = React.forwardRef<AppBottomSheetRef, Cu
     setManualLineIndex(prev => Math.min(prev, Math.max(entries.length - 1, 0)));
   }, [entries.length]);
 
-  // seek 하자마자 currentMs 를 고른 줄 시각으로 먼저 바꿔 두지만, 플레이어는 버퍼링이
-  // 끝날 때까지(수 초) seek 전 시각을 계속 보낸다. 플레이어가 고른 줄 안의 시각을 직접
-  // 보고해야 seek 이 닿은 것으로 본다 — 먼저 바꿔 둔 값(seekMs) 그대로면 아직 아니다.
+  // 플레이어는 버퍼링이 끝날 때까지(수 초) seek 전 시각을 보낸다. seekMs 가 아닌 시각이 고른 줄 안에서 오면 seek 이 닿은 것이다.
   useEffect(() => {
     if (pendingSync == null) return;
     if (playingLineIndex === pendingSync.index && currentTimeMs !== pendingSync.seekMs) {
@@ -173,7 +165,6 @@ const CurrentPlayingWordsSheetComponent = React.forwardRef<AppBottomSheetRef, Cu
   const handleStepLine = useCallback((index: number) => {
     const target = entries[index];
     if (!target) return;
-    // 싱크가 켜져 있으면 줄을 고르는 건 곧 그 줄로 재생을 옮기는 것이다.
     if (autoSyncEnabled) {
       if (target.line.startTimeMs == null) return;
       setPendingSync({ index, seekMs: target.line.startTimeMs });
