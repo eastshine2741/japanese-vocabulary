@@ -36,18 +36,18 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 export default function SettingsScreen() {
   const navigation = useNavigation<Nav>();
   const {
-    status, showIntervals, readingDisplay, showKoreanPronunciation, showFurigana, dailyGoal, notificationsEnabled, isSaving,
-    loadSettings, setShowIntervals, setReadingDisplay, setShowKoreanPronunciation, setShowFurigana, setDailyGoal, setNotificationsEnabled, save,
+    status, showIntervals, readingDisplay, showKoreanPronunciation, showFurigana, dailyGoal, karaokeNewSongNotifications, isSaving,
+    loadSettings, setShowIntervals, setReadingDisplay, setShowKoreanPronunciation, setShowFurigana, setDailyGoal, toggleKaraokeNewSongNotifications, save,
   } = useSettingsStore(
     useShallow(s => ({
       status: s.status,
       showIntervals: s.showIntervals, readingDisplay: s.readingDisplay,
       showKoreanPronunciation: s.showKoreanPronunciation, showFurigana: s.showFurigana,
-      dailyGoal: s.dailyGoal, notificationsEnabled: s.notificationsEnabled,
+      dailyGoal: s.dailyGoal, karaokeNewSongNotifications: s.karaokeNewSongNotifications,
       isSaving: s.isSaving, loadSettings: s.loadSettings,
       setShowIntervals: s.setShowIntervals, setReadingDisplay: s.setReadingDisplay,
       setShowKoreanPronunciation: s.setShowKoreanPronunciation, setShowFurigana: s.setShowFurigana,
-      setDailyGoal: s.setDailyGoal, setNotificationsEnabled: s.setNotificationsEnabled, save: s.save,
+      setDailyGoal: s.setDailyGoal, toggleKaraokeNewSongNotifications: s.toggleKaraokeNewSongNotifications, save: s.save,
     })),
   );
 
@@ -79,10 +79,6 @@ export default function SettingsScreen() {
   const handleShowFuriganaChange = useCallback((value: boolean) => {
     setShowFurigana(value); setTimeout(() => save(), 0);
   }, [setShowFurigana, save]);
-
-  const handleNotificationsEnabledChange = useCallback((value: boolean) => {
-    setNotificationsEnabled(value); setTimeout(() => save(), 0);
-  }, [setNotificationsEnabled, save]);
 
   const handleReadingDisplayChange = useCallback((value: 'KATAKANA' | 'HIRAGANA' | 'KOREAN') => {
     setReadingDisplay(value); setTimeout(() => save(), 0);
@@ -226,15 +222,17 @@ export default function SettingsScreen() {
               thumbColor={Colors.surface}
             />
           </View>
+        </Section>
 
+        <Section title="알림">
           <View style={styles.row}>
             <View style={styles.rowText}>
-              <Text style={styles.label}>복습 알림</Text>
-              <Text style={styles.description}>복습할 카드가 있을 때 알려드려요.</Text>
+              <Text style={styles.label}>노래방 신곡 알림</Text>
+              <Text style={styles.description}>TJ·금영에 일본 신곡이 들어오면 알려드려요.</Text>
             </View>
             <Switch
-              value={notificationsEnabled}
-              onValueChange={handleNotificationsEnabledChange}
+              value={karaokeNewSongNotifications}
+              onValueChange={toggleKaraokeNewSongNotifications}
               trackColor={{ true: Colors.stateRetrievability, false: Colors.border }}
               thumbColor={Colors.surface}
             />

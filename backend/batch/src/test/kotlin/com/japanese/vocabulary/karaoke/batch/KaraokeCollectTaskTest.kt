@@ -104,8 +104,8 @@ class KaraokeCollectTaskTest : BatchBaseIntegrationTest() {
         assertThat(sentMessages).hasSize(1)
         val data = mine.single().fieldValue<Map<String, String>>("data")
         assertThat(data["type"]).isEqualTo("karaoke_new_songs")
-        assertThat(data["title"]).isEqualTo("노래방에 새 일본곡 2곡")
-        assertThat(data["body"]).isEqualTo("唱 - Ado 외 1곡")
+        assertThat(data["title"]).isEqualTo("🎤 노래방 신곡이 업데이트되었어요!")
+        assertThat(data["body"]).isEqualTo("唱, 夜明けの歌를 확인해보세요")
     }
 
     @Test

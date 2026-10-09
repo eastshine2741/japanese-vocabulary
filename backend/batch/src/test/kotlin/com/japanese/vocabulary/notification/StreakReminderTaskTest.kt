@@ -7,8 +7,6 @@ import com.japanese.vocabulary.notification.entity.DeviceTokenEntity
 import com.japanese.vocabulary.studystats.entity.DailyStudySummaryEntity
 import com.japanese.vocabulary.test.BatchBaseIntegrationTest
 import com.japanese.vocabulary.user.entity.UserEntity
-import com.japanese.vocabulary.user.entity.UserSettingsEntity
-import com.japanese.vocabulary.user.model.UserSettingsData
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
 import io.mockk.verify
@@ -34,7 +32,7 @@ class StreakReminderTaskTest : BatchBaseIntegrationTest() {
 
     private val today: LocalDate = LocalDate.of(2026, 9, 20)
 
-    private fun newUser(token: Boolean = true, notificationsEnabled: Boolean? = null): UserEntity {
+    private fun newUser(token: Boolean = true): UserEntity {
         val seq = USER_SEQUENCE.incrementAndGet()
         val user = UserEntity(
             provider = "google",
@@ -43,11 +41,6 @@ class StreakReminderTaskTest : BatchBaseIntegrationTest() {
         ).also { entityManager.persist(it) }
         if (token) {
             entityManager.persist(DeviceTokenEntity(userId = user.id!!, token = "streak-token-$seq", platform = "ANDROID"))
-        }
-        if (notificationsEnabled != null) {
-            entityManager.persist(
-                UserSettingsEntity(userId = user.id!!, settings = UserSettingsData(notificationsEnabled = notificationsEnabled)),
-            )
         }
         entityManager.flush()
         return user
@@ -80,14 +73,13 @@ class StreakReminderTaskTest : BatchBaseIntegrationTest() {
     }
 
     @Test
-    fun `skips users without token or with notifications disabled`() {
+    fun `skips users without token`() {
         val noToken = newUser(token = false).also { studied(it, 1) }
-        val disabled = newUser(notificationsEnabled = false).also { studied(it, 1) }
-        val enabledExplicitly = newUser(notificationsEnabled = true).also { studied(it, 1) }
+        val withToken = newUser().also { studied(it, 1) }
 
-        val result = candidatesFor(Slot.EVENING, noToken, disabled, enabledExplicitly)
+        val result = candidatesFor(Slot.EVENING, noToken, withToken)
 
-        assertThat(result.keys).containsExactly(enabledExplicitly.id)
+        assertThat(result.keys).containsExactly(withToken.id)
     }
 
     @Test
