@@ -16,7 +16,7 @@ export function contributorColor(index: number): string {
   return CONTRIBUTOR_COLORS[index % CONTRIBUTOR_COLORS.length];
 }
 
-/** 서버는 프로필 사진을 주지 않는다. 이름 첫 글자로 세운다. */
+/** 프로필 사진이 없는 기여자는 이름 첫 글자로 세운다. */
 export function contributorInitial(contributor: SongContributor): string {
   const source = contributor.name?.trim() || contributor.username.trim();
   return [...source][0]?.toUpperCase() ?? '?';

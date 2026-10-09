@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import { Colors } from '../../theme/theme';
 import { Typography } from '../../theme/typography';
 import type { SongContributor, SongContributorsDto } from '../../types/songReport';
@@ -17,9 +17,13 @@ interface ContributorFaceProps {
 const ContributorFace = React.memo(function ContributorFace({ contributor, index }: ContributorFaceProps) {
   return (
     <View style={styles.faceCell}>
-      <View style={[styles.avatar, { backgroundColor: contributorColor(index) }]}>
-        <Text style={styles.initial}>{contributorInitial(contributor)}</Text>
-      </View>
+      {contributor.profileImageUrl ? (
+        <Image source={{ uri: contributor.profileImageUrl }} style={styles.avatar} />
+      ) : (
+        <View style={[styles.avatar, { backgroundColor: contributorColor(index) }]}>
+          <Text style={styles.initial}>{contributorInitial(contributor)}</Text>
+        </View>
+      )}
     </View>
   );
 });

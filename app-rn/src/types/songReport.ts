@@ -34,6 +34,7 @@ export interface SongContributor {
   userId: number;
   username: string;
   name: string | null;
+  profileImageUrl: string | null;
 }
 
 export interface SongContributorsDto {

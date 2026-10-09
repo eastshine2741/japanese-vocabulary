@@ -17,6 +17,7 @@ import com.japanese.vocabulary.test.ApiBaseIntegrationTest
 import com.japanese.vocabulary.test.fixtures.TestSongBuilder
 import com.japanese.vocabulary.test.fixtures.TestUserBuilder
 import com.japanese.vocabulary.user.entity.UserEntity
+import io.mockk.every
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -144,7 +145,9 @@ class SongReportControllerTest : ApiBaseIntegrationTest() {
     fun `contributors are distinct approved reporters in first-approval order`() {
         val (song, _) = songWithLyric()
         val (otherSong, _) = songWithLyric()
-        val early = newUser { withUsername("early"); withName("Early") }
+        every { objectStorageClient.enabled } returns true
+        every { objectStorageClient.publicUrl(any()) } answers { "https://img.test/${firstArg<String>()}" }
+        val early = newUser { withUsername("early"); withName("Early") }.also { it.profileImageKey = "avatars/early.jpg" }
         val late = newUser { withUsername("late") }
         val rejected = newUser { withUsername("rejected") }
         val pending = newUser { withUsername("pending") }
@@ -168,6 +171,8 @@ class SongReportControllerTest : ApiBaseIntegrationTest() {
             jsonPath("$.contributors[0].userId") { value(early.id!!.toInt()) }
             jsonPath("$.contributors[0].username") { value("early") }
             jsonPath("$.contributors[0].name") { value("Early") }
+            jsonPath("$.contributors[0].profileImageUrl") { value("https://img.test/avatars/early.jpg") }
+            jsonPath("$.contributors[1].profileImageUrl") { doesNotExist() }
             jsonPath("$.contributors[1].username") { value("late") }
         }
     }

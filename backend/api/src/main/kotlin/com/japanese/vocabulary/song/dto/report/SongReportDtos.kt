@@ -51,4 +51,5 @@ data class SongContributorDto(
     val userId: Long,
     val username: String,
     val name: String?,
+    val profileImageUrl: String?,
 )

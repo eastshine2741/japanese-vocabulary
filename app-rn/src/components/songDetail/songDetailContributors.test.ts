@@ -3,7 +3,7 @@ import type { SongContributor } from '../../types/songReport';
 import { CONTRIBUTOR_COLORS, contributorColor, contributorInitial } from './songDetailContributors';
 
 function contributor(overrides: Partial<SongContributor>): SongContributor {
-  return { userId: 1, username: 'eastshine', name: '유저', ...overrides };
+  return { userId: 1, username: 'eastshine', name: '유저', profileImageUrl: null, ...overrides };
 }
 
 describe('contributorInitial', () => {
