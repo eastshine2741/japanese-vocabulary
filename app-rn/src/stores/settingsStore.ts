@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { flashcardApi } from '../api/flashcardApi';
+import { requestPermissionForOptIn } from '../services/pushNotifications';
 import type { UserSettingsDTO } from '../types/flashcard';
 import type { ReadingDisplay } from '../utils/readingConverter';
 
@@ -75,6 +76,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
     const next = !get().karaokeNewSongNotifications;
     set({ karaokeNewSongNotifications: next });
+    if (next) requestPermissionForOptIn();
     try {
       await flashcardApi.updateSettings(settingsPayload(get()));
     } catch {
