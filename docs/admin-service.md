@@ -20,7 +20,7 @@ Architecture direction:
 - Active domain/integration modules provide Spring wiring through `AutoConfiguration.imports` and `com.japanese.autoconfigure.*` classes. AutoConfiguration component-scans the module-owned `com.japanese.vocabulary.<module>` package and registers JPA entities/repositories explicitly. Application bootstraps should not carry sibling module `@EntityScan` or repository scan knowledge, and broad root component scan should not be used as a backup wiring path.
 - Integration clients should use `RestClient` where behavior can stay equivalent. Applications avoid unused clients by depending only on the integration modules they need; the depended module's AutoConfiguration exposes its client beans.
 - Product/read-model cache belongs to the application module that owns the behavior. For this pass, song search cache belongs to `api` and artist-channel cache belongs to `worker`.
-- Admin mutations must call domain methods/services; raw field updates stay out of scope. Current mutations: song reanalysis creates or reuses a `song_analysis_work`, and resume reopens a failed work at its failed stage (`SongAnalysisWorkService.resume`); neither edits song/lyric fields directly.
+- Admin mutations must call domain methods/services; raw field updates stay out of scope. Current mutations: song reanalysis creates or reuses a `song_analysis_work`, and resume reopens a failed work at its failed stage (`SongAnalysisWorkService.resume`); neither edits song/lyric fields directly. Song report approval is the one song/lyric edit path: it applies typed ops (`SongEditOp`) through `SongReportService.approve`, checks token offsets against the line text, regenerates `wordCandidates`, and records each before/after in `song_reports.review_changes` as its audit log.
 
 ## Backend
 
@@ -70,6 +70,10 @@ Routes:
 - `GET /admin/api/reels-factory/songs/{songId}/source`
 - `GET /admin/api/reels-factory/songs/{songId}/mv?token=...` (media token only; no admin bearer)
 - `POST /admin/api/reels-factory/render`
+- `GET /admin/api/song-reports?status=PENDING|APPROVED|REJECTED` — 유저 분석 제보 큐 (최신순)
+- `GET /admin/api/song-reports/{id}` — 제보 + 대상 줄의 현재 active 가사(`context.line`)
+- `POST /admin/api/song-reports/{id}/approve` — `{ changes: [{ op, ... }], note? }`. PENDING 만 (아니면 409)
+- `POST /admin/api/song-reports/{id}/reject` — `{ note? }`. PENDING 만 (아니면 409)
 
 Reels Factory:
 

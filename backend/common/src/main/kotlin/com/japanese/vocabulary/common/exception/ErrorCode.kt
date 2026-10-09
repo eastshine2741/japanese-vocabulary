@@ -25,6 +25,14 @@ enum class ErrorCode(val status: HttpStatus, val message: String) {
     ANALYSIS_NOTIFICATION_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "Analysis notification subscription is unavailable"),
     INVALID_NOTIFICATION_REQUEST(HttpStatus.BAD_REQUEST, "enabled must be a boolean"),
 
+    // Song report
+    SONG_REPORT_NOT_FOUND(HttpStatus.NOT_FOUND, "Song report not found"),
+    SONG_REPORT_INVALID_TYPE(HttpStatus.BAD_REQUEST, "Unknown song report type"),
+    SONG_REPORT_INVALID_TARGET(HttpStatus.BAD_REQUEST, "Report target does not match this song's lyric"),
+    SONG_REPORT_SUGGESTION_REQUIRED(HttpStatus.BAD_REQUEST, "Suggestion required for this report type"),
+    SONG_REPORT_SUGGESTION_TOO_LONG(HttpStatus.BAD_REQUEST, "Suggestion must be at most 1000 characters"),
+    SONG_REPORT_NOT_PENDING(HttpStatus.CONFLICT, "Song report was already reviewed"),
+
     // Word
     WORD_NOT_FOUND(HttpStatus.NOT_FOUND, "Word not found"),
     MEANING_REQUIRED(HttpStatus.BAD_REQUEST, "At least one meaning required"),

@@ -125,7 +125,12 @@ TypeSafe Jev (`TYPESAFE_API_KEY`), the other LLM stages on Gemini. Details live 
 freeze 행은 연속을 잇기만 하고 streak/총 학습일 카운트에는 들어가지 않는다.
 스펙은 `docs/product-intents/260918-streak-commitment-api.md`.
 
-**Admin surface:** `backend/admin-api` exposes `/admin/api/auth/login`, `/admin/api/songs`, `/admin/api/lyrics`, `/admin/api/song-analysis-works`, `/admin/api/users`, `/admin/api/users/{id}/words` (per-user decks/words/review state, read-only), and `/admin/api/push/send` (운영자 수동 푸시; 구 batch `/dev/push/send` 대체). `admin-web` is a Vite React TypeScript shadcn-style SPA. Dev 는 `/<namespace>/admin` 경로로, prod 는 `https://kotonoha.eastshine.dev/admin` (API 는 `/admin/api`) 한 호스트로 배포된다 — path 별 미들웨어가 필요해 Traefik `IngressRoute` 를 쓴다. See `docs/admin-service.md`.
+**Song report (분석 제보):** 유형 목록은 서버 enum `SongReportType` 이 소유한다(`GET /api/song-reports/types`).
+`POST /api/songs/{id}/reports` 가 `song_reports` PENDING 행을 만들고, 관리자가 승인하면 같은 트랜잭션에서 곡·active 가사를
+고치고 바꾼 내용을 `review_changes` 에만 남긴다(곡·가사 버전 없음). `GET /api/songs/{id}/contributors` 는 APPROVED 제보자.
+어드민 흐름은 `docs/admin-service.md`.
+
+**Admin surface:** `backend/admin-api` exposes `/admin/api/auth/login`, `/admin/api/songs`, `/admin/api/lyrics`, `/admin/api/song-analysis-works`, `/admin/api/users`, `/admin/api/users/{id}/words` (per-user decks/words/review state, read-only), `/admin/api/song-reports` (분석 제보 승인·반려), and `/admin/api/push/send` (운영자 수동 푸시; 구 batch `/dev/push/send` 대체). `admin-web` is a Vite React TypeScript shadcn-style SPA. Dev 는 `/<namespace>/admin` 경로로, prod 는 `https://kotonoha.eastshine.dev/admin` (API 는 `/admin/api`) 한 호스트로 배포된다 — path 별 미들웨어가 필요해 Traefik `IngressRoute` 를 쓴다. See `docs/admin-service.md`.
 
 **Partial coverage:** Backend integration tests for new domains; broader e2e tests still pending.
 

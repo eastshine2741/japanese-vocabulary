@@ -17,6 +17,9 @@ import type {
   SongAnalysisWorkSummary,
   SongAnalysisWorkOperation,
   SongDetail,
+  SongReportChangeOp,
+  SongReportDetail,
+  SongReportSummary,
   SongSummary,
 } from "@/api/types"
 
@@ -121,6 +124,25 @@ export const adminApi = {
   resumeSongAnalysisWork(token: string, id: string) {
     return request<SongAnalysisWorkDetail>(`/song-analysis-works/${id}/resume`, token, {
       method: "POST",
+    })
+  },
+  songReports(token: string, page: number, status: string) {
+    const params = new URLSearchParams({ page: String(page), size: "20", status })
+    return request<PageResponse<SongReportSummary>>(`/song-reports?${params}`, token)
+  },
+  songReport(token: string, id: string) {
+    return request<SongReportDetail>(`/song-reports/${id}`, token)
+  },
+  approveSongReport(token: string, id: number, payload: { changes: SongReportChangeOp[]; note?: string }) {
+    return request<SongReportDetail>(`/song-reports/${id}/approve`, token, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    })
+  },
+  rejectSongReport(token: string, id: number, payload: { note?: string }) {
+    return request<SongReportDetail>(`/song-reports/${id}/reject`, token, {
+      method: "POST",
+      body: JSON.stringify(payload),
     })
   },
   recommendationWeeks(token: string) {
