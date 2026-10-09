@@ -9,6 +9,7 @@ export type {
   AppBottomSheetRef,
 } from './AppBottomSheet';
 export { AppBottomSheetView } from './AppBottomSheetView';
+export { AppSheetTextInput } from './AppSheetTextInput';
 export type { AppBottomSheetViewProps } from './AppBottomSheetView';
 export {
   AppSheetHandoffFlatList,

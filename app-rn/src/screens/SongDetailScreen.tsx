@@ -22,11 +22,20 @@ import { useSongDetailStore } from '../stores/songDetailStore';
 import { usePlayerStore } from '../stores/playerStore';
 import { deckApi } from '../api/deckApi';
 import { songApi } from '../api/songApi';
+import { songReportApi } from '../api/songReportApi';
+import { apiErrorMessage } from '../api/errors';
 import { wordApi } from '../api/wordApi';
 import SkeletonBox from '../components/SkeletonLoading';
 import SongInfoSheet from '../components/SongInfoSheet';
 import ErrorDialog from '../components/ErrorDialog';
-import { AppBottomSheet, AppBottomSheetRef, AppBottomSheetView } from '../components/bottomSheet';
+import Snackbar from '../components/Snackbar';
+import {
+  AppBottomSheet,
+  AppBottomSheetModal,
+  AppBottomSheetModalRef,
+  AppBottomSheetRef,
+  AppBottomSheetView,
+} from '../components/bottomSheet';
 import {
   CurrentPlayingWordsSheet,
   selectCurrentTier,
@@ -36,7 +45,9 @@ import {
   SongDetailMvBar,
   SongDetailWordsActionBar,
   SongDetailWordsTab,
+  SongReportSheet,
   type SongDetailMvBarRef,
+  type SongReportSheetTarget,
   type SongDetailWordItem,
   useSongDetailWordsTab,
 } from '../components/songDetail';
@@ -48,6 +59,7 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import type { StudyEntryTrigger } from '../services/analytics';
 import type { DeckDetailResponse } from '../types/deck';
 import type { SongWordTierDto } from '../types/song';
+import type { SubmitSongReportRequest } from '../types/songReport';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SongDetail'>;
 type DetailTab = 'home' | 'words';
@@ -65,6 +77,7 @@ const WORDS_TAB_BOTTOM_CLEARANCE = SONG_DETAIL_MV_BAR_HEIGHT + 24;
 const HERO_SCROLL_COLLAPSE_START = HERO_HEIGHT - COLLAPSED_BAR_HEIGHT - TAB_BAR_HEIGHT - 34;
 const HERO_SCROLL_COLLAPSE_END = HERO_SCROLL_COLLAPSE_START + 56;
 const ARTWORK_COLLAPSED_OFFSET = HERO_HEIGHT * 0.4;
+const REPORT_SENT_MESSAGE = '제보를 보냈어요. 확인 후 고칠게요';
 const SKELETON_WORD_ROWS = [0, 1, 2, 3];
 const SKELETON_LEGEND_ROWS = [0, 1, 2, 3, 4];
 
@@ -667,6 +680,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
       </Animated.View>
 
       <PlaybackOverlays
+        songId={song.id}
         title={song.title}
         artist={song.artist}
         youtubeUrl={song.youtubeUrl}
@@ -822,6 +836,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
 }
 
 interface PlaybackOverlaysProps {
+  songId: number;
   title: string;
   artist: string;
   youtubeUrl: string | null;
@@ -837,6 +852,7 @@ interface PlaybackOverlaysProps {
 }
 
 const PlaybackOverlays = React.memo(function PlaybackOverlays({
+  songId,
   title,
   artist,
   youtubeUrl,
@@ -853,6 +869,11 @@ const PlaybackOverlays = React.memo(function PlaybackOverlays({
   const mvBarRef = useRef<SongDetailMvBarRef>(null);
   const wordsSheetRef = useRef<AppBottomSheetRef>(null);
   const wordsSheetIndexRef = useRef(0);
+  const reportSheetRef = useRef<AppBottomSheetModalRef>(null);
+  const [reportTarget, setReportTarget] = useState<SongReportSheetTarget | null>(null);
+  const [isSubmittingReport, setIsSubmittingReport] = useState(false);
+  const [reportSentMessage, setReportSentMessage] = useState<string | null>(null);
+  const [reportError, setReportError] = useState<string | null>(null);
   const currentMs = usePlayerStore(s => s.currentMs);
   const durationMs = usePlayerStore(s => s.durationMs);
   const setCurrentMs = usePlayerStore(s => s.setCurrentMs);
@@ -870,6 +891,39 @@ const PlaybackOverlays = React.memo(function PlaybackOverlays({
     wordsSheetIndexRef.current = nextIndex;
     wordsSheetRef.current?.snapToIndex(nextIndex);
   }, []);
+
+  const handleOpenLineReport = useCallback((line: React.ComponentProps<typeof CurrentPlayingWordsSheet>['lines'][number]) => {
+    setReportTarget({ group: 'LYRIC_LINE', line });
+    reportSheetRef.current?.present();
+  }, []);
+  const handleOpenMvReport = useCallback(() => {
+    setReportTarget({ group: 'MV' });
+    reportSheetRef.current?.present();
+  }, []);
+  const handleCloseReport = useCallback(() => {
+    reportSheetRef.current?.dismiss();
+  }, []);
+  const handleReportDismissed = useCallback(() => {
+    setReportTarget(null);
+  }, []);
+  const handleHideReportSent = useCallback(() => {
+    setReportSentMessage(null);
+  }, []);
+  const handleDismissReportError = useCallback(() => {
+    setReportError(null);
+  }, []);
+  const handleSubmitReport = useCallback(async (request: SubmitSongReportRequest) => {
+    setIsSubmittingReport(true);
+    try {
+      await songReportApi.submit(songId, request);
+      reportSheetRef.current?.dismiss();
+      setReportSentMessage(REPORT_SENT_MESSAGE);
+    } catch (e) {
+      setReportError(apiErrorMessage(e, '제보를 보내지 못했어요'));
+    } finally {
+      setIsSubmittingReport(false);
+    }
+  }, [songId]);
   const mvBarHeader = useMemo(() => (
     <SongDetailMvBar
       ref={mvBarRef}
@@ -883,11 +937,13 @@ const PlaybackOverlays = React.memo(function PlaybackOverlays({
       onCurrentTimeChange={setCurrentMs}
       onDurationChange={setDurationMs}
       onBarPress={handleToggleWordsSheet}
+      onReportPress={handleOpenMvReport}
     />
   ), [
     artist,
     currentMs,
     durationMs,
+    handleOpenMvReport,
     handleToggleWordsSheet,
     initialSeekMs,
     setCurrentMs,
@@ -897,22 +953,57 @@ const PlaybackOverlays = React.memo(function PlaybackOverlays({
   ]);
 
   return (
-    <CurrentPlayingWordsSheet
-      ref={wordsSheetRef}
-      lines={lines}
-      words={words}
-      lineWordIndexes={lineWordIndexes}
-      lyricType={lyricType}
-      currentTimeMs={currentMs}
-      fallbackLineIndex={initialLyricIndex}
-      bottomInset={bottomInset}
-      header={mvBarHeader}
-      headerHeight={SONG_DETAIL_MV_BAR_HEIGHT}
-      busyWordKey={busyWordKey}
-      onStartWordReview={onStartWordReview}
-      onSheetChange={handleWordsSheetChange}
-      onSyncedPageChange={handleSyncedPageChange}
-    />
+    <>
+      <CurrentPlayingWordsSheet
+        ref={wordsSheetRef}
+        lines={lines}
+        words={words}
+        lineWordIndexes={lineWordIndexes}
+        lyricType={lyricType}
+        currentTimeMs={currentMs}
+        fallbackLineIndex={initialLyricIndex}
+        bottomInset={bottomInset}
+        header={mvBarHeader}
+        headerHeight={SONG_DETAIL_MV_BAR_HEIGHT}
+        busyWordKey={busyWordKey}
+        onStartWordReview={onStartWordReview}
+        onReportLine={handleOpenLineReport}
+        onSheetChange={handleWordsSheetChange}
+        onSyncedPageChange={handleSyncedPageChange}
+      />
+
+      <AppBottomSheetModal
+        ref={reportSheetRef}
+        enableDynamicSizing
+        enablePanDownToClose
+        keyboardBehavior="interactive"
+        keyboardBlurBehavior="restore"
+        android_keyboardInputMode="adjustResize"
+        onDismiss={handleReportDismissed}
+      >
+        <AppBottomSheetView>
+          {reportTarget ? (
+            <SongReportSheet
+              target={reportTarget}
+              songTitle={title}
+              songArtist={artist}
+              youtubeUrl={youtubeUrl}
+              submitting={isSubmittingReport}
+              onSubmit={handleSubmitReport}
+              onClose={handleCloseReport}
+            />
+          ) : null}
+        </AppBottomSheetView>
+      </AppBottomSheetModal>
+
+      <Snackbar
+        message={reportSentMessage}
+        bottomOffset={bottomInset + SONG_DETAIL_MV_BAR_HEIGHT + 24}
+        onHide={handleHideReportSent}
+      />
+
+      <ErrorDialog message={reportError} onDismiss={handleDismissReportError} />
+    </>
   );
 });
 

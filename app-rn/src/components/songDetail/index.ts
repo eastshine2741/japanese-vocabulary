@@ -29,6 +29,11 @@ export { default as SongDetailWordRow } from './SongDetailWordRow';
 export { default as SongDetailSortSheet } from './SongDetailSortSheet';
 export { default as SongDetailFilterSheet } from './SongDetailFilterSheet';
 export {
+  default as SongReportSheet,
+  type SongReportSheetProps,
+  type SongReportSheetTarget,
+} from './SongReportSheet';
+export {
   CurrentPlayingWordsSheet,
   CURRENT_PLAYING_WORDS_PEEK_HEIGHT,
   type CurrentPlayingLyricLine,

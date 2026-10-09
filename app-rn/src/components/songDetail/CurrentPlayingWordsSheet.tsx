@@ -48,6 +48,8 @@ export interface CurrentPlayingWordsSheetProps {
   busyWordKey: string | null;
   /** 단어를 누르면 그 단어부터 복습한다 — 단어 탭·주요 단어와 같은 동작. */
   onStartWordReview: (word: CurrentPlayingWord) => void;
+  /** 포커스 줄의 제보 버튼. 없으면 버튼을 그리지 않는다. */
+  onReportLine?: (line: CurrentPlayingLyricLine) => void;
   onSheetChange?: (index: number) => void;
   onSyncedPageChange?: (line: CurrentPlayingLyricLine) => void;
 }
@@ -94,6 +96,7 @@ const CurrentPlayingWordsSheetComponent = React.forwardRef<AppBottomSheetRef, Cu
   zIndex = Layers.currentPlayingWordsSheet,
   busyWordKey,
   onStartWordReview,
+  onReportLine,
   onSheetChange,
   onSyncedPageChange,
 }, ref) {
@@ -215,6 +218,7 @@ const CurrentPlayingWordsSheetComponent = React.forwardRef<AppBottomSheetRef, Cu
               busyWordKey={busyWordKey}
               onStepLine={handleStepLine}
               onWordPress={onStartWordReview}
+              onReportLine={onReportLine}
             />
           </View>
 

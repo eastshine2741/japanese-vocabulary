@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LayoutChangeEvent, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   Easing,
@@ -45,11 +46,33 @@ export interface SongLyricsDialEntry {
   words: CurrentPlayingWord[];
 }
 
+interface LineReportButtonProps {
+  line: CurrentPlayingLyricLine;
+  onPress: (line: CurrentPlayingLyricLine) => void;
+}
+
+const LineReportButton = React.memo(function LineReportButton({ line, onPress }: LineReportButtonProps) {
+  const handlePress = useCallback(() => onPress(line), [line, onPress]);
+
+  return (
+    <Pressable
+      style={styles.lineReportButton}
+      onPress={handlePress}
+      hitSlop={8}
+      accessibilityRole="button"
+      accessibilityLabel="이 가사 제보"
+    >
+      <Feather name="flag" size={15} color={Colors.textMuted} />
+    </Pressable>
+  );
+});
+
 interface FocusedLineProps {
   line: CurrentPlayingLyricLine;
   words: CurrentPlayingWord[];
   busyWordKey: string | null;
   onWordPress: (word: CurrentPlayingWord) => void;
+  onReportLine?: (line: CurrentPlayingLyricLine) => void;
 }
 
 const FocusedLine = React.memo(function FocusedLine({
@@ -57,6 +80,7 @@ const FocusedLine = React.memo(function FocusedLine({
   words,
   busyWordKey,
   onWordPress,
+  onReportLine,
 }: FocusedLineProps) {
   const showFurigana = useSettingsStore(s => s.showFurigana);
   const showKoreanPronunciation = useSettingsStore(s => s.showKoreanPronunciation);
@@ -88,13 +112,16 @@ const FocusedLine = React.memo(function FocusedLine({
         <Text style={styles.focusPlainText}>{line.originalText}</Text>
       )}
 
-      {(showKoreanPronunciation && koreanPronunciation) || line.koreanLyrics ? (
+      {(showKoreanPronunciation && koreanPronunciation) || line.koreanLyrics || onReportLine ? (
         <View style={styles.lineMeaning}>
           {showKoreanPronunciation && koreanPronunciation ? (
             <Text style={styles.lineReadingText}>{koreanPronunciation}</Text>
           ) : null}
-          {line.koreanLyrics ? (
-            <Text style={styles.lineKoreanText}>{line.koreanLyrics}</Text>
+          {line.koreanLyrics || onReportLine ? (
+            <View style={styles.lineKoreanRow}>
+              <Text style={styles.lineKoreanText}>{line.koreanLyrics ?? ''}</Text>
+              {onReportLine ? <LineReportButton line={line} onPress={onReportLine} /> : null}
+            </View>
           ) : null}
         </View>
       ) : null}
@@ -154,6 +181,7 @@ interface SlotProps {
   dynamicProgress: SharedValue<number>;
   onMeasured: (height: number) => void;
   onWordPress: (word: CurrentPlayingWord) => void;
+  onReportLine?: (line: CurrentPlayingLyricLine) => void;
 }
 
 const Slot = React.memo(function Slot({
@@ -165,6 +193,7 @@ const Slot = React.memo(function Slot({
   dynamicProgress,
   onMeasured,
   onWordPress,
+  onReportLine,
 }: SlotProps) {
   // 슬롯마다 자기 위쪽을 축으로 줄어든다 — 더미 전체를 한 점으로 모으면 먼 줄이 눈에
   // 띄게 밀린다. 흐리기는 거리에 따른 기본값과 드래그 중 물러남을 곱한다.
@@ -192,6 +221,7 @@ const Slot = React.memo(function Slot({
           words={entry.words}
           busyWordKey={busyWordKey}
           onWordPress={onWordPress}
+          onReportLine={onReportLine}
         />
       ) : (
         <Text style={styles.restLineText}>{entry.line.originalText}</Text>
@@ -207,6 +237,8 @@ export interface SongLyricsDialProps {
   busyWordKey: string | null;
   onStepLine: (index: number) => void;
   onWordPress: (word: CurrentPlayingWord) => void;
+  /** 포커스 줄의 제보 버튼. 없으면 버튼을 그리지 않는다. */
+  onReportLine?: (line: CurrentPlayingLyricLine) => void;
 }
 
 function SongLyricsDial({
@@ -215,6 +247,7 @@ function SongLyricsDial({
   busyWordKey,
   onStepLine,
   onWordPress,
+  onReportLine,
 }: SongLyricsDialProps) {
   const lineCount = entries.length;
   const safeIndex = Math.max(0, Math.min(lineCount - 1, focusedIndex));
@@ -408,6 +441,7 @@ function SongLyricsDial({
                 dynamicProgress={dynamicProgress}
                 onMeasured={getOnMeasured(index)}
                 onWordPress={onWordPress}
+                onReportLine={onReportLine}
               />
             );
           })}
@@ -517,7 +551,19 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
     color: Colors.textSecondary,
   },
+  lineKoreanRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  lineReportButton: {
+    width: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   lineKoreanText: {
+    flex: 1,
     fontSize: 15.5,
     lineHeight: 22,
     fontWeight: '500',

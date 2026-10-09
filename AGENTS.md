@@ -141,6 +141,7 @@ freeze 행은 연속을 잇기만 하고 streak/총 학습일 카운트에는 �
 **Song report (분석 제보):** 유형 목록은 서버 enum `SongReportType` 이 소유한다(`GET /api/song-reports/types`).
 `POST /api/songs/{id}/reports` 가 `song_reports` PENDING 행을 만들고, 관리자가 승인하면 같은 트랜잭션에서 곡·active 가사를
 고치고 바꾼 내용을 `review_changes` 에만 남긴다(곡·가사 버전 없음). `GET /api/songs/{id}/contributors` 는 APPROVED 제보자.
+앱 진입점은 가사 시트의 포커스 줄 깃발(줄·토큰)과 MV 바 깃발(영상) 둘이다.
 어드민 흐름은 `docs/admin-service.md`.
 
 **Admin surface:** `backend/admin-api` exposes `/admin/api/auth/login`, `/admin/api/songs`, `/admin/api/lyrics`, `/admin/api/song-analysis-works`, `/admin/api/users`, `/admin/api/users/{id}/words` (per-user decks/words/review state, read-only), `/admin/api/song-reports` (분석 제보 승인·반려), and `/admin/api/push/send` (운영자 수동 푸시; 구 batch `/dev/push/send` 대체). `admin-web` is a Vite React TypeScript shadcn-style SPA. Dev 는 `/<namespace>/admin` 경로로, prod 는 `https://kotonoha.eastshine.dev/admin` (API 는 `/admin/api`) 한 호스트로 배포된다 — path 별 미들웨어가 필요해 Traefik `IngressRoute` 를 쓴다. See `docs/admin-service.md`.
