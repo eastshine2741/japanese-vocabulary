@@ -71,10 +71,18 @@ class KaraokeNewSongNotifier(
         /** 같은 날 두 노래방에 함께 오른 곡은 한 곡으로 센다. */
         fun compose(rows: List<KaraokeSongDto>): Message {
             val songs = rows.distinctBy { it.listedOn to KaraokeTitleCleaner.mergeKey(it.title, it.artist) }
-            val first = songs.first()
-            val rest = songs.size - 1
-            val body = "${first.title} - ${first.artist}" + if (rest > 0) " 외 ${rest}곡" else ""
-            return Message(title = "노래방에 새 일본곡 ${songs.size}곡", body = body)
+            val rest = songs.size - BODY_TITLES
+            val names = songs.take(BODY_TITLES).joinToString(", ") { it.title } + if (rest > 0) " 외 ${rest}곡" else ""
+            return Message(title = "🎤 노래방 신곡이 업데이트되었어요!", body = "$names${objectParticle(names)} 확인해보세요")
+        }
+
+        private const val BODY_TITLES = 2
+
+        /** 일본어 곡명은 읽기를 몰라 한글 받침과 ん 만 본다. */
+        private fun objectParticle(word: String): String {
+            val last = word.trimEnd().lastOrNull() ?: return "를"
+            val hasFinal = (last in '가'..'힣' && (last - '가') % 28 != 0) || last == 'ん' || last == 'ン'
+            return if (hasFinal) "을" else "를"
         }
     }
 }
