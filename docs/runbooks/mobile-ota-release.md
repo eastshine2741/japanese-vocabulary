@@ -30,8 +30,8 @@
 
 `js-v*` 태그 워크플로(Deploy EAS Update)는 배포 전에 아래를 확인하고, 하나라도 어기면 실패한다.
 
-1. prod 는 `vX.Y.Z` 정식 태그가 있어야 한다. 바이너리보다 먼저 올린 OTA 는 내장 번들보다 오래돼 적용되지 않는다.
-   dev 는 정식 태그가 없으면 최신 `vX.Y.Z-rc.*` 를 기준으로 삼는다.
+1. 기준 네이티브 태그는 `vX.Y.Z`, 없으면 최신 `vX.Y.Z-rc.*` 다. rc 의 prod APK 도 production 채널이라
+   정식 출시 전 prod OTA 는 rc 사용자에게만 간다. 정식 바이너리는 그보다 늦게 빌드돼 이전 OTA 를 무시한다.
 2. prod 태그 커밋이 `release/X.Y.Z` 에 있어야 한다.
 3. `npm run typecheck` — 업그레이드된 네이티브 라이브러리의 새 API 를 구버전에 쓰는 것을 대부분 잡는다.
 4. 네이티브 fingerprint 가 기준 태그와 같아야 한다.
