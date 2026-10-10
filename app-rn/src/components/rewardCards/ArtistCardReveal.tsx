@@ -28,7 +28,7 @@ const ARTIST_LADDER: readonly LadderStep[] = ARTIST_GRADE_STEPS.map((s) => ({
   label: s.label,
   caption: s.from === 0 ? '첫 곡 카드' : `마스터 ${s.from}곡`,
 }));
-const ARTIST_GUIDE = ['이 아티스트의 팬이라는 증표예요.', '곡 카드를 마스터할수록 재질이 바뀌어요.'];
+const ARTIST_GUIDE = ['이 아티스트의 곡을 공부할수록 강화되는 카드예요.', 'MASTER 등급 곡 카드를 얻을수록 강화돼요'];
 
 type Step = 'reveal' | 'sign';
 
