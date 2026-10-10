@@ -40,13 +40,13 @@ export function setlistWindow(masteredCount: number, capacity: number): { start:
 export type ArtistCardSort = 'level' | 'recent';
 
 export const ARTIST_CARD_SORT_LABEL: Record<ArtistCardSort, string> = {
-  level: '레벨순',
-  recent: '최근순',
+  level: '등급순',
+  recent: '획득순',
 };
 
 export const ARTIST_CARD_SORT_ORDER: ArtistCardSort[] = ['level', 'recent'];
 
-/** 레벨순은 마스터 곡이 많은(재질이 높은) 카드부터 같으면 먼저 팬이 된 카드부터, 최근순은 최근에 받은 카드부터. */
+/** 등급순은 마스터 곡이 많은(재질이 높은) 카드부터 같으면 먼저 팬이 된 카드부터, 획득순은 최근에 받은 카드부터. */
 export function sortArtistCards(cards: ArtistRewardCard[], sort: ArtistCardSort = 'level'): ArtistRewardCard[] {
   const sorted = [...cards];
   if (sort === 'level') sorted.sort((a, b) => b.masteredCount - a.masteredCount || a.since.localeCompare(b.since));

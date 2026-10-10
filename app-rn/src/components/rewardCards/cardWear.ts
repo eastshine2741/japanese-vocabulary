@@ -27,8 +27,8 @@ export function wearState(recall: number): WearState {
 export type CardSort = 'level' | 'recent' | 'worn';
 
 export const CARD_SORT_LABEL: Record<CardSort, string> = {
-  level: '레벨순',
-  recent: '최근순',
+  level: '등급순',
+  recent: '획득순',
   worn: '낡은순',
 };
 

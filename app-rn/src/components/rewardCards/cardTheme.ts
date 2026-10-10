@@ -15,13 +15,75 @@ interface LevelMaterial {
   frame: readonly [string, string, ...string[]];
   pip: string;
   chipText: string;
+  /** 종이 결 세기. 금속 테가 없는 기본 카드만 무광 종이로 찍는다. */
+  matte: number;
+  /** 정보 칸에 곡 강조색 빛을 깐다. */
+  tint: boolean;
+  /** 제목에 찍는 박. */
+  foil: readonly [string, string, ...string[]] | null;
+  /** 앞면 세로 가사까지 박으로 찍는다. */
+  foilLyrics: boolean;
+  /** 뒷면 몸체. 앞면 테와 같은 재질로, 글씨가 읽히게 명암 띠만 누그러뜨렸다. 글씨는 chipText. */
+  body: readonly [string, string, ...string[]];
+  /** 기울이지 않는 썸네일에 멈춰 보이는 포일 가루. */
+  restSparkles: number;
+  gloss: number;
 }
 
+const BRONZE_FOIL = ['#7A3F1E', '#D9956A', '#FFE6D0', '#B06E45', '#F0C29E'] as const;
+const SILVER_FOIL = ['#6F7784', '#E4E8EE', '#FFFFFF', '#98A1AE', '#DCE1E8'] as const;
+const GOLD_FOIL = ['#8A5E12', '#E0B04A', '#FFF5D6', '#B8862C', '#F4D688'] as const;
+const PLAIN = { matte: 0, tint: true, foil: null, foilLyrics: false, restSparkles: 0, gloss: 1 };
+
 export const LEVEL_MATERIAL: Record<CardLevel, LevelMaterial> = {
-  1: { frame: ['#4A4555', '#2A2632', '#3B3644'], pip: '#CFC8DA', chipText: '#F1ECF7' },
-  2: { frame: ['#E6E9EF', '#8A93A3', '#F7F8FB', '#7D8698', '#E9ECF2'], pip: '#E7EBF2', chipText: '#1C2230' },
-  3: { frame: ['#FBE7A6', '#B8862C', '#FFF4C9', '#9C6C1E', '#F6DC8E'], pip: '#F6DC8E', chipText: '#3B2A00' },
+  // 아티스트 재질처럼 종이 → 동 → 은 → 금. 박이 차지하는 자리는 제목 → 가사 → 아트 전체로 넓어진다.
+  0: {
+    ...PLAIN,
+    frame: ['#BDB6A8', '#B1AA9C', '#B8B1A3'],
+    body: ['#C2BBAD', '#B6AFA1', '#BEB7A9'],
+    pip: '#A8A194',
+    chipText: '#2E2A22',
+    matte: 0.55,
+    tint: false,
+    gloss: 0.25,
+  },
+  1: {
+    ...PLAIN,
+    frame: ['#EDBB92', '#8A4E2B', '#F6D0AC', '#6E3B1E', '#D99A6B'],
+    body: ['#E9B88F', '#C68A5F', '#F1CBA8', '#BF8259'],
+    pip: '#F0C29E',
+    chipText: '#2E1608',
+    foil: BRONZE_FOIL,
+  },
+  2: {
+    ...PLAIN,
+    frame: ['#E6E9EF', '#8A93A3', '#F7F8FB', '#7D8698', '#E9ECF2'],
+    body: ['#E4E8EE', '#C3CAD4', '#EEF1F5', '#CDD3DC'],
+    pip: '#E7EBF2',
+    chipText: '#1C2230',
+    foil: SILVER_FOIL,
+    foilLyrics: true,
+  },
+  3: {
+    ...PLAIN,
+    frame: ['#FBE7A6', '#B8862C', '#FFF4C9', '#9C6C1E', '#F6DC8E'],
+    body: ['#F6E2A4', '#D8B262', '#FAEBC0', '#CFA852'],
+    pip: '#F6DC8E',
+    chipText: '#3B2A00',
+    foil: GOLD_FOIL,
+    foilLyrics: true,
+    restSparkles: 5,
+    gloss: 1.15,
+  },
 };
+
+/** 곡 카드 등급 이름. 재질이 아티스트 카드와 같아 이름도 맞추되, 마스터는 아티스트의 플래티넘·다이아와 섞이지 않게 따로 둔다. */
+export const SONG_TIER_NAME: Record<CardLevel, string> = { 0: '기본', 1: 'BRONZE', 2: 'SILVER', 3: 'GOLD' };
+export const SONG_MASTER_NAME = 'MASTER';
+
+export function songTierName(level: CardLevel, mastered: boolean): string {
+  return mastered ? SONG_MASTER_NAME : SONG_TIER_NAME[level];
+}
 
 /** 마스터 카드는 완곡 금색 대신 푸른 다이아로 레벨을 찍는다. */
 export const MASTER_PIP = '#7CC8FF';
@@ -97,9 +159,9 @@ export const ARTIST_MATERIAL: Record<ArtistGrade, ArtistMaterial> = {
   bronze: {
     ...NO_FX,
     engrave: 'BRONZE',
-    frame: ['#EDBB92', '#8A4E2B', '#F6D0AC', '#6E3B1E', '#D99A6B'],
+    frame: LEVEL_MATERIAL[1].frame,
     chipText: '#2E1608',
-    foil: ['#7A3F1E', '#D9956A', '#FFE6D0', '#B06E45', '#F0C29E'],
+    foil: BRONZE_FOIL,
     body: ['#2E1C14', '#3D271C', '#24160F', '#36231A'],
     bodyInk: '#EBC7A8',
     bodyFoil: true,
@@ -111,7 +173,7 @@ export const ARTIST_MATERIAL: Record<ArtistGrade, ArtistMaterial> = {
     engrave: 'SILVER',
     frame: LEVEL_MATERIAL[2].frame,
     chipText: '#1C2230',
-    foil: ['#6F7784', '#E4E8EE', '#FFFFFF', '#98A1AE', '#DCE1E8'],
+    foil: SILVER_FOIL,
     body: ['#25282E', '#363A42', '#1E2025', '#30343B'],
     bodyInk: '#DCE1E8',
     bodyFoil: true,
@@ -124,7 +186,7 @@ export const ARTIST_MATERIAL: Record<ArtistGrade, ArtistMaterial> = {
     engrave: 'GOLD',
     frame: LEVEL_MATERIAL[3].frame,
     chipText: '#3B2A00',
-    foil: ['#8A5E12', '#E0B04A', '#FFF5D6', '#B8862C', '#F4D688'],
+    foil: GOLD_FOIL,
     body: ['#121014', '#1D1A17', '#0C0B0D', '#18161A'],
     bodyInk: '#E9D092',
     bodyFoil: true,

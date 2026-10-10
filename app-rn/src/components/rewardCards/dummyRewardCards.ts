@@ -234,7 +234,56 @@ const seeds: Seed[] = [
     words: [w('牙', 'きば', '송곳니'), w('隠す', 'かくす', '숨기다'), w('正しい', 'ただしい', '옳다'), w('問う', 'とう', '묻다')],
     nextGoal: { current: 16, total: 28 },
   },
+  {
+    id: 'hadakanokokoro', songId: null, title: '裸の心', artist: 'あいみょん',
+    artworkUrl: appleArtwork('Music124/v4/85/0b/1b/850b1b4c-f529-6828-4b2b-a5a187ec61c6/190295235017.jpg'), accent: '#F2A65A', ink: '#1C1008',
+    level: 0, mastered: false, recall: 0.97, ownerNo: 1290, earnedAt: '2026-10-09',
+    lyrics: [
+      ['{風|かぜ}の{強|つよ}さがちょっと', '바람의 세기가 조금'],
+      ['{麦|むぎ}わらの{帽子|ぼうし}', '밀짚모자'],
+      ['{花|はな}が{揺|ゆ}れている', '꽃이 흔들리고 있어'],
+      ['{離|はな}れないで', '떨어지지 마'],
+    ],
+    pick: [1, 2],
+    words: [w('風', 'かぜ', '바람')],
+    nextGoal: { current: 1, total: 18 },
+  },
+  {
+    id: 'odoriko', songId: null, title: '踊り子', artist: 'Vaundy',
+    artworkUrl: appleArtwork('Music126/v4/f1/cd/f7/f1cdf773-5dca-3d6d-6c14-2fb9871a83a9/197189838330.jpg'), accent: '#8FD16A', ink: '#0B140A',
+    level: 0, mastered: false, recall: 0.95, ownerNo: 3318, earnedAt: '2026-10-10',
+    lyrics: [
+      ['{回|まわ}る{回|まわ}る{夜|よる}に', '돌고 도는 밤에'],
+      ['{君|きみ}と{踊|おど}りたい', '너와 춤추고 싶어'],
+      ['{足音|あしおと}が{響|ひび}く', '발소리가 울려'],
+    ],
+    pick: [0, 1],
+    words: [w('踊る', 'おどる', '춤추다'), w('夜', 'よる', '밤')],
+    nextGoal: { current: 2, total: 21 },
+  },
 ];
+
+// 레벨 재질을 같은 곡으로 비교하려고 한 곡을 레벨마다 한 장씩 만든다.
+const zamza: Omit<Seed, 'id' | 'level' | 'mastered' | 'nextGoal'> = {
+  songId: null, title: 'ザムザ', artist: '25時、ナイトコードで。',
+  artworkUrl: appleArtwork('Music126/v4/dc/75/73/dc75730f-d84b-3c77-dba8-3e070bc66937/4511820-96201.jpg'),
+  accent: '#B07AE8', ink: '#110A1C', recall: 0.94, ownerNo: 764, earnedAt: '2026-10-08',
+  lyrics: [
+    ['{目|め}が{覚|さ}めたら{虫|むし}になっていた', '눈을 뜨니 벌레가 되어 있었어'],
+    ['{誰|だれ}にも{言|い}えない{姿|すがた}', '누구에게도 말할 수 없는 모습'],
+    ['{閉|と}ざした{部屋|へや}の{中|なか}で', '닫힌 방 안에서'],
+    ['それでも{君|きみ}を{呼|よ}ぶ', '그래도 너를 불러'],
+  ],
+  pick: [1, 2],
+  words: [w('虫', 'むし', '벌레'), w('姿', 'すがた', '모습'), w('閉ざす', 'とざす', '닫다'), w('呼ぶ', 'よぶ', '부르다')],
+};
+seeds.push(
+  { ...zamza, id: 'zamza-0', level: 0, mastered: false, nextGoal: { current: 2, total: 16 } },
+  { ...zamza, id: 'zamza-1', level: 1, mastered: false, nextGoal: { current: 12, total: 24 } },
+  { ...zamza, id: 'zamza-2', level: 2, mastered: false, nextGoal: { current: 20, total: 38 } },
+  { ...zamza, id: 'zamza-3', level: 3, mastered: false, nextGoal: { current: 41, total: 70 } },
+  { ...zamza, id: 'zamza-master', level: 3, mastered: true, nextGoal: null },
+);
 
 const SONG_LYRICS: Record<string, CardLyricLine[]> = Object.fromEntries(
   seeds.map((seed) => [seed.id, seed.lyrics.map(([source, ko], index) => ({ index, ruby: ruby(source), ko }))]),

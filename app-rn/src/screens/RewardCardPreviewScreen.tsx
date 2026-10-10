@@ -17,7 +17,7 @@ import Animated, {
 import { RootStackParamList } from '../navigation/AppNavigator';
 import SongCardShowcase from '../components/rewardCards/SongCardShowcase';
 import LevelPips from '../components/rewardCards/LevelPips';
-import { CARD_RATIO, LEVEL_MATERIAL, MASTER_CHIP, SHOWROOM, useCardFonts } from '../components/rewardCards/cardTheme';
+import { CARD_RATIO, LEVEL_MATERIAL, MASTER_CHIP, SHOWROOM, songTierName, useCardFonts } from '../components/rewardCards/cardTheme';
 import { songCardPreview } from '../components/rewardCards/cardPreview';
 import { useCardTilt } from '../components/rewardCards/useCardTilt';
 
@@ -116,7 +116,7 @@ export default function RewardCardPreviewScreen({ navigation, route }: Props) {
           <View style={styles.chips}>
             <LinearGradient colors={material.frame} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.levelChip}>
               <LevelPips level={level} color={material.chipText} size={5} />
-              <Text style={[styles.levelText, { color: material.chipText }]}>{mastered ? '마스터' : `레벨 ${level}`}</Text>
+              <Text style={[styles.levelText, { color: material.chipText }]}>{songTierName(level, mastered)}</Text>
             </LinearGradient>
           </View>
 

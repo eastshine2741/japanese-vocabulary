@@ -18,7 +18,16 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import { deckApi } from '../api/deckApi';
 import SongCardShowcase from '../components/rewardCards/SongCardShowcase';
 import LevelPips from '../components/rewardCards/LevelPips';
-import { CARD_RATIO, LEVEL_MATERIAL, MASTER_CHIP, SHOWROOM, useCardFonts } from '../components/rewardCards/cardTheme';
+import {
+  CARD_RATIO,
+  LEVEL_MATERIAL,
+  MASTER_CHIP,
+  SHOWROOM,
+  SONG_MASTER_NAME,
+  SONG_TIER_NAME,
+  songTierName,
+  useCardFonts,
+} from '../components/rewardCards/cardTheme';
 import { useCardTilt } from '../components/rewardCards/useCardTilt';
 import { useRewardCardStore } from '../stores/rewardCardStore';
 import { SongRewardCard } from '../components/rewardCards/types';
@@ -35,15 +44,13 @@ interface Box {
 const STAGE_INSET = 16;
 const FOCUS_INSET = 24;
 
-function levelLabel(card: SongRewardCard): string {
-  return card.mastered ? '마스터' : `레벨 ${card.level}`;
-}
 
-/** 다음 레벨과 거기에 오르는 조건. 레벨 n 은 n번째 단계(후렴 정복 → 따라 부르기 → 완곡) 단어를 다 공부한 카드다. */
+/** 다음 등급과 거기에 오르는 조건. 기본은 첫 학습, 레벨 n 은 n번째 단계(후렴 정복 → 따라 부르기 → 완곡) 단어를 다 공부한 카드다. */
 function nextLevel(card: SongRewardCard): { name: string; condition: string } {
-  if (card.level === 1) return { name: '레벨 2', condition: "'따라 부르기' 단계 단어 모두 공부하기" };
-  if (card.level === 2) return { name: '레벨 3', condition: "'완곡' 단계 단어 모두 공부하기" };
-  return { name: '마스터', condition: '곡 단어의 90%를 장기 기억으로 만들기' };
+  if (card.level === 0) return { name: SONG_TIER_NAME[1], condition: "'후렴 정복' 단계 단어 모두 공부하기" };
+  if (card.level === 1) return { name: SONG_TIER_NAME[2], condition: "'따라 부르기' 단계 단어 모두 공부하기" };
+  if (card.level === 2) return { name: SONG_TIER_NAME[3], condition: "'완곡' 단계 단어 모두 공부하기" };
+  return { name: SONG_MASTER_NAME, condition: '곡 단어의 90%를 장기 기억으로 만들기' };
 }
 
 export default function RewardCardDetailScreen({ navigation, route }: Props) {
@@ -205,7 +212,7 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
               <View style={styles.chips}>
                 <LinearGradient colors={material.frame} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.levelChip}>
                   <LevelPips level={card.level} color={material.chipText} size={5} />
-                  <Text style={[styles.levelText, { color: material.chipText }]}>{levelLabel(card)}</Text>
+                  <Text style={[styles.levelText, { color: material.chipText }]}>{songTierName(card.level, card.mastered)}</Text>
                 </LinearGradient>
               </View>
 

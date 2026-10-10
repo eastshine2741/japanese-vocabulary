@@ -14,7 +14,7 @@ import { MemoryHelpSheet, MemoryHelpSheetRef } from '../memoryHelp/MemoryHelpShe
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import MaterialGlyph from '../rewardCards/MaterialGlyph';
-import { LEVEL_MATERIAL, MASTER_CHIP } from '../rewardCards/cardTheme';
+import { LEVEL_MATERIAL, MASTER_CHIP, SONG_MASTER_NAME, SONG_TIER_NAME } from '../rewardCards/cardTheme';
 import type { PreviewSong } from '../rewardCards/cardPreview';
 import { CardLevel } from '../rewardCards/types';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
@@ -233,11 +233,12 @@ const TierReward = React.memo(function TierReward({
       activeOpacity={0.6}
       hitSlop={STAT_HIT_SLOP}
       accessibilityRole="button"
-      accessibilityLabel={isReached ? '받은 보상 카드 보기' : '완료 시 보상 카드 보기'}
+      accessibilityLabel={`${isReached ? '받은' : '완료 시'} 보상 ${SONG_TIER_NAME[level]} 카드 보기`}
     >
       <Feather name={isReached ? 'check' : 'gift'} size={12} color={REWARD_INK} />
       <Text style={styles.rewardLabel}>{isReached ? '받은 보상' : '완료 시 보상'}</Text>
       <MaterialGlyph frame={LEVEL_MATERIAL[level].frame} size={11} />
+      <Text style={styles.rewardLabel}>{SONG_TIER_NAME[level]}</Text>
     </TouchableOpacity>
   );
 });
@@ -263,11 +264,11 @@ const MasterStep = React.memo(function MasterStep({
           onPress={onPress}
           activeOpacity={0.8}
           accessibilityRole="button"
-          accessibilityLabel={`마스터 곡 카드. 곡 단어 90% 장기 기억, 지금 ${percent}%. 카드 보기`}
+          accessibilityLabel={`${SONG_MASTER_NAME} 곡 카드. 곡 단어 90% 장기 기억, 지금 ${percent}%. 카드 보기`}
         >
           <MaterialGlyph frame={MASTER_CHIP.frame} size={14} />
           <View style={styles.masterCopy}>
-            <Text style={styles.masterTitle}>마스터</Text>
+            <Text style={styles.masterTitle}>{SONG_MASTER_NAME}</Text>
             <Text style={styles.masterDesc}>곡 단어 90% 장기 기억</Text>
           </View>
           {!progress.mastered && <Text style={styles.masterValue}>{percent}%</Text>}

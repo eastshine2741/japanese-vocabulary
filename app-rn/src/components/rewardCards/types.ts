@@ -1,6 +1,7 @@
 import type { CardSignature } from './signature';
 
-export type CardLevel = 1 | 2 | 3;
+/** 0 은 곡 단어를 하나라도 공부하면 받는 카드. 다이아가 하나도 차지 않는다. */
+export type CardLevel = 0 | 1 | 2 | 3;
 
 /** 후리가나를 붙일 한 덩어리. reading 이 없으면 가나 그대로. */
 export interface RubySegment {

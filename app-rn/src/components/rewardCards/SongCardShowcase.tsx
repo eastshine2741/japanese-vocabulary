@@ -4,7 +4,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import CardGlitter from './CardGlitter';
 import CardWearLayer from './CardWearLayer';
-import { EtchLayer, GlareLayer, HoloLayer } from './CardLayers';
+import { EtchLayer, GlareLayer, HoloLayer, StaticSparkles } from './CardLayers';
+import FoilText from './FoilText';
 import LenticularLayer from './LenticularLayer';
 import LevelPips from './LevelPips';
 import MasterPips from './MasterPips';
@@ -16,6 +17,11 @@ import { lyricKo, lyricText } from './cardLyric';
 import { CardTilt } from './useCardTilt';
 import { SongRewardCard } from './types';
 import { verticalText } from './verticalText';
+
+const MATTE = require('../../../assets/cards/matte-grain.png');
+const BRUSHED = require('../../../assets/cards/brushed-metal.png');
+/** 세로 가사는 글자 하나가 한 줄이다. */
+const LYRIC_MAX_CHARS = 40;
 
 interface Props {
   card: SongRewardCard;
@@ -159,29 +165,58 @@ function FrontFace({ card, width, height, u, age, tilt, fonts, thumb }: FaceProp
             style={StyleSheet.absoluteFill}
           />
           <View style={[styles.lyricCols, { top: 5 * u, right: 4.2 * u, gap: 2.2 * u, opacity: 1 - age * 0.8 }]}>
-            {card.lyric.map((line, i) => (
-              <Text
-                key={line.index}
-                style={[
-                  styles.lyricCol,
-                  { fontFamily: fonts.jp, fontSize: 5.4 * u, lineHeight: 6.4 * u, marginTop: i * 7 * u },
-                ]}
-              >
-                {verticalText(lyricText(line))}
-              </Text>
-            ))}
+            {card.lyric.map((line, i) =>
+              material.foil && material.foilLyrics ? (
+                <FoilText
+                  key={line.index}
+                  text={verticalText(lyricText(line))}
+                  colors={material.foil}
+                  fontFamily={fonts.jp}
+                  fontSize={5.4 * u}
+                  lineHeight={6.4 * u}
+                  numberOfLines={LYRIC_MAX_CHARS}
+                  tilt={tilt}
+                  shadow
+                  style={{ marginTop: i * 7 * u }}
+                />
+              ) : (
+                <Text
+                  key={line.index}
+                  style={[
+                    styles.lyricCol,
+                    { fontFamily: fonts.jp, fontSize: 5.4 * u, lineHeight: 6.4 * u, marginTop: i * 7 * u },
+                  ]}
+                >
+                  {verticalText(lyricText(line))}
+                </Text>
+              ),
+            )}
           </View>
           {card.level === 3 && tilt && <CardGlitter seed={card.id} width={artSize} height={artSize} tilt={tilt} strength={foil} />}
+          {material.restSparkles > 0 && !tilt && (
+            <StaticSparkles seed={card.id} count={Math.round(material.restSparkles * foil)} width={artSize} height={artSize} />
+          )}
         </View>
 
         <LinearGradient
-          colors={[`${card.accent}38`, `${card.ink}00`]}
+          colors={material.tint ? [`${card.accent}38`, `${card.ink}00`] : [`${card.ink}00`, `${card.ink}00`]}
           style={[styles.meta, { borderRadius: 2.4 * u, padding: 3.4 * u, backgroundColor: card.ink }]}
         >
-          <Text style={[styles.title, { fontFamily: fonts.jpHeavy, fontSize: 6.8 * u, lineHeight: 8.4 * u }]} numberOfLines={1}>
-            {card.title}
-          </Text>
-          <Text style={[styles.artist, { fontSize: 3.4 * u, color: `${card.accent}` }]} numberOfLines={1}>{card.artist}</Text>
+          {material.foil ? (
+            <FoilText
+              text={card.title}
+              colors={material.foil}
+              fontFamily={fonts.jpHeavy}
+              fontSize={6.8 * u}
+              lineHeight={8.4 * u}
+              tilt={tilt}
+            />
+          ) : (
+            <Text style={[styles.title, { fontFamily: fonts.jpHeavy, fontSize: 6.8 * u, lineHeight: 8.4 * u }]} numberOfLines={1}>
+              {card.title}
+            </Text>
+          )}
+          <Text style={[styles.artist, { fontSize: 3.4 * u, color: material.tint ? card.accent : '#A8A194' }]} numberOfLines={1}>{card.artist}</Text>
           <View style={styles.metaFoot}>
             <OwnerMark no={card.ownerNo} sample={card.sample} u={u} fonts={fonts} />
             <LevelPips level={card.level} color={material.pip} size={2.4 * u} />
@@ -189,8 +224,14 @@ function FrontFace({ card, width, height, u, age, tilt, fonts, thumb }: FaceProp
         </LinearGradient>
       </View>
 
+      {material.matte > 0 && (
+        <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.matte, { opacity: material.matte }]}>
+          <Image source={MATTE} style={StyleSheet.absoluteFill} resizeMode="repeat" />
+        </View>
+      )}
       <CardWearLayer width={width} height={height} age={age} seed={card.id} tilt={tilt} lite={thumb} />
-      <GlareLayer tilt={tilt} width={width} height={height} gloss={foil} />
+      {/* 종이는 코팅이 없어 낡아도 광택이 그대로다. */}
+      <GlareLayer tilt={tilt} width={width} height={height} gloss={material.matte > 0 ? material.gloss : material.gloss * foil} />
     </View>
   );
 }
@@ -288,6 +329,9 @@ function BackFace({
   signatureHint,
   signature,
 }: FaceProps & SignatureSlot & { ownerName?: string }) {
+  // 아티스트 카드처럼 뒷면은 앞면 테와 같은 재질의 몸체다. 마스터는 테 없이 아트를 끝까지 깔아 곡 색 몸체를 쓴다.
+  const material = card.mastered ? null : LEVEL_MATERIAL[card.level];
+  const ink = material ? material.chipText : '#FFFFFF';
   const stats = card.sample
     ? [
         { label: '획득 순번', value: '—', unit: '' },
@@ -298,9 +342,23 @@ function BackFace({
         { label: '획득한 날', value: card.earnedAt.slice(2).replace(/-/g, '.'), unit: '' },
       ];
   return (
-    <View style={[styles.clip, { borderRadius: 4.6 * u, backgroundColor: card.ink }]}>
-      <LinearGradient colors={[`${card.accent}73`, `${card.ink}00`]} start={{ x: 0.1, y: 0 }} end={{ x: 0.7, y: 0.7 }} style={StyleSheet.absoluteFill} />
-      <Text style={[styles.watermark, { fontFamily: fonts.jpHeavy, fontSize: 30 * u, lineHeight: 32 * u, right: -4 * u, bottom: 10 * u }]}>
+    <View style={[styles.clip, { borderRadius: 4.6 * u, backgroundColor: material ? material.body[0] : card.ink }]}>
+      {material ? (
+        <>
+          <LinearGradient colors={material.body} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+          <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.matte, { opacity: material.matte > 0 ? material.matte : 0.3 }]}>
+            <Image source={material.matte > 0 ? MATTE : BRUSHED} style={StyleSheet.absoluteFill} resizeMode={material.matte > 0 ? 'repeat' : 'cover'} />
+          </View>
+        </>
+      ) : (
+        <LinearGradient colors={[`${card.accent}73`, `${card.ink}00`]} start={{ x: 0.1, y: 0 }} end={{ x: 0.7, y: 0.7 }} style={StyleSheet.absoluteFill} />
+      )}
+      <Text
+        style={[
+          styles.watermark,
+          { color: `${ink}${material ? '1A' : '0D'}`, fontFamily: fonts.jpHeavy, fontSize: 30 * u, lineHeight: 32 * u, right: -4 * u, bottom: 10 * u },
+        ]}
+      >
         {verticalText('言の葉')}
       </Text>
 
@@ -312,22 +370,22 @@ function BackFace({
               <View key={line.index} style={styles.rubyLine}>
                 {line.ruby.map((seg, j) => (
                   <View key={j} style={styles.rubySeg}>
-                    <Text style={[styles.rubyTop, { fontSize: 2.4 * u, lineHeight: 3.2 * u }]}>{seg.reading ?? ' '}</Text>
-                    <Text style={[styles.rubyBase, { fontFamily: fonts.jp, fontSize: 5.8 * u, lineHeight: 7.4 * u }]}>{seg.text}</Text>
+                    <Text style={[{ color: `${ink}B3`, fontSize: 2.4 * u, lineHeight: 3.2 * u }]}>{seg.reading ?? ' '}</Text>
+                    <Text style={[{ color: ink, fontFamily: fonts.jp, fontSize: 5.8 * u, lineHeight: 7.4 * u }]}>{seg.text}</Text>
                   </View>
                 ))}
               </View>
             ))}
           </View>
-          <Text style={[styles.backKo, { fontFamily: fonts.ko, fontSize: 3.6 * u, lineHeight: 5.4 * u, borderLeftColor: card.accent, paddingLeft: 2.6 * u }]}>
+          <Text style={[styles.backKo, { color: `${ink}C7`, fontFamily: fonts.ko, fontSize: 3.6 * u, lineHeight: 5.4 * u, borderLeftColor: material ? `${ink}59` : card.accent, paddingLeft: 2.6 * u }]}>
             {lyricKo(card.lyric)}
           </Text>
 
           <View style={{ flex: 1, gap: 1.6 * u }}>
             {card.words.map((word) => (
-              <View key={word.japanese} style={[styles.wordRow, { paddingBottom: 1.4 * u, gap: 2.4 * u }]}>
-                <Text style={[styles.wordJp, { fontFamily: fonts.jp, fontSize: 4.2 * u }]}>{word.japanese}</Text>
-                <Text style={[styles.wordMeaning, { fontFamily: fonts.ko, fontSize: 3.2 * u }]} numberOfLines={1}>
+              <View key={word.japanese} style={[styles.wordRow, { borderBottomColor: `${ink}24`, paddingBottom: 1.4 * u, gap: 2.4 * u }]}>
+                <Text style={[{ color: ink, fontFamily: fonts.jp, fontSize: 4.2 * u }]}>{word.japanese}</Text>
+                <Text style={[styles.wordMeaning, { color: `${ink}B3`, fontFamily: fonts.ko, fontSize: 3.2 * u }]} numberOfLines={1}>
                   <Text style={{ fontFamily: fonts.jp }}>{word.reading}</Text> · {word.meaning}
                 </Text>
               </View>
@@ -338,10 +396,10 @@ function BackFace({
         <View style={styles.stats}>
           {stats.map((s) => (
             <View key={s.label} style={{ flex: 1, gap: 0.6 * u }}>
-              <Text style={[styles.statLabel, { fontFamily: fonts.ko, fontSize: 2.6 * u }]}>{s.label}</Text>
-              <Text style={[styles.statValue, { fontSize: 4 * u }]}>
+              <Text style={[{ color: `${ink}8C`, fontFamily: fonts.ko, fontSize: 2.6 * u }]}>{s.label}</Text>
+              <Text style={[styles.statValue, { color: ink, fontSize: 4 * u }]}>
                 {s.value}
-                <Text style={[styles.statUnit, { fontFamily: fonts.ko, fontSize: 2.4 * u }]}>{s.unit}</Text>
+                <Text style={[{ color: `${ink}8C`, fontFamily: fonts.ko, fontSize: 2.4 * u }]}>{s.unit}</Text>
               </Text>
             </View>
           ))}
@@ -352,6 +410,7 @@ function BackFace({
           hint={signatureHint}
           u={u}
           fonts={fonts}
+          ink={material ? ink : undefined}
         />
       </View>
       <CardWearLayer width={width} height={height} age={age} seed={card.id} side="back" />
@@ -360,6 +419,7 @@ function BackFace({
 }
 
 const styles = StyleSheet.create({
+  matte: { mixBlendMode: 'overlay' },
   face: {
     ...StyleSheet.absoluteFillObject,
     backfaceVisibility: 'hidden',
@@ -384,23 +444,17 @@ const styles = StyleSheet.create({
   owner: { flexDirection: 'row', alignItems: 'baseline', gap: 4 },
   ownerNo: { color: '#FFFFFF' },
   ownerTail: { color: '#FFFFFFB8', fontVariant: ['tabular-nums'] },
-  watermark: { position: 'absolute', color: '#FFFFFF0D', textAlign: 'center' },
+  watermark: { position: 'absolute', textAlign: 'center' },
   rubyLine: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-end' },
   rubySeg: { alignItems: 'center' },
-  rubyTop: { color: '#FFFFFFB3' },
-  rubyBase: { color: '#F2EEF7' },
-  backKo: { color: '#FFFFFFC7', borderLeftWidth: 2 },
+  backKo: { borderLeftWidth: 2 },
   wordRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#FFFFFF24',
   },
-  wordJp: { color: '#F2EEF7' },
-  wordMeaning: { flex: 1, color: '#FFFFFFB3' },
+  wordMeaning: { flex: 1 },
   backBody: { flex: 1, minHeight: 0, overflow: 'hidden' },
   stats: { flexDirection: 'row', gap: 8 },
-  statLabel: { color: '#FFFFFF8C' },
-  statValue: { color: '#F2EEF7', fontWeight: '600', fontVariant: ['tabular-nums'] },
-  statUnit: { color: '#FFFFFF8C' },
+  statValue: { fontWeight: '600', fontVariant: ['tabular-nums'] },
 });

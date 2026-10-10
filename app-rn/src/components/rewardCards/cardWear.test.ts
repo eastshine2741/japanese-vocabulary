@@ -53,11 +53,11 @@ describe('sortCards', () => {
     card('d', { level: 2, recall: 0.8, earnedAt: '2026-09-20' }),
   ];
 
-  it('레벨순은 마스터 카드를 3레벨보다 앞에 둔다', () => {
+  it('등급순은 마스터 카드를 GOLD 보다 앞에 둔다', () => {
     expect(sortCards(cards, 'level').map((c) => c.id)).toEqual(['b', 'a', 'd', 'c']);
   });
 
-  it('최근순은 획득일 역순이다', () => {
+  it('획득순은 획득일 역순이다', () => {
     expect(sortCards(cards, 'recent').map((c) => c.id)).toEqual(['c', 'd', 'a', 'b']);
   });
 

@@ -54,7 +54,7 @@ describe('sortArtistCards', () => {
     expect(sorted.map((c) => c.id)).toEqual(['b', 'c', 'a']);
   });
 
-  it('최근순은 최근에 받은 카드부터 놓는다', () => {
+  it('획득순은 최근에 받은 카드부터 놓는다', () => {
     const sorted = sortArtistCards([
       card('a', 1, '2026-03-01'),
       card('b', 8, '2026-01-01'),
