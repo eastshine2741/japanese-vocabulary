@@ -5,8 +5,8 @@ import { useRewardCardStore } from '../../stores/rewardCardStore';
 import ArtistCardShowcase, { ArtistCardBack, ArtistCardFront } from './ArtistCardShowcase';
 import CardSigner, { SignableCard } from './CardSigner';
 import {
-  RevealChip,
-  RevealCopy,
+  LadderStep,
+  RevealGuide,
   RevealIntro,
   RevealPrimaryButton,
   RevealShell,
@@ -14,13 +14,19 @@ import {
   useRevealBackGuard,
   useRevealMotion,
 } from './CardRevealStage';
-import { artistGradeStep } from './artistGrade';
-import { ARTIST_CARD_RATIO, ARTIST_MATERIAL, useCardFonts } from './cardTheme';
+import { ARTIST_GRADE_STEPS, artistGradeStep } from './artistGrade';
+import { ARTIST_CARD_RATIO, useCardFonts } from './cardTheme';
 import { CardSignature } from './signature';
 import { ArtistRewardCard } from './types';
 import { useCardTilt } from './useCardTilt';
 
 const ARTIST_RADIUS = 0.04;
+
+const ARTIST_LADDER: readonly LadderStep[] = ARTIST_GRADE_STEPS.map((s) => ({
+  label: s.label,
+  caption: s.from === 0 ? '첫 곡 카드' : `마스터 ${s.from}곡`,
+}));
+const ARTIST_GUIDE = ['이 아티스트의 팬이라는 증표예요.', '곡 카드를 마스터할수록 재질이 바뀌어요.'];
 
 type Step = 'reveal' | 'sign';
 
@@ -65,18 +71,17 @@ function ArtistCardReveal({ card, started, onClose }: Props) {
       accent: card.accent,
       ratio: ARTIST_CARD_RATIO,
       radius: ARTIST_RADIUS,
+      subject: '이 아티스트',
       serialNo: card.fanNo,
-      issuedAt: card.since,
       renderBack,
       renderFront,
     }),
-    [card.accent, card.fanNo, card.since, renderBack, renderFront],
+    [card.accent, card.fanNo, renderBack, renderFront],
   );
 
   // 가로 카드라 폭을 넉넉히 쓴다.
   const cardW = Math.min(screenW - 56, (screenH * 0.36) / ARTIST_CARD_RATIO, 380);
-  const grade = artistGradeStep(card.masteredCount);
-  const material = ARTIST_MATERIAL[grade.grade];
+  const current = ARTIST_GRADE_STEPS.indexOf(artistGradeStep(card.masteredCount));
 
   return (
     <RevealShell backdropUri={card.imageUrl} motion={motion}>
@@ -91,22 +96,14 @@ function ArtistCardReveal({ card, started, onClose }: Props) {
           front={<ArtistCardFront card={card} width={cardW} fonts={fonts} />}
           back={<ArtistCardBack card={card} width={cardW} fonts={fonts} />}
           showcase={<ArtistCardShowcase card={card} width={cardW} tilt={tilt} fonts={fonts} />}
-          eyebrow={<RevealChip colors={material.frame} textColor={material.chipText} label="새 아티스트 카드" />}
-          copy={
-            <RevealCopy
-              title={card.name}
-              titleFont={fonts.jpHeavy}
-              subtitle={`${card.fanNo.toLocaleString('ko-KR')}번째 팬`}
-              accent={card.accent}
-            />
-          }
+          heading="아티스트 카드를 얻었어요"
+          guide={<RevealGuide lines={ARTIST_GUIDE} steps={ARTIST_LADDER} current={current} accent={card.accent} />}
           actions={<RevealPrimaryButton label="서명하기" onPress={handleNext} />}
         />
       ) : (
         <RevealStep key={step} onBack={signed ? null : handleBack}>
           <CardSigner
             card={signable}
-            fonts={fonts}
             previewWidth={Math.min(screenW - 64, 340)}
             sealWidth={cardW}
             onSign={handleSign}

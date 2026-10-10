@@ -12,9 +12,8 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { Feather } from '@expo/vector-icons';
-import { useAuthStore } from '../../stores/authStore';
 import { hapticOwned, hapticSign } from './cardHaptics';
-import { CardFonts, SHOWROOM } from './cardTheme';
+import { SHOWROOM } from './cardTheme';
 import SignaturePad from './SignaturePad';
 import { CardSignature } from './signature';
 
@@ -25,8 +24,9 @@ export interface SignableCard {
   ratio: number;
   /** 모서리 반경, 카드 폭 비율. */
   radius: number;
+  /** 획득 순번 문구의 주어. '이 곡' · '이 아티스트'. */
+  subject: string;
   serialNo: number;
-  issuedAt: string;
   /** hint 가 있으면 빈 서명 칸을 그 색 점선으로 짚는다. */
   renderBack: (width: number, signature: CardSignature | null, hint?: string) => React.ReactNode;
   renderFront: (width: number) => React.ReactNode;
@@ -34,13 +34,14 @@ export interface SignableCard {
 
 interface Props {
   card: SignableCard;
-  fonts: CardFonts;
   previewWidth: number;
   /** 서명 뒤 카드가 앞면으로 돌아서는 장면의 카드 폭. */
   sealWidth: number;
   /** 서명을 확정하는 순간. 이 뒤로는 되돌릴 수 없다. */
   onSign: (signature: CardSignature) => void;
   onDone: () => void;
+  /** 발급 뒤 확인 버튼 라벨. 이어지는 화면이 있으면 '다음'. */
+  doneLabel?: string;
   bottomInset: number;
 }
 
@@ -48,7 +49,7 @@ interface Props {
  * 서명 → 내 카드가 되는 순간까지.
  * 빈 서명 칸을 점선으로 짚고, 패드에 그리는 획을 미리보기 카드에 그대로 찍는다. 확정하면 서명된 뒷면 그대로 앞면으로 돌려 주인 이름과 순번을 붙인다.
  */
-function CardSigner({ card, fonts, previewWidth, sealWidth, onSign, onDone, bottomInset }: Props) {
+function CardSigner({ card, previewWidth, sealWidth, onSign, onDone, doneLabel = '확인', bottomInset }: Props) {
   const [strokes, setStrokes] = useState<CardSignature>([]);
   const [live, setLive] = useState<string | null>(null);
   const [sealed, setSealed] = useState<CardSignature | null>(null);
@@ -67,7 +68,7 @@ function CardSigner({ card, fonts, previewWidth, sealWidth, onSign, onDone, bott
   const empty = signature === null;
 
   if (sealed) {
-    return <CardSeal card={card} signature={sealed} fonts={fonts} width={sealWidth} onDone={onDone} bottomInset={bottomInset} />;
+    return <CardSeal card={card} signature={sealed} width={sealWidth} onDone={onDone} doneLabel={doneLabel} bottomInset={bottomInset} />;
   }
 
   return (
@@ -112,14 +113,13 @@ const SETTLE = Easing.out(Easing.cubic);
 interface SealProps {
   card: SignableCard;
   signature: CardSignature;
-  fonts: CardFonts;
   width: number;
   onDone: () => void;
+  doneLabel: string;
   bottomInset: number;
 }
 
-const CardSeal = React.memo(function CardSeal({ card, signature, fonts, width, onDone, bottomInset }: SealProps) {
-  const ownerName = useAuthStore((s) => s.userName?.trim()) || '나';
+const CardSeal = React.memo(function CardSeal({ card, signature, width, onDone, doneLabel, bottomInset }: SealProps) {
   const flip = useSharedValue(0);
   const lift = useSharedValue(0);
   const captionIn = useSharedValue(0);
@@ -154,8 +154,6 @@ const CardSeal = React.memo(function CardSeal({ card, signature, fonts, width, o
     transform: [{ translateY: (1 - captionIn.value) * 14 }],
   }));
 
-  const issued = card.issuedAt.replace(/-/g, '.');
-
   return (
     <Animated.View entering={FadeIn.duration(260)} style={styles.root}>
       <View style={styles.sealStage}>
@@ -165,13 +163,12 @@ const CardSeal = React.memo(function CardSeal({ card, signature, fonts, width, o
       </View>
 
       <Animated.View style={[styles.caption, captionStyle]}>
-        <Text style={[styles.owner, { fontFamily: fonts.koBold }]} numberOfLines={1}>
-          {ownerName}의 카드
+        <Text style={styles.owner} numberOfLines={1}>
+          카드를 획득했어요!
         </Text>
         <Text style={styles.meta}>
-          <Text style={{ color: card.accent }}>No.{card.serialNo.toLocaleString('ko-KR')}</Text>
-          {'  ·  '}
-          {issued} 발급
+          {card.subject}의 카드를 전체 유저 중{' '}
+          <Text style={{ color: card.accent }}>{card.serialNo.toLocaleString('ko-KR')}번째</Text>로 획득했어요
         </Text>
       </Animated.View>
 
@@ -181,7 +178,7 @@ const CardSeal = React.memo(function CardSeal({ card, signature, fonts, width, o
           disabled={!done}
           style={({ pressed }) => [styles.cta, pressed && styles.ctaPressed]}
         >
-          <Text style={styles.ctaText}>확인</Text>
+          <Text style={styles.ctaText}>{doneLabel}</Text>
         </Pressable>
       </Animated.View>
     </Animated.View>
@@ -252,6 +249,6 @@ const styles = StyleSheet.create({
     boxShadow: '0 24px 60px rgba(0, 0, 0, 0.6)',
   },
   caption: { alignItems: 'center', paddingHorizontal: 32, gap: 6 },
-  owner: { color: SHOWROOM.fg, fontSize: 24 },
-  meta: { color: SHOWROOM.fgDim, fontSize: 14, fontWeight: '600', fontVariant: ['tabular-nums'] },
+  owner: { color: SHOWROOM.fg, fontSize: 24, fontWeight: '700' },
+  meta: { color: SHOWROOM.fgDim, fontSize: 14, fontWeight: '600', fontVariant: ['tabular-nums'], textAlign: 'center' },
 });

@@ -27,6 +27,16 @@ describe('wearGeometry', () => {
     expect(wearGeometry('lemon', 300, 419, 0.7)).toEqual(wearGeometry('lemon', 300, 419, 0.7));
   });
 
+  it('낡아 가도 이미 난 손상은 자리가 그대로다', () => {
+    const early = wearGeometry('lemon', 300, 419, 0.5);
+    const late = wearGeometry('lemon', 300, 419, 1);
+    expect(late.creases[0].ridge).toBe(early.creases[0].ridge);
+    expect(late.creases[1].ridge).toBe(early.creases[1].ridge);
+    expect(late.stain?.blob).toBe(early.stain?.blob);
+    expect(late.specks.slice(0, early.specks.length).map((s) => [s.r, s.o])).toEqual(early.specks.map((s) => [s.r, s.o]));
+    expect(wearGeometry('lemon', 300, 419, 0.85).rip?.gap).toBe(late.rip?.gap);
+  });
+
   it('앞뒷면은 접힘·찢어짐이 같고 얼룩·벗겨짐만 다르다', () => {
     const front = wearGeometry('lemon', 300, 419, 1, 'front');
     const back = wearGeometry('lemon', 300, 419, 1, 'back');

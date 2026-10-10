@@ -6,15 +6,15 @@ import java.time.Instant
 /**
  * 카드 하나의 기억 상태. flashcard 는 유저 기준이라 다른 곡에서 익힌 단어도 여기서 같은 칸으로 센다.
  *
- * FSRS stability 는 retrievability 가 0.9 로 떨어지는 경과일수라 "7일 뒤 회상 확률 90% 이상" 은
- * `stability >= 7` 로 판정된다. FSRS state(REVIEW 여부)와는 기준이 다르다.
+ * FSRS stability 는 retrievability 가 0.9 로 떨어지는 경과일수라 "14일 뒤 회상 확률 90% 이상" 은
+ * `stability >= 14` 로 판정된다. FSRS state(REVIEW 여부)와는 기준이 다르다.
  * 곡 상세 이해도와 복습 카드의 기억 이동 집계가 같은 판정을 쓰도록 한 곳에만 둔다.
  */
 enum class FlashcardMemory {
     LONG_TERM, SHORT_TERM, REMAINING;
 
     companion object {
-        const val LONG_TERM_STABILITY_DAYS = 7.0
+        const val LONG_TERM_STABILITY_DAYS = 14.0
 
         fun of(card: FlashcardEntity?): FlashcardMemory = when {
             card?.lastReview == null -> REMAINING

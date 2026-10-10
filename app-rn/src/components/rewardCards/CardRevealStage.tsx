@@ -151,8 +151,10 @@ interface IntroProps {
   back: React.ReactNode;
   /** 착지 뒤 기울기 효과가 있는 카드. */
   showcase: React.ReactNode;
-  eyebrow: React.ReactNode;
-  copy: React.ReactNode;
+  /** 카드 위 한 줄. 곡명·이름은 카드에 이미 있어 무슨 카드인지만 말한다. */
+  heading: string;
+  /** 카드 아래 — 이 카드가 무엇이고 어떻게 오르는지. */
+  guide: React.ReactNode;
   actions: React.ReactNode;
 }
 
@@ -167,8 +169,8 @@ export const RevealIntro = React.memo(function RevealIntro({
   front,
   back,
   showcase,
-  eyebrow,
-  copy,
+  heading,
+  guide,
   actions,
 }: IntroProps) {
   const insets = useSafeAreaInsets();
@@ -196,8 +198,8 @@ export const RevealIntro = React.memo(function RevealIntro({
       exiting={FadeOut.duration(160)}
       style={[styles.step, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 16 }]}
     >
-      <Rise progress={copyIn} from={10} style={styles.eyebrow}>
-        {eyebrow}
+      <Rise progress={copyIn} from={10} style={styles.headingWrap}>
+        <Text style={styles.heading}>{heading}</Text>
       </Rise>
 
       <View style={styles.stage}>
@@ -237,8 +239,8 @@ export const RevealIntro = React.memo(function RevealIntro({
         </Animated.View>
       </View>
 
-      <Rise progress={copyIn} from={14} style={styles.copy}>
-        {copy}
+      <Rise progress={copyIn} from={14} style={styles.guide}>
+        {guide}
       </Rise>
 
       <Rise progress={ctaIn} from={20} style={styles.actions}>
@@ -273,35 +275,63 @@ export const RevealStep = React.memo(function RevealStep({ onBack, children }: S
   );
 });
 
-interface ChipProps {
-  colors: readonly [string, string, ...string[]];
-  textColor: string;
+export interface LadderStep {
   label: string;
-  /** 라벨 앞에 붙는 등급 표시. */
-  children?: React.ReactNode;
+  /** 그 계단에 오르는 조건을 짧게. */
+  caption: string;
 }
 
-export const RevealChip = React.memo(function RevealChip({ colors, textColor, label, children }: ChipProps) {
-  return (
-    <LinearGradient colors={colors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.chip}>
-      {children}
-      <Text style={[styles.chipText, { color: textColor }]}>{label}</Text>
-    </LinearGradient>
-  );
-});
-
-interface CopyProps {
-  title: string;
-  titleFont: string;
-  subtitle: string;
+interface GuideProps {
+  lines: string[];
+  steps: readonly LadderStep[];
+  /** 지금 계단의 index. */
+  current: number;
   accent: string;
 }
 
-export const RevealCopy = React.memo(function RevealCopy({ title, titleFont, subtitle, accent }: CopyProps) {
+/** 설명 몇 줄과 승급 계단. 지금 자리를 짚어 다음 목표가 따로 말하지 않아도 보이게 한다. */
+export const RevealGuide = React.memo(function RevealGuide({ lines, steps, current, accent }: GuideProps) {
   return (
     <>
-      <Text style={[styles.title, { fontFamily: titleFont }]} numberOfLines={1}>{title}</Text>
-      <Text style={[styles.subtitle, { color: accent }]} numberOfLines={1}>{subtitle}</Text>
+      {lines.map((line) => (
+        <Text key={line} style={styles.guideLine}>{line}</Text>
+      ))}
+      <View style={styles.ladder}>
+        {steps.map((step, i) => {
+          const reached = i <= current;
+          return (
+            <View key={step.label} style={styles.rung}>
+              <View style={styles.rungTrack}>
+                <View style={[styles.rungLine, i === 0 && styles.hidden, { backgroundColor: reached ? accent : SHOWROOM.line }]} />
+                <View
+                  style={[
+                    styles.rungDot,
+                    { backgroundColor: reached ? accent : SHOWROOM.line },
+                    i === current && styles.rungDotNow,
+                  ]}
+                />
+                <View
+                  style={[
+                    styles.rungLine,
+                    i === steps.length - 1 && styles.hidden,
+                    { backgroundColor: i < current ? accent : SHOWROOM.line },
+                  ]}
+                />
+              </View>
+              <Text
+                style={[styles.rungLabel, i === current && styles.rungLabelNow, !reached && styles.rungAhead]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+              >
+                {step.label}
+              </Text>
+              <Text style={[styles.rungCaption, !reached && styles.rungAhead]} numberOfLines={1} adjustsFontSizeToFit>
+                {step.caption}
+              </Text>
+            </View>
+          );
+        })}
+      </View>
     </>
   );
 });
@@ -384,24 +414,26 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: SHOWROOM.bg },
   backdrop: { opacity: 0.5, transform: [{ scale: 1.3 }] },
   step: { flex: 1 },
-  eyebrow: { alignItems: 'center' },
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  chipText: { fontSize: 13, fontWeight: '700' },
+  headingWrap: { alignItems: 'center', paddingHorizontal: 24 },
+  heading: { color: SHOWROOM.fg, fontSize: 20, fontWeight: '700' },
   stage: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   glow: { position: 'absolute' },
   ring: { position: 'absolute', borderWidth: 2 },
   spinFace: { ...StyleSheet.absoluteFillObject, overflow: 'hidden', backfaceVisibility: 'hidden' },
   over: { position: 'absolute', top: 0, left: 0 },
-  copy: { alignItems: 'center', paddingHorizontal: 32, gap: 4 },
-  title: { color: SHOWROOM.fg, fontSize: 26 },
-  subtitle: { fontSize: 14, fontWeight: '600' },
+  guide: { alignItems: 'center', paddingHorizontal: 24, gap: 2 },
+  guideLine: { color: SHOWROOM.fgDim, fontSize: 14, lineHeight: 20, textAlign: 'center' },
+  ladder: { flexDirection: 'row', alignSelf: 'stretch', marginTop: 14 },
+  rung: { flex: 1, alignItems: 'center', paddingHorizontal: 2 },
+  rungTrack: { flexDirection: 'row', alignItems: 'center', alignSelf: 'stretch', height: 16, marginBottom: 6 },
+  rungLine: { flex: 1, height: 2 },
+  rungDot: { width: 8, height: 8, borderRadius: 4 },
+  rungDotNow: { width: 14, height: 14, borderRadius: 7, borderWidth: 2, borderColor: SHOWROOM.fg },
+  rungLabel: { color: SHOWROOM.fgDim, fontSize: 12, fontWeight: '600' },
+  rungLabelNow: { color: SHOWROOM.fg, fontWeight: '800' },
+  rungCaption: { color: SHOWROOM.fgDim, fontSize: 11, marginTop: 1 },
+  rungAhead: { opacity: 0.55 },
+  hidden: { opacity: 0 },
   actions: { paddingHorizontal: 24, paddingTop: 24, gap: 6 },
   cta: {
     height: 52,

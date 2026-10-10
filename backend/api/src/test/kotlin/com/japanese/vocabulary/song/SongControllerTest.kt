@@ -1006,7 +1006,7 @@ class SongControllerTest : ApiBaseIntegrationTest() {
             // 胸: 장기기억(REVIEW) / 雨: 단기기억, 아직 due 아님 / 輪郭: 담기만 함 / する: 안 담음
             val longTerm = TestWordBuilder(entityManager).forUser(me).withJapaneseText("胸").build()
             TestFlashcardBuilder(entityManager, clock).forUser(me).ofWord(longTerm)
-                .withState(1).withStability(10.0).lastReviewedAt(clock.instant()).dueAt(later).build()
+                .withState(1).withStability(20.0).lastReviewedAt(clock.instant()).dueAt(later).build()
             val shortTerm = TestWordBuilder(entityManager).forUser(me).withJapaneseText("雨").build()
             TestFlashcardBuilder(entityManager, clock).forUser(me).ofWord(shortTerm)
                 .withState(1).withStability(2.0).lastReviewedAt(clock.instant()).dueAt(later).build()
@@ -1031,7 +1031,7 @@ class SongControllerTest : ApiBaseIntegrationTest() {
             assertThat(chorus.dueCount).isZero()
             assertThat(chorus.duePreviewWords).isEmpty()
 
-            // REVIEW 라도 stability 가 7일 미만이면 단기기억이다.
+            // REVIEW 라도 stability 가 14일 미만이면 단기기억이다.
             val singalong = byKey.getValue(SongWordTierKey.SINGALONG)
             assertThat(singalong.wordJapanese).containsExactly("する", "雨")
             assertThat(singalong.longTermCount).isZero()
@@ -1111,10 +1111,10 @@ class SongControllerTest : ApiBaseIntegrationTest() {
             )
             val longTerm = TestWordBuilder(entityManager).forUser(me).withJapaneseText("胸").build()
             TestFlashcardBuilder(entityManager, clock).forUser(me).ofWord(longTerm)
-                .withState(1).withStability(7.0).lastReviewedAt(clock.instant()).dueAt(later).build()
+                .withState(1).withStability(14.0).lastReviewedAt(clock.instant()).dueAt(later).build()
             val shortTerm = TestWordBuilder(entityManager).forUser(me).withJapaneseText("雨").build()
             TestFlashcardBuilder(entityManager, clock).forUser(me).ofWord(shortTerm)
-                .withState(1).withStability(6.9).lastReviewedAt(clock.instant()).dueAt(later).build()
+                .withState(1).withStability(13.9).lastReviewedAt(clock.instant()).dueAt(later).build()
             entityManager.flush()
 
             val dto = coverage(me, song.id!!)

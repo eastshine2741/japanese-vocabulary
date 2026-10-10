@@ -39,7 +39,7 @@ function CardLyricEditor({ card, lines, fonts, previewWidth, ctaLabel, requireCh
       </View>
 
       <View style={styles.head}>
-        <Text style={styles.headTitle}>카드에 넣을 가사</Text>
+        <Text style={styles.headTitle}>카드에 넣을 가사를 골라주세요</Text>
         <Text style={styles.headCount}>
           {picked.length}
           <Text style={styles.headMax}> / {MAX_LYRIC_LINES}</Text>

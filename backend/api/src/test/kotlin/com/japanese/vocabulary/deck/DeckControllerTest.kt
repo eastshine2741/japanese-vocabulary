@@ -170,9 +170,9 @@ class DeckControllerTest : ApiBaseIntegrationTest() {
             val longTermWord = newWord(me)
             val shortTermWord = newWord(me)
             val remainingWord = newWord(me)
-            // 둘 다 FSRS REVIEW 지만 stability 7일이 경계다 — 6.9 는 단기기억이다.
-            newCard(me, longTermWord, dueAt = now.plus(Duration.ofDays(9)), state = 1, lastReviewedAt = now, stability = 7.0)
-            newCard(me, shortTermWord, dueAt = now.plus(Duration.ofDays(2)), state = 1, lastReviewedAt = now, stability = 6.9)
+            // 둘 다 FSRS REVIEW 지만 stability 14일이 경계다 — 13.9 는 단기기억이다.
+            newCard(me, longTermWord, dueAt = now.plus(Duration.ofDays(16)), state = 1, lastReviewedAt = now, stability = 14.0)
+            newCard(me, shortTermWord, dueAt = now.plus(Duration.ofDays(2)), state = 1, lastReviewedAt = now, stability = 13.9)
             // 리뷰 이력이 없으면 stability 가 얼마든 남음이다.
             newCard(me, remainingWord, dueAt = now, state = 0, lastReviewedAt = null, stability = 30.0)
             link(deck, longTermWord); link(deck, shortTermWord); link(deck, remainingWord)

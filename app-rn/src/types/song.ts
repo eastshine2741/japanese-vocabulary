@@ -202,7 +202,7 @@ export interface SongWordTierDto {
   /** 구버전 앱용. 새 앱은 longTermCount/shortTermCount 를 쓴다. */
   knownCount: number;
   learningCount: number;
-  /** 7일 뒤 회상 확률 90% 이상 (FSRS stability >= 7일) */
+  /** 14일 뒤 회상 확률 90% 이상 (FSRS stability >= 14일) */
   longTermCount: number;
   /** 한 번이라도 리뷰했으나 장기기억이 아닌 단어 */
   shortTermCount: number;

@@ -14,7 +14,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'RewardCardReveal'>;
 const START_FALLBACK_MS = 600;
 
 export default function RewardCardRevealScreen({ navigation, route }: Props) {
-  const { kind, cardId } = route.params;
+  const { kind, cardId, debugWearIntro } = route.params;
   const songCard = useRewardCardStore((s) => (kind === 'song' ? s.songCards.find((c) => c.id === cardId) : undefined));
   const artistCard = useRewardCardStore((s) => (kind === 'artist' ? s.artistCards.find((c) => c.id === cardId) : undefined));
   const [started, setStarted] = useState(false);
@@ -37,7 +37,7 @@ export default function RewardCardRevealScreen({ navigation, route }: Props) {
     <>
       <StatusBar style="light" />
       {songCard ? (
-        <RewardCardReveal card={songCard} started={started} onClose={handleClose} />
+        <RewardCardReveal card={songCard} started={started} onClose={handleClose} debugWearIntro={debugWearIntro} />
       ) : artistCard ? (
         <ArtistCardReveal card={artistCard} started={started} onClose={handleClose} />
       ) : (

@@ -8,7 +8,7 @@ const LEGEND_DOT_SIZE = 7;
 
 export interface MemoryProgressBarProps {
   totalCount: number;
-  /** 장기기억 — 7일 뒤 90% 이상 회상. 서버가 `stability >= 7일` 로 판정해 내려준다. */
+  /** 장기기억 — 14일 뒤 90% 이상 회상. 서버가 `stability >= 14일` 로 판정해 내려준다. */
   longTermCount: number;
   /** 단기기억 — 한 번이라도 리뷰했으나 장기기억이 아닌 단어. */
   shortTermCount: number;

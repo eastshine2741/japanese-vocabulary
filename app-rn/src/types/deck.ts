@@ -13,7 +13,7 @@ export interface SongDeckSummary {
   masteredCount: number;
   studyingCount: number;
   newWordCount: number;
-  /** 장기기억 — 7일 뒤 90% 이상 회상. */
+  /** 장기기억 — 14일 뒤 90% 이상 회상. */
   longTermCount: number;
   /** 단기기억 — 리뷰 이력이 있으나 장기기억이 아닌 단어. */
   shortTermCount: number;
@@ -36,7 +36,7 @@ export interface DeckDetailResponse {
   masteredCount: number;
   studyingCount: number;
   newWordCount: number;
-  /** 장기기억 — 7일 뒤 90% 이상 회상. */
+  /** 장기기억 — 14일 뒤 90% 이상 회상. */
   longTermCount: number;
   /** 단기기억 — 리뷰 이력이 있으나 장기기억이 아닌 단어. */
   shortTermCount: number;

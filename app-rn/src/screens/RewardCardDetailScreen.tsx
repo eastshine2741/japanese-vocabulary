@@ -108,6 +108,9 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
   const handleFlip = useCallback(() => {
     tilt.flip.value = withTiming(tilt.flip.value > 0.5 ? 0 : 1, { duration: 720 });
   }, [tilt.flip]);
+  const handleDebugWearIntro = useCallback(() => {
+    navigation.navigate('RewardCardReveal', { kind: 'song', cardId, debugWearIntro: true });
+  }, [navigation, cardId]);
   const handleEditLyric = useCallback(() => {
     navigation.navigate('RewardCardLyricEdit', { cardId });
   }, [navigation, cardId]);
@@ -207,11 +210,11 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
               </View>
 
               <View style={styles.panel}>
-                <View style={styles.panelHead}>
-                  <Text style={styles.panelTitle}>남은 기억</Text>
+                <Pressable style={styles.panelHead} onLongPress={__DEV__ ? handleDebugWearIntro : undefined}>
+                  <Text style={styles.panelTitle}>기억할 확률</Text>
                   <Text style={styles.panelValue}>{Math.round(card.recall * 100)}%</Text>
-                </View>
-                <Text style={styles.panelNote}>공부한 단어들을 지금 떠올릴 수 있는 확률의 평균이에요.</Text>
+                </Pressable>
+                <Text style={styles.panelNote}>이 곡에서 공부한 단어를 지금 떠올릴 수 있는 확률의 평균이에요.</Text>
 
                 {goal && (
                   <>

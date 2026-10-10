@@ -484,10 +484,10 @@ class FlashcardControllerTest : ApiBaseIntegrationTest() {
         fun `longTerm and shortTerm counts follow stability, not FSRS state`() {
             val me = newUser()
             val now = clock.instant()
-            // REVIEW + stability 7일 이상 → 장기기억
-            newCard(me, dueAt = now.plus(Duration.ofDays(9)), state = 1, lastReviewedAt = now, stability = 7.0)
-            // REVIEW 지만 stability 가 7일 미만 → 단기기억
-            newCard(me, dueAt = now.plus(Duration.ofDays(2)), state = 1, lastReviewedAt = now, stability = 6.9)
+            // REVIEW + stability 14일 이상 → 장기기억
+            newCard(me, dueAt = now.plus(Duration.ofDays(16)), state = 1, lastReviewedAt = now, stability = 14.0)
+            // REVIEW 지만 stability 가 14일 미만 → 단기기억
+            newCard(me, dueAt = now.plus(Duration.ofDays(2)), state = 1, lastReviewedAt = now, stability = 13.9)
             // 리뷰 이력이 없으면 stability 가 얼마든 남음
             newCard(me, dueAt = now, state = 0, lastReviewedAt = null, stability = 30.0)
 

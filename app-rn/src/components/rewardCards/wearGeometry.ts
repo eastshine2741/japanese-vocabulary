@@ -179,8 +179,9 @@ export type CardSide = 'front' | 'back';
 export function wearGeometry(seed: string, width: number, height: number, age: number, side: CardSide = 'front'): WearGeometry {
   // 가장자리·접힘·찢어짐은 종이 자체의 손상이라 앞뒤가 같은 시드를 쓴다 (뒷면은 렌더 때 좌우 반전).
   // 얼룩·코팅 벗겨짐은 한쪽 면에만 생기므로 면마다 따로 뽑는다.
-  const rnd = seededRandom(`${seed}-wear`);
-  const srnd = seededRandom(`${seed}-wear-${side}`);
+  // 손상마다 난수 흐름을 따로 둔다 — 하나를 나눠 쓰면 age 따라 앞에서 뽑는 횟수가 바뀌어 뒤 손상의 자리가 움직인다.
+  const stream = (name: string) => seededRandom(`${seed}-wear-${name}`);
+  const rnd = stream('edge');
   const u = width / 100;
   const edgeAmt = ramp(0.05, 0.75, age);
 
@@ -193,18 +194,20 @@ export function wearGeometry(seed: string, width: number, height: number, age: n
   let chipLen = 1;
   let chipDepth = 0;
   const inner: Pt[] = per.map(({ p, n, corner }, i) => {
-    if (chip <= 0 && rnd() < 0.02 + edgeAmt * 0.03) {
-      chipLen = 4 + Math.floor(rnd() * 8);
+    // 점마다 같은 수만큼 뽑아야 age 가 바뀌어도 이 빠진 자리가 그대로다.
+    const [chipR, lenR, depthR, cornerR, jitterR] = [rnd(), rnd(), rnd(), rnd(), rnd()];
+    if (chip <= 0 && chipR < 0.02 + edgeAmt * 0.03) {
+      chipLen = 4 + Math.floor(lenR * 8);
       chip = chipLen;
-      chipDepth = (0.8 + rnd() * 2) * u;
+      chipDepth = (0.8 + depthR * 2) * u;
     }
     const chipNow = chip-- > 0 ? chipDepth * Math.sin(((chipLen - chip) / (chipLen + 1)) * Math.PI) : 0;
     const worn = Math.max(0, zone[i] * 1.6 - 0.2);
     const depth = edgeAmt * (
       (0.12 + (wob[i] * 0.5 + 0.5) * 0.3 + worn * 1.4) * u
       + chipNow
-      + corner * corner * (1.6 + rnd() * 3) * u
-      + (rnd() - 0.5) * 0.3 * u
+      + corner * corner * (1.6 + cornerR * 3) * u
+      + (jitterR - 0.5) * 0.3 * u
     );
     return [p[0] + n[0] * Math.max(0, depth), p[1] + n[1] * Math.max(0, depth)];
   });
@@ -216,18 +219,23 @@ export function wearGeometry(seed: string, width: number, height: number, age: n
   });
   const edgeHaze = rect + poly(haze, true);
 
+  const speckRnd = stream('specks');
   const specks = Array.from({ length: Math.round(160 * edgeAmt) }, () => {
-    const { p, n, corner } = per[Math.floor(rnd() * per.length)];
-    const d = (1 + rnd() * 3 + corner * 3) * u * edgeAmt;
-    return { x: p[0] + n[0] * d, y: p[1] + n[1] * d, r: (0.12 + rnd() * 0.32) * u, o: 0.4 + rnd() * 0.5 };
+    const { p, n, corner } = per[Math.floor(speckRnd() * per.length)];
+    const d = (1 + speckRnd() * 3 + corner * 3) * u * edgeAmt;
+    return { x: p[0] + n[0] * d, y: p[1] + n[1] * d, r: (0.12 + speckRnd() * 0.32) * u, o: 0.4 + speckRnd() * 0.5 };
   });
 
   let flakes = '';
+  const flakeRnd = stream('flakes');
   const flakeCount = Math.round(18 * ramp(0.35, 1, age));
   for (let i = 0; i < flakeCount; i++) {
-    const { p, n } = per[Math.floor(rnd() * per.length)];
-    const d = (2 + rnd() * 9) * u;
-    flakes += poly(blob(p[0] + n[0] * d, p[1] + n[1] * d, (0.4 + rnd()) * u, (0.3 + rnd() * 0.6) * u, rnd() * 3, 0.5, rnd, 9), true);
+    const { p, n } = per[Math.floor(flakeRnd() * per.length)];
+    const d = (2 + flakeRnd() * 9) * u;
+    flakes += poly(
+      blob(p[0] + n[0] * d, p[1] + n[1] * d, (0.4 + flakeRnd()) * u, (0.3 + flakeRnd() * 0.6) * u, flakeRnd() * 3, 0.5, flakeRnd, 9),
+      true,
+    );
   }
 
   // 접힌 자국: 가로로 한 번 → 모서리 하나가 접힘 → 세로로 한 번 더.
@@ -235,25 +243,27 @@ export function wearGeometry(seed: string, width: number, height: number, age: n
   const c1 = ramp(0.28, 0.48, age);
   const cornerAmt = ramp(0.45, 0.65, age);
   const c2 = ramp(0.6, 0.8, age);
-  const y1 = height * (0.3 + rnd() * 0.45);
-  const y2 = y1 + (rnd() - 0.5) * height * 0.18;
-  const across = jitterLine([-2, y1], [width + 2, y2], 36, 0.35 * u, rnd);
-  const x1 = width * (0.3 + rnd() * 0.4);
-  const x2 = x1 + (rnd() - 0.5) * width * 0.25;
-  const down = jitterLine([x1, -2], [x2, height + 2], 44, 0.35 * u, rnd);
-  const corner = Math.floor(rnd() * 4);
-  const cs = (14 + rnd() * 9) * u;
+  const creaseRnd = stream('crease');
+  const y1 = height * (0.3 + creaseRnd() * 0.45);
+  const y2 = y1 + (creaseRnd() - 0.5) * height * 0.18;
+  const across = jitterLine([-2, y1], [width + 2, y2], 36, 0.35 * u, creaseRnd);
+  const x1 = width * (0.3 + creaseRnd() * 0.4);
+  const x2 = x1 + (creaseRnd() - 0.5) * width * 0.25;
+  const down = jitterLine([x1, -2], [x2, height + 2], 44, 0.35 * u, creaseRnd);
+  const corner = Math.floor(creaseRnd() * 4);
+  const cs = (14 + creaseRnd() * 9) * u;
   const cornerXY: Pt = [corner % 2 ? width : 0, corner < 2 ? 0 : height];
   const ca: Pt = [cornerXY[0] === 0 ? cs : width - cs, cornerXY[1]];
   const cb: Pt = [cornerXY[0], cornerXY[1] === 0 ? cs * 0.9 : height - cs * 0.9];
-  const cornerLine = jitterLine(ca, cb, 14, 0.2 * u, rnd);
-  if (c1 > 0) creases.push(crease(across, [...across, [width + 2, -2], [-2, -2]], false, u, c1, rnd));
-  if (cornerAmt > 0) creases.push(crease(cornerLine, [...cornerLine, cornerXY], true, u, cornerAmt, rnd));
-  if (c2 > 0) creases.push(crease(down, [...down, [-2, height + 2], [-2, -2]], false, u, c2, rnd));
+  const cornerLine = jitterLine(ca, cb, 14, 0.2 * u, creaseRnd);
+  if (c1 > 0) creases.push(crease(across, [...across, [width + 2, -2], [-2, -2]], false, u, c1, stream('crease-across')));
+  if (cornerAmt > 0) creases.push(crease(cornerLine, [...cornerLine, cornerXY], true, u, cornerAmt, stream('crease-corner')));
+  if (c2 > 0) creases.push(crease(down, [...down, [-2, height + 2], [-2, -2]], false, u, c2, stream('crease-down')));
 
   const stainAmt = ramp(0.3, 0.55, age);
   let stain: WearStain | null = null;
   if (stainAmt > 0) {
+    const srnd = stream(`stain-${side}`);
     const cx = width * (0.2 + srnd() * 0.6);
     const cy = height * (0.15 + srnd() * 0.7);
     const r = (9 + srnd() * 7) * u;
@@ -268,55 +278,57 @@ export function wearGeometry(seed: string, width: number, height: number, age: n
   const peelOpacity = ramp(0.6, 0.78, age);
   const peels: WearPeel[] = [];
   const peelCount = age > 0.85 ? 2 : peelOpacity > 0 ? 1 : 0;
+  const prnd = stream(`peel-${side}`);
   for (let i = 0; i < peelCount; i++) {
-    const { p, n } = per[Math.floor(srnd() * per.length)];
-    const d = (4 + srnd() * 4) * u;
+    const { p, n } = per[Math.floor(prnd() * per.length)];
+    const d = (4 + prnd() * 4) * u;
     const rot = Math.atan2(n[1], n[0]) + Math.PI / 2;
-    const pts = blob(p[0] + n[0] * d, p[1] + n[1] * d, (9 + srnd() * 7) * u, (4.5 + srnd() * 3) * u, rot, 0.3, srnd, 52);
+    const pts = blob(p[0] + n[0] * d, p[1] + n[1] * d, (9 + prnd() * 7) * u, (4.5 + prnd() * 3) * u, rot, 0.3, prnd, 52);
     peels.push({ d: poly(pts, true), lip: poly(pts.map(([x, y]) => [x - n[0] * 0.4 * u, y - n[1] * 0.4 * u] as Pt), true), bbox: bbox(pts) });
   }
 
   const ripAmt = ramp(0.8, 0.92, age);
   let rip: WearRip | null = null;
   if (ripAmt > 0) {
-    const fromLeft = rnd() < 0.5;
-    const y0 = height * (0.55 + rnd() * 0.3);
-    const dir = (fromLeft ? 0 : Math.PI) + (rnd() - 0.5) * 0.7;
-    const len = (26 + rnd() * 10) * u;
+    const ripRnd = stream('rip');
+    const fromLeft = ripRnd() < 0.5;
+    const y0 = height * (0.55 + ripRnd() * 0.3);
+    const dir = (fromLeft ? 0 : Math.PI) + (ripRnd() - 0.5) * 0.7;
+    const len = (26 + ripRnd() * 10) * u;
     const steps = 26;
     const spine: Pt[] = [];
     let [x, y] = [fromLeft ? -1 : width + 1, y0];
     let a = dir;
     for (let i = 0; i <= steps; i++) {
-      spine.push([x + (i % 2 ? 1 : -1) * (0.15 + rnd() * 0.45) * u, y + (rnd() - 0.5) * 0.5 * u]);
-      a += (rnd() - 0.5) * 0.35;
+      spine.push([x + (i % 2 ? 1 : -1) * (0.15 + ripRnd() * 0.45) * u, y + (ripRnd() - 0.5) * 0.5 * u]);
+      a += (ripRnd() - 0.5) * 0.35;
       x += Math.cos(a) * (len / steps);
       y += Math.sin(a) * (len / steps);
     }
     const nx = -Math.sin(dir);
     const ny = Math.cos(dir);
-    const gapAt = (i: number) => Math.pow(1 - i / steps, 0.7) * (1.2 + rnd() * 1.2) * u;
+    const gapAt = (i: number) => Math.pow(1 - i / steps, 0.7) * (1.2 + ripRnd() * 1.2) * u;
     const sideA = spine.map(([px, py], i) => [px + nx * gapAt(i) / 2, py + ny * gapAt(i) / 2] as Pt);
     const sideB = spine.map(([px, py], i) => [px - nx * gapAt(i) / 2, py - ny * gapAt(i) / 2] as Pt);
     let fibers = '';
     for (const [px, py] of [...sideA, ...sideB]) {
-      if (rnd() < 0.55) continue;
-      const fa = rnd() * Math.PI * 2;
-      const fl = (0.3 + rnd() * 0.8) * u;
+      if (ripRnd() < 0.55) continue;
+      const fa = ripRnd() * Math.PI * 2;
+      const fl = (0.3 + ripRnd() * 0.8) * u;
       fibers += `M${f(px)} ${f(py)}L${f(px + Math.cos(fa) * fl)} ${f(py + Math.sin(fa) * fl)}`;
     }
 
     // 찢어진 자리 가운데를 누렇게 바랜 테이프 한 조각이 가로지른다.
-    const mid = spine[Math.floor(steps * (0.35 + rnd() * 0.25))];
-    const ta = dir + Math.PI / 2 + (rnd() - 0.5) * 0.5;
-    const tl = (24 + rnd() * 8) * u;
-    const tw = (8 + rnd() * 2) * u;
+    const mid = spine[Math.floor(steps * (0.35 + ripRnd() * 0.25))];
+    const ta = dir + Math.PI / 2 + (ripRnd() - 0.5) * 0.5;
+    const tl = (24 + ripRnd() * 8) * u;
+    const tw = (8 + ripRnd() * 2) * u;
     const along: Pt = [Math.cos(ta), Math.sin(ta)];
     const side: Pt = [-along[1], along[0]];
     const at = (s: number, t: number): Pt => [mid[0] + along[0] * s + side[0] * t, mid[1] + along[1] * s + side[1] * t];
     const teeth = 6;
     const end = (s: number, sign: number) =>
-      Array.from({ length: teeth + 1 }, (_, i) => at(s + sign * (i % 2 ? 0.7 : 0) * u + (rnd() - 0.5) * 0.4 * u, tw / 2 - (i / teeth) * tw));
+      Array.from({ length: teeth + 1 }, (_, i) => at(s + sign * (i % 2 ? 0.7 : 0) * u + (ripRnd() - 0.5) * 0.4 * u, tw / 2 - (i / teeth) * tw));
     const a1 = end(tl / 2, 1);
     const b1 = end(-tl / 2, -1).reverse();
     const tape = poly([...a1, ...b1], true);

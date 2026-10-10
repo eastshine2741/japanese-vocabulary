@@ -16,10 +16,13 @@ interface RewardCardState {
   artistCards: ArtistRewardCard[];
   /** 막 얻은 카드. 채워지면 획득 화면을 열고, 연 직후 비운다. */
   reveal: RewardCardRevealTarget | null;
+  /** 낡음 설명은 첫 곡 카드를 받을 때 한 번만 보여 준다. */
+  wearIntroSeen: boolean;
 
   /** 카드를 얻는 조건이 채워진 직후 호출. 연속 학습 축하가 떠 있으면 그 화면이 닫힌 뒤에 뜬다. */
   revealCard: (kind: RewardCardKind, cardId: string) => void;
   dismissReveal: () => void;
+  markWearIntroSeen: () => void;
   /** 카드에 실을 가사 줄을 바꾼다. 빈 배열은 무시한다. */
   setLyric: (cardId: string, picked: number[]) => void;
   /** 서명은 발급 때 한 번만 받는다. 이미 서명한 카드나 빈 서명은 무시한다. */
@@ -39,6 +42,7 @@ export const useRewardCardStore = create<RewardCardState>((set) => ({
   songCards: DUMMY_SONG_CARDS,
   artistCards: DUMMY_ARTIST_CARDS,
   reveal: null,
+  wearIntroSeen: false,
 
   // 막 발급된 카드는 서명 전이다. 더미 카드로 다시 띄워도 새로 서명하게 비운다.
   revealCard: (kind, cardId) =>
@@ -49,6 +53,8 @@ export const useRewardCardStore = create<RewardCardState>((set) => ({
     ),
 
   dismissReveal: () => set({ reveal: null }),
+
+  markWearIntroSeen: () => set({ wearIntroSeen: true }),
 
   setLyric: (cardId, picked) => {
     if (picked.length === 0) return;

@@ -6,9 +6,10 @@ import { useRewardCardStore } from '../../stores/rewardCardStore';
 import { useStreakStore } from '../../stores/streakStore';
 import CardLyricEditor from './CardLyricEditor';
 import CardSigner, { SignableCard } from './CardSigner';
+import CardWearIntro from './CardWearIntro';
 import {
-  RevealChip,
-  RevealCopy,
+  LadderStep,
+  RevealGuide,
   RevealIntro,
   RevealPrimaryButton,
   RevealSecondaryButton,
@@ -17,9 +18,8 @@ import {
   useRevealBackGuard,
   useRevealMotion,
 } from './CardRevealStage';
-import LevelPips from './LevelPips';
 import SongCardShowcase, { SongCardBack, SongCardFront } from './SongCardShowcase';
-import { CARD_RATIO, LEVEL_MATERIAL, useCardFonts } from './cardTheme';
+import { CARD_RATIO, useCardFonts } from './cardTheme';
 import { findDummyLyrics } from './dummyRewardCards';
 import { CardSignature } from './signature';
 import { SongRewardCard } from './types';
@@ -28,6 +28,15 @@ import { useCardTilt } from './useCardTilt';
 /** 아트를 못 받아도 이 시간 뒤엔 띄운다. */
 const PREFETCH_TIMEOUT_MS = 1500;
 const SONG_RADIUS = 0.046;
+
+/** 레벨 n 은 n번째 단계 단어를 다 공부한 카드다. 레벨 이름에 단계 이름을 쓰지 않고 조건으로만 붙인다. */
+const SONG_LADDER: readonly LadderStep[] = [
+  { label: '레벨 1', caption: '후렴 정복' },
+  { label: '레벨 2', caption: '따라 부르기' },
+  { label: '레벨 3', caption: '완곡' },
+  { label: '마스터', caption: '전부 장기 기억' },
+];
+const SONG_GUIDE = ['이 곡의 단어를 공부하는 만큼 강화되는 카드예요.', '각 단계를 끝낼 때마다 레벨이 올라요'];
 
 /**
  * 카드 획득 — 조건이 채워지면 획득 화면(RewardCardReveal 라우트)을 연다.
@@ -65,17 +74,19 @@ export const RewardCardRevealHost = React.memo(function RewardCardRevealHost() {
   return null;
 });
 
-/** 서명은 발급 때 한 번뿐이라 빠뜨릴 수 없다 — 가사를 고르든 그대로 받든 마지막엔 서명한다. */
-type Step = 'reveal' | 'pick' | 'sign';
+/** 서명은 발급 때 한 번뿐이라 빠뜨릴 수 없다 — 가사를 고르든 그대로 받든 서명한다. 첫 카드면 낡음 설명이 뒤따른다. */
+type Step = 'reveal' | 'pick' | 'sign' | 'wear';
 
 interface RevealProps {
   card: SongRewardCard;
   /** 화면 전환이 끝나면 true. 전환과 회전이 겹치지 않게 그때 연출을 시작한다. */
   started: boolean;
   onClose: () => void;
+  /** 개발용 — 낡음 설명만 바로 띄우고, 본 것으로 치지 않으며 뒤로 가기로 닫힌다. */
+  debugWearIntro?: boolean;
 }
 
-export const RewardCardReveal = React.memo(function RewardCardReveal({ card, started, onClose }: RevealProps) {
+export const RewardCardReveal = React.memo(function RewardCardReveal({ card, started, onClose, debugWearIntro = false }: RevealProps) {
   const insets = useSafeAreaInsets();
   const { width: screenW, height: screenH } = useWindowDimensions();
   const fonts = useCardFonts();
@@ -84,7 +95,10 @@ export const RewardCardReveal = React.memo(function RewardCardReveal({ card, sta
   const lines = useMemo(() => findDummyLyrics(card.id), [card.id]);
   const setLyric = useRewardCardStore((s) => s.setLyric);
   const sign = useRewardCardStore((s) => s.sign);
-  const [step, setStep] = useState<Step>('reveal');
+  const markWearIntroSeen = useRewardCardStore((s) => s.markWearIntroSeen);
+  // 연 순간 기준으로 고정해야 도중에 버튼 라벨이 바뀌지 않는다.
+  const [showWearIntro] = useState(() => !useRewardCardStore.getState().wearIntroSeen);
+  const [step, setStep] = useState<Step>(debugWearIntro ? 'wear' : 'reveal');
   // 서명 단계에서 뒤로 가면 들어온 단계로 돌아간다.
   const [signFrom, setSignFrom] = useState<'reveal' | 'pick'>('reveal');
   const [signed, setSigned] = useState(false);
@@ -94,7 +108,10 @@ export const RewardCardReveal = React.memo(function RewardCardReveal({ card, sta
     setSignFrom('reveal');
     setStep('sign');
   }, []);
-  const handleBack = useCallback(() => setStep((prev) => (prev === 'sign' ? signFrom : 'reveal')), [signFrom]);
+  const handleBack = useCallback(
+    () => (debugWearIntro ? onClose() : setStep((prev) => (prev === 'sign' ? signFrom : 'reveal'))),
+    [debugWearIntro, onClose, signFrom],
+  );
   const handleLyric = useCallback(
     (picked: number[]) => {
       setLyric(card.id, picked);
@@ -110,6 +127,11 @@ export const RewardCardReveal = React.memo(function RewardCardReveal({ card, sta
     },
     [card.id, sign],
   );
+  const handleSealed = useCallback(() => (showWearIntro ? setStep('wear') : onClose()), [showWearIntro, onClose]);
+  const handleWearDone = useCallback(() => {
+    if (!debugWearIntro) markWearIntroSeen();
+    onClose();
+  }, [debugWearIntro, markWearIntroSeen, onClose]);
   useRevealBackGuard(step === 'reveal', signed, handleBack);
 
   const renderBack = useCallback(
@@ -124,16 +146,15 @@ export const RewardCardReveal = React.memo(function RewardCardReveal({ card, sta
       accent: card.accent,
       ratio: CARD_RATIO,
       radius: SONG_RADIUS,
+      subject: '이 곡',
       serialNo: card.ownerNo,
-      issuedAt: card.earnedAt,
       renderBack,
       renderFront,
     }),
-    [card.accent, card.ownerNo, card.earnedAt, renderBack, renderFront],
+    [card.accent, card.ownerNo, renderBack, renderFront],
   );
 
-  const cardW = Math.min(screenW * 0.66, (screenH * 0.46) / CARD_RATIO, 320);
-  const material = LEVEL_MATERIAL[card.level];
+  const cardW = Math.min(screenW * 0.66, (screenH * 0.42) / CARD_RATIO, 320);
 
   return (
     <RevealShell backdropUri={card.artworkUrl} motion={motion}>
@@ -148,12 +169,10 @@ export const RewardCardReveal = React.memo(function RewardCardReveal({ card, sta
           front={<SongCardFront card={card} width={cardW} fonts={fonts} />}
           back={<SongCardBack card={card} width={cardW} fonts={fonts} />}
           showcase={<SongCardShowcase card={card} width={cardW} tilt={tilt} fonts={fonts} />}
-          eyebrow={
-            <RevealChip colors={material.frame} textColor={material.chipText} label="새 곡 카드">
-              <LevelPips level={card.level} color={material.chipText} size={5} />
-            </RevealChip>
+          heading="곡 카드를 얻었어요"
+          guide={
+            <RevealGuide lines={SONG_GUIDE} steps={SONG_LADDER} current={card.mastered ? 3 : card.level - 1} accent={card.accent} />
           }
-          copy={<RevealCopy title={card.title} titleFont={fonts.jpHeavy} subtitle={card.artist} accent={card.accent} />}
           actions={
             <>
               <RevealPrimaryButton label="가사 고르기" onPress={handlePick} />
@@ -173,14 +192,23 @@ export const RewardCardReveal = React.memo(function RewardCardReveal({ card, sta
               onConfirm={handleLyric}
               bottomInset={insets.bottom}
             />
+          ) : step === 'wear' ? (
+            <CardWearIntro
+              card={card}
+              fonts={fonts}
+              previewWidth={Math.min(screenW * 0.46, (screenH * 0.34) / CARD_RATIO)}
+              accent={card.accent}
+              bottomInset={insets.bottom}
+              onDone={handleWearDone}
+            />
           ) : (
             <CardSigner
               card={signable}
-              fonts={fonts}
               previewWidth={Math.min(screenW * 0.42, 190)}
               sealWidth={cardW}
               onSign={handleSign}
-              onDone={onClose}
+              onDone={handleSealed}
+              doneLabel={showWearIntro ? '다음' : '확인'}
               bottomInset={insets.bottom}
             />
           )}
