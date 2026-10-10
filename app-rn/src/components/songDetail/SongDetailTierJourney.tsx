@@ -7,6 +7,7 @@ import Animated, {
   LinearTransition,
 } from 'react-native-reanimated';
 import { Feather } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '../../theme/theme';
 import { Typography } from '../../theme/typography';
 import type { SongWordTierDto, SongWordTierKey } from '../../types/song';
@@ -14,8 +15,9 @@ import { MemoryHelpSheet, MemoryHelpSheetRef } from '../memoryHelp/MemoryHelpShe
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import MaterialGlyph from '../rewardCards/MaterialGlyph';
-import { LEVEL_MATERIAL, MASTER_CHIP, SONG_MASTER_NAME, SONG_TIER_NAME } from '../rewardCards/cardTheme';
-import type { PreviewSong } from '../rewardCards/cardPreview';
+import { LEVEL_MATERIAL, MASTER_CHIP, SONG_MASTER_NAME, SONG_TIER_NAME, useCardFonts } from '../rewardCards/cardTheme';
+import { songCardPreview, type PreviewSong } from '../rewardCards/cardPreview';
+import { SongCardFront } from '../rewardCards/SongCardShowcase';
 import { CardLevel } from '../rewardCards/types';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
 import { SongDetailDueWordRoller } from './SongDetailDueWordRoller';
@@ -91,6 +93,7 @@ export const SongDetailTierJourney = React.memo(function SongDetailTierJourney({
           <TierStep
             key={tier.key}
             tier={tier}
+            song={song}
             status={getTierStatus(tiers, index)}
             isExpanded={tier.key === expandedKey}
             reward={rewardLevel(index)}
@@ -113,6 +116,7 @@ function rewardLevel(index: number): CardLevel | null {
 
 interface TierStepProps {
   tier: SongWordTierDto;
+  song: PreviewSong;
   status: SongWordTierStatus;
   isExpanded: boolean;
   reward: CardLevel | null;
@@ -125,6 +129,7 @@ interface TierStepProps {
 
 const TierStep = React.memo(function TierStep({
   tier,
+  song,
   status,
   isExpanded,
   reward,
@@ -165,6 +170,7 @@ const TierStep = React.memo(function TierStep({
               <Animated.View key="expanded" entering={contentFadeIn}>
                 <ExpandedTierCard
                   tier={tier}
+                  song={song}
                   reward={reward}
                   isRewardReached={isRewardReached}
                   isStartingLearning={isStartingLearning}
@@ -174,13 +180,7 @@ const TierStep = React.memo(function TierStep({
               </Animated.View>
             ) : (
               <Animated.View key="collapsed" entering={contentFadeIn}>
-                <CollapsedTierCard
-                  tier={tier}
-                  reward={reward}
-                  isRewardReached={isRewardReached}
-                  onExpand={handleExpand}
-                  onRewardPress={onRewardPress}
-                />
+                <CollapsedTierCard tier={tier} onExpand={handleExpand} />
               </Animated.View>
             )}
           </Animated.View>
@@ -212,30 +212,44 @@ const TierDot = React.memo(function TierDot({ status }: { status: SongWordTierSt
   );
 });
 
-const TierReward = React.memo(function TierReward({
+/** 지금 단계를 끝내면 받을 카드. 칩 크기로는 카드가 안 읽혀서 큰 앞면의 위쪽만 줄 밖으로 잘라 보인다. */
+const TierRewardBanner = React.memo(function TierRewardBanner({
+  song,
   level,
-  isReached,
   onPress,
 }: {
+  song: PreviewSong;
   level: CardLevel;
-  isReached: boolean;
   onPress: (level: CardLevel) => void;
 }) {
+  const fonts = useCardFonts();
+  const card = useMemo(() => songCardPreview(song, level, false), [song, level]);
   const handlePress = useCallback(() => onPress(level), [onPress, level]);
+  const title = `${SONG_TIER_NAME[level]} 카드 획득`;
   return (
     <TouchableOpacity
-      style={[styles.reward, isReached && styles.rewardReached]}
+      style={styles.banner}
       onPress={handlePress}
-      activeOpacity={0.6}
-      hitSlop={STAT_HIT_SLOP}
+      activeOpacity={0.8}
       accessibilityRole="button"
-      accessibilityLabel={`${isReached ? '받은' : '완료 시 받을'} ${SONG_TIER_NAME[level]} 카드 보기`}
+      accessibilityLabel={`단계 완료 보상 ${title}. 카드 보기`}
     >
-      <Text style={[styles.rewardLabel, isReached && styles.rewardLabelReached]}>
-        {isReached ? '받은 카드' : '완료 시 카드 획득!'}
-      </Text>
-      <MaterialGlyph frame={LEVEL_MATERIAL[level].frame} size={11} />
-      <Feather name="chevron-right" size={13} color={isReached ? Colors.textMuted : REWARD_INK} style={styles.rewardChevron} />
+      <LinearGradient
+        colors={LEVEL_MATERIAL[level].frame}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[StyleSheet.absoluteFill, styles.bannerTint]}
+      />
+      <View style={styles.bannerCopy}>
+        <Text style={styles.bannerCaption}>단계 완료 보상</Text>
+        <Text style={styles.bannerTitle} numberOfLines={1}>{title}</Text>
+      </View>
+      <Feather name="chevron-right" size={16} color={Colors.textMuted} />
+      <View style={styles.bannerCardSlot}>
+        <View style={styles.bannerCard}>
+          <SongCardFront card={card} width={BANNER_CARD_WIDTH} fonts={fonts} thumb />
+        </View>
+      </View>
     </TouchableOpacity>
   );
 });
@@ -303,14 +317,11 @@ interface TierRewardProps {
 
 const CollapsedTierCard = React.memo(function CollapsedTierCard({
   tier,
-  reward,
-  isRewardReached,
   onExpand,
-  onRewardPress,
 }: {
   tier: SongWordTierDto;
   onExpand: () => void;
-} & TierRewardProps) {
+}) {
   return (
     <TouchableOpacity
       style={styles.collapsedCard}
@@ -320,10 +331,7 @@ const CollapsedTierCard = React.memo(function CollapsedTierCard({
       accessibilityLabel={`${tier.name} 펼치기`}
     >
       <View style={styles.collapsedIntro}>
-        <View style={styles.titleRow}>
-          <Text style={styles.collapsedTitle}>{tier.name}</Text>
-          {reward != null && <TierReward level={reward} isReached={isRewardReached} onPress={onRewardPress} />}
-        </View>
+        <Text style={styles.collapsedTitle}>{tier.name}</Text>
         <Text style={styles.collapsedDesc}>{tier.description}</Text>
       </View>
       <TierTrack tier={tier} height={5} />
@@ -333,6 +341,7 @@ const CollapsedTierCard = React.memo(function CollapsedTierCard({
 
 const ExpandedTierCard = React.memo(function ExpandedTierCard({
   tier,
+  song,
   reward,
   isRewardReached,
   isStartingLearning,
@@ -340,6 +349,7 @@ const ExpandedTierCard = React.memo(function ExpandedTierCard({
   onRewardPress,
 }: {
   tier: SongWordTierDto;
+  song: PreviewSong;
   isStartingLearning: boolean;
   onStart: () => void;
 } & TierRewardProps) {
@@ -353,10 +363,7 @@ const ExpandedTierCard = React.memo(function ExpandedTierCard({
   return (
     <View style={styles.expandedCard}>
       <View style={styles.expandedIntro}>
-        <View style={styles.titleRow}>
-          <Text style={styles.expandedTitle}>{tier.name}</Text>
-          {reward != null && <TierReward level={reward} isReached={isRewardReached} onPress={onRewardPress} />}
-        </View>
+        <Text style={styles.expandedTitle}>{tier.name}</Text>
         <Text style={styles.expandedDesc}>{tier.description}</Text>
       </View>
 
@@ -377,6 +384,10 @@ const ExpandedTierCard = React.memo(function ExpandedTierCard({
         </TouchableOpacity>
       </View>
       <MemoryHelpSheet ref={helpSheetRef} />
+
+      {reward != null && !isRewardReached && (
+        <TierRewardBanner song={song} level={reward} onPress={onRewardPress} />
+      )}
 
       <TouchableOpacity
         style={[styles.cta, isDisabled && styles.ctaDisabled]}
@@ -427,7 +438,8 @@ const TierStat = React.memo(function TierStat({
 });
 
 const CTA_SUBTLE_COLOR = '#FFFFFFC4';
-const REWARD_INK = '#E11D48';
+const BANNER_HEIGHT = 60;
+const BANNER_CARD_WIDTH = 64;
 const STAT_HIT_SLOP = { top: 8, bottom: 8, left: 8, right: 8 };
 
 const styles = StyleSheet.create({
@@ -538,43 +550,46 @@ const styles = StyleSheet.create({
     borderColor: Colors.primary,
   },
 
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
-  reward: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingLeft: 9,
-    paddingRight: 5,
-    paddingVertical: 4,
-    borderRadius: 9999,
-    borderWidth: 1,
-    borderColor: '#FDA4AF',
-    backgroundColor: '#FFF1F2',
-    boxShadow: '0 1px 2px #E11D481F',
-  },
-  rewardChevron: {
-    marginLeft: -2,
-  },
-  rewardReached: {
-    borderColor: Colors.border,
-    backgroundColor: Colors.surfaceSubtle,
-    boxShadow: 'none',
-  },
   rewardAhead: {
     opacity: 0.5,
   },
-  rewardLabel: {
+  banner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    height: BANNER_HEIGHT,
+    paddingLeft: 14,
+    overflow: 'hidden',
+    borderRadius: 12,
+    backgroundColor: Colors.surface,
+  },
+  bannerTint: {
+    opacity: 0.22,
+  },
+  bannerCopy: {
+    flex: 1,
+    gap: 2,
+  },
+  bannerCaption: {
     ...Typography.bodySemiBold,
-    color: REWARD_INK,
+    color: Colors.textSecondary,
     fontSize: 11.5,
   },
-  rewardLabelReached: {
-    color: Colors.textSecondary,
+  bannerTitle: {
+    ...Typography.bodyBold,
+    color: Colors.textPrimary,
+    fontSize: 15,
+  },
+  bannerCardSlot: {
+    alignSelf: 'stretch',
+    width: BANNER_CARD_WIDTH,
+    marginRight: 14,
+  },
+  bannerCard: {
+    marginTop: 10,
+    borderRadius: BANNER_CARD_WIDTH * 0.046,
+    overflow: 'hidden',
+    transform: [{ rotate: '-4deg' }],
   },
   masterCard: {
     flexDirection: 'row',
