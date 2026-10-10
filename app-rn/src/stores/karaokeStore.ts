@@ -10,7 +10,7 @@ const MAX_EMPTY_MONTHS = 3;
 
 const LOAD_ERROR = '노래방 신곡을 불러오지 못했어요';
 
-/** loadDaily 가 목록을 갈아끼우면 그 전에 시작한 이전 달 요청의 결과는 버린다 — 안 그러면 같은 달이 두 번 붙는다. */
+/** loadDaily 가 목록을 갈아끼울 때 올린다. 그 전에 시작한 이전 달 요청은 결과를 버린다 — 안 그러면 같은 달이 두 번 붙는다. */
 let dailyGeneration = 0;
 
 interface DailyState {
@@ -80,6 +80,7 @@ export const useKaraokeStore = create<KaraokeState>((set, get) => ({
       const groups = await karaokeApi.getDaily(month);
       const seed = groups.length > 0 ? { month, groups } : await fetchOlder(month);
       if (generation !== dailyGeneration) return;
+      dailyGeneration += 1;
       set({
         daily: {
           status: 'success',
@@ -92,6 +93,7 @@ export const useKaraokeStore = create<KaraokeState>((set, get) => ({
       });
     } catch (e: any) {
       if (generation !== dailyGeneration) return;
+      dailyGeneration += 1;
       const error = e?.message ?? LOAD_ERROR;
       set((s) => ({
         daily: hasData

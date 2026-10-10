@@ -91,6 +91,30 @@ describe('daily', () => {
     expect(store().daily.oldestMonth).toBe('2026-11');
   });
 
+  it('다시 읽는 도중에 시작한 이전 달 요청도 버린다', async () => {
+    vi.mocked(karaokeApi.getDaily).mockResolvedValueOnce([group('2026-12-03')]);
+    await store().loadDaily();
+
+    let resolveReload!: (v: ReturnType<typeof group>[]) => void;
+    vi.mocked(karaokeApi.getDaily).mockReturnValueOnce(new Promise(r => { resolveReload = r; }));
+    const reload = store().loadDaily();
+
+    let resolveStale!: (v: ReturnType<typeof group>[]) => void;
+    vi.mocked(karaokeApi.getDaily).mockReturnValueOnce(new Promise(r => { resolveStale = r; }));
+    const stale = store().loadOlderDaily();
+
+    resolveReload([group('2026-12-03')]);
+    await reload;
+
+    vi.mocked(karaokeApi.getDaily).mockResolvedValueOnce([group('2026-11-28')]);
+    await store().loadOlderDaily();
+
+    resolveStale([group('2026-11-28')]);
+    await stale;
+
+    expect(store().daily.groups.map(g => g.listedOn)).toEqual(['2026-12-03', '2026-11-28']);
+  });
+
   it('다시 읽으면 새 목록으로 바꾸고, 실패하면 기존 목록을 둔다', async () => {
     vi.mocked(karaokeApi.getDaily)
       .mockResolvedValueOnce([group('2026-12-03')])
