@@ -31,19 +31,23 @@ object KaraokeTitleCleaner {
         ArtistNameNormalizer.normalize(title) + "\u0000" + ArtistNameNormalizer.normalize(artist)
 
     /**
-     * 노래방 원문과 Apple Music 결과가 같은 곡인지. 가수는 메인 가수만 본다: 금영 `椎名もた feat.鏡音リン` 과
-     * Apple Music `椎名もた & 鏡音リン` 처럼 함께 적는 방식이 서로 다르다. 잘린 표기는 앞부분만 맞으면 된다.
+     * 노래방 원문과 Apple Music 결과가 같은 곡인지. 노래방 메인 가수가 Apple Music 에 함께 적힌 가수 중 하나면 된다:
+     * 금영 `椎名もた feat.鏡音リン` 과 Apple Music `椎名もた & 鏡音リン` 처럼 함께 적는 방식이 다르고, TJ 는
+     * `Aqu3ra, 超かぐや姫! & 月見ヤチヨ` 의 캐릭터만 적기도 한다. 잘린 표기는 앞부분만 맞으면 된다.
      * 반주 버전은 괄호를 지우면 원곡과 같아지지만 가사가 없어 분석이 실패하므로 다른 곡으로 본다.
      */
     fun sameSong(rawTitle: String, rawArtist: String, candidateTitle: String, candidateArtist: String): Boolean =
         (!VOCALLESS.containsMatchIn(candidateTitle) || VOCALLESS.containsMatchIn(rawTitle)) &&
-            matches(rawTitle, candidateTitle, ::cleanTitle) && matches(rawArtist, candidateArtist, ::mainArtist)
+            matches(rawTitle, cleanTitle(candidateTitle), ::cleanTitle) &&
+            creditedArtists(candidateArtist).any { matches(rawArtist, it, ::mainArtist) }
 
     private fun mainArtist(raw: String): String = cleanArtist(raw).let { ArtistCredit.names(it).firstOrNull() ?: it }
 
+    private fun creditedArtists(raw: String): List<String> = cleanArtist(raw).let { ArtistCredit.names(it).ifEmpty { listOf(it) } }
+
     private fun matches(raw: String, candidate: String, clean: (String) -> String): Boolean {
         val wanted = ArtistNameNormalizer.normalize(clean(raw))
-        val actual = ArtistNameNormalizer.normalize(clean(candidate))
+        val actual = ArtistNameNormalizer.normalize(candidate)
         if (wanted.isEmpty()) return false
         return if (isTruncated(raw)) actual.startsWith(wanted) else actual == wanted
     }
