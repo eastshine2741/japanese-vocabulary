@@ -138,7 +138,8 @@ export function GlareLayer({ tilt, width, height, gloss }: { tilt?: CardTilt; wi
 const styles = StyleSheet.create({
   overflowHidden: { overflow: 'hidden' },
   etch: { mixBlendMode: 'color-dodge' },
-  facet: { position: 'absolute', mixBlendMode: 'overlay' },
+  // overlay 는 바탕이 어두우면 결정면이 묻혀서, 사진 밝기와 상관없이 면이 보이게 결정면 쪽이 섞는 방식을 정한다.
+  facet: { position: 'absolute', mixBlendMode: 'hard-light' },
   specks: { mixBlendMode: 'screen' },
   speck: { position: 'absolute', backgroundColor: '#FFFFFF' },
   speckBright: { boxShadow: '0 0 3px 0.5px rgba(255, 255, 255, 0.8)' },

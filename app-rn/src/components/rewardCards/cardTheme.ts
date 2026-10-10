@@ -156,7 +156,7 @@ export const ARTIST_MATERIAL: Record<ArtistGrade, ArtistMaterial> = {
     rim: 1.1,
     emboss: true,
     parallax: 0.035,
-    facet: 0.4,
+    facet: 0.3,
     glitter: 1,
     restSparkles: 9,
     rainbow: 0.6,
