@@ -480,11 +480,6 @@ function BackFace({
               )}
             </View>
           ))}
-          {!material && (
-            <View style={styles.statPips}>
-              <MasterPips level={card.level} size={2.4 * u} tilt={tilt} />
-            </View>
-          )}
         </View>
         <SignatureField
           signature={signature === undefined ? card.signature : signature}
@@ -575,6 +570,5 @@ const styles = StyleSheet.create({
   stats: { flexDirection: 'row', gap: 8 },
   statValue: { fontWeight: '600', fontVariant: ['tabular-nums'] },
   statFoilRow: { flexDirection: 'row', alignItems: 'baseline', gap: 2 },
-  statPips: { alignSelf: 'flex-end', paddingBottom: 2 },
   backArt: { transform: [{ scale: 1.3 }] },
 });
