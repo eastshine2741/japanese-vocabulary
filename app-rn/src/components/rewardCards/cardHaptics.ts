@@ -13,10 +13,38 @@ const impact = (style: Haptics.ImpactFeedbackStyle) => run(() => Haptics.impactA
 export const hapticTear = (progress: number) =>
   impact(progress < 0.5 ? Haptics.ImpactFeedbackStyle.Light : Haptics.ImpactFeedbackStyle.Medium);
 
-/** 카드가 봉투에서 뽑혀 나오는 순간·순번이 멈추는 순간 — 무거운 한 방에 성공 진동을 바로 겹친다. */
+/** 획득 순번이 멈추는 순간 — 무거운 한 방에 성공 진동을 바로 겹친다. */
 export const hapticLand = () => {
   impact(Haptics.ImpactFeedbackStyle.Heavy);
   setTimeout(() => run(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)), 70);
+};
+
+/** 다 찢은 뒤 터지기까지 — 두두두 점점 빠르고 세게 몰아친다. */
+export const hapticCharge = (ms: number) => {
+  const beats = [0, 0.3, 0.52, 0.68, 0.8, 0.89, 0.95];
+  beats.forEach((t, i) =>
+    setTimeout(
+      () => impact(i < 2 ? Haptics.ImpactFeedbackStyle.Light : i < 5 ? Haptics.ImpactFeedbackStyle.Medium : Haptics.ImpactFeedbackStyle.Heavy),
+      t * ms,
+    ),
+  );
+};
+
+/** 봉투가 터지는 순간 — 무거운 두 방. 성공 진동은 카드가 제자리에 박힐 때 준다. */
+export const hapticBurst = () => {
+  impact(Haptics.ImpactFeedbackStyle.Heavy);
+  setTimeout(() => impact(Haptics.ImpactFeedbackStyle.Heavy), 80);
+};
+
+/** 돌며 나오는 카드의 옆면이 지날 때. 멈출 무렵엔 조금 세게. */
+export const hapticSpin = (progress: number) =>
+  impact(progress < 0.7 ? Haptics.ImpactFeedbackStyle.Light : Haptics.ImpactFeedbackStyle.Medium);
+
+/** 다 돈 카드가 제자리에 박히는 순간 — 무거운 두 방에 성공 진동. */
+export const hapticSettle = () => {
+  impact(Haptics.ImpactFeedbackStyle.Heavy);
+  setTimeout(() => impact(Haptics.ImpactFeedbackStyle.Heavy), 60);
+  setTimeout(() => run(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)), 140);
 };
 
 /** 승급 계단이 한 칸 찰 때. 지금 자리에 닿으면 조금 세게. */

@@ -25,7 +25,6 @@ import Animated, {
   withDelay,
   withRepeat,
   withSequence,
-  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -34,21 +33,29 @@ import { Feather } from '@expo/vector-icons';
 import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CardEnvelope from './CardEnvelope';
-import { hapticLand, hapticRung, hapticTear } from './cardHaptics';
+import { hapticBurst, hapticCharge, hapticRung, hapticSettle, hapticSpin, hapticTear } from './cardHaptics';
 import { SHOWROOM } from './cardTheme';
 import { seededRandom } from './seededRandom';
 import { CardTilt } from './useCardTilt';
 
 const PACK_AT_MS = 180;
-/** 띠가 날아가기 시작하고 이만큼 뒤에 카드가 뽑혀 나온다. */
-const LAND_DELAY_MS = 120;
+/** 다 찢고 이만큼 숨을 모은 뒤 터진다 — 방이 어두워지고 찢긴 틈으로 빛이 새어 나온다. */
+const LAND_DELAY_MS = 320;
+/** 터진 뒤 카드가 봉투에서 떠올라 커지며 눈에 들어오는 시간. 끝에 제자리에 박힌다. */
+const EMERGE_MS = 1800;
+/** 떠오르는 동안 세로축으로 도는 바퀴 수. 터질 땐 초당 12바퀴로 돌다 점점 느려지며 앞면에서 멈춘다. */
+const SPIN_TURNS = 7;
+const SETTLE_AT_MS = LAND_DELAY_MS + EMERGE_MS;
+const WHITEOUT_MS = 45 + 70 + 900;
+/** 제자리에 박히기 직전 살짝 넘치게 커졌다가 줄어든다. */
+const CARD_PEAK_SCALE = 1.12;
 const STRIP_OFF_MS = 420;
-const DROP_MS = 520;
-const COPY_DELAY_MS = LAND_DELAY_MS + 420;
+const DROP_MS = 700;
+const COPY_DELAY_MS = SETTLE_AT_MS + 300;
 const CTA_DELAY_MS = COPY_DELAY_MS + 300;
 const LIVE_FADE_MS = 240;
 /** 봉투에서 막 나올 때의 크기. 제자리에 오며 1 로 커진다. */
-const CARD_START_SCALE = 0.9;
+const CARD_START_SCALE = 0.72;
 /** 찢긴 단면이 들쭉날쭉하도록 이만큼 갈 때마다 점을 찍는다. */
 const TRAIL_STEP = 5;
 /** 이만큼 뜯고 놓으면 끝까지 뜯는다. */
@@ -72,6 +79,10 @@ export interface RevealMotion {
   burst: SharedValue<number>;
   hint: SharedValue<number>;
   flash: SharedValue<number>;
+  /** 카드가 세로축으로 돈 각도(도). */
+  spin: SharedValue<number>;
+  /** 0→1 터지기 직전 모이는 힘. 터지면 0 으로 풀린다. */
+  charge: SharedValue<number>;
   ring: SharedValue<number>;
   pulse: SharedValue<number>;
   copyIn: SharedValue<number>;
@@ -104,6 +115,8 @@ export function useRevealMotion(started: boolean): RevealMotion {
   const burst = useSharedValue(0);
   const hint = useSharedValue(0);
   const flash = useSharedValue(0);
+  const charge = useSharedValue(0);
+  const spin = useSharedValue(0);
   const ring = useSharedValue(0);
   const pulse = useSharedValue(0);
   const copyIn = useSharedValue(0);
@@ -113,7 +126,7 @@ export function useRevealMotion(started: boolean): RevealMotion {
 
   useEffect(() => {
     if (!started) return;
-    rise.value = withDelay(PACK_AT_MS, withSpring(1, { damping: 15, stiffness: 120, mass: 1 }));
+    rise.value = withDelay(PACK_AT_MS, withTiming(1, { duration: 520, easing: SETTLE }));
     hint.value = withDelay(PACK_AT_MS + 500, withRepeat(withTiming(1, { duration: 900, easing: Easing.inOut(Easing.sin) }), -1, true));
   }, [started, rise, hint]);
 
@@ -122,30 +135,49 @@ export function useRevealMotion(started: boolean): RevealMotion {
     openedRef.current = true;
     setOpened(true);
     const land = LAND_DELAY_MS;
+    const settle = SETTLE_AT_MS;
+    hapticCharge(land);
     stripOff.value = withTiming(1, { duration: STRIP_OFF_MS, easing: Easing.out(Easing.quad) });
+    charge.value = withSequence(
+      withTiming(1, { duration: land, easing: Easing.in(Easing.quad) }),
+      withTiming(0, { duration: 380, easing: SETTLE }),
+    );
+    // 화면이 한순간 하얗게 날아갔다가 천천히 돌아오고, 카드가 박힐 때 한 번 더 번쩍인다.
     flash.value = withDelay(
       land,
       withSequence(
-        withTiming(1, { duration: 70 }, (finished) => {
-          if (finished) runOnJS(hapticLand)();
+        withTiming(1, { duration: 45 }, (finished) => {
+          if (finished) runOnJS(hapticBurst)();
         }),
-        withTiming(0, { duration: 620, easing: SETTLE }),
+        withDelay(70, withTiming(0, { duration: 900, easing: SETTLE })),
+        withDelay(EMERGE_MS - WHITEOUT_MS, withTiming(0.5, { duration: 40 })),
+        withTiming(0, { duration: 520, easing: SETTLE }),
       ),
     );
-    pop.value = withDelay(land, withSpring(1, { damping: 9, stiffness: 170, mass: 0.8 }));
-    pull.value = withDelay(land, withSpring(1, { damping: 14, stiffness: 110, mass: 0.9 }));
-    drop.value = withDelay(land + 80, withTiming(1, { duration: DROP_MS, easing: Easing.in(Easing.cubic) }));
-    burst.value = withDelay(land, withTiming(1, { duration: 1400, easing: Easing.out(Easing.quad) }));
-    ring.value = withDelay(
+    spin.value = withDelay(land, withTiming(360 * SPIN_TURNS, { duration: EMERGE_MS, easing: Easing.out(Easing.cubic) }));
+    const peak = (CARD_PEAK_SCALE - CARD_START_SCALE) / (1 - CARD_START_SCALE);
+    pop.value = withDelay(
       land,
+      withSequence(
+        withTiming(peak, { duration: EMERGE_MS, easing: Easing.inOut(Easing.quad) }, (finished) => {
+          if (finished) runOnJS(hapticSettle)();
+        }),
+        withTiming(1, { duration: 180, easing: Easing.out(Easing.cubic) }),
+      ),
+    );
+    pull.value = withDelay(land, withTiming(1, { duration: EMERGE_MS * 0.75, easing: Easing.out(Easing.cubic) }));
+    drop.value = withDelay(land + 250, withTiming(1, { duration: DROP_MS, easing: Easing.in(Easing.cubic) }));
+    burst.value = withDelay(settle, withTiming(1, { duration: 1400, easing: Easing.out(Easing.quad) }));
+    ring.value = withDelay(
+      settle,
       withTiming(1, { duration: 900, easing: SETTLE }, (finished) => {
         if (finished) runOnJS(setLive)(true);
       }),
     );
-    pulse.value = withDelay(land, withRepeat(withTiming(1, { duration: 2400, easing: Easing.inOut(Easing.sin) }), -1, true));
+    pulse.value = withDelay(settle, withRepeat(withTiming(1, { duration: 2400, easing: Easing.inOut(Easing.sin) }), -1, true));
     copyIn.value = withDelay(COPY_DELAY_MS, withTiming(1, { duration: 420, easing: SETTLE }));
-    ctaIn.value = withDelay(CTA_DELAY_MS, withSpring(1, { damping: 12, stiffness: 140 }));
-  }, [stripOff, flash, pop, pull, drop, burst, ring, pulse, copyIn, ctaIn]);
+    ctaIn.value = withDelay(CTA_DELAY_MS, withTiming(1, { duration: 360, easing: SETTLE }));
+  }, [stripOff, charge, spin, flash, pop, pull, drop, burst, ring, pulse, copyIn, ctaIn]);
 
   useEffect(() => {
     if (!live) return;
@@ -164,6 +196,8 @@ export function useRevealMotion(started: boolean): RevealMotion {
     burst,
     hint,
     flash,
+    charge,
+    spin,
     ring,
     pulse,
     copyIn,
@@ -199,7 +233,8 @@ interface ShellProps {
 
 /** 흐린 아트 배경과 착지 섬광. 단계가 바뀌어도 그대로 남는다. */
 export const RevealShell = React.memo(function RevealShell({ backdropUri, motion, children }: ShellProps) {
-  const flashStyle = useAnimatedStyle(() => ({ opacity: 0.75 * motion.flash.value }));
+  const flashStyle = useAnimatedStyle(() => ({ opacity: motion.flash.value }));
+  const dimStyle = useAnimatedStyle(() => ({ opacity: 0.6 * motion.charge.value }));
   return (
     <View style={styles.root}>
       <Image source={{ uri: backdropUri }} style={[StyleSheet.absoluteFill, styles.backdrop]} blurRadius={40} />
@@ -208,6 +243,7 @@ export const RevealShell = React.memo(function RevealShell({ backdropUri, motion
         locations={[0, 0.55, 1]}
         style={StyleSheet.absoluteFill}
       />
+      <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.dim, dimStyle]} />
       {children}
       <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.flash, flashStyle]} />
     </View>
@@ -225,6 +261,8 @@ interface IntroProps {
   radius: number;
   /** 봉투에서 뽑혀 나오는 동안 쓰는 효과 없는 앞면. */
   front: React.ReactNode;
+  /** 돌며 나오는 동안 비치는 뒷면. */
+  back: React.ReactNode;
   /** 착지 뒤 기울기 효과가 있는 카드. */
   showcase: React.ReactNode;
   /** 카드 위 한 줄. 곡명·이름은 카드에 이미 있어 무슨 카드인지만 말한다. */
@@ -243,6 +281,7 @@ export const RevealIntro = React.memo(function RevealIntro({
   ratio,
   radius,
   front,
+  back,
   showcase,
   heading,
   guide,
@@ -250,7 +289,7 @@ export const RevealIntro = React.memo(function RevealIntro({
 }: IntroProps) {
   const insets = useSafeAreaInsets();
   const { width: screenW } = useWindowDimensions();
-  const { rise, tear, stripOff, drop, pull, pop, hint, ring, pulse, copyIn, ctaIn, liveIn, opened, live, settled, open } = motion;
+  const { rise, tear, stripOff, drop, pull, pop, hint, charge, spin, ring, pulse, copyIn, ctaIn, liveIn, opened, live, settled, open } = motion;
   const height = width * ratio;
   const envW = Math.min(screenW - 32, 440);
   const envR = envW * 0.045;
@@ -272,6 +311,14 @@ export const RevealIntro = React.memo(function RevealIntro({
     const { y, height: h } = e.nativeEvent.layout;
     setStageMid(y + h / 2);
   }, []);
+
+  // 카드 옆면이 지날 때마다 — 빠를 땐 촘촘히, 느려지며 띄엄띄엄.
+  useAnimatedReaction(
+    () => Math.floor((spin.value + 90) / 180),
+    (n, prev) => {
+      if (prev !== null && n > prev) runOnJS(hapticSpin)(spin.value / (360 * SPIN_TURNS));
+    },
+  );
 
   useAnimatedReaction(
     () => Math.floor(tear.value * TEAR_TICKS),
@@ -343,8 +390,23 @@ export const RevealIntro = React.memo(function RevealIntro({
     ],
   }));
   const envStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: (1 - rise.value) * (shown + 40) + drop.value * (shown + 60) }],
+    transform: [
+      { translateY: (1 - rise.value) * (shown + 40) + drop.value * (shown + 60) },
+      // 터지기 직전 안에서 밀어 올리듯 부푼다.
+      { scale: 1 + 0.04 * charge.value },
+    ],
   }));
+  const leakStyle = useAnimatedStyle(() => ({ opacity: charge.value }));
+  // 앞뒷면을 따로 돌려 각도로 하나만 보인다 — backfaceVisibility 는 안드로이드에서 믿을 수 없다.
+  const frontFaceStyle = useAnimatedStyle(() => ({
+    opacity: Math.cos((spin.value * Math.PI) / 180) >= 0 ? 1 : 0,
+    transform: [{ perspective: 1200 }, { rotateY: `${spin.value}deg` }],
+  }));
+  const backFaceStyle = useAnimatedStyle(() => ({
+    opacity: Math.cos((spin.value * Math.PI) / 180) < 0 ? 1 : 0,
+    transform: [{ perspective: 1200 }, { rotateY: `${spin.value + 180}deg` }],
+  }));
+  const leakH = envW * 0.9;
   const hintStyle = useAnimatedStyle(() => ({
     opacity: rise.value * Math.max(0, 1 - tear.value * 4) * (0.6 + 0.4 * hint.value),
     transform: [{ translateY: (1 - rise.value) * (shown + 40) }, { translateX: hint.value * 6 }],
@@ -396,27 +458,36 @@ export const RevealIntro = React.memo(function RevealIntro({
             ringStyle,
           ]}
         />
-        {/* 다 뜯기 전엔 카드를 그리지 않는다 — 봉투가 떠오르는 동안 비치지 않게. */}
-        {opened && (
-          <Animated.View style={[{ width, height }, cardStyle]}>
-            {!settled && (
-              <View
+        {/* 다 뜯기 전엔 카드를 그리지 않는다. 움직이는 틀은 미리 붙여 둔다 — 카드와 함께 붙이면 첫 프레임에 변형 없이 제자리에 비친다. */}
+        <Animated.View style={[{ width, height }, cardStyle]}>
+          {opened && !settled && (
+            <>
+              <Animated.View
                 renderToHardwareTextureAndroid
                 shouldRasterizeIOS
-                style={[styles.stillCard, { width, height, borderRadius: width * radius }]}
+                style={[styles.stillCard, { width, height, borderRadius: width * radius }, frontFaceStyle]}
               >
                 {front}
-              </View>
-            )}
-            {live && (
-              <Animated.View style={[settled ? null : styles.over, liveStyle]}>
-                <GestureDetector gesture={tilt.gesture}>
-                  <View>{showcase}</View>
-                </GestureDetector>
               </Animated.View>
-            )}
-          </Animated.View>
-        )}
+              {!live && (
+                <Animated.View
+                  renderToHardwareTextureAndroid
+                  shouldRasterizeIOS
+                  style={[styles.stillCard, styles.over, { width, height, borderRadius: width * radius }, backFaceStyle]}
+                >
+                  {back}
+                </Animated.View>
+              )}
+            </>
+          )}
+          {live && (
+            <Animated.View style={[settled ? null : styles.over, liveStyle]}>
+              <GestureDetector gesture={tilt.gesture}>
+                <View>{showcase}</View>
+              </GestureDetector>
+            </Animated.View>
+          )}
+        </Animated.View>
         <Confetti burst={motion.burst} reach={Math.max(width, height) * 1.05} accent={accent} />
       </View>
 
@@ -440,10 +511,15 @@ export const RevealIntro = React.memo(function RevealIntro({
             <Animated.View
               style={[
                 styles.envelope,
-                { width: envW, height: envH, left: (screenW - envW) / 2, bottom: shown - envH },
+                { width: envW, height: envH, left: (screenW - envW) / 2, bottom: shown - envH, transformOrigin: [envW / 2, bandBottom, 0] },
                 envStyle,
               ]}
             >
+              {opened && (
+                <Animated.View pointerEvents="none" style={[styles.leak, { top: bandBottom - leakH, height: leakH }, leakStyle]}>
+                  <LinearGradient colors={[`${accent}00`, `${accent}80`, '#FFFFFFF0']} locations={[0, 0.72, 1]} style={StyleSheet.absoluteFill} />
+                </Animated.View>
+              )}
               <CardEnvelope
                 width={envW}
                 height={envH}
@@ -572,7 +648,7 @@ const Rung = React.memo(function Rung({ step, index: i, last, current, accent, f
     () => fill.value >= i - 0.001,
     (on, was) => {
       if (on && was === false) {
-        hit.value = withSequence(withTiming(isNow ? 2.1 : 1.7, { duration: 110 }), withSpring(1, { damping: 7, stiffness: 220 }));
+        hit.value = withSequence(withTiming(isNow ? 2.1 : 1.7, { duration: 110 }), withTiming(1, { duration: 220, easing: SETTLE }));
       }
     },
   );
@@ -787,5 +863,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   flash: { backgroundColor: '#FFFFFF' },
+  dim: { backgroundColor: '#000000' },
+  leak: { position: 'absolute', left: 0, right: 0 },
   piece: { position: 'absolute', borderRadius: 1.5 },
 });

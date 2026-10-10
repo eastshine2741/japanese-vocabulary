@@ -168,6 +168,7 @@ export const RewardCardReveal = React.memo(function RewardCardReveal({ card, sta
           ratio={CARD_RATIO}
           radius={SONG_RADIUS}
           front={<SongCardFront card={card} width={cardW} fonts={fonts} />}
+          back={<SongCardBack card={card} width={cardW} fonts={fonts} />}
           showcase={<SongCardShowcase card={card} width={cardW} tilt={tilt} fonts={fonts} />}
           heading="곡 카드를 얻었어요"
           guide={
