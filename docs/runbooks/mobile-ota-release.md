@@ -78,6 +78,7 @@ iOS "이번 버전의 새로운 기능"과 Play 출시 노트(ko-KR, 500자)는 
 GitHub Actions:
 
 - `EXPO_TOKEN`, `SENTRY_*`, `DISCORD_WEBHOOK_URL`, Android keystore·`GOOGLE_SERVICES_JSON_BASE64` (기존)
+- `GOOGLE_SERVICES_PLIST_BASE64`: runner 에서 eas-cli 가 config 를 평가할 때 쓰는 `GoogleService-Info.plist` (원격 빌드는 EAS file 변수)
 - `PLAY_SERVICE_ACCOUNT_JSON`: Play Console 에 릴리스 권한을 준 서비스 계정 키 JSON
 - `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8_BASE64`: App Store Connect API 키 (App Manager 이상)
 
