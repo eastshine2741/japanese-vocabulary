@@ -379,7 +379,6 @@ const styles = StyleSheet.create({
   face: {
     ...StyleSheet.absoluteFillObject,
     backfaceVisibility: 'hidden',
-    boxShadow: '0 24px 60px rgba(0, 0, 0, 0.6)',
   },
   clip: { flex: 1, overflow: 'hidden' },
   content: { flex: 1, justifyContent: 'space-between' },

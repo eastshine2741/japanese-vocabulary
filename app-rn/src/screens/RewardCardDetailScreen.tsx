@@ -110,10 +110,6 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
     transform: [{ translateY: focusShift * focus.value }, { scale: 1 + (focusScale - 1) * focus.value }],
   }));
 
-  const glowStyle = useAnimatedStyle(() => ({
-    opacity: enter.value * 0.9,
-    transform: [{ translateX: tilt.x.value * 14 }, { translateY: tilt.y.value * 10 }],
-  }));
 
   const handleClose = useCallback(() => navigation.goBack(), [navigation]);
   const handleFlip = useCallback(() => {
@@ -197,14 +193,6 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
           <View style={styles.stage} pointerEvents="box-none" onLayout={handleStageLayout}>
             {cardW > 0 && (
               <Animated.View style={[styles.stageCenter, focusStyle]} pointerEvents="box-none">
-                <Animated.View
-                  pointerEvents="none"
-                  style={[
-                    styles.glow,
-                    { width: cardW * 0.9, height: cardW * 0.9 * CARD_RATIO, boxShadow: `0 0 120px 30px ${card.accent}8C` },
-                    glowStyle,
-                  ]}
-                />
                 <GestureDetector gesture={tilt.gesture}>
                   <Animated.View style={cardIn}>
                     <SongCardShowcase card={card} width={cardW} tilt={tilt} fonts={fonts} ownerName={route.params.ownerName} />
@@ -283,7 +271,6 @@ const styles = StyleSheet.create({
   iconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: SHOWROOM.glass, alignItems: 'center', justifyContent: 'center' },
   stage: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   stageCenter: { alignItems: 'center', justifyContent: 'center' },
-  glow: { position: 'absolute', borderRadius: 40 },
   info: { paddingHorizontal: 24, paddingBottom: 8, gap: 8 },
   chips: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap', gap: 6 },
   levelChip: { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },

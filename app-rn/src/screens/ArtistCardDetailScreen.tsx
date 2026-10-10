@@ -52,10 +52,6 @@ export default function ArtistCardDetailScreen({ navigation, route }: Props) {
     opacity: info.value,
     transform: [{ translateY: (1 - info.value) * 12 }],
   }));
-  const glowStyle = useAnimatedStyle(() => ({
-    opacity: enter.value * 0.9,
-    transform: [{ translateX: tilt.x.value * 14 }, { translateY: tilt.y.value * 10 }],
-  }));
 
   const handleClose = useCallback(() => navigation.goBack(), [navigation]);
   const handleFlip = useCallback(() => {
@@ -96,14 +92,6 @@ export default function ArtistCardDetailScreen({ navigation, route }: Props) {
         </View>
 
         <View style={styles.stage}>
-          <Animated.View
-            pointerEvents="none"
-            style={[
-              styles.glow,
-              { width: cardW * 0.9, height: cardW * 0.9 * ARTIST_CARD_RATIO, boxShadow: `0 0 120px 30px ${card.accent}8C` },
-              glowStyle,
-            ]}
-          />
           <GestureDetector gesture={tilt.gesture}>
             <Animated.View style={cardIn}>
               <ArtistCardShowcase card={card} width={cardW} tilt={tilt} fonts={fonts} ownerName={route.params.ownerName} />
@@ -171,7 +159,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   stage: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  glow: { position: 'absolute', borderRadius: 40 },
   info: { paddingHorizontal: 24, paddingBottom: 16, gap: 6 },
   chips: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap', gap: 6 },
   gradeChip: { borderRadius: 999, paddingHorizontal: 12, paddingVertical: 5 },

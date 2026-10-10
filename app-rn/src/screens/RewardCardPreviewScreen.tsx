@@ -36,7 +36,6 @@ type Props = NativeStackScreenProps<RootStackParamList, 'RewardCardPreview'>;
 
 // 기울이면 원근 때문에 카드가 테 밖으로 조금 나온다.
 const STAGE_INSET = 16;
-const PREVIEW_ACCENT = '#C9C3D6';
 
 /**
  * 아직 얻지 않은 카드 종류의 견본 전시. 카드 그래픽·가사·뒷면은 상세와 똑같이 보여 주고,
@@ -67,10 +66,6 @@ export default function RewardCardPreviewScreen({ navigation, route }: Props) {
     transform: [{ translateY: (1 - enter.value) * 40 }, { scale: 0.86 + enter.value * 0.14 }],
   }));
   const infoIn = useAnimatedStyle(() => ({ opacity: info.value, transform: [{ translateY: (1 - info.value) * 12 }] }));
-  const glowStyle = useAnimatedStyle(() => ({
-    opacity: enter.value * 0.9,
-    transform: [{ translateX: tilt.x.value * 14 }, { translateY: tilt.y.value * 10 }],
-  }));
 
   const [stageHeight, setStageHeight] = useState(0);
   const handleStageLayout = useCallback((e: LayoutChangeEvent) => setStageHeight(e.nativeEvent.layout.height), []);
@@ -114,14 +109,6 @@ export default function RewardCardPreviewScreen({ navigation, route }: Props) {
         <View style={styles.stage} onLayout={handleStageLayout}>
           {cardW > 0 && (
             <>
-              <Animated.View
-                pointerEvents="none"
-                style={[
-                  styles.glow,
-                  { width: cardW * 0.9, height: cardW * 0.9 * ratio, boxShadow: `0 0 120px 30px ${PREVIEW_ACCENT}59` },
-                  glowStyle,
-                ]}
-              />
               <GestureDetector gesture={tilt.gesture}>
                 <Animated.View style={cardIn}>
                   {preview.kind === 'song' ? (
@@ -200,7 +187,6 @@ const styles = StyleSheet.create({
   },
   sampleText: { color: SHOWROOM.fgDim, fontSize: 12, fontWeight: '700', letterSpacing: 0.4 },
   stage: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  glow: { position: 'absolute', borderRadius: 40 },
   info: { paddingHorizontal: 24, paddingBottom: 8, gap: 8 },
   chips: { flexDirection: 'row', justifyContent: 'center' },
   levelChip: { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
