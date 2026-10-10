@@ -6,6 +6,18 @@ on:
     tags:
       - 'v*'
       - '!v*-rc.*'
+  # 빌드는 됐는데 제출에서 실패했을 때, 빌드 한도를 쓰지 않고 그 빌드로 제출부터 다시 한다.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 정식 태그 (예 v1.2.6). 출시 노트도 이 태그 메시지에서 읽는다
+        required: true
+      build_id:
+        description: 이미 만든 EAS 빌드 id. 비우면 새로 빌드한다
+        required: false
+
+env:
+  TAG: ${{ inputs.tag || github.ref_name }}
 
 jobs:
   release:
@@ -15,15 +27,17 @@ jobs:
       - name: Parse tag
         id: parse
         run: |
-          if [[ "$GITHUB_REF_NAME" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+          if [[ "$TAG" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
             echo "version=${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.${BASH_REMATCH[3]}" >> "$GITHUB_OUTPUT"
           else
-            echo "::error::Invalid tag format: $GITHUB_REF_NAME (expected vM.m.p)"
+            echo "::error::Invalid tag format: $TAG (expected vM.m.p)"
             exit 1
           fi
 
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
 
       - name: Setup Node.js 20
         uses: actions/setup-node@v4
@@ -55,6 +69,7 @@ jobs:
 
       - name: EAS build
         id: build
+        if: inputs.build_id == ''
         working-directory: app-rn
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
@@ -65,16 +80,23 @@ jobs:
             --non-interactive --wait --json > "$RUNNER_TEMP/build.json"
           echo "id=$(jq -r '.[0].id' "$RUNNER_TEMP/build.json")" >> "$GITHUB_OUTPUT"
 
+      # eas submit 은 EXPO_ASC_* 를 읽지 않고 eas.json 의 키나 EAS 에 저장된 키만 쓴다. 로컬 제출은 저장된 키를 쓰도록 여기서만 주입한다.
+      # BUILD_ENV 가 없으면 config 의 bundle id 가 .head 로 잡혀 엉뚱한 앱의 자격 증명을 찾는다.
       - name: EAS submit to App Store Connect
         working-directory: app-rn
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-          EXPO_ASC_API_KEY_PATH: ${{ runner.temp }}/asc-api-key.p8
-          EXPO_ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
-          EXPO_ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          BUILD_ENV: prod
+          EAS_UPDATE_CHANNEL: production
+          ASC_KEY_PATH: ${{ runner.temp }}/asc-api-key.p8
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          BUILD_ID: ${{ inputs.build_id || steps.build.outputs.id }}
         run: |
+          jq '.submit.production.ios += {ascApiKeyPath: env.ASC_KEY_PATH, ascApiKeyId: env.ASC_KEY_ID, ascApiKeyIssuerId: env.ASC_ISSUER_ID}' \
+            eas.json > "$RUNNER_TEMP/eas.json" && mv "$RUNNER_TEMP/eas.json" eas.json
           npx eas-cli@latest submit --platform ios --profile production \
-            --id "${{ steps.build.outputs.id }}" --non-interactive --wait
+            --id "$BUILD_ID" --non-interactive --wait
 
       - name: Setup Ruby
         uses: ruby/setup-ruby@v1
@@ -93,10 +115,10 @@ jobs:
           ASC_KEY_PATH: ${{ runner.temp }}/asc-api-key.p8
         run: |
           NOTES="버그 수정 및 안정성 개선"
-          git fetch --quiet origin "refs/tags/$GITHUB_REF_NAME:refs/tags/$GITHUB_REF_NAME" --force
-          if [[ "$(git cat-file -t "$GITHUB_REF_NAME")" == "tag" ]]; then
-            NOTES="$(git tag -l --format='%(contents:body)' "$GITHUB_REF_NAME")"
-            [[ -n "$NOTES" ]] || NOTES="$(git tag -l --format='%(contents:subject)' "$GITHUB_REF_NAME")"
+          git fetch --quiet origin "refs/tags/$TAG:refs/tags/$TAG" --force
+          if [[ "$(git cat-file -t "$TAG")" == "tag" ]]; then
+            NOTES="$(git tag -l --format='%(contents:body)' "$TAG")"
+            [[ -n "$NOTES" ]] || NOTES="$(git tag -l --format='%(contents:subject)' "$TAG")"
           fi
           fastlane ios submit_review version:"${{ steps.parse.outputs.version }}" release_notes:"$NOTES"
 
@@ -111,7 +133,7 @@ jobs:
           else
             TITLE="iOS CD 실패"; COLOR=15548997
           fi
-          jq -n --arg t "$TITLE" --arg d "**${{ github.repository }}** $GITHUB_REF_NAME" --argjson c "$COLOR" \
+          jq -n --arg t "$TITLE" --arg d "**${{ github.repository }}** $TAG" --argjson c "$COLOR" \
             --arg u "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
             '{embeds: [{title: $t, description: $d, color: $c, fields: [{name: "Actions", value: "[View logs](\($u))"}]}]}' \
             | curl -sS -H "Content-Type: application/json" -d @- "$DISCORD_WEBHOOK_URL"
