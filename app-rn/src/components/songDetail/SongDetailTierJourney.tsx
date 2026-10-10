@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated, {
   Easing,
@@ -10,6 +10,7 @@ import { Feather } from '@expo/vector-icons';
 import { Colors } from '../../theme/theme';
 import { Typography } from '../../theme/typography';
 import type { SongWordTierDto, SongWordTierKey } from '../../types/song';
+import { MemoryHelpSheet, MemoryHelpSheetRef } from '../memoryHelp/MemoryHelpSheet';
 import { SongDetailDueWordRoller } from './SongDetailDueWordRoller';
 import {
   buildTierSegments,
@@ -218,6 +219,8 @@ const ExpandedTierCard = React.memo(function ExpandedTierCard({
   const dueCount = Math.max(0, tier.dueCount);
   const isDisabled = dueCount === 0 || isStartingLearning;
   const minutes = estimateStudyMinutes(dueCount);
+  const helpSheetRef = useRef<MemoryHelpSheetRef>(null);
+  const handleOpenHelp = useCallback(() => helpSheetRef.current?.present(), []);
 
   return (
     <View style={styles.expandedCard}>
@@ -229,11 +232,12 @@ const ExpandedTierCard = React.memo(function ExpandedTierCard({
       <View style={styles.progress}>
         <TierTrack tier={tier} height={6} />
         <View style={styles.stats}>
-          <TierStat color={Colors.memoryLongTerm} label="장기기억" value={tier.longTermCount} />
-          <TierStat color={Colors.memoryShortTerm} label="단기기억" value={tier.shortTermCount} />
+          <TierStat color={Colors.memoryLongTerm} label="장기기억" value={tier.longTermCount} onPress={handleOpenHelp} />
+          <TierStat color={Colors.memoryShortTerm} label="단기기억" value={tier.shortTermCount} onPress={handleOpenHelp} />
           <TierStat color={Colors.memoryRemaining} label="남음" value={remainingCount} muted />
         </View>
       </View>
+      <MemoryHelpSheet ref={helpSheetRef} />
 
       <TouchableOpacity
         style={[styles.cta, isDisabled && styles.ctaDisabled]}
@@ -268,22 +272,33 @@ const TierStat = React.memo(function TierStat({
   label,
   value,
   muted = false,
+  onPress,
 }: {
   color: string;
   label: string;
   value: number;
   muted?: boolean;
+  onPress?: () => void;
 }) {
   return (
-    <View style={styles.stat}>
+    <TouchableOpacity
+      style={styles.stat}
+      onPress={onPress}
+      disabled={onPress == null}
+      activeOpacity={0.6}
+      hitSlop={STAT_HIT_SLOP}
+      accessibilityRole={onPress ? 'button' : undefined}
+      accessibilityLabel={`${label} ${value}`}
+    >
       <View style={[styles.statDot, { backgroundColor: color }]} />
       <Text style={styles.statLabel}>{label}</Text>
       <Text style={[styles.statValue, muted && styles.statValueMuted]}>{value}</Text>
-    </View>
+    </TouchableOpacity>
   );
 });
 
 const CTA_SUBTLE_COLOR = '#FFFFFFC4';
+const STAT_HIT_SLOP = { top: 8, bottom: 8, left: 4, right: 4 };
 
 const styles = StyleSheet.create({
   section: {
