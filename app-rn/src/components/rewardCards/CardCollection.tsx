@@ -136,6 +136,12 @@ const CollectionHeader = React.memo(function CollectionHeader({
           {artistPreview.map((card) => (
             <ArtistCardThumb key={card.id} card={card} width={ARTIST_CARD_WIDTH} fonts={fonts} onPress={onPressArtistCard} />
           ))}
+          <Pressable onPress={onOpenArtistCards} style={({ pressed }) => [styles.seeAll, pressed && styles.pressed]}>
+            <View style={styles.seeAllIcon}>
+              <Ionicons name="arrow-forward" size={20} color={Colors.textPrimary} />
+            </View>
+            <Text style={styles.seeAllLabel}>전체 보기</Text>
+          </Pressable>
         </ScrollView>
       </View>
 
@@ -172,6 +178,16 @@ const styles = StyleSheet.create({
   sortLabel: { fontSize: 12, fontWeight: '600', color: Colors.textSecondary },
   pressed: { opacity: 0.6 },
   artistRow: { gap: 12 },
+  seeAll: { width: 72, alignItems: 'center', justifyContent: 'center', gap: 8 },
+  seeAllIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.elevated,
+  },
+  seeAllLabel: { fontSize: 12, fontWeight: '600', color: Colors.textSecondary },
   gridRow: { gap: GRID_GAP },
   rowGap: { height: 14 },
 });
