@@ -83,15 +83,12 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
             jsonPath("$.lyricType") { value("PLAIN") }
             jsonPath("$.fps") { value(30) }
             jsonPath("$.lines[0].originalText") { value("歌詞0") }
-            jsonPath("$.lines[0].recommendedVocabulary[0].japanese") { value("夢") }
-            jsonPath("$.lines[0].recommendedVocabulary[0].partOfSpeechLabel") { value("명사") }
-            jsonPath("$.lines[0].recommendedVocabulary[0].jlpt") { value("N5") }
             jsonPath("$.lines[2].startTimeMs") { doesNotExist() }
             jsonPath("$.lines[2].selectable") { value(true) }
             jsonPath("$.minLineCount") { value(4) }
             jsonPath("$.maxLineCount") { doesNotExist() }
             jsonPath("$.maxLyricsSpanMs") { value(60000) }
-            jsonPath("$.maxVocabularyPerLine") { value(3) }
+            jsonPath("$.maxVocabularyPerLine") { value(1) }
         }
     }
 
@@ -226,8 +223,8 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
         // 60초 상한
         renderExpectingBadRequest(token, song.id!!, promoData(startFrames = listOf(0, 60, 120, 180), lyricsEndFrame = 1801))
         // 줄당 단어 상한
-        val fourWords = List(4) { AdminReelsVocabularyResponse(japanese = "夢$it", reading = "ユメ", korean = "꿈") }
-        renderExpectingBadRequest(token, song.id!!, promoData(startFrames = listOf(0, 60, 120, 180), lyricsEndFrame = 240, vocabulary = fourWords))
+        val twoWords = List(2) { AdminReelsVocabularyResponse(japanese = "夢$it", reading = "ユメ", korean = "꿈") }
+        renderExpectingBadRequest(token, song.id!!, promoData(startFrames = listOf(0, 60, 120, 180), lyricsEndFrame = 240, vocabulary = twoWords))
         // 어드민이 고쳐 쓰는 곡 제목·아티스트가 비어 있음
         renderExpectingBadRequest(token, song.id!!, valid.copy(song = valid.song.copy(title = " ")))
         renderExpectingBadRequest(token, song.id!!, valid.copy(song = valid.song.copy(artist = "")))

@@ -147,19 +147,6 @@ export function tokenToVocabulary(token: LyricToken, meaning: string = token.kor
   }
 }
 
-/** 서버 추천 단어를 토큰 index 로 옮긴다. 어드민이 바꾸기 전 기본 선택이다. */
-export function defaultTokenIndexes(line: ReelsLyricLine, max: number): number[] {
-  const picked: number[] = []
-  for (const word of line.recommendedVocabulary) {
-    const found = line.tokens.findIndex(
-      (token, index) => !picked.includes(index) && tokenSelectable(token) && (token.baseForm || token.surface) === word.japanese,
-    )
-    if (found >= 0) picked.push(found)
-    if (picked.length >= max) break
-  }
-  return picked
-}
-
 /** 릴스에 넣거나 뺀다. 넣을 때 시작 시각은 타임스탬프 → 앞 줄 + 3초 → 클립 시작 순으로 잡는다. */
 export function toggleLine(state: EditorState, detail: ReelsSongDetail, index: number): EditorState {
   const existing = state.lines.findIndex((line) => line.index === index)
@@ -184,7 +171,8 @@ export function toggleLine(state: EditorState, detail: ReelsSongDetail, index: n
   const inserted: EditorLine = {
     index,
     startMs,
-    tokenIndexes: defaultTokenIndexes(line, detail.maxVocabularyPerLine),
+    // 단어는 어드민이 짚은 줄에만 뜬다 — 모든 줄에 붙으면 강조가 되지 않는다.
+    tokenIndexes: [],
     meanings: {},
   }
   const lines = normalizeMonotonic([...state.lines.slice(0, at), inserted, ...state.lines.slice(at)])

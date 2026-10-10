@@ -6,7 +6,6 @@ import com.japanese.vocabulary.admin.dto.reels.AdminReelsRenderRequest
 import com.japanese.vocabulary.admin.dto.reels.AdminReelsSongCandidateResponse
 import com.japanese.vocabulary.admin.dto.reels.AdminReelsSongDetailResponse
 import com.japanese.vocabulary.admin.dto.reels.AdminReelsSourceResponse
-import com.japanese.vocabulary.admin.dto.reels.AdminReelsVocabularyResponse
 import com.japanese.vocabulary.admin.auth.AdminTokenService
 import com.japanese.vocabulary.admin.repository.AdminLyricRepository
 import com.japanese.vocabulary.admin.repository.AdminSongRepository
@@ -15,8 +14,6 @@ import com.japanese.vocabulary.admin.reels.model.AdminReelsRenderInput
 import com.japanese.vocabulary.admin.reels.model.AdminReelsRenderSource
 import com.japanese.vocabulary.song.entity.LyricEntity
 import com.japanese.vocabulary.song.entity.SongEntity
-import com.japanese.vocabulary.song.model.AnalyzedLine
-import com.japanese.vocabulary.song.model.PartOfSpeech
 import com.japanese.vocabulary.song.model.Token
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -200,7 +197,6 @@ class AdminReelsFactoryService(
                     originalText = raw.text,
                     koreanLyrics = analyzed?.koreanLyrics,
                     tokens = analyzed?.tokens?.map { it.toResponse() }.orEmpty(),
-                    recommendedVocabulary = analyzed?.let { vocabularyFor(it) }.orEmpty(),
                     // 타이밍은 어드민이 에디터에서 찍으므로 분석만 돼 있으면 고를 수 있다.
                     selectable = analyzed != null,
                     ineligibleReason = if (analyzed == null) "not_analyzed" else null,
@@ -237,35 +233,13 @@ class AdminReelsFactoryService(
         jlpt = jlpt,
     )
 
-    /** 에디터의 기본 단어 선택. 어드민이 바꾸지 않으면 이 단어가 릴스에 뜬다. */
-    private fun vocabularyFor(analyzed: AnalyzedLine): List<AdminReelsVocabularyResponse> {
-        return analyzed.tokens
-            .asSequence()
-            .filter { it.jlpt == "N5" || it.jlpt == "N4" }
-            .filter { it.partOfSpeech != PartOfSpeech.SYMBOL && it.partOfSpeech != PartOfSpeech.PARTICLE }
-            .filter { !it.koreanText.isNullOrBlank() }
-            .distinctBy { it.baseForm.ifBlank { it.surface } }
-            .take(MAX_VOCABULARY_PER_LINE)
-            .map {
-                AdminReelsVocabularyResponse(
-                    japanese = it.baseForm.ifBlank { it.surface },
-                    reading = it.baseFormReading ?: it.reading ?: "",
-                    korean = requireNotNull(it.koreanText),
-                    partOfSpeech = it.partOfSpeech.name,
-                    partOfSpeechLabel = it.partOfSpeech.koreanName,
-                    jlpt = it.jlpt,
-                )
-            }
-            .toList()
-    }
-
     companion object {
         const val MIN_LINE_COUNT = 4
         const val FPS = 30
         /** 릴스 가사 구간 상한. 이 위로는 렌더 시간·메모리가 컨테이너 한도를 넘긴다. */
         const val MAX_LYRICS_SPAN_MS = 60_000L
-        /** PromoReel 단어 블록은 세 줄 레이아웃이다(Reel v2 1b 디자인). */
-        const val MAX_VOCABULARY_PER_LINE = 3
+        /** 강조 단어는 가사 원문 위에 뜻을 얹으므로, 한 줄에 둘이면 시선이 갈린다. */
+        const val MAX_VOCABULARY_PER_LINE = 1
         /** admin-web reelEditor.ts 의 MV_SCALE_MIN/MAX, MV_OFFSET_X/Y_MAX, MV_CROP_MAX 와 같다. */
         val MV_SCALE_RANGE = 0.3..5.0
         const val MV_OFFSET_X_MAX = 2700.0
