@@ -120332,16 +120332,6 @@
                       "fontFamily": "$font.headings",
                       "fontSize": 18,
                       "fontWeight": "800"
-                    },
-                    {
-                      "type": "text",
-                      "id": "sZNkI",
-                      "name": "collectionSummary",
-                      "fill": "$foreground.muted",
-                      "content": "곡 카드 12 · 아티스트 카드 3",
-                      "fontFamily": "$font.body",
-                      "fontSize": 13,
-                      "fontWeight": "500"
                     }
                   ]
                 },
@@ -121919,16 +121909,6 @@
                       "fontFamily": "$font.headings",
                       "fontSize": 18,
                       "fontWeight": "800"
-                    },
-                    {
-                      "type": "text",
-                      "id": "OiJbb",
-                      "name": "collectionSummary",
-                      "fill": "$foreground.muted",
-                      "content": "곡 카드 12 · 아티스트 카드 3",
-                      "fontFamily": "$font.body",
-                      "fontSize": 13,
-                      "fontWeight": "500"
                     }
                   ]
                 },

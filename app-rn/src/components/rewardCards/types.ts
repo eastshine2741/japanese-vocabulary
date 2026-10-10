@@ -10,7 +10,6 @@ export interface CardWord {
   japanese: string;
   reading: string;
   meaning: string;
-  jlpt: string | null;
 }
 
 export interface CardGoal {
@@ -33,15 +32,12 @@ export interface SongRewardCard {
   /** 완료한 단계 단어들의 평균 FSRS 기억 확률. 낡음은 이 값에서 나온다. */
   recall: number;
   ownerNo: number;
-  ownerTotal: number;
   earnedAt: string;
   /** 앞면 아트 위에 세로로 쓰는 두 줄. */
   frontLines: [string, string];
   backLines: RubySegment[][];
   backKo: string;
   words: CardWord[];
-  longTermCount: number;
-  totalWords: number;
   /** 렌티큘러까지 끝낸 카드는 다음 목표가 없다. */
   nextGoal: CardGoal | null;
 }

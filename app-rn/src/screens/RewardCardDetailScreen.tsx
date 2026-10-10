@@ -112,9 +112,6 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
         </View>
 
         <Animated.View style={[styles.info, infoIn]}>
-          <Text style={[styles.title, { fontFamily: mincho.extraBold }]} numberOfLines={1}>{card.title}</Text>
-          <Text style={styles.artist} numberOfLines={1}>{card.artist}</Text>
-
           <View style={styles.chips}>
             <LinearGradient colors={material.frame} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.levelChip}>
               <LevelPips level={card.level} color={material.chipText} size={5} />
@@ -179,9 +176,7 @@ const styles = StyleSheet.create({
   stage: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   glow: { position: 'absolute', borderRadius: 40 },
   info: { paddingHorizontal: 24, paddingBottom: 16, gap: 6 },
-  title: { color: SHOWROOM.fg, fontSize: 26, lineHeight: 34, textAlign: 'center' },
-  artist: { color: SHOWROOM.fgDim, fontSize: 14, textAlign: 'center' },
-  chips: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap', gap: 6, marginTop: 10 },
+  chips: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap', gap: 6 },
   levelChip: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -70,13 +70,7 @@ function CardCollection({ songCards, artistCards, contentWidth, sidePadding, onP
           {rows.map((row) => (
             <View key={row.map((c) => c.id).join()} style={styles.gridRow}>
               {row.map((card) => (
-                <SongCardThumb
-                  key={card.id}
-                  card={card}
-                  width={thumbWidth}
-                  minchoFamily={mincho.extraBold}
-                  onPress={onPressCard}
-                />
+                <SongCardThumb key={card.id} card={card} width={thumbWidth} mincho={mincho} onPress={onPressCard} />
               ))}
             </View>
           ))}

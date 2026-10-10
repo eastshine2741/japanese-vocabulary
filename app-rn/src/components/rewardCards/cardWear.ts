@@ -19,6 +19,11 @@ export function wearAge(recall: number): number {
   return Math.min(1, Math.max(0, age));
 }
 
+/** 남은 코팅(광택) 비율. 1 = 새 카드의 광택, 0 = 코팅이 다 벗겨져 맨 종이. */
+export function coatingLeft(age: number): number {
+  return Math.pow(1 - age, 1.6);
+}
+
 export function wearState(recall: number): WearState {
   if (recall >= FRESH_RECALL) return 'fresh';
   if (recall >= 0.8) return 'faded';
