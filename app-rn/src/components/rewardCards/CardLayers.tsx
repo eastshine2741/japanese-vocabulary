@@ -63,29 +63,45 @@ export function FacetLayer({ tilt, width, height, opacity }: { tilt?: CardTilt; 
   );
 }
 
-/** 썸네일처럼 기울이지 않는 카드에 멈춘 반짝임 몇 점. 글리터 셰이더를 목록 카드마다 띄우면 무겁다. */
+const SPECKS_PER_SPARKLE = 8;
+// 멈춘 GlareLayer 빛 띠 중심이 지나는 x/w + y/h 값.
+const REST_GLARE_LINE = 0.665;
+
+// 기울이지 않는 썸네일의 멈춘 포일 가루. 글리터 셰이더는 목록 카드마다 띄우기엔 무겁고,
+// 큰 십자 별은 스티커처럼 보여서 멈춘 빛 띠에 작은 점만 모은다.
 export const StaticSparkles = React.memo(function StaticSparkles({ seed, count, width, height }: {
   seed: string;
   count: number;
   width: number;
   height: number;
 }) {
-  const sparkles = React.useMemo(() => {
+  const specks = React.useMemo(() => {
     const rand = seededRandom(seed);
-    return Array.from({ length: count }, () => ({
-      x: rand() * width,
-      y: rand() * height * 0.75,
-      size: width * (0.025 + rand() * 0.04),
-    }));
+    return Array.from({ length: count * SPECKS_PER_SPARKLE }, () => {
+      const along = rand() * REST_GLARE_LINE;
+      // 두 난수 합은 가운데로 몰려서 띠 중심이 가장 촘촘하다.
+      const across = (rand() + rand() - 1) * 0.18;
+      const bright = rand() < 0.12;
+      return {
+        x: (along + across) * width,
+        y: (REST_GLARE_LINE - along + across) * height,
+        size: Math.max(1, width * (bright ? 0.012 : 0.004 + rand() * 0.005)),
+        opacity: bright ? 0.95 : 0.3 + rand() * 0.5,
+        bright,
+      };
+    });
   }, [seed, count, width, height]);
   return (
-    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-      {sparkles.map((s, i) => (
-        <View key={i} style={[styles.sparkle, { left: s.x - s.size / 2, top: s.y - s.size / 2, width: s.size, height: s.size }]}>
-          <View style={[styles.sparkleRay, { width: s.size, height: s.size * 0.09, borderRadius: s.size }]} />
-          <View style={[styles.sparkleRay, { width: s.size * 0.09, height: s.size, borderRadius: s.size }]} />
-          <View style={[styles.sparkleCore, { width: s.size * 0.22, height: s.size * 0.22, borderRadius: s.size }]} />
-        </View>
+    <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.overflowHidden, styles.specks]}>
+      {specks.map((s, i) => (
+        <View
+          key={i}
+          style={[
+            styles.speck,
+            s.bright && styles.speckBright,
+            { left: s.x, top: s.y, width: s.size, height: s.size, borderRadius: s.size, opacity: s.opacity },
+          ]}
+        />
       ))}
     </View>
   );
@@ -123,7 +139,7 @@ const styles = StyleSheet.create({
   overflowHidden: { overflow: 'hidden' },
   etch: { mixBlendMode: 'color-dodge' },
   facet: { position: 'absolute', mixBlendMode: 'overlay' },
-  sparkle: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
-  sparkleRay: { position: 'absolute', backgroundColor: '#FFFFFFE6' },
-  sparkleCore: { backgroundColor: '#FFFFFF', boxShadow: '0 0 4px 1px rgba(255, 255, 255, 0.9)' },
+  specks: { mixBlendMode: 'screen' },
+  speck: { position: 'absolute', backgroundColor: '#FFFFFF' },
+  speckBright: { boxShadow: '0 0 3px 0.5px rgba(255, 255, 255, 0.8)' },
 });

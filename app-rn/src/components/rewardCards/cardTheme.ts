@@ -33,7 +33,7 @@ interface ArtistMaterial {
   chipText: string;
   /** 앞면 재질 각인과 뒷면 숫자에 찍는 박. 진한 색과 거의 흰색이 번갈아야 금속으로 보인다. 컬러 사진 위 이름에 박을 쓰면 색끼리 부딪혀 이름은 늘 흰 글씨다. */
   foil: readonly [string, string, ...string[]] | null;
-  /** 기울이지 않는 썸네일에 멈춰 보이는 반짝임 수. 높은 재질일수록 가만히 있어도 빛이 보인다. */
+  /** 기울이지 않는 썸네일에 멈춰 보이는 포일 가루의 양. 높은 재질일수록 가만히 있어도 빛이 보인다. */
   restSparkles: number;
   /** 무광 인화의 종이 결 세기. 사진 색은 그대로 두고 결만 얹는다. */
   matte: number;
