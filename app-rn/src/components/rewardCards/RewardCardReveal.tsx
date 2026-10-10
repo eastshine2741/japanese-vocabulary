@@ -59,6 +59,10 @@ export const RewardCardRevealHost = React.memo(function RewardCardRevealHost() {
   const streakShowing = useStreakStore((s) => s.celebration !== null);
 
   useEffect(() => {
+    useRewardCardStore.getState().loadWearIntroSeen();
+  }, []);
+
+  useEffect(() => {
     if (!next || streakShowing) return;
     let pending = true;
     const open = () => {

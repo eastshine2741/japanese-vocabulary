@@ -12,6 +12,9 @@ vi.mock('../api/rewardCardApi', () => ({
   },
 }));
 vi.mock('../api/songApi', () => ({ songApi: { getLyrics: vi.fn() } }));
+vi.mock('../utils/preferenceStorage', () => ({
+  preferenceStorage: { getCardWearIntroSeen: vi.fn(async () => false), saveCardWearIntroSeen: vi.fn(async () => undefined) },
+}));
 vi.mock('../components/rewardCards/dummyRewardCards', () => ({
   DUMMY_SONG_CARDS: [{ id: 'lemon', songId: null, signature: null, lyric: [] }],
   DUMMY_ARTIST_CARDS: [],

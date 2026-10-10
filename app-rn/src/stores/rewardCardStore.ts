@@ -7,6 +7,7 @@ import { serverTargetId, toArtistCard, toRevealTarget, toSongCard } from '../com
 import { CardSignature } from '../components/rewardCards/signature';
 import { ArtistRewardCard, CardLyricLine, SongRewardCard } from '../components/rewardCards/types';
 import { toCardLine } from '../components/songDetail/songCardSample';
+import { preferenceStorage } from '../utils/preferenceStorage';
 import type { RewardCardRevealDto } from '../types/rewardCard';
 
 export type RewardCardKind = 'song' | 'artist';
@@ -42,7 +43,7 @@ interface RewardCardState extends CardSet {
   /** 지금 열려 있는 연출. */
   active: RewardCardRevealTarget | null;
   pendingChecked: boolean;
-  /** 낡음 설명은 첫 곡 카드를 받을 때 한 번만 보여 준다. */
+  /** 낡음 설명은 첫 곡 카드를 받을 때 한 번만 보여 준다. 기기에 남겨 앱을 다시 켜도 다시 띄우지 않는다. */
   wearIntroSeen: boolean;
 
   setSource: (source: RewardCardSource) => void;
@@ -61,6 +62,7 @@ interface RewardCardState extends CardSet {
   openNextReveal: () => RewardCardRevealTarget | null;
   closeReveal: () => void;
   markWearIntroSeen: () => void;
+  loadWearIntroSeen: () => Promise<void>;
   loadLyricLines: (cardId: string) => Promise<void>;
   /** 카드에 실을 가사 줄을 바꾼다. 빈 배열은 무시한다. */
   setLyric: (cardId: string, picked: number[]) => void;
@@ -171,7 +173,14 @@ export const useRewardCardStore = create<RewardCardState>((set, get) => {
       request.catch(() => undefined);
     },
 
-    markWearIntroSeen: () => set({ wearIntroSeen: true }),
+    markWearIntroSeen: () => {
+      set({ wearIntroSeen: true });
+      preferenceStorage.saveCardWearIntroSeen().catch(() => undefined);
+    },
+
+    loadWearIntroSeen: async () => {
+      if (await preferenceStorage.getCardWearIntroSeen().catch(() => false)) set({ wearIntroSeen: true });
+    },
 
     loadLyricLines: async (cardId) => {
       if (get().lyricLines[cardId]) return;
@@ -230,6 +239,7 @@ export const useRewardCardStore = create<RewardCardState>((set, get) => {
       request.catch(() => undefined);
     },
 
-    reset: () => set(initial),
+    // 기기에 남긴 값이라 로그아웃해도 유지한다.
+    reset: () => set((state) => ({ ...initial, wearIntroSeen: state.wearIntroSeen })),
   };
 });
