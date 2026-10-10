@@ -18,7 +18,7 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CardSpreadLayer from './CardSpreadLayer';
 import { hapticCrown, hapticGather, hapticHeartbeat, hapticRipple, hapticStamp } from './cardHaptics';
-import { SHOWROOM } from './cardTheme';
+import { SHOWROOM, SHOWROOM_HEADING_TOP } from './cardTheme';
 import { spreadReach } from './spreadLayer';
 import { CardTilt } from './useCardTilt';
 
@@ -309,7 +309,7 @@ export const CardUpgrade = React.memo(function CardUpgrade({
   const targetBox = { width: target, height: target, borderRadius: target, left: focus.x - target / 2, top: focus.y - target / 2 };
 
   return (
-    <Animated.View entering={FadeIn.duration(220)} style={[styles.step, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 16 }]}>
+    <Animated.View entering={FadeIn.duration(220)} style={[styles.step, { paddingTop: insets.top + SHOWROOM_HEADING_TOP, paddingBottom: insets.bottom + 16 }]}>
       <Animated.View style={[styles.headingWrap, copyStyle]}>
         <Text style={styles.heading}>{heading}</Text>
       </Animated.View>

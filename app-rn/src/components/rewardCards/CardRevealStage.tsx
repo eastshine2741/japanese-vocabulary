@@ -34,7 +34,7 @@ import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CardEnvelope from './CardEnvelope';
 import { hapticBurst, hapticCharge, hapticRung, hapticSettle, hapticSpin, hapticTear } from './cardHaptics';
-import { SHOWROOM } from './cardTheme';
+import { SHOWROOM, SHOWROOM_HEADING_TOP } from './cardTheme';
 import { seededRandom } from './seededRandom';
 import { CardTilt } from './useCardTilt';
 
@@ -429,7 +429,7 @@ export const RevealIntro = React.memo(function RevealIntro({
       entering={FadeIn.duration(220)}
       exiting={FadeOut.duration(160)}
       onLayout={handleStepLayout}
-      style={[styles.step, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 16 }]}
+      style={[styles.step, { paddingTop: insets.top + SHOWROOM_HEADING_TOP, paddingBottom: insets.bottom + 16 }]}
     >
       <Rise progress={copyIn} from={10} style={styles.headingWrap}>
         <Text style={styles.heading}>{heading}</Text>

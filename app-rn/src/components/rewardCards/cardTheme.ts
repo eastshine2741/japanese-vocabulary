@@ -244,6 +244,9 @@ export const SHOWROOM = {
   glass: '#FFFFFF12',
 } as const;
 
+/** 연출 화면 맨 위 문구와 safe area 사이 간격. */
+export const SHOWROOM_HEADING_TOP = 40;
+
 const FALLBACK_JP = Platform.select({ ios: 'Hiragino Mincho ProN', default: 'serif' });
 const FALLBACK_KO = Platform.select({ ios: 'AppleMyungjo', default: 'serif' });
 
