@@ -12,7 +12,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { Feather } from '@expo/vector-icons';
-import { hapticCount, hapticLand, hapticOwned, hapticSign } from './cardHaptics';
+import { hapticBurst, hapticCount, hapticSettle, hapticSign } from './cardHaptics';
 import { SHOWROOM } from './cardTheme';
 import SignaturePad from './SignaturePad';
 import { CardSignature } from './signature';
@@ -105,13 +105,16 @@ function CardSigner({ card, previewWidth, sealWidth, onSign, onDone, doneLabel =
 
 export default React.memo(CardSigner);
 
-/** 미리보기에서 본 서명된 뒷면을 잠깐 보여 준 뒤 돌린다. */
-const FLIP_AT_MS = 650;
-const FLIP_MS = 820;
+/** 미리보기에서 본 서명된 뒷면을 잠깐 보여 준 뒤, 화면이 번쩍이며 한 번 뒤집힌다. */
+const HOLD_MS = 650;
+const FLIP_MS = 700;
+const SLAM_MS = 180;
 /** 순번이 0 부터 올라가 멈추는 시간. 끝으로 갈수록 느려진다. */
-const COUNT_MS = 1100;
+const COUNT_MS = 1600;
 /** 숫자가 바뀔 때마다 울리면 뭉개져서 이 간격 아래로는 건너뛴다. */
 const COUNT_TICK_MS = 45;
+/** 올라가는 동안 숫자가 커지는 정도. 멈출 때 제 크기로 박힌다. */
+const COUNT_GROW = 0.08;
 const SETTLE = Easing.out(Easing.cubic);
 
 interface SealProps {
@@ -124,38 +127,33 @@ interface SealProps {
 }
 
 const CardSeal = React.memo(function CardSeal({ card, signature, width, onDone, doneLabel, bottomInset }: SealProps) {
-  const flip = useSharedValue(0);
-  const lift = useSharedValue(0);
+  const spin = useSharedValue(0);
+  const flash = useSharedValue(0);
   const captionIn = useSharedValue(0);
   const [counting, setCounting] = useState(false);
   const [done, setDone] = useState(false);
   const handleCounted = useCallback(() => setDone(true), []);
 
   useEffect(() => {
-    const flipAt = FLIP_AT_MS;
-    flip.value = withDelay(
-      flipAt,
-      withTiming(1, { duration: FLIP_MS, easing: Easing.inOut(Easing.cubic) }, (finished) => {
-        if (finished) {
-          runOnJS(hapticOwned)();
-          runOnJS(setCounting)(true);
-        }
+    spin.value = withDelay(
+      HOLD_MS,
+      withTiming(180, { duration: FLIP_MS, easing: SETTLE }, (finished) => {
+        if (finished) runOnJS(setCounting)(true);
       }),
     );
-    lift.value = withDelay(
-      flipAt,
+    flash.value = withDelay(
+      HOLD_MS,
       withSequence(
-        withTiming(1, { duration: FLIP_MS / 2, easing: Easing.out(Easing.quad) }),
-        withTiming(0, { duration: FLIP_MS / 2 + 200, easing: SETTLE }),
+        withTiming(0.85, { duration: 45 }, (finished) => {
+          if (finished) runOnJS(hapticBurst)();
+        }),
+        withTiming(0, { duration: 900, easing: SETTLE }),
       ),
     );
-    captionIn.value = withDelay(
-      flipAt + FLIP_MS - 120,
-      withTiming(1, { duration: 480, easing: SETTLE }),
-    );
-  }, [flip, lift, captionIn]);
+    captionIn.value = withDelay(HOLD_MS + FLIP_MS, withTiming(1, { duration: 420, easing: SETTLE }));
+  }, [spin, flash, captionIn]);
 
-  const stageStyle = useAnimatedStyle(() => ({ transform: [{ scale: 1 + 0.06 * lift.value }] }));
+  const flashStyle = useAnimatedStyle(() => ({ opacity: flash.value }));
   const captionStyle = useAnimatedStyle(() => ({
     opacity: captionIn.value,
     transform: [{ translateY: (1 - captionIn.value) * 14 }],
@@ -164,19 +162,15 @@ const CardSeal = React.memo(function CardSeal({ card, signature, width, onDone, 
   return (
     <Animated.View entering={FadeIn.duration(260)} style={styles.root}>
       <View style={styles.sealStage}>
-        <Animated.View style={stageStyle}>
-          <FlipCard card={card} signature={signature} width={width} flip={flip} />
-        </Animated.View>
+        <FlipCard card={card} signature={signature} width={width} spin={spin} />
       </View>
 
       <Animated.View style={[styles.caption, captionStyle]}>
         <Text style={styles.owner} numberOfLines={1}>
           카드를 획득했어요!
         </Text>
-        <Text style={styles.meta}>
-          {card.subject}의 카드를 전체 유저 중{' '}
-          <SerialCount to={card.serialNo} run={counting} color={card.accent} onDone={handleCounted} />로 획득했어요
-        </Text>
+        <Text style={styles.meta}>{card.subject}의 카드를 전체 유저 중</Text>
+        <SerialCount to={card.serialNo} run={counting} color={card.accent} onDone={handleCounted} />
       </Animated.View>
 
       <Animated.View style={[styles.footer, { paddingBottom: bottomInset + 16 }, captionStyle]}>
@@ -188,6 +182,8 @@ const CardSeal = React.memo(function CardSeal({ card, signature, width, onDone, 
           <Text style={styles.ctaText}>{doneLabel}</Text>
         </Pressable>
       </Animated.View>
+      {/* 단계 틀의 여백·상단 막대까지 덮어야 화면 전체가 번쩍인다. */}
+      <Animated.View pointerEvents="none" style={[styles.flash, flashStyle]} />
     </Animated.View>
   );
 });
@@ -199,12 +195,14 @@ interface CountProps {
   onDone: () => void;
 }
 
-/** 획득 순번이 0 부터 올라가다 멈추며 내 카드로 확정된다. 멈추는 순간이 마지막 한 방이다. */
+/** 획득 순번이 0 부터 올라가며 살짝 커지다가 멈추는 순간 제 크기로 돌아온다. */
 const SerialCount = React.memo(function SerialCount({ to, run, color, onDone }: CountProps) {
   const [n, setN] = useState(0);
+  const grow = useSharedValue(0);
 
   useEffect(() => {
     if (!run) return;
+    grow.value = withTiming(1, { duration: COUNT_MS, easing: Easing.out(Easing.quad) });
     const t0 = Date.now();
     let shown = 0;
     let lastTick = 0;
@@ -212,7 +210,7 @@ const SerialCount = React.memo(function SerialCount({ to, run, color, onDone }: 
     const step = () => {
       const now = Date.now();
       const k = Math.min(1, (now - t0) / COUNT_MS);
-      const next = Math.round(to * (1 - Math.pow(1 - k, 3)));
+      const next = Math.round(to * (1 - Math.pow(1 - k, 4)));
       if (next !== shown) {
         shown = next;
         setN(next);
@@ -225,34 +223,43 @@ const SerialCount = React.memo(function SerialCount({ to, run, color, onDone }: 
         raf = requestAnimationFrame(step);
         return;
       }
-      hapticLand();
+      grow.value = withTiming(0, { duration: SLAM_MS, easing: Easing.out(Easing.cubic) });
+      hapticSettle();
       onDone();
     };
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
-  }, [run, to, onDone]);
+  }, [run, to, onDone, grow]);
 
-  return <Text style={{ color }}>{n.toLocaleString('ko-KR')}번째</Text>;
+  const numberStyle = useAnimatedStyle(() => ({ transform: [{ scale: 1 + COUNT_GROW * grow.value }] }));
+
+  return (
+    <View style={styles.serialRow}>
+      <Animated.Text style={[styles.serial, { color }, numberStyle]}>{n.toLocaleString('ko-KR')}번째</Animated.Text>
+      <Text style={styles.serialTail}>로 획득했어요</Text>
+    </View>
+  );
 });
 
 interface FlipProps {
   card: SignableCard;
   signature: CardSignature;
   width: number;
-  /** 0 = 뒷면, 1 = 앞면. */
-  flip: SharedValue<number>;
+  /** 돈 각도(도). 0 = 뒷면, 180 = 앞면. */
+  spin: SharedValue<number>;
 }
 
-const FlipCard = React.memo(function FlipCard({ card, signature, width, flip }: FlipProps) {
+// 각도로 한 면만 보이게 한다 — backfaceVisibility 는 안드로이드에서 믿을 수 없다.
+const FlipCard = React.memo(function FlipCard({ card, signature, width, spin }: FlipProps) {
   const height = width * card.ratio;
   const radius = width * card.radius;
   const backStyle = useAnimatedStyle(() => ({
-    opacity: flip.value < 0.5 ? 1 : 0,
-    transform: [{ perspective: 1100 }, { rotateY: `${flip.value * 180}deg` }],
+    opacity: Math.cos((spin.value * Math.PI) / 180) >= 0 ? 1 : 0,
+    transform: [{ perspective: 1100 }, { rotateY: `${spin.value}deg` }],
   }));
   const frontStyle = useAnimatedStyle(() => ({
-    opacity: flip.value < 0.5 ? 0 : 1,
-    transform: [{ perspective: 1100 }, { rotateY: `${flip.value * 180 - 180}deg` }],
+    opacity: Math.cos((spin.value * Math.PI) / 180) < 0 ? 1 : 0,
+    transform: [{ perspective: 1100 }, { rotateY: `${spin.value - 180}deg` }],
   }));
   return (
     <View style={{ width, height }}>
@@ -300,5 +307,9 @@ const styles = StyleSheet.create({
   },
   caption: { alignItems: 'center', paddingHorizontal: 32, gap: 6 },
   owner: { color: SHOWROOM.fg, fontSize: 24, fontWeight: '700' },
-  meta: { color: SHOWROOM.fgDim, fontSize: 14, fontWeight: '600', fontVariant: ['tabular-nums'], textAlign: 'center' },
+  meta: { color: SHOWROOM.fgDim, fontSize: 14, fontWeight: '600', textAlign: 'center' },
+  serialRow: { flexDirection: 'row', alignItems: 'baseline' },
+  serial: { fontSize: 20, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  serialTail: { color: SHOWROOM.fgDim, fontSize: 14, fontWeight: '600' },
+  flash: { position: 'absolute', top: -300, bottom: -300, left: -100, right: -100, backgroundColor: '#FFFFFF' },
 });
