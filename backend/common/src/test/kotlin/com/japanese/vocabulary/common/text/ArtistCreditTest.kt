@@ -21,6 +21,11 @@ class ArtistCreditTest {
     }
 
     @Test
+    fun `keeps a Japanese comma inside a group name`() {
+        assertThat(ArtistCredit.names("25時、ナイトコードで。")).containsExactly("25時、ナイトコードで。")
+    }
+
+    @Test
     fun `lists every credited name in order`() {
         assertThat(ArtistCredit.names("椎名もた feat.鏡音リン")).containsExactly("椎名もた", "鏡音リン")
         assertThat(ArtistCredit.names("椎名もた & 鏡音リン")).containsExactly("椎名もた", "鏡音リン")
