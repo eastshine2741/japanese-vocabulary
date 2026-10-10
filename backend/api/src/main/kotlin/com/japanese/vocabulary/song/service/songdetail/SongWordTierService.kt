@@ -15,6 +15,7 @@ import com.japanese.vocabulary.song.dto.songdetail.SongWordTierStudyResponse
 import com.japanese.vocabulary.song.dto.songdetail.SongWordTiersDto
 import com.japanese.vocabulary.song.dto.songdetail.WordInSongItemDto
 import com.japanese.vocabulary.song.dto.songdetail.WordsInSongDto
+import com.japanese.vocabulary.song.entity.LyricEntity
 import com.japanese.vocabulary.song.repository.LyricRepository
 import com.japanese.vocabulary.word.dto.AddWordDto
 import com.japanese.vocabulary.word.dto.AddWordRequest
@@ -68,6 +69,40 @@ class SongWordTierService(
     }
 
     /**
+     * 보상 카드가 단계 진행·기억 확률을 잴 때 쓴다. 곡마다 단계별 tier 단어와 그 유저의 flashcard 를 순서대로 준다.
+     * 곡 수와 상관없이 유저 단어·flashcard 를 한 번씩만 조회한다. 키는 곡 id 다.
+     */
+    @Transactional(readOnly = true)
+    fun tierCards(userId: Long, lyrics: Collection<LyricEntity>): Map<Long, SongTierCards> {
+        if (lyrics.isEmpty()) return emptyMap()
+        val keys = lyrics.flatMap { songDetailQueryService.wordKeys(it) }.distinct()
+        val savedWords = if (keys.isEmpty()) emptyMap() else {
+            wordRepository.findByUserIdAndJapaneseTextIn(userId, keys).associateBy { it.japaneseText }
+        }
+        val songs = lyrics.associate { lyric ->
+            val words = songDetailQueryService.assembleWords(lyric, savedWords)
+            lyric.songId to (words to SongWordTierClassifier.classifyCurrent(words.words.filter { it.isTierWord() }, lyric.rawContent))
+        }
+        val tierWordIds = songs.values
+            .flatMap { (_, tiers) -> tiers.values.flatten() }
+            .flatMap { listOf(it.addRequest.japanese, it.japanese) }
+            .mapNotNull { savedWords[it]?.id }
+            .distinct()
+        val cardByWordId = if (tierWordIds.isEmpty()) emptyMap() else {
+            flashcardRepository.findByUserIdAndWordIdIn(userId, tierWordIds).associateBy { it.wordId }
+        }
+        val cardByJapanese = savedWords.mapNotNull { (japanese, word) -> cardByWordId[word.id]?.let { japanese to it } }.toMap()
+        return songs.mapValues { (_, song) ->
+            val (words, tiers) = song
+            val context = SongTierContext(words, tiers, cardByJapanese)
+            SongTierCards(
+                words = words,
+                tiers = SongWordTierKey.current.associateWith { key -> tiers[key].orEmpty().map { it to context.cardOf(it) } },
+            )
+        }
+    }
+
+    /**
      * 이 곡 이해도. tier 단어가 전부 장기기억인 줄이 "이해하는 가사" 다. tier 단어가 없는 줄
      * (간주·기호·조사만 있는 줄)은 분모에서도 뺀다 — 공짜로 채워지는 줄이 이해도를 부풀리지 않게.
      */
@@ -112,6 +147,12 @@ class SongWordTierService(
 
         return SongWordTierStudyResponse(deckId = deckId, cards = cards.items, totalCount = cards.items.size)
     }
+
+    class SongTierCards(
+        val words: WordsInSongDto,
+        /** [SongWordTierKey.current] 순서. */
+        val tiers: Map<SongWordTierKey, List<Pair<WordInSongItemDto, FlashcardEntity?>>>,
+    )
 
     private class SongTierContext(
         val words: WordsInSongDto,

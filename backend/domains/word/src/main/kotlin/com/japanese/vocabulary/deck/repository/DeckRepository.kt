@@ -14,6 +14,12 @@ interface DeckRepository : JpaRepository<DeckEntity, Long> {
 
     fun findByUserIdAndIsDefaultTrue(userId: Long): DeckEntity?
 
+    @Query("""
+        SELECT d.songId FROM DeckEntity d, DeckWordEntity dw
+        WHERE dw.deckId = d.id AND d.userId = :userId AND dw.wordId = :wordId AND d.songId IS NOT NULL
+    """)
+    fun findSongIdsContainingWord(@Param("userId") userId: Long, @Param("wordId") wordId: Long): List<Long>
+
     fun findByUserIdOrderByCreatedAtDesc(userId: Long, pageable: Pageable): List<DeckEntity>
 
     // 전체 단어장은 /decks/all 로 따로 노출되므로 목록 페이징에서 제외한다.

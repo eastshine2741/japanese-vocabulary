@@ -21,6 +21,7 @@ dependencies {
     implementation(project(":domains:auth"))
     implementation(project(":domains:user"))
     implementation(project(":domains:userinventory"))
+    implementation(project(":domains:rewardcard"))
     implementation(project(":domains:word"))
     implementation(project(":domains:studystats"))
     implementation(project(":domains:notification"))

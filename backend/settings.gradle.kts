@@ -19,6 +19,7 @@ include(
     "domains:auth",
     "domains:user",
     "domains:userinventory",
+    "domains:rewardcard",
     "domains:word",
     "domains:studystats",
     "domains:notification",

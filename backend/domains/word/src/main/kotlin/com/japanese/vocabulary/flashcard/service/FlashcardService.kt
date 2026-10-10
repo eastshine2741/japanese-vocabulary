@@ -220,6 +220,7 @@ class FlashcardService(
 
         return ReviewResultDto(
             id = savedFlashcardId,
+            wordId = entity.wordId,
             state = entity.state,
             due = entity.due.toString(),
             stability = entity.stability,

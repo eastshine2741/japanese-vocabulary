@@ -3,6 +3,7 @@ package com.japanese.vocabulary.song.service.songdetail
 import com.japanese.vocabulary.common.exception.BusinessException
 import com.japanese.vocabulary.common.exception.ErrorCode
 import com.japanese.vocabulary.deck.service.DeckService
+import com.japanese.vocabulary.flashcard.service.FlashcardReviewService
 import com.japanese.vocabulary.flashcard.service.FlashcardService
 import com.japanese.vocabulary.song.dto.songdetail.SongStudyBootstrapResponse
 import com.japanese.vocabulary.word.dto.AddWordDto
@@ -27,6 +28,7 @@ class SongStudyBootstrapService(
     private val wordService: WordService,
     private val flashcardService: FlashcardService,
     private val deckService: DeckService,
+    private val flashcardReviewService: FlashcardReviewService,
 ) {
     fun bootstrap(userId: Long, songId: Long, rating: Int, leadJapanese: String? = null): SongStudyBootstrapResponse {
         val words = songDetailQueryService.words(songId, userId)
@@ -52,7 +54,7 @@ class SongStudyBootstrapService(
             ?: throw BusinessException(ErrorCode.WORD_NOT_FOUND)
         val flashcardId = flashcardService.findLeadCandidate(userId, wordId)?.id
             ?: throw BusinessException(ErrorCode.FLASHCARD_NOT_FOUND)
-        val reviewed = flashcardService.reviewCard(userId, flashcardId, rating)
+        val reviewed = flashcardReviewService.review(userId, flashcardId, rating)
 
         val deckId = deckService.findBySongId(userId, songId)?.id
             ?: throw BusinessException(ErrorCode.DECK_NOT_FOUND)
@@ -64,6 +66,7 @@ class SongStudyBootstrapService(
             totalCount = due.totalCount,
             nextDueAt = due.nextDueAt,
             reviewedMemory = reviewed.memory,
+            rewardCards = reviewed.rewardCards,
         )
     }
 

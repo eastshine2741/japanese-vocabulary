@@ -1,0 +1,112 @@
+package com.japanese.vocabulary.rewardcard.service
+
+import com.japanese.vocabulary.common.exception.BusinessException
+import com.japanese.vocabulary.common.exception.ErrorCode
+import com.japanese.vocabulary.rewardcard.dto.ArtistCardDto
+import com.japanese.vocabulary.rewardcard.dto.ArtistCardResponse
+import com.japanese.vocabulary.rewardcard.dto.MasteredSongResponse
+import com.japanese.vocabulary.rewardcard.dto.RewardCardsResponse
+import com.japanese.vocabulary.rewardcard.dto.SongCardDto
+import com.japanese.vocabulary.rewardcard.dto.SongCardResponse
+import com.japanese.vocabulary.rewardcard.model.SongCardGrade
+import com.japanese.vocabulary.song.dto.songdetail.SongLyricLineDto
+import com.japanese.vocabulary.song.entity.ArtistEntity
+import com.japanese.vocabulary.song.entity.SongEntity
+import com.japanese.vocabulary.song.repository.ArtistRepository
+import com.japanese.vocabulary.song.repository.LyricRepository
+import com.japanese.vocabulary.song.repository.SongRepository
+import com.japanese.vocabulary.song.service.songdetail.SongDetailQueryService
+import com.japanese.vocabulary.song.service.songdetail.SongWordTierService
+import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
+import java.time.Clock
+import java.time.Instant
+
+@Service
+class RewardCardQueryService(
+    private val rewardCardService: RewardCardService,
+    private val songRepository: SongRepository,
+    private val artistRepository: ArtistRepository,
+    private val lyricRepository: LyricRepository,
+    private val songDetailQueryService: SongDetailQueryService,
+    private val songWordTierService: SongWordTierService,
+    private val clock: Clock,
+) {
+    /** 카드 수와 상관없이 곡·아티스트·가사·유저 단어·flashcard 를 한 번씩만 조회한다. */
+    @Transactional(readOnly = true)
+    fun cards(userId: Long): RewardCardsResponse {
+        val now = Instant.now(clock)
+        val songCards = rewardCardService.songCards(userId)
+        val songs = songRepository.findAllById(songCards.map { it.songId }).associateBy { it.id!! }
+        val lyrics = if (songs.isEmpty()) emptyList() else lyricRepository.findActiveBySongIdIn(songs.keys)
+        val lines = lyrics.associate { it.songId to songDetailQueryService.lyricLines(it) }
+        val tierCards = songWordTierService.tierCards(userId, lyrics)
+        val artistCards = rewardCardService.artistCards(userId)
+        val artists = artistRepository.findAllById(artistCards.map { it.artistId }).associateBy { it.id!! }
+        val masteredByArtist = songCards
+            .filter { it.grade == SongCardGrade.MASTER && it.artistId != null }
+            .sortedBy { it.masteredAt }
+            .groupBy { it.artistId!! }
+
+        return RewardCardsResponse(
+            songCards = songCards.mapNotNull { card ->
+                songs[card.songId]?.let { songCard(card, it, lines[card.songId].orEmpty(), tierCards[card.songId], now) }
+            },
+            artistCards = artistCards.mapNotNull { card ->
+                artists[card.artistId]?.let { artistCard(card, it, masteredByArtist[card.artistId].orEmpty(), songs) }
+            },
+        )
+    }
+
+    /** 고른 줄이 그 곡의 가사 줄인지. 줄 수·중복 검사는 [RewardCardService] 가 한다. */
+    @Transactional(readOnly = true)
+    fun validateLyricLines(songId: Long, lyricLineIndexes: List<Int>) {
+        if (lyricLineIndexes.isEmpty()) return
+        val lines = lyricRepository.findActiveBySongId(songId)?.rawContent.orEmpty().map { it.index }.toSet()
+        if (!lines.containsAll(lyricLineIndexes)) throw BusinessException(ErrorCode.INVALID_CARD_LYRIC)
+    }
+
+    private fun songCard(
+        card: SongCardDto,
+        song: SongEntity,
+        lines: List<SongLyricLineDto>,
+        tierCards: SongWordTierService.SongTierCards?,
+        now: Instant,
+    ): SongCardResponse {
+        val tiers = tierCards?.tiers?.values?.map { tier -> tier.map { it.second } }.orEmpty()
+        return SongCardResponse(
+            songId = card.songId,
+            title = song.title,
+            artist = song.artist,
+            artworkUrl = song.artworkUrl,
+            artistId = card.artistId,
+            grade = card.grade,
+            seenGrade = card.seenGrade,
+            acquiredSeq = card.acquiredSeq,
+            lyricLineIndexes = card.lyricLineIndexes,
+            lyric = SongCardFace.lyric(lines, card.lyricLineIndexes),
+            words = tierCards?.let { SongCardFace.words(it.words.words) }.orEmpty(),
+            recall = SongCardFace.recall(tiers, now),
+            nextGoal = SongCardFace.nextGoal(card.grade, tiers),
+            signature = card.signature,
+            masteredAt = card.masteredAt,
+            createdAt = card.createdAt,
+        )
+    }
+
+    /** [mastered] 는 마스터한 순서다. */
+    private fun artistCard(card: ArtistCardDto, artist: ArtistEntity, mastered: List<SongCardDto>, songs: Map<Long, SongEntity>) =
+        ArtistCardResponse(
+            artistId = card.artistId,
+            name = artist.name,
+            artworkUrl = artist.artworkUrl,
+            grade = card.grade,
+            seenGrade = card.seenGrade,
+            acquiredSeq = card.acquiredSeq,
+            signature = card.signature,
+            masteredSongs = mastered.mapNotNull { master ->
+                songs[master.songId]?.let { MasteredSongResponse(songId = master.songId, title = it.title, artworkUrl = it.artworkUrl) }
+            },
+            createdAt = card.createdAt,
+        )
+}

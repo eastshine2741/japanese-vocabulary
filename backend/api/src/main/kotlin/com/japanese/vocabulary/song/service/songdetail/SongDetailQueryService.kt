@@ -13,6 +13,7 @@ import com.japanese.vocabulary.word.dto.AddWordRequest
 import com.japanese.vocabulary.word.model.SenseExample
 import com.japanese.vocabulary.word.model.WordSense
 import com.japanese.vocabulary.word.model.splitMeanings
+import com.japanese.vocabulary.word.entity.WordEntity
 import com.japanese.vocabulary.word.repository.WordRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -43,29 +44,47 @@ class SongDetailQueryService(
     fun lyrics(songId: Long): SongLyricsDto {
         songRepository.findById(songId).orElseThrow { BusinessException(ErrorCode.SONG_NOT_FOUND) }
         val lyric = lyricRepository.findActiveBySongId(songId) ?: throw BusinessException(ErrorCode.LYRIC_NOT_FOUND)
-        val analyzedByIndex = lyric.analyzedContent.orEmpty().associateBy { it.index }
         val source = lyric.source()
         return SongLyricsDto(
             lyricId = lyric.id!!,
             lyricsSourceName = source.name,
             lyricsSourceUrl = source.url,
-            lines = lyric.rawContent.sortedBy { it.index }.map { raw ->
-                val analyzed = analyzedByIndex[raw.index]
-                SongLyricLineDto(
-                    index = raw.index,
-                    originalText = raw.text,
-                    startTimeMs = raw.startTimeMs,
-                    koreanLyrics = analyzed?.koreanLyrics,
-                    tokens = analyzed?.tokens ?: emptyList(),
-                )
-            },
+            lines = lyricLines(lyric),
         )
+    }
+
+    internal fun lyricLines(lyric: LyricEntity): List<SongLyricLineDto> {
+        val analyzedByIndex = lyric.analyzedContent.orEmpty().associateBy { it.index }
+        return lyric.rawContent.sortedBy { it.index }.map { raw ->
+            val analyzed = analyzedByIndex[raw.index]
+            SongLyricLineDto(
+                index = raw.index,
+                originalText = raw.text,
+                startTimeMs = raw.startTimeMs,
+                koreanLyrics = analyzed?.koreanLyrics,
+                tokens = analyzed?.tokens ?: emptyList(),
+            )
+        }
     }
 
     @Transactional(readOnly = true)
     fun words(songId: Long, userId: Long): WordsInSongDto {
         songRepository.findById(songId).orElseThrow { BusinessException(ErrorCode.SONG_NOT_FOUND) }
         val lyric = lyricRepository.findActiveBySongId(songId) ?: throw BusinessException(ErrorCode.LYRIC_NOT_FOUND)
+        val japanese = lyric.wordCandidates?.candidates.orEmpty().map { it.japanese }.distinct()
+        val savedWords = if (japanese.isEmpty()) emptyMap() else {
+            wordRepository.findByUserIdAndJapaneseTextIn(userId, japanese).associateBy { it.japaneseText }
+        }
+        return assembleWords(lyric, savedWords)
+    }
+
+    /** [assembleWords] 와 단계 카드가 찾는 유저 단어 표기. 곡의 표기와 담을 때의 표기(원형)를 함께 준다. */
+    internal fun wordKeys(lyric: LyricEntity): List<String> =
+        lyric.wordCandidates?.candidates.orEmpty().flatMap { listOf(it.japanese, it.addKey()) }.distinct()
+
+    /** DB 없이 가사와 유저 단어로 곡 단어 목록을 만든다. [savedWords] 는 japanese 표기로 찾는다. */
+    internal fun assembleWords(lyric: LyricEntity, savedWords: Map<String, WordEntity>): WordsInSongDto {
+        val songId = lyric.songId
         val emptyDefaults = WordFilterDefaultsDto()
         val wordCandidates = lyric.wordCandidates
         if (wordCandidates == null) {
@@ -84,10 +103,6 @@ class SongDetailQueryService(
             .groupBy { it.value.japanese }
             .values
             .sortedWith(compareBy({ group -> group.minOf { it.value.appearanceOrder } }, { it.first().value.japanese }))
-        val wordsByJapanese = wordRepository.findByUserIdAndJapaneseTextIn(
-            userId,
-            grouped.map { it.first().value.japanese }.distinct()
-        ).associateBy { it.japaneseText }
         val rawToFinalIndex = grouped.flatMapIndexed { finalIndex, group ->
             group.map { it.index to finalIndex }
         }.toMap()
@@ -130,7 +145,7 @@ class SongDetailQueryService(
                 sense.copy(examples = sense.examples.filter { claimedLines.add(it.lineIndex) })
             }
             val lineIndexes = candidates.flatMap { it.lineIndexes }.distinct().sorted()
-            val saved = wordsByJapanese[candidate.japanese]
+            val saved = savedWords[candidate.japanese]
             // ALL 판정: 곡이 제시한 뜻이 전부 저장돼 있어야 담긴 것으로 본다. 비교는 이미 로드한 senses 로 메모리에서.
             val savedWithMeaning = saved != null &&
                 senses.isNotEmpty() &&
@@ -157,7 +172,7 @@ class SongDetailQueryService(
                 isSavedForSong = savedWithMeaning,
                 savedWordId = savedWordId,
                 addRequest = AddWordRequest(
-                    japanese = candidate.baseForm?.takeIf { it.isNotBlank() } ?: candidate.surface,
+                    japanese = candidate.addKey(),
                     reading = candidate.baseFormReading ?: candidate.reading,
                     senses = senses,
                     songId = songId,
@@ -198,6 +213,8 @@ class SongDetailQueryService(
         val matchesJlpt = if (jlpt == null) defaults.includeUnknownJlpt else jlpt in defaults.jlpt
         return partOfSpeech in defaults.pos && matchesJlpt
     }
+
+    private fun WordCandidate.addKey(): String = baseForm?.takeIf { it.isNotBlank() } ?: surface
 
     companion object {
         private const val TOP_WORD_COUNT = 5
