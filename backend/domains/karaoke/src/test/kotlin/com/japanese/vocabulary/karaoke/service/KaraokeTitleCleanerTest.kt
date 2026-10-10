@@ -43,6 +43,16 @@ class KaraokeTitleCleanerTest {
     }
 
     @Test
+    fun `does not match a vocal-less version of the song`() {
+        assertThat(KaraokeTitleCleaner.sameSong("Execution Clap", "TRAP CHICK", "Execution Clap (Instrumental)", "TRAP CHICK")).isFalse()
+        assertThat(KaraokeTitleCleaner.sameSong("唱", "Ado", "唱 (Off Vocal)", "Ado")).isFalse()
+        assertThat(KaraokeTitleCleaner.sameSong("唱", "Ado", "唱 (Inst.)", "Ado")).isFalse()
+        assertThat(KaraokeTitleCleaner.sameSong("唱", "Ado", "唱 -オフボーカル-", "Ado")).isFalse()
+        assertThat(KaraokeTitleCleaner.sameSong("Execution Clap", "TRAP CHICK", "Execution Clap (feat. Kasane Teto)", "TRAP CHICK")).isTrue()
+        assertThat(KaraokeTitleCleaner.sameSong("Instrument", "Ado", "Instrument", "Ado")).isTrue()
+    }
+
+    @Test
     fun `matches on the main artist however guests are credited`() {
         assertThat(KaraokeTitleCleaner.sameSong("少女A", "椎名もた feat.鏡音リン", "少女A", "椎名もた & 鏡音リン")).isTrue()
         assertThat(KaraokeTitleCleaner.sameSong("少女A", "椎名もた feat.鏡音リン", "少女A", "椎名もた")).isTrue()

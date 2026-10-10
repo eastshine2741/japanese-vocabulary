@@ -13,6 +13,7 @@ object KaraokeTitleCleaner {
     private val LATIN_SUBTITLE = Regex("""\s+-\s+[\p{ASCII}]+$""")
     private val SPACES = Regex("""\s+""")
     private const val TRUNCATION = ".."
+    private val VOCALLESS = Regex("""instrumental|\binst\b|off[\s-]?vocal|karaoke|オフボーカル|カラオケ|インスト""", RegexOption.IGNORE_CASE)
 
     fun isTruncated(raw: String): Boolean = raw.trimEnd().endsWith(TRUNCATION)
 
@@ -32,9 +33,11 @@ object KaraokeTitleCleaner {
     /**
      * 노래방 원문과 Apple Music 결과가 같은 곡인지. 가수는 메인 가수만 본다: 금영 `椎名もた feat.鏡音リン` 과
      * Apple Music `椎名もた & 鏡音リン` 처럼 함께 적는 방식이 서로 다르다. 잘린 표기는 앞부분만 맞으면 된다.
+     * 반주 버전은 괄호를 지우면 원곡과 같아지지만 가사가 없어 분석이 실패하므로 다른 곡으로 본다.
      */
     fun sameSong(rawTitle: String, rawArtist: String, candidateTitle: String, candidateArtist: String): Boolean =
-        matches(rawTitle, candidateTitle, ::cleanTitle) && matches(rawArtist, candidateArtist, ::mainArtist)
+        (!VOCALLESS.containsMatchIn(candidateTitle) || VOCALLESS.containsMatchIn(rawTitle)) &&
+            matches(rawTitle, candidateTitle, ::cleanTitle) && matches(rawArtist, candidateArtist, ::mainArtist)
 
     private fun mainArtist(raw: String): String = cleanArtist(raw).let { ArtistCredit.names(it).firstOrNull() ?: it }
 
