@@ -22,13 +22,14 @@ import {
 import SongCardShowcase, { SongCardBack, SongCardFront, songUpgradeFocus } from './SongCardShowcase';
 import { CARD_RATIO, SONG_MASTER_NAME, SONG_TIER_NAME, songTierName, useCardFonts } from './cardTheme';
 import { previousSongCard, songRung } from './cardUpgrade';
-import { findDummyLyrics } from './dummyRewardCards';
+import { songGradeOf } from './serverRewardCards';
 import { CardSignature } from './signature';
-import { SongRewardCard } from './types';
+import { CardLyricLine, SongRewardCard } from './types';
 import { useCardTilt } from './useCardTilt';
 
 /** 아트를 못 받아도 이 시간 뒤엔 띄운다. */
 const PREFETCH_TIMEOUT_MS = 1500;
+const NO_LINES: CardLyricLine[] = [];
 const SONG_RADIUS = 0.046;
 
 /** 레벨 n 은 n번째 단계 단어를 다 공부한 카드다. 등급 이름에 단계 이름을 쓰지 않고 조건으로만 붙인다. */
@@ -47,22 +48,24 @@ const SONG_GUIDE = ['이 곡의 단어를 공부하는 만큼 강화되는 카�
  * 위에 겹쳐 그리면 아래 화면까지 매 프레임 다시 합성돼 끊기므로, 스택 화면으로 띄워 아래 화면을 떼어 낸다.
  */
 export const RewardCardRevealHost = React.memo(function RewardCardRevealHost() {
-  const reveal = useRewardCardStore((s) => s.reveal);
+  const next = useRewardCardStore((s) => (s.active ? null : s.queue[0] ?? null));
   const imageUrl = useRewardCardStore((s) =>
-    s.reveal?.kind === 'song'
-      ? s.songCards.find((c) => c.id === s.reveal?.cardId)?.artworkUrl
-      : s.artistCards.find((c) => c.id === s.reveal?.cardId)?.imageUrl,
+    next?.kind === 'song'
+      ? s.songCards.find((c) => c.id === next.cardId)?.artworkUrl
+      : next
+        ? s.artistCards.find((c) => c.id === next.cardId)?.imageUrl
+        : undefined,
   );
   const streakShowing = useStreakStore((s) => s.celebration !== null);
 
   useEffect(() => {
-    if (!reveal || streakShowing) return;
+    if (!next || streakShowing) return;
     let pending = true;
     const open = () => {
       if (!pending) return;
       pending = false;
-      useRewardCardStore.getState().dismissReveal();
-      navigate('RewardCardReveal', reveal);
+      const target = useRewardCardStore.getState().openNextReveal();
+      if (target) navigate('RewardCardReveal', { ...target, queued: true });
     };
     // 회전 도중 아트가 늦게 받아져 튀어나오지 않도록 미리 받아 둔다.
     const timer = setTimeout(open, PREFETCH_TIMEOUT_MS);
@@ -72,7 +75,7 @@ export const RewardCardRevealHost = React.memo(function RewardCardRevealHost() {
       pending = false;
       clearTimeout(timer);
     };
-  }, [reveal, imageUrl, streakShowing]);
+  }, [next, imageUrl, streakShowing]);
 
   return null;
 });
@@ -95,7 +98,10 @@ export const RewardCardReveal = React.memo(function RewardCardReveal({ card, sta
   const fonts = useCardFonts();
   const tilt = useCardTilt();
   const motion = useRevealMotion(started);
-  const lines = useMemo(() => findDummyLyrics(card.id), [card.id]);
+  const lines = useRewardCardStore((s) => s.lyricLines[card.id]) ?? NO_LINES;
+  useEffect(() => {
+    useRewardCardStore.getState().loadLyricLines(card.id);
+  }, [card.id]);
   const setLyric = useRewardCardStore((s) => s.setLyric);
   const sign = useRewardCardStore((s) => s.sign);
   const markWearIntroSeen = useRewardCardStore((s) => s.markWearIntroSeen);
@@ -223,17 +229,22 @@ export const RewardCardReveal = React.memo(function RewardCardReveal({ card, sta
 
 interface UpgradeProps {
   card: SongRewardCard;
+  /** 오르기 전 등급(서버). 없으면 한 단계 아래 카드로 만든다. */
+  fromGrade?: string | null;
   started: boolean;
   onClose: () => void;
 }
 
 /** 이미 가진 곡 카드의 등급이 올랐을 때. 새 다이아를 박으면 한 단계 아래 카드 위로 지금 재질이 번진다. */
-export const SongCardUpgrade = React.memo(function SongCardUpgrade({ card, started, onClose }: UpgradeProps) {
+export const SongCardUpgrade = React.memo(function SongCardUpgrade({ card, fromGrade, started, onClose }: UpgradeProps) {
   const { width: screenW, height: screenH } = useWindowDimensions();
   const fonts = useCardFonts();
   const tilt = useCardTilt();
   const motion = useUpgradeMotion(started);
-  const before = useMemo(() => previousSongCard(card) ?? card, [card]);
+  const before = useMemo(
+    () => (fromGrade ? { ...card, ...songGradeOf(fromGrade) } : previousSongCard(card) ?? card),
+    [card, fromGrade],
+  );
   const cardW = Math.min(screenW * 0.66, (screenH * 0.42) / CARD_RATIO, 320);
 
   return (

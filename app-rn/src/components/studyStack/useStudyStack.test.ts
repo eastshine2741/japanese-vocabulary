@@ -43,6 +43,8 @@ vi.mock('../../api/studyStatsApi', () => ({ studyStatsApi: { getHome: vi.fn() } 
 vi.mock('../../api/wordApi', () => ({ wordApi: { getById: vi.fn() } }));
 vi.mock('../../services/analytics', () => ({ trackCardReveal: vi.fn(), trackCardRate: vi.fn() }));
 vi.mock('../../stores/studyStatsStore', () => ({ useStudyStatsStore: { getState: () => ({ invalidate: vi.fn() }) } }));
+const receiveReveals = vi.fn();
+vi.mock('../../stores/rewardCardStore', () => ({ useRewardCardStore: { getState: () => ({ receiveReveals }) } }));
 
 const source: StudySource = {
   deckId: 7, songId: 3, title: 'Song', artist: 'Artist', artworkUrl: null, dueCount: 30, totalCount: 40,
@@ -251,6 +253,17 @@ it('resets the memory diff when the stack reloads', async () => {
   expect(stack.memoryDiff).toEqual({ toLongTerm: 1, toShortTerm: 0 });
   await act(async () => { stack.reload(); });
   expect(stack.memoryDiff).toEqual({ toLongTerm: 0, toShortTerm: 0 });
+});
+
+it('hands reward card reveals from the rating to the card store', async () => {
+  const reveals = [{ kind: 'SONG' as const, targetId: 5, grade: 'BRONZE', seenGrade: null, acquiredSeq: 1 }];
+  vi.mocked(flashcardApi.getDueCards).mockResolvedValue({ cards: [card(1)], totalCount: 1, nextDueAt: null });
+  vi.mocked(flashcardApi.review).mockResolvedValue({
+    id: 1, state: 1, due: '2026-09-05T01:00:10Z', stability: 9, difficulty: 1, memory: 'SHORT_TERM', rewardCards: reveals,
+  });
+  await mount();
+  await rate(3);
+  expect(receiveReveals).toHaveBeenCalledWith(reveals);
 });
 
 it('lets horizontal example carousel swipes pass through after rating is selected', async () => {

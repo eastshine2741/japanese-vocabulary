@@ -6,6 +6,7 @@ import { useDeckWordListStore } from '../stores/deckWordListStore';
 import { useHomeStore } from '../stores/homeStore';
 import { useKaraokeStore } from '../stores/karaokeStore';
 import { usePlayerStore } from '../stores/playerStore';
+import { useRewardCardStore } from '../stores/rewardCardStore';
 import { useRecommendationStore } from '../stores/recommendationStore';
 import { useSearchHistoryStore } from '../stores/searchHistoryStore';
 import { useSongDetailStore } from '../stores/songDetailStore';
@@ -79,6 +80,7 @@ export function resetAllStores() {
   useKaraokeStore.getState().reset();
   useStudyScheduleStore.getState().reset();
   useStreakStore.getState().reset();
+  useRewardCardStore.getState().reset();
   usePlayerStore.setState({ status: 'idle', studyData: null, errorCode: null, currentMs: 0, durationMs: 0 });
   useSongDetailStore.setState({ status: 'idle', data: null, errorCode: null });
   useSearchHistoryStore.setState({ terms: [] });

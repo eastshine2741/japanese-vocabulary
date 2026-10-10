@@ -1,3 +1,4 @@
+import type { RewardCardRevealDto } from './rewardCard';
 import { AddWordRequest, WordSense } from './word';
 import { FlashcardDTO, FlashcardMemory } from './flashcard';
 
@@ -155,6 +156,8 @@ export interface SongStudyBootstrapResponse {
   nextDueAt: string | null;
   /** 이 호출이 담으면서 바로 리뷰한 lead 단어의 리뷰 **후** 기억 칸. 리뷰 전 칸은 항상 `REMAINING` 이다. */
   reviewedMemory: FlashcardMemory;
+  /** 곡의 첫 rating 이라 대개 곡 카드(와 아티스트 카드) 획득이 실린다. */
+  rewardCards?: RewardCardRevealDto[];
 }
 
 /**

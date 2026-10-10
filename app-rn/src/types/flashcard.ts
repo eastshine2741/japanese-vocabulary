@@ -1,3 +1,4 @@
+import type { RewardCardRevealDto } from './rewardCard';
 import { WordSense } from './word';
 
 /**
@@ -51,6 +52,8 @@ export interface ReviewResponse {
   difficulty: number;
   /** 이 리뷰를 반영한 뒤의 기억 칸. */
   memory: FlashcardMemory;
+  /** 이 rating 으로 생긴 카드 연출. 곡 카드 → 아티스트 카드 순. */
+  rewardCards?: RewardCardRevealDto[];
 }
 
 export interface UserSettingsDTO {

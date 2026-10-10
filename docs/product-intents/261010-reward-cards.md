@@ -2,7 +2,8 @@
 
 Pen `app-rn/japanese-vocabulary.pen` 의 `P3a. Profile — 카드 탭` / `P3b. Profile — 학습 탭`,
 `component/songCard` · `component/artistCard`, `spec/songCard states` 가 원본이다.
-앱은 아직 더미 데이터(`app-rn/src/components/rewardCards/dummyRewardCards.ts`)로만 그린다. API 는 없다.
+앱은 서버 카드(`GET /api/reward-cards`)를 그린다. 개발 빌드에선 화면 왼쪽 위 `카드: 서버|더미` 칩으로 더미 데이터
+(`app-rn/src/components/rewardCards/dummyRewardCards.ts`, 모든 등급·재질 견본)로 바꿔 볼 수 있다. 더미를 보는 동안엔 서버 연출을 띄우지 않는다(서버에 남아 나중에 뜬다).
 
 ## 곡 카드 — 한 곡에 한 장, 한 방향으로만 오른다
 
@@ -58,7 +59,7 @@ age    = clamp((0.9 − recall) / 0.4, 0, 1)
   개발 빌드에선 곡 카드 상세의 `기억할 확률` 줄을 길게 누르면 이 화면만 바로 뜬다(본 것으로 치지 않는다).
 - 나중에도 카드 상세의 편집 버튼(`RewardCardLyricEdit`)에서 언제든 바꾼다. 고르는 대로 미리보기 앞면이 바뀌고, 2줄이 찬 채로
   새 줄을 누르면 먼저 고른 줄이 빠진다.
-- 아직 획득 이벤트가 없어 개발 빌드에서만 프로필 곡 카드·아티스트 카드를 길게 눌러 획득 화면을 띄운다. 고른 가사·서명은 앱을 다시 켜면 사라진다.
+- 개발 빌드에선 프로필 곡 카드·아티스트 카드를 길게 눌러 획득 화면을 다시 띄운다. 이렇게 띄운 연출의 서명·가사는 서버에 보내지 않는다.
 
 ## 곡 카드 서명 — 발급 때 한 번
 
@@ -94,7 +95,7 @@ age    = clamp((0.9 − recall) / 0.4, 0, 1)
   계단은 다가가는 동안 숨는다. 누른 뒤 다 덮기까지 약 3.2초.
 - 두 면을 Skia 로 이미지로 떠서 번지는 원을 마스크로 쓴다(웹은 겹쳐 비추기만). 박힐 자리는 앞면 배치에서 계산한다
   (`songUpgradeFocus`·`artistUpgradeFocus`) — 앞면 배치를 바꾸면 같이 고친다. `rewardCardStore.upgradeCard` 가 획득 화면과 같은
-  자리(`RewardCardReveal` 라우트, `upgrade: true`)로 띄운다. 아직 승급 이벤트가 없어 옛 재질은 지금 재질에서 거꾸로 만든다(`cardUpgrade.ts`),
+  자리(`RewardCardReveal` 라우트, `upgrade: true`)로 띄운다. 옛 재질은 서버 연출이면 오르기 전 등급(`seenGrade`)으로, 개발용으로 띄우면 지금 재질에서 한 단계 거꾸로 만든다(`cardUpgrade.ts`),
   개발 빌드에선 프로필 카드를 길게 눌러 '등급 오르기'를 고른다.
 
 ## 아티스트 카드
@@ -177,3 +178,37 @@ age    = clamp((0.9 − recall) / 0.4, 0, 1)
 마스터 카드는 앞면 구성부터 다르다 — 테 없이 앨범 아트를 끝까지 깔고, 글리터·무지개 광택이 두 장면 위를 함께 덮는다.
 마스터 카드의 렌티큘러 장면 전환과 글리터는 Skia(`@shopify/react-native-skia`) 셰이더로 그린다 — 새 네이티브 빌드가 필요하고,
 웹(개발용)은 SVG·띠 자르기로 흉내만 낸다.
+
+## 서버 — 달성은 rating 트랜잭션, 발급은 서명
+
+`domains:rewardcard`(`song_card`·`artist_card`·`reward_card_seq`, V43). 판정은 api 의 `RewardCardAchievementService`.
+
+- **언제 다는가**: rating 직후, 같은 트랜잭션에서. 복습 세션은 탭만 바꿔도 끝나 경계가 없으므로 세션 끝에 몰아 띄우지 않는다.
+  카드 이벤트는 곡마다 다섯 번뿐이고, 연속 학습 축하도 이미 rating 직후에 뜬다. 원인(방금 이 단어로 단계를 끝냄)과 결과가 붙어 있어야 읽힌다.
+- **어느 경로에서**: `POST /api/flashcards/{id}/review` 와 곡의 첫 rating 인 `POST /api/songs/{id}/study-bootstrap` 둘 다. 응답의 `rewardCards[]` 를
+  앱이 카드를 다시 받은 뒤 차례로 띄운다(`rewardCardStore.receiveReveals`, 한 번에 하나, 닫히면 다음). 앱을 열면 홈에서 한 번 `pending` 을 받아 같은 차례에 넣는다.
+- **어느 곡을 재는가**: 방금 rating 한 단어가 담긴 곡 단어장의 곡들. 등급은 `/word-tiers` 응답 그대로 — 앞에서부터 끝낸 단계 수, 완곡 뒤 tier 단어 90% 장기기억이면 MASTER.
+  담기지 않은 곡에 같은 단어가 있어 그 곡 단계가 끝나도, 그 곡 단어를 rating 할 때까지 카드는 오르지 않는다.
+- **달성과 발급을 나눈다**: 행이 생기면 달성(`created_at`, 순번 고정), `seen_grade` 가 차면 발급(서명 확정). `seen_grade` 가 NULL 이면 획득 연출이,
+  `grade` 와 다르면 등급 오름 연출이 남았다. 서명 전에 앱을 끄면 `GET /api/reward-cards/pending` 이 다음에 다시 준다. 서명 전에 더 오르면 오른 등급으로 받는다.
+- **순번**: 곡·아티스트별 "N번째 획득"은 `reward_card_seq` 행 하나를 `INSERT … ON DUPLICATE KEY UPDATE last_seq = LAST_INSERT_ID(last_seq + 1)` 로 올려 받는다.
+  MAX()+1 은 REPEATABLE READ 에서 갭 락끼리 데드락이 난다. rating 과 같이 롤백되므로 빈 번호가 없다. 탈퇴는 soft delete 라 순번이 밀리지 않는다.
+- **곡이 여럿일 때**: 곡·가사·유저 단어·flashcard 를 IN 으로 한 번씩 읽고 등급은 메모리에서 잰다. 쓰기는 곡 id 순으로 곡 카드를 다 한 뒤
+  아티스트 id 순으로 아티스트 카드를 한다 — 순번 행 락이 늘 같은 순서로 잡혀야 카드 여러 장을 만드는 rating 끼리 데드락이 나지 않는다.
+- **아티스트**: 곡 카드에 달성 때의 `songs.artist_id` 를 박제한다. 아티스트 연결(batch `artist-link`)이 늦으면 연결된 뒤의 rating 에서 이어 붙이고 그때 아티스트 카드가 생긴다.
+  등급은 마스터 곡 수에서 구하되 저장한다 — 구간을 다시 맞춰도 내리지 않는다.
+
+| API | |
+|---|---|
+| `POST /api/flashcards/{id}/review` | 응답 `rewardCards[]` = 이 rating 으로 생긴 연출 `{kind: SONG\|ARTIST, targetId, grade, seenGrade, acquiredSeq}`, 곡 → 아티스트 순 |
+| `GET /api/reward-cards/pending` | 남은 연출 전부 |
+| `GET /api/reward-cards` | 곡 카드(최근 획득순, 카드 면에 싣는 가사 줄·뒷면 단어 5개·평균 R·다음 등급 진행 포함)·아티스트 카드(마스터한 곡 전부, 마스터 순) |
+| `POST /api/reward-cards/songs/{songId}/issue` | `{signature: string[], lyricLineIndexes?: int[]}` 발급. 이미 발급이면 409 |
+| `POST /api/reward-cards/artists/{artistId}/issue` | `{signature}` |
+| `POST /api/reward-cards/{songs\|artists}/{id}/seen` | `{grade}` 등급 오름 연출을 본 등급까지 |
+| `PUT /api/reward-cards/songs/{songId}/lyric` | `{lyricLineIndexes}` 1~2줄 |
+
+- 가사 줄은 `/lyrics` 와 같은 모양이라 앱이 같은 방식으로 후리가나를 붙인다. 고르지 않았으면 서버가 기본 줄(가장 많이 반복되는 줄과 그 다음 줄)을 싣는다.
+- 평균 R 은 끝낸 단계 단어 중 리뷰 이력이 있는 카드로, 끝낸 단계가 없으면 리뷰한 tier 단어 전부로 잰다. 다음 등급 진행은 다음 단계의 공부한 단어 수,
+  완곡 뒤엔 tier 단어 90%(올림)까지의 장기기억 수다.
+- 카드 색(accent·ink)은 아트에서 뽑으려면 네이티브 모듈이 필요해, 앱이 id 로 고정 팔레트에서 고른다.

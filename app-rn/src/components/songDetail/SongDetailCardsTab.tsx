@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import { SongCardKindGrid } from '../rewardCards/CardKindGrid';
 import { findSongCard } from '../rewardCards/cardKinds';
@@ -21,6 +21,9 @@ export const SongDetailCardsTab = React.memo(function SongDetailCardsTab({
   const { width: screenWidth } = useWindowDimensions();
   const fonts = useCardFonts();
   const card = useRewardCardStore(s => findSongCard(s.songCards, song.id, song.title));
+  useEffect(() => {
+    useRewardCardStore.getState().ensureServerCards();
+  }, []);
   return (
     <View style={styles.container}>
       <SongCardKindGrid

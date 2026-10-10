@@ -18,6 +18,7 @@ import {
 import { ARTIST_GRADE_STEPS, artistGradeStep } from './artistGrade';
 import { ARTIST_CARD_RATIO, useCardFonts } from './cardTheme';
 import { artistRung, previousArtistCard } from './cardUpgrade';
+import { artistGradeFrom } from './serverRewardCards';
 import { CardSignature } from './signature';
 import { ArtistRewardCard } from './types';
 import { useCardTilt } from './useCardTilt';
@@ -122,17 +123,23 @@ export default React.memo(ArtistCardReveal);
 
 interface UpgradeProps {
   card: ArtistRewardCard;
+  /** 오르기 전 등급(서버). 없으면 한 단계 아래 카드로 만든다. */
+  fromGrade?: string | null;
   started: boolean;
   onClose: () => void;
 }
 
 /** 마스터 곡이 늘어 아티스트 카드 재질이 올랐을 때. 새 재질 각인을 새기면 한 단계 아래 카드 위로 지금 재질이 번진다. */
-export const ArtistCardUpgrade = React.memo(function ArtistCardUpgrade({ card, started, onClose }: UpgradeProps) {
+export const ArtistCardUpgrade = React.memo(function ArtistCardUpgrade({ card, fromGrade, started, onClose }: UpgradeProps) {
   const { width: screenW, height: screenH } = useWindowDimensions();
   const fonts = useCardFonts();
   const tilt = useCardTilt();
   const motion = useUpgradeMotion(started);
-  const before = useMemo(() => previousArtistCard(card) ?? card, [card]);
+  const before = useMemo(() => {
+    if (!fromGrade) return previousArtistCard(card) ?? card;
+    const count = artistGradeFrom(fromGrade);
+    return { ...card, masteredCount: count, masteredSongs: card.masteredSongs.slice(0, count) };
+  }, [card, fromGrade]);
   const cardW = Math.min(screenW - 56, (screenH * 0.36) / ARTIST_CARD_RATIO, 380);
 
   return (

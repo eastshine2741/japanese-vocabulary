@@ -7,6 +7,7 @@ import { trackCardRate, trackCardReveal } from '../../services/analytics';
 import { studyStatsApi } from '../../api/studyStatsApi';
 import { wordApi } from '../../api/wordApi';
 import { useStreakStore } from '../../stores/streakStore';
+import { useRewardCardStore } from '../../stores/rewardCardStore';
 import { useStudyStatsStore } from '../../stores/studyStatsStore';
 import { SongDeckSummary } from '../../types/deck';
 import { WordInSongItemDto, WordsInSongDto } from '../../types/song';
@@ -612,6 +613,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
       trackCardRate({ mode, position, is_preview: true }, rating);
       useStudyStatsStore.getState().invalidate();
       useStreakStore.getState().recordRating();
+      useRewardCardStore.getState().receiveReveals(result.rewardCards);
       isPreviewRef.current = false;
       fixedQueueRef.current = false;
       const newSource: StudySource = {
@@ -676,6 +678,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
       trackCardRate({ mode, position, is_preview: false }, rating);
       useStudyStatsStore.getState().invalidate();
       useStreakStore.getState().recordRating();
+      useRewardCardStore.getState().receiveReveals(reviewResult.rewardCards);
       setReviewError(null);
       setMemoryDiff(diff => accumulateMemoryDiff(diff, reviewedCard.memory, reviewResult.memory));
       setReviewedCount(count => count + 1);

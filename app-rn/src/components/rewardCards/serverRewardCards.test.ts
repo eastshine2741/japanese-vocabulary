@@ -1,0 +1,92 @@
+import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('../songDetail/songCardSample', () => ({
+  toCardLine: (line: { index: number; originalText: string; koreanLyrics: string | null }) => ({
+    index: line.index,
+    ruby: [{ text: line.originalText }],
+    ko: line.koreanLyrics ?? '',
+  }),
+}));
+
+import type { ArtistCardDto, SongCardDto } from '../../types/rewardCard';
+import { artistGradeFrom, kstDate, serverTargetId, songGradeOf, toArtistCard, toRevealTarget, toSongCard } from './serverRewardCards';
+
+const songDto = (over: Partial<SongCardDto> = {}): SongCardDto => ({
+  songId: 12,
+  title: '群青',
+  artist: 'YOASOBI',
+  artworkUrl: null,
+  artistId: 3,
+  grade: 'SILVER',
+  seenGrade: 'SILVER',
+  acquiredSeq: 41,
+  lyricLineIndexes: [],
+  lyric: [{ index: 4, originalText: '青い', startTimeMs: null, koreanLyrics: '푸른', tokens: [] }],
+  words: [{ japanese: '波', reading: 'ナミ', meaning: '파도' }],
+  recall: 0.82,
+  nextGoal: { current: 3, total: 9 },
+  signature: [],
+  masteredAt: null,
+  createdAt: '2026-10-10T16:30:00Z',
+  ...over,
+});
+
+describe('serverRewardCards', () => {
+  it('maps a song card to the card model', () => {
+    const card = toSongCard(songDto());
+    expect(card.id).toBe('srv-song-12');
+    expect(card).toMatchObject({ level: 2, mastered: false, ownerNo: 41, recall: 0.82, artworkUrl: '', signature: null });
+    // 16:30 UTC 는 KST 로 다음 날이다.
+    expect(card.earnedAt).toBe('2026-10-11');
+    expect(card.words[0].reading).toBe('なみ');
+    expect(card.lyric.map((line) => line.index)).toEqual([4]);
+  });
+
+  it('master is level 3 with the mastered front and keeps the signature', () => {
+    const card = toSongCard(songDto({ grade: 'MASTER', signature: ['M 0 0'] }));
+    expect(card).toMatchObject({ level: 3, mastered: true, signature: ['M 0 0'] });
+  });
+
+  it('maps an artist card counting mastered songs', () => {
+    const dto: ArtistCardDto = {
+      artistId: 3,
+      name: 'YOASOBI',
+      artworkUrl: 'a.jpg',
+      grade: 'BRONZE',
+      seenGrade: null,
+      acquiredSeq: 7,
+      signature: [],
+      masteredSongs: [{ songId: 12, title: '群青', artworkUrl: null }],
+      createdAt: '2026-10-01T00:00:00Z',
+    };
+    expect(toArtistCard(dto)).toMatchObject({
+      id: 'srv-artist-3',
+      artistId: 3,
+      masteredCount: 1,
+      fanNo: 7,
+      since: '2026-10-01',
+      masteredSongs: [{ title: '群青', artworkUrl: '' }],
+    });
+  });
+
+  it('reveal targets carry the grade to mark seen and the grade it rose from', () => {
+    expect(toRevealTarget({ kind: 'SONG', targetId: 12, grade: 'GOLD', seenGrade: 'BRONZE', acquiredSeq: 1 })).toEqual({
+      kind: 'song', cardId: 'srv-song-12', upgrade: true, grade: 'GOLD', fromGrade: 'BRONZE',
+    });
+    expect(toRevealTarget({ kind: 'ARTIST', targetId: 3, grade: 'BASIC', seenGrade: null, acquiredSeq: 1 })).toMatchObject({
+      kind: 'artist', cardId: 'srv-artist-3', upgrade: false,
+    });
+  });
+
+  it('server ids never collide with dummy ids', () => {
+    expect(serverTargetId('srv-song-12')).toBe(12);
+    expect(serverTargetId('artist-3')).toBeNull();
+    expect(serverTargetId('lemon')).toBeNull();
+  });
+
+  it('grade helpers', () => {
+    expect(songGradeOf('BASIC')).toEqual({ level: 0, mastered: false });
+    expect(artistGradeFrom('GOLD')).toBe(7);
+    expect(kstDate('2026-01-01T14:59:59Z')).toBe('2026-01-01');
+  });
+});

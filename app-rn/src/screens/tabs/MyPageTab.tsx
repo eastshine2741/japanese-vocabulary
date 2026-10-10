@@ -92,6 +92,7 @@ export default function MyPageTab() {
     useCallback(() => {
       loadProfile();
       loadDecks();
+      if (useRewardCardStore.getState().source === 'server') useRewardCardStore.getState().loadServerCards();
     }, [loadProfile, loadDecks]),
   );
 

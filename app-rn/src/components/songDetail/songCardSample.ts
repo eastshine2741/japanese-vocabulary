@@ -7,7 +7,7 @@ import type { SongDetailWordItem } from './types';
 
 const SAMPLE_WORD_COUNT = 5;
 
-function toCardLine(line: SongLyricLineDto): CardLyricLine {
+export function toCardLine(line: SongLyricLineDto): CardLyricLine {
   return {
     index: line.index,
     ruby: buildTokenCells(line, []).map(cell => ({ text: cell.text, reading: cell.furigana ?? undefined })),

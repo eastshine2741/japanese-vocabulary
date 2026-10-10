@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -7,10 +7,12 @@ import { StatusBar } from 'expo-status-bar';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import CardLyricEditor from '../components/rewardCards/CardLyricEditor';
 import { SHOWROOM, useCardFonts } from '../components/rewardCards/cardTheme';
-import { findDummyLyrics } from '../components/rewardCards/dummyRewardCards';
+import { CardLyricLine } from '../components/rewardCards/types';
 import { useRewardCardStore } from '../stores/rewardCardStore';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'RewardCardLyricEdit'>;
+
+const NO_LINES: CardLyricLine[] = [];
 
 export default function RewardCardLyricEditScreen({ navigation, route }: Props) {
   const { cardId } = route.params;
@@ -19,7 +21,10 @@ export default function RewardCardLyricEditScreen({ navigation, route }: Props) 
   const insets = useSafeAreaInsets();
   const { width: screenW } = useWindowDimensions();
   const fonts = useCardFonts();
-  const lines = useMemo(() => findDummyLyrics(cardId), [cardId]);
+  const lines = useRewardCardStore((s) => s.lyricLines[cardId]) ?? NO_LINES;
+  useEffect(() => {
+    useRewardCardStore.getState().loadLyricLines(cardId);
+  }, [cardId]);
 
   const handleClose = useCallback(() => navigation.goBack(), [navigation]);
   const handleSave = useCallback(

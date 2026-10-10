@@ -229,6 +229,9 @@ export default function ArtistDetailScreen({ navigation, route }: Props) {
   const fonts = useCardFonts();
   const artistName = artist?.name ?? '';
   const artistCard = useRewardCardStore(s => pickArtistCard(s.artistCards, artistName));
+  useEffect(() => {
+    useRewardCardStore.getState().ensureServerCards();
+  }, []);
 
   const analyze = usePlayerStore(s => s.analyze);
   const playerStatus = usePlayerStore(s => s.status);
