@@ -58,5 +58,7 @@ class KaraokeTitleCleanerTest {
         assertThat(KaraokeTitleCleaner.sameSong("少女A", "椎名もた feat.鏡音リン", "少女A", "椎名もた")).isTrue()
         assertThat(KaraokeTitleCleaner.sameSong("少女A", "椎名もた feat.鏡音リン", "少女A", "中森明菜")).isFalse()
         assertThat(KaraokeTitleCleaner.sameSong("曲", "長い名前のアーティ..", "曲", "長い名前のアーティスト & ゲスト")).isTrue()
+        assertThat(KaraokeTitleCleaner.sameSong("星降る海", "月見 ヤチヨ", "星降る海", "Aqu3ra, 超かぐや姫! & 月見ヤチヨ(cv.早見沙織)")).isTrue()
+        assertThat(KaraokeTitleCleaner.sameSong("少女A", "鏡音リン", "少女A", "椎名もた feat. 鏡音リン")).isFalse()
     }
 }
