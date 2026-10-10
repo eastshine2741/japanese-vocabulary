@@ -6,6 +6,7 @@ import { useRewardCardStore } from '../../stores/rewardCardStore';
 import { useStreakStore } from '../../stores/streakStore';
 import CardLyricEditor from './CardLyricEditor';
 import CardSigner, { SignableCard } from './CardSigner';
+import { CardUpgrade, useUpgradeMotion } from './CardUpgrade';
 import CardWearIntro from './CardWearIntro';
 import {
   LadderStep,
@@ -18,8 +19,9 @@ import {
   useRevealBackGuard,
   useRevealMotion,
 } from './CardRevealStage';
-import SongCardShowcase, { SongCardBack, SongCardFront } from './SongCardShowcase';
-import { CARD_RATIO, SONG_MASTER_NAME, SONG_TIER_NAME, useCardFonts } from './cardTheme';
+import SongCardShowcase, { SongCardBack, SongCardFront, songUpgradeFocus } from './SongCardShowcase';
+import { CARD_RATIO, SONG_MASTER_NAME, SONG_TIER_NAME, songTierName, useCardFonts } from './cardTheme';
+import { previousSongCard, songRung } from './cardUpgrade';
 import { findDummyLyrics } from './dummyRewardCards';
 import { CardSignature } from './signature';
 import { SongRewardCard } from './types';
@@ -172,7 +174,7 @@ export const RewardCardReveal = React.memo(function RewardCardReveal({ card, sta
           showcase={<SongCardShowcase card={card} width={cardW} tilt={tilt} fonts={fonts} />}
           heading="곡 카드를 얻었어요"
           guide={
-            <RevealGuide lines={SONG_GUIDE} steps={SONG_LADDER} current={card.mastered ? 4 : card.level} accent={card.accent} motion={motion} />
+            <RevealGuide lines={SONG_GUIDE} steps={SONG_LADDER} current={songRung(card)} accent={card.accent} motion={motion} />
           }
           actions={
             <>
@@ -215,6 +217,41 @@ export const RewardCardReveal = React.memo(function RewardCardReveal({ card, sta
           )}
         </RevealStep>
       )}
+    </RevealShell>
+  );
+});
+
+interface UpgradeProps {
+  card: SongRewardCard;
+  started: boolean;
+  onClose: () => void;
+}
+
+/** 이미 가진 곡 카드의 등급이 올랐을 때. 새 다이아를 박으면 한 단계 아래 카드 위로 지금 재질이 번진다. */
+export const SongCardUpgrade = React.memo(function SongCardUpgrade({ card, started, onClose }: UpgradeProps) {
+  const { width: screenW, height: screenH } = useWindowDimensions();
+  const fonts = useCardFonts();
+  const tilt = useCardTilt();
+  const motion = useUpgradeMotion(started);
+  const before = useMemo(() => previousSongCard(card) ?? card, [card]);
+  const cardW = Math.min(screenW * 0.66, (screenH * 0.42) / CARD_RATIO, 320);
+
+  return (
+    <RevealShell backdropUri={card.artworkUrl} motion={motion}>
+      <CardUpgrade
+        motion={motion}
+        tilt={tilt}
+        width={cardW}
+        ratio={CARD_RATIO}
+        radius={SONG_RADIUS}
+        before={<SongCardFront card={before} width={cardW} fonts={fonts} />}
+        after={<SongCardFront card={card} width={cardW} fonts={fonts} />}
+        focus={songUpgradeFocus(card, cardW)}
+        showcase={<SongCardShowcase card={card} width={cardW} tilt={tilt} fonts={fonts} />}
+        heading={`${songTierName(card.level, card.mastered)} 카드가 됐어요`}
+        guide={<RevealGuide lines={[]} steps={SONG_LADDER} from={songRung(before)} current={songRung(card)} accent={card.accent} motion={motion} />}
+        onDone={onClose}
+      />
     </RevealShell>
   );
 });

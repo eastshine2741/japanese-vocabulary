@@ -93,6 +93,20 @@ export const SongCardFront = React.memo(function SongCardFront({ card, width, fo
   );
 });
 
+/**
+ * 등급이 오를 때 새로 박히는 다이아의 중심. 앞면 배치(FrontFace·FoilFrontFace)에서 계산한다.
+ * 마스터는 다이아가 늘지 않고 셋이 함께 푸르게 바뀌어 줄 가운데를 짚는다.
+ */
+export function songUpgradeFocus(card: SongRewardCard, width: number): { x: number; y: number } {
+  const u = width / 100;
+  const height = width * CARD_RATIO;
+  const size = 2.4 * u;
+  const step = size * 1.75;
+  if (card.mastered) return { x: width - 7 * u - 2 - size * 1.5 - size * 0.75, y: height - 7 * u - size / 2 };
+  const right = width - 6.8 * u - 2;
+  return { x: right - size / 2 - (3 - Math.max(1, card.level)) * step, y: height - 6.8 * u - size / 2 };
+}
+
 interface SignatureSlot {
   /** 빈 서명 칸을 이 색 점선으로 표시한다. */
   signatureHint?: string;

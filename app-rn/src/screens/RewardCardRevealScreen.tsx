@@ -3,8 +3,8 @@ import { StyleSheet, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import ArtistCardReveal from '../components/rewardCards/ArtistCardReveal';
-import { RewardCardReveal } from '../components/rewardCards/RewardCardReveal';
+import ArtistCardReveal, { ArtistCardUpgrade } from '../components/rewardCards/ArtistCardReveal';
+import { RewardCardReveal, SongCardUpgrade } from '../components/rewardCards/RewardCardReveal';
 import { SHOWROOM } from '../components/rewardCards/cardTheme';
 import { useRewardCardStore } from '../stores/rewardCardStore';
 
@@ -14,7 +14,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'RewardCardReveal'>;
 const START_FALLBACK_MS = 600;
 
 export default function RewardCardRevealScreen({ navigation, route }: Props) {
-  const { kind, cardId, debugWearIntro } = route.params;
+  const { kind, cardId, upgrade, debugWearIntro } = route.params;
   const songCard = useRewardCardStore((s) => (kind === 'song' ? s.songCards.find((c) => c.id === cardId) : undefined));
   const artistCard = useRewardCardStore((s) => (kind === 'artist' ? s.artistCards.find((c) => c.id === cardId) : undefined));
   const [started, setStarted] = useState(false);
@@ -36,8 +36,12 @@ export default function RewardCardRevealScreen({ navigation, route }: Props) {
   return (
     <>
       <StatusBar style="light" />
-      {songCard ? (
+      {songCard && upgrade ? (
+        <SongCardUpgrade card={songCard} started={started} onClose={handleClose} />
+      ) : songCard ? (
         <RewardCardReveal card={songCard} started={started} onClose={handleClose} debugWearIntro={debugWearIntro} />
+      ) : artistCard && upgrade ? (
+        <ArtistCardUpgrade card={artistCard} started={started} onClose={handleClose} />
       ) : artistCard ? (
         <ArtistCardReveal card={artistCard} started={started} onClose={handleClose} />
       ) : (

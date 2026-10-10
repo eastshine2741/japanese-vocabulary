@@ -97,6 +97,14 @@ export const ArtistCardFront = React.memo(function ArtistCardFront({ card, width
   );
 });
 
+/** 등급이 오를 때 새로 새겨지는 재질 각인의 중심. 앞면 오른쪽 위 회원 번호 줄(FrontFace)에서 어림한다. */
+export function artistUpgradeFocus(card: ArtistRewardCard, width: number): { x: number; y: number } {
+  const u = width / 100;
+  const label = ARTIST_MATERIAL[artistGradeStep(card.masteredCount).grade].engrave ?? '';
+  const textW = label.length * 3.4 * u;
+  return { x: width - 6 * u - textW / 2, y: 6 * u + 1.8 * u };
+}
+
 /** 뒷면만 정적으로. 획득 연출에서 효과 없이 돌리거나 서명할 때 쓴다. */
 export const ArtistCardBack = React.memo(function ArtistCardBack({
   card,

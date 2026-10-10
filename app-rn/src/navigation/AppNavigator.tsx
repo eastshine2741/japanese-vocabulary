@@ -90,7 +90,7 @@ export type RootStackParamList = {
   /** 아직 얻지 않은 카드 종류의 견본 전시. condition 은 그 종류의 획득 조건 한 줄. */
   RewardCardPreview: { target: CardPreviewTarget; condition: string; reached: boolean };
   /** 카드 획득 연출과 발급 서명. 곡 카드는 가사 고르기를 거친다. */
-  RewardCardReveal: { kind: RewardCardKind; cardId: string; debugWearIntro?: boolean };
+  RewardCardReveal: { kind: RewardCardKind; cardId: string; upgrade?: boolean; debugWearIntro?: boolean };
   /** 프로필 카드 탭에서 아티스트 카드를 누르면 열리는 전시 화면. */
   /** masteredCount 를 주면 내 카드를 그 지나온 재질 모습으로 보여 준다. */
   ArtistCardDetail: { cardId: string; ownerName: string; masteredCount?: number };

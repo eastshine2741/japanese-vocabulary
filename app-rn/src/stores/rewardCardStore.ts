@@ -9,6 +9,8 @@ export type RewardCardKind = 'song' | 'artist';
 export interface RewardCardRevealTarget {
   kind: RewardCardKind;
   cardId: string;
+  /** 이미 가진 카드의 등급이 올랐다. 봉투·서명 없이 박은 자리에서 새 재질이 번진다. */
+  upgrade?: boolean;
 }
 
 interface RewardCardState {
@@ -21,6 +23,8 @@ interface RewardCardState {
 
   /** 카드를 얻는 조건이 채워진 직후 호출. 연속 학습 축하가 떠 있으면 그 화면이 닫힌 뒤에 뜬다. */
   revealCard: (kind: RewardCardKind, cardId: string) => void;
+  /** 가진 카드의 등급이 오른 직후 호출. 획득 화면과 같은 자리에서 뜬다. */
+  upgradeCard: (kind: RewardCardKind, cardId: string) => void;
   dismissReveal: () => void;
   markWearIntroSeen: () => void;
   /** 카드에 실을 가사 줄을 바꾼다. 빈 배열은 무시한다. */
@@ -51,6 +55,8 @@ export const useRewardCardStore = create<RewardCardState>((set) => ({
         ? { reveal: { kind, cardId }, songCards: clearSignature(state.songCards, cardId) }
         : { reveal: { kind, cardId }, artistCards: clearSignature(state.artistCards, cardId) },
     ),
+
+  upgradeCard: (kind, cardId) => set({ reveal: { kind, cardId, upgrade: true } }),
 
   dismissReveal: () => set({ reveal: null }),
 

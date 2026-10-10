@@ -2,8 +2,9 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRewardCardStore } from '../../stores/rewardCardStore';
-import ArtistCardShowcase, { ArtistCardBack, ArtistCardFront } from './ArtistCardShowcase';
+import ArtistCardShowcase, { ArtistCardBack, ArtistCardFront, artistUpgradeFocus } from './ArtistCardShowcase';
 import CardSigner, { SignableCard } from './CardSigner';
+import { CardUpgrade, useUpgradeMotion } from './CardUpgrade';
 import {
   LadderStep,
   RevealGuide,
@@ -16,6 +17,7 @@ import {
 } from './CardRevealStage';
 import { ARTIST_GRADE_STEPS, artistGradeStep } from './artistGrade';
 import { ARTIST_CARD_RATIO, useCardFonts } from './cardTheme';
+import { artistRung, previousArtistCard } from './cardUpgrade';
 import { CardSignature } from './signature';
 import { ArtistRewardCard } from './types';
 import { useCardTilt } from './useCardTilt';
@@ -81,7 +83,7 @@ function ArtistCardReveal({ card, started, onClose }: Props) {
 
   // 가로 카드라 폭을 넉넉히 쓴다.
   const cardW = Math.min(screenW - 56, (screenH * 0.36) / ARTIST_CARD_RATIO, 380);
-  const current = ARTIST_GRADE_STEPS.indexOf(artistGradeStep(card.masteredCount));
+  const current = artistRung(card);
 
   return (
     <RevealShell backdropUri={card.imageUrl} motion={motion}>
@@ -117,3 +119,38 @@ function ArtistCardReveal({ card, started, onClose }: Props) {
 }
 
 export default React.memo(ArtistCardReveal);
+
+interface UpgradeProps {
+  card: ArtistRewardCard;
+  started: boolean;
+  onClose: () => void;
+}
+
+/** 마스터 곡이 늘어 아티스트 카드 재질이 올랐을 때. 새 재질 각인을 새기면 한 단계 아래 카드 위로 지금 재질이 번진다. */
+export const ArtistCardUpgrade = React.memo(function ArtistCardUpgrade({ card, started, onClose }: UpgradeProps) {
+  const { width: screenW, height: screenH } = useWindowDimensions();
+  const fonts = useCardFonts();
+  const tilt = useCardTilt();
+  const motion = useUpgradeMotion(started);
+  const before = useMemo(() => previousArtistCard(card) ?? card, [card]);
+  const cardW = Math.min(screenW - 56, (screenH * 0.36) / ARTIST_CARD_RATIO, 380);
+
+  return (
+    <RevealShell backdropUri={card.imageUrl} motion={motion}>
+      <CardUpgrade
+        motion={motion}
+        tilt={tilt}
+        width={cardW}
+        ratio={ARTIST_CARD_RATIO}
+        radius={ARTIST_RADIUS}
+        before={<ArtistCardFront card={before} width={cardW} fonts={fonts} />}
+        after={<ArtistCardFront card={card} width={cardW} fonts={fonts} />}
+        focus={artistUpgradeFocus(card, cardW)}
+        showcase={<ArtistCardShowcase card={card} width={cardW} tilt={tilt} fonts={fonts} />}
+        heading={`${artistGradeStep(card.masteredCount).label} 카드가 됐어요`}
+        guide={<RevealGuide lines={[]} steps={ARTIST_LADDER} from={artistRung(before)} current={artistRung(card)} accent={card.accent} motion={motion} />}
+        onDone={onClose}
+      />
+    </RevealShell>
+  );
+});

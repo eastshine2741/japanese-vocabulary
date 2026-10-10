@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, useWindowDimensions } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, Alert, Platform, useWindowDimensions } from 'react-native';
 import { NavigationState, SceneRendererProps, TabBar, TabDescriptor, TabView } from 'react-native-tab-view';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
@@ -21,6 +21,8 @@ import { FlashcardStatsResponse } from '../../types/flashcard';
 import CardCollection from '../../components/rewardCards/CardCollection';
 import { useRewardCardStore } from '../../stores/rewardCardStore';
 import { ArtistRewardCard, SongRewardCard } from '../../components/rewardCards/types';
+import { previousArtistCard, previousSongCard } from '../../components/rewardCards/cardUpgrade';
+import { RewardCardKind } from '../../stores/rewardCardStore';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 interface ProfileTabRoute {
@@ -75,6 +77,7 @@ export default function MyPageTab() {
   const songCards = useRewardCardStore((s) => s.songCards);
   const artistCards = useRewardCardStore((s) => s.artistCards);
   const revealCard = useRewardCardStore((s) => s.revealCard);
+  const upgradeCard = useRewardCardStore((s) => s.upgradeCard);
   const { deckStatus, songDecks, loadDecks } = useDeckListStore(
     useShallow((s) => ({
       deckStatus: s.status,
@@ -143,9 +146,27 @@ export default function MyPageTab() {
     navigation.navigate('RewardCardDetail', { cardId: card.id, ownerName: displayName });
   }, [navigation, displayName]);
 
-  // 획득 조건을 아직 서버가 알려 주지 않아, 개발 빌드에서만 카드를 길게 눌러 획득 화면을 띄운다.
-  const handleLongPressCard = useCallback((card: SongRewardCard) => revealCard('song', card.id), [revealCard]);
-  const handleLongPressArtistCard = useCallback((card: ArtistRewardCard) => revealCard('artist', card.id), [revealCard]);
+  // 획득·승급 조건을 아직 서버가 알려 주지 않아, 개발 빌드에서만 카드를 길게 눌러 그 화면을 띄운다.
+  const openDebugReveal = useCallback(
+    (kind: RewardCardKind, cardId: string, canUpgrade: boolean) => {
+      // 웹 Alert 는 버튼을 띄우지 못한다.
+      if (!canUpgrade || Platform.OS === 'web') return revealCard(kind, cardId);
+      Alert.alert('카드 연출', undefined, [
+        { text: '새로 얻기', onPress: () => revealCard(kind, cardId) },
+        { text: '등급 오르기', onPress: () => upgradeCard(kind, cardId) },
+        { text: '취소', style: 'cancel' },
+      ]);
+    },
+    [revealCard, upgradeCard],
+  );
+  const handleLongPressCard = useCallback(
+    (card: SongRewardCard) => openDebugReveal('song', card.id, previousSongCard(card) !== null),
+    [openDebugReveal],
+  );
+  const handleLongPressArtistCard = useCallback(
+    (card: ArtistRewardCard) => openDebugReveal('artist', card.id, previousArtistCard(card) !== null),
+    [openDebugReveal],
+  );
 
   const handlePressArtistCard = useCallback((card: ArtistRewardCard) => {
     navigation.navigate('ArtistCardDetail', { cardId: card.id, ownerName: displayName });

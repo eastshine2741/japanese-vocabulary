@@ -227,14 +227,16 @@ export function useRevealBackGuard(atFirstStep: boolean, signed: boolean, onBack
 
 interface ShellProps {
   backdropUri: string;
-  motion: RevealMotion;
+  /** charge 가 없으면 화면을 어둡게 누르지 않는다. */
+  motion: { flash: SharedValue<number>; charge?: SharedValue<number> };
   children: React.ReactNode;
 }
 
 /** 흐린 아트 배경과 착지 섬광. 단계가 바뀌어도 그대로 남는다. */
 export const RevealShell = React.memo(function RevealShell({ backdropUri, motion, children }: ShellProps) {
   const flashStyle = useAnimatedStyle(() => ({ opacity: motion.flash.value }));
-  const dimStyle = useAnimatedStyle(() => ({ opacity: 0.6 * motion.charge.value }));
+  const { charge } = motion;
+  const dimStyle = useAnimatedStyle(() => ({ opacity: charge ? 0.6 * charge.value : 0 }));
   return (
     <View style={styles.root}>
       <Image source={{ uri: backdropUri }} style={[StyleSheet.absoluteFill, styles.backdrop]} blurRadius={40} />
@@ -243,7 +245,7 @@ export const RevealShell = React.memo(function RevealShell({ backdropUri, motion
         locations={[0, 0.55, 1]}
         style={StyleSheet.absoluteFill}
       />
-      <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.dim, dimStyle]} />
+      {charge && <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.dim, dimStyle]} />}
       {children}
       <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.flash, flashStyle]} />
     </View>
@@ -576,9 +578,11 @@ interface GuideProps {
   steps: readonly LadderStep[];
   /** 지금 계단의 index. */
   current: number;
+  /** 등급이 오를 때 — 처음부터 이 칸까지 차 있고, 그 다음 칸부터 채운다. */
+  from?: number;
   accent: string;
   /** 문구가 다 떠오르면 계단을 채우기 시작한다. */
-  motion: RevealMotion;
+  motion: Pick<RevealMotion, 'copyIn' | 'pulse'>;
 }
 
 const RUNG_MS = 300;
@@ -586,19 +590,22 @@ const RUNG_MS = 300;
 const FILL_FROM = -0.5;
 
 /** 설명 몇 줄과 승급 계단. 지금 자리까지 한 칸씩 차올라 다음 목표가 따로 말하지 않아도 보이게 한다. */
-export const RevealGuide = React.memo(function RevealGuide({ lines, steps, current, accent, motion }: GuideProps) {
+export const RevealGuide = React.memo(function RevealGuide({ lines, steps, current, from, accent, motion }: GuideProps) {
   const { copyIn, pulse } = motion;
   // 가사 고르기에서 돌아오면 다시 채우지 않는다.
-  const fill = useSharedValue(copyIn.value >= 1 ? current : FILL_FROM);
+  const fill = useSharedValue(copyIn.value >= 1 ? current : (from ?? FILL_FROM));
 
   const run = useCallback(() => {
-    const legs = Array.from({ length: current + 1 }, (_, k) =>
-      withTiming(k, { duration: k === 0 ? 200 : RUNG_MS, easing: Easing.inOut(Easing.quad) }, (finished) => {
+    const first = from === undefined ? 0 : from + 1;
+    if (first > current) return;
+    const legs = Array.from({ length: current - first + 1 }, (_, j) => {
+      const k = first + j;
+      return withTiming(k, { duration: k === 0 ? 200 : RUNG_MS, easing: Easing.inOut(Easing.quad) }, (finished) => {
         if (finished) runOnJS(hapticRung)(k === current);
-      }),
-    );
+      });
+    });
     fill.value = withSequence(...legs);
-  }, [current, fill]);
+  }, [current, from, fill]);
 
   useAnimatedReaction(
     () => copyIn.value >= 1,
