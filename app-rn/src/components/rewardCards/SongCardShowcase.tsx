@@ -268,7 +268,7 @@ function FrontFace({ card, width, height, u, age, tilt, fonts, thumb }: FaceProp
               {cardTitle(card.title)}
             </Text>
           )}
-          <Text style={[styles.artist, { fontSize: 3.4 * u, color: material.tint ? card.accent : '#A8A194' }]} numberOfLines={1}>{cardArtist(card.artist)}</Text>
+          <Text style={[styles.artist, { fontFamily: fonts.jp, fontSize: 3.4 * u, color: material.tint ? card.accent : '#A8A194' }]} numberOfLines={1}>{cardArtist(card.artist)}</Text>
           <View style={styles.metaFoot}>
             <OwnerMark no={card.sample ? null : card.ownerNo} u={u} fonts={fonts} />
             <LevelPips level={card.level} color={material.pip} size={2.4 * u} />
@@ -330,7 +330,7 @@ function FoilFrontFace({ card, width, height, u, age, tilt, fonts, thumb }: Face
         <Text style={[styles.title, { fontFamily: fonts.jpHeavy, fontSize: 8 * u * titleScale, lineHeight: 10 * u }, titleHidden && styles.hidden]} numberOfLines={1}>
           {cardTitle(card.title)}
         </Text>
-        <Text style={[styles.artist, { fontSize: 3.6 * u, color: card.accent }]} numberOfLines={1}>{cardArtist(card.artist)}</Text>
+        <Text style={[styles.artist, { fontFamily: fonts.jp, fontSize: 3.6 * u, color: card.accent }]} numberOfLines={1}>{cardArtist(card.artist)}</Text>
         <View style={[styles.metaFoot, { marginTop: 2.4 * u }]}>
           <OwnerMark no={card.sample ? null : card.ownerNo} u={u} fonts={fonts} />
         </View>
@@ -432,7 +432,7 @@ function BackFace({
               <View key={line.index} style={styles.rubyLine}>
                 {line.ruby.map((seg, j) => (
                   <View key={j} style={styles.rubySeg}>
-                    <Text style={[{ color: `${ink}B3`, fontSize: 2.4 * u * lyricScale, lineHeight: 3.2 * u * lyricScale }]}>{seg.reading ?? ' '}</Text>
+                    <Text style={[{ color: `${ink}B3`, fontFamily: fonts.jp, fontSize: 2.4 * u * lyricScale, lineHeight: 3.2 * u * lyricScale }]}>{seg.reading ?? ' '}</Text>
                     <Text style={[{ color: ink, fontFamily: fonts.jp, fontSize: 5.8 * u * lyricScale, lineHeight: 7.4 * u * lyricScale }]}>{seg.text}</Text>
                   </View>
                 ))}
@@ -468,7 +468,7 @@ function BackFace({
             <View key={s.label} style={{ flex: 1, gap: 0.6 * u }}>
               <Text style={[{ color: `${ink}8C`, fontFamily: fonts.ko, fontSize: 2.6 * u }]}>{s.label}</Text>
               {material ? (
-                <Text style={[styles.statValue, { color: ink, fontSize: 4 * u }]}>
+                <Text style={[styles.statValue, { color: ink, fontFamily: fonts.jpHeavy, fontSize: 4 * u }]}>
                   {s.value}
                   <Text style={[{ color: `${ink}8C`, fontFamily: fonts.ko, fontSize: 2.4 * u }]}>{s.unit}</Text>
                 </Text>
@@ -551,7 +551,7 @@ const styles = StyleSheet.create({
   foilEdge: { position: 'absolute', borderWidth: 1, borderColor: '#FFFFFF4D' },
   meta: { flex: 1, justifyContent: 'space-between', overflow: 'hidden' },
   title: { color: '#F6F2FA' },
-  artist: { fontWeight: '500', marginTop: -2 },
+  artist: { marginTop: -2 },
   metaFoot: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
   owner: { flexDirection: 'row', alignItems: 'baseline', gap: 4 },
   ownerNo: { color: '#FFFFFF' },
@@ -568,7 +568,7 @@ const styles = StyleSheet.create({
   wordMeaning: { flex: 1 },
   backBody: { flex: 1, minHeight: 0, overflow: 'hidden' },
   stats: { flexDirection: 'row', gap: 8 },
-  statValue: { fontWeight: '600', fontVariant: ['tabular-nums'] },
+  statValue: { fontVariant: ['tabular-nums'] },
   statFoilRow: { flexDirection: 'row', alignItems: 'baseline', gap: 2 },
   backArt: { transform: [{ scale: 1.3 }] },
 });

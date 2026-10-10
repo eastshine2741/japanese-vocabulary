@@ -366,7 +366,7 @@ const SetlistRow = React.memo(function SetlistRow({ no, song, height, u, fonts, 
 }) {
   return (
     <View style={[styles.setlistRow, { height, gap: 1.4 * u }]}>
-      <Text style={[styles.setlistNo, { color: `${ink}8C`, fontSize: 2.2 * u, width: 3.4 * u }]}>{String(no).padStart(2, '0')}</Text>
+      <Text style={[styles.setlistNo, { color: `${ink}8C`, fontFamily: fonts.jp, fontSize: 2.2 * u, width: 3.4 * u }]}>{String(no).padStart(2, '0')}</Text>
       <Image source={{ uri: song.artworkUrl }} style={[styles.cover, { width: 3.4 * u, height: 3.4 * u, borderRadius: 0.5 * u }]} />
       <Text style={[styles.setlistTitle, { color: ink, fontFamily: fonts.jp, fontSize: 3.3 * u }]} numberOfLines={1}>
         {song.title}
@@ -400,7 +400,7 @@ const styles = StyleSheet.create({
   backLeft: { justifyContent: 'space-between' },
   listHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   setlistRow: { flexDirection: 'row', alignItems: 'center' },
-  setlistNo: { fontWeight: '600', fontVariant: ['tabular-nums'] },
+  setlistNo: { fontVariant: ['tabular-nums'] },
   setlistTitle: { flex: 1 },
   countRow: { flexDirection: 'row', alignItems: 'flex-end' },
   countValue: { fontVariant: ['tabular-nums'] },
