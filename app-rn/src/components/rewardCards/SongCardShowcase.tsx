@@ -12,8 +12,9 @@ import MasterPips from './MasterPips';
 import SignatureField from './SignatureField';
 import { CARD_RATIO, CardFonts, LEVEL_MATERIAL } from './cardTheme';
 import { CardSignature } from './signature';
+import { cardArtist, cardTitle } from './cardCredit';
 import { coatingLeft, wearAge } from './cardWear';
-import { lyricKo, lyricText } from './cardLyric';
+import { lyricFitScale, lyricRowFitScale, lyricText, textFitScale } from './cardLyric';
 import { CardTilt } from './useCardTilt';
 import { SongRewardCard } from './types';
 import { verticalText } from './verticalText';
@@ -142,6 +143,8 @@ function FrontFace({ card, width, height, u, age, tilt, fonts, thumb }: FaceProp
   const artSize = width - pad * 2;
   const shiny = card.level >= 2;
   const foil = coatingLeft(age);
+  // 아트 위아래 여백(5u·4u)을 뺀 높이 안에서 세로 가사가 아트 밖으로 잘리지 않게 줄인다.
+  const lyricScale = lyricFitScale(card.lyric, artSize - 9 * u, 6.4 * u, 7 * u);
 
   return (
     <View style={[styles.clip, { borderRadius: 4.6 * u }]}>
@@ -172,19 +175,19 @@ function FrontFace({ card, width, height, u, age, tilt, fonts, thumb }: FaceProp
                   text={verticalText(lyricText(line))}
                   colors={material.foil}
                   fontFamily={fonts.jp}
-                  fontSize={5.4 * u}
-                  lineHeight={6.4 * u}
+                  fontSize={5.4 * u * lyricScale}
+                  lineHeight={6.4 * u * lyricScale}
                   numberOfLines={LYRIC_MAX_CHARS}
                   tilt={tilt}
                   shadow
-                  style={{ marginTop: i * 7 * u }}
+                  style={{ marginTop: i * 7 * u * lyricScale }}
                 />
               ) : (
                 <Text
                   key={line.index}
                   style={[
                     styles.lyricCol,
-                    { fontFamily: fonts.jp, fontSize: 5.4 * u, lineHeight: 6.4 * u, marginTop: i * 7 * u },
+                    { fontFamily: fonts.jp, fontSize: 5.4 * u * lyricScale, lineHeight: 6.4 * u * lyricScale, marginTop: i * 7 * u * lyricScale },
                   ]}
                 >
                   {verticalText(lyricText(line))}
@@ -204,7 +207,7 @@ function FrontFace({ card, width, height, u, age, tilt, fonts, thumb }: FaceProp
         >
           {material.foil ? (
             <FoilText
-              text={card.title}
+              text={cardTitle(card.title)}
               colors={material.foil}
               fontFamily={fonts.jpHeavy}
               fontSize={6.8 * u}
@@ -213,10 +216,10 @@ function FrontFace({ card, width, height, u, age, tilt, fonts, thumb }: FaceProp
             />
           ) : (
             <Text style={[styles.title, { fontFamily: fonts.jpHeavy, fontSize: 6.8 * u, lineHeight: 8.4 * u }]} numberOfLines={1}>
-              {card.title}
+              {cardTitle(card.title)}
             </Text>
           )}
-          <Text style={[styles.artist, { fontSize: 3.4 * u, color: material.tint ? card.accent : '#A8A194' }]} numberOfLines={1}>{card.artist}</Text>
+          <Text style={[styles.artist, { fontSize: 3.4 * u, color: material.tint ? card.accent : '#A8A194' }]} numberOfLines={1}>{cardArtist(card.artist)}</Text>
           <View style={styles.metaFoot}>
             <OwnerMark no={card.ownerNo} sample={card.sample} u={u} fonts={fonts} />
             <LevelPips level={card.level} color={material.pip} size={2.4 * u} />
@@ -240,6 +243,8 @@ function FrontFace({ card, width, height, u, age, tilt, fonts, thumb }: FaceProp
 function FoilFrontFace({ card, width, height, u, age, tilt, fonts, thumb }: FaceProps & { tilt?: CardTilt }) {
   const foil = coatingLeft(age);
   const inset = 2.6 * u;
+  // 아래 제목·아티스트·순번 묶음(약 26u)과 위아래 여백을 뺀 높이 안에 세로 가사를 넣는다.
+  const lyricScale = lyricFitScale(card.lyric, height - 7 * u - 7 * u - 26 * u - 4 * u, 7.2 * u, 8 * u);
 
   return (
     <View style={[styles.clip, { borderRadius: 4.6 * u, backgroundColor: card.ink }]}>
@@ -262,7 +267,7 @@ function FoilFrontFace({ card, width, height, u, age, tilt, fonts, thumb }: Face
             key={line.index}
             style={[
               styles.lyricCol,
-              { fontFamily: fonts.jp, fontSize: 6 * u, lineHeight: 7.2 * u, marginTop: i * 8 * u },
+              { fontFamily: fonts.jp, fontSize: 6 * u * lyricScale, lineHeight: 7.2 * u * lyricScale, marginTop: i * 8 * u * lyricScale },
             ]}
           >
             {verticalText(lyricText(line))}
@@ -272,9 +277,9 @@ function FoilFrontFace({ card, width, height, u, age, tilt, fonts, thumb }: Face
 
       <View style={[styles.foilMeta, { left: 7 * u, right: 7 * u, bottom: 7 * u, gap: 1.2 * u }]}>
         <Text style={[styles.title, { fontFamily: fonts.jpHeavy, fontSize: 8 * u, lineHeight: 10 * u }]} numberOfLines={1}>
-          {card.title}
+          {cardTitle(card.title)}
         </Text>
-        <Text style={[styles.artist, { fontSize: 3.6 * u, color: card.accent }]} numberOfLines={1}>{card.artist}</Text>
+        <Text style={[styles.artist, { fontSize: 3.6 * u, color: card.accent }]} numberOfLines={1}>{cardArtist(card.artist)}</Text>
         <View style={[styles.metaFoot, { marginTop: 2.4 * u }]}>
           <OwnerMark no={card.ownerNo} sample={card.sample} u={u} fonts={fonts} />
         </View>
@@ -341,6 +346,10 @@ function BackFace({
         { label: '획득 순번', value: card.ownerNo.toLocaleString('ko-KR'), unit: '번째' },
         { label: '획득한 날', value: card.earnedAt.slice(2).replace(/-/g, '.'), unit: '' },
       ];
+  // 좌우 여백 6u 를 뺀 폭에 가장 긴 줄이 한 줄로 들어가게 줄인다.
+  const lyricScale = lyricRowFitScale(card.lyric, width - 12 * u, 5.8 * u, 2.4 * u);
+  // 번역은 왼쪽 세로줄(2px)과 들여쓰기(2.6u)만큼 더 좁다.
+  const koScale = textFitScale(card.lyric.map((line) => line.ko), width - 12 * u - 2.6 * u - 2, 3.6 * u);
   return (
     <View style={[styles.clip, { borderRadius: 4.6 * u, backgroundColor: material ? material.body[0] : card.ink }]}>
       {material ? (
@@ -370,16 +379,24 @@ function BackFace({
               <View key={line.index} style={styles.rubyLine}>
                 {line.ruby.map((seg, j) => (
                   <View key={j} style={styles.rubySeg}>
-                    <Text style={[{ color: `${ink}B3`, fontSize: 2.4 * u, lineHeight: 3.2 * u }]}>{seg.reading ?? ' '}</Text>
-                    <Text style={[{ color: ink, fontFamily: fonts.jp, fontSize: 5.8 * u, lineHeight: 7.4 * u }]}>{seg.text}</Text>
+                    <Text style={[{ color: `${ink}B3`, fontSize: 2.4 * u * lyricScale, lineHeight: 3.2 * u * lyricScale }]}>{seg.reading ?? ' '}</Text>
+                    <Text style={[{ color: ink, fontFamily: fonts.jp, fontSize: 5.8 * u * lyricScale, lineHeight: 7.4 * u * lyricScale }]}>{seg.text}</Text>
                   </View>
                 ))}
               </View>
             ))}
           </View>
-          <Text style={[styles.backKo, { color: `${ink}C7`, fontFamily: fonts.ko, fontSize: 3.6 * u, lineHeight: 5.4 * u, borderLeftColor: material ? `${ink}59` : card.accent, paddingLeft: 2.6 * u }]}>
-            {lyricKo(card.lyric)}
-          </Text>
+          <View style={[styles.backKo, { borderLeftColor: material ? `${ink}59` : card.accent, paddingLeft: 2.6 * u }]}>
+            {card.lyric.map((line) => (
+              <Text
+                key={line.index}
+                style={{ color: `${ink}C7`, fontFamily: fonts.ko, fontSize: 3.6 * u * koScale, lineHeight: 5.4 * u * koScale }}
+                numberOfLines={1}
+              >
+                {line.ko}
+              </Text>
+            ))}
+          </View>
 
           <View style={{ flex: 1, gap: 1.6 * u }}>
             {card.words.map((word) => (
@@ -445,7 +462,7 @@ const styles = StyleSheet.create({
   ownerNo: { color: '#FFFFFF' },
   ownerTail: { color: '#FFFFFFB8', fontVariant: ['tabular-nums'] },
   watermark: { position: 'absolute', textAlign: 'center' },
-  rubyLine: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-end' },
+  rubyLine: { flexDirection: 'row', alignItems: 'flex-end' },
   rubySeg: { alignItems: 'center' },
   backKo: { borderLeftWidth: 2 },
   wordRow: {
