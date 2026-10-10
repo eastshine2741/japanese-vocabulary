@@ -28,7 +28,8 @@ export interface SongRewardCard {
   accent: string;
   ink: string;
   level: CardLevel;
-  lenticular: boolean;
+  /** 곡 단어 전체가 장기기억. 마스터 카드는 앞면이 바뀌고 아티스트 카드에 한 곡으로 세어진다. */
+  mastered: boolean;
   /** 완료한 단계 단어들의 평균 FSRS 기억 확률. 낡음은 이 값에서 나온다. */
   recall: number;
   ownerNo: number;
@@ -38,16 +39,27 @@ export interface SongRewardCard {
   backLines: RubySegment[][];
   backKo: string;
   words: CardWord[];
-  /** 렌티큘러까지 끝낸 카드는 다음 목표가 없다. */
+  /** 마스터 카드는 다음 목표가 없다. */
   nextGoal: CardGoal | null;
+}
+
+export interface MasteredSong {
+  title: string;
+  artworkUrl: string;
 }
 
 export interface ArtistRewardCard {
   id: string;
   name: string;
   imageUrl: string;
-  level: CardLevel;
-  songCardCount: number;
-  /** 다음 등급에 필요한 곡 카드 수. 최고 등급이면 null. */
-  nextLevelAt: number | null;
+  accent: string;
+  ink: string;
+  /** 이 아티스트의 마스터 곡 카드 수. 상한이 없고, 재질은 이 값에서 나온다 (artistGrade). */
+  masteredCount: number;
+  /** 이 아티스트 카드를 몇 번째로 받았는지. 발급 때 고정. */
+  fanNo: number;
+  /** 첫 곡 카드를 받은 날. 발급 때 고정. */
+  since: string;
+  /** 최근 마스터한 곡, 최신순으로 최대 5개. */
+  recentMastered: MasteredSong[];
 }

@@ -4,9 +4,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import CardGlitter from './CardGlitter';
 import CardWearLayer from './CardWearLayer';
+import { EtchLayer, GlareLayer, HoloLayer } from './CardLayers';
 import LenticularLayer from './LenticularLayer';
 import LevelPips from './LevelPips';
-import { CARD_RATIO, HOLO_COLORS, LEVEL_MATERIAL } from './cardTheme';
+import OwnerField from './OwnerField';
+import { CARD_RATIO, CardFonts, LEVEL_MATERIAL } from './cardTheme';
 import { coatingLeft, wearAge } from './cardWear';
 import { CardTilt } from './useCardTilt';
 import { SongRewardCard } from './types';
@@ -16,10 +18,12 @@ interface Props {
   card: SongRewardCard;
   width: number;
   tilt: CardTilt;
-  mincho: { bold: string; extraBold: string };
+  fonts: CardFonts;
+  /** 카드 주인의 표시 이름. 뒷면 소유자 칸에 적힌다. */
+  ownerName: string;
 }
 
-function SongCardShowcase({ card, width, tilt, mincho }: Props) {
+function SongCardShowcase({ card, width, tilt, fonts, ownerName }: Props) {
   const height = width * CARD_RATIO;
   const u = width / 100;
   const age = wearAge(card.recall);
@@ -48,14 +52,14 @@ function SongCardShowcase({ card, width, tilt, mincho }: Props) {
   return (
     <View style={{ width, height }}>
       <Animated.View style={[styles.face, { borderRadius: 4.6 * u }, frontStyle]}>
-        {card.lenticular ? (
-          <FoilFrontFace card={card} width={width} height={height} u={u} age={age} tilt={tilt} mincho={mincho} />
+        {card.mastered ? (
+          <FoilFrontFace card={card} width={width} height={height} u={u} age={age} tilt={tilt} fonts={fonts} />
         ) : (
-          <FrontFace card={card} width={width} height={height} u={u} age={age} tilt={tilt} mincho={mincho} />
+          <FrontFace card={card} width={width} height={height} u={u} age={age} tilt={tilt} fonts={fonts} />
         )}
       </Animated.View>
       <Animated.View style={[styles.face, { borderRadius: 4.6 * u }, backStyle]}>
-        <BackFace card={card} width={width} height={height} u={u} age={age} mincho={mincho} />
+        <BackFace card={card} width={width} height={height} u={u} age={age} fonts={fonts} ownerName={ownerName} />
       </Animated.View>
     </View>
   );
@@ -63,15 +67,15 @@ function SongCardShowcase({ card, width, tilt, mincho }: Props) {
 
 export default React.memo(SongCardShowcase);
 
-/** 진열장용 앞면. 기울기를 따라가는 효과(렌티큘러·글리터·에칭·홀로 이동)는 빼고 고정된 광택만 남긴다. */
-export const SongCardFront = React.memo(function SongCardFront({ card, width, mincho }: Omit<Props, 'tilt'>) {
+/** 진열장용 앞면. 기울기를 따라가는 효과(두 장면 전환·글리터·에칭·홀로 이동)는 빼고 고정된 광택만 남긴다. */
+export const SongCardFront = React.memo(function SongCardFront({ card, width, fonts }: Omit<Props, 'tilt' | 'ownerName'>) {
   const height = width * CARD_RATIO;
   const u = width / 100;
   const age = wearAge(card.recall);
-  const Face = card.lenticular ? FoilFrontFace : FrontFace;
+  const Face = card.mastered ? FoilFrontFace : FrontFace;
   return (
     <View style={{ width, height }}>
-      <Face card={card} width={width} height={height} u={u} age={age} mincho={mincho} />
+      <Face card={card} width={width} height={height} u={u} age={age} fonts={fonts} />
     </View>
   );
 });
@@ -82,10 +86,10 @@ interface FaceProps {
   height: number;
   u: number;
   age: number;
-  mincho: { bold: string; extraBold: string };
+  fonts: CardFonts;
 }
 
-function FrontFace({ card, width, height, u, age, tilt, mincho }: FaceProps & { tilt?: CardTilt }) {
+function FrontFace({ card, width, height, u, age, tilt, fonts }: FaceProps & { tilt?: CardTilt }) {
   const material = LEVEL_MATERIAL[card.level];
   const pad = 3.4 * u;
   const artSize = width - pad * 2;
@@ -118,7 +122,7 @@ function FrontFace({ card, width, height, u, age, tilt, mincho }: FaceProps & { 
                 key={i}
                 style={[
                   styles.lyricCol,
-                  { fontFamily: mincho.bold, fontSize: 5.4 * u, lineHeight: 6.4 * u, marginTop: i * 7 * u },
+                  { fontFamily: fonts.jp, fontSize: 5.4 * u, lineHeight: 6.4 * u, marginTop: i * 7 * u },
                 ]}
               >
                 {verticalText(line)}
@@ -132,17 +136,12 @@ function FrontFace({ card, width, height, u, age, tilt, mincho }: FaceProps & { 
           colors={[`${card.accent}38`, `${card.ink}00`]}
           style={[styles.meta, { borderRadius: 2.4 * u, padding: 3.4 * u, backgroundColor: card.ink }]}
         >
-          <Text style={[styles.title, { fontFamily: mincho.extraBold, fontSize: 6.8 * u, lineHeight: 8.4 * u }]} numberOfLines={1}>
+          <Text style={[styles.title, { fontFamily: fonts.jpHeavy, fontSize: 6.8 * u, lineHeight: 8.4 * u }]} numberOfLines={1}>
             {card.title}
           </Text>
           <Text style={[styles.artist, { fontSize: 3.4 * u, color: `${card.accent}` }]} numberOfLines={1}>{card.artist}</Text>
           <View style={styles.metaFoot}>
-            <View style={styles.owner}>
-              <Text style={[styles.ownerNo, { fontFamily: mincho.extraBold, fontSize: 6 * u, lineHeight: 7 * u }]}>
-                {card.ownerNo.toLocaleString('ko-KR')}
-              </Text>
-              <Text style={[styles.ownerTail, { fontSize: 3 * u }]}>번째 획득</Text>
-            </View>
+            <OwnerMark no={card.ownerNo} u={u} fonts={fonts} />
             <LevelPips level={card.level} color={material.pip} size={2.4 * u} />
           </View>
         </LinearGradient>
@@ -154,8 +153,8 @@ function FrontFace({ card, width, height, u, age, tilt, mincho }: FaceProps & { 
   );
 }
 
-/** 렌티큘러까지 끝낸 카드. 테 없이 아트를 끝까지 깔고, 무지개 코팅이 두 장면 위를 함께 덮는다. */
-function FoilFrontFace({ card, width, height, u, age, tilt, mincho }: FaceProps & { tilt?: CardTilt }) {
+/** 마스터 카드. 테 없이 아트를 끝까지 깔고, 무지개 코팅이 두 장면 위를 함께 덮는다. */
+function FoilFrontFace({ card, width, height, u, age, tilt, fonts }: FaceProps & { tilt?: CardTilt }) {
   const material = LEVEL_MATERIAL[card.level];
   const foil = coatingLeft(age);
   const inset = 2.6 * u;
@@ -181,7 +180,7 @@ function FoilFrontFace({ card, width, height, u, age, tilt, mincho }: FaceProps 
             key={i}
             style={[
               styles.lyricCol,
-              { fontFamily: mincho.bold, fontSize: 6 * u, lineHeight: 7.2 * u, marginTop: i * 8 * u },
+              { fontFamily: fonts.jp, fontSize: 6 * u, lineHeight: 7.2 * u, marginTop: i * 8 * u },
             ]}
           >
             {verticalText(line)}
@@ -190,24 +189,19 @@ function FoilFrontFace({ card, width, height, u, age, tilt, mincho }: FaceProps 
       </View>
 
       <View style={[styles.foilMeta, { left: 7 * u, right: 7 * u, bottom: 7 * u, gap: 1.2 * u }]}>
-        <Text style={[styles.title, { fontFamily: mincho.extraBold, fontSize: 8 * u, lineHeight: 10 * u }]} numberOfLines={1}>
+        <Text style={[styles.title, { fontFamily: fonts.jpHeavy, fontSize: 8 * u, lineHeight: 10 * u }]} numberOfLines={1}>
           {card.title}
         </Text>
         <Text style={[styles.artist, { fontSize: 3.6 * u, color: card.accent }]} numberOfLines={1}>{card.artist}</Text>
         <View style={[styles.metaFoot, { marginTop: 2.4 * u }]}>
-          <View style={styles.owner}>
-            <Text style={[styles.ownerNo, { fontFamily: mincho.extraBold, fontSize: 6 * u, lineHeight: 7 * u }]}>
-              {card.ownerNo.toLocaleString('ko-KR')}
-            </Text>
-            <Text style={[styles.ownerTail, { fontSize: 3 * u }]}>번째 획득</Text>
-          </View>
+          <OwnerMark no={card.ownerNo} u={u} fonts={fonts} />
           <LevelPips level={card.level} color={material.pip} size={2.4 * u} />
         </View>
       </View>
 
       {tilt ? (
         <>
-          <LenticularLayer card={card} width={width} height={height} u={u} tilt={tilt} mincho={mincho} />
+          <LenticularLayer card={card} width={width} height={height} u={u} tilt={tilt} fonts={fonts} />
           <EtchLayer tilt={tilt} width={width} height={height} opacity={0.55 * foil} />
           <CardGlitter seed={card.id} width={width} height={height} tilt={tilt} strength={0.7 * foil} rainbow={foil} />
         </>
@@ -224,7 +218,18 @@ function FoilFrontFace({ card, width, height, u, age, tilt, mincho }: FaceProps 
   );
 }
 
-function BackFace({ card, width, height, u, age, mincho }: FaceProps) {
+function OwnerMark({ no, u, fonts }: { no: number; u: number; fonts: CardFonts }) {
+  return (
+    <View style={styles.owner}>
+      <Text style={[styles.ownerNo, { fontFamily: fonts.jpHeavy, fontSize: 6 * u, lineHeight: 7 * u }]}>
+        {no.toLocaleString('ko-KR')}
+      </Text>
+      <Text style={[styles.ownerTail, { fontFamily: fonts.ko, fontSize: 3 * u }]}>번째 획득</Text>
+    </View>
+  );
+}
+
+function BackFace({ card, width, height, u, age, fonts, ownerName }: FaceProps & { ownerName: string }) {
   const stats = [
     { label: '획득 순번', value: card.ownerNo.toLocaleString('ko-KR'), unit: '번째' },
     { label: '획득한 날', value: card.earnedAt.slice(2).replace(/-/g, '.'), unit: '' },
@@ -232,7 +237,7 @@ function BackFace({ card, width, height, u, age, mincho }: FaceProps) {
   return (
     <View style={[styles.clip, { borderRadius: 4.6 * u, backgroundColor: card.ink }]}>
       <LinearGradient colors={[`${card.accent}73`, `${card.ink}00`]} start={{ x: 0.1, y: 0 }} end={{ x: 0.7, y: 0.7 }} style={StyleSheet.absoluteFill} />
-      <Text style={[styles.watermark, { fontFamily: mincho.extraBold, fontSize: 30 * u, lineHeight: 32 * u, right: -4 * u, bottom: 10 * u }]}>
+      <Text style={[styles.watermark, { fontFamily: fonts.jpHeavy, fontSize: 30 * u, lineHeight: 32 * u, right: -4 * u, bottom: 10 * u }]}>
         {verticalText('言の葉')}
       </Text>
 
@@ -243,22 +248,22 @@ function BackFace({ card, width, height, u, age, mincho }: FaceProps) {
               {line.map((seg, j) => (
                 <View key={j} style={styles.rubySeg}>
                   <Text style={[styles.rubyTop, { fontSize: 2.4 * u, lineHeight: 3.2 * u }]}>{seg.reading ?? ' '}</Text>
-                  <Text style={[styles.rubyBase, { fontFamily: mincho.bold, fontSize: 5.8 * u, lineHeight: 7.4 * u }]}>{seg.text}</Text>
+                  <Text style={[styles.rubyBase, { fontFamily: fonts.jp, fontSize: 5.8 * u, lineHeight: 7.4 * u }]}>{seg.text}</Text>
                 </View>
               ))}
             </View>
           ))}
         </View>
-        <Text style={[styles.backKo, { fontSize: 3.6 * u, lineHeight: 5.4 * u, borderLeftColor: card.accent, paddingLeft: 2.6 * u }]}>
+        <Text style={[styles.backKo, { fontFamily: fonts.ko, fontSize: 3.6 * u, lineHeight: 5.4 * u, borderLeftColor: card.accent, paddingLeft: 2.6 * u }]}>
           {card.backKo}
         </Text>
 
         <View style={{ flex: 1, gap: 1.6 * u }}>
           {card.words.map((word) => (
             <View key={word.japanese} style={[styles.wordRow, { paddingBottom: 1.4 * u, gap: 2.4 * u }]}>
-              <Text style={[styles.wordJp, { fontFamily: mincho.bold, fontSize: 4.2 * u }]}>{word.japanese}</Text>
-              <Text style={[styles.wordMeaning, { fontSize: 3.2 * u }]} numberOfLines={1}>
-                {word.reading} · {word.meaning}
+              <Text style={[styles.wordJp, { fontFamily: fonts.jp, fontSize: 4.2 * u }]}>{word.japanese}</Text>
+              <Text style={[styles.wordMeaning, { fontFamily: fonts.ko, fontSize: 3.2 * u }]} numberOfLines={1}>
+                <Text style={{ fontFamily: fonts.jp }}>{word.reading}</Text> · {word.meaning}
               </Text>
             </View>
           ))}
@@ -267,80 +272,17 @@ function BackFace({ card, width, height, u, age, mincho }: FaceProps) {
         <View style={styles.stats}>
           {stats.map((s) => (
             <View key={s.label} style={{ flex: 1, gap: 0.6 * u }}>
-              <Text style={[styles.statLabel, { fontSize: 2.6 * u }]}>{s.label}</Text>
+              <Text style={[styles.statLabel, { fontFamily: fonts.ko, fontSize: 2.6 * u }]}>{s.label}</Text>
               <Text style={[styles.statValue, { fontSize: 4 * u }]}>
                 {s.value}
-                <Text style={[styles.statUnit, { fontSize: 2.4 * u }]}>{s.unit}</Text>
+                <Text style={[styles.statUnit, { fontFamily: fonts.ko, fontSize: 2.4 * u }]}>{s.unit}</Text>
               </Text>
             </View>
           ))}
         </View>
+        <OwnerField name={ownerName} u={u} fonts={fonts} />
       </View>
       <CardWearLayer width={width} height={height} age={age} seed={card.id} side="back" />
-    </View>
-  );
-}
-
-function HoloLayer({ tilt, width, height, opacity, blend }: {
-  tilt?: CardTilt;
-  width: number;
-  height: number;
-  opacity: number;
-  blend: 'overlay' | 'color-dodge';
-}) {
-  const style = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: -width + (tilt?.x.value ?? -0.2) * width * 0.8 },
-      { translateY: -height * 0.5 + (tilt?.y.value ?? 0) * height * 0.35 },
-    ],
-  }));
-  return (
-    <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.overflowHidden, { opacity, mixBlendMode: blend }]}>
-      <Animated.View style={[{ width: width * 3, height: height * 2 }, style]}>
-        <LinearGradient colors={HOLO_COLORS} start={{ x: 0, y: 0.2 }} end={{ x: 1, y: 0.8 }} style={StyleSheet.absoluteFill} />
-      </Animated.View>
-    </View>
-  );
-}
-
-const ETCH = require('../../../assets/cards/holo-etch.png');
-
-/** 포일에 새긴 사선 결과 알갱이. 빛을 받는 각도에서만 떠오른다. */
-function EtchLayer({ tilt, width, height, opacity }: { tilt: CardTilt; width: number; height: number; opacity: number }) {
-  const style = useAnimatedStyle(() => ({
-    opacity: opacity * (0.12 + Math.min(0.88, (Math.abs(tilt.x.value) + Math.abs(tilt.y.value)) * 1.3)),
-  }));
-  return (
-    <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.etch, style]}>
-      <Image source={ETCH} resizeMode="stretch" style={{ width, height }} />
-    </Animated.View>
-  );
-}
-
-/** tilt 가 없으면 빛이 왼쪽 위에서 비스듬히 비친 자리에 멈춰 있다. */
-function GlareLayer({ tilt, width, height, gloss }: { tilt?: CardTilt; width: number; height: number; gloss: number }) {
-  const style = useAnimatedStyle(() => {
-    const tx = tilt?.x.value ?? -0.35;
-    const ty = tilt?.y.value ?? -0.25;
-    return {
-      opacity: gloss * (0.35 + Math.min(0.4, (Math.abs(tx) + Math.abs(ty)) * 0.3)),
-      transform: [
-        { translateX: -width * 0.75 + tx * width * 0.6 },
-        { translateY: -height * 0.75 + ty * height * 0.5 },
-      ],
-    };
-  });
-  return (
-    <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.overflowHidden]}>
-      <Animated.View style={[{ width: width * 2.5, height: height * 2.5 }, style]}>
-        <LinearGradient
-          colors={['#FFFFFF00', '#FFFFFF00', '#FFFFFF55', '#FFFFFF00', '#00000033']}
-          locations={[0, 0.38, 0.5, 0.62, 1]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={StyleSheet.absoluteFill}
-        />
-      </Animated.View>
     </View>
   );
 }
@@ -352,8 +294,6 @@ const styles = StyleSheet.create({
     boxShadow: '0 24px 60px rgba(0, 0, 0, 0.6)',
   },
   clip: { flex: 1, overflow: 'hidden' },
-  overflowHidden: { overflow: 'hidden' },
-  etch: { mixBlendMode: 'color-dodge' },
   art: { overflow: 'hidden', backgroundColor: '#000000' },
   lyricCols: { position: 'absolute', flexDirection: 'row-reverse', alignItems: 'flex-start' },
   lyricCol: {
@@ -370,7 +310,7 @@ const styles = StyleSheet.create({
   metaFoot: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
   owner: { flexDirection: 'row', alignItems: 'baseline', gap: 4 },
   ownerNo: { color: '#FFFFFF' },
-  ownerTail: { color: '#FFFFFFB8' },
+  ownerTail: { color: '#FFFFFFB8', fontVariant: ['tabular-nums'] },
   watermark: { position: 'absolute', color: '#FFFFFF0D', textAlign: 'center' },
   rubyLine: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-end' },
   rubySeg: { alignItems: 'center' },
@@ -388,5 +328,5 @@ const styles = StyleSheet.create({
   stats: { flexDirection: 'row', gap: 8 },
   statLabel: { color: '#FFFFFF8C' },
   statValue: { color: '#F2EEF7', fontWeight: '600', fontVariant: ['tabular-nums'] },
-  statUnit: { color: '#FFFFFF8C', fontWeight: '500' },
+  statUnit: { color: '#FFFFFF8C' },
 });

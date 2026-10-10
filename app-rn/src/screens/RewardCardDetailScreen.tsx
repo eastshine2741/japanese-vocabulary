@@ -17,7 +17,7 @@ import Animated, {
 import { RootStackParamList } from '../navigation/AppNavigator';
 import SongCardShowcase from '../components/rewardCards/SongCardShowcase';
 import LevelPips from '../components/rewardCards/LevelPips';
-import { CARD_RATIO, LEVEL_MATERIAL, SHOWROOM, useMinchoFamily } from '../components/rewardCards/cardTheme';
+import { CARD_RATIO, LEVEL_MATERIAL, SHOWROOM, useCardFonts } from '../components/rewardCards/cardTheme';
 import { WEAR_LABEL, wearState } from '../components/rewardCards/cardWear';
 import { findDummySongCard } from '../components/rewardCards/dummyRewardCards';
 import { useCardTilt } from '../components/rewardCards/useCardTilt';
@@ -34,7 +34,7 @@ const WEAR_TONE = {
 export default function RewardCardDetailScreen({ navigation, route }: Props) {
   const card = findDummySongCard(route.params.cardId);
   const { width: screenW, height: screenH } = useWindowDimensions();
-  const mincho = useMinchoFamily();
+  const fonts = useCardFonts();
   const tilt = useCardTilt();
 
   const enter = useSharedValue(0);
@@ -106,7 +106,7 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
           />
           <GestureDetector gesture={tilt.gesture}>
             <Animated.View style={cardIn}>
-              <SongCardShowcase card={card} width={cardW} tilt={tilt} mincho={mincho} />
+              <SongCardShowcase card={card} width={cardW} tilt={tilt} fonts={fonts} ownerName={route.params.ownerName} />
             </Animated.View>
           </GestureDetector>
         </View>
@@ -117,9 +117,9 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
               <LevelPips level={card.level} color={material.chipText} size={5} />
               <Text style={[styles.levelText, { color: material.chipText }]}>{material.tier}</Text>
             </LinearGradient>
-            {card.lenticular && (
+            {card.mastered && (
               <View style={styles.chip}>
-                <Text style={styles.chipText}>렌티큘러</Text>
+                <Text style={styles.chipText}>마스터</Text>
               </View>
             )}
             <View style={[styles.chip, { backgroundColor: tone.bg }]}>

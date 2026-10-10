@@ -49,7 +49,7 @@ export default function LenticularLayer({ tilt, ...scene }: LenticularProps & { 
       cancelled = true;
       cancelAnimationFrame(frame);
     };
-  }, [loaded, scene.mincho.extraBold, scene.card.id, scene.width]);
+  }, [loaded, scene.fonts.jpHeavy, scene.fonts.ko, scene.card.id, scene.width]);
 
   const uniforms = useDerivedValue(() => ({ width: scene.width, pitch: LENS_PITCH, tiltX: tilt.x.value }));
 

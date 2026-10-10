@@ -1,23 +1,24 @@
 import React, { useCallback } from 'react';
 import { Pressable, StyleSheet } from 'react-native';
 import { SongCardFront } from './SongCardShowcase';
+import { CardFonts } from './cardTheme';
 import { SongRewardCard } from './types';
 
 interface Props {
   card: SongRewardCard;
   width: number;
-  mincho: { bold: string; extraBold: string };
+  fonts: CardFonts;
   onPress: (card: SongRewardCard) => void;
 }
 
-function SongCardThumb({ card, width, mincho, onPress }: Props) {
+function SongCardThumb({ card, width, fonts, onPress }: Props) {
   const handlePress = useCallback(() => onPress(card), [card, onPress]);
   return (
     <Pressable
       onPress={handlePress}
       style={({ pressed }) => [styles.card, { borderRadius: width * 0.046 }, pressed && styles.pressed]}
     >
-      <SongCardFront card={card} width={width} mincho={mincho} />
+      <SongCardFront card={card} width={width} fonts={fonts} />
     </Pressable>
   );
 }

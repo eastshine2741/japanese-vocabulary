@@ -2,10 +2,10 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Colors } from '../../theme/theme';
-import ArtistCard from './ArtistCard';
+import ArtistCardThumb from './ArtistCardThumb';
 import SongCardThumb from './SongCardThumb';
 import { CARD_SORT_LABEL, CARD_SORT_ORDER, CardSort, sortCards } from './cardWear';
-import { useMinchoFamily } from './cardTheme';
+import { useCardFonts } from './cardTheme';
 import { ArtistRewardCard, SongRewardCard } from './types';
 
 interface Props {
@@ -15,14 +15,15 @@ interface Props {
   contentWidth: number;
   sidePadding: number;
   onPressCard: (card: SongRewardCard) => void;
+  onPressArtistCard: (card: ArtistRewardCard) => void;
 }
 
 const GRID_GAP = 12;
 const COLUMNS = 3;
 const ARTIST_CARD_WIDTH = 240;
 
-function CardCollection({ songCards, artistCards, contentWidth, sidePadding, onPressCard }: Props) {
-  const mincho = useMinchoFamily();
+function CardCollection({ songCards, artistCards, contentWidth, sidePadding, onPressCard, onPressArtistCard }: Props) {
+  const fonts = useCardFonts();
   const [sort, setSort] = useState<CardSort>('level');
   const handleSort = useCallback(() => {
     setSort((prev) => CARD_SORT_ORDER[(CARD_SORT_ORDER.indexOf(prev) + 1) % CARD_SORT_ORDER.length]);
@@ -51,7 +52,7 @@ function CardCollection({ songCards, artistCards, contentWidth, sidePadding, onP
           contentContainerStyle={[styles.artistRow, { paddingHorizontal: sidePadding }]}
         >
           {artistCards.map((card) => (
-            <ArtistCard key={card.id} card={card} width={ARTIST_CARD_WIDTH} minchoFamily={mincho.extraBold} />
+            <ArtistCardThumb key={card.id} card={card} width={ARTIST_CARD_WIDTH} fonts={fonts} onPress={onPressArtistCard} />
           ))}
         </ScrollView>
       </View>
@@ -70,7 +71,7 @@ function CardCollection({ songCards, artistCards, contentWidth, sidePadding, onP
           {rows.map((row) => (
             <View key={row.map((c) => c.id).join()} style={styles.gridRow}>
               {row.map((card) => (
-                <SongCardThumb key={card.id} card={card} width={thumbWidth} mincho={mincho} onPress={onPressCard} />
+                <SongCardThumb key={card.id} card={card} width={thumbWidth} fonts={fonts} onPress={onPressCard} />
               ))}
             </View>
           ))}

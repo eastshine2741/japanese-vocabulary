@@ -42,7 +42,7 @@ export const CARD_SORT_LABEL: Record<CardSort, string> = {
 export const CARD_SORT_ORDER: CardSort[] = ['level', 'recent', 'worn'];
 
 function rank(card: SongRewardCard): number {
-  return card.level + (card.lenticular ? 1 : 0);
+  return card.level + (card.mastered ? 1 : 0);
 }
 
 export function sortCards(cards: SongRewardCard[], sort: CardSort): SongRewardCard[] {

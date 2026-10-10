@@ -1,6 +1,7 @@
 import React, { forwardRef } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { CardFonts } from './cardTheme';
 import { SongRewardCard } from './types';
 import { verticalText } from './verticalText';
 
@@ -9,12 +10,12 @@ export interface LenticularProps {
   width: number;
   height: number;
   u: number;
-  mincho: { bold: string; extraBold: string };
+  fonts: CardFonts;
 }
 
-/** 렌티큘러 카드를 기울였을 때 넘어가 보이는 두 번째 장면. */
+/** 마스터 카드를 기울였을 때 렌티큘러 인쇄처럼 넘어가 보이는 두 번째 장면. */
 const LenticularScene = forwardRef<View, LenticularProps & { onReady?: () => void }>(function LenticularScene(
-  { card, width, height, u, mincho, onReady },
+  { card, width, height, u, fonts, onReady },
   ref,
 ) {
   return (
@@ -29,15 +30,15 @@ const LenticularScene = forwardRef<View, LenticularProps & { onReady?: () => voi
       <LinearGradient colors={['#000000B0', '#00000010', '#000000D0']} locations={[0, 0.45, 1]} style={StyleSheet.absoluteFill} />
       <View style={[styles.lyric, { top: 9 * u, gap: 4 * u }]}>
         {card.frontLines.map((line, i) => (
-          <Text key={i} style={[styles.lyricCol, { fontFamily: mincho.extraBold, fontSize: 9 * u, lineHeight: 10.4 * u, marginTop: i * 10 * u, textShadowColor: card.accent }]}>
+          <Text key={i} style={[styles.lyricCol, { fontFamily: fonts.jpHeavy, fontSize: 9 * u, lineHeight: 10.4 * u, marginTop: i * 10 * u, textShadowColor: card.accent }]}>
             {verticalText(line)}
           </Text>
         ))}
       </View>
       <View style={[styles.foot, { left: 7 * u, right: 7 * u, bottom: 7 * u, gap: 1.4 * u }]}>
-        <Text style={[styles.ko, { fontSize: 3.8 * u, lineHeight: 5.4 * u }]}>{card.backKo}</Text>
-        <Text style={[styles.meta, { fontSize: 2.8 * u }]}>
-          {card.title} · {card.ownerNo.toLocaleString('ko-KR')}번째 획득
+        <Text style={[styles.ko, { fontFamily: fonts.koBold, fontSize: 3.8 * u, lineHeight: 5.4 * u }]}>{card.backKo}</Text>
+        <Text style={[styles.meta, { fontFamily: fonts.ko, fontSize: 2.8 * u }]}>
+          <Text style={{ fontFamily: fonts.jp }}>{card.title}</Text> · {card.ownerNo.toLocaleString('ko-KR')}번째 획득
         </Text>
       </View>
     </View>

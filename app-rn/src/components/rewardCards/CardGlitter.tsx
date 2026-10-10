@@ -30,7 +30,7 @@ interface Props {
   tilt: CardTilt;
   /** 0~1. 카드가 낡으면 반짝임도 같이 죽는다. */
   strength: number;
-  /** 0~1. 렌티큘러 카드만 무지개 코팅을 얹는다. */
+  /** 0~1. 마스터 카드만 무지개 코팅을 얹는다. */
   rainbow?: number;
 }
 

@@ -72,7 +72,7 @@ half4 main(float2 p) {
 
   col *= strength;
 
-  // 렌티큘러 카드의 무지개 코팅: 보는 각도에 따라 간섭색 띠가 흐르고, 넓은 광택 띠에서만 진해진다.
+  // 마스터 카드의 무지개 코팅: 보는 각도에 따라 간섭색 띠가 흐르고, 넓은 광택 띠에서만 진해진다.
   if (rainbow > 0.0) {
     float2 uv = p / size;
     float phase = uv.x * 0.8 + uv.y * 0.5 + light.x * 0.6 + light.y * 0.35;
@@ -95,7 +95,7 @@ interface Props {
   tilt: CardTilt;
   /** 0~1. 카드가 낡으면 반짝임도 같이 죽는다. */
   strength: number;
-  /** 0~1. 렌티큘러 카드만 무지개 코팅을 얹는다. */
+  /** 0~1. 마스터 카드만 무지개 코팅을 얹는다. */
   rainbow?: number;
 }
 

@@ -12,7 +12,7 @@ function card(id: string, patch: Partial<SongRewardCard>): SongRewardCard {
     accent: '#000000',
     ink: '#000000',
     level: 1,
-    lenticular: false,
+    mastered: false,
     recall: 0.95,
     ownerNo: 1,
     earnedAt: '2026-10-01',
@@ -49,12 +49,12 @@ describe('wearState', () => {
 describe('sortCards', () => {
   const cards = [
     card('a', { level: 3, earnedAt: '2026-09-01' }),
-    card('b', { level: 3, lenticular: true, earnedAt: '2026-08-01' }),
+    card('b', { level: 3, mastered: true, earnedAt: '2026-08-01' }),
     card('c', { level: 1, recall: 0.6, earnedAt: '2026-10-05' }),
     card('d', { level: 2, recall: 0.8, earnedAt: '2026-09-20' }),
   ];
 
-  it('레벨순은 렌티큘러를 3레벨보다 앞에 둔다', () => {
+  it('레벨순은 마스터 카드를 3레벨보다 앞에 둔다', () => {
     expect(sortCards(cards, 'level').map((c) => c.id)).toEqual(['b', 'a', 'd', 'c']);
   });
 

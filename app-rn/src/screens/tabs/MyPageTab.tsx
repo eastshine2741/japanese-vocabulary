@@ -20,7 +20,7 @@ import { flashcardApi } from '../../api/flashcardApi';
 import { FlashcardStatsResponse } from '../../types/flashcard';
 import CardCollection from '../../components/rewardCards/CardCollection';
 import { DUMMY_ARTIST_CARDS, DUMMY_SONG_CARDS } from '../../components/rewardCards/dummyRewardCards';
-import { SongRewardCard } from '../../components/rewardCards/types';
+import { ArtistRewardCard, SongRewardCard } from '../../components/rewardCards/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 interface ProfileTabRoute {
@@ -130,8 +130,12 @@ export default function MyPageTab() {
   }, [navigation]);
 
   const handlePressCard = useCallback((card: SongRewardCard) => {
-    navigation.navigate('RewardCardDetail', { cardId: card.id });
-  }, [navigation]);
+    navigation.navigate('RewardCardDetail', { cardId: card.id, ownerName: displayName });
+  }, [navigation, displayName]);
+
+  const handlePressArtistCard = useCallback((card: ArtistRewardCard) => {
+    navigation.navigate('ArtistCardDetail', { cardId: card.id, ownerName: displayName });
+  }, [navigation, displayName]);
 
   const contentPadding = Dimens.bottomBarHeight + insets.bottom + 24;
   const navigationState = useMemo(() => ({ index: tabIndex, routes: PROFILE_TABS }), [tabIndex]);
@@ -151,6 +155,7 @@ export default function MyPageTab() {
             contentWidth={screenWidth - SIDE_PADDING * 2}
             sidePadding={SIDE_PADDING}
             onPressCard={handlePressCard}
+            onPressArtistCard={handlePressArtistCard}
           />
         ) : (
           <View style={styles.studyTab}>
@@ -190,7 +195,7 @@ export default function MyPageTab() {
       </ScrollView>
     ),
     [
-      contentPadding, screenWidth, handlePressCard, totalWords, longTermWords, shortTermWords, showStatsFallback,
+      contentPadding, screenWidth, handlePressCard, handlePressArtistCard, totalWords, longTermWords, shortTermWords, showStatsFallback,
       handleOpenSongProgress, deckStatus, progressItems.length, representativeSongs, handleSongProgressPress, handleOpenStreak,
     ],
   );
