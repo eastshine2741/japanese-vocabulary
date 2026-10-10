@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { CardFonts } from './cardTheme';
-import { CardSignature, SIGNATURE_BOX, SIGNATURE_STROKE, SIGNATURE_VIEW_BOX } from './signature';
+import { CardSignature, SIGNATURE_BOX, SIGNATURE_CARD_STROKE, SIGNATURE_VIEW_BOX } from './signature';
 
 export const SIGNATURE_PAPER = '#F3EFE6';
 export const SIGNATURE_INK = '#1D2140';
@@ -24,29 +24,33 @@ const STRIP_W = 40;
 function SignatureField({ signature, fallbackName, hint, u, fonts }: Props) {
   const width = STRIP_W * u;
   const height = (width * SIGNATURE_BOX.height) / SIGNATURE_BOX.width;
+  const signed = !!signature && signature.length > 0;
   return (
     <View style={{ gap: 0.8 * u }}>
       <Text style={[styles.label, { fontFamily: fonts.ko, fontSize: 2.4 * u, letterSpacing: 0.4 * u }]}>소유자 서명</Text>
-      <View
-        style={[
-          styles.strip,
-          { width, height, borderRadius: 0.8 * u },
-          hint && !signature?.length ? { borderWidth: 0.5 * u, borderColor: hint, borderStyle: 'dashed' } : null,
-        ]}
-      >
-        {signature && signature.length > 0 ? (
-          <Svg width={width} height={height} viewBox={SIGNATURE_VIEW_BOX}>
-            {signature.map((d, i) => (
-              <Path key={i} d={d} {...STROKE_PROPS} />
-            ))}
-          </Svg>
-        ) : fallbackName ? (
+      <View style={[styles.strip, { width, height, borderRadius: 0.8 * u }]}>
+        {/* SVG 는 비어 있어도 늘 붙여 둔다 — 서명 중에 새로 붙이면 Android 에서 그려지지 않는다. */}
+        <Svg pointerEvents="none" style={StyleSheet.absoluteFill} viewBox={SIGNATURE_VIEW_BOX}>
+          {signature?.map((d, i) => (
+            <Path key={i} d={d} {...STROKE_PROPS} />
+          ))}
+        </Svg>
+        {!signed && fallbackName ? (
           <Text
             style={[styles.name, { fontFamily: fonts.koBold, fontSize: 3.6 * u, paddingHorizontal: 1.8 * u }]}
             numberOfLines={1}
           >
             {fallbackName}
           </Text>
+        ) : null}
+        {hint && !signed ? (
+          <View
+            pointerEvents="none"
+            style={[
+              StyleSheet.absoluteFill,
+              { borderRadius: 0.8 * u, borderWidth: 0.5 * u, borderColor: hint, borderStyle: 'dashed' },
+            ]}
+          />
         ) : null}
       </View>
     </View>
@@ -57,7 +61,7 @@ export default React.memo(SignatureField);
 
 const STROKE_PROPS = {
   stroke: SIGNATURE_INK,
-  strokeWidth: SIGNATURE_STROKE,
+  strokeWidth: SIGNATURE_CARD_STROKE,
   strokeLinecap: 'round',
   strokeLinejoin: 'round',
   fill: 'none',

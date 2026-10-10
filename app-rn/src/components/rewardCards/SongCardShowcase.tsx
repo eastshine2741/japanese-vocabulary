@@ -295,31 +295,34 @@ function BackFace({
       </Text>
 
       <View style={{ flex: 1, padding: 6 * u, gap: 4 * u }}>
-        <View style={{ gap: 1.6 * u }}>
-          {card.lyric.map((line) => (
-            <View key={line.index} style={styles.rubyLine}>
-              {line.ruby.map((seg, j) => (
-                <View key={j} style={styles.rubySeg}>
-                  <Text style={[styles.rubyTop, { fontSize: 2.4 * u, lineHeight: 3.2 * u }]}>{seg.reading ?? ' '}</Text>
-                  <Text style={[styles.rubyBase, { fontFamily: fonts.jp, fontSize: 5.8 * u, lineHeight: 7.4 * u }]}>{seg.text}</Text>
-                </View>
-              ))}
-            </View>
-          ))}
-        </View>
-        <Text style={[styles.backKo, { fontFamily: fonts.ko, fontSize: 3.6 * u, lineHeight: 5.4 * u, borderLeftColor: card.accent, paddingLeft: 2.6 * u }]}>
-          {lyricKo(card.lyric)}
-        </Text>
+        {/* 넘치면 이 위쪽이 잘린다 — 서명 칸은 늘 카드 안에 남아야 한다. */}
+        <View style={[styles.backBody, { gap: 4 * u }]}>
+          <View style={{ gap: 1.6 * u }}>
+            {card.lyric.map((line) => (
+              <View key={line.index} style={styles.rubyLine}>
+                {line.ruby.map((seg, j) => (
+                  <View key={j} style={styles.rubySeg}>
+                    <Text style={[styles.rubyTop, { fontSize: 2.4 * u, lineHeight: 3.2 * u }]}>{seg.reading ?? ' '}</Text>
+                    <Text style={[styles.rubyBase, { fontFamily: fonts.jp, fontSize: 5.8 * u, lineHeight: 7.4 * u }]}>{seg.text}</Text>
+                  </View>
+                ))}
+              </View>
+            ))}
+          </View>
+          <Text style={[styles.backKo, { fontFamily: fonts.ko, fontSize: 3.6 * u, lineHeight: 5.4 * u, borderLeftColor: card.accent, paddingLeft: 2.6 * u }]}>
+            {lyricKo(card.lyric)}
+          </Text>
 
-        <View style={{ flex: 1, gap: 1.6 * u }}>
-          {card.words.map((word) => (
-            <View key={word.japanese} style={[styles.wordRow, { paddingBottom: 1.4 * u, gap: 2.4 * u }]}>
-              <Text style={[styles.wordJp, { fontFamily: fonts.jp, fontSize: 4.2 * u }]}>{word.japanese}</Text>
-              <Text style={[styles.wordMeaning, { fontFamily: fonts.ko, fontSize: 3.2 * u }]} numberOfLines={1}>
-                <Text style={{ fontFamily: fonts.jp }}>{word.reading}</Text> · {word.meaning}
-              </Text>
-            </View>
-          ))}
+          <View style={{ flex: 1, gap: 1.6 * u }}>
+            {card.words.map((word) => (
+              <View key={word.japanese} style={[styles.wordRow, { paddingBottom: 1.4 * u, gap: 2.4 * u }]}>
+                <Text style={[styles.wordJp, { fontFamily: fonts.jp, fontSize: 4.2 * u }]}>{word.japanese}</Text>
+                <Text style={[styles.wordMeaning, { fontFamily: fonts.ko, fontSize: 3.2 * u }]} numberOfLines={1}>
+                  <Text style={{ fontFamily: fonts.jp }}>{word.reading}</Text> · {word.meaning}
+                </Text>
+              </View>
+            ))}
+          </View>
         </View>
 
         <View style={styles.stats}>
@@ -385,6 +388,7 @@ const styles = StyleSheet.create({
   },
   wordJp: { color: '#F2EEF7' },
   wordMeaning: { flex: 1, color: '#FFFFFFB3' },
+  backBody: { flex: 1, minHeight: 0, overflow: 'hidden' },
   stats: { flexDirection: 'row', gap: 8 },
   statLabel: { color: '#FFFFFF8C' },
   statValue: { color: '#F2EEF7', fontWeight: '600', fontVariant: ['tabular-nums'] },

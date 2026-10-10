@@ -2,6 +2,8 @@
 export const SIGNATURE_BOX = { width: 360, height: 120 } as const;
 export const SIGNATURE_VIEW_BOX = `0 0 ${SIGNATURE_BOX.width} ${SIGNATURE_BOX.height}`;
 export const SIGNATURE_STROKE = 3.2;
+/** 카드 칸은 패드의 1/5 남짓으로 줄어들어 패드 굵기 그대로면 실선이 된다. 카드 위에서 펜 자국만큼 보이게 따로 굵게 그린다. */
+export const SIGNATURE_CARD_STROKE = 8;
 
 /** 획마다 SVG 경로 하나. */
 export type CardSignature = string[];
