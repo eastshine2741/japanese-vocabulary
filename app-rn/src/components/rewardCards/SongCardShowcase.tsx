@@ -183,7 +183,7 @@ function FrontFace({ card, width, height, u, age, tilt, fonts, thumb }: FaceProp
           </Text>
           <Text style={[styles.artist, { fontSize: 3.4 * u, color: `${card.accent}` }]} numberOfLines={1}>{card.artist}</Text>
           <View style={styles.metaFoot}>
-            <OwnerMark no={card.ownerNo} u={u} fonts={fonts} />
+            <OwnerMark no={card.ownerNo} sample={card.sample} u={u} fonts={fonts} />
             <LevelPips level={card.level} color={material.pip} size={2.4 * u} />
           </View>
         </LinearGradient>
@@ -235,7 +235,7 @@ function FoilFrontFace({ card, width, height, u, age, tilt, fonts, thumb }: Face
         </Text>
         <Text style={[styles.artist, { fontSize: 3.6 * u, color: card.accent }]} numberOfLines={1}>{card.artist}</Text>
         <View style={[styles.metaFoot, { marginTop: 2.4 * u }]}>
-          <OwnerMark no={card.ownerNo} u={u} fonts={fonts} />
+          <OwnerMark no={card.ownerNo} sample={card.sample} u={u} fonts={fonts} />
         </View>
       </View>
 
@@ -266,13 +266,13 @@ function FoilFrontFace({ card, width, height, u, age, tilt, fonts, thumb }: Face
   );
 }
 
-function OwnerMark({ no, u, fonts }: { no: number; u: number; fonts: CardFonts }) {
+function OwnerMark({ no, sample, u, fonts }: { no: number; sample?: boolean; u: number; fonts: CardFonts }) {
   return (
     <View style={styles.owner}>
       <Text style={[styles.ownerNo, { fontFamily: fonts.jpHeavy, fontSize: 6 * u, lineHeight: 7 * u }]}>
-        {no.toLocaleString('ko-KR')}
+        {sample ? 'SAMPLE' : no.toLocaleString('ko-KR')}
       </Text>
-      <Text style={[styles.ownerTail, { fontFamily: fonts.ko, fontSize: 3 * u }]}>번째 획득</Text>
+      <Text style={[styles.ownerTail, { fontFamily: fonts.ko, fontSize: 3 * u }]}>{sample ? '견본' : '번째 획득'}</Text>
     </View>
   );
 }
@@ -288,10 +288,15 @@ function BackFace({
   signatureHint,
   signature,
 }: FaceProps & SignatureSlot & { ownerName?: string }) {
-  const stats = [
-    { label: '획득 순번', value: card.ownerNo.toLocaleString('ko-KR'), unit: '번째' },
-    { label: '획득한 날', value: card.earnedAt.slice(2).replace(/-/g, '.'), unit: '' },
-  ];
+  const stats = card.sample
+    ? [
+        { label: '획득 순번', value: '—', unit: '' },
+        { label: '획득한 날', value: '—', unit: '' },
+      ]
+    : [
+        { label: '획득 순번', value: card.ownerNo.toLocaleString('ko-KR'), unit: '번째' },
+        { label: '획득한 날', value: card.earnedAt.slice(2).replace(/-/g, '.'), unit: '' },
+      ];
   return (
     <View style={[styles.clip, { borderRadius: 4.6 * u, backgroundColor: card.ink }]}>
       <LinearGradient colors={[`${card.accent}73`, `${card.ink}00`]} start={{ x: 0.1, y: 0 }} end={{ x: 0.7, y: 0.7 }} style={StyleSheet.absoluteFill} />

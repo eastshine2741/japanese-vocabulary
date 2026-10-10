@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -15,10 +16,27 @@ import { Feather, Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useShallow } from 'zustand/react/shallow';
 import ArtworkImage from '../components/ArtworkImage';
 import ErrorDialog from '../components/ErrorDialog';
 import SkeletonBox from '../components/SkeletonLoading';
 import RowSpinner from '../components/RowSpinner';
+import {
+  ArtistCardSummary,
+  SONG_CARD_COLUMNS,
+  SONG_CARD_GAP,
+  SongCardSlotRow,
+} from '../components/artistDetail/ArtistCards';
+import {
+  buildSongCardSlots,
+  chunk,
+  pickArtistCard,
+  type SongCardSlot,
+} from '../components/artistDetail/artistCardSlots';
+import { useCardFonts } from '../components/rewardCards/cardTheme';
+import type { ArtistRewardCard, SongRewardCard } from '../components/rewardCards/types';
+import { useAuthStore } from '../stores/authStore';
+import { useRewardCardStore } from '../stores/rewardCardStore';
 import { artistApi } from '../api/artistApi';
 import { isAnalyzingSong, useAnalysisStore } from '../stores/analysisStore';
 import { usePlayerStore } from '../stores/playerStore';
@@ -31,6 +49,7 @@ import { SongSearchItem } from '../types/song';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ArtistDetail'>;
 type Status = 'loading' | 'success' | 'error';
+type ArtistTab = 'songs' | 'cards';
 
 const HERO_HEIGHT = 300;
 const COLLAPSED_BAR_HEIGHT = 56;
@@ -38,13 +57,18 @@ const PARALLAX_RATIO = 0.4;
 const CHEVRON_SIZE = 18;
 const SKELETON_ROWS = [0, 1, 2, 3, 4, 5];
 
+const TAB_BAR_HEIGHT = 44;
+const TAB_INDICATOR_WIDTH = 28;
+
 type ArtistRow =
   | { kind: 'studying'; song: ArtistStudyingSong }
-  | { kind: 'popular'; song: SongSearchItem };
+  | { kind: 'popular'; song: SongSearchItem }
+  | { kind: 'cardRow'; key: string; slots: SongCardSlot[] };
 
 interface ArtistSection {
-  key: 'studying' | 'popular';
+  key: 'studying' | 'popular' | 'cards';
   title: string;
+  count: string;
   data: ArtistRow[];
 }
 
@@ -164,6 +188,51 @@ const ArtistHero = React.memo(function ArtistHero({
   );
 });
 
+const ArtistTabs = React.memo(function ArtistTabs({
+  activeTab,
+  cardCount,
+  onSelectSongs,
+  onSelectCards,
+}: {
+  activeTab: ArtistTab;
+  cardCount: number;
+  onSelectSongs: () => void;
+  onSelectCards: () => void;
+}) {
+  return (
+    <View style={styles.tabBar}>
+      <TabButton label="곡" isActive={activeTab === 'songs'} onPress={onSelectSongs} />
+      <TabButton
+        label={cardCount > 0 ? `카드 ${cardCount}` : '카드'}
+        isActive={activeTab === 'cards'}
+        onPress={onSelectCards}
+      />
+    </View>
+  );
+});
+
+const TabButton = React.memo(function TabButton({
+  label,
+  isActive,
+  onPress,
+}: {
+  label: string;
+  isActive: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="tab"
+      accessibilityState={{ selected: isActive }}
+      style={styles.tabButton}
+      onPress={onPress}
+    >
+      <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>{label}</Text>
+      {isActive && <View style={styles.tabIndicator} />}
+    </Pressable>
+  );
+});
+
 export default function ArtistDetailScreen({ navigation, route }: Props) {
   const { artistId } = route.params;
   const insets = useSafeAreaInsets();
@@ -174,6 +243,17 @@ export default function ArtistDetailScreen({ navigation, route }: Props) {
   const [errorCode, setErrorCode] = useState<string | null>(null);
   const [errorDialogMessage, setErrorDialogMessage] = useState<string | null>(null);
   const [checkingItemId, setCheckingItemId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<ArtistTab>('songs');
+
+  const { width: screenWidth } = useWindowDimensions();
+  const fonts = useCardFonts();
+  const userName = useAuthStore(s => s.userName);
+  const ownerName = userName?.trim() || '학습자';
+  const artistName = artist?.name ?? '';
+  const artistCard = useRewardCardStore(s => pickArtistCard(s.artistCards, artistName));
+  const songCards = useRewardCardStore(
+    useShallow(s => s.songCards.filter(card => card.artist === artistName)),
+  );
 
   const analyze = usePlayerStore(s => s.analyze);
   const playerStatus = usePlayerStore(s => s.status);
@@ -293,13 +373,40 @@ export default function ArtistDetailScreen({ navigation, route }: Props) {
     });
   }, [analyze, navigation, isChecking]);
 
+  const handleSelectSongs = useCallback(() => setActiveTab('songs'), []);
+  const handleSelectCards = useCallback(() => setActiveTab('cards'), []);
+
+  const handleOpenSongCard = useCallback((card: SongRewardCard) => {
+    navigation.navigate('RewardCardDetail', { cardId: card.id, ownerName });
+  }, [navigation, ownerName]);
+
+  const handleOpenArtistCard = useCallback((card: ArtistRewardCard) => {
+    navigation.navigate('ArtistCardDetail', { cardId: card.id, ownerName });
+  }, [navigation, ownerName]);
+
+  const slotWidth = Math.floor(
+    (screenWidth - Dimens.screenPadding * 2 - SONG_CARD_GAP * (SONG_CARD_COLUMNS - 1)) / SONG_CARD_COLUMNS,
+  );
+  const artistCardWidth = screenWidth - Dimens.screenPadding * 2;
+
   const sections = useMemo<ArtistSection[]>(() => {
     if (!artist) return [];
+    if (activeTab === 'cards') {
+      const slots = buildSongCardSlots(artist, songCards);
+      if (slots.length === 0) return [];
+      return [{
+        key: 'cards',
+        title: '곡 카드',
+        count: `${songCards.length} / ${slots.length}`,
+        data: chunk(slots, SONG_CARD_COLUMNS).map(row => ({ kind: 'cardRow', key: row[0].key, slots: row })),
+      }];
+    }
     const result: ArtistSection[] = [];
     if (artist.studyingSongs.length > 0) {
       result.push({
         key: 'studying',
         title: '곡별 진도',
+        count: `${artist.studyingSongs.length}곡`,
         data: artist.studyingSongs.map(song => ({ kind: 'studying', song })),
       });
     }
@@ -307,13 +414,27 @@ export default function ArtistDetailScreen({ navigation, route }: Props) {
       result.push({
         key: 'popular',
         title: '인기곡',
+        count: `${artist.popularSongs.length}곡`,
         data: artist.popularSongs.map(song => ({ kind: 'popular', song })),
       });
     }
     return result;
-  }, [artist]);
+  }, [artist, activeTab, songCards]);
 
   const renderItem = useCallback(({ item }: { item: ArtistRow }) => {
+    if (item.kind === 'cardRow') {
+      return (
+        <SongCardSlotRow
+          slots={item.slots}
+          width={slotWidth}
+          fonts={fonts}
+          isChecking={isChecking}
+          onOpenCard={handleOpenSongCard}
+          onOpenStudying={handleStudyingPress}
+          onOpenPopular={handlePopularPress}
+        />
+      );
+    }
     // 리스트 뒤에 아트워크가 깔려 있어 눌림 페이드가 배경을 비치지 않게 불투명 셀로 감싼다.
     return (
       <View style={styles.cell}>
@@ -329,14 +450,23 @@ export default function ArtistDetailScreen({ navigation, route }: Props) {
         )}
       </View>
     );
-  }, [handleStudyingPress, handlePopularPress, isChecking, checkingItemId]);
+  }, [
+    handleStudyingPress,
+    handlePopularPress,
+    handleOpenSongCard,
+    isChecking,
+    checkingItemId,
+    slotWidth,
+    fonts,
+  ]);
 
-  const firstSectionKey = sections[0]?.key;
+  // 카드 탭은 위에 아티스트 카드가 있어 첫 섹션도 보통 간격을 둔다.
+  const firstSectionKey = activeTab === 'songs' ? sections[0]?.key : undefined;
   const renderSectionHeader = useCallback(
     ({ section }: { section: SectionListData<ArtistRow, ArtistSection> }) => (
       <View style={[styles.sectionHeader, section.key === firstSectionKey && styles.firstSectionHeader]}>
         <Text style={styles.sectionTitle}>{section.title}</Text>
-        <Text style={styles.sectionCount}>{section.data.length}곡</Text>
+        <Text style={styles.sectionCount}>{section.count}</Text>
       </View>
     ),
     [firstSectionKey],
@@ -386,11 +516,28 @@ export default function ArtistDetailScreen({ navigation, route }: Props) {
         renderSectionHeader={renderSectionHeader}
         stickySectionHeadersEnabled={false}
         ListHeaderComponent={
-          <ArtistHero
-            artist={artist}
-            infoOpacity={heroInfoOpacity}
-            onOpenAppleMusic={handleOpenAppleMusic}
-          />
+          <>
+            <ArtistHero
+              artist={artist}
+              infoOpacity={heroInfoOpacity}
+              onOpenAppleMusic={handleOpenAppleMusic}
+            />
+            <ArtistTabs
+              activeTab={activeTab}
+              cardCount={songCards.length}
+              onSelectSongs={handleSelectSongs}
+              onSelectCards={handleSelectCards}
+            />
+            {activeTab === 'cards' && (
+              <ArtistCardSummary
+                artist={artist}
+                card={artistCard}
+                width={artistCardWidth}
+                fonts={fonts}
+                onOpen={handleOpenArtistCard}
+              />
+            )}
+          </>
         }
         ListEmptyComponent={<EmptyState />}
         ListFooterComponent={<View style={[styles.listFooter, { height: insets.bottom + 24 }]} />}
@@ -424,8 +571,10 @@ export default function ArtistDetailScreen({ navigation, route }: Props) {
   );
 }
 
-const keyExtractor = (item: ArtistRow) =>
-  item.kind === 'studying' ? `studying-${item.song.songId}` : `popular-${item.song.id}`;
+const keyExtractor = (item: ArtistRow) => {
+  if (item.kind === 'cardRow') return `cards-${item.key}`;
+  return item.kind === 'studying' ? `studying-${item.song.songId}` : `popular-${item.song.id}`;
+};
 
 const ArtistDetailSkeleton = React.memo(function ArtistDetailSkeleton({
   topInset,
@@ -611,6 +760,39 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  tabBar: {
+    height: TAB_BAR_HEIGHT,
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: 10,
+    paddingHorizontal: 16,
+    backgroundColor: Colors.surface,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.border,
+  },
+  tabButton: {
+    minWidth: 54,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tabLabel: {
+    ...Typography.bodyBold,
+    fontSize: 15,
+    fontWeight: '700',
+    color: Colors.textMuted,
+  },
+  tabLabelActive: {
+    fontWeight: '800',
+    color: Colors.textPrimary,
+  },
+  tabIndicator: {
+    position: 'absolute',
+    bottom: 0,
+    width: TAB_INDICATOR_WIDTH,
+    height: 2,
+    backgroundColor: Colors.primary,
   },
   sectionHeader: {
     backgroundColor: Colors.surface,

@@ -49,6 +49,8 @@ export interface SongRewardCard {
   words: CardWord[];
   /** 마스터 카드는 다음 목표가 없다. */
   nextGoal: CardGoal | null;
+  /** 아직 얻지 않은 레벨의 견본. 획득 순번 자리에 SAMPLE 을 찍는다. */
+  sample?: boolean;
 }
 
 export interface MasteredSong {

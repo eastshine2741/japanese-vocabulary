@@ -11,16 +11,26 @@ import { Colors } from '../../theme/theme';
 import { Typography } from '../../theme/typography';
 import type { SongWordTierDto, SongWordTierKey } from '../../types/song';
 import { MemoryHelpSheet, MemoryHelpSheetRef } from '../memoryHelp/MemoryHelpSheet';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import MaterialGlyph from '../rewardCards/MaterialGlyph';
+import { LEVEL_MATERIAL, MASTER_CHIP } from '../rewardCards/cardTheme';
+import type { PreviewSong } from '../rewardCards/cardPreview';
+import { CardLevel } from '../rewardCards/types';
+import type { RootStackParamList } from '../../navigation/AppNavigator';
 import { SongDetailDueWordRoller } from './SongDetailDueWordRoller';
 import {
   buildTierSegments,
   estimateStudyMinutes,
+  getSongCardProgress,
   getTierStatus,
   selectExpandedTierKey,
+  type SongCardProgress,
   type SongWordTierStatus,
 } from './songDetailTier';
 
 interface SongDetailTierJourneyProps {
+  song: PreviewSong;
   tiers: readonly SongWordTierDto[];
   isStartingLearning?: boolean;
   onStartTier: (tier: SongWordTierDto) => void;
@@ -36,8 +46,11 @@ const contentFadeIn = FadeIn.duration(CONTENT_FADE_DURATION);
 /**
  * 완곡까지 3단계. 항상 한 장만 펼쳐져 있다 — 유저가 고르기 전에는 현재 단계(한 번도 리뷰 안 한
  * 단어가 남은 첫 단계)가 펼쳐지고, 한 번 고르면 곡을 떠날 때까지 그 선택을 따른다.
+ * 단계 n 을 끝내면 곡 카드 레벨 n 이라 각 단계에 '완료 시 보상'을 붙이고, 완곡 뒤에 마스터를 한 마디 더 둔다.
+ * 보상을 누르면 그 레벨 카드의 견본 전시(RewardCardPreview)를 연다.
  */
 export const SongDetailTierJourney = React.memo(function SongDetailTierJourney({
+  song,
   tiers,
   isStartingLearning = false,
   onStartTier,
@@ -49,6 +62,28 @@ export const SongDetailTierJourney = React.memo(function SongDetailTierJourney({
   const handleExpand = useCallback((key: SongWordTierKey) => {
     setPickedKey(key);
   }, []);
+
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const cardProgress = useMemo(() => getSongCardProgress(tiers), [tiers]);
+  const handleOpenReward = useCallback((level: CardLevel) => {
+    const tier = tiers[level - 1];
+    navigation.navigate('RewardCardPreview', {
+      song,
+      level,
+      mastered: false,
+      condition: `'${tier?.name ?? ''}' 단계 단어 모두 공부하기`,
+      reached: cardProgress.level >= level,
+    });
+  }, [navigation, song, tiers, cardProgress.level]);
+  const handleOpenMaster = useCallback(() => {
+    navigation.navigate('RewardCardPreview', {
+      song,
+      level: 3,
+      mastered: true,
+      condition: '곡 단어의 90%를 장기 기억으로 만들기',
+      reached: cardProgress.mastered,
+    });
+  }, [navigation, song, cardProgress.mastered]);
 
   if (tiers.length === 0) return null;
 
@@ -62,35 +97,46 @@ export const SongDetailTierJourney = React.memo(function SongDetailTierJourney({
             tier={tier}
             status={getTierStatus(tiers, index)}
             isExpanded={tier.key === expandedKey}
-            isLast={index === tiers.length - 1}
+            reward={rewardLevel(index)}
+            isRewardReached={cardProgress.level > index}
             isStartingLearning={isStartingLearning}
             onExpand={handleExpand}
             onStartTier={onStartTier}
+            onRewardPress={handleOpenReward}
           />
         ))}
+        {tiers.length >= 3 && <MasterStep progress={cardProgress} onPress={handleOpenMaster} />}
       </LayoutAnimationConfig>
     </View>
   );
 });
 
+function rewardLevel(index: number): CardLevel | null {
+  return index < 3 ? ((index + 1) as CardLevel) : null;
+}
+
 interface TierStepProps {
   tier: SongWordTierDto;
   status: SongWordTierStatus;
   isExpanded: boolean;
-  isLast: boolean;
+  reward: CardLevel | null;
+  isRewardReached: boolean;
   isStartingLearning: boolean;
   onExpand: (key: SongWordTierKey) => void;
   onStartTier: (tier: SongWordTierDto) => void;
+  onRewardPress: (level: CardLevel) => void;
 }
 
 const TierStep = React.memo(function TierStep({
   tier,
   status,
   isExpanded,
-  isLast,
+  reward,
+  isRewardReached,
   isStartingLearning,
   onExpand,
   onStartTier,
+  onRewardPress,
 }: TierStepProps) {
   const handleExpand = useCallback(() => {
     onExpand(tier.key);
@@ -104,14 +150,12 @@ const TierStep = React.memo(function TierStep({
     <Animated.View layout={relayout} style={styles.step}>
       <View style={styles.rail}>
         <TierDot status={status} />
-        {!isLast && (
-          <Animated.View
-            layout={relayout}
-            style={[styles.connector, status === 'done' && styles.connectorDone]}
-          />
-        )}
+        <Animated.View
+          layout={relayout}
+          style={[styles.connector, status === 'done' && styles.connectorDone]}
+        />
       </View>
-      <View style={[styles.stepBody, !isLast && styles.stepBodyGap]}>
+      <View style={[styles.stepBody, styles.stepBodyGap]}>
         {/* 그림자는 바깥, 잘라내기는 안쪽. iOS 는 overflow hidden 인 뷰의 그림자를 그리지 않는다. */}
         <Animated.View
           layout={relayout}
@@ -125,13 +169,22 @@ const TierStep = React.memo(function TierStep({
               <Animated.View key="expanded" entering={contentFadeIn}>
                 <ExpandedTierCard
                   tier={tier}
+                  reward={reward}
+                  isRewardReached={isRewardReached}
                   isStartingLearning={isStartingLearning}
                   onStart={handleStart}
+                  onRewardPress={onRewardPress}
                 />
               </Animated.View>
             ) : (
               <Animated.View key="collapsed" entering={contentFadeIn}>
-                <CollapsedTierCard tier={tier} onExpand={handleExpand} />
+                <CollapsedTierCard
+                  tier={tier}
+                  reward={reward}
+                  isRewardReached={isRewardReached}
+                  onExpand={handleExpand}
+                  onRewardPress={onRewardPress}
+                />
               </Animated.View>
             )}
           </Animated.View>
@@ -163,6 +216,68 @@ const TierDot = React.memo(function TierDot({ status }: { status: SongWordTierSt
   );
 });
 
+const TierReward = React.memo(function TierReward({
+  level,
+  isReached,
+  onPress,
+}: {
+  level: CardLevel;
+  isReached: boolean;
+  onPress: (level: CardLevel) => void;
+}) {
+  const handlePress = useCallback(() => onPress(level), [onPress, level]);
+  return (
+    <TouchableOpacity
+      style={[styles.reward, isReached && styles.rewardReached]}
+      onPress={handlePress}
+      activeOpacity={0.6}
+      hitSlop={STAT_HIT_SLOP}
+      accessibilityRole="button"
+      accessibilityLabel={isReached ? '받은 보상 카드 보기' : '완료 시 보상 카드 보기'}
+    >
+      <Feather name={isReached ? 'check' : 'gift'} size={12} color={REWARD_INK} />
+      <Text style={styles.rewardLabel}>{isReached ? '받은 보상' : '완료 시 보상'}</Text>
+      <MaterialGlyph frame={LEVEL_MATERIAL[level].frame} size={11} />
+    </TouchableOpacity>
+  );
+});
+
+const MasterStep = React.memo(function MasterStep({
+  progress,
+  onPress,
+}: {
+  progress: SongCardProgress;
+  onPress: () => void;
+}) {
+  const status: SongWordTierStatus = progress.mastered ? 'done' : progress.level === 3 ? 'current' : 'todo';
+  const percent = Math.round(progress.longTermRatio * 100);
+
+  return (
+    <Animated.View layout={relayout} style={styles.step}>
+      <View style={styles.rail}>
+        <TierDot status={status} />
+      </View>
+      <View style={styles.stepBody}>
+        <TouchableOpacity
+          style={[styles.masterCard, status === 'todo' && styles.rewardAhead]}
+          onPress={onPress}
+          activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel={`마스터 곡 카드. 곡 단어 90% 장기 기억, 지금 ${percent}%. 카드 보기`}
+        >
+          <MaterialGlyph frame={MASTER_CHIP.frame} size={14} />
+          <View style={styles.masterCopy}>
+            <Text style={styles.masterTitle}>마스터</Text>
+            <Text style={styles.masterDesc}>곡 단어 90% 장기 기억</Text>
+          </View>
+          {!progress.mastered && <Text style={styles.masterValue}>{percent}%</Text>}
+          <Feather name="chevron-right" size={16} color={Colors.textMuted} />
+        </TouchableOpacity>
+      </View>
+    </Animated.View>
+  );
+});
+
 const TierTrack = React.memo(function TierTrack({
   tier,
   height,
@@ -182,13 +297,22 @@ const TierTrack = React.memo(function TierTrack({
   );
 });
 
+interface TierRewardProps {
+  reward: CardLevel | null;
+  isRewardReached: boolean;
+  onRewardPress: (level: CardLevel) => void;
+}
+
 const CollapsedTierCard = React.memo(function CollapsedTierCard({
   tier,
+  reward,
+  isRewardReached,
   onExpand,
+  onRewardPress,
 }: {
   tier: SongWordTierDto;
   onExpand: () => void;
-}) {
+} & TierRewardProps) {
   return (
     <TouchableOpacity
       style={styles.collapsedCard}
@@ -198,7 +322,10 @@ const CollapsedTierCard = React.memo(function CollapsedTierCard({
       accessibilityLabel={`${tier.name} 펼치기`}
     >
       <View style={styles.collapsedIntro}>
-        <Text style={styles.collapsedTitle}>{tier.name}</Text>
+        <View style={styles.titleRow}>
+          <Text style={styles.collapsedTitle}>{tier.name}</Text>
+          {reward != null && <TierReward level={reward} isReached={isRewardReached} onPress={onRewardPress} />}
+        </View>
         <Text style={styles.collapsedDesc}>{tier.description}</Text>
       </View>
       <TierTrack tier={tier} height={5} />
@@ -208,13 +335,16 @@ const CollapsedTierCard = React.memo(function CollapsedTierCard({
 
 const ExpandedTierCard = React.memo(function ExpandedTierCard({
   tier,
+  reward,
+  isRewardReached,
   isStartingLearning,
   onStart,
+  onRewardPress,
 }: {
   tier: SongWordTierDto;
   isStartingLearning: boolean;
   onStart: () => void;
-}) {
+} & TierRewardProps) {
   const { remainingCount } = buildTierSegments(tier);
   const dueCount = Math.max(0, tier.dueCount);
   const isDisabled = dueCount === 0 || isStartingLearning;
@@ -225,7 +355,10 @@ const ExpandedTierCard = React.memo(function ExpandedTierCard({
   return (
     <View style={styles.expandedCard}>
       <View style={styles.expandedIntro}>
-        <Text style={styles.expandedTitle}>{tier.name}</Text>
+        <View style={styles.titleRow}>
+          <Text style={styles.expandedTitle}>{tier.name}</Text>
+          {reward != null && <TierReward level={reward} isReached={isRewardReached} onPress={onRewardPress} />}
+        </View>
         <Text style={styles.expandedDesc}>{tier.description}</Text>
       </View>
 
@@ -296,6 +429,7 @@ const TierStat = React.memo(function TierStat({
 });
 
 const CTA_SUBTLE_COLOR = '#FFFFFFC4';
+const REWARD_INK = '#9A5B00';
 const STAT_HIT_SLOP = { top: 8, bottom: 8, left: 8, right: 8 };
 
 const styles = StyleSheet.create({
@@ -404,6 +538,67 @@ const styles = StyleSheet.create({
   cardFrameExpanded: {
     borderWidth: 1.5,
     borderColor: Colors.primary,
+  },
+
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  reward: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingLeft: 8,
+    paddingRight: 7,
+    paddingVertical: 4,
+    borderRadius: 9999,
+    borderWidth: 1,
+    borderColor: '#F3D9A6',
+    backgroundColor: '#FFF6E3',
+  },
+  rewardReached: {
+    borderColor: Colors.border,
+    backgroundColor: Colors.surfaceSubtle,
+  },
+  rewardAhead: {
+    opacity: 0.5,
+  },
+  rewardLabel: {
+    ...Typography.bodySemiBold,
+    color: REWARD_INK,
+    fontSize: 11.5,
+  },
+  masterCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  masterCopy: {
+    flex: 1,
+    gap: 3,
+  },
+  masterTitle: {
+    ...Typography.headingBold,
+    color: Colors.textPrimary,
+    fontSize: 15,
+  },
+  masterDesc: {
+    ...Typography.body,
+    color: Colors.textSecondary,
+    fontSize: 12.5,
+  },
+  masterValue: {
+    ...Typography.bodySemiBold,
+    color: Colors.textSecondary,
+    fontSize: 13,
+    fontVariant: ['tabular-nums'],
   },
 
   collapsedCard: {

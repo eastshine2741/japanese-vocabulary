@@ -41,6 +41,8 @@ import {
   useSongDetailWordsTab,
 } from '../components/songDetail';
 import { getSongDetailWordKey } from '../components/songDetail/songDetailWordSave';
+import { pickSampleLyric, pickSampleWords } from '../components/songDetail/songCardSample';
+import type { PreviewSong } from '../components/rewardCards/cardPreview';
 import { Colors, Dimens } from '../theme/theme';
 import { Layers } from '../theme/layers';
 import { Typography } from '../theme/typography';
@@ -56,6 +58,7 @@ type LearningActionMode = 'start' | 'review' | 'preparing';
 const HERO_HEIGHT = 360;
 const COLLAPSED_BAR_HEIGHT = 56;
 const TAB_BAR_HEIGHT = 44;
+const EMPTY_CARD_SONG: PreviewSong = { id: 0, title: '', artist: '', artworkUrl: null, lyric: [], words: [] };
 const TAB_ITEM_WIDTH = 54;
 const TAB_ITEM_GAP = 10;
 const TAB_INDICATOR_WIDTH = 28;
@@ -243,6 +246,18 @@ export default function SongDetailScreen({ navigation, route }: Props) {
 
   const songTiers = tiers != null && tiers.songId === songId ? tiers.tiers : null;
   const songCoverage = coverage != null && coverage.songId === songId ? coverage : null;
+  // 단계 보상 견본 카드에 실을 곡 정보. 가사·단어는 이 곡에서 대표 줄·중요 단어를 골라 쓴다.
+  const cardSong = useMemo<PreviewSong | null>(() => {
+    if (data == null) return null;
+    return {
+      id: data.song.id,
+      title: data.song.title,
+      artist: data.song.artist,
+      artworkUrl: data.song.artworkUrl,
+      lyric: pickSampleLyric(data.lyrics.lines),
+      words: pickSampleWords(data.words.words),
+    };
+  }, [data]);
   const currentTier = useMemo(
     () => (songTiers != null ? selectCurrentTier(songTiers) : null),
     [songTiers],
@@ -631,7 +646,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
                   onLayout={handleHomePageLayout}
                 >
                   <SongDetailHomeTab
-                    songId={song.id}
+                    song={cardSong ?? EMPTY_CARD_SONG}
                     words={words.words}
                     coverage={songCoverage}
                     tiers={songTiers}
