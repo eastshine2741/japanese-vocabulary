@@ -47,23 +47,20 @@ export default function ArtistCardListScreen({ navigation, route }: Props) {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <AppBar
-        title="아티스트 카드"
-        onBack={navigation.goBack}
-        trailing={
-          <View style={styles.trailing}>
-            <Text style={styles.navCount}>{cards.length}장</Text>
+      <AppBar title="아티스트 카드" onBack={navigation.goBack} />
+      <FlatList
+        data={cards}
+        keyExtractor={keyExtractor}
+        renderItem={renderItem}
+        ListHeaderComponent={
+          <View style={styles.listHead}>
+            <Text style={styles.count}>{cards.length}장</Text>
             <Pressable onPress={handleSort} style={({ pressed }) => [styles.sortChip, pressed && styles.pressed]} hitSlop={6}>
               <Text style={styles.sortLabel}>{ARTIST_CARD_SORT_LABEL[sort]}</Text>
               <Feather name="chevron-down" size={14} color={Colors.textSecondary} />
             </Pressable>
           </View>
         }
-      />
-      <FlatList
-        data={cards}
-        keyExtractor={keyExtractor}
-        renderItem={renderItem}
         ItemSeparatorComponent={CardGap}
         contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 24 }]}
         showsVerticalScrollIndicator={false}
@@ -85,13 +82,8 @@ function CardGap() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: Colors.surface },
-  trailing: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingRight: 16 },
-  navCount: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: Colors.textMuted,
-    fontVariant: ['tabular-nums'],
-  },
+  listHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
+  count: { fontSize: 14, fontWeight: '500', color: Colors.textMuted, fontVariant: ['tabular-nums'] },
   sortChip: {
     flexDirection: 'row',
     alignItems: 'center',
