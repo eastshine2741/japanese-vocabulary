@@ -35,6 +35,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CardEnvelope from './CardEnvelope';
 import { hapticBurst, hapticCharge, hapticRung, hapticSettle, hapticSpin, hapticTear } from './cardHaptics';
 import { SHOWROOM, SHOWROOM_HEADING_TOP } from './cardTheme';
+import { fitFontSize } from './fitFontSize';
 import { seededRandom } from './seededRandom';
 import { CardTilt } from './useCardTilt';
 
@@ -586,6 +587,7 @@ interface GuideProps {
 }
 
 const RUNG_MS = 300;
+const RUNG_PAD = 2;
 /** 첫 칸도 차오르는 게 보이도록 왼쪽 바깥에서 출발한다. */
 const FILL_FROM = -0.5;
 
@@ -594,6 +596,12 @@ export const RevealGuide = React.memo(function RevealGuide({ lines, steps, curre
   const { copyIn, pulse } = motion;
   // 가사 고르기에서 돌아오면 다시 채우지 않는다.
   const fill = useSharedValue(copyIn.value >= 1 ? current : (from ?? FILL_FROM));
+  const [ladderW, setLadderW] = useState(0);
+  const handleLadderLayout = useCallback((e: LayoutChangeEvent) => setLadderW(e.nativeEvent.layout.width), []);
+  // 칸마다 따로 줄이면(adjustsFontSizeToFit) 안드로이드에서 글자가 찌그러져, 한 크기로 맞춘다.
+  const textW = ladderW / steps.length - RUNG_PAD * 2;
+  const labelSize = useMemo(() => fitFontSize(steps.map((s) => s.label), textW, 12), [steps, textW]);
+  const captionSize = useMemo(() => fitFontSize(steps.map((s) => s.caption), textW, 11), [steps, textW]);
 
   const run = useCallback(() => {
     const first = from === undefined ? 0 : from + 1;
@@ -619,7 +627,7 @@ export const RevealGuide = React.memo(function RevealGuide({ lines, steps, curre
       {lines.map((line) => (
         <Text key={line} style={styles.guideLine}>{line}</Text>
       ))}
-      <View style={styles.ladder}>
+      <View style={styles.ladder} onLayout={handleLadderLayout}>
         {steps.map((step, i) => (
           <Rung
             key={step.label}
@@ -630,6 +638,8 @@ export const RevealGuide = React.memo(function RevealGuide({ lines, steps, curre
             accent={accent}
             fill={fill}
             pulse={pulse}
+            labelSize={labelSize}
+            captionSize={captionSize}
           />
         ))}
       </View>
@@ -645,9 +655,11 @@ interface RungProps {
   accent: string;
   fill: SharedValue<number>;
   pulse: SharedValue<number>;
+  labelSize: number;
+  captionSize: number;
 }
 
-const Rung = React.memo(function Rung({ step, index: i, last, current, accent, fill, pulse }: RungProps) {
+const Rung = React.memo(function Rung({ step, index: i, last, current, accent, fill, pulse, labelSize, captionSize }: RungProps) {
   const isNow = i === current;
   const hit = useSharedValue(1);
 
@@ -701,10 +713,10 @@ const Rung = React.memo(function Rung({ step, index: i, last, current, accent, f
         </View>
       </View>
       <Animated.View style={[styles.rungText, textStyle]}>
-        <Text style={[styles.rungLabel, isNow && styles.rungLabelNow]} numberOfLines={1} adjustsFontSizeToFit>
+        <Text style={[styles.rungLabel, isNow && styles.rungLabelNow, { fontSize: labelSize }]} numberOfLines={1}>
           {step.label}
         </Text>
-        <Text style={styles.rungCaption} numberOfLines={1} adjustsFontSizeToFit>
+        <Text style={[styles.rungCaption, { fontSize: captionSize }]} numberOfLines={1}>
           {step.caption}
         </Text>
       </Animated.View>
@@ -832,7 +844,7 @@ const styles = StyleSheet.create({
   guide: { alignItems: 'center', paddingHorizontal: 24, gap: 2 },
   guideLine: { color: SHOWROOM.fgDim, fontSize: 14, lineHeight: 20, textAlign: 'center' },
   ladder: { flexDirection: 'row', alignSelf: 'stretch', marginTop: 14 },
-  rung: { flex: 1, alignItems: 'center', paddingHorizontal: 2 },
+  rung: { flex: 1, alignItems: 'center', paddingHorizontal: RUNG_PAD },
   rungTrack: { flexDirection: 'row', alignItems: 'center', alignSelf: 'stretch', height: 16, marginBottom: 6 },
   rungLine: { flex: 1, height: 2, backgroundColor: SHOWROOM.line },
   rungFill: { height: 2 },
@@ -843,9 +855,9 @@ const styles = StyleSheet.create({
   rungDotNow: { width: 14, height: 14, borderRadius: 7, borderWidth: 2, borderColor: SHOWROOM.fg },
   rungHalo: { position: 'absolute', width: 14, height: 14, borderRadius: 7 },
   rungText: { alignItems: 'center', alignSelf: 'stretch' },
-  rungLabel: { color: SHOWROOM.fgDim, fontSize: 12, fontWeight: '600' },
+  rungLabel: { color: SHOWROOM.fgDim, fontWeight: '600' },
   rungLabelNow: { color: SHOWROOM.fg, fontWeight: '800' },
-  rungCaption: { color: SHOWROOM.fgDim, fontSize: 11, marginTop: 1 },
+  rungCaption: { color: SHOWROOM.fgDim, marginTop: 1 },
   hidden: { opacity: 0 },
   actions: { paddingHorizontal: 24, paddingTop: 24, gap: 6 },
   cta: {
