@@ -121,7 +121,7 @@ export default function ArtistCardDetailScreen({ navigation, route }: Props) {
             <View style={styles.goal}>
               <Text style={styles.goalCaption}>{next.label} 승급 조건</Text>
               <View style={styles.goalHead}>
-                <Text style={styles.goalLabel}>이 아티스트의 마스터 곡 카드 {next.from}장 모으기</Text>
+                <Text style={styles.goalLabel}>이 아티스트 곡의 MASTER 카드 {next.from}장 모으기</Text>
                 <Text style={styles.goalValue}>
                   {card.masteredCount}
                   <Text style={styles.goalTotal}> / {next.from}</Text>

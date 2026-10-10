@@ -42,7 +42,7 @@ function songKindCondition(kind: SongCardKind, tiers: readonly SongWordTierDto[]
 
 function artistGradeCondition(step: ArtistGradeStep): { short: string; full: string } {
   if (step.from === 0) return { short: '첫 곡 카드', full: '이 아티스트의 곡 카드 처음 얻기' };
-  return { short: `마스터 ${step.from}곡`, full: `이 아티스트의 곡 ${step.from}곡 마스터하기` };
+  return { short: `MASTER 카드 ${step.from}장`, full: `이 아티스트 곡의 MASTER 카드 ${step.from}장 모으기` };
 }
 
 interface SongGridProps {

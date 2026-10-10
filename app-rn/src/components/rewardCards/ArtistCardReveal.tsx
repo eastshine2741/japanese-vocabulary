@@ -27,7 +27,7 @@ const ARTIST_RADIUS = 0.04;
 
 const ARTIST_LADDER: readonly LadderStep[] = ARTIST_GRADE_STEPS.map((s) => ({
   label: s.label,
-  caption: s.from === 0 ? '첫 곡 카드' : `마스터 ${s.from}곡`,
+  caption: s.from === 0 ? '첫 곡 카드' : `MASTER 카드 ${s.from}장`,
 }));
 const ARTIST_GUIDE = ['이 아티스트의 곡을 공부할수록 강화되는 카드예요.', 'MASTER 등급 곡 카드를 얻을수록 강화돼요'];
 
