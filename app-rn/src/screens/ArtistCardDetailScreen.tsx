@@ -62,8 +62,23 @@ export default function ArtistCardDetailScreen({ navigation, route }: Props) {
     if (artistId != null) navigation.navigate('ArtistDetail', { artistId });
   }, [artistId, navigation]);
 
+  // 다시 받은 카드 목록에 이 카드가 없으면 닫을 길만 남긴다.
   if (!card) {
-    return <View style={styles.root} />;
+    return (
+      <View style={styles.root}>
+        <StatusBar style="light" />
+        <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+          <View style={styles.topBar}>
+            <Pressable onPress={handleClose} hitSlop={10} style={styles.iconBtn}>
+              <Feather name="chevron-down" size={22} color={SHOWROOM.fg} />
+            </Pressable>
+          </View>
+          <View style={styles.missing}>
+            <Text style={styles.missingText}>카드를 찾을 수 없어요</Text>
+          </View>
+        </SafeAreaView>
+      </View>
+    );
   }
 
   const cardW = Math.min(screenW - 40, 400);
@@ -144,6 +159,8 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: SHOWROOM.bg },
   backdrop: { opacity: 0.55, transform: [{ scale: 1.3 }] },
   safe: { flex: 1 },
+  missing: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  missingText: { fontSize: 14, color: SHOWROOM.fgDim },
   topBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',

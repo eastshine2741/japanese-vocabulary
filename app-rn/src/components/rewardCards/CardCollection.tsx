@@ -1,9 +1,10 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { FlatList, Pressable, ScrollView, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, ScrollView, StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../theme/theme';
 import ArtistCardThumb from './ArtistCardThumb';
 import SongCardThumb from './SongCardThumb';
+import { ArtistCardSlot, SongCardSlots } from './EmptyCardSlot';
 import { CARD_SORT_LABEL, CARD_SORT_ORDER, CardSort, sortCards } from './cardWear';
 import { sortArtistCards } from './artistGrade';
 import { CardFonts, useCardFonts } from './cardTheme';
@@ -12,6 +13,8 @@ import { ArtistRewardCard, SongRewardCard } from './types';
 interface Props {
   songCards: SongRewardCard[];
   artistCards: ArtistRewardCard[];
+  /** 카드를 아직 못 받았다. 빈 목록일 때만 빈 안내 대신 로딩을 보인다. */
+  loading: boolean;
   /** 화면 좌우 여백을 뺀 콘텐츠 폭. */
   contentWidth: number;
   sidePadding: number;
@@ -32,6 +35,7 @@ const ARTIST_PREVIEW_COUNT = 5;
 function CardCollection({
   songCards,
   artistCards,
+  loading,
   contentWidth,
   sidePadding,
   contentContainerStyle,
@@ -58,11 +62,14 @@ function CardCollection({
     [thumbWidth, fonts, onPressCard, onLongPressCard],
   );
 
+  const songEmpty = loading ? <Loading /> : <SongCardSlots width={thumbWidth} gap={GRID_GAP} />;
+
   const header = (
     <CollectionHeader
       artistCount={artistCards.length}
       artistPreview={artistPreview}
       songCount={songCards.length}
+      loading={loading}
       sort={sort}
       sidePadding={sidePadding}
       fonts={fonts}
@@ -82,6 +89,7 @@ function CardCollection({
       ListHeaderComponent={header}
       columnWrapperStyle={styles.gridRow}
       ItemSeparatorComponent={RowGap}
+      ListEmptyComponent={songEmpty}
       contentContainerStyle={contentContainerStyle}
       showsVerticalScrollIndicator={false}
       initialNumToRender={9}
@@ -101,10 +109,15 @@ function RowGap() {
   return <View style={styles.rowGap} />;
 }
 
+function Loading() {
+  return <ActivityIndicator color={Colors.primary} style={styles.loading} />;
+}
+
 const CollectionHeader = React.memo(function CollectionHeader({
   artistCount,
   artistPreview,
   songCount,
+  loading,
   sort,
   sidePadding,
   fonts,
@@ -116,6 +129,7 @@ const CollectionHeader = React.memo(function CollectionHeader({
   artistCount: number;
   artistPreview: ArtistRewardCard[];
   songCount: number;
+  loading: boolean;
   sort: CardSort;
   sidePadding: number;
   fonts: CardFonts;
@@ -127,11 +141,14 @@ const CollectionHeader = React.memo(function CollectionHeader({
   return (
     <View style={styles.headerRoot}>
       <View style={styles.section}>
-        <Pressable onPress={onOpenArtistCards} style={({ pressed }) => [styles.head, styles.artistHead, pressed && styles.pressed]} hitSlop={6}>
+        <Pressable onPress={onOpenArtistCards} disabled={artistCount === 0} style={({ pressed }) => [styles.head, styles.artistHead, pressed && styles.pressed]} hitSlop={6}>
           <Text style={styles.headTitle}>아티스트 카드</Text>
           <Text style={styles.headCount}>{artistCount}</Text>
-          <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
+          {artistCount > 0 && <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />}
         </Pressable>
+        {artistCount === 0 ? (
+          loading ? <Loading /> : <ArtistCardSlot width={ARTIST_CARD_WIDTH} />
+        ) : (
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -155,16 +172,19 @@ const CollectionHeader = React.memo(function CollectionHeader({
             <Text style={styles.seeAllLabel}>전체 보기</Text>
           </Pressable>
         </ScrollView>
+        )}
       </View>
 
       <View style={styles.head}>
         <Text style={styles.headTitle}>곡 카드</Text>
         <Text style={styles.headCount}>{songCount}</Text>
         <View style={styles.spacer} />
+        {songCount > 0 && (
         <Pressable onPress={onSort} style={({ pressed }) => [styles.sortChip, pressed && styles.pressed]} hitSlop={6}>
           <Text style={styles.sortLabel}>{CARD_SORT_LABEL[sort]}</Text>
           <Feather name="chevron-down" size={14} color={Colors.textSecondary} />
         </Pressable>
+        )}
       </View>
     </View>
   );
@@ -200,6 +220,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.elevated,
   },
   seeAllLabel: { fontSize: 12, fontWeight: '600', color: Colors.textSecondary },
+  loading: { paddingVertical: 24 },
   gridRow: { gap: GRID_GAP },
   rowGap: { height: 14 },
 });

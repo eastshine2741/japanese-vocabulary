@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -7,6 +7,7 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import { Colors } from '../theme/theme';
 import { AppBar } from '../components/AppBar';
 import ArtistCardThumb from '../components/rewardCards/ArtistCardThumb';
+import { ArtistCardSlot } from '../components/rewardCards/EmptyCardSlot';
 import {
   ARTIST_CARD_SORT_LABEL,
   ARTIST_CARD_SORT_ORDER,
@@ -28,6 +29,7 @@ export default function ArtistCardListScreen({ navigation, route }: Props) {
   const fonts = useCardFonts();
   const [sort, setSort] = useState<ArtistCardSort>('level');
   const artistCards = useRewardCardStore((s) => s.artistCards);
+  const loading = useRewardCardStore((s) => s.source === 'server' && (s.serverStatus === 'idle' || s.serverStatus === 'loading'));
   const cards = useMemo(() => sortArtistCards(artistCards, sort), [artistCards, sort]);
   const cardWidth = screenWidth - SIDE_PADDING * 2;
 
@@ -56,12 +58,15 @@ export default function ArtistCardListScreen({ navigation, route }: Props) {
         ListHeaderComponent={
           <View style={styles.listHead}>
             <Text style={styles.count}>{cards.length}장</Text>
+            {cards.length > 0 && (
             <Pressable onPress={handleSort} style={({ pressed }) => [styles.sortChip, pressed && styles.pressed]} hitSlop={6}>
               <Text style={styles.sortLabel}>{ARTIST_CARD_SORT_LABEL[sort]}</Text>
               <Feather name="chevron-down" size={14} color={Colors.textSecondary} />
             </Pressable>
+            )}
           </View>
         }
+        ListEmptyComponent={loading ? <ActivityIndicator color={Colors.primary} style={styles.loading} /> : <ArtistCardSlot width={cardWidth} />}
         ItemSeparatorComponent={CardGap}
         contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 24 }]}
         showsVerticalScrollIndicator={false}
@@ -98,4 +103,5 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.6 },
   list: { paddingHorizontal: SIDE_PADDING, paddingTop: 8 },
   cardGap: { height: 20 },
+  loading: { paddingVertical: 24 },
 });

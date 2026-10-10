@@ -76,6 +76,7 @@ export default function MyPageTab() {
   const loadProfile = useAuthStore((s) => s.loadProfile);
   const songCards = useRewardCardStore((s) => s.songCards);
   const artistCards = useRewardCardStore((s) => s.artistCards);
+  const cardsLoading = useRewardCardStore((s) => s.source === 'server' && (s.serverStatus === 'idle' || s.serverStatus === 'loading'));
   const revealCard = useRewardCardStore((s) => s.revealCard);
   const upgradeCard = useRewardCardStore((s) => s.upgradeCard);
   const { deckStatus, songDecks, loadDecks } = useDeckListStore(
@@ -188,6 +189,7 @@ export default function MyPageTab() {
         <CardCollection
           songCards={songCards}
           artistCards={artistCards}
+          loading={cardsLoading}
           contentWidth={screenWidth - SIDE_PADDING * 2}
           sidePadding={SIDE_PADDING}
           contentContainerStyle={sceneContentStyle}
@@ -240,7 +242,7 @@ export default function MyPageTab() {
       )
     ),
     [
-      sceneContentStyle, songCards, screenWidth, handlePressCard, handleLongPressCard, handlePressArtistCard, handleOpenArtistCards, totalWords, longTermWords, shortTermWords, showStatsFallback,
+      sceneContentStyle, songCards, artistCards, cardsLoading, screenWidth, handlePressCard, handleLongPressCard, handlePressArtistCard, handleLongPressArtistCard, handleOpenArtistCards, totalWords, longTermWords, shortTermWords, showStatsFallback,
       handleOpenSongProgress, deckStatus, progressItems.length, representativeSongs, handleSongProgressPress, handleOpenStreak,
     ],
   );
