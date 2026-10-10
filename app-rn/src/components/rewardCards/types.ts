@@ -36,7 +36,7 @@ export interface SongRewardCard {
   accent: string;
   ink: string;
   level: CardLevel;
-  /** 곡 단어 전체가 장기기억. 마스터 카드는 앞면이 바뀌고 아티스트 카드에 한 곡으로 세어진다. */
+  /** 곡 단어의 90% 가 장기기억. 마스터 카드는 앞면이 바뀌고 아티스트 카드에 한 곡으로 세어진다. */
   mastered: boolean;
   /** 완료한 단계 단어들의 평균 FSRS 기억 확률. 낡음은 이 값에서 나온다. */
   recall: number;

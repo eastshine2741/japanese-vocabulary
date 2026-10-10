@@ -34,7 +34,7 @@ const SONG_LADDER: readonly LadderStep[] = [
   { label: '레벨 1', caption: '후렴 정복' },
   { label: '레벨 2', caption: '따라 부르기' },
   { label: '레벨 3', caption: '완곡' },
-  { label: '마스터', caption: '전부 장기 기억' },
+  { label: '마스터', caption: '90% 장기 기억' },
 ];
 const SONG_GUIDE = ['이 곡의 단어를 공부하는 만큼 강화되는 카드예요.', '각 단계를 끝낼 때마다 레벨이 올라요'];
 

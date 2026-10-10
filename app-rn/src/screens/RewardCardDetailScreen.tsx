@@ -43,7 +43,7 @@ function levelLabel(card: SongRewardCard): string {
 function nextLevel(card: SongRewardCard): { name: string; condition: string } {
   if (card.level === 1) return { name: '레벨 2', condition: "'따라 부르기' 단계 단어 모두 공부하기" };
   if (card.level === 2) return { name: '레벨 3', condition: "'완곡' 단계 단어 모두 공부하기" };
-  return { name: '마스터', condition: '곡의 모든 단어를 장기 기억으로 만들기' };
+  return { name: '마스터', condition: '곡 단어의 90%를 장기 기억으로 만들기' };
 }
 
 export default function RewardCardDetailScreen({ navigation, route }: Props) {
