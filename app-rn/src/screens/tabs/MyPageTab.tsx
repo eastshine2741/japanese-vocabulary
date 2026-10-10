@@ -26,17 +26,24 @@ import { ArtistRewardCard, SongRewardCard } from '../../components/rewardCards/t
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 interface ProfileTabRoute {
   key: 'cards' | 'study';
+  // 화면에는 아이콘만 그리고 title 은 스크린 리더 라벨로 쓴다.
   title: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  iconActive: keyof typeof Ionicons.glyphMap;
 }
 
 const PROFILE_TABS: ProfileTabRoute[] = [
-  { key: 'cards', title: '카드' },
-  { key: 'study', title: '학습' },
+  { key: 'cards', title: '카드', icon: 'albums-outline', iconActive: 'albums' },
+  { key: 'study', title: '학습', icon: 'bar-chart-outline', iconActive: 'bar-chart' },
 ];
 
 const TAB_OPTIONS: TabDescriptor<ProfileTabRoute> = {
   label: ({ route, focused }) => (
-    <Text style={focused ? styles.tabLabelActive : styles.tabLabel}>{route.title}</Text>
+    <Ionicons
+      name={focused ? route.iconActive : route.icon}
+      size={22}
+      color={focused ? Colors.textPrimary : Colors.textMuted}
+    />
   ),
 };
 
@@ -310,16 +317,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
-  },
-  tabLabel: {
-    ...Typography.headingSemiBold,
-    fontSize: 15,
-    color: Colors.textMuted,
-  },
-  tabLabelActive: {
-    ...Typography.headingBold,
-    fontSize: 15,
-    color: Colors.textPrimary,
   },
   tabIndicator: {
     height: 2,
