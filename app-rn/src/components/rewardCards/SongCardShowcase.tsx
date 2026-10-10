@@ -7,9 +7,11 @@ import CardWearLayer from './CardWearLayer';
 import { EtchLayer, GlareLayer, HoloLayer } from './CardLayers';
 import LenticularLayer from './LenticularLayer';
 import LevelPips from './LevelPips';
-import OwnerField from './OwnerField';
+import MasterPips from './MasterPips';
+import SignatureField from './SignatureField';
 import { CARD_RATIO, CardFonts, LEVEL_MATERIAL } from './cardTheme';
 import { coatingLeft, wearAge } from './cardWear';
+import { lyricKo, lyricText } from './cardLyric';
 import { CardTilt } from './useCardTilt';
 import { SongRewardCard } from './types';
 import { verticalText } from './verticalText';
@@ -19,8 +21,8 @@ interface Props {
   width: number;
   tilt: CardTilt;
   fonts: CardFonts;
-  /** 카드 주인의 표시 이름. 뒷면 소유자 칸에 적힌다. */
-  ownerName: string;
+  /** 서명 없이 발급된 카드의 서명 칸에 대신 찍는 이름. 없으면 빈 칸 — 획득 화면에선 아직 서명 전이다. */
+  ownerName?: string;
 }
 
 function SongCardShowcase({ card, width, tilt, fonts, ownerName }: Props) {
@@ -80,6 +82,36 @@ export const SongCardFront = React.memo(function SongCardFront({ card, width, fo
   );
 });
 
+interface SignatureSlot {
+  /** 빈 서명 칸을 이 색 점선으로 표시한다. */
+  signatureHint?: string;
+}
+
+/** 뒷면만 정적으로. 획득 연출에서 효과 없이 돌리거나 서명할 때 쓴다. */
+export const SongCardBack = React.memo(function SongCardBack({
+  card,
+  width,
+  fonts,
+  ownerName,
+  signatureHint,
+}: Omit<Props, 'tilt'> & SignatureSlot) {
+  const height = width * CARD_RATIO;
+  return (
+    <View style={{ width, height }}>
+      <BackFace
+        card={card}
+        width={width}
+        height={height}
+        u={width / 100}
+        age={wearAge(card.recall)}
+        fonts={fonts}
+        ownerName={ownerName}
+        signatureHint={signatureHint}
+      />
+    </View>
+  );
+});
+
 interface FaceProps {
   card: SongRewardCard;
   width: number;
@@ -117,15 +149,15 @@ function FrontFace({ card, width, height, u, age, tilt, fonts }: FaceProps & { t
             style={StyleSheet.absoluteFill}
           />
           <View style={[styles.lyricCols, { top: 5 * u, right: 4.2 * u, gap: 2.2 * u, opacity: 1 - age * 0.8 }]}>
-            {card.frontLines.map((line, i) => (
+            {card.lyric.map((line, i) => (
               <Text
-                key={i}
+                key={line.index}
                 style={[
                   styles.lyricCol,
                   { fontFamily: fonts.jp, fontSize: 5.4 * u, lineHeight: 6.4 * u, marginTop: i * 7 * u },
                 ]}
               >
-                {verticalText(line)}
+                {verticalText(lyricText(line))}
               </Text>
             ))}
           </View>
@@ -155,7 +187,6 @@ function FrontFace({ card, width, height, u, age, tilt, fonts }: FaceProps & { t
 
 /** 마스터 카드. 테 없이 아트를 끝까지 깔고, 무지개 코팅이 두 장면 위를 함께 덮는다. */
 function FoilFrontFace({ card, width, height, u, age, tilt, fonts }: FaceProps & { tilt?: CardTilt }) {
-  const material = LEVEL_MATERIAL[card.level];
   const foil = coatingLeft(age);
   const inset = 2.6 * u;
 
@@ -175,15 +206,15 @@ function FoilFrontFace({ card, width, height, u, age, tilt, fonts }: FaceProps &
       />
 
       <View style={[styles.lyricCols, { top: 7 * u, right: 6.4 * u, gap: 2.4 * u, opacity: 1 - age * 0.8 }]}>
-        {card.frontLines.map((line, i) => (
+        {card.lyric.map((line, i) => (
           <Text
-            key={i}
+            key={line.index}
             style={[
               styles.lyricCol,
               { fontFamily: fonts.jp, fontSize: 6 * u, lineHeight: 7.2 * u, marginTop: i * 8 * u },
             ]}
           >
-            {verticalText(line)}
+            {verticalText(lyricText(line))}
           </Text>
         ))}
       </View>
@@ -195,18 +226,25 @@ function FoilFrontFace({ card, width, height, u, age, tilt, fonts }: FaceProps &
         <Text style={[styles.artist, { fontSize: 3.6 * u, color: card.accent }]} numberOfLines={1}>{card.artist}</Text>
         <View style={[styles.metaFoot, { marginTop: 2.4 * u }]}>
           <OwnerMark no={card.ownerNo} u={u} fonts={fonts} />
-          <LevelPips level={card.level} color={material.pip} size={2.4 * u} />
         </View>
       </View>
 
       {tilt ? (
         <>
           <LenticularLayer card={card} width={width} height={height} u={u} tilt={tilt} fonts={fonts} />
+          <View pointerEvents="none" style={[styles.foilPips, { right: 7 * u, bottom: 7 * u }]}>
+            <MasterPips level={card.level} size={2.4 * u} tilt={tilt} />
+          </View>
           <EtchLayer tilt={tilt} width={width} height={height} opacity={0.55 * foil} />
           <CardGlitter seed={card.id} width={width} height={height} tilt={tilt} strength={0.7 * foil} rainbow={foil} />
         </>
       ) : (
-        <HoloLayer width={width} height={height} opacity={0.3 * foil} blend="color-dodge" />
+        <>
+          <HoloLayer width={width} height={height} opacity={0.3 * foil} blend="color-dodge" />
+          <View pointerEvents="none" style={[styles.foilPips, { right: 7 * u, bottom: 7 * u }]}>
+            <MasterPips level={card.level} size={2.4 * u} />
+          </View>
+        </>
       )}
       <View
         pointerEvents="none"
@@ -229,7 +267,16 @@ function OwnerMark({ no, u, fonts }: { no: number; u: number; fonts: CardFonts }
   );
 }
 
-function BackFace({ card, width, height, u, age, fonts, ownerName }: FaceProps & { ownerName: string }) {
+function BackFace({
+  card,
+  width,
+  height,
+  u,
+  age,
+  fonts,
+  ownerName,
+  signatureHint,
+}: FaceProps & SignatureSlot & { ownerName?: string }) {
   const stats = [
     { label: '획득 순번', value: card.ownerNo.toLocaleString('ko-KR'), unit: '번째' },
     { label: '획득한 날', value: card.earnedAt.slice(2).replace(/-/g, '.'), unit: '' },
@@ -243,9 +290,9 @@ function BackFace({ card, width, height, u, age, fonts, ownerName }: FaceProps &
 
       <View style={{ flex: 1, padding: 6 * u, gap: 4 * u }}>
         <View style={{ gap: 1.6 * u }}>
-          {card.backLines.map((line, i) => (
-            <View key={i} style={styles.rubyLine}>
-              {line.map((seg, j) => (
+          {card.lyric.map((line) => (
+            <View key={line.index} style={styles.rubyLine}>
+              {line.ruby.map((seg, j) => (
                 <View key={j} style={styles.rubySeg}>
                   <Text style={[styles.rubyTop, { fontSize: 2.4 * u, lineHeight: 3.2 * u }]}>{seg.reading ?? ' '}</Text>
                   <Text style={[styles.rubyBase, { fontFamily: fonts.jp, fontSize: 5.8 * u, lineHeight: 7.4 * u }]}>{seg.text}</Text>
@@ -255,7 +302,7 @@ function BackFace({ card, width, height, u, age, fonts, ownerName }: FaceProps &
           ))}
         </View>
         <Text style={[styles.backKo, { fontFamily: fonts.ko, fontSize: 3.6 * u, lineHeight: 5.4 * u, borderLeftColor: card.accent, paddingLeft: 2.6 * u }]}>
-          {card.backKo}
+          {lyricKo(card.lyric)}
         </Text>
 
         <View style={{ flex: 1, gap: 1.6 * u }}>
@@ -280,7 +327,13 @@ function BackFace({ card, width, height, u, age, fonts, ownerName }: FaceProps &
             </View>
           ))}
         </View>
-        <OwnerField name={ownerName} u={u} fonts={fonts} />
+        <SignatureField
+          signature={card.signature}
+          fallbackName={ownerName}
+          hint={signatureHint}
+          u={u}
+          fonts={fonts}
+        />
       </View>
       <CardWearLayer width={width} height={height} age={age} seed={card.id} side="back" />
     </View>
@@ -303,6 +356,7 @@ const styles = StyleSheet.create({
     textShadowRadius: 8,
   },
   foilMeta: { position: 'absolute' },
+  foilPips: { position: 'absolute' },
   foilEdge: { position: 'absolute', borderWidth: 1, borderColor: '#FFFFFF4D' },
   meta: { flex: 1, justifyContent: 'space-between', overflow: 'hidden' },
   title: { color: '#F6F2FA' },

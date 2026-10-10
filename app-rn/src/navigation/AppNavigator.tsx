@@ -30,6 +30,8 @@ import SongReviewScreen from '../screens/SongReviewScreen';
 import StreakScreen from '../screens/StreakScreen';
 import RewardCardDetailScreen from '../screens/RewardCardDetailScreen';
 import ArtistCardDetailScreen from '../screens/ArtistCardDetailScreen';
+import RewardCardLyricEditScreen from '../screens/RewardCardLyricEditScreen';
+import RewardCardRevealScreen from '../screens/RewardCardRevealScreen';
 import StudyScheduleScreen from '../screens/StudyScheduleScreen';
 
 import HomeTab from '../screens/tabs/HomeTab';
@@ -78,6 +80,8 @@ export type RootStackParamList = {
   Streak: undefined;
   /** 프로필 카드 탭에서 곡 카드를 누르면 열리는 전시 화면. */
   RewardCardDetail: { cardId: string; ownerName: string };
+  RewardCardLyricEdit: { cardId: string };
+  RewardCardReveal: { cardId: string };
   /** 프로필 카드 탭에서 아티스트 카드를 누르면 열리는 전시 화면. */
   ArtistCardDetail: { cardId: string; ownerName: string };
   /** 홈 헤더의 '오늘 복습할 단어' 블록에서 들어오는 FSRS 스케줄 상세. */
@@ -183,6 +187,16 @@ export default function AppNavigator({ initialRoute }: Props) {
         name="RewardCardDetail"
         component={RewardCardDetailScreen}
         options={{ animation: 'fade', contentStyle: { backgroundColor: '#0E0D13' } }}
+      />
+      <Stack.Screen
+        name="RewardCardReveal"
+        component={RewardCardRevealScreen}
+        options={{ animation: 'fade', gestureEnabled: false, contentStyle: { backgroundColor: '#0E0D13' } }}
+      />
+      <Stack.Screen
+        name="RewardCardLyricEdit"
+        component={RewardCardLyricEditScreen}
+        options={{ animation: 'slide_from_bottom', contentStyle: { backgroundColor: '#0E0D13' } }}
       />
       <Stack.Screen
         name="ArtistCardDetail"

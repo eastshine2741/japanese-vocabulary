@@ -27,3 +27,10 @@ export function artistGradeStep(masteredCount: number): ArtistGradeStep {
 export function nextArtistGradeStep(masteredCount: number): ArtistGradeStep | null {
   return ARTIST_GRADE_STEPS.find((s) => masteredCount < s.from) ?? null;
 }
+
+
+/** 세트리스트에 다 못 적으면 오래된 곡부터 줄이고 최근 곡을 남긴다. */
+export function setlistWindow(masteredCount: number, capacity: number): { start: number; hidden: number } {
+  const hidden = Math.max(0, masteredCount - capacity);
+  return { start: hidden, hidden };
+}

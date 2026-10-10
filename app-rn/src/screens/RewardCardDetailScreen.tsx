@@ -19,8 +19,8 @@ import SongCardShowcase from '../components/rewardCards/SongCardShowcase';
 import LevelPips from '../components/rewardCards/LevelPips';
 import { CARD_RATIO, LEVEL_MATERIAL, SHOWROOM, useCardFonts } from '../components/rewardCards/cardTheme';
 import { WEAR_LABEL, wearState } from '../components/rewardCards/cardWear';
-import { findDummySongCard } from '../components/rewardCards/dummyRewardCards';
 import { useCardTilt } from '../components/rewardCards/useCardTilt';
+import { useRewardCardStore } from '../stores/rewardCardStore';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'RewardCardDetail'>;
 
@@ -32,7 +32,8 @@ const WEAR_TONE = {
 } as const;
 
 export default function RewardCardDetailScreen({ navigation, route }: Props) {
-  const card = findDummySongCard(route.params.cardId);
+  const { cardId } = route.params;
+  const card = useRewardCardStore((s) => s.songCards.find((c) => c.id === cardId));
   const { width: screenW, height: screenH } = useWindowDimensions();
   const fonts = useCardFonts();
   const tilt = useCardTilt();
@@ -61,6 +62,9 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
   const handleFlip = useCallback(() => {
     tilt.flip.value = withTiming(tilt.flip.value > 0.5 ? 0 : 1, { duration: 720 });
   }, [tilt.flip]);
+  const handleEditLyric = useCallback(() => {
+    navigation.navigate('RewardCardLyricEdit', { cardId });
+  }, [navigation, cardId]);
   const handleReview = useCallback(() => {
     if (card?.songId != null) navigation.navigate('SongDetail', { songId: card.songId, origin: 'reward_card' });
   }, [card, navigation]);
@@ -90,9 +94,14 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
           <Pressable onPress={handleClose} hitSlop={10} style={styles.iconBtn}>
             <Feather name="chevron-down" size={22} color={SHOWROOM.fg} />
           </Pressable>
-          <Pressable onPress={handleFlip} hitSlop={10} style={styles.iconBtn}>
-            <Feather name="refresh-ccw" size={18} color={SHOWROOM.fg} />
-          </Pressable>
+          <View style={styles.actions}>
+            <Pressable onPress={handleEditLyric} hitSlop={10} style={styles.iconBtn}>
+              <Feather name="edit-3" size={18} color={SHOWROOM.fg} />
+            </Pressable>
+            <Pressable onPress={handleFlip} hitSlop={10} style={styles.iconBtn}>
+              <Feather name="refresh-ccw" size={18} color={SHOWROOM.fg} />
+            </Pressable>
+          </View>
         </View>
 
         <View style={styles.stage}>
@@ -165,6 +174,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 4,
   },
+  actions: { flexDirection: 'row', gap: 8 },
   iconBtn: {
     width: 40,
     height: 40,

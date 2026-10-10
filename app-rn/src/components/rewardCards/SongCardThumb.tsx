@@ -9,13 +9,16 @@ interface Props {
   width: number;
   fonts: CardFonts;
   onPress: (card: SongRewardCard) => void;
+  onLongPress?: (card: SongRewardCard) => void;
 }
 
-function SongCardThumb({ card, width, fonts, onPress }: Props) {
+function SongCardThumb({ card, width, fonts, onPress, onLongPress }: Props) {
   const handlePress = useCallback(() => onPress(card), [card, onPress]);
+  const handleLongPress = useCallback(() => onLongPress?.(card), [card, onLongPress]);
   return (
     <Pressable
       onPress={handlePress}
+      onLongPress={onLongPress ? handleLongPress : undefined}
       style={({ pressed }) => [styles.card, { borderRadius: width * 0.046 }, pressed && styles.pressed]}
     >
       <SongCardFront card={card} width={width} fonts={fonts} />

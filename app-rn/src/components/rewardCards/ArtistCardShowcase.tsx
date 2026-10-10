@@ -1,14 +1,17 @@
-import React from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { useAnimatedStyle } from 'react-native-reanimated';
+import Animated, { Easing, useAnimatedStyle, useDerivedValue, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import CardGlitter from './CardGlitter';
-import { EtchLayer, GlareLayer, HoloLayer } from './CardLayers';
+import { FacetLayer, GlareLayer, HoloLayer, StaticSparkles } from './CardLayers';
+import { GuillocheLayer, RimLayer, RosetteLayer } from './ArtistFoil';
+import ArtistPhoto from './ArtistPhoto';
+import FoilText from './FoilText';
 import OwnerField from './OwnerField';
-import { artistGradeStep } from './artistGrade';
+import { ArtistGrade, artistGradeStep, setlistWindow } from './artistGrade';
 import { ARTIST_CARD_RATIO, ARTIST_MATERIAL, CardFonts } from './cardTheme';
 import { CardTilt } from './useCardTilt';
-import { ArtistRewardCard } from './types';
+import { ArtistRewardCard, MasteredSong } from './types';
 
 interface Props {
   card: ArtistRewardCard;
@@ -20,10 +23,26 @@ interface Props {
 }
 
 const PAPER = require('../../../assets/cards/paper-fiber.png');
+const BRUSHED = require('../../../assets/cards/brushed-metal.png');
+const MATTE = require('../../../assets/cards/matte-grain.png');
+const SETLIST_ROWS = 5;
+const SWAY_PERIOD_MS = 9000;
+
+/** 가만히 들고 있어도 빛이 천천히 흔들리게, 효과가 따라가는 기울기에만 잔 흔들림을 더한다. 카드 자세는 그대로다. */
+function useIdleSway(tilt: CardTilt): CardTilt {
+  const phase = useSharedValue(0);
+  useEffect(() => {
+    phase.value = withRepeat(withTiming(1, { duration: SWAY_PERIOD_MS, easing: Easing.linear }), -1, false);
+  }, [phase]);
+  const x = useDerivedValue(() => tilt.x.value + Math.cos(phase.value * Math.PI * 2) * 0.14);
+  const y = useDerivedValue(() => tilt.y.value + Math.sin(phase.value * Math.PI * 4) * 0.07);
+  return useMemo(() => ({ ...tilt, x, y }), [tilt, x, y]);
+}
 
 function ArtistCardShowcase({ card, width, tilt, fonts, ownerName }: Props) {
   const height = width * ARTIST_CARD_RATIO;
   const u = width / 100;
+  const light = useIdleSway(tilt);
 
   const frontStyle = useAnimatedStyle(() => {
     const p = tilt.pose.value;
@@ -49,10 +68,10 @@ function ArtistCardShowcase({ card, width, tilt, fonts, ownerName }: Props) {
   return (
     <View style={{ width, height }}>
       <Animated.View style={[styles.face, { borderRadius: 4 * u }, frontStyle]}>
-        <FrontFace card={card} width={width} height={height} u={u} tilt={tilt} fonts={fonts} />
+        <FrontFace card={card} width={width} height={height} u={u} tilt={light} fonts={fonts} />
       </Animated.View>
       <Animated.View style={[styles.face, { borderRadius: 4 * u }, backStyle]}>
-        <BackFace card={card} width={width} height={height} u={u} fonts={fonts} ownerName={ownerName} />
+        <BackFace card={card} width={width} height={height} u={u} tilt={light} fonts={fonts} ownerName={ownerName} />
       </Animated.View>
     </View>
   );
@@ -78,115 +97,219 @@ interface FaceProps {
   fonts: CardFonts;
 }
 
+// 멤버십 카드처럼 사진을 끝까지 깐다. 사진 색은 모든 재질이 같고, 재질은 둘레 금속 모서리부터 차지하는 자리를 넓혀 간다.
+// 썸네일(tilt 없음)도 재질만큼 빛이 멈춰 보이게 한다.
 function FrontFace({ card, width, height, u, tilt, fonts }: FaceProps & { tilt?: CardTilt }) {
   const grade = artistGradeStep(card.masteredCount).grade;
   const m = ARTIST_MATERIAL[grade];
-  const pad = m.fullBleed ? 0 : 2.8 * u;
-  const winW = width - pad * 2;
-  const winH = height - pad * 2;
-  // 금은 사진 안에서만 반짝이고, 플래티넘·다이아는 테까지 카드 전체가 반짝인다.
-  const glitterOnArt = grade === 'gold';
 
   return (
     <View style={[styles.clip, { borderRadius: 4 * u, backgroundColor: card.ink }]}>
-      {!m.fullBleed && (
-        <LinearGradient colors={m.frame} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
-      )}
-      {grade === 'paper' && <Image source={PAPER} style={[StyleSheet.absoluteFill, styles.paper]} resizeMode="repeat" />}
-      {m.frameHolo > 0 && <HoloLayer tilt={tilt} width={width} height={height} opacity={m.frameHolo} blend="overlay" />}
-      {m.etch > 0 && tilt && !m.fullBleed && <EtchLayer tilt={tilt} width={width} height={height} opacity={m.etch} />}
-
-      <View style={[styles.window, { left: pad, top: pad, width: winW, height: winH, borderRadius: m.fullBleed ? 0 : 2.2 * u }]}>
-        <Image source={{ uri: card.imageUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
-        {m.artHolo > 0 && <HoloLayer tilt={tilt} width={winW} height={winH} opacity={m.artHolo} blend="color-dodge" />}
-        <LinearGradient
-          colors={[`${card.ink}E6`, `${card.ink}80`, `${card.ink}00`]}
-          locations={[0, 0.45, 0.85]}
-          start={{ x: 0, y: 1 }}
-          end={{ x: 0.75, y: 0.2 }}
-          style={StyleSheet.absoluteFill}
-        />
-        <LinearGradient colors={['#00000066', '#00000000']} locations={[0, 0.35]} style={StyleSheet.absoluteFill} />
-        {glitterOnArt && tilt && <CardGlitter seed={card.id} width={winW} height={winH} tilt={tilt} strength={m.glitter} />}
-
-        <View style={[styles.content, { padding: (m.fullBleed ? 6 : 4) * u }]}>
-          <View style={styles.topRow}>
-            <Text style={[styles.fanNo, { fontFamily: fonts.jpHeavy, fontSize: 4.2 * u }]}>
-              {card.fanNo.toLocaleString('ko-KR')}
-              <Text style={[styles.fanTail, { fontFamily: fonts.ko, fontSize: 2.6 * u }]}>번째 팬</Text>
-            </Text>
-            <Text style={[styles.since, { fontSize: 2.6 * u }]}>SINCE {card.since.slice(0, 7).replace('-', '.')}</Text>
-          </View>
-          <Text
-            style={[styles.name, { fontFamily: fonts.jpHeavy, fontSize: 8.4 * u, lineHeight: 10.4 * u }]}
-            numberOfLines={2}
-          >
-            {card.name}
-          </Text>
+      <PhotoPlane uri={card.imageUrl} grade={grade} width={width} height={height} depth={m.parallax} tilt={tilt} />
+      {m.matte > 0 && (
+        <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.matte, { opacity: m.matte }]}>
+          <Image source={MATTE} style={StyleSheet.absoluteFill} resizeMode="repeat" />
         </View>
-      </View>
-
-      {!glitterOnArt && m.glitter > 0 && tilt && (
+      )}
+      <LinearGradient
+        colors={[`${card.ink}E6`, `${card.ink}80`, `${card.ink}00`]}
+        locations={[0, 0.45, 0.85]}
+        start={{ x: 0, y: 1 }}
+        end={{ x: 0.75, y: 0.2 }}
+        style={StyleSheet.absoluteFill}
+      />
+      <LinearGradient colors={['#00000066', '#00000000']} locations={[0, 0.35]} style={StyleSheet.absoluteFill} />
+      {m.facet > 0 && <FacetLayer tilt={tilt} width={width} height={height} opacity={m.facet} />}
+      {m.glitter > 0 && tilt && (
         <CardGlitter seed={card.id} width={width} height={height} tilt={tilt} strength={0.7 * m.glitter} rainbow={m.rainbow} />
       )}
       {m.rainbow > 0 && !tilt && <HoloLayer width={width} height={height} opacity={0.3 * m.rainbow} blend="color-dodge" />}
-      {m.fullBleed && tilt && <EtchLayer tilt={tilt} width={width} height={height} opacity={m.etch} />}
-      {m.fullBleed && (
-        <View pointerEvents="none" style={[styles.foilEdge, { margin: 2.4 * u, borderRadius: 2.6 * u }]} />
+      {m.restSparkles > 0 && !tilt && <StaticSparkles seed={card.id} count={m.restSparkles} width={width} height={height} />}
+      {m.guilloche > 0 && m.foil && (
+        <GuillocheLayer width={width} height={height} u={u} colors={m.foil} tilt={tilt} opacity={m.guilloche} />
       )}
+
+      <View style={[styles.content, { padding: 6 * u }]}>
+        {/* 멤버십 카드처럼 등급은 오른쪽 위, 회원 번호와 같은 줄에 둔다. */}
+        <View style={styles.topRow}>
+          <Text style={[styles.fanNo, { fontFamily: fonts.koBold, fontSize: 3 * u }]}>
+            {card.fanNo.toLocaleString('ko-KR')}번째 팬
+          </Text>
+          {m.engrave && m.foil && (
+            <FoilText
+              text={m.engrave}
+              colors={m.foil}
+              fontFamily={fonts.jpHeavy}
+              fontSize={3 * u}
+              letterSpacing={1.2 * u}
+              tilt={tilt}
+              shadow
+            />
+          )}
+        </View>
+        <View style={{ gap: 1.6 * u }}>
+          <CardName name={card.name} u={u} fontFamily={fonts.jpHeavy} emboss={m.emboss} tilt={tilt} />
+          <Text style={[styles.since, { fontFamily: fonts.ko, fontSize: 2.6 * u }]}>
+            {card.since.slice(0, 7).replace('-', '.')}부터
+          </Text>
+        </View>
+      </View>
+      {m.rosette && <RosetteLayer width={width} height={height} u={u} colors={m.rosette} tilt={tilt} />}
+      <GlareLayer tilt={tilt} width={width} height={height} gloss={m.gloss} />
+      {m.rim > 0 && <RimLayer width={width} height={height} u={u} colors={m.frame} tilt={tilt} rim={m.rim} />}
+    </View>
+  );
+}
+
+/** depth 만큼 사진을 키워 깔고 기울기와 반대로 밀어, 사진이 카드 면 아래에 있는 것처럼 보이게 한다. */
+function PhotoPlane({ uri, grade, width, height, depth, tilt }: {
+  uri: string;
+  grade: ArtistGrade;
+  width: number;
+  height: number;
+  depth: number;
+  tilt?: CardTilt;
+}) {
+  const pad = depth * width;
+  const style = useAnimatedStyle(() => ({
+    transform: [{ translateX: -(tilt?.x.value ?? 0) * pad * 0.8 }, { translateY: -(tilt?.y.value ?? 0) * pad * 0.8 }],
+  }));
+  return (
+    <Animated.View style={[styles.photo, { left: -pad, top: -pad, width: width + pad * 2, height: height + pad * 2 }, style]}>
+      <ArtistPhoto uri={uri} grade={grade} width={width + pad * 2} height={height + pad * 2} />
+    </Animated.View>
+  );
+}
+
+/** 볼록하게 찍힌 이름: 흰 글씨는 그대로 두고 빛 쪽 모서리는 밝게, 반대쪽은 그늘지게 겹친다. */
+function CardName({ name, u, fontFamily, emboss, tilt }: {
+  name: string;
+  u: number;
+  fontFamily: string;
+  emboss: boolean;
+  tilt?: CardTilt;
+}) {
+  const text = { fontFamily, fontSize: 8.4 * u, lineHeight: 10.4 * u };
+  const lift = 0.18 * u;
+  const highlight = useAnimatedStyle(() => {
+    const x = Math.max(-1, Math.min(1, (tilt?.x.value ?? -0.35) * 2));
+    const y = Math.max(-1, Math.min(1, (tilt?.y.value ?? -0.25) * 2));
+    return { transform: [{ translateX: x * lift }, { translateY: y * lift }] };
+  });
+  const shade = useAnimatedStyle(() => {
+    const x = Math.max(-1, Math.min(1, (tilt?.x.value ?? -0.35) * 2));
+    const y = Math.max(-1, Math.min(1, (tilt?.y.value ?? -0.25) * 2));
+    return { transform: [{ translateX: -x * lift }, { translateY: -y * lift }] };
+  });
+
+  if (!emboss) {
+    return (
+      <Text style={[styles.name, text]} numberOfLines={2}>
+        {name}
+      </Text>
+    );
+  }
+  return (
+    <View>
+      <Animated.Text style={[styles.name, styles.nameLayer, text, styles.nameShade, shade]} numberOfLines={2}>
+        {name}
+      </Animated.Text>
+      <Animated.Text style={[styles.nameLayer, text, styles.nameHighlight, highlight]} numberOfLines={2}>
+        {name}
+      </Animated.Text>
+      <Text style={[text, styles.nameFace]} numberOfLines={2}>
+        {name}
+      </Text>
+    </View>
+  );
+}
+
+// 뒷면은 재질로 만든 카드 몸체다. 동·은·금은 깊은 색 몸체에 박을 찍는다. 커버는 앨범 단위라 곡을 가르지 못해 제목 옆 곁들임으로만 쓴다.
+function BackFace({ card, width, height, u, tilt, fonts, ownerName }: FaceProps & { tilt?: CardTilt; ownerName: string }) {
+  const grade = artistGradeStep(card.masteredCount).grade;
+  const m = ARTIST_MATERIAL[grade];
+  const ink = m.bodyInk;
+  const pad = 5.4 * u;
+  const leftW = 34 * u;
+  const colGap = 4 * u;
+  const rightW = width - pad * 2 - leftW - colGap;
+  const rowH = 6.4 * u;
+  const { start, hidden } = setlistWindow(card.masteredCount, SETLIST_ROWS);
+  const shown = card.masteredSongs.slice(start);
+  const label = { color: `${ink}A6` };
+
+  return (
+    <View style={[styles.clip, { borderRadius: 4 * u, backgroundColor: m.body[0] }]}>
+      <LinearGradient colors={m.body} start={{ x: 0, y: 0.2 }} end={{ x: 1, y: 0.8 }} style={StyleSheet.absoluteFill} />
+      {grade === 'paper' && <Image source={PAPER} style={[StyleSheet.absoluteFill, styles.paper]} resizeMode="repeat" />}
+      {grade !== 'paper' && m.facet === 0 && (
+        <Image source={BRUSHED} style={[StyleSheet.absoluteFill, styles.brushed]} resizeMode="cover" />
+      )}
+      {m.facet > 0 && <FacetLayer tilt={tilt} width={width} height={height} opacity={m.facet} />}
+      {m.rainbow > 0 && <HoloLayer tilt={tilt} width={width} height={height} opacity={0.4 * m.rainbow} blend="overlay" />}
+      {m.facet > 0 && tilt && <CardGlitter seed={card.id} width={width} height={height} tilt={tilt} strength={0.6 * m.glitter} />}
+      <Text style={[styles.watermark, { color: `${ink}14`, fontFamily: fonts.jpHeavy, fontSize: 22 * u, right: -2 * u, bottom: -5 * u }]}>
+        言の葉
+      </Text>
+
+      <View style={[styles.backBody, { padding: pad, gap: colGap }]}>
+        <View style={[styles.backLeft, { width: leftW }]}>
+          <View>
+            <Text style={[label, { fontFamily: fonts.ko, fontSize: 2.6 * u }]}>마스터한 곡</Text>
+            <View style={styles.countRow}>
+              {m.bodyFoil && m.foil ? (
+                <FoilText
+                  text={String(card.masteredCount)}
+                  colors={m.foil}
+                  fontFamily={fonts.jpHeavy}
+                  fontSize={16 * u}
+                  lineHeight={18 * u}
+                  tilt={tilt}
+                />
+              ) : (
+                <Text style={[styles.countValue, { color: ink, fontFamily: fonts.jpHeavy, fontSize: 16 * u, lineHeight: 18 * u }]}>
+                  {card.masteredCount}
+                </Text>
+              )}
+              <Text style={[label, { fontFamily: fonts.koBold, fontSize: 5 * u, lineHeight: 6.4 * u }]}>곡</Text>
+            </View>
+          </View>
+          <OwnerField name={ownerName} u={u} fonts={fonts} ink={ink} />
+        </View>
+
+        <View style={{ width: rightW }}>
+          <View style={[styles.listHead, { height: 4.4 * u }]}>
+            <Text style={[label, { fontFamily: fonts.ko, fontSize: 2.6 * u }]}>최근</Text>
+            {hidden > 0 && <Text style={[label, { fontFamily: fonts.ko, fontSize: 2.4 * u }]}>외 {hidden}곡</Text>}
+          </View>
+          {shown.map((song, i) => (
+            <SetlistRow key={i} no={start + i + 1} song={song} height={rowH} u={u} fonts={fonts} ink={ink} />
+          ))}
+        </View>
+      </View>
       <GlareLayer tilt={tilt} width={width} height={height} gloss={m.gloss} />
     </View>
   );
 }
 
-// 앞면은 팬 정보, 뒷면은 마스터 기록만 담는다.
-function BackFace({ card, u, fonts, ownerName }: FaceProps & { ownerName: string }) {
-  const m = ARTIST_MATERIAL[artistGradeStep(card.masteredCount).grade];
-  const rest = card.masteredCount - card.recentMastered.length;
-
+const SetlistRow = React.memo(function SetlistRow({ no, song, height, u, fonts, ink }: {
+  no: number;
+  ink: string;
+  song: MasteredSong;
+  height: number;
+  u: number;
+  fonts: CardFonts;
+}) {
   return (
-    <View style={[styles.clip, { borderRadius: 4 * u, backgroundColor: card.ink }]}>
-      <LinearGradient colors={[`${card.accent}66`, `${card.ink}00`]} start={{ x: 0, y: 0 }} end={{ x: 0.6, y: 0.8 }} style={StyleSheet.absoluteFill} />
-      <LinearGradient
-        colors={m.frame}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={[styles.backStripe, { height: 1.2 * u }]}
-      />
-      <Text style={[styles.watermark, { fontFamily: fonts.jpHeavy, fontSize: 22 * u, right: -2 * u, bottom: -5 * u }]}>
-        言の葉
+    <View style={[styles.setlistRow, { height, gap: 1.4 * u }]}>
+      <Text style={[styles.setlistNo, { color: `${ink}8C`, fontSize: 2.2 * u, width: 3.4 * u }]}>{String(no).padStart(2, '0')}</Text>
+      <Image source={{ uri: song.artworkUrl }} style={[styles.cover, { width: 3.4 * u, height: 3.4 * u, borderRadius: 0.5 * u }]} />
+      <Text style={[styles.setlistTitle, { color: ink, fontFamily: fonts.jp, fontSize: 3.3 * u }]} numberOfLines={1}>
+        {song.title}
       </Text>
-
-      <View style={[styles.backBody, { padding: 5.4 * u, gap: 5 * u }]}>
-        <View style={styles.backLeft}>
-          <View>
-            <Text style={[styles.label, { fontFamily: fonts.koBold, fontSize: 2.6 * u, letterSpacing: 0.3 * u }]}>MASTER</Text>
-            <Text style={[styles.countValue, { fontFamily: fonts.jpHeavy, fontSize: 16 * u, lineHeight: 18 * u }]}>
-              {card.masteredCount}
-              <Text style={[styles.countUnit, { fontSize: 5 * u }]}>曲</Text>
-            </Text>
-          </View>
-          <OwnerField name={ownerName} u={u} fonts={fonts} />
-        </View>
-
-        {card.recentMastered.length > 0 && (
-          <View style={[styles.backRight, { gap: 1 * u }]}>
-            <Text style={[styles.label, { fontFamily: fonts.ko, fontSize: 2.6 * u }]}>마스터한 곡</Text>
-            {card.recentMastered.map((song) => (
-              <View key={song.title} style={[styles.songRow, { paddingBottom: 1 * u, gap: 2 * u }]}>
-                <Image source={{ uri: song.artworkUrl }} style={[styles.cover, { width: 6 * u, height: 6 * u, borderRadius: 0.8 * u }]} />
-                <Text style={[styles.songTitle, { fontFamily: fonts.jp, fontSize: 3.4 * u }]} numberOfLines={1}>
-                  {song.title}
-                </Text>
-              </View>
-            ))}
-            {rest > 0 && <Text style={[styles.more, { fontFamily: fonts.ko, fontSize: 2.8 * u }]}>외 {rest}곡</Text>}
-          </View>
-        )}
-      </View>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   face: {
@@ -195,30 +318,28 @@ const styles = StyleSheet.create({
     boxShadow: '0 24px 60px rgba(0, 0, 0, 0.6)',
   },
   clip: { flex: 1, overflow: 'hidden' },
-  paper: { opacity: 0.55 },
-  window: { position: 'absolute', overflow: 'hidden', backgroundColor: '#000000' },
   content: { flex: 1, justifyContent: 'space-between' },
-  topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
-  fanNo: { color: '#FFFFFF' },
-  fanTail: { color: '#FFFFFFB8', fontVariant: ['tabular-nums'] },
-  since: { color: '#FFFFFFB8', fontWeight: '600', letterSpacing: 1 },
+  fanNo: { color: '#FFFFFF', fontVariant: ['tabular-nums'] },
+  since: { color: '#FFFFFFB8', fontVariant: ['tabular-nums'] },
+  photo: { position: 'absolute' },
+  topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   name: { color: '#FFFFFF', textShadowColor: '#00000080', textShadowRadius: 12 },
-  foilEdge: { ...StyleSheet.absoluteFillObject, borderWidth: 1, borderColor: '#FFFFFF4D' },
-  backStripe: { position: 'absolute', top: 0, left: 0, right: 0 },
-  watermark: { position: 'absolute', color: '#FFFFFF0D' },
+  nameLayer: { position: 'absolute', left: 0, right: 0, top: 0 },
+  nameShade: { color: '#00000099' },
+  nameHighlight: { color: '#FFFFFF' },
+  // 밝은 모서리가 보이도록 면은 흰색보다 한 톤 낮춘다.
+  nameFace: { color: '#E9E6EE' },
+  watermark: { position: 'absolute' },
+  paper: { opacity: 0.55 },
+  matte: { mixBlendMode: 'overlay' },
+  brushed: { opacity: 0.32, mixBlendMode: 'overlay' },
   backBody: { flex: 1, flexDirection: 'row' },
-  backLeft: { flex: 1, justifyContent: 'space-between' },
-  backRight: { flex: 1.3 },
-  countValue: { color: '#F2EEF7', fontVariant: ['tabular-nums'] },
-  countUnit: { color: '#FFFFFF8C' },
-  label: { color: '#FFFFFF8C' },
-  songRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#FFFFFF24',
-  },
-  cover: { backgroundColor: '#FFFFFF14', borderWidth: StyleSheet.hairlineWidth, borderColor: '#FFFFFF33' },
-  songTitle: { flex: 1, color: '#F2EEF7' },
-  more: { color: '#FFFFFF8C' },
+  backLeft: { justifyContent: 'space-between' },
+  listHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  setlistRow: { flexDirection: 'row', alignItems: 'center' },
+  setlistNo: { fontWeight: '600', fontVariant: ['tabular-nums'] },
+  setlistTitle: { flex: 1 },
+  countRow: { flexDirection: 'row', alignItems: 'flex-end' },
+  countValue: { fontVariant: ['tabular-nums'] },
+  cover: { backgroundColor: '#00000014', borderWidth: StyleSheet.hairlineWidth, borderColor: '#00000033' },
 });

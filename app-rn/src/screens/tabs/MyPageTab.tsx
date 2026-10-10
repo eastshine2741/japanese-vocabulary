@@ -19,7 +19,8 @@ import ProfileAvatar from '../../components/ProfileAvatar';
 import { flashcardApi } from '../../api/flashcardApi';
 import { FlashcardStatsResponse } from '../../types/flashcard';
 import CardCollection from '../../components/rewardCards/CardCollection';
-import { DUMMY_ARTIST_CARDS, DUMMY_SONG_CARDS } from '../../components/rewardCards/dummyRewardCards';
+import { DUMMY_ARTIST_CARDS } from '../../components/rewardCards/dummyRewardCards';
+import { useRewardCardStore } from '../../stores/rewardCardStore';
 import { ArtistRewardCard, SongRewardCard } from '../../components/rewardCards/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -65,6 +66,8 @@ export default function MyPageTab() {
   const userName = useAuthStore((s) => s.userName);
   const profileImageUrl = useAuthStore((s) => s.profileImageUrl);
   const loadProfile = useAuthStore((s) => s.loadProfile);
+  const songCards = useRewardCardStore((s) => s.songCards);
+  const revealCard = useRewardCardStore((s) => s.revealCard);
   const { deckStatus, songDecks, loadDecks } = useDeckListStore(
     useShallow((s) => ({
       deckStatus: s.status,
@@ -133,6 +136,9 @@ export default function MyPageTab() {
     navigation.navigate('RewardCardDetail', { cardId: card.id, ownerName: displayName });
   }, [navigation, displayName]);
 
+  // 획득 조건을 아직 서버가 알려 주지 않아, 개발 빌드에서만 카드를 길게 눌러 획득 화면을 띄운다.
+  const handleLongPressCard = useCallback((card: SongRewardCard) => revealCard(card.id), [revealCard]);
+
   const handlePressArtistCard = useCallback((card: ArtistRewardCard) => {
     navigation.navigate('ArtistCardDetail', { cardId: card.id, ownerName: displayName });
   }, [navigation, displayName]);
@@ -150,11 +156,12 @@ export default function MyPageTab() {
       >
         {route.key === 'cards' ? (
           <CardCollection
-            songCards={DUMMY_SONG_CARDS}
+            songCards={songCards}
             artistCards={DUMMY_ARTIST_CARDS}
             contentWidth={screenWidth - SIDE_PADDING * 2}
             sidePadding={SIDE_PADDING}
             onPressCard={handlePressCard}
+            onLongPressCard={__DEV__ ? handleLongPressCard : undefined}
             onPressArtistCard={handlePressArtistCard}
           />
         ) : (
@@ -219,7 +226,7 @@ export default function MyPageTab() {
           <View style={styles.nameRow}>
             <Text style={styles.profName}>{displayName}</Text>
             <Text style={styles.collectionSummary}>
-              곡 카드 {DUMMY_SONG_CARDS.length} · 아티스트 카드 {DUMMY_ARTIST_CARDS.length}
+              곡 카드 {songCards.length} · 아티스트 카드 {DUMMY_ARTIST_CARDS.length}
             </Text>
           </View>
           <TouchableOpacity

@@ -1,9 +1,18 @@
+import type { CardSignature } from './signature';
+
 export type CardLevel = 1 | 2 | 3;
 
 /** 후리가나를 붙일 한 덩어리. reading 이 없으면 가나 그대로. */
 export interface RubySegment {
   text: string;
   reading?: string;
+}
+
+/** 곡 가사 한 줄. index 는 곡 안의 줄 순서. */
+export interface CardLyricLine {
+  index: number;
+  ruby: RubySegment[];
+  ko: string;
 }
 
 export interface CardWord {
@@ -34,10 +43,10 @@ export interface SongRewardCard {
   recall: number;
   ownerNo: number;
   earnedAt: string;
-  /** 앞면 아트 위에 세로로 쓰는 두 줄. */
-  frontLines: [string, string];
-  backLines: RubySegment[][];
-  backKo: string;
+  /** 주인이 고른 가사 1~2줄, 곡 순서대로. 앞면엔 세로로, 뒷면엔 후리가나와 번역을 붙여 쓴다. */
+  lyric: CardLyricLine[];
+  /** 발급 때 주인이 한 번 그린 서명. 서명 전이면 null. */
+  signature: CardSignature | null;
   words: CardWord[];
   /** 마스터 카드는 다음 목표가 없다. */
   nextGoal: CardGoal | null;
@@ -60,6 +69,6 @@ export interface ArtistRewardCard {
   fanNo: number;
   /** 첫 곡 카드를 받은 날. 발급 때 고정. */
   since: string;
-  /** 최근 마스터한 곡, 최신순으로 최대 5개. */
-  recentMastered: MasteredSong[];
+  /** 마스터한 곡 전부, 마스터한 순서대로. */
+  masteredSongs: MasteredSong[];
 }

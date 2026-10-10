@@ -15,6 +15,7 @@ interface Props {
   contentWidth: number;
   sidePadding: number;
   onPressCard: (card: SongRewardCard) => void;
+  onLongPressCard?: (card: SongRewardCard) => void;
   onPressArtistCard: (card: ArtistRewardCard) => void;
 }
 
@@ -22,7 +23,15 @@ const GRID_GAP = 12;
 const COLUMNS = 3;
 const ARTIST_CARD_WIDTH = 240;
 
-function CardCollection({ songCards, artistCards, contentWidth, sidePadding, onPressCard, onPressArtistCard }: Props) {
+function CardCollection({
+  songCards,
+  artistCards,
+  contentWidth,
+  sidePadding,
+  onPressCard,
+  onLongPressCard,
+  onPressArtistCard,
+}: Props) {
   const fonts = useCardFonts();
   const [sort, setSort] = useState<CardSort>('level');
   const handleSort = useCallback(() => {
@@ -71,7 +80,14 @@ function CardCollection({ songCards, artistCards, contentWidth, sidePadding, onP
           {rows.map((row) => (
             <View key={row.map((c) => c.id).join()} style={styles.gridRow}>
               {row.map((card) => (
-                <SongCardThumb key={card.id} card={card} width={thumbWidth} fonts={fonts} onPress={onPressCard} />
+                <SongCardThumb
+                  key={card.id}
+                  card={card}
+                  width={thumbWidth}
+                  fonts={fonts}
+                  onPress={onPressCard}
+                  onLongPress={onLongPressCard}
+                />
               ))}
             </View>
           ))}
