@@ -10,7 +10,7 @@ import LenticularLayer from './LenticularLayer';
 import LevelPips from './LevelPips';
 import MasterPips from './MasterPips';
 import SignatureField from './SignatureField';
-import { CARD_RATIO, CardFonts, LEVEL_MATERIAL } from './cardTheme';
+import { CARD_RATIO, CardFonts, LEVEL_MATERIAL, MASTER_CHIP, MASTER_PIP } from './cardTheme';
 import { CardSignature } from './signature';
 import { cardArtist, cardTitle } from './cardCredit';
 import { coatingLeft, wearAge } from './cardWear';
@@ -23,6 +23,8 @@ const MATTE = require('../../../assets/cards/matte-grain.png');
 const BRUSHED = require('../../../assets/cards/brushed-metal.png');
 /** 세로 가사는 글자 하나가 한 줄이다. */
 const LYRIC_MAX_CHARS = 40;
+// Android 는 흐림 반경을 25 까지만 받는다.
+const BACK_ART_BLUR = 24;
 
 interface Props {
   card: SongRewardCard;
@@ -69,7 +71,7 @@ function SongCardShowcase({ card, width, tilt, fonts, ownerName }: Props) {
         )}
       </Animated.View>
       <Animated.View style={[styles.face, { borderRadius: 4.6 * u }, backStyle]}>
-        <BackFace card={card} width={width} height={height} u={u} age={age} fonts={fonts} ownerName={ownerName} />
+        <BackFace card={card} width={width} height={height} u={u} age={age} tilt={tilt} fonts={fonts} ownerName={ownerName} />
       </Animated.View>
     </View>
   );
@@ -343,14 +345,16 @@ function BackFace({
   height,
   u,
   age,
+  tilt,
   fonts,
   ownerName,
   signatureHint,
   signature,
-}: FaceProps & SignatureSlot & { ownerName?: string }) {
-  // 아티스트 카드처럼 뒷면은 앞면 테와 같은 재질의 몸체다. 마스터는 테 없이 아트를 끝까지 깔아 곡 색 몸체를 쓴다.
+}: FaceProps & SignatureSlot & { tilt?: CardTilt; ownerName?: string }) {
+  // 아티스트 카드처럼 뒷면은 앞면 테와 같은 재질의 몸체다. 마스터는 앞면 아트를 흐리게 번져 깔고 무지개 코팅을 그대로 이어 덮는다.
   const material = card.mastered ? null : LEVEL_MATERIAL[card.level];
   const ink = material ? material.chipText : '#FFFFFF';
+  const foil = coatingLeft(age);
   const stats = card.sample
     ? [
         { label: '획득 순번', value: '—', unit: '' },
@@ -374,12 +378,12 @@ function BackFace({
           </View>
         </>
       ) : (
-        <LinearGradient colors={[`${card.accent}73`, `${card.ink}00`]} start={{ x: 0.1, y: 0 }} end={{ x: 0.7, y: 0.7 }} style={StyleSheet.absoluteFill} />
+        <MasterBackBody card={card} width={width} height={height} foil={foil} tilt={tilt} />
       )}
       <Text
         style={[
           styles.watermark,
-          { color: `${ink}${material ? '1A' : '0D'}`, fontFamily: fonts.jpHeavy, fontSize: 30 * u, lineHeight: 32 * u, right: -4 * u, bottom: 10 * u },
+          { color: `${ink}${material ? '1A' : '17'}`, fontFamily: fonts.jpHeavy, fontSize: 30 * u, lineHeight: 32 * u, right: -4 * u, bottom: 10 * u },
         ]}
       >
         {verticalText('言の葉')}
@@ -400,7 +404,7 @@ function BackFace({
               </View>
             ))}
           </View>
-          <View style={[styles.backKo, { borderLeftColor: material ? `${ink}59` : card.accent, paddingLeft: 2.6 * u }]}>
+          <View style={[styles.backKo, { borderLeftColor: material ? `${ink}59` : MASTER_PIP, paddingLeft: 2.6 * u }]}>
             {card.lyric.map((line) => (
               <Text
                 key={line.index}
@@ -428,12 +432,24 @@ function BackFace({
           {stats.map((s) => (
             <View key={s.label} style={{ flex: 1, gap: 0.6 * u }}>
               <Text style={[{ color: `${ink}8C`, fontFamily: fonts.ko, fontSize: 2.6 * u }]}>{s.label}</Text>
-              <Text style={[styles.statValue, { color: ink, fontSize: 4 * u }]}>
-                {s.value}
-                <Text style={[{ color: `${ink}8C`, fontFamily: fonts.ko, fontSize: 2.4 * u }]}>{s.unit}</Text>
-              </Text>
+              {material ? (
+                <Text style={[styles.statValue, { color: ink, fontSize: 4 * u }]}>
+                  {s.value}
+                  <Text style={[{ color: `${ink}8C`, fontFamily: fonts.ko, fontSize: 2.4 * u }]}>{s.unit}</Text>
+                </Text>
+              ) : (
+                <View style={styles.statFoilRow}>
+                  <FoilText text={s.value} colors={MASTER_CHIP.frame} fontFamily={fonts.jpHeavy} fontSize={4.4 * u} lineHeight={5.4 * u} tilt={tilt} />
+                  {!!s.unit && <Text style={[{ color: `${ink}8C`, fontFamily: fonts.ko, fontSize: 2.4 * u }]}>{s.unit}</Text>}
+                </View>
+              )}
             </View>
           ))}
+          {!material && (
+            <View style={styles.statPips}>
+              <MasterPips level={card.level} size={2.4 * u} tilt={tilt} />
+            </View>
+          )}
         </View>
         <SignatureField
           signature={signature === undefined ? card.signature : signature}
@@ -444,8 +460,42 @@ function BackFace({
           ink={material ? ink : undefined}
         />
       </View>
+      {!material && (
+        <View
+          pointerEvents="none"
+          style={[styles.foilEdge, { top: 2.6 * u, left: 2.6 * u, right: 2.6 * u, bottom: 2.6 * u, borderRadius: 4.6 * u - 2.6 * u * 0.6 }]}
+        />
+      )}
       <CardWearLayer width={width} height={height} age={age} seed={card.id} side="back" />
+      {!material && <GlareLayer tilt={tilt} width={width} height={height} gloss={foil} />}
     </View>
+  );
+}
+
+/** 마스터 뒷면 몸체. 글씨가 읽히게 아트는 흐리고 어둡게 눌러 곡 색만 남긴다. */
+function MasterBackBody({ card, width, height, foil, tilt }: {
+  card: SongRewardCard;
+  width: number;
+  height: number;
+  foil: number;
+  tilt?: CardTilt;
+}) {
+  return (
+    <>
+      <Image source={{ uri: card.artworkUrl }} style={[StyleSheet.absoluteFill, styles.backArt]} resizeMode="cover" blurRadius={BACK_ART_BLUR} />
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: card.accent, mixBlendMode: 'color', opacity: 0.5 }]} />
+      <LinearGradient
+        colors={[`${card.ink}99`, `${card.ink}CC`, `${card.ink}F2`]}
+        locations={[0, 0.55, 1]}
+        style={StyleSheet.absoluteFill}
+      />
+      <HoloLayer tilt={tilt} width={width} height={height} opacity={0.35 * foil} blend="overlay" />
+      {tilt ? (
+        <CardGlitter seed={`${card.id}-back`} width={width} height={height} tilt={tilt} strength={0.4 * foil} rainbow={0.7 * foil} />
+      ) : (
+        <StaticSparkles seed={`${card.id}-back`} count={Math.round(6 * foil)} width={width} height={height} />
+      )}
+    </>
   );
 }
 
@@ -454,7 +504,6 @@ const styles = StyleSheet.create({
   face: {
     ...StyleSheet.absoluteFillObject,
     backfaceVisibility: 'hidden',
-    boxShadow: '0 24px 60px rgba(0, 0, 0, 0.6)',
   },
   clip: { flex: 1, overflow: 'hidden' },
   art: { overflow: 'hidden', backgroundColor: '#000000' },
@@ -488,4 +537,7 @@ const styles = StyleSheet.create({
   backBody: { flex: 1, minHeight: 0, overflow: 'hidden' },
   stats: { flexDirection: 'row', gap: 8 },
   statValue: { fontWeight: '600', fontVariant: ['tabular-nums'] },
+  statFoilRow: { flexDirection: 'row', alignItems: 'baseline', gap: 2 },
+  statPips: { alignSelf: 'flex-end', paddingBottom: 2 },
+  backArt: { transform: [{ scale: 1.3 }] },
 });
