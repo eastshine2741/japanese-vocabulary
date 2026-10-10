@@ -36,12 +36,11 @@ object SongCardFace {
             .map { RewardCardWordResponse(japanese = it.japanese, reading = it.reading.orEmpty(), meaning = it.senses.firstOrNull()?.meaning ?: it.koreanText!!) }
 
     /**
-     * 평균 기억 확률. 끝낸 단계 단어 중 리뷰 이력이 있는 카드로 잰다 — 새 단계를 막 시작한 단어가 섞여 카드가 새것처럼 보이지 않게.
-     * 끝낸 단계가 없으면(기본 카드) 리뷰한 tier 단어 전부로 잰다.
+     * 평균 기억 확률. 곡의 tier 단어 중 카드를 받은 뒤 리뷰한 카드로 잰다 — 다른 곡에서 공부하고 밀린 단어가 받자마자 카드를 낡게 하지 않게.
+     * 잴 단어가 없으면 새것이다. 카드를 받게 한 리뷰는 카드보다 먼저 저장돼 빠지지만, 그래서 받는 순간은 새것이다.
      */
-    fun recall(tiers: List<List<FlashcardEntity?>>, now: Instant): Double {
-        val completed = tiers.takeWhile { tier -> tier.all { FlashcardMemory.of(it) != FlashcardMemory.REMAINING } }
-        val measured = (completed.ifEmpty { tiers }).flatten().filterNotNull().filter { it.lastReview != null }.distinctBy { it.id }
+    fun recall(tiers: List<List<FlashcardEntity?>>, issuedAt: Instant, now: Instant): Double {
+        val measured = tiers.flatten().filterNotNull().filter { card -> card.lastReview?.let { it >= issuedAt } == true }.distinctBy { it.id }
         if (measured.isEmpty()) return 1.0
         return measured.map { FlashcardRecall.of(it, now) }.average()
     }

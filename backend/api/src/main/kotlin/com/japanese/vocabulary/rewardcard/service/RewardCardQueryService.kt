@@ -86,7 +86,7 @@ class RewardCardQueryService(
             lyricLineIndexes = card.lyricLineIndexes,
             lyric = SongCardFace.lyric(lines, card.lyricLineIndexes),
             words = tierCards?.let { SongCardFace.words(it.words.words) }.orEmpty(),
-            recall = SongCardFace.recall(tiers, now),
+            recall = SongCardFace.recall(tiers, card.createdAt, now),
             nextGoal = SongCardFace.nextGoal(card.grade, tiers),
             signature = card.signature,
             masteredAt = card.masteredAt,

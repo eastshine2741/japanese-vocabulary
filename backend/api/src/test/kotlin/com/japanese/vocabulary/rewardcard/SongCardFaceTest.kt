@@ -1,11 +1,15 @@
 package com.japanese.vocabulary.rewardcard
 
+import com.japanese.vocabulary.flashcard.entity.FlashcardEntity
 import com.japanese.vocabulary.rewardcard.service.SongCardFace
 import com.japanese.vocabulary.song.dto.songdetail.SongLyricLineDto
 import com.japanese.vocabulary.song.model.PartOfSpeech
 import com.japanese.vocabulary.song.model.Token
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.within
 import org.junit.jupiter.api.Test
+import java.time.Duration
+import java.time.Instant
 
 class SongCardFaceTest {
 
@@ -30,5 +34,31 @@ class SongCardFaceTest {
     fun `picked lines win over the default and keep song order`() {
         val lines = listOf(line(0, "A"), line(1, "B"), line(2, "B"))
         assertThat(SongCardFace.lyric(lines, listOf(2, 0)).map { it.index }).containsExactly(0, 2)
+    }
+
+    private val issuedAt = Instant.parse("2026-10-01T00:00:00Z")
+    private var nextId = 1L
+
+    private fun reviewed(at: Instant): FlashcardEntity {
+        val due = at.plus(Duration.ofDays(10))
+        val json = """{"due": "$due", "step": null, "state": "REVIEW", "cardId": ${nextId}, "stability": 10.0, "difficulty": 5.0, "lastReview": "$at"}"""
+        return FlashcardEntity(id = nextId++, wordId = 0, userId = 0, due = due, stability = 10.0, state = 2, lastReview = at, fsrsCardJson = json)
+    }
+
+    @Test
+    fun `recall ignores reviews before the card was issued`() {
+        val stale = reviewed(issuedAt.minus(Duration.ofDays(60)))
+        val now = issuedAt.plusSeconds(1)
+        assertThat(SongCardFace.recall(listOf(listOf(stale, null)), issuedAt, now)).isEqualTo(1.0)
+    }
+
+    @Test
+    fun `recall averages every tier word reviewed after issue`() {
+        val now = issuedAt.plus(Duration.ofDays(30))
+        val early = reviewed(issuedAt.plus(Duration.ofDays(1)))
+        val fresh = reviewed(now)
+        val recall = SongCardFace.recall(listOf(listOf(early), emptyList(), listOf(fresh, null)), issuedAt, now)
+        assertThat(recall).isLessThan(1.0).isGreaterThan(0.0)
+        assertThat(recall).isCloseTo((SongCardFace.recall(listOf(listOf(early)), issuedAt, now) + 1.0) / 2, within(0.01))
     }
 }
