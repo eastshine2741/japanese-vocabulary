@@ -11,12 +11,12 @@ export interface ArtistGradeStep {
 
 // 납찰(納札)처럼 위로 갈수록 구간이 넓어져, 곡이 많은 아티스트의 팬에게도 위가 남는다. 마스터 곡 수엔 상한이 없다.
 export const ARTIST_GRADE_STEPS: readonly ArtistGradeStep[] = [
-  { grade: 'paper', label: '종이', from: 0 },
-  { grade: 'bronze', label: '동', from: 1 },
-  { grade: 'silver', label: '은', from: 3 },
-  { grade: 'gold', label: '금', from: 7 },
-  { grade: 'platinum', label: '플래티넘', from: 15 },
-  { grade: 'diamond', label: '다이아', from: 30 },
+  { grade: 'paper', label: '기본', from: 0 },
+  { grade: 'bronze', label: 'BRONZE', from: 1 },
+  { grade: 'silver', label: 'SILVER', from: 3 },
+  { grade: 'gold', label: 'GOLD', from: 7 },
+  { grade: 'platinum', label: 'PLATINUM', from: 15 },
+  { grade: 'diamond', label: 'DIAMOND', from: 30 },
 ];
 
 export function artistGradeStep(masteredCount: number): ArtistGradeStep {

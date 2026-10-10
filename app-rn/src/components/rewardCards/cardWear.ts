@@ -6,13 +6,6 @@ const TATTERED_RECALL = 0.5;
 
 export type WearState = 'fresh' | 'faded' | 'worn' | 'tattered';
 
-export const WEAR_LABEL: Record<WearState, string> = {
-  fresh: '새것',
-  faded: '빛바램',
-  worn: '낡음',
-  tattered: '너덜너덜',
-};
-
 /** 0 = 새것, 1 = 완전히 낡음. */
 export function wearAge(recall: number): number {
   const age = (FRESH_RECALL - recall) / (FRESH_RECALL - TATTERED_RECALL);

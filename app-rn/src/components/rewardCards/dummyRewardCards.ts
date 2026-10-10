@@ -66,7 +66,7 @@ const seeds: Seed[] = [
     ],
     pick: [2, 3],
     words: [w('光', 'ひかり', '빛'), w('笑う', 'わらう', '웃다'), w('嘘', 'うそ', '거짓말'), w('星', 'ほし', '별')],
-    nextGoal: { label: '마스터까지', current: 72, total: 100 },
+    nextGoal: { current: 72, total: 100 },
   },
   {
     id: 'yoru', songId: null, title: '夜に駆ける', artist: 'YOASOBI',
@@ -81,7 +81,7 @@ const seeds: Seed[] = [
     ],
     pick: [1, 2],
     words: [w('沈む', 'しずむ', '가라앉다'), w('街', 'まち', '거리'), w('抜ける', 'ぬける', '빠져나가다'), w('夜明け', 'よあけ', '새벽')],
-    nextGoal: { label: '마스터까지', current: 81, total: 111 },
+    nextGoal: { current: 81, total: 111 },
   },
   {
     id: 'marigold', songId: null, title: 'マリーゴールド', artist: 'あいみょん',
@@ -96,7 +96,7 @@ const seeds: Seed[] = [
     ],
     pick: [1, 2],
     words: [w('帽子', 'ぼうし', '모자'), w('夏', 'なつ', '여름'), w('風', 'かぜ', '바람'), w('揺れる', 'ゆれる', '흔들리다')],
-    nextGoal: { label: '완곡까지', current: 52, total: 64 },
+    nextGoal: { current: 52, total: 64 },
   },
   {
     id: 'gunjo', songId: null, title: '群青', artist: 'YOASOBI',
@@ -111,7 +111,7 @@ const seeds: Seed[] = [
     ],
     pick: [1, 2],
     words: [w('青い', 'あおい', '파랗다'), w('波', 'なみ', '파도'), w('向こう', 'むこう', '건너편'), w('描く', 'えがく', '그리다')],
-    nextGoal: { label: '완곡까지', current: 41, total: 70 },
+    nextGoal: { current: 41, total: 70 },
   },
   {
     id: 'kaiju', songId: null, title: '怪獣の花唄', artist: 'Vaundy',
@@ -126,7 +126,7 @@ const seeds: Seed[] = [
     ],
     pick: [1, 2],
     words: [w('星', 'ほし', '별'), w('歌う', 'うたう', '노래하다'), w('思い出', 'おもいで', '추억'), w('光る', 'ひかる', '빛나다')],
-    nextGoal: { label: '완곡까지', current: 60, total: 82 },
+    nextGoal: { current: 60, total: 82 },
   },
   {
     id: 'netsuijou', songId: null, title: '熱異常', artist: 'いよわ',
@@ -142,7 +142,7 @@ const seeds: Seed[] = [
     ],
     pick: [1, 2],
     words: [w('熱', 'ねつ', '열'), w('帯びる', 'おびる', '띠다'), w('空', 'そら', '하늘'), w('忘れる', 'わすれる', '잊다')],
-    nextGoal: { label: '완곡까지', current: 48, total: 76 },
+    nextGoal: { current: 48, total: 76 },
   },
   {
     id: 'hakujitsu', songId: null, title: '白日', artist: 'King Gnu',
@@ -157,7 +157,7 @@ const seeds: Seed[] = [
     ],
     pick: [1, 2],
     words: [w('白い', 'しろい', '하얗다'), w('日差し', 'ひざし', '햇살'), w('過ち', 'あやまち', '잘못')],
-    nextGoal: { label: '따라 부르기까지', current: 20, total: 34 },
+    nextGoal: { current: 20, total: 34 },
   },
   {
     id: 'neko', songId: null, title: '猫', artist: 'DISH//',
@@ -172,7 +172,7 @@ const seeds: Seed[] = [
     ],
     pick: [1, 2],
     words: [w('夕焼け', 'ゆうやけ', '노을'), w('帰り道', 'かえりみち', '귀갓길'), w('影', 'かげ', '그림자'), w('探す', 'さがす', '찾다')],
-    nextGoal: { label: '따라 부르기까지', current: 9, total: 22 },
+    nextGoal: { current: 9, total: 22 },
   },
   {
     id: 'bansanka', songId: null, title: '晩餐歌', artist: 'tuki.',
@@ -187,7 +187,7 @@ const seeds: Seed[] = [
     ],
     pick: [1, 2],
     words: [w('温かい', 'あたたかい', '따뜻하다'), w('食卓', 'しょくたく', '식탁'), w('灯', 'ひ', '등불')],
-    nextGoal: { label: '따라 부르기까지', current: 14, total: 25 },
+    nextGoal: { current: 14, total: 25 },
   },
   {
     id: 'dryflower', songId: null, title: 'ドライフラワー', artist: '優里',
@@ -202,7 +202,7 @@ const seeds: Seed[] = [
     ],
     pick: [1, 2],
     words: [w('色褪せる', 'いろあせる', '빛바래다'), w('花束', 'はなたば', '꽃다발'), w('捨てる', 'すてる', '버리다')],
-    nextGoal: { label: '따라 부르기까지', current: 18, total: 30 },
+    nextGoal: { current: 18, total: 30 },
   },
   {
     id: 'suiheisen', songId: null, title: '水平線', artist: 'back number',
@@ -217,7 +217,7 @@ const seeds: Seed[] = [
     ],
     pick: [1, 2],
     words: [w('遠い', 'とおい', '멀다'), w('水平線', 'すいへいせん', '수평선'), w('涙', 'なみだ', '눈물'), w('流す', 'ながす', '흘리다')],
-    nextGoal: { label: '따라 부르기까지', current: 11, total: 20 },
+    nextGoal: { current: 11, total: 20 },
   },
   {
     id: 'kaibutsu', songId: null, title: '怪物', artist: 'YOASOBI',
@@ -232,7 +232,7 @@ const seeds: Seed[] = [
     ],
     pick: [1, 2],
     words: [w('牙', 'きば', '송곳니'), w('隠す', 'かくす', '숨기다'), w('正しい', 'ただしい', '옳다'), w('問う', 'とう', '묻다')],
-    nextGoal: { label: '따라 부르기까지', current: 16, total: 28 },
+    nextGoal: { current: 16, total: 28 },
   },
 ];
 

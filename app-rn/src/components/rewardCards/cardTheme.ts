@@ -12,20 +12,25 @@ export const CARD_RATIO = 88 / 63;
 export const ARTIST_CARD_RATIO = 54 / 85.6;
 
 interface LevelMaterial {
-  tier: string;
   frame: readonly [string, string, ...string[]];
   pip: string;
   chipText: string;
 }
 
 export const LEVEL_MATERIAL: Record<CardLevel, LevelMaterial> = {
-  1: { tier: '후렴 정복', frame: ['#4A4555', '#2A2632', '#3B3644'], pip: '#CFC8DA', chipText: '#F1ECF7' },
-  2: { tier: '따라 부르기', frame: ['#E6E9EF', '#8A93A3', '#F7F8FB', '#7D8698', '#E9ECF2'], pip: '#E7EBF2', chipText: '#1C2230' },
-  3: { tier: '완곡', frame: ['#FBE7A6', '#B8862C', '#FFF4C9', '#9C6C1E', '#F6DC8E'], pip: '#F6DC8E', chipText: '#3B2A00' },
+  1: { frame: ['#4A4555', '#2A2632', '#3B3644'], pip: '#CFC8DA', chipText: '#F1ECF7' },
+  2: { frame: ['#E6E9EF', '#8A93A3', '#F7F8FB', '#7D8698', '#E9ECF2'], pip: '#E7EBF2', chipText: '#1C2230' },
+  3: { frame: ['#FBE7A6', '#B8862C', '#FFF4C9', '#9C6C1E', '#F6DC8E'], pip: '#F6DC8E', chipText: '#3B2A00' },
 };
 
 /** 마스터 카드는 완곡 금색 대신 푸른 다이아로 레벨을 찍는다. */
 export const MASTER_PIP = '#7CC8FF';
+
+/** 마스터 칩. 완곡 금색 칩과 갈리도록 카드에 박힌 다이아의 하늘색 면으로 칠한다. */
+export const MASTER_CHIP = {
+  frame: ['#D6EFFF', MASTER_PIP, '#F2FAFF', '#3D8FDB', '#CBE9FF'],
+  chipText: '#0B2A55',
+} as const;
 
 interface ArtistMaterial {
   /** 앞면 둘레 금속 모서리와 화면 등급 칩에 쓰는 재질 색. */

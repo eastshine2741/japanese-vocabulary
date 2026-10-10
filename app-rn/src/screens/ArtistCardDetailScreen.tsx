@@ -104,29 +104,21 @@ export default function ArtistCardDetailScreen({ navigation, route }: Props) {
             <LinearGradient colors={material.frame} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.gradeChip}>
               <Text style={[styles.gradeText, { color: material.chipText }]}>{step.label}</Text>
             </LinearGradient>
-            <View style={styles.chip}>
-              <Text style={styles.chipText}>마스터 {card.masteredCount}곡</Text>
-            </View>
           </View>
 
           {next && (
             <View style={styles.goal}>
+              <Text style={styles.goalCaption}>{next.label} 승급 조건</Text>
               <View style={styles.goalHead}>
-                <Text style={styles.goalLabel}>{next.label}까지</Text>
+                <Text style={styles.goalLabel}>이 아티스트의 마스터 곡 카드 {next.from}장 모으기</Text>
                 <Text style={styles.goalValue}>
                   {card.masteredCount}
-                  <Text style={styles.goalTotal}> / {next.from}곡</Text>
+                  <Text style={styles.goalTotal}> / {next.from}</Text>
                 </Text>
               </View>
               <View style={styles.goalTrack}>
                 <View
-                  style={[
-                    styles.goalFill,
-                    {
-                      width: `${((card.masteredCount - step.from) / (next.from - step.from)) * 100}%`,
-                      backgroundColor: card.accent,
-                    },
-                  ]}
+                  style={[styles.goalFill, { width: `${(card.masteredCount / next.from) * 100}%`, backgroundColor: card.accent }]}
                 />
               </View>
             </View>
@@ -161,17 +153,16 @@ const styles = StyleSheet.create({
   chips: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap', gap: 6 },
   gradeChip: { borderRadius: 999, paddingHorizontal: 12, paddingVertical: 5 },
   gradeText: { fontSize: 12, fontWeight: '700' },
-  chip: { borderRadius: 999, paddingHorizontal: 11, paddingVertical: 5, backgroundColor: SHOWROOM.glass },
-  chipText: { color: SHOWROOM.fg, fontSize: 12, fontWeight: '600' },
   goal: {
     marginTop: 14,
     padding: 14,
     borderRadius: 16,
     backgroundColor: SHOWROOM.glass,
-    gap: 10,
+    gap: 8,
   },
-  goalHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
-  goalLabel: { color: SHOWROOM.fgDim, fontSize: 13, fontWeight: '500' },
+  goalHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 },
+  goalCaption: { color: SHOWROOM.fgDim, fontSize: 12, fontWeight: '500' },
+  goalLabel: { flex: 1, color: SHOWROOM.fg, fontSize: 14, fontWeight: '600' },
   goalValue: { color: SHOWROOM.fg, fontSize: 18, fontWeight: '700', fontVariant: ['tabular-nums'] },
   goalTotal: { color: SHOWROOM.fgDim, fontSize: 13, fontWeight: '500' },
   goalTrack: { height: 6, borderRadius: 999, backgroundColor: '#FFFFFF1F', overflow: 'hidden' },

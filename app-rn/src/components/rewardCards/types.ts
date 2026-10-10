@@ -22,7 +22,6 @@ export interface CardWord {
 }
 
 export interface CardGoal {
-  label: string;
   current: number;
   total: number;
 }

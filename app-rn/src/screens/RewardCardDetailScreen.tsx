@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect } from 'react';
-import { Image, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Image, LayoutChangeEvent, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Feather } from '@expo/vector-icons';
@@ -15,26 +15,41 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import { deckApi } from '../api/deckApi';
 import SongCardShowcase from '../components/rewardCards/SongCardShowcase';
 import LevelPips from '../components/rewardCards/LevelPips';
-import { CARD_RATIO, LEVEL_MATERIAL, SHOWROOM, useCardFonts } from '../components/rewardCards/cardTheme';
-import { WEAR_LABEL, wearState } from '../components/rewardCards/cardWear';
+import { CARD_RATIO, LEVEL_MATERIAL, MASTER_CHIP, SHOWROOM, useCardFonts } from '../components/rewardCards/cardTheme';
 import { useCardTilt } from '../components/rewardCards/useCardTilt';
 import { useRewardCardStore } from '../stores/rewardCardStore';
+import { SongRewardCard } from '../components/rewardCards/types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'RewardCardDetail'>;
 
-const WEAR_TONE = {
-  fresh: { bg: '#FFFFFF14', fg: SHOWROOM.fg },
-  faded: { bg: '#3A2F1C', fg: '#F2C98A' },
-  worn: { bg: '#3E231E', fg: '#F3A594' },
-  tattered: { bg: '#3E231E', fg: '#F3A594' },
-} as const;
+interface Box {
+  y: number;
+  width: number;
+  height: number;
+}
+
+// 기울이면 원근 때문에 카드가 테 밖으로 조금 나온다.
+const STAGE_INSET = 16;
+const FOCUS_INSET = 24;
+
+function levelLabel(card: SongRewardCard): string {
+  return card.mastered ? '마스터' : `레벨 ${card.level}`;
+}
+
+/** 다음 레벨과 거기에 오르는 조건. 레벨 n 은 n번째 단계(후렴 정복 → 따라 부르기 → 완곡) 단어를 다 공부한 카드다. */
+function nextLevel(card: SongRewardCard): { name: string; condition: string } {
+  if (card.level === 1) return { name: '레벨 2', condition: "'따라 부르기' 단계 단어 모두 공부하기" };
+  if (card.level === 2) return { name: '레벨 3', condition: "'완곡' 단계 단어 모두 공부하기" };
+  return { name: '마스터', condition: '곡의 모든 단어를 장기 기억으로 만들기' };
+}
 
 export default function RewardCardDetailScreen({ navigation, route }: Props) {
   const { cardId } = route.params;
   const card = useRewardCardStore((s) => s.songCards.find((c) => c.id === cardId));
-  const { width: screenW, height: screenH } = useWindowDimensions();
+  const { width: screenW } = useWindowDimensions();
   const fonts = useCardFonts();
   const tilt = useCardTilt();
 
@@ -49,10 +64,41 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
     opacity: Math.min(1, enter.value * 1.6),
     transform: [{ translateY: (1 - enter.value) * 40 }, { scale: 0.86 + enter.value * 0.14 }],
   }));
-  const infoIn = useAnimatedStyle(() => ({
-    opacity: info.value,
-    transform: [{ translateY: (1 - info.value) * 12 }],
+  const infoIn = useAnimatedStyle(() => ({ opacity: info.value, transform: [{ translateY: (1 - info.value) * 12 }] }));
+  const [body, setBody] = useState<Box | null>(null);
+  const [stage, setStage] = useState<Box | null>(null);
+  const handleBodyLayout = useCallback((e: LayoutChangeEvent) => setBody(e.nativeEvent.layout), []);
+  const handleStageLayout = useCallback((e: LayoutChangeEvent) => setStage(e.nativeEvent.layout), []);
+
+  const cardW = stage == null ? 0 : Math.min(screenW * 0.74, 340, Math.max(0, stage.height - STAGE_INSET * 2) / CARD_RATIO);
+  // 카드만 보기는 레이아웃을 그대로 두고 카드를 키워 화면 가운데로 옮긴다 — 다시 재면 카드가 튄다.
+  const focusScale =
+    body == null || cardW === 0
+      ? 1
+      : Math.min((body.width - FOCUS_INSET * 2) / cardW, (body.height - FOCUS_INSET * 2) / (cardW * CARD_RATIO));
+  const focusShift = body == null || stage == null ? 0 : body.height / 2 - (stage.y + stage.height / 2);
+
+  const [focused, setFocused] = useState(false);
+  const focus = useSharedValue(0);
+  useEffect(() => {
+    focus.value = withTiming(focused ? 1 : 0, { duration: 360, easing: Easing.out(Easing.cubic) });
+  }, [focus, focused]);
+  const handleFocus = useCallback(() => setFocused(true), []);
+  const handleUnfocus = useCallback(() => setFocused(false), []);
+  // 뒤로 가기·내려 닫기는 화면을 닫기 전에 카드만 보기부터 푼다.
+  useEffect(() => {
+    if (!focused) return;
+    return navigation.addListener('beforeRemove', (e) => {
+      e.preventDefault();
+      setFocused(false);
+    });
+  }, [focused, navigation]);
+
+  const chromeStyle = useAnimatedStyle(() => ({ opacity: 1 - focus.value }));
+  const focusStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: focusShift * focus.value }, { scale: 1 + (focusScale - 1) * focus.value }],
   }));
+
   const glowStyle = useAnimatedStyle(() => ({
     opacity: enter.value * 0.9,
     transform: [{ translateX: tilt.x.value * 14 }, { translateY: tilt.y.value * 10 }],
@@ -65,23 +111,45 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
   const handleEditLyric = useCallback(() => {
     navigation.navigate('RewardCardLyricEdit', { cardId });
   }, [navigation, cardId]);
-  const handleReview = useCallback(() => {
-    if (card?.songId != null) navigation.navigate('SongDetail', { songId: card.songId, origin: 'reward_card' });
-  }, [card, navigation]);
+
+  const songId = card?.songId ?? null;
+  const [isStartingReview, setIsStartingReview] = useState(false);
+  const handleStartReview = useCallback(async () => {
+    if (songId == null || isStartingReview) return;
+    setIsStartingReview(true);
+    try {
+      const deck = await deckApi.getDeckBySongId(songId);
+      if (deck?.deckId == null) return;
+      navigation.navigate('SongReview', {
+        trigger: 'reward_card',
+        source: {
+          deckId: deck.deckId,
+          songId,
+          title: deck.title ?? card?.title ?? '',
+          artist: deck.artist ?? card?.artist ?? '',
+          artworkUrl: deck.artworkUrl ?? card?.artworkUrl ?? null,
+          dueCount: deck.dueCount,
+          totalCount: deck.wordCount,
+        },
+      });
+    } catch {
+      // 덱을 못 찾으면 버튼만 다시 누를 수 있게 둔다.
+    } finally {
+      setIsStartingReview(false);
+    }
+  }, [card, isStartingReview, navigation, songId]);
 
   if (!card) {
     return <View style={styles.root} />;
   }
 
-  const cardW = Math.min(screenW * 0.74, (screenH * 0.52) / CARD_RATIO, 340);
-  const material = LEVEL_MATERIAL[card.level];
-  const wear = wearState(card.recall);
-  const tone = WEAR_TONE[wear];
+  const material = card.mastered ? MASTER_CHIP : LEVEL_MATERIAL[card.level];
   const goal = card.nextGoal;
+  const next = nextLevel(card);
 
   return (
     <View style={styles.root}>
-      <StatusBar style="light" />
+      <StatusBar style="light" hidden={focused} />
       <Image source={{ uri: card.artworkUrl }} style={[StyleSheet.absoluteFill, styles.backdrop]} blurRadius={40} />
       <LinearGradient
         colors={[`${SHOWROOM.bg}99`, `${SHOWROOM.bg}D9`, SHOWROOM.bg]}
@@ -90,75 +158,89 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
       />
 
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-        <View style={styles.topBar}>
-          <Pressable onPress={handleClose} hitSlop={10} style={styles.iconBtn}>
-            <Feather name="chevron-down" size={22} color={SHOWROOM.fg} />
-          </Pressable>
-          <View style={styles.actions}>
-            <Pressable onPress={handleEditLyric} hitSlop={10} style={styles.iconBtn}>
-              <Feather name="edit-3" size={18} color={SHOWROOM.fg} />
+        <View style={styles.safe} onLayout={handleBodyLayout}>
+          <Pressable style={StyleSheet.absoluteFill} disabled={!focused} onPress={handleUnfocus} />
+          <Animated.View style={[styles.topBar, chromeStyle]} pointerEvents={focused ? 'none' : 'auto'}>
+            <Pressable onPress={handleClose} hitSlop={10} style={styles.iconBtn}>
+              <Feather name="chevron-down" size={22} color={SHOWROOM.fg} />
             </Pressable>
-            <Pressable onPress={handleFlip} hitSlop={10} style={styles.iconBtn}>
-              <Feather name="refresh-ccw" size={18} color={SHOWROOM.fg} />
-            </Pressable>
-          </View>
-        </View>
+            <View style={styles.actions}>
+              <Pressable onPress={handleFocus} hitSlop={10} style={styles.iconBtn}>
+                <Feather name="maximize-2" size={17} color={SHOWROOM.fg} />
+              </Pressable>
+              <Pressable onPress={handleEditLyric} hitSlop={10} style={styles.iconBtn}>
+                <Feather name="edit-3" size={18} color={SHOWROOM.fg} />
+              </Pressable>
+              <Pressable onPress={handleFlip} hitSlop={10} style={styles.iconBtn}>
+                <Feather name="refresh-ccw" size={18} color={SHOWROOM.fg} />
+              </Pressable>
+            </View>
+          </Animated.View>
 
-        <View style={styles.stage}>
-          <Animated.View
-            pointerEvents="none"
-            style={[
-              styles.glow,
-              { width: cardW * 0.9, height: cardW * 0.9 * CARD_RATIO, boxShadow: `0 0 120px 30px ${card.accent}8C` },
-              glowStyle,
-            ]}
-          />
-          <GestureDetector gesture={tilt.gesture}>
-            <Animated.View style={cardIn}>
-              <SongCardShowcase card={card} width={cardW} tilt={tilt} fonts={fonts} ownerName={route.params.ownerName} />
-            </Animated.View>
-          </GestureDetector>
-        </View>
-
-        <Animated.View style={[styles.info, infoIn]}>
-          <View style={styles.chips}>
-            <LinearGradient colors={material.frame} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.levelChip}>
-              <LevelPips level={card.level} color={material.chipText} size={5} />
-              <Text style={[styles.levelText, { color: material.chipText }]}>{material.tier}</Text>
-            </LinearGradient>
-            {card.mastered && (
-              <View style={styles.chip}>
-                <Text style={styles.chipText}>마스터</Text>
-              </View>
+          <View style={styles.stage} pointerEvents="box-none" onLayout={handleStageLayout}>
+            {cardW > 0 && (
+              <Animated.View style={[styles.stageCenter, focusStyle]} pointerEvents="box-none">
+                <Animated.View
+                  pointerEvents="none"
+                  style={[
+                    styles.glow,
+                    { width: cardW * 0.9, height: cardW * 0.9 * CARD_RATIO, boxShadow: `0 0 120px 30px ${card.accent}8C` },
+                    glowStyle,
+                  ]}
+                />
+                <GestureDetector gesture={tilt.gesture}>
+                  <Animated.View style={cardIn}>
+                    <SongCardShowcase card={card} width={cardW} tilt={tilt} fonts={fonts} ownerName={route.params.ownerName} />
+                  </Animated.View>
+                </GestureDetector>
+              </Animated.View>
             )}
-            <View style={[styles.chip, { backgroundColor: tone.bg }]}>
-              <Text style={[styles.chipText, { color: tone.fg }]}>
-                {WEAR_LABEL[wear]} · 기억 {Math.round(card.recall * 100)}%
-              </Text>
-            </View>
           </View>
 
-          {goal && (
-            <View style={styles.goal}>
-              <View style={styles.goalHead}>
-                <Text style={styles.goalLabel}>{goal.label}</Text>
-                <Text style={styles.goalValue}>
-                  {goal.current}
-                  <Text style={styles.goalTotal}> / {goal.total}</Text>
-                </Text>
+          <Animated.View style={chromeStyle} pointerEvents={focused ? 'none' : 'auto'}>
+            <Animated.View style={[styles.info, infoIn]}>
+              <View style={styles.chips}>
+                <LinearGradient colors={material.frame} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.levelChip}>
+                  <LevelPips level={card.level} color={material.chipText} size={5} />
+                  <Text style={[styles.levelText, { color: material.chipText }]}>{levelLabel(card)}</Text>
+                </LinearGradient>
               </View>
-              <View style={styles.goalTrack}>
-                <View style={[styles.goalFill, { width: `${(goal.current / goal.total) * 100}%`, backgroundColor: card.accent }]} />
-              </View>
-            </View>
-          )}
 
-          {wear !== 'fresh' && (
-            <Pressable onPress={handleReview} style={({ pressed }) => [styles.cta, pressed && styles.ctaPressed]}>
-              <Text style={styles.ctaText}>복습하고 카드 되살리기</Text>
-            </Pressable>
-          )}
-        </Animated.View>
+              <View style={styles.panel}>
+                <View style={styles.panelHead}>
+                  <Text style={styles.panelTitle}>남은 기억</Text>
+                  <Text style={styles.panelValue}>{Math.round(card.recall * 100)}%</Text>
+                </View>
+                <Text style={styles.panelNote}>공부한 단어들을 지금 떠올릴 수 있는 확률의 평균이에요.</Text>
+
+                {goal && (
+                  <>
+                    <View style={styles.divider} />
+                    <Text style={styles.panelCaption}>{next.name} 승급 조건</Text>
+                    <View style={styles.panelHead}>
+                      <Text style={styles.panelTitle}>{next.condition}</Text>
+                      <Text style={styles.panelValue}>
+                        {goal.current}
+                        <Text style={styles.panelTotal}> / {goal.total}</Text>
+                      </Text>
+                    </View>
+                    <View style={styles.goalTrack}>
+                      <View style={[styles.goalFill, { width: `${(goal.current / goal.total) * 100}%`, backgroundColor: card.accent }]} />
+                    </View>
+                  </>
+                )}
+              </View>
+
+              <Pressable
+                onPress={handleStartReview}
+                disabled={songId == null || isStartingReview}
+                style={({ pressed }) => [styles.cta, songId == null && styles.ctaDisabled, pressed && styles.ctaPressed]}
+              >
+                {isStartingReview ? <ActivityIndicator color={SHOWROOM.bg} /> : <Text style={styles.ctaText}>복습 시작하기</Text>}
+              </Pressable>
+            </Animated.View>
+          </Animated.View>
+        </View>
       </SafeAreaView>
     </View>
   );
@@ -168,57 +250,28 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: SHOWROOM.bg },
   backdrop: { opacity: 0.55, transform: [{ scale: 1.3 }] },
   safe: { flex: 1 },
-  topBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 4,
-  },
+  topBar: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 4 },
   actions: { flexDirection: 'row', gap: 8 },
-  iconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: SHOWROOM.glass,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  iconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: SHOWROOM.glass, alignItems: 'center', justifyContent: 'center' },
   stage: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  stageCenter: { alignItems: 'center', justifyContent: 'center' },
   glow: { position: 'absolute', borderRadius: 40 },
-  info: { paddingHorizontal: 24, paddingBottom: 16, gap: 6 },
+  info: { paddingHorizontal: 24, paddingBottom: 8, gap: 8 },
   chips: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap', gap: 6 },
-  levelChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    borderRadius: 999,
-    paddingHorizontal: 11,
-    paddingVertical: 5,
-  },
+  levelChip: { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
   levelText: { fontSize: 12, fontWeight: '700' },
-  chip: { borderRadius: 999, paddingHorizontal: 11, paddingVertical: 5, backgroundColor: SHOWROOM.glass },
-  chipText: { color: SHOWROOM.fg, fontSize: 12, fontWeight: '600' },
-  goal: {
-    marginTop: 14,
-    padding: 14,
-    borderRadius: 16,
-    backgroundColor: SHOWROOM.glass,
-    gap: 10,
-  },
-  goalHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
-  goalLabel: { color: SHOWROOM.fgDim, fontSize: 13, fontWeight: '500' },
-  goalValue: { color: SHOWROOM.fg, fontSize: 18, fontWeight: '700', fontVariant: ['tabular-nums'] },
-  goalTotal: { color: SHOWROOM.fgDim, fontSize: 13, fontWeight: '500' },
-  goalTrack: { height: 6, borderRadius: 999, backgroundColor: '#FFFFFF1F', overflow: 'hidden' },
+  panel: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 14, backgroundColor: SHOWROOM.glass, gap: 4 },
+  divider: { height: StyleSheet.hairlineWidth, backgroundColor: '#FFFFFF26', marginVertical: 6 },
+  panelHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 },
+  panelCaption: { color: SHOWROOM.fgDim, fontSize: 11, fontWeight: '500' },
+  panelTitle: { flex: 1, color: SHOWROOM.fg, fontSize: 13, fontWeight: '600' },
+  panelNote: { color: SHOWROOM.fgDim, fontSize: 11, lineHeight: 15 },
+  panelValue: { color: SHOWROOM.fg, fontSize: 15, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  panelTotal: { color: SHOWROOM.fgDim, fontSize: 12, fontWeight: '500' },
+  goalTrack: { marginTop: 4, height: 4, borderRadius: 999, backgroundColor: '#FFFFFF1F', overflow: 'hidden' },
   goalFill: { height: '100%', borderRadius: 999 },
-  cta: {
-    marginTop: 12,
-    height: 52,
-    borderRadius: 16,
-    backgroundColor: SHOWROOM.fg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  cta: { height: 44, borderRadius: 14, backgroundColor: SHOWROOM.fg, alignItems: 'center', justifyContent: 'center' },
   ctaPressed: { opacity: 0.85 },
-  ctaText: { color: SHOWROOM.bg, fontSize: 16, fontWeight: '700' },
+  ctaDisabled: { opacity: 0.4 },
+  ctaText: { color: SHOWROOM.bg, fontSize: 15, fontWeight: '700' },
 });
