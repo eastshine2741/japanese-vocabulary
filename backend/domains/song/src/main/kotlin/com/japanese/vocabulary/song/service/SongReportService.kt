@@ -5,6 +5,7 @@ import com.japanese.vocabulary.common.exception.ErrorCode
 import com.japanese.vocabulary.song.entity.LyricEntity
 import com.japanese.vocabulary.song.entity.SongReportEntity
 import com.japanese.vocabulary.song.entity.SongReportStatus
+import com.japanese.vocabulary.song.event.SongReportApprovedEvent
 import com.japanese.vocabulary.song.model.SongEditOp
 import com.japanese.vocabulary.song.model.SongReportTarget
 import com.japanese.vocabulary.song.model.SongReportTargetKind
@@ -12,6 +13,7 @@ import com.japanese.vocabulary.song.model.SongReportType
 import com.japanese.vocabulary.song.repository.LyricRepository
 import com.japanese.vocabulary.song.repository.SongReportRepository
 import com.japanese.vocabulary.song.repository.SongRepository
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Clock
@@ -24,6 +26,7 @@ class SongReportService(
     private val songReportRepository: SongReportRepository,
     private val songEditApplier: SongEditApplier,
     private val wordCandidateGenerator: WordCandidateGenerator,
+    private val eventPublisher: ApplicationEventPublisher,
     private val clock: Clock,
 ) {
     @Transactional
@@ -64,6 +67,7 @@ class SongReportService(
             lyric.analyzedContent = result.analyzedContent
             lyric.wordCandidates = result.analyzedContent?.let { wordCandidateGenerator.generate(song.title, it) }
         }
+        eventPublisher.publishEvent(SongReportApprovedEvent(requireNotNull(report.id), report.userId, report.songId))
         return report
     }
 

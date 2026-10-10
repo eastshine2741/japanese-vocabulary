@@ -140,7 +140,7 @@ freeze 행은 연속을 잇기만 하고 streak/총 학습일 카운트에는 �
 
 **Song report (분석 제보):** 유형 목록은 서버 enum `SongReportType` 이 소유한다(`GET /api/song-reports/types`).
 `POST /api/songs/{id}/reports` 가 `song_reports` PENDING 행을 만들고, 관리자가 승인하면 같은 트랜잭션에서 곡·active 가사를
-고치고 바꾼 내용을 `review_changes` 에만 남긴다(곡·가사 버전 없음). `GET /api/songs/{id}/contributors` 는 APPROVED 제보자.
+고치고 바꾼 내용을 `review_changes` 에만 남긴다(곡·가사 버전 없음). 승인 커밋 뒤 admin-api 가 제보자에게 `song_report_approved` 푸시를 보낸다(반려는 알림 없음). `GET /api/songs/{id}/contributors` 는 APPROVED 제보자.
 앱 진입점은 가사 시트의 포커스 줄 깃발(줄·토큰)과 MV 바 깃발(영상) 둘이고, 기여자는 곡 상세 홈 탭 맨 아래 섹션이다.
 어드민 흐름은 `docs/admin-service.md`.
 

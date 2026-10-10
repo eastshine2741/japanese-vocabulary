@@ -37,7 +37,7 @@ export const SongDetailContributors = React.memo(function SongDetailContributors
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>이 곡을 다듬은 사람들</Text>
-        <Text style={styles.subtitle}>{`${contributors.count}명이 기여했어요`}</Text>
+        <Text style={styles.subtitle}>{`${contributors.count}명의 제보로 가사와 단어가 고쳐졌어요`}</Text>
       </View>
 
       <View style={styles.faceGrid}>

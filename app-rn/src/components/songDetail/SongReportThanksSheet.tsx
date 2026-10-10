@@ -18,7 +18,7 @@ function SongReportThanksSheet({ onClose }: SongReportThanksSheetProps) {
       <View style={styles.copy}>
         <Text style={styles.title}>제보해주셔서 감사합니다</Text>
         <Text style={styles.body}>
-          {'보내주신 제보 덕분에 모든 분이 더 정확하게 배울 수 있어요.\n검토 후 반영까지 약간의 시간이 소요됩니다.'}
+          {'보내주신 제보 덕분에 모든 분이 더 정확하게 배울 수 있어요.\n보내주신 내용은 꼼꼼히 살펴본 후 반영할게요.'}
         </Text>
       </View>
 
