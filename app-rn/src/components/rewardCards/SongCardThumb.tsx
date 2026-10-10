@@ -21,7 +21,7 @@ function SongCardThumb({ card, width, fonts, onPress, onLongPress }: Props) {
       onLongPress={onLongPress ? handleLongPress : undefined}
       style={({ pressed }) => [styles.card, { borderRadius: width * 0.046 }, pressed && styles.pressed]}
     >
-      <SongCardFront card={card} width={width} fonts={fonts} />
+      <SongCardFront card={card} width={width} fonts={fonts} thumb />
     </Pressable>
   );
 }

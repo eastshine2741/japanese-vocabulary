@@ -70,15 +70,18 @@ function SongCardShowcase({ card, width, tilt, fonts, ownerName }: Props) {
 
 export default React.memo(SongCardShowcase);
 
-/** 진열장용 앞면. 기울기를 따라가는 효과(두 장면 전환·글리터·에칭·홀로 이동)는 빼고 고정된 광택만 남긴다. */
-export const SongCardFront = React.memo(function SongCardFront({ card, width, fonts }: Omit<Props, 'tilt' | 'ownerName'>) {
+/**
+ * 진열장용 앞면. 기울기를 따라가는 효과(두 장면 전환·글리터·에칭·홀로 이동)는 빼고 고정된 광택만 남긴다.
+ * thumb 는 목록 썸네일 크기에서 1px 도 안 되는 디테일까지 뺀다.
+ */
+export const SongCardFront = React.memo(function SongCardFront({ card, width, fonts, thumb }: Omit<Props, 'tilt' | 'ownerName'> & { thumb?: boolean }) {
   const height = width * CARD_RATIO;
   const u = width / 100;
   const age = wearAge(card.recall);
   const Face = card.mastered ? FoilFrontFace : FrontFace;
   return (
     <View style={{ width, height }}>
-      <Face card={card} width={width} height={height} u={u} age={age} fonts={fonts} />
+      <Face card={card} width={width} height={height} u={u} age={age} fonts={fonts} thumb={thumb} />
     </View>
   );
 });
@@ -124,9 +127,10 @@ interface FaceProps {
   u: number;
   age: number;
   fonts: CardFonts;
+  thumb?: boolean;
 }
 
-function FrontFace({ card, width, height, u, age, tilt, fonts }: FaceProps & { tilt?: CardTilt }) {
+function FrontFace({ card, width, height, u, age, tilt, fonts, thumb }: FaceProps & { tilt?: CardTilt }) {
   const material = LEVEL_MATERIAL[card.level];
   const pad = 3.4 * u;
   const artSize = width - pad * 2;
@@ -138,13 +142,14 @@ function FrontFace({ card, width, height, u, age, tilt, fonts }: FaceProps & { t
       <LinearGradient colors={material.frame} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
       {/* 코팅이 벗겨지면 금속 테의 명암 띠가 사라지고 무광 단색만 남는다. */}
       <View style={[StyleSheet.absoluteFill, { backgroundColor: material.frame[1], opacity: (1 - foil) * 0.8 }]} />
-      {shiny && <HoloLayer tilt={tilt} width={width} height={height} opacity={(card.level === 3 ? 0.5 : 0.2) * foil} blend="overlay" />}
+      {/* 은색 테 위 0.2 홀로는 썸네일에선 티가 안 난다. */}
+      {shiny && !(thumb && card.level === 2) && <HoloLayer tilt={tilt} width={width} height={height} opacity={(card.level === 3 ? 0.5 : 0.2) * foil} blend="overlay" />}
       {shiny && tilt && <EtchLayer tilt={tilt} width={width} height={height} opacity={foil} />}
 
       <View style={{ flex: 1, padding: pad, gap: 2.6 * u }}>
         <View style={[styles.art, { width: artSize, height: artSize, borderRadius: 2.4 * u }]}>
           <Image source={{ uri: card.artworkUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
-          {card.level === 3 && <HoloLayer tilt={tilt} width={artSize} height={artSize} opacity={0.16 * foil} blend="color-dodge" />}
+          {card.level === 3 && !thumb && <HoloLayer tilt={tilt} width={artSize} height={artSize} opacity={0.16 * foil} blend="color-dodge" />}
           {card.level === 3 && tilt && <EtchLayer tilt={tilt} width={artSize} height={artSize} opacity={0.7 * foil} />}
           <LinearGradient
             colors={['transparent', '#08060C59', '#08060CC7']}
@@ -184,14 +189,14 @@ function FrontFace({ card, width, height, u, age, tilt, fonts }: FaceProps & { t
         </LinearGradient>
       </View>
 
-      <CardWearLayer width={width} height={height} age={age} seed={card.id} tilt={tilt} />
+      <CardWearLayer width={width} height={height} age={age} seed={card.id} tilt={tilt} lite={thumb} />
       <GlareLayer tilt={tilt} width={width} height={height} gloss={foil} />
     </View>
   );
 }
 
 /** 마스터 카드. 테 없이 아트를 끝까지 깔고, 무지개 코팅이 두 장면 위를 함께 덮는다. */
-function FoilFrontFace({ card, width, height, u, age, tilt, fonts }: FaceProps & { tilt?: CardTilt }) {
+function FoilFrontFace({ card, width, height, u, age, tilt, fonts, thumb }: FaceProps & { tilt?: CardTilt }) {
   const foil = coatingLeft(age);
   const inset = 2.6 * u;
 
@@ -247,7 +252,7 @@ function FoilFrontFace({ card, width, height, u, age, tilt, fonts }: FaceProps &
         <>
           <HoloLayer width={width} height={height} opacity={0.3 * foil} blend="color-dodge" />
           <View pointerEvents="none" style={[styles.foilPips, { right: 7 * u, bottom: 7 * u }]}>
-            <MasterPips level={card.level} size={2.4 * u} />
+            <MasterPips level={card.level} size={2.4 * u} flat={thumb} />
           </View>
         </>
       )}
@@ -255,7 +260,7 @@ function FoilFrontFace({ card, width, height, u, age, tilt, fonts }: FaceProps &
         pointerEvents="none"
         style={[styles.foilEdge, { top: inset, left: inset, right: inset, bottom: inset, borderRadius: 4.6 * u - inset * 0.6 }]}
       />
-      <CardWearLayer width={width} height={height} age={age} seed={card.id} tilt={tilt} />
+      <CardWearLayer width={width} height={height} age={age} seed={card.id} tilt={tilt} lite={thumb} />
       <GlareLayer tilt={tilt} width={width} height={height} gloss={foil} />
     </View>
   );

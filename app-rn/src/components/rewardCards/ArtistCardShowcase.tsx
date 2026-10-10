@@ -105,7 +105,11 @@ function FrontFace({ card, width, height, u, tilt, fonts }: FaceProps & { tilt?:
 
   return (
     <View style={[styles.clip, { borderRadius: 4 * u, backgroundColor: card.ink }]}>
-      <PhotoPlane uri={card.imageUrl} grade={grade} width={width} height={height} depth={m.parallax} tilt={tilt} />
+      {tilt ? (
+        <PhotoPlane uri={card.imageUrl} grade={grade} width={width} height={height} depth={m.parallax} tilt={tilt} />
+      ) : (
+        <ArtistPhoto uri={card.imageUrl} grade={grade} width={width} height={height} />
+      )}
       {m.matte > 0 && (
         <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.matte, { opacity: m.matte }]}>
           <Image source={MATTE} style={StyleSheet.absoluteFill} resizeMode="repeat" />
@@ -125,7 +129,8 @@ function FrontFace({ card, width, height, u, tilt, fonts }: FaceProps & { tilt?:
       )}
       {m.rainbow > 0 && !tilt && <HoloLayer width={width} height={height} opacity={0.3 * m.rainbow} blend="color-dodge" />}
       {m.restSparkles > 0 && !tilt && <StaticSparkles seed={card.id} count={m.restSparkles} width={width} height={height} />}
-      {m.guilloche > 0 && m.foil && (
+      {/* 길로셰·로제트 선은 썸네일에서 1px 도 안 돼 무늬로 읽히지 않는다. */}
+      {m.guilloche > 0 && m.foil && tilt && (
         <GuillocheLayer width={width} height={height} u={u} colors={m.foil} tilt={tilt} opacity={m.guilloche} />
       )}
 
@@ -148,13 +153,13 @@ function FrontFace({ card, width, height, u, tilt, fonts }: FaceProps & { tilt?:
           )}
         </View>
         <View style={{ gap: 1.6 * u }}>
-          <CardName name={card.name} u={u} fontFamily={fonts.jpHeavy} emboss={m.emboss} tilt={tilt} />
+          <CardName name={card.name} u={u} fontFamily={fonts.jpHeavy} emboss={m.emboss && !!tilt} tilt={tilt} />
           <Text style={[styles.since, { fontFamily: fonts.ko, fontSize: 2.6 * u }]}>
             {card.since.slice(0, 7).replace('-', '.')}부터
           </Text>
         </View>
       </View>
-      {m.rosette && <RosetteLayer width={width} height={height} u={u} colors={m.rosette} tilt={tilt} />}
+      {m.rosette && tilt && <RosetteLayer width={width} height={height} u={u} colors={m.rosette} tilt={tilt} />}
       <GlareLayer tilt={tilt} width={width} height={height} gloss={m.gloss} />
       {m.rim > 0 && <RimLayer width={width} height={height} u={u} colors={m.frame} tilt={tilt} rim={m.rim} />}
     </View>
@@ -168,11 +173,11 @@ function PhotoPlane({ uri, grade, width, height, depth, tilt }: {
   width: number;
   height: number;
   depth: number;
-  tilt?: CardTilt;
+  tilt: CardTilt;
 }) {
   const pad = depth * width;
   const style = useAnimatedStyle(() => ({
-    transform: [{ translateX: -(tilt?.x.value ?? 0) * pad * 0.8 }, { translateY: -(tilt?.y.value ?? 0) * pad * 0.8 }],
+    transform: [{ translateX: -tilt.x.value * pad * 0.8 }, { translateY: -tilt.y.value * pad * 0.8 }],
   }));
   return (
     <Animated.View style={[styles.photo, { left: -pad, top: -pad, width: width + pad * 2, height: height + pad * 2 }, style]}>
