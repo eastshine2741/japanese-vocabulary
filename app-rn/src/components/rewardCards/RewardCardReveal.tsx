@@ -19,7 +19,7 @@ import {
   useRevealMotion,
 } from './CardRevealStage';
 import SongCardShowcase, { SongCardBack, SongCardFront } from './SongCardShowcase';
-import { CARD_RATIO, useCardFonts } from './cardTheme';
+import { CARD_RATIO, SONG_MASTER_NAME, SONG_TIER_NAME, useCardFonts } from './cardTheme';
 import { findDummyLyrics } from './dummyRewardCards';
 import { CardSignature } from './signature';
 import { SongRewardCard } from './types';
@@ -29,14 +29,15 @@ import { useCardTilt } from './useCardTilt';
 const PREFETCH_TIMEOUT_MS = 1500;
 const SONG_RADIUS = 0.046;
 
-/** 레벨 n 은 n번째 단계 단어를 다 공부한 카드다. 레벨 이름에 단계 이름을 쓰지 않고 조건으로만 붙인다. */
+/** 레벨 n 은 n번째 단계 단어를 다 공부한 카드다. 등급 이름에 단계 이름을 쓰지 않고 조건으로만 붙인다. */
 const SONG_LADDER: readonly LadderStep[] = [
-  { label: '레벨 1', caption: '후렴 정복' },
-  { label: '레벨 2', caption: '따라 부르기' },
-  { label: '레벨 3', caption: '완곡' },
-  { label: '마스터', caption: '90% 장기 기억' },
+  { label: SONG_TIER_NAME[0], caption: '첫 학습' },
+  { label: SONG_TIER_NAME[1], caption: '후렴 정복' },
+  { label: SONG_TIER_NAME[2], caption: '따라 부르기' },
+  { label: SONG_TIER_NAME[3], caption: '완곡' },
+  { label: SONG_MASTER_NAME, caption: '90% 장기 기억' },
 ];
-const SONG_GUIDE = ['이 곡의 단어를 공부하는 만큼 강화되는 카드예요.', '각 단계를 끝낼 때마다 레벨이 올라요'];
+const SONG_GUIDE = ['이 곡의 단어를 공부하는 만큼 강화되는 카드예요.', '각 단계를 끝낼 때마다 등급이 올라요'];
 
 /**
  * 카드 획득 — 조건이 채워지면 획득 화면(RewardCardReveal 라우트)을 연다.
@@ -167,11 +168,10 @@ export const RewardCardReveal = React.memo(function RewardCardReveal({ card, sta
           ratio={CARD_RATIO}
           radius={SONG_RADIUS}
           front={<SongCardFront card={card} width={cardW} fonts={fonts} />}
-          back={<SongCardBack card={card} width={cardW} fonts={fonts} />}
           showcase={<SongCardShowcase card={card} width={cardW} tilt={tilt} fonts={fonts} />}
           heading="곡 카드를 얻었어요"
           guide={
-            <RevealGuide lines={SONG_GUIDE} steps={SONG_LADDER} current={card.mastered ? 3 : card.level - 1} accent={card.accent} />
+            <RevealGuide lines={SONG_GUIDE} steps={SONG_LADDER} current={card.mastered ? 4 : card.level} accent={card.accent} motion={motion} />
           }
           actions={
             <>

@@ -12,7 +12,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { Feather } from '@expo/vector-icons';
-import { hapticOwned, hapticSign } from './cardHaptics';
+import { hapticCount, hapticLand, hapticOwned, hapticSign } from './cardHaptics';
 import { SHOWROOM } from './cardTheme';
 import SignaturePad from './SignaturePad';
 import { CardSignature } from './signature';
@@ -108,6 +108,10 @@ export default React.memo(CardSigner);
 /** 미리보기에서 본 서명된 뒷면을 잠깐 보여 준 뒤 돌린다. */
 const FLIP_AT_MS = 650;
 const FLIP_MS = 820;
+/** 순번이 0 부터 올라가 멈추는 시간. 끝으로 갈수록 느려진다. */
+const COUNT_MS = 1100;
+/** 숫자가 바뀔 때마다 울리면 뭉개져서 이 간격 아래로는 건너뛴다. */
+const COUNT_TICK_MS = 45;
 const SETTLE = Easing.out(Easing.cubic);
 
 interface SealProps {
@@ -123,14 +127,19 @@ const CardSeal = React.memo(function CardSeal({ card, signature, width, onDone, 
   const flip = useSharedValue(0);
   const lift = useSharedValue(0);
   const captionIn = useSharedValue(0);
+  const [counting, setCounting] = useState(false);
   const [done, setDone] = useState(false);
+  const handleCounted = useCallback(() => setDone(true), []);
 
   useEffect(() => {
     const flipAt = FLIP_AT_MS;
     flip.value = withDelay(
       flipAt,
       withTiming(1, { duration: FLIP_MS, easing: Easing.inOut(Easing.cubic) }, (finished) => {
-        if (finished) runOnJS(hapticOwned)();
+        if (finished) {
+          runOnJS(hapticOwned)();
+          runOnJS(setCounting)(true);
+        }
       }),
     );
     lift.value = withDelay(
@@ -142,9 +151,7 @@ const CardSeal = React.memo(function CardSeal({ card, signature, width, onDone, 
     );
     captionIn.value = withDelay(
       flipAt + FLIP_MS - 120,
-      withTiming(1, { duration: 480, easing: SETTLE }, (finished) => {
-        if (finished) runOnJS(setDone)(true);
-      }),
+      withTiming(1, { duration: 480, easing: SETTLE }),
     );
   }, [flip, lift, captionIn]);
 
@@ -168,7 +175,7 @@ const CardSeal = React.memo(function CardSeal({ card, signature, width, onDone, 
         </Text>
         <Text style={styles.meta}>
           {card.subject}의 카드를 전체 유저 중{' '}
-          <Text style={{ color: card.accent }}>{card.serialNo.toLocaleString('ko-KR')}번째</Text>로 획득했어요
+          <SerialCount to={card.serialNo} run={counting} color={card.accent} onDone={handleCounted} />로 획득했어요
         </Text>
       </Animated.View>
 
@@ -183,6 +190,49 @@ const CardSeal = React.memo(function CardSeal({ card, signature, width, onDone, 
       </Animated.View>
     </Animated.View>
   );
+});
+
+interface CountProps {
+  to: number;
+  run: boolean;
+  color: string;
+  onDone: () => void;
+}
+
+/** 획득 순번이 0 부터 올라가다 멈추며 내 카드로 확정된다. 멈추는 순간이 마지막 한 방이다. */
+const SerialCount = React.memo(function SerialCount({ to, run, color, onDone }: CountProps) {
+  const [n, setN] = useState(0);
+
+  useEffect(() => {
+    if (!run) return;
+    const t0 = Date.now();
+    let shown = 0;
+    let lastTick = 0;
+    let raf = 0;
+    const step = () => {
+      const now = Date.now();
+      const k = Math.min(1, (now - t0) / COUNT_MS);
+      const next = Math.round(to * (1 - Math.pow(1 - k, 3)));
+      if (next !== shown) {
+        shown = next;
+        setN(next);
+        if (k < 1 && now - lastTick >= COUNT_TICK_MS) {
+          lastTick = now;
+          hapticCount();
+        }
+      }
+      if (k < 1) {
+        raf = requestAnimationFrame(step);
+        return;
+      }
+      hapticLand();
+      onDone();
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [run, to, onDone]);
+
+  return <Text style={{ color }}>{n.toLocaleString('ko-KR')}번째</Text>;
 });
 
 interface FlipProps {

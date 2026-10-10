@@ -94,10 +94,9 @@ function ArtistCardReveal({ card, started, onClose }: Props) {
           ratio={ARTIST_CARD_RATIO}
           radius={ARTIST_RADIUS}
           front={<ArtistCardFront card={card} width={cardW} fonts={fonts} />}
-          back={<ArtistCardBack card={card} width={cardW} fonts={fonts} />}
           showcase={<ArtistCardShowcase card={card} width={cardW} tilt={tilt} fonts={fonts} />}
           heading="아티스트 카드를 얻었어요"
-          guide={<RevealGuide lines={ARTIST_GUIDE} steps={ARTIST_LADDER} current={current} accent={card.accent} />}
+          guide={<RevealGuide lines={ARTIST_GUIDE} steps={ARTIST_LADDER} current={current} accent={card.accent} motion={motion} />}
           actions={<RevealPrimaryButton label="서명하기" onPress={handleNext} />}
         />
       ) : (
