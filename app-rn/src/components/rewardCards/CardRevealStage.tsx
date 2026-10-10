@@ -393,6 +393,8 @@ export const RevealIntro = React.memo(function RevealIntro({
     ],
   }));
   const envStyle = useAnimatedStyle(() => ({
+    // 레이아웃을 재고 나면 bottom 은 바로 바뀌지만 transform 은 한 프레임 늦어 제자리에 비친다 — 떠오르기 전엔 숨긴다.
+    opacity: rise.value > 0 ? 1 : 0,
     transform: [
       { translateY: (1 - rise.value) * (shown + 40) + drop.value * (shown + 60) },
       // 터지기 직전 안에서 밀어 올리듯 부푼다.
