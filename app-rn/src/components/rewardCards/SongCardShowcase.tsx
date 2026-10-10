@@ -10,6 +10,7 @@ import LevelPips from './LevelPips';
 import MasterPips from './MasterPips';
 import SignatureField from './SignatureField';
 import { CARD_RATIO, CardFonts, LEVEL_MATERIAL } from './cardTheme';
+import { CardSignature } from './signature';
 import { coatingLeft, wearAge } from './cardWear';
 import { lyricKo, lyricText } from './cardLyric';
 import { CardTilt } from './useCardTilt';
@@ -85,6 +86,8 @@ export const SongCardFront = React.memo(function SongCardFront({ card, width, fo
 interface SignatureSlot {
   /** 빈 서명 칸을 이 색 점선으로 표시한다. */
   signatureHint?: string;
+  /** card.signature 대신 그릴 서명. 서명하는 동안 획마다 카드를 새로 만들지 않으려고 따로 받는다. */
+  signature?: CardSignature | null;
 }
 
 /** 뒷면만 정적으로. 획득 연출에서 효과 없이 돌리거나 서명할 때 쓴다. */
@@ -94,6 +97,7 @@ export const SongCardBack = React.memo(function SongCardBack({
   fonts,
   ownerName,
   signatureHint,
+  signature,
 }: Omit<Props, 'tilt'> & SignatureSlot) {
   const height = width * CARD_RATIO;
   return (
@@ -107,6 +111,7 @@ export const SongCardBack = React.memo(function SongCardBack({
         fonts={fonts}
         ownerName={ownerName}
         signatureHint={signatureHint}
+        signature={signature}
       />
     </View>
   );
@@ -276,6 +281,7 @@ function BackFace({
   fonts,
   ownerName,
   signatureHint,
+  signature,
 }: FaceProps & SignatureSlot & { ownerName?: string }) {
   const stats = [
     { label: '획득 순번', value: card.ownerNo.toLocaleString('ko-KR'), unit: '번째' },
@@ -328,7 +334,7 @@ function BackFace({
           ))}
         </View>
         <SignatureField
-          signature={card.signature}
+          signature={signature === undefined ? card.signature : signature}
           fallbackName={ownerName}
           hint={signatureHint}
           u={u}

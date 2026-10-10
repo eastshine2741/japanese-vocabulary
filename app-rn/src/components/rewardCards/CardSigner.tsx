@@ -16,6 +16,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { hapticOwned, hapticSign } from './cardHaptics';
 import { SongCardBack, SongCardFront } from './SongCardShowcase';
 import { CARD_RATIO, CardFonts, SHOWROOM } from './cardTheme';
+import SignaturePad from './SignaturePad';
 import { CardSignature } from './signature';
 import { SongRewardCard } from './types';
 
@@ -33,13 +34,16 @@ interface Props {
 
 /**
  * 서명 → 내 카드가 되는 순간까지.
- * 빈 서명 칸을 점선으로 짚는다. 확정하면 서명된 뒷면 그대로 앞면으로 돌려 주인 이름과 순번을 붙인다.
+ * 빈 서명 칸을 점선으로 짚고, 패드에 그리는 획을 미리보기 카드에 그대로 찍는다. 확정하면 서명된 뒷면 그대로 앞면으로 돌려 주인 이름과 순번을 붙인다.
  */
 function CardSigner({ card, fonts, previewWidth, sealWidth, onSign, onDone, bottomInset }: Props) {
   const [strokes, setStrokes] = useState<CardSignature>([]);
+  const [live, setLive] = useState<string | null>(null);
   const [sealed, setSealed] = useState<CardSignature | null>(null);
 
   const handleClear = useCallback(() => setStrokes([]), []);
+  const handleStroke = useCallback((stroke: string) => setStrokes((prev) => [...prev, stroke]), []);
+  const preview = useMemo(() => (live ? [...strokes, live] : strokes), [strokes, live]);
 
   const signature = strokes.length > 0 ? strokes : null;
   const handleConfirm = useCallback(() => {
@@ -58,7 +62,7 @@ function CardSigner({ card, fonts, previewWidth, sealWidth, onSign, onDone, bott
     <View style={styles.root}>
       <View style={styles.preview}>
         <View style={[styles.previewCard, { borderRadius: previewWidth * 0.046 }]}>
-          <SongCardBack card={card} width={previewWidth} fonts={fonts} signatureHint={card.accent} />
+          <SongCardBack card={card} width={previewWidth} fonts={fonts} signatureHint={card.accent} signature={preview} />
         </View>
       </View>
 
@@ -70,6 +74,7 @@ function CardSigner({ card, fonts, previewWidth, sealWidth, onSign, onDone, bott
             <Text style={styles.clearText}>다시 쓰기</Text>
           </Pressable>
         </View>
+        <SignaturePad strokes={strokes} onDraw={setLive} onStroke={handleStroke} />
       </View>
 
       <View style={[styles.footer, { paddingBottom: bottomInset + 16 }]}>
