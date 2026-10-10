@@ -1,6 +1,6 @@
 import * as React from "react"
 import type { PlayerRef } from "@remotion/player"
-import { Film, Loader2, Pause, Play, Upload } from "lucide-react"
+import { Film, Loader2, Maximize, Pause, Play, Upload } from "lucide-react"
 import type { PromoReelData } from "@reels/types"
 import { LoadingState } from "@/components/StateViews"
 import { Button } from "@/components/ui/button"
@@ -160,9 +160,23 @@ export const ReelMonitor = React.forwardRef<MonitorHandle, Props>(function ReelM
           <ModeTab active={mode === "source"} label="Source MV" onClick={() => onModeChange("source")} />
           <ModeTab active={mode === "reel"} label="Reel" onClick={() => onModeChange("reel")} />
         </div>
-        <span className="text-[11px] text-white/60">
-          {mvUrl == null ? "MV 없음" : mode === "reel" && !reelReady ? "줄을 고르면 미리보기가 뜹니다" : "1080×1920 · 30fps"}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] text-white/60">
+            {mvUrl == null ? "MV 없음" : mode === "reel" && !reelReady ? "줄을 고르면 미리보기가 뜹니다" : "1080×1920 · 30fps"}
+          </span>
+          {mode === "reel" ? (
+            <button
+              aria-label="전체화면"
+              className="focus-ring flex h-7 w-7 items-center justify-center rounded-md text-white/80 hover:bg-white/10 hover:text-white disabled:opacity-40"
+              disabled={!reelReady || player == null}
+              onClick={() => player?.requestFullscreen()}
+              title="전체화면 (Esc 로 닫기)"
+              type="button"
+            >
+              <Maximize className="h-4 w-4" />
+            </button>
+          ) : null}
+        </div>
       </div>
 
       <div className="relative flex min-h-0 flex-1 items-center justify-center p-3">

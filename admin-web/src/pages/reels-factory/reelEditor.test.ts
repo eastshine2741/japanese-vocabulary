@@ -328,9 +328,9 @@ describe("mv frame", () => {
   })
 
   test("computes the cover scale from the MV aspect", () => {
-    // 16:9 는 높이 1920 에 맞추면 폭이 3413px → 릴스 폭의 약 3.16배
-    expect(coverMvFrame(16 / 9)).toMatchObject({ scale: 3.16, x: 0, y: 0 })
-    // 캔버스보다 세로로 긴 MV 는 폭에 맞추는 게 곧 cover 다
+    // 16:9 는 MV 영역 높이 980 에 맞추면 폭이 1742px → 릴스 폭의 약 1.61배
+    expect(coverMvFrame(16 / 9)).toMatchObject({ scale: 1.613, x: 0, y: 0 })
+    // MV 영역보다 세로로 긴 MV 는 폭에 맞추는 게 곧 cover 다
     expect(coverMvFrame(9 / 20).scale).toBe(1)
   })
 
@@ -338,9 +338,9 @@ describe("mv frame", () => {
     // 16:9 안에 2.35:1 레터박스(1920×816, 위아래 132px 씩)
     const crop = { top: 132 / 1080, right: 0, bottom: 132 / 1080, left: 0 }
     expect(croppedAspect(16 / 9, crop)).toBeCloseTo(1920 / 816)
-    expect(coverMvFrame(16 / 9, crop).scale).toBeCloseTo((1920 * (1920 / 816)) / 1080, 2)
+    expect(coverMvFrame(16 / 9, crop).scale).toBeCloseTo((980 * (1920 / 816)) / 1080, 2)
     // 좌우를 잘라내면 같은 높이에서 폭이 줄어든다
-    expect(coverMvFrame(16 / 9, { top: 0, right: 0.1, bottom: 0, left: 0.1 }).scale).toBeCloseTo(3.16 * 0.8, 2)
+    expect(coverMvFrame(16 / 9, { top: 0, right: 0.1, bottom: 0, left: 0.1 }).scale).toBeCloseTo(1.613 * 0.8, 2)
   })
 
   test("clamps scale, offsets and crop", () => {

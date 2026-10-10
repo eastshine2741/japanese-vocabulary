@@ -44,7 +44,8 @@ export const MV_SCALE_MAX = 5
 export const MV_OFFSET_X_MAX = 2700
 export const MV_OFFSET_Y_MAX = 1920
 const REEL_WIDTH = 1080
-const REEL_HEIGHT = 1920
+/** PromoReel MV_AREA_BOTTOM - HEADLINE_BAND_HEIGHT. MV 는 헤드라인 띠 아래, 하단 인스타 UI 위만 채운다. */
+const MV_AREA_HEIGHT = 1560 - 580
 
 /** 한 변에서 잘라낼 수 있는 최대 비율. MV 에 박힌 레터박스(2.39:1 이면 위아래 각 12%)는 넉넉히 덮는다. */
 export const MV_CROP_MAX = 0.4
@@ -72,11 +73,11 @@ export function croppedAspect(aspect: number, crop: MvCrop = NO_CROP): number {
 }
 
 /**
- * 가운데 정렬로 캔버스를 꽉 채우는(cover) 배치. MV 비율(가로/세로)이 있어야 배율을 안다.
+ * 가운데 정렬로 띠 아래 MV 영역을 꽉 채우는(cover) 배치. MV 비율(가로/세로)이 있어야 배율을 안다.
  * 크롭이 없으면 `mvFrame` 이 null 일 때와 같은 화면이다.
  */
 export function coverMvFrame(aspect: number, crop: MvCrop = NO_CROP): MvFrame {
-  const scale = Math.max(1, (REEL_HEIGHT * croppedAspect(aspect, crop)) / REEL_WIDTH)
+  const scale = Math.max(1, (MV_AREA_HEIGHT * croppedAspect(aspect, crop)) / REEL_WIDTH)
   return clampMvFrame({ scale, x: 0, y: 0, crop })
 }
 
@@ -85,7 +86,7 @@ export const FIT_WIDTH_MV_FRAME: MvFrame = { scale: 1, x: 0, y: 0, crop: NO_CROP
 
 /** 가사 원문 글자 배율. 1 이 기본이고, 긴 줄을 맞추는 자동 축소 위에 곱해진다. */
 /** 헤드라인 글자 크기(px). 기본값은 PromoReel 의 DEFAULT_HEADLINE_FONT_SIZE, 범위는 서버 HEADLINE_FONT_SIZE_RANGE 와 같다. */
-export const DEFAULT_HEADLINE_FONT_SIZE = 58
+export const DEFAULT_HEADLINE_FONT_SIZE = 76
 export const HEADLINE_FONT_SIZE_MIN = 48
 export const HEADLINE_FONT_SIZE_MAX = 110
 
