@@ -225,9 +225,6 @@ export default function MyPageTab() {
           <ProfileAvatar url={profileImageUrl} size={56} />
           <View style={styles.nameRow}>
             <Text style={styles.profName}>{displayName}</Text>
-            <Text style={styles.collectionSummary}>
-              곡 카드 {songCards.length} · 아티스트 카드 {DUMMY_ARTIST_CARDS.length}
-            </Text>
           </View>
           <TouchableOpacity
             style={styles.editBtn}
@@ -299,11 +296,6 @@ const styles = StyleSheet.create({
   sceneContent: {
     paddingHorizontal: SIDE_PADDING,
     paddingTop: 24,
-  },
-  collectionSummary: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: Colors.textMuted,
   },
   tabBar: {
     backgroundColor: Colors.surface,
