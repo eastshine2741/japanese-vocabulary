@@ -18,7 +18,7 @@ interface Props {
   fonts: CardFonts;
 }
 
-const STRIP_W = 40;
+const STRIP_W = 32;
 
 /** 실물 카드 뒷면의 흰 서명 칸. 패드에 쓴 서명을 그대로 줄여 그린다. */
 function SignatureField({ signature, fallbackName, hint, u, fonts }: Props) {
