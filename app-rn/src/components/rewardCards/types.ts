@@ -50,7 +50,7 @@ export interface SongRewardCard {
   words: CardWord[];
   /** 마스터 카드는 다음 목표가 없다. */
   nextGoal: CardGoal | null;
-  /** 아직 얻지 않은 레벨의 견본. 획득 순번 자리에 SAMPLE 을 찍는다. */
+  /** 아직 얻지 않은 레벨의 견본. 획득 순번·획득일을 — 로 비운다. */
   sample?: boolean;
 }
 
@@ -77,4 +77,6 @@ export interface ArtistRewardCard {
   masteredSongs: MasteredSong[];
   /** 발급 때 주인이 한 번 그린 서명. 서명 전이면 null. */
   signature: CardSignature | null;
+  /** 아직 얻지 않은 재질의 견본. 팬 순번·팬이 된 달을 — 로 비운다. */
+  sample?: boolean;
 }

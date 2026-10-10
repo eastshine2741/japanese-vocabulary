@@ -172,7 +172,7 @@ function FrontFace({ card, width, height, u, tilt, fonts }: FaceProps & { tilt?:
         {/* 멤버십 카드처럼 등급은 오른쪽 위, 회원 번호와 같은 줄에 둔다. */}
         <View style={styles.topRow}>
           <Text style={[styles.fanNo, { fontFamily: fonts.koBold, fontSize: 3 * u }]}>
-            {card.fanNo.toLocaleString('ko-KR')}번째 팬
+            {`${card.sample ? '—' : card.fanNo.toLocaleString('ko-KR')}번째 팬`}
           </Text>
           {m.engrave && m.foil && (
             <FoilText
@@ -189,7 +189,7 @@ function FrontFace({ card, width, height, u, tilt, fonts }: FaceProps & { tilt?:
         <View style={{ gap: 1.6 * u }}>
           <CardName name={card.name} u={u} fontFamily={fonts.jpHeavy} emboss={m.emboss && !!tilt} tilt={tilt} />
           <Text style={[styles.since, { fontFamily: fonts.ko, fontSize: 2.6 * u }]}>
-            {card.since.slice(0, 7).replace('-', '.')}부터
+            {card.sample ? '—' : `${card.since.slice(0, 7).replace('-', '.')}부터`}
           </Text>
         </View>
       </View>

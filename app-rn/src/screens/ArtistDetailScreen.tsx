@@ -16,26 +16,13 @@ import { Feather, Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useShallow } from 'zustand/react/shallow';
 import ArtworkImage from '../components/ArtworkImage';
 import ErrorDialog from '../components/ErrorDialog';
 import SkeletonBox from '../components/SkeletonLoading';
 import RowSpinner from '../components/RowSpinner';
-import {
-  ArtistCardSummary,
-  SONG_CARD_COLUMNS,
-  SONG_CARD_GAP,
-  SongCardSlotRow,
-} from '../components/artistDetail/ArtistCards';
-import {
-  buildSongCardSlots,
-  chunk,
-  pickArtistCard,
-  type SongCardSlot,
-} from '../components/artistDetail/artistCardSlots';
+import { ArtistCardKindGrid } from '../components/rewardCards/CardKindGrid';
+import { pickArtistCard } from '../components/rewardCards/cardKinds';
 import { useCardFonts } from '../components/rewardCards/cardTheme';
-import type { ArtistRewardCard, SongRewardCard } from '../components/rewardCards/types';
-import { useAuthStore } from '../stores/authStore';
 import { useRewardCardStore } from '../stores/rewardCardStore';
 import { artistApi } from '../api/artistApi';
 import { isAnalyzingSong, useAnalysisStore } from '../stores/analysisStore';
@@ -62,11 +49,10 @@ const TAB_INDICATOR_WIDTH = 28;
 
 type ArtistRow =
   | { kind: 'studying'; song: ArtistStudyingSong }
-  | { kind: 'popular'; song: SongSearchItem }
-  | { kind: 'cardRow'; key: string; slots: SongCardSlot[] };
+  | { kind: 'popular'; song: SongSearchItem };
 
 interface ArtistSection {
-  key: 'studying' | 'popular' | 'cards';
+  key: 'studying' | 'popular';
   title: string;
   count: string;
   data: ArtistRow[];
@@ -190,23 +176,17 @@ const ArtistHero = React.memo(function ArtistHero({
 
 const ArtistTabs = React.memo(function ArtistTabs({
   activeTab,
-  cardCount,
   onSelectSongs,
   onSelectCards,
 }: {
   activeTab: ArtistTab;
-  cardCount: number;
   onSelectSongs: () => void;
   onSelectCards: () => void;
 }) {
   return (
     <View style={styles.tabBar}>
       <TabButton label="곡" isActive={activeTab === 'songs'} onPress={onSelectSongs} />
-      <TabButton
-        label={cardCount > 0 ? `카드 ${cardCount}` : '카드'}
-        isActive={activeTab === 'cards'}
-        onPress={onSelectCards}
-      />
+      <TabButton label="카드" isActive={activeTab === 'cards'} onPress={onSelectCards} />
     </View>
   );
 });
@@ -247,13 +227,8 @@ export default function ArtistDetailScreen({ navigation, route }: Props) {
 
   const { width: screenWidth } = useWindowDimensions();
   const fonts = useCardFonts();
-  const userName = useAuthStore(s => s.userName);
-  const ownerName = userName?.trim() || '학습자';
   const artistName = artist?.name ?? '';
   const artistCard = useRewardCardStore(s => pickArtistCard(s.artistCards, artistName));
-  const songCards = useRewardCardStore(
-    useShallow(s => s.songCards.filter(card => card.artist === artistName)),
-  );
 
   const analyze = usePlayerStore(s => s.analyze);
   const playerStatus = usePlayerStore(s => s.status);
@@ -376,31 +351,10 @@ export default function ArtistDetailScreen({ navigation, route }: Props) {
   const handleSelectSongs = useCallback(() => setActiveTab('songs'), []);
   const handleSelectCards = useCallback(() => setActiveTab('cards'), []);
 
-  const handleOpenSongCard = useCallback((card: SongRewardCard) => {
-    navigation.navigate('RewardCardDetail', { cardId: card.id, ownerName });
-  }, [navigation, ownerName]);
-
-  const handleOpenArtistCard = useCallback((card: ArtistRewardCard) => {
-    navigation.navigate('ArtistCardDetail', { cardId: card.id, ownerName });
-  }, [navigation, ownerName]);
-
-  const slotWidth = Math.floor(
-    (screenWidth - Dimens.screenPadding * 2 - SONG_CARD_GAP * (SONG_CARD_COLUMNS - 1)) / SONG_CARD_COLUMNS,
-  );
-  const artistCardWidth = screenWidth - Dimens.screenPadding * 2;
+  const gridWidth = screenWidth - Dimens.screenPadding * 2;
 
   const sections = useMemo<ArtistSection[]>(() => {
-    if (!artist) return [];
-    if (activeTab === 'cards') {
-      const slots = buildSongCardSlots(artist, songCards);
-      if (slots.length === 0) return [];
-      return [{
-        key: 'cards',
-        title: '곡 카드',
-        count: `${songCards.length} / ${slots.length}`,
-        data: chunk(slots, SONG_CARD_COLUMNS).map(row => ({ kind: 'cardRow', key: row[0].key, slots: row })),
-      }];
-    }
+    if (!artist || activeTab === 'cards') return [];
     const result: ArtistSection[] = [];
     if (artist.studyingSongs.length > 0) {
       result.push({
@@ -419,22 +373,9 @@ export default function ArtistDetailScreen({ navigation, route }: Props) {
       });
     }
     return result;
-  }, [artist, activeTab, songCards]);
+  }, [artist, activeTab]);
 
   const renderItem = useCallback(({ item }: { item: ArtistRow }) => {
-    if (item.kind === 'cardRow') {
-      return (
-        <SongCardSlotRow
-          slots={item.slots}
-          width={slotWidth}
-          fonts={fonts}
-          isChecking={isChecking}
-          onOpenCard={handleOpenSongCard}
-          onOpenStudying={handleStudyingPress}
-          onOpenPopular={handlePopularPress}
-        />
-      );
-    }
     // 리스트 뒤에 아트워크가 깔려 있어 눌림 페이드가 배경을 비치지 않게 불투명 셀로 감싼다.
     return (
       <View style={styles.cell}>
@@ -453,15 +394,11 @@ export default function ArtistDetailScreen({ navigation, route }: Props) {
   }, [
     handleStudyingPress,
     handlePopularPress,
-    handleOpenSongCard,
     isChecking,
     checkingItemId,
-    slotWidth,
-    fonts,
   ]);
 
-  // 카드 탭은 위에 아티스트 카드가 있어 첫 섹션도 보통 간격을 둔다.
-  const firstSectionKey = activeTab === 'songs' ? sections[0]?.key : undefined;
+  const firstSectionKey = sections[0]?.key;
   const renderSectionHeader = useCallback(
     ({ section }: { section: SectionListData<ArtistRow, ArtistSection> }) => (
       <View style={[styles.sectionHeader, section.key === firstSectionKey && styles.firstSectionHeader]}>
@@ -524,22 +461,17 @@ export default function ArtistDetailScreen({ navigation, route }: Props) {
             />
             <ArtistTabs
               activeTab={activeTab}
-              cardCount={songCards.length}
               onSelectSongs={handleSelectSongs}
               onSelectCards={handleSelectCards}
             />
             {activeTab === 'cards' && (
-              <ArtistCardSummary
-                artist={artist}
-                card={artistCard}
-                width={artistCardWidth}
-                fonts={fonts}
-                onOpen={handleOpenArtistCard}
-              />
+              <View style={styles.cardsTab}>
+                <ArtistCardKindGrid artist={artist} card={artistCard} width={gridWidth} fonts={fonts} />
+              </View>
             )}
           </>
         }
-        ListEmptyComponent={<EmptyState />}
+        ListEmptyComponent={activeTab === 'songs' ? <EmptyState /> : null}
         ListFooterComponent={<View style={[styles.listFooter, { height: insets.bottom + 24 }]} />}
         initialNumToRender={12}
         maxToRenderPerBatch={8}
@@ -572,7 +504,6 @@ export default function ArtistDetailScreen({ navigation, route }: Props) {
 }
 
 const keyExtractor = (item: ArtistRow) => {
-  if (item.kind === 'cardRow') return `cards-${item.key}`;
   return item.kind === 'studying' ? `studying-${item.song.songId}` : `popular-${item.song.id}`;
 };
 
@@ -816,6 +747,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.textMuted,
     fontVariant: ['tabular-nums'],
+  },
+  cardsTab: {
+    backgroundColor: Colors.surface,
+    paddingHorizontal: Dimens.screenPadding,
+    paddingTop: 20,
   },
   cell: {
     backgroundColor: Colors.surface,

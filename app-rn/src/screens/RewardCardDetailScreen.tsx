@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Image, LayoutChangeEvent, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -29,6 +29,7 @@ import {
   useCardFonts,
 } from '../components/rewardCards/cardTheme';
 import { useCardTilt } from '../components/rewardCards/useCardTilt';
+import { songCardAt } from '../components/rewardCards/cardKinds';
 import { useRewardCardStore } from '../stores/rewardCardStore';
 import { SongRewardCard } from '../components/rewardCards/types';
 
@@ -54,8 +55,11 @@ function nextLevel(card: SongRewardCard): { name: string; condition: string } {
 }
 
 export default function RewardCardDetailScreen({ navigation, route }: Props) {
-  const { cardId } = route.params;
-  const card = useRewardCardStore((s) => s.songCards.find((c) => c.id === cardId));
+  const { cardId, grade } = route.params;
+  const owned = useRewardCardStore((s) => s.songCards.find((c) => c.id === cardId));
+  const card = useMemo(() => (owned && grade ? songCardAt(owned, grade) : owned), [owned, grade]);
+  // 지나온 등급을 볼 때는 지금 카드의 승급 조건이 맞지 않는다.
+  const isPastGrade = card !== owned;
   const { width: screenW } = useWindowDimensions();
   const fonts = useCardFonts();
   const tilt = useCardTilt();
@@ -237,7 +241,7 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
                 </Pressable>
                 <Text style={styles.panelNote}>이 곡에서 공부한 단어를 지금 떠올릴 수 있는 확률의 평균이에요.</Text>
 
-                {goal && (
+                {goal && !isPastGrade && (
                   <>
                     <View style={styles.divider} />
                     <Text style={styles.panelCaption}>{next.name} 승급 조건</Text>

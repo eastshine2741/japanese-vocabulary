@@ -221,7 +221,7 @@ function FrontFace({ card, width, height, u, age, tilt, fonts, thumb }: FaceProp
           )}
           <Text style={[styles.artist, { fontSize: 3.4 * u, color: material.tint ? card.accent : '#A8A194' }]} numberOfLines={1}>{cardArtist(card.artist)}</Text>
           <View style={styles.metaFoot}>
-            <OwnerMark no={card.ownerNo} sample={card.sample} u={u} fonts={fonts} />
+            <OwnerMark no={card.sample ? null : card.ownerNo} u={u} fonts={fonts} />
             <LevelPips level={card.level} color={material.pip} size={2.4 * u} />
           </View>
         </LinearGradient>
@@ -281,7 +281,7 @@ function FoilFrontFace({ card, width, height, u, age, tilt, fonts, thumb }: Face
         </Text>
         <Text style={[styles.artist, { fontSize: 3.6 * u, color: card.accent }]} numberOfLines={1}>{cardArtist(card.artist)}</Text>
         <View style={[styles.metaFoot, { marginTop: 2.4 * u }]}>
-          <OwnerMark no={card.ownerNo} sample={card.sample} u={u} fonts={fonts} />
+          <OwnerMark no={card.sample ? null : card.ownerNo} u={u} fonts={fonts} />
         </View>
       </View>
 
@@ -312,13 +312,13 @@ function FoilFrontFace({ card, width, height, u, age, tilt, fonts, thumb }: Face
   );
 }
 
-function OwnerMark({ no, sample, u, fonts }: { no: number; sample?: boolean; u: number; fonts: CardFonts }) {
+function OwnerMark({ no, u, fonts }: { no: number | null; u: number; fonts: CardFonts }) {
   return (
     <View style={styles.owner}>
       <Text style={[styles.ownerNo, { fontFamily: fonts.jpHeavy, fontSize: 6 * u, lineHeight: 7 * u }]}>
-        {sample ? 'SAMPLE' : no.toLocaleString('ko-KR')}
+        {no == null ? '—' : no.toLocaleString('ko-KR')}
       </Text>
-      <Text style={[styles.ownerTail, { fontFamily: fonts.ko, fontSize: 3 * u }]}>{sample ? '견본' : '번째 획득'}</Text>
+      <Text style={[styles.ownerTail, { fontFamily: fonts.ko, fontSize: 3 * u }]}>번째 획득</Text>
     </View>
   );
 }

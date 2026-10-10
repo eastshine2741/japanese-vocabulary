@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo } from 'react';
 import { Image, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -17,6 +17,7 @@ import Animated, {
 import { RootStackParamList } from '../navigation/AppNavigator';
 import ArtistCardShowcase from '../components/rewardCards/ArtistCardShowcase';
 import { artistGradeStep, nextArtistGradeStep } from '../components/rewardCards/artistGrade';
+import { artistCardAt } from '../components/rewardCards/cardKinds';
 import { ARTIST_CARD_RATIO, ARTIST_MATERIAL, SHOWROOM, useCardFonts } from '../components/rewardCards/cardTheme';
 import { useCardTilt } from '../components/rewardCards/useCardTilt';
 import { useRewardCardStore } from '../stores/rewardCardStore';
@@ -24,7 +25,14 @@ import { useRewardCardStore } from '../stores/rewardCardStore';
 type Props = NativeStackScreenProps<RootStackParamList, 'ArtistCardDetail'>;
 
 export default function ArtistCardDetailScreen({ navigation, route }: Props) {
-  const card = useRewardCardStore((s) => s.artistCards.find((c) => c.id === route.params.cardId));
+  const { cardId, masteredCount } = route.params;
+  const owned = useRewardCardStore((s) => s.artistCards.find((c) => c.id === cardId));
+  const card = useMemo(
+    () => (owned && masteredCount != null ? artistCardAt(owned, artistGradeStep(masteredCount)) : owned),
+    [owned, masteredCount],
+  );
+  // 지나온 재질을 볼 때는 지금 카드의 승급 조건이 맞지 않는다.
+  const isPastGrade = card !== owned;
   const { width: screenW } = useWindowDimensions();
   const fonts = useCardFonts();
   const tilt = useCardTilt();
@@ -121,7 +129,7 @@ export default function ArtistCardDetailScreen({ navigation, route }: Props) {
             </Pressable>
           </View>
 
-          {next && (
+          {next && !isPastGrade && (
             <View style={styles.goal}>
               <Text style={styles.goalCaption}>{next.label} 승급 조건</Text>
               <View style={styles.goalHead}>

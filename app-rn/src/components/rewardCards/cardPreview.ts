@@ -36,13 +36,17 @@ export function songCardPreview(song: PreviewSong, level: CardLevel, mastered: b
   };
 }
 
-interface ArtistInfo {
+export interface PreviewArtist {
   id: number;
   name: string;
   artworkUrl: string | null;
 }
 
-export function artistCardPreview(artist: ArtistInfo, masteredCount: number): ArtistRewardCard {
+export type CardPreviewTarget =
+  | { kind: 'song'; song: PreviewSong; level: CardLevel; mastered: boolean }
+  | { kind: 'artist'; artist: PreviewArtist; masteredCount: number };
+
+export function artistCardPreview(artist: PreviewArtist, masteredCount: number): ArtistRewardCard {
   return {
     id: `preview-artist-${artist.id}-${masteredCount}`,
     artistId: artist.id,
@@ -55,5 +59,6 @@ export function artistCardPreview(artist: ArtistInfo, masteredCount: number): Ar
     since: new Date().toISOString().slice(0, 10),
     masteredSongs: [],
     signature: null,
+    sample: true,
   };
 }

@@ -44,8 +44,8 @@ import { WordSense } from '../types/word';
 import { Token } from '../types/song';
 import type { StudySource } from '../components/studyStack';
 import type { RewardCardKind } from '../stores/rewardCardStore';
-import type { PreviewSong } from '../components/rewardCards/cardPreview';
-import type { CardLevel } from '../components/rewardCards/types';
+import type { CardPreviewTarget } from '../components/rewardCards/cardPreview';
+import type { SongCardGrade } from '../components/rewardCards/cardKinds';
 
 type SongPlaybackEntryParams = {
   songId?: number;
@@ -84,14 +84,16 @@ export type RootStackParamList = {
   /** 홈 헤더의 연속 학습 칩에서 들어오는 상세. */
   Streak: undefined;
   /** 프로필 카드 탭에서 곡 카드를 누르면 열리는 전시 화면. */
-  RewardCardDetail: { cardId: string; ownerName: string };
+  /** grade 를 주면 내 카드를 그 지나온 등급 모습으로 보여 준다. */
+  RewardCardDetail: { cardId: string; ownerName: string; grade?: SongCardGrade };
   RewardCardLyricEdit: { cardId: string };
-  /** 곡 상세 단계의 '완료 시 보상'에서 여는 견본 전시. condition 은 그 레벨의 획득 조건 한 줄. */
-  RewardCardPreview: { song: PreviewSong; level: CardLevel; mastered: boolean; condition: string; reached: boolean };
+  /** 아직 얻지 않은 카드 종류의 견본 전시. condition 은 그 종류의 획득 조건 한 줄. */
+  RewardCardPreview: { target: CardPreviewTarget; condition: string; reached: boolean };
   /** 카드 획득 연출과 발급 서명. 곡 카드는 가사 고르기를 거친다. */
   RewardCardReveal: { kind: RewardCardKind; cardId: string; debugWearIntro?: boolean };
   /** 프로필 카드 탭에서 아티스트 카드를 누르면 열리는 전시 화면. */
-  ArtistCardDetail: { cardId: string; ownerName: string };
+  /** masteredCount 를 주면 내 카드를 그 지나온 재질 모습으로 보여 준다. */
+  ArtistCardDetail: { cardId: string; ownerName: string; masteredCount?: number };
   /** 프로필 카드 탭 아티스트 카드 헤더에서 들어오는 전체 목록. */
   ArtistCardList: { ownerName: string };
   /** 홈 헤더의 '오늘 복습할 단어' 블록에서 들어오는 FSRS 스케줄 상세. */

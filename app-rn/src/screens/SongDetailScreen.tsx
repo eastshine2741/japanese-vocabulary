@@ -31,6 +31,7 @@ import {
   CurrentPlayingWordsSheet,
   selectCurrentTier,
   SongDetailCoverageHelpSheet,
+  SongDetailCardsTab,
   SongDetailHomeTab,
   SONG_DETAIL_MV_BAR_HEIGHT,
   SongDetailMvBar,
@@ -52,13 +53,15 @@ import type { DeckDetailResponse } from '../types/deck';
 import type { SongWordTierDto } from '../types/song';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SongDetail'>;
-type DetailTab = 'home' | 'words';
+type DetailTab = 'home' | 'words' | 'cards';
 type LearningActionMode = 'start' | 'review' | 'preparing';
 
 const HERO_HEIGHT = 360;
 const COLLAPSED_BAR_HEIGHT = 56;
 const TAB_BAR_HEIGHT = 44;
 const EMPTY_CARD_SONG: PreviewSong = { id: 0, title: '', artist: '', artworkUrl: null, lyric: [], words: [] };
+const TAB_INDEX: Record<DetailTab, number> = { home: 0, words: 1, cards: 2 };
+const TAB_COUNT = 3;
 const TAB_ITEM_WIDTH = 54;
 const TAB_ITEM_GAP = 10;
 const TAB_INDICATOR_WIDTH = 28;
@@ -108,6 +111,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
   const [tabPageHeights, setTabPageHeights] = useState<Record<DetailTab, number>>({
     home: 0,
     words: 0,
+    cards: 0,
   });
   const [busyWordKey, setBusyWordKey] = useState<string | null>(null);
   const notifiedSongIdRef = useRef<number | null>(null);
@@ -210,8 +214,8 @@ export default function SongDetailScreen({ navigation, route }: Props) {
 
   const tabContentTranslate = useMemo(
     () => tabProgress.interpolate({
-      inputRange: [0, 1],
-      outputRange: [0, -screenWidth],
+      inputRange: [0, TAB_COUNT - 1],
+      outputRange: [0, -screenWidth * (TAB_COUNT - 1)],
       extrapolate: 'clamp',
     }),
     [screenWidth, tabProgress],
@@ -222,7 +226,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
 
   useEffect(() => {
     Animated.timing(tabProgress, {
-      toValue: activeTab === 'words' ? 1 : 0,
+      toValue: TAB_INDEX[activeTab],
       duration: TAB_TRANSITION_MS,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: true,
@@ -447,6 +451,10 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     setActiveTab('words');
   }, []);
 
+  const handleSelectCards = useCallback(() => {
+    setActiveTab('cards');
+  }, []);
+
   const handleRefreshAnalysisStatus = useCallback(() => {
     if (songId == null) return;
     load(songId);
@@ -470,6 +478,11 @@ export default function SongDetailScreen({ navigation, route }: Props) {
   const handleWordsPageLayout = useCallback((event: LayoutChangeEvent) => {
     const height = Math.ceil(event.nativeEvent.layout.height);
     setTabPageHeights(prev => prev.words === height ? prev : { ...prev, words: height });
+  }, []);
+
+  const handleCardsPageLayout = useCallback((event: LayoutChangeEvent) => {
+    const height = Math.ceil(event.nativeEvent.layout.height);
+    setTabPageHeights(prev => prev.cards === height ? prev : { ...prev, cards: height });
   }, []);
 
   useFocusEffect(
@@ -625,6 +638,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
             tabProgress={tabProgress}
             onSelectHome={handleSelectHome}
             onSelectWords={handleSelectWords}
+            onSelectCards={handleSelectCards}
           />
 
           {isSongAnalysisPending ? (
@@ -635,7 +649,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
                 style={[
                   styles.tabContentRail,
                   {
-                    width: screenWidth * 2,
+                    width: screenWidth * TAB_COUNT,
                     transform: [{ translateX: tabContentTranslate }],
                   },
                 ]}
@@ -666,6 +680,13 @@ export default function SongDetailScreen({ navigation, route }: Props) {
                     busyWordKey={busyWordKey}
                     onStartWordReview={handleStartWordReview}
                   />
+                </View>
+                <View
+                  pointerEvents={activeTab === 'cards' ? 'auto' : 'none'}
+                  style={[styles.tabPage, { width: screenWidth }]}
+                  onLayout={handleCardsPageLayout}
+                >
+                  <SongDetailCardsTab song={cardSong ?? EMPTY_CARD_SONG} tiers={songTiers} />
                 </View>
               </Animated.View>
             </Animated.View>
@@ -804,6 +825,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
           tabProgress={tabProgress}
           onSelectHome={handleSelectHome}
           onSelectWords={handleSelectWords}
+          onSelectCards={handleSelectCards}
         />
       </Animated.View>
 
@@ -978,6 +1000,7 @@ interface TabsProps {
   tabProgress: Animated.Value;
   onSelectHome: () => void;
   onSelectWords: () => void;
+  onSelectCards: () => void;
 }
 
 const SongDetailTabs = React.memo(function SongDetailTabs({
@@ -985,11 +1008,12 @@ const SongDetailTabs = React.memo(function SongDetailTabs({
   tabProgress,
   onSelectHome,
   onSelectWords,
+  onSelectCards,
 }: TabsProps) {
   const indicatorTranslateX = useMemo(
     () => tabProgress.interpolate({
-      inputRange: [0, 1],
-      outputRange: [0, TAB_ITEM_WIDTH + TAB_ITEM_GAP],
+      inputRange: [0, TAB_COUNT - 1],
+      outputRange: [0, (TAB_ITEM_WIDTH + TAB_ITEM_GAP) * (TAB_COUNT - 1)],
       extrapolate: 'clamp',
     }),
     [tabProgress],
@@ -1015,6 +1039,13 @@ const SongDetailTabs = React.memo(function SongDetailTabs({
         tabProgress={tabProgress}
         onPress={onSelectWords}
       />
+      <TabButton
+        tab="cards"
+        label="카드"
+        isActive={activeTab === 'cards'}
+        tabProgress={tabProgress}
+        onPress={onSelectCards}
+      />
     </View>
   );
 });
@@ -1034,29 +1065,30 @@ const TabButton = React.memo(function TabButton({
   tabProgress,
   onPress,
 }: TabButtonProps) {
+  const index = TAB_INDEX[tab];
   const activeOpacity = useMemo(
     () => tabProgress.interpolate({
-      inputRange: [0, 1],
-      outputRange: tab === 'home' ? [1, 0] : [0, 1],
+      inputRange: [index - 1, index, index + 1],
+      outputRange: [0, 1, 0],
       extrapolate: 'clamp',
     }),
-    [tab, tabProgress],
+    [index, tabProgress],
   );
   const inactiveOpacity = useMemo(
     () => tabProgress.interpolate({
-      inputRange: [0, 1],
-      outputRange: tab === 'home' ? [0, 1] : [1, 0],
+      inputRange: [index - 1, index, index + 1],
+      outputRange: [1, 0, 1],
       extrapolate: 'clamp',
     }),
-    [tab, tabProgress],
+    [index, tabProgress],
   );
   const labelScale = useMemo(
     () => tabProgress.interpolate({
-      inputRange: [0, 1],
-      outputRange: tab === 'home' ? [1, 0.96] : [0.96, 1],
+      inputRange: [index - 1, index, index + 1],
+      outputRange: [0.96, 1, 0.96],
       extrapolate: 'clamp',
     }),
-    [tab, tabProgress],
+    [index, tabProgress],
   );
 
   return (

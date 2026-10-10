@@ -16,9 +16,20 @@ import Animated, {
 } from 'react-native-reanimated';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import SongCardShowcase from '../components/rewardCards/SongCardShowcase';
+import ArtistCardShowcase from '../components/rewardCards/ArtistCardShowcase';
 import LevelPips from '../components/rewardCards/LevelPips';
-import { CARD_RATIO, LEVEL_MATERIAL, MASTER_CHIP, SHOWROOM, songTierName, useCardFonts } from '../components/rewardCards/cardTheme';
-import { songCardPreview } from '../components/rewardCards/cardPreview';
+import {
+  ARTIST_CARD_RATIO,
+  ARTIST_MATERIAL,
+  CARD_RATIO,
+  LEVEL_MATERIAL,
+  MASTER_CHIP,
+  SHOWROOM,
+  songTierName,
+  useCardFonts,
+} from '../components/rewardCards/cardTheme';
+import { artistCardPreview, songCardPreview } from '../components/rewardCards/cardPreview';
+import { artistGradeStep } from '../components/rewardCards/artistGrade';
 import { useCardTilt } from '../components/rewardCards/useCardTilt';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'RewardCardPreview'>;
@@ -28,12 +39,18 @@ const STAGE_INSET = 16;
 const PREVIEW_ACCENT = '#C9C3D6';
 
 /**
- * 곡 상세 단계의 '완료 시 보상'에서 여는 견본 전시. 카드 그래픽·가사·뒷면은 상세와 똑같이 보여 주고,
- * 내 카드가 아니라는 건 카드 밖(견본 표시·편집 없음·획득 조건)과 주인 정보 자리(SAMPLE·빈 서명·순번 없음)로만 알린다.
+ * 아직 얻지 않은 카드 종류의 견본 전시. 카드 그래픽·가사·뒷면은 상세와 똑같이 보여 주고,
+ * 내 카드가 아니라는 건 카드 밖(견본 표시·편집 없음·획득 조건)과 주인 정보 자리(순번·날짜 —·빈 서명)로만 알린다.
  */
 export default function RewardCardPreviewScreen({ navigation, route }: Props) {
-  const { song, level, mastered, condition, reached } = route.params;
-  const card = useMemo(() => songCardPreview(song, level, mastered), [song, level, mastered]);
+  const { target, condition, reached } = route.params;
+  const preview = useMemo(
+    () =>
+      target.kind === 'song'
+        ? { kind: 'song' as const, card: songCardPreview(target.song, target.level, target.mastered) }
+        : { kind: 'artist' as const, card: artistCardPreview(target.artist, target.masteredCount) },
+    [target],
+  );
   const { width: screenW } = useWindowDimensions();
   const fonts = useCardFonts();
   const tilt = useCardTilt();
@@ -57,20 +74,22 @@ export default function RewardCardPreviewScreen({ navigation, route }: Props) {
 
   const [stageHeight, setStageHeight] = useState(0);
   const handleStageLayout = useCallback((e: LayoutChangeEvent) => setStageHeight(e.nativeEvent.layout.height), []);
-  const cardW = stageHeight === 0 ? 0 : Math.min(screenW * 0.74, 340, Math.max(0, stageHeight - STAGE_INSET * 2) / CARD_RATIO);
+  const ratio = preview.kind === 'song' ? CARD_RATIO : ARTIST_CARD_RATIO;
+  const maxW = preview.kind === 'song' ? Math.min(screenW * 0.74, 340) : Math.min(screenW - 40, 400);
+  const cardW = stageHeight === 0 ? 0 : Math.min(maxW, Math.max(0, stageHeight - STAGE_INSET * 2) / ratio);
 
   const handleClose = useCallback(() => navigation.goBack(), [navigation]);
   const handleFlip = useCallback(() => {
     tilt.flip.value = withTiming(tilt.flip.value > 0.5 ? 0 : 1, { duration: 720 });
   }, [tilt.flip]);
 
-  const material = mastered ? MASTER_CHIP : LEVEL_MATERIAL[level];
+  const artworkUrl = target.kind === 'song' ? target.song.artworkUrl : target.artist.artworkUrl;
 
   return (
     <View style={styles.root}>
       <StatusBar style="light" />
-      {song.artworkUrl ? (
-        <Image source={{ uri: song.artworkUrl }} style={[StyleSheet.absoluteFill, styles.backdrop]} blurRadius={40} />
+      {artworkUrl ? (
+        <Image source={{ uri: artworkUrl }} style={[StyleSheet.absoluteFill, styles.backdrop]} blurRadius={40} />
       ) : null}
       <LinearGradient
         colors={[`${SHOWROOM.bg}99`, `${SHOWROOM.bg}D9`, SHOWROOM.bg]}
@@ -99,13 +118,17 @@ export default function RewardCardPreviewScreen({ navigation, route }: Props) {
                 pointerEvents="none"
                 style={[
                   styles.glow,
-                  { width: cardW * 0.9, height: cardW * 0.9 * CARD_RATIO, boxShadow: `0 0 120px 30px ${PREVIEW_ACCENT}59` },
+                  { width: cardW * 0.9, height: cardW * 0.9 * ratio, boxShadow: `0 0 120px 30px ${PREVIEW_ACCENT}59` },
                   glowStyle,
                 ]}
               />
               <GestureDetector gesture={tilt.gesture}>
                 <Animated.View style={cardIn}>
-                  <SongCardShowcase card={card} width={cardW} tilt={tilt} fonts={fonts} />
+                  {preview.kind === 'song' ? (
+                    <SongCardShowcase card={preview.card} width={cardW} tilt={tilt} fonts={fonts} />
+                  ) : (
+                    <ArtistCardShowcase card={preview.card} width={cardW} tilt={tilt} fonts={fonts} />
+                  )}
                 </Animated.View>
               </GestureDetector>
             </>
@@ -114,10 +137,7 @@ export default function RewardCardPreviewScreen({ navigation, route }: Props) {
 
         <Animated.View style={[styles.info, infoIn]}>
           <View style={styles.chips}>
-            <LinearGradient colors={material.frame} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.levelChip}>
-              <LevelPips level={level} color={material.chipText} size={5} />
-              <Text style={[styles.levelText, { color: material.chipText }]}>{songTierName(level, mastered)}</Text>
-            </LinearGradient>
+            <KindChip target={target} />
           </View>
 
           <View style={styles.panel}>
@@ -139,6 +159,25 @@ export default function RewardCardPreviewScreen({ navigation, route }: Props) {
         </Animated.View>
       </SafeAreaView>
     </View>
+  );
+}
+
+function KindChip({ target }: { target: Props['route']['params']['target'] }) {
+  if (target.kind === 'artist') {
+    const step = artistGradeStep(target.masteredCount);
+    const material = ARTIST_MATERIAL[step.grade];
+    return (
+      <LinearGradient colors={material.frame} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.levelChip}>
+        <Text style={[styles.levelText, { color: material.chipText }]}>{step.label}</Text>
+      </LinearGradient>
+    );
+  }
+  const material = target.mastered ? MASTER_CHIP : LEVEL_MATERIAL[target.level];
+  return (
+    <LinearGradient colors={material.frame} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.levelChip}>
+      <LevelPips level={target.level} color={material.chipText} size={5} />
+      <Text style={[styles.levelText, { color: material.chipText }]}>{songTierName(target.level, target.mastered)}</Text>
+    </LinearGradient>
   );
 }
 

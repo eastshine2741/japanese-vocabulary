@@ -46,7 +46,7 @@ const contentFadeIn = FadeIn.duration(CONTENT_FADE_DURATION);
 /**
  * 완곡까지 3단계. 항상 한 장만 펼쳐져 있다 — 유저가 고르기 전에는 현재 단계(한 번도 리뷰 안 한
  * 단어가 남은 첫 단계)가 펼쳐지고, 한 번 고르면 곡을 떠날 때까지 그 선택을 따른다.
- * 단계 n 을 끝내면 곡 카드 레벨 n 이라 각 단계에 '완료 시 보상'을 붙이고, 완곡 뒤에 마스터를 한 마디 더 둔다.
+ * 단계 n 을 끝내면 곡 카드 레벨 n 이라 각 단계에 '완료 시 카드 획득'을 붙이고, 완곡 뒤에 마스터를 한 마디 더 둔다.
  * 보상을 누르면 그 레벨 카드의 견본 전시(RewardCardPreview)를 연다.
  */
 export const SongDetailTierJourney = React.memo(function SongDetailTierJourney({
@@ -68,18 +68,14 @@ export const SongDetailTierJourney = React.memo(function SongDetailTierJourney({
   const handleOpenReward = useCallback((level: CardLevel) => {
     const tier = tiers[level - 1];
     navigation.navigate('RewardCardPreview', {
-      song,
-      level,
-      mastered: false,
+      target: { kind: 'song', song, level, mastered: false },
       condition: `'${tier?.name ?? ''}' 단계 단어 모두 공부하기`,
       reached: cardProgress.level >= level,
     });
   }, [navigation, song, tiers, cardProgress.level]);
   const handleOpenMaster = useCallback(() => {
     navigation.navigate('RewardCardPreview', {
-      song,
-      level: 3,
-      mastered: true,
+      target: { kind: 'song', song, level: 3, mastered: true },
       condition: '곡 단어의 90%를 장기 기억으로 만들기',
       reached: cardProgress.mastered,
     });
@@ -233,12 +229,13 @@ const TierReward = React.memo(function TierReward({
       activeOpacity={0.6}
       hitSlop={STAT_HIT_SLOP}
       accessibilityRole="button"
-      accessibilityLabel={`${isReached ? '받은' : '완료 시'} 보상 ${SONG_TIER_NAME[level]} 카드 보기`}
+      accessibilityLabel={`${isReached ? '받은' : '완료 시 받을'} ${SONG_TIER_NAME[level]} 카드 보기`}
     >
-      <Feather name={isReached ? 'check' : 'gift'} size={12} color={REWARD_INK} />
-      <Text style={styles.rewardLabel}>{isReached ? '받은 보상' : '완료 시 보상'}</Text>
+      <Text style={[styles.rewardLabel, isReached && styles.rewardLabelReached]}>
+        {isReached ? '받은 카드' : '완료 시 카드 획득!'}
+      </Text>
       <MaterialGlyph frame={LEVEL_MATERIAL[level].frame} size={11} />
-      <Text style={styles.rewardLabel}>{SONG_TIER_NAME[level]}</Text>
+      <Feather name="chevron-right" size={13} color={isReached ? Colors.textMuted : REWARD_INK} style={styles.rewardChevron} />
     </TouchableOpacity>
   );
 });
@@ -430,7 +427,7 @@ const TierStat = React.memo(function TierStat({
 });
 
 const CTA_SUBTLE_COLOR = '#FFFFFFC4';
-const REWARD_INK = '#9A5B00';
+const REWARD_INK = '#E11D48';
 const STAT_HIT_SLOP = { top: 8, bottom: 8, left: 8, right: 8 };
 
 const styles = StyleSheet.create({
@@ -551,17 +548,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    paddingLeft: 8,
-    paddingRight: 7,
+    paddingLeft: 9,
+    paddingRight: 5,
     paddingVertical: 4,
     borderRadius: 9999,
     borderWidth: 1,
-    borderColor: '#F3D9A6',
-    backgroundColor: '#FFF6E3',
+    borderColor: '#FDA4AF',
+    backgroundColor: '#FFF1F2',
+    boxShadow: '0 1px 2px #E11D481F',
+  },
+  rewardChevron: {
+    marginLeft: -2,
   },
   rewardReached: {
     borderColor: Colors.border,
     backgroundColor: Colors.surfaceSubtle,
+    boxShadow: 'none',
   },
   rewardAhead: {
     opacity: 0.5,
@@ -570,6 +572,9 @@ const styles = StyleSheet.create({
     ...Typography.bodySemiBold,
     color: REWARD_INK,
     fontSize: 11.5,
+  },
+  rewardLabelReached: {
+    color: Colors.textSecondary,
   },
   masterCard: {
     flexDirection: 'row',
