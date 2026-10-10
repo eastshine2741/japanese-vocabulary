@@ -13,9 +13,9 @@ export interface StudySource {
   artworkUrl: string | null;
   dueCount: number;
   totalCount: number;
-  /** 이 곡 복습을 이미 담긴 단어 클릭으로 열었다면 그 단어. 첫 카드로 강제된다. */
+  /** 이미 담긴 단어 클릭으로 열었다면 그 단어. 곡 덱 첫 카드로 강제되고, 곡 덱에 없으면 그 실제 카드를 미리보기로 띄운다. */
   leadWordId?: number | null;
-  /** 아직 안 담긴 단어 클릭으로 열었다면 그 단어. 미리보기 카드로 먼저 보여주고, rating 을 확정할 때 곡을 통째로 담으며 lead 로 리뷰한다. */
+  /** 곡 상세에서 단어를 눌러 열었다면 그 단어. 곡 덱 첫 카드로 못 세우면 미리보기 카드로 보여주고, rating 을 확정할 때 곡을 통째로 담으며 lead 로 리뷰한다. */
   previewWord?: StudyPreviewWord | null;
   /** 곡 상세의 단계 학습으로 열었다면 그 단계. 곡 덱 due 큐 대신 그 단계의 due 단어를 한 번 받아 복습한다. */
   tierKey?: SongWordTierKey | null;
