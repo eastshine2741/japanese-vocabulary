@@ -1,5 +1,5 @@
-import React from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import React, { useState } from 'react';
+import { Image, LayoutChangeEvent, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import CardGlitter from './CardGlitter';
@@ -153,6 +153,36 @@ interface FaceProps {
   thumb?: boolean;
 }
 
+/** 제목 끝과 칸 끝 사이에 남길 여백(u). */
+const TITLE_GAP_U = 5;
+
+// 같은 제목을 다시 그릴 때(목록 ↔ 전시) 재지 않고 바로 맞춘다.
+const titleWidths = new Map<string, number>();
+
+/**
+ * 제목이 폭 avail 안에 한 줄로 들도록 글자 크기에 곱할 배율과, 그 폭을 재는 숨은 글자.
+ * 어림은 썸네일·시스템 글자 배율에서 어긋나 실제로 잰다. 재기 전엔 말줄임이 비치지 않게 제목을 숨긴다.
+ */
+function useTitleFit(title: string, avail: number, fontSize: number, fontFamily: string) {
+  const key = `${fontFamily}|${fontSize}|${title}`;
+  const [natural, setNatural] = useState(() => titleWidths.get(key));
+  const width = titleWidths.get(key) ?? natural;
+  const onLayout = (e: LayoutChangeEvent) => {
+    const w = e.nativeEvent.layout.width;
+    titleWidths.set(key, w);
+    setNatural(w);
+  };
+  const measure =
+    width == null ? (
+      <View pointerEvents="none" style={styles.titleMeasure}>
+        <Text style={{ fontFamily, fontSize }} numberOfLines={1} onLayout={onLayout}>
+          {title}
+        </Text>
+      </View>
+    ) : null;
+  return { scale: width ? Math.min(1, avail / width) : 1, hidden: width == null, measure };
+}
+
 function FrontFace({ card, width, height, u, age, tilt, fonts, thumb }: FaceProps & { tilt?: CardTilt }) {
   const material = LEVEL_MATERIAL[card.level];
   const pad = 3.4 * u;
@@ -161,10 +191,11 @@ function FrontFace({ card, width, height, u, age, tilt, fonts, thumb }: FaceProp
   const foil = coatingLeft(age);
   // 아트 위아래 여백(5u·4u)을 뺀 높이 안에서 세로 가사가 아트 밖으로 잘리지 않게 줄인다.
   const lyricScale = lyricFitScale(card.lyric, artSize - 9 * u, 6.4 * u, 7 * u);
-  const titleScale = textFitScale([cardTitle(card.title)], artSize - pad * 2 - 2, 6.8 * u);
+  const { scale: titleScale, hidden: titleHidden, measure: titleMeasure } = useTitleFit(cardTitle(card.title), artSize - pad * 2 - TITLE_GAP_U * u, 6.8 * u, fonts.jpHeavy);
 
   return (
     <View style={[styles.clip, { borderRadius: 4.6 * u }]}>
+      {titleMeasure}
       <LinearGradient colors={material.frame} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
       {/* 코팅이 벗겨지면 금속 테의 명암 띠가 사라지고 무광 단색만 남는다. */}
       <View style={[StyleSheet.absoluteFill, { backgroundColor: material.frame[1], opacity: (1 - foil) * 0.8 }]} />
@@ -230,9 +261,10 @@ function FrontFace({ card, width, height, u, age, tilt, fonts, thumb }: FaceProp
               fontSize={6.8 * u * titleScale}
               lineHeight={8.4 * u}
               tilt={tilt}
+              style={titleHidden && styles.hidden}
             />
           ) : (
-            <Text style={[styles.title, { fontFamily: fonts.jpHeavy, fontSize: 6.8 * u * titleScale, lineHeight: 8.4 * u }]} numberOfLines={1}>
+            <Text style={[styles.title, { fontFamily: fonts.jpHeavy, fontSize: 6.8 * u * titleScale, lineHeight: 8.4 * u }, titleHidden && styles.hidden]} numberOfLines={1}>
               {cardTitle(card.title)}
             </Text>
           )}
@@ -262,10 +294,11 @@ function FoilFrontFace({ card, width, height, u, age, tilt, fonts, thumb }: Face
   const inset = 2.6 * u;
   // 아래 제목·아티스트·순번 묶음(약 26u)과 위아래 여백을 뺀 높이 안에 세로 가사를 넣는다.
   const lyricScale = lyricFitScale(card.lyric, height - 7 * u - 7 * u - 26 * u - 4 * u, 7.2 * u, 8 * u);
-  const titleScale = textFitScale([cardTitle(card.title)], width - 14 * u - 2, 8 * u);
+  const { scale: titleScale, hidden: titleHidden, measure: titleMeasure } = useTitleFit(cardTitle(card.title), width - 14 * u - TITLE_GAP_U * u, 8 * u, fonts.jpHeavy);
 
   return (
     <View style={[styles.clip, { borderRadius: 4.6 * u, backgroundColor: card.ink }]}>
+      {titleMeasure}
       <Image source={{ uri: card.artworkUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
       <LinearGradient
         colors={['#08060C00', '#08060C80']}
@@ -294,7 +327,7 @@ function FoilFrontFace({ card, width, height, u, age, tilt, fonts, thumb }: Face
       </View>
 
       <View style={[styles.foilMeta, { left: 7 * u, right: 7 * u, bottom: 7 * u, gap: 1.2 * u }]}>
-        <Text style={[styles.title, { fontFamily: fonts.jpHeavy, fontSize: 8 * u * titleScale, lineHeight: 10 * u }]} numberOfLines={1}>
+        <Text style={[styles.title, { fontFamily: fonts.jpHeavy, fontSize: 8 * u * titleScale, lineHeight: 10 * u }, titleHidden && styles.hidden]} numberOfLines={1}>
           {cardTitle(card.title)}
         </Text>
         <Text style={[styles.artist, { fontSize: 3.6 * u, color: card.accent }]} numberOfLines={1}>{cardArtist(card.artist)}</Text>
@@ -517,6 +550,8 @@ const styles = StyleSheet.create({
     textShadowRadius: 8,
   },
   foilMeta: { position: 'absolute' },
+  hidden: { opacity: 0 },
+  titleMeasure: { position: 'absolute', left: 0, top: 0, width: 10000, alignItems: 'flex-start', opacity: 0 },
   foilPips: { position: 'absolute' },
   foilEdge: { position: 'absolute', borderWidth: 1, borderColor: '#FFFFFF4D' },
   meta: { flex: 1, justifyContent: 'space-between', overflow: 'hidden' },
