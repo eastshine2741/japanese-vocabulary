@@ -161,6 +161,7 @@ function FrontFace({ card, width, height, u, age, tilt, fonts, thumb }: FaceProp
   const foil = coatingLeft(age);
   // 아트 위아래 여백(5u·4u)을 뺀 높이 안에서 세로 가사가 아트 밖으로 잘리지 않게 줄인다.
   const lyricScale = lyricFitScale(card.lyric, artSize - 9 * u, 6.4 * u, 7 * u);
+  const titleScale = textFitScale([cardTitle(card.title)], artSize - pad * 2 - 2, 6.8 * u);
 
   return (
     <View style={[styles.clip, { borderRadius: 4.6 * u }]}>
@@ -226,12 +227,12 @@ function FrontFace({ card, width, height, u, age, tilt, fonts, thumb }: FaceProp
               text={cardTitle(card.title)}
               colors={material.foil}
               fontFamily={fonts.jpHeavy}
-              fontSize={6.8 * u}
+              fontSize={6.8 * u * titleScale}
               lineHeight={8.4 * u}
               tilt={tilt}
             />
           ) : (
-            <Text style={[styles.title, { fontFamily: fonts.jpHeavy, fontSize: 6.8 * u, lineHeight: 8.4 * u }]} numberOfLines={1}>
+            <Text style={[styles.title, { fontFamily: fonts.jpHeavy, fontSize: 6.8 * u * titleScale, lineHeight: 8.4 * u }]} numberOfLines={1}>
               {cardTitle(card.title)}
             </Text>
           )}
@@ -261,6 +262,7 @@ function FoilFrontFace({ card, width, height, u, age, tilt, fonts, thumb }: Face
   const inset = 2.6 * u;
   // 아래 제목·아티스트·순번 묶음(약 26u)과 위아래 여백을 뺀 높이 안에 세로 가사를 넣는다.
   const lyricScale = lyricFitScale(card.lyric, height - 7 * u - 7 * u - 26 * u - 4 * u, 7.2 * u, 8 * u);
+  const titleScale = textFitScale([cardTitle(card.title)], width - 14 * u - 2, 8 * u);
 
   return (
     <View style={[styles.clip, { borderRadius: 4.6 * u, backgroundColor: card.ink }]}>
@@ -292,7 +294,7 @@ function FoilFrontFace({ card, width, height, u, age, tilt, fonts, thumb }: Face
       </View>
 
       <View style={[styles.foilMeta, { left: 7 * u, right: 7 * u, bottom: 7 * u, gap: 1.2 * u }]}>
-        <Text style={[styles.title, { fontFamily: fonts.jpHeavy, fontSize: 8 * u, lineHeight: 10 * u }]} numberOfLines={1}>
+        <Text style={[styles.title, { fontFamily: fonts.jpHeavy, fontSize: 8 * u * titleScale, lineHeight: 10 * u }]} numberOfLines={1}>
           {cardTitle(card.title)}
         </Text>
         <Text style={[styles.artist, { fontSize: 3.6 * u, color: card.accent }]} numberOfLines={1}>{cardArtist(card.artist)}</Text>
@@ -358,11 +360,11 @@ function BackFace({
   const stats = card.sample
     ? [
         { label: '획득 순번', value: '—', unit: '' },
-        { label: '획득한 날', value: '—', unit: '' },
+        { label: '획득한 날', value: 'yyyy.mm.dd', unit: '' },
       ]
     : [
         { label: '획득 순번', value: card.ownerNo.toLocaleString('ko-KR'), unit: '번째' },
-        { label: '획득한 날', value: card.earnedAt.slice(2).replace(/-/g, '.'), unit: '' },
+        { label: '획득한 날', value: card.earnedAt.slice(0, 10).replace(/-/g, '.'), unit: '' },
       ];
   // 좌우 여백 6u 를 뺀 폭에 가장 긴 줄이 한 줄로 들어가게 줄인다.
   const lyricScale = lyricRowFitScale(card.lyric, width - 12 * u, 5.8 * u, 2.4 * u);

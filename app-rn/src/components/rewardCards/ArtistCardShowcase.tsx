@@ -197,7 +197,7 @@ function FrontFace({ card, width, height, u, tilt, fonts }: FaceProps & { tilt?:
         <View style={{ gap: 1.6 * u }}>
           <CardName name={card.name} u={u} fontFamily={fonts.jpHeavy} emboss={m.emboss && !!tilt} tilt={tilt} />
           <Text style={[styles.since, { fontFamily: fonts.ko, fontSize: 2.6 * u }]}>
-            {card.sample ? '—' : `${card.since.slice(0, 7).replace('-', '.')}부터`}
+            {`${card.sample ? 'yyyy.mm.dd' : card.since.slice(0, 10).replace(/-/g, '.')}부터`}
           </Text>
         </View>
       </View>
