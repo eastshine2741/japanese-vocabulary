@@ -30,6 +30,7 @@ import SongReviewScreen from '../screens/SongReviewScreen';
 import StreakScreen from '../screens/StreakScreen';
 import RewardCardDetailScreen from '../screens/RewardCardDetailScreen';
 import ArtistCardDetailScreen from '../screens/ArtistCardDetailScreen';
+import ArtistCardListScreen from '../screens/ArtistCardListScreen';
 import RewardCardLyricEditScreen from '../screens/RewardCardLyricEditScreen';
 import RewardCardRevealScreen from '../screens/RewardCardRevealScreen';
 import StudyScheduleScreen from '../screens/StudyScheduleScreen';
@@ -84,6 +85,8 @@ export type RootStackParamList = {
   RewardCardReveal: { cardId: string };
   /** 프로필 카드 탭에서 아티스트 카드를 누르면 열리는 전시 화면. */
   ArtistCardDetail: { cardId: string; ownerName: string };
+  /** 프로필 카드 탭 아티스트 카드 헤더에서 들어오는 전체 목록. */
+  ArtistCardList: { ownerName: string };
   /** 홈 헤더의 '오늘 복습할 단어' 블록에서 들어오는 FSRS 스케줄 상세. */
   StudySchedule: undefined;
   DeckDetail: { deckId: number | null };
@@ -203,6 +206,7 @@ export default function AppNavigator({ initialRoute }: Props) {
         component={ArtistCardDetailScreen}
         options={{ animation: 'fade', contentStyle: { backgroundColor: '#0E0D13' } }}
       />
+      <Stack.Screen name="ArtistCardList" component={ArtistCardListScreen} />
       <Stack.Screen name="StudySchedule" component={StudyScheduleScreen} />
       <Stack.Screen name="DeckDetail" component={DeckDetailScreen} />
       <Stack.Screen name="DeckWordList" component={DeckWordListScreen} />

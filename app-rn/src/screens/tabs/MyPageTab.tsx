@@ -143,28 +143,35 @@ export default function MyPageTab() {
     navigation.navigate('ArtistCardDetail', { cardId: card.id, ownerName: displayName });
   }, [navigation, displayName]);
 
+  const handleOpenArtistCards = useCallback(() => {
+    navigation.navigate('ArtistCardList', { ownerName: displayName });
+  }, [navigation, displayName]);
+
   const contentPadding = Dimens.bottomBarHeight + insets.bottom + 24;
+  const sceneContentStyle = useMemo(() => [styles.sceneContent, { paddingBottom: contentPadding }], [contentPadding]);
   const navigationState = useMemo(() => ({ index: tabIndex, routes: PROFILE_TABS }), [tabIndex]);
   const initialLayout = useMemo(() => ({ width: screenWidth }), [screenWidth]);
 
   const renderScene = useCallback(
     ({ route }: { route: ProfileTabRoute }) => (
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={[styles.sceneContent, { paddingBottom: contentPadding }]}
-        showsVerticalScrollIndicator={false}
-      >
-        {route.key === 'cards' ? (
-          <CardCollection
-            songCards={songCards}
-            artistCards={DUMMY_ARTIST_CARDS}
-            contentWidth={screenWidth - SIDE_PADDING * 2}
-            sidePadding={SIDE_PADDING}
-            onPressCard={handlePressCard}
-            onLongPressCard={__DEV__ ? handleLongPressCard : undefined}
-            onPressArtistCard={handlePressArtistCard}
-          />
-        ) : (
+      route.key === 'cards' ? (
+        <CardCollection
+          songCards={songCards}
+          artistCards={DUMMY_ARTIST_CARDS}
+          contentWidth={screenWidth - SIDE_PADDING * 2}
+          sidePadding={SIDE_PADDING}
+          contentContainerStyle={sceneContentStyle}
+          onPressCard={handlePressCard}
+          onLongPressCard={__DEV__ ? handleLongPressCard : undefined}
+          onPressArtistCard={handlePressArtistCard}
+          onOpenArtistCards={handleOpenArtistCards}
+        />
+      ) : (
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={sceneContentStyle}
+          showsVerticalScrollIndicator={false}
+        >
           <View style={styles.studyTab}>
             <LearningHero
               totalWords={totalWords}
@@ -198,11 +205,11 @@ export default function MyPageTab() {
             </View>
             <HeatmapSection onPressMore={handleOpenStreak} />
           </View>
-        )}
-      </ScrollView>
+        </ScrollView>
+      )
     ),
     [
-      contentPadding, screenWidth, handlePressCard, handlePressArtistCard, totalWords, longTermWords, shortTermWords, showStatsFallback,
+      sceneContentStyle, songCards, screenWidth, handlePressCard, handleLongPressCard, handlePressArtistCard, handleOpenArtistCards, totalWords, longTermWords, shortTermWords, showStatsFallback,
       handleOpenSongProgress, deckStatus, progressItems.length, representativeSongs, handleSongProgressPress, handleOpenStreak,
     ],
   );

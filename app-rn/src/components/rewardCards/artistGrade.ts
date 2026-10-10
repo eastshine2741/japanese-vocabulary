@@ -1,3 +1,5 @@
+import type { ArtistRewardCard } from './types';
+
 export type ArtistGrade = 'paper' | 'bronze' | 'silver' | 'gold' | 'platinum' | 'diamond';
 
 export interface ArtistGradeStep {
@@ -33,4 +35,9 @@ export function nextArtistGradeStep(masteredCount: number): ArtistGradeStep | nu
 export function setlistWindow(masteredCount: number, capacity: number): { start: number; hidden: number } {
   const hidden = Math.max(0, masteredCount - capacity);
   return { start: hidden, hidden };
+}
+
+/** 마스터 곡이 많은(재질이 높은) 카드부터, 같으면 먼저 팬이 된 카드부터. */
+export function sortArtistCards(cards: ArtistRewardCard[]): ArtistRewardCard[] {
+  return [...cards].sort((a, b) => b.masteredCount - a.masteredCount || a.since.localeCompare(b.since));
 }

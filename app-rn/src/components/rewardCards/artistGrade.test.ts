@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { artistGradeStep, nextArtistGradeStep, setlistWindow } from './artistGrade';
+import { artistGradeStep, nextArtistGradeStep, setlistWindow, sortArtistCards } from './artistGrade';
+import type { ArtistRewardCard } from './types';
 
 describe('artistGradeStep', () => {
   it('마스터 곡이 없으면 종이 카드다', () => {
@@ -37,5 +38,19 @@ describe('setlistWindow', () => {
 
   it('넘치면 오래된 곡을 숨기고 최근 곡을 남긴다', () => {
     expect(setlistWindow(31, 14)).toEqual({ start: 17, hidden: 17 });
+  });
+});
+
+describe('sortArtistCards', () => {
+  const card = (id: string, masteredCount: number, since: string) =>
+    ({ id, masteredCount, since }) as ArtistRewardCard;
+
+  it('마스터 곡이 많은 카드부터, 같으면 먼저 팬이 된 카드부터 놓는다', () => {
+    const sorted = sortArtistCards([
+      card('a', 1, '2026-03-01'),
+      card('b', 8, '2026-05-01'),
+      card('c', 1, '2026-01-01'),
+    ]);
+    expect(sorted.map((c) => c.id)).toEqual(['b', 'c', 'a']);
   });
 });
