@@ -147,7 +147,7 @@ export const ArtistCardUpgrade = React.memo(function ArtistCardUpgrade({ card, s
         after={<ArtistCardFront card={card} width={cardW} fonts={fonts} />}
         focus={artistUpgradeFocus(card, cardW)}
         showcase={<ArtistCardShowcase card={card} width={cardW} tilt={tilt} fonts={fonts} />}
-        heading={`${artistGradeStep(card.masteredCount).label} 카드가 됐어요`}
+        heading={`${artistGradeStep(card.masteredCount).label} 카드로 강화되었어요!`}
         guide={<RevealGuide lines={[]} steps={ARTIST_LADDER} from={artistRung(before)} current={artistRung(card)} accent={card.accent} motion={motion} />}
         onDone={onClose}
       />

@@ -248,7 +248,7 @@ export const SongCardUpgrade = React.memo(function SongCardUpgrade({ card, start
         after={<SongCardFront card={card} width={cardW} fonts={fonts} />}
         focus={songUpgradeFocus(card, cardW)}
         showcase={<SongCardShowcase card={card} width={cardW} tilt={tilt} fonts={fonts} />}
-        heading={`${songTierName(card.level, card.mastered)} 카드가 됐어요`}
+        heading={`${songTierName(card.level, card.mastered)} 카드로 강화되었어요!`}
         guide={<RevealGuide lines={[]} steps={SONG_LADDER} from={songRung(before)} current={songRung(card)} accent={card.accent} motion={motion} />}
         onDone={onClose}
       />
