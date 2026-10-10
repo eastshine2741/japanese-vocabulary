@@ -231,11 +231,19 @@ const ExpandedTierCard = React.memo(function ExpandedTierCard({
 
       <View style={styles.progress}>
         <TierTrack tier={tier} height={6} />
-        <View style={styles.stats}>
-          <TierStat color={Colors.memoryLongTerm} label="장기기억" value={tier.longTermCount} onPress={handleOpenHelp} />
-          <TierStat color={Colors.memoryShortTerm} label="단기기억" value={tier.shortTermCount} onPress={handleOpenHelp} />
+        <TouchableOpacity
+          style={styles.stats}
+          onPress={handleOpenHelp}
+          activeOpacity={0.6}
+          hitSlop={STAT_HIT_SLOP}
+          accessibilityRole="button"
+          accessibilityLabel={`장기기억 ${tier.longTermCount}, 단기기억 ${tier.shortTermCount}, 남음 ${remainingCount}. 설명 보기`}
+        >
+          <TierStat color={Colors.memoryLongTerm} label="장기기억" value={tier.longTermCount} />
+          <TierStat color={Colors.memoryShortTerm} label="단기기억" value={tier.shortTermCount} />
           <TierStat color={Colors.memoryRemaining} label="남음" value={remainingCount} muted />
-        </View>
+          <Feather name="info" size={12} color={Colors.textMuted} />
+        </TouchableOpacity>
       </View>
       <MemoryHelpSheet ref={helpSheetRef} />
 
@@ -272,33 +280,23 @@ const TierStat = React.memo(function TierStat({
   label,
   value,
   muted = false,
-  onPress,
 }: {
   color: string;
   label: string;
   value: number;
   muted?: boolean;
-  onPress?: () => void;
 }) {
   return (
-    <TouchableOpacity
-      style={styles.stat}
-      onPress={onPress}
-      disabled={onPress == null}
-      activeOpacity={0.6}
-      hitSlop={STAT_HIT_SLOP}
-      accessibilityRole={onPress ? 'button' : undefined}
-      accessibilityLabel={`${label} ${value}`}
-    >
+    <View style={styles.stat}>
       <View style={[styles.statDot, { backgroundColor: color }]} />
       <Text style={styles.statLabel}>{label}</Text>
       <Text style={[styles.statValue, muted && styles.statValueMuted]}>{value}</Text>
-    </TouchableOpacity>
+    </View>
   );
 });
 
 const CTA_SUBTLE_COLOR = '#FFFFFFC4';
-const STAT_HIT_SLOP = { top: 8, bottom: 8, left: 4, right: 4 };
+const STAT_HIT_SLOP = { top: 8, bottom: 8, left: 8, right: 8 };
 
 const styles = StyleSheet.create({
   section: {
@@ -451,6 +449,7 @@ const styles = StyleSheet.create({
   stats: {
     flexDirection: 'row',
     alignItems: 'center',
+    alignSelf: 'flex-start',
     gap: 12,
   },
   stat: {

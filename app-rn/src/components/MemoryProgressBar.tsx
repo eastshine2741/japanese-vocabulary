@@ -1,12 +1,13 @@
 import React, { useCallback, useMemo, useRef } from 'react';
 import { StyleProp, StyleSheet, Text, TouchableOpacity, View, ViewStyle } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { MemoryHelpSheet, MemoryHelpSheetRef } from './memoryHelp/MemoryHelpSheet';
 import { Colors } from '../theme/theme';
 import { Typography } from '../theme/typography';
 
 const SEGMENT_GAP = 2;
 const LEGEND_DOT_SIZE = 7;
-const LEGEND_HIT_SLOP = { top: 8, bottom: 8, left: 4, right: 4 };
+const LEGEND_HIT_SLOP = { top: 8, bottom: 8, left: 8, right: 8 };
 
 export interface MemoryProgressBarProps {
   totalCount: number;
@@ -61,10 +62,20 @@ function MemoryProgressBar({
         {remainingRatio > 0 && <View style={{ flex: remainingRatio }} />}
       </View>
       {showLegend && (
-        <View style={[styles.legend, legendAlign === 'center' && styles.legendCenter]}>
-          <LegendItem color={Colors.memoryLongTerm} label="장기기억" value={longTerm} onPress={handleOpenHelp} />
-          <LegendItem color={Colors.memoryShortTerm} label="단기기억" value={shortTerm} onPress={handleOpenHelp} />
-          <LegendItem color={Colors.memoryRemaining} label="남음" value={remaining} muted />
+        <View style={[styles.legendRow, legendAlign === 'center' && styles.legendCenter]}>
+          <TouchableOpacity
+            style={styles.legend}
+            onPress={handleOpenHelp}
+            activeOpacity={0.6}
+            hitSlop={LEGEND_HIT_SLOP}
+            accessibilityRole="button"
+            accessibilityLabel={`장기기억 ${longTerm}, 단기기억 ${shortTerm}, 남음 ${remaining}. 설명 보기`}
+          >
+            <LegendItem color={Colors.memoryLongTerm} label="장기기억" value={longTerm} />
+            <LegendItem color={Colors.memoryShortTerm} label="단기기억" value={shortTerm} />
+            <LegendItem color={Colors.memoryRemaining} label="남음" value={remaining} muted />
+            <Feather name="info" size={12} color={Colors.textMuted} />
+          </TouchableOpacity>
         </View>
       )}
       {showLegend && <MemoryHelpSheet ref={helpSheetRef} />}
@@ -82,28 +93,18 @@ const LegendItem = React.memo(function LegendItem({
   label,
   value,
   muted = false,
-  onPress,
 }: {
   color: string;
   label: string;
   value: number;
   muted?: boolean;
-  onPress?: () => void;
 }) {
   return (
-    <TouchableOpacity
-      style={styles.legendItem}
-      onPress={onPress}
-      disabled={onPress == null}
-      activeOpacity={0.6}
-      hitSlop={LEGEND_HIT_SLOP}
-      accessibilityRole={onPress ? 'button' : undefined}
-      accessibilityLabel={`${label} ${value}`}
-    >
+    <View style={styles.legendItem}>
       <View style={[styles.legendDot, { backgroundColor: color }]} />
       <Text style={styles.legendLabel}>{label}</Text>
       <Text style={[styles.legendValue, muted && styles.legendValueMuted]}>{value}</Text>
-    </TouchableOpacity>
+    </View>
   );
 });
 
@@ -122,11 +123,15 @@ const styles = StyleSheet.create({
   shortTermSegment: {
     backgroundColor: Colors.memoryShortTerm,
   },
+  legendRow: {
+    flexDirection: 'row',
+    marginTop: 10,
+  },
   legend: {
+    flexShrink: 1,
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
-    marginTop: 10,
     gap: 12,
   },
   legendCenter: {
