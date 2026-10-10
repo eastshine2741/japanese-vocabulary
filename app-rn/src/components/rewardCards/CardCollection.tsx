@@ -19,6 +19,7 @@ interface Props {
   onPressCard: (card: SongRewardCard) => void;
   onLongPressCard?: (card: SongRewardCard) => void;
   onPressArtistCard: (card: ArtistRewardCard) => void;
+  onLongPressArtistCard?: (card: ArtistRewardCard) => void;
   onOpenArtistCards: () => void;
 }
 
@@ -37,6 +38,7 @@ function CardCollection({
   onPressCard,
   onLongPressCard,
   onPressArtistCard,
+  onLongPressArtistCard,
   onOpenArtistCards,
 }: Props) {
   const fonts = useCardFonts();
@@ -66,6 +68,7 @@ function CardCollection({
       fonts={fonts}
       onSort={handleSort}
       onPressArtistCard={onPressArtistCard}
+      onLongPressArtistCard={onLongPressArtistCard}
       onOpenArtistCards={onOpenArtistCards}
     />
   );
@@ -107,6 +110,7 @@ const CollectionHeader = React.memo(function CollectionHeader({
   fonts,
   onSort,
   onPressArtistCard,
+  onLongPressArtistCard,
   onOpenArtistCards,
 }: {
   artistCount: number;
@@ -117,6 +121,7 @@ const CollectionHeader = React.memo(function CollectionHeader({
   fonts: CardFonts;
   onSort: () => void;
   onPressArtistCard: (card: ArtistRewardCard) => void;
+  onLongPressArtistCard?: (card: ArtistRewardCard) => void;
   onOpenArtistCards: () => void;
 }) {
   return (
@@ -134,7 +139,14 @@ const CollectionHeader = React.memo(function CollectionHeader({
           contentContainerStyle={[styles.artistRow, { paddingHorizontal: sidePadding }]}
         >
           {artistPreview.map((card) => (
-            <ArtistCardThumb key={card.id} card={card} width={ARTIST_CARD_WIDTH} fonts={fonts} onPress={onPressArtistCard} />
+            <ArtistCardThumb
+              key={card.id}
+              card={card}
+              width={ARTIST_CARD_WIDTH}
+              fonts={fonts}
+              onPress={onPressArtistCard}
+              onLongPress={onLongPressArtistCard}
+            />
           ))}
           <Pressable onPress={onOpenArtistCards} style={({ pressed }) => [styles.seeAll, pressed && styles.pressed]}>
             <View style={styles.seeAllIcon}>

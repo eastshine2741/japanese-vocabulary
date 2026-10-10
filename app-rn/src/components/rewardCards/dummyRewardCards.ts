@@ -257,7 +257,7 @@ const ARTIST_PHOTOS = [
   '1662920390866-33410f637e72', '1615754890640-1b07ac20cdbc',
 ];
 
-type ArtistSeed = Omit<ArtistRewardCard, 'id' | 'imageUrl' | 'masteredSongs'> & {
+type ArtistSeed = Omit<ArtistRewardCard, 'id' | 'imageUrl' | 'masteredSongs' | 'signature'> & {
   covers: MasteredSong[];
   gradeSamples?: boolean;
   titles?: string[];
@@ -345,6 +345,7 @@ function artistCard({ covers, titles, gradeSamples: _gradeSamples, ...seed }: Ar
     id,
     ...seed,
     imageUrl: seed.imageUrl ?? photo,
+    signature: null,
     masteredSongs: Array.from({ length: seed.masteredCount }, (_, k) => ({
       title: titles ? titles[k % titles.length] : covers[k % covers.length].title,
       artworkUrl: covers[k % covers.length].artworkUrl,
@@ -359,7 +360,3 @@ export const DUMMY_ARTIST_CARDS: ArtistRewardCard[] = artistSeeds.flatMap((seed,
     artistCard({ ...seed, masteredCount: step.from }, `artist-${i}-${step.grade}`, photo),
   );
 });
-
-export function findDummyArtistCard(id: string): ArtistRewardCard | undefined {
-  return DUMMY_ARTIST_CARDS.find((c) => c.id === id);
-}

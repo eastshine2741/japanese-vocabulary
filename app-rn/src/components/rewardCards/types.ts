@@ -71,4 +71,6 @@ export interface ArtistRewardCard {
   since: string;
   /** 마스터한 곡 전부, 마스터한 순서대로. */
   masteredSongs: MasteredSong[];
+  /** 발급 때 주인이 한 번 그린 서명. 서명 전이면 null. */
+  signature: CardSignature | null;
 }

@@ -16,19 +16,22 @@ interface Props {
   /** 카드 폭의 1/100. */
   u: number;
   fonts: CardFonts;
+  /** 밝은 바탕에 찍을 때의 라벨 색. 없으면 어두운 카드용 흰 글씨. */
+  ink?: string;
 }
 
 const STRIP_W = 32;
 
 /** 실물 카드 뒷면의 흰 서명 칸. 패드에 쓴 서명을 그대로 줄여 그린다. */
-function SignatureField({ signature, fallbackName, hint, u, fonts }: Props) {
+function SignatureField({ signature, fallbackName, hint, u, fonts, ink }: Props) {
   const width = STRIP_W * u;
   const height = (width * SIGNATURE_BOX.height) / SIGNATURE_BOX.width;
   const signed = !!signature && signature.length > 0;
   return (
     <View style={{ gap: 0.8 * u }}>
-      <Text style={[styles.label, { fontFamily: fonts.ko, fontSize: 2.4 * u, letterSpacing: 0.4 * u }]}>소유자 서명</Text>
-      <View style={[styles.strip, { width, height, borderRadius: 0.8 * u }]}>
+      <Text style={[styles.label, ink ? { color: `${ink}A6` } : null, { fontFamily: fonts.ko, fontSize: 2.4 * u, letterSpacing: 0.4 * u }]}>소유자 서명</Text>
+      {/* 크림 종이 몸체에선 흰 칸이 묻혀서 테두리로 자리를 잡는다. */}
+      <View style={[styles.strip, ink ? { borderWidth: StyleSheet.hairlineWidth, borderColor: `${ink}40` } : null, { width, height, borderRadius: 0.8 * u }]}>
         {/* SVG 는 비어 있어도 늘 붙여 둔다 — 서명 중에 새로 붙이면 Android 에서 그려지지 않는다. */}
         <Svg pointerEvents="none" style={StyleSheet.absoluteFill} viewBox={SIGNATURE_VIEW_BOX}>
           {signature?.map((d, i) => (

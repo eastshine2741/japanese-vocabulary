@@ -14,8 +14,8 @@ import {
   sortArtistCards,
 } from '../components/rewardCards/artistGrade';
 import { useCardFonts } from '../components/rewardCards/cardTheme';
-import { DUMMY_ARTIST_CARDS } from '../components/rewardCards/dummyRewardCards';
 import { ArtistRewardCard } from '../components/rewardCards/types';
+import { useRewardCardStore } from '../stores/rewardCardStore';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ArtistCardList'>;
 
@@ -27,7 +27,8 @@ export default function ArtistCardListScreen({ navigation, route }: Props) {
   const { width: screenWidth } = useWindowDimensions();
   const fonts = useCardFonts();
   const [sort, setSort] = useState<ArtistCardSort>('level');
-  const cards = useMemo(() => sortArtistCards(DUMMY_ARTIST_CARDS, sort), [sort]);
+  const artistCards = useRewardCardStore((s) => s.artistCards);
+  const cards = useMemo(() => sortArtistCards(artistCards, sort), [artistCards, sort]);
   const cardWidth = screenWidth - SIDE_PADDING * 2;
 
   const handleSort = useCallback(() => {

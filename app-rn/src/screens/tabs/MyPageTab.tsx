@@ -19,7 +19,6 @@ import ProfileAvatar from '../../components/ProfileAvatar';
 import { flashcardApi } from '../../api/flashcardApi';
 import { FlashcardStatsResponse } from '../../types/flashcard';
 import CardCollection from '../../components/rewardCards/CardCollection';
-import { DUMMY_ARTIST_CARDS } from '../../components/rewardCards/dummyRewardCards';
 import { useRewardCardStore } from '../../stores/rewardCardStore';
 import { ArtistRewardCard, SongRewardCard } from '../../components/rewardCards/types';
 
@@ -74,6 +73,7 @@ export default function MyPageTab() {
   const profileImageUrl = useAuthStore((s) => s.profileImageUrl);
   const loadProfile = useAuthStore((s) => s.loadProfile);
   const songCards = useRewardCardStore((s) => s.songCards);
+  const artistCards = useRewardCardStore((s) => s.artistCards);
   const revealCard = useRewardCardStore((s) => s.revealCard);
   const { deckStatus, songDecks, loadDecks } = useDeckListStore(
     useShallow((s) => ({
@@ -144,7 +144,8 @@ export default function MyPageTab() {
   }, [navigation, displayName]);
 
   // 획득 조건을 아직 서버가 알려 주지 않아, 개발 빌드에서만 카드를 길게 눌러 획득 화면을 띄운다.
-  const handleLongPressCard = useCallback((card: SongRewardCard) => revealCard(card.id), [revealCard]);
+  const handleLongPressCard = useCallback((card: SongRewardCard) => revealCard('song', card.id), [revealCard]);
+  const handleLongPressArtistCard = useCallback((card: ArtistRewardCard) => revealCard('artist', card.id), [revealCard]);
 
   const handlePressArtistCard = useCallback((card: ArtistRewardCard) => {
     navigation.navigate('ArtistCardDetail', { cardId: card.id, ownerName: displayName });
@@ -164,13 +165,14 @@ export default function MyPageTab() {
       route.key === 'cards' ? (
         <CardCollection
           songCards={songCards}
-          artistCards={DUMMY_ARTIST_CARDS}
+          artistCards={artistCards}
           contentWidth={screenWidth - SIDE_PADDING * 2}
           sidePadding={SIDE_PADDING}
           contentContainerStyle={sceneContentStyle}
           onPressCard={handlePressCard}
           onLongPressCard={__DEV__ ? handleLongPressCard : undefined}
           onPressArtistCard={handlePressArtistCard}
+          onLongPressArtistCard={__DEV__ ? handleLongPressArtistCard : undefined}
           onOpenArtistCards={handleOpenArtistCards}
         />
       ) : (

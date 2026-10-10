@@ -18,13 +18,13 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import ArtistCardShowcase from '../components/rewardCards/ArtistCardShowcase';
 import { artistGradeStep, nextArtistGradeStep } from '../components/rewardCards/artistGrade';
 import { ARTIST_CARD_RATIO, ARTIST_MATERIAL, SHOWROOM, useCardFonts } from '../components/rewardCards/cardTheme';
-import { findDummyArtistCard } from '../components/rewardCards/dummyRewardCards';
 import { useCardTilt } from '../components/rewardCards/useCardTilt';
+import { useRewardCardStore } from '../stores/rewardCardStore';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ArtistCardDetail'>;
 
 export default function ArtistCardDetailScreen({ navigation, route }: Props) {
-  const card = findDummyArtistCard(route.params.cardId);
+  const card = useRewardCardStore((s) => s.artistCards.find((c) => c.id === route.params.cardId));
   const { width: screenW } = useWindowDimensions();
   const fonts = useCardFonts();
   const tilt = useCardTilt();

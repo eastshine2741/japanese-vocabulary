@@ -1,36 +1,54 @@
 import { create } from 'zustand';
-import { DUMMY_SONG_CARDS, findDummyLyrics } from '../components/rewardCards/dummyRewardCards';
+import { DUMMY_ARTIST_CARDS, DUMMY_SONG_CARDS, findDummyLyrics } from '../components/rewardCards/dummyRewardCards';
 import { pickLines } from '../components/rewardCards/cardLyric';
 import { CardSignature } from '../components/rewardCards/signature';
-import { SongRewardCard } from '../components/rewardCards/types';
+import { ArtistRewardCard, SongRewardCard } from '../components/rewardCards/types';
+
+export type RewardCardKind = 'song' | 'artist';
+
+export interface RewardCardRevealTarget {
+  kind: RewardCardKind;
+  cardId: string;
+}
 
 interface RewardCardState {
   songCards: SongRewardCard[];
-  /** 막 얻은 곡 카드 id. 채워지면 획득 화면을 열고, 연 직후 비운다. */
-  revealCardId: string | null;
+  artistCards: ArtistRewardCard[];
+  /** 막 얻은 카드. 채워지면 획득 화면을 열고, 연 직후 비운다. */
+  reveal: RewardCardRevealTarget | null;
 
   /** 카드를 얻는 조건이 채워진 직후 호출. 연속 학습 축하가 떠 있으면 그 화면이 닫힌 뒤에 뜬다. */
-  revealCard: (cardId: string) => void;
+  revealCard: (kind: RewardCardKind, cardId: string) => void;
   dismissReveal: () => void;
   /** 카드에 실을 가사 줄을 바꾼다. 빈 배열은 무시한다. */
   setLyric: (cardId: string, picked: number[]) => void;
   /** 서명은 발급 때 한 번만 받는다. 이미 서명한 카드나 빈 서명은 무시한다. */
-  sign: (cardId: string, signature: CardSignature) => void;
+  sign: (kind: RewardCardKind, cardId: string, signature: CardSignature) => void;
+}
+
+function signOnce<T extends { id: string; signature: CardSignature | null }>(cards: T[], cardId: string, signature: CardSignature): T[] {
+  return cards.map((card) => (card.id === cardId && card.signature === null ? { ...card, signature } : card));
+}
+
+function clearSignature<T extends { id: string; signature: CardSignature | null }>(cards: T[], cardId: string): T[] {
+  return cards.map((card) => (card.id === cardId ? { ...card, signature: null } : card));
 }
 
 // API 가 생기기 전이라 더미 카드를 들고 있고, 고른 가사·서명은 앱을 다시 켜면 사라진다.
 export const useRewardCardStore = create<RewardCardState>((set) => ({
   songCards: DUMMY_SONG_CARDS,
-  revealCardId: null,
+  artistCards: DUMMY_ARTIST_CARDS,
+  reveal: null,
 
   // 막 발급된 카드는 서명 전이다. 더미 카드로 다시 띄워도 새로 서명하게 비운다.
-  revealCard: (cardId) =>
-    set((state) => ({
-      revealCardId: cardId,
-      songCards: state.songCards.map((card) => (card.id === cardId ? { ...card, signature: null } : card)),
-    })),
+  revealCard: (kind, cardId) =>
+    set((state) =>
+      kind === 'song'
+        ? { reveal: { kind, cardId }, songCards: clearSignature(state.songCards, cardId) }
+        : { reveal: { kind, cardId }, artistCards: clearSignature(state.artistCards, cardId) },
+    ),
 
-  dismissReveal: () => set({ revealCardId: null }),
+  dismissReveal: () => set({ reveal: null }),
 
   setLyric: (cardId, picked) => {
     if (picked.length === 0) return;
@@ -40,12 +58,12 @@ export const useRewardCardStore = create<RewardCardState>((set) => ({
     }));
   },
 
-  sign: (cardId, signature) => {
+  sign: (kind, cardId, signature) => {
     if (signature.length === 0) return;
-    set((state) => ({
-      songCards: state.songCards.map((card) =>
-        card.id === cardId && card.signature === null ? { ...card, signature } : card,
-      ),
-    }));
+    set((state) =>
+      kind === 'song'
+        ? { songCards: signOnce(state.songCards, cardId, signature) }
+        : { artistCards: signOnce(state.artistCards, cardId, signature) },
+    );
   },
 }));

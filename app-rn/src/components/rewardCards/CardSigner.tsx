@@ -14,14 +14,26 @@ import Animated, {
 import { Feather } from '@expo/vector-icons';
 import { useAuthStore } from '../../stores/authStore';
 import { hapticOwned, hapticSign } from './cardHaptics';
-import { SongCardBack, SongCardFront } from './SongCardShowcase';
-import { CARD_RATIO, CardFonts, SHOWROOM } from './cardTheme';
+import { CardFonts, SHOWROOM } from './cardTheme';
 import SignaturePad from './SignaturePad';
 import { CardSignature } from './signature';
-import { SongRewardCard } from './types';
+
+/** 곡·아티스트 카드가 서명 단계에 내놓는 면. 콜백은 매 렌더 새로 만들지 않게 useCallback 으로 넘긴다. */
+export interface SignableCard {
+  accent: string;
+  /** 세로 / 가로. */
+  ratio: number;
+  /** 모서리 반경, 카드 폭 비율. */
+  radius: number;
+  serialNo: number;
+  issuedAt: string;
+  /** hint 가 있으면 빈 서명 칸을 그 색 점선으로 짚는다. */
+  renderBack: (width: number, signature: CardSignature | null, hint?: string) => React.ReactNode;
+  renderFront: (width: number) => React.ReactNode;
+}
 
 interface Props {
-  card: SongRewardCard;
+  card: SignableCard;
   fonts: CardFonts;
   previewWidth: number;
   /** 서명 뒤 카드가 앞면으로 돌아서는 장면의 카드 폭. */
@@ -61,8 +73,8 @@ function CardSigner({ card, fonts, previewWidth, sealWidth, onSign, onDone, bott
   return (
     <View style={styles.root}>
       <View style={styles.preview}>
-        <View style={[styles.previewCard, { borderRadius: previewWidth * 0.046 }]}>
-          <SongCardBack card={card} width={previewWidth} fonts={fonts} signatureHint={card.accent} signature={preview} />
+        <View style={[styles.previewCard, { borderRadius: previewWidth * card.radius }]}>
+          {card.renderBack(previewWidth, preview, card.accent)}
         </View>
       </View>
 
@@ -98,7 +110,7 @@ const FLIP_MS = 820;
 const SETTLE = Easing.out(Easing.cubic);
 
 interface SealProps {
-  card: SongRewardCard;
+  card: SignableCard;
   signature: CardSignature;
   fonts: CardFonts;
   width: number;
@@ -108,7 +120,6 @@ interface SealProps {
 
 const CardSeal = React.memo(function CardSeal({ card, signature, fonts, width, onDone, bottomInset }: SealProps) {
   const ownerName = useAuthStore((s) => s.userName?.trim()) || '나';
-  const signed = useMemo(() => ({ ...card, signature }), [card, signature]);
   const flip = useSharedValue(0);
   const lift = useSharedValue(0);
   const captionIn = useSharedValue(0);
@@ -143,13 +154,13 @@ const CardSeal = React.memo(function CardSeal({ card, signature, fonts, width, o
     transform: [{ translateY: (1 - captionIn.value) * 14 }],
   }));
 
-  const earned = card.earnedAt.replace(/-/g, '.');
+  const issued = card.issuedAt.replace(/-/g, '.');
 
   return (
     <Animated.View entering={FadeIn.duration(260)} style={styles.root}>
       <View style={styles.sealStage}>
         <Animated.View style={stageStyle}>
-          <FlipCard card={signed} width={width} fonts={fonts} flip={flip} />
+          <FlipCard card={card} signature={signature} width={width} flip={flip} />
         </Animated.View>
       </View>
 
@@ -158,9 +169,9 @@ const CardSeal = React.memo(function CardSeal({ card, signature, fonts, width, o
           {ownerName}의 카드
         </Text>
         <Text style={styles.meta}>
-          <Text style={{ color: card.accent }}>No.{card.ownerNo.toLocaleString('ko-KR')}</Text>
+          <Text style={{ color: card.accent }}>No.{card.serialNo.toLocaleString('ko-KR')}</Text>
           {'  ·  '}
-          {earned} 발급
+          {issued} 발급
         </Text>
       </Animated.View>
 
@@ -178,16 +189,16 @@ const CardSeal = React.memo(function CardSeal({ card, signature, fonts, width, o
 });
 
 interface FlipProps {
-  card: SongRewardCard;
+  card: SignableCard;
+  signature: CardSignature;
   width: number;
-  fonts: CardFonts;
   /** 0 = 뒷면, 1 = 앞면. */
   flip: SharedValue<number>;
 }
 
-const FlipCard = React.memo(function FlipCard({ card, width, fonts, flip }: FlipProps) {
-  const height = width * CARD_RATIO;
-  const radius = width * 0.046;
+const FlipCard = React.memo(function FlipCard({ card, signature, width, flip }: FlipProps) {
+  const height = width * card.ratio;
+  const radius = width * card.radius;
   const backStyle = useAnimatedStyle(() => ({
     opacity: flip.value < 0.5 ? 1 : 0,
     transform: [{ perspective: 1100 }, { rotateY: `${flip.value * 180}deg` }],
@@ -199,14 +210,14 @@ const FlipCard = React.memo(function FlipCard({ card, width, fonts, flip }: Flip
   return (
     <View style={{ width, height }}>
       <Animated.View style={[styles.flipFace, { borderRadius: radius }, backStyle]}>
-        <SongCardBack card={card} width={width} fonts={fonts} />
+        {card.renderBack(width, signature)}
       </Animated.View>
       <Animated.View
         renderToHardwareTextureAndroid
         shouldRasterizeIOS
         style={[styles.flipFace, { borderRadius: radius }, frontStyle]}
       >
-        <SongCardFront card={card} width={width} fonts={fonts} />
+        {card.renderFront(width)}
       </Animated.View>
     </View>
   );

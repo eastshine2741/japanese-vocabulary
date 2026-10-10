@@ -7,9 +7,10 @@ import { FacetLayer, GlareLayer, HoloLayer, StaticSparkles } from './CardLayers'
 import { GuillocheLayer, RimLayer, RosetteLayer } from './ArtistFoil';
 import ArtistPhoto from './ArtistPhoto';
 import FoilText from './FoilText';
-import OwnerField from './OwnerField';
+import SignatureField from './SignatureField';
 import { ArtistGrade, artistGradeStep, setlistWindow } from './artistGrade';
 import { ARTIST_CARD_RATIO, ARTIST_MATERIAL, CardFonts } from './cardTheme';
+import { CardSignature } from './signature';
 import { CardTilt } from './useCardTilt';
 import { ArtistRewardCard, MasteredSong } from './types';
 
@@ -18,8 +19,15 @@ interface Props {
   width: number;
   tilt: CardTilt;
   fonts: CardFonts;
-  /** 카드 주인의 표시 이름. 뒷면 소유자 칸에 적힌다. */
-  ownerName: string;
+  /** 서명 없이 발급된 카드는 서명 칸에 이 이름을 대신 찍는다. 없으면 빈 칸. */
+  ownerName?: string;
+}
+
+interface SignatureSlot {
+  /** 빈 서명 칸을 이 색 점선으로 표시한다. */
+  signatureHint?: string;
+  /** card.signature 대신 그릴 서명. 서명하는 동안 획마다 카드를 새로 만들지 않으려고 따로 받는다. */
+  signature?: CardSignature | null;
 }
 
 const PAPER = require('../../../assets/cards/paper-fiber.png');
@@ -85,6 +93,32 @@ export const ArtistCardFront = React.memo(function ArtistCardFront({ card, width
   return (
     <View style={{ width, height }}>
       <FrontFace card={card} width={width} height={height} u={width / 100} fonts={fonts} />
+    </View>
+  );
+});
+
+/** 뒷면만 정적으로. 획득 연출에서 효과 없이 돌리거나 서명할 때 쓴다. */
+export const ArtistCardBack = React.memo(function ArtistCardBack({
+  card,
+  width,
+  fonts,
+  ownerName,
+  signatureHint,
+  signature,
+}: Omit<Props, 'tilt'> & SignatureSlot) {
+  const height = width * ARTIST_CARD_RATIO;
+  return (
+    <View style={{ width, height }}>
+      <BackFace
+        card={card}
+        width={width}
+        height={height}
+        u={width / 100}
+        fonts={fonts}
+        ownerName={ownerName}
+        signatureHint={signatureHint}
+        signature={signature}
+      />
     </View>
   );
 });
@@ -230,7 +264,17 @@ function CardName({ name, u, fontFamily, emboss, tilt }: {
 }
 
 // 뒷면은 재질로 만든 카드 몸체다. 동·은·금은 깊은 색 몸체에 박을 찍는다. 커버는 앨범 단위라 곡을 가르지 못해 제목 옆 곁들임으로만 쓴다.
-function BackFace({ card, width, height, u, tilt, fonts, ownerName }: FaceProps & { tilt?: CardTilt; ownerName: string }) {
+function BackFace({
+  card,
+  width,
+  height,
+  u,
+  tilt,
+  fonts,
+  ownerName,
+  signatureHint,
+  signature,
+}: FaceProps & SignatureSlot & { tilt?: CardTilt; ownerName?: string }) {
   const grade = artistGradeStep(card.masteredCount).grade;
   const m = ARTIST_MATERIAL[grade];
   const ink = m.bodyInk;
@@ -279,7 +323,14 @@ function BackFace({ card, width, height, u, tilt, fonts, ownerName }: FaceProps 
               <Text style={[label, { fontFamily: fonts.koBold, fontSize: 5 * u, lineHeight: 6.4 * u }]}>곡</Text>
             </View>
           </View>
-          <OwnerField name={ownerName} u={u} fonts={fonts} ink={ink} />
+          <SignatureField
+            signature={signature === undefined ? card.signature : signature}
+            fallbackName={ownerName}
+            hint={signatureHint}
+            u={u}
+            fonts={fonts}
+            ink={ink}
+          />
         </View>
 
         <View style={{ width: rightW }}>

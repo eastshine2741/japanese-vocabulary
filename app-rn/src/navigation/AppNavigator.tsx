@@ -42,6 +42,7 @@ import { AuthProvider } from '../api/authApi';
 import { WordSense } from '../types/word';
 import { Token } from '../types/song';
 import type { StudySource } from '../components/studyStack';
+import type { RewardCardKind } from '../stores/rewardCardStore';
 
 type SongPlaybackEntryParams = {
   songId?: number;
@@ -82,7 +83,8 @@ export type RootStackParamList = {
   /** 프로필 카드 탭에서 곡 카드를 누르면 열리는 전시 화면. */
   RewardCardDetail: { cardId: string; ownerName: string };
   RewardCardLyricEdit: { cardId: string };
-  RewardCardReveal: { cardId: string };
+  /** 카드 획득 연출과 발급 서명. 곡 카드는 가사 고르기를 거친다. */
+  RewardCardReveal: { kind: RewardCardKind; cardId: string };
   /** 프로필 카드 탭에서 아티스트 카드를 누르면 열리는 전시 화면. */
   ArtistCardDetail: { cardId: string; ownerName: string };
   /** 프로필 카드 탭 아티스트 카드 헤더에서 들어오는 전체 목록. */

@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import ArtistCardReveal from '../components/rewardCards/ArtistCardReveal';
 import { RewardCardReveal } from '../components/rewardCards/RewardCardReveal';
 import { SHOWROOM } from '../components/rewardCards/cardTheme';
 import { useRewardCardStore } from '../stores/rewardCardStore';
@@ -13,8 +14,9 @@ type Props = NativeStackScreenProps<RootStackParamList, 'RewardCardReveal'>;
 const START_FALLBACK_MS = 600;
 
 export default function RewardCardRevealScreen({ navigation, route }: Props) {
-  const { cardId } = route.params;
-  const card = useRewardCardStore((s) => s.songCards.find((c) => c.id === cardId));
+  const { kind, cardId } = route.params;
+  const songCard = useRewardCardStore((s) => (kind === 'song' ? s.songCards.find((c) => c.id === cardId) : undefined));
+  const artistCard = useRewardCardStore((s) => (kind === 'artist' ? s.artistCards.find((c) => c.id === cardId) : undefined));
   const [started, setStarted] = useState(false);
 
   useEffect(() => {
@@ -31,14 +33,16 @@ export default function RewardCardRevealScreen({ navigation, route }: Props) {
 
   const handleClose = useCallback(() => navigation.goBack(), [navigation]);
 
-  if (!card) {
-    return <View style={styles.root} />;
-  }
-
   return (
     <>
       <StatusBar style="light" />
-      <RewardCardReveal card={card} started={started} onClose={handleClose} />
+      {songCard ? (
+        <RewardCardReveal card={songCard} started={started} onClose={handleClose} />
+      ) : artistCard ? (
+        <ArtistCardReveal card={artistCard} started={started} onClose={handleClose} />
+      ) : (
+        <View style={styles.root} />
+      )}
     </>
   );
 }
