@@ -123,6 +123,9 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
   }, [navigation, cardId]);
 
   const songId = card?.songId ?? null;
+  const handleOpenSong = useCallback(() => {
+    if (songId != null) navigation.navigate('SongDetail', { songId, origin: 'reward_card_detail' });
+  }, [navigation, songId]);
   const [isStartingReview, setIsStartingReview] = useState(false);
   const handleStartReview = useCallback(async () => {
     if (songId == null || isStartingReview) return;
@@ -214,6 +217,17 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
                   <LevelPips level={card.level} color={material.chipText} size={5} />
                   <Text style={[styles.levelText, { color: material.chipText }]}>{songTierName(card.level, card.mastered)}</Text>
                 </LinearGradient>
+                <Pressable
+                  onPress={handleOpenSong}
+                  disabled={songId == null}
+                  hitSlop={6}
+                  style={({ pressed }) => [styles.linkChip, songId == null && styles.ctaDisabled, pressed && styles.ctaPressed]}
+                >
+                  <Text style={styles.linkText} numberOfLines={1}>
+                    {card.title}
+                  </Text>
+                  <Feather name="chevron-right" size={13} color={SHOWROOM.fg} />
+                </Pressable>
               </View>
 
               <View style={styles.panel}>
@@ -270,6 +284,18 @@ const styles = StyleSheet.create({
   chips: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap', gap: 6 },
   levelChip: { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
   levelText: { fontSize: 12, fontWeight: '700' },
+  linkChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    maxWidth: 200,
+    borderRadius: 999,
+    paddingLeft: 10,
+    paddingRight: 6,
+    paddingVertical: 4,
+    backgroundColor: SHOWROOM.glass,
+  },
+  linkText: { flexShrink: 1, color: SHOWROOM.fg, fontSize: 12, fontWeight: '600' },
   panel: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 14, backgroundColor: SHOWROOM.glass, gap: 4 },
   divider: { height: StyleSheet.hairlineWidth, backgroundColor: '#FFFFFF26', marginVertical: 6 },
   panelHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 },

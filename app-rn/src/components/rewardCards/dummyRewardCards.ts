@@ -306,7 +306,7 @@ const ARTIST_PHOTOS = [
   '1662920390866-33410f637e72', '1615754890640-1b07ac20cdbc',
 ];
 
-type ArtistSeed = Omit<ArtistRewardCard, 'id' | 'imageUrl' | 'masteredSongs' | 'signature'> & {
+type ArtistSeed = Omit<ArtistRewardCard, 'id' | 'artistId' | 'imageUrl' | 'masteredSongs' | 'signature'> & {
   covers: MasteredSong[];
   gradeSamples?: boolean;
   titles?: string[];
@@ -392,6 +392,7 @@ const artistSeeds: ArtistSeed[] = [
 function artistCard({ covers, titles, gradeSamples: _gradeSamples, ...seed }: ArtistSeed, id: string, photo: string): ArtistRewardCard {
   return {
     id,
+    artistId: null,
     ...seed,
     imageUrl: seed.imageUrl ?? photo,
     signature: null,

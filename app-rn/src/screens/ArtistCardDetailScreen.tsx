@@ -53,6 +53,10 @@ export default function ArtistCardDetailScreen({ navigation, route }: Props) {
   const handleFlip = useCallback(() => {
     tilt.flip.value = withTiming(tilt.flip.value > 0.5 ? 0 : 1, { duration: 720 });
   }, [tilt.flip]);
+  const artistId = card?.artistId ?? null;
+  const handleOpenArtist = useCallback(() => {
+    if (artistId != null) navigation.navigate('ArtistDetail', { artistId });
+  }, [artistId, navigation]);
 
   if (!card) {
     return <View style={styles.root} />;
@@ -104,6 +108,17 @@ export default function ArtistCardDetailScreen({ navigation, route }: Props) {
             <LinearGradient colors={material.frame} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.gradeChip}>
               <Text style={[styles.gradeText, { color: material.chipText }]}>{step.label}</Text>
             </LinearGradient>
+            <Pressable
+              onPress={handleOpenArtist}
+              disabled={artistId == null}
+              hitSlop={6}
+              style={({ pressed }) => [styles.linkChip, artistId == null && styles.linkDisabled, pressed && styles.linkPressed]}
+            >
+              <Text style={styles.linkText} numberOfLines={1}>
+                {card.name}
+              </Text>
+              <Feather name="chevron-right" size={13} color={SHOWROOM.fg} />
+            </Pressable>
           </View>
 
           {next && (
@@ -153,6 +168,20 @@ const styles = StyleSheet.create({
   chips: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap', gap: 6 },
   gradeChip: { borderRadius: 999, paddingHorizontal: 12, paddingVertical: 5 },
   gradeText: { fontSize: 12, fontWeight: '700' },
+  linkChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    maxWidth: 200,
+    borderRadius: 999,
+    paddingLeft: 12,
+    paddingRight: 8,
+    paddingVertical: 5,
+    backgroundColor: SHOWROOM.glass,
+  },
+  linkText: { flexShrink: 1, color: SHOWROOM.fg, fontSize: 12, fontWeight: '600' },
+  linkDisabled: { opacity: 0.4 },
+  linkPressed: { opacity: 0.85 },
   goal: {
     marginTop: 14,
     padding: 14,

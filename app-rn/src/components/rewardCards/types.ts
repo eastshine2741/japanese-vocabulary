@@ -61,6 +61,8 @@ export interface MasteredSong {
 
 export interface ArtistRewardCard {
   id: string;
+  /** Apple Music 아티스트에 이어진 경우에만 있다. 없으면 아티스트 상세로 갈 수 없다. */
+  artistId: number | null;
   name: string;
   imageUrl: string;
   accent: string;

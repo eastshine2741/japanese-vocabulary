@@ -45,6 +45,7 @@ interface ArtistInfo {
 export function artistCardPreview(artist: ArtistInfo, masteredCount: number): ArtistRewardCard {
   return {
     id: `preview-artist-${artist.id}-${masteredCount}`,
+    artistId: artist.id,
     name: artist.name,
     imageUrl: artist.artworkUrl ?? '',
     accent: PREVIEW_ACCENT,
