@@ -10,6 +10,9 @@ const MAX_EMPTY_MONTHS = 3;
 
 const LOAD_ERROR = '노래방 신곡을 불러오지 못했어요';
 
+/** loadDaily 가 목록을 갈아끼울 때 올린다. 그 전에 시작한 이전 달 요청은 결과를 버린다 — 안 그러면 같은 달이 두 번 붙는다. */
+let dailyGeneration = 0;
+
 interface DailyState {
   status: Status;
   groups: KaraokeDailyGroup[];
@@ -71,10 +74,13 @@ export const useKaraokeStore = create<KaraokeState>((set, get) => ({
     const hasData = get().daily.groups.length > 0;
     if (!hasData) set((s) => ({ daily: { ...s.daily, status: 'loading', error: null } }));
 
+    const generation = ++dailyGeneration;
     const month = currentYearMonth();
     try {
       const groups = await karaokeApi.getDaily(month);
       const seed = groups.length > 0 ? { month, groups } : await fetchOlder(month);
+      if (generation !== dailyGeneration) return;
+      dailyGeneration += 1;
       set({
         daily: {
           status: 'success',
@@ -86,8 +92,14 @@ export const useKaraokeStore = create<KaraokeState>((set, get) => ({
         },
       });
     } catch (e: any) {
+      if (generation !== dailyGeneration) return;
+      dailyGeneration += 1;
       const error = e?.message ?? LOAD_ERROR;
-      set((s) => ({ daily: hasData ? { ...s.daily, error } : { ...s.daily, status: 'error', error } }));
+      set((s) => ({
+        daily: hasData
+          ? { ...s.daily, loadingMore: false, error }
+          : { ...s.daily, status: 'error', loadingMore: false, error },
+      }));
     }
   },
 
@@ -95,9 +107,11 @@ export const useKaraokeStore = create<KaraokeState>((set, get) => ({
     const { daily } = get();
     if (daily.status !== 'success' || daily.loadingMore || daily.exhausted) return;
 
+    const generation = dailyGeneration;
     set({ daily: { ...daily, loadingMore: true } });
     try {
       const older = await fetchOlder(daily.oldestMonth);
+      if (generation !== dailyGeneration) return;
       set((s) => ({
         daily: {
           ...s.daily,
@@ -108,6 +122,7 @@ export const useKaraokeStore = create<KaraokeState>((set, get) => ({
         },
       }));
     } catch {
+      if (generation !== dailyGeneration) return;
       set((s) => ({ daily: { ...s.daily, loadingMore: false } }));
     }
   },
@@ -130,5 +145,8 @@ export const useKaraokeStore = create<KaraokeState>((set, get) => ({
     await get().loadMonthly(shiftYearMonth(get().monthly.month, delta));
   },
 
-  reset: () => set({ daily: initialDaily(), monthly: initialMonthly() }),
+  reset: () => {
+    dailyGeneration += 1;
+    set({ daily: initialDaily(), monthly: initialMonthly() });
+  },
 }));

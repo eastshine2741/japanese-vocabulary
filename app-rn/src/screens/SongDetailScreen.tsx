@@ -40,7 +40,6 @@ import {
   type SongDetailWordItem,
   useSongDetailWordsTab,
 } from '../components/songDetail';
-import { getSongDetailWordKey } from '../components/songDetail/songDetailWordSave';
 import { Colors, Dimens } from '../theme/theme';
 import { Layers } from '../theme/layers';
 import { Typography } from '../theme/typography';
@@ -286,23 +285,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
     return deck;
   }, [defaultDeckWords, refreshWords, songDeckDetail, songId]);
 
-  /** 이미 담긴 단어로 여는 경로라 덱이 있어야 정상이다 — 없으면 "학습 시작"과 같은 기본 담기로 만든다. */
-  const resolveSongDeck = useCallback(async (): Promise<DeckDetailResponse | null> => {
-    if (songDeckDetail?.deckId != null) return songDeckDetail;
-    if (songId == null) return null;
-    const deck = await deckApi.getDeckBySongId(songId);
-    if (deck?.deckId != null) {
-      setSongDeckDetail(deck);
-      return deck;
-    }
-    return ensureSongDeck();
-  }, [ensureSongDeck, songDeckDetail, songId]);
-
-  const openSongReview = useCallback((
-    deck: DeckDetailResponse,
-    trigger: StudyEntryTrigger,
-    leadWordId?: number | null,
-  ) => {
+  const openSongReview = useCallback((deck: DeckDetailResponse, trigger: StudyEntryTrigger) => {
     if (songId == null || deck.deckId == null) return false;
     navigation.navigate('SongReview', {
       origin: 'SongDetail',
@@ -315,7 +298,6 @@ export default function SongDetailScreen({ navigation, route }: Props) {
         artworkUrl: deck.artworkUrl ?? data?.song.artworkUrl ?? null,
         dueCount: deck.dueCount,
         totalCount: deck.wordCount,
-        leadWordId: leadWordId ?? null,
       },
     });
     return true;
@@ -370,46 +352,31 @@ export default function SongDetailScreen({ navigation, route }: Props) {
   }, [currentTier, ensureSongDeck, handleStartTier, isStartingLearning, openSongReview, songDeckDetail, songId]);
 
   /**
-   * 이미 담긴 단어는 그 덱을 열어 첫 카드로 강제한다. 안 담긴 단어는 미리보기 카드로 보여주고,
-   * rating 확정 시 서버가 곡을 통째로 담는다(`study-bootstrap`). 단어만 먼저 담으면 이후 기본 담기가 건너뛰어진다.
+   * 누른 단어가 복습의 첫 카드여야 하고, 여기서 곡을 담지 않는다. 곡 덱 첫 카드로 세울 수 없으면 복습 화면이 그 단어를
+   * 미리보기로 띄우고 rating 확정 시 곡을 담는다(`study-bootstrap`). `savedWordId` 는 다른 곡에서 담은 단어에도 붙는다.
    */
-  const handleStartWordReview = useCallback(async (word: SongDetailWordItem) => {
+  const handleStartWordReview = useCallback((word: SongDetailWordItem) => {
     if (songId == null || isStartingLearning) return;
-    if (word.savedWordId == null) {
-      navigation.navigate('SongReview', {
-        origin: 'SongDetail',
-        trigger: 'word',
-        source: {
-          deckId: songDeckDetail?.deckId ?? null,
-          songId,
-          title: data?.song.title ?? '',
-          artist: data?.song.artist ?? '',
-          artworkUrl: data?.song.artworkUrl ?? null,
-          dueCount: songDeckDetail?.dueCount ?? 0,
-          totalCount: songDeckDetail?.wordCount ?? 0,
-          previewWord: {
-            japanese: word.addRequest.japanese,
-            reading: word.addRequest.reading ?? null,
-            senses: word.addRequest.senses,
-          },
+    navigation.navigate('SongReview', {
+      origin: 'SongDetail',
+      trigger: 'word',
+      source: {
+        deckId: songDeckDetail?.deckId ?? null,
+        songId,
+        title: data?.song.title ?? '',
+        artist: data?.song.artist ?? '',
+        artworkUrl: data?.song.artworkUrl ?? null,
+        dueCount: songDeckDetail?.dueCount ?? 0,
+        totalCount: songDeckDetail?.wordCount ?? 0,
+        leadWordId: word.savedWordId,
+        previewWord: {
+          japanese: word.addRequest.japanese,
+          reading: word.addRequest.reading ?? null,
+          senses: word.addRequest.senses,
         },
-      });
-      return;
-    }
-    setBusyWordKey(getSongDetailWordKey(word));
-    setIsStartingLearning(true);
-    try {
-      const deck = await resolveSongDeck();
-      if (deck == null || !openSongReview(deck, 'word', word.savedWordId)) {
-        setLearningError('학습할 단어를 준비하지 못했어요. 잠시 후 다시 시도해 주세요.');
-      }
-    } catch (e: any) {
-      setLearningError(e?.message ?? '학습을 시작하지 못했어요. 잠시 후 다시 시도해 주세요.');
-    } finally {
-      setBusyWordKey(null);
-      setIsStartingLearning(false);
-    }
-  }, [data?.song, isStartingLearning, navigation, openSongReview, resolveSongDeck, songDeckDetail, songId]);
+      },
+    });
+  }, [data?.song, isStartingLearning, navigation, songDeckDetail, songId]);
 
   const handlePrimaryLearningPress = useCallback(() => {
     handleStartLearning();

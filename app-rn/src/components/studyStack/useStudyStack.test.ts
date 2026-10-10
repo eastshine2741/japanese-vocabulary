@@ -7,7 +7,7 @@ import { songApi } from '../../api/songApi';
 import { studyStatsApi } from '../../api/studyStatsApi';
 import { wordApi } from '../../api/wordApi';
 import { RATING_HOLD_MS, useStudyStack, StudyStackState } from './useStudyStack';
-import { StudySource } from './types';
+import { PREVIEW_FLASHCARD_ID, StudySource } from './types';
 import { FlashcardDTO, FlashcardMemory } from '../../types/flashcard';
 import { RecommendedSongItem, WordInSongItemDto, WordsInSongDto } from '../../types/song';
 
@@ -35,7 +35,9 @@ vi.mock('@react-navigation/native', () => ({ useIsFocused: () => native.focused 
 vi.mock('../../api/flashcardApi', () => ({
   flashcardApi: { getDueCards: vi.fn(), review: vi.fn(), getStats: vi.fn() },
 }));
-vi.mock('../../api/deckApi', () => ({ deckApi: { getDecks: vi.fn().mockResolvedValue({ songDecks: [] }) } }));
+vi.mock('../../api/deckApi', () => ({
+  deckApi: { getDecks: vi.fn().mockResolvedValue({ songDecks: [] }), getAllDeckDetail: vi.fn() },
+}));
 vi.mock('../../api/songApi', () => ({
   songApi: { getRecommendations: vi.fn(), getRecent: vi.fn(), getWords: vi.fn(), studyBootstrap: vi.fn() },
 }));
@@ -132,6 +134,80 @@ it('bootstraps the song with the chosen word as lead on rating confirm and conti
   expect(stack.session.reviewedCount).toBe(1);
   // lead 단어는 이 호출에서 처음 담겼다 — 리뷰 전 칸은 REMAINING 이라 단기기억으로 한 칸 옮겨간다.
   expect(stack.memoryDiff).toEqual({ toLongTerm: 0, toShortTerm: 1 });
+});
+
+// 다른 곡에서 이미 담은 단어: 곡 덱은 없지만 실제 카드가 있다 — 간격·기억 칸을 그 카드 값으로 보여준다.
+const savedPreviewSource: StudySource = { ...previewSource, leadWordId: 5 };
+const allDeckDetail = {
+  deckId: 1, songId: null, title: null, artist: null, artworkUrl: null, wordCount: 10, dueCount: 0,
+  masteredCount: 0, studyingCount: 0, newWordCount: 0, longTermCount: 0, shortTermCount: 0,
+};
+
+it('shows the saved word as its real flashcard from the default deck', async () => {
+  vi.mocked(deckApi.getAllDeckDetail).mockResolvedValue(allDeckDetail);
+  vi.mocked(flashcardApi.getDueCards).mockResolvedValue({
+    cards: [{ ...card(5, 'LONG_TERM'), intervals: { 3: '30d' } }], totalCount: 1, nextDueAt: null,
+  });
+  await mount(savedPreviewSource);
+  expect(flashcardApi.getDueCards).toHaveBeenCalledWith(1, 1, 5);
+  expect(stack.currentCard?.id).toBe(5);
+  expect(stack.currentCard?.intervals).toEqual({ 3: '30d' });
+});
+
+it('bootstraps the song on rating the saved word and counts memory from its real state', async () => {
+  vi.mocked(deckApi.getAllDeckDetail).mockResolvedValue(allDeckDetail);
+  vi.mocked(flashcardApi.getDueCards).mockResolvedValue({ cards: [card(5, 'LONG_TERM')], totalCount: 1, nextDueAt: null });
+  vi.mocked(songApi.studyBootstrap).mockResolvedValue({ deckId: 42, cards: [card(2)], totalCount: 2, nextDueAt: null, reviewedMemory: 'LONG_TERM' });
+  await mount(savedPreviewSource);
+  await rate(3);
+  expect(songApi.studyBootstrap).toHaveBeenCalledWith(3, 3, '歌');
+  expect(flashcardApi.review).not.toHaveBeenCalled();
+  expect(stack.currentCard?.source.deckId).toBe(42);
+  // 이미 장기기억이던 카드라 칸 이동이 없다.
+  expect(stack.memoryDiff).toEqual({ toLongTerm: 0, toShortTerm: 0 });
+});
+
+// 곡 덱이 있는 곡에서 단어를 누른 경우: 곡 덱 첫 카드로 세울 수 있을 때만 곡 덱으로 연다.
+const tappedInDeckSource: StudySource = { ...savedPreviewSource, deckId: 7, dueCount: 3, totalCount: 10 };
+
+it('opens the song deck when the tapped word leads its due queue', async () => {
+  vi.mocked(flashcardApi.getDueCards).mockResolvedValue({ cards: [card(5), card(6)], totalCount: 3, nextDueAt: null });
+  await mount(tappedInDeckSource);
+  expect(flashcardApi.getDueCards).toHaveBeenCalledWith(7, 20, 5);
+  expect(stack.cards.map(c => c.id)).toEqual([5, 6]);
+  await rate(3);
+  expect(flashcardApi.review).toHaveBeenCalledWith(5, { rating: 3 });
+  expect(songApi.studyBootstrap).not.toHaveBeenCalled();
+});
+
+it('shows the tapped word alone when it is saved but not in the song deck', async () => {
+  vi.mocked(deckApi.getAllDeckDetail).mockResolvedValue(allDeckDetail);
+  vi.mocked(flashcardApi.getDueCards)
+    // 서버는 곡 덱에 없는 lead 를 무시하고 곡 덱 due 를 그대로 준다.
+    .mockResolvedValueOnce({ cards: [card(6)], totalCount: 1, nextDueAt: null })
+    .mockResolvedValueOnce({ cards: [card(5)], totalCount: 1, nextDueAt: null });
+  await mount(tappedInDeckSource);
+  expect(flashcardApi.getDueCards).toHaveBeenLastCalledWith(1, 1, 5);
+  expect(stack.cards.map(c => c.id)).toEqual([5]);
+  vi.mocked(songApi.studyBootstrap).mockResolvedValue({ deckId: 7, cards: [card(6)], totalCount: 2, nextDueAt: null, reviewedMemory: 'SHORT_TERM' });
+  await rate(3);
+  expect(songApi.studyBootstrap).toHaveBeenCalledWith(3, 3, '歌');
+  expect(stack.currentCard?.id).toBe(6);
+});
+
+it('shows an unsaved tapped word as a preview card even when the song deck exists', async () => {
+  await mount({ ...tappedInDeckSource, leadWordId: null });
+  expect(flashcardApi.getDueCards).not.toHaveBeenCalled();
+  expect(stack.cards.map(c => c.id)).toEqual([PREVIEW_FLASHCARD_ID]);
+  expect(stack.currentCard?.japanese).toBe('歌');
+});
+
+it('falls back to the preview card when the saved word card cannot be loaded', async () => {
+  vi.mocked(deckApi.getAllDeckDetail).mockRejectedValue(new Error('network'));
+  await mount(savedPreviewSource);
+  expect(stack.status).toBe('ready');
+  expect(stack.currentCard?.japanese).toBe('歌');
+  expect(stack.currentCard?.intervals).toBeNull();
 });
 
 it('reviews the next card as a real flashcard after the preview bootstrap', async () => {

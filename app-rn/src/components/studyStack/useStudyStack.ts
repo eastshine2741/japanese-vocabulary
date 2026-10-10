@@ -9,6 +9,7 @@ import { wordApi } from '../../api/wordApi';
 import { useStreakStore } from '../../stores/streakStore';
 import { useStudyStatsStore } from '../../stores/studyStatsStore';
 import { SongDeckSummary } from '../../types/deck';
+import { FlashcardDTO } from '../../types/flashcard';
 import { WordInSongItemDto, WordsInSongDto } from '../../types/song';
 import { sourceFromDeck, sourceFromRecent, sourceFromRecommendation } from './studySource';
 import {
@@ -69,6 +70,18 @@ function toPreviewCard(lead: StudyPreviewWord, source: StudySource): StudyCard {
     memory: 'REMAINING',
     source: { ...source, totalCount: 1 },
   };
+}
+
+/**
+ * 다른 곡에서 이미 담은 단어의 실제 카드. 담긴 단어는 늘 기본 덱에 있고, 기본 덱 due 조회의 lead 는
+ * due 가 아니어도 맨 앞에 온다. 다음 복습 간격·기억 칸을 실제 값으로 보여주려고 쓴다.
+ */
+async function fetchSavedWordCard(wordId: number): Promise<FlashcardDTO | null> {
+  const { deckId } = await deckApi.getAllDeckDetail();
+  if (deckId == null) return null;
+  const due = await flashcardApi.getDueCards(deckId, 1, wordId);
+  const card = due.cards[0];
+  return card?.wordId === wordId ? card : null;
 }
 
 export interface UseStudyStackOptions {
@@ -281,27 +294,36 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
         setStatus('ready');
         return;
       }
-      if (target.previewWord) {
-        // 곡 상세에서 아직 안 담긴 단어를 눌렀다 — 덱을 만들지 않고 그 단어를 미리보기 카드로 띄운다.
-        // rating 확정 시 advancePreviewReview 가 곡을 통째로 담는다.
+      // 곡 상세에서 누른 단어로 열었다면 곡 덱 첫 카드가 그 단어일 때만 곡 덱으로 연다. 안 담긴 단어는 곡 덱에 없고,
+      // 서버는 곡 덱에 없는 lead 를 무시한다. leadWordId 는 최초 진입에만 적용한다 — 이후 refreshDue 는 서버 due 순서를 따른다.
+      const deckId = target.previewWord != null && target.leadWordId == null ? null : target.deckId;
+      const due = deckId == null
+        ? null
+        : target.leadWordId != null
+          ? await flashcardApi.getDueCards(deckId, DUE_PAGE_SIZE, target.leadWordId)
+          : await flashcardApi.getDueCards(deckId, DUE_PAGE_SIZE);
+      if (version !== requestVersion.current) return;
+      const tappedLeads = due != null && due.cards[0]?.wordId === target.leadWordId;
+      if (target.previewWord && !tappedLeads) {
+        // 그 단어 하나만 미리보기 카드로 띄운다. 곡은 담지 않고, rating 확정 시 advancePreviewReview 가 곡을 통째로 담는다.
+        const card = target.leadWordId != null
+          // 못 받아도 단어는 보여준다 — 간격·기억 칸만 빠진 미리보기 카드로 대신한다.
+          ? await fetchSavedWordCard(target.leadWordId).catch(() => null)
+          : null;
+        if (version !== requestVersion.current) return;
         isPreviewRef.current = true;
         activeSourceRef.current = null;
-        setCards([toPreviewCard(target.previewWord, target)]);
+        setCards([card ? { ...card, source: { ...target, totalCount: 1 } } : toPreviewCard(target.previewWord, target)]);
         setStatus('ready');
         return;
       }
-      if (target.deckId == null) {
+      if (due == null) {
         // 아직 이 곡의 덱이 없다 — 복습할 카드가 없는 상태로 완료 화면을 보여준다.
         setCards([]);
         setCompletedSource(target);
         setStatus('ready');
         return;
       }
-      // leadWordId 는 최초 진입에만 적용한다 — 이후 refreshDue 는 서버 due 순서를 그대로 따른다.
-      const due = target.leadWordId != null
-        ? await flashcardApi.getDueCards(target.deckId, DUE_PAGE_SIZE, target.leadWordId)
-        : await flashcardApi.getDueCards(target.deckId, DUE_PAGE_SIZE);
-      if (version !== requestVersion.current) return;
       setDueCount(due.totalCount);
       setSessionDueTotal(due.totalCount);
       if (due.cards.length > 0) {
@@ -624,10 +646,10 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
       setReviewError(null);
       setDueCount(result.cards.length);
       setSessionDueTotal(result.totalCount);
-      reviewedIdsRef.current = new Set([PREVIEW_FLASHCARD_ID]);
+      reviewedIdsRef.current = new Set([currentCard.id]);
       setReviewedCount(1);
       setDistinctReviewedCount(1);
-      setMemoryDiff(accumulateMemoryDiff(EMPTY_MEMORY_DIFF, 'REMAINING', result.reviewedMemory));
+      setMemoryDiff(accumulateMemoryDiff(EMPTY_MEMORY_DIFF, currentCard.memory, result.reviewedMemory));
       if (result.cards.length > 0) {
         setCards(result.cards.map(card => ({ ...card, source: newSource })));
         setCurrentIndex(0);
