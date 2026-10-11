@@ -17,7 +17,7 @@ import Animated, {
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { deckApi } from '../api/deckApi';
 import SongCardShowcase from '../components/rewardCards/SongCardShowcase';
-import GradeTabs, { GradeTab } from '../components/rewardCards/GradeTabs';
+import GradePanel, { GradeTab } from '../components/rewardCards/GradePanel';
 import { IntroDecision, reportIntroDecision } from '../components/rewardCards/CardIntroDebugOverlay';
 import { CARD_RATIO, LEVEL_MATERIAL, MASTER_CHIP, SHOWROOM, songTierName, useCardFonts } from '../components/rewardCards/cardTheme';
 import { useCardTilt } from '../components/rewardCards/useCardTilt';
@@ -50,8 +50,10 @@ const SONG_CONDITIONS = [
 
 const SONG_TABS: readonly GradeTab[] = SONG_CARD_KINDS.map((kind) => {
   const material = kind.mastered ? MASTER_CHIP : LEVEL_MATERIAL[kind.level];
-  return { key: kind.key, label: songTierName(kind.level, kind.mastered), frame: material.frame, chipText: material.chipText };
+  return { key: kind.key, label: songTierName(kind.level, kind.mastered), frame: material.frame };
 });
+
+const songCondition = (rung: number) => SONG_CONDITIONS[rung];
 
 /** 내 카드를 그 등급으로 돌린다. 아직 얻지 않은 등급은 주인 정보를 비운 새 견본이다. */
 function songCardAtRung(card: SongRewardCard, rung: number): SongRewardCard {
@@ -70,7 +72,7 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
   );
   const viewRung = pickedRung ?? ownedRung;
   const card = useMemo(() => (owned ? songCardAtRung(owned, viewRung) : owned), [owned, viewRung]);
-  // 다른 등급을 볼 때는 지금 카드의 기억할 확률·승급 조건이 맞지 않는다.
+  // 다른 등급 견본엔 지금 카드의 기억할 확률이 맞지 않는다.
   const isOtherGrade = card !== owned;
   const { width: screenW } = useWindowDimensions();
   const fonts = useCardFonts();
@@ -124,9 +126,6 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
 
 
   const handleClose = useCallback(() => navigation.goBack(), [navigation]);
-  const handleFlip = useCallback(() => {
-    tilt.flip.value = withTiming(tilt.flip.value > 0.5 ? 0 : 1, { duration: 720 });
-  }, [tilt.flip]);
   const handleSelectRung = useCallback((rung: number) => setPickedRung(rung), []);
 
   // 채우기로 받은 카드는 획득 연출을 거치지 않아, 규칙을 본 적 없으면 어느 경로로 들어왔든 설명부터 띄운다.
@@ -159,8 +158,8 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
     };
   }, [issued, navigation, cardId, setIntroDecision]);
 
-  const handleDebugWearIntro = useCallback(() => {
-    navigation.navigate('RewardCardReveal', { kind: 'song', cardId, debugWearIntro: true });
+  const handleWearInfo = useCallback(() => {
+    navigation.navigate('RewardCardReveal', { kind: 'song', cardId, wearOnly: true });
   }, [navigation, cardId]);
   const handleEditLyric = useCallback(() => {
     navigation.navigate('RewardCardLyricEdit', { cardId });
@@ -218,8 +217,7 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
     );
   }
 
-  const goal = card.nextGoal;
-  const nextRung = ownedRung + 1;
+  const goal = owned?.nextGoal ?? null;
 
   return (
     <View style={styles.root}>
@@ -245,9 +243,6 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
               <Pressable onPress={handleEditLyric} hitSlop={10} style={styles.iconBtn}>
                 <Feather name="edit-3" size={18} color={SHOWROOM.fg} />
               </Pressable>
-              <Pressable onPress={handleFlip} hitSlop={10} style={styles.iconBtn}>
-                <Feather name="refresh-ccw" size={18} color={SHOWROOM.fg} />
-              </Pressable>
             </View>
           </Animated.View>
 
@@ -265,63 +260,39 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
 
           <Animated.View style={chromeStyle} pointerEvents={focused ? 'none' : 'auto'}>
             <Animated.View style={[styles.info, infoIn]}>
-              <GradeTabs tabs={SONG_TABS} selected={viewRung} owned={ownedRung} onSelect={handleSelectRung} />
-              <View style={styles.chips}>
+              <View style={[styles.recall, isOtherGrade && styles.recallMuted]}>
+                <Pressable onPress={handleWearInfo} hitSlop={10} style={styles.recallInfo}>
+                  <Text style={styles.recallLabel}>기억할 확률</Text>
+                  <Feather name="info" size={13} color={SHOWROOM.fgDim} />
+                </Pressable>
+                <Text style={styles.recallValue}>{Math.round((owned?.recall ?? card.recall) * 100)}%</Text>
+              </View>
+
+              <GradePanel
+                tabs={SONG_TABS}
+                owned={ownedRung}
+                selected={viewRung}
+                progress={goal}
+                condition={songCondition}
+                onSelect={handleSelectRung}
+              />
+
+              <View style={styles.ctaRow}>
                 <Pressable
                   onPress={handleOpenSong}
                   disabled={songId == null}
-                  hitSlop={6}
-                  style={({ pressed }) => [styles.linkChip, songId == null && styles.ctaDisabled, pressed && styles.ctaPressed]}
+                  style={({ pressed }) => [styles.subCta, songId == null && styles.ctaDisabled, pressed && styles.ctaPressed]}
                 >
-                  <Text style={styles.linkText} numberOfLines={1}>
-                    {card.title}
-                  </Text>
-                  <Feather name="chevron-right" size={13} color={SHOWROOM.fg} />
+                  <Text style={styles.subCtaText}>곡 보기</Text>
+                </Pressable>
+                <Pressable
+                  onPress={handleStartReview}
+                  disabled={songId == null || isStartingReview}
+                  style={({ pressed }) => [styles.cta, songId == null && styles.ctaDisabled, pressed && styles.ctaPressed]}
+                >
+                  {isStartingReview ? <ActivityIndicator color={SHOWROOM.bg} /> : <Text style={styles.ctaText}>복습 시작하기</Text>}
                 </Pressable>
               </View>
-
-              {isOtherGrade ? (
-                <View style={styles.panel}>
-                  <Text style={styles.panelCaption}>{SONG_TABS[viewRung].label} 획득 조건</Text>
-                  <View style={styles.panelHead}>
-                    <Text style={styles.panelTitle}>{SONG_CONDITIONS[viewRung]}</Text>
-                    {viewRung < ownedRung && <Feather name="check" size={15} color={SHOWROOM.fg} />}
-                  </View>
-                </View>
-              ) : (
-                <View style={styles.panel}>
-                  <Pressable style={styles.panelHead} onLongPress={__DEV__ ? handleDebugWearIntro : undefined}>
-                    <Text style={styles.panelTitle}>기억할 확률</Text>
-                    <Text style={styles.panelValue}>{Math.round(card.recall * 100)}%</Text>
-                  </Pressable>
-                  <Text style={styles.panelNote}>이 곡에서 공부한 단어를 지금 떠올릴 수 있는 확률의 평균이에요.</Text>
-
-                  {goal && nextRung < SONG_TABS.length && (
-                    <>
-                      <View style={styles.divider} />
-                      <Text style={styles.panelCaption}>{SONG_TABS[nextRung].label} 승급 조건</Text>
-                      <View style={styles.panelHead}>
-                        <Text style={styles.panelTitle}>{SONG_CONDITIONS[nextRung]}</Text>
-                        <Text style={styles.panelValue}>
-                          {goal.current}
-                          <Text style={styles.panelTotal}> / {goal.total}</Text>
-                        </Text>
-                      </View>
-                      <View style={styles.goalTrack}>
-                        <View style={[styles.goalFill, { width: `${(goal.current / goal.total) * 100}%`, backgroundColor: card.accent }]} />
-                      </View>
-                    </>
-                  )}
-                </View>
-              )}
-
-              <Pressable
-                onPress={handleStartReview}
-                disabled={songId == null || isStartingReview}
-                style={({ pressed }) => [styles.cta, songId == null && styles.ctaDisabled, pressed && styles.ctaPressed]}
-              >
-                {isStartingReview ? <ActivityIndicator color={SHOWROOM.bg} /> : <Text style={styles.ctaText}>복습 시작하기</Text>}
-              </Pressable>
             </Animated.View>
           </Animated.View>
         </View>
@@ -342,30 +313,15 @@ const styles = StyleSheet.create({
   stage: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   stageCenter: { alignItems: 'center', justifyContent: 'center' },
   info: { paddingHorizontal: 24, paddingBottom: 8, gap: 8 },
-  chips: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap', gap: 6 },
-  linkChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-    maxWidth: 200,
-    borderRadius: 999,
-    paddingLeft: 10,
-    paddingRight: 6,
-    paddingVertical: 4,
-    backgroundColor: SHOWROOM.glass,
-  },
-  linkText: { flexShrink: 1, color: SHOWROOM.fg, fontSize: 12, fontWeight: '600' },
-  panel: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 14, backgroundColor: SHOWROOM.glass, gap: 4 },
-  divider: { height: StyleSheet.hairlineWidth, backgroundColor: '#FFFFFF26', marginVertical: 6 },
-  panelHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 },
-  panelCaption: { color: SHOWROOM.fgDim, fontSize: 11, fontWeight: '500' },
-  panelTitle: { flex: 1, color: SHOWROOM.fg, fontSize: 13, fontWeight: '600' },
-  panelNote: { color: SHOWROOM.fgDim, fontSize: 11, lineHeight: 15 },
-  panelValue: { color: SHOWROOM.fg, fontSize: 15, fontWeight: '700', fontVariant: ['tabular-nums'] },
-  panelTotal: { color: SHOWROOM.fgDim, fontSize: 12, fontWeight: '500' },
-  goalTrack: { marginTop: 4, height: 4, borderRadius: 999, backgroundColor: '#FFFFFF1F', overflow: 'hidden' },
-  goalFill: { height: '100%', borderRadius: 999 },
-  cta: { height: 44, borderRadius: 14, backgroundColor: SHOWROOM.fg, alignItems: 'center', justifyContent: 'center' },
+  recall: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 4 },
+  recallInfo: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  recallMuted: { opacity: 0.35 },
+  recallLabel: { color: SHOWROOM.fgDim, fontSize: 13, fontWeight: '500' },
+  recallValue: { color: SHOWROOM.fg, fontSize: 17, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  ctaRow: { flexDirection: 'row', gap: 8, marginTop: 4 },
+  subCta: { height: 44, paddingHorizontal: 18, borderRadius: 14, backgroundColor: SHOWROOM.glass, alignItems: 'center', justifyContent: 'center' },
+  subCtaText: { color: SHOWROOM.fg, fontSize: 15, fontWeight: '600' },
+  cta: { flex: 1, height: 44, borderRadius: 14, backgroundColor: SHOWROOM.fg, alignItems: 'center', justifyContent: 'center' },
   ctaPressed: { opacity: 0.85 },
   ctaDisabled: { opacity: 0.4 },
   ctaText: { color: SHOWROOM.bg, fontSize: 15, fontWeight: '700' },

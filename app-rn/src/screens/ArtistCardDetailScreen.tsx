@@ -16,7 +16,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import ArtistCardShowcase from '../components/rewardCards/ArtistCardShowcase';
-import GradeTabs, { GradeTab } from '../components/rewardCards/GradeTabs';
+import GradePanel, { GradeTab } from '../components/rewardCards/GradePanel';
 import { ARTIST_GRADE_STEPS, artistGradeStep, nextArtistGradeStep } from '../components/rewardCards/artistGrade';
 import { artistCardAt } from '../components/rewardCards/cardKinds';
 import { artistRung } from '../components/rewardCards/cardUpgrade';
@@ -31,7 +31,6 @@ const ARTIST_TABS: readonly GradeTab[] = ARTIST_GRADE_STEPS.map((step) => ({
   key: step.grade,
   label: step.label,
   frame: ARTIST_MATERIAL[step.grade].frame,
-  chipText: ARTIST_MATERIAL[step.grade].chipText,
 }));
 
 function artistCondition(rung: number): string {
@@ -55,7 +54,6 @@ export default function ArtistCardDetailScreen({ navigation, route }: Props) {
   );
   const viewRung = pickedRung ?? ownedRung;
   const card = useMemo(() => (owned ? artistCardAtRung(owned, viewRung) : owned), [owned, viewRung]);
-  // 다른 재질을 볼 때는 지금 카드의 승급 조건이 맞지 않는다.
   const isOtherGrade = card !== owned;
   const handleSelectRung = useCallback((rung: number) => setPickedRung(rung), []);
   const { width: screenW } = useWindowDimensions();
@@ -79,9 +77,6 @@ export default function ArtistCardDetailScreen({ navigation, route }: Props) {
   }));
 
   const handleClose = useCallback(() => navigation.goBack(), [navigation]);
-  const handleFlip = useCallback(() => {
-    tilt.flip.value = withTiming(tilt.flip.value > 0.5 ? 0 : 1, { duration: 720 });
-  }, [tilt.flip]);
   const artistId = card?.artistId ?? null;
   const handleOpenArtist = useCallback(() => {
     if (artistId != null) navigation.navigate('ArtistDetail', { artistId });
@@ -107,7 +102,8 @@ export default function ArtistCardDetailScreen({ navigation, route }: Props) {
   }
 
   const cardW = Math.min(screenW - 40, 400);
-  const next = nextArtistGradeStep(card.masteredCount);
+  const next = owned ? nextArtistGradeStep(owned.masteredCount) : null;
+  const progress = owned && next ? { current: owned.masteredCount, total: next.from } : null;
 
   return (
     <View style={styles.root}>
@@ -125,9 +121,6 @@ export default function ArtistCardDetailScreen({ navigation, route }: Props) {
             <Feather name="chevron-down" size={22} color={SHOWROOM.fg} />
           </Pressable>
           <View style={styles.actions}>
-            <Pressable onPress={handleFlip} hitSlop={10} style={styles.iconBtn}>
-              <Feather name="refresh-ccw" size={18} color={SHOWROOM.fg} />
-            </Pressable>
           </View>
         </View>
 
@@ -140,46 +133,23 @@ export default function ArtistCardDetailScreen({ navigation, route }: Props) {
         </View>
 
         <Animated.View style={[styles.info, infoIn]}>
-          <GradeTabs tabs={ARTIST_TABS} selected={viewRung} owned={ownedRung} onSelect={handleSelectRung} />
-          <View style={styles.chips}>
-            <Pressable
-              onPress={handleOpenArtist}
-              disabled={artistId == null}
-              hitSlop={6}
-              style={({ pressed }) => [styles.linkChip, artistId == null && styles.linkDisabled, pressed && styles.linkPressed]}
-            >
-              <Text style={styles.linkText} numberOfLines={1}>
-                {card.name}
-              </Text>
-              <Feather name="chevron-right" size={13} color={SHOWROOM.fg} />
-            </Pressable>
-          </View>
-
-          {isOtherGrade ? (
-            <View style={styles.goal}>
-              <Text style={styles.goalCaption}>{ARTIST_TABS[viewRung].label} 획득 조건</Text>
-              <View style={styles.goalHead}>
-                <Text style={styles.goalLabel}>{artistCondition(viewRung)}</Text>
-                {viewRung < ownedRung && <Feather name="check" size={16} color={SHOWROOM.fg} />}
-              </View>
-            </View>
-          ) : next && (
-            <View style={styles.goal}>
-              <Text style={styles.goalCaption}>{next.label} 승급 조건</Text>
-              <View style={styles.goalHead}>
-                <Text style={styles.goalLabel}>이 아티스트 곡의 MASTER 카드 {next.from}장 모으기</Text>
-                <Text style={styles.goalValue}>
-                  {card.masteredCount}
-                  <Text style={styles.goalTotal}> / {next.from}</Text>
-                </Text>
-              </View>
-              <View style={styles.goalTrack}>
-                <View
-                  style={[styles.goalFill, { width: `${(card.masteredCount / next.from) * 100}%`, backgroundColor: card.accent }]}
-                />
-              </View>
-            </View>
-          )}
+          <GradePanel
+            tabs={ARTIST_TABS}
+            owned={ownedRung}
+            selected={viewRung}
+            progress={progress}
+            condition={artistCondition}
+            onSelect={handleSelectRung}
+          />
+          <Pressable
+            onPress={handleOpenArtist}
+            disabled={artistId == null}
+            style={({ pressed }) => [styles.subCta, artistId == null && styles.linkDisabled, pressed && styles.linkPressed]}
+          >
+            <Text style={styles.subCtaText} numberOfLines={1}>
+              아티스트 보기
+            </Text>
+          </Pressable>
         </Animated.View>
       </SafeAreaView>
     </View>
@@ -208,34 +178,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   stage: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  info: { paddingHorizontal: 24, paddingBottom: 16, gap: 6 },
-  chips: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap', gap: 6 },
-  linkChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-    maxWidth: 200,
-    borderRadius: 999,
-    paddingLeft: 12,
-    paddingRight: 8,
-    paddingVertical: 5,
-    backgroundColor: SHOWROOM.glass,
-  },
-  linkText: { flexShrink: 1, color: SHOWROOM.fg, fontSize: 12, fontWeight: '600' },
+  info: { paddingHorizontal: 24, paddingBottom: 16, gap: 8 },
+  subCta: { height: 44, borderRadius: 14, backgroundColor: SHOWROOM.glass, alignItems: 'center', justifyContent: 'center' },
+  subCtaText: { color: SHOWROOM.fg, fontSize: 15, fontWeight: '600' },
   linkDisabled: { opacity: 0.4 },
   linkPressed: { opacity: 0.85 },
-  goal: {
-    marginTop: 14,
-    padding: 14,
-    borderRadius: 16,
-    backgroundColor: SHOWROOM.glass,
-    gap: 8,
-  },
-  goalHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 },
-  goalCaption: { color: SHOWROOM.fgDim, fontSize: 12, fontWeight: '500' },
-  goalLabel: { flex: 1, color: SHOWROOM.fg, fontSize: 14, fontWeight: '600' },
-  goalValue: { color: SHOWROOM.fg, fontSize: 18, fontWeight: '700', fontVariant: ['tabular-nums'] },
-  goalTotal: { color: SHOWROOM.fgDim, fontSize: 13, fontWeight: '500' },
-  goalTrack: { height: 6, borderRadius: 999, backgroundColor: '#FFFFFF1F', overflow: 'hidden' },
-  goalFill: { height: '100%', borderRadius: 999 },
 });

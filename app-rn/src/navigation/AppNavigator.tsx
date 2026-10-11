@@ -97,7 +97,7 @@ export type RootStackParamList = {
     /** 서버가 준 연출의 등급·오르기 전 등급. */
     grade?: string;
     fromGrade?: string | null;
-    debugWearIntro?: boolean;
+    wearOnly?: boolean;
     /** 연출 없이 받은(채우기) 카드의 획득·승급·낡음 설명만. 봉투·서명이 없다. */
     intro?: boolean;
     /** 연출 차례에서 열었다. 닫히면 다음 연출을 연다. */

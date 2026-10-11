@@ -96,8 +96,8 @@ interface RevealProps {
   /** 화면 전환이 끝나면 true. 전환과 회전이 겹치지 않게 그때 연출을 시작한다. */
   started: boolean;
   onClose: () => void;
-  /** 개발용 — 낡음 설명만 바로 띄우고, 본 것으로 치지 않으며 뒤로 가기로 닫힌다. */
-  debugWearIntro?: boolean;
+  /** 상세의 (i) — 낡음 설명만 띄우고, 본 것으로 치지 않으며 뒤로 가기로 닫힌다. */
+  wearOnly?: boolean;
   /** 연출 없이 받은 카드 — 봉투·서명 없이 획득·승급 계단과 낡음 설명만 보여 준다. */
   intro?: boolean;
 }
@@ -106,7 +106,7 @@ export const RewardCardReveal = React.memo(function RewardCardReveal({
   card,
   started,
   onClose,
-  debugWearIntro = false,
+  wearOnly = false,
   intro = false,
 }: RevealProps) {
   const insets = useSafeAreaInsets();
@@ -123,7 +123,7 @@ export const RewardCardReveal = React.memo(function RewardCardReveal({
   const markWearIntroSeen = useRewardCardStore((s) => s.markWearIntroSeen);
   // 연 순간 기준으로 고정해야 도중에 버튼 라벨이 바뀌지 않는다.
   const [showWearIntro] = useState(() => !useRewardCardStore.getState().wearIntroSeen);
-  const [step, setStep] = useState<Step>(debugWearIntro ? 'wear' : intro ? 'guide' : 'reveal');
+  const [step, setStep] = useState<Step>(wearOnly ? 'wear' : intro ? 'guide' : 'reveal');
   // 서명 단계에서 뒤로 가면 들어온 단계로 돌아간다.
   const [signFrom, setSignFrom] = useState<'reveal' | 'pick'>('reveal');
   const [signed, setSigned] = useState(false);
@@ -135,10 +135,10 @@ export const RewardCardReveal = React.memo(function RewardCardReveal({
   }, []);
   const handleBack = useCallback(() => {
     // 설명만 보는 화면은 막을 서명이 없어 첫 단계에서 뒤로 가면 닫는다.
-    if (debugWearIntro || (intro && step === 'guide')) onClose();
+    if (wearOnly || (intro && step === 'guide')) onClose();
     else if (intro) setStep('guide');
     else setStep((prev) => (prev === 'sign' ? signFrom : 'reveal'));
-  }, [debugWearIntro, intro, onClose, signFrom, step]);
+  }, [wearOnly, intro, onClose, signFrom, step]);
   const handleGuideDone = useCallback(() => setStep('wear'), []);
   const handleLyric = useCallback(
     (picked: number[]) => {
@@ -157,9 +157,9 @@ export const RewardCardReveal = React.memo(function RewardCardReveal({
   );
   const handleSealed = useCallback(() => (showWearIntro ? setStep('wear') : onClose()), [showWearIntro, onClose]);
   const handleWearDone = useCallback(() => {
-    if (!debugWearIntro) markWearIntroSeen();
+    if (!wearOnly) markWearIntroSeen();
     onClose();
-  }, [debugWearIntro, markWearIntroSeen, onClose]);
+  }, [wearOnly, markWearIntroSeen, onClose]);
   useRevealBackGuard(!intro && step === 'reveal', signed, handleBack);
 
   // 설명 단계는 봉투 연출이 없어, 화면이 다 열리면 계단만 채운다.
