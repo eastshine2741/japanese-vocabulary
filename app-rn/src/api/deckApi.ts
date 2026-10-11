@@ -1,6 +1,7 @@
 import client from './client';
 import {
   CreateDeckRequest,
+  DeckDeletionPreviewResponse,
   DeckDetailResponse,
   DeckListResponse,
   DeckResponse,
@@ -48,5 +49,15 @@ export const deckApi = {
       params: cursor != null ? { cursor } : {},
     });
     return data;
+  },
+
+  async getDeletionPreview(deckId: number): Promise<DeckDeletionPreviewResponse> {
+    const { data } = await client.get<DeckDeletionPreviewResponse>(`/api/decks/${deckId}/deletion-preview`);
+    return data;
+  },
+
+  /** 이 덱에만 있던 단어는 복습 기록과 함께 지워지고, 다른 덱에도 담긴 단어는 남는다. */
+  async deleteDeck(deckId: number): Promise<void> {
+    await client.delete(`/api/decks/${deckId}`);
   },
 };

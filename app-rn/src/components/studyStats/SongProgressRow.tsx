@@ -9,15 +9,25 @@ import { SongProgressItem } from './songProgress';
 interface Props {
   item: SongProgressItem;
   onPress: (item: SongProgressItem) => void;
+  onLongPress?: (item: SongProgressItem) => void;
 }
 
-function SongProgressRow({ item, onPress }: Props) {
+function SongProgressRow({ item, onPress, onLongPress }: Props) {
   const handlePress = useCallback(() => {
     onPress(item);
   }, [item, onPress]);
+  const handleLongPress = useCallback(() => {
+    onLongPress?.(item);
+  }, [item, onLongPress]);
 
   return (
-    <TouchableOpacity style={styles.row} onPress={handlePress} activeOpacity={0.72}>
+    <TouchableOpacity
+      style={styles.row}
+      onPress={handlePress}
+      onLongPress={onLongPress ? handleLongPress : undefined}
+      delayLongPress={350}
+      activeOpacity={0.72}
+    >
       <ArtworkImage url={item.artworkUrl} size={48} cornerRadius={10} style={styles.artwork} />
       <View style={styles.body}>
         <View style={styles.top}>

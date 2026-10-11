@@ -12,6 +12,9 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useShallow } from 'zustand/react/shallow';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useDeckListStore } from '../stores/deckListStore';
+import { useHomeChromeStore } from '../stores/homeChromeStore';
+import { useDeleteSongDeck, useSongDeckActionSheet } from '../hooks/useDeleteSongDeck';
+import type { SongDeckTarget } from '../components/SongDeckActionSheet';
 import { Colors, Dimens } from '../theme/theme';
 import { AppBar } from '../components/AppBar';
 import SongProgressRow from '../components/studyStats/SongProgressRow';
@@ -46,11 +49,32 @@ export default function SongProgressListScreen({ navigation }: Props) {
     }
   }, [navigation]);
 
+  const requestHomeReload = useHomeChromeStore((s) => s.requestReload);
+  const handleDeckDeleted = useCallback(() => {
+    load();
+    requestHomeReload();
+  }, [load, requestHomeReload]);
+  const deckDeletion = useDeleteSongDeck(handleDeckDeleted);
+  const { requestDelete } = deckDeletion;
+  const handleDeleteFromSheet = useCallback((target: SongDeckTarget) => {
+    requestDelete(target.deckId);
+  }, [requestDelete]);
+  const deckActions = useSongDeckActionSheet(handleDeleteFromSheet);
+  const { open: openDeckActions } = deckActions;
+  const handleRowLongPress = useCallback((item: SongProgressItem) => {
+    openDeckActions({ deckId: item.deckId, title: item.title, artist: item.artist });
+  }, [openDeckActions]);
+
+  // 일반 단어장(songId == null)은 곡 담기 취소 대상이 아니라 롱프레스를 걸지 않는다.
   const renderItem = useCallback(
     ({ item }: { item: SongProgressItem }) => (
-      <SongProgressRow item={item} onPress={handleRowPress} />
+      <SongProgressRow
+        item={item}
+        onPress={handleRowPress}
+        onLongPress={item.songId != null ? handleRowLongPress : undefined}
+      />
     ),
-    [handleRowPress],
+    [handleRowPress, handleRowLongPress],
   );
 
   const keyExtractor = useCallback((item: SongProgressItem) => String(item.deckId), []);
@@ -84,6 +108,8 @@ export default function SongProgressListScreen({ navigation }: Props) {
           />
         )}
       </View>
+      {deckActions.sheet}
+      {deckDeletion.dialogs}
     </SafeAreaView>
   );
 }

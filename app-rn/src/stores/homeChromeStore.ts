@@ -9,6 +9,10 @@ interface HomeChromeState {
   requestImmerse: () => void;
   /** 요청이 있었으면 true 를 돌려주며 끈다. */
   consumeImmerse: () => boolean;
+  /** 다른 화면에서 곡 덱을 지웠을 때 켜 둔다. 홈은 포커스를 되찾을 때 스택을 다시 연다. */
+  pendingReload: boolean;
+  requestReload: () => void;
+  consumeReload: () => boolean;
 }
 
 export const useHomeChromeStore = create<HomeChromeState>((set, get) => ({
@@ -19,6 +23,13 @@ export const useHomeChromeStore = create<HomeChromeState>((set, get) => ({
   consumeImmerse: () => {
     if (!get().pendingImmerse) return false;
     set({ pendingImmerse: false });
+    return true;
+  },
+  pendingReload: false,
+  requestReload: () => set({ pendingReload: true }),
+  consumeReload: () => {
+    if (!get().pendingReload) return false;
+    set({ pendingReload: false });
     return true;
   },
 }));

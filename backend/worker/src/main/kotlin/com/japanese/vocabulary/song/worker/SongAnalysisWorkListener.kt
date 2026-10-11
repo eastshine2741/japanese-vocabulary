@@ -50,7 +50,7 @@ class SongAnalysisWorkListener(
 
     @RabbitListener(
         queues = [SongAnalysisQueue.QUEUE],
-        concurrency = "\${song-analysis.worker.concurrency:3}",
+        concurrency = "\${song-analysis.worker.concurrency:6}",
     )
     fun onMessage(
         message: SongAnalysisWorkMessage,

@@ -317,11 +317,14 @@ describe("admin web", () => {
     // 타임스탬프에서 클립 구간이 잡히고 마지막 줄은 인스펙터에 뜬다
     expect(screen.getByLabelText("Clip start")).toHaveValue("0:00.0")
     expect(screen.getByLabelText("Line 3 start")).toHaveValue("0:06.0")
-    // 추천 단어는 기본 선택, 조동사는 고를 수 없고, 다른 동사는 눌러서 넣는다
-    expect(screen.getByLabelText("Toggle word 沈む")).toHaveAttribute("aria-pressed", "true")
+    // 줄은 단어 없이 시작하고, 조동사는 고를 수 없고, 한 줄에 단어를 몇 개든 고른다
+    expect(screen.getByLabelText("Toggle word 沈む")).toHaveAttribute("aria-pressed", "false")
     expect(screen.getAllByLabelText("Toggle word ように")[0]).toBeDisabled()
+    await user.click(screen.getByLabelText("Toggle word 沈む"))
+    expect(screen.getByLabelText("Toggle word 沈む")).toHaveAttribute("aria-pressed", "true")
     await user.click(screen.getByLabelText("Toggle word 溶けてゆく"))
     expect(screen.getByLabelText("Toggle word 溶けてゆく")).toHaveAttribute("aria-pressed", "true")
+    await user.click(screen.getByLabelText("Toggle word 溶けてゆく"))
 
     expect(screen.getByRole("button", { name: /Render and download MP4/ })).toBeEnabled()
 

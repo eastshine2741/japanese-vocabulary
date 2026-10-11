@@ -256,7 +256,6 @@ export type ReelsSongDetail = {
   minLineCount: number
   maxLineCount: number | null
   maxLyricsSpanMs: number
-  maxVocabularyPerLine: number
   lines: ReelsLyricLine[]
 }
 
@@ -266,18 +265,8 @@ export type ReelsLyricLine = {
   originalText: string
   koreanLyrics: string | null
   tokens: LyricToken[]
-  recommendedVocabulary: ReelsVocabulary[]
   selectable: boolean
   ineligibleReason: string | null
-}
-
-export type ReelsVocabulary = {
-  japanese: string
-  reading: string
-  korean: string
-  partOfSpeech?: string | null
-  partOfSpeechLabel?: string | null
-  jlpt?: string | null
 }
 
 export type ReelsSource = {

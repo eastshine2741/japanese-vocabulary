@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.japanese.vocabulary.auth.jwt.JwtUtil
 import com.japanese.vocabulary.deck.dto.CreateDeckRequest
+import com.japanese.vocabulary.deck.dto.DeckDeletionPreviewResponse
 import com.japanese.vocabulary.deck.dto.DeckDetailResponse
 import com.japanese.vocabulary.deck.dto.DeckListResponse
 import com.japanese.vocabulary.deck.dto.DeckResponse
@@ -465,13 +466,17 @@ class DeckControllerTest : ApiBaseIntegrationTest() {
     inner class DeleteDeck {
 
         @Test
-        fun `deletes the deck but keeps its words and their flashcards`() {
+        fun `deletes the deck with its exclusive words, keeping words shared with another deck`() {
             val me = newUser()
-            val song = newSong()
-            val deck = newDeck(me, song)
-            val word = newWord(me)
-            val card = newCard(me, word)
-            link(deck, word)
+            val defaultDeck = newDefaultDeck(me)
+            val deck = newDeck(me, newSong())
+            val otherDeck = newDeck(me, newSong())
+            val exclusive = newWord(me)
+            val exclusiveCard = newCard(me, exclusive)
+            val shared = newWord(me)
+            val sharedCard = newCard(me, shared)
+            listOf(exclusive, shared).forEach { link(deck, it); link(defaultDeck, it) }
+            link(otherDeck, shared)
 
             mockMvc.delete("/api/decks/${deck.id}") {
                 header("Authorization", bearer(me))
@@ -479,8 +484,10 @@ class DeckControllerTest : ApiBaseIntegrationTest() {
 
             entityManager.flush(); entityManager.clear()
             assertThat(entityManager.find(DeckEntity::class.java, deck.id)).isNull()
-            assertThat(entityManager.find(WordEntity::class.java, word.id)).isNotNull
-            assertThat(entityManager.find(FlashcardEntity::class.java, card.id)).isNotNull
+            assertThat(entityManager.find(WordEntity::class.java, exclusive.id)).isNull()
+            assertThat(entityManager.find(FlashcardEntity::class.java, exclusiveCard.id)).isNull()
+            assertThat(entityManager.find(WordEntity::class.java, shared.id)).isNotNull
+            assertThat(entityManager.find(FlashcardEntity::class.java, sharedCard.id)).isNotNull
         }
 
         @Test
@@ -508,6 +515,49 @@ class DeckControllerTest : ApiBaseIntegrationTest() {
 
             entityManager.flush(); entityManager.clear()
             assertThat(entityManager.find(DeckEntity::class.java, theirDeck.id)).isNotNull
+        }
+    }
+
+    @Nested
+    inner class DeletionPreview {
+
+        @Test
+        fun `counts words that belong to no other deck except the default deck`() {
+            val me = newUser()
+            val defaultDeck = newDefaultDeck(me)
+            val deck = newDeck(me, newSong())
+            val otherDeck = newDeck(me, newSong())
+            val exclusive1 = newWord(me)
+            val exclusive2 = newWord(me)
+            val shared = newWord(me)
+            listOf(exclusive1, exclusive2, shared).forEach { link(deck, it); link(defaultDeck, it) }
+            link(otherDeck, shared)
+
+            val body = mockMvc.get("/api/decks/${deck.id}/deletion-preview") {
+                header("Authorization", bearer(me))
+            }.andExpect { status { isOk() } }.andReturn().response.contentAsString
+
+            assertThat(readBody<DeckDeletionPreviewResponse>(body).deletedWordCount).isEqualTo(2)
+        }
+
+        @Test
+        fun `the default deck is rejected`() {
+            val me = newUser()
+            val defaultDeck = newDefaultDeck(me)
+
+            mockMvc.get("/api/decks/${defaultDeck.id}/deletion-preview") {
+                header("Authorization", bearer(me))
+            }.andExpect { status { isBadRequest() } }
+        }
+
+        @Test
+        fun `another user's deck is forbidden`() {
+            val me = newUser()
+            val theirDeck = newDeck(newUser(), newSong())
+
+            mockMvc.get("/api/decks/${theirDeck.id}/deletion-preview") {
+                header("Authorization", bearer(me))
+            }.andExpect { status { isForbidden() } }
         }
     }
 }

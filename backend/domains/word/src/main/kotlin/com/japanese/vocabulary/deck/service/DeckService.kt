@@ -5,6 +5,7 @@ import com.japanese.vocabulary.common.exception.BusinessException
 import com.japanese.vocabulary.common.exception.ErrorCode
 import com.japanese.vocabulary.deck.entity.DeckEntity
 import com.japanese.vocabulary.deck.dto.CreateDeckDto
+import com.japanese.vocabulary.deck.dto.DeckDeletionPreviewDto
 import com.japanese.vocabulary.deck.dto.DeckDto
 import com.japanese.vocabulary.deck.dto.DeckDetailDto
 import com.japanese.vocabulary.deck.dto.DeckListDto
@@ -30,7 +31,8 @@ import java.time.Clock
 import java.time.Instant
 
 /**
- * 단어장은 **word 보다 오래 산다**: 단어가 모두 지워져도 남고, 단어장을 지워도 단어는 남는다.
+ * 단어장은 **word 보다 오래 산다**: 단어가 모두 지워져도 남는다. 단어장을 지우면 이 단어장에만 속한 단어는
+ * 함께 지워지고, 다른 단어장에도 속한 단어는 그대로 남는다.
  * 쓰기 경로는 word 저장 트랜잭션에 합류하므로 새 트랜잭션을 열지 않는다.
  */
 @Service
@@ -162,15 +164,33 @@ class DeckService(
     }
 
     /**
-     * 단어장만 지운다 — 안의 단어와 flashcard 는 그대로 남고, 전체 단어장 연결도 유지된다.
-     * 전체 단어장은 "모든 단어는 전체 단어장에 속한다"는 불변식의 담지자라 지울 수 없다.
+     * 전체 단어장을 빼면 이 단어장에만 속한 단어는 flashcard·모든 연결과 함께 지운다. 다른 단어장에도 속한 단어는
+     * 손대지 않는다. 전체 단어장은 "모든 단어는 전체 단어장에 속한다"는 불변식의 담지자라 지울 수 없다.
      */
     @Transactional
     fun deleteDeck(userId: Long, deckId: Long) {
+        val deck = loadDeletableDeck(userId, deckId)
+        val exclusiveWordIds = deckWordRepository.findExclusiveWordIds(deckId)
+        deckWordRepository.deleteByDeckId(deckId)
+        if (exclusiveWordIds.isNotEmpty()) {
+            // words 를 FK 로 참조하는 flashcards·deck_word(전체 단어장 연결) 부터 지운다.
+            flashcardService.deleteByWordIds(exclusiveWordIds)
+            deckWordRepository.deleteByWordIdIn(exclusiveWordIds)
+            wordRepository.deleteByIdIn(exclusiveWordIds)
+        }
+        deckRepository.delete(deck)
+    }
+
+    @Transactional(readOnly = true)
+    fun getDeletionPreview(userId: Long, deckId: Long): DeckDeletionPreviewDto {
+        loadDeletableDeck(userId, deckId)
+        return DeckDeletionPreviewDto(deletedWordCount = deckWordRepository.findExclusiveWordIds(deckId).size)
+    }
+
+    private fun loadDeletableDeck(userId: Long, deckId: Long): DeckEntity {
         val deck = loadOwnedDeck(userId, deckId)
         if (deck.isDefault == true) throw BusinessException(ErrorCode.DEFAULT_DECK_NOT_DELETABLE)
-        deckWordRepository.deleteByDeckId(deckId)
-        deckRepository.delete(deck)
+        return deck
     }
 
     /**

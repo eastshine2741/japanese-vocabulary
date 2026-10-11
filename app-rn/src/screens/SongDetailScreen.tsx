@@ -20,6 +20,8 @@ import { Feather, FontAwesome6 } from '@expo/vector-icons';
 import Svg, { Path } from 'react-native-svg';
 import { useSongDetailStore } from '../stores/songDetailStore';
 import { usePlayerStore } from '../stores/playerStore';
+import { useHomeChromeStore } from '../stores/homeChromeStore';
+import { useDeleteSongDeck } from '../hooks/useDeleteSongDeck';
 import { deckApi } from '../api/deckApi';
 import { songApi } from '../api/songApi';
 import { wordApi } from '../api/wordApi';
@@ -414,6 +416,22 @@ export default function SongDetailScreen({ navigation, route }: Props) {
       .catch(() => setSongDeckDetail(null));
   }, [refreshCoverage, refreshTiers, refreshWords, songId]);
 
+  const requestHomeReload = useHomeChromeStore(s => s.requestReload);
+  const handleSongDeckDeleted = useCallback(() => {
+    setSongDeckDetail(null);
+    handleWordsChanged();
+    requestHomeReload();
+  }, [handleWordsChanged, requestHomeReload]);
+  const songDeckDeletion = useDeleteSongDeck(handleSongDeckDeleted);
+  const { requestDelete: requestSongDeckDelete } = songDeckDeletion;
+  const songDeckId = songDeckDetail?.deckId ?? null;
+  const handleStopLearning = useCallback(() => {
+    if (songDeckId == null) return;
+    infoSheetOpenRef.current = false;
+    infoSheetRef.current?.close();
+    requestSongDeckDelete(songDeckId);
+  }, [requestSongDeckDelete, songDeckId]);
+
   const handleHomePageLayout = useCallback((event: LayoutChangeEvent) => {
     const height = Math.ceil(event.nativeEvent.layout.height);
     setTabPageHeights(prev => prev.home === height ? prev : { ...prev, home: height });
@@ -736,7 +754,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
                 <Text style={styles.appBarDeckButtonText} numberOfLines={1}>{learningActionLabel}</Text>
               </Pressable>
             </Animated.View>
-            <IconButton icon="info" onPress={handleOpenInfo} />
+            <IconButton icon="more-horizontal" onPress={handleOpenInfo} />
           </View>
         </View>
       </View>
@@ -789,6 +807,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
             artist={song.artist}
             lyricsSourceName={lyrics.lyricsSourceName}
             lyricsSourceUrl={lyrics.lyricsSourceUrl}
+            onStopLearning={songDeckId != null ? handleStopLearning : undefined}
           />
         </AppBottomSheetView>
       </AppBottomSheet>
@@ -807,6 +826,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
       </AppBottomSheet>
 
       <ErrorDialog message={learningError} onDismiss={handleDismissLearningError} />
+      {songDeckDeletion.dialogs}
 
     </View>
   );

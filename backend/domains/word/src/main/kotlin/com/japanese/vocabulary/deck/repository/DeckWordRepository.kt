@@ -33,4 +33,24 @@ interface DeckWordRepository : JpaRepository<DeckWordEntity, Long> {
     @Modifying(flushAutomatically = true)
     @Query("DELETE FROM DeckWordEntity dw WHERE dw.deckId = :deckId")
     fun deleteByDeckId(@Param("deckId") deckId: Long)
+
+    @Modifying(flushAutomatically = true)
+    @Query("DELETE FROM DeckWordEntity dw WHERE dw.wordId IN :wordIds")
+    fun deleteByWordIdIn(@Param("wordIds") wordIds: Collection<Long>)
+
+    /** 전체 단어장을 빼면 이 단어장에만 속한 단어. 단어장 삭제 때 함께 지워질 대상이다. */
+    @Query(
+        """
+            SELECT dw.wordId FROM DeckWordEntity dw
+            WHERE dw.deckId = :deckId
+              AND NOT EXISTS (
+                SELECT 1 FROM DeckWordEntity other, DeckEntity d
+                WHERE other.wordId = dw.wordId
+                  AND d.id = other.deckId
+                  AND other.deckId <> :deckId
+                  AND d.isDefault IS NULL
+              )
+        """
+    )
+    fun findExclusiveWordIds(@Param("deckId") deckId: Long): List<Long>
 }

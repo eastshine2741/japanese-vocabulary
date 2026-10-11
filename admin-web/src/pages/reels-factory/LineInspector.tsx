@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import {
   clampHeadlineFontSize,
+  clampLyricOffsetY,
   clampLyricScale,
   clampMvFrame,
   coverMvFrame,
@@ -17,6 +18,8 @@ import {
   HEADLINE_FONT_SIZE_MAX,
   HEADLINE_FONT_SIZE_MIN,
   lineByIndex,
+  LYRIC_OFFSET_Y_MAX,
+  LYRIC_OFFSET_Y_MIN,
   LYRIC_SCALE_MAX,
   LYRIC_SCALE_MIN,
   MV_CROP_MAX,
@@ -45,6 +48,8 @@ type Props = {
   headlineFontSize: number
   /** 가사 원문 글자 배율. 릴스 전체에 고정이다. */
   lyricScale: number
+  /** 가사 블록 세로 이동(px, + 가 아래). 릴스 전체에 고정이다. */
+  lyricOffsetY: number
   selectedIndex: number | null
   playheadMs: number
   errors: string[]
@@ -52,6 +57,7 @@ type Props = {
   onChangeMvFrame(frame: MvFrame | null): void
   onChangeHeadlineFontSize(size: number): void
   onChangeLyricScale(scale: number): void
+  onChangeLyricOffsetY(offset: number): void
   onSetSourceStart(ms: number): void
   onSetEnd(ms: number): void
   onSetLineStart(index: number, ms: number): void
@@ -62,7 +68,7 @@ type Props = {
   onSeekReel(ms: number): void
 }
 
-/** 오른쪽 패널. 위부터 곡 표기·헤드라인, MV 배치, 가사 크기, 클립 시작·끝, 고른 줄의 타이밍·단어·뜻. */
+/** 오른쪽 패널. 위부터 곡 표기·헤드라인, MV 배치, 가사 크기·위치, 클립 시작·끝, 고른 줄의 타이밍·단어·뜻. */
 export function LineInspector({
   detail,
   editor,
@@ -71,6 +77,7 @@ export function LineInspector({
   mvAspect,
   headlineFontSize,
   lyricScale,
+  lyricOffsetY,
   selectedIndex,
   playheadMs,
   errors,
@@ -78,6 +85,7 @@ export function LineInspector({
   onChangeMvFrame,
   onChangeHeadlineFontSize,
   onChangeLyricScale,
+  onChangeLyricOffsetY,
   onSetSourceStart,
   onSetEnd,
   onSetLineStart,
@@ -121,11 +129,11 @@ export function LineInspector({
           <span className="mt-1 self-start font-mono text-xs text-[#637083]">HEAD</span>
           <HeadlineInput value={caption.headline} onChange={(headline) => onChangeCaption({ ...caption, headline })} />
         </div>
-        <div className="mt-1.5 grid grid-cols-[48px_1fr_48px] items-center gap-x-2">
+        <div className="mt-1.5 grid grid-cols-[48px_1fr_76px] items-center gap-x-2">
           <FrameSlider
             ariaLabel="Headline size"
-            format={(value) => `${value}px`}
             label="SIZE"
+            suffix="px"
             max={HEADLINE_FONT_SIZE_MAX}
             min={HEADLINE_FONT_SIZE_MIN}
             step={1}
@@ -153,11 +161,12 @@ export function LineInspector({
             </Button>
           </div>
         </div>
-        <div className="grid grid-cols-[48px_1fr_48px] items-center gap-x-2 gap-y-1.5">
+        <div className="grid grid-cols-[48px_1fr_76px] items-center gap-x-2 gap-y-1.5">
           <FrameSlider
             disabled={shownFrame == null}
-            format={(value) => `${Math.round(value * 100)}%`}
+            factor={100}
             label="SCALE"
+            suffix="%"
             max={MV_SCALE_MAX}
             min={MV_SCALE_MIN}
             step={0.01}
@@ -184,14 +193,16 @@ export function LineInspector({
           />
         </div>
         <div className="mt-3 mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-[#637083]">Crop</div>
-        <div className="grid grid-cols-[48px_1fr_48px] items-center gap-x-2 gap-y-1.5">
+        <div className="grid grid-cols-[48px_1fr_76px] items-center gap-x-2 gap-y-1.5">
           {CROP_SIDES.map(([side, label]) => (
             <FrameSlider
               disabled={shownFrame == null}
-              format={(value) => `${(value * 100).toFixed(1)}%`}
+              digits={1}
+              factor={100}
               key={side}
               label={label}
               max={MV_CROP_MAX}
+              suffix="%"
               min={0}
               step={0.001}
               value={crop[side]}
@@ -206,24 +217,38 @@ export function LineInspector({
           <span className="text-[11px] font-semibold uppercase tracking-wide text-[#637083]">Lyric</span>
           <Button
             className="h-7 px-2 text-xs"
-            disabled={lyricScale === DEFAULT_LYRIC_SCALE}
-            onClick={() => onChangeLyricScale(DEFAULT_LYRIC_SCALE)}
+            disabled={lyricScale === DEFAULT_LYRIC_SCALE && lyricOffsetY === 0}
+            onClick={() => {
+              onChangeLyricScale(DEFAULT_LYRIC_SCALE)
+              onChangeLyricOffsetY(0)
+            }}
             type="button"
             variant="ghost"
           >
-            기본 크기
+            기본값
           </Button>
         </div>
-        <div className="grid grid-cols-[48px_1fr_48px] items-center gap-x-2">
+        <div className="grid grid-cols-[48px_1fr_76px] items-center gap-x-2 gap-y-1.5">
           <FrameSlider
             ariaLabel="Lyric size"
-            format={(value) => `${Math.round(value * 100)}%`}
+            factor={100}
             label="SIZE"
             max={LYRIC_SCALE_MAX}
             min={LYRIC_SCALE_MIN}
             step={0.01}
+            suffix="%"
             value={lyricScale}
             onChange={(scale) => onChangeLyricScale(clampLyricScale(scale))}
+          />
+          <FrameSlider
+            ariaLabel="Lyric y"
+            label="Y"
+            max={LYRIC_OFFSET_Y_MAX}
+            min={LYRIC_OFFSET_Y_MIN}
+            step={1}
+            suffix="px"
+            value={lyricOffsetY}
+            onChange={(offset) => onChangeLyricOffsetY(clampLyricOffsetY(offset))}
           />
         </div>
       </section>
@@ -306,7 +331,7 @@ export function LineInspector({
           <div className="mt-3 mb-1.5 flex items-center justify-between">
             <span className="text-[11px] font-semibold uppercase tracking-wide text-[#637083]">Words</span>
             <span className="font-mono text-xs text-[#637083]">
-              {included?.tokenIndexes.length ?? 0}/{detail.maxVocabularyPerLine}
+              {included?.tokenIndexes.length ?? 0}
             </span>
           </div>
           <div className="flex flex-wrap gap-1.5">
@@ -314,7 +339,6 @@ export function LineInspector({
               const meaning = tokenMeaning(token, included, tokenIndex)
               const selectable = tokenSelectable(token, meaning)
               const picked = included?.tokenIndexes.includes(tokenIndex) ?? false
-              const full = (included?.tokenIndexes.length ?? 0) >= detail.maxVocabularyPerLine
               return (
                 <button
                   aria-label={`Toggle word ${token.surface}`}
@@ -327,7 +351,7 @@ export function LineInspector({
                         ? "border-[#cbd5e1] bg-white text-[#18212f] hover:bg-[#eef2f6] disabled:opacity-50"
                         : "border-transparent bg-[#f1f5f9] text-[#94a3b8]",
                   )}
-                  disabled={!included || !selectable || (!picked && full)}
+                  disabled={!included || !selectable}
                   key={tokenIndex}
                   onClick={() => onToggleToken(line.index, tokenIndex)}
                   type="button"
@@ -428,7 +452,9 @@ function FrameSlider({
   step,
   value,
   disabled,
-  format = (current) => String(current),
+  factor = 1,
+  digits = 0,
+  suffix,
   onChange,
 }: {
   label: string
@@ -438,7 +464,10 @@ function FrameSlider({
   step: number
   value: number
   disabled?: boolean
-  format?(value: number): string
+  /** 입력칸에 보이는 수 = value × factor. 배율·크롭은 % 로 보여 준다. */
+  factor?: number
+  digits?: number
+  suffix?: string
   onChange(value: number): void
 }) {
   return (
@@ -455,7 +484,14 @@ function FrameSlider({
         type="range"
         value={value}
       />
-      <span className="text-right font-mono text-xs tabular-nums text-[#18212f]">{format(value)}</span>
+      <NumberInput
+        ariaLabel={`${ariaLabel} value`}
+        digits={digits}
+        disabled={disabled}
+        suffix={suffix}
+        value={value * factor}
+        onCommit={(shown) => onChange(shown / factor)}
+      />
     </>
   )
 }
@@ -489,6 +525,68 @@ function TextInput({ ariaLabel, value, onChange }: { ariaLabel: string; value: s
 }
 
 /** `m:ss.t` 입력. Enter/blur 에 반영하고 못 읽는 값은 되돌린다. */
+/** 슬라이더 옆 수치 입력. 타이핑 중엔 반영하지 않고 Enter·blur 에 넘긴다 — 범위 밖 값은 받는 쪽이 자른다. */
+function NumberInput({
+  ariaLabel,
+  value,
+  digits,
+  disabled,
+  suffix,
+  onCommit,
+}: {
+  ariaLabel: string
+  value: number
+  digits: number
+  disabled?: boolean
+  suffix?: string
+  onCommit(value: number): void
+}) {
+  const shown = value.toFixed(digits)
+  const [text, setText] = React.useState(shown)
+  const [editing, setEditing] = React.useState(false)
+  // Escape 뒤의 blur 는 아직 고치기 전 text 를 보므로 그 한 번은 넘기지 않는다.
+  const cancelled = React.useRef(false)
+  React.useEffect(() => {
+    if (!editing) setText(shown)
+  }, [editing, shown])
+  const commit = () => {
+    setEditing(false)
+    if (cancelled.current) {
+      cancelled.current = false
+      setText(shown)
+      return
+    }
+    const parsed = Number(text)
+    if (text.trim() === "" || !Number.isFinite(parsed)) {
+      setText(shown)
+      return
+    }
+    onCommit(parsed)
+  }
+  return (
+    <div className="flex items-center gap-1">
+      <input
+        aria-label={ariaLabel}
+        className="focus-ring h-7 w-full min-w-0 rounded-md border border-[#cbd5e1] bg-white px-1.5 text-right font-mono text-xs tabular-nums text-[#18212f] disabled:bg-[#f1f5f9] disabled:text-[#94a3b8]"
+        disabled={disabled}
+        inputMode="decimal"
+        onBlur={commit}
+        onChange={(event) => setText(event.target.value)}
+        onFocus={() => setEditing(true)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") event.currentTarget.blur()
+          if (event.key === "Escape") {
+            cancelled.current = true
+            event.currentTarget.blur()
+          }
+        }}
+        value={text}
+      />
+      {suffix ? <span className="w-4 shrink-0 font-mono text-[11px] text-[#637083]">{suffix}</span> : null}
+    </div>
+  )
+}
+
 function TimecodeInput({
   ariaLabel,
   value,
