@@ -69,7 +69,7 @@ deck 멤버십의 유일한 소유자. `deck_flashcards` 를 대체한다.
 | 대상 | word 와의 관계 | 규칙 |
 |---|---|---|
 | flashcard | 수명주기 동일 | word 저장 시 생성, 삭제 시 삭제. flashcard 없는 word 는 존재할 수 없다 |
-| deck | word 보다 오래 산다 | 담을 때 없으면 생성. 안이 비어도 안 지우고, deck 을 지워도 안의 word 는 안 지운다 |
+| deck | word 보다 오래 산다 | 담을 때 없으면 생성. 안이 비어도 안 지운다. deck 을 지우면 전체 단어장 말고는 그 deck 에만 속한 word 를 함께 지운다 |
 | 전체 단어장 | 모든 word 가 연결 | 유저당 1개, 삭제 불가 |
 
 ### 뜻 쪼개기
@@ -102,7 +102,13 @@ deck 멤버십의 유일한 소유자. `deck_flashcards` 를 대체한다.
 
 ### 단어장 삭제
 
-`DELETE /api/decks/{id}` 는 `deck_word` 행과 `decks` 행만 지운다. 안의 단어와 flashcard 는 그대로 남고 전체 단어장 연결도 유지된다. 전체 단어장은 "모든 단어는 전체 단어장에 속한다"는 불변식의 담지자라 `DEFAULT_DECK_NOT_DELETABLE` 로 거부한다.
+`DELETE /api/decks/{id}` 는 "곡 담기 취소"다. 전체 단어장을 빼고 보면 이 단어장에만 속한 단어를 flashcard·모든 `deck_word`(전체 단어장 연결 포함)와 함께 지우고, 이 단어장의 `deck_word`·`decks` 행을 지운다. 한 트랜잭션이다.
+
+- 다른 곡 단어장이나 일반 단어장에도 속한 단어는 손대지 않는다 — FSRS 상태·senses·이 곡을 가리키는 예문까지 그대로다.
+- `daily_study_summary`·연속 학습 기록은 건드리지 않는다.
+- `GET /api/decks/{id}/deletion-preview` → `{ "deletedWordCount": Int }` 가 같은 판정으로 지워질 단어 수를 미리 돌려준다.
+
+전체 단어장은 "모든 단어는 전체 단어장에 속한다"는 불변식의 담지자라 삭제·미리보기 모두 `DEFAULT_DECK_NOT_DELETABLE` 로 거부한다.
 
 ### 담김 판정 (SongDetailScreen)
 

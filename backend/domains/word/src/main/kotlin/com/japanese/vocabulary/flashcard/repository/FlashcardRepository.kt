@@ -42,4 +42,8 @@ interface FlashcardRepository : JpaRepository<FlashcardEntity, Long> {
         @Param("state") state: Int,
         @Param("fsrsCardJson") fsrsCardJson: String,
     ): Int
+
+    @Modifying(flushAutomatically = true)
+    @Query("DELETE FROM FlashcardEntity f WHERE f.wordId IN :wordIds")
+    fun deleteByWordIdIn(@Param("wordIds") wordIds: Collection<Long>)
 }

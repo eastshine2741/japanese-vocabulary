@@ -136,6 +136,8 @@ export interface StudyStackState {
   selectSource: (target: StudySource) => void;
   /** 완주 카드의 추천곡 CTA. 그 자리에서 추천곡 미리보기 카드를 띄워 학습을 이어간다. */
   startRecommended: () => void;
+  /** 곡 덱을 지운 뒤. 지금 보던 곡이면 홈을 처음부터 다시 열고, 아니면 스트립에서만 빼고 오늘 due 를 다시 센다. */
+  removeDeck: (deckId: number) => void;
 }
 
 export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStackState {
@@ -860,6 +862,18 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     startPreview(recommendedSource);
   }, [recommendedSource, startPreview]);
 
+  const removeDeck = useCallback((deckId: number) => {
+    if (selectedSourceRef.current?.deckId === deckId || activeSourceRef.current?.deckId === deckId) {
+      reload();
+      return;
+    }
+    setDeckStripItems(items => items.filter(item => item.deckId !== deckId));
+    setNextDueSource(next => (next?.deckId === deckId ? null : next));
+    flashcardApi.getStats()
+      .then(stats => setDueTodayCount(stats.due))
+      .catch(() => undefined);
+  }, [reload]);
+
   const panHandlers = panResponder.panHandlers;
 
   // 반환 객체를 고정한다 — 매 렌더 새 객체면 StudyStack 의 React.memo 가 항상 miss 난다.
@@ -894,6 +908,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     continueDue,
     selectSource,
     startRecommended,
+    removeDeck,
   }), [
     status,
     cards,
@@ -925,5 +940,6 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     continueDue,
     selectSource,
     startRecommended,
+    removeDeck,
   ]);
 }
