@@ -137,11 +137,8 @@ export function ReelsFactoryPage() {
     [detail],
   )
   const handleToggleToken = React.useCallback(
-    (index: number, tokenIndex: number) => {
-      if (!detail) return
-      setEditor((current) => toggleToken(current, index, tokenIndex, detail.maxVocabularyPerLine))
-    },
-    [detail],
+    (index: number, tokenIndex: number) => setEditor((current) => toggleToken(current, index, tokenIndex)),
+    [],
   )
   const handleSetTokenMeaning = React.useCallback(
     (index: number, tokenIndex: number, meaning: string | null) =>
