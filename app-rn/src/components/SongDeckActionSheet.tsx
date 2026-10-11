@@ -25,8 +25,8 @@ function SongDeckActionSheet({ target, onDelete }: Props) {
       <View style={styles.divider} />
 
       <TouchableOpacity style={styles.actionRow} onPress={onDelete} activeOpacity={0.6}>
-        <Ionicons name="trash-outline" size={20} color={Colors.ratingAgain} />
-        <Text style={[styles.actionText, styles.actionTextDanger]}>삭제</Text>
+        <Ionicons name="remove-circle-outline" size={20} color={Colors.ratingAgain} />
+        <Text style={[styles.actionText, styles.actionTextDanger]}>학습 그만두기</Text>
       </TouchableOpacity>
     </View>
   );
