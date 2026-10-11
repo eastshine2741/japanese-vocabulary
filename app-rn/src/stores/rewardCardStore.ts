@@ -63,6 +63,8 @@ interface RewardCardState extends CardSet {
   closeReveal: () => void;
   markWearIntroSeen: () => void;
   loadWearIntroSeen: () => Promise<void>;
+  /** 개발용 — 카드 규칙 설명을 다시 처음처럼 띄우게 한다. */
+  resetWearIntroSeen: () => void;
   loadLyricLines: (cardId: string) => Promise<void>;
   /** 카드에 실을 가사 줄을 바꾼다. 빈 배열은 무시한다. */
   setLyric: (cardId: string, picked: number[]) => void;
@@ -182,6 +184,11 @@ export const useRewardCardStore = create<RewardCardState>((set, get) => {
       if (await preferenceStorage.getCardWearIntroSeen().catch(() => false)) set({ wearIntroSeen: true });
     },
 
+    resetWearIntroSeen: () => {
+      set({ wearIntroSeen: false });
+      preferenceStorage.clearCardWearIntroSeen().catch(() => undefined);
+    },
+
     loadLyricLines: async (cardId) => {
       if (get().lyricLines[cardId]) return;
       const songId = findSong(cardId)?.songId ?? null;
@@ -236,8 +243,17 @@ export const useRewardCardStore = create<RewardCardState>((set, get) => {
         kind === 'song'
           ? rewardCardApi.issueSongCard(id, signature, (before as SongRewardCard).picked ?? [])
           : rewardCardApi.issueArtistCard(id, signature);
+      const markIssued = <T extends { issued?: boolean }>(card: T): T => ({ ...card, issued: true });
       // 실패하면 서버엔 서명 전으로 남아 다음에 앱을 열 때 다시 서명한다.
-      request.catch(() => undefined);
+      request
+        .then(() =>
+          patch((cards) =>
+            kind === 'song'
+              ? { songCards: mapCards(cards.songCards, cardId, markIssued) }
+              : { artistCards: mapCards(cards.artistCards, cardId, markIssued) },
+          ),
+        )
+        .catch(() => undefined);
     },
 
     // 기기에 남긴 값이라 로그아웃해도 유지한다.

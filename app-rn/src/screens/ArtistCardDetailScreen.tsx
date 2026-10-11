@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -16,23 +16,48 @@ import Animated, {
 } from 'react-native-reanimated';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import ArtistCardShowcase from '../components/rewardCards/ArtistCardShowcase';
-import { artistGradeStep, nextArtistGradeStep } from '../components/rewardCards/artistGrade';
+import GradeTabs, { GradeTab } from '../components/rewardCards/GradeTabs';
+import { ARTIST_GRADE_STEPS, artistGradeStep, nextArtistGradeStep } from '../components/rewardCards/artistGrade';
 import { artistCardAt } from '../components/rewardCards/cardKinds';
+import { artistRung } from '../components/rewardCards/cardUpgrade';
+import { ArtistRewardCard } from '../components/rewardCards/types';
 import { ARTIST_CARD_RATIO, ARTIST_MATERIAL, SHOWROOM, useCardFonts } from '../components/rewardCards/cardTheme';
 import { useCardTilt } from '../components/rewardCards/useCardTilt';
 import { useRewardCardStore } from '../stores/rewardCardStore';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ArtistCardDetail'>;
 
+const ARTIST_TABS: readonly GradeTab[] = ARTIST_GRADE_STEPS.map((step) => ({
+  key: step.grade,
+  label: step.label,
+  frame: ARTIST_MATERIAL[step.grade].frame,
+  chipText: ARTIST_MATERIAL[step.grade].chipText,
+}));
+
+function artistCondition(rung: number): string {
+  const from = ARTIST_GRADE_STEPS[rung].from;
+  return from === 0 ? '이 아티스트의 첫 곡 카드 얻기' : `이 아티스트 곡의 MASTER 카드 ${from}장 모으기`;
+}
+
+/** 내 카드를 그 재질로 돌린다. 아직 얻지 않은 재질은 주인 정보를 비운 견본이다. */
+function artistCardAtRung(card: ArtistRewardCard, rung: number): ArtistRewardCard {
+  const step = ARTIST_GRADE_STEPS[rung];
+  if (rung <= artistRung(card)) return artistCardAt(card, step);
+  return { ...card, masteredCount: step.from, sample: true };
+}
+
 export default function ArtistCardDetailScreen({ navigation, route }: Props) {
   const { cardId, masteredCount } = route.params;
   const owned = useRewardCardStore((s) => s.artistCards.find((c) => c.id === cardId));
-  const card = useMemo(
-    () => (owned && masteredCount != null ? artistCardAt(owned, artistGradeStep(masteredCount)) : owned),
-    [owned, masteredCount],
+  const ownedRung = owned ? artistRung(owned) : 0;
+  const [pickedRung, setPickedRung] = useState<number | null>(() =>
+    masteredCount != null ? ARTIST_GRADE_STEPS.indexOf(artistGradeStep(masteredCount)) : null,
   );
-  // 지나온 재질을 볼 때는 지금 카드의 승급 조건이 맞지 않는다.
-  const isPastGrade = card !== owned;
+  const viewRung = pickedRung ?? ownedRung;
+  const card = useMemo(() => (owned ? artistCardAtRung(owned, viewRung) : owned), [owned, viewRung]);
+  // 다른 재질을 볼 때는 지금 카드의 승급 조건이 맞지 않는다.
+  const isOtherGrade = card !== owned;
+  const handleSelectRung = useCallback((rung: number) => setPickedRung(rung), []);
   const { width: screenW } = useWindowDimensions();
   const fonts = useCardFonts();
   const tilt = useCardTilt();
@@ -82,9 +107,7 @@ export default function ArtistCardDetailScreen({ navigation, route }: Props) {
   }
 
   const cardW = Math.min(screenW - 40, 400);
-  const step = artistGradeStep(card.masteredCount);
   const next = nextArtistGradeStep(card.masteredCount);
-  const material = ARTIST_MATERIAL[step.grade];
 
   return (
     <View style={styles.root}>
@@ -101,9 +124,11 @@ export default function ArtistCardDetailScreen({ navigation, route }: Props) {
           <Pressable onPress={handleClose} hitSlop={10} style={styles.iconBtn}>
             <Feather name="chevron-down" size={22} color={SHOWROOM.fg} />
           </Pressable>
-          <Pressable onPress={handleFlip} hitSlop={10} style={styles.iconBtn}>
-            <Feather name="refresh-ccw" size={18} color={SHOWROOM.fg} />
-          </Pressable>
+          <View style={styles.actions}>
+            <Pressable onPress={handleFlip} hitSlop={10} style={styles.iconBtn}>
+              <Feather name="refresh-ccw" size={18} color={SHOWROOM.fg} />
+            </Pressable>
+          </View>
         </View>
 
         <View style={styles.stage}>
@@ -115,10 +140,8 @@ export default function ArtistCardDetailScreen({ navigation, route }: Props) {
         </View>
 
         <Animated.View style={[styles.info, infoIn]}>
+          <GradeTabs tabs={ARTIST_TABS} selected={viewRung} owned={ownedRung} onSelect={handleSelectRung} />
           <View style={styles.chips}>
-            <LinearGradient colors={material.frame} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.gradeChip}>
-              <Text style={[styles.gradeText, { color: material.chipText }]}>{step.label}</Text>
-            </LinearGradient>
             <Pressable
               onPress={handleOpenArtist}
               disabled={artistId == null}
@@ -132,7 +155,15 @@ export default function ArtistCardDetailScreen({ navigation, route }: Props) {
             </Pressable>
           </View>
 
-          {next && !isPastGrade && (
+          {isOtherGrade ? (
+            <View style={styles.goal}>
+              <Text style={styles.goalCaption}>{ARTIST_TABS[viewRung].label} 획득 조건</Text>
+              <View style={styles.goalHead}>
+                <Text style={styles.goalLabel}>{artistCondition(viewRung)}</Text>
+                {viewRung < ownedRung && <Feather name="check" size={16} color={SHOWROOM.fg} />}
+              </View>
+            </View>
+          ) : next && (
             <View style={styles.goal}>
               <Text style={styles.goalCaption}>{next.label} 승급 조건</Text>
               <View style={styles.goalHead}>
@@ -167,6 +198,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 4,
   },
+  actions: { flexDirection: 'row', gap: 8 },
   iconBtn: {
     width: 40,
     height: 40,
@@ -178,8 +210,6 @@ const styles = StyleSheet.create({
   stage: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   info: { paddingHorizontal: 24, paddingBottom: 16, gap: 6 },
   chips: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap', gap: 6 },
-  gradeChip: { borderRadius: 999, paddingHorizontal: 12, paddingVertical: 5 },
-  gradeText: { fontSize: 12, fontWeight: '700' },
   linkChip: {
     flexDirection: 'row',
     alignItems: 'center',

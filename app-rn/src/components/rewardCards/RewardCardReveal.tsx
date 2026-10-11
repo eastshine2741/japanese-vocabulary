@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Image, useWindowDimensions } from 'react-native';
+import { Image, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { GestureDetector } from 'react-native-gesture-handler';
+import { Easing, useSharedValue, withDelay, withRepeat, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { navigate } from '../../navigation/navigationRef';
 import { useRewardCardStore } from '../../stores/rewardCardStore';
@@ -20,7 +22,7 @@ import {
   useRevealMotion,
 } from './CardRevealStage';
 import SongCardShowcase, { SongCardBack, SongCardFront, songUpgradeFocus } from './SongCardShowcase';
-import { CARD_RATIO, SONG_MASTER_NAME, SONG_TIER_NAME, songTierName, useCardFonts } from './cardTheme';
+import { CARD_RATIO, SHOWROOM, SONG_MASTER_NAME, SONG_TIER_NAME, songTierName, useCardFonts } from './cardTheme';
 import { previousSongCard, songRung } from './cardUpgrade';
 import { songGradeOf } from './serverRewardCards';
 import { CardSignature } from './signature';
@@ -41,6 +43,8 @@ const SONG_LADDER: readonly LadderStep[] = [
   { label: SONG_MASTER_NAME, caption: '90% 장기 기억' },
 ];
 const SONG_GUIDE = ['이 곡의 단어를 공부하는 만큼 강화되는 카드예요.', '각 단계를 끝낼 때마다 등급이 올라요'];
+const INTRO_GUIDE = ['곡 단어를 처음 공부하면 얻는 카드예요.', '각 단계를 끝낼 때마다 등급이 올라요'];
+const INTRO_LADDER_DELAY_MS = 500;
 
 /**
  * 카드 획득 — 조건이 채워지면 획득 화면(RewardCardReveal 라우트)을 연다.
@@ -85,7 +89,7 @@ export const RewardCardRevealHost = React.memo(function RewardCardRevealHost() {
 });
 
 /** 서명은 발급 때 한 번뿐이라 빠뜨릴 수 없다 — 가사를 고르든 그대로 받든 서명한다. 첫 카드면 낡음 설명이 뒤따른다. */
-type Step = 'reveal' | 'pick' | 'sign' | 'wear';
+type Step = 'reveal' | 'pick' | 'sign' | 'guide' | 'wear';
 
 interface RevealProps {
   card: SongRewardCard;
@@ -94,9 +98,17 @@ interface RevealProps {
   onClose: () => void;
   /** 개발용 — 낡음 설명만 바로 띄우고, 본 것으로 치지 않으며 뒤로 가기로 닫힌다. */
   debugWearIntro?: boolean;
+  /** 연출 없이 받은 카드 — 봉투·서명 없이 획득·승급 계단과 낡음 설명만 보여 준다. */
+  intro?: boolean;
 }
 
-export const RewardCardReveal = React.memo(function RewardCardReveal({ card, started, onClose, debugWearIntro = false }: RevealProps) {
+export const RewardCardReveal = React.memo(function RewardCardReveal({
+  card,
+  started,
+  onClose,
+  debugWearIntro = false,
+  intro = false,
+}: RevealProps) {
   const insets = useSafeAreaInsets();
   const { width: screenW, height: screenH } = useWindowDimensions();
   const fonts = useCardFonts();
@@ -111,7 +123,7 @@ export const RewardCardReveal = React.memo(function RewardCardReveal({ card, sta
   const markWearIntroSeen = useRewardCardStore((s) => s.markWearIntroSeen);
   // 연 순간 기준으로 고정해야 도중에 버튼 라벨이 바뀌지 않는다.
   const [showWearIntro] = useState(() => !useRewardCardStore.getState().wearIntroSeen);
-  const [step, setStep] = useState<Step>(debugWearIntro ? 'wear' : 'reveal');
+  const [step, setStep] = useState<Step>(debugWearIntro ? 'wear' : intro ? 'guide' : 'reveal');
   // 서명 단계에서 뒤로 가면 들어온 단계로 돌아간다.
   const [signFrom, setSignFrom] = useState<'reveal' | 'pick'>('reveal');
   const [signed, setSigned] = useState(false);
@@ -121,10 +133,13 @@ export const RewardCardReveal = React.memo(function RewardCardReveal({ card, sta
     setSignFrom('reveal');
     setStep('sign');
   }, []);
-  const handleBack = useCallback(
-    () => (debugWearIntro ? onClose() : setStep((prev) => (prev === 'sign' ? signFrom : 'reveal'))),
-    [debugWearIntro, onClose, signFrom],
-  );
+  const handleBack = useCallback(() => {
+    // 설명만 보는 화면은 막을 서명이 없어 첫 단계에서 뒤로 가면 닫는다.
+    if (debugWearIntro || (intro && step === 'guide')) onClose();
+    else if (intro) setStep('guide');
+    else setStep((prev) => (prev === 'sign' ? signFrom : 'reveal'));
+  }, [debugWearIntro, intro, onClose, signFrom, step]);
+  const handleGuideDone = useCallback(() => setStep('wear'), []);
   const handleLyric = useCallback(
     (picked: number[]) => {
       setLyric(card.id, picked);
@@ -145,7 +160,17 @@ export const RewardCardReveal = React.memo(function RewardCardReveal({ card, sta
     if (!debugWearIntro) markWearIntroSeen();
     onClose();
   }, [debugWearIntro, markWearIntroSeen, onClose]);
-  useRevealBackGuard(step === 'reveal', signed, handleBack);
+  useRevealBackGuard(!intro && step === 'reveal', signed, handleBack);
+
+  // 설명 단계는 봉투 연출이 없어, 화면이 다 열리면 계단만 채운다.
+  const guideCopyIn = useSharedValue(0);
+  const guidePulse = useSharedValue(0);
+  const guideMotion = useMemo(() => ({ copyIn: guideCopyIn, pulse: guidePulse }), [guideCopyIn, guidePulse]);
+  useEffect(() => {
+    if (!intro || !started) return;
+    guideCopyIn.value = withDelay(INTRO_LADDER_DELAY_MS, withTiming(1, { duration: 1 }));
+    guidePulse.value = withRepeat(withTiming(1, { duration: 2400, easing: Easing.inOut(Easing.sin) }), -1, true);
+  }, [intro, started, guideCopyIn, guidePulse]);
 
   const renderBack = useCallback(
     (width: number, signature: CardSignature | null, hint?: string) => (
@@ -194,7 +219,7 @@ export const RewardCardReveal = React.memo(function RewardCardReveal({ card, sta
           }
         />
       ) : (
-        <RevealStep key={step} onBack={signed ? null : handleBack}>
+        <RevealStep key={step} onBack={signed || step === 'guide' ? null : handleBack}>
           {step === 'pick' ? (
             <CardLyricEditor
               card={card}
@@ -205,6 +230,21 @@ export const RewardCardReveal = React.memo(function RewardCardReveal({ card, sta
               onConfirm={handleLyric}
               bottomInset={insets.bottom}
             />
+          ) : step === 'guide' ? (
+            <View style={[styles.guideStep, { paddingBottom: insets.bottom + 16 }]}>
+              <Text style={styles.guideTitle}>그동안 공부한 곡이 카드가 됐어요</Text>
+              <View style={styles.guideStage}>
+                <GestureDetector gesture={tilt.gesture}>
+                  <View>
+                    <SongCardShowcase card={card} width={cardW} tilt={tilt} fonts={fonts} />
+                  </View>
+                </GestureDetector>
+              </View>
+              <RevealGuide lines={INTRO_GUIDE} steps={SONG_LADDER} current={songRung(card)} accent={card.accent} motion={guideMotion} />
+              <View style={styles.guideActions}>
+                <RevealPrimaryButton label="다음" onPress={handleGuideDone} />
+              </View>
+            </View>
           ) : step === 'wear' ? (
             <CardWearIntro
               card={card}
@@ -269,4 +309,11 @@ export const SongCardUpgrade = React.memo(function SongCardUpgrade({ card, fromG
       />
     </RevealShell>
   );
+});
+
+const styles = StyleSheet.create({
+  guideStep: { flex: 1, paddingHorizontal: 24 },
+  guideTitle: { color: SHOWROOM.fg, fontSize: 20, fontWeight: '700', textAlign: 'center', marginTop: 4 },
+  guideStage: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  guideActions: { paddingTop: 24 },
 });

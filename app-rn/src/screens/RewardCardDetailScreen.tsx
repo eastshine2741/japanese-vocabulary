@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Image, LayoutChangeEvent, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -17,19 +17,12 @@ import Animated, {
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { deckApi } from '../api/deckApi';
 import SongCardShowcase from '../components/rewardCards/SongCardShowcase';
-import LevelPips from '../components/rewardCards/LevelPips';
-import {
-  CARD_RATIO,
-  LEVEL_MATERIAL,
-  MASTER_CHIP,
-  SHOWROOM,
-  SONG_MASTER_NAME,
-  SONG_TIER_NAME,
-  songTierName,
-  useCardFonts,
-} from '../components/rewardCards/cardTheme';
+import GradeTabs, { GradeTab } from '../components/rewardCards/GradeTabs';
+import { IntroDecision, reportIntroDecision } from '../components/rewardCards/CardIntroDebugOverlay';
+import { CARD_RATIO, LEVEL_MATERIAL, MASTER_CHIP, SHOWROOM, songTierName, useCardFonts } from '../components/rewardCards/cardTheme';
 import { useCardTilt } from '../components/rewardCards/useCardTilt';
-import { songCardAt } from '../components/rewardCards/cardKinds';
+import { SONG_CARD_KINDS, songCardAt } from '../components/rewardCards/cardKinds';
+import { songRung } from '../components/rewardCards/cardUpgrade';
 import { useRewardCardStore } from '../stores/rewardCardStore';
 import { SongRewardCard } from '../components/rewardCards/types';
 
@@ -46,12 +39,24 @@ const STAGE_INSET = 16;
 const FOCUS_INSET = 24;
 
 
-/** 다음 등급과 거기에 오르는 조건. 기본은 첫 학습, 레벨 n 은 n번째 단계(후렴 정복 → 따라 부르기 → 완곡) 단어를 다 공부한 카드다. */
-function nextLevel(card: SongRewardCard): { name: string; condition: string } {
-  if (card.level === 0) return { name: SONG_TIER_NAME[1], condition: "'후렴 정복' 단계 단어 모두 공부하기" };
-  if (card.level === 1) return { name: SONG_TIER_NAME[2], condition: "'따라 부르기' 단계 단어 모두 공부하기" };
-  if (card.level === 2) return { name: SONG_TIER_NAME[3], condition: "'완곡' 단계 단어 모두 공부하기" };
-  return { name: SONG_MASTER_NAME, condition: '곡 단어의 90%를 장기 기억으로 만들기' };
+/** SONG_CARD_KINDS 순서. 기본은 첫 학습, 레벨 n 은 n번째 단계(후렴 정복 → 따라 부르기 → 완곡) 단어를 다 공부한 카드다. */
+const SONG_CONDITIONS = [
+  '이 곡의 단어 처음 공부하기',
+  "'후렴 정복' 단계 단어 모두 공부하기",
+  "'따라 부르기' 단계 단어 모두 공부하기",
+  "'완곡' 단계 단어 모두 공부하기",
+  '곡 단어의 90%를 장기 기억으로 만들기',
+];
+
+const SONG_TABS: readonly GradeTab[] = SONG_CARD_KINDS.map((kind) => {
+  const material = kind.mastered ? MASTER_CHIP : LEVEL_MATERIAL[kind.level];
+  return { key: kind.key, label: songTierName(kind.level, kind.mastered), frame: material.frame, chipText: material.chipText };
+});
+
+/** 내 카드를 그 등급으로 돌린다. 아직 얻지 않은 등급은 주인 정보를 비운 새 견본이다. */
+function songCardAtRung(card: SongRewardCard, rung: number): SongRewardCard {
+  const at = songCardAt(card, SONG_CARD_KINDS[rung]);
+  return rung > songRung(card) ? { ...at, sample: true, recall: 1 } : at;
 }
 
 export default function RewardCardDetailScreen({ navigation, route }: Props) {
@@ -59,9 +64,14 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
   const owned = useRewardCardStore((s) => s.songCards.find((c) => c.id === cardId));
   // 푸시로 들어오면 카드를 아직 받는 중일 수 있다.
   const loading = useRewardCardStore((s) => s.serverStatus === 'loading');
-  const card = useMemo(() => (owned && grade ? songCardAt(owned, grade) : owned), [owned, grade]);
-  // 지나온 등급을 볼 때는 지금 카드의 승급 조건이 맞지 않는다.
-  const isPastGrade = card !== owned;
+  const ownedRung = owned ? songRung(owned) : 0;
+  const [pickedRung, setPickedRung] = useState<number | null>(() =>
+    grade ? SONG_CARD_KINDS.findIndex((k) => k.level === grade.level && k.mastered === grade.mastered) : null,
+  );
+  const viewRung = pickedRung ?? ownedRung;
+  const card = useMemo(() => (owned ? songCardAtRung(owned, viewRung) : owned), [owned, viewRung]);
+  // 다른 등급을 볼 때는 지금 카드의 기억할 확률·승급 조건이 맞지 않는다.
+  const isOtherGrade = card !== owned;
   const { width: screenW } = useWindowDimensions();
   const fonts = useCardFonts();
   const tilt = useCardTilt();
@@ -117,6 +127,38 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
   const handleFlip = useCallback(() => {
     tilt.flip.value = withTiming(tilt.flip.value > 0.5 ? 0 : 1, { duration: 720 });
   }, [tilt.flip]);
+  const handleSelectRung = useCallback((rung: number) => setPickedRung(rung), []);
+
+  // 채우기로 받은 카드는 획득 연출을 거치지 않아, 규칙을 본 적 없으면 어느 경로로 들어왔든 설명부터 띄운다.
+  // 아직 발급 전인 카드는 획득 화면이 곧 같은 설명을 하므로 건너뛴다.
+  const issued = owned?.issued === true;
+  const introCheckedRef = useRef(false);
+  const title = owned?.title ?? cardId;
+  const setIntroDecision = useCallback((decision: IntroDecision) => reportIntroDecision(cardId, title, decision), [cardId, title]);
+  useEffect(() => {
+    if (!introCheckedRef.current) setIntroDecision('waiting');
+  }, [setIntroDecision]);
+  useEffect(() => {
+    if (!issued || introCheckedRef.current) return;
+    introCheckedRef.current = true;
+    setIntroDecision('checking');
+    let cancelled = false;
+    useRewardCardStore
+      .getState()
+      .loadWearIntroSeen()
+      .finally(() => {
+        const state = useRewardCardStore.getState();
+        if (cancelled) return;
+        if (state.wearIntroSeen) return setIntroDecision('seen');
+        if (state.active) return setIntroDecision('revealing');
+        setIntroDecision('shown');
+        navigation.navigate('RewardCardReveal', { kind: 'song', cardId, intro: true });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [issued, navigation, cardId, setIntroDecision]);
+
   const handleDebugWearIntro = useCallback(() => {
     navigation.navigate('RewardCardReveal', { kind: 'song', cardId, debugWearIntro: true });
   }, [navigation, cardId]);
@@ -176,9 +218,8 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
     );
   }
 
-  const material = card.mastered ? MASTER_CHIP : LEVEL_MATERIAL[card.level];
   const goal = card.nextGoal;
-  const next = nextLevel(card);
+  const nextRung = ownedRung + 1;
 
   return (
     <View style={styles.root}>
@@ -224,11 +265,8 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
 
           <Animated.View style={chromeStyle} pointerEvents={focused ? 'none' : 'auto'}>
             <Animated.View style={[styles.info, infoIn]}>
+              <GradeTabs tabs={SONG_TABS} selected={viewRung} owned={ownedRung} onSelect={handleSelectRung} />
               <View style={styles.chips}>
-                <LinearGradient colors={material.frame} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.levelChip}>
-                  <LevelPips level={card.level} color={material.chipText} size={5} />
-                  <Text style={[styles.levelText, { color: material.chipText }]}>{songTierName(card.level, card.mastered)}</Text>
-                </LinearGradient>
                 <Pressable
                   onPress={handleOpenSong}
                   disabled={songId == null}
@@ -242,30 +280,40 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
                 </Pressable>
               </View>
 
-              <View style={styles.panel}>
-                <Pressable style={styles.panelHead} onLongPress={__DEV__ ? handleDebugWearIntro : undefined}>
-                  <Text style={styles.panelTitle}>기억할 확률</Text>
-                  <Text style={styles.panelValue}>{Math.round(card.recall * 100)}%</Text>
-                </Pressable>
-                <Text style={styles.panelNote}>이 곡에서 공부한 단어를 지금 떠올릴 수 있는 확률의 평균이에요.</Text>
+              {isOtherGrade ? (
+                <View style={styles.panel}>
+                  <Text style={styles.panelCaption}>{SONG_TABS[viewRung].label} 획득 조건</Text>
+                  <View style={styles.panelHead}>
+                    <Text style={styles.panelTitle}>{SONG_CONDITIONS[viewRung]}</Text>
+                    {viewRung < ownedRung && <Feather name="check" size={15} color={SHOWROOM.fg} />}
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.panel}>
+                  <Pressable style={styles.panelHead} onLongPress={__DEV__ ? handleDebugWearIntro : undefined}>
+                    <Text style={styles.panelTitle}>기억할 확률</Text>
+                    <Text style={styles.panelValue}>{Math.round(card.recall * 100)}%</Text>
+                  </Pressable>
+                  <Text style={styles.panelNote}>이 곡에서 공부한 단어를 지금 떠올릴 수 있는 확률의 평균이에요.</Text>
 
-                {goal && !isPastGrade && (
-                  <>
-                    <View style={styles.divider} />
-                    <Text style={styles.panelCaption}>{next.name} 승급 조건</Text>
-                    <View style={styles.panelHead}>
-                      <Text style={styles.panelTitle}>{next.condition}</Text>
-                      <Text style={styles.panelValue}>
-                        {goal.current}
-                        <Text style={styles.panelTotal}> / {goal.total}</Text>
-                      </Text>
-                    </View>
-                    <View style={styles.goalTrack}>
-                      <View style={[styles.goalFill, { width: `${(goal.current / goal.total) * 100}%`, backgroundColor: card.accent }]} />
-                    </View>
-                  </>
-                )}
-              </View>
+                  {goal && nextRung < SONG_TABS.length && (
+                    <>
+                      <View style={styles.divider} />
+                      <Text style={styles.panelCaption}>{SONG_TABS[nextRung].label} 승급 조건</Text>
+                      <View style={styles.panelHead}>
+                        <Text style={styles.panelTitle}>{SONG_CONDITIONS[nextRung]}</Text>
+                        <Text style={styles.panelValue}>
+                          {goal.current}
+                          <Text style={styles.panelTotal}> / {goal.total}</Text>
+                        </Text>
+                      </View>
+                      <View style={styles.goalTrack}>
+                        <View style={[styles.goalFill, { width: `${(goal.current / goal.total) * 100}%`, backgroundColor: card.accent }]} />
+                      </View>
+                    </>
+                  )}
+                </View>
+              )}
 
               <Pressable
                 onPress={handleStartReview}
@@ -295,8 +343,6 @@ const styles = StyleSheet.create({
   stageCenter: { alignItems: 'center', justifyContent: 'center' },
   info: { paddingHorizontal: 24, paddingBottom: 8, gap: 8 },
   chips: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap', gap: 6 },
-  levelChip: { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
-  levelText: { fontSize: 12, fontWeight: '700' },
   linkChip: {
     flexDirection: 'row',
     alignItems: 'center',

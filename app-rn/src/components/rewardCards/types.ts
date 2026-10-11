@@ -54,6 +54,8 @@ export interface SongRewardCard {
   sample?: boolean;
   /** 서버 카드에서 주인이 고른 가사 줄. 비어 있으면 기본 줄이다. */
   picked?: number[];
+  /** 서버가 발급을 끝낸 카드(seenGrade 있음). 이 카드만 공유할 수 있다. */
+  issued?: boolean;
 }
 
 export interface MasteredSong {
@@ -81,4 +83,6 @@ export interface ArtistRewardCard {
   signature: CardSignature | null;
   /** 아직 얻지 않은 재질의 견본. 팬 순번·팬이 된 달을 — 로 비운다. */
   sample?: boolean;
+  /** 서버가 발급을 끝낸 카드(seenGrade 있음). 이 카드만 공유할 수 있다. */
+  issued?: boolean;
 }

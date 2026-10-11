@@ -64,6 +64,7 @@ export function toSongCard(dto: SongCardDto): SongRewardCard {
     words: dto.words.map((word) => ({ ...word, reading: katakanaToHiragana(word.reading) })),
     nextGoal: dto.nextGoal,
     picked: dto.lyricLineIndexes,
+    issued: dto.seenGrade != null,
   };
 }
 
@@ -79,6 +80,7 @@ export function toArtistCard(dto: ArtistCardDto): ArtistRewardCard {
     since: kstDate(dto.createdAt),
     masteredSongs: dto.masteredSongs.map((song) => ({ title: song.title, artworkUrl: song.artworkUrl ?? '' })),
     signature: dto.signature.length > 0 ? dto.signature : null,
+    issued: dto.seenGrade != null,
   };
 }
 
