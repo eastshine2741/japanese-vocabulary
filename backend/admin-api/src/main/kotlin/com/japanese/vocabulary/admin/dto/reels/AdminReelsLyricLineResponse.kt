@@ -6,7 +6,6 @@ data class AdminReelsLyricLineResponse(
     val originalText: String,
     val koreanLyrics: String?,
     val tokens: List<AdminReelsLyricTokenResponse>,
-    val recommendedVocabulary: List<AdminReelsVocabularyResponse>,
     val selectable: Boolean,
     val ineligibleReason: String?,
 )

@@ -10,7 +10,7 @@ export const samplePreviewPromo: PromoReelData = {
     artworkAsset: 'lemon-cover.jpg',
     mvAsset: 'lemon-chorus.mp4',
   },
-  headline: '가사 한 줄에\n<b>일본어 단어 3개</b>',
+  headline: '가슴에 남은\n<b>\'匂い\'의 뜻은?</b>',
   instagramHandle: '@kotonoha.app',
   catchphrase: '좋아하는 노래가, 나의 일본어가 되도록.',
   sourceStartFrame: 0,
@@ -35,8 +35,6 @@ export const samplePreviewPromo: PromoReelData = {
         {surface: 'さえ', baseForm: 'さえ', reading: 'サエ', partOfSpeech: 'PARTICLE', charStart: 17, charEnd: 19, koreanText: '~조차'},
       ],
       vocabulary: [
-        {japanese: 'あの', reading: 'アノ', korean: '저', partOfSpeech: 'ADNOMINAL', partOfSpeechLabel: '연체사', jlpt: 'N5'},
-        {japanese: '日', reading: 'ヒ', korean: '날', partOfSpeech: 'NOUN', partOfSpeechLabel: '명사', jlpt: 'N5'},
       ],
     },
     {
@@ -55,8 +53,6 @@ export const samplePreviewPromo: PromoReelData = {
         {surface: 'とともに', baseForm: 'とともに', reading: 'トトモニ', partOfSpeech: 'PARTICLE', charStart: 14, charEnd: 18, koreanText: '~와 함께'},
       ],
       vocabulary: [
-        {japanese: 'あなた', reading: 'アナタ', korean: '당신', partOfSpeech: 'PRONOUN', partOfSpeechLabel: '대명사', jlpt: 'N5'},
-        {japanese: 'すべて', reading: 'スベテ', korean: '전부', partOfSpeech: 'NOUN', partOfSpeechLabel: '명사', jlpt: 'N4'},
       ],
     },
     {
@@ -76,8 +72,6 @@ export const samplePreviewPromo: PromoReelData = {
         {surface: '匂い', baseForm: '匂い', reading: 'ニオイ', partOfSpeech: 'NOUN', charStart: 15, charEnd: 17, koreanText: '향기'},
       ],
       vocabulary: [
-        {japanese: '残る', reading: 'ノコル', korean: '남다', partOfSpeech: 'VERB', partOfSpeechLabel: '동사', jlpt: 'N4'},
-        {japanese: '苦い', reading: 'ニガイ', korean: '쓰다', partOfSpeech: 'ADJECTIVE', partOfSpeechLabel: '형용사', jlpt: 'N3'},
         {japanese: '匂い', reading: 'ニオイ', korean: '냄새, 향기', partOfSpeech: 'NOUN', partOfSpeechLabel: '명사', jlpt: 'N4'},
       ],
     },
@@ -95,8 +89,6 @@ export const samplePreviewPromo: PromoReelData = {
         {surface: 'ない', baseForm: 'ない', reading: 'ナイ', partOfSpeech: 'AUXILIARY_VERB', charStart: 11, charEnd: 13, koreanText: '없어'},
       ],
       vocabulary: [
-        {japanese: '雨', reading: 'アメ', korean: '비', partOfSpeech: 'NOUN', partOfSpeechLabel: '명사', jlpt: 'N5'},
-        {japanese: '帰る', reading: 'カエル', korean: '돌아가다', partOfSpeech: 'VERB', partOfSpeechLabel: '동사', jlpt: 'N4'},
       ],
     },
     {
@@ -113,7 +105,6 @@ export const samplePreviewPromo: PromoReelData = {
         {surface: '光', baseForm: '光', reading: 'ヒカリ', partOfSpeech: 'NOUN', charStart: 11, charEnd: 12, koreanText: '빛'},
       ],
       vocabulary: [
-        {japanese: '今', reading: 'イマ', korean: '지금', partOfSpeech: 'NOUN', partOfSpeechLabel: '명사', jlpt: 'N5'},
         {japanese: '光', reading: 'ヒカリ', korean: '빛', partOfSpeech: 'NOUN', partOfSpeechLabel: '명사', jlpt: 'N4'},
       ],
     },
