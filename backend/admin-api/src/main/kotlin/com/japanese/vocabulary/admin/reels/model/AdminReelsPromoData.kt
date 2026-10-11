@@ -13,6 +13,8 @@ data class AdminReelsPromoData(
     val mvFrame: AdminReelsMvFrame? = null,
     /** 가사 원문 글자 배율. 없으면 1(기본 크기). 긴 줄을 맞추는 자동 축소 위에 곱해진다. */
     val lyricScale: Double? = null,
+    /** 가사 블록을 기본 자리에서 위아래로 옮기는 px(+ 가 아래). 없으면 0. */
+    val lyricOffsetY: Int? = null,
     /** 마지막 선택 줄이 끝나는 프레임. 이 프레임부터 엔드카드다. */
     val lyricsEndFrame: Int,
     /** 곡 전체 가사 줄 수. 엔드카드 앱 목업의 "n/전체" 표시용. */

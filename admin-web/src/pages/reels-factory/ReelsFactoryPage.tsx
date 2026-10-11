@@ -52,6 +52,7 @@ export function ReelsFactoryPage() {
   const [headlineFontSize, setHeadlineFontSize] = React.useState(DEFAULT_HEADLINE_FONT_SIZE)
   /** 가사 원문 글자 배율. MV 배치처럼 릴스 전체에 고정이고 곡을 바꾸면 되돌린다. */
   const [lyricScale, setLyricScale] = React.useState(DEFAULT_LYRIC_SCALE)
+  const [lyricOffsetY, setLyricOffsetY] = React.useState(0)
   /** 업로드 진행률 0..1. 올리는 중이 아니면 null. */
   const [uploadProgress, setUploadProgress] = React.useState<number | null>(null)
   const [rendering, setRendering] = React.useState(false)
@@ -75,6 +76,7 @@ export function ReelsFactoryPage() {
     setMvAspect(null)
     setMvFrame(null)
     setLyricScale(DEFAULT_LYRIC_SCALE)
+    setLyricOffsetY(0)
     setHeadlineFontSize(DEFAULT_HEADLINE_FONT_SIZE)
     setMode("source")
     setPlayheadMs(0)
@@ -102,9 +104,9 @@ export function ReelsFactoryPage() {
   const data = React.useMemo(
     () =>
       detail && editor.lines.length > 0
-        ? buildPromoData(detail, editor, mvUrl ?? "", caption, mvFrame, lyricScale, headlineFontSize)
+        ? buildPromoData(detail, editor, mvUrl ?? "", caption, mvFrame, lyricScale, headlineFontSize, lyricOffsetY)
         : null,
-    [caption, detail, editor, headlineFontSize, lyricScale, mvFrame, mvUrl],
+    [caption, detail, editor, headlineFontSize, lyricOffsetY, lyricScale, mvFrame, mvUrl],
   )
   const fps = detail?.fps ?? 30
   const inputReady = Boolean(detail?.song.renderEligible) && errors.length === 0
@@ -310,9 +312,11 @@ export function ReelsFactoryPage() {
               onChangeCaption={setCaption}
               onChangeHeadlineFontSize={setHeadlineFontSize}
               onChangeLyricScale={setLyricScale}
+              onChangeLyricOffsetY={setLyricOffsetY}
               onChangeMvFrame={setMvFrame}
               headlineFontSize={headlineFontSize}
               lyricScale={lyricScale}
+              lyricOffsetY={lyricOffsetY}
               mvAspect={mvAspect}
               mvFrame={mvFrame}
               playheadMs={playheadMs}

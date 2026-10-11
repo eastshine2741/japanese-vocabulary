@@ -128,6 +128,7 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
             song = AdminReelsPromoSong(title = "레몬 (Lemon)", artist = "요네즈 켄시", artworkAsset = "", mvAsset = "http://localhost/mv?token=x"),
             mvFrame = AdminReelsMvFrame(scale = 1.0, x = -120.0, y = 240.0, crop = AdminReelsMvCrop(top = 0.12, right = 0.0, bottom = 0.12, left = 0.0)),
             lyricScale = 1.2,
+            lyricOffsetY = -150,
             headlineFontSize = 92,
         )
         mockMvc.post("/admin/api/reels-factory/render") {
@@ -158,6 +159,7 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
         assertThat(rendered.mvFrame).isEqualTo(AdminReelsMvFrame(scale = 1.0, x = -120.0, y = 240.0, crop = AdminReelsMvCrop(top = 0.12, right = 0.0, bottom = 0.12, left = 0.0)))
         // 어드민이 정한 가사 글자 배율도 그대로 간다
         assertThat(rendered.lyricScale).isEqualTo(1.2)
+        assertThat(rendered.lyricOffsetY).isEqualTo(-150)
         // 헤드라인 글자 크기도 어드민이 정한 값을 쓴다
         assertThat(rendered.headlineFontSize).isEqualTo(92)
         // 클라이언트의 스트리밍 URL 은 버리고 렌더 스크립트가 mvAsset 을 채운다
@@ -239,6 +241,9 @@ class AdminReelsFactoryControllerTest : AdminBaseIntegrationTest() {
         // 가사 글자 배율 범위 밖
         renderExpectingBadRequest(token, song.id!!, valid.copy(lyricScale = 0.4))
         renderExpectingBadRequest(token, song.id!!, valid.copy(lyricScale = 2.0))
+        // 가사 위치 범위 밖
+        renderExpectingBadRequest(token, song.id!!, valid.copy(lyricOffsetY = -700))
+        renderExpectingBadRequest(token, song.id!!, valid.copy(lyricOffsetY = 400))
         // 헤드라인 글자 크기 범위 밖
         renderExpectingBadRequest(token, song.id!!, valid.copy(headlineFontSize = 20))
         renderExpectingBadRequest(token, song.id!!, valid.copy(headlineFontSize = 200))

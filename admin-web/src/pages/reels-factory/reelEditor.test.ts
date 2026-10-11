@@ -4,6 +4,7 @@ import type { ReelsLyricLine, ReelsSongDetail } from "@/api/types"
 import {
   buildPromoData,
   clampHeadlineFontSize,
+  clampLyricOffsetY,
   clampLyricScale,
   clampMvFrame,
   coverMvFrame,
@@ -15,6 +16,8 @@ import {
   formatMs,
   HEADLINE_FONT_SIZE_MAX,
   HEADLINE_FONT_SIZE_MIN,
+  LYRIC_OFFSET_Y_MAX,
+  LYRIC_OFFSET_Y_MIN,
   LYRIC_SCALE_MAX,
   LYRIC_SCALE_MIN,
   MIN_GAP_MS,
@@ -317,6 +320,13 @@ describe("lyric scale", () => {
     expect(buildPromoData(synced, state, "http://mv", undefined, null, 9).lyricScale).toBe(LYRIC_SCALE_MAX)
     expect(clampLyricScale(0.1)).toBe(LYRIC_SCALE_MIN)
     expect(clampLyricScale(1.234)).toBe(1.23)
+  })
+
+  test("carries the lyric offset and clamps it to the server range", () => {
+    expect(buildPromoData(synced, state, "http://mv").lyricOffsetY).toBe(0)
+    expect(buildPromoData(synced, state, "http://mv", undefined, null, 1, undefined, -120.4).lyricOffsetY).toBe(-120)
+    expect(clampLyricOffsetY(-9_999)).toBe(LYRIC_OFFSET_Y_MIN)
+    expect(clampLyricOffsetY(9_999)).toBe(LYRIC_OFFSET_Y_MAX)
   })
 })
 

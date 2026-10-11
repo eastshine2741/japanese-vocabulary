@@ -146,6 +146,11 @@ class AdminReelsFactoryService(
                 throw IllegalArgumentException("lyricScale must be within $LYRIC_SCALE_RANGE")
             }
         }
+        data.lyricOffsetY?.let { offset ->
+            if (offset !in LYRIC_OFFSET_Y_RANGE) {
+                throw IllegalArgumentException("lyricOffsetY must be within $LYRIC_OFFSET_Y_RANGE")
+            }
+        }
         if (lines.first().startFrame < 0) {
             throw IllegalArgumentException("first line must not start before the clip")
         }
@@ -246,6 +251,7 @@ class AdminReelsFactoryService(
         const val MV_OFFSET_Y_MAX = 1920.0
         val MV_CROP_RANGE = 0.0..0.4
         val LYRIC_SCALE_RANGE = 0.6..1.4
+        val LYRIC_OFFSET_Y_RANGE = -600..300
         val HEADLINE_FONT_SIZE_RANGE = 48..110
         const val INSTAGRAM_HANDLE = "@kotonoha.app"
 

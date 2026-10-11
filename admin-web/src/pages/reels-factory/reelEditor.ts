@@ -102,6 +102,14 @@ export function clampLyricScale(scale: number): number {
   return Math.round(Math.min(LYRIC_SCALE_MAX, Math.max(LYRIC_SCALE_MIN, scale)) * 100) / 100
 }
 
+/** 가사 블록 세로 이동(px, + 가 아래). 범위는 서버 LYRIC_OFFSET_Y_RANGE 와 같다 — 위로는 헤드라인 띠 아래까지만 간다. */
+export const LYRIC_OFFSET_Y_MIN = -600
+export const LYRIC_OFFSET_Y_MAX = 300
+
+export function clampLyricOffsetY(offset: number): number {
+  return Math.round(Math.min(LYRIC_OFFSET_Y_MAX, Math.max(LYRIC_OFFSET_Y_MIN, offset)))
+}
+
 /** 연속한 줄 시작 사이 최소 간격. 드래그로 줄이 겹치는 걸 막는다. */
 export const MIN_GAP_MS = 200
 /** 타임스탬프 없는 줄을 넣을 때 앞 줄에서 띄우는 기본 간격. */
@@ -313,6 +321,7 @@ export function buildPromoData(
   mvFrame: MvFrame | null = null,
   lyricScale: number = DEFAULT_LYRIC_SCALE,
   headlineFontSize: number = DEFAULT_HEADLINE_FONT_SIZE,
+  lyricOffsetY: number = 0,
 ): PromoReelData {
   const fps = detail.fps
   const relative = (ms: number) => msToFrame(ms - state.sourceStartMs, fps)
@@ -352,6 +361,7 @@ export function buildPromoData(
     sourceStartFrame: msToFrame(state.sourceStartMs, fps),
     mvFrame,
     lyricScale: clampLyricScale(lyricScale),
+    lyricOffsetY: clampLyricOffsetY(lyricOffsetY),
     lyricsEndFrame: relative(state.endMs),
     totalLineCount: detail.lines.length,
     wordCount,
