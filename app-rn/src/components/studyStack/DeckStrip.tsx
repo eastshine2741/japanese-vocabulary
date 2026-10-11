@@ -1,5 +1,5 @@
-import React, { useCallback } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useRef } from 'react';
+import { Animated, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '../../theme/theme';
@@ -12,6 +12,7 @@ const ITEM_WIDTH = 72;
 /** due 배지 바깥 지름 — 디자인의 22px 원 + 2px 배경 테두리. */
 const BADGE_BORDER = 2;
 const BADGE_SIZE = 22 + BADGE_BORDER * 2;
+const PRESSED_SCALE = 0.94;
 
 export const DECK_STRIP_HEIGHT = 8 + RING_SIZE + 6 + 16 + 10;
 
@@ -81,15 +82,24 @@ const DeckStripTile = React.memo(function DeckStripTile({ item, selected, onSele
   const handlePress = useCallback(() => onSelect(item), [item, onSelect]);
   const isSongDeck = item.deckId != null && item.songId != null;
   const handleLongPress = useCallback(() => onLongPress(item), [item, onLongPress]);
+  const scale = useRef(new Animated.Value(1)).current;
+  const handlePressIn = useCallback(() => {
+    Animated.spring(scale, { toValue: PRESSED_SCALE, useNativeDriver: true, speed: 40, bounciness: 0 }).start();
+  }, [scale]);
+  const handlePressOut = useCallback(() => {
+    Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 30, bounciness: 6 }).start();
+  }, [scale]);
   return (
     <Pressable
       onPress={handlePress}
       onLongPress={isSongDeck ? handleLongPress : undefined}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
       delayLongPress={350}
       style={styles.item}
       hitSlop={4}
     >
-      <View style={[styles.ring, selected && styles.ringSelected]}>
+      <Animated.View style={[styles.ring, selected && styles.ringSelected, { transform: [{ scale }] }]}>
         {item.artworkUrl ? (
           <Image
             source={{ uri: item.artworkUrl }}
@@ -104,7 +114,7 @@ const DeckStripTile = React.memo(function DeckStripTile({ item, selected, onSele
             <Text style={styles.dueCount}>{item.dueCount > 99 ? '99+' : item.dueCount}</Text>
           </View>
         )}
-      </View>
+      </Animated.View>
       <Text numberOfLines={1} ellipsizeMode="tail" style={selected ? styles.labelSelected : styles.labelUnselected}>
         {item.title}
       </Text>
