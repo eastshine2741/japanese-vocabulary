@@ -164,10 +164,10 @@ export const PromoReel = ({data}: {data: PromoReelData}) => {
   const activeIndex = lines.reduce((found, line, index) => (line.startFrame <= frame ? index : found), -1);
   const activeLine = lines[Math.max(0, activeIndex)];
   const localFrame = Math.max(0, frame - activeLine.startFrame);
-  // 줄 진입은 짧은 직선 이동이다 — 스프링처럼 감속하지 않고 6프레임에 끝난다. 첫 줄도 같다.
+  // 줄 진입은 짧은 직선 이동이다 — 스프링처럼 감속하지 않고 3프레임에 끝난다. 첫 줄도 같다.
   const entry = (delay: number) => linear(localFrame - delay, 0, ENTRY_FRAMES);
   const lyricEntry = entry(0);
-  const meaningEntry = entry(4);
+  const meaningEntry = entry(2);
   const mvFrame = data.mvFrame ?? null;
 
   return (
@@ -232,7 +232,7 @@ const cropStyle = (crop: MvCrop | null | undefined): CSSProperties => {
   return {objectViewBox: `inset(${pct(crop.top)} ${pct(crop.right)} ${pct(crop.bottom)} ${pct(crop.left)})`} as CSSProperties;
 };
 
-const ENTRY_FRAMES = 6;
+const ENTRY_FRAMES = 3;
 const END_CARD_FADE_FRAMES = 6;
 
 // 0→1 직선 진행. 스프링 없이 짧게 움직이고 끝난다.

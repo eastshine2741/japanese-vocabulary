@@ -172,9 +172,6 @@ class AdminReelsFactoryService(
             if (line.originalText.isBlank()) {
                 throw IllegalArgumentException("line ${line.lineNumber} has no text")
             }
-            if (line.vocabulary.size > MAX_VOCABULARY_PER_LINE) {
-                throw IllegalArgumentException("line ${line.lineNumber} may show at most $MAX_VOCABULARY_PER_LINE words")
-            }
             if (line.vocabulary.any { it.japanese.isBlank() || it.korean.isBlank() }) {
                 throw IllegalArgumentException("line ${line.lineNumber} has a word without text or meaning")
             }
@@ -193,7 +190,6 @@ class AdminReelsFactoryService(
             minLineCount = MIN_LINE_COUNT,
             maxLineCount = null,
             maxLyricsSpanMs = MAX_LYRICS_SPAN_MS,
-            maxVocabularyPerLine = MAX_VOCABULARY_PER_LINE,
             lines = lyric.rawContent.map { raw ->
                 val analyzed = analyzedByIndex[raw.index]
                 AdminReelsLyricLineResponse(
@@ -243,8 +239,6 @@ class AdminReelsFactoryService(
         const val FPS = 30
         /** 릴스 가사 구간 상한. 이 위로는 렌더 시간·메모리가 컨테이너 한도를 넘긴다. */
         const val MAX_LYRICS_SPAN_MS = 60_000L
-        /** 강조 단어는 가사 원문 위에 뜻을 얹으므로, 한 줄에 둘이면 시선이 갈린다. */
-        const val MAX_VOCABULARY_PER_LINE = 1
         /** admin-web reelEditor.ts 의 MV_SCALE_MIN/MAX, MV_OFFSET_X/Y_MAX, MV_CROP_MAX 와 같다. */
         val MV_SCALE_RANGE = 0.3..5.0
         const val MV_OFFSET_X_MAX = 2700.0

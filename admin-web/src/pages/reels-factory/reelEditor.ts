@@ -243,7 +243,7 @@ export function shiftAll(state: EditorState, deltaMs: number): EditorState {
   }
 }
 
-export function toggleToken(state: EditorState, index: number, tokenIndex: number, max: number): EditorState {
+export function toggleToken(state: EditorState, index: number, tokenIndex: number): EditorState {
   return {
     ...state,
     lines: state.lines.map((line) => {
@@ -251,7 +251,6 @@ export function toggleToken(state: EditorState, index: number, tokenIndex: numbe
       if (line.tokenIndexes.includes(tokenIndex)) {
         return { ...line, tokenIndexes: line.tokenIndexes.filter((current) => current !== tokenIndex) }
       }
-      if (line.tokenIndexes.length >= max) return line
       return { ...line, tokenIndexes: [...line.tokenIndexes, tokenIndex] }
     }),
   }

@@ -68,7 +68,6 @@ function detailWith(lines: Array<Partial<ReelsLyricLine> & { index: number }>): 
     minLineCount: 4,
     maxLineCount: null,
     maxLyricsSpanMs: 60_000,
-    maxVocabularyPerLine: 1,
     lines: lines.map((line) => ({
       startTimeMs: null,
       originalText: `歌詞${line.index}`,
@@ -194,14 +193,11 @@ describe("timing edits", () => {
 })
 
 describe("vocabulary", () => {
-  test("toggleToken respects the per-line maximum", () => {
+  test("toggleToken adds and removes any number of words in a line", () => {
     const state = toggleLine(emptyEditor(), synced, 0)
-    const full = toggleToken(toggleToken(state, 0, 0, 2), 0, 2, 2)
-    expect(full.lines[0].tokenIndexes).toEqual([0, 2])
-    // 상한에 걸리면 무시
-    expect(toggleToken(full, 0, 1, 2).lines[0].tokenIndexes).toEqual([0, 2])
-    const removed = toggleToken(full, 0, 0, 2)
-    expect(removed.lines[0].tokenIndexes).toEqual([2])
+    const picked = toggleToken(toggleToken(toggleToken(state, 0, 0), 0, 2), 0, 1)
+    expect(picked.lines[0].tokenIndexes).toEqual([0, 2, 1])
+    expect(toggleToken(picked, 0, 0).lines[0].tokenIndexes).toEqual([2, 1])
   })
 })
 
@@ -216,7 +212,7 @@ describe("token meanings", () => {
 
   test("carries the admin-written meaning into the reel tokens and the chosen words", () => {
     let state = [0, 1, 2, 3].reduce((current, index) => toggleLine(current, synced, index), emptyEditor())
-    state = toggleToken(state, 0, 0, 1)
+    state = toggleToken(state, 0, 0)
     state = setTokenMeaning(state, 0, 0, "가슴")
     // 조사는 뜻을 써 넣어도 릴스에 나가지 않는다
     state = setTokenMeaning(state, 0, 1, "~을")
@@ -239,7 +235,7 @@ describe("token meanings", () => {
 
   test("a chosen word with the meaning cleared blocks the render", () => {
     let state = [0, 1, 2, 3].reduce((current, index) => toggleLine(current, synced, index), emptyEditor())
-    state = toggleToken(state, 0, 0, 1)
+    state = toggleToken(state, 0, 0)
     expect(validate(state, synced)).toEqual([])
     state = setTokenMeaning(state, 0, 0, "  ")
     expect(validate(state, synced)).toEqual(["#1 줄에 뜻 없는 단어가 있습니다"])
@@ -258,8 +254,8 @@ describe("validate and buildPromoData",  () => {
   test("builds frames relative to the clip start with the chosen words", () => {
     let state = [0, 1, 2, 3].reduce((current, index) => toggleLine(current, synced, index), emptyEditor())
     state = setSourceStart(state, 9_000)
-    state = toggleToken(state, 1, 2, 1)
-    state = toggleToken(state, 3, 0, 1)
+    state = toggleToken(state, 1, 2)
+    state = toggleToken(state, 3, 0)
     const data = buildPromoData(synced, state, "http://mv")
     expect(data.sourceStartFrame).toBe(270)
     expect(data.lyricLines.map((line) => line.startFrame)).toEqual([30, 90, 150, 210])

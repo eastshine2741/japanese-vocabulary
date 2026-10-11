@@ -331,7 +331,7 @@ export function LineInspector({
           <div className="mt-3 mb-1.5 flex items-center justify-between">
             <span className="text-[11px] font-semibold uppercase tracking-wide text-[#637083]">Words</span>
             <span className="font-mono text-xs text-[#637083]">
-              {included?.tokenIndexes.length ?? 0}/{detail.maxVocabularyPerLine}
+              {included?.tokenIndexes.length ?? 0}
             </span>
           </div>
           <div className="flex flex-wrap gap-1.5">
@@ -339,7 +339,6 @@ export function LineInspector({
               const meaning = tokenMeaning(token, included, tokenIndex)
               const selectable = tokenSelectable(token, meaning)
               const picked = included?.tokenIndexes.includes(tokenIndex) ?? false
-              const full = (included?.tokenIndexes.length ?? 0) >= detail.maxVocabularyPerLine
               return (
                 <button
                   aria-label={`Toggle word ${token.surface}`}
@@ -352,7 +351,7 @@ export function LineInspector({
                         ? "border-[#cbd5e1] bg-white text-[#18212f] hover:bg-[#eef2f6] disabled:opacity-50"
                         : "border-transparent bg-[#f1f5f9] text-[#94a3b8]",
                   )}
-                  disabled={!included || !selectable || (!picked && full)}
+                  disabled={!included || !selectable}
                   key={tokenIndex}
                   onClick={() => onToggleToken(line.index, tokenIndex)}
                   type="button"

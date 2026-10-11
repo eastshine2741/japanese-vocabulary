@@ -256,7 +256,6 @@ export type ReelsSongDetail = {
   minLineCount: number
   maxLineCount: number | null
   maxLyricsSpanMs: number
-  maxVocabularyPerLine: number
   lines: ReelsLyricLine[]
 }
 
