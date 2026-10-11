@@ -49,15 +49,12 @@ jobs:
           cache: npm
           cache-dependency-path: app-rn/package-lock.json
 
-      # prod 는 정식 바이너리 이후에만 낸다 — 바이너리보다 먼저 올린 OTA 는 내장 번들보다 오래돼 적용되지 않는다.
+      # 정식 태그가 없으면 rc 를 기준으로 삼는다 — rc 의 prod APK 도 production 채널이라 prod OTA 를 받는다.
       - name: Resolve native base tag
         id: base
         run: |
           if git rev-parse -q --verify "refs/tags/v$RUNTIME" >/dev/null; then
             BASE="v$RUNTIME"
-          elif [[ "$IS_PROD" == "true" ]]; then
-            echo "::error::v$RUNTIME 정식 태그가 없다. prod OTA 는 정식 바이너리 출시 뒤에만 낸다."
-            exit 1
           else
             BASE="$(git tag -l "v$RUNTIME-rc.*" --sort=-v:refname | head -1)"
             [[ -n "$BASE" ]] || { echo "::error::v$RUNTIME 네이티브 태그가 없다."; exit 1; }

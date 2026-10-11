@@ -86,7 +86,8 @@ rules, see `docs/architecture/backend-modules.md`.
 - `domains:word` owns word, flashcard, and deck lifecycle in one transaction.
 - A word save creates/reuses its 1:1 flashcard and links the word to the default
   deck and, when applicable, the song deck.
-- Deck membership is `deck_word`; deck deletion does not delete words.
+- Deck membership is `deck_word`; deck deletion also deletes words that belong
+  to no other non-default deck.
 - Word to song has only one physical FK: `decks.song_id`. Word examples keep
   `songId` / `lineIndex` only as logical references inside `words.senses`.
 

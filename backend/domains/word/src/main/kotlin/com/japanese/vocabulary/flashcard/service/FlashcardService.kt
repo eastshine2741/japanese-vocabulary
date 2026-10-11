@@ -72,6 +72,11 @@ class FlashcardService(
     }
 
     @Transactional
+    fun deleteByWordIds(wordIds: Collection<Long>) {
+        flashcardRepository.deleteByWordIdIn(wordIds)
+    }
+
+    @Transactional
     fun resetByWordId(wordId: Long) {
         flashcardRepository.findByWordId(wordId)?.let { flashcard ->
             flashcard.reset(Instant.now(clock))

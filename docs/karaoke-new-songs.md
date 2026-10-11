@@ -23,6 +23,8 @@ batch `KaraokeCollectTask` (`--task=karaoke-collect`, CronJob `karaoke-collect`,
   `GET /song/accompaniment_search?nationType=JPN&strType=16&searchTxt={번호}` 결과에 그 번호가 나오면 일본곡.
 - 금영: `https://kysing.kr/latest/?s_page=N` 목록에 실린 가사 전문에서 가나가 든 줄 비율이 0.3 이상이면 일본곡
   (실측: 일본곡 0.55~0.67, 그 외 0). 등재일을 주지 않아 수집한 날을 `listed_on` 으로 쓴다.
+  prod(Hetzner) IP 에는 곡 목록 대신 JS 쿠키 챌린지(`/cupid.js`, slowAES)가 온다. `KyClient` 가 페이지의
+  `a`/`b`/`c` 로 AES-128-CBC 복호화해 `CUPID` 쿠키를 만들고 다시 요청한다. 1페이지에 곡이 없으면 실패로 남긴다.
 
 둘 다 공식 API 가 아니라 브라우저가 부르는 엔드포인트·HTML 이다. 구조가 바뀌면 `integrations:karaoke-listing`
 고정 데이터 테스트를 새 응답으로 갈고 파서를 고친다.

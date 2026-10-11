@@ -274,7 +274,6 @@ export const reelsSongDetail: ReelsSongDetail = {
   minLineCount: 4,
   maxLineCount: null,
   maxLyricsSpanMs: 60_000,
-  maxVocabularyPerLine: 3,
   lines: [0, 1, 2, 3].map((index) => ({
     index,
     startTimeMs: index * 2000,
@@ -283,7 +282,6 @@ export const reelsSongDetail: ReelsSongDetail = {
     selectable: true,
     ineligibleReason: null,
     tokens: lyricDetail.analyzedContent?.[0]?.tokens ?? [],
-    recommendedVocabulary: [{ japanese: "沈む", reading: "シズム", korean: "가라앉다", partOfSpeech: "VERB" }],
   })),
 }
 

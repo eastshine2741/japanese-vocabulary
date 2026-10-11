@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, Alert, Platform, useWindowDimensions } from 'react-native';
 import { NavigationState, SceneRendererProps, TabBar, TabDescriptor, TabView } from 'react-native-tab-view';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -8,6 +8,9 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useShallow } from 'zustand/react/shallow';
 import { useAuthStore } from '../../stores/authStore';
 import { useDeckListStore } from '../../stores/deckListStore';
+import { useHomeChromeStore } from '../../stores/homeChromeStore';
+import { useDeleteSongDeck, useSongDeckActionSheet } from '../../hooks/useDeleteSongDeck';
+import type { SongDeckTarget } from '../../components/SongDeckActionSheet';
 import { Colors, Dimens } from '../../theme/theme';
 import { Typography } from '../../theme/typography';
 import { RootStackParamList } from '../../navigation/AppNavigator';
@@ -97,27 +100,45 @@ export default function MyPageTab() {
     }, [loadProfile, loadDecks]),
   );
 
+  const statsAliveRef = useRef(false);
+  const loadFlashcardStats = useCallback(() => {
+    flashcardApi.getStats()
+      .then((data) => {
+        if (!statsAliveRef.current) return;
+        setFlashcardStats(data);
+        setStatsError(null);
+      })
+      .catch((e: any) => {
+        if (!statsAliveRef.current) return;
+        setStatsError(e.message ?? 'failed');
+      });
+  }, []);
+
   useFocusEffect(
     useCallback(() => {
-      let alive = true;
-      flashcardApi.getStats()
-        .then((data) => {
-          if (!alive) return;
-          setFlashcardStats(data);
-          setStatsError(null);
-        })
-        .catch((e: any) => {
-          if (!alive) return;
-          setStatsError(e.message ?? 'failed');
-        });
+      statsAliveRef.current = true;
+      loadFlashcardStats();
       return () => {
-        alive = false;
+        statsAliveRef.current = false;
       };
-    }, []),
+    }, [loadFlashcardStats]),
   );
 
   const { width: screenWidth } = useWindowDimensions();
   const [tabIndex, setTabIndex] = useState(0);
+  const requestHomeReload = useHomeChromeStore((s) => s.requestReload);
+  const handleDeckDeleted = useCallback(() => {
+    loadDecks();
+    loadFlashcardStats();
+    requestHomeReload();
+  }, [loadDecks, loadFlashcardStats, requestHomeReload]);
+  const deckDeletion = useDeleteSongDeck(handleDeckDeleted);
+  const { requestDelete } = deckDeletion;
+  const handleDeleteFromSheet = useCallback((target: SongDeckTarget) => {
+    requestDelete(target.deckId);
+  }, [requestDelete]);
+  const deckActions = useSongDeckActionSheet(handleDeleteFromSheet);
+  const { open: openDeckActions } = deckActions;
 
   const handle = username ? `@${username}` : '@user';
   const displayName = userName?.trim() || '학습자';
@@ -135,6 +156,11 @@ export default function MyPageTab() {
       navigation.navigate('DeckDetail', { deckId: item.deckId });
     }
   }, [navigation]);
+
+  // 일반 단어장(songId == null)은 곡 담기 취소 대상이 아니라 롱프레스를 걸지 않는다.
+  const handleSongProgressLongPress = useCallback((item: SongProgressItem) => {
+    openDeckActions({ deckId: item.deckId, title: item.title, artist: item.artist });
+  }, [openDeckActions]);
 
   const handleOpenSongProgress = useCallback(() => {
     navigation.navigate('SongProgressList');
@@ -231,7 +257,12 @@ export default function MyPageTab() {
             ) : (
                 <View>
                   {representativeSongs.map((item) => (
-                    <SongProgressRow key={item.deckId} item={item} onPress={handleSongProgressPress} />
+                    <SongProgressRow
+                      key={item.deckId}
+                      item={item}
+                      onPress={handleSongProgressPress}
+                      onLongPress={item.songId != null ? handleSongProgressLongPress : undefined}
+                    />
                   ))}
                 </View>
               )}
@@ -243,7 +274,7 @@ export default function MyPageTab() {
     ),
     [
       sceneContentStyle, songCards, artistCards, cardsLoading, screenWidth, handlePressCard, handleLongPressCard, handlePressArtistCard, handleLongPressArtistCard, handleOpenArtistCards, totalWords, longTermWords, shortTermWords, showStatsFallback,
-      handleOpenSongProgress, deckStatus, progressItems.length, representativeSongs, handleSongProgressPress, handleOpenStreak,
+      handleOpenSongProgress, deckStatus, progressItems.length, representativeSongs, handleSongProgressPress, handleSongProgressLongPress, handleOpenStreak,
     ],
   );
 
@@ -284,6 +315,8 @@ export default function MyPageTab() {
         onIndexChange={setTabIndex}
         initialLayout={initialLayout}
       />
+      {deckActions.sheet}
+      {deckDeletion.dialogs}
     </SafeAreaView>
   );
 }

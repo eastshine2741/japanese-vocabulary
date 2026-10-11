@@ -20,11 +20,13 @@ import {
   StackReviewOverlay,
   STACK_REVIEW_CHROME_HEIGHT,
   StudyStack,
+  type StudySource,
   useEditWordFromStack,
   useStudyStack,
 } from '../../components/studyStack';
 import { useHomeChromeStore } from '../../stores/homeChromeStore';
 import { useRewardCardStore } from '../../stores/rewardCardStore';
+import { useDeleteSongDeck, useSongDeckActionSheet } from '../../hooks/useDeleteSongDeck';
 import { Colors } from '../../theme/theme';
 import { RootStackParamList, TabParamList } from '../../navigation/AppNavigator';
 import {
@@ -51,13 +53,14 @@ export default function HomeTab() {
   const insets = useSafeAreaInsets();
   const focused = useIsFocused();
   const stack = useStudyStack({ mode: 'home' });
-  const { deckStripItems, dueTodayCount, isComplete, reload, selectSource, session, status } = stack;
+  const { deckStripItems, dueTodayCount, isComplete, reload, removeDeck, selectSource, session, status } = stack;
   const visibleSongId = stack.visibleSource?.songId ?? null;
   const selectedSongId = stack.selectedSource?.songId ?? null;
 
   const immersed = useHomeChromeStore(s => s.isDark);
   const setDark = useHomeChromeStore(s => s.setDark);
   const consumeImmerse = useHomeChromeStore(s => s.consumeImmerse);
+  const consumeReload = useHomeChromeStore(s => s.consumeReload);
   const focusedRef = useRef(focused);
   focusedRef.current = focused;
   const immersedRef = useRef(immersed);
@@ -90,8 +93,9 @@ export default function HomeTab() {
   useEffect(() => {
     const regained = focused && !wasFocusedRef.current;
     wasFocusedRef.current = focused;
-    if (regained && coldStartRef.current) reload();
-  }, [focused, reload]);
+    // 다른 화면에서 곡을 지웠으면 그 곡의 카드·배지가 남아 있을 수 있어 다시 연다.
+    if (regained && (consumeReload() || coldStartRef.current)) reload();
+  }, [consumeReload, focused, reload]);
 
   // 몰입 규칙:
   //  ① 몰입 밖에서는 카드를 못 만진다 — 탭이든 드래그든 몰입 진입이다 (WordLayer 잠금 오버레이).
@@ -184,6 +188,18 @@ export default function HomeTab() {
 
   const editWord = useEditWordFromStack(stack.refreshCurrentCard);
 
+  const deckDeletion = useDeleteSongDeck(removeDeck);
+  const { requestDelete } = deckDeletion;
+  const handleDeleteFromSheet = useCallback((target: { deckId: number }) => {
+    requestDelete(target.deckId);
+  }, [requestDelete]);
+  const deckActions = useSongDeckActionSheet(handleDeleteFromSheet);
+  const { open: openDeckActions } = deckActions;
+  const handleLongPressDeck = useCallback((source: StudySource) => {
+    if (source.deckId == null) return;
+    openDeckActions({ deckId: source.deckId, title: source.title, artist: source.artist });
+  }, [openDeckActions]);
+
   // 세션 시작 시점에 due 가 없었는데 도중에 새로 due 된 카드를 리뷰하면 queueTotal 이 0으로 남는다.
   const counterTotal = session.queueTotal > 0 ? session.queueTotal : session.reviewedCount;
   const counterPosition = session.queueTotal > 0 ? session.position : session.reviewedCount;
@@ -252,6 +268,7 @@ export default function HomeTab() {
           deckStripItems={deckStripItems}
           selectedSongId={selectedSongId}
           onSelectDeckStripItem={selectSource}
+          onLongPressDeckStripItem={handleLongPressDeck}
           onSearch={goSearch}
           onPressStreak={goStreak}
           dueRemaining={dueTodayCount}
@@ -259,6 +276,8 @@ export default function HomeTab() {
           immerse={immerse}
         />
       </Animated.View>
+      {deckActions.sheet}
+      {deckDeletion.dialogs}
     </View>
   );
 }

@@ -207,11 +207,26 @@ jobs:
     needs: [parse, build]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
       - name: Download AAB
         uses: actions/download-artifact@v4
         with:
           name: prod-aab
           path: artifacts
+
+      # annotated 태그면 그 메시지를 출시 노트로 쓴다 (Play 는 언어당 500자).
+      - name: Write release notes
+        id: notes
+        run: |
+          git fetch --quiet origin "refs/tags/$GITHUB_REF_NAME:refs/tags/$GITHUB_REF_NAME" --force
+          if [[ "$(git cat-file -t "$GITHUB_REF_NAME")" == "tag" ]]; then
+            NOTES="$(git tag -l --format='%(contents:body)' "$GITHUB_REF_NAME")"
+            [[ -n "$NOTES" ]] || NOTES="$(git tag -l --format='%(contents:subject)' "$GITHUB_REF_NAME")"
+            mkdir -p whatsnew
+            printf '%s' "$NOTES" > whatsnew/whatsnew-ko-KR
+            echo "dir=whatsnew" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Upload to Google Play
         uses: r0adkll/upload-google-play@v1
@@ -222,6 +237,7 @@ jobs:
           releaseName: ${{ needs.parse.outputs.version_name }}
           track: ${{ needs.parse.outputs.is_rc == 'true' && 'internal' || 'production' }}
           status: completed
+          whatsNewDirectory: ${{ steps.notes.outputs.dir }}
 
   notify-failure:
     needs: [parse, build, release, play]

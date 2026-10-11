@@ -44,7 +44,8 @@ export const MV_SCALE_MAX = 5
 export const MV_OFFSET_X_MAX = 2700
 export const MV_OFFSET_Y_MAX = 1920
 const REEL_WIDTH = 1080
-const REEL_HEIGHT = 1920
+/** PromoReel MV_AREA_BOTTOM - HEADLINE_BAND_HEIGHT. MV 는 헤드라인 띠 아래, 하단 인스타 UI 위만 채운다. */
+const MV_AREA_HEIGHT = 1560 - 580
 
 /** 한 변에서 잘라낼 수 있는 최대 비율. MV 에 박힌 레터박스(2.39:1 이면 위아래 각 12%)는 넉넉히 덮는다. */
 export const MV_CROP_MAX = 0.4
@@ -72,11 +73,11 @@ export function croppedAspect(aspect: number, crop: MvCrop = NO_CROP): number {
 }
 
 /**
- * 가운데 정렬로 캔버스를 꽉 채우는(cover) 배치. MV 비율(가로/세로)이 있어야 배율을 안다.
+ * 가운데 정렬로 띠 아래 MV 영역을 꽉 채우는(cover) 배치. MV 비율(가로/세로)이 있어야 배율을 안다.
  * 크롭이 없으면 `mvFrame` 이 null 일 때와 같은 화면이다.
  */
 export function coverMvFrame(aspect: number, crop: MvCrop = NO_CROP): MvFrame {
-  const scale = Math.max(1, (REEL_HEIGHT * croppedAspect(aspect, crop)) / REEL_WIDTH)
+  const scale = Math.max(1, (MV_AREA_HEIGHT * croppedAspect(aspect, crop)) / REEL_WIDTH)
   return clampMvFrame({ scale, x: 0, y: 0, crop })
 }
 
@@ -85,7 +86,7 @@ export const FIT_WIDTH_MV_FRAME: MvFrame = { scale: 1, x: 0, y: 0, crop: NO_CROP
 
 /** 가사 원문 글자 배율. 1 이 기본이고, 긴 줄을 맞추는 자동 축소 위에 곱해진다. */
 /** 헤드라인 글자 크기(px). 기본값은 PromoReel 의 DEFAULT_HEADLINE_FONT_SIZE, 범위는 서버 HEADLINE_FONT_SIZE_RANGE 와 같다. */
-export const DEFAULT_HEADLINE_FONT_SIZE = 58
+export const DEFAULT_HEADLINE_FONT_SIZE = 76
 export const HEADLINE_FONT_SIZE_MIN = 48
 export const HEADLINE_FONT_SIZE_MAX = 110
 
@@ -99,6 +100,14 @@ export const LYRIC_SCALE_MAX = 1.4
 
 export function clampLyricScale(scale: number): number {
   return Math.round(Math.min(LYRIC_SCALE_MAX, Math.max(LYRIC_SCALE_MIN, scale)) * 100) / 100
+}
+
+/** 가사 블록 세로 이동(px, + 가 아래). 범위는 서버 LYRIC_OFFSET_Y_RANGE 와 같다 — 위로는 헤드라인 띠 아래까지만 간다. */
+export const LYRIC_OFFSET_Y_MIN = -600
+export const LYRIC_OFFSET_Y_MAX = 300
+
+export function clampLyricOffsetY(offset: number): number {
+  return Math.round(Math.min(LYRIC_OFFSET_Y_MAX, Math.max(LYRIC_OFFSET_Y_MIN, offset)))
 }
 
 /** 연속한 줄 시작 사이 최소 간격. 드래그로 줄이 겹치는 걸 막는다. */
@@ -146,19 +155,6 @@ export function tokenToVocabulary(token: LyricToken, meaning: string = token.kor
   }
 }
 
-/** 서버 추천 단어를 토큰 index 로 옮긴다. 어드민이 바꾸기 전 기본 선택이다. */
-export function defaultTokenIndexes(line: ReelsLyricLine, max: number): number[] {
-  const picked: number[] = []
-  for (const word of line.recommendedVocabulary) {
-    const found = line.tokens.findIndex(
-      (token, index) => !picked.includes(index) && tokenSelectable(token) && (token.baseForm || token.surface) === word.japanese,
-    )
-    if (found >= 0) picked.push(found)
-    if (picked.length >= max) break
-  }
-  return picked
-}
-
 /** 릴스에 넣거나 뺀다. 넣을 때 시작 시각은 타임스탬프 → 앞 줄 + 3초 → 클립 시작 순으로 잡는다. */
 export function toggleLine(state: EditorState, detail: ReelsSongDetail, index: number): EditorState {
   const existing = state.lines.findIndex((line) => line.index === index)
@@ -183,7 +179,8 @@ export function toggleLine(state: EditorState, detail: ReelsSongDetail, index: n
   const inserted: EditorLine = {
     index,
     startMs,
-    tokenIndexes: defaultTokenIndexes(line, detail.maxVocabularyPerLine),
+    // 단어는 어드민이 짚은 줄에만 뜬다 — 모든 줄에 붙으면 강조가 되지 않는다.
+    tokenIndexes: [],
     meanings: {},
   }
   const lines = normalizeMonotonic([...state.lines.slice(0, at), inserted, ...state.lines.slice(at)])
@@ -246,7 +243,7 @@ export function shiftAll(state: EditorState, deltaMs: number): EditorState {
   }
 }
 
-export function toggleToken(state: EditorState, index: number, tokenIndex: number, max: number): EditorState {
+export function toggleToken(state: EditorState, index: number, tokenIndex: number): EditorState {
   return {
     ...state,
     lines: state.lines.map((line) => {
@@ -254,7 +251,6 @@ export function toggleToken(state: EditorState, index: number, tokenIndex: numbe
       if (line.tokenIndexes.includes(tokenIndex)) {
         return { ...line, tokenIndexes: line.tokenIndexes.filter((current) => current !== tokenIndex) }
       }
-      if (line.tokenIndexes.length >= max) return line
       return { ...line, tokenIndexes: [...line.tokenIndexes, tokenIndex] }
     }),
   }
@@ -324,6 +320,7 @@ export function buildPromoData(
   mvFrame: MvFrame | null = null,
   lyricScale: number = DEFAULT_LYRIC_SCALE,
   headlineFontSize: number = DEFAULT_HEADLINE_FONT_SIZE,
+  lyricOffsetY: number = 0,
 ): PromoReelData {
   const fps = detail.fps
   const relative = (ms: number) => msToFrame(ms - state.sourceStartMs, fps)
@@ -363,6 +360,7 @@ export function buildPromoData(
     sourceStartFrame: msToFrame(state.sourceStartMs, fps),
     mvFrame,
     lyricScale: clampLyricScale(lyricScale),
+    lyricOffsetY: clampLyricOffsetY(lyricOffsetY),
     lyricsEndFrame: relative(state.endMs),
     totalLineCount: detail.lines.length,
     wordCount,

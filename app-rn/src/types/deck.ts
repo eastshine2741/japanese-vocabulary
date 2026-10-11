@@ -66,3 +66,8 @@ export interface DeckResponse {
   title: string;
   description: string;
 }
+
+export interface DeckDeletionPreviewResponse {
+  /** 덱과 함께 지워질 단어 수 — 이 덱에만 담긴 단어. */
+  deletedWordCount: number;
+}

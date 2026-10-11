@@ -10,6 +10,7 @@ import { useStreakStore } from '../../stores/streakStore';
 import { useRewardCardStore } from '../../stores/rewardCardStore';
 import { useStudyStatsStore } from '../../stores/studyStatsStore';
 import { SongDeckSummary } from '../../types/deck';
+import { FlashcardDTO } from '../../types/flashcard';
 import { WordInSongItemDto, WordsInSongDto } from '../../types/song';
 import { sourceFromDeck, sourceFromRecent, sourceFromRecommendation } from './studySource';
 import {
@@ -72,6 +73,18 @@ function toPreviewCard(lead: StudyPreviewWord, source: StudySource): StudyCard {
   };
 }
 
+/**
+ * 다른 곡에서 이미 담은 단어의 실제 카드. 담긴 단어는 늘 기본 덱에 있고, 기본 덱 due 조회의 lead 는
+ * due 가 아니어도 맨 앞에 온다. 다음 복습 간격·기억 칸을 실제 값으로 보여주려고 쓴다.
+ */
+async function fetchSavedWordCard(wordId: number): Promise<FlashcardDTO | null> {
+  const { deckId } = await deckApi.getAllDeckDetail();
+  if (deckId == null) return null;
+  const due = await flashcardApi.getDueCards(deckId, 1, wordId);
+  const card = due.cards[0];
+  return card?.wordId === wordId ? card : null;
+}
+
 export interface UseStudyStackOptions {
   /**
    * 'home': due 덱을 스스로 골라 스택을 시작하고 완주 후 다음 곡을 넛지한다.
@@ -124,6 +137,8 @@ export interface StudyStackState {
   selectSource: (target: StudySource) => void;
   /** 완주 카드의 추천곡 CTA. 그 자리에서 추천곡 미리보기 카드를 띄워 학습을 이어간다. */
   startRecommended: () => void;
+  /** 곡 덱을 지운 뒤. 지금 보던 곡이면 홈을 처음부터 다시 열고, 아니면 스트립에서만 빼고 오늘 due 를 다시 센다. */
+  removeDeck: (deckId: number) => void;
 }
 
 export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStackState {
@@ -282,27 +297,36 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
         setStatus('ready');
         return;
       }
-      if (target.previewWord) {
-        // 곡 상세에서 아직 안 담긴 단어를 눌렀다 — 덱을 만들지 않고 그 단어를 미리보기 카드로 띄운다.
-        // rating 확정 시 advancePreviewReview 가 곡을 통째로 담는다.
+      // 곡 상세에서 누른 단어로 열었다면 곡 덱 첫 카드가 그 단어일 때만 곡 덱으로 연다. 안 담긴 단어는 곡 덱에 없고,
+      // 서버는 곡 덱에 없는 lead 를 무시한다. leadWordId 는 최초 진입에만 적용한다 — 이후 refreshDue 는 서버 due 순서를 따른다.
+      const deckId = target.previewWord != null && target.leadWordId == null ? null : target.deckId;
+      const due = deckId == null
+        ? null
+        : target.leadWordId != null
+          ? await flashcardApi.getDueCards(deckId, DUE_PAGE_SIZE, target.leadWordId)
+          : await flashcardApi.getDueCards(deckId, DUE_PAGE_SIZE);
+      if (version !== requestVersion.current) return;
+      const tappedLeads = due != null && due.cards[0]?.wordId === target.leadWordId;
+      if (target.previewWord && !tappedLeads) {
+        // 그 단어 하나만 미리보기 카드로 띄운다. 곡은 담지 않고, rating 확정 시 advancePreviewReview 가 곡을 통째로 담는다.
+        const card = target.leadWordId != null
+          // 못 받아도 단어는 보여준다 — 간격·기억 칸만 빠진 미리보기 카드로 대신한다.
+          ? await fetchSavedWordCard(target.leadWordId).catch(() => null)
+          : null;
+        if (version !== requestVersion.current) return;
         isPreviewRef.current = true;
         activeSourceRef.current = null;
-        setCards([toPreviewCard(target.previewWord, target)]);
+        setCards([card ? { ...card, source: { ...target, totalCount: 1 } } : toPreviewCard(target.previewWord, target)]);
         setStatus('ready');
         return;
       }
-      if (target.deckId == null) {
+      if (due == null) {
         // 아직 이 곡의 덱이 없다 — 복습할 카드가 없는 상태로 완료 화면을 보여준다.
         setCards([]);
         setCompletedSource(target);
         setStatus('ready');
         return;
       }
-      // leadWordId 는 최초 진입에만 적용한다 — 이후 refreshDue 는 서버 due 순서를 그대로 따른다.
-      const due = target.leadWordId != null
-        ? await flashcardApi.getDueCards(target.deckId, DUE_PAGE_SIZE, target.leadWordId)
-        : await flashcardApi.getDueCards(target.deckId, DUE_PAGE_SIZE);
-      if (version !== requestVersion.current) return;
       setDueCount(due.totalCount);
       setSessionDueTotal(due.totalCount);
       if (due.cards.length > 0) {
@@ -626,10 +650,10 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
       setReviewError(null);
       setDueCount(result.cards.length);
       setSessionDueTotal(result.totalCount);
-      reviewedIdsRef.current = new Set([PREVIEW_FLASHCARD_ID]);
+      reviewedIdsRef.current = new Set([currentCard.id]);
       setReviewedCount(1);
       setDistinctReviewedCount(1);
-      setMemoryDiff(accumulateMemoryDiff(EMPTY_MEMORY_DIFF, 'REMAINING', result.reviewedMemory));
+      setMemoryDiff(accumulateMemoryDiff(EMPTY_MEMORY_DIFF, currentCard.memory, result.reviewedMemory));
       if (result.cards.length > 0) {
         setCards(result.cards.map(card => ({ ...card, source: newSource })));
         setCurrentIndex(0);
@@ -841,6 +865,18 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     startPreview(recommendedSource);
   }, [recommendedSource, startPreview]);
 
+  const removeDeck = useCallback((deckId: number) => {
+    if (selectedSourceRef.current?.deckId === deckId || activeSourceRef.current?.deckId === deckId) {
+      reload();
+      return;
+    }
+    setDeckStripItems(items => items.filter(item => item.deckId !== deckId));
+    setNextDueSource(next => (next?.deckId === deckId ? null : next));
+    flashcardApi.getStats()
+      .then(stats => setDueTodayCount(stats.due))
+      .catch(() => undefined);
+  }, [reload]);
+
   const panHandlers = panResponder.panHandlers;
 
   // 반환 객체를 고정한다 — 매 렌더 새 객체면 StudyStack 의 React.memo 가 항상 miss 난다.
@@ -875,6 +911,7 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     continueDue,
     selectSource,
     startRecommended,
+    removeDeck,
   }), [
     status,
     cards,
@@ -906,5 +943,6 @@ export function useStudyStack({ mode, source }: UseStudyStackOptions): StudyStac
     continueDue,
     selectSource,
     startRecommended,
+    removeDeck,
   ]);
 }

@@ -106,7 +106,7 @@ Outer:  Word, Flashcard, Deck    — 사용자 학습 데이터 (domains:word)
 | 대상 | word 와의 관계 | 규칙 |
 |---|---|---|
 | flashcard | 수명주기 동일 | 저장할 때 만들고 삭제할 때 지운다. flashcard 없는 word 는 존재할 수 없다 |
-| deck | word 보다 오래 산다 | 담을 때 없으면 만든다. 안이 비어도 지우지 않고, deck 을 지워도 안의 word 는 남는다 |
+| deck | word 보다 오래 산다 | 담을 때 없으면 만든다. 안이 비어도 지우지 않는다. deck 을 지우면 전체 단어장 말고는 그 deck 에만 속한 word 를 함께 지운다 |
 | 전체 단어장 | 모든 word 가 연결 | 유저당 1개. 지울 수 없다 |
 
 커밋 뒤에 도는 이벤트로 미루지 않는 이유: `deck_word` 는 단어장 구성의 유일한 기록이라
