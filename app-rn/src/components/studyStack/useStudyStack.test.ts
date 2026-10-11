@@ -722,3 +722,46 @@ it('selectSource on another recommendation loads a fresh preview card', async ()
   expect(stack.currentCard?.japanese).toBe('低い');
   expect(stack.selectedSource?.songId).toBe(99);
 });
+
+it('removeDeck on a non-selected deck drops it from the strip and refreshes today\'s due without reloading the stack', async () => {
+  vi.mocked(deckApi.getDecks).mockResolvedValue({
+    songDecks: [deck(1, 10, 'A', 5), deck(2, 20, 'B', 3), deck(3, 30, 'C', 1)],
+    nextCursor: null,
+  });
+  vi.mocked(songApi.getRecommendations).mockResolvedValue([]);
+  vi.mocked(flashcardApi.getDueCards).mockResolvedValue({ cards: [card(1), card(2)], totalCount: 2, nextDueAt: null });
+  vi.mocked(flashcardApi.getStats).mockResolvedValue({
+    total: 30, due: 9, newCount: 0, learning: 0, review: 0, longTermCount: 0, shortTermCount: 0,
+  });
+  await mountHome();
+  expect(stack.nextDueSource?.deckId).toBe(2);
+
+  vi.mocked(flashcardApi.getStats).mockResolvedValue({
+    total: 20, due: 6, newCount: 0, learning: 0, review: 0, longTermCount: 0, shortTermCount: 0,
+  });
+  await act(async () => { stack.removeDeck(2); });
+  expect(stack.deckStripItems.map(s => s.deckId)).toEqual([1, 3]);
+  expect(stack.nextDueSource).toBeNull();
+  expect(stack.dueTodayCount).toBe(6);
+  expect(stack.selectedSource?.deckId).toBe(1);
+  expect(stack.cards.map(c => c.id)).toEqual([1, 2]);
+  expect(deckApi.getDecks).toHaveBeenCalledTimes(1);
+});
+
+it('removeDeck on the selected deck reloads home and falls back to the top remaining deck', async () => {
+  vi.mocked(deckApi.getDecks).mockResolvedValue({
+    songDecks: [deck(1, 10, 'A', 5), deck(2, 20, 'B', 3)],
+    nextCursor: null,
+  });
+  vi.mocked(songApi.getRecommendations).mockResolvedValue([]);
+  vi.mocked(flashcardApi.getDueCards).mockResolvedValue({ cards: [card(1)], totalCount: 1, nextDueAt: null });
+  await mountHome();
+  expect(stack.selectedSource?.deckId).toBe(1);
+
+  vi.mocked(deckApi.getDecks).mockResolvedValue({ songDecks: [deck(2, 20, 'B', 3)], nextCursor: null });
+  vi.mocked(flashcardApi.getDueCards).mockResolvedValue({ cards: [card(7)], totalCount: 1, nextDueAt: null });
+  await act(async () => { stack.removeDeck(1); });
+  expect(stack.deckStripItems.map(s => s.deckId)).toEqual([2]);
+  expect(stack.selectedSource?.deckId).toBe(2);
+  expect(stack.cards.map(c => c.id)).toEqual([7]);
+});

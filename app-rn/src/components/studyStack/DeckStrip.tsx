@@ -19,6 +19,8 @@ export interface DeckStripProps {
   items: StudySource[];
   selectedSongId: number | null;
   onSelect: (source: StudySource) => void;
+  /** 곡 덱 타일에만 걸린다 — 아직 덱이 없는 최근 곡·추천곡은 지울 것이 없다. */
+  onLongPress: (source: StudySource) => void;
   onSearch: () => void;
 }
 
@@ -27,6 +29,7 @@ export const DeckStrip = React.memo(function DeckStrip({
   items,
   selectedSongId,
   onSelect,
+  onLongPress,
   onSearch,
 }: DeckStripProps) {
   return (
@@ -42,6 +45,7 @@ export const DeckStrip = React.memo(function DeckStrip({
           item={item}
           selected={item.songId != null && item.songId === selectedSongId}
           onSelect={onSelect}
+          onLongPress={onLongPress}
         />
       ))}
     </ScrollView>
@@ -70,12 +74,21 @@ interface DeckStripTileProps {
   item: StudySource;
   selected: boolean;
   onSelect: (source: StudySource) => void;
+  onLongPress: (source: StudySource) => void;
 }
 
-const DeckStripTile = React.memo(function DeckStripTile({ item, selected, onSelect }: DeckStripTileProps) {
+const DeckStripTile = React.memo(function DeckStripTile({ item, selected, onSelect, onLongPress }: DeckStripTileProps) {
   const handlePress = useCallback(() => onSelect(item), [item, onSelect]);
+  const isSongDeck = item.deckId != null && item.songId != null;
+  const handleLongPress = useCallback(() => onLongPress(item), [item, onLongPress]);
   return (
-    <Pressable onPress={handlePress} style={styles.item} hitSlop={4}>
+    <Pressable
+      onPress={handlePress}
+      onLongPress={isSongDeck ? handleLongPress : undefined}
+      delayLongPress={350}
+      style={styles.item}
+      hitSlop={4}
+    >
       <View style={[styles.ring, selected && styles.ringSelected]}>
         {item.artworkUrl ? (
           <Image
