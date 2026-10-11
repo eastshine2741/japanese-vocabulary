@@ -1,6 +1,7 @@
 package com.japanese.vocabulary.word
 
 import com.japanese.vocabulary.common.exception.BusinessException
+import com.japanese.vocabulary.deck.dto.CreateDeckDto
 import com.japanese.vocabulary.deck.repository.DeckRepository
 import com.japanese.vocabulary.deck.repository.DeckWordRepository
 import com.japanese.vocabulary.deck.service.DeckService
@@ -172,7 +173,7 @@ class WordLifecycleTest : ApiAfterCommitListenerTest() {
         }
 
         @Test
-        fun `deleting a song deck keeps its words, their flashcards and the default deck link`() {
+        fun `deleting a song deck deletes its exclusive words with their flashcards and default deck link`() {
             val userId = newUserId()
             val songId = newSongId()
             val wordId = addWord(userId, "流れる", songId)
@@ -182,9 +183,68 @@ class WordLifecycleTest : ApiAfterCommitListenerTest() {
             deckService.deleteDeck(userId, songDeckId)
 
             assertThat(deckRepository.findById(songDeckId)).isEmpty
+            assertThat(wordRepository.findById(wordId)).isEmpty
+            assertThat(flashcardRepository.findByWordId(wordId)).isNull()
+            assertThat(deckWordRepository.existsByDeckIdAndWordId(defaultDeckId, wordId)).isFalse
+            assertThat(deckRepository.findById(defaultDeckId)).isPresent
+        }
+
+        @Test
+        fun `deleting a song deck keeps words shared with another song deck, flashcard intact`() {
+            val userId = newUserId()
+            val songId = newSongId()
+            val otherSongId = newSongId()
+            val sharedId = addWord(userId, "空", songId)
+            addWord(userId, "空", otherSongId)
+            val exclusiveId = addWord(userId, "海", songId)
+            val songDeckId = deckRepository.findByUserIdAndSongId(userId, songId)!!.id!!
+            val otherDeckId = deckRepository.findByUserIdAndSongId(userId, otherSongId)!!.id!!
+            val defaultDeckId = deckRepository.findByUserIdAndIsDefaultTrue(userId)!!.id!!
+            val cardBefore = flashcardRepository.findByWordId(sharedId)!!
+
+            deckService.deleteDeck(userId, songDeckId)
+
+            assertThat(wordRepository.findById(exclusiveId)).isEmpty
+            assertThat(wordRepository.findById(sharedId)).isPresent
+            val cardAfter = flashcardRepository.findByWordId(sharedId)!!
+            assertThat(cardAfter.id).isEqualTo(cardBefore.id)
+            assertThat(cardAfter.fsrsCardJson).isEqualTo(cardBefore.fsrsCardJson)
+            assertThat(deckWordRepository.existsByDeckIdAndWordId(otherDeckId, sharedId)).isTrue
+            assertThat(deckWordRepository.existsByDeckIdAndWordId(defaultDeckId, sharedId)).isTrue
+            assertThat(deckWordRepository.findByDeckId(songDeckId)).isEmpty()
+        }
+
+        @Test
+        fun `deleting a song deck keeps words also in a general deck`() {
+            val userId = newUserId()
+            val songId = newSongId()
+            val wordId = addWord(userId, "星", songId)
+            val songDeckId = deckRepository.findByUserIdAndSongId(userId, songId)!!.id!!
+            val generalDeckId = deckService.createDeck(userId, CreateDeckDto(title = "내 단어장", description = null)).id
+            inTx { deckWordRepository.insertIfAbsent(generalDeckId, wordId) }
+
+            deckService.deleteDeck(userId, songDeckId)
+
             assertThat(wordRepository.findById(wordId)).isPresent
             assertThat(flashcardRepository.findByWordId(wordId)).isNotNull
-            assertThat(deckWordRepository.existsByDeckIdAndWordId(defaultDeckId, wordId)).isTrue
+        }
+
+        @Test
+        fun `deletion preview counts exactly the words deleteDeck removes`() {
+            val userId = newUserId()
+            val songId = newSongId()
+            val otherSongId = newSongId()
+            batchAdd(userId, listOf("空", "海", "森"), songId)
+            addWord(userId, "空", otherSongId)
+            val songDeckId = deckRepository.findByUserIdAndSongId(userId, songId)!!.id!!
+            val before = wordRepository.findByUserIdOrderByIdDesc(userId, Pageable.unpaged()).size
+
+            val preview = deckService.getDeletionPreview(userId, songDeckId)
+            deckService.deleteDeck(userId, songDeckId)
+
+            assertThat(preview.deletedWordCount).isEqualTo(2)
+            assertThat(wordRepository.findByUserIdOrderByIdDesc(userId, Pageable.unpaged()))
+                .hasSize(before - preview.deletedWordCount)
         }
     }
 

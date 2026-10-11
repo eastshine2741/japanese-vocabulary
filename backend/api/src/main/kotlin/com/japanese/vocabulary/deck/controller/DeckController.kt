@@ -2,6 +2,7 @@ package com.japanese.vocabulary.deck.controller
 
 import com.japanese.vocabulary.deck.dto.CreateDeckDto
 import com.japanese.vocabulary.deck.dto.CreateDeckRequest
+import com.japanese.vocabulary.deck.dto.DeckDeletionPreviewResponse
 import com.japanese.vocabulary.deck.dto.DeckDetailResponse
 import com.japanese.vocabulary.deck.dto.DeckDto
 import com.japanese.vocabulary.deck.dto.DeckListResponse
@@ -60,12 +61,16 @@ class DeckController(private val deckService: DeckService) {
     fun getDeckDetail(@PathVariable deckId: Long): DeckDetailResponse =
         deckService.getDeckDetail(currentUserId(), deckId).toResponse()
 
-    /** 단어장만 지운다 — 안의 단어는 남는다. 전체 단어장은 지울 수 없다. */
+    /** 이 단어장에만 속한 단어도 함께 지운다. 전체 단어장은 지울 수 없다. */
     @DeleteMapping("/{deckId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     fun deleteDeck(@PathVariable deckId: Long) {
         deckService.deleteDeck(currentUserId(), deckId)
     }
+
+    @GetMapping("/{deckId}/deletion-preview")
+    fun getDeletionPreview(@PathVariable deckId: Long): DeckDeletionPreviewResponse =
+        DeckDeletionPreviewResponse(deckService.getDeletionPreview(currentUserId(), deckId).deletedWordCount)
 
     @GetMapping("/{deckId}/words")
     fun getDeckWords(

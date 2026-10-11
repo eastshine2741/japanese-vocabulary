@@ -3,6 +3,9 @@ package com.japanese.vocabulary.word.repository
 import com.japanese.vocabulary.word.entity.WordEntity
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Modifying
+import org.springframework.data.jpa.repository.Query
+import org.springframework.data.repository.query.Param
 
 interface WordRepository : JpaRepository<WordEntity, Long> {
     fun findByUserIdOrderByIdDesc(userId: Long, pageable: Pageable): List<WordEntity>
@@ -11,4 +14,8 @@ interface WordRepository : JpaRepository<WordEntity, Long> {
     fun findByUserIdAndIdInAndIdLessThanOrderByIdDesc(userId: Long, ids: List<Long>, id: Long, pageable: Pageable): List<WordEntity>
     fun findByUserIdAndJapaneseText(userId: Long, japaneseText: String): WordEntity?
     fun findByUserIdAndJapaneseTextIn(userId: Long, japaneseTexts: Collection<String>): List<WordEntity>
+
+    @Modifying(flushAutomatically = true)
+    @Query("DELETE FROM WordEntity w WHERE w.id IN :ids")
+    fun deleteByIdIn(@Param("ids") ids: Collection<Long>)
 }
