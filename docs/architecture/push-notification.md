@@ -30,6 +30,9 @@ decide who gets what: `batch` (streak reminder CronJob), `worker` (analysis-comp
   `18:00` KST right after collection. One push per run to users with `karaokeNewSongNotifications` (opt-in,
   default false), the only user-gated push. Payload `data.type` is `karaoke_new_songs`. Rules:
   `docs/karaoke-new-songs.md`.
+- Reward cards backfilled: `RewardCardBackfillTask` in `batch`, run once by hand from the suspended
+  `reward-card-backfill` CronJob. One push to each user who got a new song card. Payload `data.type` is
+  `reward_cards_backfilled`; a tap opens the MyPage tab (cards). Rules: `docs/product-intents/261010-reward-cards.md`.
 - Manual trigger of a slot: create a Job from the CronJob —
   `kubectl create job --from=cronjob/streak-reminder-evening sr-$(date +%s) -n <ns>`.
 - Manual single-user dispatch: `POST /admin/api/push/send` in `admin-api`, behind the normal admin

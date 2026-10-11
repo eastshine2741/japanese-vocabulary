@@ -1,4 +1,4 @@
-package com.japanese.vocabulary.song.dto.songdetail
+package com.japanese.vocabulary.word.dto.songword
 
 import com.japanese.vocabulary.word.dto.AddWordRequest
 import com.japanese.vocabulary.word.model.WordSense

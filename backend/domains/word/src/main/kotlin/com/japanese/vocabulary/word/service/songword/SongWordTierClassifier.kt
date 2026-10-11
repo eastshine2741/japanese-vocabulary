@@ -1,9 +1,9 @@
-package com.japanese.vocabulary.song.service.songdetail
+package com.japanese.vocabulary.word.service.songword
 
-import com.japanese.vocabulary.song.dto.songdetail.SongWordTierKey
-import com.japanese.vocabulary.song.dto.songdetail.WordInSongItemDto
 import com.japanese.vocabulary.song.model.CommonWords
 import com.japanese.vocabulary.song.model.LyricLineData
+import com.japanese.vocabulary.word.dto.songword.WordInSongItemDto
+import com.japanese.vocabulary.word.model.SongWordTierKey
 
 /**
  * 곡의 단어를 핵심 → 입문 → 기초 → 심화 4단계로 나눈다. 한 단어는 정확히 한 단계에 들어간다.
@@ -46,9 +46,9 @@ object SongWordTierClassifier {
 
         // 후렴 줄에 나오거나 두 줄 이상에 나오는 단어. 뼈대 단어는 곡의 특징이 아니라 뺀다.
         val coreOrder = if (chorusRatio > CHORUS_DOMINANT_RATIO) {
-            compareByDescending<WordInSongItemDto> { it.frequency }.then(SongDetailQueryService.IMPORTANCE_RANKING)
+            compareByDescending<WordInSongItemDto> { it.frequency }.then(SongWordQueryService.IMPORTANCE_RANKING)
         } else {
-            SongDetailQueryService.IMPORTANCE_RANKING
+            SongWordQueryService.IMPORTANCE_RANKING
         }
         val core = take(coreOrder) { word ->
             !isCommon(word) && (word.frequency >= 2 || word.lineIndexes.any { it in chorusLines })

@@ -119,6 +119,11 @@ function handleData(data: RemoteMessage['data']): void {
     navigate('Main', { screen: 'Home' });
     return;
   }
+  // 그동안 공부한 곡으로 카드를 채웠다는 알림 — 마이 탭 첫 화면이 카드다.
+  if (data.type === 'reward_cards_backfilled') {
+    navigate('Main', { screen: 'MyPage' });
+    return;
+  }
   // 노래방 신곡 알림 — 그날 올라온 곡 목록.
   if (data.type === 'karaoke_new_songs') {
     navigate('KaraokeNewSongs');

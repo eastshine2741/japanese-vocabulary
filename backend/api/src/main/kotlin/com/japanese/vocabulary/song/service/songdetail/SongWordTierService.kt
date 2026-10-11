@@ -10,18 +10,19 @@ import com.japanese.vocabulary.flashcard.repository.FlashcardRepository
 import com.japanese.vocabulary.flashcard.service.FlashcardService
 import com.japanese.vocabulary.song.dto.songdetail.SongCoverageDto
 import com.japanese.vocabulary.song.dto.songdetail.SongWordTierDto
-import com.japanese.vocabulary.song.dto.songdetail.SongWordTierKey
 import com.japanese.vocabulary.song.dto.songdetail.SongWordTierStudyResponse
 import com.japanese.vocabulary.song.dto.songdetail.SongWordTiersDto
-import com.japanese.vocabulary.song.dto.songdetail.WordInSongItemDto
-import com.japanese.vocabulary.song.dto.songdetail.WordsInSongDto
-import com.japanese.vocabulary.song.entity.LyricEntity
 import com.japanese.vocabulary.song.repository.LyricRepository
 import com.japanese.vocabulary.word.dto.AddWordDto
 import com.japanese.vocabulary.word.dto.AddWordRequest
 import com.japanese.vocabulary.word.dto.BatchAddWordDto
+import com.japanese.vocabulary.word.dto.songword.WordInSongItemDto
+import com.japanese.vocabulary.word.dto.songword.WordsInSongDto
+import com.japanese.vocabulary.word.model.SongWordTierKey
 import com.japanese.vocabulary.word.repository.WordRepository
 import com.japanese.vocabulary.word.service.WordService
+import com.japanese.vocabulary.word.service.songword.SongWordQueryService
+import com.japanese.vocabulary.word.service.songword.SongWordTierClassifier
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Clock
@@ -29,7 +30,7 @@ import java.time.Instant
 
 @Service
 class SongWordTierService(
-    private val songDetailQueryService: SongDetailQueryService,
+    private val songWordQueryService: SongWordQueryService,
     private val lyricRepository: LyricRepository,
     private val wordRepository: WordRepository,
     private val flashcardRepository: FlashcardRepository,
@@ -69,40 +70,6 @@ class SongWordTierService(
     }
 
     /**
-     * 보상 카드가 단계 진행·기억 확률을 잴 때 쓴다. 곡마다 단계별 tier 단어와 그 유저의 flashcard 를 순서대로 준다.
-     * 곡 수와 상관없이 유저 단어·flashcard 를 한 번씩만 조회한다. 키는 곡 id 다.
-     */
-    @Transactional(readOnly = true)
-    fun tierCards(userId: Long, lyrics: Collection<LyricEntity>): Map<Long, SongTierCards> {
-        if (lyrics.isEmpty()) return emptyMap()
-        val keys = lyrics.flatMap { songDetailQueryService.wordKeys(it) }.distinct()
-        val savedWords = if (keys.isEmpty()) emptyMap() else {
-            wordRepository.findByUserIdAndJapaneseTextIn(userId, keys).associateBy { it.japaneseText }
-        }
-        val songs = lyrics.associate { lyric ->
-            val words = songDetailQueryService.assembleWords(lyric, savedWords)
-            lyric.songId to (words to SongWordTierClassifier.classifyCurrent(words.words.filter { it.isTierWord() }, lyric.rawContent))
-        }
-        val tierWordIds = songs.values
-            .flatMap { (_, tiers) -> tiers.values.flatten() }
-            .flatMap { listOf(it.addRequest.japanese, it.japanese) }
-            .mapNotNull { savedWords[it]?.id }
-            .distinct()
-        val cardByWordId = if (tierWordIds.isEmpty()) emptyMap() else {
-            flashcardRepository.findByUserIdAndWordIdIn(userId, tierWordIds).associateBy { it.wordId }
-        }
-        val cardByJapanese = savedWords.mapNotNull { (japanese, word) -> cardByWordId[word.id]?.let { japanese to it } }.toMap()
-        return songs.mapValues { (_, song) ->
-            val (words, tiers) = song
-            val context = SongTierContext(words, tiers, cardByJapanese)
-            SongTierCards(
-                words = words,
-                tiers = SongWordTierKey.current.associateWith { key -> tiers[key].orEmpty().map { it to context.cardOf(it) } },
-            )
-        }
-    }
-
-    /**
      * 이 곡 이해도. tier 단어가 전부 장기기억인 줄이 "이해하는 가사" 다. tier 단어가 없는 줄
      * (간주·기호·조사만 있는 줄)은 분모에서도 뺀다 — 공짜로 채워지는 줄이 이해도를 부풀리지 않게.
      */
@@ -110,7 +77,7 @@ class SongWordTierService(
     fun coverage(songId: Long, userId: Long): SongCoverageDto {
         val song = load(songId, userId)
         val lines = song.words.lineWordIndexes.values
-            .map { indexes -> indexes.map { song.words.words[it] }.filter { it.isTierWord() } }
+            .map { indexes -> with(songWordQueryService) { indexes.map { song.words.words[it] }.filter { it.isTierWord() } } }
             .filter { it.isNotEmpty() }
         val knownLines = lines.count { line -> line.all { FlashcardMemory.of(song.cardOf(it)) == FlashcardMemory.LONG_TERM } }
         return SongCoverageDto(songId = songId, totalLines = lines.size, knownLines = knownLines)
@@ -148,12 +115,6 @@ class SongWordTierService(
         return SongWordTierStudyResponse(deckId = deckId, cards = cards.items, totalCount = cards.items.size)
     }
 
-    class SongTierCards(
-        val words: WordsInSongDto,
-        /** [SongWordTierKey.current] 순서. */
-        val tiers: Map<SongWordTierKey, List<Pair<WordInSongItemDto, FlashcardEntity?>>>,
-    )
-
     private class SongTierContext(
         val words: WordsInSongDto,
         val tiers: Map<SongWordTierKey, List<WordInSongItemDto>>,
@@ -165,8 +126,8 @@ class SongWordTierService(
     }
 
     private fun load(songId: Long, userId: Long): SongTierContext {
-        val words = songDetailQueryService.words(songId, userId)
-        val tierWords = words.words.filter { it.isTierWord() }
+        val words = songWordQueryService.words(songId, userId)
+        val tierWords = with(songWordQueryService) { words.words.filter { it.isTierWord() } }
         val tiers = SongWordTierClassifier.classifyCurrent(tierWords, rawLines(songId))
 
         val keys = tierWords.flatMap { listOf(it.japanese, it.addRequest.japanese) }.distinct()
@@ -177,17 +138,10 @@ class SongWordTierService(
         return SongTierContext(words, tiers, cardByJapanese)
     }
 
-    /**
-     * tier 단어 = "전체 담기" 와 같은 기본 필터 통과분 중 뜻이 있는 단어. 뜻이 없으면 카드가 될 수 없어
-     * 영원히 남음이라, 넣으면 그 단계가 끝나지 않고 그 단어가 든 줄은 이해도에 잡히지 않는다.
-     */
-    private fun WordInSongItemDto.isTierWord(): Boolean =
-        with(songDetailQueryService) { matchesDefaultFilters() } && addRequest.senses.isNotEmpty()
-
     /** 구버전 4단계. 기본 필터 통과분을 나누며 뜻 없는 단어도 들어 있다(학습 진입에서 뺀다). */
     private fun legacyTiers(songId: Long, userId: Long): Map<SongWordTierKey, List<WordInSongItemDto>> {
-        val words = songDetailQueryService.words(songId, userId)
-        val eligible = with(songDetailQueryService) { words.words.filter { it.matchesDefaultFilters() } }
+        val words = songWordQueryService.words(songId, userId)
+        val eligible = with(songWordQueryService) { words.words.filter { it.matchesDefaultFilters() } }
         return SongWordTierClassifier.classify(eligible, rawLines(songId))
     }
 

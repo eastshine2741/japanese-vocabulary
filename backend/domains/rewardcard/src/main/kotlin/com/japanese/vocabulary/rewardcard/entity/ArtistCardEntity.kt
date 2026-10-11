@@ -59,6 +59,10 @@ class ArtistCardEntity(
         seenGrade = grade
     }
 
+    fun issueSilently() {
+        seenGrade = grade
+    }
+
     fun markSeen(seen: ArtistCardGrade) {
         val current = seenGrade ?: throw BusinessException(ErrorCode.REWARD_CARD_NOT_ISSUED)
         if (seen > grade) throw BusinessException(ErrorCode.INVALID_REWARD_CARD_GRADE)

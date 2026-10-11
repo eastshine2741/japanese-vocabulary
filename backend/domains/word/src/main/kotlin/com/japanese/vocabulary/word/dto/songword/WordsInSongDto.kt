@@ -1,4 +1,4 @@
-package com.japanese.vocabulary.song.dto.songdetail
+package com.japanese.vocabulary.word.dto.songword
 
 data class WordsInSongDto(
     val lyricId: Long,

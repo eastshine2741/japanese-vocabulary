@@ -209,9 +209,10 @@ export const useRewardCardStore = create<RewardCardState>((set, get) => {
       patch((cards) => ({
         songCards: mapCards(cards.songCards, cardId, (c) => ({ ...c, lyric: pickLines(lines, picked), picked })),
       }));
-      // 발급 전이면 서명할 때 함께 보낸다.
+      // 연출 중인 발급 전 카드는 서명할 때 함께 보낸다. 연출 없이 채운 카드는 서명이 비어도 발급된 카드다.
       const songId = serverTargetId(cardId);
-      if (songId != null && card.signature !== null) {
+      const pendingIssue = card.signature === null && get().active?.cardId === cardId;
+      if (songId != null && !pendingIssue) {
         rewardCardApi.updateSongCardLyric(songId, picked).catch(() => undefined);
       }
     },

@@ -46,7 +46,7 @@ class SongCardEntity(
     @Column(name = "lyric_line_indexes", columnDefinition = "JSON", nullable = false)
     var lyricLineIndexes: List<Int> = emptyList(),
 
-    /** 획마다 SVG 경로 하나. 비어 있으면 서명 전. */
+    /** 획마다 SVG 경로 하나. 비어 있으면 서명 전 — 연출 없이 채운 카드는 발급된 뒤에도 비어 있고, 앱이 표시 이름을 대신 찍는다. */
     @Convert(converter = StringListConverter::class)
     @Column(name = "signature", columnDefinition = "JSON", nullable = false)
     var signature: List<String> = emptyList(),
@@ -72,6 +72,11 @@ class SongCardEntity(
         if (isIssued) throw BusinessException(ErrorCode.REWARD_CARD_ALREADY_ISSUED)
         this.signature = signature
         this.lyricLineIndexes = lyricLineIndexes
+        seenGrade = grade
+    }
+
+    /** 연출 없이 지금 등급까지 발급한다. 서명은 그대로 둔다. */
+    fun issueSilently() {
         seenGrade = grade
     }
 

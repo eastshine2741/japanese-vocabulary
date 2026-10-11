@@ -7,7 +7,7 @@ import com.japanese.vocabulary.rewardcard.dto.RewardCardGoalResponse
 import com.japanese.vocabulary.rewardcard.dto.RewardCardWordResponse
 import com.japanese.vocabulary.rewardcard.model.SongCardGrade
 import com.japanese.vocabulary.song.dto.songdetail.SongLyricLineDto
-import com.japanese.vocabulary.song.dto.songdetail.WordInSongItemDto
+import com.japanese.vocabulary.word.dto.songword.WordInSongItemDto
 import java.time.Instant
 import kotlin.math.ceil
 

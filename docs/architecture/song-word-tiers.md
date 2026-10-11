@@ -6,7 +6,7 @@
 단어 집합과 기억 상태로 계산한다.
 
 서버는 `GET /api/songs/{id}/word-tiers` 로 분류와 단계별 기억 상태를, `GET /api/songs/{id}/coverage`
-로 이해도를 준다. 분류는 `SongWordTierClassifier`(api 모듈), 집계는 `SongWordTierService`,
+로 이해도를 준다. 곡 단어 목록은 `SongWordQueryService`, 분류는 `SongWordTierClassifier`(둘 다 domains:word — 보상 카드 batch 도 쓴다), 집계는 `SongWordTierService`(api),
 기억 상태 판정은 `FlashcardMemory`(domains:word). 앱은 `songDetailStore.tiers` / `coverage` 에 둔다.
 
 관련 Pencil 프레임: `jBwuD`(17a 0%) · `uGG5c`(17b 진행 중) · `i7qEd`(17c 완곡 선택) ·

@@ -1,4 +1,4 @@
-package com.japanese.vocabulary.song.dto.songdetail
+package com.japanese.vocabulary.word.dto.songword
 
 data class WordSummaryDto(
     val topWords: List<WordSummaryItemDto> = emptyList(),

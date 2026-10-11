@@ -10,6 +10,7 @@ import com.japanese.vocabulary.word.dto.AddWordDto
 import com.japanese.vocabulary.word.dto.AddWordRequest
 import com.japanese.vocabulary.word.dto.BatchAddWordDto
 import com.japanese.vocabulary.word.service.WordService
+import com.japanese.vocabulary.word.service.songword.SongWordQueryService
 import org.springframework.stereotype.Service
 
 /**
@@ -24,22 +25,22 @@ import org.springframework.stereotype.Service
  */
 @Service
 class SongStudyBootstrapService(
-    private val songDetailQueryService: SongDetailQueryService,
+    private val songWordQueryService: SongWordQueryService,
     private val wordService: WordService,
     private val flashcardService: FlashcardService,
     private val deckService: DeckService,
     private val flashcardReviewService: FlashcardReviewService,
 ) {
     fun bootstrap(userId: Long, songId: Long, rating: Int, leadJapanese: String? = null): SongStudyBootstrapResponse {
-        val words = songDetailQueryService.words(songId, userId)
-        val eligible = with(songDetailQueryService) {
+        val words = songWordQueryService.words(songId, userId)
+        val eligible = with(songWordQueryService) {
             words.words.filter { it.matchesDefaultFilters() && !it.isSavedForSong }
         }
         val lead = if (leadJapanese != null) {
             words.words.firstOrNull { it.japanese == leadJapanese }
                 ?: throw BusinessException(ErrorCode.WORD_NOT_FOUND)
         } else {
-            eligible.sortedWith(SongDetailQueryService.IMPORTANCE_RANKING).firstOrNull()
+            eligible.sortedWith(SongWordQueryService.IMPORTANCE_RANKING).firstOrNull()
                 ?: throw BusinessException(ErrorCode.NO_ELIGIBLE_WORDS)
         }
 

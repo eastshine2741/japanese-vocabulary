@@ -1,4 +1,4 @@
-package com.japanese.vocabulary.song.dto.songdetail
+package com.japanese.vocabulary.word.dto.songword
 
 data class WordFilterDefaultsDto(
     val pos: List<String> = listOf("NOUN", "VERB", "ADJECTIVE", "NA_ADJECTIVE", "ADVERB"),

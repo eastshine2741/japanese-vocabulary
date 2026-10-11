@@ -16,7 +16,8 @@ import com.japanese.vocabulary.song.repository.ArtistRepository
 import com.japanese.vocabulary.song.repository.LyricRepository
 import com.japanese.vocabulary.song.repository.SongRepository
 import com.japanese.vocabulary.song.service.songdetail.SongDetailQueryService
-import com.japanese.vocabulary.song.service.songdetail.SongWordTierService
+import com.japanese.vocabulary.word.model.SongTierCards
+import com.japanese.vocabulary.word.service.songword.SongTierCardService
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Clock
@@ -29,7 +30,7 @@ class RewardCardQueryService(
     private val artistRepository: ArtistRepository,
     private val lyricRepository: LyricRepository,
     private val songDetailQueryService: SongDetailQueryService,
-    private val songWordTierService: SongWordTierService,
+    private val songTierCardService: SongTierCardService,
     private val clock: Clock,
 ) {
     /** 카드 수와 상관없이 곡·아티스트·가사·유저 단어·flashcard 를 한 번씩만 조회한다. */
@@ -40,7 +41,7 @@ class RewardCardQueryService(
         val songs = songRepository.findAllById(songCards.map { it.songId }).associateBy { it.id!! }
         val lyrics = if (songs.isEmpty()) emptyList() else lyricRepository.findActiveBySongIdIn(songs.keys)
         val lines = lyrics.associate { it.songId to songDetailQueryService.lyricLines(it) }
-        val tierCards = songWordTierService.tierCards(userId, lyrics)
+        val tierCards = songTierCardService.tierCards(userId, lyrics)
         val artistCards = rewardCardService.artistCards(userId)
         val artists = artistRepository.findAllById(artistCards.map { it.artistId }).associateBy { it.id!! }
         val masteredByArtist = songCards
@@ -70,7 +71,7 @@ class RewardCardQueryService(
         card: SongCardDto,
         song: SongEntity,
         lines: List<SongLyricLineDto>,
-        tierCards: SongWordTierService.SongTierCards?,
+        tierCards: SongTierCards?,
         now: Instant,
     ): SongCardResponse {
         val tiers = tierCards?.tiers?.values?.map { tier -> tier.map { it.second } }.orEmpty()

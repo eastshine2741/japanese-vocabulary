@@ -1,5 +1,6 @@
 package com.japanese.vocabulary.deck.repository
 
+import com.japanese.vocabulary.deck.dto.SongDeckRefDto
 import com.japanese.vocabulary.deck.entity.DeckEntity
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
@@ -19,6 +20,13 @@ interface DeckRepository : JpaRepository<DeckEntity, Long> {
         WHERE dw.deckId = d.id AND d.userId = :userId AND dw.wordId = :wordId AND d.songId IS NOT NULL
     """)
     fun findSongIdsContainingWord(@Param("userId") userId: Long, @Param("wordId") wordId: Long): List<Long>
+
+    /** 곡 단어장 전부를 만든 순서대로. 보상 카드 채우기가 먼저 담은 유저에게 앞 순번을 준다. */
+    @Query(
+        "SELECT new com.japanese.vocabulary.deck.dto.SongDeckRefDto(d.userId, d.songId) FROM DeckEntity d " +
+            "WHERE d.songId IS NOT NULL ORDER BY d.createdAt, d.id"
+    )
+    fun findSongDecksInCreationOrder(): List<SongDeckRefDto>
 
     fun findByUserIdOrderByCreatedAtDesc(userId: Long, pageable: Pageable): List<DeckEntity>
 

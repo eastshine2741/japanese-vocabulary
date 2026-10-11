@@ -15,8 +15,8 @@ backend/
 │   ├── recommendation/      — 홈 추천곡 전역 목록(`recommended_song`). 운영자가 기존 곡을 넣고 순서를 정한다
 │   ├── karaoke/             — 노래방 일본 신곡 원장(karaoke_song, 노래방별 행)과 song 연결·응답 합치기
 │   ├── translation/         — KoreanLyricTranslationService + GeminiClient + JishoService(cache-aside+동시성) + JishoClient + JishoCache. worker만 의존
-│   ├── word/                — 사용자 학습 데이터 일체. `word`/`flashcard`/`deck` 세 package 가 한 모듈에 있다. WordService 가 세 수명주기를 한 트랜잭션에서 소유한다
-│   ├── rewardcard/          — 곡·아티스트 보상 카드(달성·발급·순번 발급기). 등급 판정은 단계 분류를 아는 api 가 rating 트랜잭션에서 부른다
+│   ├── word/                — 사용자 학습 데이터 일체. `word`/`flashcard`/`deck` 세 package 가 한 모듈에 있다. WordService 가 세 수명주기를 한 트랜잭션에서 소유한다. 곡 가사 단어 목록·단계 분류(`word.service.songword`)도 여기 있다
+│   ├── rewardcard/          — 곡·아티스트 보상 카드(달성·발급·순번 발급기·등급 판정). 등급은 word 의 곡 단어 단계 분류로 잰다
 │   ├── studystats/          — DailyStudySummary, StreakCalculator. Spring Batch job 본체는 batch 모듈로 분리됨
 │   └── notification/        — FCM 전송 + FirebaseConfig + NotificationLogEntity. Scheduler/조회 로직 없음
 ├── integrations/            — external provider clients + infra adapters. `song-search`, `lyric-search`, `mv-search`, `github`, `message-queue`, `karaoke-listing`(TJ·금영 신곡 HTML/JSON), `object-storage`(R2 presigned URL)

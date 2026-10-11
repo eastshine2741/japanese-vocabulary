@@ -3,6 +3,7 @@ package com.japanese.vocabulary.rewardcard.service
 import com.japanese.vocabulary.common.exception.BusinessException
 import com.japanese.vocabulary.common.exception.ErrorCode
 import com.japanese.vocabulary.rewardcard.dto.ArtistCardDto
+import com.japanese.vocabulary.rewardcard.dto.BackfilledCardsDto
 import com.japanese.vocabulary.rewardcard.dto.RewardCardRevealDto
 import com.japanese.vocabulary.rewardcard.dto.SongAchievementDto
 import com.japanese.vocabulary.rewardcard.dto.SongCardDto
@@ -78,6 +79,67 @@ class RewardCardService(
             if (artistId != null && (linked || justMastered)) artistIds += artistId
         }
         return reveals + syncArtistCards(userId, artistIds, now)
+    }
+
+    /**
+     * 카드 기능 전부터 담아 둔 곡 하나를 연출 없이 발급된 카드로 채운다(서명은 비운다). 새로 만든 카드를 알려 준다.
+     * batch 가 곡 단어장을 만든 순서대로 부르므로, 순번은 그 곡을 먼저 담은 유저가 앞이다.
+     * 이미 있는 곡 카드는 rating 이 잰 등급이라 건드리지 않고 아티스트만 잇는다. 순번 락은 곡 → 아티스트 순서라 [achieveSongs] 와 엇갈리지 않는다.
+     */
+    @Transactional
+    fun backfillSong(userId: Long, achievement: SongAchievementDto): BackfilledCardsDto {
+        val now = Instant.now(clock)
+        val existing = songCardRepository.findByUserIdAndSongId(userId, achievement.songId)
+        if (existing != null) {
+            if (existing.artistId == null) existing.artistId = achievement.artistId
+        } else {
+            songCardRepository.saveAndFlush(
+                SongCardEntity(
+                    userId = userId,
+                    songId = achievement.songId,
+                    artistId = achievement.artistId,
+                    grade = achievement.grade,
+                    seenGrade = achievement.grade,
+                    acquiredSeq = seqAllocator.next(RewardCardKind.SONG, achievement.songId),
+                    masteredAt = now.takeIf { achievement.grade == SongCardGrade.MASTER },
+                    createdAt = now,
+                )
+            )
+        }
+        val artistId = existing?.artistId ?: achievement.artistId
+        val newArtist = artistId != null && artistCardRepository.findByUserIdAndArtistId(userId, artistId) == null
+        if (artistId != null && newArtist) {
+            val masters = songCardRepository.countMasteredByArtist(userId, listOf(artistId)).sumOf { it.count }
+            val grade = ArtistCardGrade.forMasterCount(masters.toInt())
+            artistCardRepository.save(
+                ArtistCardEntity(
+                    userId = userId,
+                    artistId = artistId,
+                    grade = grade,
+                    seenGrade = grade,
+                    acquiredSeq = seqAllocator.next(RewardCardKind.ARTIST, artistId),
+                    createdAt = now,
+                )
+            )
+        }
+        return BackfilledCardsDto(song = existing == null, artist = newArtist)
+    }
+
+    /**
+     * 채우기 끝에 유저의 카드를 전부 연출 없이 발급한다. 구버전 앱으로 rating 해 연출을 기다리던 카드가
+     * 새 앱을 켜자마자 한꺼번에 뜨지 않게. 아티스트 카드는 채운 곡까지 센 마스터 수로 올린다.
+     */
+    @Transactional
+    fun issueAllSilently(userId: Long) {
+        val songCards = songCardRepository.findByUserIdOrderByCreatedAtDesc(userId)
+        songCards.forEach { it.issueSilently() }
+        val artistIds = songCards.mapNotNull { it.artistId }.toSortedSet()
+        if (artistIds.isEmpty()) return
+        val masterCounts = songCardRepository.countMasteredByArtist(userId, artistIds).associate { it.artistId to it.count }
+        for (card in artistCardRepository.findByUserIdAndArtistIdIn(userId, artistIds)) {
+            card.raiseTo(ArtistCardGrade.forMasterCount((masterCounts[card.artistId] ?: 0L).toInt()))
+            card.issueSilently()
+        }
     }
 
     @Transactional(readOnly = true)

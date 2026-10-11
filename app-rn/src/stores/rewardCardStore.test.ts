@@ -93,6 +93,14 @@ describe('rewardCardStore', () => {
     expect(api.updateSongCardLyric).toHaveBeenCalledWith(12, [1, 2]);
   });
 
+  it('lyric edit of a card issued without a reveal saves it though unsigned', async () => {
+    api.getCards.mockResolvedValue({ songCards: [songDto({ seenGrade: 'BASIC' })], artistCards: [] });
+    await store().loadServerCards();
+
+    store().setLyric('srv-song-12', [3]);
+    expect(api.updateSongCardLyric).toHaveBeenCalledWith(12, [3]);
+  });
+
   it('dev re-reveal never calls the server', async () => {
     api.getCards.mockResolvedValue({ songCards: [songDto({ signature: ['M'] })], artistCards: [] });
     await store().loadServerCards();
