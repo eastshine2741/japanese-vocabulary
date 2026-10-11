@@ -73,4 +73,6 @@ tasks.withType<Test> {
     // Testcontainers' shaded docker-java client defaults to API 1.32, which Docker 25+ rejects.
     systemProperty("api.version", "1.43")
     environment("DOCKER_API_VERSION", "1.43")
+    // deploy.sh 가 export 한 SHARE_* 가 relaxed binding 으로 test application.yml 의 share 설정을 덮는다.
+    environment = environment.filterKeys { !it.startsWith("SHARE_") }
 }
