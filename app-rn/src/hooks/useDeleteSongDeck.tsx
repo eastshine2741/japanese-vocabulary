@@ -9,11 +9,11 @@ import { AppBottomSheetModal, AppBottomSheetModalRef, AppBottomSheetView } from 
 import { useStudyStatsStore } from '../stores/studyStatsStore';
 
 const RETRY_MESSAGE = '잠시 후 다시 시도해주세요.';
-const KEPT_WORDS_NOTE = '다른 곡에도 담긴 단어는 그대로 남아요.';
+const KEPT_WORDS_NOTE = '다른 곡에서도 배운 단어는 그대로 남아요.';
 
 export function songDeckDeletionBody(deletedWordCount: number): string {
   return deletedWordCount > 0
-    ? `단어 ${deletedWordCount}개와 복습 기록이 함께 사라져요.\n${KEPT_WORDS_NOTE}`
+    ? `단어 ${deletedWordCount}개와 복습 기록이 사라져요.\n${KEPT_WORDS_NOTE}`
     : KEPT_WORDS_NOTE;
 }
 
@@ -63,11 +63,11 @@ export function useDeleteSongDeck(onDeleted: (deckId: number) => void) {
     <>
       <AppDialog
         visible={pending !== null}
-        title="이 곡을 삭제할까요?"
+        title="이 곡 학습을 그만둘까요?"
         body={songDeckDeletionBody(pending?.deletedWordCount ?? 0)}
         buttons={[
           { label: '취소', variant: 'secondary', onPress: cancel },
-          { label: '삭제', variant: 'danger', onPress: confirm },
+          { label: '그만두기', variant: 'danger', onPress: confirm },
         ]}
       />
       <ErrorDialog message={error} onDismiss={dismissError} />
@@ -77,7 +77,7 @@ export function useDeleteSongDeck(onDeleted: (deckId: number) => void) {
   return { requestDelete, dialogs };
 }
 
-/** 곡 덱 롱프레스 액션 시트('삭제' 하나). 안드로이드 뒤로가기는 열린 시트부터 닫는다. */
+/** 곡 덱 롱프레스 액션 시트('학습 그만두기' 하나). 안드로이드 뒤로가기는 열린 시트부터 닫는다. */
 export function useSongDeckActionSheet(onDelete: (target: SongDeckTarget) => void) {
   const [target, setTarget] = useState<SongDeckTarget | null>(null);
   const sheetRef = useRef<AppBottomSheetModalRef>(null);

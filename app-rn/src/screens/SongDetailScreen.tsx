@@ -16,7 +16,7 @@ import {
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Feather, FontAwesome6, Ionicons } from '@expo/vector-icons';
+import { Feather, FontAwesome6 } from '@expo/vector-icons';
 import Svg, { Path } from 'react-native-svg';
 import { useSongDetailStore } from '../stores/songDetailStore';
 import { usePlayerStore } from '../stores/playerStore';
@@ -425,8 +425,11 @@ export default function SongDetailScreen({ navigation, route }: Props) {
   const songDeckDeletion = useDeleteSongDeck(handleSongDeckDeleted);
   const { requestDelete: requestSongDeckDelete } = songDeckDeletion;
   const songDeckId = songDeckDetail?.deckId ?? null;
-  const handleDeleteSongDeck = useCallback(() => {
-    if (songDeckId != null) requestSongDeckDelete(songDeckId);
+  const handleStopLearning = useCallback(() => {
+    if (songDeckId == null) return;
+    infoSheetOpenRef.current = false;
+    infoSheetRef.current?.close();
+    requestSongDeckDelete(songDeckId);
   }, [requestSongDeckDelete, songDeckId]);
 
   const handleHomePageLayout = useCallback((event: LayoutChangeEvent) => {
@@ -661,27 +664,14 @@ export default function SongDetailScreen({ navigation, route }: Props) {
           ) : (
             <Text style={styles.heroArtist} numberOfLines={1}>{song.artist}</Text>
           )}
-          <View style={styles.heroActionRow}>
-            <Pressable
-              style={[styles.deckButton, isLearningActionDisabled && styles.disabledButton]}
-              onPress={handlePrimaryLearningPress}
-              disabled={isLearningActionDisabled}
-            >
-              <LearningActionIcon icon={learningActionIcon} size={18} color={Colors.textPrimary} />
-              <Text style={styles.deckButtonText}>{learningActionLabel}</Text>
-            </Pressable>
-            {actionMode === 'review' && songDeckId != null && (
-              <Pressable
-                style={styles.deckDeleteButton}
-                onPress={handleDeleteSongDeck}
-                accessibilityRole="button"
-                accessibilityLabel="곡 삭제"
-                hitSlop={4}
-              >
-                <Ionicons name="trash-outline" size={20} color="#FFFFFF" />
-              </Pressable>
-            )}
-          </View>
+          <Pressable
+            style={[styles.deckButton, isLearningActionDisabled && styles.disabledButton]}
+            onPress={handlePrimaryLearningPress}
+            disabled={isLearningActionDisabled}
+          >
+            <LearningActionIcon icon={learningActionIcon} size={18} color={Colors.textPrimary} />
+            <Text style={styles.deckButtonText}>{learningActionLabel}</Text>
+          </Pressable>
         </View>
       </Animated.View>
 
@@ -764,7 +754,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
                 <Text style={styles.appBarDeckButtonText} numberOfLines={1}>{learningActionLabel}</Text>
               </Pressable>
             </Animated.View>
-            <IconButton icon="info" onPress={handleOpenInfo} />
+            <IconButton icon="more-horizontal" onPress={handleOpenInfo} />
           </View>
         </View>
       </View>
@@ -817,6 +807,7 @@ export default function SongDetailScreen({ navigation, route }: Props) {
             artist={song.artist}
             lyricsSourceName={lyrics.lyricsSourceName}
             lyricsSourceUrl={lyrics.lyricsSourceUrl}
+            onStopLearning={songDeckId != null ? handleStopLearning : undefined}
           />
         </AppBottomSheetView>
       </AppBottomSheet>
@@ -1412,14 +1403,9 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     marginBottom: 0,
   },
-  heroActionRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginHorizontal: 2,
-  },
   deckButton: {
-    flex: 1,
     height: 48,
+    marginHorizontal: 2,
     borderRadius: 9999,
     flexDirection: 'row',
     alignItems: 'center',
@@ -1428,16 +1414,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#FFFFFF33',
     backgroundColor: '#FFFFFF',
-  },
-  deckDeleteButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#FFFFFF33',
-    backgroundColor: '#0000002E',
   },
   deckButtonText: {
     ...Typography.bodyBold,
