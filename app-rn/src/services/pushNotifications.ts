@@ -15,6 +15,9 @@ import {
 import * as Notifications from 'expo-notifications';
 import { flashcardApi } from '../api/flashcardApi';
 import { navigate } from '../navigation/navigationRef';
+import { songCardId } from '../components/rewardCards/serverRewardCards';
+import { useAuthStore } from '../stores/authStore';
+import { useRewardCardStore } from '../stores/rewardCardStore';
 import {
   addStreakPressListener,
   consumeInitialStreakPress,
@@ -119,9 +122,16 @@ function handleData(data: RemoteMessage['data']): void {
     navigate('Main', { screen: 'Home' });
     return;
   }
-  // 그동안 공부한 곡으로 카드를 채웠다는 알림 — 마이 탭 첫 화면이 카드다.
+  // 그동안 공부한 곡으로 카드를 채웠다는 알림 — 문구에 이름이 나온 곡 카드. 닫으면 프로필 탭 카드 목록이다.
   if (data.type === 'reward_cards_backfilled') {
     navigate('Main', { screen: 'MyPage' });
+    // 알림 전에 받아 둔 목록엔 새 카드가 없다.
+    useRewardCardStore.getState().loadServerCards();
+    const songId = Number(data.songId);
+    if (Number.isFinite(songId) && songId > 0) {
+      const ownerName = useAuthStore.getState().userName?.trim() || '학습자';
+      navigate('RewardCardDetail', { cardId: songCardId(songId), ownerName });
+    }
     return;
   }
   // 노래방 신곡 알림 — 그날 올라온 곡 목록.

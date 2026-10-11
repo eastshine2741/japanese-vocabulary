@@ -57,6 +57,8 @@ function nextLevel(card: SongRewardCard): { name: string; condition: string } {
 export default function RewardCardDetailScreen({ navigation, route }: Props) {
   const { cardId, grade } = route.params;
   const owned = useRewardCardStore((s) => s.songCards.find((c) => c.id === cardId));
+  // 푸시로 들어오면 카드를 아직 받는 중일 수 있다.
+  const loading = useRewardCardStore((s) => s.serverStatus === 'loading');
   const card = useMemo(() => (owned && grade ? songCardAt(owned, grade) : owned), [owned, grade]);
   // 지나온 등급을 볼 때는 지금 카드의 승급 조건이 맞지 않는다.
   const isPastGrade = card !== owned;
@@ -153,7 +155,25 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
   }, [card, isStartingReview, navigation, songId]);
 
   if (!card) {
-    return <View style={styles.root} />;
+    return (
+      <View style={styles.root}>
+        <StatusBar style="light" />
+        <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+          <View style={styles.topBar}>
+            <Pressable onPress={handleClose} hitSlop={10} style={styles.iconBtn}>
+              <Feather name="chevron-down" size={22} color={SHOWROOM.fg} />
+            </Pressable>
+          </View>
+          <View style={styles.missing}>
+            {loading ? (
+              <ActivityIndicator color={SHOWROOM.fgDim} />
+            ) : (
+              <Text style={styles.missingText}>카드를 찾을 수 없어요</Text>
+            )}
+          </View>
+        </SafeAreaView>
+      </View>
+    );
   }
 
   const material = card.mastered ? MASTER_CHIP : LEVEL_MATERIAL[card.level];
@@ -266,6 +286,8 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: SHOWROOM.bg },
   backdrop: { opacity: 0.55, transform: [{ scale: 1.3 }] },
   safe: { flex: 1 },
+  missing: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  missingText: { fontSize: 14, color: SHOWROOM.fgDim },
   topBar: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 4 },
   actions: { flexDirection: 'row', gap: 8 },
   iconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: SHOWROOM.glass, alignItems: 'center', justifyContent: 'center' },

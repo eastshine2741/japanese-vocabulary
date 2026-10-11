@@ -66,6 +66,21 @@ class RewardCardBackfillTaskTest : BatchBaseIntegrationTest() {
     }
 
     @Test
+    fun `push names the highest grade song, the later one on a tie`() {
+        val cards = listOf(
+            SongAchievementDto(1, null, SongCardGrade.BRONZE),
+            SongAchievementDto(2, null, SongCardGrade.SILVER),
+            SongAchievementDto(3, null, SongCardGrade.SILVER),
+        )
+        assertThat(RewardCardBackfillTask.headline(cards)).isEqualTo(3)
+        assertThat(RewardCardBackfillTask.body("하루", "夜に駆ける", 2))
+            .isEqualTo("하루님께 「夜に駆ける」 외 2곡을 카드로 만들어드렸어요. 최신 버전으로 업데이트 후 확인해보세요")
+        assertThat(RewardCardBackfillTask.body("하루", "夜に駆ける", 0))
+            .isEqualTo("하루님께 「夜に駆ける」 카드를 만들어드렸어요. 최신 버전으로 업데이트 후 확인해보세요")
+        assertThat(RewardCardBackfillTask.body("하루", "あ".repeat(25), 0)).contains("「${"あ".repeat(20)}…」")
+    }
+
+    @Test
     fun `cards waiting for their reveal are issued silently`() {
         val song = newSong(artist = null)
         val user = TestUserBuilder(entityManager).build()
