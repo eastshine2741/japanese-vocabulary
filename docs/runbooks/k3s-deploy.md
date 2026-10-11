@@ -1,6 +1,6 @@
 # k3s Deploy
 
-Deployment runs on a local k3s cluster. Backend (api, worker), DB, RabbitMQ, admin-api, admin-web, and the batch CronJobs are deployed through `deploy.sh`.
+Deployment runs on a local k3s cluster. Backend (api, worker), DB, RabbitMQ, admin-api, admin-web, share-web (card share web page), and the batch CronJobs are deployed through `deploy.sh`.
 
 ```bash
 ./deploy.sh              # current branch name decides namespace
@@ -142,4 +142,9 @@ DEPLOY_NS=issue-21 npx expo run:android
 | `FIREBASE_SERVICE_ACCOUNT_JSON_BASE64` | Base64-encoded Firebase service account JSON. worker / batch cron / admin-api 가 함께 마운트한다 |
 | `ADMIN_PASSWORD` / `ADMIN_PASSWORD_SHA256` | Admin API password source. Local dev defaults `ADMIN_PASSWORD` to `admin` in `deploy.sh` if unset |
 | `ADMIN_TOKEN_SECRET` | Admin-only bearer token signing key. Separate from public `JWT_SECRET` |
+| `SHARE_APPLE_APP_ID` | `.env.prod`. `<TeamID>.dev.eastshine.kotonoha`. 비면 `/.well-known/apple-app-site-association` 이 404 라 카드 공유 링크(`/c/*`)가 Universal Link 로 앱을 열지 않는다 |
+| `SHARE_ANDROID_SHA256_FINGERPRINTS` | `.env.prod`. 앱 서명 인증서 SHA-256 (Play 앱 서명 키, 쉼표로 여러 개). 비면 `/.well-known/assetlinks.json` 이 404 라 App Links 검증이 안 된다 |
+| `SHARE_TOKEN_KEYS` | 카드 공유 링크 서명 키. `kid:secret`(secret 32자 이상)을 쉼표로 잇고 첫 키로 서명한다. prod 필수(`.env.prod`, 예 `s1:$(openssl rand -hex 32)`), dev 는 기본값. 키를 버리면 올라간 링크가 깨지므로 바꿀 땐 새 키를 앞에 붙이고 옛 키를 남긴다 |
+| `SHARE_DEV_ORIGIN` | dev 전용. 카드 공유 링크 호스트 (기본 `http://localhost`, 링크는 `<origin>/<ns>/c/{token}`). 폰에서 열려면 앱 `EXPO_PUBLIC_BACKEND_URL` 의 호스트 |
+| `SHARE_APP_SCHEME` | dev 는 `deploy.sh` 가 `kotonoha.<ns 영숫자만>` 으로 채운다(앱 scheme 과 같은 규칙). prod 는 기본 `kotonoha` |
 | `DISCORD_ALERT_WEBHOOK_URL` | `.env.prod` only. Discord webhook for prod Alertmanager (warning/critical); `k8s/observability/install.sh` fills it into `k8s/observability/alertmanager.yaml` and stores the result as the `monitoring/alertmanager-config` Secret |

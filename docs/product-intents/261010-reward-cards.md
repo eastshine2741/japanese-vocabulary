@@ -175,15 +175,15 @@ age    = clamp((0.9 − recall) / 0.4, 0, 1)
 카드 아래 정보는 이것만 둔다(그 밖의 칩·안내는 넣지 않는다):
 - 등급 패널 하나: 위에 조건 한 줄, 아래 등급 사다리(곡 기본~MASTER, 아티스트 기본~DIAMOND). 지나온 칸은 재질 색, 다음 칸은 진행만큼 차고,
   내 등급을 보는 동안 조건 줄은 다음 등급 조건과 진행(`12 / 30`)이다. 다른 칸을 누르면 같은 카드를 그 등급으로 다시 그리고 조건 줄은
-  그 등급의 조건(지나온 등급은 체크)으로 바뀐다 — 지나온 등급은 내 카드 그대로, 아직인 등급은 주인 정보를 비운 견본(새것)이다.
+  그 등급의 조건(지나온 등급은 체크)으로 바뀐다 — 지나온 등급은 내 카드 그대로, 아직인 등급은 주인 정보를 비운 견본(새것)이고 공유는 숨긴다.
   승급 조건과 견본 보기를 따로 두면 같은 '등급' 이야기가 두 곳에 흩어져 한눈에 안 들어와 합쳤다.
-- 곡 카드: 상단 카드만 보기·가사 편집 버튼(뒤집기는 카드 탭이 하므로 버튼이 없다), 기억할 확률 % 한 줄(산정 기준은 낡음 설명 화면이 맡는다,
+- 곡 카드: 상단 공유·카드만 보기·가사 편집 버튼(뒤집기는 카드 탭이 하므로 버튼이 없다), 기억할 확률 % 한 줄(산정 기준은 낡음 설명 화면이 맡는다,
   견본을 보는 동안엔 흐리게), 등급 패널, 맨 아래 `곡 보기`(`SongDetail`)·`복습 시작하기`.
   조건은 "'따라 부르기' 단계 단어 모두 공부하기" · MASTER 는 "곡 단어의 90%를 장기 기억으로 만들기".
   `복습 시작하기` 는 곡 덱(`/api/decks/by-song/{songId}`)의 due 복습을 바로 연다(`SongReview`, trigger `reward_card`).
   카드는 상단 버튼과 아래 정보를 뺀 남는 높이에 맞춰 그린다. 상단 `카드만 보기` 는 다른 UI·상태 표시줄을 숨기고 카드를 화면 가운데에
   크게 띄운다. 카드 밖을 누르거나 뒤로 가면 돌아온다.
-- 아티스트 카드: 등급 패널(조건 "이 아티스트 곡의 MASTER 카드 N장 모으기"), 맨 아래 `아티스트 보기`(`ArtistDetail`).
+- 아티스트 카드: 상단 공유 버튼, 등급 패널(조건 "이 아티스트 곡의 MASTER 카드 N장 모으기"), 맨 아래 `아티스트 보기`(`ArtistDetail`).
 아티스트 카드 뒷면도 곡 카드처럼 마스터 곡 수 아래에 흰 서명 칸이 있다(위 '곡 카드 서명'). 크림 종이 몸체에선 흰 칸이 묻혀 옅은 테두리를 두른다.
 마스터 카드는 앞면 구성부터 다르다 — 테 없이 앨범 아트를 끝까지 깔고, 글리터·무지개 광택이 두 장면 위를 함께 덮는다.
 마스터 카드의 렌티큘러 장면 전환과 글리터는 Skia(`@shopify/react-native-skia`) 셰이더로 그린다 — 새 네이티브 빌드가 필요하고,
@@ -231,3 +231,33 @@ age    = clamp((0.9 − recall) / 0.4, 0, 1)
 - 평균 R 은 tier 단어 중 `last_review >= song_card.created_at` 인 카드로 잰다. 다음 등급 진행은 다음 단계의 공부한 단어 수,
   완곡 뒤엔 tier 단어 90%(올림)까지의 장기기억 수다.
 - 카드 색(accent·ink)은 아트에서 뽑으려면 네이티브 모듈이 필요해, 앱이 id 로 고정 팔레트에서 고른다.
+
+## 카드 공유
+
+곡 카드·아티스트 카드를 인스타그램(카드 이미지)·X(링크)에 올려 앱 설치·진입을 늘린다.
+
+- 링크는 `https://kotonoha.eastshine.dev/c/{token}`. 토큰은 `kind`·카드 id 를 서명한 JWT(HS256, 헤더 `kid`)이고 만료·발급 시각이 없어
+  같은 카드는 늘 같은 링크다. DB 에 저장하지 않는다. 발급된(서명 끝난) 내 카드만 공유한다.
+  서명 키는 `SHARE_TOKEN_KEYS`(`kid:secret` 쉼표 목록, 첫 키로 서명). 키를 버리면 올라간 링크가 전부 깨지므로 옛 키를 뒤에 남긴다.
+- 링크는 카드의 지금 모습을 보여 준다. 주인 정보는 이름·프로필 사진만 내보낸다.
+- `/c/{token}` 은 api 가 내려 주는 HTML 이다. X 크롤러는 JS 를 돌리지 않아 서버가 `og:*`·`twitter:card=summary_large_image` 를 채운다.
+  api 는 share-web 의 `index.html` 을 받아 카드 메타와 화면 데이터(`<script id="kotonoha-share">` JSON)를 끼운다.
+  share-web 은 app-rn 의 카드 컴포넌트를 웹으로 빌드한 것(`EXPO_PUBLIC_SHARE_WEB=1`, `src/shareWeb`)이라 앱과 같은 카드를 그리고,
+  `앱에서 열기`(`kotonoha://c/{token}`)·App Store·Google Play 버튼을 둔다. 번들은 `/share-assets/**` 를 nginx 가 서빙한다.
+  share-web 을 못 받으면 서버가 그린 간단한 페이지(미리보기 이미지·곡명·버튼)로 대신한다. 웹 카드 폰트는 Google Fonts 에서 받는다.
+- 미리보기 이미지(og:image) 키는 `shares/{토큰 서명부}.png` 다. 서버 키 없이 만들 수 없어 카드 id 로 남의 미리보기 주소를 짐작할 수 없고,
+  저장할 필요도 없다. 공개 도메인(`img.kotonoha.eastshine.dev`)으로 읽고, 다시 공유하면 덮어쓰며 객체에 `Cache-Control: max-age=300` 을 붙인다.
+  없으면 곡·아티스트 아트워크.
+- 앱은 카드 상세의 공유 버튼에서 `이미지로 공유`·`링크 공유` 를 고른다. 화면의 카드 앞면을 정면으로 세워 한 번 떠서(`makeImageFromView`)
+  9:16 스토리 이미지(하단에 `Kotonoha`·호스트, ASCII 만)와 1200×630 미리보기 이미지를 만든다. 미리보기만 서버에 올린다 —
+  X 큰 카드는 약 1.91:1 로 잘라서 세로 이미지를 쓰면 카드 가운데만 보인다. 링크 공유는 미리보기가 올라간 뒤에 링크를 낸다.
+- 링크를 받은 앱은 `SharedCard` 화면(남의 카드 보기 전용, 곡·아티스트 보기 버튼)을 연다. 로그인 전이면 로그인·가입 뒤에 연다.
+- 디퍼드 딥링크(설치 뒤 첫 실행에 그 카드로 보내기)는 일부러 하지 않는다. 미설치자는 랜딩 → 스토어까지다.
+- Universal Links·Android App Links 는 `/.well-known/apple-app-site-association`·`/.well-known/assetlinks.json` 이 검증한다.
+  `SHARE_APPLE_APP_ID`·`SHARE_ANDROID_SHA256_FINGERPRINTS` 를 채우기 전엔 둘 다 404 라 https 링크는 랜딩으로만 열린다.
+
+| API | |
+|---|---|
+| `PUT /api/reward-cards/{songs\|artists}/{id}/share` | `{imageUploaded?}` → `{token, url}`. `imageUploaded` 면 올라간 미리보기를 HEAD 로 확인(≤5MB png), 어긋나면 지운다 |
+| `POST /api/reward-cards/{songs\|artists}/{id}/share/image-upload-url` | → `{uploadUrl, headers, expiresAt}`. png presigned PUT, 키는 링크에서 나온다 |
+| `GET /api/reward-card-shares/{token}` | 앱의 `SharedCard` 화면. `{token, url, kind, songCard?, artistCard?, owner: {name, profileImageUrl}}`, 카드 모양은 `GET /api/reward-cards` 와 같다 |

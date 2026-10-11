@@ -17,6 +17,7 @@ import Animated, {
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { deckApi } from '../api/deckApi';
 import SongCardShowcase from '../components/rewardCards/SongCardShowcase';
+import CardShareButton from '../components/rewardCards/CardShareButton';
 import GradePanel, { GradeTab } from '../components/rewardCards/GradePanel';
 import { IntroDecision, reportIntroDecision } from '../components/rewardCards/CardIntroDebugOverlay';
 import { CARD_RATIO, LEVEL_MATERIAL, MASTER_CHIP, SHOWROOM, songTierName, useCardFonts } from '../components/rewardCards/cardTheme';
@@ -77,6 +78,7 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
   const { width: screenW } = useWindowDimensions();
   const fonts = useCardFonts();
   const tilt = useCardTilt();
+  const cardRef = useRef<View>(null);
 
   const enter = useSharedValue(0);
   const info = useSharedValue(0);
@@ -166,6 +168,7 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
   }, [navigation, cardId]);
 
   const songId = card?.songId ?? null;
+  const canShare = !isOtherGrade && owned?.issued === true && songId != null;
   const handleOpenSong = useCallback(() => {
     if (songId != null) navigation.navigate('SongDetail', { songId, origin: 'reward_card_detail' });
   }, [navigation, songId]);
@@ -237,6 +240,7 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
               <Feather name="chevron-down" size={22} color={SHOWROOM.fg} />
             </Pressable>
             <View style={styles.actions}>
+              {canShare && <CardShareButton kind="song" targetId={songId} title={card.title} tilt={tilt} cardRef={cardRef} />}
               <Pressable onPress={handleFocus} hitSlop={10} style={styles.iconBtn}>
                 <Feather name="maximize-2" size={17} color={SHOWROOM.fg} />
               </Pressable>
@@ -251,7 +255,9 @@ export default function RewardCardDetailScreen({ navigation, route }: Props) {
               <Animated.View style={[styles.stageCenter, focusStyle]} pointerEvents="box-none">
                 <GestureDetector gesture={tilt.gesture}>
                   <Animated.View style={cardIn}>
-                    <SongCardShowcase card={card} width={cardW} tilt={tilt} fonts={fonts} ownerName={route.params.ownerName} />
+                    <View ref={cardRef} collapsable={false}>
+                      <SongCardShowcase card={card} width={cardW} tilt={tilt} fonts={fonts} ownerName={route.params.ownerName} />
+                    </View>
                   </Animated.View>
                 </GestureDetector>
               </Animated.View>

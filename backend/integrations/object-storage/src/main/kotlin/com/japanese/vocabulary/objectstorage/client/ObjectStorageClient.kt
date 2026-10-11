@@ -67,11 +67,12 @@ class ObjectStorageClient(
         .serviceConfiguration(s3Configuration)
         .build()
 
-    fun presignPut(key: String, contentType: String, ttl: Duration): PresignedUpload {
+    /** [cacheControl] 을 주면 서명 헤더에 들어가 업로드하는 쪽이 그대로 실어야 한다. */
+    fun presignPut(key: String, contentType: String, ttl: Duration, cacheControl: String? = null): PresignedUpload {
         val presigner = checkNotNull(presigner) { "object-storage is not configured" }
         val presigned = presigner.presignPutObject { req ->
             req.signatureDuration(ttl)
-                .putObjectRequest { it.bucket(bucket).key(key).contentType(contentType) }
+                .putObjectRequest { it.bucket(bucket).key(key).contentType(contentType).cacheControl(cacheControl) }
         }
         return PresignedUpload(
             url = presigned.url().toString(),

@@ -120,6 +120,16 @@ if [[ "$DEPLOY_ENV" == "prod" ]]; then
     echo "  generate: openssl rand -hex 32" >&2
     exit 1
   fi
+  # 비면 앱 링크 검증 파일이 404 라 공유 링크가 앱 대신 브라우저로 열린다. 막지는 않고 알린다.
+  if [[ -z "${SHARE_APPLE_APP_ID:-}" || -z "${SHARE_ANDROID_SHA256_FINGERPRINTS:-}" ]]; then
+    echo "Warning: SHARE_APPLE_APP_ID / SHARE_ANDROID_SHA256_FINGERPRINTS 가 비어 공유 링크가 앱으로 열리지 않는다 ($ENV_FILE)" >&2
+  fi
+  # 카드 공유 링크 서명 키. 바꾸면 올라간 링크가 깨지므로 새 키를 앞에 붙이고 옛 키는 뒤에 남긴다.
+  if [[ ! "${SHARE_TOKEN_KEYS:-}" =~ ^[^:,]+:[^,]{32,}(,[^:,]+:[^,]{32,})*$ ]]; then
+    echo "Error: SHARE_TOKEN_KEYS must be kid:secret (secret >= 32 chars), comma-separated, in $ENV_FILE" >&2
+    echo "  generate: echo \"s1:\$(openssl rand -hex 32)\"" >&2
+    exit 1
+  fi
 
   echo ""
   echo "⚠️  PROD DEPLOY"
@@ -140,12 +150,19 @@ BATCH_IMAGE="${IMAGE_PREFIX}-batch:${GIT_SHA}"
 MIGRATION_IMAGE="${IMAGE_PREFIX}-migration:${GIT_SHA}"
 ADMIN_API_IMAGE="${IMAGE_PREFIX}-admin-api:${GIT_SHA}"
 ADMIN_WEB_IMAGE="${IMAGE_PREFIX}-admin-web:${GIT_SHA}"
+SHARE_WEB_IMAGE="${IMAGE_PREFIX}-share-web:${GIT_SHA}"
 WORKER_IMAGE="${IMAGE_PREFIX}-worker:${GIT_SHA}"
 ADMIN_PASSWORD="${ADMIN_PASSWORD:-}"
 ADMIN_PASSWORD_SHA256="${ADMIN_PASSWORD_SHA256:-}"
 if [[ "$DEPLOY_ENV" == "dev" ]]; then
   ADMIN_PASSWORD="${ADMIN_PASSWORD:-admin}"
   ADMIN_TOKEN_SECRET="${ADMIN_TOKEN_SECRET:-dev-admin-token-secret-must-be-at-least-32-bytes}"
+  SHARE_TOKEN_KEYS="${SHARE_TOKEN_KEYS:-dev:dev-share-token-secret-at-least-32-bytes-long}"
+  # 카드 공유 링크의 호스트. 폰에서 열어 보려면 .env 에 앱 EXPO_PUBLIC_BACKEND_URL 과 같은 호스트를 넣는다.
+  SHARE_DEV_ORIGIN="${SHARE_DEV_ORIGIN:-http://localhost}"
+  # 랜딩의 '앱에서 열기'가 이 네임스페이스 dev 앱을 열게 app.config.js 의 scheme 규칙(kotonoha.<ns 영숫자만>)을 따른다.
+  SHARE_APP_SCHEME="kotonoha.$(echo "$NS" | sed 's/[^a-z0-9]//g')"
+  export SHARE_DEV_ORIGIN SHARE_APP_SCHEME
 fi
 
 # 곡 분석 파이프라인이 batch 에서 worker 로 옮겨졌다. 전용 DSN 이 없으면 batch 가 쓰던 프로젝트로
@@ -159,6 +176,13 @@ else
   ADMIN_WEB_BASE_PATH="/${NS}/admin"
 fi
 ADMIN_WEB_API_BASE_URL="${ADMIN_WEB_BASE_PATH}/api"
+
+# share-web 도 번들 경로를 빌드 때 굽는다. 랜딩 HTML 이 이 경로로 번들을 부른다.
+if [[ "$DEPLOY_ENV" == "prod" ]]; then
+  SHARE_WEB_BASE_PATH="/share-assets"
+else
+  SHARE_WEB_BASE_PATH="/${NS}/share-assets"
+fi
 
 if [[ "$DEPLOY_ENV" == "prod" ]]; then
   SENTRY_ENVIRONMENT="production"
@@ -190,8 +214,8 @@ build_boot_image() {
     -t "$image" \
     -f "$module_dir/Dockerfile" "$ctx/"
 }
-export API_IMAGE BATCH_IMAGE WORKER_IMAGE MIGRATION_IMAGE ADMIN_API_IMAGE ADMIN_WEB_IMAGE NS SENTRY_ENVIRONMENT SENTRY_RELEASE
-export ADMIN_PASSWORD ADMIN_PASSWORD_SHA256 ADMIN_TOKEN_SECRET
+export API_IMAGE BATCH_IMAGE WORKER_IMAGE MIGRATION_IMAGE ADMIN_API_IMAGE ADMIN_WEB_IMAGE SHARE_WEB_IMAGE NS SENTRY_ENVIRONMENT SENTRY_RELEASE
+export ADMIN_PASSWORD ADMIN_PASSWORD_SHA256 ADMIN_TOKEN_SECRET SHARE_TOKEN_KEYS
 export SENTRY_DSN_WORKER
 
 echo "=== env: $DEPLOY_ENV | namespace: $NS | sha: $GIT_SHA ==="
@@ -235,6 +259,11 @@ if [[ "$DEPLOY_ENV" == "prod" ]]; then
     --build-arg VITE_ADMIN_BASE_PATH="$ADMIN_WEB_BASE_PATH" \
     -t "$ADMIN_WEB_IMAGE" \
     -f "$PROJECT_ROOT/admin-web/Dockerfile" "$PROJECT_ROOT"
+  docker build \
+    --build-arg SHARE_WEB_BASE_PATH="$SHARE_WEB_BASE_PATH" \
+    --build-arg DEPLOY_NS="$NS" \
+    -t "$SHARE_WEB_IMAGE" \
+    -f "$PROJECT_ROOT/share-web/Dockerfile" "$PROJECT_ROOT"
 
   echo "[push] ghcr..."
   docker push "$API_IMAGE"
@@ -243,6 +272,7 @@ if [[ "$DEPLOY_ENV" == "prod" ]]; then
   docker push "$MIGRATION_IMAGE"
   docker push "$ADMIN_API_IMAGE"
   docker push "$ADMIN_WEB_IMAGE"
+  docker push "$SHARE_WEB_IMAGE"
 else
   echo "[build] images..."
   build_boot_image api "$API_IMAGE"
@@ -255,9 +285,14 @@ else
     --build-arg VITE_ADMIN_BASE_PATH="$ADMIN_WEB_BASE_PATH" \
     -t "$ADMIN_WEB_IMAGE" \
     -f "$PROJECT_ROOT/admin-web/Dockerfile" "$PROJECT_ROOT"
+  docker build \
+    --build-arg SHARE_WEB_BASE_PATH="$SHARE_WEB_BASE_PATH" \
+    --build-arg DEPLOY_NS="$NS" \
+    -t "$SHARE_WEB_IMAGE" \
+    -f "$PROJECT_ROOT/share-web/Dockerfile" "$PROJECT_ROOT"
 
   echo "[k3s] importing images..."
-  docker save "$API_IMAGE" "$BATCH_IMAGE" "$WORKER_IMAGE" "$MIGRATION_IMAGE" "$ADMIN_API_IMAGE" "$ADMIN_WEB_IMAGE" | sudo k3s ctr images import -
+  docker save "$API_IMAGE" "$BATCH_IMAGE" "$WORKER_IMAGE" "$MIGRATION_IMAGE" "$ADMIN_API_IMAGE" "$ADMIN_WEB_IMAGE" "$SHARE_WEB_IMAGE" | sudo k3s ctr images import -
 fi
 echo "  → $((SECONDS - STEP_START))s"
 
@@ -359,6 +394,14 @@ envsubst < "$K8S_DIR/worker/deployment.yaml" | kubectl apply -n "$NS" -f -
 kubectl rollout status -n "$NS" statefulset/rabbitmq --timeout=300s
 kubectl rollout status -n "$NS" deployment/worker --timeout=180s
 
+# api 랜딩이 share-web 의 index.html 을 받아 가므로 먼저 올린다.
+echo "[apply] share-web..."
+envsubst < "$K8S_DIR/share-web/deployment.yaml" | kubectl apply -n "$NS" -f -
+kubectl apply -n "$NS" -f "$K8S_DIR/share-web/service.yaml"
+if [[ "$DEPLOY_ENV" == "dev" ]]; then
+  envsubst < "$K8S_DIR/share-web/ingress.yaml" | kubectl apply -n "$NS" -f -
+fi
+
 echo "[apply] api + batch cronjobs..."
 envsubst < "$K8S_DIR/api/secret.template.yaml" | kubectl apply -n "$NS" -f -
 envsubst < "$K8S_DIR/api/configmap.yaml" | kubectl apply -n "$NS" -f -
@@ -403,6 +446,7 @@ echo "[rollout] waiting..."
 kubectl rollout status -n "$NS" deployment/api --timeout=120s
 kubectl rollout status -n "$NS" deployment/admin-api --timeout=120s
 kubectl rollout status -n "$NS" deployment/admin-web --timeout=120s
+kubectl rollout status -n "$NS" deployment/share-web --timeout=120s
 echo "  → $((SECONDS - STEP_START))s"
 
 echo ""

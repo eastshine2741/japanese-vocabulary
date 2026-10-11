@@ -25,6 +25,7 @@ import { TOS_URL, PRIVACY_URL } from '../config/legal';
 import { Colors } from '../theme/theme';
 import { AppBar } from '../components/AppBar';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import { consumePendingShareLink } from '../services/shareLinkHandler';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Signup'>;
 
@@ -71,6 +72,7 @@ export default function SignupScreen({ navigation, route }: Props) {
     if (status === 'success') {
       reset();
       navigation.replace('Main');
+      consumePendingShareLink();
     }
   }, [status]);
 

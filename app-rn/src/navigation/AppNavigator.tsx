@@ -31,6 +31,7 @@ import StreakScreen from '../screens/StreakScreen';
 import RewardCardDetailScreen from '../screens/RewardCardDetailScreen';
 import RewardCardPreviewScreen from '../screens/RewardCardPreviewScreen';
 import ArtistCardDetailScreen from '../screens/ArtistCardDetailScreen';
+import SharedCardScreen from '../screens/SharedCardScreen';
 import ArtistCardListScreen from '../screens/ArtistCardListScreen';
 import RewardCardLyricEditScreen from '../screens/RewardCardLyricEditScreen';
 import RewardCardRevealScreen from '../screens/RewardCardRevealScreen';
@@ -106,6 +107,8 @@ export type RootStackParamList = {
   /** 프로필 카드 탭에서 아티스트 카드를 누르면 열리는 전시 화면. */
   /** masteredCount 를 주면 내 카드를 그 지나온 재질 모습으로 보여 준다. */
   ArtistCardDetail: { cardId: string; ownerName: string; masteredCount?: number };
+  /** 공유 링크로 연 남의 카드. */
+  SharedCard: { token: string };
   /** 프로필 카드 탭 아티스트 카드 헤더에서 들어오는 전체 목록. */
   ArtistCardList: { ownerName: string };
   /** 홈 헤더의 '오늘 복습할 단어' 블록에서 들어오는 FSRS 스케줄 상세. */
@@ -230,6 +233,11 @@ export default function AppNavigator({ initialRoute }: Props) {
       <Stack.Screen
         name="ArtistCardDetail"
         component={ArtistCardDetailScreen}
+        options={{ animation: 'fade', contentStyle: { backgroundColor: '#0E0D13' } }}
+      />
+      <Stack.Screen
+        name="SharedCard"
+        component={SharedCardScreen}
         options={{ animation: 'fade', contentStyle: { backgroundColor: '#0E0D13' } }}
       />
       <Stack.Screen name="ArtistCardList" component={ArtistCardListScreen} />

@@ -1,6 +1,8 @@
 # kotonoha.eastshine.dev
 #   /admin/api/*  -> admin-api  (prefix 유지: 컨트롤러 매핑이 /admin/api/**)
 #   /admin/*      -> admin-web  (prefix 제거: nginx 는 root 에서 서빙)
+#   /c/*, /.well-known/{apple-app-site-association,assetlinks.json} -> api  (카드 공유 랜딩·앱 링크 검증 파일)
+#   /share-assets/* -> share-web  (prefix 제거: 랜딩 HTML 이 부르는 카드 웹 화면 번들)
 #
 # IngressRoute 를 쓰는 이유: stripPrefix 는 admin-web 에만 걸려야 하는데, Ingress 는 미들웨어가
 # annotation 으로 오브젝트 전체에 적용돼 path 별로 나눌 수 없다 (admin-api 까지 벗기면 전부 404).
@@ -13,6 +15,15 @@ spec:
   stripPrefix:
     prefixes:
       - /admin
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: share-web-strip-prefix
+spec:
+  stripPrefix:
+    prefixes:
+      - /share-assets
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
@@ -48,6 +59,38 @@ spec:
   tls:
     secretName: admin-tls
 ---
+# 검증 파일은 Path 로 정확히 걸어 /.well-known/acme-challenge/* 를 cert-manager solver 에 남긴다.
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: share
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`kotonoha.eastshine.dev`) && PathPrefix(`/c/`)
+      kind: Rule
+      priority: 90
+      services:
+        - name: api
+          port: 8080
+    - match: Host(`kotonoha.eastshine.dev`) && (Path(`/.well-known/apple-app-site-association`) || Path(`/.well-known/assetlinks.json`))
+      kind: Rule
+      priority: 90
+      services:
+        - name: api
+          port: 8080
+    - match: Host(`kotonoha.eastshine.dev`) && PathPrefix(`/share-assets/`)
+      kind: Rule
+      priority: 90
+      services:
+        - name: share-web
+          port: 80
+      middlewares:
+        - name: share-web-strip-prefix
+  tls:
+    secretName: admin-tls
+---
 # 브라우저로 http://kotonoha.eastshine.dev/admin 을 열어도 https 로 넘긴다.
 # /.well-known/acme-challenge/* 는 매칭하지 않으므로 cert-manager http01 solver 와 겹치지 않는다.
 apiVersion: traefik.io/v1alpha1
@@ -63,5 +106,21 @@ spec:
       services:
         - name: admin-web
           port: 80
+      middlewares:
+        - name: admin-https-redirect
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: share-http-redirect
+spec:
+  entryPoints:
+    - web
+  routes:
+    - match: Host(`kotonoha.eastshine.dev`) && PathPrefix(`/c/`)
+      kind: Rule
+      services:
+        - name: api
+          port: 8080
       middlewares:
         - name: admin-https-redirect

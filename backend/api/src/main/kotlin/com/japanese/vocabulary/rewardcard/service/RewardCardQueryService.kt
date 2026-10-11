@@ -59,6 +59,28 @@ class RewardCardQueryService(
         )
     }
 
+    /** 공유 링크로 남의 카드 한 장을 볼 때. [cards] 와 같은 모양이다. */
+    @Transactional(readOnly = true)
+    fun songCard(userId: Long, songId: Long): SongCardResponse? {
+        val card = rewardCardService.songCards(userId).firstOrNull { it.songId == songId } ?: return null
+        val song = songRepository.findById(songId).orElse(null) ?: return null
+        val lyric = lyricRepository.findActiveBySongId(songId)
+        val lines = lyric?.let { songDetailQueryService.lyricLines(it) }.orEmpty()
+        val tierCards = lyric?.let { songTierCardService.tierCards(userId, listOf(it))[songId] }
+        return songCard(card, song, lines, tierCards, Instant.now(clock))
+    }
+
+    @Transactional(readOnly = true)
+    fun artistCard(userId: Long, artistId: Long): ArtistCardResponse? {
+        val card = rewardCardService.artistCards(userId).firstOrNull { it.artistId == artistId } ?: return null
+        val artist = artistRepository.findById(artistId).orElse(null) ?: return null
+        val mastered = rewardCardService.songCards(userId)
+            .filter { it.grade == SongCardGrade.MASTER && it.artistId == artistId }
+            .sortedBy { it.masteredAt }
+        val songs = songRepository.findAllById(mastered.map { it.songId }).associateBy { it.id!! }
+        return artistCard(card, artist, mastered, songs)
+    }
+
     /** 고른 줄이 그 곡의 가사 줄인지. 줄 수·중복 검사는 [RewardCardService] 가 한다. */
     @Transactional(readOnly = true)
     fun validateLyricLines(songId: Long, lyricLineIndexes: List<Int>) {

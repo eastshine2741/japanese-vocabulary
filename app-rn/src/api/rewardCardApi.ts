@@ -1,5 +1,12 @@
 import client from './client';
-import { RewardCardRevealDto, RewardCardsResponse } from '../types/rewardCard';
+import {
+  RewardCardRevealDto,
+  RewardCardShareDto,
+  RewardCardShareKind,
+  RewardCardsResponse,
+  ShareImageUploadUrl,
+  SharedRewardCardDto,
+} from '../types/rewardCard';
 
 export const rewardCardApi = {
   async getCards(): Promise<RewardCardsResponse> {
@@ -31,5 +38,21 @@ export const rewardCardApi = {
 
   async updateSongCardLyric(songId: number, lyricLineIndexes: number[]): Promise<void> {
     await client.put(`/api/reward-cards/songs/${songId}/lyric`, { lyricLineIndexes });
+  },
+
+  /** 같은 카드는 늘 같은 링크다. imageUploaded 면 막 올린 미리보기를 서버가 확인한다. */
+  async shareCard(kind: RewardCardShareKind, id: number, imageUploaded = false): Promise<RewardCardShareDto> {
+    const { data } = await client.put<RewardCardShareDto>(`/api/reward-cards/${kind}/${id}/share`, { imageUploaded });
+    return data;
+  },
+
+  async issueShareImageUploadUrl(kind: RewardCardShareKind, id: number): Promise<ShareImageUploadUrl> {
+    const { data } = await client.post<ShareImageUploadUrl>(`/api/reward-cards/${kind}/${id}/share/image-upload-url`);
+    return data;
+  },
+
+  async getSharedCard(token: string): Promise<SharedRewardCardDto> {
+    const { data } = await client.get<SharedRewardCardDto>(`/api/reward-card-shares/${encodeURIComponent(token)}`);
+    return data;
   },
 };

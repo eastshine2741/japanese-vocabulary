@@ -47,6 +47,11 @@ dependencies {
 
     implementation("org.springframework.boot:spring-boot-starter-data-redis")
 
+    // 카드 공유 링크 서명
+    implementation("io.jsonwebtoken:jjwt-api:0.12.3")
+    runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.3")
+    runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.3")
+
     runtimeOnly("com.mysql:mysql-connector-j")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")

@@ -1,10 +1,3 @@
-import { Platform } from 'react-native';
-import {
-  useFonts,
-  ShipporiMinchoB1_700Bold,
-  ShipporiMinchoB1_800ExtraBold,
-} from '@expo-google-fonts/shippori-mincho-b1';
-import { GowunBatang_400Regular, GowunBatang_700Bold } from '@expo-google-fonts/gowun-batang';
 import type { ArtistGrade } from './artistGrade';
 import { CardLevel } from './types';
 
@@ -247,25 +240,5 @@ export const SHOWROOM = {
 /** 연출 화면 맨 위 문구와 safe area 사이 간격. */
 export const SHOWROOM_HEADING_TOP = 40;
 
-const FALLBACK_JP = Platform.select({ ios: 'Hiragino Mincho ProN', default: 'serif' });
-const FALLBACK_KO = Platform.select({ ios: 'AppleMyungjo', default: 'serif' });
-
-/** 일본어는 명조(가사·제목), 한국어는 바탕(이름·뜻·라벨). 서로 글리프가 없어 섞으면 시스템 폰트로 빠진다. */
-export interface CardFonts {
-  jp: string;
-  jpHeavy: string;
-  ko: string;
-  koBold: string;
-}
-
-export function useCardFonts(): CardFonts {
-  const [loaded] = useFonts({
-    ShipporiMinchoB1_700Bold,
-    ShipporiMinchoB1_800ExtraBold,
-    GowunBatang_400Regular,
-    GowunBatang_700Bold,
-  });
-  return loaded
-    ? { jp: 'ShipporiMinchoB1_700Bold', jpHeavy: 'ShipporiMinchoB1_800ExtraBold', ko: 'GowunBatang_400Regular', koBold: 'GowunBatang_700Bold' }
-    : { jp: FALLBACK_JP, jpHeavy: FALLBACK_JP, ko: FALLBACK_KO, koBold: FALLBACK_KO };
-}
+export type { CardFonts } from './cardFontFamilies';
+export { useCardFonts } from './cardFonts';

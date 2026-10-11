@@ -38,6 +38,8 @@ export interface CardTilt {
   y: DerivedValue<number>;
   /** 0 = 앞면, 1 = 뒷면. */
   flip: SharedValue<number>;
+  /** 켜면 기울기·드래그를 무시하고 정면으로 세운다. 공유 이미지 캡처용. */
+  still: SharedValue<boolean>;
   /** 카드의 화면 속 회전. */
   pose: DerivedValue<CardPose>;
   gesture: ReturnType<typeof Gesture.Race>;
@@ -45,6 +47,7 @@ export interface CardTilt {
 
 export function useCardTilt(): CardTilt {
   const flip = useSharedValue(0);
+  const still = useSharedValue(false);
   const dragX = useSharedValue(0);
   const dragY = useSharedValue(0);
   const anchor = useSharedValue<Quat | null>(null);
@@ -72,6 +75,7 @@ export function useCardTilt(): CardTilt {
 
   // 드래그는 손가락으로 카드를 미는 것처럼 화면 축 기준으로 더한다. 화면 안 회전(rz)은 따라가지 않는다.
   const pose = useDerivedValue(() => {
+    if (still.value) return toPose(rotY(flip.value * 180));
     const p = world.value.pose;
     const card = mul(rotX(p.rx * CARD_FOLLOW), rotY(p.ry * CARD_FOLLOW));
     return toPose(mul(mul(mul(rotX(dragX.value), rotY(dragY.value)), card), rotY(flip.value * 180)));
@@ -98,5 +102,5 @@ export function useCardTilt(): CardTilt {
     return Gesture.Race(pan, tap);
   }, [flip, dragX, dragY]);
 
-  return { x, y, flip, pose, gesture };
+  return { x, y, flip, still, pose, gesture };
 }

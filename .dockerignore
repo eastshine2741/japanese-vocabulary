@@ -14,3 +14,14 @@ reels/public/*.jpg
 reels/public/*.png
 
 **/.DS_Store
+
+app-rn/node_modules
+app-rn/android
+app-rn/ios
+app-rn/dist
+app-rn/*.jks
+app-rn/*.keystore
+app-rn/*.png
+app-rn/*.pen*
+app-rn/app-store-assets
+app-rn/fastlane

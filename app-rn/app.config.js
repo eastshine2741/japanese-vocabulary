@@ -35,6 +35,10 @@ const nativeRuntimeVersion =
   nativeBuildConfig.nativeRuntimeVersion ??
   versionName.replace(/-(?:dev|rc)\.\d+$/, '');
 
+// share-web(카드 공유 웹 화면) 빌드. 번들·에셋을 랜딩 HTML 이 부르는 경로 아래에 둔다.
+const shareWeb = process.env.EXPO_PUBLIC_SHARE_WEB === '1';
+const shareWebBasePath = process.env.SHARE_WEB_BASE_PATH ?? '/share-assets';
+
 const namespace = resolveNamespace();
 const suffix = `.${namespace.replace(/[^a-z0-9]/g, '')}`;
 const label = isProd ? '' : namespace !== 'main' ? ` (${namespace})` : '-dev';
@@ -47,11 +51,15 @@ const packageName = isProd
   ? 'dev.eastshine.kotonoha'
   : `dev.eastshine.kotonoha${suffix}`;
 const bundleIdentifier = packageName;
+// dev 빌드가 prod 공유 링크를 가로채지 않게 scheme 을 따로 두고 App/Universal Link 는 prod 에만 단다.
+const scheme = isProd ? 'kotonoha' : `kotonoha${suffix}`;
+const shareHost = 'kotonoha.eastshine.dev';
 
 export default {
   expo: {
     name: `코토노하${label}`,
     slug: 'app-rn',
+    scheme,
     version: versionName,
     runtimeVersion: nativeRuntimeVersion,
     updates: {
@@ -68,6 +76,7 @@ export default {
       buildNumber,
       supportsTablet: false,
       usesAppleSignIn: true,
+      ...(isProd ? { associatedDomains: [`applinks:${shareHost}`] } : {}),
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
       },
@@ -88,11 +97,24 @@ export default {
       package: packageName,
       ...(versionCode !== undefined ? { versionCode } : {}),
       usesCleartextTraffic: true,
+      ...(isProd
+        ? {
+            intentFilters: [
+              {
+                action: 'VIEW',
+                autoVerify: true,
+                data: [{ scheme: 'https', host: shareHost, pathPrefix: '/c/' }],
+                category: ['BROWSABLE', 'DEFAULT'],
+              },
+            ],
+          }
+        : {}),
       ...(firebaseDisabled ? {} : { googleServicesFile: './google-services.json' }),
     },
     web: {
       favicon: './assets/favicon.png',
     },
+    ...(shareWeb ? { experiments: { baseUrl: shareWebBasePath } } : {}),
     extra: {
       eas: {
         projectId: 'f03be909-9675-45fc-8ad5-818e30cdf18e',

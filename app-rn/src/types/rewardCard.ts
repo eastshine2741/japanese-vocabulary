@@ -59,3 +59,27 @@ export interface RewardCardsResponse {
   songCards: SongCardDto[];
   artistCards: ArtistCardDto[];
 }
+
+export type RewardCardShareKind = 'songs' | 'artists';
+
+export interface RewardCardShareDto {
+  token: string;
+  url: string;
+}
+
+export interface ShareImageUploadUrl {
+  uploadUrl: string;
+  /** PUT 에 그대로 실어야 한다. 서명에 들어간 헤더다. */
+  headers: Record<string, string>;
+  expiresAt: string;
+}
+
+/** 공유 링크로 보는 남의 카드. kind 에 맞는 쪽만 채워 온다. */
+export interface SharedRewardCardDto {
+  token: string;
+  url: string;
+  kind: 'SONG' | 'ARTIST';
+  songCard: SongCardDto | null;
+  artistCard: ArtistCardDto | null;
+  owner: { name: string; profileImageUrl: string | null };
+}

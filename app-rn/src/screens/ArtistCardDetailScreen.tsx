@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -16,6 +16,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import ArtistCardShowcase from '../components/rewardCards/ArtistCardShowcase';
+import CardShareButton from '../components/rewardCards/CardShareButton';
 import GradePanel, { GradeTab } from '../components/rewardCards/GradePanel';
 import { ARTIST_GRADE_STEPS, artistGradeStep, nextArtistGradeStep } from '../components/rewardCards/artistGrade';
 import { artistCardAt } from '../components/rewardCards/cardKinds';
@@ -59,6 +60,7 @@ export default function ArtistCardDetailScreen({ navigation, route }: Props) {
   const { width: screenW } = useWindowDimensions();
   const fonts = useCardFonts();
   const tilt = useCardTilt();
+  const cardRef = useRef<View>(null);
 
   const enter = useSharedValue(0);
   const info = useSharedValue(0);
@@ -78,6 +80,7 @@ export default function ArtistCardDetailScreen({ navigation, route }: Props) {
 
   const handleClose = useCallback(() => navigation.goBack(), [navigation]);
   const artistId = card?.artistId ?? null;
+  const canShare = !isOtherGrade && owned?.issued === true && artistId != null;
   const handleOpenArtist = useCallback(() => {
     if (artistId != null) navigation.navigate('ArtistDetail', { artistId });
   }, [artistId, navigation]);
@@ -121,13 +124,16 @@ export default function ArtistCardDetailScreen({ navigation, route }: Props) {
             <Feather name="chevron-down" size={22} color={SHOWROOM.fg} />
           </Pressable>
           <View style={styles.actions}>
+            {canShare && <CardShareButton kind="artist" targetId={artistId} title={card.name} tilt={tilt} cardRef={cardRef} />}
           </View>
         </View>
 
         <View style={styles.stage}>
           <GestureDetector gesture={tilt.gesture}>
             <Animated.View style={cardIn}>
-              <ArtistCardShowcase card={card} width={cardW} tilt={tilt} fonts={fonts} ownerName={route.params.ownerName} />
+              <View ref={cardRef} collapsable={false}>
+                <ArtistCardShowcase card={card} width={cardW} tilt={tilt} fonts={fonts} ownerName={route.params.ownerName} />
+              </View>
             </Animated.View>
           </GestureDetector>
         </View>
