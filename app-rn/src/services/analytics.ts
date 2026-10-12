@@ -21,7 +21,7 @@ type AnalyticsEvent =
   | { name: 'card_reveal'; params: StudyCardParams }
   | { name: 'card_rate'; params: StudyCardParams & { rating: number } }
   | { name: 'review_exit'; params: ReviewExitParams }
-  | { name: 'card_share'; params: { kind: ShareCardKind; method: 'image' | 'link' } }
+  | { name: 'card_share'; params: { kind: ShareCardKind; method: 'x' | 'instagram_story' | 'link' } }
   | { name: 'share_link_open'; params: { kind: ShareCardKind } };
 
 export type ShareCardKind = 'song' | 'artist';
@@ -97,7 +97,7 @@ export function trackReviewExit(params: ReviewExitParams): void {
   track({ name: 'review_exit', params });
 }
 
-export function trackCardShare(kind: ShareCardKind, method: 'image' | 'link'): void {
+export function trackCardShare(kind: ShareCardKind, method: 'x' | 'instagram_story' | 'link'): void {
   track({ name: 'card_share', params: { kind, method } });
 }
 

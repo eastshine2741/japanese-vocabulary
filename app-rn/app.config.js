@@ -79,6 +79,8 @@ export default {
       ...(isProd ? { associatedDomains: [`applinks:${shareHost}`] } : {}),
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
+        // 카드 공유: 인스타 스토리 공유 전에 설치 여부를 묻는다.
+        LSApplicationQueriesSchemes: ['instagram-stories'],
       },
       ...(firebaseDisabled
         ? {}
@@ -151,6 +153,10 @@ export default {
           ios: {
             useFrameworks: 'static',
             forceStaticLinking: ['RNFBApp', 'RNFBMessaging', 'RNFBAnalytics'],
+          },
+          // 카드 공유: Android 11+ 는 등록한 패키지만 설치 여부를 볼 수 있다.
+          android: {
+            manifestQueries: { package: ['com.instagram.android'] },
           },
         },
       ],

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseShareToken, shareUrlLabel } from './shareLinks';
+import { parseShareToken, shareUrlLabel, xPostUrl } from './shareLinks';
 
 const T = 'eyJraWQiOiJ0In0.eyJrIjoicyIsImMiOjF9.Ab-_9z';
 
@@ -35,5 +35,13 @@ describe('shareUrlLabel', () => {
   it('호스트만 남긴다', () => {
     expect(shareUrlLabel(`https://kotonoha.eastshine.dev/c/${T}`)).toBe('kotonoha.eastshine.dev');
     expect(shareUrlLabel(`http://27.35.45.138/main/c/${T}`)).toBe('27.35.45.138');
+  });
+});
+
+describe('xPostUrl', () => {
+  it('글과 링크를 인코딩해 X 글쓰기 주소를 만든다', () => {
+    expect(xPostUrl('「夜に駆ける」 & more', `https://kotonoha.eastshine.dev/c/${T}`)).toBe(
+      `https://x.com/intent/post?text=${encodeURIComponent('「夜に駆ける」 & more')}&url=${encodeURIComponent(`https://kotonoha.eastshine.dev/c/${T}`)}`,
+    );
   });
 });

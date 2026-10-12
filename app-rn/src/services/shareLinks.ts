@@ -18,3 +18,8 @@ export function parseShareToken(url: string | null | undefined): string | null {
 export function shareUrlLabel(url: string): string {
   return url.replace(/^https?:\/\//i, '').replace(/[/?#].*$/, '');
 }
+
+/** X 글쓰기 화면. X 앱이 있으면 앱이, 없으면 브라우저가 연다. 카드 그림은 링크 미리보기(og:image)로 붙는다. */
+export function xPostUrl(text: string, url: string): string {
+  return `https://x.com/intent/post?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
+}
